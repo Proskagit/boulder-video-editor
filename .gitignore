@@ -1,0 +1,33 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+
+## Visual Studio / Rider
+.vs/
+.idea/
+*.DotSettings.user
+
+## Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+publish/
+
+## Test results
+TestResults/
+*.trx
+
+## User-specific project artifacts (not the app's own project files)
+*.AiVideoEditorProject/
+/sample-projects/
+
+## Logs (app writes these to %LOCALAPPDATA%, not the repo, but ignore just in case)
+*.log
+logs/
+
+## OS junk
+.DS_Store
+Thumbs.db

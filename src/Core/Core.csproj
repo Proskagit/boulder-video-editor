@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>AiVideoEditor.Core</RootNamespace>
+    <AssemblyName>AiVideoEditor.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Abstractions only (no logging provider) so the domain layer stays free of
+         infrastructure concerns while still being able to accept ILogger<T>. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+  </ItemGroup>
+
+</Project>
