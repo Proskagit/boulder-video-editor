@@ -3,35 +3,33 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         mc:Ignorable="d"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:panels="using:AiVideoEditor.UI.Views.Panels"
         x:Class="AiVideoEditor.UI.Views.MainWindow"
         Title="{Binding Title}"
-        Width="1280" Height="800"
-        MinWidth="960" MinHeight="600"
+        Width="1440" Height="900"
+        MinWidth="1024" MinHeight="640"
         Background="#1E1E1E">
 
-  <DockPanel Margin="16">
+  <Grid RowDefinitions="Auto,*,Auto,240">
 
-    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
-      <TextBlock Text="AI Video Editor" FontSize="20" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
-      <TextBlock Text="— architecture skeleton (Phase 0)" FontSize="14" Foreground="#9A9A9A" VerticalAlignment="Center"/>
-    </StackPanel>
+    <!-- Toolbar -->
+    <panels:ToolbarView Grid.Row="0" DataContext="{Binding Toolbar}"/>
 
-    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="12" Margin="0,16,0,0">
-      <TextBlock Text="{Binding StatusMessage}" Foreground="#9A9A9A" VerticalAlignment="Center"/>
-    </StackPanel>
+    <!-- Media Browser | Preview | Inspector -->
+    <Grid Grid.Row="1" ColumnDefinitions="260,4,*,4,300">
+      <panels:MediaBrowserView Grid.Column="0" DataContext="{Binding MediaBrowser}"/>
+      <GridSplitter Grid.Column="1" Background="#1A1A1A" ResizeDirection="Columns"/>
+      <panels:PreviewView Grid.Column="2" DataContext="{Binding Preview}"/>
+      <GridSplitter Grid.Column="3" Background="#1A1A1A" ResizeDirection="Columns"/>
+      <panels:InspectorView Grid.Column="4" DataContext="{Binding Inspector}"/>
+    </Grid>
 
-    <Border Background="#252526" CornerRadius="4" Padding="24">
-      <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <TextBlock Text="Media / Preview / Timeline / Inspector panels arrive in Phase 1."
-                   Foreground="#CCCCCC" HorizontalAlignment="Center"/>
-        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-          <Button Content="Increment demo counter" Command="{Binding IncrementDemoCommand}"/>
-          <Button Content="Undo" Command="{Binding UndoCommand}"/>
-          <TextBlock Text="{Binding DemoCounter}" Foreground="White" VerticalAlignment="Center" FontSize="18"/>
-        </StackPanel>
-      </StackPanel>
-    </Border>
+    <!-- Splitter between the main area and the Timeline -->
+    <GridSplitter Grid.Row="2" Height="4" Background="#1A1A1A" ResizeDirection="Rows"/>
 
-  </DockPanel>
+    <!-- Timeline -->
+    <panels:TimelineView Grid.Row="3" DataContext="{Binding Timeline}"/>
+
+  </Grid>
 
 </Window>

@@ -1,6 +1,7 @@
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.UI.Views;
 using AiVideoEditor.UI.ViewModels;
+using AiVideoEditor.UI.ViewModels.Panels;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AiVideoEditor.App.Composition;
@@ -29,6 +30,11 @@ public static class ServiceCollectionExtensions
         //   services.AddSingleton<IExportService, FfmpegExportService>();
 
         // --- UI ---------------------------------------------------------------
+        services.AddTransient<ToolbarViewModel>();
+        services.AddTransient<MediaBrowserViewModel>();
+        services.AddTransient<PreviewViewModel>();
+        services.AddTransient<InspectorViewModel>();
+        services.AddTransient<TimelineViewModel>();
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();
 

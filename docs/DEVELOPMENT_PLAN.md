@@ -5,8 +5,8 @@ and runs cleanly.
 
 - [x] **Phase 0 — Architecture.** Solution, projects, DI, logging, base MVVM,
       basic window, Git-ready structure. *(this commit)*
-- [ ] **Phase 1 — Basic UI.** Toolbar, Media Browser, Preview, Timeline, Inspector
-      panels laid out with mock data. Visual skeleton only.
+- [x] **Phase 1 — Basic UI.** Toolbar, Media Browser, Preview, Timeline, Inspector
+      panels laid out with mock data. Visual skeleton only. *(this commit)*
 - [ ] **Phase 2 — Media import.** File picker, drag & drop, FFmpeg metadata
       probing, thumbnails.
 - [ ] **Phase 3 — Timeline.** Tracks, clips, selection, move, trim, split,

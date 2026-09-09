@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AiVideoEditor.UI.Views.Panels.ToolbarView">
+
+  <Border Background="#2D2D30" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1" Padding="8,6">
+    <StackPanel Orientation="Horizontal" Spacing="6">
+
+      <Button Content="New" Command="{Binding NewProjectCommand}" ToolTip.Tip="New Project"/>
+      <Button Content="Open" Command="{Binding OpenCommand}" ToolTip.Tip="Open Project"/>
+      <Button Content="Save" Command="{Binding SaveCommand}" ToolTip.Tip="Save Project"/>
+
+      <Rectangle Width="1" Fill="#444444" Margin="6,2"/>
+
+      <Button Content="Undo" Command="{Binding UndoCommand}" ToolTip.Tip="Undo (Ctrl+Z)"/>
+      <Button Content="Redo" Command="{Binding RedoCommand}" ToolTip.Tip="Redo (Ctrl+Y)"/>
+
+      <Rectangle Width="1" Fill="#444444" Margin="6,2"/>
+
+      <Button Content="Import Media" Command="{Binding ImportMediaCommand}" ToolTip.Tip="Import media into the project"/>
+
+      <Rectangle Width="1" Fill="#444444" Margin="6,2"/>
+
+      <Button Content="Export" Command="{Binding ExportCommand}" ToolTip.Tip="Export the sequence"/>
+
+    </StackPanel>
+  </Border>
+
+</UserControl>

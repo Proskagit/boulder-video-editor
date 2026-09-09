@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AiVideoEditor.UI.Views.Panels.MediaBrowserView">
+
+  <Border Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,0,1,0">
+    <DockPanel>
+
+      <Border DockPanel.Dock="Top" Padding="8" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1">
+        <DockPanel>
+          <TextBlock Text="MEDIA" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A"
+                     VerticalAlignment="Center" DockPanel.Dock="Left"/>
+          <Button Content="+ Import" Command="{Binding ImportCommand}" HorizontalAlignment="Right"/>
+        </DockPanel>
+      </Border>
+
+      <ScrollViewer>
+        <ItemsControl ItemsSource="{Binding Items}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Background="#2D2D30" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1" Padding="6">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+
+                  <Border Width="56" Height="32" CornerRadius="2" Background="{Binding ThumbnailColorHex}"/>
+
+                  <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding FileName}" Foreground="#DDDDDD" FontSize="12"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <TextBlock Text="{Binding KindLabel}" Foreground="#8A8A8A" FontSize="10"/>
+                      <TextBlock Text="{Binding DurationDisplay}" Foreground="#8A8A8A" FontSize="10"/>
+                    </StackPanel>
+                  </StackPanel>
+
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+    </DockPanel>
+  </Border>
+
+</UserControl>

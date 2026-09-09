@@ -1,0 +1,94 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AiVideoEditor.UI.Views.Panels.TimelineView">
+
+  <Border Background="#1E1E1E" BorderBrush="#1A1A1A" BorderThickness="0,1,0,0">
+    <DockPanel>
+
+      <Border DockPanel.Dock="Top" Padding="8" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1">
+        <TextBlock Text="TIMELINE" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A"/>
+      </Border>
+
+      <Grid ColumnDefinitions="70,*">
+
+        <!-- Track label column (fixed, does not scroll horizontally) -->
+        <StackPanel Grid.Column="0" Background="#252526">
+          <Border Height="24"/> <!-- spacer matching the ruler row -->
+          <ItemsControl ItemsSource="{Binding Tracks}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Height="40" BorderBrush="#1A1A1A" BorderThickness="0,0,1,1">
+                  <TextBlock Text="{Binding Label}" Foreground="#AAAAAA" FontSize="11"
+                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <!-- Scrollable ruler + tracks + playhead -->
+        <ScrollViewer Grid.Column="1"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto">
+          <Grid RowDefinitions="24,*" Width="2400">
+
+            <!-- Time ruler -->
+            <Canvas Grid.Row="0" Height="24" Background="#232323">
+              <ItemsControl ItemsSource="{Binding RulerTicks}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <Canvas/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding Label}" Foreground="#7A7A7A" FontSize="10"
+                               Canvas.Left="{Binding Left}" Canvas.Top="5"/>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Canvas>
+
+            <!-- Tracks -->
+            <ItemsControl Grid.Row="1" ItemsSource="{Binding Tracks}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Canvas Height="40" Background="#202020">
+                    <ItemsControl ItemsSource="{Binding Clips}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <Canvas/>
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Border Canvas.Left="{Binding Left}" Canvas.Top="4"
+                                  Width="{Binding Width}" Height="32"
+                                  CornerRadius="2" Background="{Binding ColorHex}"
+                                  BorderBrush="#000000" BorderThickness="1">
+                            <TextBlock Text="{Binding Name}" Foreground="#EEEEEE" FontSize="10"
+                                       Margin="4,0" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </Canvas>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Playhead overlay, spans ruler + tracks -->
+            <Canvas Grid.Row="0" Grid.RowSpan="2" IsHitTestVisible="False">
+              <Rectangle Canvas.Left="{Binding PlayheadLeft}" Width="1" Height="200" Fill="#E05A3C"/>
+            </Canvas>
+
+          </Grid>
+        </ScrollViewer>
+
+      </Grid>
+
+    </DockPanel>
+  </Border>
+
+</UserControl>
