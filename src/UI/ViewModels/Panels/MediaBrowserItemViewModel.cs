@@ -1,40 +1,46 @@
+using AiVideoEditor.Core.Entities;
+using AiVideoEditor.UI.Common;
+
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
-/// <summary>Media kind shown in the browser. Mirrors <see cref="Core.Entities.MediaKind"/>
-/// but kept as its own small UI-facing enum so the view model doesn't need to pull in
-/// the full Core entity just to render a placeholder tile.</summary>
-public enum MediaBrowserItemKind
-{
-    Video,
-    Audio,
-    Image
-}
-
 /// <summary>
-/// A single Media Browser entry. In Phase 1 these are hand-authored mock items;
-/// once Phase 2 lands, <see cref="MediaBrowserViewModel"/> will populate this same
-/// shape from <c>IMediaImportService</c> results instead.
+/// A single Media Browser entry. Wraps a real <see cref="MediaAsset"/> — display
+/// properties are all derived from it, nothing is duplicated, so there is exactly
+/// one source of truth for a media item's data (per the Phase 2 rule against
+/// duplicate models).
 /// </summary>
 public sealed class MediaBrowserItemViewModel : ViewModelBase
 {
-    public required string FileName { get; init; }
-    public required string DurationDisplay { get; init; }
-    public required MediaBrowserItemKind Kind { get; init; }
+    public MediaAsset Asset { get; }
 
-    /// <summary>Placeholder thumbnail color until real thumbnail generation exists (Phase 2).</summary>
-    public string ThumbnailColorHex => Kind switch
+    public MediaBrowserItemViewModel(MediaAsset asset)
     {
-        MediaBrowserItemKind.Video => "#3A5A78",
-        MediaBrowserItemKind.Audio => "#3A784F",
-        MediaBrowserItemKind.Image => "#78703A",
-        _ => "#444444"
+        Asset = asset;
+    }
+
+    public string FileName => Asset.FileName;
+
+    public string FormatLabel => Asset.FileExtension.TrimStart('.').ToUpperInvariant();
+
+    public string KindLabel => Asset.Kind switch
+    {
+        MediaKind.Video => "VIDEO",
+        MediaKind.Audio => "AUDIO",
+        MediaKind.Image => "IMAGE",
+        _ => "?"
     };
 
-    public string KindLabel => Kind switch
+    public string FileSizeDisplay => FileSizeFormat.ToShortString(Asset.FileSizeBytes);
+
+    /// <summary>e.g. "MP4 · 842 MB" — matches the Media Browser row format from the spec.</summary>
+    public string FormatAndSizeDisplay => $"{FormatLabel} · {FileSizeDisplay}";
+
+    /// <summary>Placeholder tile color until real thumbnail generation exists (Phase 2 stays FFmpeg-free).</summary>
+    public string ThumbnailColorHex => Asset.Kind switch
     {
-        MediaBrowserItemKind.Video => "VIDEO",
-        MediaBrowserItemKind.Audio => "AUDIO",
-        MediaBrowserItemKind.Image => "IMAGE",
-        _ => "?"
+        MediaKind.Video => "#3A5A78",
+        MediaKind.Audio => "#3A784F",
+        MediaKind.Image => "#78703A",
+        _ => "#444444"
     };
 }

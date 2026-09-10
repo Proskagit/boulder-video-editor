@@ -1,26 +1,34 @@
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
 /// <summary>
-/// Top toolbar. Everything except Undo/Redo is a placeholder command in Phase 1 —
-/// New/Open/Save/Import/Export don't do anything real yet (no Project/Media/Export
-/// subsystem behind them), so they just log an informational message. They are
-/// still real, disable-able commands wired through the ViewModel, not code-behind
-/// click handlers, so wiring in the real behavior in later phases is a one-line
-/// change here rather than touching the view.
+/// Top toolbar. New Project and Import Media are real (Phase 2); Open/Save/Export
+/// stay enabled but just report a clear "not implemented yet" status message
+/// instead of pretending to work — no fake persistence, per the Phase 2 rules.
+/// Import here calls the exact same <see cref="MediaImportWorkflow"/> as the Media
+/// Browser's own Import button, so the two stay identical with no duplicated logic.
 /// </summary>
 public sealed partial class ToolbarViewModel : ViewModelBase
 {
     private readonly IUndoRedoService _undoRedoService;
-    private readonly ILogger<ToolbarViewModel> _logger;
+    private readonly IProjectService _projectService;
+    private readonly MediaImportWorkflow _importWorkflow;
+    private readonly StatusService _status;
 
-    public ToolbarViewModel(IUndoRedoService undoRedoService, ILogger<ToolbarViewModel> logger)
+    public ToolbarViewModel(
+        IUndoRedoService undoRedoService,
+        IProjectService projectService,
+        MediaImportWorkflow importWorkflow,
+        StatusService status)
     {
         _undoRedoService = undoRedoService;
-        _logger = logger;
+        _projectService = projectService;
+        _importWorkflow = importWorkflow;
+        _status = status;
         _undoRedoService.StateChanged += OnUndoRedoStateChanged;
     }
 
@@ -31,13 +39,18 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void NewProject() => _logger.LogInformation("New Project requested (not implemented until Phase 5).");
+    private void NewProject()
+    {
+        _projectService.CreateNew("Untitled Project");
+        _undoRedoService.Clear();
+        _status.Report("New project created");
+    }
 
     [RelayCommand]
-    private void Open() => _logger.LogInformation("Open Project requested (not implemented until Phase 5).");
+    private void Open() => _status.Report("Opening saved projects isn't implemented yet (arrives in Phase 5).");
 
     [RelayCommand]
-    private void Save() => _logger.LogInformation("Save Project requested (not implemented until Phase 5).");
+    private void Save() => _status.Report("Saving projects isn't implemented yet (arrives in Phase 5).");
 
     [RelayCommand(CanExecute = nameof(CanUndo))]
     private void Undo() => _undoRedoService.Undo();
@@ -50,8 +63,8 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     private bool CanRedo() => _undoRedoService.CanRedo;
 
     [RelayCommand]
-    private void ImportMedia() => _logger.LogInformation("Import Media requested (not implemented until Phase 2).");
+    private Task ImportMedia() => _importWorkflow.RunAsync();
 
     [RelayCommand]
-    private void Export() => _logger.LogInformation("Export requested (not implemented until Phase 7).");
+    private void Export() => _status.Report("Export isn't implemented yet (arrives in Phase 7).");
 }

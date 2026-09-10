@@ -10,7 +10,7 @@
         MinWidth="1024" MinHeight="640"
         Background="#1E1E1E">
 
-  <Grid RowDefinitions="Auto,*,Auto,240">
+  <Grid RowDefinitions="Auto,*,Auto,240,Auto">
 
     <!-- Toolbar -->
     <panels:ToolbarView Grid.Row="0" DataContext="{Binding Toolbar}"/>
@@ -29,6 +29,11 @@
 
     <!-- Timeline -->
     <panels:TimelineView Grid.Row="3" DataContext="{Binding Timeline}"/>
+
+    <!-- Status bar -->
+    <Border Grid.Row="4" Background="#007ACC" Padding="10,4">
+      <TextBlock Text="{Binding Status.Message}" Foreground="White" FontSize="11"/>
+    </Border>
 
   </Grid>
 

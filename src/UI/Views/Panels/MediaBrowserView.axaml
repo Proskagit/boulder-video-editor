@@ -13,29 +13,41 @@
         </DockPanel>
       </Border>
 
-      <ScrollViewer>
-        <ItemsControl ItemsSource="{Binding Items}">
-          <ItemsControl.ItemTemplate>
+      <Panel>
+        <!-- Empty state -->
+        <StackPanel IsVisible="{Binding HasNoMedia}" Margin="16" Spacing="6" VerticalAlignment="Center">
+          <TextBlock Text="No media imported" Foreground="#AAAAAA" FontSize="13"
+                     HorizontalAlignment="Center" TextWrapping="Wrap"/>
+          <TextBlock Text="Import video, audio or image files to start editing."
+                     Foreground="#6A6A6A" FontSize="11" TextWrapping="Wrap"
+                     HorizontalAlignment="Center" TextAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Real media list -->
+        <ListBox IsVisible="{Binding !HasNoMedia}"
+                 ItemsSource="{Binding Items}"
+                 SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                 Background="Transparent"
+                 BorderThickness="0">
+          <ListBox.ItemTemplate>
             <DataTemplate>
-              <Border Background="#2D2D30" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1" Padding="6">
-                <StackPanel Orientation="Horizontal" Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="8" Margin="2">
 
-                  <Border Width="56" Height="32" CornerRadius="2" Background="{Binding ThumbnailColorHex}"/>
+                <Border Width="56" Height="32" CornerRadius="2" Background="{Binding ThumbnailColorHex}"/>
 
-                  <StackPanel Spacing="2" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding FileName}" Foreground="#DDDDDD" FontSize="12"/>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                      <TextBlock Text="{Binding KindLabel}" Foreground="#8A8A8A" FontSize="10"/>
-                      <TextBlock Text="{Binding DurationDisplay}" Foreground="#8A8A8A" FontSize="10"/>
-                    </StackPanel>
+                <StackPanel Spacing="2" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding FileName}" Foreground="#DDDDDD" FontSize="12"/>
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="{Binding KindLabel}" Foreground="#8A8A8A" FontSize="10"/>
+                    <TextBlock Text="{Binding FormatAndSizeDisplay}" Foreground="#8A8A8A" FontSize="10"/>
                   </StackPanel>
-
                 </StackPanel>
-              </Border>
+
+              </StackPanel>
             </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </ScrollViewer>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Panel>
 
     </DockPanel>
   </Border>

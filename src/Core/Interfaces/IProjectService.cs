@@ -8,6 +8,13 @@ public interface IProjectService
 
     event EventHandler? ProjectChanged;
 
+    /// <summary>Raised whenever <see cref="Project.MediaAssets"/> changes — after
+    /// <see cref="AddMediaAssets"/> adds anything, and implicitly whenever
+    /// <see cref="ProjectChanged"/> fires too (a new/opened project has its own list).
+    /// Media Browser listens to this instead of being pushed into directly, so it
+    /// doesn't matter which command (Toolbar or Media Browser) triggered an import.</summary>
+    event EventHandler? MediaAssetsChanged;
+
     Project CreateNew(string name, ProjectSettings? settings = null);
 
     Task<Project> OpenAsync(string projectFolderPath, CancellationToken ct = default);
@@ -18,6 +25,22 @@ public interface IProjectService
 
     /// <summary>Checks every MediaAsset's FilePath and marks it IsMissing = true if not found.</summary>
     IReadOnlyList<MediaAsset> DetectMissingMedia();
+
+    /// <summary>Adds newly-imported media to the current project, skipping any whose
+    /// <see cref="MediaAsset.FilePath"/> is already present. This is the only place
+    /// duplicate detection happens, since it's the only place that knows what's
+    /// already in the project.</summary>
+    MediaAddResult AddMediaAssets(IEnumerable<MediaAsset> assets);
+}
+
+/// <summary>Result of <see cref="IProjectService.AddMediaAssets"/>.</summary>
+public sealed class MediaAddResult
+{
+    public IReadOnlyList<MediaAsset> Added { get; init; } = Array.Empty<MediaAsset>();
+
+    /// <summary>How many of the given assets were skipped because a media asset with
+    /// the same <see cref="MediaAsset.FilePath"/> was already in the project.</summary>
+    public int DuplicateCount { get; init; }
 }
 
 public interface IAutosaveService
@@ -25,16 +48,6 @@ public interface IAutosaveService
     void Start();
     void Stop();
     event EventHandler<string>? AutosaveCompleted;
-}
-
-public interface IMediaImportService
-{
-    Task<MediaAsset> ImportAsync(string filePath, CancellationToken ct = default);
-
-    Task<IReadOnlyList<MediaAsset>> ImportManyAsync(IEnumerable<string> filePaths, CancellationToken ct = default);
-
-    /// <summary>File extensions (without dot) that the Media Browser will accept, derived from FFmpeg support.</summary>
-    IReadOnlySet<string> SupportedExtensions { get; }
 }
 
 public interface IThumbnailService

@@ -23,6 +23,12 @@ public sealed class MediaAsset
 
     public string FileName => Path.GetFileName(FilePath);
 
+    /// <summary>File extension including the leading dot (e.g. ".mp4"), lower-cased.</summary>
+    public string FileExtension => Path.GetExtension(FilePath).ToLowerInvariant();
+
+    /// <summary>Size of the source file in bytes, captured at import time.</summary>
+    public long FileSizeBytes { get; set; }
+
     public MediaKind Kind { get; set; }
 
     /// <summary>Null until FFmpeg metadata probing has completed.</summary>

@@ -1,4 +1,7 @@
 using System.Collections.ObjectModel;
+using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -6,33 +9,70 @@ using Microsoft.Extensions.Logging;
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
 /// <summary>
-/// Left-hand Media Browser. <see cref="Items"/> is mock data for Phase 1 — clearly
-/// isolated in the constructor below so it's a one-place swap for the real
-/// <c>IMediaImportService</c>-backed collection in Phase 2.
+/// Left-hand Media Browser. <see cref="Items"/> is a pure reactive projection over
+/// <see cref="IProjectService.Current"/>'s media assets — it rebuilds itself
+/// whenever the project resets or media is added, rather than being pushed into
+/// directly by the Import command. That means it doesn't matter whether an import
+/// was triggered from here or from the Toolbar (see <see cref="MediaImportWorkflow"/>).
 /// </summary>
 public sealed partial class MediaBrowserViewModel : ViewModelBase
 {
+    private readonly IProjectService _projectService;
+    private readonly MediaImportWorkflow _importWorkflow;
     private readonly ILogger<MediaBrowserViewModel> _logger;
 
     public ObservableCollection<MediaBrowserItemViewModel> Items { get; } = new();
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNoMedia))]
     private MediaBrowserItemViewModel? _selectedItem;
 
-    public MediaBrowserViewModel(ILogger<MediaBrowserViewModel> logger)
+    public bool HasNoMedia => Items.Count == 0;
+
+    /// <summary>Raised whenever the selected media item changes, carrying the
+    /// underlying asset (or null when selection is cleared). MainWindowViewModel
+    /// listens to this and forwards it to the Inspector — Media Browser and
+    /// Inspector never reference each other directly.</summary>
+    public event EventHandler<MediaAsset?>? SelectionChanged;
+
+    public MediaBrowserViewModel(
+        IProjectService projectService,
+        MediaImportWorkflow importWorkflow,
+        ILogger<MediaBrowserViewModel> logger)
     {
+        _projectService = projectService;
+        _importWorkflow = importWorkflow;
         _logger = logger;
 
-        // --- Mock data (Phase 1 only) --------------------------------------
-        Items.Add(new MediaBrowserItemViewModel { FileName = "beach_sunset.mp4", DurationDisplay = "00:01:24", Kind = MediaBrowserItemKind.Video });
-        Items.Add(new MediaBrowserItemViewModel { FileName = "interview_a.mov", DurationDisplay = "00:04:57", Kind = MediaBrowserItemKind.Video });
-        Items.Add(new MediaBrowserItemViewModel { FileName = "background_music.mp3", DurationDisplay = "00:03:12", Kind = MediaBrowserItemKind.Audio });
-        Items.Add(new MediaBrowserItemViewModel { FileName = "voiceover_take3.wav", DurationDisplay = "00:00:48", Kind = MediaBrowserItemKind.Audio });
-        Items.Add(new MediaBrowserItemViewModel { FileName = "logo.png", DurationDisplay = "—", Kind = MediaBrowserItemKind.Image });
-        // --------------------------------------------------------------------
+        _projectService.ProjectChanged += (_, _) => ReloadFromProject();
+        _projectService.MediaAssetsChanged += (_, _) => ReloadFromProject();
+
+        ReloadFromProject();
+    }
+
+    partial void OnSelectedItemChanged(MediaBrowserItemViewModel? value)
+    {
+        SelectionChanged?.Invoke(this, value?.Asset);
+    }
+
+    private void ReloadFromProject()
+    {
+        var previouslySelectedPath = SelectedItem?.Asset.FilePath;
+
+        Items.Clear();
+        foreach (var asset in _projectService.Current.MediaAssets)
+            Items.Add(new MediaBrowserItemViewModel(asset));
+
+        // Keep the same item selected across a reload (e.g. after an import) when
+        // it's still there; otherwise clear selection rather than pointing at a
+        // stale view model instance.
+        SelectedItem = previouslySelectedPath is null
+            ? null
+            : Items.FirstOrDefault(i => i.Asset.FilePath == previouslySelectedPath);
+
+        OnPropertyChanged(nameof(HasNoMedia));
     }
 
     [RelayCommand]
-    private void Import() =>
-        _logger.LogInformation("Import Media requested (file picker / drag-drop land in Phase 2).");
+    private Task Import() => _importWorkflow.RunAsync();
 }
