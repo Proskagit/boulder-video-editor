@@ -39,9 +39,10 @@ public sealed class MediaBrowserItemViewModel : ViewModelBase
     /// Compact technical line for the list row — e.g. "1:24 · 1920×1080 · 60 FPS"
     /// for video, "3:12 · 48 kHz · Stereo" for audio, "1920×1080" for images.
     /// Null (row hidden) while analysis hasn't produced anything to show yet, so
-    /// the list never displays a made-up value.
+    /// the list never displays a made-up value. "Media offline" when the file was missing
+    /// when the project was opened.
     /// </summary>
-    public string? TechnicalSummary => Asset.AnalysisStatus switch
+    public string? TechnicalSummary => Asset.IsMissing ? "Media offline" : Asset.AnalysisStatus switch
     {
         MediaAnalysisStatus.Analyzing => "Analyzing…",
         MediaAnalysisStatus.Failed => "Metadata unavailable",

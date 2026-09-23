@@ -2,10 +2,11 @@
 
 A simplified, desktop-first video editor (Windows 10/11 x64, Avalonia UI, .NET 8),
 architected so professional-grade features can be layered in over time without a
-rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–3
+rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–6
 are complete** (architecture, UI skeleton, media import, ffprobe metadata
-analysis). Timeline editing, preview playback, project persistence and export
-are not implemented yet (Phases 4–8).
+analysis, timeline editing, preview playback with audio, project persistence with
+autosave/recovery). Basic editing properties, export and polish are not implemented
+yet (Phases 7–9).
 
 ## Requirements
 
@@ -13,11 +14,11 @@ are not implemented yet (Phases 4–8).
 - Windows 10/11 x64 for the shipping target. The code also builds and runs on
   Linux/macOS during development since Avalonia is cross-platform; only the
   packaging/manifest is Windows-specific.
-- **FFmpeg** — not required to build or run. Currently only **ffprobe** is used
-  (media metadata analysis, Phase 3). `AiVideoEditor.Infrastructure` looks for it
-  at `Ffmpeg:FfprobePath` in `appsettings.json`, then on `PATH`; if it is missing,
-  import still works and metadata is reported as unavailable. ffmpeg itself
-  (thumbnails, decode, export) will be required from later phases.
+- **FFmpeg** — not required to build or run. **ffprobe** (media metadata) and
+  **ffmpeg** (preview decoding) are looked up at `Ffmpeg:FfprobePath` /
+  `Ffmpeg:FfmpegPath` in `appsettings.json`, then on `PATH`. Without ffprobe, import
+  still works and metadata is reported as unavailable; without ffmpeg, the preview
+  shows no picture or sound. Export (Phase 8) will also need ffmpeg.
 
 ## Getting started
 
@@ -50,17 +51,22 @@ src/
                    concrete infra.
   Infrastructure/  Serilog logging setup, app folder layout, ffprobe location,
                    user-facing error translation.
-  Video/           ffprobe metadata analysis (Phase 3); decode (Phase 5) and
-                   thumbnails (Phase 9) later.
-  Audio/           (Phase 8/9) Audio mixing, waveform generation. Empty.
-  Timeline/        (Phase 4) Timeline editing commands (move/trim/split/snap). Empty.
+  Video/           ffprobe metadata analysis (Phase 3); ffmpeg video/audio decoding
+                   for playback (Phase 5); thumbnails (Phase 9) later.
+  Audio/           WASAPI audio output for playback (Phase 5).
+  Timeline/        Timeline editing commands (Phase 4) and the playback engine
+                   (Phase 5).
   Media/           Media import: extension validation, file info (Phase 2).
   Effects/         (Phase 7+) Effect/transition definitions and parameter schemas. Empty.
   Export/          (Phase 8) FFmpeg render/export pipeline. Empty.
-  Project/         In-memory project state (Phase 2); project.json persistence,
-                   autosave, missing media in Phase 6.
+  Project/         Current project state (Phase 2); project.json persistence,
+                   save point, autosave/recovery, missing media (Phase 6).
 tests/
   Core.Tests/      Unit tests for the dependency-free domain layer.
+  Project.Tests/   Persistence, save point, autosave/recovery, missing media.
+  Timeline.Tests/  Timeline editing and playback engine (fake decoder/clock).
+  UI.Tests/        View models and UI workflows against real services.
+  Video.Tests/     ffmpeg/ffprobe and audio-device integration tests.
 docs/
   DEVELOPMENT_PLAN.md   Phase-by-phase roadmap and standing architectural rules.
 ```
@@ -83,9 +89,9 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
   the timeline's internal representation stays frame-rate-independent as the
   spec requires.
 - **FFmpeg behind Core interfaces** — nothing in `UI` or `Timeline` calls
-  FFmpeg directly. Probing is implemented behind `IMediaAnalysisService`
-  (Phase 3); `IVideoEngine` (thumbnails/decode) and `IExportService` (Phase 8)
-  have no implementations yet.
+  FFmpeg directly. Probing is behind `IMediaAnalysisService` (Phase 3), decoding
+  behind `IVideoDecoder` / `IAudioDecoder` (Phase 5); `IVideoEngine` (thumbnails)
+  and `IExportService` (Phase 8) have no implementations yet.
 - **Serilog with per-area log files** (`app-*.log`, `ffmpeg-*.log`,
   `export-*.log`, `errors-*.log` under `%LOCALAPPDATA%\AiVideoEditor\logs`) —
   keeps FFmpeg/export noise separate from general app logs while still
@@ -93,10 +99,14 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–3 complete. Working: New Project, multi-file media import with
-validation and duplicate detection, background ffprobe metadata analysis, Media
-Browser and Inspector showing real file and technical properties.
+Phases 0–6 complete. Working: media import with validation and duplicate
+detection, background ffprobe metadata analysis, Media Browser and Inspector,
+timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
+preview playback with video and audio, and projects on disk: New / Open / Save /
+Save As (a project folder with `project.json`), unsaved-changes prompt, window title
+with `*`, autosave to a recovery file every 2 minutes with a recovery offer after a
+crash, missing media shown as offline.
 
-Not yet working: the Timeline panel shows mock tracks/clips (Phase 4); the
-Preview panel has no decoder and shows mock time values (Phase 5);
-Open/Save (Phase 6) and Export (Phase 8) report "not implemented yet".
+Not yet working: clip properties such as speed/volume/opacity/transform/crop/text
+(Phase 7) and Export (Phase 8, reports "not implemented yet"); relink of missing media
+and recent projects are not planned yet.

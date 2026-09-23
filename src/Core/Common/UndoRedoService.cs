@@ -2,11 +2,23 @@ namespace AiVideoEditor.Core.Common;
 
 public sealed class UndoRedoService : IUndoRedoService
 {
+    /// <summary>History position of an empty undo stack.</summary>
+    private static readonly object EmptyHistory = new();
+
     private readonly Stack<IUndoableCommand> _undoStack = new();
     private readonly Stack<IUndoableCommand> _redoStack = new();
 
+    // A position is identified by the command on top of the undo stack: every executed
+    // command is a distinct instance, so once a command is dropped from the redo stack its
+    // position can never come back, and a save point pointing at it is unreachable.
+    private object _savePoint = EmptyHistory;
+
     public bool CanUndo => _undoStack.Count > 0;
     public bool CanRedo => _redoStack.Count > 0;
+
+    public object CurrentPosition => _undoStack.TryPeek(out var top) ? top : EmptyHistory;
+
+    public bool IsAtSavePoint => ReferenceEquals(CurrentPosition, _savePoint);
 
     public event EventHandler? StateChanged;
 
@@ -38,6 +50,14 @@ public sealed class UndoRedoService : IUndoRedoService
     {
         _undoStack.Clear();
         _redoStack.Clear();
+        _savePoint = EmptyHistory;
+        RaiseStateChanged();
+    }
+
+    public void MarkSavePoint(object position)
+    {
+        ArgumentNullException.ThrowIfNull(position);
+        _savePoint = position;
         RaiseStateChanged();
     }
 

@@ -5,9 +5,10 @@
   <Border Background="#2D2D30" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1" Padding="8,6">
     <StackPanel Orientation="Horizontal" Spacing="6">
 
-      <Button Content="New" Command="{Binding NewProjectCommand}" ToolTip.Tip="New Project"/>
-      <Button Content="Open" Command="{Binding OpenCommand}" ToolTip.Tip="Open Project"/>
-      <Button Content="Save" Command="{Binding SaveCommand}" ToolTip.Tip="Save Project"/>
+      <Button Content="New" Command="{Binding NewProjectCommand}" ToolTip.Tip="New Project (Ctrl+N)"/>
+      <Button Content="Open" Command="{Binding OpenCommand}" ToolTip.Tip="Open Project (Ctrl+O)"/>
+      <Button Content="Save" Command="{Binding SaveCommand}" ToolTip.Tip="Save Project (Ctrl+S)"/>
+      <Button Content="Save As" Command="{Binding SaveAsCommand}" ToolTip.Tip="Save Project As (Ctrl+Shift+S)"/>
 
       <Rectangle Width="1" Fill="#444444" Margin="6,2"/>
 

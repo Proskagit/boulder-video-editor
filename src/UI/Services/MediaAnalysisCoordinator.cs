@@ -37,8 +37,33 @@ public sealed class MediaAnalysisCoordinator
             QueueAnalysis(asset);
     }
 
+    /// <summary>Queues only the assets that still need metadata: not analysed yet
+    /// (<see cref="MediaAnalysisStatus.Pending"/>) and present on disk. Used after a project
+    /// is opened — assets whose saved metadata was loaded are already
+    /// <see cref="MediaAnalysisStatus.Completed"/>. Returns how many were queued.</summary>
+    public int QueueWhereNeeded(IEnumerable<MediaAsset> assets)
+    {
+        var queued = 0;
+        foreach (var asset in assets)
+        {
+            if (asset.AnalysisStatus != MediaAnalysisStatus.Pending || asset.IsMissing)
+                continue;
+            QueueAnalysis(asset);
+            queued++;
+        }
+        return queued;
+    }
+
     public void QueueAnalysis(MediaAsset asset)
     {
+        if (asset.IsMissing)
+        {
+            // ffprobe can't succeed on a file that isn't there; the asset stays as it is
+            // (offline) instead of being turned into a failed analysis.
+            _logger.LogDebug("Not analysing missing media '{Path}'.", asset.FilePath);
+            return;
+        }
+
         if (!_inFlight.TryAdd(asset.Id, 0))
         {
             _logger.LogDebug("Analysis already in progress for '{Path}'; skipping duplicate request.", asset.FilePath);

@@ -2,10 +2,91 @@
 
 ## Current phase
 
-Phase 5 — Preview/playback: **complete**, branch `feat/phase-5-playback`. Decisions:
-DECISIONS.md D009–D013. Video playback (checkpoint `85ca216`) and audio playback (Phase 5
-closeout commit) are implemented, covered by automated tests and manually validated by the
-product owner. Next phase (6 — Project persistence) not started.
+No phase in progress. Phase 6 — Project persistence: **complete**, branch
+`feat/phase-6-project-persistence` (from `acc1a49`), Phase 6 commit. Decisions: DECISIONS.md
+D014–D016. Next phase (7 — Basic editing) not started.
+
+### Phase 6 — Project persistence (complete)
+
+Product decisions (2026-09-23): project = folder with `project.json` + `cache/` (no
+`.aveproj`); autosave writes a separate recovery file every 2 min and never overwrites
+`project.json`; save point is part of Phase 6; saved ffprobe metadata is reused on Open;
+failed Open leaves the current project untouched; atomic save; missing media opens as
+offline. Out of scope: relink, recent projects, copying media into the project.
+
+- Step 1 done — format/serializer: `Project/Persistence/ProjectFileDto.cs` (format v1, DTOs
+  separate from entities, `MediaTime` as long ticks, `FrameRate` as {num, den}, no runtime
+  state), `ProjectSerializer` (validating load: ids, references, clip kind/track, frame grid,
+  overlaps; absolute + relative media path), `ProjectFileStore` (atomic temp + `File.Replace`),
+  `Core/Interfaces/ProjectFileException`. Tests: `tests/Project.Tests` (new project).
+- Step 2 done — `ProjectService` Open/Save/SaveAs; save point in `UndoRedoService`
+  (`CurrentPosition`, `MarkSavePoint`, `IsAtSavePoint`); dirty = history not at save point or
+  a media import since the save; `SaveStateChanged` event. Open replaces the project only after
+  full load + validation.
+- Step 3 done — missing media: marked on the loaded project before it replaces the current one
+  (first playback snapshot already Offline); not dirty, not saved. `ProjectFileWorkflow` (UI):
+  open → analyse only present media without saved metadata → status message with the missing
+  count. `MediaAnalysisCoordinator` never probes missing files. Media Browser row shows
+  "Media offline".
+- Step 4 done — autosave/recovery: `AutosaveService` (Project, implements the Core
+  `IAutosaveService`, every 2 min, snapshot on the UI thread, atomic write) into
+  `%LOCALAPPDATA%\AiVideoEditor\recovery\<projectId>.json` via `RecoveryStore` (one app-wide
+  folder so startup can find recovery without recent projects; never `project.json`). Recovery
+  file = project DTO + original folder, time, writer process. Obsolete (deleted) after a
+  successful Save (`IProjectService.ProjectSaved`), when this session finds the project clean,
+  on Discard, and at a clean shutdown; a per-project generation stops an autosave snapshotted
+  before a Save from rewriting it. Startup (`ProjectFileWorkflow.StartSessionAsync`, on window
+  Opened): scan → damaged files renamed `*.damaged`, files older than project.json removed,
+  files of a running instance ignored → Recover / Discard / Not now dialog (`IDialogService`,
+  `AvaloniaDialogService`) → `IProjectService.RestoreRecoveryAsync` (same validation as Open;
+  project dirty, original folder) → autosave starts. Closing (`MainWindow.OnClosing` →
+  `PrepareToCloseAsync`): a dirty project keeps a final recovery file, a clean one leaves none.
+  (Step 5 then put the unsaved-changes prompt in front of this.) `AppPaths.AutosaveFile`
+  (project cache) replaced by `AppPaths.RecoveryFolder`.
+- Step 5 done — UI workflow: `ProjectFileWorkflow` New / Open (folder picker) / Save (Save As
+  if never saved) / Save As (folder picker; confirms replacing another project's
+  project.json) / Close, all behind one "save changes?" prompt (Save / Don't Save / Cancel via
+  `IDialogService`; a Save that doesn't happen counts as Cancel; edits made during that save →
+  asked again). "Don't Save" removes the discarded project's recovery file only after New/Open
+  succeeded (a failed Open keeps project, changes and recovery); on Close it is
+  `IAutosaveService.ShutdownAsync(keepUnsavedChanges: false)`. `IAutosaveService`:
+  `DiscardCurrentRecoveryAsync()` → `DiscardRecoveryAsync(Guid)`. Toolbar commands are async
+  (no re-entry), Save As button added; window title "Name[*] — AI Video Editor" follows
+  `SaveStateChanged`; shortcuts Ctrl+N / Ctrl+O / Ctrl+S / Ctrl+Shift+S (like the other
+  shortcuts, not while a text box has focus). `IFilePickerService.PickFolderAsync` added.
+- Step 6 done — docs: DECISIONS D014 (format, Open/Save, missing media), D015 (save point,
+  open question below), D016 (autosave, recovery, unsaved changes); ARCHITECTURE (projects
+  table, "Project persistence" section, stale Phase 3–5 statements), ROADMAP,
+  docs/DEVELOPMENT_PLAN.md (Phases 4–6 checked), README status.
+
+Verification (closeout):
+- Automated: 618 tests passed (Project 168, Core 162, Timeline 132, Video 76, UI 80);
+  `dotnet build` 0 errors, 0 warnings.
+- UI smoke test (UI Automation script, not in the repo): leftover recovery → dialog → Recover
+  → title "Smoke Film* — …" → close → prompt → Cancel keeps the window → close → Don't Save →
+  exit 0, recovery file removed.
+- Manual UI check by the product owner (Step 5): passed — incl. the native folder pickers and
+  the keyboard shortcuts.
+
+Deferred / out of scope: relink of missing media, recent projects, copying media into the
+project, re-checking missing media while the project is open, offering more than one
+recovery file per start (older ones are offered at later starts).
+
+Open questions (carried forward, not decided in Phase 6 — see D015):
+- **Playhead position, zoom and snapping**: saved in `project.json`, but changing them does
+  not make the project dirty (they aren't undoable commands). Decide whether they are project
+  state (then they should mark it dirty) or session/UI state (then they could stay out of the
+  dirty logic, or out of the file). Current code is unchanged pending that decision.
+  Consequence for autosave: such a change alone doesn't trigger an autosave; it is included
+  in the next recovery file / save written for another reason.
+- Missing state is detected once on Open; a file that reappears later stays offline until the
+  project is reopened (no relink in Phase 6).
+
+### Phase 5 — Preview/playback (complete)
+
+Branch `feat/phase-5-playback`. Decisions: DECISIONS.md D009–D013. Video playback (checkpoint
+`85ca216`) and audio playback (Phase 5 closeout commit) are implemented, covered by automated
+tests and manually validated by the product owner.
 
 ### Phase 5 checkpoint summary
 - Implemented: exact source-frame selection (D009); ffmpeg discovery; ffmpeg CLI video

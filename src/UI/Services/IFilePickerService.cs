@@ -13,6 +13,18 @@ public interface IFilePickerService
     /// <summary>Opens a native "open file" dialog. Returns an empty list if the
     /// user cancels — callers must treat that as a normal, silent outcome, not an error.</summary>
     Task<IReadOnlyList<string>> PickFilesAsync(FilePickerRequest request, CancellationToken ct = default);
+
+    /// <summary>Opens a native "select folder" dialog (where a new folder can also be created).
+    /// Returns null if the user cancels — a normal, silent outcome.</summary>
+    Task<string?> PickFolderAsync(FolderPickerRequest request, CancellationToken ct = default);
+}
+
+public sealed class FolderPickerRequest
+{
+    public string Title { get; init; } = "Select Folder";
+
+    /// <summary>Folder the dialog starts in, if it exists.</summary>
+    public string? StartFolder { get; init; }
 }
 
 public sealed class FilePickerRequest

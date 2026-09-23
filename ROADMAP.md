@@ -44,14 +44,26 @@ decoder) and audio (ffmpeg decode, mixer, WASAPI output as master clock), UI tra
 playhead ↔ seek. Manually validated by the product owner (video and audio). Decisions:
 DECISIONS.md D009–D013. Details and verification: `progress.md`.
 
+### Phase 6 — Project persistence
+Branch `feat/phase-6-project-persistence` (from `acc1a49`), Phase 6 commit. Project folder
+with `project.json` (format v1, DTOs separate from entities, `MediaTime` as long ticks);
+Open with full validation before the current project is replaced; atomic Save / Save As;
+undo save point for dirty tracking; missing media opens as offline (not dirty, not probed);
+saved ffprobe metadata reused; autosave every 2 min into a separate recovery file, startup
+recovery offer (Recover / Discard / Not now); Save / Don't Save / Cancel before New, Open and
+Close; window title with `*`; Ctrl+N / O / S / Shift+S. UI manually validated by the product
+owner. Decisions: DECISIONS.md D014–D016. Details and verification: `progress.md`.
+
+Known open question carried forward: whether playhead / zoom / snapping are project state
+(and should make the project dirty) or session state (D015).
+
 ## Current
 
-No phase in progress. Next: Phase 6 — Project persistence (not started).
+No phase in progress. Next: Phase 7 — Basic editing (not started).
 
 ## Future phases
 
-6 Project persistence, 7 Basic editing, 8 Export, 9 Quality —
-see `docs/DEVELOPMENT_PLAN.md`.
+7 Basic editing, 8 Export, 9 Quality — see `docs/DEVELOPMENT_PLAN.md`.
 
 ## Rule
 
