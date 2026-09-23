@@ -1,37 +1,50 @@
 # Roadmap
 
+The canonical phase list, with per-phase scope, is `docs/DEVELOPMENT_PLAN.md`.
+This file summarizes status only.
+
 ## Completed
 
-### Phase 0
-Completed.
+### Phase 0 — Architecture
+Commit `0ccc9be`.
 
-### Phase 2
-Completed.
+### Phase 1 — Basic UI skeleton
+Commit `88a608b`. Five panels (Toolbar, Media Browser, Preview, Timeline,
+Inspector) laid out with mock data.
+
+### Phase 2 — Project state and real media import
+Commit `e7a8ef0`.
 
 Known verified behavior:
 - media import works
 - multiple files can be added
-- New clears the current stack
-- unsupported files are blocked by file filters
+- New clears the current project and the undo/redo stack
+- unsupported files are blocked by file filters and by extension validation
+- duplicates (same path) are skipped
 
-### Phase 3
-Completed.
+### Phase 3 — Media analysis foundation
+Commit `a8e5bac`.
 
 Known verified behavior:
-- FFmpeg / FFprobe are configured
-- media metadata can be obtained
+- ffprobe is located (configured `Ffmpeg:FfprobePath` or PATH)
+- media metadata is obtained in the background after import
 - the previous "FFprobe could not be found" blocker was resolved
+
+Only ffprobe is integrated. ffmpeg itself (thumbnails, decode, export) is not
+used yet.
 
 ## Current
 
-### Phase 4
-Ready to begin.
+### Phase 4 — Timeline
+Not started. Scope (from `docs/DEVELOPMENT_PLAN.md`): tracks, clips, selection,
+move, trim, split, delete, playhead, zoom, snapping — all as undoable commands.
 
-The exact Phase 4 requirements should be taken from the current project state and the user's latest task instructions. Do not invent requirements.
+The Timeline and Preview panels still show mock data only.
 
 ## Future phases
 
-To be defined as the project evolves.
+5 Preview, 6 Project persistence, 7 Basic editing, 8 Export, 9 Quality —
+see `docs/DEVELOPMENT_PLAN.md`.
 
 ## Rule
 

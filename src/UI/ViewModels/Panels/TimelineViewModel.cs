@@ -6,7 +6,7 @@ namespace AiVideoEditor.UI.ViewModels.Panels;
 /// <summary>
 /// Bottom Timeline panel. Everything here — tracks, clips, ruler ticks, playhead
 /// position — is mock geometry built once in the constructor, isolated from real
-/// editing state on purpose: Phase 3 replaces this construction with a projection
+/// editing state on purpose: Phase 4 replaces this construction with a projection
 /// over the real <see cref="Core.Entities.Sequence"/> (tracks/clips) plus the
 /// zoom-driven pixel math, without needing to touch the view that binds to it.
 /// No move/trim/split/snap behavior exists yet — this is visual only.

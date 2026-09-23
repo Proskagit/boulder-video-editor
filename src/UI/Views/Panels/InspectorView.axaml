@@ -75,8 +75,8 @@
             </StackPanel>
           </StackPanel>
 
-          <!-- Timeline clip selection (Phase 3+ scaffold; SelectionKind never reaches
-               TimelineClip yet, so this section cannot show in Phase 2) -->
+          <!-- Timeline clip selection (Phase 4 scaffold; SelectionKind never reaches
+               TimelineClip yet, so this section cannot show before Phase 4) -->
           <StackPanel IsVisible="{Binding IsTimelineClipSelected}" Spacing="16">
             <StackPanel Spacing="6">
               <TextBlock Text="TRANSFORM" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>

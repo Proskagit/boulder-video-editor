@@ -8,10 +8,11 @@ namespace AiVideoEditor.UI.ViewModels.Panels;
 
 /// <summary>
 /// Central preview transport. Play/Pause here only flips a boolean — there is no
-/// decoder, no timer, no frame source yet. Real playback (via <c>IPlaybackService</c>,
-/// driven by the FFmpeg-backed engine) arrives in Phase 4, wired to the timeline
-/// playhead. The mock frame step size below (1/30s) stands in for a real FPS from
-/// <c>ProjectSettings</c> until a project actually exists (Phase 5).
+/// decoder, no timer, no frame source yet, and the initial current time/duration
+/// are mock values. Real playback (via <c>IPlaybackService</c>, driven by the
+/// FFmpeg-backed engine) arrives in Phase 5, wired to the timeline playhead. The
+/// mock frame step size below (1/30s) stands in for the real FPS from
+/// <c>ProjectSettings</c> until then.
 /// </summary>
 public sealed partial class PreviewViewModel : ViewModelBase
 {

@@ -5,7 +5,7 @@ namespace AiVideoEditor.UI.ViewModels.Panels;
 
 /// <summary>
 /// One clip's visual rectangle on the timeline. <see cref="Left"/>/<see cref="Width"/>
-/// are plain pixels for Phase 1's mock layout; from Phase 3 onward these are
+/// are plain pixels for Phase 1's mock layout; from Phase 4 onward these are
 /// computed from the real <see cref="Clip.TimelineStart"/>/<see cref="Clip.Duration"/>
 /// via the timeline's pixels-per-second zoom factor instead of being hand-set.
 /// </summary>

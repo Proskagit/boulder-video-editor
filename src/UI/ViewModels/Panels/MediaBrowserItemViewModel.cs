@@ -89,7 +89,7 @@ public sealed class MediaBrowserItemViewModel : ViewModelBase
         _ => null
     };
 
-    /// <summary>Placeholder tile color until real thumbnail generation exists (Phase 2 stays FFmpeg-free).</summary>
+    /// <summary>Placeholder tile color until real thumbnail generation exists (Phase 9).</summary>
     public string ThumbnailColorHex => Asset.Kind switch
     {
         MediaKind.Video => "#3A5A78",

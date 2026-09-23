@@ -8,7 +8,7 @@ namespace AiVideoEditor.Project;
 /// Holds the current in-memory <see cref="Core.Entities.Project"/> and mediates every
 /// change to it. Phase 2 scope: New Project is real; Open/Save/SaveAs are not
 /// implemented yet (they throw <see cref="NotSupportedException"/> with a message
-/// clear enough to show the user) — full project.json persistence is Phase 5.
+/// clear enough to show the user) — full project.json persistence is Phase 6.
 /// </summary>
 public sealed class ProjectService : IProjectService
 {
@@ -40,13 +40,13 @@ public sealed class ProjectService : IProjectService
     }
 
     public Task<Core.Entities.Project> OpenAsync(string projectFolderPath, CancellationToken ct = default) =>
-        throw new NotSupportedException("Opening saved projects isn't implemented yet — it arrives in Phase 5.");
+        throw new NotSupportedException("Opening saved projects isn't implemented yet — it arrives in Phase 6.");
 
     public Task SaveAsync(CancellationToken ct = default) =>
-        throw new NotSupportedException("Saving projects isn't implemented yet — it arrives in Phase 5.");
+        throw new NotSupportedException("Saving projects isn't implemented yet — it arrives in Phase 6.");
 
     public Task SaveAsAsync(string projectFolderPath, CancellationToken ct = default) =>
-        throw new NotSupportedException("Saving projects isn't implemented yet — it arrives in Phase 5.");
+        throw new NotSupportedException("Saving projects isn't implemented yet — it arrives in Phase 6.");
 
     public IReadOnlyList<MediaAsset> DetectMissingMedia()
     {

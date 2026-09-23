@@ -46,6 +46,6 @@ public sealed class MainWindowViewModel : ViewModelBase
                 Inspector.ShowMedia(asset);
         };
 
-        logger.LogInformation("Application shell initialized (Phase 2: project state + real media import).");
+        logger.LogInformation("Application shell initialized.");
     }
 }

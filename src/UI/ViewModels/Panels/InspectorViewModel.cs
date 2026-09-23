@@ -22,7 +22,7 @@ public enum InspectorSelectionKind
 /// adds real technical metadata (Duration/Resolution/Codec/etc.), populated only
 /// once analysis actually completes — never fake values. Timeline clip selection
 /// and the Transform properties below don't exist yet (no timeline editing until
-/// Phase 3's later editing work), so <see cref="SelectionKind"/> can only ever be
+/// Phase 4), so <see cref="SelectionKind"/> can only ever be
 /// <see cref="InspectorSelectionKind.None"/> or <see cref="InspectorSelectionKind.Media"/>
 /// for now; the TimelineClip case is scaffolding the view already renders
 /// correctly against.
@@ -59,7 +59,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
     public bool HasTechnicalInfo => TechnicalRows.Count > 0;
 
-    // --- Timeline clip selection (Phase 3+ scaffold, not populated yet) ----
+    // --- Timeline clip selection (Phase 4 scaffold, not populated yet) -----
     [ObservableProperty] private decimal _positionX;
     [ObservableProperty] private decimal _positionY;
     [ObservableProperty] private decimal _scale = 1.0m;

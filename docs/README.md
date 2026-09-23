@@ -1,11 +1,14 @@
-# Project Agent Documentation
+# Project Documentation
 
-This directory contains project-level context intended for AI coding agents.
+This directory contains:
 
-Files:
+- `DEVELOPMENT_PLAN.md` — canonical phase list and standing architectural rules
 
+Agent-oriented project context lives in the repository root:
+
+- `CLAUDE.md` — instructions for AI coding agents
 - `ARCHITECTURE.md` — verified architecture and domain structure
-- `ROADMAP.md` — project phases and progress direction
+- `ROADMAP.md` — phase status
 - `DECISIONS.md` — durable architectural decisions
 - `progress.md` — current working state
 
