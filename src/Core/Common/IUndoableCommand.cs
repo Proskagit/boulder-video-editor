@@ -34,5 +34,24 @@ public interface IUndoRedoService
 
     void Redo();
 
+    /// <summary>Empties both stacks. The empty history becomes the save point (a new or
+    /// just-opened project is clean).</summary>
     void Clear();
+
+    /// <summary>Opaque token for the current position in the history: equal tokens mean
+    /// the same project state as far as undoable changes are concerned. Capture it when
+    /// the state is snapshotted for saving, and pass it to <see cref="MarkSavePoint"/> once
+    /// the save has actually succeeded (edits made while the file was being written then
+    /// correctly count as unsaved).</summary>
+    object CurrentPosition { get; }
+
+    /// <summary>Records <paramref name="position"/> (from <see cref="CurrentPosition"/>) as
+    /// the saved state and raises <see cref="StateChanged"/>.</summary>
+    void MarkSavePoint(object position);
+
+    /// <summary>True when Undo/Redo have brought the history back to the save point. Becomes
+    /// permanently false once the save point is discarded (a new command executed while the
+    /// save point was on the redo stack), until the next <see cref="MarkSavePoint"/> or
+    /// <see cref="Clear"/>.</summary>
+    bool IsAtSavePoint { get; }
 }

@@ -1,32 +1,31 @@
 using AiVideoEditor.Core.Common;
-using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.Input;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
 /// <summary>
-/// Top toolbar. New Project and Import Media are real (Phase 2); Open/Save/Export
-/// stay enabled but just report a clear "not implemented yet" status message
-/// instead of pretending to work — no fake persistence, per the Phase 2 rules.
-/// Import here calls the exact same <see cref="MediaImportWorkflow"/> as the Media
-/// Browser's own Import button, so the two stay identical with no duplicated logic.
+/// Top toolbar. New / Open / Save / Save As go through <see cref="ProjectFileWorkflow"/> (folder
+/// picker, "save changes?" prompt, status messages); Export still just reports that it isn't
+/// implemented yet. Import here calls the exact same <see cref="MediaImportWorkflow"/> as the
+/// Media Browser's own Import button, so the two stay identical with no duplicated logic.
+/// The project commands are async commands: while one runs it can't be started again.
 /// </summary>
 public sealed partial class ToolbarViewModel : ViewModelBase
 {
     private readonly IUndoRedoService _undoRedoService;
-    private readonly IProjectService _projectService;
+    private readonly ProjectFileWorkflow _projectFiles;
     private readonly MediaImportWorkflow _importWorkflow;
     private readonly StatusService _status;
 
     public ToolbarViewModel(
         IUndoRedoService undoRedoService,
-        IProjectService projectService,
+        ProjectFileWorkflow projectFiles,
         MediaImportWorkflow importWorkflow,
         StatusService status)
     {
         _undoRedoService = undoRedoService;
-        _projectService = projectService;
+        _projectFiles = projectFiles;
         _importWorkflow = importWorkflow;
         _status = status;
         _undoRedoService.StateChanged += OnUndoRedoStateChanged;
@@ -39,18 +38,16 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void NewProject()
-    {
-        _projectService.CreateNew("Untitled Project");
-        _undoRedoService.Clear();
-        _status.Report("New project created");
-    }
+    private Task NewProject() => _projectFiles.NewProjectAsync();
 
     [RelayCommand]
-    private void Open() => _status.Report("Opening saved projects isn't implemented yet (arrives in Phase 6).");
+    private Task Open() => _projectFiles.OpenProjectAsync();
 
     [RelayCommand]
-    private void Save() => _status.Report("Saving projects isn't implemented yet (arrives in Phase 6).");
+    private Task Save() => _projectFiles.SaveAsync();
+
+    [RelayCommand]
+    private Task SaveAs() => _projectFiles.SaveAsAsync();
 
     [RelayCommand(CanExecute = nameof(CanUndo))]
     private void Undo() => _undoRedoService.Undo();

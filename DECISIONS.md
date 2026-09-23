@@ -176,7 +176,7 @@ Decision:
   `StepFrame` and `Volume` removed). `IVideoEngine` unchanged.
 - Transitions and `Speed ≠ 1.0` are not supported.
 
-Status: Accepted (implementation in progress).
+Status: Accepted (implemented in Phase 5).
 
 ---
 
@@ -265,6 +265,116 @@ Decision (refines D010/D011):
 - Lifecycle: seek and pause stop the device and rebuild the audio pipeline at the position;
   a snapshot update keeps the device running and continues at the mixer's write position,
   reusing readers of unchanged clips (gain changes applied without reopening).
+
+Status: Accepted.
+
+---
+
+## D014 — Project persistence: format, Open/Save, missing media (Phase 6)
+
+Date: 2026-09-23
+
+Decision:
+- A project is a folder containing `project.json` (plus `cache/` for later phases); no
+  single-file `.aveproj`. Media is referenced, never copied into the project.
+- `project.json` is format version 1: `"format": "AiVideoEditor.Project"`,
+  `"formatVersion": 1`. It is written from DTOs (`Project/Persistence/ProjectFileDto.cs`) that
+  are separate from the runtime entities, with System.Text.Json (no new package).
+  Every `MediaTime` is a `long` of 100 ns ticks (`…Ticks` properties, never seconds or double),
+  every `FrameRate` an exact `{numerator, denominator}`. Enums are names; clips carry a `type`
+  discriminator; a track's type is implied by the list it is in. Runtime/UI state is not
+  stored: `IsSelected`, `IsDirty`, `IsMissing`, analysis status/error, `ProjectFolderPath`.
+  Unknown properties are ignored; a higher `formatVersion` is refused with its own message.
+- ffprobe metadata is stored only for a completed analysis and reused on Open (status
+  Completed, no new probe). Metadata that is internally inconsistent is dropped, and that
+  media is analysed again; it does not make the project invalid.
+- Each media file is stored with its absolute path and its path relative to the project
+  folder (none on another volume). On Open: the absolute path if the file exists, else the
+  relative one if that file exists (project moved together with its media), else the
+  absolute path and the asset is missing.
+- Open reads and fully validates into a separate object — ids unique and present,
+  references, clip kind vs media kind and track type, clip edges on the project frame grid,
+  ≥ 1 frame, no overlaps, source range = duration at speed 1 — and only then replaces the
+  current project (undo history reset, clean). Any failure (`ProjectFileException`, a short
+  user-facing message) or cancellation leaves the current project, its history and save
+  point untouched. Clips are not checked against the media on disk (that is offline media,
+  not a damaged project).
+- Save is atomic: temp file next to `project.json`, flushed, then `File.Replace`; a failed or
+  cancelled write leaves the existing file as it was and changes neither the save point nor
+  the project's folder/name. Save As makes the chosen folder the project folder and names the
+  project after it, only after the write succeeded. Saves are serialized.
+- Missing media: detected on the loaded project before it replaces the current one, so the
+  first playback snapshot already shows "Media offline" (existing playback behaviour,
+  unchanged). Missing is runtime state only: not saved, never makes the project dirty, never
+  blocks Open. Missing files are not probed (no failed analyses, no retries). Detection
+  happens once per Open; a file that reappears later stays offline until the project is
+  reopened. Relink is out of scope.
+
+Consequences: `AppPaths.ProjectFile` and `ProjectFileStore.ProjectFileName` both name
+`project.json` (Project does not reference Infrastructure; kept as is for now).
+
+Status: Accepted.
+
+---
+
+## D015 — Dirty tracking with an undo save point (Phase 6)
+
+Date: 2026-09-23
+
+Decision (completes the save point deferred in D008):
+- `IUndoRedoService` identifies a history position by the command on top of the undo stack
+  (`CurrentPosition`); `MarkSavePoint(position)` records the saved one; `IsAtSavePoint`
+  compares them. A save point dropped from the redo stack by a new command can never be
+  reached again; `Clear()` makes the empty history the save point.
+- The project is dirty when the history is not at the save point or a non-undoable change
+  (media import) happened since the last save. Undo/Redo back to the saved state make it
+  clean; New/Open start clean; a recovered project (D016) is dirty until saved.
+- Save captures the text, the history position and the non-undoable change count at the same
+  moment on the UI thread; the save point is marked only after the write succeeded, with that
+  earlier position — edits made while the file was being written stay unsaved.
+  `IProjectService.SaveStateChanged` reports dirty/name/folder changes (window title
+  "Name[*] — AI Video Editor"); `ProjectSaved` follows a successful save.
+
+Open question (not decided in Phase 6): playhead position, zoom and the snapping toggle are
+saved in `project.json`, but D008 treats them as view state, so changing them doesn't make
+the project dirty (and alone doesn't trigger an autosave). Decide whether they are project
+state (should mark dirty) or session/UI state (could stay out of dirty tracking, or out of
+the file).
+
+Status: Accepted.
+
+---
+
+## D016 — Autosave, recovery and unsaved-changes handling (Phase 6)
+
+Date: 2026-09-23
+
+Decision:
+- Autosave never writes `project.json`. Every 2 minutes, if the project is dirty, it is
+  snapshotted on the UI thread and written atomically to
+  `%LOCALAPPDATA%\AiVideoEditor\recovery\<projectId>.json` (`AppPaths.RecoveryFolder`): the same
+  project DTO wrapped with `"format": "AiVideoEditor.Recovery"`, the project's folder (null if
+  never saved), the autosave time and the writing process (id + start time). One app-wide
+  folder, not the project folder, so recovery can be found at startup without knowing which
+  project was open and works for never-saved projects.
+- A recovery file is obsolete, and deleted, after a successful Save of a clean project, when
+  this session finds the project clean at an autosave (only files it wrote itself), on
+  Discard / "Don't Save", and at shutdown of a clean project. Writes and deletes are
+  serialized per store; a delete bumps the project's generation and a write snapshotted at an
+  older generation is dropped, so an autosave taken before a Save can't recreate the file.
+- Startup (after the window is shown): damaged or unusable recovery files are renamed
+  `*.damaged` (kept, not offered again), files older than their project's `project.json` are
+  removed, files of a still-running process are ignored; the newest remaining one is offered:
+  Recover / Discard / Not now. Recover goes through the same validation as Open, restores the
+  original folder and leaves the project dirty. Nothing here can prevent startup or change
+  the current project on failure. Autosave starts afterwards.
+- New / Open / Close with unsaved changes ask Save / Don't Save / Cancel. Save that doesn't
+  happen (picker cancelled, write failed) counts as Cancel; edits made during that save ask
+  again. "Don't Save" removes the discarded project's recovery file only after New/Open
+  succeeded (a failed Open keeps the project, its changes and its recovery); on Close, autosave
+  shuts down without keeping a recovery file. Cancel on Close keeps the window and autosave.
+- Save of a never-saved project is Save As. Save As and Open use a folder picker; Save As
+  over another project's folder asks before replacing it.
 
 Status: Accepted.
 

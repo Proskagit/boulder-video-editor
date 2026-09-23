@@ -13,19 +13,19 @@ This document describes the verified architecture of the AI Video Editor.
 
 ## Solution
 
-The solution contains 11 application projects under `src/` plus four test
-projects (`tests/Core.Tests`, `tests/Timeline.Tests`, `tests/UI.Tests`,
+The solution contains 11 application projects under `src/` plus five test
+projects (`tests/Core.Tests`, `tests/Project.Tests`, `tests/Timeline.Tests`, `tests/UI.Tests`,
 `tests/Video.Tests` — the last one runs ffmpeg integration tests and skips without ffmpeg).
 
 | Project | Responsibility | State |
 |---|---|---|
 | App | Composition root: `Program.Main`, Generic Host, Serilog, DI (`Composition/ServiceCollectionExtensions.cs`), `appsettings.json` | Implemented |
-| UI | Avalonia Views + ViewModels, UI services (file picker, status, import workflow, analysis coordinator). References Core only | Implemented |
+| UI | Avalonia Views + ViewModels, UI services (file/folder picker, dialogs, status, import workflow, project file workflow, analysis coordinator). References Core only | Implemented |
 | Core | Domain entities, service interfaces, `MediaTime`, `IUndoableCommand` / `UndoRedoService`. No infra dependencies | Implemented |
-| Infrastructure | Serilog setup, `AppPaths`, `FfprobeLocator` + `FfmpegOptions`, `ErrorTranslator` | Implemented |
+| Infrastructure | Serilog setup, `AppPaths` (incl. the recovery folder), `FfprobeLocator` / `FfmpegLocator` + `FfmpegOptions`, `ErrorTranslator` | Implemented |
 | Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS); `FfmpegAudioDecoder` (ffmpeg CLI → 48 kHz stereo float); shared `FfmpegProcess` | Probe + video/audio decode |
 | Media | `MediaImportService` (extension validation, file size) | Implemented |
-| Project | `ProjectService` (in-memory project, duplicate detection); Open/Save throw `NotSupportedException` | Partial |
+| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService` | Implemented (Phase 6) |
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands | Implemented (Phase 4) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
 | Effects, Export | Later phases | Empty scaffolds |
@@ -57,8 +57,8 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   operation builds an `EditPlan` in frame indices, validates all affected tracks with
   `TimelineValidator` (type/track match, grid, ≥ 1 frame, no overlap, source limits),
   then executes one `IUndoableCommand` wrapped in `NotifyingCommand`, which calls
-  `IProjectService.NotifyTimelineChanged()` on Execute and Undo (marks dirty, raises
-  `TimelineChanged`). Rules: D008.
+  `IProjectService.NotifyTimelineChanged()` on Execute and Undo (raises `TimelineChanged`;
+  dirty state follows the undo save point, D015). Rules: D008.
 - UI: `TimelineViewModel` projects the `Sequence` (clip view models reused by Id),
   owns view state (zoom, playhead, selection, drag previews using the service's
   dry-run `CanMoveClips` / `PreviewTrim`) and never mutates the model directly.
@@ -70,7 +70,7 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   `MainWindow.OnKeyDown` and ignored while a TextBox has focus.
 - Threading: the project model is mutated on the UI thread only.
 
-## Playback (Phase 5, in progress)
+## Playback (Phase 5)
 
 - Which source frame a timeline frame shows: `Core/Playback/SourceFrameSelector`
   (pure, exact Int128; DECISIONS D009). Decoded frames carry `SourceTimestamp`
@@ -113,10 +113,40 @@ Import → analysis flow:
 background) → `IMediaAnalysisService` (Video, ffprobe) → metadata written onto
 the same `MediaAsset` → `IProjectService.MediaAssetsChanged`.
 
-Only ffprobe is integrated, via `IMediaAnalysisService` (not `IVideoEngine`).
-`IFfprobeLocator` resolves the path from `Ffmpeg:FfprobePath` or PATH. There is
-no ffmpeg locator yet. `IVideoEngine`, `IThumbnailService`, `IPlaybackService`,
-`IExportService`, `IAutosaveService` are interfaces without implementations.
+Metadata comes from ffprobe via `IMediaAnalysisService` (not `IVideoEngine`);
+`IFfprobeLocator` resolves it from `Ffmpeg:FfprobePath` or PATH, `IFfmpegLocator` does the
+same for ffmpeg (playback decoding). After Open only media without saved metadata that is
+present on disk is analysed (`MediaAnalysisCoordinator.QueueWhereNeeded`); missing files are
+never probed. `IVideoEngine`, `IThumbnailService` and `IExportService` are interfaces without
+implementations.
+
+## Project persistence (Phase 6)
+
+Decisions: D014 (format, Open/Save, missing media), D015 (save point), D016 (autosave,
+recovery, unsaved changes).
+
+- On disk: a project folder with `project.json` (format v1). `ProjectSerializer` maps entities
+  ⇄ DTOs (`ProjectFileDto.cs`; ticks as `long`, exact frame rates, no runtime state) and
+  validates on load; `ProjectFileStore` reads and writes atomically (temp + `File.Replace`).
+- `ProjectService` (UI thread): Open reads + validates + marks missing media off the UI thread
+  into a separate object, then replaces the project (history cleared, clean). Save / Save As
+  snapshot text, history position and non-undoable change count together, write, and only
+  then mark the save point. Events: `ProjectChanged`, `MediaAssetsChanged`, `TimelineChanged`,
+  `SaveStateChanged` (dirty/name/folder), `ProjectSaved`.
+- Dirty = undo history not at its save point (`IUndoRedoService.CurrentPosition` /
+  `MarkSavePoint` / `IsAtSavePoint`) or a media import since the save.
+- Autosave: `AutosaveService` (Project, implements Core `IAutosaveService`) every 2 min,
+  snapshot on the UI thread, written by `RecoveryStore` to
+  `%LOCALAPPDATA%\AiVideoEditor\recovery\<projectId>.json` (never `project.json`); per-project
+  generation guards against an autosave resurrecting a file a Save made obsolete.
+  `IProjectService.RestoreRecoveryAsync` opens a recovery file with the Open validation.
+- UI: `ProjectFileWorkflow` — New / Open / Save / Save As / Close, folder picker
+  (`IFilePickerService.PickFolderAsync`), Save / Don't Save / Cancel prompt (`IDialogService`,
+  `AvaloniaDialogService`), startup recovery offer (`StartSessionAsync` on window Opened), autosave
+  shutdown (`PrepareToCloseAsync` from `MainWindow.OnClosing`, which cancels the first close and
+  closes again once approved). Toolbar commands and Ctrl+N / O / S / Shift+S call it; the window
+  title comes from `MainWindowViewModel.Title`.
+- Open question: playhead, zoom and snapping are stored but don't make the project dirty (D015).
 
 ## MVVM
 
@@ -143,5 +173,5 @@ Routine refactoring needed to implement a feature does not.
 
 ## Verification note
 
-Verified against the source at the Phase 3 commit (`a8e5bac`). Re-check the
-code before relying on details that later phases may have changed.
+Verified against the source at the end of Phase 6 (branch `feat/phase-6-project-persistence`).
+Re-check the code before relying on details that later phases may have changed.

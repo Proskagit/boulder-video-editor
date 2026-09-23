@@ -1,3 +1,4 @@
+using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.UI.Services;
 using AiVideoEditor.UI.ViewModels.Panels;
 using Microsoft.Extensions.Logging;
@@ -18,8 +19,12 @@ namespace AiVideoEditor.UI.ViewModels;
 public sealed class MainWindowViewModel : ViewModelBase
 {
     private bool _suppressMediaSelection;
+    private readonly ProjectFileWorkflow _projectFiles;
 
-    public string Title => "AI Video Editor";
+    private readonly IProjectService _projectService;
+
+    /// <summary>"Name — AI Video Editor", with a "*" after the name while there are unsaved changes.</summary>
+    public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — AI Video Editor";
 
     public ToolbarViewModel Toolbar { get; }
     public MediaBrowserViewModel MediaBrowser { get; }
@@ -35,6 +40,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         InspectorViewModel inspector,
         TimelineViewModel timeline,
         StatusService status,
+        ProjectFileWorkflow projectFiles,
+        IProjectService projectService,
         ILogger<MainWindowViewModel> logger)
     {
         Toolbar = toolbar;
@@ -43,6 +50,9 @@ public sealed class MainWindowViewModel : ViewModelBase
         Inspector = inspector;
         Timeline = timeline;
         Status = status;
+        _projectFiles = projectFiles;
+        _projectService = projectService;
+        _projectService.SaveStateChanged += (_, _) => OnPropertyChanged(nameof(Title));
 
         MediaBrowser.SelectionChanged += (_, asset) =>
         {
@@ -84,6 +94,12 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         logger.LogInformation("Application shell initialized.");
     }
+
+    /// <summary>The main window has been shown: offer recovery of autosaved work, start autosave.</summary>
+    public Task OnWindowOpenedAsync() => _projectFiles.StartSessionAsync();
+
+    /// <summary>The main window is about to close; returns false to keep it open.</summary>
+    public Task<bool> PrepareToCloseAsync() => _projectFiles.PrepareToCloseAsync();
 
     private void UpdatePreviewPosition() =>
         Preview.SetPosition(Timeline.Playhead, Timeline.SequenceDuration, Timeline.FrameRate);

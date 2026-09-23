@@ -24,8 +24,8 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
 {
     private static readonly FrameRate Rate = FrameRate.Fps25;
 
-    private readonly ProjectService _projects = new(NullLogger<ProjectService>.Instance);
     private readonly UndoRedoService _undoRedo = new();
+    private readonly ProjectService _projects;
     private readonly TimelineEditService _edit;
     private readonly FakeVideoDecoder _decoder = new();
     private readonly FakeReferenceClock _clock = new();
@@ -35,19 +35,23 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
 
     public PlaybackUiIntegrationTests()
     {
+        _projects = new ProjectService(_undoRedo, NullLogger<ProjectService>.Instance);
         _edit = new TimelineEditService(_projects, _undoRedo, NullLogger<TimelineEditService>.Instance);
         _playback = new PlaybackService(_decoder, _clock, NullLogger<PlaybackService>.Instance, new PlaybackSettings { BufferFrames = 4 });
         var status = new StatusService();
         var analysis = new MediaAnalysisCoordinator(new NoAnalysis(), _projects, NullLogger<MediaAnalysisCoordinator>.Instance);
         var workflow = new MediaImportWorkflow(new NoPicker(), new NoImport(), _projects, analysis, status, NullLogger<MediaImportWorkflow>.Instance);
+        var projectFiles = new ProjectFileWorkflow(_projects, analysis, new NullAutosave(), new ScriptedDialogs(), new NoPicker(), status, NullLogger<ProjectFileWorkflow>.Instance);
 
         _vm = new MainWindowViewModel(
-            new ToolbarViewModel(_undoRedo, _projects, workflow, status),
+            new ToolbarViewModel(_undoRedo, projectFiles, workflow, status),
             new MediaBrowserViewModel(_projects, workflow, NullLogger<MediaBrowserViewModel>.Instance),
             new PreviewViewModel(status, _playback, _projects, NullLogger<PreviewViewModel>.Instance),
             new InspectorViewModel(),
             new TimelineViewModel(_projects, _edit, status, NullLogger<TimelineViewModel>.Instance),
             status,
+            projectFiles,
+            _projects,
             NullLogger<MainWindowViewModel>.Instance);
         _vm.Timeline.SeekRequested += (_, _) => _seekRequests++;
     }
@@ -338,6 +342,40 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
 
     // --- Minimal stand-ins for services the shell needs but these tests don't use ------------------
 
+    // ---- window title (Phase 6) ---------------------------------------------------------
+
+    [Fact]
+    public async Task Title_shows_the_project_name_and_a_star_while_there_are_unsaved_changes()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "AiVideoEditorTests", Guid.NewGuid().ToString("N"), "My Film");
+        var changes = new List<string?>();
+        _vm.PropertyChanged += (_, e) => changes.Add(e.PropertyName);
+        try
+        {
+            Assert.Equal("Untitled Project — AI Video Editor", _vm.Title);
+
+            _edit.AddTrack(TrackType.Video);
+            Assert.Equal("Untitled Project* — AI Video Editor", _vm.Title);
+            Assert.Contains(nameof(MainWindowViewModel.Title), changes);
+
+            await _projects.SaveAsAsync(folder);
+            Assert.Equal("My Film — AI Video Editor", _vm.Title);
+
+            _edit.AddTrack(TrackType.Video);
+            Assert.Equal("My Film* — AI Video Editor", _vm.Title);
+
+            _undoRedo.Undo(); // back to the save point
+            Assert.Equal("My Film — AI Video Editor", _vm.Title);
+
+            _projects.CreateNew("Untitled Project");
+            Assert.Equal("Untitled Project — AI Video Editor", _vm.Title);
+        }
+        finally
+        {
+            Directory.Delete(Path.GetDirectoryName(folder)!, recursive: true);
+        }
+    }
+
     private sealed class NoAnalysis : IMediaAnalysisService
     {
         public Task<MediaAnalysisResult> AnalyzeAsync(string filePath, CancellationToken ct = default) =>
@@ -355,5 +393,6 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
     {
         public Task<IReadOnlyList<string>> PickFilesAsync(FilePickerRequest request, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+        public Task<string?> PickFolderAsync(FolderPickerRequest request, CancellationToken ct = default) => Task.FromResult<string?>(null);
     }
 }
