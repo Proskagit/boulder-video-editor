@@ -41,6 +41,20 @@ public sealed class AvaloniaFilePickerService : IFilePickerService
         return paths;
     }
 
+    public async Task<string?> PickFolderAsync(FolderPickerRequest request, CancellationToken ct = default)
+    {
+        var storageProvider = GetTopLevel()?.StorageProvider;
+        if (storageProvider is null)
+            return null;
+
+        var options = new FolderPickerOpenOptions { Title = request.Title, AllowMultiple = false };
+        if (request.StartFolder is { } start && Directory.Exists(start))
+            options.SuggestedStartLocation = await storageProvider.TryGetFolderFromPathAsync(start);
+
+        var folders = await storageProvider.OpenFolderPickerAsync(options);
+        return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+    }
+
     private static TopLevel? GetTopLevel()
     {
         return Application.Current?.ApplicationLifetime switch

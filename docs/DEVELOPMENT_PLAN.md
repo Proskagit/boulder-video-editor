@@ -18,12 +18,13 @@ and runs cleanly.
       metadata (duration/resolution/fps/codecs/bitrate/sample rate/channels) in
       the Media Browser and Inspector. No playback, timeline editing, or
       thumbnails yet. *(`a8e5bac`)*
-- [ ] **Phase 4 — Timeline.** Tracks, clips, selection, move, trim, split,
-      delete, playhead, zoom, snapping — all as undoable commands.
-- [ ] **Phase 5 — Preview.** Wire timeline playhead to the preview player;
-      synchronize play/pause.
-- [ ] **Phase 6 — Project persistence.** Open/Save/Save As, project.json,
-      autosave, missing-media detection.
+- [x] **Phase 4 — Timeline.** Tracks, clips, selection, move, trim, split,
+      delete, playhead, zoom, snapping — all as undoable commands. *(`33c5c02`)*
+- [x] **Phase 5 — Preview.** Wire timeline playhead to the preview player;
+      synchronize play/pause. Video and audio playback. *(`85ca216`, `acc1a49`)*
+- [x] **Phase 6 — Project persistence.** Open/Save/Save As, project.json,
+      autosave, missing-media detection. Save point, crash recovery,
+      unsaved-changes prompt. *(branch `feat/phase-6-project-persistence`)*
 - [ ] **Phase 7 — Basic editing.** Speed, volume, opacity, transform, crop, text.
 - [ ] **Phase 8 — Export.** FFmpeg render pipeline: Timeline → MP4 (H.264/AAC).
 - [ ] **Phase 9 — Quality.** Performance profiling, caching, error handling,

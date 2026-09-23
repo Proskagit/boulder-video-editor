@@ -13,7 +13,7 @@ public static class AppPaths
 
     public static string ConfigFolder => EnsureExists(Path.Combine(AppDataRoot, "config"));
 
-    /// <summary>Per-project cache: thumbnails, waveform, decoded-frame cache, autosave recovery.</summary>
+    /// <summary>Per-project cache: thumbnails, waveform, decoded-frame cache.</summary>
     public static string ProjectCacheFolder(string projectFolderPath) =>
         EnsureExists(Path.Combine(projectFolderPath, "cache"));
 
@@ -26,8 +26,9 @@ public static class AppPaths
     public static string ProjectFile(string projectFolderPath) =>
         Path.Combine(projectFolderPath, "project.json");
 
-    public static string AutosaveFile(string projectFolderPath) =>
-        Path.Combine(ProjectCacheFolder(projectFolderPath), "autosave.json");
+    /// <summary>Autosave recovery files of all projects (one per project id). Application-wide, so
+    /// recovery can be offered at startup without knowing which project was open.</summary>
+    public static string RecoveryFolder => Path.Combine(AppDataRoot, "recovery");
 
     private static string EnsureExists(string path)
     {

@@ -28,10 +28,44 @@ public partial class MainWindow : Window
     {
     }
 
+    private bool _closeApproved;
+    private bool _closePending;
+
     public MainWindow(MainWindowViewModel viewModel)
     {
         DataContext = viewModel;
         InitializeComponent();
+        Opened += async (_, _) => await viewModel.OnWindowOpenedAsync();
+    }
+
+    /// <summary>
+    /// Closing is asynchronous work (the unsaved-changes prompt, then flushing autosave), but
+    /// <see cref="Window.OnClosing"/> is synchronous: the first close is cancelled, the work runs,
+    /// and if the view model agrees the window is closed again with approval.
+    /// </summary>
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        base.OnClosing(e);
+        if (_closeApproved || e.Cancel || DataContext is not MainWindowViewModel vm) return;
+
+        e.Cancel = true;
+        if (_closePending) return;
+        _closePending = true;
+        _ = CloseWhenReadyAsync(vm);
+    }
+
+    private async Task CloseWhenReadyAsync(MainWindowViewModel vm)
+    {
+        try
+        {
+            if (!await vm.PrepareToCloseAsync()) return;
+            _closeApproved = true;
+            Close();
+        }
+        finally
+        {
+            _closePending = false;
+        }
     }
 
     /// <summary>
@@ -69,6 +103,10 @@ public partial class MainWindow : Window
 
         return key switch
         {
+            Key.N when ctrl => vm.Toolbar.NewProjectCommand,
+            Key.O when ctrl => vm.Toolbar.OpenCommand,
+            Key.S when ctrl => vm.Toolbar.SaveCommand,
+            Key.S when ctrlShift => vm.Toolbar.SaveAsCommand,
             Key.Z when ctrl => vm.Toolbar.UndoCommand,
             Key.Y when ctrl => vm.Toolbar.RedoCommand,
             Key.Z when ctrlShift => vm.Toolbar.RedoCommand,
@@ -101,14 +139,19 @@ public partial class MainWindow : Window
         var importWorkflow = new MediaImportWorkflow(
             filePicker, mediaImportService, projectService, analysisCoordinator, status,
             NullLogger<MediaImportWorkflow>.Instance);
+        var projectFiles = new ProjectFileWorkflow(
+            projectService, analysisCoordinator, new DesignTimeAutosaveService(), new DesignTimeDialogService(), filePicker, status,
+            NullLogger<ProjectFileWorkflow>.Instance);
 
         return new MainWindowViewModel(
-            new ToolbarViewModel(undoRedo, projectService, importWorkflow, status),
+            new ToolbarViewModel(undoRedo, projectFiles, importWorkflow, status),
             new MediaBrowserViewModel(projectService, importWorkflow, NullLogger<MediaBrowserViewModel>.Instance),
             new PreviewViewModel(status, new DesignTimePlaybackService(), projectService, NullLogger<PreviewViewModel>.Instance),
             new InspectorViewModel(),
             new TimelineViewModel(projectService, new DesignTimeTimelineEditService(), status, NullLogger<TimelineViewModel>.Instance),
             status,
+            projectFiles,
+            projectService,
             NullLogger<MainWindowViewModel>.Instance);
     }
 
@@ -123,6 +166,9 @@ public partial class MainWindow : Window
         public event EventHandler? ProjectChanged { add { } remove { } }
         public event EventHandler? MediaAssetsChanged { add { } remove { } }
         public event EventHandler? TimelineChanged { add { } remove { } }
+        public event EventHandler? SaveStateChanged { add { } remove { } }
+        public event EventHandler? ProjectSaved { add { } remove { } }
+        public Task<Core.Entities.Project> RestoreRecoveryAsync(string recoveryFilePath, CancellationToken ct = default) => Task.FromResult(Current);
         public Core.Entities.Project CreateNew(string name, ProjectSettings? settings = null) => Current;
         public Task<Core.Entities.Project> OpenAsync(string projectFolderPath, CancellationToken ct = default) => Task.FromResult(Current);
         public Task SaveAsync(CancellationToken ct = default) => Task.CompletedTask;
@@ -131,6 +177,23 @@ public partial class MainWindow : Window
         public MediaAddResult AddMediaAssets(IEnumerable<MediaAsset> assets) => new();
         public void NotifyMediaAssetsChanged() { }
         public void NotifyTimelineChanged() { }
+    }
+
+    private sealed class DesignTimeAutosaveService : IAutosaveService
+    {
+        public event EventHandler<string>? AutosaveCompleted { add { } remove { } }
+        public void Start() { }
+        public void Stop() { }
+        public Task<bool> AutosaveNowAsync(CancellationToken ct = default) => Task.FromResult(false);
+        public Task<RecoveryScanResult> FindRecoveryAsync(CancellationToken ct = default) => Task.FromResult(RecoveryScanResult.None);
+        public Task DiscardRecoveryAsync(RecoveryCandidate candidate) => Task.CompletedTask;
+        public Task DiscardRecoveryAsync(Guid projectId) => Task.CompletedTask;
+        public Task ShutdownAsync(bool keepUnsavedChanges = true) => Task.CompletedTask;
+    }
+
+    private sealed class DesignTimeDialogService : IDialogService
+    {
+        public Task<int?> AskAsync(DialogRequest request) => Task.FromResult<int?>(null);
     }
 
     private sealed class DesignTimeMediaImportService : IMediaImportService
@@ -184,5 +247,6 @@ public partial class MainWindow : Window
     {
         public Task<IReadOnlyList<string>> PickFilesAsync(FilePickerRequest request, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+        public Task<string?> PickFolderAsync(FolderPickerRequest request, CancellationToken ct = default) => Task.FromResult<string?>(null);
     }
 }

@@ -3,8 +3,10 @@ using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.Infrastructure;
+using AiVideoEditor.Infrastructure.Configuration;
 using AiVideoEditor.Media;
 using AiVideoEditor.Project;
+using AiVideoEditor.Project.Persistence;
 using AiVideoEditor.Timeline;
 using AiVideoEditor.Timeline.Playback;
 using AiVideoEditor.UI.Services;
@@ -39,17 +41,20 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IReferenceClock, StopwatchReferenceClock>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<ITimelineEditService, TimelineEditService>();
+        services.AddSingleton(_ => new RecoveryStore(AppPaths.RecoveryFolder));
+        services.AddSingleton<IAutosaveService, AutosaveService>();
 
         // --- Later-phase registrations go here, e.g.: ---------------------------
         //   services.AddSingleton<IThumbnailService, ThumbnailService>();
-        //   services.AddSingleton<IAutosaveService, AutosaveService>();
         //   services.AddSingleton<IExportService, FfmpegExportService>();
 
         // --- UI-only services ---------------------------------------------------
         services.AddSingleton<IFilePickerService, AvaloniaFilePickerService>();
+        services.AddSingleton<IDialogService, AvaloniaDialogService>();
         services.AddSingleton<StatusService>();
         services.AddSingleton<MediaAnalysisCoordinator>();
         services.AddSingleton<MediaImportWorkflow>();
+        services.AddSingleton<ProjectFileWorkflow>();
 
         // --- UI view models -------------------------------------------------------
         services.AddTransient<ToolbarViewModel>();

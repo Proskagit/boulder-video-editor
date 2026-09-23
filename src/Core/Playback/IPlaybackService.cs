@@ -15,7 +15,7 @@ public enum PictureKind
     Black,
     /// <summary>A decoded frame (<see cref="PreviewPicture.Frame"/>).</summary>
     Frame,
-    /// <summary>The asset is absent or unavailable — a relink candidate (Phase 6).</summary>
+    /// <summary>The asset is absent or unavailable (e.g. its file is missing; relink is not implemented).</summary>
     Offline,
     /// <summary>The clip cannot be played (e.g. Speed ≠ 1).</summary>
     Unsupported,

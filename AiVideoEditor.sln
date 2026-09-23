@@ -37,6 +37,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UI.Tests", "tests\UI.Tests\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Video.Tests", "tests\Video.Tests\Video.Tests.csproj", "{CCA1D41D-9DC8-4D48-B955-4C12F1A930FD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Project.Tests", "tests\Project.Tests\Project.Tests.csproj", "{9EB1A74D-0E6C-4318-AA3E-53DAD79391D8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -103,6 +105,10 @@ Global
 		{CCA1D41D-9DC8-4D48-B955-4C12F1A930FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CCA1D41D-9DC8-4D48-B955-4C12F1A930FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CCA1D41D-9DC8-4D48-B955-4C12F1A930FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9EB1A74D-0E6C-4318-AA3E-53DAD79391D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9EB1A74D-0E6C-4318-AA3E-53DAD79391D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9EB1A74D-0E6C-4318-AA3E-53DAD79391D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9EB1A74D-0E6C-4318-AA3E-53DAD79391D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -123,5 +129,6 @@ Global
 		{6391B25A-A3E6-4D01-9DFF-20AF0A3382C3} = {11111111-0000-0000-0000-000000000002}
 		{C1B51FCC-65FE-4911-B183-FC1D9A1B9330} = {11111111-0000-0000-0000-000000000002}
 		{CCA1D41D-9DC8-4D48-B955-4C12F1A930FD} = {11111111-0000-0000-0000-000000000002}
+		{9EB1A74D-0E6C-4318-AA3E-53DAD79391D8} = {11111111-0000-0000-0000-000000000002}
 	EndGlobalSection
 EndGlobal

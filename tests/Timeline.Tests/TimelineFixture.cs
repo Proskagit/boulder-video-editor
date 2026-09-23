@@ -11,13 +11,14 @@ namespace AiVideoEditor.Timeline.Tests;
 /// to create analyzed media and to place clips directly for re-grid scenarios.</summary>
 internal sealed class TimelineFixture
 {
-    public ProjectService Projects { get; } = new(NullLogger<ProjectService>.Instance);
     public UndoRedoService UndoRedo { get; } = new();
+    public ProjectService Projects { get; }
     public TimelineEditService Service { get; }
     public int TimelineChangedCount { get; private set; }
 
     public TimelineFixture()
     {
+        Projects = new ProjectService(UndoRedo, NullLogger<ProjectService>.Instance);
         Service = new TimelineEditService(Projects, UndoRedo, NullLogger<TimelineEditService>.Instance);
         Projects.TimelineChanged += (_, _) => TimelineChangedCount++;
     }
