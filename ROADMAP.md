@@ -59,8 +59,8 @@ session state (D015).
 
 ## Current
 
-Phase 7 — Basic editing, branch `feat/phase-7-basic-editing`. In progress; plan, product
-decisions and step status in `progress.md`.
+Phase 7 — Basic editing, branch `feat/phase-7-basic-editing`. In progress (Steps 1–6 done;
+checkpoint `7ab3693` covers 1–5); plan, product decisions and step status in `progress.md`.
 
 ## Future phases
 

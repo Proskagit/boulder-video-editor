@@ -20,17 +20,22 @@ internal sealed partial class ShowInfoParser
 {
     private TimeBase? _timeBase;
 
-    [GeneratedRegex(@"^\[Parsed_showinfo_\d+ @ [^\]]+\] config in time_base: (\d+)/(\d+)")]
+    // Not anchored at the line start: ffmpeg sometimes prints a message without a trailing newline
+    // (e.g. "Odd rotation angle." when autorotate meets a non-right-angle display matrix), and the
+    // next log line — here showinfo's config line — is then glued onto it without its own prefix.
+    // Only showinfo prints "config in time_base"; frame lines still need showinfo's prefix.
+    [GeneratedRegex(@"config in time_base: (\d+)/(\d+)")]
     private static partial Regex ConfigRegex();
 
-    [GeneratedRegex(@"^\[Parsed_showinfo_\d+ @ [^\]]+\] n:\s*(\d+)\s+pts:\s*(-?\d+|NOPTS)\s.*?\ss:(\d+)x(\d+)\s")]
+    [GeneratedRegex(@"\[Parsed_showinfo_\d+ @ [^\]]+\] n:\s*(\d+)\s+pts:\s*(-?\d+|NOPTS)\s.*?\ss:(\d+)x(\d+)\s")]
     private static partial Regex FrameRegex();
 
     /// <summary>Returns the frame described by <paramref name="line"/>, or null for any other line.</summary>
     /// <exception cref="FormatException">A frame line arrived before any time base, or a value is invalid.</exception>
     public ShowInfoFrame? Parse(string line)
     {
-        if (!line.StartsWith("[Parsed_showinfo_", StringComparison.Ordinal))
+        if (!line.Contains("[Parsed_showinfo_", StringComparison.Ordinal) &&
+            !line.Contains("config in time_base:", StringComparison.Ordinal))
             return null;
 
         var config = ConfigRegex().Match(line);

@@ -52,7 +52,9 @@ public static class PlaybackSnapshotBuilder
                     spans.Add(new PictureSpan(clip.Id, media.MediaAssetId, status, clip.TimelineStart, clip.TimelineEnd, media.SourceIn, reason)
                     {
                         Visual = VisualProperties.Of(media) ?? VisualProperties.Default,
-                        SourceSize = asset?.Metadata is { Width: > 0 and var w, Height: > 0 and var h } ? new FrameSize(w, h) : null
+                        // The decoder delivers display-oriented frames (automatic rotation), so the
+                        // composition works with the display size, never the coded one.
+                        SourceSize = DisplaySize(asset?.Metadata)
                     });
 
                 if (media is VideoClip video && !track.IsMuted && asset?.Metadata?.AudioCodec is not null)
@@ -90,7 +92,12 @@ public static class PlaybackSnapshotBuilder
     /// </summary>
     public readonly record struct AssetState(
         bool InProject, string? FilePath, MediaKind Kind, bool IsMissing, bool HasMetadata, bool HasAudio,
-        MediaTime StartTime, FrameRate? NominalFrameRate);
+        MediaTime StartTime, FrameRate? NominalFrameRate, FrameSize? DisplaySize = null);
+
+    /// <summary>The picture size composition uses: the display size of the metadata, or null when
+    /// it is unknown (then the renderer lays the picture out from the decoded frame, D018).</summary>
+    public static FrameSize? DisplaySize(MediaMetadata? metadata) =>
+        metadata is { DisplayWidth: > 0 and var w, DisplayHeight: > 0 and var h } ? new FrameSize(w, h) : null;
 
     /// <summary>States of the assets referenced by media-backed clips on any track (hidden
     /// tracks included — their clips still contribute audio).</summary>
@@ -104,7 +111,7 @@ public static class PlaybackSnapshotBuilder
             if (states.ContainsKey(clip.MediaAssetId)) continue;
             states[clip.MediaAssetId] = assets.TryGetValue(clip.MediaAssetId, out var a)
                 ? new AssetState(true, a.FilePath, a.Kind, a.IsMissing, a.Metadata is not null, a.Metadata?.AudioCodec is not null,
-                    a.Metadata?.StartTime ?? MediaTime.Zero, SourceFrameSelector.NominalRate(a.Metadata))
+                    a.Metadata?.StartTime ?? MediaTime.Zero, SourceFrameSelector.NominalRate(a.Metadata), DisplaySize(a.Metadata))
                 : new AssetState(false, null, default, false, false, false, MediaTime.Zero, null);
         }
         return states.ToImmutable();

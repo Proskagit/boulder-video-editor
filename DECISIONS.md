@@ -162,7 +162,8 @@ Decision:
   position (samples played, anchor-based, no accumulated error), falling back to a
   `Stopwatch` clock when no audio is playing.
 - Picture: the topmost visible (`!IsHidden`) video track with a clip wins; no
-  compositing, opacity, transform or crop yet. Audio: every VideoClip with an audio
+  compositing, opacity, transform or crop yet. (Superseded in Phase 7 by D018/D019: every visible
+  layer is decoded and reported; the topmost picture stays as a compatibility view.) Audio: every VideoClip with an audio
   stream and every AudioClip is mixed; `IsHidden` hides picture only; `Track.IsMuted`,
   `AudioClip.IsMuted` and existing `Volume` values apply.
 - States: `Paused` / `Playing` plus `IsBuffering` / `IsAvailable` flags. Reaching the
@@ -500,9 +501,54 @@ Context: the preview composites on the GPU (Step 7) and the export will use an f
 their relative order is not observable; every other order is (tests).
 
 Consequences: ffprobe reports coded width/height without rotation side data, so a phone video
-stored landscape with a 90° rotation flag (autorotated by ffmpeg on decode) gets a landscape
-`SourceSize` although its frames are portrait. Step 6 must resolve this (read the rotation in the
-probe, or lay such clips out from the decoded frame size). SAR (non-square pixels) is ignored as before.
+stored landscape with a 90° rotation flag (autorotated by ffmpeg on decode) would get a landscape
+`SourceSize` although its frames are portrait — resolved in Step 6 (D019: `SourceSize` is the
+probed display size). SAR (non-square pixels) is ignored as before.
+
+Status: Accepted.
+
+---
+
+## D019 — Display orientation and multi-layer playback (Phase 7 Step 6)
+
+Date: 2026-09-23
+
+Decision:
+- Orientation: `MediaMetadata.Width/Height` stay the coded size; `DisplayRotation` (clockwise
+  0/90/180/270, null when not a plain right angle) and `DisplayWidth/DisplayHeight` (the size of the
+  frames the decoder delivers) are probed from the stream's display matrix (or a legacy `rotate` tag),
+  else the first frame's display matrix (EXIF orientation of images), else 0°. The interpretation
+  mirrors ffmpeg's automatic rotation, which the decoder uses explicitly (`-autorotate`): within 1°
+  of 90/270 width and height swap (also for mirrored matrices), other angles keep the coded size.
+  Odd angles and mirrored matrices are not supported orientations: logged, laid out with the decoded
+  size. Composition (D018) uses the display size (`PictureSpan.SourceSize`); unknown → no geometry.
+  Users see the display size. SAR stays out of scope.
+- Older metadata (no display size) is kept and re-probed in the background when the file is present:
+  the asset stays Completed, the project doesn't become dirty, a failed probe keeps the saved metadata,
+  missing files stay offline. Inconsistent orientation values drop the metadata (D014).
+- Multi-layer playback supersedes D010's "topmost visible track wins": `VideoPipeline` keeps a reader
+  for every decodable layer of `PlaybackSnapshot.LayersAt` (nothing under an opaque full-canvas video)
+  plus the layers appearing at the next clip edge within the prefetch window, and closes the others.
+  `PlaybackFrame.Layers` lists every visible layer bottom to top as a `LayerPicture`: Frame (possibly
+  late, per layer — D012), Text, Pending, Offline, Unsupported, DecodeError; `Canvas` is the project
+  canvas. `Picture` / `IsPictureCurrent` remain as the compatibility view (the topmost picture layer)
+  for the single-picture Preview until Step 7.
+- A seek is ready when every layer visible at the target frame is. A presentation-only snapshot
+  (`DiffersOnlyInPresentation`) is taken over by the running pipeline (`UpdatePresentation`): same seek
+  generation, no buffering; a layer it uncovers opens its reader and is Pending until its first frame;
+  a layer it covers closes its reader. Readers are keyed by clip — within one pipeline a clip's
+  decoding never changes. Structural timeline changes still resync as before (no reader reuse).
+- Placeholders (Offline/Unsupported/DecodeError) use the clip's geometry (display size, Position/
+  Scale/Rotation) or the whole canvas when the size is unknown, and never hide lower layers: a video
+  that fails at run time (decode error, file gone) stops occluding and the layers below are decoded.
+- No limit on simultaneous decoders. Measured (ffmpeg 9, RTX 4070 SUPER, 1080p30 H.264 decoded at
+  ≤ 1280 × 720, Preview tick 10 ms): 1, 2 and 4 layers, hardware and software — 0 % late frames over
+  4 s, one ffmpeg process per visible layer.
+
+Consequences: `PlaybackSnapshot.LayersAt` gained an optional `mayOcclude` veto (Step 5 geometry
+unchanged). Found while testing: `IPlaybackService.SeekAsync` only completes while `Update()` is being
+called when a source's preroll exceeds `BufferFrames` (frames before the target are released by
+`Update`); the Preview always ticks, so the app is not affected — unchanged since Phase 5.
 
 Status: Accepted.
 

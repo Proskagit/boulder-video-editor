@@ -229,7 +229,8 @@ public sealed partial class InspectorViewModel : ViewModelBase
         {
             case MediaKind.Video:
                 AddRow("Duration", m.Duration.Ticks > 0 ? TimeFormat.ToShortString(m.Duration) : null);
-                AddRow("Resolution", m.Width.HasValue && m.Height.HasValue ? $"{m.Width}×{m.Height}" : null);
+                AddRow("Resolution", ResolutionFormat.Display(m));
+                AddRow("Orientation", ResolutionFormat.Orientation(m));
                 AddRow("Frame Rate", m.FrameRate.HasValue ? $"{Math.Round(m.FrameRate.Value.ToDouble(), 2)} FPS" : null);
                 AddRow("Video Codec", m.VideoCodec?.ToUpperInvariant());
                 AddRow("Audio Codec", m.AudioCodec?.ToUpperInvariant());
@@ -245,8 +246,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
                 break;
 
             case MediaKind.Image:
-                AddRow("Width", m.Width.HasValue ? $"{m.Width}px" : null);
-                AddRow("Height", m.Height.HasValue ? $"{m.Height}px" : null);
+                AddRow("Width", (m.DisplayWidth ?? m.Width) is { } w ? $"{w}px" : null);
+                AddRow("Height", (m.DisplayHeight ?? m.Height) is { } h ? $"{h}px" : null);
+                AddRow("Orientation", ResolutionFormat.Orientation(m));
                 break;
         }
     }

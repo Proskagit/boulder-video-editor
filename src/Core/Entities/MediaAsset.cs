@@ -70,8 +70,31 @@ public sealed class MediaAsset
 public sealed class MediaMetadata
 {
     public MediaTime Duration { get; set; }
+
+    /// <summary>Encoded (coded) picture width of the video/image stream, as stored in the file.</summary>
     public int? Width { get; set; }
+
+    /// <summary>Encoded (coded) picture height of the video/image stream, as stored in the file.</summary>
     public int? Height { get; set; }
+
+    /// <summary>
+    /// Orientation from the file's display matrix (or EXIF orientation of an image): the clockwise
+    /// rotation, 0/90/180/270, that the decoder applies so frames come out upright. Null when the
+    /// orientation is not a plain right-angle rotation (odd angle, mirrored matrix) or unknown.
+    /// </summary>
+    public int? DisplayRotation { get; set; }
+
+    /// <summary>Width of the frames as the decoder actually delivers them (after its automatic
+    /// rotation). This is the picture size composition works with (D018). Null when unknown.</summary>
+    public int? DisplayWidth { get; set; }
+
+    /// <summary>Height of the frames as the decoder actually delivers them. Null when unknown.</summary>
+    public int? DisplayHeight { get; set; }
+
+    /// <summary>True for metadata that has a coded picture size but no display size — probed
+    /// before orientation was read (projects saved before Phase 7). Such media is probed again
+    /// when it is available.</summary>
+    public bool NeedsDisplaySizeProbe => Width is not null && Height is not null && (DisplayWidth is null || DisplayHeight is null);
     /// <summary>Exact rational rate reported by ffprobe (r_frame_rate); null if unknown.</summary>
     public FrameRate? FrameRate { get; set; }
     /// <summary>Exact rational average rate of the video stream (avg_frame_rate); null if

@@ -66,8 +66,18 @@ internal sealed class MediaAssetDto
 internal sealed class MediaMetadataDto
 {
     public long DurationTicks { get; set; }
+
+    /// <summary>Coded picture size.</summary>
     public int? Width { get; set; }
     public int? Height { get; set; }
+
+    /// <summary>Added in Phase 7 without a format version change (optional): display orientation
+    /// (clockwise 0/90/180/270, null = not a right-angle rotation) and the size of the frames the
+    /// decoder delivers. Metadata written before them has a coded size but no display size; it is
+    /// kept, and the media is probed again when it is available.</summary>
+    public int? DisplayRotation { get; set; }
+    public int? DisplayWidth { get; set; }
+    public int? DisplayHeight { get; set; }
     public FrameRateDto? FrameRate { get; set; }
     public FrameRateDto? AvgFrameRate { get; set; }
     public long? StartTimeTicks { get; set; }

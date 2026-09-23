@@ -107,9 +107,11 @@ public sealed class PlaybackSnapshot
     /// The visible layers at <paramref name="time"/>, bottom to top (D018). Per visible track the clip
     /// covering the time (half-open <c>[start, end)</c>) becomes a layer, unless it is fully
     /// transparent (opacity 0) or empty text. Walking down from the top, everything below a layer
-    /// that <see cref="PictureLayer.OccludesBelow"/> is left out.
+    /// that <see cref="PictureLayer.OccludesBelow"/> is left out. <paramref name="mayOcclude"/> lets
+    /// playback veto an occluder that turned out not to deliver a picture at run time (a decode error
+    /// or a file that vanished shows a placeholder, which never hides the layers below).
     /// </summary>
-    public ImmutableArray<CompositionLayer> LayersAt(MediaTime time)
+    public ImmutableArray<CompositionLayer> LayersAt(MediaTime time, Func<PictureLayer, bool>? mayOcclude = null)
     {
         var topDown = new List<CompositionLayer>();
         foreach (var layer in VideoLayers) // topmost first
@@ -120,7 +122,7 @@ public sealed class PlaybackSnapshot
                 var geometry = picture.SourceSize is { } size ? CompositionMath.Layout(Canvas, size, picture.Visual) : null;
                 var pictureLayer = new PictureLayer(layer.TrackId, picture, geometry);
                 topDown.Add(pictureLayer);
-                if (pictureLayer.OccludesBelow) break;
+                if (pictureLayer.OccludesBelow && (mayOcclude?.Invoke(pictureLayer) ?? true)) break;
             }
             else if (FindText(layer.Texts, time) is { } text && text.Visual.Opacity > 0 && !string.IsNullOrWhiteSpace(text.Text.Text))
             {

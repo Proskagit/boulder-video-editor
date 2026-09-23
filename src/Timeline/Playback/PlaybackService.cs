@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Playback;
 using Microsoft.Extensions.Logging;
@@ -83,6 +84,12 @@ public sealed class PlaybackService : IPlaybackService
     /// ended, so none of them can still open a decoder (tests that count decoder opens).</summary>
     internal Task RetiringSettledAsync() => Task.WhenAll(_retiring.ToArray());
 
+    /// <summary>Open video readers of the current pipeline (tests).</summary>
+    internal int VideoReaderCount => _pipeline?.ReaderCount ?? 0;
+
+    /// <summary>Clips with an open video reader in the current pipeline (tests).</summary>
+    internal IReadOnlyCollection<Guid> VideoReaderClipIds => _pipeline?.ReaderClipIds ?? Array.Empty<Guid>();
+
     /// <summary>Current pipelines, compared by identity in tests.</summary>
     internal object? VideoPipelineInstance => _pipeline;
     internal object? AudioPipelineInstance => _audio;
@@ -99,10 +106,13 @@ public sealed class PlaybackService : IPlaybackService
 
         if (_snapshot is { } previous && _pipeline is not null && snapshot.DiffersOnlyInPresentation(previous))
         {
-            // Volume/mute or picture properties only: nothing to decode differently. Keep the video pipeline (and with
-            // it the seek generation, picture and buffering state); the audio pipeline keeps its
-            // readers and continues at the mixer's write position with the new gains.
+            // Volume/mute or picture properties only: nothing to decode differently. The video
+            // pipeline takes the snapshot over (same seek generation, readers, picture and buffering
+            // state; readers open/close only if the set of visible layers changed); the audio
+            // pipeline keeps its readers and continues at the mixer's write position with the new gains.
             _snapshot = snapshot;
+            _pipeline.UpdatePresentation(snapshot);
+            Volatile.Write(ref _pictureSnapshotVersion, snapshot.SnapshotVersion);
             _audio?.UpdateMix(snapshot, _audioRunning ? _mixer.WritePosition : AudioTiming.NearestSample(Position));
             return;
         }
@@ -186,13 +196,17 @@ public sealed class PlaybackService : IPlaybackService
         var lastFrame = FrameMath.CeilingFrame(snapshot.Duration, snapshot.FrameRate) - 1;
         var pictureFrame = lastFrame >= 0 ? Math.Min(frame, lastFrame) : 0;
 
-        var picture = pipeline.GetPicture(pictureFrame);
+        var result = pipeline.GetFrame(pictureFrame);
         if (pipeline.DecoderUnavailable) _decoderUnavailable = true;
-        var current = picture is not null && IsCurrent(pipeline);
+        var current = result.Picture is not null && IsCurrent(pipeline);
         if (current)
-            _picture = picture;
+            _picture = result.Picture;
 
-        return new PlaybackFrame(position, frame, State, IsBuffering, _picture, current);
+        return new PlaybackFrame(position, frame, State, IsBuffering, _picture, current)
+        {
+            Layers = IsCurrent(pipeline) ? result.Layers : ImmutableArray<LayerPicture>.Empty,
+            Canvas = snapshot.Canvas
+        };
     }
 
     private VideoPipeline Restart(MediaTime position, bool reanchor = true)

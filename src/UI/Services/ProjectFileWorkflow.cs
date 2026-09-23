@@ -319,7 +319,8 @@ public sealed class ProjectFileWorkflow
 
     private void AnalyseWhereNeeded(Core.Entities.Project project)
     {
-        // Saved metadata is reused; only media without it (and present on disk) is analysed.
+        // Saved metadata is reused; only media without it (and present on disk) is analysed, and
+        // metadata saved before orientation was probed is refreshed in the background.
         var queued = _analysisCoordinator.QueueWhereNeeded(project.MediaAssets);
         if (queued > 0)
             _logger.LogInformation("Analysing {Count} media file(s) without saved metadata.", queued);

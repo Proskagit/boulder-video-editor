@@ -127,7 +127,14 @@ This is a deliberate precision decision and should be preserved unless an explic
   → opacity. Canvas = project `FrameWidth × FrameHeight`.
 - `PlaybackSnapshot.LayersAt(time)` → `CompositionLayer`s bottom to top (`PictureLayer` with
   `PictureSpan` + geometry, `TextLayer` with renderer-neutral `TextProperties` + transform); culls below
-  an opaque video that provably covers the canvas. Not used by playback yet (Step 6).
+  an opaque video that provably covers the canvas.
+- Playback of layers (D019): `VideoPipeline` decodes every layer `LayersAt` returns (readers keyed by
+  clip, prefetch at the next edge, `UpdatePresentation` for presentation-only snapshots — no new seek
+  generation, newly uncovered layers Pending); `PlaybackFrame.Layers` = `LayerPicture`s bottom to top
+  (Frame/Text/Pending/Offline/Unsupported/DecodeError, per-layer late flag, placeholder area);
+  `Picture` is the compatibility view the current Preview still shows (layer rendering: Step 7).
+- Orientation (D019): metadata keeps the coded `Width/Height` and adds `DisplayRotation` /
+  `DisplayWidth/Height` (what the decoder delivers with `-autorotate`); composition uses the display size.
 
 ## Media pipeline
 

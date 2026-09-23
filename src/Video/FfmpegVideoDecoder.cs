@@ -161,6 +161,9 @@ public sealed class FfmpegVideoDecoder : IVideoDecoder
         args.Add("-copyts");
         if (seekTicks is { } seek)
             args.AddRange(new[] { "-ss", FormatSeconds(seek) });
+        // Frames come out display-oriented (display matrix / EXIF orientation applied); composition
+        // sizes (MediaMetadata.DisplayWidth/Height) rely on it, so it is explicit, not a default.
+        args.Add("-autorotate");
         args.AddRange(new[] { "-i", request.FilePath, "-map", "0:v:0", "-an", "-sn", "-dn" });
 
         var w = request.MaxWidth.ToString(CultureInfo.InvariantCulture);

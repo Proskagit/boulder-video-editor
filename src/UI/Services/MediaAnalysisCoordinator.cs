@@ -40,18 +40,66 @@ public sealed class MediaAnalysisCoordinator
     /// <summary>Queues only the assets that still need metadata: not analysed yet
     /// (<see cref="MediaAnalysisStatus.Pending"/>) and present on disk. Used after a project
     /// is opened — assets whose saved metadata was loaded are already
-    /// <see cref="MediaAnalysisStatus.Completed"/>. Returns how many were queued.</summary>
+    /// <see cref="MediaAnalysisStatus.Completed"/>; those whose metadata lacks the display size
+    /// (saved before Phase 7) are refreshed silently. Returns how many were queued.</summary>
     public int QueueWhereNeeded(IEnumerable<MediaAsset> assets)
     {
         var queued = 0;
         foreach (var asset in assets)
         {
-            if (asset.AnalysisStatus != MediaAnalysisStatus.Pending || asset.IsMissing)
+            if (asset.IsMissing)
                 continue;
-            QueueAnalysis(asset);
-            queued++;
+            if (asset.AnalysisStatus == MediaAnalysisStatus.Pending)
+            {
+                QueueAnalysis(asset);
+                queued++;
+            }
+            else if (asset.AnalysisStatus == MediaAnalysisStatus.Completed && asset.Metadata is { NeedsDisplaySizeProbe: true })
+            {
+                RefreshDisplaySize(asset);
+                queued++;
+            }
         }
         return queued;
+    }
+
+    /// <summary>
+    /// Metadata saved before orientation was probed (Phase 7) has a coded size but no display size.
+    /// Probes the file again in the background without changing the asset's state: the asset stays
+    /// Completed and usable, a successful probe replaces its metadata (a runtime refresh — the project
+    /// does not become dirty), a failed one keeps the saved metadata and is only logged.
+    /// </summary>
+    private void RefreshDisplaySize(MediaAsset asset)
+    {
+        if (!_inFlight.TryAdd(asset.Id, 0))
+            return;
+        _ = RefreshDisplaySizeAsync(asset);
+    }
+
+    private async Task RefreshDisplaySizeAsync(MediaAsset asset)
+    {
+        try
+        {
+            var result = await _analysisService.AnalyzeAsync(asset.FilePath);
+            if (result.Outcome == MediaAnalysisOutcome.Success && result.Metadata is { } metadata)
+            {
+                asset.Metadata = metadata;
+                _projectService.NotifyMediaAssetsChanged();
+            }
+            else
+            {
+                _logger.LogWarning("Could not refresh the orientation of '{Path}' ({Outcome}); keeping its saved metadata.",
+                    asset.FilePath, result.Outcome);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not refresh the orientation of '{Path}'; keeping its saved metadata.", asset.FilePath);
+        }
+        finally
+        {
+            _inFlight.TryRemove(asset.Id, out _);
+        }
     }
 
     public void QueueAnalysis(MediaAsset asset)

@@ -33,7 +33,9 @@ public class CompositionLayersTests
             Metadata = new MediaMetadata
             {
                 Duration = MediaTime.FromSeconds(60), FrameRate = Rate,
-                Width = withSize ? width : null, Height = withSize ? height : null
+                Width = withSize ? width : null, Height = withSize ? height : null,
+                DisplayRotation = withSize ? 0 : null,
+                DisplayWidth = withSize ? width : null, DisplayHeight = withSize ? height : null
             }
         };
         _project.MediaAssets.Add(asset);
@@ -263,6 +265,51 @@ public class CompositionLayersTests
         Assert.Equal(new FrameSize(1080, 1920), layer.Geometry!.Canvas);
         Assert.Equal(new Affine2D(0.5625, 0, 0, 0.5625, 0, 656.25), layer.Geometry.Transform);
         Assert.Equal(0.5, layer.Opacity);
+    }
+
+    [Fact]
+    public void Source_size_is_the_display_size_not_the_coded_size()
+    {
+        // A phone video stored landscape (1920 × 1080) with a 90° display rotation: the decoder
+        // delivers 1080 × 1920 frames, so the layer is laid out as portrait.
+        var clip = Video(_v1);
+        var metadata = _project.MediaAssets.Single(a => a.Id == clip.MediaAssetId).Metadata!;
+        (metadata.DisplayRotation, metadata.DisplayWidth, metadata.DisplayHeight) = (90, 1080, 1920);
+
+        var layer = Assert.IsType<PictureLayer>(Assert.Single(Layers()));
+
+        Assert.Equal(new FrameSize(1080, 1920), layer.Span.SourceSize);
+        Assert.Equal(new Affine2D(0.5625, 0, 0, 0.5625, 656.25, 0), layer.Geometry!.Transform); // pillarboxed portrait
+        Assert.False(layer.OccludesBelow);
+    }
+
+    [Fact]
+    public void Coded_size_without_a_display_size_gives_no_geometry()
+    {
+        // Metadata saved before orientation was probed: the coded size may be the wrong way round,
+        // so it is not used; the renderer lays the picture out from the decoded frame instead.
+        var below = Video(_v1);
+        var stale = Video(_v2);
+        var metadata = _project.MediaAssets.Single(a => a.Id == stale.MediaAssetId).Metadata!;
+        (metadata.DisplayRotation, metadata.DisplayWidth, metadata.DisplayHeight) = (null, null, null);
+        Assert.True(metadata.NeedsDisplaySizeProbe);
+
+        var layers = Layers();
+
+        Assert.Equal(new[] { below.Id, stale.Id }, Ids(layers)); // unknown size never culls
+        Assert.Null(((PictureLayer)layers[1]).Span.SourceSize);
+        Assert.Null(((PictureLayer)layers[1]).Geometry);
+    }
+
+    [Fact]
+    public void Display_size_is_part_of_the_asset_state_that_triggers_a_snapshot_rebuild()
+    {
+        var clip = Video(_v1);
+        var before = PlaybackSnapshotBuilder.CaptureAssetStates(_project);
+        var metadata = _project.MediaAssets.Single(a => a.Id == clip.MediaAssetId).Metadata!;
+        (metadata.DisplayWidth, metadata.DisplayHeight) = (1080, 1920);
+
+        Assert.True(PlaybackSnapshotBuilder.AssetStatesDiffer(before, PlaybackSnapshotBuilder.CaptureAssetStates(_project)));
     }
 
     [Fact]

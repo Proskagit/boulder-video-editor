@@ -54,6 +54,7 @@ internal sealed class FakeVideoDecoder : IVideoDecoder
     private readonly ConcurrentDictionary<string, TaskCompletionSource> _softwareGates = new();
     private readonly ConcurrentDictionary<string, VideoDecodeError> _openFailures = new();
     private readonly ConcurrentDictionary<string, int> _failAfter = new();
+    private readonly ConcurrentDictionary<string, (int Frames, TaskCompletionSource Release)> _holds = new();
 
     public ConcurrentQueue<VideoDecodeRequest> Requests { get; } = new();
 
@@ -68,6 +69,15 @@ internal sealed class FakeVideoDecoder : IVideoDecoder
     public TaskCompletionSource GateSoftware(string path) => _softwareGates[path] = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     public void FailOpen(string path, VideoDecodeError error) => _openFailures[path] = error;
     public void FailAfter(string path, int frames) => _failAfter[path] = frames;
+
+    /// <summary>Streams of <paramref name="path"/> opened from now on deliver <paramref name="frames"/>
+    /// frames and then stall until the returned source is completed (a decoder falling behind).</summary>
+    public TaskCompletionSource HoldAfter(string path, int frames)
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _holds[path] = (frames, release);
+        return release;
+    }
     public int OpenCount(string path) => Requests.Count(r => r.FilePath == path);
 
     public async Task<IVideoFrameStream> OpenAsync(VideoDecodeRequest request, CancellationToken ct = default)
@@ -85,7 +95,8 @@ internal sealed class FakeVideoDecoder : IVideoDecoder
         var first = SourceFrameSelector.Select(source.Timestamps(), request.StartTime, request.FirstSamplePoint);
         var failAfter = _failAfter.TryGetValue(request.FilePath, out var n) && request.Hardware == HardwareDecoding.Auto ? n : int.MaxValue;
         Interlocked.Increment(ref _liveStreams);
-        return new Stream(source, first, failAfter, () => Interlocked.Decrement(ref _liveStreams));
+        var hold = _holds.TryGetValue(request.FilePath, out var h) ? h : ((int, TaskCompletionSource)?)null;
+        return new Stream(source, first, failAfter, () => Interlocked.Decrement(ref _liveStreams), hold);
     }
 
     private sealed class Stream : IVideoFrameStream
@@ -95,16 +106,20 @@ internal sealed class FakeVideoDecoder : IVideoDecoder
         private int _next;
         private int _remainingBeforeFailure;
         private int _disposed;
+        private readonly (int Frames, TaskCompletionSource Release)? _hold;
+        private int _delivered;
 
-        public Stream(FakeSource source, int first, int failAfter, Action onDispose) =>
-            (_source, _next, _remainingBeforeFailure, _onDispose) = (source, first, failAfter, onDispose);
+        public Stream(FakeSource source, int first, int failAfter, Action onDispose, (int, TaskCompletionSource)? hold = null) =>
+            (_source, _next, _remainingBeforeFailure, _onDispose, _hold) = (source, first, failAfter, onDispose, hold);
 
-        public ValueTask<DecodedFrame?> ReadFrameAsync(CancellationToken ct = default)
+        public async ValueTask<DecodedFrame?> ReadFrameAsync(CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
+            if (_hold is { } hold && _delivered++ >= hold.Frames)
+                await hold.Release.Task.WaitAsync(ct);
             if (_remainingBeforeFailure-- <= 0)
                 throw new VideoDecodeException(VideoDecodeError.DecoderFailed, "fake hardware failure");
-            return ValueTask.FromResult(_next < _source.FrameCount ? _source.Frame(_next++) : null);
+            return _next < _source.FrameCount ? _source.Frame(_next++) : null;
         }
 
         public ValueTask DisposeAsync()

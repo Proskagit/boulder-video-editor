@@ -62,7 +62,7 @@ public sealed class MediaBrowserItemViewModel : ViewModelBase
             MediaKind.Video => new[]
             {
                 m.Duration.Ticks > 0 ? TimeFormat.ToShortString(m.Duration) : null,
-                m.Width.HasValue && m.Height.HasValue ? $"{m.Width}×{m.Height}" : null,
+                ResolutionFormat.Display(m),
                 m.FrameRate.HasValue ? $"{Math.Round(m.FrameRate.Value.ToDouble())} FPS" : null
             },
             MediaKind.Audio => new[]
@@ -73,7 +73,7 @@ public sealed class MediaBrowserItemViewModel : ViewModelBase
             },
             MediaKind.Image => new[]
             {
-                m.Width.HasValue && m.Height.HasValue ? $"{m.Width}×{m.Height}" : null
+                ResolutionFormat.Display(m)
             },
             _ => Array.Empty<string?>()
         };

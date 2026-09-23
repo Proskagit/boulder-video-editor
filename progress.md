@@ -16,7 +16,7 @@ Product decisions (product owner, 2026-09-23):
   the first video; no resolution UI in Phase 7. The Preview must stop assuming a fixed 960×540.
 - Speed: 0.25×–4×, UI step 0.05×, exact rational (not `double`), pitch preserved. Changing speed
   keeps Start, recomputes Duration / source range, is rejected on overlap (no ripple).
-  `project.json` v2 that still reads v1 (→ D019).
+  `project.json` v2 that still reads v1 (→ D020).
 - Text: multiline; only the existing properties (text, font, size, color, alignment, position,
   scale, rotation, opacity). No outline/background/shadow/stroke.
 - Transform UX: numeric Inspector fields only; no handles on the Preview.
@@ -133,6 +133,61 @@ Inspector · 8 text clips · 9 speed · 10 closeout.
   - Open for Step 6: rotation metadata of phone videos (ffprobe gives the coded size; D018
     consequences); how placeholders (offline/unsupported/decode error) are drawn in a composited
     preview.
+
+- Step 6 (in progress) — product decisions (2026-09-23): orientation + per-layer playback state in
+  Step 6, multi-layer rendering stays Step 7; `PlaybackFrame` keeps a compatibility picture for the
+  current Preview and adds the full `LayerPicture` list; stale metadata is re-probed silently on Open
+  (not dirty, missing files stay offline); Resolution shows the display size; placeholders take the
+  clip's geometry (fallback: whole canvas) and never cull; a layer uncovered without a seek is
+  Pending (no new seek generation, no Buffering); no reader reuse across structural changes; no
+  decoder limit (measure); rotation 0/90/180/270 only, odd/mirrored → log + decoder-size fallback;
+  SAR out of scope.
+  - 6a done — orientation/display size: `MediaMetadata.DisplayRotation` (clockwise, null = not a
+    right angle) + `DisplayWidth/DisplayHeight` (size of the frames the decoder delivers), `Width/Height`
+    stay coded; `NeedsDisplaySizeProbe`. Probe (`Video/DisplayOrientation`): stream display matrix or
+    legacy `rotate` tag → else first-frame display matrix (EXIF JPEGs) → else 0°, interpreted exactly
+    like ffmpeg's autorotate (measured with ffmpeg 9: ±90 → transposed; 180 same size; odd angle →
+    coded size; mirror detected by the matrix determinant, hflip alone reads −180). Decoder passes
+    `-autorotate` explicitly. `project.json` v1: optional `displayRotation/displayWidth/displayHeight`;
+    older metadata is kept (Duration etc. stay usable, missing files stay offline) and re-probed in the
+    background by `MediaAnalysisCoordinator` (status stays Completed, not dirty, failure keeps the saved
+    metadata); inconsistent values drop the metadata (D014). Builder: `SourceSize` = display size
+    (null when unknown → no geometry, never culls); `AssetState` includes it. Inspector / Media Browser
+    show the display size (+ "Rotated 90°"). Found + fixed: with an odd display angle ffmpeg prints a
+    warning without a newline, gluing showinfo's time-base line onto it — `ShowInfoParser` no longer
+    requires its prefix at the line start (such files decoded as DecodeError before).
+    Tests: Video `DisplayOrientationTests` (rule: 26 cases; real ffmpeg: 9 files incl. EXIF JPEG —
+    probed display size == decoded frame size), 2 `ShowInfoParserTests`; Project
+    `MediaOrientationPersistenceTests` (10); Core 3 builder/asset-state tests (+ fixture display sizes);
+    UI `MediaOrientationRefreshTests` (6). Full suite 876 green.
+  - 6b/6c done (D019) — playback contract + multi-layer `VideoPipeline`: `LayerPicture` /
+    `LayerPictureState` (Frame, Text, Pending, Offline, Unsupported, DecodeError; `IsCurrent` per layer;
+    `PlaceholderArea(canvas)` = clip geometry or whole canvas), `PlaybackFrame.Layers` (bottom to top) +
+    `Canvas`, compatibility `Picture` = topmost picture layer (the Preview is unchanged). Pipeline:
+    readers for every decodable layer of `LayersAt` (+ prefetch at the next edge), keyed by clip,
+    closed when no longer needed; per-layer late frames; runtime failures become placeholders and stop
+    occluding (`LayersAt(time, mayOcclude)`); Ready = every layer at the start frame;
+    `UpdatePresentation(snapshot)` from `PlaybackService` for presentation-only snapshots (same
+    generation, no buffering, `_pictureSnapshotVersion` follows).
+  - 6d done — tests: Timeline `MultiLayerPlaybackTests` (15: order, culling without reader, text,
+    opacity 1 → 0.9 while playing with a gated decoder = Pending then Frame without new generation/
+    buffering, back to 1 closes reader + stream, 20 toggles without leaks, per-layer late frame via
+    the fake's new `HoldAfter`, seek ready for either slow layer, offline/unsupported placeholders
+    with geometry that never cull, unknown size → whole canvas, failing occluder uncovers the layers
+    below, vanished file → Offline, prefetch, dispose); Video `MultiLayerIntegrationTests` (real
+    ffmpeg: one process per visible layer, opened/closed with opacity, none after Dispose). All
+    Phase 5 and Step 4/5 tests unchanged and green. Mutations (9): UpdatePresentation ignored → 5
+    failures, presentation change resyncing → 4, failed layer still occluding → 2, readers never
+    closed → 1, no per-layer late frame → 1, Ready on the first layer only → 1 (after making the seek
+    test a theory over both layers — the first version missed it), compatibility picture from the
+    bottom → 5, placeholder always full canvas → 1, no prefetch → 2.
+  - Load (temporary measurement, not in the repo): 1/2/4 layers of 1080p30 H.264, hardware and
+    software decoding — 0 % late frames over 4 s, one ffmpeg process per layer; no decoder limit needed
+    so far (rendering in Step 7 and 4K sources not measured).
+  - Found: `SeekAsync` without `Update()` calls never completes when a source's preroll exceeds
+    `BufferFrames` (e.g. MPEG-TS at frame 40) — unchanged since Phase 5, the Preview always ticks;
+    documented in D019, not changed.
+  - Full suite: 892 tests, 5 consecutive runs green. App starts (shell initialized, no errors).
 
 ### Phase 6 — Project persistence (complete)
 

@@ -197,6 +197,9 @@ public static class ProjectSerializer
         DurationTicks = m.Duration.Ticks,
         Width = m.Width,
         Height = m.Height,
+        DisplayRotation = m.DisplayRotation,
+        DisplayWidth = m.DisplayWidth,
+        DisplayHeight = m.DisplayHeight,
         FrameRate = m.FrameRate is { } fr ? ToDto(fr) : null,
         AvgFrameRate = m.AvgFrameRate is { } afr ? ToDto(afr) : null,
         StartTimeTicks = m.StartTime?.Ticks,
@@ -392,12 +395,18 @@ public static class ProjectSerializer
         if (dto is null || dto.DurationTicks < 0) return null;
         if (dto.FrameRate is not null && ReadFrameRate(dto.FrameRate) is null) return null;
         if (dto.AvgFrameRate is not null && ReadFrameRate(dto.AvgFrameRate) is null) return null;
+        if (dto.DisplayRotation is { } rotation && rotation is not (0 or 90 or 180 or 270)) return null;
+        if ((dto.DisplayWidth is null) != (dto.DisplayHeight is null)) return null;
+        if (dto.DisplayWidth is <= 0 || dto.DisplayHeight is <= 0) return null;
 
         return new MediaMetadata
         {
             Duration = new MediaTime(dto.DurationTicks),
             Width = dto.Width,
             Height = dto.Height,
+            DisplayRotation = dto.DisplayRotation,
+            DisplayWidth = dto.DisplayWidth,
+            DisplayHeight = dto.DisplayHeight,
             FrameRate = ReadFrameRate(dto.FrameRate),
             AvgFrameRate = ReadFrameRate(dto.AvgFrameRate),
             StartTime = dto.StartTimeTicks is { } st ? new MediaTime(st) : null,
