@@ -3,6 +3,7 @@ using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Infrastructure;
 using AiVideoEditor.Media;
 using AiVideoEditor.Project;
+using AiVideoEditor.Timeline;
 using AiVideoEditor.UI.Services;
 using AiVideoEditor.UI.Views;
 using AiVideoEditor.UI.ViewModels;
@@ -28,8 +29,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMediaImportService, MediaImportService>();
         services.AddSingleton<IFfprobeLocator, FfprobeLocator>();
         services.AddSingleton<IMediaAnalysisService, FfprobeMediaAnalysisService>();
+        services.AddSingleton<ITimelineEditService, TimelineEditService>();
 
-        // --- Phase 4+ registrations go here, e.g.: -----------------------------
+        // --- Later-phase registrations go here, e.g.: ---------------------------
         //   services.AddSingleton<IThumbnailService, ThumbnailService>();
         //   services.AddSingleton<IAutosaveService, AutosaveService>();
         //   services.AddSingleton<IPlaybackService, PlaybackService>();

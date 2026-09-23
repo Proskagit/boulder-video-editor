@@ -1,40 +1,95 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="AiVideoEditor.UI.Views.Panels.TimelineView">
+             x:Class="AiVideoEditor.UI.Views.Panels.TimelineView"
+             Focusable="True">
+
+  <UserControl.Styles>
+    <!-- Items on a Canvas are positioned through their container (ContentPresenter). -->
+    <Style Selector="ItemsControl.canvasItems > ContentPresenter">
+      <Setter Property="Canvas.Left" Value="{Binding Left}"/>
+    </Style>
+
+    <Style Selector="Border.clip">
+      <Setter Property="BorderBrush" Value="#000000"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+    <Style Selector="Border.clip.selected">
+      <Setter Property="BorderBrush" Value="#FFD54F"/>
+      <Setter Property="BorderThickness" Value="2"/>
+    </Style>
+    <Style Selector="Border.clip.invalid">
+      <Setter Property="BorderBrush" Value="#E05A3C"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="Opacity" Value="0.6"/>
+    </Style>
+    <Style Selector="Border.trimHandle">
+      <Setter Property="Background" Value="#00FFFFFF"/>
+      <Setter Property="Cursor" Value="SizeWestEast"/>
+    </Style>
+    <Style Selector="Border.trimHandle:pointerover">
+      <Setter Property="Background" Value="#55FFFFFF"/>
+    </Style>
+    <Style Selector="Border.trackRow">
+      <Setter Property="Background" Value="#202020"/>
+    </Style>
+    <Style Selector="Border.trackRow.dropTarget">
+      <Setter Property="Background" Value="#2A3A4A"/>
+    </Style>
+  </UserControl.Styles>
 
   <Border Background="#1E1E1E" BorderBrush="#1A1A1A" BorderThickness="0,1,0,0">
     <DockPanel>
 
-      <Border DockPanel.Dock="Top" Padding="8" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1">
-        <TextBlock Text="TIMELINE" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A"/>
+      <!-- Header: title, project frame rate, timeline tools -->
+      <Border DockPanel.Dock="Top" Padding="8,4" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <TextBlock Text="TIMELINE" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding FrameRateDisplay}" FontSize="11" Foreground="#7A7A7A" VerticalAlignment="Center"/>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+            <Button Content="+ Video Track" Command="{Binding AddVideoTrackCommand}" FontSize="11"/>
+            <Button Content="+ Audio Track" Command="{Binding AddAudioTrackCommand}" FontSize="11"/>
+            <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
+            <Button Content="Split" Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="Split at playhead (S)" FontSize="11"/>
+            <Button Content="Delete" Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="Delete selected clips (Delete)" FontSize="11"/>
+            <ToggleButton Content="Snap" IsChecked="{Binding SnappingEnabled}" ToolTip.Tip="Snapping (N)" FontSize="11"/>
+            <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
+            <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out (Ctrl+−)" FontSize="11"/>
+            <Button Content="+" Command="{Binding ZoomInCommand}" ToolTip.Tip="Zoom in (Ctrl+=)" FontSize="11"/>
+            <Button Content="Fit" Command="{Binding ZoomToFitCommand}" ToolTip.Tip="Zoom to fit" FontSize="11"/>
+          </StackPanel>
+        </DockPanel>
       </Border>
 
       <Grid ColumnDefinitions="70,*">
 
-        <!-- Track label column (fixed, does not scroll horizontally) -->
-        <StackPanel Grid.Column="0" Background="#252526">
-          <Border Height="24"/> <!-- spacer matching the ruler row -->
-          <ItemsControl ItemsSource="{Binding Tracks}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <Border Height="40" BorderBrush="#1A1A1A" BorderThickness="0,0,1,1">
-                  <TextBlock Text="{Binding Label}" Foreground="#AAAAAA" FontSize="11"
-                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
+        <!-- Track headers: scroll vertically in sync with the tracks (see code-behind). -->
+        <ScrollViewer x:Name="HeaderScroll" Grid.Column="0" Background="#252526"
+                      VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel>
+            <Border Height="24"/> <!-- spacer matching the ruler -->
+            <ItemsControl ItemsSource="{Binding Tracks}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Height="44" BorderBrush="#1A1A1A" BorderThickness="0,0,1,1">
+                    <TextBlock Text="{Binding Label}" Foreground="#AAAAAA" FontSize="11"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
 
-        <!-- Scrollable ruler + tracks + playhead -->
-        <ScrollViewer Grid.Column="1"
-                      HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto">
-          <Grid RowDefinitions="24,*" Width="2400">
+        <ScrollViewer x:Name="ContentScroll" Grid.Column="1"
+                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+          <Grid x:Name="ContentRoot" RowDefinitions="24,Auto" Width="{Binding ContentWidth}"
+                HorizontalAlignment="Left" VerticalAlignment="Top">
 
-            <!-- Time ruler -->
-            <Canvas Grid.Row="0" Height="24" Background="#232323">
-              <ItemsControl ItemsSource="{Binding RulerTicks}">
+            <!-- Time ruler: click / drag to move the playhead -->
+            <Panel x:Name="Ruler" Grid.Row="0" Background="#232323" Cursor="Hand">
+              <ItemsControl Classes="canvasItems" ItemsSource="{Binding RulerTicks}" IsHitTestVisible="False">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
                     <Canvas/>
@@ -42,19 +97,23 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
-                    <TextBlock Text="{Binding Label}" Foreground="#7A7A7A" FontSize="10"
-                               Canvas.Left="{Binding Left}" Canvas.Top="5"/>
+                    <Panel>
+                      <Rectangle Width="1" Height="6" Fill="#5A5A5A" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,18,0,0"/>
+                      <TextBlock Text="{Binding Label}" Foreground="#7A7A7A" FontSize="10" Margin="3,4,0,0"/>
+                    </Panel>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
-            </Canvas>
+            </Panel>
 
-            <!-- Tracks -->
-            <ItemsControl Grid.Row="1" ItemsSource="{Binding Tracks}">
+            <!-- Track lanes with clips -->
+            <ItemsControl x:Name="TrackRows" Grid.Row="1" ItemsSource="{Binding Tracks}"
+                          DragDrop.AllowDrop="True" Background="#1C1C1C">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                  <Canvas Height="40" Background="#202020">
-                    <ItemsControl ItemsSource="{Binding Clips}">
+                  <Border Classes="trackRow" Classes.dropTarget="{Binding IsDropTarget}"
+                          Height="44" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1">
+                    <ItemsControl Classes="canvasItems" ItemsSource="{Binding Clips}">
                       <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                           <Canvas/>
@@ -62,25 +121,30 @@
                       </ItemsControl.ItemsPanel>
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                          <Border Canvas.Left="{Binding Left}" Canvas.Top="4"
-                                  Width="{Binding Width}" Height="32"
-                                  CornerRadius="2" Background="{Binding ColorHex}"
-                                  BorderBrush="#000000" BorderThickness="1">
-                            <TextBlock Text="{Binding Name}" Foreground="#EEEEEE" FontSize="10"
-                                       Margin="4,0" VerticalAlignment="Center"
-                                       TextTrimming="CharacterEllipsis"/>
+                          <Border Classes="clip" Classes.selected="{Binding IsSelected}" Classes.invalid="{Binding IsInvalid}"
+                                  Width="{Binding Width}" Height="36" Margin="0,4,0,0"
+                                  CornerRadius="2" Background="{Binding ColorHex}" ClipToBounds="True">
+                            <Grid ColumnDefinitions="6,*,6">
+                              <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="#EEEEEE" FontSize="10"
+                                         Margin="2,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                         IsHitTestVisible="False"/>
+                              <Border Grid.Column="0" Classes="trimHandle" Tag="TrimStart"/>
+                              <Border Grid.Column="2" Classes="trimHandle" Tag="TrimEnd"/>
+                            </Grid>
                           </Border>
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                  </Canvas>
+                  </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- Playhead overlay, spans ruler + tracks -->
+            <!-- Playhead and snap indicator overlay, spanning ruler + tracks -->
             <Canvas Grid.Row="0" Grid.RowSpan="2" IsHitTestVisible="False">
-              <Rectangle Canvas.Left="{Binding PlayheadLeft}" Width="1" Height="200" Fill="#E05A3C"/>
+              <Rectangle Canvas.Left="{Binding SnapIndicatorX}" Width="1" Height="{Binding PlayheadHeight}"
+                         Fill="#4FC3F7" IsVisible="{Binding IsSnapIndicatorVisible}"/>
+              <Rectangle Canvas.Left="{Binding PlayheadX}" Width="1" Height="{Binding PlayheadHeight}" Fill="#E05A3C"/>
             </Canvas>
 
           </Grid>

@@ -166,22 +166,8 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         return metadata;
     }
 
-    private static double? ParseFrameRate(string? rFrameRate)
-    {
-        if (string.IsNullOrWhiteSpace(rFrameRate))
-            return null;
-
-        var parts = rFrameRate.Split('/');
-        if (parts.Length == 2
-            && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var numerator)
-            && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var denominator)
-            && denominator != 0)
-        {
-            return numerator / denominator;
-        }
-
-        return double.TryParse(rFrameRate, NumberStyles.Float, CultureInfo.InvariantCulture, out var direct)
-            ? direct
-            : null;
-    }
+    /// <summary>Keeps ffprobe's rational form (e.g. "30000/1001") exact. "0/0" and
+    /// anything unparseable mean "unknown" and yield null.</summary>
+    private static FrameRate? ParseFrameRate(string? rFrameRate) =>
+        FrameRate.TryParse(rFrameRate, out var rate) ? rate : null;
 }

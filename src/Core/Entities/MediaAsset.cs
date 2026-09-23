@@ -72,7 +72,8 @@ public sealed class MediaMetadata
     public MediaTime Duration { get; set; }
     public int? Width { get; set; }
     public int? Height { get; set; }
-    public double? FrameRate { get; set; }
+    /// <summary>Exact rational rate reported by ffprobe (r_frame_rate); null if unknown.</summary>
+    public FrameRate? FrameRate { get; set; }
     public string? VideoCodec { get; set; }
     public string? AudioCodec { get; set; }
     public int? AudioChannels { get; set; }

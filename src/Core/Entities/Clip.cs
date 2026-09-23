@@ -32,10 +32,12 @@ public abstract class MediaBackedClip : Clip
     /// <summary>In-point within the source media (trim left).</summary>
     public MediaTime SourceIn { get; set; }
 
-    /// <summary>Out-point within the source media (trim right). SourceOut - SourceIn == Duration.</summary>
+    /// <summary>Out-point within the source media (trim right). At Speed 1.0,
+    /// SourceOut - SourceIn == Duration.</summary>
     public MediaTime SourceOut { get; set; }
 
-    /// <summary>Playback speed multiplier. 1.0 = normal.</summary>
+    /// <summary>Playback speed multiplier. 1.0 = normal. Timeline editing currently
+    /// supports only 1.0 and rejects edits of clips with any other speed.</summary>
     public double Speed { get; set; } = 1.0;
 }
 

@@ -36,10 +36,11 @@ used yet.
 ## Current
 
 ### Phase 4 — Timeline
-Not started. Scope (from `docs/DEVELOPMENT_PLAN.md`): tracks, clips, selection,
-move, trim, split, delete, playhead, zoom, snapping — all as undoable commands.
-
-The Timeline and Preview panels still show mock data only.
+Implemented, accepted and committed ("feat: implement Phase 4 timeline editing"
+on branch `feat/phase-3-media-analysis`). Scope (from
+`docs/DEVELOPMENT_PLAN.md`): tracks, clips, selection, move, trim, split, delete,
+playhead, zoom, snapping — all as undoable commands. Decisions: DECISIONS.md D006–D008.
+Details and verification: `progress.md`.
 
 ## Future phases
 

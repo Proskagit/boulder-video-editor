@@ -25,6 +25,7 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasNoMedia))]
+    [NotifyCanExecuteChangedFor(nameof(AddToTimelineCommand))]
     private MediaBrowserItemViewModel? _selectedItem;
 
     public bool HasNoMedia => Items.Count == 0;
@@ -34,6 +35,10 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
     /// listens to this and forwards it to the Inspector — Media Browser and
     /// Inspector never reference each other directly.</summary>
     public event EventHandler<MediaAsset?>? SelectionChanged;
+
+    /// <summary>Raised by "Add to Timeline" (button / double-click). MainWindowViewModel
+    /// forwards it to the Timeline panel, which owns the edit and reports the result.</summary>
+    public event EventHandler<MediaAsset>? AddToTimelineRequested;
 
     public MediaBrowserViewModel(
         IProjectService projectService,
@@ -75,4 +80,13 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
 
     [RelayCommand]
     private Task Import() => _importWorkflow.RunAsync();
+
+    [RelayCommand(CanExecute = nameof(CanAddToTimeline))]
+    private void AddToTimeline()
+    {
+        if (SelectedItem is { } item)
+            AddToTimelineRequested?.Invoke(this, item.Asset);
+    }
+
+    private bool CanAddToTimeline() => SelectedItem is not null;
 }

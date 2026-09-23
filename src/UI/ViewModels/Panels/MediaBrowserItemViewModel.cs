@@ -62,7 +62,7 @@ public sealed class MediaBrowserItemViewModel : ViewModelBase
             {
                 m.Duration.Ticks > 0 ? TimeFormat.ToShortString(m.Duration) : null,
                 m.Width.HasValue && m.Height.HasValue ? $"{m.Width}×{m.Height}" : null,
-                m.FrameRate.HasValue ? $"{Math.Round(m.FrameRate.Value)} FPS" : null
+                m.FrameRate.HasValue ? $"{Math.Round(m.FrameRate.Value.ToDouble())} FPS" : null
             },
             MediaKind.Audio => new[]
             {

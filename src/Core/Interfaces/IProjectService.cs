@@ -38,6 +38,14 @@ public interface IProjectService
     /// it was already added) signal bound UI to refresh, the same way an actual
     /// add does.</summary>
     void NotifyMediaAssetsChanged();
+
+    /// <summary>Raised after any change to <see cref="Project.Timeline"/> (tracks, clips)
+    /// or the project frame rate — including Undo/Redo of such a change.</summary>
+    event EventHandler? TimelineChanged;
+
+    /// <summary>Marks the project dirty and raises <see cref="TimelineChanged"/>. Called
+    /// by timeline commands from both Execute and Undo.</summary>
+    void NotifyTimelineChanged();
 }
 
 /// <summary>Result of <see cref="IProjectService.AddMediaAssets"/>.</summary>

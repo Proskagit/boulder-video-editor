@@ -18,25 +18,36 @@ public sealed class ProjectService : IProjectService
 
     public event EventHandler? ProjectChanged;
     public event EventHandler? MediaAssetsChanged;
+    public event EventHandler? TimelineChanged;
 
     public ProjectService(ILogger<ProjectService> logger)
     {
         _logger = logger;
-        Current = new Core.Entities.Project { Name = "Untitled Project" };
+        Current = NewProject("Untitled Project", null);
     }
 
     public Core.Entities.Project CreateNew(string name, ProjectSettings? settings = null)
     {
-        Current = new Core.Entities.Project
-        {
-            Name = name,
-            Settings = settings ?? new ProjectSettings()
-        };
+        Current = NewProject(name, settings);
 
         _logger.LogInformation("Created new project '{Name}'.", name);
         ProjectChanged?.Invoke(this, EventArgs.Empty);
         NotifyMediaAssetsChanged();
+        TimelineChanged?.Invoke(this, EventArgs.Empty);
         return Current;
+    }
+
+    /// <summary>Every project starts with one video track (V1) and one audio track (A1).</summary>
+    private static Core.Entities.Project NewProject(string name, ProjectSettings? settings)
+    {
+        var project = new Core.Entities.Project
+        {
+            Name = name,
+            Settings = settings ?? new ProjectSettings()
+        };
+        project.Timeline.VideoTracks.Add(new Track { Type = TrackType.Video, Name = "V1", Order = 0 });
+        project.Timeline.AudioTracks.Add(new Track { Type = TrackType.Audio, Name = "A1", Order = 0 });
+        return project;
     }
 
     public Task<Core.Entities.Project> OpenAsync(string projectFolderPath, CancellationToken ct = default) =>
@@ -93,4 +104,14 @@ public sealed class ProjectService : IProjectService
     }
 
     public void NotifyMediaAssetsChanged() => MediaAssetsChanged?.Invoke(this, EventArgs.Empty);
+
+    public void NotifyTimelineChanged()
+    {
+        // Phase 4: any timeline change (including Undo/Redo) marks the project dirty.
+        // Returning to "clean" when undoing back to a save point needs a save point,
+        // which arrives with persistence in Phase 6.
+        Current.ModifiedAt = DateTimeOffset.UtcNow;
+        Current.IsDirty = true;
+        TimelineChanged?.Invoke(this, EventArgs.Empty);
+    }
 }

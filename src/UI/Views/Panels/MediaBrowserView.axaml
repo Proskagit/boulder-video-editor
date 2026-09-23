@@ -9,7 +9,11 @@
         <DockPanel>
           <TextBlock Text="MEDIA" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A"
                      VerticalAlignment="Center" DockPanel.Dock="Left"/>
-          <Button Content="+ Import" Command="{Binding ImportCommand}" HorizontalAlignment="Right"/>
+          <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+            <Button Content="Add to Timeline" Command="{Binding AddToTimelineCommand}"
+                    ToolTip.Tip="Add the selected media to the end of V1 / A1 (or drag it onto a track)"/>
+            <Button Content="+ Import" Command="{Binding ImportCommand}"/>
+          </StackPanel>
         </DockPanel>
       </Border>
 
@@ -24,7 +28,8 @@
         </StackPanel>
 
         <!-- Real media list -->
-        <ListBox IsVisible="{Binding !HasNoMedia}"
+        <ListBox x:Name="MediaList"
+                 IsVisible="{Binding !HasNoMedia}"
                  ItemsSource="{Binding Items}"
                  SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                  Background="Transparent"

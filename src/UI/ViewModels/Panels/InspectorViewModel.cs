@@ -20,12 +20,10 @@ public enum InspectorSelectionKind
 /// <summary>
 /// Right-hand Inspector. Phase 2 wired up real Media Browser selection; Phase 3
 /// adds real technical metadata (Duration/Resolution/Codec/etc.), populated only
-/// once analysis actually completes — never fake values. Timeline clip selection
-/// and the Transform properties below don't exist yet (no timeline editing until
-/// Phase 4), so <see cref="SelectionKind"/> can only ever be
-/// <see cref="InspectorSelectionKind.None"/> or <see cref="InspectorSelectionKind.Media"/>
-/// for now; the TimelineClip case is scaffolding the view already renders
-/// correctly against.
+/// once analysis actually completes — never fake values. Phase 4 adds timeline clip
+/// selection: read-only clip timing as non-drop-frame timecode. The Transform
+/// properties are kept as scaffolding but hidden in the view until they become
+/// editable in Phase 7.
 /// </summary>
 public sealed partial class InspectorViewModel : ViewModelBase
 {
@@ -59,28 +57,47 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
     public bool HasTechnicalInfo => TechnicalRows.Count > 0;
 
-    // --- Timeline clip selection (Phase 4 scaffold, not populated yet) -----
+    // --- Timeline clip selection (Phase 4) -----------------------------------
+    [ObservableProperty] private string _clipName = "";
+    [ObservableProperty] private string _clipTypeLabel = "";
+    [ObservableProperty] private string _startTimeDisplay = "";
+    [ObservableProperty] private string _endTimeDisplay = "";
+    [ObservableProperty] private string _durationDisplay = "";
+    [ObservableProperty] private string _clipFrameRateDisplay = "";
+
+    // Transform scaffold (Phase 7 — hidden in the view until editable).
     [ObservableProperty] private decimal _positionX;
     [ObservableProperty] private decimal _positionY;
     [ObservableProperty] private decimal _scale = 1.0m;
     [ObservableProperty] private decimal _rotation;
     [ObservableProperty] private decimal _opacity = 1.0m;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StartTimeDisplay))]
-    private MediaTime _startTime;
+    /// <summary>Shows the primary selected timeline clip. Called by MainWindowViewModel
+    /// on TimelineViewModel.SelectionChanged — which also fires after every timeline
+    /// change, so the timing shown here follows moves/trims/undo.</summary>
+    public void ShowClip(TimelineClipSelection selection)
+    {
+        var clip = selection.Clip;
+        ClipName = selection.Name;
+        ClipTypeLabel = clip switch
+        {
+            VideoClip => "Video clip",
+            AudioClip => "Audio clip",
+            ImageClip => "Image clip",
+            TextClip => "Text clip",
+            _ => "Clip"
+        };
+        StartTimeDisplay = TimeFormat.ToTimecode(clip.TimelineStart, selection.Rate);
+        EndTimeDisplay = TimeFormat.ToTimecode(clip.TimelineEnd, selection.Rate);
+        DurationDisplay = TimeFormat.ToTimecode(clip.Duration, selection.Rate);
+        ClipFrameRateDisplay = selection.Rate.Denominator == 1
+            ? $"{selection.Rate.Numerator} FPS"
+            : $"{Math.Round(selection.Rate.ToDouble(), 3)} FPS ({selection.Rate})";
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EndTimeDisplay))]
-    private MediaTime _endTime;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DurationDisplay))]
-    private MediaTime _duration;
-
-    public string StartTimeDisplay => TimeFormat.ToShortString(StartTime);
-    public string EndTimeDisplay => TimeFormat.ToShortString(EndTime);
-    public string DurationDisplay => TimeFormat.ToShortString(Duration);
+        TechnicalRows.Clear();
+        SelectionKind = InspectorSelectionKind.TimelineClip;
+        OnPropertyChanged(nameof(HasTechnicalInfo));
+    }
 
     /// <summary>Shows a Media Browser item's real properties, including whatever
     /// technical metadata analysis has produced so far. Called by
@@ -128,7 +145,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
             case MediaKind.Video:
                 AddRow("Duration", m.Duration.Ticks > 0 ? TimeFormat.ToShortString(m.Duration) : null);
                 AddRow("Resolution", m.Width.HasValue && m.Height.HasValue ? $"{m.Width}×{m.Height}" : null);
-                AddRow("Frame Rate", m.FrameRate.HasValue ? $"{Math.Round(m.FrameRate.Value, 2)} FPS" : null);
+                AddRow("Frame Rate", m.FrameRate.HasValue ? $"{Math.Round(m.FrameRate.Value.ToDouble(), 2)} FPS" : null);
                 AddRow("Video Codec", m.VideoCodec?.ToUpperInvariant());
                 AddRow("Audio Codec", m.AudioCodec?.ToUpperInvariant());
                 AddRow("Bitrate", m.BitrateBps.HasValue ? FormatBitrate(m.BitrateBps.Value) : null);

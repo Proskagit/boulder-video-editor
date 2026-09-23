@@ -13,8 +13,8 @@ This document describes the verified architecture of the AI Video Editor.
 
 ## Solution
 
-The solution contains 11 application projects under `src/` plus one test
-project (`tests/Core.Tests`).
+The solution contains 11 application projects under `src/` plus three test
+projects (`tests/Core.Tests`, `tests/Timeline.Tests`, `tests/UI.Tests`).
 
 | Project | Responsibility | State |
 |---|---|---|
@@ -25,7 +25,7 @@ project (`tests/Core.Tests`).
 | Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing) | Implemented (probe only) |
 | Media | `MediaImportService` (extension validation, file size) | Implemented |
 | Project | `ProjectService` (in-memory project, duplicate detection); Open/Save throw `NotSupportedException` | Partial |
-| Timeline | Timeline editing logic (Phase 4) | Empty scaffold |
+| Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands | Implemented (Phase 4) |
 | Audio, Effects, Export | Later phases | Empty scaffolds |
 
 Dependencies flow one way: App → UI / Infrastructure / subsystems → Core.
@@ -44,7 +44,29 @@ Domain types (`src/Core/Entities`):
 - `ExportSettings`, `ProjectSettings`, `Effect`, `Transition`, `Marker`
 - `MediaTime`
 
-No code creates `Track` or `Clip` instances yet; the Timeline panel shows mock data.
+New projects get tracks V1 and A1. Clips are created only by `ITimelineEditService`.
+
+## Timeline (Phase 4)
+
+- Time: `MediaTime` ticks + rational `FrameRate`; exact integer frame grid (DECISIONS D006).
+  Every clip edge lies exactly on the project grid.
+- Project frame rate: provisional 30 FPS until the first video fixes it (D007).
+- Editing: `ITimelineEditService` (Core) / `TimelineEditService` (Timeline). Each
+  operation builds an `EditPlan` in frame indices, validates all affected tracks with
+  `TimelineValidator` (type/track match, grid, ≥ 1 frame, no overlap, source limits),
+  then executes one `IUndoableCommand` wrapped in `NotifyingCommand`, which calls
+  `IProjectService.NotifyTimelineChanged()` on Execute and Undo (marks dirty, raises
+  `TimelineChanged`). Rules: D008.
+- UI: `TimelineViewModel` projects the `Sequence` (clip view models reused by Id),
+  owns view state (zoom, playhead, selection, drag previews using the service's
+  dry-run `CanMoveClips` / `PreviewTrim`) and never mutates the model directly.
+  `TimelineView` code-behind only converts pointer/wheel/drag-drop events to
+  content coordinates. Pixel ↔ time math: `TimelineCoordinateMapper`; all times sent
+  to the domain are snapped to the frame grid first.
+- Cross-panel wiring (selection → Inspector, Add to Timeline, playhead → Preview)
+  lives in `MainWindowViewModel`. Keyboard shortcuts are routed in
+  `MainWindow.OnKeyDown` and ignored while a TextBox has focus.
+- Threading: the project model is mutated on the UI thread only.
 
 ### MediaTime
 
