@@ -9,6 +9,23 @@ public enum MediaKind
     Image
 }
 
+/// <summary>Where a <see cref="MediaAsset"/> is in the metadata-analysis pipeline.</summary>
+public enum MediaAnalysisStatus
+{
+    /// <summary>Imported but analysis hasn't started yet.</summary>
+    Pending,
+
+    /// <summary>Analysis is currently running in the background.</summary>
+    Analyzing,
+
+    /// <summary>Analysis finished and <see cref="MediaAsset.Metadata"/> is populated.</summary>
+    Completed,
+
+    /// <summary>Analysis finished unsuccessfully — see <see cref="MediaAsset.AnalysisError"/>.
+    /// The asset itself remains a valid imported file; only its metadata is missing.</summary>
+    Failed
+}
+
 /// <summary>
 /// A media file that has been imported into the project's Media Browser.
 /// The project stores a reference to the original file path; the file itself
@@ -31,8 +48,14 @@ public sealed class MediaAsset
 
     public MediaKind Kind { get; set; }
 
-    /// <summary>Null until FFmpeg metadata probing has completed.</summary>
+    /// <summary>Null until metadata analysis has completed successfully.</summary>
     public MediaMetadata? Metadata { get; set; }
+
+    public MediaAnalysisStatus AnalysisStatus { get; set; } = MediaAnalysisStatus.Pending;
+
+    /// <summary>Human-readable reason analysis failed, set only when
+    /// <see cref="AnalysisStatus"/> is <see cref="MediaAnalysisStatus.Failed"/>.</summary>
+    public string? AnalysisError { get; set; }
 
     /// <summary>Cached thumbnail path (relative to project cache folder), if generated.</summary>
     public string? ThumbnailPath { get; set; }
@@ -49,7 +72,8 @@ public sealed class MediaMetadata
     public MediaTime Duration { get; set; }
     public int? Width { get; set; }
     public int? Height { get; set; }
-    public double? FrameRate { get; set; }
+    /// <summary>Exact rational rate reported by ffprobe (r_frame_rate); null if unknown.</summary>
+    public FrameRate? FrameRate { get; set; }
     public string? VideoCodec { get; set; }
     public string? AudioCodec { get; set; }
     public int? AudioChannels { get; set; }

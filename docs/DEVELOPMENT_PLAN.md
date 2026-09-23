@@ -4,21 +4,30 @@ Iterative phases, in order. Do not start a phase before the previous one builds
 and runs cleanly.
 
 - [x] **Phase 0 — Architecture.** Solution, projects, DI, logging, base MVVM,
-      basic window, Git-ready structure. *(this commit)*
+      basic window, Git-ready structure. *(`0ccc9be`)*
 - [x] **Phase 1 — Basic UI.** Toolbar, Media Browser, Preview, Timeline, Inspector
-      panels laid out with mock data. Visual skeleton only. *(this commit)*
-- [ ] **Phase 2 — Media import.** File picker, drag & drop, FFmpeg metadata
-      probing, thumbnails.
-- [ ] **Phase 3 — Timeline.** Tracks, clips, selection, move, trim, split,
+      panels laid out with mock data. Visual skeleton only. *(`88a608b`)*
+- [x] **Phase 2 — Project state and real media import.** In-memory project state
+      (`IProjectService`), native file picker, extension-validated import with
+      duplicate detection, Media Browser wired to real imported files, Inspector
+      shows real file properties. *(`e7a8ef0`)*
+- [x] **Phase 3 — Media analysis foundation.** FFprobe-backed `IMediaAnalysisService`
+      (Video subsystem), configurable ffprobe location (`IFfprobeLocator`,
+      Infrastructure), background analysis after import via
+      `MediaAnalysisCoordinator` (never blocks the UI thread), real technical
+      metadata (duration/resolution/fps/codecs/bitrate/sample rate/channels) in
+      the Media Browser and Inspector. No playback, timeline editing, or
+      thumbnails yet. *(`a8e5bac`)*
+- [ ] **Phase 4 — Timeline.** Tracks, clips, selection, move, trim, split,
       delete, playhead, zoom, snapping — all as undoable commands.
-- [ ] **Phase 4 — Preview.** Wire timeline playhead to the preview player;
+- [ ] **Phase 5 — Preview.** Wire timeline playhead to the preview player;
       synchronize play/pause.
-- [ ] **Phase 5 — Project system.** New/Open/Save/Save As, project.json,
+- [ ] **Phase 6 — Project persistence.** Open/Save/Save As, project.json,
       autosave, missing-media detection.
-- [ ] **Phase 6 — Basic editing.** Speed, volume, opacity, transform, crop, text.
-- [ ] **Phase 7 — Export.** FFmpeg render pipeline: Timeline → MP4 (H.264/AAC).
-- [ ] **Phase 8 — Quality.** Performance profiling, caching, error handling,
-      polish, hotkeys, waveform.
+- [ ] **Phase 7 — Basic editing.** Speed, volume, opacity, transform, crop, text.
+- [ ] **Phase 8 — Export.** FFmpeg render pipeline: Timeline → MP4 (H.264/AAC).
+- [ ] **Phase 9 — Quality.** Performance profiling, caching, error handling,
+      polish, hotkeys, waveform, thumbnails.
 
 ## Architectural rules that must hold at every phase
 

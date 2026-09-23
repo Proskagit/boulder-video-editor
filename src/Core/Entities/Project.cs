@@ -30,7 +30,13 @@ public sealed class ProjectSettings
 {
     public int FrameWidth { get; set; } = 1920;
     public int FrameHeight { get; set; } = 1080;
-    public double FrameRate { get; set; } = 30;
+    /// <summary>Timeline frame grid. Exact rational rate — see <see cref="Common.FrameRate"/>.</summary>
+    public Common.FrameRate FrameRate { get; set; } = Common.FrameRate.Default;
+
+    /// <summary>False while <see cref="FrameRate"/> is the provisional default. Set when
+    /// the first video clip is added to the timeline, which fixes the frame rate for
+    /// the rest of the project; only undoing that add clears it again.</summary>
+    public bool IsFrameRateLocked { get; set; }
     public int AudioSampleRate { get; set; } = 48000;
 }
 

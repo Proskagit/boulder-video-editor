@@ -1,4 +1,5 @@
 using AiVideoEditor.App.Composition;
+using AiVideoEditor.Infrastructure.Configuration;
 using AiVideoEditor.Infrastructure.Logging;
 using Avalonia;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,6 +47,9 @@ internal static class Program
 
         builder.Logging.ClearProviders();
         builder.Logging.AddSerilog(Log.Logger, dispose: false);
+
+        // Bound from the "Ffmpeg" section of appsettings.json — see FfprobeLocator.
+        builder.Services.Configure<FfmpegOptions>(builder.Configuration.GetSection("Ffmpeg"));
 
         builder.Services.AddAiVideoEditor();
 

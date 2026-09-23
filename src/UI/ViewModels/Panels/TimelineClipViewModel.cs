@@ -1,28 +1,69 @@
 using System.Collections.ObjectModel;
+using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.UI.Common;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
 /// <summary>
-/// One clip's visual rectangle on the timeline. <see cref="Left"/>/<see cref="Width"/>
-/// are plain pixels for Phase 1's mock layout; from Phase 3 onward these are
-/// computed from the real <see cref="Clip.TimelineStart"/>/<see cref="Clip.Duration"/>
-/// via the timeline's pixels-per-second zoom factor instead of being hand-set.
+/// One clip's rectangle on the timeline. Wraps the real <see cref="Core.Entities.Clip"/>
+/// (reused across refreshes by Id, so selection and pointer capture survive model
+/// changes). <see cref="Left"/>/<see cref="Width"/> come from the clip's timing and
+/// the zoom level — or from a drag/trim preview, which never touches the model.
 /// </summary>
-public sealed class TimelineClipViewModel : ViewModelBase
+public sealed partial class TimelineClipViewModel : ViewModelBase
 {
-    public required string Name { get; init; }
-    public required double Left { get; init; }
-    public required double Width { get; init; }
-    public required string ColorHex { get; init; }
+    public const double MinWidthPixels = 2;
+
+    public TimelineClipViewModel(Clip clip, string name)
+    {
+        Clip = clip;
+        Name = name;
+    }
+
+    public Clip Clip { get; }
+    public Guid Id => Clip.Id;
+    public string Name { get; set; }
+
+    public string ColorHex => Clip switch
+    {
+        VideoClip => "#3A5A78",
+        AudioClip => "#3A784F",
+        ImageClip => "#78703A",
+        _ => "#5A3A78"
+    };
+
+    [ObservableProperty] private double _left;
+    [ObservableProperty] private double _width;
+    [ObservableProperty] private bool _isSelected;
+
+    /// <summary>True while a drag preview shows a position the edit would reject.</summary>
+    [ObservableProperty] private bool _isInvalid;
+
+    public void Layout(double pixelsPerSecond) => Layout(pixelsPerSecond, Clip.TimelineStart, Clip.TimelineEnd);
+
+    public void Layout(double pixelsPerSecond, MediaTime start, MediaTime end)
+    {
+        Left = TimelineCoordinateMapper.TimeToX(start, pixelsPerSecond);
+        Width = Math.Max(MinWidthPixels, TimelineCoordinateMapper.TimeToX(end - start, pixelsPerSecond));
+    }
 }
 
-/// <summary>One horizontal track lane (a video or audio row) with its mock clips.</summary>
-public sealed class TimelineTrackViewModel : ViewModelBase
+/// <summary>One horizontal track lane.</summary>
+public sealed partial class TimelineTrackViewModel : ViewModelBase
 {
-    public required string Label { get; init; }
-    public required TrackType Type { get; init; }
+    public const double Height = 44;
+
+    public TimelineTrackViewModel(Track track) => Track = track;
+
+    public Track Track { get; }
+    public string Label => Track.IsLocked ? $"{Track.Name} 🔒" : Track.Name;
+    public TrackType Type => Track.Type;
     public ObservableCollection<TimelineClipViewModel> Clips { get; } = new();
+
+    /// <summary>Highlighted while a drag/drop would land on this track.</summary>
+    [ObservableProperty] private bool _isDropTarget;
 }
 
 /// <summary>A single labeled tick on the time ruler.</summary>
@@ -31,3 +72,6 @@ public sealed class TimelineRulerTickViewModel : ViewModelBase
     public required string Label { get; init; }
     public required double Left { get; init; }
 }
+
+/// <summary>The primary selected timeline clip, as passed to the Inspector.</summary>
+public sealed record TimelineClipSelection(Clip Clip, string Name, MediaAsset? Asset, FrameRate Rate);

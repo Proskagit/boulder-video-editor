@@ -17,6 +17,7 @@ public sealed class MediaImportWorkflow
     private readonly IFilePickerService _filePicker;
     private readonly IMediaImportService _mediaImportService;
     private readonly IProjectService _projectService;
+    private readonly MediaAnalysisCoordinator _analysisCoordinator;
     private readonly StatusService _status;
     private readonly ILogger<MediaImportWorkflow> _logger;
 
@@ -24,12 +25,14 @@ public sealed class MediaImportWorkflow
         IFilePickerService filePicker,
         IMediaImportService mediaImportService,
         IProjectService projectService,
+        MediaAnalysisCoordinator analysisCoordinator,
         StatusService status,
         ILogger<MediaImportWorkflow> logger)
     {
         _filePicker = filePicker;
         _mediaImportService = mediaImportService;
         _projectService = projectService;
+        _analysisCoordinator = analysisCoordinator;
         _status = status;
         _logger = logger;
     }
@@ -69,6 +72,11 @@ public sealed class MediaImportWorkflow
 
         var importResult = await _mediaImportService.ImportManyAsync(paths, ct);
         var addResult = _projectService.AddMediaAssets(importResult.Imported);
+
+        // Fire-and-forget on purpose: analysis runs in the background and updates
+        // each asset in place as it completes (see MediaAnalysisCoordinator).
+        // Import itself must finish immediately — never block on analysis here.
+        _analysisCoordinator.QueueAnalysis(addResult.Added);
 
         _status.Report(BuildStatusMessage(
             addResult.Added.Count,

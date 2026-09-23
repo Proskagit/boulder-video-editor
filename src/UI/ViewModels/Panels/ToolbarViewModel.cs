@@ -47,10 +47,10 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void Open() => _status.Report("Opening saved projects isn't implemented yet (arrives in Phase 5).");
+    private void Open() => _status.Report("Opening saved projects isn't implemented yet (arrives in Phase 6).");
 
     [RelayCommand]
-    private void Save() => _status.Report("Saving projects isn't implemented yet (arrives in Phase 5).");
+    private void Save() => _status.Report("Saving projects isn't implemented yet (arrives in Phase 6).");
 
     [RelayCommand(CanExecute = nameof(CanUndo))]
     private void Undo() => _undoRedoService.Undo();
@@ -66,5 +66,5 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     private Task ImportMedia() => _importWorkflow.RunAsync();
 
     [RelayCommand]
-    private void Export() => _status.Report("Export isn't implemented yet (arrives in Phase 7).");
+    private void Export() => _status.Report("Export isn't implemented yet (arrives in Phase 8).");
 }

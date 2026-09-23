@@ -8,7 +8,7 @@ namespace AiVideoEditor.Project;
 /// Holds the current in-memory <see cref="Core.Entities.Project"/> and mediates every
 /// change to it. Phase 2 scope: New Project is real; Open/Save/SaveAs are not
 /// implemented yet (they throw <see cref="NotSupportedException"/> with a message
-/// clear enough to show the user) — full project.json persistence is Phase 5.
+/// clear enough to show the user) — full project.json persistence is Phase 6.
 /// </summary>
 public sealed class ProjectService : IProjectService
 {
@@ -18,35 +18,46 @@ public sealed class ProjectService : IProjectService
 
     public event EventHandler? ProjectChanged;
     public event EventHandler? MediaAssetsChanged;
+    public event EventHandler? TimelineChanged;
 
     public ProjectService(ILogger<ProjectService> logger)
     {
         _logger = logger;
-        Current = new Core.Entities.Project { Name = "Untitled Project" };
+        Current = NewProject("Untitled Project", null);
     }
 
     public Core.Entities.Project CreateNew(string name, ProjectSettings? settings = null)
     {
-        Current = new Core.Entities.Project
+        Current = NewProject(name, settings);
+
+        _logger.LogInformation("Created new project '{Name}'.", name);
+        ProjectChanged?.Invoke(this, EventArgs.Empty);
+        NotifyMediaAssetsChanged();
+        TimelineChanged?.Invoke(this, EventArgs.Empty);
+        return Current;
+    }
+
+    /// <summary>Every project starts with one video track (V1) and one audio track (A1).</summary>
+    private static Core.Entities.Project NewProject(string name, ProjectSettings? settings)
+    {
+        var project = new Core.Entities.Project
         {
             Name = name,
             Settings = settings ?? new ProjectSettings()
         };
-
-        _logger.LogInformation("Created new project '{Name}'.", name);
-        ProjectChanged?.Invoke(this, EventArgs.Empty);
-        MediaAssetsChanged?.Invoke(this, EventArgs.Empty);
-        return Current;
+        project.Timeline.VideoTracks.Add(new Track { Type = TrackType.Video, Name = "V1", Order = 0 });
+        project.Timeline.AudioTracks.Add(new Track { Type = TrackType.Audio, Name = "A1", Order = 0 });
+        return project;
     }
 
     public Task<Core.Entities.Project> OpenAsync(string projectFolderPath, CancellationToken ct = default) =>
-        throw new NotSupportedException("Opening saved projects isn't implemented yet — it arrives in Phase 5.");
+        throw new NotSupportedException("Opening saved projects isn't implemented yet — it arrives in Phase 6.");
 
     public Task SaveAsync(CancellationToken ct = default) =>
-        throw new NotSupportedException("Saving projects isn't implemented yet — it arrives in Phase 5.");
+        throw new NotSupportedException("Saving projects isn't implemented yet — it arrives in Phase 6.");
 
     public Task SaveAsAsync(string projectFolderPath, CancellationToken ct = default) =>
-        throw new NotSupportedException("Saving projects isn't implemented yet — it arrives in Phase 5.");
+        throw new NotSupportedException("Saving projects isn't implemented yet — it arrives in Phase 6.");
 
     public IReadOnlyList<MediaAsset> DetectMissingMedia()
     {
@@ -86,9 +97,21 @@ public sealed class ProjectService : IProjectService
             Current.ModifiedAt = DateTimeOffset.UtcNow;
             Current.IsDirty = true;
             _logger.LogInformation("Added {Count} media asset(s) to the project ({Duplicates} duplicate(s) skipped).", added.Count, duplicateCount);
-            MediaAssetsChanged?.Invoke(this, EventArgs.Empty);
+            NotifyMediaAssetsChanged();
         }
 
         return new MediaAddResult { Added = added, DuplicateCount = duplicateCount };
+    }
+
+    public void NotifyMediaAssetsChanged() => MediaAssetsChanged?.Invoke(this, EventArgs.Empty);
+
+    public void NotifyTimelineChanged()
+    {
+        // Phase 4: any timeline change (including Undo/Redo) marks the project dirty.
+        // Returning to "clean" when undoing back to a save point needs a save point,
+        // which arrives with persistence in Phase 6.
+        Current.ModifiedAt = DateTimeOffset.UtcNow;
+        Current.IsDirty = true;
+        TimelineChanged?.Invoke(this, EventArgs.Empty);
     }
 }

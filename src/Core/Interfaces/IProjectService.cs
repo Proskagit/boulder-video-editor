@@ -31,6 +31,21 @@ public interface IProjectService
     /// duplicate detection happens, since it's the only place that knows what's
     /// already in the project.</summary>
     MediaAddResult AddMediaAssets(IEnumerable<MediaAsset> assets);
+
+    /// <summary>Raises <see cref="MediaAssetsChanged"/> without otherwise changing
+    /// project state. Lets code that mutates a <see cref="MediaAsset"/> in place
+    /// (e.g. metadata analysis filling in <see cref="MediaAsset.Metadata"/> after
+    /// it was already added) signal bound UI to refresh, the same way an actual
+    /// add does.</summary>
+    void NotifyMediaAssetsChanged();
+
+    /// <summary>Raised after any change to <see cref="Project.Timeline"/> (tracks, clips)
+    /// or the project frame rate — including Undo/Redo of such a change.</summary>
+    event EventHandler? TimelineChanged;
+
+    /// <summary>Marks the project dirty and raises <see cref="TimelineChanged"/>. Called
+    /// by timeline commands from both Execute and Undo.</summary>
+    void NotifyTimelineChanged();
 }
 
 /// <summary>Result of <see cref="IProjectService.AddMediaAssets"/>.</summary>
