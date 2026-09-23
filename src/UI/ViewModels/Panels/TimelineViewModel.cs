@@ -86,6 +86,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// <summary>Playhead moved or the sequence duration may have changed.</summary>
     public event EventHandler? PlayheadChanged;
 
+    /// <summary>The user moved the playhead (click, drag, frame step, Home/End). Raised only for
+    /// user actions — never for <see cref="ShowPlaybackPosition"/> or a timeline refresh — so
+    /// playback can seek without feeding its own position back into a seek.</summary>
+    public event EventHandler<MediaTime>? SeekRequested;
+
     /// <summary>Primary selected clip changed (null = no timeline selection).</summary>
     public event EventHandler<TimelineClipSelection?>? SelectionChanged;
 
@@ -232,13 +237,28 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     // --- Playhead -----------------------------------------------------------------
 
-    /// <summary>Moves the playhead to the nearest frame boundary (never before zero).
-    /// View state only: not undoable, doesn't mark the project dirty.</summary>
+    /// <summary>User action: moves the playhead to the nearest frame boundary (never before
+    /// zero) and requests a playback seek there. View state only: not undoable, doesn't mark
+    /// the project dirty.</summary>
     public void SetPlayhead(MediaTime time)
     {
         var snapped = (time < MediaTime.Zero ? MediaTime.Zero : time).SnapToFrame(FrameRate);
-        Sequence.PlayheadPosition = snapped;
-        PlayheadX = TimelineCoordinateMapper.TimeToX(snapped, PixelsPerSecond);
+        MovePlayhead(snapped);
+        SeekRequested?.Invoke(this, snapped);
+    }
+
+    /// <summary>Playback moved: shows <paramref name="frameStart"/> (a frame boundary) without
+    /// requesting a seek.</summary>
+    public void ShowPlaybackPosition(MediaTime frameStart)
+    {
+        if (frameStart == Playhead) return;
+        MovePlayhead(frameStart);
+    }
+
+    private void MovePlayhead(MediaTime position)
+    {
+        Sequence.PlayheadPosition = position;
+        PlayheadX = TimelineCoordinateMapper.TimeToX(position, PixelsPerSecond);
         PlayheadChanged?.Invoke(this, EventArgs.Empty);
     }
 

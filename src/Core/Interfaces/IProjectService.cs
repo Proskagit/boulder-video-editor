@@ -71,21 +71,3 @@ public interface IThumbnailService
     Task<string> GetOrCreateThumbnailAsync(MediaAsset asset, CancellationToken ct = default);
 }
 
-/// <summary>Drives the preview player and stays in sync with the timeline playhead.</summary>
-public interface IPlaybackService
-{
-    bool IsPlaying { get; }
-    Common.MediaTime CurrentTime { get; }
-    Common.MediaTime Duration { get; }
-    double Volume { get; set; }
-    bool IsMuted { get; set; }
-
-    event EventHandler? PlaybackStateChanged;
-    event EventHandler<Common.MediaTime>? TimeChanged;
-
-    void Play();
-    void Pause();
-    void Stop();
-    void Seek(Common.MediaTime position);
-    void StepFrame(int deltaFrames);
-}

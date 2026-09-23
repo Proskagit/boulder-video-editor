@@ -37,6 +37,10 @@ internal sealed class FfprobeStream
     [JsonPropertyName("r_frame_rate")]
     public string? RFrameRate { get; set; }
 
+    /// <summary>Average frame rate as a string, e.g. "30000/1001"; "0/0" if unknown.</summary>
+    [JsonPropertyName("avg_frame_rate")]
+    public string? AvgFrameRate { get; set; }
+
     /// <summary>ffprobe reports this as a string even though it's numeric.</summary>
     [JsonPropertyName("sample_rate")]
     public string? SampleRate { get; set; }
@@ -50,6 +54,10 @@ internal sealed class FfprobeFormat
     /// <summary>Seconds, as a string, e.g. "84.5".</summary>
     [JsonPropertyName("duration")]
     public string? Duration { get; set; }
+
+    /// <summary>Seconds with microsecond precision, as a string, e.g. "1.400000".</summary>
+    [JsonPropertyName("start_time")]
+    public string? StartTime { get; set; }
 
     /// <summary>Bits per second, as a string.</summary>
     [JsonPropertyName("bit_rate")]

@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
-    <RootNamespace>AiVideoEditor.UI.Tests</RootNamespace>
+    <RootNamespace>AiVideoEditor.Video.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,14 +16,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core\Core.csproj" />
-    <ProjectReference Include="..\..\src\UI\UI.csproj" />
-    <ProjectReference Include="..\..\src\Project\Project.csproj" />
+    <ProjectReference Include="..\..\src\Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Video\Video.csproj" />
     <ProjectReference Include="..\..\src\Timeline\Timeline.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Shared fake decoder / fake reference clock (no ffmpeg processes in UI tests). -->
-    <Compile Include="..\Timeline.Tests\Playback\PlaybackFakes.cs" Link="Playback\PlaybackFakes.cs" />
   </ItemGroup>
 
 </Project>

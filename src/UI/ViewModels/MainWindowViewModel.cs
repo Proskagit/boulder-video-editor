@@ -12,7 +12,7 @@ namespace AiVideoEditor.UI.ViewModels;
 /// <list type="bullet">
 /// <item>Media Browser or timeline selection → Inspector (the two are mutually exclusive);</item>
 /// <item>Media Browser "Add to Timeline" → Timeline;</item>
-/// <item>timeline playhead ↔ Preview transport.</item>
+/// <item>timeline playhead ↔ Preview transport / playback (seek on user moves, follow playback).</item>
 /// </list>
 /// </summary>
 public sealed class MainWindowViewModel : ViewModelBase
@@ -74,9 +74,12 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         MediaBrowser.AddToTimelineRequested += (_, asset) => Timeline.AddMedia(asset);
 
+        // Playhead ↔ playback. User moves (SeekRequested) seek playback; playback positions are
+        // shown with ShowPlaybackPosition, which never raises SeekRequested — no feedback loop.
         Timeline.PlayheadChanged += (_, _) => UpdatePreviewPosition();
+        Timeline.SeekRequested += (_, position) => Preview.Seek(position);
+        Preview.PlaybackPositionChanged += (_, position) => Timeline.ShowPlaybackPosition(position);
         Preview.FrameStepRequested += (_, frames) => Timeline.StepFrames(frames);
-        Preview.GoToStartRequested += (_, _) => Timeline.GoToStart();
         UpdatePreviewPosition();
 
         logger.LogInformation("Application shell initialized.");

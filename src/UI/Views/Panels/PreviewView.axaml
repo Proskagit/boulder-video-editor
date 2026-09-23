@@ -4,13 +4,21 @@
 
   <Grid RowDefinitions="*,Auto" Background="#1E1E1E">
 
-    <!-- Video canvas placeholder, kept at a 16:9 box via a fixed-ratio Viewbox. -->
+    <!-- Video canvas, kept at a 16:9 box via a fixed-ratio Viewbox. Frames are letterboxed
+         inside it; the image is filled from the view model's DecodedFrame in code-behind. -->
     <Border Grid.Row="0" Margin="16">
       <Viewbox Stretch="Uniform">
         <Border Width="960" Height="540" Background="#000000" BorderBrush="#3A3A3A" BorderThickness="1">
-          <TextBlock Text="Preview surface (no decoder attached yet)"
-                     Foreground="#5A5A5A" FontSize="14"
-                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          <Grid>
+            <Image x:Name="FrameImage" Stretch="Uniform"/>
+            <TextBlock Text="{Binding PlaceholderText}"
+                       IsVisible="{Binding PlaceholderText, Converter={x:Static ObjectConverters.IsNotNull}}"
+                       Foreground="#9A9A9A" FontSize="20"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <TextBlock Text="Buffering…" IsVisible="{Binding IsBuffering}"
+                       Foreground="#7A7A7A" FontSize="12" Margin="8"
+                       HorizontalAlignment="Right" VerticalAlignment="Top"/>
+          </Grid>
         </Border>
       </Viewbox>
     </Border>
