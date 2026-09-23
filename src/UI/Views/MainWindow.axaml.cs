@@ -36,10 +36,14 @@ public partial class MainWindow : Window
         var undoRedo = new UndoRedoService();
         var projectService = new DesignTimeProjectService();
         var mediaImportService = new DesignTimeMediaImportService();
+        var mediaAnalysisService = new DesignTimeMediaAnalysisService();
         var filePicker = new DesignTimeFilePickerService();
         var status = new StatusService();
+        var analysisCoordinator = new MediaAnalysisCoordinator(
+            mediaAnalysisService, projectService, NullLogger<MediaAnalysisCoordinator>.Instance);
         var importWorkflow = new MediaImportWorkflow(
-            filePicker, mediaImportService, projectService, status, NullLogger<MediaImportWorkflow>.Instance);
+            filePicker, mediaImportService, projectService, analysisCoordinator, status,
+            NullLogger<MediaImportWorkflow>.Instance);
 
         return new MainWindowViewModel(
             new ToolbarViewModel(undoRedo, projectService, importWorkflow, status),
@@ -54,7 +58,7 @@ public partial class MainWindow : Window
     // --- Design-time-only stubs -------------------------------------------------
     // Minimal, inert implementations of the Core service interfaces, used only by
     // the XAML previewer above. Keeping these here (rather than referencing the
-    // real Media/Project subsystem projects) keeps UI's dependency list to Core only.
+    // real Media/Project/Video subsystem projects) keeps UI's dependency list to Core only.
 
     private sealed class DesignTimeProjectService : IProjectService
     {
@@ -67,6 +71,7 @@ public partial class MainWindow : Window
         public Task SaveAsAsync(string projectFolderPath, CancellationToken ct = default) => Task.CompletedTask;
         public IReadOnlyList<MediaAsset> DetectMissingMedia() => Array.Empty<MediaAsset>();
         public MediaAddResult AddMediaAssets(IEnumerable<MediaAsset> assets) => new();
+        public void NotifyMediaAssetsChanged() { }
     }
 
     private sealed class DesignTimeMediaImportService : IMediaImportService
@@ -74,6 +79,12 @@ public partial class MainWindow : Window
         public IReadOnlySet<string> SupportedExtensions { get; } = new HashSet<string>();
         public Task<MediaImportBatchResult> ImportManyAsync(IEnumerable<string> filePaths, CancellationToken ct = default) =>
             Task.FromResult(new MediaImportBatchResult());
+    }
+
+    private sealed class DesignTimeMediaAnalysisService : IMediaAnalysisService
+    {
+        public Task<MediaAnalysisResult> AnalyzeAsync(string filePath, CancellationToken ct = default) =>
+            Task.FromResult(MediaAnalysisResult.Failure(MediaAnalysisOutcome.ProbeToolUnavailable, "Design time — not analyzed."));
     }
 
     private sealed class DesignTimeFilePickerService : IFilePickerService

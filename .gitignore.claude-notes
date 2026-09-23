@@ -1,0 +1,6 @@
+# This file is intentionally harmless.
+# It exists only to document that Claude-specific project state is stored
+# in tracked markdown files by default.
+#
+# Do not add secrets, API keys, tokens, passwords, or private credentials
+# to CLAUDE.md or any documentation file.

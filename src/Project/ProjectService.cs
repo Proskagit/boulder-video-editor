@@ -35,7 +35,7 @@ public sealed class ProjectService : IProjectService
 
         _logger.LogInformation("Created new project '{Name}'.", name);
         ProjectChanged?.Invoke(this, EventArgs.Empty);
-        MediaAssetsChanged?.Invoke(this, EventArgs.Empty);
+        NotifyMediaAssetsChanged();
         return Current;
     }
 
@@ -86,9 +86,11 @@ public sealed class ProjectService : IProjectService
             Current.ModifiedAt = DateTimeOffset.UtcNow;
             Current.IsDirty = true;
             _logger.LogInformation("Added {Count} media asset(s) to the project ({Duplicates} duplicate(s) skipped).", added.Count, duplicateCount);
-            MediaAssetsChanged?.Invoke(this, EventArgs.Empty);
+            NotifyMediaAssetsChanged();
         }
 
         return new MediaAddResult { Added = added, DuplicateCount = duplicateCount };
     }
+
+    public void NotifyMediaAssetsChanged() => MediaAssetsChanged?.Invoke(this, EventArgs.Empty);
 }

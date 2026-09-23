@@ -35,6 +35,60 @@ public sealed class MediaBrowserItemViewModel : ViewModelBase
     /// <summary>e.g. "MP4 · 842 MB" — matches the Media Browser row format from the spec.</summary>
     public string FormatAndSizeDisplay => $"{FormatLabel} · {FileSizeDisplay}";
 
+    /// <summary>
+    /// Compact technical line for the list row — e.g. "1:24 · 1920×1080 · 60 FPS"
+    /// for video, "3:12 · 48 kHz · Stereo" for audio, "1920×1080" for images.
+    /// Null (row hidden) while analysis hasn't produced anything to show yet, so
+    /// the list never displays a made-up value.
+    /// </summary>
+    public string? TechnicalSummary => Asset.AnalysisStatus switch
+    {
+        MediaAnalysisStatus.Analyzing => "Analyzing…",
+        MediaAnalysisStatus.Failed => "Metadata unavailable",
+        MediaAnalysisStatus.Completed => BuildTechnicalSummary(),
+        _ => null // Pending: nothing to show yet, and nothing has failed either.
+    };
+
+    public bool HasTechnicalSummary => TechnicalSummary is not null;
+
+    private string? BuildTechnicalSummary()
+    {
+        var m = Asset.Metadata;
+        if (m is null) return null;
+
+        IEnumerable<string?> parts = Asset.Kind switch
+        {
+            MediaKind.Video => new[]
+            {
+                m.Duration.Ticks > 0 ? TimeFormat.ToShortString(m.Duration) : null,
+                m.Width.HasValue && m.Height.HasValue ? $"{m.Width}×{m.Height}" : null,
+                m.FrameRate.HasValue ? $"{Math.Round(m.FrameRate.Value)} FPS" : null
+            },
+            MediaKind.Audio => new[]
+            {
+                m.Duration.Ticks > 0 ? TimeFormat.ToShortString(m.Duration) : null,
+                m.AudioSampleRate.HasValue ? $"{m.AudioSampleRate / 1000} kHz" : null,
+                DescribeChannels(m.AudioChannels)
+            },
+            MediaKind.Image => new[]
+            {
+                m.Width.HasValue && m.Height.HasValue ? $"{m.Width}×{m.Height}" : null
+            },
+            _ => Array.Empty<string?>()
+        };
+
+        var joined = string.Join(" · ", parts.Where(p => !string.IsNullOrEmpty(p)));
+        return joined.Length > 0 ? joined : null;
+    }
+
+    private static string? DescribeChannels(int? channels) => channels switch
+    {
+        1 => "Mono",
+        2 => "Stereo",
+        > 2 => $"{channels} ch",
+        _ => null
+    };
+
     /// <summary>Placeholder tile color until real thumbnail generation exists (Phase 2 stays FFmpeg-free).</summary>
     public string ThumbnailColorHex => Asset.Kind switch
     {

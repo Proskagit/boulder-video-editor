@@ -41,6 +41,8 @@
                     <TextBlock Text="{Binding KindLabel}" Foreground="#8A8A8A" FontSize="10"/>
                     <TextBlock Text="{Binding FormatAndSizeDisplay}" Foreground="#8A8A8A" FontSize="10"/>
                   </StackPanel>
+                  <TextBlock IsVisible="{Binding HasTechnicalSummary}"
+                             Text="{Binding TechnicalSummary}" Foreground="#7A7A7A" FontSize="10"/>
                 </StackPanel>
 
               </StackPanel>
