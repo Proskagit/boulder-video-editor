@@ -112,6 +112,13 @@ public sealed class TestMedia : IDisposable
                 (recipe, count) = Cfr(25, 1, 4);
                 Encode(path, Src("25", 4), H264 + " -c:a aac", "-f lavfi -i sine=f=440:d=6");
                 break;
+            case "avsync.mp4":
+                // Video frame numbers at 25 fps + a mono AAC click at 2.02 s (sample 96960),
+                // i.e. in the middle of video frame 50 (2.00–2.04 s).
+                (recipe, count) = Cfr(25, 1, 4);
+                Encode(path, Src("25", 4), H264 + " -c:a aac -b:a 192k",
+                    @"-f lavfi -i aevalsrc=exprs='if(eq(n\,96960)\,0.9\,0)':s=48000:d=4");
+                break;
             default:
                 throw new ArgumentException($"Unknown test media '{name}'.");
         }

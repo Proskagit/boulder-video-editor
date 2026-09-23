@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Threading.Channels;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Playback;
@@ -15,33 +14,25 @@ namespace AiVideoEditor.Video;
 /// </summary>
 internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
 {
-    private const int StderrTailLines = 20;
-
-    private readonly Process _process;
-    private readonly Stream _stdout;
-    private readonly Channel<ShowInfoFrame> _frames = Channel.CreateUnbounded<ShowInfoFrame>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
-    private readonly Queue<string> _stderrTail = new();
-    private readonly Task _stderrTask;
+    private readonly FfmpegProcess _process;
+    private readonly Channel<ShowInfoFrame> _frames;
     private readonly TimeSpan _frameTimeout;
     private readonly ILogger _logger;
-
-    private static int _liveProcesses;
 
     private DecodedFrame? _pushedBack;
     private long _delivered;
     private bool _disposed;
 
-    private FfmpegVideoFrameStream(Process process, TimeSpan frameTimeout, ILogger logger)
+    private FfmpegVideoFrameStream(FfmpegProcess process, Channel<ShowInfoFrame> frames, TimeSpan frameTimeout, ILogger logger)
     {
         _process = process;
-        _stdout = process.StandardOutput.BaseStream;
+        _frames = frames;
         _frameTimeout = frameTimeout;
         _logger = logger;
-        _stderrTask = Task.Run(ReadStderrAsync);
     }
 
-    /// <summary>ffmpeg processes started by this class and not yet disposed (diagnostics/tests).</summary>
-    internal static int LiveProcesses => Volatile.Read(ref _liveProcesses);
+    /// <summary>ffmpeg processes started and not yet disposed, video and audio (diagnostics/tests).</summary>
+    internal static int LiveProcesses => FfmpegProcess.LiveProcesses;
 
     /// <summary>Number of decode attempts (seek + preroll tries) it took to open this stream.</summary>
     public int Attempts { get; internal set; }
@@ -51,33 +42,27 @@ internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
 
     public static FfmpegVideoFrameStream Start(string ffmpegPath, IReadOnlyList<string> arguments, TimeSpan frameTimeout, ILogger logger)
     {
-        var process = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = ffmpegPath,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                RedirectStandardInput = false,
-                CreateNoWindow = true
-            }
-        };
-        foreach (var argument in arguments)
-            process.StartInfo.ArgumentList.Add(argument);
-
+        var frames = Channel.CreateUnbounded<ShowInfoFrame>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
+        var parser = new ShowInfoParser();
+        FfmpegProcess process;
         try
         {
-            process.Start();
+            process = FfmpegProcess.Start(ffmpegPath, arguments,
+                line =>
+                {
+                    if (parser.Parse(line) is not { } frame) return false;
+                    frames.Writer.TryWrite(frame);
+                    return true;
+                },
+                error => frames.Writer.TryComplete(error),
+                logger);
         }
         catch (Exception ex)
         {
-            process.Dispose();
             throw new VideoDecodeException(VideoDecodeError.DecoderUnavailable, "ffmpeg could not be started.", ex);
         }
 
-        Interlocked.Increment(ref _liveProcesses);
-        return new FfmpegVideoFrameStream(process, frameTimeout, logger) { Arguments = arguments };
+        return new FfmpegVideoFrameStream(process, frames, frameTimeout, logger) { Arguments = arguments };
     }
 
     /// <summary>Makes <paramref name="frame"/> the next frame returned (used after the
@@ -108,12 +93,12 @@ internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
                 var buffer = new byte[(long)stride * info.Height];
                 try
                 {
-                    await _stdout.ReadExactlyAsync(buffer, linked.Token);
+                    await _process.Stdout.ReadExactlyAsync(buffer, linked.Token);
                 }
                 catch (EndOfStreamException ex)
                 {
                     throw new VideoDecodeException(VideoDecodeError.DecoderFailed,
-                        $"ffmpeg output ended in the middle of frame {info.Index}. {StderrTail()}", ex);
+                        $"ffmpeg output ended in the middle of frame {info.Index}. {_process.StderrTail()}", ex);
                 }
 
                 if (info.Pts is not { } pts)
@@ -129,7 +114,7 @@ internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !ct.IsCancellationRequested)
         {
             throw new VideoDecodeException(VideoDecodeError.Timeout,
-                $"ffmpeg produced no frame within {_frameTimeout.TotalSeconds:0.#} s. {StderrTail()}");
+                $"ffmpeg produced no frame within {_frameTimeout.TotalSeconds:0.#} s. {_process.StderrTail()}");
         }
         catch (Exception ex) when (ex is FormatException || ex is ChannelClosedException { InnerException: FormatException })
         {
@@ -144,69 +129,15 @@ internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
         if (_process.ExitCode != 0 && _delivered == 0)
         {
             throw new VideoDecodeException(VideoDecodeError.DecoderFailed,
-                $"ffmpeg exited with code {_process.ExitCode}. {StderrTail()}");
+                $"ffmpeg exited with code {_process.ExitCode}. {_process.StderrTail()}");
         }
         return null;
-    }
-
-    private async Task ReadStderrAsync()
-    {
-        var parser = new ShowInfoParser();
-        try
-        {
-            while (await _process.StandardError.ReadLineAsync() is { } line)
-            {
-                if (parser.Parse(line) is { } frame)
-                {
-                    _frames.Writer.TryWrite(frame);
-                    continue;
-                }
-
-                lock (_stderrTail)
-                {
-                    _stderrTail.Enqueue(line);
-                    if (_stderrTail.Count > StderrTailLines) _stderrTail.Dequeue();
-                }
-            }
-            _frames.Writer.TryComplete();
-        }
-        catch (Exception ex)
-        {
-            _frames.Writer.TryComplete(ex);
-        }
-    }
-
-    private string StderrTail()
-    {
-        lock (_stderrTail)
-            return _stderrTail.Count == 0 ? string.Empty : "ffmpeg: " + string.Join(" | ", _stderrTail.TakeLast(5));
     }
 
     public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
         _disposed = true;
-        Interlocked.Decrement(ref _liveProcesses);
-
-        try
-        {
-            if (!_process.HasExited)
-                _process.Kill(entireProcessTree: true);
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
-        {
-            // Already exited between the check and the kill.
-        }
-
-        try
-        {
-            await _stderrTask.WaitAsync(TimeSpan.FromSeconds(5));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "ffmpeg stderr reader did not finish cleanly.");
-        }
-
-        _process.Dispose();
+        await _process.DisposeAsync();
     }
 }

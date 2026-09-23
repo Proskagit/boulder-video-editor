@@ -60,6 +60,10 @@ public interface IPlaybackService : IAsyncDisposable
     /// <summary>False when no decoder backend is available (e.g. ffmpeg not found).</summary>
     bool IsAvailable { get; }
 
+    /// <summary>False when playback runs without sound (no audio device/decoder, or the device
+    /// failed); the Stopwatch drives the clock then.</summary>
+    bool IsAudioAvailable { get; }
+
     MediaTime Position { get; }
 
     MediaTime Duration { get; }

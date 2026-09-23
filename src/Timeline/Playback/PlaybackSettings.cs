@@ -13,4 +13,10 @@ public sealed class PlaybackSettings
     public int MaxWidth { get; init; } = 1280;
     public int MaxHeight { get; init; } = 720;
     public HardwareDecoding Hardware { get; init; } = HardwareDecoding.Auto;
+
+    /// <summary>Decoded audio kept ahead per clip.</summary>
+    public TimeSpan AudioBuffer { get; init; } = TimeSpan.FromSeconds(1);
+
+    /// <summary>How far ahead of the mix position audio clips start decoding.</summary>
+    public TimeSpan AudioLookahead { get; init; } = TimeSpan.FromSeconds(2);
 }

@@ -1,3 +1,4 @@
+using AiVideoEditor.Audio;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
@@ -33,6 +34,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMediaAnalysisService, FfprobeMediaAnalysisService>();
         services.AddSingleton<IFfmpegLocator, FfmpegLocator>();
         services.AddSingleton<IVideoDecoder, FfmpegVideoDecoder>();
+        services.AddSingleton<IAudioDecoder, FfmpegAudioDecoder>();
+        services.AddSingleton<IAudioOutput, WasapiAudioOutput>();
         services.AddSingleton<IReferenceClock, StopwatchReferenceClock>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<ITimelineEditService, TimelineEditService>();

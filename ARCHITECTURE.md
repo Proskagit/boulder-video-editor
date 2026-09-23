@@ -23,11 +23,12 @@ projects (`tests/Core.Tests`, `tests/Timeline.Tests`, `tests/UI.Tests`,
 | UI | Avalonia Views + ViewModels, UI services (file picker, status, import workflow, analysis coordinator). References Core only | Implemented |
 | Core | Domain entities, service interfaces, `MediaTime`, `IUndoableCommand` / `UndoRedoService`. No infra dependencies | Implemented |
 | Infrastructure | Serilog setup, `AppPaths`, `FfprobeLocator` + `FfmpegOptions`, `ErrorTranslator` | Implemented |
-| Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS) | Probe + video decode |
+| Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS); `FfmpegAudioDecoder` (ffmpeg CLI → 48 kHz stereo float); shared `FfmpegProcess` | Probe + video/audio decode |
 | Media | `MediaImportService` (extension validation, file size) | Implemented |
 | Project | `ProjectService` (in-memory project, duplicate detection); Open/Save throw `NotSupportedException` | Partial |
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands | Implemented (Phase 4) |
-| Audio, Effects, Export | Later phases | Empty scaffolds |
+| Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
+| Effects, Export | Later phases | Empty scaffolds |
 
 Dependencies flow one way: App → UI / Infrastructure / subsystems → Core.
 
@@ -90,7 +91,13 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   `MainWindowViewModel`: `TimelineViewModel.SeekRequested` (user moves only) → `SeekAsync`;
   `PreviewViewModel.PlaybackPositionChanged` → `TimelineViewModel.ShowPlaybackPosition` (no
   seek). Snapshots are rebuilt by `PreviewViewModel` on project/timeline/media events.
-- Planned: audio decoding + NAudio output (audio master clock).
+- Audio (D013): `PlaybackSnapshot.AudioSpans` → `AudioPipeline` (UI thread; look-ahead window,
+  reader reuse on snapshot updates) → `AudioSpanReader` per clip (background ffmpeg decode into
+  a bounded ring buffer, aligned by the stream's real first sample) → `AudioMixer`
+  (`IAudioSampleSource`, device thread, never blocks) → `IAudioOutput` = `WasapiAudioOutput`
+  (Audio project, NAudio). The output's played-frames clock is the playback master while it
+  runs; Stopwatch otherwise. Core holds only backend-neutral contracts (`AudioContracts.cs`,
+  `AudioTiming`).
 
 ### MediaTime
 

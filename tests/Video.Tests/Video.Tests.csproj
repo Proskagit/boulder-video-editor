@@ -19,6 +19,13 @@
     <ProjectReference Include="..\..\src\Infrastructure\Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Video\Video.csproj" />
     <ProjectReference Include="..\..\src\Timeline\Timeline.csproj" />
+    <ProjectReference Include="..\..\src\Audio\Audio.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Fake audio output (captures the mix) shared with Timeline.Tests. -->
+    <Compile Include="..\Timeline.Tests\Playback\AudioFakes.cs" Link="Playback\AudioFakes.cs" />
+    <Compile Include="..\Timeline.Tests\Playback\PlaybackFakes.cs" Link="Playback\PlaybackFakes.cs" />
   </ItemGroup>
 
 </Project>

@@ -37,17 +37,16 @@ used yet.
 Commit `33c5c02`, merged into `main`. Tracks, clips, selection, move, trim, split, delete,
 playhead, zoom, snapping — all as undoable commands. Decisions: DECISIONS.md D006–D008.
 
+### Phase 5 — Preview
+Branch `feat/phase-5-playback`: video checkpoint `85ca216`, audio in the Phase 5 closeout
+commit. Timeline playback in the Preview with video (exact source-frame selection, ffmpeg
+decoder) and audio (ffmpeg decode, mixer, WASAPI output as master clock), UI transport and
+playhead ↔ seek. Manually validated by the product owner (video and audio). Decisions:
+DECISIONS.md D009–D013. Details and verification: `progress.md`.
+
 ## Current
 
-### Phase 5 — Preview
-Checkpoint committed on branch `feat/phase-5-playback` ("Phase 5: playback engine and
-preview integration"): video playback of the timeline in the Preview — exact source-frame
-selection, ffmpeg decoder, playback clock, snapshot, playback service, UI transport and
-playhead ↔ seek. Manually validated by the product owner. Decisions: DECISIONS.md
-D009–D012. Details and verification: `progress.md`.
-
-Not yet done in Phase 5: audio playback (NAudio output, mixer, audio master clock — D010).
-The phase is not complete until audio playback is implemented and verified.
+No phase in progress. Next: Phase 6 — Project persistence (not started).
 
 ## Future phases
 

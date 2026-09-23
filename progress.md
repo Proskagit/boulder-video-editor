@@ -2,11 +2,10 @@
 
 ## Current phase
 
-Phase 5 — Preview/playback, branch `feat/phase-5-playback`. Decisions: DECISIONS.md
-D009–D012. Video playback and preview integration are implemented, manually validated by
-the product owner (2026-09-23, no functional complaints) and committed as the checkpoint
-"Phase 5: playback engine and preview integration". Audio playback (D010: NAudio output,
-mixer, audio master clock) is **not started** — it is the next step.
+Phase 5 — Preview/playback: **complete**, branch `feat/phase-5-playback`. Decisions:
+DECISIONS.md D009–D013. Video playback (checkpoint `85ca216`) and audio playback (Phase 5
+closeout commit) are implemented, covered by automated tests and manually validated by the
+product owner. Next phase (6 — Project persistence) not started.
 
 ### Phase 5 checkpoint summary
 - Implemented: exact source-frame selection (D009); ffmpeg discovery; ffmpeg CLI video
@@ -20,8 +19,8 @@ mixer, audio master clock) is **not started** — it is the next step.
   for media changes that don't affect the timeline).
 - Tests: 335 passed (Core 130, Timeline 112, UI 30, Video 63 — the Video tests run real
   ffmpeg on generated media); build 0 errors, 0 warnings.
-- Deferred (explicitly, not done in this checkpoint): audio decoding, NAudio/WASAPI output,
-  mixer and audio master clock; volume/mute UI; J/K/L, loop, timeline autoscroll, scrub
+- Deferred (explicitly): volume/mute UI; audio device unplug / default-device change handling;
+  limiter, crossfade/declick; J/K/L, loop, timeline autoscroll, scrub
   cache; compositing (opacity/transform/crop), text rendering, speed ≠ 1, transitions;
   HDR/10-bit tone mapping and color management; RequestAnimationFrame-synced ticking;
   dropped/late frame counter; export (Phase 8).
@@ -88,7 +87,55 @@ Step 4 (accepted, manually validated) — UI integration on the Stopwatch clock 
   `Timeline.Tests/Playback/*` (fake decoder + fake clock); `Video.Tests/PlaybackServiceIntegrationTests.cs`
   (real ffmpeg, two clips + gap, software and -hwaccel auto).
 
-Next: audio decoding + NAudio output/mixer with the audio device as master clock (D010).
+Audio (implemented, manually verified by listening, accepted) — architecture approved (audio device = master clock,
+48 kHz stereo float32, AudioPipeline/AudioSpanReader/AudioMixer, silence on underrun and
+errors, reader reuse across snapshot updates). D013 to be written once implementation/tests
+confirm it.
+- Step A1 done: WASAPI clock spike (scratch console app, not in the repo; NAudio.Wasapi 2.2.1 —
+  3.x requires net9.0) on a Sound BlasterX G6, shared mode, mix format 48 kHz / 8 ch float:
+  - `WasapiOut.GetPosition()` = bytes of `OutputWaveFormat` actually played (IAudioClock),
+    not queued: written − position ≈ 130–140 ms with latency 100; rate ≈ 48 000 frames/s.
+  - `OutputWaveFormat` equals the requested format (48k/2ch float; also 44.1k): WASAPI
+    converts to the 8-ch mix itself; position units follow the requested format.
+  - Monotonic while playing; **0 after Stop and restarts from 0** → the output must keep a
+    cumulative base (read the position right before Stop). First non-zero position 30–65 ms
+    after Play (start-up latency).
+  - **`Pause()` only stops feeding**: the position keeps rising until the queued audio has
+    played → never use Pause; pause = Stop (flush).
+  - COM objects are apartment-bound: an `MMDevice` created on an MTA thread fails on an STA
+    thread (E_NOINTERFACE). Creating device + WasapiOut on the STA (UI-like) thread works;
+    `GetPosition()` then also works from MTA and thread-pool threads.
+- Step A2 done: Core contracts `AudioFormat`, `IAudioSampleSource`, `IAudioOutput`,
+  `IAudioDecoder`, `AudioDecodeRequest`, `IAudioSampleStream`, `AudioDecodeException`
+  (Core/Playback/AudioContracts.cs) and exact sample math `AudioTiming`
+  (clip samples `[ceil(S·fs), ceil(E·fs))`, per-clip source offset rounded once);
+  `Core.Tests/AudioTimingTests.cs`.
+- Step A3 done (awaiting review; D013): `AudioSpanReader`, `AudioMixer`, `AudioPipeline`
+  (Timeline/Playback); `PlaybackService` drives the device (Play/Pause/Seek/UpdateSnapshot,
+  device failure → Stopwatch, `IsAudioAvailable`); `FfmpegAudioDecoder` + shared
+  `FfmpegProcess` (Video; the video stream now uses `FfmpegProcess` too, behaviour unchanged);
+  `WasapiAudioOutput` (Audio, NAudio.Wasapi 2.2.1); DI registrations; one UI status message
+  when playing without sound. Public `SetMasterClock` removed (the service owns the master).
+- Findings: remuxing AAC from MP4 to MPEG-TS keeps the 1024-sample encoder priming at the
+  container start (the MP4 edit list skipped it), so such a TS really plays 1024 samples later —
+  our decoder matches ffmpeg's own plain decode there. A 1 ms preroll on AAC/MP4 needed 3 seek
+  attempts; the default 200 ms needed 1.
+- Tests: `Timeline.Tests/Playback/AudioPipelineTests.cs` (7), `AudioPlaybackServiceTests.cs` (8),
+  fakes in `AudioFakes.cs`; `Video.Tests/FfmpegAudioDecoderIntegrationTests.cs` (10, incl. an
+  A/V sync test: click at 2.02 s heard while video frame 50 is shown) and
+  `WasapiAudioOutputDeviceTests.cs` (real device, STA thread; passes with a note if no device).
+- Manual listening test in the real app by the product owner (2026-09-23): audio plays
+  correctly. Not verified yet: device unplug during playback, default-device change while
+  running (not handled: the output stays on the device it opened).
+- Step A4 done (lifecycle hardening): superseded pipelines and readers retired by
+  `VideoPipeline.Retain` / `AudioPipeline.Maintain` were disposed fire-and-forget; they are now
+  tracked, and `PlaybackService.DisposeAsync` awaits all of them — after Dispose no reader,
+  stream, background task or ffmpeg process is left (deterministic, not just eventual).
+  New tests: Play→Pause→Play cycles (continuous audio, monotonic position, no reader pile-up),
+  seeks backward/forward while playing, 20 snapshot updates while playing (continuity, reuse,
+  no leaks), end of timeline releases readers, Dispose with pending opens and slow-closing
+  streams; real device: clock monotonic over 6 Start/Stop sessions; real ffmpeg: full playback
+  lifecycle leaves no ffmpeg process after Dispose.
 
 Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
@@ -124,7 +171,7 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 2
 - Phase 3
 - Phase 4
-- Phase 5 checkpoint: video playback + preview integration (audio playback still to do)
+- Phase 5 (video checkpoint `85ca216`, audio in the closeout commit)
 
 ## Known issues
 
@@ -158,6 +205,20 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Media import is not undoable (unchanged from Phase 2).
 
 ## Verification
+
+2026-09-23 (Phase 5 audio, lifecycle):
+- `dotnet build`: 0 errors, 0 warnings. `dotnet test`: 391 passed (Core 153, Timeline 132,
+  UI 30, Video 76); audio tests repeated (Timeline 3×, Video 2×) without failures.
+- Real device: 6 Start/Stop sessions sampled every ~2 ms — never backwards, frozen after Stop.
+  Real ffmpeg lifecycle: 2 live processes while playing, 0 right after Dispose.
+- Mutation: Dispose not awaiting retiring pipelines → the Dispose test fails (1 stream left).
+
+2026-09-23 (Phase 5 audio):
+- `dotnet build`: 0 errors, 0 warnings. `dotnet test`: 384 passed (Core 153, Timeline 127,
+  UI 30, Video 74); audio tests repeated (Timeline 4×, Video 2×) without failures.
+- Mutations: reader trusting the request instead of the real first sample → 5 failures;
+  device clock not cumulative → device test fails; no reader reuse → 2 failures.
+- App started in Development (DI incl. audio validated). No listening test by automation.
 
 2026-09-23 (Phase 5 checkpoint):
 - `dotnet build`: 0 errors, 0 warnings. `dotnet test`: 335 passed (Core 130, Timeline 112,

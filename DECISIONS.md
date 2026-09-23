@@ -235,6 +235,41 @@ Status: Accepted.
 
 ---
 
+## D013 — Audio playback and the audio master clock (Phase 5)
+
+Date: 2026-09-23
+
+Decision (refines D010/D011):
+- Format: 48 kHz, stereo, float32 interleaved for decoding, mixing and output.
+- Clock: whenever an audio device is available, playback runs on its played-frames clock —
+  including gaps, where the mixer outputs silence. `IAudioOutput.Clock` is the last observed
+  playback position of the device, accumulated across Start/Stop sessions (never backwards).
+  No device, an unexpected output format, or a device failure → Stopwatch, switched without
+  a jump (`PlaybackClock.SetMaster`). Video follows the same clock (D009/D012 unchanged).
+- WASAPI (NAudio.Wasapi 2.2.1, shared mode; latency configurable, 100 ms initially):
+  `GetPosition()` is used as the position; pause and seek use `Stop()` (flushes queued audio,
+  a new session starts on Play/after seek); `Pause()` is never used (it keeps playing the
+  queued buffer). Device objects are created and controlled on the UI thread (COM apartment);
+  the mixer runs on the device thread.
+- Timeline → samples: timeline sample k is k/48000 s; a clip [S, E) owns samples
+  [ceil(S·48000/10⁷), ceil(E·48000/10⁷)); it plays source sample k + d with
+  d = round((SourceIn − S)·48000/10⁷), rounded once per clip (`AudioTiming`).
+- Decoding: ffmpeg CLI per audio source, `-copyts`, `aresample=48000:async=1`, stereo float;
+  the first sample's index comes from `ashowinfo` PTS relative to `format.start_time`, never
+  from `-ss` (AAC in MP4 starts at a later codec frame); a stream starting after the needed
+  sample is retried with a larger preroll (up to 5 s, then from the file start).
+- Mixing: audio of every VideoClip with an audio stream (hidden tracks included) and every
+  AudioClip; muted tracks/clips excluded; gain = Volume; sum clamped to [-1, 1] (no limiter,
+  no crossfade/declick). Gaps, Offline/Unsupported spans and decode errors are silence and
+  never stop playback. Underrun is silence — the mixer never waits and time never shifts.
+- Lifecycle: seek and pause stop the device and rebuild the audio pipeline at the position;
+  a snapshot update keeps the device running and continues at the mixer's write position,
+  reusing readers of unchanged clips (gain changes applied without reopening).
+
+Status: Accepted.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

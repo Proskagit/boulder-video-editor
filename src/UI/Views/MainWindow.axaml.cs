@@ -167,6 +167,7 @@ public partial class MainWindow : Window
         public PlaybackState State => PlaybackState.Paused;
         public bool IsBuffering => false;
         public bool IsAvailable => false;
+        public bool IsAudioAvailable => false;
         public MediaTime Position => MediaTime.Zero;
         public MediaTime Duration => MediaTime.Zero;
         public event EventHandler? StateChanged { add { } remove { } }

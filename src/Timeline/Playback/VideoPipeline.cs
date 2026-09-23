@@ -18,6 +18,7 @@ internal sealed class VideoPipeline : IAsyncDisposable
     private readonly PlaybackSettings _settings;
     private readonly ILogger _logger;
     private readonly Dictionary<Guid, SpanReader> _readers = new();
+    private readonly List<Task> _retired = new(); // readers being disposed after leaving the picture
     private readonly TaskCompletionSource<bool> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _disposed;
 
@@ -108,7 +109,8 @@ internal sealed class VideoPipeline : IAsyncDisposable
         {
             if (clipId == current?.ClipId || clipId == next?.Span.ClipId) continue;
             _readers.Remove(clipId);
-            _ = reader.DisposeAsync();
+            _retired.RemoveAll(t => t.IsCompleted);
+            _retired.Add(reader.DisposeAsync().AsTask());
         }
     }
 
@@ -131,5 +133,6 @@ internal sealed class VideoPipeline : IAsyncDisposable
         _readers.Clear();
         foreach (var reader in readers)
             await reader.DisposeAsync();
+        await Task.WhenAll(_retired);
     }
 }

@@ -33,6 +33,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     private bool _needsTick = true;
     private long _lastReportedFrame = -1;
     private bool _reportedUnavailable;
+    private bool _reportedNoAudio;
 
     [ObservableProperty] private string _currentTimeDisplay = "00:00:00:00";
     [ObservableProperty] private string _durationDisplay = "00:00:00:00";
@@ -118,6 +119,12 @@ public sealed partial class PreviewViewModel : ViewModelBase
         {
             _reportedUnavailable = true;
             _status.Report("Playback is unavailable: FFmpeg could not be found. Install FFmpeg or configure its path.");
+        }
+
+        if (IsPlaying && !_playback.IsAudioAvailable && !_reportedNoAudio)
+        {
+            _reportedNoAudio = true;
+            _status.Report("Playing without sound: no audio output is available.");
         }
 
         if (!IsPlaying && !IsBuffering && IsPictureCurrent)
