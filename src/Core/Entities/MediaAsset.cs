@@ -74,6 +74,13 @@ public sealed class MediaMetadata
     public int? Height { get; set; }
     /// <summary>Exact rational rate reported by ffprobe (r_frame_rate); null if unknown.</summary>
     public FrameRate? FrameRate { get; set; }
+    /// <summary>Exact rational average rate of the video stream (avg_frame_rate); null if
+    /// unknown. Nominal source frame length for playback sampling (D009) — frame timing
+    /// itself always comes from decoded PTS. Not used for the project rate (D007).</summary>
+    public FrameRate? AvgFrameRate { get; set; }
+    /// <summary>Container start time (format start_time): the origin of source time, so
+    /// source time = PTS − StartTime for every stream. Null if unknown (treated as zero).</summary>
+    public MediaTime? StartTime { get; set; }
     public string? VideoCodec { get; set; }
     public string? AudioCodec { get; set; }
     public int? AudioChannels { get; set; }

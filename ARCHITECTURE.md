@@ -13,8 +13,9 @@ This document describes the verified architecture of the AI Video Editor.
 
 ## Solution
 
-The solution contains 11 application projects under `src/` plus three test
-projects (`tests/Core.Tests`, `tests/Timeline.Tests`, `tests/UI.Tests`).
+The solution contains 11 application projects under `src/` plus four test
+projects (`tests/Core.Tests`, `tests/Timeline.Tests`, `tests/UI.Tests`,
+`tests/Video.Tests` — the last one runs ffmpeg integration tests and skips without ffmpeg).
 
 | Project | Responsibility | State |
 |---|---|---|
@@ -22,11 +23,12 @@ projects (`tests/Core.Tests`, `tests/Timeline.Tests`, `tests/UI.Tests`).
 | UI | Avalonia Views + ViewModels, UI services (file picker, status, import workflow, analysis coordinator). References Core only | Implemented |
 | Core | Domain entities, service interfaces, `MediaTime`, `IUndoableCommand` / `UndoRedoService`. No infra dependencies | Implemented |
 | Infrastructure | Serilog setup, `AppPaths`, `FfprobeLocator` + `FfmpegOptions`, `ErrorTranslator` | Implemented |
-| Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing) | Implemented (probe only) |
+| Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS); `FfmpegAudioDecoder` (ffmpeg CLI → 48 kHz stereo float); shared `FfmpegProcess` | Probe + video/audio decode |
 | Media | `MediaImportService` (extension validation, file size) | Implemented |
 | Project | `ProjectService` (in-memory project, duplicate detection); Open/Save throw `NotSupportedException` | Partial |
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands | Implemented (Phase 4) |
-| Audio, Effects, Export | Later phases | Empty scaffolds |
+| Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
+| Effects, Export | Later phases | Empty scaffolds |
 
 Dependencies flow one way: App → UI / Infrastructure / subsystems → Core.
 
@@ -63,10 +65,39 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   `TimelineView` code-behind only converts pointer/wheel/drag-drop events to
   content coordinates. Pixel ↔ time math: `TimelineCoordinateMapper`; all times sent
   to the domain are snapped to the frame grid first.
-- Cross-panel wiring (selection → Inspector, Add to Timeline, playhead → Preview)
+- Cross-panel wiring (selection → Inspector, Add to Timeline, playhead ↔ Preview/playback)
   lives in `MainWindowViewModel`. Keyboard shortcuts are routed in
   `MainWindow.OnKeyDown` and ignored while a TextBox has focus.
 - Threading: the project model is mutated on the UI thread only.
+
+## Playback (Phase 5, in progress)
+
+- Which source frame a timeline frame shows: `Core/Playback/SourceFrameSelector`
+  (pure, exact Int128; DECISIONS D009). Decoded frames carry `SourceTimestamp`
+  (`Pts` + `TimeBase`); source time is measured from `MediaMetadata.StartTime`.
+- Decoding: `IVideoDecoder` / `IVideoFrameStream` / `DecodedFrame` (Core/Playback,
+  backend-neutral) implemented by `FfmpegVideoDecoder` (Video). ffmpeg is found by
+  `IFfmpegLocator` / `FfmpegLocator` (`Ffmpeg:FfmpegPath`, then PATH). The decoder seeks a
+  bounded preroll before the first sample point and retries with a larger preroll until the
+  first frame is at or before it; `showinfo` PTS parsing stays internal to Video.
+- Playback core (D011): `PlaybackSnapshotBuilder` (UI thread) → immutable `PlaybackSnapshot`
+  → `IPlaybackService` / `PlaybackService` (Timeline/Playback). `PlaybackClock` = anchor +
+  elapsed of an `IReferenceClock` (Stopwatch now, audio device later). `VideoPipeline` keeps a
+  `SpanReader` for the visible clip plus the next one within the prefetch window; each reader
+  decodes in the background into a bounded buffer and returns a frame only when certain.
+  The UI polls `Update()` each tick; nothing is pushed to the UI thread.
+- UI (D011): `PreviewView`'s `DispatcherTimer` → `PreviewViewModel.Tick()` → `Update()`;
+  the picture goes to a `WriteableBitmap` in the view. Playhead ↔ playback wiring lives in
+  `MainWindowViewModel`: `TimelineViewModel.SeekRequested` (user moves only) → `SeekAsync`;
+  `PreviewViewModel.PlaybackPositionChanged` → `TimelineViewModel.ShowPlaybackPosition` (no
+  seek). Snapshots are rebuilt by `PreviewViewModel` on project/timeline/media events.
+- Audio (D013): `PlaybackSnapshot.AudioSpans` → `AudioPipeline` (UI thread; look-ahead window,
+  reader reuse on snapshot updates) → `AudioSpanReader` per clip (background ffmpeg decode into
+  a bounded ring buffer, aligned by the stream's real first sample) → `AudioMixer`
+  (`IAudioSampleSource`, device thread, never blocks) → `IAudioOutput` = `WasapiAudioOutput`
+  (Audio project, NAudio). The output's played-frames clock is the playback master while it
+  runs; Stopwatch otherwise. Core holds only backend-neutral contracts (`AudioContracts.cs`,
+  `AudioTiming`).
 
 ### MediaTime
 

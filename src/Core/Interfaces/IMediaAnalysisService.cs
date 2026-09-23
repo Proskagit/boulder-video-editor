@@ -57,3 +57,13 @@ public interface IFfprobeLocator
 {
     Task<string?> GetFfprobePathAsync(CancellationToken ct = default);
 }
+
+/// <summary>
+/// Resolves the path to the ffmpeg executable the same way <see cref="IFfprobeLocator"/>
+/// resolves ffprobe: configured path first, then PATH. Never throws; null means ffmpeg
+/// is not available.
+/// </summary>
+public interface IFfmpegLocator
+{
+    Task<string?> GetFfmpegPathAsync(CancellationToken ct = default);
+}

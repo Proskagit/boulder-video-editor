@@ -1,9 +1,9 @@
 namespace AiVideoEditor.Infrastructure.Configuration;
 
 /// <summary>
-/// Bound from the "Ffmpeg" section of appsettings.json. Leave <see cref="FfprobePath"/>
-/// null/empty to fall back to PATH-based lookup — nothing assumes FFmpeg is
-/// installed in a fixed location.
+/// Bound from the "Ffmpeg" section of appsettings.json. Leave <see cref="FfprobePath"/> /
+/// <see cref="FfmpegPath"/> null/empty to fall back to PATH-based lookup — nothing
+/// assumes FFmpeg is installed in a fixed location.
 /// </summary>
 public sealed class FfmpegOptions
 {
@@ -11,4 +11,8 @@ public sealed class FfmpegOptions
     /// doesn't exist, <see cref="FfprobeLocator"/> falls back to checking whether
     /// "ffprobe" is runnable via the system PATH.</summary>
     public string? FfprobePath { get; set; }
+
+    /// <summary>Absolute path to ffmpeg(.exe). Optional — same fallback rules as
+    /// <see cref="FfprobePath"/>, see <see cref="FfmpegLocator"/>.</summary>
+    public string? FfmpegPath { get; set; }
 }

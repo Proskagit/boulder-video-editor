@@ -33,18 +33,24 @@ Known verified behavior:
 Only ffprobe is integrated. ffmpeg itself (thumbnails, decode, export) is not
 used yet.
 
+### Phase 4 — Timeline
+Commit `33c5c02`, merged into `main`. Tracks, clips, selection, move, trim, split, delete,
+playhead, zoom, snapping — all as undoable commands. Decisions: DECISIONS.md D006–D008.
+
+### Phase 5 — Preview
+Branch `feat/phase-5-playback`: video checkpoint `85ca216`, audio in the Phase 5 closeout
+commit. Timeline playback in the Preview with video (exact source-frame selection, ffmpeg
+decoder) and audio (ffmpeg decode, mixer, WASAPI output as master clock), UI transport and
+playhead ↔ seek. Manually validated by the product owner (video and audio). Decisions:
+DECISIONS.md D009–D013. Details and verification: `progress.md`.
+
 ## Current
 
-### Phase 4 — Timeline
-Implemented, accepted and committed ("feat: implement Phase 4 timeline editing"
-on branch `feat/phase-3-media-analysis`). Scope (from
-`docs/DEVELOPMENT_PLAN.md`): tracks, clips, selection, move, trim, split, delete,
-playhead, zoom, snapping — all as undoable commands. Decisions: DECISIONS.md D006–D008.
-Details and verification: `progress.md`.
+No phase in progress. Next: Phase 6 — Project persistence (not started).
 
 ## Future phases
 
-5 Preview, 6 Project persistence, 7 Basic editing, 8 Export, 9 Quality —
+6 Project persistence, 7 Basic editing, 8 Export, 9 Quality —
 see `docs/DEVELOPMENT_PLAN.md`.
 
 ## Rule

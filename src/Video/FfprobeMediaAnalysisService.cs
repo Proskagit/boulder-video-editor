@@ -137,6 +137,8 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
             metadata.Duration = MediaTime.FromSeconds(seconds);
         }
 
+        metadata.StartTime = ParseStartTime(output.Format?.StartTime);
+
         if (output.Format?.BitRate is { } formatBitRateText &&
             long.TryParse(formatBitRateText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var formatBitRate))
         {
@@ -149,6 +151,7 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
             metadata.Height = videoStream.Height;
             metadata.VideoCodec = videoStream.CodecName;
             metadata.FrameRate = ParseFrameRate(videoStream.RFrameRate);
+            metadata.AvgFrameRate = ParseFrameRate(videoStream.AvgFrameRate);
         }
 
         if (audioStream is not null)
@@ -168,6 +171,24 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
 
     /// <summary>Keeps ffprobe's rational form (e.g. "30000/1001") exact. "0/0" and
     /// anything unparseable mean "unknown" and yield null.</summary>
-    private static FrameRate? ParseFrameRate(string? rFrameRate) =>
-        FrameRate.TryParse(rFrameRate, out var rate) ? rate : null;
+    private static FrameRate? ParseFrameRate(string? text) =>
+        FrameRate.TryParse(text, out var rate) ? rate : null;
+
+    /// <summary>ffprobe prints start_time in whole microseconds ("1.400000"); decimal
+    /// parsing keeps it exact in ticks. "N/A" or anything unparseable yields null.</summary>
+    private static MediaTime? ParseStartTime(string? text)
+    {
+        if (!decimal.TryParse(text, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture, out var seconds))
+            return null;
+
+        try
+        {
+            return new MediaTime((long)Math.Round(seconds * TimeSpan.TicksPerSecond, MidpointRounding.AwayFromZero));
+        }
+        catch (OverflowException)
+        {
+            return null;
+        }
+    }
 }

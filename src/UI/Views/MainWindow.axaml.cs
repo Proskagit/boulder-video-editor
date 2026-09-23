@@ -4,6 +4,7 @@ using System.Windows.Input;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Playback;
 using AiVideoEditor.UI.Services;
 using AiVideoEditor.UI.ViewModels;
 using AiVideoEditor.UI.ViewModels.Panels;
@@ -78,6 +79,7 @@ public partial class MainWindow : Window
             Key.Right when none => timeline.StepForwardCommand,
             Key.Left when shift => timeline.StepBackwardSecondCommand,
             Key.Right when shift => timeline.StepForwardSecondCommand,
+            Key.Space when none => vm.Preview.PlayPauseCommand,
             Key.Home when none => timeline.GoToStartCommand,
             Key.End when none => timeline.GoToEndCommand,
             Key.OemPlus or Key.Add when ctrl => timeline.ZoomInCommand,
@@ -103,7 +105,7 @@ public partial class MainWindow : Window
         return new MainWindowViewModel(
             new ToolbarViewModel(undoRedo, projectService, importWorkflow, status),
             new MediaBrowserViewModel(projectService, importWorkflow, NullLogger<MediaBrowserViewModel>.Instance),
-            new PreviewViewModel(status, NullLogger<PreviewViewModel>.Instance),
+            new PreviewViewModel(status, new DesignTimePlaybackService(), projectService, NullLogger<PreviewViewModel>.Instance),
             new InspectorViewModel(),
             new TimelineViewModel(projectService, new DesignTimeTimelineEditService(), status, NullLogger<TimelineViewModel>.Instance),
             status,
@@ -158,6 +160,24 @@ public partial class MainWindow : Window
         public TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds) => Nothing;
         public TimelineEditResult AddTrack(TrackType type) => Nothing;
         public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds) => SnapResult.None;
+    }
+
+    private sealed class DesignTimePlaybackService : IPlaybackService
+    {
+        public PlaybackState State => PlaybackState.Paused;
+        public bool IsBuffering => false;
+        public bool IsAvailable => false;
+        public bool IsAudioAvailable => false;
+        public MediaTime Position => MediaTime.Zero;
+        public MediaTime Duration => MediaTime.Zero;
+        public event EventHandler? StateChanged { add { } remove { } }
+        public void UpdateSnapshot(PlaybackSnapshot snapshot) { }
+        public void Play() { }
+        public void Pause() { }
+        public void Stop() { }
+        public Task<bool> SeekAsync(MediaTime position, CancellationToken ct = default) => Task.FromResult(true);
+        public PlaybackFrame Update() => new(MediaTime.Zero, 0, PlaybackState.Paused, false, PreviewPicture.Black, true);
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
     private sealed class DesignTimeFilePickerService : IFilePickerService

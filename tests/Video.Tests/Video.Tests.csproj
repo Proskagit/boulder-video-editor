@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>AiVideoEditor.Video.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Core\Core.csproj" />
+    <ProjectReference Include="..\..\src\Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Video\Video.csproj" />
+    <ProjectReference Include="..\..\src\Timeline\Timeline.csproj" />
+    <ProjectReference Include="..\..\src\Audio\Audio.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Fake audio output (captures the mix) shared with Timeline.Tests. -->
+    <Compile Include="..\Timeline.Tests\Playback\AudioFakes.cs" Link="Playback\AudioFakes.cs" />
+    <Compile Include="..\Timeline.Tests\Playback\PlaybackFakes.cs" Link="Playback\PlaybackFakes.cs" />
+  </ItemGroup>
+
+</Project>
