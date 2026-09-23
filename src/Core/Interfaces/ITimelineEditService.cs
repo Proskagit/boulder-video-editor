@@ -51,6 +51,14 @@ public interface ITimelineEditService
 
     TimelineEditResult AddTrack(TrackType type);
 
+    /// <summary>Sets absolute property values of one clip: every group given in
+    /// <paramref name="change"/> replaces the clip's current values of that group exactly (no
+    /// rounding or recomputation). Rejected when a group doesn't apply to the clip's kind, a value
+    /// is out of range (<see cref="ClipPropertyLimits"/>) or the clip's track is locked. Changing
+    /// nothing is <see cref="TimelineEditResult.NoChange"/>. Consecutive changes of the same
+    /// properties of the same clip are merged into one Undo step.</summary>
+    TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change);
+
     /// <summary>Finds the snap target nearest to any of <paramref name="candidates"/>
     /// within <paramref name="tolerance"/>. Targets: time zero, the playhead and every
     /// clip edge except those of <paramref name="excludedClipIds"/>.</summary>
@@ -61,6 +69,21 @@ public enum ClipEdge
 {
     Start,
     End
+}
+
+/// <summary>New values for <see cref="ITimelineEditService.SetClipProperties"/>. A null group is
+/// left as it is; a given group is applied as a whole (read the current values with
+/// <see cref="VisualProperties.Of"/> etc. and change the fields that should change).</summary>
+public sealed record ClipPropertyChange
+{
+    /// <summary>Video, image and text clips.</summary>
+    public VisualProperties? Visual { get; init; }
+
+    /// <summary>Video and audio clips.</summary>
+    public AudioProperties? Audio { get; init; }
+
+    /// <summary>Text clips.</summary>
+    public TextProperties? Text { get; init; }
 }
 
 /// <summary>Outcome of a timeline edit. <see cref="Message"/> is safe to show in the

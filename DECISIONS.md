@@ -266,6 +266,20 @@ Decision (refines D010/D011):
   a snapshot update keeps the device running and continues at the mixer's write position,
   reusing readers of unchanged clips (gain changes applied without reopening).
 
+Refined in Phase 7 Step 4 (2026-09-23), volume and mute:
+- A muted clip (VideoClip or AudioClip, `IsMuted`) stays in the snapshot as an `AudioSpan` with
+  `IsMuted = true`; the mixer applies `EffectiveGain` (0 while muted, the volume otherwise). Its
+  reader keeps running, so unmuting is instant and never reopens ffmpeg. `Gain` is always the
+  clip's volume — mute never replaces it. Muted *tracks* still drop their spans (unchanged).
+- A snapshot that differs from the current one only in the mix
+  (`PlaybackSnapshot.DiffersOnlyInMix`, since Step 5 `DiffersOnlyInPresentation` — D018: same frame
+  rate, duration, layers, spans apart from gain/mute and picture/text properties, assets) is not a resync: the video pipeline, its readers, the seek generation and the
+  picture stay; the same `AudioPipeline` takes the new snapshot (`UpdateMix`) and republishes the
+  gains at the mixer's write position. No ffmpeg process starts, nothing buffers.
+- The "current" check for pictures uses the snapshot version the video pipeline was built from
+  (set where pipelines are created), not the latest snapshot the service holds — after a
+  mix-only update the two differ.
+
 Status: Accepted.
 
 ---
@@ -335,11 +349,12 @@ Decision (completes the save point deferred in D008):
   `IProjectService.SaveStateChanged` reports dirty/name/folder changes (window title
   "Name[*] — AI Video Editor"); `ProjectSaved` follows a successful save.
 
-Open question (not decided in Phase 6): playhead position, zoom and the snapping toggle are
-saved in `project.json`, but D008 treats them as view state, so changing them doesn't make
-the project dirty (and alone doesn't trigger an autosave). Decide whether they are project
-state (should mark dirty) or session/UI state (could stay out of dirty tracking, or out of
-the file).
+Playhead, zoom and snapping (open in Phase 6, decided by the product owner at the start of
+Phase 7, 2026-09-23): they are **session state** of the sequence. They stay in `project.json`
+(so a reopened project comes back where it was left), but changing them never makes the
+project dirty, never triggers an autosave on its own and never enters undo/redo. Whenever
+another project becomes current (New / Open / Recover), the timeline view takes zoom and
+snapping from the new sequence instead of keeping the previous project's values.
 
 Status: Accepted.
 
@@ -375,6 +390,119 @@ Decision:
   shuts down without keeping a recovery file. Cancel on Close keeps the window and autosave.
 - Save of a never-saved project is Save As. Save As and Open use a folder picker; Save As
   over another project's folder asks before replacing it.
+
+Status: Accepted.
+
+---
+
+## D017 — Clip property edits and undo merging (Phase 7)
+
+Date: 2026-09-23
+
+Decision:
+- Non-timing clip properties are edited only through
+  `ITimelineEditService.SetClipProperties(clipId, ClipPropertyChange)`. The change carries typed,
+  absolute groups — `VisualProperties` (position, scale, rotation, opacity, crop; video, image,
+  text — text has no crop), `AudioProperties` (volume, mute; video and audio clips) and
+  `TextProperties` (text, font, size, `#RRGGBB` color, alignment; text clips). A null group is
+  left unchanged; a given group replaces the clip's values of that group as a whole.
+- Values are stored exactly as given — no rounding, clamping or derivation. Out-of-range or
+  non-finite values, a group that doesn't apply to the clip, or a locked track reject the whole
+  change without touching the model. Limits: `ClipPropertyLimits` (opacity 0–1, scale 0.01–10,
+  rotation ±360°, position ±100 000 px, each crop inset in [0, 1) with opposite insets < 1,
+  volume 0–2 linear, font size 1–1000, text ≤ 10 000 characters; empty and multiline text are
+  valid). Timing is never changed, so these edits are also allowed on clips with speed ≠ 1.
+- Mute is its own state on every clip that can carry audio (`VideoClip.IsMuted` added);
+  muting never changes the volume.
+- `SetClipPropertiesCommand` stores complete before/after snapshots (`ClipPropertyValues`) and
+  writes them back verbatim on Execute/Undo/Redo.
+- Undo merging: `IMergeableCommand.TryMerge`. `UndoRedoService.Execute` merges a command into
+  the top of the undo stack only when (a) the redo stack is empty (not right after an Undo),
+  (b) the top is not the save point, and (c) the top accepts it. A property command accepts the
+  next one when it is for the same clip, changes exactly the same set of properties and starts
+  from its "after" state. Merging never mutates a command: the top is replaced by a new instance
+  (a history position captured before, e.g. by a Save in progress, can't later mark the merged
+  state as saved), or removed when the edits cancel out exactly (e.g. back to the saved value →
+  the project is clean again). `NotifyingCommand` forwards merging to its inner command.
+
+- The rules live in Core (`ClipPropertyValidator`, `ClipPropertyLimits`) and are applied both to
+  edits and to every clip read from `project.json` or a recovery file
+  (`ClipPropertyValidator.ValidateCurrent`, called by `ProjectSerializer`): a value the editor
+  couldn't have produced makes the file damaged (`ProjectFileException`), and — as for every
+  Open failure (D014) — the current project, its history and save point stay untouched.
+- `VideoClip.isMuted` is an optional field of format v1 (no version change): files written before
+  it existed load unmuted. Each clip type has its own DTO, so properties of another clip kind
+  can't reach a clip; stray JSON properties are ignored like any unknown property (D014).
+
+- Inspector (Step 4): the fields are filled from the model under a sync guard, so showing a
+  clip never produces an edit — needed because a displayed value may not round-trip exactly
+  (volume 1/3 → 33.3333333333333 %); only a value the user changes is sent to
+  `SetClipProperties`. A rejected edit is reported in the status bar and the fields show the
+  model again.
+
+Consequences: playback honours `VideoClip.IsMuted` from Step 4 on (D013 refinement).
+
+Status: Accepted.
+
+---
+
+## D018 — Composition model (Phase 7)
+
+Date: 2026-09-23
+
+Decision: one pure Core model (`Core/Composition`) decides where every visual layer lands; the
+Preview (Phase 7) and the Export (Phase 8) both reproduce it. Core holds no Avalonia or FFmpeg types.
+
+- Canvas: `ProjectSettings.FrameWidth × FrameHeight` (default 1920 × 1080; never taken from a video).
+  Coordinates are canvas pixels, origin top-left, +X right, +Y down.
+- Per picture clip (video, image), operations in this order:
+  1. crop — `CropRect` insets are fractions of the source; the source rectangle is
+     `(L·W, T·H, (1−L−R)·W, (1−T−B)·H)` in source pixels (also given normalized). The validator's
+     limits (each inset in [0, 1), opposite insets < 1) guarantee a non-empty rectangle.
+  2. fit — "contain": the cropped rectangle is scaled uniformly by
+     `fit = min(canvasW / cropW, canvasH / cropH)` and centred; the axis is chosen by exact
+     cross-multiplication. Never stretched independently in X/Y.
+  3. scale — uniform, multiplies `fit`, around the picture's centre.
+  4. rotation — `RotationDegrees` around the picture's centre; positive = clockwise on screen.
+     Multiples of 90° use exact 0/±1 coefficients. The picture is not re-fitted after turning.
+  5. position — `PositionX/Y` move the picture's centre from the canvas centre, in canvas pixels
+     (0, 0 = centred). This is the existing model's meaning (defaults 0 = centred, limits "position
+     offsets in canvas pixels", D017); no new UX semantics.
+  6. opacity — a 0..1 multiplier for the whole layer.
+  As one matrix (column vectors, `Affine2D`): `M = T(cw/2 + PositionX, ch/2 + PositionY) · R(θ) ·
+  S(fit · Scale) · T(−cropW/2, −cropH/2)`, mapping the crop-local rectangle [0, cropW] × [0, cropH]
+  onto the canvas. `LayerGeometry` carries source rect (pixels and normalized), fit, matrix, centre,
+  opacity, canvas bounds and `CoversCanvas`.
+- Source size: the source's pixel size from ffprobe metadata. When it is unknown the layer has no
+  geometry and the renderer applies the same `CompositionMath.Layout` to the decoded frame's size. A
+  renderer whose decoded frame has another resolution maps it through `NormalizedSourceRect`.
+- Text clips: same model without crop and fit — `M = T(cw/2 + PositionX, ch/2 + PositionY) · R(θ) ·
+  S(Scale)`. Content and style stay renderer-neutral (`TextProperties`: multiline text, font family,
+  size in canvas pixels, `#RRGGBB`, alignment); the renderer lays the text out, centres its box on the
+  local origin and draws it through `M` with the layer opacity.
+- `PlaybackSnapshot.LayersAt(time)`: per visible track (hidden tracks excluded) the clip covering the
+  time (half-open) becomes a layer, bottom to top by track order. Opacity-0 clips and empty/whitespace
+  text are not layers. Walking down from the top, everything below an occluder is dropped. An occluder
+  is a decodable video (no alpha) at opacity exactly 1 whose picture provably contains the whole
+  canvas. Images (may carry alpha), text, placeholders (offline/unsupported) and layers of unknown size
+  never occlude.
+- Coverage proof: for multiples of 90° it is decided exactly in rational arithmetic from the model
+  values (every double is an exact rational) — touching the edge covers, falling 10⁻¹³ px short does
+  not. For other angles the canvas corners are mapped back into the picture and must lie inside it
+  by a margin of 10⁻⁶ of the picture size, far above double rounding; borderline cases don't cull.
+- Snapshot: `PictureSpan` carries `Visual` + `SourceSize`, `VideoLayer.Texts` the text clips,
+  `PlaybackSnapshot.Canvas` the canvas. None of it affects decoding: `PictureAt` (Phase 5 picture)
+  is unchanged, and the Step 4 "mix-only" check became `DiffersOnlyInPresentation` (gains, mute,
+  picture/text properties, source size, canvas) — playback keeps every decoder on such changes.
+
+Context: the preview composites on the GPU (Step 7) and the export will use an ffmpeg filtergraph
+(Phase 8); both need one exact, renderer-free definition. Uniform scale commutes with rotation, so
+their relative order is not observable; every other order is (tests).
+
+Consequences: ffprobe reports coded width/height without rotation side data, so a phone video
+stored landscape with a 90° rotation flag (autorotated by ffmpeg on decode) gets a landscape
+`SourceSize` although its frames are portrait. Step 6 must resolve this (read the rotation in the
+probe, or lay such clips out from the decoded frame size). SAR (non-square pixels) is ignored as before.
 
 Status: Accepted.
 

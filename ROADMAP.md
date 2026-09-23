@@ -54,12 +54,13 @@ recovery offer (Recover / Discard / Not now); Save / Don't Save / Cancel before 
 Close; window title with `*`; Ctrl+N / O / S / Shift+S. UI manually validated by the product
 owner. Decisions: DECISIONS.md D014–D016. Details and verification: `progress.md`.
 
-Known open question carried forward: whether playhead / zoom / snapping are project state
-(and should make the project dirty) or session state (D015).
+The open question about playhead / zoom / snapping was decided at the start of Phase 7:
+session state (D015).
 
 ## Current
 
-No phase in progress. Next: Phase 7 — Basic editing (not started).
+Phase 7 — Basic editing, branch `feat/phase-7-basic-editing`. In progress; plan, product
+decisions and step status in `progress.md`.
 
 ## Future phases
 

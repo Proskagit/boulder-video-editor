@@ -48,7 +48,12 @@ public sealed class VideoClip : MediaBackedClip
     public double Scale { get; set; } = 1.0;
     public double RotationDegrees { get; set; }
     public double Opacity { get; set; } = 1.0;
+
+    /// <summary>Linear gain of the clip's own audio (1.0 = unchanged).</summary>
     public double Volume { get; set; } = 1.0;
+
+    /// <summary>Silences the clip's own audio without touching <see cref="Volume"/>.</summary>
+    public bool IsMuted { get; set; }
 
     /// <summary>Crop expressed as normalized (0..1) insets from each edge.</summary>
     public CropRect Crop { get; set; } = CropRect.None;

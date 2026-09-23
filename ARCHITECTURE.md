@@ -59,6 +59,14 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   then executes one `IUndoableCommand` wrapped in `NotifyingCommand`, which calls
   `IProjectService.NotifyTimelineChanged()` on Execute and Undo (raises `TimelineChanged`;
   dirty state follows the undo save point, D015). Rules: D008.
+- Inspector (Phase 7): audio section (volume 0–200 %, mute) for clips with sound; edits go to
+  `SetClipProperties`, the fields are refreshed from the model under a sync guard (no echo edits).
+- Clip properties (Phase 7, D017): `SetClipProperties` with typed `VisualProperties` /
+  `AudioProperties` / `TextProperties` (Core/Entities/ClipProperties.cs, limits in
+  `ClipPropertyLimits`), validated by `ClipPropertyValidator` (Core; also used on load), applied by
+  `SetClipPropertiesCommand` (absolute `ClipPropertyValues` before/after). Consecutive changes of
+  the same properties of one clip merge into one undo step (`IMergeableCommand`), never into the
+  save point and never right after an Undo.
 - UI: `TimelineViewModel` projects the `Sequence` (clip view models reused by Id),
   owns view state (zoom, playhead, selection, drag previews using the service's
   dry-run `CanMoveClips` / `PreviewTrim`) and never mutates the model directly.
@@ -98,12 +106,28 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   (Audio project, NAudio). The output's played-frames clock is the playback master while it
   runs; Stopwatch otherwise. Core holds only backend-neutral contracts (`AudioContracts.cs`,
   `AudioTiming`).
+- Volume/mute (Phase 7, D013 refinement): muted clips stay as silent spans (`AudioSpan.IsMuted`,
+  mixed at `EffectiveGain` 0). A snapshot that `DiffersOnlyInPresentation` (D018) from the current one keeps the
+  video pipeline, seek generation, picture and every reader; only `AudioPipeline.UpdateMix`
+  republishes the gains.
 
 ### MediaTime
 
 MediaTime uses 100-nanosecond ticks.
 
 This is a deliberate precision decision and should be preserved unless an explicit architectural decision changes it.
+
+## Composition (Phase 7, D018)
+
+- `Core/Composition`: `CompositionMath.Layout(canvas, sourceSize, VisualProperties)` → `LayerGeometry`
+  (source rect in pixels and normalized, fit, `Affine2D` crop-local → canvas, centre, opacity, bounds,
+  `CoversCanvas`), `CompositionMath.TextTransform`, `FrameSize` / `RectD` / `PointD` / `Affine2D`;
+  exact coverage via an internal BigInteger rational. Order: crop → fit (contain) → scale → rotation
+  (clockwise, around the centre) → position (centre offset from the canvas centre, canvas px, Y down)
+  → opacity. Canvas = project `FrameWidth × FrameHeight`.
+- `PlaybackSnapshot.LayersAt(time)` → `CompositionLayer`s bottom to top (`PictureLayer` with
+  `PictureSpan` + geometry, `TextLayer` with renderer-neutral `TextProperties` + transform); culls below
+  an opaque video that provably covers the canvas. Not used by playback yet (Step 6).
 
 ## Media pipeline
 
@@ -127,7 +151,7 @@ recovery, unsaved changes).
 
 - On disk: a project folder with `project.json` (format v1). `ProjectSerializer` maps entities
   ⇄ DTOs (`ProjectFileDto.cs`; ticks as `long`, exact frame rates, no runtime state) and
-  validates on load; `ProjectFileStore` reads and writes atomically (temp + `File.Replace`).
+  validates on load (incl. clip property ranges, D017); `ProjectFileStore` reads and writes atomically (temp + `File.Replace`).
 - `ProjectService` (UI thread): Open reads + validates + marks missing media off the UI thread
   into a separate object, then replaces the project (history cleared, clean). Save / Save As
   snapshot text, history position and non-undoable change count together, write, and only
@@ -146,7 +170,8 @@ recovery, unsaved changes).
   shutdown (`PrepareToCloseAsync` from `MainWindow.OnClosing`, which cancels the first close and
   closes again once approved). Toolbar commands and Ctrl+N / O / S / Shift+S call it; the window
   title comes from `MainWindowViewModel.Title`.
-- Open question: playhead, zoom and snapping are stored but don't make the project dirty (D015).
+- Playhead, zoom and snapping are session state (D015): stored in `project.json`, never dirty,
+  never undoable; `TimelineViewModel` reads zoom/snapping from the sequence on every `ProjectChanged`.
 
 ## MVVM
 

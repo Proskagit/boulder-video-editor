@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.UI.Common;
+using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
@@ -21,12 +23,33 @@ public enum InspectorSelectionKind
 /// Right-hand Inspector. Phase 2 wired up real Media Browser selection; Phase 3
 /// adds real technical metadata (Duration/Resolution/Codec/etc.), populated only
 /// once analysis actually completes — never fake values. Phase 4 adds timeline clip
-/// selection: read-only clip timing as non-drop-frame timecode. The Transform
-/// properties are kept as scaffolding but hidden in the view until they become
-/// editable in Phase 7.
+/// selection: read-only clip timing as non-drop-frame timecode. Phase 7 makes clip
+/// properties editable (audio first; Transform is still hidden scaffolding).
+/// <para>
+/// Editing: the fields show the model (<see cref="ShowClip"/>, called again after every timeline
+/// change, undo and redo included). A value the user changes is sent to
+/// <see cref="ITimelineEditService.SetClipProperties"/> — the model is never written here — and
+/// the resulting refresh writes the fields back from the model while <c>_syncing</c> is set, so
+/// showing a value never produces another edit (no Inspector ↔ TimelineChanged loop).
+/// </para>
 /// </summary>
 public sealed partial class InspectorViewModel : ViewModelBase
 {
+    private readonly ITimelineEditService _edit;
+    private readonly StatusService _status;
+
+    /// <summary>The timeline clip shown, if any (the primary selection).</summary>
+    private Clip? _clip;
+
+    /// <summary>True while fields are being filled from the model.</summary>
+    private bool _syncing;
+
+    public InspectorViewModel(ITimelineEditService edit, StatusService status)
+    {
+        _edit = edit;
+        _status = status;
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsMediaSelected))]
     [NotifyPropertyChangedFor(nameof(IsTimelineClipSelected))]
@@ -65,6 +88,36 @@ public sealed partial class InspectorViewModel : ViewModelBase
     [ObservableProperty] private string _durationDisplay = "";
     [ObservableProperty] private string _clipFrameRateDisplay = "";
 
+    // --- Audio (Phase 7): video clips with sound and audio clips -----------------
+    [ObservableProperty] private bool _hasAudioProperties;
+
+    /// <summary>Volume in percent (0–200, linear). Independent of <see cref="IsMuted"/>.</summary>
+    [ObservableProperty] private decimal _volumePercent = 100;
+
+    [ObservableProperty] private bool _isMuted;
+
+    partial void OnVolumePercentChanged(decimal value)
+    {
+        if (!_syncing) EditAudio(a => a with { Volume = (double)(value / 100m) });
+    }
+
+    partial void OnIsMutedChanged(bool value)
+    {
+        if (!_syncing) EditAudio(a => a with { IsMuted = value });
+    }
+
+    private void EditAudio(Func<AudioProperties, AudioProperties> change)
+    {
+        if (_clip is null || AudioProperties.Of(_clip) is not { } current) return;
+
+        var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Audio = change(current) });
+        if (!result.Success)
+        {
+            _status.Report(result.Message ?? "The clip could not be changed.");
+            SyncFromModel(); // show what the clip really has
+        }
+    }
+
     // Transform scaffold (Phase 7 — hidden in the view until editable).
     [ObservableProperty] private decimal _positionX;
     [ObservableProperty] private decimal _positionY;
@@ -78,6 +131,11 @@ public sealed partial class InspectorViewModel : ViewModelBase
     public void ShowClip(TimelineClipSelection selection)
     {
         var clip = selection.Clip;
+        _clip = clip;
+        // A video file without an audio stream has nothing to mix; unknown metadata still shows it.
+        HasAudioProperties = clip is AudioClip || (clip is VideoClip && selection.Asset?.Metadata is not { AudioCodec: null });
+        SyncFromModel();
+
         ClipName = selection.Name;
         ClipTypeLabel = clip switch
         {
@@ -106,6 +164,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// reload re-fires selection for the still-selected item).</summary>
     public void ShowMedia(MediaAsset asset)
     {
+        ForgetClip();
         MediaFileName = asset.FileName;
         MediaTypeLabel = asset.Kind switch
         {
@@ -131,11 +190,37 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
     public void ClearSelection()
     {
+        ForgetClip();
         SelectionKind = InspectorSelectionKind.None;
         TechnicalRows.Clear();
         IsAnalyzing = false;
         AnalysisErrorMessage = null;
         OnPropertyChanged(nameof(HasTechnicalInfo));
+    }
+
+    /// <summary>Fills the property fields from the shown clip without producing edits.</summary>
+    private void SyncFromModel()
+    {
+        if (_clip is null) return;
+        _syncing = true;
+        try
+        {
+            if (AudioProperties.Of(_clip) is { } audio)
+            {
+                VolumePercent = (decimal)audio.Volume * 100m;
+                IsMuted = audio.IsMuted;
+            }
+        }
+        finally
+        {
+            _syncing = false;
+        }
+    }
+
+    private void ForgetClip()
+    {
+        _clip = null;
+        HasAudioProperties = false;
     }
 
     private void BuildTechnicalRows(MediaKind kind, MediaMetadata m)

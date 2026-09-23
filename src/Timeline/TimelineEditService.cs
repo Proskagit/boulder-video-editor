@@ -382,6 +382,38 @@ public sealed class TimelineEditService : ITimelineEditService
         return TimelineEditResult.Ok();
     }
 
+    // --- Clip properties -------------------------------------------------------
+
+    public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change)
+    {
+        ArgumentNullException.ThrowIfNull(change);
+
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+
+        var clip = clips[0];
+        var track = plan.TrackOf(clip);
+        if (track.IsLocked) return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+
+        if (ClipPropertyValidator.Validate(clip, change) is { } error)
+            return TimelineEditResult.Fail(error);
+
+        // Timing is untouched, so no timeline validation is needed: the clip's placement,
+        // grid alignment and source range stay exactly as they are.
+        var before = ClipPropertyValues.Capture(clip);
+        var after = new ClipPropertyValues(
+            change.Visual ?? before.Visual,
+            change.Audio ?? before.Audio,
+            change.Text ?? before.Text);
+
+        var fields = ClipPropertyValues.Diff(before, after);
+        if (fields == ClipPropertyFields.None) return TimelineEditResult.Unchanged();
+
+        var command = new SetClipPropertiesCommand(clip, before, after, fields);
+        _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok(new[] { clip.Id });
+    }
+
     // --- Snapping --------------------------------------------------------------
 
     public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds)
@@ -492,7 +524,8 @@ public sealed class TimelineEditService : ITimelineEditService
             VideoClip v => new VideoClip
             {
                 MediaAssetId = v.MediaAssetId, Speed = v.Speed, PositionX = v.PositionX, PositionY = v.PositionY,
-                Scale = v.Scale, RotationDegrees = v.RotationDegrees, Opacity = v.Opacity, Volume = v.Volume, Crop = v.Crop
+                Scale = v.Scale, RotationDegrees = v.RotationDegrees, Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted,
+                Crop = v.Crop
             },
             AudioClip a => new AudioClip { MediaAssetId = a.MediaAssetId, Speed = a.Speed, Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClip i => new ImageClip

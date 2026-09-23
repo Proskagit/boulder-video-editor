@@ -2,11 +2,142 @@
 
 ## Current phase
 
-No phase in progress. Phase 6 — Project persistence: **complete**, branch
-`feat/phase-6-project-persistence` (from `acc1a49`), Phase 6 commit. Decisions: DECISIONS.md
-D014–D016. Next phase (7 — Basic editing) not started.
+Phase 7 — Basic editing: **in progress**, branch `feat/phase-7-basic-editing` (from `main`
+`9fd38e7`, which contains Phases 5 and 6). Scope (DEVELOPMENT_PLAN): speed, volume, opacity,
+transform, crop, text — static per-clip properties, no keyframes.
+
+### Phase 7 — Basic editing (in progress)
+
+Product decisions (product owner, 2026-09-23):
+- Compositing: the Preview draws layers on the GPU with Avalonia `DrawingContext`; D010's
+  "topmost track wins" is dropped. Core owns the pure geometry (matrix, crop, opacity), the
+  Preview only renders it. The rules must be reproducible by the Phase 8 export (→ D018).
+- Canvas: `ProjectSettings.FrameWidth × FrameHeight` only (default 1920×1080), never taken from
+  the first video; no resolution UI in Phase 7. The Preview must stop assuming a fixed 960×540.
+- Speed: 0.25×–4×, UI step 0.05×, exact rational (not `double`), pitch preserved. Changing speed
+  keeps Start, recomputes Duration / source range, is rejected on overlap (no ripple).
+  `project.json` v2 that still reads v1 (→ D019).
+- Text: multiline; only the existing properties (text, font, size, color, alignment, position,
+  scale, rotation, opacity). No outline/background/shadow/stroke.
+- Transform UX: numeric Inspector fields only; no handles on the Preview.
+- Volume: 0–200 % linear in the UI, linear gain internally; no dB.
+- Mute: a separate state (never Volume = 0) for every clip that can carry audio, incl. VideoClip.
+- Only the primary selected clip is edited; no multi-selection editing.
+- Playhead / zoom / snapping are session state (D015, decided).
+
+Steps: 1 D015 + zoom/snapping reload fix · 2 clip property editing foundation (edit service,
+command, undo merging that respects the save point) · 3 load validation of property ranges ·
+4 volume/mute end to end · 5 composition model in Core · 6 multi-layer playback with reader reuse
+across property-only snapshot updates · 7 Preview rendering + Transform/Opacity/Crop in the
+Inspector · 8 text clips · 9 speed · 10 closeout.
+
+- Step 1 done — D015 decided (session state). Fixed: `TimelineViewModel` read zoom and snapping
+  only in its constructor, so after New/Open/Recover it kept the previous project's values and
+  the snapping toggle wrote them into the new sequence. On `ProjectChanged` it now cancels any
+  gesture, clears the selection and reads zoom/snapping from the new sequence.
+  Tests: `UI.Tests/TimelineSessionStateTests.cs` (3: New, Open restores saved values, playhead/
+  zoom/snapping never dirty or undoable). Mutation: old handler → 2 failures.
+- Step 2 done (D017) — clip property editing foundation, no UI/playback/persistence yet:
+  `ITimelineEditService.SetClipProperties(clipId, ClipPropertyChange)` with typed
+  `VisualProperties` / `AudioProperties` / `TextProperties` (Core/Entities/ClipProperties.cs) and
+  `ClipPropertyLimits`; `ClipPropertyValidator` (kind, ranges, finite, crop, `#RRGGBB`; moved to
+  Core in Step 3; locked track → reject without changes); `ClipPropertyValues` (capture/apply/diff) and
+  `SetClipPropertiesCommand` (absolute before/after); `IMergeableCommand` + merging in
+  `UndoRedoService` (not into the save point, not after Undo, new instance on merge, step removed
+  when edits cancel out); `NotifyingCommand` forwards merging. Model: `VideoClip.IsMuted` added
+  (split copies it). Tests: `Core.Tests/UndoRedoMergeTests.cs` (10),
+  `Timeline.Tests/ClipPropertyEditTests.cs` (55 incl. theory cases; bit-exact undo/redo of all
+  properties). Mutations: no save-point guard → 3 failures; merge after Undo → 2; no cancel-out → 1.
+  Pending for later steps: persist `VideoClip.IsMuted` (Step 3), honour it in playback (Step 4).
+- Step 3 done (D017) — load validation + `VideoClip.isMuted` in format v1 (optional, no version
+  bump; older files load unmuted). `ClipPropertyValidator` moved to Core and gained
+  `ValidateCurrent(clip)`; `ProjectSerializer` runs it on every clip read (project.json and
+  recovery files share this path), so NaN/∞, out-of-range values, crop edges outside [0, 1) or
+  opposite edges summing to ≥ 1, empty/missing font, bad color, over-long text → `ProjectFileException`
+  before the current project is touched. Properties of another clip kind can't be represented
+  (one DTO per clip type); stray JSON properties stay ignored (D014).
+  Tests: `Project.Tests/ClipPropertyPersistenceTests.cs` (45 incl. theory cases: bit-exact round
+  trip of every Phase 7 property, mute written/read, a literal Phase 6 v1 file without `isMuted`,
+  30 damaged values, 8 non-finite literals, foreign properties ignored) and
+  `ProjectServiceTests.Failed_open_of_a_project_with_an_invalid_clip_property_changes_nothing` (3:
+  project, history, save point and events untouched). Finding: System.Text.Json reads `1e999` as
+  ∞ — only the new validation rejects it; `NaN`/`"Infinity"` are already refused by the parser.
+  Mutations: no validation on load → 36 failures; `isMuted` not read → 2, not written → 2; crop
+  sum allowed to reach 1 → 2; NaN passing the range check → 4 (edit tests; on load the parser
+  already blocks NaN).
+- Step 4 done (D013 refinement, D017) — volume/mute end to end:
+  - Inspector: AUDIO section (volume 0–200 %, step 1, linear; Mute checkbox, not focusable so
+    Space stays Play/Pause) for AudioClips and VideoClips with an audio stream. Edits only via
+    `SetClipProperties`; `ShowClip` fills the fields under a sync guard; rejected edit → status
+    message + fields back to the model. `InspectorViewModel` now takes `ITimelineEditService` +
+    `StatusService`.
+  - Playback: `AudioSpan.IsMuted` / `EffectiveGain`; muted VideoClips and AudioClips stay in the
+    snapshot (reader keeps running); `PlaybackSnapshot.DiffersOnlyInMix`; `PlaybackService` handles
+    such updates without a resync (same VideoPipeline, readers, seek generation, picture;
+    `AudioPipeline.UpdateMix`). Found by the existing `SupersededPipelines` test while
+    implementing: the picture "current" version must be recorded where pipelines are created,
+    otherwise a seek after a mix-only update never became current (fixed; regression test).
+  - Tests: Core `PlaybackSnapshotMixTests` (6) + builder test updated; Timeline
+    `MixUpdatePlaybackTests` (7: no pipeline/reader/generation change and no buffering over 9 edits
+    incl. undo/redo and an opacity edit, paused, seek after mix-only update, mute silences only the
+    clip's own audio and unmute restores its volume, volume 0 ≠ mute, clip starting muted, picture
+    change reuses every audio reader); UI `InspectorAudioTests` (11: visibility, no echo edits incl.
+    a 1/3 volume, one undo step / merged spins, undo/redo refresh, mute vs volume, rejection,
+    selection follow, save → reopen, playing without decoder reopen); Video
+    `MixUpdateIntegrationTests` (real ffmpeg: no ffmpeg process started, sine silent when muted,
+    half amplitude at 50 %). `SupersededPipelines…` now makes a real timeline change (an identical
+    snapshot is mix-only now). Mutations: no mix-only path → 4 failures (Timeline 2, UI 1, Video 1);
+    mixer ignoring mute → 3; muted audio clips dropped from the snapshot → 4; no Inspector sync
+    guard → 1; video mute not passed to the snapshot → 4.
+- Step 5 done (D018) — composition model, pure Core (no playback/UI change):
+  - `Core/Composition`: `Affine2D` (column vectors, Y down, exact quarter turns), `FrameSize`, `RectD`,
+    `PointD`, `CompositionMath.Layout` / `TextTransform`, `LayerGeometry`, `CompositionLayer` →
+    `PictureLayer` (`OccludesBelow`) / `TextLayer`, internal `ExactRational` (BigInteger) for the
+    coverage proof. `ClipPropertyValidator.ValidateVisual` public; `VisualProperties.Default`.
+  - Semantics fixed from the existing model: Position = centre offset from the canvas centre in canvas
+    pixels (+Y down); rotation clockwise around the picture centre; fit = contain, before scale.
+  - Snapshot: `PictureSpan.Visual` / `SourceSize` (from metadata), `TextSpan` + `VideoLayer.Texts`,
+    `PlaybackSnapshot.Canvas`, `LayersAt(time)`. `DiffersOnlyInMix` → `DiffersOnlyInPresentation`
+    (also ignores picture/text properties, source size, canvas) so a property edit still keeps every
+    decoder (one-line call change in `PlaybackService`; Step 4 regression tests unchanged and green).
+  - Tests: `Core.Tests/CompositionMathTests.cs` (40 incl. theory rows; exact matrices: landscape,
+    portrait, letterbox, crop of each side, square crop, scale < 1 / > 1, 0/90/180/270/−90/±360 and
+    30°, clockwise sign, position, opacity 0/0.5/1, all combined, five order-of-operation proofs,
+    vertical and other canvases, exact-edge coverage incl. the double nearest 4/3, text transform,
+    invalid input); `CompositionLayersTests.cs` (20: bottom-to-top by track order, time ranges,
+    culling and its limits — transparency, 0.999 opacity, scale 0.99, crop, 0.5 px offset, rotation —,
+    provable cover with crop/zoom and at 45°, images/offline/unknown size never cull, invisible
+    clips, text layers, text and media on one track, vertical project, PictureAt unchanged);
+    `PlaybackSnapshotMixTests` extended to presentation changes. Mutations (all caught): position
+    before rotation → 2 failures, fit before crop → 2, rotation around the canvas origin → 11, scale
+    not around the centre → 7, no culling → 3, occluder ignoring opacity → 2, image as occluder → 1,
+    double-rounded coverage → 1, rotation sign flipped → 7, opacity-0 layers kept → 2. (Scale and
+    rotation commute for uniform scale, so their mutual order is not observable.)
+  - Coverage review (product owner): for arbitrary angles `CoversCanvas` never uses the bounding
+    box — it inverts the layer matrix, maps all four canvas corners into the crop rectangle and
+    requires them inside by a 10⁻⁶ margin (doubt → false). Added: 45° picture whose AABB covers the
+    canvas but whose corners don't → false and the layer below stays in `LayersAt`; 30° × 2 with all
+    corners inside → true and culls; conservative edge at 45°. Mutation "AABB instead of inverse
+    containment" → 6 failures (incl. both new regression tests). Core tests: 243.
+  - Flaky tests found before the checkpoint commit (full parallel runs, ~1 in 8): `MixUpdatePlayback
+    Tests.VolumeAndMuteWhilePaused…` ("video reader reopened") and the Phase 5 `AudioPipelineTests.
+    SnapshotUpdate_ReusesReaders…`. Cause: decoder-open counts depended on background timing — a
+    reader of a pipeline retired right after creation still called `OpenAsync` from its task (with a
+    cancelled token), and a new reader's open could land before or after the assertion.
+    Product fix (pre-existing since Phase 5): `SpanReader` / `AudioSpanReader` check cancellation
+    right before opening, so a reader retired before its task ran no longer starts an ffmpeg process
+    only to kill it. Test fixes: `PlaybackService.RetiringSettledAsync()` (internal; Timeline internals
+    now visible to UI.Tests) — count-based tests capture only after every retired pipeline is
+    disposed; `AudioPipelineTests` waits for the opens it expects. Verified: 10 consecutive full-suite
+    runs green (824 tests each).
+  - Open for Step 6: rotation metadata of phone videos (ffprobe gives the coded size; D018
+    consequences); how placeholders (offline/unsupported/decode error) are drawn in a composited
+    preview.
 
 ### Phase 6 — Project persistence (complete)
+
+Branch `feat/phase-6-project-persistence` (from `acc1a49`), Phase 6 commit, merged into `main`.
+Decisions: DECISIONS.md D014–D016.
 
 Product decisions (2026-09-23): project = folder with `project.json` + `cache/` (no
 `.aveproj`); autosave writes a separate recovery file every 2 min and never overwrites
@@ -72,13 +203,9 @@ Deferred / out of scope: relink of missing media, recent projects, copying media
 project, re-checking missing media while the project is open, offering more than one
 recovery file per start (older ones are offered at later starts).
 
-Open questions (carried forward, not decided in Phase 6 — see D015):
-- **Playhead position, zoom and snapping**: saved in `project.json`, but changing them does
-  not make the project dirty (they aren't undoable commands). Decide whether they are project
-  state (then they should mark it dirty) or session/UI state (then they could stay out of the
-  dirty logic, or out of the file). Current code is unchanged pending that decision.
-  Consequence for autosave: such a change alone doesn't trigger an autosave; it is included
-  in the next recovery file / save written for another reason.
+Open questions carried forward from Phase 6:
+- ~~Playhead position, zoom and snapping: project or session state?~~ Decided in Phase 7
+  Step 1: session state (D015).
 - Missing state is detected once on Open; a file that reappears later stays offline until the
   project is reopened (no relink in Phase 6).
 

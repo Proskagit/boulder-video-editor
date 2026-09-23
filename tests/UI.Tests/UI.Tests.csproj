@@ -24,6 +24,7 @@
   <ItemGroup>
     <!-- Shared fake decoder / fake reference clock (no ffmpeg processes in UI tests). -->
     <Compile Include="..\Timeline.Tests\Playback\PlaybackFakes.cs" Link="Playback\PlaybackFakes.cs" />
+    <Compile Include="..\Timeline.Tests\Playback\AudioFakes.cs" Link="Playback\AudioFakes.cs" />
   </ItemGroup>
 
 </Project>

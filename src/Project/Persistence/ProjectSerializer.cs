@@ -238,7 +238,7 @@ public static class ProjectSerializer
             VideoClip v => new VideoClipDto
             {
                 PositionX = v.PositionX, PositionY = v.PositionY, Scale = v.Scale, RotationDegrees = v.RotationDegrees,
-                Opacity = v.Opacity, Volume = v.Volume, Crop = ToDto(v.Crop)
+                Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted, Crop = ToDto(v.Crop)
             },
             AudioClip a => new AudioClipDto { Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClip i => new ImageClipDto
@@ -507,7 +507,8 @@ public static class ProjectSerializer
             VideoClipDto v => new VideoClip
             {
                 Id = v.Id, MediaAssetId = v.MediaAssetId, PositionX = v.PositionX, PositionY = v.PositionY, Scale = v.Scale,
-                RotationDegrees = v.RotationDegrees, Opacity = v.Opacity, Volume = v.Volume, Crop = FromDto(v.Crop)
+                RotationDegrees = v.RotationDegrees, Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted,
+                Crop = FromDto(v.Crop)
             },
             AudioClipDto a => new AudioClip { Id = a.Id, MediaAssetId = a.MediaAssetId, Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClipDto i => new ImageClip
@@ -540,6 +541,11 @@ public static class ProjectSerializer
             media.SourceOut = new MediaTime(mediaDto.SourceOutTicks);
             media.Speed = mediaDto.Speed;
         }
+
+        // Phase 7 properties: the same kinds and ranges the edit service accepts (NaN/infinite,
+        // out-of-range, crop that leaves nothing, empty font, bad color → damaged).
+        if (ClipPropertyValidator.ValidateCurrent(clip) is { } invalid)
+            throw Damaged($"a clip has an invalid property: {invalid.TrimEnd('.')}");
 
         foreach (var e in dto.Effects ?? new List<EffectDto>())
             clip.Effects.Add(FromDto(e ?? throw Damaged("empty effect entry")));

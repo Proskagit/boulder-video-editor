@@ -419,6 +419,7 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
 
         for (var i = 0; i < 10; i++)
             _ = _service.SeekAsync(F(i * 19));
+        Assert.True(_f.Service.AddTrack(TrackType.Video).Success); // a real timeline change (not mix-only)
         Publish(); // a newer snapshot supersedes the last seek's pipeline too
         await _service.SeekAsync(F(90)); // near the a|b boundary: current + prefetched reader
         await SettleAsync();

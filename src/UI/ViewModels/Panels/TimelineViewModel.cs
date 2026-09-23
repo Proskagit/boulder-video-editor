@@ -52,7 +52,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _logger = logger;
 
         _projectService.TimelineChanged += (_, _) => Refresh();
-        _projectService.ProjectChanged += (_, _) => { _selection.Clear(); Refresh(); };
+        _projectService.ProjectChanged += (_, _) => OnProjectReplaced();
         _projectService.MediaAssetsChanged += (_, _) => RefreshClipNames();
 
         _pixelsPerSecond = Sequence.ZoomPixelsPerSecond;
@@ -102,6 +102,18 @@ public sealed partial class TimelineViewModel : ViewModelBase
     partial void OnTracksHeightChanged(double value) => OnPropertyChanged(nameof(PlayheadHeight));
 
     // --- Projection ---------------------------------------------------------------
+
+    /// <summary>Another project became current (New / Open / Recover). Selection and any drag
+    /// belong to the old one; zoom and snapping are session state of the new sequence (D015),
+    /// so they are read from it rather than carried over.</summary>
+    private void OnProjectReplaced()
+    {
+        CancelGesture();
+        _selection.Clear();
+        PixelsPerSecond = Sequence.ZoomPixelsPerSecond;
+        SnappingEnabled = Sequence.SnappingEnabled;
+        Refresh();
+    }
 
     private void Refresh()
     {

@@ -142,6 +142,9 @@ internal sealed class SpanReader : IAsyncDisposable
                     Hardware = hardware
                 };
 
+                // A reader retired before its task ran (e.g. superseded by the next seek at once)
+                // must not start a decoder process only to cancel it.
+                ct.ThrowIfCancellationRequested();
                 await using var stream = await _decoder.OpenAsync(request, ct);
                 if (IsStill)
                 {

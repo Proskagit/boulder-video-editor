@@ -193,6 +193,8 @@ public sealed class AudioPipelineTests
         var first = Pipeline(0);
         AssertSamples(await Pull(first, _mixer, 0, 4_800), 0, clip);
         Assert.Equal(1, _decoder.OpenCount(music.FilePath));
+        // The moved clip starts after the pulled range: its reader opens on its own background task.
+        await Eventually(() => _decoder.OpenCount(other.FilePath) == 1);
 
         clip.Volume = 0.5;                                               // gain change only: reuse
         Assert.True(_f.Service.MoveClips(TimelineFixture.Ids(moved), 3).Success); // moved: new reader
@@ -200,11 +202,21 @@ public sealed class AudioPipelineTests
         await first.DisposeAsync();
 
         var buffer = await Pull(next, _mixer, 4_800, 1_000);
-        Assert.Equal(1, _decoder.OpenCount(music.FilePath));
-        Assert.Equal(2, _decoder.OpenCount(other.FilePath));
+        await Eventually(() => _decoder.OpenCount(other.FilePath) == 2); // the moved clip got a new reader
+        Assert.Equal(1, _decoder.OpenCount(music.FilePath));            // the unchanged one was reused
         for (var i = 0; i < 1_000; i++)
             Assert.Equal((4_800 + i) * FakeAudioSource.Unit * 0.5f, buffer[2 * i]); // exact: power-of-two scale
         await next.DisposeAsync();
+    }
+
+    private static async Task Eventually(Func<bool> condition)
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        while (!condition())
+        {
+            if (watch.Elapsed > TimeSpan.FromSeconds(5)) throw new TimeoutException();
+            await Task.Delay(1);
+        }
     }
 
     private Track AddTrack(TrackType type)

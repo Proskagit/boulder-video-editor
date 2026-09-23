@@ -147,7 +147,7 @@ public partial class MainWindow : Window
             new ToolbarViewModel(undoRedo, projectFiles, importWorkflow, status),
             new MediaBrowserViewModel(projectService, importWorkflow, NullLogger<MediaBrowserViewModel>.Instance),
             new PreviewViewModel(status, new DesignTimePlaybackService(), projectService, NullLogger<PreviewViewModel>.Instance),
-            new InspectorViewModel(),
+            new InspectorViewModel(new DesignTimeTimelineEditService(), status),
             new TimelineViewModel(projectService, new DesignTimeTimelineEditService(), status, NullLogger<TimelineViewModel>.Instance),
             status,
             projectFiles,
@@ -222,6 +222,7 @@ public partial class MainWindow : Window
         public TimelineEditResult Split(MediaTime at, IReadOnlyCollection<Guid>? clipIds = null) => Nothing;
         public TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds) => Nothing;
         public TimelineEditResult AddTrack(TrackType type) => Nothing;
+        public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change) => Nothing;
         public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds) => SnapResult.None;
     }
 

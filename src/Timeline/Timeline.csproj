@@ -19,6 +19,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Timeline.Tests" />
     <InternalsVisibleTo Include="Video.Tests" />
+    <InternalsVisibleTo Include="UI.Tests" />
   </ItemGroup>
 
 </Project>

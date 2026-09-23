@@ -123,17 +123,26 @@ public class PlaybackSnapshotBuilderTests
         var v = Add(_v1, new VideoClip { MediaAssetId = withAudio.Id, Volume = 0.8 }, 0, 10);
         var s = Add(_v1, new VideoClip { MediaAssetId = silent.Id }, 10, 20);
         var a = Add(_a1, new AudioClip { MediaAssetId = music.Id, Volume = 0.3 }, 0, 20);
-        var muted = Add(_a1, new AudioClip { MediaAssetId = music.Id, IsMuted = true }, 20, 30);
+        var muted = Add(_a1, new AudioClip { MediaAssetId = music.Id, IsMuted = true, Volume = 0.6 }, 20, 30);
+        var mutedVideo = Add(_v2, new VideoClip { MediaAssetId = withAudio.Id, IsMuted = true, Volume = 1.5 }, 30, 40);
 
         var snapshot = Build();
         Assert.Equal(0.8, snapshot.AudioSpans.Single(x => x.ClipId == v.Id).Gain);
         Assert.Equal(0.3, snapshot.AudioSpans.Single(x => x.ClipId == a.Id).Gain);
         Assert.DoesNotContain(snapshot.AudioSpans, x => x.ClipId == s.Id);
-        Assert.DoesNotContain(snapshot.AudioSpans, x => x.ClipId == muted.Id);
+
+        // Muted clips stay as silent spans that keep their volume (unmuting only changes the mix).
+        var mutedSpan = snapshot.AudioSpans.Single(x => x.ClipId == muted.Id);
+        Assert.Equal((true, 0.6, 0.0), (mutedSpan.IsMuted, mutedSpan.Gain, mutedSpan.EffectiveGain));
+        var mutedVideoSpan = snapshot.AudioSpans.Single(x => x.ClipId == mutedVideo.Id);
+        Assert.Equal((true, 1.5, 0.0), (mutedVideoSpan.IsMuted, mutedVideoSpan.Gain, mutedVideoSpan.EffectiveGain));
+        Assert.Equal(0.8, snapshot.AudioSpans.Single(x => x.ClipId == v.Id).EffectiveGain);
+        Assert.NotNull(snapshot.PictureAt(F(35))); // a muted video still shows its picture
 
         _a1.IsMuted = true;
         _v1.IsMuted = true;
-        Assert.Empty(Build(2).AudioSpans);
+        _v2.IsMuted = true;
+        Assert.Empty(Build(2).AudioSpans); // muted tracks drop their clips' audio entirely
         Assert.NotNull(Build(3).PictureAt(F(5))); // muting never hides the picture
     }
 

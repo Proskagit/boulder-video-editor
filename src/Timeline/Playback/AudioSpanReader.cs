@@ -147,6 +147,7 @@ internal sealed class AudioSpanReader : IAsyncDisposable
         try
         {
             var sourceTime = new MediaTime(AudioTiming.SampleToTicksFloor(startSample + _sourceOffset));
+            ct.ThrowIfCancellationRequested(); // retired before the task ran: don't start a decoder
             await using var stream = await _decoder.OpenAsync(new AudioDecodeRequest
             {
                 FilePath = _asset.FilePath,

@@ -47,7 +47,7 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
             new ToolbarViewModel(_undoRedo, projectFiles, workflow, status),
             new MediaBrowserViewModel(_projects, workflow, NullLogger<MediaBrowserViewModel>.Instance),
             new PreviewViewModel(status, _playback, _projects, NullLogger<PreviewViewModel>.Instance),
-            new InspectorViewModel(),
+            new InspectorViewModel(_edit, status),
             new TimelineViewModel(_projects, _edit, status, NullLogger<TimelineViewModel>.Instance),
             status,
             projectFiles,

@@ -109,6 +109,22 @@
               </StackPanel>
             </StackPanel>
 
+            <!-- Audio (Phase 7): volume and mute are independent; every change is one edit. -->
+            <StackPanel Spacing="6" IsVisible="{Binding HasAudioProperties}">
+              <TextBlock Text="AUDIO" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Volume" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                <NumericUpDown Value="{Binding VolumePercent, Mode=TwoWay}" Increment="1"
+                               Minimum="0" Maximum="200" FormatString="0.#" Width="110"/>
+                <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+              </StackPanel>
+
+              <!-- Not focusable: Space stays Play/Pause instead of toggling the box after a click. -->
+              <CheckBox Content="Mute" IsChecked="{Binding IsMuted, Mode=TwoWay}" Focusable="False"
+                        Margin="88,0,0,0" Foreground="#DDDDDD"/>
+            </StackPanel>
+
             <StackPanel Spacing="6">
               <TextBlock Text="CLIP" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
 

@@ -131,6 +131,11 @@ internal sealed class VideoClipDto : MediaBackedClipDto
     public double RotationDegrees { get; set; }
     public double Opacity { get; set; }
     public double Volume { get; set; }
+
+    /// <summary>Added in Phase 7 without a format version change: absent in older v1 files,
+    /// which then load unmuted.</summary>
+    public bool IsMuted { get; set; }
+
     public CropDto? Crop { get; set; }
 }
 
