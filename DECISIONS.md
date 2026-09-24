@@ -554,6 +554,48 @@ Status: Accepted.
 
 ---
 
+## D020 — Preview composition rendering and visual Inspector (Phase 7 Step 7)
+
+Date: 2026-09-23
+
+Decision:
+- The Preview draws `PlaybackFrame.Layers` with Avalonia's `DrawingContext` (no new rendering
+  architecture or dependency): `PreviewViewModel` publishes `Layers`, `Canvas` and
+  `AreLayersCurrent`; `CompositionView` (UI/Rendering) executes a `CompositionDrawPlan`.
+- Coordinates: `layer-local → canvas` is the layer's D018 transform, `canvas → control` a uniform
+  "contain" viewport (letterboxed, centred); the composition is never rescaled for the UI.
+  `RenderConversions.ToMatrix` is the only place `Affine2D` becomes an Avalonia `Matrix` (column →
+  row vectors). Everything is clipped to the canvas rectangle; the canvas has the project's real
+  proportions (no fixed 960 × 540).
+- Per layer, bottom to top, with its own opacity: Frame — the decoded frame's `NormalizedSourceRect`
+  (in its own pixels) drawn into the crop rectangle, geometry from D018, or from the decoded size
+  when the source size is unknown; late frames are drawn; Text — laid out by Avalonia at its font size,
+  lines aligned in their box, box centred on the local origin, then the layer transform; Offline /
+  Unsupported / DecodeError — a minimal placeholder (box + label) in `PlaceholderArea`; Pending —
+  nothing. Culling stays D018/D019.
+- Bitmaps: two `WriteableBitmap`s per layer, alternated; a frame is copied only when that layer's
+  decoded frame changes; bitmaps of vanished layers are disposed.
+- The preview keeps polling while any layer is pending or late (`AreLayersCurrent`), so a layer
+  uncovered while paused still appears; while a seek/timeline change buffers, the previous layers stay.
+- The UI's single-picture compatibility path (`CurrentFrame`, `PictureKind`, `PlaceholderText`,
+  `IsPictureCurrent` on the view model, the per-view bitmap copy) is removed.
+  `PlaybackFrame.Picture` / `IsPictureCurrent` remain in Core as the topmost-picture view that the
+  Phase 5–7 playback tests use as their oracle; no product code reads them.
+- Inspector: Transform (Position X/Y px, Scale %, Rotation °, Opacity %) for video, image and text;
+  Crop (Left/Top/Right/Bottom %) for video and image. Each field is sent to `SetClipProperties` on its
+  own (consecutive changes of one field merge into one undo step, D017); fields are filled from the
+  model under the sync guard; limits from `ClipPropertyLimits`; a rejected value (e.g. opposite crop
+  edges ≥ 100 %) is reported and the field shows the model again.
+
+Consequences: measured (offscreen software rendering, an upper bound; 1280 × 720 decoded frames, all
+layers changing every frame): copy/update 0.11 / 0.24 / 0.55 / 1.31 ms and render 0.8 / 3.2 / 7.4 /
+13.9 ms per frame for 1 / 2 / 4 / 8 layers — within the 33 ms budget at 30 fps, no optimization needed.
+Placeholder labels scale with the clip (small for small clips); the placeholder design is minimal.
+
+Status: Accepted.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

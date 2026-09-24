@@ -1,6 +1,14 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:common="using:AiVideoEditor.UI.Common"
              x:Class="AiVideoEditor.UI.Views.Panels.InspectorView">
+
+  <UserControl.Styles>
+    <!-- Every numeric field: sign, digits and the decimal separator only (NumericInput). -->
+    <Style Selector="NumericUpDown">
+      <Setter Property="ParsingNumberStyle" Value="{x:Static common:NumericInput.ParsingStyle}"/>
+    </Style>
+  </UserControl.Styles>
 
   <Border Background="#252526" BorderBrush="#1A1A1A" BorderThickness="1,0,0,0">
     <DockPanel>
@@ -77,34 +85,71 @@
 
           <!-- Timeline clip selection (Phase 4) -->
           <StackPanel IsVisible="{Binding IsTimelineClipSelected}" Spacing="16">
-            <!-- Transform: scaffold only, hidden until it becomes editable in Phase 7. -->
-            <StackPanel Spacing="6" IsVisible="False">
+            <!-- Transform and opacity (Phase 7): video, image and text clips. Every change is one edit;
+                 consecutive changes of one field merge into one undo step. -->
+            <StackPanel Spacing="6" IsVisible="{Binding HasVisualProperties}">
               <TextBlock Text="TRANSFORM" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
-
               <StackPanel Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="Position X" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                  <NumericUpDown Value="{Binding PositionX}" Increment="1" FormatString="0.##" Width="140"/>
+                  <NumericUpDown Value="{Binding PositionX, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
+                                 FormatString="0.##" Width="110"/>
+                  <TextBlock Text="px" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
-
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="Position Y" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                  <NumericUpDown Value="{Binding PositionY}" Increment="1" FormatString="0.##" Width="140"/>
+                  <NumericUpDown Value="{Binding PositionY, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
+                                 FormatString="0.##" Width="110"/>
+                  <TextBlock Text="px" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
-
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="Scale" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                  <NumericUpDown Value="{Binding Scale}" Increment="0.05" FormatString="0.##" Width="140"/>
+                  <NumericUpDown Value="{Binding ScalePercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinScalePercent}" Maximum="{Binding MaxScalePercent}"
+                                 FormatString="0.##" Width="110"/>
+                  <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
-
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="Rotation" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                  <NumericUpDown Value="{Binding Rotation}" Increment="1" FormatString="0.##" Width="140"/>
+                  <NumericUpDown Value="{Binding Rotation, Mode=TwoWay}" Increment="1" Minimum="{Binding MinRotation}" Maximum="{Binding MaxRotation}"
+                                 FormatString="0.##" Width="110"/>
+                  <TextBlock Text="°" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
-
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="Opacity" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                  <NumericUpDown Value="{Binding Opacity}" Increment="0.05" Minimum="0" Maximum="1" FormatString="0.##" Width="140"/>
+                  <NumericUpDown Value="{Binding OpacityPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinOpacityPercent}" Maximum="{Binding MaxOpacityPercent}"
+                                 FormatString="0.#" Width="110"/>
+                  <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                </StackPanel>
+              </StackPanel>
+            </StackPanel>
+
+            <!-- Crop (Phase 7): pictures only, fractions of the source per edge. -->
+            <StackPanel Spacing="6" IsVisible="{Binding HasCrop}">
+              <TextBlock Text="CROP" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <StackPanel Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Left" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <NumericUpDown Value="{Binding CropLeftPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
+                                 FormatString="0.#" Width="110"/>
+                  <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Top" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <NumericUpDown Value="{Binding CropTopPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
+                                 FormatString="0.#" Width="110"/>
+                  <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Right" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <NumericUpDown Value="{Binding CropRightPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
+                                 FormatString="0.#" Width="110"/>
+                  <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Bottom" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <NumericUpDown Value="{Binding CropBottomPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
+                                 FormatString="0.#" Width="110"/>
+                  <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
               </StackPanel>
             </StackPanel>

@@ -321,7 +321,7 @@ public sealed class InspectorAudioTests : IAsyncLifetime
         var music = AddAndSelect(Asset("m.wav", MediaKind.Audio));
         var video = AddAndSelect(Asset("v.mp4", MediaKind.Video));
         _vm.Preview.PlayPauseCommand.Execute(null);
-        await TickUntil(() => _vm.Preview.CurrentFrame is not null && !_vm.Preview.IsBuffering && _audio.Requests.Count == 2,
+        await TickUntil(() => _vm.Preview.Layers.Any(l => l.State == LayerPictureState.Frame) && !_vm.Preview.IsBuffering && _audio.Requests.Count == 2,
             "playback did not start");
         await _playback.RetiringSettledAsync(); // pipelines replaced while adding clips can't open late any more
         var videoOpens = _video.Requests.Count;

@@ -16,7 +16,7 @@ Product decisions (product owner, 2026-09-23):
   the first video; no resolution UI in Phase 7. The Preview must stop assuming a fixed 960×540.
 - Speed: 0.25×–4×, UI step 0.05×, exact rational (not `double`), pitch preserved. Changing speed
   keeps Start, recomputes Duration / source range, is rejected on overlap (no ripple).
-  `project.json` v2 that still reads v1 (→ D020).
+  `project.json` v2 that still reads v1 (→ D021).
 - Text: multiline; only the existing properties (text, font, size, color, alignment, position,
   scale, rotation, opacity). No outline/background/shadow/stroke.
 - Transform UX: numeric Inspector fields only; no handles on the Preview.
@@ -188,6 +188,58 @@ Inspector · 8 text clips · 9 speed · 10 closeout.
     `BufferFrames` (e.g. MPEG-TS at frame 40) — unchanged since Phase 5, the Preview always ticks;
     documented in D019, not changed.
   - Full suite: 892 tests, 5 consecutive runs green. App starts (shell initialized, no errors).
+
+- Step 6 checkpoint: commit `8592d10`.
+- Step 7 (D020) — multi-layer Preview + visual Inspector:
+  - 7a: `PreviewViewModel.Layers` / `Canvas` / `AreLayersCurrent`; keeps polling while a layer is
+    pending or late (a layer uncovered while paused appears), keeps the previous layers while
+    buffering, clears them on project change.
+  - 7b/7c: `UI/Rendering`: `CompositionDrawPlan` (pure: viewport canvas → control, per-layer
+    operations bottom to top, decoded-pixel source rect, geometry from the decoded size when unknown,
+    placeholders in `PlaceholderArea`, text, pending skipped), `RenderConversions` (Affine2D → Avalonia
+    Matrix), `CompositionView` (DrawingContext; clip to canvas; two WriteableBitmaps per layer).
+    `PreviewView` hosts it (real canvas proportions, no fixed 960 × 540). Visually checked offscreen
+    (scratch harness, not in the repo): transforms, opacity, crop, text, placeholder, clipping,
+    vertical canvas.
+  - 7d: Inspector Transform (Position X/Y, Scale %, Rotation, Opacity %) and Crop (L/T/R/B %, not for
+    text), per-field edits with merge, sync guard, rejection.
+  - UI compatibility path removed (view-model `CurrentFrame` / `PictureKind` / `PlaceholderText` /
+    `IsPictureCurrent`, the view's bitmap copy); `PlaybackFrame.Picture` stays in Core (test oracle).
+  - Tests: UI `PreviewLayersTests` (5), `CompositionDrawPlanTests` (21), `InspectorVisualTests` (7:
+    kinds, exact values per field, merged steps + undo/redo refresh without edits, 1/3-precision
+    no-echo, crop rejection, locked track, and opacity/scale/rotation edits while playing — same
+    VideoPipeline and seek generation, no buffering, lower layer Pending → Frame, reader closed
+    again); `PlaybackUiIntegrationTests` / `InspectorAudioTests` moved to the layers.
+    Mutations: no polling while a layer is pending → 2 failures (the condition sits in two places;
+    removing one alone is not observable — redundant by design); no visual sync guard → 1.
+  - Performance (scratch measurement): copy/update 0.11–1.31 ms, offscreen render 0.8–13.9 ms per frame
+    for 1–8 layers at 1280 × 720 — no optimization needed.
+  - Full suite 925 green (3 consecutive runs); app starts without errors.
+  - Open: manual visual check by the product owner; whether to remove `PlaybackFrame.Picture` from
+    Core too (≈ 47 assertions of the Phase 5–7 playback tests use it as their oracle).
+- Step 7 manual-check findings (2026-09-24, not checkpointed):
+  - Numeric fields (all 10 Inspector fields) accepted spaces and foreign characters: NumericUpDown
+    parses with `NumberStyles.Any` by default (ru-RU group separator is a space → "9 0" = 90; also
+    "(5)", "5-", "1e2", currency). Fixed in one place: `UI/Common/NumericInput.ParsingStyle`
+    (leading sign + decimal point only), applied to every NumericUpDown by a style in
+    `InspectorView`. Invalid text keeps the last value (model untouched) and the field shows it
+    again on blur. Found while checking: an emptied field made the value null, the `decimal`
+    binding failed and the Inspector showed an InvalidCastException text (pre-existing since
+    Step 4 for Volume). The 10 view-model fields are now `decimal?`: null is never an edit; on blur
+    the view calls `InspectorViewModel.ShowModelValues()` (the existing `SyncFromModel`).
+    Known, unchanged: fields commit per keystroke (existing behaviour), so a valid prefix typed
+    before an invalid character ("9" of "9 0") is applied; the rest is rejected.
+  - Clip edge resize not updating the timeline width: **not reproduced**. VM geometry is correct
+    (drag preview and committed Left/Width, start and end edge, after property edits, undo/redo),
+    and in the running app nine scenarios resized correctly (end/start edge, after Inspector spinner
+    and typed edits with focus kept, two tracks, zoom Fit, during playback, undo). No timeline code
+    changed since Phase 7 Step 1. Needs exact reproduction steps from the product owner.
+  - Tests: UI `NumericInputTests` (25 incl. theory cases: plain numbers ru/en, 16 rejected inputs,
+    the old default documented, emptied field → no edit + restore on blur), `TimelineTrimLayoutTests`
+    (4). Mutations: `ParsingStyle = Any` → 11 failures; no relayout on TimelineChanged → 4.
+  - Full suite 954 green (3 consecutive runs); app started, all 10 fields checked in the running
+    app (UI Automation read-back): empty/"abc"/" 50" → model value, "9 0" → 9, "-4 5" → −4,
+    "1e2" → 1, "5-" → 5, "1 000" → 1, "-12,5" and "150" accepted.
 
 ### Phase 6 — Project persistence (complete)
 

@@ -24,7 +24,7 @@ public enum InspectorSelectionKind
 /// adds real technical metadata (Duration/Resolution/Codec/etc.), populated only
 /// once analysis actually completes — never fake values. Phase 4 adds timeline clip
 /// selection: read-only clip timing as non-drop-frame timecode. Phase 7 makes clip
-/// properties editable (audio first; Transform is still hidden scaffolding).
+/// properties editable: audio (volume, mute), transform, opacity and crop.
 /// <para>
 /// Editing: the fields show the model (<see cref="ShowClip"/>, called again after every timeline
 /// change, undo and redo included). A value the user changes is sent to
@@ -92,13 +92,13 @@ public sealed partial class InspectorViewModel : ViewModelBase
     [ObservableProperty] private bool _hasAudioProperties;
 
     /// <summary>Volume in percent (0–200, linear). Independent of <see cref="IsMuted"/>.</summary>
-    [ObservableProperty] private decimal _volumePercent = 100;
+    [ObservableProperty] private decimal? _volumePercent = 100;
 
     [ObservableProperty] private bool _isMuted;
 
-    partial void OnVolumePercentChanged(decimal value)
+    partial void OnVolumePercentChanged(decimal? value)
     {
-        if (!_syncing) EditAudio(a => a with { Volume = (double)(value / 100m) });
+        if (!_syncing && value is { } volume) EditAudio(a => a with { Volume = (double)(volume / 100m) });
     }
 
     partial void OnIsMutedChanged(bool value)
@@ -118,12 +118,74 @@ public sealed partial class InspectorViewModel : ViewModelBase
         }
     }
 
-    // Transform scaffold (Phase 7 — hidden in the view until editable).
-    [ObservableProperty] private decimal _positionX;
-    [ObservableProperty] private decimal _positionY;
-    [ObservableProperty] private decimal _scale = 1.0m;
-    [ObservableProperty] private decimal _rotation;
-    [ObservableProperty] private decimal _opacity = 1.0m;
+    // --- Transform, opacity, crop (Phase 7): video, image and text clips -----------
+    // Values are shown in UI units (canvas pixels, degrees, percent) and sent to
+    // SetClipProperties one field at a time, so consecutive changes of one field merge into
+    // one undo step (D017). The rest of the group is taken from the model at that moment.
+    // A numeric field (volume included) is null while it is empty: never an edit; it shows the
+    // model again when it loses focus (ShowModelValues). Text rules: NumericInput.
+
+    [ObservableProperty] private bool _hasVisualProperties;
+
+    /// <summary>Crop applies to pictures only (video, image), not to text.</summary>
+    [ObservableProperty] private bool _hasCrop;
+
+    /// <summary>Centre offset from the canvas centre, canvas pixels, +X right (D018).</summary>
+    [ObservableProperty] private decimal? _positionX;
+
+    /// <summary>Centre offset from the canvas centre, canvas pixels, +Y down (D018).</summary>
+    [ObservableProperty] private decimal? _positionY;
+
+    /// <summary>Uniform scale after fitting, in percent (100 = fitted).</summary>
+    [ObservableProperty] private decimal? _scalePercent = 100;
+
+    /// <summary>Degrees, clockwise.</summary>
+    [ObservableProperty] private decimal? _rotation;
+
+    [ObservableProperty] private decimal? _opacityPercent = 100;
+
+    [ObservableProperty] private decimal? _cropLeftPercent;
+    [ObservableProperty] private decimal? _cropTopPercent;
+    [ObservableProperty] private decimal? _cropRightPercent;
+    [ObservableProperty] private decimal? _cropBottomPercent;
+
+    // Input limits for the view (ClipPropertyLimits in UI units).
+    public decimal MaxPosition => (decimal)ClipPropertyLimits.MaxPositionMagnitude;
+    public decimal MinPosition => -(decimal)ClipPropertyLimits.MaxPositionMagnitude;
+    public decimal MinScalePercent => (decimal)ClipPropertyLimits.MinScale * 100;
+    public decimal MaxScalePercent => (decimal)ClipPropertyLimits.MaxScale * 100;
+    public decimal MinRotation => (decimal)ClipPropertyLimits.MinRotationDegrees;
+    public decimal MaxRotation => (decimal)ClipPropertyLimits.MaxRotationDegrees;
+    public decimal MinOpacityPercent => (decimal)ClipPropertyLimits.MinOpacity * 100;
+    public decimal MaxOpacityPercent => (decimal)ClipPropertyLimits.MaxOpacity * 100;
+
+    /// <summary>Each crop edge is below 100 %; opposite edges together must stay below 100 %
+    /// too — that is checked by the edit service, which rejects the change and the field shows the
+    /// model value again.</summary>
+    public decimal MaxCropPercent => 99.9m;
+    public decimal MinCropPercent => 0;
+
+    partial void OnPositionXChanged(decimal? value) => EditVisual(value, (v, x) => v with { PositionX = (double)x });
+    partial void OnPositionYChanged(decimal? value) => EditVisual(value, (v, x) => v with { PositionY = (double)x });
+    partial void OnScalePercentChanged(decimal? value) => EditVisual(value, (v, x) => v with { Scale = (double)(x / 100m) });
+    partial void OnRotationChanged(decimal? value) => EditVisual(value, (v, x) => v with { RotationDegrees = (double)x });
+    partial void OnOpacityPercentChanged(decimal? value) => EditVisual(value, (v, x) => v with { Opacity = (double)(x / 100m) });
+    partial void OnCropLeftPercentChanged(decimal? value) => EditVisual(value, (v, x) => v with { Crop = v.Crop with { Left = (double)(x / 100m) } });
+    partial void OnCropTopPercentChanged(decimal? value) => EditVisual(value, (v, x) => v with { Crop = v.Crop with { Top = (double)(x / 100m) } });
+    partial void OnCropRightPercentChanged(decimal? value) => EditVisual(value, (v, x) => v with { Crop = v.Crop with { Right = (double)(x / 100m) } });
+    partial void OnCropBottomPercentChanged(decimal? value) => EditVisual(value, (v, x) => v with { Crop = v.Crop with { Bottom = (double)(x / 100m) } });
+
+    private void EditVisual(decimal? value, Func<VisualProperties, decimal, VisualProperties> change)
+    {
+        if (_syncing || value is not { } x || _clip is null || VisualProperties.Of(_clip) is not { } current) return;
+
+        var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Visual = change(current, x) });
+        if (!result.Success)
+        {
+            _status.Report(result.Message ?? "The clip could not be changed.");
+            SyncFromModel(); // show what the clip really has
+        }
+    }
 
     /// <summary>Shows the primary selected timeline clip. Called by MainWindowViewModel
     /// on TimelineViewModel.SelectionChanged — which also fires after every timeline
@@ -134,6 +196,8 @@ public sealed partial class InspectorViewModel : ViewModelBase
         _clip = clip;
         // A video file without an audio stream has nothing to mix; unknown metadata still shows it.
         HasAudioProperties = clip is AudioClip || (clip is VideoClip && selection.Asset?.Metadata is not { AudioCodec: null });
+        HasVisualProperties = VisualProperties.Of(clip) is not null;
+        HasCrop = clip is VideoClip or ImageClip;
         SyncFromModel();
 
         ClipName = selection.Name;
@@ -210,6 +274,18 @@ public sealed partial class InspectorViewModel : ViewModelBase
                 VolumePercent = (decimal)audio.Volume * 100m;
                 IsMuted = audio.IsMuted;
             }
+            if (VisualProperties.Of(_clip) is { } visual)
+            {
+                PositionX = (decimal)visual.PositionX;
+                PositionY = (decimal)visual.PositionY;
+                ScalePercent = (decimal)visual.Scale * 100m;
+                Rotation = (decimal)visual.RotationDegrees;
+                OpacityPercent = (decimal)visual.Opacity * 100m;
+                CropLeftPercent = (decimal)visual.Crop.Left * 100m;
+                CropTopPercent = (decimal)visual.Crop.Top * 100m;
+                CropRightPercent = (decimal)visual.Crop.Right * 100m;
+                CropBottomPercent = (decimal)visual.Crop.Bottom * 100m;
+            }
         }
         finally
         {
@@ -217,10 +293,16 @@ public sealed partial class InspectorViewModel : ViewModelBase
         }
     }
 
+    /// <summary>Shows the model's values in the fields again. Called when a numeric field loses
+    /// focus empty: an empty field is null here, which is never an edit (NumericInput).</summary>
+    public void ShowModelValues() => SyncFromModel();
+
     private void ForgetClip()
     {
         _clip = null;
         HasAudioProperties = false;
+        HasVisualProperties = false;
+        HasCrop = false;
     }
 
     private void BuildTechnicalRows(MediaKind kind, MediaMetadata m)

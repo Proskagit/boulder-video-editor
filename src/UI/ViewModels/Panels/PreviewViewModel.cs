@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.UI.Common;
@@ -44,17 +45,19 @@ public sealed partial class PreviewViewModel : ViewModelBase
 
     [ObservableProperty] private bool _isBuffering;
 
-    /// <summary>False while the decoder is behind and the previous picture is still shown (D012).</summary>
-    [ObservableProperty] private bool _isPictureCurrent = true;
+    /// <summary>
+    /// The composition to draw (D018/D019): visible layers bottom to top, each with its state.
+    /// While a seek or a timeline change is buffering, the previous layers stay, so seeking never
+    /// flashes an empty canvas.
+    /// </summary>
+    [ObservableProperty] private ImmutableArray<LayerPicture> _layers = ImmutableArray<LayerPicture>.Empty;
 
-    /// <summary>The decoded frame to show, or null (black / placeholder / nothing decoded yet).</summary>
-    [ObservableProperty] private DecodedFrame? _currentFrame;
+    /// <summary>The project canvas the layers are laid out on (composition coordinates).</summary>
+    [ObservableProperty] private FrameSize _canvas;
 
-    /// <summary>Text shown instead of a frame for Offline / Unsupported / DecodeError; null otherwise.</summary>
-    [ObservableProperty] private string? _placeholderText;
-
-    /// <summary>Kind of the picture on screen (Black while nothing has been decoded yet).</summary>
-    [ObservableProperty] private PictureKind _pictureKind = PictureKind.Black;
+    /// <summary>False while any layer is still pending or late (D012); the preview keeps polling
+    /// until every layer has its picture (e.g. a layer uncovered by an opacity change while paused).</summary>
+    [ObservableProperty] private bool _areLayersCurrent = true;
 
     public string PlayPauseLabel => IsPlaying ? "Pause" : "Play";
 
@@ -76,6 +79,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
         _projectService.TimelineChanged += (_, _) => RebuildSnapshot();
         _projectService.MediaAssetsChanged += (_, _) => OnMediaAssetsChanged();
         _projectService.ProjectChanged += (_, _) => OnProjectChanged();
+        Canvas = ProjectCanvas();
         RebuildSnapshot();
     }
 
@@ -99,15 +103,13 @@ public sealed partial class PreviewViewModel : ViewModelBase
     /// </summary>
     public void Tick()
     {
-        if (!_needsTick && !IsPlaying && !IsBuffering && IsPictureCurrent)
+        if (!_needsTick && !IsPlaying && !IsBuffering && AreLayersCurrent)
             return;
 
         var frame = _playback.Update();
         IsPlaying = frame.State == PlaybackState.Playing;
         IsBuffering = frame.IsBuffering;
-        IsPictureCurrent = frame.IsPictureCurrent;
-        if (frame.Picture is { } picture)
-            Show(picture);
+        ShowLayers(frame);
 
         if (frame.TimelineFrame != _lastReportedFrame)
         {
@@ -127,21 +129,27 @@ public sealed partial class PreviewViewModel : ViewModelBase
             _status.Report("Playing without sound: no audio output is available.");
         }
 
-        if (!IsPlaying && !IsBuffering && IsPictureCurrent)
+        if (!IsPlaying && !IsBuffering && AreLayersCurrent)
             _needsTick = false;
     }
 
-    private void Show(PreviewPicture picture)
+    private void ShowLayers(PlaybackFrame frame)
     {
-        PictureKind = picture.Kind;
-        CurrentFrame = picture.Kind == PictureKind.Frame ? picture.Frame : null;
-        PlaceholderText = picture.Kind switch
+        if (frame.Canvas.IsValid && frame.Canvas != Canvas)
+            Canvas = frame.Canvas;
+        if (frame.IsBuffering)
         {
-            PictureKind.Offline => "Media offline",
-            PictureKind.Unsupported => "Unsupported clip",
-            PictureKind.DecodeError => "Cannot decode media",
-            _ => null
-        };
+            AreLayersCurrent = false;
+            return; // keep the previous composition until the new position is decoded
+        }
+        Layers = frame.Layers;
+        AreLayersCurrent = frame.Layers.All(l => l.IsCurrent && l.State != LayerPictureState.Pending);
+    }
+
+    private FrameSize ProjectCanvas()
+    {
+        var settings = _projectService.Current.Settings;
+        return new FrameSize(settings.FrameWidth, settings.FrameHeight);
     }
 
     private void RebuildSnapshot()
@@ -163,6 +171,8 @@ public sealed partial class PreviewViewModel : ViewModelBase
 
     private void OnProjectChanged()
     {
+        Layers = ImmutableArray<LayerPicture>.Empty; // the old project's layers must not survive
+        Canvas = ProjectCanvas();
         _playback.Pause();
         RebuildSnapshot();
         Seek(_projectService.Current.Timeline.PlayheadPosition);

@@ -1,27 +1,18 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:rendering="using:AiVideoEditor.UI.Rendering"
              x:Class="AiVideoEditor.UI.Views.Panels.PreviewView">
 
   <Grid RowDefinitions="*,Auto" Background="#1E1E1E">
 
-    <!-- Video canvas, kept at a 16:9 box via a fixed-ratio Viewbox. Frames are letterboxed
-         inside it; the image is filled from the view model's DecodedFrame in code-behind. -->
-    <Border Grid.Row="0" Margin="16">
-      <Viewbox Stretch="Uniform">
-        <Border Width="960" Height="540" Background="#000000" BorderBrush="#3A3A3A" BorderThickness="1">
-          <Grid>
-            <Image x:Name="FrameImage" Stretch="Uniform"/>
-            <TextBlock Text="{Binding PlaceholderText}"
-                       IsVisible="{Binding PlaceholderText, Converter={x:Static ObjectConverters.IsNotNull}}"
-                       Foreground="#9A9A9A" FontSize="20"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            <TextBlock Text="Buffering…" IsVisible="{Binding IsBuffering}"
-                       Foreground="#7A7A7A" FontSize="12" Margin="8"
-                       HorizontalAlignment="Right" VerticalAlignment="Top"/>
-          </Grid>
-        </Border>
-      </Viewbox>
-    </Border>
+    <!-- Composition (Phase 7 Step 7): the project canvas with its real proportions, letterboxed
+         in the available space; every layer is drawn by CompositionView (D018/D019). -->
+    <Grid Grid.Row="0" Margin="16">
+      <rendering:CompositionView Layers="{Binding Layers}" Canvas="{Binding Canvas}"/>
+      <TextBlock Text="Buffering…" IsVisible="{Binding IsBuffering}"
+                 Foreground="#7A7A7A" FontSize="12" Margin="8"
+                 HorizontalAlignment="Right" VerticalAlignment="Top"/>
+    </Grid>
 
     <!-- Transport controls -->
     <Border Grid.Row="1" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,1,0,0" Padding="8">

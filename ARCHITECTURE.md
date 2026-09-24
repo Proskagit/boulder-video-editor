@@ -59,8 +59,9 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   then executes one `IUndoableCommand` wrapped in `NotifyingCommand`, which calls
   `IProjectService.NotifyTimelineChanged()` on Execute and Undo (raises `TimelineChanged`;
   dirty state follows the undo save point, D015). Rules: D008.
-- Inspector (Phase 7): audio section (volume 0–200 %, mute) for clips with sound; edits go to
-  `SetClipProperties`, the fields are refreshed from the model under a sync guard (no echo edits).
+- Inspector (Phase 7): audio (volume 0–200 %, mute), transform (position, scale %, rotation,
+  opacity %) and crop (per edge %); edits go to `SetClipProperties` one field at a time, the fields
+  are refreshed from the model under a sync guard (no echo edits).
 - Clip properties (Phase 7, D017): `SetClipProperties` with typed `VisualProperties` /
   `AudioProperties` / `TextProperties` (Core/Entities/ClipProperties.cs, limits in
   `ClipPropertyLimits`), validated by `ClipPropertyValidator` (Core; also used on load), applied by
@@ -94,8 +95,10 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   `SpanReader` for the visible clip plus the next one within the prefetch window; each reader
   decodes in the background into a bounded buffer and returns a frame only when certain.
   The UI polls `Update()` each tick; nothing is pushed to the UI thread.
-- UI (D011): `PreviewView`'s `DispatcherTimer` → `PreviewViewModel.Tick()` → `Update()`;
-  the picture goes to a `WriteableBitmap` in the view. Playhead ↔ playback wiring lives in
+- UI (D011, D020): `PreviewView`'s `DispatcherTimer` → `PreviewViewModel.Tick()` → `Update()`;
+  the layers go to `CompositionView` (UI/Rendering), which draws a `CompositionDrawPlan`
+  (canvas → control viewport, per-layer transform/opacity/crop, text, placeholders) with
+  `DrawingContext`, one pair of `WriteableBitmap`s per layer. Playhead ↔ playback wiring lives in
   `MainWindowViewModel`: `TimelineViewModel.SeekRequested` (user moves only) → `SeekAsync`;
   `PreviewViewModel.PlaybackPositionChanged` → `TimelineViewModel.ShowPlaybackPosition` (no
   seek). Snapshots are rebuilt by `PreviewViewModel` on project/timeline/media events.
