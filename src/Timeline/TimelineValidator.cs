@@ -10,8 +10,10 @@ namespace AiVideoEditor.Timeline;
 /// <item>clip kind matches the track type;</item>
 /// <item>start ≥ 0, both edges exactly on the frame grid, at least one frame long;</item>
 /// <item>no two clips overlap (touching edges is fine);</item>
-/// <item>media-backed clips at speed 1.0: SourceIn ≥ 0, SourceOut = SourceIn + Duration,
-/// and for video/audio SourceOut ≤ the source duration;</item>
+/// <item>media-backed clips: SourceIn ≥ 0, the duration is the whole number of frames the source
+/// range allows at the clip's speed (<see cref="SpeedTiming"/>; at 1× the edits keep the exact
+/// SourceOut = SourceIn + Duration, D014/D022), images at 1× only, and for video/audio
+/// SourceOut ≤ the source duration;</item>
 /// <item>media-backed clips reference an existing asset.</item>
 /// </list>
 /// </summary>
@@ -44,15 +46,14 @@ public static class TimelineValidator
                 if (findAsset(media.MediaAssetId) is not { } asset)
                     return "A clip refers to media that is not in the project.";
 
-                // Speed ≠ 1.0 can't be created in this phase; its source mapping isn't
-                // validated here, and edits of such clips are rejected by the service.
-                if (media.Speed != 1.0)
-                    continue;
+                if (clip is ImageClip && !state.Speed.IsNormal)
+                    return "Images have no speed.";
 
                 if (state.SourceIn < MediaTime.Zero)
                     return "A clip can't start before the beginning of its source media.";
 
-                if (state.SourceOut != state.SourceIn + state.Duration)
+                var frames = state.End.ToFrameFloor(rate) - state.Start.ToFrameFloor(rate);
+                if (!SpeedTiming.Fits(frames, state.SourceOut - state.SourceIn, state.Speed, rate))
                     return "Clip source range doesn't match its duration.";
 
                 if (clip is VideoClip or AudioClip)

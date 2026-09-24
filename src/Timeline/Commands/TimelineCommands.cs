@@ -54,9 +54,9 @@ public sealed class UpdateClipsCommand(string description, IReadOnlyList<ClipCha
 
 /// <summary>Adds an already-constructed clip (its Id is fixed at construction, so
 /// Redo recreates the very same clip and selections/references stay valid).</summary>
-public sealed class InsertClipCommand(Track track, Clip clip) : IUndoableCommand
+public sealed class InsertClipCommand(Track track, Clip clip, string description = "Add Clip") : IUndoableCommand
 {
-    public string Description => "Add Clip";
+    public string Description { get; } = description;
     public Track Track { get; } = track;
     public Clip Clip { get; } = clip;
 
@@ -110,12 +110,103 @@ public sealed class AddTrackCommand(Sequence sequence, Track track) : IUndoableC
     }
 }
 
+/// <summary>
+/// Sets a clip's non-timing properties from one absolute snapshot to another. Execute writes
+/// <see cref="After"/>, Undo writes <see cref="Before"/> — the captured values themselves, never
+/// recomputed. Consecutive changes of the same <see cref="Fields"/> of the same clip merge into
+/// one step whose Undo still restores the state before the first of them.
+/// </summary>
+public sealed class SetClipPropertiesCommand(Clip clip, ClipPropertyValues before, ClipPropertyValues after, ClipPropertyFields fields)
+    : IMergeableCommand
+{
+    public Clip Clip { get; } = clip;
+    public ClipPropertyValues Before { get; } = before;
+    public ClipPropertyValues After { get; } = after;
+
+    /// <summary>The properties this step changes (fixed by its first edit when merged).</summary>
+    public ClipPropertyFields Fields { get; } = fields;
+
+    public string Description => Describe(Fields);
+
+    public void Execute() => After.ApplyTo(Clip);
+    public void Undo() => Before.ApplyTo(Clip);
+
+    public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
+    {
+        merged = null;
+        if (next is not SetClipPropertiesCommand n || n.Clip != Clip || n.Fields != Fields || n.Before != After)
+            return false;
+
+        if (n.After != Before)
+            merged = new SetClipPropertiesCommand(Clip, Before, n.After, Fields);
+        return true; // merged stays null when the second edit restored the first one's "before"
+    }
+
+    private static string Describe(ClipPropertyFields fields) => fields switch
+    {
+        ClipPropertyFields.PositionX or ClipPropertyFields.PositionY => "Change Position",
+        ClipPropertyFields.Scale => "Change Scale",
+        ClipPropertyFields.Rotation => "Change Rotation",
+        ClipPropertyFields.Opacity => "Change Opacity",
+        _ when (fields & ~ClipPropertyFields.Crop) == 0 => "Change Crop",
+        ClipPropertyFields.Volume => "Change Volume",
+        ClipPropertyFields.Mute => "Mute Clip",
+        ClipPropertyFields.Text => "Edit Text",
+        ClipPropertyFields.FontFamily => "Change Font",
+        ClipPropertyFields.FontSize => "Change Font Size",
+        ClipPropertyFields.Color => "Change Text Color",
+        ClipPropertyFields.Alignment => "Change Text Alignment",
+        _ => "Change Clip Properties"
+    };
+}
+
 /// <summary>Top-level wrapper: runs the inner command and then raises one
-/// timeline-changed notification, for Execute, Undo and Redo alike.</summary>
-public sealed class NotifyingCommand(IUndoableCommand inner, Action notify) : IUndoableCommand
+/// timeline-changed notification, for Execute, Undo and Redo alike. Mergeable when the inner
+/// command is: the merged step is wrapped again with the same notification.</summary>
+/// <summary>
+/// Changes a clip's speed together with the timing it implies (D022): absolute before/after
+/// snapshots, the clip stays where it is on its track (same start). Consecutive speed changes of the
+/// same clip merge into one Undo step (like property edits, D017); a change back to where the step
+/// started removes it.
+/// </summary>
+public sealed class SetClipSpeedCommand(Clip clip, ClipState before, ClipState after) : IMergeableCommand
+{
+    public Clip Clip { get; } = clip;
+    public ClipState Before { get; } = before;
+    public ClipState After { get; } = after;
+
+    public string Description => "Change Speed";
+
+    public void Execute() => After.ApplyTo(Clip);
+    public void Undo() => Before.ApplyTo(Clip);
+
+    public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
+    {
+        merged = null;
+        if (next is not SetClipSpeedCommand n || n.Clip != Clip || n.Before != After)
+            return false;
+
+        if (n.After != Before)
+            merged = new SetClipSpeedCommand(Clip, Before, n.After);
+        return true;
+    }
+}
+
+public sealed class NotifyingCommand(IUndoableCommand inner, Action notify) : IMergeableCommand
 {
     public string Description => Inner.Description;
     public IUndoableCommand Inner { get; } = inner;
+
+    public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
+    {
+        merged = null;
+        if (Inner is not IMergeableCommand mergeable || next is not NotifyingCommand n
+            || !mergeable.TryMerge(n.Inner, out var inner))
+            return false;
+
+        merged = inner is null ? null : new NotifyingCommand(inner, notify);
+        return true;
+    }
 
     public void Execute()
     {

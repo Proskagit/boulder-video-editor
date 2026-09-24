@@ -506,6 +506,45 @@ public sealed class ProjectServiceTests : IDisposable
         Assert.Same(current, _service.Current);
     }
 
+    [Theory]
+    [InlineData("opacity")]
+    [InlineData("font size")]
+    [InlineData("color")]
+    public async Task Failed_open_of_a_project_with_an_invalid_clip_property_changes_nothing(string property)
+    {
+        var folder = WriteProjectFolder("InvalidProperty", p =>
+        {
+            var text = new TextClip { Text = "Title", Duration = MediaTime.FromFrame(10, FrameRate.Default) };
+            switch (property)
+            {
+                case "opacity": text.Opacity = 1.5; break;
+                case "font size": text.FontSize = 0; break;
+                default: text.ColorHex = "white"; break;
+            }
+            p.Timeline.VideoTracks[0].Clips.Add(text);
+        });
+        var savedFolder = _temp.Combine("Current");
+        await _service.SaveAsAsync(savedFolder);
+        Edit("a");
+        Edit("b");
+        _undo.Undo();
+        var current = _service.Current;
+        _events.Clear();
+
+        var ex = await Assert.ThrowsAsync<ProjectFileException>(() => _service.OpenAsync(folder));
+
+        Assert.Contains("invalid property", ex.Message);
+        Assert.Same(current, _service.Current);
+        Assert.Equal(savedFolder, current.ProjectFolderPath);
+        Assert.Equal("a", current.Timeline.Name);
+        Assert.True(Dirty);
+        Assert.True(_undo.CanUndo);
+        Assert.True(_undo.CanRedo);
+        Assert.Empty(_events);
+        _undo.Undo();
+        Assert.False(Dirty); // the save point from before the failed open is still there
+    }
+
     [Fact]
     public async Task Cancelled_open_changes_nothing()
     {

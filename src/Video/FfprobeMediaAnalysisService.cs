@@ -45,7 +45,7 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         string stdout;
         try
         {
-            stdout = await RunFfprobeAsync(ffprobePath, filePath, ct);
+            stdout = await RunFfprobeAsync(ffprobePath, new[] { "-show_format", "-show_streams" }, filePath, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -76,10 +76,88 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         if (parsed?.Streams is null || parsed.Streams.Count == 0)
             return MediaAnalysisResult.Failure(MediaAnalysisOutcome.InvalidMedia, "This file doesn't appear to contain readable media streams.");
 
-        return MediaAnalysisResult.Success(BuildMetadata(parsed));
+        var metadata = BuildMetadata(parsed);
+        try
+        {
+            await ApplyOrientationAsync(metadata, parsed.Streams.FirstOrDefault(s => s.CodecType == "video"), ffprobePath, filePath, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.Cancelled, "Analysis was cancelled.");
+        }
+        return MediaAnalysisResult.Success(metadata);
     }
 
-    private static async Task<string> RunFfprobeAsync(string ffprobePath, string filePath, CancellationToken ct)
+    /// <summary>
+    /// Display orientation and display size (the frames the decoder, with ffmpeg's automatic
+    /// rotation, really delivers). Priority: the stream's display matrix (or a legacy "rotate" tag),
+    /// then the first decoded frame's display matrix — where images carry their EXIF orientation —,
+    /// otherwise 0°. A failed frame probe never fails the analysis.
+    /// </summary>
+    private async Task ApplyOrientationAsync(MediaMetadata metadata, FfprobeStream? videoStream, string ffprobePath, string filePath,
+        CancellationToken ct)
+    {
+        if (videoStream is null || metadata.Width is not > 0 || metadata.Height is not > 0)
+            return;
+
+        var hint = StreamHint(videoStream) ?? await FirstFrameHintAsync(ffprobePath, filePath, ct);
+        var result = DisplayOrientation.Resolve(metadata.Width.Value, metadata.Height.Value, hint);
+        metadata.DisplayRotation = result.Rotation;
+        metadata.DisplayWidth = result.DisplayWidth;
+        metadata.DisplayHeight = result.DisplayHeight;
+
+        if (result.Unsupported is { } reason)
+        {
+            _logger.LogWarning("'{Path}': {Reason}; orientation is not supported, frames are shown as the decoder delivers them ({Width}×{Height}).",
+                filePath, reason, result.DisplayWidth, result.DisplayHeight);
+        }
+    }
+
+    private static OrientationHint? StreamHint(FfprobeStream stream)
+    {
+        if (DisplayMatrixHint(stream.SideDataList) is { } fromMatrix)
+            return fromMatrix;
+
+        // Legacy containers: a "rotate" tag in clockwise degrees (the matrix convention is counter-clockwise).
+        if (stream.Tags is { } tags && tags.TryGetValue("rotate", out var rotate) &&
+            double.TryParse(rotate, NumberStyles.Float, CultureInfo.InvariantCulture, out var clockwise))
+            return new OrientationHint(-clockwise, IsMirrored: false);
+
+        return null;
+    }
+
+    private static OrientationHint? DisplayMatrixHint(IEnumerable<FfprobeSideData>? sideData)
+    {
+        var matrix = sideData?.FirstOrDefault(d =>
+            d.SideDataType is { } type && type.Replace(" ", "").Contains("displaymatrix", StringComparison.OrdinalIgnoreCase));
+        if (matrix is null) return null;
+        return new OrientationHint(matrix.Rotation ?? 0, DisplayOrientation.IsMirrored(matrix.DisplayMatrix) ?? false);
+    }
+
+    private async Task<OrientationHint?> FirstFrameHintAsync(string ffprobePath, string filePath, CancellationToken ct)
+    {
+        try
+        {
+            var stdout = await RunFfprobeAsync(ffprobePath, new[]
+            {
+                "-select_streams", "v:0", "-read_intervals", "%+#1", "-show_frames",
+                "-show_entries", "frame=width,height:frame_side_data=side_data_type,rotation,displaymatrix"
+            }, filePath, ct);
+            var frames = JsonSerializer.Deserialize<FfprobeFramesOutput>(stdout);
+            return DisplayMatrixHint(frames?.Frames?.FirstOrDefault()?.SideDataList);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "First-frame orientation probe failed for '{Path}'; assuming 0°.", filePath);
+            return null;
+        }
+    }
+
+    private static async Task<string> RunFfprobeAsync(string ffprobePath, IReadOnlyList<string> arguments, string filePath, CancellationToken ct)
     {
         using var process = new Process
         {
@@ -97,8 +175,8 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         process.StartInfo.ArgumentList.Add("quiet");
         process.StartInfo.ArgumentList.Add("-print_format");
         process.StartInfo.ArgumentList.Add("json");
-        process.StartInfo.ArgumentList.Add("-show_format");
-        process.StartInfo.ArgumentList.Add("-show_streams");
+        foreach (var argument in arguments)
+            process.StartInfo.ArgumentList.Add(argument);
         process.StartInfo.ArgumentList.Add(filePath);
 
         using var timeoutCts = new CancellationTokenSource(ProcessTimeout);

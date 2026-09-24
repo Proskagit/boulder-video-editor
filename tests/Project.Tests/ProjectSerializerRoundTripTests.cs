@@ -114,7 +114,7 @@ public class ProjectSerializerRoundTripTests
         Assert.Equal(origVideo.Duration.Ticks, video.Duration.Ticks);
         Assert.Equal(origVideo.SourceIn.Ticks, video.SourceIn.Ticks);
         Assert.Equal(origVideo.SourceOut.Ticks, video.SourceOut.Ticks);
-        Assert.Equal(1.0, video.Speed);
+        Assert.Equal(ClipSpeed.Normal, video.Speed);
         Assert.Equal(0.3333333333333333, video.Volume);
         Assert.Equal(new CropRect(0.1, 0.2, 0.3, 0.05), video.Crop);
         Assert.Equal(12.75, video.RotationDegrees);
@@ -190,7 +190,7 @@ public class ProjectSerializerRoundTripTests
         var root = JsonNode.Parse(ProjectSerializer.Serialize(Sample(), Folder))!;
 
         Assert.Equal(ProjectSerializer.FormatId, root["format"]!.GetValue<string>());
-        Assert.Equal(1, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(2, root["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]

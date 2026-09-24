@@ -74,7 +74,7 @@ public class RecoverySerializerTests
     public void Newer_recovery_format_is_rejected()
     {
         var json = ProjectSerializer.SerializeRecovery(ProjectTestData.Build(Folder), Info)
-            .Replace("\"formatVersion\": 1,", "\"formatVersion\": 99,", StringComparison.Ordinal);
+            .Replace($"\"formatVersion\": {ProjectSerializer.CurrentFormatVersion},", "\"formatVersion\": 99,", StringComparison.Ordinal);
 
         var ex = Assert.Throws<ProjectFileException>(() => ProjectSerializer.DeserializeRecovery(json, AllExist));
 

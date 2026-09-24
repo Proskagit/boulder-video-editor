@@ -87,7 +87,7 @@ internal sealed class TimelineFixture
             foreach (var clip in track.Clips)
             {
                 var s = ClipState.Capture(clip);
-                sb.Append($"{clip.Id}:{clip.GetType().Name}:{s.Start.Ticks},{s.Duration.Ticks},{s.SourceIn.Ticks},{s.SourceOut.Ticks};");
+                sb.Append($"{clip.Id}:{clip.GetType().Name}:{s.Start.Ticks},{s.Duration.Ticks},{s.SourceIn.Ticks},{s.SourceOut.Ticks},{s.Speed};");
             }
             sb.Append('\n');
         }

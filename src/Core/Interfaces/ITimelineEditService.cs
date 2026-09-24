@@ -26,6 +26,12 @@ public interface ITimelineEditService
     /// <see cref="ProjectSettings.IsFrameRateLocked"/>) in the same undo step.</summary>
     TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null);
 
+    /// <summary>Adds a text clip with the default text properties ("Text", Segoe UI 48, white,
+    /// centred) and a 5 s duration on the topmost video track, starting at <paramref name="start"/>
+    /// (snapped to the frame grid). Rejected — nothing changes — when that track is locked, the
+    /// clip would overlap another clip there, or the timeline has no video track. One Undo step.</summary>
+    TimelineEditResult AddTextClip(MediaTime start);
+
     /// <summary>Moves clips by a whole number of frames. With <paramref name="targetTrackId"/>
     /// all clips must currently be on one track and move to the target track.</summary>
     TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null);
@@ -51,6 +57,21 @@ public interface ITimelineEditService
 
     TimelineEditResult AddTrack(TrackType type);
 
+    /// <summary>Sets absolute property values of one clip: every group given in
+    /// <paramref name="change"/> replaces the clip's current values of that group exactly (no
+    /// rounding or recomputation). Rejected when a group doesn't apply to the clip's kind, a value
+    /// is out of range (<see cref="ClipPropertyLimits"/>) or the clip's track is locked. Changing
+    /// nothing is <see cref="TimelineEditResult.NoChange"/>. Consecutive changes of the same
+    /// properties of the same clip are merged into one Undo step.</summary>
+    TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change);
+
+    /// <summary>Changes the speed of a video or audio clip (D022). The start and the source range
+    /// (SourceIn/SourceOut) stay; the duration becomes the whole number of frames the range allows at
+    /// the new speed (<see cref="SpeedTiming.FramesFor"/>). Rejected without changes when the clip
+    /// would be shorter than one frame, overlap the next clip, or its track is locked. Consecutive
+    /// speed changes of the same clip merge into one Undo step.</summary>
+    TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed);
+
     /// <summary>Finds the snap target nearest to any of <paramref name="candidates"/>
     /// within <paramref name="tolerance"/>. Targets: time zero, the playhead and every
     /// clip edge except those of <paramref name="excludedClipIds"/>.</summary>
@@ -61,6 +82,21 @@ public enum ClipEdge
 {
     Start,
     End
+}
+
+/// <summary>New values for <see cref="ITimelineEditService.SetClipProperties"/>. A null group is
+/// left as it is; a given group is applied as a whole (read the current values with
+/// <see cref="VisualProperties.Of"/> etc. and change the fields that should change).</summary>
+public sealed record ClipPropertyChange
+{
+    /// <summary>Video, image and text clips.</summary>
+    public VisualProperties? Visual { get; init; }
+
+    /// <summary>Video and audio clips.</summary>
+    public AudioProperties? Audio { get; init; }
+
+    /// <summary>Text clips.</summary>
+    public TextProperties? Text { get; init; }
 }
 
 /// <summary>Outcome of a timeline edit. <see cref="Message"/> is safe to show in the

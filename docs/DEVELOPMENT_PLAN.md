@@ -25,7 +25,8 @@ and runs cleanly.
 - [x] **Phase 6 — Project persistence.** Open/Save/Save As, project.json,
       autosave, missing-media detection. Save point, crash recovery,
       unsaved-changes prompt. *(branch `feat/phase-6-project-persistence`)*
-- [ ] **Phase 7 — Basic editing.** Speed, volume, opacity, transform, crop, text.
+- [x] **Phase 7 — Basic editing.** Speed, volume, opacity, transform, crop, text.
+      *(branch `feat/phase-7-basic-editing`)*
 - [ ] **Phase 8 — Export.** FFmpeg render pipeline: Timeline → MP4 (H.264/AAC).
 - [ ] **Phase 9 — Quality.** Performance profiling, caching, error handling,
       polish, hotkeys, waveform, thumbnails.

@@ -105,7 +105,7 @@ public sealed class EditPlan
             commands.Add(new UpdateClipsCommand(description, changes));
 
         foreach (var (track, clip) in _inserts)
-            commands.Add(new InsertClipCommand(track, clip));
+            commands.Add(new InsertClipCommand(track, clip, description));
 
         if (commands.Count == 0)
             throw new InvalidOperationException("Cannot build a command from an empty plan.");

@@ -47,6 +47,41 @@ internal sealed class FfprobeStream
 
     [JsonPropertyName("channels")]
     public int? Channels { get; set; }
+
+    /// <summary>Stream side data; a "Display Matrix" entry carries the orientation.</summary>
+    [JsonPropertyName("side_data_list")]
+    public List<FfprobeSideData>? SideDataList { get; set; }
+
+    /// <summary>Stream tags; older files may carry a legacy "rotate" tag (clockwise degrees).</summary>
+    [JsonPropertyName("tags")]
+    public Dictionary<string, string>? Tags { get; set; }
+}
+
+/// <summary>One side-data entry of a stream or frame.</summary>
+internal sealed class FfprobeSideData
+{
+    [JsonPropertyName("side_data_type")]
+    public string? SideDataType { get; set; }
+
+    /// <summary>Counter-clockwise degrees of a display matrix, as ffprobe computes it.</summary>
+    [JsonPropertyName("rotation")]
+    public double? Rotation { get; set; }
+
+    [JsonPropertyName("displaymatrix")]
+    public string? DisplayMatrix { get; set; }
+}
+
+/// <summary>Shape of `ffprobe -show_frames` output (first frame only).</summary>
+internal sealed class FfprobeFramesOutput
+{
+    [JsonPropertyName("frames")]
+    public List<FfprobeFrame>? Frames { get; set; }
+}
+
+internal sealed class FfprobeFrame
+{
+    [JsonPropertyName("side_data_list")]
+    public List<FfprobeSideData>? SideDataList { get; set; }
 }
 
 internal sealed class FfprobeFormat

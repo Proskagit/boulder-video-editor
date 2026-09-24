@@ -6,10 +6,12 @@ namespace AiVideoEditor.Timeline.Playback;
 
 /// <summary>
 /// Decodes one <see cref="AudioSpan"/> in the background into a bounded buffer indexed by
-/// timeline sample. Timeline sample <c>k</c> of the clip plays source sample <c>k + d</c>
-/// (<see cref="AudioTiming.SourceOffset"/>); decoded frames are placed by the decoder's real
-/// first-sample index, frames before the requested start are dropped and a late start is
-/// filled with silence. The mixer (device thread) consumes it through <see cref="MixInto"/>,
+/// timeline sample. At 1× timeline sample <c>k</c> of the clip plays source sample <c>k + d</c>
+/// (<see cref="AudioTiming.SourceOffset"/>); at other speeds the decoder delivers a tempo-changed
+/// stream (one output sample per timeline sample) whose start is placed with
+/// <see cref="AudioTiming.TimelineSampleOfStreamStart"/> (D022). Decoded frames are placed by the
+/// decoder's real first-sample index, frames before the requested start are dropped and a late start
+/// is filled with silence. The mixer (device thread) consumes it through <see cref="MixInto"/>,
 /// which never blocks: missing samples are silence (underrun) and the reader realigns to
 /// whatever the mixer asks for next — time never shifts.
 /// </summary>
@@ -146,16 +148,23 @@ internal sealed class AudioSpanReader : IAsyncDisposable
         var ct = _cts.Token;
         try
         {
-            var sourceTime = new MediaTime(AudioTiming.SampleToTicksFloor(startSample + _sourceOffset));
+            var speed = Span.Speed;
+            var sourceTime = speed.IsNormal
+                ? new MediaTime(AudioTiming.SampleToTicksFloor(startSample + _sourceOffset))
+                : AudioTiming.SourceTimeAt(startSample, Span.TimelineStart, Span.SourceIn, speed);
+            ct.ThrowIfCancellationRequested(); // retired before the task ran: don't start a decoder
             await using var stream = await _decoder.OpenAsync(new AudioDecodeRequest
             {
                 FilePath = _asset.FilePath,
                 StartTime = _asset.StartTime,
-                SourcePosition = sourceTime
+                SourcePosition = sourceTime,
+                Speed = speed
             }, ct);
 
             // Timeline sample of the next decoded frame.
-            var next = stream.FirstSampleIndex - _sourceOffset;
+            var next = speed.IsNormal
+                ? stream.FirstSampleIndex - _sourceOffset
+                : AudioTiming.TimelineSampleOfStreamStart(Span.TimelineStart, Span.SourceIn, speed, stream.FirstSampleIndex);
             var chunk = new float[AudioTiming.Floats(ChunkFrames)];
             while (true)
             {

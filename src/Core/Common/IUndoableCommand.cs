@@ -17,6 +17,25 @@ public interface IUndoableCommand
 }
 
 /// <summary>
+/// A command that can absorb the command executed right after it into one Undo step (e.g.
+/// consecutive changes of the same property of the same clip while a value is being spun or
+/// typed). Merging never mutates either command: it builds a new one, so a history position
+/// handed out before the merge (see <see cref="IUndoRedoService.CurrentPosition"/>) can never
+/// stand for the merged state.
+/// </summary>
+public interface IMergeableCommand : IUndoableCommand
+{
+    /// <summary>
+    /// Called by <see cref="IUndoRedoService"/> after <paramref name="next"/> has executed, when
+    /// this command is on top of the undo stack. Returns false when the two must stay separate
+    /// steps. Otherwise <paramref name="merged"/> is a command whose Execute has the effect of this
+    /// one followed by <paramref name="next"/> and whose Undo restores the state before this one —
+    /// or null when the two cancel out exactly (the step disappears from the history).
+    /// </summary>
+    bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged);
+}
+
+/// <summary>
 /// Maintains the undo/redo stacks and is the single entry point through which
 /// project-mutating commands are applied. Not "reload the whole project" style undo:
 /// each command undoes exactly the change it made.
@@ -28,6 +47,10 @@ public interface IUndoRedoService
 
     event EventHandler? StateChanged;
 
+    /// <summary>Executes <paramref name="command"/> and records it. If the command on top of the
+    /// undo stack is an <see cref="IMergeableCommand"/> that accepts it, the two become one step —
+    /// but never when that top command is the save point or right after an Undo (the redo stack
+    /// is not empty), so the saved state and undo boundaries the user created stay reachable.</summary>
     void Execute(IUndoableCommand command);
 
     void Undo();

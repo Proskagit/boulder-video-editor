@@ -54,12 +54,18 @@ recovery offer (Recover / Discard / Not now); Save / Don't Save / Cancel before 
 Close; window title with `*`; Ctrl+N / O / S / Shift+S. UI manually validated by the product
 owner. Decisions: DECISIONS.md D014–D016. Details and verification: `progress.md`.
 
-Known open question carried forward: whether playhead / zoom / snapping are project state
-(and should make the project dirty) or session state (D015).
+The open question about playhead / zoom / snapping was decided at the start of Phase 7:
+session state (D015).
 
 ## Current
 
-No phase in progress. Next: Phase 7 — Basic editing (not started).
+Phase 7 — Basic editing, branch `feat/phase-7-basic-editing`. **Complete**: Steps 1–9 (last
+checkpoint `48a3f54`), Step 10 closeout (audit, full test runs, integration smoke in the running app);
+manually accepted by the product owner on 2026-09-24. Speed, volume/
+mute, opacity, transform, crop and text clips per clip (no keyframes), multi-layer Preview,
+`project.json` v2 (reads v1). Decisions: DECISIONS.md D017–D022. Carried into Phase 8: the export
+must reproduce D018 exactly and needs font files for text (D021). Known issue (pre-Phase 7, separate
+task): closing the app after a project with media was open hangs the process. Details: `progress.md`.
 
 ## Future phases
 

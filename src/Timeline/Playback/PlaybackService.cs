@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Playback;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,12 @@ namespace AiVideoEditor.Timeline.Playback;
 /// target position, bumps the seek generation and replaces the pipelines; the clock keeps running
 /// while the new pipelines buffer, so decoder latency never shifts the timeline position. A result
 /// is used only while its (snapshot version, seek generation) is still current.
+/// <para>
+/// A snapshot that differs from the current one only in presentation (volume, mute, picture
+/// properties, text) is not a resync:
+/// the video pipeline, its readers, the seek generation and the picture stay; the audio pipeline
+/// keeps its readers and only republishes the gains.
+/// </para>
 /// <para>
 /// Audio: while playing with an available device, the device's played-frames clock is the master
 /// (Stopwatch otherwise, and as fallback if the device fails). Pause and seek stop the device,
@@ -31,7 +38,9 @@ public sealed class PlaybackService : IPlaybackService
     private VideoPipeline? _pipeline;
     private PreviewPicture? _picture;
     private long _seekGeneration;
-    private long _currentSnapshotVersion = long.MinValue;
+    // Snapshot version the current video pipeline was built from (set where pipelines are made).
+    // A mix-only update replaces _snapshot but not the pipeline, so the two may differ.
+    private long _pictureSnapshotVersion = long.MinValue;
     private bool _decoderUnavailable;
     private AudioPipeline? _audio;
     private readonly List<Task> _retiring = new(); // superseded pipelines being disposed
@@ -71,6 +80,20 @@ public sealed class PlaybackService : IPlaybackService
     /// <summary>Open audio readers (tests).</summary>
     internal int AudioReaderCount => _audio?.ReaderCount ?? 0;
 
+    /// <summary>Completes when every pipeline retired so far is disposed — its readers' tasks have
+    /// ended, so none of them can still open a decoder (tests that count decoder opens).</summary>
+    internal Task RetiringSettledAsync() => Task.WhenAll(_retiring.ToArray());
+
+    /// <summary>Open video readers of the current pipeline (tests).</summary>
+    internal int VideoReaderCount => _pipeline?.ReaderCount ?? 0;
+
+    /// <summary>Clips with an open video reader in the current pipeline (tests).</summary>
+    internal IReadOnlyCollection<Guid> VideoReaderClipIds => _pipeline?.ReaderClipIds ?? Array.Empty<Guid>();
+
+    /// <summary>Current pipelines, compared by identity in tests.</summary>
+    internal object? VideoPipelineInstance => _pipeline;
+    internal object? AudioPipelineInstance => _audio;
+
     public event EventHandler? StateChanged;
 
     public void UpdateSnapshot(PlaybackSnapshot snapshot)
@@ -81,8 +104,20 @@ public sealed class PlaybackService : IPlaybackService
             return;
         }
 
+        if (_snapshot is { } previous && _pipeline is not null && snapshot.DiffersOnlyInPresentation(previous))
+        {
+            // Volume/mute or picture properties only: nothing to decode differently. The video
+            // pipeline takes the snapshot over (same seek generation, readers, picture and buffering
+            // state; readers open/close only if the set of visible layers changed); the audio
+            // pipeline keeps its readers and continues at the mixer's write position with the new gains.
+            _snapshot = snapshot;
+            _pipeline.UpdatePresentation(snapshot);
+            Volatile.Write(ref _pictureSnapshotVersion, snapshot.SnapshotVersion);
+            _audio?.UpdateMix(snapshot, _audioRunning ? _mixer.WritePosition : AudioTiming.NearestSample(Position));
+            return;
+        }
+
         _snapshot = snapshot;
-        Volatile.Write(ref _currentSnapshotVersion, snapshot.SnapshotVersion);
 
         // Resync where playback is now; state unchanged. The clock anchor is kept unless the
         // position has to be clamped (shorter timeline): re-anchoring would drop the time that
@@ -161,13 +196,17 @@ public sealed class PlaybackService : IPlaybackService
         var lastFrame = FrameMath.CeilingFrame(snapshot.Duration, snapshot.FrameRate) - 1;
         var pictureFrame = lastFrame >= 0 ? Math.Min(frame, lastFrame) : 0;
 
-        var picture = pipeline.GetPicture(pictureFrame);
+        var result = pipeline.GetFrame(pictureFrame);
         if (pipeline.DecoderUnavailable) _decoderUnavailable = true;
-        var current = picture is not null && IsCurrent(pipeline);
+        var current = result.Picture is not null && IsCurrent(pipeline);
         if (current)
-            _picture = picture;
+            _picture = result.Picture;
 
-        return new PlaybackFrame(position, frame, State, IsBuffering, _picture, current);
+        return new PlaybackFrame(position, frame, State, IsBuffering, _picture, current)
+        {
+            Layers = IsCurrent(pipeline) ? result.Layers : ImmutableArray<LayerPicture>.Empty,
+            Canvas = snapshot.Canvas
+        };
     }
 
     private VideoPipeline Restart(MediaTime position, bool reanchor = true)
@@ -182,6 +221,7 @@ public sealed class PlaybackService : IPlaybackService
         var generation = Interlocked.Increment(ref _seekGeneration);
 
         var old = _pipeline;
+        Volatile.Write(ref _pictureSnapshotVersion, snapshot.SnapshotVersion);
         var startFrame = Math.Max(0, Math.Min(position.ToFrameFloor(snapshot.FrameRate),
             FrameMath.CeilingFrame(snapshot.Duration, snapshot.FrameRate) - 1));
         _pipeline = new VideoPipeline(snapshot, generation, startFrame, _decoder, _settings, _logger);
@@ -240,10 +280,10 @@ public sealed class PlaybackService : IPlaybackService
         _audioRunning = false;
     }
 
-    /// <summary>True while the pipeline still belongs to the latest snapshot and seek.</summary>
+    /// <summary>True while the pipeline still belongs to the latest picture-relevant snapshot and seek.</summary>
     private bool IsCurrent(VideoPipeline pipeline) =>
         pipeline.SeekGeneration == Interlocked.Read(ref _seekGeneration) &&
-        pipeline.SnapshotVersion == Volatile.Read(ref _currentSnapshotVersion);
+        pipeline.SnapshotVersion == Volatile.Read(ref _pictureSnapshotVersion);
 
     /// <summary>Disposes a superseded pipeline in the background; <see cref="DisposeAsync"/> waits for it.</summary>
     private void Retire(IAsyncDisposable pipeline)

@@ -32,13 +32,14 @@ public abstract class MediaBackedClip : Clip
     /// <summary>In-point within the source media (trim left).</summary>
     public MediaTime SourceIn { get; set; }
 
-    /// <summary>Out-point within the source media (trim right). At Speed 1.0,
-    /// SourceOut - SourceIn == Duration.</summary>
+    /// <summary>Out-point within the source media (trim right). At 1×,
+    /// SourceOut − SourceIn == Duration; at other speeds the duration is the whole number of
+    /// frames the source range allows (<see cref="SpeedTiming"/>, D022).</summary>
     public MediaTime SourceOut { get; set; }
 
-    /// <summary>Playback speed multiplier. 1.0 = normal. Timeline editing currently
-    /// supports only 1.0 and rejects edits of clips with any other speed.</summary>
-    public double Speed { get; set; } = 1.0;
+    /// <summary>Playback speed (D022): exact multiples of 0.05 from 0.25× to 4× for video and audio
+    /// clips; always 1× for images.</summary>
+    public ClipSpeed Speed { get; set; }
 }
 
 public sealed class VideoClip : MediaBackedClip
@@ -48,7 +49,12 @@ public sealed class VideoClip : MediaBackedClip
     public double Scale { get; set; } = 1.0;
     public double RotationDegrees { get; set; }
     public double Opacity { get; set; } = 1.0;
+
+    /// <summary>Linear gain of the clip's own audio (1.0 = unchanged).</summary>
     public double Volume { get; set; } = 1.0;
+
+    /// <summary>Silences the clip's own audio without touching <see cref="Volume"/>.</summary>
+    public bool IsMuted { get; set; }
 
     /// <summary>Crop expressed as normalized (0..1) insets from each edge.</summary>
     public CropRect Crop { get; set; } = CropRect.None;

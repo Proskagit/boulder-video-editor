@@ -99,9 +99,12 @@ public class ProjectSerializerValidationTests
         { "zero duration", r => FirstVideoClip(r)["durationTicks"] = 0 },
         { "negative start", r => FirstVideoClip(r)["timelineStartTicks"] = -ProjectTestData.Frame(1).Ticks },
         { "start off the frame grid", r => FirstVideoClip(r)["timelineStartTicks"] = ProjectTestData.Frame(1).Ticks + 1 },
-        { "source range doesn't match duration", r => FirstVideoClip(r)["sourceOutTicks"] = FirstVideoClip(r)["sourceOutTicks"]!.GetValue<long>() + 1 },
+        // v2 (D022): a 1× source range may end up to (not including) one frame after the clip's frames.
+        { "source range doesn't match duration", r => FirstVideoClip(r)["sourceOutTicks"] = FirstVideoClip(r)["sourceOutTicks"]!.GetValue<long>() + ProjectTestData.Frame(1).Ticks + 1 },
+        { "source range too short", r => FirstVideoClip(r)["sourceOutTicks"] = FirstVideoClip(r)["sourceOutTicks"]!.GetValue<long>() - 1 },
         { "negative source in", r => FirstVideoClip(r)["sourceInTicks"] = -1 },
-        { "zero speed", r => FirstVideoClip(r)["speed"] = 0 },
+        { "zero speed", r => FirstVideoClip(r)["speedRatio"]!["numerator"] = 0 },
+        { "missing speed", r => FirstVideoClip(r).Remove("speedRatio") },
         { "duplicate clip id", r => r["timeline"]!["audioTracks"]![0]!["clips"]![0]!["id"] = FirstVideoClip(r)["id"]!.GetValue<string>() },
         { "duplicate track id", r => r["timeline"]!["audioTracks"]![0]!["id"] = r["timeline"]!["videoTracks"]![0]!["id"]!.GetValue<string>() },
         { "missing clip id", r => FirstVideoClip(r).Remove("id") },
@@ -157,19 +160,6 @@ public class ProjectSerializerValidationTests
         var loaded = ProjectSerializer.Deserialize(root.ToJsonString(), Folder, AllExist);
         var clips = loaded.Timeline.VideoTracks[0].Clips;
         Assert.Equal(clips[0].TimelineEnd, clips[1].TimelineStart);
-    }
-
-    [Fact]
-    public void Clips_with_speed_other_than_one_are_loaded_without_source_duration_check()
-    {
-        var root = SampleJson();
-        var clip = FirstVideoClip(root);
-        clip["speed"] = 2.0;
-        clip["sourceOutTicks"] = clip["sourceInTicks"]!.GetValue<long>() + 2 * clip["durationTicks"]!.GetValue<long>();
-
-        var loaded = ProjectSerializer.Deserialize(root.ToJsonString(), Folder, AllExist);
-
-        Assert.Equal(2.0, ((VideoClip)loaded.Timeline.VideoTracks[0].Clips[0]).Speed);
     }
 
     [Fact]

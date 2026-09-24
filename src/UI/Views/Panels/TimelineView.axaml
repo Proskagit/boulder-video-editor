@@ -50,6 +50,7 @@
           <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
             <Button Content="+ Video Track" Command="{Binding AddVideoTrackCommand}" FontSize="11"/>
             <Button Content="+ Audio Track" Command="{Binding AddAudioTrackCommand}" FontSize="11"/>
+            <Button Content="+ Text" Command="{Binding AddTextCommand}" ToolTip.Tip="Add a text clip at the playhead on the top video track" FontSize="11"/>
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
             <Button Content="Split" Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="Split at playhead (S)" FontSize="11"/>
             <Button Content="Delete" Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="Delete selected clips (Delete)" FontSize="11"/>

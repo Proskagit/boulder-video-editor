@@ -25,7 +25,24 @@ public sealed class UndoRedoService : IUndoRedoService
     public void Execute(IUndoableCommand command)
     {
         command.Execute();
-        _undoStack.Push(command);
+
+        // Merging replaces the top command with a new instance (or removes it when the two
+        // cancel out), so a position captured before the merge no longer matches. The save
+        // point itself is never merged into: the saved state must stay reachable by Undo/Redo.
+        if (_redoStack.Count == 0
+            && _undoStack.TryPeek(out var top)
+            && !ReferenceEquals(top, _savePoint)
+            && top is IMergeableCommand mergeable
+            && mergeable.TryMerge(command, out var merged))
+        {
+            _undoStack.Pop();
+            if (merged is not null) _undoStack.Push(merged);
+        }
+        else
+        {
+            _undoStack.Push(command);
+        }
+
         _redoStack.Clear();
         RaiseStateChanged();
     }

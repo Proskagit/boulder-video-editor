@@ -13,7 +13,7 @@ namespace AiVideoEditor.Timeline.Playback;
 /// </summary>
 internal sealed class AudioPipeline : IAsyncDisposable
 {
-    private readonly PlaybackSnapshot _snapshot;
+    private PlaybackSnapshot _snapshot;
     private readonly AudioMixer _mixer;
     private readonly IAudioDecoder _decoder;
     private readonly PlaybackSettings _settings;
@@ -22,7 +22,7 @@ internal sealed class AudioPipeline : IAsyncDisposable
     private readonly List<Task> _retired = new(); // readers being disposed after leaving the window
     private bool _disposed;
 
-    /// <summary>What must match for a reader to be reused (gain is applied by the mixer).</summary>
+    /// <summary>What must match for a reader to be reused (gain and mute are applied by the mixer).</summary>
     private readonly record struct ReaderKey(Guid ClipId, Guid AssetId, MediaTime Start, MediaTime End, MediaTime SourceIn,
         string FilePath, MediaTime StartTime);
 
@@ -61,6 +61,16 @@ internal sealed class AudioPipeline : IAsyncDisposable
     /// <summary>True when every open reader has decoded [from, until) (diagnostics/tests).</summary>
     internal bool HasData(long from, long until) => _readers.Values.All(r => r.HasData(from, until));
 
+    /// <summary>Takes over <paramref name="snapshot"/>, which differs from the current one only in
+    /// presentation (<see cref="PlaybackSnapshot.DiffersOnlyInPresentation"/>): every reader stays open and is
+    /// republished with its new gain. Same pipeline, same seek generation.</summary>
+    public void UpdateMix(PlaybackSnapshot snapshot, long position)
+    {
+        if (_disposed) return;
+        _snapshot = snapshot;
+        Maintain(position);
+    }
+
     /// <summary>Opens readers for spans entering the look-ahead window from
     /// <paramref name="position"/>, closes finished ones and republishes the mix.</summary>
     public void Maintain(long position)
@@ -94,7 +104,7 @@ internal sealed class AudioPipeline : IAsyncDisposable
                     (int)(_settings.AudioBuffer.TotalSeconds * AudioFormat.SampleRate), _decoder, _logger);
                 _readers[key] = reader;
             }
-            entries.Add(new MixEntry(reader, (float)span.Gain));
+            entries.Add(new MixEntry(reader, (float)span.EffectiveGain));
         }
         _mixer.SetEntries(entries.ToArray());
     }

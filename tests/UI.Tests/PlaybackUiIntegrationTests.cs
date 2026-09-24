@@ -2,11 +2,13 @@ using System.Diagnostics;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.Project;
 using AiVideoEditor.Timeline;
 using AiVideoEditor.Timeline.Playback;
 using AiVideoEditor.Timeline.Tests.Playback;
+using AiVideoEditor.UI.Rendering;
 using AiVideoEditor.UI.Services;
 using AiVideoEditor.UI.ViewModels;
 using AiVideoEditor.UI.ViewModels.Panels;
@@ -47,7 +49,7 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
             new ToolbarViewModel(_undoRedo, projectFiles, workflow, status),
             new MediaBrowserViewModel(_projects, workflow, NullLogger<MediaBrowserViewModel>.Instance),
             new PreviewViewModel(status, _playback, _projects, NullLogger<PreviewViewModel>.Instance),
-            new InspectorViewModel(),
+            new InspectorViewModel(_edit, status),
             new TimelineViewModel(_projects, _edit, status, NullLogger<TimelineViewModel>.Instance),
             status,
             projectFiles,
@@ -98,10 +100,17 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
         }
     }
 
-    private int? ShownNumber() => Preview.CurrentFrame is { } frame ? FakeVideoDecoder.Number(frame) : null;
+    /// <summary>Frame number of the topmost picture layer, if it shows a frame.</summary>
+    private int? ShownNumber() =>
+        TopPicture() is { State: LayerPictureState.Frame, Frame: { } frame } ? FakeVideoDecoder.Number(frame) : null;
+
+    private LayerPicture? TopPicture() => Preview.Layers.LastOrDefault(l => l.Layer is PictureLayer);
+
+    /// <summary>What the renderer draws for the topmost layer's placeholder.</summary>
+    private string? TopLabel() => CompositionDrawPlan.Build(Preview.Canvas, 960, 540, Preview.Layers).Operations.LastOrDefault()?.Label;
 
     private Task Settled(long frame) =>
-        TickUntil(() => Timeline.Playhead == F(frame) && Preview.IsPictureCurrent && !Preview.IsBuffering && ShownNumber() == frame,
+        TickUntil(() => Timeline.Playhead == F(frame) && Preview.AreLayersCurrent && !Preview.IsBuffering && ShownNumber() == frame,
             $"frame {frame} not shown");
 
     private void AdvanceTo(long fromFrame, long toFrame) => _clock.Advance(F(toFrame) - F(fromFrame));
@@ -239,7 +248,7 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
 
         Assert.True(_edit.MoveClips(new[] { clip.Id }, 10).Success); // raises TimelineChanged
 
-        await TickUntil(() => ShownNumber() == 15 && Preview.IsPictureCurrent, "moved clip not shown");
+        await TickUntil(() => ShownNumber() == 15 && Preview.AreLayersCurrent, "moved clip not shown");
         Assert.True(Preview.IsPlaying);
         Assert.Equal(F(25), Timeline.Playhead);
         AdvanceTo(25, 30);
@@ -273,13 +282,13 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
 
         asset.IsMissing = true;
         _projects.NotifyMediaAssetsChanged();
-        await TickUntil(() => Preview.PictureKind == PictureKind.Offline, "offline not shown");
-        Assert.Equal("Media offline", Preview.PlaceholderText);
-        Assert.Null(Preview.CurrentFrame);
+        await TickUntil(() => TopPicture()?.State == LayerPictureState.Offline, "offline not shown");
+        Assert.Equal("Media offline", TopLabel());
+        Assert.Null(ShownNumber());
 
         Preview.PlayPauseCommand.Execute(null);
         _projects.CreateNew("Other");
-        await TickUntil(() => Preview.PictureKind == PictureKind.Black && !Preview.IsPlaying, "new project not applied");
+        await TickUntil(() => Preview.Layers.IsEmpty && !Preview.IsPlaying, "new project not applied");
         Assert.Equal(MediaTime.Zero, _playback.Duration);
         Assert.Equal(MediaTime.Zero, Timeline.Playhead);
     }
@@ -314,7 +323,7 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
         // A change to the asset in use still rebuilds.
         used.IsMissing = true;
         _projects.NotifyMediaAssetsChanged();
-        await TickUntil(() => Preview.PictureKind == PictureKind.Offline, "used asset change not applied");
+        await TickUntil(() => TopPicture()?.State == LayerPictureState.Offline, "used asset change not applied");
     }
 
     [Fact]
@@ -331,10 +340,10 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
         Timeline.SetPlayhead(F(35));
         await TickUntil(() => ShownNumber() == 5, "top clip");
         Timeline.SetPlayhead(F(50));
-        await TickUntil(() => ShownNumber() == 50 && Preview.IsPictureCurrent, "lower clip after top clip");
+        await TickUntil(() => ShownNumber() == 50 && Preview.AreLayersCurrent, "lower clip after top clip");
         Timeline.SetPlayhead(F(120));
-        await TickUntil(() => Preview.PictureKind == PictureKind.Black && Preview.IsPictureCurrent, "gap");
-        Assert.Null(Preview.CurrentFrame);
+        await TickUntil(() => Preview.Layers.IsEmpty && Preview.AreLayersCurrent && !Preview.IsBuffering, "gap");
+        Assert.Null(ShownNumber());
         Assert.Equal(lowClip.Id, _projects.Current.Timeline.VideoTracks[0].Clips[0].Id);
     }
 

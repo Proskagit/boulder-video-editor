@@ -2,11 +2,370 @@
 
 ## Current phase
 
-No phase in progress. Phase 6 — Project persistence: **complete**, branch
-`feat/phase-6-project-persistence` (from `acc1a49`), Phase 6 commit. Decisions: DECISIONS.md
-D014–D016. Next phase (7 — Basic editing) not started.
+Phase 7 — Basic editing: **complete** — manually accepted by the product owner on 2026-09-24
+(Steps 1–9, last checkpoint `48a3f54`; Step 10 closeout, see below), branch `feat/phase-7-basic-editing`
+(from `main` `9fd38e7`, which contains Phases 5 and 6). Scope (DEVELOPMENT_PLAN): speed, volume, opacity,
+transform, crop, text — static per-clip properties, no keyframes.
+
+### Phase 7 — Basic editing (complete)
+
+Product decisions (product owner, 2026-09-23):
+- Compositing: the Preview draws layers on the GPU with Avalonia `DrawingContext`; D010's
+  "topmost track wins" is dropped. Core owns the pure geometry (matrix, crop, opacity), the
+  Preview only renders it. The rules must be reproducible by the Phase 8 export (→ D018).
+- Canvas: `ProjectSettings.FrameWidth × FrameHeight` only (default 1920×1080), never taken from
+  the first video; no resolution UI in Phase 7. The Preview must stop assuming a fixed 960×540.
+- Speed: 0.25×–4×, UI step 0.05×, exact rational (not `double`), pitch preserved. Changing speed
+  keeps Start, recomputes Duration / source range, is rejected on overlap (no ripple).
+  `project.json` v2 that still reads v1 (→ D022; D021 is Step 8, text clips).
+- Text: multiline; only the existing properties (text, font, size, color, alignment, position,
+  scale, rotation, opacity). No outline/background/shadow/stroke.
+- Transform UX: numeric Inspector fields only; no handles on the Preview.
+- Volume: 0–200 % linear in the UI, linear gain internally; no dB.
+- Mute: a separate state (never Volume = 0) for every clip that can carry audio, incl. VideoClip.
+- Only the primary selected clip is edited; no multi-selection editing.
+- Playhead / zoom / snapping are session state (D015, decided).
+
+Steps: 1 D015 + zoom/snapping reload fix · 2 clip property editing foundation (edit service,
+command, undo merging that respects the save point) · 3 load validation of property ranges ·
+4 volume/mute end to end · 5 composition model in Core · 6 multi-layer playback with reader reuse
+across property-only snapshot updates · 7 Preview rendering + Transform/Opacity/Crop in the
+Inspector · 8 text clips · 9 speed · 10 closeout.
+
+- Step 1 done — D015 decided (session state). Fixed: `TimelineViewModel` read zoom and snapping
+  only in its constructor, so after New/Open/Recover it kept the previous project's values and
+  the snapping toggle wrote them into the new sequence. On `ProjectChanged` it now cancels any
+  gesture, clears the selection and reads zoom/snapping from the new sequence.
+  Tests: `UI.Tests/TimelineSessionStateTests.cs` (3: New, Open restores saved values, playhead/
+  zoom/snapping never dirty or undoable). Mutation: old handler → 2 failures.
+- Step 2 done (D017) — clip property editing foundation, no UI/playback/persistence yet:
+  `ITimelineEditService.SetClipProperties(clipId, ClipPropertyChange)` with typed
+  `VisualProperties` / `AudioProperties` / `TextProperties` (Core/Entities/ClipProperties.cs) and
+  `ClipPropertyLimits`; `ClipPropertyValidator` (kind, ranges, finite, crop, `#RRGGBB`; moved to
+  Core in Step 3; locked track → reject without changes); `ClipPropertyValues` (capture/apply/diff) and
+  `SetClipPropertiesCommand` (absolute before/after); `IMergeableCommand` + merging in
+  `UndoRedoService` (not into the save point, not after Undo, new instance on merge, step removed
+  when edits cancel out); `NotifyingCommand` forwards merging. Model: `VideoClip.IsMuted` added
+  (split copies it). Tests: `Core.Tests/UndoRedoMergeTests.cs` (10),
+  `Timeline.Tests/ClipPropertyEditTests.cs` (55 incl. theory cases; bit-exact undo/redo of all
+  properties). Mutations: no save-point guard → 3 failures; merge after Undo → 2; no cancel-out → 1.
+  Pending for later steps: persist `VideoClip.IsMuted` (Step 3), honour it in playback (Step 4).
+- Step 3 done (D017) — load validation + `VideoClip.isMuted` in format v1 (optional, no version
+  bump; older files load unmuted). `ClipPropertyValidator` moved to Core and gained
+  `ValidateCurrent(clip)`; `ProjectSerializer` runs it on every clip read (project.json and
+  recovery files share this path), so NaN/∞, out-of-range values, crop edges outside [0, 1) or
+  opposite edges summing to ≥ 1, empty/missing font, bad color, over-long text → `ProjectFileException`
+  before the current project is touched. Properties of another clip kind can't be represented
+  (one DTO per clip type); stray JSON properties stay ignored (D014).
+  Tests: `Project.Tests/ClipPropertyPersistenceTests.cs` (45 incl. theory cases: bit-exact round
+  trip of every Phase 7 property, mute written/read, a literal Phase 6 v1 file without `isMuted`,
+  30 damaged values, 8 non-finite literals, foreign properties ignored) and
+  `ProjectServiceTests.Failed_open_of_a_project_with_an_invalid_clip_property_changes_nothing` (3:
+  project, history, save point and events untouched). Finding: System.Text.Json reads `1e999` as
+  ∞ — only the new validation rejects it; `NaN`/`"Infinity"` are already refused by the parser.
+  Mutations: no validation on load → 36 failures; `isMuted` not read → 2, not written → 2; crop
+  sum allowed to reach 1 → 2; NaN passing the range check → 4 (edit tests; on load the parser
+  already blocks NaN).
+- Step 4 done (D013 refinement, D017) — volume/mute end to end:
+  - Inspector: AUDIO section (volume 0–200 %, step 1, linear; Mute checkbox, not focusable so
+    Space stays Play/Pause) for AudioClips and VideoClips with an audio stream. Edits only via
+    `SetClipProperties`; `ShowClip` fills the fields under a sync guard; rejected edit → status
+    message + fields back to the model. `InspectorViewModel` now takes `ITimelineEditService` +
+    `StatusService`.
+  - Playback: `AudioSpan.IsMuted` / `EffectiveGain`; muted VideoClips and AudioClips stay in the
+    snapshot (reader keeps running); `PlaybackSnapshot.DiffersOnlyInMix`; `PlaybackService` handles
+    such updates without a resync (same VideoPipeline, readers, seek generation, picture;
+    `AudioPipeline.UpdateMix`). Found by the existing `SupersededPipelines` test while
+    implementing: the picture "current" version must be recorded where pipelines are created,
+    otherwise a seek after a mix-only update never became current (fixed; regression test).
+  - Tests: Core `PlaybackSnapshotMixTests` (6) + builder test updated; Timeline
+    `MixUpdatePlaybackTests` (7: no pipeline/reader/generation change and no buffering over 9 edits
+    incl. undo/redo and an opacity edit, paused, seek after mix-only update, mute silences only the
+    clip's own audio and unmute restores its volume, volume 0 ≠ mute, clip starting muted, picture
+    change reuses every audio reader); UI `InspectorAudioTests` (11: visibility, no echo edits incl.
+    a 1/3 volume, one undo step / merged spins, undo/redo refresh, mute vs volume, rejection,
+    selection follow, save → reopen, playing without decoder reopen); Video
+    `MixUpdateIntegrationTests` (real ffmpeg: no ffmpeg process started, sine silent when muted,
+    half amplitude at 50 %). `SupersededPipelines…` now makes a real timeline change (an identical
+    snapshot is mix-only now). Mutations: no mix-only path → 4 failures (Timeline 2, UI 1, Video 1);
+    mixer ignoring mute → 3; muted audio clips dropped from the snapshot → 4; no Inspector sync
+    guard → 1; video mute not passed to the snapshot → 4.
+- Step 5 done (D018) — composition model, pure Core (no playback/UI change):
+  - `Core/Composition`: `Affine2D` (column vectors, Y down, exact quarter turns), `FrameSize`, `RectD`,
+    `PointD`, `CompositionMath.Layout` / `TextTransform`, `LayerGeometry`, `CompositionLayer` →
+    `PictureLayer` (`OccludesBelow`) / `TextLayer`, internal `ExactRational` (BigInteger) for the
+    coverage proof. `ClipPropertyValidator.ValidateVisual` public; `VisualProperties.Default`.
+  - Semantics fixed from the existing model: Position = centre offset from the canvas centre in canvas
+    pixels (+Y down); rotation clockwise around the picture centre; fit = contain, before scale.
+  - Snapshot: `PictureSpan.Visual` / `SourceSize` (from metadata), `TextSpan` + `VideoLayer.Texts`,
+    `PlaybackSnapshot.Canvas`, `LayersAt(time)`. `DiffersOnlyInMix` → `DiffersOnlyInPresentation`
+    (also ignores picture/text properties, source size, canvas) so a property edit still keeps every
+    decoder (one-line call change in `PlaybackService`; Step 4 regression tests unchanged and green).
+  - Tests: `Core.Tests/CompositionMathTests.cs` (40 incl. theory rows; exact matrices: landscape,
+    portrait, letterbox, crop of each side, square crop, scale < 1 / > 1, 0/90/180/270/−90/±360 and
+    30°, clockwise sign, position, opacity 0/0.5/1, all combined, five order-of-operation proofs,
+    vertical and other canvases, exact-edge coverage incl. the double nearest 4/3, text transform,
+    invalid input); `CompositionLayersTests.cs` (20: bottom-to-top by track order, time ranges,
+    culling and its limits — transparency, 0.999 opacity, scale 0.99, crop, 0.5 px offset, rotation —,
+    provable cover with crop/zoom and at 45°, images/offline/unknown size never cull, invisible
+    clips, text layers, text and media on one track, vertical project, PictureAt unchanged);
+    `PlaybackSnapshotMixTests` extended to presentation changes. Mutations (all caught): position
+    before rotation → 2 failures, fit before crop → 2, rotation around the canvas origin → 11, scale
+    not around the centre → 7, no culling → 3, occluder ignoring opacity → 2, image as occluder → 1,
+    double-rounded coverage → 1, rotation sign flipped → 7, opacity-0 layers kept → 2. (Scale and
+    rotation commute for uniform scale, so their mutual order is not observable.)
+  - Coverage review (product owner): for arbitrary angles `CoversCanvas` never uses the bounding
+    box — it inverts the layer matrix, maps all four canvas corners into the crop rectangle and
+    requires them inside by a 10⁻⁶ margin (doubt → false). Added: 45° picture whose AABB covers the
+    canvas but whose corners don't → false and the layer below stays in `LayersAt`; 30° × 2 with all
+    corners inside → true and culls; conservative edge at 45°. Mutation "AABB instead of inverse
+    containment" → 6 failures (incl. both new regression tests). Core tests: 243.
+  - Flaky tests found before the checkpoint commit (full parallel runs, ~1 in 8): `MixUpdatePlayback
+    Tests.VolumeAndMuteWhilePaused…` ("video reader reopened") and the Phase 5 `AudioPipelineTests.
+    SnapshotUpdate_ReusesReaders…`. Cause: decoder-open counts depended on background timing — a
+    reader of a pipeline retired right after creation still called `OpenAsync` from its task (with a
+    cancelled token), and a new reader's open could land before or after the assertion.
+    Product fix (pre-existing since Phase 5): `SpanReader` / `AudioSpanReader` check cancellation
+    right before opening, so a reader retired before its task ran no longer starts an ffmpeg process
+    only to kill it. Test fixes: `PlaybackService.RetiringSettledAsync()` (internal; Timeline internals
+    now visible to UI.Tests) — count-based tests capture only after every retired pipeline is
+    disposed; `AudioPipelineTests` waits for the opens it expects. Verified: 10 consecutive full-suite
+    runs green (824 tests each).
+  - Open for Step 6: rotation metadata of phone videos (ffprobe gives the coded size; D018
+    consequences); how placeholders (offline/unsupported/decode error) are drawn in a composited
+    preview.
+
+- Step 6 (in progress) — product decisions (2026-09-23): orientation + per-layer playback state in
+  Step 6, multi-layer rendering stays Step 7; `PlaybackFrame` keeps a compatibility picture for the
+  current Preview and adds the full `LayerPicture` list; stale metadata is re-probed silently on Open
+  (not dirty, missing files stay offline); Resolution shows the display size; placeholders take the
+  clip's geometry (fallback: whole canvas) and never cull; a layer uncovered without a seek is
+  Pending (no new seek generation, no Buffering); no reader reuse across structural changes; no
+  decoder limit (measure); rotation 0/90/180/270 only, odd/mirrored → log + decoder-size fallback;
+  SAR out of scope.
+  - 6a done — orientation/display size: `MediaMetadata.DisplayRotation` (clockwise, null = not a
+    right angle) + `DisplayWidth/DisplayHeight` (size of the frames the decoder delivers), `Width/Height`
+    stay coded; `NeedsDisplaySizeProbe`. Probe (`Video/DisplayOrientation`): stream display matrix or
+    legacy `rotate` tag → else first-frame display matrix (EXIF JPEGs) → else 0°, interpreted exactly
+    like ffmpeg's autorotate (measured with ffmpeg 9: ±90 → transposed; 180 same size; odd angle →
+    coded size; mirror detected by the matrix determinant, hflip alone reads −180). Decoder passes
+    `-autorotate` explicitly. `project.json` v1: optional `displayRotation/displayWidth/displayHeight`;
+    older metadata is kept (Duration etc. stay usable, missing files stay offline) and re-probed in the
+    background by `MediaAnalysisCoordinator` (status stays Completed, not dirty, failure keeps the saved
+    metadata); inconsistent values drop the metadata (D014). Builder: `SourceSize` = display size
+    (null when unknown → no geometry, never culls); `AssetState` includes it. Inspector / Media Browser
+    show the display size (+ "Rotated 90°"). Found + fixed: with an odd display angle ffmpeg prints a
+    warning without a newline, gluing showinfo's time-base line onto it — `ShowInfoParser` no longer
+    requires its prefix at the line start (such files decoded as DecodeError before).
+    Tests: Video `DisplayOrientationTests` (rule: 26 cases; real ffmpeg: 9 files incl. EXIF JPEG —
+    probed display size == decoded frame size), 2 `ShowInfoParserTests`; Project
+    `MediaOrientationPersistenceTests` (10); Core 3 builder/asset-state tests (+ fixture display sizes);
+    UI `MediaOrientationRefreshTests` (6). Full suite 876 green.
+  - 6b/6c done (D019) — playback contract + multi-layer `VideoPipeline`: `LayerPicture` /
+    `LayerPictureState` (Frame, Text, Pending, Offline, Unsupported, DecodeError; `IsCurrent` per layer;
+    `PlaceholderArea(canvas)` = clip geometry or whole canvas), `PlaybackFrame.Layers` (bottom to top) +
+    `Canvas`, compatibility `Picture` = topmost picture layer (the Preview is unchanged). Pipeline:
+    readers for every decodable layer of `LayersAt` (+ prefetch at the next edge), keyed by clip,
+    closed when no longer needed; per-layer late frames; runtime failures become placeholders and stop
+    occluding (`LayersAt(time, mayOcclude)`); Ready = every layer at the start frame;
+    `UpdatePresentation(snapshot)` from `PlaybackService` for presentation-only snapshots (same
+    generation, no buffering, `_pictureSnapshotVersion` follows).
+  - 6d done — tests: Timeline `MultiLayerPlaybackTests` (15: order, culling without reader, text,
+    opacity 1 → 0.9 while playing with a gated decoder = Pending then Frame without new generation/
+    buffering, back to 1 closes reader + stream, 20 toggles without leaks, per-layer late frame via
+    the fake's new `HoldAfter`, seek ready for either slow layer, offline/unsupported placeholders
+    with geometry that never cull, unknown size → whole canvas, failing occluder uncovers the layers
+    below, vanished file → Offline, prefetch, dispose); Video `MultiLayerIntegrationTests` (real
+    ffmpeg: one process per visible layer, opened/closed with opacity, none after Dispose). All
+    Phase 5 and Step 4/5 tests unchanged and green. Mutations (9): UpdatePresentation ignored → 5
+    failures, presentation change resyncing → 4, failed layer still occluding → 2, readers never
+    closed → 1, no per-layer late frame → 1, Ready on the first layer only → 1 (after making the seek
+    test a theory over both layers — the first version missed it), compatibility picture from the
+    bottom → 5, placeholder always full canvas → 1, no prefetch → 2.
+  - Load (temporary measurement, not in the repo): 1/2/4 layers of 1080p30 H.264, hardware and
+    software decoding — 0 % late frames over 4 s, one ffmpeg process per layer; no decoder limit needed
+    so far (rendering in Step 7 and 4K sources not measured).
+  - Found: `SeekAsync` without `Update()` calls never completes when a source's preroll exceeds
+    `BufferFrames` (e.g. MPEG-TS at frame 40) — unchanged since Phase 5, the Preview always ticks;
+    documented in D019, not changed.
+  - Full suite: 892 tests, 5 consecutive runs green. App starts (shell initialized, no errors).
+
+- Step 6 checkpoint: commit `8592d10`.
+- Step 7 (D020) — multi-layer Preview + visual Inspector:
+  - 7a: `PreviewViewModel.Layers` / `Canvas` / `AreLayersCurrent`; keeps polling while a layer is
+    pending or late (a layer uncovered while paused appears), keeps the previous layers while
+    buffering, clears them on project change.
+  - 7b/7c: `UI/Rendering`: `CompositionDrawPlan` (pure: viewport canvas → control, per-layer
+    operations bottom to top, decoded-pixel source rect, geometry from the decoded size when unknown,
+    placeholders in `PlaceholderArea`, text, pending skipped), `RenderConversions` (Affine2D → Avalonia
+    Matrix), `CompositionView` (DrawingContext; clip to canvas; two WriteableBitmaps per layer).
+    `PreviewView` hosts it (real canvas proportions, no fixed 960 × 540). Visually checked offscreen
+    (scratch harness, not in the repo): transforms, opacity, crop, text, placeholder, clipping,
+    vertical canvas.
+  - 7d: Inspector Transform (Position X/Y, Scale %, Rotation, Opacity %) and Crop (L/T/R/B %, not for
+    text), per-field edits with merge, sync guard, rejection.
+  - UI compatibility path removed (view-model `CurrentFrame` / `PictureKind` / `PlaceholderText` /
+    `IsPictureCurrent`, the view's bitmap copy); `PlaybackFrame.Picture` stays in Core (test oracle).
+  - Tests: UI `PreviewLayersTests` (5), `CompositionDrawPlanTests` (21), `InspectorVisualTests` (7:
+    kinds, exact values per field, merged steps + undo/redo refresh without edits, 1/3-precision
+    no-echo, crop rejection, locked track, and opacity/scale/rotation edits while playing — same
+    VideoPipeline and seek generation, no buffering, lower layer Pending → Frame, reader closed
+    again); `PlaybackUiIntegrationTests` / `InspectorAudioTests` moved to the layers.
+    Mutations: no polling while a layer is pending → 2 failures (the condition sits in two places;
+    removing one alone is not observable — redundant by design); no visual sync guard → 1.
+  - Performance (scratch measurement): copy/update 0.11–1.31 ms, offscreen render 0.8–13.9 ms per frame
+    for 1–8 layers at 1280 × 720 — no optimization needed.
+  - Full suite 925 green (3 consecutive runs); app starts without errors.
+  - Open: manual visual check by the product owner. `PlaybackFrame.Picture` stays in Core — product
+    owner decision 2026-09-24: deferred cleanup, not part of Phase 7 (≈ 47 assertions of the Phase 5–7
+    playback tests use it as their oracle).
+- Step 7 manual-check findings (2026-09-24; Step 7 checkpoint: commit `a1cf682`):
+  - Numeric fields (all 10 Inspector fields) accepted spaces and foreign characters: NumericUpDown
+    parses with `NumberStyles.Any` by default (ru-RU group separator is a space → "9 0" = 90; also
+    "(5)", "5-", "1e2", currency). Fixed in one place: `UI/Common/NumericInput.ParsingStyle`
+    (leading sign + decimal point only), applied to every NumericUpDown by a style in
+    `InspectorView`. Invalid text keeps the last value (model untouched) and the field shows it
+    again on blur. Found while checking: an emptied field made the value null, the `decimal`
+    binding failed and the Inspector showed an InvalidCastException text (pre-existing since
+    Step 4 for Volume). The 10 view-model fields are now `decimal?`: null is never an edit; on blur
+    the view calls `InspectorViewModel.ShowModelValues()` (the existing `SyncFromModel`).
+    Known, unchanged: fields commit per keystroke (existing behaviour), so a valid prefix typed
+    before an invalid character ("9" of "9 0") is applied; the rest is rejected.
+  - Clip edge resize not updating the timeline width: **closed as not reproduced** (product owner,
+    2026-09-24): observed once during Step 7, not reproduced by the later checks below, no exact
+    reproduction steps; no fix. VM geometry is correct
+    (drag preview and committed Left/Width, start and end edge, after property edits, undo/redo),
+    and in the running app nine scenarios resized correctly (end/start edge, after Inspector spinner
+    and typed edits with focus kept, two tracks, zoom Fit, during playback, undo). No timeline code
+    changed since Phase 7 Step 1.
+  - Tests: UI `NumericInputTests` (25 incl. theory cases: plain numbers ru/en, 16 rejected inputs,
+    the old default documented, emptied field → no edit + restore on blur), `TimelineTrimLayoutTests`
+    (4). Mutations: `ParsingStyle = Any` → 11 failures; no relayout on TimelineChanged → 4.
+  - Full suite 954 green (3 consecutive runs); app started, all 10 fields checked in the running
+    app (UI Automation read-back): empty/"abc"/" 50" → model value, "9 0" → 9, "-4 5" → −4,
+    "1e2" → 1, "5-" → 5, "1 000" → 1, "-12,5" and "150" accepted.
+
+- Step 8 checkpoint: commit `5d81fe5`.
+- Step 8 (D021) — text clips:
+  - `ITimelineEditService.AddTextClip(start)`: topmost video track, frame-grid start, 5 s, defaults
+    "Text" / Segoe UI / 48 / #FFFFFF / Center, one "Add Text" undo step; rejected without changes on
+    overlap, locked track or no video track (no track is created). `EditPlan` passes its description
+    to an insert-only command (the add used to be named "Add Clip").
+  - "+ Text" in the timeline header (playhead, selects the new clip).
+  - Inspector TEXT section: multiline text, font (installed fonts, `IFontCatalog` /
+    `AvaloniaFontCatalog`; a missing font is listed first), size (`NumericInput`), `#RRGGBB` color +
+    swatch (applied only when complete and valid per D017 — `ClipPropertyValidator.IsHexColor` made
+    public), alignment; live, merged per field, sync guard, rejection → status + model value; the
+    blur handler now restores any Inspector text field that holds a value it doesn't apply.
+  - Timeline label: first line / `(empty text)`, recomputed on every refresh; `Name` is observable.
+  - Tests: Timeline `TextClipEditTests` (10: defaults and placement, topmost track, 29.97 grid,
+    negative start, one undo step + dirty, overlap/locked/no-track rejections, frame rate not locked,
+    trim/move/split of text), UI `TextClipUiTests` (23: "+ Text" selection/Inspector/Preview layer/
+    rejection/undo-redo; TEXT fields, per-field edits, merging, no echo edits, color while typing and on
+    blur, rejected/empty values, whitespace text draws no layer, font list incl. a missing font, text
+    edits while playing keep pipeline and seek generation; label rules and label through edit/undo/redo
+    and split). Mutations: no label refresh → 2 failures; no text sync guard → 2; color applied
+    unchecked → 1; not the topmost track → 6 (UI 4, Timeline 2).
+  - Full suite 987 green (3 consecutive runs). Running app checked: "+ Text" on V2 at the playhead
+    with the Inspector TEXT section and the Preview text; multiline text, size, color + swatch,
+    alignment, font from the system list (MV Boli rendered); undo back to the added clip and redo
+    through all five text edits, with fields, Preview and label following ("Text" ↔ "Hello"); incomplete color + Tab → model color; whitespace text →
+    `(empty text)` and no Preview text.
+  - Known risk (Phase 8, not solved here): a font missing on the machine silently falls back in the
+    Preview, but ffmpeg `drawtext` in the export needs a font file.
+
+- Step 9 checkpoint: commit `48a3f54` (together with the `ExecutableLocator` fix below).
+- Step 9 (D022) — speed:
+  - Product decisions (2026-09-24): 0.25×–4× in steps of 0.05×, exact fraction; a speed change keeps
+    start, SourceIn and SourceOut, the duration is whole frames; one rounding rule for SetSpeed / trim
+    / split / regrid / validation / loading; video and audio clips only; v1 files with speed ≠ 1 are
+    damaged, saving writes v2; pitch kept via ffmpeg atempo; 1× keeps its exact path; a 1× clip may
+    keep a source tail < 1 frame after a speed change back to 1× (owner's choice); no speed label, no
+    high-speed decoding optimization.
+  - Scratchpad measurement, FFmpeg 9.0.1 (MP4/AAC, 1 kHz bursts, energy centroids): PTS after atempo
+    count output samples (source position must come from ashowinfo before atempo); pitch exact at
+    0.25/0.5/2/4×; constant latency 449–483 source samples (one atempo), 542 (0.5·0.5 chain), 1573
+    (2·2 chain → 4× uses one atempo=4); ≤ 3.4–5.5 ms residual after removing it, no drift; without apad
+    the output ends 16–180 ms early, `apad=pad_dur=0.25` delivers the source to the end of the file.
+  - Core: `ClipSpeed` (k/20, default = 1×), `SpeedTiming` (SourceLength/FramesFor/Fits); speed-aware
+    `SourceFrameSelector.SamplePoint`, `AudioTiming.SourceTimeAt` / `TimelineSampleOfStreamStart`;
+    `PictureSpan`/`AudioSpan.Speed`; the "only 1× can be played" status is gone.
+  - Timeline: `SetClipSpeed` + `SetClipSpeedCommand` (mergeable); `ClipState.Speed`,
+    `ClipState.Normalize`; speed paths in move/trim/split (`PlanTrimAtSpeed`) and `FrameRateRegrid`;
+    validator uses the invariant for every speed; the D008 edit ban is lifted. Reader: tempo stream
+    placement; `AudioDecodeRequest.Speed`.
+  - Video: FFmpeg audio decoder `apad` + atempo chain, latency compensation in FirstSampleIndex
+    (480 source samples, 540 below 0.5×).
+  - Project: format v2 (`speedRatio`), v1 read with speed exactly 1.
+  - UI: Inspector SPEED section (0.25–4.00×, step 0.05).
+  - Tests (new): Core `ClipSpeedTests` (23) and `SpeedMappingTests` (6, BigInteger references);
+    Timeline `SpeedEditTests` (27: worked examples, boundary speeds 0.25/0.5/0.95/1/1.05/2/4, round trips
+    1→1.35→1 and 1→1.35→0.75→1, undo/redo with a non-multiple duration, merging, rejections, trim/move/
+    split/regrid at speed, the two real one-tick normalization cases at 29.97 found by a search, 1× with
+    a tail, randomized edits with speeds at 29.97/23.976/25) and `SpeedPlaybackTests` (12); Project
+    `SpeedPersistenceTests` (22); Video `FfmpegSpeedIntegrationTests` (21, real ffmpeg); UI
+    `SpeedInspectorTests` (8). Changed by decision: 4 tests that used speed 2 as "unsupported" (now a
+    video clip on audio-only media), the D008 ban test (removed), 3 format-version expectations (v2),
+    the v2 "+1 tick at 1×" corruption case (+1 frame now), the recovery "newer version" test's literal.
+  - Mutations: speed change rewriting SourceOut → 10 failures; no normalization → 2; audio reader or
+    frame selector ignoring the speed → 6 each; no latency compensation → 3 (the slow speeds; the 10 ms
+    bound itself guards the fast ones); no apad → 10.
+  - Full suite 1105 green. Running app: v1 with speed 2 refused as damaged; valid v1 opened; Speed
+    field 2×/0.5×/0.25×/4× — clip lengths 5 / 20 / 40 / 2.48 s and the preview's burned-in source
+    time 8.08 / 2.00 / 1.00 / 8.00 s at 4.04 / 4 / 4 / 2 s; playing at 2× ran ffmpeg with
+    `…,ashowinfo,apad=pad_dur=0.25,atempo=2`; trim end, split, move of the 2× clip (source 6.000 s at
+    5.00 s); undo ×3 / redo ×3; saved as v2 (`speedRatio` 2/1, no `speed`).
+  - Found while testing: `ExecutableLocator` passed the first caller's token into the one-time ffmpeg
+    probe; if that caller was cancelled (a reader retired right after opening a project) the probe
+    failed and "ffmpeg not found" was cached for the whole run (on `5d81fe5` in 4 of 4 open + seek
+    runs). Fixed in `48a3f54`: a caller-cancelled probe rethrows without caching; a genuine miss is
+    still cached (`Video.Tests/ExecutableLocatorTests`, 5). Final Step 9 app check: 5 open + seek +
+    play runs, ffmpeg found every time.
+
+- Step 10 — closeout (2026-09-24, no product code changed):
+  - Audit: the Phase 7 scope of `docs/DEVELOPMENT_PLAN.md` (speed, volume, opacity, transform, crop,
+    text) and the product decisions above are implemented; D017–D022 match the code; ARCHITECTURE,
+    ROADMAP and README brought up to date.
+
+    | Property | Step | Automated tests | Manual check |
+    |---|---|---|---|
+    | Volume 0–200 %, mute (video + audio clips) | 2–4 | Timeline `ClipPropertyEditTests`, Core `PlaybackSnapshotMixTests`, Timeline `MixUpdatePlaybackTests`, UI `InspectorAudioTests`, Video `MixUpdateIntegrationTests`, Project `ClipPropertyPersistenceTests` | Step 4; Step 10 smoke (values; mute is not audible to automation) |
+    | Opacity, transform (position, scale, rotation) | 2, 5–7 | Core `CompositionMathTests`, `CompositionLayersTests`, Timeline `MultiLayerPlaybackTests`, UI `CompositionDrawPlanTests`, `InspectorVisualTests`, `NumericInputTests`, Project `ClipPropertyPersistenceTests` | Step 7 (+ owner findings); Step 10 smoke |
+    | Crop | 2, 5–7 | as transform, plus the crop cases of `ClipPropertyPersistenceTests` (load validation) | Step 7; Step 10 smoke |
+    | Text clips | 8 | Timeline `TextClipEditTests`, UI `TextClipUiTests`, `CompositionDrawPlanTests` | Step 8 |
+    | Speed 0.25–4× | 9 | Core `ClipSpeedTests`, `SpeedMappingTests`, Timeline `SpeedEditTests`, `SpeedPlaybackTests`, Project `SpeedPersistenceTests`, UI `SpeedInspectorTests`, Video `FfmpegSpeedIntegrationTests` | Step 9; Step 10 smoke |
+    | Multi-layer playback / Preview | 6–7 | Timeline `MultiLayerPlaybackTests`, UI `PreviewLayersTests`, Video `MultiLayerIntegrationTests` | Steps 6–7 |
+    | project.json v2, v1 read | 3, 9 | Project `ClipPropertyPersistenceTests`, `SpeedPersistenceTests`, `ProjectSerializer*Tests`, `RecoverySerializerTests` | Step 9; Step 10 smoke |
+
+  - Coverage gap found by the audit: no automated test put speed ≠ 1 and the other properties on one
+    clip (persistence maps them independently, split copies both through one `CloneClip`, speed
+    commands touch only `ClipState`). Closed on the product owner's decision by one test:
+    `SpeedPersistenceTests.A_clip_at_another_speed_keeps_every_phase7_property_in_v2` (speed 27/20,
+    volume 1.5, mute, position, scale, rotation, opacity, crop → v2 with `speedRatio` 27/20 → load →
+    every value exact → byte-identical re-serialization).
+  - Automated: `dotnet build --no-incremental` 0 errors, 0 warnings; full suite 3 consecutive runs,
+    1111 passed each (Core 275, Timeline 257, Project 249, UI 193, Video 137), 0 failed, 0 skipped.
+  - Smoke (running app, scratch project, UI Automation): one video clip with speed 2×, volume 150 %,
+    muted, position (200, −100), scale 60 %, rotation 15°, opacity 70 %, crop 10/5/10/5 %. Open → frame
+    steps + seek → the decoder's source positions advance 0.08 s per 0.04 s timeline frame (2×); Play
+    shows the rotated, scaled, offset, cropped, translucent picture; the Inspector shows every value;
+    opacity edited to 80 % in the Inspector (title `*`) → Save → `project.json` v2 with `speedRatio`
+    2/1, no `speed`, all values incl. the edit; reopen → same values, clean title, 2× mapping and
+    playback again. Mute itself is not audible to automation (covered by
+    `MixUpdateIntegrationTests`). Closing the app hung in this smoke even without playback — see the
+    known issue below (not a Phase 7 regression).
+  - Carried forward / deferred (not Phase 7):
+    - Phase 8 constraints: the export must reproduce the composition rules of D018 exactly (crop → fit
+      → scale → rotation → position → opacity; canvas = project frame size); a font missing on the
+      machine silently falls back in the Preview, but ffmpeg `drawtext` needs a font file (D021); the
+      speed rules of D022 (exact mapping, atempo with pitch kept) apply to the export as well.
+    - `PlaybackFrame.Picture` cleanup (deferred, see Step 7).
+    - The known issues below, in particular the close hang.
 
 ### Phase 6 — Project persistence (complete)
+
+Branch `feat/phase-6-project-persistence` (from `acc1a49`), Phase 6 commit, merged into `main`.
+Decisions: DECISIONS.md D014–D016.
 
 Product decisions (2026-09-23): project = folder with `project.json` + `cache/` (no
 `.aveproj`); autosave writes a separate recovery file every 2 min and never overwrites
@@ -72,13 +431,9 @@ Deferred / out of scope: relink of missing media, recent projects, copying media
 project, re-checking missing media while the project is open, offering more than one
 recovery file per start (older ones are offered at later starts).
 
-Open questions (carried forward, not decided in Phase 6 — see D015):
-- **Playhead position, zoom and snapping**: saved in `project.json`, but changing them does
-  not make the project dirty (they aren't undoable commands). Decide whether they are project
-  state (then they should mark it dirty) or session/UI state (then they could stay out of the
-  dirty logic, or out of the file). Current code is unchanged pending that decision.
-  Consequence for autosave: such a change alone doesn't trigger an autosave; it is included
-  in the next recovery file / save written for another reason.
+Open questions carried forward from Phase 6:
+- ~~Playhead position, zoom and snapping: project or session state?~~ Decided in Phase 7
+  Step 1: session state (D015).
 - Missing state is detected once on Open; a file that reappears later stays offline until the
   project is reopened (no relink in Phase 6).
 
@@ -253,8 +608,27 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 3
 - Phase 4
 - Phase 5 (video checkpoint `85ca216`, audio in the closeout commit)
+- Phase 6
+- Phase 7 (accepted 2026-09-24)
 
 ## Known issues
+
+- Speed (D022): the atempo latency compensation is measured for FFmpeg 9.0.1; another ffmpeg version
+  may shift it — `FfmpegSpeedIntegrationTests` (10 ms bound) catches that.
+- ~~`ExecutableLocator`: a cancelled first ffmpeg probe caches "not found" for the app run~~ — fixed
+  2026-09-24: a caller-cancelled probe now rethrows `OperationCanceledException` without caching
+  (and kills the probe process); only a genuine miss/failure/5 s timeout is cached. Regression tests:
+  `Video.Tests/ExecutableLocatorTests`.
+- Closing the main window hangs the process (window gone, no "Shutting down." in the log; host
+  disposal never finishes) once a project with decodable media was open — also without ever
+  playing, and also after Pause/Stop. Closing an app without such a project exits normally. Found
+  2026-09-24; reproduced with only the `ExecutableLocator` fix applied on `main` `9fd38e7` (before
+  Phase 7) and on every Phase 7 checkpoint (`7ab3693`, `8592d10`, `a1cf682`, `5d81fe5`), so it is not
+  a Phase 7 regression; earlier it was masked because the locator bug often left the preview without
+  ffmpeg. Not fixed yet (separate task).
+
+- Text clips (D021): the Preview (Avalonia) silently substitutes a font that isn't installed; the
+  Phase 8 export via ffmpeg `drawtext` needs an actual font file — handle missing fonts there.
 
 - Preview color: footage from the Vivo X300 Pro (HDR / 10-bit) may look overexposed /
   washed out in the Preview. This is not a Phase 5 playback-correctness issue: the preview
@@ -286,6 +660,12 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Media import is not undoable (unchanged from Phase 2).
 
 ## Verification
+
+2026-09-24 (Phase 7 closeout, Step 10):
+- `dotnet build --no-incremental`: 0 errors, 0 warnings. `dotnet test`: 3 consecutive runs, 1111
+  passed each (Core 275, Timeline 257, Project 249, UI 193, Video 137), 0 skipped.
+- Running app: Phase 7 integration smoke passed (details in Step 10 above); close hang observed
+  (known issue, pre-Phase 7).
 
 2026-09-23 (Phase 5 audio, lifecycle):
 - `dotnet build`: 0 errors, 0 warnings. `dotnet test`: 391 passed (Core 153, Timeline 132,

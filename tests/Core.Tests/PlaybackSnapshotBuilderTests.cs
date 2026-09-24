@@ -123,17 +123,26 @@ public class PlaybackSnapshotBuilderTests
         var v = Add(_v1, new VideoClip { MediaAssetId = withAudio.Id, Volume = 0.8 }, 0, 10);
         var s = Add(_v1, new VideoClip { MediaAssetId = silent.Id }, 10, 20);
         var a = Add(_a1, new AudioClip { MediaAssetId = music.Id, Volume = 0.3 }, 0, 20);
-        var muted = Add(_a1, new AudioClip { MediaAssetId = music.Id, IsMuted = true }, 20, 30);
+        var muted = Add(_a1, new AudioClip { MediaAssetId = music.Id, IsMuted = true, Volume = 0.6 }, 20, 30);
+        var mutedVideo = Add(_v2, new VideoClip { MediaAssetId = withAudio.Id, IsMuted = true, Volume = 1.5 }, 30, 40);
 
         var snapshot = Build();
         Assert.Equal(0.8, snapshot.AudioSpans.Single(x => x.ClipId == v.Id).Gain);
         Assert.Equal(0.3, snapshot.AudioSpans.Single(x => x.ClipId == a.Id).Gain);
         Assert.DoesNotContain(snapshot.AudioSpans, x => x.ClipId == s.Id);
-        Assert.DoesNotContain(snapshot.AudioSpans, x => x.ClipId == muted.Id);
+
+        // Muted clips stay as silent spans that keep their volume (unmuting only changes the mix).
+        var mutedSpan = snapshot.AudioSpans.Single(x => x.ClipId == muted.Id);
+        Assert.Equal((true, 0.6, 0.0), (mutedSpan.IsMuted, mutedSpan.Gain, mutedSpan.EffectiveGain));
+        var mutedVideoSpan = snapshot.AudioSpans.Single(x => x.ClipId == mutedVideo.Id);
+        Assert.Equal((true, 1.5, 0.0), (mutedVideoSpan.IsMuted, mutedVideoSpan.Gain, mutedVideoSpan.EffectiveGain));
+        Assert.Equal(0.8, snapshot.AudioSpans.Single(x => x.ClipId == v.Id).EffectiveGain);
+        Assert.NotNull(snapshot.PictureAt(F(35))); // a muted video still shows its picture
 
         _a1.IsMuted = true;
         _v1.IsMuted = true;
-        Assert.Empty(Build(2).AudioSpans);
+        _v2.IsMuted = true;
+        Assert.Empty(Build(2).AudioSpans); // muted tracks drop their clips' audio entirely
         Assert.NotNull(Build(3).PictureAt(F(5))); // muting never hides the picture
     }
 
@@ -149,7 +158,7 @@ public class PlaybackSnapshotBuilderTests
         var cMissing = Add(_v1, new VideoClip { MediaAssetId = missing.Id }, 0, 10);
         var cUnknown = Add(_v1, new VideoClip { MediaAssetId = Guid.NewGuid() }, 10, 20);
         var cUnanalyzed = Add(_v1, new VideoClip { MediaAssetId = unanalyzed.Id }, 20, 30);
-        var cSpeed = Add(_v1, new VideoClip { MediaAssetId = normal.Id, Speed = 2.0 }, 30, 40);
+        var cSpeed = Add(_v1, new VideoClip { MediaAssetId = normal.Id, Speed = ClipSpeed.FromSteps(40) }, 30, 40);
         var cWrongKind = Add(_v1, new VideoClip { MediaAssetId = image.Id }, 40, 50);
         var cImage = Add(_v1, new ImageClip { MediaAssetId = image.Id }, 50, 60);
         Add(_v2, new TextClip { Text = "title" }, 0, 60);
@@ -160,10 +169,11 @@ public class PlaybackSnapshotBuilderTests
         Assert.Equal(cMissing.Id, snapshot.PictureAt(F(0))!.ClipId); // text above is transparent
         Assert.Equal((SpanStatus.Offline, cUnknown.Id), (snapshot.PictureAt(F(10))!.Status, snapshot.PictureAt(F(10))!.ClipId));
         Assert.Equal((SpanStatus.Offline, cUnanalyzed.Id), (snapshot.PictureAt(F(20))!.Status, snapshot.PictureAt(F(20))!.ClipId));
-        Assert.Equal((SpanStatus.Unsupported, cSpeed.Id), (snapshot.PictureAt(F(30))!.Status, snapshot.PictureAt(F(30))!.ClipId));
+        // Since Step 9 (D022) a clip at another speed plays; its span carries the speed.
+        Assert.Equal((SpanStatus.Video, cSpeed.Id, ClipSpeed.FromSteps(40)), (snapshot.PictureAt(F(30))!.Status, snapshot.PictureAt(F(30))!.ClipId, snapshot.PictureAt(F(30))!.Speed));
         Assert.Equal((SpanStatus.Unsupported, cWrongKind.Id), (snapshot.PictureAt(F(40))!.Status, snapshot.PictureAt(F(40))!.ClipId));
         Assert.Equal((SpanStatus.StillImage, cImage.Id), (snapshot.PictureAt(F(50))!.Status, snapshot.PictureAt(F(50))!.ClipId));
-        Assert.All(new[] { 0, 10, 20, 30, 40 }, f => Assert.False(string.IsNullOrEmpty(snapshot.PictureAt(F(f))!.Reason)));
+        Assert.All(new[] { 0, 10, 20, 40 }, f => Assert.False(string.IsNullOrEmpty(snapshot.PictureAt(F(f))!.Reason)));
         Assert.Null(snapshot.PictureAt(F(50))!.Reason);
     }
 

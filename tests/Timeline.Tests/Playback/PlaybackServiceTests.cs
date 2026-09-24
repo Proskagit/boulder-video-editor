@@ -258,17 +258,17 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
     public async Task Offline_Unsupported_DecodeError_AreDistinct_AndPlaybackContinues()
     {
         var missing = Video("missing.mp4", 25);
-        var fast = Video("fast.mp4", 25);
+        var wrongKind = Video("wrong-kind.mp4", 25);
         var broken = Video("broken.mp4", 25);
         var gone = Video("gone.mp4", 25);
         var ok = Video("ok.mp4", 25);
         AddClip(missing);
-        var fastClip = (MediaBackedClip)AddClip(fast);
+        AddClip(wrongKind);
         AddClip(broken);
         AddClip(gone);
         AddClip(ok);
         missing.IsMissing = true;
-        fastClip.Speed = 2.0;
+        wrongKind.Kind = MediaKind.Audio; // a video clip that can't play its media (speed ≠ 1 plays since D022)
         _decoder.FailOpen(broken.FilePath, VideoDecodeError.DecoderFailed);
         _decoder.FailOpen(gone.FilePath, VideoDecodeError.FileNotFound);
         Publish();
@@ -419,6 +419,7 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
 
         for (var i = 0; i < 10; i++)
             _ = _service.SeekAsync(F(i * 19));
+        Assert.True(_f.Service.AddTrack(TrackType.Video).Success); // a real timeline change (not mix-only)
         Publish(); // a newer snapshot supersedes the last seek's pipeline too
         await _service.SeekAsync(F(90)); // near the a|b boundary: current + prefetched reader
         await SettleAsync();

@@ -61,7 +61,7 @@ internal sealed class SpanReader : IAsyncDisposable
     private bool IsStill => Span.Status == SpanStatus.StillImage;
 
     public SourceSamplePoint SamplePoint(long timelineFrame) =>
-        SourceFrameSelector.SamplePoint(Span.TimelineStart, Span.SourceIn, timelineFrame, _rate, _asset.NominalFrameRate);
+        SourceFrameSelector.SamplePoint(Span.TimelineStart, Span.SourceIn, Span.Speed, timelineFrame, _rate, _asset.NominalFrameRate);
 
     /// <summary>True once <see cref="TryGet"/> would return a certain answer for the frame, without consuming anything.</summary>
     public bool IsReady(long timelineFrame)
@@ -142,6 +142,9 @@ internal sealed class SpanReader : IAsyncDisposable
                     Hardware = hardware
                 };
 
+                // A reader retired before its task ran (e.g. superseded by the next seek at once)
+                // must not start a decoder process only to cancel it.
+                ct.ThrowIfCancellationRequested();
                 await using var stream = await _decoder.OpenAsync(request, ct);
                 if (IsStill)
                 {

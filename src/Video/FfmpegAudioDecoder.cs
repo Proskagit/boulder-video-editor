@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
 using Microsoft.Extensions.Logging;
@@ -31,9 +32,27 @@ public sealed class FfmpegAudioDecoderSettings
 /// attempt is repeated with a larger preroll (up to <see cref="FfmpegAudioDecoderSettings.MaxPreroll"/>,
 /// then from the beginning of the file); a stream that really starts later is accepted and the
 /// caller fills the gap with silence. <c>async=1</c> keeps the output contiguous across timestamp gaps.
+/// <para>
+/// Speed other than 1× (D022): <c>ashowinfo</c> stays before the tempo change (its PTS are source
+/// time; after <c>atempo</c> they count output samples), followed by <c>apad=pad_dur=0.25</c> (so the
+/// tempo filter's window reaches the true end of the file) and <c>atempo</c> — one instance, or
+/// <c>atempo=0.5</c> and <c>atempo=2s</c> below 0.5×. The pitch is kept. <c>atempo</c> delays its
+/// output by a constant <see cref="AtempoLatencySourceSamples"/>, which is added to the stream's
+/// <see cref="IAudioSampleStream.FirstSampleIndex"/> here, so callers map output samples to the source
+/// exactly as <see cref="AudioDecodeRequest.Speed"/> describes.
+/// </para>
 /// </summary>
 public sealed partial class FfmpegAudioDecoder : IAudioDecoder
 {
+    /// <summary>
+    /// Output latency of ffmpeg's tempo chain, in source samples: the first output sample stands for
+    /// the source about this far after the first input sample. Measured with FFmpeg 9.0.1 (see
+    /// progress.md, Step 9): one <c>atempo</c> 449–483 samples (0.5×, 2×, 4×), the two-filter chain
+    /// below 0.5× 542 (0.25×). An implementation detail of this decoder, guarded by an integration test
+    /// (≤ 10 ms end to end, no drift), not a property of the model.
+    /// </summary>
+    internal static long AtempoLatencySourceSamples(ClipSpeed speed) => speed.IsNormal ? 0 : speed.ToDecimal() < 0.5m ? 540 : 480;
+
     private readonly IFfmpegLocator _locator;
     private readonly ILogger<FfmpegAudioDecoder> _logger;
     private readonly FfmpegAudioDecoderSettings _settings;
@@ -60,14 +79,15 @@ public sealed partial class FfmpegAudioDecoder : IAudioDecoder
 
         var requestedSample = AudioTiming.NearestSample(request.SourcePosition);
         var originSamples = AudioTiming.NearestSample(request.StartTime);
+        var latency = AtempoLatencySourceSamples(request.Speed);
         var preroll = _settings.InitialPreroll.Ticks;
 
         for (var attempt = 1; ; attempt++)
         {
             var seekTicks = request.SourcePosition.Ticks - preroll;
             var fromStart = seekTicks <= 0;
-            var arguments = BuildArguments(request.FilePath, fromStart ? null : seekTicks);
-            var stream = await StartAsync(ffmpeg, arguments, originSamples, requestedSample, ct);
+            var arguments = BuildArguments(request.FilePath, fromStart ? null : seekTicks, request.Speed);
+            var stream = await StartAsync(ffmpeg, arguments, originSamples - latency, requestedSample, ct);
 
             if (fromStart || stream.FirstSampleIndex <= requestedSample || preroll >= _settings.MaxPreroll.Ticks)
             {
@@ -152,7 +172,7 @@ public sealed partial class FfmpegAudioDecoder : IAudioDecoder
         return pts;
     }
 
-    internal static List<string> BuildArguments(string filePath, long? seekTicks)
+    internal static List<string> BuildArguments(string filePath, long? seekTicks, ClipSpeed speed = default)
     {
         var args = new List<string> { "-hide_banner", "-nostdin", "-nostats", "-loglevel", "info", "-copyts" };
         if (seekTicks is { } seek)
@@ -160,10 +180,24 @@ public sealed partial class FfmpegAudioDecoder : IAudioDecoder
         args.AddRange(new[]
         {
             "-i", filePath, "-map", "0:a:0", "-vn", "-sn", "-dn",
-            "-af", $"aresample={AudioFormat.SampleRate}:async=1,aformat=sample_fmts=flt:channel_layouts=stereo,ashowinfo",
+            "-af", $"aresample={AudioFormat.SampleRate}:async=1,aformat=sample_fmts=flt:channel_layouts=stereo,ashowinfo{TempoFilters(speed)}",
             "-f", "f32le", "pipe:1"
         });
         return args;
+    }
+
+    /// <summary>The tempo chain after <c>ashowinfo</c> for <paramref name="speed"/>: empty at 1×;
+    /// otherwise <c>apad</c> and one <c>atempo</c> (range 0.5–100), or two below 0.5×.</summary>
+    internal static string TempoFilters(ClipSpeed speed)
+    {
+        if (speed.IsNormal) return "";
+        var tempo = speed.ToDecimal();
+        var chain = tempo < 0.5m
+            ? $"atempo=0.5,atempo={Format(tempo * 2)}"
+            : $"atempo={Format(tempo)}";
+        return ",apad=pad_dur=0.25," + chain;
+
+        static string Format(decimal value) => value.ToString("0.###", CultureInfo.InvariantCulture);
     }
 }
 

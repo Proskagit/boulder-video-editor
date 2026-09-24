@@ -40,4 +40,29 @@ public class ShowInfoParserTests
         Assert.Null(parser.Parse("[Parsed_showinfo_2 @ 000001de6fd66e00]   side data - ..."));
         Assert.Throws<FormatException>(() => parser.Parse(Frame0));
     }
+
+    [Fact]
+    public void ConfigLineGluedToAPrecedingMessage_StillSetsTheTimeBase()
+    {
+        // ffmpeg 9 with a 45° display matrix: its warning has no trailing newline, so showinfo's
+        // config line loses its own "[Parsed_showinfo_…]" prefix.
+        var parser = new ShowInfoParser();
+        Assert.Null(parser.Parse("If you want to help, upload a sample of this file to https://streams.videolan.org/upload/ " +
+            "and contact the ffmpeg-devel mailing list. (ffmpeg-devel@ffmpeg.org)config in time_base: 1/12800, frame_rate: 25/1"));
+
+        var frame = parser.Parse("[Parsed_showinfo_2 @ 000001619e633000] n:   0 pts:      0 pts_time:0       duration:    512 " +
+            "duration_time:0.04    fmt:bgra cl:unspecified sar:1/1 s:320x180 i:P iskey:1 type:I ");
+
+        Assert.Equal(new TimeBase(1, 12800), frame!.Value.TimeBase);
+        Assert.Equal((320, 180), (frame.Value.Width, frame.Value.Height));
+    }
+
+    [Fact]
+    public void ConfigOutAnywhere_IsNotATimeBase()
+    {
+        var parser = new ShowInfoParser();
+        Assert.Null(parser.Parse("something config out time_base: 0/0, frame_rate: 0/0"));
+        Assert.Throws<FormatException>(() => parser.Parse(
+            "[Parsed_showinfo_2 @ 0x1] n:   0 pts:      0 pts_time:0 fmt:bgra s:320x180 i:P "));
+    }
 }

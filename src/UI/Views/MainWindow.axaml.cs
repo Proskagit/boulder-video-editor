@@ -147,7 +147,7 @@ public partial class MainWindow : Window
             new ToolbarViewModel(undoRedo, projectFiles, importWorkflow, status),
             new MediaBrowserViewModel(projectService, importWorkflow, NullLogger<MediaBrowserViewModel>.Instance),
             new PreviewViewModel(status, new DesignTimePlaybackService(), projectService, NullLogger<PreviewViewModel>.Instance),
-            new InspectorViewModel(),
+            new InspectorViewModel(new DesignTimeTimelineEditService(), status),
             new TimelineViewModel(projectService, new DesignTimeTimelineEditService(), status, NullLogger<TimelineViewModel>.Instance),
             status,
             projectFiles,
@@ -215,6 +215,8 @@ public partial class MainWindow : Window
         public FrameRate FrameRate => FrameRate.Default;
         public string? GetAddBlockReason(MediaAsset asset) => "Design time.";
         public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null) => Nothing;
+        public TimelineEditResult AddTextClip(MediaTime start) => Nothing;
+        public TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed) => Nothing;
         public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => Nothing;
         public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => "Design time.";
         public TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime) => Nothing;
@@ -222,6 +224,7 @@ public partial class MainWindow : Window
         public TimelineEditResult Split(MediaTime at, IReadOnlyCollection<Guid>? clipIds = null) => Nothing;
         public TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds) => Nothing;
         public TimelineEditResult AddTrack(TrackType type) => Nothing;
+        public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change) => Nothing;
         public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds) => SnapResult.None;
     }
 

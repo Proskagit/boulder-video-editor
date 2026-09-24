@@ -66,8 +66,18 @@ internal sealed class MediaAssetDto
 internal sealed class MediaMetadataDto
 {
     public long DurationTicks { get; set; }
+
+    /// <summary>Coded picture size.</summary>
     public int? Width { get; set; }
     public int? Height { get; set; }
+
+    /// <summary>Added in Phase 7 without a format version change (optional): display orientation
+    /// (clockwise 0/90/180/270, null = not a right-angle rotation) and the size of the frames the
+    /// decoder delivers. Metadata written before them has a coded size but no display size; it is
+    /// kept, and the media is probed again when it is available.</summary>
+    public int? DisplayRotation { get; set; }
+    public int? DisplayWidth { get; set; }
+    public int? DisplayHeight { get; set; }
     public FrameRateDto? FrameRate { get; set; }
     public FrameRateDto? AvgFrameRate { get; set; }
     public long? StartTimeTicks { get; set; }
@@ -120,7 +130,21 @@ internal abstract class MediaBackedClipDto : ClipDto
     public Guid MediaAssetId { get; set; }
     public long SourceInTicks { get; set; }
     public long SourceOutTicks { get; set; }
-    public double Speed { get; set; }
+
+    /// <summary>Format v1 only: the speed as a number, always 1 in files the editor could write.
+    /// Not written from v2 on (see <see cref="SpeedRatio"/>).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Speed { get; set; }
+
+    /// <summary>Format v2: the exact speed as a reduced fraction (D022).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SpeedDto? SpeedRatio { get; set; }
+}
+
+internal sealed class SpeedDto
+{
+    public long Numerator { get; set; }
+    public long Denominator { get; set; }
 }
 
 internal sealed class VideoClipDto : MediaBackedClipDto
@@ -131,6 +155,11 @@ internal sealed class VideoClipDto : MediaBackedClipDto
     public double RotationDegrees { get; set; }
     public double Opacity { get; set; }
     public double Volume { get; set; }
+
+    /// <summary>Added in Phase 7 without a format version change: absent in older v1 files,
+    /// which then load unmuted.</summary>
+    public bool IsMuted { get; set; }
+
     public CropDto? Crop { get; set; }
 }
 

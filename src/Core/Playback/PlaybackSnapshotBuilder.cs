@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 
 namespace AiVideoEditor.Core.Playback;
@@ -8,8 +9,10 @@ namespace AiVideoEditor.Core.Playback;
 /// Builds a <see cref="PlaybackSnapshot"/> from the live project. Must run on the thread that
 /// owns the project model (the UI thread); the result is safe to share with any thread.
 /// Rules (D010): the topmost visible video track wins the picture; hidden tracks still
-/// contribute audio; muted tracks/clips contribute no audio; TextClips are transparent
-/// (Phase 7); only speed 1.0 is playable.
+/// contribute audio; muted tracks contribute no audio; muted clips (video or audio) are kept as
+/// silent spans (<see cref="AudioSpan.IsMuted"/>); only speed 1.0 is playable. For
+/// composition (D018) picture spans carry their visual properties and source size, and text clips
+/// become <see cref="TextSpan"/>s (they never produce a decoded picture).
 /// </summary>
 public static class PlaybackSnapshotBuilder
 {
@@ -30,26 +33,40 @@ public static class PlaybackSnapshotBuilder
         foreach (var track in videoTracks)
         {
             var spans = ImmutableArray.CreateBuilder<PictureSpan>();
+            var texts = ImmutableArray.CreateBuilder<TextSpan>();
             foreach (var clip in track.Clips.OrderBy(c => c.TimelineStart))
             {
+                if (clip is TextClip text)
+                {
+                    texts.Add(new TextSpan(text.Id, text.TimelineStart, text.TimelineEnd,
+                        VisualProperties.Of(text)!.Value, TextProperties.Of(text)!.Value));
+                    continue;
+                }
                 if (clip is not MediaBackedClip media)
-                    continue; // TextClip: transparent until Phase 7
+                    continue;
 
                 assets.TryGetValue(media.MediaAssetId, out var asset);
                 var (status, reason) = PictureStatus(media, asset);
                 Remember(asset, used);
                 if (!track.IsHidden)
-                    spans.Add(new PictureSpan(clip.Id, media.MediaAssetId, status, clip.TimelineStart, clip.TimelineEnd, media.SourceIn, reason));
+                    spans.Add(new PictureSpan(clip.Id, media.MediaAssetId, status, clip.TimelineStart, clip.TimelineEnd, media.SourceIn, reason)
+                    {
+                        Visual = VisualProperties.Of(media) ?? VisualProperties.Default,
+                        Speed = media.Speed,
+                        // The decoder delivers display-oriented frames (automatic rotation), so the
+                        // composition works with the display size, never the coded one.
+                        SourceSize = DisplaySize(asset?.Metadata)
+                    });
 
                 if (media is VideoClip video && !track.IsMuted && asset?.Metadata?.AudioCodec is not null)
                 {
                     var (audioStatus, audioReason) = AudioStatus(media, asset);
                     audio.Add(new AudioSpan(clip.Id, media.MediaAssetId, audioStatus, clip.TimelineStart, clip.TimelineEnd,
-                        media.SourceIn, video.Volume, audioReason));
+                        media.SourceIn, video.Volume, audioReason, video.IsMuted) { Speed = media.Speed });
                 }
             }
             if (!track.IsHidden)
-                layers.Add(new VideoLayer(track.Id, spans.ToImmutable()));
+                layers.Add(new VideoLayer(track.Id, spans.ToImmutable()) { Texts = texts.ToImmutable() });
         }
 
         foreach (var track in sequence.AudioTracks)
@@ -57,16 +74,16 @@ public static class PlaybackSnapshotBuilder
             if (track.IsMuted) continue;
             foreach (var clip in track.Clips.OfType<AudioClip>().OrderBy(c => c.TimelineStart))
             {
-                if (clip.IsMuted) continue;
                 assets.TryGetValue(clip.MediaAssetId, out var asset);
                 Remember(asset, used);
                 var (status, reason) = AudioStatus(clip, asset);
-                audio.Add(new AudioSpan(clip.Id, clip.MediaAssetId, status, clip.TimelineStart, clip.TimelineEnd, clip.SourceIn, clip.Volume, reason));
+                audio.Add(new AudioSpan(clip.Id, clip.MediaAssetId, status, clip.TimelineStart, clip.TimelineEnd, clip.SourceIn, clip.Volume, reason, clip.IsMuted) { Speed = clip.Speed });
             }
         }
 
         return new PlaybackSnapshot(version, project.Settings.FrameRate, sequence.Duration(),
-            layers.ToImmutable(), audio.ToImmutable(), used.ToImmutableDictionary());
+            layers.ToImmutable(), audio.ToImmutable(), used.ToImmutableDictionary(),
+            new FrameSize(project.Settings.FrameWidth, project.Settings.FrameHeight));
     }
 
     /// <summary>
@@ -76,7 +93,12 @@ public static class PlaybackSnapshotBuilder
     /// </summary>
     public readonly record struct AssetState(
         bool InProject, string? FilePath, MediaKind Kind, bool IsMissing, bool HasMetadata, bool HasAudio,
-        MediaTime StartTime, FrameRate? NominalFrameRate);
+        MediaTime StartTime, FrameRate? NominalFrameRate, FrameSize? DisplaySize = null);
+
+    /// <summary>The picture size composition uses: the display size of the metadata, or null when
+    /// it is unknown (then the renderer lays the picture out from the decoded frame, D018).</summary>
+    public static FrameSize? DisplaySize(MediaMetadata? metadata) =>
+        metadata is { DisplayWidth: > 0 and var w, DisplayHeight: > 0 and var h } ? new FrameSize(w, h) : null;
 
     /// <summary>States of the assets referenced by media-backed clips on any track (hidden
     /// tracks included — their clips still contribute audio).</summary>
@@ -90,7 +112,7 @@ public static class PlaybackSnapshotBuilder
             if (states.ContainsKey(clip.MediaAssetId)) continue;
             states[clip.MediaAssetId] = assets.TryGetValue(clip.MediaAssetId, out var a)
                 ? new AssetState(true, a.FilePath, a.Kind, a.IsMissing, a.Metadata is not null, a.Metadata?.AudioCodec is not null,
-                    a.Metadata?.StartTime ?? MediaTime.Zero, SourceFrameSelector.NominalRate(a.Metadata))
+                    a.Metadata?.StartTime ?? MediaTime.Zero, SourceFrameSelector.NominalRate(a.Metadata), DisplaySize(a.Metadata))
                 : new AssetState(false, null, default, false, false, false, MediaTime.Zero, null);
         }
         return states.ToImmutable();
@@ -103,7 +125,6 @@ public static class PlaybackSnapshotBuilder
     private static (SpanStatus, string?) PictureStatus(MediaBackedClip clip, MediaAsset? asset)
     {
         if (Unavailable(asset) is { } offline) return (SpanStatus.Offline, offline);
-        if (clip.Speed != 1.0) return (SpanStatus.Unsupported, "Only speed 1.0 can be played.");
         return (clip, asset!.Kind) switch
         {
             (VideoClip, MediaKind.Video) when asset.Metadata is null => (SpanStatus.Offline, "Media information is not available."),
@@ -116,7 +137,6 @@ public static class PlaybackSnapshotBuilder
     private static (SpanStatus, string?) AudioStatus(MediaBackedClip clip, MediaAsset? asset)
     {
         if (Unavailable(asset) is { } offline) return (SpanStatus.Offline, offline);
-        if (clip.Speed != 1.0) return (SpanStatus.Unsupported, "Only speed 1.0 can be played.");
         if (asset!.Metadata is null) return (SpanStatus.Offline, "Media information is not available.");
         return asset.Kind is MediaKind.Audio or MediaKind.Video
             ? (SpanStatus.Audio, null)

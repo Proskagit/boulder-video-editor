@@ -25,8 +25,8 @@ projects (`tests/Core.Tests`, `tests/Project.Tests`, `tests/Timeline.Tests`, `te
 | Infrastructure | Serilog setup, `AppPaths` (incl. the recovery folder), `FfprobeLocator` / `FfmpegLocator` + `FfmpegOptions`, `ErrorTranslator` | Implemented |
 | Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS); `FfmpegAudioDecoder` (ffmpeg CLI → 48 kHz stereo float); shared `FfmpegProcess` | Probe + video/audio decode |
 | Media | `MediaImportService` (extension validation, file size) | Implemented |
-| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService` | Implemented (Phase 6) |
-| Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands | Implemented (Phase 4) |
+| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService` | Implemented (Phase 6; format v2 since Phase 7, D022) |
+| Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
 | Effects, Export | Later phases | Empty scaffolds |
 
@@ -41,7 +41,7 @@ Domain types (`src/Core/Entities`):
   together with `Track`). Holds `VideoTracks`, `AudioTracks`, `Markers`,
   `PlayheadPosition`, `ZoomPixelsPerSecond`, `SnappingEnabled`
 - `Track` — lane of clips (`Type`, `Order`, mute/hide/lock)
-- `Clip` → `MediaBackedClip` (`SourceIn`/`SourceOut`/`Speed`) → `VideoClip`, `AudioClip`, `ImageClip`; plus `TextClip`
+- `Clip` → `MediaBackedClip` (`SourceIn`/`SourceOut`/`Speed` — exact `ClipSpeed`, timing rule `SpeedTiming`, D022) → `VideoClip`, `AudioClip`, `ImageClip`; plus `TextClip`
 - `MediaAsset` + `MediaMetadata` + `MediaAnalysisStatus`
 - `ExportSettings`, `ProjectSettings`, `Effect`, `Transition`, `Marker`
 - `MediaTime`
@@ -59,6 +59,26 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   then executes one `IUndoableCommand` wrapped in `NotifyingCommand`, which calls
   `IProjectService.NotifyTimelineChanged()` on Execute and Undo (raises `TimelineChanged`;
   dirty state follows the undo save point, D015). Rules: D008.
+- Inspector (Phase 7): audio (volume 0–200 %, mute), transform (position, scale %, rotation,
+  opacity %), crop (per edge %) and text (content, font from the installed fonts via
+  `IFontCatalog`, size, `#RRGGBB` color with a swatch, alignment); edits go to `SetClipProperties`
+  one field at a time, the fields are refreshed from the model under a sync guard (no echo edits).
+  Numeric text rules: `NumericInput`; text clips: D021.
+- Speed (Phase 7, D022): `ITimelineEditService.SetClipSpeed` (start and source range kept, frames
+  from `SpeedTiming.FramesFor`, merged undo via `SetClipSpeedCommand`); speed is part of `ClipState`
+  so every timing command restores it; playback maps timeline → source with the speed (video sample
+  points, audio `AudioTiming`), the FFmpeg audio decoder adds `apad` + `atempo` and compensates its
+  latency; `project.json` v2.
+- Text clips (Phase 7, D021): `ITimelineEditService.AddTextClip(start)` — topmost video track,
+  frame-grid start, 5 s, one "Add Text" step; "+ Text" in the timeline header adds at the playhead
+  and selects the clip. The timeline label of a text clip is its first line (`(empty text)` for
+  blank text), recomputed on every timeline refresh.
+- Clip properties (Phase 7, D017): `SetClipProperties` with typed `VisualProperties` /
+  `AudioProperties` / `TextProperties` (Core/Entities/ClipProperties.cs, limits in
+  `ClipPropertyLimits`), validated by `ClipPropertyValidator` (Core; also used on load), applied by
+  `SetClipPropertiesCommand` (absolute `ClipPropertyValues` before/after). Consecutive changes of
+  the same properties of one clip merge into one undo step (`IMergeableCommand`), never into the
+  save point and never right after an Undo.
 - UI: `TimelineViewModel` projects the `Sequence` (clip view models reused by Id),
   owns view state (zoom, playhead, selection, drag previews using the service's
   dry-run `CanMoveClips` / `PreviewTrim`) and never mutates the model directly.
@@ -83,11 +103,14 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
 - Playback core (D011): `PlaybackSnapshotBuilder` (UI thread) → immutable `PlaybackSnapshot`
   → `IPlaybackService` / `PlaybackService` (Timeline/Playback). `PlaybackClock` = anchor +
   elapsed of an `IReferenceClock` (Stopwatch now, audio device later). `VideoPipeline` keeps a
-  `SpanReader` for the visible clip plus the next one within the prefetch window; each reader
+  `SpanReader` for the visible clip plus the next one within the prefetch window (since Phase 7:
+  one per visible layer, D019); each reader
   decodes in the background into a bounded buffer and returns a frame only when certain.
   The UI polls `Update()` each tick; nothing is pushed to the UI thread.
-- UI (D011): `PreviewView`'s `DispatcherTimer` → `PreviewViewModel.Tick()` → `Update()`;
-  the picture goes to a `WriteableBitmap` in the view. Playhead ↔ playback wiring lives in
+- UI (D011, D020): `PreviewView`'s `DispatcherTimer` → `PreviewViewModel.Tick()` → `Update()`;
+  the layers go to `CompositionView` (UI/Rendering), which draws a `CompositionDrawPlan`
+  (canvas → control viewport, per-layer transform/opacity/crop, text, placeholders) with
+  `DrawingContext`, one pair of `WriteableBitmap`s per layer. Playhead ↔ playback wiring lives in
   `MainWindowViewModel`: `TimelineViewModel.SeekRequested` (user moves only) → `SeekAsync`;
   `PreviewViewModel.PlaybackPositionChanged` → `TimelineViewModel.ShowPlaybackPosition` (no
   seek). Snapshots are rebuilt by `PreviewViewModel` on project/timeline/media events.
@@ -98,12 +121,39 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   (Audio project, NAudio). The output's played-frames clock is the playback master while it
   runs; Stopwatch otherwise. Core holds only backend-neutral contracts (`AudioContracts.cs`,
   `AudioTiming`).
+- Volume/mute (Phase 7, D013 refinement): muted clips stay as silent spans (`AudioSpan.IsMuted`,
+  mixed at `EffectiveGain` 0). A snapshot that `DiffersOnlyInPresentation` (D018) from the current one keeps the
+  video pipeline, seek generation, picture and every reader; only `AudioPipeline.UpdateMix`
+  republishes the gains.
 
 ### MediaTime
 
 MediaTime uses 100-nanosecond ticks.
 
 This is a deliberate precision decision and should be preserved unless an explicit architectural decision changes it.
+
+## Composition (Phase 7, D018)
+
+- `Core/Composition`: `CompositionMath.Layout(canvas, sourceSize, VisualProperties)` → `LayerGeometry`
+  (source rect in pixels and normalized, fit, `Affine2D` crop-local → canvas, centre, opacity, bounds,
+  `CoversCanvas`), `CompositionMath.TextTransform`, `FrameSize` / `RectD` / `PointD` / `Affine2D`;
+  exact coverage via an internal BigInteger rational. Order: crop → fit (contain) → scale → rotation
+  (clockwise, around the centre) → position (centre offset from the canvas centre, canvas px, Y down)
+  → opacity. Canvas = project `FrameWidth × FrameHeight`.
+- `PlaybackSnapshot.LayersAt(time)` → `CompositionLayer`s bottom to top (`PictureLayer` with
+  `PictureSpan` + geometry, `TextLayer` with renderer-neutral `TextProperties` + transform); culls below
+  an opaque video that provably covers the canvas.
+- Playback of layers (D019): `VideoPipeline` decodes every layer `LayersAt` returns (readers keyed by
+  clip, prefetch at the next edge, `UpdatePresentation` for presentation-only snapshots — no new seek
+  generation, newly uncovered layers Pending); `PlaybackFrame.Layers` = `LayerPicture`s bottom to top
+  (Frame/Text/Pending/Offline/Unsupported/DecodeError, per-layer late flag, placeholder area);
+  the Preview renders the layers (D020). `PlaybackFrame.Picture` (topmost picture layer) is no longer
+  used by the UI; it stays in Core as the oracle of the playback tests (deferred cleanup).
+- Orientation (D019): metadata keeps the coded `Width/Height` and adds `DisplayRotation` /
+  `DisplayWidth/Height` (what the decoder delivers with `-autorotate`); composition uses the display size.
+- Phase 8 constraints: the export must reproduce these rules exactly (same order, canvas and culling
+  semantics as `CompositionMath`); text needs a font file for ffmpeg `drawtext`, while the Preview
+  silently substitutes a missing font (D021); clip speed follows D022 (exact mapping, pitch kept).
 
 ## Media pipeline
 
@@ -125,9 +175,12 @@ implementations.
 Decisions: D014 (format, Open/Save, missing media), D015 (save point), D016 (autosave,
 recovery, unsaved changes).
 
-- On disk: a project folder with `project.json` (format v1). `ProjectSerializer` maps entities
+- On disk: a project folder with `project.json` (format v2 since Phase 7: the clip speed as an exact
+  fraction `speedRatio`, D022; v1 files are read when their speed is 1 and saved as v2; files of a
+  newer version are refused). `ProjectSerializer` maps entities
   ⇄ DTOs (`ProjectFileDto.cs`; ticks as `long`, exact frame rates, no runtime state) and
-  validates on load; `ProjectFileStore` reads and writes atomically (temp + `File.Replace`).
+  validates on load (incl. clip property ranges, D017, and the speed timing invariant, D022);
+  `ProjectFileStore` reads and writes atomically (temp + `File.Replace`).
 - `ProjectService` (UI thread): Open reads + validates + marks missing media off the UI thread
   into a separate object, then replaces the project (history cleared, clean). Save / Save As
   snapshot text, history position and non-undoable change count together, write, and only
@@ -146,7 +199,8 @@ recovery, unsaved changes).
   shutdown (`PrepareToCloseAsync` from `MainWindow.OnClosing`, which cancels the first close and
   closes again once approved). Toolbar commands and Ctrl+N / O / S / Shift+S call it; the window
   title comes from `MainWindowViewModel.Title`.
-- Open question: playhead, zoom and snapping are stored but don't make the project dirty (D015).
+- Playhead, zoom and snapping are session state (D015): stored in `project.json`, never dirty,
+  never undoable; `TimelineViewModel` reads zoom/snapping from the sequence on every `ProjectChanged`.
 
 ## MVVM
 

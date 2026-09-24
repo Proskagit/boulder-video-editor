@@ -52,7 +52,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _logger = logger;
 
         _projectService.TimelineChanged += (_, _) => Refresh();
-        _projectService.ProjectChanged += (_, _) => { _selection.Clear(); Refresh(); };
+        _projectService.ProjectChanged += (_, _) => OnProjectReplaced();
         _projectService.MediaAssetsChanged += (_, _) => RefreshClipNames();
 
         _pixelsPerSecond = Sequence.ZoomPixelsPerSecond;
@@ -103,6 +103,18 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     // --- Projection ---------------------------------------------------------------
 
+    /// <summary>Another project became current (New / Open / Recover). Selection and any drag
+    /// belong to the old one; zoom and snapping are session state of the new sequence (D015),
+    /// so they are read from it rather than carried over.</summary>
+    private void OnProjectReplaced()
+    {
+        CancelGesture();
+        _selection.Clear();
+        PixelsPerSecond = Sequence.ZoomPixelsPerSecond;
+        SnappingEnabled = Sequence.SnappingEnabled;
+        Refresh();
+    }
+
     private void Refresh()
     {
         var desiredTracks = Sequence.VideoTracks.OrderByDescending(t => t.Order)
@@ -136,6 +148,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
         foreach (var staleId in _clipViewModels.Keys.Where(id => !liveIds.Contains(id)).ToList())
             _clipViewModels.Remove(staleId);
+        RefreshClipNames(); // a text clip's label is its text, which any change (or undo) may alter
         _selection.RemoveAll(id => !liveIds.Contains(id));
 
         FrameRateDisplay = _projectService.Current.Settings.IsFrameRateLocked
@@ -170,9 +183,20 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private string ClipName(Clip clip) => clip switch
     {
         MediaBackedClip m => FindAsset(m.MediaAssetId)?.FileName ?? "(missing media)",
-        TextClip t => t.Text,
+        TextClip t => TextLabel(t.Text),
         _ => "Clip"
     };
+
+    public const string EmptyTextLabel = "(empty text)";
+
+    /// <summary>First line of a text clip's text (any line break), or <see cref="EmptyTextLabel"/>
+    /// when the text is empty or only whitespace (such a clip draws nothing).</summary>
+    public static string TextLabel(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return EmptyTextLabel;
+        var end = text.AsSpan().IndexOfAny('\r', '\n');
+        return end < 0 ? text : text[..end];
+    }
 
     private MediaAsset? FindAsset(Guid id) => _projectService.Current.MediaAssets.FirstOrDefault(a => a.Id == id);
 
@@ -336,6 +360,15 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     [RelayCommand] private void ToggleSnapping() => SnappingEnabled = !SnappingEnabled;
 
+    /// <summary>"+ Text": a text clip at the playhead on the topmost video track, selected.</summary>
+    [RelayCommand]
+    private void AddText()
+    {
+        var result = _edit.AddTextClip(Playhead);
+        SelectAdded(result);
+        Report(result, successMessage: "Text added");
+    }
+
     /// <summary>"Add to Timeline" from the Media Browser: end of V1 / A1.</summary>
     public void AddMedia(MediaAsset asset) => AddMediaAt(asset.Id, null, null);
 
@@ -349,14 +382,17 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void AddMediaAt(Guid assetId, Guid? trackId, MediaTime? start)
     {
         var result = _edit.AddClip(assetId, trackId, start);
-        if (result.Success && result.ClipIds.Count > 0)
-        {
-            _selection.Clear();
-            _selection.AddRange(result.ClipIds);
-            UpdateSelectionVisuals();
-            RaiseSelectionChanged();
-        }
+        SelectAdded(result);
         Report(result, successMessage: "Added to timeline");
+    }
+
+    private void SelectAdded(TimelineEditResult result)
+    {
+        if (!result.Success || result.ClipIds.Count == 0) return;
+        _selection.Clear();
+        _selection.AddRange(result.ClipIds);
+        UpdateSelectionVisuals();
+        RaiseSelectionChanged();
     }
 
     public void ShowDropTarget(TimelineTrackViewModel? track)
