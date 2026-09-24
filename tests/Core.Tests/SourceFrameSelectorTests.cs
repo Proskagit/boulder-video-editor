@@ -220,8 +220,10 @@ public class SourceFrameSelectorTests
         Assert.Throws<ArgumentOutOfRangeException>(() => SourceFrameSelector.SamplePoint(clip, 9, rate, metadata));
         Assert.Throws<ArgumentOutOfRangeException>(() => SourceFrameSelector.SamplePoint(clip, 20, rate, metadata));
 
-        clip.Speed = 2.0;
-        Assert.Throws<NotSupportedException>(() => SourceFrameSelector.SamplePoint(clip, 10, rate, metadata));
+        // At 2× (D022) timeline frame n shows source frame SourceIn + 2·(n − start).
+        clip.Speed = ClipSpeed.FromSteps(40);
+        Assert.Equal(5, SourceFrameSelector.Select(frames, MediaTime.Zero, SourceFrameSelector.SamplePoint(clip, 10, rate, metadata)));
+        Assert.Equal(7, SourceFrameSelector.Select(frames, MediaTime.Zero, SourceFrameSelector.SamplePoint(clip, 11, rate, metadata)));
     }
 
     [Theory]

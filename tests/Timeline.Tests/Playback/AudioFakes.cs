@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Playback;
 
 namespace AiVideoEditor.Timeline.Tests.Playback;
@@ -54,7 +55,7 @@ internal sealed class FakeAudioDecoder : IAudioDecoder
         var requested = AudioTiming.NearestSample(request.SourcePosition);
         var first = Math.Max(source.StreamStartSample, requested - PrerollSamples);
         Interlocked.Increment(ref _live);
-        return new Stream(source, first, StreamDisposeDelay, () => Interlocked.Decrement(ref _live));
+        return new Stream(source, first, request.Speed, StreamDisposeDelay, () => Interlocked.Decrement(ref _live));
     }
 
     private sealed class Stream : IAudioSampleStream
@@ -62,16 +63,17 @@ internal sealed class FakeAudioDecoder : IAudioDecoder
         private readonly FakeAudioSource _source;
         private readonly TimeSpan _disposeDelay;
         private readonly Action _onDispose;
-        private long _next;
+        private readonly long _a, _b;     // speed a/b: output sample j is source sample first + ⌊j·a/b⌋
+        private long _j;
         private int _disposed;
 
-        public Stream(FakeAudioSource source, long first, TimeSpan disposeDelay, Action onDispose)
+        public Stream(FakeAudioSource source, long first, ClipSpeed speed, TimeSpan disposeDelay, Action onDispose)
         {
             _source = source;
             _disposeDelay = disposeDelay;
             _onDispose = onDispose;
             FirstSampleIndex = first;
-            _next = first;
+            (_a, _b) = (speed.Numerator, speed.Denominator);
         }
 
         public long FirstSampleIndex { get; }
@@ -80,14 +82,19 @@ internal sealed class FakeAudioDecoder : IAudioDecoder
         {
             ct.ThrowIfCancellationRequested();
             var span = interleaved.Span;
-            var frames = (int)Math.Min(span.Length / 2, _source.StreamStartSample + _source.LengthSamples - _next);
-            for (var i = 0; i < frames; i++)
+            var end = _source.StreamStartSample + _source.LengthSamples;
+            var frames = 0;
+            while (frames < span.Length / 2)
             {
-                var (l, r) = _source.Sample(_next++);
-                span[2 * i] = l;
-                span[2 * i + 1] = r;
+                var index = FirstSampleIndex + _j * _a / _b;
+                if (index >= end) break;
+                var (l, r) = _source.Sample(index);
+                span[2 * frames] = l;
+                span[2 * frames + 1] = r;
+                frames++;
+                _j++;
             }
-            return ValueTask.FromResult(Math.Max(0, frames) * 2);
+            return ValueTask.FromResult(frames * 2);
         }
 
         public async ValueTask DisposeAsync()

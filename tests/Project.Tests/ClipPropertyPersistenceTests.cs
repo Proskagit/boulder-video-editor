@@ -198,9 +198,9 @@ public class ClipPropertyPersistenceTests
         Assert.Equal(0.5, video.Volume);
         Assert.Equal(new VisualProperties(0, 0, 1, 0, 1, CropRect.None), VisualProperties.Of(video));
 
-        // Saved again, it is still format v1 and now carries the field.
+        // Saved again, it is format v2 (Step 9, D022) and now carries the field.
         var resaved = JsonNode.Parse(ProjectSerializer.Serialize(loaded, Folder))!.AsObject();
-        Assert.Equal(1, resaved["formatVersion"]!.GetValue<int>());
+        Assert.Equal(2, resaved["formatVersion"]!.GetValue<int>());
         Assert.False(VideoClip(resaved)["isMuted"]!.GetValue<bool>());
     }
 

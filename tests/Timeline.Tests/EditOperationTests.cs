@@ -277,21 +277,6 @@ public class EditOperationTests
         Assert.Equal(before, f.Snapshot());
     }
 
-    [Fact]
-    public void SpeedOtherThanOne_RejectsMoveTrimSplit_ButAllowsDelete()
-    {
-        var f = WithVideo(FrameRate.Fps30, 5, out var clip, out _);
-        clip.Speed = 2.0;
-        var before = f.Snapshot();
-
-        Assert.False(f.Service.MoveClips(TimelineFixture.Ids(clip), 5).Success);
-        Assert.False(f.Service.TrimClip(clip.Id, ClipEdge.End, MediaTime.FromSeconds(1)).Success);
-        Assert.False(f.Service.Split(MediaTime.FromSeconds(1), TimelineFixture.Ids(clip)).Success);
-        Assert.Equal(before, f.Snapshot());
-
-        Assert.True(f.Service.DeleteClips(TimelineFixture.Ids(clip)).Success);
-    }
-
     // --- Randomized --------------------------------------------------------------
 
     [Theory]

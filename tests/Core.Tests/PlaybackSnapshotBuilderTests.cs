@@ -158,7 +158,7 @@ public class PlaybackSnapshotBuilderTests
         var cMissing = Add(_v1, new VideoClip { MediaAssetId = missing.Id }, 0, 10);
         var cUnknown = Add(_v1, new VideoClip { MediaAssetId = Guid.NewGuid() }, 10, 20);
         var cUnanalyzed = Add(_v1, new VideoClip { MediaAssetId = unanalyzed.Id }, 20, 30);
-        var cSpeed = Add(_v1, new VideoClip { MediaAssetId = normal.Id, Speed = 2.0 }, 30, 40);
+        var cSpeed = Add(_v1, new VideoClip { MediaAssetId = normal.Id, Speed = ClipSpeed.FromSteps(40) }, 30, 40);
         var cWrongKind = Add(_v1, new VideoClip { MediaAssetId = image.Id }, 40, 50);
         var cImage = Add(_v1, new ImageClip { MediaAssetId = image.Id }, 50, 60);
         Add(_v2, new TextClip { Text = "title" }, 0, 60);
@@ -169,10 +169,11 @@ public class PlaybackSnapshotBuilderTests
         Assert.Equal(cMissing.Id, snapshot.PictureAt(F(0))!.ClipId); // text above is transparent
         Assert.Equal((SpanStatus.Offline, cUnknown.Id), (snapshot.PictureAt(F(10))!.Status, snapshot.PictureAt(F(10))!.ClipId));
         Assert.Equal((SpanStatus.Offline, cUnanalyzed.Id), (snapshot.PictureAt(F(20))!.Status, snapshot.PictureAt(F(20))!.ClipId));
-        Assert.Equal((SpanStatus.Unsupported, cSpeed.Id), (snapshot.PictureAt(F(30))!.Status, snapshot.PictureAt(F(30))!.ClipId));
+        // Since Step 9 (D022) a clip at another speed plays; its span carries the speed.
+        Assert.Equal((SpanStatus.Video, cSpeed.Id, ClipSpeed.FromSteps(40)), (snapshot.PictureAt(F(30))!.Status, snapshot.PictureAt(F(30))!.ClipId, snapshot.PictureAt(F(30))!.Speed));
         Assert.Equal((SpanStatus.Unsupported, cWrongKind.Id), (snapshot.PictureAt(F(40))!.Status, snapshot.PictureAt(F(40))!.ClipId));
         Assert.Equal((SpanStatus.StillImage, cImage.Id), (snapshot.PictureAt(F(50))!.Status, snapshot.PictureAt(F(50))!.ClipId));
-        Assert.All(new[] { 0, 10, 20, 30, 40 }, f => Assert.False(string.IsNullOrEmpty(snapshot.PictureAt(F(f))!.Reason)));
+        Assert.All(new[] { 0, 10, 20, 40 }, f => Assert.False(string.IsNullOrEmpty(snapshot.PictureAt(F(f))!.Reason)));
         Assert.Null(snapshot.PictureAt(F(50))!.Reason);
     }
 

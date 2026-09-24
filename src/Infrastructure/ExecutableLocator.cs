@@ -8,22 +8,33 @@ namespace AiVideoEditor.Infrastructure;
 /// "not found" outcome) — every subsequent call is free, so callers can ask on every
 /// use without repeatedly spawning a "-version" probe process. Order: configured path
 /// (if the file exists), then the plain executable name via PATH.
+/// A probe cancelled by the caller's token is not an outcome: nothing is cached and the
+/// <see cref="OperationCanceledException"/> propagates, so the next caller probes again.
 /// </summary>
 internal sealed class ExecutableLocator
 {
     private readonly string _toolName;
     private readonly Func<string?> _configuredPath;
     private readonly ILogger _logger;
+    private readonly Func<string, CancellationToken, Task<bool>> _probe;
     private readonly SemaphoreSlim _lock = new(1, 1);
 
     private bool _resolved;
     private string? _cachedPath;
 
     public ExecutableLocator(string toolName, Func<string?> configuredPath, ILogger logger)
+        : this(toolName, configuredPath, logger, IsExecutableAvailableAsync)
+    {
+    }
+
+    /// <summary>Test seam: <paramref name="probe"/> replaces the "-version" process probe.</summary>
+    internal ExecutableLocator(string toolName, Func<string?> configuredPath, ILogger logger,
+        Func<string, CancellationToken, Task<bool>> probe)
     {
         _toolName = toolName;
         _configuredPath = configuredPath;
         _logger = logger;
+        _probe = probe;
     }
 
     public async Task<string?> GetPathAsync(CancellationToken ct)
@@ -37,6 +48,7 @@ internal sealed class ExecutableLocator
             if (_resolved)
                 return _cachedPath;
 
+            // If the caller cancels mid-probe, ResolveAsync throws and _resolved stays false.
             _cachedPath = await ResolveAsync(ct);
             _resolved = true;
             return _cachedPath;
@@ -62,7 +74,7 @@ internal sealed class ExecutableLocator
         }
 
         var candidate = OperatingSystem.IsWindows() ? _toolName + ".exe" : _toolName;
-        if (await IsExecutableAvailableAsync(candidate, ct))
+        if (await _probe(candidate, ct))
         {
             _logger.LogInformation("Found {Tool} on PATH as '{Candidate}'.", _toolName, candidate);
             return candidate;
@@ -72,23 +84,30 @@ internal sealed class ExecutableLocator
         return null;
     }
 
-    private static async Task<bool> IsExecutableAvailableAsync(string fileName, CancellationToken ct)
+    /// <summary>
+    /// Runs "<paramref name="fileName"/> -version". Returns false when the executable is
+    /// missing, fails, or exceeds the 5 s timeout; throws <see cref="OperationCanceledException"/>
+    /// only when <paramref name="ct"/> itself is cancelled (that says nothing about the tool).
+    /// </summary>
+    internal static async Task<bool> IsExecutableAvailableAsync(string fileName, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+        // Declared outside the try so the catch blocks can still kill it (disposal happens last).
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = "-version",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            }
+        };
+
         try
         {
-            using var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = fileName,
-                    Arguments = "-version",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                }
-            };
-
             if (!process.Start())
                 return false;
 
@@ -102,11 +121,31 @@ internal sealed class ExecutableLocator
             await Task.WhenAll(stdout, stderr);
             return process.ExitCode == 0;
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Caller gave up — not evidence the tool is missing. Don't leave the probe running.
+            TryKill(process);
+            throw;
+        }
         catch
         {
+            TryKill(process);
             // Missing executable, no permission, etc. — all mean "not available",
             // never a crash (see Phase 3 rule: missing FFmpeg must be handled gracefully).
             return false;
+        }
+    }
+
+    private static void TryKill(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+        }
+        catch
+        {
+            // Never started or already exited — nothing to clean up.
         }
     }
 }

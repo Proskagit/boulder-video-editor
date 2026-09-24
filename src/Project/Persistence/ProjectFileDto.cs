@@ -130,7 +130,21 @@ internal abstract class MediaBackedClipDto : ClipDto
     public Guid MediaAssetId { get; set; }
     public long SourceInTicks { get; set; }
     public long SourceOutTicks { get; set; }
-    public double Speed { get; set; }
+
+    /// <summary>Format v1 only: the speed as a number, always 1 in files the editor could write.
+    /// Not written from v2 on (see <see cref="SpeedRatio"/>).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Speed { get; set; }
+
+    /// <summary>Format v2: the exact speed as a reduced fraction (D022).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SpeedDto? SpeedRatio { get; set; }
+}
+
+internal sealed class SpeedDto
+{
+    public long Numerator { get; set; }
+    public long Denominator { get; set; }
 }
 
 internal sealed class VideoClipDto : MediaBackedClipDto

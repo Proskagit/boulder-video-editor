@@ -191,6 +191,38 @@ public sealed partial class InspectorViewModel : ViewModelBase
         }
     }
 
+    // --- Speed (Phase 7 Step 9, D022): video and audio clips ----------------------------------
+    // Sent live to SetClipSpeed (a timing edit, not a property); consecutive changes merge into one
+    // undo step. The value must be a multiple of 0.05× from 0.25× to 4×; anything else is reported
+    // and the field shows the model again. Null while the field is empty (never an edit).
+
+    [ObservableProperty] private bool _hasSpeed;
+
+    [ObservableProperty] private decimal? _speedValue = 1m;
+
+    public decimal MinSpeed => ClipSpeed.Min.ToDecimal();
+    public decimal MaxSpeed => ClipSpeed.Max.ToDecimal();
+    public decimal SpeedIncrement => 1m / ClipSpeed.StepsPerUnit;
+
+    partial void OnSpeedValueChanged(decimal? value)
+    {
+        if (_syncing || value is not { } entered || _clip is null) return;
+
+        if (!ClipSpeed.TryFromDecimal(entered, out var speed))
+        {
+            _status.Report($"Speed must be a multiple of 0.05× from {ClipSpeed.Min} to {ClipSpeed.Max}.");
+            SyncFromModel();
+            return;
+        }
+
+        var result = _edit.SetClipSpeed(_clip.Id, speed);
+        if (!result.Success)
+        {
+            _status.Report(result.Message ?? "The speed could not be changed.");
+            SyncFromModel(); // show what the clip really has
+        }
+    }
+
     // --- Text (Phase 7 Step 8): text clips ---------------------------------------------------
     // Same pattern as the visual fields: each field is sent to SetClipProperties on its own and live,
     // consecutive changes of one field merge into one undo step (D017), the fields are filled from the
@@ -274,6 +306,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         HasVisualProperties = VisualProperties.Of(clip) is not null;
         HasCrop = clip is VideoClip or ImageClip;
         HasTextProperties = clip is TextClip;
+        HasSpeed = clip is VideoClip or AudioClip;
         SyncFromModel();
 
         ClipName = selection.Name;
@@ -362,6 +395,8 @@ public sealed partial class InspectorViewModel : ViewModelBase
                 CropRightPercent = (decimal)visual.Crop.Right * 100m;
                 CropBottomPercent = (decimal)visual.Crop.Bottom * 100m;
             }
+            if (_clip is MediaBackedClip { } media)
+                SpeedValue = media.Speed.ToDecimal();
             if (TextProperties.Of(_clip) is { } text)
             {
                 TextContent = text.Text;
@@ -393,6 +428,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         HasVisualProperties = false;
         HasCrop = false;
         HasTextProperties = false;
+        HasSpeed = false;
     }
 
     private void BuildTechnicalRows(MediaKind kind, MediaMetadata m)

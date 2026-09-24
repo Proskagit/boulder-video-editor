@@ -35,6 +35,9 @@ public sealed record PictureSpan(
 {
     public VisualProperties Visual { get; init; } = VisualProperties.Default;
 
+    /// <summary>The clip's speed (D022): part of the timing, so a change is never presentation-only.</summary>
+    public ClipSpeed Speed { get; init; }
+
     /// <summary>The source picture's pixel size from its metadata; null when unknown.</summary>
     public FrameSize? SourceSize { get; init; }
 
@@ -55,6 +58,9 @@ public sealed record AudioSpan(
 {
     /// <summary>The gain the mixer applies: 0 while muted, the volume otherwise.</summary>
     public double EffectiveGain => IsMuted ? 0 : Gain;
+
+    /// <summary>The clip's speed (D022): part of the timing, so a change is never mix-only.</summary>
+    public ClipSpeed Speed { get; init; }
 }
 
 /// <summary>A visible video track: its media clips (<see cref="Spans"/>) and text clips

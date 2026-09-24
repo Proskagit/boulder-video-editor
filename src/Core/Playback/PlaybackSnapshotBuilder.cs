@@ -52,6 +52,7 @@ public static class PlaybackSnapshotBuilder
                     spans.Add(new PictureSpan(clip.Id, media.MediaAssetId, status, clip.TimelineStart, clip.TimelineEnd, media.SourceIn, reason)
                     {
                         Visual = VisualProperties.Of(media) ?? VisualProperties.Default,
+                        Speed = media.Speed,
                         // The decoder delivers display-oriented frames (automatic rotation), so the
                         // composition works with the display size, never the coded one.
                         SourceSize = DisplaySize(asset?.Metadata)
@@ -61,7 +62,7 @@ public static class PlaybackSnapshotBuilder
                 {
                     var (audioStatus, audioReason) = AudioStatus(media, asset);
                     audio.Add(new AudioSpan(clip.Id, media.MediaAssetId, audioStatus, clip.TimelineStart, clip.TimelineEnd,
-                        media.SourceIn, video.Volume, audioReason, video.IsMuted));
+                        media.SourceIn, video.Volume, audioReason, video.IsMuted) { Speed = media.Speed });
                 }
             }
             if (!track.IsHidden)
@@ -76,7 +77,7 @@ public static class PlaybackSnapshotBuilder
                 assets.TryGetValue(clip.MediaAssetId, out var asset);
                 Remember(asset, used);
                 var (status, reason) = AudioStatus(clip, asset);
-                audio.Add(new AudioSpan(clip.Id, clip.MediaAssetId, status, clip.TimelineStart, clip.TimelineEnd, clip.SourceIn, clip.Volume, reason, clip.IsMuted));
+                audio.Add(new AudioSpan(clip.Id, clip.MediaAssetId, status, clip.TimelineStart, clip.TimelineEnd, clip.SourceIn, clip.Volume, reason, clip.IsMuted) { Speed = clip.Speed });
             }
         }
 
@@ -124,7 +125,6 @@ public static class PlaybackSnapshotBuilder
     private static (SpanStatus, string?) PictureStatus(MediaBackedClip clip, MediaAsset? asset)
     {
         if (Unavailable(asset) is { } offline) return (SpanStatus.Offline, offline);
-        if (clip.Speed != 1.0) return (SpanStatus.Unsupported, "Only speed 1.0 can be played.");
         return (clip, asset!.Kind) switch
         {
             (VideoClip, MediaKind.Video) when asset.Metadata is null => (SpanStatus.Offline, "Media information is not available."),
@@ -137,7 +137,6 @@ public static class PlaybackSnapshotBuilder
     private static (SpanStatus, string?) AudioStatus(MediaBackedClip clip, MediaAsset? asset)
     {
         if (Unavailable(asset) is { } offline) return (SpanStatus.Offline, offline);
-        if (clip.Speed != 1.0) return (SpanStatus.Unsupported, "Only speed 1.0 can be played.");
         if (asset!.Metadata is null) return (SpanStatus.Offline, "Media information is not available.");
         return asset.Kind is MediaKind.Audio or MediaKind.Video
             ? (SpanStatus.Audio, null)

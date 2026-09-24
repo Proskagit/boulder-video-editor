@@ -34,15 +34,29 @@ public static class FrameRateRegrid
             for (var i = 0; i < clips.Count; i++)
             {
                 var clip = clips[i];
-                if (clip is MediaBackedClip { Speed: not 1.0 })
-                    return "A clip with a speed other than 100% can't be moved onto the new frame grid.";
-
                 var startFrame = starts[i];
                 var endFrame = clip.TimelineEnd.ToNearestFrame(newRate);
                 var nextStart = i + 1 < clips.Count ? starts[i + 1] : long.MaxValue;
 
                 if (startFrame < prevEnd)
                     return $"Clips on track {track.Name} can't keep their order on the new frame grid.";
+
+                if (clip is MediaBackedClip { Speed.IsNormal: false } fast)
+                {
+                    // D022: the source range and speed stay; the clip is as many frames of the new
+                    // grid as the range allows (the same rule as a speed change).
+                    var frames = SpeedTiming.FramesFor(fast.SourceOut - fast.SourceIn, fast.Speed, newRate);
+                    if (frames < 1)
+                        return $"A clip on track {track.Name} is shorter than one frame at the new frame rate.";
+                    if (startFrame + frames > nextStart)
+                        return $"Clips on track {track.Name} would overlap on the new frame grid.";
+
+                    prevEnd = startFrame + frames;
+                    var regridded = ClipState.FromFrames(startFrame, prevEnd, fast.SourceIn, fast.SourceOut, fast.Speed, newRate);
+                    if (regridded != ClipState.Capture(clip))
+                        plan.Update(clip, track, regridded);
+                    continue;
+                }
 
                 if (endFrame <= startFrame)
                 {

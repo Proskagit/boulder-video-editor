@@ -41,7 +41,7 @@ Domain types (`src/Core/Entities`):
   together with `Track`). Holds `VideoTracks`, `AudioTracks`, `Markers`,
   `PlayheadPosition`, `ZoomPixelsPerSecond`, `SnappingEnabled`
 - `Track` — lane of clips (`Type`, `Order`, mute/hide/lock)
-- `Clip` → `MediaBackedClip` (`SourceIn`/`SourceOut`/`Speed`) → `VideoClip`, `AudioClip`, `ImageClip`; plus `TextClip`
+- `Clip` → `MediaBackedClip` (`SourceIn`/`SourceOut`/`Speed` — exact `ClipSpeed`, timing rule `SpeedTiming`, D022) → `VideoClip`, `AudioClip`, `ImageClip`; plus `TextClip`
 - `MediaAsset` + `MediaMetadata` + `MediaAnalysisStatus`
 - `ExportSettings`, `ProjectSettings`, `Effect`, `Transition`, `Marker`
 - `MediaTime`
@@ -64,6 +64,11 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   `IFontCatalog`, size, `#RRGGBB` color with a swatch, alignment); edits go to `SetClipProperties`
   one field at a time, the fields are refreshed from the model under a sync guard (no echo edits).
   Numeric text rules: `NumericInput`; text clips: D021.
+- Speed (Phase 7, D022): `ITimelineEditService.SetClipSpeed` (start and source range kept, frames
+  from `SpeedTiming.FramesFor`, merged undo via `SetClipSpeedCommand`); speed is part of `ClipState`
+  so every timing command restores it; playback maps timeline → source with the speed (video sample
+  points, audio `AudioTiming`), the FFmpeg audio decoder adds `apad` + `atempo` and compensates its
+  latency; `project.json` v2.
 - Text clips (Phase 7, D021): `ITimelineEditService.AddTextClip(start)` — topmost video track,
   frame-grid start, 5 s, one "Add Text" step; "+ Text" in the timeline header adds at the playhead
   and selects the clip. The timeline label of a text clip is its first line (`(empty text)` for

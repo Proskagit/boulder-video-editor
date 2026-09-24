@@ -7,8 +7,8 @@ using AiVideoEditor.Core.Interfaces;
 namespace AiVideoEditor.Project.Persistence;
 
 /// <summary>
-/// Converts a <see cref="Core.Entities.Project"/> to and from project.json text (format
-/// version 1, see <see cref="ProjectFileDto"/>). Pure apart from the file-existence check
+/// Converts a <see cref="Core.Entities.Project"/> to and from project.json text (writes format
+/// version 2, reads 1 and 2, see <see cref="ProjectFileDto"/>). Pure apart from the file-existence check
 /// used to resolve media paths on load; reading and writing files is
 /// <see cref="ProjectFileStore"/>'s job.
 /// </summary>
@@ -23,7 +23,9 @@ namespace AiVideoEditor.Project.Persistence;
 public static class ProjectSerializer
 {
     public const string FormatId = "AiVideoEditor.Project";
-    public const int CurrentFormatVersion = 1;
+    /// <summary>2 since Phase 7 Step 9: the clip speed is an exact fraction (D022). Version 1 files
+    /// are read (their speed must be 1) and saved as version 2.</summary>
+    public const int CurrentFormatVersion = 2;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     private static readonly JsonSerializerOptions Options = new()
@@ -267,7 +269,7 @@ public static class ProjectSerializer
             mediaDto.MediaAssetId = media.MediaAssetId;
             mediaDto.SourceInTicks = media.SourceIn.Ticks;
             mediaDto.SourceOutTicks = media.SourceOut.Ticks;
-            mediaDto.Speed = media.Speed;
+            mediaDto.SpeedRatio = new SpeedDto { Numerator = media.Speed.Numerator, Denominator = media.Speed.Denominator };
         }
 
         return dto;
@@ -335,7 +337,7 @@ public static class ProjectSerializer
             project.MediaAssets.Add(asset);
         }
 
-        project.Timeline = FromDto(dto.Timeline ?? throw Damaged("timeline is missing"), frameRate, assets);
+        project.Timeline = FromDto(dto.Timeline ?? throw Damaged("timeline is missing"), frameRate, assets, dto.FormatVersion);
         return project;
     }
 
@@ -421,7 +423,7 @@ public static class ProjectSerializer
     private static FrameRate? ReadFrameRate(FrameRateDto? dto) =>
         dto is { Numerator: > 0, Denominator: > 0 } ? new FrameRate(dto.Numerator, dto.Denominator) : null;
 
-    private static Sequence FromDto(SequenceDto dto, FrameRate rate, IReadOnlyDictionary<Guid, MediaAsset> assets)
+    private static Sequence FromDto(SequenceDto dto, FrameRate rate, IReadOnlyDictionary<Guid, MediaAsset> assets, int formatVersion)
     {
         RequireId(dto.Id, "timeline");
         if (dto.PlayheadTicks < 0) throw Damaged("negative playhead position");
@@ -439,9 +441,9 @@ public static class ProjectSerializer
         var trackIds = new HashSet<Guid>();
         var clipIds = new HashSet<Guid>();
         foreach (var t in dto.VideoTracks ?? throw Damaged("video track list is missing"))
-            sequence.VideoTracks.Add(FromDto(t ?? throw Damaged("empty track entry"), TrackType.Video, rate, assets, trackIds, clipIds));
+            sequence.VideoTracks.Add(FromDto(t ?? throw Damaged("empty track entry"), TrackType.Video, rate, assets, trackIds, clipIds, formatVersion));
         foreach (var t in dto.AudioTracks ?? throw Damaged("audio track list is missing"))
-            sequence.AudioTracks.Add(FromDto(t ?? throw Damaged("empty track entry"), TrackType.Audio, rate, assets, trackIds, clipIds));
+            sequence.AudioTracks.Add(FromDto(t ?? throw Damaged("empty track entry"), TrackType.Audio, rate, assets, trackIds, clipIds, formatVersion));
 
         var markerIds = new HashSet<Guid>();
         foreach (var m in dto.Markers ?? new List<MarkerDto>())
@@ -457,7 +459,7 @@ public static class ProjectSerializer
     }
 
     private static Track FromDto(TrackDto dto, TrackType type, FrameRate rate, IReadOnlyDictionary<Guid, MediaAsset> assets,
-        HashSet<Guid> trackIds, HashSet<Guid> clipIds)
+        HashSet<Guid> trackIds, HashSet<Guid> clipIds, int formatVersion)
     {
         RequireId(dto.Id, "track");
         if (!trackIds.Add(dto.Id)) throw Damaged("duplicate track id");
@@ -476,7 +478,7 @@ public static class ProjectSerializer
         var clips = new List<Clip>();
         foreach (var clipDto in dto.Clips ?? throw Damaged("clip list is missing"))
         {
-            var clip = FromDto(clipDto ?? throw Damaged("empty clip entry"), rate, assets);
+            var clip = FromDto(clipDto ?? throw Damaged("empty clip entry"), rate, assets, formatVersion);
             if (!clipIds.Add(clip.Id)) throw Damaged("duplicate clip id");
             if (clip is AudioClip != (type == TrackType.Audio))
                 throw Damaged($"a clip is on the wrong kind of track ({track.Name})");
@@ -501,7 +503,7 @@ public static class ProjectSerializer
         return track;
     }
 
-    private static Clip FromDto(ClipDto dto, FrameRate rate, IReadOnlyDictionary<Guid, MediaAsset> assets)
+    private static Clip FromDto(ClipDto dto, FrameRate rate, IReadOnlyDictionary<Guid, MediaAsset> assets, int formatVersion)
     {
         RequireId(dto.Id, "clip");
         var start = new MediaTime(dto.TimelineStartTicks);
@@ -541,14 +543,22 @@ public static class ProjectSerializer
         {
             if (!assets.TryGetValue(mediaDto.MediaAssetId, out var asset)) throw Damaged("a clip refers to media that is not in the project");
             if (!KindMatches(clip, asset.Kind)) throw Damaged($"a clip doesn't match the kind of {asset.FileName}");
-            if (!double.IsFinite(mediaDto.Speed) || mediaDto.Speed <= 0) throw Damaged("invalid clip speed");
+            var speed = ReadSpeed(mediaDto, formatVersion);
+            if (clip is ImageClip && !speed.IsNormal) throw Damaged("an image clip has a speed");
             if (mediaDto.SourceInTicks < 0 || mediaDto.SourceOutTicks < mediaDto.SourceInTicks) throw Damaged("invalid clip source range");
-            if (mediaDto.Speed == 1.0 && mediaDto.SourceOutTicks - mediaDto.SourceInTicks != mediaDto.DurationTicks)
-                throw Damaged("a clip's source range doesn't match its duration");
 
             media.SourceIn = new MediaTime(mediaDto.SourceInTicks);
             media.SourceOut = new MediaTime(mediaDto.SourceOutTicks);
-            media.Speed = mediaDto.Speed;
+            media.Speed = speed;
+
+            // v1: the source range is exactly the duration (the only thing v1 could hold). v2: the
+            // duration is the whole number of frames the source range allows at the clip's speed —
+            // for 1× that includes the exact case and a source tail shorter than one frame left by a
+            // speed change back to 1× (D022).
+            var fits = formatVersion == 1
+                ? mediaDto.SourceOutTicks - mediaDto.SourceInTicks == mediaDto.DurationTicks
+                : SpeedTiming.Fits(clip.TimelineEnd.ToFrameFloor(rate) - start.ToFrameFloor(rate), media.SourceOut - media.SourceIn, speed, rate);
+            if (!fits) throw Damaged("a clip's source range doesn't match its duration");
         }
 
         // Phase 7 properties: the same kinds and ranges the edit service accepts (NaN/infinite,
@@ -560,6 +570,22 @@ public static class ProjectSerializer
             clip.Effects.Add(FromDto(e ?? throw Damaged("empty effect entry")));
 
         return clip;
+    }
+
+    /// <summary>v1: the speed number, which must be exactly 1 (the editor couldn't write anything
+    /// else). v2: the exact fraction, a multiple of 0.05 from 0.25× to 4×.</summary>
+    private static ClipSpeed ReadSpeed(MediaBackedClipDto dto, int formatVersion)
+    {
+        if (formatVersion == 1)
+        {
+            if (dto.Speed != 1.0) throw Damaged("a clip speed other than 1 in a version 1 project");
+            return ClipSpeed.Normal;
+        }
+
+        if (dto.Speed is not null) throw Damaged("a clip speed in the version 1 form");
+        if (dto.SpeedRatio is not { } ratio || !ClipSpeed.TryFromRatio(ratio.Numerator, ratio.Denominator, out var speed))
+            throw Damaged("invalid clip speed");
+        return speed;
     }
 
     private static bool KindMatches(Clip clip, MediaKind kind) => clip switch

@@ -65,6 +65,13 @@ public interface ITimelineEditService
     /// properties of the same clip are merged into one Undo step.</summary>
     TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change);
 
+    /// <summary>Changes the speed of a video or audio clip (D022). The start and the source range
+    /// (SourceIn/SourceOut) stay; the duration becomes the whole number of frames the range allows at
+    /// the new speed (<see cref="SpeedTiming.FramesFor"/>). Rejected without changes when the clip
+    /// would be shorter than one frame, overlap the next clip, or its track is locked. Consecutive
+    /// speed changes of the same clip merge into one Undo step.</summary>
+    TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed);
+
     /// <summary>Finds the snap target nearest to any of <paramref name="candidates"/>
     /// within <paramref name="tolerance"/>. Targets: time zero, the playhead and every
     /// clip edge except those of <paramref name="excludedClipIds"/>.</summary>

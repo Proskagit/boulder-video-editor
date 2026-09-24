@@ -59,6 +59,12 @@ public sealed record AudioDecodeRequest
 
     /// <summary>Source time of the first sample that will be needed.</summary>
     public MediaTime SourcePosition { get; init; }
+
+    /// <summary>Playback speed (D022). At 1× every output sample is the next source sample. At other
+    /// speeds the output is tempo-changed with the pitch kept: output sample <c>j</c> stands for source
+    /// sample <see cref="IAudioSampleStream.FirstSampleIndex"/> <c>+ j · speed</c> (the decoder
+    /// accounts for its own filter latency in <see cref="IAudioSampleStream.FirstSampleIndex"/>).</summary>
+    public ClipSpeed Speed { get; init; }
 }
 
 /// <summary>Decodes source audio into <see cref="AudioFormat"/> with an exact sample position.</summary>

@@ -218,6 +218,13 @@ public sealed class TimelineEditService : ITimelineEditService
             if (startFrame < 0)
                 return (null, clips, "Clips can't be moved before the beginning of the timeline.");
 
+            if (clip is MediaBackedClip { Speed.IsNormal: false } fast)
+            {
+                // D022: the source range and speed move along unchanged; so does the frame count.
+                plan.Update(clip, toTrack, ClipState.FromFrames(startFrame, endFrame, fast.SourceIn, fast.SourceOut, fast.Speed, rate));
+                continue;
+            }
+
             var sourceIn = clip is MediaBackedClip m ? m.SourceIn : MediaTime.Zero;
             var after = ClipState.FromFrames(startFrame, endFrame, sourceIn, rate);
 
@@ -280,7 +287,11 @@ public sealed class TimelineEditService : ITimelineEditService
         var sourceDuration = SourceDuration(clip);
 
         ClipState after;
-        if (edge == ClipEdge.End)
+        if (clip is MediaBackedClip { Speed.IsNormal: false } fast)
+        {
+            after = PlanTrimAtSpeed(fast, edge, startFrame, endFrame, targetFrame, others, sourceDuration, rate);
+        }
+        else if (edge == ClipEdge.End)
         {
             var hi = others.Where(c => c.TimelineStart >= clip.TimelineEnd)
                 .Select(c => c.TimelineStart.ToNearestFrame(rate))
@@ -315,6 +326,72 @@ public sealed class TimelineEditService : ITimelineEditService
             return (null, null, $"Can't trim: {error}");
 
         return (plan, after, null);
+    }
+
+    /// <summary>
+    /// Trim of a clip at a speed other than 1× (D022), in the same one rounding rule
+    /// (<see cref="SpeedTiming.SourceLength"/>): the end edge sets SourceOut = SourceIn +
+    /// SourceLength(N); the start edge moves SourceIn by SourceLength(Δ) frames' worth (so the content
+    /// under the playhead stays) and keeps SourceOut, normalized only if the invariant is missed by
+    /// the rounding. Limits: neighbours, one frame, SourceIn ≥ 0 and the end of the source.
+    /// </summary>
+    private static ClipState PlanTrimAtSpeed(MediaBackedClip clip, ClipEdge edge, long startFrame, long endFrame, long targetFrame,
+        List<Clip> others, MediaTime? sourceDuration, FrameRate rate)
+    {
+        var speed = clip.Speed;
+        if (edge == ClipEdge.End)
+        {
+            var hi = others.Where(c => c.TimelineStart >= clip.TimelineEnd)
+                .Select(c => c.TimelineStart.ToNearestFrame(rate))
+                .DefaultIfEmpty(long.MaxValue).Min();
+            if (sourceDuration is { } duration)
+                hi = Math.Min(hi, startFrame + SpeedTiming.FramesFor(duration - clip.SourceIn, speed, rate));
+
+            var newEnd = Math.Clamp(targetFrame, startFrame + 1, Math.Max(startFrame + 1, hi));
+            var sourceOut = clip.SourceIn + SpeedTiming.SourceLength(newEnd - startFrame, speed, rate);
+            return ClipState.FromFrames(startFrame, newEnd, clip.SourceIn, sourceOut, speed, rate);
+        }
+
+        var lo = others.Where(c => c.TimelineEnd <= clip.TimelineStart)
+            .Select(c => c.TimelineEnd.ToNearestFrame(rate))
+            .DefaultIfEmpty(0).Max();
+        lo = Math.Max(lo, startFrame - SpeedTiming.FramesFor(clip.SourceIn, speed, rate)); // keeps SourceIn ≥ 0
+
+        var newStart = Math.Clamp(targetFrame, Math.Min(lo, endFrame - 1), endFrame - 1);
+        var delta = newStart - startFrame;
+        var sourceIn = delta >= 0
+            ? clip.SourceIn + SpeedTiming.SourceLength(delta, speed, rate)
+            : clip.SourceIn - SpeedTiming.SourceLength(-delta, speed, rate);
+        var (normalizedIn, normalizedOut) = ClipState.Normalize(endFrame - newStart, sourceIn, clip.SourceOut, speed, rate);
+        return ClipState.FromFrames(newStart, endFrame, normalizedIn, normalizedOut, speed, rate);
+    }
+
+    // --- Speed (D022) ---------------------------------------------------------------
+
+    public TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed)
+    {
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+        if (clips[0] is not (VideoClip or AudioClip)) return TimelineEditResult.Fail("Only video and audio clips have a speed.");
+        if (CheckEditable(plan, clips) is { } editError) return TimelineEditResult.Fail(editError);
+
+        var clip = (MediaBackedClip)clips[0];
+        if (clip.Speed == speed) return TimelineEditResult.Unchanged();
+
+        // The speed never changes the source range: the frame count follows from it.
+        var rate = plan.Rate;
+        var frames = SpeedTiming.FramesFor(clip.SourceOut - clip.SourceIn, speed, rate);
+        if (frames < 1) return TimelineEditResult.Fail($"At {speed} the clip would be shorter than one frame.");
+
+        var startFrame = clip.TimelineStart.ToNearestFrame(rate);
+        var before = ClipState.Capture(clip);
+        var after = ClipState.FromFrames(startFrame, startFrame + frames, clip.SourceIn, clip.SourceOut, speed, rate);
+        plan.Update(clip, plan.TrackOf(clip), after);
+        if (Validate(plan) is { } error)
+            return TimelineEditResult.Fail($"Can't change the speed: {error}");
+
+        _undoRedo.Execute(new NotifyingCommand(new SetClipSpeedCommand(clip, before, after), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok(new[] { clip.Id });
     }
 
     // --- Split -----------------------------------------------------------------
@@ -356,8 +433,21 @@ public sealed class TimelineEditService : ITimelineEditService
             var sourceIn = clip is MediaBackedClip m ? m.SourceIn : MediaTime.Zero;
             var hasSource = SourceDuration(clip) is not null;
 
-            var left = ClipState.FromFrames(startFrame, atFrame, sourceIn, rate);
-            var right = ClipState.FromFrames(atFrame, endFrame, hasSource ? left.SourceOut : sourceIn, rate);
+            ClipState left, right;
+            if (clip is MediaBackedClip { Speed.IsNormal: false } fast)
+            {
+                // D022: the cut in the source is SourceIn + SourceLength(frames left of the split);
+                // the right half keeps the original SourceOut (normalized only if rounding misses).
+                var cut = fast.SourceIn + SpeedTiming.SourceLength(atFrame - startFrame, fast.Speed, rate);
+                left = ClipState.FromFrames(startFrame, atFrame, fast.SourceIn, cut, fast.Speed, rate);
+                var (rightIn, rightOut) = ClipState.Normalize(endFrame - atFrame, cut, fast.SourceOut, fast.Speed, rate);
+                right = ClipState.FromFrames(atFrame, endFrame, rightIn, rightOut, fast.Speed, rate);
+            }
+            else
+            {
+                left = ClipState.FromFrames(startFrame, atFrame, sourceIn, rate);
+                right = ClipState.FromFrames(atFrame, endFrame, hasSource ? left.SourceOut : sourceIn, rate);
+            }
 
             var rightClip = CloneClip(clip);
             right.ApplyTo(rightClip);
@@ -512,8 +602,6 @@ public sealed class TimelineEditService : ITimelineEditService
         {
             if (plan.TrackOf(clip).IsLocked)
                 return $"Track {plan.TrackOf(clip).Name} is locked.";
-            if (clip is MediaBackedClip { Speed: not 1.0 })
-                return "Clips with a speed other than 100% can't be edited on the timeline yet.";
         }
         return null;
     }

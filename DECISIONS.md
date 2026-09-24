@@ -104,7 +104,8 @@ Decision:
   Selection, playhead, zoom and the snapping toggle are view state, not undoable.
 - Any timeline change marks the project dirty; a save point (clean after undo) is Phase 6.
 
-Status: Accepted.
+Status: Accepted. Refined by D022 (Phase 7 Step 9): speeds other than 1× are editable; move, trim,
+split and re-grid follow D022's timing rule.
 
 ---
 
@@ -142,7 +143,8 @@ the FFmpeg CLI adapter uses `-copyts`, a bounded time-based preroll and
 `-fps_mode passthrough` (no `-vf fps`), and may read PTS from `showinfo` internally.
 Phase 8 export must reproduce the same rule.
 
-Status: Accepted.
+Status: Accepted. Generalized by D022: at speed s, t(n) = SourceIn + (FromFrame(n) − S)·s and
+δ = ½·min(P·s, Ssrc); at 1× unchanged.
 
 ---
 
@@ -281,7 +283,8 @@ Refined in Phase 7 Step 4 (2026-09-23), volume and mute:
   (set where pipelines are created), not the latest snapshot the service holds — after a
   mix-only update the two differ.
 
-Status: Accepted.
+Status: Accepted. Refined by D022: clips at other speeds are decoded tempo-changed with the pitch
+kept (ffmpeg atempo), placed within 10 ms of the exact mapping.
 
 ---
 
@@ -328,7 +331,7 @@ Decision:
 Consequences: `AppPaths.ProjectFile` and `ProjectFileStore.ProjectFileName` both name
 `project.json` (Project does not reference Infrastructure; kept as is for now).
 
-Status: Accepted.
+Status: Accepted. Format version 2 since D022 (exact clip speed); version 1 files are still read.
 
 ---
 
@@ -629,6 +632,64 @@ Decision:
 Consequences / known risk: the preview (Avalonia) silently falls back to another font when the clip's
 font is missing on the machine, while the Phase 8 export through ffmpeg `drawtext` needs a font file;
 missing fonts must be handled there (not in Step 8).
+
+Status: Accepted.
+
+---
+
+## D022 — Clip speed (Phase 7 Step 9)
+
+Date: 2026-09-24
+
+Decision:
+- Value: `ClipSpeed`, an exact multiple of 0.05 from 0.25× to 4× (`k/20`, 5 ≤ k ≤ 80), stored and
+  computed as a fraction — never a floating-point factor. Video and audio clips only (a VideoClip's
+  sound follows its picture); images and text have no speed.
+- Timing rule (the only rounding rule, used by speed changes, trim, split, re-grid, the validator
+  and project loading): `SourceLength(N) = ⌊N · s · 10⁷ · rateDen / rateNum⌋` ticks for N project
+  frames, independent of the clip's position; `FramesFor(L)` = the largest N with SourceLength(N) ≤ L.
+  Invariant: `SourceLength(N) ≤ SourceOut − SourceIn < SourceLength(N + 1)` — the clip is as many
+  whole frames as its source range allows. Every existing 1× clip satisfies it.
+- Operations at speed ≠ 1× (1× keeps its exact existing rule, SourceOut = SourceIn + duration, and
+  produces the same ticks as before):
+  - speed change: start, SourceIn and SourceOut stay (a speed change never changes the selected
+    source range); N = FramesFor(SourceOut − SourceIn); rejected (no change) below one frame, on
+    overlap or on a locked track; consecutive changes of a clip merge into one undo step
+    (`SetClipSpeedCommand`), Undo restores every tick;
+  - trim end: SourceOut = SourceIn + SourceLength(N); trim start: SourceIn moves by SourceLength(Δ)
+    (content under the playhead stays), SourceOut stays; move: source range and frame count unchanged;
+    split at k frames: the cut is SourceIn + SourceLength(k), the right half keeps SourceOut;
+  - re-grid to another project rate: start snapped as before, source range kept, N = FramesFor on the
+    new grid;
+  - where two floored lengths are added or subtracted (trim start, split) the result can miss the
+    invariant by one tick; only then it is normalized with the smallest change (SourceIn back, or at
+    the start of the source SourceOut on, for a shortfall; SourceOut down for an excess).
+- A clip set back to 1× after edits at another speed may keep an unused source tail shorter than one
+  frame: 1× validation (timeline and format v2) accepts the invariant; format v1 keeps its exact check.
+- Playback (renderer-free, also for the Phase 8 export): video — D009 with
+  `t(n) = SourceIn + (FromFrame(n) − S) · s` and `δ = ½ · min(P · s, Ssrc)`, exact `Int128`; audio —
+  timeline sample k plays source time `SourceIn + (k/48000 − S) · s`, mapped once per reader start
+  (`AudioTiming.SourceTimeAt` / `TimelineSampleOfStreamStart`, ≤ ½ sample). A speed change is a timing
+  change of the snapshot (spans carry the speed), never presentation-only.
+- Audio decoding at speed ≠ 1× (FFmpeg decoder only): `ashowinfo` before the tempo change (its PTS
+  are source time; after atempo they count output samples), `apad=pad_dur=0.25` (the tempo window
+  reaches the true end of the file), then `atempo=s` (one filter from 0.5× to 4×) or
+  `atempo=0.5,atempo=2s` below 0.5×; the pitch is kept. The chain's constant output latency (measured
+  with FFmpeg 9.0.1: 449–483 source samples for one filter, 542 for two) is compensated inside the
+  decoder in the stream's first-sample index — an implementation detail, not part of the model.
+  Tolerance: the placed audio stays within 10 ms of the exact mapping with no accumulated drift
+  (measured ≤ 4.7 ms; guarded by an integration test with the real ffmpeg).
+- `project.json` format version 2: media clips store `speedRatio: {numerator, denominator}`; the v1
+  number `speed` is not written. Version 1 files are read when every speed is exactly 1 (anything
+  else could not have been written by the editor: damaged); saving always writes version 2. Recovery
+  files use the same format.
+- UI: Inspector field "Speed" (0.25×–4.00×, step 0.05×, the shared numeric rules), live, merged undo,
+  a value off the 0.05 grid or out of range is reported and the field shows the model again. No speed
+  label on timeline clips.
+
+Consequences: builds before this step can't open version 2 files ("saved by a newer version"). At
+3–4× the preview decodes 3–4 times as many frames; heavy sources may run late (D012), no
+decoding optimization. Out of scope: speed ramps/keyframes, reverse, freeze frames, ripple, export.
 
 Status: Accepted.
 

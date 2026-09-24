@@ -18,10 +18,11 @@ public readonly record struct SourceSamplePoint(Int128 TicksNumerator, long Tick
 /// <summary>
 /// Decides which decoded source frame a timeline frame shows (see DECISIONS D009).
 /// <para>
-/// For timeline frame <c>n</c> of a clip starting at <c>S</c>:
-/// <c>t(n) = SourceIn + (FromFrame(n) − S)</c> and the sample point is
-/// <c>t(n) + δ</c> with <c>δ = ½ · min(P, Ssrc)</c>, where <c>P</c> is the length of
-/// timeline frame <c>n</c> and <c>Ssrc</c> the nominal source frame length. The frame
+/// For timeline frame <c>n</c> of a clip starting at <c>S</c> with speed <c>s</c> (D022; 1× is D009):
+/// <c>t(n) = SourceIn + (FromFrame(n) − S) · s</c> and the sample point is
+/// <c>t(n) + δ</c> with <c>δ = ½ · min(P · s, Ssrc)</c>, where <c>P</c> is the length of
+/// timeline frame <c>n</c> (so <c>P · s</c> is the source time it covers) and <c>Ssrc</c> the
+/// nominal source frame length. The frame
 /// shown is the last one whose source time <c>Pts · TimeBase − StartTime</c> is
 /// <c>≤</c> the sample point; before the first frame the first one is held, after the
 /// last frame the last one is held.
@@ -43,39 +44,46 @@ public static class SourceFrameSelector
         metadata?.AvgFrameRate ?? metadata?.FrameRate;
 
     /// <summary>Sample point for timeline frame <paramref name="timelineFrame"/> of a clip at
-    /// speed 1.0 starting at <paramref name="clipStart"/> with <paramref name="sourceIn"/>.</summary>
+    /// speed 1× starting at <paramref name="clipStart"/> with <paramref name="sourceIn"/>.</summary>
     public static SourceSamplePoint SamplePoint(
-        MediaTime clipStart, MediaTime sourceIn, long timelineFrame, FrameRate projectRate, FrameRate? nominalSourceRate)
+        MediaTime clipStart, MediaTime sourceIn, long timelineFrame, FrameRate projectRate, FrameRate? nominalSourceRate) =>
+        SamplePoint(clipStart, sourceIn, ClipSpeed.Normal, timelineFrame, projectRate, nominalSourceRate);
+
+    /// <summary>Sample point for timeline frame <paramref name="timelineFrame"/> of a clip at
+    /// <paramref name="speed"/> starting at <paramref name="clipStart"/> with <paramref name="sourceIn"/>.
+    /// Exact for every speed; at 1× identical to D009.</summary>
+    public static SourceSamplePoint SamplePoint(
+        MediaTime clipStart, MediaTime sourceIn, ClipSpeed speed, long timelineFrame, FrameRate projectRate, FrameRate? nominalSourceRate)
     {
         var frameStart = MediaTime.FromFrame(timelineFrame, projectRate).Ticks;
         var frameLength = MediaTime.FromFrame(timelineFrame + 1, projectRate).Ticks - frameStart;
-        var t = (Int128)sourceIn.Ticks + frameStart - clipStart.Ticks;
+        long a = speed.Numerator, b = speed.Denominator;   // s = a/b
 
         checked
         {
-            if (nominalSourceRate is not { IsValid: true } rate)
-                return new SourceSamplePoint(2 * t + frameLength, 2);
+            // b·t(n) = b·SourceIn + a·(FromFrame(n) − S)
+            var bt = (Int128)b * sourceIn.Ticks + (Int128)a * (frameStart - clipStart.Ticks);
 
-            // δ = ½·min(P, 10⁷·den/num); scale everything by 2·num to stay integral.
-            var projectFrame = (Int128)frameLength * rate.Numerator;
-            var sourceFrame = (Int128)TicksPerSecond * rate.Denominator;
-            var denominator = 2L * rate.Numerator;
-            return new SourceSamplePoint(t * denominator + Int128.Min(projectFrame, sourceFrame), denominator);
+            if (nominalSourceRate is not { IsValid: true } rate)
+                return new SourceSamplePoint(2 * bt + (Int128)a * frameLength, 2 * b);   // t + ½·P·s
+
+            // δ = ½·min(P·a/b, 10⁷·den/num); scale everything by 2·b·num to stay integral.
+            var projectFrame = (Int128)frameLength * a * rate.Numerator;
+            var sourceFrame = (Int128)TicksPerSecond * rate.Denominator * b;
+            var denominator = 2L * b * rate.Numerator;
+            return new SourceSamplePoint(bt * 2 * rate.Numerator + Int128.Min(projectFrame, sourceFrame), denominator);
         }
     }
 
     /// <summary>Sample point for a timeline frame of <paramref name="clip"/>, which must lie
-    /// inside the clip. Only speed 1.0 is supported (D008).</summary>
+    /// inside the clip, at the clip's speed.</summary>
     public static SourceSamplePoint SamplePoint(MediaBackedClip clip, long timelineFrame, FrameRate projectRate, MediaMetadata? metadata)
     {
-        if (clip.Speed != 1.0)
-            throw new NotSupportedException("Only clips at speed 1.0 can be played.");
-
         var frameStart = MediaTime.FromFrame(timelineFrame, projectRate);
         if (frameStart < clip.TimelineStart || frameStart >= clip.TimelineEnd)
             throw new ArgumentOutOfRangeException(nameof(timelineFrame), "Timeline frame is outside the clip.");
 
-        return SamplePoint(clip.TimelineStart, clip.SourceIn, timelineFrame, projectRate, NominalRate(metadata));
+        return SamplePoint(clip.TimelineStart, clip.SourceIn, clip.Speed, timelineFrame, projectRate, NominalRate(metadata));
     }
 
     /// <summary>True when the frame at <paramref name="timestamp"/> starts at or before

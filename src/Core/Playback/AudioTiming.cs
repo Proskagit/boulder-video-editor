@@ -32,6 +32,37 @@ public static class AudioTiming
     /// </summary>
     public static long SourceOffset(MediaTime clipStart, MediaTime sourceIn) => NearestSample(sourceIn - clipStart);
 
+    /// <summary>
+    /// Source time (ticks, rounded down) that timeline sample <paramref name="timelineSample"/> of a
+    /// clip at <paramref name="speed"/> plays: <c>SourceIn + (k/48000 − S) · s</c> (D022). Exact
+    /// rational arithmetic; at 1× the existing <see cref="SourceOffset"/> path is used instead.
+    /// </summary>
+    public static MediaTime SourceTimeAt(long timelineSample, MediaTime clipStart, MediaTime sourceIn, ClipSpeed speed)
+    {
+        long a = speed.Numerator, b = speed.Denominator;
+        // [SourceIn·48000·b + (k·10⁷ − S·48000)·a] / (48000·b)
+        var numerator = (Int128)sourceIn.Ticks * AudioFormat.SampleRate * b
+                        + ((Int128)timelineSample * TicksPerSecond - (Int128)clipStart.Ticks * AudioFormat.SampleRate) * a;
+        return new MediaTime(FloorDiv(numerator, (Int128)AudioFormat.SampleRate * b));
+    }
+
+    /// <summary>
+    /// Timeline sample at which a stream starts whose first sample is source sample
+    /// <paramref name="firstSourceSample"/> and whose every further sample advances the source by
+    /// <paramref name="speed"/> samples (a tempo-changed stream, D022): the <c>k</c> with
+    /// <c>SourceIn + (k/48000 − S) · s</c> = that source sample, rounded to the nearest sample once
+    /// per stream, so the whole stream stays contiguous (≤ ½ sample of rounding).
+    /// </summary>
+    public static long TimelineSampleOfStreamStart(MediaTime clipStart, MediaTime sourceIn, ClipSpeed speed, long firstSourceSample)
+    {
+        long a = speed.Numerator, b = speed.Denominator;
+        // k = S·48000/10⁷ + (F − SourceIn·48000/10⁷)·b/a = [S·48000·a + (F·10⁷ − SourceIn·48000)·b] / (10⁷·a)
+        var numerator = (Int128)clipStart.Ticks * AudioFormat.SampleRate * a
+                        + ((Int128)firstSourceSample * TicksPerSecond - (Int128)sourceIn.Ticks * AudioFormat.SampleRate) * b;
+        var denominator = (Int128)TicksPerSecond * a;
+        return FloorDiv(2 * numerator + denominator, 2 * denominator);
+    }
+
     /// <summary>Start of sample <paramref name="sample"/> in ticks, rounded down.</summary>
     public static long SampleToTicksFloor(long sample) => FloorDiv((Int128)sample * TicksPerSecond, AudioFormat.SampleRate);
 

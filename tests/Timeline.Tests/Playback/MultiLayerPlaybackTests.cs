@@ -298,7 +298,7 @@ public sealed class MultiLayerPlaybackTests : IAsyncLifetime
         Assert.Equal(new PointD(1060, 540), geometry.Transform.Apply(new PointD(960, 540))); // position/scale/rotation apply
         Assert.Equal(PictureKind.Offline, frame.Picture!.Kind);
 
-        ((VideoClip)top).Speed = 2; // unsupported (can't be set through the edit service yet)
+        topAsset.Kind = MediaKind.Audio; // a video clip that can't play its media: unsupported (speed ≠ 1 plays since D022)
         topAsset.IsMissing = false;
         Publish();
         frame = await Until(f => AllCurrent(f) && f.Layers[^1].State == LayerPictureState.Unsupported, "unsupported");

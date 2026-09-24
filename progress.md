@@ -241,7 +241,8 @@ Inspector · 8 text clips · 9 speed · 10 closeout.
     app (UI Automation read-back): empty/"abc"/" 50" → model value, "9 0" → 9, "-4 5" → −4,
     "1e2" → 1, "5-" → 5, "1 000" → 1, "-12,5" and "150" accepted.
 
-- Step 8 (D021) — text clips (not checkpointed):
+- Step 8 checkpoint: commit `5d81fe5`.
+- Step 8 (D021) — text clips:
   - `ITimelineEditService.AddTextClip(start)`: topmost video track, frame-grid start, 5 s, defaults
     "Text" / Segoe UI / 48 / #FFFFFF / Center, one "Add Text" undo step; rejected without changes on
     overlap, locked track or no video track (no track is created). `EditPlan` passes its description
@@ -268,6 +269,51 @@ Inspector · 8 text clips · 9 speed · 10 closeout.
     `(empty text)` and no Preview text.
   - Known risk (Phase 8, not solved here): a font missing on the machine silently falls back in the
     Preview, but ffmpeg `drawtext` in the export needs a font file.
+
+- Step 9 (D022) — speed (not checkpointed):
+  - Product decisions (2026-09-24): 0.25×–4× in steps of 0.05×, exact fraction; a speed change keeps
+    start, SourceIn and SourceOut, the duration is whole frames; one rounding rule for SetSpeed / trim
+    / split / regrid / validation / loading; video and audio clips only; v1 files with speed ≠ 1 are
+    damaged, saving writes v2; pitch kept via ffmpeg atempo; 1× keeps its exact path; a 1× clip may
+    keep a source tail < 1 frame after a speed change back to 1× (owner's choice); no speed label, no
+    high-speed decoding optimization.
+  - Scratchpad measurement, FFmpeg 9.0.1 (MP4/AAC, 1 kHz bursts, energy centroids): PTS after atempo
+    count output samples (source position must come from ashowinfo before atempo); pitch exact at
+    0.25/0.5/2/4×; constant latency 449–483 source samples (one atempo), 542 (0.5·0.5 chain), 1573
+    (2·2 chain → 4× uses one atempo=4); ≤ 3.4–5.5 ms residual after removing it, no drift; without apad
+    the output ends 16–180 ms early, `apad=pad_dur=0.25` delivers the source to the end of the file.
+  - Core: `ClipSpeed` (k/20, default = 1×), `SpeedTiming` (SourceLength/FramesFor/Fits); speed-aware
+    `SourceFrameSelector.SamplePoint`, `AudioTiming.SourceTimeAt` / `TimelineSampleOfStreamStart`;
+    `PictureSpan`/`AudioSpan.Speed`; the "only 1× can be played" status is gone.
+  - Timeline: `SetClipSpeed` + `SetClipSpeedCommand` (mergeable); `ClipState.Speed`,
+    `ClipState.Normalize`; speed paths in move/trim/split (`PlanTrimAtSpeed`) and `FrameRateRegrid`;
+    validator uses the invariant for every speed; the D008 edit ban is lifted. Reader: tempo stream
+    placement; `AudioDecodeRequest.Speed`.
+  - Video: FFmpeg audio decoder `apad` + atempo chain, latency compensation in FirstSampleIndex
+    (480 source samples, 540 below 0.5×).
+  - Project: format v2 (`speedRatio`), v1 read with speed exactly 1.
+  - UI: Inspector SPEED section (0.25–4.00×, step 0.05).
+  - Tests (new): Core `ClipSpeedTests` (23) and `SpeedMappingTests` (6, BigInteger references);
+    Timeline `SpeedEditTests` (27: worked examples, boundary speeds 0.25/0.5/0.95/1/1.05/2/4, round trips
+    1→1.35→1 and 1→1.35→0.75→1, undo/redo with a non-multiple duration, merging, rejections, trim/move/
+    split/regrid at speed, the two real one-tick normalization cases at 29.97 found by a search, 1× with
+    a tail, randomized edits with speeds at 29.97/23.976/25) and `SpeedPlaybackTests` (12); Project
+    `SpeedPersistenceTests` (22); Video `FfmpegSpeedIntegrationTests` (21, real ffmpeg); UI
+    `SpeedInspectorTests` (8). Changed by decision: 4 tests that used speed 2 as "unsupported" (now a
+    video clip on audio-only media), the D008 ban test (removed), 3 format-version expectations (v2),
+    the v2 "+1 tick at 1×" corruption case (+1 frame now), the recovery "newer version" test's literal.
+  - Mutations: speed change rewriting SourceOut → 10 failures; no normalization → 2; audio reader or
+    frame selector ignoring the speed → 6 each; no latency compensation → 3 (the slow speeds; the 10 ms
+    bound itself guards the fast ones); no apad → 10.
+  - Full suite 1105 green. Running app: v1 with speed 2 refused as damaged; valid v1 opened; Speed
+    field 2×/0.5×/0.25×/4× — clip lengths 5 / 20 / 40 / 2.48 s and the preview's burned-in source
+    time 8.08 / 2.00 / 1.00 / 8.00 s at 4.04 / 4 / 4 / 2 s; playing at 2× ran ffmpeg with
+    `…,ashowinfo,apad=pad_dur=0.25,atempo=2`; trim end, split, move of the 2× clip (source 6.000 s at
+    5.00 s); undo ×3 / redo ×3; saved as v2 (`speedRatio` 2/1, no `speed`).
+  - Found while testing (not Step 9, not fixed here, suggested as a separate task): `ExecutableLocator`
+    passes the first caller's token into the one-time ffmpeg probe; if that caller is cancelled (a
+    reader retired right after opening a project) the probe fails and "ffmpeg not found" is cached
+    for the whole run.
 
 ### Phase 6 — Project persistence (complete)
 
@@ -517,6 +563,17 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 5 (video checkpoint `85ca216`, audio in the closeout commit)
 
 ## Known issues
+
+- Speed (D022): the atempo latency compensation is measured for FFmpeg 9.0.1; another ffmpeg version
+  may shift it — `FfmpegSpeedIntegrationTests` (10 ms bound) catches that.
+- ~~`ExecutableLocator`: a cancelled first ffmpeg probe caches "not found" for the app run~~ — fixed
+  2026-09-24: a caller-cancelled probe now rethrows `OperationCanceledException` without caching
+  (and kills the probe process); only a genuine miss/failure/5 s timeout is cached. Regression tests:
+  `Video.Tests/ExecutableLocatorTests`.
+- Closing the main window while playback is running hangs the process (window gone, no
+  "Shutting down." in the log; host disposal never finishes). Reproduced 2026-09-24 on HEAD 5d81fe5
+  plus only the ExecutableLocator fix, so not caused by Step 9; earlier it was masked because the
+  locator bug often left playback without ffmpeg. Closing an idle app exits normally. Not fixed yet.
 
 - Text clips (D021): the Preview (Avalonia) silently substitutes a font that isn't installed; the
   Phase 8 export via ffmpeg `drawtext` needs an actual font file — handle missing fonts there.
