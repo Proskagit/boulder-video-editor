@@ -160,6 +160,27 @@ public class SpeedPersistenceTests
     }
 
     [Fact]
+    public void A_clip_at_another_speed_keeps_every_phase7_property_in_v2()
+    {
+        var project = SpeedProject();
+        var video = (VideoClip)project.Timeline.VideoTracks[0].Clips[0];
+        (video.PositionX, video.PositionY, video.Scale, video.RotationDegrees, video.Opacity) = (-123.25, 45.5, 0.6, 15.75, 0.7);
+        (video.Volume, video.IsMuted, video.Crop) = (1.5, true, new CropRect(0.1, 0.05, 0.2, 0.15));
+
+        var json = ProjectSerializer.Serialize(project, Folder);
+        var root = JsonNode.Parse(json)!;
+        Assert.Equal(2, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(27, Clip(root)["speedRatio"]!["numerator"]!.GetValue<long>());
+        Assert.Equal(20, Clip(root)["speedRatio"]!["denominator"]!.GetValue<long>());
+
+        var loaded = (VideoClip)Load(json).Timeline.VideoTracks[0].Clips[0];
+        Assert.Equal(ClipSpeed.FromSteps(27), loaded.Speed);
+        Assert.Equal((-123.25, 45.5, 0.6, 15.75, 0.7), (loaded.PositionX, loaded.PositionY, loaded.Scale, loaded.RotationDegrees, loaded.Opacity));
+        Assert.Equal((1.5, true, new CropRect(0.1, 0.05, 0.2, 0.15)), (loaded.Volume, loaded.IsMuted, loaded.Crop));
+        Assert.Equal(json, ProjectSerializer.Serialize(Load(json), Folder)); // byte-identical round trip
+    }
+
+    [Fact]
     public void A_recovery_file_keeps_the_speed()
     {
         var info = new RecoveryInfo(Folder, DateTimeOffset.UnixEpoch, 1, DateTimeOffset.UnixEpoch);

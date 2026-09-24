@@ -2,11 +2,12 @@
 
 ## Current phase
 
-Phase 7 — Basic editing: **in progress**, branch `feat/phase-7-basic-editing` (from `main`
-`9fd38e7`, which contains Phases 5 and 6). Scope (DEVELOPMENT_PLAN): speed, volume, opacity,
+Phase 7 — Basic editing: **complete** — manually accepted by the product owner on 2026-09-24
+(Steps 1–9, last checkpoint `48a3f54`; Step 10 closeout, see below), branch `feat/phase-7-basic-editing`
+(from `main` `9fd38e7`, which contains Phases 5 and 6). Scope (DEVELOPMENT_PLAN): speed, volume, opacity,
 transform, crop, text — static per-clip properties, no keyframes.
 
-### Phase 7 — Basic editing (in progress)
+### Phase 7 — Basic editing (complete)
 
 Product decisions (product owner, 2026-09-23):
 - Compositing: the Preview draws layers on the GPU with Avalonia `DrawingContext`; D010's
@@ -215,8 +216,9 @@ Inspector · 8 text clips · 9 speed · 10 closeout.
   - Performance (scratch measurement): copy/update 0.11–1.31 ms, offscreen render 0.8–13.9 ms per frame
     for 1–8 layers at 1280 × 720 — no optimization needed.
   - Full suite 925 green (3 consecutive runs); app starts without errors.
-  - Open: manual visual check by the product owner; whether to remove `PlaybackFrame.Picture` from
-    Core too (≈ 47 assertions of the Phase 5–7 playback tests use it as their oracle).
+  - Open: manual visual check by the product owner. `PlaybackFrame.Picture` stays in Core — product
+    owner decision 2026-09-24: deferred cleanup, not part of Phase 7 (≈ 47 assertions of the Phase 5–7
+    playback tests use it as their oracle).
 - Step 7 manual-check findings (2026-09-24; Step 7 checkpoint: commit `a1cf682`):
   - Numeric fields (all 10 Inspector fields) accepted spaces and foreign characters: NumericUpDown
     parses with `NumberStyles.Any` by default (ru-RU group separator is a space → "9 0" = 90; also
@@ -229,11 +231,13 @@ Inspector · 8 text clips · 9 speed · 10 closeout.
     the view calls `InspectorViewModel.ShowModelValues()` (the existing `SyncFromModel`).
     Known, unchanged: fields commit per keystroke (existing behaviour), so a valid prefix typed
     before an invalid character ("9" of "9 0") is applied; the rest is rejected.
-  - Clip edge resize not updating the timeline width: **not reproduced**. VM geometry is correct
+  - Clip edge resize not updating the timeline width: **closed as not reproduced** (product owner,
+    2026-09-24): observed once during Step 7, not reproduced by the later checks below, no exact
+    reproduction steps; no fix. VM geometry is correct
     (drag preview and committed Left/Width, start and end edge, after property edits, undo/redo),
     and in the running app nine scenarios resized correctly (end/start edge, after Inspector spinner
     and typed edits with focus kept, two tracks, zoom Fit, during playback, undo). No timeline code
-    changed since Phase 7 Step 1. Needs exact reproduction steps from the product owner.
+    changed since Phase 7 Step 1.
   - Tests: UI `NumericInputTests` (25 incl. theory cases: plain numbers ru/en, 16 rejected inputs,
     the old default documented, emptied field → no edit + restore on blur), `TimelineTrimLayoutTests`
     (4). Mutations: `ParsingStyle = Any` → 11 failures; no relayout on TimelineChanged → 4.
@@ -270,7 +274,8 @@ Inspector · 8 text clips · 9 speed · 10 closeout.
   - Known risk (Phase 8, not solved here): a font missing on the machine silently falls back in the
     Preview, but ffmpeg `drawtext` in the export needs a font file.
 
-- Step 9 (D022) — speed (not checkpointed):
+- Step 9 checkpoint: commit `48a3f54` (together with the `ExecutableLocator` fix below).
+- Step 9 (D022) — speed:
   - Product decisions (2026-09-24): 0.25×–4× in steps of 0.05×, exact fraction; a speed change keeps
     start, SourceIn and SourceOut, the duration is whole frames; one rounding rule for SetSpeed / trim
     / split / regrid / validation / loading; video and audio clips only; v1 files with speed ≠ 1 are
@@ -310,10 +315,52 @@ Inspector · 8 text clips · 9 speed · 10 closeout.
     time 8.08 / 2.00 / 1.00 / 8.00 s at 4.04 / 4 / 4 / 2 s; playing at 2× ran ffmpeg with
     `…,ashowinfo,apad=pad_dur=0.25,atempo=2`; trim end, split, move of the 2× clip (source 6.000 s at
     5.00 s); undo ×3 / redo ×3; saved as v2 (`speedRatio` 2/1, no `speed`).
-  - Found while testing (not Step 9, not fixed here, suggested as a separate task): `ExecutableLocator`
-    passes the first caller's token into the one-time ffmpeg probe; if that caller is cancelled (a
-    reader retired right after opening a project) the probe fails and "ffmpeg not found" is cached
-    for the whole run.
+  - Found while testing: `ExecutableLocator` passed the first caller's token into the one-time ffmpeg
+    probe; if that caller was cancelled (a reader retired right after opening a project) the probe
+    failed and "ffmpeg not found" was cached for the whole run (on `5d81fe5` in 4 of 4 open + seek
+    runs). Fixed in `48a3f54`: a caller-cancelled probe rethrows without caching; a genuine miss is
+    still cached (`Video.Tests/ExecutableLocatorTests`, 5). Final Step 9 app check: 5 open + seek +
+    play runs, ffmpeg found every time.
+
+- Step 10 — closeout (2026-09-24, no product code changed):
+  - Audit: the Phase 7 scope of `docs/DEVELOPMENT_PLAN.md` (speed, volume, opacity, transform, crop,
+    text) and the product decisions above are implemented; D017–D022 match the code; ARCHITECTURE,
+    ROADMAP and README brought up to date.
+
+    | Property | Step | Automated tests | Manual check |
+    |---|---|---|---|
+    | Volume 0–200 %, mute (video + audio clips) | 2–4 | Timeline `ClipPropertyEditTests`, Core `PlaybackSnapshotMixTests`, Timeline `MixUpdatePlaybackTests`, UI `InspectorAudioTests`, Video `MixUpdateIntegrationTests`, Project `ClipPropertyPersistenceTests` | Step 4; Step 10 smoke (values; mute is not audible to automation) |
+    | Opacity, transform (position, scale, rotation) | 2, 5–7 | Core `CompositionMathTests`, `CompositionLayersTests`, Timeline `MultiLayerPlaybackTests`, UI `CompositionDrawPlanTests`, `InspectorVisualTests`, `NumericInputTests`, Project `ClipPropertyPersistenceTests` | Step 7 (+ owner findings); Step 10 smoke |
+    | Crop | 2, 5–7 | as transform, plus the crop cases of `ClipPropertyPersistenceTests` (load validation) | Step 7; Step 10 smoke |
+    | Text clips | 8 | Timeline `TextClipEditTests`, UI `TextClipUiTests`, `CompositionDrawPlanTests` | Step 8 |
+    | Speed 0.25–4× | 9 | Core `ClipSpeedTests`, `SpeedMappingTests`, Timeline `SpeedEditTests`, `SpeedPlaybackTests`, Project `SpeedPersistenceTests`, UI `SpeedInspectorTests`, Video `FfmpegSpeedIntegrationTests` | Step 9; Step 10 smoke |
+    | Multi-layer playback / Preview | 6–7 | Timeline `MultiLayerPlaybackTests`, UI `PreviewLayersTests`, Video `MultiLayerIntegrationTests` | Steps 6–7 |
+    | project.json v2, v1 read | 3, 9 | Project `ClipPropertyPersistenceTests`, `SpeedPersistenceTests`, `ProjectSerializer*Tests`, `RecoverySerializerTests` | Step 9; Step 10 smoke |
+
+  - Coverage gap found by the audit: no automated test put speed ≠ 1 and the other properties on one
+    clip (persistence maps them independently, split copies both through one `CloneClip`, speed
+    commands touch only `ClipState`). Closed on the product owner's decision by one test:
+    `SpeedPersistenceTests.A_clip_at_another_speed_keeps_every_phase7_property_in_v2` (speed 27/20,
+    volume 1.5, mute, position, scale, rotation, opacity, crop → v2 with `speedRatio` 27/20 → load →
+    every value exact → byte-identical re-serialization).
+  - Automated: `dotnet build --no-incremental` 0 errors, 0 warnings; full suite 3 consecutive runs,
+    1111 passed each (Core 275, Timeline 257, Project 249, UI 193, Video 137), 0 failed, 0 skipped.
+  - Smoke (running app, scratch project, UI Automation): one video clip with speed 2×, volume 150 %,
+    muted, position (200, −100), scale 60 %, rotation 15°, opacity 70 %, crop 10/5/10/5 %. Open → frame
+    steps + seek → the decoder's source positions advance 0.08 s per 0.04 s timeline frame (2×); Play
+    shows the rotated, scaled, offset, cropped, translucent picture; the Inspector shows every value;
+    opacity edited to 80 % in the Inspector (title `*`) → Save → `project.json` v2 with `speedRatio`
+    2/1, no `speed`, all values incl. the edit; reopen → same values, clean title, 2× mapping and
+    playback again. Mute itself is not audible to automation (covered by
+    `MixUpdateIntegrationTests`). Closing the app hung in this smoke even without playback — see the
+    known issue below (not a Phase 7 regression).
+  - Carried forward / deferred (not Phase 7):
+    - Phase 8 constraints: the export must reproduce the composition rules of D018 exactly (crop → fit
+      → scale → rotation → position → opacity; canvas = project frame size); a font missing on the
+      machine silently falls back in the Preview, but ffmpeg `drawtext` needs a font file (D021); the
+      speed rules of D022 (exact mapping, atempo with pitch kept) apply to the export as well.
+    - `PlaybackFrame.Picture` cleanup (deferred, see Step 7).
+    - The known issues below, in particular the close hang.
 
 ### Phase 6 — Project persistence (complete)
 
@@ -561,6 +608,8 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 3
 - Phase 4
 - Phase 5 (video checkpoint `85ca216`, audio in the closeout commit)
+- Phase 6
+- Phase 7 (accepted 2026-09-24)
 
 ## Known issues
 
@@ -570,10 +619,13 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   2026-09-24: a caller-cancelled probe now rethrows `OperationCanceledException` without caching
   (and kills the probe process); only a genuine miss/failure/5 s timeout is cached. Regression tests:
   `Video.Tests/ExecutableLocatorTests`.
-- Closing the main window while playback is running hangs the process (window gone, no
-  "Shutting down." in the log; host disposal never finishes). Reproduced 2026-09-24 on HEAD 5d81fe5
-  plus only the ExecutableLocator fix, so not caused by Step 9; earlier it was masked because the
-  locator bug often left playback without ffmpeg. Closing an idle app exits normally. Not fixed yet.
+- Closing the main window hangs the process (window gone, no "Shutting down." in the log; host
+  disposal never finishes) once a project with decodable media was open — also without ever
+  playing, and also after Pause/Stop. Closing an app without such a project exits normally. Found
+  2026-09-24; reproduced with only the `ExecutableLocator` fix applied on `main` `9fd38e7` (before
+  Phase 7) and on every Phase 7 checkpoint (`7ab3693`, `8592d10`, `a1cf682`, `5d81fe5`), so it is not
+  a Phase 7 regression; earlier it was masked because the locator bug often left the preview without
+  ffmpeg. Not fixed yet (separate task).
 
 - Text clips (D021): the Preview (Avalonia) silently substitutes a font that isn't installed; the
   Phase 8 export via ffmpeg `drawtext` needs an actual font file — handle missing fonts there.
@@ -608,6 +660,12 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Media import is not undoable (unchanged from Phase 2).
 
 ## Verification
+
+2026-09-24 (Phase 7 closeout, Step 10):
+- `dotnet build --no-incremental`: 0 errors, 0 warnings. `dotnet test`: 3 consecutive runs, 1111
+  passed each (Core 275, Timeline 257, Project 249, UI 193, Video 137), 0 skipped.
+- Running app: Phase 7 integration smoke passed (details in Step 10 above); close hang observed
+  (known issue, pre-Phase 7).
 
 2026-09-23 (Phase 5 audio, lifecycle):
 - `dotnet build`: 0 errors, 0 warnings. `dotnet test`: 391 passed (Core 153, Timeline 132,

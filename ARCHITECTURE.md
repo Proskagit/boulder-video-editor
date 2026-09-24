@@ -25,8 +25,8 @@ projects (`tests/Core.Tests`, `tests/Project.Tests`, `tests/Timeline.Tests`, `te
 | Infrastructure | Serilog setup, `AppPaths` (incl. the recovery folder), `FfprobeLocator` / `FfmpegLocator` + `FfmpegOptions`, `ErrorTranslator` | Implemented |
 | Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS); `FfmpegAudioDecoder` (ffmpeg CLI → 48 kHz stereo float); shared `FfmpegProcess` | Probe + video/audio decode |
 | Media | `MediaImportService` (extension validation, file size) | Implemented |
-| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService` | Implemented (Phase 6) |
-| Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands | Implemented (Phase 4) |
+| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService` | Implemented (Phase 6; format v2 since Phase 7, D022) |
+| Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
 | Effects, Export | Later phases | Empty scaffolds |
 
@@ -103,7 +103,8 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
 - Playback core (D011): `PlaybackSnapshotBuilder` (UI thread) → immutable `PlaybackSnapshot`
   → `IPlaybackService` / `PlaybackService` (Timeline/Playback). `PlaybackClock` = anchor +
   elapsed of an `IReferenceClock` (Stopwatch now, audio device later). `VideoPipeline` keeps a
-  `SpanReader` for the visible clip plus the next one within the prefetch window; each reader
+  `SpanReader` for the visible clip plus the next one within the prefetch window (since Phase 7:
+  one per visible layer, D019); each reader
   decodes in the background into a bounded buffer and returns a frame only when certain.
   The UI polls `Update()` each tick; nothing is pushed to the UI thread.
 - UI (D011, D020): `PreviewView`'s `DispatcherTimer` → `PreviewViewModel.Tick()` → `Update()`;
@@ -146,9 +147,13 @@ This is a deliberate precision decision and should be preserved unless an explic
   clip, prefetch at the next edge, `UpdatePresentation` for presentation-only snapshots — no new seek
   generation, newly uncovered layers Pending); `PlaybackFrame.Layers` = `LayerPicture`s bottom to top
   (Frame/Text/Pending/Offline/Unsupported/DecodeError, per-layer late flag, placeholder area);
-  `Picture` is the compatibility view the current Preview still shows (layer rendering: Step 7).
+  the Preview renders the layers (D020). `PlaybackFrame.Picture` (topmost picture layer) is no longer
+  used by the UI; it stays in Core as the oracle of the playback tests (deferred cleanup).
 - Orientation (D019): metadata keeps the coded `Width/Height` and adds `DisplayRotation` /
   `DisplayWidth/Height` (what the decoder delivers with `-autorotate`); composition uses the display size.
+- Phase 8 constraints: the export must reproduce these rules exactly (same order, canvas and culling
+  semantics as `CompositionMath`); text needs a font file for ffmpeg `drawtext`, while the Preview
+  silently substitutes a missing font (D021); clip speed follows D022 (exact mapping, pitch kept).
 
 ## Media pipeline
 
@@ -170,9 +175,12 @@ implementations.
 Decisions: D014 (format, Open/Save, missing media), D015 (save point), D016 (autosave,
 recovery, unsaved changes).
 
-- On disk: a project folder with `project.json` (format v1). `ProjectSerializer` maps entities
+- On disk: a project folder with `project.json` (format v2 since Phase 7: the clip speed as an exact
+  fraction `speedRatio`, D022; v1 files are read when their speed is 1 and saved as v2; files of a
+  newer version are refused). `ProjectSerializer` maps entities
   ⇄ DTOs (`ProjectFileDto.cs`; ticks as `long`, exact frame rates, no runtime state) and
-  validates on load (incl. clip property ranges, D017); `ProjectFileStore` reads and writes atomically (temp + `File.Replace`).
+  validates on load (incl. clip property ranges, D017, and the speed timing invariant, D022);
+  `ProjectFileStore` reads and writes atomically (temp + `File.Replace`).
 - `ProjectService` (UI thread): Open reads + validates + marks missing media off the UI thread
   into a separate object, then replaces the project (history cleared, clean). Save / Save As
   snapshot text, history position and non-undoable change count together, write, and only

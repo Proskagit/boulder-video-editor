@@ -2,11 +2,12 @@
 
 A simplified, desktop-first video editor (Windows 10/11 x64, Avalonia UI, .NET 8),
 architected so professional-grade features can be layered in over time without a
-rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–6
+rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–7
 are complete** (architecture, UI skeleton, media import, ffprobe metadata
 analysis, timeline editing, preview playback with audio, project persistence with
-autosave/recovery). Basic editing properties, export and polish are not implemented
-yet (Phases 7–9).
+autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
+text). Export and polish are not implemented
+yet (Phases 8–9).
 
 ## Requirements
 
@@ -99,14 +100,18 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–6 complete. Working: media import with validation and duplicate
+Phases 0–7 complete. Working: media import with validation and duplicate
 detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
 preview playback with video and audio, and projects on disk: New / Open / Save /
 Save As (a project folder with `project.json`), unsaved-changes prompt, window title
 with `*`, autosave to a recovery file every 2 minutes with a recovery offer after a
-crash, missing media shown as offline.
+crash, missing media shown as offline. Phase 7: per-clip speed (0.25×–4×, pitch kept),
+volume (0–200 %) and mute, opacity, position/scale/rotation, crop and text clips, edited
+in the Inspector with undo/redo, composited in a multi-layer Preview and saved in
+`project.json` format v2 (v1 files still open).
 
-Not yet working: clip properties such as speed/volume/opacity/transform/crop/text
-(Phase 7) and Export (Phase 8, reports "not implemented yet"); relink of missing media
-and recent projects are not planned yet.
+Not yet working: Export (Phase 8, reports "not implemented yet"); relink of missing media
+and recent projects are not planned yet. Known issue: closing the app after a project with
+media was open can hang the process (the window closes, the process stays; end it in Task
+Manager) — being tracked separately.
