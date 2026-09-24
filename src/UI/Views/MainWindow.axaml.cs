@@ -215,6 +215,7 @@ public partial class MainWindow : Window
         public FrameRate FrameRate => FrameRate.Default;
         public string? GetAddBlockReason(MediaAsset asset) => "Design time.";
         public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null) => Nothing;
+        public TimelineEditResult AddTextClip(MediaTime start) => Nothing;
         public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => Nothing;
         public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => "Design time.";
         public TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime) => Nothing;

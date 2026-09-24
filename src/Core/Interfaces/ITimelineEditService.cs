@@ -26,6 +26,12 @@ public interface ITimelineEditService
     /// <see cref="ProjectSettings.IsFrameRateLocked"/>) in the same undo step.</summary>
     TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null);
 
+    /// <summary>Adds a text clip with the default text properties ("Text", Segoe UI 48, white,
+    /// centred) and a 5 s duration on the topmost video track, starting at <paramref name="start"/>
+    /// (snapped to the frame grid). Rejected — nothing changes — when that track is locked, the
+    /// clip would overlap another clip there, or the timeline has no video track. One Undo step.</summary>
+    TimelineEditResult AddTextClip(MediaTime start);
+
     /// <summary>Moves clips by a whole number of frames. With <paramref name="targetTrackId"/>
     /// all clips must currently be on one track and move to the target track.</summary>
     TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null);

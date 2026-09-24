@@ -19,12 +19,14 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
     public TimelineClipViewModel(Clip clip, string name)
     {
         Clip = clip;
-        Name = name;
+        _name = name;
     }
 
     public Clip Clip { get; }
     public Guid Id => Clip.Id;
-    public string Name { get; set; }
+
+    /// <summary>The label on the rectangle; follows the model (file name, text of a text clip).</summary>
+    [ObservableProperty] private string _name;
 
     public string ColorHex => Clip switch
     {

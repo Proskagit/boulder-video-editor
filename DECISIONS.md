@@ -596,6 +596,44 @@ Status: Accepted.
 
 ---
 
+## D021 — Text clips (Phase 7 Step 8)
+
+Date: 2026-09-24
+
+Decision:
+- Adding: `ITimelineEditService.AddTextClip(start)` puts a text clip on the topmost existing video
+  track (highest `Order`) at `start` snapped to the frame grid (negative → 0), 5 s long in whole
+  frames. Defaults: text "Text" (empty text would be invisible) and the model defaults Segoe UI, 48 px,
+  `#FFFFFF`, centred; visual properties default. One `EditPlan`, one undo step "Add Text"
+  (`EditPlan` now passes its description to an insert-only command). Rejected without any change when
+  the clip would overlap another clip on that track, the track is locked, or there is no video track.
+  No track is ever created; adding text never locks the project frame rate.
+- UI: "+ Text" in the timeline header adds at the playhead and selects the new clip (Inspector and
+  Preview follow); a rejection is reported in the status bar and the selection stays.
+- Inspector TEXT section (text clips only): multiline text, font, size, color, alignment — each field
+  sent live to `SetClipProperties` on its own, consecutive changes of one field merge into one undo
+  step (D017), fields filled from the model under the sync guard. Font: a list of the installed
+  families (Avalonia `FontManager` via `IFontCatalog`; no free input); a font that is not installed
+  (a project from another machine) is listed first so the clip's font is always shown. Color: a
+  `#RRGGBB` field plus a swatch of the stored color — no ColorPicker package. Only a complete value
+  valid under D017 (`ClipPropertyValidator.IsHexColor`) is applied, so typing is never reverted
+  halfway; other text shows the model again when the field loses focus. Size uses the shared numeric
+  rules (`NumericInput`, `decimal?`).
+- Empty or whitespace text is a valid property value; such a clip is still not a layer (D018).
+  Text edits are presentation-only snapshot changes: no reader, pipeline or seek generation changes
+  (D018).
+- Timeline label: the first line of the text (any line break), `(empty text)` when the text is
+  blank; recomputed on every `TimelineChanged` (edits, undo, redo), not only on `MediaAssetsChanged`.
+  `TimelineClipViewModel.Name` notifies the view.
+
+Consequences / known risk: the preview (Avalonia) silently falls back to another font when the clip's
+font is missing on the machine, while the Phase 8 export through ffmpeg `drawtext` needs a font file;
+missing fonts must be handled there (not in Step 8).
+
+Status: Accepted.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

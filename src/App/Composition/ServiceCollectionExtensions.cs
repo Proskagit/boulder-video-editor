@@ -51,6 +51,7 @@ public static class ServiceCollectionExtensions
         // --- UI-only services ---------------------------------------------------
         services.AddSingleton<IFilePickerService, AvaloniaFilePickerService>();
         services.AddSingleton<IDialogService, AvaloniaDialogService>();
+        services.AddSingleton<IFontCatalog, AvaloniaFontCatalog>();
         services.AddSingleton<StatusService>();
         services.AddSingleton<MediaAnalysisCoordinator>();
         services.AddSingleton<MediaImportWorkflow>();

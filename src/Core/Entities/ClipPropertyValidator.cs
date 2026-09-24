@@ -98,7 +98,7 @@ public static class ClipPropertyValidator
     private static bool IsInset(double value) => double.IsFinite(value) && value >= 0 && value < 1;
 
     /// <summary>Exactly <c>#RRGGBB</c> (either case).</summary>
-    private static bool IsHexColor(string? value) =>
+    public static bool IsHexColor(string? value) =>
         value is { Length: 7 } && value[0] == '#' && value.AsSpan(1).IndexOfAnyExcept("0123456789abcdefABCDEF") < 0;
 
     private static string Num(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);

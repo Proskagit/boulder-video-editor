@@ -54,9 +54,9 @@ public sealed class UpdateClipsCommand(string description, IReadOnlyList<ClipCha
 
 /// <summary>Adds an already-constructed clip (its Id is fixed at construction, so
 /// Redo recreates the very same clip and selections/references stay valid).</summary>
-public sealed class InsertClipCommand(Track track, Clip clip) : IUndoableCommand
+public sealed class InsertClipCommand(Track track, Clip clip, string description = "Add Clip") : IUndoableCommand
 {
-    public string Description => "Add Clip";
+    public string Description { get; } = description;
     public Track Track { get; } = track;
     public Clip Clip { get; } = clip;
 

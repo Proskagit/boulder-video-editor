@@ -60,8 +60,14 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   `IProjectService.NotifyTimelineChanged()` on Execute and Undo (raises `TimelineChanged`;
   dirty state follows the undo save point, D015). Rules: D008.
 - Inspector (Phase 7): audio (volume 0–200 %, mute), transform (position, scale %, rotation,
-  opacity %) and crop (per edge %); edits go to `SetClipProperties` one field at a time, the fields
-  are refreshed from the model under a sync guard (no echo edits).
+  opacity %), crop (per edge %) and text (content, font from the installed fonts via
+  `IFontCatalog`, size, `#RRGGBB` color with a swatch, alignment); edits go to `SetClipProperties`
+  one field at a time, the fields are refreshed from the model under a sync guard (no echo edits).
+  Numeric text rules: `NumericInput`; text clips: D021.
+- Text clips (Phase 7, D021): `ITimelineEditService.AddTextClip(start)` — topmost video track,
+  frame-grid start, 5 s, one "Add Text" step; "+ Text" in the timeline header adds at the playhead
+  and selects the clip. The timeline label of a text clip is its first line (`(empty text)` for
+  blank text), recomputed on every timeline refresh.
 - Clip properties (Phase 7, D017): `SetClipProperties` with typed `VisualProperties` /
   `AudioProperties` / `TextProperties` (Core/Entities/ClipProperties.cs, limits in
   `ClipPropertyLimits`), validated by `ClipPropertyValidator` (Core; also used on load), applied by

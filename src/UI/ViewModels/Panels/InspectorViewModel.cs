@@ -37,6 +37,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 {
     private readonly ITimelineEditService _edit;
     private readonly StatusService _status;
+    private readonly IReadOnlyList<string> _systemFonts;
 
     /// <summary>The timeline clip shown, if any (the primary selection).</summary>
     private Clip? _clip;
@@ -44,10 +45,13 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// <summary>True while fields are being filled from the model.</summary>
     private bool _syncing;
 
-    public InspectorViewModel(ITimelineEditService edit, StatusService status)
+    /// <param name="fonts">Installed font families for the text font list; without it the list
+    /// holds only the shown clip's font.</param>
+    public InspectorViewModel(ITimelineEditService edit, StatusService status, IFontCatalog? fonts = null)
     {
         _edit = edit;
         _status = status;
+        _systemFonts = fonts?.FamilyNames ?? Array.Empty<string>();
     }
 
     [ObservableProperty]
@@ -187,6 +191,77 @@ public sealed partial class InspectorViewModel : ViewModelBase
         }
     }
 
+    // --- Text (Phase 7 Step 8): text clips ---------------------------------------------------
+    // Same pattern as the visual fields: each field is sent to SetClipProperties on its own and live,
+    // consecutive changes of one field merge into one undo step (D017), the fields are filled from the
+    // model under the sync guard. Empty or whitespace text is a valid value (it just draws nothing).
+
+    [ObservableProperty] private bool _hasTextProperties;
+
+    /// <summary>The clip's text; may span several lines.</summary>
+    [ObservableProperty] private string _textContent = "";
+
+    /// <summary>Installed font families, plus the clip's font when it isn't installed here.</summary>
+    [ObservableProperty] private IReadOnlyList<string> _fontFamilies = Array.Empty<string>();
+
+    /// <summary>Null while the font list has no selection (e.g. while it is being replaced).</summary>
+    [ObservableProperty] private string? _fontFamilyName;
+
+    /// <summary>Font size in canvas pixels; null while the field is empty.</summary>
+    [ObservableProperty] private decimal? _fontSize;
+
+    /// <summary>What the color field holds. Only a complete <c>#RRGGBB</c> is applied, so typing
+    /// never gets reverted halfway; other text shows the model again when the field loses focus.</summary>
+    [ObservableProperty] private string _textColorHex = "";
+
+    /// <summary>The clip's color as stored (the swatch next to the field).</summary>
+    [ObservableProperty] private string _textColorSwatch = "#FFFFFF";
+
+    [ObservableProperty] private TextAlignment _alignment = TextAlignment.Center;
+
+    public IReadOnlyList<TextAlignment> Alignments { get; } = Enum.GetValues<TextAlignment>();
+
+    public decimal MinFontSize => (decimal)ClipPropertyLimits.MinFontSize;
+    public decimal MaxFontSize => (decimal)ClipPropertyLimits.MaxFontSize;
+
+    partial void OnTextContentChanged(string value) => EditText(t => t with { Text = value });
+
+    partial void OnFontFamilyNameChanged(string? value)
+    {
+        if (!string.IsNullOrEmpty(value)) EditText(t => t with { FontFamily = value });
+    }
+
+    partial void OnFontSizeChanged(decimal? value)
+    {
+        if (value is { } size) EditText(t => t with { FontSize = (double)size });
+    }
+
+    partial void OnTextColorHexChanged(string value)
+    {
+        if (ClipPropertyValidator.IsHexColor(value)) EditText(t => t with { ColorHex = value });
+    }
+
+    partial void OnAlignmentChanged(TextAlignment value) => EditText(t => t with { Alignment = value });
+
+    private void EditText(Func<TextProperties, TextProperties> change)
+    {
+        if (_syncing || _clip is null || TextProperties.Of(_clip) is not { } current) return;
+
+        var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Text = change(current) });
+        if (!result.Success)
+        {
+            _status.Report(result.Message ?? "The clip could not be changed.");
+            SyncFromModel(); // show what the clip really has
+        }
+    }
+
+    /// <summary>The installed fonts, with <paramref name="current"/> first when it isn't one of them
+    /// (a project from another machine), so the list can always show the clip's font.</summary>
+    private IReadOnlyList<string> FontListFor(string current) =>
+        _systemFonts.Contains(current, StringComparer.OrdinalIgnoreCase)
+            ? _systemFonts
+            : new[] { current }.Concat(_systemFonts).ToList();
+
     /// <summary>Shows the primary selected timeline clip. Called by MainWindowViewModel
     /// on TimelineViewModel.SelectionChanged — which also fires after every timeline
     /// change, so the timing shown here follows moves/trims/undo.</summary>
@@ -198,6 +273,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         HasAudioProperties = clip is AudioClip || (clip is VideoClip && selection.Asset?.Metadata is not { AudioCodec: null });
         HasVisualProperties = VisualProperties.Of(clip) is not null;
         HasCrop = clip is VideoClip or ImageClip;
+        HasTextProperties = clip is TextClip;
         SyncFromModel();
 
         ClipName = selection.Name;
@@ -286,6 +362,18 @@ public sealed partial class InspectorViewModel : ViewModelBase
                 CropRightPercent = (decimal)visual.Crop.Right * 100m;
                 CropBottomPercent = (decimal)visual.Crop.Bottom * 100m;
             }
+            if (TextProperties.Of(_clip) is { } text)
+            {
+                TextContent = text.Text;
+                var fonts = FontListFor(text.FontFamily);
+                if (!fonts.SequenceEqual(FontFamilies)) FontFamilies = fonts; // may clear the selection first
+                // Exactly the listed spelling, so the list selects it.
+                FontFamilyName = fonts.First(f => string.Equals(f, text.FontFamily, StringComparison.OrdinalIgnoreCase));
+                FontSize = (decimal)text.FontSize;
+                TextColorHex = text.ColorHex;
+                TextColorSwatch = text.ColorHex;
+                Alignment = text.Alignment;
+            }
         }
         finally
         {
@@ -293,8 +381,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Shows the model's values in the fields again. Called when a numeric field loses
-    /// focus empty: an empty field is null here, which is never an edit (NumericInput).</summary>
+    /// <summary>Shows the model's values in the fields again. Called when a field loses focus: an
+    /// empty numeric field (null here) or an incomplete color was never an edit; fields that already
+    /// show the model don't change.</summary>
     public void ShowModelValues() => SyncFromModel();
 
     private void ForgetClip()
@@ -303,6 +392,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         HasAudioProperties = false;
         HasVisualProperties = false;
         HasCrop = false;
+        HasTextProperties = false;
     }
 
     private void BuildTechnicalRows(MediaKind kind, MediaMetadata m)

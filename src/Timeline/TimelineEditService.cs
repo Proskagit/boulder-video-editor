@@ -18,6 +18,12 @@ public sealed class TimelineEditService : ITimelineEditService
     /// <summary>Length of a newly added image clip.</summary>
     public static readonly MediaTime DefaultImageDuration = MediaTime.FromSeconds(5);
 
+    /// <summary>Length of a newly added text clip.</summary>
+    public static readonly MediaTime DefaultTextDuration = MediaTime.FromSeconds(5);
+
+    /// <summary>Content of a newly added text clip (empty text would not be visible).</summary>
+    public const string DefaultText = "Text";
+
     /// <summary>Source frame rates outside this range are treated as unknown.</summary>
     public const int MinSourceFps = 1;
     public const int MaxSourceFps = 240;
@@ -137,6 +143,30 @@ public sealed class TimelineEditService : ITimelineEditService
         Commit(plan, "Add Clip");
         if (info is not null) _logger.LogInformation("{Message}", info);
         return TimelineEditResult.Ok(new[] { clip.Id }, info);
+    }
+
+    public TimelineEditResult AddTextClip(MediaTime start)
+    {
+        // Titles go over the picture: the topmost video track, never a new one.
+        var track = Sequence.VideoTracks.OrderByDescending(t => t.Order).FirstOrDefault();
+        if (track is null) return TimelineEditResult.Fail("The timeline has no video track.");
+        if (track.IsLocked) return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+
+        var plan = new EditPlan(Sequence, Settings);
+        var rate = plan.Rate;
+        var startFrame = Math.Max(0, start.ToNearestFrame(rate));
+        var frames = Math.Max(1, DefaultTextDuration.ToNearestFrame(rate));
+
+        // Text defaults are the model's (Segoe UI, 48, #FFFFFF, centred); only the content is set.
+        var clip = new TextClip { Text = DefaultText };
+        ClipState.FromFrames(startFrame, startFrame + frames, MediaTime.Zero, rate).ApplyTo(clip);
+        plan.Insert(track, clip);
+
+        if (Validate(plan) is { } error)
+            return TimelineEditResult.Fail($"Can't add text on {track.Name}: {error}");
+
+        Commit(plan, "Add Text");
+        return TimelineEditResult.Ok(new[] { clip.Id });
     }
 
     // --- Move ------------------------------------------------------------------

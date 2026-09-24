@@ -16,7 +16,7 @@ Product decisions (product owner, 2026-09-23):
   the first video; no resolution UI in Phase 7. The Preview must stop assuming a fixed 960×540.
 - Speed: 0.25×–4×, UI step 0.05×, exact rational (not `double`), pitch preserved. Changing speed
   keeps Start, recomputes Duration / source range, is rejected on overlap (no ripple).
-  `project.json` v2 that still reads v1 (→ D021).
+  `project.json` v2 that still reads v1 (→ D022; D021 is Step 8, text clips).
 - Text: multiline; only the existing properties (text, font, size, color, alignment, position,
   scale, rotation, opacity). No outline/background/shadow/stroke.
 - Transform UX: numeric Inspector fields only; no handles on the Preview.
@@ -217,7 +217,7 @@ Inspector · 8 text clips · 9 speed · 10 closeout.
   - Full suite 925 green (3 consecutive runs); app starts without errors.
   - Open: manual visual check by the product owner; whether to remove `PlaybackFrame.Picture` from
     Core too (≈ 47 assertions of the Phase 5–7 playback tests use it as their oracle).
-- Step 7 manual-check findings (2026-09-24, not checkpointed):
+- Step 7 manual-check findings (2026-09-24; Step 7 checkpoint: commit `a1cf682`):
   - Numeric fields (all 10 Inspector fields) accepted spaces and foreign characters: NumericUpDown
     parses with `NumberStyles.Any` by default (ru-RU group separator is a space → "9 0" = 90; also
     "(5)", "5-", "1e2", currency). Fixed in one place: `UI/Common/NumericInput.ParsingStyle`
@@ -240,6 +240,34 @@ Inspector · 8 text clips · 9 speed · 10 closeout.
   - Full suite 954 green (3 consecutive runs); app started, all 10 fields checked in the running
     app (UI Automation read-back): empty/"abc"/" 50" → model value, "9 0" → 9, "-4 5" → −4,
     "1e2" → 1, "5-" → 5, "1 000" → 1, "-12,5" and "150" accepted.
+
+- Step 8 (D021) — text clips (not checkpointed):
+  - `ITimelineEditService.AddTextClip(start)`: topmost video track, frame-grid start, 5 s, defaults
+    "Text" / Segoe UI / 48 / #FFFFFF / Center, one "Add Text" undo step; rejected without changes on
+    overlap, locked track or no video track (no track is created). `EditPlan` passes its description
+    to an insert-only command (the add used to be named "Add Clip").
+  - "+ Text" in the timeline header (playhead, selects the new clip).
+  - Inspector TEXT section: multiline text, font (installed fonts, `IFontCatalog` /
+    `AvaloniaFontCatalog`; a missing font is listed first), size (`NumericInput`), `#RRGGBB` color +
+    swatch (applied only when complete and valid per D017 — `ClipPropertyValidator.IsHexColor` made
+    public), alignment; live, merged per field, sync guard, rejection → status + model value; the
+    blur handler now restores any Inspector text field that holds a value it doesn't apply.
+  - Timeline label: first line / `(empty text)`, recomputed on every refresh; `Name` is observable.
+  - Tests: Timeline `TextClipEditTests` (10: defaults and placement, topmost track, 29.97 grid,
+    negative start, one undo step + dirty, overlap/locked/no-track rejections, frame rate not locked,
+    trim/move/split of text), UI `TextClipUiTests` (23: "+ Text" selection/Inspector/Preview layer/
+    rejection/undo-redo; TEXT fields, per-field edits, merging, no echo edits, color while typing and on
+    blur, rejected/empty values, whitespace text draws no layer, font list incl. a missing font, text
+    edits while playing keep pipeline and seek generation; label rules and label through edit/undo/redo
+    and split). Mutations: no label refresh → 2 failures; no text sync guard → 2; color applied
+    unchecked → 1; not the topmost track → 6 (UI 4, Timeline 2).
+  - Full suite 987 green (3 consecutive runs). Running app checked: "+ Text" on V2 at the playhead
+    with the Inspector TEXT section and the Preview text; multiline text, size, color + swatch,
+    alignment, font from the system list (MV Boli rendered); undo back to the added clip and redo
+    through all five text edits, with fields, Preview and label following ("Text" ↔ "Hello"); incomplete color + Tab → model color; whitespace text →
+    `(empty text)` and no Preview text.
+  - Known risk (Phase 8, not solved here): a font missing on the machine silently falls back in the
+    Preview, but ffmpeg `drawtext` in the export needs a font file.
 
 ### Phase 6 — Project persistence (complete)
 
@@ -489,6 +517,9 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 5 (video checkpoint `85ca216`, audio in the closeout commit)
 
 ## Known issues
+
+- Text clips (D021): the Preview (Avalonia) silently substitutes a font that isn't installed; the
+  Phase 8 export via ffmpeg `drawtext` needs an actual font file — handle missing fonts there.
 
 - Preview color: footage from the Vivo X300 Pro (HDR / 10-bit) may look overexposed /
   washed out in the Preview. This is not a Phase 5 playback-correctness issue: the preview
