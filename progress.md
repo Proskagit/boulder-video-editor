@@ -2,10 +2,10 @@
 
 ## Current phase
 
-Phase 8 — Export: **Steps 1–8 done, closeout (8.7) done — awaiting product owner acceptance**, branch `feat/phase-8-export` (from `2f0e26f`, the Phase 7 closeout).
+Phase 8 — Export: **complete** (accepted by the product owner on 2026-09-25; commit `8786491`, PR #6), branch `feat/phase-8-export` (from `2f0e26f`, the Phase 7 closeout).
 Scope (DEVELOPMENT_PLAN): Timeline → MP4 (H.264/AAC) with everything Phase 7 added. Decisions: D023.
 
-### Phase 8 — Export (closeout done, awaiting acceptance)
+### Phase 8 — Export (complete)
 
 Product decisions (product owner, 2026-09-24; recorded as D023):
 - Architecture A: C# compositor + FFmpeg as the encoder only; the export is an offline rendering of the
@@ -371,6 +371,8 @@ compositor (shared draw plan in Core) · 4 offline audio mix (shared placement) 
     DEVELOPMENT_PLAN unchanged (Phase 8 stays unchecked until acceptance); verification below. The planned Step 9
     (closeout) is done as part of 8.7.
 - Step 8 closed (2026-09-25); Phase 8 awaits the product owner's review of Step 8.7.
+- Phase 8 accepted by the product owner (2026-09-25): Step 8.7 reviewed, work committed as `8786491`, PR #6 to
+  `main`. The codec leg MP4 → export canvas stays an open product decision (L1-c, no numeric tolerance).
 
 ## Phase 7 (complete)
 
@@ -982,7 +984,7 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 5 (video checkpoint `85ca216`, audio in the closeout commit)
 - Phase 6
 - Phase 7 (accepted 2026-09-24)
-- Phase 8 — Steps 1–8 done, closeout done 2026-09-25; awaiting product owner acceptance
+- Phase 8 (accepted 2026-09-25)
 
 ## Known issues
 

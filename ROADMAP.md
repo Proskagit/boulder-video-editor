@@ -59,7 +59,8 @@ session state (D015).
 
 ## Current
 
-Phase 8 — Export, branch `feat/phase-8-export` (from `2f0e26f`). Decisions: DECISIONS.md D023 (export as an
+Phase 8 — Export, branch `feat/phase-8-export` (from `2f0e26f`). **Complete**: accepted by the product owner on
+2026-09-25 (commit `8786491`, PR #6). Decisions: DECISIONS.md D023 (export as an
 offline rendering of the Preview: C# compositor + FFmpeg encoder, fixed MP4 H.264 CRF 18 / AAC 48 kHz,
 canvas size and exact project rate, preflight that blocks on offline/unanalysed/unsupported media).
 Step 1 (contract, preflight, `ExportSettings` cleanup, documentation), Step 2 (offline source-frame
@@ -67,7 +68,7 @@ selection), Step 3 (shared composition plan, Avalonia offscreen rasterizer), Ste
 shared placement and mix), Step 5 (ffmpeg encoder), Step 6 (`ExportService` orchestration + end-to-end exports) and
 Step 7 (export UI: command, preflight dialogs, progress window, cancel, editing lock; manual test 14/14 PASS) and
 Step 8 (end-to-end Preview ↔ Export parity 8.1–8.5, codec-error measurement 8.6, closeout 8.7 — the planned Step 9)
-done; awaiting product owner acceptance — not yet marked complete. Open: no numeric tolerance for the codec leg
+done. Open: no numeric tolerance for the codec leg
 MP4 → export canvas (D023 Step 8, decision L1-c). Details:
 `progress.md`.
 
@@ -83,7 +84,7 @@ task): closing the app after a project with media was open hangs the process. De
 
 ## Future phases
 
-8 Export (current), 9 Quality — see `docs/DEVELOPMENT_PLAN.md`.
+9 Quality (next) — see `docs/DEVELOPMENT_PLAN.md`.
 
 ## Rule
 
