@@ -2,6 +2,378 @@
 
 ## Current phase
 
+Phase 8 — Export: **Steps 1–8 done, closeout (8.7) done — awaiting product owner acceptance**, branch `feat/phase-8-export` (from `2f0e26f`, the Phase 7 closeout).
+Scope (DEVELOPMENT_PLAN): Timeline → MP4 (H.264/AAC) with everything Phase 7 added. Decisions: D023.
+
+### Phase 8 — Export (closeout done, awaiting acceptance)
+
+Product decisions (product owner, 2026-09-24; recorded as D023):
+- Architecture A: C# compositor + FFmpeg as the encoder only; the export is an offline rendering of the
+  Preview from the same `PlaybackSnapshot` with the Core rules (D018/D009/D022/D013), no filtergraph.
+  Core must not depend on Avalonia; the rasterizer is backend-specific and chosen by a spike in Step 3.
+- Offline / unsupported / not analysed media block the export (preflight lists all of them); a decode
+  error aborts it (no substitute frames/silence, partial output deleted); a missing font is a warning and
+  falls back as in the Preview.
+- Fixed format: CRF 18 + preset medium, no presets/bitrate; size = canvas, rate = exact project rate;
+  always an AAC 48 kHz stereo track (silence if needed).
+- Modal progress + Cancel, editing blocked; `LastExportSettings` is session state (not dirty, no undo);
+  HDR/10-bit out of scope; performance secondary to correctness and parity.
+
+Planned steps: 1 contract + D023 + preflight · 2 offline source-frame reading · 3 rasterizer spike +
+compositor (shared draw plan in Core) · 4 offline audio mix (shared placement) · 5 FFmpeg encoder (Video) ·
+6 `ExportService` orchestration · 7 export UI · 8 end-to-end Preview ↔ Export parity + measurement ·
+9 closeout.
+
+- Step 1 done (D023) — export contract, no rendering/encoding yet:
+  - Core `Core/Export`: `ExportFormat` (MP4, H.264 CRF 18 / medium, AAC 48 kHz stereo 192 kbps, `.mp4`),
+    `ExportOutput.For(snapshot)` (canvas, exact rate, whole frames covering the duration, matching
+    48 kHz sample count), `ExportJob` (snapshot + full output path), `ExportProgress` / `ExportStage`,
+    `ExportException` / `ExportFailure`, `ExportPreflight.Check(project, outputPath, environment)` →
+    `ExportPreflightResult` (all issues, errors before warnings; job only without errors; issues grouped per
+    media file / font with every affected clip in timeline order; only clips that reach the output).
+  - `IExportService` now takes an `ExportJob` (was the mutable `Sequence` + media list + `ExportSettings`)
+    and has `IsAvailableAsync` for the preflight.
+  - `ExportSettings`: `Width`, `Height`, `FrameRate` (double), `VideoBitrateBps`, `AudioBitrateBps` removed
+    (entity and DTO). Older `project.json` values are ignored on read (unknown properties, D014), never make
+    a file damaged and are not written again; `formatVersion` stays 2; unknown format enums stay damaged.
+  - Stale comments fixed (`SpanStatus.Unsupported`, `PlaybackSnapshotBuilder`, `IVideoEngine`, Export
+    `ModuleInfo`, `ProjectSettings.AudioSampleRate` documented as unused); D010 marked partly superseded,
+    D018/D021 point to D023; ARCHITECTURE (Export section), DEVELOPMENT_PLAN, ROADMAP updated.
+  - Found while testing: `Path.GetFullPath` in .NET 8 accepts characters Windows can't store (`|`), so the
+    preflight checks invalid file-name/path characters itself.
+  - Tests: Core `ExportPreflightTests` (30 incl. theory rows), `ExportOutputTests` (10); Project
+    `ExportSettingsPersistenceTests` (10: a Phase 7 `lastExportSettings` block loads, legacy values never
+    damage, saving writes only path + format and stays v2, null/missing → defaults, unknown enums damaged);
+    3 existing Project tests adjusted to the removed fields. Mutations (all caught): no relevance filter →
+    1 failure, no "file gone now" check → 1, case-sensitive font grouping → 1, no invalid-character check → 1.
+  - Full suite green: 1161 (Core 315, Timeline 257, Project 259, UI 193, Video 137); build 0 warnings.
+  - Open before Steps 2–5: see the Step 1 report (rasterizer spike, move of `CompositionDrawPlan` to Core,
+    extraction of the audio placement, `LastExportSettings` update API in Step 7).
+- Step 1 accepted by the product owner (2026-09-24). Added before Step 2: `ExportOutputTests.Frame_count_boundary`
+  (23.976 / 29.97 / 25: exactly N frames → N, last index N − 1; one tick more → N + 1; one tick less → N; less
+  than one frame → 1) and, in Export.Tests, `FrameCount == FrameMath.CeilingFrame(Duration)` for 2 000 random
+  durations per rate (playback's last frame is `CeilingFrame − 1`).
+- Step 2 done (D023 refinement) — offline source-frame selection, no compositor/audio/encoder yet:
+  - `src/Export`: `ExportFrameSource` (public; output frame n → `LayersAt(FromFrame(n))`, a decoded frame per
+    picture layer, text layers without frame; ascending frames within `[0, FrameCount)`; readers only for the
+    picture layers of the current frame) and `ExportPictureReader` (internal; per clip, sequential and
+    blocking: opens at the layer's first visible frame with that frame's sample point, then advances while the
+    next frame `IsAtOrBefore` the point — `SourceFrameSelector.Select` semantics incl. hold-first/hold-last;
+    stills decoded once; full resolution (max 16384), software decoding; every failure → `ExportException`).
+    `ExportDecodeSettings`. Export references Core only.
+  - Reused Core: `PlaybackSnapshot` / `LayersAt` / `PictureLayer` / `TextLayer`, `SourceFrameSelector`
+    (`SamplePoint` with `ClipSpeed`, `IsAtOrBefore`), `ExportOutput.FrameCount`, `IVideoDecoder` /
+    `VideoDecodeRequest` / `DecodedFrame`, `MediaTime.FromFrame`. Nothing of D009/D018/D022 re-implemented.
+  - New test project `tests/Export.Tests` (Core, Project, Timeline, Export; links `PlaybackFakes.cs` and
+    `TimelineFixture.cs`; Timeline and Export grant it internals). `FakeVideoDecoder.FailAfter(…, software:)`
+    added (a genuine failure also in software; default unchanged) and a stream of a source without frames
+    now starts at 0 (was index −1, which produced a bogus frame).
+  - Tests: Export `ExportFrameSelectionContractTests` (12 cases: every output frame vs the Preview's
+    `VideoPipeline` playing from 0 and after seeks, same snapshot and fake sources — 23.976 / 29.97 × 1× /
+    0.25× / 4× with trim start/end, split, a moved half (gap), a 25 fps 1.35× layer over both halves; hold-first
+    (stream starting 3 frames late) at 23.976 / 29.97; hold-last (50-frame stream under a longer clip) at 1× and
+    4×; culling under an opaque full-canvas video with an image and text — culled clip closed and reopened,
+    still decoded once) and `ExportFrameSourceTests` (16: stalled decoder blocks instead of returning an
+    earlier frame, mid-stream failure, open failures incl. ffmpeg missing, stream without frames, offline /
+    unsupported span is an error, full resolution + software request, forward skipping in one stream and
+    ascending order, cancellation and dispose, reader closed when the layer leaves, Export doesn't reference
+    Timeline, FrameCount = CeilingFrame); Video `ExportFrameSourceIntegrationTests` (real ffmpeg, new
+    1920 × 1080 test file: export frames 1920 × 1080 vs the Preview's ≤ 1280 × 720 — same frame numbers at 1×,
+    0.25×, 4×, and equal to ⌊in + (n − start)·s + ½·min(s, 1)⌋; every stream closed); Core
+    `ExportOutputTests.Frame_count_boundary` (3).
+  - Mutations (all caught): speed ignored → 7 failures; next frame instead of the selected one → 15; no
+    hold-last → 3; no culling → 1; no hold-first → 2; readers kept while culled → 2.
+  - Found while testing: the new Video test first compared the process-wide `FfmpegProcess.LiveProcesses` and
+    was flaky; replaced by counting its own streams. Its extra second then exposed a pre-existing race: the
+    ffmpeg-decoding `DisplayOrientationIntegrationTests` ran outside the media collection, in parallel with the
+    lifecycle tests that assert the global counter (`FfmpegAudioDecoderIntegrationTests.PlaybackLifecycle…`
+    failed 1 in 3). Fixed by putting it in the media collection (Video.Tests 6 consecutive runs green; without
+    the new test the race was not observed in 8 runs).
+  - Full suite: 1193 (Core 318, Timeline 257, Project 259, UI 193, Export 28, Video 138), 3 consecutive runs
+    green; `dotnet build --no-incremental` 0 warnings.
+  - Open before Step 3: see the Step 2 report.
+- Step 2 accepted by the product owner (2026-09-24).
+- Step 3 done (D023 refinement) — shared composition plan + rasterizer; no audio/encoder/service/UI yet:
+  - Refactor: `MediaTime.ToFrameCeiling` (Core); `FrameMath.CeilingFrame` delegates to it; Export's copies removed.
+  - Spike (scratchpad, not in the repo), Avalonia 11.1.3 with the app's platform init: `RenderTargetBitmap` +
+    `DrawingContext` off the UI thread work and match UI-thread bytes; text (3 families incl. a missing one × 3
+    alignments) identical on both threads, a missing family falls back to the default (Segoe UI); 1 200 1080p renders
+    on 4 threads deterministic; handles 586 → 586 and ~72–76 MB private over 3 × 400 renders; ~3.6 ms per 1080p
+    frame. `SolidColorBrush` off the UI thread throws → immutable brushes only. First attempt hung: awaiting on the
+    thread that ran `SetupWithoutStarting` posts continuations to a dispatcher nobody pumps (test harness now runs
+    the dispatcher on its own thread). Decision: Avalonia offscreen, no SkiaSharp reference.
+  - Core `Composition/CompositionDrawPlan.cs`: `ResolvedLayer`, `DrawOperation` → `FrameDraw` / `TextDraw` (text box
+    rule documented), `CompositionDrawPlan` (`Build`, `Operation`, `Viewport`, `Bounds`, black `Background`),
+    `ICompositionRasterizer`. UI: `PreviewDrawPlan` (Preview-only `PlaceholderDraw`, pending skipped) replaces the
+    UI `CompositionDrawPlan`; `CompositionPainter` (the drawing routine formerly inside `CompositionView`, immutable
+    brushes/pens, `Layout(text)`), `FrameBitmap` (straight-alpha bitmaps), `AvaloniaCompositionRasterizer`;
+    `CompositionView` now = `PreviewDrawPlan` + `CompositionPainter`. Export: `ExportFrame` carries the canvas and
+    `ResolvedLayer`s (was `ExportLayerPicture`) and builds its plan with `DrawPlan()`. UI.csproj allows unsafe code
+    (pinning the caller's span for `CopyPixels`).
+  - Found and fixed (Preview): layer bitmaps were `AlphaFormat.Opaque` → transparent image areas drawn opaque; now
+    `Unpremul` (ffmpeg's straight alpha, verified). Video frames unchanged. Needs a manual look with a PNG with
+    transparency in the running app.
+  - Tests: Core `CompositionDrawPlanTests` (28: background/clip, vertical canvas, crop of each side at two decoded
+    sizes, contain fit, scale/rotation 0/90/180/270/30/−90 and position = D018 transform, exact quarter turn,
+    opacity + frame passed through, unknown source size, missing frame, order, culled/transparent/blank layers,
+    text transform, viewport composition) and `MediaTimeTests` `ToFrameCeiling` (3); UI `CompositionDrawPlanTests`
+    kept with unchanged expected values (API renamed) + "Preview plan without playback states = Core plan"; Export
+    `ExportFrame.DrawPlan` test; new project `tests/Rendering.Tests` (50): `RasterGeometryTests` (black background,
+    11 transform rows incl. sub-pixel position, 30°/45°, clipping, 5 crop rows with a quadrant pattern, opacity
+    blend, straight alpha, order, vertical canvas, Preview letterbox clip, Preview == export bytes for pictures,
+    rasterizer reuse over 300 frames with stable handles, contract errors) and `TextRenderingTests` (14 Preview ==
+    export byte-equality cases: one/several lines, Left/Center/Right, 12/40/200 px, Segoe UI/Consolas/Times New
+    Roman/missing family, rotation, scale, opacity, clipping at the canvas edge, trailing spaces; fallback = default
+    family bytes; another family really used; box centred ±1 px; line alignment ±1 px; size and scale ×2 ±3 px;
+    90° turn; colour and opacity; letterbox clip; preview at half size = export geometry / 2 ±2 px).
+  - Mutations (all caught): old Opaque alpha → 1 failure (Rendering); viewport not applied → Core 1, UI 2; text box
+    not centred → 6; crop not normalized → Core 5, UI 2; no clip → 2; no background → 17; alignment ignored → 1.
+  - Full suite: 1276 (Core 349, Timeline 257, Project 259, UI 194, Export 29, Rendering 50, Video 138), 3
+    consecutive runs green; build 0 warnings. App starts (shell initialized, no errors in the log).
+  - Open before Steps 4/5: see the Step 3 report.
+- Step 3 manually checked and accepted by the product owner (semi-transparent PNG in the running Preview; `Unpremul` stays).
+- Step 4 done (D023 refinement) — offline audio PCM; no encoder/AAC/muxing/service/DI/UI:
+  - Core `Playback/AudioPlacement.cs`: `AudioPlacement` (owned samples, source position for a timeline sample,
+    placement of a decoded stream, decode request; 1× and other speeds) and `AudioMix` (gain, add, clamp).
+    `AudioSpanReader` uses the placement instead of its inline formulas (ring buffer and underrun semantics unchanged;
+    its mixing loop now `AudioMix.Add` over the ring's two contiguous pieces), `AudioMixer` uses `AudioMix.Clamp`,
+    `AudioPipeline` `AudioMix.Gain`.
+  - Export: `ExportAudioSource` (public, sequential `ReadAsync`, exactly `AudioSampleCount` frames of 48 kHz stereo
+    float, silence where nothing plays) and `ExportAudioReader` (internal, per audible span, blocking, errors →
+    `ExportException`). Muted clips / volume 0 are not decoded.
+  - Test infrastructure: `FakeAudioDecoder.Fail(path, error)` and `FailAfter(path, samples)` (defaults unchanged);
+    Export.Tests links `AudioFakes.cs`.
+  - Tests: Core `AudioPlacementTests` (bounds, partition, span = timing, 1× exact ×4, speeds ×3, worked 0.25×/4× examples,
+    resume/pause ×3, split ×3, trim ×3, SourceIn/SourceOut ×4, request) and `AudioMixTests` (6); Export
+    `ExportAudioContractTests` (13: export == Preview pipeline + mixer, sample for sample — 1×/0.25×/4×/1.35× with trim,
+    split, gap, hidden video track at 0.5, overlapping clip at 2, muted clip, muted track; exact 1× values; split without
+    a seam; late-starting and short sources; decoder prerolls 20 000 / −3 000 / 0; clipping at +1 and −1 after the sum;
+    silent project) and `ExportAudioSourceTests` (15: sequential exact count, whole frames, slow decoder waited for,
+    open failures incl. ffmpeg missing, mid-stream failure, empty stream = silence, audible offline/unsupported → error,
+    inaudible offline → silence without decoding, decoder only while the clip plays, cancellation, dispose); Video
+    `ExportAudioIntegrationTests` (real ffmpeg, 0.25×/1×/4×: export == Preview exactly, bursts ±5.07 ms / ±0.05 ms at 1×,
+    no drift, one stream opened and closed).
+  - Mutations (all caught): speed placement with the 1× rule → Core 6, Timeline 1; pre-window samples not dropped → 1
+    (needed the new preroll test — the fake's 100-sample preroll never produced a whole chunk before the window); export
+    without clamp → 2; muted clips decoded → 6; Preview mixer without clamp → Timeline 1, Export 2; readers never
+    released → 1.
+  - Found: the ffmpeg decoder streams don't treat a non-zero exit after output as an error (audio: never; video: only
+    before the first frame) — a mid-stream process failure would export as silence / a held frame. Not changed
+    (touches Step 2 and realtime behaviour); proposal in the Step 4 report.
+  - Full suite: 1338 (Core 380, Timeline 257, Project 259, UI 194, Export 57, Rendering 50, Video 141), 3 consecutive
+    runs green; `--no-incremental` build of every project 0 warnings (App built to a scratch folder: the product owner's
+    running app held its bin folder). No test leaves an ffmpeg process (the two running belonged to that app).
+  - Open before Step 5: see the Step 4 report.
+- Step 4 accepted (2026-09-24); follow-up before Step 5 — strict end of stream for the export:
+  - Core: `VideoDecodeRequest.StrictEnd`, `AudioDecodeRequest.StrictEnd` (default false = the old behaviour).
+  - Video: `FfmpegProcess.AbnormalExitAsync` (the one exit-code check); `FfmpegVideoFrameStream` throws `DecoderFailed` at the
+    end when ffmpeg failed and nothing was delivered (unchanged) or the request is strict ("ended early after N frames");
+    `FfmpegAudioStream` does the same when strict (before: never checked). `FfmpegVideoDecoder` / `FfmpegAudioDecoder` pass
+    the flag through.
+  - Export: `ExportPictureReader` and `ExportAudioReader` request `StrictEnd = true`. Preview readers don't set it.
+  - Tests: Video `StrictEndOfStreamTests` (15; the "ffmpeg" is a script running the real ffmpeg with fixed arguments, then
+    exiting with a chosen code): video and audio stream end × exit 3/0 × strict/not; cancellation while the end is pending
+    (the script keeps stdout open 10 s) → `OperationCanceledException` within 8 s, no process left; `ExportFrameSource`
+    with a crash after 10 frames → `DecodeFailed` at frame 9, normal exit → hold-last; `ExportAudioSource` crash after
+    0.5 s → `DecodeFailed`, normal exit → silence; Preview `VideoPipeline` / `AudioPipeline` with the crashing decoder →
+    last frame held (no DecodeError) / samples then silence. Every test checks `FfmpegProcess.LiveProcesses` and that no
+    ffmpeg/ping it started is alive.
+  - Mutations (all caught): video strict ignored → 2; audio strict ignored → 2; export video not strict → 1; export audio
+    not strict → 1; strict everywhere (Preview changed) → 2.
+  - Full suite: 1353 (Core 380, Timeline 257, Project 259, UI 194, Export 57, Rendering 50, Video 156), 3 consecutive runs
+    green; every project built `--no-incremental` with 0 warnings (App to a scratch folder while the product owner's app
+    was running). Afterwards the only ffmpeg alive belonged to that app.
+- Step 5 done (D023 refinement) — ffmpeg encoder; no service/DI/UI/orchestration:
+  - Experiments first (scratchpad, FFmpeg 9.0.1): colour (untagged = BT.601 matrix, red Y 81; `-colorspace` alone leaves
+    primaries/transfer unknown; explicit scale + setparams = BT.709 limited ±1, all tags, RGB round trip ≤ 3), AAC priming
+    (1024 samples, pts −1024, removed by the edit list; decoded = written samples; identical for single-pass and two-pass
+    with stream copy), rational rates (exact pts and durations at 23.976/29.97/25/59.94/24/50, one frame included).
+  - Core `Export/IExportEncoder.cs` (`IExportEncoder`, `IExportEncoding`). Video `FfmpegExportEncoder` +
+    `FfmpegExportEncoding` (two passes, temp files next to the destination, move on success, cleanup otherwise);
+    `FfmpegProcess`: optional stdin (`redirectStdin`, `Stdin`, `CloseStdin`), `Dispose` tolerates an unflushable stdin.
+  - Tests (Video, real ffmpeg): `FfmpegExportEncoderTests` (17: command lines; 23.976/29.97/25/59.94 exact pts, duration,
+    nb_frames, H.264 High yuv420p, BT.709 tags, every frame once in order; sub-frame project = 1 frame + 1 602 samples;
+    colours ×2 (normal and padded stride): YUV vs BT.709 formula ±1, RGB round trip ≤ 3, byte order; AAC-LC 48 kHz
+    stereo, 192 429 bit/s, peak unchanged; silent track; priming: pts −1024, start 0, duration_ts = samples, burst
+    +0.5 sample; A/V sync 23.976/29.97/25, short project, audio starting later, several bursts: |Δ| ≤ 0.035 ms, audio end
+    − video end ∈ [0, 1 sample]; audio up to the end / ending earlier) and `FfmpegExportEncoderFailureTests` (12: ffmpeg
+    missing, folder missing, failing audio/video pass after reading and at once — existing destination untouched,
+    success replaces the destination, cancelled write, write blocked by an encoder that never reads ended by
+    cancellation < 5 s, cancelled completion, dispose of an unfinished encoding, order/count violations; every test:
+    process counter at baseline, no ffmpeg/ping left, no temporary file).
+  - Mutations: no BT.709 handling → 7 failures; rate as a rounded decimal → 6; output written straight to the
+    destination → 5; exit code ignored → 2. An explicit kill-on-cancel for blocked writes survived its mutation (.NET
+    already cancels the pending pipe write) and was removed again; the blocked-write test stays as the guard.
+  - Full suite: 1382 (Core 380, Timeline 257, Project 259, UI 194, Export 57, Rendering 50, Video 185), 3 consecutive runs
+    green; every project `--no-incremental` 0 warnings (App to a scratch folder, the product owner's app still running);
+    only that app's ffmpeg alive afterwards.
+  - Open before Step 6: see the Step 5 report.
+- Step 5 accepted by the product owner (2026-09-24).
+- Step 6 done (D023 refinement) — `ExportService` orchestration; no export UI / dialog / settings / lifecycle:
+  - Export `ExportService : IExportService`: Preparing (one rasterizer from `Func<ICompositionRasterizer>`, encoder
+    start) → Audio (`ExportAudioSource` → `WriteAudioAsync`, 0.5 s chunks, until the source ends) → Video (per frame
+    `ExportFrameSource` → `ExportFrame.DrawPlan()` → rasterizer → one reused BGRA canvas, stride = width · 4 →
+    `WriteFrameAsync`) → Finalizing (`CompleteAsync`). `Task.Run`; progress = existing `ExportProgress` (Preparing 0/1,
+    Audio samples, Video frames, Finalizing 0/1 → 1/1 after success). No preflight re-checks, no composition/audio/output
+    logic; failures and cancellation propagate unchanged; `await using` disposes sources, rasterizer and the unfinished
+    encoding on every other exit. `IsAvailableAsync` = `IFfmpegLocator`. Export.csproj: Logging.Abstractions (as Video).
+  - App DI: `IExportEncoder` → `FfmpegExportEncoder`, `Func<ICompositionRasterizer>` → `new AvaloniaCompositionRasterizer()`,
+    `IExportService` → `ExportService` (resolved from `AddAiVideoEditor()` in a scratch console: ffmpeg found, available).
+  - Tests: Export `ExportServiceTests` (21, fakes: stage order + exact audio = `ExportAudioSource`'s PCM + every frame's
+    plan/canvas/stride; progress monotonic per stage, 1/1 only after completion; off the calling thread; one rasterizer
+    per export; cancellation during audio / video / completion / blocked encoder writes (audio, frame) / before start;
+    video + audio decode failure, ffmpeg missing in the decoder, encoder failures at start/audio/frame/complete incl.
+    `OutputFailed` — same exception instance; rasterizer failure; every part disposed, encoding never completed).
+    New project `tests/ExportEndToEnd.Tests` (26, real ffmpeg + Avalonia, links `RenderHarness.cs`, `FfmpegTools.cs`,
+    `ExportEncoderHarness.cs`; Timeline/Video grant it internals): project → preflight → service → MP4, every export
+    checked with ffprobe (H.264 yuv420p, size, exact `r_frame_rate`, `nb_frames`, AAC-LC 48 kHz stereo, decoded sample
+    count = `AudioSampleCount`, duration ±1.1 ms), only the MP4 in its folder, `FfmpegProcess.LiveProcesses` = 0.
+    Composition (9 scenes: solid, crop, scale, rotation, opacity, text, layers, vertical 180 × 320, hidden track):
+    decoded MP4 vs encoded canvases mean |Δ| ≤ 3, Preview (its `VideoPipeline` + `CompositionView` at canvas size)
+    byte-equal to the export canvas at frames 0/12/24, scene-specific pixels. Audio: one clip, overlap + muted clip +
+    muted track, hidden video track keeps sound (black picture), 2× speed (bursts on the 0.25 s grid ±10 ms), no
+    audio → silent AAC track. A/V sync at 23.976/29.97/25 (white frames vs burst onsets ±1 ms, no drift), 3-frame and
+    1-frame projects. Failures: success replaces an existing file; cancellation in audio/video/finalizing; source
+    deleted after preflight → `DecodeFailed`; folder deleted → `OutputFailed`; ffmpeg missing → `EncoderUnavailable` —
+    destination byte-identical, no temporary file, no process.
+  - Mutations (all caught): export on the caller's thread → 3 failures; Finalizing 1/1 before `CompleteAsync` → 4;
+    encoding not disposed → 8; failures wrapped into `ExportException` → 8; cancellation turned into
+    `ExportException` → 5; a rasterizer per frame → 3; frame source not disposed → 8; audio / frame write without the
+    token → 1 each (needed the new blocked-encoder test). The first "caller's thread" mutation hung the off-thread test
+    (its blocking factory waited forever); the wait is now bounded so the mutation fails instead.
+  - Found: at 2× a burst starting exactly at the clip's `SourceOut` leaves ~10 ms of energy before the clip end
+    (atempo window, Step 4 placement — Preview identical); not changed, the speed test ends the clip away from a burst.
+- Step 6 accepted by the product owner (2026-09-25).
+- Step 7 done (D023 refinement) — export UI; no pipeline change, no Step 8:
+  - UI: `ExportWorkflow` (UI/Services, like `ProjectFileWorkflow`): `ExportPreflight` without the output file (its
+    output-file issues wait for the second check) → errors listed apart from warnings, stop; warnings → Continue /
+    Cancel → save-file picker (`IFilePickerService.PickSaveFileAsync`, new; `.mp4` filter, starts at
+    `LastExportSettings.OutputPath` or the project folder + name; no overwrite prompt of its own) → `ExportPreflight`
+    with the file (job + snapshot) → "Replace file?" for an existing file → `EditingLock` + modal progress window →
+    `IExportService.ExportAsync` → close window, unlock → outcome: success (dialog + status with the path,
+    `LastExportSettings.OutputPath` set, not dirty, no undo step), cancelled (status only), failure per `ExportFailure`
+    (dialog + status, logged as warning), anything else = unexpected error (generic dialog, logged as error with the
+    exception). Picker cancelled → silent.
+  - `ExportProgressViewModel` (stage, done/total, percent = done/total, detail text, Cancel = `cts.Cancel()` once,
+    "Cancelling…"); the service's reports only store the latest value, the window's `DispatcherTimer` pulls it
+    (Preview tick pattern) — no marshalling, nothing after close. `IExportProgressDialog` /
+    `AvaloniaExportProgressDialog` (modal, built in code like `AvaloniaDialogService`; title-bar close = Cancel; closes
+    only via `Close()` after `ExportAsync` returned).
+  - `EditingLock` (singleton, shared): Toolbar New/Open/Save/Save As/Undo/Redo/Import/Export, Timeline Split/Delete/
+    +Video/+Audio/+Text and drag/trim/drop, Inspector clip fields (`IsEditingAllowed`, edits rejected and fields
+    re-synced), Media Browser Import/Add to Timeline — all disabled while locked; playhead, zoom, snapping, selection,
+    playback unchanged. Optional constructor parameters (old call sites unchanged); undo/redo semantics unchanged.
+  - DI: `EditingLock`, `IExportProgressDialog` → `AvaloniaExportProgressDialog`, `ExportWorkflow`; the whole graph
+    validated with `ValidateOnBuild` in a scratch console.
+  - `LastExportSettings`: session state on the project, updated only after a successful export, never dirty/undoable.
+    No new settings. (Serialization removed at the closeout, see below.)
+  - Tests: UI `ExportWorkflowTests` (22: command availability/lock; empty project; errors vs warnings; warnings accept /
+    stop; ffmpeg missing; picker cancelled silently; picker defaults; `.mov` reported not renamed; replace confirmation;
+    success path / status / `LastExportSettings` / not dirty / no undo / nothing imported; progress values stage by stage
+    and success only after the task; snapshot fixed at start; cancel = token only, window and lock kept while unwinding,
+    no second export, not an error, destination unchanged; closing the window cancels; editing lock across panels incl.
+    an Inspector edit and a drop while locked; 4 failure categories; unexpected error logged with the exception;
+    distinct messages). Rendering `ExportProgressDialogTests` (2, real Avalonia window: timer shows progress, title-bar
+    close only cancels, Cancel once, `Close` closes). UI internals visible to Rendering.Tests (window accessor).
+  - Mutations (all caught): no editing lock → 2; no replace question → 1; cancellation as failure → 3;
+    `LastExportSettings` on every outcome → 5; window closed on cancel → 1; first preflight ignored → 3; Inspector not
+    guarded → 1; Timeline not locked → 1; unexpected error not logged → 1.
+  - Manual test plan: `docs/EXPORT_MANUAL_TEST_PLAN.md` (14 scenarios) — run at the closeout, see below.
+- Step 7 accepted by the product owner (2026-09-25) with one contract correction, done:
+  - `LastExportSettings` is session-only (D023 corrected): `ProjectSerializer` no longer writes or reads it
+    (`ProjectFileDto.LastExportSettings`, `ExportSettingsDto` and both mappings removed; recovery files use the same
+    DTO). A `lastExportSettings` of an older file is ignored as an unknown property (D014) — any content, also formats
+    that used to make the file damaged; an opened project starts empty. `ExportWorkflow` unchanged.
+  - Tests: Project `ExportSettingsPersistenceTests` rewritten (10: project file and recovery file never contain it; an
+    older file's value is not restored; 6 older values incl. unknown formats, null, number, string, array load; Save
+    after an export through `ProjectService` writes no `lastExportSettings`, keeps the value for the session, Open
+    starts empty); `ProjectSerializerRoundTripTests` expects it not restored; one validation test no longer removes it.
+- Step 7 manual test (2026-09-25): `docs/EXPORT_MANUAL_TEST_PLAN.md` 14/14 PASS, 0 FAIL, 0 BLOCKED — the current build driven
+  through its real UI (UI Automation; scenario projects written with `ProjectSerializer`, outputs mostly at the picker's
+  suggested path). Successful MP4s checked with ffprobe (H.264 High yuv420p BT.709, exact rate/frames, AAC-LC 48 kHz
+  stereo, full decode clean, flashes vs bursts ≤ 0.02 ms) and played with Windows Media Foundation; Preview == export on
+  text / transforms / hidden track; cancel in Audio / Video / Finalizing and a source vanishing mid-export leave an
+  existing output byte-identical and no temporary file; Replace only after confirmation; re-export byte-identical.
+  Observed, not export defects: the Preview's idle decoders keep the sources under the playhead open (they can't be
+  renamed while the project is open — Phase 5 behaviour); the known close hang after opening a project reproduced
+  (not investigated, still open).
+- Step 7 closed (2026-09-25).
+- Step 8 — end-to-end Preview ↔ Export parity + measurement (D023 "Refined in Step 8"); tests only, no production change.
+  Product owner decisions at the discovery (2026-09-25): A1 + A2 + A3 (1–2 cases) + A4; B software decoding in the tests
+  (`Hardware = Auto` not a criterion); C measurement as a scratch tool, not in the suite, no `ExportService`
+  instrumentation; D stop and report any production divergence (none was found); E sources PNG alpha, JPEG,
+  display-matrix 90°, speed 0.25×/2×/4×, source rate ≠ project rate, 4K (no VFR/HEVC); F 4K/long/measurement scenarios
+  out of the fast suite (`HeavyFfmpegFact` — only with `AIVE_HEAVY_TESTS=1`). Sub-steps, each accepted separately:
+  - 8.1 generators (`E2EMedia`: `Pattern(rate, w, h, seconds, crf)`, `Pattern1080`, `Pattern4K`, `PngAlpha`, `Jpeg`,
+    `Rotated90`; `ProjectBuilder.Image`) and `GeneratedMediaTests` — every generated file checked on itself with
+    ffprobe/ffmpeg and as the app sees it (analysis, decoder, `PlaybackSnapshotBuilder`); 6 mutations caught.
+  - 8.2 `ExportParityCanvasTests` (15, A1): the Preview draws the export canvas byte-equal for PNG alpha (plain and
+    transformed), JPEG (plain and cropped), rotated video (landscape pillarbox, portrait), speed 0.25×/2×/4×, five
+    source/project rate pairs and a mixed scene; independent oracle: the source frame chosen by an exact D009/D022
+    computation, decoded by ffmpeg, against the canvas. 5 mutations caught (the ones in shared code only by the
+    independent checks: oracle, alpha bands, pillarbox).
+  - 8.3 `ExportParityScaledTests` (4 × 1080p + 2 heavy 4K, A2): decisions 1a (flat colour R ≤ 4, G ≤ 3, B ≤ 4) and 2a
+    (geometry ±1 px on luma); bar edges by the mid-level crossing (the Preview's upscaled edges are soft). 5 mutations
+    caught (shift 2 px, scale 1.01, B +5, G +4, next frame).
+  - 8.4 `ExportParityViewportTests` (2, A3) and the shared `ParityMetrics`: 1920×1080 in 960×540 (scale ½) and
+    1080×1920 pillarboxed in 960×540 (scale 0.28125, offset 328.125) against an exact area reduction of the canvas;
+    4 mutations caught. One `Project.Tests` host hung once (1 of 23 runs, not reproducible, project unchanged) → final
+    `--blame-hang` check at 8.7.
+  - 8.5 `ExportParityEncodedTests` (5 picture + 4 sound, A4), decision 5c: MP4 → Preview = geometry (≤ 0.01 % of the
+    pixels outside the ±1 px luma mask, decision 5a), bar edges ±1 px, same source frame (not in the static PNG scene);
+    colour not a criterion there. Sound: AAC vs the Preview's `AudioPipeline` + `AudioMixer` — same length, lag and
+    onsets ≤ 10 ms, SNR ≥ 20 dB sanity bound; 4/4 (SNR 28.4–39.5 dB, lag 0, onsets ≤ 0.48 ms). Mutations: P1 shift,
+    P2 scale, P3 next frame, P5 BT.601 matrix tagged BT.709, S1 audio +15 ms, S2 volume ×0.5 caught; P4 (export colour
+    B+6) intentionally not caught by this leg — the canvas-level parity (8.2, Step 6 composition) and `Rendering.Tests`
+    catch it. The codec leg MP4 → export canvas: decision L1-c — no tolerance, measurement first.
+  - 8.6 measurement only (scratch `CodecMeasure`, outside the repository; no thresholds, suite unchanged; two identical
+    runs): MP4 → export canvas on the 30 existing scenes, every frame (820), 8-bit RGB, split into floor (same BT.709
+    4:2:0 conversion, libx264 `-qp 0`, vs canvas) and quant (MP4 vs that lossless reference). Summary and limits in D023
+    (2); per scene:
+
+    | Scene | Size, frames | Total mean / p99 / max / PSNR | Floor mean / max / PSNR | Quant mean / p99 / max / PSNR |
+    |---|---|---|---|---|
+    | comp/solid | 320×180, 25 | 1.00 / 1 / 1 / 48.1 | 1.00 / 1 / 48.1 | 0.00 / 0 / 0 / lossless |
+    | comp/opacity | 320×180, 25 | 1.33 / 2 / 2 / 45.1 | 1.33 / 2 / 45.1 | 0.00 / 0 / 0 / lossless |
+    | comp/hidden | 320×180, 25 | 1.00 / 1 / 1 / 48.1 | 1.00 / 1 / 48.1 | 0.00 / 0 / 0 / lossless |
+    | comp/text | 320×180, 25 | 0.14 / 3 / 62 / 50.5 | 0.01 / 1 / 67.7 | 0.14 / 3 / 62 / 50.6 |
+    | canvas/png-alpha | 320×180, 25 | 2.60 / 52 / 197 / 26.7 | 2.55 / 193 / 26.7 | 0.21 / 4 / 19 / 50.4 |
+    | canvas/jpeg | 320×180, 25 | 1.49 / 14 / 47 / 38.5 | 1.30 / 40 / 39.3 | 0.45 / 5 / 13 / 46.7 |
+    | comp/crop | 320×180, 25 | 0.78 / 13 / 70 / 39.9 | 0.62 / 36 / 42.2 | 0.37 / 8 / 62 / 43.8 |
+    | comp/scale | 320×180, 25 | 1.99 / 62 / 255 / 26.5 | 1.87 / 255 / 26.6 | 0.36 / 8 / 84 / 43.3 |
+    | comp/rotation | 320×180, 25 | 1.11 / 17 / 75 / 37.3 | 0.86 / 43 / 38.8 | 0.51 / 9 / 67 / 42.5 |
+    | comp/vertical | 180×320, 25 | 2.32 / 62 / 255 / 26.3 | 2.18 / 255 / 26.4 | 0.43 / 9 / 65 / 42.2 |
+    | comp/layers | 320×180, 25 | 2.39 / 28 / 255 / 31.3 | 2.00 / 254 / 31.9 | 0.93 / 12 / 60 / 39.9 |
+    | canvas/png-alpha-transformed | 320×180, 25 | 2.52 / 32 / 245 / 29.9 | 2.13 / 239 / 30.4 | 0.94 / 11 / 77 / 40.1 |
+    | canvas/jpeg-crop | 320×180, 25 | 3.02 / 47 / 236 / 27.2 | 2.72 / 236 / 27.4 | 0.79 / 10 / 60 / 41.1 |
+    | canvas/rotated-landscape | 320×180, 25 | 2.35 / 65 / 255 / 26.2 | 2.21 / 255 / 26.4 | 0.44 / 9 / 64 / 42.2 |
+    | canvas/rotated-portrait | 180×320, 25 | 1.92 / 24 / 74 / 34.9 | 1.59 / 50 / 36.1 | 0.75 / 11 / 64 / 41.0 |
+    | canvas/mixed | 320×180, 30 | 4.02 / 73 / 255 / 24.4 | 3.61 / 255 / 24.5 | 1.10 / 13 / 94 / 38.9 |
+    | canvas/rate-24000_1001-30000_1001 | 320×180, 30 | 1.64 / 18 / 85 / 36.5 | 1.33 / 39 / 38.5 | 0.72 / 11 / 77 / 40.8 |
+    | canvas/rate-25_1-30000_1001 | 320×180, 30 | 1.63 / 18 / 75 / 36.6 | 1.33 / 39 / 38.5 | 0.72 / 11 / 59 / 40.8 |
+    | canvas/rate-60000_1001-25_1 | 320×180, 30 | 1.64 / 19 / 81 / 36.6 | 1.33 / 39 / 38.5 | 0.72 / 11 / 62 / 41.0 |
+    | canvas/rate-50_1-24000_1001 | 320×180, 30 | 1.64 / 19 / 72 / 36.6 | 1.33 / 38 / 38.5 | 0.73 / 11 / 60 / 41.0 |
+    | canvas/rate-30000_1001-25_1 | 320×180, 30 | 1.64 / 19 / 72 / 36.5 | 1.33 / 39 / 38.5 | 0.73 / 11 / 68 / 40.8 |
+    | canvas/speed-5 | 320×180, 25 | 1.53 / 16 / 72 / 37.4 | 1.36 / 39 / 38.4 | 0.55 / 7 / 50 / 44.0 |
+    | canvas/speed-40 | 320×180, 25 | 1.67 / 19 / 72 / 36.2 | 1.35 / 43 / 38.2 | 0.76 / 11 / 76 / 40.6 |
+    | canvas/speed-80 | 320×180, 25 | 1.74 / 20 / 75 / 35.9 | 1.40 / 43 / 37.8 | 0.83 / 12 / 62 / 40.1 |
+    | scaled/1080p-full | 1920×1080, 5 | 1.08 / 11 / 77 / 40.6 | 0.94 / 37 / 43.0 | 0.27 / 8 / 58 / 44.7 |
+    | scaled/1080p-scaled | 1920×1080, 5 | 0.60 / 12 / 255 / 33.4 | 0.57 / 255 / 33.5 | 0.12 / 4 / 66 / 47.8 |
+    | scaled/1080p-rotated | 1920×1080, 5 | 0.90 / 19 / 255 / 32.3 | 0.82 / 255 / 32.4 | 0.21 / 6 / 84 / 45.5 |
+    | scaled/1080p-on-720p | 1280×720, 5 | 2.11 / 43 / 255 / 29.2 | 2.02 / 240 / 29.4 | 0.38 / 10 / 63 / 42.7 |
+    | viewport/landscape | 1920×1080, 5 | 1.27 / 10 / 173 / 40.0 | 1.12 / 141 / 41.8 | 0.33 / 7 / 57 / 44.9 |
+    | viewport/portrait | 1080×1920, 25 | 1.29 / 14 / 142 / 38.0 | 1.21 / 112 / 38.4 | 0.30 / 5 / 75 / 47.3 |
+
+    Not measured in Step 8: export throughput, memory, handles, cancel latency (discovery C1) — 8.6 was scoped to the
+    codec error by the product owner; throughput stays Phase 9.
+  - 8.7 closeout (this entry): D023 "Refined in Step 8" separates the normative criteria, the 8.6 results and the
+    measured H.264 characteristics; no codec tolerance added (open decision); ARCHITECTURE and ROADMAP updated,
+    DEVELOPMENT_PLAN unchanged (Phase 8 stays unchecked until acceptance); verification below. The planned Step 9
+    (closeout) is done as part of 8.7.
+- Step 8 closed (2026-09-25); Phase 8 awaits the product owner's review of Step 8.7.
+
+## Phase 7 (complete)
+
 Phase 7 — Basic editing: **complete** — manually accepted by the product owner on 2026-09-24
 (Steps 1–9, last checkpoint `48a3f54`; Step 10 closeout, see below), branch `feat/phase-7-basic-editing`
 (from `main` `9fd38e7`, which contains Phases 5 and 6). Scope (DEVELOPMENT_PLAN): speed, volume, opacity,
@@ -610,8 +982,14 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 5 (video checkpoint `85ca216`, audio in the closeout commit)
 - Phase 6
 - Phase 7 (accepted 2026-09-24)
+- Phase 8 — Steps 1–8 done, closeout done 2026-09-25; awaiting product owner acceptance
 
 ## Known issues
+
+- Export codec leg (D023 Step 8, decision L1-c): MP4 → export canvas has no numeric tolerance; the Step 8.6
+  measurement is data for a future product decision, not a criterion. Open.
+- `Project.Tests` hang seen once in Step 8.4 (1 of 23 runs, test not identified): not reproduced — the 8.4/8.5 runs
+  and the three final `--blame-hang` runs of the closeout were clean. Watch for it; no fix.
 
 - Speed (D022): the atempo latency compensation is measured for FFmpeg 9.0.1; another ffmpeg version
   may shift it — `FfmpegSpeedIntegrationTests` (10 ms bound) catches that.
@@ -627,8 +1005,9 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   a Phase 7 regression; earlier it was masked because the locator bug often left the preview without
   ffmpeg. Not fixed yet (separate task).
 
-- Text clips (D021): the Preview (Avalonia) silently substitutes a font that isn't installed; the
-  Phase 8 export via ffmpeg `drawtext` needs an actual font file — handle missing fonts there.
+- Text clips (D021): the Preview (Avalonia) silently substitutes a font that isn't installed. Phase 8
+  (D023) renders text like the Preview (no `drawtext`), so the export falls back the same way; the
+  preflight warns about it. Embedding fonts in a project is out of scope.
 
 - Preview color: footage from the Vivo X300 Pro (HDR / 10-bit) may look overexposed /
   washed out in the Preview. This is not a Phase 5 playback-correctness issue: the preview
@@ -660,6 +1039,14 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Media import is not undoable (unchanged from Phase 2).
 
 ## Verification
+
+2026-09-25 (Phase 8 closeout, Step 8.7; docs only, no code change):
+- Working tree before the closeout identical to the end of Step 8.5 (hashes of every changed file); leftover MSBuild
+  nodes from the 8.5 mutation runs stopped with `dotnet build-server shutdown`.
+- `dotnet build AiVideoEditor.sln --no-incremental`: 0 errors, 0 warnings.
+- `dotnet test`: 1 plain run + 3 consecutive runs with `--blame-hang --blame-hang-timeout 5m`, each 1494 passed,
+  2 skipped (the 4K scenes), 0 failed — Core 380, Timeline 257, Project 259, UI 216, Export 78, Rendering 52,
+  Video 185, ExportEndToEnd 67 (+2 skipped); no hang, no dump. Heavy 4K scenes once with `AIVE_HEAVY_TESTS=1`: 2/2.
 
 2026-09-24 (Phase 7 closeout, Step 10):
 - `dotnet build --no-incremental`: 0 errors, 0 warnings. `dotnet test`: 3 consecutive runs, 1111

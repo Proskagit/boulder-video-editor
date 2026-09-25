@@ -87,7 +87,7 @@ public sealed partial class FfmpegAudioDecoder : IAudioDecoder
             var seekTicks = request.SourcePosition.Ticks - preroll;
             var fromStart = seekTicks <= 0;
             var arguments = BuildArguments(request.FilePath, fromStart ? null : seekTicks, request.Speed);
-            var stream = await StartAsync(ffmpeg, arguments, originSamples - latency, requestedSample, ct);
+            var stream = await StartAsync(ffmpeg, arguments, originSamples - latency, requestedSample, request.StrictEnd, ct);
 
             if (fromStart || stream.FirstSampleIndex <= requestedSample || preroll >= _settings.MaxPreroll.Ticks)
             {
@@ -103,7 +103,7 @@ public sealed partial class FfmpegAudioDecoder : IAudioDecoder
     }
 
     private async Task<FfmpegAudioStream> StartAsync(string ffmpeg, List<string> arguments, long originSamples,
-        long requestedSample, CancellationToken ct)
+        long requestedSample, bool strictEnd, CancellationToken ct)
     {
         var firstPts = new TaskCompletionSource<long?>(TaskCreationOptions.RunContinuationsAsynchronously);
         FfmpegProcess process;
@@ -140,9 +140,9 @@ public sealed partial class FfmpegAudioDecoder : IAudioDecoder
                 if (process.ExitCode != 0)
                     throw new AudioDecodeException(VideoDecodeError.DecoderFailed,
                         $"ffmpeg exited with code {process.ExitCode}. {process.StderrTail()}");
-                return new FfmpegAudioStream(process, requestedSample) { Arguments = arguments };
+                return new FfmpegAudioStream(process, requestedSample, strictEnd) { Arguments = arguments };
             }
-            return new FfmpegAudioStream(process, pts.Value - originSamples) { Arguments = arguments };
+            return new FfmpegAudioStream(process, pts.Value - originSamples, strictEnd) { Arguments = arguments };
         }
         catch (TimeoutException ex)
         {
@@ -201,16 +201,22 @@ public sealed partial class FfmpegAudioDecoder : IAudioDecoder
     }
 }
 
-/// <summary>Raw little-endian float32 stereo from ffmpeg's stdout.</summary>
+/// <summary>Raw little-endian float32 stereo from ffmpeg's stdout. With a strict end
+/// (<see cref="AudioDecodeRequest.StrictEnd"/>, the export) the end of stdout is only the end of the stream if
+/// ffmpeg exited successfully; otherwise it is an <see cref="AudioDecodeException"/>. Without it (playback) the
+/// stream just ends, as before.</summary>
 internal sealed class FfmpegAudioStream : IAudioSampleStream
 {
     private readonly FfmpegProcess _process;
+    private readonly bool _strictEnd;
     private byte[] _scratch = Array.Empty<byte>();
     private int _pending; // bytes of an incomplete frame kept for the next read
+    private bool _endConfirmed;
 
-    public FfmpegAudioStream(FfmpegProcess process, long firstSampleIndex)
+    public FfmpegAudioStream(FfmpegProcess process, long firstSampleIndex, bool strictEnd = false)
     {
         _process = process;
+        _strictEnd = strictEnd;
         FirstSampleIndex = firstSampleIndex;
     }
 
@@ -228,7 +234,16 @@ internal sealed class FfmpegAudioStream : IAudioSampleStream
         var read = _pending + await _process.Stdout.ReadAtLeastAsync(
             _scratch.AsMemory(_pending, wantBytes - _pending), Math.Max(1, frameBytes - _pending), throwOnEndOfStream: false, ct);
         var usable = read - read % frameBytes;
-        if (usable == 0) return 0; // end of stream (a trailing partial frame is dropped)
+        if (usable == 0) // end of stream (a trailing partial frame is dropped)
+        {
+            if (_strictEnd && !_endConfirmed)
+            {
+                if (await _process.AbnormalExitAsync(ct) is { } failure)
+                    throw new AudioDecodeException(VideoDecodeError.DecoderFailed, $"The audio stream ended early: {failure}");
+                _endConfirmed = true;
+            }
+            return 0;
+        }
 
         MemoryMarshal.Cast<byte, float>(_scratch.AsSpan(0, usable)).CopyTo(interleaved.Span);
         _pending = read - usable;

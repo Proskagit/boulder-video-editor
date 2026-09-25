@@ -53,4 +53,15 @@ internal sealed class ScriptedPicker : IFilePickerService
         Titles.Add(request.Title);
         return Task.FromResult(_folders.Count > 0 ? _folders.Dequeue() : null);
     }
+
+    /// <summary>Save-file answers (null = cancelled); the requests are recorded.</summary>
+    public Queue<string?> SaveFiles { get; } = new();
+
+    public List<SaveFilePickerRequest> SaveRequests { get; } = new();
+
+    public Task<string?> PickSaveFileAsync(SaveFilePickerRequest request, CancellationToken ct = default)
+    {
+        SaveRequests.Add(request);
+        return Task.FromResult(SaveFiles.Count > 0 ? SaveFiles.Dequeue() : null);
+    }
 }

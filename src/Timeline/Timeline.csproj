@@ -20,6 +20,8 @@
     <InternalsVisibleTo Include="Timeline.Tests" />
     <InternalsVisibleTo Include="Video.Tests" />
     <InternalsVisibleTo Include="UI.Tests" />
+    <InternalsVisibleTo Include="Export.Tests" />
+    <InternalsVisibleTo Include="ExportEndToEnd.Tests" />
   </ItemGroup>
 
 </Project>

@@ -28,12 +28,7 @@ internal static class ProjectTestData
             },
             LastExportSettings = new ExportSettings
             {
-                OutputPath = Path.Combine(mediaFolder, "out.mp4"),
-                Width = 1280,
-                Height = 720,
-                FrameRate = 29.97,
-                VideoBitrateBps = 8_000_000,
-                AudioBitrateBps = null
+                OutputPath = Path.Combine(mediaFolder, "out.mp4")
             }
         };
 

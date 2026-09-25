@@ -55,6 +55,29 @@ public sealed class AvaloniaFilePickerService : IFilePickerService
         return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
     }
 
+    public async Task<string?> PickSaveFileAsync(SaveFilePickerRequest request, CancellationToken ct = default)
+    {
+        var storageProvider = GetTopLevel()?.StorageProvider;
+        if (storageProvider is null)
+            return null;
+
+        var options = new FilePickerSaveOptions
+        {
+            Title = request.Title,
+            SuggestedFileName = request.SuggestedFileName,
+            DefaultExtension = request.DefaultExtension,
+            ShowOverwritePrompt = false, // the caller confirms replacing a file itself
+            FileTypeChoices = request.FileTypeFilters
+                .Select(f => new FilePickerFileType(f.Name) { Patterns = f.Patterns.ToArray() })
+                .ToArray()
+        };
+        if (request.StartFolder is { } start && Directory.Exists(start))
+            options.SuggestedStartLocation = await storageProvider.TryGetFolderFromPathAsync(start);
+
+        var file = await storageProvider.SaveFilePickerAsync(options);
+        return file?.TryGetLocalPath();
+    }
+
     private static TopLevel? GetTopLevel()
     {
         return Application.Current?.ApplicationLifetime switch

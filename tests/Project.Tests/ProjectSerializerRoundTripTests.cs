@@ -44,10 +44,9 @@ public class ProjectSerializerRoundTripTests
         Assert.Equal(FrameRate.Ntsc30, loaded.Settings.FrameRate);
         Assert.True(loaded.Settings.IsFrameRateLocked);
         Assert.Equal(44100, loaded.Settings.AudioSampleRate);
-        Assert.Equal(original.LastExportSettings.OutputPath, loaded.LastExportSettings.OutputPath);
-        Assert.Equal(29.97, loaded.LastExportSettings.FrameRate);
-        Assert.Equal(8_000_000, loaded.LastExportSettings.VideoBitrateBps);
-        Assert.Null(loaded.LastExportSettings.AudioBitrateBps);
+        // Session state (D023): the sample's LastExportSettings is not part of the file.
+        Assert.NotEqual(string.Empty, original.LastExportSettings.OutputPath);
+        Assert.Equal(string.Empty, loaded.LastExportSettings.OutputPath);
     }
 
     [Fact]

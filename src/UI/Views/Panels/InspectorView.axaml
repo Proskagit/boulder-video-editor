@@ -84,7 +84,7 @@
           </StackPanel>
 
           <!-- Timeline clip selection (Phase 4) -->
-          <StackPanel IsVisible="{Binding IsTimelineClipSelected}" Spacing="16">
+          <StackPanel IsVisible="{Binding IsTimelineClipSelected}" IsEnabled="{Binding IsEditingAllowed}" Spacing="16">
             <!-- Text (Phase 7 Step 8): text clips only. Every field applies live; consecutive changes of one
                  field merge into one undo step. The color applies once it is a complete #RRGGBB. -->
             <StackPanel Spacing="6" IsVisible="{Binding HasTextProperties}">

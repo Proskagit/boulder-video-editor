@@ -18,13 +18,15 @@ internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
     private readonly Channel<ShowInfoFrame> _frames;
     private readonly TimeSpan _frameTimeout;
     private readonly ILogger _logger;
+    private readonly bool _strictEnd;
 
     private DecodedFrame? _pushedBack;
     private long _delivered;
     private bool _disposed;
 
-    private FfmpegVideoFrameStream(FfmpegProcess process, Channel<ShowInfoFrame> frames, TimeSpan frameTimeout, ILogger logger)
+    private FfmpegVideoFrameStream(FfmpegProcess process, Channel<ShowInfoFrame> frames, TimeSpan frameTimeout, ILogger logger, bool strictEnd)
     {
+        _strictEnd = strictEnd;
         _process = process;
         _frames = frames;
         _frameTimeout = frameTimeout;
@@ -40,7 +42,10 @@ internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
     /// <summary>The ffmpeg arguments of the successful attempt, for diagnostics.</summary>
     public required IReadOnlyList<string> Arguments { get; init; }
 
-    public static FfmpegVideoFrameStream Start(string ffmpegPath, IReadOnlyList<string> arguments, TimeSpan frameTimeout, ILogger logger)
+    /// <param name="strictEnd"><see cref="VideoDecodeRequest.StrictEnd"/>: a failed ffmpeg is an error at any end of
+    /// the stream, not only when it delivered no frame.</param>
+    public static FfmpegVideoFrameStream Start(string ffmpegPath, IReadOnlyList<string> arguments, TimeSpan frameTimeout, ILogger logger,
+        bool strictEnd = false)
     {
         var frames = Channel.CreateUnbounded<ShowInfoFrame>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
         var parser = new ShowInfoParser();
@@ -62,7 +67,7 @@ internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
             throw new VideoDecodeException(VideoDecodeError.DecoderUnavailable, "ffmpeg could not be started.", ex);
         }
 
-        return new FfmpegVideoFrameStream(process, frames, frameTimeout, logger) { Arguments = arguments };
+        return new FfmpegVideoFrameStream(process, frames, frameTimeout, logger, strictEnd) { Arguments = arguments };
     }
 
     /// <summary>Makes <paramref name="frame"/> the next frame returned (used after the
@@ -125,11 +130,12 @@ internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
 
     private async Task<DecodedFrame?> CompleteAsync(CancellationToken ct)
     {
-        await _process.WaitForExitAsync(ct);
-        if (_process.ExitCode != 0 && _delivered == 0)
+        // Nothing delivered: a failed ffmpeg is always an error. After frames: only with a strict end (export) —
+        // playback keeps its last frame (D012/D023).
+        if (await _process.AbnormalExitAsync(ct) is { } failure && (_delivered == 0 || _strictEnd))
         {
             throw new VideoDecodeException(VideoDecodeError.DecoderFailed,
-                $"ffmpeg exited with code {_process.ExitCode}. {_process.StderrTail()}");
+                _delivered == 0 ? failure : $"The video stream ended early after {_delivered} frames: {failure}");
         }
         return null;
     }

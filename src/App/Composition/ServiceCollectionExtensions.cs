@@ -1,7 +1,10 @@
 using AiVideoEditor.Audio;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
+using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
+using AiVideoEditor.Export;
 using AiVideoEditor.Infrastructure;
 using AiVideoEditor.Infrastructure.Configuration;
 using AiVideoEditor.Media;
@@ -9,6 +12,7 @@ using AiVideoEditor.Project;
 using AiVideoEditor.Project.Persistence;
 using AiVideoEditor.Timeline;
 using AiVideoEditor.Timeline.Playback;
+using AiVideoEditor.UI.Rendering;
 using AiVideoEditor.UI.Services;
 using AiVideoEditor.UI.Views;
 using AiVideoEditor.UI.ViewModels;
@@ -44,15 +48,23 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(_ => new RecoveryStore(AppPaths.RecoveryFolder));
         services.AddSingleton<IAutosaveService, AutosaveService>();
 
+        // Export (D023): the service knows only the Core abstractions; the app picks the ffmpeg encoder and
+        // the Avalonia offscreen rasterizer (one new instance per export job).
+        services.AddSingleton<IExportEncoder, FfmpegExportEncoder>();
+        services.AddSingleton<Func<ICompositionRasterizer>>(_ => () => new AvaloniaCompositionRasterizer());
+        services.AddSingleton<IExportService, ExportService>();
+
         // --- Later-phase registrations go here, e.g.: ---------------------------
         //   services.AddSingleton<IThumbnailService, ThumbnailService>();
-        //   services.AddSingleton<IExportService, FfmpegExportService>();
 
         // --- UI-only services ---------------------------------------------------
         services.AddSingleton<IFilePickerService, AvaloniaFilePickerService>();
         services.AddSingleton<IDialogService, AvaloniaDialogService>();
         services.AddSingleton<IFontCatalog, AvaloniaFontCatalog>();
         services.AddSingleton<StatusService>();
+        services.AddSingleton<EditingLock>();
+        services.AddSingleton<IExportProgressDialog, AvaloniaExportProgressDialog>();
+        services.AddSingleton<ExportWorkflow>();
         services.AddSingleton<MediaAnalysisCoordinator>();
         services.AddSingleton<MediaImportWorkflow>();
         services.AddSingleton<ProjectFileWorkflow>();

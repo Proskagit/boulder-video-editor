@@ -6,12 +6,11 @@ namespace AiVideoEditor.Timeline.Playback;
 
 /// <summary>
 /// Decodes one <see cref="AudioSpan"/> in the background into a bounded buffer indexed by
-/// timeline sample. At 1× timeline sample <c>k</c> of the clip plays source sample <c>k + d</c>
-/// (<see cref="AudioTiming.SourceOffset"/>); at other speeds the decoder delivers a tempo-changed
-/// stream (one output sample per timeline sample) whose start is placed with
-/// <see cref="AudioTiming.TimelineSampleOfStreamStart"/> (D022). Decoded frames are placed by the
-/// decoder's real first-sample index, frames before the requested start are dropped and a late start
-/// is filled with silence. The mixer (device thread) consumes it through <see cref="MixInto"/>,
+/// timeline sample. Which source samples the clip plays and where a decoded stream lands is the shared
+/// <see cref="AudioPlacement"/> (Core; the export uses the same, D023): at 1× timeline sample <c>k</c> plays
+/// source sample <c>k + d</c>; at other speeds the decoder delivers a tempo-changed stream placed by its
+/// real first sample (D022). Frames before the requested start are dropped and a late start is filled with
+/// silence. The mixer (device thread) consumes it through <see cref="MixInto"/>,
 /// which never blocks: missing samples are silence (underrun) and the reader realigns to
 /// whatever the mixer asks for next — time never shifts.
 /// </summary>
@@ -22,7 +21,7 @@ internal sealed class AudioSpanReader : IAsyncDisposable
     private readonly IAudioDecoder _decoder;
     private readonly PlaybackAsset _asset;
     private readonly ILogger _logger;
-    private readonly long _sourceOffset;
+    private readonly AudioPlacement _placement;
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _space = new(0, 1);
     private readonly object _lock = new();
@@ -43,12 +42,12 @@ internal sealed class AudioSpanReader : IAsyncDisposable
         _asset = asset;
         _decoder = decoder;
         _logger = logger;
-        FirstSample = AudioTiming.CeilingSample(span.TimelineStart);
-        EndSample = AudioTiming.CeilingSample(span.TimelineEnd);
-        _sourceOffset = AudioTiming.SourceOffset(span.TimelineStart, span.SourceIn);
+        _placement = AudioPlacement.Of(span);
+        FirstSample = _placement.FirstSample;
+        EndSample = _placement.EndSample;
         _capacityFrames = Math.Max(ChunkFrames * 2, bufferFrames);
         _ring = new float[AudioTiming.Floats(_capacityFrames)];
-        _headSample = Math.Clamp(startSample, FirstSample, EndSample);
+        _headSample = _placement.Clamp(startSample);
         _task = Task.Run(() => RunAsync(_headSample));
     }
 
@@ -106,17 +105,17 @@ internal sealed class AudioSpanReader : IAsyncDisposable
                 var missingBefore = Math.Min(end, _headSample) - begin;
                 if (missingBefore > 0) UnderrunFrames += missingBefore;
 
-                var available = Math.Min(end, _headSample + _count) - Math.Max(begin, _headSample);
+                var available = (int)(Math.Min(end, _headSample + _count) - Math.Max(begin, _headSample));
                 if (available > 0)
                 {
+                    // The ring holds the frames in at most two contiguous pieces.
                     var destFrame = (int)(Math.Max(begin, _headSample) - from);
-                    for (var i = 0; i < available; i++)
-                    {
-                        var src = AudioTiming.Floats((_headIndex + i) % _capacityFrames);
-                        var dst = AudioTiming.Floats(destFrame + i);
-                        dest[dst] += _ring[src] * gain;
-                        dest[dst + 1] += _ring[src + 1] * gain;
-                    }
+                    var first = Math.Min(available, _capacityFrames - _headIndex);
+                    AudioMix.Add(_ring.AsSpan(AudioTiming.Floats(_headIndex), AudioTiming.Floats(first)),
+                        dest.Slice(AudioTiming.Floats(destFrame)), gain);
+                    if (available > first)
+                        AudioMix.Add(_ring.AsSpan(0, AudioTiming.Floats(available - first)),
+                            dest.Slice(AudioTiming.Floats(destFrame + first)), gain);
                 }
 
                 var missingAfter = end - Math.Max(begin, _headSample + _count);
@@ -148,23 +147,11 @@ internal sealed class AudioSpanReader : IAsyncDisposable
         var ct = _cts.Token;
         try
         {
-            var speed = Span.Speed;
-            var sourceTime = speed.IsNormal
-                ? new MediaTime(AudioTiming.SampleToTicksFloor(startSample + _sourceOffset))
-                : AudioTiming.SourceTimeAt(startSample, Span.TimelineStart, Span.SourceIn, speed);
             ct.ThrowIfCancellationRequested(); // retired before the task ran: don't start a decoder
-            await using var stream = await _decoder.OpenAsync(new AudioDecodeRequest
-            {
-                FilePath = _asset.FilePath,
-                StartTime = _asset.StartTime,
-                SourcePosition = sourceTime,
-                Speed = speed
-            }, ct);
+            await using var stream = await _decoder.OpenAsync(_placement.Request(_asset, startSample), ct);
 
             // Timeline sample of the next decoded frame.
-            var next = speed.IsNormal
-                ? stream.FirstSampleIndex - _sourceOffset
-                : AudioTiming.TimelineSampleOfStreamStart(Span.TimelineStart, Span.SourceIn, speed, stream.FirstSampleIndex);
+            var next = _placement.TimelineSampleOfStream(stream.FirstSampleIndex);
             var chunk = new float[AudioTiming.Floats(ChunkFrames)];
             while (true)
             {

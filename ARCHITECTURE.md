@@ -13,9 +13,13 @@ This document describes the verified architecture of the AI Video Editor.
 
 ## Solution
 
-The solution contains 11 application projects under `src/` plus five test
+The solution contains 11 application projects under `src/` plus eight test
 projects (`tests/Core.Tests`, `tests/Project.Tests`, `tests/Timeline.Tests`, `tests/UI.Tests`,
-`tests/Video.Tests` — the last one runs ffmpeg integration tests and skips without ffmpeg).
+`tests/Export.Tests`, `tests/Rendering.Tests`, `tests/Video.Tests`, `tests/ExportEndToEnd.Tests` — Video.Tests runs
+ffmpeg integration tests and skips without ffmpeg; Export.Tests uses the Preview's pipeline and fakes as the oracle of
+the export contract; Rendering.Tests initialises Avalonia like the app and checks pixels of the Preview control and the
+export rasterizer; ExportEndToEnd.Tests runs whole exports — preflight → `ExportService` → real decoders, Avalonia
+rasterizer, ffmpeg encoder → MP4 checked with ffprobe — and skips without ffmpeg).
 
 | Project | Responsibility | State |
 |---|---|---|
@@ -28,7 +32,8 @@ projects (`tests/Core.Tests`, `tests/Project.Tests`, `tests/Timeline.Tests`, `te
 | Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService` | Implemented (Phase 6; format v2 since Phase 7, D022) |
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
-| Effects, Export | Later phases | Empty scaffolds |
+| Export | Offline export orchestration (Phase 8, D023): renders an `ExportJob` with the Core rules and hands frames/audio to an encoder. References Core only; no FFmpeg or UI types | `ExportService` (Step 6) over `ExportFrameSource` / `ExportPictureReader` (Step 2), `ExportAudioSource` / `ExportAudioReader` (Step 4); UI in Step 7 |
+| Effects | Later phases | Empty scaffold |
 
 Dependencies flow one way: App → UI / Infrastructure / subsystems → Core.
 
@@ -43,7 +48,8 @@ Domain types (`src/Core/Entities`):
 - `Track` — lane of clips (`Type`, `Order`, mute/hide/lock)
 - `Clip` → `MediaBackedClip` (`SourceIn`/`SourceOut`/`Speed` — exact `ClipSpeed`, timing rule `SpeedTiming`, D022) → `VideoClip`, `AudioClip`, `ImageClip`; plus `TextClip`
 - `MediaAsset` + `MediaMetadata` + `MediaAnalysisStatus`
-- `ExportSettings`, `ProjectSettings`, `Effect`, `Transition`, `Marker`
+- `ExportSettings` (last output path + fixed format enums; session state, D023), `ProjectSettings`, `Effect`,
+  `Transition`, `Marker` (effects and transitions are stored but neither played nor exported)
 - `MediaTime`
 
 New projects get tracks V1 and A1. Clips are created only by `ITimelineEditService`.
@@ -108,14 +114,15 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   decodes in the background into a bounded buffer and returns a frame only when certain.
   The UI polls `Update()` each tick; nothing is pushed to the UI thread.
 - UI (D011, D020): `PreviewView`'s `DispatcherTimer` → `PreviewViewModel.Tick()` → `Update()`;
-  the layers go to `CompositionView` (UI/Rendering), which draws a `CompositionDrawPlan`
-  (canvas → control viewport, per-layer transform/opacity/crop, text, placeholders) with
-  `DrawingContext`, one pair of `WriteableBitmap`s per layer. Playhead ↔ playback wiring lives in
+  the layers go to `CompositionView` (UI/Rendering), which draws a `PreviewDrawPlan` — the shared Core
+  `CompositionDrawPlan` (canvas → control viewport, per-layer transform/opacity/crop, text) plus placeholders —
+  with `CompositionPainter` (`DrawingContext`, also used by the export), one pair of straight-alpha
+  `WriteableBitmap`s per layer. Playhead ↔ playback wiring lives in
   `MainWindowViewModel`: `TimelineViewModel.SeekRequested` (user moves only) → `SeekAsync`;
   `PreviewViewModel.PlaybackPositionChanged` → `TimelineViewModel.ShowPlaybackPosition` (no
   seek). Snapshots are rebuilt by `PreviewViewModel` on project/timeline/media events.
 - Audio (D013): `PlaybackSnapshot.AudioSpans` → `AudioPipeline` (UI thread; look-ahead window,
-  reader reuse on snapshot updates) → `AudioSpanReader` per clip (background ffmpeg decode into
+  reader reuse on snapshot updates) → `AudioSpanReader` per clip (placement: Core `AudioPlacement`, shared with the export) (background ffmpeg decode into
   a bounded ring buffer, aligned by the stream's real first sample) → `AudioMixer`
   (`IAudioSampleSource`, device thread, never blocks) → `IAudioOutput` = `WasapiAudioOutput`
   (Audio project, NAudio). The output's played-frames clock is the playback master while it
@@ -151,9 +158,9 @@ This is a deliberate precision decision and should be preserved unless an explic
   used by the UI; it stays in Core as the oracle of the playback tests (deferred cleanup).
 - Orientation (D019): metadata keeps the coded `Width/Height` and adds `DisplayRotation` /
   `DisplayWidth/Height` (what the decoder delivers with `-autorotate`); composition uses the display size.
-- Phase 8 constraints: the export must reproduce these rules exactly (same order, canvas and culling
-  semantics as `CompositionMath`); text needs a font file for ffmpeg `drawtext`, while the Preview
-  silently substitutes a missing font (D021); clip speed follows D022 (exact mapping, pitch kept).
+- Export (D023): renders the same snapshot, layers and geometry offline — no second implementation of
+  these rules and no ffmpeg filtergraph; text is rasterized like the Preview (a missing font falls back
+  the same way and is a preflight warning); clip speed follows D022 (exact mapping, pitch kept).
 
 ## Media pipeline
 
@@ -167,8 +174,9 @@ Metadata comes from ffprobe via `IMediaAnalysisService` (not `IVideoEngine`);
 `IFfprobeLocator` resolves it from `Ffmpeg:FfprobePath` or PATH, `IFfmpegLocator` does the
 same for ffmpeg (playback decoding). After Open only media without saved metadata that is
 present on disk is analysed (`MediaAnalysisCoordinator.QueueWhereNeeded`); missing files are
-never probed. `IVideoEngine`, `IThumbnailService` and `IExportService` are interfaces without
-implementations.
+never probed. `IVideoEngine` is an interface without implementation, reserved for thumbnails/waveforms
+(Phase 9; `IThumbnailService` exists only as a commented-out registration). The export is `IExportService`
+(D023).
 
 ## Project persistence (Phase 6)
 
@@ -225,7 +233,64 @@ Major architectural changes require explicit user approval.
 
 Routine refactoring needed to implement a feature does not.
 
+## Export (Phase 8, D023)
+
+- Principle: the export is an offline rendering of the Preview. Video: `PlaybackSnapshot` → frame n at
+  `MediaTime.FromFrame(n)` → `LayersAt` / composition plan / `SourceFrameSelector` → BGRA canvas → encoder.
+  Audio: `AudioSpans` → `AudioTiming` placement + the playback audio decoder → 48 kHz stereo float → encoder.
+  Reads are blocking: no late frames or underrun silence; a decode failure aborts the export — also a decoder
+  that fails after delivering data (`StrictEnd` on the export's decode requests; playback keeps its old end handling).
+- Source frames (Step 2): `ExportFrameSource` → per output frame `LayersAt` + one `ExportPictureReader` per
+  visible picture layer (sequential decode at full resolution, software; the last frame at or before the
+  D009/D022 sample point, hold-first/hold-last), readers opened/closed with the layer set like the Preview's
+  `VideoPipeline`.
+- Composition (Step 3): `ExportFrame.DrawPlan()` = Core `CompositionDrawPlan` at the canvas size (the Preview's plan
+  through identity) → `ICompositionRasterizer` (Core) = `AvaloniaCompositionRasterizer` (UI/Rendering): Avalonia
+  offscreen `RenderTargetBitmap` + `CompositionPainter`, the Preview's drawing routine; runs off the UI thread,
+  one instance per export; BGRA canvas, opaque black background.
+- Audio (Step 4): `ExportAudioSource` → per audible span an `ExportAudioReader` (blocking, placement by Core
+  `AudioPlacement`) → Core `AudioMix` (Σ × gain, clamp) → exactly `AudioSampleCount` frames of 48 kHz stereo float;
+  the same samples as the Preview's `AudioPipeline` + `AudioMixer`.
+- Encoder (Step 5): Core `IExportEncoder` / `IExportEncoding` (audio first, then frames, then complete; temporary
+  files moved into place on success) → Video `FfmpegExportEncoder`: pass 1 PCM → AAC-LC 192k in a temporary m4a,
+  pass 2 BGRA → BT.709 limited 4:2:0 libx264 CRF 18 medium + the audio copied → MP4 `+faststart`.
+- Orchestration (Step 6): `ExportService` (Export) = `IExportService`. Preparing: one rasterizer from the
+  `Func<ICompositionRasterizer>` the app registers (`AvaloniaCompositionRasterizer`; Export has no rendering backend)
+  and `IExportEncoder.StartAsync`; Audio: `ExportAudioSource` → `WriteAudioAsync` in 0.5 s chunks until the source
+  ends; Video: per frame `ExportFrameSource.GetFrameAsync` → `ExportFrame.DrawPlan()` → `Render` into one reused
+  canvas (stride = width · 4) → `WriteFrameAsync`; Finalizing: `CompleteAsync`. Runs on the thread pool
+  (`Task.Run`). Progress: `ExportProgress` Preparing 0/1, Audio samples/`AudioSampleCount`, Video frames/`FrameCount`,
+  Finalizing 0/1 → 1/1 only after `CompleteAsync`. The job is taken as the preflight made it (no repeated checks; the
+  encoder rejects outputs it can't encode). Failures and cancellation propagate unchanged; every part is disposed
+  (`await using`), so an unfinished encoding ends ffmpeg and deletes its temporary files — the service never
+  touches the destination. DI (App): `IExportEncoder` → `FfmpegExportEncoder`, `Func<ICompositionRasterizer>` →
+  `new AvaloniaCompositionRasterizer()`, `IExportService` → `ExportService`.
+- Layers: Core (composition model, geometry, draw plan, the contract below) → a backend-specific
+  rasterizer (chosen in Step 3; Core never references Avalonia) → Export (orchestration) → Video (FFmpeg
+  encoder: arguments, pipes, stderr).
+- Contract (`Core/Export`): `ExportPreflight.Check(project, outputPath, environment)` on the UI thread builds
+  the snapshot, collects every issue (errors block: empty timeline, odd canvas, output path/folder, output =
+  project media, ffmpeg missing, media offline / not analysed / unsupported — only clips that reach the
+  output; warning: missing font) and returns an `ExportJob` (snapshot + full output path) when nothing
+  blocks. `ExportOutput` = canvas size, exact project frame rate, whole frames covering the duration, the
+  matching 48 kHz sample count; `ExportFormat` = MP4 / H.264 CRF 18 medium / AAC 48 kHz stereo 192 kbps.
+  `IExportService`: `IsAvailableAsync`, `ExportAsync(job, progress, ct)` → temp file moved into place on
+  success, `ExportException` / cancellation leave nothing behind.
+- UI (Step 7): Toolbar Export → `ExportWorkflow` (UI/Services): preflight (without the output file) → errors stop,
+  warnings may be accepted → save-file picker → preflight with the file (the job) → replace confirmation → `EditingLock`
+  + modal `AvaloniaExportProgressDialog` (`ExportProgressViewModel`, pulled by a timer; Cancel = the token) →
+  `IExportService.ExportAsync` → outcome message per `ExportFailure` / cancelled / unexpected. `EditingLock` is shared
+  by Toolbar, Timeline, Inspector and Media Browser (`CanExecute` / edit guards). `LastExportSettings` is session-only
+  state (not dirty, not undoable, not serialized), updated after a successful export. Manual plan: `docs/EXPORT_MANUAL_TEST_PLAN.md`.
+- Parity verification (Step 8, tests only): `tests/ExportEndToEnd.Tests` compares the export with the Preview's own
+  pipeline and control — byte-equal at the canvas size for sources ≤ 1280 × 720, the D023 tolerances (`ParityMetrics`:
+  geometry ±1 px on luma, flat colour R ≤ 4 / G ≤ 3 / B ≤ 4, same source frame) for larger sources and in a viewport,
+  and MP4 → Preview through the codec (geometry, bar edges, same frame, sound timing ≤ 10 ms; colour not a criterion).
+  The codec leg MP4 → export canvas has no tolerance (measured only, D023 Step 8). 4K scenes run only with
+  `AIVE_HEAVY_TESTS=1`.
+
 ## Verification note
 
-Verified against the source at the end of Phase 6 (branch `feat/phase-6-project-persistence`).
+Verified against the source at the end of Phase 6 (branch `feat/phase-6-project-persistence`); the Phase 7
+sections at the Phase 7 closeout, the Export section at the Phase 8 closeout (Step 8.7).
 Re-check the code before relying on details that later phases may have changed.

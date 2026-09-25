@@ -25,6 +25,7 @@ internal sealed class FakeAudioDecoder : IAudioDecoder
     private readonly ConcurrentDictionary<string, FakeAudioSource> _sources = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource> _gates = new();
     private readonly ConcurrentDictionary<string, AudioDecodeException> _failures = new();
+    private readonly ConcurrentDictionary<string, long> _failAfter = new();
     private int _live;
 
     public ConcurrentQueue<AudioDecodeRequest> Requests { get; } = new();
@@ -39,7 +40,11 @@ internal sealed class FakeAudioDecoder : IAudioDecoder
 
     public void Add(string path, FakeAudioSource source) => _sources[path] = source;
     public TaskCompletionSource Gate(string path) => _gates[path] = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-    public void Fail(string path) => _failures[path] = new AudioDecodeException(VideoDecodeError.DecoderFailed, "fake audio failure");
+    public void Fail(string path, VideoDecodeError error = VideoDecodeError.DecoderFailed) =>
+        _failures[path] = new AudioDecodeException(error, "fake audio failure");
+
+    /// <summary>Streams of <paramref name="path"/> fail after delivering <paramref name="samples"/> samples.</summary>
+    public void FailAfter(string path, long samples) => _failAfter[path] = samples;
     public int OpenCount(string path) => Requests.Count(r => r.FilePath == path);
 
     public async Task<IAudioSampleStream> OpenAsync(AudioDecodeRequest request, CancellationToken ct = default)
@@ -55,7 +60,8 @@ internal sealed class FakeAudioDecoder : IAudioDecoder
         var requested = AudioTiming.NearestSample(request.SourcePosition);
         var first = Math.Max(source.StreamStartSample, requested - PrerollSamples);
         Interlocked.Increment(ref _live);
-        return new Stream(source, first, request.Speed, StreamDisposeDelay, () => Interlocked.Decrement(ref _live));
+        return new Stream(source, first, request.Speed, StreamDisposeDelay, () => Interlocked.Decrement(ref _live),
+            _failAfter.TryGetValue(request.FilePath, out var failAfter) ? failAfter : long.MaxValue);
     }
 
     private sealed class Stream : IAudioSampleStream
@@ -64,14 +70,16 @@ internal sealed class FakeAudioDecoder : IAudioDecoder
         private readonly TimeSpan _disposeDelay;
         private readonly Action _onDispose;
         private readonly long _a, _b;     // speed a/b: output sample j is source sample first + ⌊j·a/b⌋
+        private readonly long _failAfter;
         private long _j;
         private int _disposed;
 
-        public Stream(FakeAudioSource source, long first, ClipSpeed speed, TimeSpan disposeDelay, Action onDispose)
+        public Stream(FakeAudioSource source, long first, ClipSpeed speed, TimeSpan disposeDelay, Action onDispose, long failAfter = long.MaxValue)
         {
             _source = source;
             _disposeDelay = disposeDelay;
             _onDispose = onDispose;
+            _failAfter = failAfter;
             FirstSampleIndex = first;
             (_a, _b) = (speed.Numerator, speed.Denominator);
         }
@@ -81,10 +89,11 @@ internal sealed class FakeAudioDecoder : IAudioDecoder
         public ValueTask<int> ReadAsync(Memory<float> interleaved, CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
+            if (_j >= _failAfter) throw new AudioDecodeException(VideoDecodeError.DecoderFailed, "fake audio failure mid-stream");
             var span = interleaved.Span;
             var end = _source.StreamStartSample + _source.LengthSamples;
             var frames = 0;
-            while (frames < span.Length / 2)
+            while (frames < span.Length / 2 && _j < _failAfter)
             {
                 var index = FirstSampleIndex + _j * _a / _b;
                 if (index >= end) break;

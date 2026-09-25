@@ -65,6 +65,15 @@ public sealed record AudioDecodeRequest
     /// sample <see cref="IAudioSampleStream.FirstSampleIndex"/> <c>+ j · speed</c> (the decoder
     /// accounts for its own filter latency in <see cref="IAudioSampleStream.FirstSampleIndex"/>).</summary>
     public ClipSpeed Speed { get; init; }
+
+    /// <summary>
+    /// How the end of the stream is judged (D023). False (playback): the stream ends when the decoder's output
+    /// ends, whatever the reason — the rest of the clip is silence. True (export): the end is only a normal end if
+    /// the decoder finished successfully; a decoder process that failed after delivering samples makes
+    /// <see cref="IAudioSampleStream.ReadAsync"/> throw an <see cref="AudioDecodeException"/>
+    /// (<see cref="VideoDecodeError.DecoderFailed"/>) instead of returning 0.
+    /// </summary>
+    public bool StrictEnd { get; init; }
 }
 
 /// <summary>Decodes source audio into <see cref="AudioFormat"/> with an exact sample position.</summary>

@@ -72,6 +72,9 @@ public sealed class TestMedia : IDisposable
             case "cfr24.mp4": (recipe, count) = Cfr(24, 1, 10); Encode(path, Src("24", 10), H264); break;
             case "cfr2997.mp4": (recipe, count) = Cfr(30000, 1001, 10); Encode(path, Src("30000/1001", 10), H264); break;
             case "cfr5994.mp4": (recipe, count) = Cfr(60000, 1001, 6); Encode(path, Src("60000/1001", 6), H264); break;
+            case "hd2997.mp4":
+                // 1920×1080 (the bit columns scaled up, so ReadNumber still finds them): larger than the Preview's decode limit.
+                (recipe, count) = Cfr(30000, 1001, 4); Encode(path, Src("30000/1001", 4) + ",scale=1920:1080:flags=neighbor", H264); break;
             case "hevc2997.mp4":
                 (recipe, count) = Cfr(30000, 1001, 4);
                 Encode(path, Src("30000/1001", 4), "-c:v libx265 -preset veryfast -crf 16 -pix_fmt yuv420p -x265-params log-level=error");

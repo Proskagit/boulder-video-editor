@@ -57,6 +57,16 @@ public readonly struct MediaTime : IEquatable<MediaTime>, IComparable<MediaTime>
         return n;
     }
 
+    /// <summary>Smallest frame index whose start is at or after this time: <see cref="ToFrameFloor"/> when
+    /// this time is a frame boundary, otherwise one more. A span <c>[S, E)</c> covers frames
+    /// <c>[S.ToFrameCeiling, E.ToFrameCeiling)</c>; playback's last frame and the export's frame count
+    /// derive from it.</summary>
+    public long ToFrameCeiling(FrameRate rate)
+    {
+        var floor = ToFrameFloor(rate);
+        return FromFrame(floor, rate) == this ? floor : floor + 1;
+    }
+
     /// <summary>Index of the frame boundary nearest to this time (ties go to the later frame).</summary>
     public long ToNearestFrame(FrameRate rate)
     {

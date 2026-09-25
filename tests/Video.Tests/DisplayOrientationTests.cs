@@ -80,7 +80,10 @@ public class DisplayOrientationRuleTests
 /// <summary>
 /// Real ffprobe + ffmpeg on generated files: the probed display size must be exactly the size of
 /// the frames our decoder delivers (it relies on ffmpeg's automatic rotation).
+/// In the media collection so its ffmpeg processes never run alongside the tests that count
+/// <c>FfmpegProcess.LiveProcesses</c> (a process-wide counter).
 /// </summary>
+[Collection(MediaCollection.Name)]
 public sealed class DisplayOrientationIntegrationTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "aive-orientation-tests", Guid.NewGuid().ToString("N"));

@@ -12,7 +12,9 @@ namespace AiVideoEditor.UI.Tests;
 /// <summary>
 /// Phase 7 Step 7c: the pure rendering logic — viewport (canvas → control), per-layer transforms,
 /// source rectangles in decoded pixels, placeholders, text, order and opacity. Exact values: sizes
-/// are chosen so every scale is a binary fraction.
+/// are chosen so every scale is a binary fraction. Since Phase 8 Step 3 the Preview's plan is the shared
+/// Core plan (<see cref="CompositionDrawPlan"/>) plus its placeholders (<see cref="PreviewDrawPlan"/>);
+/// these tests keep guarding the Preview's result unchanged.
 /// </summary>
 public class CompositionDrawPlanTests
 {
@@ -37,7 +39,7 @@ public class CompositionDrawPlanTests
             frame ?? Frame(1280, 720), current);
 
     private static CompositionDrawPlan Plan(double width, double height, params LayerPicture[] layers) =>
-        CompositionDrawPlan.Build(Canvas, width, height, layers);
+        PreviewDrawPlan.Build(Canvas, width, height, layers);
 
     // --- Viewport: canvas → control ----------------------------------------------------------------
 
@@ -50,22 +52,22 @@ public class CompositionDrawPlanTests
     {
         var plan = Plan(width, height);
 
-        Assert.Equal(new Affine2D(scale, 0, 0, scale, x, y), plan.CanvasToControl);
+        Assert.Equal(new Affine2D(scale, 0, 0, scale, x, y), plan.CanvasToTarget);
         Assert.Equal(new RectD(x, y, 1920 * scale, 1080 * scale), plan.CanvasBounds);
     }
 
     [Fact]
     public void Vertical_canvas_uses_its_own_proportions()
     {
-        var plan = CompositionDrawPlan.Build(new FrameSize(1080, 1920), 960, 540, Array.Empty<LayerPicture>());
+        var plan = PreviewDrawPlan.Build(new FrameSize(1080, 1920), 960, 540, Array.Empty<LayerPicture>());
 
-        Assert.Equal(new Affine2D(0.28125, 0, 0, 0.28125, 328.125, 0), plan.CanvasToControl); // 540/1920 = 0.28125
+        Assert.Equal(new Affine2D(0.28125, 0, 0, 0.28125, 328.125, 0), plan.CanvasToTarget); // 540/1920 = 0.28125
         Assert.Equal(new RectD(328.125, 0, 303.75, 540), plan.CanvasBounds);
     }
 
     [Fact]
     public void Nothing_to_draw_without_a_canvas_or_a_size() =>
-        Assert.Same(CompositionDrawPlan.Empty, CompositionDrawPlan.Build(Canvas, 0, 540, new[] { FramePicture() }));
+        Assert.Same(CompositionDrawPlan.Empty, PreviewDrawPlan.Build(Canvas, 0, 540, new[] { FramePicture() }));
 
     // --- Frames --------------------------------------------------------------------------------------
 
@@ -74,8 +76,7 @@ public class CompositionDrawPlanTests
     {
         var plan = Plan(960, 540, FramePicture(frame: Frame(1280, 720)));
 
-        var op = Assert.Single(plan.Operations);
-        Assert.Equal(DrawKind.Frame, op.Kind);
+        var op = Assert.IsType<FrameDraw>(Assert.Single(plan.Operations));
         Assert.Equal(new RectD(0, 0, 1280, 720), op.FrameSourceRect);       // decoded pixels
         Assert.Equal(new RectD(0, 0, 1920, 1080), op.LocalRect);            // crop rect in source pixels
         Assert.Equal(new Affine2D(0.5, 0, 0, 0.5, 0, 0), op.Transform);     // identity layer, half-size control
@@ -88,7 +89,7 @@ public class CompositionDrawPlanTests
         // 25 % off the left: decoded 1280 × 720 → x from 320, 960 wide; the source crop is 1440 × 1080.
         var plan = Plan(1920, 1080, FramePicture(VisualProperties.Default with { Crop = new CropRect(0.25, 0, 0, 0) }, frame: Frame(1280, 720)));
 
-        var op = Assert.Single(plan.Operations);
+        var op = Assert.IsType<FrameDraw>(Assert.Single(plan.Operations));
         Assert.Equal(new RectD(320, 0, 960, 720), op.FrameSourceRect);
         Assert.Equal(new RectD(0, 0, 1440, 1080), op.LocalRect);
         Assert.Equal(new Affine2D(1, 0, 0, 1, 240, 0), op.Transform);       // D018: re-fitted, centred
@@ -114,7 +115,7 @@ public class CompositionDrawPlanTests
         var span = Span(sourceSize: null);
         var picture = new LayerPicture(new PictureLayer(Guid.NewGuid(), span, null), LayerPictureState.Frame, Frame(405, 720));
 
-        var op = Assert.Single(Plan(1920, 1080, picture).Operations);
+        var op = Assert.IsType<FrameDraw>(Assert.Single(Plan(1920, 1080, picture).Operations));
 
         Assert.Equal(new RectD(0, 0, 405, 720), op.LocalRect);
         Assert.Equal(new Affine2D(1.5, 0, 0, 1.5, 656.25, 0), op.Transform); // 1080/720 = 1.5 → 607.5 × 1080, centred
@@ -123,8 +124,7 @@ public class CompositionDrawPlanTests
     [Fact]
     public void Late_frames_are_still_drawn()
     {
-        var op = Assert.Single(Plan(960, 540, FramePicture(current: false)).Operations);
-        Assert.Equal(DrawKind.Frame, op.Kind);
+        Assert.IsType<FrameDraw>(Assert.Single(Plan(960, 540, FramePicture(current: false)).Operations));
     }
 
     // --- Order, opacity, pending -----------------------------------------------------------------------
@@ -154,9 +154,8 @@ public class CompositionDrawPlanTests
             state == LayerPictureState.Unsupported ? SpanStatus.Unsupported : SpanStatus.Offline);
         var layer = PictureLayerOf(span, Canvas);
 
-        var op = Assert.Single(Plan(1920, 1080, new LayerPicture(layer, state)).Operations);
+        var op = Assert.IsType<PlaceholderDraw>(Assert.Single(Plan(1920, 1080, new LayerPicture(layer, state)).Operations));
 
-        Assert.Equal(DrawKind.Placeholder, op.Kind);
         Assert.Equal(label, op.Label);
         Assert.Equal(new RectD(0, 0, 1080, 1920), op.LocalRect);
         Assert.Equal(layer.Geometry!.Transform, op.Transform);
@@ -168,7 +167,7 @@ public class CompositionDrawPlanTests
     {
         var layer = new PictureLayer(Guid.NewGuid(), Span(sourceSize: null, status: SpanStatus.Offline), null);
 
-        var op = Assert.Single(Plan(960, 540, new LayerPicture(layer, LayerPictureState.Offline)).Operations);
+        var op = Assert.IsType<PlaceholderDraw>(Assert.Single(Plan(960, 540, new LayerPicture(layer, LayerPictureState.Offline)).Operations));
 
         Assert.Equal(new RectD(0, 0, 1920, 1080), op.LocalRect);
         Assert.Equal(new Affine2D(0.5, 0, 0, 0.5, 0, 0), op.Transform);
@@ -184,9 +183,8 @@ public class CompositionDrawPlanTests
             VisualProperties.Default with { Opacity = 0.5, PositionX = 200 }, text);
         var layer = new TextLayer(Guid.NewGuid(), span, CompositionMath.TextTransform(Canvas, span.Visual));
 
-        var op = Assert.Single(Plan(960, 540, new LayerPicture(layer, LayerPictureState.Text)).Operations);
+        var op = Assert.IsType<TextDraw>(Assert.Single(Plan(960, 540, new LayerPicture(layer, LayerPictureState.Text)).Operations));
 
-        Assert.Equal(DrawKind.Text, op.Kind);
         Assert.Equal(text, op.Text);
         Assert.Equal(0.5, op.Opacity);
         Assert.Equal(new PointD(580, 270), op.Transform.Apply(new PointD(0, 0))); // text centre (1160, 540) → control
@@ -211,5 +209,28 @@ public class CompositionDrawPlanTests
             Assert.Equal(expected.X, actual.X, 1e-9);
             Assert.Equal(expected.Y, actual.Y, 1e-9);
         }
+    }
+
+    // --- Phase 8 Step 3: the Preview's plan is the shared Core plan ------------------------------------------
+
+    [Fact]
+    public void Without_playback_states_the_preview_plan_is_exactly_the_shared_core_plan()
+    {
+        var text = new TextSpan(Guid.NewGuid(), MediaTime.Zero, MediaTime.FromSeconds(1),
+            VisualProperties.Default with { RotationDegrees = 15 }, new TextProperties("T", "Arial", 30, "#FFFFFF", TextAlignment.Left));
+        var pictures = new[]
+        {
+            FramePicture(VisualProperties.Default with { Crop = new CropRect(0.1, 0.2, 0, 0), Opacity = 0.7 }),
+            new LayerPicture(new TextLayer(Guid.NewGuid(), text, CompositionMath.TextTransform(Canvas, text.Visual)), LayerPictureState.Text),
+            FramePicture(VisualProperties.Default with { Scale = 0.5, RotationDegrees = 30 }, current: false)
+        };
+
+        var preview = Plan(1000, 600, pictures);
+        var shared = CompositionDrawPlan.Build(Canvas, CompositionDrawPlan.Viewport(Canvas, 1000, 600),
+            pictures.Select(p => new ResolvedLayer(p.Layer, p.Frame)));
+
+        Assert.Equal(shared.CanvasToTarget, preview.CanvasToTarget);
+        Assert.Equal(shared.CanvasBounds, preview.CanvasBounds);
+        Assert.True(shared.Operations.SequenceEqual(preview.Operations));   // record equality, frames by reference
     }
 }

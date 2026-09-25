@@ -17,6 +17,28 @@ public interface IFilePickerService
     /// <summary>Opens a native "select folder" dialog (where a new folder can also be created).
     /// Returns null if the user cancels — a normal, silent outcome.</summary>
     Task<string?> PickFolderAsync(FolderPickerRequest request, CancellationToken ct = default);
+
+    /// <summary>Opens a native "save file" dialog. Returns the chosen path as picked (no extension is substituted;
+    /// the dialog only appends <see cref="SaveFilePickerRequest.DefaultExtension"/> to a name typed without one), or
+    /// null if the user cancels — a normal, silent outcome. It does not ask about replacing an existing file: the
+    /// caller does.</summary>
+    Task<string?> PickSaveFileAsync(SaveFilePickerRequest request, CancellationToken ct = default);
+}
+
+public sealed class SaveFilePickerRequest
+{
+    public string Title { get; init; } = "Save File";
+
+    /// <summary>Folder the dialog starts in, if it exists.</summary>
+    public string? StartFolder { get; init; }
+
+    /// <summary>File name proposed in the dialog.</summary>
+    public string? SuggestedFileName { get; init; }
+
+    /// <summary>Extension without the dot (e.g. "mp4").</summary>
+    public string? DefaultExtension { get; init; }
+
+    public IReadOnlyList<FilePickerFileTypeFilter> FileTypeFilters { get; init; } = Array.Empty<FilePickerFileTypeFilter>();
 }
 
 public sealed class FolderPickerRequest

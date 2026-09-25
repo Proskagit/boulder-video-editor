@@ -37,6 +37,9 @@ public sealed class ProjectSettings
     /// the first video clip is added to the timeline, which fixes the frame rate for
     /// the rest of the project; only undoing that add clears it again.</summary>
     public bool IsFrameRateLocked { get; set; }
+
+    /// <summary>Stored in project.json but not used: playback and export always run at
+    /// 48 kHz stereo (<see cref="Playback.AudioFormat"/>, D013, D023).</summary>
     public int AudioSampleRate { get; set; } = 48000;
 }
 
@@ -44,15 +47,16 @@ public enum ExportContainer { Mp4 }
 public enum ExportVideoCodec { H264 }
 public enum ExportAudioCodec { Aac }
 
+/// <summary>
+/// What the last export used (D023): session-only state of the project — never saved (not in project.json
+/// or recovery files; an older file's value is ignored), and updating it never makes the project dirty
+/// and never enters undo/redo. The output format itself is fixed (<see cref="Export.ExportFormat"/>):
+/// size and frame rate come from <see cref="ProjectSettings"/>, quality is constant.
+/// </summary>
 public sealed class ExportSettings
 {
     public string OutputPath { get; set; } = string.Empty;
     public ExportContainer Container { get; set; } = ExportContainer.Mp4;
     public ExportVideoCodec VideoCodec { get; set; } = ExportVideoCodec.H264;
     public ExportAudioCodec AudioCodec { get; set; } = ExportAudioCodec.Aac;
-    public int Width { get; set; } = 1920;
-    public int Height { get; set; } = 1080;
-    public double FrameRate { get; set; } = 30;
-    public long? VideoBitrateBps { get; set; }
-    public long? AudioBitrateBps { get; set; } = 192_000;
 }

@@ -31,6 +31,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private readonly ITimelineEditService _edit;
     private readonly StatusService _status;
     private readonly ILogger<TimelineViewModel> _logger;
+    private readonly EditingLock _editingLock;
 
     private readonly Dictionary<Guid, TimelineClipViewModel> _clipViewModels = new();
     private readonly Dictionary<Track, TimelineTrackViewModel> _trackViewModels = new();
@@ -44,12 +45,15 @@ public sealed partial class TimelineViewModel : ViewModelBase
         IProjectService projectService,
         ITimelineEditService edit,
         StatusService status,
-        ILogger<TimelineViewModel> logger)
+        ILogger<TimelineViewModel> logger,
+        EditingLock? editingLock = null)
     {
         _projectService = projectService;
         _edit = edit;
         _status = status;
         _logger = logger;
+        _editingLock = editingLock ?? new EditingLock();
+        _editingLock.PropertyChanged += (_, _) => OnEditingLockChanged();
 
         _projectService.TimelineChanged += (_, _) => Refresh();
         _projectService.ProjectChanged += (_, _) => OnProjectReplaced();
@@ -342,12 +346,32 @@ public sealed partial class TimelineViewModel : ViewModelBase
     }
 
     // --- Editing commands ---------------------------------------------------------
+    // Disabled while an export runs (EditingLock): they would change the timeline. Viewing (playhead, zoom,
+    // selection, snapping) stays available; pointer edits and drops are ignored.
 
-    [RelayCommand]
+    /// <summary>False while editing is locked (an export runs).</summary>
+    public bool IsEditingAllowed => !_editingLock.IsLocked;
+
+    private bool CanEdit() => !_editingLock.IsLocked;
+
+    private bool CanDeleteSelected() => CanEdit() && HasSelection;
+
+    private void OnEditingLockChanged()
+    {
+        if (_editingLock.IsLocked) CancelGesture();
+        OnPropertyChanged(nameof(IsEditingAllowed));
+        SplitAtPlayheadCommand.NotifyCanExecuteChanged();
+        DeleteSelectedCommand.NotifyCanExecuteChanged();
+        AddVideoTrackCommand.NotifyCanExecuteChanged();
+        AddAudioTrackCommand.NotifyCanExecuteChanged();
+        AddTextCommand.NotifyCanExecuteChanged();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private void SplitAtPlayhead() =>
         Report(_edit.Split(Playhead, _selection.Count > 0 ? _selection.ToList() : null));
 
-    [RelayCommand(CanExecute = nameof(HasSelection))]
+    [RelayCommand(CanExecute = nameof(CanDeleteSelected))]
     private void DeleteSelected()
     {
         var result = _edit.DeleteClips(_selection.ToList());
@@ -355,13 +379,13 @@ public sealed partial class TimelineViewModel : ViewModelBase
         Report(result);
     }
 
-    [RelayCommand] private void AddVideoTrack() => Report(_edit.AddTrack(TrackType.Video));
-    [RelayCommand] private void AddAudioTrack() => Report(_edit.AddTrack(TrackType.Audio));
+    [RelayCommand(CanExecute = nameof(CanEdit))] private void AddVideoTrack() => Report(_edit.AddTrack(TrackType.Video));
+    [RelayCommand(CanExecute = nameof(CanEdit))] private void AddAudioTrack() => Report(_edit.AddTrack(TrackType.Audio));
 
     [RelayCommand] private void ToggleSnapping() => SnappingEnabled = !SnappingEnabled;
 
     /// <summary>"+ Text": a text clip at the playhead on the topmost video track, selected.</summary>
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private void AddText()
     {
         var result = _edit.AddTextClip(Playhead);
@@ -381,6 +405,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private void AddMediaAt(Guid assetId, Guid? trackId, MediaTime? start)
     {
+        if (!CanEdit()) return;
         var result = _edit.AddClip(assetId, trackId, start);
         SelectAdded(result);
         Report(result, successMessage: "Added to timeline");
@@ -499,6 +524,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     public void BeginMove(double contentX)
     {
+        if (!CanEdit()) return;
         var clips = _selection.Where(_clipViewModels.ContainsKey).Select(id => _clipViewModels[id]).ToList();
         if (clips.Count == 0) return;
         var tracks = clips.Select(TrackOf).Distinct().ToList();
@@ -507,6 +533,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     public void BeginTrim(TimelineClipViewModel clip, ClipEdge edge, double contentX)
     {
+        if (!CanEdit()) return;
         SelectOnly(clip.Id);
         _gesture = new Gesture
         {
