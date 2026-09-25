@@ -175,6 +175,43 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     workaround; a real default-device change and a real device removal were not tried on hardware (manual-only
     scenarios 14–17 of the Phase 9 manual plan); `MediaAnalysisCoordinator` still relies on the captured UI
     synchronization context (its results are applied there — also what makes the 9.3b generation check race-free).
+- Step 9.3 accepted and closed (2026-09-25), committed as `3006785`.
+- Step 9.4 — thumbnails + cache. Audit accepted (2026-09-25); product owner decisions: PO-1 saved project cache
+  `<project>/cache/thumbnails/`; PO-2 unsaved project `%LOCALAPPDATA%\AiVideoEditor\cache\unsaved\<projectId>\thumbnails\`;
+  PO-3 source time `T = min(⌊Duration / 10⌋, 5 s)` in ticks, D009 decides the frame; PO-4 at most 2 thumbnail
+  generations at once (fixed); PO-5 `MediaAsset.ThumbnailPath` kept for compatibility, never used or filled
+  (`project.json` unchanged); PO-6 `<project>/cache/thumbnails` is the one cache path — the competing
+  `AppPaths.ProjectThumbnailsFolder` (`<project>/thumbnails`) is fixed or removed within 9.4. Constraints: D009 selects
+  the frame (no `-ss` / `select` / `thumbnail` filters), `IVideoDecoder` + `SourceFrameSelector` reused, playback and
+  export never read the cache, cache hits take no slot and start no ffmpeg, a damaged cache file is a silent miss,
+  internal binary format (magic / version / size + BGRA, no PNG), 160 × 90 bound. Sub-steps, each accepted separately:
+  9.4a service and cache core · 9.4b cache location · 9.4c thumbnail queue · 9.4d Media Browser UI · 9.4e closeout.
+  - 9.4a done — thumbnail service and cache core (no UI, no cache location, no queue). Core `IThumbnailService`
+    replaced (the unused `GetOrCreateThumbnailAsync → path` contract): `TryGetCached(asset, cacheFolder)` (no decoding;
+    online media only a thumbnail matching the file as it is now, offline media — marked missing or file gone — the
+    last one cached without looking at the source) and `GetOrCreateAsync(asset, cacheFolder, ct)` (hit, or decode +
+    atomic write; null for audio, unanalysed or failed analysis, offline, or an undecodable source; cancellation
+    throws); `Thumbnail` (width, height, packed BGRA). Media `ThumbnailService`: `SourceTime(metadata)` =
+    `min(⌊Duration.Ticks / 10⌋, 5 s)`; decode request = the sample point T (ticks from `StartTime`), nominal rate,
+    160 × 90, software, `StrictEnd`; the first frame, then forward while the next frame `IsAtOrBefore` T — D009's
+    last-at-or-before with hold-first / hold-last; frames packed. Cache file `{assetId:N}-{size:x}-{lastWriteUtcTicks:x}
+    -v{rule version}.thumb` = `AIVT` + format version + width + height (little-endian) + BGRA; `TryRead` rejects
+    anything else (miss); write to a temporary name + move, older files of the asset removed afterwards; a failed
+    write only costs the cache. No ffmpeg specifics in the service. `Video.Tests` references Media (and Media gives it
+    `InternalsVisibleTo`). Tests: `Video.Tests/ThumbnailServiceTests` (35 with theory rows, fake decoder: miss →
+    decode + cache with the request checked, later hits and `TryGetCached` never decode; size, last-write time and rule
+    version changes are misses that replace the old file; nine kinds of damaged cache files are misses and are
+    repaired; atomic write, unwritable cache; offline with a cache → the cached one, never decoded, also for a file
+    gone during the session; offline without a cache, audio, pending and failed analysis → none, not decoded;
+    undecodable source; cancellation; the T rule incl. floor and cap; frame choice at exact boundaries, one tick
+    before, a 3-frame clip, T after the last frame, a start time of 1.4 s; an image), `Video.Tests/
+    ThumbnailIntegrationTests` (10, real ffmpeg, the expected frame from the generation recipe + D009: CFR 25 and
+    29.97, VFR, jittered timestamps, MPEG-TS with a container start time, H.265 — all 160 × 90; a hit starts no ffmpeg;
+    a 3-frame clip → frame 0, video ending at 0.2 s in a 10 s file → its last frame; a 320 × 240 image → 120 × 90; a
+    video with a −90° display matrix comes out portrait with its left half on top). Mutations (all caught): no D009
+    advance → 6, T = Duration/5 → 21, start time ignored → 2, size or time missing from the key → 1 each, missing flag
+    ignored → 1, audio decoded → 1, older files kept → 3, hardware decoding → 1, no length check → 3. Full suite with
+    `--blame-hang`: 1590 passed, 2 skipped (4K), 0 failed; build 0 warnings. `AppPaths` untouched (9.4b).
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); hotkey guard not exercised in the running app → 9.6;
   `PlaybackFrame.Picture` → 9.8; `Project.Tests` hang → watched (9.10);
