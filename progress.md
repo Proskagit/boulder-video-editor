@@ -2,6 +2,186 @@
 
 ## Current phase
 
+Phase 9 — Quality: **in progress**, branch `feat/phase-9-quality` (from `ab248e5`, `main` after the merge of PR #6).
+Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 9 — Quality: steps"; decision D024.
+
+### Phase 9 — Quality (in progress)
+
+Steps (D024; each accepted by the product owner before the next): 9.1 audit · 9.2 scope formalization ·
+9.3 stability & error handling · 9.4 thumbnails + cache · 9.5 waveform · 9.6 hotkeys · 9.7 performance baseline &
+optimization · 9.8 polish & cleanup · 9.9 CI / quality gates · 9.10 final verification & closeout.
+Constraints: D023 unchanged; L1-c stays open (no MP4 → export canvas tolerance, Step 8.6 unchanged); out of scope
+HDR / 10-bit, colour management, export quality presets, bitrate policy, hardware encoding, hardware decoding as a
+required optimization, a full audio editor, configurable hotkeys, a large UI redesign.
+
+- Step 9.1 done (2026-09-25) — audit, no change. Baseline on `ab248e5`: `dotnet build --no-incremental` 0 errors /
+  0 warnings; `dotnet test` 1494 passed, 2 skipped (4K heavy), 0 failed (Core 380, Timeline 257, Project 259, UI 216,
+  Export 78, Rendering 52, Video 185, ExportEndToEnd 67 + 2 skipped); ffmpeg 9.0.1, .NET SDK 8.0.424. Findings:
+  - Thumbnails / waveform / cache: not implemented — `IThumbnailService` (DI registration commented out) and
+    `IVideoEngine` (thumbnail / audio extraction) declared only; `AppPaths.ProjectCacheFolder` /
+    `ProjectThumbnailsFolder` and `MediaAsset.ThumbnailPath` (serialized) exist; the Media Browser shows a colour swatch.
+  - Error handling: `ErrorTranslator`; `LoggingBootstrapper` has `Area=Ffmpeg` → `ffmpeg-.log` and `Area=Export`
+    sinks, nothing tags events with either; the damaged-project message mentions a backup in the cache folder, but
+    `ProjectFileStore` calls `File.Replace` without a backup file.
+  - Hotkeys: Ctrl+N/O/S/Shift+S, Ctrl+Z/Y/Shift+Z, Delete/Backspace, S, N, ←/→, Shift+←/→, Space, Home/End,
+    Ctrl+= / Ctrl+− (`MainWindow.ShortcutFor`); the playback model plays forward at 1× only (D010/D011).
+  - `PlaybackFrame.Picture` / `IsPictureCurrent`: filled by `PlaybackService`, read by no product code; 48 uses in
+    8 test files.
+  - Tests / CI: 8 xUnit test projects; no coverage tool, no CI, no `Directory.Build.props` / `.editorconfig`;
+    ffmpeg tests skip silently without ffmpeg. Gates so far by practice: 0 warnings, full suite, `--blame-hang`,
+    mutations, manual plans.
+  - Carried from Phase 8: L1-c open; export throughput / memory / handles / Cancel latency not measured; the close
+    hang; the single `Project.Tests` hang; the deferred `PlaybackFrame.Picture` cleanup.
+- Step 9.2 done (2026-09-25) — scope formalized (documentation only): `DEVELOPMENT_PLAN.md` Phase 9 steps with
+  scope, acceptance criteria (PR / QG / M / Impl), out of scope and dependencies; D024; ROADMAP. Awaiting the product
+  owner's review.
+- Step 9.2 accepted (2026-09-25).
+- Step 9.3 — stability & error handling. Audit accepted (2026-09-25); product owner decisions: audio device B (check
+  the default device's id at every Play and at the audio restart after a seek, recreate the output when it changed;
+  no switch during playback), device failure during playback stays D013 (Stopwatch, sound may stop, the new device
+  at the next Play/restart; no automatic recovery); backup A (correct the unused `ErrorTranslator` text, no backup,
+  `ErrorTranslator` / `CorruptProjectFileException` kept — possible 9.8 cleanup); New during `ImportManyAsync` out of
+  scope (known issue); analysis concurrency limit an implementation detail. Sub-steps, each accepted separately:
+  9.3a close hang · 9.3b analysis cancellation + ffprobe termination + same-project reopen · 9.3c analysis concurrency ·
+  9.3d FFmpeg diagnostics · 9.3e audio device · 9.3f backup message + final verification.
+  - 9.3a done — close hang. Root cause (reproduced with a scratch copy of `Program.Main` and in the real app): the
+    host was disposed synchronously (`using var host`) after the Avalonia lifetime had ended; `Host.Dispose` blocks on
+    the services' async disposal, and `PlaybackService.DisposeAsync` posted its continuations (pipelines → readers →
+    ffmpeg processes) to the `AvaloniaSynchronizationContext` of the stopped dispatcher — a deadlock whenever
+    decoders were open. Fix: `MainWindowViewModel.PrepareToCloseAsync`, once closing is agreed, awaits
+    `PreviewViewModel.ReleasePlaybackAsync` (stops polling, `IPlaybackService.DisposeAsync`) on the UI thread before
+    the window closes; `PlaybackService` releases once (later calls return the same task) and is inert from the first
+    line of the release (snapshots, Play, Pause, Seek ignored — no decoder or ffmpeg process can open again, also while
+    the release is in progress); `Program.Main` clears the dead synchronization context before the host's disposal
+    (defensive only). Tests: `Timeline.Tests/Playback/PlaybackReleaseTests` (3), `UI.Tests/CloseReleaseTests` (2).
+    Mutations: no guard in `UpdateSnapshot` → 2 failures, in `SeekAsync` → 2, release not once → 1, shell not
+    releasing → 2, preview polling after release → 1; the `Pause` guard is redundant (the release sets Paused first),
+    not caught. Real app (UI Automation, a saved project with one video with sound): closing idle, playing, paused,
+    stopped and after an export exits in 0.1 s, "Shutting down." logged, no ffmpeg left; with the fix alone (no
+    safeguard) the same; with neither change the app hangs (control). Full suite with `--blame-hang`: 1499 passed,
+    2 skipped (4K), 0 failed.
+  - 9.3a accepted (2026-09-25).
+  - 9.3b done — analysis generations, ffprobe termination, same-project reopen. `MediaAnalysisCoordinator`: a
+    cancellation generation per project, replaced on `IProjectService.ProjectChanged` (New / Open / Recover all go
+    through `Replace`, on the UI thread, before the new project's media are queued); the generation's token goes to
+    `IMediaAnalysisService.AnalyzeAsync`; after the probe a cancelled generation's result is dropped whatever it is —
+    no asset change, no `MediaAssetsChanged` (results are applied on the UI thread, so a result either belongs to the
+    current project or is dropped). `RefreshDisplaySize` the same. The in-flight guard is per asset object
+    (reference equality) instead of per id: the reopened project's assets (same ids, new objects) are analysed again
+    — before, they were skipped as duplicates and stayed Pending for good (reproduced with a scratch program: now the
+    reopened asset completes, the old result is dropped). `FfprobeMediaAnalysisService`: on cancellation, timeout or any
+    other exit before ffprobe ended, the process tree is killed and awaited (up to 5 s) — before, only the `Process`
+    object was disposed and ffprobe kept running; the timeout is an internal property (tests). Normal results and the
+    JSON parsing are unchanged; no concurrency limit (9.3c). Tests: `UI.Tests/AnalysisGenerationTests` (11: New / Open /
+    Recover / same-project reopen / orientation refresh of a replaced project — each with a probe that honours the
+    cancellation and one whose result arrives after the switch — plus a refresh of the current project), 
+    `Video.Tests/FfprobeTerminationTests` (2: cancellation and timeout end a hanging fake ffprobe and its child, in the
+    media collection like the other ping-counting tests). Mutations (all caught): guard by id → 2 failures, no
+    generation check on apply → 6, generation never cancelled → 10, refresh without the check → 1, token not passed to
+    the probe → 6, ffprobe not ended → 2. `UI.csproj` gained `InternalsVisibleTo UI.Tests` (the coordinator's
+    `IdleAsync` test hook). Full suite with `--blame-hang`: 1512 passed, 2 skipped (4K), 0 failed; build 0 warnings.
+    Real app: open, play, close as in 9.3a — clean exit, nothing left running.
+  - 9.3b accepted (2026-09-25).
+  - 9.3c done — bounded analysis concurrency. `MediaAnalysisCoordinator.MaxConcurrentAnalyses = 4` (implementation
+    detail, not configurable): a `SemaphoreSlim` slot is taken before the probe and held for the whole analysis, whose
+    ffprobe runs (stream probe, then the orientation probe) are sequential — so at most 4 ffprobe processes run;
+    orientation refreshes after Open share the slots. Waiting assets stay `Analyzing` (no new status), in queue order.
+    The wait takes the generation token, so a replaced project's queued analyses end at once; after getting a slot an
+    analysis checks its generation again before probing (found by a test: a slot freed by a cancelled analysis could
+    reach a still-registered old waiter during `Cancel()` and start a probe for the replaced project). The slot is
+    released in `finally`, only if taken. ffprobe's timeout starts inside the probe, i.e. after the slot. Choice of 4
+    (scratch measurement, 24 generated files in the OS cache, 16 cores): 1 → 788 ms, 2 → 463, 4 → 312, 8 → 232, 24 →
+    187 ms — beyond 4 the gain is small, while more processes compete with playback decoding and, on slow disks or
+    shares, with each other for the 20 s timeout. Tests: `UI.Tests/AnalysisConcurrencyTests` (5: 25 queued → at most 4
+    at once, all Completed with their own result; slots refilled over three rounds; cancel with 16 waiting — both
+    probe behaviours — the waits end at once, no old probe starts, the next project completes, no slot lost;
+    orientation refreshes share the limit), `Video.Tests/AnalysisConcurrencyIntegrationTests` (1, real
+    `FfprobeMediaAnalysisService` with a scripted ffprobe whose orientation probe hangs: 6 analyses → exactly 4
+    hanging ffprobe at once, the first 4 end after one timeout, the last 2 after two — the timeout counts from the
+    slot —, all Completed with unchanged metadata, nothing left running; `Video.Tests` now references UI). Mutations
+    (all caught): no limit → 5 UI failures and the real-ffprobe test (6 at once), wait not cancellable → 1, no check
+    after the slot → 1, slot not released on a cancelled analysis → 2. Full suite with `--blame-hang`: 1518 passed,
+    2 skipped (4K), 0 failed; build 0 warnings; analysis tests 10 × and the ffprobe tests 3 × in a row green.
+  - 9.3c accepted (2026-09-25).
+  - 9.3d done — FFmpeg / ffprobe diagnostics. Routing: one rule, `LogArea.ForSource` (Infrastructure), applied by an
+    `AreaEnricher` that replaced the fixed `Area=App` property: sources `AiVideoEditor.Video.*` and the ffmpeg / ffprobe
+    locators are `Area=Ffmpeg`, everything else `App`; an explicit `Area` (e.g. a scope) is kept. `ffmpeg-*.log` takes
+    `Area=Ffmpeg`, the application log now excludes it (no duplicates; format unchanged); `errors-*.log` still collects
+    errors of any area; `export-*.log` untouched (nothing writes to it). `LoggingBootstrapper.CreateLogger(folder)`
+    overload for tests. `FfmpegProcess` (decoders and the export encoder): the command line at Debug when it starts (a
+    start failure as a Warning), and one entry when stderr closes — Debug for a normal exit or when the app ended it
+    (flag set before the kill in `DisposeAsync`: seek, end of playback, cancelled export, closing), Warning with the
+    command line, exit code and the unconsumed stderr lines when it failed on its own. The decoder's and encoder's own
+    Debug lines no longer repeat the command line. `FfprobeMediaAnalysisService`: `-v quiet` → `-v error` (stdout stays
+    the JSON; stderr collected as it arrives, bounded to 4000 chars); Debug command line; a non-zero exit is a Warning
+    with command line, exit code and stderr (then an internal `FfprobeFailedException`, so `AnalyzeAsync` doesn't log
+    it twice); the timeout is its own Warning (with stderr so far); cancellation only Debug. Analysis outcomes and
+    messages unchanged. `ExecutableLocator` messages unchanged, routed by their category. Tests:
+    `Video.Tests/FfmpegDiagnosticsTests` (12: routing into the real sinks of a temporary folder — Video, locator and
+    explicitly tagged events only in `ffmpeg-*.log`, others only in `app-*.log`, errors log unchanged, no export log;
+    locator found / not found; a real failed ffmpeg in the ffmpeg log file with quoted command line, exit code and
+    stderr; `FfmpegProcess` normal run → Debug only, own failure → one Warning with the data, ended by the app → Debug
+    only; ffprobe failure (exit 3 + stderr), timeout, cancellation told apart; the real ffprobe's reason for a damaged
+    file reaches the log; the real ffprobe with `-v error` gives the generated file's exact metadata). Mutations (all
+    caught): no source routing → 4, ffmpeg events also in the app log → 4, app kill not recognised → 1, `-v quiet`
+    again → 3, cancellation as a Warning → 1, timeout not a Warning → 1, failed exit not reported → 2. Real app
+    (open → export → close): `ffmpeg-20260925.log` got the locator line, 6 ffmpeg command lines (decoders, both
+    encoder passes), 4 normal exits, 2 "ended by the app", no warning; none of these in the application log. Full
+    suite: 1 plain run with 1 failure in `Project.Tests` (not captured; the project references only Core and Project,
+    which Step 9.3 doesn't touch), then 40 isolated `Project.Tests` runs and 8 full runs (1532 tests each) all green —
+    recorded under the watched `Project.Tests` concern; build 0 warnings.
+  - 9.3d accepted (2026-09-25).
+  - 9.3e done — audio device (option B). `IAudioEndpoints` (Audio, internal; only `DefaultRenderDeviceId()` and
+    `Open(deviceId, latency)` → an `IWavePlayer` that is also an `IWavePosition`), production `WasapiEndpoints`
+    (`MMDeviceEnumerator` default render / multimedia endpoint id, `WasapiOut` on `GetDevice(id)`). `WasapiAudioOutput`
+    asks for the default device at every `TryStart` — Play and the audio restart after a seek (the service's existing
+    paths, `PlaybackService` unchanged) — and compares endpoint ids (ordinal, case-insensitive; names never used): the
+    same id keeps the open output, another id (default changed, or the old device removed) closes the old output and
+    opens one on the new default; no default device or one that can't be opened fails the start as before (the service
+    plays on the Stopwatch). No switch during playback, no device notifications; a device lost while playing keeps D013
+    (`HasFailed` → Stopwatch without a jump, silent until the next Play, which opens the default of that moment). The
+    clock stays cumulative across a change of device. Logging names the device by id (the name is no longer looked up).
+    Tests: `Video.Tests/AudioDeviceChangeTests` (12, fake endpoints and outputs — no real device is added, removed or
+    switched: reuse on the same default; recreate after a change, old output closed once and never replayed; id
+    compared by id (other letter case = same, another id = different); clock across a change; no default / unopenable
+    default → start fails, nothing leaked; each output disposed exactly once; with `PlaybackService`: seek while playing
+    after a change → new device, position from the seek; seek without a change → same output; device removed while
+    playing → Stopwatch without a jump, nothing switches; next Play after a loss opens the current default (another or
+    the same device), the failed output closed and never reused; unopenable new default → Stopwatch as before).
+    `WasapiAudioOutputDeviceTests` (real device, production endpoints) and `AudioPlaybackServiceTests.
+    DeviceFailure_FallsBackToTheStopwatch_WithoutAJump` still green. Mutations (all caught): default not compared → 4,
+    always recreate → 3, old output not closed → 5, case-sensitive id → 1. Full suite with `--blame-hang`: 1542 passed,
+    2 skipped (4K), 0 failed; build 0 warnings. Real app (real device): Play → Pause → Play opened the device once, by
+    its endpoint id. Not verified on hardware: an actual default-device change or unplugging during playback (would need
+    changing the system's devices) — covered only by the fake-device tests; a manual check belongs to the Phase 9
+    manual test plan.
+  - 9.3e accepted (2026-09-25).
+  - 9.3f done — damaged-project message and closeout of 9.3. `ErrorTranslator`'s text for `CorruptProjectFileException`
+    was "This project file appears to be damaged and couldn't be opened. A backup may be available in the project's
+    cache folder." — a backup the app never makes (the translator is unused; what users see on Open is the
+    `ProjectFileException` of `ProjectSerializer`, "The project file is damaged and can't be opened (reason).", which
+    never promised one). Now: "This project file is damaged or can't be read, so the project couldn't be opened." No
+    backup mechanism; `ErrorTranslator` / `CorruptProjectFileException` kept (possible 9.8 cleanup). Tests:
+    `Video.Tests/ErrorTranslatorTests` (1: exact text, no "backup / cache / recover / restore / copy", the detail kept
+    for the log; restoring the old text fails it), `Project.Tests/DamagedProjectMessageTests` (2: opening an unreadable
+    and an incomplete `project.json` gives the damaged message without any backup promise). Documentation: D024
+    "Refined in Step 9.3" (the decisions of 9.3a–f); `docs/PHASE9_MANUAL_TEST_PLAN.md` created with the 9.3 scenarios
+    (close cases, analysis during New / Open / reopen, many imports, diagnostics, damaged project, audio device change
+    and removal — the last four hardware ones manual-only, not executed); `docs/EXPORT_MANUAL_TEST_PLAN.md` no longer
+    calls the close hang a known issue; DEVELOPMENT_PLAN / ROADMAP step status. Verification: see "Step 9.3 closeout".
+  - Step 9.3 closeout (2026-09-25): 9.3a–f done, each sub-step accepted except 9.3f (awaiting, with the whole step).
+    Residual, not fixed by 9.3: New while `ImportManyAsync` checks the picked files adds them to the new project (known
+    issue, out of scope); the `Project.Tests` hang (Phase 8) / single unidentified failure (9.3d) — watched, no
+    workaround; a real default-device change and a real device removal were not tried on hardware (manual-only
+    scenarios 14–17 of the Phase 9 manual plan); `MediaAnalysisCoordinator` still relies on the captured UI
+    synchronization context (its results are applied there — also what makes the 9.3b generation check race-free).
+- Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
+  `ffmpeg-*.log`, backup message → 9.3 (done); hotkey guard not exercised in the running app → 9.6;
+  `PlaybackFrame.Picture` → 9.8; `Project.Tests` hang → watched (9.10);
+  L1-c → stays open.
+
+## Phase 8 (complete)
+
 Phase 8 — Export: **complete** (accepted by the product owner on 2026-09-25; commit `8786491`, PR #6), branch `feat/phase-8-export` (from `2f0e26f`, the Phase 7 closeout).
 Scope (DEVELOPMENT_PLAN): Timeline → MP4 (H.264/AAC) with everything Phase 7 added. Decisions: D023.
 
@@ -991,7 +1171,9 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Export codec leg (D023 Step 8, decision L1-c): MP4 → export canvas has no numeric tolerance; the Step 8.6
   measurement is data for a future product decision, not a criterion. Open.
 - `Project.Tests` hang seen once in Step 8.4 (1 of 23 runs, test not identified): not reproduced — the 8.4/8.5 runs
-  and the three final `--blame-hang` runs of the closeout were clean. Watch for it; no fix.
+  and the three final `--blame-hang` runs of the closeout were clean. Watch for it; no fix. Phase 9 Step 9.3d: one
+  unidentified `Project.Tests` failure (not a hang) in one full parallel run; not reproduced in 40 isolated and 8 full
+  runs (with TRX results, so a recurrence names the test).
 
 - Speed (D022): the atempo latency compensation is measured for FFmpeg 9.0.1; another ffmpeg version
   may shift it — `FfmpegSpeedIntegrationTests` (10 ms bound) catches that.
@@ -999,13 +1181,10 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   2026-09-24: a caller-cancelled probe now rethrows `OperationCanceledException` without caching
   (and kills the probe process); only a genuine miss/failure/5 s timeout is cached. Regression tests:
   `Video.Tests/ExecutableLocatorTests`.
-- Closing the main window hangs the process (window gone, no "Shutting down." in the log; host
-  disposal never finishes) once a project with decodable media was open — also without ever
-  playing, and also after Pause/Stop. Closing an app without such a project exits normally. Found
-  2026-09-24; reproduced with only the `ExecutableLocator` fix applied on `main` `9fd38e7` (before
-  Phase 7) and on every Phase 7 checkpoint (`7ab3693`, `8592d10`, `a1cf682`, `5d81fe5`), so it is not
-  a Phase 7 regression; earlier it was masked because the locator bug often left the preview without
-  ffmpeg. Not fixed yet (separate task).
+- ~~Closing the main window hangs the process once a project with decodable media was open~~ — fixed in Phase 9
+  Step 9.3a (2026-09-25): playback is released on the UI thread before the window closes (details in Step 9.3a).
+- New Project while `ImportManyAsync` is still checking the picked files adds them to the new project (the import
+  adds to whatever project is current when it finishes). Out of scope of Step 9.3 (product owner, 2026-09-25).
 
 - Text clips (D021): the Preview (Avalonia) silently substitutes a font that isn't installed. Phase 8
   (D023) renders text like the Preview (no `drawtext`), so the export falls back the same way; the
@@ -1032,8 +1211,12 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 
 - Hotkey guard for text input is implemented but could not be exercised in the
   running app: Phase 4 UI has no visible text field (Inspector Transform is hidden).
-- `ffmpeg-*.log` is never written: nothing tags log events with `Area=Ffmpeg`.
-- Media analysis has no concurrency limit and no cancellation on New Project.
+- ~~`ffmpeg-*.log` is never written~~ — fixed in Phase 9 Step 9.3d: Video and the ffmpeg / ffprobe locators are
+  routed there by their source.
+- ~~Media analysis has no concurrency limit and no cancellation on New Project~~ — fixed in Phase 9 Steps 9.3b / 9.3c
+  (generation per project, cancelled on New / Open / Recover; at most 4 analyses at once).
+- Audio device: a real default-device change and a real device removal during playback were not tried on hardware
+  (Phase 9 Step 9.3e covered them with fake devices); manual-only scenarios 14–17 of `docs/PHASE9_MANUAL_TEST_PLAN.md`.
 - `MediaAnalysisCoordinator` relies on the captured UI SynchronizationContext.
 - Timecode is non-drop-frame only (29.97 timecode drifts from wall clock by design).
 - Timeline canvas is a plain ItemsControl/Canvas; very long timelines at maximum

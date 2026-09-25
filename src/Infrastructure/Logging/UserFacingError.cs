@@ -35,8 +35,9 @@ public static class ErrorTranslator
             UnsupportedMediaException ume =>
                 $"This file's format ({ume.CodecOrFormat}) isn't supported yet.",
 
+            // No backup of project files exists (D024 Step 9.3): the message must not promise one.
             CorruptProjectFileException =>
-                "This project file appears to be damaged and couldn't be opened. A backup may be available in the project's cache folder.",
+                "This project file is damaged or can't be read, so the project couldn't be opened.",
 
             _ => "Something went wrong. The details have been saved to the application log."
         };

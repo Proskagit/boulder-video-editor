@@ -29,6 +29,11 @@ internal static class Program
             App.Services = host.Services;
 
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+
+            // Defensive only: playback is released before the window closes (MainWindowViewModel). The UI
+            // dispatcher has stopped now, so anything that still awaited during the host's disposal below would
+            // post its continuation to a context that never runs it again.
+            SynchronizationContext.SetSynchronizationContext(null);
         }
         catch (Exception ex)
         {

@@ -35,6 +35,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     private long _lastReportedFrame = -1;
     private bool _reportedUnavailable;
     private bool _reportedNoAudio;
+    private bool _released;
 
     [ObservableProperty] private string _currentTimeDisplay = "00:00:00:00";
     [ObservableProperty] private string _durationDisplay = "00:00:00:00";
@@ -103,6 +104,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     /// </summary>
     public void Tick()
     {
+        if (_released) return; // the window is closing: keep the last picture
         if (!_needsTick && !IsPlaying && !IsBuffering && AreLayersCurrent)
             return;
 
@@ -131,6 +133,18 @@ public sealed partial class PreviewViewModel : ViewModelBase
 
         if (!IsPlaying && !IsBuffering && AreLayersCurrent)
             _needsTick = false;
+    }
+
+    /// <summary>
+    /// The window is closing: stops polling and releases playback — decoders, their ffmpeg processes and the
+    /// audio device — while the UI thread still runs its dispatcher. Its asynchronous disposal must not be left
+    /// to the host's synchronous disposal after the dispatcher has stopped: continuations posted to the stopped
+    /// dispatcher never run, and closing hung (D024 Step 9.3).
+    /// </summary>
+    public async Task ReleasePlaybackAsync()
+    {
+        _released = true;
+        await _playback.DisposeAsync();
     }
 
     private void ShowLayers(PlaybackFrame frame)

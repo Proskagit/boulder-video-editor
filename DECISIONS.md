@@ -995,6 +995,114 @@ Status: Accepted.
 
 ---
 
+## D024 — Phase 9 scope and constraints (Quality)
+
+Date: 2026-09-25
+
+Decision (product owner, 2026-09-25, Step 9.2; the audit of Step 9.1 accepted):
+- Steps, in this order, each accepted separately: 9.1 audit (done), 9.2 scope formalization (this decision),
+  9.3 stability & error handling, 9.4 thumbnails + cache, 9.5 waveform, 9.6 hotkeys, 9.7 performance baseline &
+  optimization, 9.8 polish & cleanup, 9.9 CI / quality gates, 9.10 final verification & closeout. Scope,
+  acceptance criteria, out-of-scope items and dependencies of each step: `docs/DEVELOPMENT_PLAN.md`,
+  "Phase 9 — Quality: steps".
+- Kinds of statements, kept apart in the plan and in every step report: **product requirements** (behaviour the
+  product owner accepts), **measurement-only results** (data with its method, no threshold unless a later decision
+  sets one), **quality gates** (pass/fail conditions on build, tests, CI, process) and **implementation details**
+  (binding constraints on how; everything else is a routine engineering choice).
+- Per step (summary; the plan is normative):
+  - 9.3: fix the close hang (root cause); cancel media analysis when the project is replaced (New; Open and Recover
+    likewise); bound analysis concurrency; survive audio device removal / default-device change; use the existing
+    `Area=Ffmpeg` → `ffmpeg-*.log` sink for ffmpeg / ffprobe diagnostics; the damaged-project message must not
+    promise a backup that does not exist — implement the backup if small and isolated, otherwise remove the
+    promise. The single, unreproduced `Project.Tests` hang of Phase 8 is a watched regression concern, not a
+    defect needing a workaround.
+  - 9.4: real Media Browser thumbnails; project-scoped cache with invalidation; deterministic frame (the D009
+    rule at a fixed source time); offline media not decoded; the cache of an unsaved project decided
+    architecturally without changing the project format (`formatVersion` 2); `MediaAsset.ThumbnailPath` not removed
+    or changed without need; caching never changes D009 / D022 frame selection. Timeline clip thumbnails are out.
+  - 9.5: waveforms of audio on timeline clips, produced through the media / FFmpeg abstraction (never from UI),
+    cached, consistent with mute / volume; speed / time mapping only as far as the timeline display needs. Not an
+    audio editor.
+  - 9.6: J / K / L, loop, shortcuts that follow from existing commands, no shortcut while typing, existing
+    shortcuts unchanged, routing tests, optionally a small shortcut help. No configurable hotkeys.
+  - 9.7: baseline first (Preview / render, export throughput, memory, processes / handles, Cancel latency, 1–8
+    layers); no targets before it; then optimizations only with D023 semantics and the parity suite unchanged; no
+    hardware decode / encode or other semantic change for speed without a separate decision.
+  - 9.8: limited polish (loading / busy, disabled, errors, empty states, progress / cancel feedback, obvious issues
+    found in Phase 9), no redesign; `PlaybackFrame.Picture` removed only if an audit shows no production reader and
+    no runtime change.
+  - 9.9: a minimal GitHub Actions gate — restore, build, test, FFmpeg for the tests that need it, in a fixed, known
+    version compatible with the current tests; the job fails when ffmpeg-dependent tests are skipped unexpectedly.
+    No coverage tooling (coverlet) yet.
+  - 9.10: full verification, manual plans, documentation, acceptance.
+- Constraints for the whole phase:
+  - D023 is unchanged. L1-c stays an open product decision: no numeric tolerance for MP4 → export canvas, the
+    Step 8.6 results and D023's Step 8 text are not modified.
+  - Out of scope: HDR / 10-bit, colour management, export quality presets, bitrate policy, hardware encoding,
+    hardware decoding as a required optimization, a full audio editor, configurable hotkeys, a large UI redesign.
+  - Existing Preview ↔ Export parity tests are never weakened, re-baselined or removed to make a Phase 9 change pass.
+- Sub-decisions left to the start of their step (proposed there, confirmed by the product owner, recorded as a
+  refinement of this decision): default-device change behaviour and backup vs corrected message (9.3); thumbnail
+  source-time rule, unsaved-project cache location and the thumbnail interface (9.4); waveform on video clips with
+  sound and the mute / volume display rule (9.5); the meaning of J, loop details and the list of extra shortcuts
+  (9.6); the measurement tool's form, the measurement method and practical criteria for resource leaks and, after
+  the baseline, what to optimize (9.7); the polish list (9.8); the FFmpeg version used by CI (9.9).
+
+Context: the development plan named Phase 9's topics (performance profiling, caching, error handling, polish,
+hotkeys, waveform, thumbnails) without steps or acceptance criteria. The 9.1 audit found: no thumbnail, waveform or
+cache implementation (only `IThumbnailService` / `IVideoEngine` declarations, `AppPaths` cache folders and
+`MediaAsset.ThumbnailPath`); an `ffmpeg-*.log` sink nothing writes to; a damaged-project message promising a backup
+while `ProjectFileStore` keeps none; the close hang and other known issues in `progress.md`; no CI; export throughput,
+memory, handles and Cancel latency never measured (deferred from Phase 8); the playback model plays forward at 1×
+only (relevant to J).
+
+Consequences: Phase 9 work is planned and accepted per step; a step's open sub-decisions are asked before its
+implementation, not guessed. A Phase 9 manual test plan (`docs/PHASE9_MANUAL_TEST_PLAN.md`) is written during the
+steps and run at 9.10.
+
+Refined in Step 9.3 (2026-09-25), stability & error handling (product owner decisions after the 9.3 audit; sub-steps
+9.3a–f, each accepted separately; details and verification in `progress.md`):
+- 9.3a, close hang. Cause: the host was disposed synchronously after the Avalonia lifetime had ended, and
+  `PlaybackService`'s asynchronous disposal posted its continuations to the stopped dispatcher's synchronization
+  context — a deadlock whenever decoders were open. Decision: playback resources (decoders, their ffmpeg processes, the
+  audio device) are released on the UI thread once closing is agreed, before the window closes and the dispatcher
+  stops (`MainWindowViewModel.PrepareToCloseAsync` → `PreviewViewModel.ReleasePlaybackAsync`). The release runs once
+  (later calls return it) and makes the playback service inert from its first line: no snapshot, transport call or
+  seek can open a decoder again. `Program.Main` clears the stopped dispatcher's synchronization context before the
+  host's disposal — a defensive safeguard only, correctness does not depend on it.
+- 9.3b, analysis generations. Every media analysis belongs to the project it was started for: New, Open and Recover
+  (`IProjectService.ProjectChanged`) cancel the running generation; a result of a cancelled generation — also one
+  that arrives after the switch — changes no asset and raises no event. The in-flight guard is per asset object, not
+  per id (a project reopened while its own analysis runs has the same ids). ffprobe is killed with its process tree on
+  cancellation, timeout or any other early end, not only released.
+- 9.3c, bounded analysis concurrency: at most 4 analyses at once (an implementation detail, not configurable; chosen
+  from a measurement). An analysis holds its slot for all its ffprobe runs, so at most 4 ffprobe processes run;
+  waiting media stay "Analyzing"; the wait ends with its generation; ffprobe's timeout starts only when the probe runs,
+  i.e. after the slot was obtained.
+- 9.3d, FFmpeg diagnostics: one routing rule (`LogArea.ForSource`): the Video subsystem and the ffmpeg / ffprobe
+  locators are `Area=Ffmpeg` and go to `ffmpeg-*.log` only (not duplicated into `app-*.log`; `errors-*.log` still
+  collects errors of any area; no `export-*.log` writes). `FfmpegProcess` logs the command line at Debug and one end
+  entry: a normal exit or an end by the app (seek, shutdown, cancellation) at Debug, a failure on its own as a Warning
+  with command line, exit code and stderr. ffprobe runs with `-v error` (stdout stays the JSON); a failure, its timeout
+  and a cancellation are logged apart (Warning, Warning, Debug).
+- 9.3e, audio device (option B): the current default render device is checked at every start of the audio output —
+  Play and the restart after a seek — and compared with the open device by endpoint id (never by name); a different
+  id closes the old output and opens one on the new default, the same id keeps the output. No switching during
+  playback and no device notifications: a device lost while playing keeps D013 (Stopwatch without a jump, silent until
+  the next Play, which opens the default of that moment); a default that can't be opened fails the start as before.
+- 9.3f, damaged project: the app keeps no backup of project files and none is added; no message may promise one
+  (`ErrorTranslator`'s damaged-project text corrected; `ErrorTranslator` / `CorruptProjectFileException` stay unused
+  for now — a possible 9.8 cleanup).
+- Left as they are: New during a running import (`ImportManyAsync`) adds the picked files to the new project (known
+  issue, out of scope); the single unreproduced `Project.Tests` hang (Phase 8) and failure (9.3d) stay a watched
+  concern without a workaround; a real default-device change and a real device removal were not tried on hardware —
+  they are manual-only scenarios of the Phase 9 manual test plan.
+
+Status: Phase 9 scope and step structure are accepted. Each implementation step requires separate product-owner
+acceptance before proceeding to the next step.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

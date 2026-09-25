@@ -1,8 +1,9 @@
 # Export — manual test plan (Phase 8 Step 7)
 
 Run in the real app (`dotnet run --project src/App/App.csproj`) with ffmpeg on PATH. Automated coverage: UI flow in
-`tests/UI.Tests/ExportWorkflowTests.cs` (fakes), the pipeline in `tests/ExportEndToEnd.Tests` (real ffmpeg). The
-known app-close hang is out of scope; don't close the app while an export runs.
+`tests/UI.Tests/ExportWorkflowTests.cs` (fakes), the pipeline in `tests/ExportEndToEnd.Tests` (real ffmpeg). Closing
+the app after a project with media was open no longer hangs (fixed in Phase 9 Step 9.3a, also after an export); closing
+while an export runs is still not a scenario of this plan — don't close the app during an export.
 
 For every successful export: the progress window shows Preparing → Audio → Video → Finalizing with "done / total"
 and a percentage; the window closes on its own; an "Export finished" message names the file; the title bar gets no

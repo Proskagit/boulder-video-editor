@@ -8,6 +8,12 @@ namespace AiVideoEditor.Video;
 /// on its own task (so a full stderr pipe can never block ffmpeg). Each stderr line is offered
 /// to a handler first; lines it doesn't consume are kept as a short tail for error messages.
 /// Disposal kills the process tree.
+/// <para>
+/// Diagnostics (D024 Step 9.3; the caller's logger is a Video one, so these go to <c>ffmpeg-*.log</c>): the command
+/// line at Debug when the process starts, and one entry when it has ended — Debug for a normal exit or when the app
+/// ended it (disposal: shutdown, seek, cancellation), Warning with the command line, exit code and the unconsumed end
+/// of stderr when ffmpeg exited with a non-zero code on its own.
+/// </para>
 /// </summary>
 internal sealed class FfmpegProcess : IAsyncDisposable
 {
@@ -16,16 +22,19 @@ internal sealed class FfmpegProcess : IAsyncDisposable
     private static int _liveProcesses;
 
     private readonly Process _process;
+    private readonly string _commandLine;
     private readonly Func<string, bool> _onLine;
     private readonly Action<Exception?> _onStderrEnd;
     private readonly ILogger _logger;
     private readonly Queue<string> _stderrTail = new();
     private readonly Task _stderrTask;
+    private volatile bool _endedByApp;
     private bool _disposed;
 
-    private FfmpegProcess(Process process, Func<string, bool> onLine, Action<Exception?> onStderrEnd, ILogger logger)
+    private FfmpegProcess(Process process, string commandLine, Func<string, bool> onLine, Action<Exception?> onStderrEnd, ILogger logger)
     {
         _process = process;
+        _commandLine = commandLine;
         _onLine = onLine;
         _onStderrEnd = onStderrEnd;
         _logger = logger;
@@ -65,20 +74,28 @@ internal sealed class FfmpegProcess : IAsyncDisposable
         };
         foreach (var argument in arguments)
             process.StartInfo.ArgumentList.Add(argument);
+        var commandLine = CommandLine(ffmpegPath, arguments);
 
         try
         {
             process.Start();
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogWarning(ex, "ffmpeg could not be started: {CommandLine}", commandLine);
             process.Dispose();
             throw;
         }
 
+        logger.LogDebug("ffmpeg started (process {ProcessId}): {CommandLine}", process.Id, commandLine);
         Interlocked.Increment(ref _liveProcesses);
-        return new FfmpegProcess(process, onLine, onStderrEnd, logger);
+        return new FfmpegProcess(process, commandLine, onLine, onStderrEnd, logger);
     }
+
+    /// <summary>The command line as a user could paste it: arguments with spaces or quotes are quoted.</summary>
+    internal static string CommandLine(string executable, IEnumerable<string> arguments) =>
+        string.Join(' ', new[] { executable }.Concat(arguments).Select(a =>
+            a.Length > 0 && !a.Any(c => char.IsWhiteSpace(c) || c == '"') ? a : "\"" + a.Replace("\"", "\\\"") + "\""));
 
     public Task WaitForExitAsync(CancellationToken ct) => _process.WaitForExitAsync(ct);
 
@@ -120,6 +137,38 @@ internal sealed class FfmpegProcess : IAsyncDisposable
         {
             _onStderrEnd(ex);
         }
+        LogEnd();
+    }
+
+    /// <summary>stderr closes when ffmpeg ends (or is killed): the one place that reports how it ended.</summary>
+    private void LogEnd()
+    {
+        try
+        {
+            if (!_process.WaitForExit(TimeSpan.FromSeconds(5)))
+            {
+                _logger.LogDebug("ffmpeg (process {ProcessId}) closed stderr but is still running: {CommandLine}", _process.Id, _commandLine);
+                return;
+            }
+            var exitCode = _process.ExitCode;
+            if (_endedByApp)
+                _logger.LogDebug("ffmpeg (process {ProcessId}) was ended by the app (exit code {ExitCode}).", _process.Id, exitCode);
+            else if (exitCode == 0)
+                _logger.LogDebug("ffmpeg (process {ProcessId}) exited normally.", _process.Id);
+            else
+                _logger.LogWarning("ffmpeg (process {ProcessId}) exited with code {ExitCode}: {CommandLine}{NewLine}{Stderr}",
+                    _process.Id, exitCode, _commandLine, Environment.NewLine, StderrLines());
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException or System.ComponentModel.Win32Exception)
+        {
+            _logger.LogDebug(ex, "The end of an ffmpeg process could not be read.");
+        }
+    }
+
+    private string StderrLines()
+    {
+        lock (_stderrTail)
+            return _stderrTail.Count == 0 ? "(no stderr output)" : string.Join(Environment.NewLine, _stderrTail);
     }
 
     public async ValueTask DisposeAsync()
@@ -131,7 +180,10 @@ internal sealed class FfmpegProcess : IAsyncDisposable
         try
         {
             if (!_process.HasExited)
+            {
+                _endedByApp = true; // before the kill: its exit code is the app's doing, not a failure
                 _process.Kill(entireProcessTree: true);
+            }
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
         {

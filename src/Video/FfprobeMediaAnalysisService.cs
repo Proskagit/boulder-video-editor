@@ -18,8 +18,6 @@ namespace AiVideoEditor.Video;
 /// </summary>
 public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
 {
-    private static readonly TimeSpan ProcessTimeout = TimeSpan.FromSeconds(20);
-
     private readonly IFfprobeLocator _locator;
     private readonly ILogger<FfprobeMediaAnalysisService> _logger;
 
@@ -28,6 +26,9 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         _locator = locator;
         _logger = logger;
     }
+
+    /// <summary>How long one ffprobe run may take before it is ended and the analysis fails.</summary>
+    internal TimeSpan ProcessTimeout { get; init; } = TimeSpan.FromSeconds(20);
 
     public async Task<MediaAnalysisResult> AnalyzeAsync(string filePath, CancellationToken ct = default)
     {
@@ -53,12 +54,17 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("ffprobe timed out analyzing '{Path}'.", filePath);
+            // The timeout; logged with the command line and stderr where ffprobe ran.
             return MediaAnalysisResult.Failure(MediaAnalysisOutcome.ProbeProcessFailed, "FFprobe took too long to respond.");
+        }
+        catch (FfprobeFailedException)
+        {
+            // Logged with the command line, exit code and stderr where ffprobe ran.
+            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.ProbeProcessFailed, "FFprobe failed to analyze this file.");
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "ffprobe process failed for '{Path}'.", filePath);
+            _logger.LogWarning(ex, "ffprobe could not be run for '{Path}'.", filePath);
             return MediaAnalysisResult.Failure(MediaAnalysisOutcome.ProbeProcessFailed, "FFprobe failed to analyze this file.");
         }
 
@@ -157,7 +163,17 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         }
     }
 
-    private static async Task<string> RunFfprobeAsync(string ffprobePath, IReadOnlyList<string> arguments, string filePath, CancellationToken ct)
+    /// <summary>
+    /// Runs ffprobe and returns its stdout. Cancellation and the timeout end the process (its whole tree), not just the
+    /// wait for it — like <c>FfmpegProcess</c> — so no ffprobe outlives its analysis.
+    /// <para>
+    /// <c>-v error</c>: stdout carries only the JSON, stderr ffprobe's errors. Diagnostics (<c>ffmpeg-*.log</c>, D024
+    /// Step 9.3): the command line at Debug; a non-zero exit as a Warning with the command line, exit code and stderr
+    /// (then <see cref="FfprobeFailedException"/>); the timeout as its own Warning with what stderr had so far;
+    /// cancellation — the project was replaced — only at Debug.
+    /// </para>
+    /// </summary>
+    private async Task<string> RunFfprobeAsync(string ffprobePath, IReadOnlyList<string> arguments, string filePath, CancellationToken ct)
     {
         using var process = new Process
         {
@@ -172,33 +188,105 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         };
 
         process.StartInfo.ArgumentList.Add("-v");
-        process.StartInfo.ArgumentList.Add("quiet");
+        process.StartInfo.ArgumentList.Add("error");
         process.StartInfo.ArgumentList.Add("-print_format");
         process.StartInfo.ArgumentList.Add("json");
         foreach (var argument in arguments)
             process.StartInfo.ArgumentList.Add(argument);
         process.StartInfo.ArgumentList.Add(filePath);
+        var commandLine = FfmpegProcess.CommandLine(ffprobePath, process.StartInfo.ArgumentList);
+
+        // stderr is collected as it arrives (bounded), so a timeout can still report what ffprobe said so far; draining
+        // it also keeps a full stderr pipe from blocking ffprobe. It is never shown to the user.
+        var stderr = new BoundedText(StderrLimit);
+        process.ErrorDataReceived += (_, e) => { if (e.Data is { } line) stderr.AppendLine(line); };
 
         using var timeoutCts = new CancellationTokenSource(ProcessTimeout);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
 
+        _logger.LogDebug("ffprobe: {CommandLine}", commandLine);
         process.Start();
+        try
+        {
+            process.BeginErrorReadLine();
+            var stdoutTask = process.StandardOutput.ReadToEndAsync(linked.Token);
 
-        var stdoutTask = process.StandardOutput.ReadToEndAsync(linked.Token);
-        var stderrTask = process.StandardError.ReadToEndAsync(linked.Token);
+            await process.WaitForExitAsync(linked.Token); // also waits for the end of stderr
+            var stdout = await stdoutTask;
 
-        await process.WaitForExitAsync(linked.Token);
-        var stdout = await stdoutTask;
+            if (process.ExitCode != 0)
+            {
+                _logger.LogWarning("ffprobe exited with code {ExitCode}: {CommandLine}{NewLine}{Stderr}",
+                    process.ExitCode, commandLine, Environment.NewLine, stderr.OrPlaceholder());
+                throw new FfprobeFailedException($"ffprobe exited with code {process.ExitCode}.");
+            }
 
-        // Drained (not surfaced) purely so a full stderr buffer can't deadlock the
-        // process — ffprobe's stderr is technical noise, not something to show
-        // the user; failures are reported through the exit code / outcome instead.
-        _ = await stderrTask;
+            return stdout;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            _logger.LogDebug("ffprobe cancelled (its project was replaced): {CommandLine}", commandLine);
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("ffprobe timed out after {Seconds:0.#} s and was ended: {CommandLine}{NewLine}{Stderr}",
+                ProcessTimeout.TotalSeconds, commandLine, Environment.NewLine, stderr.OrPlaceholder());
+            throw;
+        }
+        finally
+        {
+            await EndAsync(process, filePath);
+        }
+    }
 
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException($"ffprobe exited with code {process.ExitCode}.");
+    private const int StderrLimit = 4000;
 
-        return stdout;
+    /// <summary>A non-zero ffprobe exit; already logged with its command line, exit code and stderr.</summary>
+    private sealed class FfprobeFailedException(string message) : Exception(message);
+
+    /// <summary>Thread-safe text that keeps only its last <c>limit</c> characters.</summary>
+    private sealed class BoundedText(int limit)
+    {
+        private readonly System.Text.StringBuilder _text = new();
+
+        public void AppendLine(string line)
+        {
+            lock (_text)
+            {
+                _text.AppendLine(line);
+                if (_text.Length > limit) _text.Remove(0, _text.Length - limit);
+            }
+        }
+
+        public string OrPlaceholder()
+        {
+            lock (_text)
+                return _text.Length == 0 ? "(no stderr output)" : _text.ToString().TrimEnd();
+        }
+    }
+
+    /// <summary>Kills ffprobe (and anything it started) if it is still running and waits briefly for it to go.</summary>
+    private async Task EndAsync(Process process, string filePath)
+    {
+        try
+        {
+            if (process.HasExited) return;
+            process.Kill(entireProcessTree: true);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            return; // exited between the check and the kill
+        }
+
+        try
+        {
+            await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        catch (TimeoutException)
+        {
+            _logger.LogWarning("ffprobe for '{Path}' did not exit within 5 s of being ended.", filePath);
+        }
     }
 
     private static MediaMetadata BuildMetadata(FfprobeOutput output)

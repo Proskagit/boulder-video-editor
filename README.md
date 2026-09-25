@@ -112,6 +112,5 @@ in the Inspector with undo/redo, composited in a multi-layer Preview and saved i
 `project.json` format v2 (v1 files still open).
 
 Not yet working: Export (Phase 8, reports "not implemented yet"); relink of missing media
-and recent projects are not planned yet. Known issue: closing the app after a project with
-media was open can hang the process (the window closes, the process stays; end it in Task
-Manager) — being tracked separately.
+and recent projects are not planned yet. The former hang when closing the app after a project
+with media was open is fixed (Phase 9 Step 9.3a).
