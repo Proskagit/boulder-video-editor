@@ -6,10 +6,11 @@ namespace AiVideoEditor.Timeline.Playback;
 internal readonly record struct MixEntry(AudioSpanReader Reader, float Gain);
 
 /// <summary>
-/// Sums the active <see cref="AudioSpanReader"/>s into the output (48 kHz stereo float).
-/// <see cref="Read"/> runs on the device thread: it only reads the currently published entry
-/// array (replaced atomically by the UI thread), never waits and never allocates. Samples
-/// nobody covers are silence; the sum is clamped to [-1, 1] (no limiter yet).
+/// Sums the active <see cref="AudioSpanReader"/>s into the output (48 kHz stereo float) with the
+/// shared <see cref="AudioMix"/> rule (the export mixes the same way, D023): samples × gain, summed,
+/// clamped to [-1, 1]. <see cref="Read"/> runs on the device thread: it only reads the currently
+/// published entry array (replaced atomically by the UI thread), never waits and never allocates.
+/// Samples nobody covers are silence.
 /// </summary>
 internal sealed class AudioMixer : IAudioSampleSource
 {
@@ -38,8 +39,7 @@ internal sealed class AudioMixer : IAudioSampleSource
                 entry.Reader.MixInto(from, interleaved, entry.Gain);
         }
 
-        for (var i = 0; i < interleaved.Length; i++)
-            interleaved[i] = Math.Clamp(interleaved[i], -1f, 1f);
+        AudioMix.Clamp(interleaved);
 
         Interlocked.Add(ref _writeSample, frames);
     }

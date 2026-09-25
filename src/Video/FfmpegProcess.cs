@@ -37,13 +37,19 @@ internal sealed class FfmpegProcess : IAsyncDisposable
 
     public Stream Stdout => _process.StandardOutput.BaseStream;
 
+    /// <summary>ffmpeg's stdin (only when started with <c>redirectStdin</c>): the encoder's input.</summary>
+    public Stream Stdin => _process.StandardInput.BaseStream;
+
+    /// <summary>Ends ffmpeg's input (end of file on stdin). Throws <see cref="IOException"/> if ffmpeg is already gone.</summary>
+    public void CloseStdin() => _process.StandardInput.Close();
+
     public int ExitCode => _process.ExitCode;
 
     /// <summary>Starts ffmpeg. <paramref name="onLine"/> returns true for lines it consumed;
     /// <paramref name="onStderrEnd"/> runs once when stderr closes (with the failure, if any).
     /// Throws the underlying exception if the process cannot be started.</summary>
     public static FfmpegProcess Start(string ffmpegPath, IReadOnlyList<string> arguments,
-        Func<string, bool> onLine, Action<Exception?> onStderrEnd, ILogger logger)
+        Func<string, bool> onLine, Action<Exception?> onStderrEnd, ILogger logger, bool redirectStdin = false)
     {
         var process = new Process
         {
@@ -53,7 +59,7 @@ internal sealed class FfmpegProcess : IAsyncDisposable
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                RedirectStandardInput = false,
+                RedirectStandardInput = redirectStdin,
                 CreateNoWindow = true
             }
         };
@@ -75,6 +81,18 @@ internal sealed class FfmpegProcess : IAsyncDisposable
     }
 
     public Task WaitForExitAsync(CancellationToken ct) => _process.WaitForExitAsync(ct);
+
+    /// <summary>
+    /// For the end of stdout: waits for ffmpeg to exit and describes the failure when it exited with a non-zero
+    /// code — its output then ended because it failed, not because the input ended (normal end: null). Both
+    /// decoder streams judge their end with this (always for "nothing delivered at all", and for any end when the
+    /// request asked for a strict end, D023). Cancellation propagates as <see cref="OperationCanceledException"/>.
+    /// </summary>
+    public async Task<string?> AbnormalExitAsync(CancellationToken ct)
+    {
+        await _process.WaitForExitAsync(ct);
+        return _process.ExitCode == 0 ? null : $"ffmpeg exited with code {_process.ExitCode}. {StderrTail()}";
+    }
 
     /// <summary>The last few unconsumed stderr lines, for error messages.</summary>
     public string StderrTail()
@@ -129,6 +147,14 @@ internal sealed class FfmpegProcess : IAsyncDisposable
             _logger.LogDebug(ex, "ffmpeg stderr reader did not finish cleanly.");
         }
 
-        _process.Dispose();
+        try
+        {
+            _process.Dispose();
+        }
+        catch (IOException ex)
+        {
+            // An encoder's stdin can't be flushed into a killed process.
+            _logger.LogDebug(ex, "ffmpeg process streams did not close cleanly.");
+        }
     }
 }

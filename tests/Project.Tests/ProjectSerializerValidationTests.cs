@@ -197,14 +197,12 @@ public class ProjectSerializerValidationTests
         root["timeline"]!.AsObject().Remove("markers");
         root["timeline"]!["videoTracks"]![0]!.AsObject().Remove("transitions");
         FirstVideoClip(root).Remove("effects");
-        root.Remove("lastExportSettings");
 
         var loaded = ProjectSerializer.Deserialize(root.ToJsonString(), Folder, AllExist);
 
         Assert.Empty(loaded.Timeline.Markers);
         Assert.Empty(loaded.Timeline.VideoTracks[0].Transitions);
         Assert.Empty(loaded.Timeline.VideoTracks[0].Clips[0].Effects);
-        Assert.Equal(new ExportSettings().Width, loaded.LastExportSettings.Width);
     }
 
     [Fact]

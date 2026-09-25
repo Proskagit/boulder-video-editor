@@ -169,8 +169,8 @@ public static class ProjectSerializer
             AudioSampleRate = p.Settings.AudioSampleRate
         },
         MediaAssets = p.MediaAssets.Select(a => ToDto(a, folder)).ToList(),
-        Timeline = ToDto(p.Timeline),
-        LastExportSettings = ToDto(p.LastExportSettings)
+        Timeline = ToDto(p.Timeline)
+        // LastExportSettings is session state (D023): never written.
     };
 
     private static FrameRateDto ToDto(FrameRate r) => new() { Numerator = r.Numerator, Denominator = r.Denominator };
@@ -286,19 +286,6 @@ public static class ProjectSerializer
         Parameters = e.Parameters.ToDictionary(kv => kv.Key, kv => JsonSerializer.SerializeToElement(kv.Value, Options))
     };
 
-    private static ExportSettingsDto ToDto(ExportSettings e) => new()
-    {
-        OutputPath = e.OutputPath,
-        Container = e.Container,
-        VideoCodec = e.VideoCodec,
-        AudioCodec = e.AudioCodec,
-        Width = e.Width,
-        Height = e.Height,
-        FrameRate = e.FrameRate,
-        VideoBitrateBps = e.VideoBitrateBps,
-        AudioBitrateBps = e.AudioBitrateBps
-    };
-
     // ---- DTO → entity (with validation) ---------------------------------------
 
     private static Core.Entities.Project FromDto(ProjectFileDto dto, string? folder, Func<string, bool> fileExists)
@@ -325,7 +312,7 @@ public static class ProjectSerializer
                 AudioSampleRate = settingsDto.AudioSampleRate
             },
             Timeline = new Sequence(),
-            LastExportSettings = FromDto(dto.LastExportSettings),
+            // LastExportSettings starts empty: session state (D023); a "lastExportSettings" of an older file is ignored.
             IsDirty = false
         };
 
@@ -623,25 +610,6 @@ public static class ProjectSerializer
         JsonValueKind.Number => e.TryGetInt64(out var l) ? (object)l : e.GetDouble(),
         _ => e.Clone()
     };
-
-    private static ExportSettings FromDto(ExportSettingsDto? dto)
-    {
-        if (dto is null) return new ExportSettings();
-        if (!Enum.IsDefined(dto.Container) || !Enum.IsDefined(dto.VideoCodec) || !Enum.IsDefined(dto.AudioCodec))
-            throw Damaged("unknown export format");
-        return new ExportSettings
-        {
-            OutputPath = dto.OutputPath ?? string.Empty,
-            Container = dto.Container,
-            VideoCodec = dto.VideoCodec,
-            AudioCodec = dto.AudioCodec,
-            Width = dto.Width,
-            Height = dto.Height,
-            FrameRate = dto.FrameRate,
-            VideoBitrateBps = dto.VideoBitrateBps,
-            AudioBitrateBps = dto.AudioBitrateBps
-        };
-    }
 
     private static void RequireId(Guid id, string what)
     {

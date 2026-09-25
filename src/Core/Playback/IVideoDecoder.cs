@@ -32,6 +32,15 @@ public sealed record VideoDecodeRequest
     public int MaxHeight { get; init; } = 720;
 
     public HardwareDecoding Hardware { get; init; } = HardwareDecoding.Auto;
+
+    /// <summary>
+    /// How the end of the stream is judged (D023). False (playback): the stream simply ends when the decoder's
+    /// output ends — a decoder that fails after it delivered frames leaves the last frame held. True (export): the
+    /// end is only a normal end if the decoder finished successfully; a decoder process that failed after
+    /// delivering frames makes <see cref="IVideoFrameStream.ReadFrameAsync"/> throw
+    /// <see cref="VideoDecodeError.DecoderFailed"/> instead of returning the end.
+    /// </summary>
+    public bool StrictEnd { get; init; }
 }
 
 /// <summary>

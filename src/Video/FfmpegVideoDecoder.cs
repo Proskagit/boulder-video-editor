@@ -94,7 +94,7 @@ public sealed class FfmpegVideoDecoder : IVideoDecoder
             _logger.LogDebug("Decode attempt {Attempt} for '{Path}' at {Point}: {Arguments}",
                 attempt, request.FilePath, point, string.Join(' ', arguments));
 
-            var stream = FfmpegVideoFrameStream.Start(ffmpeg, arguments, _settings.FrameTimeout, _logger);
+            var stream = FfmpegVideoFrameStream.Start(ffmpeg, arguments, _settings.FrameTimeout, _logger, request.StrictEnd);
             DecodedFrame? first;
             try
             {

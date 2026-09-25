@@ -8,7 +8,8 @@ namespace AiVideoEditor.Project.Persistence;
 // entities so the file format only changes deliberately. Conventions:
 // - every MediaTime is a long of 100 ns ticks (never seconds);
 // - every FrameRate is an exact { numerator, denominator } pair;
-// - runtime/UI state (IsSelected, IsDirty, IsMissing, analysis progress) is not stored;
+// - runtime/UI state (IsSelected, IsDirty, IsMissing, analysis progress) is not stored, nor is session state
+//   such as LastExportSettings (D023; a "lastExportSettings" of older files is ignored like any unknown property);
 // - track type is implied by the list a track is in (videoTracks / audioTracks).
 
 internal sealed class ProjectFileDto
@@ -25,7 +26,6 @@ internal sealed class ProjectFileDto
     public ProjectSettingsDto? Settings { get; set; }
     public List<MediaAssetDto>? MediaAssets { get; set; }
     public SequenceDto? Timeline { get; set; }
-    public ExportSettingsDto? LastExportSettings { get; set; }
 }
 
 internal sealed class FrameRateDto
@@ -223,19 +223,6 @@ internal sealed class MarkerDto
     public long PositionTicks { get; set; }
     public string? Label { get; set; }
     public string? ColorHex { get; set; }
-}
-
-internal sealed class ExportSettingsDto
-{
-    public string? OutputPath { get; set; }
-    public ExportContainer Container { get; set; }
-    public ExportVideoCodec VideoCodec { get; set; }
-    public ExportAudioCodec AudioCodec { get; set; }
-    public int Width { get; set; }
-    public int Height { get; set; }
-    public double FrameRate { get; set; }
-    public long? VideoBitrateBps { get; set; }
-    public long? AudioBitrateBps { get; set; }
 }
 
 /// <summary>Autosave recovery file: the project exactly as it was at autosave time, plus

@@ -1,10 +1,10 @@
 namespace AiVideoEditor.Export;
 
 /// <summary>
-/// FFmpeg-backed render/export pipeline (Phase 8).
-/// This subsystem is scaffolded in Phase 0 as an empty, independently buildable
-/// project so the solution's dependency graph is correct from day one. Concrete
-/// implementations land in the phase that owns them (see docs/DEVELOPMENT_PLAN.md).
+/// Offline export orchestration (Phase 8, D023): renders an ExportJob's snapshot frame by frame
+/// with the Core composition rules and hands frames and audio to an encoder backend
+/// (<see cref="ExportService"/>). No FFmpeg or UI types here: the encoder and the rasterizer
+/// come in through Core interfaces.
 /// </summary>
 internal static class ModuleInfo
 {

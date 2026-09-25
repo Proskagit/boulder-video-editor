@@ -8,11 +8,12 @@ namespace AiVideoEditor.Core.Playback;
 /// <summary>
 /// Builds a <see cref="PlaybackSnapshot"/> from the live project. Must run on the thread that
 /// owns the project model (the UI thread); the result is safe to share with any thread.
-/// Rules (D010): the topmost visible video track wins the picture; hidden tracks still
-/// contribute audio; muted tracks contribute no audio; muted clips (video or audio) are kept as
-/// silent spans (<see cref="AudioSpan.IsMuted"/>); only speed 1.0 is playable. For
-/// composition (D018) picture spans carry their visual properties and source size, and text clips
-/// become <see cref="TextSpan"/>s (they never produce a decoded picture).
+/// Rules (D010, D018, D022): every visible video track is a layer (hidden tracks contribute no
+/// picture but still contribute audio); muted tracks contribute no audio; muted clips (video or
+/// audio) are kept as silent spans (<see cref="AudioSpan.IsMuted"/>); spans carry the clip speed.
+/// For composition (D018) picture spans carry their visual properties and source size, and text
+/// clips become <see cref="TextSpan"/>s (they never produce a decoded picture). The export renders
+/// the same snapshot (D023).
 /// </summary>
 public static class PlaybackSnapshotBuilder
 {

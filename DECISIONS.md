@@ -179,7 +179,10 @@ Decision:
   `StepFrame` and `Volume` removed). `IVideoEngine` unchanged.
 - Transitions and `Speed ≠ 1.0` are not supported.
 
-Status: Accepted (implemented in Phase 5).
+Status: Accepted (implemented in Phase 5). Partly superseded: the picture rules ("topmost track wins", no
+compositing/opacity/transform/crop) by D018–D020 (Phase 7), `Speed ≠ 1.0` by D022 (Phase 7); the export
+renders the same snapshot offline (D023, Phase 8). Backend, audio output, clock, states, edits during
+playback and offline media stay as decided here.
 
 ---
 
@@ -283,7 +286,9 @@ Refined in Phase 7 Step 4 (2026-09-23), volume and mute:
   (set where pipelines are created), not the latest snapshot the service holds — after a
   mix-only update the two differ.
 
-Status: Accepted. Refined by D022: clips at other speeds are decoded tempo-changed with the pitch
+Status: Accepted. Since Phase 8 Step 4 (D023) the per-clip placement (owned samples, 1× offset, decode request,
+stream placement at every speed) is Core `AudioPlacement` and the mix rule (Σ sample × gain, clamp) Core `AudioMix`,
+used by `AudioSpanReader`/`AudioMixer` and by the export — behaviour unchanged. Refined by D022: clips at other speeds are decoded tempo-changed with the pitch
 kept (ffmpeg atempo), placed within 10 ms of the exact mapping.
 
 ---
@@ -508,7 +513,8 @@ stored landscape with a 90° rotation flag (autorotated by ffmpeg on decode) wou
 `SourceSize` although its frames are portrait — resolved in Step 6 (D019: `SourceSize` is the
 probed display size). SAR (non-square pixels) is ignored as before.
 
-Status: Accepted.
+Status: Accepted. The export does not use an ffmpeg filtergraph after all (context above): D023
+renders the same layers with the same Core rules offline and uses ffmpeg only to encode.
 
 ---
 
@@ -595,7 +601,9 @@ layers changing every frame): copy/update 0.11 / 0.24 / 0.55 / 1.31 ms and rende
 13.9 ms per frame for 1 / 2 / 4 / 8 layers — within the 33 ms budget at 30 fps, no optimization needed.
 Placeholder labels scale with the clip (small for small clips); the placeholder design is minimal.
 
-Status: Accepted.
+Status: Accepted. Since Phase 8 Step 3 (D023) the plan is the shared Core `CompositionDrawPlan` plus the
+Preview's placeholders (`PreviewDrawPlan`), painted by `CompositionPainter` — the same routine the export uses;
+layer bitmaps are straight alpha (`Unpremul`) instead of `Opaque`, so images with transparency blend (D018).
 
 ---
 
@@ -633,7 +641,8 @@ Consequences / known risk: the preview (Avalonia) silently falls back to another
 font is missing on the machine, while the Phase 8 export through ffmpeg `drawtext` needs a font file;
 missing fonts must be handled there (not in Step 8).
 
-Status: Accepted.
+Status: Accepted. The export risk is resolved by D023: text is rasterized like the Preview (no `drawtext`,
+no font file); a missing font falls back exactly as in the Preview and is reported as a warning before export.
 
 ---
 
@@ -690,6 +699,297 @@ Decision:
 Consequences: builds before this step can't open version 2 files ("saved by a newer version"). At
 3–4× the preview decodes 3–4 times as many frames; heavy sources may run late (D012), no
 decoding optimization. Out of scope: speed ramps/keyframes, reverse, freeze frames, ripple, export.
+
+Status: Accepted.
+
+---
+
+## D023 — Export (Phase 8)
+
+Date: 2026-09-24
+
+Decision (product owner, 2026-09-24):
+- Architecture: the export is an **offline rendering of the Preview**, not a second pipeline with its own
+  semantics. A C# compositor renders every frame from the same immutable `PlaybackSnapshot`, and ffmpeg is
+  used only as the encoder. No ffmpeg filtergraph for composition, frame selection, speed or text.
+  - Video: `PlaybackSnapshot` → output frame n at `MediaTime.FromFrame(n)` → `LayersAt` → composition plan
+    (`CompositionMath`, D018) + source frame chosen by `SourceFrameSelector` (D009/D022) → BGRA canvas →
+    encoder.
+  - Audio: `PlaybackSnapshot.AudioSpans` → `AudioTiming` placement (D013/D022) with the same audio decoder
+    (tempo chain and latency compensation included) → sum × `EffectiveGain`, clamped to [−1, 1] as the
+    playback mixer does → 48 kHz stereo float → encoder.
+  - Rules that already exist in Core are never re-implemented in Export (crop, transform, opacity, layer
+    order, culling, speed mapping, audio placement). Where Core logic is currently embedded in playback
+    classes (e.g. the per-clip audio placement in `AudioSpanReader`), it is moved into Core and shared.
+  - Layers: Core owns the composition model, geometry, layer order, transforms, crop, opacity, text
+    geometry and the draw plan; rasterization into BGRA is backend-specific (chosen by a spike in Step 3;
+    Core never depends on Avalonia); Export (`src/Export`) owns the offline orchestration; Video owns the
+    FFmpeg encoder (arguments, pipes, stderr) — FFmpeg types stay out of Core, Timeline and Export.
+  - Unlike realtime playback, the export never substitutes: frames and samples are read blocking (no late
+    frames, no underrun silence). Performance is secondary in Phase 8 (correctness and determinism first).
+- Output (fixed, no user settings in Phase 8; `ExportFormat` / `ExportOutput` in `Core/Export`):
+  - MP4, H.264 (libx264, CRF 18, preset medium, 8-bit 4:2:0, BT.709), AAC-LC 48 kHz stereo 192 kbps;
+  - size = the canvas `ProjectSettings.FrameWidth × FrameHeight` (must be even), frame rate = the exact
+    rational `ProjectSettings.FrameRate` (constant frame rate); no scaling of the composition;
+  - `FrameCount` = whole frames covering the sequence duration (`Sequence.Duration()`, i.e. including gaps
+    and clips on hidden tracks — as the Preview plays it); gaps are black; the audio track has exactly the
+    samples of that duration and is always present (silence when nothing is audible);
+  - `ProjectSettings.AudioSampleRate` stays stored but unused (output is always 48 kHz, as playback).
+- Preview ↔ Export contract: equality of the model — same snapshot, layers, geometry, frame selection,
+  text layout rules and audio placement — not of pixels: the Preview decodes at ≤ 1280 × 720 and draws on
+  screen, the export decodes at full size and encodes to YUV, so pixels are compared with tolerances
+  (geometry ±1 px, colour within YUV quantization, audio within the 10 ms of D022).
+- Contract (`Core/Export`, `Core/Interfaces/IExportService`):
+  - `ExportPreflight.Check(project, outputPath, environment)` runs on the UI thread, builds the snapshot
+    itself and returns every issue at once plus an `ExportJob` (snapshot + full output path) only when no
+    error was found. Errors: empty timeline; odd canvas; invalid output path (missing, relative, not
+    `.mp4`, invalid characters, an existing folder); missing output folder; output = a media file of the
+    project; ffmpeg unavailable; media offline (not in the project, marked missing, or its file gone now),
+    not analysed (pending, running or failed — images included) or unsupported by its clip. Warning:
+    a text clip's font is not installed (the Preview's fallback font is used). Media and font issues are
+    grouped per media file / font and list every affected clip.
+  - Only clips that reach the output are checked — the ones the snapshot plays: pictures on visible tracks
+    with opacity > 0; audio on unmuted tracks of unmuted clips with volume > 0 (a VideoClip on a hidden
+    track still counts for its audio); text on visible tracks with opacity > 0 and non-blank text.
+  - `IExportService.ExportAsync(job, progress, ct)`: off the UI thread; `ExportProgress` (stage, done,
+    total); decode/encode/output failures → `ExportException` (`ExportFailure`); cancellation →
+    `OperationCanceledException`. Output is written to a temporary file and moved into place on success
+    only; on failure or cancellation no partial file remains and an existing output file is untouched.
+    `IsAvailableAsync` tells the preflight whether ffmpeg can be used.
+  - Effects and transitions stored in the model are ignored, as in the Preview.
+- UX: a modal progress window with Cancel; editing is blocked while exporting (the job's snapshot is
+  immutable anyway).
+- `LastExportSettings` is session state (like D015): saved in `project.json`, but updating it never makes
+  the project dirty and never enters undo/redo. *(Corrected at the Step 7 closeout, see below: not saved at all.)* It keeps only the output path and the (fixed) format
+  enums; the size / double frame rate / bitrates of earlier builds are no longer mapped and are ignored on
+  read (unknown properties, D014) — no competing quality semantics, `formatVersion` stays 2.
+- Out of scope: HDR / 10-bit tone mapping and colour management (known issue stays), user quality
+  presets, bitrate, scaling, in/out range, other containers/codecs, hardware encoding, background export
+  while editing, embedding fonts, transitions/effects.
+
+Context: D018 anticipated an ffmpeg filtergraph. Analysis before Phase 8 showed it would re-implement the
+semantics approximately: `setpts`/`fps` differ from the D009 sample point, `overlay`/`crop`/`scale` work in
+whole pixels while the Preview is sub-pixel, `drawtext` needs a font file and lays out and rotates text
+differently, and the `atempo` latency would have to be compensated a second time.
+
+Consequences: `IExportService` takes an `ExportJob` instead of the mutable `Sequence` / media list (D011:
+background work never reads the live model) and gained `IsAvailableAsync`. `ExportSettings` lost
+`Width`, `Height`, `FrameRate` (a `double`, against D006), `VideoBitrateBps` and `AudioBitrateBps`.
+The export is expected to be slower than real time with several layers or 4K sources; throughput is a
+later phase.
+
+Refined in Step 2 (2026-09-24), source frames:
+- `ExportFrameSource` (Export) yields output frame n as `LayersAt(FromFrame(n))` (no `mayOcclude` veto: a
+  failure stops the export) with the decoded frame of every picture layer; frames in ascending order within
+  `[0, FrameCount)`. `FrameCount` = `FrameMath.CeilingFrame(Duration)` — playback's last frame + 1.
+- `ExportPictureReader` (per clip, internal): opens the decoder at the first frame the layer is visible with
+  that frame's `SourceFrameSelector.SamplePoint` (decoder contract as for the Preview: first frame at or before
+  the point, or the stream's first frame), then for each request advances while the next decoded frame is
+  `IsAtOrBefore` the point. Result: the last frame at or before the point (= `SourceFrameSelector.Select`),
+  hold-first before the stream's first frame, hold-last after its end; a still image is decoded once. A
+  request waits until the answer is certain — never a late or previous frame. Readers exist for exactly the
+  picture layers of the current frame (closed when a layer leaves or is culled, reopened when it returns),
+  as in the Preview's pipeline.
+- Decoding: full source resolution (maximum frame size 16384, i.e. no downscaling; the Preview keeps ≤ 1280 ×
+  720) and software decoding by default (deterministic; no mid-stream hardware fallback needed). Any decoder
+  failure, a stream without frames, or an offline/unsupported span → `ExportException` (`DecodeFailed`;
+  ffmpeg missing → `EncoderUnavailable`).
+- Export references Core only, so realtime playback readers (Timeline) can't be used by it.
+
+Refined in Step 3 (2026-09-24), composition and rasterization:
+- Shared plan in Core (`Core/Composition/CompositionDrawPlan.cs`): `ResolvedLayer` (a `LayersAt` layer + its decoded
+  frame, none for text) → `CompositionDrawPlan.Build(canvas, canvasToTarget, layers)` → `FrameDraw` (crop via the
+  frame's `NormalizedSourceRect` into the crop-local rectangle, D018 transform, opacity) / `TextDraw` (text
+  transform, properties, opacity), canvas bounds as clip, opaque black background. The Preview uses it through its
+  "contain" viewport and adds only its playback states (`PreviewDrawPlan` in UI: placeholders as `PlaceholderDraw`,
+  pending skipped, late frames drawn); the export uses it at the canvas size (`ExportFrame.DrawPlan()`, identity).
+- Text box rule, written down on `TextDraw`: laid out at the font size without wrapping, box = widest line (trailing
+  spaces included) × laid-out height, lines aligned inside the box, box centred on the local origin; glyphs, line
+  height and fallback of a missing family are the text engine's (Avalonia `FormattedText`).
+- Rasterizer: `ICompositionRasterizer` (Core) — canvas-size plan → BGRA, opaque; implemented by
+  `AvaloniaCompositionRasterizer` (UI/Rendering): Avalonia offscreen `RenderTargetBitmap` + the Preview's own drawing
+  routine `CompositionPainter`. Spike with Avalonia 11.1.3 and the app's platform (`UsePlatformDetect`,
+  Win32 + Skia): rendering off the UI thread works and gives the same bytes as on the UI thread (also text of every
+  alignment, several families and a missing one); 4 threads × 1 200 renders of 1080p deterministic; handles and
+  memory flat over 3 × 400 renders; ~3.6 ms per 1080p frame with a rotated full-frame bitmap and text. Only
+  `AvaloniaObject`s are thread-bound (`SolidColorBrush` throws "Call from invalid thread"), so the painter uses
+  immutable brushes/pens only. SkiaSharp directly was not needed (no new dependency; Core has no Avalonia reference).
+- Found and fixed: the Preview created layer bitmaps as `AlphaFormat.Opaque`, so the transparent parts of images
+  were drawn opaque (a 50 % alpha pixel at full strength), against D018 ("images may carry alpha"). ffmpeg delivers
+  straight alpha (`bgra`: PNG green at 50 % → B0 G255 R0 A127); the shared bitmaps are now `Unpremul` — video frames
+  (alpha 255) look exactly as before.
+- Guarantees are tested at two levels: the plan (Core/UI tests, exact values) and pixels (Rendering.Tests: every
+  pixel ≥ 1 px inside/outside a layer edge has the expected colour, colours ±2–3; the Preview's control and the
+  export rasterizer give identical bytes for the same canvas-size composition, pictures and text).
+
+Refined in Step 4 (2026-09-24), audio:
+- Shared placement in Core (`Core/Playback/AudioPlacement.cs`): `AudioPlacement.Of(span)` → `FirstSample` / `EndSample`
+  (⌈S⌉, ⌈E⌉ at 48 kHz), `SourcePositionAt(k)` (1×: start of source sample k + d, d rounded once per clip; other speeds:
+  `AudioTiming.SourceTimeAt`), `TimelineSampleOfStream(F)` (1×: F − d; other speeds: `TimelineSampleOfStreamStart`,
+  nearest sample once per stream), `Request(asset, k)`. It is exactly the math `AudioSpanReader` had inline; the reader
+  now calls it. Streams are placed by the decoder's real first sample (its atempo latency is compensated inside
+  `FfmpegAudioDecoder`, unchanged); samples before the need are dropped, a later start or an early end is silence,
+  nothing plays outside the clip. SourceOut is not used — the timeline edge ends the clip.
+- Shared mix (`AudioMix`): `Gain(span)` = `(float)EffectiveGain`, `Add` = Σ sample × gain, `Clamp` to [−1, 1] after the
+  sum — no normalization, limiter, compressor, auto gain or headroom. `AudioMixer` (Preview) and the export use it.
+- Export: `ExportAudioSource` (public) mixes the snapshot's audible spans (gain ≠ 0, snapshot order = the Preview's
+  mixer order) into exactly `ExportOutput.AudioSampleCount` frames of 48 kHz stereo float, read sequentially; silence
+  where nothing plays, also for a project without audio. `ExportAudioReader` (internal, per span) opens the decoder at
+  the first sample needed and waits for data (no underrun). Muted clips / volume 0 are not decoded (same output as the
+  Preview mixing them at 0; the preflight doesn't check them either). An audible offline/unsupported span or any
+  decoder exception → `ExportException` (`DecodeFailed`; ffmpeg missing → `EncoderUnavailable`). A stream that ends
+  normally without samples is silence, as in the Preview (the source has no audio there).
+- Verified: for the same snapshot and decoder the export's samples equal the Preview's pipeline + mixer output exactly
+  (fake decoder: 1×/0.25×/1.35×/4×, trim, split, gap, volume, clip/track mute, hidden video track, overlaps, clipping,
+  decoder prerolls; real ffmpeg: 0.25×/1×/4×), bursts within ±5.1 ms of the exact mapping (±0.05 ms at 1×), no drift.
+- Strict end of stream (follow-up, product owner 2026-09-24): `VideoDecodeRequest.StrictEnd` / `AudioDecodeRequest.StrictEnd`
+  (default false). At the end of stdout the ffmpeg streams ask `FfmpegProcess.AbnormalExitAsync` (one shared check: wait
+  for the exit, non-zero code → failure text): a failed ffmpeg is always an error when nothing was delivered (unchanged)
+  and, with a strict end, also after frames/samples (`DecoderFailed`); exit code 0 is a normal end. The export sets
+  `StrictEnd` in `ExportPictureReader` / `ExportAudioReader` (→ `ExportException` `DecodeFailed`); playback never does, so
+  the Preview keeps holding the last frame / playing silence after a decoder that failed mid-stream. Cancellation while
+  the end is judged is `OperationCanceledException`; disposal kills the process tree.
+
+Refined in Step 5 (2026-09-24), the encoder:
+- Contract (Core `Export/IExportEncoder.cs`): `IExportEncoder.StartAsync(ExportOutput, destinationPath)` →
+  `IExportEncoding`: the whole audio first (`WriteAudioAsync`, exactly `AudioSampleCount` stereo frames), then exactly
+  `FrameCount` BGRA canvases (`WriteFrameAsync(bgra, stride)`), then `CompleteAsync`. Nothing reaches the destination
+  before a successful completion: temporary files next to it, moved into place (replacing an existing file) at the end;
+  failure, cancellation or disposal without completion delete them. Errors: ffmpeg missing → `EncoderUnavailable`,
+  encoder failure (non-zero exit, stopped reading) → `EncodeFailed`, move/folder → `OutputFailed`; cancellation →
+  `OperationCanceledException`; wrong order/counts → `InvalidOperationException`. No composition or audio semantics.
+- Implementation (Video `FfmpegExportEncoder`), two ffmpeg passes, input on stdin (`FfmpegProcess` gained an optional
+  stdin): (1) `-f f32le -ar 48000 -ac 2 -i pipe:0 -c:a aac -profile:a aac_low -b:a 192000 -ar 48000 -ac 2 -f mp4 <tmp.m4a>`;
+  (2) `-f rawvideo -pix_fmt bgra -s WxH -framerate num/den -i pipe:0 -i <tmp.m4a> -map 0:v:0 -map 1:a:0
+  -vf scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709
+  -fps_mode passthrough -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -colorspace bt709 -color_primaries bt709
+  -color_trc bt709 -color_range tv -c:a copy -movflags +faststart -f mp4 <tmp.mp4>` (plus `-hide_banner -nostats
+  -loglevel error -y`). Two passes: the audio is short to encode, the producer order is simple and no named pipes are needed.
+- Measured with FFmpeg 9.0.1: without colour options ffmpeg converts BGRA with the BT.601 matrix and leaves the stream
+  untagged (red → Y 81 instead of 63); `-colorspace`/`-color_range` alone switch to BT.709 but leave primaries/transfer
+  "unknown" (frame properties win); the explicit scale + setparams give the BT.709 limited-range values ±1 of the formula,
+  all four tags, and ≤ 3 per channel after decoding back to BGRA. Rational rates give exact timestamps (`pts·tb =
+  n·den/num`, time bases 24000/30000/12800/60000/12288), every frame once. AAC: 1024 priming samples (first packet pts
+  −1024) are removed by the MP4 edit list — the decoded audio has exactly the samples written, a burst lands 0.5 sample
+  from where it was written; the stream copy of pass 2 keeps this unchanged; no compensation of our own. A/V: a burst
+  written at the start of frame k is heard within 0.04 ms of frame k (23.976/29.97/25). Blocked stdin writes end on
+  cancellation (.NET cancels the pending pipe write).
+
+Refined in Step 6 (2026-09-24), orchestration:
+- `ExportService` (Export) implements `IExportService` by connecting the parts and nothing else: one
+  `ICompositionRasterizer` per job from a `Func<ICompositionRasterizer>` (the app registers the Avalonia one — Export and
+  Core never reference a rendering backend), `IExportEncoder.StartAsync`, the whole audio from `ExportAudioSource`, every
+  frame `ExportFrameSource` → `ExportFrame.DrawPlan()` → rasterizer → `WriteFrameAsync`, then `CompleteAsync`. No
+  composition, placement, timing or output-file logic of its own; the audio length is the source's (the encoder checks
+  the count), the destination is the encoder's (temporary files, move on success).
+- Preflight boundary: the service takes the `ExportJob` as `ExportPreflight` produced it and does not repeat its checks
+  (Step 7's UI runs the preflight); a job that bypassed it is rejected by the encoder before anything is written
+  (no frames, odd size, relative path, missing folder, ffmpeg missing).
+- Runs on the thread pool; progress = the existing `ExportProgress` (Preparing 0/1; Audio samples; Video frames;
+  Finalizing 0/1, then 1/1 only after `CompleteAsync` succeeded), monotonic within each stage.
+- Failures keep their type and category (`ExportException` with `ExportFailure`, a rasterizer error as thrown);
+  cancellation stays `OperationCanceledException` and reaches the sources, the encoder writes and `CompleteAsync`. Any
+  exit other than success disposes the sources, the rasterizer and the unfinished encoding (ffmpeg ended, temporary
+  files deleted, destination untouched).
+
+Refined in Step 7 (2026-09-25), export UI:
+- `ExportWorkflow` runs `ExportPreflight` twice — before the file picker (the output-file issues are left for later,
+  everything else is shown: errors block, warnings need Continue) and with the chosen file (it creates the job and its
+  snapshot). The UI has no validation rules of its own. The picker adds no overwrite prompt; the workflow asks
+  "Replace file?" itself; the replacement stays the encoder's (on success only). A `.mov` name is reported, never renamed.
+- Editing lock: a shared UI `EditingLock` from the job's creation until `ExportAsync` returned (a cancelled export
+  included) disables the commands and edit entry points that change the project (Toolbar, Timeline, Inspector, Media
+  Browser); viewing and playback stay; the model services and undo/redo are unchanged. The modal progress window blocks
+  the main window's input as well.
+- Progress: the window shows the service's `ExportProgress` as is (stage, done/total, percent); it pulls the latest
+  report with a timer, so nothing is marshalled and nothing arrives after it closed. Cancel (button or title-bar close)
+  only cancels the token; the window closes when `ExportAsync` has finished.
+- Results: success (path), cancelled (a status message, not an error), `ExportFailure` categories with their own
+  messages, anything else as an unexpected error, logged with the exception. `LastExportSettings.OutputPath` changes only
+  after a success (session state).
+
+Corrected at the Step 7 closeout (product owner, 2026-09-25): `LastExportSettings` is **session-only** — not part of the
+serialized project. `ProjectSerializer` no longer writes it (neither `project.json` nor recovery files) and no longer
+reads it: a `lastExportSettings` in an older file is ignored like any unknown property (D014) whatever its content, and
+an opened project starts with empty export settings. It stays in memory for the session, never dirty, never undoable.
+`formatVersion` stays 2. This supersedes "saved in `project.json`" above.
+
+Refined in Step 8 (2026-09-25), Preview ↔ Export parity (product owner decisions A–F, 1a, 2a, 5a/5c, L1-c). Three
+kinds of statements follow and must not be mixed: (1) the normative parity criteria — pass/fail, enforced by the test
+suite; (2) the results of the measurement-only Step 8.6 — data, no criterion; (3) the measured characteristics of the
+H.264 encoding — known properties of the fixed output format, not requirements.
+
+(1) Normative parity criteria (the numeric form of "geometry ±1 px, colour within YUV quantization, audio within 10 ms"
+above). Checked with software decoding (`Hardware = Auto` is not a criterion, decision B), on generated sources: PNG
+with straight alpha, JPEG, display-matrix 90° video, video at 0.25× / 2× / 4×, source rate ≠ project rate, 1080p and
+4K sources (4K scenes only with `AIVE_HEAVY_TESTS=1`, decision F); every generated source is itself verified with
+ffprobe/ffmpeg and the app's analysis (Step 8.1).
+- Canvas size, sources ≤ 1280 × 720 (Step 8.2, A1): the Preview (its own `VideoPipeline` and control) draws exactly the
+  export's canvas — byte-equal. Where a scene shows a source 1:1, the canvas also matches that source frame decoded by
+  ffmpeg and chosen by an independent exact D009/D022 computation (max ≤ 3, mean < 0.5; neighbouring frames must differ),
+  so a rule wrong on both sides fails too.
+- Sources above the Preview's decode limit (Step 8.3, A2), measured at the canvas size:
+  - geometry ±1 px on luma (BT.601 weights; decision 2a): every lit (luma > 10) / black pixel of one side has one of the
+    same kind within 1 px on the other; colour-bar edges (luma step > 40 between flat plateaus) at the same x ±1. Luma,
+    not RGB, because both sides are 4:2:0 by design and the Preview's chroma of a 4K source is coarser than 1 px;
+  - colour within one YUV code step where both pictures are flat (5 × 5 range ≤ 4 per channel, over > 30 % of the
+    frame): R ≤ 4, G ≤ 3, B ≤ 4 (decision 1a — one step of each of Y, Cb, Cr through the BT.601 limited-range conversion
+    plus rounding; derived from the formula, not fitted to data);
+  - the same source frame: after 16 × 16 block averaging the Preview's frame n is closest to the export's frame n.
+- Viewport (Step 8.4, A3, two cases): the Preview's control laid out smaller than the canvas ("contain": scale =
+  min(vw / cw, vh / ch), centred, sub-pixel) against the export canvas reduced to the same viewport by an independent
+  exact area filter, with the Step 8.3 criteria in viewport pixels; nothing is drawn outside the canvas.
+- Through the codec, MP4 → Preview (Step 8.5, A4, decision 5c): geometry — at most 0.01 % of the pixels outside the
+  ±1 px luma mask (decision 5a, kept by 5c); bar edges ±1 px and the same source frame strictly (not for a scene whose
+  frames are identical by construction). Colour is deliberately **not** a criterion on this leg: strict colour parity
+  is the canvas-level checks above, and a colour error of the export that the codec would carry through is caught there
+  (and by the Rendering tests), not here.
+- Sound through the codec (Step 8.5): the MP4's AAC track against the Preview's own `AudioPipeline` + `AudioMixer` with
+  the real decoder — the same length (`AudioSampleCount`), whole-signal lag and every burst onset within 10 ms (D022).
+  The suite also requires SNR ≥ 20 dB as a sanity bound for the AAC round trip (the value the Step 6 tests used); it is
+  not a fidelity requirement of this decision.
+- The codec leg MP4 → export canvas (decision L1-c) has **no numeric tolerance**: none is defined here, and the
+  Step 8.6 data below must not be read as one. Whether and how to set one is an open product decision. Unchanged
+  meanwhile: the Step 5 encoder tests (BT.709 values on flat colours) and the Step 6 end-to-end bound "mean |Δ| ≤ 3 per
+  frame, MP4 vs canvas" on its nine simple scenes — a test sanity bound of those scenes, not a codec tolerance.
+
+(2) Step 8.6 results, measurement only (scratch tool outside the repository, not part of the suite, no thresholds; two
+identical runs). MP4 decoded by ffmpeg (BT.709 tags honoured) against the export canvas, every frame of the 30 existing
+parity/end-to-end scenes (820 frames), 8-bit RGB. The error was also split with a reference encoded through the same
+BGRA → BT.709 limited 4:2:0 conversion but libx264 lossless (`-qp 0`): "floor" = reference vs canvas (conversion and
+chroma subsampling, no quantization), "quant" = MP4 vs reference (the lossy encoding itself). Pooled per scene group:
+
+| Group (scenes, frames) | Total mean / p99 / p99.9 / max / PSNR | Floor mean / p99 / max | Quant mean / p99 / p99.9 / max / PSNR |
+|---|---|---|---|
+| Flat, static (3, 75) | 1.11 / 2 / 2 / 2 / 46.9 dB | 1.11 / 2 / 2 | 0 / 0 / 0 / 0 / lossless |
+| Static graphics: text, PNG, JPEG (3, 75) | 1.41 / 16 / 123 / 197 / 31.1 dB | 1.28 / 16 / 193 | 0.27 / 4 / 7 / 62 / 48.8 dB |
+| Moving pattern 320 × 180 (15, 405) | 2.04 / 29 / 113 / 255 / 29.8 dB | 1.76 / 26 / 255 | 0.69 / 11 / 22 / 94 / 41.1 dB |
+| Speed 0.25× / 2× / 4× (3, 75) | 1.65 / 19 / 34 / 75 / 36.5 dB | 1.37 / 15 / 43 | 0.72 / 10 / 21 / 76 / 41.2 dB |
+| 1080p sources, HD canvases (6, 50) | 1.19 / 14 / 51 / 255 / 35.7 dB | 1.10 / 12 / 255 | 0.28 / 6 / 14 / 84 / 46.2 dB |
+
+Per frame, total mean |Δ| ranged 0.14–4.57 and PSNR 23.7–51.8 dB (worst scene: mixed layers, 4.02 / 24.4 dB, of which
+quant 1.10 / 38.9 dB). Quant grew with speed (0.25× → 2× → 4×: mean 0.55 → 0.76 → 0.83, PSNR 44.0 → 40.6 → 40.1 dB);
+over all frames the total error correlated more with spatial complexity (r = 0.46) than with frame-to-frame change
+(r = 0.15). Limits: synthetic sources only (no camera footage, noise or grain), short clips (5–30 frames), mostly
+320 × 180, no 4K, one encoder configuration and one FFmpeg build, RGB metrics only (no YUV/SSIM). Per-scene tables are
+in `progress.md`.
+
+(3) Measured H.264 characteristics — properties of the fixed format (CRF 18, preset medium, 8-bit 4:2:0, BT.709
+limited), **not** pass/fail requirements:
+- Most of the MP4 → canvas difference is present without any lossy encoding (the floor): on flat, static content the
+  whole error is the RGB → YUV limited → RGB round trip (1–2 per channel, quantization adds nothing); in the eleven
+  scenes with a total PSNR of 24–34 dB the floor alone is within 0.6 dB of the total and reaches max 193–255.
+- The largest values sit in detailed areas, not flat ones (flat-area max ≤ 52, detailed-area max up to 255).
+  Observation, not verified separately: these look like sharp edges of saturated colours, where 4:2:0 halves the
+  chroma resolution.
+- The lossy part alone stayed at 38.9–50.6 dB PSNR per scene (the flat, static scenes: lossless; p99 ≤ 13, p99.9 ≤ 26,
+  single samples up to 94), larger for moving than for static content.
+
+Consequences: no production change in Step 8 — every parity check passed against the Steps 1–7 code; one suspected
+defect was a test error (a same-frame check on a scene whose frames are identical, removed there). The suite gained
+`tests/ExportEndToEnd.Tests` `GeneratedMediaTests`, `ExportParityCanvasTests`, `ExportParityScaledTests`,
+`ExportParityViewportTests`, `ExportParityEncodedTests` and the shared checks `ParityMetrics`; each criterion was
+confirmed by mutations of the production code (restored byte for byte afterwards).
 
 Status: Accepted.
 

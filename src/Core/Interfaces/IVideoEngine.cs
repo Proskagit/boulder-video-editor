@@ -3,10 +3,10 @@ using AiVideoEditor.Core.Entities;
 namespace AiVideoEditor.Core.Interfaces;
 
 /// <summary>
-/// Abstraction over the FFmpeg-backed video/audio engine. All subsystems talk to
-/// FFmpeg only through this interface, so the concrete implementation (process
-/// invocation, library binding, version, path) can change without touching callers,
-/// and so it can be mocked in tests.
+/// Reserved for later media utilities (thumbnails, waveform extraction; Phase 9); not implemented.
+/// FFmpeg is reached through narrower interfaces instead: <see cref="IMediaAnalysisService"/> (probe),
+/// <c>IVideoDecoder</c> / <c>IAudioDecoder</c> (playback and export decoding) and
+/// <see cref="IExportService"/> (export, D023).
 /// </summary>
 public interface IVideoEngine
 {
@@ -22,7 +22,8 @@ public interface IVideoEngine
     Task ExtractAudioAsync(string filePath, string outputWavPath, CancellationToken ct = default);
 }
 
-/// <summary>Reports incremental progress for a long-running FFmpeg operation such as export.</summary>
+/// <summary>Reports incremental progress for a long-running FFmpeg operation of <see cref="IVideoEngine"/>
+/// (the export reports <see cref="Export.ExportProgress"/>).</summary>
 public sealed class EngineProgress
 {
     public double? PercentComplete { get; init; }

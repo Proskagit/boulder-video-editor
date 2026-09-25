@@ -53,7 +53,7 @@ internal sealed class FakeVideoDecoder : IVideoDecoder
     private readonly ConcurrentDictionary<string, TaskCompletionSource> _gates = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource> _softwareGates = new();
     private readonly ConcurrentDictionary<string, VideoDecodeError> _openFailures = new();
-    private readonly ConcurrentDictionary<string, int> _failAfter = new();
+    private readonly ConcurrentDictionary<string, (int Frames, bool Software)> _failAfter = new();
     private readonly ConcurrentDictionary<string, (int Frames, TaskCompletionSource Release)> _holds = new();
 
     public ConcurrentQueue<VideoDecodeRequest> Requests { get; } = new();
@@ -68,7 +68,10 @@ internal sealed class FakeVideoDecoder : IVideoDecoder
     /// <summary>Delays only opens with <see cref="HardwareDecoding.Disabled"/> (the software fallback).</summary>
     public TaskCompletionSource GateSoftware(string path) => _softwareGates[path] = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     public void FailOpen(string path, VideoDecodeError error) => _openFailures[path] = error;
-    public void FailAfter(string path, int frames) => _failAfter[path] = frames;
+    /// <summary>Streams fail after <paramref name="frames"/> frames — only hardware ones (the default,
+    /// a hardware failure the software fallback recovers from) or, with <paramref name="software"/>,
+    /// every stream (a genuine decode failure).</summary>
+    public void FailAfter(string path, int frames, bool software = false) => _failAfter[path] = (frames, software);
 
     /// <summary>Streams of <paramref name="path"/> opened from now on deliver <paramref name="frames"/>
     /// frames and then stall until the returned source is completed (a decoder falling behind).</summary>
@@ -92,8 +95,9 @@ internal sealed class FakeVideoDecoder : IVideoDecoder
         if (!_sources.TryGetValue(request.FilePath, out var source))
             throw new VideoDecodeException(VideoDecodeError.FileNotFound, "fake: no such file");
 
-        var first = SourceFrameSelector.Select(source.Timestamps(), request.StartTime, request.FirstSamplePoint);
-        var failAfter = _failAfter.TryGetValue(request.FilePath, out var n) && request.Hardware == HardwareDecoding.Auto ? n : int.MaxValue;
+        var first = Math.Max(0, SourceFrameSelector.Select(source.Timestamps(), request.StartTime, request.FirstSamplePoint)); // −1: no frames
+        var failAfter = _failAfter.TryGetValue(request.FilePath, out var n) && (n.Software || request.Hardware == HardwareDecoding.Auto)
+            ? n.Frames : int.MaxValue;
         Interlocked.Increment(ref _liveStreams);
         var hold = _holds.TryGetValue(request.FilePath, out var h) ? h : ((int, TaskCompletionSource)?)null;
         return new Stream(source, first, failAfter, () => Interlocked.Decrement(ref _liveStreams), hold);

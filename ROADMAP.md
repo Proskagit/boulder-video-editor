@@ -59,17 +59,32 @@ session state (D015).
 
 ## Current
 
+Phase 8 — Export, branch `feat/phase-8-export` (from `2f0e26f`). **Complete**: accepted by the product owner on
+2026-09-25 (commit `8786491`, PR #6). Decisions: DECISIONS.md D023 (export as an
+offline rendering of the Preview: C# compositor + FFmpeg encoder, fixed MP4 H.264 CRF 18 / AAC 48 kHz,
+canvas size and exact project rate, preflight that blocks on offline/unanalysed/unsupported media).
+Step 1 (contract, preflight, `ExportSettings` cleanup, documentation), Step 2 (offline source-frame
+selection), Step 3 (shared composition plan, Avalonia offscreen rasterizer), Step 4 (offline audio PCM with the
+shared placement and mix), Step 5 (ffmpeg encoder), Step 6 (`ExportService` orchestration + end-to-end exports) and
+Step 7 (export UI: command, preflight dialogs, progress window, cancel, editing lock; manual test 14/14 PASS) and
+Step 8 (end-to-end Preview ↔ Export parity 8.1–8.5, codec-error measurement 8.6, closeout 8.7 — the planned Step 9)
+done. Open: no numeric tolerance for the codec leg
+MP4 → export canvas (D023 Step 8, decision L1-c). Details:
+`progress.md`.
+
+## Previous
+
 Phase 7 — Basic editing, branch `feat/phase-7-basic-editing`. **Complete**: Steps 1–9 (last
 checkpoint `48a3f54`), Step 10 closeout (audit, full test runs, integration smoke in the running app);
 manually accepted by the product owner on 2026-09-24. Speed, volume/
 mute, opacity, transform, crop and text clips per clip (no keyframes), multi-layer Preview,
 `project.json` v2 (reads v1). Decisions: DECISIONS.md D017–D022. Carried into Phase 8: the export
-must reproduce D018 exactly and needs font files for text (D021). Known issue (pre-Phase 7, separate
+must reproduce D018 exactly; text fonts (D021) — resolved by D023. Known issue (pre-Phase 7, separate
 task): closing the app after a project with media was open hangs the process. Details: `progress.md`.
 
 ## Future phases
 
-7 Basic editing, 8 Export, 9 Quality — see `docs/DEVELOPMENT_PLAN.md`.
+9 Quality (next) — see `docs/DEVELOPMENT_PLAN.md`.
 
 ## Rule
 

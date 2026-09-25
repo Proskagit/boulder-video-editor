@@ -107,7 +107,7 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
     private LayerPicture? TopPicture() => Preview.Layers.LastOrDefault(l => l.Layer is PictureLayer);
 
     /// <summary>What the renderer draws for the topmost layer's placeholder.</summary>
-    private string? TopLabel() => CompositionDrawPlan.Build(Preview.Canvas, 960, 540, Preview.Layers).Operations.LastOrDefault()?.Label;
+    private string? TopLabel() => (PreviewDrawPlan.Build(Preview.Canvas, 960, 540, Preview.Layers).Operations.LastOrDefault() as PlaceholderDraw)?.Label;
 
     private Task Settled(long frame) =>
         TickUntil(() => Timeline.Playhead == F(frame) && Preview.AreLayersCurrent && !Preview.IsBuffering && ShownNumber() == frame,
@@ -403,5 +403,6 @@ public sealed class PlaybackUiIntegrationTests : IAsyncLifetime
         public Task<IReadOnlyList<string>> PickFilesAsync(FilePickerRequest request, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
         public Task<string?> PickFolderAsync(FolderPickerRequest request, CancellationToken ct = default) => Task.FromResult<string?>(null);
+        public Task<string?> PickSaveFileAsync(SaveFilePickerRequest request, CancellationToken ct = default) => Task.FromResult<string?>(null);
     }
 }

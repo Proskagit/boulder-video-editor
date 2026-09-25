@@ -43,11 +43,18 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
     public MediaBrowserViewModel(
         IProjectService projectService,
         MediaImportWorkflow importWorkflow,
-        ILogger<MediaBrowserViewModel> logger)
+        ILogger<MediaBrowserViewModel> logger,
+        EditingLock? editingLock = null)
     {
         _projectService = projectService;
         _importWorkflow = importWorkflow;
         _logger = logger;
+        _editingLock = editingLock ?? new EditingLock();
+        _editingLock.PropertyChanged += (_, _) =>
+        {
+            ImportCommand.NotifyCanExecuteChanged();
+            AddToTimelineCommand.NotifyCanExecuteChanged();
+        };
 
         _projectService.ProjectChanged += (_, _) => ReloadFromProject();
         _projectService.MediaAssetsChanged += (_, _) => ReloadFromProject();
@@ -78,7 +85,12 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasNoMedia));
     }
 
-    [RelayCommand]
+    // Import and Add to Timeline change the project: disabled while an export runs (EditingLock).
+    private readonly EditingLock _editingLock;
+
+    private bool CanEdit() => !_editingLock.IsLocked;
+
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task Import() => _importWorkflow.RunAsync();
 
     [RelayCommand(CanExecute = nameof(CanAddToTimeline))]
@@ -88,5 +100,5 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
             AddToTimelineRequested?.Invoke(this, item.Asset);
     }
 
-    private bool CanAddToTimeline() => SelectedItem is not null;
+    private bool CanAddToTimeline() => CanEdit() && SelectedItem is not null;
 }

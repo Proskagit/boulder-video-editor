@@ -17,7 +17,7 @@ public enum SpanStatus
     Audio,
     /// <summary>The asset is absent or unavailable (not in the project, missing file, no metadata).</summary>
     Offline,
-    /// <summary>Playback of this clip is not supported (e.g. Speed ≠ 1, wrong media kind).</summary>
+    /// <summary>Playback of this clip is not supported (the clip kind can't play the media kind).</summary>
     Unsupported
 }
 

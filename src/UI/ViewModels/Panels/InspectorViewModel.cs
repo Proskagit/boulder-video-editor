@@ -45,13 +45,30 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// <summary>True while fields are being filled from the model.</summary>
     private bool _syncing;
 
+    private readonly EditingLock _editingLock;
+
     /// <param name="fonts">Installed font families for the text font list; without it the list
     /// holds only the shown clip's font.</param>
-    public InspectorViewModel(ITimelineEditService edit, StatusService status, IFontCatalog? fonts = null)
+    /// <param name="editingLock">The app's shared lock (while an export runs no clip property is edited);
+    /// a private one when not given.</param>
+    public InspectorViewModel(ITimelineEditService edit, StatusService status, IFontCatalog? fonts = null, EditingLock? editingLock = null)
     {
         _edit = edit;
         _status = status;
         _systemFonts = fonts?.FamilyNames ?? Array.Empty<string>();
+        _editingLock = editingLock ?? new EditingLock();
+        _editingLock.PropertyChanged += (_, _) => OnPropertyChanged(nameof(IsEditingAllowed));
+    }
+
+    /// <summary>False while an export runs: the clip fields are disabled and no edit is sent.</summary>
+    public bool IsEditingAllowed => !_editingLock.IsLocked;
+
+    /// <summary>A field changed while editing is locked: nothing is edited, the field shows the model again.</summary>
+    private bool RejectWhileLocked()
+    {
+        if (!_editingLock.IsLocked) return false;
+        SyncFromModel();
+        return true;
     }
 
     [ObservableProperty]
@@ -112,7 +129,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
     private void EditAudio(Func<AudioProperties, AudioProperties> change)
     {
-        if (_clip is null || AudioProperties.Of(_clip) is not { } current) return;
+        if (_clip is null || AudioProperties.Of(_clip) is not { } current || RejectWhileLocked()) return;
 
         var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Audio = change(current) });
         if (!result.Success)
@@ -181,7 +198,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
     private void EditVisual(decimal? value, Func<VisualProperties, decimal, VisualProperties> change)
     {
-        if (_syncing || value is not { } x || _clip is null || VisualProperties.Of(_clip) is not { } current) return;
+        if (_syncing || value is not { } x || _clip is null || VisualProperties.Of(_clip) is not { } current || RejectWhileLocked()) return;
 
         var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Visual = change(current, x) });
         if (!result.Success)
@@ -206,7 +223,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
     partial void OnSpeedValueChanged(decimal? value)
     {
-        if (_syncing || value is not { } entered || _clip is null) return;
+        if (_syncing || value is not { } entered || _clip is null || RejectWhileLocked()) return;
 
         if (!ClipSpeed.TryFromDecimal(entered, out var speed))
         {
@@ -277,7 +294,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
     private void EditText(Func<TextProperties, TextProperties> change)
     {
-        if (_syncing || _clip is null || TextProperties.Of(_clip) is not { } current) return;
+        if (_syncing || _clip is null || TextProperties.Of(_clip) is not { } current || RejectWhileLocked()) return;
 
         var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Text = change(current) });
         if (!result.Success)

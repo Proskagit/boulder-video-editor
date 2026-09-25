@@ -23,10 +23,6 @@ public static class FrameMath
         return (long)((Int128)available.Ticks * rate.Numerator / ((Int128)TimeSpan.TicksPerSecond * rate.Denominator));
     }
 
-    /// <summary>Smallest frame index whose start is ≥ <paramref name="time"/>.</summary>
-    public static long CeilingFrame(MediaTime time, FrameRate rate)
-    {
-        var floor = time.ToFrameFloor(rate);
-        return MediaTime.FromFrame(floor, rate) == time ? floor : floor + 1;
-    }
+    /// <summary>Smallest frame index whose start is ≥ <paramref name="time"/> (<see cref="MediaTime.ToFrameCeiling"/>).</summary>
+    public static long CeilingFrame(MediaTime time, FrameRate rate) => time.ToFrameCeiling(rate);
 }

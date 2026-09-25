@@ -19,6 +19,7 @@
     <ProjectReference Include="..\..\src\Infrastructure\Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Video\Video.csproj" />
     <ProjectReference Include="..\..\src\Timeline\Timeline.csproj" />
+    <ProjectReference Include="..\..\src\Export\Export.csproj" />
     <ProjectReference Include="..\..\src\Audio\Audio.csproj" />
   </ItemGroup>
 
