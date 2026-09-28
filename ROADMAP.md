@@ -67,7 +67,9 @@ with invalidation, unsaved-project cache, offline media from the cache only) acc
 (waveform: timeline waveforms of audio clips and video with sound, only for media on the timeline, volume / mute /
 speed shown, a cache next to the thumbnails', offline media from the cache only) accepted (`568a47b`); Step 9.6
 (hotkeys: routing tests, J / K / L, loop, Ctrl+I / Ctrl+E / \, the text-input guard checked in the running app)
-accepted (`e8c3c93`); Step 9.7 (performance): baseline and C (Preview at 8 layers) accepted, A (export decodes ahead / in parallel) accepted (`4bdf738`); closeout done, awaiting the product owner's acceptance. Steps 9.3 stability & error handling · 9.4 thumbnails + cache ·
+accepted (`e8c3c93`); Step 9.7 (performance): baseline and C (Preview at 8 layers) accepted, A (export decodes ahead / in parallel) accepted (`4bdf738`), the step accepted (`1124138`); Step 9.8 (polish & cleanup: dead code removed incl.
+`PlaybackFrame.Picture`, naming, documentation, shortcut tooltips, an empty-timeline hint, an importing status) done,
+awaiting the product owner's acceptance. Steps 9.3 stability & error handling · 9.4 thumbnails + cache ·
 9.5 waveform · 9.6 hotkeys · 9.7 performance baseline & optimization · 9.8 polish & cleanup · 9.9 CI / quality gates ·
 9.10 closeout — scope and acceptance criteria in `docs/DEVELOPMENT_PLAN.md`, decision DECISIONS.md D024. L1-c stays
 open. Details: `progress.md`.

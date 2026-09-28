@@ -1233,6 +1233,31 @@ Preview measurement C and the memory diagnosis of A; details, method, tables and
   frame buffer pool, GC tuning, a smaller look-ahead for many layers; hardware decode / encode and every other semantic
   change for speed stay out of scope.
 
+Refined in Step 9.8 (2026-09-28), polish & cleanup (the polish list proposed after the 9.8 audit and confirmed by the
+product owner as a whole; details and verification in `progress.md`):
+- Removed, no runtime change: the single-picture view `PlaybackFrame.Picture` / `IsPictureCurrent` with `PreviewPicture`
+  / `PictureKind` (the audit confirmed no production reader; the playback service's buffering state keeps following the
+  topmost picture layer, now as a flag of its own); the unimplemented `IVideoEngine` / `EngineProgress`; the unused
+  `ErrorTranslator` / `UserFacingError` and their exception types (the damaged-project message comes from
+  `ProjectSerializer` through `ProjectFileException`, not from them) with their test. The playback tests read the layers
+  (`PlaybackFrameView` in the tests) without weakening; checked by the same mutations before and after (one new test
+  on buffering after a ready seek replaces what the compatibility picture's content used to catch).
+- Test infrastructure (found while verifying): test classes that create Avalonia controls share one xUnit collection
+  (`AvaloniaControlsCollection`) — Avalonia's property metadata caches are not thread-safe, and running them in
+  parallel made UI.Tests fail or hang intermittently.
+- Renamed: `AppPaths.UnsavedThumbnailCacheRoot` → `UnsavedCacheRoot` (same folder); `IThumbnailCacheLocation.cs` →
+  `IMediaCacheLocation.cs`; `StartupThumbnailCleanupTests` → `StartupCacheCleanupTests`. Stale comments corrected
+  (`ModuleInfo` of every subsystem, `LayerPictureState.Unsupported`).
+- UI (text only, no behaviour change): tooltips name the shortcuts (Ctrl+I, Ctrl+E, \, ←, →, Space / L / K / J); an empty
+  timeline says how to add a clip (drag from the Media Browser, Add to Timeline, + Text) and lets drops through; the
+  status bar says "Importing N files…" while the picked files are checked (the window renders it first), then the
+  result as before — "Import didn't finish." if the check throws.
+- Documentation: README, ARCHITECTURE's module table and playback section, `progress.md` known issues, the Phase 9
+  manual test plan (legend, scenarios 57–59).
+- Not done, by decision: elapsed / remaining time in the export dialog; cache eviction, retry and online re-check;
+  a frame buffer pool, GC tuning, a smaller look-ahead; a workaround for the watched `Project.Tests` hang; replacing
+  the tests' timed waits; the analysis coordinator's synchronization-context dependence; New during an import.
+
 Status: Phase 9 scope and step structure are accepted. Each implementation step requires separate product-owner
 acceptance before proceeding to the next step.
 

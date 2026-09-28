@@ -883,11 +883,72 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     Verification: `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1773 passed,
     2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 328, Export 82, Rendering 58, Video 291,
     ExportEndToEnd 67 + 2).
+- Step 9.7 accepted and closed (2026-09-28): A as `4bdf738`, the closeout as `1124138`.
+- Step 9.8 — polish & cleanup (2026-09-28). Audit after 9.7 → one list of proposals by category; the product owner
+  confirmed A1–A4, B1–B4, C1–C5, D1–D2, E1–E3 as the whole scope (not: export elapsed / remaining time, cache
+  eviction / retry / online re-check, buffer pool / GC / look-ahead, a `Project.Tests` workaround, replacing timed
+  waits). Details: D024 "Refined in Step 9.8".
+  - A1 / D1, `PlaybackFrame.Picture`: the audit found no production reader (only `PlaybackService` filled it; the
+    design-time stub in `MainWindow` built one) — but `PlaybackService.IsBuffering` used the compatibility picture
+    internally (`_picture is null` until the topmost picture layer was certain after a restart). Removed `Picture` /
+    `IsPictureCurrent` / `PreviewPicture` / `PictureKind` and `VideoPipeline.Compatibility`; the buffering state now
+    follows `VideoFrameResult.IsTopSettled` (the same rule: the top picture layer's current frame or a placeholder,
+    black when there is none; not pending or late) as a flag `_settled`, reset on every restart — same behaviour. The
+    ≈ 45 test uses (Timeline 5 files, Video 3) read the layers through `PlaybackFrameView` (`TopPicture`,
+    `IsTopCurrent`, `TopFrame`, in `PlaybackFakes.cs`); where a test only checked the compatibility view it checks the
+    top layer's state / clip / frame instead. Not weakened — the same mutations on HEAD (a separate worktree) and
+    after, failing Timeline.Tests: late frame counted as settled 2 → 0 (see below), pending counted as settled 7 → 1,
+    offline placeholder not settled 4 → 4, black not settled 1 → 1, text taken as the top layer 1 → 1, no reset on a
+    restart 0 → 1; the pipeline's own late handling (the same edits in both versions): late frame flagged current
+    3 → 3, no late frame (pending instead) 1 → 2, last frame not kept 1 → 2, pending flagged current 0 → 0. The first
+    "after" run had pending 0 and no-reset 0: the old tests caught these through the compatibility picture's content,
+    which no longer exists, and nothing else checked buffering once a seek was ready — new test
+    `AfterASeek_BufferingLastsUntilTheTopLayerHasItsCurrentFrame_EvenOnceTheSeekIsReady` (seek ready at frame 100,
+    the clock at 110 not decoded yet: buffering, top pending; then frame 110, not buffering). "Late counted as
+    settled" is equivalent through the public API now: a late frame needs an earlier current frame of the same layer
+    in the same pipeline, which already settled it.
+  - A2: `IVideoEngine` / `EngineProgress` removed (no implementation, no reference). A3: `ErrorTranslator`,
+    `UserFacingError`, `FfmpegNotFoundException`, `UnsupportedMediaException`, `CorruptProjectFileException` and
+    `Video.Tests/ErrorTranslatorTests` removed — checked first: the damaged-project message is `ProjectSerializer`'s
+    `ProjectFileException` text shown by `ProjectFileWorkflow.OpenAsync` ("Couldn't open the project. …"), covered by
+    `DamagedProjectMessageTests`. A4: every `ModuleInfo` summary describes the subsystem as it is.
+  - B1 `AppPaths.UnsavedCacheRoot` (was `UnsavedThumbnailCacheRoot`, same folder); B2 `IMediaCacheLocation.cs` (was
+    `IThumbnailCacheLocation.cs`, the three interfaces); B3 `StartupCacheCleanupTests`; B4 the
+    `LayerPictureState.Unsupported` comment (the clip kind can't play the media kind — speed plays since D022).
+  - E1 tooltips: Import Media (Ctrl+I), Export (Ctrl+E), Fit (\), ⏮ (←), ⏭ (→), Play (Space; L / K / J), + Video
+    Track / + Audio Track. E2: `TimelineViewModel.IsEmpty` (no clip on any track, set in `Refresh`) shows "The timeline
+    is empty" and how to add a clip at the bottom of the track area, not hit-testable (drops pass through) —
+    `TimelineEmptyStateTests` (2). E3: `MediaImportWorkflow` reports "Importing N files…" before the picked files are
+    checked and yields once to the dispatcher (Background priority) so the window renders it — the check runs on the
+    UI thread (`MediaImportService.ImportManyAsync` is synchronous); import logic and threading unchanged; the result
+    replaces it as before, "Import didn't finish." if the check throws (rethrown) — `ImportStatusTests` (4).
+  - Found while verifying (not in the list, fixed): UI.Tests intermittently failed (`ShortcutRoutingTests`:
+    NullReferenceException in `Dictionary.TryInsert` ← `AvaloniaProperty.GetMetadataWithOverrides` ← `new Button()`;
+    once `MediaBrowserThumbnailTests` timed out in a full run) and once hung for 20 minutes (killed; no dump taken, so
+    the hang's cause is inferred, not proven). Cause: three test classes (`ShortcutRoutingTests`,
+    `PlaybackShortcutTests`, `LoopPlaybackTests`, since 9.6) create Avalonia controls in parallel xUnit collections, and
+    Avalonia's property metadata caches are not thread-safe. Fix: one collection for them (`AvaloniaControlsCollection`).
+    Before: 1 failure in 10 and 1 in 25 runs of UI.Tests, one hang; after: 30 of 30 green. HEAD had shown 15 of 15
+    green — the race is older; the new test classes changed the scheduling.
+  - C1–C5: README (state, layout, tests, docs, logs), ARCHITECTURE (module table, media pipeline, playback: the
+    buffering rule instead of `Picture`; names), `progress.md` known issues (struck items removed, the underrun item on
+    the layers' late flag), the Phase 9 manual test plan (legend incl. the 9.7 statuses, scenarios 57–59, removed test
+    names).
+  - Real app (`dotnet run`, Debug, UI Automation and real cursor moves, screenshots): the hint shows on a new project,
+    disappears after + Text, returns after Undo, sits below the tracks; every tooltip of E1 appears with its shortcut;
+    importing 600 `.wav` files selected in the Windows file dialog: the status bar showed "Importing 600 files…" from
+    about 0.12 s to 0.5 s after Open, then "Imported 600 media files"; closed with Don't Save, no ffmpeg / ffprobe left.
+    The first hint position (centred over the track area) crossed the A1 row — moved to the bottom.
+    Verification: `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1779 passed,
+    2 skipped (4K), 0 failed (Core 395, Timeline 261, Project 292, UI 334, Export 82, Rendering 58, Video 290,
+    ExportEndToEnd 67 + 2); UI.Tests 30 × in a row green.
+    Commits: `83cfa7f` (A1 / D1), `3867883` (A2–A4, B1–B3), `2872745` (Avalonia-control tests in one collection),
+    `100fc69` (E1–E3), then the closeout (documentation, C1–C5, D024 "Refined in Step 9.8").
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); timeline waveforms →
-  9.5 (done); `AppPaths.UnsavedThumbnailCacheRoot` naming both caches → 9.8; hotkey guard not exercised in the running
-  app → 9.6 (done, 9.6d);
-  `PlaybackFrame.Picture` → 9.8; `Project.Tests` hang → watched (9.10);
+  9.5 (done); `AppPaths.UnsavedThumbnailCacheRoot` naming both caches → 9.8 (done, now `UnsavedCacheRoot`); hotkey
+  guard not exercised in the running app → 9.6 (done, 9.6d); `PlaybackFrame.Picture` → 9.8 (done, removed);
+  `Project.Tests` hang → watched (9.10);
   L1-c → stays open.
 
 ## Phase 8 (complete)
@@ -1887,12 +1948,6 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 
 - Speed (D022): the atempo latency compensation is measured for FFmpeg 9.0.1; another ffmpeg version
   may shift it — `FfmpegSpeedIntegrationTests` (10 ms bound) catches that.
-- ~~`ExecutableLocator`: a cancelled first ffmpeg probe caches "not found" for the app run~~ — fixed
-  2026-09-24: a caller-cancelled probe now rethrows `OperationCanceledException` without caching
-  (and kills the probe process); only a genuine miss/failure/5 s timeout is cached. Regression tests:
-  `Video.Tests/ExecutableLocatorTests`.
-- ~~Closing the main window hangs the process once a project with decodable media was open~~ — fixed in Phase 9
-  Step 9.3a (2026-09-25): playback is released on the UI thread before the window closes (details in Step 9.3a).
 - New Project while `ImportManyAsync` is still checking the picked files adds them to the new project (the import
   adds to whatever project is current when it finishes). Out of scope of Step 9.3 (product owner, 2026-09-25).
 
@@ -1910,22 +1965,15 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - MPEG-TS: ffmpeg `-ss` lands on the keyframe *after* the target, so TS seeks need
   preroll retries (3–4 decoder launches observed); correct but slower to open.
 - `Video.Tests` needs ffmpeg/ffprobe on PATH; its tests are skipped otherwise.
-- Playback underrun (D012): while decoding is slower than real time, `Update()` returns the
-  previous picture with `IsPictureCurrent = false`; late frames are flagged but not counted
-  yet (no dropped-frame counter).
+- Playback underrun (D012): while decoding is slower than real time, a layer keeps its previous
+  frame flagged late (`LayerPicture.IsCurrent = false`); late frames are flagged but not counted
+  (no dropped-frame counter).
 - Video decoder limitations (deliberately out of scope for now): HDR / 10-bit (no tone
   mapping), interlaced (no deinterlacing), SAR (non-square pixels ignored), rotation
   metadata (ffmpeg autorotate applies, not handled explicitly), resolution changes
   mid-stream (untested), phone-specific VFR quirks beyond the tested cases. A hardware
   failure after the first frame is not retried by the decoder (the caller must reopen).
 
-- ~~Hotkey guard for text input is implemented but could not be exercised in the
-  running app: Phase 4 UI has no visible text field (Inspector Transform is hidden).~~ — checked in the running app in
-  Phase 9 Step 9.6d (the Inspector's text box of a text clip and a number field).
-- ~~`ffmpeg-*.log` is never written~~ — fixed in Phase 9 Step 9.3d: Video and the ffmpeg / ffprobe locators are
-  routed there by their source.
-- ~~Media analysis has no concurrency limit and no cancellation on New Project~~ — fixed in Phase 9 Steps 9.3b / 9.3c
-  (generation per project, cancelled on New / Open / Recover; at most 4 analyses at once).
 - Audio device: a real default-device change and a real device removal during playback were not tried on hardware
   (Phase 9 Step 9.3e covered them with fake devices); manual-only scenarios 14–17 of `docs/PHASE9_MANUAL_TEST_PLAN.md`.
 - `MediaAnalysisCoordinator` relies on the captured UI SynchronizationContext.

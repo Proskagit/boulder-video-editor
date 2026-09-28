@@ -2,12 +2,12 @@
 
 A simplified, desktop-first video editor (Windows 10/11 x64, Avalonia UI, .NET 8),
 architected so professional-grade features can be layered in over time without a
-rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–7
+rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–8
 are complete** (architecture, UI skeleton, media import, ffprobe metadata
 analysis, timeline editing, preview playback with audio, project persistence with
 autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
-text). Export and polish are not implemented
-yet (Phases 8–9).
+text; MP4 export). Phase 9 (quality: stability, thumbnails, waveforms, hotkeys,
+performance, polish, CI) is in progress.
 
 ## Requirements
 
@@ -19,7 +19,7 @@ yet (Phases 8–9).
   **ffmpeg** (preview decoding) are looked up at `Ffmpeg:FfprobePath` /
   `Ffmpeg:FfmpegPath` in `appsettings.json`, then on `PATH`. Without ffprobe, import
   still works and metadata is reported as unavailable; without ffmpeg, the preview
-  shows no picture or sound. Export (Phase 8) will also need ffmpeg.
+  shows no picture or sound, and thumbnails, waveforms and the export are unavailable.
 
 ## Getting started
 
@@ -50,27 +50,36 @@ src/
                    MediaAsset, ...), service interfaces, MediaTime, the undo/redo
                    Command pattern. No dependency on Avalonia, FFmpeg, or any
                    concrete infra.
-  Infrastructure/  Serilog logging setup, app folder layout, ffprobe location,
-                   user-facing error translation.
+  Infrastructure/  Serilog logging setup, app folder layout, ffprobe / ffmpeg location.
   Video/           ffprobe metadata analysis (Phase 3); ffmpeg video/audio decoding
-                   for playback (Phase 5); thumbnails and waveforms decode through it (Phase 9).
+                   for playback (Phase 5), export (Phase 8), thumbnails and waveforms
+                   (Phase 9); the ffmpeg export encoder (Phase 8).
   Audio/           WASAPI audio output for playback (Phase 5).
-  Timeline/        Timeline editing commands (Phase 4) and the playback engine
+  Timeline/        Timeline editing commands (Phases 4, 7) and the playback engine
                    (Phase 5).
   Media/           Media import: extension validation, file info (Phase 2);
                    thumbnails, waveforms and their cache (Phase 9).
-  Effects/         (Phase 7+) Effect/transition definitions and parameter schemas. Empty.
-  Export/          (Phase 8) FFmpeg render/export pipeline. Empty.
+  Effects/         Effect/transition definitions and parameter schemas. Empty (no
+                   effect type yet).
+  Export/          Offline export orchestration (Phase 8): renders the timeline frame
+                   by frame like the Preview and hands frames and audio to the encoder.
   Project/         Current project state (Phase 2); project.json persistence,
-                   save point, autosave/recovery, missing media (Phase 6).
+                   save point, autosave/recovery, missing media (Phase 6); where the
+                   media caches live (Phase 9).
 tests/
   Core.Tests/      Unit tests for the dependency-free domain layer.
   Project.Tests/   Persistence, save point, autosave/recovery, missing media.
   Timeline.Tests/  Timeline editing and playback engine (fake decoder/clock).
   UI.Tests/        View models and UI workflows against real services.
   Video.Tests/     ffmpeg/ffprobe and audio-device integration tests.
+  Export.Tests/    Export frame selection and orchestration (fakes).
+  Rendering.Tests/ The shared Avalonia rasterizer (Preview == export bytes).
+  ExportEndToEnd.Tests/  Whole exports with real ffmpeg; Preview ↔ export parity
+                   (4K scenes only with AIVE_HEAVY_TESTS=1).
 docs/
-  DEVELOPMENT_PLAN.md   Phase-by-phase roadmap and standing architectural rules.
+  DEVELOPMENT_PLAN.md          Phase-by-phase roadmap and standing architectural rules.
+  EXPORT_MANUAL_TEST_PLAN.md   Manual export checks (Phase 8).
+  PHASE9_MANUAL_TEST_PLAN.md   Manual checks of Phase 9, run at its closeout.
 ```
 
 Agent-oriented docs (`CLAUDE.md`, `ARCHITECTURE.md`, `ROADMAP.md`,
@@ -93,16 +102,15 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 - **FFmpeg behind Core interfaces** — nothing in `UI` or `Timeline` calls
   FFmpeg directly. Probing is behind `IMediaAnalysisService` (Phase 3), decoding
   behind `IVideoDecoder` / `IAudioDecoder` (Phase 5), thumbnails and waveforms behind
-  `IThumbnailService` / `IWaveformService` (Phase 9), export behind `IExportService` (Phase 8);
-  `IVideoEngine` has no implementation.
+  `IThumbnailService` / `IWaveformService` (Phase 9), export behind `IExportService` (Phase 8).
 - **Serilog with per-area log files** (`app-*.log`, `ffmpeg-*.log`,
-  `export-*.log`, `errors-*.log` under `%LOCALAPPDATA%\AiVideoEditor\logs`) —
-  keeps FFmpeg/export noise separate from general app logs while still
-  collecting every error in one place for quick triage.
+  `errors-*.log` under `%LOCALAPPDATA%\AiVideoEditor\logs`; an `export-*.log` sink
+  is configured but nothing writes to it yet) — keeps FFmpeg noise separate from
+  general app logs while still collecting every error in one place for quick triage.
 
 ## Status
 
-Phases 0–7 complete. Working: media import with validation and duplicate
+Phases 0–8 complete, Phase 9 in progress. Working: media import with validation and duplicate
 detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
 preview playback with video and audio, and projects on disk: New / Open / Save /
@@ -111,8 +119,15 @@ with `*`, autosave to a recovery file every 2 minutes with a recovery offer afte
 crash, missing media shown as offline. Phase 7: per-clip speed (0.25×–4×, pitch kept),
 volume (0–200 %) and mute, opacity, position/scale/rotation, crop and text clips, edited
 in the Inspector with undo/redo, composited in a multi-layer Preview and saved in
-`project.json` format v2 (v1 files still open).
+`project.json` format v2 (v1 files still open). Phase 8: export of the timeline to MP4
+(H.264 CRF 18 / AAC 48 kHz stereo, canvas size and exact project frame rate) with a
+preflight, a progress dialog and Cancel, rendered like the Preview.
 
-Not yet working: Export (Phase 8, reports "not implemented yet"); relink of missing media
-and recent projects are not planned yet. The former hang when closing the app after a project
-with media was open is fixed (Phase 9 Step 9.3a).
+Phase 9 so far: stability fixes (clean close, analysis cancelled on New / Open, at most
+4 analyses at once, audio device changes, ffmpeg diagnostics in `ffmpeg-*.log`); Media
+Browser thumbnails and timeline waveforms with a per-project cache; hotkeys J / K / L
+(back one second / pause / play), loop (Ctrl+L), Ctrl+I import, Ctrl+E export, \ zoom
+to fit — none of them fire while typing in a text field; a faster export (layers decoded
+ahead and in parallel).
+
+Not planned yet: relink of missing media, recent projects, effects and transitions.

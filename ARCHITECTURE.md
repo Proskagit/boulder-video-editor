@@ -24,16 +24,16 @@ rasterizer, ffmpeg encoder → MP4 checked with ffprobe — and skips without ff
 | Project | Responsibility | State |
 |---|---|---|
 | App | Composition root: `Program.Main`, Generic Host, Serilog, DI (`Composition/ServiceCollectionExtensions.cs`), `appsettings.json` | Implemented |
-| UI | Avalonia Views + ViewModels, UI services (file/folder picker, dialogs, status, import workflow, project file workflow, analysis coordinator). References Core only | Implemented |
+| UI | Avalonia Views + ViewModels, UI services (file/folder/save pickers, dialogs, status, import / project file / export workflows, analysis / thumbnail / waveform coordinators, `EditingLock`), `ShortcutRouter`, the Avalonia rasterizer (`UI/Rendering`). References Core only | Implemented |
 | Core | Domain entities, service interfaces, `MediaTime`, `IUndoableCommand` / `UndoRedoService`. No infra dependencies | Implemented |
-| Infrastructure | Serilog setup, `AppPaths` (incl. the recovery folder), `FfprobeLocator` / `FfmpegLocator` + `FfmpegOptions`, `ErrorTranslator` | Implemented |
-| Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS); `FfmpegAudioDecoder` (ffmpeg CLI → 48 kHz stereo float); shared `FfmpegProcess` | Probe + video/audio decode |
-| Media | `MediaImportService` (extension validation, file size) | Implemented |
-| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService` | Implemented (Phase 6; format v2 since Phase 7, D022) |
+| Infrastructure | Serilog setup, `AppPaths` (incl. the recovery folder and the unsaved projects' cache root), `FfprobeLocator` / `FfmpegLocator` + `FfmpegOptions` | Implemented |
+| Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS); `FfmpegAudioDecoder` (ffmpeg CLI → 48 kHz stereo float); `FfmpegExportEncoder`; shared `FfmpegProcess` | Probe, video/audio decode, export encoder |
+| Media | `MediaImportService` (extension validation, file size); `ThumbnailService` / `WaveformService` and their cache files (Phase 9) | Implemented |
+| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022) |
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
-| Export | Offline export orchestration (Phase 8, D023): renders an `ExportJob` with the Core rules and hands frames/audio to an encoder. References Core only; no FFmpeg or UI types | `ExportService` (Step 6) over `ExportFrameSource` / `ExportPictureReader` (Step 2), `ExportAudioSource` / `ExportAudioReader` (Step 4); UI in Step 7 |
-| Effects | Later phases | Empty scaffold |
+| Export | Offline export orchestration (Phase 8, D023): renders an `ExportJob` with the Core rules and hands frames/audio to an encoder. References Core only; no FFmpeg or UI types | `ExportService` over `ExportFrameSource` / `ExportPictureReader`, `ExportAudioSource` / `ExportAudioReader` |
+| Effects | Effect / transition definitions (later phases) | Empty (`Clip.Effects` is only persisted) |
 
 Dependencies flow one way: App → UI / Infrastructure / subsystems → Core.
 
@@ -157,8 +157,10 @@ This is a deliberate precision decision and should be preserved unless an explic
   clip, prefetch at the next edge, `UpdatePresentation` for presentation-only snapshots — no new seek
   generation, newly uncovered layers Pending); `PlaybackFrame.Layers` = `LayerPicture`s bottom to top
   (Frame/Text/Pending/Offline/Unsupported/DecodeError, per-layer late flag, placeholder area);
-  the Preview renders the layers (D020). `PlaybackFrame.Picture` (topmost picture layer) is no longer
-  used by the UI; it stays in Core as the oracle of the playback tests (deferred cleanup).
+  the Preview renders the layers (D020). `IsBuffering` holds from a seek until the topmost picture
+  layer is settled (its current frame or a placeholder; black when there is none). The former
+  single-picture view `PlaybackFrame.Picture` / `IsPictureCurrent` was removed in Step 9.8 (D024);
+  the playback tests read the layers.
 - Orientation (D019): metadata keeps the coded `Width/Height` and adds `DisplayRotation` /
   `DisplayWidth/Height` (what the decoder delivers with `-autorotate`); composition uses the display size.
 - Export (D023): renders the same snapshot, layers and geometry offline — no second implementation of
@@ -173,12 +175,12 @@ Import → analysis flow:
 background) → `IMediaAnalysisService` (Video, ffprobe) → metadata written onto
 the same `MediaAsset` → `IProjectService.MediaAssetsChanged`.
 
-Metadata comes from ffprobe via `IMediaAnalysisService` (not `IVideoEngine`);
+Metadata comes from ffprobe via `IMediaAnalysisService`;
 `IFfprobeLocator` resolves it from `Ffmpeg:FfprobePath` or PATH, `IFfmpegLocator` does the
 same for ffmpeg (playback decoding). After Open only media without saved metadata that is
 present on disk is analysed (`MediaAnalysisCoordinator.QueueWhereNeeded`); missing files are
-never probed. `IVideoEngine` is an interface without implementation (thumbnails use `IThumbnailService`,
-waveforms `IWaveformService`, below). The export is `IExportService` (D023).
+never probed. Thumbnails use `IThumbnailService`, waveforms `IWaveformService` (below); the export is
+`IExportService` (D023).
 
 ## Thumbnails (Phase 9 Step 9.4)
 
@@ -194,7 +196,7 @@ Decision: D024 "Refined in Step 9.4". Media Browser only; playback and export ne
   written to a temporary name and moved; any other name, a damaged or unreadable file is a miss. Offline media
   (missing, or the file gone) is never decoded: the last cached file or none.
 - Project: `ThumbnailCacheLocation` — saved `<project>/cache/thumbnails` (`AppPaths.ProjectCacheFolder`), unsaved
-  `AppPaths.UnsavedThumbnailCacheRoot/<projectId:N>/thumbnails`; on `ProjectSaved` the files are carried over (first
+  `AppPaths.UnsavedCacheRoot/<projectId:N>/thumbnails`; on `ProjectSaved` the files are carried over (first
   Save moves, Save As copies; per asset its latest variant); at startup (`ProjectFileWorkflow.StartSessionAsync`)
   unsaved caches without a recovery file are removed. Nothing in `project.json` (`MediaAsset.ThumbnailPath` unused).
   The location logic is `MediaCacheLocation`'s, shared with the waveforms (Step 9.5).
@@ -222,7 +224,7 @@ waveform never changes the audio.
   `{assetId:N}-{size:x}-{lastWriteUtcTicks:x}-v{rule}.peaks` (`AIVW` header + peaks); key, atomic write and offline
   lookup shared with the thumbnails (`Media/Caching/SourceFileCache`).
 - Project: `WaveformCacheLocation` — saved `<project>/cache/waveforms`, unsaved
-  `AppPaths.UnsavedThumbnailCacheRoot/<projectId:N>/waveforms`; carry-over on Save / Save As and the startup cleanup
+  `AppPaths.UnsavedCacheRoot/<projectId:N>/waveforms`; carry-over on Save / Save As and the startup cleanup
   as the thumbnails' (`MediaCacheLocation`); each kind touches only its own folder and files.
 - UI: `WaveformCoordinator` (UI/Services, singleton, a `MediaCacheCoordinator<Waveform>`) — candidates are the media of
   the timeline's clips (any track), requested on `TimelineChanged`, `MediaAssetsChanged` and at start; at most 2 makes

@@ -167,7 +167,7 @@ routing tests; a small shortcut help.
 - Out of scope: configurable hotkeys, reverse playback, shuttle speeds, in/out marks.
 - Depends on: 9.3 (stable app for manual checks); technically independent of 9.4 / 9.5.
 
-### 9.7 — Performance baseline & optimization *(done — baseline, C and A (export decodes ahead / in parallel) accepted; closeout done, awaiting the product owner's acceptance of the whole step)*
+### 9.7 — Performance baseline & optimization *(done — accepted 2026-09-28)*
 Scope: measure first, then optimize only within D023.
 - M (baseline, before any optimization): Preview update / copy / render time and late frames with 1 / 2 / 4 / 8
   layers; export throughput per scenario (layers, 720p / 1080p, 4K opt-in) as a real-time factor; peak memory;
@@ -187,7 +187,7 @@ Scope: measure first, then optimize only within D023.
   decoding, any other semantic change for speed without its own decision; Step 8.6 and L1-c.
 - Depends on: 9.3–9.6 (the baseline measures the feature set that ships, including thumbnail / waveform load).
 
-### 9.8 — Polish & cleanup
+### 9.8 — Polish & cleanup *(done — the confirmed list implemented; closeout done, awaiting the product owner's acceptance)*
 Scope: limited polish (loading / busy, disabled, errors, empty states, progress / cancel feedback, obvious UX
 problems found during Phase 9); `PlaybackFrame.Picture` cleanup, conditionally.
 - PR: the polish list (collected during 9.3–9.7 plus a pass over the categories above) is proposed at the start of
