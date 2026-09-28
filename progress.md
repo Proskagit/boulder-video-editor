@@ -944,6 +944,35 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     ExportEndToEnd 67 + 2); UI.Tests 30 × in a row green.
     Commits: `83cfa7f` (A1 / D1), `3867883` (A2–A4, B1–B3), `2872745` (Avalonia-control tests in one collection),
     `100fc69` (E1–E3), then the closeout (documentation, C1–C5, D024 "Refined in Step 9.8").
+- Step 9.8 accepted and closed (2026-09-28): closeout `da4838c`.
+- Step 9.9 — CI (2026-09-28). Check first: local ffmpeg / ffprobe 9.0.1-essentials_build-www.gyan.dev, installed by
+  winget from `GyanD/codexffmpeg` 9.0.1 `ffmpeg-9.0.1-essentials_build.zip` (SHA256 from the winget manifest); .NET SDK
+  8.0.424, no `global.json`, no `.github`; version-bound records: D009 (seek / `fps` behaviour), D022 (atempo latency,
+  guarded by `FfmpegSpeedIntegrationTests`), D023 (colour, AAC priming), the Step 8.6 measurements; the tests use
+  libx264, libx265, aac, lavfi sources, showinfo / ashowinfo / atempo / apad / scale / setparams — all in essentials.
+  Proposed and confirmed: 9.0.1 essentials pinned by SHA256, `windows-2025`, SDK 8.0.424, Debug, `-warnaserror`,
+  the full suite with TRX and a strict skip gate (D024 "Refined in Step 9.9").
+  - `0b8da2b`: `.github/workflows/ci.yml` (actions: checkout v7, setup-dotnet v6, cache v6, upload-artifact v7 — the
+    current majors) and `.github/scripts/Assert-TestResults.ps1`. Checked before publishing: the YAML parses; the
+    version check's pattern matches the local ffmpeg / ffprobe; `dotnet build -warnaserror` 0 warnings; the gate on a
+    full local TRX run passes (8 files, 1779 / 2 / 0) and fails on edited copies — a Video test skipped for missing
+    ffmpeg, a 4K scene skipped with another reason, a failed test, a missing TRX file. Not run locally: the archive
+    download and its SHA256 (the first CI run did both).
+  - Published (authorised): `feat/phase-9-quality` pushed to `origin`, PR #7 to `main`
+    (https://github.com/Proskagit/boulder-video-editor/pull/7).
+  - First CI run (36462308940, `0b8da2b`): every step up to the tests green (FFmpeg downloaded, SHA256 and version
+    right, build 0 warnings); 1 of 1781 tests failed — `AnalysisConcurrencyIntegrationTests`: the first four analyses
+    ended at 4.78–4.86 s against the expected 1.8–3.5 s (2 s timeout); the gate reported it and the two allowed skips
+    only. Cause: the absolute window included process start-up (the scripted ffprobe via `cmd`, the stream probe),
+    far slower on the runner. `b96188c`: the test checks the property relatively (every first analysis ≥ 0.9 timeout;
+    queued ones end ≥ 0.9 timeout after the last first one); a mutation without the slot limit (the max-processes
+    assertion switched off) fails it (queued ended 0.0002 s after the first ones); 3 × green locally.
+  - Second CI run (36463075887, `b96188c`): green — ffmpeg / ffprobe from the pinned copy, 9.0.1-essentials; build
+    0 warnings / 0 errors; tests 1779 passed, 2 skipped (the two 4K scenes, "Heavy scenario"), 0 failed (Core 395,
+    Timeline 261, Project 292, UI 334, Export 82, Rendering 58, Video 290, ExportEndToEnd 67 + 2); gate: 8 TRX files.
+  - Limits (for 9.10 / the owner): `WasapiAudioOutputDeviceTests` pass on the runner without an audio device (nothing
+    verified there — real devices stay manual); 4K scenes not in CI; making the check required (branch protection) is
+    the owner's setting.
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); timeline waveforms →
   9.5 (done); `AppPaths.UnsavedThumbnailCacheRoot` naming both caches → 9.8 (done, now `UnsavedCacheRoot`); hotkey

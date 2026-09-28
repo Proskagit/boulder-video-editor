@@ -37,6 +37,11 @@ Running the tests:
 dotnet test
 ```
 
+The tests that need ffmpeg / ffprobe look for them on `PATH` and are skipped without them; the heavy 4K export
+scenes run only with `AIVE_HEAVY_TESTS=1`. CI (`.github/workflows/ci.yml`, GitHub Actions on Windows) runs the full
+suite on every pull request to `main` and push to `main` with FFmpeg 9.0.1 essentials (gyan.dev) and fails on any
+skipped test other than those two 4K scenes.
+
 ## Solution layout
 
 ```

@@ -1258,6 +1258,28 @@ product owner as a whole; details and verification in `progress.md`):
   a frame buffer pool, GC tuning, a smaller look-ahead; a workaround for the watched `Project.Tests` hang; replacing
   the tests' timed waits; the analysis coordinator's synchronization-context dependence; New during an import.
 
+Refined in Step 9.9 (2026-09-28), CI / quality gates (product owner decisions after the proposal at the start of 9.9;
+details and verification in `progress.md`):
+- FFmpeg for CI: 9.0.1 essentials from gyan.dev (`GyanD/codexffmpeg` release `9.0.1`,
+  `ffmpeg-9.0.1-essentials_build.zip`, SHA256 `fec81ae03971d9dd4be3ebe02e263bd2ec1d789483f931bdba5f5715e65da2e9`) —
+  the archive the development machine uses (winget `Gyan.FFmpeg.Essentials` 9.0.1), on which D009, D022 and D023 were
+  measured. Not `latest` and not 9.0.2 (unmeasured); no production change. The archive is cached, its SHA256 checked
+  every run, and `ffmpeg` / `ffprobe` must resolve to it and report `9.0.1-essentials_build-www.gyan.dev`.
+- Workflow `.github/workflows/ci.yml`: on pull requests to `main`, pushes to `main` and by hand; one job on
+  `windows-2025` (no matrix), .NET SDK 8.0.424 via `actions/setup-dotnet` (no `global.json`), Debug; restore, build
+  with `-warnaserror`, the full suite with `--blame-hang` (10 min) and TRX, results uploaded as an artifact; one run
+  per ref at a time (`cancel-in-progress`), 30 min limit.
+- Skip gate (`.github/scripts/Assert-TestResults.ps1` over the TRX): fails when fewer than 8 TRX files exist, when any
+  test did not pass and was not skipped, and on any skip except the two 4K scenes of `ExportParityScaledTests`
+  (`Source_4K_full_canvas`, `Source_4K_scaled_rotated_and_cropped`) with a reason starting "Heavy scenario:"; a skip
+  because ffmpeg / ffprobe was not found is always a failure.
+- A test adjusted for the runner: `AnalysisConcurrencyIntegrationTests` checked absolute end times of the analyses,
+  which include process start-up (much slower on the runner); it now checks the property itself — queued analyses end
+  at least one timeout after the first ones.
+- Left for the owner / later: branch protection (making the check required) is a repository setting; the audio device
+  test passes on the runner without a device (nothing verified there — manual at 9.10); the 4K scenes are not run in
+  CI.
+
 Status: Phase 9 scope and step structure are accepted. Each implementation step requires separate product-owner
 acceptance before proceeding to the next step.
 

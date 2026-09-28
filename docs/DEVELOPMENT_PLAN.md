@@ -187,7 +187,7 @@ Scope: measure first, then optimize only within D023.
   decoding, any other semantic change for speed without its own decision; Step 8.6 and L1-c.
 - Depends on: 9.3–9.6 (the baseline measures the feature set that ships, including thumbnail / waveform load).
 
-### 9.8 — Polish & cleanup *(done — the confirmed list implemented; closeout done, awaiting the product owner's acceptance)*
+### 9.8 — Polish & cleanup *(done — accepted 2026-09-28)*
 Scope: limited polish (loading / busy, disabled, errors, empty states, progress / cancel feedback, obvious UX
 problems found during Phase 9); `PlaybackFrame.Picture` cleanup, conditionally.
 - PR: the polish list (collected during 9.3–9.7 plus a pass over the categories above) is proposed at the start of
@@ -198,7 +198,7 @@ problems found during Phase 9); `PlaybackFrame.Picture` cleanup, conditionally.
 - Out of scope: redesign, theming, new panels, localization.
 - Depends on: 9.3–9.7.
 
-### 9.9 — CI / quality gates
+### 9.9 — CI / quality gates *(done — `.github/workflows/ci.yml` green on PR #7; awaiting the product owner's acceptance)*
 Scope: a minimal GitHub Actions workflow — restore, build, test, FFmpeg for the tests that need it.
 - QG: runs on pull requests to `main` and on pushes to `main`, on a Windows runner (WASAPI, Avalonia Win32 / Skia
   rendering tests).
