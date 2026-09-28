@@ -232,7 +232,7 @@ public sealed class FfmpegAudioDecoderIntegrationTests : IDisposable
             if (clickSample is not null)
             {
                 var frame = await WaitForFrame(service);
-                frameAtClick = FfmpegVideoDecoderIntegrationTests.ReadNumber(frame.Picture!.Frame!);
+                frameAtClick = FfmpegVideoDecoderIntegrationTests.ReadNumber(frame.TopFrame()!);
             }
         }
 
@@ -312,7 +312,7 @@ public sealed class FfmpegAudioDecoderIntegrationTests : IDisposable
     private static async Task<PlaybackFrame> WaitForFrame(PlaybackService service)
     {
         PlaybackFrame frame = default;
-        await WaitFor(() => { frame = service.Update(); return frame.IsPictureCurrent && !frame.IsBuffering && frame.Picture?.Frame is not null; });
+        await WaitFor(() => { frame = service.Update(); return frame.IsTopCurrent() && !frame.IsBuffering && frame.TopFrame() is not null; });
         return frame;
     }
 }

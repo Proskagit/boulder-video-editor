@@ -91,8 +91,7 @@ public sealed class FfmpegVideoDecoder : IVideoDecoder
             var fromStart = seekTicks <= 0;
             var arguments = BuildArguments(request, fromStart ? null : seekTicks,
                 hardware == HardwareDecoding.Auto ? _settings.HardwareAccelerator : null);
-            _logger.LogDebug("Decode attempt {Attempt} for '{Path}' at {Point}: {Arguments}",
-                attempt, request.FilePath, point, string.Join(' ', arguments));
+            _logger.LogDebug("Decode attempt {Attempt} for '{Path}' at {Point}.", attempt, request.FilePath, point); // command line: FfmpegProcess
 
             var stream = FfmpegVideoFrameStream.Start(ffmpeg, arguments, _settings.FrameTimeout, _logger, request.StrictEnd);
             DecodedFrame? first;

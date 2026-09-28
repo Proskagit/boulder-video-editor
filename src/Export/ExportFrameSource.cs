@@ -69,17 +69,22 @@ public sealed class ExportFrameSource : IAsyncDisposable
             await reader.DisposeAsync();
         }
 
+        // The layers' readers are independent: their frames are fetched at the same time (D024 Step 9.7, A), so the
+        // decoders of a multi-layer composition work in parallel. Each reader still gets its requests in ascending
+        // order and selects exactly as before; the layers keep their order.
+        // Every reader exists (or its clip has failed) before any fetch starts, so a failure here leaves nothing running.
+        ct.ThrowIfCancellationRequested();
+        var readers = layers.Select(l => l is PictureLayer picture ? Reader(picture.Span) : null).ToArray();
+        var frames = new Task<DecodedFrame>?[layers.Length];
+        for (var i = 0; i < layers.Length; i++) // bottom to top
+            frames[i] = readers[i]?.GetAsync(index, ct).AsTask();
+        // Every fetch ends before anything is reported, also when one fails: no reader is still reading when the
+        // caller disposes the source. The first failure in layer order propagates.
+        await Task.WhenAll(frames.OfType<Task<DecodedFrame>>());
+
         var pictures = ImmutableArray.CreateBuilder<ResolvedLayer>(layers.Length);
-        foreach (var layer in layers) // bottom to top
-        {
-            ct.ThrowIfCancellationRequested();
-            if (layer is not PictureLayer picture)
-            {
-                pictures.Add(new ResolvedLayer(layer, null));
-                continue;
-            }
-            pictures.Add(new ResolvedLayer(layer, await Reader(picture.Span).GetAsync(index, ct)));
-        }
+        for (var i = 0; i < layers.Length; i++)
+            pictures.Add(new ResolvedLayer(layers[i], frames[i]?.Result));
         return new ExportFrame(index, time, _snapshot.Canvas, pictures.MoveToImmutable());
     }
 

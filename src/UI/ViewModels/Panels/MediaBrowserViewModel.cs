@@ -44,11 +44,15 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         IProjectService projectService,
         MediaImportWorkflow importWorkflow,
         ILogger<MediaBrowserViewModel> logger,
-        EditingLock? editingLock = null)
+        EditingLock? editingLock = null,
+        ThumbnailCoordinator? thumbnails = null)
     {
         _projectService = projectService;
         _importWorkflow = importWorkflow;
         _logger = logger;
+        _thumbnails = thumbnails;
+        if (thumbnails is not null)
+            thumbnails.ThumbnailReady += (_, assetId) => OnThumbnailReady(assetId);
         _editingLock = editingLock ?? new EditingLock();
         _editingLock.PropertyChanged += (_, _) =>
         {
@@ -73,7 +77,7 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
 
         Items.Clear();
         foreach (var asset in _projectService.Current.MediaAssets)
-            Items.Add(new MediaBrowserItemViewModel(asset));
+            Items.Add(new MediaBrowserItemViewModel(asset) { Thumbnail = _thumbnails?.Get(asset.Id) });
 
         // Keep the same item selected across a reload (e.g. after an import) when
         // it's still there; otherwise clear selection rather than pointing at a
@@ -83,6 +87,16 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
             : Items.FirstOrDefault(i => i.Asset.FilePath == previouslySelectedPath);
 
         OnPropertyChanged(nameof(HasNoMedia));
+    }
+
+    // Thumbnails (D024 Step 9.4): the coordinator makes them; rows take the ready ones when they are (re)built and
+    // when one becomes ready. The coordinator only reports thumbnails of the current project.
+    private readonly ThumbnailCoordinator? _thumbnails;
+
+    private void OnThumbnailReady(Guid assetId)
+    {
+        foreach (var item in Items.Where(i => i.Asset.Id == assetId))
+            item.Thumbnail = _thumbnails!.Get(assetId);
     }
 
     // Import and Add to Timeline change the project: disabled while an export runs (EditingLock).

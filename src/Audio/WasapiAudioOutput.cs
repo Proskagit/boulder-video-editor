@@ -1,7 +1,6 @@
 using System.Runtime.InteropServices;
 using AiVideoEditor.Core.Playback;
 using Microsoft.Extensions.Logging;
-using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
 namespace AiVideoEditor.Audio;
@@ -26,15 +25,23 @@ public sealed class WasapiOutputSettings
 /// <item>an <c>OutputWaveFormat</c> other than 48 kHz stereo float is refused (the service then
 /// falls back to the Stopwatch).</item>
 /// </list>
+/// Which device (D024 Step 9.3, product owner option B): every start — Play, and the restart after a seek —
+/// asks for the current default render device and compares its endpoint id with the id of the device the output
+/// is open on; a different id (the default was changed, or the old device was removed) closes the old output and
+/// opens one on the new default, the same id keeps the open output. Nothing switches devices during playback: a
+/// device that disappears while playing stops the output with an error (<see cref="HasFailed"/>, D013 — the
+/// service continues on the Stopwatch) and the next start opens the default device of that moment.
 /// </summary>
 public sealed class WasapiAudioOutput : IAudioOutput
 {
     private readonly ILogger<WasapiAudioOutput> _logger;
     private readonly WasapiOutputSettings _settings;
+    private readonly IAudioEndpoints _endpoints;
     private readonly PlayedFramesClock _clock;
     private readonly SourceProvider _provider = new();
 
-    private WasapiOut? _output;
+    private IWavePlayer? _output;
+    private string? _deviceId;      // endpoint id of the device _output is open on
     private int _blockAlign;
     private long _baseFrames;       // frames played by finished sessions
     private long _lastSessionFrames;
@@ -42,8 +49,15 @@ public sealed class WasapiAudioOutput : IAudioOutput
     private volatile bool _failed;
 
     public WasapiAudioOutput(ILogger<WasapiAudioOutput> logger, WasapiOutputSettings? settings = null)
+        : this(logger, new WasapiEndpoints(), settings)
+    {
+    }
+
+    /// <summary>Test seam: <paramref name="endpoints"/> replaces the system's devices.</summary>
+    internal WasapiAudioOutput(ILogger<WasapiAudioOutput> logger, IAudioEndpoints endpoints, WasapiOutputSettings? settings = null)
     {
         _logger = logger;
+        _endpoints = endpoints;
         _settings = settings ?? new WasapiOutputSettings();
         _clock = new PlayedFramesClock(this);
     }
@@ -59,7 +73,10 @@ public sealed class WasapiAudioOutput : IAudioOutput
 
         try
         {
-            if (_output is null || _failed) CreateDevice();
+            var defaultId = _endpoints.DefaultRenderDeviceId()
+                            ?? throw new InvalidOperationException("There is no default audio output device.");
+            if (_output is null || _failed || !string.Equals(_deviceId, defaultId, StringComparison.OrdinalIgnoreCase))
+                CreateDevice(defaultId);
             _provider.Source = source;
             _failed = false;
             _lastSessionFrames = 0;
@@ -93,11 +110,11 @@ public sealed class WasapiAudioOutput : IAudioOutput
         _provider.Source = null;
     }
 
-    private void CreateDevice()
+    private void CreateDevice(string deviceId)
     {
-        DisposeDevice();
-        var device = new MMDeviceEnumerator().GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-        var output = new WasapiOut(device, AudioClientShareMode.Shared, useEventSync: true, latency: _settings.LatencyMilliseconds);
+        var replaced = _deviceId;
+        DisposeDevice(); // the old output, if any, is closed before the new one opens
+        var output = _endpoints.Open(deviceId, _settings.LatencyMilliseconds);
         try
         {
             output.Init(_provider);
@@ -107,7 +124,12 @@ public sealed class WasapiAudioOutput : IAudioOutput
             _blockAlign = format.BlockAlign;
             output.PlaybackStopped += OnPlaybackStopped;
             _output = output;
-            _logger.LogInformation("Audio output: {Device}, {Latency} ms latency.", device.FriendlyName, _settings.LatencyMilliseconds);
+            _deviceId = deviceId;
+            if (replaced is not null && !string.Equals(replaced, deviceId, StringComparison.OrdinalIgnoreCase))
+                _logger.LogInformation("Audio output moved to the current default device {Device} (was {Previous}), {Latency} ms latency.",
+                    deviceId, replaced, _settings.LatencyMilliseconds);
+            else
+                _logger.LogInformation("Audio output: device {Device}, {Latency} ms latency.", deviceId, _settings.LatencyMilliseconds);
         }
         catch
         {
@@ -126,10 +148,10 @@ public sealed class WasapiAudioOutput : IAudioOutput
     /// <summary>Frames played in the current session; the last known value if the device fails.</summary>
     private long SessionFrames()
     {
-        if (!_playing || _output is null) return 0;
+        if (!_playing || _output is not IWavePosition position) return 0;
         try
         {
-            _lastSessionFrames = Math.Max(_lastSessionFrames, _output.GetPosition() / _blockAlign);
+            _lastSessionFrames = Math.Max(_lastSessionFrames, position.GetPosition() / _blockAlign);
         }
         catch (Exception ex) when (ex is COMException or InvalidOperationException or NullReferenceException)
         {
@@ -151,6 +173,7 @@ public sealed class WasapiAudioOutput : IAudioOutput
             _logger.LogDebug(ex, "Disposing the audio output failed.");
         }
         _output = null;
+        _deviceId = null;
     }
 
     public void Dispose()

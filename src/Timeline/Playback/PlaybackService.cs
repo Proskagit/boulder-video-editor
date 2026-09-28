@@ -23,6 +23,12 @@ namespace AiVideoEditor.Timeline.Playback;
 /// which discards queued audio; a snapshot update keeps it running and continues the mix at the
 /// mixer's write position, reusing readers of unchanged clips.
 /// </para>
+/// <para>
+/// Release (<see cref="DisposeAsync"/>) happens once, when the app closes and while the UI thread still runs
+/// its dispatcher (D024 Step 9.3). From its first line on the service is inert: snapshots, transport and seeks
+/// are ignored, so nothing — no late event or continuation — can open a decoder or an ffmpeg process again.
+/// Further calls return the same release.
+/// </para>
 /// </summary>
 public sealed class PlaybackService : IPlaybackService
 {
@@ -36,7 +42,7 @@ public sealed class PlaybackService : IPlaybackService
 
     private PlaybackSnapshot? _snapshot;
     private VideoPipeline? _pipeline;
-    private PreviewPicture? _picture;
+    private bool _settled; // the topmost picture layer was certain since the last restart
     private long _seekGeneration;
     // Snapshot version the current video pipeline was built from (set where pipelines are made).
     // A mix-only update replaces _snapshot but not the pipeline, so the two may differ.
@@ -46,6 +52,8 @@ public sealed class PlaybackService : IPlaybackService
     private readonly List<Task> _retiring = new(); // superseded pipelines being disposed
     private bool _audioRunning;
     private bool _audioFailed;
+    private bool _released;   // set first thing by DisposeAsync; every entry point that could decode checks it
+    private Task? _release;
 
     public PlaybackService(IVideoDecoder decoder, IReferenceClock referenceClock, ILogger<PlaybackService> logger,
         PlaybackSettings? settings = null, IAudioDecoder? audioDecoder = null, IAudioOutput? audioOutput = null)
@@ -60,7 +68,7 @@ public sealed class PlaybackService : IPlaybackService
 
     public PlaybackState State { get; private set; } = PlaybackState.Paused;
 
-    public bool IsBuffering => _pipeline is { } pipeline && (!pipeline.IsReady || _picture is null);
+    public bool IsBuffering => _pipeline is { } pipeline && (!pipeline.IsReady || !_settled);
 
     public bool IsAvailable => !_decoderUnavailable;
 
@@ -98,6 +106,7 @@ public sealed class PlaybackService : IPlaybackService
 
     public void UpdateSnapshot(PlaybackSnapshot snapshot)
     {
+        if (_released) return;
         if (_snapshot is { } current && snapshot.SnapshotVersion <= current.SnapshotVersion)
         {
             _logger.LogDebug("Ignoring playback snapshot {Version}; {Current} is newer.", snapshot.SnapshotVersion, current.SnapshotVersion);
@@ -129,7 +138,7 @@ public sealed class PlaybackService : IPlaybackService
 
     public void Play()
     {
-        if (_snapshot is null || Duration <= MediaTime.Zero || State == PlaybackState.Playing)
+        if (_released || _snapshot is null || Duration <= MediaTime.Zero || State == PlaybackState.Playing)
             return;
 
         if (Position >= Duration)
@@ -141,7 +150,7 @@ public sealed class PlaybackService : IPlaybackService
 
     public void Pause()
     {
-        if (State == PlaybackState.Paused) return;
+        if (_released || State == PlaybackState.Paused) return;
         StopAudio();
         _clock.Pause();          // the last position the device reported as played
         SetState(PlaybackState.Paused);
@@ -156,6 +165,7 @@ public sealed class PlaybackService : IPlaybackService
 
     public async Task<bool> SeekAsync(MediaTime position, CancellationToken ct = default)
     {
+        if (_released) return false;
         if (_snapshot is null)
         {
             _clock.Seek(MediaTime.Zero);
@@ -170,7 +180,7 @@ public sealed class PlaybackService : IPlaybackService
     public PlaybackFrame Update()
     {
         if (_snapshot is not { } snapshot || _pipeline is not { } pipeline)
-            return new PlaybackFrame(Position, 0, State, false, PreviewPicture.Black, true);
+            return new PlaybackFrame(Position, 0, State, false);
 
         if (_audioRunning && _audioOutput!.HasFailed)
         {
@@ -198,11 +208,10 @@ public sealed class PlaybackService : IPlaybackService
 
         var result = pipeline.GetFrame(pictureFrame);
         if (pipeline.DecoderUnavailable) _decoderUnavailable = true;
-        var current = result.Picture is not null && IsCurrent(pipeline);
-        if (current)
-            _picture = result.Picture;
+        if (result.IsTopSettled && IsCurrent(pipeline))
+            _settled = true;
 
-        return new PlaybackFrame(position, frame, State, IsBuffering, _picture, current)
+        return new PlaybackFrame(position, frame, State, IsBuffering)
         {
             Layers = IsCurrent(pipeline) ? result.Layers : ImmutableArray<LayerPicture>.Empty,
             Canvas = snapshot.Canvas
@@ -225,7 +234,7 @@ public sealed class PlaybackService : IPlaybackService
         var startFrame = Math.Max(0, Math.Min(position.ToFrameFloor(snapshot.FrameRate),
             FrameMath.CeilingFrame(snapshot.Duration, snapshot.FrameRate) - 1));
         _pipeline = new VideoPipeline(snapshot, generation, startFrame, _decoder, _settings, _logger);
-        _picture = null;
+        _settled = false;
         if (old is not null) Retire(old);
 
         RestartAudio(position, reuse: !reanchor);
@@ -314,20 +323,23 @@ public sealed class PlaybackService : IPlaybackService
         StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
+    {
+        _released = true;
+        return new ValueTask(_release ??= ReleaseAsync());
+    }
+
+    private async Task ReleaseAsync()
     {
         StopAudio();
         _clock.Pause();
-        if (_pipeline is { } pipeline)
-        {
-            _pipeline = null;
-            await pipeline.DisposeAsync();
-        }
-        if (_audio is { } audio)
-        {
-            _audio = null;
-            await audio.DisposeAsync();
-        }
+        SetState(PlaybackState.Paused);
+        var pipeline = _pipeline;
+        var audio = _audio;
+        _pipeline = null;
+        _audio = null;
+        if (pipeline is not null) await pipeline.DisposeAsync();
+        if (audio is not null) await audio.DisposeAsync();
         await Task.WhenAll(_retiring);
     }
 }

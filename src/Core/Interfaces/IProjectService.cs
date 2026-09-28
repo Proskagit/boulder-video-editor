@@ -99,9 +99,3 @@ public sealed class MediaAddResult
     public int DuplicateCount { get; init; }
 }
 
-public interface IThumbnailService
-{
-    /// <summary>Returns a cached thumbnail path if present, otherwise generates one asynchronously.</summary>
-    Task<string> GetOrCreateThumbnailAsync(MediaAsset asset, CancellationToken ct = default);
-}
-

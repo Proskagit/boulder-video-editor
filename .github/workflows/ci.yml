@@ -1,0 +1,115 @@
+# CI quality gate (D024 Step 9.9): restore, build without warnings, the full test suite with a pinned FFmpeg,
+# and a gate on skipped tests (only the two opt-in 4K scenes may skip).
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: 8.0.424
+  # FFmpeg the tests are calibrated on (D009 / D022 / D023 measurements): gyan.dev 9.0.1 essentials, the same
+  # archive the development machine uses (winget Gyan.FFmpeg.Essentials 9.0.1).
+  FFMPEG_VERSION: 9.0.1
+  FFMPEG_SHA256: fec81ae03971d9dd4be3ebe02e263bd2ec1d789483f931bdba5f5715e65da2e9
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-and-test:
+    name: Build and test (Windows)
+    runs-on: windows-2025
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+
+      - name: Cache FFmpeg archive
+        id: ffmpeg-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/ffmpeg-archive
+          key: ffmpeg-${{ env.FFMPEG_VERSION }}-essentials-${{ env.FFMPEG_SHA256 }}
+
+      - name: Install FFmpeg ${{ env.FFMPEG_VERSION }}
+        run: |
+          $name = "ffmpeg-$env:FFMPEG_VERSION-essentials_build"
+          $archiveDir = Join-Path $env:RUNNER_TEMP 'ffmpeg-archive'
+          $zip = Join-Path $archiveDir "$name.zip"
+          if (-not (Test-Path $zip)) {
+            New-Item -ItemType Directory -Force $archiveDir | Out-Null
+            $url = "https://github.com/GyanD/codexffmpeg/releases/download/$env:FFMPEG_VERSION/$name.zip"
+            Invoke-WebRequest -Uri $url -OutFile $zip
+          }
+          $hash = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLowerInvariant()
+          if ($hash -ne $env:FFMPEG_SHA256) { throw "FFmpeg archive SHA256 mismatch: $hash" }
+          $dest = Join-Path $env:RUNNER_TEMP 'ffmpeg'
+          if (Get-Command 7z -ErrorAction SilentlyContinue) {
+            7z x -y "-o$dest" $zip | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "7z failed ($LASTEXITCODE)" }
+          } else {
+            Expand-Archive -Path $zip -DestinationPath $dest -Force
+          }
+          $bin = Join-Path $dest "$name\bin"
+          if (-not (Test-Path (Join-Path $bin 'ffmpeg.exe'))) { throw "ffmpeg.exe not found in $bin" }
+          $bin | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Verify FFmpeg version
+        run: |
+          $expected = "$env:FFMPEG_VERSION-essentials_build-www.gyan.dev"
+          foreach ($tool in 'ffmpeg', 'ffprobe') {
+            $path = (Get-Command $tool).Source
+            $line = (& $tool -hide_banner -version | Select-Object -First 1)
+            Write-Host "$tool -> $path : $line"
+            if ($path -notlike "$env:RUNNER_TEMP*") { throw "$tool resolves to $path, not the pinned copy" }
+            if ($line -notmatch "^$tool version $([regex]::Escape($expected))") { throw "$tool is not $expected" }
+          }
+
+      - name: Restore
+        run: dotnet restore AiVideoEditor.sln
+
+      - name: Build (warnings are errors)
+        run: dotnet build AiVideoEditor.sln --no-restore -warnaserror
+
+      - name: Test
+        id: test
+        run: >
+          dotnet test AiVideoEditor.sln --no-build
+          --blame-hang --blame-hang-timeout 10m
+          --logger trx --results-directory TestResults
+
+      - name: Gate on test results and skips
+        if: (success() || failure()) && steps.test.conclusion != 'skipped'
+        run: ./.github/scripts/Assert-TestResults.ps1 -ResultsDirectory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: TestResults
+          if-no-files-found: warn
+          retention-days: 14

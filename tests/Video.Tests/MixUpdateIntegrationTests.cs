@@ -74,7 +74,7 @@ public sealed class MixUpdateIntegrationTests
         Publish();
         service.Play();
         var full = await PlayAudio(4_800);
-        await WaitFor(() => { var f = service.Update(); return f.IsPictureCurrent && !f.IsBuffering && f.Picture?.Frame is not null; });
+        await WaitFor(() => { var f = service.Update(); return f.IsTopCurrent() && !f.IsBuffering && f.TopFrame() is not null; });
         Assert.True(Peak(full) > 0.05f, $"expected the sine (amplitude 1/8), peak {Peak(full)}");
 
         var pipeline = service.VideoPipelineInstance;

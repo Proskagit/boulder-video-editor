@@ -109,8 +109,8 @@ public sealed class MultiLayerPlaybackTests : IAsyncLifetime
         Assert.All(frame.Layers, l => Assert.Equal((LayerPictureState.Frame, 10), (l.State, Number(l))));
         Assert.Equal(0.5, frame.Layers[1].Layer.Opacity);
         Assert.Equal(new FrameSize(1920, 1080), frame.Canvas);
-        Assert.Equal(top.Id, frame.Picture!.ClipId);             // compatibility picture: the topmost layer
-        Assert.True(frame.IsPictureCurrent);
+        Assert.Equal(top.Id, frame.TopPicture()!.Layer.ClipId);  // the topmost picture layer
+        Assert.True(frame.IsTopCurrent());
         Assert.Equal(2, _service.VideoReaderCount);
     }
 
@@ -141,7 +141,7 @@ public sealed class MultiLayerPlaybackTests : IAsyncLifetime
 
         Assert.Equal(new[] { clip.Id, text.Id }, frame.Layers.Select(l => l.Layer.ClipId));
         Assert.Equal(LayerPictureState.Text, frame.Layers[1].State);
-        Assert.Equal(clip.Id, frame.Picture!.ClipId); // text is not the compatibility picture
+        Assert.Equal(clip.Id, frame.TopPicture()!.Layer.ClipId); // text is not a picture layer
         Assert.Equal(1, _service.VideoReaderCount);
     }
 
@@ -170,7 +170,7 @@ public sealed class MultiLayerPlaybackTests : IAsyncLifetime
         Assert.Equal(LayerPictureState.Pending, frame.Layers[0].State);  // not drawn until it has a frame
         Assert.Equal(LayerPictureState.Frame, frame.Layers[1].State);
         Assert.Equal(0.9, frame.Layers[1].Layer.Opacity);
-        Assert.Equal(top.Id, frame.Picture!.ClipId);
+        Assert.Equal(top.Id, frame.TopPicture()!.Layer.ClipId);
         await Eventually(() => _decoder.OpenCount(bottomAsset.FilePath) == 1, "lower reader not opened");
 
         gate.SetResult();
@@ -239,7 +239,7 @@ public sealed class MultiLayerPlaybackTests : IAsyncLifetime
         Assert.Equal(LayerPictureState.Frame, late.State);   // keeps showing its last frame…
         Assert.False(late.IsCurrent);                         // …flagged late (D012), per layer
         Assert.True(Number(late) < 5);
-        Assert.True(frame.IsPictureCurrent);                 // the compatibility picture (top) is current
+        Assert.True(frame.IsTopCurrent());                   // the top layer is current: not buffering
         Assert.False(frame.IsBuffering);
 
         release.SetResult();
@@ -296,7 +296,7 @@ public sealed class MultiLayerPlaybackTests : IAsyncLifetime
         var geometry = ((PictureLayer)placeholder.Layer).Geometry!;
         Assert.Equal((geometry.Transform, 1920.0, 1080.0), placeholder.PlaceholderArea(frame.Canvas));
         Assert.Equal(new PointD(1060, 540), geometry.Transform.Apply(new PointD(960, 540))); // position/scale/rotation apply
-        Assert.Equal(PictureKind.Offline, frame.Picture!.Kind);
+        Assert.Equal(LayerPictureState.Offline, frame.TopPicture()!.State);
 
         topAsset.Kind = MediaKind.Audio; // a video clip that can't play its media: unsupported (speed ≠ 1 plays since D022)
         topAsset.IsMissing = false;
@@ -333,7 +333,7 @@ public sealed class MultiLayerPlaybackTests : IAsyncLifetime
         Assert.Equal(new[] { bottom.Id, top.Id }, frame.Layers.Select(l => l.Layer.ClipId));
         Assert.Equal(LayerPictureState.Frame, frame.Layers[0].State);
         Assert.Equal(LayerPictureState.DecodeError, frame.Layers[1].State);
-        Assert.Equal(PictureKind.DecodeError, frame.Picture!.Kind);
+        Assert.Equal(LayerPictureState.DecodeError, frame.TopPicture()!.State);
         Assert.Equal(1, _decoder.OpenCount(bottomAsset.FilePath));
     }
 

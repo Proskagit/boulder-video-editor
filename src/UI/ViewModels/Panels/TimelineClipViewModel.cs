@@ -43,6 +43,14 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
     /// <summary>True while a drag preview shows a position the edit would reject.</summary>
     [ObservableProperty] private bool _isInvalid;
 
+    /// <summary>What the clip's waveform shows (D024 Step 9.5), or null — a text or image clip, media without sound,
+    /// offline media without a cached waveform, or not made yet.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasWaveform))]
+    private ClipWaveform? _waveform;
+
+    public bool HasWaveform => Waveform is not null;
+
     public void Layout(double pixelsPerSecond) => Layout(pixelsPerSecond, Clip.TimelineStart, Clip.TimelineEnd);
 
     public void Layout(double pixelsPerSecond, MediaTime start, MediaTime end)

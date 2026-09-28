@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.UI.Common;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
@@ -90,7 +91,23 @@ public sealed class MediaBrowserItemViewModel : ViewModelBase
         _ => null
     };
 
-    /// <summary>Placeholder tile color until real thumbnail generation exists (Phase 9).</summary>
+    private Thumbnail? _thumbnail;
+
+    /// <summary>The asset's thumbnail once it is ready (D024 Step 9.4, from <c>ThumbnailCoordinator</c>); null while there
+    /// is none — audio, not analysed, offline without a cached one, still being made — and the tile shows its colour.</summary>
+    public Thumbnail? Thumbnail
+    {
+        get => _thumbnail;
+        set
+        {
+            if (SetProperty(ref _thumbnail, value))
+                OnPropertyChanged(nameof(HasThumbnail));
+        }
+    }
+
+    public bool HasThumbnail => Thumbnail is not null;
+
+    /// <summary>Tile colour behind the thumbnail, and the placeholder when there is none.</summary>
     public string ThumbnailColorHex => Asset.Kind switch
     {
         MediaKind.Video => "#3A5A78",

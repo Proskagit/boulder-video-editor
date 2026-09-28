@@ -18,6 +18,8 @@ public sealed class ProjectFileWorkflow
     private readonly IFilePickerService _picker;
     private readonly StatusService _status;
     private readonly ILogger<ProjectFileWorkflow> _logger;
+    private readonly IThumbnailCacheLocation? _thumbnailCache;
+    private readonly IWaveformCacheLocation? _waveformCache;
 
     public ProjectFileWorkflow(
         IProjectService projectService,
@@ -26,7 +28,9 @@ public sealed class ProjectFileWorkflow
         IDialogService dialogs,
         IFilePickerService picker,
         StatusService status,
-        ILogger<ProjectFileWorkflow> logger)
+        ILogger<ProjectFileWorkflow> logger,
+        IThumbnailCacheLocation? thumbnailCache = null,
+        IWaveformCacheLocation? waveformCache = null)
     {
         _projectService = projectService;
         _analysisCoordinator = analysisCoordinator;
@@ -35,6 +39,8 @@ public sealed class ProjectFileWorkflow
         _picker = picker;
         _status = status;
         _logger = logger;
+        _thumbnailCache = thumbnailCache;
+        _waveformCache = waveformCache;
     }
 
     // ---- New / Open (interactive) ---------------------------------------------------
@@ -220,13 +226,19 @@ public sealed class ProjectFileWorkflow
         return true;
     }
 
-    /// <summary>Called once the main window is shown: offers to recover work autosaved by a
-    /// session that didn't end normally, then starts autosave. Never throws — a problem with
-    /// recovery files must not prevent the editor from starting.</summary>
+    /// <summary>Called once the main window is shown: removes the thumbnail and waveform caches of unsaved projects
+    /// that can't come back (before the recovery offer, so a recoverable project keeps them), offers to
+    /// recover work autosaved by a session that didn't end normally, then starts autosave. Never throws — a
+    /// problem with recovery files or caches must not prevent the editor from starting.</summary>
     public async Task StartSessionAsync()
     {
         try
         {
+            if (_thumbnailCache is not null)
+                await _thumbnailCache.CleanUpUnsavedAsync();
+            if (_waveformCache is not null)
+                await _waveformCache.CleanUpUnsavedAsync();
+
             var scan = await _autosave.FindRecoveryAsync();
             var setAside = scan.DamagedFiles switch
             {

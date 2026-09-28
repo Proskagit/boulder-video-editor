@@ -35,6 +35,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     private long _lastReportedFrame = -1;
     private bool _reportedUnavailable;
     private bool _reportedNoAudio;
+    private bool _released;
 
     [ObservableProperty] private string _currentTimeDisplay = "00:00:00:00";
     [ObservableProperty] private string _durationDisplay = "00:00:00:00";
@@ -44,6 +45,11 @@ public sealed partial class PreviewViewModel : ViewModelBase
     private bool _isPlaying;
 
     [ObservableProperty] private bool _isBuffering;
+
+    /// <summary>Loop (D024 Step 9.6, PO-H3): while on, playback that reaches the end of the sequence continues from the
+    /// start (the whole sequence — there is no in / out range); off, the D011 end rule is unchanged (paused at the end).
+    /// Session state only: not saved in the project, not an edit, not undoable, kept across New / Open.</summary>
+    [ObservableProperty] private bool _isLooping;
 
     /// <summary>
     /// The composition to draw (D018/D019): visible layers bottom to top, each with its state.
@@ -103,10 +109,18 @@ public sealed partial class PreviewViewModel : ViewModelBase
     /// </summary>
     public void Tick()
     {
+        if (_released) return; // the window is closing: keep the last picture
         if (!_needsTick && !IsPlaying && !IsBuffering && AreLayersCurrent)
             return;
 
+        var wasPlaying = _playback.State == PlaybackState.Playing;
         var frame = _playback.Update();
+        if (IsLooping && wasPlaying && frame.State == PlaybackState.Paused && frame.Position >= _playback.Duration)
+        {
+            // This update reached the end and paused there (D011); Play at the end starts again from 0.
+            _playback.Play();
+            frame = _playback.Update();
+        }
         IsPlaying = frame.State == PlaybackState.Playing;
         IsBuffering = frame.IsBuffering;
         ShowLayers(frame);
@@ -131,6 +145,18 @@ public sealed partial class PreviewViewModel : ViewModelBase
 
         if (!IsPlaying && !IsBuffering && AreLayersCurrent)
             _needsTick = false;
+    }
+
+    /// <summary>
+    /// The window is closing: stops polling and releases playback — decoders, their ffmpeg processes and the
+    /// audio device — while the UI thread still runs its dispatcher. Its asynchronous disposal must not be left
+    /// to the host's synchronous disposal after the dispatcher has stopped: continuations posted to the stopped
+    /// dispatcher never run, and closing hung (D024 Step 9.3).
+    /// </summary>
+    public async Task ReleasePlaybackAsync()
+    {
+        _released = true;
+        await _playback.DisposeAsync();
     }
 
     private void ShowLayers(PlaybackFrame frame)
@@ -188,6 +214,29 @@ public sealed partial class PreviewViewModel : ViewModelBase
         _needsTick = true;
         _logger.LogDebug("Playback {State} at {Position}.", _playback.State, _playback.Position);
     }
+
+    /// <summary>L (D024 Step 9.6, PO-H2): plays; nothing when already playing (no faster speeds). At the end of the
+    /// sequence it starts again from 0, like Play (D011).</summary>
+    [RelayCommand]
+    private void Play()
+    {
+        if (_playback.State == PlaybackState.Playing) return;
+        _playback.Play();
+        _needsTick = true;
+    }
+
+    /// <summary>K (D024 Step 9.6, PO-H2): pauses; nothing when already paused.</summary>
+    [RelayCommand]
+    private void Pause()
+    {
+        if (_playback.State != PlaybackState.Playing) return;
+        _playback.Pause();
+        _needsTick = true;
+    }
+
+    /// <summary>Ctrl+L and the Loop button (PO-H3).</summary>
+    [RelayCommand]
+    private void ToggleLoop() => IsLooping = !IsLooping;
 
     [RelayCommand]
     private void Stop()

@@ -19,6 +19,8 @@
     <ProjectReference Include="..\..\src\UI\UI.csproj" />
     <ProjectReference Include="..\..\src\Project\Project.csproj" />
     <ProjectReference Include="..\..\src\Timeline\Timeline.csproj" />
+    <!-- The app's composition root (DI of the thumbnail services). -->
+    <ProjectReference Include="..\..\src\App\App.csproj" />
   </ItemGroup>
 
   <ItemGroup>

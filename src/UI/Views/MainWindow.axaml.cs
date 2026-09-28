@@ -1,10 +1,10 @@
 using Avalonia.Controls;
 using Avalonia.Input;
-using System.Windows.Input;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
+using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Services;
 using AiVideoEditor.UI.ViewModels;
 using AiVideoEditor.UI.ViewModels.Panels;
@@ -68,62 +68,14 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Editor shortcuts. Handled on the bubbling KeyDown at window level, i.e. only when
-    /// no focused control consumed the key — and never while a text input has focus:
-    /// a TextBox (including the one inside NumericUpDown) doesn't mark plain letter keys
-    /// as handled on KeyDown (text arrives via TextInput), so "S" would otherwise split
-    /// the timeline while the user types.
-    /// </summary>
+    /// <summary>Editor shortcuts (<see cref="ShortcutRouter"/>): on the bubbling KeyDown at window level, i.e. only
+    /// when no focused control consumed the key, and never while a text input has focus.</summary>
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
         if (e.Handled || DataContext is not MainWindowViewModel vm) return;
-        if (e.Source is TextBox || FocusManager?.GetFocusedElement() is TextBox) return;
-
-        var command = ShortcutFor(vm, e.Key, e.KeyModifiers);
-        if (command is not null && command.CanExecute(null))
-        {
-            command.Execute(null);
+        if (ShortcutRouter.Handle(vm, e.Key, e.KeyModifiers, e.Source, FocusManager?.GetFocusedElement()))
             e.Handled = true;
-        }
-        else if (command is not null)
-        {
-            e.Handled = true; // a known shortcut that just isn't available right now
-        }
-    }
-
-    private static ICommand? ShortcutFor(MainWindowViewModel vm, Key key, KeyModifiers modifiers)
-    {
-        var ctrl = modifiers == KeyModifiers.Control;
-        var ctrlShift = modifiers == (KeyModifiers.Control | KeyModifiers.Shift);
-        var shift = modifiers == KeyModifiers.Shift;
-        var none = modifiers == KeyModifiers.None;
-        var timeline = vm.Timeline;
-
-        return key switch
-        {
-            Key.N when ctrl => vm.Toolbar.NewProjectCommand,
-            Key.O when ctrl => vm.Toolbar.OpenCommand,
-            Key.S when ctrl => vm.Toolbar.SaveCommand,
-            Key.S when ctrlShift => vm.Toolbar.SaveAsCommand,
-            Key.Z when ctrl => vm.Toolbar.UndoCommand,
-            Key.Y when ctrl => vm.Toolbar.RedoCommand,
-            Key.Z when ctrlShift => vm.Toolbar.RedoCommand,
-            Key.Delete or Key.Back when none => timeline.DeleteSelectedCommand,
-            Key.S when none => timeline.SplitAtPlayheadCommand,
-            Key.N when none => timeline.ToggleSnappingCommand,
-            Key.Left when none => timeline.StepBackwardCommand,
-            Key.Right when none => timeline.StepForwardCommand,
-            Key.Left when shift => timeline.StepBackwardSecondCommand,
-            Key.Right when shift => timeline.StepForwardSecondCommand,
-            Key.Space when none => vm.Preview.PlayPauseCommand,
-            Key.Home when none => timeline.GoToStartCommand,
-            Key.End when none => timeline.GoToEndCommand,
-            Key.OemPlus or Key.Add when ctrl => timeline.ZoomInCommand,
-            Key.OemMinus or Key.Subtract when ctrl => timeline.ZoomOutCommand,
-            _ => null
-        };
     }
 
     private static MainWindowViewModel BuildDesignTimeViewModel()
@@ -242,7 +194,7 @@ public partial class MainWindow : Window
         public void Pause() { }
         public void Stop() { }
         public Task<bool> SeekAsync(MediaTime position, CancellationToken ct = default) => Task.FromResult(true);
-        public PlaybackFrame Update() => new(MediaTime.Zero, 0, PlaybackState.Paused, false, PreviewPicture.Black, true);
+        public PlaybackFrame Update() => new(MediaTime.Zero, 0, PlaybackState.Paused, false);
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 

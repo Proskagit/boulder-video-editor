@@ -1,10 +1,9 @@
 namespace AiVideoEditor.Effects;
 
 /// <summary>
-/// Effect and transition definitions plus their parameter schemas, feeding the generic Inspector (Phase 7+).
-/// This subsystem is scaffolded in Phase 0 as an empty, independently buildable
-/// project so the solution's dependency graph is correct from day one. Concrete
-/// implementations land in the phase that owns them (see docs/DEVELOPMENT_PLAN.md).
+/// Effect and transition definitions plus their parameter schemas, feeding the generic Inspector. Empty: no effect
+/// type is implemented yet (<c>Clip.Effects</c> is only kept in <c>project.json</c>); the project exists so the
+/// solution's dependency graph is ready for it.
 /// </summary>
 internal static class ModuleInfo
 {

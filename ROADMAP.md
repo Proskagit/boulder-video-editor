@@ -59,6 +59,25 @@ session state (D015).
 
 ## Current
 
+Phase 9 — Quality, branch `feat/phase-9-quality` (from `ab248e5`, `main` after PR #6). **In progress**: Step 9.1
+(audit) and Step 9.2 (scope formalization) done; Step 9.3 (stability & error handling: close hang, analysis
+cancellation and concurrency, FFmpeg diagnostics, audio default device, damaged-project message) accepted
+(`3006785`); Step 9.4 (thumbnails + cache: real Media Browser thumbnails, deterministic frame, project-scoped cache
+with invalidation, unsaved-project cache, offline media from the cache only) accepted (`e666b48`); Step 9.5
+(waveform: timeline waveforms of audio clips and video with sound, only for media on the timeline, volume / mute /
+speed shown, a cache next to the thumbnails', offline media from the cache only) accepted (`568a47b`); Step 9.6
+(hotkeys: routing tests, J / K / L, loop, Ctrl+I / Ctrl+E / \, the text-input guard checked in the running app)
+accepted (`e8c3c93`); Step 9.7 (performance): baseline and C (Preview at 8 layers) accepted, A (export decodes ahead / in parallel) accepted (`4bdf738`), the step accepted (`1124138`); Step 9.8 (polish & cleanup: dead code removed incl.
+`PlaybackFrame.Picture`, naming, documentation, shortcut tooltips, an empty-timeline hint, an importing status)
+accepted (`da4838c`); Step 9.9 (CI: GitHub Actions on windows-2025, .NET SDK 8.0.424, FFmpeg 9.0.1 essentials pinned
+by SHA256, build with `-warnaserror`, the full suite and a gate on skips) green on PR #7, awaiting the product owner's
+acceptance. Steps 9.3 stability & error handling · 9.4 thumbnails + cache ·
+9.5 waveform · 9.6 hotkeys · 9.7 performance baseline & optimization · 9.8 polish & cleanup · 9.9 CI / quality gates ·
+9.10 closeout — scope and acceptance criteria in `docs/DEVELOPMENT_PLAN.md`, decision DECISIONS.md D024. L1-c stays
+open. Details: `progress.md`.
+
+## Previous
+
 Phase 8 — Export, branch `feat/phase-8-export` (from `2f0e26f`). **Complete**: accepted by the product owner on
 2026-09-25 (commit `8786491`, PR #6). Decisions: DECISIONS.md D023 (export as an
 offline rendering of the Preview: C# compositor + FFmpeg encoder, fixed MP4 H.264 CRF 18 / AAC 48 kHz,
@@ -72,19 +91,17 @@ done. Open: no numeric tolerance for the codec leg
 MP4 → export canvas (D023 Step 8, decision L1-c). Details:
 `progress.md`.
 
-## Previous
-
 Phase 7 — Basic editing, branch `feat/phase-7-basic-editing`. **Complete**: Steps 1–9 (last
 checkpoint `48a3f54`), Step 10 closeout (audit, full test runs, integration smoke in the running app);
 manually accepted by the product owner on 2026-09-24. Speed, volume/
 mute, opacity, transform, crop and text clips per clip (no keyframes), multi-layer Preview,
 `project.json` v2 (reads v1). Decisions: DECISIONS.md D017–D022. Carried into Phase 8: the export
 must reproduce D018 exactly; text fonts (D021) — resolved by D023. Known issue (pre-Phase 7, separate
-task): closing the app after a project with media was open hangs the process. Details: `progress.md`.
+task): closing the app after a project with media was open hangs the process — fixed in Phase 9 Step 9.3a. Details: `progress.md`.
 
 ## Future phases
 
-9 Quality (next) — see `docs/DEVELOPMENT_PLAN.md`.
+None planned after Phase 9 — see `docs/DEVELOPMENT_PLAN.md`.
 
 ## Rule
 

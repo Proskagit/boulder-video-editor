@@ -52,7 +52,7 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
         while (true)
         {
             var frame = _service.Update();
-            if (!frame.IsBuffering && frame.IsPictureCurrent && (until?.Invoke(frame) ?? true))
+            if (!frame.IsBuffering && frame.IsTopCurrent() && (until?.Invoke(frame) ?? true))
                 return frame;
             if (watch.Elapsed > TimeSpan.FromSeconds(5))
                 throw new TimeoutException($"No settled picture; last: {frame}");
@@ -62,8 +62,9 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
 
     private static int Number(PlaybackFrame frame)
     {
-        Assert.Equal(PictureKind.Frame, frame.Picture!.Kind);
-        return FakeVideoDecoder.Number(frame.Picture.Frame!);
+        var top = frame.TopPicture();
+        Assert.Equal(LayerPictureState.Frame, top!.State);
+        return FakeVideoDecoder.Number(top.Frame!);
     }
 
     // --- Basics ----------------------------------------------------------------------------------
@@ -73,7 +74,9 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
     {
         _service.Play();
         var frame = _service.Update();
-        Assert.Equal((PlaybackState.Paused, PictureKind.Black), (frame.State, frame.Picture!.Kind));
+        Assert.Equal(PlaybackState.Paused, frame.State);
+        Assert.Empty(frame.Layers);
+        Assert.Null(frame.TopPicture()); // black
     }
 
     [Fact]
@@ -131,6 +134,30 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
     // --- Seek semantics -----------------------------------------------------------------------------
 
     [Fact]
+    public async Task AfterASeek_BufferingLastsUntilTheTopLayerHasItsCurrentFrame_EvenOnceTheSeekIsReady()
+    {
+        var asset = Video("a.mp4", 500);
+        AddClip(asset);
+        Publish();
+        Assert.Equal(0, Number(await SettleAsync()));   // a settled picture before the seek
+        _service.Play();
+
+        var hold = _decoder.HoldAfter(asset.FilePath, 2); // the new stream delivers frames 100, 101, then stalls
+        Assert.True(await _service.SeekAsync(F(100)));   // ready: frame 100 is certain
+        _clock.Advance(F(10));                           // the clock ran on to frame 110, not decoded yet
+
+        var waiting = _service.Update();
+        Assert.Equal(110, waiting.TimelineFrame);
+        Assert.Equal(LayerPictureState.Pending, waiting.TopPicture()!.State);
+        Assert.True(waiting.IsBuffering, "nothing certain for the top layer since the seek");
+
+        hold.SetResult();
+        var frame = await SettleAsync(f => f.TimelineFrame == 110);
+        Assert.Equal(110, Number(frame));
+        Assert.False(frame.IsBuffering);
+    }
+
+    [Fact]
     public async Task SeekWhileDecoding_ClockKeepsRunning_LatencyIsNotAddedToPosition()
     {
         var asset = Video("a.mp4", 500);
@@ -144,7 +171,7 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
 
         var buffering = _service.Update();
         Assert.True(buffering.IsBuffering);
-        Assert.Null(buffering.Picture);
+        Assert.Equal(LayerPictureState.Pending, buffering.TopPicture()!.State); // nothing decoded for the seek yet
         Assert.Equal(F(100) + MediaTime.FromSeconds(0.5), buffering.Position);
 
         gate.SetResult();
@@ -232,7 +259,7 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
         Publish();
 
         await _service.SeekAsync(F(30));
-        Assert.Equal(PictureKind.Black, (await SettleAsync()).Picture!.Kind);
+        Assert.Null((await SettleAsync()).TopPicture()); // black: no picture layer
     }
 
     [Fact]
@@ -273,20 +300,20 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
         _decoder.FailOpen(gone.FilePath, VideoDecodeError.FileNotFound);
         Publish();
 
-        async Task<PreviewPicture> At(long frame)
+        async Task<LayerPicture> At(long frame)
         {
             await _service.SeekAsync(F(frame));
-            return (await SettleAsync()).Picture!;
+            return (await SettleAsync()).TopPicture()!;
         }
 
-        Assert.Equal(PictureKind.Offline, (await At(5)).Kind);
-        Assert.Equal(PictureKind.Unsupported, (await At(30)).Kind);
+        Assert.Equal(LayerPictureState.Offline, (await At(5)).State);
+        Assert.Equal(LayerPictureState.Unsupported, (await At(30)).State);
         var error = await At(55);
-        Assert.Equal(PictureKind.DecodeError, error.Kind);
+        Assert.Equal(LayerPictureState.DecodeError, error.State);
         Assert.Contains("fake", error.Message);
-        Assert.Equal(PictureKind.Offline, (await At(80)).Kind); // file vanished at decode time
+        Assert.Equal(LayerPictureState.Offline, (await At(80)).State); // file vanished at decode time
         var after = await At(105); // the clip after the failures plays normally
-        Assert.Equal((PictureKind.Frame, 5), (after.Kind, FakeVideoDecoder.Number(after.Frame!)));
+        Assert.Equal((LayerPictureState.Frame, 5), (after.State, FakeVideoDecoder.Number(after.Frame!)));
         Assert.True(_service.IsAvailable);
     }
 
@@ -299,7 +326,7 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
         Publish();
 
         await _service.SeekAsync(F(3));
-        Assert.Equal(PictureKind.DecodeError, (await SettleAsync()).Picture!.Kind);
+        Assert.Equal(LayerPictureState.DecodeError, (await SettleAsync()).TopPicture()!.State);
         Assert.False(_service.IsAvailable);
     }
 
@@ -349,14 +376,15 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
         // Frame 4 is certain from the frames HW already decoded (4 and 5): shown at once.
         _clock.Advance(F(1));
         var fourth = _service.Update();
-        Assert.True(fourth.IsPictureCurrent, "frames decoded before the failure must survive the fallback");
+        Assert.True(fourth.IsTopCurrent(), "frames decoded before the failure must survive the fallback");
         Assert.Equal((4L, 4), (fourth.TimelineFrame, Number(fourth)));
 
         // Frame 5 needs the next frame to be certain: late (never wrong) until software resumes.
         _clock.Advance(F(1));
         var fifth = _service.Update();
-        Assert.False(fifth.IsPictureCurrent);
-        Assert.Equal(4, FakeVideoDecoder.Number(fifth.Picture!.Frame!));
+        Assert.False(fifth.IsTopCurrent());
+        Assert.Equal((LayerPictureState.Frame, false), (fifth.TopPicture()!.State, fifth.TopPicture()!.IsCurrent));
+        Assert.Equal(4, FakeVideoDecoder.Number(fifth.TopFrame()!));
 
         softwareGate.SetResult();
         for (var frame = 5; frame <= 40; frame++)
@@ -400,8 +428,8 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
         for (var frame = 45; frame <= 80; frame++)
         {
             if (frame > 45) _clock.Advance(F(1));
-            var picture = (await SettleAsync(f => f.TimelineFrame == frame)).Picture!;
-            shown.Add($"{(picture.ClipId == _f.V1.Clips[0].Id ? "low" : "top")}{FakeVideoDecoder.Number(picture.Frame!)}");
+            var picture = (await SettleAsync(f => f.TimelineFrame == frame)).TopPicture()!;
+            shown.Add($"{(picture.Layer.ClipId == _f.V1.Clips[0].Id ? "low" : "top")}{FakeVideoDecoder.Number(picture.Frame!)}");
         }
 
         var expected = Enumerable.Range(45, 36).Select(n => n is >= 50 and < 75 ? $"top{n - 50}" : $"low{n}");

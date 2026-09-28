@@ -995,6 +995,296 @@ Status: Accepted.
 
 ---
 
+## D024 — Phase 9 scope and constraints (Quality)
+
+Date: 2026-09-25
+
+Decision (product owner, 2026-09-25, Step 9.2; the audit of Step 9.1 accepted):
+- Steps, in this order, each accepted separately: 9.1 audit (done), 9.2 scope formalization (this decision),
+  9.3 stability & error handling, 9.4 thumbnails + cache, 9.5 waveform, 9.6 hotkeys, 9.7 performance baseline &
+  optimization, 9.8 polish & cleanup, 9.9 CI / quality gates, 9.10 final verification & closeout. Scope,
+  acceptance criteria, out-of-scope items and dependencies of each step: `docs/DEVELOPMENT_PLAN.md`,
+  "Phase 9 — Quality: steps".
+- Kinds of statements, kept apart in the plan and in every step report: **product requirements** (behaviour the
+  product owner accepts), **measurement-only results** (data with its method, no threshold unless a later decision
+  sets one), **quality gates** (pass/fail conditions on build, tests, CI, process) and **implementation details**
+  (binding constraints on how; everything else is a routine engineering choice).
+- Per step (summary; the plan is normative):
+  - 9.3: fix the close hang (root cause); cancel media analysis when the project is replaced (New; Open and Recover
+    likewise); bound analysis concurrency; survive audio device removal / default-device change; use the existing
+    `Area=Ffmpeg` → `ffmpeg-*.log` sink for ffmpeg / ffprobe diagnostics; the damaged-project message must not
+    promise a backup that does not exist — implement the backup if small and isolated, otherwise remove the
+    promise. The single, unreproduced `Project.Tests` hang of Phase 8 is a watched regression concern, not a
+    defect needing a workaround.
+  - 9.4: real Media Browser thumbnails; project-scoped cache with invalidation; deterministic frame (the D009
+    rule at a fixed source time); offline media not decoded; the cache of an unsaved project decided
+    architecturally without changing the project format (`formatVersion` 2); `MediaAsset.ThumbnailPath` not removed
+    or changed without need; caching never changes D009 / D022 frame selection. Timeline clip thumbnails are out.
+  - 9.5: waveforms of audio on timeline clips, produced through the media / FFmpeg abstraction (never from UI),
+    cached, consistent with mute / volume; speed / time mapping only as far as the timeline display needs. Not an
+    audio editor.
+  - 9.6: J / K / L, loop, shortcuts that follow from existing commands, no shortcut while typing, existing
+    shortcuts unchanged, routing tests, optionally a small shortcut help. No configurable hotkeys.
+  - 9.7: baseline first (Preview / render, export throughput, memory, processes / handles, Cancel latency, 1–8
+    layers); no targets before it; then optimizations only with D023 semantics and the parity suite unchanged; no
+    hardware decode / encode or other semantic change for speed without a separate decision.
+  - 9.8: limited polish (loading / busy, disabled, errors, empty states, progress / cancel feedback, obvious issues
+    found in Phase 9), no redesign; `PlaybackFrame.Picture` removed only if an audit shows no production reader and
+    no runtime change.
+  - 9.9: a minimal GitHub Actions gate — restore, build, test, FFmpeg for the tests that need it, in a fixed, known
+    version compatible with the current tests; the job fails when ffmpeg-dependent tests are skipped unexpectedly.
+    No coverage tooling (coverlet) yet.
+  - 9.10: full verification, manual plans, documentation, acceptance.
+- Constraints for the whole phase:
+  - D023 is unchanged. L1-c stays an open product decision: no numeric tolerance for MP4 → export canvas, the
+    Step 8.6 results and D023's Step 8 text are not modified.
+  - Out of scope: HDR / 10-bit, colour management, export quality presets, bitrate policy, hardware encoding,
+    hardware decoding as a required optimization, a full audio editor, configurable hotkeys, a large UI redesign.
+  - Existing Preview ↔ Export parity tests are never weakened, re-baselined or removed to make a Phase 9 change pass.
+- Sub-decisions left to the start of their step (proposed there, confirmed by the product owner, recorded as a
+  refinement of this decision): default-device change behaviour and backup vs corrected message (9.3); thumbnail
+  source-time rule, unsaved-project cache location and the thumbnail interface (9.4); waveform on video clips with
+  sound and the mute / volume display rule (9.5); the meaning of J, loop details and the list of extra shortcuts
+  (9.6); the measurement tool's form, the measurement method and practical criteria for resource leaks and, after
+  the baseline, what to optimize (9.7); the polish list (9.8); the FFmpeg version used by CI (9.9).
+
+Context: the development plan named Phase 9's topics (performance profiling, caching, error handling, polish,
+hotkeys, waveform, thumbnails) without steps or acceptance criteria. The 9.1 audit found: no thumbnail, waveform or
+cache implementation (only `IThumbnailService` / `IVideoEngine` declarations, `AppPaths` cache folders and
+`MediaAsset.ThumbnailPath`); an `ffmpeg-*.log` sink nothing writes to; a damaged-project message promising a backup
+while `ProjectFileStore` keeps none; the close hang and other known issues in `progress.md`; no CI; export throughput,
+memory, handles and Cancel latency never measured (deferred from Phase 8); the playback model plays forward at 1×
+only (relevant to J).
+
+Consequences: Phase 9 work is planned and accepted per step; a step's open sub-decisions are asked before its
+implementation, not guessed. A Phase 9 manual test plan (`docs/PHASE9_MANUAL_TEST_PLAN.md`) is written during the
+steps and run at 9.10.
+
+Refined in Step 9.3 (2026-09-25), stability & error handling (product owner decisions after the 9.3 audit; sub-steps
+9.3a–f, each accepted separately; details and verification in `progress.md`):
+- 9.3a, close hang. Cause: the host was disposed synchronously after the Avalonia lifetime had ended, and
+  `PlaybackService`'s asynchronous disposal posted its continuations to the stopped dispatcher's synchronization
+  context — a deadlock whenever decoders were open. Decision: playback resources (decoders, their ffmpeg processes, the
+  audio device) are released on the UI thread once closing is agreed, before the window closes and the dispatcher
+  stops (`MainWindowViewModel.PrepareToCloseAsync` → `PreviewViewModel.ReleasePlaybackAsync`). The release runs once
+  (later calls return it) and makes the playback service inert from its first line: no snapshot, transport call or
+  seek can open a decoder again. `Program.Main` clears the stopped dispatcher's synchronization context before the
+  host's disposal — a defensive safeguard only, correctness does not depend on it.
+- 9.3b, analysis generations. Every media analysis belongs to the project it was started for: New, Open and Recover
+  (`IProjectService.ProjectChanged`) cancel the running generation; a result of a cancelled generation — also one
+  that arrives after the switch — changes no asset and raises no event. The in-flight guard is per asset object, not
+  per id (a project reopened while its own analysis runs has the same ids). ffprobe is killed with its process tree on
+  cancellation, timeout or any other early end, not only released.
+- 9.3c, bounded analysis concurrency: at most 4 analyses at once (an implementation detail, not configurable; chosen
+  from a measurement). An analysis holds its slot for all its ffprobe runs, so at most 4 ffprobe processes run;
+  waiting media stay "Analyzing"; the wait ends with its generation; ffprobe's timeout starts only when the probe runs,
+  i.e. after the slot was obtained.
+- 9.3d, FFmpeg diagnostics: one routing rule (`LogArea.ForSource`): the Video subsystem and the ffmpeg / ffprobe
+  locators are `Area=Ffmpeg` and go to `ffmpeg-*.log` only (not duplicated into `app-*.log`; `errors-*.log` still
+  collects errors of any area; no `export-*.log` writes). `FfmpegProcess` logs the command line at Debug and one end
+  entry: a normal exit or an end by the app (seek, shutdown, cancellation) at Debug, a failure on its own as a Warning
+  with command line, exit code and stderr. ffprobe runs with `-v error` (stdout stays the JSON); a failure, its timeout
+  and a cancellation are logged apart (Warning, Warning, Debug).
+- 9.3e, audio device (option B): the current default render device is checked at every start of the audio output —
+  Play and the restart after a seek — and compared with the open device by endpoint id (never by name); a different
+  id closes the old output and opens one on the new default, the same id keeps the output. No switching during
+  playback and no device notifications: a device lost while playing keeps D013 (Stopwatch without a jump, silent until
+  the next Play, which opens the default of that moment); a default that can't be opened fails the start as before.
+- 9.3f, damaged project: the app keeps no backup of project files and none is added; no message may promise one
+  (`ErrorTranslator`'s damaged-project text corrected; `ErrorTranslator` / `CorruptProjectFileException` stay unused
+  for now — a possible 9.8 cleanup).
+- Left as they are: New during a running import (`ImportManyAsync`) adds the picked files to the new project (known
+  issue, out of scope); the single unreproduced `Project.Tests` hang (Phase 8) and failure (9.3d) stay a watched
+  concern without a workaround; a real default-device change and a real device removal were not tried on hardware —
+  they are manual-only scenarios of the Phase 9 manual test plan.
+
+Refined in Step 9.4 (2026-09-28), thumbnails + cache (product owner decisions PO-1–PO-6 after the 9.4 audit,
+2026-09-25, and the reviews of the sub-steps; sub-steps 9.4a–e, each accepted separately; details and verification in
+`progress.md`):
+- Product owner decisions:
+  - PO-1: a saved project caches its thumbnails in `<project>/cache/thumbnails/`.
+  - PO-2: a project that was never saved caches them in `%LOCALAPPDATA%\AiVideoEditor\cache\unsaved\<projectId>\thumbnails\`.
+  - PO-3: source time `T = min(⌊Duration / 10⌋, 5 s)`, in ticks from the file's start time; D009 decides the frame at T.
+  - PO-4: at most 2 thumbnails are made (decoded) at once — fixed, not configurable.
+  - PO-5: `MediaAsset.ThumbnailPath` is kept for project-file compatibility, never used or filled; `project.json`
+    unchanged (`formatVersion` 2).
+  - PO-6: `<project>/cache/thumbnails` is the only cache path; `AppPaths.ProjectThumbnailsFolder`
+    (`<project>/thumbnails`) removed.
+  - Save As over a folder that already holds thumbnails of the same assets (option C, refined after a second review):
+    per asset only its current variant is carried (the latest last-write time, on a tie the ordinally last name); the
+    asset's other files in the target are removed only after that copy succeeded.
+- 9.4a, interface and service: the thumbnail interface is Core `IThumbnailService` (its former unused
+  `GetOrCreateThumbnailAsync → path` contract replaced): `TryGetCached(asset, cacheFolder)` never decodes,
+  `GetOrCreateAsync(asset, cacheFolder, ct)` reads the cache or makes the thumbnail; a `Thumbnail` is packed BGRA,
+  straight alpha. `IVideoEngine` is not used for it (it stays unimplemented). Implemented in Media
+  (`ThumbnailService`) over the app's `IVideoDecoder` (software, scaled to fit 160 × 90 with the aspect ratio, upright)
+  and `SourceFrameSelector`: the last frame at or before T, hold-first / hold-last — no `-ss` / `select` / `thumbnail`
+  filters; the decoder and D009 / D022 unchanged. Cache: one file per asset, named by asset id, source size,
+  last-write time (UTC ticks) and the rule version — any other name is a miss; an internal binary format (magic,
+  version, size + BGRA, no PNG); written to a temporary name and moved into place; a missing, damaged or unreadable
+  file is a silent miss and is regenerated. Offline media is never decoded: the last cached thumbnail, or none.
+- 9.4b, cache location: Core `IThumbnailCacheLocation`, Project `ThumbnailCacheLocation` — the folder follows the
+  current project (PO-1 / PO-2; a recovered project keeps its id and so its folder). The first Save moves the unsaved
+  cache into the project folder, Save As copies it (the old project keeps its own); a failed carry-over is logged and
+  only costs regeneration, never the save. At startup, unsaved caches without a recovery file are removed (best effort).
+- 9.4c, queue: `ThumbnailCoordinator` (UI/Services, no bitmaps) requests thumbnails on `MediaAssetsChanged` for video
+  and images whose analysis has completed and, cache only, for offline media; audio, pending and failed analysis get
+  none. Generations as in 9.3b: New / Open / Recover cancel the previous project's work, whose results are never
+  stored or reported; once per asset id and generation (a failure is not retried until the next project); a cache
+  read takes no slot and starts no ffmpeg, making one takes one of 2 slots (PO-4); results are applied on the UI
+  thread. Closing the app waits for it (`ShutdownAsync`, ≤ 5 s) after playback is released.
+- 9.4d, Media Browser: a row shows its asset's thumbnail over the kind's colour tile (56 × 32, aspect kept, centred);
+  the tile stays the placeholder for audio, pending, failed and offline media without a cache and while a thumbnail
+  is made. The bitmap is made in the view (one per thumbnail instance), never in Core, Media or the coordinator.
+  Playback and export never read the cache.
+- Left as they are: no cache size limit, eviction or cache UI, no timeline thumbnails (out of scope); a thumbnail that
+  could not be made is retried only with the next project (or by reopening it); media that comes back online during a
+  session is not re-checked (no relink, as in 9.3); a Save As over a folder of an unrelated project leaves that
+  project's thumbnail files there, never read; the generation check after a slot is obtained is defensive — no
+  mutation reaches it (the waits of a cancelled generation always end first).
+
+Refined in Step 9.5 (2026-09-28), waveform (product owner decisions PO-W1–PO-W4 after the 9.5 audit, PO-W5 after
+9.5a; sub-steps 9.5a–e, each accepted separately; details and verification in `progress.md`):
+- Product owner decisions:
+  - PO-W1: video clips with sound show a waveform too, in the lower half of the clip; audio clips over the whole clip;
+    video without sound, images and text none.
+  - PO-W2: the height is linear in the clip's volume — a full-scale peak reaches the full height at 200 % (the maximum
+    volume) and half of it at 100 %; a muted clip, or a clip on a muted track, keeps the same shape, dimmed; the
+    envelope is `max(|L|, |R|)` on a linear scale.
+  - PO-W3: waveforms are made only for media used by a clip on the timeline — nothing at import.
+  - PO-W4: the cache lives next to the thumbnails — `<project>/cache/waveforms`, unsaved
+    `%LOCALAPPDATA%\AiVideoEditor\cache\unsaved\<projectId>\waveforms` — with their life cycle and key; at most 2
+    waveforms are made at once, a limit of its own (never shared with the thumbnails').
+  - PO-W5 (refines the plan's "offline media shows no waveform"): offline media may show a waveform cached earlier —
+    never decoded or made; without a cached one it shows none.
+- 9.5a, data and service: Core `IWaveformService` (`TryGetCached` never decodes, `GetOrCreateAsync`) and `Waveform` —
+  one byte peak (`⌈|a| · 255⌉`, capped, rounded up so any sound shows) per 256 source samples (48 kHz, from the
+  file's start time), up to where the audio ends. Media `WaveformService` decodes the file's audio once with the app's
+  `IAudioDecoder` (from the start, 1×, strict end) and places the samples by the stream's first sample index — the
+  samples playback plays; no new ffmpeg path. Made for audio files and video with an audio stream whose analysis
+  completed; a decode failure, also midway, caches nothing. Cache file `…-v1.peaks` (`AIVW` header + peaks) with the
+  thumbnails' key (asset id, source size and last-write time, rule version), atomic write and offline lookup —
+  shared code (`Media/Caching/SourceFileCache`).
+- 9.5b, location: the logic of `ThumbnailCacheLocation` is shared (`Project/MediaCacheLocation`) by the thumbnail and
+  the waveform kinds (`WaveformCacheLocation`); each kind touches only its own folder and files; an unsaved project's
+  `<id>` folder is removed once nothing is left in it, and the startup cleanup removes a kind's folder per orphan.
+  Core `IMediaCacheLocation` is the base of `IThumbnailCacheLocation` and `IWaveformCacheLocation`.
+- 9.5c, queue: the orchestration of `ThumbnailCoordinator` is shared (`UI/Services/MediaCacheCoordinator<T>`: generations
+  cancelled on project replacement with their results dropped, once per asset and generation, cache reads without a
+  slot, a slot pool per coordinator, shutdown with the window); `WaveformCoordinator` requests the media of the
+  timeline's clips (any track, also hidden or muted) on timeline and media changes. A clip removed from the timeline
+  keeps its asset's waveform and work (an undo may bring it back).
+- 9.5d, display: a timeline pixel column covers its timeline samples, mapped to the source by the clip's
+  `AudioPlacement` — the placement rule of playback and export (D013 / D022) —, so trim and speed ≠ 1× show exactly
+  the clip's source range; it shows the largest peak of that range (`UI/Common/WaveformLayout`). `WaveformView` draws
+  only the columns inside the timeline's viewport. Display only: playback and export never read waveforms, and the
+  waveform never changes the audio.
+- Left as they are: no cache size limit, eviction or cache UI (as 9.4); no waveforms in the Media Browser, no audio
+  editing, scrubbing or meters (out of scope); a waveform that could not be made is retried only with the next project
+  (or by reopening it); media coming back online during a session is not re-checked; while a trim of a clip's start
+  is dragged the waveform follows the model, not the preview, until the edit; the waveform starts at the clip border's
+  inner edge (1–2 px); at 100 % (PO-W2) loud sound takes under half of the height and a muted quiet clip is faint;
+  `AppPaths.UnsavedThumbnailCacheRoot` now names the unsaved root of both kinds (rename left to 9.8).
+
+Refined in Step 9.6 (2026-09-28), hotkeys (product owner decisions PO-H1–PO-H4 after the 9.6 audit; sub-steps 9.6a–d,
+each accepted separately; details and verification in `progress.md`):
+- Product owner decisions (forward playback at 1× only, D010 / D011 — no reverse or faster playback):
+  - PO-H1: J = back one second, the playback state kept (playing continues from there, paused stays paused).
+  - PO-H2: K = pause (nothing when paused), L = play (nothing when playing; at the end from 0, D011); Space stays
+    Play / Pause.
+  - PO-H3: loop — a toggle button in the Preview transport and Ctrl+L; while on, reaching the end of the sequence
+    continues from the start (the whole sequence, no in / out range); off, the D011 end rule is unchanged. Session
+    state only: not in `project.json` (format v2 unchanged), not dirty, not undoable.
+  - PO-H4: Ctrl+I Import Media, Ctrl+E Export, \ Zoom to Fit; no shortcut list in the UI (the optional item not chosen).
+- Routing (9.6a): one table in `UI/Common/ShortcutRouter` — key with exact modifiers → an existing command; the main
+  window's bubbling KeyDown only calls it. Nothing fires while a text input (`TextBox`, also the one inside a
+  `NumericUpDown`) has focus or sent the key; a known shortcut whose command can't run (editing during an export,
+  `EditingLock`) is consumed and does nothing. Every existing shortcut keeps its key and command.
+- J is the existing one-second step (as Shift+←); K / L are Preview commands next to Play / Pause (9.6b). Loop lives in
+  the Preview's tick (9.6c): an update that reached the end and paused there is followed by Play, which at the end
+  starts from 0 — the D011 rule and `IPlaybackService` are unchanged; a pause the user made is never undone.
+- 9.6d: the text-input guard, a known issue since Phase 4, checked in the running app (the Inspector's text box of a
+  text clip and a number field).
+- Left as they are: the shortcuts are fixed (configurable hotkeys out of scope); only one second back for J; loop
+  covers the whole sequence; the end check of the loop (`Position ≥ Duration`) is defensive — no mutation reaches it.
+
+Refined in Step 9.7 (2026-09-28), performance baseline & optimization (product owner decisions after the baseline, the
+Preview measurement C and the memory diagnosis of A; details, method, tables and verification in `progress.md`):
+- Measurement tool: a scratch console program outside the repository (as Step 8.6), driving the shipped code on
+  generated scenarios (1 / 2 / 4 / 8 layers, 720p / 1080p, 4K opt-in); re-run on the same scenarios for every before /
+  after. No performance thresholds in the default test suite.
+- Leak criteria: a leak is 1) any ffmpeg / ffprobe process still running 1 s after the operation that started it ended
+  (export done or cancelled, playback released, project replaced, window closed) or 2) handles or private memory (after
+  a full GC) growing at every one of 10 repetitions of the same operation without levelling off. Growth once (warm-up,
+  pools) and a change in memory or handles alone are not defects. None was found.
+- Baseline findings: the export handled one frame at a time on about one core (half of it waiting for decoded frames);
+  the Preview at 8 layers in the running app keeps the content's 30 fps (C: the baseline's CPU-rendered overrun was the
+  tool's software rendering, not the app's GPU compositor) — no Preview optimization.
+- Chosen and implemented: A — the export decodes ahead and in parallel, within D023. `ExportFrameSource` fetches every
+  picture layer's frame of an output frame at once (`Task.WhenAll`; each reader's requests stay ascending, the layer
+  order and the D009 / D022 selection unchanged; every fetch ends before a failure propagates); `ExportService` fetches
+  frame n + 1 while frame n is rasterized and written — one frame ahead, never more, cancelled and awaited when the
+  export ends early. Same frames, order, encoder, format and progress; the parity suite unchanged. Export real-time
+  factor +26–35 % at 720p, +41–58 % at 1080p.
+- Memory with A: up to 3 decoded frames alive per picture layer (2 before) — a bounded footprint by design, not a leak;
+  the peak working set can be higher because of transient large-object-heap garbage between gen2 collections (not live
+  data; no growth over repetitions). The earlier 720p × 8 anomaly was an artifact of the measurement method.
+- Not now (each would need its own decision): B (overlapping rasterizing with encoding — encoding is 2–3 %), a decoded
+  frame buffer pool, GC tuning, a smaller look-ahead for many layers; hardware decode / encode and every other semantic
+  change for speed stay out of scope.
+
+Refined in Step 9.8 (2026-09-28), polish & cleanup (the polish list proposed after the 9.8 audit and confirmed by the
+product owner as a whole; details and verification in `progress.md`):
+- Removed, no runtime change: the single-picture view `PlaybackFrame.Picture` / `IsPictureCurrent` with `PreviewPicture`
+  / `PictureKind` (the audit confirmed no production reader; the playback service's buffering state keeps following the
+  topmost picture layer, now as a flag of its own); the unimplemented `IVideoEngine` / `EngineProgress`; the unused
+  `ErrorTranslator` / `UserFacingError` and their exception types (the damaged-project message comes from
+  `ProjectSerializer` through `ProjectFileException`, not from them) with their test. The playback tests read the layers
+  (`PlaybackFrameView` in the tests) without weakening; checked by the same mutations before and after (one new test
+  on buffering after a ready seek replaces what the compatibility picture's content used to catch).
+- Test infrastructure (found while verifying): test classes that create Avalonia controls share one xUnit collection
+  (`AvaloniaControlsCollection`) — Avalonia's property metadata caches are not thread-safe, and running them in
+  parallel made UI.Tests fail or hang intermittently.
+- Renamed: `AppPaths.UnsavedThumbnailCacheRoot` → `UnsavedCacheRoot` (same folder); `IThumbnailCacheLocation.cs` →
+  `IMediaCacheLocation.cs`; `StartupThumbnailCleanupTests` → `StartupCacheCleanupTests`. Stale comments corrected
+  (`ModuleInfo` of every subsystem, `LayerPictureState.Unsupported`).
+- UI (text only, no behaviour change): tooltips name the shortcuts (Ctrl+I, Ctrl+E, \, ←, →, Space / L / K / J); an empty
+  timeline says how to add a clip (drag from the Media Browser, Add to Timeline, + Text) and lets drops through; the
+  status bar says "Importing N files…" while the picked files are checked (the window renders it first), then the
+  result as before — "Import didn't finish." if the check throws.
+- Documentation: README, ARCHITECTURE's module table and playback section, `progress.md` known issues, the Phase 9
+  manual test plan (legend, scenarios 57–59).
+- Not done, by decision: elapsed / remaining time in the export dialog; cache eviction, retry and online re-check;
+  a frame buffer pool, GC tuning, a smaller look-ahead; a workaround for the watched `Project.Tests` hang; replacing
+  the tests' timed waits; the analysis coordinator's synchronization-context dependence; New during an import.
+
+Refined in Step 9.9 (2026-09-28), CI / quality gates (product owner decisions after the proposal at the start of 9.9;
+details and verification in `progress.md`):
+- FFmpeg for CI: 9.0.1 essentials from gyan.dev (`GyanD/codexffmpeg` release `9.0.1`,
+  `ffmpeg-9.0.1-essentials_build.zip`, SHA256 `fec81ae03971d9dd4be3ebe02e263bd2ec1d789483f931bdba5f5715e65da2e9`) —
+  the archive the development machine uses (winget `Gyan.FFmpeg.Essentials` 9.0.1), on which D009, D022 and D023 were
+  measured. Not `latest` and not 9.0.2 (unmeasured); no production change. The archive is cached, its SHA256 checked
+  every run, and `ffmpeg` / `ffprobe` must resolve to it and report `9.0.1-essentials_build-www.gyan.dev`.
+- Workflow `.github/workflows/ci.yml`: on pull requests to `main`, pushes to `main` and by hand; one job on
+  `windows-2025` (no matrix), .NET SDK 8.0.424 via `actions/setup-dotnet` (no `global.json`), Debug; restore, build
+  with `-warnaserror`, the full suite with `--blame-hang` (10 min) and TRX, results uploaded as an artifact; one run
+  per ref at a time (`cancel-in-progress`), 30 min limit.
+- Skip gate (`.github/scripts/Assert-TestResults.ps1` over the TRX): fails when fewer than 8 TRX files exist, when any
+  test did not pass and was not skipped, and on any skip except the two 4K scenes of `ExportParityScaledTests`
+  (`Source_4K_full_canvas`, `Source_4K_scaled_rotated_and_cropped`) with a reason starting "Heavy scenario:"; a skip
+  because ffmpeg / ffprobe was not found is always a failure.
+- A test adjusted for the runner: `AnalysisConcurrencyIntegrationTests` checked absolute end times of the analyses,
+  which include process start-up (much slower on the runner); it now checks the property itself — queued analyses end
+  at least one timeout after the first ones.
+- Left for the owner / later: branch protection (making the check required) is a repository setting; the audio device
+  test passes on the runner without a device (nothing verified there — manual at 9.10); the 4K scenes are not run in
+  CI.
+
+Status: Phase 9 scope and step structure are accepted. Each implementation step requires separate product-owner
+acceptance before proceeding to the next step.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

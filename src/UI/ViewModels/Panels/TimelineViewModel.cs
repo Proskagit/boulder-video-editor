@@ -32,6 +32,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private readonly StatusService _status;
     private readonly ILogger<TimelineViewModel> _logger;
     private readonly EditingLock _editingLock;
+    private readonly WaveformCoordinator? _waveforms;
 
     private readonly Dictionary<Guid, TimelineClipViewModel> _clipViewModels = new();
     private readonly Dictionary<Track, TimelineTrackViewModel> _trackViewModels = new();
@@ -46,7 +47,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         ITimelineEditService edit,
         StatusService status,
         ILogger<TimelineViewModel> logger,
-        EditingLock? editingLock = null)
+        EditingLock? editingLock = null,
+        WaveformCoordinator? waveforms = null)
     {
         _projectService = projectService;
         _edit = edit;
@@ -58,6 +60,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _projectService.TimelineChanged += (_, _) => Refresh();
         _projectService.ProjectChanged += (_, _) => OnProjectReplaced();
         _projectService.MediaAssetsChanged += (_, _) => RefreshClipNames();
+        _waveforms = waveforms;
+        if (waveforms is not null)
+            waveforms.WaveformReady += (_, _) => RefreshWaveforms();
 
         _pixelsPerSecond = Sequence.ZoomPixelsPerSecond;
         _snappingEnabled = Sequence.SnappingEnabled;
@@ -80,6 +85,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [ObservableProperty] private bool _snappingEnabled;
     [ObservableProperty] private bool _isSnapIndicatorVisible;
     [ObservableProperty] private double _snapIndicatorX;
+
+    /// <summary>No clip on any track: the view shows how to add one (D024 Step 9.8).</summary>
+    [ObservableProperty] private bool _isEmpty = true;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(DeleteSelectedCommand))]
@@ -152,6 +160,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
         foreach (var staleId in _clipViewModels.Keys.Where(id => !liveIds.Contains(id)).ToList())
             _clipViewModels.Remove(staleId);
+        IsEmpty = liveIds.Count == 0;
         RefreshClipNames(); // a text clip's label is its text, which any change (or undo) may alter
         _selection.RemoveAll(id => !liveIds.Contains(id));
 
@@ -209,11 +218,39 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         foreach (var vm in _clipViewModels.Values)
             vm.Layout(PixelsPerSecond);
+        RefreshWaveforms();
 
         var contentEnd = TimelineCoordinateMapper.TimeToX(SequenceDuration + TrailingSpace, PixelsPerSecond);
         ContentWidth = Math.Max(contentEnd, _viewportWidth);
         PlayheadX = TimelineCoordinateMapper.TimeToX(Playhead, PixelsPerSecond);
         RebuildRuler();
+    }
+
+    /// <summary>Gives every clip what its waveform shows now (D024 Step 9.5, PO-W1 / PO-W2 / PO-W5): audio clips and
+    /// video clips whose media has a waveform — made, or cached for offline media (<see cref="WaveformCoordinator"/>
+    /// never makes one for silent video) —, with the clip's timing, speed and volume; dimmed when the clip or its track is
+    /// muted. Unchanged values are not re-raised (the records compare equal), so the view only redraws what changed.</summary>
+    private void RefreshWaveforms()
+    {
+        foreach (var track in Tracks)
+        {
+            foreach (var vm in track.Clips)
+                vm.Waveform = WaveformOf(vm.Clip, track.Track);
+        }
+    }
+
+    private ClipWaveform? WaveformOf(Clip clip, Track track)
+    {
+        if (_waveforms is null) return null;
+        var (media, volume, muted, lowerHalf) = clip switch
+        {
+            AudioClip a => ((MediaBackedClip)a, a.Volume, a.IsMuted, false),
+            VideoClip v => ((MediaBackedClip)v, v.Volume, v.IsMuted, true),
+            _ => (null, 0.0, false, false)
+        };
+        if (media is null || _waveforms.Get(media.MediaAssetId) is not { } data) return null;
+        return new ClipWaveform(data, media.TimelineStart, media.TimelineEnd, media.SourceIn, media.Speed, volume,
+            muted || track.IsMuted, lowerHalf, PixelsPerSecond);
     }
 
     /// <summary>Called by the view whenever it scrolls or resizes.</summary>

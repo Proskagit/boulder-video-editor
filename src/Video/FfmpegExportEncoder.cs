@@ -212,7 +212,7 @@ internal sealed class FfmpegExportEncoding : IExportEncoding
 
     private FfmpegProcess Start(List<string> arguments, string pass)
     {
-        _logger.LogDebug("Export {Pass} encoder: {Arguments}", pass, string.Join(' ', arguments));
+        _logger.LogDebug("Export {Pass} encoder starting.", pass); // command line: FfmpegProcess
         try
         {
             return FfmpegProcess.Start(_ffmpeg, arguments, _ => false, _ => { }, _logger, redirectStdin: true);

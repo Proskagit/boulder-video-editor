@@ -2,6 +2,986 @@
 
 ## Current phase
 
+Phase 9 — Quality: **in progress**, branch `feat/phase-9-quality` (from `ab248e5`, `main` after the merge of PR #6).
+Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 9 — Quality: steps"; decision D024.
+
+### Phase 9 — Quality (in progress)
+
+Steps (D024; each accepted by the product owner before the next): 9.1 audit · 9.2 scope formalization ·
+9.3 stability & error handling · 9.4 thumbnails + cache · 9.5 waveform · 9.6 hotkeys · 9.7 performance baseline &
+optimization · 9.8 polish & cleanup · 9.9 CI / quality gates · 9.10 final verification & closeout.
+Constraints: D023 unchanged; L1-c stays open (no MP4 → export canvas tolerance, Step 8.6 unchanged); out of scope
+HDR / 10-bit, colour management, export quality presets, bitrate policy, hardware encoding, hardware decoding as a
+required optimization, a full audio editor, configurable hotkeys, a large UI redesign.
+
+- Step 9.1 done (2026-09-25) — audit, no change. Baseline on `ab248e5`: `dotnet build --no-incremental` 0 errors /
+  0 warnings; `dotnet test` 1494 passed, 2 skipped (4K heavy), 0 failed (Core 380, Timeline 257, Project 259, UI 216,
+  Export 78, Rendering 52, Video 185, ExportEndToEnd 67 + 2 skipped); ffmpeg 9.0.1, .NET SDK 8.0.424. Findings:
+  - Thumbnails / waveform / cache: not implemented — `IThumbnailService` (DI registration commented out) and
+    `IVideoEngine` (thumbnail / audio extraction) declared only; `AppPaths.ProjectCacheFolder` /
+    `ProjectThumbnailsFolder` and `MediaAsset.ThumbnailPath` (serialized) exist; the Media Browser shows a colour swatch.
+  - Error handling: `ErrorTranslator`; `LoggingBootstrapper` has `Area=Ffmpeg` → `ffmpeg-.log` and `Area=Export`
+    sinks, nothing tags events with either; the damaged-project message mentions a backup in the cache folder, but
+    `ProjectFileStore` calls `File.Replace` without a backup file.
+  - Hotkeys: Ctrl+N/O/S/Shift+S, Ctrl+Z/Y/Shift+Z, Delete/Backspace, S, N, ←/→, Shift+←/→, Space, Home/End,
+    Ctrl+= / Ctrl+− (`MainWindow.ShortcutFor`); the playback model plays forward at 1× only (D010/D011).
+  - `PlaybackFrame.Picture` / `IsPictureCurrent`: filled by `PlaybackService`, read by no product code; 48 uses in
+    8 test files.
+  - Tests / CI: 8 xUnit test projects; no coverage tool, no CI, no `Directory.Build.props` / `.editorconfig`;
+    ffmpeg tests skip silently without ffmpeg. Gates so far by practice: 0 warnings, full suite, `--blame-hang`,
+    mutations, manual plans.
+  - Carried from Phase 8: L1-c open; export throughput / memory / handles / Cancel latency not measured; the close
+    hang; the single `Project.Tests` hang; the deferred `PlaybackFrame.Picture` cleanup.
+- Step 9.2 done (2026-09-25) — scope formalized (documentation only): `DEVELOPMENT_PLAN.md` Phase 9 steps with
+  scope, acceptance criteria (PR / QG / M / Impl), out of scope and dependencies; D024; ROADMAP. Awaiting the product
+  owner's review.
+- Step 9.2 accepted (2026-09-25).
+- Step 9.3 — stability & error handling. Audit accepted (2026-09-25); product owner decisions: audio device B (check
+  the default device's id at every Play and at the audio restart after a seek, recreate the output when it changed;
+  no switch during playback), device failure during playback stays D013 (Stopwatch, sound may stop, the new device
+  at the next Play/restart; no automatic recovery); backup A (correct the unused `ErrorTranslator` text, no backup,
+  `ErrorTranslator` / `CorruptProjectFileException` kept — possible 9.8 cleanup); New during `ImportManyAsync` out of
+  scope (known issue); analysis concurrency limit an implementation detail. Sub-steps, each accepted separately:
+  9.3a close hang · 9.3b analysis cancellation + ffprobe termination + same-project reopen · 9.3c analysis concurrency ·
+  9.3d FFmpeg diagnostics · 9.3e audio device · 9.3f backup message + final verification.
+  - 9.3a done — close hang. Root cause (reproduced with a scratch copy of `Program.Main` and in the real app): the
+    host was disposed synchronously (`using var host`) after the Avalonia lifetime had ended; `Host.Dispose` blocks on
+    the services' async disposal, and `PlaybackService.DisposeAsync` posted its continuations (pipelines → readers →
+    ffmpeg processes) to the `AvaloniaSynchronizationContext` of the stopped dispatcher — a deadlock whenever
+    decoders were open. Fix: `MainWindowViewModel.PrepareToCloseAsync`, once closing is agreed, awaits
+    `PreviewViewModel.ReleasePlaybackAsync` (stops polling, `IPlaybackService.DisposeAsync`) on the UI thread before
+    the window closes; `PlaybackService` releases once (later calls return the same task) and is inert from the first
+    line of the release (snapshots, Play, Pause, Seek ignored — no decoder or ffmpeg process can open again, also while
+    the release is in progress); `Program.Main` clears the dead synchronization context before the host's disposal
+    (defensive only). Tests: `Timeline.Tests/Playback/PlaybackReleaseTests` (3), `UI.Tests/CloseReleaseTests` (2).
+    Mutations: no guard in `UpdateSnapshot` → 2 failures, in `SeekAsync` → 2, release not once → 1, shell not
+    releasing → 2, preview polling after release → 1; the `Pause` guard is redundant (the release sets Paused first),
+    not caught. Real app (UI Automation, a saved project with one video with sound): closing idle, playing, paused,
+    stopped and after an export exits in 0.1 s, "Shutting down." logged, no ffmpeg left; with the fix alone (no
+    safeguard) the same; with neither change the app hangs (control). Full suite with `--blame-hang`: 1499 passed,
+    2 skipped (4K), 0 failed.
+  - 9.3a accepted (2026-09-25).
+  - 9.3b done — analysis generations, ffprobe termination, same-project reopen. `MediaAnalysisCoordinator`: a
+    cancellation generation per project, replaced on `IProjectService.ProjectChanged` (New / Open / Recover all go
+    through `Replace`, on the UI thread, before the new project's media are queued); the generation's token goes to
+    `IMediaAnalysisService.AnalyzeAsync`; after the probe a cancelled generation's result is dropped whatever it is —
+    no asset change, no `MediaAssetsChanged` (results are applied on the UI thread, so a result either belongs to the
+    current project or is dropped). `RefreshDisplaySize` the same. The in-flight guard is per asset object
+    (reference equality) instead of per id: the reopened project's assets (same ids, new objects) are analysed again
+    — before, they were skipped as duplicates and stayed Pending for good (reproduced with a scratch program: now the
+    reopened asset completes, the old result is dropped). `FfprobeMediaAnalysisService`: on cancellation, timeout or any
+    other exit before ffprobe ended, the process tree is killed and awaited (up to 5 s) — before, only the `Process`
+    object was disposed and ffprobe kept running; the timeout is an internal property (tests). Normal results and the
+    JSON parsing are unchanged; no concurrency limit (9.3c). Tests: `UI.Tests/AnalysisGenerationTests` (11: New / Open /
+    Recover / same-project reopen / orientation refresh of a replaced project — each with a probe that honours the
+    cancellation and one whose result arrives after the switch — plus a refresh of the current project), 
+    `Video.Tests/FfprobeTerminationTests` (2: cancellation and timeout end a hanging fake ffprobe and its child, in the
+    media collection like the other ping-counting tests). Mutations (all caught): guard by id → 2 failures, no
+    generation check on apply → 6, generation never cancelled → 10, refresh without the check → 1, token not passed to
+    the probe → 6, ffprobe not ended → 2. `UI.csproj` gained `InternalsVisibleTo UI.Tests` (the coordinator's
+    `IdleAsync` test hook). Full suite with `--blame-hang`: 1512 passed, 2 skipped (4K), 0 failed; build 0 warnings.
+    Real app: open, play, close as in 9.3a — clean exit, nothing left running.
+  - 9.3b accepted (2026-09-25).
+  - 9.3c done — bounded analysis concurrency. `MediaAnalysisCoordinator.MaxConcurrentAnalyses = 4` (implementation
+    detail, not configurable): a `SemaphoreSlim` slot is taken before the probe and held for the whole analysis, whose
+    ffprobe runs (stream probe, then the orientation probe) are sequential — so at most 4 ffprobe processes run;
+    orientation refreshes after Open share the slots. Waiting assets stay `Analyzing` (no new status), in queue order.
+    The wait takes the generation token, so a replaced project's queued analyses end at once; after getting a slot an
+    analysis checks its generation again before probing (found by a test: a slot freed by a cancelled analysis could
+    reach a still-registered old waiter during `Cancel()` and start a probe for the replaced project). The slot is
+    released in `finally`, only if taken. ffprobe's timeout starts inside the probe, i.e. after the slot. Choice of 4
+    (scratch measurement, 24 generated files in the OS cache, 16 cores): 1 → 788 ms, 2 → 463, 4 → 312, 8 → 232, 24 →
+    187 ms — beyond 4 the gain is small, while more processes compete with playback decoding and, on slow disks or
+    shares, with each other for the 20 s timeout. Tests: `UI.Tests/AnalysisConcurrencyTests` (5: 25 queued → at most 4
+    at once, all Completed with their own result; slots refilled over three rounds; cancel with 16 waiting — both
+    probe behaviours — the waits end at once, no old probe starts, the next project completes, no slot lost;
+    orientation refreshes share the limit), `Video.Tests/AnalysisConcurrencyIntegrationTests` (1, real
+    `FfprobeMediaAnalysisService` with a scripted ffprobe whose orientation probe hangs: 6 analyses → exactly 4
+    hanging ffprobe at once, the first 4 end after one timeout, the last 2 after two — the timeout counts from the
+    slot —, all Completed with unchanged metadata, nothing left running; `Video.Tests` now references UI). Mutations
+    (all caught): no limit → 5 UI failures and the real-ffprobe test (6 at once), wait not cancellable → 1, no check
+    after the slot → 1, slot not released on a cancelled analysis → 2. Full suite with `--blame-hang`: 1518 passed,
+    2 skipped (4K), 0 failed; build 0 warnings; analysis tests 10 × and the ffprobe tests 3 × in a row green.
+  - 9.3c accepted (2026-09-25).
+  - 9.3d done — FFmpeg / ffprobe diagnostics. Routing: one rule, `LogArea.ForSource` (Infrastructure), applied by an
+    `AreaEnricher` that replaced the fixed `Area=App` property: sources `AiVideoEditor.Video.*` and the ffmpeg / ffprobe
+    locators are `Area=Ffmpeg`, everything else `App`; an explicit `Area` (e.g. a scope) is kept. `ffmpeg-*.log` takes
+    `Area=Ffmpeg`, the application log now excludes it (no duplicates; format unchanged); `errors-*.log` still collects
+    errors of any area; `export-*.log` untouched (nothing writes to it). `LoggingBootstrapper.CreateLogger(folder)`
+    overload for tests. `FfmpegProcess` (decoders and the export encoder): the command line at Debug when it starts (a
+    start failure as a Warning), and one entry when stderr closes — Debug for a normal exit or when the app ended it
+    (flag set before the kill in `DisposeAsync`: seek, end of playback, cancelled export, closing), Warning with the
+    command line, exit code and the unconsumed stderr lines when it failed on its own. The decoder's and encoder's own
+    Debug lines no longer repeat the command line. `FfprobeMediaAnalysisService`: `-v quiet` → `-v error` (stdout stays
+    the JSON; stderr collected as it arrives, bounded to 4000 chars); Debug command line; a non-zero exit is a Warning
+    with command line, exit code and stderr (then an internal `FfprobeFailedException`, so `AnalyzeAsync` doesn't log
+    it twice); the timeout is its own Warning (with stderr so far); cancellation only Debug. Analysis outcomes and
+    messages unchanged. `ExecutableLocator` messages unchanged, routed by their category. Tests:
+    `Video.Tests/FfmpegDiagnosticsTests` (12: routing into the real sinks of a temporary folder — Video, locator and
+    explicitly tagged events only in `ffmpeg-*.log`, others only in `app-*.log`, errors log unchanged, no export log;
+    locator found / not found; a real failed ffmpeg in the ffmpeg log file with quoted command line, exit code and
+    stderr; `FfmpegProcess` normal run → Debug only, own failure → one Warning with the data, ended by the app → Debug
+    only; ffprobe failure (exit 3 + stderr), timeout, cancellation told apart; the real ffprobe's reason for a damaged
+    file reaches the log; the real ffprobe with `-v error` gives the generated file's exact metadata). Mutations (all
+    caught): no source routing → 4, ffmpeg events also in the app log → 4, app kill not recognised → 1, `-v quiet`
+    again → 3, cancellation as a Warning → 1, timeout not a Warning → 1, failed exit not reported → 2. Real app
+    (open → export → close): `ffmpeg-20260925.log` got the locator line, 6 ffmpeg command lines (decoders, both
+    encoder passes), 4 normal exits, 2 "ended by the app", no warning; none of these in the application log. Full
+    suite: 1 plain run with 1 failure in `Project.Tests` (not captured; the project references only Core and Project,
+    which Step 9.3 doesn't touch), then 40 isolated `Project.Tests` runs and 8 full runs (1532 tests each) all green —
+    recorded under the watched `Project.Tests` concern; build 0 warnings.
+  - 9.3d accepted (2026-09-25).
+  - 9.3e done — audio device (option B). `IAudioEndpoints` (Audio, internal; only `DefaultRenderDeviceId()` and
+    `Open(deviceId, latency)` → an `IWavePlayer` that is also an `IWavePosition`), production `WasapiEndpoints`
+    (`MMDeviceEnumerator` default render / multimedia endpoint id, `WasapiOut` on `GetDevice(id)`). `WasapiAudioOutput`
+    asks for the default device at every `TryStart` — Play and the audio restart after a seek (the service's existing
+    paths, `PlaybackService` unchanged) — and compares endpoint ids (ordinal, case-insensitive; names never used): the
+    same id keeps the open output, another id (default changed, or the old device removed) closes the old output and
+    opens one on the new default; no default device or one that can't be opened fails the start as before (the service
+    plays on the Stopwatch). No switch during playback, no device notifications; a device lost while playing keeps D013
+    (`HasFailed` → Stopwatch without a jump, silent until the next Play, which opens the default of that moment). The
+    clock stays cumulative across a change of device. Logging names the device by id (the name is no longer looked up).
+    Tests: `Video.Tests/AudioDeviceChangeTests` (12, fake endpoints and outputs — no real device is added, removed or
+    switched: reuse on the same default; recreate after a change, old output closed once and never replayed; id
+    compared by id (other letter case = same, another id = different); clock across a change; no default / unopenable
+    default → start fails, nothing leaked; each output disposed exactly once; with `PlaybackService`: seek while playing
+    after a change → new device, position from the seek; seek without a change → same output; device removed while
+    playing → Stopwatch without a jump, nothing switches; next Play after a loss opens the current default (another or
+    the same device), the failed output closed and never reused; unopenable new default → Stopwatch as before).
+    `WasapiAudioOutputDeviceTests` (real device, production endpoints) and `AudioPlaybackServiceTests.
+    DeviceFailure_FallsBackToTheStopwatch_WithoutAJump` still green. Mutations (all caught): default not compared → 4,
+    always recreate → 3, old output not closed → 5, case-sensitive id → 1. Full suite with `--blame-hang`: 1542 passed,
+    2 skipped (4K), 0 failed; build 0 warnings. Real app (real device): Play → Pause → Play opened the device once, by
+    its endpoint id. Not verified on hardware: an actual default-device change or unplugging during playback (would need
+    changing the system's devices) — covered only by the fake-device tests; a manual check belongs to the Phase 9
+    manual test plan.
+  - 9.3e accepted (2026-09-25).
+  - 9.3f done — damaged-project message and closeout of 9.3. `ErrorTranslator`'s text for `CorruptProjectFileException`
+    was "This project file appears to be damaged and couldn't be opened. A backup may be available in the project's
+    cache folder." — a backup the app never makes (the translator is unused; what users see on Open is the
+    `ProjectFileException` of `ProjectSerializer`, "The project file is damaged and can't be opened (reason).", which
+    never promised one). Now: "This project file is damaged or can't be read, so the project couldn't be opened." No
+    backup mechanism; `ErrorTranslator` / `CorruptProjectFileException` kept (possible 9.8 cleanup). Tests:
+    `Video.Tests/ErrorTranslatorTests` (1: exact text, no "backup / cache / recover / restore / copy", the detail kept
+    for the log; restoring the old text fails it), `Project.Tests/DamagedProjectMessageTests` (2: opening an unreadable
+    and an incomplete `project.json` gives the damaged message without any backup promise). Documentation: D024
+    "Refined in Step 9.3" (the decisions of 9.3a–f); `docs/PHASE9_MANUAL_TEST_PLAN.md` created with the 9.3 scenarios
+    (close cases, analysis during New / Open / reopen, many imports, diagnostics, damaged project, audio device change
+    and removal — the last four hardware ones manual-only, not executed); `docs/EXPORT_MANUAL_TEST_PLAN.md` no longer
+    calls the close hang a known issue; DEVELOPMENT_PLAN / ROADMAP step status. Verification: see "Step 9.3 closeout".
+  - Step 9.3 closeout (2026-09-25): 9.3a–f done, each sub-step accepted except 9.3f (awaiting, with the whole step).
+    Residual, not fixed by 9.3: New while `ImportManyAsync` checks the picked files adds them to the new project (known
+    issue, out of scope); the `Project.Tests` hang (Phase 8) / single unidentified failure (9.3d) — watched, no
+    workaround; a real default-device change and a real device removal were not tried on hardware (manual-only
+    scenarios 14–17 of the Phase 9 manual plan); `MediaAnalysisCoordinator` still relies on the captured UI
+    synchronization context (its results are applied there — also what makes the 9.3b generation check race-free).
+- Step 9.3 accepted and closed (2026-09-25), committed as `3006785`.
+- Step 9.4 — thumbnails + cache. Audit accepted (2026-09-25); product owner decisions: PO-1 saved project cache
+  `<project>/cache/thumbnails/`; PO-2 unsaved project `%LOCALAPPDATA%\AiVideoEditor\cache\unsaved\<projectId>\thumbnails\`;
+  PO-3 source time `T = min(⌊Duration / 10⌋, 5 s)` in ticks, D009 decides the frame; PO-4 at most 2 thumbnail
+  generations at once (fixed); PO-5 `MediaAsset.ThumbnailPath` kept for compatibility, never used or filled
+  (`project.json` unchanged); PO-6 `<project>/cache/thumbnails` is the one cache path — the competing
+  `AppPaths.ProjectThumbnailsFolder` (`<project>/thumbnails`) is fixed or removed within 9.4. Constraints: D009 selects
+  the frame (no `-ss` / `select` / `thumbnail` filters), `IVideoDecoder` + `SourceFrameSelector` reused, playback and
+  export never read the cache, cache hits take no slot and start no ffmpeg, a damaged cache file is a silent miss,
+  internal binary format (magic / version / size + BGRA, no PNG), 160 × 90 bound. Sub-steps, each accepted separately:
+  9.4a service and cache core · 9.4b cache location · 9.4c thumbnail queue · 9.4d Media Browser UI · 9.4e closeout.
+  - 9.4a done — thumbnail service and cache core (no UI, no cache location, no queue). Core `IThumbnailService`
+    replaced (the unused `GetOrCreateThumbnailAsync → path` contract): `TryGetCached(asset, cacheFolder)` (no decoding;
+    online media only a thumbnail matching the file as it is now, offline media — marked missing or file gone — the
+    last one cached without looking at the source) and `GetOrCreateAsync(asset, cacheFolder, ct)` (hit, or decode +
+    atomic write; null for audio, unanalysed or failed analysis, offline, or an undecodable source; cancellation
+    throws); `Thumbnail` (width, height, packed BGRA). Media `ThumbnailService`: `SourceTime(metadata)` =
+    `min(⌊Duration.Ticks / 10⌋, 5 s)`; decode request = the sample point T (ticks from `StartTime`), nominal rate,
+    160 × 90, software, `StrictEnd`; the first frame, then forward while the next frame `IsAtOrBefore` T — D009's
+    last-at-or-before with hold-first / hold-last; frames packed. Cache file `{assetId:N}-{size:x}-{lastWriteUtcTicks:x}
+    -v{rule version}.thumb` = `AIVT` + format version + width + height (little-endian) + BGRA; `TryRead` rejects
+    anything else (miss); write to a temporary name + move, older files of the asset removed afterwards; a failed
+    write only costs the cache. No ffmpeg specifics in the service. `Video.Tests` references Media (and Media gives it
+    `InternalsVisibleTo`). Tests: `Video.Tests/ThumbnailServiceTests` (35 with theory rows, fake decoder: miss →
+    decode + cache with the request checked, later hits and `TryGetCached` never decode; size, last-write time and rule
+    version changes are misses that replace the old file; nine kinds of damaged cache files are misses and are
+    repaired; atomic write, unwritable cache; offline with a cache → the cached one, never decoded, also for a file
+    gone during the session; offline without a cache, audio, pending and failed analysis → none, not decoded;
+    undecodable source; cancellation; the T rule incl. floor and cap; frame choice at exact boundaries, one tick
+    before, a 3-frame clip, T after the last frame, a start time of 1.4 s; an image), `Video.Tests/
+    ThumbnailIntegrationTests` (10, real ffmpeg, the expected frame from the generation recipe + D009: CFR 25 and
+    29.97, VFR, jittered timestamps, MPEG-TS with a container start time, H.265 — all 160 × 90; a hit starts no ffmpeg;
+    a 3-frame clip → frame 0, video ending at 0.2 s in a 10 s file → its last frame; a 320 × 240 image → 120 × 90; a
+    video with a −90° display matrix comes out portrait with its left half on top). Mutations (all caught): no D009
+    advance → 6, T = Duration/5 → 21, start time ignored → 2, size or time missing from the key → 1 each, missing flag
+    ignored → 1, audio decoded → 1, older files kept → 3, hardware decoding → 1, no length check → 3. Full suite with
+    `--blame-hang`: 1590 passed, 2 skipped (4K), 0 failed; build 0 warnings. `AppPaths` untouched (9.4b).
+  - 9.4a accepted (2026-09-25), committed as `119adcd`.
+  - 9.4b done — cache location in the project's life. Core `IThumbnailCacheLocation` (`CurrentFolder`, `Changed`,
+    `CleanUpUnsavedAsync`); Project `ThumbnailCacheLocation`: saved → `<project>/cache/thumbnails` (`SavedFolder`),
+    unsaved → `<unsaved root>/<projectId:N>/thumbnails`; the folder follows `IProjectService.Current` at every read.
+    Hooks into the existing flow only: `ProjectChanged` (New / Open / Recover — a recovered project keeps its id, so an
+    unsaved one finds its thumbnails, a saved one uses its folder) and `ProjectSaved` (first Save / Save As to another
+    folder: the `*.thumb` files are carried over on the thread pool — moved out of the unsaved folder, which is then
+    removed if empty; copied from another project folder, which keeps its cache; any failure is logged and only means
+    regeneration — never affects the save). Carry-over into a folder that already has thumbnails (product owner option
+    C, after a review of Save As over an earlier copy of the same project — same asset ids, so an offline asset could
+    have shown an older variant), refined after a second review (several source variants of one asset used to be
+    carried in file-name order, the last one winning — an outdated one when the current name sorts first, e.g. a size
+    of 9 → 16 bytes, `-9-` / `-10-` — and a move then deleted both sources): the source files are grouped by asset
+    (file name prefix before the first '-'); per group one current variant is chosen — the latest `LastWriteTimeUtc`
+    (the order the service's offline lookup uses; format validity isn't checked here, Project doesn't reference
+    Media), on a tie the ordinally last name; if any variant's time can't be read the group is skipped and logged. The
+    chosen file is copied with overwrite; only after that copy succeeded are the asset's other thumbnails in the
+    target removed (prefix `<assetId>-`) and, for a move, all of the asset's source variants deleted; a failed copy
+    removes nothing of that asset anywhere; files of other assets and foreign files stay; the target folder is never
+    cleared. Startup cleanup: `ProjectFileWorkflow.
+    StartSessionAsync` (optional constructor dependency) runs `CleanUpUnsavedAsync` before the recovery offer: removes
+    unsaved folders named by a project id without a recovery file (`RecoveryStore.PathFor`), keeps the current
+    project's and anything not named by an id; best effort. `AppPaths`: `ProjectThumbnailsFolder` (`<project>/thumbnails`)
+    removed, `UnsavedThumbnailCacheRoot` (`%LOCALAPPDATA%\AiVideoEditor\cache\unsaved`, not created) added;
+    `ProjectCacheFolder` documented as the parent of the thumbnails folder. DI (App): `IThumbnailService` →
+    `ThumbnailService`, `IThumbnailCacheLocation` → `ThumbnailCacheLocation(projects, RecoveryStore,
+    AppPaths.UnsavedThumbnailCacheRoot)`. Comments of `Project.ProjectFolderPath` and `MediaAsset.ThumbnailPath` (unused,
+    PO-5) corrected; no model or format change. A Save As over a folder that held an unrelated project leaves that
+    project's thumbnail files there; they are never read (named by other asset ids). Tests:
+    `Project.Tests/ThumbnailCacheLocationTests` (19: unsaved folder, nothing created by asking; unsaved projects never
+    share; Open → `cache/thumbnails`, no `<project>/thumbnails`; Recover unsaved / saved; first save switches and moves,
+    nothing of it in `project.json`; saving again changes nothing; Save As copies and the old project keeps its cache;
+    a failing carry-over doesn't break the save and loses nothing; a carried file replaces a same-name target file;
+    after the carry-over each asset has only its current thumbnail, other assets and foreign files untouched; a file
+    that can't be carried (locked target) stays in the source and the target isn't cleaned for it; two source variants
+    of one asset with different times — the current one sorting first and last by name — : a move carries only the
+    latest and removes both sources, a copy from a saved cache carries only the latest and leaves the source as it was;
+    a failed copy keeps every source variant and doesn't clean the target for that asset; an unreadable variant time
+    keeps the whole asset where it is while other assets are carried; cleanup keeps
+    recoverable, open and foreign folders and removes orphans; cleanup without a cache),
+    `UI.Tests/StartupThumbnailCleanupTests` (1: startup removes the
+    orphan, the recovered project uses and keeps its folder), `UI.Tests/ThumbnailCompositionTests` (2: the app's
+    `AddAiVideoEditor` resolves both services, one singleton, the unsaved folder under `AppPaths`; `AppPaths` has no
+    `ProjectThumbnailsFolder`). `UI.Tests` references App for the DI test (`Video.Tests` can't: App brings the Project
+    namespace, which clashes with its `Project` type names). Mutations (all caught): saved cache at `<project>/thumbnails`
+    → 5, one unsaved folder for all → 3, no carry-over → 2, cleanup ignoring recovery files → 1, Save As moving the old
+    cache → 1, cleanup removing the open project's cache → 1, no cleanup at startup → 1; carry-over (option C): same
+    name skipped → 1, older variants kept → 1, other assets removed too → 2, source removed before the copy → 3, target
+    cleaned after a failed copy → 1; per-asset choice: oldest variant → 3, first by name → 1, last by name (the former
+    order) → 3, a variant picked despite an unreadable time → 1, a move deleting only the carried variant → 1, sources
+    removed before the copy → 6. Full suite with `--blame-hang`: 1612 passed, 2 skipped (4K), 0 failed; build 0 warnings. Real app: start, open, close clean, no
+    warnings; nothing created in the project folder (no thumbnails are made yet — 9.4c/d).
+  - 9.4b accepted (2026-09-28), committed as `79e6359`.
+  - 9.4c done — `ThumbnailCoordinator` (UI/Services): makes and keeps the current project's thumbnails between the
+    media, `IThumbnailService` and the UI (no bitmaps — 9.4d). Requests on `MediaAssetsChanged` (and at start) for
+    video / images with completed analysis (made) and for offline media (a cached one only, never decoded); audio,
+    pending and failed analysis get nothing — analysis stays `MediaAnalysisCoordinator`'s. Generations: one per project,
+    replaced on `ProjectChanged` (New / Open / Recover), the old one cancelled; a cancelled generation's result is never
+    stored and raises no event, also when its work ended after the switch (applied on the caller's context — the UI
+    thread — like the analysis). Once per asset id and generation (in work, done or without a thumbnail — a failure
+    isn't retried until the next project). Cache read (`TryGetCached`) first, on the thread pool, without a slot; a
+    miss takes one of `MaxConcurrentGenerations = 2` slots (PO-4) — the wait ends with the generation — and runs
+    `GetOrCreateAsync` on the thread pool. The cache folder is read from `IThumbnailCacheLocation` per request: Save /
+    Save As change it for later requests and start no new generation. `ThumbnailReady` (asset id) + `Get(assetId)`
+    for 9.4d. `ShutdownAsync` cancels everything and waits (≤ 5 s); `MainWindowViewModel.PrepareToCloseAsync` calls it
+    after releasing playback (optional constructor dependency). DI: singleton. Tests: `UI.Tests/ThumbnailCoordinatorTests`
+    (13, fake service counting concurrent makes, real project service: at most 2 at once and every asset its own
+    thumbnail with one event each; one asset handled once over repeated media changes, also after it is ready; a cache
+    hit takes no slot and is never made; eligibility incl. offline with / without a cache and an analysis completing
+    later; a failing and an undecodable asset don't stop the others and aren't retried; a new project cancels the old
+    work — service noticing the cancellation or finishing anyway — and publishes nothing of it; waits of the old project
+    end at once, the new project is handled, no slot lost; a slot freed while the old project is cancelled starts no
+    work for it; reopening a project handles its assets again (cache hit); shutdown cancels, waits and publishes
+    nothing, nothing starts afterwards; closing the main window shuts the work down; a new cache folder is used for
+    later requests without starting over); 10 × in a row green. Mutations: no limit → 6, no dedup → 3, cache hit
+    taking a slot → 1, stale result published → 2, old generation not cancelled → 3, slot wait not cancellable → 1,
+    shutdown not cancelling → 2, folder not read per request → 1, offline media decoded → 1, window close not shutting
+    down → 1; the generation check after getting a slot is not caught (0 of 5): unlike 9.3c the work runs behind
+    `Task.Run` and SemaphoreSlim hands a freed slot over asynchronously, so the waits are always cancelled before a slot
+    of the cancelled project reaches them — a defensive check. Full suite with `--blame-hang`: 1625 passed, 2 skipped
+    (4K), 0 failed; build 0 warnings. Real app (a saved project with one video): first open made one thumbnail
+    (`cache/thumbnails/<id>-…-v1.thumb`, 57 616 B = 16 + 160 × 90 × 4; one 160-bound decode in `ffmpeg-*.log`), the
+    reopen decoded nothing (cache hit); close clean, no ffmpeg left.
+  - 9.4c accepted (2026-09-28), committed as `b6ca02a`.
+  - 9.4d done — Media Browser shows thumbnails. `MediaBrowserItemViewModel.Thumbnail` (Core `Thumbnail`, null = the
+    kind's colour tile) + `HasThumbnail`; `MediaBrowserViewModel` (optional `ThumbnailCoordinator`, injected by DI) gives
+    rebuilt rows `coordinator.Get(asset.Id)` and updates a row on `ThumbnailReady` (the coordinator only reports the
+    current project). View: the 56 × 32 colour tile stays as background/placeholder, an `Image` (`Stretch=Uniform`) over it
+    bound through `UI/Rendering/ThumbnailBitmapConverter` — BGRA → `WriteableBitmap` with the Preview's `FrameBitmap`,
+    one bitmap per `Thumbnail` instance (`ConditionalWeakTable`), so the rows rebuilt on every media change reuse it. No
+    layout redesign. Tests: `UI.Tests/MediaBrowserThumbnailTests` (3: a row gets its thumbnail when ready and keeps the
+    same instance after a rebuild; audio and offline without a cache keep the tile, offline with a cache shows it;
+    another project starts without the previous thumbnails), `Rendering.Tests/ThumbnailBitmapConverterTests` (2: size
+    and exact BGRA pixels incl. alpha; same thumbnail → same bitmap, null → none). Mutations (all caught): ready events
+    ignored → 3, rebuilt rows losing the thumbnail → 1, a new bitmap per rebuild → 1. Full suite with `--blame-hang`:
+    1630 passed, 2 skipped (4K), 0 failed; build 0 warnings. Real app: the opened project's video shows its thumbnail in
+    the Media Browser (screenshot checked).
+  - 9.4d accepted (2026-09-28), committed as `197e99e`.
+  - 9.4e done — closeout of 9.4 (documentation only, plus one comment). D024 "Refined in Step 9.4": PO-1–PO-6 and
+    option C of the carry-over, the interface (Core `IThumbnailService`, Media implementation over `IVideoDecoder` +
+    `SourceFrameSelector`, `IVideoEngine` not used), cache key and format, location, queue, Media Browser, and what is
+    left as it is. `docs/PHASE9_MANUAL_TEST_PLAN.md`: section "Step 9.4" (scenarios 18–30: thumbnails appear,
+    deterministic frame, reopen from the cache, changed source, damaged cache, offline with / without a cache, unsaved
+    project and first Save, Save As, recovery and startup cleanup, New / Open and close while thumbnails are made, a
+    portrait video, playback / export untouched) and the status "app 9.4". `docs/DEVELOPMENT_PLAN.md`: 9.3 marked
+    accepted, 9.4 done with the chosen rule, key, location and interface noted per item (offline media refined: its
+    cached thumbnail, if any). `ROADMAP.md` "Current". `ARCHITECTURE.md`: media pipeline no longer calls `IVideoEngine`
+    the thumbnail interface; new section "Thumbnails (Phase 9 Step 9.4)"; verification note. `README.md`: the lines
+    that called thumbnails future work (`Video/`, `Media/`, "FFmpeg behind Core interfaces"). `IVideoEngine`'s comment no
+    longer reserves it for thumbnails. Not touched: other stale README lines (Export "Empty" / "not implemented yet") —
+    not 9.4's; a 9.8 / 9.10 item.
+  - Step 9.4 closeout (2026-09-28): 9.4a–e done, 9.4a–d accepted, 9.4e awaiting with the whole step. Verification:
+    `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1630 passed, 2 skipped (4K),
+    0 failed (Core 380, Timeline 260, Project 280, UI 253, Export 78, Rendering 54, Video 258, ExportEndToEnd 67 + 2);
+    the 85 thumbnail tests (`~Thumbnail` in UI 19, Video 45 incl. 10 with real ffmpeg 9.0.1, Project 19, Rendering 2)
+    11 × in a row green; parity suite unchanged. Real app: start → close window clean (67 ms, no ffmpeg left, no
+    errors); with media, the 9.4c / 9.4d checks (one decode on first open, none on reopen, thumbnail shown). The formal
+    manual run of scenarios 18–30 is Step 9.10's. Residual (D024 "Left as they are"): no cache limit / eviction; a
+    failed thumbnail retried only with the next project; media coming back online not re-checked; an unrelated
+    project's thumbnail files left in a Save As target; the defensive post-slot generation check unreachable by
+    mutation.
+- Step 9.4 accepted and closed (2026-09-28): 9.4d committed as `197e99e`, 9.4e as `e666b48`.
+- Step 9.5 — waveform. Audit (2026-09-28): no waveform code (only a mention in `Audio/ModuleInfo.cs`). Building
+  blocks: Core `IAudioDecoder` / `FfmpegAudioDecoder` (48 kHz stereo float, exact `FirstSampleIndex`; from source
+  position 0 one ffmpeg run from the file's start), `AudioPlacement` / `AudioTiming` (the exact timeline ↔ source
+  sample mapping at any speed, D022), `PlaybackSnapshotBuilder`'s audible sources (`AudioClip`; `VideoClip` whose media
+  has an `AudioCodec`; clips on muted tracks left out, muted clips kept at zero gain), clip volume 0–200 % linear and
+  mute (Inspector), track mute (model only, no UI); timeline clips are 36 px `Border`s with a label, zoom 2 px/s –
+  40 px/frame (2400 px/s at 60 fps) — a long clip is millions of pixels wide at the top zoom, so the display must draw
+  only what is visible; the 9.4 cache location (`ThumbnailCacheLocation`) handles `*.thumb` in `cache/thumbnails` only.
+  Product owner decisions (2026-09-28, all as proposed): PO-W1 video clips with sound show a waveform too, in the lower
+  part of the clip; PO-W2 height linear in the clip's volume (200 % reaches the clip's edge), a muted clip or track
+  dimmed with the same shape, envelope `max(|L|, |R|)` on a linear scale; PO-W3 waveforms are made only for media used
+  by a clip on the timeline (not at import); PO-W4 `<project>/cache/waveforms` and
+  `%LOCALAPPDATA%\AiVideoEditor\cache\unsaved\<projectId>\waveforms`, the thumbnails' life cycle (first Save moves,
+  Save As copies, startup cleanup) and key, at most 2 made at once, separate from thumbnails; PO-W5 (2026-09-28, after
+  9.5a) offline media: the timeline may show a waveform cached earlier in `cache/waveforms`, never decoding or making
+  one; without a cached one it shows none (refines the plan's "offline shows no waveform"). Sub-steps, each accepted separately: 9.5a peak service and
+  cache core · 9.5b cache location · 9.5c waveform queue · 9.5d timeline display · 9.5e closeout.
+  - 9.5a done — waveform service and cache core (no UI, no cache location, no queue, no DI registration yet — as
+    9.4a). Core `IWaveformService` (`TryGetCached(asset, cacheFolder)` never decodes; `GetOrCreateAsync(asset,
+    cacheFolder, ct)`) and `Waveform` (samples per peak, sample count, one byte peak per started group of source
+    samples; `ToPeak` = `⌈|a|·255⌉` capped at 255 — rounded up so any sound is visible; `MaxPeak(from, to)` over the
+    groups a source range touches, 0 outside `[0, SampleCount)` — for the display). Media `WaveformService`: the file's
+    audio decoded once by `IAudioDecoder` from source position 0, 1×, `StrictEnd`, the file's start time as origin;
+    samples placed by the stream's `FirstSampleIndex` (before 0 dropped, a later start leaves silent groups); peak =
+    `max(|L|, |R|)` per 256 samples (187.5 per second); the waveform ends where the audio ends. Media: audio files and
+    video with an `AudioCodec`, analysis completed; images, silent video, pending / failed analysis → none, not
+    decoded; offline (marked missing or file gone) → the last cached one, never decoded. A decode failure (also midway)
+    → none, nothing cached; cancellation throws. Cache file `{assetId:N}-{size:x}-{lastWriteUtcTicks:x}-v1.peaks`:
+    `AIVW` + format version + samples per peak + sample count (little-endian) + peaks; anything else is a miss
+    (repaired). The cache key, the atomic write and the offline lookup moved from `ThumbnailService` into
+    `Media/Caching/SourceFileCache` and are used by both services (thumbnail behaviour unchanged — its 45 tests green).
+    Test fake: `FakeAudioSource` got an optional `Shape` (sample index → L, R). Tests: `Core.Tests/WaveformTests` (15:
+    peak count, validation, the peak scale incl. rounding up, capping and NaN, `MaxPeak` over groups / edges / empty
+    ranges), `Video.Tests/WaveformServiceTests` (29 with theory rows, fake decoder: peaks of both channels per group
+    incl. a partial last group; the decode request; samples before the start dropped; a later stream start; empty
+    audio; which media; hit / miss / size / time / rule version; thumbnails and other assets left alone; nine kinds of
+    damaged files repaired; offline with / without a cache, a file gone during the session; open and midway failures;
+    cancellation; an unwritable cache), `Video.Tests/WaveformIntegrationTests` (4, real ffmpeg 9.0.1: PCM tones —
+    silence, 0.5 left / 0.2 right, 0.8 right only — exact per group; AAC in MPEG-TS starting at 10 s — the onset
+    within 8 groups of 1 s; a video with sound; a silent video never decoded; a hit starts no ffmpeg). Mutations (all
+    caught): no start time → 2, stream start ignored → 2, left channel only → 4, peak rounded down → 7, not strict → 1,
+    no cache read → 2, offline decoded → 3, silent video decoded → 2, older files kept → 4, no length check → 2,
+    `MaxPeak` missing the last group → 1. `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with
+    `--blame-hang`: 1678 passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 280, UI 253, Export 78,
+    Rendering 54, Video 291, ExportEndToEnd 67 + 2). No real-app check: nothing user-visible yet (9.5d).
+  - 9.5a accepted (2026-09-28), committed as `732f0a7`.
+  - 9.5b done — waveform cache location and life cycle (PO-W4). Core: `IMediaCacheLocation` (`CurrentFolder`,
+    `Changed`, `CleanUpUnsavedAsync` — the former members of `IThumbnailCacheLocation`), `IThumbnailCacheLocation` and
+    the new `IWaveformCacheLocation` derive from it (consumers and fakes unchanged). Project: the logic of 9.4b's
+    `ThumbnailCacheLocation` moved unchanged into the abstract `MediaCacheLocation` (kind folder, file pattern, log
+    name); `ThumbnailCacheLocation` (`thumbnails`, `*.thumb`) and `WaveformCacheLocation` (`waveforms`, `*.peaks`) are
+    its two kinds — saved `<project>/cache/<kind>`, unsaved `<unsaved root>/<id>/<kind>`, carry-over on the first Save
+    (move) / Save As (copy, one current variant per asset), each kind touching only its own folder and files. Two
+    changes of the shared code, so the kinds don't disturb each other: a move removes the unsaved `<id>` folder only
+    once nothing else is left in it (was: once the thumbnails folder was empty — same result with one kind), and the
+    startup cleanup removes an orphan's kind folder and then the `<id>` folder if empty (was: the whole `<id>` folder).
+    `ProjectFileWorkflow.StartSessionAsync` also cleans up the waveform cache (optional constructor dependency, after
+    the thumbnails', before the recovery offer). DI (App): `IWaveformService` → `WaveformService`,
+    `IWaveformCacheLocation` → `WaveformCacheLocation(projects, RecoveryStore, AppPaths.UnsavedThumbnailCacheRoot)`
+    (the unsaved root of both kinds; name kept, comments of `AppPaths` updated). Tests: `Project.Tests/
+    WaveformCacheLocationTests` (12, both locations side by side: unsaved folder next to the thumbnails', nothing created;
+    Open; Recover unsaved / saved; the first save moves each kind into its own folder and removes the `<id>` folder;
+    each kind carries only its own files; the `<id>` folder stays while the other kind still has something; Save As
+    copies and the old project keeps its own; Save As over an earlier copy leaves one current waveform per asset and
+    no thumbnail touched; a failing carry-over doesn't break the save; cleanup removes an orphan's waveforms, keeps its
+    thumbnails until their own cleanup, keeps recoverable / open / foreign folders; cleanup without a cache),
+    `UI.Tests/WaveformCompositionTests` (1: the app's composition resolves the service and the location, singletons, the
+    unsaved folder next to the thumbnails'), `UI.Tests/StartupThumbnailCleanupTests` (+1: startup removes both caches of
+    an orphan, the recovered project keeps its waveforms). The 19 `ThumbnailCacheLocationTests` and the other thumbnail
+    tests unchanged and green. Mutations (all caught): waveforms in the thumbnails folder → 13, every file carried → 2,
+    cleanup removing the whole `<id>` folder → 1, a move removing the whole `<id>` folder → 1 (the first version of that
+    test used a locked file, which also stopped the mutated delete — replaced by a file the other kind doesn't carry),
+    first save copying instead of moving → 7, no waveform cleanup at startup → 1, location not registered → 1.
+    `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1692 passed, 2 skipped (4K),
+    0 failed (Core 395, Timeline 260, Project 292, UI 255, Export 78, Rendering 54, Video 291, ExportEndToEnd 67 + 2).
+    Real app: start (startup cleanup of both kinds) → close window clean (75 ms, no ffmpeg left, no errors); nothing
+    user-visible yet (9.5d).
+  - 9.5b accepted (2026-09-28), committed as `babfbd5`; `AppPaths.UnsavedThumbnailCacheRoot` keeps its name
+    (technical debt, 9.5e / 9.8).
+  - 9.5c done — `WaveformCoordinator` (UI/Services), the waveform queue. The orchestration of 9.4c's
+    `ThumbnailCoordinator` moved unchanged into the abstract `MediaCacheCoordinator<T>` (generations cancelled on
+    `ProjectChanged` with their results dropped, once per asset id and generation, cache read on the thread pool without
+    a slot, making on the thread pool with one of the coordinator's own slots — a `SemaphoreSlim` per instance, so the
+    two kinds never share or hold up each other's limit —, results on the caller's context, `Ready` + `Get`,
+    `ShutdownAsync` ≤ 5 s); `ThumbnailCoordinator` is its thumbnail kind (API unchanged: `ThumbnailReady`,
+    `MaxConcurrentGenerations`; its 13 tests and the Media Browser's green). `WaveformCoordinator` (PO-W3 / W4 / W5):
+    candidates are only the media a clip on the timeline uses (any track, also hidden or muted — a muted clip is still
+    drawn, dimmed), requested on `TimelineChanged`, `MediaAssetsChanged` (an analysis completing) and at start; made for
+    audio and for video with an `AudioCodec` whose analysis completed; offline media only reads the cache (never made) —
+    unless its saved metadata says it has no sound; at most 2 made at once. A clip removed from the timeline keeps its
+    asset's waveform and work (an undo may bring it back). `WaveformReady` (asset id) + `Get(assetId)` for 9.5d.
+    `MainWindowViewModel.PrepareToCloseAsync` shuts it down after the thumbnails (optional constructor dependency). DI:
+    singleton; resolved with the main window, so it runs from the start (nothing is drawn until 9.5d). Tests:
+    `UI.Tests/WaveformCoordinatorTests` (15, fake service counting concurrent makes and holding them, real project
+    service: only media on the timeline — nothing at import —, an opened project's timeline handled (cache hit), a
+    removed clip keeps its waveform; at most 2 at once and one event per asset; busy thumbnail slots never hold up the
+    waveforms and free none of theirs; once per asset over repeated timeline / media changes and a second clip; a cache
+    hit takes no slot; silent video, images, pending and failed analysis get none, an analysis completing later is
+    picked up; offline: cached shown, none without, never made, known-silent not even read; a failure isn't retried and
+    doesn't stop the others; a new project cancels and publishes nothing of the old one (service noticing the
+    cancellation or not) and the new one is handled; shutdown; closing the main window; a new cache folder for later
+    requests), `UI.Tests/WaveformCompositionTests` (+1: one coordinator, a singleton). The limit in the tests is the
+    product decision (2), not the constant. Mutations (all caught): every imported media → 1, timeline changes ignored →
+    13, limit 1 → 7 (first survived: the tests read the constant — now the literal 2), one pool for both kinds → 8,
+    offline decoded → 1, offline known-silent read → 1, silent video made → 1, no dedup → 3, cache hit taking a slot → 1,
+    old generation not cancelled → 2, stale result published → 1, window close not shutting down → 1, coordinator not
+    registered → 1. `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1708
+    passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 271, Export 78, Rendering 54, Video 291,
+    ExportEndToEnd 67 + 2). Real app: start (the coordinator now runs from the start) → close window clean (67 ms, no
+    ffmpeg left, no errors). Not checked in the real app: a waveform actually made for a project's timeline — driving
+    the native folder picker (Open) through UI Automation from this session failed (the modal dialog blocked it);
+    nothing is drawn yet, so that check comes with 9.5d.
+  - 9.5c accepted (2026-09-28), committed as `a67b900` (a removed clip keeping its waveform confirmed as intended).
+  - 9.5d done — waveforms on the timeline (PO-W1–W5). `UI/Common/WaveformLayout` (the display rule, no drawing):
+    `ClipWaveform` — an immutable value per clip: the asset's `Waveform`, the clip's timeline start / end, source in,
+    speed, volume, muted (clip or track), lower half (video) and the zoom; `Fraction(peak, volume)` =
+    `peak / 255 · volume / 2`, capped at 1 — linear in the volume, a full-scale peak takes the full height at 200 % and
+    half of it at 100 %; `Column(clip, c)`: clip-local pixel column c covers timeline samples
+    `[⌊c·48000/pps⌋, ⌊(c+1)·48000/pps⌋)` from the clip's first sample, mapped to the source by the clip's
+    `AudioPlacement` (the rule of playback and export — trim, position, speed ≠ 1×), and shows the largest peak of
+    that source range (`Waveform.MaxPeak`); 0 outside the clip or after the sound. `TimelineClipViewModel.Waveform`
+    (`ClipWaveform?`) + `HasWaveform`. `TimelineViewModel` (optional `WaveformCoordinator`, injected by DI) gives every
+    clip its value on each refresh / relayout (edits, undo, zoom) and on `WaveformReady`: audio clips over the whole
+    clip, video clips in the lower half, from `coordinator.Get(assetId)` — none for text, images, silent video (never
+    made), offline media without a cached waveform (PO-W5); dimmed when the clip or its track is muted (PO-W2); equal
+    values are not raised again. `UI/Rendering/WaveformView` (Control, not hit-testable): a filled polygon symmetric
+    around the centre line of its area, white at 50 % alpha, muted at 19 %; computes and draws only the columns inside
+    the timeline `ScrollViewer`'s viewport (redrawn on `ScrollChanged`) — a clip is up to millions of pixels wide at the
+    top zoom. `TimelineView.axaml`: the view inside each clip's grid, under the label, over all three columns (the trim
+    handles stay on top). Its column 0 is the clip border's inner edge — 1–2 px (the border) right of the clip's
+    timeline x. Tests: `UI.Tests/WaveformLayoutTests` (17: the volume rule incl. 100 % / 200 % / 0; 1× columns; a
+    trimmed clip anywhere on the timeline; 2× and 0.5×; zoomed out; nothing outside the clip or after the sound; the
+    volume scaling; only viewport columns, six positions), `UI.Tests/TimelineWaveformTests` (8, real project, edit
+    service and coordinator, fake service: audio clip with timing and volume; video with sound lower half, silent
+    video / image / text none and only one made; made later appears on both clips of the asset; clip and track mute
+    dimmed with the same data; trim / move / speed / zoom followed; unchanged values not raised; offline cached shown,
+    none without, nothing made; no coordinator, no waveform), `Rendering.Tests/WaveformViewTests` (4, rendered with
+    Avalonia: audio whole height where there is sound and nothing where silent; video lower half only; half height at
+    100 %; muted same shape, dimmer). Mutations (all caught): 100 % as the full height → 9, speed ignored → 1, source
+    in ignored → 1, one peak per column → 2, track mute ignored → 1, video over the whole clip → 1, clip volume ignored
+    → 1, ready ignored → 4, muted not dimmed → 1, lower half ignored in drawing → 1, viewport not clamped → 4.
+    Real app (a generated project: V1 `tone.mp4` 10 s with AAC — 0–2 s silence, 2–6 s a tone at 0.25, 6–10 s at 0.9 —
+    and `silent.mp4` without sound; A1 `tone.wav` (the same sound) at 2× and a muted `tone.wav` clip from source 2 s;
+    no saved metadata, so Open analysed first; driven through UI Automation, window screenshots checked):
+    1) first Open: `cache/waveforms` got one `.peaks` for `tone.wav` and one for `tone.mp4` (1 895 B = 20 + 1 875 peaks
+    for 10 s), none for `silent.mp4`; `ffmpeg-*.log`: one 1× full-file audio decode per file with sound (the two other
+    audio starts at the same moment are the Preview's — one with `atempo=2` for the 2× clip), no audio decode of
+    `silent.mp4`; 2) shown: `tone.mp4` in the lower half — nothing to 2 s, thin to 6 s, thicker to 10 s; `silent.mp4`
+    none; the 2× clip silent to 1 s, thin to 3 s, thick to 5 s; the muted clip dimmed, thick from 10 s (source 6 s);
+    3) reopen: only the Preview's two audio starts, no waveform (or thumbnail) decode, the `.peaks` files unchanged
+    (same last-write times), the same picture; 4) offline (media folder renamed): the cached waveforms shown, no ffmpeg
+    at all; offline with the WAV's `.peaks` removed: its clips show none, the video its cached one; zoomed in 12 steps
+    and scrolled to 5.5–8.4 s: the waveform drawn across the viewport, the loudness step exactly at 6.00 s. Every run
+    closed cleanly, no ffmpeg left. Seen, as decided (PO-W2): at 100 % a loud tone (0.9) takes under half of the
+    height and a quiet one (0.25) about an eighth — with the 19 % alpha a muted quiet clip is barely visible.
+    `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1737 passed, 2 skipped (4K),
+    0 failed (Core 395, Timeline 260, Project 292, UI 296, Export 78, Rendering 58, Video 291, ExportEndToEnd 67 + 2).
+  - 9.5d accepted (2026-09-28), committed as `80d3748`; the height at 100 % (PO-W2), the 1–2 px border offset and the
+    waveform during a start-trim drag stay as they are.
+  - 9.5e done — closeout of 9.5. Documentation: D024 "Refined in Step 9.5" (PO-W1–W5, the data and service, the shared
+    location and queue, the display rule, what is left as it is); `docs/PHASE9_MANUAL_TEST_PLAN.md` section "Step 9.5"
+    (scenarios 31–43: only timeline media, audio clip and video with sound, silent video / images / text, volume, mute,
+    trim / move / split / undo, speed, zoom and scroll, reopen from the cache, offline with and without a cache,
+    unsaved project / Save / Save As / recovery, New / Open / close while waveforms are made, playback and export
+    untouched) and the status "app 9.5"; `ARCHITECTURE.md` new section "Waveforms (Phase 9 Step 9.5)", the Thumbnails
+    section points to the shared location / coordinator, verification note; `docs/DEVELOPMENT_PLAN.md` 9.5 done;
+    `ROADMAP.md` "Current"; `README.md` (waveforms next to thumbnails); stale comments of `Audio/ModuleInfo`
+    ("waveform generation" there) and `IVideoEngine` corrected. One code fix found by the final verification: the
+    waveform and thumbnail tests repeated 10 × failed once (`ThumbnailCoordinatorTests.Shutdown_cancels_everything…`,
+    `RunningCount` 1 after `ShutdownAsync`; reproduced once in 22 runs) — a race of `MediaCacheCoordinator` (from
+    9.4c): a piece of work leaves the bookkeeping in a continuation that runs after the work has completed, possibly
+    after `Task.WhenAll` noticed it, so `IdleAsync` (and with it `ShutdownAsync`'s wait) could end one step early.
+    `IdleAsync` now waits until the bookkeeping is empty. After the fix: 60 runs in a row green. Not reachable by a
+    deterministic test (a scheduling race); the shutdown tests of both coordinators cover it statistically.
+  - Step 9.5 closeout (2026-09-28): 9.5a–e done, 9.5a–d accepted, 9.5e awaiting with the whole step. Verification:
+    `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang` (after the fix): 1737 passed,
+    2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 296, Export 78, Rendering 58, Video 291,
+    ExportEndToEnd 67 + 2); the waveform, thumbnail and cache-location tests (UI 62, Video 78 incl. 14 with real ffmpeg
+    9.0.1, Project 31, Rendering 6, Core 15) 10 × in a row — one failure, the race above — and the UI part 60 × green
+    after the fix; parity suite unchanged. Real app (the 9.5d project, waveform cache removed first): first open made
+    one `.peaks` per file with sound and none for the silent video, the same picture as in 9.5d; closed 1 s after
+    opening, while waveforms were being made — clean (140 ms, no ffmpeg left); reopen: only the Preview's two audio
+    starts, the `.peaks` unchanged; no process left. The formal manual run of scenarios 31–43 is Step 9.10's. Residual
+    (D024 "Left as they are"): no cache limit / eviction; a failed waveform retried only with the next project; media
+    coming back online not re-checked; the start-trim drag preview; the 1–2 px border offset; the faint muted quiet clip
+    at 100 %; `AppPaths.UnsavedThumbnailCacheRoot` naming both caches (9.8).
+- Step 9.5 accepted and closed (2026-09-28): 9.5d committed as `80d3748`, 9.5e as `568a47b`.
+- Step 9.6 — hotkeys. Audit (2026-09-28): every shortcut lives in `MainWindow.ShortcutFor` (Ctrl+N / O / S /
+  Shift+S, Ctrl+Z / Y / Shift+Z, Delete / Backspace, S, N, ← / →, Shift+← / →, Space, Home / End, Ctrl+= / −), handled
+  on the window's bubbling KeyDown only when no focused control consumed the key; the text-input guard (`TextBox`,
+  also inside `NumericUpDown`) was never exercised in the running app (known issue since Phase 4); a known shortcut
+  whose command can't run (editing during an export, `EditingLock`) is consumed and does nothing; no routing tests at
+  all. Playback: forward at 1× only; at the end Paused at Duration, Play there restarts from 0, Stop = Pause + Seek(0)
+  (D011); no loop. Existing commands without a shortcut: Import Media, Export, Zoom to Fit, Stop, Add to Timeline,
+  + Text, + Video / Audio Track. Product owner decisions (2026-09-28, all as proposed): PO-H1 J = back 1 s, the
+  playback state kept (playing continues, paused stays paused); PO-H2 K = pause, L = play (nothing when already
+  playing; at the end from 0), Space unchanged; PO-H3 loop: a toggle button in the Preview transport + Ctrl+L, session
+  state only (not in `project.json`, not dirty, not undoable), while on the end of the sequence continues from 0;
+  PO-H4 extra shortcuts Ctrl+I Import Media, Ctrl+E Export, \ Zoom to Fit; the optional shortcut list (F1) not chosen.
+  Sub-steps, each accepted separately: 9.6a routing and its tests (no behaviour change) · 9.6b J / K / L and the extra
+  shortcuts · 9.6c loop · 9.6d the text-input guard in the running app and closeout.
+  - 9.6a done — routing and its tests, no behaviour change. The shortcut table and the key handling moved unchanged
+    from `MainWindow` into `UI/Common/ShortcutRouter`: `CommandFor(vm, key, modifiers)` (exact modifiers),
+    `IsTextInput(element)` (`TextBox`), `Handle(vm, key, modifiers, source, focused)` — nothing while the source or the
+    focused element is a text input, a known shortcut is consumed and runs only if its command can execute.
+    `MainWindow.OnKeyDown` only calls it (unused `System.Windows.Input` using removed). Tests:
+    `UI.Tests/ShortcutRoutingTests` (14 with theory rows, real view models / project / edit service: every existing
+    shortcut keeps its key and command (22 key + modifier pairs); nine other keys / modifier combinations are no
+    shortcut and not consumed; a shortcut runs and is consumed; nothing fires while a `TextBox` sent the key or has
+    focus, any other control doesn't block; only text inputs block; during an export split / New / Undo are consumed
+    without running, viewing (→) still works, after it split works). Mutations (all caught): no guard → 1, focus not
+    checked → 1, unavailable not consumed → 1, unavailable run anyway → 1, modifiers not exact → 3, Shift ignored → 2, a
+    mapping swapped → 1, a key lost → 1. `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with
+    `--blame-hang`: 1751 passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 310, Export 78,
+    Rendering 58, Video 291, ExportEndToEnd 67 + 2). Real app (the 9.5d project opened through UI Automation): N sent to
+    the window (WM_KEYDOWN / WM_KEYUP posted to it — `SendKeys` from this session doesn't reach the app) toggled Snap
+    On → Off through the router; closed clean.
+  - 9.6a accepted (2026-09-28), committed as `b90247a`.
+  - 9.6b done — J / K / L and the extra shortcuts (PO-H1 / PO-H2 / PO-H4). `PreviewViewModel`: `PlayCommand` (plays;
+    nothing when already playing; at the end the service starts from 0, D011) and `PauseCommand` (pauses; nothing when
+    paused), next to `PlayPauseCommand` (Space, unchanged). `ShortcutRouter`: J → the timeline's
+    `StepBackwardSecondCommand` (the same as Shift+←: one second of nominal frames back; a seek never changes the
+    playback state, so playing continues from there and paused stays paused; at the start it stops at 0), K → Pause,
+    L → Play, Ctrl+I → Import Media, Ctrl+E → Export (both inert during an export, like the other editing shortcuts),
+    `\` → Zoom to Fit (`OemPipe` on US layouts, `OemBackslash` — the key next to the left Shift — on ISO ones); all
+    without other modifiers. No reverse playback or faster speeds (D010 / D011 unchanged). Tests:
+    `UI.Tests/PlaybackShortcutTests` (6, the real shell and playback service with the fake decoder and a manual clock,
+    keys through the router: L plays and pressed again keeps playing; K pauses and pressed again stays paused, the clock
+    moving doesn't move the playhead; J while playing goes back 25 frames at 25 fps and plays on; J while paused goes
+    back and stays paused, and stops at 0; L at the end starts from 0; both `\` keys fit the sequence),
+    `UI.Tests/ShortcutRoutingTests` (+7 table rows, +5 non-shortcut rows: Shift+J, Ctrl+K, I and E without Ctrl,
+    Ctrl+\; Ctrl+I / Ctrl+E consumed without running during an export); the shortcut tests 5 × in a row green.
+    Mutations (all caught): L toggling → 2, K toggling → 2, J one frame → 3, J stopping playback → 3, Pause playing
+    when paused → 1, the ISO backslash missing → 2, Import without Ctrl → 3, Export missing → 2 (a first "J pauses"
+    mutation changed nothing — replaced by "J stopping playback"). `dotnet build --no-incremental` 0 errors /
+    0 warnings; full suite with `--blame-hang`: 1762 passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260,
+    Project 292, UI 321, Export 78, Rendering 58, Video 291, ExportEndToEnd 67 + 2). Real app (the 9.5d project, keys
+    posted to the window): L → the transport shows Pause (playing), L again → still Pause, K → Play (paused), K again
+    → still Play; closed clean. Second round (keys posted as VK codes, the timecode read through UI Automation before
+    and ~760 ms after each key; no test suite running): J while playing 04:17 → 04:09 and 06:10 → 06:02 — one second
+    back plus the time until the second reading (expected ≈ 04:11 / 06:04; the 2-frame difference is the latency of the
+    UI Automation readings), the transport kept showing Pause and the time kept running; J while paused 04:10 → 03:10,
+    exactly 25 frames, still paused; `\` sent as VK 0xDC (`OemPipe`): a view zoomed in 8 steps showing 0–7.5 s changed
+    to the whole sequence 0–15 s (screenshots compared; `OemBackslash` is covered by the tests only). Processes checked
+    apart from the suite: before the runs no ffmpeg / ffprobe and no `testhost`; after each close none left (the
+    `ffmpeg left: 2` of the first round was the test suite running in parallel).
+  - 9.6b accepted (2026-09-28), committed as `990c33b` on top of `b90247a` (9.6a; history not rewritten).
+  - 9.6c done — loop (PO-H3). `PreviewViewModel.IsLooping` (off by default) + `ToggleLoopCommand`; a `Loop` toggle
+    button in the Preview transport after ⏭ (tooltip "Loop playback (Ctrl+L)"), Ctrl+L in `ShortcutRouter` (a viewing
+    shortcut: also available during an export). Where: in the Preview's tick, not in Core — when an update of the
+    playback service has just reached the end and paused there (playing before the update, paused after it, at
+    `Duration`, D011) and loop is on, the tick calls `Play()`, which at the end starts again from 0 (the existing D011
+    rule), and shows that update. So the D011 end rule itself, `IPlaybackService` and its fakes are unchanged, and with
+    loop off nothing changes; a pause the user made (between ticks) is never undone, and turning loop on while paused
+    at the end starts nothing. The whole sequence loops (no in / out range). Session state only: not in the project or
+    `project.json` (format v2 unchanged), not dirty, not undoable, kept across New / Open. Tests:
+    `UI.Tests/LoopPlaybackTests` (6, the real shell and playback service with the fake decoder and a manual clock: loop
+    off by default and the end pauses there as before; loop on — past the end playback continues from the start,
+    plays on and loops again; a pause before the end is not undone; turning loop on while paused at the end starts
+    nothing; Ctrl+L toggles; session state — not dirty, nothing added to undo, nothing about it in the saved
+    `project.json`, kept after New), `UI.Tests/ShortcutRoutingTests` (+1 row, Ctrl+L); the loop, shortcut and playback
+    UI tests 5 × in a row green. Mutations: loop ignored → 1, loop always on → 4, looping without having been playing →
+    1, no restart after the end → 1, loop reset by another project → 1, Ctrl+L missing → 2, toggle doing nothing → 3;
+    not caught: the end check (`Position ≥ Duration`) — defensive: an update of the service only ever pauses at the end,
+    so "playing before, paused after" already means the end; kept so that a future pause for another reason never
+    loops. Real app (the 9.5d project, 15 s; the Loop button toggled through UI Automation, keys posted to the window,
+    no test suite running): loop on — End, J (14:00), L, ~4.6 s later the timecode read 03:16 (14.00 + 4.64 − 15.00 =
+    3.64 s): it went past the end and continued from 0 without stopping, K then paused; loop off — the same keys stop
+    at 15:00, paused (D011); the button shows the on state highlighted (screenshot); no ffmpeg / `testhost` before, none
+    left after each close. `dotnet build --no-incremental` 0 errors / 0 warnings (two xUnit1031 warnings of a first
+    version of the session-state test — blocking waits — fixed by making it async); full suite with `--blame-hang`:
+    1768 passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 327, Export 78, Rendering 58, Video
+    291, ExportEndToEnd 67 + 2).
+  - 9.6c accepted (2026-09-28; the defensive end check kept), committed as `8f46e25` on top of `990c33b`.
+  - 9.6d done — the text-input guard in the running app, and closeout of 9.6. Real app (a copy of the 9.5d project
+    with a text clip "Hello" on a second video track; the clip selected by a mouse click posted to the window, fields
+    focused through UI Automation, keys as real keyboard input (`keybd_event`, so Ctrl is really held), state read
+    through UI Automation; no test suite running): 1) the Inspector's text box: End, then J, K, L, Space, S, N typed
+    "Hellojkl sn", Backspace removed the last character, Ctrl+L, Ctrl+E, Ctrl+I, Ctrl+N and \ changed nothing —
+    snapping, loop, the transport (Play), the timecode (00:00:00:00), the clips, the windows (no picker, no New prompt,
+    no export) and the zoom as before; Ctrl+A and typing replaced the text ("hi"); Ctrl+Z in the box undid the last
+    character ("h" — the text box's own undo or the app's, UI Automation can't tell them apart; the app's Undo is
+    blocked like every shortcut while the box has focus, as the tests show); the clip's label followed the text;
+    2) the font size (a `NumericUpDown`'s inner text box): Ctrl+A, "60", J, K, L, S, N and Ctrl+L went into the field
+    ("60jklsn"), no shortcut fired; "60" and Tab applied the size; 3) focus on the Snap button: N switched snapping
+    off, Ctrl+L turned loop on, L played, K paused, \ changed the zoom — the same keys reach the app and work again
+    once no text input has focus. Closed through Don't Save (the edits made it dirty); no ffmpeg / `testhost` before,
+    none left after. No problem found — no code change. Tests: `UI.Tests/ShortcutRoutingTests` — the table of every
+    shortcut moved into one method; a new test presses every row (also J / K / L, Ctrl+L, Ctrl+I / Ctrl+E, \) with a
+    text box focused and as its source: nothing fires (the earlier guard test covers N and Ctrl+S only). Mutations
+    (both caught): the guard only for keys without modifiers → 2 (the old and the new test), J / K / L let through → 1
+    (only the new one). Documentation (closeout): D024 "Refined in Step 9.6" (PO-H1–H4, routing, J / K / L, loop, the
+    guard, what is left as it is); `docs/PHASE9_MANUAL_TEST_PLAN.md` section "Step 9.6" (scenarios 44–52) and the status
+    "app 9.6"; `ARCHITECTURE.md` (shortcut routing, loop); `docs/DEVELOPMENT_PLAN.md` 9.6 done; `ROADMAP.md` "Current";
+    the Phase 4 known issue about the guard struck through. Verification: `dotnet build --no-incremental` 0 errors /
+    0 warnings; full suite with `--blame-hang`: 1769 passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260,
+    Project 292, UI 328, Export 78, Rendering 58, Video 291, ExportEndToEnd 67 + 2); a final open / play (L) / pause
+    (K) / close of the app apart from the suite: closed in 142 ms, no ffmpeg / ffprobe, app or host process left.
+  - Step 9.6 closeout (2026-09-28): 9.6a–d done, 9.6a–c accepted (`b90247a`, `990c33b`, `8f46e25`), 9.6d awaiting with
+    the whole step. Residual (D024 "Left as they are"): fixed shortcuts; J one second only; loop over the whole
+    sequence; the defensive loop end check; `OemBackslash` (ISO \) and Ctrl+I / Ctrl+E checked by tests only, not
+    pressed in the running app.
+- Step 9.6 accepted and closed (2026-09-28): 9.6d committed as `e8c3c93`.
+- Step 9.7 — performance baseline (2026-09-28), measurement only: no code of the repository changed, no optimization,
+  no targets (D024: the product owner chooses what to optimize after reviewing the baseline).
+  - Method. Tool: a scratch console program outside the repository (as Step 8.6's `CodecMeasure`; the plan's
+    alternative, opt-in tests, would change the repository) — `Perf.csproj` referencing the app's projects (Core,
+    Infrastructure, UI, Video, Timeline, Media, Export, Project), built Release; Avalonia initialised as the app does
+    (`UsePlatformDetect().WithInterFont()`, own UI thread with a running dispatcher). It drives the shipped code as is:
+    `PlaybackService` + `CompositionView`, `ExportService` with the app's decoders / encoder / rasterizer, the
+    thumbnail and waveform services; the export breakdown wraps the service's own interfaces (`IVideoDecoder`,
+    `ICompositionRasterizer`, `IExportEncoder`) in timing decorators. Scenarios generated with ffmpeg (as Step 8.1):
+    `testsrc2` at 1280 × 720 / 1920 × 1080 / 3840 × 2160, 30 fps, H.264 veryfast CRF 18, no audio; a stereo tone (PCM
+    WAV, AAC 60 / 600 s). A project of N video tracks, each a full-length clip of the same source, all above the bottom
+    at opacity 0.8 (nothing culled: every layer decoded and composited) and, for the export, the tone on A1. Nothing
+    else running (no test suite, no app; no ffmpeg before a run). Hardware / software: AMD Ryzen 7 7800X3D (8 cores /
+    16 threads), 31 GB RAM, NVIDIA RTX 4070 SUPER, Samsung 990 PRO NVMe, Windows 11 IoT Enterprise LTSC 10.0.26100,
+    power plan High Performance; .NET SDK 8.0.424; FFmpeg 9.0.1 essentials (gyan.dev); repository at `e8c3c93`.
+  - Preview (1920 × 1080 canvas, 1080p sources decoded at ≤ 1280 × 720 as the app's playback settings, a 960 × 540
+    view, ticks at 60 Hz for 10 s after the first pictures, Stopwatch clock, video only — no audio device, so nothing
+    is played aloud; per tick: `Update()`, setting the view's layers = copying new frames into its bitmaps, rendering
+    the view offscreen with `RenderTargetBitmap` — Skia on the CPU, an upper bound for the app's own compositor):
+    | layers | update p50 / p95 ms | copy p50 / p95 ms | render p50 / p95 ms | ticks | frames shown / 300 | late ticks | peak WS MB | ffmpeg |
+    |---|---|---|---|---|---|---|---|---|
+    | 1 | 0.018 / – | 0.018 / 0.36 | 3.2 / 4.0 | 600 | 300 | 0 | 243 | 1 |
+    | 2 | 0.021 / – | 0.009 / 0.68 | 6.4 / 7.6 | 600 | 300 | 0 | 437 | 2 |
+    | 4 | 0.029 / – | 0.016 / 1.65 | 12.7 / 14.7 | 600 | 300 | 0 | 470 | 4 |
+    | 8 | 0.053 / – | 7.2 / 8.6 | 25.4 / 31.0 | 301 | 293 (7 skipped) | 0 | 869 | 8 |
+    Copy p50 is small at 60 Hz because every second tick has no new frame; at 8 layers a tick (copy + render ≈ 33 ms)
+    no longer fits 16.7 ms, the loop runs at 30 Hz and 7 of 300 frames are skipped; the decoders are never late.
+  - Export (10 s at 30 fps + the 10 s PCM tone, sources at the canvas size, D023 format; real-time factor = duration /
+    wall time; peaks of this process; ffmpeg = the decoders + the encoder):
+    | canvas × layers | wall s | RTF | fps | audio / video / finalize ms | peak WS / private MB | ffmpeg peak / after |
+    |---|---|---|---|---|---|---|
+    | 720p × 1 | 1.98 | 5.04 | 151 | 296 / 1579 / 100 | 162 / 136 | 2 / 0 |
+    | 720p × 2 | 3.12 | 3.20 | 96 | 290 / 2729 / 98 | 189 / 164 | 3 / 0 |
+    | 720p × 4 | 5.73 | 1.74 | 52 | 290 / 5336 / 104 | 284 / 259 | 5 / 0 |
+    | 720p × 8 | 11.18 | 0.89 | 27 | 282 / 10774 / 122 | 389 / 365 | 9 / 0 |
+    | 1080p × 1 | 4.31 | 2.32 | 70 | 284 / 3837 / 181 | 276 / 251 | 2 / 0 |
+    | 1080p × 2 | 7.73 | 1.29 | 39 | 290 / 7250 / 180 | 295 / 269 | 3 / 0 |
+    | 1080p × 4 | 14.99 | 0.67 | 20 | 283 / 14489 / 207 | 498 / 474 | 5 / 0 |
+    | 1080p × 8 | 29.23 | 0.34 | 10 | 288 / 28720 / 212 | 626 / 602 | 9 / 0 |
+    | 2160p × 1 (5 s, opt-in) | 16.79 | 0.30 | 9 | 160 / 16019 / 604 | 736 / 713 | 2 / 0 |
+  - Export breakdown (the same scenarios, timing decorators; time of the export loop, which handles one frame at a
+    time: get every layer's decoded frame → rasterize → hand the canvas to the encoder):
+    | canvas × layers | wall ms | waiting for decoded frames | rasterize (per frame) | write frames | write audio | this process CPU (cores) |
+    |---|---|---|---|---|---|---|
+    | 1080p × 1 | 4631 | 1976 | 1868 (6.2 ms) | 184 | 247 | 1.20 |
+    | 1080p × 2 | 8521 | 3744 | 3921 (13.1 ms) | 190 | 254 | 1.21 |
+    | 1080p × 4 | 15694 | 7394 | 7292 (24.3 ms) | 206 | 243 | 1.28 |
+    | 1080p × 8 | 29700 | 14829 | 13579 (45.3 ms) | 202 | 238 | 1.29 |
+    | 720p × 8 | 11259 | 4399 | 5929 (19.8 ms) | 114 | 241 | 1.26 |
+  - Cancel latency (1080p × 2 + tone; cancel requested from the progress callback inside each stage; 3 runs each;
+    latency = request → `ExportAsync` returned): Preparing 13–25 ms, Audio 8–9 ms, Video at 5 % 50–54 ms, Video at 50 %
+    71–79 ms, Finalizing 38–40 ms; every time: nothing in the output folder and no ffmpeg process at the return, none
+    after 1 s.
+  - Repeated runs (after each: full GC, then this process's handles / private memory / managed heap / threads and the
+    ffmpeg processes): 10 exports (720p × 1, 5 s) — handles 620 → 626 (flat from run 4), private 91–106 MB without a
+    trend, managed 1.6–2.6 MB, threads 45–46, ffmpeg 0 after every run; 10 playback sessions (1080p × 2: play 2 s, seek,
+    play 1 s, dispose) — handles 633–641 (no growth), private 252–368 MB fluctuating without a trend, managed 58–59 MB
+    constant from the first session (retained after every session is disposed — most likely pooled frame buffers;
+    not growing), threads 45–48, ffmpeg 0.
+  - Thumbnails / waveforms (cold = decoded and written to the cache, warm = cache hit): thumbnail 720p 79 ms, 1080p
+    91 ms, 2160p 191 ms, warm ≤ 0.2 ms; waveform PCM 10 s 57 ms, AAC 60 s 108 ms, AAC 600 s 685 ms (≈ 1.1 ms per second
+    of sound), warm ≤ 0.2 ms.
+  - The app itself (the 9.5d project: 320 × 180 video with sound, a silent video, two WAV clips; opened, played
+    10.8 s, closed; the process sampled every 100 ms): peak working set 239 MB, private 250 MB, peak handles 1 487,
+    ffmpeg ≤ 3; closed clean, none left.
+  - Bottlenecks (findings, not decisions): 1) export — one frame at a time on about one core (1.2–1.3 of 16): about
+    half of the video stage waits for the layers' decoded frames and a little less rasterizes (≈ 6 ms per 1080p layer
+    on the CPU); handing canvases to the encoder and the audio are 2–3 %; the time grows linearly with layers (1080p:
+    RTF 2.32 → 0.34 from 1 to 8 layers); the decoders don't seem to run ahead of the loop (the wait grows with every
+    layer although decoding a 1080p frame takes ffmpeg far less than the wait) — a hypothesis, not measured inside
+    ffmpeg; 2) Preview — 1–4 layers fit a 60 Hz tick with a wide margin (render ≤ 14.7 ms p95 on the CPU); 8 layers
+    don't (≈ 33 ms per tick in this measurement, 7 skipped frames; the app's own GPU compositor was not measured for
+    8 layers); 3) memory grows with layers (8 × 1080p: Preview 869 MB, export 626 MB peak working set); 4) no leak
+    found: no process left behind, handles and memory without a trend over 10 repetitions; cancel ≤ 80 ms and clean.
+  - Proposed for the product owner (D024: decided at the start of 9.7): the tool — this scratch tool, outside the
+    repository, re-run for every before / after; leak criteria — a leak is 1) any ffmpeg / ffprobe process still running
+    1 s after the operation that started it ended (export done or cancelled, playback released, project replaced,
+    window closed) or 2) handles or private memory (after a full GC) growing at every one of 10 repetitions of the same
+    operation without levelling off; growth once (warm-up, pools) is not a defect. Candidates, all within D023 (same
+    frames, same encoder, same canvas bytes — the parity suite unchanged): A) export: decode the layers ahead of the
+    loop and in parallel (overlap decoding with rasterizing); B) export: overlap rasterizing frame n + 1 with encoding
+    frame n; C) Preview with many layers: measure the app's own compositor at 8 layers first, then decide; D) none.
+    The scratch tool: `…\scratchpad\perf` (this session), its raw results `perfwork\results-*.json`.
+  - Baseline accepted (2026-09-28). Product owner decisions: the scratch tool and these scenarios stay for every
+    before / after; the leak criteria as proposed; A not blindly; B not now (encoding is 2–3 %); first C — the Preview
+    with 8 layers in the running app; D (no optimization) not chosen yet — decided after C whether A is worth it.
+  - C — the Preview with 8 layers in the running app (2026-09-28), measurement only, no code changed. Method: the app
+    started as the product owner runs it (`dotnet run`, Debug build of `e8c3c93`), window maximized on the 3440 × 1440
+    monitor (59 Hz; the other one 1920 × 1080, 60 Hz), projects opened through the folder picker (UI Automation),
+    L / K posted to the window; the Preview area 1531 × 862 on screen (a 1920 × 1080 canvas at 0.80). Scenario as the
+    baseline's Preview: 8 video tracks of the same 1920 × 1080, 30 fps, 12 s H.264 source (decoded at ≤ 1280 × 720 by the
+    app's playback), all above the bottom at opacity 0.8, no audio; a 1-layer project as the control. The source carries
+    its frame number n in 9 white boxes in a black band at its top (bit k at x = 40 + 200 k, plus an always-white
+    reference box). Frame delivery: while playing 10 s, ffmpeg `gdigrab` captured only that band of the screen at 60 fps
+    (lossless), and a small reader decoded n from every capture — which timeline frames reached the screen, the gaps,
+    the order, how long each stayed. Load: separate runs without the capture — the app process's CPU time
+    (`TotalProcessorTime`), `GPU Engine(pid_<app>…)\Utilization Percentage` per engine type every second, peak working
+    set / private bytes / handles every 200 ms, the ffmpeg decoders. No test suite, no other app; no ffmpeg before; none
+    left after any run. The window's content is composited by Avalonia on the GPU (the baseline's CPU `RenderTargetBitmap`
+    time does not apply here).
+    | run | timeline frames shown / in range | skipped (numbers) | timeline frames / s | picture changes / s | backwards | longest hold (1/60 s) |
+    |---|---|---|---|---|---|---|
+    | 1 layer (control) | 294 / 297 | 3 (7, 186, 192) | 29.7 | 29.6 | 0 | 5 |
+    | 8 layers, run 1 | 293 / 299 | 6 (2, 3, 8, 33, 35, 52) | 29.65 | 29.5 | 0 | 4 |
+    | 8 layers, run 2 | 293 / 299 | 6 (49, 94, 123, 248, 263, 280) | 29.45 | 29.35 | 0 | 5 |
+    | run (no capture) | app CPU, cores avg | GPU 3D engine of the app, % per second | peak working set / private MB | peak handles | decoders |
+    |---|---|---|---|---|---|
+    | 1 layer | 0.05 | 7.4–13.7 | 386 / 410 | 1 357 | 1 |
+    | 8 layers | 0.63 | 6.7–10.1 | 1 101 / 1 143 | 1 610 | 8 |
+    (With the capture running, 8 layers: CPU 0.75 / 0.89 cores, peak working set 1 607 / 1 610 MB.) The capture is not
+    synchronised with the display (60 fps against 59 Hz), so a frame shown for one refresh can fall between two captures:
+    the 1-layer control's 3 "skips" (1 %) are the method's noise, not the app's.
+    Conclusion: the running app plays 8 layers of 1080p at 29.45–29.65 of the content's 30 frames per second, in order,
+    no frame held longer than 5/60 s; about 2 % of the frames did not reach the screen against about 1 % noise at
+    1 layer — about one extra missed frame in a hundred, spread over the run (run 1: in the first two seconds, while
+    the eight decoders start). The display refresh (59–60 Hz) is not the limit: the content needs 30 new pictures per
+    second and gets them; the UI thread's timer (10 ms) and the GPU compositor keep up — the app uses 0.6–0.9 of a core
+    and the GPU's 3D engine at about 10 %. The baseline's "8 layers don't fit a 60 Hz tick" came from software rendering
+    in the tool; it does not happen in the app. What does grow is memory: 8 layers need about 1.1 GB working set
+    (1.6 GB peak in the capture runs) against 0.39 GB for one. Not measured: the GPU's own frame times (no PresentMon or
+    similar tool installed, none downloaded), sound during playback, other monitors / refresh rates, other sources.
+  - C accepted (2026-09-28): the Preview needs no optimization; the product owner chose A (the export), within D023;
+    B and any other optimization not now.
+  - A — the export decodes ahead and in parallel (2026-09-28; not committed, awaiting review). Architecture before:
+    `ExportService.WriteVideoAsync` handled one output frame at a time — `ExportFrameSource.GetFrameAsync(n)` asked the
+    picture layers' readers one after another, then the rasterizer drew the canvas, then `WriteFrameAsync` handed it to
+    the encoder; each reader's `FfmpegVideoFrameStream` reads a frame's pixels from ffmpeg's stdout only when asked
+    (`ReadExactlyAsync` into a new buffer), so ffmpeg could decode ahead only as far as the pipe's buffer — decoding,
+    reading and rasterizing took turns on about one core. Change (two places, nothing else): 1) `ExportFrameSource.
+    GetFrameAsync` starts every picture layer's `GetAsync` at once and awaits them together (`Task.WhenAll`): the layers'
+    decoders work in parallel; each reader still gets its requests in ascending order and selects exactly as before
+    (D009 / D022); the layers keep their order; the result is built only after every fetch ended — also when one
+    failed (the first failure in layer order propagates), so no reader is still reading when the caller disposes the
+    source; every layer's reader is created before any fetch starts (a clip that can't be exported fails before
+    anything runs — the preflight blocks such clips anyway). 2) `ExportService.WriteVideoAsync` fetches frame n + 1 while frame n is rasterized and written — one frame
+    ahead, never more (at most two output frames in flight); the requests stay ascending and one at a time; the
+    frames drawn and written, their order, the encoder, the format and the progress are unchanged; on leaving early
+    (cancelled, any failure) the fetch ahead is cancelled (a linked token) and awaited before the frame source disposes
+    its readers. Tests: `Export.Tests/ExportServiceTests` (+2: while the encoder blocks at frame 3 exactly six source
+    frames have been read — frame 4 fetched ahead, not further; a rasterizer failure while the fetch ahead is stuck in
+    the decoder ends the export with that failure, every part released, and no stream disposed while a read on it was
+    still running), `Export.Tests/ExportFrameSourceTests` (+2: two layers — the top layer's decoder opens while the
+    bottom one's is held, the layers keep their order and frames; a failing layer waits for the other layer before the
+    failure propagates, then everything is released); the 78 existing export tests unchanged and green (cancellation
+    during audio / video / completion, a stuck encoder, decode / encoder / rasterizer failures); Export tests 5 × in a
+    row green. Mutations (all caught): no fetch ahead → 1, the fetch ahead not cancelled on leaving → 1 (would hang),
+    not awaited on leaving → 1 (after making the test decoder's cancelled read take 50 ms — a first version finished
+    too fast to notice), layers one after another → 2, a failure leaving before the other layers end → 1.
+    Verification: `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1773 passed,
+    2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 328, Export 82, Rendering 58, Video 291,
+    ExportEndToEnd 67 + 2); the parity suite with `AIVE_HEAVY_TESTS=1`: 69 of 69 (the 4K scenes too) — byte-equal
+    canvases and every tolerance unchanged.
+    Before / after (the baseline's scratch tool and scenarios; "before" measured again right before the change; RTF =
+    duration / wall time):
+    | canvas × layers | RTF before | RTF after (3 runs) | gain |
+    |---|---|---|---|
+    | 720p × 1 | 4.94 | 6.20 / 6.35 / 6.24 | +26 % |
+    | 720p × 2 | 3.17 | 4.22 / 4.31 / 4.35 | +35 % |
+    | 720p × 4 | 1.75 | 2.37 / 2.28 / 2.22 | +31 % |
+    | 720p × 8 | 0.90 | 1.20 / 1.17 / 1.16 | +31 % |
+    | 1080p × 1 | 2.23 | 3.16 / 3.17 / 3.11 | +41 % |
+    | 1080p × 2 | 1.25 | 1.97 / 1.89 / 1.83 | +51 % |
+    | 1080p × 4 | 0.66 | 1.08 / 1.03 / 1.03 | +58 % |
+    | 1080p × 8 | 0.34 | 0.52 / 0.54 / 0.53 | +56 % |
+    Breakdown after (1080p): the export process now uses 1.9–2.1 cores (1.2–1.3 before); the time waiting for decoded
+    frames and rasterizing overlap (their sum exceeds the wall time); rasterizing per frame is a little slower
+    (6.2 → 7.1 ms at 1 layer, 44 → 55 ms at 8 — the CPU is shared with the decoding now). Cancel (1080p × 2, 3 runs per
+    stage): Preparing 13–23 ms, Audio 8 ms, Video 5 % 51–53 ms, Video 50 % 70–76 ms, Finalizing 39–43 ms — as before;
+    nothing in the output folder and no ffmpeg at the return, none after 1 s. Repeated runs: 10 exports — handles
+    626 → 632, private 83–89 MB, ffmpeg 0 after each; 10 playback sessions unchanged (the Preview isn't touched).
+    Memory (a separate run with the heap after each GC — what survived — and the GC counts; before = the two files
+    restored from HEAD for the measurement, then put back):
+    | canvas × layers | post-GC heap MB before → after | peak working set MB before → after | gen2 GCs before → after |
+    |---|---|---|---|
+    | 1080p × 1 | 26 → 34 | 244 → 219–236 | 48 → 60 |
+    | 1080p × 4 | 82–97 → 109–137 | 305–314 → 395–638 | 149 → 97–100 |
+    | 1080p × 8 | 264–279 → 327 | 720–721 → 1133–1137 | 106 → 51–52 |
+    | 720p × 8 | 217–232 → 371 | 615–616 → 1064–1068 | 70 → 50 |
+    The live data grows by about one decoded frame per layer, as designed (1080p: 8.3 MB per layer; 720p × 8 more than
+    that, +145 MB — not explained); the peak working set grows much more with many layers (+58 % at 1080p × 8, +73 % at
+    720p × 8, ≈ +0.4 GB), mostly garbage not yet collected: every decoded frame is a new large array, they are made
+    faster now and there are about half as many gen2 collections; at one layer there is no change.
+    Conclusion: a measurable gain everywhere (+26–35 % at 720p, +41–58 % at 1080p; 720p × 8 now faster than real time,
+    1080p × 4 too), with the same frames, order, encoder, format, cancellation and clean-up; but a memory regression
+    with 4–8 layers — peak working set about +0.4 GB at 8 layers (1.1 GB for 8 × 1080p), no change at 1 layer. Not in
+    this change (other optimizations, need their own decision): reusing the decoded frames' buffers (would remove most
+    of the garbage — also the Preview's), a GC setting, a smaller look-ahead for many layers.
+  - A review (2026-09-28): the speed-up accepted as effective, A not finally accepted because of the memory regression;
+    not rolled back, no new optimization; next: diagnose the regression only.
+  - A memory diagnosis (2026-09-28; no production code changed; the same scratch tool, scenarios and measurements).
+    Method: the export's video loop rebuilt in the tool from the service's public parts (`ExportFrameSource`, the
+    Avalonia rasterizer, the ffmpeg encoder; silent audio) in four variants — V0 sequential (the layers read one at a
+    time — a wrapper around the app's decoder lets one frame read run at a time — and no fetch ahead: the code before
+    A), V1 parallel layers only, V2 fetch ahead (n + 1) only, V3 both (= A, measured the same as the service's own
+    export: RTF 0.55–0.56 at 1080p × 8). Measured, sampling every 20 ms: peak working set / private bytes; the managed
+    heap including garbage (`GC.GetTotalMemory(false)`) and the GC's committed bytes; at every gen2 GC (background or
+    blocking — `GetGCMemoryInfo(Background / FullBlocking)`) the heap that survived it (live data) and its LOH part;
+    the decoded frames still alive then (weak references to every decoded frame's pixel array); the GC counts and the
+    bytes allocated. Every run in a fresh process (the first comparison in one process mixed scenarios: a run after
+    1080p × 8 kept its memory committed); a diagnostic floor with a forced full GC every 10 frames (in the tool only).
+    Two earlier numbers were artifacts of the measurement, not of A: the "post-GC heap" of the previous entry was taken
+    after the last GC of any kind — mostly gen0, which never looks at the large-object heap where every decoded frame
+    lives (3.7 MB at 720p, 8.3 MB at 1080p), so it counted uncollected frames as live (hence 720p × 8 "+145 MB"); and
+    the peaks of the scenarios run after 1080p × 8 in the same process included that scenario's committed memory
+    (hence 720p × 8 "615 → 1066 MB").
+    | canvas × layers | peak working set MB V0 → V3 | live after gen2 MB V0 → V3 | alive decoded frames at gen2 V0 → V3 | managed incl. garbage MB V0 → V3 | gen2 GCs V0 → V3 | allocated GB | RTF V0 → V3 |
+    |---|---|---|---|---|---|---|---|
+    | 1080p × 1 | 243 → 235 | 25 → 33 | 2 → 3 | 113 → 105 | 48 → 60 | 2.4 | 2.3 → 3.5 |
+    | 1080p × 4 | 490 → 619 | 73 → 105 | 8 → 12 | 328 → 456–471 | 68 → 48 | 9.6 | 0.66 → 1.07 |
+    | 1080p × 8 | 810 → 1130 | 113–120 → 200 | 15 → 24 | 606–614 → 901 | 121 → 53 | 19.1 | 0.34 → 0.56 |
+    | 720p × 8 | 421 → 364 | 55 → 90 | 16 → 24 | 260 → 176–207 | 123 → 101 | 8.5 | 0.91 → 1.25 |
+    (2 runs each, fresh processes; the repetitions agree within a few MB.) Single halves (one process, 1080p × 8): V1
+    parallel layers only — peak 718 MB, 148 gen2, live 138 MB; V2 fetch ahead only — peak 1 100 MB, 65 gen2, live
+    168 MB. Floor with a forced full GC every 10 frames: 1080p × 8 V0 809 MB (unchanged — it already runs a gen2 every
+    2.5 frames), V3 715 MB (managed incl. garbage 391 MB instead of 902); 1080p × 4 V0 473, V3 523.
+    Findings: 1) live data is bounded by design and exactly as expected — the decoded frames alive per picture layer
+    are 2 before A (frame n; n + 1 being read / the reader's look-ahead) and 3 with A (frame n being rasterized, n + 1
+    the reader's current frame, n + 2 being read), i.e. + one frame per layer: 1080p × 8 +66–87 MB, 720p × 8 +35 MB,
+    1080p × 1 +8 MB; 2) the peak growth is garbage, not live frames: the same bytes are allocated (19.1 GB of frame
+    arrays for 10 s at 1080p × 8 — every decoded frame is a new array on the large-object heap), but with the fetch
+    ahead the GC runs about half as many gen2 collections, so about twice as much garbage lies between them; forcing
+    collections removes ~415 MB of V3's peak (below the code before A); 3) the cause is the fetch ahead (n + 1), not
+    the parallel layers (parallel layers alone lowered the peak at 1080p × 8); 4) why the GC schedules fewer gen2
+    collections was not determined inside the GC — consistent with its large-object budget following the larger
+    surviving set and the doubled allocation rate; 5) no growth over repetitions (the earlier 10-run check) — transient.
+    A bound that holds without changing D023's behaviour: decoded frames alive ≤ 3 per picture layer of the frames n
+    and n + 1 (readers ≤ one per such layer; a layer leaving the composition closes its reader), i.e. live frame bytes
+    ≤ 3 × Σ width × height × 4 over those layers, plus the rasterizer's own bitmaps (one per layer, as before);
+    garbage between GCs has no bound in the code — it is up to the GC.
+  - A accepted (2026-09-28) after the memory diagnosis. Recorded: A keeps up to 3 decoded frames alive per picture
+    layer (2 before A) — a bounded memory footprint by design, not a leak (no growth over 10 repeated exports); the
+    peak working set can be higher than that because of transient large-object-heap garbage between gen2 collections
+    (the fetch ahead doubles the allocation rate and halves the gen2 count), not live data; the earlier 720p × 8
+    anomaly (+145 MB live, 615 → 1066 MB peak) was an artifact of the measurement method (a post-GC heap after gen0
+    GCs; several scenarios in one process), not of A. D023 behaviour and parity unchanged. Not done, by decision: a
+    frame buffer pool, GC tuning, a smaller look-ahead — possible separate optimizations, not needed now. Committed as
+    `4bdf738`.
+  - Step 9.7 closeout (2026-09-28): D024 "Refined in Step 9.7" (tool, leak criteria, baseline findings, A and its
+    memory bound, what is not done); `ARCHITECTURE.md` Export section (parallel layer fetch, one frame ahead);
+    `docs/PHASE9_MANUAL_TEST_PLAN.md` scenarios 53–56; `docs/DEVELOPMENT_PLAN.md` 9.7 done; `ROADMAP.md`. No code
+    changed. Residual (not done, by decision): B, a frame buffer pool, GC tuning, a smaller look-ahead; the export
+    with A was measured through the scratch tool (the service with the app's parts), not yet run in the app itself —
+    scenarios 53–55 at 9.10.
+    Verification: `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1773 passed,
+    2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 328, Export 82, Rendering 58, Video 291,
+    ExportEndToEnd 67 + 2).
+- Step 9.7 accepted and closed (2026-09-28): A as `4bdf738`, the closeout as `1124138`.
+- Step 9.8 — polish & cleanup (2026-09-28). Audit after 9.7 → one list of proposals by category; the product owner
+  confirmed A1–A4, B1–B4, C1–C5, D1–D2, E1–E3 as the whole scope (not: export elapsed / remaining time, cache
+  eviction / retry / online re-check, buffer pool / GC / look-ahead, a `Project.Tests` workaround, replacing timed
+  waits). Details: D024 "Refined in Step 9.8".
+  - A1 / D1, `PlaybackFrame.Picture`: the audit found no production reader (only `PlaybackService` filled it; the
+    design-time stub in `MainWindow` built one) — but `PlaybackService.IsBuffering` used the compatibility picture
+    internally (`_picture is null` until the topmost picture layer was certain after a restart). Removed `Picture` /
+    `IsPictureCurrent` / `PreviewPicture` / `PictureKind` and `VideoPipeline.Compatibility`; the buffering state now
+    follows `VideoFrameResult.IsTopSettled` (the same rule: the top picture layer's current frame or a placeholder,
+    black when there is none; not pending or late) as a flag `_settled`, reset on every restart — same behaviour. The
+    ≈ 45 test uses (Timeline 5 files, Video 3) read the layers through `PlaybackFrameView` (`TopPicture`,
+    `IsTopCurrent`, `TopFrame`, in `PlaybackFakes.cs`); where a test only checked the compatibility view it checks the
+    top layer's state / clip / frame instead. Not weakened — the same mutations on HEAD (a separate worktree) and
+    after, failing Timeline.Tests: late frame counted as settled 2 → 0 (see below), pending counted as settled 7 → 1,
+    offline placeholder not settled 4 → 4, black not settled 1 → 1, text taken as the top layer 1 → 1, no reset on a
+    restart 0 → 1; the pipeline's own late handling (the same edits in both versions): late frame flagged current
+    3 → 3, no late frame (pending instead) 1 → 2, last frame not kept 1 → 2, pending flagged current 0 → 0. The first
+    "after" run had pending 0 and no-reset 0: the old tests caught these through the compatibility picture's content,
+    which no longer exists, and nothing else checked buffering once a seek was ready — new test
+    `AfterASeek_BufferingLastsUntilTheTopLayerHasItsCurrentFrame_EvenOnceTheSeekIsReady` (seek ready at frame 100,
+    the clock at 110 not decoded yet: buffering, top pending; then frame 110, not buffering). "Late counted as
+    settled" is equivalent through the public API now: a late frame needs an earlier current frame of the same layer
+    in the same pipeline, which already settled it.
+  - A2: `IVideoEngine` / `EngineProgress` removed (no implementation, no reference). A3: `ErrorTranslator`,
+    `UserFacingError`, `FfmpegNotFoundException`, `UnsupportedMediaException`, `CorruptProjectFileException` and
+    `Video.Tests/ErrorTranslatorTests` removed — checked first: the damaged-project message is `ProjectSerializer`'s
+    `ProjectFileException` text shown by `ProjectFileWorkflow.OpenAsync` ("Couldn't open the project. …"), covered by
+    `DamagedProjectMessageTests`. A4: every `ModuleInfo` summary describes the subsystem as it is.
+  - B1 `AppPaths.UnsavedCacheRoot` (was `UnsavedThumbnailCacheRoot`, same folder); B2 `IMediaCacheLocation.cs` (was
+    `IThumbnailCacheLocation.cs`, the three interfaces); B3 `StartupCacheCleanupTests`; B4 the
+    `LayerPictureState.Unsupported` comment (the clip kind can't play the media kind — speed plays since D022).
+  - E1 tooltips: Import Media (Ctrl+I), Export (Ctrl+E), Fit (\), ⏮ (←), ⏭ (→), Play (Space; L / K / J), + Video
+    Track / + Audio Track. E2: `TimelineViewModel.IsEmpty` (no clip on any track, set in `Refresh`) shows "The timeline
+    is empty" and how to add a clip at the bottom of the track area, not hit-testable (drops pass through) —
+    `TimelineEmptyStateTests` (2). E3: `MediaImportWorkflow` reports "Importing N files…" before the picked files are
+    checked and yields once to the dispatcher (Background priority) so the window renders it — the check runs on the
+    UI thread (`MediaImportService.ImportManyAsync` is synchronous); import logic and threading unchanged; the result
+    replaces it as before, "Import didn't finish." if the check throws (rethrown) — `ImportStatusTests` (4).
+  - Found while verifying (not in the list, fixed): UI.Tests intermittently failed (`ShortcutRoutingTests`:
+    NullReferenceException in `Dictionary.TryInsert` ← `AvaloniaProperty.GetMetadataWithOverrides` ← `new Button()`;
+    once `MediaBrowserThumbnailTests` timed out in a full run) and once hung for 20 minutes (killed; no dump taken, so
+    the hang's cause is inferred, not proven). Cause: three test classes (`ShortcutRoutingTests`,
+    `PlaybackShortcutTests`, `LoopPlaybackTests`, since 9.6) create Avalonia controls in parallel xUnit collections, and
+    Avalonia's property metadata caches are not thread-safe. Fix: one collection for them (`AvaloniaControlsCollection`).
+    Before: 1 failure in 10 and 1 in 25 runs of UI.Tests, one hang; after: 30 of 30 green. HEAD had shown 15 of 15
+    green — the race is older; the new test classes changed the scheduling.
+  - C1–C5: README (state, layout, tests, docs, logs), ARCHITECTURE (module table, media pipeline, playback: the
+    buffering rule instead of `Picture`; names), `progress.md` known issues (struck items removed, the underrun item on
+    the layers' late flag), the Phase 9 manual test plan (legend incl. the 9.7 statuses, scenarios 57–59, removed test
+    names).
+  - Real app (`dotnet run`, Debug, UI Automation and real cursor moves, screenshots): the hint shows on a new project,
+    disappears after + Text, returns after Undo, sits below the tracks; every tooltip of E1 appears with its shortcut;
+    importing 600 `.wav` files selected in the Windows file dialog: the status bar showed "Importing 600 files…" from
+    about 0.12 s to 0.5 s after Open, then "Imported 600 media files"; closed with Don't Save, no ffmpeg / ffprobe left.
+    The first hint position (centred over the track area) crossed the A1 row — moved to the bottom.
+    Verification: `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1779 passed,
+    2 skipped (4K), 0 failed (Core 395, Timeline 261, Project 292, UI 334, Export 82, Rendering 58, Video 290,
+    ExportEndToEnd 67 + 2); UI.Tests 30 × in a row green.
+    Commits: `83cfa7f` (A1 / D1), `3867883` (A2–A4, B1–B3), `2872745` (Avalonia-control tests in one collection),
+    `100fc69` (E1–E3), then the closeout (documentation, C1–C5, D024 "Refined in Step 9.8").
+- Step 9.8 accepted and closed (2026-09-28): closeout `da4838c`.
+- Step 9.9 — CI (2026-09-28). Check first: local ffmpeg / ffprobe 9.0.1-essentials_build-www.gyan.dev, installed by
+  winget from `GyanD/codexffmpeg` 9.0.1 `ffmpeg-9.0.1-essentials_build.zip` (SHA256 from the winget manifest); .NET SDK
+  8.0.424, no `global.json`, no `.github`; version-bound records: D009 (seek / `fps` behaviour), D022 (atempo latency,
+  guarded by `FfmpegSpeedIntegrationTests`), D023 (colour, AAC priming), the Step 8.6 measurements; the tests use
+  libx264, libx265, aac, lavfi sources, showinfo / ashowinfo / atempo / apad / scale / setparams — all in essentials.
+  Proposed and confirmed: 9.0.1 essentials pinned by SHA256, `windows-2025`, SDK 8.0.424, Debug, `-warnaserror`,
+  the full suite with TRX and a strict skip gate (D024 "Refined in Step 9.9").
+  - `0b8da2b`: `.github/workflows/ci.yml` (actions: checkout v7, setup-dotnet v6, cache v6, upload-artifact v7 — the
+    current majors) and `.github/scripts/Assert-TestResults.ps1`. Checked before publishing: the YAML parses; the
+    version check's pattern matches the local ffmpeg / ffprobe; `dotnet build -warnaserror` 0 warnings; the gate on a
+    full local TRX run passes (8 files, 1779 / 2 / 0) and fails on edited copies — a Video test skipped for missing
+    ffmpeg, a 4K scene skipped with another reason, a failed test, a missing TRX file. Not run locally: the archive
+    download and its SHA256 (the first CI run did both).
+  - Published (authorised): `feat/phase-9-quality` pushed to `origin`, PR #7 to `main`
+    (https://github.com/Proskagit/boulder-video-editor/pull/7).
+  - First CI run (36462308940, `0b8da2b`): every step up to the tests green (FFmpeg downloaded, SHA256 and version
+    right, build 0 warnings); 1 of 1781 tests failed — `AnalysisConcurrencyIntegrationTests`: the first four analyses
+    ended at 4.78–4.86 s against the expected 1.8–3.5 s (2 s timeout); the gate reported it and the two allowed skips
+    only. Cause: the absolute window included process start-up (the scripted ffprobe via `cmd`, the stream probe),
+    far slower on the runner. `b96188c`: the test checks the property relatively (every first analysis ≥ 0.9 timeout;
+    queued ones end ≥ 0.9 timeout after the last first one); a mutation without the slot limit (the max-processes
+    assertion switched off) fails it (queued ended 0.0002 s after the first ones); 3 × green locally.
+  - Second CI run (36463075887, `b96188c`): green — ffmpeg / ffprobe from the pinned copy, 9.0.1-essentials; build
+    0 warnings / 0 errors; tests 1779 passed, 2 skipped (the two 4K scenes, "Heavy scenario"), 0 failed (Core 395,
+    Timeline 261, Project 292, UI 334, Export 82, Rendering 58, Video 290, ExportEndToEnd 67 + 2); gate: 8 TRX files.
+  - Limits (for 9.10 / the owner): `WasapiAudioOutputDeviceTests` pass on the runner without an audio device (nothing
+    verified there — real devices stay manual); 4K scenes not in CI; making the check required (branch protection) is
+    the owner's setting.
+- Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
+  `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); timeline waveforms →
+  9.5 (done); `AppPaths.UnsavedThumbnailCacheRoot` naming both caches → 9.8 (done, now `UnsavedCacheRoot`); hotkey
+  guard not exercised in the running app → 9.6 (done, 9.6d); `PlaybackFrame.Picture` → 9.8 (done, removed);
+  `Project.Tests` hang → watched (9.10);
+  L1-c → stays open.
+
+## Phase 8 (complete)
+
 Phase 8 — Export: **complete** (accepted by the product owner on 2026-09-25; commit `8786491`, PR #6), branch `feat/phase-8-export` (from `2f0e26f`, the Phase 7 closeout).
 Scope (DEVELOPMENT_PLAN): Timeline → MP4 (H.264/AAC) with everything Phase 7 added. Decisions: D023.
 
@@ -991,21 +1971,14 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Export codec leg (D023 Step 8, decision L1-c): MP4 → export canvas has no numeric tolerance; the Step 8.6
   measurement is data for a future product decision, not a criterion. Open.
 - `Project.Tests` hang seen once in Step 8.4 (1 of 23 runs, test not identified): not reproduced — the 8.4/8.5 runs
-  and the three final `--blame-hang` runs of the closeout were clean. Watch for it; no fix.
+  and the three final `--blame-hang` runs of the closeout were clean. Watch for it; no fix. Phase 9 Step 9.3d: one
+  unidentified `Project.Tests` failure (not a hang) in one full parallel run; not reproduced in 40 isolated and 8 full
+  runs (with TRX results, so a recurrence names the test).
 
 - Speed (D022): the atempo latency compensation is measured for FFmpeg 9.0.1; another ffmpeg version
   may shift it — `FfmpegSpeedIntegrationTests` (10 ms bound) catches that.
-- ~~`ExecutableLocator`: a cancelled first ffmpeg probe caches "not found" for the app run~~ — fixed
-  2026-09-24: a caller-cancelled probe now rethrows `OperationCanceledException` without caching
-  (and kills the probe process); only a genuine miss/failure/5 s timeout is cached. Regression tests:
-  `Video.Tests/ExecutableLocatorTests`.
-- Closing the main window hangs the process (window gone, no "Shutting down." in the log; host
-  disposal never finishes) once a project with decodable media was open — also without ever
-  playing, and also after Pause/Stop. Closing an app without such a project exits normally. Found
-  2026-09-24; reproduced with only the `ExecutableLocator` fix applied on `main` `9fd38e7` (before
-  Phase 7) and on every Phase 7 checkpoint (`7ab3693`, `8592d10`, `a1cf682`, `5d81fe5`), so it is not
-  a Phase 7 regression; earlier it was masked because the locator bug often left the preview without
-  ffmpeg. Not fixed yet (separate task).
+- New Project while `ImportManyAsync` is still checking the picked files adds them to the new project (the import
+  adds to whatever project is current when it finishes). Out of scope of Step 9.3 (product owner, 2026-09-25).
 
 - Text clips (D021): the Preview (Avalonia) silently substitutes a font that isn't installed. Phase 8
   (D023) renders text like the Preview (no `drawtext`), so the export falls back the same way; the
@@ -1021,19 +1994,17 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - MPEG-TS: ffmpeg `-ss` lands on the keyframe *after* the target, so TS seeks need
   preroll retries (3–4 decoder launches observed); correct but slower to open.
 - `Video.Tests` needs ffmpeg/ffprobe on PATH; its tests are skipped otherwise.
-- Playback underrun (D012): while decoding is slower than real time, `Update()` returns the
-  previous picture with `IsPictureCurrent = false`; late frames are flagged but not counted
-  yet (no dropped-frame counter).
+- Playback underrun (D012): while decoding is slower than real time, a layer keeps its previous
+  frame flagged late (`LayerPicture.IsCurrent = false`); late frames are flagged but not counted
+  (no dropped-frame counter).
 - Video decoder limitations (deliberately out of scope for now): HDR / 10-bit (no tone
   mapping), interlaced (no deinterlacing), SAR (non-square pixels ignored), rotation
   metadata (ffmpeg autorotate applies, not handled explicitly), resolution changes
   mid-stream (untested), phone-specific VFR quirks beyond the tested cases. A hardware
   failure after the first frame is not retried by the decoder (the caller must reopen).
 
-- Hotkey guard for text input is implemented but could not be exercised in the
-  running app: Phase 4 UI has no visible text field (Inspector Transform is hidden).
-- `ffmpeg-*.log` is never written: nothing tags log events with `Area=Ffmpeg`.
-- Media analysis has no concurrency limit and no cancellation on New Project.
+- Audio device: a real default-device change and a real device removal during playback were not tried on hardware
+  (Phase 9 Step 9.3e covered them with fake devices); manual-only scenarios 14–17 of `docs/PHASE9_MANUAL_TEST_PLAN.md`.
 - `MediaAnalysisCoordinator` relies on the captured UI SynchronizationContext.
 - Timecode is non-drop-frame only (29.97 timecode drifts from wall clock by design).
 - Timeline canvas is a plain ItemsControl/Canvas; very long timelines at maximum

@@ -22,6 +22,9 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly ProjectFileWorkflow _projectFiles;
 
     private readonly IProjectService _projectService;
+    private readonly ILogger<MainWindowViewModel> _logger;
+    private readonly ThumbnailCoordinator? _thumbnails;
+    private readonly WaveformCoordinator? _waveforms;
 
     /// <summary>"Name — AI Video Editor", with a "*" after the name while there are unsaved changes.</summary>
     public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — AI Video Editor";
@@ -42,8 +45,12 @@ public sealed class MainWindowViewModel : ViewModelBase
         StatusService status,
         ProjectFileWorkflow projectFiles,
         IProjectService projectService,
-        ILogger<MainWindowViewModel> logger)
+        ILogger<MainWindowViewModel> logger,
+        ThumbnailCoordinator? thumbnails = null,
+        WaveformCoordinator? waveforms = null)
     {
+        _thumbnails = thumbnails;
+        _waveforms = waveforms;
         Toolbar = toolbar;
         MediaBrowser = mediaBrowser;
         Preview = preview;
@@ -52,6 +59,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         Status = status;
         _projectFiles = projectFiles;
         _projectService = projectService;
+        _logger = logger;
         _projectService.SaveStateChanged += (_, _) => OnPropertyChanged(nameof(Title));
 
         MediaBrowser.SelectionChanged += (_, asset) =>
@@ -98,8 +106,27 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <summary>The main window has been shown: offer recovery of autosaved work, start autosave.</summary>
     public Task OnWindowOpenedAsync() => _projectFiles.StartSessionAsync();
 
-    /// <summary>The main window is about to close; returns false to keep it open.</summary>
-    public Task<bool> PrepareToCloseAsync() => _projectFiles.PrepareToCloseAsync();
+    /// <summary>The main window is about to close; returns false to keep it open. Once closing is agreed,
+    /// playback is released and thumbnail and waveform work cancelled here, on the UI thread, before the window
+    /// closes and the dispatcher stops.</summary>
+    public async Task<bool> PrepareToCloseAsync()
+    {
+        if (!await _projectFiles.PrepareToCloseAsync()) return false;
+
+        try
+        {
+            await Preview.ReleasePlaybackAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Releasing playback before closing failed.");
+        }
+        if (_thumbnails is not null)
+            await _thumbnails.ShutdownAsync(); // never throws
+        if (_waveforms is not null)
+            await _waveforms.ShutdownAsync();  // never throws
+        return true;
+    }
 
     private void UpdatePreviewPosition() =>
         Preview.SetPosition(Timeline.Playhead, Timeline.SequenceDuration, Timeline.FrameRate);

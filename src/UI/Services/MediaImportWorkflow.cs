@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Interfaces;
+using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.UI.Services;
@@ -20,6 +21,7 @@ public sealed class MediaImportWorkflow
     private readonly MediaAnalysisCoordinator _analysisCoordinator;
     private readonly StatusService _status;
     private readonly ILogger<MediaImportWorkflow> _logger;
+    private readonly Func<Task> _showStatus;
 
     public MediaImportWorkflow(
         IFilePickerService filePicker,
@@ -27,7 +29,8 @@ public sealed class MediaImportWorkflow
         IProjectService projectService,
         MediaAnalysisCoordinator analysisCoordinator,
         StatusService status,
-        ILogger<MediaImportWorkflow> logger)
+        ILogger<MediaImportWorkflow> logger,
+        Func<Task>? showStatus = null)
     {
         _filePicker = filePicker;
         _mediaImportService = mediaImportService;
@@ -35,6 +38,8 @@ public sealed class MediaImportWorkflow
         _analysisCoordinator = analysisCoordinator;
         _status = status;
         _logger = logger;
+        // The picked files are checked on the UI thread; let the window render the "Importing…" status first.
+        _showStatus = showStatus ?? (() => Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background).GetTask());
     }
 
     public async Task RunAsync(CancellationToken ct = default)
@@ -70,7 +75,20 @@ public sealed class MediaImportWorkflow
             return;
         }
 
-        var importResult = await _mediaImportService.ImportManyAsync(paths, ct);
+        // Feedback only (D024 Step 9.8): the import itself is unchanged; the result message below replaces this one.
+        _status.Report(paths.Count == 1 ? "Importing 1 file…" : $"Importing {paths.Count} files…");
+        await _showStatus();
+
+        MediaImportBatchResult importResult;
+        try
+        {
+            importResult = await _mediaImportService.ImportManyAsync(paths, ct);
+        }
+        catch
+        {
+            _status.Report("Import didn't finish.");
+            throw;
+        }
         var addResult = _projectService.AddMediaAssets(importResult.Imported);
 
         // Fire-and-forget on purpose: analysis runs in the background and updates

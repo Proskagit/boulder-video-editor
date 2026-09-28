@@ -21,6 +21,10 @@
     <ProjectReference Include="..\..\src\Timeline\Timeline.csproj" />
     <ProjectReference Include="..\..\src\Export\Export.csproj" />
     <ProjectReference Include="..\..\src\Audio\Audio.csproj" />
+    <!-- Media analysis queue (UI) over the real ffprobe service. -->
+    <ProjectReference Include="..\..\src\UI\UI.csproj" />
+    <!-- Thumbnails (Media) over the real and the fake decoder. -->
+    <ProjectReference Include="..\..\src\Media\Media.csproj" />
   </ItemGroup>
 
   <ItemGroup>

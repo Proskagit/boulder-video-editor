@@ -8,6 +8,8 @@ using AiVideoEditor.Export;
 using AiVideoEditor.Infrastructure;
 using AiVideoEditor.Infrastructure.Configuration;
 using AiVideoEditor.Media;
+using AiVideoEditor.Media.Thumbnails;
+using AiVideoEditor.Media.Waveforms;
 using AiVideoEditor.Project;
 using AiVideoEditor.Project.Persistence;
 using AiVideoEditor.Timeline;
@@ -54,8 +56,20 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<Func<ICompositionRasterizer>>(_ => () => new AvaloniaCompositionRasterizer());
         services.AddSingleton<IExportService, ExportService>();
 
-        // --- Later-phase registrations go here, e.g.: ---------------------------
-        //   services.AddSingleton<IThumbnailService, ThumbnailService>();
+        // Thumbnails (D024 Step 9.4): the service takes the cache folder from its caller; where that is for the
+        // current project (saved: <project>/cache/thumbnails, unsaved: %LOCALAPPDATA%\…\cache\unsaved\<id>\thumbnails)
+        // is ThumbnailCacheLocation's.
+        services.AddSingleton<IThumbnailService, ThumbnailService>();
+        services.AddSingleton<IThumbnailCacheLocation>(sp => new ThumbnailCacheLocation(
+            sp.GetRequiredService<IProjectService>(), sp.GetRequiredService<RecoveryStore>(), AppPaths.UnsavedCacheRoot,
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ThumbnailCacheLocation>>()));
+
+        // Waveforms (D024 Step 9.5): the service decodes through the app's audio decoder; the cache follows the
+        // thumbnails' model next to them — <project>/cache/waveforms, unsaved …\cache\unsaved\<id>\waveforms.
+        services.AddSingleton<IWaveformService, WaveformService>();
+        services.AddSingleton<IWaveformCacheLocation>(sp => new WaveformCacheLocation(
+            sp.GetRequiredService<IProjectService>(), sp.GetRequiredService<RecoveryStore>(), AppPaths.UnsavedCacheRoot,
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WaveformCacheLocation>>()));
 
         // --- UI-only services ---------------------------------------------------
         services.AddSingleton<IFilePickerService, AvaloniaFilePickerService>();
@@ -66,6 +80,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IExportProgressDialog, AvaloniaExportProgressDialog>();
         services.AddSingleton<ExportWorkflow>();
         services.AddSingleton<MediaAnalysisCoordinator>();
+        services.AddSingleton<ThumbnailCoordinator>();
+        services.AddSingleton<WaveformCoordinator>();
         services.AddSingleton<MediaImportWorkflow>();
         services.AddSingleton<ProjectFileWorkflow>();
 

@@ -60,7 +60,7 @@ public sealed class SpeedPlaybackTests : IAsyncLifetime
         while (true)
         {
             var frame = _service.Update();
-            if (!frame.IsBuffering && frame.IsPictureCurrent && frame.Picture is { Kind: PictureKind.Frame } picture)
+            if (!frame.IsBuffering && frame.TopPicture() is { State: LayerPictureState.Frame, IsCurrent: true } picture)
                 return FakeVideoDecoder.Number(picture.Frame!);
             if (watch.Elapsed > TimeSpan.FromSeconds(5)) throw new TimeoutException($"frame {timelineFrame}: {frame}");
             await Task.Delay(1);
