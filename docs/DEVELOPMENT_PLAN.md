@@ -122,7 +122,7 @@ has not been saved yet; offline media.
   eviction or a cache-management UI.
 - Depends on: 9.3 (analysis cancellation and concurrency policy; clean shutdown with more background work).
 
-### 9.5 — Waveform *(in progress — sub-steps 9.5a–e; 9.5a accepted, 9.5b done, awaiting acceptance)*
+### 9.5 — Waveform *(in progress — sub-steps 9.5a–e; 9.5a–b accepted, 9.5c done, awaiting acceptance)*
 Scope: waveforms of audio on timeline clips, generated through the media abstraction, cached, consistent with
 mute / volume and the clip's time mapping.
 - PR: an audio clip on the timeline with analysed, online media shows the waveform of exactly its source range;

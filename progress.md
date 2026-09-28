@@ -411,6 +411,41 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     0 failed (Core 395, Timeline 260, Project 292, UI 255, Export 78, Rendering 54, Video 291, ExportEndToEnd 67 + 2).
     Real app: start (startup cleanup of both kinds) → close window clean (75 ms, no ffmpeg left, no errors); nothing
     user-visible yet (9.5d).
+  - 9.5b accepted (2026-09-28), committed as `babfbd5`; `AppPaths.UnsavedThumbnailCacheRoot` keeps its name
+    (technical debt, 9.5e / 9.8).
+  - 9.5c done — `WaveformCoordinator` (UI/Services), the waveform queue. The orchestration of 9.4c's
+    `ThumbnailCoordinator` moved unchanged into the abstract `MediaCacheCoordinator<T>` (generations cancelled on
+    `ProjectChanged` with their results dropped, once per asset id and generation, cache read on the thread pool without
+    a slot, making on the thread pool with one of the coordinator's own slots — a `SemaphoreSlim` per instance, so the
+    two kinds never share or hold up each other's limit —, results on the caller's context, `Ready` + `Get`,
+    `ShutdownAsync` ≤ 5 s); `ThumbnailCoordinator` is its thumbnail kind (API unchanged: `ThumbnailReady`,
+    `MaxConcurrentGenerations`; its 13 tests and the Media Browser's green). `WaveformCoordinator` (PO-W3 / W4 / W5):
+    candidates are only the media a clip on the timeline uses (any track, also hidden or muted — a muted clip is still
+    drawn, dimmed), requested on `TimelineChanged`, `MediaAssetsChanged` (an analysis completing) and at start; made for
+    audio and for video with an `AudioCodec` whose analysis completed; offline media only reads the cache (never made) —
+    unless its saved metadata says it has no sound; at most 2 made at once. A clip removed from the timeline keeps its
+    asset's waveform and work (an undo may bring it back). `WaveformReady` (asset id) + `Get(assetId)` for 9.5d.
+    `MainWindowViewModel.PrepareToCloseAsync` shuts it down after the thumbnails (optional constructor dependency). DI:
+    singleton; resolved with the main window, so it runs from the start (nothing is drawn until 9.5d). Tests:
+    `UI.Tests/WaveformCoordinatorTests` (15, fake service counting concurrent makes and holding them, real project
+    service: only media on the timeline — nothing at import —, an opened project's timeline handled (cache hit), a
+    removed clip keeps its waveform; at most 2 at once and one event per asset; busy thumbnail slots never hold up the
+    waveforms and free none of theirs; once per asset over repeated timeline / media changes and a second clip; a cache
+    hit takes no slot; silent video, images, pending and failed analysis get none, an analysis completing later is
+    picked up; offline: cached shown, none without, never made, known-silent not even read; a failure isn't retried and
+    doesn't stop the others; a new project cancels and publishes nothing of the old one (service noticing the
+    cancellation or not) and the new one is handled; shutdown; closing the main window; a new cache folder for later
+    requests), `UI.Tests/WaveformCompositionTests` (+1: one coordinator, a singleton). The limit in the tests is the
+    product decision (2), not the constant. Mutations (all caught): every imported media → 1, timeline changes ignored →
+    13, limit 1 → 7 (first survived: the tests read the constant — now the literal 2), one pool for both kinds → 8,
+    offline decoded → 1, offline known-silent read → 1, silent video made → 1, no dedup → 3, cache hit taking a slot → 1,
+    old generation not cancelled → 2, stale result published → 1, window close not shutting down → 1, coordinator not
+    registered → 1. `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1708
+    passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 271, Export 78, Rendering 54, Video 291,
+    ExportEndToEnd 67 + 2). Real app: start (the coordinator now runs from the start) → close window clean (67 ms, no
+    ffmpeg left, no errors). Not checked in the real app: a waveform actually made for a project's timeline — driving
+    the native folder picker (Open) through UI Automation from this session failed (the modal dialog blocked it);
+    nothing is drawn yet, so that check comes with 9.5d.
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); hotkey guard not exercised in the running app → 9.6;
   `PlaybackFrame.Picture` → 9.8; `Project.Tests` hang → watched (9.10);

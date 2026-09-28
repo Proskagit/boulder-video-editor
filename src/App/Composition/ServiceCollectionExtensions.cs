@@ -81,6 +81,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ExportWorkflow>();
         services.AddSingleton<MediaAnalysisCoordinator>();
         services.AddSingleton<ThumbnailCoordinator>();
+        services.AddSingleton<WaveformCoordinator>();
         services.AddSingleton<MediaImportWorkflow>();
         services.AddSingleton<ProjectFileWorkflow>();
 
