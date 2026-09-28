@@ -86,6 +86,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [ObservableProperty] private bool _isSnapIndicatorVisible;
     [ObservableProperty] private double _snapIndicatorX;
 
+    /// <summary>No clip on any track: the view shows how to add one (D024 Step 9.8).</summary>
+    [ObservableProperty] private bool _isEmpty = true;
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(DeleteSelectedCommand))]
     private bool _hasSelection;
@@ -157,6 +160,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
         foreach (var staleId in _clipViewModels.Keys.Where(id => !liveIds.Contains(id)).ToList())
             _clipViewModels.Remove(staleId);
+        IsEmpty = liveIds.Count == 0;
         RefreshClipNames(); // a text clip's label is its text, which any change (or undo) may alter
         _selection.RemoveAll(id => !liveIds.Contains(id));
 

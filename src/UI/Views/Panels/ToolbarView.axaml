@@ -17,11 +17,11 @@
 
       <Rectangle Width="1" Fill="#444444" Margin="6,2"/>
 
-      <Button Content="Import Media" Command="{Binding ImportMediaCommand}" ToolTip.Tip="Import media into the project"/>
+      <Button Content="Import Media" Command="{Binding ImportMediaCommand}" ToolTip.Tip="Import media into the project (Ctrl+I)"/>
 
       <Rectangle Width="1" Fill="#444444" Margin="6,2"/>
 
-      <Button Content="Export" Command="{Binding ExportCommand}" ToolTip.Tip="Export the sequence"/>
+      <Button Content="Export" Command="{Binding ExportCommand}" ToolTip.Tip="Export the sequence (Ctrl+E)"/>
 
     </StackPanel>
   </Border>

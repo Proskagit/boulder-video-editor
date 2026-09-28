@@ -17,10 +17,11 @@
     <!-- Transport controls -->
     <Border Grid.Row="1" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,1,0,0" Padding="8">
       <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-        <Button Content="⏮" Command="{Binding PreviousFrameCommand}" ToolTip.Tip="Previous frame"/>
-        <Button Content="{Binding PlayPauseLabel}" Command="{Binding PlayPauseCommand}" MinWidth="64"/>
+        <Button Content="⏮" Command="{Binding PreviousFrameCommand}" ToolTip.Tip="Previous frame (←)"/>
+        <Button Content="{Binding PlayPauseLabel}" Command="{Binding PlayPauseCommand}" MinWidth="64"
+                ToolTip.Tip="Play / Pause (Space; L plays, K pauses, J one second back)"/>
         <Button Content="⏹" Command="{Binding StopCommand}" ToolTip.Tip="Stop"/>
-        <Button Content="⏭" Command="{Binding NextFrameCommand}" ToolTip.Tip="Next frame"/>
+        <Button Content="⏭" Command="{Binding NextFrameCommand}" ToolTip.Tip="Next frame (→)"/>
         <ToggleButton Content="Loop" IsChecked="{Binding IsLooping, Mode=TwoWay}" ToolTip.Tip="Loop playback (Ctrl+L)"/>
 
         <TextBlock Text="{Binding CurrentTimeDisplay}" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="12,0,0,0"/>
