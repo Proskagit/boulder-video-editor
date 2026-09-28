@@ -13,7 +13,7 @@ namespace AiVideoEditor.UI.Tests;
 /// D024 Step 9.4b: at startup the caches of unsaved projects that can't come back are removed before the recovery
 /// offer — a project that is recovered keeps its thumbnails and uses that folder again.
 /// </summary>
-public sealed class StartupThumbnailCleanupTests : IDisposable
+public sealed class StartupCacheCleanupTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "AiVideoEditorTests", Guid.NewGuid().ToString("N"));
 

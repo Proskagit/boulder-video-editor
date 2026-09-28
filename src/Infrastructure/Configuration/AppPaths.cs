@@ -21,7 +21,7 @@ public static class AppPaths
 
     /// <summary>Media caches (thumbnails, waveforms) of projects that were never saved, one folder per project id
     /// (<c>&lt;root&gt;\&lt;projectId&gt;\thumbnails</c>, <c>…\waveforms</c>). Not created here.</summary>
-    public static string UnsavedThumbnailCacheRoot => Path.Combine(AppDataRoot, "cache", "unsaved");
+    public static string UnsavedCacheRoot => Path.Combine(AppDataRoot, "cache", "unsaved");
 
     public static string ProjectMediaFolder(string projectFolderPath) =>
         EnsureExists(Path.Combine(projectFolderPath, "media"));

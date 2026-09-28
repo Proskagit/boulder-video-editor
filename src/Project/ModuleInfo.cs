@@ -1,10 +1,8 @@
 namespace AiVideoEditor.Project;
 
 /// <summary>
-/// Project persistence: project.json (de)serialization, autosave, missing-media detection (Phase 6).
-/// This subsystem is scaffolded in Phase 0 as an empty, independently buildable
-/// project so the solution's dependency graph is correct from day one. Concrete
-/// implementations land in the phase that owns them (see docs/DEVELOPMENT_PLAN.md).
+/// Project persistence: the current project, project.json (de)serialization, autosave and recovery, missing-media
+/// detection (Phase 6); where the media caches of the current project live (Phase 9).
 /// </summary>
 internal static class ModuleInfo
 {

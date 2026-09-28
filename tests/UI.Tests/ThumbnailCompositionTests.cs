@@ -32,7 +32,7 @@ public sealed class ThumbnailCompositionTests
         var projects = provider.GetRequiredService<IProjectService>();
         var expected = Path.Combine(AppPaths.AppDataRoot, "cache", "unsaved", projects.Current.Id.ToString("N"), "thumbnails");
         Assert.Equal(expected, location.CurrentFolder); // a new project is unsaved
-        Assert.Equal(Path.Combine(AppPaths.AppDataRoot, "cache", "unsaved"), AppPaths.UnsavedThumbnailCacheRoot);
+        Assert.Equal(Path.Combine(AppPaths.AppDataRoot, "cache", "unsaved"), AppPaths.UnsavedCacheRoot);
     }
 
     [Fact]

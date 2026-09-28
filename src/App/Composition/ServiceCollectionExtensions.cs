@@ -61,14 +61,14 @@ public static class ServiceCollectionExtensions
         // is ThumbnailCacheLocation's.
         services.AddSingleton<IThumbnailService, ThumbnailService>();
         services.AddSingleton<IThumbnailCacheLocation>(sp => new ThumbnailCacheLocation(
-            sp.GetRequiredService<IProjectService>(), sp.GetRequiredService<RecoveryStore>(), AppPaths.UnsavedThumbnailCacheRoot,
+            sp.GetRequiredService<IProjectService>(), sp.GetRequiredService<RecoveryStore>(), AppPaths.UnsavedCacheRoot,
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ThumbnailCacheLocation>>()));
 
         // Waveforms (D024 Step 9.5): the service decodes through the app's audio decoder; the cache follows the
         // thumbnails' model next to them — <project>/cache/waveforms, unsaved …\cache\unsaved\<id>\waveforms.
         services.AddSingleton<IWaveformService, WaveformService>();
         services.AddSingleton<IWaveformCacheLocation>(sp => new WaveformCacheLocation(
-            sp.GetRequiredService<IProjectService>(), sp.GetRequiredService<RecoveryStore>(), AppPaths.UnsavedThumbnailCacheRoot,
+            sp.GetRequiredService<IProjectService>(), sp.GetRequiredService<RecoveryStore>(), AppPaths.UnsavedCacheRoot,
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WaveformCacheLocation>>()));
 
         // --- UI-only services ---------------------------------------------------
