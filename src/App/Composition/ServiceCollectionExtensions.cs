@@ -72,6 +72,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IExportProgressDialog, AvaloniaExportProgressDialog>();
         services.AddSingleton<ExportWorkflow>();
         services.AddSingleton<MediaAnalysisCoordinator>();
+        services.AddSingleton<ThumbnailCoordinator>();
         services.AddSingleton<MediaImportWorkflow>();
         services.AddSingleton<ProjectFileWorkflow>();
 

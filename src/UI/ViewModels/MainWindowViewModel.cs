@@ -23,6 +23,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private readonly IProjectService _projectService;
     private readonly ILogger<MainWindowViewModel> _logger;
+    private readonly ThumbnailCoordinator? _thumbnails;
 
     /// <summary>"Name — AI Video Editor", with a "*" after the name while there are unsaved changes.</summary>
     public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — AI Video Editor";
@@ -43,8 +44,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         StatusService status,
         ProjectFileWorkflow projectFiles,
         IProjectService projectService,
-        ILogger<MainWindowViewModel> logger)
+        ILogger<MainWindowViewModel> logger,
+        ThumbnailCoordinator? thumbnails = null)
     {
+        _thumbnails = thumbnails;
         Toolbar = toolbar;
         MediaBrowser = mediaBrowser;
         Preview = preview;
@@ -101,7 +104,8 @@ public sealed class MainWindowViewModel : ViewModelBase
     public Task OnWindowOpenedAsync() => _projectFiles.StartSessionAsync();
 
     /// <summary>The main window is about to close; returns false to keep it open. Once closing is agreed,
-    /// playback is released here, on the UI thread, before the window closes and the dispatcher stops.</summary>
+    /// playback is released and thumbnail work cancelled here, on the UI thread, before the window closes and the
+    /// dispatcher stops.</summary>
     public async Task<bool> PrepareToCloseAsync()
     {
         if (!await _projectFiles.PrepareToCloseAsync()) return false;
@@ -114,6 +118,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             _logger.LogError(ex, "Releasing playback before closing failed.");
         }
+        if (_thumbnails is not null)
+            await _thumbnails.ShutdownAsync(); // never throws
         return true;
     }
 

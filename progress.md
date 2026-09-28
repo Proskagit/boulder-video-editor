@@ -264,6 +264,37 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     order) → 3, a variant picked despite an unreadable time → 1, a move deleting only the carried variant → 1, sources
     removed before the copy → 6. Full suite with `--blame-hang`: 1612 passed, 2 skipped (4K), 0 failed; build 0 warnings. Real app: start, open, close clean, no
     warnings; nothing created in the project folder (no thumbnails are made yet — 9.4c/d).
+  - 9.4b accepted (2026-09-28), committed as `79e6359`.
+  - 9.4c done — `ThumbnailCoordinator` (UI/Services): makes and keeps the current project's thumbnails between the
+    media, `IThumbnailService` and the UI (no bitmaps — 9.4d). Requests on `MediaAssetsChanged` (and at start) for
+    video / images with completed analysis (made) and for offline media (a cached one only, never decoded); audio,
+    pending and failed analysis get nothing — analysis stays `MediaAnalysisCoordinator`'s. Generations: one per project,
+    replaced on `ProjectChanged` (New / Open / Recover), the old one cancelled; a cancelled generation's result is never
+    stored and raises no event, also when its work ended after the switch (applied on the caller's context — the UI
+    thread — like the analysis). Once per asset id and generation (in work, done or without a thumbnail — a failure
+    isn't retried until the next project). Cache read (`TryGetCached`) first, on the thread pool, without a slot; a
+    miss takes one of `MaxConcurrentGenerations = 2` slots (PO-4) — the wait ends with the generation — and runs
+    `GetOrCreateAsync` on the thread pool. The cache folder is read from `IThumbnailCacheLocation` per request: Save /
+    Save As change it for later requests and start no new generation. `ThumbnailReady` (asset id) + `Get(assetId)`
+    for 9.4d. `ShutdownAsync` cancels everything and waits (≤ 5 s); `MainWindowViewModel.PrepareToCloseAsync` calls it
+    after releasing playback (optional constructor dependency). DI: singleton. Tests: `UI.Tests/ThumbnailCoordinatorTests`
+    (13, fake service counting concurrent makes, real project service: at most 2 at once and every asset its own
+    thumbnail with one event each; one asset handled once over repeated media changes, also after it is ready; a cache
+    hit takes no slot and is never made; eligibility incl. offline with / without a cache and an analysis completing
+    later; a failing and an undecodable asset don't stop the others and aren't retried; a new project cancels the old
+    work — service noticing the cancellation or finishing anyway — and publishes nothing of it; waits of the old project
+    end at once, the new project is handled, no slot lost; a slot freed while the old project is cancelled starts no
+    work for it; reopening a project handles its assets again (cache hit); shutdown cancels, waits and publishes
+    nothing, nothing starts afterwards; closing the main window shuts the work down; a new cache folder is used for
+    later requests without starting over); 10 × in a row green. Mutations: no limit → 6, no dedup → 3, cache hit
+    taking a slot → 1, stale result published → 2, old generation not cancelled → 3, slot wait not cancellable → 1,
+    shutdown not cancelling → 2, folder not read per request → 1, offline media decoded → 1, window close not shutting
+    down → 1; the generation check after getting a slot is not caught (0 of 5): unlike 9.3c the work runs behind
+    `Task.Run` and SemaphoreSlim hands a freed slot over asynchronously, so the waits are always cancelled before a slot
+    of the cancelled project reaches them — a defensive check. Full suite with `--blame-hang`: 1625 passed, 2 skipped
+    (4K), 0 failed; build 0 warnings. Real app (a saved project with one video): first open made one thumbnail
+    (`cache/thumbnails/<id>-…-v1.thumb`, 57 616 B = 16 + 160 × 90 × 4; one 160-bound decode in `ffmpeg-*.log`), the
+    reopen decoded nothing (cache hit); close clean, no ffmpeg left.
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); hotkey guard not exercised in the running app → 9.6;
   `PlaybackFrame.Picture` → 9.8; `Project.Tests` hang → watched (9.10);
