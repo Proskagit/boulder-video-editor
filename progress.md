@@ -636,6 +636,243 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     the whole step. Residual (D024 "Left as they are"): fixed shortcuts; J one second only; loop over the whole
     sequence; the defensive loop end check; `OemBackslash` (ISO \) and Ctrl+I / Ctrl+E checked by tests only, not
     pressed in the running app.
+- Step 9.6 accepted and closed (2026-09-28): 9.6d committed as `e8c3c93`.
+- Step 9.7 — performance baseline (2026-09-28), measurement only: no code of the repository changed, no optimization,
+  no targets (D024: the product owner chooses what to optimize after reviewing the baseline).
+  - Method. Tool: a scratch console program outside the repository (as Step 8.6's `CodecMeasure`; the plan's
+    alternative, opt-in tests, would change the repository) — `Perf.csproj` referencing the app's projects (Core,
+    Infrastructure, UI, Video, Timeline, Media, Export, Project), built Release; Avalonia initialised as the app does
+    (`UsePlatformDetect().WithInterFont()`, own UI thread with a running dispatcher). It drives the shipped code as is:
+    `PlaybackService` + `CompositionView`, `ExportService` with the app's decoders / encoder / rasterizer, the
+    thumbnail and waveform services; the export breakdown wraps the service's own interfaces (`IVideoDecoder`,
+    `ICompositionRasterizer`, `IExportEncoder`) in timing decorators. Scenarios generated with ffmpeg (as Step 8.1):
+    `testsrc2` at 1280 × 720 / 1920 × 1080 / 3840 × 2160, 30 fps, H.264 veryfast CRF 18, no audio; a stereo tone (PCM
+    WAV, AAC 60 / 600 s). A project of N video tracks, each a full-length clip of the same source, all above the bottom
+    at opacity 0.8 (nothing culled: every layer decoded and composited) and, for the export, the tone on A1. Nothing
+    else running (no test suite, no app; no ffmpeg before a run). Hardware / software: AMD Ryzen 7 7800X3D (8 cores /
+    16 threads), 31 GB RAM, NVIDIA RTX 4070 SUPER, Samsung 990 PRO NVMe, Windows 11 IoT Enterprise LTSC 10.0.26100,
+    power plan High Performance; .NET SDK 8.0.424; FFmpeg 9.0.1 essentials (gyan.dev); repository at `e8c3c93`.
+  - Preview (1920 × 1080 canvas, 1080p sources decoded at ≤ 1280 × 720 as the app's playback settings, a 960 × 540
+    view, ticks at 60 Hz for 10 s after the first pictures, Stopwatch clock, video only — no audio device, so nothing
+    is played aloud; per tick: `Update()`, setting the view's layers = copying new frames into its bitmaps, rendering
+    the view offscreen with `RenderTargetBitmap` — Skia on the CPU, an upper bound for the app's own compositor):
+    | layers | update p50 / p95 ms | copy p50 / p95 ms | render p50 / p95 ms | ticks | frames shown / 300 | late ticks | peak WS MB | ffmpeg |
+    |---|---|---|---|---|---|---|---|---|
+    | 1 | 0.018 / – | 0.018 / 0.36 | 3.2 / 4.0 | 600 | 300 | 0 | 243 | 1 |
+    | 2 | 0.021 / – | 0.009 / 0.68 | 6.4 / 7.6 | 600 | 300 | 0 | 437 | 2 |
+    | 4 | 0.029 / – | 0.016 / 1.65 | 12.7 / 14.7 | 600 | 300 | 0 | 470 | 4 |
+    | 8 | 0.053 / – | 7.2 / 8.6 | 25.4 / 31.0 | 301 | 293 (7 skipped) | 0 | 869 | 8 |
+    Copy p50 is small at 60 Hz because every second tick has no new frame; at 8 layers a tick (copy + render ≈ 33 ms)
+    no longer fits 16.7 ms, the loop runs at 30 Hz and 7 of 300 frames are skipped; the decoders are never late.
+  - Export (10 s at 30 fps + the 10 s PCM tone, sources at the canvas size, D023 format; real-time factor = duration /
+    wall time; peaks of this process; ffmpeg = the decoders + the encoder):
+    | canvas × layers | wall s | RTF | fps | audio / video / finalize ms | peak WS / private MB | ffmpeg peak / after |
+    |---|---|---|---|---|---|---|
+    | 720p × 1 | 1.98 | 5.04 | 151 | 296 / 1579 / 100 | 162 / 136 | 2 / 0 |
+    | 720p × 2 | 3.12 | 3.20 | 96 | 290 / 2729 / 98 | 189 / 164 | 3 / 0 |
+    | 720p × 4 | 5.73 | 1.74 | 52 | 290 / 5336 / 104 | 284 / 259 | 5 / 0 |
+    | 720p × 8 | 11.18 | 0.89 | 27 | 282 / 10774 / 122 | 389 / 365 | 9 / 0 |
+    | 1080p × 1 | 4.31 | 2.32 | 70 | 284 / 3837 / 181 | 276 / 251 | 2 / 0 |
+    | 1080p × 2 | 7.73 | 1.29 | 39 | 290 / 7250 / 180 | 295 / 269 | 3 / 0 |
+    | 1080p × 4 | 14.99 | 0.67 | 20 | 283 / 14489 / 207 | 498 / 474 | 5 / 0 |
+    | 1080p × 8 | 29.23 | 0.34 | 10 | 288 / 28720 / 212 | 626 / 602 | 9 / 0 |
+    | 2160p × 1 (5 s, opt-in) | 16.79 | 0.30 | 9 | 160 / 16019 / 604 | 736 / 713 | 2 / 0 |
+  - Export breakdown (the same scenarios, timing decorators; time of the export loop, which handles one frame at a
+    time: get every layer's decoded frame → rasterize → hand the canvas to the encoder):
+    | canvas × layers | wall ms | waiting for decoded frames | rasterize (per frame) | write frames | write audio | this process CPU (cores) |
+    |---|---|---|---|---|---|---|
+    | 1080p × 1 | 4631 | 1976 | 1868 (6.2 ms) | 184 | 247 | 1.20 |
+    | 1080p × 2 | 8521 | 3744 | 3921 (13.1 ms) | 190 | 254 | 1.21 |
+    | 1080p × 4 | 15694 | 7394 | 7292 (24.3 ms) | 206 | 243 | 1.28 |
+    | 1080p × 8 | 29700 | 14829 | 13579 (45.3 ms) | 202 | 238 | 1.29 |
+    | 720p × 8 | 11259 | 4399 | 5929 (19.8 ms) | 114 | 241 | 1.26 |
+  - Cancel latency (1080p × 2 + tone; cancel requested from the progress callback inside each stage; 3 runs each;
+    latency = request → `ExportAsync` returned): Preparing 13–25 ms, Audio 8–9 ms, Video at 5 % 50–54 ms, Video at 50 %
+    71–79 ms, Finalizing 38–40 ms; every time: nothing in the output folder and no ffmpeg process at the return, none
+    after 1 s.
+  - Repeated runs (after each: full GC, then this process's handles / private memory / managed heap / threads and the
+    ffmpeg processes): 10 exports (720p × 1, 5 s) — handles 620 → 626 (flat from run 4), private 91–106 MB without a
+    trend, managed 1.6–2.6 MB, threads 45–46, ffmpeg 0 after every run; 10 playback sessions (1080p × 2: play 2 s, seek,
+    play 1 s, dispose) — handles 633–641 (no growth), private 252–368 MB fluctuating without a trend, managed 58–59 MB
+    constant from the first session (retained after every session is disposed — most likely pooled frame buffers;
+    not growing), threads 45–48, ffmpeg 0.
+  - Thumbnails / waveforms (cold = decoded and written to the cache, warm = cache hit): thumbnail 720p 79 ms, 1080p
+    91 ms, 2160p 191 ms, warm ≤ 0.2 ms; waveform PCM 10 s 57 ms, AAC 60 s 108 ms, AAC 600 s 685 ms (≈ 1.1 ms per second
+    of sound), warm ≤ 0.2 ms.
+  - The app itself (the 9.5d project: 320 × 180 video with sound, a silent video, two WAV clips; opened, played
+    10.8 s, closed; the process sampled every 100 ms): peak working set 239 MB, private 250 MB, peak handles 1 487,
+    ffmpeg ≤ 3; closed clean, none left.
+  - Bottlenecks (findings, not decisions): 1) export — one frame at a time on about one core (1.2–1.3 of 16): about
+    half of the video stage waits for the layers' decoded frames and a little less rasterizes (≈ 6 ms per 1080p layer
+    on the CPU); handing canvases to the encoder and the audio are 2–3 %; the time grows linearly with layers (1080p:
+    RTF 2.32 → 0.34 from 1 to 8 layers); the decoders don't seem to run ahead of the loop (the wait grows with every
+    layer although decoding a 1080p frame takes ffmpeg far less than the wait) — a hypothesis, not measured inside
+    ffmpeg; 2) Preview — 1–4 layers fit a 60 Hz tick with a wide margin (render ≤ 14.7 ms p95 on the CPU); 8 layers
+    don't (≈ 33 ms per tick in this measurement, 7 skipped frames; the app's own GPU compositor was not measured for
+    8 layers); 3) memory grows with layers (8 × 1080p: Preview 869 MB, export 626 MB peak working set); 4) no leak
+    found: no process left behind, handles and memory without a trend over 10 repetitions; cancel ≤ 80 ms and clean.
+  - Proposed for the product owner (D024: decided at the start of 9.7): the tool — this scratch tool, outside the
+    repository, re-run for every before / after; leak criteria — a leak is 1) any ffmpeg / ffprobe process still running
+    1 s after the operation that started it ended (export done or cancelled, playback released, project replaced,
+    window closed) or 2) handles or private memory (after a full GC) growing at every one of 10 repetitions of the same
+    operation without levelling off; growth once (warm-up, pools) is not a defect. Candidates, all within D023 (same
+    frames, same encoder, same canvas bytes — the parity suite unchanged): A) export: decode the layers ahead of the
+    loop and in parallel (overlap decoding with rasterizing); B) export: overlap rasterizing frame n + 1 with encoding
+    frame n; C) Preview with many layers: measure the app's own compositor at 8 layers first, then decide; D) none.
+    The scratch tool: `…\scratchpad\perf` (this session), its raw results `perfwork\results-*.json`.
+  - Baseline accepted (2026-09-28). Product owner decisions: the scratch tool and these scenarios stay for every
+    before / after; the leak criteria as proposed; A not blindly; B not now (encoding is 2–3 %); first C — the Preview
+    with 8 layers in the running app; D (no optimization) not chosen yet — decided after C whether A is worth it.
+  - C — the Preview with 8 layers in the running app (2026-09-28), measurement only, no code changed. Method: the app
+    started as the product owner runs it (`dotnet run`, Debug build of `e8c3c93`), window maximized on the 3440 × 1440
+    monitor (59 Hz; the other one 1920 × 1080, 60 Hz), projects opened through the folder picker (UI Automation),
+    L / K posted to the window; the Preview area 1531 × 862 on screen (a 1920 × 1080 canvas at 0.80). Scenario as the
+    baseline's Preview: 8 video tracks of the same 1920 × 1080, 30 fps, 12 s H.264 source (decoded at ≤ 1280 × 720 by the
+    app's playback), all above the bottom at opacity 0.8, no audio; a 1-layer project as the control. The source carries
+    its frame number n in 9 white boxes in a black band at its top (bit k at x = 40 + 200 k, plus an always-white
+    reference box). Frame delivery: while playing 10 s, ffmpeg `gdigrab` captured only that band of the screen at 60 fps
+    (lossless), and a small reader decoded n from every capture — which timeline frames reached the screen, the gaps,
+    the order, how long each stayed. Load: separate runs without the capture — the app process's CPU time
+    (`TotalProcessorTime`), `GPU Engine(pid_<app>…)\Utilization Percentage` per engine type every second, peak working
+    set / private bytes / handles every 200 ms, the ffmpeg decoders. No test suite, no other app; no ffmpeg before; none
+    left after any run. The window's content is composited by Avalonia on the GPU (the baseline's CPU `RenderTargetBitmap`
+    time does not apply here).
+    | run | timeline frames shown / in range | skipped (numbers) | timeline frames / s | picture changes / s | backwards | longest hold (1/60 s) |
+    |---|---|---|---|---|---|---|
+    | 1 layer (control) | 294 / 297 | 3 (7, 186, 192) | 29.7 | 29.6 | 0 | 5 |
+    | 8 layers, run 1 | 293 / 299 | 6 (2, 3, 8, 33, 35, 52) | 29.65 | 29.5 | 0 | 4 |
+    | 8 layers, run 2 | 293 / 299 | 6 (49, 94, 123, 248, 263, 280) | 29.45 | 29.35 | 0 | 5 |
+    | run (no capture) | app CPU, cores avg | GPU 3D engine of the app, % per second | peak working set / private MB | peak handles | decoders |
+    |---|---|---|---|---|---|
+    | 1 layer | 0.05 | 7.4–13.7 | 386 / 410 | 1 357 | 1 |
+    | 8 layers | 0.63 | 6.7–10.1 | 1 101 / 1 143 | 1 610 | 8 |
+    (With the capture running, 8 layers: CPU 0.75 / 0.89 cores, peak working set 1 607 / 1 610 MB.) The capture is not
+    synchronised with the display (60 fps against 59 Hz), so a frame shown for one refresh can fall between two captures:
+    the 1-layer control's 3 "skips" (1 %) are the method's noise, not the app's.
+    Conclusion: the running app plays 8 layers of 1080p at 29.45–29.65 of the content's 30 frames per second, in order,
+    no frame held longer than 5/60 s; about 2 % of the frames did not reach the screen against about 1 % noise at
+    1 layer — about one extra missed frame in a hundred, spread over the run (run 1: in the first two seconds, while
+    the eight decoders start). The display refresh (59–60 Hz) is not the limit: the content needs 30 new pictures per
+    second and gets them; the UI thread's timer (10 ms) and the GPU compositor keep up — the app uses 0.6–0.9 of a core
+    and the GPU's 3D engine at about 10 %. The baseline's "8 layers don't fit a 60 Hz tick" came from software rendering
+    in the tool; it does not happen in the app. What does grow is memory: 8 layers need about 1.1 GB working set
+    (1.6 GB peak in the capture runs) against 0.39 GB for one. Not measured: the GPU's own frame times (no PresentMon or
+    similar tool installed, none downloaded), sound during playback, other monitors / refresh rates, other sources.
+  - C accepted (2026-09-28): the Preview needs no optimization; the product owner chose A (the export), within D023;
+    B and any other optimization not now.
+  - A — the export decodes ahead and in parallel (2026-09-28; not committed, awaiting review). Architecture before:
+    `ExportService.WriteVideoAsync` handled one output frame at a time — `ExportFrameSource.GetFrameAsync(n)` asked the
+    picture layers' readers one after another, then the rasterizer drew the canvas, then `WriteFrameAsync` handed it to
+    the encoder; each reader's `FfmpegVideoFrameStream` reads a frame's pixels from ffmpeg's stdout only when asked
+    (`ReadExactlyAsync` into a new buffer), so ffmpeg could decode ahead only as far as the pipe's buffer — decoding,
+    reading and rasterizing took turns on about one core. Change (two places, nothing else): 1) `ExportFrameSource.
+    GetFrameAsync` starts every picture layer's `GetAsync` at once and awaits them together (`Task.WhenAll`): the layers'
+    decoders work in parallel; each reader still gets its requests in ascending order and selects exactly as before
+    (D009 / D022); the layers keep their order; the result is built only after every fetch ended — also when one
+    failed (the first failure in layer order propagates), so no reader is still reading when the caller disposes the
+    source; every layer's reader is created before any fetch starts (a clip that can't be exported fails before
+    anything runs — the preflight blocks such clips anyway). 2) `ExportService.WriteVideoAsync` fetches frame n + 1 while frame n is rasterized and written — one frame
+    ahead, never more (at most two output frames in flight); the requests stay ascending and one at a time; the
+    frames drawn and written, their order, the encoder, the format and the progress are unchanged; on leaving early
+    (cancelled, any failure) the fetch ahead is cancelled (a linked token) and awaited before the frame source disposes
+    its readers. Tests: `Export.Tests/ExportServiceTests` (+2: while the encoder blocks at frame 3 exactly six source
+    frames have been read — frame 4 fetched ahead, not further; a rasterizer failure while the fetch ahead is stuck in
+    the decoder ends the export with that failure, every part released, and no stream disposed while a read on it was
+    still running), `Export.Tests/ExportFrameSourceTests` (+2: two layers — the top layer's decoder opens while the
+    bottom one's is held, the layers keep their order and frames; a failing layer waits for the other layer before the
+    failure propagates, then everything is released); the 78 existing export tests unchanged and green (cancellation
+    during audio / video / completion, a stuck encoder, decode / encoder / rasterizer failures); Export tests 5 × in a
+    row green. Mutations (all caught): no fetch ahead → 1, the fetch ahead not cancelled on leaving → 1 (would hang),
+    not awaited on leaving → 1 (after making the test decoder's cancelled read take 50 ms — a first version finished
+    too fast to notice), layers one after another → 2, a failure leaving before the other layers end → 1.
+    Verification: `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1773 passed,
+    2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 328, Export 82, Rendering 58, Video 291,
+    ExportEndToEnd 67 + 2); the parity suite with `AIVE_HEAVY_TESTS=1`: 69 of 69 (the 4K scenes too) — byte-equal
+    canvases and every tolerance unchanged.
+    Before / after (the baseline's scratch tool and scenarios; "before" measured again right before the change; RTF =
+    duration / wall time):
+    | canvas × layers | RTF before | RTF after (3 runs) | gain |
+    |---|---|---|---|
+    | 720p × 1 | 4.94 | 6.20 / 6.35 / 6.24 | +26 % |
+    | 720p × 2 | 3.17 | 4.22 / 4.31 / 4.35 | +35 % |
+    | 720p × 4 | 1.75 | 2.37 / 2.28 / 2.22 | +31 % |
+    | 720p × 8 | 0.90 | 1.20 / 1.17 / 1.16 | +31 % |
+    | 1080p × 1 | 2.23 | 3.16 / 3.17 / 3.11 | +41 % |
+    | 1080p × 2 | 1.25 | 1.97 / 1.89 / 1.83 | +51 % |
+    | 1080p × 4 | 0.66 | 1.08 / 1.03 / 1.03 | +58 % |
+    | 1080p × 8 | 0.34 | 0.52 / 0.54 / 0.53 | +56 % |
+    Breakdown after (1080p): the export process now uses 1.9–2.1 cores (1.2–1.3 before); the time waiting for decoded
+    frames and rasterizing overlap (their sum exceeds the wall time); rasterizing per frame is a little slower
+    (6.2 → 7.1 ms at 1 layer, 44 → 55 ms at 8 — the CPU is shared with the decoding now). Cancel (1080p × 2, 3 runs per
+    stage): Preparing 13–23 ms, Audio 8 ms, Video 5 % 51–53 ms, Video 50 % 70–76 ms, Finalizing 39–43 ms — as before;
+    nothing in the output folder and no ffmpeg at the return, none after 1 s. Repeated runs: 10 exports — handles
+    626 → 632, private 83–89 MB, ffmpeg 0 after each; 10 playback sessions unchanged (the Preview isn't touched).
+    Memory (a separate run with the heap after each GC — what survived — and the GC counts; before = the two files
+    restored from HEAD for the measurement, then put back):
+    | canvas × layers | post-GC heap MB before → after | peak working set MB before → after | gen2 GCs before → after |
+    |---|---|---|---|
+    | 1080p × 1 | 26 → 34 | 244 → 219–236 | 48 → 60 |
+    | 1080p × 4 | 82–97 → 109–137 | 305–314 → 395–638 | 149 → 97–100 |
+    | 1080p × 8 | 264–279 → 327 | 720–721 → 1133–1137 | 106 → 51–52 |
+    | 720p × 8 | 217–232 → 371 | 615–616 → 1064–1068 | 70 → 50 |
+    The live data grows by about one decoded frame per layer, as designed (1080p: 8.3 MB per layer; 720p × 8 more than
+    that, +145 MB — not explained); the peak working set grows much more with many layers (+58 % at 1080p × 8, +73 % at
+    720p × 8, ≈ +0.4 GB), mostly garbage not yet collected: every decoded frame is a new large array, they are made
+    faster now and there are about half as many gen2 collections; at one layer there is no change.
+    Conclusion: a measurable gain everywhere (+26–35 % at 720p, +41–58 % at 1080p; 720p × 8 now faster than real time,
+    1080p × 4 too), with the same frames, order, encoder, format, cancellation and clean-up; but a memory regression
+    with 4–8 layers — peak working set about +0.4 GB at 8 layers (1.1 GB for 8 × 1080p), no change at 1 layer. Not in
+    this change (other optimizations, need their own decision): reusing the decoded frames' buffers (would remove most
+    of the garbage — also the Preview's), a GC setting, a smaller look-ahead for many layers.
+  - A review (2026-09-28): the speed-up accepted as effective, A not finally accepted because of the memory regression;
+    not rolled back, no new optimization; next: diagnose the regression only.
+  - A memory diagnosis (2026-09-28; no production code changed; the same scratch tool, scenarios and measurements).
+    Method: the export's video loop rebuilt in the tool from the service's public parts (`ExportFrameSource`, the
+    Avalonia rasterizer, the ffmpeg encoder; silent audio) in four variants — V0 sequential (the layers read one at a
+    time — a wrapper around the app's decoder lets one frame read run at a time — and no fetch ahead: the code before
+    A), V1 parallel layers only, V2 fetch ahead (n + 1) only, V3 both (= A, measured the same as the service's own
+    export: RTF 0.55–0.56 at 1080p × 8). Measured, sampling every 20 ms: peak working set / private bytes; the managed
+    heap including garbage (`GC.GetTotalMemory(false)`) and the GC's committed bytes; at every gen2 GC (background or
+    blocking — `GetGCMemoryInfo(Background / FullBlocking)`) the heap that survived it (live data) and its LOH part;
+    the decoded frames still alive then (weak references to every decoded frame's pixel array); the GC counts and the
+    bytes allocated. Every run in a fresh process (the first comparison in one process mixed scenarios: a run after
+    1080p × 8 kept its memory committed); a diagnostic floor with a forced full GC every 10 frames (in the tool only).
+    Two earlier numbers were artifacts of the measurement, not of A: the "post-GC heap" of the previous entry was taken
+    after the last GC of any kind — mostly gen0, which never looks at the large-object heap where every decoded frame
+    lives (3.7 MB at 720p, 8.3 MB at 1080p), so it counted uncollected frames as live (hence 720p × 8 "+145 MB"); and
+    the peaks of the scenarios run after 1080p × 8 in the same process included that scenario's committed memory
+    (hence 720p × 8 "615 → 1066 MB").
+    | canvas × layers | peak working set MB V0 → V3 | live after gen2 MB V0 → V3 | alive decoded frames at gen2 V0 → V3 | managed incl. garbage MB V0 → V3 | gen2 GCs V0 → V3 | allocated GB | RTF V0 → V3 |
+    |---|---|---|---|---|---|---|---|
+    | 1080p × 1 | 243 → 235 | 25 → 33 | 2 → 3 | 113 → 105 | 48 → 60 | 2.4 | 2.3 → 3.5 |
+    | 1080p × 4 | 490 → 619 | 73 → 105 | 8 → 12 | 328 → 456–471 | 68 → 48 | 9.6 | 0.66 → 1.07 |
+    | 1080p × 8 | 810 → 1130 | 113–120 → 200 | 15 → 24 | 606–614 → 901 | 121 → 53 | 19.1 | 0.34 → 0.56 |
+    | 720p × 8 | 421 → 364 | 55 → 90 | 16 → 24 | 260 → 176–207 | 123 → 101 | 8.5 | 0.91 → 1.25 |
+    (2 runs each, fresh processes; the repetitions agree within a few MB.) Single halves (one process, 1080p × 8): V1
+    parallel layers only — peak 718 MB, 148 gen2, live 138 MB; V2 fetch ahead only — peak 1 100 MB, 65 gen2, live
+    168 MB. Floor with a forced full GC every 10 frames: 1080p × 8 V0 809 MB (unchanged — it already runs a gen2 every
+    2.5 frames), V3 715 MB (managed incl. garbage 391 MB instead of 902); 1080p × 4 V0 473, V3 523.
+    Findings: 1) live data is bounded by design and exactly as expected — the decoded frames alive per picture layer
+    are 2 before A (frame n; n + 1 being read / the reader's look-ahead) and 3 with A (frame n being rasterized, n + 1
+    the reader's current frame, n + 2 being read), i.e. + one frame per layer: 1080p × 8 +66–87 MB, 720p × 8 +35 MB,
+    1080p × 1 +8 MB; 2) the peak growth is garbage, not live frames: the same bytes are allocated (19.1 GB of frame
+    arrays for 10 s at 1080p × 8 — every decoded frame is a new array on the large-object heap), but with the fetch
+    ahead the GC runs about half as many gen2 collections, so about twice as much garbage lies between them; forcing
+    collections removes ~415 MB of V3's peak (below the code before A); 3) the cause is the fetch ahead (n + 1), not
+    the parallel layers (parallel layers alone lowered the peak at 1080p × 8); 4) why the GC schedules fewer gen2
+    collections was not determined inside the GC — consistent with its large-object budget following the larger
+    surviving set and the doubled allocation rate; 5) no growth over repetitions (the earlier 10-run check) — transient.
+    A bound that holds without changing D023's behaviour: decoded frames alive ≤ 3 per picture layer of the frames n
+    and n + 1 (readers ≤ one per such layer; a layer leaving the composition closes its reader), i.e. live frame bytes
+    ≤ 3 × Σ width × height × 4 over those layers, plus the rasterizer's own bitmaps (one per layer, as before);
+    garbage between GCs has no bound in the code — it is up to the GC.
+  - A accepted (2026-09-28) after the memory diagnosis. Recorded: A keeps up to 3 decoded frames alive per picture
+    layer (2 before A) — a bounded memory footprint by design, not a leak (no growth over 10 repeated exports); the
+    peak working set can be higher than that because of transient large-object-heap garbage between gen2 collections
+    (the fetch ahead doubles the allocation rate and halves the gen2 count), not live data; the earlier 720p × 8
+    anomaly (+145 MB live, 615 → 1066 MB peak) was an artifact of the measurement method (a post-GC heap after gen0
+    GCs; several scenarios in one process), not of A. D023 behaviour and parity unchanged. Not done, by decision: a
+    frame buffer pool, GC tuning, a smaller look-ahead — possible separate optimizations, not needed now.
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); timeline waveforms →
   9.5 (done); `AppPaths.UnsavedThumbnailCacheRoot` naming both caches → 9.8; hotkey guard not exercised in the running

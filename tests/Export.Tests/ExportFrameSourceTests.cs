@@ -40,6 +40,71 @@ public sealed class ExportFrameSourceTests
 
     private static int Number(ExportFrame frame) => FakeVideoDecoder.Number(Assert.Single(frame.Layers).Frame!);
 
+    private const string Upper = @"C:\media\b.mp4";
+
+    /// <summary>Two layers over [0, frames): <see cref="File"/> at the bottom, <see cref="Upper"/> on top.</summary>
+    private (PlaybackSnapshot Snapshot, Guid Bottom, Guid Top) TwoLayers(long frames)
+    {
+        _decoder.Add(File, new FakeSource(Rate, 100));
+        _decoder.Add(Upper, new FakeSource(Rate, 100));
+        var (bottomAsset, topAsset, bottom, top) = (Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        var snapshot = new PlaybackSnapshot(1, Rate, F(frames),
+            ImmutableArray.Create(   // topmost first
+                new VideoLayer(Guid.NewGuid(), ImmutableArray.Create(new PictureSpan(top, topAsset, SpanStatus.Video, F(0), F(frames), MediaTime.Zero))),
+                new VideoLayer(Guid.NewGuid(), ImmutableArray.Create(new PictureSpan(bottom, bottomAsset, SpanStatus.Video, F(0), F(frames), MediaTime.Zero)))),
+            ImmutableArray<AudioSpan>.Empty,
+            ImmutableDictionary<Guid, PlaybackAsset>.Empty
+                .Add(bottomAsset, new PlaybackAsset(bottomAsset, File, MediaKind.Video, MediaTime.Zero, Rate))
+                .Add(topAsset, new PlaybackAsset(topAsset, Upper, MediaKind.Video, MediaTime.Zero, Rate)),
+            new FrameSize(1920, 1080));
+        return (snapshot, bottom, top);
+    }
+
+    [Fact]
+    public async Task The_layers_of_a_frame_are_fetched_at_the_same_time_and_keep_their_order()
+    {
+        // D024 Step 9.7 (A): the bottom layer's decoder is held at its open; the top layer's is opened meanwhile.
+        var (snapshot, bottom, top) = TwoLayers(50);
+        var gate = _decoder.Gate(File);
+        await using var source = new ExportFrameSource(snapshot, _decoder);
+
+        var pending = source.GetFrameAsync(0);
+        var until = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (_decoder.OpenCount(Upper) == 0 && DateTime.UtcNow < until) await Task.Delay(5);
+        Assert.Equal(1, _decoder.OpenCount(Upper));                               // not waiting for the bottom layer
+        Assert.False(pending.IsCompleted);
+
+        gate.SetResult();
+        var frame = await pending;
+        Assert.Equal(new[] { bottom, top }, frame.Layers.Select(l => l.Layer.ClipId));        // bottom to top, as before
+        Assert.Equal(new[] { 0, 0 }, frame.Layers.Select(l => FakeVideoDecoder.Number(l.Frame!)));
+        var later = await source.GetFrameAsync(7);
+        Assert.Equal(new[] { bottom, top }, later.Layers.Select(l => l.Layer.ClipId));
+        Assert.Equal(new[] { 7, 7 }, later.Layers.Select(l => FakeVideoDecoder.Number(l.Frame!)));
+    }
+
+    [Fact]
+    public async Task A_failing_layer_waits_for_the_other_layers_before_the_failure_propagates()
+    {
+        // The bottom source breaks at once; the top layer's open is held. The failure must not leave while the top
+        // layer's reader is still working — the caller disposes the source right after it.
+        var (snapshot, _, _) = TwoLayers(50);
+        _decoder.FailAfter(File, 1, software: true);
+        var gate = _decoder.Gate(Upper);
+        var source = new ExportFrameSource(snapshot, _decoder);
+
+        var pending = source.GetFrameAsync(0);
+        await Task.Delay(300);
+        Assert.False(pending.IsCompleted);
+
+        gate.SetResult();
+        var error = await Assert.ThrowsAsync<ExportException>(() => pending);
+        Assert.Equal(ExportFailure.DecodeFailed, error.Failure);
+        Assert.Contains("a.mp4", error.Message);
+        await source.DisposeAsync();
+        Assert.Equal(0, _decoder.LiveStreams);
+    }
+
     [Fact]
     public async Task A_stalled_decoder_blocks_the_frame_instead_of_returning_an_earlier_one()
     {

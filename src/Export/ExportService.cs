@@ -115,13 +115,35 @@ public sealed class ExportService : IExportService
         var canvas = new byte[(long)stride * size.Height];
         progress?.Report(new ExportProgress(ExportStage.Video, 0, total));
         await using var frames = new ExportFrameSource(job.Snapshot, _videoDecoder);
-        for (long n = 0; n < total; n++)
+
+        // Frame n + 1 is fetched (decoded) while frame n is rasterized and handed to the encoder (D024 Step 9.7, A):
+        // one frame ahead, never more — at most two output frames are in flight. The requests stay in ascending order,
+        // one at a time; what is drawn and written, and in which order, is unchanged.
+        using var ahead = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        Task<ExportFrame>? next = null;
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            var frame = await frames.GetFrameAsync(n, ct);
-            rasterizer.Render(frame.DrawPlan(), canvas, stride);
-            await encoding.WriteFrameAsync(canvas, stride, ct);
-            progress?.Report(new ExportProgress(ExportStage.Video, n + 1, total));
+            next = frames.GetFrameAsync(0, ahead.Token);
+            for (long n = 0; n < total; n++)
+            {
+                ct.ThrowIfCancellationRequested();
+                var frame = await next!;                     // set for every n < total
+                next = n + 1 < total ? frames.GetFrameAsync(n + 1, ahead.Token) : null;
+                rasterizer.Render(frame.DrawPlan(), canvas, stride);
+                await encoding.WriteFrameAsync(canvas, stride, ct);
+                progress?.Report(new ExportProgress(ExportStage.Video, n + 1, total));
+            }
+        }
+        finally
+        {
+            // Leaving early (cancelled, a failure): the fetch ahead is stopped and awaited before the frame source
+            // disposes the readers it may still be using. Its own outcome no longer matters.
+            if (next is not null)
+            {
+                ahead.Cancel();
+                try { await next; }
+                catch (Exception) { /* the export is already ending for another reason */ }
+            }
         }
     }
 }

@@ -318,6 +318,94 @@ public sealed class ExportServiceTests
         AssertAbandoned();
     }
 
+    // --- Step 9.7 (A): the next frame is fetched while the current one is rasterized and written -------------------
+
+    /// <summary>Counts the frames the export reads from the decoder, and notices a stream disposed while a read on it
+    /// is still running (a real ffmpeg stream would be torn down under the reader).</summary>
+    private sealed class CountingDecoder(IVideoDecoder inner) : IVideoDecoder
+    {
+        private int _reads;
+        public int Reads => Volatile.Read(ref _reads);
+        public volatile bool DisposedWhileReading;
+
+        public async Task<IVideoFrameStream> OpenAsync(VideoDecodeRequest request, CancellationToken ct = default) =>
+            new Stream(await inner.OpenAsync(request, ct), this);
+
+        private sealed class Stream(IVideoFrameStream inner, CountingDecoder owner) : IVideoFrameStream
+        {
+            private int _reading;
+
+            public async ValueTask<DecodedFrame?> ReadFrameAsync(CancellationToken ct = default)
+            {
+                Interlocked.Increment(ref _reading);
+                try
+                {
+                    var frame = await inner.ReadFrameAsync(ct);
+                    if (frame is not null) Interlocked.Increment(ref owner._reads);
+                    return frame;
+                }
+                catch (OperationCanceledException)
+                {
+                    await Task.Delay(50, CancellationToken.None);   // a cancelled pipe read takes a moment to unwind
+                    throw;
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref _reading);
+                }
+            }
+
+            public ValueTask DisposeAsync()
+            {
+                if (Volatile.Read(ref _reading) != 0) owner.DisposedWhileReading = true;
+                return inner.DisposeAsync();
+            }
+        }
+    }
+
+    [Fact]
+    public async Task While_a_frame_is_written_the_next_one_is_already_fetched_and_never_more()
+    {
+        // The encoder stops at frame 3. Frame n needs the source frames up to n + 1 (the reader's look-ahead that makes
+        // the choice certain): frames 0..3 → 5 reads; fetching frame 4 ahead → 6; never a frame further.
+        _encoder.BlockAt = "frame";
+        var counting = new CountingDecoder(_video);
+        var service = new ExportService(new Locator(@"C:\ffmpeg.exe"), counting, _audio, _encoder, NewRasterizer, NullLogger<ExportService>.Instance);
+        using var cts = new CancellationTokenSource();
+        var export = service.ExportAsync(new ExportJob(Snapshot(), Destination), _progress, cts.Token);
+        await WaitUntil(() => _encoder.Encoding?.Blocked == true);
+
+        await WaitUntil(() => counting.Reads == 6);
+        await Task.Delay(200);
+        Assert.Equal(6, counting.Reads);                                                    // one frame ahead, not more
+        Assert.Equal(3, _encoder.Encoding!.FrameMarkers.Count);
+
+        cts.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => export.WaitAsync(TimeSpan.FromSeconds(10)));
+        AssertAbandoned();
+    }
+
+    [Fact]
+    public async Task A_rasterizer_failure_while_the_next_frame_is_stuck_in_the_decoder_still_releases_everything()
+    {
+        // Source frames 0..5 come, then the decoder stalls: frame 4 is complete, fetching frame 5 ahead waits for source
+        // frame 6. The rasterizer fails on frame 4 — the fetch ahead must be stopped, not waited for forever.
+        var release = _video.HoldAfter(VideoFile, frames: 6);
+        var thrown = new InvalidOperationException("render failed");
+        var counting = new CountingDecoder(_video);
+        var service = new ExportService(new Locator(@"C:\ffmpeg.exe"), counting, _audio, _encoder,
+            () => { var r = NewRasterizer(); r.FailAt = (4, thrown); return r; }, NullLogger<ExportService>.Instance);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.ExportAsync(new ExportJob(Snapshot(), Destination), _progress).WaitAsync(TimeSpan.FromSeconds(10)));
+
+        Assert.Same(thrown, error);
+        Assert.Equal(4, _encoder.Encoding!.FrameMarkers.Count);
+        Assert.False(counting.DisposedWhileReading);                                          // the fetch ended first
+        AssertAbandoned();
+        release.TrySetResult();
+    }
+
     [Fact]
     public async Task Is_available_when_ffmpeg_is_found()
     {
