@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:rendering="using:AiVideoEditor.UI.Rendering"
              x:Class="AiVideoEditor.UI.Views.Panels.MediaBrowserView">
 
   <Border Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,0,1,0">
@@ -38,7 +39,11 @@
             <DataTemplate>
               <StackPanel Orientation="Horizontal" Spacing="8" Margin="2">
 
-                <Border Width="56" Height="32" CornerRadius="2" Background="{Binding ThumbnailColorHex}"/>
+                <!-- The kind's colour is the placeholder; a thumbnail, once ready, is drawn over it (D024 Step 9.4). -->
+                <Border Width="56" Height="32" CornerRadius="2" ClipToBounds="True" Background="{Binding ThumbnailColorHex}">
+                  <Image IsVisible="{Binding HasThumbnail}" Stretch="Uniform"
+                         Source="{Binding Thumbnail, Converter={x:Static rendering:ThumbnailBitmapConverter.Instance}}"/>
+                </Border>
 
                 <StackPanel Spacing="2" VerticalAlignment="Center">
                   <TextBlock Text="{Binding FileName}" Foreground="#DDDDDD" FontSize="12"/>

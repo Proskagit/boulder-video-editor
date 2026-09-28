@@ -295,6 +295,21 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     (4K), 0 failed; build 0 warnings. Real app (a saved project with one video): first open made one thumbnail
     (`cache/thumbnails/<id>-…-v1.thumb`, 57 616 B = 16 + 160 × 90 × 4; one 160-bound decode in `ffmpeg-*.log`), the
     reopen decoded nothing (cache hit); close clean, no ffmpeg left.
+  - 9.4c accepted (2026-09-28), committed as `b6ca02a`.
+  - 9.4d done — Media Browser shows thumbnails. `MediaBrowserItemViewModel.Thumbnail` (Core `Thumbnail`, null = the
+    kind's colour tile) + `HasThumbnail`; `MediaBrowserViewModel` (optional `ThumbnailCoordinator`, injected by DI) gives
+    rebuilt rows `coordinator.Get(asset.Id)` and updates a row on `ThumbnailReady` (the coordinator only reports the
+    current project). View: the 56 × 32 colour tile stays as background/placeholder, an `Image` (`Stretch=Uniform`) over it
+    bound through `UI/Rendering/ThumbnailBitmapConverter` — BGRA → `WriteableBitmap` with the Preview's `FrameBitmap`,
+    one bitmap per `Thumbnail` instance (`ConditionalWeakTable`), so the rows rebuilt on every media change reuse it. No
+    layout redesign. Tests: `UI.Tests/MediaBrowserThumbnailTests` (3: a row gets its thumbnail when ready and keeps the
+    same instance after a rebuild; audio and offline without a cache keep the tile, offline with a cache shows it;
+    another project starts without the previous thumbnails), `Rendering.Tests/ThumbnailBitmapConverterTests` (2: size
+    and exact BGRA pixels incl. alpha; same thumbnail → same bitmap, null → none). Mutations (all caught): ready events
+    ignored → 3, rebuilt rows losing the thumbnail → 1, a new bitmap per rebuild → 1. Full suite with `--blame-hang`:
+    1630 passed, 2 skipped (4K), 0 failed; build 0 warnings. Real app: the opened project's video shows its thumbnail in
+    the Media Browser (screenshot checked). Next: 9.4e — closeout of 9.4 (D024 "Refined in Step 9.4", Phase 9 manual
+    plan scenarios for thumbnails, ARCHITECTURE/ROADMAP/DEVELOPMENT_PLAN, full verification).
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); hotkey guard not exercised in the running app → 9.6;
   `PlaybackFrame.Picture` → 9.8; `Project.Tests` hang → watched (9.10);
