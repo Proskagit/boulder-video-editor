@@ -175,7 +175,7 @@ Metadata comes from ffprobe via `IMediaAnalysisService` (not `IVideoEngine`);
 same for ffmpeg (playback decoding). After Open only media without saved metadata that is
 present on disk is analysed (`MediaAnalysisCoordinator.QueueWhereNeeded`); missing files are
 never probed. `IVideoEngine` is an interface without implementation (thumbnails use `IThumbnailService`,
-below). The export is `IExportService` (D023).
+waveforms `IWaveformService`, below). The export is `IExportService` (D023).
 
 ## Thumbnails (Phase 9 Step 9.4)
 
@@ -183,7 +183,8 @@ Decision: D024 "Refined in Step 9.4". Media Browser only; playback and export ne
 
 - Core: `IThumbnailService` — `TryGetCached(asset, cacheFolder)` (never decodes) and
   `GetOrCreateAsync(asset, cacheFolder, ct)`; `Thumbnail` = packed BGRA, straight alpha. `IThumbnailCacheLocation` —
-  `CurrentFolder` of the current project, `Changed`, `CleanUpUnsavedAsync`.
+  `CurrentFolder` of the current project, `Changed`, `CleanUpUnsavedAsync` (the members of `IMediaCacheLocation`,
+  Step 9.5).
 - Media: `ThumbnailService` — source time `T = min(⌊Duration / 10⌋, 5 s)` (ticks from the start time), decoded by the
   app's `IVideoDecoder` (software, fit into 160 × 90, upright) and selected by `SourceFrameSelector` (D009: last frame
   at or before T). Cache file `{assetId:N}-{size:x}-{lastWriteUtcTicks:x}-v{rule}.thumb` (`AIVT` header + BGRA),
@@ -193,13 +194,42 @@ Decision: D024 "Refined in Step 9.4". Media Browser only; playback and export ne
   `AppPaths.UnsavedThumbnailCacheRoot/<projectId:N>/thumbnails`; on `ProjectSaved` the files are carried over (first
   Save moves, Save As copies; per asset its latest variant); at startup (`ProjectFileWorkflow.StartSessionAsync`)
   unsaved caches without a recovery file are removed. Nothing in `project.json` (`MediaAsset.ThumbnailPath` unused).
-- UI: `ThumbnailCoordinator` (UI/Services, singleton) — requests on `MediaAssetsChanged` for video / images with
+  The location logic is `MediaCacheLocation`'s, shared with the waveforms (Step 9.5).
+- UI: `ThumbnailCoordinator` (UI/Services, singleton; the orchestration is `MediaCacheCoordinator<T>`'s, shared with the
+  waveforms) — requests on `MediaAssetsChanged` for video / images with
   completed analysis and, cache only, offline media; one generation per project (`ProjectChanged` cancels the old
   one, its results are dropped); once per asset id and generation; cache reads without a slot, at most 2 makes at
   once; results and `ThumbnailReady` on the UI thread; `ShutdownAsync` from `MainWindowViewModel.PrepareToCloseAsync`.
   `MediaBrowserViewModel` sets `MediaBrowserItemViewModel.Thumbnail` from `Get(assetId)` when rows are built and on
   `ThumbnailReady`; the view draws it over the kind's colour tile through `ThumbnailBitmapConverter` (one
   `WriteableBitmap` per thumbnail instance, via `FrameBitmap`).
+
+## Waveforms (Phase 9 Step 9.5)
+
+Decision: D024 "Refined in Step 9.5". Timeline only, display only: playback and export never read the cache and the
+waveform never changes the audio.
+
+- Core: `IWaveformService` — `TryGetCached(asset, cacheFolder)` (never decodes), `GetOrCreateAsync(asset, cacheFolder,
+  ct)`; `Waveform` — one byte peak (`⌈max(|L|, |R|) · 255⌉`, capped) per 256 source samples (48 kHz from the file's
+  start time), `SampleCount` where the audio ends, `MaxPeak(from, to)`. `IWaveformCacheLocation` (an
+  `IMediaCacheLocation`).
+- Media: `WaveformService` — the file's audio decoded once by the app's `IAudioDecoder` (source position 0, 1×, strict
+  end), samples placed by the stream's `FirstSampleIndex`; audio files and video with an `AudioCodec`, analysis
+  completed; offline media never decoded (last cached file or none). Cache file
+  `{assetId:N}-{size:x}-{lastWriteUtcTicks:x}-v{rule}.peaks` (`AIVW` header + peaks); key, atomic write and offline
+  lookup shared with the thumbnails (`Media/Caching/SourceFileCache`).
+- Project: `WaveformCacheLocation` — saved `<project>/cache/waveforms`, unsaved
+  `AppPaths.UnsavedThumbnailCacheRoot/<projectId:N>/waveforms`; carry-over on Save / Save As and the startup cleanup
+  as the thumbnails' (`MediaCacheLocation`); each kind touches only its own folder and files.
+- UI: `WaveformCoordinator` (UI/Services, singleton, a `MediaCacheCoordinator<Waveform>`) — candidates are the media of
+  the timeline's clips (any track), requested on `TimelineChanged`, `MediaAssetsChanged` and at start; at most 2 makes
+  at once with slots of its own; `WaveformReady` / `Get`; shut down with the window after the thumbnails.
+  `TimelineViewModel` gives each `TimelineClipViewModel` a `ClipWaveform` (data, timeline start / end, source in,
+  speed, volume, muted — clip or track —, lower half for video, zoom) on every refresh / relayout and on
+  `WaveformReady`; `UI/Common/WaveformLayout` maps a pixel column to its source range by the clip's `AudioPlacement`
+  (the playback / export rule, D013 / D022) and to a height `peak / 255 · volume / 2`; `UI/Rendering/WaveformView`
+  draws, inside each clip under its label, only the columns in the timeline `ScrollViewer`'s viewport (dimmed when
+  muted, the lower half for video).
 
 ## Project persistence (Phase 6)
 
@@ -316,5 +346,6 @@ Routine refactoring needed to implement a feature does not.
 
 Verified against the source at the end of Phase 6 (branch `feat/phase-6-project-persistence`); the Phase 7
 sections at the Phase 7 closeout, the Export section at the Phase 8 closeout (Step 8.7), the Thumbnails section at
-the Step 9.4 closeout (9.4e).
+the Step 9.4 closeout (9.4e), the Waveforms section (and the shared parts of the Thumbnails section) at the Step 9.5
+closeout (9.5e).
 Re-check the code before relying on details that later phases may have changed.

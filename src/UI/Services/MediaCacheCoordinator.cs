@@ -53,7 +53,16 @@ public abstract class MediaCacheCoordinator<T> where T : class
     public T? Get(Guid assetId) => _generation.Results.TryGetValue(assetId, out var result) ? result : null;
 
     /// <summary>Completes when every piece of work started so far has ended (tests).</summary>
-    internal Task IdleAsync() => Task.WhenAll(_running.Keys);
+    internal async Task IdleAsync()
+    {
+        // A piece of work leaves _running in a continuation that runs after the work itself has completed — and possibly
+        // after WhenAll noticed it; wait until the bookkeeping is empty too.
+        while (!_running.IsEmpty)
+        {
+            await Task.WhenAll(_running.Keys);
+            await Task.Yield();
+        }
+    }
 
     /// <summary>Work started and not ended — reading the cache, waiting for a slot or making a result (tests).</summary>
     internal int RunningCount => _running.Count;

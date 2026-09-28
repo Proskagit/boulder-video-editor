@@ -122,14 +122,14 @@ has not been saved yet; offline media.
   eviction or a cache-management UI.
 - Depends on: 9.3 (analysis cancellation and concurrency policy; clean shutdown with more background work).
 
-### 9.5 — Waveform *(in progress — sub-steps 9.5a–e; 9.5a–c accepted, 9.5d done, awaiting acceptance)*
+### 9.5 — Waveform *(done — sub-steps 9.5a–e; 9.5a–d accepted, awaiting the product owner's acceptance of the whole step)*
 Scope: waveforms of audio on timeline clips, generated through the media abstraction, cached, consistent with
 mute / volume and the clip's time mapping.
 - PR: an audio clip on the timeline with analysed, online media shows the waveform of exactly its source range;
   move / trim / split / undo update it from cached data without decoding the file again. Whether video clips with
   sound show one too is decided at the start of 9.5 — chosen: yes, in the lower part of the clip (D024 Step 9.5).
 - PR: a clip at speed ≠ 1× shows its source range mapped onto its timeline length (display only — no audio
-  processing).
+  processing) — done by the clip's `AudioPlacement`, the playback / export rule (D024 Step 9.5).
 - PR: mute / volume: display rule decided at the start of 9.5 (e.g. height follows the volume, muted clip or
   track drawn dimmed); the waveform never changes the audio — chosen: height linear in the clip's volume (200 % reaches
   the clip's edge), a muted clip or track drawn dimmed with the same shape; envelope max(|L|, |R|), linear scale.

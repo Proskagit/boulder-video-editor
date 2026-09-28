@@ -7,7 +7,8 @@ steps (D024) and run as a whole at Step 9.10; sections are added per step. Logs:
 Status column: **auto** — covered by automated tests only, manual run pending (9.10); **UIA 9.3** — driven through the
 real app's UI by UI Automation during Step 9.3 (a development check, not the formal run); **manual-only, not
 executed** — needs hardware or system changes that were not made; must be run by hand at 9.10; **app 9.4** — checked
-in the real app during Step 9.4 (a development check, not the formal run).
+in the real app during Step 9.4 (a development check, not the formal run); **app 9.5** — checked in the real app
+during Step 9.5 (a development check, not the formal run).
 
 ## Step 9.3 — stability & error handling
 
@@ -51,6 +52,29 @@ not. Cache files: `<assetId>-<size>-<lastWriteTicks>-v1.thumb`.
 | 28 | Close while thumbnails are made | As 27, close the window instead (Don't Save) | The process ends within a few seconds; "Shutting down." is the last line of `app-*.log`; no `ffmpeg.exe` left | `ThumbnailCoordinatorTests` | auto; clean close after thumbnails checked in app 9.4 |
 | 29 | Portrait / rotated video | Import a phone video recorded in portrait (display matrix −90°) | A portrait thumbnail, upright, centred in the tile with the colour visible on both sides | `ThumbnailIntegrationTests` | auto |
 | 30 | Playback and export untouched | With thumbnails shown, play the timeline and export it | Preview and export are as before; neither reads `.thumb` files (no change in `ffmpeg-*.log` besides their usual commands) | parity suite (`ExportEndToEnd.Tests`) unchanged | auto |
+
+## Step 9.5 — waveform
+
+A waveform decode shows in `ffmpeg-*.log` as an audio command line (`-map 0:a:0 … -f f32le`) without `-ss` and
+without `atempo`; the Preview also starts audio decodes at the playhead (with `atempo` for a clip at another speed), so
+count per file. Cache files: `<project>/cache/waveforms/<assetId>-<size>-<lastWriteTicks>-v1.peaks`. Media with a
+known shape help: e.g. 2 s silence, 4 s of a quiet tone, 4 s of a loud tone.
+
+| # | Scenario | Steps | Expected | Automated coverage | Status |
+|---|---|---|---|---|---|
+| 31 | Only timeline media | Import an audio file and a video with sound; wait for analysis; then add only the video to the timeline | Nothing is decoded for a waveform at import; after Add to Timeline one waveform decode of the video; the audio file gets none until it is on the timeline | `WaveformCoordinatorTests` | auto |
+| 32 | Audio clip and video with sound | A timeline with an audio clip and a video clip with sound | The audio clip shows its waveform over its whole height, the video clip in its lower half, both following the loudness of the media (silence flat) | `TimelineWaveformTests`, `WaveformViewTests`, `WaveformIntegrationTests` | app 9.5 |
+| 33 | Video without sound, images, text | Add a video without an audio stream, an image and a text clip | None of them shows a waveform; `ffmpeg-*.log` has no audio decode of the silent video | `TimelineWaveformTests`, `WaveformCoordinatorTests`, `WaveformIntegrationTests` | app 9.5 (silent video) |
+| 34 | Volume | Set a clip's volume to 50 %, 100 %, 200 % (Inspector) | The height changes linearly; a full-scale peak reaches the clip's edge at 200 % and half of it at 100 %; nothing is decoded again | `WaveformLayoutTests`, `WaveformViewTests` | auto |
+| 35 | Mute | Mute a clip (Inspector); unmute. (A muted track has no UI yet — covered by tests) | Muted: the same shape, dimmed; unmuted: as before; nothing is decoded again | `TimelineWaveformTests`, `WaveformViewTests` | app 9.5 (a muted clip) |
+| 36 | Trim, move, split, undo | Trim a clip's start and end, move it, split it, undo each | The waveform always shows exactly the clip's source range (a split continues seamlessly); no decode; while a start trim is dragged the waveform follows only after the release | `WaveformLayoutTests`, `TimelineWaveformTests` | auto |
+| 37 | Speed | Set an audio clip to 2× and to 0.5× | The source range is compressed / stretched onto the clip's length (a loudness step in the source at 6 s shows at 3 s / 12 s after the clip's start); no new waveform decode | `WaveformLayoutTests`, `TimelineWaveformTests` | app 9.5 (2×) |
+| 38 | Zoom and scroll | Zoom in to the maximum on a long clip and scroll through it; zoom out to the minimum | The waveform is drawn across the visible part at every zoom; scrolling stays smooth; zoomed out, the loud parts stay visible (largest peak per column) | `WaveformLayoutTests` (viewport columns) | app 9.5 |
+| 39 | Reopen from the cache | Save, close, open the project again | The waveforms appear at once; `ffmpeg-*.log` has no waveform decode (only the Preview's audio at the playhead); the `.peaks` files keep their last-write time | `WaveformServiceTests`, `WaveformCoordinatorTests` | app 9.5 |
+| 40 | Offline with and without a cache | Close; rename the media folder; open. Then also delete one asset's `.peaks` and open again | Offline media with a cache shows its waveform, without one none; `ffmpeg-*.log` has no decode at all | `WaveformServiceTests`, `WaveformCoordinatorTests`, `TimelineWaveformTests` | app 9.5 |
+| 41 | Unsaved project, Save, Save As, recovery | New project; add an audio clip; check `…\cache\unsaved\<id>\waveforms`; Save; Save As; crash-recover an unsaved project (as scenario 26) | The `.peaks` is in the unsaved folder, then moved to `<project>/cache/waveforms` (the unsaved folder gone once the thumbnails are out too), copied on Save As; a recovered project finds its waveforms; orphaned unsaved waveform folders are removed at the next start | `WaveformCacheLocationTests`, `StartupThumbnailCleanupTests` | auto |
+| 42 | New / Open / close while waveforms are made | Put several long audio files on the timeline; while their waveforms are still being made press New (or Open), or close the window | At most 2 waveform decodes at once, independent of the thumbnails'; after the switch none of the old project keeps running and nothing of it appears; closing ends within seconds with no `ffmpeg.exe` left | `WaveformCoordinatorTests` | auto; clean close checked in app 9.5 |
+| 43 | Playback and export untouched | With waveforms shown, play (also a muted clip and a clip at 2×) and export | Sound and export are as before; neither reads `.peaks` files | parity suite (`ExportEndToEnd.Tests`) unchanged | auto |
 
 ## Result log
 

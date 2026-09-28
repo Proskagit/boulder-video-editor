@@ -1143,6 +1143,49 @@ Refined in Step 9.4 (2026-09-28), thumbnails + cache (product owner decisions PO
   project's thumbnail files there, never read; the generation check after a slot is obtained is defensive — no
   mutation reaches it (the waits of a cancelled generation always end first).
 
+Refined in Step 9.5 (2026-09-28), waveform (product owner decisions PO-W1–PO-W4 after the 9.5 audit, PO-W5 after
+9.5a; sub-steps 9.5a–e, each accepted separately; details and verification in `progress.md`):
+- Product owner decisions:
+  - PO-W1: video clips with sound show a waveform too, in the lower half of the clip; audio clips over the whole clip;
+    video without sound, images and text none.
+  - PO-W2: the height is linear in the clip's volume — a full-scale peak reaches the full height at 200 % (the maximum
+    volume) and half of it at 100 %; a muted clip, or a clip on a muted track, keeps the same shape, dimmed; the
+    envelope is `max(|L|, |R|)` on a linear scale.
+  - PO-W3: waveforms are made only for media used by a clip on the timeline — nothing at import.
+  - PO-W4: the cache lives next to the thumbnails — `<project>/cache/waveforms`, unsaved
+    `%LOCALAPPDATA%\AiVideoEditor\cache\unsaved\<projectId>\waveforms` — with their life cycle and key; at most 2
+    waveforms are made at once, a limit of its own (never shared with the thumbnails').
+  - PO-W5 (refines the plan's "offline media shows no waveform"): offline media may show a waveform cached earlier —
+    never decoded or made; without a cached one it shows none.
+- 9.5a, data and service: Core `IWaveformService` (`TryGetCached` never decodes, `GetOrCreateAsync`) and `Waveform` —
+  one byte peak (`⌈|a| · 255⌉`, capped, rounded up so any sound shows) per 256 source samples (48 kHz, from the
+  file's start time), up to where the audio ends. Media `WaveformService` decodes the file's audio once with the app's
+  `IAudioDecoder` (from the start, 1×, strict end) and places the samples by the stream's first sample index — the
+  samples playback plays; no new ffmpeg path. Made for audio files and video with an audio stream whose analysis
+  completed; a decode failure, also midway, caches nothing. Cache file `…-v1.peaks` (`AIVW` header + peaks) with the
+  thumbnails' key (asset id, source size and last-write time, rule version), atomic write and offline lookup —
+  shared code (`Media/Caching/SourceFileCache`).
+- 9.5b, location: the logic of `ThumbnailCacheLocation` is shared (`Project/MediaCacheLocation`) by the thumbnail and
+  the waveform kinds (`WaveformCacheLocation`); each kind touches only its own folder and files; an unsaved project's
+  `<id>` folder is removed once nothing is left in it, and the startup cleanup removes a kind's folder per orphan.
+  Core `IMediaCacheLocation` is the base of `IThumbnailCacheLocation` and `IWaveformCacheLocation`.
+- 9.5c, queue: the orchestration of `ThumbnailCoordinator` is shared (`UI/Services/MediaCacheCoordinator<T>`: generations
+  cancelled on project replacement with their results dropped, once per asset and generation, cache reads without a
+  slot, a slot pool per coordinator, shutdown with the window); `WaveformCoordinator` requests the media of the
+  timeline's clips (any track, also hidden or muted) on timeline and media changes. A clip removed from the timeline
+  keeps its asset's waveform and work (an undo may bring it back).
+- 9.5d, display: a timeline pixel column covers its timeline samples, mapped to the source by the clip's
+  `AudioPlacement` — the placement rule of playback and export (D013 / D022) —, so trim and speed ≠ 1× show exactly
+  the clip's source range; it shows the largest peak of that range (`UI/Common/WaveformLayout`). `WaveformView` draws
+  only the columns inside the timeline's viewport. Display only: playback and export never read waveforms, and the
+  waveform never changes the audio.
+- Left as they are: no cache size limit, eviction or cache UI (as 9.4); no waveforms in the Media Browser, no audio
+  editing, scrubbing or meters (out of scope); a waveform that could not be made is retried only with the next project
+  (or by reopening it); media coming back online during a session is not re-checked; while a trim of a clip's start
+  is dragged the waveform follows the model, not the preview, until the edit; the waveform starts at the clip border's
+  inner edge (1–2 px); at 100 % (PO-W2) loud sound takes under half of the height and a muted quiet clip is faint;
+  `AppPaths.UnsavedThumbnailCacheRoot` now names the unsaved root of both kinds (rename left to 9.8).
+
 Status: Phase 9 scope and step structure are accepted. Each implementation step requires separate product-owner
 acceptance before proceeding to the next step.
 

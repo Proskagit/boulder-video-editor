@@ -491,8 +491,39 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     height and a quiet one (0.25) about an eighth — with the 19 % alpha a muted quiet clip is barely visible.
     `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1737 passed, 2 skipped (4K),
     0 failed (Core 395, Timeline 260, Project 292, UI 296, Export 78, Rendering 58, Video 291, ExportEndToEnd 67 + 2).
+  - 9.5d accepted (2026-09-28), committed as `80d3748`; the height at 100 % (PO-W2), the 1–2 px border offset and the
+    waveform during a start-trim drag stay as they are.
+  - 9.5e done — closeout of 9.5. Documentation: D024 "Refined in Step 9.5" (PO-W1–W5, the data and service, the shared
+    location and queue, the display rule, what is left as it is); `docs/PHASE9_MANUAL_TEST_PLAN.md` section "Step 9.5"
+    (scenarios 31–43: only timeline media, audio clip and video with sound, silent video / images / text, volume, mute,
+    trim / move / split / undo, speed, zoom and scroll, reopen from the cache, offline with and without a cache,
+    unsaved project / Save / Save As / recovery, New / Open / close while waveforms are made, playback and export
+    untouched) and the status "app 9.5"; `ARCHITECTURE.md` new section "Waveforms (Phase 9 Step 9.5)", the Thumbnails
+    section points to the shared location / coordinator, verification note; `docs/DEVELOPMENT_PLAN.md` 9.5 done;
+    `ROADMAP.md` "Current"; `README.md` (waveforms next to thumbnails); stale comments of `Audio/ModuleInfo`
+    ("waveform generation" there) and `IVideoEngine` corrected. One code fix found by the final verification: the
+    waveform and thumbnail tests repeated 10 × failed once (`ThumbnailCoordinatorTests.Shutdown_cancels_everything…`,
+    `RunningCount` 1 after `ShutdownAsync`; reproduced once in 22 runs) — a race of `MediaCacheCoordinator` (from
+    9.4c): a piece of work leaves the bookkeeping in a continuation that runs after the work has completed, possibly
+    after `Task.WhenAll` noticed it, so `IdleAsync` (and with it `ShutdownAsync`'s wait) could end one step early.
+    `IdleAsync` now waits until the bookkeeping is empty. After the fix: 60 runs in a row green. Not reachable by a
+    deterministic test (a scheduling race); the shutdown tests of both coordinators cover it statistically.
+  - Step 9.5 closeout (2026-09-28): 9.5a–e done, 9.5a–d accepted, 9.5e awaiting with the whole step. Verification:
+    `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang` (after the fix): 1737 passed,
+    2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 296, Export 78, Rendering 58, Video 291,
+    ExportEndToEnd 67 + 2); the waveform, thumbnail and cache-location tests (UI 62, Video 78 incl. 14 with real ffmpeg
+    9.0.1, Project 31, Rendering 6, Core 15) 10 × in a row — one failure, the race above — and the UI part 60 × green
+    after the fix; parity suite unchanged. Real app (the 9.5d project, waveform cache removed first): first open made
+    one `.peaks` per file with sound and none for the silent video, the same picture as in 9.5d; closed 1 s after
+    opening, while waveforms were being made — clean (140 ms, no ffmpeg left); reopen: only the Preview's two audio
+    starts, the `.peaks` unchanged; no process left. The formal manual run of scenarios 31–43 is Step 9.10's. Residual
+    (D024 "Left as they are"): no cache limit / eviction; a failed waveform retried only with the next project; media
+    coming back online not re-checked; the start-trim drag preview; the 1–2 px border offset; the faint muted quiet clip
+    at 100 %; `AppPaths.UnsavedThumbnailCacheRoot` naming both caches (9.8).
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
-  `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); hotkey guard not exercised in the running app → 9.6;
+  `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); timeline waveforms →
+  9.5 (done); `AppPaths.UnsavedThumbnailCacheRoot` naming both caches → 9.8; hotkey guard not exercised in the running
+  app → 9.6;
   `PlaybackFrame.Picture` → 9.8; `Project.Tests` hang → watched (9.10);
   L1-c → stays open.
 
