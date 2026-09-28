@@ -212,6 +212,58 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     advance → 6, T = Duration/5 → 21, start time ignored → 2, size or time missing from the key → 1 each, missing flag
     ignored → 1, audio decoded → 1, older files kept → 3, hardware decoding → 1, no length check → 3. Full suite with
     `--blame-hang`: 1590 passed, 2 skipped (4K), 0 failed; build 0 warnings. `AppPaths` untouched (9.4b).
+  - 9.4a accepted (2026-09-25), committed as `119adcd`.
+  - 9.4b done — cache location in the project's life. Core `IThumbnailCacheLocation` (`CurrentFolder`, `Changed`,
+    `CleanUpUnsavedAsync`); Project `ThumbnailCacheLocation`: saved → `<project>/cache/thumbnails` (`SavedFolder`),
+    unsaved → `<unsaved root>/<projectId:N>/thumbnails`; the folder follows `IProjectService.Current` at every read.
+    Hooks into the existing flow only: `ProjectChanged` (New / Open / Recover — a recovered project keeps its id, so an
+    unsaved one finds its thumbnails, a saved one uses its folder) and `ProjectSaved` (first Save / Save As to another
+    folder: the `*.thumb` files are carried over on the thread pool — moved out of the unsaved folder, which is then
+    removed if empty; copied from another project folder, which keeps its cache; any failure is logged and only means
+    regeneration — never affects the save). Carry-over into a folder that already has thumbnails (product owner option
+    C, after a review of Save As over an earlier copy of the same project — same asset ids, so an offline asset could
+    have shown an older variant), refined after a second review (several source variants of one asset used to be
+    carried in file-name order, the last one winning — an outdated one when the current name sorts first, e.g. a size
+    of 9 → 16 bytes, `-9-` / `-10-` — and a move then deleted both sources): the source files are grouped by asset
+    (file name prefix before the first '-'); per group one current variant is chosen — the latest `LastWriteTimeUtc`
+    (the order the service's offline lookup uses; format validity isn't checked here, Project doesn't reference
+    Media), on a tie the ordinally last name; if any variant's time can't be read the group is skipped and logged. The
+    chosen file is copied with overwrite; only after that copy succeeded are the asset's other thumbnails in the
+    target removed (prefix `<assetId>-`) and, for a move, all of the asset's source variants deleted; a failed copy
+    removes nothing of that asset anywhere; files of other assets and foreign files stay; the target folder is never
+    cleared. Startup cleanup: `ProjectFileWorkflow.
+    StartSessionAsync` (optional constructor dependency) runs `CleanUpUnsavedAsync` before the recovery offer: removes
+    unsaved folders named by a project id without a recovery file (`RecoveryStore.PathFor`), keeps the current
+    project's and anything not named by an id; best effort. `AppPaths`: `ProjectThumbnailsFolder` (`<project>/thumbnails`)
+    removed, `UnsavedThumbnailCacheRoot` (`%LOCALAPPDATA%\AiVideoEditor\cache\unsaved`, not created) added;
+    `ProjectCacheFolder` documented as the parent of the thumbnails folder. DI (App): `IThumbnailService` →
+    `ThumbnailService`, `IThumbnailCacheLocation` → `ThumbnailCacheLocation(projects, RecoveryStore,
+    AppPaths.UnsavedThumbnailCacheRoot)`. Comments of `Project.ProjectFolderPath` and `MediaAsset.ThumbnailPath` (unused,
+    PO-5) corrected; no model or format change. A Save As over a folder that held an unrelated project leaves that
+    project's thumbnail files there; they are never read (named by other asset ids). Tests:
+    `Project.Tests/ThumbnailCacheLocationTests` (19: unsaved folder, nothing created by asking; unsaved projects never
+    share; Open → `cache/thumbnails`, no `<project>/thumbnails`; Recover unsaved / saved; first save switches and moves,
+    nothing of it in `project.json`; saving again changes nothing; Save As copies and the old project keeps its cache;
+    a failing carry-over doesn't break the save and loses nothing; a carried file replaces a same-name target file;
+    after the carry-over each asset has only its current thumbnail, other assets and foreign files untouched; a file
+    that can't be carried (locked target) stays in the source and the target isn't cleaned for it; two source variants
+    of one asset with different times — the current one sorting first and last by name — : a move carries only the
+    latest and removes both sources, a copy from a saved cache carries only the latest and leaves the source as it was;
+    a failed copy keeps every source variant and doesn't clean the target for that asset; an unreadable variant time
+    keeps the whole asset where it is while other assets are carried; cleanup keeps
+    recoverable, open and foreign folders and removes orphans; cleanup without a cache),
+    `UI.Tests/StartupThumbnailCleanupTests` (1: startup removes the
+    orphan, the recovered project uses and keeps its folder), `UI.Tests/ThumbnailCompositionTests` (2: the app's
+    `AddAiVideoEditor` resolves both services, one singleton, the unsaved folder under `AppPaths`; `AppPaths` has no
+    `ProjectThumbnailsFolder`). `UI.Tests` references App for the DI test (`Video.Tests` can't: App brings the Project
+    namespace, which clashes with its `Project` type names). Mutations (all caught): saved cache at `<project>/thumbnails`
+    → 5, one unsaved folder for all → 3, no carry-over → 2, cleanup ignoring recovery files → 1, Save As moving the old
+    cache → 1, cleanup removing the open project's cache → 1, no cleanup at startup → 1; carry-over (option C): same
+    name skipped → 1, older variants kept → 1, other assets removed too → 2, source removed before the copy → 3, target
+    cleaned after a failed copy → 1; per-asset choice: oldest variant → 3, first by name → 1, last by name (the former
+    order) → 3, a variant picked despite an unreadable time → 1, a move deleting only the carried variant → 1, sources
+    removed before the copy → 6. Full suite with `--blame-hang`: 1612 passed, 2 skipped (4K), 0 failed; build 0 warnings. Real app: start, open, close clean, no
+    warnings; nothing created in the project folder (no thumbnails are made yet — 9.4c/d).
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); hotkey guard not exercised in the running app → 9.6;
   `PlaybackFrame.Picture` → 9.8; `Project.Tests` hang → watched (9.10);

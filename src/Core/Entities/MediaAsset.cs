@@ -57,7 +57,8 @@ public sealed class MediaAsset
     /// <see cref="AnalysisStatus"/> is <see cref="MediaAnalysisStatus.Failed"/>.</summary>
     public string? AnalysisError { get; set; }
 
-    /// <summary>Cached thumbnail path (relative to project cache folder), if generated.</summary>
+    /// <summary>Kept for compatibility of project files; not used and never filled (D024 Step 9.4, PO-5): a
+    /// thumbnail's cache file follows from the asset id and its source file (<c>IThumbnailService</c>).</summary>
     public string? ThumbnailPath { get; set; }
 
     /// <summary>Set when the file could not be located at <see cref="FilePath"/> on project load.</summary>
