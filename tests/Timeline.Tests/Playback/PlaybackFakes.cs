@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Playback;
 
 namespace AiVideoEditor.Timeline.Tests.Playback;
@@ -134,4 +135,32 @@ internal sealed class FakeVideoDecoder : IVideoDecoder
     }
 
     public static int Number(DecodedFrame frame) => BitConverter.ToInt32(frame.Pixels.Span);
+}
+
+/// <summary>
+/// The topmost picture layer of a <see cref="PlaybackFrame"/> — what the tests check where they used the
+/// removed single-picture view (<c>PlaybackFrame.Picture</c> / <c>IsPictureCurrent</c>, D024 Step 9.8).
+/// </summary>
+public static class PlaybackFrameView
+{
+    /// <summary>The topmost picture layer (text layers skipped); null when no picture layer is visible (black).</summary>
+    public static LayerPicture? TopPicture(this PlaybackFrame frame)
+    {
+        var layers = frame.Layers;
+        for (var i = layers.Length - 1; i >= 0; i--)
+            if (layers[i].Layer is PictureLayer) return layers[i];
+        return null;
+    }
+
+    /// <summary>True when the topmost picture layer shows something certain for this frame: its current decoded
+    /// frame, a placeholder, or black (no picture layer); false while it is pending or late.</summary>
+    public static bool IsTopCurrent(this PlaybackFrame frame) => frame.TopPicture() switch
+    {
+        null => true,
+        { State: LayerPictureState.Frame } p => p.IsCurrent,
+        var p => p.IsPlaceholder
+    };
+
+    /// <summary>The decoded frame of the topmost picture layer (current or late); null for none.</summary>
+    public static DecodedFrame? TopFrame(this PlaybackFrame frame) => frame.TopPicture()?.Frame;
 }

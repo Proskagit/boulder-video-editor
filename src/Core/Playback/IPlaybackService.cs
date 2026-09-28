@@ -10,28 +10,6 @@ public enum PlaybackState
     Playing
 }
 
-/// <summary>What the preview shows for a timeline frame.</summary>
-public enum PictureKind
-{
-    /// <summary>No clip at this time (gap) or nothing to play.</summary>
-    Black,
-    /// <summary>A decoded frame (<see cref="PreviewPicture.Frame"/>).</summary>
-    Frame,
-    /// <summary>The asset is absent or unavailable (e.g. its file is missing; relink is not implemented).</summary>
-    Offline,
-    /// <summary>The clip cannot be played (e.g. Speed ≠ 1).</summary>
-    Unsupported,
-    /// <summary>The decoder failed on this clip (ffmpeg, pipe or decode error).</summary>
-    DecodeError
-}
-
-/// <summary>A picture for the preview. Offline / Unsupported / DecodeError may look the same in
-/// the UI, but the reason is kept distinct.</summary>
-public sealed record PreviewPicture(PictureKind Kind, DecodedFrame? Frame = null, Guid? ClipId = null, string? Message = null)
-{
-    public static readonly PreviewPicture Black = new(PictureKind.Black);
-}
-
 /// <summary>State of one composition layer at the current frame.</summary>
 public enum LayerPictureState
 {
@@ -45,7 +23,7 @@ public enum LayerPictureState
     Pending,
     /// <summary>The media is absent (missing file, not in the project, no metadata).</summary>
     Offline,
-    /// <summary>The clip cannot be played (e.g. Speed ≠ 1, wrong media kind).</summary>
+    /// <summary>The clip cannot be played (the clip kind can't play the media kind, <see cref="SpanStatus.Unsupported"/>).</summary>
     Unsupported,
     /// <summary>The decoder failed on this clip.</summary>
     DecodeError
@@ -75,16 +53,12 @@ public sealed record LayerPicture(CompositionLayer Layer, LayerPictureState Stat
 /// Result of one <see cref="IPlaybackService.Update"/>: the clock position, the timeline frame
 /// it falls in, and what to show.
 /// <para>
-/// <see cref="Layers"/> is the composition (D018), bottom to top, with each layer's state.
-/// <see cref="Picture"/> / <see cref="IsPictureCurrent"/> are the compatibility view used by the
-/// single-picture Preview until it renders layers (Phase 7 Step 7): the topmost picture layer.
-/// <see cref="Picture"/> is null while nothing has been decoded for the current seek yet
-/// (<see cref="IsBuffering"/>); <see cref="IsPictureCurrent"/> is false when the decoder is behind
-/// and <see cref="Picture"/> is the most recent earlier picture (a late frame).
+/// <see cref="Layers"/> is the composition (D018), bottom to top, with each layer's state: a late
+/// frame is flagged <see cref="LayerPicture.IsCurrent"/> false (D012), a layer with nothing decoded
+/// for the current seek yet is <see cref="LayerPictureState.Pending"/>.
 /// </para>
 /// </summary>
-public readonly record struct PlaybackFrame(
-    MediaTime Position, long TimelineFrame, PlaybackState State, bool IsBuffering, PreviewPicture? Picture, bool IsPictureCurrent)
+public readonly record struct PlaybackFrame(MediaTime Position, long TimelineFrame, PlaybackState State, bool IsBuffering)
 {
     private readonly ImmutableArray<LayerPicture> _layers;
 

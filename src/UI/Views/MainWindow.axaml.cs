@@ -194,7 +194,7 @@ public partial class MainWindow : Window
         public void Pause() { }
         public void Stop() { }
         public Task<bool> SeekAsync(MediaTime position, CancellationToken ct = default) => Task.FromResult(true);
-        public PlaybackFrame Update() => new(MediaTime.Zero, 0, PlaybackState.Paused, false, PreviewPicture.Black, true);
+        public PlaybackFrame Update() => new(MediaTime.Zero, 0, PlaybackState.Paused, false);
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 

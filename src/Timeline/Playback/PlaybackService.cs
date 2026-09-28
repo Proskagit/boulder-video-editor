@@ -42,7 +42,7 @@ public sealed class PlaybackService : IPlaybackService
 
     private PlaybackSnapshot? _snapshot;
     private VideoPipeline? _pipeline;
-    private PreviewPicture? _picture;
+    private bool _settled; // the topmost picture layer was certain since the last restart
     private long _seekGeneration;
     // Snapshot version the current video pipeline was built from (set where pipelines are made).
     // A mix-only update replaces _snapshot but not the pipeline, so the two may differ.
@@ -68,7 +68,7 @@ public sealed class PlaybackService : IPlaybackService
 
     public PlaybackState State { get; private set; } = PlaybackState.Paused;
 
-    public bool IsBuffering => _pipeline is { } pipeline && (!pipeline.IsReady || _picture is null);
+    public bool IsBuffering => _pipeline is { } pipeline && (!pipeline.IsReady || !_settled);
 
     public bool IsAvailable => !_decoderUnavailable;
 
@@ -180,7 +180,7 @@ public sealed class PlaybackService : IPlaybackService
     public PlaybackFrame Update()
     {
         if (_snapshot is not { } snapshot || _pipeline is not { } pipeline)
-            return new PlaybackFrame(Position, 0, State, false, PreviewPicture.Black, true);
+            return new PlaybackFrame(Position, 0, State, false);
 
         if (_audioRunning && _audioOutput!.HasFailed)
         {
@@ -208,11 +208,10 @@ public sealed class PlaybackService : IPlaybackService
 
         var result = pipeline.GetFrame(pictureFrame);
         if (pipeline.DecoderUnavailable) _decoderUnavailable = true;
-        var current = result.Picture is not null && IsCurrent(pipeline);
-        if (current)
-            _picture = result.Picture;
+        if (result.IsTopSettled && IsCurrent(pipeline))
+            _settled = true;
 
-        return new PlaybackFrame(position, frame, State, IsBuffering, _picture, current)
+        return new PlaybackFrame(position, frame, State, IsBuffering)
         {
             Layers = IsCurrent(pipeline) ? result.Layers : ImmutableArray<LayerPicture>.Empty,
             Canvas = snapshot.Canvas
@@ -235,7 +234,7 @@ public sealed class PlaybackService : IPlaybackService
         var startFrame = Math.Max(0, Math.Min(position.ToFrameFloor(snapshot.FrameRate),
             FrameMath.CeilingFrame(snapshot.Duration, snapshot.FrameRate) - 1));
         _pipeline = new VideoPipeline(snapshot, generation, startFrame, _decoder, _settings, _logger);
-        _picture = null;
+        _settled = false;
         if (old is not null) Retire(old);
 
         RestartAudio(position, reuse: !reanchor);

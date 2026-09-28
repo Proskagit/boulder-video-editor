@@ -7,8 +7,8 @@ using Microsoft.Extensions.Logging;
 namespace AiVideoEditor.Timeline.Playback;
 
 /// <summary>What the pipeline has for one timeline frame: every visible layer bottom to top, and
-/// the compatibility picture (topmost picture layer) for the single-picture Preview.</summary>
-internal readonly record struct VideoFrameResult(ImmutableArray<LayerPicture> Layers, PreviewPicture? Picture);
+/// whether the topmost picture layer is settled (certain for this frame), which drives the service's buffering state.</summary>
+internal readonly record struct VideoFrameResult(ImmutableArray<LayerPicture> Layers, bool IsTopSettled);
 
 /// <summary>
 /// Decoding for one seek generation, starting at a timeline frame (D010/D011, multi-layer since
@@ -96,11 +96,11 @@ internal sealed class VideoPipeline : IAsyncDisposable
         _snapshot = snapshot;
     }
 
-    /// <summary>The layers for <paramref name="timelineFrame"/> and the compatibility picture (null
-    /// while the topmost picture layer has nothing certain for this frame yet).</summary>
+    /// <summary>The layers for <paramref name="timelineFrame"/>, and whether the topmost picture layer
+    /// shows something certain for this frame (false while it is pending or late).</summary>
     public VideoFrameResult GetFrame(long timelineFrame)
     {
-        if (_disposed) return new VideoFrameResult(ImmutableArray<LayerPicture>.Empty, null);
+        if (_disposed) return new VideoFrameResult(ImmutableArray<LayerPicture>.Empty, false);
 
         var time = Time(timelineFrame);
         // A layer found failing while the pictures are collected stops occluding; collect again so
@@ -117,7 +117,7 @@ internal sealed class VideoPipeline : IAsyncDisposable
 
             var pictures = layers.Select(layer => Picture(layer, timelineFrame)).ToImmutableArray();
             if (_failed.Count == failuresBefore || attempt >= layers.Length)
-                return new VideoFrameResult(pictures, Compatibility(pictures));
+                return new VideoFrameResult(pictures, IsTopSettled(pictures));
         }
     }
 
@@ -160,25 +160,18 @@ internal sealed class VideoPipeline : IAsyncDisposable
         new(layer, error.Error == VideoDecodeError.FileNotFound ? LayerPictureState.Offline : LayerPictureState.DecodeError,
             Message: error.Message);
 
-    /// <summary>The Phase 5 single picture: the topmost picture layer, or black when there is none.
-    /// Null when that layer has nothing certain for this frame (pending or late) — the service then
-    /// keeps showing its previous picture, flagged not current.</summary>
-    private static PreviewPicture? Compatibility(ImmutableArray<LayerPicture> pictures)
+    /// <summary>True when the topmost picture layer has something certain for this frame — its current
+    /// decoded frame or a placeholder — or there is no picture layer (black); false while it is pending
+    /// or late. The service's buffering state follows it.</summary>
+    private static bool IsTopSettled(ImmutableArray<LayerPicture> pictures)
     {
         for (var i = pictures.Length - 1; i >= 0; i--)
         {
             var p = pictures[i];
             if (p.Layer is not PictureLayer) continue;
-            return p.State switch
-            {
-                LayerPictureState.Frame when p.IsCurrent => new PreviewPicture(PictureKind.Frame, p.Frame, p.Layer.ClipId),
-                LayerPictureState.Offline => new PreviewPicture(PictureKind.Offline, null, p.Layer.ClipId, p.Message),
-                LayerPictureState.Unsupported => new PreviewPicture(PictureKind.Unsupported, null, p.Layer.ClipId, p.Message),
-                LayerPictureState.DecodeError => new PreviewPicture(PictureKind.DecodeError, null, p.Layer.ClipId, p.Message),
-                _ => null
-            };
+            return p.State == LayerPictureState.Frame ? p.IsCurrent : p.IsPlaceholder;
         }
-        return PreviewPicture.Black;
+        return true;
     }
 
     private bool MayOcclude(PictureLayer layer) => !_failed.ContainsKey(layer.Span.ClipId);

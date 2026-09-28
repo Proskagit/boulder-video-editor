@@ -1,3 +1,4 @@
+using AiVideoEditor.Timeline.Tests.Playback;
 using System.Diagnostics;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
@@ -60,11 +61,12 @@ public class PlaybackServiceIntegrationTests
         {
             if (n > 0) clock.Advance(F(n) - F(n - 1));
             var frame = await SettleAsync(service, n);
-            shown.Add(frame.Picture!.Kind == PictureKind.Frame
-                ? FfmpegVideoDecoderIntegrationTests.ReadNumber(frame.Picture.Frame!).ToString()
-                : frame.Picture.Kind.ToString());
+            var top = frame.TopPicture();
+            shown.Add(top is null ? "Black"
+                : top.State == LayerPictureState.Frame ? FfmpegVideoDecoderIntegrationTests.ReadNumber(top.Frame!).ToString()
+                : top.State.ToString());
             expected.Add(n < 25 ? (50 + n).ToString()
-                : n < 35 ? nameof(PictureKind.Black)
+                : n < 35 ? "Black"
                 : ((2 * (n - 35) + 1) * 24 / 50).ToString()); // 24 fps in 25: floor((m/25 + 1/50)·24)
         }
 
@@ -121,7 +123,7 @@ public class PlaybackServiceIntegrationTests
         while (true)
         {
             var frame = service.Update();
-            if (frame.TimelineFrame == timelineFrame && !frame.IsBuffering && frame.IsPictureCurrent)
+            if (frame.TimelineFrame == timelineFrame && !frame.IsBuffering && frame.IsTopCurrent())
                 return frame;
             if (watch.Elapsed > TimeSpan.FromSeconds(20))
                 throw new TimeoutException($"Frame {timelineFrame} not ready: {frame}");

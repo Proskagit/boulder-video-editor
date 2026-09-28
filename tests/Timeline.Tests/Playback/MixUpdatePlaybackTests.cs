@@ -88,7 +88,7 @@ public sealed class MixUpdatePlaybackTests : IAsyncLifetime
         while (true)
         {
             var frame = _service.Update();
-            if (!frame.IsBuffering && frame.IsPictureCurrent && frame.Picture?.Kind == PictureKind.Frame) return frame;
+            if (!frame.IsBuffering && frame.TopPicture() is { State: LayerPictureState.Frame, IsCurrent: true }) return frame;
             if (watch.Elapsed > TimeSpan.FromSeconds(5)) throw new TimeoutException($"no settled picture: {frame}");
             await Task.Delay(1);
         }
@@ -116,15 +116,15 @@ public sealed class MixUpdatePlaybackTests : IAsyncLifetime
         Assert.True(before.AudioOpens == now.AudioOpens, $"{step}: audio reader reopened");
         Assert.True(before.AudioReaders == now.AudioReaders, $"{step}: audio readers changed");
 
-        // While playing, the frame for the new position may be momentarily late (IsPictureCurrent
-        // false, D012) — that is not buffering. Buffering (a reset pipeline) must never show up.
+        // While playing, the frame for the new position may be momentarily late (the top layer's
+        // IsCurrent false, D012) — that is not buffering. Buffering (a reset pipeline) must never show up.
         var watch = Stopwatch.StartNew();
         while (true)
         {
             var frame = _service.Update();
             Assert.False(frame.IsBuffering, $"{step}: buffering");
-            Assert.Equal(PictureKind.Frame, frame.Picture?.Kind);
-            if (frame.IsPictureCurrent) break;
+            Assert.Equal(LayerPictureState.Frame, frame.TopPicture()?.State); // never pending again
+            if (frame.IsTopCurrent()) break;
             if (watch.Elapsed > TimeSpan.FromSeconds(5)) throw new TimeoutException($"{step}: picture never current");
             await Task.Delay(1);
         }
@@ -198,8 +198,8 @@ public sealed class MixUpdatePlaybackTests : IAsyncLifetime
         SetAudio(video, 0.3, true);
 
         await AssertUntouched(before, "paused mute");
-        Assert.Equal(50, FakeVideoDecoder.Number(shown.Picture!.Frame!));
-        Assert.Equal(50, FakeVideoDecoder.Number(_service.Update().Picture!.Frame!));
+        Assert.Equal(50, FakeVideoDecoder.Number(shown.TopFrame()!));
+        Assert.Equal(50, FakeVideoDecoder.Number(_service.Update().TopFrame()!));
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public sealed class MixUpdatePlaybackTests : IAsyncLifetime
 
         Assert.True(await _service.SeekAsync(MediaTime.FromSeconds(3)));
         var frame = await SettlePicture();
-        Assert.Equal(75, FakeVideoDecoder.Number(frame.Picture!.Frame!));
+        Assert.Equal(75, FakeVideoDecoder.Number(frame.TopFrame()!));
     }
 
     // --- What the mix sounds like ---------------------------------------------------------------------
