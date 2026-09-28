@@ -13,14 +13,14 @@ public static class AppPaths
 
     public static string ConfigFolder => EnsureExists(Path.Combine(AppDataRoot, "config"));
 
-    /// <summary>Per-project cache: thumbnails, waveform, decoded-frame cache. Thumbnails live in its
-    /// <c>thumbnails</c> subfolder — the one place for them in a project folder (D024 Step 9.4; see
-    /// <c>ThumbnailCacheLocation</c>).</summary>
+    /// <summary>Per-project cache. Thumbnails live in its <c>thumbnails</c> subfolder — the one place for them in a
+    /// project folder (D024 Step 9.4) —, waveforms in <c>waveforms</c> (Step 9.5); see <c>ThumbnailCacheLocation</c> /
+    /// <c>WaveformCacheLocation</c>.</summary>
     public static string ProjectCacheFolder(string projectFolderPath) =>
         EnsureExists(Path.Combine(projectFolderPath, "cache"));
 
-    /// <summary>Thumbnail caches of projects that were never saved, one folder per project id
-    /// (<c>&lt;root&gt;\&lt;projectId&gt;\thumbnails</c>). Not created here.</summary>
+    /// <summary>Media caches (thumbnails, waveforms) of projects that were never saved, one folder per project id
+    /// (<c>&lt;root&gt;\&lt;projectId&gt;\thumbnails</c>, <c>…\waveforms</c>). Not created here.</summary>
     public static string UnsavedThumbnailCacheRoot => Path.Combine(AppDataRoot, "cache", "unsaved");
 
     public static string ProjectMediaFolder(string projectFolderPath) =>

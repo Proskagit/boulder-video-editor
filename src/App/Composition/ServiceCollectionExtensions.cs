@@ -9,6 +9,7 @@ using AiVideoEditor.Infrastructure;
 using AiVideoEditor.Infrastructure.Configuration;
 using AiVideoEditor.Media;
 using AiVideoEditor.Media.Thumbnails;
+using AiVideoEditor.Media.Waveforms;
 using AiVideoEditor.Project;
 using AiVideoEditor.Project.Persistence;
 using AiVideoEditor.Timeline;
@@ -62,6 +63,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IThumbnailCacheLocation>(sp => new ThumbnailCacheLocation(
             sp.GetRequiredService<IProjectService>(), sp.GetRequiredService<RecoveryStore>(), AppPaths.UnsavedThumbnailCacheRoot,
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ThumbnailCacheLocation>>()));
+
+        // Waveforms (D024 Step 9.5): the service decodes through the app's audio decoder; the cache follows the
+        // thumbnails' model next to them — <project>/cache/waveforms, unsaved …\cache\unsaved\<id>\waveforms.
+        services.AddSingleton<IWaveformService, WaveformService>();
+        services.AddSingleton<IWaveformCacheLocation>(sp => new WaveformCacheLocation(
+            sp.GetRequiredService<IProjectService>(), sp.GetRequiredService<RecoveryStore>(), AppPaths.UnsavedThumbnailCacheRoot,
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WaveformCacheLocation>>()));
 
         // --- UI-only services ---------------------------------------------------
         services.AddSingleton<IFilePickerService, AvaloniaFilePickerService>();

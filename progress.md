@@ -347,9 +347,9 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
   dimmed with the same shape, envelope `max(|L|, |R|)` on a linear scale; PO-W3 waveforms are made only for media used
   by a clip on the timeline (not at import); PO-W4 `<project>/cache/waveforms` and
   `%LOCALAPPDATA%\AiVideoEditor\cache\unsaved\<projectId>\waveforms`, the thumbnails' life cycle (first Save moves,
-  Save As copies, startup cleanup) and key, at most 2 made at once, separate from thumbnails. Open for 9.5c/d: the plan
-  says offline media shows no waveform, while the service (like 9.4's) can give the last cached one without decoding —
-  which of the two the timeline shows is asked before 9.5c. Sub-steps, each accepted separately: 9.5a peak service and
+  Save As copies, startup cleanup) and key, at most 2 made at once, separate from thumbnails; PO-W5 (2026-09-28, after
+  9.5a) offline media: the timeline may show a waveform cached earlier in `cache/waveforms`, never decoding or making
+  one; without a cached one it shows none (refines the plan's "offline shows no waveform"). Sub-steps, each accepted separately: 9.5a peak service and
   cache core · 9.5b cache location · 9.5c waveform queue · 9.5d timeline display · 9.5e closeout.
   - 9.5a done — waveform service and cache core (no UI, no cache location, no queue, no DI registration yet — as
     9.4a). Core `IWaveformService` (`TryGetCached(asset, cacheFolder)` never decodes; `GetOrCreateAsync(asset,
@@ -379,6 +379,38 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     `MaxPeak` missing the last group → 1. `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with
     `--blame-hang`: 1678 passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 280, UI 253, Export 78,
     Rendering 54, Video 291, ExportEndToEnd 67 + 2). No real-app check: nothing user-visible yet (9.5d).
+  - 9.5a accepted (2026-09-28), committed as `732f0a7`.
+  - 9.5b done — waveform cache location and life cycle (PO-W4). Core: `IMediaCacheLocation` (`CurrentFolder`,
+    `Changed`, `CleanUpUnsavedAsync` — the former members of `IThumbnailCacheLocation`), `IThumbnailCacheLocation` and
+    the new `IWaveformCacheLocation` derive from it (consumers and fakes unchanged). Project: the logic of 9.4b's
+    `ThumbnailCacheLocation` moved unchanged into the abstract `MediaCacheLocation` (kind folder, file pattern, log
+    name); `ThumbnailCacheLocation` (`thumbnails`, `*.thumb`) and `WaveformCacheLocation` (`waveforms`, `*.peaks`) are
+    its two kinds — saved `<project>/cache/<kind>`, unsaved `<unsaved root>/<id>/<kind>`, carry-over on the first Save
+    (move) / Save As (copy, one current variant per asset), each kind touching only its own folder and files. Two
+    changes of the shared code, so the kinds don't disturb each other: a move removes the unsaved `<id>` folder only
+    once nothing else is left in it (was: once the thumbnails folder was empty — same result with one kind), and the
+    startup cleanup removes an orphan's kind folder and then the `<id>` folder if empty (was: the whole `<id>` folder).
+    `ProjectFileWorkflow.StartSessionAsync` also cleans up the waveform cache (optional constructor dependency, after
+    the thumbnails', before the recovery offer). DI (App): `IWaveformService` → `WaveformService`,
+    `IWaveformCacheLocation` → `WaveformCacheLocation(projects, RecoveryStore, AppPaths.UnsavedThumbnailCacheRoot)`
+    (the unsaved root of both kinds; name kept, comments of `AppPaths` updated). Tests: `Project.Tests/
+    WaveformCacheLocationTests` (12, both locations side by side: unsaved folder next to the thumbnails', nothing created;
+    Open; Recover unsaved / saved; the first save moves each kind into its own folder and removes the `<id>` folder;
+    each kind carries only its own files; the `<id>` folder stays while the other kind still has something; Save As
+    copies and the old project keeps its own; Save As over an earlier copy leaves one current waveform per asset and
+    no thumbnail touched; a failing carry-over doesn't break the save; cleanup removes an orphan's waveforms, keeps its
+    thumbnails until their own cleanup, keeps recoverable / open / foreign folders; cleanup without a cache),
+    `UI.Tests/WaveformCompositionTests` (1: the app's composition resolves the service and the location, singletons, the
+    unsaved folder next to the thumbnails'), `UI.Tests/StartupThumbnailCleanupTests` (+1: startup removes both caches of
+    an orphan, the recovered project keeps its waveforms). The 19 `ThumbnailCacheLocationTests` and the other thumbnail
+    tests unchanged and green. Mutations (all caught): waveforms in the thumbnails folder → 13, every file carried → 2,
+    cleanup removing the whole `<id>` folder → 1, a move removing the whole `<id>` folder → 1 (the first version of that
+    test used a locked file, which also stopped the mutated delete — replaced by a file the other kind doesn't carry),
+    first save copying instead of moving → 7, no waveform cleanup at startup → 1, location not registered → 1.
+    `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1692 passed, 2 skipped (4K),
+    0 failed (Core 395, Timeline 260, Project 292, UI 255, Export 78, Rendering 54, Video 291, ExportEndToEnd 67 + 2).
+    Real app: start (startup cleanup of both kinds) → close window clean (75 ms, no ffmpeg left, no errors); nothing
+    user-visible yet (9.5d).
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); hotkey guard not exercised in the running app → 9.6;
   `PlaybackFrame.Picture` → 9.8; `Project.Tests` hang → watched (9.10);
