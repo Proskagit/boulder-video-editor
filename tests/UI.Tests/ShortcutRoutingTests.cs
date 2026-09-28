@@ -88,6 +88,7 @@ public sealed class ShortcutRoutingTests
             (Key.J, KeyModifiers.None, timeline.StepBackwardSecondCommand),
             (Key.K, KeyModifiers.None, _vm.Preview.PauseCommand),
             (Key.L, KeyModifiers.None, _vm.Preview.PlayCommand),
+            (Key.L, ctrl, _vm.Preview.ToggleLoopCommand),                    // Step 9.6c (PO-H3)
             (Key.I, ctrl, toolbar.ImportMediaCommand),
             (Key.E, ctrl, toolbar.ExportCommand),
             (Key.OemPipe, KeyModifiers.None, timeline.ZoomToFitCommand),

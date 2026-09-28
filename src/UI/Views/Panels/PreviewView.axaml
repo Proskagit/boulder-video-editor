@@ -21,6 +21,7 @@
         <Button Content="{Binding PlayPauseLabel}" Command="{Binding PlayPauseCommand}" MinWidth="64"/>
         <Button Content="⏹" Command="{Binding StopCommand}" ToolTip.Tip="Stop"/>
         <Button Content="⏭" Command="{Binding NextFrameCommand}" ToolTip.Tip="Next frame"/>
+        <ToggleButton Content="Loop" IsChecked="{Binding IsLooping, Mode=TwoWay}" ToolTip.Tip="Loop playback (Ctrl+L)"/>
 
         <TextBlock Text="{Binding CurrentTimeDisplay}" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="12,0,0,0"/>
         <TextBlock Text="/" Foreground="#6A6A6A" VerticalAlignment="Center"/>

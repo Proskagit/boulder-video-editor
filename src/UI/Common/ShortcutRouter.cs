@@ -66,6 +66,7 @@ public static class ShortcutRouter
             Key.J when none => timeline.StepBackwardSecondCommand,
             Key.K when none => vm.Preview.PauseCommand,
             Key.L when none => vm.Preview.PlayCommand,
+            Key.L when ctrl => vm.Preview.ToggleLoopCommand,                  // PO-H3
             Key.Home when none => timeline.GoToStartCommand,
             Key.End when none => timeline.GoToEndCommand,
             Key.OemPlus or Key.Add when ctrl => timeline.ZoomInCommand,

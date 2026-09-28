@@ -46,6 +46,11 @@ public sealed partial class PreviewViewModel : ViewModelBase
 
     [ObservableProperty] private bool _isBuffering;
 
+    /// <summary>Loop (D024 Step 9.6, PO-H3): while on, playback that reaches the end of the sequence continues from the
+    /// start (the whole sequence — there is no in / out range); off, the D011 end rule is unchanged (paused at the end).
+    /// Session state only: not saved in the project, not an edit, not undoable, kept across New / Open.</summary>
+    [ObservableProperty] private bool _isLooping;
+
     /// <summary>
     /// The composition to draw (D018/D019): visible layers bottom to top, each with its state.
     /// While a seek or a timeline change is buffering, the previous layers stay, so seeking never
@@ -108,7 +113,14 @@ public sealed partial class PreviewViewModel : ViewModelBase
         if (!_needsTick && !IsPlaying && !IsBuffering && AreLayersCurrent)
             return;
 
+        var wasPlaying = _playback.State == PlaybackState.Playing;
         var frame = _playback.Update();
+        if (IsLooping && wasPlaying && frame.State == PlaybackState.Paused && frame.Position >= _playback.Duration)
+        {
+            // This update reached the end and paused there (D011); Play at the end starts again from 0.
+            _playback.Play();
+            frame = _playback.Update();
+        }
         IsPlaying = frame.State == PlaybackState.Playing;
         IsBuffering = frame.IsBuffering;
         ShowLayers(frame);
@@ -221,6 +233,10 @@ public sealed partial class PreviewViewModel : ViewModelBase
         _playback.Pause();
         _needsTick = true;
     }
+
+    /// <summary>Ctrl+L and the Loop button (PO-H3).</summary>
+    [RelayCommand]
+    private void ToggleLoop() => IsLooping = !IsLooping;
 
     [RelayCommand]
     private void Stop()

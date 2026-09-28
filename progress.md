@@ -580,6 +580,33 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     to the whole sequence 0–15 s (screenshots compared; `OemBackslash` is covered by the tests only). Processes checked
     apart from the suite: before the runs no ffmpeg / ffprobe and no `testhost`; after each close none left (the
     `ffmpeg left: 2` of the first round was the test suite running in parallel).
+  - 9.6b accepted (2026-09-28), committed as `990c33b` on top of `b90247a` (9.6a; history not rewritten).
+  - 9.6c done — loop (PO-H3). `PreviewViewModel.IsLooping` (off by default) + `ToggleLoopCommand`; a `Loop` toggle
+    button in the Preview transport after ⏭ (tooltip "Loop playback (Ctrl+L)"), Ctrl+L in `ShortcutRouter` (a viewing
+    shortcut: also available during an export). Where: in the Preview's tick, not in Core — when an update of the
+    playback service has just reached the end and paused there (playing before the update, paused after it, at
+    `Duration`, D011) and loop is on, the tick calls `Play()`, which at the end starts again from 0 (the existing D011
+    rule), and shows that update. So the D011 end rule itself, `IPlaybackService` and its fakes are unchanged, and with
+    loop off nothing changes; a pause the user made (between ticks) is never undone, and turning loop on while paused
+    at the end starts nothing. The whole sequence loops (no in / out range). Session state only: not in the project or
+    `project.json` (format v2 unchanged), not dirty, not undoable, kept across New / Open. Tests:
+    `UI.Tests/LoopPlaybackTests` (6, the real shell and playback service with the fake decoder and a manual clock: loop
+    off by default and the end pauses there as before; loop on — past the end playback continues from the start,
+    plays on and loops again; a pause before the end is not undone; turning loop on while paused at the end starts
+    nothing; Ctrl+L toggles; session state — not dirty, nothing added to undo, nothing about it in the saved
+    `project.json`, kept after New), `UI.Tests/ShortcutRoutingTests` (+1 row, Ctrl+L); the loop, shortcut and playback
+    UI tests 5 × in a row green. Mutations: loop ignored → 1, loop always on → 4, looping without having been playing →
+    1, no restart after the end → 1, loop reset by another project → 1, Ctrl+L missing → 2, toggle doing nothing → 3;
+    not caught: the end check (`Position ≥ Duration`) — defensive: an update of the service only ever pauses at the end,
+    so "playing before, paused after" already means the end; kept so that a future pause for another reason never
+    loops. Real app (the 9.5d project, 15 s; the Loop button toggled through UI Automation, keys posted to the window,
+    no test suite running): loop on — End, J (14:00), L, ~4.6 s later the timecode read 03:16 (14.00 + 4.64 − 15.00 =
+    3.64 s): it went past the end and continued from 0 without stopping, K then paused; loop off — the same keys stop
+    at 15:00, paused (D011); the button shows the on state highlighted (screenshot); no ffmpeg / `testhost` before, none
+    left after each close. `dotnet build --no-incremental` 0 errors / 0 warnings (two xUnit1031 warnings of a first
+    version of the session-state test — blocking waits — fixed by making it async); full suite with `--blame-hang`:
+    1768 passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 327, Export 78, Rendering 58, Video
+    291, ExportEndToEnd 67 + 2).
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); timeline waveforms →
   9.5 (done); `AppPaths.UnsavedThumbnailCacheRoot` naming both caches → 9.8; hotkey guard not exercised in the running
