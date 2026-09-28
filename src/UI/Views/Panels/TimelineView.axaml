@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:rendering="using:AiVideoEditor.UI.Rendering"
              x:Class="AiVideoEditor.UI.Views.Panels.TimelineView"
              Focusable="True">
 
@@ -126,6 +127,8 @@
                                   Width="{Binding Width}" Height="36" Margin="0,4,0,0"
                                   CornerRadius="2" Background="{Binding ColorHex}" ClipToBounds="True">
                             <Grid ColumnDefinitions="6,*,6">
+                              <!-- Waveform of the clip's sound (D024 Step 9.5): the whole clip for audio, the lower half for video. -->
+                              <rendering:WaveformView Grid.ColumnSpan="3" Waveform="{Binding Waveform}" IsVisible="{Binding HasWaveform}"/>
                               <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="#EEEEEE" FontSize="10"
                                          Margin="2,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                          IsHitTestVisible="False"/>

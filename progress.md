@@ -446,6 +446,51 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     ffmpeg left, no errors). Not checked in the real app: a waveform actually made for a project's timeline — driving
     the native folder picker (Open) through UI Automation from this session failed (the modal dialog blocked it);
     nothing is drawn yet, so that check comes with 9.5d.
+  - 9.5c accepted (2026-09-28), committed as `a67b900` (a removed clip keeping its waveform confirmed as intended).
+  - 9.5d done — waveforms on the timeline (PO-W1–W5). `UI/Common/WaveformLayout` (the display rule, no drawing):
+    `ClipWaveform` — an immutable value per clip: the asset's `Waveform`, the clip's timeline start / end, source in,
+    speed, volume, muted (clip or track), lower half (video) and the zoom; `Fraction(peak, volume)` =
+    `peak / 255 · volume / 2`, capped at 1 — linear in the volume, a full-scale peak takes the full height at 200 % and
+    half of it at 100 %; `Column(clip, c)`: clip-local pixel column c covers timeline samples
+    `[⌊c·48000/pps⌋, ⌊(c+1)·48000/pps⌋)` from the clip's first sample, mapped to the source by the clip's
+    `AudioPlacement` (the rule of playback and export — trim, position, speed ≠ 1×), and shows the largest peak of
+    that source range (`Waveform.MaxPeak`); 0 outside the clip or after the sound. `TimelineClipViewModel.Waveform`
+    (`ClipWaveform?`) + `HasWaveform`. `TimelineViewModel` (optional `WaveformCoordinator`, injected by DI) gives every
+    clip its value on each refresh / relayout (edits, undo, zoom) and on `WaveformReady`: audio clips over the whole
+    clip, video clips in the lower half, from `coordinator.Get(assetId)` — none for text, images, silent video (never
+    made), offline media without a cached waveform (PO-W5); dimmed when the clip or its track is muted (PO-W2); equal
+    values are not raised again. `UI/Rendering/WaveformView` (Control, not hit-testable): a filled polygon symmetric
+    around the centre line of its area, white at 50 % alpha, muted at 19 %; computes and draws only the columns inside
+    the timeline `ScrollViewer`'s viewport (redrawn on `ScrollChanged`) — a clip is up to millions of pixels wide at the
+    top zoom. `TimelineView.axaml`: the view inside each clip's grid, under the label, over all three columns (the trim
+    handles stay on top). Its column 0 is the clip border's inner edge — 1–2 px (the border) right of the clip's
+    timeline x. Tests: `UI.Tests/WaveformLayoutTests` (17: the volume rule incl. 100 % / 200 % / 0; 1× columns; a
+    trimmed clip anywhere on the timeline; 2× and 0.5×; zoomed out; nothing outside the clip or after the sound; the
+    volume scaling; only viewport columns, six positions), `UI.Tests/TimelineWaveformTests` (8, real project, edit
+    service and coordinator, fake service: audio clip with timing and volume; video with sound lower half, silent
+    video / image / text none and only one made; made later appears on both clips of the asset; clip and track mute
+    dimmed with the same data; trim / move / speed / zoom followed; unchanged values not raised; offline cached shown,
+    none without, nothing made; no coordinator, no waveform), `Rendering.Tests/WaveformViewTests` (4, rendered with
+    Avalonia: audio whole height where there is sound and nothing where silent; video lower half only; half height at
+    100 %; muted same shape, dimmer). Mutations (all caught): 100 % as the full height → 9, speed ignored → 1, source
+    in ignored → 1, one peak per column → 2, track mute ignored → 1, video over the whole clip → 1, clip volume ignored
+    → 1, ready ignored → 4, muted not dimmed → 1, lower half ignored in drawing → 1, viewport not clamped → 4.
+    Real app (a generated project: V1 `tone.mp4` 10 s with AAC — 0–2 s silence, 2–6 s a tone at 0.25, 6–10 s at 0.9 —
+    and `silent.mp4` without sound; A1 `tone.wav` (the same sound) at 2× and a muted `tone.wav` clip from source 2 s;
+    no saved metadata, so Open analysed first; driven through UI Automation, window screenshots checked):
+    1) first Open: `cache/waveforms` got one `.peaks` for `tone.wav` and one for `tone.mp4` (1 895 B = 20 + 1 875 peaks
+    for 10 s), none for `silent.mp4`; `ffmpeg-*.log`: one 1× full-file audio decode per file with sound (the two other
+    audio starts at the same moment are the Preview's — one with `atempo=2` for the 2× clip), no audio decode of
+    `silent.mp4`; 2) shown: `tone.mp4` in the lower half — nothing to 2 s, thin to 6 s, thicker to 10 s; `silent.mp4`
+    none; the 2× clip silent to 1 s, thin to 3 s, thick to 5 s; the muted clip dimmed, thick from 10 s (source 6 s);
+    3) reopen: only the Preview's two audio starts, no waveform (or thumbnail) decode, the `.peaks` files unchanged
+    (same last-write times), the same picture; 4) offline (media folder renamed): the cached waveforms shown, no ffmpeg
+    at all; offline with the WAV's `.peaks` removed: its clips show none, the video its cached one; zoomed in 12 steps
+    and scrolled to 5.5–8.4 s: the waveform drawn across the viewport, the loudness step exactly at 6.00 s. Every run
+    closed cleanly, no ffmpeg left. Seen, as decided (PO-W2): at 100 % a loud tone (0.9) takes under half of the
+    height and a quiet one (0.25) about an eighth — with the 19 % alpha a muted quiet clip is barely visible.
+    `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1737 passed, 2 skipped (4K),
+    0 failed (Core 395, Timeline 260, Project 292, UI 296, Export 78, Rendering 58, Video 291, ExportEndToEnd 67 + 2).
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); hotkey guard not exercised in the running app → 9.6;
   `PlaybackFrame.Picture` → 9.8; `Project.Tests` hang → watched (9.10);
