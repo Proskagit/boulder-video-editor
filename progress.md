@@ -872,7 +872,17 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     (the fetch ahead doubles the allocation rate and halves the gen2 count), not live data; the earlier 720p × 8
     anomaly (+145 MB live, 615 → 1066 MB peak) was an artifact of the measurement method (a post-GC heap after gen0
     GCs; several scenarios in one process), not of A. D023 behaviour and parity unchanged. Not done, by decision: a
-    frame buffer pool, GC tuning, a smaller look-ahead — possible separate optimizations, not needed now.
+    frame buffer pool, GC tuning, a smaller look-ahead — possible separate optimizations, not needed now. Committed as
+    `4bdf738`.
+  - Step 9.7 closeout (2026-09-28): D024 "Refined in Step 9.7" (tool, leak criteria, baseline findings, A and its
+    memory bound, what is not done); `ARCHITECTURE.md` Export section (parallel layer fetch, one frame ahead);
+    `docs/PHASE9_MANUAL_TEST_PLAN.md` scenarios 53–56; `docs/DEVELOPMENT_PLAN.md` 9.7 done; `ROADMAP.md`. No code
+    changed. Residual (not done, by decision): B, a frame buffer pool, GC tuning, a smaller look-ahead; the export
+    with A was measured through the scratch tool (the service with the app's parts), not yet run in the app itself —
+    scenarios 53–55 at 9.10.
+    Verification: `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1773 passed,
+    2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 328, Export 82, Rendering 58, Video 291,
+    ExportEndToEnd 67 + 2).
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); timeline waveforms →
   9.5 (done); `AppPaths.UnsavedThumbnailCacheRoot` naming both caches → 9.8; hotkey guard not exercised in the running

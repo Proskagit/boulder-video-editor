@@ -167,7 +167,7 @@ routing tests; a small shortcut help.
 - Out of scope: configurable hotkeys, reverse playback, shuttle speeds, in/out marks.
 - Depends on: 9.3 (stable app for manual checks); technically independent of 9.4 / 9.5.
 
-### 9.7 — Performance baseline & optimization *(in progress — baseline, C and A (export decodes ahead / in parallel) accepted; closeout next)*
+### 9.7 — Performance baseline & optimization *(done — baseline, C and A (export decodes ahead / in parallel) accepted; closeout done, awaiting the product owner's acceptance of the whole step)*
 Scope: measure first, then optimize only within D023.
 - M (baseline, before any optimization): Preview update / copy / render time and late frames with 1 / 2 / 4 / 8
   layers; export throughput per scenario (layers, 720p / 1080p, 4K opt-in) as a real-time factor; peak memory;

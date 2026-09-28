@@ -299,7 +299,8 @@ Routine refactoring needed to implement a feature does not.
 - Source frames (Step 2): `ExportFrameSource` → per output frame `LayersAt` + one `ExportPictureReader` per
   visible picture layer (sequential decode at full resolution, software; the last frame at or before the
   D009/D022 sample point, hold-first/hold-last), readers opened/closed with the layer set like the Preview's
-  `VideoPipeline`.
+  `VideoPipeline`. The picture layers of one output frame are fetched at the same time (their decoders run in
+  parallel, each reader's requests stay ascending, D024 Step 9.7); every fetch ends before a failure propagates.
 - Composition (Step 3): `ExportFrame.DrawPlan()` = Core `CompositionDrawPlan` at the canvas size (the Preview's plan
   through identity) → `ICompositionRasterizer` (Core) = `AvaloniaCompositionRasterizer` (UI/Rendering): Avalonia
   offscreen `RenderTargetBitmap` + `CompositionPainter`, the Preview's drawing routine; runs off the UI thread,
@@ -314,7 +315,9 @@ Routine refactoring needed to implement a feature does not.
   `Func<ICompositionRasterizer>` the app registers (`AvaloniaCompositionRasterizer`; Export has no rendering backend)
   and `IExportEncoder.StartAsync`; Audio: `ExportAudioSource` → `WriteAudioAsync` in 0.5 s chunks until the source
   ends; Video: per frame `ExportFrameSource.GetFrameAsync` → `ExportFrame.DrawPlan()` → `Render` into one reused
-  canvas (stride = width · 4) → `WriteFrameAsync`; Finalizing: `CompleteAsync`. Runs on the thread pool
+  canvas (stride = width · 4) → `WriteFrameAsync`, frame n + 1 fetched while frame n is rasterized and written (one
+  frame ahead, never more; cancelled and awaited on an early end — D024 Step 9.7; memory: ≤ 3 decoded frames alive per
+  picture layer); Finalizing: `CompleteAsync`. Runs on the thread pool
   (`Task.Run`). Progress: `ExportProgress` Preparing 0/1, Audio samples/`AudioSampleCount`, Video frames/`FrameCount`,
   Finalizing 0/1 → 1/1 only after `CompleteAsync`. The job is taken as the preflight made it (no repeated checks; the
   encoder rejects outputs it can't encode). Failures and cancellation propagate unchanged; every part is disposed
@@ -350,5 +353,5 @@ Routine refactoring needed to implement a feature does not.
 Verified against the source at the end of Phase 6 (branch `feat/phase-6-project-persistence`); the Phase 7
 sections at the Phase 7 closeout, the Export section at the Phase 8 closeout (Step 8.7), the Thumbnails section at
 the Step 9.4 closeout (9.4e), the Waveforms section (and the shared parts of the Thumbnails section) at the Step 9.5
-closeout (9.5e).
+closeout (9.5e); the Export section's source frames and orchestration at the Step 9.7 closeout.
 Re-check the code before relying on details that later phases may have changed.

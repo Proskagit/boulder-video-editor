@@ -91,6 +91,19 @@ known shape help: e.g. 2 s silence, 4 s of a quiet tone, 4 s of a loud tone.
 | 51 | No shortcut while typing | Select a text clip; in the Inspector's text box type J, K, L, space, S, N, Backspace, press Ctrl+L, Ctrl+E, Ctrl+I, Ctrl+N, \, Ctrl+A and type; in a number field (font size, position …) type letters and digits and press Ctrl+L | The characters go into the field, Backspace / Ctrl+A / typing edit the text; playback, loop, snapping, the playhead, the clips and the zoom are unchanged, no dialog opens; after Tab / focus elsewhere N, Ctrl+L, L, K, \ work again | `ShortcutRoutingTests` (every shortcut with a text box focused) | app 9.6 |
 | 52 | During an export | Start an export; press S, Delete, Ctrl+Z, Ctrl+I, Ctrl+E, Ctrl+N; press ←, →, N, L, K, Ctrl+L | Editing shortcuts do nothing; viewing and playback ones work | `ShortcutRoutingTests` | auto |
 
+## Step 9.7 — performance
+
+Measured numbers (baseline, before / after) are in `progress.md`; this section only checks the shipped behaviour by
+hand. Media: a 1920 × 1080, 30 fps video of 10 s or longer; a project with 4 video tracks of it, all above the bottom
+at opacity 0.8 (nothing hidden).
+
+| # | Scenario | Steps | Expected | Automated coverage | Status |
+|---|---|---|---|---|---|
+| 53 | Multi-layer export | Export the 4-layer project; watch Task Manager during it | Finishes; the MP4 plays and shows the four layers as the Preview does; during the export about 4 `ffmpeg.exe` decoders + 1 encoder and about two cores busy; no `ffmpeg.exe` left after "Export finished" | `ExportServiceTests`, `ExportFrameSourceTests`, parity suite (`ExportEndToEnd.Tests`) | auto; measured with the scratch tool (9.7) |
+| 54 | Cancel a multi-layer export | Start the 4-layer export; Cancel early in the video stage, then again near its middle | The dialog closes within a fraction of a second; no output file and no temporary files in the output folder; no `ffmpeg.exe` left | `ExportServiceTests` (cancellation, the fetch ahead cancelled and awaited) | auto; cancel latency measured (9.7) |
+| 55 | Repeated exports | Export the same project 5 times in a row | Every export succeeds; memory in Task Manager rises during an export and falls back afterwards without growing from run to run; no `ffmpeg.exe` left | — | measured with the scratch tool (10 runs, 9.7) |
+| 56 | Preview with 8 layers | An 8-layer version of the project; play 10 s | Smooth playback at the content's rate, the layers in order; the app stays responsive | — | measured in the app (C, 9.7) |
+
 ## Result log
 
 | Date | Tester | Scenarios | Result |

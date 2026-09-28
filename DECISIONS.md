@@ -1208,6 +1208,31 @@ each accepted separately; details and verification in `progress.md`):
 - Left as they are: the shortcuts are fixed (configurable hotkeys out of scope); only one second back for J; loop
   covers the whole sequence; the end check of the loop (`Position ≥ Duration`) is defensive — no mutation reaches it.
 
+Refined in Step 9.7 (2026-09-28), performance baseline & optimization (product owner decisions after the baseline, the
+Preview measurement C and the memory diagnosis of A; details, method, tables and verification in `progress.md`):
+- Measurement tool: a scratch console program outside the repository (as Step 8.6), driving the shipped code on
+  generated scenarios (1 / 2 / 4 / 8 layers, 720p / 1080p, 4K opt-in); re-run on the same scenarios for every before /
+  after. No performance thresholds in the default test suite.
+- Leak criteria: a leak is 1) any ffmpeg / ffprobe process still running 1 s after the operation that started it ended
+  (export done or cancelled, playback released, project replaced, window closed) or 2) handles or private memory (after
+  a full GC) growing at every one of 10 repetitions of the same operation without levelling off. Growth once (warm-up,
+  pools) and a change in memory or handles alone are not defects. None was found.
+- Baseline findings: the export handled one frame at a time on about one core (half of it waiting for decoded frames);
+  the Preview at 8 layers in the running app keeps the content's 30 fps (C: the baseline's CPU-rendered overrun was the
+  tool's software rendering, not the app's GPU compositor) — no Preview optimization.
+- Chosen and implemented: A — the export decodes ahead and in parallel, within D023. `ExportFrameSource` fetches every
+  picture layer's frame of an output frame at once (`Task.WhenAll`; each reader's requests stay ascending, the layer
+  order and the D009 / D022 selection unchanged; every fetch ends before a failure propagates); `ExportService` fetches
+  frame n + 1 while frame n is rasterized and written — one frame ahead, never more, cancelled and awaited when the
+  export ends early. Same frames, order, encoder, format and progress; the parity suite unchanged. Export real-time
+  factor +26–35 % at 720p, +41–58 % at 1080p.
+- Memory with A: up to 3 decoded frames alive per picture layer (2 before) — a bounded footprint by design, not a leak;
+  the peak working set can be higher because of transient large-object-heap garbage between gen2 collections (not live
+  data; no growth over repetitions). The earlier 720p × 8 anomaly was an artifact of the measurement method.
+- Not now (each would need its own decision): B (overlapping rasterizing with encoding — encoding is 2–3 %), a decoded
+  frame buffer pool, GC tuning, a smaller look-ahead for many layers; hardware decode / encode and every other semantic
+  change for speed stay out of scope.
+
 Status: Phase 9 scope and step structure are accepted. Each implementation step requires separate product-owner
 acceptance before proceeding to the next step.
 
