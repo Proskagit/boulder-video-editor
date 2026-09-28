@@ -61,10 +61,20 @@ public static class ShortcutRouter
             Key.Left when shift => timeline.StepBackwardSecondCommand,
             Key.Right when shift => timeline.StepForwardSecondCommand,
             Key.Space when none => vm.Preview.PlayPauseCommand,
+            // J / K / L (D024 Step 9.6, PO-H1 / PO-H2): forward playback at 1× only (D010 / D011) — J steps back one
+            // second keeping the playback state (a seek never changes it), K pauses, L plays.
+            Key.J when none => timeline.StepBackwardSecondCommand,
+            Key.K when none => vm.Preview.PauseCommand,
+            Key.L when none => vm.Preview.PlayCommand,
             Key.Home when none => timeline.GoToStartCommand,
             Key.End when none => timeline.GoToEndCommand,
             Key.OemPlus or Key.Add when ctrl => timeline.ZoomInCommand,
             Key.OemMinus or Key.Subtract when ctrl => timeline.ZoomOutCommand,
+            // Existing commands without a shortcut until Step 9.6 (PO-H4). "\" is OemPipe on US layouts and
+            // OemBackslash (the key next to the left Shift) on ISO ones.
+            Key.I when ctrl => vm.Toolbar.ImportMediaCommand,
+            Key.E when ctrl => vm.Toolbar.ExportCommand,
+            Key.OemPipe or Key.OemBackslash when none => timeline.ZoomToFitCommand,
             _ => null
         };
     }

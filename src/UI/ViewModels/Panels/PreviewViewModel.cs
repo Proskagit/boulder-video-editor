@@ -203,6 +203,25 @@ public sealed partial class PreviewViewModel : ViewModelBase
         _logger.LogDebug("Playback {State} at {Position}.", _playback.State, _playback.Position);
     }
 
+    /// <summary>L (D024 Step 9.6, PO-H2): plays; nothing when already playing (no faster speeds). At the end of the
+    /// sequence it starts again from 0, like Play (D011).</summary>
+    [RelayCommand]
+    private void Play()
+    {
+        if (_playback.State == PlaybackState.Playing) return;
+        _playback.Play();
+        _needsTick = true;
+    }
+
+    /// <summary>K (D024 Step 9.6, PO-H2): pauses; nothing when already paused.</summary>
+    [RelayCommand]
+    private void Pause()
+    {
+        if (_playback.State != PlaybackState.Playing) return;
+        _playback.Pause();
+        _needsTick = true;
+    }
+
     [RelayCommand]
     private void Stop()
     {

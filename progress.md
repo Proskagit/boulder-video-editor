@@ -551,6 +551,35 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     Rendering 58, Video 291, ExportEndToEnd 67 + 2). Real app (the 9.5d project opened through UI Automation): N sent to
     the window (WM_KEYDOWN / WM_KEYUP posted to it — `SendKeys` from this session doesn't reach the app) toggled Snap
     On → Off through the router; closed clean.
+  - 9.6a accepted (2026-09-28), committed as `b90247a`.
+  - 9.6b done — J / K / L and the extra shortcuts (PO-H1 / PO-H2 / PO-H4). `PreviewViewModel`: `PlayCommand` (plays;
+    nothing when already playing; at the end the service starts from 0, D011) and `PauseCommand` (pauses; nothing when
+    paused), next to `PlayPauseCommand` (Space, unchanged). `ShortcutRouter`: J → the timeline's
+    `StepBackwardSecondCommand` (the same as Shift+←: one second of nominal frames back; a seek never changes the
+    playback state, so playing continues from there and paused stays paused; at the start it stops at 0), K → Pause,
+    L → Play, Ctrl+I → Import Media, Ctrl+E → Export (both inert during an export, like the other editing shortcuts),
+    `\` → Zoom to Fit (`OemPipe` on US layouts, `OemBackslash` — the key next to the left Shift — on ISO ones); all
+    without other modifiers. No reverse playback or faster speeds (D010 / D011 unchanged). Tests:
+    `UI.Tests/PlaybackShortcutTests` (6, the real shell and playback service with the fake decoder and a manual clock,
+    keys through the router: L plays and pressed again keeps playing; K pauses and pressed again stays paused, the clock
+    moving doesn't move the playhead; J while playing goes back 25 frames at 25 fps and plays on; J while paused goes
+    back and stays paused, and stops at 0; L at the end starts from 0; both `\` keys fit the sequence),
+    `UI.Tests/ShortcutRoutingTests` (+7 table rows, +5 non-shortcut rows: Shift+J, Ctrl+K, I and E without Ctrl,
+    Ctrl+\; Ctrl+I / Ctrl+E consumed without running during an export); the shortcut tests 5 × in a row green.
+    Mutations (all caught): L toggling → 2, K toggling → 2, J one frame → 3, J stopping playback → 3, Pause playing
+    when paused → 1, the ISO backslash missing → 2, Import without Ctrl → 3, Export missing → 2 (a first "J pauses"
+    mutation changed nothing — replaced by "J stopping playback"). `dotnet build --no-incremental` 0 errors /
+    0 warnings; full suite with `--blame-hang`: 1762 passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260,
+    Project 292, UI 321, Export 78, Rendering 58, Video 291, ExportEndToEnd 67 + 2). Real app (the 9.5d project, keys
+    posted to the window): L → the transport shows Pause (playing), L again → still Pause, K → Play (paused), K again
+    → still Play; closed clean. Second round (keys posted as VK codes, the timecode read through UI Automation before
+    and ~760 ms after each key; no test suite running): J while playing 04:17 → 04:09 and 06:10 → 06:02 — one second
+    back plus the time until the second reading (expected ≈ 04:11 / 06:04; the 2-frame difference is the latency of the
+    UI Automation readings), the transport kept showing Pause and the time kept running; J while paused 04:10 → 03:10,
+    exactly 25 frames, still paused; `\` sent as VK 0xDC (`OemPipe`): a view zoomed in 8 steps showing 0–7.5 s changed
+    to the whole sequence 0–15 s (screenshots compared; `OemBackslash` is covered by the tests only). Processes checked
+    apart from the suite: before the runs no ffmpeg / ffprobe and no `testhost`; after each close none left (the
+    `ffmpeg left: 2` of the first round was the test suite running in parallel).
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); timeline waveforms →
   9.5 (done); `AppPaths.UnsavedThumbnailCacheRoot` naming both caches → 9.8; hotkey guard not exercised in the running

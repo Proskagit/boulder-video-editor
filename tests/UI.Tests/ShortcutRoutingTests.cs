@@ -18,8 +18,8 @@ using Xunit;
 namespace AiVideoEditor.UI.Tests;
 
 /// <summary>
-/// D024 Step 9.6a: the main window's shortcut routing (<see cref="ShortcutRouter"/>) — every existing shortcut keeps its
-/// key and command, modifiers must match exactly, nothing fires while a text input has focus or sent the key, and a
+/// D024 Steps 9.6a / 9.6b: the main window's shortcut routing (<see cref="ShortcutRouter"/>) — every shortcut keeps its
+/// key and command (the existing ones, J / K / L and Ctrl+I / Ctrl+E / \ from 9.6b), modifiers must match exactly, nothing fires while a text input has focus or sent the key, and a
 /// known shortcut whose command is unavailable (editing during an export) is consumed without running. Real view
 /// models, project and edit service.
 /// </summary>
@@ -84,6 +84,14 @@ public sealed class ShortcutRoutingTests
             (Key.Add, ctrl, timeline.ZoomInCommand),
             (Key.OemMinus, ctrl, timeline.ZoomOutCommand),
             (Key.Subtract, ctrl, timeline.ZoomOutCommand),
+            // Step 9.6b (PO-H1 / PO-H2 / PO-H4)
+            (Key.J, KeyModifiers.None, timeline.StepBackwardSecondCommand),
+            (Key.K, KeyModifiers.None, _vm.Preview.PauseCommand),
+            (Key.L, KeyModifiers.None, _vm.Preview.PlayCommand),
+            (Key.I, ctrl, toolbar.ImportMediaCommand),
+            (Key.E, ctrl, toolbar.ExportCommand),
+            (Key.OemPipe, KeyModifiers.None, timeline.ZoomToFitCommand),
+            (Key.OemBackslash, KeyModifiers.None, timeline.ZoomToFitCommand),
         };
 
         Assert.All(table, row => Assert.Same(row.Command, For(row.Key, row.Modifiers)));
@@ -99,6 +107,11 @@ public sealed class ShortcutRoutingTests
     [InlineData(Key.OemPlus, KeyModifiers.None)]                   // zoom needs Ctrl
     [InlineData(Key.A, KeyModifiers.None)]
     [InlineData(Key.Z, KeyModifiers.None)]
+    [InlineData(Key.J, KeyModifiers.Shift)]                        // J / K / L only without modifiers
+    [InlineData(Key.K, KeyModifiers.Control)]
+    [InlineData(Key.I, KeyModifiers.None)]                         // Import and Export need Ctrl
+    [InlineData(Key.E, KeyModifiers.None)]
+    [InlineData(Key.OemPipe, KeyModifiers.Control)]
     public void Other_keys_and_modifiers_are_not_shortcuts_and_are_not_consumed(Key key, KeyModifiers modifiers)
     {
         Assert.Null(For(key, modifiers));
@@ -155,6 +168,10 @@ public sealed class ShortcutRoutingTests
             Assert.Single(_projects.Current.Timeline.VideoTracks[0].Clips);     // … but nothing split
             Assert.True(Press(Key.N, KeyModifiers.Control));                    // New: consumed, not run
             Assert.True(Press(Key.Z, KeyModifiers.Control));
+            Assert.True(Press(Key.I, KeyModifiers.Control));                    // Import: consumed, not run
+            Assert.False(_vm.Toolbar.ImportMediaCommand.CanExecute(null));
+            Assert.True(Press(Key.E, KeyModifiers.Control));                    // Export: consumed, not run
+            Assert.False(_vm.Toolbar.ExportCommand.CanExecute(null));
 
             Assert.True(Press(Key.Right));                                      // viewing still works
             Assert.True(_vm.Timeline.Playhead > playhead);
