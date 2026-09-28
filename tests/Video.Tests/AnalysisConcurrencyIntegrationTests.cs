@@ -108,10 +108,15 @@ public sealed class AnalysisConcurrencyIntegrationTests : IDisposable
 
         Assert.Equal(Limit, maxPings); // the hanging orientation probes: exactly the limit at once, never more
         var times = assets.Select(a => done[a]).Order().ToList();
-        // The first `Limit` start at once and end at their timeout; the other two waited for a slot and end one timeout
-        // later — a timeout counted from queueing would have ended them together with the first ones.
-        Assert.All(times.Take(Limit), t => Assert.InRange(t, Timeout * 0.9, Timeout * 1.75));
-        Assert.All(times.Skip(Limit), t => Assert.InRange(t, Timeout * 1.9, Timeout * 3.5));
+        var first = times.Take(Limit).ToList();
+        var queued = times.Skip(Limit).ToList();
+        // The first `Limit` start at once and end at their timeout; the other two waited for a slot and end at least one
+        // timeout after them — a timeout counted from queueing would have ended them together with the first ones.
+        // Relative, not absolute: every analysis also starts processes (the stream probe, the script), which takes far
+        // longer on a CI runner than on a workstation (seen: the first ones ending at 4.8 s with a 2 s timeout).
+        Assert.All(first, t => Assert.True(t >= Timeout * 0.9, $"ended at {t}, before its timeout"));
+        Assert.True(queued.Min() - first.Max() >= Timeout * 0.9,
+            $"queued analyses ended {queued.Min() - first.Max()} after the first ones, less than one timeout ({string.Join(", ", times)})");
         Assert.All(assets, a =>
         {
             Assert.Equal(MediaAnalysisStatus.Completed, a.AnalysisStatus); // a failed orientation probe never fails the analysis
