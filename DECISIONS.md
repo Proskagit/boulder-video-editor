@@ -1186,6 +1186,28 @@ Refined in Step 9.5 (2026-09-28), waveform (product owner decisions PO-W1–PO-W
   inner edge (1–2 px); at 100 % (PO-W2) loud sound takes under half of the height and a muted quiet clip is faint;
   `AppPaths.UnsavedThumbnailCacheRoot` now names the unsaved root of both kinds (rename left to 9.8).
 
+Refined in Step 9.6 (2026-09-28), hotkeys (product owner decisions PO-H1–PO-H4 after the 9.6 audit; sub-steps 9.6a–d,
+each accepted separately; details and verification in `progress.md`):
+- Product owner decisions (forward playback at 1× only, D010 / D011 — no reverse or faster playback):
+  - PO-H1: J = back one second, the playback state kept (playing continues from there, paused stays paused).
+  - PO-H2: K = pause (nothing when paused), L = play (nothing when playing; at the end from 0, D011); Space stays
+    Play / Pause.
+  - PO-H3: loop — a toggle button in the Preview transport and Ctrl+L; while on, reaching the end of the sequence
+    continues from the start (the whole sequence, no in / out range); off, the D011 end rule is unchanged. Session
+    state only: not in `project.json` (format v2 unchanged), not dirty, not undoable.
+  - PO-H4: Ctrl+I Import Media, Ctrl+E Export, \ Zoom to Fit; no shortcut list in the UI (the optional item not chosen).
+- Routing (9.6a): one table in `UI/Common/ShortcutRouter` — key with exact modifiers → an existing command; the main
+  window's bubbling KeyDown only calls it. Nothing fires while a text input (`TextBox`, also the one inside a
+  `NumericUpDown`) has focus or sent the key; a known shortcut whose command can't run (editing during an export,
+  `EditingLock`) is consumed and does nothing. Every existing shortcut keeps its key and command.
+- J is the existing one-second step (as Shift+←); K / L are Preview commands next to Play / Pause (9.6b). Loop lives in
+  the Preview's tick (9.6c): an update that reached the end and paused there is followed by Play, which at the end
+  starts from 0 — the D011 rule and `IPlaybackService` are unchanged; a pause the user made is never undone.
+- 9.6d: the text-input guard, a known issue since Phase 4, checked in the running app (the Inspector's text box of a
+  text clip and a number field).
+- Left as they are: the shortcuts are fixed (configurable hotkeys out of scope); only one second back for J; loop
+  covers the whole sequence; the end check of the loop (`Position ≥ Duration`) is defensive — no mutation reaches it.
+
 Status: Phase 9 scope and step structure are accepted. Each implementation step requires separate product-owner
 acceptance before proceeding to the next step.
 

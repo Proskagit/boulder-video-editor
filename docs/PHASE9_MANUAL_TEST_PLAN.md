@@ -8,7 +8,8 @@ Status column: **auto** — covered by automated tests only, manual run pending 
 real app's UI by UI Automation during Step 9.3 (a development check, not the formal run); **manual-only, not
 executed** — needs hardware or system changes that were not made; must be run by hand at 9.10; **app 9.4** — checked
 in the real app during Step 9.4 (a development check, not the formal run); **app 9.5** — checked in the real app
-during Step 9.5 (a development check, not the formal run).
+during Step 9.5 (a development check, not the formal run); **app 9.6** — checked in the real app during Step 9.6
+(keys posted to / typed into the window, a development check, not the formal run).
 
 ## Step 9.3 — stability & error handling
 
@@ -75,6 +76,20 @@ known shape help: e.g. 2 s silence, 4 s of a quiet tone, 4 s of a loud tone.
 | 41 | Unsaved project, Save, Save As, recovery | New project; add an audio clip; check `…\cache\unsaved\<id>\waveforms`; Save; Save As; crash-recover an unsaved project (as scenario 26) | The `.peaks` is in the unsaved folder, then moved to `<project>/cache/waveforms` (the unsaved folder gone once the thumbnails are out too), copied on Save As; a recovered project finds its waveforms; orphaned unsaved waveform folders are removed at the next start | `WaveformCacheLocationTests`, `StartupThumbnailCleanupTests` | auto |
 | 42 | New / Open / close while waveforms are made | Put several long audio files on the timeline; while their waveforms are still being made press New (or Open), or close the window | At most 2 waveform decodes at once, independent of the thumbnails'; after the switch none of the old project keeps running and nothing of it appears; closing ends within seconds with no `ffmpeg.exe` left | `WaveformCoordinatorTests` | auto; clean close checked in app 9.5 |
 | 43 | Playback and export untouched | With waveforms shown, play (also a muted clip and a clip at 2×) and export | Sound and export are as before; neither reads `.peaks` files | parity suite (`ExportEndToEnd.Tests`) unchanged | auto |
+
+## Step 9.6 — hotkeys
+
+| # | Scenario | Steps | Expected | Automated coverage | Status |
+|---|---|---|---|---|---|
+| 44 | Existing shortcuts unchanged | Try Ctrl+N / O / S / Shift+S, Ctrl+Z / Y / Shift+Z, Delete / Backspace, S, N, ← / →, Shift+← / →, Space, Home / End, Ctrl+= / − | Each does what it did before 9.6 | `ShortcutRoutingTests` | auto; N checked in app 9.6 |
+| 45 | L and K | With a clip on the timeline press L, L, K, K | L plays and pressed again keeps playing; K pauses and pressed again stays paused | `PlaybackShortcutTests` | app 9.6 |
+| 46 | J | Play, press J; pause, press J; press J near the start | Playing: one second back and playing on; paused: one second back, still paused; near the start: stops at 0 | `PlaybackShortcutTests` | app 9.6 |
+| 47 | L at the end | Press End, then L | Playback starts from 0 (D011) | `PlaybackShortcutTests` | auto |
+| 48 | Loop | Turn Loop on (button or Ctrl+L), play over the end; turn it off, play over the end; pause near the end with Loop on | On: continues from the start without stopping, again every time; off: stops at the end, paused; a pause is not undone. The button shows its state | `LoopPlaybackTests` | app 9.6 (on / off, button) |
+| 49 | Loop is session state | Turn Loop on; check the title (no `*`), Undo, save and look into `project.json`; New project | Not dirty, nothing to undo, nothing about it in `project.json`; still on in the new project; off after restarting the app | `LoopPlaybackTests` | auto |
+| 50 | Ctrl+I, Ctrl+E, \ | Press Ctrl+I, Ctrl+E; zoom in, then press \ (on an ISO keyboard also the key next to the left Shift) | The import picker, the export flow; the whole sequence fits the view | `ShortcutRoutingTests`, `PlaybackShortcutTests` | app 9.6 (\, US layout); Ctrl+I / Ctrl+E auto |
+| 51 | No shortcut while typing | Select a text clip; in the Inspector's text box type J, K, L, space, S, N, Backspace, press Ctrl+L, Ctrl+E, Ctrl+I, Ctrl+N, \, Ctrl+A and type; in a number field (font size, position …) type letters and digits and press Ctrl+L | The characters go into the field, Backspace / Ctrl+A / typing edit the text; playback, loop, snapping, the playhead, the clips and the zoom are unchanged, no dialog opens; after Tab / focus elsewhere N, Ctrl+L, L, K, \ work again | `ShortcutRoutingTests` (every shortcut with a text box focused) | app 9.6 |
+| 52 | During an export | Start an export; press S, Delete, Ctrl+Z, Ctrl+I, Ctrl+E, Ctrl+N; press ←, →, N, L, K, Ctrl+L | Editing shortcuts do nothing; viewing and playback ones work | `ShortcutRoutingTests` | auto |
 
 ## Result log
 

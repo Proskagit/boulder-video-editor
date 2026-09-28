@@ -55,12 +55,30 @@ public sealed class ShortcutRoutingTests
         ShortcutRouter.Handle(_vm, key, modifiers, source ?? new Button(), focused);
 
     [Fact]
-    public void Every_existing_shortcut_keeps_its_key_and_command()
+    public void Every_existing_shortcut_keeps_its_key_and_command() =>
+        Assert.All(Table(), row => Assert.Same(row.Command, For(row.Key, row.Modifiers)));
+
+    [Fact]
+    public void No_shortcut_fires_while_a_text_input_has_focus_or_sent_the_key()
+    {
+        // D024 Step 9.6d: every row of the table — also J / K / L, Ctrl+L, Ctrl+I / Ctrl+E and \ — stays with the text box
+        // (checked by hand in the running app for the Inspector's text and number fields, progress.md 9.6d).
+        var textBox = new TextBox();
+
+        Assert.All(Table(), row =>
+        {
+            Assert.False(Press(row.Key, row.Modifiers, focused: textBox), $"{row.Modifiers}+{row.Key} fired with a text box focused");
+            Assert.False(Press(row.Key, row.Modifiers, source: textBox), $"{row.Modifiers}+{row.Key} fired from a text box");
+        });
+    }
+
+    /// <summary>Every shortcut: key, exact modifiers, command.</summary>
+    private (Key Key, KeyModifiers Modifiers, ICommand Command)[] Table()
     {
         var toolbar = _vm.Toolbar;
         var timeline = _vm.Timeline;
         const KeyModifiers ctrl = KeyModifiers.Control, shift = KeyModifiers.Shift, ctrlShift = ctrl | shift;
-        var table = new (Key Key, KeyModifiers Modifiers, ICommand Command)[]
+        return new (Key Key, KeyModifiers Modifiers, ICommand Command)[]
         {
             (Key.N, ctrl, toolbar.NewProjectCommand),
             (Key.O, ctrl, toolbar.OpenCommand),
@@ -94,8 +112,6 @@ public sealed class ShortcutRoutingTests
             (Key.OemPipe, KeyModifiers.None, timeline.ZoomToFitCommand),
             (Key.OemBackslash, KeyModifiers.None, timeline.ZoomToFitCommand),
         };
-
-        Assert.All(table, row => Assert.Same(row.Command, For(row.Key, row.Modifiers)));
     }
 
     [Theory]

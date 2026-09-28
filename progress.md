@@ -607,10 +607,39 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     version of the session-state test — blocking waits — fixed by making it async); full suite with `--blame-hang`:
     1768 passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 327, Export 78, Rendering 58, Video
     291, ExportEndToEnd 67 + 2).
+  - 9.6c accepted (2026-09-28; the defensive end check kept), committed as `8f46e25` on top of `990c33b`.
+  - 9.6d done — the text-input guard in the running app, and closeout of 9.6. Real app (a copy of the 9.5d project
+    with a text clip "Hello" on a second video track; the clip selected by a mouse click posted to the window, fields
+    focused through UI Automation, keys as real keyboard input (`keybd_event`, so Ctrl is really held), state read
+    through UI Automation; no test suite running): 1) the Inspector's text box: End, then J, K, L, Space, S, N typed
+    "Hellojkl sn", Backspace removed the last character, Ctrl+L, Ctrl+E, Ctrl+I, Ctrl+N and \ changed nothing —
+    snapping, loop, the transport (Play), the timecode (00:00:00:00), the clips, the windows (no picker, no New prompt,
+    no export) and the zoom as before; Ctrl+A and typing replaced the text ("hi"); Ctrl+Z in the box undid the last
+    character ("h" — the text box's own undo or the app's, UI Automation can't tell them apart; the app's Undo is
+    blocked like every shortcut while the box has focus, as the tests show); the clip's label followed the text;
+    2) the font size (a `NumericUpDown`'s inner text box): Ctrl+A, "60", J, K, L, S, N and Ctrl+L went into the field
+    ("60jklsn"), no shortcut fired; "60" and Tab applied the size; 3) focus on the Snap button: N switched snapping
+    off, Ctrl+L turned loop on, L played, K paused, \ changed the zoom — the same keys reach the app and work again
+    once no text input has focus. Closed through Don't Save (the edits made it dirty); no ffmpeg / `testhost` before,
+    none left after. No problem found — no code change. Tests: `UI.Tests/ShortcutRoutingTests` — the table of every
+    shortcut moved into one method; a new test presses every row (also J / K / L, Ctrl+L, Ctrl+I / Ctrl+E, \) with a
+    text box focused and as its source: nothing fires (the earlier guard test covers N and Ctrl+S only). Mutations
+    (both caught): the guard only for keys without modifiers → 2 (the old and the new test), J / K / L let through → 1
+    (only the new one). Documentation (closeout): D024 "Refined in Step 9.6" (PO-H1–H4, routing, J / K / L, loop, the
+    guard, what is left as it is); `docs/PHASE9_MANUAL_TEST_PLAN.md` section "Step 9.6" (scenarios 44–52) and the status
+    "app 9.6"; `ARCHITECTURE.md` (shortcut routing, loop); `docs/DEVELOPMENT_PLAN.md` 9.6 done; `ROADMAP.md` "Current";
+    the Phase 4 known issue about the guard struck through. Verification: `dotnet build --no-incremental` 0 errors /
+    0 warnings; full suite with `--blame-hang`: 1769 passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260,
+    Project 292, UI 328, Export 78, Rendering 58, Video 291, ExportEndToEnd 67 + 2); a final open / play (L) / pause
+    (K) / close of the app apart from the suite: closed in 142 ms, no ffmpeg / ffprobe, app or host process left.
+  - Step 9.6 closeout (2026-09-28): 9.6a–d done, 9.6a–c accepted (`b90247a`, `990c33b`, `8f46e25`), 9.6d awaiting with
+    the whole step. Residual (D024 "Left as they are"): fixed shortcuts; J one second only; loop over the whole
+    sequence; the defensive loop end check; `OemBackslash` (ISO \) and Ctrl+I / Ctrl+E checked by tests only, not
+    pressed in the running app.
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); timeline waveforms →
   9.5 (done); `AppPaths.UnsavedThumbnailCacheRoot` naming both caches → 9.8; hotkey guard not exercised in the running
-  app → 9.6;
+  app → 9.6 (done, 9.6d);
   `PlaybackFrame.Picture` → 9.8; `Project.Tests` hang → watched (9.10);
   L1-c → stays open.
 
@@ -1643,8 +1672,9 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   mid-stream (untested), phone-specific VFR quirks beyond the tested cases. A hardware
   failure after the first frame is not retried by the decoder (the caller must reopen).
 
-- Hotkey guard for text input is implemented but could not be exercised in the
-  running app: Phase 4 UI has no visible text field (Inspector Transform is hidden).
+- ~~Hotkey guard for text input is implemented but could not be exercised in the
+  running app: Phase 4 UI has no visible text field (Inspector Transform is hidden).~~ — checked in the running app in
+  Phase 9 Step 9.6d (the Inspector's text box of a text clip and a number field).
 - ~~`ffmpeg-*.log` is never written~~ — fixed in Phase 9 Step 9.3d: Video and the ffmpeg / ffprobe locators are
   routed there by their source.
 - ~~Media analysis has no concurrency limit and no cancellation on New Project~~ — fixed in Phase 9 Steps 9.3b / 9.3c

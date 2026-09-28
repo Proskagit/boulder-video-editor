@@ -147,7 +147,7 @@ mute / volume and the clip's time mapping.
   normalization, waveforms in the Media Browser.
 - Depends on: 9.4 (cache and background generation).
 
-### 9.6 — Hotkeys *(in progress — sub-steps 9.6a–d; 9.6a–b accepted, 9.6c done, awaiting acceptance)*
+### 9.6 — Hotkeys *(done — sub-steps 9.6a–d; 9.6a–c accepted, awaiting the product owner's acceptance of the whole step)*
 Scope: J / K / L; loop; playback / navigation shortcuts that follow from existing commands; the text-input guard;
 routing tests; a small shortcut help.
 - PR: K pauses, L plays forward. J within what the playback model supports (forward playback at 1×, D010 / D011;

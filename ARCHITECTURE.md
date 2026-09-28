@@ -92,8 +92,11 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   content coordinates. Pixel ↔ time math: `TimelineCoordinateMapper`; all times sent
   to the domain are snapped to the frame grid first.
 - Cross-panel wiring (selection → Inspector, Add to Timeline, playhead ↔ Preview/playback)
-  lives in `MainWindowViewModel`. Keyboard shortcuts are routed in
-  `MainWindow.OnKeyDown` and ignored while a TextBox has focus.
+  lives in `MainWindowViewModel`. Keyboard shortcuts: one table in `UI/Common/ShortcutRouter` (key with exact
+  modifiers → an existing command; D024 Step 9.6), called from `MainWindow.OnKeyDown` (bubbling, only keys no
+  focused control consumed); nothing fires while a `TextBox` (also inside a `NumericUpDown`) has focus; a known
+  shortcut whose command can't run (e.g. during an export) is consumed and does nothing. Loop (session state) is the
+  Preview's: a playback update that reached the end is followed by Play (D011: from 0).
 - Threading: the project model is mutated on the UI thread only.
 
 ## Playback (Phase 5)
