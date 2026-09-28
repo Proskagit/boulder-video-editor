@@ -333,6 +333,52 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     failed thumbnail retried only with the next project; media coming back online not re-checked; an unrelated
     project's thumbnail files left in a Save As target; the defensive post-slot generation check unreachable by
     mutation.
+- Step 9.4 accepted and closed (2026-09-28): 9.4d committed as `197e99e`, 9.4e as `e666b48`.
+- Step 9.5 — waveform. Audit (2026-09-28): no waveform code (only a mention in `Audio/ModuleInfo.cs`). Building
+  blocks: Core `IAudioDecoder` / `FfmpegAudioDecoder` (48 kHz stereo float, exact `FirstSampleIndex`; from source
+  position 0 one ffmpeg run from the file's start), `AudioPlacement` / `AudioTiming` (the exact timeline ↔ source
+  sample mapping at any speed, D022), `PlaybackSnapshotBuilder`'s audible sources (`AudioClip`; `VideoClip` whose media
+  has an `AudioCodec`; clips on muted tracks left out, muted clips kept at zero gain), clip volume 0–200 % linear and
+  mute (Inspector), track mute (model only, no UI); timeline clips are 36 px `Border`s with a label, zoom 2 px/s –
+  40 px/frame (2400 px/s at 60 fps) — a long clip is millions of pixels wide at the top zoom, so the display must draw
+  only what is visible; the 9.4 cache location (`ThumbnailCacheLocation`) handles `*.thumb` in `cache/thumbnails` only.
+  Product owner decisions (2026-09-28, all as proposed): PO-W1 video clips with sound show a waveform too, in the lower
+  part of the clip; PO-W2 height linear in the clip's volume (200 % reaches the clip's edge), a muted clip or track
+  dimmed with the same shape, envelope `max(|L|, |R|)` on a linear scale; PO-W3 waveforms are made only for media used
+  by a clip on the timeline (not at import); PO-W4 `<project>/cache/waveforms` and
+  `%LOCALAPPDATA%\AiVideoEditor\cache\unsaved\<projectId>\waveforms`, the thumbnails' life cycle (first Save moves,
+  Save As copies, startup cleanup) and key, at most 2 made at once, separate from thumbnails. Open for 9.5c/d: the plan
+  says offline media shows no waveform, while the service (like 9.4's) can give the last cached one without decoding —
+  which of the two the timeline shows is asked before 9.5c. Sub-steps, each accepted separately: 9.5a peak service and
+  cache core · 9.5b cache location · 9.5c waveform queue · 9.5d timeline display · 9.5e closeout.
+  - 9.5a done — waveform service and cache core (no UI, no cache location, no queue, no DI registration yet — as
+    9.4a). Core `IWaveformService` (`TryGetCached(asset, cacheFolder)` never decodes; `GetOrCreateAsync(asset,
+    cacheFolder, ct)`) and `Waveform` (samples per peak, sample count, one byte peak per started group of source
+    samples; `ToPeak` = `⌈|a|·255⌉` capped at 255 — rounded up so any sound is visible; `MaxPeak(from, to)` over the
+    groups a source range touches, 0 outside `[0, SampleCount)` — for the display). Media `WaveformService`: the file's
+    audio decoded once by `IAudioDecoder` from source position 0, 1×, `StrictEnd`, the file's start time as origin;
+    samples placed by the stream's `FirstSampleIndex` (before 0 dropped, a later start leaves silent groups); peak =
+    `max(|L|, |R|)` per 256 samples (187.5 per second); the waveform ends where the audio ends. Media: audio files and
+    video with an `AudioCodec`, analysis completed; images, silent video, pending / failed analysis → none, not
+    decoded; offline (marked missing or file gone) → the last cached one, never decoded. A decode failure (also midway)
+    → none, nothing cached; cancellation throws. Cache file `{assetId:N}-{size:x}-{lastWriteUtcTicks:x}-v1.peaks`:
+    `AIVW` + format version + samples per peak + sample count (little-endian) + peaks; anything else is a miss
+    (repaired). The cache key, the atomic write and the offline lookup moved from `ThumbnailService` into
+    `Media/Caching/SourceFileCache` and are used by both services (thumbnail behaviour unchanged — its 45 tests green).
+    Test fake: `FakeAudioSource` got an optional `Shape` (sample index → L, R). Tests: `Core.Tests/WaveformTests` (15:
+    peak count, validation, the peak scale incl. rounding up, capping and NaN, `MaxPeak` over groups / edges / empty
+    ranges), `Video.Tests/WaveformServiceTests` (29 with theory rows, fake decoder: peaks of both channels per group
+    incl. a partial last group; the decode request; samples before the start dropped; a later stream start; empty
+    audio; which media; hit / miss / size / time / rule version; thumbnails and other assets left alone; nine kinds of
+    damaged files repaired; offline with / without a cache, a file gone during the session; open and midway failures;
+    cancellation; an unwritable cache), `Video.Tests/WaveformIntegrationTests` (4, real ffmpeg 9.0.1: PCM tones —
+    silence, 0.5 left / 0.2 right, 0.8 right only — exact per group; AAC in MPEG-TS starting at 10 s — the onset
+    within 8 groups of 1 s; a video with sound; a silent video never decoded; a hit starts no ffmpeg). Mutations (all
+    caught): no start time → 2, stream start ignored → 2, left channel only → 4, peak rounded down → 7, not strict → 1,
+    no cache read → 2, offline decoded → 3, silent video decoded → 2, older files kept → 4, no length check → 2,
+    `MaxPeak` missing the last group → 1. `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with
+    `--blame-hang`: 1678 passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 280, UI 253, Export 78,
+    Rendering 54, Video 291, ExportEndToEnd 67 + 2). No real-app check: nothing user-visible yet (9.5d).
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); hotkey guard not exercised in the running app → 9.6;
   `PlaybackFrame.Picture` → 9.8; `Project.Tests` hang → watched (9.10);

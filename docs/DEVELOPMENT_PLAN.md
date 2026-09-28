@@ -92,7 +92,7 @@ the damaged-project message.
   changes beyond the message, other log areas unless needed for the items above.
 - Depends on: 9.1 only.
 
-### 9.4 — Thumbnails + cache *(done — sub-steps 9.4a–e; awaiting the product owner's acceptance of the whole step)*
+### 9.4 — Thumbnails + cache *(done — sub-steps 9.4a–e; accepted 2026-09-28)*
 Scope: real thumbnails in the Media Browser; a project-scoped cache with invalidation; the cache of a project that
 has not been saved yet; offline media.
 - PR: every analysed, online video and image in the Media Browser shows a thumbnail of its content; audio, pending,
@@ -122,21 +122,25 @@ has not been saved yet; offline media.
   eviction or a cache-management UI.
 - Depends on: 9.3 (analysis cancellation and concurrency policy; clean shutdown with more background work).
 
-### 9.5 — Waveform
+### 9.5 — Waveform *(in progress — sub-steps 9.5a–e; 9.5a done, awaiting acceptance)*
 Scope: waveforms of audio on timeline clips, generated through the media abstraction, cached, consistent with
 mute / volume and the clip's time mapping.
 - PR: an audio clip on the timeline with analysed, online media shows the waveform of exactly its source range;
   move / trim / split / undo update it from cached data without decoding the file again. Whether video clips with
-  sound show one too is decided at the start of 9.5.
+  sound show one too is decided at the start of 9.5 — chosen: yes, in the lower part of the clip (D024 Step 9.5).
 - PR: a clip at speed ≠ 1× shows its source range mapped onto its timeline length (display only — no audio
   processing).
 - PR: mute / volume: display rule decided at the start of 9.5 (e.g. height follows the volume, muted clip or
-  track drawn dimmed); the waveform never changes the audio.
+  track drawn dimmed); the waveform never changes the audio — chosen: height linear in the clip's volume (200 % reaches
+  the clip's edge), a muted clip or track drawn dimmed with the same shape; envelope max(|L|, |R|), linear scale.
 - PR: offline, unanalysed or soundless media shows no waveform, no error, no decode; generation runs off the UI
-  thread, is cancelled on project replacement, and the timeline stays responsive.
+  thread, is cancelled on project replacement, and the timeline stays responsive. Chosen: waveforms are made only for
+  media used by a clip on the timeline (not at import).
 - Impl: peak data produced outside UI (Video / media side, through the existing audio decoding or an interface
   next to 9.4's), stored in 9.4's cache with the same invalidation; the UI receives peaks only; playback and export
-  audio unchanged (D013 / D022 / D023).
+  audio unchanged (D013 / D022 / D023) — chosen: Core `IWaveformService`, Media `WaveformService` over `IAudioDecoder`;
+  `<project>/cache/waveforms` / `…\cache\unsaved\<projectId>\waveforms` with the thumbnails' life cycle and key; at
+  most 2 made at once, separate from thumbnails.
 - QG: tests for peak computation (fake decoder), trim / split / speed mapping, cache reuse, offline.
 - Out of scope: audio editing (envelopes, keyframes, fades), audio scrubbing, spectral views, meters,
   normalization, waveforms in the Media Browser.

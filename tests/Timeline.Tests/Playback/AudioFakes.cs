@@ -6,16 +6,18 @@ namespace AiVideoEditor.Timeline.Tests.Playback;
 
 /// <summary>
 /// Synthetic audio: sample <c>i</c> of the file (counted from its start time) is
-/// (<c>i·2⁻²⁴</c>, <c>−i·2⁻²⁴</c>) — exact in float for i &lt; 2²⁴ — unless <see cref="Constant"/> is set.
+/// (<c>i·2⁻²⁴</c>, <c>−i·2⁻²⁴</c>) — exact in float for i &lt; 2²⁴ — unless <see cref="Constant"/> or
+/// <see cref="Shape"/> (sample index → L, R) is set.
 /// </summary>
-internal sealed record FakeAudioSource(long LengthSamples, long StreamStartSample = 0, float? Constant = null)
+internal sealed record FakeAudioSource(long LengthSamples, long StreamStartSample = 0, float? Constant = null,
+    Func<long, (float L, float R)>? Shape = null)
 {
     public const float Unit = 1f / (1 << 24);
 
     public static long IndexOf(float left) => (long)Math.Round(left / Unit);
 
     public (float L, float R) Sample(long index) =>
-        Constant is { } c ? (c, c) : (index * Unit, -index * Unit);
+        Shape is { } shape ? shape(index) : Constant is { } c ? (c, c) : (index * Unit, -index * Unit);
 }
 
 /// <summary>Fake <see cref="IAudioDecoder"/>: starts a configurable number of samples before

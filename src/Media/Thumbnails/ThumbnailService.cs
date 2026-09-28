@@ -1,8 +1,8 @@
-using System.Globalization;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
+using AiVideoEditor.Media.Caching;
 using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.Media.Thumbnails;
@@ -62,21 +62,16 @@ public sealed class ThumbnailService : IThumbnailService
 
     public Thumbnail? TryGetCached(MediaAsset asset, string cacheFolder)
     {
-        if (Identity(asset) is { } identity)
+        if (SourceFileCache.Identity(asset) is { } identity)
             return ThumbnailCacheFile.TryRead(Path.Combine(cacheFolder, FileName(asset, identity)));
 
         // Offline: the last thumbnail cached for the asset, whatever file (or rule version) it was made from.
-        foreach (var path in CachedFilesOf(asset, cacheFolder).OrderByDescending(SafeLastWriteUtc))
-        {
-            if (ThumbnailCacheFile.TryRead(path) is { } thumbnail)
-                return thumbnail;
-        }
-        return null;
+        return SourceFileCache.LastCached(asset, cacheFolder, Extension, ThumbnailCacheFile.TryRead);
     }
 
     public async Task<Thumbnail?> GetOrCreateAsync(MediaAsset asset, string cacheFolder, CancellationToken ct = default)
     {
-        if (Identity(asset) is not { } identity)
+        if (SourceFileCache.Identity(asset) is not { } identity)
             return TryGetCached(asset, cacheFolder); // offline: never decoded
         if (!HasPicture(asset))
             return null;
@@ -152,74 +147,16 @@ public sealed class ThumbnailService : IThumbnailService
     /// is still returned. Older files of the asset are removed once the new one is in place.</summary>
     private void Write(MediaAsset asset, string cacheFolder, string path, Thumbnail thumbnail)
     {
-        var temp = $"{path}.{Guid.NewGuid():N}.tmp";
         try
         {
-            Directory.CreateDirectory(cacheFolder);
-            using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            {
-                stream.Write(ThumbnailCacheFile.Encode(thumbnail));
-                stream.Flush(flushToDisk: true);
-            }
-            File.Move(temp, path, overwrite: true);
+            SourceFileCache.Write(asset, cacheFolder, path, Extension, ThumbnailCacheFile.Encode(thumbnail));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             _logger.LogWarning(ex, "The thumbnail of '{Path}' could not be cached in '{Folder}'.", asset.FilePath, cacheFolder);
-            TryDelete(temp);
-            return;
-        }
-
-        foreach (var older in CachedFilesOf(asset, cacheFolder))
-        {
-            if (!string.Equals(older, path, StringComparison.OrdinalIgnoreCase))
-                TryDelete(older);
-        }
-    }
-
-    /// <summary>The source file's identity for the cache — its size and last-write time — or null when the asset is
-    /// offline (marked missing, or the file is not there now).</summary>
-    private static (long Size, long LastWriteTicks)? Identity(MediaAsset asset)
-    {
-        if (asset.IsMissing) return null;
-        try
-        {
-            var file = new FileInfo(asset.FilePath);
-            return file.Exists ? (file.Length, file.LastWriteTimeUtc.Ticks) : null;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        {
-            return null;
         }
     }
 
     private string FileName(MediaAsset asset, (long Size, long LastWriteTicks) identity) =>
-        string.Create(CultureInfo.InvariantCulture,
-            $"{asset.Id:N}-{identity.Size:x}-{identity.LastWriteTicks:x}-v{RuleVersion}{Extension}");
-
-    private static IEnumerable<string> CachedFilesOf(MediaAsset asset, string cacheFolder)
-    {
-        try
-        {
-            return Directory.Exists(cacheFolder)
-                ? Directory.GetFiles(cacheFolder, $"{asset.Id:N}-*{Extension}")
-                : Array.Empty<string>();
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return Array.Empty<string>();
-        }
-    }
-
-    private static DateTime SafeLastWriteUtc(string path)
-    {
-        try { return File.GetLastWriteTimeUtc(path); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return DateTime.MinValue; }
-    }
-
-    private static void TryDelete(string path)
-    {
-        try { File.Delete(path); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
-    }
+        SourceFileCache.FileName(asset, identity, RuleVersion, Extension);
 }
