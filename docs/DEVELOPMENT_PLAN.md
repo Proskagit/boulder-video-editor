@@ -122,7 +122,7 @@ has not been saved yet; offline media.
   eviction or a cache-management UI.
 - Depends on: 9.3 (analysis cancellation and concurrency policy; clean shutdown with more background work).
 
-### 9.5 — Waveform *(done — sub-steps 9.5a–e; 9.5a–d accepted, awaiting the product owner's acceptance of the whole step)*
+### 9.5 — Waveform *(done — sub-steps 9.5a–e; accepted 2026-09-28)*
 Scope: waveforms of audio on timeline clips, generated through the media abstraction, cached, consistent with
 mute / volume and the clip's time mapping.
 - PR: an audio clip on the timeline with analysed, online media shows the waveform of exactly its source range;
@@ -147,18 +147,22 @@ mute / volume and the clip's time mapping.
   normalization, waveforms in the Media Browser.
 - Depends on: 9.4 (cache and background generation).
 
-### 9.6 — Hotkeys
+### 9.6 — Hotkeys *(in progress — sub-steps 9.6a–d; 9.6a done, awaiting acceptance)*
 Scope: J / K / L; loop; playback / navigation shortcuts that follow from existing commands; the text-input guard;
 routing tests; a small shortcut help.
 - PR: K pauses, L plays forward. J within what the playback model supports (forward playback at 1×, D010 / D011;
   no reverse or shuttle speeds): its meaning is proposed at the start of 9.6 and confirmed — reverse or faster
-  playback would be a semantic change with its own decision.
+  playback would be a semantic change with its own decision. Chosen (D024 Step 9.6): J = back 1 s, the playback
+  state kept (playing continues from there, paused stays paused); K = pause (nothing when paused); L = play (nothing
+  when playing; at the end from 0, like Play); Space stays Play / Pause.
 - PR: loop on/off; while on, reaching the sequence end continues from the start (the whole sequence — the model has
-  no in/out range); off, the D011 end rule is unchanged.
-- PR: further shortcuts only for existing commands (list proposed at the start of 9.6, confirmed).
+  no in/out range); off, the D011 end rule is unchanged. Chosen: a Loop toggle button in the Preview transport and
+  Ctrl+L; session state only — not in `project.json` (format v2 unchanged), not dirty, not undoable.
+- PR: further shortcuts only for existing commands (list proposed at the start of 9.6, confirmed). Chosen: Ctrl+I
+  Import Media, Ctrl+E Export, \ Zoom to Fit.
 - PR: no shortcut fires while a text field has focus (Inspector fields, text content), checked in the running app;
   every existing shortcut keeps its key and command; editing shortcuts stay inert during an export (EditingLock).
-- PR (optional): a small shortcut list in the UI.
+- PR (optional): a small shortcut list in the UI — not chosen (product owner, start of 9.6).
 - QG: automated tests key + modifiers → command, including the text-focus guard and every existing shortcut.
 - Out of scope: configurable hotkeys, reverse playback, shuttle speeds, in/out marks.
 - Depends on: 9.3 (stable app for manual checks); technically independent of 9.4 / 9.5.

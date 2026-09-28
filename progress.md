@@ -520,6 +520,37 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     (D024 "Left as they are"): no cache limit / eviction; a failed waveform retried only with the next project; media
     coming back online not re-checked; the start-trim drag preview; the 1–2 px border offset; the faint muted quiet clip
     at 100 %; `AppPaths.UnsavedThumbnailCacheRoot` naming both caches (9.8).
+- Step 9.5 accepted and closed (2026-09-28): 9.5d committed as `80d3748`, 9.5e as `568a47b`.
+- Step 9.6 — hotkeys. Audit (2026-09-28): every shortcut lives in `MainWindow.ShortcutFor` (Ctrl+N / O / S /
+  Shift+S, Ctrl+Z / Y / Shift+Z, Delete / Backspace, S, N, ← / →, Shift+← / →, Space, Home / End, Ctrl+= / −), handled
+  on the window's bubbling KeyDown only when no focused control consumed the key; the text-input guard (`TextBox`,
+  also inside `NumericUpDown`) was never exercised in the running app (known issue since Phase 4); a known shortcut
+  whose command can't run (editing during an export, `EditingLock`) is consumed and does nothing; no routing tests at
+  all. Playback: forward at 1× only; at the end Paused at Duration, Play there restarts from 0, Stop = Pause + Seek(0)
+  (D011); no loop. Existing commands without a shortcut: Import Media, Export, Zoom to Fit, Stop, Add to Timeline,
+  + Text, + Video / Audio Track. Product owner decisions (2026-09-28, all as proposed): PO-H1 J = back 1 s, the
+  playback state kept (playing continues, paused stays paused); PO-H2 K = pause, L = play (nothing when already
+  playing; at the end from 0), Space unchanged; PO-H3 loop: a toggle button in the Preview transport + Ctrl+L, session
+  state only (not in `project.json`, not dirty, not undoable), while on the end of the sequence continues from 0;
+  PO-H4 extra shortcuts Ctrl+I Import Media, Ctrl+E Export, \ Zoom to Fit; the optional shortcut list (F1) not chosen.
+  Sub-steps, each accepted separately: 9.6a routing and its tests (no behaviour change) · 9.6b J / K / L and the extra
+  shortcuts · 9.6c loop · 9.6d the text-input guard in the running app and closeout.
+  - 9.6a done — routing and its tests, no behaviour change. The shortcut table and the key handling moved unchanged
+    from `MainWindow` into `UI/Common/ShortcutRouter`: `CommandFor(vm, key, modifiers)` (exact modifiers),
+    `IsTextInput(element)` (`TextBox`), `Handle(vm, key, modifiers, source, focused)` — nothing while the source or the
+    focused element is a text input, a known shortcut is consumed and runs only if its command can execute.
+    `MainWindow.OnKeyDown` only calls it (unused `System.Windows.Input` using removed). Tests:
+    `UI.Tests/ShortcutRoutingTests` (14 with theory rows, real view models / project / edit service: every existing
+    shortcut keeps its key and command (22 key + modifier pairs); nine other keys / modifier combinations are no
+    shortcut and not consumed; a shortcut runs and is consumed; nothing fires while a `TextBox` sent the key or has
+    focus, any other control doesn't block; only text inputs block; during an export split / New / Undo are consumed
+    without running, viewing (→) still works, after it split works). Mutations (all caught): no guard → 1, focus not
+    checked → 1, unavailable not consumed → 1, unavailable run anyway → 1, modifiers not exact → 3, Shift ignored → 2, a
+    mapping swapped → 1, a key lost → 1. `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with
+    `--blame-hang`: 1751 passed, 2 skipped (4K), 0 failed (Core 395, Timeline 260, Project 292, UI 310, Export 78,
+    Rendering 58, Video 291, ExportEndToEnd 67 + 2). Real app (the 9.5d project opened through UI Automation): N sent to
+    the window (WM_KEYDOWN / WM_KEYUP posted to it — `SendKeys` from this session doesn't reach the app) toggled Snap
+    On → Off through the router; closed clean.
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); timeline waveforms →
   9.5 (done); `AppPaths.UnsavedThumbnailCacheRoot` naming both caches → 9.8; hotkey guard not exercised in the running
