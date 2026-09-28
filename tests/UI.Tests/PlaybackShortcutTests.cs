@@ -25,6 +25,7 @@ namespace AiVideoEditor.UI.Tests;
 /// J steps back one second keeping the playback state (PO-H1 / PO-H2); L at the end starts from 0 (D011); \ fits the
 /// sequence (PO-H4).
 /// </summary>
+[Collection(AvaloniaControlsCollection.Name)]
 public sealed class PlaybackShortcutTests : IAsyncLifetime
 {
     private static readonly FrameRate Rate = FrameRate.Fps25;

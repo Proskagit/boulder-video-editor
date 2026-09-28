@@ -25,6 +25,7 @@ namespace AiVideoEditor.UI.Tests;
 /// off, the D011 end rule is unchanged; a pause before the end is not undone; Ctrl+L and the command toggle it; it is
 /// session state only (no edit, not dirty, not undoable) and survives another project.
 /// </summary>
+[Collection(AvaloniaControlsCollection.Name)]
 public sealed class LoopPlaybackTests : IAsyncLifetime
 {
     private static readonly FrameRate Rate = FrameRate.Fps25;

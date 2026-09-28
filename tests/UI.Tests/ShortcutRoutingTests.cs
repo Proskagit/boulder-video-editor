@@ -23,6 +23,7 @@ namespace AiVideoEditor.UI.Tests;
 /// known shortcut whose command is unavailable (editing during an export) is consumed without running. Real view
 /// models, project and edit service.
 /// </summary>
+[Collection(AvaloniaControlsCollection.Name)]
 public sealed class ShortcutRoutingTests
 {
     private readonly ProjectService _projects = new(new UndoRedoService(), NullLogger<ProjectService>.Instance);
