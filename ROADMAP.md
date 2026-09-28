@@ -61,8 +61,10 @@ session state (D015).
 
 Phase 9 — Quality, branch `feat/phase-9-quality` (from `ab248e5`, `main` after PR #6). **In progress**: Step 9.1
 (audit) and Step 9.2 (scope formalization) done; Step 9.3 (stability & error handling: close hang, analysis
-cancellation and concurrency, FFmpeg diagnostics, audio default device, damaged-project message) done, awaiting the
-product owner's acceptance. Steps 9.3 stability & error handling · 9.4 thumbnails + cache ·
+cancellation and concurrency, FFmpeg diagnostics, audio default device, damaged-project message) accepted
+(`3006785`); Step 9.4 (thumbnails + cache: real Media Browser thumbnails, deterministic frame, project-scoped cache
+with invalidation, unsaved-project cache, offline media from the cache only) done, awaiting the product owner's
+acceptance. Steps 9.3 stability & error handling · 9.4 thumbnails + cache ·
 9.5 waveform · 9.6 hotkeys · 9.7 performance baseline & optimization · 9.8 polish & cleanup · 9.9 CI / quality gates ·
 9.10 closeout — scope and acceptance criteria in `docs/DEVELOPMENT_PLAN.md`, decision DECISIONS.md D024. L1-c stays
 open. Details: `progress.md`.

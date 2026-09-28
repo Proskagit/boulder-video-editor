@@ -3,9 +3,10 @@ using AiVideoEditor.Core.Entities;
 namespace AiVideoEditor.Core.Interfaces;
 
 /// <summary>
-/// Reserved for later media utilities (thumbnails, waveform extraction; Phase 9); not implemented.
+/// Reserved for later media utilities; not implemented.
 /// FFmpeg is reached through narrower interfaces instead: <see cref="IMediaAnalysisService"/> (probe),
-/// <c>IVideoDecoder</c> / <c>IAudioDecoder</c> (playback and export decoding) and
+/// <c>IVideoDecoder</c> / <c>IAudioDecoder</c> (playback, export and thumbnail decoding),
+/// <see cref="IThumbnailService"/> (Media Browser thumbnails, D024 Step 9.4) and
 /// <see cref="IExportService"/> (export, D023).
 /// </summary>
 public interface IVideoEngine

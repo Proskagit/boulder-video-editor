@@ -308,10 +308,33 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
     and exact BGRA pixels incl. alpha; same thumbnail → same bitmap, null → none). Mutations (all caught): ready events
     ignored → 3, rebuilt rows losing the thumbnail → 1, a new bitmap per rebuild → 1. Full suite with `--blame-hang`:
     1630 passed, 2 skipped (4K), 0 failed; build 0 warnings. Real app: the opened project's video shows its thumbnail in
-    the Media Browser (screenshot checked). Next: 9.4e — closeout of 9.4 (D024 "Refined in Step 9.4", Phase 9 manual
-    plan scenarios for thumbnails, ARCHITECTURE/ROADMAP/DEVELOPMENT_PLAN, full verification).
+    the Media Browser (screenshot checked).
+  - 9.4d accepted (2026-09-28), committed as `197e99e`.
+  - 9.4e done — closeout of 9.4 (documentation only, plus one comment). D024 "Refined in Step 9.4": PO-1–PO-6 and
+    option C of the carry-over, the interface (Core `IThumbnailService`, Media implementation over `IVideoDecoder` +
+    `SourceFrameSelector`, `IVideoEngine` not used), cache key and format, location, queue, Media Browser, and what is
+    left as it is. `docs/PHASE9_MANUAL_TEST_PLAN.md`: section "Step 9.4" (scenarios 18–30: thumbnails appear,
+    deterministic frame, reopen from the cache, changed source, damaged cache, offline with / without a cache, unsaved
+    project and first Save, Save As, recovery and startup cleanup, New / Open and close while thumbnails are made, a
+    portrait video, playback / export untouched) and the status "app 9.4". `docs/DEVELOPMENT_PLAN.md`: 9.3 marked
+    accepted, 9.4 done with the chosen rule, key, location and interface noted per item (offline media refined: its
+    cached thumbnail, if any). `ROADMAP.md` "Current". `ARCHITECTURE.md`: media pipeline no longer calls `IVideoEngine`
+    the thumbnail interface; new section "Thumbnails (Phase 9 Step 9.4)"; verification note. `README.md`: the lines
+    that called thumbnails future work (`Video/`, `Media/`, "FFmpeg behind Core interfaces"). `IVideoEngine`'s comment no
+    longer reserves it for thumbnails. Not touched: other stale README lines (Export "Empty" / "not implemented yet") —
+    not 9.4's; a 9.8 / 9.10 item.
+  - Step 9.4 closeout (2026-09-28): 9.4a–e done, 9.4a–d accepted, 9.4e awaiting with the whole step. Verification:
+    `dotnet build --no-incremental` 0 errors / 0 warnings; full suite with `--blame-hang`: 1630 passed, 2 skipped (4K),
+    0 failed (Core 380, Timeline 260, Project 280, UI 253, Export 78, Rendering 54, Video 258, ExportEndToEnd 67 + 2);
+    the 85 thumbnail tests (`~Thumbnail` in UI 19, Video 45 incl. 10 with real ffmpeg 9.0.1, Project 19, Rendering 2)
+    11 × in a row green; parity suite unchanged. Real app: start → close window clean (67 ms, no ffmpeg left, no
+    errors); with media, the 9.4c / 9.4d checks (one decode on first open, none on reopen, thumbnail shown). The formal
+    manual run of scenarios 18–30 is Step 9.10's. Residual (D024 "Left as they are"): no cache limit / eviction; a
+    failed thumbnail retried only with the next project; media coming back online not re-checked; an unrelated
+    project's thumbnail files left in a Save As target; the defensive post-slot generation check unreachable by
+    mutation.
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
-  `ffmpeg-*.log`, backup message → 9.3 (done); hotkey guard not exercised in the running app → 9.6;
+  `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); hotkey guard not exercised in the running app → 9.6;
   `PlaybackFrame.Picture` → 9.8; `Project.Tests` hang → watched (9.10);
   L1-c → stays open.
 

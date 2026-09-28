@@ -6,7 +6,8 @@ steps (D024) and run as a whole at Step 9.10; sections are added per step. Logs:
 
 Status column: **auto** — covered by automated tests only, manual run pending (9.10); **UIA 9.3** — driven through the
 real app's UI by UI Automation during Step 9.3 (a development check, not the formal run); **manual-only, not
-executed** — needs hardware or system changes that were not made; must be run by hand at 9.10.
+executed** — needs hardware or system changes that were not made; must be run by hand at 9.10; **app 9.4** — checked
+in the real app during Step 9.4 (a development check, not the formal run).
 
 ## Step 9.3 — stability & error handling
 
@@ -29,6 +30,27 @@ executed** — needs hardware or system changes that were not made; must be run 
 | 15 | Default audio device changed while playing | Play; switch the Windows default output device during playback; then seek | Sound stays on the old device until the seek (no switch during playback); after the seek it comes from the new default | `AudioDeviceChangeTests` (fake devices) | **manual-only, not executed** |
 | 16 | Audio device removed while playing | Play through USB / Bluetooth headphones; unplug / disconnect them | No crash, no hang; the picture keeps playing without a jump; "Playing without sound" in the status bar; after Pause and Play the sound comes from the current default device | `AudioDeviceChangeTests` (fake devices), `AudioPlaybackServiceTests` | **manual-only, not executed** |
 | 17 | Audio device removed while paused | Pause; unplug the playing device; Play | Sound comes from the current default device at once | `AudioDeviceChangeTests` (fake devices) | **manual-only, not executed** |
+
+## Step 9.4 — thumbnails + cache
+
+A thumbnail decode shows in `ffmpeg-*.log` as an ffmpeg command line scaled to fit 160 × 90; playback decodes are
+not. Cache files: `<assetId>-<size>-<lastWriteTicks>-v1.thumb`.
+
+| # | Scenario | Steps | Expected | Automated coverage | Status |
+|---|---|---|---|---|---|
+| 18 | Thumbnails appear | New project; import a video, an image, an audio file and a file that fails analysis | While "Analyzing" every row shows its colour tile; then the video and the image show a picture of their content (aspect kept, centred in the 56 × 32 tile), audio and the failed file keep the tile; the UI stays responsive meanwhile | `MediaBrowserThumbnailTests`, `ThumbnailCoordinatorTests`, `ThumbnailServiceTests` | auto |
+| 19 | Deterministic frame | Import the same video into two new projects (or reopen one) | The same picture every time: the frame at `min(Duration / 10, 5 s)` (D009) — for a clip with a scene change at 1 s and 20 s duration, the frame after it | `ThumbnailServiceTests`, `ThumbnailIntegrationTests` | auto |
+| 20 | Reopen uses the cache | Save a project with a video, close the app, start it, Open the project | The thumbnail is shown at once; `ffmpeg-*.log` of this session has no thumbnail decode; `<project>/cache/thumbnails` holds one `.thumb` per video / image | `ThumbnailServiceTests`, `ThumbnailCoordinatorTests` | app 9.4 (one decode on first open, none on reopen) |
+| 21 | Changed source | Close the app; replace the video file with another video of the same name (or change it so size / last-write time differ); Open the project | The new content's thumbnail (after analysis); one thumbnail decode; the old `.thumb` of that asset is gone | `ThumbnailServiceTests` | auto |
+| 22 | Damaged cache | Close the app; overwrite a `.thumb` file with garbage (or truncate it); Open the project | The thumbnail is made again silently: no message, no Warning in `app-*.log`; the file is valid again | `ThumbnailServiceTests` | auto |
+| 23 | Offline media | Save a project with two videos, close; rename one source file and delete the other's `.thumb`, also rename its source; Open | Both are offline; the one with a cache shows its cached thumbnail, the other its colour tile; `ffmpeg-*.log` has no decode of either | `ThumbnailServiceTests`, `ThumbnailCoordinatorTests`, `MediaBrowserThumbnailTests` | auto |
+| 24 | Unsaved project, first Save | New project; import a video; check `%LOCALAPPDATA%\AiVideoEditor\cache\unsaved\<projectId>\thumbnails`; Save to a new folder | Before saving the `.thumb` is in the unsaved folder; after it, in `<project>/cache/thumbnails`, and the unsaved folder is gone; `project.json` names no thumbnail (`thumbnailPath` absent or null, `formatVersion` 2); nothing is decoded again | `ThumbnailCacheLocationTests` | auto |
+| 25 | Save As | Save As the saved project of 24 to another folder | The new folder has its own `cache/thumbnails` copy; the old project folder keeps its cache; the thumbnail stays visible | `ThumbnailCacheLocationTests` | auto |
+| 26 | Recovery and startup cleanup | New project with a video (unsaved), wait for an autosave (2 min), kill the app (Task Manager); start it → Recover. Then leave an unsaved project's folder under `cache\unsaved` without a recovery file and start again | Recover shows the thumbnail from its unsaved folder without decoding; at the next start the orphan folder is removed, the recoverable one kept | `ThumbnailCacheLocationTests`, `StartupThumbnailCleanupTests` | auto |
+| 27 | New / Open while thumbnails are made | Import ~10 videos; while thumbnails are still appearing press New (Don't Save) or Open another project | Task Manager never shows more than 2 thumbnail `ffmpeg.exe` at once; after the switch none of the old project keeps running; nothing of the old project appears; the new project's media get their own thumbnails | `ThumbnailCoordinatorTests`, `MediaBrowserThumbnailTests` | auto |
+| 28 | Close while thumbnails are made | As 27, close the window instead (Don't Save) | The process ends within a few seconds; "Shutting down." is the last line of `app-*.log`; no `ffmpeg.exe` left | `ThumbnailCoordinatorTests` | auto; clean close after thumbnails checked in app 9.4 |
+| 29 | Portrait / rotated video | Import a phone video recorded in portrait (display matrix −90°) | A portrait thumbnail, upright, centred in the tile with the colour visible on both sides | `ThumbnailIntegrationTests` | auto |
+| 30 | Playback and export untouched | With thumbnails shown, play the timeline and export it | Preview and export are as before; neither reads `.thumb` files (no change in `ffmpeg-*.log` besides their usual commands) | parity suite (`ExportEndToEnd.Tests`) unchanged | auto |
 
 ## Result log
 

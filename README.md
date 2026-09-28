@@ -53,11 +53,12 @@ src/
   Infrastructure/  Serilog logging setup, app folder layout, ffprobe location,
                    user-facing error translation.
   Video/           ffprobe metadata analysis (Phase 3); ffmpeg video/audio decoding
-                   for playback (Phase 5); thumbnails (Phase 9) later.
+                   for playback (Phase 5); thumbnails decode through it (Phase 9).
   Audio/           WASAPI audio output for playback (Phase 5).
   Timeline/        Timeline editing commands (Phase 4) and the playback engine
                    (Phase 5).
-  Media/           Media import: extension validation, file info (Phase 2).
+  Media/           Media import: extension validation, file info (Phase 2);
+                   thumbnails and their cache (Phase 9).
   Effects/         (Phase 7+) Effect/transition definitions and parameter schemas. Empty.
   Export/          (Phase 8) FFmpeg render/export pipeline. Empty.
   Project/         Current project state (Phase 2); project.json persistence,
@@ -91,8 +92,9 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
   spec requires.
 - **FFmpeg behind Core interfaces** — nothing in `UI` or `Timeline` calls
   FFmpeg directly. Probing is behind `IMediaAnalysisService` (Phase 3), decoding
-  behind `IVideoDecoder` / `IAudioDecoder` (Phase 5); `IVideoEngine` (thumbnails)
-  and `IExportService` (Phase 8) have no implementations yet.
+  behind `IVideoDecoder` / `IAudioDecoder` (Phase 5), thumbnails behind `IThumbnailService`
+  (Phase 9), export behind `IExportService` (Phase 8); `IVideoEngine` has no
+  implementation.
 - **Serilog with per-area log files** (`app-*.log`, `ffmpeg-*.log`,
   `export-*.log`, `errors-*.log` under `%LOCALAPPDATA%\AiVideoEditor\logs`) —
   keeps FFmpeg/export noise separate from general app logs while still

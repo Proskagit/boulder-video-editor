@@ -174,9 +174,32 @@ Metadata comes from ffprobe via `IMediaAnalysisService` (not `IVideoEngine`);
 `IFfprobeLocator` resolves it from `Ffmpeg:FfprobePath` or PATH, `IFfmpegLocator` does the
 same for ffmpeg (playback decoding). After Open only media without saved metadata that is
 present on disk is analysed (`MediaAnalysisCoordinator.QueueWhereNeeded`); missing files are
-never probed. `IVideoEngine` is an interface without implementation, reserved for thumbnails/waveforms
-(Phase 9; `IThumbnailService` exists only as a commented-out registration). The export is `IExportService`
-(D023).
+never probed. `IVideoEngine` is an interface without implementation (thumbnails use `IThumbnailService`,
+below). The export is `IExportService` (D023).
+
+## Thumbnails (Phase 9 Step 9.4)
+
+Decision: D024 "Refined in Step 9.4". Media Browser only; playback and export never read the cache.
+
+- Core: `IThumbnailService` — `TryGetCached(asset, cacheFolder)` (never decodes) and
+  `GetOrCreateAsync(asset, cacheFolder, ct)`; `Thumbnail` = packed BGRA, straight alpha. `IThumbnailCacheLocation` —
+  `CurrentFolder` of the current project, `Changed`, `CleanUpUnsavedAsync`.
+- Media: `ThumbnailService` — source time `T = min(⌊Duration / 10⌋, 5 s)` (ticks from the start time), decoded by the
+  app's `IVideoDecoder` (software, fit into 160 × 90, upright) and selected by `SourceFrameSelector` (D009: last frame
+  at or before T). Cache file `{assetId:N}-{size:x}-{lastWriteUtcTicks:x}-v{rule}.thumb` (`AIVT` header + BGRA),
+  written to a temporary name and moved; any other name, a damaged or unreadable file is a miss. Offline media
+  (missing, or the file gone) is never decoded: the last cached file or none.
+- Project: `ThumbnailCacheLocation` — saved `<project>/cache/thumbnails` (`AppPaths.ProjectCacheFolder`), unsaved
+  `AppPaths.UnsavedThumbnailCacheRoot/<projectId:N>/thumbnails`; on `ProjectSaved` the files are carried over (first
+  Save moves, Save As copies; per asset its latest variant); at startup (`ProjectFileWorkflow.StartSessionAsync`)
+  unsaved caches without a recovery file are removed. Nothing in `project.json` (`MediaAsset.ThumbnailPath` unused).
+- UI: `ThumbnailCoordinator` (UI/Services, singleton) — requests on `MediaAssetsChanged` for video / images with
+  completed analysis and, cache only, offline media; one generation per project (`ProjectChanged` cancels the old
+  one, its results are dropped); once per asset id and generation; cache reads without a slot, at most 2 makes at
+  once; results and `ThumbnailReady` on the UI thread; `ShutdownAsync` from `MainWindowViewModel.PrepareToCloseAsync`.
+  `MediaBrowserViewModel` sets `MediaBrowserItemViewModel.Thumbnail` from `Get(assetId)` when rows are built and on
+  `ThumbnailReady`; the view draws it over the kind's colour tile through `ThumbnailBitmapConverter` (one
+  `WriteableBitmap` per thumbnail instance, via `FrameBitmap`).
 
 ## Project persistence (Phase 6)
 
@@ -292,5 +315,6 @@ Routine refactoring needed to implement a feature does not.
 ## Verification note
 
 Verified against the source at the end of Phase 6 (branch `feat/phase-6-project-persistence`); the Phase 7
-sections at the Phase 7 closeout, the Export section at the Phase 8 closeout (Step 8.7).
+sections at the Phase 7 closeout, the Export section at the Phase 8 closeout (Step 8.7), the Thumbnails section at
+the Step 9.4 closeout (9.4e).
 Re-check the code before relying on details that later phases may have changed.

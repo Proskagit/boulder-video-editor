@@ -61,7 +61,7 @@ Scope, tests, build/CI, known issues and Phase 8 carry-overs audited; no change 
 ### 9.2 — Scope formalization *(done)*
 This section, D024, `progress.md`, `ROADMAP.md`. Documentation only.
 
-### 9.3 — Stability & error handling *(done — sub-steps 9.3a–f; awaiting the product owner's acceptance of the whole step)*
+### 9.3 — Stability & error handling *(done — sub-steps 9.3a–f; accepted 2026-09-25)*
 Scope: the close hang; cancelling media analysis when the project is replaced; a concurrency limit for media
 analysis; audio device removal / default-device change; the existing `ffmpeg-*.log` sink; the backup promised by
 the damaged-project message.
@@ -92,25 +92,31 @@ the damaged-project message.
   changes beyond the message, other log areas unless needed for the items above.
 - Depends on: 9.1 only.
 
-### 9.4 — Thumbnails + cache
+### 9.4 — Thumbnails + cache *(done — sub-steps 9.4a–e; awaiting the product owner's acceptance of the whole step)*
 Scope: real thumbnails in the Media Browser; a project-scoped cache with invalidation; the cache of a project that
 has not been saved yet; offline media.
 - PR: every analysed, online video and image in the Media Browser shows a thumbnail of its content; audio, pending,
   failed and offline media show a placeholder; thumbnails appear without blocking the UI.
 - PR: deterministic frame: the source time is given by a fixed rule (proposed at the start of 9.4, confirmed by
   the product owner) and the frame at it is selected by the existing D009 rule — the same file always gives the
-  same image.
+  same image — chosen: `T = min(⌊Duration / 10⌋, 5 s)` in ticks from the file's start time (PO-3, D024 Step 9.4).
 - PR: reopening a project reuses its thumbnails without decoding when the source is unchanged; a changed source
   (path, size or last-write time — exact key Impl) is regenerated; a missing or unreadable cache entry is
-  regenerated silently, never an error for the user.
-- PR: offline media is never decoded for a thumbnail (D014: missing files are not probed); it shows a placeholder.
+  regenerated silently, never an error for the user — chosen key: asset id, source size, last-write time (UTC
+  ticks) and the thumbnail rule version.
+- PR: offline media is never decoded for a thumbnail (D014: missing files are not probed); it shows a placeholder —
+  refined: or its last cached thumbnail, if one exists (D024 Step 9.4).
 - PR: a project that has not been saved yet gets thumbnails too; where its cache lives before the first save and
   what happens on Save / Save As is decided at the start of 9.4 and recorded — `project.json` stays
-  `formatVersion` 2, `MediaAsset.ThumbnailPath` is kept as is unless a change is needed and justified.
+  `formatVersion` 2, `MediaAsset.ThumbnailPath` is kept as is unless a change is needed and justified — chosen:
+  saved `<project>/cache/thumbnails`, unsaved `%LOCALAPPDATA%\AiVideoEditor\cache\unsaved\<projectId>\thumbnails`; the
+  first Save moves the cache, Save As copies it; `ThumbnailPath` kept, unused (PO-1, PO-2, PO-5, PO-6).
 - Impl: generation behind a Core interface (the existing `IThumbnailService`; `IVideoEngine` or a narrower
   interface — decided and recorded) implemented outside UI; the UI never starts ffmpeg; background work bounded
   and cancelled on project replacement like 9.3's analysis; the decoder, `SourceFrameSelector` and D009/D022 are
-  used, not changed; playback and export never read the cache.
+  used, not changed; playback and export never read the cache — chosen: Core `IThumbnailService` (contract
+  replaced) implemented in Media over `IVideoDecoder`; `IVideoEngine` not used; at most 2 thumbnails made at once
+  (PO-4).
 - QG: tests for the frame rule, determinism, invalidation, a damaged cache, offline media, cancellation.
 - Out of scope: timeline clip thumbnails / filmstrips, hover scrubbing, text-clip thumbnails, cache size limits,
   eviction or a cache-management UI.

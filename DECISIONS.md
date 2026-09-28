@@ -1098,6 +1098,51 @@ Refined in Step 9.3 (2026-09-25), stability & error handling (product owner deci
   concern without a workaround; a real default-device change and a real device removal were not tried on hardware —
   they are manual-only scenarios of the Phase 9 manual test plan.
 
+Refined in Step 9.4 (2026-09-28), thumbnails + cache (product owner decisions PO-1–PO-6 after the 9.4 audit,
+2026-09-25, and the reviews of the sub-steps; sub-steps 9.4a–e, each accepted separately; details and verification in
+`progress.md`):
+- Product owner decisions:
+  - PO-1: a saved project caches its thumbnails in `<project>/cache/thumbnails/`.
+  - PO-2: a project that was never saved caches them in `%LOCALAPPDATA%\AiVideoEditor\cache\unsaved\<projectId>\thumbnails\`.
+  - PO-3: source time `T = min(⌊Duration / 10⌋, 5 s)`, in ticks from the file's start time; D009 decides the frame at T.
+  - PO-4: at most 2 thumbnails are made (decoded) at once — fixed, not configurable.
+  - PO-5: `MediaAsset.ThumbnailPath` is kept for project-file compatibility, never used or filled; `project.json`
+    unchanged (`formatVersion` 2).
+  - PO-6: `<project>/cache/thumbnails` is the only cache path; `AppPaths.ProjectThumbnailsFolder`
+    (`<project>/thumbnails`) removed.
+  - Save As over a folder that already holds thumbnails of the same assets (option C, refined after a second review):
+    per asset only its current variant is carried (the latest last-write time, on a tie the ordinally last name); the
+    asset's other files in the target are removed only after that copy succeeded.
+- 9.4a, interface and service: the thumbnail interface is Core `IThumbnailService` (its former unused
+  `GetOrCreateThumbnailAsync → path` contract replaced): `TryGetCached(asset, cacheFolder)` never decodes,
+  `GetOrCreateAsync(asset, cacheFolder, ct)` reads the cache or makes the thumbnail; a `Thumbnail` is packed BGRA,
+  straight alpha. `IVideoEngine` is not used for it (it stays unimplemented). Implemented in Media
+  (`ThumbnailService`) over the app's `IVideoDecoder` (software, scaled to fit 160 × 90 with the aspect ratio, upright)
+  and `SourceFrameSelector`: the last frame at or before T, hold-first / hold-last — no `-ss` / `select` / `thumbnail`
+  filters; the decoder and D009 / D022 unchanged. Cache: one file per asset, named by asset id, source size,
+  last-write time (UTC ticks) and the rule version — any other name is a miss; an internal binary format (magic,
+  version, size + BGRA, no PNG); written to a temporary name and moved into place; a missing, damaged or unreadable
+  file is a silent miss and is regenerated. Offline media is never decoded: the last cached thumbnail, or none.
+- 9.4b, cache location: Core `IThumbnailCacheLocation`, Project `ThumbnailCacheLocation` — the folder follows the
+  current project (PO-1 / PO-2; a recovered project keeps its id and so its folder). The first Save moves the unsaved
+  cache into the project folder, Save As copies it (the old project keeps its own); a failed carry-over is logged and
+  only costs regeneration, never the save. At startup, unsaved caches without a recovery file are removed (best effort).
+- 9.4c, queue: `ThumbnailCoordinator` (UI/Services, no bitmaps) requests thumbnails on `MediaAssetsChanged` for video
+  and images whose analysis has completed and, cache only, for offline media; audio, pending and failed analysis get
+  none. Generations as in 9.3b: New / Open / Recover cancel the previous project's work, whose results are never
+  stored or reported; once per asset id and generation (a failure is not retried until the next project); a cache
+  read takes no slot and starts no ffmpeg, making one takes one of 2 slots (PO-4); results are applied on the UI
+  thread. Closing the app waits for it (`ShutdownAsync`, ≤ 5 s) after playback is released.
+- 9.4d, Media Browser: a row shows its asset's thumbnail over the kind's colour tile (56 × 32, aspect kept, centred);
+  the tile stays the placeholder for audio, pending, failed and offline media without a cache and while a thumbnail
+  is made. The bitmap is made in the view (one per thumbnail instance), never in Core, Media or the coordinator.
+  Playback and export never read the cache.
+- Left as they are: no cache size limit, eviction or cache UI, no timeline thumbnails (out of scope); a thumbnail that
+  could not be made is retried only with the next project (or by reopening it); media that comes back online during a
+  session is not re-checked (no relink, as in 9.3); a Save As over a folder of an unrelated project leaves that
+  project's thumbnail files there, never read; the generation check after a slot is obtained is defensive — no
+  mutation reaches it (the waits of a cancelled generation always end first).
+
 Status: Phase 9 scope and step structure are accepted. Each implementation step requires separate product-owner
 acceptance before proceeding to the next step.
 
