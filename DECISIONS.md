@@ -1280,8 +1280,31 @@ details and verification in `progress.md`):
   test passes on the runner without a device (nothing verified there — manual at 9.10); the 4K scenes are not run in
   CI.
 
-Status: Phase 9 scope and step structure are accepted. Each implementation step requires separate product-owner
-acceptance before proceeding to the next step.
+Refined in Step 9.10 (2026-09-29), final verification & closeout (product owner decisions after the formal run; details and
+verification in `progress.md`):
+- The Phase 9 manual test plan was run as a whole in the real app (scenarios 1–59; 14–17 with the product owner switching and
+  unplugging the audio devices), `docs/EXPORT_MANUAL_TEST_PLAN.md` again as a regression; results in the plans' "Formal run" /
+  result logs. No defect was found.
+- Plan wording corrected (clarifications, not defects; product owner): scenario 55 — memory may grow after the first export and
+  then stays on a plateau; it must not keep growing from run to run (the bounded footprint of Step 9.7 is kept; memory is not
+  returned to the system after an export, and no work to change that is planned in Phase 9); scenario 53 — after an export no
+  `ffmpeg.exe` of the export is left, the Preview's processes of the open project stay and are not a leak; scenario 52 — the
+  modal progress window (D023) disables the main window during an export, so no click or shortcut reaches it (the routing
+  rule — editing shortcuts inert under `EditingLock` — stays covered by tests).
+- Left as they are (observed in the run, not defects): the status bar keeps "Playing without sound…" after the sound comes back
+  at the next Play (it shows the last message until another one); letters can be typed into a number field (Phase 7: invalid
+  text keeps the last value); the "Analyzing" tile phase is too short to see by eye; the Preview restarts its audio readers
+  while a project loads.
+- Known risk, unchanged in Phase 9 (product owner): the ffmpeg / ffprobe locators run a PATH probe (`-version`) with a 5 s
+  timeout and treat a slower answer as "not found" for the rest of the app run; a heavily loaded machine could hit it. Seen
+  once on CI, in a test that created a new locator for every analysis (the test now uses the ffprobe found once).
+- CI robustness (after the closeout's first CI run failed twice on an unchanged tree): `AnalysisConcurrencyIntegrationTests`
+  no longer samples processes or compares absolute times — the limit is checked while a gate holds the first analyses in
+  their slots (no queued analysis starts any ffprobe), the timeout rule against the moment the first slot is freed;
+  `WaveformIntegrationTests` analyses with the ffprobe found once. Test code only.
+
+Status: Phase 9 scope and step structure are accepted; steps 9.1–9.9 accepted, 9.10 done — awaiting the product owner's
+acceptance of the phase.
 
 ---
 

@@ -70,8 +70,9 @@ speed shown, a cache next to the thumbnails', offline media from the cache only)
 accepted (`e8c3c93`); Step 9.7 (performance): baseline and C (Preview at 8 layers) accepted, A (export decodes ahead / in parallel) accepted (`4bdf738`), the step accepted (`1124138`); Step 9.8 (polish & cleanup: dead code removed incl.
 `PlaybackFrame.Picture`, naming, documentation, shortcut tooltips, an empty-timeline hint, an importing status)
 accepted (`da4838c`); Step 9.9 (CI: GitHub Actions on windows-2025, .NET SDK 8.0.424, FFmpeg 9.0.1 essentials pinned
-by SHA256, build with `-warnaserror`, the full suite and a gate on skips) green on PR #7, awaiting the product owner's
-acceptance. Steps 9.3 stability & error handling · 9.4 thumbnails + cache ·
+by SHA256, build with `-warnaserror`, the full suite and a gate on skips) accepted (`e8f2410`); Step 9.10 (final
+verification: the Phase 9 manual test plan run in the real app, 59 scenarios incl. real audio devices with the owner; the
+export manual plan as a regression; quality gates) done — Phase 9 awaiting the product owner's acceptance. Steps 9.3 stability & error handling · 9.4 thumbnails + cache ·
 9.5 waveform · 9.6 hotkeys · 9.7 performance baseline & optimization · 9.8 polish & cleanup · 9.9 CI / quality gates ·
 9.10 closeout — scope and acceptance criteria in `docs/DEVELOPMENT_PLAN.md`, decision DECISIONS.md D024. L1-c stays
 open. Details: `progress.md`.

@@ -7,7 +7,7 @@ are complete** (architecture, UI skeleton, media import, ffprobe metadata
 analysis, timeline editing, preview playback with audio, project persistence with
 autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
 text; MP4 export). Phase 9 (quality: stability, thumbnails, waveforms, hotkeys,
-performance, polish, CI) is in progress.
+performance, polish, CI) is done and awaiting acceptance.
 
 ## Requirements
 
@@ -115,7 +115,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–8 complete, Phase 9 in progress. Working: media import with validation and duplicate
+Phases 0–8 complete, Phase 9 done (awaiting acceptance). Working: media import with validation and duplicate
 detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
 preview playback with video and audio, and projects on disk: New / Open / Save /
@@ -128,7 +128,7 @@ in the Inspector with undo/redo, composited in a multi-layer Preview and saved i
 (H.264 CRF 18 / AAC 48 kHz stereo, canvas size and exact project frame rate) with a
 preflight, a progress dialog and Cancel, rendered like the Preview.
 
-Phase 9 so far: stability fixes (clean close, analysis cancelled on New / Open, at most
+Phase 9: stability fixes (clean close, analysis cancelled on New / Open, at most
 4 analyses at once, audio device changes, ffmpeg diagnostics in `ffmpeg-*.log`); Media
 Browser thumbnails and timeline waveforms with a per-project cache; hotkeys J / K / L
 (back one second / pause / play), loop (Ctrl+L), Ctrl+I import, Ctrl+E export, \ zoom

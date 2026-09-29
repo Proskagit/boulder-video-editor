@@ -2,10 +2,10 @@
 
 ## Current phase
 
-Phase 9 — Quality: **in progress**, branch `feat/phase-9-quality` (from `ab248e5`, `main` after the merge of PR #6).
+Phase 9 — Quality: **done, awaiting the product owner's acceptance**, branch `feat/phase-9-quality` (from `ab248e5`, `main` after the merge of PR #6).
 Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 9 — Quality: steps"; decision D024.
 
-### Phase 9 — Quality (in progress)
+### Phase 9 — Quality (done, awaiting acceptance)
 
 Steps (D024; each accepted by the product owner before the next): 9.1 audit · 9.2 scope formalization ·
 9.3 stability & error handling · 9.4 thumbnails + cache · 9.5 waveform · 9.6 hotkeys · 9.7 performance baseline &
@@ -973,6 +973,44 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
   - Limits (for 9.10 / the owner): `WasapiAudioOutputDeviceTests` pass on the runner without an audio device (nothing
     verified there — real devices stay manual); 4K scenes not in CI; making the check required (branch protection) is
     the owner's setting.
+- Step 9.9 accepted and closed (2026-09-28): `0b8da2b`, `b96188c`, closeout `e8f2410` (CI run 36464019438 green: 1779 / 2 / 0).
+- Step 9.10 — final verification & closeout (2026-09-28 / 29).
+  - The Phase 9 manual test plan run as a whole in the real app (`dotnet run` at `e8f2410`), driven through its UI: the Windows
+    file dialogs (file name box and buttons set through Win32 messages), UI Automation, real cursor moves and key presses
+    (`keybd_event`, navigation keys as extended keys), screenshots; logs and processes read alongside; test media and
+    projects generated with ffmpeg / as `project.json`. Results per scenario: `docs/PHASE9_MANUAL_TEST_PLAN.md` "Formal run
+    (Step 9.10)". 58 pass, 0 fail, 9 without a manual form. Every export check went through the UI (5, 30, 43, 52–55).
+  - Findings, classified with the product owner as plan clarifications (D024 "Refined in Step 9.10"): 55 — memory stays on a
+    plateau after exports (401 MB idle → ~1.36 GB, flat over 10 exports, not returned after 30 s; before A: ~0.9 GB, the same
+    pattern) — no growth, no leak; 53 — the Preview's ffmpeg of the open project stay after an export (only the export's must
+    be gone); 52 — the progress window is modal: during an export the main window is disabled (IsWindowEnabled = false), real
+    clicks / keys do nothing. The first 52 check had forced the disabled window to the foreground and injected keys; that
+    is not what a user can do, so the plan was corrected and 52 re-checked with real input.
+  - 14–17 with the owner: default device switched while paused (G6 → Mi TV) and while playing (sound stays until a seek), USB
+    headphones unplugged while playing ("Playing without sound", no jump, next Play on the new default) and while paused
+    (next Play at once on the new default); each checked by the app log and a loopback capture of the devices (the tone's
+    frequency). A first 15 attempt with Loop on moved the sound at a loop wrap — a wrap is a new start (9.3e), repeated
+    with a 1 h clip. Residual: the status bar keeps "Playing without sound…" after the sound is back.
+  - `docs/EXPORT_MANUAL_TEST_PLAN.md` as a regression: 13 pass (9 optional, not hit); result log updated.
+  - Quality gates: `dotnet build --no-incremental` 0 errors / 0 warnings; the full suite once and three times with
+    `--blame-hang`: 1779 passed, 2 skipped (4K), 0 failed every time (Core 395, Timeline 261, Project 292, UI 334, Export 82,
+    Rendering 58, Video 290, ExportEndToEnd 67 + 2); the 4K scenes with `AIVE_HEAVY_TESTS=1`: 2 / 2; CI green at `e8f2410`
+    (run 36464019438) and on the closeout commit (see the PR).
+  - Test-automation notes (not app defects): SendKeys' modifiers don't reach Avalonia (keybd_event does); non-extended
+    arrow keys with Shift act as the numpad; the file dialogs' name box limits typed text, WM_SETTEXT does not; Serilog's
+    file sinks flush with a delay, so log slices go by the lines' timestamps; a second app instance writes `app-*_001.log`.
+  - After the closeout (2026-09-29): PR #7 had already been merged at `e8f2410` (merge `8210929`, CI green on `main`), so
+    the closeout `dcb86cb` was only on the branch; a manual CI run on it (`workflow_dispatch`, 36537088545) failed twice on
+    an unchanged tree: `AnalysisConcurrencyIntegrationTests` saw 2, then 3 hanging probes at once instead of 4 (sampled
+    processes; the first analyses' 2 s windows no longer overlapped on a slow runner) and `WaveformIntegrationTests` got
+    "FFprobe could not be found" (a new locator per analysis ran its PATH probe with a 5 s timeout, missed under load).
+    Fixed in the tests only (product owner): the limit test holds the first analyses in their slots with a gate the test
+    opens and checks by marker files that no queued analysis ran any ffprobe meanwhile; the timeout test measures from the
+    first freed slot (a queued analysis ends ≥ one timeout after it) with a 10 s timeout that the stream probe must outlast;
+    the waveform tests use the ffprobe found once. Mutations (all caught): no slot limit → both concurrency tests; timeout
+    counted from queueing → both; waveform ignoring the container start time → the waveform test. Under a local load that
+    saturates every core (three slow 4K encodes, the test run ~20× slower) the stream probe can outlast any fixed timeout —
+    the one speed assumption left, stated in the test.
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); timeline waveforms →
   9.5 (done); `AppPaths.UnsavedThumbnailCacheRoot` naming both caches → 9.8 (done, now `UnsavedCacheRoot`); hotkey
@@ -2003,8 +2041,11 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   mid-stream (untested), phone-specific VFR quirks beyond the tested cases. A hardware
   failure after the first frame is not retried by the decoder (the caller must reopen).
 
-- Audio device: a real default-device change and a real device removal during playback were not tried on hardware
-  (Phase 9 Step 9.3e covered them with fake devices); manual-only scenarios 14–17 of `docs/PHASE9_MANUAL_TEST_PLAN.md`.
+- ffmpeg / ffprobe locators: a PATH probe slower than 5 s counts as "not found" for the app run (a heavily loaded machine
+  could hit it; seen once on CI in a test). Known risk, unchanged (D024, Step 9.10).
+- Audio device: after a device was lost during playback and the sound came back at the next Play, the status bar still says
+  "Playing without sound…" (the status shows the last message until another one; D024 "Left as they are", Step 9.10). A real
+  default-device change and a real removal were checked on hardware in Step 9.10 (scenarios 14–17).
 - `MediaAnalysisCoordinator` relies on the captured UI SynchronizationContext.
 - Timecode is non-drop-frame only (29.97 timecode drifts from wall clock by design).
 - Timeline canvas is a plain ItemsControl/Canvas; very long timelines at maximum

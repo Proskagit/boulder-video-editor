@@ -350,10 +350,21 @@ Routine refactoring needed to implement a feature does not.
   The codec leg MP4 → export canvas has no tolerance (measured only, D023 Step 8). 4K scenes run only with
   `AIVE_HEAVY_TESTS=1`.
 
+## CI (Phase 9 Step 9.9)
+
+Decision: D024 "Refined in Step 9.9". `.github/workflows/ci.yml` (GitHub Actions) on pull requests to `main`, pushes to `main`
+and by hand: one job on `windows-2025` (WASAPI, Avalonia Win32 / Skia), .NET SDK 8.0.424, Debug; FFmpeg 9.0.1 essentials
+(gyan.dev) downloaded from its release, SHA256-checked, cached and put first on `PATH`, its version checked; restore, build with
+`-warnaserror`, the full suite with `--blame-hang` and TRX results (uploaded as an artifact). `.github/scripts/Assert-TestResults.ps1`
+gates the TRX: every test passed, 8 result files, and no skip except the two opt-in 4K scenes of `ExportParityScaledTests`
+("Heavy scenario") — a skip for a missing ffmpeg fails the job. Not in CI: the 4K scenes, a real audio device (the device tests
+pass without one), branch protection (a repository setting).
+
 ## Verification note
 
 Verified against the source at the end of Phase 6 (branch `feat/phase-6-project-persistence`); the Phase 7
 sections at the Phase 7 closeout, the Export section at the Phase 8 closeout (Step 8.7), the Thumbnails section at
 the Step 9.4 closeout (9.4e), the Waveforms section (and the shared parts of the Thumbnails section) at the Step 9.5
-closeout (9.5e); the Export section's source frames and orchestration at the Step 9.7 closeout.
+closeout (9.5e); the Export section's source frames and orchestration at the Step 9.7 closeout; the module table, playback
+and media sections at the Step 9.8 closeout; the CI section at the Step 9.10 closeout.
 Re-check the code before relying on details that later phases may have changed.
