@@ -198,7 +198,7 @@ problems found during Phase 9); `PlaybackFrame.Picture` cleanup, conditionally.
 - Out of scope: redesign, theming, new panels, localization.
 - Depends on: 9.3–9.7.
 
-### 9.9 — CI / quality gates *(done — `.github/workflows/ci.yml` green on PR #7; awaiting the product owner's acceptance)*
+### 9.9 — CI / quality gates *(done — accepted 2026-09-28)*
 Scope: a minimal GitHub Actions workflow — restore, build, test, FFmpeg for the tests that need it.
 - QG: runs on pull requests to `main` and on pushes to `main`, on a Windows runner (WASAPI, Avalonia Win32 / Skia
   rendering tests).
@@ -211,7 +211,7 @@ Scope: a minimal GitHub Actions workflow — restore, build, test, FFmpeg for th
   packaging pipelines, repository settings such as branch protection (the owner's action).
 - Depends on: a stable suite (9.3–9.8).
 
-### 9.10 — Final verification & closeout
+### 9.10 — Final verification & closeout *(done — formal manual run, regression, quality gates; awaiting the product owner's acceptance of Phase 9)*
 - QG: `dotnet build --no-incremental` 0 / 0; full suite once plus three times with `--blame-hang`; heavy scenes
   once with `AIVE_HEAVY_TESTS=1`; CI green.
 - PR: `docs/PHASE9_MANUAL_TEST_PLAN.md` run in the real app, results logged; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run
