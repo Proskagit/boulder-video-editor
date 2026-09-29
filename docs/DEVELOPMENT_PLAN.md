@@ -33,8 +33,10 @@ and runs cleanly.
       polish, hotkeys, waveform, thumbnails. Scope, steps and acceptance criteria:
       section below and DECISIONS.md D024. *(branch `feat/phase-9-quality`, closeout `dcb86cb` / `f27a4ab`,
       PR #8 merged as `409240b`; accepted 2026-09-29)*
-- [ ] **Phase 10 — Transitions & basic effects.** Chosen by the product owner on 2026-09-29; scope, steps
-      and acceptance criteria are agreed after the Step 10.1 audit. *(branch `feat/phase-10-transitions-effects`)*
+- [ ] **Phase 10 — Transitions & basic effects.** Fade in / fade out of a clip (picture and its own sound) and a
+      cross dissolve between adjacent clips of a video track, identical in the Preview and the export; `project.json`
+      v3. Scope, steps and acceptance criteria: section below and DECISIONS.md D025.
+      *(branch `feat/phase-10-transitions-effects`)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -222,6 +224,119 @@ Scope: a minimal GitHub Actions workflow — restore, build, test, FFmpeg for th
 - Documentation: ARCHITECTURE (thumbnails, waveform, cache, CI), D024 refinements, ROADMAP, `progress.md`; this
   plan's Phase 9 checkbox only after the product owner's acceptance.
 - Depends on: 9.3–9.9.
+
+## Phase 10 — Transitions & basic effects: steps (D025)
+
+Formalized in Step 10.2 (product owner decisions PO-1…PO-7, 2026-09-29). The normative rules — model, format v3, ramps,
+handles, edit coupling — are D025; this section lists the steps and their acceptance. Labels as in Phase 9: **PR**
+product requirement, **QG** quality gate, **M** measurement only, **Impl** implementation constraint. Fades
+(10.3–10.5) are finished — accepted by the product owner — before the dissolve starts (10.6–10.8).
+
+Gates for every step 10.3–10.8 (QG): `dotnet build` 0 errors / 0 warnings; the full `dotnet test` green (only the 4K
+heavy scenes skipped); the existing Preview ↔ Export parity suite (`ExportEndToEnd.Tests`, `Rendering.Tests`,
+`Export.Tests`) green with unchanged criteria and expected values — new scenes are added, none is weakened, re-baselined
+or removed; a project without fades and dissolves renders byte-identically to before (every existing parity scene is
+such a project); new behaviour covered by automated tests wherever testable, the rest in
+`docs/PHASE10_MANUAL_TEST_PLAN.md`; CI green; `progress.md` updated.
+
+Constraints for the whole phase: D023 semantics unchanged for everything that is not a fade or a dissolve; L1-c stays
+open; D008 (no overlap on a track), D009 / D022 (source frame selection) and D013 (mix) unchanged in substance — the
+mix only gains the fade envelope. Out of scope: other transition types (wipe, slide, dip to black), keyframes, a generic
+effect stack (`Clip.Effects` stays unused), audio crossfade and transitions on audio tracks or across tracks, ripple /
+overlap editing, presets, transition hotkeys, GPU / hardware paths.
+
+### 10.1 — Audit *(done, accepted 2026-09-29)*
+Model, format, timeline rules, composition, audio mix, undo, `EditingLock`, parity tests audited; no change.
+
+### 10.2 — Scope formalization *(done)*
+D025, this section, ROADMAP, `progress.md`, `docs/PHASE10_MANUAL_TEST_PLAN.md` (skeleton). Documentation only.
+
+### 10.3 — Model and project format v3
+Scope: `Clip.FadeIn` / `FadeOut`; the transition anchor (`LeftClipId`, `RightClipId`); `project.json` v3 with the load
+validation of D025 §1; v1 / v2 read as projects without fades and transitions.
+- PR: a project with fades and dissolves round-trips exactly (every tick of every fade and transition, ids, anchors);
+  a v1 and a v2 file open as before (fades 0, no transitions — a v2 `transitions` array is dropped) and save as v3; a
+  file above v3 is refused with the "newer version" message; damaged fades / transitions (negative, unknown type,
+  `F < 2`, missing or foreign clip, not adjacent, two on one cut, zone not fitting) refuse the file as damaged.
+- PR: nothing renders or edits fades / dissolves yet; a project without them behaves exactly as before (the parity
+  suite unchanged). Split copies no fade yet (10.4 sets the rule).
+- QG: serializer tests (round trip, v1 / v2 / v3 / v4, every damaged case); the existing persistence tests unchanged
+  except the one test data set that carried an unanchored transition (it gets an anchor — a model change, not a
+  weakened assertion).
+- Impl: DTOs stay separate from entities (D014); durations as long ticks; no new package.
+- Depends on: 10.2.
+
+### 10.4 — Fades: Core rule, edits, Preview / export composition and mix
+Scope: the D025 §2 rule in Core; the fade property group; split / trim / speed / move behaviour; the snapshot, `LayersAt`,
+occlusion and prefetch edges; the per-sample envelope in `AudioMix` for the Preview's mixer and the export.
+- PR: `fade(i)` and `g(k)` exactly as D025 §2 (ramp `(k+1)/(F+1)`, clamp to `N`, product of the two ramps, frame and
+  sample boundaries); a fade change is presentation-only (no decoder reopened).
+- PR: split / trim / move / speed / re-grid keep the stored fades as D025 §2; split sets the inner edges to 0; every
+  edit and its fade changes are one undo step; undo / redo restore every value exactly.
+- PR: a fading layer never occludes the layers below; the Preview opens a lower layer ahead of a fade edge (no
+  placeholder at the fade's start during playback).
+- QG: Core unit tests (ramps, clamps, rounding at 23.976 / 29.97 / 25 / 30, boundaries in samples); Timeline edit /
+  undo tests; `Export.Tests` contracts — the export's frames use the same layer set and opacities, and every audio
+  sample of the export equals the Preview mixer's (fades on audio clips and video with sound, speed ≠ 1×, muted, 200 %
+  volume, a split inside a ramp, overlapping ramps); playback prefetch test with the fake decoder.
+- Depends on: 10.3.
+
+### 10.5 — Fades: UI and end-to-end parity
+Scope: Fade In / Fade Out in the Inspector (frames of the project rate, shown with their time; D017 merging); the ramps
+drawn on the timeline clip; `EditingLock`; end-to-end parity scenes; the manual plan's fade section.
+- PR: the fields show and edit the stored values within `0…N` frames; locked tracks and a running export disable them;
+  text input never triggers shortcuts (9.6 guard).
+- PR (parity, byte-equal Preview canvas = export canvas, D023 Step 8 criteria): fade in / out of a video at 1× on one
+  layer; a V2 video fading over a V1 video (the lower layer uncovered during the ramp), with 2 and 8 layers; speed
+  0.25× and 2×; image and text fades; a clip shorter than its fades (clamp, overlapping ramps); 23.976 / 29.97 fps;
+  seeking into the middle of a ramp gives the same frame as playing into it.
+- PR: audio end-to-end with real ffmpeg: the export's envelope follows `g(k)` (a constant tone fades in / out over the
+  expected samples at 29.97 fps), A/V sync unchanged.
+- PR: cancelling an export while a fade is being rendered ends as before (no ffmpeg left, no temporary file).
+- Manual: `docs/PHASE10_MANUAL_TEST_PLAN.md` fade section in the real app (Preview, playback, export, save / reopen,
+  undo / redo). The product owner accepts fades here, before 10.6 starts.
+- Depends on: 10.4.
+
+### 10.6 — Dissolve: edits and validation
+Scope: add / remove / change duration; handle and zone validation (D025 §3–§4); the coupling with move, trim, split,
+delete, speed and re-grid (D025 §5); transition changes carried in `EditPlan` so every coupled change is one command.
+- PR: every case of D025 §5 — kept, removed automatically (status message) or rejected / clamped — with undo / redo
+  restoring clips and transitions exactly; insufficient handles never create a dissolve (the message names the longest
+  that fits); split inside the zone rejected.
+- PR: the open question of D025 (a fade on an edge with a dissolve) answered by the product owner before this step.
+- QG: Timeline tests per rule, at 1× and at other speeds, video / image / text neighbours, both edges of one clip,
+  23.976 / 29.97 fps (odd `F`: `hB = ⌊F/2⌋`, `hA = ⌈F/2⌉`).
+- Depends on: 10.5 accepted.
+
+### 10.7 — Dissolve: composition in the Preview and the export
+Scope: the snapshot carries the zone (A extended by `hA`, B by `hB`), `LayersAt` returns both clips of a track in the zone
+(A below, B at `B.Opacity · p`), prefetch at the zone's start, the export's picture readers read extended frames.
+- PR (parity, byte-equal): video → video at 1×; speed ≠ 1× on A and on B; image and text neighbours; odd `F` at 29.97;
+  dissolves at both edges of one clip; a dissolve on V1 under a partly covering V2 and one on V2 over V1; handles
+  missing at render time (source changed) — the held first / last frame, identical on both sides.
+- PR: the frame shown in a handle is the one of the D009 / D022 rule — checked against ffmpeg's own decode where a
+  part of A stays uncovered by B (a partly covering B).
+- PR: the sound is unchanged by a dissolve (the export's samples equal those of the same project without it); the
+  export preflight counts the extended frames as used media (an offline clip in a zone blocks like any offline clip);
+  the Preview shows no placeholder at the zone's start while playing.
+- PR: cancelling an export inside a zone ends as before.
+- Depends on: 10.6.
+
+### 10.8 — Dissolve: UI
+Scope: add a dissolve on the selected cut (command and button), select it, its duration in the Inspector, Delete, the
+zone drawn on the timeline; `EditingLock`; the manual plan's dissolve section.
+- PR: every edit goes through the edit service (one undo step); the zone is shown where it renders; the status bar
+  explains rejections and automatic removals.
+- QG: view-model and routing tests; manual scenarios.
+- Depends on: 10.7.
+
+### 10.9 — Final verification & closeout
+- QG: `dotnet build --no-incremental` 0 / 0; full suite once plus three times with `--blame-hang`; heavy scenes once
+  with `AIVE_HEAVY_TESTS=1`; CI green.
+- PR: `docs/PHASE10_MANUAL_TEST_PLAN.md` run in the real app; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run as a regression.
+- Documentation: ARCHITECTURE, D025 refinements, ROADMAP, `progress.md`; this plan's Phase 10 checkbox only after the
+  product owner's acceptance.
+- Depends on: 10.3–10.8.
 
 ## Architectural rules that must hold at every phase
 

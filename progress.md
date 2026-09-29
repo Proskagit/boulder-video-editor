@@ -2,9 +2,25 @@
 
 ## Current phase
 
-Phase 10 — Transitions & basic effects: chosen by the product owner on 2026-09-29; branch
-`feat/phase-10-transitions-effects` (from `409240b`, `main` after the merge of PR #8). Step 10.1 (audit, no code change)
-in progress; the MVP scope, steps and acceptance criteria are agreed after the audit, before any implementation.
+Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10-transitions-effects` (from `409240b`,
+`main` after the merge of PR #8; the docs commit of PR #9 merged in). Scope, steps and acceptance criteria:
+`docs/DEVELOPMENT_PLAN.md` "Phase 10 — Transitions & basic effects: steps"; decision D025.
+
+### Phase 10 — Transitions & basic effects (in progress)
+
+- Step 10.1 done and accepted (2026-09-29) — audit, no change. Findings: `Clip.Effects` (generic, untyped parameters)
+  and `Track.Transitions` (`Id`, `TransitionTypeId`, `Duration` — no anchor) only persisted, never rendered; format v2
+  ignores unknown properties (an older build would silently drop new typed fields — hence v3); the Preview and the
+  export share `PlaybackSnapshot.LayersAt` → `CompositionDrawPlan` → `CompositionPainter` and the audio
+  `AudioPlacement` / `AudioMix` rule; `LayersAt` returns one clip per track and `NextPictureChange` knows only clip
+  edges; `VideoPipeline` keys readers by clip (two clips of one track can decode at once); `SourceFrameSelector` is
+  exact for frames outside a clip; the mix gain is one constant per span; the trim limits (`MaxWholeFrames`,
+  `SpeedTiming.FramesFor`, `CeilingFrame`) are exactly the handle rules; `EditPlan` carries clip changes only.
+- Step 10.2 done (2026-09-29) — product owner decisions PO-1…PO-7 formalized (documentation only): D025 (model, format
+  v3, fade ramps in frames and samples, dissolve zone `[c − ⌊F/2⌋, c + ⌈F/2⌉)`, handles, the edit coupling), the Phase 10
+  steps in `DEVELOPMENT_PLAN.md`, ROADMAP, `docs/PHASE10_MANUAL_TEST_PLAN.md` (skeleton). Open for the product owner
+  (before 10.6, not blocking 10.3–10.5): a fade on an edge that has a dissolve — proposed: not applied while the
+  dissolve exists.
 
 ## Phase 9 (complete)
 

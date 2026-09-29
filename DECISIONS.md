@@ -1308,6 +1308,148 @@ last Step 9.10 commit `f27a4ab`, PR #8 merged as `409240b`).
 
 ---
 
+## D025 — Phase 10: fades and cross dissolve (Transitions & basic effects)
+
+Date: 2026-09-29
+
+Decision (product owner, 2026-09-29, after the Step 10.1 audit; PO-1…PO-7). The MVP has exactly two features,
+implemented one after the other: **fade in / fade out** of a clip (Steps 10.3–10.5, finished first), then **cross
+dissolve** between two adjacent clips of one video track (Steps 10.6–10.8). Priority: the Preview and the export show
+the same thing (D023) and nothing regresses — not the number of effects.
+
+### 1. Model and project format (PO-7)
+
+- `Clip.FadeIn`, `Clip.FadeOut`: `MediaTime` durations (≥ 0) on every clip kind (video, image, text, audio). One pair
+  per clip, applied to the clip's picture and to the clip's own sound together (PO-2).
+- `Transition` gains its anchor: `LeftClipId`, `RightClipId` (A and B, the clips left and right of the cut) next to the
+  existing `Id`, `TransitionTypeId` (the only type: `"crossDissolve"`) and `Duration` (`MediaTime`). Transitions stay in
+  `Track.Transitions`; only video tracks have them.
+- Durations are times, not frame numbers (D001/D006): a fade or transition of `D` ticks covers
+  `F = D.ToNearestFrame(rate)` frames of the project rate (derived on demand; ties go up, as `ToNearestFrame`). The edit
+  service stores `MediaTime.FromFrame(F, rate)` for an `F`-frame value, so a stored value is exactly `F` frames; after a
+  frame-rate change it keeps its length in time and is re-derived.
+- `project.json` `formatVersion` **3**. It is written only as 3. Versions 1 and 2 are read as projects **without fades
+  and without transitions**: fades are 0, and a v1/v2 `transitions` array (which no build could create — it has no
+  anchor) is dropped on load. A file above 3 is refused by the existing "saved by a newer version" message (D014), which
+  is what every v2 build does with a v3 file. The generic `Clip.Effects` list is unchanged: still persisted, never
+  rendered; the MVP does not use it (typed properties follow D017 — validation, undo merging, Inspector).
+- Loading a v3 file validates (damaged = the whole file refused, as D014): fades ≥ 0; a transition has an id, type
+  `"crossDissolve"`, `F ≥ 2` frames, `LeftClipId ≠ RightClipId`, both clips on its track, `A.TimelineEnd == B.TimelineStart`
+  exactly, at most one transition per cut, and its zone (§3) fits both clips, also against a transition on the other
+  edge of the same clip. Source handles (§4) are **not** checked on load — media may be offline or changed; rendering
+  never fails for missing handles (§4).
+
+### 2. Fades (Steps 10.3–10.5)
+
+Frames: the clip covers timeline frames `[s, e)`, `N = e − s`; frame `n` has clip index `i = n − s`.
+- Effective lengths: `Fin = min(FadeIn.ToNearestFrame(rate), N)`, `Fout = min(FadeOut.ToNearestFrame(rate), N)`.
+- Linear ramp (PO-3): `ramp(k, F) = (k + 1) / (F + 1)` for `0 ≤ k < F`, else 1.
+  `in(i) = ramp(i, Fin)`, `out(i) = ramp(N − 1 − i, Fout)`, `fade(i) = in(i) · out(i)` (the two ramps multiply when
+  they overlap: `Fin + Fout > N` is allowed). No frame inside a ramp is exactly 0 or 1; the frame before the clip and
+  after it do not belong to the clip, so a fade in on the bottom track starts from black.
+- Picture: the layer's opacity is `Visual.Opacity · fade(i)`, computed once in Core (`PlaybackSnapshot.LayersAt`) in
+  `double`, so the Preview and the export draw the same value with the same painter (D023). A layer with `fade(i) < 1`
+  never occludes the layers below (`OccludesBelow` needs opacity exactly 1). The edges where `fade` reaches or leaves 1
+  (`s + Fin`, `e − Fout`) count as picture changes for the Preview's prefetch (`NextPictureChange`) — a lower layer
+  that becomes visible there is opened ahead like at a clip edge.
+- Sound (video clips with audio, audio clips): the clip owns timeline samples `[First, End)` (`AudioPlacement`:
+  `⌈t · 48000 / 10⁷⌉`). The fade-in owns `[First, Sin)` with `Sin = ⌈FromFrame(s + Fin) · 48000 / 10⁷⌉`,
+  `Nin = Sin − First`; the fade-out owns `[Sout, End)` with `Sout = ⌈FromFrame(e − Fout) · 48000 / 10⁷⌉`,
+  `Nout = End − Sout`. Sample `k` gets `g(k) = ramp(k − First, Nin) · ramp(End − 1 − k, Nout)` and is mixed with
+  `gain · g(k)` (`gain` = volume, 0 when muted). One shared Core function evaluates it for the Preview's mixer and the
+  export (`AudioMix`), in the same order of operations; picture and sound ramps start and end at the same frame
+  boundaries (to the sample boundary of the `AudioPlacement` rule). No equal-power curve.
+- Fades are **presentation**: a fade change never reopens a decoder (`DiffersOnlyInPresentation`), like opacity/volume.
+- Edits (all through `ITimelineEditService`, one undo step each):
+  - Set: a property group of `SetClipProperties` (merged like the other properties, D017). Limits: `0 ≤ F ≤ N` each at
+    the time of the edit; the stored value is `FromFrame(F)`.
+  - Move, trim, speed change, frame-rate re-grid, move to another track: the stored `FadeIn` / `FadeOut` never change;
+    fades stay attached to the clip's edges (a trimmed start takes its fade in with it) and are clamped to the new `N`
+    only when rendered (`Fin`, `Fout` above). Lengthening the clip again restores the stored fade. Fades are timeline
+    time: a speed change neither scales nor re-times them.
+  - Split at frame `a`: the left part keeps `FadeIn` and gets `FadeOut = 0`; the right part gets `FadeIn = 0` and keeps
+    `FadeOut` (the inner edges have no fade). Both parts are clamped to their own length when rendered, so a split
+    inside a ramp shortens that ramp. Undo restores the original values exactly (part of the split's command).
+  - Delete: the fades go with the clip.
+
+### 3. Cross dissolve (Steps 10.6–10.8)
+
+- A dissolve sits on a cut between A and B on one video track, `A.end == B.start`, at frame `c`. With `F ≥ 2` frames it
+  is centred on the cut (PO-4): the **zone** is `[c − hB, c + hA)` with `hB = ⌊F/2⌋`, `hA = ⌈F/2⌉` — `hB` frames of A
+  before the cut, `hA` frames of B after it. The clips stay non-overlapping on the timeline (D008 unchanged).
+- In the zone both clips are layers of the same track, A below B: A continues past its end by `hA` frames and B starts
+  `hB` frames early, both from their **source handles** (§4); outside the zone nothing changes. For zone frame `j`
+  (`0 ≤ j < F`): `p = ramp(j, F) = (j + 1)/(F + 1)`; B is drawn over A with opacity `B.Opacity · p`, A with its own
+  opacity (PO-6: B over A, no `A·(1−p) + B·p`). The clips keep their transform, crop and opacity in the zone.
+- Fades inside the zone: a clip's fade applies only to its own frames `[s, e)`; the extended frames (A after `c`, B
+  before `c`) have fade factor 1 from that side. See the open question below for a fade on an edge that has a dissolve.
+- Sound (PO-5): unchanged — a hard cut at `c`. Extended frames produce no sound.
+- Occlusion: in the zone B has `p < 1`, so B never occludes A; A may occlude lower tracks as usual. The zone's start and
+  end are picture changes for the Preview's prefetch.
+- Any clip kind of a video track may take part (video, image, text).
+
+### 4. Source handles
+
+A handle is how far a clip's source reaches beyond its used range, in frames of the project rate at the clip's speed —
+exactly the limits the trim already uses (so a dissolve needs what a trim of that edge outward could reach):
+- A (after its end, `hA` frames needed), video clip with source duration `Dsrc`:
+  1×: `MaxWholeFrames(Dsrc − SourceIn) − N ≥ hA`; speed `s ≠ 1`: `SpeedTiming.FramesFor(Dsrc − SourceIn, s, rate) − N ≥ hA`.
+- B (before its start, `hB` frames needed), video clip: 1×: `s − CeilingFrame(B.TimelineStart − SourceIn) ≥ hB`
+  (keeps the source time ≥ 0); speed `s ≠ 1`: `SpeedTiming.FramesFor(SourceIn, s, rate) ≥ hB`.
+- Images and text have unlimited handles (a still frame / generated content).
+- A video clip whose metadata (duration) is unknown has no handles: a dissolve cannot be created on it.
+- Extended frames use the unchanged source-frame rule (D009/D022): `t(n) = SourceIn + (FromFrame(n) − S) · s` is exact
+  for frames before `S` or after the clip's end too, so no new selection rule is introduced.
+- Rendering never fails for missing handles (media replaced, a file loaded from elsewhere): the decoder holds the first
+  frame before the source's first frame and the last after its last one (D009), identically in the Preview and the
+  export. Handles are validated only when an edit creates or keeps a dissolve.
+
+### 5. Dissolve and timeline edits (one undo / redo step each)
+
+General rule: an edit that **separates the cut** removes the dissolve automatically in the same undo step (the status
+bar says so); an edit that **keeps the cut** but would break the dissolve (handles, zone) is **rejected** with a
+message — except a trim, which is clamped (as trims already are, D008).
+- Add: A and B adjacent on one unlocked video track, no dissolve on that cut, `F ≥ 2`, the zone fits (below), handles
+  suffice. Otherwise nothing is created and the message says why (with the longest `F` that would fit, if any).
+- Zone fit: `hB ≤ N_A` and `hA ≤ N_B`; for a clip with dissolves on both edges, the two zone parts inside it do not
+  overlap: `hA(left dissolve) + hB(right dissolve) ≤ N`.
+- Move: moving both A and B by the same delta (and to the same track) keeps the dissolve (it moves with them to the
+  other track). Moving one of them without the other, or both to different places, separates the cut → removed.
+- Trim: the cut edges (A's end, B's start) can only open a gap (B / A are adjacent) → the dissolve is removed. The far
+  edges (A's start, B's end) keep the cut; the trim is clamped so the zone still fits the clip. Handles do not depend
+  on the far edge.
+- Split at frame `a` of A or B: a split strictly inside the zone (`c − hB < a < c + hA`) is **rejected**. Elsewhere the
+  split is allowed; a dissolve at A's end moves to A's right part (new `LeftClipId`), one at B's start stays with B's
+  left part (the original clip). Handles are unchanged (the part next to the cut keeps its SourceOut / SourceIn).
+- Delete A or B: removed.
+- Speed change of A: A's end moves (D022: the start stays) → the cut separates or would overlap B (already rejected
+  by the no-overlap rule) → removed when separated. Speed change of B: the cut stays; rejected when B's handle or the
+  zone no longer fits at the new speed.
+- Frame-rate re-grid (the first video fixes the rate): `F` is re-derived; a dissolve whose clips are no longer adjacent
+  is removed; one whose zone or handles no longer fit rejects the whole operation (as other re-grid failures).
+- Clip property edits (opacity, transform, fades, …) never touch a dissolve.
+- A locked track rejects every edit on it, dissolves included (as now).
+
+### Open for the product owner
+
+- A fade on an edge that has a dissolve (A's fade out / B's fade in at the cut): proposed — the fade is **not applied**
+  at that edge while the dissolve exists (stored value kept, shown as inactive), because a fade there would darken the
+  dissolve toward black. Alternative: apply both (multiply). Decided before Step 10.6; Steps 10.3–10.5 are not affected.
+
+Context: Step 10.1 audit — `Clip.Effects` / `Track.Transitions` existed only in the model and `project.json` (no anchor,
+not rendered); the Preview and the export share `PlaybackSnapshot.LayersAt`, the `CompositionDrawPlan` and the painter,
+and the audio `AudioMix` / `AudioPlacement` rule; readers are keyed by clip, so two clips of one track can be decoded
+at once; the source-frame rule is exact outside a clip's range.
+
+Consequences: `formatVersion` 3; the snapshot carries effective fades and dissolve zones; `AudioMix` gains a per-sample
+envelope shared by the Preview and the export; the parity suite grows (new scenes) and is never weakened; edit
+operations carry transition changes in their `EditPlan`, so every coupled change is one command.
+
+Status: Accepted (2026-09-29), except the open question above. Steps and acceptance criteria:
+`docs/DEVELOPMENT_PLAN.md`, "Phase 10 — Transitions & basic effects: steps".
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:
