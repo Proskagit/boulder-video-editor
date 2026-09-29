@@ -111,6 +111,30 @@ public sealed class TimelineDissolveUiTests : IAsyncLifetime
         Assert.True(Timeline.AddDissolveCommand.CanExecute(null));
     }
 
+    /// <summary>A button follows <c>CanExecuteChanged</c>, not <c>CanExecute</c> itself: the command must announce every
+    /// change of its availability — also from one selected clip to two (the bug found in the 10.8 manual run: the
+    /// button stayed disabled because "something is selected" didn't change).</summary>
+    [Fact]
+    public void The_button_is_told_whenever_the_command_becomes_available_or_not()
+    {
+        var (a, b) = SplitVideo();
+        var state = Timeline.AddDissolveCommand.CanExecute(null);
+        Timeline.AddDissolveCommand.CanExecuteChanged += (_, _) => state = Timeline.AddDissolveCommand.CanExecute(null);
+
+        Timeline.OnClipPressed(ClipVm(a), toggle: false);
+        Assert.False(state);
+        Timeline.OnClipPressed(ClipVm(b), toggle: true);                          // 1 → 2 clips
+        Assert.True(state);
+        Timeline.OnClipPressed(ClipVm(b), toggle: true);                          // 2 → 1
+        Assert.False(state);
+        Timeline.OnClipPressed(ClipVm(b), toggle: true);
+        using (_lock.Acquire())
+            Assert.False(state);
+        Assert.True(state);
+        Timeline.ClearSelection();
+        Assert.False(state);
+    }
+
     [Fact]
     public void Adding_selects_the_new_dissolve_and_shows_it_in_the_inspector_and_undo_leaves_nothing_stale()
     {

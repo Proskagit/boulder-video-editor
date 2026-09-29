@@ -97,7 +97,6 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(DeleteSelectedCommand))]
-    [NotifyCanExecuteChangedFor(nameof(AddDissolveCommand))]
     private bool _hasSelection;
 
     /// <summary>A dissolve is selected (and no clip).</summary>
@@ -690,6 +689,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
             vm.IsSelected = vm.Id == _selectedTransitionId;
         HasSelection = _selection.Count > 0;
         HasTransitionSelection = _selectedTransitionId is not null;
+        // Dissolve depends on how many clips are selected, not only on whether any is: 1 → 2 keeps HasSelection true.
+        AddDissolveCommand.NotifyCanExecuteChanged();
     }
 
     private void RaiseSelectionChanged()

@@ -213,6 +213,12 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
     heavy) — Core 448, Timeline 297, Project 319, UI 355, Export 97, Rendering 58, Video 291, ExportEndToEnd 86 (+2).
   - For the product owner: the Dissolve command's length when 1 s doesn't fit (the longest that fits is added and said)
     — confirm or choose "refuse" at the acceptance.
+  - Fix after the product owner's manual run (scenario 13 stopped): with two clips selected the Dissolve button stayed
+    disabled. Cause: the command's availability was announced only when `HasSelection` changed, and 1 → 2 selected clips
+    keeps it true, so the button never re-queried `CanExecute`; the tests queried `CanExecute` directly and missed it.
+    Fix: `UpdateSelectionVisuals` announces `AddDissolveCommand.NotifyCanExecuteChanged()` on every selection change.
+    New test `The_button_is_told_whenever_the_command_becomes_available_or_not` follows `CanExecuteChanged` like a
+    button (0 → 1 → 2 → 1 clips, export lock, clear); it fails on the old code. UI tests 356 passed.
 
 ## Phase 9 (complete)
 
