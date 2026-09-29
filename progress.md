@@ -42,6 +42,40 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
     transitions (10.6): moving, trimming, splitting or deleting a clip that a transition (only possible in a hand-made
     v3 file) is anchored to can leave a transition that makes the saved file fail to load. A split copies no fade to
     the right part yet (10.4 sets the rule).
+- PO-8 decided (product owner, 2026-09-29): a fade on an edge that has a dissolve is not applied (picture and sound)
+  while the dissolve exists; stored values kept, shown as inactive; applies again once the dissolve is gone; fades and
+  the dissolve's opacity never multiply. Recorded in D025.
+- Step 10.4 done (2026-09-29) — fades in Core, edits, Preview / export composition and mix.
+  - Core: `Playback/FadeRule` (`Ramp`, `EffectiveFrames` with the PO-8 switches, `PictureFactor`, `RampEdges`) and
+    `AudioFadeEnvelope` (`FirstSample`, `FadeInEnd`, `FadeOutStart`, `EndSample` by the `AudioPlacement` ceiling rule,
+    `Gain`, `Affects`); `AudioMix.Add(samples, mix, gain, envelope, firstSample)` — `(float)(gain · g(k))`, the plain mix
+    outside the ramps (bit for bit as before). Spans carry `FadeInFrames` / `FadeOutFrames` (picture, text, audio);
+    `DiffersOnlyInPresentation` ignores them. `PictureLayer` / `TextLayer` take a `FadeFactor` (opacity = the clip's ×
+    the factor; exactly the clip's without a fade), so `OccludesBelow` is false during a ramp. `NextPictureChange`
+    includes `s + Fin` and `e − Fout`. The builder suppresses the fade on an edge with a dissolve (PO-8).
+  - Mix paths: `MixEntry.Fade`, `AudioSpanReader.MixInto(…, fade)` with the timeline sample of each ring piece;
+    `ExportAudioReader.MixIntoAsync(…, fade, ct)`; `ExportAudioSource` and `AudioPipeline` build the envelope from the
+    snapshot's frame rate.
+  - Edits: `FadeProperties` group (`ClipPropertyChange.Fade`, `ClipPropertyValues.Fade`, fields `FadeIn` / `FadeOut`,
+    descriptions "Change Fade In" / "Change Fade Out" / "Change Fades"); the service stores whole frames
+    (`FromFrame(ToNearestFrame)`), rejects negative and longer than the clip, keeps an unchanged fade as stored. Split:
+    the right part keeps the fade out, the left the fade in — the left's fade out set to 0 in the same command
+    (`EditPlan.SetProperties` → `SetClipPropertiesCommand` inside the split's composite). `CloneClip` copies fades.
+  - Tests: `Core.Tests/FadeRuleTests` (19: ramps, product, clamp, PO-8, ramp edges, envelope boundaries at 25 / 30 /
+    29.97 / 23.976, mix bit-identity and gains, layer opacity, occlusion, text, prefetch edges, presentation-only,
+    audio clips, PO-8 in the snapshot and after the dissolve's removal); `Timeline.Tests/FadeEditTests` (10: whole frames,
+    limits, merge / undo / redo, every clip kind, locked track, split inside a ramp with undo / redo, trim / move / speed
+    / re-grid keep the stored fades); `Timeline.Tests/Playback/FadePlaybackTests` (3: prefetch before a fade out, both
+    layers in the ramp with the fade opacity, a fade change keeps the decoders); `Export.Tests` — frame contract with
+    fades at 29.97 / 23.976 / 25 and speeds 1× / 2× / 0.25× (the frame description now carries the layer opacity, so
+    every existing frame contract also compares opacities), audio contract (fades at 1× / 0.25× / 2×, 200 % volume, a
+    split inside the ramp, overlapping ramps, a muted clip) and a constant tone following the envelope sample by sample.
+    `TimelineFixture.Snapshot` includes the fades, so every existing undo / redo exactness test covers them.
+  - Mutations (each caught): no ramp edges in `NextPictureChange` → 1 (prefetch); the Preview's mixer ignoring the fade
+    → 4 (audio contracts); split keeping the left fade out → 1; no PO-8 suppression → 1.
+  - Verification: `dotnet build` 0 errors / 0 warnings; `dotnet test` 1866 passed, 2 skipped (4K heavy) — Core 434,
+    Timeline 274, Project 319, UI 334, Export 89, Rendering 58, Video 291, ExportEndToEnd 67 (+2). The parity suite is
+    unchanged and green: a project without fades renders exactly as before.
 
 ## Phase 9 (complete)
 

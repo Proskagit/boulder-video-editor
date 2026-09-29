@@ -52,8 +52,14 @@ Domain types (`src/Core/Entities`):
   `Transition`, `Marker` (effects and transitions are stored but neither played nor exported)
 - Phase 10 (D025, in progress): `Clip.FadeIn` / `FadeOut` (durations; frames derived with `ToNearestFrame`);
   `Transition` anchored on a cut (`LeftClipId` / `RightClipId`, type `crossDissolve`), structural rules in
-  `TransitionRules` (zone `⌊F/2⌋` before / `⌈F/2⌉` after the cut). Stored and validated since Step 10.3; not yet
-  rendered or edited.
+  `TransitionRules` (zone `⌊F/2⌋` before / `⌈F/2⌉` after the cut). Stored and validated since Step 10.3.
+  Fades (Step 10.4): `Core/Playback/FadeRule` — ramp `(k+1)/(F+1)`, effective frames clamped to the clip, none on an
+  edge with a dissolve (PO-8); `PlaybackSnapshotBuilder` puts the effective frames on picture, text and audio spans
+  (presentation only); `LayersAt` multiplies the layer opacity by the fade (so a fading layer never occludes) and
+  `NextPictureChange` counts ramp edges (prefetch); `AudioFadeEnvelope` + `AudioMix.Add(…, envelope, firstSample)`
+  apply the per-sample gain in the Preview's mixer and the export alike; edits through `SetClipProperties`
+  (`ClipPropertyChange.Fade`, merged undo), split moves the fades to the outer edges (`EditPlan.SetProperties`).
+  Dissolves are not rendered or edited yet.
 - `MediaTime`
 
 New projects get tracks V1 and A1. Clips are created only by `ITimelineEditService`.

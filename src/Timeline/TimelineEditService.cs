@@ -452,7 +452,13 @@ public sealed class TimelineEditService : ITimelineEditService
             var rightClip = CloneClip(clip);
             right.ApplyTo(rightClip);
 
+            // D025 §2: the fades stay with the outer edges — the right part keeps the fade out, the left part the
+            // fade in; the new inner edges have none.
+            rightClip.FadeIn = MediaTime.Zero;
             var track = plan.TrackOf(clip);
+            if (clip.FadeOut != MediaTime.Zero)
+                plan.SetProperties(clip, new ClipPropertyValues(null, null, null, new FadeProperties(clip.FadeIn, MediaTime.Zero)));
+
             plan.Update(clip, track, left);
             plan.Insert(track, rightClip);
             ids.Add(clip.Id);
@@ -518,13 +524,22 @@ public sealed class TimelineEditService : ITimelineEditService
         if (ClipPropertyValidator.Validate(clip, change) is { } error)
             return TimelineEditResult.Fail(error);
 
+        FadeProperties? fade = null;
+        if (change.Fade is { } requested)
+        {
+            if (NormalizeFades(clip, requested, plan.Rate, out var normalized) is { } fadeError)
+                return TimelineEditResult.Fail(fadeError);
+            fade = normalized;
+        }
+
         // Timing is untouched, so no timeline validation is needed: the clip's placement,
         // grid alignment and source range stay exactly as they are.
         var before = ClipPropertyValues.Capture(clip);
         var after = new ClipPropertyValues(
             change.Visual ?? before.Visual,
             change.Audio ?? before.Audio,
-            change.Text ?? before.Text);
+            change.Text ?? before.Text,
+            fade ?? before.Fade);
 
         var fields = ClipPropertyValues.Diff(before, after);
         if (fields == ClipPropertyFields.None) return TimelineEditResult.Unchanged();
@@ -532,6 +547,28 @@ public sealed class TimelineEditService : ITimelineEditService
         var command = new SetClipPropertiesCommand(clip, before, after, fields);
         _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id });
+    }
+
+    /// <summary>
+    /// Checks and normalizes a fade change (D025 §2): each fade is a whole number of frames of the project rate
+    /// (nearest, ties up), from 0 to the clip's length, stored as exactly that many frames. A fade that is not
+    /// changed is kept as stored (it may exceed a clip trimmed shorter since: clamped when rendered).
+    /// </summary>
+    private static string? NormalizeFades(Clip clip, FadeProperties requested, FrameRate rate, out FadeProperties normalized)
+    {
+        normalized = FadeProperties.Of(clip);
+        if (requested.FadeIn < MediaTime.Zero || requested.FadeOut < MediaTime.Zero) return "A fade can't be negative.";
+
+        var frames = TransitionRules.ClipFrames(clip, rate);
+        var fadeIn = requested.FadeIn == clip.FadeIn ? clip.FadeIn : Normalize(requested.FadeIn);
+        var fadeOut = requested.FadeOut == clip.FadeOut ? clip.FadeOut : Normalize(requested.FadeOut);
+        if (fadeIn != clip.FadeIn && TransitionRules.Frames(fadeIn, rate) > frames) return "The fade in can't be longer than the clip.";
+        if (fadeOut != clip.FadeOut && TransitionRules.Frames(fadeOut, rate) > frames) return "The fade out can't be longer than the clip.";
+
+        normalized = new FadeProperties(fadeIn, fadeOut);
+        return null;
+
+        MediaTime Normalize(MediaTime value) => MediaTime.FromFrame(TransitionRules.Frames(value, rate), rate);
     }
 
     // --- Snapping --------------------------------------------------------------
@@ -660,6 +697,7 @@ public sealed class TimelineEditService : ITimelineEditService
         };
 
         ClipState.Capture(source).ApplyTo(copy);
+        (copy.FadeIn, copy.FadeOut) = (source.FadeIn, source.FadeOut);
         foreach (var effect in source.Effects)
         {
             copy.Effects.Add(new Effect

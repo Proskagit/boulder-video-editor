@@ -293,4 +293,59 @@ public sealed class ExportAudioContractTests
         Assert.All(samples, s => Assert.Equal(0f, s));
         Assert.Empty(_exportDecoder.Requests);
     }
+
+    // --- fades (Phase 10 Step 10.4, D025 §2) ------------------------------------------------------------------------
+
+    private void Fades(Clip clip, long fadeIn, long fadeOut) =>
+        Ok(_f.Service.SetClipProperties(clip.Id, new ClipPropertyChange { Fade = new FadeProperties(F(fadeIn), F(fadeOut)) }));
+
+    [Theory]
+    [InlineData(20)]
+    [InlineData(5)]
+    [InlineData(40)]
+    public async Task Fades_mix_every_sample_like_the_preview(int speedSteps)
+    {
+        var video = Video(FrameRate.Ntsc30, 12, "video.mp4");
+        Ok(_f.Service.AddClip(video.Id));                                               // locks 29.97
+        var videoClip = (VideoClip)_f.V1.Clips.Single();
+        Ok(_f.Service.TrimClip(videoClip.Id, ClipEdge.End, F(150)));
+        Ok(_f.Service.SetClipProperties(videoClip.Id, new ClipPropertyChange { Audio = new AudioProperties(2.0, false) }));   // 200 %
+        Fades(videoClip, 20, 33);
+        Ok(_f.Service.Split(F(10), new[] { videoClip.Id }));                             // inside the fade in
+
+        var music = Music(speedSteps == 5 ? 3 : 10, "music.wav");
+        var main = Add(music, _f.A1, 7);
+        Ok(_f.Service.SetClipSpeed(main.Id, ClipSpeed.FromSteps(speedSteps)));
+        Ok(_f.Service.TrimClip(main.Id, ClipEdge.End, F(7 + 60)));
+        Fades(main, 45, 45);                                                             // overlapping ramps
+
+        var muted = Add(Music(4, "muted.wav", constant: 0.4f), AudioTrack(), 30);
+        Ok(_f.Service.SetClipProperties(muted.Id, new ClipPropertyChange { Audio = new AudioProperties(1, true) }));
+        Fades(muted, 10, 10);
+        _f.AssertValid();
+
+        await AssertMatchesPreview(Snapshot());
+    }
+
+    [Fact]
+    public async Task A_fading_constant_follows_the_envelope_sample_by_sample()
+    {
+        var video = _f.Video(4, FrameRate.Fps25, "picture.mp4");                        // locks 25 fps, no sound
+        Ok(_f.Service.AddClip(video.Id));
+        var music = Music(4, "tone.wav", constant: 0.5f);
+        var clip = Add(music, _f.A1, 0);
+        Ok(_f.Service.TrimClip(clip.Id, ClipEdge.End, F(50)));
+        Fades(clip, 10, 20);
+        var snapshot = Snapshot();
+        var envelope = AudioFadeEnvelope.Of(snapshot.AudioSpans.Single(), snapshot.FrameRate);
+        Assert.Equal((0L, 19_200L, 57_600L, 96_000L), (envelope.FirstSample, envelope.FadeInEnd, envelope.FadeOutStart, envelope.EndSample));
+
+        var samples = await AssertMatchesPreview(snapshot);
+
+        for (long k = 0; k < 96_000; k++)
+            Assert.Equal(0.5f * (float)(1f * envelope.Gain(k)), samples[2 * k]);
+        Assert.Equal(0.5f / 19_201, samples[0], 1e-9f);                                  // the first sample of the ramp
+        Assert.Equal(0.5f, samples[2 * 19_200]);                                         // the ramp is over
+        Assert.Equal(0f, samples[2 * 96_000]);                                           // after the clip: silence
+    }
 }

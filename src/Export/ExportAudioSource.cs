@@ -21,7 +21,7 @@ public sealed class ExportAudioSource : IAsyncDisposable
 {
     private readonly PlaybackSnapshot _snapshot;
     private readonly IAudioDecoder _decoder;
-    private readonly List<(AudioSpan Span, AudioPlacement Placement, float Gain)> _audible;
+    private readonly List<(AudioSpan Span, AudioPlacement Placement, float Gain, AudioFadeEnvelope Fade)> _audible;
     private readonly Dictionary<Guid, ExportAudioReader> _readers = new();
     private bool _disposed;
 
@@ -31,7 +31,7 @@ public sealed class ExportAudioSource : IAsyncDisposable
         _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
         SampleCount = ExportOutput.For(snapshot).AudioSampleCount;
         _audible = snapshot.AudioSpans
-            .Select(span => (span, AudioPlacement.Of(span), AudioMix.Gain(span)))
+            .Select(span => (span, AudioPlacement.Of(span), AudioMix.Gain(span), AudioFadeEnvelope.Of(span, snapshot.FrameRate)))
             .Where(a => a.Item3 != 0 && a.Item2.EndSample > a.Item2.FirstSample)
             .ToList();
     }
@@ -60,16 +60,16 @@ public sealed class ExportAudioSource : IAsyncDisposable
         var mix = interleaved[..(frames * AudioFormat.Channels)];
         mix.Span.Clear();
 
-        foreach (var (span, placement, gain) in _audible) // snapshot order, like the Preview's mixer entries
+        foreach (var (span, placement, gain, fade) in _audible) // snapshot order, like the Preview's mixer entries
         {
             if (placement.EndSample <= from || placement.FirstSample >= until) continue;
             ct.ThrowIfCancellationRequested();
-            await Reader(span).MixIntoAsync(from, mix, gain, ct);
+            await Reader(span).MixIntoAsync(from, mix, gain, fade, ct);
         }
         AudioMix.Clamp(mix.Span);
 
         // Clips that end within this window are finished.
-        foreach (var (span, placement, _) in _audible)
+        foreach (var (span, placement, _, _) in _audible)
         {
             if (placement.EndSample > until || !_readers.Remove(span.ClipId, out var done)) continue;
             await done.DisposeAsync();

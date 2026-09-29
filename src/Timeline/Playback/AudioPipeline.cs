@@ -104,7 +104,7 @@ internal sealed class AudioPipeline : IAsyncDisposable
                     (int)(_settings.AudioBuffer.TotalSeconds * AudioFormat.SampleRate), _decoder, _logger);
                 _readers[key] = reader;
             }
-            entries.Add(new MixEntry(reader, AudioMix.Gain(span)));
+            entries.Add(new MixEntry(reader, AudioMix.Gain(span), AudioFadeEnvelope.Of(span, _snapshot.FrameRate)));
         }
         _mixer.SetEntries(entries.ToArray());
     }

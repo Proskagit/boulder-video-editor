@@ -24,6 +24,8 @@ public enum ClipPropertyFields
     FontSize = 1 << 13,
     Color = 1 << 14,
     Alignment = 1 << 15,
+    FadeIn = 1 << 16,
+    FadeOut = 1 << 17,
 
     Crop = CropLeft | CropTop | CropRight | CropBottom
 }
@@ -33,10 +35,11 @@ public enum ClipPropertyFields
 /// doesn't apply to the clip's kind. Commands store before/after snapshots, so Undo and Redo
 /// write back exactly the values that were captured — nothing is recomputed.
 /// </summary>
-public readonly record struct ClipPropertyValues(VisualProperties? Visual, AudioProperties? Audio, TextProperties? Text)
+public readonly record struct ClipPropertyValues(VisualProperties? Visual, AudioProperties? Audio, TextProperties? Text,
+    FadeProperties? Fade = null)
 {
     public static ClipPropertyValues Capture(Clip clip) =>
-        new(VisualProperties.Of(clip), AudioProperties.Of(clip), TextProperties.Of(clip));
+        new(VisualProperties.Of(clip), AudioProperties.Of(clip), TextProperties.Of(clip), FadeProperties.Of(clip));
 
     public void ApplyTo(Clip clip)
     {
@@ -77,6 +80,9 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
                 throw new InvalidOperationException($"{clip.GetType().Name} has no text properties.");
             (c.Text, c.FontFamily, c.FontSize, c.ColorHex, c.Alignment) = (t.Text, t.FontFamily, t.FontSize, t.ColorHex, t.Alignment);
         }
+
+        if (Fade is { } f)
+            (clip.FadeIn, clip.FadeOut) = (f.FadeIn, f.FadeOut);
     }
 
     /// <summary>The properties whose values differ between <paramref name="a"/> and <paramref name="b"/>.</summary>
@@ -110,6 +116,12 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
             if (!ta.FontSize.Equals(tb.FontSize)) fields |= ClipPropertyFields.FontSize;
             if (!string.Equals(ta.ColorHex, tb.ColorHex, StringComparison.Ordinal)) fields |= ClipPropertyFields.Color;
             if (ta.Alignment != tb.Alignment) fields |= ClipPropertyFields.Alignment;
+        }
+
+        if (a.Fade is { } fa && b.Fade is { } fb)
+        {
+            if (fa.FadeIn != fb.FadeIn) fields |= ClipPropertyFields.FadeIn;
+            if (fa.FadeOut != fb.FadeOut) fields |= ClipPropertyFields.FadeOut;
         }
 
         return fields;

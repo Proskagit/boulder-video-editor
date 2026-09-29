@@ -1,3 +1,5 @@
+using AiVideoEditor.Core.Common;
+
 namespace AiVideoEditor.Core.Entities;
 
 /// <summary>
@@ -32,6 +34,13 @@ public readonly record struct AudioProperties(double Volume, bool IsMuted)
         AudioClip a => new AudioProperties(a.Volume, a.IsMuted),
         _ => null
     };
+}
+
+/// <summary>The fades of a clip (D025) — every clip kind has them. Values are the stored durations; the frames they
+/// cover and the clamp to the clip are derived when rendering (<see cref="Playback.FadeRule"/>).</summary>
+public readonly record struct FadeProperties(MediaTime FadeIn, MediaTime FadeOut)
+{
+    public static FadeProperties Of(Clip clip) => new(clip.FadeIn, clip.FadeOut);
 }
 
 /// <summary>Content and style of a text clip. <see cref="Text"/> may span several lines.</summary>

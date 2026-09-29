@@ -18,6 +18,7 @@ public sealed class EditPlan
     private readonly Dictionary<Clip, (Track To, ClipState After)> _updates = new();
     private readonly List<(Track Track, Clip Clip)> _inserts = new();
     private readonly Dictionary<Clip, Track> _removes = new();
+    private readonly List<(Clip Clip, ClipPropertyValues After)> _properties = new();
 
     public EditPlan(Sequence sequence, ProjectSettings settings)
     {
@@ -36,7 +37,7 @@ public sealed class EditPlan
 
     public IEnumerable<Track> AllTracks => _sequence.VideoTracks.Concat(_sequence.AudioTracks);
 
-    public bool IsEmpty => NewFrameRate is null && _updates.Count == 0 && _inserts.Count == 0 && _removes.Count == 0;
+    public bool IsEmpty => NewFrameRate is null && _updates.Count == 0 && _inserts.Count == 0 && _removes.Count == 0 && _properties.Count == 0;
 
     public Track TrackOf(Clip clip) => _currentTrack[clip];
 
@@ -51,6 +52,10 @@ public sealed class EditPlan
     public void Insert(Track track, Clip clip) => _inserts.Add((track, clip));
 
     public void Remove(Clip clip) => _removes[clip] = _currentTrack[clip];
+
+    /// <summary>Sets non-timing properties of an existing clip as part of the edit (e.g. the fade a split takes off
+    /// the left part, D025); only the groups given in <paramref name="after"/> change. Timing validation ignores them.</summary>
+    public void SetProperties(Clip clip, ClipPropertyValues after) => _properties.Add((clip, after));
 
     /// <summary>Tracks whose contents change (all tracks when the frame rate changes).</summary>
     public IEnumerable<Track> AffectedTracks
@@ -106,6 +111,16 @@ public sealed class EditPlan
 
         foreach (var (track, clip) in _inserts)
             commands.Add(new InsertClipCommand(track, clip, description));
+
+        foreach (var (clip, after) in _properties)
+        {
+            var before = ClipPropertyValues.Capture(clip);
+            var full = new ClipPropertyValues(after.Visual ?? before.Visual, after.Audio ?? before.Audio, after.Text ?? before.Text,
+                after.Fade ?? before.Fade);
+            var fields = ClipPropertyValues.Diff(before, full);
+            if (fields != ClipPropertyFields.None)
+                commands.Add(new SetClipPropertiesCommand(clip, before, full, fields));
+        }
 
         if (commands.Count == 0)
             throw new InvalidOperationException("Cannot build a command from an empty plan.");

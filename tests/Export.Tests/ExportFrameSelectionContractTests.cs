@@ -47,9 +47,11 @@ public sealed class ExportFrameSelectionContractTests
 
     private PlaybackSnapshot Snapshot() => PlaybackSnapshotBuilder.Build(_f.Project, 1);
 
-    /// <summary>"clip:frame" per layer, bottom to top ("clip:T" for text) — the observable selection.</summary>
-    private static string Describe(IEnumerable<(Guid ClipId, DecodedFrame? Frame)> layers) =>
-        string.Join(" | ", layers.Select(l => $"{l.ClipId.ToString()[..8]}:{(l.Frame is { } f ? FakeVideoDecoder.Number(f).ToString() : "T")}"));
+    /// <summary>"clip:frame" per layer, bottom to top ("clip:T" for text), with the layer's opacity bits where it is not 1
+    /// (a fade, D025) — the observable selection.</summary>
+    private static string Describe(IEnumerable<(Guid ClipId, DecodedFrame? Frame, double Opacity)> layers) =>
+        string.Join(" | ", layers.Select(l => $"{l.ClipId.ToString()[..8]}:{(l.Frame is { } f ? FakeVideoDecoder.Number(f).ToString() : "T")}" +
+            (l.Opacity == 1 ? "" : $"@{BitConverter.DoubleToInt64Bits(l.Opacity):X16}")));
 
     // --- the two sides --------------------------------------------------------------------------------
 
@@ -62,7 +64,7 @@ public sealed class ExportFrameSelectionContractTests
             var frame = await source.GetFrameAsync(n);
             Assert.Equal(MediaTime.FromFrame(n, snapshot.FrameRate), frame.Time);
             Assert.All(frame.Layers, l => Assert.Equal(l.Layer is TextLayer, l.Frame is null));
-            frames.Add(Describe(frame.Layers.Select(l => (l.Layer.ClipId, l.Frame))));
+            frames.Add(Describe(frame.Layers.Select(l => (l.Layer.ClipId, l.Frame, l.Layer.Opacity))));
         }
         return frames;
     }
@@ -83,7 +85,7 @@ public sealed class ExportFrameSelectionContractTests
                 Assert.DoesNotContain(layers, l => l.IsPlaceholder);
                 if (layers.All(l => l.State == LayerPictureState.Text || l is { State: LayerPictureState.Frame, IsCurrent: true }))
                 {
-                    frames.Add(Describe(layers.Select(l => (l.Layer.ClipId, l.State == LayerPictureState.Text ? null : l.Frame))));
+                    frames.Add(Describe(layers.Select(l => (l.Layer.ClipId, l.State == LayerPictureState.Text ? null : l.Frame, l.Layer.Opacity))));
                     break;
                 }
                 if (watch.Elapsed > TimeSpan.FromSeconds(10)) throw new TimeoutException($"Preview frame {n} never became current.");
@@ -238,5 +240,46 @@ public sealed class ExportFrameSelectionContractTests
         Assert.Equal(2, _exportDecoder.OpenCount(bottom.FilePath));               // closed while culled, reopened at 60
         Assert.Equal(1, _exportDecoder.OpenCount(image.FilePath));                // a still image is decoded once
         Assert.EndsWith(":T", frames[50]);                                        // text on top
+    }
+
+    // --- fades (Phase 10 Step 10.4, D025 §2) ------------------------------------------------------------
+
+    [Theory]
+    [InlineData(30000, 1001, 20)]
+    [InlineData(24000, 1001, 40)]
+    [InlineData(25, 1, 5)]
+    public async Task Fading_layers_have_the_preview_opacity_and_uncover_the_layers_below(int num, int den, int speedSteps)
+    {
+        var rate = new FrameRate(num, den);
+        var bottom = Video(rate, 8, "bottom.mp4");
+        var cover = Video(rate, 8, "cover.mp4", display: new FrameSize(1920, 1080));   // opaque, fills the canvas
+        Ok(_f.Service.AddClip(bottom.Id));
+        Ok(_f.Service.TrimClip(_f.V1.Clips.Single().Id, ClipEdge.End, F(120)));
+        Ok(_f.Service.AddTrack(TrackType.Video));
+        var v2 = _f.Project.Timeline.VideoTracks.OrderBy(t => t.Order).Last();
+        Ok(_f.Service.AddClip(cover.Id, v2.Id, F(10)));
+        var coverClip = v2.Clips.Single();
+        Ok(_f.Service.SetClipSpeed(coverClip.Id, ClipSpeed.FromSteps(speedSteps)));
+        Ok(_f.Service.TrimClip(coverClip.Id, ClipEdge.End, F(100)));
+        Ok(_f.Service.SetClipProperties(coverClip.Id, new ClipPropertyChange { Fade = new FadeProperties(F(12), F(15)) }));
+        Ok(_f.Service.AddTrack(TrackType.Video));
+        Ok(_f.Service.AddTextClip(F(30)));                                        // topmost track (V3)
+        var text = _f.Project.Timeline.VideoTracks.OrderBy(t => t.Order).Last().Clips.OfType<TextClip>().Single();
+        Ok(_f.Service.SetClipProperties(text.Id, new ClipPropertyChange { Fade = new FadeProperties(F(5), F(60)) }));
+        Ok(_f.Service.TrimClip(text.Id, ClipEdge.End, F(70)));                    // 40 frames: the fade out is clamped, ramps overlap
+        _f.AssertValid();
+
+        var frames = await AssertMatchesPreview(Snapshot());
+
+        var bottomId = _f.V1.Clips.Single().Id.ToString()[..8];
+        var coverId = coverClip.Id.ToString()[..8];
+        Assert.Contains(bottomId, frames[10]);                        // the cover fades in: the bottom shows through
+        Assert.Contains(bottomId, frames[21]);
+        Assert.DoesNotContain(bottomId, frames[22]);                  // ramp over: culled again
+        Assert.DoesNotContain(bottomId, frames[84]);
+        Assert.Contains(bottomId, frames[85]);                        // the fade out starts at 100 − 15
+        Assert.Contains($"{coverId}:", frames[10]);
+        Assert.Contains("@", frames[10]);
+        Assert.Contains("@", frames[99]);
     }
 }

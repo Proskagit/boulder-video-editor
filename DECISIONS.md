@@ -1382,7 +1382,7 @@ Frames: the clip covers timeline frames `[s, e)`, `N = e − s`; frame `n` has c
   (`0 ≤ j < F`): `p = ramp(j, F) = (j + 1)/(F + 1)`; B is drawn over A with opacity `B.Opacity · p`, A with its own
   opacity (PO-6: B over A, no `A·(1−p) + B·p`). The clips keep their transform, crop and opacity in the zone.
 - Fades inside the zone: a clip's fade applies only to its own frames `[s, e)`; the extended frames (A after `c`, B
-  before `c`) have fade factor 1 from that side. See the open question below for a fade on an edge that has a dissolve.
+  before `c`) have fade factor 1 from that side. A fade on an edge that has a dissolve is not applied (PO-8 below).
 - Sound (PO-5): unchanged — a hard cut at `c`. Extended frames produce no sound.
 - Occlusion: in the zone B has `p < 1`, so B never occludes A; A may occlude lower tracks as usual. The zone's start and
   end are picture changes for the Preview's prefetch.
@@ -1430,11 +1430,18 @@ message — except a trim, which is clamped (as trims already are, D008).
 - Clip property edits (opacity, transform, fades, …) never touch a dissolve.
 - A locked track rejects every edit on it, dissolves included (as now).
 
-### Open for the product owner
+### PO-8 — a fade on an edge that has a dissolve (product owner, 2026-09-29)
 
-- A fade on an edge that has a dissolve (A's fade out / B's fade in at the cut): proposed — the fade is **not applied**
-  at that edge while the dissolve exists (stored value kept, shown as inactive), because a fade there would darken the
-  dissolve toward black. Alternative: apply both (multiply). Decided before Step 10.6; Steps 10.3–10.5 are not affected.
+- While a dissolve A → B exists, A's `FadeOut` and B's `FadeIn` — the fades of the two edges at that cut — are **not
+  applied**: neither to the picture nor to the clip's sound (one pair per clip, PO-2; the sound is a hard cut, PO-5).
+  In the rule of §2 that edge's effective length is 0 (`Fout = 0` for A, `Fin = 0` for B).
+- The stored `FadeIn` / `FadeOut` are not reset: they stay in the model and in `project.json`. The Inspector shows such
+  a fade as inactive, with its value.
+- When the dissolve is removed (by the user or automatically, §5), the fade applies again at once — nothing to restore.
+- Fades on free edges (A's fade in, B's fade out, an edge without a dissolve) work independently.
+- A fade and the dissolve's opacity never multiply.
+- Why: the dissolve already defines how the cut looks; a fade on the same edge would darken the picture further — an
+  effect the user did not ask for.
 
 Context: Step 10.1 audit — `Clip.Effects` / `Track.Transitions` existed only in the model and `project.json` (no anchor,
 not rendered); the Preview and the export share `PlaybackSnapshot.LayersAt`, the `CompositionDrawPlan` and the painter,
@@ -1445,7 +1452,7 @@ Consequences: `formatVersion` 3; the snapshot carries effective fades and dissol
 envelope shared by the Preview and the export; the parity suite grows (new scenes) and is never weakened; edit
 operations carry transition changes in their `EditPlan`, so every coupled change is one command.
 
-Status: Accepted (2026-09-29), except the open question above. Steps and acceptance criteria:
+Status: Accepted (2026-09-29; PO-8 the same day). Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 10 — Transitions & basic effects: steps".
 
 ---

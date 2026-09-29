@@ -97,6 +97,10 @@ public sealed record ClipPropertyChange
 
     /// <summary>Text clips.</summary>
     public TextProperties? Text { get; init; }
+
+    /// <summary>Every clip kind (D025). Each value is a whole number of frames of the project rate, at most the clip's
+    /// length; it is stored as exactly that many frames.</summary>
+    public FadeProperties? Fade { get; init; }
 }
 
 /// <summary>Outcome of a timeline edit. <see cref="Message"/> is safe to show in the

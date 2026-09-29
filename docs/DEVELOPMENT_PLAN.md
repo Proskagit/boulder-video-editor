@@ -266,7 +266,7 @@ validation of D025 §1; v1 / v2 read as projects without fades and transitions.
 - Impl: DTOs stay separate from entities (D014); durations as long ticks; no new package.
 - Depends on: 10.2.
 
-### 10.4 — Fades: Core rule, edits, Preview / export composition and mix
+### 10.4 — Fades: Core rule, edits, Preview / export composition and mix *(done)*
 Scope: the D025 §2 rule in Core; the fade property group; split / trim / speed / move behaviour; the snapshot, `LayersAt`,
 occlusion and prefetch edges; the per-sample envelope in `AudioMix` for the Preview's mixer and the export.
 - PR: `fade(i)` and `g(k)` exactly as D025 §2 (ramp `(k+1)/(F+1)`, clamp to `N`, product of the two ramps, frame and
@@ -303,7 +303,8 @@ delete, speed and re-grid (D025 §5); transition changes carried in `EditPlan` s
 - PR: every case of D025 §5 — kept, removed automatically (status message) or rejected / clamped — with undo / redo
   restoring clips and transitions exactly; insufficient handles never create a dissolve (the message names the longest
   that fits); split inside the zone rejected.
-- PR: the open question of D025 (a fade on an edge with a dissolve) answered by the product owner before this step.
+- PR: PO-8 — a fade on an edge with a dissolve is not applied while the dissolve exists, and applies again once it
+  is removed (stored values untouched).
 - QG: Timeline tests per rule, at 1× and at other speeds, video / image / text neighbours, both edges of one clip,
   23.976 / 29.97 fps (odd `F`: `hB = ⌊F/2⌋`, `hA = ⌈F/2⌉`).
 - Depends on: 10.5 accepted.

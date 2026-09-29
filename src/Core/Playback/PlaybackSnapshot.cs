@@ -41,11 +41,20 @@ public sealed record PictureSpan(
     /// <summary>The source picture's pixel size from its metadata; null when unknown.</summary>
     public FrameSize? SourceSize { get; init; }
 
+    /// <summary>Effective fade lengths in frames (D025 §2, <see cref="FadeRule.EffectiveFrames"/>): presentation only.</summary>
+    public long FadeInFrames { get; init; }
+    public long FadeOutFrames { get; init; }
+
     public bool Contains(MediaTime time) => time >= TimelineStart && time < TimelineEnd;
 }
 
 /// <summary>A text clip on a visible video track (renderer-neutral content and style, D018).</summary>
-public sealed record TextSpan(Guid ClipId, MediaTime TimelineStart, MediaTime TimelineEnd, VisualProperties Visual, TextProperties Text);
+public sealed record TextSpan(Guid ClipId, MediaTime TimelineStart, MediaTime TimelineEnd, VisualProperties Visual, TextProperties Text)
+{
+    /// <summary>Effective fade lengths in frames (D025 §2): presentation only.</summary>
+    public long FadeInFrames { get; init; }
+    public long FadeOutFrames { get; init; }
+}
 
 /// <summary>An audible source: a VideoClip with an audio stream (on any video track, hidden or
 /// not) or an AudioClip. Clips on muted tracks are left out. A muted clip stays in the snapshot
@@ -61,6 +70,11 @@ public sealed record AudioSpan(
 
     /// <summary>The clip's speed (D022): part of the timing, so a change is never mix-only.</summary>
     public ClipSpeed Speed { get; init; }
+
+    /// <summary>Effective fade lengths in frames (D025 §2, those of the clip's picture): mix only
+    /// (<see cref="AudioFadeEnvelope"/>).</summary>
+    public long FadeInFrames { get; init; }
+    public long FadeOutFrames { get; init; }
 }
 
 /// <summary>A visible video track: its media clips (<see cref="Spans"/>) and text clips
@@ -120,24 +134,36 @@ public sealed class PlaybackSnapshot
     public ImmutableArray<CompositionLayer> LayersAt(MediaTime time, Func<PictureLayer, bool>? mayOcclude = null)
     {
         var topDown = new List<CompositionLayer>();
+        long? frame = null;
         foreach (var layer in VideoLayers) // topmost first
         {
             if (Find(layer.Spans, time) is { } picture)
             {
                 if (picture.Visual.Opacity == 0) continue;
                 var geometry = picture.SourceSize is { } size ? CompositionMath.Layout(Canvas, size, picture.Visual) : null;
-                var pictureLayer = new PictureLayer(layer.TrackId, picture, geometry);
+                var fade = FadeAt(picture.TimelineStart, picture.TimelineEnd, picture.FadeInFrames, picture.FadeOutFrames, time, ref frame);
+                var pictureLayer = new PictureLayer(layer.TrackId, picture, geometry, fade);
                 topDown.Add(pictureLayer);
                 if (pictureLayer.OccludesBelow && (mayOcclude?.Invoke(pictureLayer) ?? true)) break;
             }
             else if (FindText(layer.Texts, time) is { } text && text.Visual.Opacity > 0 && !string.IsNullOrWhiteSpace(text.Text.Text))
             {
-                topDown.Add(new TextLayer(layer.TrackId, text, CompositionMath.TextTransform(Canvas, text.Visual)));
+                var fade = FadeAt(text.TimelineStart, text.TimelineEnd, text.FadeInFrames, text.FadeOutFrames, time, ref frame);
+                topDown.Add(new TextLayer(layer.TrackId, text, CompositionMath.TextTransform(Canvas, text.Visual), fade));
             }
         }
 
         topDown.Reverse();
         return topDown.ToImmutableArray();
+    }
+
+    /// <summary>The fade factor (D025 §2) of a clip at <paramref name="time"/>, the start of a timeline frame: exactly
+    /// 1 without a fade. <paramref name="frame"/> caches the frame index of <paramref name="time"/>.</summary>
+    private double FadeAt(MediaTime start, MediaTime end, long fadeIn, long fadeOut, MediaTime time, ref long? frame)
+    {
+        if (fadeIn == 0 && fadeOut == 0) return 1.0;
+        frame ??= time.ToFrameFloor(FrameRate);
+        return FadeRule.PictureFactor(frame.Value, start.ToFrameFloor(FrameRate), end.ToFrameFloor(FrameRate), fadeIn, fadeOut);
     }
 
     /// <summary>The clip whose picture is shown at <paramref name="time"/>: the one on the topmost
@@ -152,8 +178,9 @@ public sealed class PlaybackSnapshot
         return null;
     }
 
-    /// <summary>Earliest clip edge on any visible track after <paramref name="time"/> — where the
-    /// visible picture may change; <see cref="Duration"/> if there is none.</summary>
+    /// <summary>Earliest clip edge — or edge of a fade ramp (D025 §2: a fading picture stops hiding the layers below)
+    /// — on any visible track after <paramref name="time"/>: where the visible picture may change;
+    /// <see cref="Duration"/> if there is none.</summary>
     public MediaTime NextPictureChange(MediaTime time)
     {
         var next = Duration;
@@ -163,6 +190,9 @@ public sealed class PlaybackSnapshot
             {
                 if (span.TimelineStart > time && span.TimelineStart < next) next = span.TimelineStart;
                 if (span.TimelineEnd > time && span.TimelineEnd < next) next = span.TimelineEnd;
+                if (span.TimelineEnd <= time) continue;
+                foreach (var edge in FadeRule.RampEdges(span.TimelineStart, span.TimelineEnd, span.FadeInFrames, span.FadeOutFrames, FrameRate))
+                    if (edge > time && edge < next) next = edge;
             }
         }
         return next;
@@ -172,7 +202,7 @@ public sealed class PlaybackSnapshot
     /// True when this snapshot and <paramref name="other"/> describe the same timeline for
     /// decoding — frame rate, duration, visible tracks, the timing and media of every clip, audio
     /// spans and assets — and differ at most in presentation: the mix (<see cref="AudioSpan.Gain"/>,
-    /// <see cref="AudioSpan.IsMuted"/>), picture properties (<see cref="PictureSpan.Visual"/>,
+    /// <see cref="AudioSpan.IsMuted"/>), fades (D025), picture properties (<see cref="PictureSpan.Visual"/>,
     /// <see cref="PictureSpan.SourceSize"/>), text content/style, the canvas and their version.
     /// Playback can then keep every decoder.
     /// </summary>
@@ -199,8 +229,9 @@ public sealed class PlaybackSnapshot
         return Assets.Count == other.Assets.Count &&
                Assets.All(pair => other.Assets.TryGetValue(pair.Key, out var asset) && asset == pair.Value);
 
-        static AudioSpan WithoutMix(AudioSpan span) => span with { Gain = 0, IsMuted = false };
-        static PictureSpan WithoutPresentation(PictureSpan span) => span with { Visual = VisualProperties.Default, SourceSize = null };
+        static AudioSpan WithoutMix(AudioSpan span) => span with { Gain = 0, IsMuted = false, FadeInFrames = 0, FadeOutFrames = 0 };
+        static PictureSpan WithoutPresentation(PictureSpan span) =>
+            span with { Visual = VisualProperties.Default, SourceSize = null, FadeInFrames = 0, FadeOutFrames = 0 };
         static (Guid, MediaTime, MediaTime) TextTiming(TextSpan span) => (span.ClipId, span.TimelineStart, span.TimelineEnd);
     }
 

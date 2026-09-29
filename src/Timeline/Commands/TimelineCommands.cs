@@ -156,6 +156,9 @@ public sealed class SetClipPropertiesCommand(Clip clip, ClipPropertyValues befor
         ClipPropertyFields.FontSize => "Change Font Size",
         ClipPropertyFields.Color => "Change Text Color",
         ClipPropertyFields.Alignment => "Change Text Alignment",
+        ClipPropertyFields.FadeIn => "Change Fade In",
+        ClipPropertyFields.FadeOut => "Change Fade Out",
+        ClipPropertyFields.FadeIn | ClipPropertyFields.FadeOut => "Change Fades",
         _ => "Change Clip Properties"
     };
 }

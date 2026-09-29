@@ -46,8 +46,9 @@ internal sealed class ExportAudioReader : IAsyncDisposable
     public AudioPlacement Placement { get; }
 
     /// <summary>Adds this clip's samples for timeline samples [<paramref name="from"/>, from + frames) of
-    /// <paramref name="mix"/> (interleaved stereo) × <paramref name="gain"/> (<see cref="AudioMix.Add"/>).</summary>
-    public async ValueTask MixIntoAsync(long from, Memory<float> mix, float gain, CancellationToken ct)
+    /// <paramref name="mix"/> (interleaved stereo) × <paramref name="gain"/> × the clip's <paramref name="fade"/> (<see cref="AudioMix.Add(ReadOnlySpan{float}, Span{float}, float, in AudioFadeEnvelope, long)"/>,
+    /// the Preview's mix).</summary>
+    public async ValueTask MixIntoAsync(long from, Memory<float> mix, float gain, AudioFadeEnvelope fade, CancellationToken ct)
     {
         var frames = mix.Length / AudioFormat.Channels;
         if (from < _windowEnd)
@@ -91,7 +92,7 @@ internal sealed class ExportAudioReader : IAsyncDisposable
                 _consumed += (int)(at - available);
                 var count = (int)(Math.Min(end, chunkEnd) - at);
                 AudioMix.Add(_chunk.AsSpan(_consumed * AudioFormat.Channels, count * AudioFormat.Channels),
-                    mix.Span.Slice((int)(at - from) * AudioFormat.Channels), gain);
+                    mix.Span.Slice((int)(at - from) * AudioFormat.Channels), gain, fade, at);
                 _consumed += count;
                 at += count;
             }

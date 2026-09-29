@@ -88,7 +88,7 @@ internal sealed class AudioSpanReader : IAsyncDisposable
     /// from + dest/2) into <paramref name="dest"/> × <paramref name="gain"/>, and discards
     /// everything before the end of that range. Never blocks or allocates.
     /// </summary>
-    public void MixInto(long from, Span<float> dest, float gain)
+    public void MixInto(long from, Span<float> dest, float gain, in AudioFadeEnvelope fade = default)
     {
         var frames = dest.Length / AudioFormat.Channels;
         var until = from + frames;
@@ -109,13 +109,14 @@ internal sealed class AudioSpanReader : IAsyncDisposable
                 if (available > 0)
                 {
                     // The ring holds the frames in at most two contiguous pieces.
-                    var destFrame = (int)(Math.Max(begin, _headSample) - from);
+                    var firstSample = Math.Max(begin, _headSample);
+                    var destFrame = (int)(firstSample - from);
                     var first = Math.Min(available, _capacityFrames - _headIndex);
                     AudioMix.Add(_ring.AsSpan(AudioTiming.Floats(_headIndex), AudioTiming.Floats(first)),
-                        dest.Slice(AudioTiming.Floats(destFrame)), gain);
+                        dest.Slice(AudioTiming.Floats(destFrame)), gain, fade, firstSample);
                     if (available > first)
                         AudioMix.Add(_ring.AsSpan(0, AudioTiming.Floats(available - first)),
-                            dest.Slice(AudioTiming.Floats(destFrame + first)), gain);
+                            dest.Slice(AudioTiming.Floats(destFrame + first)), gain, fade, firstSample + first);
                 }
 
                 var missingAfter = end - Math.Max(begin, _headSample + _count);
