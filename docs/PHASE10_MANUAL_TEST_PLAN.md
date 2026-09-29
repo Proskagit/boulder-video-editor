@@ -20,7 +20,8 @@ app offers a recovery at start, choose "Not now". `-Force` replaces only a folde
 Status column: **planned** — written at 10.2, not yet runnable; **auto** — covered by automated tests only, manual run
 pending (10.9); **manual pending** — not yet run in the real app: the fade scenarios are run by hand for the product
 owner's acceptance of fades (end of 10.5) and again at 10.9; **app 10.x** — checked in the real app during that step
-(a development check, not the formal run).
+(a development check, not the formal run); **app 10.5 (PO)** — run in the real app by the product owner on
+2026-09-29 (fixture `tools/manual/New-Phase10FadeFixture.ps1`), passed; the formal re-run is at 10.9.
 
 ## Step 10.3 — project format v3
 
@@ -39,17 +40,18 @@ timecode next to each field; the timeline draws each effective ramp as a darkeni
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 4 | Fade in / out, one video | Select a video on V1 (25 fps project); FADES: Fade In 25, Fade Out 25; play from 0; step through the first and last frames with ← / → | Picture rises from black and sinks to black; the sound fades with it; the first frame is dark but not black (1/26), no jump where the ramps end; the timeline shows a band at each end of the clip | `FadeRuleTests`, `ExportFadeEndToEndTests` (source × factor), `InspectorFadeTests` | auto; manual pending |
-| 5 | Fade over a lower track | V2 video (covering the canvas) over a V1 video; Fade In 25 and Fade Out 25 on V2; play through both ramps | V1 shows through during both ramps; no placeholder flash on V1 when the fade out starts during playback | `FadePlaybackTests` (prefetch before the ramp), `ExportFadeEndToEndTests` | auto; manual pending |
-| 6 | Image and text fades | Fade an image and a text clip (Fade In / Fade Out ≥ 10) | Both fade like a video | `ExportFadeEndToEndTests`, `FadeRuleTests` | auto; manual pending |
-| 7 | Speed ≠ 1× | Fade In 25 on a clip at 2× and on one at 0.5× | The ramp lasts 25 timeline frames (1 s) in both | `ExportFadeEndToEndTests`, `FadeEditTests` | auto; manual pending |
-| 8 | Short clip | Clip of 20 frames, Fade In 15 and Fade Out 15; then trim it to 10 frames and back to 20 | Ramps overlap (multiply); at 10 frames the bands cover the clip, the Inspector still shows 15 / 15; back at 20 the ramps are as before | `FadeRuleTests`, `FadeEditTests`, `InspectorFadeTests` | auto; manual pending |
-| 9 | Split inside a ramp | Fade In 40, Fade Out 40 on a clip; split 10 frames after its start | Left part: Fade In 40 (drawn over its 10 frames), Fade Out 0; right part: Fade In 0, Fade Out 40; Undo gives one clip with 40 / 40 | `FadeEditTests` | auto; manual pending |
-| 10 | Undo / redo and save | Change Fade In several times with the arrows, then Fade Out; Undo / Redo; Save, reopen | The Fade In changes are one undo step ("Change Fade In"), Fade Out another; values survive save / reopen exactly (`fadeInTicks` / `fadeOutTicks` in `project.json`) | `FadeEditTests`, `InspectorFadeTests`, `FadeTransitionPersistenceTests` | auto; manual pending |
-| 11 | Export with fades | Export a project with scenarios 4–7 | The MP4 shows the fades at the same frames as the Preview; the sound fades with the picture | `ExportFadeEndToEndTests`, `ExportFrameSelectionContractTests`, `ExportAudioContractTests` | auto; manual pending |
-| 12 | Editing lock | Start an export; try to change a fade | The FADES fields are disabled until the export ends | `InspectorFadeTests` | auto; manual pending |
-| 12a | Invalid values | Type 2.5, or more frames than the clip has | The status bar explains; the field shows the clip's value again; nothing is edited | `InspectorFadeTests` | auto; manual pending |
-| 12b | Cancel during a ramp | Export, cancel while the first second (a fade in) renders | Ends as any cancel: no MP4, no temporary file, no ffmpeg left | `ExportFadeEndToEndTests` | auto; manual pending |
+| 4 | Fade in / out, one video | Select a video on V1 (25 fps project); FADES: Fade In 25, Fade Out 25; play from 0; step through the first and last frames with ← / → | Picture rises from black and sinks to black; the sound fades with it; the first frame is dark but not black (1/26), no jump where the ramps end; the timeline shows a band at each end of the clip | `FadeRuleTests`, `ExportFadeEndToEndTests` (source × factor), `InspectorFadeTests` | app 10.5 (PO) |
+| 5 | Fade over a lower track | V2 video (covering the canvas) over a V1 video; Fade In 25 and Fade Out 25 on V2; play through both ramps | V1 shows through during both ramps; no placeholder flash on V1 when the fade out starts during playback | `FadePlaybackTests` (prefetch before the ramp), `ExportFadeEndToEndTests` | app 10.5 (PO) |
+| 6 | Image and text fades | Fade an image and a text clip (Fade In / Fade Out ≥ 10) | Both fade like a video | `ExportFadeEndToEndTests`, `FadeRuleTests` | app 10.5 (PO) |
+| 7 | Speed ≠ 1× | Fade In 25 on a clip at 2× and on one at 0.5× | The ramp lasts 25 timeline frames (1 s) in both | `ExportFadeEndToEndTests`, `FadeEditTests` | app 10.5 (PO) |
+| 8 | Short clip | Clip of 20 frames, Fade In 15 and Fade Out 15; then trim it to 10 frames and back to 20 | Ramps overlap (multiply); at 10 frames the bands cover the clip, the Inspector still shows 15 / 15; back at 20 the ramps are as before | `FadeRuleTests`, `FadeEditTests`, `InspectorFadeTests` | app 10.5 (PO) |
+| 9 | Split inside a ramp | Fade In 40, Fade Out 40 on a clip; split 10 frames after its start | Left part: Fade In 40 (drawn over its 10 frames), Fade Out 0; right part: Fade In 0, Fade Out 40; Undo gives one clip with 40 / 40 | `FadeEditTests` | app 10.5 (PO) |
+| 10 | Undo / redo and save | Change Fade In several times with the arrows, then Fade Out; Undo / Redo; Save, reopen | The Fade In changes are one undo step ("Change Fade In"), Fade Out another; values survive save / reopen exactly (`fadeInTicks` / `fadeOutTicks` in `project.json`) | `FadeEditTests`, `InspectorFadeTests`, `FadeTransitionPersistenceTests` | app 10.5 (PO) |
+| 11 | Export with fades | Export a project with scenarios 4–7 | The MP4 shows the fades at the same frames as the Preview; the sound fades with the picture | `ExportFadeEndToEndTests`, `ExportFrameSelectionContractTests`, `ExportAudioContractTests` | app 10.5 (PO) |
+| 12 | Editing lock | Start an export; try to change a fade | The export window is modal: until the export ends nothing in the main window can be selected or changed — media, clips, the Inspector, fades included; the `EditingLock` disabling the FADES fields is a second line | `InspectorFadeTests` (the lock) | app 10.5 (PO) |
+| 12a | Invalid values | In Fade In / Fade Out type a fraction (`2,5` / `2.5`), text, or more frames than the clip has (e.g. `500` for a 100-frame clip); leave the field | Not applied: the field shows the previous value again once it loses focus, the clip is unchanged, no undo step — like every numeric field (NumericInput); the control rejects such input itself, so no status message | `InspectorFadeTests` (view-model rejections) | app 10.5 (PO) |
+| 12b | Cancel during a ramp | Export, cancel while the first second (a fade in) renders | Ends as any cancel: no MP4, no temporary file, no ffmpeg left | `ExportFadeEndToEndTests` | app 10.5 (PO) |
+| 12c | PO-8 in the fixture | Select P, then Q (30–34 s, a dissolve on their cut) | P: Fade Out 20 with "Not applied: a dissolve is on this edge.", no band on the right, its Fade In 10 applies; Q: the same note under Fade In 15, no band on the left, its Fade Out 10 applies | `InspectorFadeTests`, `FadeViewBindingTests`, `FadeRuleTests` | app 10.5 (PO) |
 
 ## Steps 10.6–10.8 — cross dissolve
 

@@ -266,7 +266,7 @@ validation of D025 §1; v1 / v2 read as projects without fades and transitions.
 - Impl: DTOs stay separate from entities (D014); durations as long ticks; no new package.
 - Depends on: 10.2.
 
-### 10.4 — Fades: Core rule, edits, Preview / export composition and mix *(done)*
+### 10.4 — Fades: Core rule, edits, Preview / export composition and mix *(done — accepted 2026-09-29)*
 Scope: the D025 §2 rule in Core; the fade property group; split / trim / speed / move behaviour; the snapshot, `LayersAt`,
 occlusion and prefetch edges; the per-sample envelope in `AudioMix` for the Preview's mixer and the export.
 - PR: `fade(i)` and `g(k)` exactly as D025 §2 (ramp `(k+1)/(F+1)`, clamp to `N`, product of the two ramps, frame and
@@ -281,7 +281,7 @@ occlusion and prefetch edges; the per-sample envelope in `AudioMix` for the Prev
   volume, a split inside a ramp, overlapping ramps); playback prefetch test with the fake decoder.
 - Depends on: 10.3.
 
-### 10.5 — Fades: UI and end-to-end parity *(done — automated; the real-app run of the fade scenarios and the product owner's acceptance of fades pending)*
+### 10.5 — Fades: UI and end-to-end parity *(done — accepted 2026-09-29, real-app fade scenarios passed)*
 Scope: Fade In / Fade Out in the Inspector (frames of the project rate, shown with their time; D017 merging); the ramps
 drawn on the timeline clip; `EditingLock`; end-to-end parity scenes; the manual plan's fade section.
 - PR: the fields show and edit the stored values within `0…N` frames; locked tracks and a running export disable them;

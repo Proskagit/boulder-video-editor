@@ -76,8 +76,8 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
   - Verification: `dotnet build` 0 errors / 0 warnings; `dotnet test` 1866 passed, 2 skipped (4K heavy) — Core 434,
     Timeline 274, Project 319, UI 334, Export 89, Rendering 58, Video 291, ExportEndToEnd 67 (+2). The parity suite is
     unchanged and green: a project without fades renders exactly as before.
-- Step 10.5 done (2026-09-29) — fades: UI and end-to-end parity. Awaiting the product owner's acceptance of fades
-  (the fade scenarios 4–12b of `docs/PHASE10_MANUAL_TEST_PLAN.md` in the real app) before 10.6 starts.
+- Step 10.5 done (2026-09-29) — fades: UI and end-to-end parity. Accepted together with 10.4 (see below) after the
+  product owner's real-app run of the fade scenarios 4–12b of `docs/PHASE10_MANUAL_TEST_PLAN.md`.
   - Inspector: a FADES section for every clip kind — `FadeInFrames` / `FadeOutFrames` (whole frames of the project
     rate; fractions and more than the clip rejected with a status message, the field shows the model again), the length
     as timecode, `MaxFadeInFrames` / `MaxFadeOutFrames` = max(clip frames, stored frames) so a stored fade longer than a
@@ -115,6 +115,12 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
     a folder carrying its `.aive-fixture` marker). Checked: Debug and Release build 0 / 0; the app started with the
     option opened the fixture ("Opened project 'Phase 10 fades' … (4 media, 0 missing, 12 clips)", title "Phase 10
     fades — AI Video Editor"), analysed the media, closed clean without a save prompt.
+- Steps 10.4 and 10.5 accepted by the product owner (2026-09-29). Real-app run of the fade scenarios 4–12b and the PO-8
+  check (12c) with the fixture: all passed, no remarks on the fade implementation. Expected results corrected (no
+  behaviour change, product owner): 12 — the export window is modal, so nothing in the main window can be changed
+  during an export (the `EditingLock` on the FADES fields is a second line); 12a — a fraction (`2,5` / `2.5`), text or
+  more frames than the clip has is not applied and the field shows the previous value when it loses focus, without a
+  status message, like every numeric field (the control rejects such input before it reaches the view model).
 
 ## Phase 9 (complete)
 
