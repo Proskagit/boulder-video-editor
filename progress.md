@@ -107,6 +107,14 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
   - Verification: `dotnet build` 0 errors / 0 warnings; `dotnet test` 1885 passed, 2 skipped (4K heavy) — Core 434,
     Timeline 274, Project 319, UI 342, Export 89, Rendering 58, Video 291, ExportEndToEnd 78 (+2). Existing parity scenes
     unchanged and green.
+  - Product owner (2026-09-29): the automated part of 10.4–10.5 accepted; the final acceptance waits for the real-app
+    fade scenarios. For them (no production logic changed): `src/App/DevStartup.cs` — Debug builds only (`#if DEBUG`,
+    absent from Release): `--open-project <folder>` opens that project when the main window is shown through the same
+    `ProjectFileWorkflow.OpenAsync` the Open command uses after its picker; `tools/manual/New-Phase10FadeFixture.ps1` —
+    ffmpeg media and a v3 `project.json` in `%TEMP%\aive-phase10-fades` (outside the repository; `-Force` replaces only
+    a folder carrying its `.aive-fixture` marker). Checked: Debug and Release build 0 / 0; the app started with the
+    option opened the fixture ("Opened project 'Phase 10 fades' … (4 media, 0 missing, 12 clips)", title "Phase 10
+    fades — AI Video Editor"), analysed the media, closed clean without a save prompt.
 
 ## Phase 9 (complete)
 

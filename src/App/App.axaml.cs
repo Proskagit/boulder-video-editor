@@ -23,6 +23,9 @@ public partial class App : Avalonia.Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = Services.GetRequiredService<MainWindow>();
+#if DEBUG
+            DevStartup.OpenProjectFromArguments(desktop);   // development only: --open-project <folder>
+#endif
         }
 
         base.OnFrameworkInitializationCompleted();

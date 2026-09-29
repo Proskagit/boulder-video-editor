@@ -5,6 +5,18 @@ steps (D025) and run as a whole at Step 10.9; sections are filled in per step (t
 agreed at Step 10.2 — steps, expected results and automated coverage are completed by the step that implements them).
 Logs: `%LOCALAPPDATA%\AiVideoEditor\logs`.
 
+Fixture for the fade scenarios (4–12b), opened without the folder picker (Debug build only — `--open-project` is a
+development option compiled out of Release, `src/App/DevStartup.cs`):
+
+```
+pwsh tools/manual/New-Phase10FadeFixture.ps1 -Force
+dotnet run --project src/App/App.csproj -- --open-project "%TEMP%\aive-phase10-fades"
+```
+
+The script (ffmpeg on PATH) writes the project outside the repository; its header lists what lies where on the
+timeline (25 fps, 640 × 360). The media have no saved metadata, so the app analyses them first (a few seconds). If the
+app offers a recovery at start, choose "Not now". `-Force` replaces only a folder the script created.
+
 Status column: **planned** — written at 10.2, not yet runnable; **auto** — covered by automated tests only, manual run
 pending (10.9); **manual pending** — not yet run in the real app: the fade scenarios are run by hand for the product
 owner's acceptance of fades (end of 10.5) and again at 10.9; **app 10.x** — checked in the real app during that step
