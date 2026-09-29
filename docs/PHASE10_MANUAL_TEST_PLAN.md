@@ -82,3 +82,27 @@ and **Remove Dissolve**; Delete removes it too. Everything is one undo step.
 | 18 | Export with dissolves | Export the project with the dissolves of 13 and 15 | The MP4 shows the dissolves at the same frames as the Preview; the sound cuts hard at 4 s | `ExportDissolveEndToEndTests`, `ExportFrameSelectionContractTests` | app 10.8 (PO) |
 | 19 | Cancel inside a zone | Export, cancel while it renders 3.5–4.5 s (the export is short: be quick, or repeat) | Ends as any cancel: no MP4, no temporary file, no ffmpeg left | `ExportDissolveEndToEndTests` | app 10.8 (PO) |
 | 20 | Save / reopen | Save (Ctrl+S), close, open the fixture again with the same command | The dissolves, their lengths and the clips they join are unchanged (`transitions` with `leftClipId` / `rightClipId` in `project.json`) | `FadeTransitionPersistenceTests` | app 10.8 (PO) |
+
+## Formal run (Step 10.9)
+
+What remains for the real app at the closeout, and why only this: the dissolve scenarios 13–20 were run by the product
+owner on the final dissolve code (10.8, the fixes re-checked) and are not repeated; the fade scenarios 4–12c were
+passed at 10.5, and since then 10.6–10.8 changed code they pass through — the layer set in the Preview / export
+(10.7), the Inspector's numeric fields after a rejected value (10.8, every numeric field, the fade fields included) and
+the undo of speed steps — so those fades are re-checked; the format scenarios were never run by hand.
+
+| # | Run | Fixture / build | Why |
+|---|---|---|---|
+| R1 | 1 | a project saved by the Phase 9 build (any — e.g. from `main` before Phase 10) opened in this build | v2 → v3 never run by hand |
+| R2 | 3 | the fade fixture's `project.json`, edited by hand (one damaged case is enough: `"fadeInTicks": -1`), then restored with `-Force` | the damaged-file refusal never run by hand |
+| R3 | 4, 5, 12c | fade fixture | the layer set in the Preview after 10.7 (fades alone and PO-8 next to a rendered dissolve) |
+| R4 | 9, 10 | fade fixture | split / undo / save of fades after the 10.6 edit coupling |
+| R5 | 12a | fade fixture | the numeric fields' reset after a rejection changed in 10.8 |
+| R6 | 11 | fade fixture | the export after 10.7 (the fades at the Preview's frames) |
+| R7 | `docs/EXPORT_MANUAL_TEST_PLAN.md` 1–8, 10–14 (9 optional) | any project without fades and dissolves | the export regression the plan requires |
+
+Optional: 2 (a v3 project opened with the Phase 9 build) — it needs a second build of `main`; the refusal is the same
+code path as the automated v4 check. Not repeated: 6, 7, 8, 12, 12b (their code is unchanged since 10.5 and covered by
+the same automated tests, which are green), 13–20 (above).
+
+Results: to be filled after the run (date, tester, pass / fail per row).

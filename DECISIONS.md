@@ -1465,6 +1465,8 @@ Refined in Step 10.6 (2026-09-29), dissolve edits (implementation of §3–§5, 
   creates, changes or whose clips it changes — an unrelated edit is never rejected because some other dissolve lost its
   handles (its media changed); rendering holds frames there (§4).
 - A speed change that removes a dissolve is one composite step (it doesn't merge with the next speed change).
+  Superseded in Step 10.8 (below): the removal is part of the clip's speed step, which merges with its next speed
+  changes.
 
 Refined in Step 10.7 (2026-09-29), dissolve composition (implementation of §3–§4, no rule changed):
 - The snapshot carries each visible track's zones (`VideoLayer.Dissolves`: start, cut, end, F) and each picture's shown
@@ -1493,6 +1495,7 @@ Refined in Step 10.8 (2026-09-29), dissolve UI (no rule changed; every check sta
   that removes a dissolve is part of the clip's speed step and merges with its next speed changes, so one Undo restores
   both; returning the clip to the speed that step started from (typed back, or the Speed field's own text undo) undoes
   the step, the dissolve included.
+- Accepted with the real-app scenarios 13–20 (product owner, 2026-09-29), the length rule above confirmed.
 
 Status: Accepted (2026-09-29; PO-8 the same day). Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 10 — Transitions & basic effects: steps".

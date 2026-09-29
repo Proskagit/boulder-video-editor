@@ -267,6 +267,19 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
   16.2–16.4 and 17 re-checked. The Dissolve command's length confirmed: 1 s, or the longest that fits when 1 s doesn't
   (at least 2 frames; below that nothing is created). With it Steps 10.6 and 10.7 (their real-app scenarios are part
   of 13–20) are accepted too. Last 10.8 commit `f27c5c4`.
+- Step 10.9 — final verification & closeout (2026-09-29), in progress.
+  - Quality gates (local, at `10ba46b` + the 10.9 documentation): `dotnet build --no-incremental` (also with
+    `-warnaserror`, as CI) 0 errors / 0 warnings; the full suite once and three times with `--blame-hang`: 1962 passed,
+    2 skipped (4K), 0 failed every time (Core 448, Timeline 300, Project 319, UI 363, Export 97, Rendering 58, Video 291,
+    ExportEndToEnd 86 + 2); the 4K scenes with `AIVE_HEAVY_TESTS=1`: ExportEndToEnd 88 / 88. No hang.
+  - CI: not run — the branch is local (pushing waits for the product owner's command; PR #9 untouched).
+  - Manual: the reduced formal run R1–R7 in `docs/PHASE10_MANUAL_TEST_PLAN.md` "Formal run (Step 10.9)" (the format
+    scenarios 1 and 3, a fade re-check where 10.6–10.8 changed code — 4, 5, 9, 10, 11, 12a, 12c —, the export
+    regression 1–8, 10–14); 13–20 not repeated (run by the product owner on the final code at 10.8). Pending.
+  - Documentation: ARCHITECTURE (Phase 10 no longer "in progress"; the Effects project stays empty — fades and the
+    dissolve live in Core / Timeline / UI; the zone hit-testing and the speed step of 10.8), D025 (the 10.6 speed-step
+    bullet marked superseded by 10.8; the 10.8 acceptance), ROADMAP, this file. The Phase 10 checkbox of
+    `docs/DEVELOPMENT_PLAN.md` waits for the product owner's acceptance.
 
 ## Phase 9 (complete)
 

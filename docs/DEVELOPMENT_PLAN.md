@@ -331,7 +331,7 @@ zone drawn on the timeline; `EditingLock`; the manual plan's dissolve section.
 - QG: view-model and routing tests; manual scenarios.
 - Depends on: 10.7.
 
-### 10.9 — Final verification & closeout
+### 10.9 — Final verification & closeout *(in progress — automated gates passed locally; CI after the push; the product owner's manual run R1–R7 pending)*
 - QG: `dotnet build --no-incremental` 0 / 0; full suite once plus three times with `--blame-hang`; heavy scenes once
   with `AIVE_HEAVY_TESTS=1`; CI green.
 - PR: `docs/PHASE10_MANUAL_TEST_PLAN.md` run in the real app; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run as a regression.

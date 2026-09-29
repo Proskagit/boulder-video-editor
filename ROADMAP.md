@@ -67,7 +67,8 @@ scenarios passed). Step 10.6 (dissolve: edits and validation, the coupling with 
 2026-09-29 (automated). Step 10.7 (dissolve: composition in the Preview and the export) done — awaiting acceptance;
 the real-app dissolve scenarios follow 10.8. Step 10.7 accepted (automated). Step 10.8 (dissolve UI) accepted by the
 product owner on 2026-09-29 (real-app dissolve scenarios 13–20 passed). Step 10.9 (final verification & closeout) in
-progress.
+progress: automated gates passed locally (1962 passed, 2 skipped; 3× `--blame-hang`; 4K 2 / 2); CI and the product
+owner's manual run pending.
 MVP (PO-1…PO-7): fade in / fade out of a clip (picture and its own sound, linear ramp `(i+1)/(F+1)`) in 10.3–10.5,
 then a cross dissolve centred on a cut of one video track with source handles (B over A, the sound a hard cut) in
 10.6–10.8; `project.json` v3 (v1 / v2 read without fades and dissolves). Steps 10.3 model & format v3 · 10.4 fades core ·
