@@ -251,7 +251,7 @@ Model, format, timeline rules, composition, audio mix, undo, `EditingLock`, pari
 ### 10.2 — Scope formalization *(done)*
 D025, this section, ROADMAP, `progress.md`, `docs/PHASE10_MANUAL_TEST_PLAN.md` (skeleton). Documentation only.
 
-### 10.3 — Model and project format v3
+### 10.3 — Model and project format v3 *(done)*
 Scope: `Clip.FadeIn` / `FadeOut`; the transition anchor (`LeftClipId`, `RightClipId`); `project.json` v3 with the load
 validation of D025 §1; v1 / v2 read as projects without fades and transitions.
 - PR: a project with fades and dissolves round-trips exactly (every tick of every fade and transition, ids, anchors);
@@ -262,7 +262,7 @@ validation of D025 §1; v1 / v2 read as projects without fades and transitions.
   suite unchanged). Split copies no fade yet (10.4 sets the rule).
 - QG: serializer tests (round trip, v1 / v2 / v3 / v4, every damaged case); the existing persistence tests unchanged
   except the one test data set that carried an unanchored transition (it gets an anchor — a model change, not a
-  weakened assertion).
+  weakened assertion) and the five assertions of the version a save writes (2 → 3, the bump itself).
 - Impl: DTOs stay separate from entities (D014); durations as long ticks; no new package.
 - Depends on: 10.2.
 

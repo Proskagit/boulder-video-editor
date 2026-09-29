@@ -23,10 +23,14 @@ namespace AiVideoEditor.Project.Persistence;
 public static class ProjectSerializer
 {
     public const string FormatId = "AiVideoEditor.Project";
-    /// <summary>2 since Phase 7 Step 9: the clip speed is an exact fraction (D022). Version 1 files
-    /// are read (their speed must be 1) and saved as version 2.</summary>
-    public const int CurrentFormatVersion = 2;
+    /// <summary>3 since Phase 10 (D025): clip fades and anchored transitions. 2 since Phase 7 Step 9: the clip
+    /// speed is an exact fraction (D022). Version 1 files (speed must be 1) and version 2 files are read as projects
+    /// without fades and transitions, and saved as version 3.</summary>
+    public const int CurrentFormatVersion = 3;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
+
+    /// <summary>The first version with fades and anchored transitions (D025).</summary>
+    private const int FadesAndTransitionsVersion = 3;
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -233,7 +237,11 @@ public static class ProjectSerializer
         IsHidden = t.IsHidden,
         IsLocked = t.IsLocked,
         Clips = t.Clips.Select(ToDto).ToList(),
-        Transitions = t.Transitions.Select(x => new TransitionDto { Id = x.Id, TransitionTypeId = x.TransitionTypeId, DurationTicks = x.Duration.Ticks }).ToList()
+        Transitions = t.Transitions.Select(x => new TransitionDto
+        {
+            Id = x.Id, TransitionTypeId = x.TransitionTypeId, DurationTicks = x.Duration.Ticks,
+            LeftClipId = x.LeftClipId, RightClipId = x.RightClipId
+        }).ToList()
     };
 
     private static ClipDto ToDto(Clip clip)
@@ -262,6 +270,8 @@ public static class ProjectSerializer
         dto.Id = clip.Id;
         dto.TimelineStartTicks = clip.TimelineStart.Ticks;
         dto.DurationTicks = clip.Duration.Ticks;
+        dto.FadeInTicks = clip.FadeIn.Ticks;
+        dto.FadeOutTicks = clip.FadeOut.Ticks;
         dto.Effects = clip.Effects.Select(ToDto).ToList();
 
         if (clip is MediaBackedClip media && dto is MediaBackedClipDto mediaDto)
@@ -425,12 +435,16 @@ public static class ProjectSerializer
             SnappingEnabled = dto.SnappingEnabled
         };
 
-        var trackIds = new HashSet<Guid>();
-        var clipIds = new HashSet<Guid>();
+        var ids = new TimelineIds();
         foreach (var t in dto.VideoTracks ?? throw Damaged("video track list is missing"))
-            sequence.VideoTracks.Add(FromDto(t ?? throw Damaged("empty track entry"), TrackType.Video, rate, assets, trackIds, clipIds, formatVersion));
+            sequence.VideoTracks.Add(FromDto(t ?? throw Damaged("empty track entry"), TrackType.Video, rate, assets, ids, formatVersion));
         foreach (var t in dto.AudioTracks ?? throw Damaged("audio track list is missing"))
-            sequence.AudioTracks.Add(FromDto(t ?? throw Damaged("empty track entry"), TrackType.Audio, rate, assets, trackIds, clipIds, formatVersion));
+            sequence.AudioTracks.Add(FromDto(t ?? throw Damaged("empty track entry"), TrackType.Audio, rate, assets, ids, formatVersion));
+
+        // Transitions are checked once every track and clip is known (a clip problem is reported as such first).
+        foreach (var track in sequence.VideoTracks.Concat(sequence.AudioTracks))
+            if (TransitionRules.ValidateTrack(track, rate) is { } invalid)
+                throw Damaged($"a transition on track {track.Name} is invalid: {invalid.TrimEnd('.')}");
 
         var markerIds = new HashSet<Guid>();
         foreach (var m in dto.Markers ?? new List<MarkerDto>())
@@ -445,11 +459,19 @@ public static class ProjectSerializer
         return sequence;
     }
 
+    /// <summary>Ids already used in the timeline (each must be unique within the file).</summary>
+    private sealed class TimelineIds
+    {
+        public HashSet<Guid> Tracks { get; } = new();
+        public HashSet<Guid> Clips { get; } = new();
+        public HashSet<Guid> Transitions { get; } = new();
+    }
+
     private static Track FromDto(TrackDto dto, TrackType type, FrameRate rate, IReadOnlyDictionary<Guid, MediaAsset> assets,
-        HashSet<Guid> trackIds, HashSet<Guid> clipIds, int formatVersion)
+        TimelineIds ids, int formatVersion)
     {
         RequireId(dto.Id, "track");
-        if (!trackIds.Add(dto.Id)) throw Damaged("duplicate track id");
+        if (!ids.Tracks.Add(dto.Id)) throw Damaged("duplicate track id");
 
         var track = new Track
         {
@@ -466,7 +488,7 @@ public static class ProjectSerializer
         foreach (var clipDto in dto.Clips ?? throw Damaged("clip list is missing"))
         {
             var clip = FromDto(clipDto ?? throw Damaged("empty clip entry"), rate, assets, formatVersion);
-            if (!clipIds.Add(clip.Id)) throw Damaged("duplicate clip id");
+            if (!ids.Clips.Add(clip.Id)) throw Damaged("duplicate clip id");
             if (clip is AudioClip != (type == TrackType.Audio))
                 throw Damaged($"a clip is on the wrong kind of track ({track.Name})");
             clips.Add(clip);
@@ -484,7 +506,16 @@ public static class ProjectSerializer
             RequireId(x.Id, "transition");
             if (string.IsNullOrEmpty(x.TransitionTypeId)) throw Damaged("transition type is missing");
             if (x.DurationTicks < 0) throw Damaged("negative transition duration");
-            track.Transitions.Add(new Transition { Id = x.Id, TransitionTypeId = x.TransitionTypeId, Duration = new MediaTime(x.DurationTicks) });
+
+            // v1 / v2 transitions had no anchor (and nothing could create them): the project is read without them.
+            if (formatVersion < FadesAndTransitionsVersion) continue;
+
+            if (!ids.Transitions.Add(x.Id)) throw Damaged("duplicate transition id");
+            track.Transitions.Add(new Transition
+            {
+                Id = x.Id, TransitionTypeId = x.TransitionTypeId, Duration = new MediaTime(x.DurationTicks),
+                LeftClipId = x.LeftClipId, RightClipId = x.RightClipId
+            });
         }
 
         return track;
@@ -525,6 +556,14 @@ public static class ProjectSerializer
 
         clip.TimelineStart = start;
         clip.Duration = duration;
+
+        // v1 / v2 have no fades (D025).
+        if (formatVersion >= FadesAndTransitionsVersion)
+        {
+            if (dto.FadeInTicks < 0 || dto.FadeOutTicks < 0) throw Damaged("a clip has a negative fade");
+            clip.FadeIn = new MediaTime(dto.FadeInTicks);
+            clip.FadeOut = new MediaTime(dto.FadeOutTicks);
+        }
 
         if (clip is MediaBackedClip media && dto is MediaBackedClipDto mediaDto)
         {

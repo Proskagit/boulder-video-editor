@@ -129,7 +129,14 @@ public class ProjectSerializerRoundTripTests
         Assert.Null(effect.Parameters["extra"]);
 
         Assert.IsType<ImageClip>(seq.VideoTracks[0].Clips[1]);
-        Assert.Equal("fade", Assert.Single(seq.VideoTracks[0].Transitions).TransitionTypeId);
+        var transition = Assert.Single(seq.VideoTracks[0].Transitions);
+        var origTransition = Assert.Single(original.Timeline.VideoTracks[0].Transitions);
+        Assert.Equal(origTransition.Id, transition.Id);
+        Assert.Equal(TransitionRules.CrossDissolve, transition.TransitionTypeId);
+        Assert.Equal(origTransition.Duration.Ticks, transition.Duration.Ticks);
+        Assert.Equal((origVideo.Id, seq.VideoTracks[0].Clips[1].Id), (transition.LeftClipId, transition.RightClipId));
+        Assert.Equal(origVideo.FadeIn.Ticks, video.FadeIn.Ticks);
+        Assert.Equal(origVideo.FadeOut.Ticks, video.FadeOut.Ticks);
 
         var text = Assert.IsType<TextClip>(Assert.Single(v2.Clips));
         Assert.Equal("Hello, \"world\" — ünïcode", text.Text);
@@ -189,7 +196,7 @@ public class ProjectSerializerRoundTripTests
         var root = JsonNode.Parse(ProjectSerializer.Serialize(Sample(), Folder))!;
 
         Assert.Equal(ProjectSerializer.FormatId, root["format"]!.GetValue<string>());
-        Assert.Equal(2, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(3, root["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]

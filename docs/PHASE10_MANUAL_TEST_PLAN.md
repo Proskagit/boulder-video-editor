@@ -12,9 +12,9 @@ pending (10.9); **app 10.x** — checked in the real app during that step (a dev
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 1 | Open a Phase 9 project | Open a project saved by the Phase 9 build (v2) | It opens unchanged (no fades, no dissolves); Save writes `"formatVersion": 3` | Serializer tests | planned |
-| 2 | v3 in an older build | Open a v3 project with the Phase 9 build | Refused: "saved by a newer version of AI Video Editor" — nothing opened, nothing written | (Phase 9 behaviour, D014) | planned |
-| 3 | Damaged v3 | Edit a v3 `project.json` by hand: a negative fade, a dissolve between clips that don't touch | Refused as damaged with the reason; the current project stays open | Serializer tests | planned |
+| 1 | Open a Phase 9 project | Open a project saved by the Phase 9 build (v2) | It opens unchanged (no fades, no dissolves); Save writes `"formatVersion": 3` | `FadeTransitionPersistenceTests`, `SpeedPersistenceTests` | auto |
+| 2 | v3 in an older build | Open a v3 project with the Phase 9 build | Refused: "saved by a newer version of AI Video Editor" — nothing opened, nothing written | the "newer version" check (`FadeTransitionPersistenceTests`: v4 refused — the same code path in the Phase 9 build for v3) | planned |
+| 3 | Damaged v3 | Edit a v3 `project.json` by hand: a negative fade, a dissolve between clips that don't touch | Refused as damaged with the reason; the current project stays open | `FadeTransitionPersistenceTests` (20 damaged cases) | auto |
 
 ## Steps 10.4–10.5 — fades
 

@@ -21,6 +21,27 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
   steps in `DEVELOPMENT_PLAN.md`, ROADMAP, `docs/PHASE10_MANUAL_TEST_PLAN.md` (skeleton). Open for the product owner
   (before 10.6, not blocking 10.3–10.5): a fade on an edge that has a dissolve — proposed: not applied while the
   dissolve exists.
+- Step 10.3 done (2026-09-29) — model and `project.json` v3.
+  - Model: `Clip.FadeIn` / `FadeOut` (`MediaTime`, every clip kind); `Transition.LeftClipId` / `RightClipId`;
+    `Core/Entities/TransitionRules` — `CrossDissolve`, `MinFrames` 2, `Frames` (`ToNearestFrame`), `Zone`
+    (`⌊F/2⌋` before / `⌈F/2⌉` after the cut), `ClipFrames`, `ValidateTrack` (type, `F ≥ 2`, two different clips of
+    the track that touch exactly, one transition per cut, zone parts fit each clip incl. both edges, video tracks only).
+  - Format: `CurrentFormatVersion` 3; clips write `fadeInTicks` / `fadeOutTicks`, transitions `leftClipId` /
+    `rightClipId`. v1 / v2: fades read as 0, transitions dropped after their old checks (id, type, duration ≥ 0 — a v2
+    file rejected before is still rejected). v3: negative fades and invalid transitions are damaged; duplicate
+    transition ids too; transitions are validated after every track is read (a clip problem is reported first).
+  - Tests: `Project.Tests/FadeTransitionPersistenceTests` (round trip byte-identical, the v3 fields, v2 read without
+    fades / transitions and saved as v3, an unanchored v2 transition dropped, v4 refused, 20 damaged cases, zones that
+    exactly fill a clip); `Core.Tests/TransitionRulesTests`. Existing tests: `ProjectTestData`'s unanchored "fade"
+    transition became an anchored dissolve (A|image, adjacent) plus fades on the video clip, the round-trip test asserts
+    them; five assertions of the version a save writes changed 2 → 3. Mutations: transition validation off → 14
+    failures; fades read for v1 / v2 too → 1 failure.
+  - Verification: `dotnet build` 0 errors / 0 warnings; `dotnet test` (whole solution) 1827 passed, 2 skipped (4K
+    heavy) — Core 415, Timeline 261, Project 319, UI 334, Export 82, Rendering 58, Video 291, ExportEndToEnd 67 (+2).
+  - Interim (until the steps named): nothing renders or edits fades / dissolves yet. Timeline edits do not know
+    transitions (10.6): moving, trimming, splitting or deleting a clip that a transition (only possible in a hand-made
+    v3 file) is anchored to can leave a transition that makes the saved file fail to load. A split copies no fade to
+    the right part yet (10.4 sets the rule).
 
 ## Phase 9 (complete)
 

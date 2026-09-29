@@ -136,7 +136,13 @@ internal static class ProjectTestData
         audioClip.SourceOut = audioClip.SourceIn + audioClip.Duration;
 
         v1.Clips.AddRange(new Clip[] { videoClip, imageClip });
-        v1.Transitions.Add(new Transition { TransitionTypeId = "fade", Duration = Frame(10) });
+        videoClip.FadeIn = Frame(12);
+        videoClip.FadeOut = new MediaTime(7_654_321);   // not a whole number of frames: stored as it is (D025)
+        v1.Transitions.Add(new Transition
+        {
+            TransitionTypeId = TransitionRules.CrossDissolve, Duration = Frame(10),
+            LeftClipId = videoClip.Id, RightClipId = imageClip.Id
+        });
         v2.Clips.Add(textClip);
         a1.Clips.Add(audioClip);
 

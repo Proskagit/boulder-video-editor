@@ -29,7 +29,7 @@ rasterizer, ffmpeg encoder → MP4 checked with ffprobe — and skips without ff
 | Infrastructure | Serilog setup, `AppPaths` (incl. the recovery folder and the unsaved projects' cache root), `FfprobeLocator` / `FfmpegLocator` + `FfmpegOptions` | Implemented |
 | Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS); `FfmpegAudioDecoder` (ffmpeg CLI → 48 kHz stereo float); `FfmpegExportEncoder`; shared `FfmpegProcess` | Probe, video/audio decode, export encoder |
 | Media | `MediaImportService` (extension validation, file size); `ThumbnailService` / `WaveformService` and their cache files (Phase 9) | Implemented |
-| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022) |
+| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022; v3 since Phase 10, D025) |
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
 | Export | Offline export orchestration (Phase 8, D023): renders an `ExportJob` with the Core rules and hands frames/audio to an encoder. References Core only; no FFmpeg or UI types | `ExportService` over `ExportFrameSource` / `ExportPictureReader`, `ExportAudioSource` / `ExportAudioReader` |
@@ -50,6 +50,10 @@ Domain types (`src/Core/Entities`):
 - `MediaAsset` + `MediaMetadata` + `MediaAnalysisStatus`
 - `ExportSettings` (last output path + fixed format enums; session state, D023), `ProjectSettings`, `Effect`,
   `Transition`, `Marker` (effects and transitions are stored but neither played nor exported)
+- Phase 10 (D025, in progress): `Clip.FadeIn` / `FadeOut` (durations; frames derived with `ToNearestFrame`);
+  `Transition` anchored on a cut (`LeftClipId` / `RightClipId`, type `crossDissolve`), structural rules in
+  `TransitionRules` (zone `⌊F/2⌋` before / `⌈F/2⌉` after the cut). Stored and validated since Step 10.3; not yet
+  rendered or edited.
 - `MediaTime`
 
 New projects get tracks V1 and A1. Clips are created only by `ITimelineEditService`.
@@ -242,9 +246,9 @@ waveform never changes the audio.
 Decisions: D014 (format, Open/Save, missing media), D015 (save point), D016 (autosave,
 recovery, unsaved changes).
 
-- On disk: a project folder with `project.json` (format v2 since Phase 7: the clip speed as an exact
-  fraction `speedRatio`, D022; v1 files are read when their speed is 1 and saved as v2; files of a
-  newer version are refused). `ProjectSerializer` maps entities
+- On disk: a project folder with `project.json` (format v3 since Phase 10: clip fades and anchored transitions,
+  D025; v2 since Phase 7: the clip speed as an exact fraction `speedRatio`, D022; v1 files are read when their speed
+  is 1; v1 / v2 are read without fades and transitions and saved as v3; files of a newer version are refused). `ProjectSerializer` maps entities
   ⇄ DTOs (`ProjectFileDto.cs`; ticks as `long`, exact frame rates, no runtime state) and
   validates on load (incl. clip property ranges, D017, and the speed timing invariant, D022);
   `ProjectFileStore` reads and writes atomically (temp + `File.Replace`).

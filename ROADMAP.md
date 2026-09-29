@@ -60,7 +60,8 @@ session state (D015).
 ## Current
 
 Phase 10 — Transitions & basic effects, branch `feat/phase-10-transitions-effects` (from `409240b`). **In progress**:
-Step 10.1 (audit) accepted; Step 10.2 (scope formalization: D025, the Phase 10 steps, the manual plan skeleton) done.
+Step 10.1 (audit) accepted; Step 10.2 (scope formalization: D025, the Phase 10 steps, the manual plan skeleton) done;
+Step 10.3 (model, `project.json` v3) done.
 MVP (PO-1…PO-7): fade in / fade out of a clip (picture and its own sound, linear ramp `(i+1)/(F+1)`) in 10.3–10.5,
 then a cross dissolve centred on a cut of one video track with source handles (B over A, the sound a hard cut) in
 10.6–10.8; `project.json` v3 (v1 / v2 read without fades and dissolves). Steps 10.3 model & format v3 · 10.4 fades core ·

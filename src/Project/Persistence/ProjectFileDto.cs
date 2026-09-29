@@ -4,7 +4,7 @@ using AiVideoEditor.Core.Entities;
 
 namespace AiVideoEditor.Project.Persistence;
 
-// On-disk shape of project.json (format version 1). Kept separate from the runtime
+// On-disk shape of project.json (format version 3; 1 and 2 are still read). Kept separate from the runtime
 // entities so the file format only changes deliberately. Conventions:
 // - every MediaTime is a long of 100 ns ticks (never seconds);
 // - every FrameRate is an exact { numerator, denominator } pair;
@@ -122,6 +122,11 @@ internal abstract class ClipDto
     public Guid Id { get; set; }
     public long TimelineStartTicks { get; set; }
     public long DurationTicks { get; set; }
+
+    /// <summary>Format v3 (D025): the fades. Ignored in v1 / v2 files, which have none.</summary>
+    public long FadeInTicks { get; set; }
+    public long FadeOutTicks { get; set; }
+
     public List<EffectDto>? Effects { get; set; }
 }
 
@@ -215,6 +220,11 @@ internal sealed class TransitionDto
     public Guid Id { get; set; }
     public string? TransitionTypeId { get; set; }
     public long DurationTicks { get; set; }
+
+    /// <summary>Format v3 (D025): the clips left and right of the cut. v1 / v2 transitions had no anchor; they are
+    /// dropped on load.</summary>
+    public Guid LeftClipId { get; set; }
+    public Guid RightClipId { get; set; }
 }
 
 internal sealed class MarkerDto
