@@ -1,11 +1,8 @@
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
-using AiVideoEditor.Infrastructure;
-using AiVideoEditor.Infrastructure.Configuration;
 using AiVideoEditor.Media.Waveforms;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace AiVideoEditor.Video.Tests;
@@ -54,10 +51,16 @@ public sealed class WaveformIntegrationTests : IDisposable
         return path;
     }
 
+    /// <summary>The ffprobe <see cref="FfmpegTools"/> found once: a fresh locator per analysis would run its PATH probe
+    /// (<c>ffprobe -version</c>, 5 s timeout) every time, which a loaded CI runner can miss — "ffprobe not found".</summary>
+    private sealed class FoundFfprobe : IFfprobeLocator
+    {
+        public Task<string?> GetFfprobePathAsync(CancellationToken ct = default) => Task.FromResult(FfmpegTools.Ffprobe);
+    }
+
     private static MediaAsset Analysed(string path, MediaKind kind)
     {
-        var service = new FfprobeMediaAnalysisService(new FfprobeLocator(Options.Create(new FfmpegOptions()), NullLogger<FfprobeLocator>.Instance),
-            NullLogger<FfprobeMediaAnalysisService>.Instance);
+        var service = new FfprobeMediaAnalysisService(new FoundFfprobe(), NullLogger<FfprobeMediaAnalysisService>.Instance);
         var result = service.AnalyzeAsync(path).GetAwaiter().GetResult();
         Assert.True(result.Metadata is not null, $"analysis failed for {path}: {result.ErrorMessage}");
         return new MediaAsset { FilePath = path, Kind = kind, Metadata = result.Metadata, AnalysisStatus = MediaAnalysisStatus.Completed };

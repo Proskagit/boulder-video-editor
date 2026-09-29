@@ -1295,6 +1295,13 @@ verification in `progress.md`):
   at the next Play (it shows the last message until another one); letters can be typed into a number field (Phase 7: invalid
   text keeps the last value); the "Analyzing" tile phase is too short to see by eye; the Preview restarts its audio readers
   while a project loads.
+- Known risk, unchanged in Phase 9 (product owner): the ffmpeg / ffprobe locators run a PATH probe (`-version`) with a 5 s
+  timeout and treat a slower answer as "not found" for the rest of the app run; a heavily loaded machine could hit it. Seen
+  once on CI, in a test that created a new locator for every analysis (the test now uses the ffprobe found once).
+- CI robustness (after the closeout's first CI run failed twice on an unchanged tree): `AnalysisConcurrencyIntegrationTests`
+  no longer samples processes or compares absolute times — the limit is checked while a gate holds the first analyses in
+  their slots (no queued analysis starts any ffprobe), the timeout rule against the moment the first slot is freed;
+  `WaveformIntegrationTests` analyses with the ffprobe found once. Test code only.
 
 Status: Phase 9 scope and step structure are accepted; steps 9.1–9.9 accepted, 9.10 done — awaiting the product owner's
 acceptance of the phase.

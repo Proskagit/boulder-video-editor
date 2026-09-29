@@ -999,6 +999,18 @@ required optimization, a full audio editor, configurable hotkeys, a large UI red
   - Test-automation notes (not app defects): SendKeys' modifiers don't reach Avalonia (keybd_event does); non-extended
     arrow keys with Shift act as the numpad; the file dialogs' name box limits typed text, WM_SETTEXT does not; Serilog's
     file sinks flush with a delay, so log slices go by the lines' timestamps; a second app instance writes `app-*_001.log`.
+  - After the closeout (2026-09-29): PR #7 had already been merged at `e8f2410` (merge `8210929`, CI green on `main`), so
+    the closeout `dcb86cb` was only on the branch; a manual CI run on it (`workflow_dispatch`, 36537088545) failed twice on
+    an unchanged tree: `AnalysisConcurrencyIntegrationTests` saw 2, then 3 hanging probes at once instead of 4 (sampled
+    processes; the first analyses' 2 s windows no longer overlapped on a slow runner) and `WaveformIntegrationTests` got
+    "FFprobe could not be found" (a new locator per analysis ran its PATH probe with a 5 s timeout, missed under load).
+    Fixed in the tests only (product owner): the limit test holds the first analyses in their slots with a gate the test
+    opens and checks by marker files that no queued analysis ran any ffprobe meanwhile; the timeout test measures from the
+    first freed slot (a queued analysis ends ≥ one timeout after it) with a 10 s timeout that the stream probe must outlast;
+    the waveform tests use the ffprobe found once. Mutations (all caught): no slot limit → both concurrency tests; timeout
+    counted from queueing → both; waveform ignoring the container start time → the waveform test. Under a local load that
+    saturates every core (three slow 4K encodes, the test run ~20× slower) the stream probe can outlast any fixed timeout —
+    the one speed assumption left, stated in the test.
 - Known issues mapped to Phase 9 steps: close hang, analysis cancellation / concurrency, audio device change,
   `ffmpeg-*.log`, backup message → 9.3 (done); Media Browser thumbnails / cache → 9.4 (done); timeline waveforms →
   9.5 (done); `AppPaths.UnsavedThumbnailCacheRoot` naming both caches → 9.8 (done, now `UnsavedCacheRoot`); hotkey
@@ -2029,6 +2041,8 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   mid-stream (untested), phone-specific VFR quirks beyond the tested cases. A hardware
   failure after the first frame is not retried by the decoder (the caller must reopen).
 
+- ffmpeg / ffprobe locators: a PATH probe slower than 5 s counts as "not found" for the app run (a heavily loaded machine
+  could hit it; seen once on CI in a test). Known risk, unchanged (D024, Step 9.10).
 - Audio device: after a device was lost during playback and the sound came back at the next Play, the status bar still says
   "Playing without sound…" (the status shows the last message until another one; D024 "Left as they are", Step 9.10). A real
   default-device change and a real removal were checked on hardware in Step 9.10 (scenarios 14–17).
