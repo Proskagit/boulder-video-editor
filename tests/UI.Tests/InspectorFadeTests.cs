@@ -217,6 +217,22 @@ public sealed class InspectorFadeTests : IAsyncLifetime
         Assert.Equal(TimelineCoordinateMapper.TimeToX(F(25), pps), vm.FadeInWidth, 6);
     }
 
+    [Fact]
+    public void A_speed_change_that_removes_a_dissolve_says_so_in_the_status_bar()
+    {
+        var clip = AddVideo(frames: 200);
+        Assert.True(_edit.Split(F(100)).Success);
+        var (a, b) = (V1.Clips[0], V1.Clips[1]);
+        Assert.True(_edit.AddTransition(a.Id, b.Id, F(10)).Success);
+        Select(a);
+
+        Inspector.SpeedValue = 2m;                            // A ends at 50: its cut with B opens (D025 §5)
+
+        Assert.Empty(V1.Transitions);
+        Assert.Equal("A dissolve was removed: its clips no longer meet.", _status.Message);
+        Assert.Same(clip, a);
+    }
+
     private sealed class NoAnalysis : IMediaAnalysisService
     {
         public Task<MediaAnalysisResult> AnalyzeAsync(string filePath, CancellationToken ct = default) =>

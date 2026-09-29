@@ -84,6 +84,7 @@ public static class TimelineValidator
             if (track.Type != TrackType.Video) return $"Track {track.Name} is in the wrong track list.";
             if (ValidateTrack(track, track.Clips.Select(c => (c, ClipState.Capture(c))), rate, findAsset) is { } error) return error;
             if (!IsSorted(track)) return $"Track {track.Name} clips are not sorted.";
+            if (TransitionRules.ValidateTrack(track, rate) is { } transitionError) return transitionError;
         }
 
         foreach (var track in sequence.AudioTracks)
@@ -91,6 +92,7 @@ public static class TimelineValidator
             if (track.Type != TrackType.Audio) return $"Track {track.Name} is in the wrong track list.";
             if (ValidateTrack(track, track.Clips.Select(c => (c, ClipState.Capture(c))), rate, findAsset) is { } error) return error;
             if (!IsSorted(track)) return $"Track {track.Name} clips are not sorted.";
+            if (TransitionRules.ValidateTrack(track, rate) is { } transitionError) return transitionError;
         }
 
         return null;

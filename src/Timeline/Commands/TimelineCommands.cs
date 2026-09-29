@@ -223,3 +223,93 @@ public sealed class NotifyingCommand(IUndoableCommand inner, Action notify) : IM
         notify();
     }
 }
+
+/// <summary>Where a transition is and what it joins (D025): its track, the clips left and right of the cut and its
+/// length. Commands store absolute before / after states.</summary>
+public readonly record struct TransitionState(Track Track, Guid LeftClipId, Guid RightClipId, MediaTime Duration)
+{
+    public static TransitionState Capture(Track track, Transition t) => new(track, t.LeftClipId, t.RightClipId, t.Duration);
+
+    public void ApplyTo(Transition t)
+    {
+        t.LeftClipId = LeftClipId;
+        t.RightClipId = RightClipId;
+        t.Duration = Duration;
+    }
+}
+
+/// <summary>Adds an already-constructed transition (its Id is fixed, so Redo recreates the very same one).</summary>
+public sealed class AddTransitionCommand(Track track, Transition transition, string description = "Add Dissolve") : IUndoableCommand
+{
+    public string Description { get; } = description;
+    public Track Track { get; } = track;
+    public Transition Transition { get; } = transition;
+
+    public void Execute() => Track.Transitions.Add(Transition);
+
+    public void Undo()
+    {
+        if (!Track.Transitions.Remove(Transition))
+            throw new InvalidOperationException($"Transition {Transition.Id} is not on track '{Track.Name}'.");
+    }
+}
+
+/// <summary>Removes a transition; Undo puts the same object back where it was.</summary>
+public sealed class RemoveTransitionCommand(Track track, Transition transition, string description = "Remove Dissolve") : IUndoableCommand
+{
+    private int _index = -1;
+
+    public string Description { get; } = description;
+    public Track Track { get; } = track;
+    public Transition Transition { get; } = transition;
+
+    public void Execute()
+    {
+        _index = Track.Transitions.IndexOf(Transition);
+        if (_index < 0) throw new InvalidOperationException($"Transition {Transition.Id} is not on track '{Track.Name}'.");
+        Track.Transitions.RemoveAt(_index);
+    }
+
+    public void Undo() => Track.Transitions.Insert(Math.Min(_index, Track.Transitions.Count), Transition);
+}
+
+/// <summary>
+/// Moves a transition from one absolute state to another: another anchor (a split), another track (both clips moved
+/// together) or another length. Consecutive length changes of the same transition merge into one Undo step (like clip
+/// properties, D017); a change back to where the step started removes it.
+/// </summary>
+public sealed class UpdateTransitionCommand(Transition transition, TransitionState before, TransitionState after,
+    string description = "Change Dissolve Duration") : IMergeableCommand
+{
+    public string Description { get; } = description;
+    public Transition Transition { get; } = transition;
+    public TransitionState Before { get; } = before;
+    public TransitionState After { get; } = after;
+
+    public void Execute() => Apply(Before, After);
+    public void Undo() => Apply(After, Before);
+
+    private void Apply(TransitionState from, TransitionState to)
+    {
+        if (from.Track != to.Track)
+        {
+            if (!from.Track.Transitions.Remove(Transition))
+                throw new InvalidOperationException($"Transition {Transition.Id} is not on track '{from.Track.Name}'.");
+            to.Track.Transitions.Add(Transition);
+        }
+        to.ApplyTo(Transition);
+    }
+
+    private bool IsLengthOnly => Before with { Duration = After.Duration } == After;
+
+    public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
+    {
+        merged = null;
+        if (next is not UpdateTransitionCommand n || n.Transition != Transition || n.Before != After || !IsLengthOnly || !n.IsLengthOnly)
+            return false;
+
+        if (n.After != Before)
+            merged = new UpdateTransitionCommand(Transition, Before, n.After, Description);
+        return true;
+    }
+}

@@ -238,6 +238,10 @@ public sealed partial class InspectorViewModel : ViewModelBase
             _status.Report(result.Message ?? "The speed could not be changed.");
             SyncFromModel(); // show what the clip really has
         }
+        else if (result.Message is not null)
+        {
+            _status.Report(result.Message); // e.g. a dissolve removed because the clip's end moved (D025 §5)
+        }
     }
 
     // --- Fades (Phase 10, D025 §2): every clip kind --------------------------------------------

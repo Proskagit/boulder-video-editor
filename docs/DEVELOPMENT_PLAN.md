@@ -297,7 +297,7 @@ drawn on the timeline clip; `EditingLock`; end-to-end parity scenes; the manual 
   undo / redo). The product owner accepts fades here, before 10.6 starts.
 - Depends on: 10.4.
 
-### 10.6 — Dissolve: edits and validation
+### 10.6 — Dissolve: edits and validation *(done — awaiting the product owner's acceptance)*
 Scope: add / remove / change duration; handle and zone validation (D025 §3–§4); the coupling with move, trim, split,
 delete, speed and re-grid (D025 §5); transition changes carried in `EditPlan` so every coupled change is one command.
 - PR: every case of D025 §5 — kept, removed automatically (status message) or rejected / clamped — with undo / redo

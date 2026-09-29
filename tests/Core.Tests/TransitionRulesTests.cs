@@ -96,6 +96,22 @@ public class TransitionRulesTests
         Assert.Equal("Only video tracks have transitions.", TransitionRules.ValidateTrack(track, Rate));
     }
 
+    [Theory]
+    [InlineData(60, 10, 40, 60, 20)]     // after the cut: 10 frames of B → F = 2·10
+    [InlineData(20, 30, 30, 20, 41)]     // before the cut limits: ⌊F/2⌋ = 20, ⌈F/2⌉ = 21 → 41
+    [InlineData(100, 100, 0, 100, 0)]    // no handle after A: nothing fits
+    [InlineData(100, 100, 100, 0, 1)]    // no handle before B: 1 frame (< 2: none)
+    [InlineData(5, 5, 5, 5, 10)]
+    public void The_longest_dissolve_fits_both_halves(long roomInLeft, long roomInRight, long handleAfterLeft, long handleBeforeRight, long expected)
+    {
+        var max = TransitionRules.MaxFrames(roomInLeft, roomInRight, handleAfterLeft, handleBeforeRight);
+        Assert.Equal(expected, max);
+        var (before, after) = TransitionRules.Zone(max);
+        Assert.True(before <= Math.Min(roomInLeft, handleBeforeRight) && after <= Math.Min(roomInRight, handleAfterLeft));
+        var (nextBefore, nextAfter) = TransitionRules.Zone(max + 1);
+        Assert.False(nextBefore <= Math.Min(roomInLeft, handleBeforeRight) && nextAfter <= Math.Min(roomInRight, handleAfterLeft));
+    }
+
     [Fact]
     public void Clip_frames_count_the_grid_frames_between_its_edges() =>
         Assert.Equal(20, TransitionRules.ClipFrames(Cut().A, Rate));

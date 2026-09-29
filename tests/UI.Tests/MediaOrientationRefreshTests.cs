@@ -193,6 +193,10 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null) => No;
         public TimelineEditResult AddTextClip(MediaTime start) => No;
         public TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed) => No;
+        public TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, MediaTime duration) => No;
+        public TimelineEditResult RemoveTransition(Guid transitionId) => No;
+        public TimelineEditResult SetTransitionDuration(Guid transitionId, MediaTime duration) => No;
+        public long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId) => null;
         public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => No;
         public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => null;
         public TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime) => No;

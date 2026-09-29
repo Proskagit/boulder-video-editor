@@ -34,43 +34,73 @@ public static class TransitionRules
     public static string? ValidateTrack(Track track, FrameRate rate)
     {
         if (track.Transitions.Count == 0) return null;
-        if (track.Type != TrackType.Video) return "Only video tracks have transitions.";
+        var clips = track.Clips.ToDictionary(c => c.Id, c => (c.TimelineStart, c.TimelineEnd));
+        return Validate(track.Type, track.Name, track.Transitions.Select(TransitionSpec.Of),
+            id => clips.TryGetValue(id, out var edges) ? edges : null, rate);
+    }
 
-        var clips = track.Clips.ToDictionary(c => c.Id);
+    /// <summary>
+    /// <see cref="ValidateTrack"/> for a track as an edit would leave it: <paramref name="transitions"/> and the clip
+    /// edges <paramref name="clipEdges"/> returns for a clip of the track (null for a clip that isn't on it).
+    /// </summary>
+    public static string? Validate(TrackType trackType, string trackName, IEnumerable<TransitionSpec> transitions,
+        Func<Guid, (MediaTime Start, MediaTime End)?> clipEdges, FrameRate rate)
+    {
         var usedParts = new Dictionary<Guid, long>();   // frames of zones inside each clip
         var lefts = new HashSet<Guid>();
 
-        foreach (var transition in track.Transitions)
+        foreach (var transition in transitions)
         {
-            if (transition.TransitionTypeId != CrossDissolve) return "A transition has an unknown type.";
+            if (trackType != TrackType.Video) return "Only video tracks have transitions.";
+            if (transition.TypeId != CrossDissolve) return "A transition has an unknown type.";
             if (transition.Duration < MediaTime.Zero) return "A transition has a negative duration.";
 
             var frames = Frames(transition.Duration, rate);
             if (frames < MinFrames) return $"A transition must be at least {MinFrames} frames long.";
 
             if (transition.LeftClipId == transition.RightClipId) return "A transition needs two different clips.";
-            if (!clips.TryGetValue(transition.LeftClipId, out var left) || !clips.TryGetValue(transition.RightClipId, out var right))
-                return $"A transition refers to a clip that is not on track {track.Name}.";
-            if (left.TimelineEnd != right.TimelineStart) return "A transition's clips don't touch.";
-            if (!lefts.Add(left.Id)) return "A cut has more than one transition.";
+            if (clipEdges(transition.LeftClipId) is not { } left || clipEdges(transition.RightClipId) is not { } right)
+                return $"A transition refers to a clip that is not on track {trackName}.";
+            if (left.End != right.Start) return "A transition's clips don't touch.";
+            if (!lefts.Add(transition.LeftClipId)) return "A cut has more than one transition.";
 
             var (beforeCut, afterCut) = Zone(frames);
-            if (Add(usedParts, left, beforeCut, rate) || Add(usedParts, right, afterCut, rate))
+            if (Add(transition.LeftClipId, left, beforeCut) || Add(transition.RightClipId, right, afterCut))
                 return "A clip is too short for its transitions.";
         }
 
         return null;
 
         // Adds a zone part to the clip's total; true when the clip can't hold it.
-        static bool Add(Dictionary<Guid, long> used, Clip clip, long part, FrameRate rate)
+        bool Add(Guid clipId, (MediaTime Start, MediaTime End) edges, long part)
         {
-            var total = used.GetValueOrDefault(clip.Id) + part;
-            used[clip.Id] = total;
-            return total > ClipFrames(clip, rate);
+            var total = usedParts.GetValueOrDefault(clipId) + part;
+            usedParts[clipId] = total;
+            return total > edges.End.ToFrameFloor(rate) - edges.Start.ToFrameFloor(rate);
         }
     }
 
     /// <summary>The clip's length in frames (its edges lie on the grid).</summary>
     public static long ClipFrames(Clip clip, FrameRate rate) =>
         clip.TimelineEnd.ToFrameFloor(rate) - clip.TimelineStart.ToFrameFloor(rate);
+
+    /// <summary>
+    /// The longest dissolve (in frames) a cut can take (D025 §3–§4) when <paramref name="roomInLeft"/> frames of A and
+    /// <paramref name="roomInRight"/> frames of B are free of other zones, and A's source reaches
+    /// <paramref name="handleAfterLeft"/> frames past its end and B's <paramref name="handleBeforeRight"/> frames before
+    /// its start: the largest <c>F</c> with <c>⌊F/2⌋ ≤ min(roomInLeft, handleBeforeRight)</c> and
+    /// <c>⌈F/2⌉ ≤ min(roomInRight, handleAfterLeft)</c>. Below <see cref="MinFrames"/> no dissolve fits.
+    /// </summary>
+    public static long MaxFrames(long roomInLeft, long roomInRight, long handleAfterLeft, long handleBeforeRight)
+    {
+        var before = Math.Max(0, Math.Min(roomInLeft, handleBeforeRight));
+        var after = Math.Max(0, Math.Min(roomInRight, handleAfterLeft));
+        return before >= after ? 2 * after : 2 * before + 1;
+    }
+}
+
+/// <summary>What <see cref="TransitionRules.Validate"/> needs of a transition (as it is, or as an edit would leave it).</summary>
+public readonly record struct TransitionSpec(Guid Id, string TypeId, MediaTime Duration, Guid LeftClipId, Guid RightClipId)
+{
+    public static TransitionSpec Of(Transition t) => new(t.Id, t.TransitionTypeId, t.Duration, t.LeftClipId, t.RightClipId);
 }

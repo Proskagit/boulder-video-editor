@@ -121,6 +121,34 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
   during an export (the `EditingLock` on the FADES fields is a second line); 12a — a fraction (`2,5` / `2.5`), text or
   more frames than the clip has is not applied and the field shows the previous value when it loses focus, without a
   status message, like every numeric field (the control rejects such input before it reaches the view model).
+- Step 10.6 done (2026-09-29) — dissolve: edits and validation. Awaiting the product owner's acceptance.
+  - Core: `TransitionRules.Validate` over `TransitionSpec`s and clip edges (the planned state; `ValidateTrack` uses it),
+    `TransitionRules.MaxFrames` (the longest F for given room and handles).
+  - Timeline: `DissolveHandles` (`After`: `MaxWholeFrames` / `SpeedTiming.FramesFor` of the source after SourceIn minus
+    the clip's frames; `Before`: the 1× trim-start limit / `FramesFor(SourceIn)`; images and text unlimited, unknown
+    media duration none); `EditPlan` transition adds / removes / updates, `StateOf`, `EffectiveTransitions`,
+    `IsTouched`, `ReconcileTransitions`, `TransitionTracks`, `BuildTransitionCommands`; commands
+    `AddTransitionCommand`, `RemoveTransitionCommand`, `UpdateTransitionCommand` (track move, re-anchor, length; merges
+    length-only changes); `TimelineEditService`: `AddTransition` (touching clips of one unlocked video track, one per
+    cut, ≥ 2 frames, whole frames stored, longest-that-fits message), `RemoveTransition`, `SetTransitionDuration`
+    (merged), `MaxTransitionFrames`; `Validate` reconciles then checks zones and the handles of touched dissolves;
+    Move / Trim / Split / Delete / Speed / Add (re-grid) return the removal note; Split rejects inside a zone and
+    re-anchors a dissolve at the clip's end to the right part; a far-edge trim is clamped so the other edge's zone part
+    stays; a speed change removing a dissolve is one composite step; `TimelineValidator.ValidateSequence` also checks
+    the transitions. `TimelineEditResult.TransitionId`. Inspector: a successful speed change reports its note.
+  - Tests: `Timeline.Tests/DissolveEditTests` (21: add with exact undo / redo, every rejection, no handles, the longest
+    that fits at 1× and 2× and at 29.97 with an odd F, images / text unlimited, remove, resize merged and limited, locked
+    track, dissolves on both edges, move one / both / to another track, cut-edge trim, far-edge clamp, split inside /
+    outside the zone with re-anchoring and undo, delete, speed of A (removed) and of B (rejected / allowed), re-grid
+    keeps, an unrelated edit not rejected by a dissolve that lost its handles); `Core.Tests/TransitionRulesTests`
+    (`MaxFrames`, 5 cases incl. maximality); `UI.Tests/InspectorFadeTests` (the speed change's note in the status bar).
+    `TimelineFixture.Snapshot` includes the transitions, so every existing undo / redo exactness test covers them.
+  - Mutations (each caught): reconciliation keeping a broken dissolve → 4; no re-anchoring on split → 1; no far-edge
+    clamp → 1; no handle check → 1; handles checked for untouched dissolves → 1; split inside a zone allowed → 1.
+  - Verification: `dotnet build` 0 errors / 0 warnings; `dotnet test` 1912 passed, 2 skipped (4K heavy) — Core 439,
+    Timeline 295, Project 319, UI 343, Export 89, Rendering 58, Video 291, ExportEndToEnd 78 (+2).
+  - The interim limitation of 10.3 (edits not knowing transitions) is resolved. Still open by plan: dissolves are not
+    rendered (10.7) and have no UI (10.8).
 
 ## Phase 9 (complete)
 

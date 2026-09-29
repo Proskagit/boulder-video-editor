@@ -63,7 +63,13 @@ Domain types (`src/Core/Entities`):
   timecode, the maximum never below the stored value, PO-8 notes from `TimelineClipSelection.DissolveAtStart` /
   `DissolveAtEnd`, disabled by the `EditingLock`); the timeline clip draws each effective ramp as a gradient band
   (`TimelineClipViewModel.FadeInWidth` / `FadeOutWidth`, computed by `TimelineViewModel.RefreshFades`).
-  Dissolves are not rendered or edited yet.
+  Dissolve edits (Step 10.6): `ITimelineEditService.AddTransition` / `RemoveTransition` / `SetTransitionDuration` /
+  `MaxTransitionFrames`; `Timeline/DissolveHandles` (source handles = the trim limits, images / text unlimited);
+  `EditPlan` carries transition adds / removes / updates and `ReconcileTransitions` (every edit: removed where the cut
+  is gone, moved with both clips) before `TimelineEditService.Validate` checks zones (`TransitionRules.Validate` on the
+  planned state) and the handles of touched dissolves; commands `AddTransitionCommand` / `RemoveTransitionCommand` /
+  `UpdateTransitionCommand`. Split re-anchors and rejects inside a zone; a far-edge trim is clamped to the zone.
+  Dissolves are not rendered yet (10.7) and have no UI yet (10.8).
 - `MediaTime`
 
 New projects get tracks V1 and A1. Clips are created only by `ITimelineEditService`.

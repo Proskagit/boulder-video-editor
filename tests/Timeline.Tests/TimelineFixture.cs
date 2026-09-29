@@ -89,6 +89,8 @@ internal sealed class TimelineFixture
                 var s = ClipState.Capture(clip);
                 sb.Append($"{clip.Id}:{clip.GetType().Name}:{s.Start.Ticks},{s.Duration.Ticks},{s.SourceIn.Ticks},{s.SourceOut.Ticks},{s.Speed},fades={clip.FadeIn.Ticks}/{clip.FadeOut.Ticks};");
             }
+            foreach (var t in track.Transitions)
+                sb.Append($"T{t.Id}:{t.TransitionTypeId}:{t.LeftClipId}|{t.RightClipId}:{t.Duration.Ticks};");
             sb.Append('\n');
         }
         return sb.ToString();

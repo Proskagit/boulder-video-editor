@@ -1452,6 +1452,20 @@ Consequences: `formatVersion` 3; the snapshot carries effective fades and dissol
 envelope shared by the Preview and the export; the parity suite grows (new scenes) and is never weakened; edit
 operations carry transition changes in their `EditPlan`, so every coupled change is one command.
 
+Refined in Step 10.6 (2026-09-29), dissolve edits (implementation of §3–§5, no rule changed):
+- `ITimelineEditService.AddTransition` / `RemoveTransition` / `SetTransitionDuration` (consecutive changes of one dissolve
+  merge into one undo step) / `MaxTransitionFrames` (the longest the cut can take now: the largest `F` with
+  `⌊F/2⌋ ≤ min(room in A, B's handle before)` and `⌈F/2⌉ ≤ min(room in B, A's handle after)`, room = the clip's frames
+  not used by its dissolve on the other edge). A too long dissolve is rejected with the longest that fits, or "There is
+  not enough media beyond the clips for the dissolve." when fewer than 2 frames fit.
+- Every edit goes through one reconciliation (`EditPlan.ReconcileTransitions`): a dissolve whose clips were removed,
+  landed on different tracks or no longer meet is removed in the same undo step, and the result carries the status note
+  "A dissolve was removed: its clips no longer meet."; one whose two clips moved together to another track moves with
+  them. Then the zones are validated against the planned clips, and the source handles only of the dissolves the edit
+  creates, changes or whose clips it changes — an unrelated edit is never rejected because some other dissolve lost its
+  handles (its media changed); rendering holds frames there (§4).
+- A speed change that removes a dissolve is one composite step (it doesn't merge with the next speed change).
+
 Status: Accepted (2026-09-29; PO-8 the same day). Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 10 — Transitions & basic effects: steps".
 
