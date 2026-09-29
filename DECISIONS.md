@@ -1303,8 +1303,8 @@ verification in `progress.md`):
   their slots (no queued analysis starts any ffprobe), the timeout rule against the moment the first slot is freed;
   `WaveformIntegrationTests` analyses with the ffprobe found once. Test code only.
 
-Status: Phase 9 scope and step structure are accepted; steps 9.1–9.9 accepted, 9.10 done — awaiting the product owner's
-acceptance of the phase.
+Status: Phase 9 complete — steps 9.1–9.10 done, the phase accepted by the product owner on 2026-09-29 (closeout `dcb86cb`,
+last Step 9.10 commit `f27a4ab`, PR #8 merged as `409240b`).
 
 ---
 

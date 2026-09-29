@@ -2,10 +2,17 @@
 
 ## Current phase
 
-Phase 9 — Quality: **done, awaiting the product owner's acceptance**, branch `feat/phase-9-quality` (from `ab248e5`, `main` after the merge of PR #6).
+Phase 10 — Transitions & basic effects: chosen by the product owner on 2026-09-29; branch
+`feat/phase-10-transitions-effects` (from `409240b`, `main` after the merge of PR #8). Step 10.1 (audit, no code change)
+in progress; the MVP scope, steps and acceptance criteria are agreed after the audit, before any implementation.
+
+## Phase 9 (complete)
+
+Phase 9 — Quality: **complete** (accepted by the product owner on 2026-09-29; closeout `dcb86cb`, last Step 9.10 commit
+`f27a4ab`; PRs #7 and #8, merged as `409240b`), branch `feat/phase-9-quality` (from `ab248e5`, `main` after the merge of PR #6).
 Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 9 — Quality: steps"; decision D024.
 
-### Phase 9 — Quality (done, awaiting acceptance)
+### Phase 9 — Quality (complete)
 
 Steps (D024; each accepted by the product owner before the next): 9.1 audit · 9.2 scope formalization ·
 9.3 stability & error handling · 9.4 thumbnails + cache · 9.5 waveform · 9.6 hotkeys · 9.7 performance baseline &
@@ -1969,8 +1976,13 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-Phases 0–3 are complete and committed (see `ROADMAP.md`). Work continues on
-branch `feat/phase-3-media-analysis` (per product owner decision).
+2026-09-29: Phases 0–9 are complete and merged into `main` (last merge `409240b`, PR #8; CI green on `main`). No open
+phase work on `main`; Phase 10 (transitions & basic effects) starts with the Step 10.1 audit on
+`feat/phase-10-transitions-effects`. Open items carried forward: see "Known issues" (L1-c, New during
+`ImportManyAsync`, the audio status message after a device returns, the watched `Project.Tests` hang / failure, no
+timeline virtualization, import not undoable, the 5 s PATH probe of the locators).
+
+### Phase 4 — Timeline (historical notes)
 
 Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Exact time model: rational `FrameRate`, integer frame grid in `MediaTime`
@@ -2003,6 +2015,7 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 6
 - Phase 7 (accepted 2026-09-24)
 - Phase 8 (accepted 2026-09-25)
+- Phase 9 (accepted 2026-09-29)
 
 ## Known issues
 

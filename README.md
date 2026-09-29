@@ -2,12 +2,13 @@
 
 A simplified, desktop-first video editor (Windows 10/11 x64, Avalonia UI, .NET 8),
 architected so professional-grade features can be layered in over time without a
-rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–8
+rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–9
 are complete** (architecture, UI skeleton, media import, ffprobe metadata
 analysis, timeline editing, preview playback with audio, project persistence with
 autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
-text; MP4 export). Phase 9 (quality: stability, thumbnails, waveforms, hotkeys,
-performance, polish, CI) is done and awaiting acceptance.
+text; MP4 export; quality: stability, thumbnails, waveforms, hotkeys,
+performance, polish, CI). Next: Phase 10 — transitions & basic effects (scope
+being agreed).
 
 ## Requirements
 
@@ -65,7 +66,7 @@ src/
   Media/           Media import: extension validation, file info (Phase 2);
                    thumbnails, waveforms and their cache (Phase 9).
   Effects/         Effect/transition definitions and parameter schemas. Empty (no
-                   effect type yet).
+                   effect type yet); planned for Phase 10.
   Export/          Offline export orchestration (Phase 8): renders the timeline frame
                    by frame like the Preview and hands frames and audio to the encoder.
   Project/         Current project state (Phase 2); project.json persistence,
@@ -115,7 +116,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–8 complete, Phase 9 done (awaiting acceptance). Working: media import with validation and duplicate
+Phases 0–9 complete (Phase 9 accepted 2026-09-29); Phase 10 (transitions & basic effects) next. Working: media import with validation and duplicate
 detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
 preview playback with video and audio, and projects on disk: New / Open / Save /
@@ -135,4 +136,5 @@ Browser thumbnails and timeline waveforms with a per-project cache; hotkeys J / 
 to fit — none of them fire while typing in a text field; a faster export (layers decoded
 ahead and in parallel).
 
-Not planned yet: relink of missing media, recent projects, effects and transitions.
+Next: Phase 10 — transitions and basic effects. Not planned yet: relink of missing
+media, recent projects.

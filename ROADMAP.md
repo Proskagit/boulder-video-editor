@@ -59,7 +59,13 @@ session state (D015).
 
 ## Current
 
-Phase 9 — Quality, branch `feat/phase-9-quality` (from `ab248e5`, `main` after PR #6). **In progress**: Step 9.1
+Phase 10 — Transitions & basic effects (chosen by the product owner on 2026-09-29). Step 10.1 (audit) in
+progress; scope and steps are agreed after the audit.
+
+## Previous
+
+Phase 9 — Quality, branch `feat/phase-9-quality` (from `ab248e5`, `main` after PR #6). **Complete**: accepted by the
+product owner on 2026-09-29 (closeout `dcb86cb`, last Step 9.10 commit `f27a4ab`; PRs #7 and #8, merged as `409240b`). Step 9.1
 (audit) and Step 9.2 (scope formalization) done; Step 9.3 (stability & error handling: close hang, analysis
 cancellation and concurrency, FFmpeg diagnostics, audio default device, damaged-project message) accepted
 (`3006785`); Step 9.4 (thumbnails + cache: real Media Browser thumbnails, deterministic frame, project-scoped cache
@@ -72,12 +78,10 @@ accepted (`e8c3c93`); Step 9.7 (performance): baseline and C (Preview at 8 layer
 accepted (`da4838c`); Step 9.9 (CI: GitHub Actions on windows-2025, .NET SDK 8.0.424, FFmpeg 9.0.1 essentials pinned
 by SHA256, build with `-warnaserror`, the full suite and a gate on skips) accepted (`e8f2410`); Step 9.10 (final
 verification: the Phase 9 manual test plan run in the real app, 59 scenarios incl. real audio devices with the owner; the
-export manual plan as a regression; quality gates) done — Phase 9 awaiting the product owner's acceptance. Steps 9.3 stability & error handling · 9.4 thumbnails + cache ·
+export manual plan as a regression; quality gates) done. Steps 9.3 stability & error handling · 9.4 thumbnails + cache ·
 9.5 waveform · 9.6 hotkeys · 9.7 performance baseline & optimization · 9.8 polish & cleanup · 9.9 CI / quality gates ·
 9.10 closeout — scope and acceptance criteria in `docs/DEVELOPMENT_PLAN.md`, decision DECISIONS.md D024. L1-c stays
 open. Details: `progress.md`.
-
-## Previous
 
 Phase 8 — Export, branch `feat/phase-8-export` (from `2f0e26f`). **Complete**: accepted by the product owner on
 2026-09-25 (commit `8786491`, PR #6). Decisions: DECISIONS.md D023 (export as an
@@ -102,7 +106,7 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 9 — see `docs/DEVELOPMENT_PLAN.md`.
+None planned after Phase 10 — see `docs/DEVELOPMENT_PLAN.md`.
 
 ## Rule
 
