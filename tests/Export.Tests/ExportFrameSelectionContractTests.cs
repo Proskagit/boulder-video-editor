@@ -282,4 +282,72 @@ public sealed class ExportFrameSelectionContractTests
         Assert.Contains("@", frames[10]);
         Assert.Contains("@", frames[99]);
     }
+
+    // --- dissolves (Phase 10 Step 10.7, D025 §3) ---------------------------------------------------------
+
+    /// <summary>A video split in two and dissolved on the cut: both clips show one continuous source, so in the zone A (from
+    /// its handle after the cut) and B (from its handle before it) must show the very same source frame.</summary>
+    [Theory]
+    [MemberData(nameof(RatesAndSpeeds))]
+    public async Task Dissolve_frames_come_from_the_handles_and_match_the_preview(int num, int den, int speedSteps)
+    {
+        var rate = new FrameRate(num, den);
+        var main = Video(rate, 20, "main.mp4");
+        Ok(_f.Service.AddClip(main.Id));
+        Ok(_f.Service.SetClipSpeed(_f.V1.Clips.Single().Id, ClipSpeed.FromSteps(speedSteps)));
+        Ok(_f.Service.TrimClip(_f.V1.Clips.Single().Id, ClipEdge.End, F(120)));
+        Ok(_f.Service.Split(F(60)));
+        var (a, b) = (_f.V1.Clips[0], _f.V1.Clips[1]);
+        Ok(_f.Service.AddTransition(a.Id, b.Id, F(21)));                                  // zone [50, 71): odd F
+        _f.AssertValid();
+        var snapshot = Snapshot();
+
+        var frames = await AssertMatchesPreview(snapshot);
+
+        await using var source = new ExportFrameSource(snapshot, _exportDecoder);
+        for (var n = 0L; n < 80; n++)
+        {
+            var frame = await source.GetFrameAsync(n);
+            var numbers = frame.Layers.Select(l => FakeVideoDecoder.Number(l.Frame!)).ToList();
+            if (n is >= 50 and < 71)
+            {
+                Assert.Equal(new[] { a.Id, b.Id }, frame.Layers.Select(l => l.Layer.ClipId));
+                Assert.True(numbers[0] == numbers[1], $"frame {n}: A shows source frame {numbers[0]}, B {numbers[1]}");
+            }
+            else
+            {
+                Assert.Single(frame.Layers);
+            }
+        }
+        Assert.Contains("@", frames[50]);                                                  // B's ramped opacity is in the description
+    }
+
+    [Fact]
+    public async Task Dissolves_on_both_edges_and_on_two_tracks_match_the_preview()
+    {
+        var rate = FrameRate.Ntsc30;
+        var main = Video(rate, 20, "main.mp4");
+        var top = Video(rate, 20, "top.mp4");
+        Ok(_f.Service.AddClip(main.Id));
+        Ok(_f.Service.TrimClip(_f.V1.Clips.Single().Id, ClipEdge.End, F(150)));
+        Ok(_f.Service.Split(F(50)));
+        Ok(_f.Service.Split(F(100)));
+        var v1 = _f.V1.Clips.ToList();
+        Ok(_f.Service.AddTransition(v1[0].Id, v1[1].Id, F(10)));
+        Ok(_f.Service.AddTransition(v1[1].Id, v1[2].Id, F(13)));
+
+        Ok(_f.Service.AddTrack(TrackType.Video));
+        var v2 = _f.Project.Timeline.VideoTracks.OrderBy(t => t.Order).Last();
+        Ok(_f.Service.AddClip(top.Id, v2.Id, F(30)));
+        Ok(_f.Service.TrimClip(v2.Clips.Single().Id, ClipEdge.End, F(130)));
+        Ok(_f.Service.Split(F(100), new[] { v2.Clips.Single().Id }));                   // zone [92, 108) over V1's [94, 107)
+        Ok(_f.Service.AddTransition(v2.Clips[0].Id, v2.Clips[1].Id, F(16)));
+        foreach (var clip in v2.Clips)                                                     // doesn't cover the canvas
+            Ok(_f.Service.SetClipProperties(clip.Id, new ClipPropertyChange { Visual = VisualProperties.Default with { Scale = 0.5 } }));
+        _f.AssertValid();
+
+        var frames = await AssertMatchesPreview(Snapshot());
+
+        Assert.Equal(4, frames[100].Split(" | ").Length);                                  // two dissolves at once: 2 + 2 layers
+    }
 }

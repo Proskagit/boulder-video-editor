@@ -69,7 +69,10 @@ Domain types (`src/Core/Entities`):
   is gone, moved with both clips) before `TimelineEditService.Validate` checks zones (`TransitionRules.Validate` on the
   planned state) and the handles of touched dissolves; commands `AddTransitionCommand` / `RemoveTransitionCommand` /
   `UpdateTransitionCommand`. Split re-anchors and rejects inside a zone; a far-edge trim is clamped to the zone.
-  Dissolves are not rendered yet (10.7) and have no UI yet (10.8).
+  Dissolve composition (Step 10.7): `PlaybackSnapshotBuilder` puts the zones on `VideoLayer.Dissolves`
+  (`DissolveZone`: `[c − ⌊F/2⌋, c + ⌈F/2⌉)`) and the shown range on the pictures (`ExtendedStart` / `ExtendedEnd`);
+  `LayersAt` returns A below B in a zone (B × `(j+1)/(F+1)`), `NextPictureChange` counts the zone edges, the export's
+  picture reader serves the shown range; the sound is untouched. Dissolves have no UI yet (10.8).
 - `MediaTime`
 
 New projects get tracks V1 and A1. Clips are created only by `ITimelineEditService`.

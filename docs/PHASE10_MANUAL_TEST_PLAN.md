@@ -57,11 +57,11 @@ timecode next to each field; the timeline draws each effective ramp as a darkeni
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 13 | Add a dissolve | Two trimmed videos touching on V1; select the cut; add a 1 s dissolve | The zone is drawn centred on the cut; B dissolves over A; the sound cuts hard at the cut | Edit, parity tests | planned |
+| 13 | Add a dissolve | Two trimmed videos touching on V1; select the cut; add a 1 s dissolve | The zone is drawn centred on the cut; B dissolves over A; the sound cuts hard at the cut | `DissolveEditTests`, `DissolveCompositionTests`, `ExportDissolveEndToEndTests` | auto (UI in 10.8) |
 | 14 | No handles | Two untrimmed (full-length) videos touching; add a dissolve | Nothing is created; the message says there is not enough media beyond the clips (and the longest that fits, if any) | `DissolveEditTests` | auto (UI in 10.8) |
-| 15 | Image / text neighbours | Dissolve video → image and image → text | Works without handles | Edit, parity tests | planned |
+| 15 | Image / text neighbours | Dissolve video → image and image → text | Works without handles | `DissolveEditTests`, `ExportDissolveEndToEndTests` | auto (UI in 10.8) |
 | 16 | Move / trim / split / delete | Move A alone; move A and B together; trim the cut edge; trim a far edge; split inside and outside the zone; delete B | As D025 §5: removed (with a status message) / kept / clamped / rejected; each one undo step | `DissolveEditTests` | auto (UI in 10.8) |
 | 17 | Speed | Change B's speed so its handle is too short; change A's speed | B: rejected with a message; A: the dissolve is removed (status message) | `DissolveEditTests`, `InspectorFadeTests` | auto (UI in 10.8) |
-| 18 | Export with dissolves | Export a project with scenarios 13 and 15 | The MP4 matches the Preview in every zone | E2E parity tests | planned |
-| 19 | Cancel inside a zone | Start an export, cancel while it renders a zone | Ends as any cancel: no MP4, no temporary file, no ffmpeg left | E2E cancel tests | planned |
+| 18 | Export with dissolves | Export a project with scenarios 13 and 15 | The MP4 matches the Preview in every zone | `ExportDissolveEndToEndTests`, `ExportFrameSelectionContractTests` | auto (UI in 10.8) |
+| 19 | Cancel inside a zone | Start an export, cancel while it renders a zone | Ends as any cancel: no MP4, no temporary file, no ffmpeg left | `ExportDissolveEndToEndTests` | auto (UI in 10.8) |
 | 20 | Save / reopen | Save a project with dissolves, reopen | Dissolves, their durations and anchors are unchanged | Serializer tests | planned |

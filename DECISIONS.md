@@ -1466,6 +1466,17 @@ Refined in Step 10.6 (2026-09-29), dissolve edits (implementation of §3–§5, 
   handles (its media changed); rendering holds frames there (§4).
 - A speed change that removes a dissolve is one composite step (it doesn't merge with the next speed change).
 
+Refined in Step 10.7 (2026-09-29), dissolve composition (implementation of §3–§4, no rule changed):
+- The snapshot carries each visible track's zones (`VideoLayer.Dissolves`: start, cut, end, F) and each picture's shown
+  range (`PictureSpan.ExtendedStart` / `ExtendedEnd`); the timing anchor (`TimelineStart`, `SourceIn`) is unchanged, so
+  the frames in a zone come from the handles by the D009 / D022 rule — the Preview's readers already decode outside a
+  clip, the export's `ExportPictureReader` accepts the shown range. A dissolve is part of the timing: adding, changing
+  or removing one reopens decoders.
+- `LayersAt` in a zone: A (the clip covering the tick before the cut) below B (the clip at the cut), B's factor
+  `(j + 1)/(F + 1)` times its own fade — only a fade on B's far edge can overlap a zone (a short B); the cut's edges
+  have none (PO-8). The zone's start and end count as picture changes for the Preview's prefetch.
+- A transition that doesn't sit on a cut of two clips of its track (impossible after validation) is not drawn.
+
 Status: Accepted (2026-09-29; PO-8 the same day). Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 10 — Transitions & basic effects: steps".
 

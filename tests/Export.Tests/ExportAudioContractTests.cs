@@ -348,4 +348,22 @@ public sealed class ExportAudioContractTests
         Assert.Equal(0.5f, samples[2 * 19_200]);                                         // the ramp is over
         Assert.Equal(0f, samples[2 * 96_000]);                                           // after the clip: silence
     }
+
+    // --- dissolves (Phase 10 Step 10.7, D025 PO-5) ------------------------------------------------------------------
+
+    [Fact]
+    public async Task A_dissolve_leaves_the_sound_as_a_hard_cut()
+    {
+        var video = Video(FrameRate.Ntsc30, 12, "video.mp4");
+        Ok(_f.Service.AddClip(video.Id));
+        Ok(_f.Service.TrimClip(_f.V1.Clips.Single().Id, ClipEdge.End, F(200)));
+        Ok(_f.Service.Split(F(100)));
+        var (a, b) = (_f.V1.Clips[0], _f.V1.Clips[1]);
+        var without = await ExportAudio(Snapshot());
+
+        Ok(_f.Service.AddTransition(a.Id, b.Id, F(30)));
+        var with = await AssertMatchesPreview(Snapshot());
+
+        Assert.Equal(without, with);
+    }
 }

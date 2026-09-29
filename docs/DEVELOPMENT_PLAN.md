@@ -309,7 +309,7 @@ delete, speed and re-grid (D025 §5); transition changes carried in `EditPlan` s
   23.976 / 29.97 fps (odd `F`: `hB = ⌊F/2⌋`, `hA = ⌈F/2⌉`).
 - Depends on: 10.5 accepted.
 
-### 10.7 — Dissolve: composition in the Preview and the export
+### 10.7 — Dissolve: composition in the Preview and the export *(done — automated; manual after 10.8)*
 Scope: the snapshot carries the zone (A extended by `hA`, B by `hB`), `LayersAt` returns both clips of a track in the zone
 (A below, B at `B.Opacity · p`), prefetch at the zone's start, the export's picture readers read extended frames.
 - PR (parity, byte-equal): video → video at 1×; speed ≠ 1× on A and on B; image and text neighbours; odd `F` at 29.97;

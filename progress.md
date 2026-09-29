@@ -149,6 +149,40 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
     Timeline 295, Project 319, UI 343, Export 89, Rendering 58, Video 291, ExportEndToEnd 78 (+2).
   - The interim limitation of 10.3 (edits not knowing transitions) is resolved. Still open by plan: dissolves are not
     rendered (10.7) and have no UI (10.8).
+- Step 10.6 accepted by the product owner (2026-09-29) on the automated checks; its real-app scenarios (14, 16, 17)
+  follow 10.8.
+- Step 10.7 done (2026-09-29) — dissolve composition in the Preview and the export. Awaiting acceptance (automated; the
+  real-app dissolve scenarios after 10.8).
+  - Core: `DissolveZone` (start, cut, end, F) on `VideoLayer.Dissolves`; `PictureSpan.ExtendedStart` / `ExtendedEnd` /
+    `ShownStart` / `ShownEnd` (timing anchor unchanged); the builder derives both from the track's transitions (hidden
+    tracks none; a transition not on a cut skipped). `LayersAt`: in a zone A (at the tick before the cut) below B (at
+    the cut), B × `Ramp(j, F)` × its own fade, A with its own fade (PO-8 already off at the cut); A may occlude the
+    tracks below, B never. `NextPictureChange` adds the zone edges; `DiffersOnlyInPresentation` compares the zones.
+  - Export: `ExportPictureReader` serves the shown range. The Preview's `SpanReader` needed nothing (it never limited
+    frames to the clip); readers are keyed by clip, so A and B of one track decode at once.
+  - Sound: unchanged (PO-5) — a dissolve changes no audio span.
+  - Tests: `Core.Tests/DissolveCompositionTests` (9: zone on the grid with odd F and the shown ranges, A below B with
+    B's ramp per frame and B's opacity, occlusion by an opaque / transparent A, a zone under a partly covering upper
+    clip, text as B, PO-8 with free-edge fades, zone edges as picture changes and a dissolve change not presentation-only,
+    the audio spans unchanged, hidden tracks); `Export.Tests` — frame contract (23.976 / 29.97 × 0.25× / 1× / 4×: every
+    output frame = the Preview playing and seeking, opacities included, and in the zone A and B of one split source
+    show the same source frame — the handles; dissolves on both edges of a clip and on two tracks at once: 4 layers),
+    audio contract (the export's samples with a dissolve = without, = the Preview's); `Timeline.Tests/Playback/
+    DissolvePlaybackTests` (B's reader opened ahead of a zone longer than the prefetch window; in the zone A past its
+    end and B before its start show the same source frame, B at its ramp); `ExportEndToEnd.Tests/
+    ExportDissolveEndToEndTests` (8, real ffmpeg: byte-equal Preview = export canvas in every zone for video → video,
+    2×, image and text neighbours, odd F at 29.97 with both edges, two tracks with a partly covering upper clip and an
+    alpha image; independently a zone frame = ffmpeg's A frame (from the handle, 2n at 2×) and B frame blended B over A
+    at p — max |Δ| 2; handles missing at render: the first frame held in both, the blend confirmed; PCM identical with
+    and without the dissolve; cancel inside a zone).
+  - Mutations (caught): the export reader not extended → 7 contract + 8 E2E failures; B without its ramp → 3 Core + 3
+    E2E; the zone start not a picture change → the prefetch test (after the zone was made longer than the prefetch
+    window — with a short zone the cut itself triggered the prefetch, so the first version didn't see it).
+  - Verification: `dotnet build --no-incremental` 0 errors / 0 warnings; `dotnet test` 1939 passed, 2 skipped (4K
+    heavy) — Core 448, Timeline 297, Project 319, UI 343, Export 97, Rendering 58, Video 291, ExportEndToEnd 86 (+2).
+    The existing parity suite unchanged and green.
+  - Limitations: no UI to create or edit dissolves yet (10.8) — until then they come only from a project file; the
+    real-app dissolve scenarios 13–20 wait for 10.8.
 
 ## Phase 9 (complete)
 

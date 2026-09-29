@@ -63,8 +63,9 @@ Phase 10 — Transitions & basic effects, branch `feat/phase-10-transitions-effe
 Step 10.1 (audit) accepted; Step 10.2 (scope formalization: D025, the Phase 10 steps, the manual plan skeleton) done;
 Step 10.3 (model, `project.json` v3) done; Step 10.4 (fades: Core rule, edits, Preview / export composition and mix) done; Step 10.5 (fades: Inspector and
 timeline UI, end-to-end parity) done; Steps 10.4–10.5 accepted by the product owner on 2026-09-29 (real-app fade
-scenarios passed). Step 10.6 (dissolve: edits and validation, the coupling with every timeline edit) done — awaiting
-the product owner's acceptance.
+scenarios passed). Step 10.6 (dissolve: edits and validation, the coupling with every timeline edit) accepted on
+2026-09-29 (automated). Step 10.7 (dissolve: composition in the Preview and the export) done — awaiting acceptance;
+the real-app dissolve scenarios follow 10.8.
 MVP (PO-1…PO-7): fade in / fade out of a clip (picture and its own sound, linear ramp `(i+1)/(F+1)`) in 10.3–10.5,
 then a cross dissolve centred on a cut of one video track with source handles (B over A, the sound a hard cut) in
 10.6–10.8; `project.json` v3 (v1 / v2 read without fades and dissolves). Steps 10.3 model & format v3 · 10.4 fades core ·
