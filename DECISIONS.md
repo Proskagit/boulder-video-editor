@@ -1482,8 +1482,8 @@ Refined in Step 10.8 (2026-09-29), dissolve UI (no rule changed; every check sta
   and the handles are the service's (`MaxTransitionFrames`, `AddTransition`) and its message is shown when it refuses.
   Length: 1 s, or the longest that fits there when that is shorter (at least 2 frames) — the status bar says so;
   with fewer than 2 frames nothing is created ("There is not enough media beyond the clips for the dissolve.").
-  Proposed for the product owner's confirmation at the 10.8 acceptance (the alternative: refuse unless the full 1 s
-  fits).
+  Confirmed by the product owner at the 10.8 acceptance (2026-09-29; the alternative — refuse unless the full 1 s
+  fits — not taken).
 - The zone is drawn over the cut; clicking it selects the dissolve (no clip stays selected); Delete or the Inspector's
   Remove Dissolve removes it; the Inspector's DISSOLVE section edits the length in whole frames, range 2 … the longest
   that fits (a value outside is not applied, like every numeric field), with the time and "Longest that fits here".

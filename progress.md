@@ -263,6 +263,10 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
     "… undoes the step and brings the dissolve back"; + another speed keeps it removed), `TimelineDissolveUiTests`
     (+1: 2× then 1.00 put back in the field). Mutation (the path off) → 1 + 1 failures. `dotnet test` 1962 passed,
     2 skipped (UI 363, Timeline 300).
+- Step 10.8 accepted by the product owner (2026-09-29): the real-app dissolve scenarios 13–20 all passed, the fixes of
+  16.2–16.4 and 17 re-checked. The Dissolve command's length confirmed: 1 s, or the longest that fits when 1 s doesn't
+  (at least 2 frames; below that nothing is created). With it Steps 10.6 and 10.7 (their real-app scenarios are part
+  of 13–20) are accepted too. Last 10.8 commit `f27c5c4`.
 
 ## Phase 9 (complete)
 

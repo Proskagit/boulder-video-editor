@@ -297,7 +297,7 @@ drawn on the timeline clip; `EditingLock`; end-to-end parity scenes; the manual 
   undo / redo). The product owner accepts fades here, before 10.6 starts.
 - Depends on: 10.4.
 
-### 10.6 — Dissolve: edits and validation *(done — awaiting the product owner's acceptance)*
+### 10.6 — Dissolve: edits and validation *(done — accepted 2026-09-29)*
 Scope: add / remove / change duration; handle and zone validation (D025 §3–§4); the coupling with move, trim, split,
 delete, speed and re-grid (D025 §5); transition changes carried in `EditPlan` so every coupled change is one command.
 - PR: every case of D025 §5 — kept, removed automatically (status message) or rejected / clamped — with undo / redo
@@ -309,7 +309,7 @@ delete, speed and re-grid (D025 §5); transition changes carried in `EditPlan` s
   23.976 / 29.97 fps (odd `F`: `hB = ⌊F/2⌋`, `hA = ⌈F/2⌉`).
 - Depends on: 10.5 accepted.
 
-### 10.7 — Dissolve: composition in the Preview and the export *(done — automated; manual after 10.8)*
+### 10.7 — Dissolve: composition in the Preview and the export *(done — accepted 2026-09-29; its real-app scenarios passed with 10.8)*
 Scope: the snapshot carries the zone (A extended by `hA`, B by `hB`), `LayersAt` returns both clips of a track in the zone
 (A below, B at `B.Opacity · p`), prefetch at the zone's start, the export's picture readers read extended frames.
 - PR (parity, byte-equal): video → video at 1×; speed ≠ 1× on A and on B; image and text neighbours; odd `F` at 29.97;
@@ -323,7 +323,7 @@ Scope: the snapshot carries the zone (A extended by `hA`, B by `hB`), `LayersAt`
 - PR: cancelling an export inside a zone ends as before.
 - Depends on: 10.6.
 
-### 10.8 — Dissolve: UI *(done — awaiting the product owner's acceptance and the real-app scenarios 13–20)*
+### 10.8 — Dissolve: UI *(done — accepted 2026-09-29, real-app scenarios 13–20 passed)*
 Scope: add a dissolve on the selected cut (command and button), select it, its duration in the Inspector, Delete, the
 zone drawn on the timeline; `EditingLock`; the manual plan's dissolve section.
 - PR: every edit goes through the edit service (one undo step); the zone is shown where it renders; the status bar
