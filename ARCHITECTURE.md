@@ -72,7 +72,12 @@ Domain types (`src/Core/Entities`):
   Dissolve composition (Step 10.7): `PlaybackSnapshotBuilder` puts the zones on `VideoLayer.Dissolves`
   (`DissolveZone`: `[c − ⌊F/2⌋, c + ⌈F/2⌉)`) and the shown range on the pictures (`ExtendedStart` / `ExtendedEnd`);
   `LayersAt` returns A below B in a zone (B × `(j+1)/(F+1)`), `NextPictureChange` counts the zone edges, the export's
-  picture reader serves the shown range; the sound is untouched. Dissolves have no UI yet (10.8).
+  picture reader serves the shown range; the sound is untouched.
+  Dissolve UI (Step 10.8): `TimelineViewModel.AddDissolveCommand` (two selected clips; 1 s or the service's
+  `MaxTransitionFrames` when shorter), `TimelineTrackViewModel.Transitions` / `TimelineTransitionViewModel` (the zone
+  in pixels, drawn over the clips; `OnTransitionPressed` selects it, exclusive with the clip selection),
+  `TransitionSelectionChanged` → `InspectorViewModel.ShowTransition` (DISSOLVE: `DissolveFrames`, the time, the longest
+  that fits, `RemoveDissolveCommand`); Delete removes a selected dissolve; the `EditingLock` disables all of it.
 - `MediaTime`
 
 New projects get tracks V1 and A1. Clips are created only by `ITimelineEditService`.

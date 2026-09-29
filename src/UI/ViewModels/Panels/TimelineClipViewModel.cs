@@ -85,9 +85,42 @@ public sealed partial class TimelineTrackViewModel : ViewModelBase
     public TrackType Type => Track.Type;
     public ObservableCollection<TimelineClipViewModel> Clips { get; } = new();
 
+    /// <summary>The track's dissolves, drawn over the clips at their zones (D025 §3).</summary>
+    public ObservableCollection<TimelineTransitionViewModel> Transitions { get; } = new();
+
     /// <summary>Highlighted while a drag/drop would land on this track.</summary>
     [ObservableProperty] private bool _isDropTarget;
 }
+
+/// <summary>One dissolve's zone on the timeline (D025 §3): <c>[c − ⌊F/2⌋, c + ⌈F/2⌉)</c> in pixels at the current zoom.
+/// Selecting it shows it in the Inspector; Delete removes it.</summary>
+public sealed partial class TimelineTransitionViewModel(Transition transition, Track track) : ViewModelBase
+{
+    public Transition Transition { get; } = transition;
+    public Track Track { get; } = track;
+    public Guid Id => Transition.Id;
+
+    [ObservableProperty] private double _left;
+    [ObservableProperty] private double _width;
+    [ObservableProperty] private bool _isSelected;
+
+    public void Layout(double pixelsPerSecond, FrameRate rate)
+    {
+        var right = Track.Clips.FirstOrDefault(c => c.Id == Transition.RightClipId);
+        if (right is null) return;
+        var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(Transition.Duration, rate));
+        var cut = right.TimelineStart.ToFrameFloor(rate);
+        var start = MediaTime.FromFrame(cut - beforeCut, rate);
+        Left = TimelineCoordinateMapper.TimeToX(start, pixelsPerSecond);
+        Width = Math.Max(TimelineClipViewModel.MinWidthPixels,
+            TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(cut + afterCut, rate) - start, pixelsPerSecond));
+    }
+}
+
+/// <summary>The selected dissolve, as passed to the Inspector: its track, the names of A and B, the rate and the
+/// longest it could be now (from the edit service; null when its cut is gone).</summary>
+public sealed record TimelineTransitionSelection(Transition Transition, Track Track, string LeftName, string RightName, FrameRate Rate,
+    long? MaxFrames);
 
 /// <summary>A single labeled tick on the time ruler.</summary>
 public sealed class TimelineRulerTickViewModel : ViewModelBase

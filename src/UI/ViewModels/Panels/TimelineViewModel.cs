@@ -37,6 +37,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private readonly Dictionary<Guid, TimelineClipViewModel> _clipViewModels = new();
     private readonly Dictionary<Track, TimelineTrackViewModel> _trackViewModels = new();
+    private readonly Dictionary<Guid, TimelineTransitionViewModel> _transitionViewModels = new();
+    private Guid? _selectedTransitionId;
+
+    /// <summary>Length of a dissolve added with the Dissolve command (the longest that fits when less fits, D025).</summary>
+    public static readonly MediaTime DefaultDissolveDuration = MediaTime.FromSeconds(1);
     private readonly List<Guid> _selection = new(); // last = primary
 
     private Gesture? _gesture;
@@ -92,7 +97,16 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(DeleteSelectedCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AddDissolveCommand))]
     private bool _hasSelection;
+
+    /// <summary>A dissolve is selected (and no clip).</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(DeleteSelectedCommand))]
+    private bool _hasTransitionSelection;
+
+    /// <summary>The selected dissolve changed (null = none selected).</summary>
+    public event EventHandler<TimelineTransitionSelection?>? TransitionSelectionChanged;
 
     public double PlayheadHeight => RulerHeight + TracksHeight;
 
@@ -161,6 +175,22 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
         foreach (var staleId in _clipViewModels.Keys.Where(id => !liveIds.Contains(id)).ToList())
             _clipViewModels.Remove(staleId);
+
+        var liveTransitions = new HashSet<Guid>();
+        foreach (var trackVm in Tracks)
+        {
+            var desired = trackVm.Track.Transitions.Select(t => GetTransitionViewModel(t, trackVm.Track)).ToList();
+            liveTransitions.UnionWith(desired.Select(t => t.Id));
+            if (!desired.SequenceEqual(trackVm.Transitions))
+            {
+                trackVm.Transitions.Clear();
+                foreach (var transitionVm in desired) trackVm.Transitions.Add(transitionVm);
+            }
+        }
+        foreach (var staleId in _transitionViewModels.Keys.Where(id => !liveTransitions.Contains(id)).ToList())
+            _transitionViewModels.Remove(staleId);
+        if (_selectedTransitionId is { } selected && !liveTransitions.Contains(selected))
+            _selectedTransitionId = null;
         IsEmpty = liveIds.Count == 0;
         RefreshClipNames(); // a text clip's label is its text, which any change (or undo) may alter
         _selection.RemoveAll(id => !liveIds.Contains(id));
@@ -178,7 +208,15 @@ public sealed partial class TimelineViewModel : ViewModelBase
         Relayout();
         UpdateSelectionVisuals();
         RaiseSelectionChanged();
+        RaiseTransitionSelectionChanged();
         PlayheadChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private TimelineTransitionViewModel GetTransitionViewModel(Transition transition, Track track)
+    {
+        if (!_transitionViewModels.TryGetValue(transition.Id, out var vm) || vm.Track != track)
+            _transitionViewModels[transition.Id] = vm = new TimelineTransitionViewModel(transition, track);
+        return vm;
     }
 
     private TimelineClipViewModel GetClipViewModel(Clip clip)
@@ -249,6 +287,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
             vm.Layout(PixelsPerSecond);
         RefreshWaveforms();
         RefreshFades();
+        foreach (var vm in _transitionViewModels.Values)
+            vm.Layout(PixelsPerSecond, FrameRate);
 
         var contentEnd = TimelineCoordinateMapper.TimeToX(SequenceDuration + TrailingSpace, PixelsPerSecond);
         ContentWidth = Math.Max(contentEnd, _viewportWidth);
@@ -421,7 +461,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private bool CanEdit() => !_editingLock.IsLocked;
 
-    private bool CanDeleteSelected() => CanEdit() && HasSelection;
+    private bool CanDeleteSelected() => CanEdit() && (HasSelection || HasTransitionSelection);
+
+    /// <summary>The Dissolve command needs two selected clips; whether they meet on a video track and how long a
+    /// dissolve fits there is the edit service's call (D025 §3–§5).</summary>
+    private bool CanAddDissolve() => CanEdit() && _selection.Count == 2;
 
     private void OnEditingLockChanged()
     {
@@ -429,6 +473,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsEditingAllowed));
         SplitAtPlayheadCommand.NotifyCanExecuteChanged();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
+        AddDissolveCommand.NotifyCanExecuteChanged();
         AddVideoTrackCommand.NotifyCanExecuteChanged();
         AddAudioTrackCommand.NotifyCanExecuteChanged();
         AddTextCommand.NotifyCanExecuteChanged();
@@ -441,9 +486,45 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanDeleteSelected))]
     private void DeleteSelected()
     {
+        if (_selectedTransitionId is { } transitionId && _selection.Count == 0)
+        {
+            Report(_edit.RemoveTransition(transitionId), successMessage: "Dissolve removed");
+            return;
+        }
+
         var result = _edit.DeleteClips(_selection.ToList());
         if (result.Success) ClearSelection();
         Report(result);
+    }
+
+    /// <summary>
+    /// "Dissolve": a cross dissolve on the cut between the two selected clips (D025) — <see cref="DefaultDissolveDuration"/>,
+    /// or the longest the edit service says fits there when that is shorter. Every check (the clips meet on one unlocked
+    /// video track, the zone, the handles) is the service's; its message is shown when it refuses. The new dissolve is
+    /// selected.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanAddDissolve))]
+    private void AddDissolve()
+    {
+        var clips = _selection.Select(id => _clipViewModels.TryGetValue(id, out var vm) ? vm.Clip : null).OfType<Clip>()
+            .OrderBy(c => c.TimelineStart).ToList();
+        if (clips.Count != 2) return;
+        var (left, right) = (clips[0], clips[1]);
+
+        if (_edit.MaxTransitionFrames(left.Id, right.Id) is not { } max)
+        {
+            _status.Report("Select two clips that meet on a video track (the first ends where the second starts) to add a dissolve.");
+            return;
+        }
+
+        var wanted = TransitionRules.Frames(DefaultDissolveDuration, FrameRate);
+        var frames = max >= TransitionRules.MinFrames ? Math.Min(wanted, max) : wanted;
+        var result = _edit.AddTransition(left.Id, right.Id, MediaTime.FromFrame(frames, FrameRate));
+        if (result.Success && result.TransitionId is { } id)
+            SelectTransition(id);
+        Report(result, successMessage: frames < wanted
+            ? $"Dissolve added: {frames} frames, the longest that fits here."
+            : $"Dissolve added: {frames} frames.");
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))] private void AddVideoTrack() => Report(_edit.AddTrack(TrackType.Video));
@@ -481,6 +562,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void SelectAdded(TimelineEditResult result)
     {
         if (!result.Success || result.ClipIds.Count == 0) return;
+        DropTransitionSelection();
         _selection.Clear();
         _selection.AddRange(result.ClipIds);
         UpdateSelectionVisuals();
@@ -511,6 +593,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// must not start a drag (Ctrl-toggle).</summary>
     public bool OnClipPressed(TimelineClipViewModel clip, bool toggle)
     {
+        DropTransitionSelection();
         if (toggle)
         {
             if (!_selection.Remove(clip.Id)) _selection.Add(clip.Id);
@@ -531,8 +614,50 @@ public sealed partial class TimelineViewModel : ViewModelBase
             SelectOnly(clip.Id);
     }
 
+    /// <summary>Pointer pressed on a dissolve's zone: it becomes the selection (no clip stays selected).</summary>
+    public void OnTransitionPressed(TimelineTransitionViewModel transition) => SelectTransition(transition.Id);
+
+    private void SelectTransition(Guid id)
+    {
+        if (_selection.Count > 0)
+        {
+            _selection.Clear();
+            UpdateSelectionVisuals();
+            RaiseSelectionChanged();
+        }
+        _selectedTransitionId = id;
+        UpdateSelectionVisuals();
+        RaiseTransitionSelectionChanged();
+    }
+
+    /// <summary>Drops a dissolve selection (a clip or nothing is being selected instead).</summary>
+    private void DropTransitionSelection()
+    {
+        if (_selectedTransitionId is null) return;
+        _selectedTransitionId = null;
+        UpdateSelectionVisuals();
+        RaiseTransitionSelectionChanged();
+    }
+
+    private void RaiseTransitionSelectionChanged()
+    {
+        if (_selectedTransitionId is { } id && _transitionViewModels.TryGetValue(id, out var vm))
+        {
+            var t = vm.Transition;
+            var left = _clipViewModels.TryGetValue(t.LeftClipId, out var a) ? a.Name : "";
+            var right = _clipViewModels.TryGetValue(t.RightClipId, out var b) ? b.Name : "";
+            TransitionSelectionChanged?.Invoke(this, new TimelineTransitionSelection(t, vm.Track, left, right, FrameRate,
+                _edit.MaxTransitionFrames(t.LeftClipId, t.RightClipId)));
+        }
+        else
+        {
+            TransitionSelectionChanged?.Invoke(this, null);
+        }
+    }
+
     public void ClearSelection()
     {
+        DropTransitionSelection();
         if (_selection.Count == 0) return;
         _selection.Clear();
         UpdateSelectionVisuals();
@@ -544,11 +669,13 @@ public sealed partial class TimelineViewModel : ViewModelBase
     public void ClearSelectionSilently()
     {
         _selection.Clear();
+        _selectedTransitionId = null;
         UpdateSelectionVisuals();
     }
 
     private void SelectOnly(Guid id)
     {
+        DropTransitionSelection();
         _selection.Clear();
         _selection.Add(id);
         UpdateSelectionVisuals();
@@ -559,7 +686,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         foreach (var vm in _clipViewModels.Values)
             vm.IsSelected = _selection.Contains(vm.Id);
+        foreach (var vm in _transitionViewModels.Values)
+            vm.IsSelected = vm.Id == _selectedTransitionId;
         HasSelection = _selection.Count > 0;
+        HasTransitionSelection = _selectedTransitionId is not null;
     }
 
     private void RaiseSelectionChanged()

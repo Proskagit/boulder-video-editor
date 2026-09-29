@@ -83,6 +83,21 @@
             </StackPanel>
           </StackPanel>
 
+          <!-- Dissolve selection (Phase 10, D025): its length in whole frames (2 … the longest that fits, from the edit
+               service), the time next to it, Remove. Disabled while an export runs. -->
+          <StackPanel IsVisible="{Binding IsTransitionSelected}" IsEnabled="{Binding IsEditingAllowed}" Spacing="6">
+            <TextBlock Text="DISSOLVE" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+            <TextBlock Text="{Binding DissolveClipsDisplay}" Foreground="#DDDDDD" TextWrapping="Wrap"/>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Text="Duration" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+              <NumericUpDown Value="{Binding DissolveFrames, Mode=TwoWay}" Increment="1" Minimum="{Binding MinDissolveFrames}"
+                             Maximum="{Binding MaxDissolveFrames}" FormatString="0" Width="110"/>
+              <TextBlock Text="{Binding DissolveTimeDisplay, StringFormat='frames  {0}'}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock Text="{Binding DissolveLimitDisplay}" Foreground="#7A7A7A" FontSize="10" Margin="88,0,0,0" TextWrapping="Wrap"/>
+            <Button Content="Remove Dissolve" Command="{Binding RemoveDissolveCommand}" Margin="88,4,0,0" FontSize="11"/>
+          </StackPanel>
+
           <!-- Timeline clip selection (Phase 4) -->
           <StackPanel IsVisible="{Binding IsTimelineClipSelected}" IsEnabled="{Binding IsEditingAllowed}" Spacing="16">
             <!-- Text (Phase 7 Step 8): text clips only. Every field applies live; consecutive changes of one

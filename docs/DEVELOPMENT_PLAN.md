@@ -323,7 +323,7 @@ Scope: the snapshot carries the zone (A extended by `hA`, B by `hB`), `LayersAt`
 - PR: cancelling an export inside a zone ends as before.
 - Depends on: 10.6.
 
-### 10.8 — Dissolve: UI
+### 10.8 — Dissolve: UI *(done — awaiting the product owner's acceptance and the real-app scenarios 13–20)*
 Scope: add a dissolve on the selected cut (command and button), select it, its duration in the Inspector, Delete, the
 zone drawn on the timeline; `EditingLock`; the manual plan's dissolve section.
 - PR: every edit goes through the edit service (one undo step); the zone is shown where it renders; the status bar

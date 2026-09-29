@@ -30,6 +30,15 @@
     <Style Selector="Border.trimHandle:pointerover">
       <Setter Property="Background" Value="#55FFFFFF"/>
     </Style>
+    <Style Selector="Border.dissolve">
+      <Setter Property="Background" Value="#55B0C4DE"/>
+      <Setter Property="BorderBrush" Value="#B0C4DE"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+    <Style Selector="Border.dissolve.selected">
+      <Setter Property="BorderBrush" Value="#FFD54F"/>
+      <Setter Property="BorderThickness" Value="2"/>
+    </Style>
     <Style Selector="Border.trackRow">
       <Setter Property="Background" Value="#202020"/>
     </Style>
@@ -54,7 +63,8 @@
             <Button Content="+ Text" Command="{Binding AddTextCommand}" ToolTip.Tip="Add a text clip at the playhead on the top video track" FontSize="11"/>
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
             <Button Content="Split" Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="Split at playhead (S)" FontSize="11"/>
-            <Button Content="Delete" Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="Delete selected clips (Delete)" FontSize="11"/>
+            <Button Content="Delete" Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="Delete the selected clips or dissolve (Delete)" FontSize="11"/>
+            <Button Content="Dissolve" Command="{Binding AddDissolveCommand}" ToolTip.Tip="Add a dissolve between the two selected clips (they must meet on a video track)" FontSize="11"/>
             <ToggleButton Content="Snap" IsChecked="{Binding SnappingEnabled}" ToolTip.Tip="Snapping (N)" FontSize="11"/>
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
             <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out (Ctrl+−)" FontSize="11"/>
@@ -115,6 +125,7 @@
                 <DataTemplate>
                   <Border Classes="trackRow" Classes.dropTarget="{Binding IsDropTarget}"
                           Height="44" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1">
+                    <Panel>
                     <ItemsControl Classes="canvasItems" ItemsSource="{Binding Clips}">
                       <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -158,6 +169,24 @@
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <!-- Dissolve zones (D025 §3) over the clips: pressing one selects the dissolve. -->
+                    <ItemsControl Classes="canvasItems" ItemsSource="{Binding Transitions}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <Canvas/>
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Border Classes="dissolve" Classes.selected="{Binding IsSelected}" Width="{Binding Width}" Height="36"
+                                  Margin="0,4,0,0" CornerRadius="2" ToolTip.Tip="Dissolve — click to select">
+                            <TextBlock Text="⨯" Foreground="#FFFFFF" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       IsHitTestVisible="False"/>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    </Panel>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>

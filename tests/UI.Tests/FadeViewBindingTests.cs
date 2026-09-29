@@ -47,4 +47,30 @@ public sealed class FadeViewBindingTests
         fields[0].Value = 20m;                                                   // typing in the view edits the clip
         Assert.Equal(F(20), clip.FadeIn);
     }
+
+    [Fact]
+    public void The_inspector_view_binds_the_dissolve_section()
+    {
+        var undo = new UndoRedoService();
+        var projects = new ProjectService(undo, NullLogger<ProjectService>.Instance);
+        var edit = new TimelineEditService(projects, undo, NullLogger<TimelineEditService>.Instance);
+        var inspector = new InspectorViewModel(edit, new StatusService());
+        var track = projects.Current.Timeline.VideoTracks[0];
+        var a = new TextClip { Text = "A", TimelineStart = F(0), Duration = F(50) };
+        var b = new TextClip { Text = "B", TimelineStart = F(50), Duration = F(50) };
+        track.Clips.AddRange(new Clip[] { a, b });
+        var dissolve = new Transition { TransitionTypeId = TransitionRules.CrossDissolve, Duration = F(10), LeftClipId = a.Id, RightClipId = b.Id };
+        track.Transitions.Add(dissolve);
+        inspector.ShowTransition(new TimelineTransitionSelection(dissolve, track, "A", "B", Rate, MaxFrames: 100));
+
+        var view = new InspectorView { DataContext = inspector };
+        var field = view.GetLogicalDescendants().OfType<NumericUpDown>().Single(n => n.Minimum == 2m);
+        Assert.Equal((10m, 100m), (field.Value, field.Maximum));
+        Assert.Contains(view.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Longest that fits here: 100 frames");
+        var remove = view.GetLogicalDescendants().OfType<Button>().Single(x => Equals(x.Content, "Remove Dissolve"));
+        Assert.Same(inspector.RemoveDissolveCommand, remove.Command);
+
+        field.Value = 20m;                                                       // typing in the view edits the dissolve
+        Assert.Equal(F(20), dissolve.Duration);
+    }
 }

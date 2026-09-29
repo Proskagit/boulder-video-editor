@@ -5,6 +5,7 @@ using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
@@ -16,7 +17,10 @@ public enum InspectorSelectionKind
 {
     None,
     Media,
-    TimelineClip
+    TimelineClip,
+
+    /// <summary>A dissolve on the timeline (D025).</summary>
+    Transition
 }
 
 /// <summary>
@@ -68,6 +72,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     {
         if (!_editingLock.IsLocked) return false;
         SyncFromModel();
+        SyncTransition();
         return true;
     }
 
@@ -75,11 +80,13 @@ public sealed partial class InspectorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsMediaSelected))]
     [NotifyPropertyChangedFor(nameof(IsTimelineClipSelected))]
     [NotifyPropertyChangedFor(nameof(IsNothingSelected))]
+    [NotifyPropertyChangedFor(nameof(IsTransitionSelected))]
     private InspectorSelectionKind _selectionKind = InspectorSelectionKind.None;
 
     public bool IsMediaSelected => SelectionKind == InspectorSelectionKind.Media;
     public bool IsTimelineClipSelected => SelectionKind == InspectorSelectionKind.TimelineClip;
     public bool IsNothingSelected => SelectionKind == InspectorSelectionKind.None;
+    public bool IsTransitionSelected => SelectionKind == InspectorSelectionKind.Transition;
 
     // --- Media selection: basic info (Phase 2) ------------------------------
     [ObservableProperty] private string _mediaFileName = "";
@@ -291,6 +298,78 @@ public sealed partial class InspectorViewModel : ViewModelBase
         }
     }
 
+    // --- Dissolve (Phase 10, D025 §3–§5) --------------------------------------------------------
+    // The selected dissolve's length in whole frames (the time shown next to it), sent to SetTransitionDuration;
+    // consecutive changes merge into one undo step. The field's range is 2 … the longest the edit service says fits (never
+    // below the current length), so input outside it is not applied — like every numeric field — and the longest that
+    // fits is shown under it. Remove deletes the dissolve (one undo step).
+
+    private TimelineTransitionSelection? _transition;
+
+    [ObservableProperty] private decimal? _dissolveFrames;
+    [ObservableProperty] private decimal _maxDissolveFrames = TransitionRules.MinFrames;
+    public decimal MinDissolveFrames => TransitionRules.MinFrames;
+    [ObservableProperty] private string _dissolveTimeDisplay = "";
+    [ObservableProperty] private string _dissolveLimitDisplay = "";
+    [ObservableProperty] private string _dissolveClipsDisplay = "";
+
+    /// <summary>Shows a dissolve selected on the timeline. Called again after every timeline change (undo / redo too).</summary>
+    public void ShowTransition(TimelineTransitionSelection selection)
+    {
+        ForgetClip();
+        _transition = selection;
+        SyncTransition();
+        TechnicalRows.Clear();
+        SelectionKind = InspectorSelectionKind.Transition;
+        OnPropertyChanged(nameof(HasTechnicalInfo));
+    }
+
+    private void SyncTransition()
+    {
+        if (_transition is not { } s) return;
+        _syncing = true;
+        try
+        {
+            var frames = TransitionRules.Frames(s.Transition.Duration, s.Rate);
+            MaxDissolveFrames = Math.Max(frames, s.MaxFrames ?? frames);
+            DissolveFrames = frames;
+            DissolveTimeDisplay = TimeFormat.ToTimecode(MediaTime.FromFrame(frames, s.Rate), s.Rate);
+            DissolveLimitDisplay = s.MaxFrames is { } max ? $"Longest that fits here: {max} frames" : "";
+            DissolveClipsDisplay = $"{s.LeftName} → {s.RightName} ({s.Track.Name})";
+        }
+        finally
+        {
+            _syncing = false;
+        }
+    }
+
+    partial void OnDissolveFramesChanged(decimal? value)
+    {
+        if (_syncing || value is not { } frames || _transition is not { } s || RejectWhileLocked()) return;
+
+        if (frames != decimal.Truncate(frames))
+        {
+            _status.Report("A dissolve is a whole number of frames.");
+            SyncTransition();
+            return;
+        }
+
+        var result = _edit.SetTransitionDuration(s.Transition.Id, MediaTime.FromFrame((long)frames, s.Rate));
+        if (!result.Success)
+        {
+            _status.Report(result.Message ?? "The dissolve could not be changed.");
+            SyncTransition();
+        }
+    }
+
+    [RelayCommand]
+    private void RemoveDissolve()
+    {
+        if (_transition is not { } s || RejectWhileLocked()) return;
+        var result = _edit.RemoveTransition(s.Transition.Id);
+        _status.Report(result.Success ? "Dissolve removed" : result.Message ?? "The dissolve could not be removed.");
+    }
+
     // --- Text (Phase 7 Step 8): text clips ---------------------------------------------------
     // Same pattern as the visual fields: each field is sent to SetClipProperties on its own and live,
     // consecutive changes of one field merge into one undo step (D017), the fields are filled from the
@@ -369,6 +448,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     {
         var clip = selection.Clip;
         _clip = clip;
+        _transition = null;
         // A video file without an audio stream has nothing to mix; unknown metadata still shows it.
         HasAudioProperties = clip is AudioClip || (clip is VideoClip && selection.Asset?.Metadata is not { AudioCodec: null });
         HasVisualProperties = VisualProperties.Of(clip) is not null;
@@ -506,6 +586,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     private void ForgetClip()
     {
         _clip = null;
+        _transition = null;
         HasAudioProperties = false;
         HasVisualProperties = false;
         HasCrop = false;

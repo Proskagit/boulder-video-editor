@@ -55,13 +55,28 @@ timecode next to each field; the timeline draws each effective ramp as a darkeni
 
 ## Steps 10.6–10.8 — cross dissolve
 
+Fixture (Debug build; the timeline layout is in the script's header):
+
+```
+pwsh tools/manual/New-Phase10DissolveFixture.ps1 -Force
+dotnet run --project src/App/App.csproj -- --open-project "%TEMP%ive-phase10-dissolves"
+```
+
+UI: select two clips that meet (click the first, Ctrl+click the second), then **Dissolve** in the timeline header —
+1 s, or the longest that fits when less fits (the status bar says which). The zone is drawn over the cut; click it to
+select the dissolve: the Inspector's DISSOLVE section shows its length in frames with the time, the longest that fits
+and **Remove Dissolve**; Delete removes it too. Everything is one undo step.
+
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 13 | Add a dissolve | Two trimmed videos touching on V1; select the cut; add a 1 s dissolve | The zone is drawn centred on the cut; B dissolves over A; the sound cuts hard at the cut | `DissolveEditTests`, `DissolveCompositionTests`, `ExportDissolveEndToEndTests` | auto (UI in 10.8) |
-| 14 | No handles | Two untrimmed (full-length) videos touching; add a dissolve | Nothing is created; the message says there is not enough media beyond the clips (and the longest that fits, if any) | `DissolveEditTests` | auto (UI in 10.8) |
-| 15 | Image / text neighbours | Dissolve video → image and image → text | Works without handles | `DissolveEditTests`, `ExportDissolveEndToEndTests` | auto (UI in 10.8) |
-| 16 | Move / trim / split / delete | Move A alone; move A and B together; trim the cut edge; trim a far edge; split inside and outside the zone; delete B | As D025 §5: removed (with a status message) / kept / clamped / rejected; each one undo step | `DissolveEditTests` | auto (UI in 10.8) |
-| 17 | Speed | Change B's speed so its handle is too short; change A's speed | B: rejected with a message; A: the dissolve is removed (status message) | `DissolveEditTests`, `InspectorFadeTests` | auto (UI in 10.8) |
-| 18 | Export with dissolves | Export a project with scenarios 13 and 15 | The MP4 matches the Preview in every zone | `ExportDissolveEndToEndTests`, `ExportFrameSelectionContractTests` | auto (UI in 10.8) |
-| 19 | Cancel inside a zone | Start an export, cancel while it renders a zone | Ends as any cancel: no MP4, no temporary file, no ffmpeg left | `ExportDissolveEndToEndTests` | auto (UI in 10.8) |
-| 20 | Save / reopen | Save a project with dissolves, reopen | Dissolves, their durations and anchors are unchanged | Serializer tests | planned |
+| 13 | Add a dissolve | Select the clips at 0–4 s and 4–8 s; Dissolve; play 3–5 s; step through the zone with ← / → | Status "Dissolve added: 25 frames."; a band over 3.52–4.52 s, selected; the bars fade in over the pattern frame by frame (the pattern keeps moving past 4 s — its handle); the sound switches from 440 Hz to 880 Hz exactly at 4 s (a hard cut); Inspector: 25 frames, "Longest that fits here: 51 frames" | `TimelineDissolveUiTests`, `DissolveEditTests`, `DissolveCompositionTests`, `ExportDissolveEndToEndTests` | auto; manual pending |
+| 13a | Length and selection | With the dissolve selected: Inspector Duration 25 → 30 with the arrows, then 7; Undo; zoom in / out; click a clip, click the band again | The band widens / narrows around the cut and follows the zoom; the arrow changes are one undo step ("Change Dissolve Duration"); a value above the longest that fits, a fraction or text is not applied (the field shows the length again); selecting a clip leaves the band unselected | `TimelineDissolveUiTests`, `FadeViewBindingTests` | auto; manual pending |
+| 14 | No handles | Select the two "short" clips at 9–13 s; Dissolve | Nothing is created; status "There is not enough media beyond the clips for the dissolve." | `TimelineDissolveUiTests`, `DissolveEditTests` | auto; manual pending |
+| 14a | No suitable cut | Select the "bars" clip (4–8 s) and the first "short" clip (9–11 s; a gap between them); Dissolve. Then select one clip, or three: the button | Status "Select two clips that meet on a video track …"; with one or three clips selected the button is disabled | `TimelineDissolveUiTests` | auto; manual pending |
+| 15 | Image / text neighbours | Dissolve 14–18 s / 18–22 s (video → image) and 18–22 s / 22–26 s (image → text); play 17–23 s | Both added with 25 frames (no handle limit for the image and the text); the image fades in over the video, the text over the image | `DissolveEditTests`, `ExportDissolveEndToEndTests` | auto; manual pending |
+| 16 | Move / trim / split / delete | On the 13 dissolve: move the bars clip alone (status "A dissolve was removed …", Undo); move both clips together; trim the pattern clip's end (removed, Undo); drag its left edge toward 4 s (it stops at 3.52 s, keeping the dissolve's 12 frames); split at 3.8 s (rejected "Can't split inside a dissolve.") and at 2 s (kept); delete the bars clip (removed, Undo); select the band, Delete (removed, Undo) | As listed; every change is one undo step and Undo restores clips and the dissolve exactly | `DissolveEditTests`, `TimelineDissolveUiTests` | auto; manual pending |
+| 17 | Speed | With the 13 dissolve: "bars" clip Speed 4× in the Inspector, then 2×; Undo; "pattern" clip Speed 2× | 4×: rejected — not enough media before "bars" at that speed (the field shows 1× again); 2×: allowed, the dissolve stays; 2× on "pattern": its end moves to 2 s, the dissolve is removed with the status message; Undo brings it back | `DissolveEditTests`, `InspectorFadeTests` | auto; manual pending |
+| 17a | Locked track, export | Start an export with a dissolve selected. (A locked track has no control in the UI: not reachable by hand) | During the export the main window is blocked (the export window is modal), the DISSOLVE fields are disabled. Locked track: Dissolve / Duration / Remove report "Track V1 is locked." (tests only) | `TimelineDissolveUiTests` | auto; manual pending (export part) |
+| 18 | Export with dissolves | Export the project with the dissolves of 13 and 15 | The MP4 shows the dissolves at the same frames as the Preview; the sound cuts hard at 4 s | `ExportDissolveEndToEndTests`, `ExportFrameSelectionContractTests` | auto; manual pending |
+| 19 | Cancel inside a zone | Export, cancel while it renders 3.5–4.5 s (the export is short: be quick, or repeat) | Ends as any cancel: no MP4, no temporary file, no ffmpeg left | `ExportDissolveEndToEndTests` | auto; manual pending |
+| 20 | Save / reopen | Save (Ctrl+S), close, open the fixture again with the same command | The dissolves, their lengths and the clips they join are unchanged (`transitions` with `leftClipId` / `rightClipId` in `project.json`) | `FadeTransitionPersistenceTests` | auto; manual pending |

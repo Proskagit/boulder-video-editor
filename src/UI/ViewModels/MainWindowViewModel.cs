@@ -90,6 +90,20 @@ public sealed class MainWindowViewModel : ViewModelBase
             Inspector.ShowClip(selection);
         };
 
+        Timeline.TransitionSelectionChanged += (_, selection) =>
+        {
+            if (selection is null)
+            {
+                if (Inspector.IsTransitionSelected) Inspector.ClearSelection();
+                return;
+            }
+
+            _suppressMediaSelection = true;
+            MediaBrowser.SelectedItem = null;
+            _suppressMediaSelection = false;
+            Inspector.ShowTransition(selection);
+        };
+
         MediaBrowser.AddToTimelineRequested += (_, asset) => Timeline.AddMedia(asset);
 
         // Playhead ↔ playback. User moves (SeekRequested) seek playback; playback positions are

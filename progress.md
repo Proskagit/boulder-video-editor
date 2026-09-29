@@ -183,6 +183,36 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
     The existing parity suite unchanged and green.
   - Limitations: no UI to create or edit dissolves yet (10.8) — until then they come only from a project file; the
     real-app dissolve scenarios 13–20 wait for 10.8.
+- Step 10.7 accepted by the product owner (2026-09-29) on the automated checks.
+- Step 10.8 done (2026-09-29) — dissolve UI. Awaiting the product owner's acceptance with the real-app scenarios
+  13–20 (fixture `tools/manual/New-Phase10DissolveFixture.ps1`).
+  - Timeline: `AddDissolveCommand` ("Dissolve" in the header; enabled for exactly two selected clips and no export;
+    orders them by start, asks `MaxTransitionFrames` — null: "Select two clips that meet on a video track …" —, adds
+    1 s or the longest that fits when shorter, selects the new dissolve, reports "Dissolve added: N frames[, the
+    longest that fits here]." or the service's refusal); `TimelineTrackViewModel.Transitions` of
+    `TimelineTransitionViewModel` (zone `[c − ⌊F/2⌋, c + ⌈F/2⌉)` in pixels, relaid out on every zoom / edit / undo);
+    a dissolve selection exclusive with the clip selection (`OnTransitionPressed`, `HasTransitionSelection`,
+    `TransitionSelectionChanged` with the longest that fits from the service); a selection whose dissolve is gone
+    (undo, an edit that removed it) is dropped; `DeleteSelected` removes a selected dissolve ("Dissolve removed").
+    View: the zones as an overlay of the track row (class `dissolve`, gold when selected), hit-tested before the clips.
+  - Inspector: selection kind `Transition`; DISSOLVE section (the clips "A → B (V1)", Duration in whole frames with
+    the timecode, range 2 … the longest that fits — never below the current length —, "Longest that fits here: N
+    frames", Remove Dissolve); fractions reported, the service's refusals (locked track, too long) reported and the
+    field shows the length again; disabled by the `EditingLock`. Shell: `TransitionSelectionChanged` → Inspector.
+  - Tests: `UI.Tests/TimelineDissolveUiTests` (11: the command's availability with 0 / 1 / 2 / 3 clips and during an
+    export; add selects and shows it, undo / redo without a stale selection; the longest that fits; no handles, no cut,
+    locked track messages; the zone follows the cut, the zoom and the length; zone vs clip selection; Delete in one
+    undo step; the Inspector's length merged, fractions, undo, Remove; its range and a locked refusal; the export lock;
+    an edit removing the selected dissolve drops the selection); `UI.Tests/FadeViewBindingTests` (the real
+    `InspectorView` XAML binds the DISSOLVE section). Mutations (caught): no re-raise of the dissolve selection on
+    refresh → 4; Delete ignoring a selected dissolve → 1; no clamp to the longest → 1.
+  - Checked: the dissolve fixture opens with `--open-project` ("Opened project 'Phase 10 dissolves' … (4 media, 0
+    missing, 7 clips)"), closes clean. The timeline overlay itself is not checked headlessly (a `TimelineView` needs
+    Avalonia's platform); it is part of the manual scenarios.
+  - Verification: `dotnet build --no-incremental` 0 errors / 0 warnings; `dotnet test` 1951 passed, 2 skipped (4K
+    heavy) — Core 448, Timeline 297, Project 319, UI 355, Export 97, Rendering 58, Video 291, ExportEndToEnd 86 (+2).
+  - For the product owner: the Dissolve command's length when 1 s doesn't fit (the longest that fits is added and said)
+    — confirm or choose "refuse" at the acceptance.
 
 ## Phase 9 (complete)
 
