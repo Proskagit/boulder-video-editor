@@ -353,6 +353,43 @@ public class DissolveEditTests
         Assert.Equal(before, f.Snapshot());
     }
 
+    /// <summary>Found in the 10.8 manual run: several speed changes of A in a row (the Inspector's arrows) — the first one
+    /// removes the dissolve — must still be one undo step that restores the speed and the dissolve.</summary>
+    [Fact]
+    public void A_chain_of_speed_changes_that_removed_a_dissolve_is_one_undo_step()
+    {
+        var (f, a, b) = Cut();
+        AddDissolve(f, a, b, 20);
+        var before = f.Snapshot();
+
+        Ok(f.Service.SetClipSpeed(a.Id, ClipSpeed.FromSteps(21)));                // 1.05×: the cut opens, the dissolve goes
+        Assert.Empty(f.V1.Transitions);
+        Ok(f.Service.SetClipSpeed(a.Id, ClipSpeed.FromSteps(30)));
+        Ok(f.Service.SetClipSpeed(a.Id, ClipSpeed.FromSteps(40)));
+
+        f.UndoRedo.Undo();
+        Assert.Equal(before, f.Snapshot());
+        f.UndoRedo.Redo();
+        Assert.Empty(f.V1.Transitions);
+        Assert.Equal(ClipSpeed.FromSteps(40), ((MediaBackedClip)a).Speed);
+    }
+
+    [Fact]
+    public void Returning_to_the_first_speed_keeps_the_step_that_removed_the_dissolve()
+    {
+        var (f, a, b) = Cut();
+        AddDissolve(f, a, b, 20);
+        var before = f.Snapshot();
+
+        Ok(f.Service.SetClipSpeed(a.Id, ClipSpeed.FromSteps(40)));
+        Ok(f.Service.SetClipSpeed(a.Id, ClipSpeed.Normal));                       // back to 1×: the dissolve stays removed …
+
+        Assert.Empty(f.V1.Transitions);
+        Assert.Equal("Change Speed", Top(f));                                     // … and the step that removed it is kept
+        f.UndoRedo.Undo();
+        Assert.Equal(before, f.Snapshot());
+    }
+
     [Fact]
     public void A_speed_change_of_B_that_leaves_too_short_a_handle_is_rejected()
     {

@@ -6,6 +6,7 @@ using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Avalonia.Threading;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
@@ -71,8 +72,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     private bool RejectWhileLocked()
     {
         if (!_editingLock.IsLocked) return false;
-        SyncFromModel();
-        SyncTransition();
+        ShowModelAfterRejection();
         return true;
     }
 
@@ -142,7 +142,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (!result.Success)
         {
             _status.Report(result.Message ?? "The clip could not be changed.");
-            SyncFromModel(); // show what the clip really has
+            ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
 
@@ -211,7 +211,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (!result.Success)
         {
             _status.Report(result.Message ?? "The clip could not be changed.");
-            SyncFromModel(); // show what the clip really has
+            ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
 
@@ -235,7 +235,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (!ClipSpeed.TryFromDecimal(entered, out var speed))
         {
             _status.Report($"Speed must be a multiple of 0.05× from {ClipSpeed.Min} to {ClipSpeed.Max}.");
-            SyncFromModel();
+            ShowModelAfterRejection(); // the fields show what the model really has
             return;
         }
 
@@ -243,7 +243,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (!result.Success)
         {
             _status.Report(result.Message ?? "The speed could not be changed.");
-            SyncFromModel(); // show what the clip really has
+            ShowModelAfterRejection(); // the fields show what the model really has
         }
         else if (result.Message is not null)
         {
@@ -285,7 +285,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (frames < 0 || frames != decimal.Truncate(frames))
         {
             _status.Report("A fade is a whole number of frames.");
-            SyncFromModel();
+            ShowModelAfterRejection(); // the fields show what the model really has
             return;
         }
 
@@ -294,7 +294,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (!result.Success)
         {
             _status.Report(result.Message ?? "The fade could not be changed.");
-            SyncFromModel(); // show what the clip really has
+            ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
 
@@ -350,7 +350,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (frames != decimal.Truncate(frames))
         {
             _status.Report("A dissolve is a whole number of frames.");
-            SyncTransition();
+            ShowModelAfterRejection(); // the fields show what the model really has
             return;
         }
 
@@ -358,7 +358,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (!result.Success)
         {
             _status.Report(result.Message ?? "The dissolve could not be changed.");
-            SyncTransition();
+            ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
 
@@ -430,7 +430,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (!result.Success)
         {
             _status.Report(result.Message ?? "The clip could not be changed.");
-            SyncFromModel(); // show what the clip really has
+            ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
 
@@ -581,7 +581,50 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// <summary>Shows the model's values in the fields again. Called when a field loses focus: an
     /// empty numeric field (null here) or an incomplete color was never an edit; fields that already
     /// show the model don't change.</summary>
-    public void ShowModelValues() => SyncFromModel();
+    public void ShowModelValues()
+    {
+        SyncFromModel();
+        SyncTransition();
+        AnnounceFields();
+    }
+
+    /// <summary>
+    /// A value the Inspector or the edit service rejected: the fields show the model again. The field that sent the value
+    /// is still inside its own update and ignores a change raised now, so the fields are announced once more right after
+    /// it — otherwise it would keep showing the rejected value, and even losing the focus wouldn't help (the view model
+    /// already holds the model's value, nothing changes; found with Speed 4× in the Phase 10 manual run).
+    /// </summary>
+    private void ShowModelAfterRejection()
+    {
+        SyncFromModel();
+        SyncTransition();
+        Dispatcher.UIThread.Post(AnnounceFields);
+    }
+
+    /// <summary>
+    /// Makes every numeric field show its current value again. Raising a change with the same value is not enough: the
+    /// binding compares with the value it last sent and skips it, while the control still shows the rejected text. Each
+    /// field therefore goes through "no value" and back (under the sync guard: never an edit).
+    /// </summary>
+    private void AnnounceFields()
+    {
+        _syncing = true;
+        try
+        {
+            var values = (VolumePercent, PositionX, PositionY, ScalePercent, Rotation, OpacityPercent, CropLeftPercent, CropTopPercent,
+                CropRightPercent, CropBottomPercent, SpeedValue, FontSize, FadeInFrames, FadeOutFrames, DissolveFrames);
+            (VolumePercent, PositionX, PositionY, ScalePercent, Rotation, OpacityPercent, CropLeftPercent, CropTopPercent) =
+                (null, null, null, null, null, null, null, null);
+            (CropRightPercent, CropBottomPercent, SpeedValue, FontSize, FadeInFrames, FadeOutFrames, DissolveFrames) =
+                (null, null, null, null, null, null, null);
+            (VolumePercent, PositionX, PositionY, ScalePercent, Rotation, OpacityPercent, CropLeftPercent, CropTopPercent,
+                CropRightPercent, CropBottomPercent, SpeedValue, FontSize, FadeInFrames, FadeOutFrames, DissolveFrames) = values;
+        }
+        finally
+        {
+            _syncing = false;
+        }
+    }
 
     private void ForgetClip()
     {

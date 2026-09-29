@@ -63,8 +63,8 @@ dotnet run --project src/App/App.csproj -- --open-project "%TEMP%ive-phase10-di
 ```
 
 UI: select two clips that meet (click the first, Ctrl+click the second), then **Dissolve** in the timeline header —
-1 s, or the longest that fits when less fits (the status bar says which). The zone is drawn over the cut; click it to
-select the dissolve: the Inspector's DISSOLVE section shows its length in frames with the time, the longest that fits
+1 s, or the longest that fits when less fits (the status bar says which). The zone is drawn over the cut; click it (on a clip
+body — the clips' edge handles inside the zone still trim the clips) to select the dissolve: the Inspector's DISSOLVE section shows its length in frames with the time, the longest that fits
 and **Remove Dissolve**; Delete removes it too. Everything is one undo step.
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |

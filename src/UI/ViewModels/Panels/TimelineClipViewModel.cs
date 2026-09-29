@@ -104,12 +104,21 @@ public sealed partial class TimelineTransitionViewModel(Transition transition, T
     [ObservableProperty] private double _width;
     [ObservableProperty] private bool _isSelected;
 
-    public void Layout(double pixelsPerSecond, FrameRate rate)
+    /// <summary>False while a drag or trim preview would open the dissolve's cut (it is removed on release) —
+    /// shown again when the gesture ends.</summary>
+    [ObservableProperty] private bool _isVisible = true;
+
+    /// <summary>True when <paramref name="contentX"/> lies in the zone as drawn.</summary>
+    public bool Contains(double contentX) => IsVisible && contentX >= Left && contentX < Left + Width;
+
+    /// <summary>Lays the zone out around the cut, moved by <paramref name="frameDelta"/> frames (a drag preview of both
+    /// clips).</summary>
+    public void Layout(double pixelsPerSecond, FrameRate rate, long frameDelta = 0)
     {
         var right = Track.Clips.FirstOrDefault(c => c.Id == Transition.RightClipId);
         if (right is null) return;
         var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(Transition.Duration, rate));
-        var cut = right.TimelineStart.ToFrameFloor(rate);
+        var cut = right.TimelineStart.ToFrameFloor(rate) + frameDelta;
         var start = MediaTime.FromFrame(cut - beforeCut, rate);
         Left = TimelineCoordinateMapper.TimeToX(start, pixelsPerSecond);
         Width = Math.Max(TimelineClipViewModel.MinWidthPixels,

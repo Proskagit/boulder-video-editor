@@ -219,6 +219,39 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
     Fix: `UpdateSelectionVisuals` announces `AddDissolveCommand.NotifyCanExecuteChanged()` on every selection change.
     New test `The_button_is_told_whenever_the_command_becomes_available_or_not` follows `CanExecuteChanged` like a
     button (0 → 1 → 2 → 1 clips, export lock, clear); it fails on the old code. UI tests 356 passed.
+  - Second manual round (product owner, 2026-09-29): 13 (A–F), 14 (A1–A3), 15, 16.1, 16.5–16.7, 17a, 18, 19, 20 passed.
+    Five defects found and fixed (Core rules of 10.6 and the rendering of 10.7 unchanged):
+    1. 16.2 — dragging both clips: the zone stayed at its place until the release. Cause: the move preview laid out
+       only the clips. Fix: `UpdateMove` lays out every zone whose two clips are dragged with the drag's frame delta, and
+       hides one whose cut the drag would open (`TimelineTransitionViewModel.IsVisible`, `Layout(…, frameDelta)`); a
+       trim preview of a cut edge hides the zone (a far edge keeps it); the gesture's end or cancel shows them again.
+    2. 16.3 / 16.4 — the clip's handle under a zone (A's end at the cut; A's start after it was trimmed to the zone's
+       start) could not be dragged: the zones were an overlay that took the press. Fix: the zone overlay is not
+       hit-testable; the view first hit-tests the clip and its trim handles, and only a press on a clip body (no handle,
+       no Ctrl) inside a zone selects the dissolve (`TimelineViewModel.TransitionAt`).
+    3. 17 — 4× on "bars" looked applied. The edit service refused it (checked on the saved fixture: "Can't change the
+       speed: There is not enough media beyond the clips for the dissolve.", the clip unchanged), but the field kept
+       showing 4: the Inspector reset the value while the control was still sending it, so the control ignored it, and
+       losing the focus didn't help either — a binding doesn't pass on a value equal to the one it last sent. Fix: after a
+       rejection the Inspector makes the fields show the model again right after the control's update
+       (`Dispatcher.UIThread.Post`) and on every focus loss, by taking each numeric field through "no value" and back
+       (`AnnounceFields`, under the sync guard). This applies to every numeric field of the Inspector.
+    4. 17 — 2× on "pattern", then Undo: the dissolve didn't come back. Cause: the speed change that removed it was a
+       separate, non-merging composite step; the next speed changes of the clip (the arrows, or retyping) were new steps,
+       so one Undo went back only to the intermediate speed. Fix: `SetClipSpeedCommand` carries the removed dissolves
+       (executed after the clip changes, undone before it goes back) and still merges with the next speed changes of the
+       clip, keeping all of them; a chain that returns to the starting speed but removed a dissolve stays a step. (Ctrl+Z
+       pressed while the Speed field has the focus is the field's own text undo — the 9.6 rule that no shortcut fires
+       while typing —, not the app's Undo.)
+    Tests: `TimelineDissolveUiTests` (+5: the zone follows a drag of both clips and hides for one, a trim preview hides it
+    only when it opens the cut, the zone found by position, a refused speed reported with the field back at the clip's
+    speed, one Undo after three Inspector speed changes brings the dissolve back), `FadeViewBindingTests` (+1: the real
+    `InspectorView` Speed field — reproduced the stuck 4 before the fix — shows 1 again), `DissolveEditTests` (+2: a chain
+    of speed changes is one undo step; back to the first speed keeps the step). Mutations (caught): the merged step
+    dropped when back at 1× → 1; the removal not in the speed step → 3 + 2; the zone not moved in the drag preview → 1.
+    Not testable headlessly: the handle-before-zone order of the press (view code-behind) — manual 16.3 / 16.4.
+    Verification: `dotnet build --no-incremental` 0 / 0; `dotnet test` 1960 passed, 2 skipped (4K heavy) — Core 448,
+    Timeline 299, Project 319, UI 362, Export 97, Rendering 58, Video 291, ExportEndToEnd 86 (+2).
 
 ## Phase 9 (complete)
 

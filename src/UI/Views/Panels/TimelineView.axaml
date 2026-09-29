@@ -169,8 +169,9 @@
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <!-- Dissolve zones (D025 §3) over the clips: pressing one selects the dissolve. -->
-                    <ItemsControl Classes="canvasItems" ItemsSource="{Binding Transitions}">
+                    <!-- Dissolve zones (D025 §3) drawn over the clips. Not hit-testable: the clips' trim handles stay
+                         reachable; a press on a clip body inside a zone selects the dissolve (see the code-behind). -->
+                    <ItemsControl Classes="canvasItems" ItemsSource="{Binding Transitions}" IsHitTestVisible="False">
                       <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                           <Canvas/>
@@ -179,7 +180,7 @@
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
                           <Border Classes="dissolve" Classes.selected="{Binding IsSelected}" Width="{Binding Width}" Height="36"
-                                  Margin="0,4,0,0" CornerRadius="2" ToolTip.Tip="Dissolve — click to select">
+                                  Margin="0,4,0,0" CornerRadius="2" IsVisible="{Binding IsVisible}">
                             <TextBlock Text="⨯" Foreground="#FFFFFF" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
                                        IsHitTestVisible="False"/>
                           </Border>

@@ -345,6 +345,121 @@ public sealed class TimelineDissolveUiTests : IAsyncLifetime
         Assert.False(Inspector.IsTransitionSelected);
     }
 
+    // --- fixes from the 10.8 manual run -------------------------------------------------------------------------------
+
+    /// <summary>16.2: dragging both clips carries the zone along during the drag, not only on release; dragging one
+    /// hides it (the release removes it); cancelling restores it.</summary>
+    [Fact]
+    public void The_zone_follows_a_drag_of_both_clips_and_hides_when_one_is_dragged()
+    {
+        var (a, b) = SplitVideo();
+        _edit.AddTransition(a.Id, b.Id, F(20));
+        var zone = ZoneVm();
+        var (left, width) = (zone.Left, zone.Width);
+        double X(long frame) => TimelineCoordinateMapper.TimeToX(F(frame), Timeline.PixelsPerSecond);
+        Timeline.SnappingEnabled = false;
+
+        SelectBoth(a, b);
+        Timeline.BeginMove(X(50));
+        Timeline.UpdateGesture(X(50) + (X(40) - X(0)), ClipTrackVm(a));           // 40 frames to the right
+        Assert.True(zone.IsVisible);
+        Assert.Equal(X(130), zone.Left, 6);                                          // [90, 110) + 40
+        Assert.Equal(width, zone.Width, 6);
+        Timeline.CancelGesture();
+        Assert.Equal(left, zone.Left, 6);
+
+        Timeline.ClearSelection();
+        Timeline.OnClipPressed(ClipVm(b), toggle: false);
+        Timeline.BeginMove(X(150));
+        Timeline.UpdateGesture(X(150) + (X(20) - X(0)), ClipTrackVm(b));
+        Assert.False(zone.IsVisible);
+        Timeline.CancelGesture();
+        Assert.True(zone.IsVisible);
+    }
+
+    /// <summary>A trim preview of the cut edge hides the zone (it opens the cut); a far-edge trim keeps it.</summary>
+    [Fact]
+    public void A_trim_preview_hides_the_zone_only_when_it_opens_the_cut()
+    {
+        var (a, b) = SplitVideo();
+        _edit.AddTransition(a.Id, b.Id, F(20));
+        var zone = ZoneVm();
+        double X(long frame) => TimelineCoordinateMapper.TimeToX(F(frame), Timeline.PixelsPerSecond);
+        Timeline.SnappingEnabled = false;
+
+        Timeline.BeginTrim(ClipVm(a), ClipEdge.End, X(100));
+        Timeline.UpdateGesture(X(80), ClipTrackVm(a));
+        Assert.False(zone.IsVisible);
+        Timeline.CancelGesture();
+        Assert.True(zone.IsVisible);
+
+        Timeline.BeginTrim(ClipVm(a), ClipEdge.Start, X(0));
+        Timeline.UpdateGesture(X(30), ClipTrackVm(a));
+        Assert.True(zone.IsVisible);
+        Timeline.EndGesture();
+        Assert.Equal(F(30), a.TimelineStart);
+        Assert.Single(V1.Transitions);
+    }
+
+    /// <summary>16.3 / 16.4: the zone is found by its position (the view asks only when no trim handle was hit), and a
+    /// hidden zone is never found.</summary>
+    [Fact]
+    public void A_zone_is_found_by_its_position()
+    {
+        var (a, b) = SplitVideo();
+        _edit.AddTransition(a.Id, b.Id, F(20));
+        var zone = ZoneVm();
+        double X(long frame) => TimelineCoordinateMapper.TimeToX(F(frame), Timeline.PixelsPerSecond);
+        var track = ClipTrackVm(a);
+
+        Assert.Same(zone, Timeline.TransitionAt(track, X(95)));
+        Assert.Null(Timeline.TransitionAt(track, X(80)));
+        Assert.Null(Timeline.TransitionAt(track, X(110)));
+        zone.IsVisible = false;
+        Assert.Null(Timeline.TransitionAt(track, X(95)));
+    }
+
+    /// <summary>17 (4x on "bars"): the edit service refuses; the Inspector reports it, the clip is unchanged and the field
+    /// holds the clip speed again.</summary>
+    [Fact]
+    public void A_refused_speed_is_reported_and_the_field_shows_the_clip_speed()
+    {
+        var (a, b) = SplitVideo(at: 25);                                             // B has 25 frames before it
+        _edit.AddTransition(a.Id, b.Id, F(24));                                      // needs 12 before the cut
+        Timeline.OnClipPressed(ClipVm(b), toggle: false);
+
+        Inspector.SpeedValue = 4m;                                                   // 4x: 6 frames, too few
+
+        Assert.Contains(TimelineEditService.NotEnoughMedia, _status.Message);
+        Assert.Equal(ClipSpeed.Normal, ((MediaBackedClip)b).Speed);
+        Assert.Equal(1m, Inspector.SpeedValue);
+        Assert.Single(V1.Transitions);
+    }
+
+    /// <summary>17 (2x on "pattern", then Undo): the Inspector arrows make several speed changes; the first removes the
+    /// dissolve; one Undo restores the speed and the dissolve.</summary>
+    [Fact]
+    public void One_undo_after_speed_changes_in_the_inspector_brings_the_dissolve_back()
+    {
+        var (a, b) = SplitVideo();
+        _edit.AddTransition(a.Id, b.Id, F(20));
+        Timeline.OnClipPressed(ClipVm(a), toggle: false);
+
+        Inspector.SpeedValue = 1.05m;
+        Inspector.SpeedValue = 1.5m;
+        Inspector.SpeedValue = 2m;
+        Assert.Empty(V1.Transitions);
+
+        _undo.Undo();
+
+        Assert.Single(V1.Transitions);
+        Assert.Equal(ClipSpeed.Normal, ((MediaBackedClip)a).Speed);
+        Assert.Equal(F(100), a.TimelineEnd);
+        Assert.Single(Timeline.Tracks.SelectMany(t => t.Transitions));
+    }
+
+    private TimelineTrackViewModel ClipTrackVm(Clip clip) => Timeline.Tracks.Single(t => t.Clips.Any(c => c.Id == clip.Id));
+
     private sealed class NoAnalysis : IMediaAnalysisService
     {
         public Task<MediaAnalysisResult> AnalyzeAsync(string filePath, CancellationToken ct = default) =>

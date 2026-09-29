@@ -1488,6 +1488,10 @@ Refined in Step 10.8 (2026-09-29), dissolve UI (no rule changed; every check sta
   Remove Dissolve removes it; the Inspector's DISSOLVE section edits the length in whole frames, range 2 … the longest
   that fits (a value outside is not applied, like every numeric field), with the time and "Longest that fits here".
   No keyboard shortcut to add one (out of scope).
+- After the manual run: a zone never takes the press from a clip's trim handle (only a press on a clip body inside a
+  zone selects the dissolve); a drag or trim preview shows the zones as the release will leave them; a speed change
+  that removes a dissolve is part of the clip's speed step and merges with its next speed changes, so one Undo restores
+  both.
 
 Status: Accepted (2026-09-29; PO-8 the same day). Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 10 — Transitions & basic effects: steps".

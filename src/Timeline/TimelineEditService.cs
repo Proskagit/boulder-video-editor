@@ -396,11 +396,9 @@ public sealed class TimelineEditService : ITimelineEditService
         if (Validate(plan) is { } error)
             return TimelineEditResult.Fail($"Can't change the speed: {error}");
 
-        // A speed change of A moves its end: its dissolve goes (D025 §5) — then one composite step, which no longer
-        // merges with the next speed change.
-        IUndoableCommand command = new SetClipSpeedCommand(clip, before, after);
-        if (plan.ChangesTransitions)
-            command = new CompositeCommand(command.Description, new[] { command }.Concat(plan.BuildTransitionCommands()));
+        // A speed change of A moves its end: its dissolve goes (D025 §5), in the same step — which still merges with the
+        // next speed changes of the clip, so one Undo restores the speed and the dissolve together.
+        var command = new SetClipSpeedCommand(clip, before, after, plan.ChangesTransitions ? plan.BuildTransitionCommands() : null);
         _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id }, TransitionNote(plan));
     }

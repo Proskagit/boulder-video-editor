@@ -105,14 +105,18 @@ public partial class TimelineView : UserControl
         if (_viewModel is null || !e.GetCurrentPoint(TrackRows).Properties.IsLeftButtonPressed) return;
         Focus();
 
-        if (HitTestTransition(e.Source) is { } transition)
+        var (clip, edge) = HitTestClip(e.Source);
+
+        // A dissolve zone is drawn over the clips but never hides their trim handles: only a press on a clip body (no
+        // handle, no Ctrl) inside a zone selects the dissolve.
+        if (edge is null && !e.KeyModifiers.HasFlag(KeyModifiers.Control) &&
+            _viewModel.TransitionAt(TrackAt(e.GetPosition(TrackRows).Y), e.GetPosition(ContentRoot).X) is { } transition)
         {
             _viewModel.OnTransitionPressed(transition);
             e.Handled = true;
             return;
         }
 
-        var (clip, edge) = HitTestClip(e.Source);
         if (clip is null)
         {
             _viewModel.ClearSelection();
@@ -168,19 +172,6 @@ public partial class TimelineView : UserControl
         _gestureStarted = false;
         _pressedClip = null;
         _viewModel?.CancelGesture();
-    }
-
-    /// <summary>Finds the dissolve zone under the pointer, if any (drawn over the clips).</summary>
-    private static TimelineTransitionViewModel? HitTestTransition(object? source)
-    {
-        for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
-        {
-            if (visual is Border { DataContext: TimelineTransitionViewModel transition, Classes: var classes } && classes.Contains("dissolve"))
-                return transition;
-            if (visual is ItemsControl { Name: "TrackRows" })
-                break;
-        }
-        return null;
     }
 
     /// <summary>Finds the clip under the pointer and whether a trim handle was hit.</summary>

@@ -73,4 +73,40 @@ public sealed class FadeViewBindingTests
         field.Value = 20m;                                                       // typing in the view edits the dissolve
         Assert.Equal(F(20), dissolve.Duration);
     }
+
+    /// <summary>17 (4x on "bars", the real control): a speed the edit service refuses must not stay in the field. The
+    /// control ignores the change raised while it is still sending its value; the field shows the clip speed again once
+    /// the Inspector announces the fields (right after the rejection, and when the field loses the focus).</summary>
+    [Fact]
+    public void A_refused_speed_does_not_stay_in_the_real_field()
+    {
+        var undo = new UndoRedoService();
+        var projects = new ProjectService(undo, NullLogger<ProjectService>.Instance);
+        var edit = new TimelineEditService(projects, undo, NullLogger<TimelineEditService>.Instance);
+        var status = new StatusService();
+        var inspector = new InspectorViewModel(edit, status);
+        var asset = new MediaAsset
+        {
+            FilePath = Path.Combine(Path.GetTempPath(), "aive-speed-field", Guid.NewGuid().ToString("N"), "v.mp4"), Kind = MediaKind.Video,
+            AnalysisStatus = MediaAnalysisStatus.Completed,
+            Metadata = new MediaMetadata { Duration = MediaTime.FromSeconds(20), FrameRate = Rate, Width = 1920, Height = 1080 }
+        };
+        projects.AddMediaAssets(new[] { asset });
+        Assert.True(edit.AddClip(asset.Id).Success);
+        Assert.True(edit.Split(F(25)).Success);
+        var track = projects.Current.Timeline.VideoTracks[0];
+        var (a, b) = (track.Clips[0], track.Clips[1]);
+        Assert.True(edit.AddTransition(a.Id, b.Id, F(24)).Success);
+        inspector.ShowClip(new TimelineClipSelection(b, "B", asset, Rate, DissolveAtStart: true));
+
+        var view = new InspectorView { DataContext = inspector };
+        var speed = view.GetLogicalDescendants().OfType<NumericUpDown>().Single(n => n.Maximum == 4m);
+
+        speed.Value = 4m;                                                        // refused: not enough media before B
+        Assert.Contains("not enough media", status.Message);
+        Assert.Equal(ClipSpeed.Normal, ((MediaBackedClip)b).Speed);
+
+        inspector.ShowModelValues();                                             // what losing the focus does
+        Assert.Equal(1m, speed.Value);
+    }
 }

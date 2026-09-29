@@ -616,6 +616,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// <summary>Pointer pressed on a dissolve's zone: it becomes the selection (no clip stays selected).</summary>
     public void OnTransitionPressed(TimelineTransitionViewModel transition) => SelectTransition(transition.Id);
 
+    /// <summary>The dissolve zone of <paramref name="track"/> at <paramref name="contentX"/>, if any. The view asks this
+    /// only when no trim handle was hit: the clips' handles take precedence over a zone drawn over them.</summary>
+    public TimelineTransitionViewModel? TransitionAt(TimelineTrackViewModel? track, double contentX) =>
+        track?.Transitions.FirstOrDefault(t => t.Contains(contentX));
+
     private void SelectTransition(Guid id)
     {
         if (_selection.Count > 0)
@@ -775,6 +780,17 @@ public sealed partial class TimelineViewModel : ViewModelBase
             clip.Layout(PixelsPerSecond, start, end);
             clip.IsInvalid = invalid;
         }
+
+        // Dissolves follow the preview (D025 §5): both clips dragged together carry their zone along; a zone whose cut
+        // the drag would open is hidden (the release removes it).
+        var moved = g.Clips.Select(c => c.Id).ToHashSet();
+        foreach (var zone in _transitionViewModels.Values)
+        {
+            var (left, right) = (moved.Contains(zone.Transition.LeftClipId), moved.Contains(zone.Transition.RightClipId));
+            if (!left && !right) continue;
+            zone.IsVisible = left && right;
+            if (zone.IsVisible) zone.Layout(PixelsPerSecond, FrameRate, g.FrameDelta);
+        }
     }
 
     private void UpdateTrim(Gesture g, ClipEdge edge, MediaTime rawDelta)
@@ -788,6 +804,14 @@ public sealed partial class TimelineViewModel : ViewModelBase
         {
             clip.Layout(PixelsPerSecond, preview.Start, preview.End);
             clip.IsInvalid = false;
+
+            // Trimming the cut edge opens the cut: its dissolve is hidden in the preview (the release removes it). A
+            // far-edge trim keeps the cut, its zone stays where it is.
+            var cutEdge = edge == ClipEdge.End ? clip.Clip.TimelineEnd : clip.Clip.TimelineStart;
+            var opened = (edge == ClipEdge.End ? preview.End : preview.Start) != cutEdge;
+            foreach (var zone in _transitionViewModels.Values)
+                if (edge == ClipEdge.End ? zone.Transition.LeftClipId == clip.Id : zone.Transition.RightClipId == clip.Id)
+                    zone.IsVisible = !opened;
         }
         else
         {
@@ -844,6 +868,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         IsSnapIndicatorVisible = false;
         ClearDropTargets();
         foreach (var clip in g.Clips) clip.IsInvalid = false;
+        foreach (var zone in _transitionViewModels.Values) zone.IsVisible = true;
     }
 
     private TimelineTrackViewModel? TrackOf(TimelineClipViewModel clip) =>
