@@ -1491,7 +1491,8 @@ Refined in Step 10.8 (2026-09-29), dissolve UI (no rule changed; every check sta
 - After the manual run: a zone never takes the press from a clip's trim handle (only a press on a clip body inside a
   zone selects the dissolve); a drag or trim preview shows the zones as the release will leave them; a speed change
   that removes a dissolve is part of the clip's speed step and merges with its next speed changes, so one Undo restores
-  both.
+  both; returning the clip to the speed that step started from (typed back, or the Speed field's own text undo) undoes
+  the step, the dissolve included.
 
 Status: Accepted (2026-09-29; PO-8 the same day). Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 10 — Transitions & basic effects: steps".

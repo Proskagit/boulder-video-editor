@@ -458,6 +458,28 @@ public sealed class TimelineDissolveUiTests : IAsyncLifetime
         Assert.Single(Timeline.Tracks.SelectMany(t => t.Transitions));
     }
 
+    /// <summary>17 (2x on "pattern", then Ctrl+Z while the Speed field has the focus): that is the field's own text
+    /// undo, which puts 1.00 back into the field. Back at the speed the step started from, the dissolve returns too.</summary>
+    [Fact]
+    public void Putting_the_first_speed_back_in_the_field_brings_the_dissolve_back()
+    {
+        var (a, b) = SplitVideo();
+        _edit.AddTransition(a.Id, b.Id, F(20));
+        var afterAdd = _undo.NextUndo;
+        Timeline.OnClipPressed(ClipVm(a), toggle: false);
+
+        Inspector.SpeedValue = 2m;
+        Assert.Empty(V1.Transitions);
+
+        Inspector.SpeedValue = 1m;                                                   // what the text undo does
+
+        Assert.Single(V1.Transitions);
+        Assert.Equal(F(100), a.TimelineEnd);
+        Assert.Equal("The dissolve is back: its clips meet again.", _status.Message);
+        Assert.Same(afterAdd, _undo.NextUndo);
+        Assert.Single(Timeline.Tracks.SelectMany(t => t.Transitions));
+    }
+
     private TimelineTrackViewModel ClipTrackVm(Clip clip) => Timeline.Tracks.Single(t => t.Clips.Any(c => c.Id == clip.Id));
 
     private sealed class NoAnalysis : IMediaAnalysisService

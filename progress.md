@@ -252,6 +252,17 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
     Not testable headlessly: the handle-before-zone order of the press (view code-behind) — manual 16.3 / 16.4.
     Verification: `dotnet build --no-incremental` 0 / 0; `dotnet test` 1960 passed, 2 skipped (4K heavy) — Core 448,
     Timeline 299, Project 319, UI 362, Export 97, Rendering 58, Video 291, ExportEndToEnd 86 (+2).
+  - Third round (product owner): fixes 1–4 confirmed. 5 worked with the app's Undo (after leaving the Speed field), but
+    Ctrl+Z right after the speed change, with the focus still in the field, restored the speed without the dissolve.
+    Cause: inside a text field Ctrl+Z is the field's own text undo (the 9.6 rule: no app shortcut while typing); it
+    puts 1.00 back, i.e. a new speed change, and the step that removed the dissolve was kept. Fix (the 9.6 rule
+    unchanged): a speed change that returns the clip to the speed its current speed step started from, when that step
+    removed dissolves, undoes the step (`IUndoRedoService.NextUndo`, new, names the step the next Undo would undo) — the
+    timing and the dissolves come back, status "The dissolve is back: its clips meet again."; any other speed keeps
+    the dissolve removed. Tests: `DissolveEditTests` (the previous "back to the first speed keeps the step" became
+    "… undoes the step and brings the dissolve back"; + another speed keeps it removed), `TimelineDissolveUiTests`
+    (+1: 2× then 1.00 put back in the field). Mutation (the path off) → 1 + 1 failures. `dotnet test` 1962 passed,
+    2 skipped (UI 363, Timeline 300).
 
 ## Phase 9 (complete)
 

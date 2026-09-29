@@ -374,20 +374,37 @@ public class DissolveEditTests
         Assert.Equal(ClipSpeed.FromSteps(40), ((MediaBackedClip)a).Speed);
     }
 
+    /// <summary>Found in the 10.8 manual run: Ctrl+Z inside the Speed field is the field's text undo — it sets the old
+    /// speed again. Returning to the speed the step started from undoes the step: the dissolve comes back.</summary>
     [Fact]
-    public void Returning_to_the_first_speed_keeps_the_step_that_removed_the_dissolve()
+    public void Returning_to_the_first_speed_undoes_the_step_and_brings_the_dissolve_back()
     {
         var (f, a, b) = Cut();
         AddDissolve(f, a, b, 20);
         var before = f.Snapshot();
+        var addStep = f.UndoRedo.NextUndo;
+
+        Ok(f.Service.SetClipSpeed(a.Id, ClipSpeed.FromSteps(21)));
+        Ok(f.Service.SetClipSpeed(a.Id, ClipSpeed.FromSteps(40)));
+        var back = f.Service.SetClipSpeed(a.Id, ClipSpeed.Normal);
+
+        Ok(back);
+        Assert.Equal("The dissolve is back: its clips meet again.", back.Message);
+        Assert.Equal(before, f.Snapshot());
+        Assert.Same(addStep, f.UndoRedo.NextUndo);                                // no speed step left behind
+    }
+
+    [Fact]
+    public void A_speed_that_is_not_the_first_one_keeps_the_dissolve_removed()
+    {
+        var (f, a, b) = Cut();
+        AddDissolve(f, a, b, 20);
 
         Ok(f.Service.SetClipSpeed(a.Id, ClipSpeed.FromSteps(40)));
-        Ok(f.Service.SetClipSpeed(a.Id, ClipSpeed.Normal));                       // back to 1×: the dissolve stays removed …
+        Ok(f.Service.SetClipSpeed(a.Id, ClipSpeed.FromSteps(30)));
 
         Assert.Empty(f.V1.Transitions);
-        Assert.Equal("Change Speed", Top(f));                                     // … and the step that removed it is kept
-        f.UndoRedo.Undo();
-        Assert.Equal(before, f.Snapshot());
+        Assert.Equal("Change Speed", Top(f));
     }
 
     [Fact]

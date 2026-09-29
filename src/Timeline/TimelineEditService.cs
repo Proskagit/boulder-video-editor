@@ -384,6 +384,16 @@ public sealed class TimelineEditService : ITimelineEditService
         var clip = (MediaBackedClip)clips[0];
         if (clip.Speed == speed) return TimelineEditResult.Unchanged();
 
+        // Back to the speed the clip's current speed step started from, when that step removed dissolves (D025 §5): this
+        // is undoing the step — the clip gets its timing back and the dissolves return. (A value typed back, the arrows
+        // back, or Ctrl+Z inside the Speed field, which is the field's own text undo, all end here.)
+        if (_undoRedo.NextUndo is NotifyingCommand { Inner: SetClipSpeedCommand step } && step.Clip == clip &&
+            step.TransitionChanges.Count > 0 && step.Before.Speed == speed && step.After == ClipState.Capture(clip))
+        {
+            _undoRedo.Undo();
+            return TimelineEditResult.Ok(new[] { clip.Id }, "The dissolve is back: its clips meet again.");
+        }
+
         // The speed never changes the source range: the frame count follows from it.
         var rate = plan.Rate;
         var frames = SpeedTiming.FramesFor(clip.SourceOut - clip.SourceIn, speed, rate);
