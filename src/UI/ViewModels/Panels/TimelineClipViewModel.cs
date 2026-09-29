@@ -51,6 +51,19 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
 
     public bool HasWaveform => Waveform is not null;
 
+    /// <summary>Width in pixels of the fade in / fade out ramp drawn on the clip (D025 §2): the effective fade — clamped to
+    /// the clip, none on an edge with a dissolve (PO-8) —, 0 without one.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFadeIn))]
+    private double _fadeInWidth;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFadeOut))]
+    private double _fadeOutWidth;
+
+    public bool HasFadeIn => FadeInWidth > 0;
+    public bool HasFadeOut => FadeOutWidth > 0;
+
     public void Layout(double pixelsPerSecond) => Layout(pixelsPerSecond, Clip.TimelineStart, Clip.TimelineEnd);
 
     public void Layout(double pixelsPerSecond, MediaTime start, MediaTime end)
@@ -83,5 +96,7 @@ public sealed class TimelineRulerTickViewModel : ViewModelBase
     public required double Left { get; init; }
 }
 
-/// <summary>The primary selected timeline clip, as passed to the Inspector.</summary>
-public sealed record TimelineClipSelection(Clip Clip, string Name, MediaAsset? Asset, FrameRate Rate);
+/// <summary>The primary selected timeline clip, as passed to the Inspector. <paramref name="DissolveAtStart"/> /
+/// <paramref name="DissolveAtEnd"/>: a dissolve sits on that edge, so the clip's fade there is not applied (D025 PO-8).</summary>
+public sealed record TimelineClipSelection(Clip Clip, string Name, MediaAsset? Asset, FrameRate Rate,
+    bool DissolveAtStart = false, bool DissolveAtEnd = false);

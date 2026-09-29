@@ -6,7 +6,9 @@ agreed at Step 10.2 — steps, expected results and automated coverage are compl
 Logs: `%LOCALAPPDATA%\AiVideoEditor\logs`.
 
 Status column: **planned** — written at 10.2, not yet runnable; **auto** — covered by automated tests only, manual run
-pending (10.9); **app 10.x** — checked in the real app during that step (a development check, not the formal run).
+pending (10.9); **manual pending** — not yet run in the real app: the fade scenarios are run by hand for the product
+owner's acceptance of fades (end of 10.5) and again at 10.9; **app 10.x** — checked in the real app during that step
+(a development check, not the formal run).
 
 ## Step 10.3 — project format v3
 
@@ -20,15 +22,22 @@ pending (10.9); **app 10.x** — checked in the real app during that step (a dev
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 4 | Fade in / out, one video | Set Fade In 1 s and Fade Out 1 s on a video on V1; play from 0; scrub the ends | Picture rises from black and sinks to black; the sound fades with it; no jump at the ramp edges | Core / contract / parity tests | planned |
-| 5 | Fade over a lower track | V2 video fading in over a V1 video | V1 shows through while V2 fades in; no placeholder flash on V1 during playback | Parity, prefetch tests | planned |
-| 6 | Image and text fades | Fade an image and a text clip | Both fade like a video | Parity tests | planned |
-| 7 | Speed ≠ 1× | Fade a clip at 2× and one at 0.5× | The ramp keeps its timeline length (seconds on the timeline, not of the source) | Parity tests | planned |
-| 8 | Short clip | Clip of 20 frames with Fade In and Fade Out of 15 frames each; then trim it shorter / longer | Ramps overlap (multiply); trimming shorter shortens the visible ramps, trimming back restores them; the Inspector values stay | Core, edit tests | planned |
-| 9 | Split inside a ramp | Split a clip in its fade-in | Left part keeps the fade in (shortened to its length) and has no fade out; right part has no fade in and keeps the fade out; Undo restores one clip with both fades | Edit tests | planned |
-| 10 | Undo / redo and save | Change fades several times, Undo / Redo, Save, reopen | Consecutive edits of one field merge into one undo step; values survive save / reopen exactly | Edit, serializer tests | planned |
-| 11 | Export with fades | Export a project with scenarios 4–7 | The MP4 matches the Preview (fades at the same frames), sound fades with the picture | E2E parity, audio tests | planned |
-| 12 | Editing lock | Start an export; try to change a fade | The fields are disabled until the export ends | UI tests | planned |
+Fades are set in the Inspector's FADES section: Fade In / Fade Out in whole frames of the project rate, the length as
+timecode next to each field; the timeline draws each effective ramp as a darkening band at the clip's edge.
+
+| # | Scenario | Steps | Expected | Automated coverage | Status |
+|---|---|---|---|---|---|
+| 4 | Fade in / out, one video | Select a video on V1 (25 fps project); FADES: Fade In 25, Fade Out 25; play from 0; step through the first and last frames with ← / → | Picture rises from black and sinks to black; the sound fades with it; the first frame is dark but not black (1/26), no jump where the ramps end; the timeline shows a band at each end of the clip | `FadeRuleTests`, `ExportFadeEndToEndTests` (source × factor), `InspectorFadeTests` | auto; manual pending |
+| 5 | Fade over a lower track | V2 video (covering the canvas) over a V1 video; Fade In 25 and Fade Out 25 on V2; play through both ramps | V1 shows through during both ramps; no placeholder flash on V1 when the fade out starts during playback | `FadePlaybackTests` (prefetch before the ramp), `ExportFadeEndToEndTests` | auto; manual pending |
+| 6 | Image and text fades | Fade an image and a text clip (Fade In / Fade Out ≥ 10) | Both fade like a video | `ExportFadeEndToEndTests`, `FadeRuleTests` | auto; manual pending |
+| 7 | Speed ≠ 1× | Fade In 25 on a clip at 2× and on one at 0.5× | The ramp lasts 25 timeline frames (1 s) in both | `ExportFadeEndToEndTests`, `FadeEditTests` | auto; manual pending |
+| 8 | Short clip | Clip of 20 frames, Fade In 15 and Fade Out 15; then trim it to 10 frames and back to 20 | Ramps overlap (multiply); at 10 frames the bands cover the clip, the Inspector still shows 15 / 15; back at 20 the ramps are as before | `FadeRuleTests`, `FadeEditTests`, `InspectorFadeTests` | auto; manual pending |
+| 9 | Split inside a ramp | Fade In 40, Fade Out 40 on a clip; split 10 frames after its start | Left part: Fade In 40 (drawn over its 10 frames), Fade Out 0; right part: Fade In 0, Fade Out 40; Undo gives one clip with 40 / 40 | `FadeEditTests` | auto; manual pending |
+| 10 | Undo / redo and save | Change Fade In several times with the arrows, then Fade Out; Undo / Redo; Save, reopen | The Fade In changes are one undo step ("Change Fade In"), Fade Out another; values survive save / reopen exactly (`fadeInTicks` / `fadeOutTicks` in `project.json`) | `FadeEditTests`, `InspectorFadeTests`, `FadeTransitionPersistenceTests` | auto; manual pending |
+| 11 | Export with fades | Export a project with scenarios 4–7 | The MP4 shows the fades at the same frames as the Preview; the sound fades with the picture | `ExportFadeEndToEndTests`, `ExportFrameSelectionContractTests`, `ExportAudioContractTests` | auto; manual pending |
+| 12 | Editing lock | Start an export; try to change a fade | The FADES fields are disabled until the export ends | `InspectorFadeTests` | auto; manual pending |
+| 12a | Invalid values | Type 2.5, or more frames than the clip has | The status bar explains; the field shows the clip's value again; nothing is edited | `InspectorFadeTests` | auto; manual pending |
+| 12b | Cancel during a ramp | Export, cancel while the first second (a fade in) renders | Ends as any cancel: no MP4, no temporary file, no ffmpeg left | `ExportFadeEndToEndTests` | auto; manual pending |
 
 ## Steps 10.6–10.8 — cross dissolve
 

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Playback;
 using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -213,12 +214,41 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private MediaAsset? FindAsset(Guid id) => _projectService.Current.MediaAssets.FirstOrDefault(a => a.Id == id);
 
+    /// <summary>Whether a dissolve sits on the clip's start / end (D025 PO-8: the clip's fade there is not applied).</summary>
+    private (bool AtStart, bool AtEnd) Dissolves(Clip clip)
+    {
+        var track = Sequence.VideoTracks.FirstOrDefault(t => t.Clips.Contains(clip));
+        if (track is null) return (false, false);
+        return (track.Transitions.Any(t => t.RightClipId == clip.Id), track.Transitions.Any(t => t.LeftClipId == clip.Id));
+    }
+
+    /// <summary>Gives every clip the pixel width of its effective fade ramps (D025 §2, PO-8) at the current zoom.</summary>
+    private void RefreshFades()
+    {
+        foreach (var vm in _clipViewModels.Values)
+        {
+            var clip = vm.Clip;
+            if (clip.FadeIn == MediaTime.Zero && clip.FadeOut == MediaTime.Zero)
+            {
+                (vm.FadeInWidth, vm.FadeOutWidth) = (0, 0);
+                continue;
+            }
+            var (atStart, atEnd) = Dissolves(clip);
+            var (fadeIn, fadeOut) = FadeRule.EffectiveFrames(clip, FrameRate, atStart, atEnd);
+            var startFrame = clip.TimelineStart.ToFrameFloor(FrameRate);
+            var endFrame = clip.TimelineEnd.ToFrameFloor(FrameRate);
+            vm.FadeInWidth = TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(startFrame + fadeIn, FrameRate) - clip.TimelineStart, PixelsPerSecond);
+            vm.FadeOutWidth = TimelineCoordinateMapper.TimeToX(clip.TimelineEnd - MediaTime.FromFrame(endFrame - fadeOut, FrameRate), PixelsPerSecond);
+        }
+    }
+
     /// <summary>Recomputes every pixel position from the model at the current zoom.</summary>
     private void Relayout()
     {
         foreach (var vm in _clipViewModels.Values)
             vm.Layout(PixelsPerSecond);
         RefreshWaveforms();
+        RefreshFades();
 
         var contentEnd = TimelineCoordinateMapper.TimeToX(SequenceDuration + TrailingSpace, PixelsPerSecond);
         ContentWidth = Math.Max(contentEnd, _viewportWidth);
@@ -537,7 +567,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         if (_selection.Count > 0 && _clipViewModels.TryGetValue(_selection[^1], out var primary))
         {
             var asset = primary.Clip is MediaBackedClip m ? FindAsset(m.MediaAssetId) : null;
-            SelectionChanged?.Invoke(this, new TimelineClipSelection(primary.Clip, primary.Name, asset, FrameRate));
+            var (dissolveAtStart, dissolveAtEnd) = Dissolves(primary.Clip);
+            SelectionChanged?.Invoke(this, new TimelineClipSelection(primary.Clip, primary.Name, asset, FrameRate, dissolveAtStart, dissolveAtEnd));
         }
         else
         {

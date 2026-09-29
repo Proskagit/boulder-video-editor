@@ -240,6 +240,53 @@ public sealed partial class InspectorViewModel : ViewModelBase
         }
     }
 
+    // --- Fades (Phase 10, D025 §2): every clip kind --------------------------------------------
+    // In whole frames of the project rate (the time is shown next to them), each sent on its own to
+    // SetClipProperties so consecutive changes of one fade merge into one undo step. A stored fade may exceed a clip
+    // trimmed shorter since (it is clamped when rendered): the field still shows it, and its maximum allows it so the
+    // control never coerces it into an edit. On an edge with a dissolve the fade is kept but not applied (PO-8).
+
+    [ObservableProperty] private bool _hasFades;
+
+    [ObservableProperty] private decimal? _fadeInFrames;
+    [ObservableProperty] private decimal? _fadeOutFrames;
+
+    [ObservableProperty] private decimal _maxFadeInFrames;
+    [ObservableProperty] private decimal _maxFadeOutFrames;
+
+    /// <summary>The fade's length as time (non-drop-frame timecode at the project rate).</summary>
+    [ObservableProperty] private string _fadeInTimeDisplay = "";
+    [ObservableProperty] private string _fadeOutTimeDisplay = "";
+
+    /// <summary>A dissolve sits on this edge: the fade is kept but not applied (PO-8).</summary>
+    [ObservableProperty] private bool _isFadeInInactive;
+    [ObservableProperty] private bool _isFadeOutInactive;
+
+    private FrameRate _rate = FrameRate.Default;
+
+    partial void OnFadeInFramesChanged(decimal? value) => EditFade(value, (f, t) => f with { FadeIn = t });
+    partial void OnFadeOutFramesChanged(decimal? value) => EditFade(value, (f, t) => f with { FadeOut = t });
+
+    private void EditFade(decimal? value, Func<FadeProperties, MediaTime, FadeProperties> change)
+    {
+        if (_syncing || value is not { } frames || _clip is null || RejectWhileLocked()) return;
+
+        if (frames < 0 || frames != decimal.Truncate(frames))
+        {
+            _status.Report("A fade is a whole number of frames.");
+            SyncFromModel();
+            return;
+        }
+
+        var length = MediaTime.FromFrame((long)frames, _rate);
+        var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Fade = change(FadeProperties.Of(_clip), length) });
+        if (!result.Success)
+        {
+            _status.Report(result.Message ?? "The fade could not be changed.");
+            SyncFromModel(); // show what the clip really has
+        }
+    }
+
     // --- Text (Phase 7 Step 8): text clips ---------------------------------------------------
     // Same pattern as the visual fields: each field is sent to SetClipProperties on its own and live,
     // consecutive changes of one field merge into one undo step (D017), the fields are filled from the
@@ -324,6 +371,10 @@ public sealed partial class InspectorViewModel : ViewModelBase
         HasCrop = clip is VideoClip or ImageClip;
         HasTextProperties = clip is TextClip;
         HasSpeed = clip is VideoClip or AudioClip;
+        HasFades = true;
+        _rate = selection.Rate;
+        IsFadeInInactive = selection.DissolveAtStart;
+        IsFadeOutInactive = selection.DissolveAtEnd;
         SyncFromModel();
 
         ClipName = selection.Name;
@@ -414,6 +465,16 @@ public sealed partial class InspectorViewModel : ViewModelBase
             }
             if (_clip is MediaBackedClip { } media)
                 SpeedValue = media.Speed.ToDecimal();
+
+            var clipFrames = TransitionRules.ClipFrames(_clip, _rate);
+            var fadeIn = TransitionRules.Frames(_clip.FadeIn, _rate);
+            var fadeOut = TransitionRules.Frames(_clip.FadeOut, _rate);
+            MaxFadeInFrames = Math.Max(clipFrames, fadeIn);
+            MaxFadeOutFrames = Math.Max(clipFrames, fadeOut);
+            FadeInFrames = fadeIn;
+            FadeOutFrames = fadeOut;
+            FadeInTimeDisplay = TimeFormat.ToTimecode(MediaTime.FromFrame(fadeIn, _rate), _rate);
+            FadeOutTimeDisplay = TimeFormat.ToTimecode(MediaTime.FromFrame(fadeOut, _rate), _rate);
             if (TextProperties.Of(_clip) is { } text)
             {
                 TextContent = text.Text;
@@ -446,6 +507,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
         HasCrop = false;
         HasTextProperties = false;
         HasSpeed = false;
+        HasFades = false;
+        IsFadeInInactive = false;
+        IsFadeOutInactive = false;
     }
 
     private void BuildTechnicalRows(MediaKind kind, MediaMetadata m)

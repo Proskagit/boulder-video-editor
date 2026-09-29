@@ -76,6 +76,37 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
   - Verification: `dotnet build` 0 errors / 0 warnings; `dotnet test` 1866 passed, 2 skipped (4K heavy) — Core 434,
     Timeline 274, Project 319, UI 334, Export 89, Rendering 58, Video 291, ExportEndToEnd 67 (+2). The parity suite is
     unchanged and green: a project without fades renders exactly as before.
+- Step 10.5 done (2026-09-29) — fades: UI and end-to-end parity. Awaiting the product owner's acceptance of fades
+  (the fade scenarios 4–12b of `docs/PHASE10_MANUAL_TEST_PLAN.md` in the real app) before 10.6 starts.
+  - Inspector: a FADES section for every clip kind — `FadeInFrames` / `FadeOutFrames` (whole frames of the project
+    rate; fractions and more than the clip rejected with a status message, the field shows the model again), the length
+    as timecode, `MaxFadeInFrames` / `MaxFadeOutFrames` = max(clip frames, stored frames) so a stored fade longer than a
+    trimmed clip is shown and never coerced into an edit; each field one `SetClipProperties` edit (merged per field,
+    "Change Fade In" / "Change Fade Out"); inside the section the `EditingLock` disables them like the other fields.
+    PO-8: `TimelineClipSelection` carries `DissolveAtStart` / `DissolveAtEnd` (from the track's transitions), the
+    Inspector shows "Not applied: a dissolve is on this edge." under that field, the value stays.
+  - Timeline: `TimelineClipViewModel.FadeInWidth` / `FadeOutWidth` (the effective ramp in pixels, clamped, 0 on an edge
+    with a dissolve), refreshed with every relayout (zoom, edits, undo); the clip template draws them as black-to-clear
+    gradient bands at the clip's edges.
+  - Tests: `UI.Tests/InspectorFadeTests` (7: shown for every kind with the time, typing edits and merges, undo updates
+    the fields, rejections, a stored fade longer than the trimmed clip shown without an edit, the editing lock, PO-8
+    inactive notes and ramps in the timeline — gone with the dissolve —, ramp widths following fades and trim);
+    `UI.Tests/FadeViewBindingTests` (the real `InspectorView` XAML: both NumericUpDowns show the frames, the PO-8 note
+    visible only on the edge with the dissolve, a value typed in the control edits the clip); `ExportEndToEnd.Tests/
+    ExportFadeEndToEndTests` (11, real ffmpeg: byte-equal Preview = export canvas on ramp frames for one layer, a video
+    fading over another, 8 layers, 0.25× and 2×, image and text, a clip shorter than its fades, 23.976 and 29.97 fps;
+    independently of the app a faded frame over black is ffmpeg's source frame × the ramp factor — max |Δ| 1; the PCM is
+    the decoded tone × g(k) sample by sample and the AAC rises / holds / falls; cancelling inside a ramp leaves no file
+    and no ffmpeg).
+  - Mutations (caught): the picture fade off on both sides (Preview and export equal, so only the independent check can
+    see it) → 2 failures.
+  - Not checked in the real app in this step: the `TimelineView` ramp bands (a headless `TimelineView` needs Avalonia's
+    platform — cursors — which the UI tests don't initialise; the widths are covered at the view-model level) and the
+    fade scenarios as a whole — opening a generated project needs the native folder picker (unreliable through UI
+    Automation in Phase 9) or a recovery file in the user's app-data folder; left to the manual run ("manual pending").
+  - Verification: `dotnet build` 0 errors / 0 warnings; `dotnet test` 1885 passed, 2 skipped (4K heavy) — Core 434,
+    Timeline 274, Project 319, UI 342, Export 89, Rendering 58, Video 291, ExportEndToEnd 78 (+2). Existing parity scenes
+    unchanged and green.
 
 ## Phase 9 (complete)
 

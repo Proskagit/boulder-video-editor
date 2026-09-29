@@ -129,6 +129,25 @@
                             <Grid ColumnDefinitions="6,*,6">
                               <!-- Waveform of the clip's sound (D024 Step 9.5): the whole clip for audio, the lower half for video. -->
                               <rendering:WaveformView Grid.ColumnSpan="3" Waveform="{Binding Waveform}" IsVisible="{Binding HasWaveform}"/>
+                              <!-- Fade ramps (D025 §2): the effective fade in / out, darkening toward the clip's edge. -->
+                              <Border Grid.ColumnSpan="3" HorizontalAlignment="Left" Width="{Binding FadeInWidth}" IsVisible="{Binding HasFadeIn}"
+                                      IsHitTestVisible="False">
+                                <Border.Background>
+                                  <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                                    <GradientStop Offset="0" Color="#B0000000"/>
+                                    <GradientStop Offset="1" Color="#00000000"/>
+                                  </LinearGradientBrush>
+                                </Border.Background>
+                              </Border>
+                              <Border Grid.ColumnSpan="3" HorizontalAlignment="Right" Width="{Binding FadeOutWidth}" IsVisible="{Binding HasFadeOut}"
+                                      IsHitTestVisible="False">
+                                <Border.Background>
+                                  <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                                    <GradientStop Offset="0" Color="#00000000"/>
+                                    <GradientStop Offset="1" Color="#B0000000"/>
+                                  </LinearGradientBrush>
+                                </Border.Background>
+                              </Border>
                               <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="#EEEEEE" FontSize="10"
                                          Margin="2,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                          IsHitTestVisible="False"/>

@@ -59,6 +59,10 @@ Domain types (`src/Core/Entities`):
   `NextPictureChange` counts ramp edges (prefetch); `AudioFadeEnvelope` + `AudioMix.Add(…, envelope, firstSample)`
   apply the per-sample gain in the Preview's mixer and the export alike; edits through `SetClipProperties`
   (`ClipPropertyChange.Fade`, merged undo), split moves the fades to the outer edges (`EditPlan.SetProperties`).
+  UI (Step 10.5): the Inspector's FADES section (`FadeInFrames` / `FadeOutFrames` in whole frames, the time as
+  timecode, the maximum never below the stored value, PO-8 notes from `TimelineClipSelection.DissolveAtStart` /
+  `DissolveAtEnd`, disabled by the `EditingLock`); the timeline clip draws each effective ramp as a gradient band
+  (`TimelineClipViewModel.FadeInWidth` / `FadeOutWidth`, computed by `TimelineViewModel.RefreshFades`).
   Dissolves are not rendered or edited yet.
 - `MediaTime`
 
