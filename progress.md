@@ -280,6 +280,20 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
     dissolve live in Core / Timeline / UI; the zone hit-testing and the speed step of 10.8), D025 (the 10.6 speed-step
     bullet marked superseded by 10.8; the 10.8 acceptance), ROADMAP, this file. The Phase 10 checkbox of
     `docs/DEVELOPMENT_PLAN.md` waits for the product owner's acceptance.
+  - Product owner's manual run (2026-09-30), a project made with the Phase 9 build and saved again in this build: R1,
+    R2 passed; speed, split, fades (a typed value jumped back to 0) and the dissolve looked broken. Cause: the project
+    had been opened a second time in the session (the log: opened 10:27:56 and again 10:28:42); `TimelineViewModel`
+    kept its clip view models by clip id (since Phase 4) and reused those of the first load for the new clip objects
+    with the same ids, so the timeline drew and handed the Inspector the old clips while the edits changed the new ones.
+    Not the migration or format v3, not Phase 10 code: any project opened twice (or Save As → Open) had it. Fix:
+    `GetClipViewModel` reuses a view model only for the same clip object; `OnProjectReplaced` drops the clip and dissolve
+    view models and the dissolve selection. Test `UI.Tests/ReopenedProjectTimelineTests` (5: the timeline's clips are the
+    open project's; speed resizes with undo / redo; split side by side with undo; a typed fade stays and is drawn; a
+    dissolve added on the cut) — 4 fail without the fix (the dissolve one passes either way: the service works by id).
+    Checked alongside: the fades that reached the model are in the product owner's MP4 (brightness follows both ramps);
+    the project's only meeting clips use their whole media, so its dissolve refusal is the intended "not enough media".
+    Verification: `dotnet build --no-incremental -warnaserror` 0 / 0; `dotnet test` 1967 passed, 2 skipped (UI 368);
+    4K with `AIVE_HEAVY_TESTS=1` 88 / 88. The second manual run (S1–S6 in the manual plan) is pending.
 
 ## Phase 9 (complete)
 

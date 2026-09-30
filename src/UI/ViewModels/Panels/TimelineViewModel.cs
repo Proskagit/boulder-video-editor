@@ -136,6 +136,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         CancelGesture();
         _selection.Clear();
+        // The new project's clips are new objects, and the same project opened again has the same ids: view models of
+        // the previous project must not be reused for them.
+        _clipViewModels.Clear();
+        _transitionViewModels.Clear();
+        _selectedTransitionId = null;
         PixelsPerSecond = Sequence.ZoomPixelsPerSecond;
         SnappingEnabled = Sequence.SnappingEnabled;
         Refresh();
@@ -220,7 +225,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private TimelineClipViewModel GetClipViewModel(Clip clip)
     {
-        if (!_clipViewModels.TryGetValue(clip.Id, out var vm))
+        // Reused only for the same clip object: a view model shows and hands out the clip it wraps.
+        if (!_clipViewModels.TryGetValue(clip.Id, out var vm) || vm.Clip != clip)
             _clipViewModels[clip.Id] = vm = new TimelineClipViewModel(clip, ClipName(clip));
         return vm;
     }

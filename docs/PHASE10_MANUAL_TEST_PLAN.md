@@ -105,4 +105,29 @@ Optional: 2 (a v3 project opened with the Phase 9 build) — it needs a second b
 code path as the automated v4 check. Not repeated: 6, 7, 8, 12, 12b (their code is unchanged since 10.5 and covered by
 the same automated tests, which are green), 13–20 (above).
 
-Results: to be filled after the run (date, tester, pass / fail per row).
+Results, first run (product owner, 2026-09-30, a project made with the Phase 9 build, saved again in this build):
+R1 opened and saved as v3 (`formatVersion` 3); R2 refused as damaged ("a clip has a negative fade"); R3–R6 failed —
+speed changes left the clip's length on the timeline unchanged, split left the old clip drawn under the two parts, a
+value typed in Fade In / Fade Out jumped back to 0, a dissolve could not be added and checked. Cause (not the format,
+not the migration, not Phase 10 code): the project had been opened a second time in the same session; the timeline
+kept its clip view models by clip id since Phase 4 and reused those of the first load, so it drew — and handed the
+Inspector — the old clip objects while every edit changed the new ones. Fixed in the timeline (view models reused only
+for the same clip object, dropped when a project is opened); `UI.Tests/ReopenedProjectTimelineTests`. The fades that
+reached the model were exported (the MP4's brightness follows the ramps at 33.2 s and 142–150 s). In that project the
+only clips that meet (at 2:33.5) use their whole media, so a dissolve there is refused with "There is not enough media
+beyond the clips for the dissolve." — as intended; a dissolve needs a cut made by a split or trimmed clips.
+
+Second run (after the fix) — to repeat, in the same project, **opening it twice first** (Open, then Open again, or
+Save As and Open):
+
+| # | Run | Why |
+|---|---|---|
+| S1 | speed 2× and 0.5× on a clip in the Inspector, Undo / Redo | the clip's length on the timeline |
+| S2 | 9 (split inside a ramp) and a plain split, Undo | two parts side by side, one clip again |
+| S3 | 4, 10, 12a (fades: typed values stay, bands drawn, Undo, save / reopen; invalid values) | the Inspector's fields |
+| S4 | 13 and 16 (add a dissolve on a split cut; move / trim / split / delete around it) | dissolve after a reopen |
+| S5 | 11 (export with fades) and 18 (with a dissolve): the MP4 at the Preview's frames | export after the fix |
+| S6 | R7 — `docs/EXPORT_MANUAL_TEST_PLAN.md` 1–8, 10–14 | the export regression, not yet run |
+
+Not repeated: R1, R2 (passed); 5, 6–8, 12, 12b, 12c, 14–15, 17, 17a, 19, 20 — the fix touches only how the timeline
+reuses its clip views after a project is opened, and those passed at 10.5 / 10.8.
