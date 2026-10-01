@@ -134,6 +134,15 @@ command; no push, merge, pull request or branch deletion without direct permissi
     suites unchanged. Not run in this step: `--blame-hang` repeats, the 4K scenes, CI (the branch is not pushed), the
     manual scenarios in the real app.
   - Manual plan: scenarios 1–6 filled in (automated coverage named), status "manual pending".
+- Step 11.3 preliminarily accepted on the automated results (product owner, 2026-10-01), then the real-app run of the
+  manual scenarios 1–6 by Claude (2026-10-01, `db0feba`, Debug from the artifacts folder; another running instance —
+  PID 38056, `src/App/bin` — left alone): all passed — details in `docs/PHASE11_MANUAL_TEST_PLAN.md` "Results log". With
+  that, Step 11.3 is accepted (the product owner's condition). No code changed. Notes (not 11.3 defects, nothing done):
+  a file the Preview is decoding can't be renamed on Windows (OS lock — in practice such a file goes only with its
+  drive); opening a project with media on an unreachable share took ≈ 47 s (Open's file-by-file checks before the
+  project is shown, unchanged since Phase 6; the window stayed responsive); Ctrl+E sent by `SendKeys` did not start the
+  export in this run (the toolbar button did) — not investigated; an offline video without metadata is drawn as a
+  full-canvas placeholder over the lower layers (its size is unknown; existing behaviour).
 
 ## Phase 10 (complete)
 

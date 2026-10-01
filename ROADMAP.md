@@ -69,8 +69,8 @@ acceptance criteria in `docs/DEVELOPMENT_PLAN.md`.
 
 Step 11.1 (audit) and Step 11.2 (scope formalization, documentation only, `ba6762e`) accepted (2026-10-01); Step 11.3
 (media availability re-check: on window activation, throttled to 3 s with a trailing check, and before the export; files
-gone or back during the session become offline / online with their analysis, thumbnail and waveform restarted) done —
-awaiting acceptance.
+gone or back during the session become offline / online with their analysis, thumbnail and waveform restarted, `db0feba`)
+accepted (2026-10-01; automated, and the manual scenarios 1–6 passed in the real app).
 Details: `progress.md`.
 
 ## Previous

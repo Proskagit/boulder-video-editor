@@ -397,7 +397,8 @@ toolbar and the documentation audited; no change (report in `progress.md`).
 D026, this section, ROADMAP, `progress.md`, ARCHITECTURE, README, `docs/README.md`, `docs/PHASE11_MANUAL_TEST_PLAN.md`
 (skeleton), the outdated statements found by the audit. Documentation only.
 
-### 11.3 — Media availability re-check *(done — awaiting acceptance; choices in D026 "Refined in Step 11.3")*
+### 11.3 — Media availability re-check *(done — accepted 2026-10-01 after the real-app run of scenarios 1–6; `db0feba`;
+choices in D026 "Refined in Step 11.3")*
 Scope: D026 §2 — a re-check of every asset's file off the UI thread, applied on the UI thread; triggers: the window
 becoming active (throttled), before the export, before a relink; offline ⇄ online transitions with the processing
 restarted per asset.

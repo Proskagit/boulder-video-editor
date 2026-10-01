@@ -11,18 +11,19 @@ runs; a "temporarily unavailable" file is simulated by a removable or mapped dri
 
 Status column: **planned** — written at 11.2, not yet runnable; **auto** — covered by automated tests only, manual run
 pending (11.9); **manual pending** — runnable, not yet run in the real app; **app 11.x** — checked in the real app during
-that step (a development check, not the formal run); **PO** — run by the product owner.
+that step (a development check, not the formal run); **PO** — run by the product owner; **app 11.3 (Claude), passed** — run in the real app by Claude for the Step 11.3
+acceptance (results log below).
 
 ## Step 11.3 — media availability re-check (D026 §2, PO-5)
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 1 | File removed during the session | Open a project with online media on the timeline; move one file away; switch to another window and back | The asset becomes offline: "Media offline" in the Media Browser, the Preview's placeholder, the status bar says "… is missing now and is shown as offline."; the project stays clean (no `*`) | `MediaRecheckTests` (gone, never dirty), `MediaAvailabilityTests` (Preview, Media Browser), `MediaAvailabilityMonitorTests` (status bar) | manual pending |
-| 2 | File comes back | After 1, move the file back; activate the window | The asset is online again without reopening: picture in the Preview, thumbnail, waveform; "… is available again."; clean | `MediaRecheckTests`, `MediaAvailabilityTests` (Preview frame, thumbnail / waveform restarted, old work dropped) | manual pending |
-| 3 | Missing at Open, back later | Open a project with a file missing; restore the file; activate the window | Online; an asset without saved metadata is analysed; thumbnail / waveform appear | `MediaRecheckTests` (returned), `MediaAvailabilityTests` (analysis of `Pending` / `Failed`, display-size refresh, offline thumbnail / waveform made on return) | manual pending |
-| 4 | Export right after a removal | Remove a used file and start Export at once (within the throttle interval) | The preflight reports the media as offline; nothing is exported. And the other way: a file put back and Export at once — no offline error | `ExportWorkflowTests` (gone / back since the last check) | manual pending |
-| 5 | Slow or disconnected drive | Media on a removable / mapped drive; disconnect it; activate the window, play, edit | The UI stays responsive while the check waits; the asset becomes offline | `MediaRecheckTests` (a held file system: the caller returns at once, no check on its thread; a replaced project's result dropped; requests folded) | manual pending |
-| 6 | Throttle | Switch windows repeatedly; restore a file and switch back within 3 s of the last switch | At most one check per 3 s; the file is still seen (one trailing check at the end of the interval); no visible stall | `MediaAvailabilityMonitorTests` (interval, one trailing check, stop at close) | manual pending |
+| 1 | File removed during the session | Open a project with online media on the timeline; move one file away; switch to another window and back | The asset becomes offline: "Media offline" in the Media Browser, the Preview's placeholder, the status bar says "… is missing now and is shown as offline."; the project stays clean (no `*`) | `MediaRecheckTests` (gone, never dirty), `MediaAvailabilityTests` (Preview, Media Browser), `MediaAvailabilityMonitorTests` (status bar) | app 11.3 (Claude), passed |
+| 2 | File comes back | After 1, move the file back; activate the window | The asset is online again without reopening: picture in the Preview, thumbnail, waveform; "… is available again."; clean | `MediaRecheckTests`, `MediaAvailabilityTests` (Preview frame, thumbnail / waveform restarted, old work dropped) | app 11.3 (Claude), passed |
+| 3 | Missing at Open, back later | Open a project with a file missing; restore the file; activate the window | Online; an asset without saved metadata is analysed; thumbnail / waveform appear | `MediaRecheckTests` (returned), `MediaAvailabilityTests` (analysis of `Pending` / `Failed`, display-size refresh, offline thumbnail / waveform made on return) | app 11.3 (Claude), passed |
+| 4 | Export right after a removal | Remove a used file and start Export at once (within the throttle interval) | The preflight reports the media as offline; nothing is exported. And the other way: a file put back and Export at once — no offline error | `ExportWorkflowTests` (gone / back since the last check) | app 11.3 (Claude), passed |
+| 5 | Slow or disconnected drive | Media on a removable / mapped drive; disconnect it; activate the window, play, edit | The UI stays responsive while the check waits; the asset becomes offline | `MediaRecheckTests` (a held file system: the caller returns at once, no check on its thread; a replaced project's result dropped; requests folded) | app 11.3 (Claude), passed |
+| 6 | Throttle | Switch windows repeatedly; restore a file and switch back within 3 s of the last switch | At most one check per 3 s; the file is still seen (one trailing check at the end of the interval); no visible stall | `MediaAvailabilityMonitorTests` (interval, one trailing check, stop at close) | app 11.3 (Claude), passed |
 
 ## Steps 11.4–11.6 — relink (D026 §3–§5, PO-1…PO-3, PO-6, PO-9)
 
@@ -72,3 +73,20 @@ that step (a development check, not the formal run); **PO** — run by the produ
 ## Results log
 
 Filled in per run (date, build / commit, who ran it, scenario results).
+
+### 2026-10-01 — Step 11.3 acceptance run (Claude), `db0feba`, Debug
+
+Build of `db0feba` from the session's artifacts folder (`src/App/bin` was locked by another running instance, which was
+left alone); every input pinned to the test process (UI Automation, keyboard only when its window was in front); the
+window deactivated by bringing a Notepad window to the front, files moved with PowerShell; evidence: screenshots, the
+app log, the project's cache folder. Scratch fixtures (not in the repository): V1 `pattern.mp4` (video + sound) and V2
+`bars.mp4` (video + sound, half size) at 0–4 s, A1 `tone.wav`; no saved metadata.
+
+| # | Result | Observed |
+|---|---|---|
+| 3 | pass | `bars.mp4` and `tone.wav` renamed away before Open: "Media offline" rows, status "2 media files are missing…". Put back while the window was inactive, window activated: "Media file is available again" ×2, "Analysing 2 media file(s) that are available again"; both rows online with metadata (0:08 · 640×360 · 25 FPS / 48 kHz · Stereo), the bars thumbnail made, waveforms of bars and tone drawn, cache files written at the moment of the return; the Preview shows bars over pattern; status "2 media files are available again." |
+| 1 | pass | `pattern.mp4` renamed away during the session (playhead in a gap): "is missing now" at the next activation; row "Media offline" (its earlier thumbnail kept, D024); status message; title without `*`; on the clip the Preview shows the "Media offline" placeholder under bars. Note: a file that the Preview is decoding (playhead on its clip) can't be renamed on Windows at all — the OS lock; such a file disappears in practice only with its drive. |
+| 2 | pass | Put back, window activated: "available again", the Preview shows the pattern frame again, row online — without reopening. Same size and time → the cached thumbnail was reused (no decode). Extra: a different file put under the same name → a new thumbnail was made (cache key changed) and shown; the asset's size and metadata stay from the import (online files are not re-validated, PO-6). |
+| 6 | pass | Activations at 19:15:25.077 and 19:15:25.728 (`tone.wav` renamed away between them): no log line right after the second; one trailing check at 19:15:28.095 ("tone.wav is missing now") without another switch. |
+| 4 | pass | Window kept active (no activation), `pattern.mp4` renamed away, Export: "missing now" logged by the export's own check (after the click), dialog "Export not possible — 'pattern.mp4' is offline (1 clip, first at 00:00:00.000)". Then put back (no activation for > 3 s), Export: "available again" logged by the export's check, no preflight error, the output-file picker opened (cancelled). Note: Export was triggered through the toolbar button (UI Automation); Ctrl+E sent with `SendKeys` did nothing in this run — not investigated (not part of 11.3; the shortcut was accepted in Phase 9). |
+| 5 | pass | A fixture with an extra asset on an unreachable share (`\\10.255.255.1\share\unc.mp4`, `File.Exists` ≈ 11 s): activation at 21:32:23.921 with `tone.wav` renamed away — the change applied at 21:32:44.909 (the check waited on the share); meanwhile the slowest UI Automation answer was 14 ms; during an earlier check playback ran smoothly (00:09:01 → 00:12:11 in 3 s). Note: opening that project took ≈ 47 s (Open resolves the paths and marks missing media file by file, before the project is shown; the window stayed responsive) — Open's behaviour, unchanged since Phase 6. |
