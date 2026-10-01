@@ -329,6 +329,25 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
     (6 px, by the 10.8 rule); Ctrl+S right after typing in a field is the field's (9.6 rule) — Save works.
     Verification after all fixes: `dotnet build --no-incremental -warnaserror` 0 / 0; `dotnet test --blame-hang` 1973
     passed, 2 skipped (UI 370, Timeline 304); 4K 88 / 88.
+  - Product owner (2026-10-01): scenario 8 (changed rule) and the Preview's sound by ear passed.
+  - R7 — `docs/EXPORT_MANUAL_TEST_PLAN.md` 1–8, 10–14 run by Claude in the real app (2026-10-01): 13 pass, 0 fail, 9
+    not run (optional); results per scenario in that plan's log. Scenario projects written as files (scratch script;
+    the hidden track of 4 and the muted track of 5 are model-only, no UI control), everything else through the UI. The
+    product owner's own app instance was open meanwhile; the automation was pinned to its own process id. No defect.
+    Observed, as before: Cancel in "Replace file?" sets the status "Export cancelled."; "+ Text" on a project whose only
+    video track is occupied at the playhead is refused (it needs a free spot on the top track).
+  - Minimum clip length (product owner's question: an edge dragged down to "about one pixel"). Defined since Phase 4
+    (D008: trims clamp to neighbours, the source and a one-frame minimum): `PlanTrim` clamps to `max(1, the dissolve
+    zone part on the other edge)` frames, the target rounded to the nearest frame; `TimelineValidator` rejects a clip
+    under one frame or off the grid; the view draws a clip at least `MinWidthPixels` = 2 px wide (one frame at 25 fps and
+    50 px/s is 2 px, hence "about a pixel"). Not zoom dependent (the trim works in frames). Checked, no change needed:
+    `Timeline.Tests/OneFrameClipTests` (10: both edges at 25 / 23.976 / 29.97 and 2× / 0.25× → exactly one frame on the
+    grid, exact undo / redo; fades cut to 1 / 1 — factor 0.25 on that frame; a far-edge trim stops at the dissolve's zone
+    part, the cut edge removes it; split refused; save / read back identical; the snapshot shows it on exactly its
+    frame), `Export.Tests` (one-frame video at 1× and 2× and a one-frame text with cut fades: every export frame = the
+    Preview's), `UI.Tests/TimelineTrimLayoutTests` (dragging past the other edge at 2, 50 and the maximum px/s → one
+    frame, width max(2 px, one frame), undo). In the real app: Inspector Duration 00:00:00:01, undo / redo, the MP4 shows
+    the clip on frame 0 only.
 
 ## Phase 9 (complete)
 

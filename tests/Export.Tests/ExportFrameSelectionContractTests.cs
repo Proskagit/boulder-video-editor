@@ -283,6 +283,51 @@ public sealed class ExportFrameSelectionContractTests
         Assert.Contains("@", frames[99]);
     }
 
+    // --- one-frame clips (Step 10.9: a trim's minimum, D008) ----------------------------------------------
+
+    /// <summary>Clips trimmed to their one-frame minimum — a video at 1× and at 2× between others, and a text with fades
+    /// cut to that frame — are exported on exactly their frame, with the Preview's source frame and opacity.</summary>
+    [Theory]
+    [InlineData(25, 1)]
+    [InlineData(30000, 1001)]
+    public async Task One_frame_clips_are_exported_on_their_frame_like_the_preview(int num, int den)
+    {
+        var rate = new FrameRate(num, den);
+        var a = Video(rate, 8, "a.mp4");
+        var b = Video(rate, 8, "b.mp4");
+        Ok(_f.Service.AddClip(a.Id));
+        var first = _f.V1.Clips.Single();
+        Ok(_f.Service.TrimClip(first.Id, ClipEdge.End, F(30)));
+        Ok(_f.Service.AddClip(b.Id, _f.V1.Id, F(30)));
+        var single = _f.V1.Clips.Single(c => c != first);
+        Ok(_f.Service.TrimClip(single.Id, ClipEdge.Start, F(20)));                 // dragged far past: stops at 30
+        Ok(_f.Service.TrimClip(single.Id, ClipEdge.End, F(10)));                   // and back: one frame [30, 31)
+        Ok(_f.Service.AddClip(a.Id, _f.V1.Id, F(31)));
+        var fast = _f.V1.Clips.Single(c => c != first && c != single);
+        Ok(_f.Service.SetClipSpeed(fast.Id, ClipSpeed.FromSteps(40)));
+        Ok(_f.Service.TrimClip(fast.Id, ClipEdge.End, F(31)));                      // one frame at 2× [31, 32)
+        Ok(_f.Service.AddClip(b.Id, _f.V1.Id, F(32)));
+        Ok(_f.Service.TrimClip(_f.V1.Clips.Last().Id, ClipEdge.End, F(40)));
+        Ok(_f.Service.AddTrack(TrackType.Video));
+        Ok(_f.Service.AddTextClip(F(35)));
+        var text = _f.Project.Timeline.VideoTracks.OrderBy(t => t.Order).Last().Clips.Single();
+        Ok(_f.Service.SetClipProperties(text.Id, new ClipPropertyChange { Fade = new FadeProperties(F(10), F(10)) }));
+        Ok(_f.Service.TrimClip(text.Id, ClipEdge.End, F(35)));                      // one frame, fades cut to it
+        Assert.Equal((1L, 1L, 1L), (TransitionRules.ClipFrames(single, rate), TransitionRules.ClipFrames(fast, rate), TransitionRules.ClipFrames(text, rate)));
+        Assert.Equal((F(1), F(1)), (text.FadeIn, text.FadeOut));
+        _f.AssertValid();
+
+        var frames = await AssertMatchesPreview(Snapshot());
+
+        string Id(Clip c) => c.Id.ToString()[..8];
+        Assert.StartsWith(Id(single), frames[30]);
+        Assert.StartsWith(Id(fast), frames[31]);
+        Assert.DoesNotContain(Id(single), frames[29] + frames[31]);
+        Assert.DoesNotContain(Id(fast), frames[30] + frames[32]);
+        Assert.Contains($"{Id(text)}:T@", frames[35]);                               // the fade's opacity on its one frame
+        Assert.DoesNotContain(Id(text), frames[34] + frames[36]);
+    }
+
     // --- dissolves (Phase 10 Step 10.7, D025 §3) ---------------------------------------------------------
 
     /// <summary>A video split in two and dissolved on the cut: both clips show one continuous source, so in the zone A (from

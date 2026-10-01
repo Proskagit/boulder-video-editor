@@ -136,4 +136,27 @@ public sealed class TimelineTrimLayoutTests
         Assert.Equal(trimmedWidth, view.Width, 6);
         AssertLaidOutFromModel(view);
     }
+
+    /// <summary>Step 10.9: a clip dragged down to "about a pixel" is one frame in the model at any zoom (the trim works in
+    /// frames, D008), drawn at least <see cref="TimelineClipViewModel.MinWidthPixels"/> wide.</summary>
+    [Theory]
+    [InlineData(TimelineCoordinateMapper.MinPixelsPerSecond)]
+    [InlineData(50.0)]
+    [InlineData(10_000.0)]
+    public void Dragging_an_edge_past_the_other_leaves_one_frame_at_any_zoom(double pixelsPerSecond)
+    {
+        var (clip, view) = AddVideo();
+        _timeline.ZoomAtPointer(pixelsPerSecond / _timeline.PixelsPerSecond, 0);            // as the zoom gestures do
+
+        Drag(view, ClipEdge.End, -view.Width - 500);
+        _timeline.EndGesture();
+
+        Assert.Equal(F(1), clip.Duration);
+        var oneFrame = TimelineCoordinateMapper.TimeToX(F(1), _timeline.PixelsPerSecond);
+        Assert.Equal(Math.Max(TimelineClipViewModel.MinWidthPixels, oneFrame), view.Width, 6);
+
+        _undo.Undo();
+        Assert.Equal(F(250), clip.Duration);
+        AssertLaidOutFromModel(view);
+    }
 }
