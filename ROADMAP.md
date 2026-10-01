@@ -67,7 +67,10 @@ the same name in the chosen folder, and `Recent ▾` (10 entries) next to Open. 
 11.5 batch search · 11.6 relink UI · 11.7 recent projects core · 11.8 recent projects UI · 11.9 closeout — scope and
 acceptance criteria in `docs/DEVELOPMENT_PLAN.md`.
 
-Step 11.1 (audit) accepted (2026-10-01); Step 11.2 (scope formalization, documentation only) done — awaiting acceptance.
+Step 11.1 (audit) and Step 11.2 (scope formalization, documentation only, `ba6762e`) accepted (2026-10-01); Step 11.3
+(media availability re-check: on window activation, throttled to 3 s with a trailing check, and before the export; files
+gone or back during the session become offline / online with their analysis, thumbnail and waveform restarted) done —
+awaiting acceptance.
 Details: `progress.md`.
 
 ## Previous

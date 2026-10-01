@@ -1644,6 +1644,34 @@ Consequences:
 - New code follows the existing layering: Core interfaces, implementations in Project / Media / Video, orchestration in
   UI services, no file system access from view models.
 
+Refined in Step 11.3 (2026-10-01), media availability re-check (implementation choices within §2; no PO decision
+changed):
+- `IProjectService.RecheckMediaAsync()` (replaces `DetectMissingMedia`, which had no caller) and the event
+  `MediaAvailabilityChanged` (`Returned`, `Gone`), raised before `MediaAssetsChanged`. `ProjectService` captures the
+  project and each asset's path on the caller's thread, runs `File.Exists` for them in one `Task.Run`, and applies the
+  result on the caller's context only if the same project is current and the asset still has that path; a file-system
+  error counts as missing. One check at a time: a request while one runs is folded into one more check after it, and the
+  returned task always covers a check that started after the call. Open / Recover use the same file check.
+- Trigger on activation: `MediaAvailabilityMonitor` (UI service), `Interval` = **3 s**, measured from the start of the
+  last check; an activation inside the interval schedules **one trailing check** at its end (later ones in the interval
+  add nothing), so a file restored right after a check is seen without another window switch, while switching windows
+  back and forth stats the files at most once per 3 s. Stopped when the window starts closing. Every change found is
+  reported in the status bar (`"x" is missing now and is shown as offline.` / `"x" is available again.`, counts for
+  several).
+- The export re-checks before its preflight, unthrottled (`ExportWorkflow`); the relink will (11.4).
+- Returned files: `MediaAnalysisCoordinator` analyses an asset that is `Pending` or `Failed` (its file may have gone
+  while it was probed) and refreshes metadata without the display size; saved metadata is not probed again (an online
+  file is not re-validated, PO-6). An analysis or orientation refresh whose asset is missing now or has another path when
+  the probe ends writes nothing; a missing asset gets back the status and error it had when queued (so it is analysed
+  when it returns), an asset with another path is left to whoever changed it (11.4).
+- Thumbnails / waveforms: `MediaCacheCoordinator.Restart` — the returned assets are forgotten as handled in the current
+  generation and requested again (made, not only read from the cache); the result shown while offline stays until the
+  new one is ready; work started before the restart publishes nothing (each handling has an identity, checked before
+  publishing). Gone files need no restart: what is shown may stay (D024), nothing new is decoded.
+- The Preview needs nothing new: `IsMissing` is part of `PlaybackSnapshotBuilder.AssetState`, so a change rebuilds the
+  snapshot (placeholder ⇄ picture, decoders reopened); the Media Browser rebuilds its rows on `MediaAssetsChanged`; the
+  export preflight reads `IsMissing` and its own `File.Exists`.
+
 Status: Accepted (2026-10-01, PO-1…PO-9). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 11 — Media
 relink & recent projects: steps"; the implementation must follow PO-1…PO-9 as recorded here.
 

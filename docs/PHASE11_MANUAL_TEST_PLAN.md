@@ -17,12 +17,12 @@ that step (a development check, not the formal run); **PO** — run by the produ
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 1 | File removed during the session | Open a project with online media on the timeline; move one file away; switch to another window and back | The asset becomes offline: "Media offline" in the Media Browser, the Preview's placeholder; the project stays clean (no `*`) | — | planned |
-| 2 | File comes back | After 1, move the file back; activate the window | The asset is online again without reopening: picture in the Preview, thumbnail, waveform; clean | — | planned |
-| 3 | Missing at Open, back later | Open a project with a file missing; restore the file; activate the window | Online; an asset without saved metadata is analysed; thumbnail / waveform appear | — | planned |
-| 4 | Export right after a removal | Remove a used file and start Export at once (within the throttle interval) | The preflight reports the media as offline; nothing is exported | — | planned |
-| 5 | Slow or disconnected drive | Media on a removable / mapped drive; disconnect it; activate the window, play, edit | The UI stays responsive while the check waits; the asset becomes offline | — | planned |
-| 6 | Throttle | Switch windows repeatedly | At most one check per interval (log); no visible stall | — | planned |
+| 1 | File removed during the session | Open a project with online media on the timeline; move one file away; switch to another window and back | The asset becomes offline: "Media offline" in the Media Browser, the Preview's placeholder, the status bar says "… is missing now and is shown as offline."; the project stays clean (no `*`) | `MediaRecheckTests` (gone, never dirty), `MediaAvailabilityTests` (Preview, Media Browser), `MediaAvailabilityMonitorTests` (status bar) | manual pending |
+| 2 | File comes back | After 1, move the file back; activate the window | The asset is online again without reopening: picture in the Preview, thumbnail, waveform; "… is available again."; clean | `MediaRecheckTests`, `MediaAvailabilityTests` (Preview frame, thumbnail / waveform restarted, old work dropped) | manual pending |
+| 3 | Missing at Open, back later | Open a project with a file missing; restore the file; activate the window | Online; an asset without saved metadata is analysed; thumbnail / waveform appear | `MediaRecheckTests` (returned), `MediaAvailabilityTests` (analysis of `Pending` / `Failed`, display-size refresh, offline thumbnail / waveform made on return) | manual pending |
+| 4 | Export right after a removal | Remove a used file and start Export at once (within the throttle interval) | The preflight reports the media as offline; nothing is exported. And the other way: a file put back and Export at once — no offline error | `ExportWorkflowTests` (gone / back since the last check) | manual pending |
+| 5 | Slow or disconnected drive | Media on a removable / mapped drive; disconnect it; activate the window, play, edit | The UI stays responsive while the check waits; the asset becomes offline | `MediaRecheckTests` (a held file system: the caller returns at once, no check on its thread; a replaced project's result dropped; requests folded) | manual pending |
+| 6 | Throttle | Switch windows repeatedly; restore a file and switch back within 3 s of the last switch | At most one check per 3 s; the file is still seen (one trailing check at the end of the interval); no visible stall | `MediaAvailabilityMonitorTests` (interval, one trailing check, stop at close) | manual pending |
 
 ## Steps 11.4–11.6 — relink (D026 §3–§5, PO-1…PO-3, PO-6, PO-9)
 

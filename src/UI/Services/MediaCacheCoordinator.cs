@@ -18,7 +18,10 @@ namespace AiVideoEditor.UI.Services;
 /// thread in the app), the same thread that replaces the project. Save / Save As keep the generation: only the cache
 /// folder changes, and later requests use the new one.</item>
 /// <item>Once per asset and generation (by <see cref="MediaAsset.Id"/>): a request for an asset that is being handled,
-/// has its result, or has none to make is ignored.</item>
+/// has its result, or has none to make is ignored — until the asset is restarted (<see cref="Restart"/>): an asset whose
+/// file has come back (<see cref="IProjectService.MediaAvailabilityChanged"/>, D026 §2) is requested again in the same
+/// generation (now it may be made, not only read from the cache). Its earlier result stays shown until the new one is
+/// ready; work started for it before the restart publishes nothing.</item>
 /// <item>A cached result is read without a slot and never decodes; making one takes one of this kind's own slots
 /// (the limit of one kind never holds up the other) — the wait ends with the generation. Cache reads and making run
 /// on the thread pool.</item>
@@ -43,6 +46,19 @@ public abstract class MediaCacheCoordinator<T> where T : class
         _slots = new SemaphoreSlim(maxConcurrent, maxConcurrent);
         projects.ProjectChanged += (_, _) => StartNewGeneration();
         projects.MediaAssetsChanged += (_, _) => RequestAll();
+        projects.MediaAvailabilityChanged += (_, e) => Restart(e.Returned.Select(a => a.Id));
+    }
+
+    /// <summary>Forgets that these assets were handled in the current generation and requests them again. Their results
+    /// stay until replaced; work already running for them publishes nothing (it belongs to the handling before).</summary>
+    internal void Restart(IEnumerable<Guid> assetIds)
+    {
+        var generation = _generation;
+        var any = false;
+        foreach (var id in assetIds)
+            any |= generation.Handled.TryRemove(id, out _);
+        if (any)
+            RequestAll();
     }
 
     /// <summary>Raised (on the caller's context) with the asset id when its result is ready — only for the current
@@ -112,17 +128,18 @@ public abstract class MediaCacheCoordinator<T> where T : class
     private void Request(MediaAsset asset)
     {
         var generation = _generation;
-        if (generation.IsCancelled || !MayHave(asset) || !generation.Handled.TryAdd(asset.Id, 0))
+        var handling = new object();
+        if (generation.IsCancelled || !MayHave(asset) || !generation.Handled.TryAdd(asset.Id, handling))
             return;
 
         // Captured now, on the caller's thread: the folder of this project as it is now.
-        Track(HandleAsync(asset, CanMake(asset), CurrentFolder, generation));
+        Track(HandleAsync(asset, CanMake(asset), CurrentFolder, generation, handling));
     }
 
     /// <summary>A result may be made (decoded) — not for offline media.</summary>
     private static bool CanMake(MediaAsset asset) => !asset.IsMissing;
 
-    private async Task HandleAsync(MediaAsset asset, bool canMake, string folder, Generation generation)
+    private async Task HandleAsync(MediaAsset asset, bool canMake, string folder, Generation generation, object handling)
     {
         var token = generation.Token;
         var slot = false;
@@ -139,6 +156,8 @@ public abstract class MediaCacheCoordinator<T> where T : class
 
             if (token.IsCancellationRequested)
                 return; // another project is current now: publish nothing
+            if (!generation.Handled.TryGetValue(asset.Id, out var current) || !ReferenceEquals(current, handling))
+                return; // the asset was restarted meanwhile: a newer handling publishes its result
             if (result is null)
                 return; // none to show (offline without a cache, undecodable) — not asked again in this generation
 
@@ -175,7 +194,8 @@ public abstract class MediaCacheCoordinator<T> where T : class
 
         public CancellationToken Token => _cancellation.Token;
         public bool IsCancelled => _cancellation.IsCancellationRequested;
-        public ConcurrentDictionary<Guid, byte> Handled { get; } = new();
+        /// <summary>Per asset id, the handling in charge of it (its identity tells a restarted asset's work apart).</summary>
+        public ConcurrentDictionary<Guid, object> Handled { get; } = new();
         public ConcurrentDictionary<Guid, T> Results { get; } = new();
 
         // Not disposed: its token is still held by the work it cancels (which ends on its own).

@@ -36,6 +36,7 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         InitializeComponent();
         Opened += async (_, _) => await viewModel.OnWindowOpenedAsync();
+        Activated += (_, _) => viewModel.OnWindowActivated();
     }
 
     /// <summary>
@@ -125,7 +126,8 @@ public partial class MainWindow : Window
         public Task<Core.Entities.Project> OpenAsync(string projectFolderPath, CancellationToken ct = default) => Task.FromResult(Current);
         public Task SaveAsync(CancellationToken ct = default) => Task.CompletedTask;
         public Task SaveAsAsync(string projectFolderPath, CancellationToken ct = default) => Task.CompletedTask;
-        public IReadOnlyList<MediaAsset> DetectMissingMedia() => Array.Empty<MediaAsset>();
+        public Task RecheckMediaAsync(CancellationToken ct = default) => Task.CompletedTask;
+        public event EventHandler<MediaAvailabilityChangedEventArgs>? MediaAvailabilityChanged { add { } remove { } }
         public MediaAddResult AddMediaAssets(IEnumerable<MediaAsset> assets) => new();
         public void NotifyMediaAssetsChanged() { }
         public void NotifyTimelineChanged() { }

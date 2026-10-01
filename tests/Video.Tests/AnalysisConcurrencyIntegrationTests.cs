@@ -80,7 +80,8 @@ public sealed class AnalysisConcurrencyIntegrationTests : IDisposable
         public Task<Core.Entities.Project> RestoreRecoveryAsync(string recoveryFilePath, CancellationToken ct = default) => throw new NotSupportedException();
         public Task SaveAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task SaveAsAsync(string projectFolderPath, CancellationToken ct = default) => throw new NotSupportedException();
-        public IReadOnlyList<MediaAsset> DetectMissingMedia() => Array.Empty<MediaAsset>();
+        public Task RecheckMediaAsync(CancellationToken ct = default) => Task.CompletedTask;
+        public event EventHandler<MediaAvailabilityChangedEventArgs>? MediaAvailabilityChanged { add { } remove { } }
         public MediaAddResult AddMediaAssets(IEnumerable<MediaAsset> assets) => throw new NotSupportedException();
         public void NotifyMediaAssetsChanged() { }
         public void NotifyTimelineChanged() { }

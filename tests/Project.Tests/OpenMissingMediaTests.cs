@@ -106,7 +106,7 @@ public sealed class OpenMissingMediaTests : IDisposable
         Assert.False(_undo.CanUndo);
 
         // Detecting again (e.g. later on demand) is still not a change to the project.
-        _service.DetectMissingMedia();
+        await _service.RecheckMediaAsync();
         Assert.False(project.IsDirty);
         Assert.Equal(1, saveStateChanges); // only the one from Open itself
     }

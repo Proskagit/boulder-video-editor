@@ -61,7 +61,8 @@ public sealed class MediaAsset
     /// thumbnail's cache file follows from the asset id and its source file (<c>IThumbnailService</c>).</summary>
     public string? ThumbnailPath { get; set; }
 
-    /// <summary>Set when the file could not be located at <see cref="FilePath"/> on project load.</summary>
+    /// <summary>The file is not at <see cref="FilePath"/>: set when a project is opened or recovered and updated by every
+    /// re-check during the session (<c>IProjectService.RecheckMediaAsync</c>, D026 §2). Runtime state, never saved.</summary>
     public bool IsMissing { get; set; }
 
     public DateTimeOffset ImportedAt { get; init; } = DateTimeOffset.UtcNow;

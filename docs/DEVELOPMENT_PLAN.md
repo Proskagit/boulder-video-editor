@@ -393,11 +393,11 @@ automatic opening of the last project, a menu bar, a UI redesign, new hotkeys.
 Git state (Phase 10 merged as `2e758f1`), project persistence, missing media, caches, analysis, the open path, the
 toolbar and the documentation audited; no change (report in `progress.md`).
 
-### 11.2 — Scope formalization *(done — awaiting acceptance)*
+### 11.2 — Scope formalization *(done, accepted 2026-10-01)*
 D026, this section, ROADMAP, `progress.md`, ARCHITECTURE, README, `docs/README.md`, `docs/PHASE11_MANUAL_TEST_PLAN.md`
 (skeleton), the outdated statements found by the audit. Documentation only.
 
-### 11.3 — Media availability re-check
+### 11.3 — Media availability re-check *(done — awaiting acceptance; choices in D026 "Refined in Step 11.3")*
 Scope: D026 §2 — a re-check of every asset's file off the UI thread, applied on the UI thread; triggers: the window
 becoming active (throttled), before the export, before a relink; offline ⇄ online transitions with the processing
 restarted per asset.

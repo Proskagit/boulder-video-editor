@@ -86,6 +86,54 @@ command; no push, merge, pull request or branch deletion without direct permissi
   - Sub-decisions left to a step's start (D026): 11.3 the throttle interval; 11.4 the compared characteristics, a later
     incompatible analysis, a failed probe of an existing file; 11.5 the batch's undo granularity and duplicate names;
     11.6 the placement of Relink; 11.8 a "Clear list" item.
+- Step 11.2 accepted by the product owner (2026-10-01) and committed as `ba6762e` (the Step 10.9 pull-request sentence
+  marked as a historical record).
+- Step 11.3 done (2026-10-01) — media availability re-check (D026 §2; choices recorded as D026 "Refined in Step 11.3").
+  - Core: `IProjectService.RecheckMediaAsync(ct)` and `MediaAvailabilityChanged` (`MediaAvailabilityChangedEventArgs`:
+    `Returned`, `Gone`); `DetectMissingMedia` (no production caller, no event) removed — the design-time stub, the
+    `Video.Tests` fake and one `Project.Tests` call follow. `MediaAsset.IsMissing`'s comment says what it is now.
+  - Project: `ProjectService` — an injectable file check (`Func<string, bool>`, `File.Exists` in the app; also used by
+    Open / Recover), `RecheckMediaAsync`: project and paths captured on the caller's thread, `File.Exists` in one
+    `Task.Run`, applied on the caller's context only to the same project and to assets with the same path, an error =
+    missing; a loop under a lock folds requests during a running check into one more check; the event, then
+    `MediaAssetsChanged`; no dirty flag, no history, no `SaveStateChanged`.
+  - UI: `MediaAvailabilityMonitor` (new, singleton) — `OnWindowActivated` from `MainWindow.Activated` through
+    `MainWindowViewModel.OnWindowActivated`; interval 3 s from the last check's start, one trailing check for activations
+    inside it; `Stop()` from `MainWindowViewModel.PrepareToCloseAsync`; status-bar messages for the changes.
+    `ExportWorkflow` awaits `RecheckMediaAsync` before its preflight. `MediaAnalysisCoordinator` — returned `Pending` /
+    `Failed` assets analysed, the display-size refresh as after Open; an analysis / refresh whose asset is missing or has
+    another path when the probe ends writes nothing (missing: the status and error from before the queueing restored).
+    `MediaCacheCoordinator` — `Restart(ids)` on `MediaAvailabilityChanged.Returned` (forget as handled, request again);
+    each handling has an identity checked before publishing, so work from before a restart publishes nothing; the
+    result shown while offline stays until the new one is ready. Preview / Media Browser / export preflight: no change
+    needed (snapshot `AssetState.IsMissing`, rows rebuilt on `MediaAssetsChanged`, `IsMissing` + `File.Exists`).
+  - Interval choice: 3 s — activation is the moment a user returns from Explorer; the trailing check makes a file
+    restored within 3 s of the last check visible without another switch; on a slow share a check may take seconds, so
+    a check per activation would pile up (they are folded anyway); no timer while the window stays active (PO-5: no
+    watcher, activation only).
+  - Tests (new): `Project.Tests/MediaRecheckTests` (12: gone, returned, nothing changed, never dirty / no history / file
+    unchanged, off the caller's thread and not blocking it, replaced project dropped, path changed meanwhile left alone,
+    requests folded into one more check, consecutive checks, an error = missing, Open uses the same check, no media);
+    `UI.Tests/MediaAvailabilityTests` (13: analysis of returned `Pending` / `Failed`, saved metadata not probed again,
+    display-size refresh, analysis dropped when the file went meanwhile and run again on return, dropped for another
+    path; offline thumbnail made on return, cached thumbnail kept until replaced, work from before a restart
+    publishes nothing, nothing made again for files that stayed; offline waveform made on return; the Preview shows
+    the placeholder and the frame again; the Media Browser row); `UI.Tests/MediaAvailabilityMonitorTests` (6: first
+    activation checks, one trailing check for activations inside the interval — it sees a change made meanwhile, after
+    the interval at once, nothing after Stop, status messages, no message without a change). Changed:
+    `ExportWorkflowTests` (+2: a file gone since the last check blocks with "offline" and is marked; a file back is
+    online for the preflight), `OpenMissingMediaTests` (`DetectMissingMedia` → `RecheckMediaAsync`, assertion unchanged).
+  - Mutations (each reverted): no handling identity check → 1 failure; no cache restart → 5; analysis ignoring a changed
+    asset → 2; no analysis on return → 4; no replaced-project drop → 1; no path check in the re-check → 1; export without
+    the re-check → 2; no trailing check → 1; no request flag (no fold) → 7.
+  - Build: the running `AiVideoEditor.exe` (PID 38056 — not started in this step, left running) locks
+    `src/App/bin/Debug`, so builds and tests ran with `--artifacts-path` in the session's scratch folder (same sources,
+    same configuration). Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 errors / 0
+    warnings; `dotnet test` (whole solution, once) 2021 passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448,
+    Timeline 314, Project 331 (+12), UI 394 (+21), Export 99, Rendering 58, Video 291, ExportEndToEnd 86 + 2; parity
+    suites unchanged. Not run in this step: `--blame-hang` repeats, the 4K scenes, CI (the branch is not pushed), the
+    manual scenarios in the real app.
+  - Manual plan: scenarios 1–6 filled in (automated coverage named), status "manual pending".
 
 ## Phase 10 (complete)
 

@@ -133,6 +133,55 @@ public sealed class ExportWorkflowTests : IDisposable
         Assert.Contains("Export not possible", _status.Message);
     }
 
+    /// <summary>A text clip (exportable) plus a video clip after it whose file is <paramref name="file"/>.</summary>
+    private MediaAsset ProjectWithVideo(string file, bool markedMissing)
+    {
+        ExportableProject();
+        var asset = new MediaAsset
+        {
+            FilePath = file, Kind = MediaKind.Video, AnalysisStatus = MediaAnalysisStatus.Completed, IsMissing = markedMissing,
+            Metadata = new MediaMetadata { Duration = MediaTime.FromSeconds(5), FrameRate = FrameRate.Fps30, Width = 64, Height = 36 }
+        };
+        _projects.Current.MediaAssets.Add(asset);
+        _projects.Current.Timeline.VideoTracks[0].Clips.Add(new VideoClip
+        {
+            MediaAssetId = asset.Id, TimelineStart = MediaTime.FromSeconds(10), Duration = MediaTime.FromSeconds(1),
+            SourceOut = MediaTime.FromSeconds(1)
+        });
+        return asset;
+    }
+
+    [Fact]
+    public async Task A_file_gone_since_the_last_check_is_found_offline_before_the_preflight()
+    {
+        var file = Path.Combine(_root, "clip.mp4");
+        File.WriteAllText(file, "x");
+        var asset = ProjectWithVideo(file, markedMissing: false);
+        File.Delete(file);                                                        // gone, no check since (D026 §2)
+
+        var outcome = await Workflow(Ok).RunAsync();
+
+        Assert.True(asset.IsMissing);                                             // the export re-checked first
+        Assert.Equal(ExportOutcomeKind.PreflightFailed, outcome.Kind);
+        Assert.Contains("'clip.mp4' is offline", Assert.Single(_dialogs.Asked).Message);
+        Assert.Empty(_export.Jobs);
+    }
+
+    [Fact]
+    public async Task A_file_back_since_the_last_check_is_online_for_the_preflight()
+    {
+        var file = Path.Combine(_root, "clip.mp4");
+        File.WriteAllText(file, "x");
+        var asset = ProjectWithVideo(file, markedMissing: true);                 // still marked from before
+
+        var outcome = await Workflow().RunAsync();                               // the save picker is cancelled
+
+        Assert.False(asset.IsMissing);
+        Assert.Empty(_dialogs.Asked);                                             // no preflight error
+        Assert.Equal(ExportOutcomeKind.NotStarted, outcome.Kind);
+        Assert.Single(_picker.SaveRequests);                                      // it got as far as the output file
+    }
+
     [Fact]
     public async Task Warnings_only_can_be_accepted()
     {

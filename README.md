@@ -144,5 +144,6 @@ the sound a hard cut), identical in the Preview and the export; `project.json` f
 (v1 / v2 files still open).
 
 In progress — Phase 11 (DECISIONS.md D026): re-checking media availability during the session, relink of missing
-media (one file or a batch found next to it, undoable) and a list of recent projects. Until it is done, missing media
-is detected only when a project is opened and stays offline until the project is reopened.
+media (one file or a batch found next to it, undoable) and a list of recent projects. Done so far (Step 11.3): media
+files are checked again when the window becomes active (at most every 3 s) and before an export — a file moved away
+shows as offline, a file put back is online again without reopening the project.

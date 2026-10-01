@@ -300,20 +300,27 @@ recovery, unsaved changes).
   title comes from `MainWindowViewModel.Title`.
 - Playhead, zoom and snapping are session state (D015): stored in `project.json`, never dirty,
   never undoable; `TimelineViewModel` reads zoom/snapping from the sequence on every `ProjectChanged`.
-- Media paths and missing media (D014, as of `2e758f1`): each asset is saved with its absolute `FilePath` and a
-  `RelativePath` to the project folder (none on another volume); `ProjectSerializer.ResolveMediaPath` takes the absolute
-  path if the file exists, else the relative one, else keeps the absolute path. `ProjectService.MarkMissingMedia`
-  (`File.Exists`) sets the runtime flag `MediaAsset.IsMissing` on Open and Recover only, before the project becomes
-  current; nothing re-checks during the session (`IProjectService.DetectMissingMedia` exists but has no production
-  caller and raises no event). Missing media is never probed, never decoded for thumbnails / waveforms (cached results
-  only), shown as "Media offline" / the Preview's placeholder, blocks the export preflight and can't be added to the
-  timeline. There is no relink and no list of recent projects; no per-user settings are stored
-  (`AppPaths.ConfigFolder` is unused).
-- Planned in Phase 11 (D026, not implemented yet): a re-check of media availability off the UI thread (window
-  activation, throttled; before the export and the relink) with offline ⇄ online transitions and a per-asset restart of
-  analysis, thumbnails and waveforms; relink of missing media as an undoable command that keeps every `MediaAssetId`
-  (validation: hard rejects and warnings; allowed without ffprobe); a batch relink by exact file name in the chosen
-  folder; recent projects (10, outside every project, `Recent ▾` next to Open). `project.json` stays v3.
+- Media paths and missing media (D014): each asset is saved with its absolute `FilePath` and a `RelativePath` to the
+  project folder (none on another volume); `ProjectSerializer.ResolveMediaPath` takes the absolute path if the file
+  exists, else the relative one, else keeps the absolute path. `ProjectService.MarkMissingMedia` sets the runtime flag
+  `MediaAsset.IsMissing` on Open and Recover, before the project becomes current. Missing media is never probed, never
+  decoded for thumbnails / waveforms (cached results only), shown as "Media offline" / the Preview's placeholder, blocks
+  the export preflight and can't be added to the timeline.
+- Media availability during the session (Phase 11 Step 11.3, D026 §2): `IProjectService.RecheckMediaAsync` — the files
+  are checked in one `Task.Run` (never on the UI thread), the result applied on the UI thread to the same project and
+  only to assets whose path is unchanged; checks never overlap (a request while one runs is folded into one more check
+  after it); changes raise `MediaAvailabilityChanged` (`Returned`, `Gone`) and then `MediaAssetsChanged`; never dirty,
+  never undoable. Triggers: `MediaAvailabilityMonitor` (UI) on `MainWindow.Activated` — at most one check per 3 s, an
+  activation inside that interval answered by one trailing check, stopped at close, changes reported in the status bar —
+  and `ExportWorkflow` before its preflight (unthrottled). Reactions: `MediaAnalysisCoordinator` analyses a returned
+  `Pending` / `Failed` asset (and refreshes a missing display size); an analysis whose asset went missing or got another
+  path meanwhile writes nothing (a missing one gets its earlier status back). `MediaCacheCoordinator.Restart` requests
+  a returned asset's thumbnail / waveform again in the same generation (the old result shown until replaced; earlier
+  work publishes nothing). The Preview rebuilds its snapshot through `PlaybackSnapshotBuilder.AssetState.IsMissing`.
+- Planned in Phase 11 (D026, not implemented yet): relink of missing media as an undoable command that keeps every
+  `MediaAssetId` (validation: hard rejects and warnings; allowed without ffprobe); a batch relink by exact file name in
+  the chosen folder; recent projects (10, outside every project, `Recent ▾` next to Open). No per-user settings are
+  stored yet (`AppPaths.ConfigFolder` is unused). `project.json` stays v3.
 
 ## MVVM
 
@@ -415,5 +422,6 @@ the Step 9.4 closeout (9.4e), the Waveforms section (and the shared parts of the
 closeout (9.5e); the Export section's source frames and orchestration at the Step 9.7 closeout; the module table, playback
 and media sections at the Step 9.8 closeout; the CI section at the Step 9.10 closeout; the Phase 10 parts of the Core
 domain section step by step in Steps 10.3–10.8 and with the module table at the Step 10.9 closeout; the media paths and
-missing media paragraph of the Project persistence section at the Step 11.1 audit (`2e758f1`).
+missing media paragraph of the Project persistence section at the Step 11.1 audit (`2e758f1`), the media availability
+paragraph at the Step 11.3 closeout.
 Re-check the code before relying on details that later phases may have changed.
