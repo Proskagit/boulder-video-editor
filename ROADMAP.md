@@ -74,8 +74,9 @@ accepted (2026-10-01; automated, and the manual scenarios 1–6 passed in the re
 confirmation → apply as one undoable step, hard rejects and warnings, ffprobe unavailable allowed / probe failure
 rejected, the old file's thumbnail and waveform dropped) accepted (2026-10-01, `0e002dc`); its UI follows in 11.6.
 Step 11.5 (batch search: one folder, its own files, exact names ignoring case, a shared name given to none, every match
-through the 11.4 check, a summary, the confirmed items applied as one undoable step, re-validated) done — awaiting
-acceptance.
+through the 11.4 check, a summary, the confirmed items applied as one undoable step, re-validated) accepted (2026-10-01,
+`4180b4a`). Step 11.6 (relink UI: Relink… and Find Missing… in the Media Browser for offline media, the confirmations,
+the offer to search after an applied relink, the `EditingLock`) implemented — the manual run of scenarios 7–21 is next.
 Details: `progress.md`.
 
 ## Previous

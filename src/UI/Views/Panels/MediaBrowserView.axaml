@@ -18,6 +18,21 @@
         </DockPanel>
       </Border>
 
+      <!-- Offline media (Phase 11 Step 11.6, D026 §5): shown only while some media is offline. -->
+      <Border DockPanel.Dock="Top" Padding="8,4,8,6" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1"
+              IsVisible="{Binding HasOfflineMedia}">
+        <DockPanel>
+          <TextBlock Text="OFFLINE" FontSize="10" FontWeight="Bold" Foreground="#C0864A"
+                     VerticalAlignment="Center" DockPanel.Dock="Left"/>
+          <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+            <Button Content="Relink…" Command="{Binding RelinkCommand}"
+                    ToolTip.Tip="Link the selected offline media to its file at another place"/>
+            <Button Content="Find Missing…" Command="{Binding FindMissingCommand}"
+                    ToolTip.Tip="Look for the offline media files in one folder"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
       <Panel>
         <!-- Empty state -->
         <StackPanel IsVisible="{Binding HasNoMedia}" Margin="16" Spacing="6" VerticalAlignment="Center">

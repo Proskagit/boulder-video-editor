@@ -85,6 +85,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<WaveformCoordinator>();
         services.AddSingleton<MediaAvailabilityMonitor>();
         services.AddSingleton<MediaImportWorkflow>();
+        services.AddSingleton<MediaRelinkWorkflow>();
         services.AddSingleton<ProjectFileWorkflow>();
 
         // --- UI view models -------------------------------------------------------

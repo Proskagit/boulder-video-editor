@@ -147,5 +147,5 @@ In progress — Phase 11 (DECISIONS.md D026): re-checking media availability dur
 media (one file or a batch found next to it, undoable) and a list of recent projects. Done so far (Step 11.3): media
 files are checked again when the window becomes active (at most every 3 s) and before an export — a file moved away
 shows as offline, a file put back is online again without reopening the project. Step 11.4: the relink itself (checks,
-warnings, undo) is implemented underneath, Step 11.5 the batch search in a chosen folder; both get their Media Browser
-UI in Step 11.6.
+warnings, undo) is implemented underneath, Step 11.5 the batch search in a chosen folder, Step 11.6 their UI: while
+media is offline the Media Browser shows Relink… (the selected item) and Find Missing… (a folder), undoable like any edit.

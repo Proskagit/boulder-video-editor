@@ -8,7 +8,8 @@ namespace AiVideoEditor.UI.Services;
 
 /// <summary>
 /// <see cref="IDialogService"/> as a small modal window over the main window: a message and a
-/// row of buttons. Built in code so it needs no extra XAML or dependencies.
+/// row of buttons. Built in code so it needs no extra XAML or dependencies. A long message (a batch relink summary,
+/// Phase 11 Step 11.6) scrolls instead of growing past the screen.
 /// </summary>
 public sealed class AvaloniaDialogService : IDialogService
 {
@@ -47,7 +48,13 @@ public sealed class AvaloniaDialogService : IDialogService
             Spacing = 16,
             Children =
             {
-                new TextBlock { Text = request.Message, TextWrapping = TextWrapping.Wrap },
+                new ScrollViewer
+                {
+                    MaxHeight = 420,
+                    HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+                    VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+                    Content = new TextBlock { Text = request.Message, TextWrapping = TextWrapping.Wrap }
+                },
                 buttons
             }
         };

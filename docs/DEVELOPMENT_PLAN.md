@@ -436,7 +436,7 @@ checks) with its validation, the probe, the warnings and the undoable command.
   validator accepts edits of a relinked clip whose source is long enough.
 - Depends on: 11.3.
 
-### 11.5 — Relink: batch search *(done — awaiting acceptance; D026 "Refined in Step 11.5")*
+### 11.5 — Relink: batch search *(done — accepted 2026-10-01, `4180b4a`; D026 "Refined in Step 11.5")*
 Scope: D026 §4 — the missing assets found in one chosen folder by exact name (e.g. the folder of the file just
 relinked), each checked by the 11.4 relink check, applied after confirmation as one step.
 - PR: matches are only in that folder, not in subfolders, by exact name (case-insensitive); the summary lists matches,
@@ -446,7 +446,7 @@ relinked), each checked by the 11.4 relink check, applied after confirmation as 
 - QG: tests with temporary folders (subfolder ignored, name case, a hard-rejected match, a duplicate name, cancel).
 - Depends on: 11.4.
 
-### 11.6 — Relink: UI
+### 11.6 — Relink: UI *(implemented — automated checks done; manual acceptance of scenarios 7–21 pending; D026 "Refined in Step 11.6")*
 Scope: D026 §5 — Relink in the Media Browser for offline media, the file picker, the dialogs, the batch summary, the
 status messages; `EditingLock`.
 - PR: Relink is offered only for offline media and is disabled during an export; the picker starts in the old file's

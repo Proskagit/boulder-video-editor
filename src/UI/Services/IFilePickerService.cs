@@ -53,6 +53,9 @@ public sealed class FilePickerRequest
 {
     public string Title { get; init; } = "Open File";
     public bool AllowMultiple { get; init; } = true;
+
+    /// <summary>Folder the dialog starts in, if it exists (e.g. the old folder of a file to relink, D026 §5).</summary>
+    public string? StartFolder { get; init; }
     public IReadOnlyList<FilePickerFileTypeFilter> FileTypeFilters { get; init; } = Array.Empty<FilePickerFileTypeFilter>();
 }
 

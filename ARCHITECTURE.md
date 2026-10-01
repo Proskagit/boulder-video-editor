@@ -336,7 +336,13 @@ recovery, unsaved changes).
   re-checks once, validates every item again and within the batch (one file per item, one item once) and executes one
   `RelinkMediaCommand` for the items still valid (the others returned with their reason). `ApplyAsync(check)` is
   `ApplyAllAsync` with one item.
-- Planned in Phase 11 (D026, not implemented yet): the relink UI (single and batch); recent projects (10, outside every project, `Recent ▾` next to Open). No per-user settings are stored yet
+- Relink UI (Step 11.6): `UI/Services/MediaRelinkWorkflow` (singleton) — pickers, dialogs (`IDialogService`, long text
+  scrolls) and status around `IMediaRelinkService`, no relink rule of its own; `EditingLock` checked before, after every
+  await and right before applying; `IsRunning` (one at a time). `MediaBrowserViewModel`: `RelinkCommand` (selected
+  offline item), `FindMissingCommand` (any offline), `HasOfflineMedia` (the "OFFLINE" header row), selection kept by asset
+  id. `FilePickerRequest.StartFolder` (→ `SuggestedStartLocation`). After an applied relink with other media offline the
+  workflow offers the search in the chosen file's folder.
+- Planned in Phase 11 (D026, not implemented yet): recent projects (10, outside every project, `Recent ▾` next to Open). No per-user settings are stored yet
   (`AppPaths.ConfigFolder` is unused). `project.json` stays v3.
 
 ## MVVM
@@ -441,5 +447,5 @@ and media sections at the Step 9.8 closeout; the CI section at the Step 9.10 clo
 domain section step by step in Steps 10.3–10.8 and with the module table at the Step 10.9 closeout; the media paths and
 missing media paragraph of the Project persistence section at the Step 11.1 audit (`2e758f1`), the media availability
 paragraph at the Step 11.3 closeout, the relink paragraph at the Step 11.4 closeout, the batch relink paragraph at the
-Step 11.5 closeout.
+Step 11.5 closeout, the relink UI paragraph at the Step 11.6 implementation.
 Re-check the code before relying on details that later phases may have changed.

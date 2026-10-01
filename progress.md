@@ -223,6 +223,48 @@ command; no push, merge, pull request or branch deletion without direct permissi
     incremental `-warnaserror` build afterwards: 0 / 0. Not run: `--blame-hang` repeats, the 4K scenes, CI, a real-app run
     (no relink UI before 11.6).
   - Manual plan: batch scenarios 18–21 name their coverage, status "auto (core, 11.5); manual with the UI (11.6)".
+- Step 11.5 accepted in full by the product owner (2026-10-01), `4180b4a` its final commit.
+- Step 11.6 implemented (2026-10-01) — relink UI (D026 §5; the audit and plan approved by the product owner, all four UI
+  extensions, both batch entries, the Open hint; D026 "Refined in Step 11.6"). The manual acceptance of scenarios 7–21
+  follows; 11.7 does not start before it.
+  - UI flow: `UI/Services/MediaRelinkWorkflow` (singleton, DI) — Relink: picker (kind filter, start in the old folder when
+    it exists — checked off the UI thread) → `CheckAsync` → rejection dialog / warning confirmation → `ApplyAsync` →
+    refusal dialog or status; only after an applied relink and while others are offline: "Find other missing media?" →
+    the batch in the chosen file's folder. Find Missing: folder picker → `SearchFolderAsync` → `Summary()` (Relink N
+    Files / Cancel, or OK) → `ApplyAllAsync` → "Relinked X of Y" with reasons for refused items. The `EditingLock` is checked
+    before starting, after every await and right before applying; `IsRunning` keeps it to one workflow. No relink rule
+    in the UI; errors are the service's messages; the UI changes no asset itself.
+  - Media Browser: an "OFFLINE" header row (only while media is offline) with Relink… (`RelinkCommand`, a selected offline
+    item) and Find Missing… (`FindMissingCommand`), told on lock, selection, media and workflow changes; `HasOfflineMedia`.
+  - The four extensions: `FilePickerRequest.StartFolder` → `SuggestedStartLocation` in `AvaloniaFilePickerService`; the
+    dialog's message in a `ScrollViewer` (max 420 px) in `AvaloniaDialogService`; the Media Browser selection kept by asset
+    id (was the path, which a relink changes); "Not analysed yet" for a `Pending` row. Open / Recover message: "… shown as
+    offline — use Relink or Find Missing in the Media Browser." (two `ProjectOpenWorkflowTests` assertions follow the
+    approved wording). `ScriptedPicker` answers file pickers from a queue and records the requests.
+  - Tests (new): `UI.Tests/MediaRelinkWorkflowTests` (22: relink without dialogs, no offer when nothing else is offline;
+    the picker's kind filter and start folder (and none when the folder is gone); a cancelled picker; a rejection
+    explained, nothing applied, no offer; warnings confirmed / cancelled (no offer); without ffprobe → "Not analysed yet";
+    races while the warning is open — file gone, file changed, asset online again, path taken, project replaced — each
+    explained, nothing changed, no offer; the offer after an applied relink (Search → summary → one batch step; Not Now);
+    Find Missing summary with every group and one step; a cancelled summary; nothing to apply; items refused at Apply
+    listed; the commands with selection, offline media and the lock (and told about it); an export started during the
+    check or while asked; one workflow at a time; the Media Browser through relink, batch, undo ×2, redo ×2 — rows,
+    thumbnails, selection, the OFFLINE row).
+  - Mutations (each reverted; 16): no lock check before Apply → 1 failure; none after the check → 1; none before the
+    batch's Apply → 1; the offer with nothing else offline → 2; a cancelled warning applied → 1; no one-at-a-time guard →
+    first a hang (the test awaited the second workflow, which waited for the open picker — found with `--blame-hang`; the
+    test now asserts that the second call is refused at once) → 1; no start folder → 1; every kind in the filter → 1; a
+    cancelled summary applied → 1; refused items not listed → 1; a rejection not shown → 1; Relink for online media → 1;
+    the lock change not told to the buttons → 1; the offer after a refused Apply → 5; Pending without text → 1. Survived,
+    equivalent: restoring the selection by path instead of id — the asset object's path is changed in place before the
+    list is rebuilt, so the path read at rebuild time already is the new one; the old code never lost the selection on a
+    relink (the 11.6 audit's reason for the change was wrong). Kept by id (approved, robust, no behaviour change).
+  - Verification (artifacts folder; the other instance PID 38056 left alone): `dotnet build AiVideoEditor.sln
+    --no-incremental -warnaserror` 0 errors / 0 warnings (a first run caught `.Result` in a test — xUnit1031 — fixed);
+    `dotnet test` (whole solution) 2101 passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448, Timeline 361, Project
+    331, UI 424 (+22), Export 99, Rendering 58, Video 294, ExportEndToEnd 86 + 2; parity suites unchanged. Not run:
+    `--blame-hang` repeats of the full suite, the 4K scenes, CI, the manual scenarios (next).
+  - Manual plan: scenarios 7–21 runnable, status "manual pending", the UI coverage named.
 
 ## Phase 10 (complete)
 

@@ -341,8 +341,8 @@ public sealed class ProjectFileWorkflow
     private static string MissingSuffix(Core.Entities.Project project) => project.MediaAssets.Count(a => a.IsMissing) switch
     {
         0 => "",
-        1 => " 1 media file is missing and is shown as offline.",
-        var n => $" {n} media files are missing and are shown as offline."
+        1 => " 1 media file is missing and is shown as offline — use Relink or Find Missing in the Media Browser.",
+        var n => $" {n} media files are missing and are shown as offline — use Relink or Find Missing in the Media Browser."
     };
 }
 

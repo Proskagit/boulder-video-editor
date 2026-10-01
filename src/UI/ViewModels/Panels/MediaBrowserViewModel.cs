@@ -26,9 +26,13 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasNoMedia))]
     [NotifyCanExecuteChangedFor(nameof(AddToTimelineCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RelinkCommand))]
     private MediaBrowserItemViewModel? _selectedItem;
 
     public bool HasNoMedia => Items.Count == 0;
+
+    /// <summary>Some media of the project is offline: the Relink / Find Missing row is shown.</summary>
+    public bool HasOfflineMedia => Items.Any(i => i.Asset.IsMissing);
 
     /// <summary>Raised whenever the selected media item changes, carrying the
     /// underlying asset (or null when selection is cleared). MainWindowViewModel
@@ -45,8 +49,12 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         MediaImportWorkflow importWorkflow,
         ILogger<MediaBrowserViewModel> logger,
         EditingLock? editingLock = null,
-        ThumbnailCoordinator? thumbnails = null)
+        ThumbnailCoordinator? thumbnails = null,
+        MediaRelinkWorkflow? relink = null)
     {
+        _relink = relink;
+        if (relink is not null)
+            relink.IsRunningChanged += (_, _) => NotifyRelinkCommands();
         _projectService = projectService;
         _importWorkflow = importWorkflow;
         _logger = logger;
@@ -58,6 +66,7 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         {
             ImportCommand.NotifyCanExecuteChanged();
             AddToTimelineCommand.NotifyCanExecuteChanged();
+            NotifyRelinkCommands();
         };
 
         _projectService.ProjectChanged += (_, _) => ReloadFromProject();
@@ -73,7 +82,8 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
 
     private void ReloadFromProject()
     {
-        var previouslySelectedPath = SelectedItem?.Asset.FilePath;
+        // By id: a relink changes the asset's path, not which item it is (Phase 11 Step 11.6).
+        var previouslySelectedId = SelectedItem?.Asset.Id;
 
         Items.Clear();
         foreach (var asset in _projectService.Current.MediaAssets)
@@ -82,11 +92,13 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         // Keep the same item selected across a reload (e.g. after an import) when
         // it's still there; otherwise clear selection rather than pointing at a
         // stale view model instance.
-        SelectedItem = previouslySelectedPath is null
+        SelectedItem = previouslySelectedId is null
             ? null
-            : Items.FirstOrDefault(i => i.Asset.FilePath == previouslySelectedPath);
+            : Items.FirstOrDefault(i => i.Asset.Id == previouslySelectedId);
 
         OnPropertyChanged(nameof(HasNoMedia));
+        OnPropertyChanged(nameof(HasOfflineMedia));
+        NotifyRelinkCommands();                                  // what is offline may have changed
     }
 
     // Thumbnails (D024 Step 9.4): the coordinator makes them; rows take the ready ones when they are (re)built and
@@ -115,4 +127,26 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
     }
 
     private bool CanAddToTimeline() => CanEdit() && SelectedItem is not null;
+
+    // Relink (D026 §5, Phase 11 Step 11.6): only offline media, never during an export, one at a time. All the relink
+    // rules are the relink service's (through MediaRelinkWorkflow); the list follows the project's events.
+    private readonly MediaRelinkWorkflow? _relink;
+
+    private bool CanRelinkAny() => CanEdit() && _relink is { IsRunning: false };
+
+    private void NotifyRelinkCommands()
+    {
+        RelinkCommand.NotifyCanExecuteChanged();
+        FindMissingCommand.NotifyCanExecuteChanged();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRelink))]
+    private Task Relink() => SelectedItem is { } item && _relink is not null ? _relink.RelinkAsync(item.Asset.Id) : Task.CompletedTask;
+
+    private bool CanRelink() => CanRelinkAny() && SelectedItem is { Asset.IsMissing: true };
+
+    [RelayCommand(CanExecute = nameof(CanFindMissing))]
+    private Task FindMissing() => _relink?.FindMissingAsync() ?? Task.CompletedTask;
+
+    private bool CanFindMissing() => CanRelinkAny() && HasOfflineMedia;
 }

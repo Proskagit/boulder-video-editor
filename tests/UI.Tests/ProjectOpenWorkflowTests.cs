@@ -122,7 +122,7 @@ public sealed class ProjectOpenWorkflowTests : IDisposable
         Assert.True(await _workflow.OpenAsync(folder));
 
         Assert.Empty(_analysis.Calls);
-        Assert.Equal("Opened project \"Film\". 1 media file is missing and is shown as offline.", _status.Message);
+        Assert.Equal("Opened project \"Film\". 1 media file is missing and is shown as offline — use Relink or Find Missing in the Media Browser.", _status.Message);
         var gone = _projects.Current.MediaAssets.Single(a => a.IsMissing);
         Assert.Equal(MediaAnalysisStatus.Pending, gone.AnalysisStatus); // not turned into a failed probe
         Assert.False(_projects.Current.IsDirty);
@@ -138,7 +138,7 @@ public sealed class ProjectOpenWorkflowTests : IDisposable
         await _workflow.OpenAsync(folder);
 
         Assert.Equal(new[] { present }, _analysis.Calls);
-        Assert.Equal("Opened project \"Film\". 3 media files are missing and are shown as offline.", _status.Message);
+        Assert.Equal("Opened project \"Film\". 3 media files are missing and are shown as offline — use Relink or Find Missing in the Media Browser.", _status.Message);
         Assert.False(_projects.Current.IsDirty);
     }
 

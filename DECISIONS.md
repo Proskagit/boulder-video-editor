@@ -1725,6 +1725,31 @@ Refined in Step 11.5 (2026-10-01), batch relink search (PO-4 as restated by the 
   are returned with their reason and stay offline; the others are still applied as one step — nothing is applied that
   the user didn't confirm, nothing invalid is applied, and every refusal is reported.
 
+Refined in Step 11.6 (2026-10-01), relink UI (the §5 items left to this step, confirmed by the product owner with the
+11.6 plan):
+- Placement: a second row of the Media Browser's header, shown only while some media is offline ("OFFLINE" — Relink… ·
+  Find Missing…); the app has no context menus and the panel is too narrow for four buttons in one row. Relink… is
+  enabled for a selected offline item, Find Missing… while any media is offline; both are disabled during an export
+  (`EditingLock`) and while a relink workflow runs.
+- Relink…: a single-file picker with the item's kind (the import's extensions), starting in its old folder when that is
+  there (checked off the UI thread) → the relink check → a rejection: "Can't relink" with the service's reason, nothing
+  applied → warnings: "Relink with differences?" (Relink Anyway / Cancel) → Apply → a refusal at Apply (the file gone or
+  changed, the item online again, the path taken, another project): "Relink not applied" with the reason. Only after a
+  relink that was **applied**, and only while other media are offline, "Find other missing media?" offers the search in
+  the chosen file's folder (Search / Not Now) — never after a cancel, a rejection or a refused Apply.
+- Find Missing…: a folder picker (starting in the first offline item's folder when that is there) → the search → its
+  `Summary()` (found with their warnings, "Can't be used:" with the reason — ambiguous names included —, "Not in the folder
+  (stay offline):") with "Relink N Files" / Cancel, or OK alone when nothing can be applied → `ApplyAllAsync` (one step) →
+  items refused at Apply: "Relinked X of Y" with each reason.
+- The `EditingLock` is never taken by the relink (it is the export's); it is looked at before the workflow starts, after
+  each await (the picker, the check, the search) and right before applying — an export started meanwhile stops the
+  relink ("An export is running — nothing was relinked."). One workflow at a time.
+- The UI keeps no relink state: the Media Browser rebuilds on `MediaAssetsChanged` and keeps its selection by asset id
+  (no longer by path, which a relink changes); thumbnails, waveforms and the Preview follow the 11.4 events; Undo / Redo
+  are the toolbar's and Ctrl+Z / Ctrl+Y. A `Pending` row reads "Not analysed yet" (a relink without ffprobe). Long dialog
+  text scrolls. The Open / Recover message about missing media ends with "— use Relink or Find Missing in the Media
+  Browser."
+
 Status: Accepted (2026-10-01, PO-1…PO-9). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 11 — Media
 relink & recent projects: steps"; the implementation must follow PO-1…PO-9 as recorded here.
 

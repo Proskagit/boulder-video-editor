@@ -48,7 +48,9 @@ public sealed class MediaBrowserItemViewModel : ViewModelBase
         MediaAnalysisStatus.Analyzing => "Analyzing…",
         MediaAnalysisStatus.Failed => "Metadata unavailable",
         MediaAnalysisStatus.Completed => BuildTechnicalSummary(),
-        _ => null // Pending: nothing to show yet, and nothing has failed either.
+        // Pending: not analysed yet — a relink without ffprobe stays so until a later Open (D026 §3); an import is
+        // Analyzing at once, and offline media says so above.
+        _ => "Not analysed yet"
     };
 
     public bool HasTechnicalSummary => TechnicalSummary is not null;
