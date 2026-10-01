@@ -1672,6 +1672,37 @@ changed):
   snapshot (placeholder ⇄ picture, decoders reopened); the Media Browser rebuilds its rows on `MediaAssetsChanged`; the
   export preflight reads `IsMissing` and its own `File.Exists`.
 
+Refined in Step 11.4 (2026-10-01), relink core — the three sub-decisions left by §3, confirmed by the product owner at the
+start of 11.4, and the implementation:
+- Compared characteristics (warnings, only when the old and the new metadata both exist): display size, frame rate,
+  the audio stream gone, rotation, start time, video / audio codec, sample rate, channels; dissolve source handles too
+  short for an existing dissolve (computed with the new metadata, whatever the old). Duration is no warning: shorter than
+  the largest `SourceOut` of the asset's video / audio clips (any track, any speed) is a hard reject, equal or longer is
+  accepted silently.
+- ffprobe available but the probe fails (`InvalidMedia`, `UnsupportedMedia`, `ProbeProcessFailed`, `InvalidOutput`):
+  a hard reject ("can't be read as media"). Strictly apart from `ProbeToolUnavailable` (PO-3): allowed after the
+  existence and extension checks, with the `NotChecked` warning.
+- A later analysis that finds a file incompatible with its clips (shorter than they use, or without the stream of its
+  kind — e.g. relinked without ffprobe, analysed at a later Open): a status-bar message and a log warning, nothing undone
+  or adapted; the user may Undo. Raised for any analysis whose metadata doesn't fit (a new metadata object is looked at
+  once).
+- Without ffprobe the relinked asset keeps no metadata (not the old file's) and stays `Pending`; it is not queued for
+  analysis in this run (the ffprobe location is fixed for the app run — a probe would only fail), so it is analysed at the
+  next Open. Until then the existing rules stand: `TimelineValidator` refuses edits of its track ("duration … unknown"),
+  the export preflight reports it as not analysed — said in the warning.
+- Implementation: Core `IMediaRelinkService` (`CheckAsync` → `RelinkCheck` with `Rejection` / `Warnings` / `Metadata`,
+  `ApplyAsync` → `RelinkResult`, event `RelinkedMediaFoundIncompatible`), `MediaFileTypes` (the extension → kind table,
+  shared with the import); Timeline `MediaRelinkService` (next to the edit service: the length and handle rules are the
+  timeline's — `TimelineValidator`, `DissolveHandles`) and `RelinkMediaCommand` (absolute `MediaFileState` before / after
+  per asset — path, size, metadata, analysis status and error, missing — so a batch is one command, 11.5).
+  `CheckAsync` re-checks the media first (PO-5), `ApplyAsync` again and validates what may have changed since the check
+  (another project, the asset online again, the path taken, the file gone or another size, a clip lengthened). The
+  command notifies `IProjectService.NotifyMediaRelinked` on Execute and Undo → `MediaRelinked` (then
+  `MediaAssetsChanged`): `MediaCacheCoordinator.Restart(…, dropResults: true)` drops the old file's thumbnail / waveform at
+  once and requests the new one; `TimelineViewModel` refreshes the clip waveforms on `MediaAssetsChanged` (a file without
+  sound loses its waveform); the Preview rebuilds through `AssetState.FilePath`; analyses for a path the asset no longer
+  has are dropped (Step 11.3). The project frame rate is never touched (D007).
+
 Status: Accepted (2026-10-01, PO-1…PO-9). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 11 — Media
 relink & recent projects: steps"; the implementation must follow PO-1…PO-9 as recorded here.
 

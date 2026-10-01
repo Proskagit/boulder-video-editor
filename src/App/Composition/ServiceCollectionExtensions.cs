@@ -47,6 +47,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IReferenceClock, StopwatchReferenceClock>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<ITimelineEditService, TimelineEditService>();
+        services.AddSingleton<IMediaRelinkService, MediaRelinkService>();
         services.AddSingleton(_ => new RecoveryStore(AppPaths.RecoveryFolder));
         services.AddSingleton<IAutosaveService, AutosaveService>();
 

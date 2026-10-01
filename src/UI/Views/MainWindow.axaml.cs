@@ -128,6 +128,8 @@ public partial class MainWindow : Window
         public Task SaveAsAsync(string projectFolderPath, CancellationToken ct = default) => Task.CompletedTask;
         public Task RecheckMediaAsync(CancellationToken ct = default) => Task.CompletedTask;
         public event EventHandler<MediaAvailabilityChangedEventArgs>? MediaAvailabilityChanged { add { } remove { } }
+        public event EventHandler<MediaRelinkedEventArgs>? MediaRelinked { add { } remove { } }
+        public void NotifyMediaRelinked(IReadOnlyList<MediaAsset> assets) { }
         public MediaAddResult AddMediaAssets(IEnumerable<MediaAsset> assets) => new();
         public void NotifyMediaAssetsChanged() { }
         public void NotifyTimelineChanged() { }

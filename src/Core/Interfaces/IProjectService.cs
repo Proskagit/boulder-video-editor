@@ -80,6 +80,15 @@ public interface IProjectService
     /// project is new (<see cref="ProjectChanged"/>).</summary>
     event EventHandler<MediaAvailabilityChangedEventArgs>? MediaAvailabilityChanged;
 
+    /// <summary>Raised by <see cref="NotifyMediaRelinked"/> (before <see cref="MediaAssetsChanged"/>) with the assets
+    /// whose file was replaced — a relink, its Undo or Redo (D026 §3): whatever was made from their previous file
+    /// (thumbnails, waveforms) no longer applies.</summary>
+    event EventHandler<MediaRelinkedEventArgs>? MediaRelinked;
+
+    /// <summary>Raises <see cref="MediaRelinked"/> and then <see cref="MediaAssetsChanged"/>. Called by the relink
+    /// command on Execute and Undo; dirty state follows the undo history.</summary>
+    void NotifyMediaRelinked(IReadOnlyList<MediaAsset> assets);
+
     /// <summary>Adds newly-imported media to the current project, skipping any whose
     /// <see cref="MediaAsset.FilePath"/> is already present. This is the only place
     /// duplicate detection happens, since it's the only place that knows what's
@@ -111,6 +120,12 @@ public sealed class MediaAvailabilityChangedEventArgs : EventArgs
 
     /// <summary>Assets whose file is gone (now offline).</summary>
     public IReadOnlyList<MediaAsset> Gone { get; init; } = Array.Empty<MediaAsset>();
+}
+
+/// <summary>The assets whose file was replaced (<see cref="IProjectService.MediaRelinked"/>).</summary>
+public sealed class MediaRelinkedEventArgs : EventArgs
+{
+    public IReadOnlyList<MediaAsset> Assets { get; init; } = Array.Empty<MediaAsset>();
 }
 
 /// <summary>Result of <see cref="IProjectService.AddMediaAssets"/>.</summary>

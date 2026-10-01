@@ -20,8 +20,9 @@ namespace AiVideoEditor.UI.Services;
 /// <item>Once per asset and generation (by <see cref="MediaAsset.Id"/>): a request for an asset that is being handled,
 /// has its result, or has none to make is ignored — until the asset is restarted (<see cref="Restart"/>): an asset whose
 /// file has come back (<see cref="IProjectService.MediaAvailabilityChanged"/>, D026 §2) is requested again in the same
-/// generation (now it may be made, not only read from the cache). Its earlier result stays shown until the new one is
-/// ready; work started for it before the restart publishes nothing.</item>
+/// generation (now it may be made, not only read from the cache), and so is a relinked asset
+/// (<see cref="IProjectService.MediaRelinked"/>, D026 §3). A returned file's earlier result stays shown until the new one
+/// is ready, a relinked one's is dropped at once (another file); work started before the restart publishes nothing.</item>
 /// <item>A cached result is read without a slot and never decodes; making one takes one of this kind's own slots
 /// (the limit of one kind never holds up the other) — the wait ends with the generation. Cache reads and making run
 /// on the thread pool.</item>
@@ -47,16 +48,22 @@ public abstract class MediaCacheCoordinator<T> where T : class
         projects.ProjectChanged += (_, _) => StartNewGeneration();
         projects.MediaAssetsChanged += (_, _) => RequestAll();
         projects.MediaAvailabilityChanged += (_, e) => Restart(e.Returned.Select(a => a.Id));
+        projects.MediaRelinked += (_, e) => Restart(e.Assets.Select(a => a.Id), dropResults: true);
     }
 
-    /// <summary>Forgets that these assets were handled in the current generation and requests them again. Their results
-    /// stay until replaced; work already running for them publishes nothing (it belongs to the handling before).</summary>
-    internal void Restart(IEnumerable<Guid> assetIds)
+    /// <summary>Forgets that these assets were handled in the current generation and requests them again; work already
+    /// running for them publishes nothing (it belongs to the handling before). A returned file keeps its result until
+    /// the new one is ready; a relinked asset (another file — its relink, Undo or Redo, D026 §3) loses it at once.</summary>
+    internal void Restart(IEnumerable<Guid> assetIds, bool dropResults = false)
     {
         var generation = _generation;
         var any = false;
         foreach (var id in assetIds)
+        {
             any |= generation.Handled.TryRemove(id, out _);
+            if (dropResults)
+                any |= generation.Results.TryRemove(id, out _);
+        }
         if (any)
             RequestAll();
     }

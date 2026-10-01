@@ -12,30 +12,8 @@ namespace AiVideoEditor.Media;
 /// </summary>
 public sealed class MediaImportService : IMediaImportService
 {
-    private static readonly IReadOnlyDictionary<string, MediaKind> ExtensionToKind =
-        new Dictionary<string, MediaKind>(StringComparer.OrdinalIgnoreCase)
-        {
-            // Video
-            [".mp4"] = MediaKind.Video,
-            [".mov"] = MediaKind.Video,
-            [".mkv"] = MediaKind.Video,
-            [".webm"] = MediaKind.Video,
-            [".avi"] = MediaKind.Video,
-
-            // Audio
-            [".mp3"] = MediaKind.Audio,
-            [".wav"] = MediaKind.Audio,
-            [".flac"] = MediaKind.Audio,
-            [".aac"] = MediaKind.Audio,
-            [".m4a"] = MediaKind.Audio,
-
-            // Image
-            [".png"] = MediaKind.Image,
-            [".jpg"] = MediaKind.Image,
-            [".jpeg"] = MediaKind.Image,
-            [".webp"] = MediaKind.Image,
-            [".bmp"] = MediaKind.Image,
-        };
+    // The extension table is shared with the relink (D026 §3).
+    private static IReadOnlyDictionary<string, MediaKind> ExtensionToKind => MediaFileTypes.ByExtension;
 
     public IReadOnlySet<string> SupportedExtensions { get; } =
         new HashSet<string>(ExtensionToKind.Keys, StringComparer.OrdinalIgnoreCase);

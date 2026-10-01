@@ -82,6 +82,8 @@ public sealed class AnalysisConcurrencyIntegrationTests : IDisposable
         public Task SaveAsAsync(string projectFolderPath, CancellationToken ct = default) => throw new NotSupportedException();
         public Task RecheckMediaAsync(CancellationToken ct = default) => Task.CompletedTask;
         public event EventHandler<MediaAvailabilityChangedEventArgs>? MediaAvailabilityChanged { add { } remove { } }
+        public event EventHandler<MediaRelinkedEventArgs>? MediaRelinked { add { } remove { } }
+        public void NotifyMediaRelinked(IReadOnlyList<MediaAsset> assets) { }
         public MediaAddResult AddMediaAssets(IEnumerable<MediaAsset> assets) => throw new NotSupportedException();
         public void NotifyMediaAssetsChanged() { }
         public void NotifyTimelineChanged() { }

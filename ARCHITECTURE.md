@@ -317,10 +317,21 @@ recovery, unsaved changes).
   path meanwhile writes nothing (a missing one gets its earlier status back). `MediaCacheCoordinator.Restart` requests
   a returned asset's thumbnail / waveform again in the same generation (the old result shown until replaced; earlier
   work publishes nothing). The Preview rebuilds its snapshot through `PlaybackSnapshotBuilder.AssetState.IsMissing`.
-- Planned in Phase 11 (D026, not implemented yet): relink of missing media as an undoable command that keeps every
-  `MediaAssetId` (validation: hard rejects and warnings; allowed without ffprobe); a batch relink by exact file name in
-  the chosen folder; recent projects (10, outside every project, `Recent ▾` next to Open). No per-user settings are
-  stored yet (`AppPaths.ConfigFolder` is unused). `project.json` stays v3.
+- Relink of missing media (Phase 11 Step 11.4, D026 §3, core only — the UI is Step 11.6): Core `IMediaRelinkService`
+  (`CheckAsync` → `RelinkCheck`, `ApplyAsync` → `RelinkResult`, `RelinkedMediaFoundIncompatible`), `MediaFileTypes` (the
+  extension → kind table of the import); Timeline `MediaRelinkService` + `Commands/RelinkMediaCommand` (absolute
+  `MediaFileState` before / after per asset). Check: re-check (PO-5), offline only, extension and probed streams of the
+  asset's kind, the probe (unavailable → allowed, `Pending`, no metadata; failed → rejected), length ≥ the largest
+  `SourceOut` of the asset's video / audio clips, path not another asset's; warnings for differing characteristics and
+  dissolve handles. Apply: re-check, validate again, one command through `IUndoRedoService` (dirty by the save point);
+  `NotifyMediaRelinked` → `IProjectService.MediaRelinked` + `MediaAssetsChanged` on Execute / Undo: thumbnails and
+  waveforms of the old file dropped and requested again (`MediaCacheCoordinator.Restart(dropResults)`), timeline
+  waveforms refreshed, the Preview's snapshot rebuilt by the path. A later analysis whose metadata doesn't fit the clips
+  raises `RelinkedMediaFoundIncompatible` (status bar through `MainWindowViewModel`). The asset id, clips and project frame
+  rate never change.
+- Planned in Phase 11 (D026, not implemented yet): the relink UI; a batch relink by exact file name in the chosen folder;
+  recent projects (10, outside every project, `Recent ▾` next to Open). No per-user settings are stored yet
+  (`AppPaths.ConfigFolder` is unused). `project.json` stays v3.
 
 ## MVVM
 
@@ -423,5 +434,5 @@ closeout (9.5e); the Export section's source frames and orchestration at the Ste
 and media sections at the Step 9.8 closeout; the CI section at the Step 9.10 closeout; the Phase 10 parts of the Core
 domain section step by step in Steps 10.3–10.8 and with the module table at the Step 10.9 closeout; the media paths and
 missing media paragraph of the Project persistence section at the Step 11.1 audit (`2e758f1`), the media availability
-paragraph at the Step 11.3 closeout.
+paragraph at the Step 11.3 closeout, the relink paragraph at the Step 11.4 closeout.
 Re-check the code before relying on details that later phases may have changed.

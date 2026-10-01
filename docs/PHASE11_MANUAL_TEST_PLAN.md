@@ -27,16 +27,18 @@ acceptance (results log below).
 
 ## Steps 11.4–11.6 — relink (D026 §3–§5, PO-1…PO-3, PO-6, PO-9)
 
+Runnable once the UI exists (11.6); the relink core (11.4) is covered by the automated tests named per row. Expected results follow D026 "Refined in Step 11.4" (the compared characteristics; a failed probe is a reject, ffprobe unavailable is not).
+
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 7 | Moved file | A used video moved to another folder; Relink it to the new place | Online; clips unchanged (position, source range, speed, fades, dissolves); Preview and export use it; the project is dirty | — | planned |
-| 8 | Renamed file | A used file renamed; Relink to the new name | As 7 | — | planned |
-| 9 | Save and reopen | After 7, Save, close, reopen | The new path is used; not missing | — | planned |
-| 10 | Hard rejects | Relink to: a file of another media type; a shorter video than a clip's source range; a file already used by another asset; a path that doesn't exist | Each refused with its own message; nothing changes | — | planned |
-| 11 | Warnings | Relink to a file with a different resolution / frame rate / without audio | A warning lists the differences; Cancel changes nothing, confirming relinks | — | planned |
-| 12 | Short dissolve handles | Relink a clip of a dissolve to a file with less media beyond the clip | A warning; after confirming, the zone renders with held frames | — | planned |
-| 13 | Without ffprobe | Make ffprobe unavailable (configuration / PATH); Relink | Allowed; told that compatibility couldn't be checked; the asset is pending; analysed once ffprobe is available | — | planned |
-| 14 | Undo / Redo | Relink, then Ctrl+Z, Ctrl+Y (and the toolbar buttons) | Undo: offline again with the old path and metadata; Redo: online; thumbnail / waveform / Preview follow; dirty follows the save point | — | planned |
+| 7 | Moved file | A used video moved to another folder; Relink it to the new place | Online; clips unchanged (position, source range, speed, fades, dissolves); Preview and export use it; the project is dirty | `MediaRelinkServiceTests` (id, clips, path, size, metadata, dirty), `MediaRelinkUiTests` (Preview, thumbnail, waveform), `MediaRelinkIntegrationTests` (real ffprobe) | auto (core, 11.4); manual with the UI (11.6) |
+| 8 | Renamed file | A used file renamed; Relink to the new name | As 7 | `MediaRelinkServiceTests` (any name of the right kind) | auto (core, 11.4); manual with the UI (11.6) |
+| 9 | Save and reopen | After 7, Save, close, reopen | The new path is used; not missing | `MediaRelinkServiceTests` (save, reopen: absolute and relative path, metadata) | auto (core, 11.4); manual with the UI (11.6) |
+| 10 | Hard rejects | Relink to: a file of another media type; a shorter video than a clip's source range; a file already used by another asset; a path that doesn't exist | Each refused with its own message; nothing changes | `MediaRelinkServiceTests` (each reject, Apply re-validation), `MediaRelinkIntegrationTests` (shorter, sound-only mp4) | auto (core, 11.4); manual with the UI (11.6) |
+| 11 | Warnings | Relink to a file with a different resolution / frame rate / without audio | A warning lists the differences; Cancel changes nothing, confirming relinks | `MediaRelinkServiceTests` (each warning, none when equal), `MediaRelinkIntegrationTests` (resolution) | auto (core, 11.4); manual with the UI (11.6) |
+| 12 | Short dissolve handles | Relink a clip of a dissolve to a file with less media beyond the clip | A warning; after confirming, the zone renders with held frames | `MediaRelinkServiceTests` (dissolve handles warning) | auto (core, 11.4); manual with the UI (11.6) |
+| 13 | Without ffprobe | Make ffprobe unavailable (configuration / PATH); Relink | Allowed; told that compatibility couldn't be checked; the asset is pending; analysed once ffprobe is available | `MediaRelinkServiceTests` (allowed, `Pending`, later incompatibility), `MediaRelinkUiTests` (not analysed, status message, preflight) | auto (core, 11.4); manual with the UI (11.6) |
+| 14 | Undo / Redo | Relink, then Ctrl+Z, Ctrl+Y (and the toolbar buttons) | Undo: offline again with the old path and metadata; Redo: online; thumbnail / waveform / Preview follow; dirty follows the save point | `MediaRelinkServiceTests` (exact undo / redo, save point), `MediaRelinkUiTests` (thumbnail after undo, stale work dropped) | auto (core, 11.4); manual with the UI (11.6) |
 | 15 | Online media | Select an online asset | Relink is not offered | — | planned |
 | 16 | During an export | Start an export; try Relink | Disabled (`EditingLock`) | — | planned |
 | 17 | Picker start folder | Relink an asset whose old folder still exists | The picker starts there and filters the asset's kind | — | planned |

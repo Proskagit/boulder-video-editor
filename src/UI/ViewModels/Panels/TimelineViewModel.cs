@@ -65,7 +65,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
         _projectService.TimelineChanged += (_, _) => Refresh();
         _projectService.ProjectChanged += (_, _) => OnProjectReplaced();
-        _projectService.MediaAssetsChanged += (_, _) => RefreshClipNames();
+        _projectService.MediaAssetsChanged += (_, _) =>
+        {
+            RefreshClipNames();
+            RefreshWaveforms(); // a relinked file's old waveform is gone (D026 §3) — not only replaced by a new one
+        };
         _waveforms = waveforms;
         if (waveforms is not null)
             waveforms.WaveformReady += (_, _) => RefreshWaveforms();

@@ -143,6 +143,51 @@ command; no push, merge, pull request or branch deletion without direct permissi
   project is shown, unchanged since Phase 6; the window stayed responsive); Ctrl+E sent by `SendKeys` did not start the
   export in this run (the toolbar button did) — not investigated; an offline video without metadata is drawn as a
   full-canvas placeholder over the lower layers (its size is unknown; existing behaviour).
+- Step 11.3 accepted in full by the product owner (2026-10-01); the run committed as `69ce4b7`.
+- Step 11.4 done (2026-10-01) — relink core (D026 §3; the sub-decisions confirmed by the product owner at its start and
+  the implementation in D026 "Refined in Step 11.4").
+  - Technical analysis first (no code), plan approved: reuse the re-check, `IUndoRedoService`, `IMediaAnalysisService`,
+    the import's extension table, the `TimelineValidator` length rule, `DissolveHandles`, `AssetState`, the 11.3 guards.
+    Confirmed: the compared characteristics; a failed probe (ffprobe available) is a reject, ffprobe unavailable is not;
+    a later incompatibility is a message, never undone automatically; no old metadata kept without ffprobe (`Pending`,
+    the validator / preflight limits stand until the analysis).
+  - Core: `MediaFileTypes` (the extension → kind table, now also the import's); `IMediaRelinkService` (`CheckAsync`,
+    `ApplyAsync`, `RelinkedMediaFoundIncompatible`), `RelinkCheck`, `RelinkResult`, `RelinkRejection`
+    (AssetNotFound, NotOffline, FileNotFound, WrongMediaType, UnreadableMedia, TooShort, PathInUse, Stale),
+    `RelinkWarningKind` (NotChecked, DisplaySize, FrameRate, NoAudio, Rotation, StartTime, VideoCodec, AudioCodec,
+    SampleRate, Channels, DissolveHandles); `IProjectService.MediaRelinked` + `NotifyMediaRelinked` (implemented in
+    `ProjectService`, the design-time stub and the `Video.Tests` fake).
+  - Timeline: `MediaRelinkService` (the checks, the probe, the warnings, `ApplyAsync`'s re-validation, the watcher of
+    later analyses) and `Commands/RelinkMediaCommand` (`MediaFileState` / `MediaRelink`, a list per command for 11.5).
+    Placed in Timeline, not Project as the plan's scope line said: the rules it applies are the timeline's; the plan's
+    line was adjusted.
+  - UI: `MediaCacheCoordinator.Restart(…, dropResults)` on `MediaRelinked` (thumbnail / waveform of the old file dropped,
+    the new requested; work for a replaced file publishes nothing); `TimelineViewModel` refreshes clip waveforms on
+    `MediaAssetsChanged`; `MainWindowViewModel` shows `RelinkedMediaFoundIncompatible` in the status bar. DI:
+    `IMediaRelinkService` → `MediaRelinkService` (singleton). No relink UI yet (11.6).
+  - Tests (new): `Timeline.Tests/MediaRelinkServiceTests` (32: success keeps id / clips / speed and updates path, size,
+    metadata, dirty, one step; exact undo / redo incl. the save point; save → reopen with absolute and relative path;
+    online asset, missing file, wrong type ×3, no video stream, no audio stream, failed probe ×4, too short with the exact
+    boundary, the longest range over tracks, a 2× clip, no clips / images, path in use (case); the warnings (video set,
+    audio set, none when equal / longer / no earlier metadata), dissolve handles; ffprobe unavailable (`Pending`, no
+    metadata, validator still refusing, undo); later incompatibility reported once, nothing undone; fitting media not
+    reported; Apply re-validation: path taken, file changed / gone, old file back, clip lengthened, another project;
+    unknown asset); `UI.Tests/MediaRelinkUiTests` (7: old thumbnail dropped at once and the new made, undo; work before an
+    undo not published; the timeline waveform gone for a file without sound; the Preview decodes the new file and is
+    offline again after undo; the export preflight passes; unprobed relink not analysed and reported as not analysed;
+    the status message of a later incompatibility); `Video.Tests/MediaRelinkIntegrationTests` (3, real ffprobe: shorter
+    rejected, sound-only mp4 rejected, another resolution warned, the same kind applied with its probed metadata — a
+    small project-service stand-in: Video.Tests can't reference Project, whose namespace hides the `Project` type there).
+  - Mutations (each reverted): old thumbnail kept on relink → 3 failures; no timeline waveform refresh → 1; Apply without
+    the length check → 1; a failed probe accepted → 4; no duplicate-path check → 2; online media relinked → 2; no later
+    report → 1; ffprobe unavailable rejected → 2; no re-check in Check → 13; too short accepted → 5.
+  - Verification (built with `--artifacts-path` in the session's scratch folder — `src/App/bin` is still locked by the
+    other running instance, PID 38056, left alone): `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 errors /
+    0 warnings; `dotnet test` (whole solution, once) 2063 passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448,
+    Timeline 346 (+32), Project 331, UI 401 (+7), Export 99, Rendering 58, Video 294 (+3), ExportEndToEnd 86 + 2; parity
+    suites unchanged. Not run: `--blame-hang` repeats, the 4K scenes, CI, a real-app run (no relink UI before 11.6).
+  - Manual plan: relink scenarios 7–14 name their automated coverage, status "auto (core, 11.4); manual with the UI
+    (11.6)"; the real-app relink run belongs to 11.6 (no relink UI exists before it).
 
 ## Phase 10 (complete)
 

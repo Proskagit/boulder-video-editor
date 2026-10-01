@@ -418,9 +418,9 @@ restarted per asset.
   `IProjectService.DetectMissingMedia` (no production caller) is replaced or completed — its XML comment made true.
 - Depends on: 11.2.
 
-### 11.4 — Relink: core
-Scope: D026 §3 — the relink operation in Core / Project with its validation, the probe, the warnings and the undoable
-command.
+### 11.4 — Relink: core *(done — awaiting acceptance; sub-decisions and implementation in D026 "Refined in Step 11.4")*
+Scope: D026 §3 — the relink operation (Core contract, Timeline service and command — next to the timeline rules it
+checks) with its validation, the probe, the warnings and the undoable command.
 - PR: a relinked asset keeps its `Id`; every clip keeps `MediaAssetId`, source range, speed, properties, fades and
   dissolves; the Preview and the export use the new file; save and reopen give the new absolute and relative path.
 - PR: each hard reject of PO-2 / PO-9 refuses with its own message and changes nothing; each warning of PO-2 is reported

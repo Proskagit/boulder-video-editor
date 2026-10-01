@@ -49,8 +49,12 @@ public sealed class MainWindowViewModel : ViewModelBase
         ILogger<MainWindowViewModel> logger,
         ThumbnailCoordinator? thumbnails = null,
         WaveformCoordinator? waveforms = null,
-        MediaAvailabilityMonitor? mediaAvailability = null)
+        MediaAvailabilityMonitor? mediaAvailability = null,
+        IMediaRelinkService? relink = null)
     {
+        // A file found not to fit its clips after a later analysis (D026 §3, Step 11.4): said, never undone by itself.
+        if (relink is not null)
+            relink.RelinkedMediaFoundIncompatible += (_, e) => status.Report(e.Message);
         _thumbnails = thumbnails;
         _waveforms = waveforms;
         _mediaAvailability = mediaAvailability;

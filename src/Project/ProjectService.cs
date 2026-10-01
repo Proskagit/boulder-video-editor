@@ -46,6 +46,7 @@ public sealed class ProjectService : IProjectService
     public event EventHandler? SaveStateChanged;
     public event EventHandler? ProjectSaved;
     public event EventHandler<MediaAvailabilityChangedEventArgs>? MediaAvailabilityChanged;
+    public event EventHandler<MediaRelinkedEventArgs>? MediaRelinked;
 
     public ProjectService(IUndoRedoService undoRedo, ILogger<ProjectService> logger)
         : this(undoRedo, logger, new ProjectFileStore())
@@ -360,6 +361,13 @@ public sealed class ProjectService : IProjectService
     }
 
     public void NotifyMediaAssetsChanged() => MediaAssetsChanged?.Invoke(this, EventArgs.Empty);
+
+    public void NotifyMediaRelinked(IReadOnlyList<MediaAsset> assets)
+    {
+        Current.ModifiedAt = DateTimeOffset.UtcNow;
+        MediaRelinked?.Invoke(this, new MediaRelinkedEventArgs { Assets = assets });
+        NotifyMediaAssetsChanged();
+    }
 
     public void NotifyTimelineChanged()
     {
