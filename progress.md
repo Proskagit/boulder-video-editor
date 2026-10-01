@@ -2,11 +2,12 @@
 
 ## Current phase
 
-Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10-transitions-effects` (from `409240b`,
+None in progress. Phase 10 — Transitions & basic effects: **complete** (accepted by the product owner on 2026-10-01,
+last verified commit `ddf45df`), branch `feat/phase-10-transitions-effects` (from `409240b`,
 `main` after the merge of PR #8; the docs commit of PR #9 merged in). Scope, steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md` "Phase 10 — Transitions & basic effects: steps"; decision D025.
 
-### Phase 10 — Transitions & basic effects (in progress)
+### Phase 10 — Transitions & basic effects (complete)
 
 - Step 10.1 done and accepted (2026-09-29) — audit, no change. Findings: `Clip.Effects` (generic, untyped parameters)
   and `Track.Transitions` (`Id`, `TransitionTypeId`, `Duration` — no anchor) only persisted, never rendered; format v2
@@ -348,6 +349,13 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
     Preview's), `UI.Tests/TimelineTrimLayoutTests` (dragging past the other edge at 2, 50 and the maximum px/s → one
     frame, width max(2 px, one frame), undo). In the real app: Inspector Duration 00:00:00:01, undo / redo, the MP4 shows
     the clip on frame 0 only.
+  - Verification at `ddf45df` (a clean worktree): `dotnet build --no-incremental -warnaserror` 0 / 0; `dotnet test
+    --blame-hang` 1988 passed, 2 skipped (Core 448, Timeline 314, Project 319, UI 373, Export 99, Rendering 58, Video 291,
+    ExportEndToEnd 86 + 2); 4K with `AIVE_HEAVY_TESTS=1` 88 / 88.
+- Step 10.9 and Phase 10 accepted by the product owner (2026-10-01): R7 13 / 13, the one-frame minimum by D008, the
+  results above. The temporary Phase 9 build (a worktree of `main` used for R1 / scenario 2) removed. The branch is
+  pushed for CI; PR #9 is left as it is (not changed, not closed) and no new pull request is opened without the product
+  owner's permission.
 
 ## Phase 9 (complete)
 

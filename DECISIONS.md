@@ -1503,7 +1503,8 @@ Refined in Step 10.8 (2026-09-29), dissolve UI (no rule changed; every check sta
   the step, the dissolve included.
 - Accepted with the real-app scenarios 13–20 (product owner, 2026-09-29), the length rule above confirmed.
 
-Status: Accepted (2026-09-29; PO-8 the same day). Steps and acceptance criteria:
+Status: Accepted (2026-09-29; PO-8 the same day; the §2 fade cut 2026-09-30). Phase 10 accepted by the product owner on
+2026-10-01. Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 10 — Transitions & basic effects: steps".
 
 ---

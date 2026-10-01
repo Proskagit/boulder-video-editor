@@ -142,3 +142,5 @@ rule, and the export regression (R7 / S6).
 Product owner (2026-10-01): scenario 8 with the changed rule and the Preview's sound by ear passed. R7 — the export
 regression (`docs/EXPORT_MANUAL_TEST_PLAN.md` 1–8, 10–14) run by Claude in the real app: 13 pass, 0 fail (9 optional,
 not run); results in that plan's log.
+
+Step 10.9 and Phase 10 accepted by the product owner on 2026-10-01.

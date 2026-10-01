@@ -33,10 +33,10 @@ and runs cleanly.
       polish, hotkeys, waveform, thumbnails. Scope, steps and acceptance criteria:
       section below and DECISIONS.md D024. *(branch `feat/phase-9-quality`, closeout `dcb86cb` / `f27a4ab`,
       PR #8 merged as `409240b`; accepted 2026-09-29)*
-- [ ] **Phase 10 — Transitions & basic effects.** Fade in / fade out of a clip (picture and its own sound) and a
+- [x] **Phase 10 — Transitions & basic effects.** Fade in / fade out of a clip (picture and its own sound) and a
       cross dissolve between adjacent clips of a video track, identical in the Preview and the export; `project.json`
       v3. Scope, steps and acceptance criteria: section below and DECISIONS.md D025.
-      *(branch `feat/phase-10-transitions-effects`)*
+      *(branch `feat/phase-10-transitions-effects`, last verified commit `ddf45df`; accepted 2026-10-01)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -332,7 +332,7 @@ zone drawn on the timeline; `EditingLock`; the manual plan's dissolve section.
 - QG: view-model and routing tests; manual scenarios.
 - Depends on: 10.7.
 
-### 10.9 — Final verification & closeout *(in progress — automated gates passed locally; CI after the push; the product owner's manual run R1–R7 pending)*
+### 10.9 — Final verification & closeout *(done — accepted 2026-10-01: the manual plan run in the real app, R7 export regression 13 / 13, build `-warnaserror` 0 / 0, 1988 passed / 2 skipped, 4K 88 / 88; Phase 10 accepted)*
 - QG: `dotnet build --no-incremental` 0 / 0; full suite once plus three times with `--blame-hang`; heavy scenes once
   with `AIVE_HEAVY_TESTS=1`; CI green.
 - PR: `docs/PHASE10_MANUAL_TEST_PLAN.md` run in the real app; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run as a regression.
