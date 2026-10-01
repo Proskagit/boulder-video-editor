@@ -2,7 +2,12 @@
 
 This directory contains:
 
-- `DEVELOPMENT_PLAN.md` — canonical phase list and standing architectural rules
+- `DEVELOPMENT_PLAN.md` — canonical phase list, per-phase steps and acceptance criteria, standing architectural rules
+- `EXPORT_MANUAL_TEST_PLAN.md` — manual export checks (Phase 8), re-run as a regression at later closeouts
+- `PHASE9_MANUAL_TEST_PLAN.md` — manual checks of Phase 9 (quality), run at its closeout
+- `PHASE10_MANUAL_TEST_PLAN.md` — manual checks of Phase 10 (fades, cross dissolve), run at its closeout
+- `PHASE11_MANUAL_TEST_PLAN.md` — manual checks of Phase 11 (media re-check, relink, recent projects); skeleton, filled
+  in per step
 
 Agent-oriented project context lives in the repository root:
 

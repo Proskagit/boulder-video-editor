@@ -7,7 +7,7 @@ are complete** (architecture, UI skeleton, media import, ffprobe metadata
 analysis, timeline editing, preview playback with audio, project persistence with
 autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
 text; MP4 export; quality: stability, thumbnails, waveforms, hotkeys,
-performance, polish, CI; fades and a cross dissolve). No further phase is planned yet.
+performance, polish, CI; fades and a cross dissolve). Phase 11 (media relink & recent projects) is in progress.
 
 ## Requirements
 
@@ -86,6 +86,7 @@ docs/
   EXPORT_MANUAL_TEST_PLAN.md   Manual export checks (Phase 8).
   PHASE9_MANUAL_TEST_PLAN.md   Manual checks of Phase 9, run at its closeout.
   PHASE10_MANUAL_TEST_PLAN.md  Manual checks of Phase 10 (fades, dissolves), run at its closeout.
+  PHASE11_MANUAL_TEST_PLAN.md  Manual checks of Phase 11 (media re-check, relink, recent projects); skeleton.
 ```
 
 Agent-oriented docs (`CLAUDE.md`, `ARCHITECTURE.md`, `ROADMAP.md`,
@@ -142,4 +143,6 @@ video track (Dissolve in the timeline header, length in the Inspector, source ha
 the sound a hard cut), identical in the Preview and the export; `project.json` format v3
 (v1 / v2 files still open).
 
-Not planned yet: a next phase, relink of missing media, recent projects.
+In progress — Phase 11 (DECISIONS.md D026): re-checking media availability during the session, relink of missing
+media (one file or a batch found next to it, undoable) and a list of recent projects. Until it is done, missing media
+is detected only when a project is opened and stays offline until the project is reopened.

@@ -300,6 +300,20 @@ recovery, unsaved changes).
   title comes from `MainWindowViewModel.Title`.
 - Playhead, zoom and snapping are session state (D015): stored in `project.json`, never dirty,
   never undoable; `TimelineViewModel` reads zoom/snapping from the sequence on every `ProjectChanged`.
+- Media paths and missing media (D014, as of `2e758f1`): each asset is saved with its absolute `FilePath` and a
+  `RelativePath` to the project folder (none on another volume); `ProjectSerializer.ResolveMediaPath` takes the absolute
+  path if the file exists, else the relative one, else keeps the absolute path. `ProjectService.MarkMissingMedia`
+  (`File.Exists`) sets the runtime flag `MediaAsset.IsMissing` on Open and Recover only, before the project becomes
+  current; nothing re-checks during the session (`IProjectService.DetectMissingMedia` exists but has no production
+  caller and raises no event). Missing media is never probed, never decoded for thumbnails / waveforms (cached results
+  only), shown as "Media offline" / the Preview's placeholder, blocks the export preflight and can't be added to the
+  timeline. There is no relink and no list of recent projects; no per-user settings are stored
+  (`AppPaths.ConfigFolder` is unused).
+- Planned in Phase 11 (D026, not implemented yet): a re-check of media availability off the UI thread (window
+  activation, throttled; before the export and the relink) with offline ⇄ online transitions and a per-asset restart of
+  analysis, thumbnails and waveforms; relink of missing media as an undoable command that keeps every `MediaAssetId`
+  (validation: hard rejects and warnings; allowed without ffprobe); a batch relink by exact file name in the chosen
+  folder; recent projects (10, outside every project, `Recent ▾` next to Open). `project.json` stays v3.
 
 ## MVVM
 
@@ -399,5 +413,7 @@ Verified against the source at the end of Phase 6 (branch `feat/phase-6-project-
 sections at the Phase 7 closeout, the Export section at the Phase 8 closeout (Step 8.7), the Thumbnails section at
 the Step 9.4 closeout (9.4e), the Waveforms section (and the shared parts of the Thumbnails section) at the Step 9.5
 closeout (9.5e); the Export section's source frames and orchestration at the Step 9.7 closeout; the module table, playback
-and media sections at the Step 9.8 closeout; the CI section at the Step 9.10 closeout.
+and media sections at the Step 9.8 closeout; the CI section at the Step 9.10 closeout; the Phase 10 parts of the Core
+domain section step by step in Steps 10.3–10.8 and with the module table at the Step 10.9 closeout; the media paths and
+missing media paragraph of the Project persistence section at the Step 11.1 audit (`2e758f1`).
 Re-check the code before relying on details that later phases may have changed.

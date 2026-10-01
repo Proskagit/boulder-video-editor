@@ -59,13 +59,23 @@ session state (D015).
 
 ## Current
 
-None in progress. Phase 10 is complete (below); no further phase is planned yet — see `docs/DEVELOPMENT_PLAN.md`.
+Phase 11 — Media relink & recent projects, branch `feat/phase-11-relink-recent-projects` (from `2e758f1`, `main` after
+the merge of PR #10). Scope from the product owner decisions PO-1…PO-9 (2026-10-01), recorded in DECISIONS.md D026:
+re-checking media availability during the session (window activation, throttled; before the export and the relink),
+relink of missing media only (undoable; hard rejects and warnings; allowed without ffprobe), a batch relink of files with
+the same name in the chosen folder, and `Recent ▾` (10 entries) next to Open. Steps 11.3 re-check · 11.4 relink core ·
+11.5 batch search · 11.6 relink UI · 11.7 recent projects core · 11.8 recent projects UI · 11.9 closeout — scope and
+acceptance criteria in `docs/DEVELOPMENT_PLAN.md`.
+
+Step 11.1 (audit) accepted (2026-10-01); Step 11.2 (scope formalization, documentation only) done — awaiting acceptance.
+Details: `progress.md`.
 
 ## Previous
 
 Phase 10 — Transitions & basic effects, branch `feat/phase-10-transitions-effects` (from `409240b`). **Complete**:
-accepted by the product owner on 2026-10-01 (last verified commit `ddf45df`; R7 export regression 13 / 13; build
-`-warnaserror` 0 / 0; 1988 passed, 2 skipped; 4K 88 / 88).
+accepted by the product owner on 2026-10-01 (last verified commit `ddf45df`, closeout `ee0527d`; R7 export regression
+13 / 13; build `-warnaserror` 0 / 0; 1988 passed, 2 skipped; 4K 88 / 88). PR #10 merged into `main` as `2e758f1`
+(2026-10-01).
 
 Step 10.1 (audit) accepted; Step 10.2 (scope formalization: D025, the Phase 10 steps, the manual plan skeleton) done;
 Step 10.3 (model, `project.json` v3) done; Step 10.4 (fades: Core rule, edits, Preview / export composition and mix) done; Step 10.5 (fades: Inspector and
@@ -125,7 +135,7 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 10 — see `docs/DEVELOPMENT_PLAN.md`.
+None planned after Phase 11 — see `docs/DEVELOPMENT_PLAN.md`.
 
 ## Rule
 

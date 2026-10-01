@@ -36,7 +36,12 @@ and runs cleanly.
 - [x] **Phase 10 — Transitions & basic effects.** Fade in / fade out of a clip (picture and its own sound) and a
       cross dissolve between adjacent clips of a video track, identical in the Preview and the export; `project.json`
       v3. Scope, steps and acceptance criteria: section below and DECISIONS.md D025.
-      *(branch `feat/phase-10-transitions-effects`, last verified commit `ddf45df`; accepted 2026-10-01)*
+      *(branch `feat/phase-10-transitions-effects`, last verified commit `ddf45df`, closeout `ee0527d`; accepted
+      2026-10-01; PR #10 merged into `main` as `2e758f1`)*
+- [ ] **Phase 11 — Media relink & recent projects.** Re-checking media availability during the session, relink of
+      missing media (one file, then a batch found next to it) as an undoable change, and a list of recent projects in
+      the toolbar. Scope, steps and acceptance criteria: section below and DECISIONS.md D026 (product owner decisions
+      PO-1…PO-9). *(branch `feat/phase-11-relink-recent-projects`, from `2e758f1`; in progress)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -339,6 +344,144 @@ zone drawn on the timeline; `EditingLock`; the manual plan's dissolve section.
 - Documentation: ARCHITECTURE, D025 refinements, ROADMAP, `progress.md`; this plan's Phase 10 checkbox only after the
   product owner's acceptance.
 - Depends on: 10.3–10.8.
+
+## Phase 11 — Media relink & recent projects: steps (D026)
+
+Formalized in Step 11.2 (product owner decisions PO-1…PO-9, 2026-10-01, after the Step 11.1 audit). **The approved
+scope of Phase 11 is based on PO-1…PO-9 as recorded in D026; every step's implementation must conform to them.** A
+change of any of them is a product owner decision, recorded as a D026 refinement before the code changes. The normative
+rules are D026; this section lists the steps and their acceptance. Labels as in Phases 9–10: **PR** product requirement,
+**QG** quality gate, **M** measurement only, **Impl** implementation constraint. Steps run in this order; each is
+accepted by the product owner before the next one starts. The media life cycle and relink (11.3–11.6) come before the
+recent projects (11.7–11.8), so the open path of projects is changed in one context (product owner, 2026-10-01).
+
+The decisions, in short (full text: D026):
+- **PO-1** — a relink is an `IUndoableCommand`; the project becomes dirty; Undo / Redo restore the path together with the
+  metadata and analysis state, consistently.
+- **PO-2** — hard reject: the file doesn't exist; a wrong media type; a duration too short for the `SourceIn` /
+  `SourceOut` already used; the path belongs to another `MediaAsset`. Warning + confirmation: a different resolution,
+  frame rate, no audio stream, other differing characteristics, source handles too short for an existing dissolve. No
+  automatic adaptation of clips; `MediaAssetId`s and the timeline are kept.
+- **PO-3** — without ffprobe the relink is allowed (the file exists, the type passes by extension); the asset becomes
+  `Pending` and is analysed later; what couldn't be checked never becomes an irreversible error.
+- **PO-4** — batch search: only the folder the user chose, no recursion, exact file name, a summary before anything is
+  applied, applied after the user confirms; files not found stay offline. No fuzzy or recursive search.
+- **PO-5** — re-check when the main window becomes active (throttled), no `FileSystemWatcher`; always before operations
+  that need the files (export, relink); files gone during the session become offline, files back become online with
+  their processing restarted; never on the UI thread.
+- **PO-6** — only missing / offline media is relinked; replacing an online file is out of Phase 11.
+- **PO-7** — `Recent ▾` in the toolbar next to Open, at most 10 entries; no start screen, no automatic opening of the
+  last project, no menu bar, no general UI redesign.
+- **PO-8** — added after a successful Open, Save As, and Recover of a project with a folder; never after a failed Open;
+  unavailable projects are not removed automatically — shown as unavailable, with a clear way to remove the entry.
+- **PO-9** — a path that belongs to another `MediaAsset` is rejected with a clear message; assets are never merged and no
+  `MediaAssetId` changes.
+
+Gates for every step 11.3–11.8 (QG): `dotnet build` 0 errors / 0 warnings; the full `dotnet test` green (only the 4K
+heavy scenes skipped); the Preview ↔ Export parity suite (`ExportEndToEnd.Tests`, `Rendering.Tests`, `Export.Tests`)
+green with unchanged criteria and expected values — none weakened, re-baselined or removed; new behaviour covered by
+automated tests wherever testable, the rest in `docs/PHASE11_MANUAL_TEST_PLAN.md`; CI green; `progress.md` updated.
+Builds and test runs are started on the product owner's command.
+
+Constraints for the whole phase: `project.json` stays `formatVersion` 3 (a v3 file of Phase 10 opens and saves
+unchanged apart from the paths a relink changes); D007, D008, D009 / D022, D013, D014 path resolution, D016, D018 / D023
+and D025 unchanged in substance; L1-c stays open. Out of scope: replacing online media, fuzzy / recursive search,
+`FileSystemWatcher`, detecting a present file changed in place, copying media into the project, a start screen,
+automatic opening of the last project, a menu bar, a UI redesign, new hotkeys.
+
+### 11.1 — Audit *(done, accepted 2026-10-01)*
+Git state (Phase 10 merged as `2e758f1`), project persistence, missing media, caches, analysis, the open path, the
+toolbar and the documentation audited; no change (report in `progress.md`).
+
+### 11.2 — Scope formalization *(done — awaiting acceptance)*
+D026, this section, ROADMAP, `progress.md`, ARCHITECTURE, README, `docs/README.md`, `docs/PHASE11_MANUAL_TEST_PLAN.md`
+(skeleton), the outdated statements found by the audit. Documentation only.
+
+### 11.3 — Media availability re-check
+Scope: D026 §2 — a re-check of every asset's file off the UI thread, applied on the UI thread; triggers: the window
+becoming active (throttled), before the export, before a relink; offline ⇄ online transitions with the processing
+restarted per asset.
+- PR: a file removed during the session makes its asset offline at the next check (Media Browser "Media offline", the
+  Preview's placeholder, the export blocked by the preflight); a file that comes back makes it online again without
+  reopening the project (picture in the Preview, thumbnail, waveform, analysis if it had no metadata).
+- PR: the export re-checks the media before its preflight, whatever the last background check found.
+- PR: a re-check never makes the project dirty, never enters undo / redo, changes nothing in `project.json`; a result of a
+  check that started before New / Open / Recover is dropped; an analysis of an asset whose state changed meanwhile
+  writes nothing.
+- PR: the UI stays responsive while a check waits on a slow or disconnected drive (the file system is never read on the
+  UI thread).
+- QG: tests with a fake file system / temporary files for both transitions, the throttle, the overlap folding, the
+  generation drop, the export trigger, the per-asset restart of thumbnails / waveforms / analysis (`ThumbnailCoordinator`,
+  `WaveformCoordinator`, `MediaAnalysisCoordinator`), the playback snapshot rebuild.
+- Impl: the throttle interval and the per-asset restart API of the coordinators are recorded in `progress.md`;
+  `IProjectService.DetectMissingMedia` (no production caller) is replaced or completed — its XML comment made true.
+- Depends on: 11.2.
+
+### 11.4 — Relink: core
+Scope: D026 §3 — the relink operation in Core / Project with its validation, the probe, the warnings and the undoable
+command.
+- PR: a relinked asset keeps its `Id`; every clip keeps `MediaAssetId`, source range, speed, properties, fades and
+  dissolves; the Preview and the export use the new file; save and reopen give the new absolute and relative path.
+- PR: each hard reject of PO-2 / PO-9 refuses with its own message and changes nothing; each warning of PO-2 is reported
+  for confirmation and the relink is applied only after it; an asset that is online (PO-6) is not relinked.
+- PR: without ffprobe the relink is applied as PO-3 (asset `Pending`, analysed when ffprobe is available, the user
+  told that compatibility was not checked).
+- PR: the relink is one undo step; the project becomes dirty; Undo / Redo restore `FilePath`, `FileSizeBytes`,
+  metadata, analysis status / error and the missing state consistently; thumbnails, waveforms, the Preview and the
+  export follow; an analysis started for an undone state is dropped.
+- Decided at the start of 11.4: the exact list of compared characteristics; a later analysis that finds the file
+  incompatible; a probe that fails on an existing file (D026 §3 proposals).
+- QG: Project / Timeline / UI tests per rule; a probe integration test with real ffprobe (`Video.Tests`); the timeline
+  validator accepts edits of a relinked clip whose source is long enough.
+- Depends on: 11.3.
+
+### 11.5 — Relink: batch search
+Scope: D026 §4 — after a relink, the other missing assets found in the chosen file's folder by exact name.
+- PR: matches are only in that folder, not in subfolders, by exact name (case-insensitive); the summary lists matches,
+  the ones that can't be used and why, and the warnings; nothing is applied before confirmation; unmatched assets stay
+  offline.
+- PR: the confirmed batch is undoable (granularity decided at the start of 11.5) and restores every asset exactly.
+- QG: tests with temporary folders (subfolder ignored, name case, a hard-rejected match, a duplicate name, cancel).
+- Depends on: 11.4.
+
+### 11.6 — Relink: UI
+Scope: D026 §5 — Relink in the Media Browser for offline media, the file picker, the dialogs, the batch summary, the
+status messages; `EditingLock`.
+- PR: Relink is offered only for offline media and is disabled during an export; the picker starts in the old file's
+  folder when it exists and filters the asset's kind; rejections, warnings and the batch summary are clear; Undo / Redo
+  from the toolbar and Ctrl+Z / Ctrl+Y work on it.
+- QG: view-model and workflow tests with fake pickers / dialogs; routing unchanged (no new hotkey).
+- Manual: `docs/PHASE11_MANUAL_TEST_PLAN.md` relink scenarios (moved, renamed, temporarily unavailable files).
+- Depends on: 11.5.
+
+### 11.7 — Recent projects: core
+Scope: D026 §6 — the store and the rules of the list.
+- PR: at most 10 entries, most recent first, no duplicates by full path (case and trailing separator ignored); added
+  after a successful Open, Save As and Recover with a folder, never after a failed Open; unavailable entries are kept
+  and reported as unavailable; an entry can be removed.
+- PR: the list is outside every project, written atomically; a damaged or unreadable list never prevents startup; two
+  running instances don't lose each other's entries.
+- QG: store and rule tests (order, limit, dedupe, damaged file, atomic write, concurrent writers, availability check off
+  the UI thread).
+- Impl: the file format and the store's place in the projects (Core interface, implementation outside UI) recorded in
+  `progress.md`.
+- Depends on: 11.6.
+
+### 11.8 — Recent projects: UI
+Scope: `Recent ▾` in the toolbar next to Open (PO-7).
+- PR: choosing an entry asks about unsaved changes, then opens like Open; an unavailable entry is shown as such and can be
+  removed; an entry that fails to open leaves the current project and the entry as they are, with a message; disabled
+  during an export. A "Clear list" item: decided at the start of 11.8.
+- QG: view-model and workflow tests; manual scenarios.
+- Depends on: 11.7.
+
+### 11.9 — Final verification & closeout
+- QG: `dotnet build --no-incremental` 0 / 0; full suite once plus three times with `--blame-hang`; heavy scenes once
+  with `AIVE_HEAVY_TESTS=1`; CI green.
+- PR: `docs/PHASE11_MANUAL_TEST_PLAN.md` run in the real app; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run as a regression.
+- Documentation: ARCHITECTURE, D026 refinements, ROADMAP, README, `progress.md`; this plan's Phase 11 checkbox only
+  after the product owner's acceptance.
+- Depends on: 11.3–11.8.
 
 ## Architectural rules that must hold at every phase
 

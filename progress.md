@@ -2,10 +2,98 @@
 
 ## Current phase
 
-None in progress. Phase 10 — Transitions & basic effects: **complete** (accepted by the product owner on 2026-10-01,
-last verified commit `ddf45df`), branch `feat/phase-10-transitions-effects` (from `409240b`,
-`main` after the merge of PR #8; the docs commit of PR #9 merged in). Scope, steps and acceptance criteria:
-`docs/DEVELOPMENT_PLAN.md` "Phase 10 — Transitions & basic effects: steps"; decision D025.
+Phase 11 — Media relink & recent projects: **in progress**, branch `feat/phase-11-relink-recent-projects` (from
+`2e758f1`, `main` after the merge of PR #10). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 11
+— Media relink & recent projects: steps"; decision D026 (product owner decisions PO-1…PO-9, 2026-10-01). The
+implementation must conform to PO-1…PO-9.
+
+### Phase 11 — Media relink & recent projects (in progress)
+
+Steps (D026; each accepted by the product owner before the next): 11.1 audit · 11.2 scope formalization · 11.3 media
+availability re-check · 11.4 relink core · 11.5 batch search · 11.6 relink UI · 11.7 recent projects core · 11.8 recent
+projects UI · 11.9 closeout. Working rule from the product owner for this phase: no build or test run without a separate
+command; no push, merge, pull request or branch deletion without direct permission.
+
+- Step 11.1 done and accepted (2026-10-01) — audit, no change (only `git fetch origin`).
+  - Git: `origin/main` = `2e758f1` "Merge pull request #10 from Proskagit/feat/phase-10-transitions-effects"; `ee0527d`
+    is in it and the trees of `ee0527d` and `2e758f1` are identical. The local `main` was at `409240b` (PR #8), 23
+    commits behind and none ahead; working tree clean, no stash.
+  - Persistence (D014): `MediaAsset.FilePath` absolute, `IsMissing` runtime only; `project.json` stores `FilePath` and
+    `RelativePath` (none on another volume, `ProjectFileDto`); `ProjectSerializer.ResolveMediaPath` — absolute, else
+    relative, else the absolute path kept and the asset missing; a project moved with its media opens without a relink;
+    missing media keeps its saved references on Save.
+  - Missing detection: `ProjectService.MarkMissingMedia` (`File.Exists`) on Open and Recover, before the project
+    replaces the current one; nothing re-checks later. `IProjectService.DetectMissingMedia()` has no production caller
+    (only the design-time stub in `MainWindow.axaml.cs`, a fake in `Video.Tests` and one `Project.Tests` test) and raises
+    no event — its XML comment promises more than it does.
+  - Offline handling: `MediaAnalysisCoordinator` never probes missing media (`QueueWhereNeeded`, `QueueAnalysis`);
+    `MediaCacheCoordinator.CanMake` / `SourceFileCache` — cached thumbnails / waveforms only; `PlaybackSnapshotBuilder`
+    placeholder "The media file is missing."; `MediaBrowserItemViewModel` "Media offline"; `ExportPreflight` error
+    `MediaOffline` (also its own `File.Exists`); `TimelineEditService` refuses to add missing media; the Open / Recover
+    status message counts the missing files (`ProjectFileWorkflow.MissingSuffix`).
+  - Relevant mechanics: the playback snapshot rebuilds when an asset's `FilePath` or `IsMissing` changes
+    (`AssetState`; `DiffersOnlyInPresentation` compares the assets); `MediaCacheCoordinator` handles an asset once per
+    generation by id and a generation starts only on `ProjectChanged` (a relinked asset would keep its old thumbnail /
+    waveform); the cache key (asset id, size, last-write time, rule) already tells a new file apart; the analysis
+    coordinator skips `Completed` assets and holds `_inFlight` per asset; `TimelineValidator` rejects `SourceOut` beyond
+    `Metadata.Duration` (a relink to a shorter file would block every later edit of the clip); `AddMediaAssets`
+    deduplicates by path (a relink could create two assets with one path).
+  - Open path and window: `ProjectFileWorkflow` (New / Open with the folder picker / Save / Save As / Close, the
+    unsaved-changes prompt, `StartSessionAsync` — unsaved caches cleaned, recovery offer, autosave start) has a public
+    non-interactive `OpenAsync(folder)`; the toolbar is a row of buttons, no menu bar and no context menus;
+    `Program.Main` hands its arguments to Avalonia, and only the Debug-only `--open-project <folder>` of `DevStartup`
+    reads them (a development option, not a product feature — the audit report said no argument was handled; corrected
+    here).
+  - Reusable: `AppPaths.ConfigFolder` (unused), `ProjectFileStore.WriteAtomicAsync`, `RecoveryStore` (an app-wide store
+    with damaged-file handling and other-process awareness), `IFilePickerService.PickFilesAsync` (single file, filters),
+    the import's extension rules (`MediaImportService`).
+  - Already out of scope before: D014 ("Relink is out of scope"), the Phase 6 deferred list (relink, recent projects,
+    re-checking missing media), D024 Steps 9.4 / 9.5 (media back online not re-checked), README "Not planned yet".
+    Nothing of Phase 11 exists yet.
+  - Documentation findings: ROADMAP / DEVELOPMENT_PLAN without the PR #10 merge; this file's "Current phase", the Step
+    10.9 pull-request sentence, "Last known state" (2026-09-29) and "Completed" (no Phase 10) outdated; README "Not
+    planned yet"; ARCHITECTURE "Verification note" without the Phase 10 closeout; `docs/README.md` without the manual
+    test plans; `CLAUDE.md` "11 projects" (the solution has 19 projects: 11 under `src/`, 8 under `tests/`); the comments
+    of `DetectMissingMedia` and `MediaAsset.IsMissing` ("on project load"), the unused `AppPaths.ConfigFolder` /
+    `ProjectMediaFolder` (code — not changed at 11.2).
+- Product owner decisions PO-1…PO-9 (2026-10-01), recorded in D026 and summarised in `docs/DEVELOPMENT_PLAN.md`: PO-1
+  relink undoable, dirty, consistent undo of path + metadata + analysis state; PO-2 hard rejects (missing file, wrong
+  type, too short for the used source range, path of another asset) and warnings with confirmation (resolution, frame
+  rate, no audio, other characteristics, short dissolve handles), no adaptation of clips; PO-3 relink allowed without
+  ffprobe (`Pending`); PO-4 batch search in the chosen folder only, no recursion, exact name, summary, confirmation;
+  PO-5 re-check on window activation (throttled), no `FileSystemWatcher`, always before export / relink, both
+  directions, never on the UI thread; PO-6 online media out of scope; PO-7 `Recent ▾` next to Open, 10 entries, no start
+  screen / auto-open / menu bar / redesign; PO-8 added after successful Open, Save As, Recover with a folder, unavailable
+  entries kept and removable; PO-9 a path of another asset rejected, no merge. Step order 11.3–11.9 confirmed (relink
+  before recent projects). The documentation keeps its current split into documents (product owner).
+- Step 11.2 done (2026-10-01) — scope formalization, documentation only (no production code, no test changed, no build
+  or test run). `git checkout main` + `git merge --ff-only origin/main` (`409240b` → `2e758f1`), branch
+  `feat/phase-11-relink-recent-projects` created from it.
+  - DECISIONS: D026 (context from the audit, §1 scope and constraints, §2 re-check, §3 relink, §4 batch, §5 relink UI,
+    §6 recent projects, consequences); D014's "once per Open … Relink is out of scope" and the D024 9.4 / 9.5 "not
+    re-checked" notes marked superseded by D026 (not rewritten).
+  - `docs/DEVELOPMENT_PLAN.md`: the Phase 10 line (closeout `ee0527d`, PR #10 / `2e758f1`), the Phase 11 line and the
+    section "Phase 11 — Media relink & recent projects: steps" (the scope stated as based on PO-1…PO-9, gates,
+    constraints, steps 11.1–11.9 with PR / QG / Impl items and the sub-decisions left to a step's start).
+  - ROADMAP (Current: Phase 11; Phase 10 merged; future phases), README (status), ARCHITECTURE (the missing-media
+    behaviour as it is now, the planned Phase 11 changes, the verification note), `docs/README.md` (every document in
+    `docs/`), `CLAUDE.md` (project count), this file (this section, the Phase 10 heading, "Last known state",
+    "Completed").
+  - `docs/PHASE11_MANUAL_TEST_PLAN.md` — skeleton: scenarios per step, status "planned".
+  - Left to the step that changes the code: the comments of `IProjectService.DetectMissingMedia` and
+    `MediaAsset.IsMissing` (11.3); `AppPaths.ConfigFolder` gets its user at 11.7; `AppPaths.ProjectMediaFolder` stays
+    unused (copying media into the project is out of scope).
+  - Sub-decisions left to a step's start (D026): 11.3 the throttle interval; 11.4 the compared characteristics, a later
+    incompatible analysis, a failed probe of an existing file; 11.5 the batch's undo granularity and duplicate names;
+    11.6 the placement of Relink; 11.8 a "Clear list" item.
+
+## Phase 10 (complete)
+
+Phase 10 — Transitions & basic effects: **complete** (accepted by the product owner on 2026-10-01, last verified commit
+`ddf45df`, closeout `ee0527d`; PR #10 merged into `main` as `2e758f1` on 2026-10-01), branch
+`feat/phase-10-transitions-effects` (from `409240b`, `main` after the merge of PR #8; the docs commit of PR #9 merged
+in). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 10 — Transitions & basic effects: steps";
+decision D025.
 
 ### Phase 10 — Transitions & basic effects (complete)
 
@@ -356,6 +444,8 @@ last verified commit `ddf45df`), branch `feat/phase-10-transitions-effects` (fro
   results above. The temporary Phase 9 build (a worktree of `main` used for R1 / scenario 2) removed. The branch is
   pushed for CI; PR #9 is left as it is (not changed, not closed) and no new pull request is opened without the product
   owner's permission.
+  (Historical record of 2026-10-01, no longer a current rule: later the same day the product owner merged PR #9 and
+  then PR #10 into `main` — `2e758f1`; see Phase 11.)
 
 ## Phase 9 (complete)
 
@@ -2327,9 +2417,10 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-09-29: Phases 0–9 are complete and merged into `main` (last merge `409240b`, PR #8; CI green on `main`). No open
-phase work on `main`; Phase 10 (transitions & basic effects) starts with the Step 10.1 audit on
-`feat/phase-10-transitions-effects`. Open items carried forward: see "Known issues" (L1-c, New during
+2026-10-01: Phases 0–10 are complete and merged into `main` (last merge `2e758f1`, PR #10; Phase 10's CI run on its
+branch was green — 1988 passed, 2 skipped; the CI result of the PR #10 merge on `main` was not checked in Step 11.1).
+Phase 11 (media relink & recent projects) is in progress on `feat/phase-11-relink-recent-projects`: Step 11.1 accepted,
+Step 11.2 (documentation) done. Open items carried forward: see "Known issues" (L1-c, New during
 `ImportManyAsync`, the audio status message after a device returns, the watched `Project.Tests` hang / failure, no
 timeline virtualization, import not undoable, the 5 s PATH probe of the locators).
 
@@ -2367,6 +2458,7 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 7 (accepted 2026-09-24)
 - Phase 8 (accepted 2026-09-25)
 - Phase 9 (accepted 2026-09-29)
+- Phase 10 (accepted 2026-10-01; PR #10 merged as `2e758f1`)
 
 ## Known issues
 
