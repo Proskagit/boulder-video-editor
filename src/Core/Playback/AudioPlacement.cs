@@ -97,6 +97,31 @@ public static class AudioMix
             mix[i] += samples[i] * gain;
     }
 
+    /// <summary>
+    /// As <see cref="Add(ReadOnlySpan{float}, Span{float}, float)"/> with the clip's fade (D025 §2): stereo frame
+    /// <c>f</c> of <paramref name="samples"/> is timeline sample <paramref name="firstSample"/> + f and is mixed with
+    /// <c>(float)(gain · envelope.Gain(k))</c>. Outside the ramps that is exactly <paramref name="gain"/>, so a clip
+    /// without a fade mixes bit for bit as before. The Preview's mixer and the export both call this.
+    /// </summary>
+    public static void Add(ReadOnlySpan<float> samples, Span<float> mix, float gain, in AudioFadeEnvelope envelope, long firstSample)
+    {
+        var frames = samples.Length / AudioFormat.Channels;
+        if (!envelope.Affects(firstSample, firstSample + frames))
+        {
+            Add(samples, mix, gain);
+            return;
+        }
+
+        if (samples.Length > mix.Length) throw new ArgumentException("More samples than mix positions.", nameof(samples));
+        for (var f = 0; f < frames; f++)
+        {
+            var g = (float)(gain * envelope.Gain(firstSample + f));
+            var i = f * AudioFormat.Channels;
+            for (var c = 0; c < AudioFormat.Channels; c++)
+                mix[i + c] += samples[i + c] * g;
+        }
+    }
+
     /// <summary>Clamps every sample of the finished sum to [−1, 1].</summary>
     public static void Clamp(Span<float> mix)
     {

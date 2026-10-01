@@ -45,6 +45,9 @@ public interface IUndoRedoService
     bool CanUndo { get; }
     bool CanRedo { get; }
 
+    /// <summary>The step the next <see cref="Undo"/> would undo, or null when there is none.</summary>
+    IUndoableCommand? NextUndo { get; }
+
     event EventHandler? StateChanged;
 
     /// <summary>Executes <paramref name="command"/> and records it. If the command on top of the

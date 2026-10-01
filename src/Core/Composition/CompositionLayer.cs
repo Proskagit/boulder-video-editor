@@ -11,10 +11,12 @@ public abstract record CompositionLayer(Guid TrackId, Guid ClipId, double Opacit
 /// A video or image clip. <see cref="Geometry"/> is null when the source's pixel size is unknown
 /// (no metadata yet); a renderer then lays the picture out with <see cref="CompositionMath.Layout"/>
 /// from the decoded frame's size — the same rule, different input. <see cref="PictureSpan.Status"/>
-/// tells whether a frame can be decoded or a placeholder is due (Offline / Unsupported).
+/// tells whether a frame can be decoded or a placeholder is due (Offline / Unsupported). The layer's
+/// <see cref="CompositionLayer.Opacity"/> is the clip's opacity × <see cref="FadeFactor"/> (D025 §2) — exactly the
+/// clip's opacity without a fade.
 /// </summary>
-public sealed record PictureLayer(Guid TrackId, PictureSpan Span, LayerGeometry? Geometry)
-    : CompositionLayer(TrackId, Span.ClipId, Span.Visual.Opacity)
+public sealed record PictureLayer(Guid TrackId, PictureSpan Span, LayerGeometry? Geometry, double FadeFactor = 1.0)
+    : CompositionLayer(TrackId, Span.ClipId, Span.Visual.Opacity * FadeFactor)
 {
     /// <summary>
     /// True when nothing below can be seen: a decodable video (no alpha) at full opacity whose
@@ -27,10 +29,11 @@ public sealed record PictureLayer(Guid TrackId, PictureSpan Span, LayerGeometry?
 /// <summary>
 /// A text clip. The text itself is renderer-neutral (<see cref="Text"/>): the renderer lays it out at
 /// <see cref="TextProperties.FontSize"/> canvas pixels, centres the resulting box on the local origin
-/// and draws it through <see cref="Transform"/> with <see cref="CompositionLayer.Opacity"/>.
+/// and draws it through <see cref="Transform"/> with <see cref="CompositionLayer.Opacity"/> (the clip's opacity ×
+/// <see cref="FadeFactor"/>, D025 §2).
 /// </summary>
-public sealed record TextLayer(Guid TrackId, TextSpan Span, Affine2D Transform)
-    : CompositionLayer(TrackId, Span.ClipId, Span.Visual.Opacity)
+public sealed record TextLayer(Guid TrackId, TextSpan Span, Affine2D Transform, double FadeFactor = 1.0)
+    : CompositionLayer(TrackId, Span.ClipId, Span.Visual.Opacity * FadeFactor)
 {
     public TextProperties Text => Span.Text;
 }

@@ -2,13 +2,12 @@
 
 A simplified, desktop-first video editor (Windows 10/11 x64, Avalonia UI, .NET 8),
 architected so professional-grade features can be layered in over time without a
-rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–9
+rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–10
 are complete** (architecture, UI skeleton, media import, ffprobe metadata
 analysis, timeline editing, preview playback with audio, project persistence with
 autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
 text; MP4 export; quality: stability, thumbnails, waveforms, hotkeys,
-performance, polish, CI). Next: Phase 10 — transitions & basic effects (scope
-being agreed).
+performance, polish, CI; fades and a cross dissolve). No further phase is planned yet.
 
 ## Requirements
 
@@ -65,8 +64,8 @@ src/
                    (Phase 5).
   Media/           Media import: extension validation, file info (Phase 2);
                    thumbnails, waveforms and their cache (Phase 9).
-  Effects/         Effect/transition definitions and parameter schemas. Empty (no
-                   effect type yet); planned for Phase 10.
+  Effects/         Reserved for a generic effect stack. Empty: the Phase 10 fades
+                   and cross dissolve live in Core, Timeline and UI.
   Export/          Offline export orchestration (Phase 8): renders the timeline frame
                    by frame like the Preview and hands frames and audio to the encoder.
   Project/         Current project state (Phase 2); project.json persistence,
@@ -86,6 +85,7 @@ docs/
   DEVELOPMENT_PLAN.md          Phase-by-phase roadmap and standing architectural rules.
   EXPORT_MANUAL_TEST_PLAN.md   Manual export checks (Phase 8).
   PHASE9_MANUAL_TEST_PLAN.md   Manual checks of Phase 9, run at its closeout.
+  PHASE10_MANUAL_TEST_PLAN.md  Manual checks of Phase 10 (fades, dissolves), run at its closeout.
 ```
 
 Agent-oriented docs (`CLAUDE.md`, `ARCHITECTURE.md`, `ROADMAP.md`,
@@ -116,7 +116,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–9 complete (Phase 9 accepted 2026-09-29); Phase 10 (transitions & basic effects) next. Working: media import with validation and duplicate
+Phases 0–10 complete (Phase 10 accepted 2026-10-01). Working: media import with validation and duplicate
 detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
 preview playback with video and audio, and projects on disk: New / Open / Save /
@@ -136,5 +136,10 @@ Browser thumbnails and timeline waveforms with a per-project cache; hotkeys J / 
 to fit — none of them fire while typing in a text field; a faster export (layers decoded
 ahead and in parallel).
 
-Next: Phase 10 — transitions and basic effects. Not planned yet: relink of missing
-media, recent projects.
+Phase 10: Fade In / Fade Out per clip (picture and its own sound, in whole frames, cut to
+the clip when an edit shortens it) and a cross dissolve on the cut between two clips of a
+video track (Dissolve in the timeline header, length in the Inspector, source handles,
+the sound a hard cut), identical in the Preview and the export; `project.json` format v3
+(v1 / v2 files still open).
+
+Not planned yet: a next phase, relink of missing media, recent projects.

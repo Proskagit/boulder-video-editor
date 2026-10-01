@@ -29,11 +29,11 @@ rasterizer, ffmpeg encoder → MP4 checked with ffprobe — and skips without ff
 | Infrastructure | Serilog setup, `AppPaths` (incl. the recovery folder and the unsaved projects' cache root), `FfprobeLocator` / `FfmpegLocator` + `FfmpegOptions` | Implemented |
 | Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS); `FfmpegAudioDecoder` (ffmpeg CLI → 48 kHz stereo float); `FfmpegExportEncoder`; shared `FfmpegProcess` | Probe, video/audio decode, export encoder |
 | Media | `MediaImportService` (extension validation, file size); `ThumbnailService` / `WaveformService` and their cache files (Phase 9) | Implemented |
-| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022) |
+| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022; v3 since Phase 10, D025) |
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
 | Export | Offline export orchestration (Phase 8, D023): renders an `ExportJob` with the Core rules and hands frames/audio to an encoder. References Core only; no FFmpeg or UI types | `ExportService` over `ExportFrameSource` / `ExportPictureReader`, `ExportAudioSource` / `ExportAudioReader` |
-| Effects | Effect / transition definitions — Phase 10 (transitions & basic effects, scope being agreed) | Empty (`Clip.Effects` and `Track.Transitions` are only persisted) |
+| Effects | Reserved for a generic effect stack (out of Phase 10's scope, D025) | Empty — the Phase 10 fades and cross dissolve live in Core (`FadeRule`, `TransitionRules`, the snapshot), Timeline (edits) and UI; `Clip.Effects` is only persisted |
 
 Dependencies flow one way: App → UI / Infrastructure / subsystems → Core.
 
@@ -49,7 +49,39 @@ Domain types (`src/Core/Entities`):
 - `Clip` → `MediaBackedClip` (`SourceIn`/`SourceOut`/`Speed` — exact `ClipSpeed`, timing rule `SpeedTiming`, D022) → `VideoClip`, `AudioClip`, `ImageClip`; plus `TextClip`
 - `MediaAsset` + `MediaMetadata` + `MediaAnalysisStatus`
 - `ExportSettings` (last output path + fixed format enums; session state, D023), `ProjectSettings`, `Effect`,
-  `Transition`, `Marker` (effects and transitions are stored but neither played nor exported)
+  `Transition`, `Marker` (`Clip.Effects` is stored but neither played nor exported; transitions are cross dissolves, below)
+- Phase 10 (D025): `Clip.FadeIn` / `FadeOut` (durations; frames derived with `ToNearestFrame`);
+  `Transition` anchored on a cut (`LeftClipId` / `RightClipId`, type `crossDissolve`), structural rules in
+  `TransitionRules` (zone `⌊F/2⌋` before / `⌈F/2⌉` after the cut). Stored and validated since Step 10.3.
+  Fades (Step 10.4): `Core/Playback/FadeRule` — ramp `(k+1)/(F+1)`, effective frames clamped to the clip, none on an
+  edge with a dissolve (PO-8); `PlaybackSnapshotBuilder` puts the effective frames on picture, text and audio spans
+  (presentation only); `LayersAt` multiplies the layer opacity by the fade (so a fading layer never occludes) and
+  `NextPictureChange` counts ramp edges (prefetch); `AudioFadeEnvelope` + `AudioMix.Add(…, envelope, firstSample)`
+  apply the per-sample gain in the Preview's mixer and the export alike; edits through `SetClipProperties`
+  (`ClipPropertyChange.Fade`, merged undo), split moves the fades to the outer edges (`EditPlan.SetProperties`).
+  UI (Step 10.5): the Inspector's FADES section (`FadeInFrames` / `FadeOutFrames` in whole frames, the time as
+  timecode, the maximum never below the stored value, PO-8 notes from `TimelineClipSelection.DissolveAtStart` /
+  `DissolveAtEnd`, disabled by the `EditingLock`); the timeline clip draws each effective ramp as a gradient band
+  (`TimelineClipViewModel.FadeInWidth` / `FadeOutWidth`, computed by `TimelineViewModel.RefreshFades`).
+  Dissolve edits (Step 10.6): `ITimelineEditService.AddTransition` / `RemoveTransition` / `SetTransitionDuration` /
+  `MaxTransitionFrames`; `Timeline/DissolveHandles` (source handles = the trim limits, images / text unlimited);
+  `EditPlan` carries transition adds / removes / updates and `ReconcileTransitions` (every edit: removed where the cut
+  is gone, moved with both clips) before `TimelineEditService.Validate` checks zones (`TransitionRules.Validate` on the
+  planned state) and the handles of touched dissolves; commands `AddTransitionCommand` / `RemoveTransitionCommand` /
+  `UpdateTransitionCommand`. Split re-anchors and rejects inside a zone; a far-edge trim is clamped to the zone.
+  Dissolve composition (Step 10.7): `PlaybackSnapshotBuilder` puts the zones on `VideoLayer.Dissolves`
+  (`DissolveZone`: `[c − ⌊F/2⌋, c + ⌈F/2⌉)`) and the shown range on the pictures (`ExtendedStart` / `ExtendedEnd`);
+  `LayersAt` returns A below B in a zone (B × `(j+1)/(F+1)`), `NextPictureChange` counts the zone edges, the export's
+  picture reader serves the shown range; the sound is untouched.
+  Dissolve UI (Step 10.8): `TimelineViewModel.AddDissolveCommand` (two selected clips; 1 s or the service's
+  `MaxTransitionFrames` when shorter), `TimelineTrackViewModel.Transitions` / `TimelineTransitionViewModel` (the zone
+  in pixels, drawn over the clips and not hit-testable: the view hit-tests a clip and its trim handles first, and only
+  a press on a clip body inside a zone selects the dissolve — `TransitionAt` / `OnTransitionPressed` —, exclusive with
+  the clip selection; a drag or trim preview lays the zones out as the release will leave them),
+  `TransitionSelectionChanged` → `InspectorViewModel.ShowTransition` (DISSOLVE: `DissolveFrames`, the time, the longest
+  that fits, `RemoveDissolveCommand`); Delete removes a selected dissolve; the `EditingLock` disables all of it.
+  `SetClipSpeedCommand` carries the dissolves a speed change removes (one step with the speed, merged with the clip's
+  next speed changes); `IUndoRedoService.NextUndo` lets a speed typed back to the step's start undo that step.
 - `MediaTime`
 
 New projects get tracks V1 and A1. Clips are created only by `ITimelineEditService`.
@@ -242,9 +274,9 @@ waveform never changes the audio.
 Decisions: D014 (format, Open/Save, missing media), D015 (save point), D016 (autosave,
 recovery, unsaved changes).
 
-- On disk: a project folder with `project.json` (format v2 since Phase 7: the clip speed as an exact
-  fraction `speedRatio`, D022; v1 files are read when their speed is 1 and saved as v2; files of a
-  newer version are refused). `ProjectSerializer` maps entities
+- On disk: a project folder with `project.json` (format v3 since Phase 10: clip fades and anchored transitions,
+  D025; v2 since Phase 7: the clip speed as an exact fraction `speedRatio`, D022; v1 files are read when their speed
+  is 1; v1 / v2 are read without fades and transitions and saved as v3; files of a newer version are refused). `ProjectSerializer` maps entities
   ⇄ DTOs (`ProjectFileDto.cs`; ticks as `long`, exact frame rates, no runtime state) and
   validates on load (incl. clip property ranges, D017, and the speed timing invariant, D022);
   `ProjectFileStore` reads and writes atomically (temp + `File.Replace`).

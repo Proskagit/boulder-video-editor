@@ -72,6 +72,24 @@ public interface ITimelineEditService
     /// speed changes of the same clip merge into one Undo step.</summary>
     TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed);
 
+    /// <summary>Adds a cross dissolve of <paramref name="duration"/> (whole frames, at least 2) on the cut between two
+    /// touching clips of one unlocked video track (D025 §3–§5). Rejected, with nothing created, when the clips don't
+    /// touch, the cut already has one, or the zone or the source handles can't hold it — the message then names the
+    /// longest that fits. <see cref="TimelineEditResult.TransitionId"/> is the new dissolve.</summary>
+    TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, MediaTime duration);
+
+    /// <summary>Removes a dissolve (one Undo step).</summary>
+    TimelineEditResult RemoveTransition(Guid transitionId);
+
+    /// <summary>Changes a dissolve's length (whole frames, at least 2), within what the zone and the handles allow.
+    /// Consecutive changes of the same dissolve merge into one Undo step.</summary>
+    TimelineEditResult SetTransitionDuration(Guid transitionId, MediaTime duration);
+
+    /// <summary>The longest dissolve, in frames, the cut between <paramref name="leftClipId"/> and
+    /// <paramref name="rightClipId"/> can take now (its own dissolve, if any, not counted); null when the two aren't
+    /// touching clips of one video track. Below 2 no dissolve fits.</summary>
+    long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId);
+
     /// <summary>Finds the snap target nearest to any of <paramref name="candidates"/>
     /// within <paramref name="tolerance"/>. Targets: time zero, the playhead and every
     /// clip edge except those of <paramref name="excludedClipIds"/>.</summary>
@@ -97,6 +115,10 @@ public sealed record ClipPropertyChange
 
     /// <summary>Text clips.</summary>
     public TextProperties? Text { get; init; }
+
+    /// <summary>Every clip kind (D025). Each value is a whole number of frames of the project rate, at most the clip's
+    /// length; it is stored as exactly that many frames.</summary>
+    public FadeProperties? Fade { get; init; }
 }
 
 /// <summary>Outcome of a timeline edit. <see cref="Message"/> is safe to show in the
@@ -113,6 +135,9 @@ public sealed class TimelineEditResult
     /// <summary>Clips created or changed by the operation (e.g. the new clip after Add,
     /// both halves after Split).</summary>
     public IReadOnlyList<Guid> ClipIds { get; init; } = Array.Empty<Guid>();
+
+    /// <summary>The dissolve created or changed by the operation, if any.</summary>
+    public Guid? TransitionId { get; init; }
 
     public static TimelineEditResult Ok(IReadOnlyList<Guid>? clipIds = null, string? message = null) =>
         new() { Success = true, ClipIds = clipIds ?? Array.Empty<Guid>(), Message = message };

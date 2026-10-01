@@ -5,6 +5,8 @@ using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Avalonia.Threading;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
@@ -16,7 +18,10 @@ public enum InspectorSelectionKind
 {
     None,
     Media,
-    TimelineClip
+    TimelineClip,
+
+    /// <summary>A dissolve on the timeline (D025).</summary>
+    Transition
 }
 
 /// <summary>
@@ -67,7 +72,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     private bool RejectWhileLocked()
     {
         if (!_editingLock.IsLocked) return false;
-        SyncFromModel();
+        ShowModelAfterRejection();
         return true;
     }
 
@@ -75,11 +80,13 @@ public sealed partial class InspectorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsMediaSelected))]
     [NotifyPropertyChangedFor(nameof(IsTimelineClipSelected))]
     [NotifyPropertyChangedFor(nameof(IsNothingSelected))]
+    [NotifyPropertyChangedFor(nameof(IsTransitionSelected))]
     private InspectorSelectionKind _selectionKind = InspectorSelectionKind.None;
 
     public bool IsMediaSelected => SelectionKind == InspectorSelectionKind.Media;
     public bool IsTimelineClipSelected => SelectionKind == InspectorSelectionKind.TimelineClip;
     public bool IsNothingSelected => SelectionKind == InspectorSelectionKind.None;
+    public bool IsTransitionSelected => SelectionKind == InspectorSelectionKind.Transition;
 
     // --- Media selection: basic info (Phase 2) ------------------------------
     [ObservableProperty] private string _mediaFileName = "";
@@ -135,7 +142,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (!result.Success)
         {
             _status.Report(result.Message ?? "The clip could not be changed.");
-            SyncFromModel(); // show what the clip really has
+            ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
 
@@ -204,7 +211,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (!result.Success)
         {
             _status.Report(result.Message ?? "The clip could not be changed.");
-            SyncFromModel(); // show what the clip really has
+            ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
 
@@ -228,7 +235,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (!ClipSpeed.TryFromDecimal(entered, out var speed))
         {
             _status.Report($"Speed must be a multiple of 0.05× from {ClipSpeed.Min} to {ClipSpeed.Max}.");
-            SyncFromModel();
+            ShowModelAfterRejection(); // the fields show what the model really has
             return;
         }
 
@@ -236,8 +243,131 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (!result.Success)
         {
             _status.Report(result.Message ?? "The speed could not be changed.");
-            SyncFromModel(); // show what the clip really has
+            ShowModelAfterRejection(); // the fields show what the model really has
         }
+        else if (result.Message is not null)
+        {
+            _status.Report(result.Message); // e.g. a dissolve removed because the clip's end moved (D025 §5)
+        }
+    }
+
+    // --- Fades (Phase 10, D025 §2): every clip kind --------------------------------------------
+    // In whole frames of the project rate (the time is shown next to them), each sent on its own to
+    // SetClipProperties so consecutive changes of one fade merge into one undo step. A stored fade may exceed a clip
+    // trimmed shorter since (it is clamped when rendered): the field still shows it, and its maximum allows it so the
+    // control never coerces it into an edit. On an edge with a dissolve the fade is kept but not applied (PO-8).
+
+    [ObservableProperty] private bool _hasFades;
+
+    [ObservableProperty] private decimal? _fadeInFrames;
+    [ObservableProperty] private decimal? _fadeOutFrames;
+
+    [ObservableProperty] private decimal _maxFadeInFrames;
+    [ObservableProperty] private decimal _maxFadeOutFrames;
+
+    /// <summary>The fade's length as time (non-drop-frame timecode at the project rate).</summary>
+    [ObservableProperty] private string _fadeInTimeDisplay = "";
+    [ObservableProperty] private string _fadeOutTimeDisplay = "";
+
+    /// <summary>A dissolve sits on this edge: the fade is kept but not applied (PO-8).</summary>
+    [ObservableProperty] private bool _isFadeInInactive;
+    [ObservableProperty] private bool _isFadeOutInactive;
+
+    private FrameRate _rate = FrameRate.Default;
+
+    partial void OnFadeInFramesChanged(decimal? value) => EditFade(value, (f, t) => f with { FadeIn = t });
+    partial void OnFadeOutFramesChanged(decimal? value) => EditFade(value, (f, t) => f with { FadeOut = t });
+
+    private void EditFade(decimal? value, Func<FadeProperties, MediaTime, FadeProperties> change)
+    {
+        if (_syncing || value is not { } frames || _clip is null || RejectWhileLocked()) return;
+
+        if (frames < 0 || frames != decimal.Truncate(frames))
+        {
+            _status.Report("A fade is a whole number of frames.");
+            ShowModelAfterRejection(); // the fields show what the model really has
+            return;
+        }
+
+        var length = MediaTime.FromFrame((long)frames, _rate);
+        var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Fade = change(FadeProperties.Of(_clip), length) });
+        if (!result.Success)
+        {
+            _status.Report(result.Message ?? "The fade could not be changed.");
+            ShowModelAfterRejection(); // the fields show what the model really has
+        }
+    }
+
+    // --- Dissolve (Phase 10, D025 §3–§5) --------------------------------------------------------
+    // The selected dissolve's length in whole frames (the time shown next to it), sent to SetTransitionDuration;
+    // consecutive changes merge into one undo step. The field's range is 2 … the longest the edit service says fits (never
+    // below the current length), so input outside it is not applied — like every numeric field — and the longest that
+    // fits is shown under it. Remove deletes the dissolve (one undo step).
+
+    private TimelineTransitionSelection? _transition;
+
+    [ObservableProperty] private decimal? _dissolveFrames;
+    [ObservableProperty] private decimal _maxDissolveFrames = TransitionRules.MinFrames;
+    public decimal MinDissolveFrames => TransitionRules.MinFrames;
+    [ObservableProperty] private string _dissolveTimeDisplay = "";
+    [ObservableProperty] private string _dissolveLimitDisplay = "";
+    [ObservableProperty] private string _dissolveClipsDisplay = "";
+
+    /// <summary>Shows a dissolve selected on the timeline. Called again after every timeline change (undo / redo too).</summary>
+    public void ShowTransition(TimelineTransitionSelection selection)
+    {
+        ForgetClip();
+        _transition = selection;
+        SyncTransition();
+        TechnicalRows.Clear();
+        SelectionKind = InspectorSelectionKind.Transition;
+        OnPropertyChanged(nameof(HasTechnicalInfo));
+    }
+
+    private void SyncTransition()
+    {
+        if (_transition is not { } s) return;
+        _syncing = true;
+        try
+        {
+            var frames = TransitionRules.Frames(s.Transition.Duration, s.Rate);
+            MaxDissolveFrames = Math.Max(frames, s.MaxFrames ?? frames);
+            DissolveFrames = frames;
+            DissolveTimeDisplay = TimeFormat.ToTimecode(MediaTime.FromFrame(frames, s.Rate), s.Rate);
+            DissolveLimitDisplay = s.MaxFrames is { } max ? $"Longest that fits here: {max} frames" : "";
+            DissolveClipsDisplay = $"{s.LeftName} → {s.RightName} ({s.Track.Name})";
+        }
+        finally
+        {
+            _syncing = false;
+        }
+    }
+
+    partial void OnDissolveFramesChanged(decimal? value)
+    {
+        if (_syncing || value is not { } frames || _transition is not { } s || RejectWhileLocked()) return;
+
+        if (frames != decimal.Truncate(frames))
+        {
+            _status.Report("A dissolve is a whole number of frames.");
+            ShowModelAfterRejection(); // the fields show what the model really has
+            return;
+        }
+
+        var result = _edit.SetTransitionDuration(s.Transition.Id, MediaTime.FromFrame((long)frames, s.Rate));
+        if (!result.Success)
+        {
+            _status.Report(result.Message ?? "The dissolve could not be changed.");
+            ShowModelAfterRejection(); // the fields show what the model really has
+        }
+    }
+
+    [RelayCommand]
+    private void RemoveDissolve()
+    {
+        if (_transition is not { } s || RejectWhileLocked()) return;
+        var result = _edit.RemoveTransition(s.Transition.Id);
+        _status.Report(result.Success ? "Dissolve removed" : result.Message ?? "The dissolve could not be removed.");
     }
 
     // --- Text (Phase 7 Step 8): text clips ---------------------------------------------------
@@ -300,7 +430,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         if (!result.Success)
         {
             _status.Report(result.Message ?? "The clip could not be changed.");
-            SyncFromModel(); // show what the clip really has
+            ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
 
@@ -318,12 +448,17 @@ public sealed partial class InspectorViewModel : ViewModelBase
     {
         var clip = selection.Clip;
         _clip = clip;
+        _transition = null;
         // A video file without an audio stream has nothing to mix; unknown metadata still shows it.
         HasAudioProperties = clip is AudioClip || (clip is VideoClip && selection.Asset?.Metadata is not { AudioCodec: null });
         HasVisualProperties = VisualProperties.Of(clip) is not null;
         HasCrop = clip is VideoClip or ImageClip;
         HasTextProperties = clip is TextClip;
         HasSpeed = clip is VideoClip or AudioClip;
+        HasFades = true;
+        _rate = selection.Rate;
+        IsFadeInInactive = selection.DissolveAtStart;
+        IsFadeOutInactive = selection.DissolveAtEnd;
         SyncFromModel();
 
         ClipName = selection.Name;
@@ -414,6 +549,16 @@ public sealed partial class InspectorViewModel : ViewModelBase
             }
             if (_clip is MediaBackedClip { } media)
                 SpeedValue = media.Speed.ToDecimal();
+
+            var clipFrames = TransitionRules.ClipFrames(_clip, _rate);
+            var fadeIn = TransitionRules.Frames(_clip.FadeIn, _rate);
+            var fadeOut = TransitionRules.Frames(_clip.FadeOut, _rate);
+            MaxFadeInFrames = Math.Max(clipFrames, fadeIn);
+            MaxFadeOutFrames = Math.Max(clipFrames, fadeOut);
+            FadeInFrames = fadeIn;
+            FadeOutFrames = fadeOut;
+            FadeInTimeDisplay = TimeFormat.ToTimecode(MediaTime.FromFrame(fadeIn, _rate), _rate);
+            FadeOutTimeDisplay = TimeFormat.ToTimecode(MediaTime.FromFrame(fadeOut, _rate), _rate);
             if (TextProperties.Of(_clip) is { } text)
             {
                 TextContent = text.Text;
@@ -436,16 +581,63 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// <summary>Shows the model's values in the fields again. Called when a field loses focus: an
     /// empty numeric field (null here) or an incomplete color was never an edit; fields that already
     /// show the model don't change.</summary>
-    public void ShowModelValues() => SyncFromModel();
+    public void ShowModelValues()
+    {
+        SyncFromModel();
+        SyncTransition();
+        AnnounceFields();
+    }
+
+    /// <summary>
+    /// A value the Inspector or the edit service rejected: the fields show the model again. The field that sent the value
+    /// is still inside its own update and ignores a change raised now, so the fields are announced once more right after
+    /// it — otherwise it would keep showing the rejected value, and even losing the focus wouldn't help (the view model
+    /// already holds the model's value, nothing changes; found with Speed 4× in the Phase 10 manual run).
+    /// </summary>
+    private void ShowModelAfterRejection()
+    {
+        SyncFromModel();
+        SyncTransition();
+        Dispatcher.UIThread.Post(AnnounceFields);
+    }
+
+    /// <summary>
+    /// Makes every numeric field show its current value again. Raising a change with the same value is not enough: the
+    /// binding compares with the value it last sent and skips it, while the control still shows the rejected text. Each
+    /// field therefore goes through "no value" and back (under the sync guard: never an edit).
+    /// </summary>
+    private void AnnounceFields()
+    {
+        _syncing = true;
+        try
+        {
+            var values = (VolumePercent, PositionX, PositionY, ScalePercent, Rotation, OpacityPercent, CropLeftPercent, CropTopPercent,
+                CropRightPercent, CropBottomPercent, SpeedValue, FontSize, FadeInFrames, FadeOutFrames, DissolveFrames);
+            (VolumePercent, PositionX, PositionY, ScalePercent, Rotation, OpacityPercent, CropLeftPercent, CropTopPercent) =
+                (null, null, null, null, null, null, null, null);
+            (CropRightPercent, CropBottomPercent, SpeedValue, FontSize, FadeInFrames, FadeOutFrames, DissolveFrames) =
+                (null, null, null, null, null, null, null);
+            (VolumePercent, PositionX, PositionY, ScalePercent, Rotation, OpacityPercent, CropLeftPercent, CropTopPercent,
+                CropRightPercent, CropBottomPercent, SpeedValue, FontSize, FadeInFrames, FadeOutFrames, DissolveFrames) = values;
+        }
+        finally
+        {
+            _syncing = false;
+        }
+    }
 
     private void ForgetClip()
     {
         _clip = null;
+        _transition = null;
         HasAudioProperties = false;
         HasVisualProperties = false;
         HasCrop = false;
         HasTextProperties = false;
         HasSpeed = false;
+        HasFades = false;
+        IsFadeInInactive = false;
+        IsFadeOutInactive = false;
     }
 
     private void BuildTechnicalRows(MediaKind kind, MediaMetadata m)

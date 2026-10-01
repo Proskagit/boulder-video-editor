@@ -2,9 +2,360 @@
 
 ## Current phase
 
-Phase 10 — Transitions & basic effects: chosen by the product owner on 2026-09-29; branch
-`feat/phase-10-transitions-effects` (from `409240b`, `main` after the merge of PR #8). Step 10.1 (audit, no code change)
-in progress; the MVP scope, steps and acceptance criteria are agreed after the audit, before any implementation.
+None in progress. Phase 10 — Transitions & basic effects: **complete** (accepted by the product owner on 2026-10-01,
+last verified commit `ddf45df`), branch `feat/phase-10-transitions-effects` (from `409240b`,
+`main` after the merge of PR #8; the docs commit of PR #9 merged in). Scope, steps and acceptance criteria:
+`docs/DEVELOPMENT_PLAN.md` "Phase 10 — Transitions & basic effects: steps"; decision D025.
+
+### Phase 10 — Transitions & basic effects (complete)
+
+- Step 10.1 done and accepted (2026-09-29) — audit, no change. Findings: `Clip.Effects` (generic, untyped parameters)
+  and `Track.Transitions` (`Id`, `TransitionTypeId`, `Duration` — no anchor) only persisted, never rendered; format v2
+  ignores unknown properties (an older build would silently drop new typed fields — hence v3); the Preview and the
+  export share `PlaybackSnapshot.LayersAt` → `CompositionDrawPlan` → `CompositionPainter` and the audio
+  `AudioPlacement` / `AudioMix` rule; `LayersAt` returns one clip per track and `NextPictureChange` knows only clip
+  edges; `VideoPipeline` keys readers by clip (two clips of one track can decode at once); `SourceFrameSelector` is
+  exact for frames outside a clip; the mix gain is one constant per span; the trim limits (`MaxWholeFrames`,
+  `SpeedTiming.FramesFor`, `CeilingFrame`) are exactly the handle rules; `EditPlan` carries clip changes only.
+- Step 10.2 done (2026-09-29) — product owner decisions PO-1…PO-7 formalized (documentation only): D025 (model, format
+  v3, fade ramps in frames and samples, dissolve zone `[c − ⌊F/2⌋, c + ⌈F/2⌉)`, handles, the edit coupling), the Phase 10
+  steps in `DEVELOPMENT_PLAN.md`, ROADMAP, `docs/PHASE10_MANUAL_TEST_PLAN.md` (skeleton). Open for the product owner
+  (before 10.6, not blocking 10.3–10.5): a fade on an edge that has a dissolve — proposed: not applied while the
+  dissolve exists.
+- Step 10.3 done (2026-09-29) — model and `project.json` v3.
+  - Model: `Clip.FadeIn` / `FadeOut` (`MediaTime`, every clip kind); `Transition.LeftClipId` / `RightClipId`;
+    `Core/Entities/TransitionRules` — `CrossDissolve`, `MinFrames` 2, `Frames` (`ToNearestFrame`), `Zone`
+    (`⌊F/2⌋` before / `⌈F/2⌉` after the cut), `ClipFrames`, `ValidateTrack` (type, `F ≥ 2`, two different clips of
+    the track that touch exactly, one transition per cut, zone parts fit each clip incl. both edges, video tracks only).
+  - Format: `CurrentFormatVersion` 3; clips write `fadeInTicks` / `fadeOutTicks`, transitions `leftClipId` /
+    `rightClipId`. v1 / v2: fades read as 0, transitions dropped after their old checks (id, type, duration ≥ 0 — a v2
+    file rejected before is still rejected). v3: negative fades and invalid transitions are damaged; duplicate
+    transition ids too; transitions are validated after every track is read (a clip problem is reported first).
+  - Tests: `Project.Tests/FadeTransitionPersistenceTests` (round trip byte-identical, the v3 fields, v2 read without
+    fades / transitions and saved as v3, an unanchored v2 transition dropped, v4 refused, 20 damaged cases, zones that
+    exactly fill a clip); `Core.Tests/TransitionRulesTests`. Existing tests: `ProjectTestData`'s unanchored "fade"
+    transition became an anchored dissolve (A|image, adjacent) plus fades on the video clip, the round-trip test asserts
+    them; five assertions of the version a save writes changed 2 → 3. Mutations: transition validation off → 14
+    failures; fades read for v1 / v2 too → 1 failure.
+  - Verification: `dotnet build` 0 errors / 0 warnings; `dotnet test` (whole solution) 1827 passed, 2 skipped (4K
+    heavy) — Core 415, Timeline 261, Project 319, UI 334, Export 82, Rendering 58, Video 291, ExportEndToEnd 67 (+2).
+  - Interim (until the steps named): nothing renders or edits fades / dissolves yet. Timeline edits do not know
+    transitions (10.6): moving, trimming, splitting or deleting a clip that a transition (only possible in a hand-made
+    v3 file) is anchored to can leave a transition that makes the saved file fail to load. A split copies no fade to
+    the right part yet (10.4 sets the rule).
+- PO-8 decided (product owner, 2026-09-29): a fade on an edge that has a dissolve is not applied (picture and sound)
+  while the dissolve exists; stored values kept, shown as inactive; applies again once the dissolve is gone; fades and
+  the dissolve's opacity never multiply. Recorded in D025.
+- Step 10.4 done (2026-09-29) — fades in Core, edits, Preview / export composition and mix.
+  - Core: `Playback/FadeRule` (`Ramp`, `EffectiveFrames` with the PO-8 switches, `PictureFactor`, `RampEdges`) and
+    `AudioFadeEnvelope` (`FirstSample`, `FadeInEnd`, `FadeOutStart`, `EndSample` by the `AudioPlacement` ceiling rule,
+    `Gain`, `Affects`); `AudioMix.Add(samples, mix, gain, envelope, firstSample)` — `(float)(gain · g(k))`, the plain mix
+    outside the ramps (bit for bit as before). Spans carry `FadeInFrames` / `FadeOutFrames` (picture, text, audio);
+    `DiffersOnlyInPresentation` ignores them. `PictureLayer` / `TextLayer` take a `FadeFactor` (opacity = the clip's ×
+    the factor; exactly the clip's without a fade), so `OccludesBelow` is false during a ramp. `NextPictureChange`
+    includes `s + Fin` and `e − Fout`. The builder suppresses the fade on an edge with a dissolve (PO-8).
+  - Mix paths: `MixEntry.Fade`, `AudioSpanReader.MixInto(…, fade)` with the timeline sample of each ring piece;
+    `ExportAudioReader.MixIntoAsync(…, fade, ct)`; `ExportAudioSource` and `AudioPipeline` build the envelope from the
+    snapshot's frame rate.
+  - Edits: `FadeProperties` group (`ClipPropertyChange.Fade`, `ClipPropertyValues.Fade`, fields `FadeIn` / `FadeOut`,
+    descriptions "Change Fade In" / "Change Fade Out" / "Change Fades"); the service stores whole frames
+    (`FromFrame(ToNearestFrame)`), rejects negative and longer than the clip, keeps an unchanged fade as stored. Split:
+    the right part keeps the fade out, the left the fade in — the left's fade out set to 0 in the same command
+    (`EditPlan.SetProperties` → `SetClipPropertiesCommand` inside the split's composite). `CloneClip` copies fades.
+  - Tests: `Core.Tests/FadeRuleTests` (19: ramps, product, clamp, PO-8, ramp edges, envelope boundaries at 25 / 30 /
+    29.97 / 23.976, mix bit-identity and gains, layer opacity, occlusion, text, prefetch edges, presentation-only,
+    audio clips, PO-8 in the snapshot and after the dissolve's removal); `Timeline.Tests/FadeEditTests` (10: whole frames,
+    limits, merge / undo / redo, every clip kind, locked track, split inside a ramp with undo / redo, trim / move / speed
+    / re-grid keep the stored fades); `Timeline.Tests/Playback/FadePlaybackTests` (3: prefetch before a fade out, both
+    layers in the ramp with the fade opacity, a fade change keeps the decoders); `Export.Tests` — frame contract with
+    fades at 29.97 / 23.976 / 25 and speeds 1× / 2× / 0.25× (the frame description now carries the layer opacity, so
+    every existing frame contract also compares opacities), audio contract (fades at 1× / 0.25× / 2×, 200 % volume, a
+    split inside the ramp, overlapping ramps, a muted clip) and a constant tone following the envelope sample by sample.
+    `TimelineFixture.Snapshot` includes the fades, so every existing undo / redo exactness test covers them.
+  - Mutations (each caught): no ramp edges in `NextPictureChange` → 1 (prefetch); the Preview's mixer ignoring the fade
+    → 4 (audio contracts); split keeping the left fade out → 1; no PO-8 suppression → 1.
+  - Verification: `dotnet build` 0 errors / 0 warnings; `dotnet test` 1866 passed, 2 skipped (4K heavy) — Core 434,
+    Timeline 274, Project 319, UI 334, Export 89, Rendering 58, Video 291, ExportEndToEnd 67 (+2). The parity suite is
+    unchanged and green: a project without fades renders exactly as before.
+- Step 10.5 done (2026-09-29) — fades: UI and end-to-end parity. Accepted together with 10.4 (see below) after the
+  product owner's real-app run of the fade scenarios 4–12b of `docs/PHASE10_MANUAL_TEST_PLAN.md`.
+  - Inspector: a FADES section for every clip kind — `FadeInFrames` / `FadeOutFrames` (whole frames of the project
+    rate; fractions and more than the clip rejected with a status message, the field shows the model again), the length
+    as timecode, `MaxFadeInFrames` / `MaxFadeOutFrames` = max(clip frames, stored frames) so a stored fade longer than a
+    trimmed clip is shown and never coerced into an edit; each field one `SetClipProperties` edit (merged per field,
+    "Change Fade In" / "Change Fade Out"); inside the section the `EditingLock` disables them like the other fields.
+    PO-8: `TimelineClipSelection` carries `DissolveAtStart` / `DissolveAtEnd` (from the track's transitions), the
+    Inspector shows "Not applied: a dissolve is on this edge." under that field, the value stays.
+  - Timeline: `TimelineClipViewModel.FadeInWidth` / `FadeOutWidth` (the effective ramp in pixels, clamped, 0 on an edge
+    with a dissolve), refreshed with every relayout (zoom, edits, undo); the clip template draws them as black-to-clear
+    gradient bands at the clip's edges.
+  - Tests: `UI.Tests/InspectorFadeTests` (7: shown for every kind with the time, typing edits and merges, undo updates
+    the fields, rejections, a stored fade longer than the trimmed clip shown without an edit, the editing lock, PO-8
+    inactive notes and ramps in the timeline — gone with the dissolve —, ramp widths following fades and trim);
+    `UI.Tests/FadeViewBindingTests` (the real `InspectorView` XAML: both NumericUpDowns show the frames, the PO-8 note
+    visible only on the edge with the dissolve, a value typed in the control edits the clip); `ExportEndToEnd.Tests/
+    ExportFadeEndToEndTests` (11, real ffmpeg: byte-equal Preview = export canvas on ramp frames for one layer, a video
+    fading over another, 8 layers, 0.25× and 2×, image and text, a clip shorter than its fades, 23.976 and 29.97 fps;
+    independently of the app a faded frame over black is ffmpeg's source frame × the ramp factor — max |Δ| 1; the PCM is
+    the decoded tone × g(k) sample by sample and the AAC rises / holds / falls; cancelling inside a ramp leaves no file
+    and no ffmpeg).
+  - Mutations (caught): the picture fade off on both sides (Preview and export equal, so only the independent check can
+    see it) → 2 failures.
+  - Not checked in the real app in this step: the `TimelineView` ramp bands (a headless `TimelineView` needs Avalonia's
+    platform — cursors — which the UI tests don't initialise; the widths are covered at the view-model level) and the
+    fade scenarios as a whole — opening a generated project needs the native folder picker (unreliable through UI
+    Automation in Phase 9) or a recovery file in the user's app-data folder; left to the manual run ("manual pending").
+  - Verification: `dotnet build` 0 errors / 0 warnings; `dotnet test` 1885 passed, 2 skipped (4K heavy) — Core 434,
+    Timeline 274, Project 319, UI 342, Export 89, Rendering 58, Video 291, ExportEndToEnd 78 (+2). Existing parity scenes
+    unchanged and green.
+  - Product owner (2026-09-29): the automated part of 10.4–10.5 accepted; the final acceptance waits for the real-app
+    fade scenarios. For them (no production logic changed): `src/App/DevStartup.cs` — Debug builds only (`#if DEBUG`,
+    absent from Release): `--open-project <folder>` opens that project when the main window is shown through the same
+    `ProjectFileWorkflow.OpenAsync` the Open command uses after its picker; `tools/manual/New-Phase10FadeFixture.ps1` —
+    ffmpeg media and a v3 `project.json` in `%TEMP%\aive-phase10-fades` (outside the repository; `-Force` replaces only
+    a folder carrying its `.aive-fixture` marker). Checked: Debug and Release build 0 / 0; the app started with the
+    option opened the fixture ("Opened project 'Phase 10 fades' … (4 media, 0 missing, 12 clips)", title "Phase 10
+    fades — AI Video Editor"), analysed the media, closed clean without a save prompt.
+- Steps 10.4 and 10.5 accepted by the product owner (2026-09-29). Real-app run of the fade scenarios 4–12b and the PO-8
+  check (12c) with the fixture: all passed, no remarks on the fade implementation. Expected results corrected (no
+  behaviour change, product owner): 12 — the export window is modal, so nothing in the main window can be changed
+  during an export (the `EditingLock` on the FADES fields is a second line); 12a — a fraction (`2,5` / `2.5`), text or
+  more frames than the clip has is not applied and the field shows the previous value when it loses focus, without a
+  status message, like every numeric field (the control rejects such input before it reaches the view model).
+- Step 10.6 done (2026-09-29) — dissolve: edits and validation. Awaiting the product owner's acceptance.
+  - Core: `TransitionRules.Validate` over `TransitionSpec`s and clip edges (the planned state; `ValidateTrack` uses it),
+    `TransitionRules.MaxFrames` (the longest F for given room and handles).
+  - Timeline: `DissolveHandles` (`After`: `MaxWholeFrames` / `SpeedTiming.FramesFor` of the source after SourceIn minus
+    the clip's frames; `Before`: the 1× trim-start limit / `FramesFor(SourceIn)`; images and text unlimited, unknown
+    media duration none); `EditPlan` transition adds / removes / updates, `StateOf`, `EffectiveTransitions`,
+    `IsTouched`, `ReconcileTransitions`, `TransitionTracks`, `BuildTransitionCommands`; commands
+    `AddTransitionCommand`, `RemoveTransitionCommand`, `UpdateTransitionCommand` (track move, re-anchor, length; merges
+    length-only changes); `TimelineEditService`: `AddTransition` (touching clips of one unlocked video track, one per
+    cut, ≥ 2 frames, whole frames stored, longest-that-fits message), `RemoveTransition`, `SetTransitionDuration`
+    (merged), `MaxTransitionFrames`; `Validate` reconciles then checks zones and the handles of touched dissolves;
+    Move / Trim / Split / Delete / Speed / Add (re-grid) return the removal note; Split rejects inside a zone and
+    re-anchors a dissolve at the clip's end to the right part; a far-edge trim is clamped so the other edge's zone part
+    stays; a speed change removing a dissolve is one composite step; `TimelineValidator.ValidateSequence` also checks
+    the transitions. `TimelineEditResult.TransitionId`. Inspector: a successful speed change reports its note.
+  - Tests: `Timeline.Tests/DissolveEditTests` (21: add with exact undo / redo, every rejection, no handles, the longest
+    that fits at 1× and 2× and at 29.97 with an odd F, images / text unlimited, remove, resize merged and limited, locked
+    track, dissolves on both edges, move one / both / to another track, cut-edge trim, far-edge clamp, split inside /
+    outside the zone with re-anchoring and undo, delete, speed of A (removed) and of B (rejected / allowed), re-grid
+    keeps, an unrelated edit not rejected by a dissolve that lost its handles); `Core.Tests/TransitionRulesTests`
+    (`MaxFrames`, 5 cases incl. maximality); `UI.Tests/InspectorFadeTests` (the speed change's note in the status bar).
+    `TimelineFixture.Snapshot` includes the transitions, so every existing undo / redo exactness test covers them.
+  - Mutations (each caught): reconciliation keeping a broken dissolve → 4; no re-anchoring on split → 1; no far-edge
+    clamp → 1; no handle check → 1; handles checked for untouched dissolves → 1; split inside a zone allowed → 1.
+  - Verification: `dotnet build` 0 errors / 0 warnings; `dotnet test` 1912 passed, 2 skipped (4K heavy) — Core 439,
+    Timeline 295, Project 319, UI 343, Export 89, Rendering 58, Video 291, ExportEndToEnd 78 (+2).
+  - The interim limitation of 10.3 (edits not knowing transitions) is resolved. Still open by plan: dissolves are not
+    rendered (10.7) and have no UI (10.8).
+- Step 10.6 accepted by the product owner (2026-09-29) on the automated checks; its real-app scenarios (14, 16, 17)
+  follow 10.8.
+- Step 10.7 done (2026-09-29) — dissolve composition in the Preview and the export. Awaiting acceptance (automated; the
+  real-app dissolve scenarios after 10.8).
+  - Core: `DissolveZone` (start, cut, end, F) on `VideoLayer.Dissolves`; `PictureSpan.ExtendedStart` / `ExtendedEnd` /
+    `ShownStart` / `ShownEnd` (timing anchor unchanged); the builder derives both from the track's transitions (hidden
+    tracks none; a transition not on a cut skipped). `LayersAt`: in a zone A (at the tick before the cut) below B (at
+    the cut), B × `Ramp(j, F)` × its own fade, A with its own fade (PO-8 already off at the cut); A may occlude the
+    tracks below, B never. `NextPictureChange` adds the zone edges; `DiffersOnlyInPresentation` compares the zones.
+  - Export: `ExportPictureReader` serves the shown range. The Preview's `SpanReader` needed nothing (it never limited
+    frames to the clip); readers are keyed by clip, so A and B of one track decode at once.
+  - Sound: unchanged (PO-5) — a dissolve changes no audio span.
+  - Tests: `Core.Tests/DissolveCompositionTests` (9: zone on the grid with odd F and the shown ranges, A below B with
+    B's ramp per frame and B's opacity, occlusion by an opaque / transparent A, a zone under a partly covering upper
+    clip, text as B, PO-8 with free-edge fades, zone edges as picture changes and a dissolve change not presentation-only,
+    the audio spans unchanged, hidden tracks); `Export.Tests` — frame contract (23.976 / 29.97 × 0.25× / 1× / 4×: every
+    output frame = the Preview playing and seeking, opacities included, and in the zone A and B of one split source
+    show the same source frame — the handles; dissolves on both edges of a clip and on two tracks at once: 4 layers),
+    audio contract (the export's samples with a dissolve = without, = the Preview's); `Timeline.Tests/Playback/
+    DissolvePlaybackTests` (B's reader opened ahead of a zone longer than the prefetch window; in the zone A past its
+    end and B before its start show the same source frame, B at its ramp); `ExportEndToEnd.Tests/
+    ExportDissolveEndToEndTests` (8, real ffmpeg: byte-equal Preview = export canvas in every zone for video → video,
+    2×, image and text neighbours, odd F at 29.97 with both edges, two tracks with a partly covering upper clip and an
+    alpha image; independently a zone frame = ffmpeg's A frame (from the handle, 2n at 2×) and B frame blended B over A
+    at p — max |Δ| 2; handles missing at render: the first frame held in both, the blend confirmed; PCM identical with
+    and without the dissolve; cancel inside a zone).
+  - Mutations (caught): the export reader not extended → 7 contract + 8 E2E failures; B without its ramp → 3 Core + 3
+    E2E; the zone start not a picture change → the prefetch test (after the zone was made longer than the prefetch
+    window — with a short zone the cut itself triggered the prefetch, so the first version didn't see it).
+  - Verification: `dotnet build --no-incremental` 0 errors / 0 warnings; `dotnet test` 1939 passed, 2 skipped (4K
+    heavy) — Core 448, Timeline 297, Project 319, UI 343, Export 97, Rendering 58, Video 291, ExportEndToEnd 86 (+2).
+    The existing parity suite unchanged and green.
+  - Limitations: no UI to create or edit dissolves yet (10.8) — until then they come only from a project file; the
+    real-app dissolve scenarios 13–20 wait for 10.8.
+- Step 10.7 accepted by the product owner (2026-09-29) on the automated checks.
+- Step 10.8 done (2026-09-29) — dissolve UI. Awaiting the product owner's acceptance with the real-app scenarios
+  13–20 (fixture `tools/manual/New-Phase10DissolveFixture.ps1`).
+  - Timeline: `AddDissolveCommand` ("Dissolve" in the header; enabled for exactly two selected clips and no export;
+    orders them by start, asks `MaxTransitionFrames` — null: "Select two clips that meet on a video track …" —, adds
+    1 s or the longest that fits when shorter, selects the new dissolve, reports "Dissolve added: N frames[, the
+    longest that fits here]." or the service's refusal); `TimelineTrackViewModel.Transitions` of
+    `TimelineTransitionViewModel` (zone `[c − ⌊F/2⌋, c + ⌈F/2⌉)` in pixels, relaid out on every zoom / edit / undo);
+    a dissolve selection exclusive with the clip selection (`OnTransitionPressed`, `HasTransitionSelection`,
+    `TransitionSelectionChanged` with the longest that fits from the service); a selection whose dissolve is gone
+    (undo, an edit that removed it) is dropped; `DeleteSelected` removes a selected dissolve ("Dissolve removed").
+    View: the zones as an overlay of the track row (class `dissolve`, gold when selected), hit-tested before the clips.
+  - Inspector: selection kind `Transition`; DISSOLVE section (the clips "A → B (V1)", Duration in whole frames with
+    the timecode, range 2 … the longest that fits — never below the current length —, "Longest that fits here: N
+    frames", Remove Dissolve); fractions reported, the service's refusals (locked track, too long) reported and the
+    field shows the length again; disabled by the `EditingLock`. Shell: `TransitionSelectionChanged` → Inspector.
+  - Tests: `UI.Tests/TimelineDissolveUiTests` (11: the command's availability with 0 / 1 / 2 / 3 clips and during an
+    export; add selects and shows it, undo / redo without a stale selection; the longest that fits; no handles, no cut,
+    locked track messages; the zone follows the cut, the zoom and the length; zone vs clip selection; Delete in one
+    undo step; the Inspector's length merged, fractions, undo, Remove; its range and a locked refusal; the export lock;
+    an edit removing the selected dissolve drops the selection); `UI.Tests/FadeViewBindingTests` (the real
+    `InspectorView` XAML binds the DISSOLVE section). Mutations (caught): no re-raise of the dissolve selection on
+    refresh → 4; Delete ignoring a selected dissolve → 1; no clamp to the longest → 1.
+  - Checked: the dissolve fixture opens with `--open-project` ("Opened project 'Phase 10 dissolves' … (4 media, 0
+    missing, 7 clips)"), closes clean. The timeline overlay itself is not checked headlessly (a `TimelineView` needs
+    Avalonia's platform); it is part of the manual scenarios.
+  - Verification: `dotnet build --no-incremental` 0 errors / 0 warnings; `dotnet test` 1951 passed, 2 skipped (4K
+    heavy) — Core 448, Timeline 297, Project 319, UI 355, Export 97, Rendering 58, Video 291, ExportEndToEnd 86 (+2).
+  - For the product owner: the Dissolve command's length when 1 s doesn't fit (the longest that fits is added and said)
+    — confirm or choose "refuse" at the acceptance.
+  - Fix after the product owner's manual run (scenario 13 stopped): with two clips selected the Dissolve button stayed
+    disabled. Cause: the command's availability was announced only when `HasSelection` changed, and 1 → 2 selected clips
+    keeps it true, so the button never re-queried `CanExecute`; the tests queried `CanExecute` directly and missed it.
+    Fix: `UpdateSelectionVisuals` announces `AddDissolveCommand.NotifyCanExecuteChanged()` on every selection change.
+    New test `The_button_is_told_whenever_the_command_becomes_available_or_not` follows `CanExecuteChanged` like a
+    button (0 → 1 → 2 → 1 clips, export lock, clear); it fails on the old code. UI tests 356 passed.
+  - Second manual round (product owner, 2026-09-29): 13 (A–F), 14 (A1–A3), 15, 16.1, 16.5–16.7, 17a, 18, 19, 20 passed.
+    Five defects found and fixed (Core rules of 10.6 and the rendering of 10.7 unchanged):
+    1. 16.2 — dragging both clips: the zone stayed at its place until the release. Cause: the move preview laid out
+       only the clips. Fix: `UpdateMove` lays out every zone whose two clips are dragged with the drag's frame delta, and
+       hides one whose cut the drag would open (`TimelineTransitionViewModel.IsVisible`, `Layout(…, frameDelta)`); a
+       trim preview of a cut edge hides the zone (a far edge keeps it); the gesture's end or cancel shows them again.
+    2. 16.3 / 16.4 — the clip's handle under a zone (A's end at the cut; A's start after it was trimmed to the zone's
+       start) could not be dragged: the zones were an overlay that took the press. Fix: the zone overlay is not
+       hit-testable; the view first hit-tests the clip and its trim handles, and only a press on a clip body (no handle,
+       no Ctrl) inside a zone selects the dissolve (`TimelineViewModel.TransitionAt`).
+    3. 17 — 4× on "bars" looked applied. The edit service refused it (checked on the saved fixture: "Can't change the
+       speed: There is not enough media beyond the clips for the dissolve.", the clip unchanged), but the field kept
+       showing 4: the Inspector reset the value while the control was still sending it, so the control ignored it, and
+       losing the focus didn't help either — a binding doesn't pass on a value equal to the one it last sent. Fix: after a
+       rejection the Inspector makes the fields show the model again right after the control's update
+       (`Dispatcher.UIThread.Post`) and on every focus loss, by taking each numeric field through "no value" and back
+       (`AnnounceFields`, under the sync guard). This applies to every numeric field of the Inspector.
+    4. 17 — 2× on "pattern", then Undo: the dissolve didn't come back. Cause: the speed change that removed it was a
+       separate, non-merging composite step; the next speed changes of the clip (the arrows, or retyping) were new steps,
+       so one Undo went back only to the intermediate speed. Fix: `SetClipSpeedCommand` carries the removed dissolves
+       (executed after the clip changes, undone before it goes back) and still merges with the next speed changes of the
+       clip, keeping all of them; a chain that returns to the starting speed but removed a dissolve stays a step. (Ctrl+Z
+       pressed while the Speed field has the focus is the field's own text undo — the 9.6 rule that no shortcut fires
+       while typing —, not the app's Undo.)
+    Tests: `TimelineDissolveUiTests` (+5: the zone follows a drag of both clips and hides for one, a trim preview hides it
+    only when it opens the cut, the zone found by position, a refused speed reported with the field back at the clip's
+    speed, one Undo after three Inspector speed changes brings the dissolve back), `FadeViewBindingTests` (+1: the real
+    `InspectorView` Speed field — reproduced the stuck 4 before the fix — shows 1 again), `DissolveEditTests` (+2: a chain
+    of speed changes is one undo step; back to the first speed keeps the step). Mutations (caught): the merged step
+    dropped when back at 1× → 1; the removal not in the speed step → 3 + 2; the zone not moved in the drag preview → 1.
+    Not testable headlessly: the handle-before-zone order of the press (view code-behind) — manual 16.3 / 16.4.
+    Verification: `dotnet build --no-incremental` 0 / 0; `dotnet test` 1960 passed, 2 skipped (4K heavy) — Core 448,
+    Timeline 299, Project 319, UI 362, Export 97, Rendering 58, Video 291, ExportEndToEnd 86 (+2).
+  - Third round (product owner): fixes 1–4 confirmed. 5 worked with the app's Undo (after leaving the Speed field), but
+    Ctrl+Z right after the speed change, with the focus still in the field, restored the speed without the dissolve.
+    Cause: inside a text field Ctrl+Z is the field's own text undo (the 9.6 rule: no app shortcut while typing); it
+    puts 1.00 back, i.e. a new speed change, and the step that removed the dissolve was kept. Fix (the 9.6 rule
+    unchanged): a speed change that returns the clip to the speed its current speed step started from, when that step
+    removed dissolves, undoes the step (`IUndoRedoService.NextUndo`, new, names the step the next Undo would undo) — the
+    timing and the dissolves come back, status "The dissolve is back: its clips meet again."; any other speed keeps
+    the dissolve removed. Tests: `DissolveEditTests` (the previous "back to the first speed keeps the step" became
+    "… undoes the step and brings the dissolve back"; + another speed keeps it removed), `TimelineDissolveUiTests`
+    (+1: 2× then 1.00 put back in the field). Mutation (the path off) → 1 + 1 failures. `dotnet test` 1962 passed,
+    2 skipped (UI 363, Timeline 300).
+- Step 10.8 accepted by the product owner (2026-09-29): the real-app dissolve scenarios 13–20 all passed, the fixes of
+  16.2–16.4 and 17 re-checked. The Dissolve command's length confirmed: 1 s, or the longest that fits when 1 s doesn't
+  (at least 2 frames; below that nothing is created). With it Steps 10.6 and 10.7 (their real-app scenarios are part
+  of 13–20) are accepted too. Last 10.8 commit `f27c5c4`.
+- Step 10.9 — final verification & closeout (2026-09-29), in progress.
+  - Quality gates (local, at `10ba46b` + the 10.9 documentation): `dotnet build --no-incremental` (also with
+    `-warnaserror`, as CI) 0 errors / 0 warnings; the full suite once and three times with `--blame-hang`: 1962 passed,
+    2 skipped (4K), 0 failed every time (Core 448, Timeline 300, Project 319, UI 363, Export 97, Rendering 58, Video 291,
+    ExportEndToEnd 86 + 2); the 4K scenes with `AIVE_HEAVY_TESTS=1`: ExportEndToEnd 88 / 88. No hang.
+  - CI: not run — the branch is local (pushing waits for the product owner's command; PR #9 untouched).
+  - Manual: the reduced formal run R1–R7 in `docs/PHASE10_MANUAL_TEST_PLAN.md` "Formal run (Step 10.9)" (the format
+    scenarios 1 and 3, a fade re-check where 10.6–10.8 changed code — 4, 5, 9, 10, 11, 12a, 12c —, the export
+    regression 1–8, 10–14); 13–20 not repeated (run by the product owner on the final code at 10.8). Pending.
+  - Documentation: ARCHITECTURE (Phase 10 no longer "in progress"; the Effects project stays empty — fades and the
+    dissolve live in Core / Timeline / UI; the zone hit-testing and the speed step of 10.8), D025 (the 10.6 speed-step
+    bullet marked superseded by 10.8; the 10.8 acceptance), ROADMAP, this file. The Phase 10 checkbox of
+    `docs/DEVELOPMENT_PLAN.md` waits for the product owner's acceptance.
+  - Product owner's manual run (2026-09-30), a project made with the Phase 9 build and saved again in this build: R1,
+    R2 passed; speed, split, fades (a typed value jumped back to 0) and the dissolve looked broken. Cause: the project
+    had been opened a second time in the session (the log: opened 10:27:56 and again 10:28:42); `TimelineViewModel`
+    kept its clip view models by clip id (since Phase 4) and reused those of the first load for the new clip objects
+    with the same ids, so the timeline drew and handed the Inspector the old clips while the edits changed the new ones.
+    Not the migration or format v3, not Phase 10 code: any project opened twice (or Save As → Open) had it. Fix:
+    `GetClipViewModel` reuses a view model only for the same clip object; `OnProjectReplaced` drops the clip and dissolve
+    view models and the dissolve selection. Test `UI.Tests/ReopenedProjectTimelineTests` (5: the timeline's clips are the
+    open project's; speed resizes with undo / redo; split side by side with undo; a typed fade stays and is drawn; a
+    dissolve added on the cut) — 4 fail without the fix (the dissolve one passes either way: the service works by id).
+    Checked alongside: the fades that reached the model are in the product owner's MP4 (brightness follows both ramps);
+    the project's only meeting clips use their whole media, so its dissolve refusal is the intended "not enough media".
+    Verification: `dotnet build --no-incremental -warnaserror` 0 / 0; `dotnet test` 1967 passed, 2 skipped (UI 368);
+    4K with `AIVE_HEAVY_TESTS=1` 88 / 88. The second manual run (S1–S6 in the manual plan) is pending.
+  - Second manual run (product owner, 2026-09-30): S1 passed; S2 / S3 — after a split or a faster speed a fade longer
+    than the clip stayed stored (500 frames on a shorter part) and the arrows could not lower it (one frame less was
+    still longer than the clip, so the edit was refused). That was the accepted D025 §2 rule (scenario 8); the product
+    owner changed it: an edit that leaves a clip shorter than a fade cuts the fade to the clip in the same step
+    (`EditPlan.ClampFades` from `Validate` — trim, split, re-grid through `BuildCommand`; `SetClipSpeedCommand` carries
+    the cuts with its dissolve removals as `Changes`, merged with the next speed changes; typing the first speed back
+    restores them, "The dissolve is back" only when a dissolve came back). Files keep loading tick for tick (the
+    round-trip gate): a longer fade saved before renders clamped and is cut by the clip's next length edit. Tests:
+    `FadeEditTests` (split parts cut, trim cut + undo, move / slower speed unchanged, faster speed cut in one merged step
+    with undo / redo, back to the first speed, lowering a cut fade by one frame), `InspectorFadeTests` (the trimmed clip
+    shows the cut fade and the arrow lowers it; a longer fade from a file shown without an edit). Mutation: no
+    `ClampFades` → 5 failures. The product owner stopped the manual run and asked for the testing to be done by Claude.
+  - Real-app run by Claude (2026-10-01, Debug build, both fixtures; driven with UI Automation, real mouse / keys, the
+    Windows file dialogs, screenshots, the app log; every input guarded to go only to the editor's window — a first
+    attempt sent a few clicks and keys to the browser in front before the guard existed, reported to the product owner).
+    Each fixture opened twice through Open (the product owner's situation). Passed: speed 2× / back / Undo / Redo
+    (length on the timeline); Fade In typed and kept after reselecting, the band drawn; split inside a ramp (scenario 9:
+    left 10 / 0, right 0 / 40, parts side by side, Undo → 40 / 40); speed 4× cuts 40 / 40 to 25 / 25, the down arrow
+    24, 23, Undo steps back; 13 (25 frames, zone 3.52–4.52, "Longest that fits here: 51 frames"); 14; 14a; 15; 16 (bars
+    moved alone removes, Undo; both moved together carry the zone; far-edge trim stops at 3.52; split inside rejected,
+    outside kept; Delete of a clip and of the selected dissolve, Undo); 17 (4× refused with the field back at 1, 2×
+    kept; 2× on A removes, Undo brings it back); 20 (Save, reopen: three dissolves of 25, Fade In 12, speed 2×, v3);
+    18 export checked independently with ffmpeg — the fade in follows `(k+1)/(F+1)` (luma 24.2 / 66.2 / 117.0 / 125.4
+    for frames 0 / 5 / 11 / 12, expected 24.4 / 66.3 / 116.6 / full), the zone blends bars over pattern with pattern
+    continuing from its handle, the sound cuts 440 → 880 Hz exactly at 4 s; the Preview's frame at 4.0 s matches the
+    MP4's frame 100; playback through the zones without warnings.
+    Found and fixed: 13a — typing "99" in Duration (longest 51) left the dissolve at 9 frames, "2,5" at 2: Avalonia's
+    NumericUpDown parses the text after every key, so the first digit was already an edit. `Controls/
+    CommitNumericUpDown` (every Inspector field) parses only when the input is committed (Enter, leaving the field);
+    the arrows still apply at once. Test `FadeViewBindingTests.Text_typed_in_a_field_is_applied_only_when_committed`
+    (the real XAML; fails with the old control: 9 frames). In the app afterwards: 99, 2,5 and "ab" leave 30, the
+    arrows give 32, Undo 25. Not defects: a click 5 px from a clip's end inside a zone takes the clip's trim handle
+    (6 px, by the 10.8 rule); Ctrl+S right after typing in a field is the field's (9.6 rule) — Save works.
+    Verification after all fixes: `dotnet build --no-incremental -warnaserror` 0 / 0; `dotnet test --blame-hang` 1973
+    passed, 2 skipped (UI 370, Timeline 304); 4K 88 / 88.
+  - Product owner (2026-10-01): scenario 8 (changed rule) and the Preview's sound by ear passed.
+  - R7 — `docs/EXPORT_MANUAL_TEST_PLAN.md` 1–8, 10–14 run by Claude in the real app (2026-10-01): 13 pass, 0 fail, 9
+    not run (optional); results per scenario in that plan's log. Scenario projects written as files (scratch script;
+    the hidden track of 4 and the muted track of 5 are model-only, no UI control), everything else through the UI. The
+    product owner's own app instance was open meanwhile; the automation was pinned to its own process id. No defect.
+    Observed, as before: Cancel in "Replace file?" sets the status "Export cancelled."; "+ Text" on a project whose only
+    video track is occupied at the playhead is refused (it needs a free spot on the top track).
+  - Minimum clip length (product owner's question: an edge dragged down to "about one pixel"). Defined since Phase 4
+    (D008: trims clamp to neighbours, the source and a one-frame minimum): `PlanTrim` clamps to `max(1, the dissolve
+    zone part on the other edge)` frames, the target rounded to the nearest frame; `TimelineValidator` rejects a clip
+    under one frame or off the grid; the view draws a clip at least `MinWidthPixels` = 2 px wide (one frame at 25 fps and
+    50 px/s is 2 px, hence "about a pixel"). Not zoom dependent (the trim works in frames). Checked, no change needed:
+    `Timeline.Tests/OneFrameClipTests` (10: both edges at 25 / 23.976 / 29.97 and 2× / 0.25× → exactly one frame on the
+    grid, exact undo / redo; fades cut to 1 / 1 — factor 0.25 on that frame; a far-edge trim stops at the dissolve's zone
+    part, the cut edge removes it; split refused; save / read back identical; the snapshot shows it on exactly its
+    frame), `Export.Tests` (one-frame video at 1× and 2× and a one-frame text with cut fades: every export frame = the
+    Preview's), `UI.Tests/TimelineTrimLayoutTests` (dragging past the other edge at 2, 50 and the maximum px/s → one
+    frame, width max(2 px, one frame), undo). In the real app: Inspector Duration 00:00:00:01, undo / redo, the MP4 shows
+    the clip on frame 0 only.
+  - Verification at `ddf45df` (a clean worktree): `dotnet build --no-incremental -warnaserror` 0 / 0; `dotnet test
+    --blame-hang` 1988 passed, 2 skipped (Core 448, Timeline 314, Project 319, UI 373, Export 99, Rendering 58, Video 291,
+    ExportEndToEnd 86 + 2); 4K with `AIVE_HEAVY_TESTS=1` 88 / 88.
+- Step 10.9 and Phase 10 accepted by the product owner (2026-10-01): R7 13 / 13, the one-frame minimum by D008, the
+  results above. The temporary Phase 9 build (a worktree of `main` used for R1 / scenario 2) removed. The branch is
+  pushed for CI; PR #9 is left as it is (not changed, not closed) and no new pull request is opened without the product
+  owner's permission.
 
 ## Phase 9 (complete)
 

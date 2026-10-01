@@ -16,6 +16,8 @@ public sealed class UndoRedoService : IUndoRedoService
     public bool CanUndo => _undoStack.Count > 0;
     public bool CanRedo => _redoStack.Count > 0;
 
+    public IUndoableCommand? NextUndo => _undoStack.TryPeek(out var top) ? top : null;
+
     public object CurrentPosition => _undoStack.TryPeek(out var top) ? top : EmptyHistory;
 
     public bool IsAtSavePoint => ReferenceEquals(CurrentPosition, _savePoint);

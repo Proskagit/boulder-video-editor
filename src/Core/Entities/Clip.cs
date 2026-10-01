@@ -21,6 +21,14 @@ public abstract class Clip
 
     public bool IsSelected { get; set; }
 
+    /// <summary>Fade in at the clip's start (D025): a duration (≥ 0) covering
+    /// <c>FadeIn.ToNearestFrame(rate)</c> timeline frames, clamped to the clip when rendered. Applies to the
+    /// clip's picture and to its own sound.</summary>
+    public MediaTime FadeIn { get; set; }
+
+    /// <summary>Fade out at the clip's end (D025), as <see cref="FadeIn"/>.</summary>
+    public MediaTime FadeOut { get; set; }
+
     public List<Effect> Effects { get; } = new();
 }
 
@@ -114,12 +122,23 @@ public sealed class Effect
     public Dictionary<string, object?> Parameters { get; set; } = new();
 }
 
-/// <summary>A transition between two adjacent clips on the same track.</summary>
+/// <summary>A transition on the cut between two adjacent clips of one video track (D025): A
+/// (<see cref="LeftClipId"/>) ends exactly where B (<see cref="RightClipId"/>) starts. The rules are
+/// <see cref="TransitionRules"/>.</summary>
 public sealed class Transition
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public required string TransitionTypeId { get; set; }
+
+    /// <summary>Length of the transition zone: <c>Duration.ToNearestFrame(rate)</c> timeline frames, centred on
+    /// the cut.</summary>
     public MediaTime Duration { get; set; }
+
+    /// <summary>The clip left of the cut (A).</summary>
+    public Guid LeftClipId { get; set; }
+
+    /// <summary>The clip right of the cut (B).</summary>
+    public Guid RightClipId { get; set; }
 }
 
 /// <summary>A named point of interest on the timeline (not tied to a specific track).</summary>

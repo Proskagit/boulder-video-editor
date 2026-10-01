@@ -73,7 +73,7 @@ public class SpeedPersistenceTests
         Assert.Equal((S(4), S(6), S(1), S(7)), (video.TimelineStart, video.Duration, video.SourceIn, video.SourceOut));
 
         var saved = JsonNode.Parse(ProjectSerializer.Serialize(loaded, Folder))!;
-        Assert.Equal(2, saved["formatVersion"]!.GetValue<int>());
+        Assert.Equal(3, saved["formatVersion"]!.GetValue<int>());
         var clip = Clip(saved);
         Assert.False(clip.ContainsKey("speed"));                           // the v1 number is not written
         Assert.Equal(1, clip["speedRatio"]!["numerator"]!.GetValue<long>());
@@ -145,7 +145,7 @@ public class SpeedPersistenceTests
         var project = SpeedProject();
         var json = ProjectSerializer.Serialize(project, Folder);
         var root = JsonNode.Parse(json)!;
-        Assert.Equal(2, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(3, root["formatVersion"]!.GetValue<int>());
         Assert.Equal(27, Clip(root)["speedRatio"]!["numerator"]!.GetValue<long>());
         Assert.Equal(20, Clip(root)["speedRatio"]!["denominator"]!.GetValue<long>());
 
@@ -169,7 +169,7 @@ public class SpeedPersistenceTests
 
         var json = ProjectSerializer.Serialize(project, Folder);
         var root = JsonNode.Parse(json)!;
-        Assert.Equal(2, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(3, root["formatVersion"]!.GetValue<int>());
         Assert.Equal(27, Clip(root)["speedRatio"]!["numerator"]!.GetValue<long>());
         Assert.Equal(20, Clip(root)["speedRatio"]!["denominator"]!.GetValue<long>());
 

@@ -2,12 +2,12 @@ using AiVideoEditor.Core.Playback;
 
 namespace AiVideoEditor.Timeline.Playback;
 
-/// <summary>A reader and the gain it is mixed with.</summary>
-internal readonly record struct MixEntry(AudioSpanReader Reader, float Gain);
+/// <summary>A reader, the gain it is mixed with and its clip's fade (D025).</summary>
+internal readonly record struct MixEntry(AudioSpanReader Reader, float Gain, AudioFadeEnvelope Fade = default);
 
 /// <summary>
 /// Sums the active <see cref="AudioSpanReader"/>s into the output (48 kHz stereo float) with the
-/// shared <see cref="AudioMix"/> rule (the export mixes the same way, D023): samples × gain, summed,
+/// shared <see cref="AudioMix"/> rule (the export mixes the same way, D023): samples × gain × the clip's fade (D025), summed,
 /// clamped to [-1, 1]. <see cref="Read"/> runs on the device thread: it only reads the currently
 /// published entry array (replaced atomically by the UI thread), never waits and never allocates.
 /// Samples nobody covers are silence.
@@ -36,7 +36,7 @@ internal sealed class AudioMixer : IAudioSampleSource
         foreach (var entry in Volatile.Read(ref _entries))
         {
             if (entry.Reader.EndSample > from && entry.Reader.FirstSample < until)
-                entry.Reader.MixInto(from, interleaved, entry.Gain);
+                entry.Reader.MixInto(from, interleaved, entry.Gain, entry.Fade);
         }
 
         AudioMix.Clamp(interleaved);

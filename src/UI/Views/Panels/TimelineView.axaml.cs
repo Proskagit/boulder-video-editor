@@ -106,6 +106,17 @@ public partial class TimelineView : UserControl
         Focus();
 
         var (clip, edge) = HitTestClip(e.Source);
+
+        // A dissolve zone is drawn over the clips but never hides their trim handles: only a press on a clip body (no
+        // handle, no Ctrl) inside a zone selects the dissolve.
+        if (edge is null && !e.KeyModifiers.HasFlag(KeyModifiers.Control) &&
+            _viewModel.TransitionAt(TrackAt(e.GetPosition(TrackRows).Y), e.GetPosition(ContentRoot).X) is { } transition)
+        {
+            _viewModel.OnTransitionPressed(transition);
+            e.Handled = true;
+            return;
+        }
+
         if (clip is null)
         {
             _viewModel.ClearSelection();

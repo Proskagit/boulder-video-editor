@@ -31,16 +31,19 @@ public static class PlaybackSnapshotBuilder
             .OrderByDescending(t => t.track.Order).ThenByDescending(t => t.index)
             .Select(t => t.track);
 
+        var rate = project.Settings.FrameRate;
         foreach (var track in videoTracks)
         {
             var spans = ImmutableArray.CreateBuilder<PictureSpan>();
             var texts = ImmutableArray.CreateBuilder<TextSpan>();
+            var dissolves = track.IsHidden ? ImmutableArray<DissolveZone>.Empty : Dissolves(track, rate);
             foreach (var clip in track.Clips.OrderBy(c => c.TimelineStart))
             {
+                var (fadeIn, fadeOut) = Fades(clip, track, rate);
                 if (clip is TextClip text)
                 {
                     texts.Add(new TextSpan(text.Id, text.TimelineStart, text.TimelineEnd,
-                        VisualProperties.Of(text)!.Value, TextProperties.Of(text)!.Value));
+                        VisualProperties.Of(text)!.Value, TextProperties.Of(text)!.Value) { FadeInFrames = fadeIn, FadeOutFrames = fadeOut });
                     continue;
                 }
                 if (clip is not MediaBackedClip media)
@@ -56,18 +59,22 @@ public static class PlaybackSnapshotBuilder
                         Speed = media.Speed,
                         // The decoder delivers display-oriented frames (automatic rotation), so the
                         // composition works with the display size, never the coded one.
-                        SourceSize = DisplaySize(asset?.Metadata)
+                        SourceSize = DisplaySize(asset?.Metadata),
+                        FadeInFrames = fadeIn,
+                        FadeOutFrames = fadeOut,
+                        ExtendedStart = dissolves.FirstOrDefault(z => z.RightClipId == clip.Id)?.Start,
+                        ExtendedEnd = dissolves.FirstOrDefault(z => z.LeftClipId == clip.Id)?.End
                     });
 
                 if (media is VideoClip video && !track.IsMuted && asset?.Metadata?.AudioCodec is not null)
                 {
                     var (audioStatus, audioReason) = AudioStatus(media, asset);
                     audio.Add(new AudioSpan(clip.Id, media.MediaAssetId, audioStatus, clip.TimelineStart, clip.TimelineEnd,
-                        media.SourceIn, video.Volume, audioReason, video.IsMuted) { Speed = media.Speed });
+                        media.SourceIn, video.Volume, audioReason, video.IsMuted) { Speed = media.Speed, FadeInFrames = fadeIn, FadeOutFrames = fadeOut });
                 }
             }
             if (!track.IsHidden)
-                layers.Add(new VideoLayer(track.Id, spans.ToImmutable()) { Texts = texts.ToImmutable() });
+                layers.Add(new VideoLayer(track.Id, spans.ToImmutable()) { Texts = texts.ToImmutable(), Dissolves = dissolves });
         }
 
         foreach (var track in sequence.AudioTracks)
@@ -78,7 +85,9 @@ public static class PlaybackSnapshotBuilder
                 assets.TryGetValue(clip.MediaAssetId, out var asset);
                 Remember(asset, used);
                 var (status, reason) = AudioStatus(clip, asset);
-                audio.Add(new AudioSpan(clip.Id, clip.MediaAssetId, status, clip.TimelineStart, clip.TimelineEnd, clip.SourceIn, clip.Volume, reason, clip.IsMuted) { Speed = clip.Speed });
+                var (fadeIn, fadeOut) = Fades(clip, track, rate);
+                audio.Add(new AudioSpan(clip.Id, clip.MediaAssetId, status, clip.TimelineStart, clip.TimelineEnd, clip.SourceIn, clip.Volume, reason, clip.IsMuted)
+                    { Speed = clip.Speed, FadeInFrames = fadeIn, FadeOutFrames = fadeOut });
             }
         }
 
@@ -122,6 +131,38 @@ public static class PlaybackSnapshotBuilder
     /// <summary>True when the two captures differ for any asset.</summary>
     public static bool AssetStatesDiffer(ImmutableDictionary<Guid, AssetState> a, ImmutableDictionary<Guid, AssetState> b) =>
         a.Count != b.Count || a.Any(pair => !b.TryGetValue(pair.Key, out var other) || other != pair.Value);
+
+    /// <summary>The track's dissolve zones (D025 §3) in timeline order: <c>[c − ⌊F/2⌋, c + ⌈F/2⌉)</c> frames around each
+    /// cut <c>c</c>. A transition that doesn't sit on a cut of two clips of the track (never so after validation) is
+    /// left out rather than drawn wrongly.</summary>
+    private static ImmutableArray<DissolveZone> Dissolves(Track track, FrameRate rate)
+    {
+        if (track.Transitions.Count == 0) return ImmutableArray<DissolveZone>.Empty;
+        var zones = new List<DissolveZone>();
+        foreach (var transition in track.Transitions)
+        {
+            var left = track.Clips.FirstOrDefault(c => c.Id == transition.LeftClipId);
+            var right = track.Clips.FirstOrDefault(c => c.Id == transition.RightClipId);
+            var frames = TransitionRules.Frames(transition.Duration, rate);
+            if (left is null || right is null || left.TimelineEnd != right.TimelineStart || frames < TransitionRules.MinFrames)
+                continue;
+            var (beforeCut, afterCut) = TransitionRules.Zone(frames);
+            var cut = right.TimelineStart.ToFrameFloor(rate);
+            zones.Add(new DissolveZone(left.Id, right.Id, MediaTime.FromFrame(cut - beforeCut, rate), right.TimelineStart,
+                MediaTime.FromFrame(cut + afterCut, rate), frames));
+        }
+        return zones.OrderBy(z => z.Start).ToImmutableArray();
+    }
+
+    /// <summary>The clip's effective fades in frames (D025 §2): clamped to the clip; none on an edge that has a
+    /// dissolve (PO-8) — the same for its picture and its sound.</summary>
+    private static (long In, long Out) Fades(Clip clip, Track track, FrameRate rate)
+    {
+        if (clip.FadeIn == MediaTime.Zero && clip.FadeOut == MediaTime.Zero) return (0, 0);
+        var dissolveIn = track.Transitions.Any(t => t.RightClipId == clip.Id);
+        var dissolveOut = track.Transitions.Any(t => t.LeftClipId == clip.Id);
+        return FadeRule.EffectiveFrames(clip, rate, dissolveIn, dissolveOut);
+    }
 
     private static (SpanStatus, string?) PictureStatus(MediaBackedClip clip, MediaAsset? asset)
     {

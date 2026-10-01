@@ -59,10 +59,29 @@ session state (D015).
 
 ## Current
 
-Phase 10 — Transitions & basic effects (chosen by the product owner on 2026-09-29). Step 10.1 (audit) in
-progress; scope and steps are agreed after the audit.
+None in progress. Phase 10 is complete (below); no further phase is planned yet — see `docs/DEVELOPMENT_PLAN.md`.
 
 ## Previous
+
+Phase 10 — Transitions & basic effects, branch `feat/phase-10-transitions-effects` (from `409240b`). **Complete**:
+accepted by the product owner on 2026-10-01 (last verified commit `ddf45df`; R7 export regression 13 / 13; build
+`-warnaserror` 0 / 0; 1988 passed, 2 skipped; 4K 88 / 88).
+
+Step 10.1 (audit) accepted; Step 10.2 (scope formalization: D025, the Phase 10 steps, the manual plan skeleton) done;
+Step 10.3 (model, `project.json` v3) done; Step 10.4 (fades: Core rule, edits, Preview / export composition and mix) done; Step 10.5 (fades: Inspector and
+timeline UI, end-to-end parity) done; Steps 10.4–10.5 accepted by the product owner on 2026-09-29 (real-app fade
+scenarios passed). Step 10.6 (dissolve: edits and validation, the coupling with every timeline edit) accepted on
+2026-09-29 (automated). Step 10.7 (dissolve: composition in the Preview and the export) done — awaiting acceptance;
+the real-app dissolve scenarios follow 10.8. Step 10.7 accepted (automated). Step 10.8 (dissolve UI) accepted by the
+product owner on 2026-09-29 (real-app dissolve scenarios 13–20 passed). Step 10.9 (final verification & closeout)
+accepted on 2026-10-01: its manual run found and fixed the timeline's reuse of clip views after the same project was
+opened again, fades longer than a shortened clip (now cut, D025 §2 changed by the product owner) and numeric fields
+applying each typed digit; the one-frame clip minimum (D008) confirmed.
+MVP (PO-1…PO-7): fade in / fade out of a clip (picture and its own sound, linear ramp `(i+1)/(F+1)`) in 10.3–10.5,
+then a cross dissolve centred on a cut of one video track with source handles (B over A, the sound a hard cut) in
+10.6–10.8; `project.json` v3 (v1 / v2 read without fades and dissolves). Steps 10.3 model & format v3 · 10.4 fades core ·
+10.5 fades UI & parity · 10.6 dissolve edits · 10.7 dissolve composition · 10.8 dissolve UI · 10.9 closeout — scope and
+acceptance criteria in `docs/DEVELOPMENT_PLAN.md`, decision DECISIONS.md D025. Details: `progress.md`.
 
 Phase 9 — Quality, branch `feat/phase-9-quality` (from `ab248e5`, `main` after PR #6). **Complete**: accepted by the
 product owner on 2026-09-29 (closeout `dcb86cb`, last Step 9.10 commit `f27a4ab`; PRs #7 and #8, merged as `409240b`). Step 9.1

@@ -169,6 +169,10 @@ public partial class MainWindow : Window
         public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null) => Nothing;
         public TimelineEditResult AddTextClip(MediaTime start) => Nothing;
         public TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed) => Nothing;
+        public TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, MediaTime duration) => Nothing;
+        public TimelineEditResult RemoveTransition(Guid transitionId) => Nothing;
+        public TimelineEditResult SetTransitionDuration(Guid transitionId, MediaTime duration) => Nothing;
+        public long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId) => null;
         public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => Nothing;
         public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => "Design time.";
         public TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime) => Nothing;

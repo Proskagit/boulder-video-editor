@@ -55,8 +55,9 @@ internal sealed class ExportPictureReader : IAsyncDisposable
         _rate = rate;
         _decoder = decoder;
         _settings = settings;
-        _firstFrame = span.TimelineStart.ToFrameCeiling(rate);
-        _endFrame = span.TimelineEnd.ToFrameCeiling(rate);
+        // Shown range: the clip, extended into its dissolve zones (D025 §3) — the frames there come from its handles.
+        _firstFrame = span.ShownStart.ToFrameCeiling(rate);
+        _endFrame = span.ShownEnd.ToFrameCeiling(rate);
     }
 
     public PictureSpan Span { get; }
@@ -67,7 +68,7 @@ internal sealed class ExportPictureReader : IAsyncDisposable
     public SourceSamplePoint SamplePoint(long timelineFrame) =>
         SourceFrameSelector.SamplePoint(Span.TimelineStart, Span.SourceIn, Span.Speed, timelineFrame, _rate, _asset.NominalFrameRate);
 
-    /// <summary>The frame for <paramref name="timelineFrame"/>, which must lie inside the span and after
+    /// <summary>The frame for <paramref name="timelineFrame"/>, which must lie inside the span's shown range and after
     /// every frame requested before.</summary>
     public async ValueTask<DecodedFrame> GetAsync(long timelineFrame, CancellationToken ct)
     {
