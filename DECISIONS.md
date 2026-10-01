@@ -1703,6 +1703,28 @@ start of 11.4, and the implementation:
   sound loses its waveform); the Preview rebuilds through `AssetState.FilePath`; analyses for a path the asset no longer
   has are dropped (Step 11.3). The project frame rate is never touched (D007).
 
+Refined in Step 11.5 (2026-10-01), batch relink search (PO-4 as restated by the product owner at the start of 11.5; the
+§4 items left to this step):
+- Scope: one folder the user gives (the relink UI of 11.6 decides how it is chosen — e.g. the folder of the file just
+  relinked); only the files directly in it; every offline item's file name looked for exactly, compared
+  case-insensitively as the Windows file system does; no fuzzy or similar-name matching, no recursion. Items without a
+  match stay offline.
+- Two or more offline items with the same file name: the file is given to **none** of them (no automatic choice); they
+  are listed as ambiguous ("relink them one by one"). Online items don't count — a file that belongs to another item is
+  a `PathInUse` reject of the relink check.
+- No second set of rules: every match goes through the relink check of 11.4 (`CheckCoreAsync`, the same code
+  `CheckAsync` runs after its re-check), so type, length, path in use, probe and warnings are exactly a single relink's.
+  The media are re-checked once per search (PO-5); the folder is listed off the UI thread.
+- Nothing is applied by the search. Its result (`RelinkSearch`: an entry per offline item — found, rejected with the
+  check's reason, not found, ambiguous — and `Summary()`: found items with their warnings, the unusable ones with why,
+  those not in the folder) is shown for confirmation; `ApplyAllAsync(search.Applicable)` applies the confirmed items as
+  **one** undoable step (one `RelinkMediaCommand`; a single relink is the same path with one item). Declining the summary
+  or cancelling the search changes nothing.
+- Apply validates every item again, as a single relink, and also within the batch (a file for one item only, an item
+  once). Items that fail now (file gone or changed, path taken, the old file back, a clip lengthened, another project)
+  are returned with their reason and stay offline; the others are still applied as one step — nothing is applied that
+  the user didn't confirm, nothing invalid is applied, and every refusal is reported.
+
 Status: Accepted (2026-10-01, PO-1…PO-9). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 11 — Media
 relink & recent projects: steps"; the implementation must follow PO-1…PO-9 as recorded here.
 

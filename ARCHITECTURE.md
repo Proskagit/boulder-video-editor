@@ -329,8 +329,14 @@ recovery, unsaved changes).
   waveforms refreshed, the Preview's snapshot rebuilt by the path. A later analysis whose metadata doesn't fit the clips
   raises `RelinkedMediaFoundIncompatible` (status bar through `MainWindowViewModel`). The asset id, clips and project frame
   rate never change.
-- Planned in Phase 11 (D026, not implemented yet): the relink UI; a batch relink by exact file name in the chosen folder;
-  recent projects (10, outside every project, `Recent ▾` next to Open). No per-user settings are stored yet
+- Batch relink (Step 11.5, D026 §4): `IMediaRelinkService.SearchFolderAsync(folder)` — one re-check, the folder's own
+  files listed off the UI thread, exact names ignoring case, a name of several offline items given to none
+  (`Ambiguous`), each match checked by the same `CheckCoreAsync` as `CheckAsync` → `RelinkSearch` (entries Found /
+  Rejected / NotFound / Ambiguous, `Applicable`, `Summary()`); nothing changes until `ApplyAllAsync(checks)`, which
+  re-checks once, validates every item again and within the batch (one file per item, one item once) and executes one
+  `RelinkMediaCommand` for the items still valid (the others returned with their reason). `ApplyAsync(check)` is
+  `ApplyAllAsync` with one item.
+- Planned in Phase 11 (D026, not implemented yet): the relink UI (single and batch); recent projects (10, outside every project, `Recent ▾` next to Open). No per-user settings are stored yet
   (`AppPaths.ConfigFolder` is unused). `project.json` stays v3.
 
 ## MVVM
@@ -434,5 +440,6 @@ closeout (9.5e); the Export section's source frames and orchestration at the Ste
 and media sections at the Step 9.8 closeout; the CI section at the Step 9.10 closeout; the Phase 10 parts of the Core
 domain section step by step in Steps 10.3–10.8 and with the module table at the Step 10.9 closeout; the media paths and
 missing media paragraph of the Project persistence section at the Step 11.1 audit (`2e758f1`), the media availability
-paragraph at the Step 11.3 closeout, the relink paragraph at the Step 11.4 closeout.
+paragraph at the Step 11.3 closeout, the relink paragraph at the Step 11.4 closeout, the batch relink paragraph at the
+Step 11.5 closeout.
 Re-check the code before relying on details that later phases may have changed.

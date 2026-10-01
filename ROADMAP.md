@@ -72,7 +72,10 @@ Step 11.1 (audit) and Step 11.2 (scope formalization, documentation only, `ba676
 gone or back during the session become offline / online with their analysis, thumbnail and waveform restarted, `db0feba`)
 accepted (2026-10-01; automated, and the manual scenarios 1–6 passed in the real app). Step 11.4 (relink core: check →
 confirmation → apply as one undoable step, hard rejects and warnings, ffprobe unavailable allowed / probe failure
-rejected, the old file's thumbnail and waveform dropped) done — awaiting acceptance; its UI follows in 11.6.
+rejected, the old file's thumbnail and waveform dropped) accepted (2026-10-01, `0e002dc`); its UI follows in 11.6.
+Step 11.5 (batch search: one folder, its own files, exact names ignoring case, a shared name given to none, every match
+through the 11.4 check, a summary, the confirmed items applied as one undoable step, re-validated) done — awaiting
+acceptance.
 Details: `progress.md`.
 
 ## Previous

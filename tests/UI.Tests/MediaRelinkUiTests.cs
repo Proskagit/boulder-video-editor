@@ -80,7 +80,7 @@ public sealed class MediaRelinkUiTests : IAsyncLifetime
     };
 
     /// <summary>A video with a clip on V1 (0–4 s) whose file is gone now (offline after the re-check).</summary>
-    private async Task<(MediaAsset Asset, Clip Clip)> OfflineVideoOnTimeline(string name = "old.mp4")
+    private async Task<(MediaAsset Asset, Clip Clip)> OfflineVideoOnTimeline(string name = "old.mp4", double at = 0)
     {
         var asset = new MediaAsset
         {
@@ -88,10 +88,10 @@ public sealed class MediaRelinkUiTests : IAsyncLifetime
         };
         _files[asset.FilePath] = 100;
         _projects.AddMediaAssets(new[] { asset });
-        var add = _edit.AddClip(asset.Id, null, MediaTime.Zero);
+        var add = _edit.AddClip(asset.Id, null, MediaTime.FromSeconds(at));
         Assert.True(add.Success, add.Message);
         var clip = _projects.Current.Timeline.VideoTracks[0].Clips.Single(c => c.Id == add.ClipIds[0]);
-        Assert.True(_edit.TrimClip(clip.Id, ClipEdge.End, MediaTime.FromSeconds(4)).Success);
+        Assert.True(_edit.TrimClip(clip.Id, ClipEdge.End, MediaTime.FromSeconds(at + 4)).Success);
         _files.TryRemove(asset.FilePath, out _);
         await _projects.RecheckMediaAsync();
         Assert.True(asset.IsMissing);
@@ -190,6 +190,35 @@ public sealed class MediaRelinkUiTests : IAsyncLifetime
         await coordinator.IdleAsync();
         Assert.Null(coordinator.Get(asset.Id));
         Assert.Single(service.Makes);
+    }
+
+    [Fact]
+    public async Task A_batch_relink_refreshes_every_relinked_assets_thumbnail_and_one_undo_takes_them_all()
+    {
+        var service = new Thumbnails();
+        var (first, _) = await OfflineVideoOnTimeline("one.mp4");
+        var (second, _) = await OfflineVideoOnTimeline("two.mp4", at: 5);
+        var coordinator = new ThumbnailCoordinator(service, _projects, new Location(), NullLogger<ThumbnailCoordinator>.Instance);
+        await coordinator.IdleAsync();
+
+        var checks = new[]
+        {
+            await _relink.CheckAsync(first.Id, NewFile("one-new.mp4", Meta(10))),
+            await _relink.CheckAsync(second.Id, NewFile("two-new.mp4", Meta(10)))
+        };
+        var result = await _relink.ApplyAllAsync(checks);
+        await coordinator.IdleAsync();
+
+        Assert.Equal(2, result.AppliedCount);
+        Assert.NotNull(coordinator.Get(first.Id));
+        Assert.NotNull(coordinator.Get(second.Id));
+        Assert.Equal(2, service.Makes.Count);
+
+        _undo.Undo();
+        await coordinator.IdleAsync();
+        Assert.True(first.IsMissing && second.IsMissing);
+        Assert.Null(coordinator.Get(first.Id));
+        Assert.Null(coordinator.Get(second.Id));
     }
 
     [Fact]

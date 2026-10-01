@@ -21,6 +21,10 @@ namespace AiVideoEditor.Timeline;
 /// the ffprobe location is fixed for the app run).</item>
 /// <item><see cref="ApplyAsync"/>: re-checks the media and validates again what may have changed since the check, then
 /// executes one <see cref="RelinkMediaCommand"/> through the undo history (PO-1). Clips are never adapted.</item>
+/// <item><see cref="SearchFolderAsync"/> (D026 §4, Step 11.5): the offline items' exact file names among the files directly
+/// in one folder, each match checked by the same <c>CheckCoreAsync</c>; a name of several offline items is given to none.
+/// <see cref="ApplyAllAsync"/> applies the confirmed checks as one command after validating each again and within the
+/// batch; <see cref="ApplyAsync"/> is it with one item.</item>
 /// <item>A later analysis (e.g. after a relink without ffprobe) that finds a file shorter than its clips use, or without
 /// the streams of its kind, raises <see cref="RelinkedMediaFoundIncompatible"/> and logs it; nothing is undone.</item>
 /// </list>
@@ -33,6 +37,7 @@ public sealed class MediaRelinkService : IMediaRelinkService
     private readonly IMediaAnalysisService _analysis;
     private readonly ILogger<MediaRelinkService> _logger;
     private readonly Func<string, long?> _fileSize;
+    private readonly Func<string, IReadOnlyList<string>?> _listFiles;
 
     // The metadata each asset had when it was last looked at for a later incompatibility (by reference: a new analysis
     // is a new object).
@@ -40,14 +45,16 @@ public sealed class MediaRelinkService : IMediaRelinkService
 
     public MediaRelinkService(IProjectService projects, IUndoRedoService undoRedo, IMediaAnalysisService analysis,
         ILogger<MediaRelinkService> logger)
-        : this(projects, undoRedo, analysis, logger, SizeOf)
+        : this(projects, undoRedo, analysis, logger, SizeOf, ListFiles)
     {
     }
 
     /// <param name="fileSize">The size of a file, or null when it isn't there (tests replace the file system).</param>
+    /// <param name="listFiles">The files directly in a folder (full paths), or null when it isn't there.</param>
     internal MediaRelinkService(IProjectService projects, IUndoRedoService undoRedo, IMediaAnalysisService analysis,
-        ILogger<MediaRelinkService> logger, Func<string, long?> fileSize)
+        ILogger<MediaRelinkService> logger, Func<string, long?> fileSize, Func<string, IReadOnlyList<string>?>? listFiles = null)
     {
+        _listFiles = listFiles ?? ListFiles;
         _projects = projects;
         _undoRedo = undoRedo;
         _analysis = analysis;
@@ -66,18 +73,7 @@ public sealed class MediaRelinkService : IMediaRelinkService
         return file.Exists ? file.Length : null;
     }
 
-    private async Task<long?> FileSizeAsync(string path)
-    {
-        try
-        {
-            return await Task.Run(() => _fileSize(path));
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        {
-            _logger.LogWarning(ex, "Could not read '{Path}'; treating it as missing.", path);
-            return null;
-        }
-    }
+    private Task<long?> FileSizeAsync(string path) => Task.Run(() => SizeOrNull(path));
 
     // ---- Check ----------------------------------------------------------------------------------------------------
 
@@ -94,7 +90,13 @@ public sealed class MediaRelinkService : IMediaRelinkService
         }
 
         await _projects.RecheckMediaAsync(ct);                       // PO-5: what is offline now, not at the last check
-        var project = _projects.Current;
+        return await CheckCoreAsync(_projects.Current, assetId, path, ct);
+    }
+
+    /// <summary>Every rule of a relink check (D026 §3) for an already re-checked project — the one implementation, used
+    /// by <see cref="CheckAsync"/> and, per candidate, by <see cref="SearchFolderAsync"/>.</summary>
+    private async Task<RelinkCheck> CheckCoreAsync(Core.Entities.Project project, Guid assetId, string path, CancellationToken ct)
+    {
         if (Basics(project, assetId, path) is { } basic)
             return basic;
         var asset = project.MediaAssets.First(a => a.Id == assetId);
@@ -313,42 +315,189 @@ public sealed class MediaRelinkService : IMediaRelinkService
 
     // ---- Apply ------------------------------------------------------------------------------------------------------
 
-    public async Task<RelinkResult> ApplyAsync(RelinkCheck check, CancellationToken ct = default)
+    public async Task<RelinkResult> ApplyAsync(RelinkCheck check, CancellationToken ct = default) =>
+        (await ApplyAllAsync(new[] { check }, ct)).Results[0];
+
+    public async Task<RelinkBatchResult> ApplyAllAsync(IReadOnlyList<RelinkCheck> checks, CancellationToken ct = default)
     {
-        if (check.Rejection is { } rejected)
-            return new RelinkResult(false, rejected, check.Message);
+        var results = new RelinkResult?[checks.Count];
+        for (var i = 0; i < checks.Count; i++)
+        {
+            if (checks[i].Rejection is { } rejected)
+                results[i] = new RelinkResult(false, rejected, checks[i].Message, checks[i].AssetId);
+        }
+        if (results.All(r => r is not null))
+            return new RelinkBatchResult(results!);
 
         await _projects.RecheckMediaAsync(ct);                       // PO-5, again: the user may have taken a while
         var project = _projects.Current;
-        if (project.Id != check.ProjectId)
-            return new RelinkResult(false, RelinkRejection.Stale, "Another project is open now.");
-        if (Basics(project, check.AssetId, check.FilePath) is { } basic)
-            return new RelinkResult(false, basic.Rejection, basic.Message);
 
-        var size = await FileSizeAsync(check.FilePath);
+        // Every file of the batch, off the UI thread in one go (a slow share answers once per file, not per await).
+        var paths = checks.Select(c => c.FilePath).ToArray();
+        long?[] sizes;
+        try
+        {
+            sizes = await Task.Run(() => paths.Select(SizeOrNull).ToArray());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not read the files of a relink.");
+            sizes = new long?[paths.Length];
+        }
         ct.ThrowIfCancellationRequested();
-        if (!ReferenceEquals(project, _projects.Current))
-            return new RelinkResult(false, RelinkRejection.Stale, "Another project is open now.");
-        if (Basics(project, check.AssetId, check.FilePath) is { } changed)        // edited / re-checked meanwhile
-            return new RelinkResult(false, changed.Rejection, changed.Message);
-        if (size is not { } bytes)
-            return new RelinkResult(false, RelinkRejection.FileNotFound, $"\"{Path.GetFileName(check.FilePath)}\" doesn't exist any more.");
-        if (bytes != check.FileSizeBytes)
-            return new RelinkResult(false, RelinkRejection.Stale, $"\"{Path.GetFileName(check.FilePath)}\" changed since it was checked; check it again.");
 
-        var asset = project.MediaAssets.First(a => a.Id == check.AssetId);
-        if (check.Metadata is { } metadata && TooShort(project, asset, metadata, Path.GetFileName(check.FilePath)) is { } shortBy)
-            return new RelinkResult(false, RelinkRejection.TooShort, shortBy);  // a clip was lengthened meanwhile
+        var relinks = new List<MediaRelink>();
+        var claimedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var claimedAssets = new HashSet<Guid>();
+        for (var i = 0; i < checks.Count; i++)
+        {
+            if (results[i] is not null) continue;
+            var check = checks[i];
+            results[i] = Validate(check, sizes[i]);
+            if (results[i] is not null) continue;
 
-        var before = MediaFileState.Capture(asset);
-        var after = new MediaFileState(check.FilePath, bytes, check.Metadata,
-            check.Metadata is null ? MediaAnalysisStatus.Pending : MediaAnalysisStatus.Completed, null, IsMissing: false);
-        _undoRedo.Execute(new RelinkMediaCommand(new[] { new MediaRelink(asset, before, after) }, _projects.NotifyMediaRelinked));
+            var asset = project.MediaAssets.First(a => a.Id == check.AssetId);
+            var after = new MediaFileState(check.FilePath, sizes[i]!.Value, check.Metadata,
+                check.Metadata is null ? MediaAnalysisStatus.Pending : MediaAnalysisStatus.Completed, null, IsMissing: false);
+            relinks.Add(new MediaRelink(asset, MediaFileState.Capture(asset), after));
+            results[i] = new RelinkResult(true, null, $"\"{asset.FileName}\" is linked to {check.FilePath}.", asset.Id);
+        }
 
-        _logger.LogInformation("Relinked '{Old}' to '{New}' ({Probe}).", before.FilePath, after.FilePath,
-            check.Metadata is null ? "not probed: ffprobe unavailable" : "probed");
-        return new RelinkResult(true, null, $"\"{asset.FileName}\" is linked to {check.FilePath}.");
+        if (relinks.Count > 0)
+        {
+            // One step for everything applied together (PO-1, PO-4): Undo / Redo take the whole batch.
+            var description = relinks.Count == 1 ? "Relink Media" : $"Relink {relinks.Count} Media Files";
+            _undoRedo.Execute(new RelinkMediaCommand(relinks, _projects.NotifyMediaRelinked, description));
+            foreach (var r in relinks)
+                _logger.LogInformation("Relinked '{Old}' to '{New}' ({Probe}).", r.Before.FilePath, r.After.FilePath,
+                    r.After.Metadata is null ? "not probed: ffprobe unavailable" : "probed");
+        }
+        return new RelinkBatchResult(results!);
+
+        // What may have changed since the check (the project, the asset, the path, the file, the clips); null = applicable.
+        RelinkResult? Validate(RelinkCheck check, long? size)
+        {
+            if (!ReferenceEquals(project, _projects.Current) || project.Id != check.ProjectId)
+                return new RelinkResult(false, RelinkRejection.Stale, "Another project is open now.", check.AssetId);
+            if (Basics(project, check.AssetId, check.FilePath) is { } basic)
+                return new RelinkResult(false, basic.Rejection, basic.Message, check.AssetId);
+            if (!claimedAssets.Add(check.AssetId))
+                return new RelinkResult(false, RelinkRejection.Stale,
+                    "The media item is already relinked by another entry of this batch.", check.AssetId);
+            if (!claimedPaths.Add(check.FilePath))
+                return new RelinkResult(false, RelinkRejection.PathInUse,
+                    $"\"{Path.GetFileName(check.FilePath)}\" is chosen for another media item of this batch — two media items can't share a file.",
+                    check.AssetId);
+            if (size is not { } bytes)
+                return new RelinkResult(false, RelinkRejection.FileNotFound,
+                    $"\"{Path.GetFileName(check.FilePath)}\" doesn't exist any more.", check.AssetId);
+            if (bytes != check.FileSizeBytes)
+                return new RelinkResult(false, RelinkRejection.Stale,
+                    $"\"{Path.GetFileName(check.FilePath)}\" changed since it was checked; check it again.", check.AssetId);
+            var asset = project.MediaAssets.First(a => a.Id == check.AssetId);
+            if (check.Metadata is { } metadata && TooShort(project, asset, metadata, Path.GetFileName(check.FilePath)) is { } shortBy)
+                return new RelinkResult(false, RelinkRejection.TooShort, shortBy, check.AssetId);  // a clip was lengthened meanwhile
+            return null;
+        }
     }
+
+    private long? SizeOrNull(string path)
+    {
+        try
+        {
+            return _fileSize(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            _logger.LogWarning(ex, "Could not read '{Path}'; treating it as missing.", path);
+            return null;
+        }
+    }
+
+    // ---- Batch search (D026 §4, PO-4) ---------------------------------------------------------------------------------
+
+    public async Task<RelinkSearch> SearchFolderAsync(string folder, CancellationToken ct = default)
+    {
+        string fullFolder;
+        try
+        {
+            fullFolder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder));
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return new RelinkSearch { Folder = folder, Problem = $"\"{folder}\" is not a valid folder path." };
+        }
+
+        await _projects.RecheckMediaAsync(ct);                       // PO-5: which media are offline now
+        var project = _projects.Current;
+        var offline = project.MediaAssets.Where(a => a.IsMissing).ToList();
+        if (offline.Count == 0)
+            return new RelinkSearch { Folder = fullFolder };
+
+        // The folder's own files only — no subfolders (PO-4) —, listed off the UI thread (a slow or remote folder).
+        IReadOnlyList<string>? files;
+        try
+        {
+            files = await Task.Run(() => _listFiles(fullFolder), ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not list the files of {Folder}.", fullFolder);
+            files = null;
+        }
+        ct.ThrowIfCancellationRequested();
+        if (files is null)
+            return new RelinkSearch { Folder = fullFolder, Problem = $"The folder \"{fullFolder}\" can't be read." };
+        if (!ReferenceEquals(project, _projects.Current))
+            return new RelinkSearch { Folder = fullFolder, Problem = "Another project is open now." };
+
+        // Exact names, compared as the Windows file system does (case-insensitive); a name that belongs to more than one
+        // offline item is never given to any of them (no automatic choice, PO-4).
+        var byName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in files)
+            byName.TryAdd(Path.GetFileName(file), file);
+        var nameCounts = offline.GroupBy(a => a.FileName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+        var entries = new List<RelinkSearchEntry>();
+        foreach (var asset in offline)
+        {
+            if (!byName.TryGetValue(asset.FileName, out var candidate))
+            {
+                entries.Add(new RelinkSearchEntry
+                {
+                    AssetId = asset.Id, FileName = asset.FileName, Outcome = RelinkSearchOutcome.NotFound,
+                    Message = $"\"{asset.FileName}\" is not in the folder."
+                });
+                continue;
+            }
+            if (nameCounts[asset.FileName] > 1)
+            {
+                entries.Add(new RelinkSearchEntry
+                {
+                    AssetId = asset.Id, FileName = asset.FileName, Outcome = RelinkSearchOutcome.Ambiguous, CandidatePath = candidate,
+                    Message = $"{nameCounts[asset.FileName]} offline media items are named \"{asset.FileName}\"; relink them one by one."
+                });
+                continue;
+            }
+
+            var check = await CheckCoreAsync(project, asset.Id, candidate, ct);   // the one set of rules (D026 §3)
+            entries.Add(new RelinkSearchEntry
+            {
+                AssetId = asset.Id, FileName = asset.FileName, CandidatePath = candidate, Check = check,
+                Outcome = check.CanApply ? RelinkSearchOutcome.Found : RelinkSearchOutcome.Rejected,
+                Message = check.CanApply ? "" : check.Message
+            });
+        }
+        return new RelinkSearch { Folder = fullFolder, Entries = entries };
+    }
+
+    private static IReadOnlyList<string>? ListFiles(string folder) =>
+        Directory.Exists(folder) ? Directory.EnumerateFiles(folder, "*", SearchOption.TopDirectoryOnly).ToList() : null;
 
     // ---- Later incompatibility --------------------------------------------------------------------------------------
 

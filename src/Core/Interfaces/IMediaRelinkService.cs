@@ -20,6 +20,18 @@ public interface IMediaRelinkService
     /// executes the relink through the undo history (the project becomes dirty). Returns why not, otherwise.</summary>
     Task<RelinkResult> ApplyAsync(RelinkCheck check, CancellationToken ct = default);
 
+    /// <summary>Applies several checks together (a batch, D026 §4): each is validated again as by
+    /// <see cref="ApplyAsync"/>, and also against the others (one file, one media item each). Those still applicable are
+    /// applied as <b>one</b> undoable step; the others are returned with their reason and their media stay offline.</summary>
+    Task<RelinkBatchResult> ApplyAllAsync(IReadOnlyList<RelinkCheck> checks, CancellationToken ct = default);
+
+    /// <summary>Batch search (D026 §4, PO-4): re-checks the media, then looks for every offline media item's file name —
+    /// exactly, ignoring case as Windows does — among the files directly in <paramref name="folder"/> (no subfolders),
+    /// and checks each match by the rules of <see cref="CheckAsync"/>. A name shared by several offline items is given
+    /// to none of them. Never changes the project: the user confirms the summary, then <see cref="ApplyAllAsync"/>
+    /// applies <see cref="RelinkSearch.Applicable"/>. The folder is read off the UI thread.</summary>
+    Task<RelinkSearch> SearchFolderAsync(string folder, CancellationToken ct = default);
+
     /// <summary>Raised (on the UI thread) when an analysis that completed later finds that a media file doesn't fit
     /// the clips that use it — e.g. relinked without ffprobe (PO-3) and probed at a later Open. Nothing is undone or
     /// adapted: the user may Undo the relink (product owner, 2026-10-01).</summary>
@@ -95,8 +107,92 @@ public sealed class RelinkCheck
     public bool CanApply => Rejection is null;
 }
 
-/// <summary>The result of <see cref="IMediaRelinkService.ApplyAsync"/>.</summary>
-public sealed record RelinkResult(bool Applied, RelinkRejection? Rejection, string Message);
+/// <summary>The result of <see cref="IMediaRelinkService.ApplyAsync"/> (or of one entry of a batch).</summary>
+public sealed record RelinkResult(bool Applied, RelinkRejection? Rejection, string Message, Guid AssetId = default);
+
+/// <summary>The result of <see cref="IMediaRelinkService.ApplyAllAsync"/>: one result per check, in order.</summary>
+public sealed record RelinkBatchResult(IReadOnlyList<RelinkResult> Results)
+{
+    public int AppliedCount => Results.Count(r => r.Applied);
+}
+
+/// <summary>What a batch search found for one offline media item.</summary>
+public enum RelinkSearchOutcome
+{
+    /// <summary>A file of that name, which passed every check (it may have warnings).</summary>
+    Found,
+    /// <summary>A file of that name that can't be used (<see cref="RelinkSearchEntry.Check"/> says why).</summary>
+    Rejected,
+    /// <summary>No file of that name in the folder.</summary>
+    NotFound,
+    /// <summary>Several offline items have this name: the file is given to none of them.</summary>
+    Ambiguous
+}
+
+public sealed class RelinkSearchEntry
+{
+    public required Guid AssetId { get; init; }
+
+    /// <summary>The offline item's file name (the name that was looked for).</summary>
+    public required string FileName { get; init; }
+
+    public required RelinkSearchOutcome Outcome { get; init; }
+
+    /// <summary>The file of that name in the folder, when there is one.</summary>
+    public string? CandidatePath { get; init; }
+
+    /// <summary>The relink check of the candidate (<see cref="RelinkSearchOutcome.Found"/> /
+    /// <see cref="RelinkSearchOutcome.Rejected"/>); its warnings are part of the summary.</summary>
+    public RelinkCheck? Check { get; init; }
+
+    /// <summary>Why it can't be used, for the user; empty when found.</summary>
+    public string Message { get; init; } = "";
+}
+
+/// <summary>The result of <see cref="IMediaRelinkService.SearchFolderAsync"/>.</summary>
+public sealed class RelinkSearch
+{
+    public required string Folder { get; init; }
+
+    /// <summary>Why the folder could not be searched; null when it was.</summary>
+    public string? Problem { get; init; }
+
+    /// <summary>One entry per media item that was offline when the search started.</summary>
+    public IReadOnlyList<RelinkSearchEntry> Entries { get; init; } = Array.Empty<RelinkSearchEntry>();
+
+    /// <summary>The checks the user is asked to confirm (one per found item).</summary>
+    public IReadOnlyList<RelinkCheck> Applicable =>
+        Entries.Where(e => e.Outcome == RelinkSearchOutcome.Found && e.Check is { CanApply: true }).Select(e => e.Check!).ToList();
+
+    /// <summary>The summary shown before anything is applied (PO-4): what was found (with warnings), what can't be used
+    /// and why, what is not in the folder.</summary>
+    public string Summary()
+    {
+        if (Problem is not null) return Problem;
+        if (Entries.Count == 0) return "No media is offline.";
+
+        var lines = new List<string>();
+        var found = Entries.Where(e => e.Outcome == RelinkSearchOutcome.Found).ToList();
+        lines.Add($"Found {found.Count} of {Entries.Count} offline media files in \"{Folder}\".");
+        foreach (var e in found)
+        {
+            lines.Add($"• {e.FileName}");
+            foreach (var w in e.Check!.Warnings)
+                lines.Add($"    – {w.Message}");
+        }
+        var unusable = Entries.Where(e => e.Outcome is RelinkSearchOutcome.Rejected or RelinkSearchOutcome.Ambiguous).ToList();
+        if (unusable.Count > 0)
+        {
+            lines.Add("Can't be used:");
+            foreach (var e in unusable)
+                lines.Add($"• {e.FileName}: {e.Message}");
+        }
+        var missing = Entries.Where(e => e.Outcome == RelinkSearchOutcome.NotFound).Select(e => e.FileName).ToList();
+        if (missing.Count > 0)
+            lines.Add($"Not in the folder (stay offline): {string.Join(", ", missing)}.");
+        return string.Join(Environment.NewLine, lines);
+    }
+}
 
 public sealed class RelinkedMediaIncompatibleEventArgs : EventArgs
 {

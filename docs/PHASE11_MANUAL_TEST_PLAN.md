@@ -47,10 +47,10 @@ Runnable once the UI exists (11.6); the relink core (11.4) is covered by the aut
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 18 | Batch found | Several missing files moved together into one folder; Relink one of them there | A summary lists the other matches (exact name, that folder only); confirming relinks them | — | planned |
-| 19 | Not found / subfolder | One file in a subfolder of the chosen folder, one renamed | Neither is matched; both stay offline | — | planned |
-| 20 | Unusable match / cancel | A match of the wrong type or too short; then Cancel the summary | The match is listed as not applicable with the reason; Cancel applies nothing from the batch | — | planned |
-| 21 | Batch undo | Confirm a batch; Undo | Restored as decided at the start of 11.5 (undo granularity) | — | planned |
+| 18 | Batch found | Several missing files moved together into one folder; Relink one of them there | A summary lists the other matches (exact name ignoring case, that folder only) with their warnings; confirming relinks them in one step | `MediaRelinkBatchTests` (exact names, real folder + case, partial batch + summary, one step) | auto (core, 11.5); manual with the UI (11.6) |
+| 19 | Not found / subfolder | One file in a subfolder of the chosen folder, one renamed | Neither is matched; both stay offline; a second search later finds only what is still offline | `MediaRelinkBatchTests` (no recursion, no similar names, second search) | auto (core, 11.5); manual with the UI (11.6) |
+| 20 | Unusable match / cancel | A match of the wrong type or too short, a file of another item, two offline items of one name; then Cancel the summary | Each listed as not applicable with its reason (the shared name given to neither); Cancel applies nothing | `MediaRelinkBatchTests` (wrong type, owned file, shared name, single-check parity, not confirmed / cancelled) | auto (core, 11.5); manual with the UI (11.6) |
+| 21 | Batch undo | Confirm a batch; Undo; Redo | One Undo restores every item of the batch, one Redo relinks them all again (D026 "Refined in Step 11.5") | `MediaRelinkBatchTests` (undo / redo of the batch), `MediaRelinkUiTests` (batch thumbnails, undo) | auto (core, 11.5); manual with the UI (11.6) |
 
 ## Steps 11.7–11.8 — recent projects (D026 §6, PO-7, PO-8)
 

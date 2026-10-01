@@ -188,6 +188,41 @@ command; no push, merge, pull request or branch deletion without direct permissi
     suites unchanged. Not run: `--blame-hang` repeats, the 4K scenes, CI, a real-app run (no relink UI before 11.6).
   - Manual plan: relink scenarios 7–14 name their automated coverage, status "auto (core, 11.4); manual with the UI
     (11.6)"; the real-app relink run belongs to 11.6 (no relink UI exists before it).
+- Step 11.4 accepted by the product owner (2026-10-01), `0e002dc` its final commit; the manual relink scenarios 7–14 are
+  run once the UI exists (11.6).
+- Step 11.5 done (2026-10-01) — batch relink search (D026 §4, PO-4 as restated at the start of 11.5; D026 "Refined in
+  Step 11.5").
+  - Decisions within PO-4 (no new product decision): a file name shared by two or more offline items is given to none of
+    them (listed as ambiguous, "relink them one by one"); the confirmed batch is one undoable step; items that fail the
+    re-validation at Apply are reported and stay offline while the still-valid ones are applied together. The folder is a
+    parameter: how the UI chooses it is 11.6's.
+  - Flow (one implementation of the rules — no second relink path): `SearchFolderAsync(folder)` → re-check once (PO-5) →
+    list the folder's own files off the UI thread → per offline item: exact name (case-insensitive) → `NotFound` /
+    `Ambiguous` / the 11.4 check `CheckCoreAsync` (the code `CheckAsync` runs after its re-check) → `Found` or
+    `Rejected` → `RelinkSearch` (`Entries`, `Applicable`, `Summary()`); the user confirms → `ApplyAllAsync(Applicable)` →
+    re-check once, every file's size in one `Task.Run`, per item the 11.4 re-validation plus the batch's own (one file per
+    item, an item once) → one `RelinkMediaCommand` ("Relink N Media Files") for the valid items → per-item
+    `RelinkResult` (now with `AssetId`) in a `RelinkBatchResult`. `ApplyAsync(check)` became `ApplyAllAsync` with one item.
+  - Tests (new): `Timeline.Tests/MediaRelinkBatchTests` (15: exact names directly in the folder — subfolder, `.bak`,
+    "(1)" not matched, only the match probed, nothing changed; the real listing without subfolders and names ignoring case;
+    nothing offline / a folder that isn't there; a shared name given to neither; a file of another (online) item; another
+    media type by the probe; every candidate's check equal to a single `CheckAsync`; a partial batch (found, warned, too
+    short, absent) with the summary, one step, clips untouched; undo / redo of the whole batch; not confirmed / cancelled;
+    a second search after a partial one; Apply races — file gone, file changed, path taken, the rest applied; one file
+    never for two items, one item never twice; an item whose old file came back; the folder listed off a UI-thread
+    stand-in (a single-thread synchronization context) while that thread stays responsive); `UI.Tests/MediaRelinkUiTests`
+    (+1: a batch refreshes both thumbnails, one Undo drops both).
+  - Mutations (each reverted): a shared name assigned → 1 failure; recursive listing → 1; case-sensitive names → 1; one
+    file for two items → 1; one item twice → 1; one undo step per item → 2; matches not checked → 5; no size re-validation
+    → 2; listing on the calling thread → 1 (survived the first test, which had no synchronization context — the test now
+    runs the search on a UI-thread stand-in); ambiguity counting online items → 1.
+  - Verification (artifacts folder, as in 11.3–11.4; the other instance PID 38056 left alone): `dotnet build
+    AiVideoEditor.sln --no-incremental -warnaserror` 0 errors / 0 warnings; `dotnet test` (whole solution, once) 2079
+    passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448, Timeline 361 (+15), Project 331, UI 402 (+1), Export 99,
+    Rendering 58, Video 294, ExportEndToEnd 86 + 2; parity suites unchanged. A doc comment changed after that run; an
+    incremental `-warnaserror` build afterwards: 0 / 0. Not run: `--blame-hang` repeats, the 4K scenes, CI, a real-app run
+    (no relink UI before 11.6).
+  - Manual plan: batch scenarios 18–21 name their coverage, status "auto (core, 11.5); manual with the UI (11.6)".
 
 ## Phase 10 (complete)
 
