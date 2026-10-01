@@ -131,3 +131,10 @@ Save As and Open):
 
 Not repeated: R1, R2 (passed); 5, 6–8, 12, 12b, 12c, 14–15, 17, 17a, 19, 20 — the fix touches only how the timeline
 reuses its clip views after a project is opened, and those passed at 10.5 / 10.8.
+
+Run by Claude in the real app (2026-10-01, both fixtures opened twice through Open; details in `progress.md`): S1–S5
+and 4, 9, 10, 12a, 13, 13a, 14, 14a, 15, 16, 17, 18, 20 passed after the fixes — the reopen fix (`65f9e8d`), fades cut
+to a shorter clip (`6f36cca`, D025 §2 changed by the product owner) and numeric fields applying typed text only when
+committed (`cad56f2`, found in 13a). The export was checked independently with ffmpeg (fade ramp values, the zone's
+blend, the hard sound cut at 4 s). Not covered by that run: the Preview's sound by ear, scenario 8 with the changed
+rule, and the export regression (R7 / S6).

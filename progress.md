@@ -306,6 +306,29 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
     with undo / redo, back to the first speed, lowering a cut fade by one frame), `InspectorFadeTests` (the trimmed clip
     shows the cut fade and the arrow lowers it; a longer fade from a file shown without an edit). Mutation: no
     `ClampFades` → 5 failures. The product owner stopped the manual run and asked for the testing to be done by Claude.
+  - Real-app run by Claude (2026-10-01, Debug build, both fixtures; driven with UI Automation, real mouse / keys, the
+    Windows file dialogs, screenshots, the app log; every input guarded to go only to the editor's window — a first
+    attempt sent a few clicks and keys to the browser in front before the guard existed, reported to the product owner).
+    Each fixture opened twice through Open (the product owner's situation). Passed: speed 2× / back / Undo / Redo
+    (length on the timeline); Fade In typed and kept after reselecting, the band drawn; split inside a ramp (scenario 9:
+    left 10 / 0, right 0 / 40, parts side by side, Undo → 40 / 40); speed 4× cuts 40 / 40 to 25 / 25, the down arrow
+    24, 23, Undo steps back; 13 (25 frames, zone 3.52–4.52, "Longest that fits here: 51 frames"); 14; 14a; 15; 16 (bars
+    moved alone removes, Undo; both moved together carry the zone; far-edge trim stops at 3.52; split inside rejected,
+    outside kept; Delete of a clip and of the selected dissolve, Undo); 17 (4× refused with the field back at 1, 2×
+    kept; 2× on A removes, Undo brings it back); 20 (Save, reopen: three dissolves of 25, Fade In 12, speed 2×, v3);
+    18 export checked independently with ffmpeg — the fade in follows `(k+1)/(F+1)` (luma 24.2 / 66.2 / 117.0 / 125.4
+    for frames 0 / 5 / 11 / 12, expected 24.4 / 66.3 / 116.6 / full), the zone blends bars over pattern with pattern
+    continuing from its handle, the sound cuts 440 → 880 Hz exactly at 4 s; the Preview's frame at 4.0 s matches the
+    MP4's frame 100; playback through the zones without warnings.
+    Found and fixed: 13a — typing "99" in Duration (longest 51) left the dissolve at 9 frames, "2,5" at 2: Avalonia's
+    NumericUpDown parses the text after every key, so the first digit was already an edit. `Controls/
+    CommitNumericUpDown` (every Inspector field) parses only when the input is committed (Enter, leaving the field);
+    the arrows still apply at once. Test `FadeViewBindingTests.Text_typed_in_a_field_is_applied_only_when_committed`
+    (the real XAML; fails with the old control: 9 frames). In the app afterwards: 99, 2,5 and "ab" leave 30, the
+    arrows give 32, Undo 25. Not defects: a click 5 px from a clip's end inside a zone takes the clip's trim handle
+    (6 px, by the 10.8 rule); Ctrl+S right after typing in a field is the field's (9.6 rule) — Save works.
+    Verification after all fixes: `dotnet build --no-incremental -warnaserror` 0 / 0; `dotnet test --blame-hang` 1973
+    passed, 2 skipped (UI 370, Timeline 304); 4K 88 / 88.
 
 ## Phase 9 (complete)
 
