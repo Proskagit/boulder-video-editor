@@ -33,7 +33,7 @@ rasterizer, ffmpeg encoder → MP4 checked with ffprobe — and skips without ff
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
 | Export | Offline export orchestration (Phase 8, D023): renders an `ExportJob` with the Core rules and hands frames/audio to an encoder. References Core only; no FFmpeg or UI types | `ExportService` over `ExportFrameSource` / `ExportPictureReader`, `ExportAudioSource` / `ExportAudioReader` |
-| Effects | Effect / transition definitions (later phases) | Empty (`Clip.Effects` is only persisted) |
+| Effects | Effect / transition definitions — Phase 10 (transitions & basic effects, scope being agreed) | Empty (`Clip.Effects` and `Track.Transitions` are only persisted) |
 
 Dependencies flow one way: App → UI / Infrastructure / subsystems → Core.
 
@@ -111,7 +111,8 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   first frame is at or before it; `showinfo` PTS parsing stays internal to Video.
 - Playback core (D011): `PlaybackSnapshotBuilder` (UI thread) → immutable `PlaybackSnapshot`
   → `IPlaybackService` / `PlaybackService` (Timeline/Playback). `PlaybackClock` = anchor +
-  elapsed of an `IReferenceClock` (Stopwatch now, audio device later). `VideoPipeline` keeps a
+  elapsed of an `IReferenceClock`: the audio device's played-samples clock (`WasapiAudioOutput.Clock`) is the
+  master while audio plays, `StopwatchReferenceClock` the fallback (D013). `VideoPipeline` keeps a
   `SpanReader` for the visible clip plus the next one within the prefetch window (since Phase 7:
   one per visible layer, D019); each reader
   decodes in the background into a bounded buffer and returns a frame only when certain.

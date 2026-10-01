@@ -29,9 +29,12 @@ and runs cleanly.
       *(branch `feat/phase-7-basic-editing`)*
 - [x] **Phase 8 — Export.** Timeline → MP4 (H.264/AAC): offline rendering of the Preview with the
       Core composition rules, FFmpeg as the encoder (D023). *(branch `feat/phase-8-export`, `8786491`)*
-- [ ] **Phase 9 — Quality.** Performance profiling, caching, error handling,
+- [x] **Phase 9 — Quality.** Performance profiling, caching, error handling,
       polish, hotkeys, waveform, thumbnails. Scope, steps and acceptance criteria:
-      section below and DECISIONS.md D024. *(branch `feat/phase-9-quality`)*
+      section below and DECISIONS.md D024. *(branch `feat/phase-9-quality`, closeout `dcb86cb` / `f27a4ab`,
+      PR #8 merged as `409240b`; accepted 2026-09-29)*
+- [ ] **Phase 10 — Transitions & basic effects.** Chosen by the product owner on 2026-09-29; scope, steps
+      and acceptance criteria are agreed after the Step 10.1 audit. *(branch `feat/phase-10-transitions-effects`)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -211,7 +214,7 @@ Scope: a minimal GitHub Actions workflow — restore, build, test, FFmpeg for th
   packaging pipelines, repository settings such as branch protection (the owner's action).
 - Depends on: a stable suite (9.3–9.8).
 
-### 9.10 — Final verification & closeout *(done — formal manual run, regression, quality gates; awaiting the product owner's acceptance of Phase 9)*
+### 9.10 — Final verification & closeout *(done — formal manual run, regression, quality gates; Phase 9 accepted 2026-09-29, closeout `dcb86cb` / `f27a4ab`)*
 - QG: `dotnet build --no-incremental` 0 / 0; full suite once plus three times with `--blame-hang`; heavy scenes
   once with `AIVE_HEAVY_TESTS=1`; CI green.
 - PR: `docs/PHASE9_MANUAL_TEST_PLAN.md` run in the real app, results logged; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run
