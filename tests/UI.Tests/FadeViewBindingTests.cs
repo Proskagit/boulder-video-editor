@@ -3,10 +3,13 @@ using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Project;
 using AiVideoEditor.Timeline;
+using AiVideoEditor.UI.Controls;
 using AiVideoEditor.UI.Services;
 using AiVideoEditor.UI.ViewModels.Panels;
 using AiVideoEditor.UI.Views.Panels;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -72,6 +75,54 @@ public sealed class FadeViewBindingTests
 
         field.Value = 20m;                                                       // typing in the view edits the dissolve
         Assert.Equal(F(20), dissolve.Duration);
+    }
+
+    /// <summary>Step 10.9 run (13a): typing "99" in the Duration field (longest 51) applied the 9 typed first and then
+    /// refused 99, so the dissolve became 9 frames. The fields now parse the text only when the input is committed.</summary>
+    [Fact]
+    public void Text_typed_in_a_field_is_applied_only_when_committed()
+    {
+        var undo = new UndoRedoService();
+        var projects = new ProjectService(undo, NullLogger<ProjectService>.Instance);
+        var edit = new TimelineEditService(projects, undo, NullLogger<TimelineEditService>.Instance);
+        var inspector = new InspectorViewModel(edit, new StatusService());
+        var track = projects.Current.Timeline.VideoTracks[0];
+        var a = new TextClip { Text = "A", TimelineStart = F(0), Duration = F(50) };
+        var b = new TextClip { Text = "B", TimelineStart = F(50), Duration = F(50) };
+        track.Clips.AddRange(new Clip[] { a, b });
+        var dissolve = new Transition { TransitionTypeId = TransitionRules.CrossDissolve, Duration = F(10), LeftClipId = a.Id, RightClipId = b.Id };
+        track.Transitions.Add(dissolve);
+        inspector.ShowTransition(new TimelineTransitionSelection(dissolve, track, "A", "B", Rate, MaxFrames: 51));
+
+        var view = new InspectorView { DataContext = inspector };
+        var field = view.GetLogicalDescendants().OfType<CommitNumericUpDown>().Single(n => n.Minimum == 2m);
+        // A control outside a window is never "initialized", and NumericUpDown parses typed text only once it is; in the
+        // app every field is. Without this the test would pass with the old control too.
+        typeof(Avalonia.StyledElement).GetProperty(nameof(Avalonia.StyledElement.IsInitialized))!.SetValue(field, true);
+
+        field.TypingOverride = true;                                             // the field has the focus
+        field.Text = "9";
+        field.Text = "99";
+        Assert.Equal(F(10), dissolve.Duration);                                  // nothing applied while typing
+        Assert.False(undo.CanUndo);
+
+        Commit(field);                                                           // Tab: 99 is above the longest (51)
+        Assert.Equal(F(10), dissolve.Duration);
+        Assert.Equal(10m, field.Value);
+
+        field.TypingOverride = true;
+        field.Text = "3";
+        field.Text = "30";
+        Commit(field);                                                           // Tab: 30 applied, one edit
+        Assert.Equal(F(30), dissolve.Duration);
+        undo.Undo();
+        Assert.Equal(F(10), dissolve.Duration);
+    }
+
+    private static void Commit(CommitNumericUpDown field)
+    {
+        field.TypingOverride = false;
+        field.RaiseEvent(new RoutedEventArgs(InputElement.LostFocusEvent));
     }
 
     /// <summary>17 (4x on "bars", the real control): a speed the edit service refuses must not stay in the field. The
