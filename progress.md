@@ -294,6 +294,18 @@ Phase 10 — Transitions & basic effects: **in progress**, branch `feat/phase-10
     the project's only meeting clips use their whole media, so its dissolve refusal is the intended "not enough media".
     Verification: `dotnet build --no-incremental -warnaserror` 0 / 0; `dotnet test` 1967 passed, 2 skipped (UI 368);
     4K with `AIVE_HEAVY_TESTS=1` 88 / 88. The second manual run (S1–S6 in the manual plan) is pending.
+  - Second manual run (product owner, 2026-09-30): S1 passed; S2 / S3 — after a split or a faster speed a fade longer
+    than the clip stayed stored (500 frames on a shorter part) and the arrows could not lower it (one frame less was
+    still longer than the clip, so the edit was refused). That was the accepted D025 §2 rule (scenario 8); the product
+    owner changed it: an edit that leaves a clip shorter than a fade cuts the fade to the clip in the same step
+    (`EditPlan.ClampFades` from `Validate` — trim, split, re-grid through `BuildCommand`; `SetClipSpeedCommand` carries
+    the cuts with its dissolve removals as `Changes`, merged with the next speed changes; typing the first speed back
+    restores them, "The dissolve is back" only when a dissolve came back). Files keep loading tick for tick (the
+    round-trip gate): a longer fade saved before renders clamped and is cut by the clip's next length edit. Tests:
+    `FadeEditTests` (split parts cut, trim cut + undo, move / slower speed unchanged, faster speed cut in one merged step
+    with undo / redo, back to the first speed, lowering a cut fade by one frame), `InspectorFadeTests` (the trimmed clip
+    shows the cut fade and the arrow lowers it; a longer fade from a file shown without an edit). Mutation: no
+    `ClampFades` → 5 failures. The product owner stopped the manual run and asked for the testing to be done by Claude.
 
 ## Phase 9 (complete)
 

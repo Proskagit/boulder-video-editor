@@ -1363,13 +1363,19 @@ Frames: the clip covers timeline frames `[s, e)`, `N = e − s`; frame `n` has c
 - Edits (all through `ITimelineEditService`, one undo step each):
   - Set: a property group of `SetClipProperties` (merged like the other properties, D017). Limits: `0 ≤ F ≤ N` each at
     the time of the edit; the stored value is `FromFrame(F)`.
-  - Move, trim, speed change, frame-rate re-grid, move to another track: the stored `FadeIn` / `FadeOut` never change;
-    fades stay attached to the clip's edges (a trimmed start takes its fade in with it) and are clamped to the new `N`
-    only when rendered (`Fin`, `Fout` above). Lengthening the clip again restores the stored fade. Fades are timeline
-    time: a speed change neither scales nor re-times them.
+  - Move, trim, speed change, frame-rate re-grid, move to another track: fades stay attached to the clip's edges (a
+    trimmed start takes its fade in with it). Fades are timeline time: a speed change neither scales nor re-times them.
+    **Changed by the product owner (2026-09-30, Step 10.9 manual run):** an edit that leaves the clip shorter than a
+    stored fade cuts that fade to the clip's `N` frames in the same undo step (`EditPlan.ClampFades`; a speed change
+    carries it in its speed step, which merges with the next speed changes; typing the first speed back restores
+    them). Lengthening the clip again does not bring the longer fade back — only Undo does. Before: the stored value was
+    kept and only clamped when rendered — the Inspector then showed a fade longer than the clip whose arrows did nothing
+    (one frame less was still longer than the clip). A file holding a fade longer than its clip (saved before the
+    change) still loads tick for tick; it renders clamped (`Fin`, `Fout` above) and is cut by the clip's next length
+    edit.
   - Split at frame `a`: the left part keeps `FadeIn` and gets `FadeOut = 0`; the right part gets `FadeIn = 0` and keeps
-    `FadeOut` (the inner edges have no fade). Both parts are clamped to their own length when rendered, so a split
-    inside a ramp shortens that ramp. Undo restores the original values exactly (part of the split's command).
+    `FadeOut` (the inner edges have no fade). A part shorter than its fade gets the fade cut to its length (above), so
+    a split inside a ramp shortens that ramp. Undo restores the original values exactly (part of the split's command).
   - Delete: the fades go with the clip.
 
 ### 3. Cross dissolve (Steps 10.6–10.8)

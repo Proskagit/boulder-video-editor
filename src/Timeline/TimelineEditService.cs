@@ -388,10 +388,11 @@ public sealed class TimelineEditService : ITimelineEditService
         // is undoing the step — the clip gets its timing back and the dissolves return. (A value typed back, the arrows
         // back, or Ctrl+Z inside the Speed field, which is the field's own text undo, all end here.)
         if (_undoRedo.NextUndo is NotifyingCommand { Inner: SetClipSpeedCommand step } && step.Clip == clip &&
-            step.TransitionChanges.Count > 0 && step.Before.Speed == speed && step.After == ClipState.Capture(clip))
+            step.Changes.Count > 0 && step.Before.Speed == speed && step.After == ClipState.Capture(clip))
         {
             _undoRedo.Undo();
-            return TimelineEditResult.Ok(new[] { clip.Id }, "The dissolve is back: its clips meet again.");
+            return TimelineEditResult.Ok(new[] { clip.Id },
+                step.Changes.Any(c => c is RemoveTransitionCommand) ? "The dissolve is back: its clips meet again." : null);
         }
 
         // The speed never changes the source range: the frame count follows from it.
@@ -406,9 +407,12 @@ public sealed class TimelineEditService : ITimelineEditService
         if (Validate(plan) is { } error)
             return TimelineEditResult.Fail($"Can't change the speed: {error}");
 
-        // A speed change of A moves its end: its dissolve goes (D025 §5), in the same step — which still merges with the
-        // next speed changes of the clip, so one Undo restores the speed and the dissolve together.
-        var command = new SetClipSpeedCommand(clip, before, after, plan.ChangesTransitions ? plan.BuildTransitionCommands() : null);
+        // A speed change of A moves its end: its dissolve goes (D025 §5), and fades longer than the shorter clip are cut
+        // (§2), in the same step — which still merges with the next speed changes of the clip, so one Undo restores the
+        // speed, the fades and the dissolve together.
+        var changes = plan.BuildPropertyCommands();
+        changes.AddRange(plan.BuildTransitionCommands());
+        var command = new SetClipSpeedCommand(clip, before, after, changes.Count > 0 ? changes : null);
         _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id }, TransitionNote(plan));
     }
@@ -808,6 +812,7 @@ public sealed class TimelineEditService : ITimelineEditService
     private string? Validate(EditPlan plan)
     {
         plan.ReconcileTransitions();
+        plan.ClampFades();
         foreach (var track in plan.AffectedTracks)
         {
             if (TimelineValidator.ValidateTrack(track, plan.EffectiveClips(track), plan.Rate, FindAsset) is { } error)

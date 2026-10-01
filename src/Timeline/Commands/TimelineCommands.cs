@@ -173,31 +173,31 @@ public sealed class SetClipPropertiesCommand(Clip clip, ClipPropertyValues befor
 /// started removes it.
 /// </summary>
 /// <remarks>
-/// <paramref name="transitionChanges"/>: dissolves the speed change removed because their cut opened (D025 §5). They
-/// belong to the same step: Execute runs them after the clip changes, Undo undoes them (in reverse) before the clip
-/// goes back. Merged steps keep every one of them, so one Undo after any chain of speed changes restores the clip and
-/// every dissolve it lost; a chain that returns to the starting speed but removed a dissolve is kept as a step (it
-/// would otherwise leave the removal without an undo).
+/// <paramref name="changes"/>: what the speed change does besides the timing — dissolves it removed because their cut
+/// opened (D025 §5) and fades it cut to the shorter clip (§2). They belong to the same step: Execute runs them after
+/// the clip changes, Undo undoes them (in reverse) before the clip goes back. Merged steps keep every one of them, so
+/// one Undo after any chain of speed changes restores the clip, its fades and every dissolve it lost; a chain that
+/// returns to the starting speed but made such a change is kept as a step (it would otherwise be left without an undo).
 /// </remarks>
 public sealed class SetClipSpeedCommand(Clip clip, ClipState before, ClipState after,
-    IReadOnlyList<IUndoableCommand>? transitionChanges = null) : IMergeableCommand
+    IReadOnlyList<IUndoableCommand>? changes = null) : IMergeableCommand
 {
     public Clip Clip { get; } = clip;
     public ClipState Before { get; } = before;
     public ClipState After { get; } = after;
-    public IReadOnlyList<IUndoableCommand> TransitionChanges { get; } = transitionChanges ?? Array.Empty<IUndoableCommand>();
+    public IReadOnlyList<IUndoableCommand> Changes { get; } = changes ?? Array.Empty<IUndoableCommand>();
 
     public string Description => "Change Speed";
 
     public void Execute()
     {
         After.ApplyTo(Clip);
-        foreach (var change in TransitionChanges) change.Execute();
+        foreach (var change in Changes) change.Execute();
     }
 
     public void Undo()
     {
-        for (var i = TransitionChanges.Count - 1; i >= 0; i--) TransitionChanges[i].Undo();
+        for (var i = Changes.Count - 1; i >= 0; i--) Changes[i].Undo();
         Before.ApplyTo(Clip);
     }
 
@@ -207,7 +207,7 @@ public sealed class SetClipSpeedCommand(Clip clip, ClipState before, ClipState a
         if (next is not SetClipSpeedCommand n || n.Clip != Clip || n.Before != After)
             return false;
 
-        var changes = TransitionChanges.Concat(n.TransitionChanges).ToList();
+        var changes = Changes.Concat(n.Changes).ToList();
         if (n.After != Before || changes.Count > 0)
             merged = new SetClipSpeedCommand(Clip, Before, n.After, changes);
         return true;

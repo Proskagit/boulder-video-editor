@@ -141,11 +141,28 @@ public sealed class InspectorFadeTests : IAsyncLifetime
     }
 
     [Fact]
-    public void A_stored_fade_longer_than_a_trimmed_clip_is_shown_as_stored_and_never_coerced_into_an_edit()
+    public void A_trim_shorter_than_the_fade_shows_the_cut_fade_and_the_arrow_lowers_it()
     {
         var clip = AddVideo();
         Assert.True(_edit.SetClipProperties(clip.Id, new ClipPropertyChange { Fade = new FadeProperties(F(80), MediaTime.Zero) }).Success);
         Assert.True(_edit.TrimClip(clip.Id, ClipEdge.End, F(30)).Success);
+
+        Select(clip);
+        Assert.Equal((30m, 30m), (Inspector.FadeInFrames, Inspector.MaxFadeInFrames));
+
+        Inspector.FadeInFrames = 29;                           // the down arrow
+        Assert.Equal(F(29), clip.FadeIn);
+        Assert.Equal(29m, Inspector.FadeInFrames);
+    }
+
+    /// <summary>A fade longer than its clip can only come from a file saved before fades were cut to the clip (D025 §2,
+    /// 2026-09-30); the loader keeps every tick, and the Inspector shows it without coercing it into an edit.</summary>
+    [Fact]
+    public void A_stored_fade_longer_than_the_clip_from_a_file_is_shown_as_stored_and_never_coerced_into_an_edit()
+    {
+        var clip = AddVideo();
+        Assert.True(_edit.TrimClip(clip.Id, ClipEdge.End, F(30)).Success);
+        clip.FadeIn = F(80);                                   // as loaded from such a file
         var steps = _undo.CurrentPosition;
 
         Select(clip);

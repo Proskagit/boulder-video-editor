@@ -271,7 +271,8 @@ Scope: the D025 §2 rule in Core; the fade property group; split / trim / speed 
 occlusion and prefetch edges; the per-sample envelope in `AudioMix` for the Preview's mixer and the export.
 - PR: `fade(i)` and `g(k)` exactly as D025 §2 (ramp `(k+1)/(F+1)`, clamp to `N`, product of the two ramps, frame and
   sample boundaries); a fade change is presentation-only (no decoder reopened).
-- PR: split / trim / move / speed / re-grid keep the stored fades as D025 §2; split sets the inner edges to 0; every
+- PR: split / trim / move / speed / re-grid keep the stored fades as D025 §2 (since 2026-09-30: cut to a clip left
+  shorter than them, in the same step); split sets the inner edges to 0; every
   edit and its fade changes are one undo step; undo / redo restore every value exactly.
 - PR: a fading layer never occludes the layers below; the Preview opens a lower layer ahead of a fade edge (no
   placeholder at the fade's start during playback).

@@ -72,6 +72,66 @@ public sealed class EditPlan
     /// the left part, D025); only the groups given in <paramref name="after"/> change. Timing validation ignores them.</summary>
     public void SetProperties(Clip clip, ClipPropertyValues after) => _properties.Add((clip, after));
 
+    /// <summary>
+    /// Fades never exceed their clip (D025 §2, product owner 2026-09-30): a clip the plan shortens — trim, split, speed,
+    /// re-grid — has a stored Fade In / Fade Out longer than its planned frames cut to its length, in the same step
+    /// (undo restores them). Inserted clips (a split's right part, not in the model yet) are cut directly.
+    /// </summary>
+    public void ClampFades()
+    {
+        var rate = Rate;
+        foreach (var (clip, update) in _updates)
+        {
+            var planned = PlannedFade(clip);
+            var clamped = Clamp(planned, Frames(update.After), rate);
+            if (clamped != planned) SetFade(clip, clamped);
+        }
+        foreach (var (_, clip) in _inserts)
+        {
+            var clamped = Clamp(FadeProperties.Of(clip), Frames(ClipState.Capture(clip)), rate);
+            (clip.FadeIn, clip.FadeOut) = (clamped.FadeIn, clamped.FadeOut);
+        }
+
+        long Frames(ClipState state) => (state.Start + state.Duration).ToFrameFloor(rate) - state.Start.ToFrameFloor(rate);
+    }
+
+    /// <summary>The fades cut to <paramref name="frames"/> whole frames of <paramref name="rate"/>; each one unchanged
+    /// when it fits.</summary>
+    public static FadeProperties Clamp(FadeProperties fade, long frames, FrameRate rate)
+    {
+        var max = MediaTime.FromFrame(Math.Max(0, frames), rate);
+        return new FadeProperties(
+            TransitionRules.Frames(fade.FadeIn, rate) > frames ? max : fade.FadeIn,
+            TransitionRules.Frames(fade.FadeOut, rate) > frames ? max : fade.FadeOut);
+    }
+
+    /// <summary>The fades the plan leaves on an existing clip.</summary>
+    private FadeProperties PlannedFade(Clip clip) =>
+        _properties.LastOrDefault(p => p.Clip == clip && p.After.Fade is not null).After.Fade ?? FadeProperties.Of(clip);
+
+    private void SetFade(Clip clip, FadeProperties fade)
+    {
+        var index = _properties.FindLastIndex(p => p.Clip == clip);
+        if (index >= 0) _properties[index] = (clip, _properties[index].After with { Fade = fade });
+        else _properties.Add((clip, new ClipPropertyValues(null, null, null, fade)));
+    }
+
+    /// <summary>The commands for the property changes alone (<see cref="SetProperties"/>, <see cref="ClampFades"/>).</summary>
+    public List<IUndoableCommand> BuildPropertyCommands()
+    {
+        var commands = new List<IUndoableCommand>();
+        foreach (var (clip, after) in _properties)
+        {
+            var before = ClipPropertyValues.Capture(clip);
+            var full = new ClipPropertyValues(after.Visual ?? before.Visual, after.Audio ?? before.Audio, after.Text ?? before.Text,
+                after.Fade ?? before.Fade);
+            var fields = ClipPropertyValues.Diff(before, full);
+            if (fields != ClipPropertyFields.None)
+                commands.Add(new SetClipPropertiesCommand(clip, before, full, fields));
+        }
+        return commands;
+    }
+
     // --- Transitions (D025) ------------------------------------------------------------------------------------------
 
     public void AddTransition(Track track, Transition transition) => _transitionAdds.Add((track, transition));
@@ -225,16 +285,7 @@ public sealed class EditPlan
         foreach (var (track, clip) in _inserts)
             commands.Add(new InsertClipCommand(track, clip, description));
 
-        foreach (var (clip, after) in _properties)
-        {
-            var before = ClipPropertyValues.Capture(clip);
-            var full = new ClipPropertyValues(after.Visual ?? before.Visual, after.Audio ?? before.Audio, after.Text ?? before.Text,
-                after.Fade ?? before.Fade);
-            var fields = ClipPropertyValues.Diff(before, full);
-            if (fields != ClipPropertyFields.None)
-                commands.Add(new SetClipPropertiesCommand(clip, before, full, fields));
-        }
-
+        commands.AddRange(BuildPropertyCommands());
         commands.AddRange(BuildTransitionCommands());
 
         if (commands.Count == 0)

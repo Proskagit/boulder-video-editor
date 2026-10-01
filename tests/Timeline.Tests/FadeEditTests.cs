@@ -7,7 +7,8 @@ namespace AiVideoEditor.Timeline.Tests;
 
 /// <summary>
 /// Phase 10 Step 10.4 (D025 §2): editing fades through the edit service — whole frames, limits, undo merging — and
-/// what split, trim, move and speed do with them (stored values kept; a split takes the fades to the outer edges).
+/// what split, trim, move and speed do with them (a split takes the fades to the outer edges; an edit that makes the
+/// clip shorter than a fade cuts the fade to the clip in the same step — product owner, 2026-09-30).
 /// </summary>
 public class FadeEditTests
 {
@@ -117,7 +118,7 @@ public class FadeEditTests
 
         var (left, right) = (f.V1.Clips[0], f.V1.Clips[1]);
         Assert.Same(clip, left);
-        Assert.Equal((F(f, 20), MediaTime.Zero), (left.FadeIn, left.FadeOut));    // rendered as 10 frames (clamped)
+        Assert.Equal((F(f, 10), MediaTime.Zero), (left.FadeIn, left.FadeOut));    // 20 cut to the 10-frame part
         Assert.Equal((MediaTime.Zero, F(f, 40)), (right.FadeIn, right.FadeOut));
         Assert.Equal("Split Clip", Top(f));
         var after = f.Snapshot();
@@ -139,22 +140,92 @@ public class FadeEditTests
     }
 
     [Fact]
-    public void Trim_move_and_speed_keep_the_stored_fades()
+    public void A_split_right_part_shorter_than_the_fade_out_gets_it_cut()
+    {
+        var f = WithVideo(out var clip);
+        var frames = Frames(f, clip);
+        SetFades(f, clip, MediaTime.Zero, F(f, 200));
+        var before = f.Snapshot();
+
+        Assert.True(f.Service.Split(F(f, frames - 50)).Success);           // the right part: 50 frames
+
+        var right = f.V1.Clips[1];
+        Assert.Equal((MediaTime.Zero, F(f, 50)), (right.FadeIn, right.FadeOut));
+        f.UndoRedo.Undo();
+        Assert.Equal(before, f.Snapshot());
+        Assert.Equal(F(f, 200), clip.FadeOut);
+    }
+
+    [Fact]
+    public void A_trim_shorter_than_the_fades_cuts_them_in_the_same_step_and_undo_restores_them()
+    {
+        var f = WithVideo(out var clip);
+        SetFades(f, clip, F(f, 50), F(f, 60));
+        var before = f.Snapshot();
+
+        Assert.True(f.Service.TrimClip(clip.Id, ClipEdge.End, F(f, 30)).Success);   // shorter than both fades
+        Assert.Equal(30, Frames(f, clip));
+        Assert.Equal((F(f, 30), F(f, 30)), (clip.FadeIn, clip.FadeOut));
+        Assert.Equal("Trim Clip", Top(f));
+        f.AssertValid();
+
+        Assert.True(f.Service.TrimClip(clip.Id, ClipEdge.End, F(f, 200)).Success);  // longer again: the cut fades stay cut
+        Assert.Equal((F(f, 30), F(f, 30)), (clip.FadeIn, clip.FadeOut));
+
+        f.UndoRedo.Undo();
+        f.UndoRedo.Undo();
+        Assert.Equal(before, f.Snapshot());
+        Assert.Equal((F(f, 50), F(f, 60)), (clip.FadeIn, clip.FadeOut));
+    }
+
+    [Fact]
+    public void Move_and_a_slower_speed_leave_fades_that_fit_unchanged()
     {
         var f = WithVideo(out var clip);
         SetFades(f, clip, F(f, 50), F(f, 60));
 
-        Assert.True(f.Service.TrimClip(clip.Id, ClipEdge.End, F(f, 30)).Success);   // shorter than both fades
-        Assert.Equal(30, Frames(f, clip));
-        Assert.Equal((F(f, 50), F(f, 60)), (clip.FadeIn, clip.FadeOut));
-        Assert.Equal((30L, 30L), Core.Playback.FadeRule.EffectiveFrames(clip, f.Rate));
-
         Assert.True(f.Service.MoveClips(new[] { clip.Id }, 7).Success);
-        Assert.True(f.Service.SetClipSpeed(clip.Id, ClipSpeed.FromSteps(40)).Success);   // 2×
-        Assert.Equal((F(f, 50), F(f, 60)), (clip.FadeIn, clip.FadeOut));
+        Assert.True(f.Service.SetClipSpeed(clip.Id, ClipSpeed.FromSteps(10)).Success);   // 0.5×: longer
+        Assert.True(f.Service.SetClipSpeed(clip.Id, ClipSpeed.FromSteps(40)).Success);   // 2×: ~150 frames, both fit
 
-        Assert.True(f.Service.TrimClip(clip.Id, ClipEdge.End, F(f, 7 + 200)).Success);  // longer again: the fades apply fully
-        Assert.Equal((50L, 60L), Core.Playback.FadeRule.EffectiveFrames(clip, f.Rate));
+        Assert.Equal((F(f, 50), F(f, 60)), (clip.FadeIn, clip.FadeOut));
+    }
+
+    [Fact]
+    public void A_faster_speed_cuts_the_fades_in_its_step_and_one_undo_restores_speed_and_fades()
+    {
+        var f = WithVideo(out var clip, seconds: 2);                      // 59 frames at 29.97
+        SetFades(f, clip, F(f, 40), F(f, 45));
+        var before = f.Snapshot();
+
+        Assert.True(f.Service.SetClipSpeed(clip.Id, ClipSpeed.FromSteps(40)).Success);   // 2×: 29 frames
+        var half = Frames(f, clip);
+        Assert.Equal(29, half);
+        Assert.Equal((F(f, half), F(f, half)), (clip.FadeIn, clip.FadeOut));
+        Assert.True(f.Service.SetClipSpeed(clip.Id, ClipSpeed.FromSteps(80)).Success);   // 4×: merged
+        var quarter = Frames(f, clip);
+        Assert.Equal((F(f, quarter), F(f, quarter)), (clip.FadeIn, clip.FadeOut));
+        Assert.Equal("Change Speed", Top(f));
+        f.AssertValid();
+
+        f.UndoRedo.Undo();                                                // one step: speed and fades
+        Assert.Equal(before, f.Snapshot());
+        f.UndoRedo.Redo();
+        Assert.Equal((F(f, quarter), F(f, quarter)), (clip.FadeIn, clip.FadeOut));
+    }
+
+    [Fact]
+    public void Back_to_the_first_speed_brings_the_cut_fades_back()
+    {
+        var f = WithVideo(out var clip, seconds: 2);
+        SetFades(f, clip, F(f, 40), F(f, 45));
+        var before = f.Snapshot();
+
+        Assert.True(f.Service.SetClipSpeed(clip.Id, ClipSpeed.FromSteps(40)).Success);
+        Assert.True(f.Service.SetClipSpeed(clip.Id, ClipSpeed.Normal).Success);           // typed back
+
+        Assert.Equal(before, f.Snapshot());
+        Assert.Equal((F(f, 40), F(f, 45)), (clip.FadeIn, clip.FadeOut));
     }
 
     [Fact]
@@ -175,14 +246,16 @@ public class FadeEditTests
     }
 
     [Fact]
-    public void Changing_one_fade_keeps_the_other_even_when_it_exceeds_a_shorter_clip()
+    public void After_a_trim_cut_the_fade_the_other_fade_can_be_changed_and_the_cut_one_lowered()
     {
         var f = WithVideo(out var clip);
         SetFades(f, clip, F(f, 100), MediaTime.Zero);
         Assert.True(f.Service.TrimClip(clip.Id, ClipEdge.End, F(f, 40)).Success);
+        Assert.Equal(F(f, 40), clip.FadeIn);
 
         Assert.True(SetFades(f, clip, clip.FadeIn, F(f, 10)).Success);
+        Assert.True(SetFades(f, clip, F(f, 39), clip.FadeOut).Success);   // one frame down, as the arrow does
 
-        Assert.Equal((F(f, 100), F(f, 10)), (clip.FadeIn, clip.FadeOut));
+        Assert.Equal((F(f, 39), F(f, 10)), (clip.FadeIn, clip.FadeOut));
     }
 }
