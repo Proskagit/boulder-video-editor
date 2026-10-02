@@ -339,6 +339,39 @@ command; no push, merge, pull request or branch deletion without direct permissi
   - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; `dotnet test` (whole solution)
     2181 passed, 2 skipped (4K), 0 failed — Core 448, Timeline 361, Project 371 (+40), UI 464 (+23), Export 99, Rendering
     58, Video 294, ExportEndToEnd 86 + 2. No real-app run: 11.7 has no UI (the plan's scenarios 22–29 are run at 11.8).
+- Step 11.7 accepted by the product owner (2026-10-02): `55606fd`.
+- Step 11.8 implemented (2026-10-02, D026 "Refined in Step 11.8") — awaiting the product owner's acceptance.
+  - "Clear list": not added (minimal safe option, reasons in D026) — one ✕ per entry.
+  - `ProjectFileWorkflow.OpenFolderAsync(folder)`: the part of Open after the picker (unsaved-changes question, `OpenAsync`,
+    discarding the recovery file after Don't Save), shared by `OpenProjectAsync` and the list.
+  - `RecentProjectsViewModel` + `RecentProjectItemViewModel` + `RecentProjectAvailability` (`src/UI/ViewModels/Panels`);
+    `ToolbarViewModel.Recent` (new last optional parameter); `ToolbarView`: `DropDownButton` "Recent" after Open with a
+    400-wide flyout (header, empty state, rows: name / folder trimmed at the start / state, ✕); the code-behind forwards
+    the flyout's `Opened` / `Closed` and hides it on `CloseRequested`. DI: `RecentProjectsViewModel` transient.
+  - Tests (new): `UI.Tests/RecentProjectsUiTests` (29, on a UI-thread stand-in with the real ProjectService, workflow and
+    store; the store wrapped to hold / fail checks and removals and to answer a reading late: empty state, order, names /
+    folders, every opening reads again, Open / Save As at the next opening, overtaken readings, Checking → Available /
+    Unavailable, failing check, slow check vs the UI and the list, state changes on the UI thread only, closing during a
+    check, one shared check for repeated openings, replaced items, removed entry not brought back by a late check or
+    reading, open through the workflow, Checking / Unavailable never open, no second open, open failure keeps project and
+    entry, Cancel / Don't Save, an open ending while the drop-down is open again, remove, remove the last → empty state,
+    failed / throwing removal ×2, editing lock); `UI.Tests/RecentProjectsViewBindingTests` (3: the button after Open and
+    the lock, hidden without a view model, the row template — trimming, commands, state, tooltip, fixed width).
+  - Mutations (each reverted; 16): list read once → 8 failures; Checking / Unavailable openable → 3; a new check at every
+    opening → 1; late reading not dropped → 2; removal not dropping older readings → 1; replaced items still able to act → 0
+    at first (no test used a replaced item) — test added → 1; no busy guard → 1; lock ignored → 2; failed removal shown as
+    removed → 2; open without the unsaved-changes question → 1; check started on the UI thread → 1; failing check
+    available → 1; no reading after an open while open again → 1; `OpenFolderAsync` opening another folder → 5; folder not
+    trimmed in the view → 1; button not bound to the lock in the view → 1. An `IsDetached` early return in the
+    availability tracking survived as equivalent (a replaced item is not shown and can't act) and was removed.
+  - Real-app run (Claude, Debug build of the final code, UI Automation, the real `%LOCALAPPDATA%` list — the config folder
+    didn't exist before; the test entries were removed through the UI at the end, leaving an empty `recent-projects.json`
+    and `recent-projects.lock`): scenarios 22, 25, 26, 29, 30–38 passed, 23 only from the list (scenario 35), 24, 27, 28
+    not run (automated only), 39 n/a; a defect found and fixed during the run: the 460-wide content was wider than the
+    Fluent flyout's maximum, cutting the ✕ column off — now 400 (and the ✕ centred). Details in the plan's results log.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; `dotnet test` (whole solution)
+    2213 passed, 2 skipped (4K), 0 failed — Core 448, Timeline 361, Project 371, UI 496 (+32), Export 99, Rendering 58,
+    Video 294, ExportEndToEnd 86 + 2.
 
 ## Phase 10 (complete)
 

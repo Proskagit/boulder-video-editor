@@ -92,6 +92,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ProjectFileWorkflow>();
 
         // --- UI view models -------------------------------------------------------
+        services.AddTransient<RecentProjectsViewModel>();
         services.AddTransient<ToolbarViewModel>();
         services.AddTransient<MediaBrowserViewModel>();
         services.AddTransient<PreviewViewModel>();

@@ -7,6 +7,47 @@
 
       <Button Content="New" Command="{Binding NewProjectCommand}" ToolTip.Tip="New Project (Ctrl+N)"/>
       <Button Content="Open" Command="{Binding OpenCommand}" ToolTip.Tip="Open Project (Ctrl+O)"/>
+
+      <!-- Recent ▾ (D026 §6, Step 11.8): read again and checked each time it opens; see RecentProjectsViewModel. -->
+      <DropDownButton x:Name="RecentButton" Content="Recent" DataContext="{Binding Recent}"
+                      IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}"
+                      IsEnabled="{Binding IsEnabled}" ToolTip.Tip="Open a recent project">
+        <DropDownButton.Flyout>
+          <Flyout Placement="BottomEdgeAlignedLeft">
+            <!-- 400: inside the Fluent flyout's maximum width (456 with its padding), so the ✕ column is never cut off. -->
+            <StackPanel Width="400" Spacing="2">
+              <TextBlock Text="RECENT PROJECTS" FontSize="10" FontWeight="Bold" Foreground="#9A9A9A" Margin="6,2,6,4"/>
+              <TextBlock Text="No recent projects yet. Projects you open or save appear here."
+                         IsVisible="{Binding IsEmpty}" Foreground="#AAAAAA" FontSize="12"
+                         TextWrapping="Wrap" Margin="6,2,6,6"/>
+              <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,1">
+                      <Button Grid.Column="0" Command="{Binding OpenCommand}" ToolTip.Tip="{Binding ToolTip}"
+                              HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                              Background="Transparent" Padding="6,3">
+                        <Grid ColumnDefinitions="*,Auto">
+                          <StackPanel Grid.Column="0" Spacing="1">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding FolderPath}" FontSize="11" Foreground="#8A8A8A"
+                                       TextTrimming="PrefixCharacterEllipsis"/>
+                          </StackPanel>
+                          <TextBlock Grid.Column="1" Text="{Binding StateText}" FontSize="11" Foreground="#C0864A"
+                                     VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        </Grid>
+                      </Button>
+                      <Button Grid.Column="1" Content="✕" Command="{Binding RemoveCommand}" Margin="4,0,0,0"
+                              VerticalAlignment="Stretch" VerticalContentAlignment="Center"
+                              ToolTip.Tip="Remove from the list (the project itself is not changed)"/>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Flyout>
+        </DropDownButton.Flyout>
+      </DropDownButton>
       <Button Content="Save" Command="{Binding SaveCommand}" ToolTip.Tip="Save Project (Ctrl+S)"/>
       <Button Content="Save As" Command="{Binding SaveAsCommand}" ToolTip.Tip="Save Project As (Ctrl+Shift+S)"/>
 

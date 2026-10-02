@@ -60,14 +60,29 @@ and `RecentProjectsCompositionTests`; in the real app the list can only be seen 
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 22 | Added by Open / Save As / Recover | Open a project; Save As to a new folder; recover a project that has a folder | Each is at the top of `Recent ▾` (next to Open) | `RecentProjectsWorkflowTests` (Open, Save As, first Save, Recover with a folder / gone / never saved) | planned (11.8) |
-| 23 | Failed Open | Open a folder without a project / a damaged project | The list is unchanged | `RecentProjectsWorkflowTests` (failed Open ×3, cancelled picker, Cancel, failed Save As / Recover) | planned (11.8) |
-| 24 | Limit and duplicates | Open 11 projects; open one again with a differently cased path | 10 entries, the newest first; no duplicate | `RecentProjectsStoreTests` (limit, spellings, update), `RecentProjectsWorkflowTests` (Open again) | planned (11.8) |
-| 25 | Unavailable project | Rename a listed project's folder; open `Recent ▾` | The entry stays, shown as unavailable, and can be removed; choosing it opens nothing and keeps the current project | `RecentProjectsStoreTests` (availability, remove), `RecentProjectsWorkflowTests` (unavailable stay listed) — the UI at 11.8 | planned (11.8) |
-| 26 | Unsaved changes | With unsaved changes choose a recent project | Save / Don't Save / Cancel as for Open | — | planned |
-| 27 | Two instances | Open different projects in two running instances | Both entries are kept | `RecentProjectsStoreTests` (two instances, eight in parallel, held lock) | planned (11.8) |
-| 28 | Damaged list | Damage the list file; start the app | The app starts; the list is empty, the file kept as `recent-projects.<time>.damaged`; the next Open starts a new list (D026 "Refined in Step 11.7") | `RecentProjectsStoreTests` (damaged contents, bad entries, newer version, unreadable file) | planned (11.8) |
-| 29 | During an export | Start an export | `Recent ▾` is disabled | — | planned |
+| 22 | Added by Open / Save As / Recover | Open a project; Save As to a new folder; recover a project that has a folder | Each is at the top of `Recent ▾` (next to Open) | `RecentProjectsWorkflowTests` (Open, Save As, first Save, Recover with a folder / gone / never saved), `RecentProjectsUiTests` (next opening) | app 11.8 (Claude), passed |
+| 23 | Failed Open | Open a folder without a project / a damaged project | The list is unchanged | `RecentProjectsWorkflowTests` (failed Open ×3, cancelled picker, Cancel, failed Save As / Recover) | app 11.8: only a failed open from the list (35); via Open — automated only |
+| 24 | Limit and duplicates | Open 11 projects; open one again with a differently cased path | 10 entries, the newest first; no duplicate | `RecentProjectsStoreTests` (limit, spellings, update), `RecentProjectsWorkflowTests` (Open again) | not run in the app (automated only) |
+| 25 | Unavailable project | Rename a listed project's folder; open `Recent ▾` | The entry stays, shown as unavailable, and can be removed; choosing it opens nothing and keeps the current project | `RecentProjectsStoreTests` (availability, remove), `RecentProjectsWorkflowTests` (unavailable stay listed), `RecentProjectsUiTests` | app 11.8 (Claude), passed |
+| 26 | Unsaved changes | With unsaved changes choose a recent project | Save / Don't Save / Cancel as for Open | `RecentProjectsUiTests` (Cancel, Don't Save) | app 11.8 (Claude), passed |
+| 27 | Two instances | Open different projects in two running instances | Both entries are kept | `RecentProjectsStoreTests` (two instances, eight in parallel, held lock) | not run in the app (automated only) |
+| 28 | Damaged list | Damage the list file; start the app | The app starts; the list is empty, the file kept as `recent-projects.<time>.damaged`; the next Open starts a new list (D026 "Refined in Step 11.7") | `RecentProjectsStoreTests` (damaged contents, bad entries, newer version, unreadable file) | not run in the app (automated only) |
+| 29 | During an export | Start an export; after it, open `Recent ▾` | `Recent ▾` is disabled, a click opens nothing; enabled again afterwards | `RecentProjectsUiTests` (editing lock), `RecentProjectsViewBindingTests` | app 11.8 (Claude), passed |
+
+### Step 11.8 — the `Recent ▾` drop-down (D026 "Refined in Step 11.8")
+
+| # | Scenario | Steps | Expected | Automated coverage | Status |
+|---|---|---|---|---|---|
+| 30 | Placement, empty list | Start without a list; open `Recent ▾` | The button right after Open; "No recent projects yet. …" | `RecentProjectsViewBindingTests`, `RecentProjectsUiTests` (empty) | app 11.8 (Claude), passed |
+| 31 | First Save, Save As again | New; Save (→ Save As) to folder A; Save As to folder B | A first, then B first, A second | `RecentProjectsWorkflowTests`, `RecentProjectsUiTests` | app 11.8 (Claude), passed |
+| 32 | Up to date at every opening | Open more projects; open `Recent ▾` again | The new entries on top in the store's order | `RecentProjectsUiTests` (every opening reads again, overtaken reading) | app 11.8 (Claude), passed |
+| 33 | Open an available project | Choose an available entry | The drop-down closes, the project opens ("Opened project …"), it moves to the top | `RecentProjectsUiTests` (open through the workflow, no second open) | app 11.8 (Claude), passed |
+| 34 | Checking / Unavailable | An entry on an unreachable network path; a renamed folder | "Checking…" (greyed, not openable) until the check answers, then "Unavailable"; the renamed one "Unavailable"; clicking either opens nothing; the UI stays responsive | `RecentProjectsUiTests` (states, failing / slow check, UI thread) | app 11.8 (Claude), passed |
+| 35 | Open fails | Damage a listed project after it showed as available; choose it | "Couldn't open the project. …", the current project (with its unsaved changes) and the entry stay | `RecentProjectsUiTests` (open failure) | app 11.8 (Claude), passed |
+| 36 | Remove | ✕ on an available and on an unavailable entry; then on every entry | Each disappears at once, the project folders are untouched; the empty state after the last | `RecentProjectsUiTests` (remove, failed removal, last entry) | app 11.8 (Claude), passed |
+| 37 | Fast opening / closing | Open and close the drop-down repeatedly while a slow check runs | No freeze, no error; the entry ends in its right state | `RecentProjectsUiTests` (one shared check, closing during a check, replaced items) | app 11.8 (Claude), passed |
+| 38 | Long and equal names | Projects of one name in two folders; a project with a very long name and folder | One line each, trimmed with "…" (the folder from the start), ✕ fully visible; equal names told apart by the folder | `RecentProjectsViewBindingTests` (trimming, width) | app 11.8 (Claude), passed after a fix (below) |
+| 39 | Clear list | — | Not part of 11.8 (D026 "Refined in Step 11.8") | — | n/a |
 
 ## Regression (Step 11.9)
 
@@ -136,3 +151,26 @@ sound) and `tone.wav` relinked: thumbnail and waveforms made; Undo, Undo: no thu
 open); Redo, Redo: all back. Batch of 16: after Undo every item shows the placeholder it showed at open, after Redo the
 thumbnails again. D5 — a folder with only unusable matches: "Files with matching names were found in the folder, but none
 of them can be used."; a folder without matches: "No offline media file was found in the folder." All passed.
+
+### 2026-10-02 — Step 11.8 manual run (Claude), uncommitted Step 11.8 code on `55606fd`, Debug
+
+Debug build of the final Step 11.8 code from the session's artifacts folder; fixtures under `%TEMP%\aive118` (Trip,
+`x\Film` and `y\Film`, a project with a 100-character name; each with three media and clips); UI Automation pinned to the
+test process; the app's real list `%LOCALAPPDATA%\AiVideoEditor\config\recent-projects.json` (the folder didn't exist
+before the run). An unreachable network entry (`\\10.255.255.1\share\Remote`) was put into the list file by hand.
+
+| # | Result | Observed |
+|---|---|---|
+| 30 | pass | `Recent ▾` after Open; the empty state text; Esc closes it. |
+| 22 / 31 | pass | Open Trip → listed; New, Save → Save As "Saved one" → first; Save As "Saved two" → first, then Saved one, Trip; Recover (below) → first. |
+| 32 | pass | After opening `x\Film`, `y\Film` and the long one through Open, the next opening showed all six, newest first. |
+| 33 | pass | Trip chosen: the drop-down closed, "Opened project "Trip".", Trip first. |
+| 34 / 25 | pass | The network entry "Checking…" (greyed, open disabled, ✕ enabled) for 22 s, then "Unavailable"; "Saved one" renamed on disk → "Unavailable"; a click on it opened nothing (status "Ready.", the drop-down stayed open); the window answered meanwhile. |
+| 37 | pass | Eight openings / closings in 17 s during the network check: no freeze or error; it ended "Unavailable". |
+| 36 | pass | ✕ on `x\Film` (available) and "Saved one" (unavailable): gone at once, gone from the file, both folders untouched. At the end ✕ on every entry → the empty state, `"projects": []`. |
+| 26 | pass | Trip edited (`*`), `Saved two` chosen: the question; Cancel → still `Trip*`, the list file byte-identical; Don't Save → `Saved two` opened (Trip's edit not saved); edited, Trip chosen, Save → `Saved two` saved with the edit, Trip opened. |
+| 35 | pass | `Trip*`; `y\Film` shown available, its `project.json` damaged, chosen, Don't Save → "Couldn't open the project. The project file is damaged and can't be opened.", still `Trip*`, the entry kept (file restored afterwards). |
+| 22 (Recover) | pass | `y\Film` opened from the list, edited, its entry removed with ✕, autosave written, the test process killed; restart → the offer, Recover → `Film*`, `y\Film` first in the list again. |
+| 29 | pass | Export of the recovered project: `Recent ▾` disabled 0.25 s after the start, a click opened nothing; after "Export finished" enabled, the drop-down worked. |
+| 38 | pass after a fix | Equal names "Film" told apart by their folders; the long name and folder trimmed with "…". First run: the content (460 wide) was wider than the Fluent flyout's maximum (456 with padding), the ✕ column was cut off and a horizontal scroll bar showed — fixed (400, ✕ centred), re-checked. |
+| 23, 24, 27, 28 | not run | Automated only (store and workflow tests); 23 checked from the list as 35. |

@@ -354,8 +354,14 @@ recovery, unsaved changes).
   about 2 s) plus an in-process semaphore; damaged → set aside as `*.damaged`, newer format or unreadable → never
   overwritten; errors are logged, never thrown. Availability (`IsAvailableAsync`: `project.json` present) is runtime
   only, off the calling thread, without the lock. `ProjectFileWorkflow` adds an entry after a successful Open
-  (`OpenAsync(folder)`), Save As and Recover of a project with a folder — nothing else. The `Recent ▾` UI follows in
-  11.8. `project.json` stays v3.
+  (`OpenAsync(folder)`), Save As and Recover of a project with a folder — nothing else. UI (Step 11.8):
+  `RecentProjectsViewModel` (`ToolbarViewModel.Recent`; the `DropDownButton` after Open, `ToolbarView` calls
+  `OnOpenedAsync` / `OnClosed` from the flyout's events and hides it on `CloseRequested`): reads the list at every opening,
+  one `RecentProjectItemViewModel` per entry per reading with `Availability` Checking / Available / Unavailable from
+  `IsAvailableAsync` (one running check per folder shared by readings; results reach only their own item; readings
+  overtaken or older than a removal are dropped); `OpenCommand` (Available only) → `ProjectFileWorkflow.OpenFolderAsync`
+  (the confirmed open shared with Open), `RemoveCommand` → `RemoveAsync`; one action at a time; `EditingLock` disables
+  the button and the commands. `project.json` stays v3.
 
 ## MVVM
 

@@ -1800,6 +1800,35 @@ owner after the Step 11.7 audit; no PO decision changed):
   has no time limit — a disconnected network path may answer late; the UI of 11.8 shows "checking" until then — and
   never takes the lock, so it never holds up a change of the list.
 
+Refined in Step 11.8 (2026-10-02), recent projects UI (implementation choices within §6; the product owner left the
+"Clear list" question to the minimal safe option):
+- `Recent ▾` is a `DropDownButton` right after Open in the toolbar, with a flyout of fixed width (400, inside the Fluent
+  flyout's maximum): a header, an empty state ("No recent projects yet. Projects you open or save appear here."), and per
+  entry an open button (the project's name, its folder below in smaller grey type — trimmed at the start, so the
+  folder's own name stays visible — and the state on the right) followed by a ✕ remove button. Long names and folders
+  are trimmed with an ellipsis; the full folder is in the tooltip. Disabled while the `EditingLock` is held (export).
+- No "Clear list": with at most 10 entries, each removable with one click, a command that empties the whole list adds a
+  confirmation, a partial-failure state and an accidental-loss risk for no real gain; D026 requires only a clear way to
+  remove an entry. It can be added later without changing the store.
+- Every opening of the drop-down reads the list again (`GetAsync`) — nothing is cached from startup — and checks each
+  entry with `IsAvailableAsync` (started off the UI thread): **Checking** (not openable) → **Available** (openable) or
+  **Unavailable** (not openable; a check that fails counts as unavailable). Removing works in every state. No time limit
+  (Step 11.7): an entry on a disconnected drive stays Checking until its check answers, without holding up the UI, the
+  other entries or changes of the list.
+- Stale results: every reading makes new entry objects; a check's result only reaches the object it was started for, and
+  an object replaced by a later reading or removed can't open or remove anything. A reading overtaken by a later one, or
+  started before a removal, is dropped — a removed entry never comes back. One check per project at a time: an opening
+  while a project's check runs waits for that check instead of starting another.
+- Choosing an available entry closes the drop-down and calls `ProjectFileWorkflow.OpenFolderAsync` — the part of Open
+  after the folder picker (the unsaved-changes question, `OpenAsync`, the recovery file of discarded changes), now shared
+  by Open and the list. The list is updated only by the workflow after a successful open (Step 11.7); a cancel or a
+  failure keeps the current project, its unsaved changes and the entry, with the workflow's message. One action at a
+  time: while an entry is opened or removed, no entry can be opened or removed. If the drop-down was opened again
+  meanwhile, the list is read again when the open ends.
+- ✕ calls `RemoveAsync`; the entry disappears only once the store removed it. A removal that fails (false or an
+  exception) is reported in the status bar ("Couldn't remove "X" from the recent projects.") and the list is read again.
+  The project's folder is never touched.
+
 Status: Accepted (2026-10-01, PO-1…PO-9). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 11 — Media
 relink & recent projects: steps"; the implementation must follow PO-1…PO-9 as recorded here.
 

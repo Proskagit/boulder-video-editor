@@ -79,7 +79,10 @@ through the 11.4 check, a summary, the confirmed items applied as one undoable s
 the offer to search after an applied relink, the `EditingLock`) accepted (2026-10-02, `145d484`; the manual run of
 scenarios 7–21 found D1–D5 — Inspector state line, an undone relink's thumbnail / waveform, three texts — fixed in
 `5c4d2d9` and re-checked in the real app). Step 11.7 (recent projects core: `IRecentProjectsStore`, the list in the
-configuration folder, added after a successful Open, Save As and Recover) implemented — awaiting review.
+configuration folder, added after a successful Open, Save As and Recover) accepted (2026-10-02, `55606fd`). Step 11.8
+(`Recent ▾` next to Open: the list read at every opening, Checking / Available / Unavailable, open through the workflow,
+remove per entry, no "Clear list", disabled during an export) implemented; the real-app run of its scenarios done —
+awaiting acceptance.
 Details: `progress.md`.
 
 ## Previous

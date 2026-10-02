@@ -76,11 +76,20 @@ public sealed class ProjectFileWorkflow
         });
         if (folder is null) return false;
 
+        return await OpenFolderAsync(folder);
+    }
+
+    /// <summary>Opens the project in <paramref name="projectFolderPath"/> as Open does once a folder is picked: asks
+    /// about unsaved changes, then opens it. Used by Open and by the recent-projects list (D026 §6). Returns false if
+    /// cancelled or if the project couldn't be opened (the current project is then kept, including its unsaved changes
+    /// and their recovery file; the recent-projects list is changed only by a successful open).</summary>
+    public async Task<bool> OpenFolderAsync(string projectFolderPath)
+    {
         var previousId = _projectService.Current.Id;
         var decision = await ConfirmUnsavedChangesAsync("opening another project");
         if (decision == UnsavedChangesDecision.Cancel) return false;
 
-        if (!await OpenAsync(folder)) return false;
+        if (!await OpenAsync(projectFolderPath)) return false;
         if (decision == UnsavedChangesDecision.DontSave)
             await DiscardRecoveryQuietlyAsync(previousId);
         return true;

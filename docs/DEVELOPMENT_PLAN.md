@@ -456,7 +456,7 @@ status messages; `EditingLock`.
 - Manual: `docs/PHASE11_MANUAL_TEST_PLAN.md` relink scenarios (moved, renamed, temporarily unavailable files).
 - Depends on: 11.5.
 
-### 11.7 — Recent projects: core *(implemented — awaiting the product owner's review; D026 "Refined in Step 11.7")*
+### 11.7 — Recent projects: core *(done — accepted 2026-10-02, `55606fd`; D026 "Refined in Step 11.7")*
 Scope: D026 §6 — the store and the rules of the list.
 - PR: at most 10 entries, most recent first, no duplicates by full path (case and trailing separator ignored); added
   after a successful Open, Save As and Recover with a folder, never after a failed Open; unavailable entries are kept
@@ -469,7 +469,7 @@ Scope: D026 §6 — the store and the rules of the list.
   `progress.md`.
 - Depends on: 11.6.
 
-### 11.8 — Recent projects: UI
+### 11.8 — Recent projects: UI *(implemented; the manual run of scenarios 22–38 by Claude done — awaiting the product owner's acceptance; D026 "Refined in Step 11.8"; no "Clear list")*
 Scope: `Recent ▾` in the toolbar next to Open (PO-7).
 - PR: choosing an entry asks about unsaved changes, then opens like Open; an unavailable entry is shown as such and can be
   removed; an entry that fails to open leaves the current project and the entry as they are, with a message; disabled
