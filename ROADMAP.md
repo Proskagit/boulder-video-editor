@@ -76,7 +76,9 @@ rejected, the old file's thumbnail and waveform dropped) accepted (2026-10-01, `
 Step 11.5 (batch search: one folder, its own files, exact names ignoring case, a shared name given to none, every match
 through the 11.4 check, a summary, the confirmed items applied as one undoable step, re-validated) accepted (2026-10-01,
 `4180b4a`). Step 11.6 (relink UI: Relink… and Find Missing… in the Media Browser for offline media, the confirmations,
-the offer to search after an applied relink, the `EditingLock`) implemented — the manual run of scenarios 7–21 is next.
+the offer to search after an applied relink, the `EditingLock`) implemented (`145d484`); the manual run of scenarios 7–21
+passed functionally and found D1–D5 (Inspector state line, an undone relink's thumbnail / waveform, three texts), fixed and
+re-checked in the real app — awaiting acceptance.
 Details: `progress.md`.
 
 ## Previous

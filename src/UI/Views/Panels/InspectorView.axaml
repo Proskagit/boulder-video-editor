@@ -64,8 +64,8 @@
             <StackPanel Spacing="6">
               <TextBlock Text="TECHNICAL INFORMATION" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
 
-              <TextBlock IsVisible="{Binding IsAnalyzing}"
-                         Text="Analyzing…" Foreground="#8A8A8A" FontSize="11"/>
+              <TextBlock IsVisible="{Binding HasAnalysisStatusText}"
+                         Text="{Binding AnalysisStatusText}" Foreground="#8A8A8A" FontSize="11"/>
 
               <TextBlock IsVisible="{Binding HasAnalysisError}"
                          Text="{Binding AnalysisErrorMessage}"

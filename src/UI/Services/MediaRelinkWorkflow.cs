@@ -157,10 +157,14 @@ public sealed class MediaRelinkWorkflow
 
         if (check.Warnings.Count > 0)
         {
+            // Without ffprobe nothing was compared: say that it was not checked, never that the file differs (D4).
+            var notChecked = check.Warnings.Any(w => w.Kind == RelinkWarningKind.NotChecked);
             var choice = await _dialogs.AskAsync(new DialogRequest
             {
-                Title = "Relink with differences?",
-                Message = $"\"{Path.GetFileName(check.FilePath)}\" differs from what \"{asset.FileName}\" was:\n\n" +
+                Title = notChecked ? "Relink without a compatibility check?" : "Relink with differences?",
+                Message = (notChecked
+                              ? $"The technical compatibility of \"{Path.GetFileName(check.FilePath)}\" with \"{asset.FileName}\" was not checked:\n\n"
+                              : $"\"{Path.GetFileName(check.FilePath)}\" differs from what \"{asset.FileName}\" was:\n\n") +
                           string.Join("\n", check.Warnings.Select(w => "• " + w.Message)) +
                           "\n\nThe clips stay as they are.",
                 Buttons = new[] { "Relink Anyway", "Cancel" }
@@ -233,7 +237,11 @@ public sealed class MediaRelinkWorkflow
         var applicable = search.Applicable;
         if (search.Problem is not null || applicable.Count == 0)
         {
-            _status.Report(search.Problem ?? "No offline media file was found in the folder.");
+            // Matches that can't be used are not "nothing found" (D5).
+            var unusable = search.Entries.Any(e => e.Outcome is RelinkSearchOutcome.Rejected or RelinkSearchOutcome.Ambiguous);
+            _status.Report(search.Problem ?? (unusable
+                ? "Files with matching names were found in the folder, but none of them can be used."
+                : "No offline media file was found in the folder."));
             await Tell("Find Missing Media", search.Summary());
             return false;
         }

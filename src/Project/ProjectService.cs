@@ -362,10 +362,10 @@ public sealed class ProjectService : IProjectService
 
     public void NotifyMediaAssetsChanged() => MediaAssetsChanged?.Invoke(this, EventArgs.Empty);
 
-    public void NotifyMediaRelinked(IReadOnlyList<MediaAsset> assets)
+    public void NotifyMediaRelinked(IReadOnlyList<MediaFileReplacement> replacements)
     {
         Current.ModifiedAt = DateTimeOffset.UtcNow;
-        MediaRelinked?.Invoke(this, new MediaRelinkedEventArgs { Assets = assets });
+        MediaRelinked?.Invoke(this, new MediaRelinkedEventArgs { Replacements = replacements });
         NotifyMediaAssetsChanged();
     }
 

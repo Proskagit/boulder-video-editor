@@ -166,7 +166,7 @@ public sealed class MediaRelinkService : IMediaRelinkService
                 $"\"{Path.GetFileName(path)}\" is not a supported media file.");
         if (kind != asset.Kind)
             return Reject(assetId, path, project.Id, RelinkRejection.WrongMediaType,
-                $"\"{Path.GetFileName(path)}\" is {Article(kind.Value)} file; \"{asset.FileName}\" is {Article(asset.Kind)}.");
+                $"\"{Path.GetFileName(path)}\" is {Article(kind.Value)} file; \"{asset.FileName}\" is {Article(asset.Kind)} file.");
 
         if (project.MediaAssets.FirstOrDefault(a => a.Id != assetId && SamePath(a.FilePath, path)) is { } other)
             return Reject(assetId, path, project.Id, RelinkRejection.PathInUse,

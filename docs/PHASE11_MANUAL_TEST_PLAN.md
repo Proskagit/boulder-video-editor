@@ -31,26 +31,26 @@ Runnable since Step 11.6: Media Browser → the OFFLINE row (shown while media i
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 7 | Moved file | A used video moved to another folder; Relink it to the new place | Online; clips unchanged (position, source range, speed, fades, dissolves); Preview and export use it; the project is dirty | `MediaRelinkServiceTests` (id, clips, path, size, metadata, dirty), `MediaRelinkUiTests` (Preview, thumbnail, waveform), `MediaRelinkIntegrationTests` (real ffprobe), `MediaRelinkWorkflowTests` (the UI flow) | manual pending |
-| 8 | Renamed file | A used file renamed; Relink to the new name | As 7 | `MediaRelinkServiceTests` (any name of the right kind), `MediaRelinkWorkflowTests` (the UI flow) | manual pending |
-| 9 | Save and reopen | After 7, Save, close, reopen | The new path is used; not missing | `MediaRelinkServiceTests` (save, reopen: absolute and relative path, metadata), `MediaRelinkWorkflowTests` (the UI flow) | manual pending |
-| 10 | Hard rejects | Relink to: a file of another media type; a shorter video than a clip's source range; a file already used by another asset; a path that doesn't exist | Each refused with its own message; nothing changes | `MediaRelinkServiceTests` (each reject, Apply re-validation), `MediaRelinkIntegrationTests` (shorter, sound-only mp4), `MediaRelinkWorkflowTests` (the UI flow) | manual pending |
-| 11 | Warnings | Relink to a file with a different resolution / frame rate / without audio | A warning lists the differences; Cancel changes nothing, confirming relinks | `MediaRelinkServiceTests` (each warning, none when equal), `MediaRelinkIntegrationTests` (resolution), `MediaRelinkWorkflowTests` (the UI flow) | manual pending |
-| 12 | Short dissolve handles | Relink a clip of a dissolve to a file with less media beyond the clip | A warning; after confirming, the zone renders with held frames | `MediaRelinkServiceTests` (dissolve handles warning), `MediaRelinkWorkflowTests` (the UI flow) | manual pending |
-| 13 | Without ffprobe | Make ffprobe unavailable (configuration / PATH); Relink | Allowed; told that compatibility couldn't be checked; the asset is pending; analysed once ffprobe is available | `MediaRelinkServiceTests` (allowed, `Pending`, later incompatibility), `MediaRelinkUiTests` (not analysed, status message, preflight), `MediaRelinkWorkflowTests` (the UI flow) | manual pending |
-| 14 | Undo / Redo | Relink, then Ctrl+Z, Ctrl+Y (and the toolbar buttons) | Undo: offline again with the old path and metadata; Redo: online; thumbnail / waveform / Preview follow; dirty follows the save point | `MediaRelinkServiceTests` (exact undo / redo, save point), `MediaRelinkUiTests` (thumbnail after undo, stale work dropped), `MediaRelinkWorkflowTests` (the UI flow) | manual pending |
-| 15 | Online media | Select an online asset; a project with no offline media | Relink… disabled for it; without offline media the OFFLINE row is hidden | `MediaRelinkWorkflowTests` (commands) | manual pending |
-| 16 | During an export | Start an export; try Relink / Find Missing; let it end or cancel it | Disabled while it runs (`EditingLock`), enabled again afterwards; an export started during a check stops the relink | `MediaRelinkWorkflowTests` (lock before / after awaits, buttons told) | manual pending |
-| 17 | Picker start folder | Relink an asset whose old folder still exists; then one whose folder is gone | The picker starts there (else wherever the system starts) and filters the asset's kind | `MediaRelinkWorkflowTests` (start folder, filter) | manual pending |
+| 7 | Moved file | A used video moved to another folder; Relink it to the new place | Online; clips unchanged (position, source range, speed, fades, dissolves); Preview and export use it; the project is dirty | `MediaRelinkServiceTests` (id, clips, path, size, metadata, dirty), `MediaRelinkUiTests` (Preview, thumbnail, waveform), `MediaRelinkIntegrationTests` (real ffprobe), `MediaRelinkWorkflowTests` (the UI flow) | app 11.6 (Claude), passed |
+| 8 | Renamed file | A used file renamed; Relink to the new name | As 7 | `MediaRelinkServiceTests` (any name of the right kind), `MediaRelinkWorkflowTests` (the UI flow) | app 11.6 (Claude), passed |
+| 9 | Save and reopen | After 7, Save, close, reopen | The new path is used; not missing | `MediaRelinkServiceTests` (save, reopen: absolute and relative path, metadata), `MediaRelinkWorkflowTests` (the UI flow) | app 11.6 (Claude), passed |
+| 10 | Hard rejects | Relink to: a file of another media type; a shorter video than a clip's source range; a file already used by another asset; a path that doesn't exist | Each refused with its own message; nothing changes | `MediaRelinkServiceTests` (each reject, Apply re-validation), `MediaRelinkIntegrationTests` (shorter, sound-only mp4), `MediaRelinkWorkflowTests` (the UI flow) | app 11.6 (Claude), passed |
+| 11 | Warnings | Relink to a file with a different resolution / frame rate / without audio | A warning lists the differences; Cancel changes nothing, confirming relinks | `MediaRelinkServiceTests` (each warning, none when equal), `MediaRelinkIntegrationTests` (resolution), `MediaRelinkWorkflowTests` (the UI flow) | app 11.6 (Claude), passed |
+| 12 | Short dissolve handles | Relink a clip of a dissolve to a file with less media beyond the clip | A warning; after confirming, the zone renders with held frames | `MediaRelinkServiceTests` (dissolve handles warning), `MediaRelinkWorkflowTests` (the UI flow) | app 11.6 (Claude), passed |
+| 13 | Without ffprobe | Make ffprobe unavailable (configuration / PATH); Relink | Allowed; told that compatibility couldn't be checked; the asset is pending; analysed once ffprobe is available | `MediaRelinkServiceTests` (allowed, `Pending`, later incompatibility), `MediaRelinkUiTests` (not analysed, status message, preflight), `MediaRelinkWorkflowTests` (the UI flow) | app 11.6 (Claude), passed |
+| 14 | Undo / Redo | Relink, then Ctrl+Z, Ctrl+Y (and the toolbar buttons) | Undo: offline again with the old path and metadata; Redo: online; thumbnail / waveform / Preview follow; dirty follows the save point | `MediaRelinkServiceTests` (exact undo / redo, save point), `MediaRelinkUiTests` (thumbnail after undo, stale work dropped), `MediaRelinkWorkflowTests` (the UI flow) | app 11.6 (Claude), passed |
+| 15 | Online media | Select an online asset; a project with no offline media | Relink… disabled for it; without offline media the OFFLINE row is hidden | `MediaRelinkWorkflowTests` (commands) | app 11.6 (Claude), passed |
+| 16 | During an export | Start an export; try Relink / Find Missing; let it end or cancel it | Disabled while it runs (`EditingLock`), enabled again afterwards; an export started during a check stops the relink | `MediaRelinkWorkflowTests` (lock before / after awaits, buttons told) | app 11.6 (Claude), passed |
+| 17 | Picker start folder | Relink an asset whose old folder still exists; then one whose folder is gone | The picker starts there (else wherever the system starts) and filters the asset's kind | `MediaRelinkWorkflowTests` (start folder, filter) | app 11.6 (Claude), passed |
 
 ## Step 11.5 — batch relink (D026 §4, PO-4)
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 18 | Batch found | Several missing files moved together into one folder; Relink one of them there | A summary lists the other matches (exact name ignoring case, that folder only) with their warnings; confirming relinks them in one step | `MediaRelinkBatchTests` (exact names, real folder + case, partial batch + summary, one step), `MediaRelinkWorkflowTests` (summary, cancel, partial, offer after a relink) | manual pending |
-| 19 | Not found / subfolder | One file in a subfolder of the chosen folder, one renamed | Neither is matched; both stay offline; a second search later finds only what is still offline | `MediaRelinkBatchTests` (no recursion, no similar names, second search), `MediaRelinkWorkflowTests` (summary, cancel, partial, offer after a relink) | manual pending |
-| 20 | Unusable match / cancel | A match of the wrong type or too short, a file of another item, two offline items of one name; then Cancel the summary | Each listed as not applicable with its reason (the shared name given to neither); Cancel applies nothing | `MediaRelinkBatchTests` (wrong type, owned file, shared name, single-check parity, not confirmed / cancelled), `MediaRelinkWorkflowTests` (summary, cancel, partial, offer after a relink) | manual pending |
-| 21 | Batch undo | Confirm a batch; Undo; Redo | One Undo restores every item of the batch, one Redo relinks them all again (D026 "Refined in Step 11.5") | `MediaRelinkBatchTests` (undo / redo of the batch), `MediaRelinkUiTests` (batch thumbnails, undo), `MediaRelinkWorkflowTests` (summary, cancel, partial, offer after a relink) | manual pending |
+| 18 | Batch found | Several missing files moved together into one folder; Relink one of them there | A summary lists the other matches (exact name ignoring case, that folder only) with their warnings; confirming relinks them in one step | `MediaRelinkBatchTests` (exact names, real folder + case, partial batch + summary, one step), `MediaRelinkWorkflowTests` (summary, cancel, partial, offer after a relink) | app 11.6 (Claude), passed |
+| 19 | Not found / subfolder | One file in a subfolder of the chosen folder, one renamed | Neither is matched; both stay offline; a second search later finds only what is still offline | `MediaRelinkBatchTests` (no recursion, no similar names, second search), `MediaRelinkWorkflowTests` (summary, cancel, partial, offer after a relink) | app 11.6 (Claude), passed |
+| 20 | Unusable match / cancel | A match of the wrong type or too short, a file of another item, two offline items of one name; then Cancel the summary | Each listed as not applicable with its reason (the shared name given to neither); Cancel applies nothing | `MediaRelinkBatchTests` (wrong type, owned file, shared name, single-check parity, not confirmed / cancelled), `MediaRelinkWorkflowTests` (summary, cancel, partial, offer after a relink) | app 11.6 (Claude), passed |
+| 21 | Batch undo | Confirm a batch; Undo; Redo | One Undo restores every item of the batch, one Redo relinks them all again (D026 "Refined in Step 11.5") | `MediaRelinkBatchTests` (undo / redo of the batch), `MediaRelinkUiTests` (batch thumbnails, undo), `MediaRelinkWorkflowTests` (summary, cancel, partial, offer after a relink) | app 11.6 (Claude), passed |
 
 ## Steps 11.7–11.8 — recent projects (D026 §6, PO-7, PO-8)
 
@@ -92,3 +92,43 @@ app log, the project's cache folder. Scratch fixtures (not in the repository): V
 | 6 | pass | Activations at 19:15:25.077 and 19:15:25.728 (`tone.wav` renamed away between them): no log line right after the second; one trailing check at 19:15:28.095 ("tone.wav is missing now") without another switch. |
 | 4 | pass | Window kept active (no activation), `pattern.mp4` renamed away, Export: "missing now" logged by the export's own check (after the click), dialog "Export not possible — 'pattern.mp4' is offline (1 clip, first at 00:00:00.000)". Then put back (no activation for > 3 s), Export: "available again" logged by the export's check, no preflight error, the output-file picker opened (cancelled). Note: Export was triggered through the toolbar button (UI Automation); Ctrl+E sent with `SendKeys` did nothing in this run — not investigated (not part of 11.3; the shortcut was accepted in Phase 9). |
 | 5 | pass | A fixture with an extra asset on an unreachable share (`\\10.255.255.1\share\unc.mp4`, `File.Exists` ≈ 11 s): activation at 21:32:23.921 with `tone.wav` renamed away — the change applied at 21:32:44.909 (the check waited on the share); meanwhile the slowest UI Automation answer was 14 ms; during an earlier check playback ran smoothly (00:09:01 → 00:12:11 in 3 s). Note: opening that project took ≈ 47 s (Open resolves the paths and marks missing media file by file, before the project is shown; the window stayed responsive) — Open's behaviour, unchanged since Phase 6. |
+
+### 2026-10-01 / 02 — Step 11.6 manual run (Claude), `145d484`, then the D1–D5 fixes
+
+Debug builds from the session's artifacts folder; separate scratch fixtures under `%TEMP%\aive116` (single relinks,
+a dissolve, a long 1080p export, a batch of 21 offline items); every input pinned to the test process (UI Automation;
+list rows selected by a real click — the UIA selection of an Avalonia list item doesn't stick; shortcuts sent by
+`SendKeys` don't reach the app, so the buttons were used). Without ffprobe: the WinGet Links folder removed from the
+instance's PATH and ffmpeg given by `Ffmpeg__FfmpegPath`. Scenario 16b: a test-only ffprobe stand-in delaying each probe
+(`Ffmpeg__FfprobePath`, outside the repository) so that the relink's check was still running when the export started.
+
+| # | Result | Observed |
+|---|---|---|
+| 7 | pass | Picker in the old folder (`single\media`); relinked — new thumbnail, waveform, Inspector path, `*`; the offer (another item offline) — Not Now. |
+| 8 | pass | Renamed file: Preview shows both files, clip labels and thumbnail follow; no offer (nothing else offline); the OFFLINE row hides; selection kept. |
+| 9 | pass | Save → `project.json` new absolute / relative paths and metadata; close, reopen: online. |
+| 10 | pass | Wrong extension, an mp4 without video, a 2 s file for 4 s of clip, a path of another item: each "Can't relink", nothing applied, no `*`, no offer. File removed while the warning was open → "Relink not applied: … doesn't exist any more." |
+| 11 | pass | "Picture size: 640×360 before, 1280×720 now"; Cancel → "Relink cancelled.", unchanged; Relink Anyway → applied. |
+| 12 | pass | The dissolve-handles warning; Cancel unchanged; Relink Anyway applied, the zone renders with a held frame. |
+| 13 | pass after D1 / D4 | Without ffprobe: allowed with the not-checked warning, `Pending`, no metadata saved, export and split refused until analysed; with ffprobe at the next Open analysed. The Inspector said "Analyzing…" (D1) and the dialog "differs from" (D4) — fixed, re-checked below. |
+| 14 | pass after D2 | Undo / Redo (also fast ×2) consistent for path, offline state, Preview, `*` and selection; after Undo an offline item showed the relinked file's thumbnail (D2) — fixed, re-checked below. |
+| 15 | pass | Relink… disabled for online media; the OFFLINE row hidden without offline media. |
+| 16 | pass | Both buttons disabled during an export, enabled after it finished or was cancelled; an export started while the relink's check ran → "An export is running — nothing was relinked.", item still offline; the UI answered in 15–17 ms meanwhile. |
+| 17 | pass | Picker in the old folder when it exists, the system default otherwise; the kind filter. |
+| 18 | pass | "Found 16 of 21", "Relink 16 Files", one step, "Relinked 16 media files." |
+| 19 | pass | `d.wav` in a subfolder and `e.mp4` under "Not in the folder (stay offline)", left offline. |
+| 20 | pass | The too-short `c` and both `twin` items under "Can't be used" with the reason; Cancel → "Nothing was relinked."; the long summary scrolls inside a 633 px window. |
+| 21 | pass after D2 | One Undo takes all 16 back, Redo relinks them; thumbnails of undone files shown on offline items (D2) — fixed, re-checked below. |
+
+Also: the Open message; the offer → Search (the other `twin` refused as a path already in the project); a second workflow
+impossible while a picker is open; no freeze. Defects D1 (Inspector "Analyzing…" for `Pending` / offline), D2 (an
+undone relink's thumbnail / waveform on an offline item), D3–D5 (texts) — fixed (D026 "Refined after the Step 11.6
+manual run").
+
+Re-check after the fixes (2026-10-02, real app): D1 — offline before relink: row and Inspector "Media offline"; relinked
+without ffprobe: both "Not analysed yet"; after Undo both "Media offline". D4 — "Relink without a compatibility check?",
+"The technical compatibility of … was not checked", no "differs". D2 — a cache-less project, `pattern.mp4` (video with
+sound) and `tone.wav` relinked: thumbnail and waveforms made; Undo, Undo: no thumbnail, no waveform on V1 and A1 (as at
+open); Redo, Redo: all back. Batch of 16: after Undo every item shows the placeholder it showed at open, after Redo the
+thumbnails again. D5 — a folder with only unusable matches: "Files with matching names were found in the folder, but none
+of them can be used."; a folder without matches: "No offline media file was found in the folder." All passed.

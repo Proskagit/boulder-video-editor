@@ -265,6 +265,44 @@ command; no push, merge, pull request or branch deletion without direct permissi
     331, UI 424 (+22), Export 99, Rendering 58, Video 294, ExportEndToEnd 86 + 2; parity suites unchanged. Not run:
     `--blame-hang` repeats of the full suite, the 4K scenes, CI, the manual scenarios (next).
   - Manual plan: scenarios 7–21 runnable, status "manual pending", the UI coverage named.
+- Step 11.6 accepted on the code preliminarily (product owner, 2026-10-01); the manual run of scenarios 7–21 by Claude in
+  the real app (results in `docs/PHASE11_MANUAL_TEST_PLAN.md`): all functional, defects D1–D5 found; fixing them ordered by
+  the product owner (2026-10-02).
+- Step 11.6 acceptance fixes (2026-10-02, D026 "Refined after the Step 11.6 manual run"):
+  - D1 cause: `InspectorViewModel.ShowMedia` set "Analyzing…" for `Pending` and `Analyzing` and ignored `IsMissing`
+    (Phase 3 logic; visible once a relink without ffprobe leaves an item `Pending`). Fix: `AnalysisStatusText` /
+    `HasAnalysisStatusText` (the view binds them) — "Media offline", "Analyzing…" only while analysing, "Not analysed yet"
+    for `Pending`; `IsAnalyzing` true only while an analysis runs; the error only for an online failed analysis.
+  - D2 cause: the cache keeps one file per asset (`SourceFileCache.Write` deletes the older) and offline media takes the
+    last one (D024); after a relink that is the relinked file's, so an Undo showed it on the offline item (thumbnails and
+    waveforms alike — the waveform part reproduced in the new tests). Fix: `MediaRelinkedEventArgs.Replacements`
+    (`MediaFileReplacement`: asset + previous path; `NotifyMediaRelinked` takes them; `RelinkMediaCommand` passes the
+    before / after path) and `MediaCacheCoordinator.OnRelinked`: what was shown for the file an asset leaves (a result or
+    none, if its handling had settled — `Generation.Settled`) is kept in `Generation.Shown` by (asset, path) and shown
+    again when an Undo / Redo returns the asset to that path (handled at once, no cache read, `Ready` raised for a result);
+    otherwise requested as before. Work for a replaced file still publishes nothing (the handling identity). D024 for
+    media offline for other reasons unchanged. Limitation: memory only — after Undo, Save and a reopen an offline item
+    gets the cache's last file again.
+  - D3: "is an audio file" (`MediaRelinkService` names both kinds as files). D4: `MediaRelinkWorkflow` — a `NotChecked`
+    warning gives "Relink without a compatibility check?" / "The technical compatibility of … was not checked:". D5:
+    `MediaRelinkWorkflow` — only unusable matches → "Files with matching names were found in the folder, but none of them
+    can be used."
+  - Tests (new): `UI.Tests/InspectorMediaStatusTests` (9: every status online / offline, the same words as the Media
+    Browser, clearing); `UI.Tests/RelinkUndoCacheTests` (6, a fake cache that behaves like the real one: none → relink →
+    undo none / redo new, three rounds, no re-make; batch with an item that had its own thumbnail and one that had none;
+    consecutive relinks and undos back to each file; a make still running at Undo never published; D024 for an item
+    offline when the project opens; the waveform of an offline audio clip). Changed: `MediaRelinkUiTests` (2) and
+    `MediaRelinkWorkflowTests` (1) expected "none" after Undo where the item had shown its own thumbnail before — now the
+    same thumbnail as before; `MediaRelinkWorkflowTests` +2 (D3 text, D5 status) and the D4 / "no match" status asserts.
+  - Mutations (each reverted; 9): nothing remembered → 7 failures; nothing restored → 7; settled never marked → 7; Pending
+    says Analyzing → 1; offline ignored in the Inspector → 4; ffprobe-unavailable says "differs" → 1; unusable reported as
+    nothing → 1; "is an audio." → 1. Survived, equivalent: the restored result not raised by `Ready` — the Media Browser
+    and the timeline read it again on the `MediaAssetsChanged` that follows `MediaRelinked`.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; `dotnet test` (whole solution)
+    2118 passed, 2 skipped (4K), 0 failed — Core 448, Timeline 361, Project 331, UI 441 (+17), Export 99, Rendering 58,
+    Video 294, ExportEndToEnd 86 + 2. Re-check in the real app: D1, D2 (single and batch, thumbnail and waveform), D4, D5 —
+    passed (the plan's results log). `TestResults` folders of the `--blame-hang` mutation runs remain under the git-ignored
+    `tests/*/TestResults` (the sandbox refused removing them).
 
 ## Phase 10 (complete)
 

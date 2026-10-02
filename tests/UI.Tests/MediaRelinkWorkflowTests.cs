@@ -231,7 +231,11 @@ public sealed class MediaRelinkWorkflowTests
 
         Assert.True(await _workflow.RelinkAsync(asset.Id));
 
-        Assert.Contains("ffprobe is not available", Assert.Single(_dialogs.Asked).Message);
+        var warning = Assert.Single(_dialogs.Asked);
+        Assert.Contains("ffprobe is not available", warning.Message);
+        Assert.Equal("Relink without a compatibility check?", warning.Title);          // D4: not "differs"
+        Assert.StartsWith("The technical compatibility of \"a.mp4\" with \"a.mp4\" was not checked:", warning.Message);
+        Assert.DoesNotContain("differs", warning.Message);
         Assert.Equal(MediaAnalysisStatus.Pending, asset.AnalysisStatus);
         Assert.Equal("Not analysed yet", browser.Items.Single(i => i.Asset.Id == asset.Id).TechnicalSummary);
     }
@@ -379,6 +383,35 @@ public sealed class MediaRelinkWorkflowTests
 
         Assert.Equal(new[] { "OK" }, Assert.Single(_dialogs.Asked).Buttons);
         Assert.False(AnyRelinkStep);
+        Assert.Equal("No offline media file was found in the folder.", _status.Message);
+    }
+
+    [Fact]
+    public async Task Matches_that_cannot_be_used_are_not_reported_as_nothing_found()
+    {
+        var a = await Offline("a.mp4");
+        NewFile("a.mp4", Meta(2), folder: "search");                        // the name matches, but it is too short
+        var workflow = new MediaRelinkWorkflow(_relink, _projects, new ScriptedPicker(Path.Combine(Root, "search")), _dialogs, _status,
+            _lock, NullLogger<MediaRelinkWorkflow>.Instance, _ => false);
+
+        Assert.False(await workflow.FindMissingAsync());
+
+        var summary = Assert.Single(_dialogs.Asked);
+        Assert.Equal(new[] { "OK" }, summary.Buttons);
+        Assert.Contains("Can't be used:", summary.Message);
+        Assert.Equal("Files with matching names were found in the folder, but none of them can be used.", _status.Message);  // D5
+        Assert.True(a.IsMissing);
+    }
+
+    [Fact]
+    public async Task A_rejection_names_both_media_kinds_as_files()
+    {
+        var asset = await Offline("a.mp4");
+        _picker.Files.Enqueue(NewFile("a.wav", null));
+
+        Assert.False(await _workflow.RelinkAsync(asset.Id));
+
+        Assert.Equal("\"a.wav\" is an audio file; \"a.mp4\" is a video file.", Assert.Single(_dialogs.Asked).Message);  // D3
     }
 
     [Fact]
@@ -560,6 +593,9 @@ public sealed class MediaRelinkWorkflowTests
         browser.SelectedItem = Row(a);
         _picker.Files.Enqueue(NewFile("a.mp4", Meta(10)));
         NewFile("b.mp4", Meta(10));
+        await thumbnails.IdleAsync();
+        var aBefore = thumbnails.Get(a.Id);                                 // made while online, kept offline (D024)
+        var bBefore = thumbnails.Get(b.Id);
 
         Assert.True(await _workflow.RelinkAsync(a.Id));                     // and Search → b in the same folder
         await thumbnails.IdleAsync();
@@ -573,12 +609,13 @@ public sealed class MediaRelinkWorkflowTests
         _undo.Undo();                                                       // the batch: b offline again
         await thumbnails.IdleAsync();
         Assert.Equal("Media offline", Row(b).TechnicalSummary);
-        Assert.False(Row(b).HasThumbnail);                                  // the relinked file's thumbnail is gone
+        Assert.Same(bBefore, Row(b).Thumbnail);                             // what it showed before, not the relinked file's
         Assert.True(browser.HasOfflineMedia);
 
         _undo.Undo();                                                       // the single relink: a offline again
         await thumbnails.IdleAsync();
         Assert.Equal("Media offline", Row(a).TechnicalSummary);
+        Assert.Same(aBefore, Row(a).Thumbnail);
         Assert.Same(a, browser.SelectedItem!.Asset);
         Assert.True(browser.RelinkCommand.CanExecute(null));
 

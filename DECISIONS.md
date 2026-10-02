@@ -1750,6 +1750,24 @@ Refined in Step 11.6 (2026-10-01), relink UI (the §5 items left to this step, c
   text scrolls. The Open / Recover message about missing media ends with "— use Relink or Find Missing in the Media
   Browser."
 
+Refined after the Step 11.6 manual run (2026-10-02; defects D1–D5 found in the real app, fixes ordered by the product
+owner):
+- D1: the Inspector's state line of a media item follows the Media Browser's row — "Media offline" first, then
+  "Analyzing…" only while an analysis runs, "Not analysed yet" for `Pending` (a relink without ffprobe), the error for a
+  failed analysis. It no longer showed "Analyzing…" for every `Pending` and for offline media.
+- D2: after an Undo of a relink (single or batch) an offline item showed the thumbnail / waveform made from the file it
+  had been relinked to: the cache keeps one file per asset (the older is deleted when a new one is written) and offline
+  media takes the last one (D024). `IProjectService.MediaRelinked` now carries, per asset, the path it had before
+  (`MediaFileReplacement` — the minimal extension needed: the coordinators can't know which file an asset leaves);
+  `MediaCacheCoordinator` keeps, for the project generation, what was shown for each (asset, file) — a result or none, once
+  it had settled — and shows it again when an Undo / Redo returns the asset to that file, without reading the cache. Work
+  for a replaced file still publishes nothing. Media offline for any other reason follows D024 unchanged. Limitation:
+  kept in memory only — after an Undo, a save and a reopen, the offline item gets the cache's last file again (D024).
+- D3: "is an audio file" (both kinds named as files). D4: without ffprobe the confirmation says the technical
+  compatibility "was not checked" ("Relink without a compatibility check?"), never that the file differs. D5: a search
+  whose matches all can't be used reports "Files with matching names were found in the folder, but none of them can be
+  used." — "No offline media file was found in the folder." only when nothing matched.
+
 Status: Accepted (2026-10-01, PO-1…PO-9). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 11 — Media
 relink & recent projects: steps"; the implementation must follow PO-1…PO-9 as recorded here.
 

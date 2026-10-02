@@ -446,7 +446,7 @@ relinked), each checked by the 11.4 relink check, applied after confirmation as 
 - QG: tests with temporary folders (subfolder ignored, name case, a hard-rejected match, a duplicate name, cancel).
 - Depends on: 11.4.
 
-### 11.6 — Relink: UI *(implemented — automated checks done; manual acceptance of scenarios 7–21 pending; D026 "Refined in Step 11.6")*
+### 11.6 — Relink: UI *(implemented `145d484`; manual run of scenarios 7–21 found D1–D5, fixed and re-checked in the real app — awaiting the product owner's acceptance; D026 "Refined in Step 11.6" and "Refined after the Step 11.6 manual run")*
 Scope: D026 §5 — Relink in the Media Browser for offline media, the file picker, the dialogs, the batch summary, the
 status messages; `EditingLock`.
 - PR: Relink is offered only for offline media and is disabled during an export; the picker starts in the old file's

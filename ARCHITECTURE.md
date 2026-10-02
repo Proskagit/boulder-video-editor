@@ -341,7 +341,11 @@ recovery, unsaved changes).
   await and right before applying; `IsRunning` (one at a time). `MediaBrowserViewModel`: `RelinkCommand` (selected
   offline item), `FindMissingCommand` (any offline), `HasOfflineMedia` (the "OFFLINE" header row), selection kept by asset
   id. `FilePickerRequest.StartFolder` (→ `SuggestedStartLocation`). After an applied relink with other media offline the
-  workflow offers the search in the chosen file's folder.
+  workflow offers the search in the chosen file's folder. `MediaRelinked` carries `MediaFileReplacement`s (asset +
+  previous path); `MediaCacheCoordinator` keeps what was shown per (asset, file) for the generation and shows it again when
+  an Undo / Redo returns the asset to that file (not the cache's last file, which after a relink is the relinked one).
+  The Inspector's media state line (`AnalysisStatusText`) uses the Media Browser's order: offline, Analyzing, Not
+  analysed yet.
 - Planned in Phase 11 (D026, not implemented yet): recent projects (10, outside every project, `Recent ▾` next to Open). No per-user settings are stored yet
   (`AppPaths.ConfigFolder` is unused). `project.json` stays v3.
 

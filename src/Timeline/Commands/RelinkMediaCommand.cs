@@ -1,5 +1,6 @@
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Interfaces;
 
 namespace AiVideoEditor.Timeline.Commands;
 
@@ -32,7 +33,7 @@ public sealed record MediaRelink(MediaAsset Asset, MediaFileState Before, MediaF
 /// to them unchanged. Execute and Undo each tell the project (<paramref name="notify"/> — <c>NotifyMediaRelinked</c>),
 /// so thumbnails, waveforms and playback follow the file the asset has now.
 /// </summary>
-public sealed class RelinkMediaCommand(IReadOnlyList<MediaRelink> relinks, Action<IReadOnlyList<MediaAsset>> notify,
+public sealed class RelinkMediaCommand(IReadOnlyList<MediaRelink> relinks, Action<IReadOnlyList<MediaFileReplacement>> notify,
     string description = "Relink Media") : IUndoableCommand
 {
     public string Description { get; } = description;
@@ -42,12 +43,12 @@ public sealed class RelinkMediaCommand(IReadOnlyList<MediaRelink> relinks, Actio
     public void Execute()
     {
         foreach (var r in Relinks) r.After.ApplyTo(r.Asset);
-        notify(Relinks.Select(r => r.Asset).ToList());
+        notify(Relinks.Select(r => new MediaFileReplacement(r.Asset, r.Before.FilePath)).ToList());
     }
 
     public void Undo()
     {
         foreach (var r in Relinks) r.Before.ApplyTo(r.Asset);
-        notify(Relinks.Select(r => r.Asset).ToList());
+        notify(Relinks.Select(r => new MediaFileReplacement(r.Asset, r.After.FilePath)).ToList());
     }
 }

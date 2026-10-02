@@ -186,10 +186,10 @@ public sealed class MediaRelinkUiTests : IAsyncLifetime
         await coordinator.IdleAsync();
         Assert.Equal(1, Number(coordinator.Get(asset.Id)));
 
-        _undo.Undo();                                                       // the old (offline) file again: nothing made
+        _undo.Undo();                                                       // the old (offline) file again: what it showed
         await coordinator.IdleAsync();
-        Assert.Null(coordinator.Get(asset.Id));
-        Assert.Single(service.Makes);
+        Assert.Equal(99, Number(coordinator.Get(asset.Id)));               // its own cached thumbnail, as before (D2)
+        Assert.Single(service.Makes);                                       // nothing made or read for it
     }
 
     [Fact]
@@ -229,6 +229,7 @@ public sealed class MediaRelinkUiTests : IAsyncLifetime
         var (asset, _) = await OfflineVideoOnTimeline();                   // made once while it was online
         await coordinator.IdleAsync();
         var made = service.Makes.Count;
+        var ownBefore = coordinator.Get(asset.Id);                          // the old file's, shown while offline (D024)
         service.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await Relink(asset, NewFile("new.mp4", Meta(10)));
         await Eventually(() => service.Makes.Count == made + 1, "no thumbnail make");
@@ -237,7 +238,7 @@ public sealed class MediaRelinkUiTests : IAsyncLifetime
         service.Gate.SetResult();
         await coordinator.IdleAsync();
 
-        Assert.Null(coordinator.Get(asset.Id));                             // the undone file's thumbnail is not shown
+        Assert.Same(ownBefore, coordinator.Get(asset.Id));                  // the undone file's thumbnail is not shown
     }
 
     [Fact]

@@ -86,8 +86,8 @@ public interface IProjectService
     event EventHandler<MediaRelinkedEventArgs>? MediaRelinked;
 
     /// <summary>Raises <see cref="MediaRelinked"/> and then <see cref="MediaAssetsChanged"/>. Called by the relink
-    /// command on Execute and Undo; dirty state follows the undo history.</summary>
-    void NotifyMediaRelinked(IReadOnlyList<MediaAsset> assets);
+    /// command on Execute and Undo, with the path each asset had before; dirty state follows the undo history.</summary>
+    void NotifyMediaRelinked(IReadOnlyList<MediaFileReplacement> replacements);
 
     /// <summary>Adds newly-imported media to the current project, skipping any whose
     /// <see cref="MediaAsset.FilePath"/> is already present. This is the only place
@@ -122,10 +122,17 @@ public sealed class MediaAvailabilityChangedEventArgs : EventArgs
     public IReadOnlyList<MediaAsset> Gone { get; init; } = Array.Empty<MediaAsset>();
 }
 
-/// <summary>The assets whose file was replaced (<see cref="IProjectService.MediaRelinked"/>).</summary>
+/// <summary>One asset whose file was replaced, and the path it had before (a relink, its Undo or Redo).</summary>
+public sealed record MediaFileReplacement(MediaAsset Asset, string PreviousFilePath);
+
+/// <summary>The assets whose file was replaced (<see cref="IProjectService.MediaRelinked"/>). The previous paths let
+/// what was shown for a file come back when an Undo / Redo returns the asset to it (Step 11.6, D2) — a cache file of
+/// the replaced file may be gone by then (one per asset, D024).</summary>
 public sealed class MediaRelinkedEventArgs : EventArgs
 {
-    public IReadOnlyList<MediaAsset> Assets { get; init; } = Array.Empty<MediaAsset>();
+    public IReadOnlyList<MediaFileReplacement> Replacements { get; init; } = Array.Empty<MediaFileReplacement>();
+
+    public IReadOnlyList<MediaAsset> Assets => Replacements.Select(r => r.Asset).ToList();
 }
 
 /// <summary>Result of <see cref="IProjectService.AddMediaAssets"/>.</summary>

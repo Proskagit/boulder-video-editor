@@ -72,7 +72,7 @@ public sealed class MediaRelinkIntegrationTests : IDisposable
             foreach (var asset in Current.MediaAssets) asset.IsMissing = !File.Exists(asset.FilePath);
             return Task.CompletedTask;
         }
-        public void NotifyMediaRelinked(IReadOnlyList<MediaAsset> assets) { }
+        public void NotifyMediaRelinked(IReadOnlyList<MediaFileReplacement> replacements) { }
         public MediaAddResult AddMediaAssets(IEnumerable<MediaAsset> assets) => throw new NotSupportedException();
         public void NotifyMediaAssetsChanged() { }
         public void NotifyTimelineChanged() { }
