@@ -54,15 +54,19 @@ Runnable since Step 11.6: Media Browser → the OFFLINE row (shown while media i
 
 ## Steps 11.7–11.8 — recent projects (D026 §6, PO-7, PO-8)
 
+Step 11.7 is the core only (no UI): its rules are covered by `RecentProjectsStoreTests`, `RecentProjectsWorkflowTests`
+and `RecentProjectsCompositionTests`; in the real app the list can only be seen as the file
+`%LOCALAPPDATA%\AiVideoEditor\config\recent-projects.json`. The scenarios below are run in the real app at 11.8.
+
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 22 | Added by Open / Save As / Recover | Open a project; Save As to a new folder; recover a project that has a folder | Each is at the top of `Recent ▾` (next to Open) | — | planned |
-| 23 | Failed Open | Open a folder without a project / a damaged project | The list is unchanged | — | planned |
-| 24 | Limit and duplicates | Open 11 projects; open one again with a differently cased path | 10 entries, the newest first; no duplicate | — | planned |
-| 25 | Unavailable project | Rename a listed project's folder; open `Recent ▾` | The entry stays, shown as unavailable, and can be removed; choosing it opens nothing and keeps the current project | — | planned |
+| 22 | Added by Open / Save As / Recover | Open a project; Save As to a new folder; recover a project that has a folder | Each is at the top of `Recent ▾` (next to Open) | `RecentProjectsWorkflowTests` (Open, Save As, first Save, Recover with a folder / gone / never saved) | planned (11.8) |
+| 23 | Failed Open | Open a folder without a project / a damaged project | The list is unchanged | `RecentProjectsWorkflowTests` (failed Open ×3, cancelled picker, Cancel, failed Save As / Recover) | planned (11.8) |
+| 24 | Limit and duplicates | Open 11 projects; open one again with a differently cased path | 10 entries, the newest first; no duplicate | `RecentProjectsStoreTests` (limit, spellings, update), `RecentProjectsWorkflowTests` (Open again) | planned (11.8) |
+| 25 | Unavailable project | Rename a listed project's folder; open `Recent ▾` | The entry stays, shown as unavailable, and can be removed; choosing it opens nothing and keeps the current project | `RecentProjectsStoreTests` (availability, remove), `RecentProjectsWorkflowTests` (unavailable stay listed) — the UI at 11.8 | planned (11.8) |
 | 26 | Unsaved changes | With unsaved changes choose a recent project | Save / Don't Save / Cancel as for Open | — | planned |
-| 27 | Two instances | Open different projects in two running instances | Both entries are kept | — | planned |
-| 28 | Damaged list | Damage the list file; start the app | The app starts; the list is empty or recovered as decided at 11.7 | — | planned |
+| 27 | Two instances | Open different projects in two running instances | Both entries are kept | `RecentProjectsStoreTests` (two instances, eight in parallel, held lock) | planned (11.8) |
+| 28 | Damaged list | Damage the list file; start the app | The app starts; the list is empty, the file kept as `recent-projects.<time>.damaged`; the next Open starts a new list (D026 "Refined in Step 11.7") | `RecentProjectsStoreTests` (damaged contents, bad entries, newer version, unreadable file) | planned (11.8) |
 | 29 | During an export | Start an export | `Recent ▾` is disabled | — | planned |
 
 ## Regression (Step 11.9)

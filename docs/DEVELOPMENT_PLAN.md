@@ -446,7 +446,7 @@ relinked), each checked by the 11.4 relink check, applied after confirmation as 
 - QG: tests with temporary folders (subfolder ignored, name case, a hard-rejected match, a duplicate name, cancel).
 - Depends on: 11.4.
 
-### 11.6 — Relink: UI *(implemented `145d484`; manual run of scenarios 7–21 found D1–D5, fixed and re-checked in the real app — awaiting the product owner's acceptance; D026 "Refined in Step 11.6" and "Refined after the Step 11.6 manual run")*
+### 11.6 — Relink: UI *(done — accepted 2026-10-02 after the manual run of scenarios 7–21; `145d484`, the fixes of D1–D5 `5c4d2d9`; D026 "Refined in Step 11.6" and "Refined after the Step 11.6 manual run")*
 Scope: D026 §5 — Relink in the Media Browser for offline media, the file picker, the dialogs, the batch summary, the
 status messages; `EditingLock`.
 - PR: Relink is offered only for offline media and is disabled during an export; the picker starts in the old file's
@@ -456,7 +456,7 @@ status messages; `EditingLock`.
 - Manual: `docs/PHASE11_MANUAL_TEST_PLAN.md` relink scenarios (moved, renamed, temporarily unavailable files).
 - Depends on: 11.5.
 
-### 11.7 — Recent projects: core
+### 11.7 — Recent projects: core *(implemented — awaiting the product owner's review; D026 "Refined in Step 11.7")*
 Scope: D026 §6 — the store and the rules of the list.
 - PR: at most 10 entries, most recent first, no duplicates by full path (case and trailing separator ignored); added
   after a successful Open, Save As and Recover with a folder, never after a failed Open; unavailable entries are kept

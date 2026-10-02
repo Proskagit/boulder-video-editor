@@ -7,7 +7,8 @@ namespace AiVideoEditor.UI.Services;
 /// The UI side of the project's life on disk: New / Open / Save / Save As / Close with the
 /// folder picker and the "save changes?" prompt, analysis of media that still needs it after
 /// Open, the startup offer to recover autosaved work, and autosave at shutdown. Every failure
-/// is reported in the status bar and leaves the current project as it was.
+/// is reported in the status bar and leaves the current project as it was. A successful Open, Save As and Recover (of a
+/// project with a folder) puts the project first in the recent-projects list (D026 §6); nothing else changes the list.
 /// </summary>
 public sealed class ProjectFileWorkflow
 {
@@ -20,6 +21,7 @@ public sealed class ProjectFileWorkflow
     private readonly ILogger<ProjectFileWorkflow> _logger;
     private readonly IThumbnailCacheLocation? _thumbnailCache;
     private readonly IWaveformCacheLocation? _waveformCache;
+    private readonly IRecentProjectsStore? _recentProjects;
 
     public ProjectFileWorkflow(
         IProjectService projectService,
@@ -30,7 +32,8 @@ public sealed class ProjectFileWorkflow
         StatusService status,
         ILogger<ProjectFileWorkflow> logger,
         IThumbnailCacheLocation? thumbnailCache = null,
-        IWaveformCacheLocation? waveformCache = null)
+        IWaveformCacheLocation? waveformCache = null,
+        IRecentProjectsStore? recentProjects = null)
     {
         _projectService = projectService;
         _analysisCoordinator = analysisCoordinator;
@@ -41,6 +44,7 @@ public sealed class ProjectFileWorkflow
         _logger = logger;
         _thumbnailCache = thumbnailCache;
         _waveformCache = waveformCache;
+        _recentProjects = recentProjects;
     }
 
     // ---- New / Open (interactive) ---------------------------------------------------
@@ -144,6 +148,9 @@ public sealed class ProjectFileWorkflow
         }
 
         _status.Report(SavedMessage($"Saved project \"{_projectService.Current.Name}\" to {folder}."));
+        // The folder written, also when Open replaced the project while it was being saved (project.json is there).
+        var savedFolder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder));
+        await RememberRecentAsync(savedFolder, Path.GetFileName(savedFolder) is { Length: > 0 } name ? name : current.Name);
         return true;
     }
 
@@ -223,6 +230,7 @@ public sealed class ProjectFileWorkflow
 
         AnalyseWhereNeeded(project);
         _status.Report($"Opened project \"{project.Name}\".{MissingSuffix(project)}");
+        await RememberRecentAsync(project.ProjectFolderPath!, project.Name);
         return true;
     }
 
@@ -278,6 +286,8 @@ public sealed class ProjectFileWorkflow
 
         AnalyseWhereNeeded(project);
         _status.Report($"Recovered unsaved changes to \"{project.Name}\" — save the project to keep them.{MissingSuffix(project)}{suffix}");
+        if (project.ProjectFolderPath is { } folder)
+            await RememberRecentAsync(folder, project.Name); // also when the folder is gone: listed as unavailable
     }
 
     private async Task OfferRecoveryAsync(RecoveryCandidate candidate, string suffix)
@@ -327,6 +337,21 @@ public sealed class ProjectFileWorkflow
             _logger.LogError(ex, "Autosave shutdown failed.");
         }
         return true;
+    }
+
+    /// <summary>Puts the project first in the recent-projects list. Never fails the operation that succeeded: the
+    /// store logs what it couldn't write, and nothing is shown in the status bar.</summary>
+    private async Task RememberRecentAsync(string folder, string name)
+    {
+        if (_recentProjects is null) return;
+        try
+        {
+            await _recentProjects.AddAsync(folder, name);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Couldn't add {Folder} to the recent projects.", folder);
+        }
     }
 
     private void AnalyseWhereNeeded(Core.Entities.Project project)

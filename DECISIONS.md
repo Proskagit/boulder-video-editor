@@ -1768,6 +1768,38 @@ owner):
   whose matches all can't be used reports "Files with matching names were found in the folder, but none of them can be
   used." — "No offline media file was found in the folder." only when nothing matched.
 
+Refined in Step 11.7 (2026-10-02), recent projects core (implementation choices within §6, agreed with the product
+owner after the Step 11.7 audit; no PO decision changed):
+- `IRecentProjectsStore` (Core: `GetAsync`, `AddAsync`, `RemoveAsync`, `IsAvailableAsync`; `RecentProject(FolderPath,
+  Name, LastUsedAt)`), implemented by `RecentProjectsStore` (Project / Persistence), registered in the app's composition
+  root, given to `ProjectFileWorkflow` as its last optional constructor parameter.
+- File `%LOCALAPPDATA%\AiVideoEditor\config\recent-projects.json` (`AppPaths.RecentProjectsFile`; the folder is created
+  only when the list is written — `AppPaths.ConfigFolder` creates it on every read, so it isn't used at startup):
+  `{ "format": "AiVideoEditor.RecentProjects", "formatVersion": 1, "projects": [ { "folderPath", "name", "lastUsedAt" } ] }`,
+  camelCase, most recent first. Availability is runtime state, never stored.
+- An entry's key is the folder's full path without a trailing separator (`GetFullPath`), compared ignoring case. Adding a
+  listed folder moves it first with the new name, time and path spelling; the 11th entry and beyond are dropped. A moved
+  or renamed folder is a new path; the old entry stays (unavailable). Accepted limitation: one folder reached by different
+  paths (a UNC path and a drive letter, `subst`, a symbolic link, an 8.3 name) gives different entries.
+- Added only by `ProjectFileWorkflow`, after the operation succeeded: `OpenAsync(folder)` (the opened project's folder and
+  name — also the future open from the list), `SaveAsAsync` (the written folder, named after it — also Save As into the
+  same folder and the first Save of a new project), the recovery offer's Recover when the recovered project has a folder
+  (also when that folder is gone). Save, New, Close, a cancelled picker or question and a failed operation change
+  nothing. `ProjectChanged` / `ProjectSaved` are not used: they don't tell Open from Recover or Save from Save As.
+- Errors never fail the project operation and show nothing in the status bar (logged only). Reading: no file → empty; not
+  JSON, not this `format`, no valid `formatVersion` or `projects` → empty, the file set aside as `*.<time>.damaged`;
+  single bad entries (no absolute path, no valid time) dropped, duplicates and entries beyond 10 removed (the file is
+  written clean at the next change); a newer `formatVersion` → empty, and changes are refused so it is never overwritten;
+  a file that can't be read → empty, and changes are refused. Writing: `ProjectFileStore.WriteAtomicAsync` (temporary
+  file, flush, replace) — a failed write leaves the previous file and no temporary file.
+- Several instances: every change reads the file again and writes it under a lock shared by all instances
+  (`recent-projects.lock` next to the list, opened with `FileShare.None`) and an in-process semaphore; a lock not obtained
+  within about 2 s skips the change (logged), the list unchanged. A read takes the lock too, so a damaged file is set aside
+  only if no other instance replaced it meanwhile; without the lock it is still read, nothing set aside.
+- All file work runs off the calling thread. `IsAvailableAsync` (a `project.json` in the folder; any error = unavailable)
+  has no time limit — a disconnected network path may answer late; the UI of 11.8 shows "checking" until then — and
+  never takes the lock, so it never holds up a change of the list.
+
 Status: Accepted (2026-10-01, PO-1…PO-9). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 11 — Media
 relink & recent projects: steps"; the implementation must follow PO-1…PO-9 as recorded here.
 

@@ -303,6 +303,42 @@ command; no push, merge, pull request or branch deletion without direct permissi
     Video 294, ExportEndToEnd 86 + 2. Re-check in the real app: D1, D2 (single and batch, thumbnail and waveform), D4, D5 —
     passed (the plan's results log). `TestResults` folders of the `--blame-hang` mutation runs remain under the git-ignored
     `tests/*/TestResults` (the sandbox refused removing them).
+- Step 11.6 accepted by the product owner (2026-10-02): `5c4d2d9`, manual acceptance PASS.
+- Step 11.7 implemented (2026-10-02, D026 "Refined in Step 11.7"; the audit and the decisions on the slow availability
+  check, the silent write errors and the damaged file agreed with the product owner) — awaiting review.
+  - Core `IRecentProjectsStore` + `RecentProject(FolderPath, Name, LastUsedAt)`; `RecentProjectsStore`
+    (`src/Project/Persistence`): JSON `{ format "AiVideoEditor.RecentProjects", formatVersion 1, projects[] }` in
+    `AppPaths.RecentProjectsFile` (`%LOCALAPPDATA%\AiVideoEditor\config\recent-projects.json`; new
+    `AppPaths.ConfigFolderPath` / `RecentProjectsFile` that don't create the folder); key = full path without a trailing
+    separator, ignoring case; 10 entries; re-read + atomic write (`ProjectFileStore.WriteAtomicAsync`) under
+    `recent-projects.lock` (`FileShare.None`, retried for about 2 s) and a `SemaphoreSlim`; damaged → `*.<time>.damaged`;
+    newer version / unreadable → not overwritten; bad entries dropped; errors logged, `false` returned. `IsAvailableAsync`
+    off the calling thread, no time limit, no lock. Registered in `ServiceCollectionExtensions`.
+  - `ProjectFileWorkflow` (new last optional parameter `recentProjects`): `RememberRecentAsync` after a successful
+    `OpenAsync(folder)` (the opened project's folder and name), `SaveAsAsync` (the written folder, its name) and
+    `OnRecoverAsync` (if the project has a folder); a store failure or exception is logged and changes no result or
+    status message.
+  - Tests (new): `Project.Tests/RecentProjectsStoreTests` (40 with theory cases: empty, order, update, four spellings of
+    one folder — stored once, limit, remove / remove of an unlisted folder without a write, reload, eight damaged
+    contents set aside, a change on a damaged file, bad entries, unnamed entry, duplicates + 13 entries, newer version
+    untouched, unreadable file never overwritten, failed write keeps the file and no `*.tmp`, configuration folder that
+    can't be created, invalid paths, two instances interleaved, eight in parallel, a held lock → false after the timeout
+    and the file kept, availability true / five unavailable cases / an error, a hanging check holds up neither the caller
+    nor a change, reads and changes off the calling thread); `UI.Tests/RecentProjectsWorkflowTests` (22: Open by its full
+    path and name, the interactive Open, Open again moves first, three failed Opens, cancelled picker, Cancel at the
+    unsaved-changes question, Save As (named after the folder), Save As into its own folder, the first Save, cancelled /
+    refused Replace / failed Save As, Save + New + Close untouched, Recover with a folder, with its folder gone, never
+    saved, failed; a throwing store and an unwritable list never fail Open / Save As / Recover; unavailable projects stay
+    listed); `UI.Tests/RecentProjectsCompositionTests` (1: the app's composition gives the workflow the store at
+    `AppPaths.RecentProjectsFile`).
+  - Mutations (each reverted; 12): no Add after Open → 5 failures; after Save As → 4; after Recover → 3; no key
+    normalisation when adding → 0 at first (every read normalised and de-duplicated again, so only the file kept a
+    duplicate) — the spelling test now also checks the file: → 3; no normalisation anywhere → 6; no limit → 2; no
+    re-read before a write (a cached list) → 5 + 2; a non-atomic write → 1; an unreadable / newer file overwritten → 1;
+    a damaged file not set aside → 9; the availability check under the list lock → 1; the store not registered → 1.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; `dotnet test` (whole solution)
+    2181 passed, 2 skipped (4K), 0 failed — Core 448, Timeline 361, Project 371 (+40), UI 464 (+23), Export 99, Rendering
+    58, Video 294, ExportEndToEnd 86 + 2. No real-app run: 11.7 has no UI (the plan's scenarios 22–29 are run at 11.8).
 
 ## Phase 10 (complete)
 

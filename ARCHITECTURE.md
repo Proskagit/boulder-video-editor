@@ -346,8 +346,16 @@ recovery, unsaved changes).
   an Undo / Redo returns the asset to that file (not the cache's last file, which after a relink is the relinked one).
   The Inspector's media state line (`AnalysisStatusText`) uses the Media Browser's order: offline, Analyzing, Not
   analysed yet.
-- Planned in Phase 11 (D026, not implemented yet): recent projects (10, outside every project, `Recent ▾` next to Open). No per-user settings are stored yet
-  (`AppPaths.ConfigFolder` is unused). `project.json` stays v3.
+- Recent projects (D026 §6, Step 11.7): `IRecentProjectsStore` (Core) → `RecentProjectsStore` (Project / Persistence),
+  the per-user list `%LOCALAPPDATA%\AiVideoEditor\config\recent-projects.json` (`AppPaths.RecentProjectsFile`, the folder
+  created only when written; the only per-user data stored): at most 10 project folders, most recent first, one per
+  full path (case and a trailing separator ignored). Every change re-reads the file and writes it atomically
+  (`ProjectFileStore.WriteAtomicAsync`) under `recent-projects.lock` (`FileShare.None`, shared by running instances,
+  about 2 s) plus an in-process semaphore; damaged → set aside as `*.damaged`, newer format or unreadable → never
+  overwritten; errors are logged, never thrown. Availability (`IsAvailableAsync`: `project.json` present) is runtime
+  only, off the calling thread, without the lock. `ProjectFileWorkflow` adds an entry after a successful Open
+  (`OpenAsync(folder)`), Save As and Recover of a project with a folder — nothing else. The `Recent ▾` UI follows in
+  11.8. `project.json` stays v3.
 
 ## MVVM
 

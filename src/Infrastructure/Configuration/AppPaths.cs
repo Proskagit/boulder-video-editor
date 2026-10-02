@@ -11,7 +11,14 @@ public static class AppPaths
 
     public static string LogsFolder => EnsureExists(Path.Combine(AppDataRoot, "logs"));
 
-    public static string ConfigFolder => EnsureExists(Path.Combine(AppDataRoot, "config"));
+    public static string ConfigFolder => EnsureExists(ConfigFolderPath);
+
+    /// <summary>The <see cref="ConfigFolder"/> path without creating the folder.</summary>
+    public static string ConfigFolderPath => Path.Combine(AppDataRoot, "config");
+
+    /// <summary>The recent-projects list (D026 §6, Step 11.7). Not created here: the folder is created only when the
+    /// list is written, so a configuration folder that can't be created never prevents startup.</summary>
+    public static string RecentProjectsFile => Path.Combine(ConfigFolderPath, "recent-projects.json");
 
     /// <summary>Per-project cache. Thumbnails live in its <c>thumbnails</c> subfolder — the one place for them in a
     /// project folder (D024 Step 9.4) —, waveforms in <c>waveforms</c> (Step 9.5); see <c>ThumbnailCacheLocation</c> /
