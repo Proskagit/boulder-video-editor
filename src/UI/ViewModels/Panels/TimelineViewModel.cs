@@ -104,6 +104,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(DeleteSelectedCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RippleDeleteCommand))]
     private bool _hasSelection;
 
     /// <summary>A dissolve is selected (and no clip).</summary>
@@ -496,6 +497,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsEditingAllowed));
         SplitAtPlayheadCommand.NotifyCanExecuteChanged();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
+        RippleDeleteCommand.NotifyCanExecuteChanged();
+        CloseGapCommand.NotifyCanExecuteChanged();
         AddDissolveCommand.NotifyCanExecuteChanged();
         AddVideoTrackCommand.NotifyCanExecuteChanged();
         AddAudioTrackCommand.NotifyCanExecuteChanged();
@@ -551,6 +554,33 @@ public sealed partial class TimelineViewModel : ViewModelBase
         Report(result, successMessage: frames < wanted
             ? $"Dissolve added: {frames} frames, the longest that fits here."
             : $"Dissolve added: {frames} frames.");
+    }
+
+    // --- Ripple delete and close gap (D027 §2) -------------------------------------
+    // The rules (which clips move, dissolves, locks, validation) are the edit service's; its message is shown when it
+    // refuses.
+
+    private bool CanRippleDelete() => CanEdit() && HasSelection;
+
+    /// <summary>Close Gap works on the gap right before the one selected clip, on its track.</summary>
+    private bool CanCloseGap() => CanEdit() && _selection.Count == 1;
+
+    /// <summary>"Ripple Delete": the selected clips go and the later clips of their tracks close up (D027 §2).</summary>
+    [RelayCommand(CanExecute = nameof(CanRippleDelete))]
+    private void RippleDelete()
+    {
+        var result = _edit.RippleDeleteClips(_selection.ToList());
+        if (result.Success) ClearSelection();
+        Report(result, successMessage: result.ClipIds.Count == 1 ? "Clip ripple deleted" : $"{result.ClipIds.Count} clips ripple deleted");
+    }
+
+    /// <summary>"Close Gap": the empty span before the selected clip goes; that clip and the later ones of its track move
+    /// left (D027 §2). The selection stays.</summary>
+    [RelayCommand(CanExecute = nameof(CanCloseGap))]
+    private void CloseGap()
+    {
+        if (_selection.Count != 1) return;
+        Report(_edit.CloseGapBefore(_selection[0]), successMessage: "Gap closed");
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))] private void AddVideoTrack() => Report(_edit.AddTrack(TrackType.Video));
@@ -776,8 +806,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
             vm.IsSelected = vm.Id == _selectedTransitionId;
         HasSelection = _selection.Count > 0;
         HasTransitionSelection = _selectedTransitionId is not null;
-        // Dissolve depends on how many clips are selected, not only on whether any is: 1 → 2 keeps HasSelection true.
+        // Dissolve and Close Gap depend on how many clips are selected, not only on whether any is: 1 → 2 keeps
+        // HasSelection true.
         AddDissolveCommand.NotifyCanExecuteChanged();
+        CloseGapCommand.NotifyCanExecuteChanged();
     }
 
     private void RaiseSelectionChanged()

@@ -183,6 +183,9 @@ public partial class MainWindow : Window
         public (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime) => null;
         public TimelineEditResult Split(MediaTime at, IReadOnlyCollection<Guid>? clipIds = null) => Nothing;
         public TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds) => Nothing;
+        public TimelineEditResult RippleDeleteClips(IReadOnlyCollection<Guid> clipIds) => Nothing;
+        public TimelineEditResult CloseGap(Guid trackId, MediaTime at) => Nothing;
+        public TimelineEditResult CloseGapBefore(Guid clipId) => Nothing;
         public TimelineEditResult AddTrack(TrackType type) => Nothing;
         public TimelineEditResult DeleteTrack(Guid trackId) => Nothing;
         public string? GetDeleteTrackBlockReason(Guid trackId) => "Design time.";

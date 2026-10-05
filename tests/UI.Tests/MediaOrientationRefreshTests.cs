@@ -203,6 +203,9 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime) => null;
         public TimelineEditResult Split(MediaTime at, IReadOnlyCollection<Guid>? clipIds = null) => No;
         public TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds) => No;
+        public TimelineEditResult RippleDeleteClips(IReadOnlyCollection<Guid> clipIds) => No;
+        public TimelineEditResult CloseGap(Guid trackId, MediaTime at) => No;
+        public TimelineEditResult CloseGapBefore(Guid clipId) => No;
         public TimelineEditResult AddTrack(TrackType type) => No;
         public TimelineEditResult DeleteTrack(Guid trackId) => No;
         public string? GetDeleteTrackBlockReason(Guid trackId) => null;

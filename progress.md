@@ -4,7 +4,7 @@
 
 Phase 12 — Editing essentials: **in progress** on branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main`
 after the merge of PR #11). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 12 — Editing
-essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.4 accepted (2026-10-05).
+essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.5 accepted (2026-10-05).
 
 ### Phase 12 — Editing essentials (in progress)
 
@@ -139,6 +139,47 @@ permission; no next step without the product owner's go.
     Export 99, Rendering 58, Video 294, ExportEndToEnd 87 + 2; three runs with `--blame-hang --blame-hang-timeout 5m`,
     each 2255 passed / 2 skipped / 0 failed, no hang, no dump; `git diff --check` clean. The Preview ↔ Export parity
     suites unchanged and green. No fix needed. Not run: the heavy 4K scenes, CI (not pushed), the manual scenarios 8–13.
+  - Committed as `097e555` (the product owner's permission, 2026-10-05; not pushed); D027 §4 and this plan's 12.4 text
+    made to say what the implementation does for running work (before the checks).
+- Step 12.5 done and accepted (2026-10-05) — ripple delete and close gap (D027 §2; the product owner's rules at its
+  start and the implementation in D027 "Refined in Step 12.5", confirmed: Close Gap through the selected clip, a ripple
+  refused when a moved dissolve's handles no longer fit, no hotkeys). Started on the product owner's instruction right
+  after the 12.4 commit.
+  - Core: `ITimelineEditService.RippleDeleteClips`, `CloseGap(trackId, at)`, `CloseGapBefore(clipId)`.
+  - Timeline: `TimelineEditService` — the move's per-clip timing rule extracted into `PlanShift` (Move unchanged in
+    behaviour, now its user); ripple: per track, the removed clips into the `EditPlan` and every other clip shifted
+    left by the removed frames before it; close gap: the span containing the point, every later clip of the track
+    shifted by its length; both through `Validate` (`ReconcileTransitions` removes a removed clip's dissolves, keeps
+    the others with their two clips, validates zones / handles) and one `Commit`. No new command class: the plan's
+    `RemoveClipCommand` / `UpdateClipsCommand` / transition commands in one `CompositeCommand`.
+  - UI: `TimelineViewModel.RippleDeleteCommand` / `CloseGapCommand` (refreshed with the selection like Dissolve);
+    `TimelineView.axaml` — "Ripple Delete" and "Close Gap" next to Delete. The design-time stub and the
+    `MediaOrientationRefreshTests` stub completed.
+  - Tests (new, 24): `Timeline.Tests/RippleEditTests` (17: one clip, undo / redo exact; gaps kept; several
+    clips of one track; two tracks with the third, the playhead and a marker untouched; a removed clip's dissolve
+    removed with the note, none created at the new cut; a dissolve after the removed clip moved with anchors, length
+    and fades kept and drawn at the new cut by the snapshot; a dissolve before it untouched; a 2× clip keeps speed and
+    source range; 29.97 fps stays on the grid; locked track refused; nothing selected / a missing clip; close gap
+    between clips (a later gap kept, undo / redo), before the first clip, only an existing gap (in a clip, after the
+    last, an empty track, an unknown track), locked refused, a dissolve moved with its clips and another track
+    untouched, the gap right before a clip); `UI.Tests/TimelineRippleUiTests` (6: Ripple Delete needs a selection and
+    is off during an export; two tracks closed, the selection cleared, one Undo; a refused one's message, the selection
+    kept; Close Gap needs exactly one clip and is off during an export; it closes the gap before the clip, the
+    selection kept; no gap → the service's message).
+  - The QG "an export after a ripple matching its Preview" (the product owner asked for it before the checks):
+    `ExportEndToEnd.Tests/ExportRippleEndToEndTests` (1) — red [0, 10), green [10, 20), blue [20, 30) on V1, the green
+    one removed by the real `TimelineEditService.RippleDeleteClips` (through a minimal `IProjectService` stand-in over
+    the scene's project, as in `Video.Tests`); the real export has 20 frames, red then blue without a gap, and the
+    Preview from the export's snapshot draws the same bytes at frames 9 and 10 (D023's canvas rule; no new criterion).
+    It ran (not skipped) and passed. The existing parity scenes unchanged.
+  - Not automated: the two header buttons' bindings in the real view — manual scenarios 14–21.
+  - Verification (on the product owner's command; `--artifacts-path` in the session's scratch folder): `dotnet build
+    AiVideoEditor.sln --no-incremental -warnaserror` 0 errors / 0 warnings at the first attempt; `dotnet test` (whole
+    solution, once) 2279 passed, 2 skipped (only the two 4K heavy scenes), 0 failed — Core 448, Timeline 400 (+17),
+    Project 371, UI 521 (+6), Export 99, Rendering 58, Video 294, ExportEndToEnd 88 (+1) + 2; three runs with
+    `--blame-hang --blame-hang-timeout 5m`, each 2279 passed / 2 skipped / 0 failed over all 8 test assemblies, no hang,
+    no dump; `git diff --check` clean. The Preview ↔ Export parity suites unchanged and green. No fix needed. Not run:
+    the heavy 4K scenes, CI (not pushed), the manual scenarios 14–21.
 
 ### Phase 11 — Media relink & recent projects (complete; PR #11 merged as `47ed2fa`, CI green)
 

@@ -69,7 +69,9 @@ duplicate · 12.7 markers · 12.8 import / New · 12.9 closeout — scope and ac
 formalization, documentation only) accepted (2026-10-05); Step 12.3 (tracks: delete and reorder, undoable; the last
 track and locked tracks kept) accepted (2026-10-05; build 0 / 0, 2237 passed, 2 skipped, three `--blame-hang` runs
 clean, `5bcdcbb`); Step 12.4 (removing media from the project, undoable, with its clips after a confirmation)
-accepted (2026-10-05; build 0 / 0, 2255 passed, 2 skipped, three `--blame-hang` runs clean). Details: `progress.md`.
+accepted (2026-10-05; build 0 / 0, 2255 passed, 2 skipped, three `--blame-hang` runs clean, `097e555`); Step 12.5
+(ripple delete of the selected clips and close gap, undoable) accepted (2026-10-05; build 0 / 0, 2279 passed, 2
+skipped, three `--blame-hang` runs clean; a real export after a ripple matches its Preview). Details: `progress.md`.
 
 ## Previous
 

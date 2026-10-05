@@ -2045,6 +2045,22 @@ row, no cache cleanup, the analysis rule, the re-import edge as a known Phase 12
   longer in the list the import checks); an Undo of the removal after that brings back a second asset with the same
   path (the import itself is not undoable, D027 §1). Both play; relinking either to the other's path is refused (PO-9).
 
+Refined in Step 12.5 (product owner's rules of 2026-10-05 at its start, and the implementation; confirmed by the
+product owner the same day):
+- Ripple delete works on the selected clips only (also on several tracks), never on an in / out range; each track that
+  loses a clip closes by its own removed clips; clips of other tracks, the playhead and the markers stay. The shift is
+  computed in whole frames (the move's timing rule, shared with Move: frame count, speed and source range go along),
+  so the clips stay on the frame grid at any rate.
+- Close gap works only on an existing empty span of one track (between two clips or before the first one); a point in a
+  clip or after the track's last clip is no gap. Reached from the UI as "the gap right before the one selected clip"
+  (`CloseGapBefore`); the service's general form is `CloseGap(track, at)`.
+- Dissolves as §2 (confirmed at 12.2); the moved dissolves are validated like any edit's — their zones and, as D025
+  "Refined in Step 10.6" says for every dissolve whose clips an edit changes, their source handles. A move changes
+  neither, so a valid dissolve stays valid; one whose media changed since (a relink to a shorter file) would make the
+  ripple refuse with the validator's message rather than leave an invalid dissolve.
+- UI: "Ripple Delete" (the selected clips; the selection cleared) and "Close Gap" (exactly one selected clip; the
+  selection kept) in the timeline header next to Delete; disabled during an export; no hotkeys.
+
 Status: Accepted (2026-10-05, product owner decisions of 2026-10-05). Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 12 — Editing essentials: steps". Sub-decisions are proposed at the start of their
 step, confirmed by the product owner and recorded as a refinement here.

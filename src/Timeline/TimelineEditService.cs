@@ -206,47 +206,56 @@ public sealed class TimelineEditService : ITimelineEditService
 
         if (frameDelta == 0 && target is null) return (null, clips, null);
 
-        var rate = plan.Rate;
         foreach (var clip in clips)
         {
-            var toTrack = target ?? plan.TrackOf(clip);
-            if (!TimelineValidator.IsCompatible(clip, toTrack.Type))
-                return (null, clips, clip is AudioClip ? "Audio can only go on an audio track." : "Video and images can only go on a video track.");
-
-            var startFrame = clip.TimelineStart.ToNearestFrame(rate) + frameDelta;
-            var endFrame = clip.TimelineEnd.ToNearestFrame(rate) + frameDelta;
-            if (startFrame < 0)
-                return (null, clips, "Clips can't be moved before the beginning of the timeline.");
-
-            if (clip is MediaBackedClip { Speed.IsNormal: false } fast)
-            {
-                // D022: the source range and speed move along unchanged; so does the frame count.
-                plan.Update(clip, toTrack, ClipState.FromFrames(startFrame, endFrame, fast.SourceIn, fast.SourceOut, fast.Speed, rate));
-                continue;
-            }
-
-            var sourceIn = clip is MediaBackedClip m ? m.SourceIn : MediaTime.Zero;
-            var after = ClipState.FromFrames(startFrame, endFrame, sourceIn, rate);
-
-            // The tick length of the same frame count can differ by one tick between
-            // positions. If that would push SourceOut one tick past the source end
-            // (possible only for the right half of a split), slip SourceIn back by
-            // the excess — a sub-frame, invisible adjustment — instead of failing.
-            if (SourceDuration(clip) is { } sourceDuration && after.SourceOut > sourceDuration)
-            {
-                var excess = after.SourceOut - sourceDuration;
-                if (after.SourceIn < excess)
-                    return (null, clips, "A clip can't extend past the end of its source media.");
-                after = after with { SourceIn = after.SourceIn - excess, SourceOut = sourceDuration };
-            }
-
-            plan.Update(clip, toTrack, after);
+            if (PlanShift(plan, clip, target ?? plan.TrackOf(clip), frameDelta) is { } shiftError)
+                return (null, clips, shiftError);
         }
 
         if (Validate(plan) is { } error)
             return (null, clips, $"Can't move: {error}");
 
         return (plan, clips, null);
+    }
+
+    /// <summary>Plans one clip moved by <paramref name="frameDelta"/> whole frames onto <paramref name="toTrack"/> — the
+    /// move's timing rule, shared by Move and the ripple edits (D027 §2): the frame count, speed and source range go
+    /// along. Null when planned, otherwise why not.</summary>
+    private string? PlanShift(EditPlan plan, Clip clip, Track toTrack, long frameDelta)
+    {
+        var rate = plan.Rate;
+        if (!TimelineValidator.IsCompatible(clip, toTrack.Type))
+            return clip is AudioClip ? "Audio can only go on an audio track." : "Video and images can only go on a video track.";
+
+        var startFrame = clip.TimelineStart.ToNearestFrame(rate) + frameDelta;
+        var endFrame = clip.TimelineEnd.ToNearestFrame(rate) + frameDelta;
+        if (startFrame < 0)
+            return "Clips can't be moved before the beginning of the timeline.";
+
+        if (clip is MediaBackedClip { Speed.IsNormal: false } fast)
+        {
+            // D022: the source range and speed move along unchanged; so does the frame count.
+            plan.Update(clip, toTrack, ClipState.FromFrames(startFrame, endFrame, fast.SourceIn, fast.SourceOut, fast.Speed, rate));
+            return null;
+        }
+
+        var sourceIn = clip is MediaBackedClip m ? m.SourceIn : MediaTime.Zero;
+        var after = ClipState.FromFrames(startFrame, endFrame, sourceIn, rate);
+
+        // The tick length of the same frame count can differ by one tick between
+        // positions. If that would push SourceOut one tick past the source end
+        // (possible only for the right half of a split), slip SourceIn back by
+        // the excess — a sub-frame, invisible adjustment — instead of failing.
+        if (SourceDuration(clip) is { } sourceDuration && after.SourceOut > sourceDuration)
+        {
+            var excess = after.SourceOut - sourceDuration;
+            if (after.SourceIn < excess)
+                return "A clip can't extend past the end of its source media.";
+            after = after with { SourceIn = after.SourceIn - excess, SourceOut = sourceDuration };
+        }
+
+        plan.Update(clip, toTrack, after);
+        return null;
     }
 
     // --- Trim ------------------------------------------------------------------
@@ -594,6 +603,83 @@ public sealed class TimelineEditService : ITimelineEditService
 
         _undoRedo.Execute(new NotifyingCommand(new SetTrackOrderCommand(changes), _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok();
+    }
+
+    // --- Ripple delete and close gap (D027 §2) ---------------------------------
+
+    public TimelineEditResult RippleDeleteClips(IReadOnlyCollection<Guid> clipIds)
+    {
+        if (clipIds.Count == 0) return TimelineEditResult.Unchanged();
+
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, clipIds, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+        if (CheckEditable(plan, clips) is { } editError) return TimelineEditResult.Fail(editError);
+
+        var rate = plan.Rate;
+        var removed = clips.ToHashSet();
+        foreach (var group in clips.GroupBy(plan.TrackOf))
+        {
+            // Per track: a clip that is not removed moves left by the length of the removed clips that end at or before
+            // its start. Clips on other tracks, the playhead and the markers stay; gaps that are not removed move along.
+            var spans = group.Select(c => (Start: c.TimelineStart.ToNearestFrame(rate), End: c.TimelineEnd.ToNearestFrame(rate))).ToList();
+            foreach (var clip in group) plan.Remove(clip);
+            foreach (var clip in group.Key.Clips.Where(c => !removed.Contains(c)))
+            {
+                var start = clip.TimelineStart.ToNearestFrame(rate);
+                var shift = spans.Where(s => s.End <= start).Sum(s => s.End - s.Start);
+                if (shift > 0 && PlanShift(plan, clip, group.Key, -shift) is { } shiftError)
+                    return TimelineEditResult.Fail($"Can't ripple delete: {shiftError}");
+            }
+        }
+
+        // A removed clip's dissolves go with it; every other dissolve has both clips moved by the same distance and is
+        // kept as it is; none is created where clips now meet (D027 §2, D025 §5). The result is validated like any edit.
+        if (Validate(plan) is { } error) return TimelineEditResult.Fail($"Can't ripple delete: {error}");
+
+        Commit(plan, clips.Count == 1 ? "Ripple Delete Clip" : "Ripple Delete Clips");
+        return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), TransitionNote(plan));
+    }
+
+    public TimelineEditResult CloseGap(Guid trackId, MediaTime at)
+    {
+        if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail("That track no longer exists.");
+        if (track.IsLocked) return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+
+        var plan = new EditPlan(Sequence, Settings);
+        var rate = plan.Rate;
+        var frame = at.ToFrameFloor(rate);
+        var spans = track.Clips.Select(c => (Clip: c, Start: c.TimelineStart.ToNearestFrame(rate), End: c.TimelineEnd.ToNearestFrame(rate))).ToList();
+        if (frame < 0 || spans.Any(s => s.Start <= frame && frame < s.End))
+            return TimelineEditResult.Fail("There is no gap there.");
+        var following = spans.Where(s => s.Start > frame).ToList();
+        if (following.Count == 0)
+            return TimelineEditResult.Fail("There is no gap there: no clip follows it on the track.");
+        var gapEnd = following.Min(s => s.Start);
+        var gapStart = spans.Where(s => s.End <= frame).Select(s => s.End).DefaultIfEmpty(0).Max();
+
+        // Every clip from the gap's end on moves left by the gap's length; a dissolve's two clips move together.
+        foreach (var s in following)
+        {
+            if (PlanShift(plan, s.Clip, track, gapStart - gapEnd) is { } shiftError)
+                return TimelineEditResult.Fail($"Can't close the gap: {shiftError}");
+        }
+        if (Validate(plan) is { } error) return TimelineEditResult.Fail($"Can't close the gap: {error}");
+
+        Commit(plan, "Close Gap");
+        return TimelineEditResult.Ok(following.Select(s => s.Clip.Id).ToList(), TransitionNote(plan));
+    }
+
+    public TimelineEditResult CloseGapBefore(Guid clipId)
+    {
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+        var clip = clips[0];
+        var rate = plan.Rate;
+        var startFrame = clip.TimelineStart.ToNearestFrame(rate);
+        var track = plan.TrackOf(clip);
+        if (startFrame == 0 || track.Clips.Any(c => c != clip && c.TimelineEnd.ToNearestFrame(rate) == startFrame))
+            return TimelineEditResult.Fail("There is no gap before this clip.");
+        return CloseGap(track.Id, MediaTime.FromFrame(startFrame - 1, rate));
     }
 
     // --- Media removal (D027 §4) ------------------------------------------------

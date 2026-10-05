@@ -548,14 +548,15 @@ Scope: D027 §4.
   analysis completing into the removed asset), of the confirmation flow.
 - Depends on: 12.3 (the track and clip removal paths are shared).
 
-### 12.5 — Ripple delete and close gap
+### 12.5 — Ripple delete and close gap *(done — accepted 2026-10-05; D027 "Refined in Step 12.5"; the export QG met by `ExportRippleEndToEndTests`; manual scenarios 14–21 at 12.9 at the latest)*
 Scope: D027 §2.
 - PR: ripple delete removes the selected clips and moves the later clips of the same track left by the removed length;
   close gap removes an empty span of a track the same way; other tracks, the playhead and the markers stay; no overlap.
 - PR: a dissolve of a removed clip is removed (with D025's status note); every other dissolve keeps its length and
   zone; no dissolve is created where clips meet only because of the ripple; one undoable step restores everything.
 - QG: tests of the shift rule (one clip, several clips, several tracks, gaps kept, gap at the start), of each dissolve
-  case of D027 §2, of locked tracks, undo / redo; an export after a ripple matching its Preview.
+  case of D027 §2, of locked tracks, undo / redo; an export after a ripple matching its Preview *(met: a real ripple
+  delete, then a real export of 20 frames matching the Preview byte for byte at the new cut — `ExportRippleEndToEndTests`)*.
 - Depends on: 12.4.
 
 ### 12.6 — Copy / paste / duplicate

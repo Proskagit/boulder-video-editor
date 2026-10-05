@@ -47,14 +47,14 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 14 | Ripple delete one clip | V1: A B C (B in the middle); ripple delete B | C moves left by B's length; no gap; other tracks, playhead and markers stay | — | planned |
-| 15 | Several clips, several tracks | Select clips on V1 and A1; ripple delete | Each track closes by its own removed length; nothing overlaps | — | planned |
-| 16 | Gaps kept | V1: A [gap] B C; ripple delete A | The gap and B C move left together; the gap stays | — | planned |
-| 17 | Close gap | V1: A [gap] B; close the gap | B (and everything after it on V1) moves left by the gap | — | planned |
-| 18 | Dissolve of the removed clip | A → B dissolve; ripple delete B | The dissolve is removed with D025's status note; C meets A without a dissolve | — | planned |
-| 19 | Dissolve after the removed clip | X, then C → D dissolve right of it; ripple delete X | C and D move together; the dissolve keeps its length; the Preview and the export show it as before | — | planned |
-| 20 | Undo / export | Undo after 18 / 19; export after 19 | Undo restores clips and dissolves exactly; the export matches the Preview | — | planned |
-| 21 | Locked track | Ripple delete a clip on a locked track | Rejected with a message; nothing changes | — | planned |
+| 14 | Ripple delete one clip | V1: A B C (B in the middle); select B, Ripple Delete | C moves left by B's length; no gap; other tracks, playhead and markers stay | `RippleEditTests` (one clip, undo / redo) | auto (12.5); manual pending |
+| 15 | Several clips, several tracks | Select clips on V1 and A1 (Ctrl+click); Ripple Delete | Each track closes by its own removed length; nothing overlaps; the selection is cleared | `RippleEditTests` (several clips, two tracks), `TimelineRippleUiTests` (two tracks) | auto (12.5); manual pending |
+| 16 | Gaps kept | V1: A [gap] B C; ripple delete A | The gap and B C move left together; the gap stays | `RippleEditTests` (gaps kept) | auto (12.5); manual pending |
+| 17 | Close gap | V1: A [gap] B; select B, Close Gap; then select a clip with no gap before it | B (and everything after it on V1) moves left by the gap; the second time "There is no gap before this clip." | `RippleEditTests` (close gap cases), `TimelineRippleUiTests` (close gap) | auto (12.5); manual pending |
+| 18 | Dissolve of the removed clip | A → B dissolve; ripple delete B | The dissolve is removed with D025's status note; C meets A without a dissolve | `RippleEditTests` (removed clip's dissolve) | auto (12.5); manual pending |
+| 19 | Dissolve after the removed clip | X, then C → D dissolve right of it; ripple delete X | C and D move together; the dissolve keeps its length; the Preview and the export show it as before | `RippleEditTests` (dissolve after, snapshot zone) | auto (12.5); manual pending |
+| 20 | Undo / export | Undo after 18 / 19; export after 19 | Undo restores clips and dissolves exactly; the export matches the Preview | `RippleEditTests` (undo / redo exact), `ExportRippleEndToEndTests` (a real export after a ripple = its Preview) | auto (12.5); manual pending |
+| 21 | Locked track | Ripple delete / close gap on a locked track | Rejected with a message; nothing changes | `RippleEditTests` (locked), `TimelineRippleUiTests` (refused) | auto (12.5); manual pending |
 
 ## Step 12.6 — copy / paste / duplicate (D027 §5)
 

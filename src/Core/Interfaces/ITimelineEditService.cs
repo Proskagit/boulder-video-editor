@@ -55,6 +55,25 @@ public interface ITimelineEditService
 
     TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds);
 
+    /// <summary>Ripple delete (D027 §2): removes the clips, and on each track that loses one every other clip that starts
+    /// at or after the end of a removed clip moves left by the length of the removed clips that end at or before its
+    /// start — no gap is left where they were, no overlap can arise. Clips on other tracks, the playhead and the markers
+    /// stay. A removed clip's dissolves go with it (with D025's status note); every other dissolve keeps its length and
+    /// zone; none is created where clips now meet; fades are unchanged. One Undo step. Rejected — nothing changes — when
+    /// a clip's track is locked or the result fails the timeline's validation.</summary>
+    TimelineEditResult RippleDeleteClips(IReadOnlyCollection<Guid> clipIds);
+
+    /// <summary>Close gap (D027 §2): removes the empty span of <paramref name="trackId"/> that contains
+    /// <paramref name="at"/> — between two clips, or before the first one — by moving every clip of that track from the
+    /// gap's end on left by the gap's length. Only an existing gap: rejected when <paramref name="at"/> lies in a clip or
+    /// after the track's last clip, or the track is locked. Dissolves move with their clips unchanged. One Undo
+    /// step.</summary>
+    TimelineEditResult CloseGap(Guid trackId, MediaTime at);
+
+    /// <summary><see cref="CloseGap"/> for the gap right before <paramref name="clipId"/> on its track; rejected when the
+    /// clip starts at 0 or right where another clip ends.</summary>
+    TimelineEditResult CloseGapBefore(Guid clipId);
+
     TimelineEditResult AddTrack(TrackType type);
 
     /// <summary>Deletes a track together with its clips and dissolves (D027 §3) as one Undo step; Undo puts the same
