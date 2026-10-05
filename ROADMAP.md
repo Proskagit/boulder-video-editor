@@ -73,8 +73,10 @@ accepted (2026-10-05; build 0 / 0, 2255 passed, 2 skipped, three `--blame-hang` 
 (ripple delete of the selected clips and close gap, undoable) accepted (2026-10-05; build 0 / 0, 2279 passed, 2
 skipped, three `--blame-hang` runs clean; a real export after a ripple matches its Preview; `a2f8c7c`); Step 12.6 (copy /
 paste / duplicate of clips, undoable, Ctrl+C / Ctrl+V / Ctrl+D) accepted (2026-10-05; build 0 / 0, 2304 passed, 2
-skipped, three `--blame-hang` runs clean; the header checked at 1024 and 1440 px, the Copy button removed for 1024 px).
-Details: `progress.md`.
+skipped, three `--blame-hang` runs clean; the header checked at 1024 and 1440 px, the Copy button removed for 1024 px;
+`518730c`); Step 12.7 (markers: add / remove at the playhead, drawn on the ruler, previous / next, snapping) accepted
+(2026-10-05; build 0 / 0, 2319 passed, 2 skipped, three `--blame-hang` runs clean; the marker buttons checked in the
+real app at 1024 and 1440 px). Details: `progress.md`.
 
 ## Previous
 

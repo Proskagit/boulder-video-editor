@@ -755,6 +755,46 @@ public sealed class TimelineEditService : ITimelineEditService
         return CloseGap(track.Id, MediaTime.FromFrame(startFrame - 1, rate));
     }
 
+    // --- Markers (D027 §6) ------------------------------------------------------
+
+    /// <summary>The marker on <paramref name="frame"/> of the current grid, if any (markers keep their time when the frame
+    /// rate changes, so the nearest frame decides).</summary>
+    private Marker? MarkerOnFrame(long frame) =>
+        Sequence.Markers.FirstOrDefault(m => m.Position.ToNearestFrame(FrameRate) == frame);
+
+    public TimelineEditResult AddMarker(MediaTime at)
+    {
+        var frame = Math.Max(0, at.ToNearestFrame(FrameRate));
+        if (MarkerOnFrame(frame) is not null) return TimelineEditResult.Fail("A marker is already there.");
+
+        var marker = new Marker { Position = MediaTime.FromFrame(frame, FrameRate) };
+        _undoRedo.Execute(new NotifyingCommand(new AddMarkerCommand(Sequence, marker), _projectService.NotifyTimelineChanged));
+        return new TimelineEditResult { Success = true, MarkerId = marker.Id };
+    }
+
+    public TimelineEditResult RemoveMarkerAt(MediaTime at)
+    {
+        if (MarkerOnFrame(at.ToNearestFrame(FrameRate)) is not { } marker)
+            return TimelineEditResult.Fail("There is no marker at the playhead.");
+
+        _undoRedo.Execute(new NotifyingCommand(new RemoveMarkerCommand(Sequence, marker), _projectService.NotifyTimelineChanged));
+        return new TimelineEditResult { Success = true, MarkerId = marker.Id };
+    }
+
+    public MediaTime? NextMarker(MediaTime from)
+    {
+        var frame = from.ToNearestFrame(FrameRate);
+        return Sequence.Markers.Where(m => m.Position.ToNearestFrame(FrameRate) > frame)
+            .OrderBy(m => m.Position.Ticks).FirstOrDefault()?.Position;
+    }
+
+    public MediaTime? PreviousMarker(MediaTime from)
+    {
+        var frame = from.ToNearestFrame(FrameRate);
+        return Sequence.Markers.Where(m => m.Position.ToNearestFrame(FrameRate) < frame)
+            .OrderBy(m => m.Position.Ticks).LastOrDefault()?.Position;
+    }
+
     // --- Media removal (D027 §4) ------------------------------------------------
 
     private static bool Uses(Clip clip, Guid mediaAssetId) => clip is MediaBackedClip m && m.MediaAssetId == mediaAssetId;
@@ -987,6 +1027,7 @@ public sealed class TimelineEditService : ITimelineEditService
     {
         var excluded = excludedClipIds as ISet<Guid> ?? excludedClipIds.ToHashSet();
         var targets = new List<MediaTime> { MediaTime.Zero, Sequence.PlayheadPosition };
+        targets.AddRange(Sequence.Markers.Select(m => m.Position));   // D027 §6
         foreach (var track in Sequence.VideoTracks.Concat(Sequence.AudioTracks))
         {
             foreach (var clip in track.Clips)

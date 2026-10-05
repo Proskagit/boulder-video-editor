@@ -189,6 +189,10 @@ public partial class MainWindow : Window
         public TimelineClipboard? CopyClips(IReadOnlyCollection<Guid> clipIds) => null;
         public TimelineEditResult PasteClips(TimelineClipboard clipboard, MediaTime at) => Nothing;
         public TimelineEditResult DuplicateClips(IReadOnlyCollection<Guid> clipIds) => Nothing;
+        public TimelineEditResult AddMarker(MediaTime at) => Nothing;
+        public TimelineEditResult RemoveMarkerAt(MediaTime at) => Nothing;
+        public MediaTime? NextMarker(MediaTime from) => null;
+        public MediaTime? PreviousMarker(MediaTime from) => null;
         public TimelineEditResult AddTrack(TrackType type) => Nothing;
         public TimelineEditResult DeleteTrack(Guid trackId) => Nothing;
         public string? GetDeleteTrackBlockReason(Guid trackId) => "Design time.";

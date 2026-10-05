@@ -143,6 +143,14 @@ public sealed class TimelineRulerTickViewModel : ViewModelBase
     public required double Left { get; init; }
 }
 
+/// <summary>A marker drawn on the ruler (D027 §6) at its position in pixels at the current zoom.</summary>
+public sealed class TimelineMarkerViewModel : ViewModelBase
+{
+    public required Guid Id { get; init; }
+    public required double Left { get; init; }
+    public required string Color { get; init; }
+}
+
 /// <summary>The primary selected timeline clip, as passed to the Inspector. <paramref name="DissolveAtStart"/> /
 /// <paramref name="DissolveAtEnd"/>: a dissolve sits on that edge, so the clip's fade there is not applied (D025 PO-8).</summary>
 public sealed record TimelineClipSelection(Clip Clip, string Name, MediaAsset? Asset, FrameRate Rate,

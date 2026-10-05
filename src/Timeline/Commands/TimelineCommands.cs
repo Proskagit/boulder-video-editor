@@ -157,6 +157,44 @@ public sealed class RemoveMediaAssetCommand(List<MediaAsset> assets, MediaAsset 
     }
 }
 
+/// <summary>Adds a marker (D027 §6), keeping <see cref="Sequence.Markers"/> sorted by position; Undo takes the same
+/// object out again, so Redo brings back the very same marker (id, label, colour).</summary>
+public sealed class AddMarkerCommand(Sequence sequence, Marker marker) : IUndoableCommand
+{
+    public string Description => "Add Marker";
+    public Marker Marker { get; } = marker;
+
+    public void Execute()
+    {
+        var index = sequence.Markers.FindIndex(m => m.Position > Marker.Position);
+        sequence.Markers.Insert(index < 0 ? sequence.Markers.Count : index, Marker);
+    }
+
+    public void Undo()
+    {
+        if (!sequence.Markers.Remove(Marker))
+            throw new InvalidOperationException($"Marker {Marker.Id} is not in the sequence.");
+    }
+}
+
+/// <summary>Removes a marker; Undo puts the same object back where it was.</summary>
+public sealed class RemoveMarkerCommand(Sequence sequence, Marker marker) : IUndoableCommand
+{
+    private int _index = -1;
+
+    public string Description => "Remove Marker";
+    public Marker Marker { get; } = marker;
+
+    public void Execute()
+    {
+        _index = sequence.Markers.IndexOf(Marker);
+        if (_index < 0) throw new InvalidOperationException($"Marker {Marker.Id} is not in the sequence.");
+        sequence.Markers.RemoveAt(_index);
+    }
+
+    public void Undo() => sequence.Markers.Insert(Math.Min(_index, sequence.Markers.Count), Marker);
+}
+
 /// <summary>One track's <see cref="Track.Order"/> before and after a move.</summary>
 public readonly record struct TrackOrderChange(Track Track, int Before, int After);
 

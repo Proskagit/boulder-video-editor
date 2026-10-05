@@ -72,10 +72,10 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 29 | Add / remove | Add markers at three playhead positions; remove one | Drawn on the timeline; each change undoable; the project dirty | — | planned |
-| 30 | Next / previous | Go to the next / previous marker from several positions | The playhead jumps to the right marker; nothing at the ends | — | planned |
-| 31 | Save and reopen | Save, reopen | Markers kept; `formatVersion` 3 | — | planned |
-| 32 | Ripple keeps markers | Ripple delete a clip before a marker | The marker stays where it was | — | planned |
+| 29 | Add / remove | Move the playhead to three places and click ◆+ each time; go to one (◀ / ▶) and click ◆−; click ◆+ twice at one place | Drawn on the ruler (flag and line); each change undoable; the project dirty; the second marker on one frame refused ("A marker is already there."); ◆− away from a marker: "There is no marker at the playhead." | `MarkerEditTests` (add, sorted, one per frame, remove), `TimelineMarkerUiTests` (drawn, refused, remove) | app 12.7 (Claude): the buttons and drawing passed (see the results log); the dirty flag / Undo of each and the refusals not run — manual pending |
+| 30 | Next / previous | Go to the next / previous marker (▶ / ◀) from several positions | The playhead jumps to the right marker and the Preview follows; at the ends a status message | `MarkerEditTests` (next / previous), `TimelineMarkerUiTests` (seeks, messages) | app 12.7 (Claude), passed (results log) |
+| 31 | Save and reopen | Save, reopen | Markers kept; `formatVersion` 3 | `MarkerEditTests` (save / reopen) | auto (12.7); manual pending |
+| 32 | Ripple keeps markers / snapping | Ripple delete a clip before a marker; drag a clip near a marker | The marker stays where it was; the clip snaps to the marker | `RippleEditTests` (marker untouched), `MarkerEditTests` (snap target) | auto (12.7); manual pending |
 
 ## Step 12.8 — New during a running import (D027 §7)
 
@@ -108,3 +108,18 @@ project, 125 % display scaling; the window narrowed by dragging its border).
 - Not checked: the minimum height (640 px) — a scripted resize left the window taller than requested and dragging the
   bottom border to the minimum did not take on this mixed-DPI multi-monitor desktop; the header doesn't depend on it.
 - Scenarios 22–28 themselves (copy / paste / duplicate in the app) are not run yet: manual pending.
+
+### 2026-10-05 — Step 12.7 marker buttons (Claude), Debug, isolated profile
+
+The compact marker block in the corner left of the ruler, at 1440 px (the default) and 1024 px wide (the window
+narrowed by dragging its border); the same build setup and project as for 12.6.
+- First run: the four buttons worked, but the block was wider than the 84 px column at both widths — ▶ partly under
+  the ruler, ◀ against the left edge.
+- After the product owner's variant A (the block's buttons: Padding 3,0 → 1,0, Spacing 2 → 1; nothing else):
+  - 1440 px and 1024 px: all four buttons whole; ▶ clear of the ruler; nothing over the ruler, TIMELINE or the track
+    headers.
+  - ◆+ added markers (a flag and a line on the ruler, "Marker added at 00:00:05:18"); ▶ went to the next marker and,
+    at the last one, "There is no marker after the playhead."; ◀ went back and, at the first, "There is no marker before
+    the playhead."; ◆− removed the marker on the playhead ("Marker removed").
+  - Zoom + and Fit: the markers stayed at their time against the ruler; the block did not move.
+  - The test edits were undone (title without `*`) before closing.

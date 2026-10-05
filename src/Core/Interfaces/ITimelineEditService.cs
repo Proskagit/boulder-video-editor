@@ -93,6 +93,21 @@ public interface ITimelineEditService
     /// <see cref="PasteClips"/> is (an overlap, a locked track). One Undo step.</summary>
     TimelineEditResult DuplicateClips(IReadOnlyCollection<Guid> clipIds);
 
+    /// <summary>Adds a marker (D027 §6) at <paramref name="at"/>, snapped to the frame grid, with the model's default
+    /// label and colour. Rejected when a marker is already on that frame. One Undo step; saved in the project (v3).
+    /// <see cref="TimelineEditResult.MarkerId"/> is the new marker.</summary>
+    TimelineEditResult AddMarker(MediaTime at);
+
+    /// <summary>Removes the marker on the frame of <paramref name="at"/>. Rejected when there is none. One Undo
+    /// step.</summary>
+    TimelineEditResult RemoveMarkerAt(MediaTime at);
+
+    /// <summary>The position of the first marker on a frame after the frame of <paramref name="from"/>, or null.</summary>
+    MediaTime? NextMarker(MediaTime from);
+
+    /// <summary>The position of the last marker on a frame before the frame of <paramref name="from"/>, or null.</summary>
+    MediaTime? PreviousMarker(MediaTime from);
+
     TimelineEditResult AddTrack(TrackType type);
 
     /// <summary>Deletes a track together with its clips and dissolves (D027 §3) as one Undo step; Undo puts the same
@@ -161,7 +176,7 @@ public interface ITimelineEditService
     long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId);
 
     /// <summary>Finds the snap target nearest to any of <paramref name="candidates"/>
-    /// within <paramref name="tolerance"/>. Targets: time zero, the playhead and every
+    /// within <paramref name="tolerance"/>. Targets: time zero, the playhead, every marker (D027 §6) and every
     /// clip edge except those of <paramref name="excludedClipIds"/>.</summary>
     SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds);
 }
@@ -227,6 +242,9 @@ public sealed class TimelineEditResult
 
     /// <summary>The dissolve created or changed by the operation, if any.</summary>
     public Guid? TransitionId { get; init; }
+
+    /// <summary>The marker created or removed by the operation, if any.</summary>
+    public Guid? MarkerId { get; init; }
 
     public static TimelineEditResult Ok(IReadOnlyList<Guid>? clipIds = null, string? message = null) =>
         new() { Success = true, ClipIds = clipIds ?? Array.Empty<Guid>(), Message = message };

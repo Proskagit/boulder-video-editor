@@ -90,6 +90,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
     public ObservableCollection<TimelineTrackViewModel> Tracks { get; } = new();
     public ObservableCollection<TimelineRulerTickViewModel> RulerTicks { get; } = new();
 
+    /// <summary>The sequence's markers on the ruler (D027 §6), laid out at the current zoom.</summary>
+    public ObservableCollection<TimelineMarkerViewModel> Markers { get; } = new();
+
     [ObservableProperty] private double _pixelsPerSecond;
     [ObservableProperty] private double _contentWidth;
     [ObservableProperty] private double _tracksHeight;
@@ -321,6 +324,21 @@ public sealed partial class TimelineViewModel : ViewModelBase
         ContentWidth = Math.Max(contentEnd, _viewportWidth);
         PlayheadX = TimelineCoordinateMapper.TimeToX(Playhead, PixelsPerSecond);
         RebuildRuler();
+        RebuildMarkers();
+    }
+
+    private void RebuildMarkers()
+    {
+        Markers.Clear();
+        foreach (var marker in Sequence.Markers.OrderBy(m => m.Position.Ticks))
+        {
+            Markers.Add(new TimelineMarkerViewModel
+            {
+                Id = marker.Id,
+                Left = TimelineCoordinateMapper.TimeToX(marker.Position, PixelsPerSecond),
+                Color = string.IsNullOrWhiteSpace(marker.ColorHex) ? "#4FC3F7" : marker.ColorHex
+            });
+        }
     }
 
     /// <summary>Gives every clip what its waveform shows now (D024 Step 9.5, PO-W1 / PO-W2 / PO-W5): audio clips and
@@ -511,6 +529,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         MoveTrackUpCommand.NotifyCanExecuteChanged();
         MoveTrackDownCommand.NotifyCanExecuteChanged();
         DeleteTrackCommand.NotifyCanExecuteChanged();
+        AddMarkerCommand.NotifyCanExecuteChanged();
+        RemoveMarkerCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
@@ -639,6 +659,32 @@ public sealed partial class TimelineViewModel : ViewModelBase
         var result = _edit.DuplicateClips(_selection.ToList());
         SelectAdded(result);
         Report(result, successMessage: result.ClipIds.Count == 1 ? "1 clip duplicated" : $"{result.ClipIds.Count} clips duplicated");
+    }
+
+    // --- Markers (D027 §6) --------------------------------------------------------------
+    // The corner buttons above the track headers. Adding and removing change the project (undoable, not during an
+    // export); going to a marker only moves the playhead. Which marker is where is the edit service's.
+
+    /// <summary>"Add Marker": a marker at the playhead.</summary>
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private void AddMarker() => Report(_edit.AddMarker(Playhead), successMessage: $"Marker added at {TimeFormat.ToTimecode(Playhead, FrameRate)}");
+
+    /// <summary>"Remove Marker": the marker at the playhead (go to it first).</summary>
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private void RemoveMarker() => Report(_edit.RemoveMarkerAt(Playhead), successMessage: "Marker removed");
+
+    [RelayCommand]
+    private void PreviousMarker()
+    {
+        if (_edit.PreviousMarker(Playhead) is { } at) SetPlayhead(at);
+        else _status.Report("There is no marker before the playhead.");
+    }
+
+    [RelayCommand]
+    private void NextMarker()
+    {
+        if (_edit.NextMarker(Playhead) is { } at) SetPlayhead(at);
+        else _status.Report("There is no marker after the playhead.");
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))] private void AddVideoTrack() => Report(_edit.AddTrack(TrackType.Video));

@@ -2088,6 +2088,29 @@ day):
   Ctrl+V / Ctrl+D through `ShortcutRouter` (three rows of its table, no structural change; never while a text input has
   focus, so a text box keeps its own Ctrl+C / Ctrl+V). Paste and Duplicate are disabled during an export.
 
+Refined in Step 12.7 (implementation, 2026-10-05; rules 1–6 of the step's report confirmed by the product owner the same
+day):
+- Add Marker puts a marker at the playhead, on the frame grid, with the model's default label (empty) and colour
+  (`#4FC3F7`); one marker per frame — a second one on the same frame is refused ("A marker is already there.").
+  `Sequence.Markers` is kept sorted by position. One Undo step each (`AddMarkerCommand`, `RemoveMarkerCommand`, the same
+  object back on Undo / Redo); the project becomes dirty; v3 unchanged (`MarkerDto` existed).
+- Remove Marker removes the marker on the playhead's frame — the way to choose one is to go to it; none there is
+  refused ("There is no marker at the playhead.").
+- Previous / Next go to the nearest marker strictly before / after the playhead's frame (a seek, like any user move of
+  the playhead); none is a status message. Not a project change, so also available during an export.
+- Markers keep their time when the frame rate changes (like fades and dissolves, D025); "on a frame" means the
+  nearest frame of the current grid.
+- Snapping to markers is included: one more kind of target in the existing snap list (`ITimelineEditService.Snap`), no
+  structural change.
+- A ripple, a move or any other edit never moves a marker (D027 §2); markers never lengthen the timeline.
+- Not in Phase 12: editing a label or a colour, moving a marker by dragging, clicking a marker, hotkeys.
+- UI: four small buttons in a compact block in the corner left of the ruler (◀ previous, ◆+ add, ◆− remove, ▶ next) —
+  the timeline header has no room left at 1024 px (Step 12.6); the track header column stays 84 px. The real-app check
+  found the block wider than the column (▶ partly under the ruler, at any window width); as the product owner chose
+  (variant A), only the block's button padding (3,0 → 1,0) and spacing (2 → 1) were reduced — now all four fit. Markers
+  are drawn on the ruler as a flag and a line in their colour, not hit-testable (a click goes to the ruler, which moves
+  the playhead).
+
 Status: Accepted (2026-10-05, product owner decisions of 2026-10-05). Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 12 — Editing essentials: steps". Sub-decisions are proposed at the start of their
 step, confirmed by the product owner and recorded as a refinement here.

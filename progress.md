@@ -4,7 +4,7 @@
 
 Phase 12 — Editing essentials: **in progress** on branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main`
 after the merge of PR #11). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 12 — Editing
-essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.6 accepted (2026-10-05).
+essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.7 accepted (2026-10-05).
 
 ### Phase 12 — Editing essentials (in progress)
 
@@ -237,6 +237,47 @@ permission; no next step without the product owner's go.
     (SetWindowPos) left the window taller than requested (an interplay of Avalonia's size limits with the scripted
     resize on this multi-monitor, mixed-DPI desktop; dragging works), and dragging the bottom border to its minimum
     did not take; the header row does not depend on the height.
+  - Committed as `518730c` (the product owner's permission, 2026-10-05; not pushed).
+- Step 12.7 done and accepted (2026-10-05) — markers (D027 §6; the rules in D027 "Refined in Step 12.7", confirmed by
+  the product owner: one marker per frame, remove only on the playhead's frame, markers keep their time when the rate
+  changes, no edit moves them, no label / colour editing, drag, click or hotkeys, the buttons a compact block in the
+  corner left of the ruler). Started on the product owner's instruction right after the 12.6 commit.
+  - Audit before the code: `Sequence.Markers` (`Marker`: id, position, label, colour) is read and written by
+    `project.json` v3 and used nowhere else; the snap targets are one list in `TimelineEditService.Snap`; the ruler is
+    an ItemsControl on a Canvas laid out in `TimelineViewModel.Relayout` (also after every timeline change and zoom).
+  - Core: `ITimelineEditService.AddMarker`, `RemoveMarkerAt`, `NextMarker`, `PreviousMarker`;
+    `TimelineEditResult.MarkerId`; the markers added to the snap targets.
+  - Timeline: `AddMarkerCommand` (sorted insert), `RemoveMarkerCommand` (index kept), through `NotifyingCommand` so the
+    panel refreshes; `TimelineEditService` — one marker per frame of the current grid, the playhead's frame for remove,
+    strictly after / before for the queries.
+  - UI: `TimelineMarkerViewModel` (left, colour); `TimelineViewModel.Markers` (rebuilt in `Relayout`),
+    `AddMarkerCommand` / `RemoveMarkerCommand` (disabled during an export) and `PreviousMarkerCommand` /
+    `NextMarkerCommand` (through `SetPlayhead`, so the Preview seeks); `TimelineView.axaml` — the marker buttons in the
+    corner left of the ruler, the markers on the ruler. The design-time stub and the `MediaOrientationRefreshTests`
+    stub completed.
+  - Tests (new, 15): `Timeline.Tests/MarkerEditTests` (9: added on the grid in one step with the default look,
+    undo / redo the same marker, clean after Undo; sorted, one per frame; before zero → zero; removed and back in its
+    place; nothing to remove refused; next / previous strictly after / before, none at the ends; markers are snap
+    targets; markers change no clip and don't lengthen the timeline; saved and reopened in v3);
+    `UI.Tests/TimelineMarkerUiTests` (6: drawn at the zoom, laid out again after a zoom, Undo; the same frame refused;
+    remove at the playhead or the message; previous / next with seeks and the messages at the ends; add / remove off
+    during an export, going to a marker not; a project's markers shown, another project has its own).
+  - Not automated: the corner buttons and the drawing in the real view — manual scenarios 29–32.
+  - Verification (on the product owner's command; `--artifacts-path` in the session's scratch folder): `dotnet build
+    AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0 at the first attempt; `dotnet test` 2319 passed, 2 skipped
+    (only the two 4K heavy scenes), 0 failed — Core 448, Timeline 425 (+9), Project 371, UI 536 (+6), Export 99,
+    Rendering 58, Video 294, ExportEndToEnd 88 + 2; three runs with `--blame-hang --blame-hang-timeout 5m`, each 2319 /
+    0 / 2 over all 8 test assemblies, no hang, no dump; `git diff --check` clean.
+  - Real-app UI check (the product owner's permission; the Debug build from the scratch artifacts, an isolated profile,
+    the Phase 10 fade fixture project, 125 % display scaling; the window narrowed by dragging its border): the four
+    buttons worked (two markers added and drawn, ▶ / ◀ to them with the end messages, ◆− removed one; zoom and Fit kept
+    the markers at their time), but the block was wider than the 84 px column at 1440 and 1024 px alike — ▶ partly
+    under the ruler, ◀ against the left edge. The product owner chose variant A: in the block's button style Padding
+    3,0 → 1,0 and Spacing 2 → 1, nothing else. Then again: build 0 / 0, `dotnet test` 2319 / 0 / 2, three
+    `--blame-hang` runs 2319 / 0 / 2 (no hang, no dump), `git diff --check` clean; in the real app at 1440 and 1024 px
+    all four buttons whole, ▶ clear of the ruler, nothing over the ruler, TIMELINE or the track headers; all four
+    clicked (◆+ added, ▶ / ◀ moved the playhead with the end messages, ◆− removed the marker on the playhead); zoom + and
+    Fit moved neither the block nor a marker off its time. The test edits undone (title without `*`) before closing.
 
 ### Phase 11 — Media relink & recent projects (complete; PR #11 merged as `47ed2fa`, CI green)
 

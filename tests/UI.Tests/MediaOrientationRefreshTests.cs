@@ -209,6 +209,10 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineClipboard? CopyClips(IReadOnlyCollection<Guid> clipIds) => null;
         public TimelineEditResult PasteClips(TimelineClipboard clipboard, MediaTime at) => No;
         public TimelineEditResult DuplicateClips(IReadOnlyCollection<Guid> clipIds) => No;
+        public TimelineEditResult AddMarker(MediaTime at) => No;
+        public TimelineEditResult RemoveMarkerAt(MediaTime at) => No;
+        public MediaTime? NextMarker(MediaTime from) => null;
+        public MediaTime? PreviousMarker(MediaTime from) => null;
         public TimelineEditResult AddTrack(TrackType type) => No;
         public TimelineEditResult DeleteTrack(Guid trackId) => No;
         public string? GetDeleteTrackBlockReason(Guid trackId) => null;

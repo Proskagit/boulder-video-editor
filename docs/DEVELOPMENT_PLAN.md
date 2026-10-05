@@ -568,7 +568,7 @@ Scope: D027 §5.
 - Impl: hotkeys only if `ShortcutRouter` takes them without a structural change (decided at the step's start).
 - Depends on: 12.5.
 
-### 12.7 — Markers
+### 12.7 — Markers *(done — accepted 2026-10-05; D027 "Refined in Step 12.7"; the corner buttons checked in the real app; manual scenarios 29–32 at 12.9 at the latest)*
 Scope: D027 §6.
 - PR: add a marker at the playhead, remove a marker (both undoable, saved in v3), markers drawn on the timeline, go to
   the next / previous marker; a ripple does not move markers.
