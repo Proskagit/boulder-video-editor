@@ -38,12 +38,13 @@ and runs cleanly.
       v3. Scope, steps and acceptance criteria: section below and DECISIONS.md D025.
       *(branch `feat/phase-10-transitions-effects`, last verified commit `ddf45df`, closeout `ee0527d`; accepted
       2026-10-01; PR #10 merged into `main` as `2e758f1`)*
-- [ ] **Phase 11 — Media relink & recent projects.** Re-checking media availability during the session, relink of
+- [x] **Phase 11 — Media relink & recent projects.** Re-checking media availability during the session, relink of
       missing media (one file, then a batch found next to it) as an undoable change, and a list of recent projects in
       the toolbar. Scope, steps and acceptance criteria: section below and DECISIONS.md D026 (product owner decisions
-      PO-1…PO-9). *(branch `feat/phase-11-relink-recent-projects`, from `2e758f1`; Steps 11.1–11.8 accepted, Step 11.9
-      local verification done 2026-10-05 — awaiting the product owner's acceptance; CI pending: the branch is not
-      published)*
+      PO-1…PO-9). *(branch `feat/phase-11-relink-recent-projects`, from `2e758f1`, closeout `ca20352`; accepted by the
+      product owner 2026-10-05 on the local verification. Open: CI not run yet — the branch is not published; optional
+      export scenario 9 and the "without ffmpeg" check not run; export scenario 14 checked by decoding the 8 outputs,
+      not watched in a player; L1-c stays open, outside Phase 11)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -479,7 +480,7 @@ Scope: `Recent ▾` in the toolbar next to Open (PO-7).
 - QG: view-model and workflow tests; manual scenarios.
 - Depends on: 11.7.
 
-### 11.9 — Final verification & closeout *(local verification done 2026-10-05 — awaiting the product owner's acceptance; CI pending, the branch not published; D026 "Refined in Step 11.9")*
+### 11.9 — Final verification & closeout *(done — local verification 2026-10-05, `ca20352`; Phase 11 accepted 2026-10-05; CI pending, the branch not published; D026 "Refined in Step 11.9")*
 - QG: `dotnet build --no-incremental` 0 / 0; full suite once plus three times with `--blame-hang`; heavy scenes once
   with `AIVE_HEAVY_TESTS=1`; CI green.
 - PR: `docs/PHASE11_MANUAL_TEST_PLAN.md` run in the real app; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run as a regression.

@@ -2,12 +2,15 @@
 
 ## Current phase
 
-Phase 11 — Media relink & recent projects: **in progress**, branch `feat/phase-11-relink-recent-projects` (from
+Phase 11 — Media relink & recent projects: **complete** — accepted by the product owner on 2026-10-05 on the Step 11.9
+local verification (closeout `ca20352`). Open: CI not run yet — the branch is not published; optional export scenario 9
+and the "without ffmpeg" check not run; export scenario 14 checked by decoding the 8 outputs, not watched in a player;
+L1-c stays open, outside Phase 11. Branch `feat/phase-11-relink-recent-projects` (from
 `2e758f1`, `main` after the merge of PR #10). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 11
 — Media relink & recent projects: steps"; decision D026 (product owner decisions PO-1…PO-9, 2026-10-01). The
 implementation must conform to PO-1…PO-9.
 
-### Phase 11 — Media relink & recent projects (in progress)
+### Phase 11 — Media relink & recent projects (complete)
 
 Steps (D026; each accepted by the product owner before the next): 11.1 audit · 11.2 scope formalization · 11.3 media
 availability re-check · 11.4 relink core · 11.5 batch search · 11.6 relink UI · 11.7 recent projects core · 11.8 recent
@@ -403,6 +406,13 @@ command; no push, merge, pull request or branch deletion without direct permissi
     during an export, so that file was moved away instead (the same "file gone" for the app).
   - The user's profile (`%LOCALAPPDATA%\AiVideoEditor` config, recovery, cache) compared with a snapshot taken before the
     run: unchanged; no log written there.
+- Phase 11 accepted by the product owner (2026-10-05) on the Step 11.9 local verification (closeout `ca20352`): build
+  0 / 0, the full suite 2213 passed / 2 skipped / 0 failed once and three times with `--blame-hang`, heavy scenes
+  88 / 88, the manual scenarios 23, 24, 27, 28, R1, R2 and the relink / recent projects / editing-lock regression passed,
+  no Phase 11 defect, the user's profile unchanged. Still open, not hidden by the acceptance: CI (not run, the branch is
+  not published — publication and CI are the product owner's next decision); export scenario 9 (optional) and the
+  "without ffmpeg" check NOT RUN; export scenario 14 checked by decoding all 8 outputs, not watched in a player; L1-c
+  open, outside Phase 11.
 
 ## Phase 10 (complete)
 

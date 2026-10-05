@@ -7,8 +7,8 @@ are complete** (architecture, UI skeleton, media import, ffprobe metadata
 analysis, timeline editing, preview playback with audio, project persistence with
 autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
 text; MP4 export; quality: stability, thumbnails, waveforms, hotkeys,
-performance, polish, CI; fades and a cross dissolve). Phase 11 (media relink & recent projects) is implemented and
-verified locally — awaiting the product owner's acceptance and CI.
+performance, polish, CI; fades and a cross dissolve). Phase 11 (media relink & recent projects) is accepted on its
+local verification (2026-10-05); CI pending until the branch is published.
 
 ## Requirements
 
@@ -144,8 +144,8 @@ video track (Dissolve in the timeline header, length in the Inspector, source ha
 the sound a hard cut), identical in the Preview and the export; `project.json` format v3
 (v1 / v2 files still open).
 
-Phase 11 (DECISIONS.md D026; all steps implemented, local verification done — awaiting the product owner's acceptance
-and CI): re-checking media availability during the session, relink of missing media (one file or a batch found next
+Phase 11 (DECISIONS.md D026; accepted 2026-10-05 on its local verification, CI pending until the branch is published):
+re-checking media availability during the session, relink of missing media (one file or a batch found next
 to it, undoable) and a list of recent projects. Step 11.3: media
 files are checked again when the window becomes active (at most every 3 s) and before an export — a file moved away
 shows as offline, a file put back is online again without reopening the project. Step 11.4: the relink itself (checks,

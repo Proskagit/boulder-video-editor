@@ -59,8 +59,15 @@ session state (D015).
 
 ## Current
 
+No phase in progress — Phase 11 accepted (2026-10-05); no next phase planned yet.
+
+## Previous
+
 Phase 11 — Media relink & recent projects, branch `feat/phase-11-relink-recent-projects` (from `2e758f1`, `main` after
-the merge of PR #10). Scope from the product owner decisions PO-1…PO-9 (2026-10-01), recorded in DECISIONS.md D026:
+the merge of PR #10). **Complete**: accepted by the product owner on 2026-10-05 on the Step 11.9 local verification
+(closeout `ca20352`). Open: CI not run yet — the branch is not published; optional export scenario 9 and the "without
+ffmpeg" check not run; export scenario 14 checked by decoding the 8 outputs, not watched in a player; L1-c stays open,
+outside Phase 11. Scope from the product owner decisions PO-1…PO-9 (2026-10-01), recorded in DECISIONS.md D026:
 re-checking media availability during the session (window activation, throttled; before the export and the relink),
 relink of missing media only (undoable; hard rejects and warnings; allowed without ffprobe), a batch relink of files with
 the same name in the chosen folder, and `Recent ▾` (10 entries) next to Open. Steps 11.3 re-check · 11.4 relink core ·
@@ -85,10 +92,8 @@ remove per entry, no "Clear list", disabled during an export) accepted (2026-10-
 verification & closeout): local verification done (2026-10-05) — build `-warnaserror` 0 / 0, the full suite once and
 three times with `--blame-hang` (2213 passed, 2 skipped each), heavy scenes 88 / 88, the remaining manual scenarios
 (23 through Open, 24, 27, 28), R1 (a Phase 10 project), R2 (the export manual plan) and a relink / recent projects
-regression passed in the real app; awaiting the product owner's acceptance. CI pending: the branch is not published.
+regression passed in the real app; accepted 2026-10-05. CI pending: the branch is not published.
 Details: `progress.md`.
-
-## Previous
 
 Phase 10 — Transitions & basic effects, branch `feat/phase-10-transitions-effects` (from `409240b`). **Complete**:
 accepted by the product owner on 2026-10-01 (last verified commit `ddf45df`, closeout `ee0527d`; R7 export regression
