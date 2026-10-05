@@ -25,6 +25,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly ILogger<MainWindowViewModel> _logger;
     private readonly ThumbnailCoordinator? _thumbnails;
     private readonly WaveformCoordinator? _waveforms;
+    private readonly MediaAvailabilityMonitor? _mediaAvailability;
 
     /// <summary>"Name — AI Video Editor", with a "*" after the name while there are unsaved changes.</summary>
     public string Title => $"{_projectService.Current.Name}{(_projectService.Current.IsDirty ? "*" : "")} — AI Video Editor";
@@ -47,10 +48,16 @@ public sealed class MainWindowViewModel : ViewModelBase
         IProjectService projectService,
         ILogger<MainWindowViewModel> logger,
         ThumbnailCoordinator? thumbnails = null,
-        WaveformCoordinator? waveforms = null)
+        WaveformCoordinator? waveforms = null,
+        MediaAvailabilityMonitor? mediaAvailability = null,
+        IMediaRelinkService? relink = null)
     {
+        // A file found not to fit its clips after a later analysis (D026 §3, Step 11.4): said, never undone by itself.
+        if (relink is not null)
+            relink.RelinkedMediaFoundIncompatible += (_, e) => status.Report(e.Message);
         _thumbnails = thumbnails;
         _waveforms = waveforms;
+        _mediaAvailability = mediaAvailability;
         Toolbar = toolbar;
         MediaBrowser = mediaBrowser;
         Preview = preview;
@@ -120,6 +127,9 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <summary>The main window has been shown: offer recovery of autosaved work, start autosave.</summary>
     public Task OnWindowOpenedAsync() => _projectFiles.StartSessionAsync();
 
+    /// <summary>The main window became active: the media files are checked again (throttled, D026 §2).</summary>
+    public void OnWindowActivated() => _mediaAvailability?.OnWindowActivated();
+
     /// <summary>The main window is about to close; returns false to keep it open. Once closing is agreed,
     /// playback is released and thumbnail and waveform work cancelled here, on the UI thread, before the window
     /// closes and the dispatcher stops.</summary>
@@ -127,6 +137,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         if (!await _projectFiles.PrepareToCloseAsync()) return false;
 
+        _mediaAvailability?.Stop(); // no new media re-check while closing
         try
         {
             await Preview.ReleasePlaybackAsync();

@@ -59,13 +59,46 @@ session state (D015).
 
 ## Current
 
-None in progress. Phase 10 is complete (below); no further phase is planned yet — see `docs/DEVELOPMENT_PLAN.md`.
+No phase in progress — Phase 11 accepted (2026-10-05); no next phase planned yet.
 
 ## Previous
 
+Phase 11 — Media relink & recent projects, branch `feat/phase-11-relink-recent-projects` (from `2e758f1`, `main` after
+the merge of PR #10). **Complete**: accepted by the product owner on 2026-10-05 on the Step 11.9 local verification
+(closeout `ca20352`). Open: CI not run yet — the branch is not published; optional export scenario 9 and the "without
+ffmpeg" check not run; export scenario 14 checked by decoding the 8 outputs, not watched in a player; L1-c stays open,
+outside Phase 11. Scope from the product owner decisions PO-1…PO-9 (2026-10-01), recorded in DECISIONS.md D026:
+re-checking media availability during the session (window activation, throttled; before the export and the relink),
+relink of missing media only (undoable; hard rejects and warnings; allowed without ffprobe), a batch relink of files with
+the same name in the chosen folder, and `Recent ▾` (10 entries) next to Open. Steps 11.3 re-check · 11.4 relink core ·
+11.5 batch search · 11.6 relink UI · 11.7 recent projects core · 11.8 recent projects UI · 11.9 closeout — scope and
+acceptance criteria in `docs/DEVELOPMENT_PLAN.md`.
+
+Step 11.1 (audit) and Step 11.2 (scope formalization, documentation only, `ba6762e`) accepted (2026-10-01); Step 11.3
+(media availability re-check: on window activation, throttled to 3 s with a trailing check, and before the export; files
+gone or back during the session become offline / online with their analysis, thumbnail and waveform restarted, `db0feba`)
+accepted (2026-10-01; automated, and the manual scenarios 1–6 passed in the real app). Step 11.4 (relink core: check →
+confirmation → apply as one undoable step, hard rejects and warnings, ffprobe unavailable allowed / probe failure
+rejected, the old file's thumbnail and waveform dropped) accepted (2026-10-01, `0e002dc`); its UI follows in 11.6.
+Step 11.5 (batch search: one folder, its own files, exact names ignoring case, a shared name given to none, every match
+through the 11.4 check, a summary, the confirmed items applied as one undoable step, re-validated) accepted (2026-10-01,
+`4180b4a`). Step 11.6 (relink UI: Relink… and Find Missing… in the Media Browser for offline media, the confirmations,
+the offer to search after an applied relink, the `EditingLock`) accepted (2026-10-02, `145d484`; the manual run of
+scenarios 7–21 found D1–D5 — Inspector state line, an undone relink's thumbnail / waveform, three texts — fixed in
+`5c4d2d9` and re-checked in the real app). Step 11.7 (recent projects core: `IRecentProjectsStore`, the list in the
+configuration folder, added after a successful Open, Save As and Recover) accepted (2026-10-02, `55606fd`). Step 11.8
+(`Recent ▾` next to Open: the list read at every opening, Checking / Available / Unavailable, open through the workflow,
+remove per entry, no "Clear list", disabled during an export) accepted (2026-10-04, `7bf4ed8`). Step 11.9 (final
+verification & closeout): local verification done (2026-10-05) — build `-warnaserror` 0 / 0, the full suite once and
+three times with `--blame-hang` (2213 passed, 2 skipped each), heavy scenes 88 / 88, the remaining manual scenarios
+(23 through Open, 24, 27, 28), R1 (a Phase 10 project), R2 (the export manual plan) and a relink / recent projects
+regression passed in the real app; accepted 2026-10-05. CI pending: the branch is not published.
+Details: `progress.md`.
+
 Phase 10 — Transitions & basic effects, branch `feat/phase-10-transitions-effects` (from `409240b`). **Complete**:
-accepted by the product owner on 2026-10-01 (last verified commit `ddf45df`; R7 export regression 13 / 13; build
-`-warnaserror` 0 / 0; 1988 passed, 2 skipped; 4K 88 / 88).
+accepted by the product owner on 2026-10-01 (last verified commit `ddf45df`, closeout `ee0527d`; R7 export regression
+13 / 13; build `-warnaserror` 0 / 0; 1988 passed, 2 skipped; 4K 88 / 88). PR #10 merged into `main` as `2e758f1`
+(2026-10-01).
 
 Step 10.1 (audit) accepted; Step 10.2 (scope formalization: D025, the Phase 10 steps, the manual plan skeleton) done;
 Step 10.3 (model, `project.json` v3) done; Step 10.4 (fades: Core rule, edits, Preview / export composition and mix) done; Step 10.5 (fades: Inspector and
@@ -125,7 +158,7 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 10 — see `docs/DEVELOPMENT_PLAN.md`.
+None planned after Phase 11 — see `docs/DEVELOPMENT_PLAN.md`.
 
 ## Rule
 

@@ -7,7 +7,8 @@ are complete** (architecture, UI skeleton, media import, ffprobe metadata
 analysis, timeline editing, preview playback with audio, project persistence with
 autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
 text; MP4 export; quality: stability, thumbnails, waveforms, hotkeys,
-performance, polish, CI; fades and a cross dissolve). No further phase is planned yet.
+performance, polish, CI; fades and a cross dissolve). Phase 11 (media relink & recent projects) is accepted on its
+local verification (2026-10-05); CI pending until the branch is published.
 
 ## Requirements
 
@@ -86,6 +87,7 @@ docs/
   EXPORT_MANUAL_TEST_PLAN.md   Manual export checks (Phase 8).
   PHASE9_MANUAL_TEST_PLAN.md   Manual checks of Phase 9, run at its closeout.
   PHASE10_MANUAL_TEST_PLAN.md  Manual checks of Phase 10 (fades, dissolves), run at its closeout.
+  PHASE11_MANUAL_TEST_PLAN.md  Manual checks of Phase 11 (media re-check, relink, recent projects), run at its closeout.
 ```
 
 Agent-oriented docs (`CLAUDE.md`, `ARCHITECTURE.md`, `ROADMAP.md`,
@@ -142,4 +144,13 @@ video track (Dissolve in the timeline header, length in the Inspector, source ha
 the sound a hard cut), identical in the Preview and the export; `project.json` format v3
 (v1 / v2 files still open).
 
-Not planned yet: a next phase, relink of missing media, recent projects.
+Phase 11 (DECISIONS.md D026; accepted 2026-10-05 on its local verification, CI pending until the branch is published):
+re-checking media availability during the session, relink of missing media (one file or a batch found next
+to it, undoable) and a list of recent projects. Step 11.3: media
+files are checked again when the window becomes active (at most every 3 s) and before an export — a file moved away
+shows as offline, a file put back is online again without reopening the project. Step 11.4: the relink itself (checks,
+warnings, undo) is implemented underneath, Step 11.5 the batch search in a chosen folder, Step 11.6 their UI: while
+media is offline the Media Browser shows Relink… (the selected item) and Find Missing… (a folder), undoable like any edit.
+Steps 11.7–11.8: `Recent ▾` next to Open lists the last 10 projects opened, saved as or recovered (kept in
+`%LOCALAPPDATA%\AiVideoEditor\config\recent-projects.json`); an entry whose project can't be found is shown as
+unavailable and can be removed with ✕.

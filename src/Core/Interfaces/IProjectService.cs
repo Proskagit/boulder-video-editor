@@ -63,8 +63,31 @@ public interface IProjectService
     /// nothing changed.</exception>
     Task<Project> RestoreRecoveryAsync(string recoveryFilePath, CancellationToken ct = default);
 
-    /// <summary>Checks every MediaAsset's FilePath and marks it IsMissing = true if not found.</summary>
-    IReadOnlyList<MediaAsset> DetectMissingMedia();
+    /// <summary>
+    /// Checks again whether the file of every media asset of the current project is there (D026 §2) and updates
+    /// <see cref="MediaAsset.IsMissing"/>. The file system is read off the caller's thread — a slow or disconnected
+    /// drive never blocks the UI —; the result is applied on the caller's context, and only to the project that was
+    /// current when the check started (a result for a replaced project is dropped) and to assets whose path is
+    /// unchanged. When any asset changed, <see cref="MediaAvailabilityChanged"/> and then
+    /// <see cref="MediaAssetsChanged"/> are raised. Runtime state only: never dirty, never undoable, never saved.
+    /// Checks never overlap: a call while one runs is answered by one more check that starts after it, so the
+    /// returned task always covers a check that started after the call.
+    /// </summary>
+    Task RecheckMediaAsync(CancellationToken ct = default);
+
+    /// <summary>Raised by <see cref="RecheckMediaAsync"/> (before <see cref="MediaAssetsChanged"/>) with the assets
+    /// whose file has come back or has gone since the last check. Not raised on Open / Recover, where the whole
+    /// project is new (<see cref="ProjectChanged"/>).</summary>
+    event EventHandler<MediaAvailabilityChangedEventArgs>? MediaAvailabilityChanged;
+
+    /// <summary>Raised by <see cref="NotifyMediaRelinked"/> (before <see cref="MediaAssetsChanged"/>) with the assets
+    /// whose file was replaced — a relink, its Undo or Redo (D026 §3): whatever was made from their previous file
+    /// (thumbnails, waveforms) no longer applies.</summary>
+    event EventHandler<MediaRelinkedEventArgs>? MediaRelinked;
+
+    /// <summary>Raises <see cref="MediaRelinked"/> and then <see cref="MediaAssetsChanged"/>. Called by the relink
+    /// command on Execute and Undo, with the path each asset had before; dirty state follows the undo history.</summary>
+    void NotifyMediaRelinked(IReadOnlyList<MediaFileReplacement> replacements);
 
     /// <summary>Adds newly-imported media to the current project, skipping any whose
     /// <see cref="MediaAsset.FilePath"/> is already present. This is the only place
@@ -87,6 +110,29 @@ public interface IProjectService
     /// Execute and Undo. Whether the project is dirty follows the undo history's save point
     /// (see <see cref="Common.IUndoRedoService.IsAtSavePoint"/>), not this call.</summary>
     void NotifyTimelineChanged();
+}
+
+/// <summary>What <see cref="IProjectService.RecheckMediaAsync"/> found changed (D026 §2).</summary>
+public sealed class MediaAvailabilityChangedEventArgs : EventArgs
+{
+    /// <summary>Assets that were missing and whose file is there again (now online).</summary>
+    public IReadOnlyList<MediaAsset> Returned { get; init; } = Array.Empty<MediaAsset>();
+
+    /// <summary>Assets whose file is gone (now offline).</summary>
+    public IReadOnlyList<MediaAsset> Gone { get; init; } = Array.Empty<MediaAsset>();
+}
+
+/// <summary>One asset whose file was replaced, and the path it had before (a relink, its Undo or Redo).</summary>
+public sealed record MediaFileReplacement(MediaAsset Asset, string PreviousFilePath);
+
+/// <summary>The assets whose file was replaced (<see cref="IProjectService.MediaRelinked"/>). The previous paths let
+/// what was shown for a file come back when an Undo / Redo returns the asset to it (Step 11.6, D2) — a cache file of
+/// the replaced file may be gone by then (one per asset, D024).</summary>
+public sealed class MediaRelinkedEventArgs : EventArgs
+{
+    public IReadOnlyList<MediaFileReplacement> Replacements { get; init; } = Array.Empty<MediaFileReplacement>();
+
+    public IReadOnlyList<MediaAsset> Assets => Replacements.Select(r => r.Asset).ToList();
 }
 
 /// <summary>Result of <see cref="IProjectService.AddMediaAssets"/>.</summary>

@@ -28,6 +28,8 @@ public sealed class AvaloniaFilePickerService : IFilePickerService
                 .Select(f => new FilePickerFileType(f.Name) { Patterns = f.Patterns.ToArray() })
                 .ToArray()
         };
+        if (request.StartFolder is { } start && Directory.Exists(start))
+            options.SuggestedStartLocation = await storageProvider.TryGetFolderFromPathAsync(start);
 
         var files = await storageProvider.OpenFilePickerAsync(options);
 

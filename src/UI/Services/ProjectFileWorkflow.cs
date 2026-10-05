@@ -7,7 +7,8 @@ namespace AiVideoEditor.UI.Services;
 /// The UI side of the project's life on disk: New / Open / Save / Save As / Close with the
 /// folder picker and the "save changes?" prompt, analysis of media that still needs it after
 /// Open, the startup offer to recover autosaved work, and autosave at shutdown. Every failure
-/// is reported in the status bar and leaves the current project as it was.
+/// is reported in the status bar and leaves the current project as it was. A successful Open, Save As and Recover (of a
+/// project with a folder) puts the project first in the recent-projects list (D026 §6); nothing else changes the list.
 /// </summary>
 public sealed class ProjectFileWorkflow
 {
@@ -20,6 +21,7 @@ public sealed class ProjectFileWorkflow
     private readonly ILogger<ProjectFileWorkflow> _logger;
     private readonly IThumbnailCacheLocation? _thumbnailCache;
     private readonly IWaveformCacheLocation? _waveformCache;
+    private readonly IRecentProjectsStore? _recentProjects;
 
     public ProjectFileWorkflow(
         IProjectService projectService,
@@ -30,7 +32,8 @@ public sealed class ProjectFileWorkflow
         StatusService status,
         ILogger<ProjectFileWorkflow> logger,
         IThumbnailCacheLocation? thumbnailCache = null,
-        IWaveformCacheLocation? waveformCache = null)
+        IWaveformCacheLocation? waveformCache = null,
+        IRecentProjectsStore? recentProjects = null)
     {
         _projectService = projectService;
         _analysisCoordinator = analysisCoordinator;
@@ -41,6 +44,7 @@ public sealed class ProjectFileWorkflow
         _logger = logger;
         _thumbnailCache = thumbnailCache;
         _waveformCache = waveformCache;
+        _recentProjects = recentProjects;
     }
 
     // ---- New / Open (interactive) ---------------------------------------------------
@@ -72,11 +76,20 @@ public sealed class ProjectFileWorkflow
         });
         if (folder is null) return false;
 
+        return await OpenFolderAsync(folder);
+    }
+
+    /// <summary>Opens the project in <paramref name="projectFolderPath"/> as Open does once a folder is picked: asks
+    /// about unsaved changes, then opens it. Used by Open and by the recent-projects list (D026 §6). Returns false if
+    /// cancelled or if the project couldn't be opened (the current project is then kept, including its unsaved changes
+    /// and their recovery file; the recent-projects list is changed only by a successful open).</summary>
+    public async Task<bool> OpenFolderAsync(string projectFolderPath)
+    {
         var previousId = _projectService.Current.Id;
         var decision = await ConfirmUnsavedChangesAsync("opening another project");
         if (decision == UnsavedChangesDecision.Cancel) return false;
 
-        if (!await OpenAsync(folder)) return false;
+        if (!await OpenAsync(projectFolderPath)) return false;
         if (decision == UnsavedChangesDecision.DontSave)
             await DiscardRecoveryQuietlyAsync(previousId);
         return true;
@@ -144,6 +157,9 @@ public sealed class ProjectFileWorkflow
         }
 
         _status.Report(SavedMessage($"Saved project \"{_projectService.Current.Name}\" to {folder}."));
+        // The folder written, also when Open replaced the project while it was being saved (project.json is there).
+        var savedFolder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder));
+        await RememberRecentAsync(savedFolder, Path.GetFileName(savedFolder) is { Length: > 0 } name ? name : current.Name);
         return true;
     }
 
@@ -223,6 +239,7 @@ public sealed class ProjectFileWorkflow
 
         AnalyseWhereNeeded(project);
         _status.Report($"Opened project \"{project.Name}\".{MissingSuffix(project)}");
+        await RememberRecentAsync(project.ProjectFolderPath!, project.Name);
         return true;
     }
 
@@ -278,6 +295,8 @@ public sealed class ProjectFileWorkflow
 
         AnalyseWhereNeeded(project);
         _status.Report($"Recovered unsaved changes to \"{project.Name}\" — save the project to keep them.{MissingSuffix(project)}{suffix}");
+        if (project.ProjectFolderPath is { } folder)
+            await RememberRecentAsync(folder, project.Name); // also when the folder is gone: listed as unavailable
     }
 
     private async Task OfferRecoveryAsync(RecoveryCandidate candidate, string suffix)
@@ -329,6 +348,21 @@ public sealed class ProjectFileWorkflow
         return true;
     }
 
+    /// <summary>Puts the project first in the recent-projects list. Never fails the operation that succeeded: the
+    /// store logs what it couldn't write, and nothing is shown in the status bar.</summary>
+    private async Task RememberRecentAsync(string folder, string name)
+    {
+        if (_recentProjects is null) return;
+        try
+        {
+            await _recentProjects.AddAsync(folder, name);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Couldn't add {Folder} to the recent projects.", folder);
+        }
+    }
+
     private void AnalyseWhereNeeded(Core.Entities.Project project)
     {
         // Saved metadata is reused; only media without it (and present on disk) is analysed, and
@@ -341,8 +375,8 @@ public sealed class ProjectFileWorkflow
     private static string MissingSuffix(Core.Entities.Project project) => project.MediaAssets.Count(a => a.IsMissing) switch
     {
         0 => "",
-        1 => " 1 media file is missing and is shown as offline.",
-        var n => $" {n} media files are missing and are shown as offline."
+        1 => " 1 media file is missing and is shown as offline — use Relink or Find Missing in the Media Browser.",
+        var n => $" {n} media files are missing and are shown as offline — use Relink or Find Missing in the Media Browser."
     };
 }
 

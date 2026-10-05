@@ -26,7 +26,7 @@ Known technology:
 - Serilog
 - FFmpeg / FFprobe
 
-The current solution contains 11 projects.
+The current solution contains 19 projects: 11 application projects under `src/` and 8 test projects under `tests/`.
 
 Project location:
 C:\AiVideoEditor

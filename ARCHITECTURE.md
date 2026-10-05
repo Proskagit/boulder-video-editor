@@ -300,6 +300,68 @@ recovery, unsaved changes).
   title comes from `MainWindowViewModel.Title`.
 - Playhead, zoom and snapping are session state (D015): stored in `project.json`, never dirty,
   never undoable; `TimelineViewModel` reads zoom/snapping from the sequence on every `ProjectChanged`.
+- Media paths and missing media (D014): each asset is saved with its absolute `FilePath` and a `RelativePath` to the
+  project folder (none on another volume); `ProjectSerializer.ResolveMediaPath` takes the absolute path if the file
+  exists, else the relative one, else keeps the absolute path. `ProjectService.MarkMissingMedia` sets the runtime flag
+  `MediaAsset.IsMissing` on Open and Recover, before the project becomes current. Missing media is never probed, never
+  decoded for thumbnails / waveforms (cached results only), shown as "Media offline" / the Preview's placeholder, blocks
+  the export preflight and can't be added to the timeline.
+- Media availability during the session (Phase 11 Step 11.3, D026 §2): `IProjectService.RecheckMediaAsync` — the files
+  are checked in one `Task.Run` (never on the UI thread), the result applied on the UI thread to the same project and
+  only to assets whose path is unchanged; checks never overlap (a request while one runs is folded into one more check
+  after it); changes raise `MediaAvailabilityChanged` (`Returned`, `Gone`) and then `MediaAssetsChanged`; never dirty,
+  never undoable. Triggers: `MediaAvailabilityMonitor` (UI) on `MainWindow.Activated` — at most one check per 3 s, an
+  activation inside that interval answered by one trailing check, stopped at close, changes reported in the status bar —
+  and `ExportWorkflow` before its preflight (unthrottled). Reactions: `MediaAnalysisCoordinator` analyses a returned
+  `Pending` / `Failed` asset (and refreshes a missing display size); an analysis whose asset went missing or got another
+  path meanwhile writes nothing (a missing one gets its earlier status back). `MediaCacheCoordinator.Restart` requests
+  a returned asset's thumbnail / waveform again in the same generation (the old result shown until replaced; earlier
+  work publishes nothing). The Preview rebuilds its snapshot through `PlaybackSnapshotBuilder.AssetState.IsMissing`.
+- Relink of missing media (Phase 11 Step 11.4, D026 §3 — the core; its UI, Step 11.6, below): Core `IMediaRelinkService`
+  (`CheckAsync` → `RelinkCheck`, `ApplyAsync` → `RelinkResult`, `RelinkedMediaFoundIncompatible`), `MediaFileTypes` (the
+  extension → kind table of the import); Timeline `MediaRelinkService` + `Commands/RelinkMediaCommand` (absolute
+  `MediaFileState` before / after per asset). Check: re-check (PO-5), offline only, extension and probed streams of the
+  asset's kind, the probe (unavailable → allowed, `Pending`, no metadata; failed → rejected), length ≥ the largest
+  `SourceOut` of the asset's video / audio clips, path not another asset's; warnings for differing characteristics and
+  dissolve handles. Apply: re-check, validate again, one command through `IUndoRedoService` (dirty by the save point);
+  `NotifyMediaRelinked` → `IProjectService.MediaRelinked` + `MediaAssetsChanged` on Execute / Undo: thumbnails and
+  waveforms of the old file dropped and requested again (`MediaCacheCoordinator.Restart(dropResults)`), timeline
+  waveforms refreshed, the Preview's snapshot rebuilt by the path. A later analysis whose metadata doesn't fit the clips
+  raises `RelinkedMediaFoundIncompatible` (status bar through `MainWindowViewModel`). The asset id, clips and project frame
+  rate never change.
+- Batch relink (Step 11.5, D026 §4): `IMediaRelinkService.SearchFolderAsync(folder)` — one re-check, the folder's own
+  files listed off the UI thread, exact names ignoring case, a name of several offline items given to none
+  (`Ambiguous`), each match checked by the same `CheckCoreAsync` as `CheckAsync` → `RelinkSearch` (entries Found /
+  Rejected / NotFound / Ambiguous, `Applicable`, `Summary()`); nothing changes until `ApplyAllAsync(checks)`, which
+  re-checks once, validates every item again and within the batch (one file per item, one item once) and executes one
+  `RelinkMediaCommand` for the items still valid (the others returned with their reason). `ApplyAsync(check)` is
+  `ApplyAllAsync` with one item.
+- Relink UI (Step 11.6): `UI/Services/MediaRelinkWorkflow` (singleton) — pickers, dialogs (`IDialogService`, long text
+  scrolls) and status around `IMediaRelinkService`, no relink rule of its own; `EditingLock` checked before, after every
+  await and right before applying; `IsRunning` (one at a time). `MediaBrowserViewModel`: `RelinkCommand` (selected
+  offline item), `FindMissingCommand` (any offline), `HasOfflineMedia` (the "OFFLINE" header row), selection kept by asset
+  id. `FilePickerRequest.StartFolder` (→ `SuggestedStartLocation`). After an applied relink with other media offline the
+  workflow offers the search in the chosen file's folder. `MediaRelinked` carries `MediaFileReplacement`s (asset +
+  previous path); `MediaCacheCoordinator` keeps what was shown per (asset, file) for the generation and shows it again when
+  an Undo / Redo returns the asset to that file (not the cache's last file, which after a relink is the relinked one).
+  The Inspector's media state line (`AnalysisStatusText`) uses the Media Browser's order: offline, Analyzing, Not
+  analysed yet.
+- Recent projects (D026 §6, Step 11.7): `IRecentProjectsStore` (Core) → `RecentProjectsStore` (Project / Persistence),
+  the per-user list `%LOCALAPPDATA%\AiVideoEditor\config\recent-projects.json` (`AppPaths.RecentProjectsFile`, the folder
+  created only when written; the only per-user data stored): at most 10 project folders, most recent first, one per
+  full path (case and a trailing separator ignored). Every change re-reads the file and writes it atomically
+  (`ProjectFileStore.WriteAtomicAsync`) under `recent-projects.lock` (`FileShare.None`, shared by running instances,
+  about 2 s) plus an in-process semaphore; damaged → set aside as `*.damaged`, newer format or unreadable → never
+  overwritten; errors are logged, never thrown. Availability (`IsAvailableAsync`: `project.json` present) is runtime
+  only, off the calling thread, without the lock. `ProjectFileWorkflow` adds an entry after a successful Open
+  (`OpenAsync(folder)`), Save As and Recover of a project with a folder — nothing else. UI (Step 11.8):
+  `RecentProjectsViewModel` (`ToolbarViewModel.Recent`; the `DropDownButton` after Open, `ToolbarView` calls
+  `OnOpenedAsync` / `OnClosed` from the flyout's events and hides it on `CloseRequested`): reads the list at every opening,
+  one `RecentProjectItemViewModel` per entry per reading with `Availability` Checking / Available / Unavailable from
+  `IsAvailableAsync` (one running check per folder shared by readings; results reach only their own item; readings
+  overtaken or older than a removal are dropped); `OpenCommand` (Available only) → `ProjectFileWorkflow.OpenFolderAsync`
+  (the confirmed open shared with Open), `RemoveCommand` → `RemoveAsync`; one action at a time; `EditingLock` disables
+  the button and the commands. `project.json` stays v3.
 
 ## MVVM
 
@@ -399,5 +461,9 @@ Verified against the source at the end of Phase 6 (branch `feat/phase-6-project-
 sections at the Phase 7 closeout, the Export section at the Phase 8 closeout (Step 8.7), the Thumbnails section at
 the Step 9.4 closeout (9.4e), the Waveforms section (and the shared parts of the Thumbnails section) at the Step 9.5
 closeout (9.5e); the Export section's source frames and orchestration at the Step 9.7 closeout; the module table, playback
-and media sections at the Step 9.8 closeout; the CI section at the Step 9.10 closeout.
+and media sections at the Step 9.8 closeout; the CI section at the Step 9.10 closeout; the Phase 10 parts of the Core
+domain section step by step in Steps 10.3–10.8 and with the module table at the Step 10.9 closeout; the media paths and
+missing media paragraph of the Project persistence section at the Step 11.1 audit (`2e758f1`), the media availability
+paragraph at the Step 11.3 closeout, the relink paragraph at the Step 11.4 closeout, the batch relink paragraph at the
+Step 11.5 closeout, the relink UI paragraph at the Step 11.6 implementation.
 Re-check the code before relying on details that later phases may have changed.

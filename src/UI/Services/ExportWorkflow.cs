@@ -25,7 +25,8 @@ public sealed record ExportOutcome(ExportOutcomeKind Kind, string Message, strin
 /// <summary>
 /// The UI side of an export (Phase 8 Step 7, D023), in the style of <see cref="ProjectFileWorkflow"/>:
 /// <list type="number">
-/// <item><see cref="ExportPreflight"/> on the current project (the only source of the rules). Its output-file
+/// <item>The media files are checked again (<see cref="IProjectService.RecheckMediaAsync"/>, D026 §2), then
+/// <see cref="ExportPreflight"/> on the current project (the only source of the rules). Its output-file
 /// issues are left for the second check, after the file is chosen; other errors are listed and stop here; warnings
 /// are listed and the user may continue.</item>
 /// <item>The output <c>.mp4</c> from the save-file picker (starting at <c>LastExportSettings.OutputPath</c>);
@@ -108,6 +109,10 @@ public sealed class ExportWorkflow
 
     private async Task<ExportOutcome> RunCoreAsync()
     {
+        // The files must be there now, whatever the last background check found (D026 §2): a file gone since then is
+        // offline for the preflight, one that came back is online again.
+        await _projects.RecheckMediaAsync();
+
         var project = _projects.Current;
         if (project is null)
             return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, "There is no project to export."));

@@ -30,6 +30,14 @@ namespace AiVideoEditor.UI.Services;
 /// timeout starts only when the probe runs. Cancelling a generation also ends its waits, so a replaced project's
 /// queue never holds a slot the next project needs.
 /// </para>
+/// <para>
+/// Media availability (D026 §2): an asset whose file has come back (<see cref="IProjectService.MediaAvailabilityChanged"/>)
+/// is analysed again when it needs it — no metadata yet (<see cref="MediaAnalysisStatus.Pending"/>), or a failed
+/// analysis (the file may have gone while it was probed) — and metadata saved before orientation was probed is
+/// refreshed, as after Open. An analysis whose asset changed while it ran — the file is missing now, or the asset has
+/// another path (a relink) — writes nothing: a missing asset gets back the status it had before (so it is analysed
+/// once it returns), an asset with another path is left to whoever changed it.
+/// </para>
 /// </summary>
 public sealed class MediaAnalysisCoordinator
 {
@@ -55,7 +63,35 @@ public sealed class MediaAnalysisCoordinator
         _projectService = projectService;
         _logger = logger;
         _projectService.ProjectChanged += (_, _) => StartNewGeneration();
+        _projectService.MediaAvailabilityChanged += (_, e) => OnMediaAvailabilityChanged(e);
     }
+
+    /// <summary>Files that came back get the analysis they still need (D026 §2); for gone files the running analyses
+    /// notice it themselves when they end.</summary>
+    private void OnMediaAvailabilityChanged(MediaAvailabilityChangedEventArgs e)
+    {
+        var queued = 0;
+        foreach (var asset in e.Returned)
+        {
+            if (asset.IsMissing) continue;
+            if (asset.AnalysisStatus is MediaAnalysisStatus.Pending or MediaAnalysisStatus.Failed)
+            {
+                QueueAnalysis(asset);
+                queued++;
+            }
+            else if (asset.AnalysisStatus == MediaAnalysisStatus.Completed && asset.Metadata is { NeedsDisplaySizeProbe: true })
+            {
+                RefreshDisplaySize(asset);
+                queued++;
+            }
+        }
+        if (queued > 0)
+            _logger.LogInformation("Analysing {Count} media file(s) that are available again.", queued);
+    }
+
+    /// <summary>The asset is no longer what an analysis started for: its file is missing now, or it has another path.</summary>
+    private static bool ChangedSince(MediaAsset asset, string path) =>
+        asset.IsMissing || !string.Equals(asset.FilePath, path, StringComparison.Ordinal);
 
     /// <summary>Completes when every analysis started so far has finished or been dropped (tests).</summary>
     internal Task IdleAsync() => Task.WhenAll(_running.Keys);
@@ -113,10 +149,10 @@ public sealed class MediaAnalysisCoordinator
     {
         if (!_inFlight.TryAdd(asset, 0))
             return;
-        Track(RefreshDisplaySizeAsync(asset, _generation.Token));
+        Track(RefreshDisplaySizeAsync(asset, asset.FilePath, _generation.Token));
     }
 
-    private async Task RefreshDisplaySizeAsync(MediaAsset asset, CancellationToken generation)
+    private async Task RefreshDisplaySizeAsync(MediaAsset asset, string path, CancellationToken generation)
     {
         var slot = false;
         try
@@ -124,9 +160,14 @@ public sealed class MediaAnalysisCoordinator
             await _slots.WaitAsync(generation);
             slot = true;
             generation.ThrowIfCancellationRequested(); // see AnalyzeAndApplyAsync
-            var result = await _analysisService.AnalyzeAsync(asset.FilePath, generation);
+            var result = await _analysisService.AnalyzeAsync(path, generation);
             if (generation.IsCancellationRequested)
                 return; // another project is current now: this asset is no longer shown anywhere
+            if (ChangedSince(asset, path))
+            {
+                _logger.LogDebug("Orientation refresh of '{Path}' dropped: the asset changed meanwhile.", path);
+                return; // the saved metadata stays
+            }
 
             if (result.Outcome == MediaAnalysisOutcome.Success && result.Metadata is { } metadata)
             {
@@ -170,16 +211,34 @@ public sealed class MediaAnalysisCoordinator
             return;
         }
 
+        var before = (asset.AnalysisStatus, asset.AnalysisError);
         asset.AnalysisStatus = MediaAnalysisStatus.Analyzing;
         _projectService.NotifyMediaAssetsChanged();
 
         // Deliberately fire-and-forget: the caller (import workflow) must not
         // wait for analysis to finish. Exceptions are handled inside AnalyzeAndApplyAsync
         // itself, so nothing here can produce an unobserved task exception.
-        Track(AnalyzeAndApplyAsync(asset, _generation.Token));
+        Track(AnalyzeAndApplyAsync(asset, asset.FilePath, before, _generation.Token));
     }
 
-    private async Task AnalyzeAndApplyAsync(MediaAsset asset, CancellationToken generation)
+    /// <summary>The analysis found the asset changed (<see cref="ChangedSince"/>): its result is dropped. A missing
+    /// asset gets back the status it had when it was queued, so it is analysed again once its file returns.</summary>
+    private void Drop(MediaAsset asset, string path, (MediaAnalysisStatus Status, string? Error) before)
+    {
+        if (!string.Equals(asset.FilePath, path, StringComparison.Ordinal))
+        {
+            _logger.LogDebug("Analysis of '{Path}' dropped: the asset has another file now.", path);
+            return;
+        }
+
+        _logger.LogInformation("Analysis of '{Path}' dropped: the file is missing now.", path);
+        asset.AnalysisStatus = before.Status;
+        asset.AnalysisError = before.Error;
+        _projectService.NotifyMediaAssetsChanged();
+    }
+
+    private async Task AnalyzeAndApplyAsync(MediaAsset asset, string path,
+        (MediaAnalysisStatus Status, string? Error) before, CancellationToken generation)
     {
         var slot = false;
         try
@@ -189,12 +248,17 @@ public sealed class MediaAnalysisCoordinator
             // The slot may come from an analysis that ended because this generation was cancelled, before this wait's
             // own cancellation ran: never start a probe for a replaced project.
             generation.ThrowIfCancellationRequested();
-            var result = await _analysisService.AnalyzeAsync(asset.FilePath, generation);
+            var result = await _analysisService.AnalyzeAsync(path, generation);
             if (generation.IsCancellationRequested)
             {
                 // Another project is current now. Whatever the probe returned (a result that raced the
                 // cancellation included), this asset belongs to the replaced project: leave it, tell nobody.
-                _logger.LogDebug("Analysis of '{Path}' dropped: its project was replaced.", asset.FilePath);
+                _logger.LogDebug("Analysis of '{Path}' dropped: its project was replaced.", path);
+                return;
+            }
+            if (ChangedSince(asset, path))
+            {
+                Drop(asset, path, before);
                 return;
             }
 
@@ -213,6 +277,11 @@ public sealed class MediaAnalysisCoordinator
                     asset.FilePath, result.Outcome, result.ErrorMessage);
             }
             _projectService.NotifyMediaAssetsChanged();
+        }
+        catch (Exception ex) when (!generation.IsCancellationRequested && ChangedSince(asset, path))
+        {
+            _logger.LogDebug(ex, "Analysis of '{Path}' failed after the asset changed.", path);
+            Drop(asset, path, before);
         }
         catch (Exception ex) when (!generation.IsCancellationRequested)
         {

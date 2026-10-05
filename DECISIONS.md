@@ -331,7 +331,8 @@ Decision:
   unchanged). Missing is runtime state only: not saved, never makes the project dirty, never
   blocks Open. Missing files are not probed (no failed analyses, no retries). Detection
   happens once per Open; a file that reappears later stays offline until the project is
-  reopened. Relink is out of scope.
+  reopened. Relink is out of scope. *(Superseded by D026 §2–§3, Phase 11: re-check during the session and relink of
+  missing media.)*
 
 Consequences: `AppPaths.ProjectFile` and `ProjectFileStore.ProjectFileName` both name
 `project.json` (Project does not reference Infrastructure; kept as is for now).
@@ -1139,8 +1140,8 @@ Refined in Step 9.4 (2026-09-28), thumbnails + cache (product owner decisions PO
   Playback and export never read the cache.
 - Left as they are: no cache size limit, eviction or cache UI, no timeline thumbnails (out of scope); a thumbnail that
   could not be made is retried only with the next project (or by reopening it); media that comes back online during a
-  session is not re-checked (no relink, as in 9.3); a Save As over a folder of an unrelated project leaves that
-  project's thumbnail files there, never read; the generation check after a slot is obtained is defensive — no
+  session is not re-checked (no relink, as in 9.3 — superseded by D026 §2, Phase 11); a Save As over a folder of an
+  unrelated project leaves that project's thumbnail files there, never read; the generation check after a slot is obtained is defensive — no
   mutation reaches it (the waits of a cancelled generation always end first).
 
 Refined in Step 9.5 (2026-09-28), waveform (product owner decisions PO-W1–PO-W4 after the 9.5 audit, PO-W5 after
@@ -1181,8 +1182,8 @@ Refined in Step 9.5 (2026-09-28), waveform (product owner decisions PO-W1–PO-W
   waveform never changes the audio.
 - Left as they are: no cache size limit, eviction or cache UI (as 9.4); no waveforms in the Media Browser, no audio
   editing, scrubbing or meters (out of scope); a waveform that could not be made is retried only with the next project
-  (or by reopening it); media coming back online during a session is not re-checked; while a trim of a clip's start
-  is dragged the waveform follows the model, not the preview, until the edit; the waveform starts at the clip border's
+  (or by reopening it); media coming back online during a session is not re-checked (superseded by D026 §2); while a
+  trim of a clip's start is dragged the waveform follows the model, not the preview, until the edit; the waveform starts at the clip border's
   inner edge (1–2 px); at 100 % (PO-W2) loud sound takes under half of the height and a muted quiet clip is faint;
   `AppPaths.UnsavedThumbnailCacheRoot` now names the unsaved root of both kinds (rename left to 9.8).
 
@@ -1506,6 +1507,346 @@ Refined in Step 10.8 (2026-09-29), dissolve UI (no rule changed; every check sta
 Status: Accepted (2026-09-29; PO-8 the same day; the §2 fade cut 2026-09-30). Phase 10 accepted by the product owner on
 2026-10-01. Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 10 — Transitions & basic effects: steps".
+
+---
+
+## D026 — Phase 11: media availability, relink of missing media, recent projects
+
+Date: 2026-10-01
+
+Decision (product owner, 2026-10-01, after the Step 11.1 audit; PO-1…PO-9). Phase 11 has two features, implemented in
+this order: the **media life cycle** — re-checking whether media files are there (Step 11.3) and **relinking** missing
+media to a file the user picks, alone (11.4) or in a batch found next to it (11.5), with its UI (11.6) — then **recent
+projects** (11.7 core, 11.8 UI). The relink keeps every `MediaAssetId` and the timeline as they are; nothing is adapted
+to the new source.
+
+Context (Step 11.1 audit, the code at `2e758f1`):
+- D014: each media file is saved with its absolute path and its path relative to the project folder; Open takes the
+  absolute path if the file exists, else the relative one, else keeps the absolute path and marks the asset missing
+  (`ProjectSerializer.ResolveMediaPath`, `ProjectService.MarkMissingMedia` on Open and Recover). A project moved
+  together with its media already opens without a relink.
+- Missing (`MediaAsset.IsMissing`) is runtime state, set once per Open / Recover: a file that comes back stays offline
+  until the project is reopened, a file that disappears during the session stays "online" until a decode or the export
+  fails. `IProjectService.DetectMissingMedia()` exists but has no production caller and raises no event.
+- Offline media: never probed (`MediaAnalysisCoordinator`), never decoded for thumbnails / waveforms (cached results
+  only, `MediaCacheCoordinator.CanMake`, `SourceFileCache`), a "Media offline" placeholder in the Preview and the Media
+  Browser, an export preflight error (`ExportPreflight`, which also checks `File.Exists` itself), not addable to the
+  timeline (`TimelineEditService`).
+- The thumbnail and waveform coordinators handle an asset once per project generation (by asset id); a generation
+  starts only on `ProjectChanged`. The playback snapshot rebuilds when an asset's `FilePath` or `IsMissing` changes
+  (`PlaybackSnapshotBuilder.AssetState`), so the Preview reopens its decoders by itself.
+- `TimelineValidator` rejects a clip whose `SourceOut` is beyond its media's `Metadata.Duration`: a relink to a shorter
+  file would make every later edit of such a clip fail.
+- No settings are persisted per user; `AppPaths.ConfigFolder` (`%LOCALAPPDATA%\AiVideoEditor\config`) exists unused. The
+  toolbar is a row of buttons (no menu bar, no context menus).
+
+### 1. Scope and constraints
+
+- Only missing (offline) media is relinked (PO-6). Replacing the file of an online asset is a separate, future feature.
+- `project.json` stays `formatVersion` 3: a relink changes only fields that already exist (the media's absolute and
+  relative path, `FileSizeBytes`, the saved metadata). The recent-projects list is not part of a project.
+- Unchanged: D009 / D022 (source frame selection), D013 (mix), D018 / D023 (composition, export), D025 (fades,
+  dissolves — handles are still not validated on load and never make rendering fail), D007 (a relink never changes the
+  project frame rate and never re-grids), D008 (timeline rules), D014 path resolution on Open, D016 (autosave, recovery).
+  L1-c stays open.
+- Out of scope: replacing online media; fuzzy or recursive search; `FileSystemWatcher`; detecting that a present file
+  was changed in place (size / time — the thumbnail / waveform cache key already ignores a stale entry); copying media
+  into the project; a start screen; opening the last project at startup; a menu bar; a general UI redesign; hotkeys for
+  the new commands.
+
+### 2. Media availability re-check (PO-5, Step 11.3)
+
+- A re-check sets `IsMissing` of every asset of the current project from the file system. The file system is read off
+  the UI thread (a disconnected network or USB drive may take seconds); the result is applied on the UI thread to the
+  project that was current when the check started — a result for a project that has been replaced is dropped. Checks do
+  not overlap: a request during a running check is folded into one more check after it.
+- Triggers: the main window becomes active (throttled — at most one check per interval; the interval is an
+  implementation detail, recorded at 11.3), and, independently of that, before every operation that needs the files:
+  the export (before its preflight; the preflight's own `File.Exists` stays as the last line) and the relink (§3). The
+  check on Open / Recover stays as it is (before the project replaces the current one).
+- A file that is gone now: the asset becomes offline (the Preview's placeholder, the export blocks, no analysis, no new
+  thumbnail or waveform; cached ones may be shown — D024). A file that is back: the asset becomes online and its
+  processing is restarted — analysis if it has no metadata (or needs the display-size refresh), thumbnail and waveform
+  requested again for this asset in the current generation; the playback snapshot rebuilds by itself.
+- `IsMissing` stays runtime state (D014): a re-check never makes the project dirty, never enters undo / redo, is never
+  saved. An analysis of an asset whose state changed while it ran (offline now, or relinked / undone, §3) never writes
+  its result onto the asset.
+
+### 3. Relink (PO-1, PO-2, PO-3, PO-9, Step 11.4)
+
+- Relink = the asset keeps its `Id`; its `FilePath` becomes the chosen file's full path, `FileSizeBytes` that file's size,
+  and its metadata the new probe's (or none, below). Every clip keeps its `MediaAssetId`, `SourceIn` / `SourceOut`,
+  speed, properties, fades and dissolves. The relative path follows on the next save (D014).
+- Only an asset that is missing at the time of the relink (after the re-check, §2) can be relinked (PO-6).
+- **Hard reject** (nothing changes, a message says why): the chosen file does not exist; its media type does not fit the
+  asset (by the import's extension rules and, when probed, by its streams); for video / audio, the probed duration is
+  shorter than the source range any clip of the asset uses (the `TimelineValidator` rule `SourceOut ≤ Duration`, every
+  clip on every track); the path already belongs to another `MediaAsset` of the project (PO-9 — assets are never merged,
+  no `MediaAssetId` changes).
+- **Warning + confirmation** (the user may relink anyway): a different resolution, frame rate, no audio stream where the
+  old metadata had one, other differing technical characteristics (codecs, sample rate, channels, rotation, start
+  time — the exact list fixed at 11.4), and source handles too short for an existing dissolve of a clip of the asset
+  (D025 §4: rendering holds the first / last frame). Characteristics are compared only when both the old and the new
+  metadata exist; with no old metadata there is nothing to compare.
+- **ffprobe unavailable** (PO-3): the relink is not blocked. A file that exists and passes the type check by its
+  extension is relinked; the asset gets no metadata and the status `Pending` (analysed afterwards, as after an import);
+  the user is told that compatibility could not be checked. What could not be checked is never turned into an
+  irreversible error later. Settled at the start of 11.4: what a later analysis that finds the file incompatible
+  (shorter than a clip's source range) does — the proposal is a status / log message, the relink kept and undoable;
+  and how a probe that runs but fails on an existing file is treated (proposal: a hard reject as an unreadable media
+  file, since its type can't be confirmed).
+- **Undo** (PO-1): a relink is an `IUndoableCommand` executed through `IUndoRedoService` — the project becomes dirty
+  through the save point (D015). Undo / Redo restore the asset consistently: `FilePath`, `FileSizeBytes`, `Metadata`,
+  `AnalysisStatus`, `AnalysisError`, and `IsMissing` as it was when the command was made (corrected by the next
+  re-check); the thumbnail / waveform of the asset are requested again and the playback snapshot follows; an analysis
+  running for a state that undo / redo left is dropped (§2).
+- No automatic adaptation of clips (no trim, no speed or frame-rate change, no re-grid, no removal of dissolves).
+
+### 4. Batch relink (PO-4, Step 11.5)
+
+- After a successful relink, the other missing assets are looked for **only in the folder of the chosen file**, without
+  recursion, by **exact file name** (compared case-insensitively, as the Windows file system does).
+- Every match goes through §3 (hard rejects are listed as not applicable, warnings are shown); a summary lists what was
+  found, what can't be used and why; nothing is applied before the user confirms. Assets without a match stay offline.
+- Undo granularity of the batch (one step for the confirmed batch, the first relink being its own step, is the
+  proposal) and two missing assets with the same file name are settled at the start of 11.5.
+
+### 5. Relink UI (Step 11.6)
+
+- Offered only for offline media (PO-6), from the Media Browser; the picker is a single-file picker with the asset's
+  kind filter, starting in the folder of the old path when that folder exists. Rejections and warnings use the
+  existing dialog / status services; the `EditingLock` disables relink during an export. The exact placement (a
+  Media Browser button enabled for a selected offline item is the proposal — the app has no context menus) and the
+  wording of the Open status message pointing to it are settled at the start of 11.6.
+
+### 6. Recent projects (PO-7, PO-8, Steps 11.7–11.8)
+
+- A per-user list of at most **10** project folders, most recent first, no duplicates (full path, compared
+  case-insensitively, trailing separator ignored), stored outside every project (`AppPaths.ConfigFolder`), written
+  atomically; a damaged or unreadable list never prevents startup. Several running instances must not lose each other's
+  entries (read again before every write). The file format and the store's location in the projects are
+  implementation details recorded at 11.7.
+- Added after a **successful** Open (also from the list itself), Save As (the new folder) and Recover of a project that
+  has a folder. A failed Open adds nothing and changes nothing.
+- Unavailable projects (no `project.json` in the folder now) are **never removed automatically**: they stay in the list,
+  shown as unavailable, with a clear way to remove the entry. Availability is checked off the UI thread.
+- UI: **`Recent ▾`** in the toolbar next to Open. Choosing a project goes through the unsaved-changes prompt and then
+  the same open path as Open (D014, D016); a project that can't be opened leaves the current one and the list entry as
+  they are, with a message. Disabled during an export like Open. Whether a "Clear list" item is added besides removing
+  single entries is settled at the start of 11.8.
+
+Consequences:
+- D014 "detection happens once per Open … Relink is out of scope" is superseded by §2–§3 (the rest of D014 stands). The
+  D024 Step 9.4 / 9.5 notes "media that comes back online during a session is not re-checked" are
+  superseded by §2.
+- The thumbnail / waveform coordinators and the analysis coordinator gain a per-asset restart within a generation
+  (Impl at 11.3); `IProjectService.DetectMissingMedia` (no production caller, no event) is replaced or completed at 11.3.
+- New code follows the existing layering: Core interfaces, implementations in Project / Media / Video, orchestration in
+  UI services, no file system access from view models.
+
+Refined in Step 11.3 (2026-10-01), media availability re-check (implementation choices within §2; no PO decision
+changed):
+- `IProjectService.RecheckMediaAsync()` (replaces `DetectMissingMedia`, which had no caller) and the event
+  `MediaAvailabilityChanged` (`Returned`, `Gone`), raised before `MediaAssetsChanged`. `ProjectService` captures the
+  project and each asset's path on the caller's thread, runs `File.Exists` for them in one `Task.Run`, and applies the
+  result on the caller's context only if the same project is current and the asset still has that path; a file-system
+  error counts as missing. One check at a time: a request while one runs is folded into one more check after it, and the
+  returned task always covers a check that started after the call. Open / Recover use the same file check.
+- Trigger on activation: `MediaAvailabilityMonitor` (UI service), `Interval` = **3 s**, measured from the start of the
+  last check; an activation inside the interval schedules **one trailing check** at its end (later ones in the interval
+  add nothing), so a file restored right after a check is seen without another window switch, while switching windows
+  back and forth stats the files at most once per 3 s. Stopped when the window starts closing. Every change found is
+  reported in the status bar (`"x" is missing now and is shown as offline.` / `"x" is available again.`, counts for
+  several).
+- The export re-checks before its preflight, unthrottled (`ExportWorkflow`); the relink will (11.4).
+- Returned files: `MediaAnalysisCoordinator` analyses an asset that is `Pending` or `Failed` (its file may have gone
+  while it was probed) and refreshes metadata without the display size; saved metadata is not probed again (an online
+  file is not re-validated, PO-6). An analysis or orientation refresh whose asset is missing now or has another path when
+  the probe ends writes nothing; a missing asset gets back the status and error it had when queued (so it is analysed
+  when it returns), an asset with another path is left to whoever changed it (11.4).
+- Thumbnails / waveforms: `MediaCacheCoordinator.Restart` — the returned assets are forgotten as handled in the current
+  generation and requested again (made, not only read from the cache); the result shown while offline stays until the
+  new one is ready; work started before the restart publishes nothing (each handling has an identity, checked before
+  publishing). Gone files need no restart: what is shown may stay (D024), nothing new is decoded.
+- The Preview needs nothing new: `IsMissing` is part of `PlaybackSnapshotBuilder.AssetState`, so a change rebuilds the
+  snapshot (placeholder ⇄ picture, decoders reopened); the Media Browser rebuilds its rows on `MediaAssetsChanged`; the
+  export preflight reads `IsMissing` and its own `File.Exists`.
+
+Refined in Step 11.4 (2026-10-01), relink core — the three sub-decisions left by §3, confirmed by the product owner at the
+start of 11.4, and the implementation:
+- Compared characteristics (warnings, only when the old and the new metadata both exist): display size, frame rate,
+  the audio stream gone, rotation, start time, video / audio codec, sample rate, channels; dissolve source handles too
+  short for an existing dissolve (computed with the new metadata, whatever the old). Duration is no warning: shorter than
+  the largest `SourceOut` of the asset's video / audio clips (any track, any speed) is a hard reject, equal or longer is
+  accepted silently.
+- ffprobe available but the probe fails (`InvalidMedia`, `UnsupportedMedia`, `ProbeProcessFailed`, `InvalidOutput`):
+  a hard reject ("can't be read as media"). Strictly apart from `ProbeToolUnavailable` (PO-3): allowed after the
+  existence and extension checks, with the `NotChecked` warning.
+- A later analysis that finds a file incompatible with its clips (shorter than they use, or without the stream of its
+  kind — e.g. relinked without ffprobe, analysed at a later Open): a status-bar message and a log warning, nothing undone
+  or adapted; the user may Undo. Raised for any analysis whose metadata doesn't fit (a new metadata object is looked at
+  once).
+- Without ffprobe the relinked asset keeps no metadata (not the old file's) and stays `Pending`; it is not queued for
+  analysis in this run (the ffprobe location is fixed for the app run — a probe would only fail), so it is analysed at the
+  next Open. Until then the existing rules stand: `TimelineValidator` refuses edits of its track ("duration … unknown"),
+  the export preflight reports it as not analysed — said in the warning.
+- Implementation: Core `IMediaRelinkService` (`CheckAsync` → `RelinkCheck` with `Rejection` / `Warnings` / `Metadata`,
+  `ApplyAsync` → `RelinkResult`, event `RelinkedMediaFoundIncompatible`), `MediaFileTypes` (the extension → kind table,
+  shared with the import); Timeline `MediaRelinkService` (next to the edit service: the length and handle rules are the
+  timeline's — `TimelineValidator`, `DissolveHandles`) and `RelinkMediaCommand` (absolute `MediaFileState` before / after
+  per asset — path, size, metadata, analysis status and error, missing — so a batch is one command, 11.5).
+  `CheckAsync` re-checks the media first (PO-5), `ApplyAsync` again and validates what may have changed since the check
+  (another project, the asset online again, the path taken, the file gone or another size, a clip lengthened). The
+  command notifies `IProjectService.NotifyMediaRelinked` on Execute and Undo → `MediaRelinked` (then
+  `MediaAssetsChanged`): `MediaCacheCoordinator.Restart(…, dropResults: true)` drops the old file's thumbnail / waveform at
+  once and requests the new one; `TimelineViewModel` refreshes the clip waveforms on `MediaAssetsChanged` (a file without
+  sound loses its waveform); the Preview rebuilds through `AssetState.FilePath`; analyses for a path the asset no longer
+  has are dropped (Step 11.3). The project frame rate is never touched (D007).
+
+Refined in Step 11.5 (2026-10-01), batch relink search (PO-4 as restated by the product owner at the start of 11.5; the
+§4 items left to this step):
+- Scope: one folder the user gives (the relink UI of 11.6 decides how it is chosen — e.g. the folder of the file just
+  relinked); only the files directly in it; every offline item's file name looked for exactly, compared
+  case-insensitively as the Windows file system does; no fuzzy or similar-name matching, no recursion. Items without a
+  match stay offline.
+- Two or more offline items with the same file name: the file is given to **none** of them (no automatic choice); they
+  are listed as ambiguous ("relink them one by one"). Online items don't count — a file that belongs to another item is
+  a `PathInUse` reject of the relink check.
+- No second set of rules: every match goes through the relink check of 11.4 (`CheckCoreAsync`, the same code
+  `CheckAsync` runs after its re-check), so type, length, path in use, probe and warnings are exactly a single relink's.
+  The media are re-checked once per search (PO-5); the folder is listed off the UI thread.
+- Nothing is applied by the search. Its result (`RelinkSearch`: an entry per offline item — found, rejected with the
+  check's reason, not found, ambiguous — and `Summary()`: found items with their warnings, the unusable ones with why,
+  those not in the folder) is shown for confirmation; `ApplyAllAsync(search.Applicable)` applies the confirmed items as
+  **one** undoable step (one `RelinkMediaCommand`; a single relink is the same path with one item). Declining the summary
+  or cancelling the search changes nothing.
+- Apply validates every item again, as a single relink, and also within the batch (a file for one item only, an item
+  once). Items that fail now (file gone or changed, path taken, the old file back, a clip lengthened, another project)
+  are returned with their reason and stay offline; the others are still applied as one step — nothing is applied that
+  the user didn't confirm, nothing invalid is applied, and every refusal is reported.
+
+Refined in Step 11.6 (2026-10-01), relink UI (the §5 items left to this step, confirmed by the product owner with the
+11.6 plan):
+- Placement: a second row of the Media Browser's header, shown only while some media is offline ("OFFLINE" — Relink… ·
+  Find Missing…); the app has no context menus and the panel is too narrow for four buttons in one row. Relink… is
+  enabled for a selected offline item, Find Missing… while any media is offline; both are disabled during an export
+  (`EditingLock`) and while a relink workflow runs.
+- Relink…: a single-file picker with the item's kind (the import's extensions), starting in its old folder when that is
+  there (checked off the UI thread) → the relink check → a rejection: "Can't relink" with the service's reason, nothing
+  applied → warnings: "Relink with differences?" (Relink Anyway / Cancel) → Apply → a refusal at Apply (the file gone or
+  changed, the item online again, the path taken, another project): "Relink not applied" with the reason. Only after a
+  relink that was **applied**, and only while other media are offline, "Find other missing media?" offers the search in
+  the chosen file's folder (Search / Not Now) — never after a cancel, a rejection or a refused Apply.
+- Find Missing…: a folder picker (starting in the first offline item's folder when that is there) → the search → its
+  `Summary()` (found with their warnings, "Can't be used:" with the reason — ambiguous names included —, "Not in the folder
+  (stay offline):") with "Relink N Files" / Cancel, or OK alone when nothing can be applied → `ApplyAllAsync` (one step) →
+  items refused at Apply: "Relinked X of Y" with each reason.
+- The `EditingLock` is never taken by the relink (it is the export's); it is looked at before the workflow starts, after
+  each await (the picker, the check, the search) and right before applying — an export started meanwhile stops the
+  relink ("An export is running — nothing was relinked."). One workflow at a time.
+- The UI keeps no relink state: the Media Browser rebuilds on `MediaAssetsChanged` and keeps its selection by asset id
+  (no longer by path, which a relink changes); thumbnails, waveforms and the Preview follow the 11.4 events; Undo / Redo
+  are the toolbar's and Ctrl+Z / Ctrl+Y. A `Pending` row reads "Not analysed yet" (a relink without ffprobe). Long dialog
+  text scrolls. The Open / Recover message about missing media ends with "— use Relink or Find Missing in the Media
+  Browser."
+
+Refined after the Step 11.6 manual run (2026-10-02; defects D1–D5 found in the real app, fixes ordered by the product
+owner):
+- D1: the Inspector's state line of a media item follows the Media Browser's row — "Media offline" first, then
+  "Analyzing…" only while an analysis runs, "Not analysed yet" for `Pending` (a relink without ffprobe), the error for a
+  failed analysis. It no longer showed "Analyzing…" for every `Pending` and for offline media.
+- D2: after an Undo of a relink (single or batch) an offline item showed the thumbnail / waveform made from the file it
+  had been relinked to: the cache keeps one file per asset (the older is deleted when a new one is written) and offline
+  media takes the last one (D024). `IProjectService.MediaRelinked` now carries, per asset, the path it had before
+  (`MediaFileReplacement` — the minimal extension needed: the coordinators can't know which file an asset leaves);
+  `MediaCacheCoordinator` keeps, for the project generation, what was shown for each (asset, file) — a result or none, once
+  it had settled — and shows it again when an Undo / Redo returns the asset to that file, without reading the cache. Work
+  for a replaced file still publishes nothing. Media offline for any other reason follows D024 unchanged. Limitation:
+  kept in memory only — after an Undo, a save and a reopen, the offline item gets the cache's last file again (D024).
+- D3: "is an audio file" (both kinds named as files). D4: without ffprobe the confirmation says the technical
+  compatibility "was not checked" ("Relink without a compatibility check?"), never that the file differs. D5: a search
+  whose matches all can't be used reports "Files with matching names were found in the folder, but none of them can be
+  used." — "No offline media file was found in the folder." only when nothing matched.
+
+Refined in Step 11.7 (2026-10-02), recent projects core (implementation choices within §6, agreed with the product
+owner after the Step 11.7 audit; no PO decision changed):
+- `IRecentProjectsStore` (Core: `GetAsync`, `AddAsync`, `RemoveAsync`, `IsAvailableAsync`; `RecentProject(FolderPath,
+  Name, LastUsedAt)`), implemented by `RecentProjectsStore` (Project / Persistence), registered in the app's composition
+  root, given to `ProjectFileWorkflow` as its last optional constructor parameter.
+- File `%LOCALAPPDATA%\AiVideoEditor\config\recent-projects.json` (`AppPaths.RecentProjectsFile`; the folder is created
+  only when the list is written — `AppPaths.ConfigFolder` creates it on every read, so it isn't used at startup):
+  `{ "format": "AiVideoEditor.RecentProjects", "formatVersion": 1, "projects": [ { "folderPath", "name", "lastUsedAt" } ] }`,
+  camelCase, most recent first. Availability is runtime state, never stored.
+- An entry's key is the folder's full path without a trailing separator (`GetFullPath`), compared ignoring case. Adding a
+  listed folder moves it first with the new name, time and path spelling; the 11th entry and beyond are dropped. A moved
+  or renamed folder is a new path; the old entry stays (unavailable). Accepted limitation: one folder reached by different
+  paths (a UNC path and a drive letter, `subst`, a symbolic link, an 8.3 name) gives different entries.
+- Added only by `ProjectFileWorkflow`, after the operation succeeded: `OpenAsync(folder)` (the opened project's folder and
+  name — also the future open from the list), `SaveAsAsync` (the written folder, named after it — also Save As into the
+  same folder and the first Save of a new project), the recovery offer's Recover when the recovered project has a folder
+  (also when that folder is gone). Save, New, Close, a cancelled picker or question and a failed operation change
+  nothing. `ProjectChanged` / `ProjectSaved` are not used: they don't tell Open from Recover or Save from Save As.
+- Errors never fail the project operation and show nothing in the status bar (logged only). Reading: no file → empty; not
+  JSON, not this `format`, no valid `formatVersion` or `projects` → empty, the file set aside as `*.<time>.damaged`;
+  single bad entries (no absolute path, no valid time) dropped, duplicates and entries beyond 10 removed (the file is
+  written clean at the next change); a newer `formatVersion` → empty, and changes are refused so it is never overwritten;
+  a file that can't be read → empty, and changes are refused. Writing: `ProjectFileStore.WriteAtomicAsync` (temporary
+  file, flush, replace) — a failed write leaves the previous file and no temporary file.
+- Several instances: every change reads the file again and writes it under a lock shared by all instances
+  (`recent-projects.lock` next to the list, opened with `FileShare.None`) and an in-process semaphore; a lock not obtained
+  within about 2 s skips the change (logged), the list unchanged. A read takes the lock too, so a damaged file is set aside
+  only if no other instance replaced it meanwhile; without the lock it is still read, nothing set aside.
+- All file work runs off the calling thread. `IsAvailableAsync` (a `project.json` in the folder; any error = unavailable)
+  has no time limit — a disconnected network path may answer late; the UI of 11.8 shows "checking" until then — and
+  never takes the lock, so it never holds up a change of the list.
+
+Refined in Step 11.8 (2026-10-02), recent projects UI (implementation choices within §6; the product owner left the
+"Clear list" question to the minimal safe option):
+- `Recent ▾` is a `DropDownButton` right after Open in the toolbar, with a flyout of fixed width (400, inside the Fluent
+  flyout's maximum): a header, an empty state ("No recent projects yet. Projects you open or save appear here."), and per
+  entry an open button (the project's name, its folder below in smaller grey type — trimmed at the start, so the
+  folder's own name stays visible — and the state on the right) followed by a ✕ remove button. Long names and folders
+  are trimmed with an ellipsis; the full folder is in the tooltip. Disabled while the `EditingLock` is held (export).
+- No "Clear list": with at most 10 entries, each removable with one click, a command that empties the whole list adds a
+  confirmation, a partial-failure state and an accidental-loss risk for no real gain; D026 requires only a clear way to
+  remove an entry. It can be added later without changing the store.
+- Every opening of the drop-down reads the list again (`GetAsync`) — nothing is cached from startup — and checks each
+  entry with `IsAvailableAsync` (started off the UI thread): **Checking** (not openable) → **Available** (openable) or
+  **Unavailable** (not openable; a check that fails counts as unavailable). Removing works in every state. No time limit
+  (Step 11.7): an entry on a disconnected drive stays Checking until its check answers, without holding up the UI, the
+  other entries or changes of the list.
+- Stale results: every reading makes new entry objects; a check's result only reaches the object it was started for, and
+  an object replaced by a later reading or removed can't open or remove anything. A reading overtaken by a later one, or
+  started before a removal, is dropped — a removed entry never comes back. One check per project at a time: an opening
+  while a project's check runs waits for that check instead of starting another.
+- Choosing an available entry closes the drop-down and calls `ProjectFileWorkflow.OpenFolderAsync` — the part of Open
+  after the folder picker (the unsaved-changes question, `OpenAsync`, the recovery file of discarded changes), now shared
+  by Open and the list. The list is updated only by the workflow after a successful open (Step 11.7); a cancel or a
+  failure keeps the current project, its unsaved changes and the entry, with the workflow's message. One action at a
+  time: while an entry is opened or removed, no entry can be opened or removed. If the drop-down was opened again
+  meanwhile, the list is read again when the open ends.
+- ✕ calls `RemoveAsync`; the entry disappears only once the store removed it. A removal that fails (false or an
+  exception) is reported in the status bar ("Couldn't remove "X" from the recent projects.") and the list is read again.
+  The project's folder is never touched.
+
+Refined in Step 11.9 (2026-10-05), final verification & closeout (no PO decision changed, no code changed):
+- Decided by the product owner for the closeout: CI is not part of the local closeout — the branch is not published, so
+  CI hasn't run (pending until the branch is published); the manual run is variant (b) of the Step 11.9 audit — the
+  scenarios not yet run in the real app (23 through Open, 24, 27, 28), R1, R2 (`docs/EXPORT_MANUAL_TEST_PLAN.md`) and a
+  short regression of relink and recent projects; the scenarios checked in the real app during 11.3–11.8 count with
+  their recorded results and were not re-run.
+- Every manual check ran with an isolated profile: the test build was started with `USERPROFILE` / `LOCALAPPDATA`
+  pointing to a scratch folder, which .NET's `LocalApplicationData` (and so `AppPaths.AppDataRoot`) follows — the
+  configuration, recovery files, caches and logs of the run never touched the user's profile, no code or configuration
+  change needed.
+- Found: the Windows folder picker returns a picked folder in its canonical spelling, so through Open a folder can't
+  reach the app spelled in another case; the case-insensitive key (Step 11.7) matters for paths that arrive as typed —
+  recovery files, the Debug `--open-project` argument, lists from another machine — and was checked with the latter.
+  Not a defect.
+- No Phase 11 defect found in the closeout (results: `progress.md`, `docs/PHASE11_MANUAL_TEST_PLAN.md`).
+
+Status: Accepted (2026-10-01, PO-1…PO-9). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 11 — Media
+relink & recent projects: steps"; the implementation must follow PO-1…PO-9 as recorded here.
 
 ---
 

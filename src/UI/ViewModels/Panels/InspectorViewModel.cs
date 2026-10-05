@@ -96,7 +96,17 @@ public sealed partial class InspectorViewModel : ViewModelBase
     [ObservableProperty] private string _mediaFilePath = "";
 
     // --- Media selection: technical info (Phase 3) --------------------------
+    /// <summary>An analysis of the shown media runs now (not merely queued for later or impossible).</summary>
     [ObservableProperty] private bool _isAnalyzing;
+
+    /// <summary>The media's state line above its technical rows, as the Media Browser says it: "Media offline",
+    /// "Analyzing…" (an analysis runs) or "Not analysed yet" (none has run — e.g. relinked without ffprobe, Phase 11
+    /// Step 11.6); null otherwise (a failed analysis shows its error instead).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAnalysisStatusText))]
+    private string? _analysisStatusText;
+
+    public bool HasAnalysisStatusText => AnalysisStatusText is not null;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasAnalysisError))]
@@ -502,8 +512,15 @@ public sealed partial class InspectorViewModel : ViewModelBase
         MediaFileSizeDisplay = FileSizeFormat.ToShortString(asset.FileSizeBytes);
         MediaFilePath = asset.FilePath;
 
-        IsAnalyzing = asset.AnalysisStatus is MediaAnalysisStatus.Pending or MediaAnalysisStatus.Analyzing;
-        AnalysisErrorMessage = asset.AnalysisStatus == MediaAnalysisStatus.Failed ? asset.AnalysisError : null;
+        // The same order as the Media Browser's row: offline first, then what the analysis actually does.
+        IsAnalyzing = !asset.IsMissing && asset.AnalysisStatus == MediaAnalysisStatus.Analyzing;
+        AnalysisStatusText = asset.IsMissing ? "Media offline" : asset.AnalysisStatus switch
+        {
+            MediaAnalysisStatus.Analyzing => "Analyzing…",
+            MediaAnalysisStatus.Pending => "Not analysed yet",
+            _ => null
+        };
+        AnalysisErrorMessage = !asset.IsMissing && asset.AnalysisStatus == MediaAnalysisStatus.Failed ? asset.AnalysisError : null;
 
         TechnicalRows.Clear();
         if (asset.AnalysisStatus == MediaAnalysisStatus.Completed && asset.Metadata is { } metadata)
@@ -519,6 +536,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         SelectionKind = InspectorSelectionKind.None;
         TechnicalRows.Clear();
         IsAnalyzing = false;
+        AnalysisStatusText = null;
         AnalysisErrorMessage = null;
         OnPropertyChanged(nameof(HasTechnicalInfo));
     }

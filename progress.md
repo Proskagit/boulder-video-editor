@@ -2,10 +2,425 @@
 
 ## Current phase
 
-None in progress. Phase 10 — Transitions & basic effects: **complete** (accepted by the product owner on 2026-10-01,
-last verified commit `ddf45df`), branch `feat/phase-10-transitions-effects` (from `409240b`,
-`main` after the merge of PR #8; the docs commit of PR #9 merged in). Scope, steps and acceptance criteria:
-`docs/DEVELOPMENT_PLAN.md` "Phase 10 — Transitions & basic effects: steps"; decision D025.
+Phase 11 — Media relink & recent projects: **complete** — accepted by the product owner on 2026-10-05 on the Step 11.9
+local verification (closeout `ca20352`). Open: CI not run yet — the branch is not published; optional export scenario 9
+and the "without ffmpeg" check not run; export scenario 14 checked by decoding the 8 outputs, not watched in a player;
+L1-c stays open, outside Phase 11. Branch `feat/phase-11-relink-recent-projects` (from
+`2e758f1`, `main` after the merge of PR #10). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 11
+— Media relink & recent projects: steps"; decision D026 (product owner decisions PO-1…PO-9, 2026-10-01). The
+implementation must conform to PO-1…PO-9.
+
+### Phase 11 — Media relink & recent projects (complete)
+
+Steps (D026; each accepted by the product owner before the next): 11.1 audit · 11.2 scope formalization · 11.3 media
+availability re-check · 11.4 relink core · 11.5 batch search · 11.6 relink UI · 11.7 recent projects core · 11.8 recent
+projects UI · 11.9 closeout. Working rule from the product owner for this phase: no build or test run without a separate
+command; no push, merge, pull request or branch deletion without direct permission.
+
+- Step 11.1 done and accepted (2026-10-01) — audit, no change (only `git fetch origin`).
+  - Git: `origin/main` = `2e758f1` "Merge pull request #10 from Proskagit/feat/phase-10-transitions-effects"; `ee0527d`
+    is in it and the trees of `ee0527d` and `2e758f1` are identical. The local `main` was at `409240b` (PR #8), 23
+    commits behind and none ahead; working tree clean, no stash.
+  - Persistence (D014): `MediaAsset.FilePath` absolute, `IsMissing` runtime only; `project.json` stores `FilePath` and
+    `RelativePath` (none on another volume, `ProjectFileDto`); `ProjectSerializer.ResolveMediaPath` — absolute, else
+    relative, else the absolute path kept and the asset missing; a project moved with its media opens without a relink;
+    missing media keeps its saved references on Save.
+  - Missing detection: `ProjectService.MarkMissingMedia` (`File.Exists`) on Open and Recover, before the project
+    replaces the current one; nothing re-checks later. `IProjectService.DetectMissingMedia()` has no production caller
+    (only the design-time stub in `MainWindow.axaml.cs`, a fake in `Video.Tests` and one `Project.Tests` test) and raises
+    no event — its XML comment promises more than it does.
+  - Offline handling: `MediaAnalysisCoordinator` never probes missing media (`QueueWhereNeeded`, `QueueAnalysis`);
+    `MediaCacheCoordinator.CanMake` / `SourceFileCache` — cached thumbnails / waveforms only; `PlaybackSnapshotBuilder`
+    placeholder "The media file is missing."; `MediaBrowserItemViewModel` "Media offline"; `ExportPreflight` error
+    `MediaOffline` (also its own `File.Exists`); `TimelineEditService` refuses to add missing media; the Open / Recover
+    status message counts the missing files (`ProjectFileWorkflow.MissingSuffix`).
+  - Relevant mechanics: the playback snapshot rebuilds when an asset's `FilePath` or `IsMissing` changes
+    (`AssetState`; `DiffersOnlyInPresentation` compares the assets); `MediaCacheCoordinator` handles an asset once per
+    generation by id and a generation starts only on `ProjectChanged` (a relinked asset would keep its old thumbnail /
+    waveform); the cache key (asset id, size, last-write time, rule) already tells a new file apart; the analysis
+    coordinator skips `Completed` assets and holds `_inFlight` per asset; `TimelineValidator` rejects `SourceOut` beyond
+    `Metadata.Duration` (a relink to a shorter file would block every later edit of the clip); `AddMediaAssets`
+    deduplicates by path (a relink could create two assets with one path).
+  - Open path and window: `ProjectFileWorkflow` (New / Open with the folder picker / Save / Save As / Close, the
+    unsaved-changes prompt, `StartSessionAsync` — unsaved caches cleaned, recovery offer, autosave start) has a public
+    non-interactive `OpenAsync(folder)`; the toolbar is a row of buttons, no menu bar and no context menus;
+    `Program.Main` hands its arguments to Avalonia, and only the Debug-only `--open-project <folder>` of `DevStartup`
+    reads them (a development option, not a product feature — the audit report said no argument was handled; corrected
+    here).
+  - Reusable: `AppPaths.ConfigFolder` (unused), `ProjectFileStore.WriteAtomicAsync`, `RecoveryStore` (an app-wide store
+    with damaged-file handling and other-process awareness), `IFilePickerService.PickFilesAsync` (single file, filters),
+    the import's extension rules (`MediaImportService`).
+  - Already out of scope before: D014 ("Relink is out of scope"), the Phase 6 deferred list (relink, recent projects,
+    re-checking missing media), D024 Steps 9.4 / 9.5 (media back online not re-checked), README "Not planned yet".
+    Nothing of Phase 11 exists yet.
+  - Documentation findings: ROADMAP / DEVELOPMENT_PLAN without the PR #10 merge; this file's "Current phase", the Step
+    10.9 pull-request sentence, "Last known state" (2026-09-29) and "Completed" (no Phase 10) outdated; README "Not
+    planned yet"; ARCHITECTURE "Verification note" without the Phase 10 closeout; `docs/README.md` without the manual
+    test plans; `CLAUDE.md` "11 projects" (the solution has 19 projects: 11 under `src/`, 8 under `tests/`); the comments
+    of `DetectMissingMedia` and `MediaAsset.IsMissing` ("on project load"), the unused `AppPaths.ConfigFolder` /
+    `ProjectMediaFolder` (code — not changed at 11.2).
+- Product owner decisions PO-1…PO-9 (2026-10-01), recorded in D026 and summarised in `docs/DEVELOPMENT_PLAN.md`: PO-1
+  relink undoable, dirty, consistent undo of path + metadata + analysis state; PO-2 hard rejects (missing file, wrong
+  type, too short for the used source range, path of another asset) and warnings with confirmation (resolution, frame
+  rate, no audio, other characteristics, short dissolve handles), no adaptation of clips; PO-3 relink allowed without
+  ffprobe (`Pending`); PO-4 batch search in the chosen folder only, no recursion, exact name, summary, confirmation;
+  PO-5 re-check on window activation (throttled), no `FileSystemWatcher`, always before export / relink, both
+  directions, never on the UI thread; PO-6 online media out of scope; PO-7 `Recent ▾` next to Open, 10 entries, no start
+  screen / auto-open / menu bar / redesign; PO-8 added after successful Open, Save As, Recover with a folder, unavailable
+  entries kept and removable; PO-9 a path of another asset rejected, no merge. Step order 11.3–11.9 confirmed (relink
+  before recent projects). The documentation keeps its current split into documents (product owner).
+- Step 11.2 done (2026-10-01) — scope formalization, documentation only (no production code, no test changed, no build
+  or test run). `git checkout main` + `git merge --ff-only origin/main` (`409240b` → `2e758f1`), branch
+  `feat/phase-11-relink-recent-projects` created from it.
+  - DECISIONS: D026 (context from the audit, §1 scope and constraints, §2 re-check, §3 relink, §4 batch, §5 relink UI,
+    §6 recent projects, consequences); D014's "once per Open … Relink is out of scope" and the D024 9.4 / 9.5 "not
+    re-checked" notes marked superseded by D026 (not rewritten).
+  - `docs/DEVELOPMENT_PLAN.md`: the Phase 10 line (closeout `ee0527d`, PR #10 / `2e758f1`), the Phase 11 line and the
+    section "Phase 11 — Media relink & recent projects: steps" (the scope stated as based on PO-1…PO-9, gates,
+    constraints, steps 11.1–11.9 with PR / QG / Impl items and the sub-decisions left to a step's start).
+  - ROADMAP (Current: Phase 11; Phase 10 merged; future phases), README (status), ARCHITECTURE (the missing-media
+    behaviour as it is now, the planned Phase 11 changes, the verification note), `docs/README.md` (every document in
+    `docs/`), `CLAUDE.md` (project count), this file (this section, the Phase 10 heading, "Last known state",
+    "Completed").
+  - `docs/PHASE11_MANUAL_TEST_PLAN.md` — skeleton: scenarios per step, status "planned".
+  - Left to the step that changes the code: the comments of `IProjectService.DetectMissingMedia` and
+    `MediaAsset.IsMissing` (11.3); `AppPaths.ConfigFolder` gets its user at 11.7; `AppPaths.ProjectMediaFolder` stays
+    unused (copying media into the project is out of scope).
+  - Sub-decisions left to a step's start (D026): 11.3 the throttle interval; 11.4 the compared characteristics, a later
+    incompatible analysis, a failed probe of an existing file; 11.5 the batch's undo granularity and duplicate names;
+    11.6 the placement of Relink; 11.8 a "Clear list" item.
+- Step 11.2 accepted by the product owner (2026-10-01) and committed as `ba6762e` (the Step 10.9 pull-request sentence
+  marked as a historical record).
+- Step 11.3 done (2026-10-01) — media availability re-check (D026 §2; choices recorded as D026 "Refined in Step 11.3").
+  - Core: `IProjectService.RecheckMediaAsync(ct)` and `MediaAvailabilityChanged` (`MediaAvailabilityChangedEventArgs`:
+    `Returned`, `Gone`); `DetectMissingMedia` (no production caller, no event) removed — the design-time stub, the
+    `Video.Tests` fake and one `Project.Tests` call follow. `MediaAsset.IsMissing`'s comment says what it is now.
+  - Project: `ProjectService` — an injectable file check (`Func<string, bool>`, `File.Exists` in the app; also used by
+    Open / Recover), `RecheckMediaAsync`: project and paths captured on the caller's thread, `File.Exists` in one
+    `Task.Run`, applied on the caller's context only to the same project and to assets with the same path, an error =
+    missing; a loop under a lock folds requests during a running check into one more check; the event, then
+    `MediaAssetsChanged`; no dirty flag, no history, no `SaveStateChanged`.
+  - UI: `MediaAvailabilityMonitor` (new, singleton) — `OnWindowActivated` from `MainWindow.Activated` through
+    `MainWindowViewModel.OnWindowActivated`; interval 3 s from the last check's start, one trailing check for activations
+    inside it; `Stop()` from `MainWindowViewModel.PrepareToCloseAsync`; status-bar messages for the changes.
+    `ExportWorkflow` awaits `RecheckMediaAsync` before its preflight. `MediaAnalysisCoordinator` — returned `Pending` /
+    `Failed` assets analysed, the display-size refresh as after Open; an analysis / refresh whose asset is missing or has
+    another path when the probe ends writes nothing (missing: the status and error from before the queueing restored).
+    `MediaCacheCoordinator` — `Restart(ids)` on `MediaAvailabilityChanged.Returned` (forget as handled, request again);
+    each handling has an identity checked before publishing, so work from before a restart publishes nothing; the
+    result shown while offline stays until the new one is ready. Preview / Media Browser / export preflight: no change
+    needed (snapshot `AssetState.IsMissing`, rows rebuilt on `MediaAssetsChanged`, `IsMissing` + `File.Exists`).
+  - Interval choice: 3 s — activation is the moment a user returns from Explorer; the trailing check makes a file
+    restored within 3 s of the last check visible without another switch; on a slow share a check may take seconds, so
+    a check per activation would pile up (they are folded anyway); no timer while the window stays active (PO-5: no
+    watcher, activation only).
+  - Tests (new): `Project.Tests/MediaRecheckTests` (12: gone, returned, nothing changed, never dirty / no history / file
+    unchanged, off the caller's thread and not blocking it, replaced project dropped, path changed meanwhile left alone,
+    requests folded into one more check, consecutive checks, an error = missing, Open uses the same check, no media);
+    `UI.Tests/MediaAvailabilityTests` (13: analysis of returned `Pending` / `Failed`, saved metadata not probed again,
+    display-size refresh, analysis dropped when the file went meanwhile and run again on return, dropped for another
+    path; offline thumbnail made on return, cached thumbnail kept until replaced, work from before a restart
+    publishes nothing, nothing made again for files that stayed; offline waveform made on return; the Preview shows
+    the placeholder and the frame again; the Media Browser row); `UI.Tests/MediaAvailabilityMonitorTests` (6: first
+    activation checks, one trailing check for activations inside the interval — it sees a change made meanwhile, after
+    the interval at once, nothing after Stop, status messages, no message without a change). Changed:
+    `ExportWorkflowTests` (+2: a file gone since the last check blocks with "offline" and is marked; a file back is
+    online for the preflight), `OpenMissingMediaTests` (`DetectMissingMedia` → `RecheckMediaAsync`, assertion unchanged).
+  - Mutations (each reverted): no handling identity check → 1 failure; no cache restart → 5; analysis ignoring a changed
+    asset → 2; no analysis on return → 4; no replaced-project drop → 1; no path check in the re-check → 1; export without
+    the re-check → 2; no trailing check → 1; no request flag (no fold) → 7.
+  - Build: the running `AiVideoEditor.exe` (PID 38056 — not started in this step, left running) locks
+    `src/App/bin/Debug`, so builds and tests ran with `--artifacts-path` in the session's scratch folder (same sources,
+    same configuration). Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 errors / 0
+    warnings; `dotnet test` (whole solution, once) 2021 passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448,
+    Timeline 314, Project 331 (+12), UI 394 (+21), Export 99, Rendering 58, Video 291, ExportEndToEnd 86 + 2; parity
+    suites unchanged. Not run in this step: `--blame-hang` repeats, the 4K scenes, CI (the branch is not pushed), the
+    manual scenarios in the real app.
+  - Manual plan: scenarios 1–6 filled in (automated coverage named), status "manual pending".
+- Step 11.3 preliminarily accepted on the automated results (product owner, 2026-10-01), then the real-app run of the
+  manual scenarios 1–6 by Claude (2026-10-01, `db0feba`, Debug from the artifacts folder; another running instance —
+  PID 38056, `src/App/bin` — left alone): all passed — details in `docs/PHASE11_MANUAL_TEST_PLAN.md` "Results log". With
+  that, Step 11.3 is accepted (the product owner's condition). No code changed. Notes (not 11.3 defects, nothing done):
+  a file the Preview is decoding can't be renamed on Windows (OS lock — in practice such a file goes only with its
+  drive); opening a project with media on an unreachable share took ≈ 47 s (Open's file-by-file checks before the
+  project is shown, unchanged since Phase 6; the window stayed responsive); Ctrl+E sent by `SendKeys` did not start the
+  export in this run (the toolbar button did) — not investigated; an offline video without metadata is drawn as a
+  full-canvas placeholder over the lower layers (its size is unknown; existing behaviour).
+- Step 11.3 accepted in full by the product owner (2026-10-01); the run committed as `69ce4b7`.
+- Step 11.4 done (2026-10-01) — relink core (D026 §3; the sub-decisions confirmed by the product owner at its start and
+  the implementation in D026 "Refined in Step 11.4").
+  - Technical analysis first (no code), plan approved: reuse the re-check, `IUndoRedoService`, `IMediaAnalysisService`,
+    the import's extension table, the `TimelineValidator` length rule, `DissolveHandles`, `AssetState`, the 11.3 guards.
+    Confirmed: the compared characteristics; a failed probe (ffprobe available) is a reject, ffprobe unavailable is not;
+    a later incompatibility is a message, never undone automatically; no old metadata kept without ffprobe (`Pending`,
+    the validator / preflight limits stand until the analysis).
+  - Core: `MediaFileTypes` (the extension → kind table, now also the import's); `IMediaRelinkService` (`CheckAsync`,
+    `ApplyAsync`, `RelinkedMediaFoundIncompatible`), `RelinkCheck`, `RelinkResult`, `RelinkRejection`
+    (AssetNotFound, NotOffline, FileNotFound, WrongMediaType, UnreadableMedia, TooShort, PathInUse, Stale),
+    `RelinkWarningKind` (NotChecked, DisplaySize, FrameRate, NoAudio, Rotation, StartTime, VideoCodec, AudioCodec,
+    SampleRate, Channels, DissolveHandles); `IProjectService.MediaRelinked` + `NotifyMediaRelinked` (implemented in
+    `ProjectService`, the design-time stub and the `Video.Tests` fake).
+  - Timeline: `MediaRelinkService` (the checks, the probe, the warnings, `ApplyAsync`'s re-validation, the watcher of
+    later analyses) and `Commands/RelinkMediaCommand` (`MediaFileState` / `MediaRelink`, a list per command for 11.5).
+    Placed in Timeline, not Project as the plan's scope line said: the rules it applies are the timeline's; the plan's
+    line was adjusted.
+  - UI: `MediaCacheCoordinator.Restart(…, dropResults)` on `MediaRelinked` (thumbnail / waveform of the old file dropped,
+    the new requested; work for a replaced file publishes nothing); `TimelineViewModel` refreshes clip waveforms on
+    `MediaAssetsChanged`; `MainWindowViewModel` shows `RelinkedMediaFoundIncompatible` in the status bar. DI:
+    `IMediaRelinkService` → `MediaRelinkService` (singleton). No relink UI yet (11.6).
+  - Tests (new): `Timeline.Tests/MediaRelinkServiceTests` (32: success keeps id / clips / speed and updates path, size,
+    metadata, dirty, one step; exact undo / redo incl. the save point; save → reopen with absolute and relative path;
+    online asset, missing file, wrong type ×3, no video stream, no audio stream, failed probe ×4, too short with the exact
+    boundary, the longest range over tracks, a 2× clip, no clips / images, path in use (case); the warnings (video set,
+    audio set, none when equal / longer / no earlier metadata), dissolve handles; ffprobe unavailable (`Pending`, no
+    metadata, validator still refusing, undo); later incompatibility reported once, nothing undone; fitting media not
+    reported; Apply re-validation: path taken, file changed / gone, old file back, clip lengthened, another project;
+    unknown asset); `UI.Tests/MediaRelinkUiTests` (7: old thumbnail dropped at once and the new made, undo; work before an
+    undo not published; the timeline waveform gone for a file without sound; the Preview decodes the new file and is
+    offline again after undo; the export preflight passes; unprobed relink not analysed and reported as not analysed;
+    the status message of a later incompatibility); `Video.Tests/MediaRelinkIntegrationTests` (3, real ffprobe: shorter
+    rejected, sound-only mp4 rejected, another resolution warned, the same kind applied with its probed metadata — a
+    small project-service stand-in: Video.Tests can't reference Project, whose namespace hides the `Project` type there).
+  - Mutations (each reverted): old thumbnail kept on relink → 3 failures; no timeline waveform refresh → 1; Apply without
+    the length check → 1; a failed probe accepted → 4; no duplicate-path check → 2; online media relinked → 2; no later
+    report → 1; ffprobe unavailable rejected → 2; no re-check in Check → 13; too short accepted → 5.
+  - Verification (built with `--artifacts-path` in the session's scratch folder — `src/App/bin` is still locked by the
+    other running instance, PID 38056, left alone): `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 errors /
+    0 warnings; `dotnet test` (whole solution, once) 2063 passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448,
+    Timeline 346 (+32), Project 331, UI 401 (+7), Export 99, Rendering 58, Video 294 (+3), ExportEndToEnd 86 + 2; parity
+    suites unchanged. Not run: `--blame-hang` repeats, the 4K scenes, CI, a real-app run (no relink UI before 11.6).
+  - Manual plan: relink scenarios 7–14 name their automated coverage, status "auto (core, 11.4); manual with the UI
+    (11.6)"; the real-app relink run belongs to 11.6 (no relink UI exists before it).
+- Step 11.4 accepted by the product owner (2026-10-01), `0e002dc` its final commit; the manual relink scenarios 7–14 are
+  run once the UI exists (11.6).
+- Step 11.5 done (2026-10-01) — batch relink search (D026 §4, PO-4 as restated at the start of 11.5; D026 "Refined in
+  Step 11.5").
+  - Decisions within PO-4 (no new product decision): a file name shared by two or more offline items is given to none of
+    them (listed as ambiguous, "relink them one by one"); the confirmed batch is one undoable step; items that fail the
+    re-validation at Apply are reported and stay offline while the still-valid ones are applied together. The folder is a
+    parameter: how the UI chooses it is 11.6's.
+  - Flow (one implementation of the rules — no second relink path): `SearchFolderAsync(folder)` → re-check once (PO-5) →
+    list the folder's own files off the UI thread → per offline item: exact name (case-insensitive) → `NotFound` /
+    `Ambiguous` / the 11.4 check `CheckCoreAsync` (the code `CheckAsync` runs after its re-check) → `Found` or
+    `Rejected` → `RelinkSearch` (`Entries`, `Applicable`, `Summary()`); the user confirms → `ApplyAllAsync(Applicable)` →
+    re-check once, every file's size in one `Task.Run`, per item the 11.4 re-validation plus the batch's own (one file per
+    item, an item once) → one `RelinkMediaCommand` ("Relink N Media Files") for the valid items → per-item
+    `RelinkResult` (now with `AssetId`) in a `RelinkBatchResult`. `ApplyAsync(check)` became `ApplyAllAsync` with one item.
+  - Tests (new): `Timeline.Tests/MediaRelinkBatchTests` (15: exact names directly in the folder — subfolder, `.bak`,
+    "(1)" not matched, only the match probed, nothing changed; the real listing without subfolders and names ignoring case;
+    nothing offline / a folder that isn't there; a shared name given to neither; a file of another (online) item; another
+    media type by the probe; every candidate's check equal to a single `CheckAsync`; a partial batch (found, warned, too
+    short, absent) with the summary, one step, clips untouched; undo / redo of the whole batch; not confirmed / cancelled;
+    a second search after a partial one; Apply races — file gone, file changed, path taken, the rest applied; one file
+    never for two items, one item never twice; an item whose old file came back; the folder listed off a UI-thread
+    stand-in (a single-thread synchronization context) while that thread stays responsive); `UI.Tests/MediaRelinkUiTests`
+    (+1: a batch refreshes both thumbnails, one Undo drops both).
+  - Mutations (each reverted): a shared name assigned → 1 failure; recursive listing → 1; case-sensitive names → 1; one
+    file for two items → 1; one item twice → 1; one undo step per item → 2; matches not checked → 5; no size re-validation
+    → 2; listing on the calling thread → 1 (survived the first test, which had no synchronization context — the test now
+    runs the search on a UI-thread stand-in); ambiguity counting online items → 1.
+  - Verification (artifacts folder, as in 11.3–11.4; the other instance PID 38056 left alone): `dotnet build
+    AiVideoEditor.sln --no-incremental -warnaserror` 0 errors / 0 warnings; `dotnet test` (whole solution, once) 2079
+    passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448, Timeline 361 (+15), Project 331, UI 402 (+1), Export 99,
+    Rendering 58, Video 294, ExportEndToEnd 86 + 2; parity suites unchanged. A doc comment changed after that run; an
+    incremental `-warnaserror` build afterwards: 0 / 0. Not run: `--blame-hang` repeats, the 4K scenes, CI, a real-app run
+    (no relink UI before 11.6).
+  - Manual plan: batch scenarios 18–21 name their coverage, status "auto (core, 11.5); manual with the UI (11.6)".
+- Step 11.5 accepted in full by the product owner (2026-10-01), `4180b4a` its final commit.
+- Step 11.6 implemented (2026-10-01) — relink UI (D026 §5; the audit and plan approved by the product owner, all four UI
+  extensions, both batch entries, the Open hint; D026 "Refined in Step 11.6"). The manual acceptance of scenarios 7–21
+  follows; 11.7 does not start before it.
+  - UI flow: `UI/Services/MediaRelinkWorkflow` (singleton, DI) — Relink: picker (kind filter, start in the old folder when
+    it exists — checked off the UI thread) → `CheckAsync` → rejection dialog / warning confirmation → `ApplyAsync` →
+    refusal dialog or status; only after an applied relink and while others are offline: "Find other missing media?" →
+    the batch in the chosen file's folder. Find Missing: folder picker → `SearchFolderAsync` → `Summary()` (Relink N
+    Files / Cancel, or OK) → `ApplyAllAsync` → "Relinked X of Y" with reasons for refused items. The `EditingLock` is checked
+    before starting, after every await and right before applying; `IsRunning` keeps it to one workflow. No relink rule
+    in the UI; errors are the service's messages; the UI changes no asset itself.
+  - Media Browser: an "OFFLINE" header row (only while media is offline) with Relink… (`RelinkCommand`, a selected offline
+    item) and Find Missing… (`FindMissingCommand`), told on lock, selection, media and workflow changes; `HasOfflineMedia`.
+  - The four extensions: `FilePickerRequest.StartFolder` → `SuggestedStartLocation` in `AvaloniaFilePickerService`; the
+    dialog's message in a `ScrollViewer` (max 420 px) in `AvaloniaDialogService`; the Media Browser selection kept by asset
+    id (was the path, which a relink changes); "Not analysed yet" for a `Pending` row. Open / Recover message: "… shown as
+    offline — use Relink or Find Missing in the Media Browser." (two `ProjectOpenWorkflowTests` assertions follow the
+    approved wording). `ScriptedPicker` answers file pickers from a queue and records the requests.
+  - Tests (new): `UI.Tests/MediaRelinkWorkflowTests` (22: relink without dialogs, no offer when nothing else is offline;
+    the picker's kind filter and start folder (and none when the folder is gone); a cancelled picker; a rejection
+    explained, nothing applied, no offer; warnings confirmed / cancelled (no offer); without ffprobe → "Not analysed yet";
+    races while the warning is open — file gone, file changed, asset online again, path taken, project replaced — each
+    explained, nothing changed, no offer; the offer after an applied relink (Search → summary → one batch step; Not Now);
+    Find Missing summary with every group and one step; a cancelled summary; nothing to apply; items refused at Apply
+    listed; the commands with selection, offline media and the lock (and told about it); an export started during the
+    check or while asked; one workflow at a time; the Media Browser through relink, batch, undo ×2, redo ×2 — rows,
+    thumbnails, selection, the OFFLINE row).
+  - Mutations (each reverted; 16): no lock check before Apply → 1 failure; none after the check → 1; none before the
+    batch's Apply → 1; the offer with nothing else offline → 2; a cancelled warning applied → 1; no one-at-a-time guard →
+    first a hang (the test awaited the second workflow, which waited for the open picker — found with `--blame-hang`; the
+    test now asserts that the second call is refused at once) → 1; no start folder → 1; every kind in the filter → 1; a
+    cancelled summary applied → 1; refused items not listed → 1; a rejection not shown → 1; Relink for online media → 1;
+    the lock change not told to the buttons → 1; the offer after a refused Apply → 5; Pending without text → 1. Survived,
+    equivalent: restoring the selection by path instead of id — the asset object's path is changed in place before the
+    list is rebuilt, so the path read at rebuild time already is the new one; the old code never lost the selection on a
+    relink (the 11.6 audit's reason for the change was wrong). Kept by id (approved, robust, no behaviour change).
+  - Verification (artifacts folder; the other instance PID 38056 left alone): `dotnet build AiVideoEditor.sln
+    --no-incremental -warnaserror` 0 errors / 0 warnings (a first run caught `.Result` in a test — xUnit1031 — fixed);
+    `dotnet test` (whole solution) 2101 passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448, Timeline 361, Project
+    331, UI 424 (+22), Export 99, Rendering 58, Video 294, ExportEndToEnd 86 + 2; parity suites unchanged. Not run:
+    `--blame-hang` repeats of the full suite, the 4K scenes, CI, the manual scenarios (next).
+  - Manual plan: scenarios 7–21 runnable, status "manual pending", the UI coverage named.
+- Step 11.6 accepted on the code preliminarily (product owner, 2026-10-01); the manual run of scenarios 7–21 by Claude in
+  the real app (results in `docs/PHASE11_MANUAL_TEST_PLAN.md`): all functional, defects D1–D5 found; fixing them ordered by
+  the product owner (2026-10-02).
+- Step 11.6 acceptance fixes (2026-10-02, D026 "Refined after the Step 11.6 manual run"):
+  - D1 cause: `InspectorViewModel.ShowMedia` set "Analyzing…" for `Pending` and `Analyzing` and ignored `IsMissing`
+    (Phase 3 logic; visible once a relink without ffprobe leaves an item `Pending`). Fix: `AnalysisStatusText` /
+    `HasAnalysisStatusText` (the view binds them) — "Media offline", "Analyzing…" only while analysing, "Not analysed yet"
+    for `Pending`; `IsAnalyzing` true only while an analysis runs; the error only for an online failed analysis.
+  - D2 cause: the cache keeps one file per asset (`SourceFileCache.Write` deletes the older) and offline media takes the
+    last one (D024); after a relink that is the relinked file's, so an Undo showed it on the offline item (thumbnails and
+    waveforms alike — the waveform part reproduced in the new tests). Fix: `MediaRelinkedEventArgs.Replacements`
+    (`MediaFileReplacement`: asset + previous path; `NotifyMediaRelinked` takes them; `RelinkMediaCommand` passes the
+    before / after path) and `MediaCacheCoordinator.OnRelinked`: what was shown for the file an asset leaves (a result or
+    none, if its handling had settled — `Generation.Settled`) is kept in `Generation.Shown` by (asset, path) and shown
+    again when an Undo / Redo returns the asset to that path (handled at once, no cache read, `Ready` raised for a result);
+    otherwise requested as before. Work for a replaced file still publishes nothing (the handling identity). D024 for
+    media offline for other reasons unchanged. Limitation: memory only — after Undo, Save and a reopen an offline item
+    gets the cache's last file again.
+  - D3: "is an audio file" (`MediaRelinkService` names both kinds as files). D4: `MediaRelinkWorkflow` — a `NotChecked`
+    warning gives "Relink without a compatibility check?" / "The technical compatibility of … was not checked:". D5:
+    `MediaRelinkWorkflow` — only unusable matches → "Files with matching names were found in the folder, but none of them
+    can be used."
+  - Tests (new): `UI.Tests/InspectorMediaStatusTests` (9: every status online / offline, the same words as the Media
+    Browser, clearing); `UI.Tests/RelinkUndoCacheTests` (6, a fake cache that behaves like the real one: none → relink →
+    undo none / redo new, three rounds, no re-make; batch with an item that had its own thumbnail and one that had none;
+    consecutive relinks and undos back to each file; a make still running at Undo never published; D024 for an item
+    offline when the project opens; the waveform of an offline audio clip). Changed: `MediaRelinkUiTests` (2) and
+    `MediaRelinkWorkflowTests` (1) expected "none" after Undo where the item had shown its own thumbnail before — now the
+    same thumbnail as before; `MediaRelinkWorkflowTests` +2 (D3 text, D5 status) and the D4 / "no match" status asserts.
+  - Mutations (each reverted; 9): nothing remembered → 7 failures; nothing restored → 7; settled never marked → 7; Pending
+    says Analyzing → 1; offline ignored in the Inspector → 4; ffprobe-unavailable says "differs" → 1; unusable reported as
+    nothing → 1; "is an audio." → 1. Survived, equivalent: the restored result not raised by `Ready` — the Media Browser
+    and the timeline read it again on the `MediaAssetsChanged` that follows `MediaRelinked`.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; `dotnet test` (whole solution)
+    2118 passed, 2 skipped (4K), 0 failed — Core 448, Timeline 361, Project 331, UI 441 (+17), Export 99, Rendering 58,
+    Video 294, ExportEndToEnd 86 + 2. Re-check in the real app: D1, D2 (single and batch, thumbnail and waveform), D4, D5 —
+    passed (the plan's results log). `TestResults` folders of the `--blame-hang` mutation runs remain under the git-ignored
+    `tests/*/TestResults` (the sandbox refused removing them).
+- Step 11.6 accepted by the product owner (2026-10-02): `5c4d2d9`, manual acceptance PASS.
+- Step 11.7 implemented (2026-10-02, D026 "Refined in Step 11.7"; the audit and the decisions on the slow availability
+  check, the silent write errors and the damaged file agreed with the product owner) — awaiting review.
+  - Core `IRecentProjectsStore` + `RecentProject(FolderPath, Name, LastUsedAt)`; `RecentProjectsStore`
+    (`src/Project/Persistence`): JSON `{ format "AiVideoEditor.RecentProjects", formatVersion 1, projects[] }` in
+    `AppPaths.RecentProjectsFile` (`%LOCALAPPDATA%\AiVideoEditor\config\recent-projects.json`; new
+    `AppPaths.ConfigFolderPath` / `RecentProjectsFile` that don't create the folder); key = full path without a trailing
+    separator, ignoring case; 10 entries; re-read + atomic write (`ProjectFileStore.WriteAtomicAsync`) under
+    `recent-projects.lock` (`FileShare.None`, retried for about 2 s) and a `SemaphoreSlim`; damaged → `*.<time>.damaged`;
+    newer version / unreadable → not overwritten; bad entries dropped; errors logged, `false` returned. `IsAvailableAsync`
+    off the calling thread, no time limit, no lock. Registered in `ServiceCollectionExtensions`.
+  - `ProjectFileWorkflow` (new last optional parameter `recentProjects`): `RememberRecentAsync` after a successful
+    `OpenAsync(folder)` (the opened project's folder and name), `SaveAsAsync` (the written folder, its name) and
+    `OnRecoverAsync` (if the project has a folder); a store failure or exception is logged and changes no result or
+    status message.
+  - Tests (new): `Project.Tests/RecentProjectsStoreTests` (40 with theory cases: empty, order, update, four spellings of
+    one folder — stored once, limit, remove / remove of an unlisted folder without a write, reload, eight damaged
+    contents set aside, a change on a damaged file, bad entries, unnamed entry, duplicates + 13 entries, newer version
+    untouched, unreadable file never overwritten, failed write keeps the file and no `*.tmp`, configuration folder that
+    can't be created, invalid paths, two instances interleaved, eight in parallel, a held lock → false after the timeout
+    and the file kept, availability true / five unavailable cases / an error, a hanging check holds up neither the caller
+    nor a change, reads and changes off the calling thread); `UI.Tests/RecentProjectsWorkflowTests` (22: Open by its full
+    path and name, the interactive Open, Open again moves first, three failed Opens, cancelled picker, Cancel at the
+    unsaved-changes question, Save As (named after the folder), Save As into its own folder, the first Save, cancelled /
+    refused Replace / failed Save As, Save + New + Close untouched, Recover with a folder, with its folder gone, never
+    saved, failed; a throwing store and an unwritable list never fail Open / Save As / Recover; unavailable projects stay
+    listed); `UI.Tests/RecentProjectsCompositionTests` (1: the app's composition gives the workflow the store at
+    `AppPaths.RecentProjectsFile`).
+  - Mutations (each reverted; 12): no Add after Open → 5 failures; after Save As → 4; after Recover → 3; no key
+    normalisation when adding → 0 at first (every read normalised and de-duplicated again, so only the file kept a
+    duplicate) — the spelling test now also checks the file: → 3; no normalisation anywhere → 6; no limit → 2; no
+    re-read before a write (a cached list) → 5 + 2; a non-atomic write → 1; an unreadable / newer file overwritten → 1;
+    a damaged file not set aside → 9; the availability check under the list lock → 1; the store not registered → 1.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; `dotnet test` (whole solution)
+    2181 passed, 2 skipped (4K), 0 failed — Core 448, Timeline 361, Project 371 (+40), UI 464 (+23), Export 99, Rendering
+    58, Video 294, ExportEndToEnd 86 + 2. No real-app run: 11.7 has no UI (the plan's scenarios 22–29 are run at 11.8).
+- Step 11.7 accepted by the product owner (2026-10-02): `55606fd`.
+- Step 11.8 implemented (2026-10-02, D026 "Refined in Step 11.8"); accepted by the product owner on 2026-10-04 (`7bf4ed8`).
+  - "Clear list": not added (minimal safe option, reasons in D026) — one ✕ per entry.
+  - `ProjectFileWorkflow.OpenFolderAsync(folder)`: the part of Open after the picker (unsaved-changes question, `OpenAsync`,
+    discarding the recovery file after Don't Save), shared by `OpenProjectAsync` and the list.
+  - `RecentProjectsViewModel` + `RecentProjectItemViewModel` + `RecentProjectAvailability` (`src/UI/ViewModels/Panels`);
+    `ToolbarViewModel.Recent` (new last optional parameter); `ToolbarView`: `DropDownButton` "Recent" after Open with a
+    400-wide flyout (header, empty state, rows: name / folder trimmed at the start / state, ✕); the code-behind forwards
+    the flyout's `Opened` / `Closed` and hides it on `CloseRequested`. DI: `RecentProjectsViewModel` transient.
+  - Tests (new): `UI.Tests/RecentProjectsUiTests` (29, on a UI-thread stand-in with the real ProjectService, workflow and
+    store; the store wrapped to hold / fail checks and removals and to answer a reading late: empty state, order, names /
+    folders, every opening reads again, Open / Save As at the next opening, overtaken readings, Checking → Available /
+    Unavailable, failing check, slow check vs the UI and the list, state changes on the UI thread only, closing during a
+    check, one shared check for repeated openings, replaced items, removed entry not brought back by a late check or
+    reading, open through the workflow, Checking / Unavailable never open, no second open, open failure keeps project and
+    entry, Cancel / Don't Save, an open ending while the drop-down is open again, remove, remove the last → empty state,
+    failed / throwing removal ×2, editing lock); `UI.Tests/RecentProjectsViewBindingTests` (3: the button after Open and
+    the lock, hidden without a view model, the row template — trimming, commands, state, tooltip, fixed width).
+  - Mutations (each reverted; 16): list read once → 8 failures; Checking / Unavailable openable → 3; a new check at every
+    opening → 1; late reading not dropped → 2; removal not dropping older readings → 1; replaced items still able to act → 0
+    at first (no test used a replaced item) — test added → 1; no busy guard → 1; lock ignored → 2; failed removal shown as
+    removed → 2; open without the unsaved-changes question → 1; check started on the UI thread → 1; failing check
+    available → 1; no reading after an open while open again → 1; `OpenFolderAsync` opening another folder → 5; folder not
+    trimmed in the view → 1; button not bound to the lock in the view → 1. An `IsDetached` early return in the
+    availability tracking survived as equivalent (a replaced item is not shown and can't act) and was removed.
+  - Real-app run (Claude, Debug build of the final code, UI Automation, the real `%LOCALAPPDATA%` list — the config folder
+    didn't exist before; the test entries were removed through the UI at the end, leaving an empty `recent-projects.json`
+    and `recent-projects.lock`): scenarios 22, 25, 26, 29, 30–38 passed, 23 only from the list (scenario 35), 24, 27, 28
+    not run (automated only), 39 n/a; a defect found and fixed during the run: the 460-wide content was wider than the
+    Fluent flyout's maximum, cutting the ✕ column off — now 400 (and the ✕ centred). Details in the plan's results log.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; `dotnet test` (whole solution)
+    2213 passed, 2 skipped (4K), 0 failed — Core 448, Timeline 361, Project 371, UI 496 (+32), Export 99, Rendering 58,
+    Video 294, ExportEndToEnd 86 + 2.
+- Step 11.9 audit (2026-10-04, no change): 11.1–11.8 present (`55606fd`, `7bf4ed8` in the branch), the code matches the
+  11.8 report; documentation inaccuracies listed (11.8 "awaiting acceptance", "skeleton", the plan's status legend). The
+  product owner decided: no push / PR, CI after the local closeout; manual run variant (b).
+- Step 11.9 local verification (2026-10-05, D026 "Refined in Step 11.9"; HEAD `7bf4ed8`, no code change) — awaiting the
+  product owner's acceptance; CI pending (the branch is not published).
+  - Automated (artifacts in a fresh scratch folder, nothing reused):
+    `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` → exit 0, 0 warnings, 0 errors, 19 projects;
+    `dotnet test AiVideoEditor.sln --no-build` → exit 0, 2213 passed, 2 skipped (4K), 0 failed (Core 448, Timeline 361,
+    Project 371, UI 496, Export 99, Rendering 58, Video 294, ExportEndToEnd 86 + 2 skipped), 64 s;
+    the same three times with `--blame-hang --blame-hang-timeout 5m` → each exit 0, 2213 / 2 / 0, 63–64 s, no hang;
+    `AIVE_HEAVY_TESTS=1 dotnet test tests/ExportEndToEnd.Tests --no-build` → exit 0, 88 passed, 0 skipped (the two 4K
+    scenes included), 63 s.
+  - Manual (Debug build of `7bf4ed8`, UI Automation, an isolated profile: `USERPROFILE` / `LOCALAPPDATA` of the test
+    process pointed to a scratch folder; fixtures under `%TEMP%\aive119`; details in the plan's results log):
+    23 through Open (a folder without `project.json`, a damaged project) PASS; 24 PASS (12 projects opened → 10
+    entries; the second part — a differently cased path — through the Debug `--open-project` argument, because the folder
+    picker returns the canonical spelling); 27 PASS (two instances on one profile: both instances' entries kept, a
+    removal in one not undone by an add in the other); 28 PASS (a truncated list → the app starts, the list is empty,
+    the file kept as `recent-projects.<time>.damaged` byte for byte, the next Open starts a new list); R1 PASS (a project
+    saved by the Phase 10 build of `2e758f1` opens clean in the current build; Save writes `formatVersion` 3, byte-identical
+    to the Phase 10 file); R2 PASS — `docs/EXPORT_MANUAL_TEST_PLAN.md` 1–8 and 10–14 (9, optional, not hit; 14 checked by
+    full decoding and stream timing, not watched in a player; "without ffmpeg" not run); regression of relink (single with
+    Undo / Redo — the D2 thumbnail fix holds —, batch with one Undo, gone / back during the session) and recent projects
+    (open an available entry, remove an unavailable one, Cancel / Don't Save at the unsaved-changes question, disabled
+    during an export) PASS.
+  - Findings: no Phase 11 defect. Test-environment notes (not product issues): with an isolated profile the shell
+    dialogs need `Desktop` / `Documents` folders in it; UI Automation in one PowerShell call doesn't see a dialog that
+    appeared during that call (the next call does); the sandbox refused `Remove-Item` while a source was to be removed
+    during an export, so that file was moved away instead (the same "file gone" for the app).
+  - The user's profile (`%LOCALAPPDATA%\AiVideoEditor` config, recovery, cache) compared with a snapshot taken before the
+    run: unchanged; no log written there.
+- Phase 11 accepted by the product owner (2026-10-05) on the Step 11.9 local verification (closeout `ca20352`): build
+  0 / 0, the full suite 2213 passed / 2 skipped / 0 failed once and three times with `--blame-hang`, heavy scenes
+  88 / 88, the manual scenarios 23, 24, 27, 28, R1, R2 and the relink / recent projects / editing-lock regression passed,
+  no Phase 11 defect, the user's profile unchanged. Still open, not hidden by the acceptance: CI (not run, the branch is
+  not published — publication and CI are the product owner's next decision); export scenario 9 (optional) and the
+  "without ffmpeg" check NOT RUN; export scenario 14 checked by decoding all 8 outputs, not watched in a player; L1-c
+  open, outside Phase 11.
+
+## Phase 10 (complete)
+
+Phase 10 — Transitions & basic effects: **complete** (accepted by the product owner on 2026-10-01, last verified commit
+`ddf45df`, closeout `ee0527d`; PR #10 merged into `main` as `2e758f1` on 2026-10-01), branch
+`feat/phase-10-transitions-effects` (from `409240b`, `main` after the merge of PR #8; the docs commit of PR #9 merged
+in). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 10 — Transitions & basic effects: steps";
+decision D025.
 
 ### Phase 10 — Transitions & basic effects (complete)
 
@@ -356,6 +771,8 @@ last verified commit `ddf45df`), branch `feat/phase-10-transitions-effects` (fro
   results above. The temporary Phase 9 build (a worktree of `main` used for R1 / scenario 2) removed. The branch is
   pushed for CI; PR #9 is left as it is (not changed, not closed) and no new pull request is opened without the product
   owner's permission.
+  (Historical record of 2026-10-01, no longer a current rule: later the same day the product owner merged PR #9 and
+  then PR #10 into `main` — `2e758f1`; see Phase 11.)
 
 ## Phase 9 (complete)
 
@@ -2327,9 +2744,10 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-09-29: Phases 0–9 are complete and merged into `main` (last merge `409240b`, PR #8; CI green on `main`). No open
-phase work on `main`; Phase 10 (transitions & basic effects) starts with the Step 10.1 audit on
-`feat/phase-10-transitions-effects`. Open items carried forward: see "Known issues" (L1-c, New during
+2026-10-01: Phases 0–10 are complete and merged into `main` (last merge `2e758f1`, PR #10; Phase 10's CI run on its
+branch was green — 1988 passed, 2 skipped; the CI result of the PR #10 merge on `main` was not checked in Step 11.1).
+Phase 11 (media relink & recent projects) is in progress on `feat/phase-11-relink-recent-projects`: Step 11.1 accepted,
+Step 11.2 (documentation) done. Open items carried forward: see "Known issues" (L1-c, New during
 `ImportManyAsync`, the audio status message after a device returns, the watched `Project.Tests` hang / failure, no
 timeline virtualization, import not undoable, the 5 s PATH probe of the locators).
 
@@ -2367,6 +2785,7 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 7 (accepted 2026-09-24)
 - Phase 8 (accepted 2026-09-25)
 - Phase 9 (accepted 2026-09-29)
+- Phase 10 (accepted 2026-10-01; PR #10 merged as `2e758f1`)
 
 ## Known issues
 

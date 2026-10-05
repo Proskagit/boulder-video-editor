@@ -47,8 +47,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IReferenceClock, StopwatchReferenceClock>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<ITimelineEditService, TimelineEditService>();
+        services.AddSingleton<IMediaRelinkService, MediaRelinkService>();
         services.AddSingleton(_ => new RecoveryStore(AppPaths.RecoveryFolder));
         services.AddSingleton<IAutosaveService, AutosaveService>();
+        // Recent projects (D026 §6): a per-user list in the configuration folder, created only when written.
+        services.AddSingleton<IRecentProjectsStore>(sp => new RecentProjectsStore(AppPaths.RecentProjectsFile,
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RecentProjectsStore>>()));
 
         // Export (D023): the service knows only the Core abstractions; the app picks the ffmpeg encoder and
         // the Avalonia offscreen rasterizer (one new instance per export job).
@@ -82,10 +86,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MediaAnalysisCoordinator>();
         services.AddSingleton<ThumbnailCoordinator>();
         services.AddSingleton<WaveformCoordinator>();
+        services.AddSingleton<MediaAvailabilityMonitor>();
         services.AddSingleton<MediaImportWorkflow>();
+        services.AddSingleton<MediaRelinkWorkflow>();
         services.AddSingleton<ProjectFileWorkflow>();
 
         // --- UI view models -------------------------------------------------------
+        services.AddTransient<RecentProjectsViewModel>();
         services.AddTransient<ToolbarViewModel>();
         services.AddTransient<MediaBrowserViewModel>();
         services.AddTransient<PreviewViewModel>();

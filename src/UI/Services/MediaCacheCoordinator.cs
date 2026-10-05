@@ -18,7 +18,16 @@ namespace AiVideoEditor.UI.Services;
 /// thread in the app), the same thread that replaces the project. Save / Save As keep the generation: only the cache
 /// folder changes, and later requests use the new one.</item>
 /// <item>Once per asset and generation (by <see cref="MediaAsset.Id"/>): a request for an asset that is being handled,
-/// has its result, or has none to make is ignored.</item>
+/// has its result, or has none to make is ignored — until the asset is restarted (<see cref="Restart"/>): an asset whose
+/// file has come back (<see cref="IProjectService.MediaAvailabilityChanged"/>, D026 §2) is requested again in the same
+/// generation (now it may be made, not only read from the cache), and so is a relinked asset
+/// (<see cref="IProjectService.MediaRelinked"/>, D026 §3). A returned file's earlier result stays shown until the new one
+/// is ready, a relinked one's is dropped at once (another file); work started before the restart publishes nothing.</item>
+/// <item>Relink, Undo, Redo (Step 11.6, D2): what was shown for the file an asset leaves — a result, or none — is kept for
+/// the generation, by asset and path, and comes back when an Undo / Redo returns the asset to that file. Without it an
+/// offline asset would get its "last cached" result (D024), which after a relink is the relinked file's — the cache
+/// keeps one file per asset. Only what had settled is kept; media that went offline otherwise follows D024 as
+/// before.</item>
 /// <item>A cached result is read without a slot and never decodes; making one takes one of this kind's own slots
 /// (the limit of one kind never holds up the other) — the wait ends with the generation. Cache reads and making run
 /// on the thread pool.</item>
@@ -43,6 +52,61 @@ public abstract class MediaCacheCoordinator<T> where T : class
         _slots = new SemaphoreSlim(maxConcurrent, maxConcurrent);
         projects.ProjectChanged += (_, _) => StartNewGeneration();
         projects.MediaAssetsChanged += (_, _) => RequestAll();
+        projects.MediaAvailabilityChanged += (_, e) => Restart(e.Returned.Select(a => a.Id));
+        projects.MediaRelinked += (_, e) => OnRelinked(e.Replacements);
+    }
+
+    /// <summary>The assets' files were replaced (D026 §3): what was shown for each previous file is kept (if it had
+    /// settled), and what was kept for the file the asset has now is shown again; the others are requested anew.</summary>
+    private void OnRelinked(IReadOnlyList<MediaFileReplacement> replacements)
+    {
+        var generation = _generation;
+        var restored = new List<Guid>();
+        foreach (var (asset, previousPath) in replacements)
+        {
+            var id = asset.Id;
+            if (generation.Handled.TryGetValue(id, out var handling) && generation.Settled.TryGetValue(id, out var settled) &&
+                ReferenceEquals(handling, settled))
+                generation.Shown[ShownKey(id, previousPath)] = new ShownResult(generation.Results.GetValueOrDefault(id));
+
+            generation.Handled.TryRemove(id, out _);
+            generation.Settled.TryRemove(id, out _);
+            generation.Results.TryRemove(id, out _);
+
+            if (generation.Shown.TryGetValue(ShownKey(id, asset.FilePath), out var shown))
+            {
+                var back = new object();                                // settled at once: nothing to read or make
+                generation.Handled[id] = back;
+                generation.Settled[id] = back;
+                if (shown.Value is { } value)
+                {
+                    generation.Results[id] = value;
+                    restored.Add(id);
+                }
+            }
+        }
+        foreach (var id in restored)
+            Ready?.Invoke(this, id);
+        RequestAll();
+    }
+
+    private static string ShownKey(Guid assetId, string path) => $"{assetId:N}|{path.ToUpperInvariant()}";
+
+    /// <summary>Forgets that these assets were handled in the current generation and requests them again; work already
+    /// running for them publishes nothing (it belongs to the handling before). A returned file keeps its result until
+    /// the new one is ready; a relinked asset (another file — its relink, Undo or Redo, D026 §3) loses it at once.</summary>
+    internal void Restart(IEnumerable<Guid> assetIds, bool dropResults = false)
+    {
+        var generation = _generation;
+        var any = false;
+        foreach (var id in assetIds)
+        {
+            any |= generation.Handled.TryRemove(id, out _);
+            if (dropResults)
+                any |= generation.Results.TryRemove(id, out _);
+        }
+        if (any)
+            RequestAll();
     }
 
     /// <summary>Raised (on the caller's context) with the asset id when its result is ready — only for the current
@@ -112,17 +176,18 @@ public abstract class MediaCacheCoordinator<T> where T : class
     private void Request(MediaAsset asset)
     {
         var generation = _generation;
-        if (generation.IsCancelled || !MayHave(asset) || !generation.Handled.TryAdd(asset.Id, 0))
+        var handling = new object();
+        if (generation.IsCancelled || !MayHave(asset) || !generation.Handled.TryAdd(asset.Id, handling))
             return;
 
         // Captured now, on the caller's thread: the folder of this project as it is now.
-        Track(HandleAsync(asset, CanMake(asset), CurrentFolder, generation));
+        Track(HandleAsync(asset, CanMake(asset), CurrentFolder, generation, handling));
     }
 
     /// <summary>A result may be made (decoded) — not for offline media.</summary>
     private static bool CanMake(MediaAsset asset) => !asset.IsMissing;
 
-    private async Task HandleAsync(MediaAsset asset, bool canMake, string folder, Generation generation)
+    private async Task HandleAsync(MediaAsset asset, bool canMake, string folder, Generation generation, object handling)
     {
         var token = generation.Token;
         var slot = false;
@@ -139,6 +204,9 @@ public abstract class MediaCacheCoordinator<T> where T : class
 
             if (token.IsCancellationRequested)
                 return; // another project is current now: publish nothing
+            if (!generation.Handled.TryGetValue(asset.Id, out var current) || !ReferenceEquals(current, handling))
+                return; // the asset was restarted meanwhile: a newer handling publishes its result
+            generation.Settled[asset.Id] = handling;
             if (result is null)
                 return; // none to show (offline without a cache, undecodable) — not asked again in this generation
 
@@ -167,6 +235,9 @@ public abstract class MediaCacheCoordinator<T> where T : class
             TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
+    /// <summary>A result that was shown for a file, or none (<c>Value</c> null).</summary>
+    private sealed record ShownResult(T? Value);
+
     /// <summary>One project's results: its cancellation, the assets already handled (in work, done or with none), and
     /// the results made.</summary>
     private sealed class Generation
@@ -175,8 +246,13 @@ public abstract class MediaCacheCoordinator<T> where T : class
 
         public CancellationToken Token => _cancellation.Token;
         public bool IsCancelled => _cancellation.IsCancellationRequested;
-        public ConcurrentDictionary<Guid, byte> Handled { get; } = new();
+        /// <summary>Per asset id, the handling in charge of it (its identity tells a restarted asset's work apart).</summary>
+        public ConcurrentDictionary<Guid, object> Handled { get; } = new();
         public ConcurrentDictionary<Guid, T> Results { get; } = new();
+        /// <summary>Per asset id, the handling that has ended (with its result or with none).</summary>
+        public ConcurrentDictionary<Guid, object> Settled { get; } = new();
+        /// <summary>What was shown for an asset's file before a relink / Undo / Redo took it away (<see cref="ShownKey"/>).</summary>
+        public ConcurrentDictionary<string, ShownResult> Shown { get; } = new();
 
         // Not disposed: its token is still held by the work it cancels (which ends on its own).
         public void Cancel() => _cancellation.Cancel();

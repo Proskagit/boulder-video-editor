@@ -10,7 +10,8 @@ namespace AiVideoEditor.UI.ViewModels.Panels;
 /// Import here calls the exact same <see cref="MediaImportWorkflow"/> as the
 /// Media Browser's own Import button, so the two stay identical with no duplicated logic.
 /// The project commands are async commands: while one runs it can't be started again. While an export
-/// runs (<see cref="EditingLock"/>) every command here is disabled.
+/// runs (<see cref="EditingLock"/>) every command here is disabled. <see cref="Recent"/> is the <c>Recent ▾</c> drop-down
+/// next to Open (D026 §6), absent when not given.
 /// </summary>
 public sealed partial class ToolbarViewModel : ViewModelBase
 {
@@ -23,14 +24,17 @@ public sealed partial class ToolbarViewModel : ViewModelBase
 
     /// <param name="exportWorkflow">Without it Export reports that exporting is unavailable.</param>
     /// <param name="editingLock">The app's shared lock; a private one when not given.</param>
+    /// <param name="recentProjects">The <c>Recent ▾</c> drop-down; without it the button is hidden.</param>
     public ToolbarViewModel(
         IUndoRedoService undoRedoService,
         ProjectFileWorkflow projectFiles,
         MediaImportWorkflow importWorkflow,
         StatusService status,
         ExportWorkflow? exportWorkflow = null,
-        EditingLock? editingLock = null)
+        EditingLock? editingLock = null,
+        RecentProjectsViewModel? recentProjects = null)
     {
+        Recent = recentProjects;
         _undoRedoService = undoRedoService;
         _projectFiles = projectFiles;
         _importWorkflow = importWorkflow;
@@ -42,6 +46,9 @@ public sealed partial class ToolbarViewModel : ViewModelBase
         if (_exportWorkflow is not null)
             _exportWorkflow.IsRunningChanged += (_, _) => ExportCommand.NotifyCanExecuteChanged();
     }
+
+    /// <summary>The <c>Recent ▾</c> drop-down, or null.</summary>
+    public RecentProjectsViewModel? Recent { get; }
 
     private bool CanEdit() => !_editingLock.IsLocked;
 

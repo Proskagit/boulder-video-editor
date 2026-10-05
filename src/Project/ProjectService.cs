@@ -24,7 +24,14 @@ public sealed class ProjectService : IProjectService
     private readonly IUndoRedoService _undoRedo;
     private readonly ProjectFileStore _store;
     private readonly ILogger<ProjectService> _logger;
+    private readonly Func<string, bool> _fileExists;
     private readonly SemaphoreSlim _saveLock = new(1, 1);
+
+    // Media re-check (D026 §2): one check at a time; a request while one runs asks for one more after it.
+    private readonly object _recheckGate = new();
+    private Task _recheckLoop = Task.CompletedTask;
+    private bool _recheckRunning;
+    private bool _recheckRequested;
 
     // Non-undoable changes (media imports) since the project was created/opened, and how
     // many of them the last successful save included.
@@ -38,6 +45,8 @@ public sealed class ProjectService : IProjectService
     public event EventHandler? TimelineChanged;
     public event EventHandler? SaveStateChanged;
     public event EventHandler? ProjectSaved;
+    public event EventHandler<MediaAvailabilityChangedEventArgs>? MediaAvailabilityChanged;
+    public event EventHandler<MediaRelinkedEventArgs>? MediaRelinked;
 
     public ProjectService(IUndoRedoService undoRedo, ILogger<ProjectService> logger)
         : this(undoRedo, logger, new ProjectFileStore())
@@ -45,10 +54,19 @@ public sealed class ProjectService : IProjectService
     }
 
     internal ProjectService(IUndoRedoService undoRedo, ILogger<ProjectService> logger, ProjectFileStore store)
+        : this(undoRedo, logger, store, File.Exists)
+    {
+    }
+
+    /// <param name="fileExists">Whether a media file is there — <see cref="File.Exists(string)"/> in the app; tests
+    /// replace it (a file that comes and goes, a drive that answers slowly).</param>
+    internal ProjectService(IUndoRedoService undoRedo, ILogger<ProjectService> logger, ProjectFileStore store,
+        Func<string, bool> fileExists)
     {
         _undoRedo = undoRedo;
         _logger = logger;
         _store = store;
+        _fileExists = fileExists;
         Current = NewProject("Untitled Project", null);
         _undoRedo.StateChanged += (_, _) => UpdateDirty();
         UpdateDirty();
@@ -204,19 +222,109 @@ public sealed class ProjectService : IProjectService
         SaveStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <remarks>Runtime state only: never makes the project dirty and is not saved.</remarks>
-    public IReadOnlyList<MediaAsset> DetectMissingMedia() => MarkMissingMedia(Current);
-
-    private static IReadOnlyList<MediaAsset> MarkMissingMedia(Core.Entities.Project project)
+    /// <summary>Open / Recover: the missing state of a loaded project, before it becomes current.</summary>
+    private void MarkMissingMedia(Core.Entities.Project project)
     {
-        var missing = new List<MediaAsset>();
         foreach (var asset in project.MediaAssets)
+            asset.IsMissing = !FileExists(asset.FilePath);
+    }
+
+    private bool FileExists(string path)
+    {
+        try
         {
-            asset.IsMissing = !File.Exists(asset.FilePath);
-            if (asset.IsMissing)
-                missing.Add(asset);
+            return _fileExists(path);
         }
-        return missing;
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not check whether {Path} exists; treating it as missing.", path);
+            return false;
+        }
+    }
+
+    public Task RecheckMediaAsync(CancellationToken ct = default)
+    {
+        Task loop;
+        lock (_recheckGate)
+        {
+            _recheckRequested = true;
+            if (!_recheckRunning)
+            {
+                _recheckRunning = true;
+                _recheckLoop = RecheckLoopAsync();
+            }
+            loop = _recheckLoop;
+        }
+        return loop.WaitAsync(ct);
+    }
+
+    /// <summary>Runs checks while they are asked for; ends (under the gate) only when none is pending, so a request is
+    /// either taken by this loop or starts the next one. Never throws.</summary>
+    private async Task RecheckLoopAsync()
+    {
+        while (true)
+        {
+            lock (_recheckGate)
+            {
+                if (!_recheckRequested)
+                {
+                    _recheckRunning = false;
+                    return;
+                }
+                _recheckRequested = false;
+            }
+
+            try
+            {
+                await RecheckOnceAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Re-checking the media files failed.");
+            }
+        }
+    }
+
+    private async Task RecheckOnceAsync()
+    {
+        // Captured on the caller's (UI) thread: which project, which assets, which paths.
+        var project = Current;
+        var checks = project.MediaAssets.Select(a => (Asset: a, Path: a.FilePath)).ToArray();
+        if (checks.Length == 0) return;
+
+        // A disconnected network or USB drive can take seconds per file: never on the UI thread.
+        var exists = await Task.Run(() => checks.Select(c => FileExists(c.Path)).ToArray());
+
+        if (!ReferenceEquals(project, Current))
+        {
+            _logger.LogDebug("Media re-check dropped: its project was replaced.");
+            return;
+        }
+
+        var stillInProject = new HashSet<MediaAsset>(project.MediaAssets, ReferenceEqualityComparer.Instance);
+        var returned = new List<MediaAsset>();
+        var gone = new List<MediaAsset>();
+        for (var i = 0; i < checks.Length; i++)
+        {
+            var (asset, path) = checks[i];
+            // Removed, or given another path (a relink) while the check ran: what was found is about another file.
+            if (!stillInProject.Contains(asset) || !string.Equals(asset.FilePath, path, StringComparison.Ordinal))
+                continue;
+            var missing = !exists[i];
+            if (asset.IsMissing == missing) continue;
+            asset.IsMissing = missing;
+            (missing ? gone : returned).Add(asset);
+        }
+
+        if (returned.Count == 0 && gone.Count == 0) return;
+
+        foreach (var asset in gone)
+            _logger.LogWarning("Media file is missing now: {Path}", asset.FilePath);
+        foreach (var asset in returned)
+            _logger.LogInformation("Media file is available again: {Path}", asset.FilePath);
+
+        MediaAvailabilityChanged?.Invoke(this, new MediaAvailabilityChangedEventArgs { Returned = returned, Gone = gone });
+        NotifyMediaAssetsChanged();
     }
 
     public MediaAddResult AddMediaAssets(IEnumerable<MediaAsset> assets)
@@ -253,6 +361,13 @@ public sealed class ProjectService : IProjectService
     }
 
     public void NotifyMediaAssetsChanged() => MediaAssetsChanged?.Invoke(this, EventArgs.Empty);
+
+    public void NotifyMediaRelinked(IReadOnlyList<MediaFileReplacement> replacements)
+    {
+        Current.ModifiedAt = DateTimeOffset.UtcNow;
+        MediaRelinked?.Invoke(this, new MediaRelinkedEventArgs { Replacements = replacements });
+        NotifyMediaAssetsChanged();
+    }
 
     public void NotifyTimelineChanged()
     {

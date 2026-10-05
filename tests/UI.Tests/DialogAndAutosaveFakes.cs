@@ -36,7 +36,7 @@ internal sealed class NullAutosave : IAutosaveService
     public Task ShutdownAsync(bool keepUnsavedChanges = true) => Task.CompletedTask;
 }
 
-/// <summary>Answers folder pickers from a queue (null = cancelled) and records the titles.</summary>
+/// <summary>Answers folder and file pickers from queues (null = cancelled) and records the requests.</summary>
 internal sealed class ScriptedPicker : IFilePickerService
 {
     private readonly Queue<string?> _folders;
@@ -45,12 +45,23 @@ internal sealed class ScriptedPicker : IFilePickerService
 
     public List<string> Titles { get; } = new();
 
-    public Task<IReadOnlyList<string>> PickFilesAsync(FilePickerRequest request, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+    /// <summary>File-picker answers (null = cancelled; none queued = cancelled); the requests are recorded.</summary>
+    public Queue<string?> Files { get; } = new();
+
+    public List<FilePickerRequest> FileRequests { get; } = new();
+
+    public List<FolderPickerRequest> FolderRequests { get; } = new();
+
+    public Task<IReadOnlyList<string>> PickFilesAsync(FilePickerRequest request, CancellationToken ct = default)
+    {
+        FileRequests.Add(request);
+        return Task.FromResult<IReadOnlyList<string>>(Files.Count > 0 && Files.Dequeue() is { } file ? new[] { file } : Array.Empty<string>());
+    }
 
     public Task<string?> PickFolderAsync(FolderPickerRequest request, CancellationToken ct = default)
     {
         Titles.Add(request.Title);
+        FolderRequests.Add(request);
         return Task.FromResult(_folders.Count > 0 ? _folders.Dequeue() : null);
     }
 
