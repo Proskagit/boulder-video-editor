@@ -2111,6 +2111,21 @@ day):
   are drawn on the ruler as a flag and a line in their colour, not hit-testable (a click goes to the ruler, which moves
   the playhead).
 
+Refined in Step 12.8 (implementation, 2026-10-05; §7 as confirmed at the Step 12.2 acceptance):
+- `MediaImportWorkflow.RunAsync` takes `IProjectService.Current` before the file picker opens and compares it
+  (`ReferenceEquals`) with the current project after each await: the picker, the yield that shows "Importing N
+  files…", and `ImportManyAsync`. On a change nothing is added (`AddMediaAssets` is not called), no analysis is queued,
+  and the status bar says "Import stopped: another project was opened, so nothing was added." (also logged). A
+  cancelled picker stays silent, a failing check still says "Import didn't finish." — both unchanged.
+- No New / Open / Recover lock and no cancellation token (§7). The import still runs on the UI thread as before; only
+  what happens after it is guarded. The next import into the new project works normally.
+- Confirmed by the product owner (2026-10-05) as written. In the running app the check of the picked files is
+  synchronous on the UI thread, so a New can only come in between the picker closing and the "Importing N files…" yield
+  — about one frame; nine scripted attempts at the real race never hit it (the click was lost while the picker closed,
+  or came after the import, which then went into the project it started in and New asked about unsaved changes). The
+  guarded path is covered by the automated tests; the rule is the same for New, Open and Recover (any other project
+  object).
+
 Status: Accepted (2026-10-05, product owner decisions of 2026-10-05). Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 12 — Editing essentials: steps". Sub-decisions are proposed at the start of their
 step, confirmed by the product owner and recorded as a refinement here.

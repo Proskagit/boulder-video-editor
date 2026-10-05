@@ -4,7 +4,7 @@
 
 Phase 12 — Editing essentials: **in progress** on branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main`
 after the merge of PR #11). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 12 — Editing
-essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.7 accepted (2026-10-05).
+essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.8 accepted (2026-10-05).
 
 ### Phase 12 — Editing essentials (in progress)
 
@@ -278,6 +278,38 @@ permission; no next step without the product owner's go.
     all four buttons whole, ▶ clear of the ruler, nothing over the ruler, TIMELINE or the track headers; all four
     clicked (◆+ added, ▶ / ◀ moved the playhead with the end messages, ◆− removed the marker on the playhead); zoom + and
     Fit moved neither the block nor a marker off its time. The test edits undone (title without `*`) before closing.
+  - Committed as `5a7edae` (the product owner's permission, 2026-10-05; not pushed).
+- Step 12.8 done and accepted (2026-10-05) — New during a running import (D027 §7, confirmed again by the product owner
+  at the step; D027 "Refined in Step 12.8"). Started on the product owner's instruction right after the 12.7 commit.
+  - Audit before the code: `MediaImportWorkflow.RunAsync` awaits the picker, then a dispatcher yield (`showStatus`,
+    Step 9.8) and `IMediaImportService.ImportManyAsync` (synchronous in the app), then calls
+    `IProjectService.AddMediaAssets` on whatever project is current and queues the analysis — a New / Open / Recover
+    during one of the awaits got the picked files (the known issue since Step 9.3). The relink workflow and service
+    already guard with the identity of the project they started in (D026).
+  - UI: `MediaImportWorkflow` — the project taken before the picker, `ProjectChanged(project)` after each of the three
+    awaits (status message `ProjectChangedMessage`, a log line, return before anything is added or analysed). No other
+    file changed.
+  - Tests (new, 5): `UI.Tests/ImportProjectChangeTests` (5: New while the files are checked — nothing in the
+    new project nor the old, still clean, no analysis, the message; New while "Importing N files…" is shown; another
+    project while the picker is open — the files not even checked; without a change as before — both added and
+    analysed; the next import into the new project works). The existing `ImportStatusTests` (status order, cancelled
+    picker, failing check) unchanged.
+  - Verification (on the product owner's command; `--artifacts-path` in the session's scratch folder): `dotnet build
+    AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0 at the first attempt; `dotnet test` 2324 passed, 2 skipped
+    (only the two 4K heavy scenes), 0 failed — Core 448, Timeline 425, Project 371, UI 541 (+5), Export 99, Rendering 58,
+    Video 294, ExportEndToEnd 88 + 2; three runs with `--blame-hang --blame-hang-timeout 5m`, each 2324 / 0 / 2 over all
+    8 test assemblies, no hang, no dump; `git diff --check` clean.
+  - Real-app attempt at the race (manual scenarios 33–34; the Debug build, an isolated profile, a new empty project,
+    the four fixture media files picked in the Windows file dialog by a script — click into the name box, paste,
+    Enter — and New clicked right after the Enter, with 0 to 250 ms between them; 9 attempts): the race was never hit.
+    In the running app the check of the picked files is synchronous on the UI thread, so a New can only come in during
+    the one-frame yield between the picker closing and "Importing N files…"; the click was either lost while the dialog
+    closed (0 and 40 ms) or came after the import — the files went into the project the import started in (title with
+    `*`, "Added 4 media asset(s)") and New asked "Unsaved changes" (answered Don't Save, the next project empty). In no
+    attempt did the files reach the new project; "Import stopped: …" never appeared (0 lines in the log). The plain
+    import (scenario 34's baseline) worked: 4 files added and analysed. Open / Recover can't race at all from the UI —
+    Open needs its folder picker first and Recover is offered at startup; their replacement is the same project-object
+    change the tests cover with New. The guarded path itself is covered by the automated tests only.
 
 ### Phase 11 — Media relink & recent projects (complete; PR #11 merged as `47ed2fa`, CI green)
 
@@ -3070,7 +3102,8 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   may shift it — `FfmpegSpeedIntegrationTests` (10 ms bound) catches that.
 - New Project while `ImportManyAsync` is still checking the picked files adds them to the new project (the import
   adds to whatever project is current when it finishes). Out of scope of Step 9.3 (product owner, 2026-09-25).
-  Planned for Phase 12 Step 12.8 (D027 §7).
+  Fixed in Phase 12 Step 12.8 (D027 §7): `MediaImportWorkflow` keeps the import's project and adds nothing to another
+  one (automated tests; the one-frame race not reproducible by hand).
 
 - Text clips (D021): the Preview (Avalonia) silently substitutes a font that isn't installed. Phase 8
   (D023) renders text like the Preview (no `drawtext`), so the export falls back the same way; the

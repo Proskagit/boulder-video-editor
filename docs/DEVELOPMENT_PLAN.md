@@ -576,7 +576,7 @@ Scope: D027 §6.
 - Impl: snapping to markers only if it fits the existing snapping without a structural change, otherwise backlog.
 - Depends on: 12.6.
 
-### 12.8 — New during a running import
+### 12.8 — New during a running import *(done — accepted 2026-10-05; D027 "Refined in Step 12.8"; the guarded path automated, the real race not reproducible by hand)*
 Scope: D027 §7.
 - PR: a New / Open / Recover during an import leaves the new project without the picked files; the status bar says the
   import was dropped; an import without a project change works as before.

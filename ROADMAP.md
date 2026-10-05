@@ -76,7 +76,9 @@ paste / duplicate of clips, undoable, Ctrl+C / Ctrl+V / Ctrl+D) accepted (2026-1
 skipped, three `--blame-hang` runs clean; the header checked at 1024 and 1440 px, the Copy button removed for 1024 px;
 `518730c`); Step 12.7 (markers: add / remove at the playhead, drawn on the ruler, previous / next, snapping) accepted
 (2026-10-05; build 0 / 0, 2319 passed, 2 skipped, three `--blame-hang` runs clean; the marker buttons checked in the
-real app at 1024 and 1440 px). Details: `progress.md`.
+real app at 1024 and 1440 px; `5a7edae`); Step 12.8 (an import belongs to the project it started in: New / Open /
+Recover meanwhile adds nothing) accepted (2026-10-05; build 0 / 0, 2324 passed, 2 skipped, three `--blame-hang` runs
+clean; the real race not reproducible by hand). Details: `progress.md`.
 
 ## Previous
 

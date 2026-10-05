@@ -81,8 +81,8 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 33 | New during an import | Import many files (or files on a slow drive); click New while "Importing N files…" shows | The new project has no media; the status says the import was dropped | — | planned |
-| 34 | Plain import | Import without a project change | Works as before (status, duplicates, analysis) | — | planned |
+| 33 | New during an import | Import many files (or files on a slow drive); click New while "Importing N files…" shows | The new project has no media; the status says "Import stopped: another project was opened, so nothing was added."; the next import works | `ImportProjectChangeTests` (New during the check, during the status, another project during the picker; the next import) | auto (12.8); app 12.8 (Claude): the race not reproducible — 9 attempts, files never reached the new project (results log) |
+| 34 | Plain import | Import without a project change | Works as before (status, duplicates, analysis) | `ImportProjectChangeTests` (without a change), `ImportStatusTests` | app 12.8 (Claude): the plain import passed; Open / Recover can't race from the UI (results log) |
 
 ## Regression (Step 12.9)
 
@@ -123,3 +123,18 @@ narrowed by dragging its border); the same build setup and project as for 12.6.
     the playhead."; ◆− removed the marker on the playhead ("Marker removed").
   - Zoom + and Fit: the markers stayed at their time against the ruler; the block did not move.
   - The test edits were undone (title without `*`) before closing.
+
+### 2026-10-05 — Step 12.8 New during an import (Claude), Debug, isolated profile
+
+A new empty project; the four fixture media files picked in the Windows file dialog by a script (click into the name
+box, paste, Enter) and New clicked right after the Enter, 0 to 250 ms later; nine attempts.
+- The race was never hit. The check of the picked files runs synchronously on the UI thread, so a New can only come in
+  during the one-frame yield between the picker closing and "Importing N files…".
+- 0 and 40 ms: the click was lost while the dialog closed; the import went into the current project.
+- 20 to 250 ms: the click came after the import — the files were in the project the import started in (title with
+  `*`, "Added 4 media asset(s)" in the log) and New asked "Unsaved changes" (answered Don't Save; the next project
+  empty).
+- In no attempt did the files reach the new project; "Import stopped: another project was opened, so nothing was
+  added." never appeared — the guarded path is covered by `ImportProjectChangeTests` only.
+- Scenario 34: the plain import worked (4 files added and analysed). Open needs its folder picker first and Recover is
+  offered at startup, so neither can race an import from the UI; they replace the project object like New.
