@@ -465,5 +465,9 @@ and media sections at the Step 9.8 closeout; the CI section at the Step 9.10 clo
 domain section step by step in Steps 10.3–10.8 and with the module table at the Step 10.9 closeout; the media paths and
 missing media paragraph of the Project persistence section at the Step 11.1 audit (`2e758f1`), the media availability
 paragraph at the Step 11.3 closeout, the relink paragraph at the Step 11.4 closeout, the batch relink paragraph at the
-Step 11.5 closeout, the relink UI paragraph at the Step 11.6 implementation.
+Step 11.5 closeout, the relink UI paragraph at the Step 11.6 implementation, the recent projects paragraphs written at
+Steps 11.7–11.8 (Phase 11 merged into `main` as `47ed2fa`). Phase 12 (D027) changes nothing here yet: track delete / reorder,
+media removal, ripple delete, copy / paste / duplicate and markers will be added by their steps (12.3–12.8); until then
+there is no track removal or reordering, no media removal, no ripple, no clipboard, and `Sequence.Markers` is only
+persisted (v3), never created or shown.
 Re-check the code before relying on details that later phases may have changed.

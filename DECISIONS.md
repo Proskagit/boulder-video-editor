@@ -1850,6 +1850,161 @@ relink & recent projects: steps"; the implementation must follow PO-1…PO-9 as 
 
 ---
 
+## D027 — Phase 12: editing essentials
+
+Date: 2026-10-05
+
+Decision (product owner, 2026-10-05, after the Step 12.1 audit). Phase 12 adds the everyday editing operations the
+timeline and the media list still lack, in this order: **track management** (delete, reorder; Step 12.3), **removing
+media from the project** (12.4), **ripple delete** (12.5), **copy / paste / duplicate of clips** (12.6), **markers**
+(12.7), and the fix of **New during a running import** (12.8). Every new project change is one undoable command; the
+rendering rules are unchanged, so the Preview and the export stay identical by construction.
+
+Context (Step 12.1 audit, the code at `47ed2fa`, `main` after the merge of PR #11):
+- `ITimelineEditService` has add / move / trim / split / delete clips, add track, clip properties, speed and the
+  dissolve edits; there is no track removal or reordering, no ripple, no clipboard. `IProjectService` has no way to
+  remove a media asset.
+- Tracks: `Sequence.VideoTracks` / `AudioTracks`, each `Track` with an `Order` (persisted). The playback snapshot draws
+  video tracks by `Order` (higher on top, `PlaybackSnapshotBuilder`), the timeline lists video tracks by descending and
+  audio tracks by ascending `Order`; a new track gets `max(Order) + 1` and the first free name `V<n>` / `A<n>`; a clip
+  added without a track goes to the first track of its kind in the list.
+- Markers: `Sequence.Markers` (`Marker`: `Id`, `Position` as `MediaTime`, `Label`, `ColorHex`) is already written and
+  read by `project.json` v3 (`MarkerDto`); nothing creates, shows or uses one.
+- Dissolves (D025): anchored to `LeftClipId` / `RightClipId`, valid only while the two clips meet on one video track;
+  every edit goes through `EditPlan.ReconcileTransitions` (a dissolve whose clips were removed or no longer meet is
+  removed in the same undo step with a status note; one whose two clips moved together moves with them); deleting A or
+  B removes the dissolve (D025 §5); handles do not depend on the timeline position.
+- Import: `MediaImportWorkflow.RunAsync` picks files, reports "Importing N files…", yields once to the dispatcher so
+  the status is drawn, runs `IMediaImportService.ImportManyAsync` (synchronous, on the UI thread) and adds the result
+  with `IProjectService.AddMediaAssets` to whatever project is current then. A New (or Open) that runs during the yield
+  replaces the project, so the picked files land in the new one (known issue since Step 9.3, D024 "Left as they are").
+- Cache: thumbnails and waveforms are kept per asset id (`MediaCacheCoordinator`, D024 9.4 / 9.5); there is no cache
+  eviction.
+
+### 1. Scope and constraints
+
+- In scope: 12.3–12.8 as below.
+- `project.json` stays `formatVersion` **3**: tracks (`Order`), clips, dissolves and markers already have every field
+  Phase 12 needs. A step that finds it needs a new field stops and asks the product owner before changing the format.
+- Unchanged: D007 / D008 (no overlap on a track, the frame grid), D009 / D022 (source frame selection), D013 (mix),
+  D014 / D016 (persistence, autosave, recovery), D018 / D023 (composition, export), D025 (fades, dissolves — applied as
+  written, §2 below), D026. The Preview ↔ Export parity suite is never weakened, re-baselined or removed. L1-c stays
+  open (product owner, 2026-10-05).
+- Every new command is disabled while an export runs (`EditingLock`) and rejected on a locked track, like the existing
+  edits.
+- Out of scope: AI features, export settings, HDR / colour management, an installer, timeline virtualization, an
+  undoable import, ripple trim, ripple on other tracks than the edited one, a time-range (in / out) selection, snapping
+  to markers unless it is simple (§6), automatic creation of dissolves, a system-wide clipboard, a menu bar, a UI
+  redesign.
+
+### 2. Ripple delete (Step 12.5)
+
+- Ripple delete removes the selected clips; on each track that loses a clip, every remaining clip that starts at or
+  after the end of a removed clip moves left by the total length of the removed clips that end at or before its start.
+  Clips on other tracks, the playhead and the markers do not move. Gaps that are not removed stay (they move with the
+  clips after them).
+- Close gap: the empty span between two clips of one track (or before the first clip) is removed — every clip of that
+  track from the gap's end on moves left by the gap's length.
+- No overlap can arise: a clip right of a removed span moves left by at most the removed length, so it ends up at or
+  after the end of the clip left of that span (D008 holds without clamping). The validator still checks the result.
+- One undoable step per ripple delete / close gap; Undo restores every clip, position and dissolve exactly.
+- **Dissolves** (the rule follows from D025 §5 and `ReconcileTransitions`; no new rule):
+  1. A dissolve that has a removed clip as A or B is removed in the same undo step, with D025's status note — exactly
+     as a plain delete does (D025 §5 "Delete A or B: removed").
+  2. Every other dissolve keeps its clips, length and zone: its two clips meet (`A.end == B.start`), so no removed clip
+     or gap lies between them and both move by the same distance — the case of D025 §5 "moving both A and B by the
+     same delta keeps the dissolve". A move changes neither the clips' lengths nor their source ranges or speed, so the
+     zone fit and the handles are unchanged; `ReconcileTransitions` and the zone validation still run on the result.
+  3. Clips that meet only because of the ripple (the clip before and the clip after a removed clip or gap) get **no**
+     dissolve: D025 never creates one automatically.
+  4. Fades are untouched (a ripple changes no clip length).
+  - Considered and not taken, because they contradict D025: joining the clips around a removed clip with a new dissolve
+    (an automatic creation; the handles of those clips were never checked), and refusing a ripple delete of a clip
+    that has a dissolve (D025 removes the dissolve of a deleted clip).
+  - Result: after a ripple, every dissolve is either unchanged in length, zone and handles, or removed; an invalid
+    `Transition` cannot arise, and the Preview and the export read the same snapshot as before.
+- Left to the start of 12.5: how the command is reached (a button / the timeline's Delete with a modifier) and how a
+  gap is chosen.
+
+### 3. Tracks (Step 12.3)
+
+- Delete a track: a track with clips is deleted only after a confirmation; its clips and their dissolves go with it.
+  One undoable step; Undo restores the track at its place in the list with its `Order`, name, flags, clips and
+  dissolves.
+- Reorder: a track moves up or down among the tracks of its kind (video among video, audio among audio); `Order` and the
+  list follow, so the timeline, the Preview and the export use the same order (video: higher `Order` on top). One
+  undoable step.
+- Left to the start of 12.3: whether the last video / audio track can be deleted, whether a locked track can be deleted
+  or moved, the names of the remaining tracks (kept or renumbered), and how the commands are reached.
+
+### 4. Removing media from the project (Step 12.4)
+
+- An unused asset is removed at once; an asset used by clips is removed only after a confirmation that names how many
+  clips go with it — then the asset, every clip that uses it and their dissolves are removed in one undoable step.
+  Undo restores the asset (same id, path, metadata, analysis state), the clips and the dissolves exactly.
+- The user's file on disk is never deleted. Offline assets can be removed like online ones.
+- Thumbnails / waveforms stay consistent: a removed asset's results are no longer shown, work still running for it
+  publishes nothing (the identity checks of D026 §2), and after an Undo it is shown again (from its cache files, which
+  are not deleted by the removal). Its analysis, when still running, is dropped like after a re-check.
+- Left to the start of 12.4: where the command sits (Media Browser), several assets at once, and whether cache files of
+  removed assets are cleaned up later (no eviction exists today).
+
+### 5. Copy / paste / duplicate (Step 12.6)
+
+- Copy keeps the selected clips with their timing (length, source range, speed) and properties (volume / mute,
+  opacity, transform, crop, text, fades). A dissolve is never copied.
+- Paste puts the copied clips at the playhead: the earliest copied clip starts at the playhead and the others keep
+  their distances to it; each clip goes to the track it was copied from when it can. If a clip would overlap another
+  clip or break a rule (a locked track, a track that no longer exists, a media asset that is missing from the project),
+  the whole paste is rejected with a message — nothing is pasted partially, nothing overlaps.
+- Duplicate copies and pastes the selection in one command (placement left to 12.6).
+- Every paste and duplicate is one undoable step; pasted clips get new ids.
+- Hotkeys are optional: added only if `ShortcutRouter` takes them without a structural change (decided at 12.6).
+- Left to the start of 12.6: the clipboard's life (cleared on New / Open), where a duplicate goes, a track that no
+  longer exists (rejected or another track of its kind), an offline asset, and what is selected after a paste.
+
+### 6. Markers (Step 12.7)
+
+- The existing `Sequence.Markers` model gets its UI: add a marker (at the playhead), remove a marker, markers drawn on
+  the timeline, go to the next / previous marker. Adding and removing are undoable project changes (saved in v3);
+  moving the playhead to a marker is not.
+- A ripple does not move markers (§2). Snapping to markers only if it fits the existing snapping without a structural
+  change — otherwise it goes to the backlog (decided at 12.7).
+- Left to the start of 12.7: labels / colours (editing them is not in the minimal scope), two markers at one position,
+  hotkeys.
+
+### 7. New during a running import (Step 12.8)
+
+- The import belongs to the project it was started in. `MediaImportWorkflow` takes the current project before the file
+  picker opens and checks after every await (the status yield, `ImportManyAsync`) that it is still the current one
+  (`ReferenceEquals`, the pattern of the relink and of the re-check, D026). If the project was replaced (New, Open,
+  Recover), nothing is added, no analysis is queued, and the status bar says the import was dropped because another
+  project was opened (text at 12.8).
+- Considered and not taken: cancelling the import through a token on `ProjectChanged` (more plumbing, and the check of
+  the picked files is synchronous today, so a token cannot interrupt it — the identity check is needed anyway);
+  blocking New / Open while an import runs (a user-visible change; `EditingLock` is the export's lock); adding the files
+  to the old project (it is no longer current and was not saved with them).
+- An undoable import stays out of scope (product owner, 2026-10-05).
+
+Consequences: new commands in the Timeline subsystem (`ITimelineEditService` grows track, ripple, paste and marker
+operations) and a media removal through the project / timeline services, each with its `EditPlan` reconciliation; the
+UI gains commands in the timeline header, the track headers and the Media Browser; `project.json` unchanged (v3);
+`docs/PHASE12_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
+
+Confirmed at the Step 12.2 acceptance (product owner, 2026-10-05):
+- Ripple (§2) applies to the selected clips, also on several tracks; close gap works on an existing empty span of one
+  track; no ripple of an arbitrary in / out range in Phase 12.
+- The dissolve rule of §2 as written: a removed clip's dissolve is removed; the others are kept with their geometry
+  unchanged; none is created automatically; fades unchanged.
+- §7 as written: the workflow keeps the project the import started in, checks it after each await, adds nothing to
+  another project and says so; no New / Open lock and no cancellation token in Phase 12.
+
+Status: Accepted (2026-10-05, product owner decisions of 2026-10-05). Steps and acceptance criteria:
+`docs/DEVELOPMENT_PLAN.md`, "Phase 12 — Editing essentials: steps". Sub-decisions are proposed at the start of their
+step, confirmed by the product owner and recorded as a refinement here.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

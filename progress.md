@@ -2,15 +2,70 @@
 
 ## Current phase
 
-Phase 11 — Media relink & recent projects: **complete** — accepted by the product owner on 2026-10-05 on the Step 11.9
-local verification (closeout `ca20352`). Open: CI not run yet — the branch is not published; optional export scenario 9
-and the "without ffmpeg" check not run; export scenario 14 checked by decoding the 8 outputs, not watched in a player;
-L1-c stays open, outside Phase 11. Branch `feat/phase-11-relink-recent-projects` (from
-`2e758f1`, `main` after the merge of PR #10). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 11
-— Media relink & recent projects: steps"; decision D026 (product owner decisions PO-1…PO-9, 2026-10-01). The
-implementation must conform to PO-1…PO-9.
+Phase 12 — Editing essentials: **in progress** on branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main`
+after the merge of PR #11). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 12 — Editing
+essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1 and 12.2 accepted
+(2026-10-05).
 
-### Phase 11 — Media relink & recent projects (complete)
+### Phase 12 — Editing essentials (in progress)
+
+Steps (D027; each accepted by the product owner before the next, never started automatically): 12.1 audit · 12.2 sync
+after the merge & scope formalization · 12.3 tracks · 12.4 media removal · 12.5 ripple delete / close gap · 12.6 copy /
+paste / duplicate · 12.7 markers · 12.8 New during an import · 12.9 closeout. Working rules from the product owner (kept
+from Phase 11): no build or test run without a separate command; no push, pull request or merge without direct
+permission; no next step without the product owner's go.
+
+- Step 12.1 done and accepted (2026-10-05) — audit, no change (no `git fetch`).
+  - Git: the local `origin/main` = `47ed2fa` "Merge pull request #11 …", its tree identical to `f30885d` (Phase 11
+    accepted); the local `main` was at `2e758f1`, 12 commits behind, none ahead; working tree clean. CI of PR #11 green
+    (the product owner; not checked from here).
+  - Build and tests (with `--artifacts-path` in the session's scratch folder, the product owner's audit request):
+    `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 errors / 0 warnings; `dotnet test` (once) 2213
+    passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448, Timeline 361, Project 371, UI 496, Export 99,
+    Rendering 58, Video 294, ExportEndToEnd 86 + 2.
+  - Code: no TODO / FIXME / HACK in `src/` or `tests/`; `src/Effects` is an empty placeholder (`Clip.Effects` only
+    persisted); `Sequence.Markers` is persisted in v3 (`MarkerDto`) but never created or shown; no track removal or
+    reordering, no media removal, no ripple, no clipboard (`ITimelineEditService`, `IProjectService`).
+  - Documentation outdated by the merge: "CI pending — the branch is not published" (ROADMAP, README,
+    DEVELOPMENT_PLAN, this file), this file's "Last known state" (2026-10-01) and "Completed" (no Phase 11), the
+    ARCHITECTURE verification note (no 11.7–11.9).
+  - Candidates reported: editing essentials (chosen), export settings, colour / HDR, AI features, distribution,
+    technical debt.
+- Product owner decisions (2026-10-05), recorded in D027: Phase 12 = 12.2–12.8 as above; ripple delete only (no ripple
+  trim), clips right of the removed span on the same track move left, no overlap, fully undoable, dissolves kept valid
+  by D025's rules with the exact rule fixed in D027 before the code; media removal with a confirmation for used
+  assets, atomic and undoable, caches consistent, files on disk untouched; track delete (confirmation with clips) and
+  reorder, undoable, the layer order the same in the Preview and the export; copy / paste / duplicate with all clip
+  properties and fades, no dissolve, paste at the playhead with the distances kept, on the source tracks when
+  possible, rejected rather than overlapping, hotkeys optional; markers: add, remove, show, next / previous, snapping
+  optional, no new `formatVersion` unless needed; the import bound to its project, the solution recorded in D027; L1-c
+  stays open; AI, export settings, HDR / colour, installer, timeline virtualization and an undoable import out.
+- Step 12.2 done (2026-10-05) — sync after the merge and scope formalization, documentation only (no production code,
+  no test changed, no build or test run). `git checkout main` + `git merge --ff-only origin/main` (`2e758f1` →
+  `47ed2fa`, no fetch), branch `feat/phase-12-editing-essentials` created from it.
+  - DECISIONS: D027 (context from the audit; §1 scope and constraints, §2 ripple delete with the dissolve rule, §3
+    tracks, §4 media removal, §5 copy / paste / duplicate, §6 markers, §7 New during an import; the sub-decisions left
+    to each step's start).
+  - The dissolve rule for ripple (D027 §2) follows from D025 without a new choice: a dissolve of a removed clip is
+    removed (D025 §5 "Delete"); every other dissolve has both clips moved by the same distance (they meet, so nothing
+    removed lies between them) and keeps its length, zone and handles (D025 §5 "Move"); no dissolve is created where
+    clips meet only because of the ripple. Two alternatives were considered and excluded because they contradict D025
+    (an automatic dissolve across the removed clip; refusing the ripple of a clip with a dissolve).
+  - The import fix (D027 §7): the workflow keeps the project it started in and adds nothing when another project is
+    current after an await (the identity pattern of D026); a cancellation token and blocking New / Open were considered
+    and not taken.
+  - `docs/DEVELOPMENT_PLAN.md`: the Phase 11 line (PR #11 / `47ed2fa`, CI green), the Phase 12 line and the section
+    "Phase 12 — Editing essentials: steps" (gates, constraints, steps 12.1–12.9 with PR / QG / Impl items).
+  - ROADMAP (Current: Phase 12; Phase 11 merged; future phases), README (status), ARCHITECTURE (verification note),
+    `docs/README.md`, this file (this section, the Phase 11 heading, "Last known state", "Completed", "Known issues").
+  - `docs/PHASE12_MANUAL_TEST_PLAN.md` — skeleton: scenarios per step, status "planned".
+  - Interpretation to confirm: "ripple delete of a clip / range" is read as the selected clips (one or several, on one
+    or several tracks) plus close gap (an empty span of one track); a time range cutting through clips would need an
+    in / out selection, which does not exist and is out of scope.
+- Step 12.2 accepted by the product owner (2026-10-05), with the ripple interpretation, the dissolve rule (D027 §2) and
+  the import fix (D027 §7) confirmed — recorded in D027 "Confirmed at the Step 12.2 acceptance".
+
+### Phase 11 — Media relink & recent projects (complete; PR #11 merged as `47ed2fa`, CI green)
 
 Steps (D026; each accepted by the product owner before the next): 11.1 audit · 11.2 scope formalization · 11.3 media
 availability re-check · 11.4 relink core · 11.5 batch search · 11.6 relink UI · 11.7 recent projects core · 11.8 recent
@@ -2744,12 +2799,12 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-01: Phases 0–10 are complete and merged into `main` (last merge `2e758f1`, PR #10; Phase 10's CI run on its
-branch was green — 1988 passed, 2 skipped; the CI result of the PR #10 merge on `main` was not checked in Step 11.1).
-Phase 11 (media relink & recent projects) is in progress on `feat/phase-11-relink-recent-projects`: Step 11.1 accepted,
-Step 11.2 (documentation) done. Open items carried forward: see "Known issues" (L1-c, New during
-`ImportManyAsync`, the audio status message after a device returns, the watched `Project.Tests` hang / failure, no
-timeline virtualization, import not undoable, the 5 s PATH probe of the locators).
+2026-10-05: Phases 0–11 are complete and merged into `main` (last merge `47ed2fa`, PR #11, CI green; 2213 passed,
+2 skipped at the Step 12.1 audit). Phase 12 (editing essentials, D027) is in progress on
+`feat/phase-12-editing-essentials`: Step 12.1 accepted, Step 12.2 (documentation) done. Open items carried forward: see
+"Known issues" (L1-c, New during `ImportManyAsync` — planned for Step 12.8, the audio status message after a device
+returns, the watched `Project.Tests` hang / failure, no timeline virtualization, import not undoable, the 5 s PATH probe
+of the locators).
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -2786,6 +2841,7 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 8 (accepted 2026-09-25)
 - Phase 9 (accepted 2026-09-29)
 - Phase 10 (accepted 2026-10-01; PR #10 merged as `2e758f1`)
+- Phase 11 (accepted 2026-10-05; PR #11 merged as `47ed2fa`, CI green)
 
 ## Known issues
 
@@ -2800,6 +2856,7 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   may shift it — `FfmpegSpeedIntegrationTests` (10 ms bound) catches that.
 - New Project while `ImportManyAsync` is still checking the picked files adds them to the new project (the import
   adds to whatever project is current when it finishes). Out of scope of Step 9.3 (product owner, 2026-09-25).
+  Planned for Phase 12 Step 12.8 (D027 §7).
 
 - Text clips (D021): the Preview (Avalonia) silently substitutes a font that isn't installed. Phase 8
   (D023) renders text like the Preview (no `drawtext`), so the export falls back the same way; the
