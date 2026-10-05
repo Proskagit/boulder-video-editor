@@ -105,6 +105,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(DeleteSelectedCommand))]
     [NotifyCanExecuteChangedFor(nameof(RippleDeleteCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CopyCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DuplicateCommand))]
     private bool _hasSelection;
 
     /// <summary>A dissolve is selected (and no clip).</summary>
@@ -149,6 +151,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _clipViewModels.Clear();
         _transitionViewModels.Clear();
         _selectedTransitionId = null;
+        Clipboard = null;   // copied clips refer to the previous project's media and tracks (D027 §5)
         PixelsPerSecond = Sequence.ZoomPixelsPerSecond;
         SnappingEnabled = Sequence.SnappingEnabled;
         Refresh();
@@ -499,6 +502,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         DeleteSelectedCommand.NotifyCanExecuteChanged();
         RippleDeleteCommand.NotifyCanExecuteChanged();
         CloseGapCommand.NotifyCanExecuteChanged();
+        PasteCommand.NotifyCanExecuteChanged();
+        DuplicateCommand.NotifyCanExecuteChanged();
         AddDissolveCommand.NotifyCanExecuteChanged();
         AddVideoTrackCommand.NotifyCanExecuteChanged();
         AddAudioTrackCommand.NotifyCanExecuteChanged();
@@ -581,6 +586,59 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (_selection.Count != 1) return;
         Report(_edit.CloseGapBefore(_selection[0]), successMessage: "Gap closed");
+    }
+
+    // --- Copy / paste / duplicate (D027 §5) ------------------------------------------
+    // The clipboard is this panel's session state for the current project (cleared on New / Open / Recover): what the
+    // edit service copied. Placement, tracks, media and overlap rules are the service's; its message is shown when it
+    // refuses. Copy changes nothing, so it stays available during an export.
+
+    /// <summary>The clips copied last (null = nothing copied in this project).</summary>
+    public TimelineClipboard? Clipboard
+    {
+        get => _clipboard;
+        private set
+        {
+            if (SetProperty(ref _clipboard, value))
+                PasteCommand.NotifyCanExecuteChanged();
+        }
+    }
+    private TimelineClipboard? _clipboard;
+
+    private bool CanCopy() => HasSelection;
+    private bool CanPaste() => CanEdit() && Clipboard is not null;
+    private bool CanDuplicate() => CanEdit() && HasSelection;
+
+    /// <summary>"Copy" (Ctrl+C): the selected clips.</summary>
+    [RelayCommand(CanExecute = nameof(CanCopy))]
+    private void Copy()
+    {
+        if (_edit.CopyClips(_selection.ToList()) is not { } copied)
+        {
+            _status.Report("Nothing was copied: a selected clip no longer exists.");
+            return;
+        }
+        Clipboard = copied;
+        _status.Report(copied.Count == 1 ? "1 clip copied" : $"{copied.Count} clips copied");
+    }
+
+    /// <summary>"Paste" (Ctrl+V): the copied clips at the playhead, on their tracks; the pasted clips are selected.</summary>
+    [RelayCommand(CanExecute = nameof(CanPaste))]
+    private void Paste()
+    {
+        if (Clipboard is not { } clipboard) return;
+        var result = _edit.PasteClips(clipboard, Playhead);
+        SelectAdded(result);
+        Report(result, successMessage: result.ClipIds.Count == 1 ? "1 clip pasted" : $"{result.ClipIds.Count} clips pasted");
+    }
+
+    /// <summary>"Duplicate" (Ctrl+D): copies of the selected clips right after them; the copies are selected.</summary>
+    [RelayCommand(CanExecute = nameof(CanDuplicate))]
+    private void Duplicate()
+    {
+        var result = _edit.DuplicateClips(_selection.ToList());
+        SelectAdded(result);
+        Report(result, successMessage: result.ClipIds.Count == 1 ? "1 clip duplicated" : $"{result.ClipIds.Count} clips duplicated");
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))] private void AddVideoTrack() => Report(_edit.AddTrack(TrackType.Video));

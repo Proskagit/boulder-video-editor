@@ -559,7 +559,7 @@ Scope: D027 §2.
   delete, then a real export of 20 frames matching the Preview byte for byte at the new cut — `ExportRippleEndToEndTests`)*.
 - Depends on: 12.4.
 
-### 12.6 — Copy / paste / duplicate
+### 12.6 — Copy / paste / duplicate *(done — accepted 2026-10-05; D027 "Refined in Step 12.6"; Copy by Ctrl+C only; manual scenarios 22–28 at 12.9 at the latest)*
 Scope: D027 §5.
 - PR: copy keeps the selected clips with timing and properties (incl. text and fades, no dissolve); paste puts them at
   the playhead with their distances kept, on their own tracks when possible; a paste that would overlap or break a rule

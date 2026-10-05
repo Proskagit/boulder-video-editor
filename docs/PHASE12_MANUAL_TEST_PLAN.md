@@ -60,13 +60,13 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 22 | Copy / paste one clip | Copy a clip with speed, volume, opacity, transform, crop, fades; move the playhead; paste | A new clip at the playhead with every property; the original unchanged | — | planned |
-| 23 | Several clips keep distances | Copy two clips on two tracks with a gap; paste | Same tracks, same distances from the playhead | — | planned |
-| 24 | Text clip | Copy / paste a text clip | Text, font, size, colour, alignment kept | — | planned |
-| 25 | Dissolve not copied | Copy A and B joined by a dissolve; paste | Two clips, no dissolve | — | planned |
-| 26 | Rejected paste | Paste where a clip would overlap | Rejected with a message; nothing pasted | — | planned |
-| 27 | Duplicate | Duplicate a selection | Copies placed as decided at 12.6; one Undo removes them | — | planned |
-| 28 | Undo / save | Undo / Redo a paste; save and reopen | Exact; pasted clips persist with their properties | — | planned |
+| 22 | Copy / paste one clip | Copy a clip with speed, volume, opacity, transform, crop, fades (Ctrl+C — no Copy button); move the playhead; Paste (button or Ctrl+V) | A new clip at the playhead with every property, the same media; the original unchanged; the new clip selected | `ClipboardEditTests` (video clip, detached copy), `TimelineClipboardUiTests` (paste at the playhead) | auto (12.6); manual pending |
+| 23 | Several clips keep distances | Copy two clips on two tracks with a gap; paste | Same tracks, same distances from the playhead | `ClipboardEditTests` (two tracks) | auto (12.6); manual pending |
+| 24 | Text clip | Copy / paste a text clip | Text, font, size, colour, alignment kept | `ClipboardEditTests` (text) | auto (12.6); manual pending |
+| 25 | Dissolve not copied | Copy A and B joined by a dissolve; paste | Two clips, no dissolve | `ClipboardEditTests` (no dissolve) | auto (12.6); manual pending |
+| 26 | Rejected paste | Paste where a clip would overlap; paste onto a locked track; copy, remove the media, paste | Each rejected with a message; nothing pasted | `ClipboardEditTests` (overlap, locked, deleted track, removed media, frame rate) | auto (12.6); manual pending |
+| 27 | Duplicate | Duplicate a selection (Duplicate or Ctrl+D); then duplicate a clip followed directly by another | The copies start where the selection ends, on the same tracks, selected; one Undo removes them; the second is refused (it would overlap) | `ClipboardEditTests` (duplicate), `TimelineClipboardUiTests` (duplicate) | auto (12.6); manual pending |
+| 28 | Undo / save / typing | Undo / Redo a paste; save and reopen; press Ctrl+C / Ctrl+V while editing the Inspector's text | Exact; pasted clips persist with their properties; in the text box Ctrl+C / Ctrl+V copy and paste text, not clips | `ClipboardEditTests` (save / reopen), `ShortcutRoutingTests` (text input) | auto (12.6); manual pending |
 
 ## Step 12.7 — markers (D027 §6)
 
@@ -94,4 +94,17 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 ## Results log
 
-None yet.
+### 2026-10-05 — Step 12.6 header layout check (Claude), Debug, isolated profile
+
+The timeline header and the panels touched by Phase 12 at the window's default size and at its minimum width (the
+Debug build from the scratch artifacts, `USERPROFILE` / `LOCALAPPDATA` in a scratch folder, the Phase 10 fade fixture
+project, 125 % display scaling; the window narrowed by dragging its border).
+- 1440 × 900: the whole timeline header fits with room to spare; track headers (84 px) with ▲ ▼ ✕ whole.
+- 1024 px wide, with a Copy button: the header overflowed — Fit cut at the right edge, "+ Video Track" right against
+  "25 FPS". The Copy button was removed (Ctrl+C stays; the product owner's rule for this case).
+- 1024 px wide, after the change: the header fits — Fit whole with its margin, a gap after "25 FPS"; −, + and Fit work
+  (the ruler at 5 s steps, then 2 s, then the whole 0:00–0:34); ▲ ▼ ✕ whole; the Media Browser's ✕ on the selected row
+  whole (260 px panel).
+- Not checked: the minimum height (640 px) — a scripted resize left the window taller than requested and dragging the
+  bottom border to the minimum did not take on this mixed-DPI multi-monitor desktop; the header doesn't depend on it.
+- Scenarios 22–28 themselves (copy / paste / duplicate in the app) are not run yet: manual pending.

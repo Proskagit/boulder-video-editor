@@ -4,7 +4,7 @@
 
 Phase 12 — Editing essentials: **in progress** on branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main`
 after the merge of PR #11). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 12 — Editing
-essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.5 accepted (2026-10-05).
+essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.6 accepted (2026-10-05).
 
 ### Phase 12 — Editing essentials (in progress)
 
@@ -180,6 +180,63 @@ permission; no next step without the product owner's go.
     `--blame-hang --blame-hang-timeout 5m`, each 2279 passed / 2 skipped / 0 failed over all 8 test assemblies, no hang,
     no dump; `git diff --check` clean. The Preview ↔ Export parity suites unchanged and green. No fix needed. Not run:
     the heavy 4K scenes, CI (not pushed), the manual scenarios 14–21.
+  - Committed as `a2f8c7c` (the product owner's permission, 2026-10-05; not pushed).
+- Step 12.6 done and accepted (2026-10-05) — copy / paste / duplicate (D027 §5; the rules chosen and the edge cases in
+  D027 "Refined in Step 12.6", all confirmed by the product owner: copy from a locked track, offline media pasted, media
+  removed after the copy blocks the paste until its Undo, another frame rate needs a new copy, one problem rejects the
+  whole paste / duplicate, the clipboard only for the current project, no system clipboard, nothing saved). Started on
+  the product owner's instruction right after the 12.5 commit.
+  - Audit before the code: clips refer to media only through `MediaBackedClip.MediaAssetId`; `TimelineEditService`
+    already clones a clip with every property for Split (`CloneClip`: a new id, the same asset); new clips go into an
+    `EditPlan` (`Insert`) and are validated (no overlap) and committed as one `IUndoableCommand`, as Add does; the
+    selection lives in `TimelineViewModel` (`SelectAdded` selects new clips); `ShortcutRouter` is a key → command table
+    with the text-input guard.
+  - Core: `ITimelineEditService.CopyClips` (→ `TimelineClipboard` / `TimelineClipboardEntry`), `PasteClips`,
+    `DuplicateClips`.
+  - Timeline: `TimelineEditService` — `ShiftedState` (the move's timing rule, out of `PlanShift`), `CopyClips`
+    (`CloneClip` per clip, its track, the rate), `PasteInto` (rate, track, lock and media checks, `CloneClip` + the
+    shifted state, `Insert`, `Validate`, `Commit`) for Paste and Duplicate. No new command class.
+  - UI: `TimelineViewModel.Clipboard` (emptied on another project), `CopyCommand` / `PasteCommand` /
+    `DuplicateCommand` (status messages, the new clips selected); `TimelineView.axaml` — Paste and Duplicate in the
+    header (Copy by Ctrl+C only, after the 1024 px check below); `ShortcutRouter` — Ctrl+C / Ctrl+V / Ctrl+D. The design-time stub and the `MediaOrientationRefreshTests`
+    stub completed.
+  - Tests (new, 25): `Timeline.Tests/ClipboardEditTests` (16: copy is no project change, nothing / a missing
+    clip copies nothing; a video clip at 2× with transform, crop, volume, fades pasted with a new id, the same asset
+    and source range; a text clip's text and style; clips of two tracks keep tracks and distances, one Undo; a copy is
+    detached from later edits; no dissolve copied; an overlap rejects the whole paste; a locked target rejects, copying
+    from it is allowed; a deleted track rejects; media removed after the copy rejects, its Undo lets the paste work;
+    offline media pasted, in the snapshot; another frame rate rejects; the paste snapped to the grid and in the
+    snapshot; pasted clips survive save / reopen in v3; duplicate after the selection on two tracks, one Undo;
+    duplicate rejected for an overlap, a locked track, a missing clip, nothing); `UI.Tests/TimelineClipboardUiTests`
+    (5: what each command needs, Copy allowed during an export; Paste at the playhead selecting the copies, a second
+    one at the same place refused; Duplicate after the selection, selected, Undo; a refused Duplicate's message and the
+    selection kept; another project empties the clipboard). Changed: `UI.Tests/ShortcutRoutingTests` (the table +3
+    rows — also checked against a focused text box — and C / V / D without Ctrl, Ctrl+Shift+C not shortcuts).
+  - Not automated: Ctrl+C / Ctrl+V / Ctrl+D and the copy / paste flows in the running app — manual scenarios 22–28.
+  - Verification (on the product owner's command; `--artifacts-path` in the session's scratch folder): `dotnet build
+    AiVideoEditor.sln --no-incremental -warnaserror` 0 errors / 0 warnings. The first full run had 1 failure —
+    `ClipboardEditTests.Clips_of_several_tracks_keep_their_tracks_and_distances_from_the_earliest`, "Clip edges must lie
+    on the project frame grid": the test helper gave clips the length `F(end − start)`, at 30 fps a tick off
+    `F(end) − F(start)`, so a clip's end was off the grid and the validator rightly refused the paste onto its track.
+    Fixed in the two 12.6 test helpers (`ClipboardEditTests`, `TimelineClipboardUiTests`: `F(end) − F(start)`), no
+    production change (the same helper in the committed 12.3 / 12.5 tests left alone — a separate cleanup, product
+    owner). Then: `dotnet test` 2304 passed, 2 skipped (only the two 4K heavy scenes), 0 failed — Core 448, Timeline
+    416 (+16), Project 371, UI 530 (+9: 5 + 4 new `ShortcutRoutingTests` cases; the 3 new table rows checked by the
+    existing facts), Export 99, Rendering 58, Video 294, ExportEndToEnd 88 + 2; three runs with `--blame-hang
+    --blame-hang-timeout 5m`, each 2304 / 0 / 2 over all 8 test assemblies, no hang, no dump; `git diff --check` clean.
+    The Preview ↔ Export parity suites unchanged and green; the pasted clips are asserted in the playback snapshot.
+  - Real-app UI check (the product owner's permission; the Debug build from the scratch artifacts, an isolated profile
+    — `USERPROFILE` / `LOCALAPPDATA` in the scratch folder —, the Phase 10 fade fixture project with V2 / V1 / A1 and
+    media, 125 % display scaling): at 1440 × 900 everything fits with room to spare. At the minimum width (1024 px,
+    reached by dragging the window border) the timeline header overflowed: Fit cut at the right edge and "+ Video
+    Track" right against "25 FPS". As the product owner had decided for that case, only the Copy button was removed
+    (Ctrl+C stays). Rebuilt (0 / 0) and checked again at 1024 px: the whole header fits — Fit complete with its margin,
+    a gap after "25 FPS"; −, + and Fit work (the ruler went to 5 s, then 2 s steps, Fit showed 0:00–0:34); the 84 px
+    track headers show ▲ ▼ ✕ whole; the Media Browser's ✕ on the selected row (260 px panel) is whole. Full suite again
+    after the change: 2304 / 0 / 2. Not checked: the minimum height (640) — setting the window size from outside
+    (SetWindowPos) left the window taller than requested (an interplay of Avalonia's size limits with the scripted
+    resize on this multi-monitor, mixed-DPI desktop; dragging works), and dragging the bottom border to its minimum
+    did not take; the header row does not depend on the height.
 
 ### Phase 11 — Media relink & recent projects (complete; PR #11 merged as `47ed2fa`, CI green)
 

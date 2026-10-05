@@ -74,6 +74,25 @@ public interface ITimelineEditService
     /// clip starts at 0 or right where another clip ends.</summary>
     TimelineEditResult CloseGapBefore(Guid clipId);
 
+    /// <summary>Copy (D027 §5): detached copies of the clips — timing, speed, source range, properties, text, fades,
+    /// the media they refer to (never the file) and the track each came from; no dissolve. Later edits of the clips
+    /// don't change it. Not a project change (no Undo step); allowed from a locked track. Null when nothing could be
+    /// copied (no clip given, or one no longer exists).</summary>
+    TimelineClipboard? CopyClips(IReadOnlyCollection<Guid> clipIds);
+
+    /// <summary>Paste (D027 §5): new clips (new ids) from <paramref name="clipboard"/>, the earliest starting at
+    /// <paramref name="at"/> (snapped to the frame grid) and the others at their copied distances from it, each on the
+    /// track it was copied from. Rejected as a whole — nothing pasted — when a clip would overlap another or break a
+    /// rule: its track no longer exists or is locked, its media is no longer in the project, the project frame rate
+    /// changed since the copy. Offline media is pasted like any other (the clip refers to the same asset). One Undo
+    /// step; <see cref="TimelineEditResult.ClipIds"/> are the new clips.</summary>
+    TimelineEditResult PasteClips(TimelineClipboard clipboard, MediaTime at);
+
+    /// <summary>Duplicate (D027 §5): copies the clips and pastes them in one step right after them — the earliest copy
+    /// starts where the last of them ends, every copy on its clip's track, the distances kept. Rejected as
+    /// <see cref="PasteClips"/> is (an overlap, a locked track). One Undo step.</summary>
+    TimelineEditResult DuplicateClips(IReadOnlyCollection<Guid> clipIds);
+
     TimelineEditResult AddTrack(TrackType type);
 
     /// <summary>Deletes a track together with its clips and dissolves (D027 §3) as one Undo step; Undo puts the same
@@ -171,6 +190,25 @@ public sealed record ClipPropertyChange
     /// length; it is stored as exactly that many frames.</summary>
     public FadeProperties? Fade { get; init; }
 }
+
+/// <summary>What <see cref="ITimelineEditService.CopyClips"/> took (D027 §5): detached copies of clips — never part of a
+/// project — with the track each came from, and the project frame rate they were copied at. Only the edit service reads
+/// the copies; the UI keeps the clipboard for the session of one project.</summary>
+public sealed class TimelineClipboard
+{
+    public TimelineClipboard(FrameRate frameRate, IReadOnlyList<TimelineClipboardEntry> entries)
+    {
+        FrameRate = frameRate;
+        Entries = entries;
+    }
+
+    public FrameRate FrameRate { get; }
+    public IReadOnlyList<TimelineClipboardEntry> Entries { get; }
+    public int Count => Entries.Count;
+}
+
+/// <summary>One copied clip (a detached copy, never inserted itself) and the id of the track it was copied from.</summary>
+public sealed record TimelineClipboardEntry(Clip Clip, Guid TrackId);
 
 /// <summary>Outcome of a timeline edit. <see cref="Message"/> is safe to show in the
 /// status bar; on success it may carry an informational note (e.g. frame rate fixed).</summary>

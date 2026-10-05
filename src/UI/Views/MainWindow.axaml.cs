@@ -186,6 +186,9 @@ public partial class MainWindow : Window
         public TimelineEditResult RippleDeleteClips(IReadOnlyCollection<Guid> clipIds) => Nothing;
         public TimelineEditResult CloseGap(Guid trackId, MediaTime at) => Nothing;
         public TimelineEditResult CloseGapBefore(Guid clipId) => Nothing;
+        public TimelineClipboard? CopyClips(IReadOnlyCollection<Guid> clipIds) => null;
+        public TimelineEditResult PasteClips(TimelineClipboard clipboard, MediaTime at) => Nothing;
+        public TimelineEditResult DuplicateClips(IReadOnlyCollection<Guid> clipIds) => Nothing;
         public TimelineEditResult AddTrack(TrackType type) => Nothing;
         public TimelineEditResult DeleteTrack(Guid trackId) => Nothing;
         public string? GetDeleteTrackBlockReason(Guid trackId) => "Design time.";

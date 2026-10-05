@@ -223,20 +223,27 @@ public sealed class TimelineEditService : ITimelineEditService
     /// along. Null when planned, otherwise why not.</summary>
     private string? PlanShift(EditPlan plan, Clip clip, Track toTrack, long frameDelta)
     {
-        var rate = plan.Rate;
         if (!TimelineValidator.IsCompatible(clip, toTrack.Type))
             return clip is AudioClip ? "Audio can only go on an audio track." : "Video and images can only go on a video track.";
+        var (after, error) = ShiftedState(clip, frameDelta, plan.Rate);
+        if (error is not null) return error;
+        plan.Update(clip, toTrack, after);
+        return null;
+    }
 
+    /// <summary>The timing <paramref name="clip"/> has when moved by <paramref name="frameDelta"/> whole frames (the move's
+    /// rule, also used for pasted copies), or why it can't move.</summary>
+    private (ClipState State, string? Error) ShiftedState(Clip clip, long frameDelta, FrameRate rate)
+    {
         var startFrame = clip.TimelineStart.ToNearestFrame(rate) + frameDelta;
         var endFrame = clip.TimelineEnd.ToNearestFrame(rate) + frameDelta;
         if (startFrame < 0)
-            return "Clips can't be moved before the beginning of the timeline.";
+            return (default, "Clips can't be moved before the beginning of the timeline.");
 
         if (clip is MediaBackedClip { Speed.IsNormal: false } fast)
         {
             // D022: the source range and speed move along unchanged; so does the frame count.
-            plan.Update(clip, toTrack, ClipState.FromFrames(startFrame, endFrame, fast.SourceIn, fast.SourceOut, fast.Speed, rate));
-            return null;
+            return (ClipState.FromFrames(startFrame, endFrame, fast.SourceIn, fast.SourceOut, fast.Speed, rate), null);
         }
 
         var sourceIn = clip is MediaBackedClip m ? m.SourceIn : MediaTime.Zero;
@@ -250,12 +257,78 @@ public sealed class TimelineEditService : ITimelineEditService
         {
             var excess = after.SourceOut - sourceDuration;
             if (after.SourceIn < excess)
-                return "A clip can't extend past the end of its source media.";
+                return (default, "A clip can't extend past the end of its source media.");
             after = after with { SourceIn = after.SourceIn - excess, SourceOut = sourceDuration };
         }
 
-        plan.Update(clip, toTrack, after);
-        return null;
+        return (after, null);
+    }
+
+    // --- Copy / paste / duplicate (D027 §5) --------------------------------------
+
+    public TimelineClipboard? CopyClips(IReadOnlyCollection<Guid> clipIds)
+    {
+        if (clipIds.Count == 0) return null;
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, clipIds, out var clips) is not null) return null;
+        var entries = clips.OrderBy(c => c.TimelineStart)
+            .Select(c => new TimelineClipboardEntry(CloneClip(c), plan.TrackOf(c).Id))
+            .ToList();
+        return new TimelineClipboard(plan.Rate, entries);
+    }
+
+    public TimelineEditResult PasteClips(TimelineClipboard clipboard, MediaTime at)
+    {
+        ArgumentNullException.ThrowIfNull(clipboard);
+        if (clipboard.Count == 0) return TimelineEditResult.Unchanged();
+        var plan = new EditPlan(Sequence, Settings);
+        return PasteInto(plan, clipboard, Math.Max(0, at.ToNearestFrame(plan.Rate)), clipboard.Count == 1 ? "Paste Clip" : "Paste Clips", "paste");
+    }
+
+    public TimelineEditResult DuplicateClips(IReadOnlyCollection<Guid> clipIds)
+    {
+        if (clipIds.Count == 0) return TimelineEditResult.Unchanged();
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, clipIds, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+        if (CheckEditable(plan, clips) is { } editError) return TimelineEditResult.Fail(editError);
+
+        var clipboard = CopyClips(clipIds)!;
+        var end = clips.Max(c => c.TimelineEnd.ToNearestFrame(plan.Rate));
+        return PasteInto(plan, clipboard, end, clips.Count == 1 ? "Duplicate Clip" : "Duplicate Clips", "duplicate");
+    }
+
+    /// <summary>New copies of the clipboard's clips, the earliest at <paramref name="atFrame"/>, each on its own track,
+    /// planned, validated and committed as one step — or the reason nothing was added.</summary>
+    private TimelineEditResult PasteInto(EditPlan plan, TimelineClipboard clipboard, long atFrame, string description, string verb)
+    {
+        var rate = plan.Rate;
+        if (clipboard.FrameRate != rate)
+            return TimelineEditResult.Fail("The project frame rate changed since the clips were copied. Copy them again.");
+
+        var earliest = clipboard.Entries.Min(e => e.Clip.TimelineStart.ToNearestFrame(rate));
+        var ids = new List<Guid>();
+        foreach (var entry in clipboard.Entries)
+        {
+            if (FindTrack(entry.TrackId) is not { } track)
+                return TimelineEditResult.Fail($"Can't {verb}: the track of a copied clip no longer exists.");
+            if (track.IsLocked)
+                return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+            if (entry.Clip is MediaBackedClip media && FindAsset(media.MediaAssetId) is null)
+                return TimelineEditResult.Fail($"Can't {verb}: the media of a copied clip is no longer in the project.");
+
+            var copy = CloneClip(entry.Clip);                      // a new id; the same asset, never the file
+            var (state, error) = ShiftedState(copy, atFrame - earliest, rate);
+            if (error is not null) return TimelineEditResult.Fail($"Can't {verb}: {error}");
+            state.ApplyTo(copy);
+            plan.Insert(track, copy);
+            ids.Add(copy.Id);
+        }
+
+        // An overlap or any other broken rule rejects the whole paste (D027 §5); no dissolve is created.
+        if (Validate(plan) is { } invalid) return TimelineEditResult.Fail($"Can't {verb}: {invalid}");
+
+        Commit(plan, description);
+        return TimelineEditResult.Ok(ids);
     }
 
     // --- Trim ------------------------------------------------------------------

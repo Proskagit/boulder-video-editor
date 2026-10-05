@@ -2061,6 +2061,33 @@ product owner the same day):
 - UI: "Ripple Delete" (the selected clips; the selection cleared) and "Close Gap" (exactly one selected clip; the
   selection kept) in the timeline header next to Delete; disabled during an export; no hotkeys.
 
+Refined in Step 12.6 (implementation, 2026-10-05; rules 1–7 of the step's report confirmed by the product owner the same
+day):
+- Copy takes detached copies of the selected clips (`ITimelineEditService.CopyClips` → `TimelineClipboard`): timing,
+  speed, source range, every property, text, fades, the media asset they refer to (never a file), the track each came
+  from and the project frame rate; no dissolve. It is no project change (no Undo step, not dirty) and is allowed from a
+  locked track and during an export. Later edits of the clips don't change what was copied.
+- Paste (`PasteClips`): new clips with new ids, the earliest at the playhead (snapped to the frame grid), the others at
+  their copied distances, each on the track it was copied from; the pasted clips become the selection. Rejected as a
+  whole — nothing pasted, no Undo step — when a clip would overlap another (the timeline's validation), its track no
+  longer exists or is locked, its media is no longer in the project (removed after the copy — an Undo of the removal
+  makes the paste work again), or the project frame rate changed since the copy (the first video fixed it): "Copy them
+  again". No other track is tried.
+- Offline media after the copy: pasted like any other clip — the copy refers to the same asset, as its original does;
+  it is shown and exported (the export preflight blocks offline media) exactly like the original, and a relink brings
+  both back. Unlike Add to Timeline, which refuses offline media because nothing of it is on the timeline yet.
+- Duplicate (`DuplicateClips`): copy and paste in one step, the earliest copy starting where the last selected clip
+  ends, every copy on its clip's track; rejected like Paste (also when a copy would overlap the next clip).
+- The clipboard is the timeline panel's session state for the current project: emptied on New / Open / Recover (its
+  media and tracks belong to that project); not the system clipboard; not saved.
+- The move's timing rule (`PlanShift`) now computes the state in `ShiftedState`, used for pasted copies too (same
+  frame count, speed and source range at the new place).
+- UI: "Paste" and "Duplicate" in the timeline header; Copy has no button — Ctrl+C only (the real-app check at the
+  minimum window width, 1024 px: with a Copy button the header overflowed — Fit cut at the right edge, no gap after
+  the frame rate — so, as the product owner had decided for that case, only the Copy button was removed). Ctrl+C /
+  Ctrl+V / Ctrl+D through `ShortcutRouter` (three rows of its table, no structural change; never while a text input has
+  focus, so a text box keeps its own Ctrl+C / Ctrl+V). Paste and Duplicate are disabled during an export.
+
 Status: Accepted (2026-10-05, product owner decisions of 2026-10-05). Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 12 — Editing essentials: steps". Sub-decisions are proposed at the start of their
 step, confirmed by the product owner and recorded as a refinement here.

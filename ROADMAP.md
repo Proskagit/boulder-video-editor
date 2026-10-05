@@ -71,7 +71,10 @@ track and locked tracks kept) accepted (2026-10-05; build 0 / 0, 2237 passed, 2 
 clean, `5bcdcbb`); Step 12.4 (removing media from the project, undoable, with its clips after a confirmation)
 accepted (2026-10-05; build 0 / 0, 2255 passed, 2 skipped, three `--blame-hang` runs clean, `097e555`); Step 12.5
 (ripple delete of the selected clips and close gap, undoable) accepted (2026-10-05; build 0 / 0, 2279 passed, 2
-skipped, three `--blame-hang` runs clean; a real export after a ripple matches its Preview). Details: `progress.md`.
+skipped, three `--blame-hang` runs clean; a real export after a ripple matches its Preview; `a2f8c7c`); Step 12.6 (copy /
+paste / duplicate of clips, undoable, Ctrl+C / Ctrl+V / Ctrl+D) accepted (2026-10-05; build 0 / 0, 2304 passed, 2
+skipped, three `--blame-hang` runs clean; the header checked at 1024 and 1440 px, the Copy button removed for 1024 px).
+Details: `progress.md`.
 
 ## Previous
 

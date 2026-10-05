@@ -206,6 +206,9 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult RippleDeleteClips(IReadOnlyCollection<Guid> clipIds) => No;
         public TimelineEditResult CloseGap(Guid trackId, MediaTime at) => No;
         public TimelineEditResult CloseGapBefore(Guid clipId) => No;
+        public TimelineClipboard? CopyClips(IReadOnlyCollection<Guid> clipIds) => null;
+        public TimelineEditResult PasteClips(TimelineClipboard clipboard, MediaTime at) => No;
+        public TimelineEditResult DuplicateClips(IReadOnlyCollection<Guid> clipIds) => No;
         public TimelineEditResult AddTrack(TrackType type) => No;
         public TimelineEditResult DeleteTrack(Guid trackId) => No;
         public string? GetDeleteTrackBlockReason(Guid trackId) => null;

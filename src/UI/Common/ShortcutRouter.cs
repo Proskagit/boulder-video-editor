@@ -76,6 +76,11 @@ public static class ShortcutRouter
             Key.I when ctrl => vm.Toolbar.ImportMediaCommand,
             Key.E when ctrl => vm.Toolbar.ExportCommand,
             Key.OemPipe or Key.OemBackslash when none => timeline.ZoomToFitCommand,
+            // Phase 12 Step 12.6 (D027 §5): the clipboard of the timeline — never while typing (the text box keeps its
+            // own Ctrl+C / Ctrl+V, above).
+            Key.C when ctrl => timeline.CopyCommand,
+            Key.V when ctrl => timeline.PasteCommand,
+            Key.D when ctrl => timeline.DuplicateCommand,
             _ => null
         };
     }
