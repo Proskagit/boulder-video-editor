@@ -204,6 +204,9 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult Split(MediaTime at, IReadOnlyCollection<Guid>? clipIds = null) => No;
         public TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds) => No;
         public TimelineEditResult AddTrack(TrackType type) => No;
+        public TimelineEditResult DeleteTrack(Guid trackId) => No;
+        public string? GetDeleteTrackBlockReason(Guid trackId) => null;
+        public TimelineEditResult MoveTrack(Guid trackId, int direction) => No;
         public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change) => No;
         public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds) => SnapResult.None;
     }

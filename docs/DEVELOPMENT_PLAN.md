@@ -523,7 +523,7 @@ and the editing gaps audited; no change (report in `progress.md`).
 outdated by the merge (CI pending, branch not published) corrected; D027, this section, ROADMAP, README,
 `progress.md`, ARCHITECTURE, `docs/README.md`, `docs/PHASE12_MANUAL_TEST_PLAN.md` (skeleton). Documentation only.
 
-### 12.3 — Tracks: delete and reorder
+### 12.3 — Tracks: delete and reorder *(done — accepted 2026-10-05; D027 "Refined at the start of Step 12.3"; manual scenarios 1–7 at 12.9 at the latest)*
 Scope: D027 §3.
 - PR: a track can be deleted; a track with clips only after a confirmation, its clips and dissolves with it; Undo
   restores the track at its place with its order, name, flags, clips and dissolves.

@@ -110,6 +110,48 @@ public sealed class AddTrackCommand(Sequence sequence, Track track) : IUndoableC
     }
 }
 
+/// <summary>Removes a track with everything on it (D027 §3); Undo puts the same object back at the same place of its
+/// list, so its order, name, flags, clips and dissolves come back unchanged.</summary>
+public sealed class RemoveTrackCommand(Sequence sequence, Track track) : IUndoableCommand
+{
+    private int _index = -1;
+
+    public string Description => "Delete Track";
+    public Track Track { get; } = track;
+
+    private List<Track> List => Track.Type == TrackType.Video ? sequence.VideoTracks : sequence.AudioTracks;
+
+    public void Execute()
+    {
+        _index = List.IndexOf(Track);
+        if (_index < 0) throw new InvalidOperationException($"Track '{Track.Name}' is not in the sequence.");
+        List.RemoveAt(_index);
+    }
+
+    public void Undo() => List.Insert(Math.Min(_index, List.Count), Track);
+}
+
+/// <summary>One track's <see cref="Track.Order"/> before and after a move.</summary>
+public readonly record struct TrackOrderChange(Track Track, int Before, int After);
+
+/// <summary>Sets the <see cref="Track.Order"/> of tracks from one absolute state to another (D027 §3): the layer order
+/// of the timeline, the Preview and the export. Nothing else changes; Undo writes the captured values back.</summary>
+public sealed class SetTrackOrderCommand(IReadOnlyList<TrackOrderChange> changes) : IUndoableCommand
+{
+    public string Description => "Move Track";
+    public IReadOnlyList<TrackOrderChange> Changes { get; } = changes;
+
+    public void Execute()
+    {
+        foreach (var c in Changes) c.Track.Order = c.After;
+    }
+
+    public void Undo()
+    {
+        foreach (var c in Changes) c.Track.Order = c.Before;
+    }
+}
+
 /// <summary>
 /// Sets a clip's non-timing properties from one absolute snapshot to another. Execute writes
 /// <see cref="After"/>, Undo writes <see cref="Before"/> — the captured values themselves, never

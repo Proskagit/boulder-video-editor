@@ -13,6 +13,7 @@ gaps, a text clip, an image, an offline asset.
 
 Status column — kinds of evidence, never mixed:
 - **planned** — written at 12.2, not implemented yet;
+- **auto (12.x); manual pending** — implemented and covered by automated tests at step 12.x, not yet run in the real app;
 - **auto** — covered by automated tests only, not checked in the real app;
 - **app 12.x (Claude), passed** — checked in the real app by Claude while implementing / accepting step 12.x;
 - **12.9 (Claude): PASS / FAIL / BLOCKED / NOT RUN** — the formal Step 12.9 run;
@@ -23,13 +24,13 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 1 | Delete an empty track | Add a video track; delete it | The track is gone, no confirmation; Undo brings it back at its place; the project is dirty, clean again after Undo to the save point | — | planned |
-| 2 | Delete a track with clips | Delete a track that has clips (one with a fade, two with a dissolve) | A confirmation; Cancel changes nothing; OK removes the track, its clips and the dissolve in one step; Undo restores everything exactly | — | planned |
-| 3 | Reorder video tracks | Two overlapping video clips on V1 / V2; move V1 above V2 | The timeline shows the new order; the Preview draws the other clip on top; Undo restores the order | — | planned |
-| 4 | Reorder and export | After 3, export | The export shows the same layer order as the Preview | — | planned |
-| 5 | Reorder audio tracks | Move an audio track | Order changes in the timeline; the sound is the same mix | — | planned |
-| 6 | Save and reopen | After 2–5, Save, reopen | Tracks, order and clips as left; `formatVersion` 3 | — | planned |
-| 7 | During an export / locked track | Try the commands during an export and on a locked track (rules confirmed at 12.3) | Disabled during the export; a locked track as decided at 12.3 | — | planned |
+| 1 | Delete an empty track | Add a video track; delete it with ✕ in its header | The track is gone, no confirmation; Undo brings it back at its place; the project is dirty, clean again after Undo to the save point | `TrackEditTests` (empty, back at its place), `TimelineTrackUiTests` (no question) | auto (12.3); manual pending |
+| 2 | Delete a track with clips | Delete a track that has clips (one with a fade, two with a dissolve) | A confirmation; Cancel changes nothing; OK removes the track, its clips and the dissolve in one step; Undo restores everything exactly | `TrackEditTests` (clips, fade, dissolve restored), `TimelineTrackUiTests` (Cancel / closed / Delete Track, selection) | auto (12.3); manual pending |
+| 3 | Reorder video tracks | Two overlapping video clips on V1 / V2; move V1 above V2 | The timeline shows the new order; the Preview draws the other clip on top; Undo restores the order | `TrackEditTests` (orders, snapshot layer order, undo / redo), `TimelineTrackUiTests` (rows) | auto (12.3); manual pending |
+| 4 | Reorder and export | After 3, export | The export shows the same layer order as the Preview | `ExportTrackOrderEndToEndTests` | auto (12.3); manual pending |
+| 5 | Reorder audio tracks | Move an audio track | Order changes in the timeline; the sound is the same mix | `TrackEditTests` (audio among audio), `TimelineTrackUiTests` (audio ▲ / ▼) | auto (12.3); manual pending |
+| 6 | Save and reopen | After 2–5, Save, reopen | Tracks, order and clips as left; `formatVersion` 3 | `TrackEditTests` (save / reopen) | auto (12.3); manual pending |
+| 7 | During an export / locked track / last track | Try ▲ / ▼ / ✕ during an export; on a locked track (set in `project.json`) and next to one; delete every track but one | Disabled during the export; a locked track is neither deleted nor moved, nor moved past ("Track V2 is locked, so V1 can't move past it."); the last track stays ("The timeline needs at least one track."); no question for a refused deletion | `TrackEditTests` (locked, last track), `TimelineTrackUiTests` (lock, refused, last) | auto (12.3); manual pending |
 
 ## Step 12.4 — removing media from the project (D027 §4)
 

@@ -1999,6 +1999,28 @@ Confirmed at the Step 12.2 acceptance (product owner, 2026-10-05):
 - §7 as written: the workflow keeps the project the import started in, checks it after each await, adds nothing to
   another project and says so; no New / Open lock and no cancellation token in Phase 12.
 
+Refined at the start of Step 12.3 (product owner, 2026-10-05) and in its implementation:
+- The last track of the timeline can't be deleted: at least one track (of either kind) always stays. A timeline left
+  without a track of one kind refuses media of that kind with the existing message ("The timeline has no audio
+  track.") until one is added.
+- A locked track is neither deleted nor moved; a move that would take an unlocked track past a locked neighbour is
+  refused too (it would change the locked track's place). Refused edits change nothing and leave no Undo step.
+- No renaming (no UI); names stay as they are (a new track still takes the first free `V<n>` / `A<n>`).
+- A move changes `Track.Order` only — the lists, the clips, their timing and the dissolves stay. It swaps the two
+  tracks' orders; when they are equal (a file from elsewhere), the tracks of that kind are numbered 0, 1, … in the new
+  order (`SetTrackOrderCommand`, absolute before / after values). Neighbours are taken in the order the playback
+  snapshot composites (`Order`, equal orders by their place in the list); the timeline now lists video tracks by the
+  same rule (before, equal orders were listed the other way round from how they were drawn). Audio tracks are listed
+  by order; their mix does not depend on it.
+- Delete: `RemoveTrackCommand` takes the track object out of its list; Undo puts the same object back at the same index,
+  so its order, name, flags, clips, fades and dissolves are restored exactly. `GetDeleteTrackBlockReason` lets the UI
+  skip the confirmation when the service would refuse.
+- UI: ▲ / ▼ / ✕ in each track header (the header column 84 px instead of 70). ▲ / ▼ follow the timeline as shown —
+  video top layer first (▲ = a higher order), audio by order (▲ = a lower one) — and are enabled only next to a track
+  of the same kind; ✕ asks "Delete Track" / "Cancel" when the track has clips (naming their number); all disabled
+  during an export, and the answer is ignored when an export started meanwhile.
+- `formatVersion` stays 3.
+
 Status: Accepted (2026-10-05, product owner decisions of 2026-10-05). Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 12 — Editing essentials: steps". Sub-decisions are proposed at the start of their
 step, confirmed by the product owner and recorded as a refinement here.

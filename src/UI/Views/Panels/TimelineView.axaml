@@ -74,7 +74,7 @@
         </DockPanel>
       </Border>
 
-      <Grid ColumnDefinitions="70,*">
+      <Grid ColumnDefinitions="84,*">
 
         <!-- Track headers: scroll vertically in sync with the tracks (see code-behind). -->
         <ScrollViewer x:Name="HeaderScroll" Grid.Column="0" Background="#252526"
@@ -85,8 +85,26 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
                   <Border Height="44" BorderBrush="#1A1A1A" BorderThickness="0,0,1,1">
-                    <TextBlock Text="{Binding Label}" Foreground="#AAAAAA" FontSize="11"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <StackPanel VerticalAlignment="Center" Spacing="2">
+                      <TextBlock Text="{Binding Label}" Foreground="#AAAAAA" FontSize="11" HorizontalAlignment="Center"/>
+                      <!-- D027 §3: move among the tracks of its kind, delete (the edit service decides; locks, last track) -->
+                      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="2">
+                        <StackPanel.Styles>
+                          <Style Selector="Button">
+                            <Setter Property="FontSize" Value="9"/>
+                            <Setter Property="Padding" Value="4,0"/>
+                            <Setter Property="MinHeight" Value="0"/>
+                            <Setter Property="Height" Value="16"/>
+                          </Style>
+                        </StackPanel.Styles>
+                        <Button Content="▲" ToolTip.Tip="Move the track up"
+                                Command="{Binding $parent[ItemsControl].DataContext.MoveTrackUpCommand}" CommandParameter="{Binding}"/>
+                        <Button Content="▼" ToolTip.Tip="Move the track down"
+                                Command="{Binding $parent[ItemsControl].DataContext.MoveTrackDownCommand}" CommandParameter="{Binding}"/>
+                        <Button Content="✕" ToolTip.Tip="Delete the track (asks first when it has clips)"
+                                Command="{Binding $parent[ItemsControl].DataContext.DeleteTrackCommand}" CommandParameter="{Binding}"/>
+                      </StackPanel>
+                    </StackPanel>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>

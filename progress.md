@@ -4,8 +4,7 @@
 
 Phase 12 — Editing essentials: **in progress** on branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main`
 after the merge of PR #11). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 12 — Editing
-essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1 and 12.2 accepted
-(2026-10-05).
+essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.3 accepted (2026-10-05).
 
 ### Phase 12 — Editing essentials (in progress)
 
@@ -63,7 +62,44 @@ permission; no next step without the product owner's go.
     or several tracks) plus close gap (an empty span of one track); a time range cutting through clips would need an
     in / out selection, which does not exist and is out of scope.
 - Step 12.2 accepted by the product owner (2026-10-05), with the ripple interpretation, the dissolve rule (D027 §2) and
-  the import fix (D027 §7) confirmed — recorded in D027 "Confirmed at the Step 12.2 acceptance".
+  the import fix (D027 §7) confirmed — recorded in D027 "Confirmed at the Step 12.2 acceptance". Committed as
+  `8e2b109`.
+- Step 12.3 done and accepted (2026-10-05) — tracks: delete and reorder (D027 §3; the product owner's rules at its
+  start and the implementation in D027 "Refined at the start of Step 12.3"; the four open points of the report — at
+  least one track of either kind, no move past a locked neighbour, equal orders numbered anew, the 84 px header — and
+  the manual check of the header bindings / the E2E scene through `SetTrackOrderCommand` confirmed by the product
+  owner).
+  - Core: `ITimelineEditService.DeleteTrack`, `GetDeleteTrackBlockReason`, `MoveTrack(trackId, ±1)`.
+  - Timeline: `RemoveTrackCommand` (the same track object back at its index on Undo), `SetTrackOrderCommand` /
+    `TrackOrderChange` (absolute orders); `TimelineEditService` — refuses a locked track, the last track of the
+    timeline, a move past a locked neighbour; no neighbour = no change; equal orders numbered anew.
+  - UI: `TimelineTrackViewModel.HasTrackAbove` / `HasTrackBelow`; `TimelineViewModel` — `MoveTrackUp/Down` (video ▲ =
+    +1, audio ▲ = −1), `DeleteTrack` (asks through `IDialogService` when the track has clips; skips the question when
+    the service would refuse; ignores the answer when an export started meanwhile), the video rows listed by the
+    snapshot's rule for equal orders; `TimelineView.axaml` — ▲ / ▼ / ✕ in the track header, the column 84 px. DI: the
+    optional `IDialogService` of `TimelineViewModel` comes from the container.
+  - Tests (new): `Timeline.Tests/TrackEditTests` (13: empty track deleted and back at its place; a track
+    with clips, a fade and a dissolve deleted and restored exactly; locked not deleted; the last track kept; no audio
+    track → audio refused, a new one accepted; unknown track; a move swaps only the orders and the snapshot composites by
+    them, undo / redo; audio among audio only; no neighbour = no change; locked / past locked refused; equal orders
+    numbered anew, undo; a dissolve stays with its moved track; delete + move survive save / reopen in v3);
+    `UI.Tests/TimelineTrackUiTests` (10: arrows only towards the same kind; up / down for video and audio and the rows
+    after Undo; a refused move's message; an empty track without a question; a track with clips after Delete Track only
+    (Cancel, closed); a selected clip on the deleted track leaves the selection; no question for a refused deletion; the
+    last track kept; an export started during the question; disabled during an export);
+    `ExportEndToEnd.Tests/ExportTrackOrderEndToEndTests` (1: two solids, the order swapped — the export shows the other
+    colour on top and the Preview draws the same bytes).
+  - Not automated: the header buttons' bindings in the real view (the UI test project has no headless platform to
+    realize item templates) — manual scenarios 1–7 (run in the real app at 12.9 at the latest).
+  - Verification (on the product owner's command; built with `--artifacts-path` in the session's scratch folder): the
+    first build failed (CS0535) — two other implementations of `ITimelineEditService` lacked the new members, the
+    design-time stub `MainWindow.DesignTimeTimelineEditService` and the test stub
+    `MediaOrientationRefreshTests.TimelineEditServiceStub`; both completed (design time: "Design time."; the stub:
+    `No` / null), nothing else changed. Then `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 errors /
+    0 warnings; `dotnet test` (whole solution, once) 2237 passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448,
+    Timeline 374 (+13), Project 371, UI 506 (+10), Export 99, Rendering 58, Video 294, ExportEndToEnd 87 (+1) + 2; then
+    three runs with `--blame-hang --blame-hang-timeout 5m`, each 2237 passed / 2 skipped / 0 failed, no hang, no dump.
+    Parity suites unchanged. Not run: the heavy 4K scenes, CI (not pushed), the manual scenarios 1–7.
 
 ### Phase 11 — Media relink & recent projects (complete; PR #11 merged as `47ed2fa`, CI green)
 

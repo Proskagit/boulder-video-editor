@@ -34,6 +34,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private readonly ILogger<TimelineViewModel> _logger;
     private readonly EditingLock _editingLock;
     private readonly WaveformCoordinator? _waveforms;
+    private readonly IDialogService? _dialogs;
 
     private readonly Dictionary<Guid, TimelineClipViewModel> _clipViewModels = new();
     private readonly Dictionary<Track, TimelineTrackViewModel> _trackViewModels = new();
@@ -54,7 +55,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         StatusService status,
         ILogger<TimelineViewModel> logger,
         EditingLock? editingLock = null,
-        WaveformCoordinator? waveforms = null)
+        WaveformCoordinator? waveforms = null,
+        IDialogService? dialogs = null)
     {
         _projectService = projectService;
         _edit = edit;
@@ -71,6 +73,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             RefreshWaveforms(); // a relinked file's old waveform is gone (D026 §3) — not only replaced by a new one
         };
         _waveforms = waveforms;
+        _dialogs = dialogs;
         if (waveforms is not null)
             waveforms.WaveformReady += (_, _) => RefreshWaveforms();
 
@@ -152,7 +155,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private void Refresh()
     {
-        var desiredTracks = Sequence.VideoTracks.OrderByDescending(t => t.Order)
+        // Video top-down as the playback snapshot composites it (PlaybackSnapshotBuilder: equal orders by their place in
+        // the list, the later one on top), audio by order.
+        var desiredTracks = Sequence.VideoTracks.Select((t, index) => (t, index))
+            .OrderByDescending(x => x.t.Order).ThenByDescending(x => x.index).Select(x => x.t)
             .Concat(Sequence.AudioTracks.OrderBy(t => t.Order))
             .ToList();
 
@@ -168,6 +174,14 @@ public sealed partial class TimelineViewModel : ViewModelBase
             foreach (var stale in _trackViewModels.Keys.Except(desiredTracks).ToList())
                 _trackViewModels.Remove(stale);
         }
+        for (var i = 0; i < Tracks.Count; i++)
+        {
+            Tracks[i].HasTrackAbove = i > 0 && Tracks[i - 1].Type == Tracks[i].Type;
+            Tracks[i].HasTrackBelow = i < Tracks.Count - 1 && Tracks[i + 1].Type == Tracks[i].Type;
+        }
+        MoveTrackUpCommand.NotifyCanExecuteChanged();
+        MoveTrackDownCommand.NotifyCanExecuteChanged();
+        DeleteTrackCommand.NotifyCanExecuteChanged();
 
         var liveIds = new HashSet<Guid>();
         foreach (var trackVm in Tracks)
@@ -486,6 +500,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
         AddVideoTrackCommand.NotifyCanExecuteChanged();
         AddAudioTrackCommand.NotifyCanExecuteChanged();
         AddTextCommand.NotifyCanExecuteChanged();
+        MoveTrackUpCommand.NotifyCanExecuteChanged();
+        MoveTrackDownCommand.NotifyCanExecuteChanged();
+        DeleteTrackCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
@@ -538,6 +555,61 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     [RelayCommand(CanExecute = nameof(CanEdit))] private void AddVideoTrack() => Report(_edit.AddTrack(TrackType.Video));
     [RelayCommand(CanExecute = nameof(CanEdit))] private void AddAudioTrack() => Report(_edit.AddTrack(TrackType.Audio));
+
+    // --- Tracks (D027 §3) -------------------------------------------------------------
+    // The header's ▲ / ▼ / ✕. Every rule (locks, the last track, the neighbour) is the edit service's; its message is
+    // shown when it refuses.
+
+    private bool CanMoveTrackUp(TimelineTrackViewModel? track) => CanEdit() && track is { HasTrackAbove: true };
+    private bool CanMoveTrackDown(TimelineTrackViewModel? track) => CanEdit() && track is { HasTrackBelow: true };
+    private bool CanDeleteTrack(TimelineTrackViewModel? track) => CanEdit() && track is not null;
+
+    /// <summary>One place up in the timeline: video tracks are listed top layer first (a higher order), audio tracks by
+    /// ascending order.</summary>
+    [RelayCommand(CanExecute = nameof(CanMoveTrackUp))]
+    private void MoveTrackUp(TimelineTrackViewModel? track)
+    {
+        if (track is null) return;
+        Report(_edit.MoveTrack(track.Track.Id, track.Type == TrackType.Video ? 1 : -1), successMessage: $"Track {track.Track.Name} moved up");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanMoveTrackDown))]
+    private void MoveTrackDown(TimelineTrackViewModel? track)
+    {
+        if (track is null) return;
+        Report(_edit.MoveTrack(track.Track.Id, track.Type == TrackType.Video ? -1 : 1), successMessage: $"Track {track.Track.Name} moved down");
+    }
+
+    /// <summary>Deletes a track; one with clips only after the user confirms (D027 §3). Without a dialog service a track
+    /// with clips is not deleted.</summary>
+    [RelayCommand(CanExecute = nameof(CanDeleteTrack))]
+    private async Task DeleteTrack(TimelineTrackViewModel? track)
+    {
+        if (track is null || !CanEdit()) return;
+        var name = track.Track.Name;
+        var clipCount = track.Track.Clips.Count;
+        if (_edit.GetDeleteTrackBlockReason(track.Track.Id) is { } blocked)
+        {
+            _status.Report(blocked);
+            return;
+        }
+        if (clipCount > 0)
+        {
+            if (_dialogs is null) return;
+            var choice = await _dialogs.AskAsync(new DialogRequest
+            {
+                Title = "Delete Track",
+                Message = clipCount == 1
+                    ? $"Track {name} has 1 clip. Deleting the track deletes the clip too.\n\nYou can undo this with Undo."
+                    : $"Track {name} has {clipCount} clips. Deleting the track deletes them too, and any dissolves between them.\n\nYou can undo this with Undo.",
+                Buttons = new[] { "Delete Track", "Cancel" }
+            });
+            // The answer may come after an export started or the project was replaced; the service re-checks the rest.
+            if (choice != 0 || !CanEdit()) return;
+        }
+
+        Report(_edit.DeleteTrack(track.Track.Id), successMessage: $"Track {name} deleted");
+    }
 
     [RelayCommand] private void ToggleSnapping() => SnappingEnabled = !SnappingEnabled;
 

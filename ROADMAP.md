@@ -66,7 +66,9 @@ none created), copy / paste / duplicate of clips, markers on the timeline, and t
 `project.json` stays v3; L1-c stays open. Steps 12.3 tracks · 12.4 media removal · 12.5 ripple · 12.6 copy / paste /
 duplicate · 12.7 markers · 12.8 import / New · 12.9 closeout — scope and acceptance criteria in
 `docs/DEVELOPMENT_PLAN.md`. Step 12.1 (audit) accepted (2026-10-05); Step 12.2 (sync after the merge, scope
-formalization, documentation only) accepted (2026-10-05). Details: `progress.md`.
+formalization, documentation only) accepted (2026-10-05); Step 12.3 (tracks: delete and reorder, undoable; the last
+track and locked tracks kept) accepted (2026-10-05; build 0 / 0, 2237 passed, 2 skipped, three `--blame-hang` runs
+clean). Details: `progress.md`.
 
 ## Previous
 

@@ -57,6 +57,24 @@ public interface ITimelineEditService
 
     TimelineEditResult AddTrack(TrackType type);
 
+    /// <summary>Deletes a track together with its clips and dissolves (D027 §3) as one Undo step; Undo puts the same
+    /// track back at its place in the list, with its order, name, flags, clips and dissolves. Rejected — nothing
+    /// changes — when the track is locked or is the only track of the timeline. Asking the user first when the track
+    /// has clips is the caller's part.</summary>
+    TimelineEditResult DeleteTrack(Guid trackId);
+
+    /// <summary>Null when <see cref="DeleteTrack"/> would delete the track now, otherwise the reason it would refuse
+    /// (so the user is not asked to confirm a deletion that can't happen).</summary>
+    string? GetDeleteTrackBlockReason(Guid trackId);
+
+    /// <summary>Moves a track one place among the tracks of its kind (D027 §3) by swapping its
+    /// <see cref="Track.Order"/> with the neighbouring track (equal orders: the tracks of that kind are numbered anew
+    /// in the new order): <paramref name="direction"/> +1 towards the higher order (video: composited above), −1
+    /// towards the lower. Only the order changes — no clip, timing or dissolve.
+    /// One Undo step. Rejected when the track or that neighbour is locked; <see cref="TimelineEditResult.NoChange"/>
+    /// when there is no neighbour in that direction.</summary>
+    TimelineEditResult MoveTrack(Guid trackId, int direction);
+
     /// <summary>Sets absolute property values of one clip: every group given in
     /// <paramref name="change"/> replaces the clip's current values of that group exactly (no
     /// rounding or recomputation). Rejected when a group doesn't apply to the clip's kind, a value

@@ -544,6 +544,58 @@ public sealed class TimelineEditService : ITimelineEditService
         return TimelineEditResult.Ok();
     }
 
+    public string? GetDeleteTrackBlockReason(Guid trackId)
+    {
+        if (FindTrack(trackId) is not { } track) return "That track no longer exists.";
+        if (track.IsLocked) return $"Track {track.Name} is locked.";
+        if (Sequence.VideoTracks.Count + Sequence.AudioTracks.Count <= 1) return "The timeline needs at least one track.";
+        return null;
+    }
+
+    public TimelineEditResult DeleteTrack(Guid trackId)
+    {
+        if (GetDeleteTrackBlockReason(trackId) is { } blocked) return TimelineEditResult.Fail(blocked);
+        var track = FindTrack(trackId)!;
+
+        // The clips and dissolves stay on the track object, so Undo brings them back exactly (D027 §3).
+        _undoRedo.Execute(new NotifyingCommand(new RemoveTrackCommand(Sequence, track), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok();
+    }
+
+    public TimelineEditResult MoveTrack(Guid trackId, int direction)
+    {
+        if (direction is not (1 or -1)) throw new ArgumentOutOfRangeException(nameof(direction), direction, "Use +1 or −1.");
+        if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail("That track no longer exists.");
+        if (track.IsLocked) return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+
+        // The layer order as the playback snapshot draws it (PlaybackSnapshotBuilder): by Order, equal orders by their
+        // place in the list — lowest first.
+        var list = track.Type == TrackType.Video ? Sequence.VideoTracks : Sequence.AudioTracks;
+        var ordered = list.Select((t, index) => (t, index)).OrderBy(x => x.t.Order).ThenBy(x => x.index).Select(x => x.t).ToList();
+        var position = ordered.IndexOf(track);
+        var target = position + direction;
+        if (target < 0 || target >= ordered.Count) return TimelineEditResult.Unchanged();
+
+        var neighbour = ordered[target];
+        if (neighbour.IsLocked) return TimelineEditResult.Fail($"Track {neighbour.Name} is locked, so {track.Name} can't move past it.");
+
+        List<TrackOrderChange> changes;
+        if (track.Order != neighbour.Order)
+        {
+            changes = new() { new(track, track.Order, neighbour.Order), new(neighbour, neighbour.Order, track.Order) };
+        }
+        else
+        {
+            // Equal orders (a file from elsewhere) can't be swapped: number the tracks of this kind 0, 1, … in the new
+            // order, which keeps every other track where it is drawn.
+            (ordered[position], ordered[target]) = (neighbour, track);
+            changes = ordered.Select((t, i) => new TrackOrderChange(t, t.Order, i)).Where(c => c.Before != c.After).ToList();
+        }
+
+        _undoRedo.Execute(new NotifyingCommand(new SetTrackOrderCommand(changes), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok();
+    }
+
     // --- Clip properties -------------------------------------------------------
 
     public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change)

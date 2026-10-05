@@ -90,6 +90,11 @@ public sealed partial class TimelineTrackViewModel : ViewModelBase
 
     /// <summary>Highlighted while a drag/drop would land on this track.</summary>
     [ObservableProperty] private bool _isDropTarget;
+
+    /// <summary>A track of the same kind is drawn above / below this one in the timeline (D027 §3) — where the header's
+    /// arrows can move it. Whether the move is allowed (locks) is the edit service's call.</summary>
+    [ObservableProperty] private bool _hasTrackAbove;
+    [ObservableProperty] private bool _hasTrackBelow;
 }
 
 /// <summary>One dissolve's zone on the timeline (D025 §3): <c>[c − ⌊F/2⌋, c + ⌈F/2⌉)</c> in pixels at the current zoom.
