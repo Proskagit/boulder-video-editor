@@ -317,7 +317,7 @@ recovery, unsaved changes).
   path meanwhile writes nothing (a missing one gets its earlier status back). `MediaCacheCoordinator.Restart` requests
   a returned asset's thumbnail / waveform again in the same generation (the old result shown until replaced; earlier
   work publishes nothing). The Preview rebuilds its snapshot through `PlaybackSnapshotBuilder.AssetState.IsMissing`.
-- Relink of missing media (Phase 11 Step 11.4, D026 §3, core only — the UI is Step 11.6): Core `IMediaRelinkService`
+- Relink of missing media (Phase 11 Step 11.4, D026 §3 — the core; its UI, Step 11.6, below): Core `IMediaRelinkService`
   (`CheckAsync` → `RelinkCheck`, `ApplyAsync` → `RelinkResult`, `RelinkedMediaFoundIncompatible`), `MediaFileTypes` (the
   extension → kind table of the import); Timeline `MediaRelinkService` + `Commands/RelinkMediaCommand` (absolute
   `MediaFileState` before / after per asset). Check: re-check (PO-5), offline only, extension and probed streams of the

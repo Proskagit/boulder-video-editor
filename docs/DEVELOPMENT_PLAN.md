@@ -41,7 +41,9 @@ and runs cleanly.
 - [ ] **Phase 11 — Media relink & recent projects.** Re-checking media availability during the session, relink of
       missing media (one file, then a batch found next to it) as an undoable change, and a list of recent projects in
       the toolbar. Scope, steps and acceptance criteria: section below and DECISIONS.md D026 (product owner decisions
-      PO-1…PO-9). *(branch `feat/phase-11-relink-recent-projects`, from `2e758f1`; in progress)*
+      PO-1…PO-9). *(branch `feat/phase-11-relink-recent-projects`, from `2e758f1`; Steps 11.1–11.8 accepted, Step 11.9
+      local verification done 2026-10-05 — awaiting the product owner's acceptance; CI pending: the branch is not
+      published)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -469,7 +471,7 @@ Scope: D026 §6 — the store and the rules of the list.
   `progress.md`.
 - Depends on: 11.6.
 
-### 11.8 — Recent projects: UI *(implemented; the manual run of scenarios 22–38 by Claude done — awaiting the product owner's acceptance; D026 "Refined in Step 11.8"; no "Clear list")*
+### 11.8 — Recent projects: UI *(done — accepted 2026-10-04, `7bf4ed8`; its real-app run covered 22, 25, 26, 29 and 30–38, 23 only from the list — 23 through Open, 24, 27 and 28 were run at 11.9; D026 "Refined in Step 11.8"; no "Clear list")*
 Scope: `Recent ▾` in the toolbar next to Open (PO-7).
 - PR: choosing an entry asks about unsaved changes, then opens like Open; an unavailable entry is shown as such and can be
   removed; an entry that fails to open leaves the current project and the entry as they are, with a message; disabled
@@ -477,7 +479,7 @@ Scope: `Recent ▾` in the toolbar next to Open (PO-7).
 - QG: view-model and workflow tests; manual scenarios.
 - Depends on: 11.7.
 
-### 11.9 — Final verification & closeout
+### 11.9 — Final verification & closeout *(local verification done 2026-10-05 — awaiting the product owner's acceptance; CI pending, the branch not published; D026 "Refined in Step 11.9")*
 - QG: `dotnet build --no-incremental` 0 / 0; full suite once plus three times with `--blame-hang`; heavy scenes once
   with `AIVE_HEAVY_TESTS=1`; CI green.
 - PR: `docs/PHASE11_MANUAL_TEST_PLAN.md` run in the real app; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run as a regression.

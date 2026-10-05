@@ -81,8 +81,11 @@ scenarios 7–21 found D1–D5 — Inspector state line, an undone relink's thum
 `5c4d2d9` and re-checked in the real app). Step 11.7 (recent projects core: `IRecentProjectsStore`, the list in the
 configuration folder, added after a successful Open, Save As and Recover) accepted (2026-10-02, `55606fd`). Step 11.8
 (`Recent ▾` next to Open: the list read at every opening, Checking / Available / Unavailable, open through the workflow,
-remove per entry, no "Clear list", disabled during an export) implemented; the real-app run of its scenarios done —
-awaiting acceptance.
+remove per entry, no "Clear list", disabled during an export) accepted (2026-10-04, `7bf4ed8`). Step 11.9 (final
+verification & closeout): local verification done (2026-10-05) — build `-warnaserror` 0 / 0, the full suite once and
+three times with `--blame-hang` (2213 passed, 2 skipped each), heavy scenes 88 / 88, the remaining manual scenarios
+(23 through Open, 24, 27, 28), R1 (a Phase 10 project), R2 (the export manual plan) and a relink / recent projects
+regression passed in the real app; awaiting the product owner's acceptance. CI pending: the branch is not published.
 Details: `progress.md`.
 
 ## Previous

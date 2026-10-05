@@ -1,18 +1,22 @@
 # Phase 11 — manual test plan
 
 Run in the real app (`dotnet run --project src/App/App.csproj`, ffmpeg / ffprobe on PATH unless a scenario says
-otherwise). Written during the Phase 11 steps (D026, product owner decisions PO-1…PO-9) and run as a whole at Step 11.9;
-the scenarios below are the skeleton agreed at Step 11.2 — exact steps, expected messages, fixtures and automated
-coverage are completed by the step that implements them. Logs: `%LOCALAPPDATA%\AiVideoEditor\logs`.
+otherwise). Written at Step 11.2 (D026, product owner decisions PO-1…PO-9), completed by the step that implemented
+each feature, and closed at Step 11.9: the scenarios not run in the real app before, R1, R2 and a regression were run
+then; the others count with the results recorded at their step (the product owner's decision for 11.9, variant (b)).
+Logs: `%LOCALAPPDATA%\AiVideoEditor\logs`.
 
 Fixtures: written by the steps that need them (scripts under `tools/manual`, projects and media outside the
 repository, as in Phase 10). Moving, renaming and removing media files is done in Explorer or PowerShell while the app
 runs; a "temporarily unavailable" file is simulated by a removable or mapped drive, or by renaming its folder.
 
-Status column: **planned** — written at 11.2, not yet runnable; **auto** — covered by automated tests only, manual run
-pending (11.9); **manual pending** — runnable, not yet run in the real app; **app 11.x** — checked in the real app during
-that step (a development check, not the formal run); **PO** — run by the product owner; **app 11.3 (Claude), passed** — run in the real app by Claude for the Step 11.3
-acceptance (results log below).
+Status column — three kinds of evidence, never mixed:
+- **auto** / "automated only" — covered by automated tests only, not checked in the real app;
+- **app 11.x (Claude), passed** — checked in the real app by Claude while implementing / accepting step 11.x (a
+  development-time check with its results log; at 11.9 these count without a re-run, variant (b));
+- **11.9 (Claude): PASS / FAIL / BLOCKED / NOT RUN** — the formal Step 11.9 run (results log below);
+- **PO** — run by the product owner; **n/a** — not part of Phase 11.
+A scenario is marked passed only for the run that actually checked it; the "Automated coverage" column is separate.
 
 ## Step 11.3 — media availability re-check (D026 §2, PO-5)
 
@@ -61,12 +65,12 @@ and `RecentProjectsCompositionTests`; in the real app the list can only be seen 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
 | 22 | Added by Open / Save As / Recover | Open a project; Save As to a new folder; recover a project that has a folder | Each is at the top of `Recent ▾` (next to Open) | `RecentProjectsWorkflowTests` (Open, Save As, first Save, Recover with a folder / gone / never saved), `RecentProjectsUiTests` (next opening) | app 11.8 (Claude), passed |
-| 23 | Failed Open | Open a folder without a project / a damaged project | The list is unchanged | `RecentProjectsWorkflowTests` (failed Open ×3, cancelled picker, Cancel, failed Save As / Recover) | app 11.8: only a failed open from the list (35); via Open — automated only |
-| 24 | Limit and duplicates | Open 11 projects; open one again with a differently cased path | 10 entries, the newest first; no duplicate | `RecentProjectsStoreTests` (limit, spellings, update), `RecentProjectsWorkflowTests` (Open again) | not run in the app (automated only) |
+| 23 | Failed Open | Open a folder without a project / a damaged project | The list is unchanged | `RecentProjectsWorkflowTests` (failed Open ×3, cancelled picker, Cancel, failed Save As / Recover) | app 11.8: only a failed open from the list (35); 11.9 (Claude): PASS through Open |
+| 24 | Limit and duplicates | Open 11 projects; open one again with a differently cased path | 10 entries, the newest first; no duplicate | `RecentProjectsStoreTests` (limit, spellings, update), `RecentProjectsWorkflowTests` (Open again) | 11.8: not run; 11.9 (Claude): PASS (the other-case path through `--open-project`, see the log) |
 | 25 | Unavailable project | Rename a listed project's folder; open `Recent ▾` | The entry stays, shown as unavailable, and can be removed; choosing it opens nothing and keeps the current project | `RecentProjectsStoreTests` (availability, remove), `RecentProjectsWorkflowTests` (unavailable stay listed), `RecentProjectsUiTests` | app 11.8 (Claude), passed |
 | 26 | Unsaved changes | With unsaved changes choose a recent project | Save / Don't Save / Cancel as for Open | `RecentProjectsUiTests` (Cancel, Don't Save) | app 11.8 (Claude), passed |
-| 27 | Two instances | Open different projects in two running instances | Both entries are kept | `RecentProjectsStoreTests` (two instances, eight in parallel, held lock) | not run in the app (automated only) |
-| 28 | Damaged list | Damage the list file; start the app | The app starts; the list is empty, the file kept as `recent-projects.<time>.damaged`; the next Open starts a new list (D026 "Refined in Step 11.7") | `RecentProjectsStoreTests` (damaged contents, bad entries, newer version, unreadable file) | not run in the app (automated only) |
+| 27 | Two instances | Open different projects in two running instances | Both entries are kept | `RecentProjectsStoreTests` (two instances, eight in parallel, held lock) | 11.8: not run; 11.9 (Claude): PASS |
+| 28 | Damaged list | Damage the list file; start the app | The app starts; the list is empty, the file kept as `recent-projects.<time>.damaged`; the next Open starts a new list (D026 "Refined in Step 11.7") | `RecentProjectsStoreTests` (damaged contents, bad entries, newer version, unreadable file) | 11.8: not run; 11.9 (Claude): PASS (isolated profile) |
 | 29 | During an export | Start an export; after it, open `Recent ▾` | `Recent ▾` is disabled, a click opens nothing; enabled again afterwards | `RecentProjectsUiTests` (editing lock), `RecentProjectsViewBindingTests` | app 11.8 (Claude), passed |
 
 ### Step 11.8 — the `Recent ▾` drop-down (D026 "Refined in Step 11.8")
@@ -88,8 +92,8 @@ and `RecentProjectsCompositionTests`; in the real app the list can only be seen 
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| R1 | Phase 10 project | Open a project saved by the Phase 10 build | Opens unchanged; Save writes `formatVersion` 3 | — | planned |
-| R2 | Export manual plan | `docs/EXPORT_MANUAL_TEST_PLAN.md` | As before | — | planned |
+| R1 | Phase 10 project | Open a project saved by the Phase 10 build | Opens unchanged; Save writes `formatVersion` 3 | `ProjectSerializerRoundTripTests`, `FadeTransitionPersistenceTests` | 11.9 (Claude): PASS |
+| R2 | Export manual plan | `docs/EXPORT_MANUAL_TEST_PLAN.md` | As before | `ExportEndToEnd.Tests`, `ExportWorkflowTests` | 11.9 (Claude): PASS (1–8, 10–14; 9 optional, not hit) |
 
 ## Results log
 
@@ -152,7 +156,7 @@ open); Redo, Redo: all back. Batch of 16: after Undo every item shows the placeh
 thumbnails again. D5 — a folder with only unusable matches: "Files with matching names were found in the folder, but none
 of them can be used."; a folder without matches: "No offline media file was found in the folder." All passed.
 
-### 2026-10-02 — Step 11.8 manual run (Claude), uncommitted Step 11.8 code on `55606fd`, Debug
+### 2026-10-02 — Step 11.8 manual run (Claude), the Step 11.8 code before its commit, on `55606fd` (committed unchanged as `7bf4ed8`), Debug
 
 Debug build of the final Step 11.8 code from the session's artifacts folder; fixtures under `%TEMP%\aive118` (Trip,
 `x\Film` and `y\Film`, a project with a 100-character name; each with three media and clips); UI Automation pinned to the
@@ -174,3 +178,30 @@ before the run). An unreachable network entry (`\\10.255.255.1\share\Remote`) wa
 | 29 | pass | Export of the recovered project: `Recent ▾` disabled 0.25 s after the start, a click opened nothing; after "Export finished" enabled, the drop-down worked. |
 | 38 | pass after a fix | Equal names "Film" told apart by their folders; the long name and folder trimmed with "…". First run: the content (460 wide) was wider than the Fluent flyout's maximum (456 with padding), the ✕ column was cut off and a horizontal scroll bar showed — fixed (400, ✕ centred), re-checked. |
 | 23, 24, 27, 28 | not run | Automated only (store and workflow tests); 23 checked from the list as 35. |
+
+### 2026-10-05 — Step 11.9 formal run (Claude), `7bf4ed8`, Debug, isolated profile
+
+Debug build of `7bf4ed8` (rebuilt `--no-incremental`); UI Automation pinned to the test processes; the test build always
+started with `USERPROFILE` / `LOCALAPPDATA` pointing to a scratch profile (its configuration, recovery files, caches and
+logs stayed there; the user's `%LOCALAPPDATA%\AiVideoEditor` was compared with a snapshot afterwards: unchanged).
+Fixtures under `%TEMP%\aive119`: projects without media (`MiniProject`), projects with generated media (testsrc2 /
+smptebars / sine, a 120 s 1080p source), the scenario projects of the export plan written as files (as at 10.9).
+
+| # | Preconditions and actions | Expected | Actual | Result |
+|---|---|---|---|---|
+| 23 | Alpha open (listed). Open → a folder without `project.json`; Open → a folder whose `project.json` is cut off | The list unchanged, the current project kept, a message | "Couldn't open the project. project.json was not found in …" / "… The project file is damaged and can't be opened."; still Alpha; the list file byte-identical (hash) both times | PASS |
+| 24 | Opened P01…P11 through Open after Alpha (12 projects); then P05 again with the path typed in capitals; then P06 through `--open-project` in capitals | 10 entries, newest first; no duplicate | 10 entries P11…P02 (Alpha, P01 dropped); P05 moved first, still 10, one P05 — the picker returned the canonical spelling (log: "from …\aive119\P05"), so the case part was repeated through `--open-project C:\USERS\…\P06`: the app got the capitals (log), P06 moved first with the new spelling, one P06, 10 entries | PASS (case through `--open-project`, see the note) |
+| 27 | Two instances A and B on the same profile. A opens Q1, B opens Q2; both drop-downs opened; A removes P04, then B opens Q3 | Both entries kept; nothing of the other instance lost | After Q1 and Q2: both in the file and in both drop-downs (read again); after A's removal and B's Q3: Q3, Q2, Q1 listed, P04 gone, 10 entries | PASS |
+| 28 | All instances closed; `recent-projects.json` replaced by a list cut off mid-entry; app started; `Recent ▾` opened; then Open Alpha | The app starts; empty list; the file kept as `*.damaged`; the next Open starts a new list | Started normally ("Ready."); "No recent projects yet."; the file renamed to `recent-projects.<time>.damaged` with the same content; log "… is damaged (not JSON); the list starts empty" / "… kept as …"; Open Alpha → a new list with Alpha | PASS |
+| R1 | A project with media, fades and a scaled clip opened in the Phase 10 build (`2e758f1`, built separately from `git archive`) and saved there with Save As; opened in the current build through Open; Save | Opens unchanged; Save writes `formatVersion` 3 | Opened clean (no `*`), 3 media online, V1 / V2 / A1 clips; the file not touched by Open; Save → `formatVersion` 3, byte-identical to the Phase 10 file | PASS |
+| R2 | `docs/EXPORT_MANUAL_TEST_PLAN.md` | As in the plan | 1–8, 10–14 as in the plan (details in its result log); 9 not hit; 14 by decoding and stream timing only; the "without ffmpeg" extra not run | PASS (9 NOT RUN — optional) |
+| Reg-relink | A project whose three media were moved to `moved\`: Relink… `pattern.mp4` → its moved file, Not Now; Undo; Redo. Find Missing… → `moved\` → Relink 2 Files; one Undo; Redo | As at 11.6 (with the D1–D5 fixes) | Relinked (the picker started on the desktop: the old folder is gone); the offer "2 other media files are offline …" (Search / Not Now); Undo → offline with the placeholder (no thumbnail of the relinked file, D2), Redo → thumbnail; "Found 2 of 2 …", "Relinked 2 media files.", one Undo → both offline, Redo → online | PASS |
+| Reg-recheck | `tone.wav` renamed while the window was inactive, window activated; renamed back, activated again | Offline, then online, without reopening | ""tone.wav" is missing now and is shown as offline." → "Media offline"; ""tone.wav" is available again." → online | PASS |
+| Reg-recent | Listed project folder renamed; `Recent ▾`: its entry, ✕; with unsaved changes choose E1 → Cancel; again → Don't Save | Unavailable entry removable; Cancel keeps project and list; Don't Save opens | "Unavailable", open disabled, ✕ → gone (folder untouched); Cancel → still `RL*`, list file byte-identical; Don't Save → E1 opened, first in the list | PASS |
+| Reg-export-lock | During an export (export plan 13) | `Recent ▾` disabled | Main window disabled, `Recent ▾` disabled, a real click on it opened nothing; enabled afterwards | PASS |
+
+Note on 24: through Open a folder always reaches the app in its canonical spelling (the Windows picker normalises it);
+spellings that differ only in case come from recovery files, the Debug `--open-project` argument or a list written on
+another machine — D026 "Refined in Step 11.9".
+
+CI: not run — the branch is not published (the product owner's decision for 11.9); pending.

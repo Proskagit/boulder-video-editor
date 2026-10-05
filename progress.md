@@ -340,7 +340,7 @@ command; no push, merge, pull request or branch deletion without direct permissi
     2181 passed, 2 skipped (4K), 0 failed — Core 448, Timeline 361, Project 371 (+40), UI 464 (+23), Export 99, Rendering
     58, Video 294, ExportEndToEnd 86 + 2. No real-app run: 11.7 has no UI (the plan's scenarios 22–29 are run at 11.8).
 - Step 11.7 accepted by the product owner (2026-10-02): `55606fd`.
-- Step 11.8 implemented (2026-10-02, D026 "Refined in Step 11.8") — awaiting the product owner's acceptance.
+- Step 11.8 implemented (2026-10-02, D026 "Refined in Step 11.8"); accepted by the product owner on 2026-10-04 (`7bf4ed8`).
   - "Clear list": not added (minimal safe option, reasons in D026) — one ✕ per entry.
   - `ProjectFileWorkflow.OpenFolderAsync(folder)`: the part of Open after the picker (unsaved-changes question, `OpenAsync`,
     discarding the recovery file after Don't Save), shared by `OpenProjectAsync` and the list.
@@ -372,6 +372,37 @@ command; no push, merge, pull request or branch deletion without direct permissi
   - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; `dotnet test` (whole solution)
     2213 passed, 2 skipped (4K), 0 failed — Core 448, Timeline 361, Project 371, UI 496 (+32), Export 99, Rendering 58,
     Video 294, ExportEndToEnd 86 + 2.
+- Step 11.9 audit (2026-10-04, no change): 11.1–11.8 present (`55606fd`, `7bf4ed8` in the branch), the code matches the
+  11.8 report; documentation inaccuracies listed (11.8 "awaiting acceptance", "skeleton", the plan's status legend). The
+  product owner decided: no push / PR, CI after the local closeout; manual run variant (b).
+- Step 11.9 local verification (2026-10-05, D026 "Refined in Step 11.9"; HEAD `7bf4ed8`, no code change) — awaiting the
+  product owner's acceptance; CI pending (the branch is not published).
+  - Automated (artifacts in a fresh scratch folder, nothing reused):
+    `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` → exit 0, 0 warnings, 0 errors, 19 projects;
+    `dotnet test AiVideoEditor.sln --no-build` → exit 0, 2213 passed, 2 skipped (4K), 0 failed (Core 448, Timeline 361,
+    Project 371, UI 496, Export 99, Rendering 58, Video 294, ExportEndToEnd 86 + 2 skipped), 64 s;
+    the same three times with `--blame-hang --blame-hang-timeout 5m` → each exit 0, 2213 / 2 / 0, 63–64 s, no hang;
+    `AIVE_HEAVY_TESTS=1 dotnet test tests/ExportEndToEnd.Tests --no-build` → exit 0, 88 passed, 0 skipped (the two 4K
+    scenes included), 63 s.
+  - Manual (Debug build of `7bf4ed8`, UI Automation, an isolated profile: `USERPROFILE` / `LOCALAPPDATA` of the test
+    process pointed to a scratch folder; fixtures under `%TEMP%\aive119`; details in the plan's results log):
+    23 through Open (a folder without `project.json`, a damaged project) PASS; 24 PASS (12 projects opened → 10
+    entries; the second part — a differently cased path — through the Debug `--open-project` argument, because the folder
+    picker returns the canonical spelling); 27 PASS (two instances on one profile: both instances' entries kept, a
+    removal in one not undone by an add in the other); 28 PASS (a truncated list → the app starts, the list is empty,
+    the file kept as `recent-projects.<time>.damaged` byte for byte, the next Open starts a new list); R1 PASS (a project
+    saved by the Phase 10 build of `2e758f1` opens clean in the current build; Save writes `formatVersion` 3, byte-identical
+    to the Phase 10 file); R2 PASS — `docs/EXPORT_MANUAL_TEST_PLAN.md` 1–8 and 10–14 (9, optional, not hit; 14 checked by
+    full decoding and stream timing, not watched in a player; "without ffmpeg" not run); regression of relink (single with
+    Undo / Redo — the D2 thumbnail fix holds —, batch with one Undo, gone / back during the session) and recent projects
+    (open an available entry, remove an unavailable one, Cancel / Don't Save at the unsaved-changes question, disabled
+    during an export) PASS.
+  - Findings: no Phase 11 defect. Test-environment notes (not product issues): with an isolated profile the shell
+    dialogs need `Desktop` / `Documents` folders in it; UI Automation in one PowerShell call doesn't see a dialog that
+    appeared during that call (the next call does); the sandbox refused `Remove-Item` while a source was to be removed
+    during an export, so that file was moved away instead (the same "file gone" for the app).
+  - The user's profile (`%LOCALAPPDATA%\AiVideoEditor` config, recovery, cache) compared with a snapshot taken before the
+    run: unchanged; no log written there.
 
 ## Phase 10 (complete)
 

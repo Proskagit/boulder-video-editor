@@ -1829,6 +1829,22 @@ Refined in Step 11.8 (2026-10-02), recent projects UI (implementation choices wi
   exception) is reported in the status bar ("Couldn't remove "X" from the recent projects.") and the list is read again.
   The project's folder is never touched.
 
+Refined in Step 11.9 (2026-10-05), final verification & closeout (no PO decision changed, no code changed):
+- Decided by the product owner for the closeout: CI is not part of the local closeout — the branch is not published, so
+  CI hasn't run (pending until the branch is published); the manual run is variant (b) of the Step 11.9 audit — the
+  scenarios not yet run in the real app (23 through Open, 24, 27, 28), R1, R2 (`docs/EXPORT_MANUAL_TEST_PLAN.md`) and a
+  short regression of relink and recent projects; the scenarios checked in the real app during 11.3–11.8 count with
+  their recorded results and were not re-run.
+- Every manual check ran with an isolated profile: the test build was started with `USERPROFILE` / `LOCALAPPDATA`
+  pointing to a scratch folder, which .NET's `LocalApplicationData` (and so `AppPaths.AppDataRoot`) follows — the
+  configuration, recovery files, caches and logs of the run never touched the user's profile, no code or configuration
+  change needed.
+- Found: the Windows folder picker returns a picked folder in its canonical spelling, so through Open a folder can't
+  reach the app spelled in another case; the case-insensitive key (Step 11.7) matters for paths that arrive as typed —
+  recovery files, the Debug `--open-project` argument, lists from another machine — and was checked with the latter.
+  Not a defect.
+- No Phase 11 defect found in the closeout (results: `progress.md`, `docs/PHASE11_MANUAL_TEST_PLAN.md`).
+
 Status: Accepted (2026-10-01, PO-1…PO-9). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 11 — Media
 relink & recent projects: steps"; the implementation must follow PO-1…PO-9 as recorded here.
 
