@@ -34,6 +34,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private readonly ILogger<TimelineViewModel> _logger;
     private readonly EditingLock _editingLock;
     private readonly WaveformCoordinator? _waveforms;
+    private readonly IDialogService? _dialogs;
 
     private readonly Dictionary<Guid, TimelineClipViewModel> _clipViewModels = new();
     private readonly Dictionary<Track, TimelineTrackViewModel> _trackViewModels = new();
@@ -54,7 +55,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         StatusService status,
         ILogger<TimelineViewModel> logger,
         EditingLock? editingLock = null,
-        WaveformCoordinator? waveforms = null)
+        WaveformCoordinator? waveforms = null,
+        IDialogService? dialogs = null)
     {
         _projectService = projectService;
         _edit = edit;
@@ -71,6 +73,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             RefreshWaveforms(); // a relinked file's old waveform is gone (D026 §3) — not only replaced by a new one
         };
         _waveforms = waveforms;
+        _dialogs = dialogs;
         if (waveforms is not null)
             waveforms.WaveformReady += (_, _) => RefreshWaveforms();
 
@@ -87,6 +90,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
     public ObservableCollection<TimelineTrackViewModel> Tracks { get; } = new();
     public ObservableCollection<TimelineRulerTickViewModel> RulerTicks { get; } = new();
 
+    /// <summary>The sequence's markers on the ruler (D027 §6), laid out at the current zoom.</summary>
+    public ObservableCollection<TimelineMarkerViewModel> Markers { get; } = new();
+
     [ObservableProperty] private double _pixelsPerSecond;
     [ObservableProperty] private double _contentWidth;
     [ObservableProperty] private double _tracksHeight;
@@ -101,6 +107,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(DeleteSelectedCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RippleDeleteCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CopyCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DuplicateCommand))]
     private bool _hasSelection;
 
     /// <summary>A dissolve is selected (and no clip).</summary>
@@ -145,6 +154,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _clipViewModels.Clear();
         _transitionViewModels.Clear();
         _selectedTransitionId = null;
+        Clipboard = null;   // copied clips refer to the previous project's media and tracks (D027 §5)
         PixelsPerSecond = Sequence.ZoomPixelsPerSecond;
         SnappingEnabled = Sequence.SnappingEnabled;
         Refresh();
@@ -152,7 +162,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private void Refresh()
     {
-        var desiredTracks = Sequence.VideoTracks.OrderByDescending(t => t.Order)
+        // Video top-down as the playback snapshot composites it (PlaybackSnapshotBuilder: equal orders by their place in
+        // the list, the later one on top), audio by order.
+        var desiredTracks = Sequence.VideoTracks.Select((t, index) => (t, index))
+            .OrderByDescending(x => x.t.Order).ThenByDescending(x => x.index).Select(x => x.t)
             .Concat(Sequence.AudioTracks.OrderBy(t => t.Order))
             .ToList();
 
@@ -168,6 +181,14 @@ public sealed partial class TimelineViewModel : ViewModelBase
             foreach (var stale in _trackViewModels.Keys.Except(desiredTracks).ToList())
                 _trackViewModels.Remove(stale);
         }
+        for (var i = 0; i < Tracks.Count; i++)
+        {
+            Tracks[i].HasTrackAbove = i > 0 && Tracks[i - 1].Type == Tracks[i].Type;
+            Tracks[i].HasTrackBelow = i < Tracks.Count - 1 && Tracks[i + 1].Type == Tracks[i].Type;
+        }
+        MoveTrackUpCommand.NotifyCanExecuteChanged();
+        MoveTrackDownCommand.NotifyCanExecuteChanged();
+        DeleteTrackCommand.NotifyCanExecuteChanged();
 
         var liveIds = new HashSet<Guid>();
         foreach (var trackVm in Tracks)
@@ -303,6 +324,21 @@ public sealed partial class TimelineViewModel : ViewModelBase
         ContentWidth = Math.Max(contentEnd, _viewportWidth);
         PlayheadX = TimelineCoordinateMapper.TimeToX(Playhead, PixelsPerSecond);
         RebuildRuler();
+        RebuildMarkers();
+    }
+
+    private void RebuildMarkers()
+    {
+        Markers.Clear();
+        foreach (var marker in Sequence.Markers.OrderBy(m => m.Position.Ticks))
+        {
+            Markers.Add(new TimelineMarkerViewModel
+            {
+                Id = marker.Id,
+                Left = TimelineCoordinateMapper.TimeToX(marker.Position, PixelsPerSecond),
+                Color = string.IsNullOrWhiteSpace(marker.ColorHex) ? "#4FC3F7" : marker.ColorHex
+            });
+        }
     }
 
     /// <summary>Gives every clip what its waveform shows now (D024 Step 9.5, PO-W1 / PO-W2 / PO-W5): audio clips and
@@ -482,10 +518,19 @@ public sealed partial class TimelineViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsEditingAllowed));
         SplitAtPlayheadCommand.NotifyCanExecuteChanged();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
+        RippleDeleteCommand.NotifyCanExecuteChanged();
+        CloseGapCommand.NotifyCanExecuteChanged();
+        PasteCommand.NotifyCanExecuteChanged();
+        DuplicateCommand.NotifyCanExecuteChanged();
         AddDissolveCommand.NotifyCanExecuteChanged();
         AddVideoTrackCommand.NotifyCanExecuteChanged();
         AddAudioTrackCommand.NotifyCanExecuteChanged();
         AddTextCommand.NotifyCanExecuteChanged();
+        MoveTrackUpCommand.NotifyCanExecuteChanged();
+        MoveTrackDownCommand.NotifyCanExecuteChanged();
+        DeleteTrackCommand.NotifyCanExecuteChanged();
+        AddMarkerCommand.NotifyCanExecuteChanged();
+        RemoveMarkerCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
@@ -536,8 +581,169 @@ public sealed partial class TimelineViewModel : ViewModelBase
             : $"Dissolve added: {frames} frames.");
     }
 
+    // --- Ripple delete and close gap (D027 §2) -------------------------------------
+    // The rules (which clips move, dissolves, locks, validation) are the edit service's; its message is shown when it
+    // refuses.
+
+    private bool CanRippleDelete() => CanEdit() && HasSelection;
+
+    /// <summary>Close Gap works on the gap right before the one selected clip, on its track.</summary>
+    private bool CanCloseGap() => CanEdit() && _selection.Count == 1;
+
+    /// <summary>"Ripple Delete": the selected clips go and the later clips of their tracks close up (D027 §2).</summary>
+    [RelayCommand(CanExecute = nameof(CanRippleDelete))]
+    private void RippleDelete()
+    {
+        var result = _edit.RippleDeleteClips(_selection.ToList());
+        if (result.Success) ClearSelection();
+        Report(result, successMessage: result.ClipIds.Count == 1 ? "Clip ripple deleted" : $"{result.ClipIds.Count} clips ripple deleted");
+    }
+
+    /// <summary>"Close Gap": the empty span before the selected clip goes; that clip and the later ones of its track move
+    /// left (D027 §2). The selection stays.</summary>
+    [RelayCommand(CanExecute = nameof(CanCloseGap))]
+    private void CloseGap()
+    {
+        if (_selection.Count != 1) return;
+        Report(_edit.CloseGapBefore(_selection[0]), successMessage: "Gap closed");
+    }
+
+    // --- Copy / paste / duplicate (D027 §5) ------------------------------------------
+    // The clipboard is this panel's session state for the current project (cleared on New / Open / Recover): what the
+    // edit service copied. Placement, tracks, media and overlap rules are the service's; its message is shown when it
+    // refuses. Copy changes nothing, so it stays available during an export.
+
+    /// <summary>The clips copied last (null = nothing copied in this project).</summary>
+    public TimelineClipboard? Clipboard
+    {
+        get => _clipboard;
+        private set
+        {
+            if (SetProperty(ref _clipboard, value))
+                PasteCommand.NotifyCanExecuteChanged();
+        }
+    }
+    private TimelineClipboard? _clipboard;
+
+    private bool CanCopy() => HasSelection;
+    private bool CanPaste() => CanEdit() && Clipboard is not null;
+    private bool CanDuplicate() => CanEdit() && HasSelection;
+
+    /// <summary>"Copy" (Ctrl+C): the selected clips.</summary>
+    [RelayCommand(CanExecute = nameof(CanCopy))]
+    private void Copy()
+    {
+        if (_edit.CopyClips(_selection.ToList()) is not { } copied)
+        {
+            _status.Report("Nothing was copied: a selected clip no longer exists.");
+            return;
+        }
+        Clipboard = copied;
+        _status.Report(copied.Count == 1 ? "1 clip copied" : $"{copied.Count} clips copied");
+    }
+
+    /// <summary>"Paste" (Ctrl+V): the copied clips at the playhead, on their tracks; the pasted clips are selected.</summary>
+    [RelayCommand(CanExecute = nameof(CanPaste))]
+    private void Paste()
+    {
+        if (Clipboard is not { } clipboard) return;
+        var result = _edit.PasteClips(clipboard, Playhead);
+        SelectAdded(result);
+        Report(result, successMessage: result.ClipIds.Count == 1 ? "1 clip pasted" : $"{result.ClipIds.Count} clips pasted");
+    }
+
+    /// <summary>"Duplicate" (Ctrl+D): copies of the selected clips right after them; the copies are selected.</summary>
+    [RelayCommand(CanExecute = nameof(CanDuplicate))]
+    private void Duplicate()
+    {
+        var result = _edit.DuplicateClips(_selection.ToList());
+        SelectAdded(result);
+        Report(result, successMessage: result.ClipIds.Count == 1 ? "1 clip duplicated" : $"{result.ClipIds.Count} clips duplicated");
+    }
+
+    // --- Markers (D027 §6) --------------------------------------------------------------
+    // The corner buttons above the track headers. Adding and removing change the project (undoable, not during an
+    // export); going to a marker only moves the playhead. Which marker is where is the edit service's.
+
+    /// <summary>"Add Marker": a marker at the playhead.</summary>
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private void AddMarker() => Report(_edit.AddMarker(Playhead), successMessage: $"Marker added at {TimeFormat.ToTimecode(Playhead, FrameRate)}");
+
+    /// <summary>"Remove Marker": the marker at the playhead (go to it first).</summary>
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private void RemoveMarker() => Report(_edit.RemoveMarkerAt(Playhead), successMessage: "Marker removed");
+
+    [RelayCommand]
+    private void PreviousMarker()
+    {
+        if (_edit.PreviousMarker(Playhead) is { } at) SetPlayhead(at);
+        else _status.Report("There is no marker before the playhead.");
+    }
+
+    [RelayCommand]
+    private void NextMarker()
+    {
+        if (_edit.NextMarker(Playhead) is { } at) SetPlayhead(at);
+        else _status.Report("There is no marker after the playhead.");
+    }
+
     [RelayCommand(CanExecute = nameof(CanEdit))] private void AddVideoTrack() => Report(_edit.AddTrack(TrackType.Video));
     [RelayCommand(CanExecute = nameof(CanEdit))] private void AddAudioTrack() => Report(_edit.AddTrack(TrackType.Audio));
+
+    // --- Tracks (D027 §3) -------------------------------------------------------------
+    // The header's ▲ / ▼ / ✕. Every rule (locks, the last track, the neighbour) is the edit service's; its message is
+    // shown when it refuses.
+
+    private bool CanMoveTrackUp(TimelineTrackViewModel? track) => CanEdit() && track is { HasTrackAbove: true };
+    private bool CanMoveTrackDown(TimelineTrackViewModel? track) => CanEdit() && track is { HasTrackBelow: true };
+    private bool CanDeleteTrack(TimelineTrackViewModel? track) => CanEdit() && track is not null;
+
+    /// <summary>One place up in the timeline: video tracks are listed top layer first (a higher order), audio tracks by
+    /// ascending order.</summary>
+    [RelayCommand(CanExecute = nameof(CanMoveTrackUp))]
+    private void MoveTrackUp(TimelineTrackViewModel? track)
+    {
+        if (track is null) return;
+        Report(_edit.MoveTrack(track.Track.Id, track.Type == TrackType.Video ? 1 : -1), successMessage: $"Track {track.Track.Name} moved up");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanMoveTrackDown))]
+    private void MoveTrackDown(TimelineTrackViewModel? track)
+    {
+        if (track is null) return;
+        Report(_edit.MoveTrack(track.Track.Id, track.Type == TrackType.Video ? -1 : 1), successMessage: $"Track {track.Track.Name} moved down");
+    }
+
+    /// <summary>Deletes a track; one with clips only after the user confirms (D027 §3). Without a dialog service a track
+    /// with clips is not deleted.</summary>
+    [RelayCommand(CanExecute = nameof(CanDeleteTrack))]
+    private async Task DeleteTrack(TimelineTrackViewModel? track)
+    {
+        if (track is null || !CanEdit()) return;
+        var name = track.Track.Name;
+        var clipCount = track.Track.Clips.Count;
+        if (_edit.GetDeleteTrackBlockReason(track.Track.Id) is { } blocked)
+        {
+            _status.Report(blocked);
+            return;
+        }
+        if (clipCount > 0)
+        {
+            if (_dialogs is null) return;
+            var choice = await _dialogs.AskAsync(new DialogRequest
+            {
+                Title = "Delete Track",
+                Message = clipCount == 1
+                    ? $"Track {name} has 1 clip. Deleting the track deletes the clip too.\n\nYou can undo this with Undo."
+                    : $"Track {name} has {clipCount} clips. Deleting the track deletes them too, and any dissolves between them.\n\nYou can undo this with Undo.",
+                Buttons = new[] { "Delete Track", "Cancel" }
+            });
+            // The answer may come after an export started or the project was replaced; the service re-checks the rest.
+            if (choice != 0 || !CanEdit()) return;
+        }
+
+        Report(_edit.DeleteTrack(track.Track.Id), successMessage: $"Track {name} deleted");
+    }
 
     [RelayCommand] private void ToggleSnapping() => SnappingEnabled = !SnappingEnabled;
 
@@ -704,8 +910,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
             vm.IsSelected = vm.Id == _selectedTransitionId;
         HasSelection = _selection.Count > 0;
         HasTransitionSelection = _selectedTransitionId is not null;
-        // Dissolve depends on how many clips are selected, not only on whether any is: 1 → 2 keeps HasSelection true.
+        // Dissolve and Close Gap depend on how many clips are selected, not only on whether any is: 1 → 2 keeps
+        // HasSelection true.
         AddDissolveCommand.NotifyCanExecuteChanged();
+        CloseGapCommand.NotifyCanExecuteChanged();
     }
 
     private void RaiseSelectionChanged()

@@ -55,7 +55,92 @@ public interface ITimelineEditService
 
     TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds);
 
+    /// <summary>Ripple delete (D027 §2): removes the clips, and on each track that loses one every other clip that starts
+    /// at or after the end of a removed clip moves left by the length of the removed clips that end at or before its
+    /// start — no gap is left where they were, no overlap can arise. Clips on other tracks, the playhead and the markers
+    /// stay. A removed clip's dissolves go with it (with D025's status note); every other dissolve keeps its length and
+    /// zone; none is created where clips now meet; fades are unchanged. One Undo step. Rejected — nothing changes — when
+    /// a clip's track is locked or the result fails the timeline's validation.</summary>
+    TimelineEditResult RippleDeleteClips(IReadOnlyCollection<Guid> clipIds);
+
+    /// <summary>Close gap (D027 §2): removes the empty span of <paramref name="trackId"/> that contains
+    /// <paramref name="at"/> — between two clips, or before the first one — by moving every clip of that track from the
+    /// gap's end on left by the gap's length. Only an existing gap: rejected when <paramref name="at"/> lies in a clip or
+    /// after the track's last clip, or the track is locked. Dissolves move with their clips unchanged. One Undo
+    /// step.</summary>
+    TimelineEditResult CloseGap(Guid trackId, MediaTime at);
+
+    /// <summary><see cref="CloseGap"/> for the gap right before <paramref name="clipId"/> on its track; rejected when the
+    /// clip starts at 0 or right where another clip ends.</summary>
+    TimelineEditResult CloseGapBefore(Guid clipId);
+
+    /// <summary>Copy (D027 §5): detached copies of the clips — timing, speed, source range, properties, text, fades,
+    /// the media they refer to (never the file) and the track each came from; no dissolve. Later edits of the clips
+    /// don't change it. Not a project change (no Undo step); allowed from a locked track. Null when nothing could be
+    /// copied (no clip given, or one no longer exists).</summary>
+    TimelineClipboard? CopyClips(IReadOnlyCollection<Guid> clipIds);
+
+    /// <summary>Paste (D027 §5): new clips (new ids) from <paramref name="clipboard"/>, the earliest starting at
+    /// <paramref name="at"/> (snapped to the frame grid) and the others at their copied distances from it, each on the
+    /// track it was copied from. Rejected as a whole — nothing pasted — when a clip would overlap another or break a
+    /// rule: its track no longer exists or is locked, its media is no longer in the project, the project frame rate
+    /// changed since the copy. Offline media is pasted like any other (the clip refers to the same asset). One Undo
+    /// step; <see cref="TimelineEditResult.ClipIds"/> are the new clips.</summary>
+    TimelineEditResult PasteClips(TimelineClipboard clipboard, MediaTime at);
+
+    /// <summary>Duplicate (D027 §5): copies the clips and pastes them in one step right after them — the earliest copy
+    /// starts where the last of them ends, every copy on its clip's track, the distances kept. Rejected as
+    /// <see cref="PasteClips"/> is (an overlap, a locked track). One Undo step.</summary>
+    TimelineEditResult DuplicateClips(IReadOnlyCollection<Guid> clipIds);
+
+    /// <summary>Adds a marker (D027 §6) at <paramref name="at"/>, snapped to the frame grid, with the model's default
+    /// label and colour. Rejected when a marker is already on that frame. One Undo step; saved in the project (v3).
+    /// <see cref="TimelineEditResult.MarkerId"/> is the new marker.</summary>
+    TimelineEditResult AddMarker(MediaTime at);
+
+    /// <summary>Removes the marker on the frame of <paramref name="at"/>. Rejected when there is none. One Undo
+    /// step.</summary>
+    TimelineEditResult RemoveMarkerAt(MediaTime at);
+
+    /// <summary>The position of the first marker on a frame after the frame of <paramref name="from"/>, or null.</summary>
+    MediaTime? NextMarker(MediaTime from);
+
+    /// <summary>The position of the last marker on a frame before the frame of <paramref name="from"/>, or null.</summary>
+    MediaTime? PreviousMarker(MediaTime from);
+
     TimelineEditResult AddTrack(TrackType type);
+
+    /// <summary>Deletes a track together with its clips and dissolves (D027 §3) as one Undo step; Undo puts the same
+    /// track back at its place in the list, with its order, name, flags, clips and dissolves. Rejected — nothing
+    /// changes — when the track is locked or is the only track of the timeline. Asking the user first when the track
+    /// has clips is the caller's part.</summary>
+    TimelineEditResult DeleteTrack(Guid trackId);
+
+    /// <summary>Null when <see cref="DeleteTrack"/> would delete the track now, otherwise the reason it would refuse
+    /// (so the user is not asked to confirm a deletion that can't happen).</summary>
+    string? GetDeleteTrackBlockReason(Guid trackId);
+
+    /// <summary>Moves a track one place among the tracks of its kind (D027 §3) by swapping its
+    /// <see cref="Track.Order"/> with the neighbouring track (equal orders: the tracks of that kind are numbered anew
+    /// in the new order): <paramref name="direction"/> +1 towards the higher order (video: composited above), −1
+    /// towards the lower. Only the order changes — no clip, timing or dissolve.
+    /// One Undo step. Rejected when the track or that neighbour is locked; <see cref="TimelineEditResult.NoChange"/>
+    /// when there is no neighbour in that direction.</summary>
+    TimelineEditResult MoveTrack(Guid trackId, int direction);
+
+    /// <summary>How many clips of the timeline use the media asset (any track, also hidden, muted or locked).</summary>
+    int CountClipsUsing(Guid mediaAssetId);
+
+    /// <summary>Null when <see cref="RemoveMedia"/> would remove the asset now, otherwise the reason it would refuse:
+    /// the asset is not in the project, or a clip using it is on a locked track.</summary>
+    string? GetRemoveMediaBlockReason(Guid mediaAssetId);
+
+    /// <summary>Removes a media asset from the project together with every clip that uses it and their dissolves
+    /// (D027 §4), as one Undo step; Undo puts the same asset object back at its place in the media list — with its id,
+    /// path, metadata and analysis state — and the clips and dissolves exactly. The file on disk is never touched.
+    /// Rejected — nothing changes — for the reasons of <see cref="GetRemoveMediaBlockReason"/>. Asking the user first
+    /// when clips use the asset is the caller's part.</summary>
+    TimelineEditResult RemoveMedia(Guid mediaAssetId);
 
     /// <summary>Sets absolute property values of one clip: every group given in
     /// <paramref name="change"/> replaces the clip's current values of that group exactly (no
@@ -91,7 +176,7 @@ public interface ITimelineEditService
     long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId);
 
     /// <summary>Finds the snap target nearest to any of <paramref name="candidates"/>
-    /// within <paramref name="tolerance"/>. Targets: time zero, the playhead and every
+    /// within <paramref name="tolerance"/>. Targets: time zero, the playhead, every marker (D027 §6) and every
     /// clip edge except those of <paramref name="excludedClipIds"/>.</summary>
     SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds);
 }
@@ -121,6 +206,25 @@ public sealed record ClipPropertyChange
     public FadeProperties? Fade { get; init; }
 }
 
+/// <summary>What <see cref="ITimelineEditService.CopyClips"/> took (D027 §5): detached copies of clips — never part of a
+/// project — with the track each came from, and the project frame rate they were copied at. Only the edit service reads
+/// the copies; the UI keeps the clipboard for the session of one project.</summary>
+public sealed class TimelineClipboard
+{
+    public TimelineClipboard(FrameRate frameRate, IReadOnlyList<TimelineClipboardEntry> entries)
+    {
+        FrameRate = frameRate;
+        Entries = entries;
+    }
+
+    public FrameRate FrameRate { get; }
+    public IReadOnlyList<TimelineClipboardEntry> Entries { get; }
+    public int Count => Entries.Count;
+}
+
+/// <summary>One copied clip (a detached copy, never inserted itself) and the id of the track it was copied from.</summary>
+public sealed record TimelineClipboardEntry(Clip Clip, Guid TrackId);
+
 /// <summary>Outcome of a timeline edit. <see cref="Message"/> is safe to show in the
 /// status bar; on success it may carry an informational note (e.g. frame rate fixed).</summary>
 public sealed class TimelineEditResult
@@ -138,6 +242,9 @@ public sealed class TimelineEditResult
 
     /// <summary>The dissolve created or changed by the operation, if any.</summary>
     public Guid? TransitionId { get; init; }
+
+    /// <summary>The marker created or removed by the operation, if any.</summary>
+    public Guid? MarkerId { get; init; }
 
     public static TimelineEditResult Ok(IReadOnlyList<Guid>? clipIds = null, string? message = null) =>
         new() { Success = true, ClipIds = clipIds ?? Array.Empty<Guid>(), Message = message };

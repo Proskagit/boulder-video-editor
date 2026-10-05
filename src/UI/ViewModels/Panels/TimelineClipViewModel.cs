@@ -90,6 +90,11 @@ public sealed partial class TimelineTrackViewModel : ViewModelBase
 
     /// <summary>Highlighted while a drag/drop would land on this track.</summary>
     [ObservableProperty] private bool _isDropTarget;
+
+    /// <summary>A track of the same kind is drawn above / below this one in the timeline (D027 §3) — where the header's
+    /// arrows can move it. Whether the move is allowed (locks) is the edit service's call.</summary>
+    [ObservableProperty] private bool _hasTrackAbove;
+    [ObservableProperty] private bool _hasTrackBelow;
 }
 
 /// <summary>One dissolve's zone on the timeline (D025 §3): <c>[c − ⌊F/2⌋, c + ⌈F/2⌉)</c> in pixels at the current zoom.
@@ -136,6 +141,14 @@ public sealed class TimelineRulerTickViewModel : ViewModelBase
 {
     public required string Label { get; init; }
     public required double Left { get; init; }
+}
+
+/// <summary>A marker drawn on the ruler (D027 §6) at its position in pixels at the current zoom.</summary>
+public sealed class TimelineMarkerViewModel : ViewModelBase
+{
+    public required Guid Id { get; init; }
+    public required double Left { get; init; }
+    public required string Color { get; init; }
 }
 
 /// <summary>The primary selected timeline clip, as passed to the Inspector. <paramref name="DissolveAtStart"/> /

@@ -52,25 +52,32 @@
                  BorderThickness="0">
           <ListBox.ItemTemplate>
             <DataTemplate>
-              <StackPanel Orientation="Horizontal" Spacing="8" Margin="2">
+              <DockPanel>
+                <!-- D027 §4: remove the selected media from the project (the view model asks when clips use it). -->
+                <Button DockPanel.Dock="Right" Content="✕" FontSize="10" Padding="5,1" VerticalAlignment="Center"
+                        IsVisible="{Binding $parent[ListBoxItem].IsSelected}"
+                        Command="{Binding $parent[ListBox].DataContext.RemoveCommand}"
+                        ToolTip.Tip="Remove from the project (asks first when clips use it; the file on disk stays)"/>
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="2">
 
-                <!-- The kind's colour is the placeholder; a thumbnail, once ready, is drawn over it (D024 Step 9.4). -->
-                <Border Width="56" Height="32" CornerRadius="2" ClipToBounds="True" Background="{Binding ThumbnailColorHex}">
-                  <Image IsVisible="{Binding HasThumbnail}" Stretch="Uniform"
-                         Source="{Binding Thumbnail, Converter={x:Static rendering:ThumbnailBitmapConverter.Instance}}"/>
-                </Border>
+                  <!-- The kind's colour is the placeholder; a thumbnail, once ready, is drawn over it (D024 Step 9.4). -->
+                  <Border Width="56" Height="32" CornerRadius="2" ClipToBounds="True" Background="{Binding ThumbnailColorHex}">
+                    <Image IsVisible="{Binding HasThumbnail}" Stretch="Uniform"
+                           Source="{Binding Thumbnail, Converter={x:Static rendering:ThumbnailBitmapConverter.Instance}}"/>
+                  </Border>
 
-                <StackPanel Spacing="2" VerticalAlignment="Center">
-                  <TextBlock Text="{Binding FileName}" Foreground="#DDDDDD" FontSize="12"/>
-                  <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="{Binding KindLabel}" Foreground="#8A8A8A" FontSize="10"/>
-                    <TextBlock Text="{Binding FormatAndSizeDisplay}" Foreground="#8A8A8A" FontSize="10"/>
+                  <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding FileName}" Foreground="#DDDDDD" FontSize="12"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <TextBlock Text="{Binding KindLabel}" Foreground="#8A8A8A" FontSize="10"/>
+                      <TextBlock Text="{Binding FormatAndSizeDisplay}" Foreground="#8A8A8A" FontSize="10"/>
+                    </StackPanel>
+                    <TextBlock IsVisible="{Binding HasTechnicalSummary}"
+                               Text="{Binding TechnicalSummary}" Foreground="#7A7A7A" FontSize="10"/>
                   </StackPanel>
-                  <TextBlock IsVisible="{Binding HasTechnicalSummary}"
-                             Text="{Binding TechnicalSummary}" Foreground="#7A7A7A" FontSize="10"/>
-                </StackPanel>
 
-              </StackPanel>
+                </StackPanel>
+              </DockPanel>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>

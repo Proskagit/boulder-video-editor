@@ -112,6 +112,10 @@ public sealed class ShortcutRoutingTests
             (Key.E, ctrl, toolbar.ExportCommand),
             (Key.OemPipe, KeyModifiers.None, timeline.ZoomToFitCommand),
             (Key.OemBackslash, KeyModifiers.None, timeline.ZoomToFitCommand),
+            // Phase 12 Step 12.6 (D027 §5)
+            (Key.C, ctrl, timeline.CopyCommand),
+            (Key.V, ctrl, timeline.PasteCommand),
+            (Key.D, ctrl, timeline.DuplicateCommand),
         };
     }
 
@@ -130,6 +134,10 @@ public sealed class ShortcutRoutingTests
     [InlineData(Key.I, KeyModifiers.None)]                         // Import and Export need Ctrl
     [InlineData(Key.E, KeyModifiers.None)]
     [InlineData(Key.OemPipe, KeyModifiers.Control)]
+    [InlineData(Key.C, KeyModifiers.None)]                         // copy / paste / duplicate need Ctrl
+    [InlineData(Key.V, KeyModifiers.None)]
+    [InlineData(Key.D, KeyModifiers.None)]
+    [InlineData(Key.C, KeyModifiers.Control | KeyModifiers.Shift)]
     public void Other_keys_and_modifiers_are_not_shortcuts_and_are_not_consumed(Key key, KeyModifiers modifiers)
     {
         Assert.Null(For(key, modifiers));

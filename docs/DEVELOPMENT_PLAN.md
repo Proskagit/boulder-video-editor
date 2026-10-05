@@ -42,9 +42,15 @@ and runs cleanly.
       missing media (one file, then a batch found next to it) as an undoable change, and a list of recent projects in
       the toolbar. Scope, steps and acceptance criteria: section below and DECISIONS.md D026 (product owner decisions
       PO-1…PO-9). *(branch `feat/phase-11-relink-recent-projects`, from `2e758f1`, closeout `ca20352`; accepted by the
-      product owner 2026-10-05 on the local verification. Open: CI not run yet — the branch is not published; optional
-      export scenario 9 and the "without ffmpeg" check not run; export scenario 14 checked by decoding the 8 outputs,
-      not watched in a player; L1-c stays open, outside Phase 11)*
+      product owner 2026-10-05 on the local verification; PR #11 merged into `main` as `47ed2fa` (2026-10-05), CI green.
+      Not run: optional export scenario 9 and the "without ffmpeg" check; export scenario 14 checked by decoding the 8
+      outputs, not watched in a player; L1-c stays open, outside Phase 11)*
+- [x] **Phase 12 — Editing essentials.** Track delete / reorder, removing media from the project, ripple delete and
+      close gap, copy / paste / duplicate of clips, markers on the timeline, and the fix of New during a running
+      import. Scope, steps and acceptance criteria: section below and DECISIONS.md D027 (product owner decisions,
+      2026-10-05). *(branch `feat/phase-12-editing-essentials`, from `47ed2fa`; steps 12.2–12.8 `8e2b109`…`d467a84`;
+      the local QG of Step 12.9 passed on 2026-10-05 — complete locally. Open: CI not run yet — the branch is not
+      published; L1-c stays open)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -480,13 +486,113 @@ Scope: `Recent ▾` in the toolbar next to Open (PO-7).
 - QG: view-model and workflow tests; manual scenarios.
 - Depends on: 11.7.
 
-### 11.9 — Final verification & closeout *(done — local verification 2026-10-05, `ca20352`; Phase 11 accepted 2026-10-05; CI pending, the branch not published; D026 "Refined in Step 11.9")*
+### 11.9 — Final verification & closeout *(done — local verification 2026-10-05, `ca20352`; Phase 11 accepted 2026-10-05; CI green on PR #11, merged as `47ed2fa`; D026 "Refined in Step 11.9")*
 - QG: `dotnet build --no-incremental` 0 / 0; full suite once plus three times with `--blame-hang`; heavy scenes once
   with `AIVE_HEAVY_TESTS=1`; CI green.
 - PR: `docs/PHASE11_MANUAL_TEST_PLAN.md` run in the real app; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run as a regression.
 - Documentation: ARCHITECTURE, D026 refinements, ROADMAP, README, `progress.md`; this plan's Phase 11 checkbox only
   after the product owner's acceptance.
 - Depends on: 11.3–11.8.
+
+## Phase 12 — Editing essentials: steps (D027)
+
+Formalized in Step 12.2 (product owner decisions of 2026-10-05, after the Step 12.1 audit). The normative rules are
+D027; this section lists the steps and their acceptance. Labels as in Phases 9–11: **PR** product requirement, **QG**
+quality gate, **M** measurement only, **Impl** implementation constraint. Steps run in this order; each is accepted by
+the product owner before the next one starts, and a step's sub-decisions (D027 "Left to the start of …") are proposed
+at its start and confirmed before its code changes.
+
+Gates for every step 12.3–12.8 (QG): `dotnet build` 0 errors / 0 warnings; the full `dotnet test` green (only the 4K
+heavy scenes skipped); the Preview ↔ Export parity suite (`ExportEndToEnd.Tests`, `Rendering.Tests`, `Export.Tests`)
+green with unchanged criteria and expected values — none weakened, re-baselined or removed; every new project change
+is one `IUndoableCommand` with exact Undo / Redo and the save point (dirty) respected; new behaviour covered by
+automated tests wherever testable, the rest in `docs/PHASE12_MANUAL_TEST_PLAN.md`; `progress.md` updated. Builds and
+test runs are started on the product owner's command; push, pull request and merge only with the product owner's
+direct permission.
+
+Constraints for the whole phase: `project.json` stays `formatVersion` 3 (a project of Phase 11 opens and saves
+unchanged); D007, D008, D009 / D022, D013, D014, D016, D018 / D023, D025 and D026 unchanged in substance; L1-c stays
+open; every new command is disabled during an export (`EditingLock`) and rejected on a locked track. Out of scope: AI
+features, export settings, HDR / colour management, an installer, timeline virtualization, an undoable import, ripple
+trim, a time-range (in / out) selection, automatic dissolves, a system-wide clipboard, a menu bar, a UI redesign.
+
+### 12.1 — Audit *(done, accepted 2026-10-05)*
+Git state (PR #11 merged as `47ed2fa`), build and tests (0 / 0; 2213 passed, 2 skipped), documentation, known issues
+and the editing gaps audited; no change (report in `progress.md`).
+
+### 12.2 — Sync after the merge and scope formalization *(done, accepted 2026-10-05)*
+`main` fast-forwarded to `47ed2fa`, branch `feat/phase-12-editing-essentials`; the Phase 11 statements made
+outdated by the merge (CI pending, branch not published) corrected; D027, this section, ROADMAP, README,
+`progress.md`, ARCHITECTURE, `docs/README.md`, `docs/PHASE12_MANUAL_TEST_PLAN.md` (skeleton). Documentation only.
+
+### 12.3 — Tracks: delete and reorder *(done — accepted 2026-10-05; D027 "Refined at the start of Step 12.3"; manual scenarios 1–7 at 12.9 at the latest)*
+Scope: D027 §3.
+- PR: a track can be deleted; a track with clips only after a confirmation, its clips and dissolves with it; Undo
+  restores the track at its place with its order, name, flags, clips and dissolves.
+- PR: a track can be moved up / down among the tracks of its kind; the timeline, the Preview and the export show the
+  same layer order afterwards (video: the higher track on top); Undo restores the order.
+- QG: tests of the commands (delete empty / with clips / with dissolves, reorder, undo / redo, save → reopen keeps the
+  order), of the snapshot's layer order after a reorder, and an export of a reordered project matching its Preview
+  (an added parity scene; existing scenes unchanged).
+- Impl: `Track.Order` stays the only source of the layer order; the sub-decisions of D027 §3 recorded as a refinement.
+- Depends on: 12.2.
+
+### 12.4 — Removing media from the project *(done — accepted 2026-10-05; D027 "Refined in Step 12.4"; manual scenarios 8–13 at 12.9 at the latest)*
+Scope: D027 §4.
+- PR: an unused asset is removed at once; a used one after a confirmation naming the number of clips, together with
+  those clips and their dissolves; one undoable step; Undo restores the asset with its id, path, metadata and analysis
+  state, its clips and dissolves.
+- PR: the file on disk is never touched; the Media Browser, the timeline, the Preview, thumbnails and waveforms show the
+  state after the removal and again after Undo; work still running for the removed asset (a thumbnail, a waveform, an
+  analysis) ends normally, is not shown while the asset is out of the project and is there after Undo (D027 §4).
+- QG: tests of the command (unused / used / offline asset, dissolves, undo / redo, save → reopen), of the cache and
+  analysis coordinators (nothing shown while removed, shown again after Undo without being made anew, a running
+  analysis completing into the removed asset), of the confirmation flow.
+- Depends on: 12.3 (the track and clip removal paths are shared).
+
+### 12.5 — Ripple delete and close gap *(done — accepted 2026-10-05; D027 "Refined in Step 12.5"; the export QG met by `ExportRippleEndToEndTests`; manual scenarios 14–21 at 12.9 at the latest)*
+Scope: D027 §2.
+- PR: ripple delete removes the selected clips and moves the later clips of the same track left by the removed length;
+  close gap removes an empty span of a track the same way; other tracks, the playhead and the markers stay; no overlap.
+- PR: a dissolve of a removed clip is removed (with D025's status note); every other dissolve keeps its length and
+  zone; no dissolve is created where clips meet only because of the ripple; one undoable step restores everything.
+- QG: tests of the shift rule (one clip, several clips, several tracks, gaps kept, gap at the start), of each dissolve
+  case of D027 §2, of locked tracks, undo / redo; an export after a ripple matching its Preview *(met: a real ripple
+  delete, then a real export of 20 frames matching the Preview byte for byte at the new cut — `ExportRippleEndToEndTests`)*.
+- Depends on: 12.4.
+
+### 12.6 — Copy / paste / duplicate *(done — accepted 2026-10-05; D027 "Refined in Step 12.6"; Copy by Ctrl+C only; manual scenarios 22–28 at 12.9 at the latest)*
+Scope: D027 §5.
+- PR: copy keeps the selected clips with timing and properties (incl. text and fades, no dissolve); paste puts them at
+  the playhead with their distances kept, on their own tracks when possible; a paste that would overlap or break a rule
+  is rejected whole with a message; duplicate in one command; each one undoable step; pasted clips have new ids.
+- QG: tests of copy (every property), paste (distances, tracks, rejection cases, ids), duplicate, undo / redo.
+- Impl: hotkeys only if `ShortcutRouter` takes them without a structural change (decided at the step's start).
+- Depends on: 12.5.
+
+### 12.7 — Markers *(done — accepted 2026-10-05; D027 "Refined in Step 12.7"; the corner buttons checked in the real app; manual scenarios 29–32 at 12.9 at the latest)*
+Scope: D027 §6.
+- PR: add a marker at the playhead, remove a marker (both undoable, saved in v3), markers drawn on the timeline, go to
+  the next / previous marker; a ripple does not move markers.
+- QG: tests of the commands, navigation, save → reopen (v3 unchanged), the timeline drawing.
+- Impl: snapping to markers only if it fits the existing snapping without a structural change, otherwise backlog.
+- Depends on: 12.6.
+
+### 12.8 — New during a running import *(done — accepted 2026-10-05; D027 "Refined in Step 12.8"; the guarded path automated, the real race not reproducible by hand)*
+Scope: D027 §7.
+- PR: a New / Open / Recover during an import leaves the new project without the picked files; the status bar says the
+  import was dropped; an import without a project change works as before.
+- QG: tests of the workflow with the project replaced at each await (status yield, file check), nothing added, no
+  analysis queued.
+- Depends on: 12.2 (independent of 12.3–12.7 in code; kept last by the product owner's order).
+
+### 12.9 — Final verification & closeout *(done locally — 2026-10-05: build `-warnaserror` 0 / 0; the full suite 2324 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2324 / 0 / 2, no hang, no dump; the 4K scenes with `AIVE_HEAVY_TESTS=1`: ExportEndToEnd 90 / 90; the manual plan, R1, R2, R3 in the real app; CI pending, the branch not published)*
+- QG: `dotnet build --no-incremental -warnaserror` 0 / 0; full suite once plus three times with `--blame-hang`; heavy
+  scenes once with `AIVE_HEAVY_TESTS=1`; CI green.
+- PR: `docs/PHASE12_MANUAL_TEST_PLAN.md` run in the real app; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run as a regression.
+- Documentation: ARCHITECTURE, D027 refinements, ROADMAP, README, `progress.md`; this plan's Phase 12 checkbox only
+  after the product owner's acceptance.
+- Depends on: 12.3–12.8.
 
 ## Architectural rules that must hold at every phase
 

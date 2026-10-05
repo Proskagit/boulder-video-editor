@@ -64,6 +64,10 @@
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
             <Button Content="Split" Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="Split at playhead (S)" FontSize="11"/>
             <Button Content="Delete" Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="Delete the selected clips or dissolve (Delete)" FontSize="11"/>
+            <Button Content="Ripple Delete" Command="{Binding RippleDeleteCommand}" ToolTip.Tip="Delete the selected clips and move the later clips of their tracks left to close up" FontSize="11"/>
+            <Button Content="Close Gap" Command="{Binding CloseGapCommand}" ToolTip.Tip="Remove the empty space before the selected clip: it and the later clips of its track move left" FontSize="11"/>
+            <Button Content="Paste" Command="{Binding PasteCommand}" ToolTip.Tip="Paste the copied clips at the playhead, on their tracks (Ctrl+V)" FontSize="11"/>
+            <Button Content="Duplicate" Command="{Binding DuplicateCommand}" ToolTip.Tip="Copy the selected clips right after them (Ctrl+D)" FontSize="11"/>
             <Button Content="Dissolve" Command="{Binding AddDissolveCommand}" ToolTip.Tip="Add a dissolve between the two selected clips (they must meet on a video track)" FontSize="11"/>
             <ToggleButton Content="Snap" IsChecked="{Binding SnappingEnabled}" ToolTip.Tip="Snapping (N)" FontSize="11"/>
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
@@ -74,19 +78,52 @@
         </DockPanel>
       </Border>
 
-      <Grid ColumnDefinitions="70,*">
+      <Grid ColumnDefinitions="84,*">
 
         <!-- Track headers: scroll vertically in sync with the tracks (see code-behind). -->
         <ScrollViewer x:Name="HeaderScroll" Grid.Column="0" Background="#252526"
                       VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
           <StackPanel>
-            <Border Height="24"/> <!-- spacer matching the ruler -->
+            <!-- Markers (D027 §6): in the corner left of the ruler, at its height -->
+            <StackPanel Height="24" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="1">
+              <StackPanel.Styles>
+                <Style Selector="Button">
+                  <Setter Property="FontSize" Value="9"/>
+                  <Setter Property="Padding" Value="1,0"/>
+                  <Setter Property="MinHeight" Value="0"/>
+                  <Setter Property="Height" Value="18"/>
+                  <Setter Property="VerticalAlignment" Value="Center"/>
+                </Style>
+              </StackPanel.Styles>
+              <Button Content="◀" Command="{Binding PreviousMarkerCommand}" ToolTip.Tip="Go to the previous marker"/>
+              <Button Content="◆+" Command="{Binding AddMarkerCommand}" ToolTip.Tip="Add a marker at the playhead"/>
+              <Button Content="◆−" Command="{Binding RemoveMarkerCommand}" ToolTip.Tip="Remove the marker at the playhead"/>
+              <Button Content="▶" Command="{Binding NextMarkerCommand}" ToolTip.Tip="Go to the next marker"/>
+            </StackPanel>
             <ItemsControl ItemsSource="{Binding Tracks}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
                   <Border Height="44" BorderBrush="#1A1A1A" BorderThickness="0,0,1,1">
-                    <TextBlock Text="{Binding Label}" Foreground="#AAAAAA" FontSize="11"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <StackPanel VerticalAlignment="Center" Spacing="2">
+                      <TextBlock Text="{Binding Label}" Foreground="#AAAAAA" FontSize="11" HorizontalAlignment="Center"/>
+                      <!-- D027 §3: move among the tracks of its kind, delete (the edit service decides; locks, last track) -->
+                      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="2">
+                        <StackPanel.Styles>
+                          <Style Selector="Button">
+                            <Setter Property="FontSize" Value="9"/>
+                            <Setter Property="Padding" Value="4,0"/>
+                            <Setter Property="MinHeight" Value="0"/>
+                            <Setter Property="Height" Value="16"/>
+                          </Style>
+                        </StackPanel.Styles>
+                        <Button Content="▲" ToolTip.Tip="Move the track up"
+                                Command="{Binding $parent[ItemsControl].DataContext.MoveTrackUpCommand}" CommandParameter="{Binding}"/>
+                        <Button Content="▼" ToolTip.Tip="Move the track down"
+                                Command="{Binding $parent[ItemsControl].DataContext.MoveTrackDownCommand}" CommandParameter="{Binding}"/>
+                        <Button Content="✕" ToolTip.Tip="Delete the track (asks first when it has clips)"
+                                Command="{Binding $parent[ItemsControl].DataContext.DeleteTrackCommand}" CommandParameter="{Binding}"/>
+                      </StackPanel>
+                    </StackPanel>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
@@ -113,6 +150,22 @@
                       <Rectangle Width="1" Height="6" Fill="#5A5A5A" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,18,0,0"/>
                       <TextBlock Text="{Binding Label}" Foreground="#7A7A7A" FontSize="10" Margin="3,4,0,0"/>
                     </Panel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <!-- Markers (D027 §6): a flag at the top of the ruler and a line down it; clicks go to the ruler -->
+              <ItemsControl Classes="canvasItems" ItemsSource="{Binding Markers}" IsHitTestVisible="False">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <Canvas/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Canvas>
+                      <Rectangle Width="1" Height="24" Fill="{Binding Color}"/>
+                      <Polygon Points="-5,0 6,0 0.5,8" Fill="{Binding Color}"/>
+                    </Canvas>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>

@@ -59,15 +59,42 @@ session state (D015).
 
 ## Current
 
-No phase in progress — Phase 11 accepted (2026-10-05); no next phase planned yet.
+No phase in progress — Phase 12 closed locally (2026-10-05); CI pending (the branch is not published yet).
 
 ## Previous
 
+Phase 12 — Editing essentials, branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main` after the merge of
+PR #11). **Complete locally**: Step 12.9 (final verification & closeout) done on 2026-10-05 — build `-warnaserror` 0 /
+0; the full suite 2324 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2324 / 0 / 2, no
+hang, no dump; the 4K scenes with `AIVE_HEAVY_TESTS=1`: ExportEndToEnd 90 / 90; the Phase 12
+manual plan in the real app (30 scenarios passed, 2 partly, 2 not reproducible by hand and covered by automated tests),
+R1 (a project saved by the Phase 11 build, opened and saved by Phase 12: v3, unchanged), R2 (the export manual plan's UI
+and file scenarios) and R3 (relink, recent projects, fade, dissolve) passed. CI not run yet — the branch is not
+published. Scope from the product owner decisions of 2026-10-05, recorded in DECISIONS.md D027: track delete / reorder,
+removing media from the project, ripple delete and close gap (dissolves of removed clips removed, the others kept,
+none created), copy / paste / duplicate of clips, markers on the timeline, and the fix of New during a running import;
+`project.json` stays v3; L1-c stays open. Steps 12.3 tracks · 12.4 media removal · 12.5 ripple · 12.6 copy / paste /
+duplicate · 12.7 markers · 12.8 import / New · 12.9 closeout — scope and acceptance criteria in
+`docs/DEVELOPMENT_PLAN.md`. Step 12.1 (audit) accepted (2026-10-05); Step 12.2 (sync after the merge, scope
+formalization, documentation only) accepted (2026-10-05); Step 12.3 (tracks: delete and reorder, undoable; the last
+track and locked tracks kept) accepted (2026-10-05; build 0 / 0, 2237 passed, 2 skipped, three `--blame-hang` runs
+clean, `5bcdcbb`); Step 12.4 (removing media from the project, undoable, with its clips after a confirmation)
+accepted (2026-10-05; build 0 / 0, 2255 passed, 2 skipped, three `--blame-hang` runs clean, `097e555`); Step 12.5
+(ripple delete of the selected clips and close gap, undoable) accepted (2026-10-05; build 0 / 0, 2279 passed, 2
+skipped, three `--blame-hang` runs clean; a real export after a ripple matches its Preview; `a2f8c7c`); Step 12.6 (copy /
+paste / duplicate of clips, undoable, Ctrl+C / Ctrl+V / Ctrl+D) accepted (2026-10-05; build 0 / 0, 2304 passed, 2
+skipped, three `--blame-hang` runs clean; the header checked at 1024 and 1440 px, the Copy button removed for 1024 px;
+`518730c`); Step 12.7 (markers: add / remove at the playhead, drawn on the ruler, previous / next, snapping) accepted
+(2026-10-05; build 0 / 0, 2319 passed, 2 skipped, three `--blame-hang` runs clean; the marker buttons checked in the
+real app at 1024 and 1440 px; `5a7edae`); Step 12.8 (an import belongs to the project it started in: New / Open /
+Recover meanwhile adds nothing) accepted (2026-10-05; build 0 / 0, 2324 passed, 2 skipped, three `--blame-hang` runs
+clean; the real race not reproducible by hand; `d467a84`). Step 12.9 closeout. Details: `progress.md`.
+
 Phase 11 — Media relink & recent projects, branch `feat/phase-11-relink-recent-projects` (from `2e758f1`, `main` after
 the merge of PR #10). **Complete**: accepted by the product owner on 2026-10-05 on the Step 11.9 local verification
-(closeout `ca20352`). Open: CI not run yet — the branch is not published; optional export scenario 9 and the "without
-ffmpeg" check not run; export scenario 14 checked by decoding the 8 outputs, not watched in a player; L1-c stays open,
-outside Phase 11. Scope from the product owner decisions PO-1…PO-9 (2026-10-01), recorded in DECISIONS.md D026:
+(closeout `ca20352`); PR #11 merged into `main` as `47ed2fa` (2026-10-05), CI green. Not run: optional export scenario 9
+and the "without ffmpeg" check; export scenario 14 checked by decoding the 8 outputs, not watched in a player; L1-c
+stays open, outside Phase 11. Scope from the product owner decisions PO-1…PO-9 (2026-10-01), recorded in DECISIONS.md D026:
 re-checking media availability during the session (window activation, throttled; before the export and the relink),
 relink of missing media only (undoable; hard rejects and warnings; allowed without ffprobe), a batch relink of files with
 the same name in the chosen folder, and `Recent ▾` (10 entries) next to Open. Steps 11.3 re-check · 11.4 relink core ·
@@ -92,7 +119,7 @@ remove per entry, no "Clear list", disabled during an export) accepted (2026-10-
 verification & closeout): local verification done (2026-10-05) — build `-warnaserror` 0 / 0, the full suite once and
 three times with `--blame-hang` (2213 passed, 2 skipped each), heavy scenes 88 / 88, the remaining manual scenarios
 (23 through Open, 24, 27, 28), R1 (a Phase 10 project), R2 (the export manual plan) and a relink / recent projects
-regression passed in the real app; accepted 2026-10-05. CI pending: the branch is not published.
+regression passed in the real app; accepted 2026-10-05. CI green on PR #11 (merged as `47ed2fa`).
 Details: `progress.md`.
 
 Phase 10 — Transitions & basic effects, branch `feat/phase-10-transitions-effects` (from `409240b`). **Complete**:
@@ -158,7 +185,10 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 11 — see `docs/DEVELOPMENT_PLAN.md`.
+None planned after Phase 12 — see `docs/DEVELOPMENT_PLAN.md`. Open after Phase 12: L1-c (a product decision); a
+test cleanup — some 12.3 / 12.5 test helpers give clips the length `F(end − start)` instead of `F(end) − F(start)`
+(a tick off the grid at 30 fps; product owner: a separate cleanup). Left out of Phase 12 by the product owner (2026-10-05):
+AI features, export settings, HDR / colour management, an installer, timeline virtualization, an undoable import.
 
 ## Rule
 

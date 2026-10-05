@@ -8,6 +8,8 @@ This directory contains:
 - `PHASE10_MANUAL_TEST_PLAN.md` — manual checks of Phase 10 (fades, cross dissolve), run at its closeout
 - `PHASE11_MANUAL_TEST_PLAN.md` — manual checks of Phase 11 (media re-check, relink, recent projects), completed per step
   and run at its closeout (Step 11.9)
+- `PHASE12_MANUAL_TEST_PLAN.md` — manual checks of Phase 12 (tracks, media removal, ripple delete, copy / paste /
+  duplicate, markers, import during New), completed per step and run at its closeout (Step 12.9)
 
 Agent-oriented project context lives in the repository root:
 

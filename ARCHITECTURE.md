@@ -117,6 +117,37 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   `SetClipPropertiesCommand` (absolute `ClipPropertyValues` before/after). Consecutive changes of
   the same properties of one clip merge into one undo step (`IMergeableCommand`), never into the
   save point and never right after an Undo.
+- Editing essentials (Phase 12, D027) — all in `ITimelineEditService` / `TimelineEditService`, each one undoable step
+  through the existing commands, `project.json` v3 unchanged:
+  - Tracks: `DeleteTrack` (`RemoveTrackCommand`: the same track object with its clips and dissolves back at its list
+    index on Undo; refused for a locked track and for the last track of the timeline; `GetDeleteTrackBlockReason` lets
+    the UI skip its confirmation) and `MoveTrack(±1)` (`SetTrackOrderCommand`: only `Track.Order` changes — swapped with
+    the neighbour of the same kind, equal orders numbered anew; refused for a locked track or past a locked
+    neighbour). `Track.Order` stays the only layer order: the playback snapshot (Preview and export) and the timeline
+    rows (video by descending order, equal orders by list place as the snapshot draws them) follow it.
+  - Media removal: `RemoveMedia` (with `CountClipsUsing`, `GetRemoveMediaBlockReason`) — the clips of every track that
+    use the asset through an `EditPlan` (their dissolves by `ReconcileTransitions`), then `RemoveMediaAssetCommand` (the
+    same asset object back at its index on Undo), one `CompositeCommand`; refused when a clip of it is on a locked
+    track; the file on disk is never touched. The thumbnail / waveform coordinators keep results per asset id, so
+    Undo shows them again without making them anew; a running analysis completes into the removed asset.
+  - Ripple delete and close gap: `RippleDeleteClips` (per track, every clip after a removed one moves left by the
+    removed frames before it; other tracks, the playhead and markers stay) and `CloseGap(track, at)` /
+    `CloseGapBefore(clip)` (one existing empty span). The move's per-clip timing rule is shared: `PlanShift` /
+    `ShiftedState` (frame count, speed and source range go along). Dissolves: a removed clip's goes, the others keep
+    their clips and length, none is created (D027 §2).
+  - Copy / paste / duplicate: `CopyClips` → `TimelineClipboard` (detached `CloneClip` copies, their track ids, the frame
+    rate), `PasteClips(clipboard, at)` and `DuplicateClips` through `PasteInto` (track, lock, media and rate checks, new
+    ids, `ShiftedState`, `Insert`, `Validate`) — rejected whole on any problem; no dissolve copied. The clipboard is
+    `TimelineViewModel.Clipboard`, emptied when another project becomes current.
+  - Markers: `AddMarker` (frame grid, one per frame), `RemoveMarkerAt`, `NextMarker` / `PreviousMarker` over the
+    persisted `Sequence.Markers` (`AddMarkerCommand` keeps them sorted, `RemoveMarkerCommand`); markers are snap
+    targets; no edit moves them.
+  - UI: ▲ / ▼ / ✕ in each track header (84 px column), ✕ on the selected Media Browser row, Ripple Delete / Close Gap /
+    Paste / Duplicate in the timeline header (Copy by Ctrl+C only; Ctrl+C / Ctrl+V / Ctrl+D in `ShortcutRouter`), the
+    marker block ◀ ◆+ ◆− ▶ left of the ruler and the markers drawn on it; every command that changes the project is off
+    during an export (`EditingLock`).
+- Import (Phase 12 Step 12.8, D027 §7): `MediaImportWorkflow` keeps the project the import started in and adds nothing
+  (and queues no analysis) when another project is current after the picker, the status yield or the file check.
 - UI: `TimelineViewModel` projects the `Sequence` (clip view models reused by Id),
   owns view state (zoom, playhead, selection, drag previews using the service's
   dry-run `CanMoveClips` / `PreviewTrim`) and never mutates the model directly.
@@ -465,5 +496,7 @@ and media sections at the Step 9.8 closeout; the CI section at the Step 9.10 clo
 domain section step by step in Steps 10.3–10.8 and with the module table at the Step 10.9 closeout; the media paths and
 missing media paragraph of the Project persistence section at the Step 11.1 audit (`2e758f1`), the media availability
 paragraph at the Step 11.3 closeout, the relink paragraph at the Step 11.4 closeout, the batch relink paragraph at the
-Step 11.5 closeout, the relink UI paragraph at the Step 11.6 implementation.
+Step 11.5 closeout, the relink UI paragraph at the Step 11.6 implementation, the recent projects paragraphs written at
+Steps 11.7–11.8 (Phase 11 merged into `main` as `47ed2fa`); the Phase 12 editing-essentials and import paragraphs of the
+Timeline section at the Phase 12 closeout (Step 12.9, `d467a84`).
 Re-check the code before relying on details that later phases may have changed.

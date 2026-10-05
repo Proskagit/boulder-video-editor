@@ -2,15 +2,360 @@
 
 ## Current phase
 
-Phase 11 — Media relink & recent projects: **complete** — accepted by the product owner on 2026-10-05 on the Step 11.9
-local verification (closeout `ca20352`). Open: CI not run yet — the branch is not published; optional export scenario 9
-and the "without ffmpeg" check not run; export scenario 14 checked by decoding the 8 outputs, not watched in a player;
-L1-c stays open, outside Phase 11. Branch `feat/phase-11-relink-recent-projects` (from
-`2e758f1`, `main` after the merge of PR #10). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 11
-— Media relink & recent projects: steps"; decision D026 (product owner decisions PO-1…PO-9, 2026-10-01). The
-implementation must conform to PO-1…PO-9.
+Phase 12 — Editing essentials: **complete locally** — Step 12.9 (final verification & closeout) done on 2026-10-05 on
+branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main` after the merge of PR #11). Open: CI not run yet — the
+branch is not published (push / pull request only with the product owner's permission); L1-c stays open; a separate
+test cleanup (`F(end − start)` helpers of 12.3 / 12.5). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`
+"Phase 12 — Editing essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.9 done.
 
-### Phase 11 — Media relink & recent projects (complete)
+### Phase 12 — Editing essentials (complete locally)
+
+Steps (D027; each accepted by the product owner before the next, never started automatically): 12.1 audit · 12.2 sync
+after the merge & scope formalization · 12.3 tracks · 12.4 media removal · 12.5 ripple delete / close gap · 12.6 copy /
+paste / duplicate · 12.7 markers · 12.8 New during an import · 12.9 closeout. Working rules from the product owner (kept
+from Phase 11): no build or test run without a separate command; no push, pull request or merge without direct
+permission; no next step without the product owner's go.
+
+- Step 12.1 done and accepted (2026-10-05) — audit, no change (no `git fetch`).
+  - Git: the local `origin/main` = `47ed2fa` "Merge pull request #11 …", its tree identical to `f30885d` (Phase 11
+    accepted); the local `main` was at `2e758f1`, 12 commits behind, none ahead; working tree clean. CI of PR #11 green
+    (the product owner; not checked from here).
+  - Build and tests (with `--artifacts-path` in the session's scratch folder, the product owner's audit request):
+    `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 errors / 0 warnings; `dotnet test` (once) 2213
+    passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448, Timeline 361, Project 371, UI 496, Export 99,
+    Rendering 58, Video 294, ExportEndToEnd 86 + 2.
+  - Code: no TODO / FIXME / HACK in `src/` or `tests/`; `src/Effects` is an empty placeholder (`Clip.Effects` only
+    persisted); `Sequence.Markers` is persisted in v3 (`MarkerDto`) but never created or shown; no track removal or
+    reordering, no media removal, no ripple, no clipboard (`ITimelineEditService`, `IProjectService`).
+  - Documentation outdated by the merge: "CI pending — the branch is not published" (ROADMAP, README,
+    DEVELOPMENT_PLAN, this file), this file's "Last known state" (2026-10-01) and "Completed" (no Phase 11), the
+    ARCHITECTURE verification note (no 11.7–11.9).
+  - Candidates reported: editing essentials (chosen), export settings, colour / HDR, AI features, distribution,
+    technical debt.
+- Product owner decisions (2026-10-05), recorded in D027: Phase 12 = 12.2–12.8 as above; ripple delete only (no ripple
+  trim), clips right of the removed span on the same track move left, no overlap, fully undoable, dissolves kept valid
+  by D025's rules with the exact rule fixed in D027 before the code; media removal with a confirmation for used
+  assets, atomic and undoable, caches consistent, files on disk untouched; track delete (confirmation with clips) and
+  reorder, undoable, the layer order the same in the Preview and the export; copy / paste / duplicate with all clip
+  properties and fades, no dissolve, paste at the playhead with the distances kept, on the source tracks when
+  possible, rejected rather than overlapping, hotkeys optional; markers: add, remove, show, next / previous, snapping
+  optional, no new `formatVersion` unless needed; the import bound to its project, the solution recorded in D027; L1-c
+  stays open; AI, export settings, HDR / colour, installer, timeline virtualization and an undoable import out.
+- Step 12.2 done (2026-10-05) — sync after the merge and scope formalization, documentation only (no production code,
+  no test changed, no build or test run). `git checkout main` + `git merge --ff-only origin/main` (`2e758f1` →
+  `47ed2fa`, no fetch), branch `feat/phase-12-editing-essentials` created from it.
+  - DECISIONS: D027 (context from the audit; §1 scope and constraints, §2 ripple delete with the dissolve rule, §3
+    tracks, §4 media removal, §5 copy / paste / duplicate, §6 markers, §7 New during an import; the sub-decisions left
+    to each step's start).
+  - The dissolve rule for ripple (D027 §2) follows from D025 without a new choice: a dissolve of a removed clip is
+    removed (D025 §5 "Delete"); every other dissolve has both clips moved by the same distance (they meet, so nothing
+    removed lies between them) and keeps its length, zone and handles (D025 §5 "Move"); no dissolve is created where
+    clips meet only because of the ripple. Two alternatives were considered and excluded because they contradict D025
+    (an automatic dissolve across the removed clip; refusing the ripple of a clip with a dissolve).
+  - The import fix (D027 §7): the workflow keeps the project it started in and adds nothing when another project is
+    current after an await (the identity pattern of D026); a cancellation token and blocking New / Open were considered
+    and not taken.
+  - `docs/DEVELOPMENT_PLAN.md`: the Phase 11 line (PR #11 / `47ed2fa`, CI green), the Phase 12 line and the section
+    "Phase 12 — Editing essentials: steps" (gates, constraints, steps 12.1–12.9 with PR / QG / Impl items).
+  - ROADMAP (Current: Phase 12; Phase 11 merged; future phases), README (status), ARCHITECTURE (verification note),
+    `docs/README.md`, this file (this section, the Phase 11 heading, "Last known state", "Completed", "Known issues").
+  - `docs/PHASE12_MANUAL_TEST_PLAN.md` — skeleton: scenarios per step, status "planned".
+  - Interpretation to confirm: "ripple delete of a clip / range" is read as the selected clips (one or several, on one
+    or several tracks) plus close gap (an empty span of one track); a time range cutting through clips would need an
+    in / out selection, which does not exist and is out of scope.
+- Step 12.2 accepted by the product owner (2026-10-05), with the ripple interpretation, the dissolve rule (D027 §2) and
+  the import fix (D027 §7) confirmed — recorded in D027 "Confirmed at the Step 12.2 acceptance". Committed as
+  `8e2b109`.
+- Step 12.3 done and accepted (2026-10-05) — tracks: delete and reorder (D027 §3; the product owner's rules at its
+  start and the implementation in D027 "Refined at the start of Step 12.3"; the four open points of the report — at
+  least one track of either kind, no move past a locked neighbour, equal orders numbered anew, the 84 px header — and
+  the manual check of the header bindings / the E2E scene through `SetTrackOrderCommand` confirmed by the product
+  owner).
+  - Core: `ITimelineEditService.DeleteTrack`, `GetDeleteTrackBlockReason`, `MoveTrack(trackId, ±1)`.
+  - Timeline: `RemoveTrackCommand` (the same track object back at its index on Undo), `SetTrackOrderCommand` /
+    `TrackOrderChange` (absolute orders); `TimelineEditService` — refuses a locked track, the last track of the
+    timeline, a move past a locked neighbour; no neighbour = no change; equal orders numbered anew.
+  - UI: `TimelineTrackViewModel.HasTrackAbove` / `HasTrackBelow`; `TimelineViewModel` — `MoveTrackUp/Down` (video ▲ =
+    +1, audio ▲ = −1), `DeleteTrack` (asks through `IDialogService` when the track has clips; skips the question when
+    the service would refuse; ignores the answer when an export started meanwhile), the video rows listed by the
+    snapshot's rule for equal orders; `TimelineView.axaml` — ▲ / ▼ / ✕ in the track header, the column 84 px. DI: the
+    optional `IDialogService` of `TimelineViewModel` comes from the container.
+  - Tests (new): `Timeline.Tests/TrackEditTests` (13: empty track deleted and back at its place; a track
+    with clips, a fade and a dissolve deleted and restored exactly; locked not deleted; the last track kept; no audio
+    track → audio refused, a new one accepted; unknown track; a move swaps only the orders and the snapshot composites by
+    them, undo / redo; audio among audio only; no neighbour = no change; locked / past locked refused; equal orders
+    numbered anew, undo; a dissolve stays with its moved track; delete + move survive save / reopen in v3);
+    `UI.Tests/TimelineTrackUiTests` (10: arrows only towards the same kind; up / down for video and audio and the rows
+    after Undo; a refused move's message; an empty track without a question; a track with clips after Delete Track only
+    (Cancel, closed); a selected clip on the deleted track leaves the selection; no question for a refused deletion; the
+    last track kept; an export started during the question; disabled during an export);
+    `ExportEndToEnd.Tests/ExportTrackOrderEndToEndTests` (1: two solids, the order swapped — the export shows the other
+    colour on top and the Preview draws the same bytes).
+  - Not automated: the header buttons' bindings in the real view (the UI test project has no headless platform to
+    realize item templates) — manual scenarios 1–7 (run in the real app at 12.9 at the latest).
+  - Verification (on the product owner's command; built with `--artifacts-path` in the session's scratch folder): the
+    first build failed (CS0535) — two other implementations of `ITimelineEditService` lacked the new members, the
+    design-time stub `MainWindow.DesignTimeTimelineEditService` and the test stub
+    `MediaOrientationRefreshTests.TimelineEditServiceStub`; both completed (design time: "Design time."; the stub:
+    `No` / null), nothing else changed. Then `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 errors /
+    0 warnings; `dotnet test` (whole solution, once) 2237 passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448,
+    Timeline 374 (+13), Project 371, UI 506 (+10), Export 99, Rendering 58, Video 294, ExportEndToEnd 87 (+1) + 2; then
+    three runs with `--blame-hang --blame-hang-timeout 5m`, each 2237 passed / 2 skipped / 0 failed, no hang, no dump.
+    Parity suites unchanged. Not run: the heavy 4K scenes, CI (not pushed), the manual scenarios 1–7.
+  - Committed as `5bcdcbb` (the product owner's permission, 2026-10-05; not pushed).
+- Step 12.4 done and accepted (2026-10-05) — removing media from the project (D027 §4; the implementation and the
+  points made precise in D027 "Refined in Step 12.4", all confirmed by the product owner — the analysis rule written
+  into §4 before the checks, no code change for it). Started on the product owner's instruction right after the 12.3
+  commit.
+  - Audit before the code: assets are referenced by clips through `MediaBackedClip.MediaAssetId` only; the media list is
+    `Project.MediaAssets` (import adds through `IProjectService.AddMediaAssets`, the only duplicate check, not undoable);
+    `MediaCacheCoordinator` keeps results per asset id and generation (requests on `MediaAssetsChanged`, once per
+    generation); `MediaAnalysisCoordinator` writes its result into the asset object it started for; confirmations go
+    through `IDialogService` (the track deletion of 12.3, the relink workflow); a plain clip delete removes dissolves by
+    `EditPlan.ReconcileTransitions`.
+  - Core: `ITimelineEditService.CountClipsUsing`, `GetRemoveMediaBlockReason`, `RemoveMedia`.
+  - Timeline: `RemoveMediaAssetCommand` (the same object back at its index on Undo, `NotifyMediaAssetsChanged` both
+    ways); `TimelineEditService.RemoveMedia` — the clips of every track through an `EditPlan` with their dissolves, then
+    the asset, one `CompositeCommand` (`NotifyingCommand` for `TimelineChanged` only when clips go); refused when the asset
+    is not in the project or a clip of it is on a locked track.
+  - UI: `MediaBrowserViewModel.RemoveCommand` (optional `ITimelineEditService`, `IDialogService`, `StatusService` from the
+    container) — the service's block reason without a question, "Remove Media" / "Remove" / "Cancel" when clips use the
+    asset, the answer ignored when an export or a relink started meanwhile, status messages; `MediaBrowserView.axaml` —
+    ✕ on the selected row. The coordinators needed no change (their results are kept per asset id). The design-time
+    stub and the `MediaOrientationRefreshTests` stub of `ITimelineEditService` completed.
+  - Tests (new, 18): `Timeline.Tests/MediaRemovalTests` (9: an unused asset in one step, back at its place,
+    no timeline change, clean after Undo; a used asset with three clips on two tracks, a dissolve and a fade, another
+    asset's clip kept, the snapshot without it, Undo exact; metadata / analysis state / size back; offline asset; the
+    file on disk untouched; a locked track blocks, its count still made; a locked track without its clips doesn't; an
+    asset no longer in the project; save / reopen in v3 without it); `UI.Tests/MediaRemovalUiTests` (9: unused without a
+    question, the selection and the Inspector cleared, Undo brings the row back; used only after Remove (Cancel, closed),
+    the question's text, Undo; refused without a question; an export started during the question; selection needed and
+    disabled during an export; no Remove without the edit service; the thumbnail shown again after Undo and made once;
+    a thumbnail still being made ends and is there after Undo; an analysis still running completes into the removed
+    asset, which comes back analysed).
+  - Not automated: the ✕ button's bindings in the real view (no headless platform, as in 12.3) — manual scenarios 8–13.
+  - Verification (on the product owner's command; `--artifacts-path` in the session's scratch folder): `dotnet build
+    AiVideoEditor.sln --no-incremental -warnaserror` 0 errors / 0 warnings at the first attempt (both other
+    implementations of `ITimelineEditService` were completed with the change); `dotnet test` (whole solution, once)
+    2255 passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448, Timeline 383 (+9), Project 371, UI 515 (+9),
+    Export 99, Rendering 58, Video 294, ExportEndToEnd 87 + 2; three runs with `--blame-hang --blame-hang-timeout 5m`,
+    each 2255 passed / 2 skipped / 0 failed, no hang, no dump; `git diff --check` clean. The Preview ↔ Export parity
+    suites unchanged and green. No fix needed. Not run: the heavy 4K scenes, CI (not pushed), the manual scenarios 8–13.
+  - Committed as `097e555` (the product owner's permission, 2026-10-05; not pushed); D027 §4 and this plan's 12.4 text
+    made to say what the implementation does for running work (before the checks).
+- Step 12.5 done and accepted (2026-10-05) — ripple delete and close gap (D027 §2; the product owner's rules at its
+  start and the implementation in D027 "Refined in Step 12.5", confirmed: Close Gap through the selected clip, a ripple
+  refused when a moved dissolve's handles no longer fit, no hotkeys). Started on the product owner's instruction right
+  after the 12.4 commit.
+  - Core: `ITimelineEditService.RippleDeleteClips`, `CloseGap(trackId, at)`, `CloseGapBefore(clipId)`.
+  - Timeline: `TimelineEditService` — the move's per-clip timing rule extracted into `PlanShift` (Move unchanged in
+    behaviour, now its user); ripple: per track, the removed clips into the `EditPlan` and every other clip shifted
+    left by the removed frames before it; close gap: the span containing the point, every later clip of the track
+    shifted by its length; both through `Validate` (`ReconcileTransitions` removes a removed clip's dissolves, keeps
+    the others with their two clips, validates zones / handles) and one `Commit`. No new command class: the plan's
+    `RemoveClipCommand` / `UpdateClipsCommand` / transition commands in one `CompositeCommand`.
+  - UI: `TimelineViewModel.RippleDeleteCommand` / `CloseGapCommand` (refreshed with the selection like Dissolve);
+    `TimelineView.axaml` — "Ripple Delete" and "Close Gap" next to Delete. The design-time stub and the
+    `MediaOrientationRefreshTests` stub completed.
+  - Tests (new, 24): `Timeline.Tests/RippleEditTests` (17: one clip, undo / redo exact; gaps kept; several
+    clips of one track; two tracks with the third, the playhead and a marker untouched; a removed clip's dissolve
+    removed with the note, none created at the new cut; a dissolve after the removed clip moved with anchors, length
+    and fades kept and drawn at the new cut by the snapshot; a dissolve before it untouched; a 2× clip keeps speed and
+    source range; 29.97 fps stays on the grid; locked track refused; nothing selected / a missing clip; close gap
+    between clips (a later gap kept, undo / redo), before the first clip, only an existing gap (in a clip, after the
+    last, an empty track, an unknown track), locked refused, a dissolve moved with its clips and another track
+    untouched, the gap right before a clip); `UI.Tests/TimelineRippleUiTests` (6: Ripple Delete needs a selection and
+    is off during an export; two tracks closed, the selection cleared, one Undo; a refused one's message, the selection
+    kept; Close Gap needs exactly one clip and is off during an export; it closes the gap before the clip, the
+    selection kept; no gap → the service's message).
+  - The QG "an export after a ripple matching its Preview" (the product owner asked for it before the checks):
+    `ExportEndToEnd.Tests/ExportRippleEndToEndTests` (1) — red [0, 10), green [10, 20), blue [20, 30) on V1, the green
+    one removed by the real `TimelineEditService.RippleDeleteClips` (through a minimal `IProjectService` stand-in over
+    the scene's project, as in `Video.Tests`); the real export has 20 frames, red then blue without a gap, and the
+    Preview from the export's snapshot draws the same bytes at frames 9 and 10 (D023's canvas rule; no new criterion).
+    It ran (not skipped) and passed. The existing parity scenes unchanged.
+  - Not automated: the two header buttons' bindings in the real view — manual scenarios 14–21.
+  - Verification (on the product owner's command; `--artifacts-path` in the session's scratch folder): `dotnet build
+    AiVideoEditor.sln --no-incremental -warnaserror` 0 errors / 0 warnings at the first attempt; `dotnet test` (whole
+    solution, once) 2279 passed, 2 skipped (only the two 4K heavy scenes), 0 failed — Core 448, Timeline 400 (+17),
+    Project 371, UI 521 (+6), Export 99, Rendering 58, Video 294, ExportEndToEnd 88 (+1) + 2; three runs with
+    `--blame-hang --blame-hang-timeout 5m`, each 2279 passed / 2 skipped / 0 failed over all 8 test assemblies, no hang,
+    no dump; `git diff --check` clean. The Preview ↔ Export parity suites unchanged and green. No fix needed. Not run:
+    the heavy 4K scenes, CI (not pushed), the manual scenarios 14–21.
+  - Committed as `a2f8c7c` (the product owner's permission, 2026-10-05; not pushed).
+- Step 12.6 done and accepted (2026-10-05) — copy / paste / duplicate (D027 §5; the rules chosen and the edge cases in
+  D027 "Refined in Step 12.6", all confirmed by the product owner: copy from a locked track, offline media pasted, media
+  removed after the copy blocks the paste until its Undo, another frame rate needs a new copy, one problem rejects the
+  whole paste / duplicate, the clipboard only for the current project, no system clipboard, nothing saved). Started on
+  the product owner's instruction right after the 12.5 commit.
+  - Audit before the code: clips refer to media only through `MediaBackedClip.MediaAssetId`; `TimelineEditService`
+    already clones a clip with every property for Split (`CloneClip`: a new id, the same asset); new clips go into an
+    `EditPlan` (`Insert`) and are validated (no overlap) and committed as one `IUndoableCommand`, as Add does; the
+    selection lives in `TimelineViewModel` (`SelectAdded` selects new clips); `ShortcutRouter` is a key → command table
+    with the text-input guard.
+  - Core: `ITimelineEditService.CopyClips` (→ `TimelineClipboard` / `TimelineClipboardEntry`), `PasteClips`,
+    `DuplicateClips`.
+  - Timeline: `TimelineEditService` — `ShiftedState` (the move's timing rule, out of `PlanShift`), `CopyClips`
+    (`CloneClip` per clip, its track, the rate), `PasteInto` (rate, track, lock and media checks, `CloneClip` + the
+    shifted state, `Insert`, `Validate`, `Commit`) for Paste and Duplicate. No new command class.
+  - UI: `TimelineViewModel.Clipboard` (emptied on another project), `CopyCommand` / `PasteCommand` /
+    `DuplicateCommand` (status messages, the new clips selected); `TimelineView.axaml` — Paste and Duplicate in the
+    header (Copy by Ctrl+C only, after the 1024 px check below); `ShortcutRouter` — Ctrl+C / Ctrl+V / Ctrl+D. The design-time stub and the `MediaOrientationRefreshTests`
+    stub completed.
+  - Tests (new, 25): `Timeline.Tests/ClipboardEditTests` (16: copy is no project change, nothing / a missing
+    clip copies nothing; a video clip at 2× with transform, crop, volume, fades pasted with a new id, the same asset
+    and source range; a text clip's text and style; clips of two tracks keep tracks and distances, one Undo; a copy is
+    detached from later edits; no dissolve copied; an overlap rejects the whole paste; a locked target rejects, copying
+    from it is allowed; a deleted track rejects; media removed after the copy rejects, its Undo lets the paste work;
+    offline media pasted, in the snapshot; another frame rate rejects; the paste snapped to the grid and in the
+    snapshot; pasted clips survive save / reopen in v3; duplicate after the selection on two tracks, one Undo;
+    duplicate rejected for an overlap, a locked track, a missing clip, nothing); `UI.Tests/TimelineClipboardUiTests`
+    (5: what each command needs, Copy allowed during an export; Paste at the playhead selecting the copies, a second
+    one at the same place refused; Duplicate after the selection, selected, Undo; a refused Duplicate's message and the
+    selection kept; another project empties the clipboard). Changed: `UI.Tests/ShortcutRoutingTests` (the table +3
+    rows — also checked against a focused text box — and C / V / D without Ctrl, Ctrl+Shift+C not shortcuts).
+  - Not automated: Ctrl+C / Ctrl+V / Ctrl+D and the copy / paste flows in the running app — manual scenarios 22–28.
+  - Verification (on the product owner's command; `--artifacts-path` in the session's scratch folder): `dotnet build
+    AiVideoEditor.sln --no-incremental -warnaserror` 0 errors / 0 warnings. The first full run had 1 failure —
+    `ClipboardEditTests.Clips_of_several_tracks_keep_their_tracks_and_distances_from_the_earliest`, "Clip edges must lie
+    on the project frame grid": the test helper gave clips the length `F(end − start)`, at 30 fps a tick off
+    `F(end) − F(start)`, so a clip's end was off the grid and the validator rightly refused the paste onto its track.
+    Fixed in the two 12.6 test helpers (`ClipboardEditTests`, `TimelineClipboardUiTests`: `F(end) − F(start)`), no
+    production change (the same helper in the committed 12.3 / 12.5 tests left alone — a separate cleanup, product
+    owner). Then: `dotnet test` 2304 passed, 2 skipped (only the two 4K heavy scenes), 0 failed — Core 448, Timeline
+    416 (+16), Project 371, UI 530 (+9: 5 + 4 new `ShortcutRoutingTests` cases; the 3 new table rows checked by the
+    existing facts), Export 99, Rendering 58, Video 294, ExportEndToEnd 88 + 2; three runs with `--blame-hang
+    --blame-hang-timeout 5m`, each 2304 / 0 / 2 over all 8 test assemblies, no hang, no dump; `git diff --check` clean.
+    The Preview ↔ Export parity suites unchanged and green; the pasted clips are asserted in the playback snapshot.
+  - Real-app UI check (the product owner's permission; the Debug build from the scratch artifacts, an isolated profile
+    — `USERPROFILE` / `LOCALAPPDATA` in the scratch folder —, the Phase 10 fade fixture project with V2 / V1 / A1 and
+    media, 125 % display scaling): at 1440 × 900 everything fits with room to spare. At the minimum width (1024 px,
+    reached by dragging the window border) the timeline header overflowed: Fit cut at the right edge and "+ Video
+    Track" right against "25 FPS". As the product owner had decided for that case, only the Copy button was removed
+    (Ctrl+C stays). Rebuilt (0 / 0) and checked again at 1024 px: the whole header fits — Fit complete with its margin,
+    a gap after "25 FPS"; −, + and Fit work (the ruler went to 5 s, then 2 s steps, Fit showed 0:00–0:34); the 84 px
+    track headers show ▲ ▼ ✕ whole; the Media Browser's ✕ on the selected row (260 px panel) is whole. Full suite again
+    after the change: 2304 / 0 / 2. Not checked: the minimum height (640) — setting the window size from outside
+    (SetWindowPos) left the window taller than requested (an interplay of Avalonia's size limits with the scripted
+    resize on this multi-monitor, mixed-DPI desktop; dragging works), and dragging the bottom border to its minimum
+    did not take; the header row does not depend on the height.
+  - Committed as `518730c` (the product owner's permission, 2026-10-05; not pushed).
+- Step 12.7 done and accepted (2026-10-05) — markers (D027 §6; the rules in D027 "Refined in Step 12.7", confirmed by
+  the product owner: one marker per frame, remove only on the playhead's frame, markers keep their time when the rate
+  changes, no edit moves them, no label / colour editing, drag, click or hotkeys, the buttons a compact block in the
+  corner left of the ruler). Started on the product owner's instruction right after the 12.6 commit.
+  - Audit before the code: `Sequence.Markers` (`Marker`: id, position, label, colour) is read and written by
+    `project.json` v3 and used nowhere else; the snap targets are one list in `TimelineEditService.Snap`; the ruler is
+    an ItemsControl on a Canvas laid out in `TimelineViewModel.Relayout` (also after every timeline change and zoom).
+  - Core: `ITimelineEditService.AddMarker`, `RemoveMarkerAt`, `NextMarker`, `PreviousMarker`;
+    `TimelineEditResult.MarkerId`; the markers added to the snap targets.
+  - Timeline: `AddMarkerCommand` (sorted insert), `RemoveMarkerCommand` (index kept), through `NotifyingCommand` so the
+    panel refreshes; `TimelineEditService` — one marker per frame of the current grid, the playhead's frame for remove,
+    strictly after / before for the queries.
+  - UI: `TimelineMarkerViewModel` (left, colour); `TimelineViewModel.Markers` (rebuilt in `Relayout`),
+    `AddMarkerCommand` / `RemoveMarkerCommand` (disabled during an export) and `PreviousMarkerCommand` /
+    `NextMarkerCommand` (through `SetPlayhead`, so the Preview seeks); `TimelineView.axaml` — the marker buttons in the
+    corner left of the ruler, the markers on the ruler. The design-time stub and the `MediaOrientationRefreshTests`
+    stub completed.
+  - Tests (new, 15): `Timeline.Tests/MarkerEditTests` (9: added on the grid in one step with the default look,
+    undo / redo the same marker, clean after Undo; sorted, one per frame; before zero → zero; removed and back in its
+    place; nothing to remove refused; next / previous strictly after / before, none at the ends; markers are snap
+    targets; markers change no clip and don't lengthen the timeline; saved and reopened in v3);
+    `UI.Tests/TimelineMarkerUiTests` (6: drawn at the zoom, laid out again after a zoom, Undo; the same frame refused;
+    remove at the playhead or the message; previous / next with seeks and the messages at the ends; add / remove off
+    during an export, going to a marker not; a project's markers shown, another project has its own).
+  - Not automated: the corner buttons and the drawing in the real view — manual scenarios 29–32.
+  - Verification (on the product owner's command; `--artifacts-path` in the session's scratch folder): `dotnet build
+    AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0 at the first attempt; `dotnet test` 2319 passed, 2 skipped
+    (only the two 4K heavy scenes), 0 failed — Core 448, Timeline 425 (+9), Project 371, UI 536 (+6), Export 99,
+    Rendering 58, Video 294, ExportEndToEnd 88 + 2; three runs with `--blame-hang --blame-hang-timeout 5m`, each 2319 /
+    0 / 2 over all 8 test assemblies, no hang, no dump; `git diff --check` clean.
+  - Real-app UI check (the product owner's permission; the Debug build from the scratch artifacts, an isolated profile,
+    the Phase 10 fade fixture project, 125 % display scaling; the window narrowed by dragging its border): the four
+    buttons worked (two markers added and drawn, ▶ / ◀ to them with the end messages, ◆− removed one; zoom and Fit kept
+    the markers at their time), but the block was wider than the 84 px column at 1440 and 1024 px alike — ▶ partly
+    under the ruler, ◀ against the left edge. The product owner chose variant A: in the block's button style Padding
+    3,0 → 1,0 and Spacing 2 → 1, nothing else. Then again: build 0 / 0, `dotnet test` 2319 / 0 / 2, three
+    `--blame-hang` runs 2319 / 0 / 2 (no hang, no dump), `git diff --check` clean; in the real app at 1440 and 1024 px
+    all four buttons whole, ▶ clear of the ruler, nothing over the ruler, TIMELINE or the track headers; all four
+    clicked (◆+ added, ▶ / ◀ moved the playhead with the end messages, ◆− removed the marker on the playhead); zoom + and
+    Fit moved neither the block nor a marker off its time. The test edits undone (title without `*`) before closing.
+  - Committed as `5a7edae` (the product owner's permission, 2026-10-05; not pushed).
+- Step 12.8 done and accepted (2026-10-05) — New during a running import (D027 §7, confirmed again by the product owner
+  at the step; D027 "Refined in Step 12.8"). Started on the product owner's instruction right after the 12.7 commit.
+  - Audit before the code: `MediaImportWorkflow.RunAsync` awaits the picker, then a dispatcher yield (`showStatus`,
+    Step 9.8) and `IMediaImportService.ImportManyAsync` (synchronous in the app), then calls
+    `IProjectService.AddMediaAssets` on whatever project is current and queues the analysis — a New / Open / Recover
+    during one of the awaits got the picked files (the known issue since Step 9.3). The relink workflow and service
+    already guard with the identity of the project they started in (D026).
+  - UI: `MediaImportWorkflow` — the project taken before the picker, `ProjectChanged(project)` after each of the three
+    awaits (status message `ProjectChangedMessage`, a log line, return before anything is added or analysed). No other
+    file changed.
+  - Tests (new, 5): `UI.Tests/ImportProjectChangeTests` (5: New while the files are checked — nothing in the
+    new project nor the old, still clean, no analysis, the message; New while "Importing N files…" is shown; another
+    project while the picker is open — the files not even checked; without a change as before — both added and
+    analysed; the next import into the new project works). The existing `ImportStatusTests` (status order, cancelled
+    picker, failing check) unchanged.
+  - Verification (on the product owner's command; `--artifacts-path` in the session's scratch folder): `dotnet build
+    AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0 at the first attempt; `dotnet test` 2324 passed, 2 skipped
+    (only the two 4K heavy scenes), 0 failed — Core 448, Timeline 425, Project 371, UI 541 (+5), Export 99, Rendering 58,
+    Video 294, ExportEndToEnd 88 + 2; three runs with `--blame-hang --blame-hang-timeout 5m`, each 2324 / 0 / 2 over all
+    8 test assemblies, no hang, no dump; `git diff --check` clean.
+  - Real-app attempt at the race (manual scenarios 33–34; the Debug build, an isolated profile, a new empty project,
+    the four fixture media files picked in the Windows file dialog by a script — click into the name box, paste,
+    Enter — and New clicked right after the Enter, with 0 to 250 ms between them; 9 attempts): the race was never hit.
+    In the running app the check of the picked files is synchronous on the UI thread, so a New can only come in during
+    the one-frame yield between the picker closing and "Importing N files…"; the click was either lost while the dialog
+    closed (0 and 40 ms) or came after the import — the files went into the project the import started in (title with
+    `*`, "Added 4 media asset(s)") and New asked "Unsaved changes" (answered Don't Save, the next project empty). In no
+    attempt did the files reach the new project; "Import stopped: …" never appeared (0 lines in the log). The plain
+    import (scenario 34's baseline) worked: 4 files added and analysed. Open / Recover can't race at all from the UI —
+    Open needs its folder picker first and Recover is offered at startup; their replacement is the same project-object
+    change the tests cover with New. The guarded path itself is covered by the automated tests only.
+  - Committed as `d467a84` (the product owner's permission, 2026-10-05; not pushed).
+- Step 12.9 done (2026-10-05) — final verification & closeout (the product owner's decisions: the manual plan run by
+  Claude, the step-time real-app checks counted, R1 from the Phase 11 state, R2 / R3, the full local QG, the test-helper
+  cleanup left for later, no push / pull request / change of `main`).
+  - Audit before the checks: 7 commits on the branch (12.2–12.8), clean tree, not published; the manual plan had 1–28,
+    31, 32 and part of 29 run only as automated tests; ARCHITECTURE still said "Phase 12 changes nothing here yet".
+  - Automated QG (`--artifacts-path` in the session's scratch folder): `dotnet build AiVideoEditor.sln --no-incremental
+    -warnaserror` 0 errors / 0 warnings; `dotnet test` once: 2324 passed, 2 skipped (only the two 4K scenes), 0 failed —
+    Core 448, Timeline 425, Project 371, UI 541, Export 99, Rendering 58, Video 294, ExportEndToEnd 88 + 2; three runs
+    with `--blame-hang --blame-hang-timeout 5m`: each 2324 / 0 / 2 over all 8 test assemblies, no hang, no dump; the
+    4K scenes once with `AIVE_HEAVY_TESTS=1` (`tests/ExportEndToEnd.Tests`): 90 passed, 0 skipped, 0 failed;
+    `git diff --check` clean. No failure, nothing fixed.
+  - Manual plan (`docs/PHASE12_MANUAL_TEST_PLAN.md`, results log "Step 12.9 formal run"): the Debug build, an isolated
+    profile, small fixture projects copied from the Phase 10 fade fixture (V2 / V1 / A1, fades, a dissolve; variants
+    with a locked V2, an offline image, an extra unused media), every action through the UI (UI Automation for the
+    buttons and dialogs, real clicks for clips, rows and the Windows file dialogs), every result checked on the saved
+    `project.json`, the window title, the status bar, the dialogs and screenshots. Passed: 1–4, 6–11, 13–25, 27–32, 34
+    (30 scenarios; 29 / 30 / 34 partly from the Step 12.7 / 12.8 runs); partly: 5 (the order, the sound not listened)
+    and 26 (overlap, locked track and removed media — the deleted-track case automated only); not reproducible by hand:
+    12 (removing media during its analysis) and 33 (New during an import) — automated tests only.
+  - R1: the Phase 11 state extracted with `git archive 47ed2fa` into the scratch folder and built there (no worktree,
+    branch or commit); the Phase 11 app opened a copy of the fixture, added a text clip and saved; Phase 12 opened it
+    (4 media, 0 missing, 13 clips), a plain Save wrote the same file, and after a marker the saved file was
+    `formatVersion` 3 with clips, media, tracks and the dissolve identical to the Phase 11 file; the Phase 11 app opened
+    that file again (13 clips).
+  - R2 (`docs/EXPORT_MANUAL_TEST_PLAN.md`): 1 / 14 — two exports (34 s after a track move, 30 s after a ripple) H.264
+    640 × 360 25 fps + AAC 48 kHz stereo, video = audio duration, decode clean, the 6.6 s frame red as the Preview after
+    the move; 7 — Cancel in Audio (74 %): "Export cancelled.", no file, no leftovers; 10 — an offline image: "Export not
+    possible" naming it, no picker, nothing written; 11 — "Replace file?": Cancel leaves the file byte-identical,
+    Replace replaces it after the export; 12 — the picker closed: nothing; 13 — the main window disabled during the
+    export (and every Phase 12 command off, navigation on), everything back afterwards, no Undo step from exporting.
+    Not re-run: 2, 3, 5, 6, 8 (rendering — no export / render / playback / audio code changed in Phase 12; parity suites
+    and 4K green); 9 optional.
+  - R3: relink of an offline image through Relink… (linked, the OFFLINE row gone, undoable); `Recent ▾` (10 entries,
+    newest first; opening one asks about unsaved changes and moves it to the top); a fade in the Preview (the fade-in
+    start dark — brightness 18 against 125 in the clip); a dissolve selected on its zone (after a zoom in — see the
+    observation below), removed, added with Dissolve ("Dissolve added: 25 frames."), both undone.
+  - Observation (not a Phase 12 change, D025 Step 10.8): at the default zoom a 0.4 s dissolve zone is covered by the trim
+    handles of its two clips, so a press there acts on a clip; the zone is selectable after zooming in.
+  - Documentation: ARCHITECTURE (the Timeline section's Phase 12 paragraphs, the verification note), README, ROADMAP,
+    this file, D027 (closeout), `docs/DEVELOPMENT_PLAN.md` (the Phase 12 checkbox — complete locally), the manual plan
+    (statuses and the results log).
+
+### Phase 11 — Media relink & recent projects (complete; PR #11 merged as `47ed2fa`, CI green)
 
 Steps (D026; each accepted by the product owner before the next): 11.1 audit · 11.2 scope formalization · 11.3 media
 availability re-check · 11.4 relink core · 11.5 batch search · 11.6 relink UI · 11.7 recent projects core · 11.8 recent
@@ -2744,12 +3089,11 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-01: Phases 0–10 are complete and merged into `main` (last merge `2e758f1`, PR #10; Phase 10's CI run on its
-branch was green — 1988 passed, 2 skipped; the CI result of the PR #10 merge on `main` was not checked in Step 11.1).
-Phase 11 (media relink & recent projects) is in progress on `feat/phase-11-relink-recent-projects`: Step 11.1 accepted,
-Step 11.2 (documentation) done. Open items carried forward: see "Known issues" (L1-c, New during
-`ImportManyAsync`, the audio status message after a device returns, the watched `Project.Tests` hang / failure, no
-timeline virtualization, import not undoable, the 5 s PATH probe of the locators).
+2026-10-05: Phases 0–11 are complete and merged into `main` (last merge `47ed2fa`, PR #11, CI green). Phase 12 (editing
+essentials, D027) is complete locally on `feat/phase-12-editing-essentials` (Step 12.9: 2324 passed, 2 skipped; the 4K
+scenes 90 / 90); the branch is not published, so CI has not run. Open items carried forward: see "Known issues" (L1-c,
+the audio status message after a device returns, the watched `Project.Tests` hang / failure, no timeline
+virtualization, import not undoable, the 5 s PATH probe of the locators, the `F(end − start)` test helpers).
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -2786,6 +3130,8 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 8 (accepted 2026-09-25)
 - Phase 9 (accepted 2026-09-29)
 - Phase 10 (accepted 2026-10-01; PR #10 merged as `2e758f1`)
+- Phase 11 (accepted 2026-10-05; PR #11 merged as `47ed2fa`, CI green)
+- Phase 12 (complete locally 2026-10-05, Step 12.9; CI pending — not published)
 
 ## Known issues
 
@@ -2800,6 +3146,11 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   may shift it — `FfmpegSpeedIntegrationTests` (10 ms bound) catches that.
 - New Project while `ImportManyAsync` is still checking the picked files adds them to the new project (the import
   adds to whatever project is current when it finishes). Out of scope of Step 9.3 (product owner, 2026-09-25).
+  Fixed in Phase 12 Step 12.8 (D027 §7): `MediaImportWorkflow` keeps the import's project and adds nothing to another
+  one (automated tests; the one-frame race not reproducible by hand).
+- Tests: some Phase 12 test helpers (`TrackEditTests`, `RippleEditTests`, `TimelineRippleUiTests`) give text clips the
+  length `F(end − start)` instead of `F(end) − F(start)` — a tick off the frame grid at 30 fps for some values; they
+  pass because their clips happen to land on the grid. A separate cleanup (product owner, Step 12.6).
 
 - Text clips (D021): the Preview (Avalonia) silently substitutes a font that isn't installed. Phase 8
   (D023) renders text like the Preview (no `drawtext`), so the export falls back the same way; the

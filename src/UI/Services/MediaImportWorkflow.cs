@@ -12,6 +12,11 @@ namespace AiVideoEditor.UI.Services;
 /// doesn't get pushed into directly by this class; it picks the result up
 /// reactively via <see cref="IProjectService.MediaAssetsChanged"/>, so it doesn't
 /// matter which button triggered the import.
+/// <para>
+/// An import belongs to the project it was started in (D027 §7): the workflow takes the current project before the
+/// file picker opens and checks after every await that it is still the current one. If another project became current
+/// meanwhile (New, Open, Recover), nothing is added, no analysis is queued, and the status bar says so.
+/// </para>
 /// </summary>
 public sealed class MediaImportWorkflow
 {
@@ -42,8 +47,14 @@ public sealed class MediaImportWorkflow
         _showStatus = showStatus ?? (() => Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background).GetTask());
     }
 
+    /// <summary>Status message when the project changed while the import ran (D027 §7).</summary>
+    public const string ProjectChangedMessage = "Import stopped: another project was opened, so nothing was added.";
+
     public async Task RunAsync(CancellationToken ct = default)
     {
+        // The import belongs to this project (D027 §7); checked after every await below.
+        var project = _projectService.Current;
+
         var request = new FilePickerRequest
         {
             Title = "Import Media",
@@ -74,10 +85,12 @@ public sealed class MediaImportWorkflow
             _logger.LogInformation("Import Media: file picker was cancelled.");
             return;
         }
+        if (ProjectChanged(project)) return;
 
         // Feedback only (D024 Step 9.8): the import itself is unchanged; the result message below replaces this one.
         _status.Report(paths.Count == 1 ? "Importing 1 file…" : $"Importing {paths.Count} files…");
         await _showStatus();
+        if (ProjectChanged(project)) return;
 
         MediaImportBatchResult importResult;
         try
@@ -89,6 +102,8 @@ public sealed class MediaImportWorkflow
             _status.Report("Import didn't finish.");
             throw;
         }
+        if (ProjectChanged(project)) return;
+
         var addResult = _projectService.AddMediaAssets(importResult.Imported);
 
         // Fire-and-forget on purpose: analysis runs in the background and updates
@@ -101,6 +116,16 @@ public sealed class MediaImportWorkflow
             addResult.DuplicateCount,
             importResult.UnsupportedFiles.Count,
             importResult.MissingFiles.Count));
+    }
+
+    /// <summary>True — with the status message — when <paramref name="project"/>, the project the import started in, is no
+    /// longer the current one: its files must not go into another project (D027 §7).</summary>
+    private bool ProjectChanged(Core.Entities.Project project)
+    {
+        if (ReferenceEquals(project, _projectService.Current)) return false;
+        _logger.LogInformation("Import Media: another project became current while importing; nothing was added.");
+        _status.Report(ProjectChangedMessage);
+        return true;
     }
 
     private static string BuildStatusMessage(int imported, int duplicates, int unsupported, int missing)
