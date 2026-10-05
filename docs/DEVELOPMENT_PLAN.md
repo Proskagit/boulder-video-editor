@@ -535,15 +535,17 @@ Scope: D027 §3.
 - Impl: `Track.Order` stays the only source of the layer order; the sub-decisions of D027 §3 recorded as a refinement.
 - Depends on: 12.2.
 
-### 12.4 — Removing media from the project
+### 12.4 — Removing media from the project *(done — accepted 2026-10-05; D027 "Refined in Step 12.4"; manual scenarios 8–13 at 12.9 at the latest)*
 Scope: D027 §4.
 - PR: an unused asset is removed at once; a used one after a confirmation naming the number of clips, together with
   those clips and their dissolves; one undoable step; Undo restores the asset with its id, path, metadata and analysis
   state, its clips and dissolves.
 - PR: the file on disk is never touched; the Media Browser, the timeline, the Preview, thumbnails and waveforms show the
-  state after the removal and again after Undo; nothing still running for the removed asset publishes a result.
+  state after the removal and again after Undo; work still running for the removed asset (a thumbnail, a waveform, an
+  analysis) ends normally, is not shown while the asset is out of the project and is there after Undo (D027 §4).
 - QG: tests of the command (unused / used / offline asset, dissolves, undo / redo, save → reopen), of the cache and
-  analysis coordinators (no publication after removal, shown again after Undo), of the confirmation flow.
+  analysis coordinators (nothing shown while removed, shown again after Undo without being made anew, a running
+  analysis completing into the removed asset), of the confirmation flow.
 - Depends on: 12.3 (the track and clip removal paths are shared).
 
 ### 12.5 — Ripple delete and close gap

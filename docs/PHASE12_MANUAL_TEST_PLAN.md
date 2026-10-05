@@ -36,12 +36,12 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 8 | Unused asset | Import a file, don't use it; remove it | Gone from the Media Browser at once; the file on disk unchanged; Undo brings it back with its thumbnail and metadata | — | planned |
-| 9 | Used asset | Use a file in three clips (one in a dissolve); remove it | A confirmation naming 3 clips; Cancel changes nothing; OK removes the asset, the clips and the dissolve in one step; the Preview and the waveforms follow | — | planned |
-| 10 | Undo / Redo | After 9, Undo, Redo | Undo restores the asset, clips, dissolve, thumbnail and waveform; Redo removes them again | — | planned |
-| 11 | Offline asset | Remove an offline asset used on the timeline | Removed like an online one; nothing on disk touched | — | planned |
-| 12 | Removed during analysis | Import a long file and remove it while it is analysed | No error; nothing appears for the removed asset later | — | planned |
-| 13 | Save and reopen | After 9, Save, reopen; then Undo is gone (new session) | The asset and clips stay removed; the source file still on disk | — | planned |
+| 8 | Unused asset | Import a file, don't use it; select it and click ✕ on its row | Gone from the Media Browser at once, no question; the file on disk unchanged; Undo brings it back with its thumbnail and metadata | `MediaRemovalTests` (unused, back at its place), `MediaRemovalUiTests` (no question, thumbnail again without making it) | auto (12.4); manual pending |
+| 9 | Used asset | Use a file in three clips (one in a dissolve); remove it | "Remove Media" naming 3 clips and that the file stays on disk; Cancel changes nothing; Remove removes the asset, the clips and the dissolve in one step (the dissolve note in the status bar); the Preview and the waveforms follow | `MediaRemovalTests` (three clips on two tracks, dissolve, snapshot), `MediaRemovalUiTests` (Cancel / closed / Remove, text) | auto (12.4); manual pending |
+| 10 | Undo / Redo | After 9, Undo, Redo | Undo restores the asset, clips, dissolve, thumbnail and waveform; Redo removes them again | `MediaRemovalTests` (Undo exact), `MediaRemovalUiTests` (rows, thumbnail) | auto (12.4); manual pending |
+| 11 | Offline asset / locked track | Remove an offline asset used on the timeline; then try an asset whose clip is on a locked track (set in `project.json`) | The offline one is removed like an online one, nothing on disk touched; the other is refused without a question ("… is used on track A1, which is locked.") | `MediaRemovalTests` (offline, locked, file untouched), `MediaRemovalUiTests` (refused without a question) | auto (12.4); manual pending |
+| 12 | Removed during analysis | Import a long file and remove it while it is analysed; Undo | No error; after Undo the asset is analysed (not stuck "Analyzing") | `MediaRemovalUiTests` (analysis and thumbnail still running) | auto (12.4); manual pending |
+| 13 | Save and reopen | After 9, Save, reopen; then Undo is gone (new session) | The asset and clips stay removed; the source file still on disk; `formatVersion` 3 | `MediaRemovalTests` (save / reopen) | auto (12.4); manual pending |
 
 ## Step 12.5 — ripple delete and close gap (D027 §2)
 

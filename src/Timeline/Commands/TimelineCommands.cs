@@ -131,6 +131,32 @@ public sealed class RemoveTrackCommand(Sequence sequence, Track track) : IUndoab
     public void Undo() => List.Insert(Math.Min(_index, List.Count), Track);
 }
 
+/// <summary>Removes a media asset from the project's media list (D027 §4); Undo puts the same object back at the same
+/// index, so its id, path, metadata and analysis state come back as they are. Execute and Undo each tell the project
+/// (<paramref name="notify"/> — <c>NotifyMediaAssetsChanged</c>), so the Media Browser follows. The file on disk is
+/// never touched.</summary>
+public sealed class RemoveMediaAssetCommand(List<MediaAsset> assets, MediaAsset asset, Action notify) : IUndoableCommand
+{
+    private int _index = -1;
+
+    public string Description => "Remove Media";
+    public MediaAsset Asset { get; } = asset;
+
+    public void Execute()
+    {
+        _index = assets.IndexOf(Asset);
+        if (_index < 0) throw new InvalidOperationException($"Media '{Asset.FileName}' is not in the project.");
+        assets.RemoveAt(_index);
+        notify();
+    }
+
+    public void Undo()
+    {
+        assets.Insert(Math.Min(_index, assets.Count), Asset);
+        notify();
+    }
+}
+
 /// <summary>One track's <see cref="Track.Order"/> before and after a move.</summary>
 public readonly record struct TrackOrderChange(Track Track, int Before, int After);
 

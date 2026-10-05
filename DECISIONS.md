@@ -1943,9 +1943,12 @@ Context (Step 12.1 audit, the code at `47ed2fa`, `main` after the merge of PR #1
   clips go with it — then the asset, every clip that uses it and their dissolves are removed in one undoable step.
   Undo restores the asset (same id, path, metadata, analysis state), the clips and the dissolves exactly.
 - The user's file on disk is never deleted. Offline assets can be removed like online ones.
-- Thumbnails / waveforms stay consistent: a removed asset's results are no longer shown, work still running for it
-  publishes nothing (the identity checks of D026 §2), and after an Undo it is shown again (from its cache files, which
-  are not deleted by the removal). Its analysis, when still running, is dropped like after a re-check.
+- Thumbnails / waveforms stay consistent: a removed asset's results are no longer shown (it has no row and no clip);
+  work still running for it ends normally and keeps its result; after an Undo it is shown again at once, without being
+  made anew. The cache files are not deleted by the removal (product owner, 2026-10-05).
+- Analysis (product owner, 2026-10-05, after Step 12.4): an analysis already running when its asset is removed is not
+  cancelled; it may end after the removal and writes its result into the asset object; while the asset is out of the
+  project the result is simply not shown; an Undo brings the asset back with its current analysis state.
 - Left to the start of 12.4: where the command sits (Media Browser), several assets at once, and whether cache files of
   removed assets are cleaned up later (no eviction exists today).
 
@@ -2020,6 +2023,27 @@ Refined at the start of Step 12.3 (product owner, 2026-10-05) and in its impleme
   of the same kind; ✕ asks "Delete Track" / "Cancel" when the track has clips (naming their number); all disabled
   during an export, and the answer is ignored when an export started meanwhile.
 - `formatVersion` stays 3.
+
+Refined in Step 12.4 (implementation, 2026-10-05; confirmed by the product owner the same day — one asset, ✕ on the
+row, no cache cleanup, the analysis rule, the re-import edge as a known Phase 12 limitation):
+- One asset at a time (the Media Browser selects one): ✕ on the selected row — the header has no room for a third
+  button at the panel's 260 px. An unused asset goes at once; a used one after "Remove" / "Cancel" naming the number of
+  clips and that the file on disk stays. A clip of the asset on a locked track blocks the removal ("… is used on track
+  A1, which is locked."), asked about never; disabled during an export and while a relink runs.
+- The edit: `ITimelineEditService.RemoveMedia` (with `CountClipsUsing`, `GetRemoveMediaBlockReason`) — the clips through
+  an `EditPlan` (their dissolves by `ReconcileTransitions`, D025's status note), then `RemoveMediaAssetCommand`, one
+  `CompositeCommand`; Undo puts the same asset object back at its index, so id, path, size, metadata, analysis state
+  and the offline flag come back unchanged. An unused asset's removal touches no timeline (no `TimelineChanged`).
+- Thumbnails / waveforms (§4 made precise): the coordinators keep their results per asset id for the project's
+  generation, so a removed asset's result is simply not shown (it has no row and no clip) and Undo shows it again at
+  once, without making it anew; work still running when the asset is removed ends normally and its result is there
+  after an Undo. No cache file is deleted (no eviction exists, D024).
+- Analysis (§4 above, confirmed by the product owner 2026-10-05): an analysis still running when its asset is removed
+  ends normally and writes its result into the removed asset, so an Undo brings it back analysed. Dropping it would
+  leave an Undo-restored asset "Analyzing" with no analysis running (nothing queues one on Undo).
+- Known edge, not handled: after a removal, importing the same file again makes a new asset (a removed asset is no
+  longer in the list the import checks); an Undo of the removal after that brings back a second asset with the same
+  path (the import itself is not undoable, D027 §1). Both play; relinking either to the other's path is refused (PO-9).
 
 Status: Accepted (2026-10-05, product owner decisions of 2026-10-05). Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 12 — Editing essentials: steps". Sub-decisions are proposed at the start of their

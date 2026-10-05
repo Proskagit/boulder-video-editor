@@ -75,6 +75,20 @@ public interface ITimelineEditService
     /// when there is no neighbour in that direction.</summary>
     TimelineEditResult MoveTrack(Guid trackId, int direction);
 
+    /// <summary>How many clips of the timeline use the media asset (any track, also hidden, muted or locked).</summary>
+    int CountClipsUsing(Guid mediaAssetId);
+
+    /// <summary>Null when <see cref="RemoveMedia"/> would remove the asset now, otherwise the reason it would refuse:
+    /// the asset is not in the project, or a clip using it is on a locked track.</summary>
+    string? GetRemoveMediaBlockReason(Guid mediaAssetId);
+
+    /// <summary>Removes a media asset from the project together with every clip that uses it and their dissolves
+    /// (D027 §4), as one Undo step; Undo puts the same asset object back at its place in the media list — with its id,
+    /// path, metadata and analysis state — and the clips and dissolves exactly. The file on disk is never touched.
+    /// Rejected — nothing changes — for the reasons of <see cref="GetRemoveMediaBlockReason"/>. Asking the user first
+    /// when clips use the asset is the caller's part.</summary>
+    TimelineEditResult RemoveMedia(Guid mediaAssetId);
+
     /// <summary>Sets absolute property values of one clip: every group given in
     /// <paramref name="change"/> replaces the clip's current values of that group exactly (no
     /// rounding or recomputation). Rejected when a group doesn't apply to the clip's kind, a value

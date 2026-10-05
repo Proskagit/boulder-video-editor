@@ -596,6 +596,42 @@ public sealed class TimelineEditService : ITimelineEditService
         return TimelineEditResult.Ok();
     }
 
+    // --- Media removal (D027 §4) ------------------------------------------------
+
+    private static bool Uses(Clip clip, Guid mediaAssetId) => clip is MediaBackedClip m && m.MediaAssetId == mediaAssetId;
+
+    public int CountClipsUsing(Guid mediaAssetId) =>
+        Sequence.VideoTracks.Concat(Sequence.AudioTracks).SelectMany(t => t.Clips).Count(c => Uses(c, mediaAssetId));
+
+    public string? GetRemoveMediaBlockReason(Guid mediaAssetId)
+    {
+        if (FindAsset(mediaAssetId) is not { } asset) return "That media is no longer in the project.";
+        if (Sequence.VideoTracks.Concat(Sequence.AudioTracks).FirstOrDefault(t => t.IsLocked && t.Clips.Any(c => Uses(c, mediaAssetId)))
+            is { } locked)
+            return $"{asset.FileName} is used on track {locked.Name}, which is locked.";
+        return null;
+    }
+
+    public TimelineEditResult RemoveMedia(Guid mediaAssetId)
+    {
+        if (GetRemoveMediaBlockReason(mediaAssetId) is { } blocked) return TimelineEditResult.Fail(blocked);
+        var asset = FindAsset(mediaAssetId)!;
+
+        var plan = new EditPlan(Sequence, Settings);
+        var clips = plan.AllTracks.SelectMany(t => t.Clips).Where(c => Uses(c, mediaAssetId)).ToList();
+        foreach (var clip in clips) plan.Remove(clip);
+        plan.ReconcileTransitions();   // the removed clips' dissolves go with them (D025 §5)
+
+        // The clips (and dissolves) first, then the asset: no clip ever refers to an asset that isn't in the project.
+        var removeAsset = new RemoveMediaAssetCommand(Project.MediaAssets, asset, _projectService.NotifyMediaAssetsChanged);
+        IUndoableCommand command = clips.Count == 0
+            ? removeAsset
+            : new NotifyingCommand(new CompositeCommand("Remove Media", new[] { plan.BuildCommand("Remove Media"), removeAsset }),
+                _projectService.NotifyTimelineChanged);
+        _undoRedo.Execute(command);
+        return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), TransitionNote(plan));
+    }
+
     // --- Clip properties -------------------------------------------------------
 
     public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change)

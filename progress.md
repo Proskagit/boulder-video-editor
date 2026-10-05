@@ -4,7 +4,7 @@
 
 Phase 12 — Editing essentials: **in progress** on branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main`
 after the merge of PR #11). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 12 — Editing
-essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.3 accepted (2026-10-05).
+essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.4 accepted (2026-10-05).
 
 ### Phase 12 — Editing essentials (in progress)
 
@@ -100,6 +100,45 @@ permission; no next step without the product owner's go.
     Timeline 374 (+13), Project 371, UI 506 (+10), Export 99, Rendering 58, Video 294, ExportEndToEnd 87 (+1) + 2; then
     three runs with `--blame-hang --blame-hang-timeout 5m`, each 2237 passed / 2 skipped / 0 failed, no hang, no dump.
     Parity suites unchanged. Not run: the heavy 4K scenes, CI (not pushed), the manual scenarios 1–7.
+  - Committed as `5bcdcbb` (the product owner's permission, 2026-10-05; not pushed).
+- Step 12.4 done and accepted (2026-10-05) — removing media from the project (D027 §4; the implementation and the
+  points made precise in D027 "Refined in Step 12.4", all confirmed by the product owner — the analysis rule written
+  into §4 before the checks, no code change for it). Started on the product owner's instruction right after the 12.3
+  commit.
+  - Audit before the code: assets are referenced by clips through `MediaBackedClip.MediaAssetId` only; the media list is
+    `Project.MediaAssets` (import adds through `IProjectService.AddMediaAssets`, the only duplicate check, not undoable);
+    `MediaCacheCoordinator` keeps results per asset id and generation (requests on `MediaAssetsChanged`, once per
+    generation); `MediaAnalysisCoordinator` writes its result into the asset object it started for; confirmations go
+    through `IDialogService` (the track deletion of 12.3, the relink workflow); a plain clip delete removes dissolves by
+    `EditPlan.ReconcileTransitions`.
+  - Core: `ITimelineEditService.CountClipsUsing`, `GetRemoveMediaBlockReason`, `RemoveMedia`.
+  - Timeline: `RemoveMediaAssetCommand` (the same object back at its index on Undo, `NotifyMediaAssetsChanged` both
+    ways); `TimelineEditService.RemoveMedia` — the clips of every track through an `EditPlan` with their dissolves, then
+    the asset, one `CompositeCommand` (`NotifyingCommand` for `TimelineChanged` only when clips go); refused when the asset
+    is not in the project or a clip of it is on a locked track.
+  - UI: `MediaBrowserViewModel.RemoveCommand` (optional `ITimelineEditService`, `IDialogService`, `StatusService` from the
+    container) — the service's block reason without a question, "Remove Media" / "Remove" / "Cancel" when clips use the
+    asset, the answer ignored when an export or a relink started meanwhile, status messages; `MediaBrowserView.axaml` —
+    ✕ on the selected row. The coordinators needed no change (their results are kept per asset id). The design-time
+    stub and the `MediaOrientationRefreshTests` stub of `ITimelineEditService` completed.
+  - Tests (new, 18): `Timeline.Tests/MediaRemovalTests` (9: an unused asset in one step, back at its place,
+    no timeline change, clean after Undo; a used asset with three clips on two tracks, a dissolve and a fade, another
+    asset's clip kept, the snapshot without it, Undo exact; metadata / analysis state / size back; offline asset; the
+    file on disk untouched; a locked track blocks, its count still made; a locked track without its clips doesn't; an
+    asset no longer in the project; save / reopen in v3 without it); `UI.Tests/MediaRemovalUiTests` (9: unused without a
+    question, the selection and the Inspector cleared, Undo brings the row back; used only after Remove (Cancel, closed),
+    the question's text, Undo; refused without a question; an export started during the question; selection needed and
+    disabled during an export; no Remove without the edit service; the thumbnail shown again after Undo and made once;
+    a thumbnail still being made ends and is there after Undo; an analysis still running completes into the removed
+    asset, which comes back analysed).
+  - Not automated: the ✕ button's bindings in the real view (no headless platform, as in 12.3) — manual scenarios 8–13.
+  - Verification (on the product owner's command; `--artifacts-path` in the session's scratch folder): `dotnet build
+    AiVideoEditor.sln --no-incremental -warnaserror` 0 errors / 0 warnings at the first attempt (both other
+    implementations of `ITimelineEditService` were completed with the change); `dotnet test` (whole solution, once)
+    2255 passed, 2 skipped (the 4K heavy scenes), 0 failed — Core 448, Timeline 383 (+9), Project 371, UI 515 (+9),
+    Export 99, Rendering 58, Video 294, ExportEndToEnd 87 + 2; three runs with `--blame-hang --blame-hang-timeout 5m`,
+    each 2255 passed / 2 skipped / 0 failed, no hang, no dump; `git diff --check` clean. The Preview ↔ Export parity
+    suites unchanged and green. No fix needed. Not run: the heavy 4K scenes, CI (not pushed), the manual scenarios 8–13.
 
 ### Phase 11 — Media relink & recent projects (complete; PR #11 merged as `47ed2fa`, CI green)
 

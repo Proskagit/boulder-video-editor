@@ -27,6 +27,7 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(HasNoMedia))]
     [NotifyCanExecuteChangedFor(nameof(AddToTimelineCommand))]
     [NotifyCanExecuteChangedFor(nameof(RelinkCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RemoveCommand))]
     private MediaBrowserItemViewModel? _selectedItem;
 
     public bool HasNoMedia => Items.Count == 0;
@@ -50,8 +51,14 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         ILogger<MediaBrowserViewModel> logger,
         EditingLock? editingLock = null,
         ThumbnailCoordinator? thumbnails = null,
-        MediaRelinkWorkflow? relink = null)
+        MediaRelinkWorkflow? relink = null,
+        ITimelineEditService? edit = null,
+        IDialogService? dialogs = null,
+        StatusService? status = null)
     {
+        _edit = edit;
+        _dialogs = dialogs;
+        _status = status;
         _relink = relink;
         if (relink is not null)
             relink.IsRunningChanged += (_, _) => NotifyRelinkCommands();
@@ -138,6 +145,7 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
     {
         RelinkCommand.NotifyCanExecuteChanged();
         FindMissingCommand.NotifyCanExecuteChanged();
+        RemoveCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanRelink))]
@@ -149,4 +157,54 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
     private Task FindMissing() => _relink?.FindMissingAsync() ?? Task.CompletedTask;
 
     private bool CanFindMissing() => CanRelinkAny() && HasOfflineMedia;
+
+    // Remove (D027 §4, Phase 12 Step 12.4): the selected asset leaves the project, with the clips that use it after the
+    // user confirms. Every rule (the asset still there, locked tracks) and the change itself are the edit service's;
+    // the file on disk is never touched. Not during an export or a relink.
+    private readonly ITimelineEditService? _edit;
+    private readonly IDialogService? _dialogs;
+    private readonly StatusService? _status;
+
+    private bool CanRemove() => CanEdit() && _edit is not null && _relink is not { IsRunning: true } && SelectedItem is not null;
+
+    [RelayCommand(CanExecute = nameof(CanRemove))]
+    private async Task Remove()
+    {
+        if (_edit is null || SelectedItem is not { } item || !CanRemove()) return;
+        var asset = item.Asset;
+        if (_edit.GetRemoveMediaBlockReason(asset.Id) is { } blocked)
+        {
+            _status?.Report(blocked);
+            return;
+        }
+
+        var clipCount = _edit.CountClipsUsing(asset.Id);
+        if (clipCount > 0)
+        {
+            if (_dialogs is null) return;
+            var clips = clipCount == 1 ? "1 clip" : $"{clipCount} clips";
+            var choice = await _dialogs.AskAsync(new DialogRequest
+            {
+                Title = "Remove Media",
+                Message = $"{asset.FileName} is used by {clips} on the timeline. Removing it from the project deletes " +
+                          $"{(clipCount == 1 ? "that clip" : "those clips")} too, and any dissolves on them.\n\n" +
+                          "The file on disk is not deleted. You can undo this with Undo.",
+                Buttons = new[] { "Remove", "Cancel" }
+            });
+            // The answer may come after an export or a relink started, or the project was replaced; the service
+            // re-checks the rest.
+            if (choice != 0 || !CanEdit() || _relink is { IsRunning: true }) return;
+        }
+
+        var result = _edit.RemoveMedia(asset.Id);
+        if (!result.Success)
+        {
+            _status?.Report(result.Message ?? "The media could not be removed.");
+            return;
+        }
+        var removed = clipCount == 0
+            ? $"Removed {asset.FileName} from the project."
+            : $"Removed {asset.FileName} and {(clipCount == 1 ? "its clip" : $"its {clipCount} clips")} from the project.";
+        _status?.Report(result.Message is { } note ? $"{removed} {note}" : removed);
+    }
 }

@@ -187,6 +187,9 @@ public partial class MainWindow : Window
         public TimelineEditResult DeleteTrack(Guid trackId) => Nothing;
         public string? GetDeleteTrackBlockReason(Guid trackId) => "Design time.";
         public TimelineEditResult MoveTrack(Guid trackId, int direction) => Nothing;
+        public int CountClipsUsing(Guid mediaAssetId) => 0;
+        public string? GetRemoveMediaBlockReason(Guid mediaAssetId) => "Design time.";
+        public TimelineEditResult RemoveMedia(Guid mediaAssetId) => Nothing;
         public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change) => Nothing;
         public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds) => SnapResult.None;
     }
