@@ -59,8 +59,18 @@ session state (D015).
 
 ## Current
 
+No phase in progress — Phase 12 closed locally (2026-10-05); CI pending (the branch is not published yet).
+
+## Previous
+
 Phase 12 — Editing essentials, branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main` after the merge of
-PR #11). Scope from the product owner decisions of 2026-10-05, recorded in DECISIONS.md D027: track delete / reorder,
+PR #11). **Complete locally**: Step 12.9 (final verification & closeout) done on 2026-10-05 — build `-warnaserror` 0 /
+0; the full suite 2324 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2324 / 0 / 2, no
+hang, no dump; the 4K scenes with `AIVE_HEAVY_TESTS=1`: ExportEndToEnd 90 / 90; the Phase 12
+manual plan in the real app (30 scenarios passed, 2 partly, 2 not reproducible by hand and covered by automated tests),
+R1 (a project saved by the Phase 11 build, opened and saved by Phase 12: v3, unchanged), R2 (the export manual plan's UI
+and file scenarios) and R3 (relink, recent projects, fade, dissolve) passed. CI not run yet — the branch is not
+published. Scope from the product owner decisions of 2026-10-05, recorded in DECISIONS.md D027: track delete / reorder,
 removing media from the project, ripple delete and close gap (dissolves of removed clips removed, the others kept,
 none created), copy / paste / duplicate of clips, markers on the timeline, and the fix of New during a running import;
 `project.json` stays v3; L1-c stays open. Steps 12.3 tracks · 12.4 media removal · 12.5 ripple · 12.6 copy / paste /
@@ -78,9 +88,7 @@ skipped, three `--blame-hang` runs clean; the header checked at 1024 and 1440 px
 (2026-10-05; build 0 / 0, 2319 passed, 2 skipped, three `--blame-hang` runs clean; the marker buttons checked in the
 real app at 1024 and 1440 px; `5a7edae`); Step 12.8 (an import belongs to the project it started in: New / Open /
 Recover meanwhile adds nothing) accepted (2026-10-05; build 0 / 0, 2324 passed, 2 skipped, three `--blame-hang` runs
-clean; the real race not reproducible by hand). Details: `progress.md`.
-
-## Previous
+clean; the real race not reproducible by hand; `d467a84`). Step 12.9 closeout. Details: `progress.md`.
 
 Phase 11 — Media relink & recent projects, branch `feat/phase-11-relink-recent-projects` (from `2e758f1`, `main` after
 the merge of PR #10). **Complete**: accepted by the product owner on 2026-10-05 on the Step 11.9 local verification
@@ -177,7 +185,9 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 12 — see `docs/DEVELOPMENT_PLAN.md`. Left out of Phase 12 by the product owner (2026-10-05):
+None planned after Phase 12 — see `docs/DEVELOPMENT_PLAN.md`. Open after Phase 12: L1-c (a product decision); a
+test cleanup — some 12.3 / 12.5 test helpers give clips the length `F(end − start)` instead of `F(end) − F(start)`
+(a tick off the grid at 30 fps; product owner: a separate cleanup). Left out of Phase 12 by the product owner (2026-10-05):
 AI features, export settings, HDR / colour management, an installer, timeline virtualization, an undoable import.
 
 ## Rule

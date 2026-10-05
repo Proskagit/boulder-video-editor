@@ -2,14 +2,14 @@
 
 A simplified, desktop-first video editor (Windows 10/11 x64, Avalonia UI, .NET 8),
 architected so professional-grade features can be layered in over time without a
-rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–11
+rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–12
 are complete** (architecture, UI skeleton, media import, ffprobe metadata
 analysis, timeline editing, preview playback with audio, project persistence with
 autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
 text; MP4 export; quality: stability, thumbnails, waveforms, hotkeys,
 performance, polish, CI; fades and a cross dissolve; media relink and recent projects — Phase 11, merged
-2026-10-05). Phase 12 (editing essentials: track delete / reorder, removing media, ripple delete, copy / paste /
-duplicate, markers) is in progress.
+2026-10-05; editing essentials: track delete / reorder, removing media, ripple delete, copy / paste / duplicate,
+markers — Phase 12, closed locally on 2026-10-05, CI pending until the branch is published).
 
 ## Requirements
 
@@ -119,7 +119,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–11 complete (Phase 11 accepted 2026-10-05). Working: media import with validation and duplicate
+Phases 0–12 complete (Phase 12 closed locally 2026-10-05, CI pending). Working: media import with validation and duplicate
 detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
 preview playback with video and audio, and projects on disk: New / Open / Save /
@@ -156,6 +156,11 @@ Steps 11.7–11.8: `Recent ▾` next to Open lists the last 10 projects opened, 
 `%LOCALAPPDATA%\AiVideoEditor\config\recent-projects.json`); an entry whose project can't be found is shown as
 unavailable and can be removed with ✕.
 
-Phase 12 (DECISIONS.md D027, in progress): editing essentials — track delete / reorder, removing media from the project,
-ripple delete and close gap, copy / paste / duplicate of clips, markers on the timeline, and the fix of New during a
-running import. Scope and steps: `docs/DEVELOPMENT_PLAN.md`.
+Phase 12 (DECISIONS.md D027; closed locally 2026-10-05, CI pending until the branch is published): editing essentials.
+Each track header has ▲ / ▼ (move among the tracks of its kind — the layer order of the Preview and the export) and ✕
+(delete; with clips only after a confirmation; never a locked track or the last one). ✕ on the selected Media Browser
+row removes the media from the project — with its clips after a confirmation; the file on disk stays. Ripple Delete
+removes the selected clips and closes up their tracks; Close Gap removes the empty space before the selected clip.
+Ctrl+C / Ctrl+V (Paste) / Ctrl+D (Duplicate) copy clips with all their properties (never a dissolve) to the playhead or
+right after them. ◀ ◆+ ◆− ▶ left of the ruler add, remove and go to markers (snap targets too). Every one of these is
+undoable and off during an export; an import interrupted by New / Open / Recover adds nothing to the other project.

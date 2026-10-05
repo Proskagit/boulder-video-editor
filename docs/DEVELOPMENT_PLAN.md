@@ -45,10 +45,12 @@ and runs cleanly.
       product owner 2026-10-05 on the local verification; PR #11 merged into `main` as `47ed2fa` (2026-10-05), CI green.
       Not run: optional export scenario 9 and the "without ffmpeg" check; export scenario 14 checked by decoding the 8
       outputs, not watched in a player; L1-c stays open, outside Phase 11)*
-- [ ] **Phase 12 — Editing essentials.** Track delete / reorder, removing media from the project, ripple delete and
+- [x] **Phase 12 — Editing essentials.** Track delete / reorder, removing media from the project, ripple delete and
       close gap, copy / paste / duplicate of clips, markers on the timeline, and the fix of New during a running
       import. Scope, steps and acceptance criteria: section below and DECISIONS.md D027 (product owner decisions,
-      2026-10-05). *(branch `feat/phase-12-editing-essentials`, from `47ed2fa`; in progress)*
+      2026-10-05). *(branch `feat/phase-12-editing-essentials`, from `47ed2fa`; steps 12.2–12.8 `8e2b109`…`d467a84`;
+      the local QG of Step 12.9 passed on 2026-10-05 — complete locally. Open: CI not run yet — the branch is not
+      published; L1-c stays open)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -584,7 +586,7 @@ Scope: D027 §7.
   analysis queued.
 - Depends on: 12.2 (independent of 12.3–12.7 in code; kept last by the product owner's order).
 
-### 12.9 — Final verification & closeout
+### 12.9 — Final verification & closeout *(done locally — 2026-10-05: build `-warnaserror` 0 / 0; the full suite 2324 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2324 / 0 / 2, no hang, no dump; the 4K scenes with `AIVE_HEAVY_TESTS=1`: ExportEndToEnd 90 / 90; the manual plan, R1, R2, R3 in the real app; CI pending, the branch not published)*
 - QG: `dotnet build --no-incremental -warnaserror` 0 / 0; full suite once plus three times with `--blame-hang`; heavy
   scenes once with `AIVE_HEAVY_TESTS=1`; CI green.
 - PR: `docs/PHASE12_MANUAL_TEST_PLAN.md` run in the real app; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run as a regression.

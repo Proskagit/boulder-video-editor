@@ -2,11 +2,13 @@
 
 ## Current phase
 
-Phase 12 — Editing essentials: **in progress** on branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main`
-after the merge of PR #11). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 12 — Editing
-essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.8 accepted (2026-10-05).
+Phase 12 — Editing essentials: **complete locally** — Step 12.9 (final verification & closeout) done on 2026-10-05 on
+branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main` after the merge of PR #11). Open: CI not run yet — the
+branch is not published (push / pull request only with the product owner's permission); L1-c stays open; a separate
+test cleanup (`F(end − start)` helpers of 12.3 / 12.5). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`
+"Phase 12 — Editing essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.9 done.
 
-### Phase 12 — Editing essentials (in progress)
+### Phase 12 — Editing essentials (complete locally)
 
 Steps (D027; each accepted by the product owner before the next, never started automatically): 12.1 audit · 12.2 sync
 after the merge & scope formalization · 12.3 tracks · 12.4 media removal · 12.5 ripple delete / close gap · 12.6 copy /
@@ -310,6 +312,48 @@ permission; no next step without the product owner's go.
     import (scenario 34's baseline) worked: 4 files added and analysed. Open / Recover can't race at all from the UI —
     Open needs its folder picker first and Recover is offered at startup; their replacement is the same project-object
     change the tests cover with New. The guarded path itself is covered by the automated tests only.
+  - Committed as `d467a84` (the product owner's permission, 2026-10-05; not pushed).
+- Step 12.9 done (2026-10-05) — final verification & closeout (the product owner's decisions: the manual plan run by
+  Claude, the step-time real-app checks counted, R1 from the Phase 11 state, R2 / R3, the full local QG, the test-helper
+  cleanup left for later, no push / pull request / change of `main`).
+  - Audit before the checks: 7 commits on the branch (12.2–12.8), clean tree, not published; the manual plan had 1–28,
+    31, 32 and part of 29 run only as automated tests; ARCHITECTURE still said "Phase 12 changes nothing here yet".
+  - Automated QG (`--artifacts-path` in the session's scratch folder): `dotnet build AiVideoEditor.sln --no-incremental
+    -warnaserror` 0 errors / 0 warnings; `dotnet test` once: 2324 passed, 2 skipped (only the two 4K scenes), 0 failed —
+    Core 448, Timeline 425, Project 371, UI 541, Export 99, Rendering 58, Video 294, ExportEndToEnd 88 + 2; three runs
+    with `--blame-hang --blame-hang-timeout 5m`: each 2324 / 0 / 2 over all 8 test assemblies, no hang, no dump; the
+    4K scenes once with `AIVE_HEAVY_TESTS=1` (`tests/ExportEndToEnd.Tests`): 90 passed, 0 skipped, 0 failed;
+    `git diff --check` clean. No failure, nothing fixed.
+  - Manual plan (`docs/PHASE12_MANUAL_TEST_PLAN.md`, results log "Step 12.9 formal run"): the Debug build, an isolated
+    profile, small fixture projects copied from the Phase 10 fade fixture (V2 / V1 / A1, fades, a dissolve; variants
+    with a locked V2, an offline image, an extra unused media), every action through the UI (UI Automation for the
+    buttons and dialogs, real clicks for clips, rows and the Windows file dialogs), every result checked on the saved
+    `project.json`, the window title, the status bar, the dialogs and screenshots. Passed: 1–4, 6–11, 13–25, 27–32, 34
+    (30 scenarios; 29 / 30 / 34 partly from the Step 12.7 / 12.8 runs); partly: 5 (the order, the sound not listened)
+    and 26 (overlap, locked track and removed media — the deleted-track case automated only); not reproducible by hand:
+    12 (removing media during its analysis) and 33 (New during an import) — automated tests only.
+  - R1: the Phase 11 state extracted with `git archive 47ed2fa` into the scratch folder and built there (no worktree,
+    branch or commit); the Phase 11 app opened a copy of the fixture, added a text clip and saved; Phase 12 opened it
+    (4 media, 0 missing, 13 clips), a plain Save wrote the same file, and after a marker the saved file was
+    `formatVersion` 3 with clips, media, tracks and the dissolve identical to the Phase 11 file; the Phase 11 app opened
+    that file again (13 clips).
+  - R2 (`docs/EXPORT_MANUAL_TEST_PLAN.md`): 1 / 14 — two exports (34 s after a track move, 30 s after a ripple) H.264
+    640 × 360 25 fps + AAC 48 kHz stereo, video = audio duration, decode clean, the 6.6 s frame red as the Preview after
+    the move; 7 — Cancel in Audio (74 %): "Export cancelled.", no file, no leftovers; 10 — an offline image: "Export not
+    possible" naming it, no picker, nothing written; 11 — "Replace file?": Cancel leaves the file byte-identical,
+    Replace replaces it after the export; 12 — the picker closed: nothing; 13 — the main window disabled during the
+    export (and every Phase 12 command off, navigation on), everything back afterwards, no Undo step from exporting.
+    Not re-run: 2, 3, 5, 6, 8 (rendering — no export / render / playback / audio code changed in Phase 12; parity suites
+    and 4K green); 9 optional.
+  - R3: relink of an offline image through Relink… (linked, the OFFLINE row gone, undoable); `Recent ▾` (10 entries,
+    newest first; opening one asks about unsaved changes and moves it to the top); a fade in the Preview (the fade-in
+    start dark — brightness 18 against 125 in the clip); a dissolve selected on its zone (after a zoom in — see the
+    observation below), removed, added with Dissolve ("Dissolve added: 25 frames."), both undone.
+  - Observation (not a Phase 12 change, D025 Step 10.8): at the default zoom a 0.4 s dissolve zone is covered by the trim
+    handles of its two clips, so a press there acts on a clip; the zone is selectable after zooming in.
+  - Documentation: ARCHITECTURE (the Timeline section's Phase 12 paragraphs, the verification note), README, ROADMAP,
+    this file, D027 (closeout), `docs/DEVELOPMENT_PLAN.md` (the Phase 12 checkbox — complete locally), the manual plan
+    (statuses and the results log).
 
 ### Phase 11 — Media relink & recent projects (complete; PR #11 merged as `47ed2fa`, CI green)
 
@@ -3045,12 +3089,11 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-05: Phases 0–11 are complete and merged into `main` (last merge `47ed2fa`, PR #11, CI green; 2213 passed,
-2 skipped at the Step 12.1 audit). Phase 12 (editing essentials, D027) is in progress on
-`feat/phase-12-editing-essentials`: Step 12.1 accepted, Step 12.2 (documentation) done. Open items carried forward: see
-"Known issues" (L1-c, New during `ImportManyAsync` — planned for Step 12.8, the audio status message after a device
-returns, the watched `Project.Tests` hang / failure, no timeline virtualization, import not undoable, the 5 s PATH probe
-of the locators).
+2026-10-05: Phases 0–11 are complete and merged into `main` (last merge `47ed2fa`, PR #11, CI green). Phase 12 (editing
+essentials, D027) is complete locally on `feat/phase-12-editing-essentials` (Step 12.9: 2324 passed, 2 skipped; the 4K
+scenes 90 / 90); the branch is not published, so CI has not run. Open items carried forward: see "Known issues" (L1-c,
+the audio status message after a device returns, the watched `Project.Tests` hang / failure, no timeline
+virtualization, import not undoable, the 5 s PATH probe of the locators, the `F(end − start)` test helpers).
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -3088,6 +3131,7 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 9 (accepted 2026-09-29)
 - Phase 10 (accepted 2026-10-01; PR #10 merged as `2e758f1`)
 - Phase 11 (accepted 2026-10-05; PR #11 merged as `47ed2fa`, CI green)
+- Phase 12 (complete locally 2026-10-05, Step 12.9; CI pending — not published)
 
 ## Known issues
 
@@ -3104,6 +3148,9 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   adds to whatever project is current when it finishes). Out of scope of Step 9.3 (product owner, 2026-09-25).
   Fixed in Phase 12 Step 12.8 (D027 §7): `MediaImportWorkflow` keeps the import's project and adds nothing to another
   one (automated tests; the one-frame race not reproducible by hand).
+- Tests: some Phase 12 test helpers (`TrackEditTests`, `RippleEditTests`, `TimelineRippleUiTests`) give text clips the
+  length `F(end − start)` instead of `F(end) − F(start)` — a tick off the frame grid at 30 fps for some values; they
+  pass because their clips happen to land on the grid. A separate cleanup (product owner, Step 12.6).
 
 - Text clips (D021): the Preview (Avalonia) silently substitutes a font that isn't installed. Phase 8
   (D023) renders text like the Preview (no `drawtext`), so the export falls back the same way; the

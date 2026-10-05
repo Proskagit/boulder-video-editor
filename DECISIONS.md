@@ -2126,9 +2126,26 @@ Refined in Step 12.8 (implementation, 2026-10-05; §7 as confirmed at the Step 1
   guarded path is covered by the automated tests; the rule is the same for New, Open and Recover (any other project
   object).
 
-Status: Accepted (2026-10-05, product owner decisions of 2026-10-05). Steps and acceptance criteria:
-`docs/DEVELOPMENT_PLAN.md`, "Phase 12 — Editing essentials: steps". Sub-decisions are proposed at the start of their
-step, confirmed by the product owner and recorded as a refinement here.
+Closeout (Step 12.9, 2026-10-05; the product owner's decisions for it):
+- Local QG: build `-warnaserror` 0 / 0; the full suite 2324 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2324 / 0 / 2, no hang, no dump; the 4K scenes with `AIVE_HEAVY_TESTS=1`: ExportEndToEnd 90 / 90; `git diff --check` clean. No failure, no fix.
+- The manual plan in the real app by Claude (isolated profile, small fixture projects from the Phase 10 fade fixture);
+  the checks made in the real app at Steps 12.6–12.8 count where they match the code. Not reproducible by hand and
+  recorded as such: removing media while its analysis runs (the analysis of the fixture ends in a fraction of a second)
+  and New during an import (the one-frame window, Step 12.8) — both covered by automated tests.
+- R1: the Phase 11 state (`47ed2fa`, extracted with `git archive`, built in a separate artifacts folder — no worktree,
+  branch or commit) saved a real project; Phase 12 opened it unchanged (4 media, 13 clips), and after an edit (a marker)
+  saved it as `formatVersion` 3 with clips, media, tracks and the dissolve byte-for-byte as Phase 11 wrote them.
+- R2: the export plan's UI and file scenarios again (1 / 14, 7, 10, 11, 12, 13); the rendering scenarios (2, 3, 5, 6,
+  8) not re-run — Phase 12 changed no export, playback, rendering or audio code, and the parity suites and the 4K scenes
+  are green; 9 optional, not run. R3: relink, recent projects, a fade in the Preview, a dissolve removed and added.
+- Kept open: L1-c; the test helpers `F(end − start)` of the 12.3 / 12.5 tests (a separate cleanup, product owner).
+- Observation, not a Phase 12 change: at the default zoom a short dissolve's zone (0.4 s, about 20 px) is covered by the
+  two clips' trim handles, which win the press (D025 "Refined in Step 10.8"), so selecting it needs a zoom in.
+
+Status: Accepted (2026-10-05, product owner decisions of 2026-10-05). Phase 12 closed locally on 2026-10-05 (Step 12.9);
+CI pending until the branch is published. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 12 — Editing
+essentials: steps". Sub-decisions were proposed at the start of their step, confirmed by the product owner and recorded
+as a refinement here.
 
 ---
 
