@@ -529,5 +529,7 @@ Timeline section at the Phase 12 closeout (Step 12.9, `d467a84`; Phase 12 merged
 (D028, project & export settings): the `ProjectSettings` / persistence lines at Step 13.3, the canvas-size and
 composition lines at Step 13.4, the frame-rate line at Step 13.5, the project-settings line at Step 13.6, the export
 contract (job settings, `ExportFormat`) at Step 13.7, the codec-leg line at Step 13.8, the export-settings UI line at
-Step 13.9; the whole Phase 13 part re-checked at the closeout (Step 13.10, `5c01aed`).
+Step 13.9; the whole Phase 13 part re-checked at the closeout (Step 13.10, `5c01aed`; Phase 13 merged into `main` as
+`ed40b74`). Phase 14 (D029, stabilization): the `Effects` row of the module table checked against the code at Step 14.2
+(empty, referenced only by `App`; D029 §6) — no other section changed.
 Re-check the code before relying on details that later phases may have changed.

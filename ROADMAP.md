@@ -59,13 +59,23 @@ session state (D015).
 
 ## Current
 
-No phase in progress — Phase 13 closed locally (2026-10-06); not published yet (no push / pull request), so CI has not
-run. Phase 14 not started.
+Phase 14 — Stabilization / technical debt, branch `feat/phase-14-stabilization` (from `ed40b74`, `main` after the merge
+of PR #13). Goal (product owner, 2026-10-06): a more deterministic CI and less technical debt **without any change of the
+user functionality**. Scope (DECISIONS.md D029): 14.2 sync after the merge & scope formalization · 14.3 the flaky
+autosave test · 14.4 the flaky ffprobe / PATH-probe tests (no user-visible change without a separate confirmation) ·
+14.5 the `F(end − start)` test helpers and a regression guard · 14.7 removal of the empty `src/Effects` project (product owner, D029
+answer 1) · 14.8 closeout. 14.6 (a canvas-relative font size of a new text clip, the status after an audio
+device returns) is **not** taken — out of scope. Step 14.1 (audit) accepted (2026-10-06); Step 14.2 (sync, D029) accepted
+(2026-10-06); Step 14.3 in progress. Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`.
 
 ## Previous
 
 Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
-merge of PR #12). **Complete locally**: Steps 13.1–13.9 accepted by the product owner (`226c7f2` … `5c01aed`); Step 13.10
+merge of PR #12). **Complete**: accepted by the product owner on the Step 13.10 verification (closeout `7d4f6d8`); PR #13
+merged into `main` as `ed40b74` (2026-10-06), CI green on the pull request. The first CI run on `main` after the merge
+(run 37470605596) failed on one known flaky test —
+`ExecutableLocatorTests.RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg` (`Assert.NotNull() Failure:
+Value is null` after 7 s: the 5 s PATH probe, D028 §8); recorded in `progress.md`, its fix is Phase 14 Step 14.4. Steps 13.1–13.9 accepted by the product owner (`226c7f2` … `5c01aed`); Step 13.10
 (final verification & closeout) done on 2026-10-06 — build `--no-incremental -warnaserror` 0 / 0; the full suite
 2585 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2585 / 0 / 2 each, no hang, no
 dump; the full suite with `AIVE_HEAVY_TESTS=1` 2587 passed, 0 skipped, 0 failed; R1 (a Phase 12 project opens with the default export settings and saves byte for byte as Phase 12 wrote it),
@@ -202,11 +212,11 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 13 — see `docs/DEVELOPMENT_PLAN.md`; Phase 14 not started. Open outside Phase 13: a test cleanup —
-some 12.3 / 12.5 test helpers give clips the length `F(end − start)` instead of `F(end) − F(start)` (a tick off the grid at
-30 fps; product owner: a separate cleanup); the known flaky CI tests (D028 §8 policy); a new text clip takes `FontSize` 48
-on any canvas (an observation). L1-c is closed (Phase 13 Step 13.8). Left out by the product owner: AI features, HDR /
-colour management, an installer, timeline virtualization, an undoable import.
+None planned after Phase 14 — see `docs/DEVELOPMENT_PLAN.md`. Taken into Phase 14 (D029): the known flaky CI tests (D028 §8
+policy until fixed) and the `F(end − start)` test helpers. Deferred by the product owner as product / UX changes (D029
+§3): a new text clip takes `FontSize` 48 on any canvas; the status bar keeps "Playing without sound…" after the audio
+device returns. L1-c is closed (Phase 13 Step 13.8). Left out by the product owner: AI features, HDR / colour
+management, an installer, timeline virtualization, an undoable import.
 
 ## Rule
 

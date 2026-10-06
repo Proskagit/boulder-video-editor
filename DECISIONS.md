@@ -2628,9 +2628,136 @@ used by `FfmpegExportEncoder` (`ExportOutput` and the preflight keep their roles
 by §5; the parity suite gains scenes for new canvas sizes and rates and per-level codec criteria (§6);
 `docs/PHASE13_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
 
-Status: Accepted (2026-10-06, product owner). Phase 13 complete locally: Steps 13.1–13.9 accepted (`226c7f2`, `4514f09`,
-`ec51247`, `010a1b8`, `66a0871`, `adf85e4`, `3d08c1b`, `5c01aed`); Step 13.10 (closeout) done on 2026-10-06 — awaiting
-the product owner's acceptance; not published (no push / pull request yet), so CI has not run. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
+After the merge (recorded at Step 14.2, 2026-10-06): Phase 13 accepted by the product owner on the Step 13.10
+verification (closeout `7d4f6d8`); PR #13 merged into `main` as `ed40b74` (2026-10-06), CI green on the pull request
+(first attempt). The first CI run on `main` after the merge (run 37470605596) failed on one test of the §8 list —
+`ExecutableLocatorTests.RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg`, `Assert.NotNull() Failure:
+Value is null` after 7 s, the known cause (the 5 s PATH probe answering "not found" on a loaded runner); 2584 passed, 2
+skipped, 1 failed; not rerun. Kept open after Phase 13, taken into Phase 14 (D029): the known flaky CI tests and the
+`F(end − start)` test helpers; deferred (D029 §3): a new text clip's `FontSize` 48 on any canvas.
+
+Status: Accepted (2026-10-06, product owner). Phase 13 complete: Steps 13.1–13.9 accepted (`226c7f2`, `4514f09`,
+`ec51247`, `010a1b8`, `66a0871`, `adf85e4`, `3d08c1b`, `5c01aed`); Step 13.10 (closeout, `7d4f6d8`) accepted; merged as
+`ed40b74`, CI green on PR #13. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
+
+---
+
+## D029 — Phase 14: stabilization / technical debt
+
+Date: 2026-10-06
+
+Decision (product owner, 2026-10-06, after the Step 14.1 audit). Phase 14 is a **stabilization / technical-debt** phase
+with **no new user functionality**: its goal is a more deterministic CI and less technical debt without changing what
+the user sees or does. It fixes the known flaky CI tests that D028 §8 only manages, cleans the `F(end − start)` test
+helpers with a guard against their return, and decides the empty `src/Effects` project on the basis of an analysis.
+
+Context (Step 14.1 audit, the code at `ed40b74`, `main` after the merge of PR #13):
+- Phases 0–13 merged; 2585 tests pass, 2 skip (the 4K scenes), 2587 / 2587 with `AIVE_HEAVY_TESTS=1` (Step 13.10).
+- No phase was planned after Phase 13 (ROADMAP, DEVELOPMENT_PLAN, DECISIONS); candidates reported: stabilization /
+  technical debt (chosen), keyframes, AI features, colour / HDR, distribution.
+- CI needed reruns: the PR #11 run green on attempt 2, the PR #12 run on attempt 3; the first run on `main` after PR #13 failed on
+  `ExecutableLocatorTests.RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg` (D028 "After the merge").
+  The D028 §8 list: the autosave timer (`Project.Tests`), an ffprobe timeout in a waveform test, the 5 s PATH probe of the
+  ffmpeg / ffprobe locators (`Video.Tests`). Also watched: one unidentified `Project.Tests` hang (Step 8.4) and failure
+  (Step 9.3d), never reproduced.
+- `ExecutableLocator.IsExecutableAvailableAsync` runs `<tool> -version` with a fixed 5 s timeout; a slower answer is
+  "not available", cached for the app run (D024 "Known risk"). The locator already has a probe seam (internal
+  constructor) used by tests; `RealLocator_*` tests use the real process.
+- Test helpers `TrackEditTests.cs:35`, `RippleEditTests.cs:27`, `TimelineRippleUiTests.cs:42` build a text clip's
+  duration as `F(end − start)` instead of `F(end) − F(start)` (D027, a separate cleanup).
+- `src/Effects`: see §6.
+
+### 1. Scope
+
+- 14.2 — sync after the merge of PR #13 and this decision (documentation only).
+- 14.3 — the flaky autosave-timer test(s) of `Project.Tests` made deterministic; the watched `Project.Tests` hang /
+  failure looked for in the stress runs.
+- 14.4 — the flaky ffprobe-timeout (waveform) and PATH-probe (locator) tests of `Video.Tests` made deterministic.
+- 14.5 — the `F(end − start)` helpers moved to `F(end) − F(start)` with a regression guard.
+- 14.7 — `src/Effects`: removed or kept by the product owner's decision on §6's analysis.
+- 14.8 — final verification and closeout; CI green without a rerun is the phase's measure.
+- (14.6 is not taken — §3.)
+
+### 2. Constraints
+
+- No user-visible behaviour changes. Production code changes only where a test needs a behaviour-neutral seam (e.g. an
+  injected `TimeProvider` — part of .NET 8, no new package); each listed with its reason. Anything that would change what
+  the user sees — the locator's 5 s probe timeout or its cached "not found", the autosave interval or the recovery
+  behaviour, any message — is proposed at its step with its effect and made only after a separate product owner
+  confirmation.
+- A flaky test is fixed by removing its dependence on timing or the environment, never by a looser bound, a retry
+  loop, a skip, a removal or a weaker assertion. Every changed test keeps what it guards, shown by a mutation; its old and
+  new form recorded in `progress.md`.
+- Unchanged: every decision D001–D028 in substance; the canvas-level parity and the L1-c criteria; `project.json` (v3, no
+  new property); the CI workflow's gates (`-warnaserror`, the skip gate). The D028 §8 policy stays in force until the
+  closeout decides it.
+- Builds and test runs on the product owner's command; push, pull request and merge only with the product owner's
+  direct permission; each step accepted before the next one starts.
+
+### 3. Out of scope
+
+All new user functionality; the former candidate **14.6** — a new text clip's default `FontSize` relative to the canvas
+and the status bar's "Playing without sound…" after the audio device returns — deferred by the product owner as product /
+UX changes; AI features; keyframes; HDR / colour management; an installer; timeline virtualization; an undoable import;
+`ProjectSettings.AudioSampleRate` (unused by D013); `MediaAnalysisCoordinator`'s captured `SynchronizationContext`;
+the Phase 0–13 known issues not listed in §1.
+
+### 4. Flaky tests and helpers — rules
+
+- Each step starts with the measurement: the failing test named, its failure reproduced or its cause shown from the code
+  and the CI logs, before any change.
+- Determinism: a test does not depend on real elapsed time or machine load for its verdict, except a test whose purpose
+  is a real process or device — that test keeps a real dependency but gets no verdict from a timeout the product does not
+  need (e.g. a real locator test checks that a real ffmpeg is found, not the 5 s timeout under load).
+- Stress evidence: the affected test classes repeated at least 50 times while the machine is loaded, without a failure,
+  at the step and again at the closeout.
+- The helpers (14.5) change no expected value; a value that would change is a found defect, reported.
+
+### 5. Measure of the phase
+
+CI green on the Phase 14 pull request without any rerun, on a tree with the fixes of 14.3–14.4. The closeout records
+whether the D028 §8 policy can be closed (the product owner's decision).
+
+### 6. `src/Effects` — analysis (Step 14.2; decision at the acceptance of D029)
+
+Facts at `ed40b74`:
+- `src/Effects/Effects.csproj` (references only Core) contains one file, `ModuleInfo.cs` — an `internal static class`
+  with a `Name` constant and a comment saying the project exists "so the solution's dependency graph is ready" for an
+  effect stack; no public type, nothing registered in DI.
+- Its only reference is `App.csproj` (`ProjectReference`); no code in any project uses `AiVideoEditor.Effects`; no test
+  project references it.
+- The effect *data* does not live there: `Effect` and `Clip.Effects` are in Core (`Core/Entities/Clip.cs`), persisted by
+  `Project` (`EffectDto`, `ProjectSerializer`) and copied by `Timeline` (`TimelineEditService` copy / paste). Removing the
+  project changes none of them and nothing in `project.json`.
+- Phase 10 deliberately put fades and dissolves into Core / Timeline / UI, not into this project (D025); ARCHITECTURE's
+  module table marks it "Reserved for a generic effect stack … Empty". No plan names a phase that would fill it.
+- Recreating a project later is a few minutes' work, so keeping it reserves nothing that would be lost.
+
+Assessment: a dead architectural remnant of the Phase 0 skeleton. Proposal: **remove** it in Step 14.7 (the solution
+entry, the `App.csproj` reference and the folder), keep `Effect` / `Clip.Effects` and their persistence untouched,
+correct ARCHITECTURE's module table and the project counts (`CLAUDE.md`: 19 → 18 projects, 11 → 10 application
+projects). The argument for keeping it — a ready slot in the dependency graph — does not hold against an empty assembly
+built and shipped in every run. Decision: removal, accepted with D029 (answer 1 below).
+
+### Open for the D029 acceptance (product owner)
+
+1. `src/Effects`: remove in 14.7 as §6 proposes, or keep (the reason then recorded here)?
+2. `tests/ExportEndToEnd.Tests/ExportSettingsEndToEndTests.cs` contains a literal NUL character (a char literal for the
+   NUL that ends the x264 SEI string), so Git treats the file as binary (no text diffs). Replace it with the `'\0'`
+   escape in 14.5 (behaviour-neutral, one line), or leave it?
+
+Accepted by the product owner (2026-10-06, with Step 14.2), with the answers:
+1. `src/Effects` is removed in Step 14.7 — a dead skeleton without functional consumers: the project out of the solution,
+   the `App.csproj` reference and the folder removed; ARCHITECTURE and the project counts of `CLAUDE.md` updated. The
+   behaviour and the project format must not change.
+2. The literal NUL in `ExportSettingsEndToEndTests.cs` is replaced by `'\0'` in Step 14.5; no behaviour change.
+3. The failed CI run 37470605596 is not rerun; its fix belongs to Step 14.4.
+
+Consequences: CI no longer needs reruns for the known tests; D028 §8 can be closed at the closeout; the test helpers
+produce on-grid clips; one project fewer in the solution. No change for the user.
+
+Status: Accepted (2026-10-06, product owner). Step 14.2 accepted. Steps and acceptance criteria:
+`docs/DEVELOPMENT_PLAN.md`, "Phase 14 — Stabilization / technical debt: steps".
 
 ---
 

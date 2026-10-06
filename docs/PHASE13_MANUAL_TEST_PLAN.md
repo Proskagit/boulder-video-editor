@@ -90,6 +90,9 @@ No real-app scenario: the measurement and the criteria run in the suite (`Export
 | R2 | `docs/EXPORT_MANUAL_TEST_PLAN.md` at the default settings and at one non-default setting | Passes as before | 13.10 (Claude): PASS — Compact / Slow / 320: dirty, Undo / Redo, a real export (`crf=28.0`, `subme=8`, `-b:a 320000`, AAC-LC 48 kHz stereo, 850 frames, 34 s; Project Settings… off during it); the default export at 13.6 (scenario 6); the other export UI scenarios at 12.9 — no export workflow code changed since |
 | R3 | Relink, recent projects, tracks, ripple, copy / paste, markers, fades and dissolves at a non-default canvas and rate (short run) | As accepted in Phases 10–12 | 13.10 (Claude): PASS at 1080 × 1080 / 30 fps — track move + Undo, marker, Ctrl+C / Ctrl+D, Ripple Delete + Undo, `Recent ▾`, offline → Relink… → Undo / Redo; saved with the dissolve, the fades and the marker; the title font 96 → 162 |
 
+CI: green on PR #13, merged into `main` as `ed40b74` (2026-10-06; recorded at Step 14.2). The first run on `main` after
+the merge failed on the known flaky locator test (D028 "After the merge"; fixed in Phase 14 Step 14.4).
+
 ## Results log
 
 ### 2026-10-06 — Step 13.10 closeout (Claude), `5c01aed`, Debug, isolated profile

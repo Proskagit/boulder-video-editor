@@ -2,13 +2,72 @@
 
 ## Current phase
 
-Phase 13 — Project & export settings: **complete locally** — Step 13.10 (final verification & closeout) done on
-2026-10-06 on branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the merge of PR #12); Steps
-13.1–13.9 accepted. Open: not published (push / pull request only with the product owner's permission), so CI has not
-run. Phase 14 not started. Scope, steps and
-acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 13 — Project & export settings: steps"; decision D028.
+Phase 14 — Stabilization / technical debt (no new user functionality): **in progress** on branch
+`feat/phase-14-stabilization` (from `ed40b74`, `main` after the merge of PR #13). Step 14.1 (audit) and Step 14.2
+(sync & scope formalization, D029) accepted; Step 14.3 in progress. Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`
+"Phase 14 — Stabilization / technical debt: steps"; decision D029.
 
-### Phase 13 — Project & export settings (complete locally)
+### Phase 14 — Stabilization / technical debt (in progress)
+
+Steps (D029; each accepted by the product owner before the next, never started automatically): 14.1 audit · 14.2 sync
+after the merge & scope formalization · 14.3 flaky autosave test · 14.4 flaky ffprobe / PATH-probe tests · 14.5
+`F(end − start)` helpers + guard · (14.6 not taken) · 14.7 `src/Effects` removal · 14.8
+closeout. Working rules from the product owner (kept from Phases 11–13): no build or test run without a separate
+command; no push, pull request or merge without direct permission; no next step without the product owner's go.
+
+- Step 14.1 done and accepted (2026-10-06) — audit, no change in the repository (one `git fetch origin`, which moved only
+  the remote-tracking `origin/main` to `ed40b74`).
+  - Git: on `feat/phase-13-project-export-settings` at `7d4f6d8`, clean, its tree identical to `origin/main` = `ed40b74`
+    "Merge pull request #13 …" (parents `c0cb600`, `7d4f6d8`); the local `main` at `c0cb600`, 10 commits behind, none
+    ahead. PR #13 CI green (attempt 1); the run on `main` was still running during the audit. No build or test run.
+  - No phase planned after Phase 13; candidates reported: stabilization / technical debt (chosen), keyframes, AI
+    features, colour / HDR, distribution.
+  - Documentation outdated by the merge: "complete locally / not published / CI pending" (ROADMAP, README,
+    DEVELOPMENT_PLAN, this file, D028 status); the 13.4 heading "awaiting acceptance" and no acceptance line for 13.4 in
+    this file; no CI line in the Phase 13 manual plan.
+  - Technical debt found: the three known flaky CI tests (D028 §8) and the watched `Project.Tests` hang / failure; the
+    `F(end − start)` helpers (`TrackEditTests.cs:35`, `RippleEditTests.cs:27`, `TimelineRippleUiTests.cs:42`); a new
+    text clip's `FontSize` 48 (`Clip.cs:92`); the audio status after a device returns; the empty `src/Effects`; no
+    TODO / FIXME / HACK in `src/` or `tests/`.
+- Product owner decisions (2026-10-06), recorded in D029: Phase 14 = variant A, stabilization / technical debt without
+  new user functionality — 14.2, 14.3, 14.4 (no user-visible change without a separate confirmation), 14.5, 14.8; 14.6
+  (font size of a new text clip, the audio status) **not taken**, out of scope as deferred product / UX changes; 14.7
+  first analysed — `src/Effects` not removed automatically, the decision shown in the 14.2 report; goal: a more
+  deterministic CI and less technical debt without changing the user functionality. Only Step 14.2 allowed.
+- Step 14.2 done (2026-10-06) — sync after the merge and scope formalization, documentation only (no production code,
+  no test changed, no build or test run). `git checkout main` + `git merge --ff-only origin/main` (`c0cb600` →
+  `ed40b74`), branch `feat/phase-14-stabilization` created from it.
+  - CI on `main` after the merge (run 37470605596, push of `ed40b74`, attempt 1): **failed** — Video.Tests 315 passed, 1
+    failed: `ExecutableLocatorTests.RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg` (7 s,
+    `Assert.NotNull() Failure: Value is null` at line 89 — the second, uncancelled call got "not found"); the other seven
+    assemblies green (2584 passed, 2 skipped, 1 failed in all; the skip gate reported only this test). It matches the
+    known cause of the D028 §8 list: the real `-version` probe's 5 s timeout (`ExecutableLocator.IsExecutableAvailableAsync`)
+    answering "not available" on a loaded runner — the 7 s are the cancelled first call plus a probe that ran into the
+    5 s limit. Not rerun (a rerun is not part of this step; the product owner decides). Its fix is Step 14.4.
+  - Phase 13 synced with its real state: accepted by the product owner on the Step 13.10 verification, PR #13 merged as
+    `ed40b74`, CI green on the pull request, the failed first run on `main` — ROADMAP (Current, Previous, Future
+    phases), README (three status lines), DEVELOPMENT_PLAN (the Phase 13 line, the 13.4 and 13.10 headings), this file
+    (Current phase, the Phase 13 heading, the 13.4 acceptance, "Last known state", "Completed", "Known issues"), D028
+    (an "After the merge" note and the status), ARCHITECTURE (verification note), `docs/PHASE13_MANUAL_TEST_PLAN.md` (a CI
+    line). The historical step logs are left as they were written.
+  - DECISIONS: D029 (context from the audit; §1 scope, §2 constraints — no user-visible change without a separate
+    confirmation, a flaky test never loosened / skipped / retried, §3 out of scope incl. 14.6, §4 rules for the flaky
+    tests and helpers, §5 the measure — CI green without a rerun, §6 the `src/Effects` analysis; two questions open for
+    the acceptance: `src/Effects` removed or kept, the NUL character in `ExportSettingsEndToEndTests.cs`).
+  - `src/Effects` analysis (D029 §6): one `internal` class (`ModuleInfo`), referenced only by `App.csproj`, used by no
+    code; `Effect` / `Clip.Effects` live in Core and are persisted by Project — untouched by a removal. Proposal: remove
+    at 14.7 (the solution entry, the `App` reference, the folder; ARCHITECTURE and the project counts of `CLAUDE.md`
+    corrected). Awaiting the product owner's decision.
+  - Found while syncing: `tests/ExportEndToEnd.Tests/ExportSettingsEndToEndTests.cs` holds a literal NUL character (a
+    char literal), so Git shows it as binary (`Bin 0 -> 5018 bytes` in the merge's stat) — D029 question 2.
+  - `docs/DEVELOPMENT_PLAN.md`: the Phase 14 line and the section "Phase 14 — Stabilization / technical debt: steps"
+    (gates, steps 14.1–14.8 with PR / QG / M / Impl items and dependencies; 14.6 marked not taken).
+  - `docs/PHASE14_MANUAL_TEST_PLAN.md` (skeleton, regression only: R1–R5), `docs/README.md`.
+  - Accepted by the product owner (2026-10-06) with D029 and its answers: `src/Effects` removed at 14.7; the NUL
+    replaced by `'\0'` at 14.5; run 37470605596 not rerun (fixed by 14.4). Committed as one commit on the product
+    owner's command.
+
+### Phase 13 — Project & export settings (complete; PR #13 merged as `ed40b74`)
 
 Steps (D028; each accepted by the product owner before the next, never started automatically): 13.1 audit · 13.2 sync
 after the merge & scope formalization · 13.3 settings model & format · 13.4 canvas size · 13.5 frame rate · 13.6 project
@@ -121,7 +180,8 @@ push, pull request or merge without direct permission; no next step without the 
   - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2462
     passed, 2 skipped (only the two 4K scenes), 0 failed — Core 506 (+12), Timeline 453 (+28), Project 420, UI 542 (+1),
     Export 99, Rendering 58, Video 294, ExportEndToEnd 90 (+2) + 2; `git diff --check` clean.
-  - Committed as `ec51247`.
+  - Committed as `ec51247`; accepted by the product owner (2026-10-06; recorded at Step 14.2 — 13.5 started only after
+    it, by the step rule).
 - Step 13.5 done (2026-10-06) — frame-rate change and FR-1 (D028 "Refined in Step 13.5").
   - Timeline: `ITimelineEditService.SetFrameRate` / `TimelineEditService.SetFrameRate` (only the offered rates; the
     current rate locks an unlocked project in one step, of a locked one no change; otherwise `EditPlan.SetFrameRate(rate,
@@ -3357,12 +3417,13 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-06: Phases 0–12 are complete and merged into `main` (last merge `c0cb600`, PR #12, CI green). Phase 13 (project &
-export settings, D028) is complete locally on `feat/phase-13-project-export-settings` (closeout at `5c01aed`: 2585 passed,
-2 skipped; heavy 2587 / 0 / 0); not published, so CI has not run. Open items carried forward: see "Known issues" (the
-audio status message after a device returns, the watched `Project.Tests` hang / failure, the known flaky CI tests, no
-timeline virtualization, import not undoable, the 5 s PATH probe of the locators, the `F(end − start)` test helpers, a new
-text clip's `FontSize` 48 on any canvas).
+2026-10-06: Phases 0–13 are complete and merged into `main` (last merge `ed40b74`, PR #13, CI green on the pull request;
+the first run on `main` failed on the known flaky locator test). Phase 14 (stabilization / technical debt, D029)
+in progress on `feat/phase-14-stabilization`: Step 14.2 accepted, Step 14.3 in progress. Open items carried forward: see "Known
+issues" (taken into Phase 14: the known flaky CI tests incl. the 5 s PATH probe of the locators, the watched
+`Project.Tests` hang / failure, the `F(end − start)` test helpers; deferred out of Phase 14: the audio status message
+after a device returns, a new text clip's `FontSize` 48 on any canvas; also no timeline virtualization, import not
+undoable).
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -3401,16 +3462,20 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 10 (accepted 2026-10-01; PR #10 merged as `2e758f1`)
 - Phase 11 (accepted 2026-10-05; PR #11 merged as `47ed2fa`, CI green)
 - Phase 12 (accepted; PR #12 merged as `c0cb600` on 2026-10-05, CI green)
-- Phase 13 (complete locally 2026-10-06, Step 13.10; not published — CI pending)
+- Phase 13 (accepted; PR #13 merged as `ed40b74` on 2026-10-06, CI green on the pull request)
 
 ## Known issues
 
 - Export codec leg (D023 Step 8, decision L1-c): decided in Phase 13 Step 13.8 — D028 "Refined in Step 13.8"
   (`ExportCodecLegTests`). Closed.
 - Known flaky CI tests (seen on CI before Phase 12, no product cause found): the autosave timer (`Project.Tests`), an
-  ffprobe timeout in a waveform test, the 5 s PATH probe of the locators in `Video.Tests` (below). Not fixed in Phase 13.
-  Policy (D028 §8): a rerun of that named test, with the known failure message, is allowed for diagnosis and recorded
-  here; never instead of fixing a real regression, never a rerun-until-green; never weakened, skipped or removed.
+  ffprobe timeout in a waveform test, the 5 s PATH probe of the locators in `Video.Tests` (below). Not fixed in Phase 13;
+  taken into Phase 14 (D029, Steps 14.3–14.4). Policy (D028 §8): a rerun of that named test, with the known failure
+  message, is allowed for diagnosis and recorded here; never instead of fixing a real regression, never a
+  rerun-until-green; never weakened, skipped or removed.
+  - 2026-10-06, CI run 37470605596 (push of `ed40b74` to `main`, attempt 1): failed —
+    `ExecutableLocatorTests.RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg`, 7 s, `Assert.NotNull()
+    Failure: Value is null` (the PATH probe, the known cause); every other test green. Not rerun (recorded at Step 14.2).
 - `Project.Tests` hang seen once in Step 8.4 (1 of 23 runs, test not identified): not reproduced — the 8.4/8.5 runs
   and the three final `--blame-hang` runs of the closeout were clean. Watch for it; no fix. Phase 9 Step 9.3d: one
   unidentified `Project.Tests` failure (not a hang) in one full parallel run; not reproduced in 40 isolated and 8 full
@@ -3453,7 +3518,10 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   could hit it; seen once on CI in a test). Known risk, unchanged (D024, Step 9.10).
 - Audio device: after a device was lost during playback and the sound came back at the next Play, the status bar still says
   "Playing without sound…" (the status shows the last message until another one; D024 "Left as they are", Step 9.10). A real
-  default-device change and a real removal were checked on hardware in Step 9.10 (scenarios 14–17).
+  default-device change and a real removal were checked on hardware in Step 9.10 (scenarios 14–17). Deferred out of
+  Phase 14 as a UX change (D029 §3).
+- Text clips: a new text clip takes `FontSize` 48 on any canvas (`Clip.cs`), small on a 4K canvas (an observation from
+  Phase 13). Deferred out of Phase 14 as a product change (D029 §3).
 - `MediaAnalysisCoordinator` relies on the captured UI SynchronizationContext.
 - Timecode is non-drop-frame only (29.97 timecode drifts from wall clock by design).
 - Timeline canvas is a plain ItemsControl/Canvas; very long timelines at maximum
