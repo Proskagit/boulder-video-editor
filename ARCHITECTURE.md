@@ -491,6 +491,9 @@ Routine refactoring needed to implement a feature does not.
   `IExportService.ExportAsync` → outcome message per `ExportFailure` / cancelled / unexpected. `EditingLock` is shared
   by Toolbar, Timeline, Inspector and Media Browser (`CanExecute` / edit guards). `LastExportSettings` is session-only
   state (not dirty, not undoable, not serialized), updated after a successful export. Manual plan: `docs/EXPORT_MANUAL_TEST_PLAN.md`.
+- Codec leg (Phase 13 Step 13.8, L1-c, tests only): `ExportCodecLegTests` / `CodecLegMetrics` measure the MP4 against
+  the export canvases and against a lossless reference of them at every quality level and preset; per-level bounds on
+  the codec's own error, the level order and flat colour (D028 "Refined in Step 13.8").
 - Parity verification (Step 8, tests only): `tests/ExportEndToEnd.Tests` compares the export with the Preview's own
   pipeline and control — byte-equal at the canvas size for sources ≤ 1280 × 720, the D023 tolerances (`ParityMetrics`:
   geometry ±1 px on luma, flat colour R ≤ 4 / G ≤ 3 / B ≤ 4, same source frame) for larger sources and in a viewport,
@@ -523,5 +526,5 @@ Steps 11.7–11.8 (Phase 11 merged into `main` as `47ed2fa`); the Phase 12 editi
 Timeline section at the Phase 12 closeout (Step 12.9, `d467a84`; Phase 12 merged into `main` as `c0cb600`). Phase 13
 (D028, project & export settings): the `ProjectSettings` / persistence lines at Step 13.3, the canvas-size and
 composition lines at Step 13.4, the frame-rate line at Step 13.5, the project-settings line at Step 13.6, the export
-contract (job settings, `ExportFormat`) at Step 13.7.
+contract (job settings, `ExportFormat`) at Step 13.7, the codec-leg line at Step 13.8.
 Re-check the code before relying on details that later phases may have changed.

@@ -70,8 +70,8 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 ## Step 13.8 — L1-c (D028 §6)
 
-Measurement only in the real app: none planned (the measurement runs as a tool / tests). Scenario 19 checks the chosen
-criteria visually.
+No real-app scenario: the measurement and the criteria run in the suite (`ExportCodecLegTests`, D028 "Refined in Step
+13.8"). Scenario 19 (each level in the app) follows the UI of 13.9.
 
 ## Step 13.9 — export settings UI (D028 §7)
 

@@ -953,7 +953,9 @@ ffprobe/ffmpeg and the app's analysis (Step 8.1).
   The suite also requires SNR ≥ 20 dB as a sanity bound for the AAC round trip (the value the Step 6 tests used); it is
   not a fidelity requirement of this decision.
 - The codec leg MP4 → export canvas (decision L1-c) has **no numeric tolerance**: none is defined here, and the
-  Step 8.6 data below must not be read as one. Whether and how to set one is an open product decision. Unchanged
+  Step 8.6 data below must not be read as one. Whether and how to set one is an open product decision — **decided in
+  Phase 13 Step 13.8: D028 "Refined in Step 13.8" (per-level bounds on the codec's own error, the level order, flat
+  colour through the leg).** Unchanged
   meanwhile: the Step 5 encoder tests (BT.709 values on flat colours) and the Step 6 end-to-end bound "mean |Δ| ≤ 3 per
   frame, MP4 vs canvas" on its nine simple scenes — a test sanity bound of those scenes, not a codec tolerance.
 
@@ -2511,12 +2513,67 @@ Refined in Step 13.7 (the step's audit accepted by the product owner, 2026-10-06
   (`-b:a 320000`); whether 320 stays offered is a product decision for the measurement / UI steps.
 - Not in 13.7: the export settings UI (13.9), L1-c (13.8), `project.json` (unchanged, v3).
 
+Decided after Step 13.7 (product owner, 2026-10-06): 320 kbps stays offered. The contract of an AAC bitrate setting is
+the request passed to ffmpeg (`-b:a 320000`) and a valid AAC-LC 48 kHz stereo track of the right length; the bitrate the
+encoder reaches is not a criterion (FFmpeg 9.0.1's native AAC encoder reaches ≈ 243 kbps for a 320 kbps request on
+stereo noise — its behaviour, recorded here). No test requires ≈ 320 kbps.
+
+Refined in Step 13.8 — **L1-c decided** (2026-10-06; the measurement, the criteria and the mutation checks in one step, as
+the product owner asked; the numbers below await the step's acceptance):
+- Measured (M) with the Step 8.6 method, now in the suite (`ExportEndToEnd.Tests/ExportCodecLegTests`, `CodecLegMetrics`;
+  every line written to the test output): the MP4 decoded by ffmpeg (BT.709 tags honoured) against the canvases the
+  service encoded, R / G / B samples; split with a reference made from the same canvases through the same BGRA → BT.709
+  limited 4:2:0 conversion but libx264 lossless (`-qp 0`): **floor** = reference vs canvas (conversion, chroma
+  subsampling), **quant** = MP4 vs reference (the lossy encoding — what the level changes), **total** = MP4 vs canvas.
+  Eleven scenes (flat colour; PNG with alpha over video; JPEG; text; the moving pattern; a rotated portrait video; 4×
+  speed; mixed layers at 29.97; portrait 180 × 320 and square 240 × 240 canvases; a 1080p canvas) × six settings (the
+  four levels at medium, fast and slow at High). Two runs gave identical numbers (FFmpeg 9.0.1, same machine).
+- Data (lowest per-frame PSNR in dB over the scenes with detail; flat colour is lossless at every level):
+
+  | | Maximum | High | Standard | Compact | High / fast | High / slow |
+  |---|---|---|---|---|---|---|
+  | quant (MP4 vs lossless reference) | 41.3 | 37.5 | 33.3 | 29.9 | 37.6 | 37.8 |
+  | total (MP4 vs canvas) | 24.4 | 24.3 | 24.0 | 23.4 | 24.2 | 24.3 |
+
+  The total is dominated by the floor, which no level changes (worst frame: mean |Δ| 3.6, 24.4 dB on mixed layers — sharp
+  saturated edges through 4:2:0; on flat colour max 1). Quant falls with every level on every scene, at least 3.4 dB per
+  step; the presets stay within 0.7 dB of medium. Worst-frame quant mean |Δ| at High: 0.17–1.26. File sizes relative to
+  High: Maximum ≈ 1.3×, Standard ≈ 0.7×, Compact ≈ 0.45×; the export time of these short scenes barely changes (slow
+  +10–20 %).
+- **Criteria** (pass / fail, `ExportCodecLegTests`, every scene × every setting):
+  1. the codec's own error per level — every frame's PSNR of the MP4 against the lossless reference at least
+     **Maximum 39.0 · High 35.0 · Standard 31.0 · Compact 27.5 dB** (≈ 2.3–2.5 dB below the measured lowest values: thread
+     count or rounding can't fail it, one level's CRF in another's place does); the fast and slow presets meet their
+     level's bound;
+  2. the levels in order on every scene with detail — each at least **2.0 dB** above the next (measured ≥ 3.4);
+  3. flat colour through the whole leg within one YUV code step — **max |Δ| ≤ 2** — at every setting (guards the colour
+     conversion: matrix, range).
+  Reasoning: the quality setting changes only the quantization, so the criterion bounds the quantization per level, on
+  the error that the level is responsible for; the floor is a property of the fixed format (8-bit 4:2:0 BT.709) and is not
+  a quality knob — bounding the total by level would mostly bound the floor. Criterion 2 makes the levels mean something
+  relative to each other (a swapped or collapsed CRF fails it); criterion 3 makes the conversion itself checked at every
+  setting.
+- Sound (unchanged criterion, every offered bitrate): the D023 Step 8.5 checks — the same length, lag and every burst onset
+  within 10 ms, SNR ≥ 20 dB against the Preview's own audio — hold at 128, 160, 192, 256 and 320 kbps
+  (`ExportParityEncodedTests.Sound_through_the_codec_at_every_offered_bitrate`, three sound scenes; measured SNR 24.5–38.4
+  dB, lag 0, onsets 0 ms; not monotonic in the bitrate). Nothing depends on the bitrate the encoder reaches.
+- Kept as they were: the canvas-level Preview ↔ export parity (byte-exact), the Step 8.3–8.5 criteria, the Step 6
+  composition bound "mean |Δ| ≤ 3 per frame, MP4 vs canvas" on its nine scenes (it runs at the default, High, and stays as
+  that level's total sanity bound there — not weakened, not replaced), the 13.7 golden command lines.
+- The default path: its command lines are the Phase 12 ones (13.7 golden), so its encoding is unchanged; the High /
+  medium row of the data is that path.
+- Mutation checks (each reverted; caught by the L1-c tests unless noted): High → CRF 23; Standard collapsed onto 18;
+  Maximum → 18; Compact → 23; Compact → 35; the encoder dropping `-crf`; a BT.601 matrix; full range tagged limited; one
+  damaged frame inside the encoder; the AAC bitrate passed ten times too low (caught by the per-bitrate sound test). Not
+  caught by L1-c and not meant to be: the fast preset mapped to `ultrafast` (still above High's bound) — caught by the 13.7
+  tests (golden command lines, the x264 `subme` check) and `ProjectSettingsRulesTests`.
+
 Consequences: `ProjectSettings` becomes user-editable through new undoable commands; the export gains a settings model
 used by `FfmpegExportEncoder` (`ExportOutput` and the preflight keep their roles); `project.json` stays v3 or becomes v4
 by §5; the parity suite gains scenes for new canvas sizes and rates and per-level codec criteria (§6);
 `docs/PHASE13_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
 
-Status: Accepted (2026-10-06, product owner). Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 accepted (`010a1b8`); Step 13.6 accepted (`66a0871`); Step 13.7 done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
+Status: Accepted (2026-10-06, product owner). Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 accepted (`010a1b8`); Step 13.6 accepted (`66a0871`); Step 13.7 accepted (`adf85e4`); Step 13.8 (L1-c) done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
 
 ---
 

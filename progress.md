@@ -5,7 +5,8 @@
 Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
 merge of PR #12). Step 13.1 (audit) accepted (2026-10-06); Step 13.2 accepted with D028 (2026-10-06); Step 13.3
 accepted (`4514f09`); Step 13.4 (canvas change) done (`ec51247`); Step 13.5 (frame-rate change) accepted (`010a1b8`);
-Step 13.6 (Project Settings dialog) accepted (`66a0871`); Step 13.7 (export settings core) done — awaiting acceptance.
+Step 13.6 (Project Settings dialog) accepted (`66a0871`); Step 13.7 (export settings core) accepted (`adf85e4`); Step
+13.8 (L1-c) done — awaiting acceptance.
 Scope, steps and
 acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 13 — Project & export settings: steps"; decision D028.
 
@@ -204,6 +205,32 @@ push, pull request or merge without direct permission; no next step without the 
   - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2540
     passed, 2 skipped (only the two 4K scenes), 0 failed — Core 513 (+7), Timeline 484, Project 420, UI 555, Export 100
     (+1), Rendering 58, Video 316 (+22), ExportEndToEnd 94 (+3) + 2; `git diff --check` clean.
+  - Committed as `adf85e4`; accepted by the product owner (2026-10-06), with the AAC decision: 320 kbps stays; the
+    request and a valid track are the contract, not the bitrate reached.
+- Step 13.8 done (2026-10-06) — L1-c measured and decided (D028 "Refined in Step 13.8"), in one pass as the product
+  owner asked. Baseline: `adf85e4`, clean tree.
+  - Measurement (M): `ExportEndToEnd.Tests/CodecLegMetrics` (the Step 8.6 method: total = MP4 vs canvas, floor = a
+    lossless `-qp 0` reference of the same canvases through the same conversion vs canvas, quant = MP4 vs reference; mean,
+    p99, p99.9, max, PSNR, worst frame) in `ExportCodecLegTests` — 11 scenes × 6 settings (the four levels at medium, fast
+    / slow at High), each line in the test output with the file size and the export time. Two runs gave identical numbers.
+    Lowest per-frame quant PSNR: Maximum 41.3, High 37.5, Standard 33.3, Compact 29.9, fast 37.6, slow 37.8 dB; levels
+    ≥ 3.4 dB apart on every scene; the total is the floor's (24.3 dB worst, mixed layers, at every level); sizes vs High
+    ≈ 1.3 / 0.7 / 0.45; export time flat (slow +10–20 %).
+  - Criteria (pass / fail, `ExportCodecLegTests`): quant per-frame PSNR ≥ 39.0 / 35.0 / 31.0 / 27.5 dB by level (presets
+    meet their level's); each level ≥ 2.0 dB above the next on every scene with detail; flat colour max |Δ| ≤ 2 through the
+    leg at every setting. Sound: `ExportParityEncodedTests.Sound_through_the_codec_at_every_offered_bitrate` — the D023
+    sound checks (length, lag / onsets within 10 ms, SNR ≥ 20 dB) at all five bitrates on three scenes (SNR 24.5–38.4 dB).
+    Nothing depends on the AAC bitrate reached.
+  - Kept: the canvas-level parity, Steps 8.3–8.5 criteria, the composition bound "mean |Δ| ≤ 3" (the High total sanity
+    bound on its nine scenes), the 13.7 golden command lines; no existing test file changed except an added theory in
+    `ExportParityEncodedTests`.
+  - Mutations (each reverted): High → CRF 23 → 10 of 11 L1-c tests fail; Standard → 18 → 10; Maximum → 18 → 10; Compact →
+    23 → 10; Compact → 35 → 2; the encoder without `-crf` → 10; BT.601 matrix → 11; full range tagged limited → 11; one
+    damaged frame in the encoder → 9; AAC bitrate × 0.1 → 5 of 5 sound tests. Not caught by L1-c by design: the fast preset
+    as `ultrafast` — caught by the 13.7 tests (Video.Tests 2, Core.Tests 1).
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2556
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 513, Timeline 484, Project 420, UI 555, Export 100,
+    Rendering 58, Video 316, ExportEndToEnd 110 (+16) + 2; `git diff --check` clean.
 
 ### Phase 12 — Editing essentials (complete; PR #12 merged as `c0cb600`, CI green)
 
@@ -3333,8 +3360,8 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 
 ## Known issues
 
-- Export codec leg (D023 Step 8, decision L1-c): MP4 → export canvas has no numeric tolerance; the Step 8.6
-  measurement is data for a future product decision, not a criterion. Open — decided in Phase 13 Step 13.8 (D028 §6).
+- Export codec leg (D023 Step 8, decision L1-c): decided in Phase 13 Step 13.8 — D028 "Refined in Step 13.8"
+  (`ExportCodecLegTests`). Closed.
 - Known flaky CI tests (seen on CI before Phase 12, no product cause found): the autosave timer (`Project.Tests`), an
   ffprobe timeout in a waveform test, the 5 s PATH probe of the locators in `Video.Tests` (below). Not fixed in Phase 13.
   Policy (D028 §8): a rerun of that named test, with the known failure message, is allowed for diagnosis and recorded
