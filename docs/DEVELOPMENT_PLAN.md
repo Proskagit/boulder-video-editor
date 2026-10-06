@@ -48,9 +48,15 @@ and runs cleanly.
 - [x] **Phase 12 — Editing essentials.** Track delete / reorder, removing media from the project, ripple delete and
       close gap, copy / paste / duplicate of clips, markers on the timeline, and the fix of New during a running
       import. Scope, steps and acceptance criteria: section below and DECISIONS.md D027 (product owner decisions,
-      2026-10-05). *(branch `feat/phase-12-editing-essentials`, from `47ed2fa`; steps 12.2–12.8 `8e2b109`…`d467a84`;
-      the local QG of Step 12.9 passed on 2026-10-05 — complete locally. Open: CI not run yet — the branch is not
-      published; L1-c stays open)*
+      2026-10-05). *(branch `feat/phase-12-editing-essentials`, from `47ed2fa`; steps 12.2–12.8 `8e2b109`…`d467a84`,
+      closeout `6761c1d`; accepted by the product owner on the Step 12.9 verification; PR #12 merged into `main` as
+      `c0cb600` (2026-10-05), CI green. Open after it: the `F(end − start)` test helpers (a separate cleanup); L1-c
+      moved into Phase 13)*
+- [ ] **Phase 13 — Project & export settings.** The canvas size and the frame rate as project settings (new and
+      existing projects, undoable), export settings (quality, encoder speed, audio bitrate) on the existing MP4 /
+      H.264 / AAC encoder, and the codec-leg criteria of L1-c. Scope, steps and acceptance criteria: section below and
+      DECISIONS.md D028 (product owner decisions, 2026-10-06). *(branch `feat/phase-13-project-export-settings`, from
+      `c0cb600`; Step 13.2 done — D028 awaiting acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -586,13 +592,133 @@ Scope: D027 §7.
   analysis queued.
 - Depends on: 12.2 (independent of 12.3–12.7 in code; kept last by the product owner's order).
 
-### 12.9 — Final verification & closeout *(done locally — 2026-10-05: build `-warnaserror` 0 / 0; the full suite 2324 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2324 / 0 / 2, no hang, no dump; the 4K scenes with `AIVE_HEAVY_TESTS=1`: ExportEndToEnd 90 / 90; the manual plan, R1, R2, R3 in the real app; CI pending, the branch not published)*
+### 12.9 — Final verification & closeout *(done locally — 2026-10-05: build `-warnaserror` 0 / 0; the full suite 2324 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2324 / 0 / 2, no hang, no dump; the 4K scenes with `AIVE_HEAVY_TESTS=1`: ExportEndToEnd 90 / 90; the manual plan, R1, R2, R3 in the real app; accepted by the product owner; PR #12 merged as `c0cb600`, CI green)*
 - QG: `dotnet build --no-incremental -warnaserror` 0 / 0; full suite once plus three times with `--blame-hang`; heavy
   scenes once with `AIVE_HEAVY_TESTS=1`; CI green.
 - PR: `docs/PHASE12_MANUAL_TEST_PLAN.md` run in the real app; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run as a regression.
 - Documentation: ARCHITECTURE, D027 refinements, ROADMAP, README, `progress.md`; this plan's Phase 12 checkbox only
   after the product owner's acceptance.
 - Depends on: 12.3–12.8.
+
+## Phase 13 — Project & export settings: steps (D028)
+
+Formalized in Step 13.2 (product owner decisions of 2026-10-06, after the Step 13.1 audit). The normative rules are
+D028; this section lists the steps and their acceptance. Labels as in Phases 9–12: **PR** product requirement, **QG**
+quality gate, **M** measurement only, **Impl** implementation constraint. Steps run in this order; each is accepted by
+the product owner before the next one starts, and a step's sub-decisions (D028 "Left to the start of …") are proposed
+at its start and confirmed before its code changes. No implementation before D028 is accepted.
+
+Gates for every step 13.3–13.9 (QG): `dotnet build` 0 errors / 0 warnings; the full `dotnet test` green (only the 4K
+heavy scenes skipped); the canvas-level parity (Preview ↔ export canvas: `Rendering.Tests`, `Export.Tests`, the canvas
+checks of `ExportEndToEnd.Tests`) green with unchanged criteria and expected values — none weakened, re-baselined or
+removed; codec-leg criteria (MP4 → export canvas) changed only in Step 13.8 by the L1-c decision (D028 §6); new canvas
+sizes and rates covered by added parity scenes; every new project change is one `IUndoableCommand` with exact Undo /
+Redo, the save point (dirty) respected and disabled during an export (`EditingLock`); new behaviour covered by
+automated tests wherever testable, the rest in `docs/PHASE13_MANUAL_TEST_PLAN.md`; `progress.md` updated. Known flaky
+CI tests: the D028 §8 policy (a recorded rerun of that named test for diagnosis only; never instead of a fix, never a
+rerun-until-green). Builds and test runs are started on the product owner's command; push, pull request and merge only
+with the product owner's direct permission.
+
+Constraints for the whole phase: D028 §2 — D001 / D006, D008, D009 / D022, D013, D014–D016 (except D028 §5), D018's
+composition math, D023's architecture, D025, D026 and D027 unchanged in substance; MP4 / H.264 / AAC, 8-bit 4:2:0
+BT.709 limited, 48 kHz stereo stay fixed. Format: D028 §5 — the project settings need no format change; export
+settings saved with the project keep `formatVersion` 3 as an optional property unless that is impossible, then v4
+without backward migration (repository project JSON rewritten in v4). Out of scope: D028 §3.
+
+### 13.1 — Audit *(done, accepted 2026-10-06)*
+Git state (PR #12 merged as `c0cb600`, the local `main` behind it), documentation, the canvas / rate / export code and
+the candidates audited; no change (report in `progress.md`).
+
+### 13.2 — Sync after the merge and scope formalization *(done — awaiting acceptance)*
+`main` fast-forwarded to `c0cb600`, branch `feat/phase-13-project-export-settings`; the Phase 12 statements made
+outdated by the merge (CI pending, branch not published, complete locally) corrected and the acceptance / PR #12 /
+`c0cb600` / CI green recorded; D028 (incl. the flaky-test policy, §8), this section, ROADMAP, README, `progress.md`,
+`docs/README.md`, `docs/PHASE13_MANUAL_TEST_PLAN.md` (skeleton). Documentation only.
+
+### 13.3 — Settings model and project format
+Scope: D028 §1, §5, §7 (model only).
+- PR: the project settings (canvas width × height, frame rate) are validated by one Core rule (even sizes, limits, a
+  supported rate); an invalid value is refused with a message and changes nothing.
+- PR: the export settings (quality level, speed preset, audio bitrate) exist as a Core model with today's output as the
+  default; stored as D028 question 3 decides.
+- QG: tests of the validation; persistence round trip of every setting (save → reopen, recovery file); if the format
+  stays v3: a file without the new property reads as the defaults and a Phase 12 file opens and saves unchanged; if v4:
+  the inline test JSON and the `tools/manual` fixture scripts rewritten in v4, the v1–v3 handling as decided at the
+  step, `ExportSettingsPersistenceTests` changed to the new rule.
+- Impl: the v3 / v4 choice by D028 §5's rule, recorded as a D028 refinement with its reason before the code.
+- Depends on: 13.2 (D028 accepted).
+
+### 13.4 — Canvas size change
+Scope: D028 §4 (canvas).
+- PR: the canvas of a new or existing project can be changed; one undoable step; the Preview and the export show the
+  project at the new size (pictures re-fit by D018; positions and text sizes by the rule decided at the step's start).
+- PR: an odd or out-of-limits size can't be chosen (the preflight's `InvalidCanvas` stays as the last guard).
+- QG: tests of the command (undo / redo, dirty, refused values, `EditingLock`), of the snapshot / composition at the new
+  canvas, and added parity scenes — at least a portrait (e.g. 1080 × 1920) and a non-16:9 canvas — whose export
+  canvases match the Preview byte for byte; existing scenes unchanged.
+- Impl: D018 changed only in its "default 1920 × 1080" (refinement recorded); `PlaybackSnapshot.Canvas` stays the only
+  canvas the renderers read.
+- Depends on: 13.3.
+
+### 13.5 — Frame rate change
+Scope: D028 §4 (frame rate).
+- PR: the project frame rate can be chosen for a new project and changed in an existing one; the timeline is
+  re-gridded as one undoable step (D007's rule); a change that can't be made exactly is refused whole with a message;
+  fades, dissolves and markers keep their time and stay valid; a user-chosen rate is not changed by a later first video.
+- QG: tests of the re-grid (clips, collapse → one frame, refusal, fades, dissolves incl. a zone that no longer fits,
+  markers, the clipboard rule), undo / redo incl. `IsFrameRateLocked`, save → reopen; an added parity scene exported
+  after a rate change matching its Preview.
+- Impl: D007 refined (the user may change a locked rate); the existing first-video lock and its re-grid reused, not
+  duplicated.
+- Depends on: 13.3 (independent of 13.4 in code; kept after it).
+
+### 13.6 — Project settings UI
+Scope: D028 §1, §4 (new project).
+- PR: a project settings dialog (canvas presets incl. portrait / square plus custom, the frame rate) reachable from the
+  main window; applying it is the 13.4 / 13.5 command (one Undo step for a change of both); the New-project behaviour as
+  decided at the step's start; disabled during an export; texts for refused values.
+- QG: view-model tests (presets, custom values, validation messages, apply / cancel, one Undo step, `EditingLock`), the
+  dialog at the minimum window width (1024 px) in the real app.
+- Depends on: 13.4, 13.5.
+
+### 13.7 — Export settings: core and encoder
+Scope: D028 §7 (13.7).
+- PR: an export uses the chosen quality, speed and audio bitrate; the default settings produce today's output.
+- QG: tests of the encoder arguments for every offered value; real encodes per level (valid MP4, duration, frame count,
+  audio length, the requested CRF / preset / bitrate visible in the stream metadata where ffprobe reports it); the
+  existing parity suite green at the default settings.
+- Impl: the container, codecs, pixel format and colour tags stay constants of `ExportFormat`; `ExportOutput` and the
+  preflight keep their roles.
+- Depends on: 13.3.
+
+### 13.8 — L1-c: codec-leg criteria
+Scope: D028 §6.
+- M: every offered quality level and speed preset measured with the Step 8.6 method over the existing scenes and the
+  new canvas sizes (method, tool and tables recorded).
+- PR: the product owner sets the codec-leg criterion per level from the data (or validity checks only).
+- QG: the criteria in the suite; CRF-18-bound sanity checks replaced by the criterion of the level they test (each
+  replacement listed with its old and new bound); the canvas-level parity and the audio checks unchanged; each new
+  criterion confirmed by a mutation (a wrong CRF / a damaged frame fails it).
+- Impl: L1-c closed in D028 (and pointed to from D023); nothing else in the suite changes.
+- Depends on: 13.7.
+
+### 13.9 — Export settings UI
+Scope: D028 §7 (13.9).
+- PR: the export settings are chosen in the export flow, remembered by D028 question 3's rule, disabled during an
+  export; the export manual plan still passes with the defaults.
+- QG: view-model tests (choice, remembering, cancel, `EditingLock`); the dialog at 1024 px in the real app.
+- Depends on: 13.7, 13.8.
+
+### 13.10 — Final verification & closeout
+- QG: `dotnet build --no-incremental -warnaserror` 0 / 0; full suite once plus three times with `--blame-hang`; heavy
+  scenes once with `AIVE_HEAVY_TESTS=1`; CI green (D028 §8 policy for the known flaky tests).
+- PR: `docs/PHASE13_MANUAL_TEST_PLAN.md` run in the real app; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run as a regression
+  (R2) at the default and at one non-default setting; R1 — a Phase 12 project opens and saves unchanged if the format
+  stayed v3 (if v4: the v1–v3 handling decided at 13.3 checked instead); R3 — Phase 11–12 features (relink, recent
+  projects, tracks, ripple, copy / paste, markers) at a non-default canvas and rate.
+- Documentation: ARCHITECTURE, D028 refinements and status, D007 / D018 / D023 pointers to D028, ROADMAP, README,
+  `progress.md`; this plan's Phase 13 checkbox only after the product owner's acceptance.
+- Depends on: 13.3–13.9.
 
 ## Architectural rules that must hold at every phase
 

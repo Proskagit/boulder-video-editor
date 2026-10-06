@@ -2,13 +2,63 @@
 
 ## Current phase
 
-Phase 12 — Editing essentials: **complete locally** — Step 12.9 (final verification & closeout) done on 2026-10-05 on
-branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main` after the merge of PR #11). Open: CI not run yet — the
-branch is not published (push / pull request only with the product owner's permission); L1-c stays open; a separate
-test cleanup (`F(end − start)` helpers of 12.3 / 12.5). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`
-"Phase 12 — Editing essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.9 done.
+Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
+merge of PR #12). Step 13.1 (audit) accepted (2026-10-06); Step 13.2 (sync after the merge, scope formalization,
+documentation only) done — D028 awaiting the product owner's acceptance; no implementation before it. Scope, steps and
+acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 13 — Project & export settings: steps"; decision D028.
 
-### Phase 12 — Editing essentials (complete locally)
+### Phase 13 — Project & export settings (in progress)
+
+Steps (D028; each accepted by the product owner before the next, never started automatically): 13.1 audit · 13.2 sync
+after the merge & scope formalization · 13.3 settings model & format · 13.4 canvas size · 13.5 frame rate · 13.6 project
+settings UI · 13.7 export settings core · 13.8 L1-c codec-leg criteria · 13.9 export settings UI · 13.10 closeout.
+Working rules from the product owner (kept from Phases 11–12): no build or test run without a separate command; no
+push, pull request or merge without direct permission; no next step without the product owner's go.
+
+- Step 13.1 done and accepted (2026-10-06) — audit, no change in the repository (one `git fetch origin`, which moved
+  only the remote-tracking `origin/main` to `c0cb600`).
+  - Git: on `feat/phase-12-editing-essentials` at `6761c1d`, clean; `origin/main` = `c0cb600` "Merge pull request #12 …"
+    (parents `47ed2fa`, `6761c1d`), its tree identical to `6761c1d`; the local `main` at `47ed2fa`, 9 commits behind,
+    none ahead. No build or test run (static audit, the product owner's request).
+  - No phase was planned after Phase 12 (ROADMAP, DEVELOPMENT_PLAN, DECISIONS); candidates reported with their code
+    state: project & export settings (chosen), AI features (no AI code at all), colour / HDR, distribution, editing
+    continuation, technical debt.
+  - Code: `ProjectSettings.FrameWidth / FrameHeight` are assigned only by `ProjectSerializer` — a new project is always
+    1920 × 1080 (D018 "never taken from a video"), so a portrait video can't get a portrait canvas without editing
+    `project.json`; `ExportFormat` constants (CRF 18, medium, AAC 192 kbps); `ExportSettings` session-only.
+  - Documentation outdated by the merge of PR #12: "CI pending / not published / complete locally" (ROADMAP, README,
+    DEVELOPMENT_PLAN, this file, D027 status); the Phase 12 acceptance not recorded.
+  - L1-c relevant only to export settings (CRF-18 sanity bounds such as `ExportCompositionEndToEndTests` "mean |Δ| ≤ 3");
+    the known flaky CI tests need a gate policy.
+- Product owner decisions (2026-10-06), recorded in D028: Phase 13 = project & export settings — remove the fixed
+  1920 × 1080 canvas, real project / export settings; L1-c inside the phase if the quality becomes configurable, the old
+  CRF-18 parity bounds not kept artificially; no v3 → v4 migration and no requirement to read old v3 user projects — v4
+  only if architecturally needed (first check whether v3 can be extended), then the repository fixtures / examples
+  rewritten in v4; the known flaky CI tests out of scope, with an explicit rerun policy; no implementation before 13.2
+  is done and D028 accepted.
+- Step 13.2 done (2026-10-06) — sync after the merge and scope formalization, documentation only (no production code,
+  no test changed, no build or test run). `git checkout main` + `git merge --ff-only origin/main` (`47ed2fa` →
+  `c0cb600`), branch `feat/phase-13-project-export-settings` created from it.
+  - Phase 12 synced with its real state: accepted by the product owner on the Step 12.9 verification, PR #12 merged as
+    `c0cb600` (2026-10-05), CI green — ROADMAP (Current, Previous, Future phases), README (three status lines),
+    DEVELOPMENT_PLAN (the Phase 12 line, the 12.9 heading), this file (Current phase, the Phase 12 heading, "Last known
+    state", "Completed"), D027 (an "After the merge" note and the status), `docs/PHASE12_MANUAL_TEST_PLAN.md` (a CI
+    line). The stale Phase 11 CI line of `docs/PHASE11_MANUAL_TEST_PLAN.md` (CI green on PR #11 is recorded elsewhere
+    since Step 12.2) corrected too. The historical step logs are left as they were written.
+  - DECISIONS: D028 (context from the audit; §1 scope, §2 constraints incl. the explicit changes of D007 / D018 / D023,
+    §3 out of scope, §4 project settings rules, §5 project format — v3 kept unless impossible, v4 without backward
+    migration, repository project JSON rewritten in v4 — §6 L1-c, §7 export settings rules, §8 the flaky-test policy;
+    three questions open for the acceptance: a canvas from the first video, an export size of its own, export settings
+    per project or application-wide).
+  - Format finding (D028 §5): the canvas, the rate and `IsFrameRateLocked` are already in v3 (`ProjectSettingsDto`), so
+    the project settings need no format change; only export settings saved per project could need one, decided at 13.3
+    by D028 §5's rule.
+  - `docs/DEVELOPMENT_PLAN.md`: the Phase 13 line and the section "Phase 13 — Project & export settings: steps" (gates,
+    constraints, steps 13.1–13.10 with PR / QG / M / Impl items and dependencies).
+  - ARCHITECTURE (verification note), `docs/README.md`, `docs/PHASE13_MANUAL_TEST_PLAN.md` (skeleton: scenarios per
+    step, status "planned"), Known issues (the flaky CI tests and the D028 §8 policy).
+
+### Phase 12 — Editing essentials (complete; PR #12 merged as `c0cb600`, CI green)
 
 Steps (D027; each accepted by the product owner before the next, never started automatically): 12.1 audit · 12.2 sync
 after the merge & scope formalization · 12.3 tracks · 12.4 media removal · 12.5 ripple delete / close gap · 12.6 copy /
@@ -3089,11 +3139,12 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-05: Phases 0–11 are complete and merged into `main` (last merge `47ed2fa`, PR #11, CI green). Phase 12 (editing
-essentials, D027) is complete locally on `feat/phase-12-editing-essentials` (Step 12.9: 2324 passed, 2 skipped; the 4K
-scenes 90 / 90); the branch is not published, so CI has not run. Open items carried forward: see "Known issues" (L1-c,
-the audio status message after a device returns, the watched `Project.Tests` hang / failure, no timeline
-virtualization, import not undoable, the 5 s PATH probe of the locators, the `F(end − start)` test helpers).
+2026-10-06: Phases 0–12 are complete and merged into `main` (last merge `c0cb600`, PR #12, CI green; Step 12.9: 2324
+passed, 2 skipped; the 4K scenes 90 / 90). Phase 13 (project & export settings, D028) started on
+`feat/phase-13-project-export-settings`: Step 13.2 (documentation only) done, D028 awaiting acceptance. Open items
+carried forward: see "Known issues" (L1-c — now in Phase 13, the audio status message after a device returns, the
+watched `Project.Tests` hang / failure, the known flaky CI tests, no timeline virtualization, import not undoable, the
+5 s PATH probe of the locators, the `F(end − start)` test helpers).
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -3131,12 +3182,16 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 9 (accepted 2026-09-29)
 - Phase 10 (accepted 2026-10-01; PR #10 merged as `2e758f1`)
 - Phase 11 (accepted 2026-10-05; PR #11 merged as `47ed2fa`, CI green)
-- Phase 12 (complete locally 2026-10-05, Step 12.9; CI pending — not published)
+- Phase 12 (accepted; PR #12 merged as `c0cb600` on 2026-10-05, CI green)
 
 ## Known issues
 
 - Export codec leg (D023 Step 8, decision L1-c): MP4 → export canvas has no numeric tolerance; the Step 8.6
-  measurement is data for a future product decision, not a criterion. Open.
+  measurement is data for a future product decision, not a criterion. Open — decided in Phase 13 Step 13.8 (D028 §6).
+- Known flaky CI tests (seen on CI before Phase 12, no product cause found): the autosave timer (`Project.Tests`), an
+  ffprobe timeout in a waveform test, the 5 s PATH probe of the locators in `Video.Tests` (below). Not fixed in Phase 13.
+  Policy (D028 §8): a rerun of that named test, with the known failure message, is allowed for diagnosis and recorded
+  here; never instead of fixing a real regression, never a rerun-until-green; never weakened, skipped or removed.
 - `Project.Tests` hang seen once in Step 8.4 (1 of 23 runs, test not identified): not reproduced — the 8.4/8.5 runs
   and the three final `--blame-hang` runs of the closeout were clean. Watch for it; no fix. Phase 9 Step 9.3d: one
   unidentified `Project.Tests` failure (not a hang) in one full parallel run; not reproduced in 40 isolated and 8 full

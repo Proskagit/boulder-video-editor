@@ -9,7 +9,8 @@ autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
 text; MP4 export; quality: stability, thumbnails, waveforms, hotkeys,
 performance, polish, CI; fades and a cross dissolve; media relink and recent projects — Phase 11, merged
 2026-10-05; editing essentials: track delete / reorder, removing media, ripple delete, copy / paste / duplicate,
-markers — Phase 12, closed locally on 2026-10-05, CI pending until the branch is published).
+markers — Phase 12, merged 2026-10-05 as `c0cb600`, CI green). Phase 13 (project & export settings) is in
+progress — DECISIONS.md D028.
 
 ## Requirements
 
@@ -119,8 +120,8 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–12 complete (Phase 12 closed locally 2026-10-05, CI pending). Working: media import with validation and duplicate
-detection, background ffprobe metadata analysis, Media Browser and Inspector,
+Phases 0–12 complete (Phase 12 merged as `c0cb600`, CI green); Phase 13 in progress (D028). Working: media import
+with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
 preview playback with video and audio, and projects on disk: New / Open / Save /
 Save As (a project folder with `project.json`), unsaved-changes prompt, window title
@@ -156,7 +157,7 @@ Steps 11.7–11.8: `Recent ▾` next to Open lists the last 10 projects opened, 
 `%LOCALAPPDATA%\AiVideoEditor\config\recent-projects.json`); an entry whose project can't be found is shown as
 unavailable and can be removed with ✕.
 
-Phase 12 (DECISIONS.md D027; closed locally 2026-10-05, CI pending until the branch is published): editing essentials.
+Phase 12 (DECISIONS.md D027; merged into `main` as `c0cb600` on 2026-10-05, CI green): editing essentials.
 Each track header has ▲ / ▼ (move among the tracks of its kind — the layer order of the Preview and the export) and ✕
 (delete; with clips only after a confirmation; never a locked track or the last one). ✕ on the selected Media Browser
 row removes the media from the project — with its clips after a confirmation; the file on disk stays. Ripple Delete

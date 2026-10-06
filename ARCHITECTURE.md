@@ -498,5 +498,7 @@ missing media paragraph of the Project persistence section at the Step 11.1 audi
 paragraph at the Step 11.3 closeout, the relink paragraph at the Step 11.4 closeout, the batch relink paragraph at the
 Step 11.5 closeout, the relink UI paragraph at the Step 11.6 implementation, the recent projects paragraphs written at
 Steps 11.7–11.8 (Phase 11 merged into `main` as `47ed2fa`); the Phase 12 editing-essentials and import paragraphs of the
-Timeline section at the Phase 12 closeout (Step 12.9, `d467a84`).
+Timeline section at the Phase 12 closeout (Step 12.9, `d467a84`; Phase 12 merged into `main` as `c0cb600`). Phase 13
+(D028, project & export settings) changes nothing here yet: the canvas is still the fixed default and the export format
+still `ExportFormat`'s constants.
 Re-check the code before relying on details that later phases may have changed.

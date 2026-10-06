@@ -92,6 +92,8 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 | R2 | `docs/EXPORT_MANUAL_TEST_PLAN.md` | Passes as before | 12.9 (Claude): PASS — 1 / 14, 7, 10, 11, 12, 13; 2, 3, 5, 6, 8 not re-run (no export / render code changed; parity and 4K green); 9 optional |
 | R3 | Relink, recent projects, fades and dissolves (short run) | As accepted in Phases 10–11 | 12.9 (Claude): PASS — relink undoable; Recent ▾ (10, newest first, unsaved-changes question); fade dark at its start; a dissolve removed and added, undone |
 
+CI: green on PR #12, merged into `main` as `c0cb600` (2026-10-05; recorded at Step 13.2).
+
 ## Results log
 
 ### 2026-10-05 — Step 12.6 header layout check (Claude), Debug, isolated profile
