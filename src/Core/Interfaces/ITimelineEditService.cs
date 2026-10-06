@@ -180,6 +180,17 @@ public interface ITimelineEditService
     /// </summary>
     TimelineEditResult SetFrameRate(FrameRate rate);
 
+    /// <summary>
+    /// Changes the canvas and the frame rate together (D028, Step 13.6) — the Project Settings dialog's Apply. Both parts
+    /// are checked first (<see cref="ProjectSettingsRules.CanvasError"/>, the offered rates); a part that doesn't change is
+    /// left to the other one's own method: only the canvas → <see cref="SetCanvasSize"/>, only the rate (a different one,
+    /// or the current one of an unlocked project) → <see cref="SetFrameRate"/>, neither → <see cref="TimelineEditResult.NoChange"/>.
+    /// When both change it is one Undo step with every rule of both (the re-grid and its validation, the scaled positions
+    /// and font sizes and their limits), all checked before the first change: a refusal of either part changes nothing.
+    /// One <c>TimelineChanged</c>; Undo / Redo write back the stored values (the playhead follows the grid).
+    /// </summary>
+    TimelineEditResult SetProjectSettings(int width, int height, FrameRate rate);
+
     /// <summary>Changes the speed of a video or audio clip (D022). The start and the source range
     /// (SourceIn/SourceOut) stay; the duration becomes the whole number of frames the range allows at
     /// the new speed (<see cref="SpeedTiming.FramesFor"/>). Rejected without changes when the clip

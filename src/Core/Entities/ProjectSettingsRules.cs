@@ -39,6 +39,20 @@ public static class ProjectSettingsRules
         return null;
     }
 
+    /// <summary>
+    /// The factor a canvas change multiplies the values kept in canvas pixels by (D028 Step 13.4, CS-1 B):
+    /// <c>min(newWidth / oldWidth, newHeight / oldHeight)</c> — how D018's "contain" fits the old canvas into the new one,
+    /// the axis chosen by exact cross-multiplication as in <c>CompositionMath.Layout</c>.
+    /// </summary>
+    public static double ContainFactor(int oldWidth, int oldHeight, int newWidth, int newHeight)
+    {
+        if (oldWidth <= 0 || oldHeight <= 0 || newWidth <= 0 || newHeight <= 0)
+            throw new ArgumentOutOfRangeException(nameof(oldWidth), "Canvas sizes must be positive.");
+        return (long)newWidth * oldHeight <= (long)newHeight * oldWidth
+            ? (double)newWidth / oldWidth
+            : (double)newHeight / oldHeight;
+    }
+
     /// <summary>True when a user may choose <paramref name="rate"/> as the project frame rate.</summary>
     public static bool IsSelectableFrameRate(FrameRate rate) => SelectableFrameRates.Contains(rate);
 }

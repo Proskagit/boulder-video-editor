@@ -62,6 +62,12 @@
 
       <Rectangle Width="1" Fill="#444444" Margin="6,2"/>
 
+      <!-- Project Settings… (D028, Step 13.6): canvas size and frame rate; the tooltip shows the current ones. -->
+      <Button x:Name="ProjectSettingsButton" Content="Project Settings…" Command="{Binding ProjectSettingsCommand}"
+              ToolTip.Tip="{Binding ProjectSettingsToolTip}"/>
+
+      <Rectangle Width="1" Fill="#444444" Margin="6,2"/>
+
       <Button Content="Export" Command="{Binding ExportCommand}" ToolTip.Tip="Export the sequence (Ctrl+E)"/>
 
     </StackPanel>

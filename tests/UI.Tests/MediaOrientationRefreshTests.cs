@@ -223,6 +223,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change) => No;
         public TimelineEditResult SetCanvasSize(int width, int height) => No;
         public TimelineEditResult SetFrameRate(FrameRate rate) => No;
+        public TimelineEditResult SetProjectSettings(int width, int height, FrameRate rate) => No;
         public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds) => SnapResult.None;
     }
 }

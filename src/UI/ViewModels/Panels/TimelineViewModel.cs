@@ -411,9 +411,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         return $"{(int)span.TotalMinutes}:{span.Seconds:D2}.{span.Milliseconds / 10:D2}";
     }
 
-    private static string FormatRate(FrameRate rate) => rate.Denominator == 1
-        ? rate.Numerator.ToString(System.Globalization.CultureInfo.InvariantCulture)
-        : Math.Round(rate.ToDouble(), 3).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+    private static string FormatRate(FrameRate rate) => RateFormat.Number(rate);
 
     // --- Playhead -----------------------------------------------------------------
 

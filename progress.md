@@ -4,8 +4,8 @@
 
 Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
 merge of PR #12). Step 13.1 (audit) accepted (2026-10-06); Step 13.2 accepted with D028 (2026-10-06); Step 13.3
-accepted (`4514f09`); Step 13.4 (canvas change) done (`ec51247`); Step 13.5 (frame-rate change) done — awaiting
-acceptance. Scope, steps and
+accepted (`4514f09`); Step 13.4 (canvas change) done (`ec51247`); Step 13.5 (frame-rate change) accepted (`010a1b8`);
+Step 13.6 (Project Settings dialog) done — awaiting acceptance. Scope, steps and
 acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 13 — Project & export settings: steps"; decision D028.
 
 ### Phase 13 — Project & export settings (in progress)
@@ -145,6 +145,35 @@ push, pull request or merge without direct permission; no next step without the 
   - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2483
     passed, 2 skipped (only the two 4K scenes), 0 failed — Core 506, Timeline 473 (+20), Project 420, UI 542, Export 99,
     Rendering 58, Video 294, ExportEndToEnd 91 (+1) + 2; `git diff --check` clean.
+  - Committed as `010a1b8`; accepted by the product owner (2026-10-06).
+- Step 13.6 done (2026-10-06) — Project Settings dialog (the UI audit first, no code; the product owner decided:
+  `SetProjectSettings` as one atomic step, New unchanged, errors inside the dialog — D028 "Refined at the start of Step
+  13.6").
+  - Timeline / Core: `ITimelineEditService.SetProjectSettings`; `TimelineEditService` split into `PlanFrameRate` /
+    `PlanCanvas` (planning without touching the model) used by `SetFrameRate`, `SetCanvasSize` and `SetProjectSettings`;
+    canvas property commands carry only the picture / text groups; `ProjectSettingsRules.ContainFactor`.
+  - UI: `ProjectSettingsViewModel` (draft, presets, Swap, rates incl. "(provisional)" / "(current)", live rule message,
+    scale and rate notices, Apply / Cancel, the lock re-check), `ProjectSettingsWorkflow`, `IProjectSettingsDialog` /
+    `AvaloniaProjectSettingsDialog`, `Views/ProjectSettingsView.axaml`, toolbar "Project Settings…" with the settings
+    tooltip, `Common/RateFormat` (the timeline's rate label uses it); DI registrations; stubs of `ITimelineEditService`.
+  - Tests: `Timeline.Tests/ProjectSettingsEditTests` (11: canvas + rate one step with one notification, Undo / Redo exact
+    incl. a fade cut by the re-grid and a position scaled by the canvas; only canvas / only rate delegated; nothing → no
+    change; provisional + canvas locks in the same step; a refused re-grid or a refused scaled value or an invalid part
+    changes nothing), `UI.Tests/ProjectSettingsUiTests` (11: the workflow through the real shell — one step, Undo / Redo
+    followed by the Preview canvas, the timeline's rate label, the Inspector and the tooltip; only canvas / only rate;
+    draft + Cancel; Apply without a change; live rules; a service refusal in the open dialog then corrected; the lock;
+    provisional and "current" rates; presets / Swap; New) and `UI.Tests/ProjectSettingsViewBindingTests` (2: the toolbar
+    button's place, tooltip and lock; the dialog's bindings). Existing tests unchanged.
+  - Mutations (each reverted, all caught): canvas commands with every group (fade written back) → 1; the rate executed
+    before the canvas check → 1; both parts as two public calls → 3; Apply ignoring the lock → 1; Cancel applying → 2; a
+    kept rate sent as chosen → 2; the draft written to the project while editing → 5.
+  - Real app (results log of `docs/PHASE13_MANUAL_TEST_PLAN.md`): the first attempt ran a UI build left over from the last
+    mutation check (a preset dirtied the project) — rebuilt, everything run again. Found and fixed: the size fields cut
+    off four-digit values at 1024 px (Swap moved next to the presets). Passed at 1024 / 1440 px: 13–17 and the
+    regression 4–12 and 8a (12a not run separately).
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2507
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 506, Timeline 484 (+11), Project 420, UI 555 (+13),
+    Export 99, Rendering 58, Video 294, ExportEndToEnd 91 + 2; `git diff --check` clean.
 
 ### Phase 12 — Editing essentials (complete; PR #12 merged as `c0cb600`, CI green)
 

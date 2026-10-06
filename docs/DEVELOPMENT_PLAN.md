@@ -56,8 +56,8 @@ and runs cleanly.
       existing projects, undoable), export settings (quality, encoder speed, audio bitrate) on the existing MP4 /
       H.264 / AAC encoder, and the codec-leg criteria of L1-c. Scope, steps and acceptance criteria: section below and
       DECISIONS.md D028 (product owner decisions, 2026-10-06). *(branch `feat/phase-13-project-export-settings`, from
-      `c0cb600`; D028 accepted 2026-10-06; Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 done
-      — awaiting acceptance)*
+      `c0cb600`; D028 accepted 2026-10-06; Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 accepted
+      (`010a1b8`); Step 13.6 done — awaiting acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -661,7 +661,7 @@ Scope: D028 §4 (canvas).
   canvas the renderers read.
 - Depends on: 13.3.
 
-### 13.5 — Frame rate change *(done — awaiting acceptance; D028 "Refined in Step 13.5": `ITimelineEditService.SetFrameRate`, FR-1 fixed with regression tests, no UI — the `EditingLock` with the dialog of 13.6)*
+### 13.5 — Frame rate change *(done — accepted 2026-10-06, `010a1b8`; D028 "Refined in Step 13.5": `ITimelineEditService.SetFrameRate`, FR-1 fixed with regression tests, no UI — the `EditingLock` with the dialog of 13.6)*
 Scope: D028 §4 (frame rate).
 - PR: the project frame rate can be chosen for a new project and changed in an existing one; the timeline is
   re-gridded as one undoable step (D007's rule); a change that can't be made exactly is refused whole with a message;
@@ -673,7 +673,7 @@ Scope: D028 §4 (frame rate).
   duplicated.
 - Depends on: 13.3 (independent of 13.4 in code; kept after it).
 
-### 13.6 — Project settings UI
+### 13.6 — Project settings UI *(done — awaiting acceptance; D028 "Refined at the start of Step 13.6": `SetProjectSettings`, the draft dialog, New unchanged, errors in the dialog; manual scenarios 4–17 and 8a / 12a run in the real app at 1024 and 1440 px)*
 Scope: D028 §1, §4 (new project).
 - PR: a project settings dialog (canvas presets incl. portrait / square plus custom, the frame rate) reachable from the
   main window; applying it is the 13.4 / 13.5 command (one Undo step for a change of both); the New-project behaviour as

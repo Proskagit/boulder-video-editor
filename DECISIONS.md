@@ -2442,12 +2442,50 @@ Refined in Step 13.5 (implementation, 2026-10-06; FR-1…FR-4 as confirmed at th
   first video fixes an unlocked rate) is unchanged.
 - Not in 13.5: the UI (13.6 — with the `EditingLock`), the export settings / encoder (13.7). `project.json` unchanged.
 
+Refined at the start of Step 13.6 (product owner, 2026-10-06, on the step's UI audit) and in its implementation:
+- `ITimelineEditService.SetProjectSettings(width, height, rate)` — the dialog's Apply. Both parts checked first (the canvas
+  rules, the offered rates). Only the canvas changing → `SetCanvasSize`; only the rate (a different one, or the current one
+  of an unlocked project) → `SetFrameRate`; neither → `NoChange`. Both: the rate part is planned (`EditPlan` with the
+  rate locked, `FrameRateRegrid`, `Validate` — or the lock-only command) and then the canvas part (the scaled positions and
+  font sizes and their limits), both on the unchanged model; a refusal of either returns before any change. Then one
+  `CompositeCommand` "Change Project Settings" — the rate command first, the canvas commands after — in one
+  `NotifyingCommand` (one `TimelineChanged`; the playhead snapped to the grid on Execute / Undo / Redo). Not two public
+  calls in a row. The 13.4 / 13.5 methods share the planning code (`PlanCanvas`, `PlanFrameRate`) and keep their rules.
+- The canvas part's property commands carry only the picture and text groups (`ClipPropertyValues(visual, null, text)`),
+  so they never write back a fade that the re-grid in the same step cuts (`ClampFades`); the rate part's property commands
+  run first and the canvas commands write the scaled positions over them. Undo runs the reverse. (A test with a clip
+  whose stored fade the re-grid cuts and whose position the canvas scales pins this.)
+- `ProjectSettingsRules.ContainFactor` is the one source of the CS-1 B factor (the service and the dialog's notice).
+- New (decision 2): unchanged — a new project has 1920 × 1080 and the provisional 30 fps; no dialog is opened.
+- Errors (decision 3): the canvas rules shown live under the size fields (Apply off while they fail); a refusal by the
+  service shown under Apply with the dialog left open (the values can be corrected and applied again); a successful
+  Apply closes the dialog and reports the service's message in the status bar.
+- Draft: the dialog edits a copy of the size and the rate (`ProjectSettingsViewModel`); only Apply calls the service.
+  Cancel, Esc and the title-bar close change nothing — no edit, no Undo step, no `TimelineChanged`, no dirty flag.
+- Rates offered: the eight project rates, and before them the current rate kept as it is when the project is unlocked
+  ("30 FPS (provisional)" — keeping it leaves the project unlocked; choosing the plain "30 FPS" locks it, FR-4) or when it
+  is not offered ("15 FPS (current)", until another rate is applied). A kept rate with a new size goes to `SetCanvasSize`.
+- Export lock: "Project Settings…" is disabled while `EditingLock` is held (the toolbar's `CanEdit`, refreshed on the
+  lock's change); the workflow refuses with a status message if reached anyway; Apply checks the lock again right before
+  calling the service ("The project settings can't be changed while a video is being exported."). The service layer
+  has no dependency on the UI lock.
+- UI: toolbar "Project Settings…" after Import Media, before Export, with separators; the tooltip "Project Settings —
+  W × H · R FPS" (with "(provisional)") follows every timeline change, Undo / Redo and New / Open / Recover; no hotkey.
+  The dialog (a modal window 460 px wide, `AvaloniaProjectSettingsDialog` hosting `ProjectSettingsView`): the current
+  settings; FRAME SIZE — the presets (Landscape 3840 × 2160, 2560 × 1440, 1920 × 1080, 1280 × 720, 640 × 360; Portrait
+  2160 × 3840, 1080 × 1920, 720 × 1280; Square 1080 × 1080; 4:5 1080 × 1350; Custom) with "⇄ Swap" beside them, then Width
+  / Height (`CommitNumericUpDown`, step 2); the live rule message and the scale notice ("Positions and text sizes will be
+  scaled by 56.25 %."); FRAME RATE with its notice; Apply / Cancel; the service's error. The real-app check at 1024 px
+  found the four-digit sizes cut off with Swap in the size row — Swap moved next to the presets, re-checked at 1024 and
+  1440 px.
+- Not in 13.6: the export settings (13.7 / 13.9), L1-c (13.8).
+
 Consequences: `ProjectSettings` becomes user-editable through new undoable commands; the export gains a settings model
 used by `FfmpegExportEncoder` (`ExportOutput` and the preflight keep their roles); `project.json` stays v3 or becomes v4
 by §5; the parity suite gains scenes for new canvas sizes and rates and per-level codec criteria (§6);
 `docs/PHASE13_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
 
-Status: Accepted (2026-10-06, product owner). Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
+Status: Accepted (2026-10-06, product owner). Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 accepted (`010a1b8`); Step 13.6 done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
 
 ---
 

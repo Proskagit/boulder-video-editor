@@ -124,6 +124,12 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   a `CompositeCommand`, one `TimelineChanged`) that multiplies `PositionX / PositionY` of every picture / text clip and
   `FontSize` of every text clip by `s = min(W'/W, H'/H)` (locked and hidden tracks too); refused whole when a scaled value
   leaves `ClipPropertyLimits`. A clipboard copied at another canvas is refused on paste (`TimelineClipboard.Canvas`).
+- Project settings together (Phase 13 Step 13.6, D028): `SetProjectSettings(width, height, rate)` — one part changing goes
+  to `SetCanvasSize` / `SetFrameRate`; both: `PlanFrameRate` + `PlanCanvas` on the unchanged model, then one "Change
+  Project Settings" step (the rate command, then canvas commands that carry only the picture / text groups). UI:
+  toolbar "Project Settings…" → `ProjectSettingsWorkflow` (UI/Services; `EditingLock`) → `IProjectSettingsDialog` /
+  `AvaloniaProjectSettingsDialog` hosting `Views/ProjectSettingsView` over `ProjectSettingsViewModel` (a draft; Apply
+  calls the service, a refusal stays in the dialog, Cancel changes nothing).
 - Frame rate (Phase 13 Step 13.5, D028): `SetFrameRate(rate)` — one of `ProjectSettingsRules.SelectableFrameRates`; the
   current rate only locks an unlocked project (FR-4); otherwise one "Set Frame Rate" step: `EditPlan.SetFrameRate(rate,
   locked: true)` + `FrameRateRegrid.Plan` (D007's rule, every track) + `Validate`; fades, dissolves and markers keep their
@@ -514,5 +520,6 @@ Step 11.5 closeout, the relink UI paragraph at the Step 11.6 implementation, the
 Steps 11.7–11.8 (Phase 11 merged into `main` as `47ed2fa`); the Phase 12 editing-essentials and import paragraphs of the
 Timeline section at the Phase 12 closeout (Step 12.9, `d467a84`; Phase 12 merged into `main` as `c0cb600`). Phase 13
 (D028, project & export settings): the `ProjectSettings` / persistence lines at Step 13.3, the canvas-size and
-composition lines at Step 13.4, the frame-rate line at Step 13.5; the export still uses `ExportFormat`'s constants.
+composition lines at Step 13.4, the frame-rate line at Step 13.5, the project-settings line at Step 13.6; the export still
+uses `ExportFormat`'s constants.
 Re-check the code before relying on details that later phases may have changed.
