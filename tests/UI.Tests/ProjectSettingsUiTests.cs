@@ -379,12 +379,196 @@ public sealed class ProjectSettingsUiTests : IAsyncLifetime
         Assert.Equal("Project Settings — 1920 × 1080 · 30 FPS (provisional)", _vm.Toolbar.ProjectSettingsToolTip);
     }
 
+    // --- export settings (D028, Step 13.9) ------------------------------------------------------------------------------
+
+    private static readonly ExportEncoding Compact = new(ExportQuality.Compact, ExportSpeedPreset.Slow, 320);
+
+    private static void Choose(ProjectSettingsViewModel d, ExportEncoding e)
+    {
+        d.SelectedQuality = d.Qualities.Single(o => o.Value == e.Quality);
+        d.SelectedSpeed = d.Speeds.Single(o => o.Value == e.Preset);
+        d.SelectedBitrate = d.Bitrates.Single(o => o.Value == e.AudioBitrateKbps);
+    }
+
+    [Fact]
+    public void The_dialog_shows_the_projects_export_settings_and_every_offered_value()
+    {
+        Scene();
+        Settings.Export = new ExportEncoding(ExportQuality.Standard, ExportSpeedPreset.Fast, 256);
+
+        var d = Draft();
+
+        Assert.Equal((ExportQuality.Standard, ExportSpeedPreset.Fast, 256), (d.SelectedQuality.Value, d.SelectedSpeed.Value, d.SelectedBitrate.Value));
+        Assert.Equal(new[] { "Maximum", "High", "Standard", "Compact" }, d.Qualities.Select(o => o.Label));
+        Assert.Equal(new[] { "CRF 14", "CRF 18", "CRF 23", "CRF 28" }, d.Qualities.Select(o => o.Detail[..6]));
+        Assert.Equal(new[] { "Fast", "Medium", "Slow" }, d.Speeds.Select(o => o.Label));
+        Assert.Equal(new[] { "128 kbps", "160 kbps", "192 kbps", "256 kbps", "320 kbps" }, d.Bitrates.Select(o => o.Label));
+        Assert.Equal(Settings.Export, d.DraftExport);
+    }
+
+    [Fact]
+    public void A_project_without_export_settings_shows_the_default()
+    {
+        Scene();
+        Assert.Same(ExportEncoding.Default, Settings.Export);                // as read from a file without settings.export
+
+        var d = Draft();
+
+        Assert.Equal(("High", "Medium", "192 kbps"), (d.SelectedQuality.Label, d.SelectedSpeed.Label, d.SelectedBitrate.Label));
+        Assert.Equal(ExportEncoding.Default, d.DraftExport);
+    }
+
+    public static TheoryData<ExportQuality, ExportSpeedPreset, int> EveryValue()
+    {
+        var data = new TheoryData<ExportQuality, ExportSpeedPreset, int>();
+        foreach (var q in Enum.GetValues<ExportQuality>()) data.Add(q, ExportSpeedPreset.Medium, 192);
+        foreach (var p in Enum.GetValues<ExportSpeedPreset>()) data.Add(ExportQuality.High, p, 192);
+        foreach (var b in ExportEncoding.AudioBitratesKbps) data.Add(ExportQuality.High, ExportSpeedPreset.Medium, b);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(EveryValue))]
+    public void Every_offered_value_can_be_applied_and_is_shown_when_the_dialog_opens_again(ExportQuality quality, ExportSpeedPreset preset, int kbps)
+    {
+        Scene();
+        var wanted = new ExportEncoding(quality, preset, kbps);
+        var d = Draft();
+        Choose(d, wanted);
+
+        d.ApplyCommand.Execute(null);
+
+        Assert.Equal(wanted, Settings.Export);
+        var again = Draft();
+        Assert.Equal(wanted, again.DraftExport);
+        Assert.Equal((quality, preset, kbps), (again.SelectedQuality.Value, again.SelectedSpeed.Value, again.SelectedBitrate.Value));
+    }
+
+    [Fact]
+    public async Task Changing_the_export_choices_is_a_draft_and_cancel_changes_nothing()
+    {
+        Scene();
+        var (top, changes, before) = (_undo.CurrentPosition, _timelineChanges, Snapshot());
+        _dialog.Script = d =>
+        {
+            Choose(d, Compact);
+            Choose(d, new ExportEncoding(ExportQuality.Maximum, ExportSpeedPreset.Fast, 128));
+            Assert.Same(ExportEncoding.Default, Settings.Export);            // no change per combo box …
+            Assert.Same(top, _undo.CurrentPosition);                          // … and no Undo step per choice
+            d.CancelCommand.Execute(null);
+        };
+
+        await _vm.Toolbar.ProjectSettingsCommand.ExecuteAsync(null);
+
+        Assert.True(_dialog.Closed);
+        Assert.Same(ExportEncoding.Default, Settings.Export);
+        Assert.Equal(before, Snapshot());
+        Assert.Same(top, _undo.CurrentPosition);
+        Assert.Equal(changes, _timelineChanges);
+        Assert.True(_undo.IsAtSavePoint);
+    }
+
+    [Fact]
+    public async Task Apply_of_all_three_export_choices_is_one_undo_step()
+    {
+        Scene();
+        var top = _undo.CurrentPosition;
+        _dialog.Script = d => { Choose(d, Compact); d.ApplyCommand.Execute(null); };
+
+        await _vm.Toolbar.ProjectSettingsCommand.ExecuteAsync(null);
+
+        Assert.True(_dialog.Closed);
+        Assert.Equal(Compact, Settings.Export);
+        Assert.Equal("Change Export Settings", ((IUndoableCommand)_undo.CurrentPosition).Description);
+        Assert.Contains("320 kbps", _status.Message);
+        Assert.True(_projects.Current.IsDirty);
+        _undo.Undo();
+        Assert.Same(top, _undo.CurrentPosition);                              // exactly one step for the three values
+        Assert.Same(ExportEncoding.Default, Settings.Export);
+        Assert.True(_undo.IsAtSavePoint);
+    }
+
+    [Fact]
+    public void Size_rate_and_export_choices_together_are_one_undo_step()
+    {
+        Scene();
+        var top = _undo.CurrentPosition;
+        var d = Draft();
+        d.SelectedPreset = ProjectSettingsViewModel.AllPresets.Single(p => p.Width == 1080 && p.Height == 1920);
+        d.SelectedRate = d.Rates.Single(r => r.Rate == FrameRate.Fps30);
+        Choose(d, Compact);
+
+        d.ApplyCommand.Execute(null);
+
+        Assert.Equal("Change Project Settings", ((IUndoableCommand)_undo.CurrentPosition).Description);
+        Assert.Equal((1080, 1920, FrameRate.Fps30), (Settings.FrameWidth, Settings.FrameHeight, Settings.FrameRate));
+        Assert.Equal(Compact, Settings.Export);
+        _undo.Undo();
+        Assert.Same(top, _undo.CurrentPosition);
+        Assert.Equal((1920, 1080, Rate), (Settings.FrameWidth, Settings.FrameHeight, Settings.FrameRate));
+        Assert.Same(ExportEncoding.Default, Settings.Export);
+    }
+
+    [Fact]
+    public void A_refused_size_keeps_the_export_choices_unapplied_and_the_dialog_open()
+    {
+        var (_, title) = Scene();
+        Assert.True(_edit.SetClipProperties(title.Id, new ClipPropertyChange { Text = TextProperties.Of(title)!.Value with { FontSize = 600 } }).Success);
+        _undo.MarkSavePoint(_undo.CurrentPosition);
+        var top = _undo.CurrentPosition;
+        var d = Draft();
+        var closed = false;
+        d.CloseRequested += (_, _) => closed = true;
+        d.SelectedPreset = ProjectSettingsViewModel.AllPresets.Single(p => p.Width == 3840);
+        Choose(d, Compact);
+
+        d.ApplyCommand.Execute(null);
+
+        Assert.False(closed);
+        Assert.Contains("Font size", d.Error);
+        Assert.Same(ExportEncoding.Default, Settings.Export);                 // nothing partially applied
+        Assert.Equal(1920, Settings.FrameWidth);
+        Assert.Same(top, _undo.CurrentPosition);
+    }
+
+    [Fact]
+    public void An_export_running_when_apply_is_pressed_blocks_the_export_choices_too()
+    {
+        Scene();
+        var top = _undo.CurrentPosition;
+        var d = Draft();
+        Choose(d, Compact);
+
+        using (_lock.Acquire())
+            d.ApplyCommand.Execute(null);
+
+        Assert.Equal(ProjectSettingsViewModel.LockedMessage, d.Error);
+        Assert.Same(ExportEncoding.Default, Settings.Export);
+        Assert.Same(top, _undo.CurrentPosition);
+    }
+
+    [Fact]
+    public void Applied_export_choices_reach_the_next_export_job()
+    {
+        Scene();
+        var d = Draft();
+        Choose(d, Compact);
+        d.ApplyCommand.Execute(null);
+
+        var folder = Path.GetDirectoryName(_projects.Current.MediaAssets[0].FilePath)!;
+        var check = Core.Export.ExportPreflight.Check(_projects.Current, Path.Combine(Path.GetTempPath(), "aive-13-9.mp4"),
+            new Core.Export.ExportPreflightEnvironment(true, _ => true, _ => true, f => f == Path.GetTempPath().TrimEnd('\\') || f == folder));
+
+        Assert.True(check.CanExport, string.Join("; ", check.Errors.Select(e => e.Message)));
+        Assert.Equal(Compact, check.Job!.Encoding);
+    }
+
     private string Snapshot()
     {
         var s = Settings;
         var clips = _projects.Current.Timeline.VideoTracks.Concat(_projects.Current.Timeline.AudioTracks).SelectMany(t => t.Clips)
             .Select(c => $"{c.Id}:{c.TimelineStart.Ticks}-{c.TimelineEnd.Ticks}:{VisualProperties.Of(c)}:{TextProperties.Of(c)}");
-        return $"{s.FrameWidth}x{s.FrameHeight}@{s.FrameRate}/{s.IsFrameRateLocked}|{_projects.Current.Timeline.PlayheadPosition.Ticks}|{string.Join(";", clips)}";
+        return $"{s.FrameWidth}x{s.FrameHeight}@{s.FrameRate}/{s.IsFrameRateLocked}/{s.Export}|{_projects.Current.Timeline.PlayheadPosition.Ticks}|{string.Join(";", clips)}";
     }
 
     private sealed class ScriptedSettingsDialog : IProjectSettingsDialog

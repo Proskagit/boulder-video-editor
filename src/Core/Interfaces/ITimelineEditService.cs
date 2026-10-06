@@ -181,15 +181,24 @@ public interface ITimelineEditService
     TimelineEditResult SetFrameRate(FrameRate rate);
 
     /// <summary>
-    /// Changes the canvas and the frame rate together (D028, Step 13.6) — the Project Settings dialog's Apply. Both parts
-    /// are checked first (<see cref="ProjectSettingsRules.CanvasError"/>, the offered rates); a part that doesn't change is
-    /// left to the other one's own method: only the canvas → <see cref="SetCanvasSize"/>, only the rate (a different one,
-    /// or the current one of an unlocked project) → <see cref="SetFrameRate"/>, neither → <see cref="TimelineEditResult.NoChange"/>.
-    /// When both change it is one Undo step with every rule of both (the re-grid and its validation, the scaled positions
-    /// and font sizes and their limits), all checked before the first change: a refusal of either part changes nothing.
-    /// One <c>TimelineChanged</c>; Undo / Redo write back the stored values (the playhead follows the grid).
+    /// Changes the canvas, the frame rate and the export settings together (D028, Steps 13.6 / 13.9) — the Project Settings
+    /// dialog's Apply. <paramref name="rate"/> null keeps the current rate as it is (also a provisional one);
+    /// <paramref name="export"/> null keeps the export settings. Every part is checked first
+    /// (<see cref="ProjectSettingsRules.CanvasError"/>, the offered rates, <see cref="ExportEncoding.Validate"/>); one part
+    /// changing alone goes to its own method: the canvas → <see cref="SetCanvasSize"/>, the rate (a different one, or the
+    /// current one of an unlocked project) → <see cref="SetFrameRate"/>, the export settings → <see cref="SetExportSettings"/>;
+    /// none → <see cref="TimelineEditResult.NoChange"/>. Several changing are one Undo step with every rule of each, all
+    /// checked before the first change: a refusal of any part changes nothing. One notification; Undo / Redo write back the
+    /// stored values (the playhead follows the grid).
     /// </summary>
-    TimelineEditResult SetProjectSettings(int width, int height, FrameRate rate);
+    TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null);
+
+    /// <summary>
+    /// Sets the project's export settings (D028, Step 13.9; EX-1): one Undo step, the project dirty; the same settings are
+    /// <see cref="TimelineEditResult.NoChange"/>; settings that are not offered are refused. Exports made afterwards use them
+    /// (<c>ExportPreflight</c> takes them into the job); the timeline doesn't change.
+    /// </summary>
+    TimelineEditResult SetExportSettings(ExportEncoding export);
 
     /// <summary>Changes the speed of a video or audio clip (D022). The start and the source range
     /// (SourceIn/SourceOut) stay; the duration becomes the whole number of frames the range allows at

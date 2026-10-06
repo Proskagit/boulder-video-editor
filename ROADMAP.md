@@ -69,7 +69,8 @@ the contain factor, the preflight on the canvas rules) done (`ec51247`); Step 13
 D007's re-grid on every track, FR-1 — every dissolve's handles checked) accepted (`010a1b8`); Step 13.6 (Project
 Settings… dialog, `SetProjectSettings` — canvas and rate in one Undo step) accepted (`66a0871`); Step 13.7 (export settings
 core: `ExportJob.Encoding` → encoder arguments, the default = the Phase 12 command lines) accepted (`adf85e4`); Step 13.8
-(L1-c decided: per-level bounds on the codec's own error, the level order, flat colour; sound at every bitrate) done —
+(L1-c decided: per-level bounds on the codec's own error, the level order, flat colour; sound at every bitrate) accepted
+(`3d08c1b`); Step 13.9 (export settings in the Project Settings dialog, one Apply with the size and the rate) done —
 awaiting acceptance.
 Scope, constraints
 and out of scope: DECISIONS.md D028; steps 13.3

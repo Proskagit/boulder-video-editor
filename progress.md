@@ -6,7 +6,7 @@ Phase 13 — Project & export settings, branch `feat/phase-13-project-export-set
 merge of PR #12). Step 13.1 (audit) accepted (2026-10-06); Step 13.2 accepted with D028 (2026-10-06); Step 13.3
 accepted (`4514f09`); Step 13.4 (canvas change) done (`ec51247`); Step 13.5 (frame-rate change) accepted (`010a1b8`);
 Step 13.6 (Project Settings dialog) accepted (`66a0871`); Step 13.7 (export settings core) accepted (`adf85e4`); Step
-13.8 (L1-c) done — awaiting acceptance.
+13.8 (L1-c) accepted (`3d08c1b`); Step 13.9 (export settings UI) done — awaiting acceptance.
 Scope, steps and
 acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 13 — Project & export settings: steps"; decision D028.
 
@@ -231,6 +231,33 @@ push, pull request or merge without direct permission; no next step without the 
   - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2556
     passed, 2 skipped (only the two 4K scenes), 0 failed — Core 513, Timeline 484, Project 420, UI 555, Export 100,
     Rendering 58, Video 316, ExportEndToEnd 110 (+16) + 2; `git diff --check` clean.
+  - Committed as `3d08c1b`; accepted by the product owner (2026-10-06); the AAC 320 kbps decision is final.
+- Step 13.9 done (2026-10-06) — export settings UI (D028 "Refined in Step 13.9").
+  - Timeline / Core: `SetProjectSettings(width, height, FrameRate? rate, ExportEncoding? export = null)` (a null rate keeps
+    the current one; every part checked first; one part → its own method; several → one "Change Project Settings" step);
+    `SetExportSettings` + `SetExportEncodingCommand` (one step, dirty, no step for the same settings, refused when not
+    offered, no timeline notification). Stubs of `ITimelineEditService` updated.
+  - UI: `ProjectSettingsViewModel` — `ExportChoice<T>` options (label + secondary detail), the current values selected,
+    `DraftExport`; Apply = one `SetProjectSettings` call with the draft (the old "kept rate → `SetCanvasSize`" branch is now
+    the service's); `ProjectSettingsView` — an EXPORT section (Quality, Encoding speed, Audio bitrate). No export / encoder
+    / L1-c code changed.
+  - Tests: `Timeline.Tests/ExportSettingsEditTests` (11: one step / dirty / undo / redo, no change, not offered refused —
+    also inside `SetProjectSettings`, export alone delegated, kept rate + same values = no change, canvas + rate + export
+    one step with one Undo, canvas + kept provisional rate + export, a refused canvas part keeps the export settings,
+    saved and taken by the next job), `UI.Tests/ProjectSettingsUiTests` (+16: current values and every offered label,
+    Default for a project without `settings.export`, every value applied and shown again, draft + Cancel with no step per
+    combo box, the three in one step, with size and rate in one step, a refused size leaves them unapplied, the lock, the
+    next export job), `ProjectSettingsViewBindingTests` (the three combo boxes bound to the draft).
+  - Mutations (each reverted, all caught): Apply without the export draft → 12; a combo box writing to the project → 6;
+    the dialog opening on the default → 4; Apply ignoring the lock → 2; the export applied before the other parts are
+    checked → 2; the export part left out of the combined step → 1; the same settings making a step → 1; a kept rate
+    locked anyway → 2.
+  - Real app (1024 px, 125 %): the EXPORT section fits; draft → title clean; Apply → `*` and the status message; one Undo
+    back to High / Medium / 192; Redo; reopening shows the applied values; Save wrote `settings.export` Compact / Slow /
+    320.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2585
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 513, Timeline 495 (+11), Project 420, UI 573 (+18), Export
+    100, Rendering 58, Video 316, ExportEndToEnd 110 + 2; `git diff --check` clean.
 
 ### Phase 12 — Editing essentials (complete; PR #12 merged as `c0cb600`, CI green)
 

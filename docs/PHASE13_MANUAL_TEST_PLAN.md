@@ -77,10 +77,10 @@ No real-app scenario: the measurement and the criteria run in the suite (`Export
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 21 | Choose settings in the export flow | Export, change the level / preset / bitrate | The export uses them | (13.9) | planned |
-| 22 | Remembered settings | Export again (and after a reopen, if saved per project) | The last choice is offered (D028 question 3) | (13.9) | planned |
-| 23 | Cancel | Cancel the settings / the picker | Nothing exported; settings as decided at 13.9 | (13.9) | planned |
-| 24 | Layout and lock | The settings at 1024 px; during an export | Nothing cut off; not changeable during an export | (13.9) | planned |
+| 21 | Choose export settings | Project Settings…, EXPORT: change the quality, the speed and the bitrate; Apply; export | One Undo step; the export uses them (13.7 pipeline) | `ProjectSettingsUiTests` (every value, one step, the next job), `ExportSettingsEditTests` | auto (13.9); app 13.9 (Claude), passed — Compact / Slow / 320 applied, one Undo / Redo (the export itself: automated, 13.7) |
+| 22 | Remembered settings | Reopen the dialog; save, close and open the project | The applied values are selected | `ProjectSettingsUiTests` (reopen), `ExportSettingsEditTests` (save → reopen) | auto (13.9); app 13.9 (Claude), passed — reopened after Undo / Redo; Save wrote `settings.export` |
+| 23 | Cancel | Change the export choices, Cancel / Esc / close | Nothing changes, no Undo step | `ProjectSettingsUiTests` (draft + Cancel) | auto (13.9); app 13.9 (Claude), passed — draft: title clean, Undo off |
+| 24 | Layout and lock | The dialog at 1024 px; during an export | Nothing cut off; not changeable during an export | `ProjectSettingsViewBindingTests`, `ProjectSettingsUiTests` (lock) | app 13.9 (Claude), passed at 1024 px; the lock as at 13.6 (scenario 17) |
 
 ## Regression (Step 13.10)
 

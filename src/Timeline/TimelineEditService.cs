@@ -987,31 +987,71 @@ public sealed class TimelineEditService : ITimelineEditService
 
     // --- Project settings: canvas and rate together (D028, Step 13.6) -------------------------------------------------
 
-    public TimelineEditResult SetProjectSettings(int width, int height, FrameRate rate)
+    public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null)
     {
-        // Both parts are checked before anything else, so a refused part never lets the other one through alone.
+        // Every part is checked before anything else, so a refused part never lets another one through alone.
         if (ProjectSettingsRules.CanvasError(width, height) is { } sizeError) return TimelineEditResult.Fail(sizeError);
-        if (RateError(rate) is { } rateError) return TimelineEditResult.Fail(rateError);
+        if (rate is { } r && RateError(r) is { } rateError) return TimelineEditResult.Fail(rateError);
+        if (export?.Validate() is { } exportError) return TimelineEditResult.Fail(exportError);
 
         var canvasChanges = width != Settings.FrameWidth || height != Settings.FrameHeight;
-        var rateChanges = ChangesRate(rate);
-        if (!canvasChanges && !rateChanges) return TimelineEditResult.Unchanged();
-        if (!rateChanges) return SetCanvasSize(width, height);
-        if (!canvasChanges) return SetFrameRate(rate);
+        var rateChanges = rate is { } wanted && ChangesRate(wanted);
+        var exportChanges = export is not null && export != Settings.Export;
+        switch ((canvasChanges, rateChanges, exportChanges))
+        {
+            case (false, false, false): return TimelineEditResult.Unchanged();
+            case (true, false, false): return SetCanvasSize(width, height);
+            case (false, true, false): return SetFrameRate(rate!.Value);
+            case (false, false, true): return SetExportSettings(export!);
+        }
 
-        // Both: every check first — the re-grid and its validation, then the scaled properties — on the unchanged model.
-        // The parts are independent (the re-grid changes timing and may cut a fade; the canvas changes positions and font
-        // sizes), and the canvas commands carry only those groups, so the order inside the step doesn't matter for the
-        // result; the rate goes first. One step, one notification (with the playhead on the new grid).
-        if (PlanFrameRate(rate, out var plan, out var rateCommand) is { } planError) return TimelineEditResult.Fail(planError);
-        if (PlanCanvas(width, height, out var canvasCommands) is { } canvasError) return TimelineEditResult.Fail(canvasError);
+        // Several: every check first, on the unchanged model — the re-grid and its validation, then the scaled properties;
+        // the export settings were checked above. The parts are independent (the re-grid changes timing and may cut a fade;
+        // the canvas changes positions and font sizes, its commands carrying only those groups; the export settings are one
+        // value of the project's settings), so the order inside the step doesn't matter for the result; the rate goes first.
+        // One step, one notification (with the playhead on the new grid when the rate changes).
+        var commands = new List<IUndoableCommand>();
+        var messages = new List<string?>();
+        EditPlan? plan = null;
+        if (rateChanges)
+        {
+            if (PlanFrameRate(rate!.Value, out plan, out var rateCommand) is { } planError) return TimelineEditResult.Fail(planError);
+            commands.Add(rateCommand);
+        }
+        var canvasCommands = new List<IUndoableCommand>();
+        if (canvasChanges)
+        {
+            if (PlanCanvas(width, height, out canvasCommands) is { } canvasError) return TimelineEditResult.Fail(canvasError);
+            commands.AddRange(canvasCommands);
+            messages.Add($"Frame size set to {width} × {height}.");
+        }
+        if (rateChanges) messages.Add(RateMessage(rate!.Value, plan));
+        if (exportChanges)
+        {
+            commands.Add(new SetExportEncodingCommand(Settings, Settings.Export, export!));
+            messages.Add(ExportMessage(export!));
+        }
 
-        var commands = new List<IUndoableCommand> { rateCommand };
-        commands.AddRange(canvasCommands);
-        _undoRedo.Execute(new NotifyingCommand(new CompositeCommand("Change Project Settings", commands), NotifyRateChanged));
-        return TimelineEditResult.Ok(ScaledClips(canvasCommands),
-            Join($"Frame size set to {width} × {height}.", RateMessage(rate, plan)));
+        _undoRedo.Execute(new NotifyingCommand(new CompositeCommand("Change Project Settings", commands),
+            rateChanges ? NotifyRateChanged : _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok(ScaledClips(canvasCommands), string.Join(" ", messages.Where(m => m is not null)));
     }
+
+    // --- Export settings (D028, Step 13.9) -------------------------------------------------------------------------------
+
+    public TimelineEditResult SetExportSettings(ExportEncoding export)
+    {
+        ArgumentNullException.ThrowIfNull(export);
+        if (export.Validate() is { } error) return TimelineEditResult.Fail(error);
+        if (export == Settings.Export) return TimelineEditResult.Unchanged();
+
+        // A project change (EX-1): undoable and dirty; nothing on the timeline changes, so no notification is needed.
+        _undoRedo.Execute(new SetExportEncodingCommand(Settings, Settings.Export, export));
+        return TimelineEditResult.Ok(null, ExportMessage(export));
+    }
+
+    private static string ExportMessage(ExportEncoding e) =>
+        $"Export settings: {e.Quality} quality, {e.PresetName} encoding, AAC {e.AudioBitrateKbps} kbps.";
 
     /// <summary>How a clip is named in a message: a text clip by its first line, a media clip by its file.</summary>
     private string Describe(Clip clip)

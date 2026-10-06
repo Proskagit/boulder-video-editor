@@ -2568,12 +2568,38 @@ the product owner asked; the numbers below await the step's acceptance):
   caught by L1-c and not meant to be: the fast preset mapped to `ultrafast` (still above High's bound) — caught by the 13.7
   tests (golden command lines, the x264 `subme` check) and `ProjectSettingsRulesTests`.
 
+Refined in Step 13.9 (product owner, 2026-10-06, and the implementation):
+- Where: an EXPORT section in the Project Settings dialog of 13.6 (not a step of the export flow, not a window of its
+  own): Quality (Maximum / High / Standard / Compact; "CRF 14 — largest file", "CRF 18 — default", "CRF 23", "CRF 28 —
+  smallest file" as the secondary text and tooltip), Encoding speed (Fast / Medium / Slow; "H.264 preset …") and Audio
+  bitrate (128 / 160 / 192 / 256 / 320 kbps, "AAC"; 320 kbps shown as chosen — the bitrate reached is never shown). No
+  new values. The current values (`ProjectSettings.Export`; `Default` for a project without `settings.export`) are
+  selected when the dialog opens; the export settings are remembered with the project (question 3) and shown again on the
+  next opening.
+- Draft: the three choices are part of the dialog's draft (`ProjectSettingsViewModel.DraftExport`); changing them changes
+  nothing in the project and makes no Undo step; Cancel, Esc and closing the window change nothing.
+- Apply: one call — `ITimelineEditService.SetProjectSettings(width, height, rate or null, export)`. The method now takes the
+  export settings (null = kept) and a nullable rate (null = the current rate kept as it is, also a provisional one — the
+  dialog's "(provisional)" / "(current)" entries); every part is checked before the first change; one part changing goes
+  to its own method (`SetCanvasSize`, `SetFrameRate`, the new `SetExportSettings`); several are one "Change Project
+  Settings" step; a refusal of any part changes nothing (the export choices included) and stays in the open dialog.
+- `SetExportSettings(export)` (EX-1): `SetExportEncodingCommand` replaces the immutable record — one Undo step, dirty, no
+  step for the same settings, settings not offered refused; no timeline notification (the timeline doesn't change). The
+  next export takes the settings through the 13.7 pipeline (`ExportPreflight` → `ExportJob.Encoding` → encoder); the UI
+  never touches a job or the encoder.
+- Export lock: unchanged from 13.6 — "Project Settings…" disabled during an export; Apply checks the lock again before the
+  service call, so the export choices are refused with the rest.
+- Checked in the real app (1024 px window, 125 % scaling): the section fits under the rate; Compact / Slow / 320 chosen as a
+  draft (title clean, Undo off), Apply ("Export settings: Compact quality, slow encoding, AAC 320 kbps.", `*`), one Undo
+  back to High / Medium / 192, Redo, reopening shows the applied values, Save writes `settings.export` = Compact / Slow /
+  320.
+
 Consequences: `ProjectSettings` becomes user-editable through new undoable commands; the export gains a settings model
 used by `FfmpegExportEncoder` (`ExportOutput` and the preflight keep their roles); `project.json` stays v3 or becomes v4
 by §5; the parity suite gains scenes for new canvas sizes and rates and per-level codec criteria (§6);
 `docs/PHASE13_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
 
-Status: Accepted (2026-10-06, product owner). Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 accepted (`010a1b8`); Step 13.6 accepted (`66a0871`); Step 13.7 accepted (`adf85e4`); Step 13.8 (L1-c) done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
+Status: Accepted (2026-10-06, product owner). Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 accepted (`010a1b8`); Step 13.6 accepted (`66a0871`); Step 13.7 accepted (`adf85e4`); Step 13.8 (L1-c) accepted (`3d08c1b`); Step 13.9 (export settings UI) done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
 
 ---
 

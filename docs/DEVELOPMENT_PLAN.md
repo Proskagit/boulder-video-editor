@@ -57,8 +57,8 @@ and runs cleanly.
       H.264 / AAC encoder, and the codec-leg criteria of L1-c. Scope, steps and acceptance criteria: section below and
       DECISIONS.md D028 (product owner decisions, 2026-10-06). *(branch `feat/phase-13-project-export-settings`, from
       `c0cb600`; D028 accepted 2026-10-06; Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 accepted
-      (`010a1b8`); Step 13.6 accepted (`66a0871`); Step 13.7 accepted (`adf85e4`); Step 13.8 (L1-c) done — awaiting
-      acceptance)*
+      (`010a1b8`); Step 13.6 accepted (`66a0871`); Step 13.7 accepted (`adf85e4`); Step 13.8 (L1-c) accepted
+      (`3d08c1b`); Step 13.9 (export settings UI) done — awaiting acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -693,7 +693,7 @@ Scope: D028 §7 (13.7).
   preflight keep their roles.
 - Depends on: 13.3.
 
-### 13.8 — L1-c: codec-leg criteria *(done — awaiting acceptance; D028 "Refined in Step 13.8": quant PSNR per level 39 / 35 / 31 / 27.5 dB, levels ≥ 2 dB apart, flat colour ≤ 2; sound checks at every bitrate; `ExportCodecLegTests`)*
+### 13.8 — L1-c: codec-leg criteria *(done — accepted 2026-10-06, `3d08c1b`; D028 "Refined in Step 13.8": quant PSNR per level 39 / 35 / 31 / 27.5 dB, levels ≥ 2 dB apart, flat colour ≤ 2; sound checks at every bitrate; `ExportCodecLegTests`)*
 Scope: D028 §6.
 - M: every offered quality level and speed preset measured with the Step 8.6 method over the existing scenes and the
   new canvas sizes (method, tool and tables recorded).
@@ -704,7 +704,7 @@ Scope: D028 §6.
 - Impl: L1-c closed in D028 (and pointed to from D023); nothing else in the suite changes.
 - Depends on: 13.7.
 
-### 13.9 — Export settings UI
+### 13.9 — Export settings UI *(done — awaiting acceptance; D028 "Refined in Step 13.9": an EXPORT section of the Project Settings dialog, not the export flow — the product owner's choice; one Apply with the size and the rate)*
 Scope: D028 §7 (13.9).
 - PR: the export settings are chosen in the export flow, remembered by D028 question 3's rule, disabled during an
   export; the export manual plan still passes with the defaults.

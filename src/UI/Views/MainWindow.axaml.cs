@@ -203,7 +203,8 @@ public partial class MainWindow : Window
         public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change) => Nothing;
         public TimelineEditResult SetCanvasSize(int width, int height) => Nothing;
         public TimelineEditResult SetFrameRate(FrameRate rate) => Nothing;
-        public TimelineEditResult SetProjectSettings(int width, int height, FrameRate rate) => Nothing;
+        public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null) => Nothing;
+        public TimelineEditResult SetExportSettings(ExportEncoding export) => Nothing;
         public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds) => SnapResult.None;
     }
 

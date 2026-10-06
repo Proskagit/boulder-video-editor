@@ -55,6 +55,34 @@
               HorizontalAlignment="Stretch"/>
     <TextBlock Classes="note" Text="{Binding RateNotice}" IsVisible="{Binding RateNotice, Converter={x:Static ObjectConverters.IsNotNull}}"/>
 
+    <!-- Export settings (D028, Step 13.9): a draft like the rest; Apply changes them with the size and the rate in one step. -->
+    <TextBlock Classes="heading" Text="EXPORT" Margin="0,6,0,0"/>
+    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+      <Grid.Styles>
+        <Style Selector="ComboBox.choice">
+          <Setter Property="HorizontalAlignment" Value="Stretch"/>
+          <Setter Property="Margin" Value="10,0,0,6"/>
+          <Setter Property="ItemTemplate">
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="8" ToolTip.Tip="{Binding Detail}">
+                <TextBlock Text="{Binding Label}"/>
+                <TextBlock Text="{Binding Detail}" Foreground="#8A8A8A" FontSize="11" VerticalAlignment="Center"/>
+              </StackPanel>
+            </DataTemplate>
+          </Setter>
+        </Style>
+      </Grid.Styles>
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="Quality" VerticalAlignment="Center"/>
+      <ComboBox x:Name="QualityBox" Grid.Row="0" Grid.Column="1" Classes="choice"
+                ItemsSource="{Binding Qualities}" SelectedItem="{Binding SelectedQuality, Mode=TwoWay}"/>
+      <TextBlock Grid.Row="1" Grid.Column="0" Text="Encoding speed" VerticalAlignment="Center"/>
+      <ComboBox x:Name="SpeedBox" Grid.Row="1" Grid.Column="1" Classes="choice"
+                ItemsSource="{Binding Speeds}" SelectedItem="{Binding SelectedSpeed, Mode=TwoWay}"/>
+      <TextBlock Grid.Row="2" Grid.Column="0" Text="Audio bitrate" VerticalAlignment="Center"/>
+      <ComboBox x:Name="BitrateBox" Grid.Row="2" Grid.Column="1" Classes="choice"
+                ItemsSource="{Binding Bitrates}" SelectedItem="{Binding SelectedBitrate, Mode=TwoWay}"/>
+    </Grid>
+
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,8,0,0">
       <Button x:Name="ApplyButton" Content="Apply" MinWidth="90" Command="{Binding ApplyCommand}"/>
       <Button x:Name="CancelButton" Content="Cancel" MinWidth="90" IsCancel="True" Command="{Binding CancelCommand}"/>

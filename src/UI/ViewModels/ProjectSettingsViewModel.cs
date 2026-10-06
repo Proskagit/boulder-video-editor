@@ -17,6 +17,12 @@ public sealed record CanvasPresetOption(string Group, string Name, int Width, in
     public override string ToString() => Label;
 }
 
+/// <summary>An export setting the dialog offers (D028, Step 13.9): its value, a plain label and a secondary detail.</summary>
+public sealed record ExportChoice<T>(T Value, string Label, string Detail)
+{
+    public override string ToString() => Label;
+}
+
 /// <summary>A frame rate the dialog offers: one of the project rates, or the project's current one kept as it is
 /// (<see cref="IsKeep"/>: a provisional rate, or a rate no longer offered — e.g. fixed by the first video).</summary>
 public sealed record FrameRateOption(FrameRate Rate, string Label, bool IsKeep)
@@ -55,8 +61,48 @@ public sealed partial class ProjectSettingsViewModel : ObservableObject
         _width = current.FrameWidth;
         _height = current.FrameHeight;
         _selectedPreset = PresetFor(current.FrameWidth, current.FrameHeight);
+        CurrentExport = current.Export;
+        _selectedQuality = QualityOptions.Single(o => o.Value == current.Export.Quality);
+        _selectedSpeed = SpeedOptions.Single(o => o.Value == current.Export.Preset);
+        _selectedBitrate = BitrateOptions.Single(o => o.Value == current.Export.AudioBitrateKbps);
         Refresh();
     }
+
+    /// <summary>The project's export settings when the dialog opened (D028, Step 13.9).</summary>
+    public ExportEncoding CurrentExport { get; }
+
+    public static IReadOnlyList<ExportChoice<ExportQuality>> QualityOptions { get; } = new[]
+    {
+        new ExportChoice<ExportQuality>(ExportQuality.Maximum, "Maximum", "CRF 14 — largest file"),
+        new ExportChoice<ExportQuality>(ExportQuality.High, "High", "CRF 18 — default"),
+        new ExportChoice<ExportQuality>(ExportQuality.Standard, "Standard", "CRF 23"),
+        new ExportChoice<ExportQuality>(ExportQuality.Compact, "Compact", "CRF 28 — smallest file"),
+    };
+
+    public static IReadOnlyList<ExportChoice<ExportSpeedPreset>> SpeedOptions { get; } = new[]
+    {
+        new ExportChoice<ExportSpeedPreset>(ExportSpeedPreset.Fast, "Fast", "H.264 preset fast — quicker, larger file"),
+        new ExportChoice<ExportSpeedPreset>(ExportSpeedPreset.Medium, "Medium", "H.264 preset medium — default"),
+        new ExportChoice<ExportSpeedPreset>(ExportSpeedPreset.Slow, "Slow", "H.264 preset slow — slower, smaller file"),
+    };
+
+    public static IReadOnlyList<ExportChoice<int>> BitrateOptions { get; } =
+        ExportEncoding.AudioBitratesKbps.Select(k => new ExportChoice<int>(k, $"{k} kbps", k == 192 ? "AAC — default" : "AAC")).ToList();
+
+    public IReadOnlyList<ExportChoice<ExportQuality>> Qualities => QualityOptions;
+    public IReadOnlyList<ExportChoice<ExportSpeedPreset>> Speeds => SpeedOptions;
+    public IReadOnlyList<ExportChoice<int>> Bitrates => BitrateOptions;
+
+    [ObservableProperty] private ExportChoice<ExportQuality> _selectedQuality;
+    [ObservableProperty] private ExportChoice<ExportSpeedPreset> _selectedSpeed;
+    [ObservableProperty] private ExportChoice<int> _selectedBitrate;
+
+    partial void OnSelectedQualityChanged(ExportChoice<ExportQuality> value) => Error = null;
+    partial void OnSelectedSpeedChanged(ExportChoice<ExportSpeedPreset> value) => Error = null;
+    partial void OnSelectedBitrateChanged(ExportChoice<int> value) => Error = null;
+
+    /// <summary>The draft export settings (applied only by Apply).</summary>
+    public ExportEncoding DraftExport => new(SelectedQuality.Value, SelectedSpeed.Value, SelectedBitrate.Value);
 
     public int CurrentWidth { get; }
     public int CurrentHeight { get; }
@@ -161,10 +207,8 @@ public sealed partial class ProjectSettingsViewModel : ObservableObject
         }
         if (DraftSize() is not (int width, int height) || CanvasError is not null) return;
 
-        var sizeChanges = width != CurrentWidth || height != CurrentHeight;
-        var result = SelectedRate.IsKeep
-            ? sizeChanges ? _edit.SetCanvasSize(width, height) : TimelineEditResult.Unchanged()
-            : _edit.SetProjectSettings(width, height, SelectedRate.Rate);
+        // One call: canvas, rate (null = kept as it is) and export settings — one Undo step when several change (13.9).
+        var result = _edit.SetProjectSettings(width, height, SelectedRate.IsKeep ? null : SelectedRate.Rate, DraftExport);
 
         if (!result.Success)
         {

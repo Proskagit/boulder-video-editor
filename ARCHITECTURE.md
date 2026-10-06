@@ -124,9 +124,11 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   a `CompositeCommand`, one `TimelineChanged`) that multiplies `PositionX / PositionY` of every picture / text clip and
   `FontSize` of every text clip by `s = min(W'/W, H'/H)` (locked and hidden tracks too); refused whole when a scaled value
   leaves `ClipPropertyLimits`. A clipboard copied at another canvas is refused on paste (`TimelineClipboard.Canvas`).
-- Project settings together (Phase 13 Step 13.6, D028): `SetProjectSettings(width, height, rate)` — one part changing goes
-  to `SetCanvasSize` / `SetFrameRate`; both: `PlanFrameRate` + `PlanCanvas` on the unchanged model, then one "Change
-  Project Settings" step (the rate command, then canvas commands that carry only the picture / text groups). UI:
+- Project settings together (Phase 13 Steps 13.6 / 13.9, D028): `SetProjectSettings(width, height, rate?, export?)` — one
+  part changing goes to `SetCanvasSize` / `SetFrameRate` / `SetExportSettings`; several: `PlanFrameRate` + `PlanCanvas` on
+  the unchanged model, then one "Change Project Settings" step (the rate command, the canvas commands that carry only the
+  picture / text groups, `SetExportEncodingCommand`). The dialog's EXPORT section (quality, encoding speed, audio
+  bitrate) is part of the same draft. UI:
   toolbar "Project Settings…" → `ProjectSettingsWorkflow` (UI/Services; `EditingLock`) → `IProjectSettingsDialog` /
   `AvaloniaProjectSettingsDialog` hosting `Views/ProjectSettingsView` over `ProjectSettingsViewModel` (a draft; Apply
   calls the service, a refusal stays in the dialog, Cancel changes nothing).
