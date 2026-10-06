@@ -94,6 +94,17 @@ public sealed class SetFrameRateCommand(
     }
 }
 
+/// <summary>Sets the project canvas size, width and height together (D028, Step 13.4); Undo restores both.</summary>
+public sealed class SetCanvasSizeCommand(ProjectSettings settings, int oldWidth, int oldHeight, int newWidth, int newHeight)
+    : IUndoableCommand
+{
+    public string Description => "Set Frame Size";
+
+    public void Execute() => (settings.FrameWidth, settings.FrameHeight) = (newWidth, newHeight);
+
+    public void Undo() => (settings.FrameWidth, settings.FrameHeight) = (oldWidth, oldHeight);
+}
+
 public sealed class AddTrackCommand(Sequence sequence, Track track) : IUndoableCommand
 {
     public string Description => "Add Track";

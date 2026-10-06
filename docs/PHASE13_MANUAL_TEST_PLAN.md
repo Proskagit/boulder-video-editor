@@ -33,11 +33,12 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 4 | Portrait canvas | A landscape project with a portrait phone video; change the canvas to 1080 × 1920 | The Preview shows a portrait frame; the portrait video fills it; landscape clips fit by width; positions / text by the rule of 13.4 | (13.4) | planned |
-| 5 | Undo / redo of a canvas change | After 4, Undo, Redo | The Preview back to 16:9, then portrait again; dirty / clean at the save point | (13.4) | planned |
-| 6 | Export at a non-default canvas | Export after 4 | The MP4 is 1080 × 1920 at the project rate; frames match the Preview | (13.4) | planned |
-| 7 | Refused sizes | Try an odd or out-of-limits size | Not accepted, with a message; nothing changes, no Undo step | (13.4) | planned |
-| 8 | During an export | Start an export | The canvas can't be changed until it ends | (13.4) | planned |
+| 4 | Portrait canvas | A landscape project with a portrait phone video, a logo near a corner and a title; change the canvas to 1080 × 1920 | The Preview shows a portrait frame; the portrait video fills it; landscape clips fit by width; positions and font sizes × 0.5625 (D028 13.4, CS-1 B): the logo and the title stay inside the old frame, now a band in the middle | `CanvasEditTests` (five transitions, centre / corners), `ExportCanvasChangeEndToEndTests`, `PreviewLayersTests` (new canvas, decoders kept) | auto (13.4); manual after 13.6 (no UI before) |
+| 5 | Undo / redo of a canvas change | After 4, Undo, Redo | The Preview back to 16:9, then portrait again; every value exact; dirty / clean at the save point; changing back to 16:9 by the dialog instead does **not** restore the values (accepted) | `CanvasEditTests` (undo / redo exact, round trip ×0.3164) | auto (13.4); manual after 13.6 |
+| 6 | Export at a non-default canvas | Export after 4 | The MP4 is 1080 × 1920 at the project rate; frames match the Preview | `ExportCanvasChangeEndToEndTests` (180 × 320, 240 × 240, byte for byte) | auto (13.4); manual after 13.6 |
+| 7 | Refused sizes | Try an odd or out-of-limits size; a size that would push a font size past 1000 | Not accepted, with a message (the clip and track named for the font size); nothing changes, no Undo step | `CanvasEditTests` (rules, limits, atomic), `ExportPreflightTests` (preflight) | auto (13.4); manual after 13.6 |
+| 8 | During an export | Start an export | The canvas can't be changed until it ends | the dialog's command (13.6) | planned (13.6) |
+| 8a | Paste after a canvas change | Copy a clip, change the canvas, paste | "The project frame size changed since the clips were copied. Copy them again."; nothing pasted | `CanvasEditTests` (clipboard) | auto (13.4); manual after 13.6 |
 
 ## Step 13.5 — frame rate (D028 §4)
 

@@ -56,7 +56,7 @@ and runs cleanly.
       existing projects, undoable), export settings (quality, encoder speed, audio bitrate) on the existing MP4 /
       H.264 / AAC encoder, and the codec-leg criteria of L1-c. Scope, steps and acceptance criteria: section below and
       DECISIONS.md D028 (product owner decisions, 2026-10-06). *(branch `feat/phase-13-project-export-settings`, from
-      `c0cb600`; D028 accepted 2026-10-06; Step 13.3 done — awaiting acceptance)*
+      `c0cb600`; D028 accepted 2026-10-06; Step 13.3 accepted (`4514f09`); Step 13.4 done — awaiting acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -635,7 +635,7 @@ outdated by the merge (CI pending, branch not published, complete locally) corre
 `c0cb600` / CI green recorded; D028 (incl. the flaky-test policy, §8), this section, ROADMAP, README, `progress.md`,
 `docs/README.md`, `docs/PHASE13_MANUAL_TEST_PLAN.md` (skeleton). Documentation only.
 
-### 13.3 — Settings model and project format *(done — awaiting acceptance; D028 "Refined at the start of Step 13.3": v3 kept, `settings.export` optional; the FR-1 regression test moves to 13.5 with its fix, the preflight's canvas limits to 13.4)*
+### 13.3 — Settings model and project format *(done — accepted 2026-10-06, `4514f09`; D028 "Refined at the start of Step 13.3": v3 kept, `settings.export` optional; the FR-1 regression test moves to 13.5 with its fix, the preflight's canvas limits to 13.4)*
 Scope: D028 §1, §5, §7 (model only).
 - PR: the project settings (canvas width × height, frame rate) are validated by one Core rule (even sizes, limits, a
   supported rate); an invalid value is refused with a message and changes nothing.
@@ -648,7 +648,7 @@ Scope: D028 §1, §5, §7 (model only).
 - Impl: the v3 / v4 choice by D028 §5's rule, recorded as a D028 refinement with its reason before the code.
 - Depends on: 13.2 (D028 accepted).
 
-### 13.4 — Canvas size change
+### 13.4 — Canvas size change *(done — awaiting acceptance; D028 "Refined at the start of Step 13.4": CS-1 B, B-1…B-4, P-1; `ITimelineEditService.SetCanvasSize`, no UI — the `EditingLock` with the dialog of 13.6)*
 Scope: D028 §4 (canvas).
 - PR: the canvas of a new or existing project can be changed; one undoable step; the Preview and the export show the
   project at the new size (pictures re-fit by D018; positions and text sizes by the rule decided at the step's start).

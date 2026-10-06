@@ -119,6 +119,11 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   `SetClipPropertiesCommand` (absolute `ClipPropertyValues` before/after). Consecutive changes of
   the same properties of one clip merge into one undo step (`IMergeableCommand`), never into the
   save point and never right after an Undo.
+- Canvas size (Phase 13 Step 13.4, D028): `SetCanvasSize(width, height)` — `ProjectSettingsRules.CanvasError` first, the
+  same size a no-op; one "Set Frame Size" step (`SetCanvasSizeCommand` + a `SetClipPropertiesCommand` per changed clip in
+  a `CompositeCommand`, one `TimelineChanged`) that multiplies `PositionX / PositionY` of every picture / text clip and
+  `FontSize` of every text clip by `s = min(W'/W, H'/H)` (locked and hidden tracks too); refused whole when a scaled value
+  leaves `ClipPropertyLimits`. A clipboard copied at another canvas is refused on paste (`TimelineClipboard.Canvas`).
 - Editing essentials (Phase 12, D027) — all in `ITimelineEditService` / `TimelineEditService`, each one undoable step
   through the existing commands, `project.json` v3 unchanged:
   - Tracks: `DeleteTrack` (`RemoveTrackCommand`: the same track object with its clips and dissolves back at its list
@@ -215,7 +220,8 @@ This is a deliberate precision decision and should be preserved unless an explic
   `CoversCanvas`), `CompositionMath.TextTransform`, `FrameSize` / `RectD` / `PointD` / `Affine2D`;
   exact coverage via an internal BigInteger rational. Order: crop → fit (contain) → scale → rotation
   (clockwise, around the centre) → position (centre offset from the canvas centre, canvas px, Y down)
-  → opacity. Canvas = project `FrameWidth × FrameHeight`.
+  → opacity. Canvas = project `FrameWidth × FrameHeight` — a user setting since Phase 13 (D028; changed through
+  `ITimelineEditService.SetCanvasSize`, a presentation-only change for playback).
 - `PlaybackSnapshot.LayersAt(time)` → `CompositionLayer`s bottom to top (`PictureLayer` with
   `PictureSpan` + geometry, `TextLayer` with renderer-neutral `TextProperties` + transform); culls below
   an opaque video that provably covers the canvas.
@@ -502,6 +508,6 @@ paragraph at the Step 11.3 closeout, the relink paragraph at the Step 11.4 close
 Step 11.5 closeout, the relink UI paragraph at the Step 11.6 implementation, the recent projects paragraphs written at
 Steps 11.7–11.8 (Phase 11 merged into `main` as `47ed2fa`); the Phase 12 editing-essentials and import paragraphs of the
 Timeline section at the Phase 12 closeout (Step 12.9, `d467a84`; Phase 12 merged into `main` as `c0cb600`). Phase 13
-(D028, project & export settings): the `ProjectSettings` / persistence lines at Step 13.3; the canvas is still the
-fixed default and the export still uses `ExportFormat`'s constants.
+(D028, project & export settings): the `ProjectSettings` / persistence lines at Step 13.3, the canvas-size and
+composition lines at Step 13.4; the export still uses `ExportFormat`'s constants.
 Re-check the code before relying on details that later phases may have changed.

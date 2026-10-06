@@ -17,7 +17,8 @@ public enum ExportIssueKind
 {
     /// <summary>The timeline has no content (duration 0).</summary>
     EmptyTimeline,
-    /// <summary>The canvas can't be encoded (H.264 4:2:0 needs even width and height).</summary>
+    /// <summary>The canvas can't be exported: it breaks <see cref="ProjectSettingsRules.CanvasError"/> (even sides,
+    /// 64–4096 px each, at most the H.264 level 5.1 frame size; D028).</summary>
     InvalidCanvas,
     /// <summary>No output file, not a full path, not <c>.mp4</c>, or an existing folder.</summary>
     InvalidOutputPath,
@@ -93,10 +94,12 @@ public static class ExportPreflight
         if (snapshot.Duration <= MediaTime.Zero)
             issues.Add(Error(ExportIssueKind.EmptyTimeline, "The timeline is empty."));
 
+        // The canvas rules of D028 (Step 13.4, P-1): a file may carry any positive size (written by hand), but only a
+        // size the user could choose is exported; ProjectSettingsRules is the one source of these limits.
         var canvas = snapshot.Canvas;
-        if (canvas.Width % 2 != 0 || canvas.Height % 2 != 0)
+        if (ProjectSettingsRules.CanvasError(canvas.Width, canvas.Height) is { } canvasError)
             issues.Add(Error(ExportIssueKind.InvalidCanvas,
-                $"The frame size {canvas.Width} × {canvas.Height} can't be exported: width and height must be even."));
+                $"The frame size {canvas.Width} × {canvas.Height} can't be exported. {canvasError}"));
 
         var fullOutputPath = CheckOutputPath(project, outputPath, environment, issues);
 

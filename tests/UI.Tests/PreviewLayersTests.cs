@@ -155,6 +155,34 @@ public sealed class PreviewLayersTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_canvas_change_reaches_the_paused_preview_without_reopening_the_decoders()
+    {
+        // D028 Step 13.4: SetCanvasSize raises one TimelineChanged; the snapshot differs only in presentation, so playback
+        // keeps its pipeline (no seek, no decoder reopened) and the Preview draws on the new canvas.
+        var (clip, _) = Video(V1, "a.mp4");
+        Assert.True(_edit.SetClipProperties(clip.Id, new ClipPropertyChange { Visual = VisualProperties.Of(clip)!.Value with { PositionX = -400 } }).Success);
+        await TickUntil(Settled, "layer");
+        var generation = _service.SeekGeneration;
+        var pipeline = _service.VideoPipelineInstance;
+        var opened = _decoder.Requests.Count;
+
+        Assert.True(_edit.SetCanvasSize(1080, 1920).Success);
+        await TickUntil(() => Settled() && Preview.Canvas == new FrameSize(1080, 1920), "new canvas");
+
+        var geometry = ((PictureLayer)Preview.Layers[0].Layer).Geometry!;
+        Assert.Equal(new FrameSize(1080, 1920), geometry.Canvas);
+        Assert.Equal(540 - 400 * 0.5625, geometry.Center.X);
+        Assert.Equal(generation, _service.SeekGeneration);
+        Assert.Same(pipeline, _service.VideoPipelineInstance);
+        Assert.Equal(opened, _decoder.Requests.Count);
+
+        _undo.Undo();
+        await TickUntil(() => Settled() && Preview.Canvas == new FrameSize(1920, 1080), "old canvas after Undo");
+        Assert.Same(pipeline, _service.VideoPipelineInstance);
+        Assert.Equal(opened, _decoder.Requests.Count);
+    }
+
+    [Fact]
     public async Task Layer_uncovered_while_paused_keeps_the_preview_polling_until_it_has_its_frame()
     {
         var (bottom, bottomAsset) = Video(V1, "bottom.mp4");

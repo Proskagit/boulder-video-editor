@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 
 namespace AiVideoEditor.Core.Interfaces;
@@ -150,6 +151,20 @@ public interface ITimelineEditService
     /// properties of the same clip are merged into one Undo step.</summary>
     TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change);
 
+    /// <summary>
+    /// Changes the project canvas (D028, Step 13.4) to <paramref name="width"/> × <paramref name="height"/> as one Undo
+    /// step. Refused, changing nothing, when the size breaks <see cref="ProjectSettingsRules.CanvasError"/>; the same
+    /// size is <see cref="TimelineEditResult.NoChange"/>. The values kept in canvas pixels follow the canvas (CS-1 B): with
+    /// <c>s = min(width / oldWidth, height / oldHeight)</c> — the factor by which D018's "contain" fits the old canvas into
+    /// the new one — <c>PositionX / PositionY</c> of every video, image and text clip and the <c>FontSize</c> of every text
+    /// clip are multiplied by <c>s</c>, on every track (locked and hidden too); nothing else changes (scale, rotation,
+    /// crop, opacity, timing, fades, dissolves, markers). The whole change is refused when a scaled value leaves
+    /// <see cref="ClipPropertyLimits"/> (no clamping); the message names the clip and its track. Undo / Redo write back
+    /// the stored values. A change of the size and back again need not restore the old values (s is the "contain"
+    /// factor both ways) — only Undo does.
+    /// </summary>
+    TimelineEditResult SetCanvasSize(int width, int height);
+
     /// <summary>Changes the speed of a video or audio clip (D022). The start and the source range
     /// (SourceIn/SourceOut) stay; the duration becomes the whole number of frames the range allows at
     /// the new speed (<see cref="SpeedTiming.FramesFor"/>). Rejected without changes when the clip
@@ -211,13 +226,18 @@ public sealed record ClipPropertyChange
 /// the copies; the UI keeps the clipboard for the session of one project.</summary>
 public sealed class TimelineClipboard
 {
-    public TimelineClipboard(FrameRate frameRate, IReadOnlyList<TimelineClipboardEntry> entries)
+    public TimelineClipboard(FrameRate frameRate, FrameSize canvas, IReadOnlyList<TimelineClipboardEntry> entries)
     {
         FrameRate = frameRate;
+        Canvas = canvas;
         Entries = entries;
     }
 
     public FrameRate FrameRate { get; }
+
+    /// <summary>The project canvas when the clips were copied: their positions and font sizes are pixels of it, so a paste
+    /// after a canvas change is refused (D028, Step 13.4 B-4), as one after a frame-rate change (D027 §5).</summary>
+    public FrameSize Canvas { get; }
     public IReadOnlyList<TimelineClipboardEntry> Entries { get; }
     public int Count => Entries.Count;
 }

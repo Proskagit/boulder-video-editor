@@ -1,5 +1,6 @@
 using System.Globalization;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Timeline.Commands;
@@ -274,7 +275,7 @@ public sealed class TimelineEditService : ITimelineEditService
         var entries = clips.OrderBy(c => c.TimelineStart)
             .Select(c => new TimelineClipboardEntry(CloneClip(c), plan.TrackOf(c).Id))
             .ToList();
-        return new TimelineClipboard(plan.Rate, entries);
+        return new TimelineClipboard(plan.Rate, CurrentCanvas, entries);
     }
 
     public TimelineEditResult PasteClips(TimelineClipboard clipboard, MediaTime at)
@@ -304,6 +305,8 @@ public sealed class TimelineEditService : ITimelineEditService
         var rate = plan.Rate;
         if (clipboard.FrameRate != rate)
             return TimelineEditResult.Fail("The project frame rate changed since the clips were copied. Copy them again.");
+        if (clipboard.Canvas != CurrentCanvas)
+            return TimelineEditResult.Fail("The project frame size changed since the clips were copied. Copy them again.");
 
         var earliest = clipboard.Entries.Min(e => e.Clip.TimelineStart.ToNearestFrame(rate));
         var ids = new List<Guid>();
@@ -870,6 +873,63 @@ public sealed class TimelineEditService : ITimelineEditService
         var command = new SetClipPropertiesCommand(clip, before, after, fields);
         _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id });
+    }
+
+    // --- Canvas (D028, Step 13.4) -------------------------------------------------------------------------------------
+
+    private FrameSize CurrentCanvas => new(Settings.FrameWidth, Settings.FrameHeight);
+
+    public TimelineEditResult SetCanvasSize(int width, int height)
+    {
+        if (ProjectSettingsRules.CanvasError(width, height) is { } sizeError) return TimelineEditResult.Fail(sizeError);
+
+        var (oldWidth, oldHeight) = (Settings.FrameWidth, Settings.FrameHeight);
+        if (width == oldWidth && height == oldHeight) return TimelineEditResult.Unchanged();
+
+        // CS-1 B: the factor that fits the old canvas into the new one ("contain", D018), the axis chosen by exact
+        // cross-multiplication as in CompositionMath.Layout.
+        var scale = (long)width * oldHeight <= (long)height * oldWidth
+            ? (double)width / oldWidth
+            : (double)height / oldHeight;
+
+        var commands = new List<IUndoableCommand> { new SetCanvasSizeCommand(Settings, oldWidth, oldHeight, width, height) };
+        foreach (var track in Sequence.VideoTracks.Concat(Sequence.AudioTracks))
+        {
+            foreach (var clip in track.Clips)
+            {
+                if (VisualProperties.Of(clip) is not { } visual) continue;   // audio: nothing in canvas pixels
+
+                var before = ClipPropertyValues.Capture(clip);
+                var change = new ClipPropertyChange
+                {
+                    Visual = visual with { PositionX = visual.PositionX * scale, PositionY = visual.PositionY * scale },
+                    Text = TextProperties.Of(clip) is { } text ? text with { FontSize = text.FontSize * scale } : null
+                };
+                if (ClipPropertyValidator.Validate(clip, change) is { } error)
+                    return TimelineEditResult.Fail($"Can't change the frame size to {width} × {height}: {Describe(clip)} on track {track.Name} — {error}");
+
+                var after = before with { Visual = change.Visual, Text = change.Text ?? before.Text };
+                var fields = ClipPropertyValues.Diff(before, after);
+                if (fields != ClipPropertyFields.None)
+                    commands.Add(new SetClipPropertiesCommand(clip, before, after, fields));
+            }
+        }
+
+        _undoRedo.Execute(new NotifyingCommand(new CompositeCommand("Set Frame Size", commands), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok(commands.OfType<SetClipPropertiesCommand>().Select(c => c.Clip.Id).ToList());
+    }
+
+    /// <summary>How a clip is named in a message: a text clip by its first line, a media clip by its file.</summary>
+    private string Describe(Clip clip)
+    {
+        if (clip is TextClip text)
+        {
+            var line = text.Text.Split('\n')[0].Trim();
+            return line.Length > 30 ? $"the text clip \"{line[..30]}…\"" : $"the text clip \"{line}\"";
+        }
+        var name = clip is MediaBackedClip media ? FindAsset(media.MediaAssetId)?.FileName : null;
+        var kind = clip is ImageClip ? "image" : "video";
+        return name is null ? $"a {kind} clip" : $"the {kind} clip of {name}";
     }
 
     /// <summary>

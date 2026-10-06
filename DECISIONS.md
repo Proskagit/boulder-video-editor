@@ -515,7 +515,9 @@ stored landscape with a 90° rotation flag (autorotated by ffmpeg on decode) wou
 probed display size). SAR (non-square pixels) is ignored as before.
 
 Status: Accepted. The export does not use an ffmpeg filtergraph after all (context above): D023
-renders the same layers with the same Core rules offline and uses ffmpeg only to encode.
+renders the same layers with the same Core rules offline and uses ffmpeg only to encode. Phase 13 (D028, Step 13.4): the
+canvas is a user setting (default 1920 × 1080, never taken from a video); a canvas change scales the positions and text
+sizes kept in canvas pixels — D028 "Refined at the start of Step 13.4".
 
 ---
 
@@ -2361,12 +2363,57 @@ Refined at the start of Step 13.3 (product owner, 2026-10-06, on the step's anal
   `ProjectFileDto` (`ExportEncodingDto`, written when not null) and `ProjectSerializer` (`ReadExportEncoding`); nothing
   uses the settings yet — no UI, no command, the encoder still reads `ExportFormat` (13.7), `FrameRateRegrid` unchanged.
 
+Refined at the start of Step 13.4 (product owner, 2026-10-06, on the step's analysis of the canvas semantics) and in its
+implementation:
+- The model as it is (D018): `PositionX / PositionY` are canvas pixels (the offset of the centre from the canvas centre);
+  a picture's `Scale` multiplies its contain-fit, so a picture's size already follows the canvas; text has no fit — its
+  `FontSize` is canvas pixels and its `Scale` an absolute multiplier. A canvas change that kept every value (variant A)
+  moves positioned elements towards the centre or off the canvas (e.g. a logo at 10 % from the left edge of 1920 × 1080
+  lands at x = −228 on 1080 × 1920) and changes text sizes relative to the frame, even at the same aspect ratio.
+- **CS-1 = B**: with `s = min(W' / W, H' / H)` — the factor by which D018's contain fits the old canvas into the new one
+  (the axis chosen by exact cross-multiplication, as `CompositionMath.Layout`) — `PositionX / PositionY` of every video,
+  image and text clip and `FontSize` of every text clip are multiplied by `s`. Nothing else changes: `Scale` (pictures:
+  it is fit-relative already; text: the user's multiplier — B-2), rotation, crop, opacity, timing, source ranges, speed,
+  fades, dissolves, markers, audio, the playhead, the rate. At the same aspect ratio the composition is kept exactly;
+  at another one the old frame is contained in the new canvas, so no positioned element or text leaves it; pictures
+  whose aspect differs from the old canvas follow their own fit.
+- Accepted property of B: the exact round trip is Undo / Redo, **not** a change of the size and back — s is the contain
+  factor both ways, so 1920 × 1080 → 1080 × 1920 → 1920 × 1080 multiplies by 0.5625² = 0.31640625. No hidden history
+  restores the old values (a regression test pins this).
+- B-1: a scaled value outside `ClipPropertyLimits` (`FontSize` 1–1000, positions ±100 000) refuses the whole change —
+  no clamping; the message names the size, the clip (a text clip by its first line, a media clip by its file) and its
+  track, and the validator's reason. Nothing is changed before the refusal.
+- B-3: every video / image / text clip is scaled, on locked and hidden tracks too (the canvas belongs to the whole
+  composition); a locked track does not block the change.
+- B-4: clips copied before a canvas change are refused on paste — "The project frame size changed since the clips were
+  copied. Copy them again." — like after a rate change (D027 §5); `TimelineClipboard.Canvas` records the canvas of the
+  copy; an Undo of the change makes the old clipboard valid again.
+- Command (M-2): `ITimelineEditService.SetCanvasSize(width, height)` — no new interface. `ProjectSettingsRules.CanvasError`
+  first (refused: nothing changes, no Undo step); the same size is `NoChange`; otherwise one `CompositeCommand` "Set
+  Frame Size" = `SetCanvasSizeCommand` (width and height together, absolute old / new) + one `SetClipPropertiesCommand`
+  per clip whose values change (absolute before / after; Undo / Redo write back the stored values), wrapped in one
+  `NotifyingCommand` — one `TimelineChanged`, dirty through the save point, clean again by Undo to it. No media event:
+  thumbnails and waveforms are untouched. The export lock (`EditingLock`) is held by the UI, as for every edit: the
+  service does not know it, and the command is disabled during an export by the dialog of 13.6.
+- Snapshot: the canvas, the positions and the text style are presentation (`DiffersOnlyInPresentation` unchanged), so a
+  canvas change keeps every decoder (a test checks the pipeline, the seek generation and the decoder requests); the
+  Preview takes the new canvas from the rebuilt snapshot, the export from its snapshot.
+- P-1: `ExportPreflight.Check` refuses any canvas `ProjectSettingsRules.CanvasError` refuses (`ExportIssueKind.InvalidCanvas`,
+  "The frame size W × H can't be exported. <reason>"); a loaded file may still carry any positive size (CS-2). The
+  encoder keeps its own even-size guard.
+- D018 changes only in "Canvas: … default 1920 × 1080; never taken from a video": the canvas is a user setting with that
+  default, never taken from a video (D028 answer 1); its composition rules are unchanged.
+- Implementation: `ITimelineEditService.SetCanvasSize`, `TimelineClipboard.Canvas`, `SetCanvasSizeCommand`
+  (`TimelineCommands.cs`), `TimelineEditService.SetCanvasSize` / the paste check, `ExportPreflight`. Not in 13.4: the UI
+  (13.6), the frame-rate change (13.5), the export settings and the encoder (13.7, 13.9).
+- Not changed, noted for later: a new text clip still gets the model's `FontSize` 48 whatever the canvas.
+
 Consequences: `ProjectSettings` becomes user-editable through new undoable commands; the export gains a settings model
 used by `FfmpegExportEncoder` (`ExportOutput` and the preflight keep their roles); `project.json` stays v3 or becomes v4
 by §5; the parity suite gains scenes for new canvas sizes and rates and per-level codec criteria (§6);
 `docs/PHASE13_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
 
-Status: Accepted (2026-10-06, product owner). Step 13.3 done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
+Status: Accepted (2026-10-06, product owner). Step 13.3 accepted (`4514f09`); Step 13.4 done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
 
 ---
 

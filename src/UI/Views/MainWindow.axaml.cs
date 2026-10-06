@@ -201,6 +201,7 @@ public partial class MainWindow : Window
         public string? GetRemoveMediaBlockReason(Guid mediaAssetId) => "Design time.";
         public TimelineEditResult RemoveMedia(Guid mediaAssetId) => Nothing;
         public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change) => Nothing;
+        public TimelineEditResult SetCanvasSize(int width, int height) => Nothing;
         public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds) => SnapResult.None;
     }
 

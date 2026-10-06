@@ -148,6 +148,47 @@ public class ExportPreflightTests
         Assert.Contains($"{width} × {height}", Only(Check(), ExportIssueKind.InvalidCanvas).Message);
     }
 
+    // D028 Step 13.4 (P-1): the preflight applies ProjectSettingsRules.CanvasError, the one source of the canvas limits.
+    [Theory]
+    [InlineData(1921, 1080, "even")]
+    [InlineData(62, 1080, "between 64 and 4096")]
+    [InlineData(1080, 32, "between 64 and 4096")]
+    [InlineData(4098, 2160, "between 64 and 4096")]
+    [InlineData(8192, 4320, "between 64 and 4096")]
+    [InlineData(4096, 4096, "too large")]
+    [InlineData(4096, 2306, "too large")]
+    public void A_canvas_outside_the_project_rules_blocks_with_its_reason(int width, int height, string reason)
+    {
+        Add(_v2, new TextClip { Text = "x" }, 0, 25);
+        _project.Settings.FrameWidth = width;
+        _project.Settings.FrameHeight = height;
+
+        var issue = Only(Check(), ExportIssueKind.InvalidCanvas);
+
+        Assert.Equal(ExportIssueSeverity.Error, issue.Severity);
+        Assert.Contains($"{width} × {height}", issue.Message);
+        Assert.Contains(reason, issue.Message);
+        Assert.EndsWith(ProjectSettingsRules.CanvasError(width, height)!, issue.Message);
+    }
+
+    [Theory]
+    [InlineData(4096, 2304)]   // exactly the largest area
+    [InlineData(64, 64)]
+    [InlineData(64, 4096)]
+    [InlineData(1080, 1920)]
+    [InlineData(3840, 2160)]
+    public void A_canvas_within_the_project_rules_does_not_block(int width, int height)
+    {
+        Add(_v2, new TextClip { Text = "x" }, 0, 25);
+        _project.Settings.FrameWidth = width;
+        _project.Settings.FrameHeight = height;
+
+        var result = Check();
+
+        Assert.DoesNotContain(result.Issues, i => i.Kind == ExportIssueKind.InvalidCanvas);
+        Assert.True(result.CanExport);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]

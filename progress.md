@@ -4,7 +4,7 @@
 
 Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
 merge of PR #12). Step 13.1 (audit) accepted (2026-10-06); Step 13.2 accepted with D028 (2026-10-06); Step 13.3
-(settings model, validation, `settings.export` in v3) done — awaiting acceptance. Scope, steps and
+accepted (`4514f09`); Step 13.4 (canvas change) done — awaiting acceptance. Scope, steps and
 acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 13 — Project & export settings: steps"; decision D028.
 
 ### Phase 13 — Project & export settings (in progress)
@@ -87,6 +87,39 @@ push, pull request or merge without direct permission; no next step without the 
     Project 139 incl. the serializer, recovery and export-settings classes) green; the full `dotnet test` once: 2419
     passed, 2 skipped (only the two 4K scenes), 0 failed — Core 494 (+46), Timeline 425, Project 420 (+49), UI 541,
     Export 99, Rendering 58, Video 294, ExportEndToEnd 88 + 2; `git diff --check` clean.
+  - Committed as `4514f09`; accepted by the product owner (2026-10-06).
+- Step 13.4 done (2026-10-06) — canvas change (the analysis of the canvas semantics first, no code; the product owner
+  chose CS-1 B and confirmed B-1…B-4, P-1 and M-2 — D028 "Refined at the start of Step 13.4").
+  - Analysis: positions are canvas pixels from the centre, a picture's `Scale` is relative to its contain-fit, text is
+    absolute (`FontSize` px, `Scale` multiplier); keeping every value (A) puts corner elements off the canvas on an
+    aspect change and breaks the composition even at the same aspect ratio (1080p → 4K); B (× `min(W'/W, H'/H)`) keeps
+    it exactly at the same aspect ratio and contains the old frame in the new canvas otherwise.
+  - Timeline: `ITimelineEditService.SetCanvasSize` / `TimelineEditService.SetCanvasSize` (rules first; same size =
+    no change; positions of every picture / text clip and font sizes × s, locked and hidden tracks too; refused whole
+    with the clip, the track and the reason when a scaled value leaves the limits; one `CompositeCommand` "Set Frame
+    Size" = `SetCanvasSizeCommand` + `SetClipPropertiesCommand`s in one `NotifyingCommand`); `TimelineClipboard.Canvas`
+    and the paste refusal after a canvas change. Core: `ExportPreflight` checks `ProjectSettingsRules.CanvasError`.
+    Design-time / test stubs of `ITimelineEditService` got the new member.
+  - Not in 13.4: no UI (the `EditingLock` comes with the dialog's command at 13.6, as for every edit — the service does
+    not know the lock), no frame-rate change, no export settings / encoder change.
+  - Tests: `Timeline.Tests/CanvasEditTests` (28: one step scaling only positions and font sizes, Undo / Redo exact,
+    dirty / save point, one `TimelineChanged`, no media event; seven transitions incl. the five of the analysis, centre
+    and corners; the round trip 16:9 → 9:16 → 16:9 = × 0.31640625 and Undo restoring it; same size; six refused sizes;
+    the largest canvas; three out-of-limits cases atomic with the clip and track named; locked / hidden tracks; no
+    clips; a hand-written odd canvas changed to a valid one; clipboard refused and copied again; Undo making the old
+    clipboard valid; snapshot canvas, `DiffersOnlyInPresentation` both ways, text transform, picture fit / centre;
+    save → reopen); `Core.Tests/ExportPreflightTests` (+12: seven refused canvases with their reason, five accepted
+    incl. 4096 × 2304); `UI.Tests/PreviewLayersTests` (+1: the paused Preview gets the new canvas, the pipeline, the
+    seek generation and the decoder requests unchanged, also after Undo); `ExportEndToEnd.Tests/
+    ExportCanvasChangeEndToEndTests` (+2: 320 × 180 changed by the real service to 180 × 320 and 240 × 240 — the MP4 at
+    the new size, the green box at its scaled position, the red solid contained, the portrait letterbox black, the
+    export canvas = the Preview byte for byte on frames 0 and 9). Existing tests unchanged.
+  - Mutations (each reverted): no font scaling → 14 failures; no clipboard canvas check → 1; the factor always from the
+    width → 3; a clip changed before the refusal → 3; the preflight back to the even check → 7; the canvas made a decoding
+    change in `DiffersOnlyInPresentation` → 1 (the Preview test).
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2462
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 506 (+12), Timeline 453 (+28), Project 420, UI 542 (+1),
+    Export 99, Rendering 58, Video 294, ExportEndToEnd 90 (+2) + 2; `git diff --check` clean.
 
 ### Phase 12 — Editing essentials (complete; PR #12 merged as `c0cb600`, CI green)
 
