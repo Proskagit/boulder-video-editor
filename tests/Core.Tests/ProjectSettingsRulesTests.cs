@@ -91,9 +91,9 @@ public class ProjectSettingsRulesTests
         Assert.Equal(ExportQuality.High, d.Quality);
         Assert.Equal(ExportSpeedPreset.Medium, d.Preset);
         Assert.Equal(192, d.AudioBitrateKbps);
-        Assert.Equal(Export.ExportFormat.VideoCrf, d.Crf);
-        Assert.Equal(Export.ExportFormat.VideoPreset, d.PresetName);
-        Assert.Equal(Export.ExportFormat.AudioBitrateBps, d.AudioBitrateKbps * 1000);
+        Assert.Equal(18, d.Crf);                                       // the Phase 8–12 output (D023), now the default
+        Assert.Equal("medium", d.PresetName);
+        Assert.Equal(192_000, d.AudioBitrateKbps * 1000);
         Assert.Same(d, new ProjectSettings().Export);
         Assert.Null(d.Validate());
     }

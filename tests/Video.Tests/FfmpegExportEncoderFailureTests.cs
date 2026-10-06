@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Interfaces;
 using Xunit;
@@ -97,7 +98,7 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
     [Fact]
     public async Task Without_ffmpeg_the_export_cannot_start()
     {
-        var error = await Assert.ThrowsAsync<ExportException>(() => Encoder(new Locator(null)).StartAsync(Short, Destination));
+        var error = await Assert.ThrowsAsync<ExportException>(() => Encoder(new Locator(null)).StartAsync(Short, ExportEncoding.Default, Destination));
         Assert.Equal(ExportFailure.EncoderUnavailable, error.Failure);
         AssertCleanedUp(null);
     }
@@ -105,7 +106,7 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
     [FfmpegFact]
     public async Task A_missing_destination_folder_is_an_output_failure()
     {
-        var error = await Assert.ThrowsAsync<ExportException>(() => Encoder().StartAsync(Short, Path.Combine(_dir, "nowhere", "x.mp4")));
+        var error = await Assert.ThrowsAsync<ExportException>(() => Encoder().StartAsync(Short, ExportEncoding.Default, Path.Combine(_dir, "nowhere", "x.mp4")));
         Assert.Equal(ExportFailure.OutputFailed, error.Failure);
         AssertCleanedUp(null);
     }
@@ -147,7 +148,7 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
     public async Task Cancelling_a_write_is_cancellation_and_disposing_cleans_up()
     {
         File.WriteAllText(Destination, "previous export");
-        var encoding = await Encoder().StartAsync(Short, Destination);
+        var encoding = await Encoder().StartAsync(Short, ExportEncoding.Default, Destination);
         await encoding.WriteAudioAsync(new float[2 * 1_000]);
         using var cts = new CancellationTokenSource();
         cts.Cancel();
@@ -163,7 +164,7 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
     public async Task Cancelling_while_the_encoder_does_not_read_ends_the_blocked_write()
     {
         // The video pass never reads stdin: frames fill the pipe and the write blocks until cancellation kills it.
-        var encoding = await Encoder(Script("video", "never-read")).StartAsync(Output(640, 360, FrameRate.Fps25, 250), Destination);
+        var encoding = await Encoder(Script("video", "never-read")).StartAsync(Output(640, 360, FrameRate.Fps25, 250), ExportEncoding.Default, Destination);
         var audio = new float[2 * 4_800];
         for (var i = 0; i < 100; i++) await encoding.WriteAudioAsync(audio);                 // 10 s
         using var cts = new CancellationTokenSource(500);
@@ -183,7 +184,7 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
     [FfmpegFact]
     public async Task Cancelling_while_waiting_for_the_encoder_to_finish_is_cancellation()
     {
-        var encoding = await Encoder(Script("video", "read-then-hang")).StartAsync(Short, Destination);
+        var encoding = await Encoder(Script("video", "read-then-hang")).StartAsync(Short, ExportEncoding.Default, Destination);
         await encoding.WriteAudioAsync(new float[2 * Short.AudioSampleCount]);
         for (var n = 0; n < Short.FrameCount; n++) await encoding.WriteFrameAsync(new byte[64 * 36 * 4], 64 * 4);
         using var cts = new CancellationTokenSource(300);
@@ -199,7 +200,7 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
     [FfmpegFact]
     public async Task Disposing_an_unfinished_encoding_aborts_it()
     {
-        var encoding = await Encoder().StartAsync(Short, Destination);
+        var encoding = await Encoder().StartAsync(Short, ExportEncoding.Default, Destination);
         await encoding.WriteAudioAsync(new float[2 * Short.AudioSampleCount]);
         await encoding.WriteFrameAsync(new byte[64 * 36 * 4], 64 * 4);                      // the video pass is running
 
@@ -213,17 +214,17 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
     [FfmpegFact]
     public async Task Frames_before_the_whole_audio_too_much_audio_or_missing_frames_are_rejected()
     {
-        await using (var encoding = await Encoder().StartAsync(Short, Destination))
+        await using (var encoding = await Encoder().StartAsync(Short, ExportEncoding.Default, Destination))
         {
             await encoding.WriteAudioAsync(new float[2 * 100]);
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await encoding.WriteFrameAsync(new byte[64 * 36 * 4], 64 * 4));
         }
-        await using (var encoding = await Encoder().StartAsync(Short, Destination))
+        await using (var encoding = await Encoder().StartAsync(Short, ExportEncoding.Default, Destination))
         {
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await encoding.WriteAudioAsync(new float[2 * (Short.AudioSampleCount + 1)]));
             await Assert.ThrowsAsync<ArgumentException>(async () => await encoding.WriteAudioAsync(new float[3]));
         }
-        await using (var encoding = await Encoder().StartAsync(Short, Destination))
+        await using (var encoding = await Encoder().StartAsync(Short, ExportEncoding.Default, Destination))
         {
             await encoding.WriteAudioAsync(new float[2 * Short.AudioSampleCount]);
             await Assert.ThrowsAsync<ArgumentException>(async () => await encoding.WriteFrameAsync(new byte[10], 64 * 4));

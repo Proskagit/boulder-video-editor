@@ -91,6 +91,7 @@ public sealed class ExportServiceTests
 
         var encoding = _encoder.Encoding!;
         Assert.Equal((job.Output, Destination), (_encoder.Output, _encoder.Destination));
+        Assert.Same(ExportEncoding.Default, _encoder.Settings);              // a job without settings: the default (D028 13.7)
         Assert.Equal(new[] { "audio", "video", "complete", "dispose" }, encoding.Phases);
         Assert.True(encoding.Completed);
 
@@ -114,6 +115,19 @@ public sealed class ExportServiceTests
         Assert.All(encoding.Strides, s => Assert.Equal((Canvas.Width * 4, Canvas.Width * 4 * Canvas.Height), s));
         Assert.All(rasterizer.Strides, s => Assert.Equal(Canvas.Width * 4, s));
         Assert.True(rasterizer.OnlyPoolThreads);
+        AssertEverythingReleased();
+    }
+
+    [Fact]
+    public async Task The_encoder_gets_the_jobs_export_settings_and_nothing_else()
+    {
+        var settings = new ExportEncoding(ExportQuality.Maximum, ExportSpeedPreset.Slow, 160);
+        var job = new ExportJob(Snapshot(), Destination, settings);
+
+        await Service().ExportAsync(job, _progress);
+
+        Assert.Same(settings, _encoder.Settings);
+        Assert.Same(job.Encoding, _encoder.Settings);
         AssertEverythingReleased();
     }
 
@@ -472,17 +486,19 @@ public sealed class ExportServiceTests
     private sealed class FakeEncoder : IExportEncoder
     {
         public ExportOutput? Output { get; private set; }
+        public ExportEncoding? Settings { get; private set; }
         public string? Destination { get; private set; }
         public FakeEncoding? Encoding { get; private set; }
         public (string At, Exception Error)? FailAt { get; set; }
         public bool CompleteWaitsForCancellation { get; set; }
         public string? BlockAt { get; set; }
 
-        public Task<IExportEncoding> StartAsync(ExportOutput output, string destinationPath, CancellationToken ct = default)
+        public Task<IExportEncoding> StartAsync(ExportOutput output, ExportEncoding encoding, string destinationPath, CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
             if (FailAt is ("start", var error)) throw error;
             Output = output;
+            Settings = encoding;
             Destination = destinationPath;
             Encoding = new FakeEncoding(this, output);
             return Task.FromResult<IExportEncoding>(Encoding);

@@ -94,6 +94,35 @@ public class ExportPreflightTests
         Assert.Equal(0.5, job.Snapshot.VideoLayers.Single(l => l.TrackId == _v1.Id).Spans.Single().Visual.Opacity);
         Assert.Equal(clip.Id, Assert.Single(job.Snapshot.AudioSpans).ClipId);
         Assert.Equal(250, job.Output.FrameCount);
+        Assert.Same(ExportEncoding.Default, job.Encoding);                // a project without export settings: the default
+    }
+
+    // --- export settings (D028 Step 13.7) -----------------------------------------------------------------------------
+
+    [Fact]
+    public void The_job_takes_the_projects_export_settings()
+    {
+        Add(_v2, new TextClip { Text = "x" }, 0, 25);
+        var settings = new ExportEncoding(ExportQuality.Standard, ExportSpeedPreset.Fast, 256);
+        _project.Settings.Export = settings;
+
+        Assert.Same(settings, Check().Job!.Encoding);
+    }
+
+    [Fact]
+    public void Changing_the_projects_export_settings_after_the_preflight_does_not_change_the_job()
+    {
+        Add(_v2, new TextClip { Text = "x" }, 0, 25);
+        var settings = new ExportEncoding(ExportQuality.Compact, ExportSpeedPreset.Slow, 128);
+        _project.Settings.Export = settings;
+        var job = Check().Job!;
+
+        _project.Settings.Export = new ExportEncoding(ExportQuality.Maximum, ExportSpeedPreset.Fast, 320);
+        _project.Settings.FrameWidth = 640;
+
+        Assert.Same(settings, job.Encoding);
+        Assert.Equal((ExportQuality.Compact, ExportSpeedPreset.Slow, 128), (job.Encoding.Quality, job.Encoding.Preset, job.Encoding.AudioBitrateKbps));
+        Assert.Equal(1920, job.Output.Size.Width);                        // the snapshot, as before
     }
 
     [Fact]

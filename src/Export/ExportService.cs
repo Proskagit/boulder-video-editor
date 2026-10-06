@@ -62,13 +62,15 @@ public sealed class ExportService : IExportService
     {
         var output = job.Output;
         var watch = Stopwatch.StartNew();
-        _logger.LogInformation("Export started: {Path} ({Width}×{Height}, {Rate} fps, {Frames} frames, {Samples} audio samples)",
-            job.OutputPath, output.Size.Width, output.Size.Height, output.FrameRate, output.FrameCount, output.AudioSampleCount);
+        _logger.LogInformation("Export started: {Path} ({Width}×{Height}, {Rate} fps, {Frames} frames, {Samples} audio samples; " +
+            "quality {Quality} (CRF {Crf}), preset {Preset}, AAC {Bitrate} kbps)",
+            job.OutputPath, output.Size.Width, output.Size.Height, output.FrameRate, output.FrameCount, output.AudioSampleCount,
+            job.Encoding.Quality, job.Encoding.Crf, job.Encoding.PresetName, job.Encoding.AudioBitrateKbps);
         try
         {
             progress?.Report(new ExportProgress(ExportStage.Preparing, 0, 1));
             using var rasterizer = _rasterizerFactory() ?? throw new InvalidOperationException("The rasterizer factory returned null.");
-            await using var encoding = await _encoder.StartAsync(output, job.OutputPath, ct);
+            await using var encoding = await _encoder.StartAsync(output, job.Encoding, job.OutputPath, ct);
 
             await WriteAudioAsync(job, encoding, progress, ct);
             await WriteVideoAsync(job, rasterizer, encoding, progress, ct);

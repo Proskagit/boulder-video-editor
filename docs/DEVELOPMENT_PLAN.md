@@ -57,7 +57,7 @@ and runs cleanly.
       H.264 / AAC encoder, and the codec-leg criteria of L1-c. Scope, steps and acceptance criteria: section below and
       DECISIONS.md D028 (product owner decisions, 2026-10-06). *(branch `feat/phase-13-project-export-settings`, from
       `c0cb600`; D028 accepted 2026-10-06; Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 accepted
-      (`010a1b8`); Step 13.6 done — awaiting acceptance)*
+      (`010a1b8`); Step 13.6 accepted (`66a0871`); Step 13.7 done — awaiting acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -673,7 +673,7 @@ Scope: D028 §4 (frame rate).
   duplicated.
 - Depends on: 13.3 (independent of 13.4 in code; kept after it).
 
-### 13.6 — Project settings UI *(done — awaiting acceptance; D028 "Refined at the start of Step 13.6": `SetProjectSettings`, the draft dialog, New unchanged, errors in the dialog; manual scenarios 4–17 and 8a / 12a run in the real app at 1024 and 1440 px)*
+### 13.6 — Project settings UI *(done — accepted 2026-10-06, `66a0871`; D028 "Refined at the start of Step 13.6": `SetProjectSettings`, the draft dialog, New unchanged, errors in the dialog; manual scenarios 4–17 and 8a / 12a run in the real app at 1024 and 1440 px)*
 Scope: D028 §1, §4 (new project).
 - PR: a project settings dialog (canvas presets incl. portrait / square plus custom, the frame rate) reachable from the
   main window; applying it is the 13.4 / 13.5 command (one Undo step for a change of both); the New-project behaviour as
@@ -682,7 +682,7 @@ Scope: D028 §1, §4 (new project).
   dialog at the minimum window width (1024 px) in the real app.
 - Depends on: 13.4, 13.5.
 
-### 13.7 — Export settings: core and encoder
+### 13.7 — Export settings: core and encoder *(done — awaiting acceptance; D028 "Refined in Step 13.7": the job carries the settings, golden default command lines, the old constants removed; the AAC 320 kbps observation left to 13.8 / 13.9)*
 Scope: D028 §7 (13.7).
 - PR: an export uses the chosen quality, speed and audio bitrate; the default settings produce today's output.
 - QG: tests of the encoder arguments for every offered value; real encodes per level (valid MP4, duration, frame count,

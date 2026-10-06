@@ -269,6 +269,9 @@ public sealed class ProjectBuilder
 /// <summary>One finished export: the MP4 and what the service handed to the encoder (canvases and PCM).</summary>
 public sealed record ExportRun(string Path, ExportJob Job, IReadOnlyList<byte[]> Canvases, float[] Pcm, IReadOnlyList<ExportProgress> Progress)
 {
+    /// <summary>The export settings the encoder received (D028 Step 13.7).</summary>
+    public ExportEncoding? EncoderSettings { get; init; }
+
     public ExportOutput Output => Job.Output;
 }
 
@@ -299,7 +302,7 @@ public static class EndToEnd
         var encoder = new RecordingEncoder(EncoderHarness.Encoder());
         var progress = new List<ExportProgress>();
         await Service(encoder).ExportAsync(job, new SyncProgress(progress.Add));
-        return new ExportRun(outputPath, job, encoder.Canvases, encoder.Pcm.ToArray(), progress);
+        return new ExportRun(outputPath, job, encoder.Canvases, encoder.Pcm.ToArray(), progress) { EncoderSettings = encoder.Settings };
     }
 
     /// <summary>Every check a finished export must pass: an MP4 that opens, H.264 at the canvas size and the exact rate
@@ -402,8 +405,14 @@ public sealed class RecordingEncoder(IExportEncoder inner) : IExportEncoder
     public List<byte[]> Canvases { get; } = new();
     public List<float> Pcm { get; } = new();
 
-    public async Task<IExportEncoding> StartAsync(ExportOutput output, string destinationPath, CancellationToken ct = default) =>
-        new Encoding(this, output, await inner.StartAsync(output, destinationPath, ct));
+    /// <summary>The export settings the service handed over (passed on to the real encoder unchanged).</summary>
+    public ExportEncoding? Settings { get; private set; }
+
+    public async Task<IExportEncoding> StartAsync(ExportOutput output, ExportEncoding encoding, string destinationPath, CancellationToken ct = default)
+    {
+        Settings = encoding;
+        return new Encoding(this, output, await inner.StartAsync(output, encoding, destinationPath, ct));
+    }
 
     private sealed class Encoding(RecordingEncoder owner, ExportOutput output, IExportEncoding inner) : IExportEncoding
     {

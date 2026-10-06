@@ -478,9 +478,11 @@ Routine refactoring needed to implement a feature does not.
 - Contract (`Core/Export`): `ExportPreflight.Check(project, outputPath, environment)` on the UI thread builds
   the snapshot, collects every issue (errors block: empty timeline, odd canvas, output path/folder, output =
   project media, ffmpeg missing, media offline / not analysed / unsupported — only clips that reach the
-  output; warning: missing font) and returns an `ExportJob` (snapshot + full output path) when nothing
-  blocks. `ExportOutput` = canvas size, exact project frame rate, whole frames covering the duration, the
-  matching 48 kHz sample count; `ExportFormat` = MP4 / H.264 CRF 18 medium / AAC 48 kHz stereo 192 kbps.
+  output; warning: missing font) and returns an `ExportJob` (snapshot + full output path + the project's
+  `ExportEncoding` at that moment, Phase 13 Step 13.7) when nothing blocks. `ExportOutput` = canvas size, exact
+  project frame rate, whole frames covering the duration, the matching 48 kHz sample count; `ExportFormat` = the fixed
+  part: MP4 / H.264 / AAC 48 kHz stereo; the CRF, the libx264 preset and the AAC bitrate come from `job.Encoding`
+  (`IExportEncoder.StartAsync(output, encoding, …)`; default CRF 18 medium 192 kbps, the Phase 12 command lines).
   `IExportService`: `IsAvailableAsync`, `ExportAsync(job, progress, ct)` → temp file moved into place on
   success, `ExportException` / cancellation leave nothing behind.
 - UI (Step 7): Toolbar Export → `ExportWorkflow` (UI/Services): preflight (without the output file) → errors stop,
@@ -520,6 +522,6 @@ Step 11.5 closeout, the relink UI paragraph at the Step 11.6 implementation, the
 Steps 11.7–11.8 (Phase 11 merged into `main` as `47ed2fa`); the Phase 12 editing-essentials and import paragraphs of the
 Timeline section at the Phase 12 closeout (Step 12.9, `d467a84`; Phase 12 merged into `main` as `c0cb600`). Phase 13
 (D028, project & export settings): the `ProjectSettings` / persistence lines at Step 13.3, the canvas-size and
-composition lines at Step 13.4, the frame-rate line at Step 13.5, the project-settings line at Step 13.6; the export still
-uses `ExportFormat`'s constants.
+composition lines at Step 13.4, the frame-rate line at Step 13.5, the project-settings line at Step 13.6, the export
+contract (job settings, `ExportFormat`) at Step 13.7.
 Re-check the code before relying on details that later phases may have changed.

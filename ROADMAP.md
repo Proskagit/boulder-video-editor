@@ -67,7 +67,9 @@ documentation only) accepted with D028 (2026-10-06); Step 13.3 (settings model, 
 `project.json` v3) accepted (`4514f09`); Step 13.4 (canvas change: `SetCanvasSize`, positions and font sizes scaled by
 the contain factor, the preflight on the canvas rules) done (`ec51247`); Step 13.5 (frame-rate change: `SetFrameRate`,
 D007's re-grid on every track, FR-1 — every dissolve's handles checked) accepted (`010a1b8`); Step 13.6 (Project
-Settings… dialog, `SetProjectSettings` — canvas and rate in one Undo step) done — awaiting acceptance. Scope, constraints
+Settings… dialog, `SetProjectSettings` — canvas and rate in one Undo step) accepted (`66a0871`); Step 13.7 (export settings
+core: `ExportJob.Encoding` → encoder arguments, the default = the Phase 12 command lines) done — awaiting acceptance.
+Scope, constraints
 and out of scope: DECISIONS.md D028; steps 13.3
 settings model & format · 13.4 canvas size · 13.5 frame rate · 13.6 project settings UI · 13.7 export settings core · 13.8 L1-c
 codec-leg criteria · 13.9 export settings UI · 13.10 closeout — acceptance criteria in `docs/DEVELOPMENT_PLAN.md`.

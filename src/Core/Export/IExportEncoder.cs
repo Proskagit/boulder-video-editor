@@ -1,21 +1,25 @@
+using AiVideoEditor.Core.Entities;
+
 namespace AiVideoEditor.Core.Export;
 
 /// <summary>
-/// Encodes the finished pictures and sound of an export into the fixed D023 format (<see cref="ExportFormat"/>):
-/// MP4, H.264 (CRF 18, preset medium, 8-bit 4:2:0, BT.709 limited range), AAC-LC 48 kHz stereo 192 kbps, the
-/// size and exact frame rate of <see cref="ExportOutput"/>. It knows nothing about composition or audio placement:
+/// Encodes the finished pictures and sound of an export into the D023 format (<see cref="ExportFormat"/>): MP4, H.264
+/// (8-bit 4:2:0, BT.709 limited range) at the quality and libx264 preset of the job's <see cref="ExportEncoding"/>,
+/// AAC-LC 48 kHz stereo at its bitrate (D028 Step 13.7; the default is the Phase 8–12 output: CRF 18, medium,
+/// 192 kbps), the size and exact frame rate of <see cref="ExportOutput"/>. It knows nothing about composition or audio placement:
 /// it receives opaque BGRA canvases (<see cref="Composition.ICompositionRasterizer"/>) and the mixed 48 kHz stereo
 /// float PCM (the export's audio source). The backend (ffmpeg) stays behind this interface.
 /// </summary>
 public interface IExportEncoder
 {
     /// <summary>
-    /// Starts encoding an export of <paramref name="output"/> for <paramref name="destinationPath"/>. Nothing is written
+    /// Starts encoding an export of <paramref name="output"/> with <paramref name="encoding"/> (the job's — the encoder
+    /// reads no project) for <paramref name="destinationPath"/>. Nothing is written
     /// to that path until <see cref="IExportEncoding.CompleteAsync"/> succeeds: the encoding goes to temporary files
     /// next to it, which are moved into place (replacing an existing file) only then. ffmpeg missing →
     /// <see cref="ExportException"/> (<see cref="ExportFailure.EncoderUnavailable"/>).
     /// </summary>
-    Task<IExportEncoding> StartAsync(ExportOutput output, string destinationPath, CancellationToken ct = default);
+    Task<IExportEncoding> StartAsync(ExportOutput output, ExportEncoding encoding, string destinationPath, CancellationToken ct = default);
 }
 
 /// <summary>

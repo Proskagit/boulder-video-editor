@@ -1,22 +1,33 @@
+using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Playback;
 
 namespace AiVideoEditor.Core.Export;
 
 /// <summary>
 /// One export (D023): an immutable <see cref="PlaybackSnapshot"/> of the project taken on the UI
-/// thread — the same input the Preview plays — and the output file. The export never reads the live
-/// project. Created by <see cref="ExportPreflight.Check"/> only when nothing blocks the export.
+/// thread — the same input the Preview plays —, the output file and the project's export settings at that moment
+/// (<see cref="Encoding"/>, D028 Step 13.7). The export never reads the live project. Created by
+/// <see cref="ExportPreflight.Check"/> only when nothing blocks the export.
 /// </summary>
 public sealed class ExportJob
 {
-    public ExportJob(PlaybackSnapshot snapshot, string outputPath)
+    /// <param name="encoding">The export settings; null = <see cref="ExportEncoding.Default"/> (the Phase 8–12 output).
+    /// A value that is not offered is an <see cref="ArgumentException"/>.</param>
+    public ExportJob(PlaybackSnapshot snapshot, string outputPath, ExportEncoding? encoding = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+        encoding ??= ExportEncoding.Default;
+        if (encoding.Validate() is { } error) throw new ArgumentException(error, nameof(encoding));
         Snapshot = snapshot;
         OutputPath = outputPath;
+        Encoding = encoding;
         Output = ExportOutput.For(snapshot);
     }
+
+    /// <summary>The quality, libx264 preset and AAC bitrate of this export — an immutable record taken from the project
+    /// when the job was made; later changes of the project's settings don't reach it.</summary>
+    public ExportEncoding Encoding { get; }
 
     public PlaybackSnapshot Snapshot { get; }
 

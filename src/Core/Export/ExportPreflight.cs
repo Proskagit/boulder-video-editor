@@ -110,7 +110,7 @@ public static class ExportPreflight
         CheckFonts(snapshot, environment, issues);
 
         var ordered = issues.OrderBy(i => i.Severity).ToImmutableArray();
-        var job = ordered.Any(i => i.Severity == ExportIssueSeverity.Error) ? null : new ExportJob(snapshot, fullOutputPath!);
+        var job = ordered.Any(i => i.Severity == ExportIssueSeverity.Error) ? null : new ExportJob(snapshot, fullOutputPath!, project.Settings.Export);
         return new ExportPreflightResult(ordered, job);
     }
 

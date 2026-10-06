@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
+using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Playback;
 using Xunit;
@@ -12,7 +13,9 @@ namespace AiVideoEditor.Video.Tests;
 /// <summary>
 /// Phase 8 Step 5 (D023): the ffmpeg export encoder with the real ffmpeg — format and arguments, BGRA input (byte
 /// order, stride), colour round trip (BT.709 limited range), exact rational frame timing, AAC (48 kHz stereo LC
-/// 192 kbps, priming measured), audio/video synchronisation.
+/// 192 kbps, priming measured), audio/video synchronisation. Phase 13 Step 13.7 (D028): the export settings — the
+/// default gives the Phase 12 command lines exactly (golden), each setting changes only its own token, and real
+/// encodes at every level, preset and bitrate.
 /// </summary>
 [Collection(MediaCollection.Name)]
 public sealed class FfmpegExportEncoderTests : IDisposable
@@ -35,12 +38,185 @@ public sealed class FfmpegExportEncoderTests : IDisposable
 
     // --- arguments ---------------------------------------------------------------------------------------------
 
+    /// <summary>The exact Phase 8–12 command lines (fixed before Step 13.7 changed the code): the default export settings
+    /// must give them character for character — every token, no new one, the order and the values.</summary>
+    public const string GoldenVideoArguments =
+        "-hide_banner -nostats -loglevel error -y -f rawvideo -pix_fmt bgra -s 1920x1080 -framerate 30000/1001 -i pipe:0 " +
+        "-i a.m4a -map 0:v:0 -map 1:a:0 " +
+        "-vf scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709 " +
+        "-fps_mode passthrough -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p " +
+        "-colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv -c:a copy -movflags +faststart -f mp4 v.mp4";
+
+    public const string GoldenAudioArguments =
+        "-hide_banner -nostats -loglevel error -y -f f32le -ar 48000 -ac 2 -i pipe:0 " +
+        "-c:a aac -profile:a aac_low -b:a 192000 -ar 48000 -ac 2 -f mp4 a.m4a";
+
+    private static string VideoLine(ExportEncoding encoding) =>
+        string.Join(' ', FfmpegExportEncoder.VideoArguments(Output(1920, 1080, FrameRate.Ntsc30, 300), encoding, "a.m4a", "v.mp4"));
+
+    private static string AudioLine(ExportEncoding encoding) => string.Join(' ', FfmpegExportEncoder.AudioArguments(encoding, "a.m4a"));
+
+    [Fact]
+    public void The_default_export_settings_give_the_Phase_12_command_lines_character_for_character()
+    {
+        // D028 Step 13.7: the golden strings above were checked against the Phase 12 code before it changed.
+        Assert.Equal(GoldenVideoArguments, VideoLine(ExportEncoding.Default));
+        Assert.Equal(GoldenAudioArguments, AudioLine(ExportEncoding.Default));
+        Assert.Equal(GoldenVideoArguments, VideoLine(new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192)));
+    }
+
+    public static TheoryData<ExportQuality, string> Levels => new()
+    {
+        { ExportQuality.Maximum, "14" }, { ExportQuality.High, "18" }, { ExportQuality.Standard, "23" }, { ExportQuality.Compact, "28" }
+    };
+
+    [Theory]
+    [MemberData(nameof(Levels))]
+    public void A_quality_level_changes_only_the_crf(ExportQuality quality, string crf)
+    {
+        var settings = ExportEncoding.Default with { Quality = quality };
+
+        Assert.Equal(GoldenVideoArguments.Replace("-crf 18", $"-crf {crf}"), VideoLine(settings));
+        Assert.Equal(GoldenAudioArguments, AudioLine(settings));
+    }
+
+    [Theory]
+    [InlineData(ExportSpeedPreset.Fast, "fast")]
+    [InlineData(ExportSpeedPreset.Medium, "medium")]
+    [InlineData(ExportSpeedPreset.Slow, "slow")]
+    public void A_speed_preset_changes_only_the_preset(ExportSpeedPreset preset, string name)
+    {
+        var settings = ExportEncoding.Default with { Preset = preset };
+
+        Assert.Equal(GoldenVideoArguments.Replace("-preset medium", $"-preset {name}"), VideoLine(settings));
+        Assert.Equal(GoldenAudioArguments, AudioLine(settings));
+    }
+
+    [Theory]
+    [InlineData(128, "128000")]
+    [InlineData(160, "160000")]
+    [InlineData(192, "192000")]
+    [InlineData(256, "256000")]
+    [InlineData(320, "320000")]
+    public void An_audio_bitrate_changes_only_the_bitrate_in_bits_per_second(int kbps, string bps)
+    {
+        var settings = ExportEncoding.Default with { AudioBitrateKbps = kbps };
+
+        Assert.Equal(GoldenAudioArguments.Replace("-b:a 192000", $"-b:a {bps}"), AudioLine(settings));
+        Assert.Equal(GoldenVideoArguments, VideoLine(settings));
+    }
+
+    [Fact]
+    public void The_numbers_do_not_depend_on_the_culture()
+    {
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("ru-RU");    // group separator: a space
+            Assert.Equal(GoldenAudioArguments, AudioLine(ExportEncoding.Default));
+            Assert.Equal(GoldenVideoArguments, VideoLine(ExportEncoding.Default));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = culture;
+        }
+    }
+
+    [Fact]
+    public async Task Settings_that_are_not_offered_are_refused_before_ffmpeg_starts()
+    {
+        var error = await Assert.ThrowsAsync<ArgumentException>(() =>
+            Encoder().StartAsync(Output(64, 36, FrameRate.Fps25, 10), ExportEncoding.Default with { AudioBitrateKbps = 100 }, Out()));
+        Assert.Equal("encoding", error.ParamName);
+        Assert.Empty(Directory.GetFiles(_dir));
+    }
+
+    // --- real encodes at other settings (D028 Step 13.7; validity only — the picture criteria per level are L1-c, 13.8) ---
+
+    /// <summary>libx264 writes its options into the stream (an SEI "x264 - core … options: …"); the CRF and the
+    /// preset-dependent subme are read from it. Returns null when the string is not there.</summary>
+    private static string? X264Options(string path)
+    {
+        var text = System.Text.Encoding.ASCII.GetString(File.ReadAllBytes(path));
+        var at = text.IndexOf("x264 - core", StringComparison.Ordinal);
+        if (at < 0) return null;
+        var end = text.IndexOf('\0', at);
+        return text.Substring(at, (end < 0 ? text.Length : end) - at);
+    }
+
+    public static TheoryData<ExportQuality, ExportSpeedPreset, string, int> VideoSettings => new()
+    {
+        { ExportQuality.Maximum, ExportSpeedPreset.Medium, "crf=14.0", 7 },
+        { ExportQuality.High, ExportSpeedPreset.Medium, "crf=18.0", 7 },
+        { ExportQuality.Standard, ExportSpeedPreset.Medium, "crf=23.0", 7 },
+        { ExportQuality.Compact, ExportSpeedPreset.Medium, "crf=28.0", 7 },
+        { ExportQuality.High, ExportSpeedPreset.Fast, "crf=18.0", 6 },
+        { ExportQuality.High, ExportSpeedPreset.Slow, "crf=18.0", 8 },
+    };
+
+    [FfmpegTheory]
+    [MemberData(nameof(VideoSettings))]
+    public async Task Every_quality_level_and_preset_encodes_a_valid_mp4_with_those_x264_settings(
+        ExportQuality quality, ExportSpeedPreset preset, string crf, int subme)
+    {
+        var settings = ExportEncoding.Default with { Quality = quality, Preset = preset };
+        var output = Output(160, 90, FrameRate.Fps25, 50);                                  // 2 s
+        await Encode(output, Out(), k => 0.3f * MathF.Sin(2 * MathF.PI * 440 * k / 48_000f), (n, px, stride) => NumberFrame(n, px, stride, 160, 90),
+            settings: settings);
+
+        var video = Stream(Out(), "video");
+        Assert.Equal(("h264", "160", "90", "25/1", "yuv420p"),
+            (video.Str("codec_name"), video.Str("width"), video.Str("height"), video.Str("r_frame_rate"), video.Str("pix_fmt")));
+        var frames = DecodeFrames(Out(), 160, 90);
+        Assert.Equal(50, frames.Count);
+        Assert.Equal(Enumerable.Range(0, 50), frames.Select(f => ReadNumber(f, 160, 90)));
+        Assert.Equal(output.AudioSampleCount, DecodeLeft(Out()).Length);
+        var duration = double.Parse(Probe(Out(), "-show_format").GetProperty("format").Str("duration"), System.Globalization.CultureInfo.InvariantCulture);
+        Assert.InRange(duration, 1.99, 2.05);
+
+        var options = X264Options(Out());
+        _output.WriteLine(options ?? "(no x264 options string)");
+        Assert.NotNull(options);
+        Assert.Contains(crf, options);
+        Assert.Contains($"subme={subme}", options);
+    }
+
+    [FfmpegFact]
+    public async Task Every_audio_bitrate_encodes_a_valid_AAC_LC_track_near_the_request()
+    {
+        // The requested -b:a is the contract (the golden command lines above). What ffmpeg's native AAC encoder reaches is
+        // checked loosely: up to 256 kbps within 10 % of the request on noise. At 320 kbps it stays below the request —
+        // and below what 256 kbps gives (FFmpeg 9.0.1: about 243 against 259 kbps; recorded in D028 for 13.8 / 13.9) —
+        // so there only "a valid AAC track above the 192 kbps result" is required.
+        var output = Output(64, 36, FrameRate.Fps25, 100);                                  // 4 s
+        var random = new Random(1234);
+        var noise = Enumerable.Range(0, (int)output.AudioSampleCount).Select(_ => (float)(random.NextDouble() - 0.5) * 0.8f).ToArray();
+        var measured = new Dictionary<int, long>();
+        foreach (var kbps in ExportEncoding.AudioBitratesKbps)
+        {
+            var path = Out($"aac-{kbps}.mp4");
+            await Encode(output, path, k => noise[k], (n, px, stride) => NumberFrame(n, px, stride, 64, 36),
+                settings: ExportEncoding.Default with { AudioBitrateKbps = kbps });
+            var audio = Stream(path, "audio");
+            Assert.Equal(("aac", "LC", "48000", "2"), (audio.Str("codec_name"), audio.Str("profile"), audio.Str("sample_rate"), audio.Str("channels")));
+            Assert.Equal(output.AudioSampleCount, DecodeLeft(path).Length);
+            measured[kbps] = long.Parse(audio.Str("bit_rate"));
+            _output.WriteLine($"{kbps} kbps requested: {measured[kbps]} b/s");
+        }
+
+        foreach (var kbps in new[] { 128, 160, 192, 256 })
+            Assert.InRange(measured[kbps], kbps * 1000 * 0.9, kbps * 1000 * 1.1);
+        Assert.True(measured[320] > measured[192], $"320 kbps gave {measured[320]}, 192 kbps {measured[192]}");
+        var upTo256 = new[] { 128, 160, 192, 256 }.Select(k => measured[k]).ToList();
+        Assert.Equal(upTo256.OrderBy(b => b), upTo256);
+    }
+
     [Fact]
     public void The_command_lines_carry_the_D023_format()
     {
         var output = Output(1920, 1080, FrameRate.Ntsc30, 300);
-        var video = string.Join(' ', FfmpegExportEncoder.VideoArguments(output, "a.m4a", "v.mp4"));
-        var audio = string.Join(' ', FfmpegExportEncoder.AudioArguments("a.m4a"));
+        var video = string.Join(' ', FfmpegExportEncoder.VideoArguments(output, ExportEncoding.Default, "a.m4a", "v.mp4"));
+        var audio = string.Join(' ', FfmpegExportEncoder.AudioArguments(ExportEncoding.Default, "a.m4a"));
 
         Assert.Contains("-f rawvideo -pix_fmt bgra -s 1920x1080 -framerate 30000/1001 -i pipe:0", video);
         Assert.Contains("-c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p", video);

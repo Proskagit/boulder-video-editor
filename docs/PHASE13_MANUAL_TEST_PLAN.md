@@ -64,9 +64,9 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 18 | Default settings | Export with the defaults | The same output as Phase 12 (H.264 CRF 18 medium, AAC 192 kbps) | (13.7) | planned |
-| 19 | Each quality level | Export the same project at every level | Valid MP4s; size changes with the level; the picture as the Preview within the level's criterion (13.8) | (13.7) | planned |
-| 20 | Speed preset and audio bitrate | Export with another preset and bitrate | Valid MP4; the bitrate as chosen (ffprobe) | (13.7) | planned |
+| 18 | Default settings | Export with the defaults | The same output as Phase 12 (H.264 CRF 18 medium, AAC 192 kbps) | `FfmpegExportEncoderTests` (golden default command lines), `ExportSettingsEndToEndTests` (default through the chain) | auto (13.7); manual after 13.9 (no UI before; the default export was run in the app at 13.6 — scenario 6) |
+| 19 | Each quality level | Export the same project at every level | Valid MP4s; size changes with the level; the picture as the Preview within the level's criterion (13.8) | `FfmpegExportEncoderTests` (every level: valid MP4, `crf=` in the x264 options), `ExportSettingsEndToEndTests` | auto (13.7) for validity; the picture against the Preview per level: 13.8 (L1-c); manual after 13.9 |
+| 20 | Speed preset and audio bitrate | Export with another preset and bitrate | Valid MP4; the bitrate as chosen (ffprobe) | `FfmpegExportEncoderTests` (presets: `subme`; bitrates: AAC-LC near the request up to 256 kbps — 320 kbps reaches ≈ 243 kbps, D028 13.7) | auto (13.7); manual after 13.9 |
 
 ## Step 13.8 — L1-c (D028 §6)
 

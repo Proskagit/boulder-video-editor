@@ -5,7 +5,8 @@
 Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
 merge of PR #12). Step 13.1 (audit) accepted (2026-10-06); Step 13.2 accepted with D028 (2026-10-06); Step 13.3
 accepted (`4514f09`); Step 13.4 (canvas change) done (`ec51247`); Step 13.5 (frame-rate change) accepted (`010a1b8`);
-Step 13.6 (Project Settings dialog) done — awaiting acceptance. Scope, steps and
+Step 13.6 (Project Settings dialog) accepted (`66a0871`); Step 13.7 (export settings core) done — awaiting acceptance.
+Scope, steps and
 acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 13 — Project & export settings: steps"; decision D028.
 
 ### Phase 13 — Project & export settings (in progress)
@@ -174,6 +175,35 @@ push, pull request or merge without direct permission; no next step without the 
   - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2507
     passed, 2 skipped (only the two 4K scenes), 0 failed — Core 506, Timeline 484 (+11), Project 420, UI 555 (+13),
     Export 99, Rendering 58, Video 294, ExportEndToEnd 91 + 2; `git diff --check` clean.
+  - Committed as `66a0871`; accepted by the product owner (2026-10-06).
+- Step 13.7 done (2026-10-06) — export settings core (the export pipeline audit first, no code; accepted by the product
+  owner — D028 "Refined in Step 13.7").
+  - Core: `ExportJob(snapshot, outputPath, ExportEncoding? encoding = null)` with `Encoding` (null → default, validated);
+    `ExportPreflight` passes `project.Settings.Export`; `IExportEncoder.StartAsync(output, encoding, destination, ct)`;
+    `ExportFormat.VideoCrf / VideoPreset / AudioBitrateBps` removed. Export: `ExportService` passes `job.Encoding` (and
+    logs it). Video: `FfmpegExportEncoder` builds `-crf`, `-preset`, `-b:a` from the encoding (invariant culture), every
+    other token unchanged, the settings validated before ffmpeg starts. Test doubles: `FakeEncoder` and
+    `RecordingEncoder` record the settings they get; the encoder harness and the failure tests pass the default.
+  - Golden first: the full Phase 12 audio / video command lines were written as literals and checked against the Phase 12
+    code (a temporary test, `66a0871` encoder) before the code changed; the same strings now pin the default.
+  - Tests: `Video.Tests/FfmpegExportEncoderTests` (golden default; each level / preset / bitrate changes only its token;
+    culture-independent numbers; settings not offered refused before ffmpeg; real encodes at every level and preset —
+    valid MP4, frames, duration, audio length, `crf=` / `subme=` in the x264 options string; every AAC bitrate valid, 128–
+    256 kbps within 10 %), `Core.Tests/ExportOutputTests` (the fixed format only; job default / explicit / refused),
+    `Core.Tests/ExportPreflightTests` (the job takes the project's settings; changing them after the preflight leaves the
+    job's), `Export.Tests/ExportServiceTests` (the encoder gets the job's settings), `ExportEndToEnd.Tests/
+    ExportSettingsEndToEndTests` (default through the chain; Compact / fast / 128 reaching the encoder with the canvases
+    = the Preview byte for byte; settings changed after the preflight not reaching a real export). Existing export /
+    parity tests unchanged.
+  - Observation (not changed, for 13.8 / 13.9): ffmpeg's native AAC gives ≈ 243 kbps for a 320 kbps request on stereo
+    noise (FFmpeg 9.0.1), less than for 256 kbps (≈ 259 kbps).
+  - Mutations (each reverted, all caught): the preflight ignoring the project's settings → 2; the service sending the
+    default → 1; `-b:a` as "192k" → 15 (of the 15 argument tests); CRF / preset / bitrate from the default instead of the
+    job → 3 / 2 / 4; `-crf` before `-preset` → 15; a culture-formatted number → 15; the job not validating → 3. (A first
+    run of the encoder mutations had a filter that left out the level tests; rerun with the right filter.)
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2540
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 513 (+7), Timeline 484, Project 420, UI 555, Export 100
+    (+1), Rendering 58, Video 316 (+22), ExportEndToEnd 94 (+3) + 2; `git diff --check` clean.
 
 ### Phase 12 — Editing essentials (complete; PR #12 merged as `c0cb600`, CI green)
 

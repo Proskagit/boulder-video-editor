@@ -995,7 +995,9 @@ defect was a test error (a same-frame check on a scene whose frames are identica
 `ExportParityViewportTests`, `ExportParityEncodedTests` and the shared checks `ParityMetrics`; each criterion was
 confirmed by mutations of the production code (restored byte for byte afterwards).
 
-Status: Accepted.
+Status: Accepted. Phase 13 (D028, Step 13.7): the quality (CRF), the libx264 preset and the AAC bitrate are the project's
+export settings, carried by the job; their default is this decision's fixed format (CRF 18, medium, 192 kbps), with the
+same command lines. D028 "Refined in Step 13.7".
 
 ---
 
@@ -2480,12 +2482,41 @@ Refined at the start of Step 13.6 (product owner, 2026-10-06, on the step's UI a
   1440 px.
 - Not in 13.6: the export settings (13.7 / 13.9), L1-c (13.8).
 
+Refined in Step 13.7 (the step's audit accepted by the product owner, 2026-10-06, and the implementation):
+- One flow: `ProjectSettings.Export` → `ExportPreflight.Check` → `ExportJob.Encoding` → `ExportService` →
+  `IExportEncoder.StartAsync(output, encoding, destination, ct)` → `FfmpegExportEncoder`. `ExportJob(snapshot, outputPath,
+  ExportEncoding? encoding = null)` — null is `ExportEncoding.Default`, a value not offered an `ArgumentException`; the
+  preflight passes `project.Settings.Export` when it makes the job — the same moment and thread as the snapshot. The
+  record is immutable and the project only ever replaces it, so later changes of the project's settings never reach a
+  job (tests: the preflight, a real export through the service). The export service and the encoder read no project.
+- `FfmpegExportEncoder`: `-crf` = `encoding.Crf`, `-preset` = `encoding.PresetName`, `-b:a` = `AudioBitrateKbps × 1000` (bits
+  per second, invariant culture); every other token, its value and the order are unchanged (libx264, AAC-LC, 48 kHz,
+  stereo, yuv420p, BT.709 limited, the filter, the mapping, `-fps_mode passthrough`, `+faststart`, MP4). The encoder
+  validates the settings too, before ffmpeg starts.
+- One source of truth: `ExportFormat.VideoCrf`, `VideoPreset` and `AudioBitrateBps` are removed (no fallback); `ExportFormat`
+  keeps only the fixed format (container, codecs, extension, 48 kHz, 2 channels). The comments of `IExportEncoder` /
+  `FfmpegExportEncoder` no longer call the quality fixed.
+- Default compatibility: golden command lines in `Video.Tests` — the full audio and video argument strings of Phase 12,
+  taken from the Phase 12 code (the test was run against it before the change) — must equal the default's character for
+  character; each quality level / preset / bitrate changes only its own token (`-crf`, `-preset`, `-b:a`); the numbers
+  don't depend on the culture. A byte comparison of MP4 files across ffmpeg builds is not part of the suite (libx264 is
+  deterministic only for the same build and thread count): the arguments and the unchanged canvases / PCM are the contract.
+- Real encodes (validity, not picture criteria — those are L1-c, 13.8): every level at medium and every preset at High
+  give a valid MP4 (frames, numbers, duration, audio length) whose x264 options string carries `crf=14.0 / 18.0 / 23.0 /
+  28.0` and `subme=6 / 7 / 8` (fast / medium / slow); every AAC bitrate gives a valid AAC-LC track; 128–256 kbps within
+  10 % of the request on noise. An export through the whole chain: default for a project without settings, other
+  settings reaching the encoder with the canvases still the Preview's byte for byte.
+- **Observation for 13.8 / 13.9 (not changed):** ffmpeg's native AAC encoder (FFmpeg 9.0.1) does not reach 320 kbps on
+  stereo — about 243 kbps measured, below the ≈ 259 kbps it gives for 256 kbps. The request is passed exactly
+  (`-b:a 320000`); whether 320 stays offered is a product decision for the measurement / UI steps.
+- Not in 13.7: the export settings UI (13.9), L1-c (13.8), `project.json` (unchanged, v3).
+
 Consequences: `ProjectSettings` becomes user-editable through new undoable commands; the export gains a settings model
 used by `FfmpegExportEncoder` (`ExportOutput` and the preflight keep their roles); `project.json` stays v3 or becomes v4
 by §5; the parity suite gains scenes for new canvas sizes and rates and per-level codec criteria (§6);
 `docs/PHASE13_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
 
-Status: Accepted (2026-10-06, product owner). Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 accepted (`010a1b8`); Step 13.6 done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
+Status: Accepted (2026-10-06, product owner). Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 accepted (`010a1b8`); Step 13.6 accepted (`66a0871`); Step 13.7 done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
 
 ---
 

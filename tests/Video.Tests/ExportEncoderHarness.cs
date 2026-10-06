@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
+using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Interfaces;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -25,9 +26,9 @@ internal static class EncoderHarness
     /// <summary>Encodes: <paramref name="sample"/>(k) is the stereo sample k (same on both channels), <paramref name="frame"/>(n)
     /// fills canvas n (BGRA, stride = width · 4 + <paramref name="stridePadding"/>).</summary>
     public static async Task Encode(ExportOutput output, string destination, Func<long, float> sample, Action<long, byte[], int> frame,
-        int stridePadding = 0, IFfmpegLocator? locator = null)
+        int stridePadding = 0, IFfmpegLocator? locator = null, ExportEncoding? settings = null)
     {
-        await using var encoding = await Encoder(locator).StartAsync(output, destination);
+        await using var encoding = await Encoder(locator).StartAsync(output, settings ?? ExportEncoding.Default, destination);
         var chunk = new float[2 * 4_800];
         for (long k = 0; k < output.AudioSampleCount; k += 4_800)
         {

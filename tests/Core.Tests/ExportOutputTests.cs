@@ -101,9 +101,13 @@ public class ExportOutputTests
         Assert.Equal(ExportVideoCodec.H264, ExportFormat.VideoCodec);
         Assert.Equal(ExportAudioCodec.Aac, ExportFormat.AudioCodec);
         Assert.Equal(".mp4", ExportFormat.FileExtension);
-        Assert.Equal(18, ExportFormat.VideoCrf);
-        Assert.Equal("medium", ExportFormat.VideoPreset);
-        Assert.Equal((48_000, 2, 192_000), (ExportFormat.AudioSampleRate, ExportFormat.AudioChannels, ExportFormat.AudioBitrateBps));
+        Assert.Equal((48_000, 2), (ExportFormat.AudioSampleRate, ExportFormat.AudioChannels));
+        // D028 Step 13.7: the quality, the preset and the AAC bitrate are no longer constants of the format — one source,
+        // the job's ExportEncoding.
+        var constants = typeof(ExportFormat).GetFields().Select(f => f.Name).ToList();
+        Assert.DoesNotContain("VideoCrf", constants);
+        Assert.DoesNotContain("VideoPreset", constants);
+        Assert.DoesNotContain("AudioBitrateBps", constants);
     }
 
     [Fact]
@@ -113,5 +117,36 @@ public class ExportOutputTests
 
         Assert.Throws<ArgumentException>(() => new ExportJob(snapshot, " "));
         Assert.Equal(50, new ExportJob(snapshot, @"C:\out.mp4").Output.FrameCount);
+    }
+
+    [Fact]
+    public void A_job_without_export_settings_has_the_default_ones()
+    {
+        var job = new ExportJob(Snapshot(FrameRate.Fps25, MediaTime.FromSeconds(1)), @"C:\out.mp4");
+
+        Assert.Same(ExportEncoding.Default, job.Encoding);
+        Assert.Same(ExportEncoding.Default, new ExportJob(Snapshot(FrameRate.Fps25, MediaTime.FromSeconds(1)), @"C:\out.mp4", null).Encoding);
+    }
+
+    [Fact]
+    public void A_job_keeps_the_export_settings_it_was_given()
+    {
+        var encoding = new ExportEncoding(ExportQuality.Compact, ExportSpeedPreset.Slow, 320);
+
+        var job = new ExportJob(Snapshot(FrameRate.Fps25, MediaTime.FromSeconds(1)), @"C:\out.mp4", encoding);
+
+        Assert.Same(encoding, job.Encoding);
+    }
+
+    [Theory]
+    [InlineData(7, 1, 192)]
+    [InlineData(1, 7, 192)]
+    [InlineData(1, 1, 191)]
+    public void A_job_refuses_export_settings_that_are_not_offered(int quality, int preset, int bitrate)
+    {
+        var encoding = new ExportEncoding((ExportQuality)quality, (ExportSpeedPreset)preset, bitrate);
+
+        var error = Assert.Throws<ArgumentException>(() => new ExportJob(Snapshot(FrameRate.Fps25, MediaTime.FromSeconds(1)), @"C:\out.mp4", encoding));
+        Assert.Equal("encoding", error.ParamName);
     }
 }
