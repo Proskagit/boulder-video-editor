@@ -84,7 +84,8 @@ source rates (outside 1–240 FPS) lock a 30 FPS fallback and say so explicitly.
 After locking, the rate never changes automatically; deleting videos doesn't unlock
 — only undoing the locking add does.
 
-Status: Accepted.
+Status: Accepted. Phase 13 (D028, Step 13.5): the user may choose the rate (new or existing project) — the same re-grid,
+one Undo step, and the chosen rate is locked; the automatic rule above is unchanged. D028 "Refined in Step 13.5".
 
 ---
 
@@ -1434,7 +1435,8 @@ message — except a trim, which is clamped (as trims already are, D008).
 - Speed change of A: A's end moves (D022: the start stays) → the cut separates or would overlap B (already rejected
   by the no-overlap rule) → removed when separated. Speed change of B: the cut stays; rejected when B's handle or the
   zone no longer fits at the new speed.
-- Frame-rate re-grid (the first video fixes the rate): `F` is re-derived; a dissolve whose clips are no longer adjacent
+- Frame-rate re-grid (the first video fixes the rate, or the user changes it — D028 Step 13.5, where every dissolve's
+  handles are checked, FR-1): `F` is re-derived; a dissolve whose clips are no longer adjacent
   is removed; one whose zone or handles no longer fit rejects the whole operation (as other re-grid failures).
 - Clip property edits (opacity, transform, fades, …) never touch a dissolve.
 - A locked track rejects every edit on it, dissolves included (as now).
@@ -2408,12 +2410,44 @@ implementation:
   (13.6), the frame-rate change (13.5), the export settings and the encoder (13.7, 13.9).
 - Not changed, noted for later: a new text clip still gets the model's `FontSize` 48 whatever the canvas.
 
+Refined in Step 13.5 (implementation, 2026-10-06; FR-1…FR-4 as confirmed at the start of Step 13.3):
+- `ITimelineEditService.SetFrameRate(rate)` — no new interface. A rate not in `ProjectSettingsRules.SelectableFrameRates`
+  (or an invalid one) is refused ("… FPS is not one of the project frame rates."). The current rate of a locked project
+  is `NoChange`; of an unlocked one it is locked as one Undo step (`SetFrameRateCommand` alone, nothing re-gridded —
+  FR-4). Any other rate: an `EditPlan` with the new rate, locked (`SetFrameRate(rate, locked: true)`), `FrameRateRegrid.Plan`
+  and the usual `Validate` (`ReconcileTransitions`, `ClampFades`, `TimelineValidator` on every track, `TransitionRules` and
+  the source handles); a failure of either refuses the whole change with "Can't change the frame rate to X FPS: <reason>"
+  — nothing changed, no Undo step. Otherwise one "Set Frame Rate" step (`plan.BuildCommand`, absolute before / after
+  states) in one `NotifyingCommand`: one `TimelineChanged`, dirty through the save point.
+- Re-grid (`FrameRateRegrid`, D007's rule, unchanged in substance): every track, locked and hidden ones too (FR-3); each
+  clip edge to its nearest frame of the new grid (ties up), so clips that met still meet and edges of other tracks at
+  the same time land on the same frame; `SourceIn` kept, `SourceOut` follows the new length; a clip that would collapse
+  grows by one frame into free space (right, else left), else the change is refused; a clip past its source is shortened
+  to the source's whole frames; a clip with a speed keeps its source range and speed and takes `SpeedTiming.FramesFor`
+  frames (D022). Order kept or refused; overlap refused.
+- Kept in time: fades (`FadeIn` / `FadeOut` ticks unchanged, frames derived anew; cut to a shorter clip by `ClampFades`),
+  dissolves (`Duration` ticks unchanged, `F` derived anew; removed with D025's note when their clips no longer meet,
+  refused when `F < 2`, the zone doesn't fit or the handles don't suffice), markers (`MediaTime` unchanged, several on
+  one frame allowed — FR-2). The playhead (session state, D015) goes to its nearest frame of the current grid after
+  Execute, Undo and Redo (in the command's notification, never an Undo step of its own).
+- **FR-1 fixed**: `EditPlan.IsTouched` counts every dissolve as touched when the plan changes the rate, so its source
+  handles are checked although none of its clips moved (a rate change re-derives the zone's frames and their split
+  around the cut: 0.1 s is 1 + 2 frames at 30 fps, 3 + 3 at 60). This applies to the first video fixing the rate as well
+  (D007), where an unlocked project's existing dissolve could otherwise be left with too little source. Regression tests:
+  30 → 60 fps with B one 30 fps frame into its source — refused; the same through the first video — refused; with
+  enough source — kept.
+- Clipboard: clips copied before a rate change are refused on paste — the existing D027 §5 rule ("The project frame
+  rate changed since the clips were copied. Copy them again."); an Undo of the change makes the copy valid again.
+- D007 changes only in "after locking, the rate never changes": the user may change it (D028); the automatic rule (the
+  first video fixes an unlocked rate) is unchanged.
+- Not in 13.5: the UI (13.6 — with the `EditingLock`), the export settings / encoder (13.7). `project.json` unchanged.
+
 Consequences: `ProjectSettings` becomes user-editable through new undoable commands; the export gains a settings model
 used by `FfmpegExportEncoder` (`ExportOutput` and the preflight keep their roles); `project.json` stays v3 or becomes v4
 by §5; the parity suite gains scenes for new canvas sizes and rates and per-level codec criteria (§6);
 `docs/PHASE13_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
 
-Status: Accepted (2026-10-06, product owner). Step 13.3 accepted (`4514f09`); Step 13.4 done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
+Status: Accepted (2026-10-06, product owner). Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
 
 ---
 

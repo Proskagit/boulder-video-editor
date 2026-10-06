@@ -156,10 +156,12 @@ public sealed class EditPlan
     public IEnumerable<(Transition Transition, TransitionState State)> EffectiveTransitions(Track track) =>
         AllEffectiveTransitions().Where(t => t.State.Track == track);
 
-    /// <summary>True when the plan creates or changes the transition or changes one of its clips: its source handles
-    /// are then checked (D025 §4: only when an edit creates or keeps a dissolve).</summary>
+    /// <summary>True when the plan creates or changes the transition or changes one of its clips — or changes the frame
+    /// rate, which re-derives every zone's frames and their split around the cut even where no clip moves (D028 Step
+    /// 13.5, FR-1): its source handles are then checked (D025 §4: only when an edit creates or keeps a dissolve).</summary>
     public bool IsTouched(Transition transition)
     {
+        if (NewFrameRate is { } rate && rate != _settings.FrameRate) return true;
         if (_transitionUpdates.ContainsKey(transition) || _transitionAdds.Any(a => a.Transition == transition)) return true;
         var state = StateOf(transition);
         return Changes(state.LeftClipId) || Changes(state.RightClipId);

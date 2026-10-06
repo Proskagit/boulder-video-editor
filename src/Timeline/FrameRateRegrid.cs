@@ -4,8 +4,9 @@ using AiVideoEditor.Core.Entities;
 namespace AiVideoEditor.Timeline;
 
 /// <summary>
-/// Moves every existing clip onto a new frame grid when the project frame rate is
-/// fixed by the first video (clips added before that sit on the provisional grid).
+/// Moves every existing clip onto a new frame grid when the project frame rate changes — fixed by the first video (D007;
+/// clips added before that sit on the provisional grid) or chosen by the user (D028 Step 13.5). Every track, locked and
+/// hidden ones too.
 /// Each edge goes to its nearest new-grid frame; SourceIn is kept, SourceOut follows
 /// the new duration. Adjacency, order and gaps are preserved as closely as the new
 /// grid allows. Fix-ups, in order, for the rare cases rounding breaks something:
@@ -14,7 +15,9 @@ namespace AiVideoEditor.Timeline;
 /// next clip leaves room, else by one frame to the left if the previous clip does;</item>
 /// <item>a video/audio clip that would now run past the end of its source is shortened
 /// to the largest frame count the source can supply;</item>
-/// <item>anything else (no room to fix, clip with speed ≠ 1.0) rejects the whole
+/// <item>a clip with a speed keeps its source range and speed and takes as many frames of the new grid as they give
+/// (D022);</item>
+/// <item>anything else (no room to fix, a clip shorter than one frame) rejects the whole
 /// operation — nothing is changed.</item>
 /// </list>
 /// Every result is still checked by <see cref="TimelineValidator"/> afterwards.

@@ -165,6 +165,21 @@ public interface ITimelineEditService
     /// </summary>
     TimelineEditResult SetCanvasSize(int width, int height);
 
+    /// <summary>
+    /// Changes the project frame rate (D028, Step 13.5) to <paramref name="rate"/> — one of
+    /// <see cref="ProjectSettingsRules.SelectableFrameRates"/> — as one Undo step, and locks it
+    /// (<see cref="ProjectSettings.IsFrameRateLocked"/>), so a later first video no longer sets it. The timeline is
+    /// re-gridded by D007's rule (<c>FrameRateRegrid</c>) on every track, locked and hidden ones too: each clip edge to its
+    /// nearest frame of the new grid, a clip that would collapse grows by one frame into free space, a clip past its source
+    /// is shortened to the whole frames the source has, a clip with a speed keeps its source range and speed; fades and
+    /// dissolves keep their time (their frames are derived anew), markers keep their <see cref="MediaTime"/>, the playhead
+    /// goes to its nearest frame of the grid. Refused whole — nothing changed, no Undo step — when the rate is not offered,
+    /// or the re-grid or the validation fails (clips that would overlap, a dissolve shorter than two frames, a zone that no
+    /// longer fits, source handles that no longer suffice — checked for every dissolve). The current rate of an unlocked
+    /// project only locks it (one Undo step); of a locked one it is <see cref="TimelineEditResult.NoChange"/>.
+    /// </summary>
+    TimelineEditResult SetFrameRate(FrameRate rate);
+
     /// <summary>Changes the speed of a video or audio clip (D022). The start and the source range
     /// (SourceIn/SourceOut) stay; the duration becomes the whole number of frames the range allows at
     /// the new speed (<see cref="SpeedTiming.FramesFor"/>). Rejected without changes when the clip

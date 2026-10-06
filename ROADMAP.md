@@ -65,7 +65,9 @@ export settings (quality, encoder speed, audio bitrate), with L1-c decided insid
 configurable. Step 13.1 (audit) accepted (2026-10-06); Step 13.2 (sync after the merge of PR #12, scope formalization,
 documentation only) accepted with D028 (2026-10-06); Step 13.3 (settings model, validation, `settings.export` in
 `project.json` v3) accepted (`4514f09`); Step 13.4 (canvas change: `SetCanvasSize`, positions and font sizes scaled by
-the contain factor, the preflight on the canvas rules) done — awaiting acceptance. Scope, constraints and out of scope: DECISIONS.md D028; steps 13.3
+the contain factor, the preflight on the canvas rules) done (`ec51247`); Step 13.5 (frame-rate change: `SetFrameRate`,
+D007's re-grid on every track, FR-1 — every dissolve's handles checked) done — awaiting acceptance. Scope, constraints
+and out of scope: DECISIONS.md D028; steps 13.3
 settings model & format · 13.4 canvas size · 13.5 frame rate · 13.6 project settings UI · 13.7 export settings core · 13.8 L1-c
 codec-leg criteria · 13.9 export settings UI · 13.10 closeout — acceptance criteria in `docs/DEVELOPMENT_PLAN.md`.
 Details: `progress.md`.

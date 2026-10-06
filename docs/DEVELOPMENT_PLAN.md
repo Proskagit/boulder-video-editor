@@ -56,7 +56,8 @@ and runs cleanly.
       existing projects, undoable), export settings (quality, encoder speed, audio bitrate) on the existing MP4 /
       H.264 / AAC encoder, and the codec-leg criteria of L1-c. Scope, steps and acceptance criteria: section below and
       DECISIONS.md D028 (product owner decisions, 2026-10-06). *(branch `feat/phase-13-project-export-settings`, from
-      `c0cb600`; D028 accepted 2026-10-06; Step 13.3 accepted (`4514f09`); Step 13.4 done — awaiting acceptance)*
+      `c0cb600`; D028 accepted 2026-10-06; Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 done
+      — awaiting acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -660,7 +661,7 @@ Scope: D028 §4 (canvas).
   canvas the renderers read.
 - Depends on: 13.3.
 
-### 13.5 — Frame rate change
+### 13.5 — Frame rate change *(done — awaiting acceptance; D028 "Refined in Step 13.5": `ITimelineEditService.SetFrameRate`, FR-1 fixed with regression tests, no UI — the `EditingLock` with the dialog of 13.6)*
 Scope: D028 §4 (frame rate).
 - PR: the project frame rate can be chosen for a new project and changed in an existing one; the timeline is
   re-gridded as one undoable step (D007's rule); a change that can't be made exactly is refused whole with a message;

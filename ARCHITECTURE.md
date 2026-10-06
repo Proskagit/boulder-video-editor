@@ -124,6 +124,11 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   a `CompositeCommand`, one `TimelineChanged`) that multiplies `PositionX / PositionY` of every picture / text clip and
   `FontSize` of every text clip by `s = min(W'/W, H'/H)` (locked and hidden tracks too); refused whole when a scaled value
   leaves `ClipPropertyLimits`. A clipboard copied at another canvas is refused on paste (`TimelineClipboard.Canvas`).
+- Frame rate (Phase 13 Step 13.5, D028): `SetFrameRate(rate)` — one of `ProjectSettingsRules.SelectableFrameRates`; the
+  current rate only locks an unlocked project (FR-4); otherwise one "Set Frame Rate" step: `EditPlan.SetFrameRate(rate,
+  locked: true)` + `FrameRateRegrid.Plan` (D007's rule, every track) + `Validate`; fades, dissolves and markers keep their
+  time; the playhead snaps to the grid in the command's notification. `EditPlan.IsTouched` treats every dissolve as
+  touched on a rate change, so all source handles are checked (FR-1, also for the first video's lock).
 - Editing essentials (Phase 12, D027) — all in `ITimelineEditService` / `TimelineEditService`, each one undoable step
   through the existing commands, `project.json` v3 unchanged:
   - Tracks: `DeleteTrack` (`RemoveTrackCommand`: the same track object with its clips and dissolves back at its list
@@ -509,5 +514,5 @@ Step 11.5 closeout, the relink UI paragraph at the Step 11.6 implementation, the
 Steps 11.7–11.8 (Phase 11 merged into `main` as `47ed2fa`); the Phase 12 editing-essentials and import paragraphs of the
 Timeline section at the Phase 12 closeout (Step 12.9, `d467a84`; Phase 12 merged into `main` as `c0cb600`). Phase 13
 (D028, project & export settings): the `ProjectSettings` / persistence lines at Step 13.3, the canvas-size and
-composition lines at Step 13.4; the export still uses `ExportFormat`'s constants.
+composition lines at Step 13.4, the frame-rate line at Step 13.5; the export still uses `ExportFormat`'s constants.
 Re-check the code before relying on details that later phases may have changed.

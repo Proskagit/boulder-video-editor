@@ -4,7 +4,8 @@
 
 Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
 merge of PR #12). Step 13.1 (audit) accepted (2026-10-06); Step 13.2 accepted with D028 (2026-10-06); Step 13.3
-accepted (`4514f09`); Step 13.4 (canvas change) done — awaiting acceptance. Scope, steps and
+accepted (`4514f09`); Step 13.4 (canvas change) done (`ec51247`); Step 13.5 (frame-rate change) done — awaiting
+acceptance. Scope, steps and
 acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 13 — Project & export settings: steps"; decision D028.
 
 ### Phase 13 — Project & export settings (in progress)
@@ -120,6 +121,30 @@ push, pull request or merge without direct permission; no next step without the 
   - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2462
     passed, 2 skipped (only the two 4K scenes), 0 failed — Core 506 (+12), Timeline 453 (+28), Project 420, UI 542 (+1),
     Export 99, Rendering 58, Video 294, ExportEndToEnd 90 (+2) + 2; `git diff --check` clean.
+  - Committed as `ec51247`.
+- Step 13.5 done (2026-10-06) — frame-rate change and FR-1 (D028 "Refined in Step 13.5").
+  - Timeline: `ITimelineEditService.SetFrameRate` / `TimelineEditService.SetFrameRate` (only the offered rates; the
+    current rate locks an unlocked project in one step, of a locked one no change; otherwise `EditPlan.SetFrameRate(rate,
+    locked: true)` + `FrameRateRegrid.Plan` + `Validate` as one "Set Frame Rate" step, refused whole on any failure; the
+    playhead snapped to the grid in the command's notification on Execute / Undo / Redo). `EditPlan.IsTouched`: every
+    dissolve is touched when the rate changes (FR-1), for the user's change and the first video's lock alike.
+    `FrameRateRegrid`'s summary corrected (speed clips are re-gridded, not refused; user changes; every track). Stubs of
+    `ITimelineEditService` got the new member. No UI (13.6), no export change (13.7), `project.json` unchanged.
+  - Tests: `Timeline.Tests/FrameRateEditTests` (20: 25 → 29.97 re-grid with exact edges, fades / dissolve kept in time,
+    markers kept, playhead to its nearest frame, one step, dirty / save point, one `TimelineChanged`, Undo / Redo exact
+    incl. the playhead; locked / hidden tracks re-gridded; a 2× clip keeps source range and speed; two markers on one
+    frame after 60 → 24; FR-4 lock-only step and the first video then keeping the rate; locked same rate = no change;
+    five rates not offered and an invalid one refused; an impossible re-grid refused; a 2-frame dissolve at 60 → 24
+    refused; FR-1: 30 → 60 with a one-frame handle refused although no clip moves, the same through the first video's
+    lock refused, enough source → kept; clipboard refused after a rate change and valid after Undo; snapshot rate;
+    save → reopen) and `ExportEndToEnd.Tests/ExportFrameRateChangeEndToEndTests` (+1: 25 → 30 by the real service — 24
+    frames at 30 fps, the cut at frame 12, export canvas = Preview byte for byte on frames 0, 11, 12, 23).
+  - Mutations (each reverted, all caught): FR-1 reverted → 2 failures (both FR-1 regressions); playhead not snapped → 1;
+    the new rate not locked → 2; the same unlocked rate a no-change → 1; any valid rate accepted → 5; locked tracks
+    skipped by the re-grid → 1; no validation after the re-grid → 2.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2483
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 506, Timeline 473 (+20), Project 420, UI 542, Export 99,
+    Rendering 58, Video 294, ExportEndToEnd 91 (+1) + 2; `git diff --check` clean.
 
 ### Phase 12 — Editing essentials (complete; PR #12 merged as `c0cb600`, CI green)
 

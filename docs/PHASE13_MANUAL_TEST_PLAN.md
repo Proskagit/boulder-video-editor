@@ -44,10 +44,11 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 9 | Change the rate of an edited project | A 25 fps project with clips, fades, a dissolve, markers; change to 30 fps | The clips on the new grid; fades, the dissolve and the markers at their times; the Preview and the timecode follow | (13.5) | planned |
-| 10 | Refused rate change | A project where the re-grid can't be exact (as decided at 13.5) | Refused whole with a message; nothing changes | (13.5) | planned |
-| 11 | User rate vs the first video | New project, choose 25 fps, then add a 29.97 fps video | The project stays at 25 fps | (13.5) | planned |
-| 12 | Undo / redo and export | Undo / Redo the change of 9; export at the new rate | Exact restore; the MP4 at the new rate matches the Preview | (13.5) | planned |
+| 9 | Change the rate of an edited project | A 25 fps project with clips, fades, a dissolve, markers; change to 29.97 fps | The clips on the new grid (each edge to its nearest frame); fades, the dissolve and the markers at their times; the playhead on the nearest frame; the Preview and the timecode follow; locked / hidden tracks re-gridded too | `FrameRateEditTests` (re-grid, locked / hidden, speed, markers, playhead) | auto (13.5); manual after 13.6 (no UI before) |
+| 10 | Refused rate change | A one-frame clip between neighbours at 60 fps → 24 fps; a 2-frame dissolve at 60 → 24; a dissolve whose source runs short at the new rate | Refused whole with a message; nothing changes, no Undo step | `FrameRateEditTests` (re-grid, dissolve < 2 frames, FR-1, rates not offered) | auto (13.5); manual after 13.6 |
+| 11 | User rate vs the first video | New project, choose the provisional 30 fps (or another rate), then add a 25 fps video | The project stays at the chosen rate | `FrameRateEditTests` (FR-4: locked by choosing it) | auto (13.5); manual after 13.6 |
+| 12 | Undo / redo and export | Undo / Redo the change of 9; export at the new rate | Exact restore; the MP4 at the new rate matches the Preview | `FrameRateEditTests` (undo / redo exact), `ExportFrameRateChangeEndToEndTests` (25 → 30, byte for byte) | auto (13.5); manual after 13.6 |
+| 12a | Paste after a rate change | Copy a clip, change the rate, paste | "The project frame rate changed since the clips were copied. Copy them again."; after Undo of the change the paste works | `FrameRateEditTests` (clipboard) | auto (13.5); manual after 13.6 |
 
 ## Step 13.6 — project settings UI (D028 §1, §4)
 

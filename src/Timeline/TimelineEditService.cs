@@ -875,6 +875,38 @@ public sealed class TimelineEditService : ITimelineEditService
         return TimelineEditResult.Ok(new[] { clip.Id });
     }
 
+    // --- Frame rate (D028, Step 13.5) ---------------------------------------------------------------------------------
+
+    public TimelineEditResult SetFrameRate(FrameRate rate)
+    {
+        if (!rate.IsValid || !ProjectSettingsRules.IsSelectableFrameRate(rate))
+            return TimelineEditResult.Fail($"{(rate.IsValid ? FormatRate(rate) : "That")} FPS is not one of the project frame rates.");
+
+        if (rate == Settings.FrameRate)
+        {
+            if (Settings.IsFrameRateLocked) return TimelineEditResult.Unchanged();
+            // FR-4: choosing the provisional rate keeps it — it is locked, nothing is re-gridded.
+            _undoRedo.Execute(new NotifyingCommand(
+                new SetFrameRateCommand(Settings, rate, false, rate, true), _projectService.NotifyTimelineChanged));
+            return TimelineEditResult.Ok(Array.Empty<Guid>(), $"Project frame rate kept at {FormatRate(rate)} FPS.");
+        }
+
+        var plan = new EditPlan(Sequence, Settings);
+        plan.SetFrameRate(rate, locked: true);
+        if (FrameRateRegrid.Plan(plan, rate, FindAsset) is { } regridError)
+            return TimelineEditResult.Fail($"Can't change the frame rate to {FormatRate(rate)} FPS: {regridError}");
+        if (Validate(plan) is { } error)
+            return TimelineEditResult.Fail($"Can't change the frame rate to {FormatRate(rate)} FPS: {error}");
+
+        // The playhead (session state, D015) follows the grid on Execute, Undo and Redo alike; markers keep their time.
+        _undoRedo.Execute(new NotifyingCommand(plan.BuildCommand("Set Frame Rate"), () =>
+        {
+            Sequence.PlayheadPosition = Sequence.PlayheadPosition.SnapToFrame(Settings.FrameRate);
+            _projectService.NotifyTimelineChanged();
+        }));
+        return TimelineEditResult.Ok(null, Join($"Project frame rate set to {FormatRate(rate)} FPS.", TransitionNote(plan)));
+    }
+
     // --- Canvas (D028, Step 13.4) -------------------------------------------------------------------------------------
 
     private FrameSize CurrentCanvas => new(Settings.FrameWidth, Settings.FrameHeight);
