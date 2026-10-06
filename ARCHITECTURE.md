@@ -262,7 +262,9 @@ the same `MediaAsset` → `IProjectService.MediaAssetsChanged`.
 
 Metadata comes from ffprobe via `IMediaAnalysisService`;
 `IFfprobeLocator` resolves it from `Ffmpeg:FfprobePath` or PATH, `IFfmpegLocator` does the
-same for ffmpeg (playback decoding). After Open only media without saved metadata that is
+same for ffmpeg (playback decoding). Both resolve once per app run; a PATH tool must answer `-version` within
+`ExecutableLocator.DefaultProbeTimeout` (5 s) or counts as not found for the run (tests whose subject is not that limit
+use a longer one through an internal seam, D029 Step 14.4). After Open only media without saved metadata that is
 present on disk is analysed (`MediaAnalysisCoordinator.QueueWhereNeeded`); missing files are
 never probed. Thumbnails use `IThumbnailService`, waveforms `IWaveformService` (below); the export is
 `IExportService` (D023).
@@ -533,5 +535,6 @@ composition lines at Step 13.4, the frame-rate line at Step 13.5, the project-se
 contract (job settings, `ExportFormat`) at Step 13.7, the codec-leg line at Step 13.8, the export-settings UI line at
 Step 13.9; the whole Phase 13 part re-checked at the closeout (Step 13.10, `5c01aed`; Phase 13 merged into `main` as
 `ed40b74`). Phase 14 (D029, stabilization): the `Effects` row of the module table checked against the code at Step 14.2
-(empty, referenced only by `App`; D029 §6); the autosave paragraph of the Project persistence section at Step 14.3.
+(empty, referenced only by `App`; D029 §6); the autosave paragraph of the Project persistence section at Step 14.3; the locator lines of the media section at
+Step 14.4.
 Re-check the code before relying on details that later phases may have changed.

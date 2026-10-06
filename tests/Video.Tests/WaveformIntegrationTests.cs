@@ -22,7 +22,9 @@ public sealed class WaveformIntegrationTests : IDisposable
         @"aevalsrc=exprs='if(between(t\,1\,2)\,0.5*sin(2*PI*440*t)\,0)|if(lt(t\,2)\,if(gte(t\,1)\,0.2*sin(2*PI*440*t)\,0)\,0.8*sin(2*PI*440*t))':s=48000:d=3";
 
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "aive-waveform-e2e", Guid.NewGuid().ToString("N"));
-    private readonly CountingDecoder _decoder = new(new FfmpegAudioDecoder(FfmpegTools.FfmpegLocator, NullLogger<FfmpegAudioDecoder>.Instance));
+    // The decoder with the test limit for its first frame (FfmpegTools): these tests check the peaks, not that limit.
+    private readonly CountingDecoder _decoder = new(new FfmpegAudioDecoder(FfmpegTools.FfmpegLocator,
+        NullLogger<FfmpegAudioDecoder>.Instance, FfmpegTools.AudioDecoderSettings));
 
     public WaveformIntegrationTests() => Directory.CreateDirectory(_dir);
 
@@ -51,17 +53,10 @@ public sealed class WaveformIntegrationTests : IDisposable
         return path;
     }
 
-    /// <summary>The ffprobe <see cref="FfmpegTools"/> found once: a fresh locator per analysis would run its PATH probe
-    /// (<c>ffprobe -version</c>, 5 s timeout) every time, which a loaded CI runner can miss — "ffprobe not found".</summary>
-    private sealed class FoundFfprobe : IFfprobeLocator
-    {
-        public Task<string?> GetFfprobePathAsync(CancellationToken ct = default) => Task.FromResult(FfmpegTools.Ffprobe);
-    }
-
+    /// <summary>Analysed by the shared ffprobe with the test limit (<see cref="FfmpegTools"/>).</summary>
     private static MediaAsset Analysed(string path, MediaKind kind)
     {
-        var service = new FfprobeMediaAnalysisService(new FoundFfprobe(), NullLogger<FfprobeMediaAnalysisService>.Instance);
-        var result = service.AnalyzeAsync(path).GetAwaiter().GetResult();
+        var result = FfmpegTools.Analysis().AnalyzeAsync(path).GetAwaiter().GetResult();
         Assert.True(result.Metadata is not null, $"analysis failed for {path}: {result.ErrorMessage}");
         return new MediaAsset { FilePath = path, Kind = kind, Metadata = result.Metadata, AnalysisStatus = MediaAnalysisStatus.Completed };
     }

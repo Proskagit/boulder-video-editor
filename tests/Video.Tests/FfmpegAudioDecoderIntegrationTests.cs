@@ -56,10 +56,7 @@ public sealed class FfmpegAudioDecoderIntegrationTests : IDisposable
 
     private static MediaMetadata Analyze(string path)
     {
-        var service = new FfprobeMediaAnalysisService(
-            new FfprobeLocator(Options.Create(new FfmpegOptions()), NullLogger<FfprobeLocator>.Instance),
-            NullLogger<FfprobeMediaAnalysisService>.Instance);
-        return service.AnalyzeAsync(path).GetAwaiter().GetResult().Metadata!;
+        return FfmpegTools.Analysis().AnalyzeAsync(path).GetAwaiter().GetResult().Metadata!;
     }
 
     /// <summary>Decodes from <paramref name="seconds"/> and returns the source sample index of the

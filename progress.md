@@ -101,6 +101,42 @@ command; no push, pull request or merge without direct permission; no next step 
     watched `Project.Tests` hang / failure of Steps 8.4 / 9.3d was not reproduced in these runs. `UI.Tests` (the users of
     `AutosaveService` through `ProjectFileWorkflow`) 573 / 573. The full solution suite was not run at this step (only
     `Project` changed) — it runs at 14.8.
+  - Committed as `ed35f1f`; accepted by the product owner (2026-10-06).
+- Step 14.4 done (2026-10-06) — the ffprobe / PATH-probe tests (D029 "Refined in Step 14.4"; the product owner allowed
+  test-only limits where the limit is not the subject and kept the app's limits).
+  - Measurement (CI logs): the locator test on `main` (run 37470605596: `Value is null` after 7 s — the real probe over
+    5 s); `WaveformIntegrationTests.A_container_start_time_is_the_origin_of_the_peaks` twice — PR #12 attempt 1 "FFprobe
+    took too long to respond" (the analysis' 20 s), PR #11 attempt 1 a `NullReferenceException` after 33 s (the audio
+    decoder's 20 s first frame, the waveform `null`); Phase 9 "FFprobe could not be found" (a fresh locator's 5 s probe).
+  - Cause: tests whose subject is not a limit took their verdict from the app's limits on a loaded runner — a new
+    `FfprobeLocator` (5 s PATH probe) per analysis in seven helpers (`TestMedia`, `EndToEndHarness`, `DisplayOrientation`,
+    `FfmpegAudioDecoderIntegration`, `MediaRelinkIntegration`, `ThumbnailIntegration`, `FfmpegTools`' ffprobe), the
+    real locator test, the 20 s analysis and first-frame limits. Latent: `FfmpegTools` probing once with 5 s — a miss
+    would have skipped every ffmpeg test (CI fails on the skip gate).
+  - App unchanged: `ExecutableLocator.DefaultProbeTimeout` 5 s (the public constructors), the cached "not found",
+    `ProcessTimeout` 20 s, `FirstFrameTimeout` 20 s. Seams (internal): a probe-limit constructor on `ExecutableLocator`,
+    `FfmpegLocator`, `FfprobeLocator`; `ProbeTimeout` the one source of the limit, read by the default probe;
+    `ProbeAsync` (the resolution's probe); `IsExecutableAvailableAsync(file, timeout, ct)`; `Infrastructure` visible to
+    `ExportEndToEnd.Tests`.
+  - Tests: `FfmpegTools` — one ffmpeg and one ffprobe locator per run with a 60 s probe limit, `Analysis()` (120 s) and
+    `AudioDecoderSettings` (120 s first frame); the seven helpers, the waveform tests (decoder and analysis) and the real
+    locator test use them; their result checks unchanged. Tests of the limits unchanged with their short limits
+    (`FfmpegDiagnosticsTests`, `FfprobeTerminationTests`, `AnalysisConcurrencyIntegrationTests`, the seam tests of
+    `ExecutableLocatorTests`). New `ExecutableProbeTimeoutTests` (6, media collection — its slow tool waits with ping):
+    the app's 5 s on both locators; the seam changing only its own locator; the app's 20 s / 20 s and the helpers'
+    120 s; a scripted tool slower than 500 ms counted missing and available within 60 s; a locator probing with its
+    own limit. `Video.Tests` 316 → 322.
+  - Mutations (each reverted, all caught): the app limit 5 → 60 s → 1; the public constructor with a long limit → 2; a
+    locator ignoring its own limit → 1; the process probe ignoring the limit → 2; a cancelled probe cached as missing
+    (the old bug) → 2 (incl. the real locator test); `FfmpegTools.Analysis()` without its limit → 1. (A restore by
+    `Copy-Item` kept the old file time, so an incremental build reused the mutated test assembly once; rebuilt with
+    `--no-incremental`, everything green — every verification after the mutations is on a `--no-incremental` build.)
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the limit tests together 27 / 27.
+    Stress (8 CPU-load workers ending themselves after 90 min, a 10-minute limit per run, a log line per run):
+    `ExecutableLocatorTests` + `ExecutableProbeTimeoutTests` + `WaveformIntegrationTests` 50 / 50 runs green (15 tests
+    each), the full `Video.Tests` 10 / 10 green (322 each, about 1 m 35 s per run under load), no hang, the load
+    stopped at the end. `ExportEndToEnd.Tests` once without load: 110 passed, 2 skipped (only the 4K scenes). The full
+    solution suite runs at 14.8.
 
 ### Phase 13 — Project & export settings (complete; PR #13 merged as `ed40b74`)
 

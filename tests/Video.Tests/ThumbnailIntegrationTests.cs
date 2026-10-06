@@ -59,9 +59,7 @@ public sealed class ThumbnailIntegrationTests : IDisposable
 
     private static MediaMetadata Analyse(string path)
     {
-        var service = new FfprobeMediaAnalysisService(new FfprobeLocator(Options.Create(new FfmpegOptions()), NullLogger<FfprobeLocator>.Instance),
-            NullLogger<FfprobeMediaAnalysisService>.Instance);
-        var result = service.AnalyzeAsync(path).GetAwaiter().GetResult();
+        var result = FfmpegTools.Analysis().AnalyzeAsync(path).GetAwaiter().GetResult();
         Assert.True(result.Metadata is not null, $"analysis failed for {path}: {result.ErrorMessage}");
         return result.Metadata!;
     }

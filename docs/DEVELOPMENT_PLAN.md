@@ -773,7 +773,7 @@ Scope: D029 §4.
 - Impl: a time abstraction only if needed (e.g. .NET 8 `TimeProvider`, no new package), behaviour-neutral, listed.
 - Depends on: 14.2 (D029 accepted).
 
-### 14.4 — Flaky tests: ffprobe timeout in a waveform test, the 5 s PATH probe of the locators (`Video.Tests`)
+### 14.4 — Flaky tests: ffprobe timeout in a waveform test, the 5 s PATH probe of the locators (`Video.Tests`) *(done — D029 "Refined in Step 14.4": the app's 5 s / 20 s / 20 s unchanged; test-only limits through internal seams and `FfmpegTools`; locators found once)*
 Scope: D029 §4.
 - M: the failing tests identified — among them
   `ExecutableLocatorTests.RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg` (the first CI run on

@@ -95,9 +95,7 @@ public sealed class DisplayOrientationIntegrationTests : IDisposable
         try { Directory.Delete(_dir, recursive: true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
     }
 
-    private static readonly FfprobeMediaAnalysisService Probe = new(
-        new FfprobeLocator(Options.Create(new FfmpegOptions()), NullLogger<FfprobeLocator>.Instance),
-        NullLogger<FfprobeMediaAnalysisService>.Instance);
+    private static readonly FfprobeMediaAnalysisService Probe = FfmpegTools.Analysis();
 
     private string Plain()
     {

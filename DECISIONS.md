@@ -2779,6 +2779,30 @@ Refined in Step 14.3 (the autosave timer):
   posted to the UI thread before `Stop`, `Shutdown` stops the timer, a late tick after a "Don't Save" shutdown; one
   real-timer test kept (liveness with a 30 s limit; after `Stop` it awaits the running tick instead of guessing a delay).
 
+Refined in Step 14.4 (ffprobe / PATH-probe tests; product owner, 2026-10-06: the app's limits stay, test-only limits
+allowed where the limit is not the subject):
+- Failures, from the CI logs: `ExecutableLocatorTests.RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg`
+  (run 37470605596 on `main`: `Value is null` after 7 s — the real `-version` probe over its 5 s);
+  `WaveformIntegrationTests.A_container_start_time_is_the_origin_of_the_peaks` (PR #12 attempt 1: "FFprobe took too long
+  to respond" — the analysis' 20 s `ProcessTimeout`; PR #11 attempt 1: `NullReferenceException` after 33 s — the audio
+  decoder's 20 s `FirstFrameTimeout`, the waveform then `null`); in Phase 9 "FFprobe could not be found" (a fresh
+  locator's 5 s probe).
+- Cause: tests whose subject is not a limit got their verdict from the app's limits on a loaded runner — the 5 s PATH
+  probe (a new `FfprobeLocator` per analysis in seven test helpers; the real locator test), the 20 s ffprobe run, the 20 s
+  first decoded frame. Also latent: `FfmpegTools` probed PATH once with 5 s, and a miss there would have skipped every
+  ffmpeg test (a CI failure through the skip gate).
+- Fix: the app unchanged — `ExecutableLocator.DefaultProbeTimeout` 5 s, `ProcessTimeout` 20 s, `FirstFrameTimeout` 20 s,
+  the cached "not found". Test seams (internal): `ExecutableLocator` / `FfmpegLocator` / `FfprobeLocator` take a probe
+  limit (one source, `ProbeTimeout`, also used by `ProbeAsync` of the resolution); `IsExecutableAvailableAsync` takes the
+  limit; `Infrastructure` visible to `ExportEndToEnd.Tests`. `FfmpegTools` (shared by `Video.Tests` and
+  `ExportEndToEnd.Tests`): one ffmpeg and one ffprobe locator per run with a 60 s probe limit, `Analysis()` (120 s
+  `ProcessTimeout`) and `AudioDecoderSettings` (120 s first frame) for tests whose subject is not the limit — the seven
+  helpers, the waveform tests and the real locator test use them. Tests of the limits keep their short ones
+  (`FfmpegDiagnosticsTests`, `FfprobeTerminationTests`, `AnalysisConcurrencyIntegrationTests`, the seam tests); new
+  `ExecutableProbeTimeoutTests`: the app's 5 s (both locators), the seam changing only its locator, the app's 20 s / 20 s
+  and the helpers' limits, a scripted tool slower than a 500 ms limit counted missing and within a long one available —
+  through the process probe and through a locator. The result checks of the waveform / analysis tests unchanged.
+
 Consequences: CI no longer needs reruns for the known tests; D028 §8 can be closed at the closeout; the test helpers
 produce on-grid clips; one project fewer in the solution. No change for the user.
 
