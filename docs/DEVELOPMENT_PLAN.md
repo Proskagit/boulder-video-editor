@@ -760,7 +760,7 @@ merge corrected (ROADMAP, README, this plan, D028 status, ARCHITECTURE, `progres
 acceptance and the failed first CI run on `main` recorded; D029, this section, `docs/PHASE14_MANUAL_TEST_PLAN.md`
 (skeleton), `docs/README.md`; the `src/Effects` analysis for 14.7 (D029 §6). Documentation only.
 
-### 14.3 — Flaky test: the autosave timer (`Project.Tests`)
+### 14.3 — Flaky test: the autosave timer (`Project.Tests`) *(done — D029 "Refined in Step 14.3": the cause a late timer callback after `Stop` in `AutosaveService`; `TimeProvider` + a run token; stress 50 / 50 and 10 / 10)*
 Scope: D029 §4.
 - M: the failing test(s) identified (CI history, the code) and the root cause shown — expected a dependence on wall-clock
   timing; the finding recorded before the fix.

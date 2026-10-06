@@ -65,7 +65,42 @@ command; no push, pull request or merge without direct permission; no next step 
   - `docs/PHASE14_MANUAL_TEST_PLAN.md` (skeleton, regression only: R1–R5), `docs/README.md`.
   - Accepted by the product owner (2026-10-06) with D029 and its answers: `src/Effects` removed at 14.7; the NUL
     replaced by `'\0'` at 14.5; run 37470605596 not rerun (fixed by 14.4). Committed as one commit on the product
-    owner's command.
+    owner's command (`0a50fe5`).
+- Step 14.3 done (2026-10-06) — the flaky autosave-timer test (D029 "Refined in Step 14.3").
+  - Measurement: the failing test, from the CI logs of the reruns —
+    `AutosaveServiceTests.Timer_autosaves_periodically_and_stop_ends_it` (PR #12 run 37319512750, attempt 1, 705 ms, `Assert.False() Failure`
+    on its last line: the recovery file back after `Stop`, 100 ms, a delete and 150 ms). The other reruns in the history
+    were `Video.Tests` (`WaveformIntegrationTests`, `AnalysisConcurrencyIntegrationTests`, the locator) — Step 14.4.
+  - Cause, in the product: `Stop` disposed a `System.Threading.Timer`, which does not recall a callback already queued
+    (thread pool, or posted to the UI thread); a late callback ran a whole autosave after `Stop`. The test guessed
+    100 ms for it. The same window in the app: a tick posted just before a "Don't Save" shutdown could write the
+    recovery file again after `ShutdownAsync` deleted it — against the `IAutosaveService.Stop` / `ShutdownAsync`
+    contract.
+  - Fix (`src/Project/AutosaveService.cs`): the timer from a `TimeProvider` (.NET 8 BCL; the public constructor passes
+    `TimeProvider.System`, the internal one takes the interval and the provider; DI unchanged); a run token per
+    `Start`, cleared by `Stop` under a lock; a tick starts only with the current token, under the same lock;
+    `RunningTick` (internal) read under the lock, awaited by `ShutdownAsync`. Unchanged: the 2-minute interval, the
+    first tick one interval after `Start`, ticks on the UI thread, one tick at a time, every recovery rule, the public
+    API.
+  - Tests (`Project.Tests`): `ManualTime.cs` — `ManualTimeProvider` (timers fire only on `Advance`, in due order; a
+    disposed timer's callback can be fired as a late one) and `QueueingSynchronizationContext`; `AutosaveServiceTests`
+    — the real-timer test replaced by: first tick exactly after one interval and then every interval, a clean project
+    writes nothing, `Stop` ends it (timer disposed), a callback queued before `Stop`, a tick posted to the UI thread and
+    `Stop` before it runs, `Shutdown_stops_the_timer` (manual clock + a late callback), a late tick after a "Don't Save"
+    shutdown, and one real-timer test (30 s liveness limit; after `Stop` it awaits `RunningTick` instead of a guessed
+    delay). A `StartOn` helper sets the `SynchronizationContext` for `Start` (xUnit's own context would otherwise defer
+    the ticks). `Project.Tests` 420 → 426.
+  - Mutations (each reverted, all caught): no stopped-timer check → 4 (the queued callback, the UI post, Shutdown, the
+    "Don't Save" late tick); first tick at once → 2; period doubled → 1; `Stop` keeping the timer → 1; the tick not
+    posted to the UI context → 1.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0 (also after the mutations);
+    `AutosaveServiceTests` + `RecoveryTests` 39 / 39. Stress (8 CPU-load workers, each ending itself after 60 min; a
+    5-minute limit per run; a log line per run): `AutosaveServiceTests` 50 / 50 runs green (23 tests each), the full
+    `Project.Tests` 10 / 10 green (426 each), no hang, the load stopped at the end. A first stress attempt with 16
+    workers on 16 cores starved the machine and was stopped by the product owner without results; not counted. The
+    watched `Project.Tests` hang / failure of Steps 8.4 / 9.3d was not reproduced in these runs. `UI.Tests` (the users of
+    `AutosaveService` through `ProjectFileWorkflow`) 573 / 573. The full solution suite was not run at this step (only
+    `Project` changed) — it runs at 14.8.
 
 ### Phase 13 — Project & export settings (complete; PR #13 merged as `ed40b74`)
 

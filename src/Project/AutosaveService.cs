@@ -29,13 +29,18 @@ public sealed class AutosaveService : IAutosaveService, IDisposable
     private readonly RecoveryStore _store;
     private readonly ILogger<AutosaveService> _logger;
     private readonly TimeSpan _interval;
+    private readonly TimeProvider _time;
 
     // Projects this session has written a recovery file for (only those are removed when the
     // project is found clean at an autosave; a file left by a crashed session stays until the
     // user decides about it or the project is saved).
     private readonly HashSet<Guid> _ownRecoveries = new();
 
-    private Timer? _timer;
+    // Guards the timer, its run token and the start of a tick, so Stop and a tick never interleave.
+    private readonly object _gate = new();
+    private ITimer? _timer;
+    // Identifies the current Start; a callback carrying an older token belongs to a stopped timer.
+    private object? _run;
     private SynchronizationContext? _context;
     private Task _runningTick = Task.CompletedTask;
     private int _tickActive;
@@ -43,45 +48,68 @@ public sealed class AutosaveService : IAutosaveService, IDisposable
     public event EventHandler<string>? AutosaveCompleted;
 
     public AutosaveService(IProjectService projects, RecoveryStore store, ILogger<AutosaveService> logger)
-        : this(projects, store, logger, DefaultInterval)
+        : this(projects, store, logger, DefaultInterval, TimeProvider.System)
     {
     }
 
-    internal AutosaveService(IProjectService projects, RecoveryStore store, ILogger<AutosaveService> logger, TimeSpan interval)
+    internal AutosaveService(IProjectService projects, RecoveryStore store, ILogger<AutosaveService> logger,
+        TimeSpan interval, TimeProvider time)
     {
         _projects = projects;
         _store = store;
         _logger = logger;
         _interval = interval;
+        _time = time;
         _projects.ProjectSaved += OnProjectSaved;
+    }
+
+    /// <summary>The tick started last (completed when none is running); lets tests wait for it.</summary>
+    internal Task RunningTick
+    {
+        get { lock (_gate) return _runningTick; }
     }
 
     public void Start()
     {
-        if (_timer is not null) return;
-        _context = SynchronizationContext.Current;
-        _timer = new Timer(_ => OnTimer(), null, _interval, _interval);
+        lock (_gate)
+        {
+            if (_timer is not null) return;
+            _context = SynchronizationContext.Current;
+            var run = new object();
+            _run = run;
+            _timer = _time.CreateTimer(_ => OnTimer(run), null, _interval, _interval);
+        }
         _logger.LogInformation("Autosave started (every {Interval}, recovery folder {Folder}).", _interval, _store.RootFolder);
     }
 
     public void Stop()
     {
-        _timer?.Dispose();
-        _timer = null;
+        lock (_gate)
+        {
+            // Disposing a timer doesn't recall a callback already queued (thread pool or a Post to the
+            // UI thread); clearing the token makes such a late callback start nothing.
+            _run = null;
+            _timer?.Dispose();
+            _timer = null;
+        }
     }
 
-    private void OnTimer()
+    private void OnTimer(object run)
     {
         if (_context is { } context)
-            context.Post(_ => RunTick(), null);
+            context.Post(_ => RunTick(run), null);
         else
-            RunTick();
+            RunTick(run);
     }
 
-    private void RunTick()
+    private void RunTick(object run)
     {
-        if (Interlocked.Exchange(ref _tickActive, 1) == 1) return; // previous autosave still writing
-        _runningTick = TickAsync();
+        lock (_gate)
+        {
+            if (!ReferenceEquals(_run, run)) return; // the timer was stopped after this callback was queued
+            if (Interlocked.Exchange(ref _tickActive, 1) == 1) return; // previous autosave still writing
+            _runningTick = TickAsync();
+        }
     }
 
     private async Task TickAsync()
@@ -233,7 +261,7 @@ public sealed class AutosaveService : IAutosaveService, IDisposable
         Stop();
         try
         {
-            await _runningTick;
+            await RunningTick;
         }
         catch (Exception ex)
         {

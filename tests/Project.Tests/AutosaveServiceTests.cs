@@ -258,26 +258,156 @@ public sealed class AutosaveServiceTests : IDisposable
 
     // ---- timer and shutdown -----------------------------------------------------------
 
-    [Fact]
-    public async Task Timer_autosaves_periodically_and_stop_ends_it()
+    // The timer tests run on ManualTimeProvider: the time moves only when the test advances it, so nothing depends on
+    // the machine's speed. (They replace a real-timer test that waited 100 ms "for an in-flight tick" and failed on CI
+    // when a callback queued before Stop ran later — Phase 14 Step 14.3, D029.)
+
+    private static readonly TimeSpan Interval = AutosaveService.DefaultInterval;
+    private static readonly TimeSpan OneTick = TimeSpan.FromTicks(1);
+
+    private AutosaveService TimedAutosave(ManualTimeProvider time) =>
+        new(_projects, _store, NullLogger<AutosaveService>.Instance, Interval, time);
+
+    /// <summary>Start captures the caller's SynchronizationContext (the UI thread in the app; xUnit has its own), so
+    /// the tests choose it: none — a tick runs on the timer's callback — or a <see cref="QueueingSynchronizationContext"/>.</summary>
+    private static void StartOn(AutosaveService autosave, SynchronizationContext? context = null)
     {
-        using var autosave = new AutosaveService(_projects, _store, NullLogger<AutosaveService>.Instance, TimeSpan.FromMilliseconds(30));
+        var previous = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(context);
+        try
+        {
+            autosave.Start();
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+    }
+
+    [Fact]
+    public async Task Timer_autosaves_first_after_one_interval_and_then_every_interval()
+    {
+        var time = new ManualTimeProvider();
+        using var autosave = TimedAutosave(time);
+        Edit("a");
+        StartOn(autosave);
+
+        time.Advance(Interval - OneTick);
+        await autosave.RunningTick;
+        Assert.False(File.Exists(RecoveryPath));   // not before the interval
+
+        time.Advance(OneTick);
+        await autosave.RunningTick;
+        Assert.Equal("a", ReadRecovery().Project.Timeline.Name);
+
+        Edit("b");
+        time.Advance(Interval - OneTick);
+        await autosave.RunningTick;
+        Assert.Equal("a", ReadRecovery().Project.Timeline.Name);
+
+        time.Advance(OneTick);
+        await autosave.RunningTick;
+        Assert.Equal("b", ReadRecovery().Project.Timeline.Name);
+    }
+
+    [Fact]
+    public async Task Timer_tick_of_a_clean_project_writes_nothing()
+    {
+        var time = new ManualTimeProvider();
+        using var autosave = TimedAutosave(time);
+        StartOn(autosave);
+
+        time.Advance(Interval * 3);
+        await autosave.RunningTick;
+
+        Assert.False(File.Exists(RecoveryPath));
+    }
+
+    [Fact]
+    public async Task Stop_ends_the_periodic_autosave()
+    {
+        var time = new ManualTimeProvider();
+        using var autosave = TimedAutosave(time);
+        Edit("a");
+        StartOn(autosave);
+        time.Advance(Interval);
+        await autosave.RunningTick;
+        Assert.True(File.Exists(RecoveryPath));
+
+        autosave.Stop();
+        File.Delete(RecoveryPath);
+        Edit("b");
+        time.Advance(Interval * 10);
+        await autosave.RunningTick;
+
+        Assert.False(File.Exists(RecoveryPath));
+        Assert.True(time.Timers.Single().IsDisposed);
+    }
+
+    [Fact]
+    public async Task A_timer_callback_queued_before_Stop_starts_no_autosave()
+    {
+        // Disposing a System.Threading.Timer doesn't recall a callback the thread pool has already queued.
+        var time = new ManualTimeProvider();
+        using var autosave = TimedAutosave(time);
+        Edit("a");
+        StartOn(autosave);
+        var timer = time.Timers.Single();
+
+        autosave.Stop();
+        timer.InvokeCallback();   // the late callback
+        await autosave.RunningTick;
+
+        Assert.False(File.Exists(RecoveryPath));
+    }
+
+    [Fact]
+    public async Task A_tick_posted_to_the_UI_thread_runs_there_and_not_after_Stop()
+    {
+        var time = new ManualTimeProvider();
+        using var autosave = TimedAutosave(time);
+        var ui = new QueueingSynchronizationContext();
+        StartOn(autosave, ui);   // on the "UI thread": ticks are posted to it
         Edit("a");
 
-        autosave.Start();
-        Assert.True(await Wait.UntilAsync(() => File.Exists(RecoveryPath)));
-        autosave.Stop();
-        await Task.Delay(100); // let an in-flight tick finish
-
-        File.Delete(RecoveryPath);
-        await Task.Delay(150);
+        time.Advance(Interval);
+        Assert.Equal(1, ui.Pending);               // posted, not run on the timer's thread
         Assert.False(File.Exists(RecoveryPath));
+        ui.RunPending();
+        await autosave.RunningTick;
+        Assert.Equal("a", ReadRecovery().Project.Timeline.Name);
+
+        Edit("b");
+        time.Advance(Interval);                    // a tick posted …
+        autosave.Stop();                           // … and the timer stopped before the UI thread runs it
+        ui.RunPending();
+        await autosave.RunningTick;
+        Assert.Equal("a", ReadRecovery().Project.Timeline.Name);
     }
 
     [Fact]
     public void Default_interval_is_two_minutes()
     {
         Assert.Equal(TimeSpan.FromMinutes(2), AutosaveService.DefaultInterval);
+    }
+
+    [Fact]
+    public async Task Real_timer_autosaves_and_nothing_follows_Stop()
+    {
+        // The one test on the system clock: it checks that the real timer is wired (liveness, with a generous
+        // limit), and that after Stop and the running tick nothing is written — no wait for a guessed delay.
+        using var autosave = new AutosaveService(_projects, _store, NullLogger<AutosaveService>.Instance,
+            TimeSpan.FromMilliseconds(30), TimeProvider.System);
+        Edit("a");
+
+        StartOn(autosave);
+        Assert.True(await Wait.UntilAsync(() => File.Exists(RecoveryPath), timeoutMs: 30_000));
+        autosave.Stop();
+        await autosave.RunningTick;
+
+        File.Delete(RecoveryPath);
+        await Task.Delay(150);   // late callbacks, if any, have had the chance to run
+        Assert.False(File.Exists(RecoveryPath));
     }
 
     [Fact]
@@ -308,12 +438,35 @@ public sealed class AutosaveServiceTests : IDisposable
     [Fact]
     public async Task Shutdown_stops_the_timer()
     {
-        using var autosave = new AutosaveService(_projects, _store, NullLogger<AutosaveService>.Instance, TimeSpan.FromMilliseconds(30));
-        autosave.Start();
+        var time = new ManualTimeProvider();
+        using var autosave = TimedAutosave(time);
+        StartOn(autosave);
         await autosave.ShutdownAsync(); // clean: nothing written
 
         Edit("after shutdown");
-        await Task.Delay(200);
+        time.Advance(Interval * 10);
+        time.Timers.Single().InvokeCallback();   // and a callback queued before the shutdown
+        await autosave.RunningTick;
+
+        Assert.False(File.Exists(RecoveryPath));
+    }
+
+    [Fact]
+    public async Task A_late_tick_does_not_bring_back_the_recovery_file_after_a_Dont_Save_shutdown()
+    {
+        var time = new ManualTimeProvider();
+        using var autosave = TimedAutosave(time);
+        Edit("a");
+        StartOn(autosave);
+        time.Advance(Interval);
+        await autosave.RunningTick;
+        Assert.True(File.Exists(RecoveryPath));
+
+        await autosave.ShutdownAsync(keepUnsavedChanges: false);   // "Don't Save" at close
+        Assert.False(File.Exists(RecoveryPath));
+
+        time.Timers.Single().InvokeCallback();   // a callback queued before the shutdown
+        await autosave.RunningTick;
 
         Assert.False(File.Exists(RecoveryPath));
     }

@@ -343,7 +343,9 @@ recovery, unsaved changes).
 - Autosave: `AutosaveService` (Project, implements Core `IAutosaveService`) every 2 min,
   snapshot on the UI thread, written by `RecoveryStore` to
   `%LOCALAPPDATA%\AiVideoEditor\recovery\<projectId>.json` (never `project.json`); per-project
-  generation guards against an autosave resurrecting a file a Save made obsolete.
+  generation guards against an autosave resurrecting a file a Save made obsolete. The timer comes from a
+  `TimeProvider` (`TimeProvider.System` in the app, a manual clock in the tests); each `Start` gets a run token, so a
+  timer callback queued before `Stop` / `ShutdownAsync` starts no tick (Phase 14 Step 14.3, D029).
   `IProjectService.RestoreRecoveryAsync` opens a recovery file with the Open validation.
 - UI: `ProjectFileWorkflow` — New / Open / Save / Save As / Close, folder picker
   (`IFilePickerService.PickFolderAsync`), Save / Don't Save / Cancel prompt (`IDialogService`,
@@ -531,5 +533,5 @@ composition lines at Step 13.4, the frame-rate line at Step 13.5, the project-se
 contract (job settings, `ExportFormat`) at Step 13.7, the codec-leg line at Step 13.8, the export-settings UI line at
 Step 13.9; the whole Phase 13 part re-checked at the closeout (Step 13.10, `5c01aed`; Phase 13 merged into `main` as
 `ed40b74`). Phase 14 (D029, stabilization): the `Effects` row of the module table checked against the code at Step 14.2
-(empty, referenced only by `App`; D029 §6) — no other section changed.
+(empty, referenced only by `App`; D029 §6); the autosave paragraph of the Project persistence section at Step 14.3.
 Re-check the code before relying on details that later phases may have changed.

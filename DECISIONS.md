@@ -2753,6 +2753,32 @@ Accepted by the product owner (2026-10-06, with Step 14.2), with the answers:
 2. The literal NUL in `ExportSettingsEndToEndTests.cs` is replaced by `'\0'` in Step 14.5; no behaviour change.
 3. The failed CI run 37470605596 is not rerun; its fix belongs to Step 14.4.
 
+Refined in Step 14.3 (the autosave timer):
+- Failing test, from the CI logs: `AutosaveServiceTests.Timer_autosaves_periodically_and_stop_ends_it` (PR #12 run
+  37319512750, attempt 1: 705 ms, `Assert.False() Failure` on its last line — the recovery file was there again after
+  `Stop`, a 100 ms pause and a delete). The other CI reruns found in the history (PR #11 attempt 1, Phase 9) were the
+  waveform / concurrency tests of `Video.Tests` (Step 14.4).
+- Cause — in the product, not only in the test: `Stop` disposed a `System.Threading.Timer`, which does not recall a
+  callback already queued (on the thread pool, or posted to the UI thread through the captured
+  `SynchronizationContext`); such a late callback started a full autosave after `Stop`. The test hid it behind a guessed
+  100 ms ("let an in-flight tick finish"); on a slow runner the late tick came after the delete. The same window exists
+  in the app: `ShutdownAsync(keepUnsavedChanges: false)` ("Don't Save" at close) stops the timer and deletes the recovery
+  file, and a tick posted just before could write it again — the next start would then offer changes the user chose not
+  to keep. This contradicts the documented contract (`IAutosaveService.Stop`: "stops the periodic autosave (an autosave
+  already running completes)"; `ShutdownAsync`: "stops autosave and waits for a running one").
+- Fix (the contract enforced, its semantics unchanged — the 2-minute interval, the first tick one interval after
+  `Start`, ticks on the UI thread, one tick at a time, the recovery rules): `AutosaveService` takes a `TimeProvider`
+  (.NET 8 BCL; the public constructor passes `TimeProvider.System`, DI unchanged); each `Start` creates a run token that
+  `Stop` clears under a lock, and a tick starts only if its callback carries the current token — so a late callback
+  starts nothing and `Stop` never interleaves with the start of a tick; `ShutdownAsync` awaits the running tick through
+  the same lock. Product owner's rule respected: no user-visible behaviour is added or changed — only an autosave that
+  the contract already excluded no longer happens.
+- Tests: the real-timer test replaced by tests on a manual clock (`ManualTimeProvider` and a queueing
+  `SynchronizationContext` in `Project.Tests`, no new package): first tick exactly after one interval and then every
+  interval, a clean project writes nothing, `Stop` ends it (timer disposed), a callback queued before `Stop`, a tick
+  posted to the UI thread before `Stop`, `Shutdown` stops the timer, a late tick after a "Don't Save" shutdown; one
+  real-timer test kept (liveness with a 30 s limit; after `Stop` it awaits the running tick instead of guessing a delay).
+
 Consequences: CI no longer needs reruns for the known tests; D028 §8 can be closed at the closeout; the test helpers
 produce on-grid clips; one project fewer in the solution. No change for the user.
 
