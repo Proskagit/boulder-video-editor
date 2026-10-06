@@ -2594,12 +2594,43 @@ Refined in Step 13.9 (product owner, 2026-10-06, and the implementation):
   back to High / Medium / 192, Redo, reopening shows the applied values, Save writes `settings.export` = Compact / Slow /
   320.
 
+Closeout (Step 13.10, 2026-10-06; the product owner accepted Steps 13.3–13.9):
+- Local QG at `5c01aed`: build `--no-incremental -warnaserror` 0 / 0; the full suite 2585 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2585 / 0 / 2 each, no hang, no
+dump; the full suite with `AIVE_HEAVY_TESTS=1` 2587 passed, 0 skipped, 0 failed; `git diff --check` clean. No
+  failure, no fix; no criterion weakened, re-baselined or removed.
+- R1 (a project saved by the Phase 12 build — `c0cb600` extracted with `git archive`, built in a scratch folder; no
+  worktree, branch or commit): the Phase 12 app opened the fixture, added a marker and saved (v3, no `settings.export`);
+  Phase 13 opened it with the default export settings (High / Medium / 192 kbps in the dialog); a plain Save wrote the
+  file byte for byte as Phase 12 had; after Standard / Fast / 256 applied and saved, the file differed only by
+  `settings.export`; reopening showed Standard / Fast / 256; the Phase 12 app opened that file too (the property
+  ignored).
+- R2: Compact / Slow / 320 as a draft (clean), Apply (dirty, the status message), Undo → Standard / Fast / 256, Redo; an
+  export through the UI (Project Settings… off while it ran): H.264 640 × 360 25 fps, 850 frames, 34.000 s, the x264
+  options `crf=28.0` and `subme=8` (Compact, slow), the ffmpeg command with `-b:a 320000`, an AAC-LC 48 kHz stereo track of
+  34.000 s (≈ 144 kbps reached on that tone — not a criterion). The canvas parity at non-default settings is the
+  automated `ExportSettingsEndToEndTests` / `ExportCodecLegTests`; the export manual plan's other UI scenarios were run at
+  12.9 / 13.6 and no export workflow code changed since (only the job's settings).
+- R3 (canvas 1080 × 1080, 30 fps applied first): a track moved and undone, a marker added, Ctrl+C / Ctrl+D on the title,
+  Ripple Delete and Undo, `Recent ▾` listing the projects, a file renamed outside → offline on window activation →
+  Relink… → linked, Undo (offline again), Redo; saved: the dissolve, the 7 clips with fades and the marker kept, the title
+  font scaled 96 → 162 (× 1.6875).
+- Final state of the decision: canvas and frame rate are project settings (Project Settings…; D018 default only, D007
+  user-changeable); the export settings are an EXPORT section of the same dialog — **a change against the Step 13.2 plan,
+  which had them chosen in the export flow**, made by the product owner at Step 13.9; `settings.export` stays an optional
+  property of `project.json` v3, a project without it reads as `ExportEncoding.Default`; 320 kbps stays an offered target
+  (`-b:a 320000`, a valid track — the bitrate reached is not a criterion); L1-c decided with its measurement kept in the
+  suite (`ExportCodecLegTests`); the Phase 8–12 export / parity criteria are unchanged. Phase 14 not started.
+- Kept open after Phase 13 (not Phase 13 work): the `F(end − start)` test helpers; the known flaky CI tests (§8 policy);
+  the observation that a new text clip takes `FontSize` 48 on any canvas.
+
 Consequences: `ProjectSettings` becomes user-editable through new undoable commands; the export gains a settings model
 used by `FfmpegExportEncoder` (`ExportOutput` and the preflight keep their roles); `project.json` stays v3 or becomes v4
 by §5; the parity suite gains scenes for new canvas sizes and rates and per-level codec criteria (§6);
 `docs/PHASE13_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
 
-Status: Accepted (2026-10-06, product owner). Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 accepted (`010a1b8`); Step 13.6 accepted (`66a0871`); Step 13.7 accepted (`adf85e4`); Step 13.8 (L1-c) accepted (`3d08c1b`); Step 13.9 (export settings UI) done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
+Status: Accepted (2026-10-06, product owner). Phase 13 complete locally: Steps 13.1–13.9 accepted (`226c7f2`, `4514f09`,
+`ec51247`, `010a1b8`, `66a0871`, `adf85e4`, `3d08c1b`, `5c01aed`); Step 13.10 (closeout) done on 2026-10-06 — awaiting
+the product owner's acceptance; not published (no push / pull request yet), so CI has not run. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
 
 ---
 

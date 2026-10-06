@@ -2,15 +2,13 @@
 
 ## Current phase
 
-Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
-merge of PR #12). Step 13.1 (audit) accepted (2026-10-06); Step 13.2 accepted with D028 (2026-10-06); Step 13.3
-accepted (`4514f09`); Step 13.4 (canvas change) done (`ec51247`); Step 13.5 (frame-rate change) accepted (`010a1b8`);
-Step 13.6 (Project Settings dialog) accepted (`66a0871`); Step 13.7 (export settings core) accepted (`adf85e4`); Step
-13.8 (L1-c) accepted (`3d08c1b`); Step 13.9 (export settings UI) done — awaiting acceptance.
-Scope, steps and
+Phase 13 — Project & export settings: **complete locally** — Step 13.10 (final verification & closeout) done on
+2026-10-06 on branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the merge of PR #12); Steps
+13.1–13.9 accepted. Open: not published (push / pull request only with the product owner's permission), so CI has not
+run. Phase 14 not started. Scope, steps and
 acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 13 — Project & export settings: steps"; decision D028.
 
-### Phase 13 — Project & export settings (in progress)
+### Phase 13 — Project & export settings (complete locally)
 
 Steps (D028; each accepted by the product owner before the next, never started automatically): 13.1 audit · 13.2 sync
 after the merge & scope formalization · 13.3 settings model & format · 13.4 canvas size · 13.5 frame rate · 13.6 project
@@ -258,6 +256,25 @@ push, pull request or merge without direct permission; no next step without the 
   - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2585
     passed, 2 skipped (only the two 4K scenes), 0 failed — Core 513, Timeline 495 (+11), Project 420, UI 573 (+18), Export
     100, Rendering 58, Video 316, ExportEndToEnd 110 + 2; `git diff --check` clean.
+  - Committed as `5c01aed`; accepted by the product owner (2026-10-06).
+- Step 13.10 done (2026-10-06) — final verification & closeout at `5c01aed` (D028 "Closeout").
+  - Git: `feat/phase-13-project-export-settings`, clean; the eight Phase 13 commits `226c7f2` … `5c01aed` on `c0cb600`
+    (= `origin/main`).
+  - Automated QG: build `--no-incremental -warnaserror` 0 / 0; the full suite 2585 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2585 / 0 / 2 each, no hang, no
+dump; the full suite with `AIVE_HEAVY_TESTS=1` 2587 passed, 0 skipped, 0 failed — every assembly (Core 513,
+    Timeline 495, Project 420, UI 573, Export 100, Rendering 58, Video 316, ExportEndToEnd 110 + 2 / 112 heavy); results
+    of the blame runs in the session's scratch folder. No failure, nothing fixed, no criterion changed.
+  - Real app (Debug, isolated profile): R1 with a project saved by the Phase 12 build (`git archive c0cb600`, built apart):
+    default export settings, a plain Save byte-identical, only `settings.export` added after a change, reopened with it,
+    the Phase 12 app opening the new file; R2: Compact / Slow / 320 — draft, Apply (dirty), Undo / Redo, a real export with
+    `crf=28.0`, `subme=8`, `-b:a 320000` and a valid AAC track (Project Settings… off during it); R3 at 1080 × 1080 / 30 fps
+    — tracks, marker, copy / duplicate, ripple, recent, relink (offline on activation, Relink…, Undo / Redo); saved with the
+    dissolve, fades and marker. (Automation notes: a first relink attempt renamed a copy the project did not reference —
+    the fixture copy points at the original media by absolute path; a Ripple Delete attempt hit the Media Browser row of the
+    same name — both automation mistakes, redone correctly.)
+  - Manual plan: see its "Step 13.10 closeout" log — final-state runs and the scenarios carried from 13.6 / 13.9.
+  - Documentation: D028 (closeout, status), DEVELOPMENT_PLAN (Phase 13 checked — complete locally, 13.9 / 13.10),
+    ROADMAP (Current / Previous / Future), README, ARCHITECTURE (verification note), this file, the manual plan.
 
 ### Phase 12 — Editing essentials (complete; PR #12 merged as `c0cb600`, CI green)
 
@@ -3340,12 +3357,12 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-06: Phases 0–12 are complete and merged into `main` (last merge `c0cb600`, PR #12, CI green; Step 12.9: 2324
-passed, 2 skipped; the 4K scenes 90 / 90). Phase 13 (project & export settings, D028) started on
-`feat/phase-13-project-export-settings`: Step 13.2 (documentation only) done, D028 awaiting acceptance. Open items
-carried forward: see "Known issues" (L1-c — now in Phase 13, the audio status message after a device returns, the
-watched `Project.Tests` hang / failure, the known flaky CI tests, no timeline virtualization, import not undoable, the
-5 s PATH probe of the locators, the `F(end − start)` test helpers).
+2026-10-06: Phases 0–12 are complete and merged into `main` (last merge `c0cb600`, PR #12, CI green). Phase 13 (project &
+export settings, D028) is complete locally on `feat/phase-13-project-export-settings` (closeout at `5c01aed`: 2585 passed,
+2 skipped; heavy 2587 / 0 / 0); not published, so CI has not run. Open items carried forward: see "Known issues" (the
+audio status message after a device returns, the watched `Project.Tests` hang / failure, the known flaky CI tests, no
+timeline virtualization, import not undoable, the 5 s PATH probe of the locators, the `F(end − start)` test helpers, a new
+text clip's `FontSize` 48 on any canvas).
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -3384,6 +3401,7 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 10 (accepted 2026-10-01; PR #10 merged as `2e758f1`)
 - Phase 11 (accepted 2026-10-05; PR #11 merged as `47ed2fa`, CI green)
 - Phase 12 (accepted; PR #12 merged as `c0cb600` on 2026-10-05, CI green)
+- Phase 13 (complete locally 2026-10-06, Step 13.10; not published — CI pending)
 
 ## Known issues
 

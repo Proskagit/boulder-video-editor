@@ -9,8 +9,8 @@ autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
 text; MP4 export; quality: stability, thumbnails, waveforms, hotkeys,
 performance, polish, CI; fades and a cross dissolve; media relink and recent projects — Phase 11, merged
 2026-10-05; editing essentials: track delete / reorder, removing media, ripple delete, copy / paste / duplicate,
-markers — Phase 12, merged 2026-10-05 as `c0cb600`, CI green). Phase 13 (project & export settings) is in
-progress — DECISIONS.md D028.
+markers — Phase 12, merged 2026-10-05 as `c0cb600`, CI green). Phase 13 (project & export settings) is complete
+locally (not published yet) — DECISIONS.md D028.
 
 ## Requirements
 
@@ -120,7 +120,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–12 complete (Phase 12 merged as `c0cb600`, CI green); Phase 13 in progress (D028). Working: media import
+Phases 0–12 complete (Phase 12 merged as `c0cb600`, CI green); Phase 13 complete locally (D028; not published). Working: media import
 with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
 preview playback with video and audio, and projects on disk: New / Open / Save /
@@ -165,3 +165,9 @@ removes the selected clips and closes up their tracks; Close Gap removes the emp
 Ctrl+C / Ctrl+V (Paste) / Ctrl+D (Duplicate) copy clips with all their properties (never a dissolve) to the playhead or
 right after them. ◀ ◆+ ◆− ▶ left of the ruler add, remove and go to markers (snap targets too). Every one of these is
 undoable and off during an export; an import interrupted by New / Open / Recover adds nothing to the other project.
+
+Phase 13 (DECISIONS.md D028; complete locally): **Project Settings…** in the toolbar — the frame size (presets, custom, ⇄
+Swap; positions and text sizes scale with it), the frame rate (the clips move to the new frame grid; fades, dissolves and
+markers keep their time) and, in its EXPORT section, the export quality (Maximum / High / Standard / Compact), the
+encoding speed (Fast / Medium / Slow) and the AAC bitrate (128–320 kbps); one Apply is one Undo step; the export settings
+are saved with the project (`settings.export`; older projects export as before).

@@ -59,26 +59,26 @@ session state (D015).
 
 ## Current
 
-Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
-merge of PR #12). Goal: replace the fixed 1920 × 1080 canvas with real project settings (canvas size, frame rate) and add
-export settings (quality, encoder speed, audio bitrate), with L1-c decided inside the phase because the quality becomes
-configurable. Step 13.1 (audit) accepted (2026-10-06); Step 13.2 (sync after the merge of PR #12, scope formalization,
-documentation only) accepted with D028 (2026-10-06); Step 13.3 (settings model, validation, `settings.export` in
-`project.json` v3) accepted (`4514f09`); Step 13.4 (canvas change: `SetCanvasSize`, positions and font sizes scaled by
-the contain factor, the preflight on the canvas rules) done (`ec51247`); Step 13.5 (frame-rate change: `SetFrameRate`,
-D007's re-grid on every track, FR-1 — every dissolve's handles checked) accepted (`010a1b8`); Step 13.6 (Project
-Settings… dialog, `SetProjectSettings` — canvas and rate in one Undo step) accepted (`66a0871`); Step 13.7 (export settings
-core: `ExportJob.Encoding` → encoder arguments, the default = the Phase 12 command lines) accepted (`adf85e4`); Step 13.8
-(L1-c decided: per-level bounds on the codec's own error, the level order, flat colour; sound at every bitrate) accepted
-(`3d08c1b`); Step 13.9 (export settings in the Project Settings dialog, one Apply with the size and the rate) done —
-awaiting acceptance.
-Scope, constraints
-and out of scope: DECISIONS.md D028; steps 13.3
-settings model & format · 13.4 canvas size · 13.5 frame rate · 13.6 project settings UI · 13.7 export settings core · 13.8 L1-c
-codec-leg criteria · 13.9 export settings UI · 13.10 closeout — acceptance criteria in `docs/DEVELOPMENT_PLAN.md`.
-Details: `progress.md`.
+No phase in progress — Phase 13 closed locally (2026-10-06); not published yet (no push / pull request), so CI has not
+run. Phase 14 not started.
 
 ## Previous
+
+Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
+merge of PR #12). **Complete locally**: Steps 13.1–13.9 accepted by the product owner (`226c7f2` … `5c01aed`); Step 13.10
+(final verification & closeout) done on 2026-10-06 — build `--no-incremental -warnaserror` 0 / 0; the full suite
+2585 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2585 / 0 / 2 each, no hang, no
+dump; the full suite with `AIVE_HEAVY_TESTS=1` 2587 passed, 0 skipped, 0 failed; R1 (a Phase 12 project opens with the default export settings and saves byte for byte as Phase 12 wrote it),
+R2 (export settings applied, undone, redone and used by a real export: `crf=28.0`, `subme=8`, `-b:a 320000`) and R3
+(Phase 11–12 features at 1080 × 1080 / 30 fps) passed in the real app. What it delivers (DECISIONS.md D028): the canvas size
+and the frame rate as project settings (undoable; positions and font sizes scale with the canvas; D007's re-grid on a
+rate change, FR-1); export settings — quality (CRF 14 / 18 / 23 / 28), libx264 preset (fast / medium / slow), AAC 128–320
+kbps — in the Project Settings dialog (a change from the Step 13.2 plan, which had them in the export flow), saved as the
+optional `settings.export` of `project.json` v3 (a project without it: the default = the Phase 12 output); L1-c decided
+(per-level bounds on the codec's own error, the level order, flat colour; the measurement kept in the suite); the
+Phase 8–12 export / parity criteria unchanged. Steps 13.3 model & format · 13.4 canvas · 13.5 frame rate · 13.6 project
+settings UI · 13.7 export settings core · 13.8 L1-c · 13.9 export settings UI · 13.10 closeout — details in
+`docs/DEVELOPMENT_PLAN.md` and `progress.md`.
 
 Phase 12 — Editing essentials, branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main` after the merge of
 PR #11). **Complete**: accepted by the product owner on the Step 12.9 verification (closeout `6761c1d`); PR #12 merged
@@ -202,11 +202,11 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 13 — see `docs/DEVELOPMENT_PLAN.md`. Open outside Phase 13: a test cleanup — some 12.3 / 12.5
-test helpers give clips the length `F(end − start)` instead of `F(end) − F(start)` (a tick off the grid at 30 fps;
-product owner: a separate cleanup); the known flaky CI tests (D028 §8 policy; not fixed in Phase 13). L1-c moved into
-Phase 13 (D028 §6). Left out by the product owner: AI features, HDR / colour management, an installer, timeline
-virtualization, an undoable import.
+None planned after Phase 13 — see `docs/DEVELOPMENT_PLAN.md`; Phase 14 not started. Open outside Phase 13: a test cleanup —
+some 12.3 / 12.5 test helpers give clips the length `F(end − start)` instead of `F(end) − F(start)` (a tick off the grid at
+30 fps; product owner: a separate cleanup); the known flaky CI tests (D028 §8 policy); a new text clip takes `FontSize` 48
+on any canvas (an observation). L1-c is closed (Phase 13 Step 13.8). Left out by the product owner: AI features, HDR /
+colour management, an installer, timeline virtualization, an undoable import.
 
 ## Rule
 

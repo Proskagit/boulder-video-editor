@@ -528,5 +528,6 @@ Steps 11.7–11.8 (Phase 11 merged into `main` as `47ed2fa`); the Phase 12 editi
 Timeline section at the Phase 12 closeout (Step 12.9, `d467a84`; Phase 12 merged into `main` as `c0cb600`). Phase 13
 (D028, project & export settings): the `ProjectSettings` / persistence lines at Step 13.3, the canvas-size and
 composition lines at Step 13.4, the frame-rate line at Step 13.5, the project-settings line at Step 13.6, the export
-contract (job settings, `ExportFormat`) at Step 13.7, the codec-leg line at Step 13.8.
+contract (job settings, `ExportFormat`) at Step 13.7, the codec-leg line at Step 13.8, the export-settings UI line at
+Step 13.9; the whole Phase 13 part re-checked at the closeout (Step 13.10, `5c01aed`).
 Re-check the code before relying on details that later phases may have changed.

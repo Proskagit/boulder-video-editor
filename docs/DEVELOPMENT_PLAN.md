@@ -52,13 +52,12 @@ and runs cleanly.
       closeout `6761c1d`; accepted by the product owner on the Step 12.9 verification; PR #12 merged into `main` as
       `c0cb600` (2026-10-05), CI green. Open after it: the `F(end − start)` test helpers (a separate cleanup); L1-c
       moved into Phase 13)*
-- [ ] **Phase 13 — Project & export settings.** The canvas size and the frame rate as project settings (new and
+- [x] **Phase 13 — Project & export settings.** The canvas size and the frame rate as project settings (new and
       existing projects, undoable), export settings (quality, encoder speed, audio bitrate) on the existing MP4 /
       H.264 / AAC encoder, and the codec-leg criteria of L1-c. Scope, steps and acceptance criteria: section below and
       DECISIONS.md D028 (product owner decisions, 2026-10-06). *(branch `feat/phase-13-project-export-settings`, from
-      `c0cb600`; D028 accepted 2026-10-06; Step 13.3 accepted (`4514f09`); Step 13.4 done (`ec51247`); Step 13.5 accepted
-      (`010a1b8`); Step 13.6 accepted (`66a0871`); Step 13.7 accepted (`adf85e4`); Step 13.8 (L1-c) accepted
-      (`3d08c1b`); Step 13.9 (export settings UI) done — awaiting acceptance)*
+      `c0cb600`; Steps 13.2–13.9 `226c7f2`…`5c01aed`, all accepted; the local QG of Step 13.10 passed on 2026-10-06 —
+      complete locally. Open: not published, so CI has not run)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -704,14 +703,14 @@ Scope: D028 §6.
 - Impl: L1-c closed in D028 (and pointed to from D023); nothing else in the suite changes.
 - Depends on: 13.7.
 
-### 13.9 — Export settings UI *(done — awaiting acceptance; D028 "Refined in Step 13.9": an EXPORT section of the Project Settings dialog, not the export flow — the product owner's choice; one Apply with the size and the rate)*
+### 13.9 — Export settings UI *(done — accepted 2026-10-06, `5c01aed`; D028 "Refined in Step 13.9": an EXPORT section of the Project Settings dialog, not the export flow — the product owner's choice; one Apply with the size and the rate)*
 Scope: D028 §7 (13.9).
 - PR: the export settings are chosen in the export flow, remembered by D028 question 3's rule, disabled during an
   export; the export manual plan still passes with the defaults.
 - QG: view-model tests (choice, remembering, cancel, `EditingLock`); the dialog at 1024 px in the real app.
 - Depends on: 13.7, 13.8.
 
-### 13.10 — Final verification & closeout
+### 13.10 — Final verification & closeout *(done locally — 2026-10-06: build `--no-incremental -warnaserror` 0 / 0; the full suite 2585 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2585 / 0 / 2 each, no hang, no dump; the full suite with `AIVE_HEAVY_TESTS=1` 2587 passed, 0 skipped, 0 failed; the manual plan, R1, R2, R3 in the real app; CI pending — not published)*
 - QG: `dotnet build --no-incremental -warnaserror` 0 / 0; full suite once plus three times with `--blame-hang`; heavy
   scenes once with `AIVE_HEAVY_TESTS=1`; CI green (D028 §8 policy for the known flaky tests).
 - PR: `docs/PHASE13_MANUAL_TEST_PLAN.md` run in the real app; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run as a regression

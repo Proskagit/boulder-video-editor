@@ -86,11 +86,19 @@ No real-app scenario: the measurement and the criteria run in the suite (`Export
 
 | # | Scenario | Expected | Status |
 |---|---|---|---|
-| R1 | A project saved by the Phase 12 build | v3 kept: opens unchanged, Save writes `formatVersion` 3; v4: the handling decided at 13.3 | planned |
-| R2 | `docs/EXPORT_MANUAL_TEST_PLAN.md` at the default settings and at one non-default setting | Passes as before | planned |
-| R3 | Relink, recent projects, tracks, ripple, copy / paste, markers, fades and dissolves at a non-default canvas and rate (short run) | As accepted in Phases 10–12 | planned |
+| R1 | A project saved by the Phase 12 build | v3 kept: opens unchanged, Save writes `formatVersion` 3; v4: the handling decided at 13.3 | 13.10 (Claude): PASS — the Phase 12 app (`c0cb600`, built apart) saved the fixture with a marker; Phase 13: default export settings shown, a plain Save byte-identical, `settings.export` the only addition after Standard / Fast / 256, reopened with them; the Phase 12 app opened that file |
+| R2 | `docs/EXPORT_MANUAL_TEST_PLAN.md` at the default settings and at one non-default setting | Passes as before | 13.10 (Claude): PASS — Compact / Slow / 320: dirty, Undo / Redo, a real export (`crf=28.0`, `subme=8`, `-b:a 320000`, AAC-LC 48 kHz stereo, 850 frames, 34 s; Project Settings… off during it); the default export at 13.6 (scenario 6); the other export UI scenarios at 12.9 — no export workflow code changed since |
+| R3 | Relink, recent projects, tracks, ripple, copy / paste, markers, fades and dissolves at a non-default canvas and rate (short run) | As accepted in Phases 10–12 | 13.10 (Claude): PASS at 1080 × 1080 / 30 fps — track move + Undo, marker, Ctrl+C / Ctrl+D, Ripple Delete + Undo, `Recent ▾`, offline → Relink… → Undo / Redo; saved with the dissolve, the fades and the marker; the title font 96 → 162 |
 
 ## Results log
+
+### 2026-10-06 — Step 13.10 closeout (Claude), `5c01aed`, Debug, isolated profile
+
+On the final state: R1, R2, R3 (the Regression table) and, again, 13 / 14 (the dialog, draft / Cancel / one Apply step),
+17 (off during an export), 18–24 (export settings: draft, Apply, Undo / Redo, reopen, save, the export using them) and 9
+(a rate change with R3). Run at 13.6 / 13.9 and not affected by later code (only the export job's settings changed in
+13.7, only the dialog's EXPORT section in 13.9): 4–8a, 10–12, 15, 16. Not run by hand: 2 (recovery — automated), 12a
+(automated). No defect found.
 
 ### 2026-10-06 — Step 13.6 real-app run (Claude), Debug, isolated profile
 
