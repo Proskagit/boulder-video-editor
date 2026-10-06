@@ -1,5 +1,6 @@
 using System.Globalization;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Timeline.Commands;
@@ -274,7 +275,7 @@ public sealed class TimelineEditService : ITimelineEditService
         var entries = clips.OrderBy(c => c.TimelineStart)
             .Select(c => new TimelineClipboardEntry(CloneClip(c), plan.TrackOf(c).Id))
             .ToList();
-        return new TimelineClipboard(plan.Rate, entries);
+        return new TimelineClipboard(plan.Rate, CurrentCanvas, entries);
     }
 
     public TimelineEditResult PasteClips(TimelineClipboard clipboard, MediaTime at)
@@ -304,6 +305,8 @@ public sealed class TimelineEditService : ITimelineEditService
         var rate = plan.Rate;
         if (clipboard.FrameRate != rate)
             return TimelineEditResult.Fail("The project frame rate changed since the clips were copied. Copy them again.");
+        if (clipboard.Canvas != CurrentCanvas)
+            return TimelineEditResult.Fail("The project frame size changed since the clips were copied. Copy them again.");
 
         var earliest = clipboard.Entries.Min(e => e.Clip.TimelineStart.ToNearestFrame(rate));
         var ids = new List<Guid>();
@@ -870,6 +873,197 @@ public sealed class TimelineEditService : ITimelineEditService
         var command = new SetClipPropertiesCommand(clip, before, after, fields);
         _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id });
+    }
+
+    // --- Frame rate (D028, Step 13.5) ---------------------------------------------------------------------------------
+
+    public TimelineEditResult SetFrameRate(FrameRate rate)
+    {
+        if (RateError(rate) is { } rateError) return TimelineEditResult.Fail(rateError);
+        if (!ChangesRate(rate)) return TimelineEditResult.Unchanged();
+        if (PlanFrameRate(rate, out var plan, out var command) is { } error) return TimelineEditResult.Fail(error);
+
+        _undoRedo.Execute(new NotifyingCommand(command, NotifyRateChanged));
+        return TimelineEditResult.Ok(null, RateMessage(rate, plan));
+    }
+
+    private static string? RateError(FrameRate rate) => rate.IsValid && ProjectSettingsRules.IsSelectableFrameRate(rate)
+        ? null
+        : $"{(rate.IsValid ? FormatRate(rate) : "That")} FPS is not one of the project frame rates.";
+
+    /// <summary>A different rate, or the current one of an unlocked project (FR-4: choosing it locks it).</summary>
+    private bool ChangesRate(FrameRate rate) => rate != Settings.FrameRate || !Settings.IsFrameRateLocked;
+
+    /// <summary>
+    /// The rate change as one command, built without touching the model: the current rate of an unlocked project only
+    /// locks it (FR-4, <paramref name="plan"/> null); another rate is an <see cref="EditPlan"/> with the rate locked, the
+    /// re-grid of every track and the usual validation. Returns the reason when the change is refused.
+    /// </summary>
+    private string? PlanFrameRate(FrameRate rate, out EditPlan? plan, out IUndoableCommand command)
+    {
+        plan = null;
+        command = null!;
+        if (rate == Settings.FrameRate)
+        {
+            command = new SetFrameRateCommand(Settings, rate, Settings.IsFrameRateLocked, rate, true);
+            return null;
+        }
+
+        plan = new EditPlan(Sequence, Settings);
+        plan.SetFrameRate(rate, locked: true);
+        if (FrameRateRegrid.Plan(plan, rate, FindAsset) is { } regridError)
+            return $"Can't change the frame rate to {FormatRate(rate)} FPS: {regridError}";
+        if (Validate(plan) is { } error)
+            return $"Can't change the frame rate to {FormatRate(rate)} FPS: {error}";
+        command = plan.BuildCommand("Set Frame Rate");
+        return null;
+    }
+
+    /// <summary>After a rate change, its Undo and its Redo: the playhead (session state, D015) goes to its nearest frame
+    /// of the grid; markers keep their time.</summary>
+    private void NotifyRateChanged()
+    {
+        Sequence.PlayheadPosition = Sequence.PlayheadPosition.SnapToFrame(Settings.FrameRate);
+        _projectService.NotifyTimelineChanged();
+    }
+
+    private string RateMessage(FrameRate rate, EditPlan? plan) => plan is null
+        ? $"Project frame rate kept at {FormatRate(rate)} FPS."
+        : Join($"Project frame rate set to {FormatRate(rate)} FPS.", TransitionNote(plan))!;
+
+    // --- Canvas (D028, Step 13.4) -------------------------------------------------------------------------------------
+
+    private FrameSize CurrentCanvas => new(Settings.FrameWidth, Settings.FrameHeight);
+
+    public TimelineEditResult SetCanvasSize(int width, int height)
+    {
+        if (ProjectSettingsRules.CanvasError(width, height) is { } sizeError) return TimelineEditResult.Fail(sizeError);
+        if (width == Settings.FrameWidth && height == Settings.FrameHeight) return TimelineEditResult.Unchanged();
+        if (PlanCanvas(width, height, out var commands) is { } error) return TimelineEditResult.Fail(error);
+
+        _undoRedo.Execute(new NotifyingCommand(new CompositeCommand("Set Frame Size", commands), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok(ScaledClips(commands));
+    }
+
+    /// <summary>
+    /// The canvas change as commands, built without touching the model (CS-1 B): the size, then every video / image /
+    /// text clip whose position or font size the contain factor changes — on every track. Each property command carries
+    /// only the picture and text groups, so it never writes back a fade (a rate change in the same step may cut one).
+    /// Returns the reason when a scaled value leaves the limits.
+    /// </summary>
+    private string? PlanCanvas(int width, int height, out List<IUndoableCommand> commands)
+    {
+        var (oldWidth, oldHeight) = (Settings.FrameWidth, Settings.FrameHeight);
+        var scale = ProjectSettingsRules.ContainFactor(oldWidth, oldHeight, width, height);
+
+        commands = new List<IUndoableCommand> { new SetCanvasSizeCommand(Settings, oldWidth, oldHeight, width, height) };
+        foreach (var track in Sequence.VideoTracks.Concat(Sequence.AudioTracks))
+        {
+            foreach (var clip in track.Clips)
+            {
+                if (VisualProperties.Of(clip) is not { } visual) continue;   // audio: nothing in canvas pixels
+
+                var text = TextProperties.Of(clip);
+                var change = new ClipPropertyChange
+                {
+                    Visual = visual with { PositionX = visual.PositionX * scale, PositionY = visual.PositionY * scale },
+                    Text = text is { } t ? t with { FontSize = t.FontSize * scale } : null
+                };
+                if (ClipPropertyValidator.Validate(clip, change) is { } error)
+                    return $"Can't change the frame size to {width} × {height}: {Describe(clip)} on track {track.Name} — {error}";
+
+                var before = new ClipPropertyValues(visual, null, text);
+                var after = new ClipPropertyValues(change.Visual, null, change.Text);
+                var fields = ClipPropertyValues.Diff(before, after);
+                if (fields != ClipPropertyFields.None)
+                    commands.Add(new SetClipPropertiesCommand(clip, before, after, fields));
+            }
+        }
+        return null;
+    }
+
+    private static IReadOnlyList<Guid> ScaledClips(IEnumerable<IUndoableCommand> commands) =>
+        commands.OfType<SetClipPropertiesCommand>().Select(c => c.Clip.Id).ToList();
+
+    // --- Project settings: canvas and rate together (D028, Step 13.6) -------------------------------------------------
+
+    public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null)
+    {
+        // Every part is checked before anything else, so a refused part never lets another one through alone.
+        if (ProjectSettingsRules.CanvasError(width, height) is { } sizeError) return TimelineEditResult.Fail(sizeError);
+        if (rate is { } r && RateError(r) is { } rateError) return TimelineEditResult.Fail(rateError);
+        if (export?.Validate() is { } exportError) return TimelineEditResult.Fail(exportError);
+
+        var canvasChanges = width != Settings.FrameWidth || height != Settings.FrameHeight;
+        var rateChanges = rate is { } wanted && ChangesRate(wanted);
+        var exportChanges = export is not null && export != Settings.Export;
+        switch ((canvasChanges, rateChanges, exportChanges))
+        {
+            case (false, false, false): return TimelineEditResult.Unchanged();
+            case (true, false, false): return SetCanvasSize(width, height);
+            case (false, true, false): return SetFrameRate(rate!.Value);
+            case (false, false, true): return SetExportSettings(export!);
+        }
+
+        // Several: every check first, on the unchanged model — the re-grid and its validation, then the scaled properties;
+        // the export settings were checked above. The parts are independent (the re-grid changes timing and may cut a fade;
+        // the canvas changes positions and font sizes, its commands carrying only those groups; the export settings are one
+        // value of the project's settings), so the order inside the step doesn't matter for the result; the rate goes first.
+        // One step, one notification (with the playhead on the new grid when the rate changes).
+        var commands = new List<IUndoableCommand>();
+        var messages = new List<string?>();
+        EditPlan? plan = null;
+        if (rateChanges)
+        {
+            if (PlanFrameRate(rate!.Value, out plan, out var rateCommand) is { } planError) return TimelineEditResult.Fail(planError);
+            commands.Add(rateCommand);
+        }
+        var canvasCommands = new List<IUndoableCommand>();
+        if (canvasChanges)
+        {
+            if (PlanCanvas(width, height, out canvasCommands) is { } canvasError) return TimelineEditResult.Fail(canvasError);
+            commands.AddRange(canvasCommands);
+            messages.Add($"Frame size set to {width} × {height}.");
+        }
+        if (rateChanges) messages.Add(RateMessage(rate!.Value, plan));
+        if (exportChanges)
+        {
+            commands.Add(new SetExportEncodingCommand(Settings, Settings.Export, export!));
+            messages.Add(ExportMessage(export!));
+        }
+
+        _undoRedo.Execute(new NotifyingCommand(new CompositeCommand("Change Project Settings", commands),
+            rateChanges ? NotifyRateChanged : _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok(ScaledClips(canvasCommands), string.Join(" ", messages.Where(m => m is not null)));
+    }
+
+    // --- Export settings (D028, Step 13.9) -------------------------------------------------------------------------------
+
+    public TimelineEditResult SetExportSettings(ExportEncoding export)
+    {
+        ArgumentNullException.ThrowIfNull(export);
+        if (export.Validate() is { } error) return TimelineEditResult.Fail(error);
+        if (export == Settings.Export) return TimelineEditResult.Unchanged();
+
+        // A project change (EX-1): undoable and dirty; nothing on the timeline changes, so no notification is needed.
+        _undoRedo.Execute(new SetExportEncodingCommand(Settings, Settings.Export, export));
+        return TimelineEditResult.Ok(null, ExportMessage(export));
+    }
+
+    private static string ExportMessage(ExportEncoding e) =>
+        $"Export settings: {e.Quality} quality, {e.PresetName} encoding, AAC {e.AudioBitrateKbps} kbps.";
+
+    /// <summary>How a clip is named in a message: a text clip by its first line, a media clip by its file.</summary>
+    private string Describe(Clip clip)
+    {
+        if (clip is TextClip text)
+        {
+            var line = text.Text.Split('\n')[0].Trim();
+            return line.Length > 30 ? $"the text clip \"{line[..30]}…\"" : $"the text clip \"{line}\"";
+        }
+        var name = clip is MediaBackedClip media ? FindAsset(media.MediaAssetId)?.FileName : null;
+        var kind = clip is ImageClip ? "image" : "video";
+        return name is null ? $"a {kind} clip" : $"the {kind} clip of {name}";
     }
 
     /// <summary>

@@ -246,6 +246,33 @@ public sealed class ExportParityEncodedTests
         await AssertEncodedSound(run, $"bursts at {ClipSpeed.FromSteps(steps)}", minBursts: 2);
     }
 
+    [FfmpegTheory]
+    [InlineData(128)]
+    [InlineData(160)]
+    [InlineData(192)]
+    [InlineData(256)]
+    [InlineData(320)]
+    public async Task Sound_through_the_codec_at_every_offered_bitrate(int kbps)
+    {
+        foreach (var scene in new[] { "video", "bursts", "mixed" })
+        {
+            var p = new ProjectBuilder(FrameRate.Fps25);
+            switch (scene)
+            {
+                case "video": p.Video(p.VideoTrack(), _media.Sync(FrameRate.Fps25), 5, 100); break;
+                case "bursts": p.Audio(p.AudioTrack(), _media.Bursts(), 0, 100); break;
+                default:
+                    p.Audio(p.AudioTrack(), _media.Bursts(), 0, 100).Volume = 0.8;
+                    p.Audio(p.AudioTrack(), _media.Tone(), 50, 100).Volume = 0.5;
+                    break;
+            }
+            p.Project.Settings.Export = ExportEncoding.Default with { AudioBitrateKbps = kbps };
+            var run = await Export(p, $"enc-sound-{scene}-{kbps}k");
+            Assert.Equal(kbps, run.EncoderSettings!.AudioBitrateKbps);
+            await AssertEncodedSound(run, $"{scene} at {kbps} kbps", minBursts: scene == "video" ? 3 : 4);
+        }
+    }
+
     [FfmpegFact]
     public async Task Mixed_sound_through_the_codec()
     {

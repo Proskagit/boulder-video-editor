@@ -2,13 +2,281 @@
 
 ## Current phase
 
-Phase 12 — Editing essentials: **complete locally** — Step 12.9 (final verification & closeout) done on 2026-10-05 on
-branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main` after the merge of PR #11). Open: CI not run yet — the
-branch is not published (push / pull request only with the product owner's permission); L1-c stays open; a separate
-test cleanup (`F(end − start)` helpers of 12.3 / 12.5). Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`
-"Phase 12 — Editing essentials: steps"; decision D027 (product owner decisions of 2026-10-05). Steps 12.1–12.9 done.
+Phase 13 — Project & export settings: **complete locally** — Step 13.10 (final verification & closeout) done on
+2026-10-06 on branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the merge of PR #12); Steps
+13.1–13.9 accepted. Open: not published (push / pull request only with the product owner's permission), so CI has not
+run. Phase 14 not started. Scope, steps and
+acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 13 — Project & export settings: steps"; decision D028.
 
-### Phase 12 — Editing essentials (complete locally)
+### Phase 13 — Project & export settings (complete locally)
+
+Steps (D028; each accepted by the product owner before the next, never started automatically): 13.1 audit · 13.2 sync
+after the merge & scope formalization · 13.3 settings model & format · 13.4 canvas size · 13.5 frame rate · 13.6 project
+settings UI · 13.7 export settings core · 13.8 L1-c codec-leg criteria · 13.9 export settings UI · 13.10 closeout.
+Working rules from the product owner (kept from Phases 11–12): no build or test run without a separate command; no
+push, pull request or merge without direct permission; no next step without the product owner's go.
+
+- Step 13.1 done and accepted (2026-10-06) — audit, no change in the repository (one `git fetch origin`, which moved
+  only the remote-tracking `origin/main` to `c0cb600`).
+  - Git: on `feat/phase-12-editing-essentials` at `6761c1d`, clean; `origin/main` = `c0cb600` "Merge pull request #12 …"
+    (parents `47ed2fa`, `6761c1d`), its tree identical to `6761c1d`; the local `main` at `47ed2fa`, 9 commits behind,
+    none ahead. No build or test run (static audit, the product owner's request).
+  - No phase was planned after Phase 12 (ROADMAP, DEVELOPMENT_PLAN, DECISIONS); candidates reported with their code
+    state: project & export settings (chosen), AI features (no AI code at all), colour / HDR, distribution, editing
+    continuation, technical debt.
+  - Code: `ProjectSettings.FrameWidth / FrameHeight` are assigned only by `ProjectSerializer` — a new project is always
+    1920 × 1080 (D018 "never taken from a video"), so a portrait video can't get a portrait canvas without editing
+    `project.json`; `ExportFormat` constants (CRF 18, medium, AAC 192 kbps); `ExportSettings` session-only.
+  - Documentation outdated by the merge of PR #12: "CI pending / not published / complete locally" (ROADMAP, README,
+    DEVELOPMENT_PLAN, this file, D027 status); the Phase 12 acceptance not recorded.
+  - L1-c relevant only to export settings (CRF-18 sanity bounds such as `ExportCompositionEndToEndTests` "mean |Δ| ≤ 3");
+    the known flaky CI tests need a gate policy.
+- Product owner decisions (2026-10-06), recorded in D028: Phase 13 = project & export settings — remove the fixed
+  1920 × 1080 canvas, real project / export settings; L1-c inside the phase if the quality becomes configurable, the old
+  CRF-18 parity bounds not kept artificially; no v3 → v4 migration and no requirement to read old v3 user projects — v4
+  only if architecturally needed (first check whether v3 can be extended), then the repository fixtures / examples
+  rewritten in v4; the known flaky CI tests out of scope, with an explicit rerun policy; no implementation before 13.2
+  is done and D028 accepted.
+- Step 13.2 done (2026-10-06) — sync after the merge and scope formalization, documentation only (no production code,
+  no test changed, no build or test run). `git checkout main` + `git merge --ff-only origin/main` (`47ed2fa` →
+  `c0cb600`), branch `feat/phase-13-project-export-settings` created from it.
+  - Phase 12 synced with its real state: accepted by the product owner on the Step 12.9 verification, PR #12 merged as
+    `c0cb600` (2026-10-05), CI green — ROADMAP (Current, Previous, Future phases), README (three status lines),
+    DEVELOPMENT_PLAN (the Phase 12 line, the 12.9 heading), this file (Current phase, the Phase 12 heading, "Last known
+    state", "Completed"), D027 (an "After the merge" note and the status), `docs/PHASE12_MANUAL_TEST_PLAN.md` (a CI
+    line). The stale Phase 11 CI line of `docs/PHASE11_MANUAL_TEST_PLAN.md` (CI green on PR #11 is recorded elsewhere
+    since Step 12.2) corrected too. The historical step logs are left as they were written.
+  - DECISIONS: D028 (context from the audit; §1 scope, §2 constraints incl. the explicit changes of D007 / D018 / D023,
+    §3 out of scope, §4 project settings rules, §5 project format — v3 kept unless impossible, v4 without backward
+    migration, repository project JSON rewritten in v4 — §6 L1-c, §7 export settings rules, §8 the flaky-test policy;
+    three questions open for the acceptance: a canvas from the first video, an export size of its own, export settings
+    per project or application-wide).
+  - Format finding (D028 §5): the canvas, the rate and `IsFrameRateLocked` are already in v3 (`ProjectSettingsDto`), so
+    the project settings need no format change; only export settings saved per project could need one, decided at 13.3
+    by D028 §5's rule.
+  - `docs/DEVELOPMENT_PLAN.md`: the Phase 13 line and the section "Phase 13 — Project & export settings: steps" (gates,
+    constraints, steps 13.1–13.10 with PR / QG / M / Impl items and dependencies).
+  - ARCHITECTURE (verification note), `docs/README.md`, `docs/PHASE13_MANUAL_TEST_PLAN.md` (skeleton: scenarios per
+    step, status "planned"), Known issues (the flaky CI tests and the D028 §8 policy).
+  - Committed as `226c7f2`.
+- Step 13.2 and D028 accepted by the product owner (2026-10-06): the canvas never from a video (D018 default only), no
+  export resolution of its own, the export settings saved in `project.json`, no v4 in advance — recorded in D028.
+- Step 13.3 done (2026-10-06) — settings model, validation and persistence (the analysis first, no code; the product
+  owner confirmed F-1, M-1, L-1, L-2, CS-2, FR-1…FR-4, EX-1…EX-4, deferred CS-1 to 13.4 and M-2 to 13.4 / 13.5 — D028
+  "Refined at the start of Step 13.3").
+  - Core: `ExportEncoding` (record: `ExportQuality` Maximum / High / Standard / Compact → CRF 14 / 18 / 23 / 28,
+    `ExportSpeedPreset` fast / medium / slow, `AudioBitrateKbps` 128 / 160 / 192 / 256 / 320; `Default` = High / medium /
+    192 = the `ExportFormat` constants; `Crf`, `PresetName`, `Validate`); `ProjectSettingsRules` (`CanvasError`: even,
+    64–4096 per side, area ≤ 9 437 184; `SelectableFrameRates`, `IsSelectableFrameRate`); `ProjectSettings.Export`.
+  - Project: `ProjectSettingsDto.Export` (`ExportEncodingDto`, strings for the names, omitted when null);
+    `ProjectSerializer` writes it only when not the default and reads it strictly (`ReadExportEncoding`: absent / null →
+    default; a missing field, a name that is not exactly an enum name, a bitrate not offered → damaged). `formatVersion`
+    stays 3; load rules for the canvas and the rate unchanged.
+  - Not done here, by the step's limits: no UI, no canvas / rate command, `FrameRateRegrid` unchanged, the encoder
+    still reads `ExportFormat` (13.7), no export / preflight change. FR-1's regression test needs the production fix of
+    the dissolve-handle check (`ValidateTransitions` / `IsTouched`), so both go to 13.5; the preflight's canvas limits go
+    to 13.4. CS-1 not implemented: a canvas change will touch no clip property until 13.4 decides; no
+    `IProjectSettingsService` or other new interface.
+  - Tests: `Core.Tests/ProjectSettingsRulesTests` (46: canvas sizes valid / odd / out of range / above the area limit,
+    the eight rates, the export levels / presets / bitrates, defaults = `ExportFormat`, validation),
+    `Project.Tests/ExportEncodingPersistenceTests` (round trip of every non-default value, JSON shape and names, default
+    not written, absent / null / explicit default → default and saved unchanged, 19 invalid values + 3 non-objects →
+    damaged, recovery round trip / default / invalid, output path and `lastExportSettings` never written, an old
+    `lastExportSettings` never read as export settings, canvas and rates outside the user limits still open; 49).
+    Existing tests unchanged.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the step's tests (Core 46,
+    Project 139 incl. the serializer, recovery and export-settings classes) green; the full `dotnet test` once: 2419
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 494 (+46), Timeline 425, Project 420 (+49), UI 541,
+    Export 99, Rendering 58, Video 294, ExportEndToEnd 88 + 2; `git diff --check` clean.
+  - Committed as `4514f09`; accepted by the product owner (2026-10-06).
+- Step 13.4 done (2026-10-06) — canvas change (the analysis of the canvas semantics first, no code; the product owner
+  chose CS-1 B and confirmed B-1…B-4, P-1 and M-2 — D028 "Refined at the start of Step 13.4").
+  - Analysis: positions are canvas pixels from the centre, a picture's `Scale` is relative to its contain-fit, text is
+    absolute (`FontSize` px, `Scale` multiplier); keeping every value (A) puts corner elements off the canvas on an
+    aspect change and breaks the composition even at the same aspect ratio (1080p → 4K); B (× `min(W'/W, H'/H)`) keeps
+    it exactly at the same aspect ratio and contains the old frame in the new canvas otherwise.
+  - Timeline: `ITimelineEditService.SetCanvasSize` / `TimelineEditService.SetCanvasSize` (rules first; same size =
+    no change; positions of every picture / text clip and font sizes × s, locked and hidden tracks too; refused whole
+    with the clip, the track and the reason when a scaled value leaves the limits; one `CompositeCommand` "Set Frame
+    Size" = `SetCanvasSizeCommand` + `SetClipPropertiesCommand`s in one `NotifyingCommand`); `TimelineClipboard.Canvas`
+    and the paste refusal after a canvas change. Core: `ExportPreflight` checks `ProjectSettingsRules.CanvasError`.
+    Design-time / test stubs of `ITimelineEditService` got the new member.
+  - Not in 13.4: no UI (the `EditingLock` comes with the dialog's command at 13.6, as for every edit — the service does
+    not know the lock), no frame-rate change, no export settings / encoder change.
+  - Tests: `Timeline.Tests/CanvasEditTests` (28: one step scaling only positions and font sizes, Undo / Redo exact,
+    dirty / save point, one `TimelineChanged`, no media event; seven transitions incl. the five of the analysis, centre
+    and corners; the round trip 16:9 → 9:16 → 16:9 = × 0.31640625 and Undo restoring it; same size; six refused sizes;
+    the largest canvas; three out-of-limits cases atomic with the clip and track named; locked / hidden tracks; no
+    clips; a hand-written odd canvas changed to a valid one; clipboard refused and copied again; Undo making the old
+    clipboard valid; snapshot canvas, `DiffersOnlyInPresentation` both ways, text transform, picture fit / centre;
+    save → reopen); `Core.Tests/ExportPreflightTests` (+12: seven refused canvases with their reason, five accepted
+    incl. 4096 × 2304); `UI.Tests/PreviewLayersTests` (+1: the paused Preview gets the new canvas, the pipeline, the
+    seek generation and the decoder requests unchanged, also after Undo); `ExportEndToEnd.Tests/
+    ExportCanvasChangeEndToEndTests` (+2: 320 × 180 changed by the real service to 180 × 320 and 240 × 240 — the MP4 at
+    the new size, the green box at its scaled position, the red solid contained, the portrait letterbox black, the
+    export canvas = the Preview byte for byte on frames 0 and 9). Existing tests unchanged.
+  - Mutations (each reverted): no font scaling → 14 failures; no clipboard canvas check → 1; the factor always from the
+    width → 3; a clip changed before the refusal → 3; the preflight back to the even check → 7; the canvas made a decoding
+    change in `DiffersOnlyInPresentation` → 1 (the Preview test).
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2462
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 506 (+12), Timeline 453 (+28), Project 420, UI 542 (+1),
+    Export 99, Rendering 58, Video 294, ExportEndToEnd 90 (+2) + 2; `git diff --check` clean.
+  - Committed as `ec51247`.
+- Step 13.5 done (2026-10-06) — frame-rate change and FR-1 (D028 "Refined in Step 13.5").
+  - Timeline: `ITimelineEditService.SetFrameRate` / `TimelineEditService.SetFrameRate` (only the offered rates; the
+    current rate locks an unlocked project in one step, of a locked one no change; otherwise `EditPlan.SetFrameRate(rate,
+    locked: true)` + `FrameRateRegrid.Plan` + `Validate` as one "Set Frame Rate" step, refused whole on any failure; the
+    playhead snapped to the grid in the command's notification on Execute / Undo / Redo). `EditPlan.IsTouched`: every
+    dissolve is touched when the rate changes (FR-1), for the user's change and the first video's lock alike.
+    `FrameRateRegrid`'s summary corrected (speed clips are re-gridded, not refused; user changes; every track). Stubs of
+    `ITimelineEditService` got the new member. No UI (13.6), no export change (13.7), `project.json` unchanged.
+  - Tests: `Timeline.Tests/FrameRateEditTests` (20: 25 → 29.97 re-grid with exact edges, fades / dissolve kept in time,
+    markers kept, playhead to its nearest frame, one step, dirty / save point, one `TimelineChanged`, Undo / Redo exact
+    incl. the playhead; locked / hidden tracks re-gridded; a 2× clip keeps source range and speed; two markers on one
+    frame after 60 → 24; FR-4 lock-only step and the first video then keeping the rate; locked same rate = no change;
+    five rates not offered and an invalid one refused; an impossible re-grid refused; a 2-frame dissolve at 60 → 24
+    refused; FR-1: 30 → 60 with a one-frame handle refused although no clip moves, the same through the first video's
+    lock refused, enough source → kept; clipboard refused after a rate change and valid after Undo; snapshot rate;
+    save → reopen) and `ExportEndToEnd.Tests/ExportFrameRateChangeEndToEndTests` (+1: 25 → 30 by the real service — 24
+    frames at 30 fps, the cut at frame 12, export canvas = Preview byte for byte on frames 0, 11, 12, 23).
+  - Mutations (each reverted, all caught): FR-1 reverted → 2 failures (both FR-1 regressions); playhead not snapped → 1;
+    the new rate not locked → 2; the same unlocked rate a no-change → 1; any valid rate accepted → 5; locked tracks
+    skipped by the re-grid → 1; no validation after the re-grid → 2.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2483
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 506, Timeline 473 (+20), Project 420, UI 542, Export 99,
+    Rendering 58, Video 294, ExportEndToEnd 91 (+1) + 2; `git diff --check` clean.
+  - Committed as `010a1b8`; accepted by the product owner (2026-10-06).
+- Step 13.6 done (2026-10-06) — Project Settings dialog (the UI audit first, no code; the product owner decided:
+  `SetProjectSettings` as one atomic step, New unchanged, errors inside the dialog — D028 "Refined at the start of Step
+  13.6").
+  - Timeline / Core: `ITimelineEditService.SetProjectSettings`; `TimelineEditService` split into `PlanFrameRate` /
+    `PlanCanvas` (planning without touching the model) used by `SetFrameRate`, `SetCanvasSize` and `SetProjectSettings`;
+    canvas property commands carry only the picture / text groups; `ProjectSettingsRules.ContainFactor`.
+  - UI: `ProjectSettingsViewModel` (draft, presets, Swap, rates incl. "(provisional)" / "(current)", live rule message,
+    scale and rate notices, Apply / Cancel, the lock re-check), `ProjectSettingsWorkflow`, `IProjectSettingsDialog` /
+    `AvaloniaProjectSettingsDialog`, `Views/ProjectSettingsView.axaml`, toolbar "Project Settings…" with the settings
+    tooltip, `Common/RateFormat` (the timeline's rate label uses it); DI registrations; stubs of `ITimelineEditService`.
+  - Tests: `Timeline.Tests/ProjectSettingsEditTests` (11: canvas + rate one step with one notification, Undo / Redo exact
+    incl. a fade cut by the re-grid and a position scaled by the canvas; only canvas / only rate delegated; nothing → no
+    change; provisional + canvas locks in the same step; a refused re-grid or a refused scaled value or an invalid part
+    changes nothing), `UI.Tests/ProjectSettingsUiTests` (11: the workflow through the real shell — one step, Undo / Redo
+    followed by the Preview canvas, the timeline's rate label, the Inspector and the tooltip; only canvas / only rate;
+    draft + Cancel; Apply without a change; live rules; a service refusal in the open dialog then corrected; the lock;
+    provisional and "current" rates; presets / Swap; New) and `UI.Tests/ProjectSettingsViewBindingTests` (2: the toolbar
+    button's place, tooltip and lock; the dialog's bindings). Existing tests unchanged.
+  - Mutations (each reverted, all caught): canvas commands with every group (fade written back) → 1; the rate executed
+    before the canvas check → 1; both parts as two public calls → 3; Apply ignoring the lock → 1; Cancel applying → 2; a
+    kept rate sent as chosen → 2; the draft written to the project while editing → 5.
+  - Real app (results log of `docs/PHASE13_MANUAL_TEST_PLAN.md`): the first attempt ran a UI build left over from the last
+    mutation check (a preset dirtied the project) — rebuilt, everything run again. Found and fixed: the size fields cut
+    off four-digit values at 1024 px (Swap moved next to the presets). Passed at 1024 / 1440 px: 13–17 and the
+    regression 4–12 and 8a (12a not run separately).
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2507
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 506, Timeline 484 (+11), Project 420, UI 555 (+13),
+    Export 99, Rendering 58, Video 294, ExportEndToEnd 91 + 2; `git diff --check` clean.
+  - Committed as `66a0871`; accepted by the product owner (2026-10-06).
+- Step 13.7 done (2026-10-06) — export settings core (the export pipeline audit first, no code; accepted by the product
+  owner — D028 "Refined in Step 13.7").
+  - Core: `ExportJob(snapshot, outputPath, ExportEncoding? encoding = null)` with `Encoding` (null → default, validated);
+    `ExportPreflight` passes `project.Settings.Export`; `IExportEncoder.StartAsync(output, encoding, destination, ct)`;
+    `ExportFormat.VideoCrf / VideoPreset / AudioBitrateBps` removed. Export: `ExportService` passes `job.Encoding` (and
+    logs it). Video: `FfmpegExportEncoder` builds `-crf`, `-preset`, `-b:a` from the encoding (invariant culture), every
+    other token unchanged, the settings validated before ffmpeg starts. Test doubles: `FakeEncoder` and
+    `RecordingEncoder` record the settings they get; the encoder harness and the failure tests pass the default.
+  - Golden first: the full Phase 12 audio / video command lines were written as literals and checked against the Phase 12
+    code (a temporary test, `66a0871` encoder) before the code changed; the same strings now pin the default.
+  - Tests: `Video.Tests/FfmpegExportEncoderTests` (golden default; each level / preset / bitrate changes only its token;
+    culture-independent numbers; settings not offered refused before ffmpeg; real encodes at every level and preset —
+    valid MP4, frames, duration, audio length, `crf=` / `subme=` in the x264 options string; every AAC bitrate valid, 128–
+    256 kbps within 10 %), `Core.Tests/ExportOutputTests` (the fixed format only; job default / explicit / refused),
+    `Core.Tests/ExportPreflightTests` (the job takes the project's settings; changing them after the preflight leaves the
+    job's), `Export.Tests/ExportServiceTests` (the encoder gets the job's settings), `ExportEndToEnd.Tests/
+    ExportSettingsEndToEndTests` (default through the chain; Compact / fast / 128 reaching the encoder with the canvases
+    = the Preview byte for byte; settings changed after the preflight not reaching a real export). Existing export /
+    parity tests unchanged.
+  - Observation (not changed, for 13.8 / 13.9): ffmpeg's native AAC gives ≈ 243 kbps for a 320 kbps request on stereo
+    noise (FFmpeg 9.0.1), less than for 256 kbps (≈ 259 kbps).
+  - Mutations (each reverted, all caught): the preflight ignoring the project's settings → 2; the service sending the
+    default → 1; `-b:a` as "192k" → 15 (of the 15 argument tests); CRF / preset / bitrate from the default instead of the
+    job → 3 / 2 / 4; `-crf` before `-preset` → 15; a culture-formatted number → 15; the job not validating → 3. (A first
+    run of the encoder mutations had a filter that left out the level tests; rerun with the right filter.)
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2540
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 513 (+7), Timeline 484, Project 420, UI 555, Export 100
+    (+1), Rendering 58, Video 316 (+22), ExportEndToEnd 94 (+3) + 2; `git diff --check` clean.
+  - Committed as `adf85e4`; accepted by the product owner (2026-10-06), with the AAC decision: 320 kbps stays; the
+    request and a valid track are the contract, not the bitrate reached.
+- Step 13.8 done (2026-10-06) — L1-c measured and decided (D028 "Refined in Step 13.8"), in one pass as the product
+  owner asked. Baseline: `adf85e4`, clean tree.
+  - Measurement (M): `ExportEndToEnd.Tests/CodecLegMetrics` (the Step 8.6 method: total = MP4 vs canvas, floor = a
+    lossless `-qp 0` reference of the same canvases through the same conversion vs canvas, quant = MP4 vs reference; mean,
+    p99, p99.9, max, PSNR, worst frame) in `ExportCodecLegTests` — 11 scenes × 6 settings (the four levels at medium, fast
+    / slow at High), each line in the test output with the file size and the export time. Two runs gave identical numbers.
+    Lowest per-frame quant PSNR: Maximum 41.3, High 37.5, Standard 33.3, Compact 29.9, fast 37.6, slow 37.8 dB; levels
+    ≥ 3.4 dB apart on every scene; the total is the floor's (24.3 dB worst, mixed layers, at every level); sizes vs High
+    ≈ 1.3 / 0.7 / 0.45; export time flat (slow +10–20 %).
+  - Criteria (pass / fail, `ExportCodecLegTests`): quant per-frame PSNR ≥ 39.0 / 35.0 / 31.0 / 27.5 dB by level (presets
+    meet their level's); each level ≥ 2.0 dB above the next on every scene with detail; flat colour max |Δ| ≤ 2 through the
+    leg at every setting. Sound: `ExportParityEncodedTests.Sound_through_the_codec_at_every_offered_bitrate` — the D023
+    sound checks (length, lag / onsets within 10 ms, SNR ≥ 20 dB) at all five bitrates on three scenes (SNR 24.5–38.4 dB).
+    Nothing depends on the AAC bitrate reached.
+  - Kept: the canvas-level parity, Steps 8.3–8.5 criteria, the composition bound "mean |Δ| ≤ 3" (the High total sanity
+    bound on its nine scenes), the 13.7 golden command lines; no existing test file changed except an added theory in
+    `ExportParityEncodedTests`.
+  - Mutations (each reverted): High → CRF 23 → 10 of 11 L1-c tests fail; Standard → 18 → 10; Maximum → 18 → 10; Compact →
+    23 → 10; Compact → 35 → 2; the encoder without `-crf` → 10; BT.601 matrix → 11; full range tagged limited → 11; one
+    damaged frame in the encoder → 9; AAC bitrate × 0.1 → 5 of 5 sound tests. Not caught by L1-c by design: the fast preset
+    as `ultrafast` — caught by the 13.7 tests (Video.Tests 2, Core.Tests 1).
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2556
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 513, Timeline 484, Project 420, UI 555, Export 100,
+    Rendering 58, Video 316, ExportEndToEnd 110 (+16) + 2; `git diff --check` clean.
+  - Committed as `3d08c1b`; accepted by the product owner (2026-10-06); the AAC 320 kbps decision is final.
+- Step 13.9 done (2026-10-06) — export settings UI (D028 "Refined in Step 13.9").
+  - Timeline / Core: `SetProjectSettings(width, height, FrameRate? rate, ExportEncoding? export = null)` (a null rate keeps
+    the current one; every part checked first; one part → its own method; several → one "Change Project Settings" step);
+    `SetExportSettings` + `SetExportEncodingCommand` (one step, dirty, no step for the same settings, refused when not
+    offered, no timeline notification). Stubs of `ITimelineEditService` updated.
+  - UI: `ProjectSettingsViewModel` — `ExportChoice<T>` options (label + secondary detail), the current values selected,
+    `DraftExport`; Apply = one `SetProjectSettings` call with the draft (the old "kept rate → `SetCanvasSize`" branch is now
+    the service's); `ProjectSettingsView` — an EXPORT section (Quality, Encoding speed, Audio bitrate). No export / encoder
+    / L1-c code changed.
+  - Tests: `Timeline.Tests/ExportSettingsEditTests` (11: one step / dirty / undo / redo, no change, not offered refused —
+    also inside `SetProjectSettings`, export alone delegated, kept rate + same values = no change, canvas + rate + export
+    one step with one Undo, canvas + kept provisional rate + export, a refused canvas part keeps the export settings,
+    saved and taken by the next job), `UI.Tests/ProjectSettingsUiTests` (+16: current values and every offered label,
+    Default for a project without `settings.export`, every value applied and shown again, draft + Cancel with no step per
+    combo box, the three in one step, with size and rate in one step, a refused size leaves them unapplied, the lock, the
+    next export job), `ProjectSettingsViewBindingTests` (the three combo boxes bound to the draft).
+  - Mutations (each reverted, all caught): Apply without the export draft → 12; a combo box writing to the project → 6;
+    the dialog opening on the default → 4; Apply ignoring the lock → 2; the export applied before the other parts are
+    checked → 2; the export part left out of the combined step → 1; the same settings making a step → 1; a kept rate
+    locked anyway → 2.
+  - Real app (1024 px, 125 %): the EXPORT section fits; draft → title clean; Apply → `*` and the status message; one Undo
+    back to High / Medium / 192; Redo; reopening shows the applied values; Save wrote `settings.export` Compact / Slow /
+    320.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full `dotnet test` once: 2585
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 513, Timeline 495 (+11), Project 420, UI 573 (+18), Export
+    100, Rendering 58, Video 316, ExportEndToEnd 110 + 2; `git diff --check` clean.
+  - Committed as `5c01aed`; accepted by the product owner (2026-10-06).
+- Step 13.10 done (2026-10-06) — final verification & closeout at `5c01aed` (D028 "Closeout").
+  - Git: `feat/phase-13-project-export-settings`, clean; the eight Phase 13 commits `226c7f2` … `5c01aed` on `c0cb600`
+    (= `origin/main`).
+  - Automated QG: build `--no-incremental -warnaserror` 0 / 0; the full suite 2585 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2585 / 0 / 2 each, no hang, no
+dump; the full suite with `AIVE_HEAVY_TESTS=1` 2587 passed, 0 skipped, 0 failed — every assembly (Core 513,
+    Timeline 495, Project 420, UI 573, Export 100, Rendering 58, Video 316, ExportEndToEnd 110 + 2 / 112 heavy); results
+    of the blame runs in the session's scratch folder. No failure, nothing fixed, no criterion changed.
+  - Real app (Debug, isolated profile): R1 with a project saved by the Phase 12 build (`git archive c0cb600`, built apart):
+    default export settings, a plain Save byte-identical, only `settings.export` added after a change, reopened with it,
+    the Phase 12 app opening the new file; R2: Compact / Slow / 320 — draft, Apply (dirty), Undo / Redo, a real export with
+    `crf=28.0`, `subme=8`, `-b:a 320000` and a valid AAC track (Project Settings… off during it); R3 at 1080 × 1080 / 30 fps
+    — tracks, marker, copy / duplicate, ripple, recent, relink (offline on activation, Relink…, Undo / Redo); saved with the
+    dissolve, fades and marker. (Automation notes: a first relink attempt renamed a copy the project did not reference —
+    the fixture copy points at the original media by absolute path; a Ripple Delete attempt hit the Media Browser row of the
+    same name — both automation mistakes, redone correctly.)
+  - Manual plan: see its "Step 13.10 closeout" log — final-state runs and the scenarios carried from 13.6 / 13.9.
+  - Documentation: D028 (closeout, status), DEVELOPMENT_PLAN (Phase 13 checked — complete locally, 13.9 / 13.10),
+    ROADMAP (Current / Previous / Future), README, ARCHITECTURE (verification note), this file, the manual plan.
+
+### Phase 12 — Editing essentials (complete; PR #12 merged as `c0cb600`, CI green)
 
 Steps (D027; each accepted by the product owner before the next, never started automatically): 12.1 audit · 12.2 sync
 after the merge & scope formalization · 12.3 tracks · 12.4 media removal · 12.5 ripple delete / close gap · 12.6 copy /
@@ -3089,11 +3357,12 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-05: Phases 0–11 are complete and merged into `main` (last merge `47ed2fa`, PR #11, CI green). Phase 12 (editing
-essentials, D027) is complete locally on `feat/phase-12-editing-essentials` (Step 12.9: 2324 passed, 2 skipped; the 4K
-scenes 90 / 90); the branch is not published, so CI has not run. Open items carried forward: see "Known issues" (L1-c,
-the audio status message after a device returns, the watched `Project.Tests` hang / failure, no timeline
-virtualization, import not undoable, the 5 s PATH probe of the locators, the `F(end − start)` test helpers).
+2026-10-06: Phases 0–12 are complete and merged into `main` (last merge `c0cb600`, PR #12, CI green). Phase 13 (project &
+export settings, D028) is complete locally on `feat/phase-13-project-export-settings` (closeout at `5c01aed`: 2585 passed,
+2 skipped; heavy 2587 / 0 / 0); not published, so CI has not run. Open items carried forward: see "Known issues" (the
+audio status message after a device returns, the watched `Project.Tests` hang / failure, the known flaky CI tests, no
+timeline virtualization, import not undoable, the 5 s PATH probe of the locators, the `F(end − start)` test helpers, a new
+text clip's `FontSize` 48 on any canvas).
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -3131,12 +3400,17 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 9 (accepted 2026-09-29)
 - Phase 10 (accepted 2026-10-01; PR #10 merged as `2e758f1`)
 - Phase 11 (accepted 2026-10-05; PR #11 merged as `47ed2fa`, CI green)
-- Phase 12 (complete locally 2026-10-05, Step 12.9; CI pending — not published)
+- Phase 12 (accepted; PR #12 merged as `c0cb600` on 2026-10-05, CI green)
+- Phase 13 (complete locally 2026-10-06, Step 13.10; not published — CI pending)
 
 ## Known issues
 
-- Export codec leg (D023 Step 8, decision L1-c): MP4 → export canvas has no numeric tolerance; the Step 8.6
-  measurement is data for a future product decision, not a criterion. Open.
+- Export codec leg (D023 Step 8, decision L1-c): decided in Phase 13 Step 13.8 — D028 "Refined in Step 13.8"
+  (`ExportCodecLegTests`). Closed.
+- Known flaky CI tests (seen on CI before Phase 12, no product cause found): the autosave timer (`Project.Tests`), an
+  ffprobe timeout in a waveform test, the 5 s PATH probe of the locators in `Video.Tests` (below). Not fixed in Phase 13.
+  Policy (D028 §8): a rerun of that named test, with the known failure message, is allowed for diagnosis and recorded
+  here; never instead of fixing a real regression, never a rerun-until-green; never weakened, skipped or removed.
 - `Project.Tests` hang seen once in Step 8.4 (1 of 23 runs, test not identified): not reproduced — the 8.4/8.5 runs
   and the three final `--blame-hang` runs of the closeout were clean. Watch for it; no fix. Phase 9 Step 9.3d: one
   unidentified `Project.Tests` failure (not a hang) in one full parallel run; not reproduced in 40 isolated and 8 full

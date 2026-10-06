@@ -90,6 +90,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MediaImportWorkflow>();
         services.AddSingleton<MediaRelinkWorkflow>();
         services.AddSingleton<ProjectFileWorkflow>();
+        services.AddSingleton<IProjectSettingsDialog, AvaloniaProjectSettingsDialog>();
+        services.AddSingleton<ProjectSettingsWorkflow>();
 
         // --- UI view models -------------------------------------------------------
         services.AddTransient<RecentProjectsViewModel>();

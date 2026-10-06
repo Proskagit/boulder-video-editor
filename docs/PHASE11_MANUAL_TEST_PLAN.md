@@ -204,4 +204,5 @@ Note on 24: through Open a folder always reaches the app in its canonical spelli
 spellings that differ only in case come from recovery files, the Debug `--open-project` argument or a list written on
 another machine — D026 "Refined in Step 11.9".
 
-CI: not run — the branch is not published (the product owner's decision for 11.9); pending.
+CI: not run at 11.9 — the branch was not published then (the product owner's decision for 11.9); afterwards green on
+PR #11, merged into `main` as `47ed2fa` (2026-10-05; recorded at Step 13.2).

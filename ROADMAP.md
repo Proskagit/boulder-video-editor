@@ -59,19 +59,36 @@ session state (D015).
 
 ## Current
 
-No phase in progress — Phase 12 closed locally (2026-10-05); CI pending (the branch is not published yet).
+No phase in progress — Phase 13 closed locally (2026-10-06); not published yet (no push / pull request), so CI has not
+run. Phase 14 not started.
 
 ## Previous
 
+Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
+merge of PR #12). **Complete locally**: Steps 13.1–13.9 accepted by the product owner (`226c7f2` … `5c01aed`); Step 13.10
+(final verification & closeout) done on 2026-10-06 — build `--no-incremental -warnaserror` 0 / 0; the full suite
+2585 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2585 / 0 / 2 each, no hang, no
+dump; the full suite with `AIVE_HEAVY_TESTS=1` 2587 passed, 0 skipped, 0 failed; R1 (a Phase 12 project opens with the default export settings and saves byte for byte as Phase 12 wrote it),
+R2 (export settings applied, undone, redone and used by a real export: `crf=28.0`, `subme=8`, `-b:a 320000`) and R3
+(Phase 11–12 features at 1080 × 1080 / 30 fps) passed in the real app. What it delivers (DECISIONS.md D028): the canvas size
+and the frame rate as project settings (undoable; positions and font sizes scale with the canvas; D007's re-grid on a
+rate change, FR-1); export settings — quality (CRF 14 / 18 / 23 / 28), libx264 preset (fast / medium / slow), AAC 128–320
+kbps — in the Project Settings dialog (a change from the Step 13.2 plan, which had them in the export flow), saved as the
+optional `settings.export` of `project.json` v3 (a project without it: the default = the Phase 12 output); L1-c decided
+(per-level bounds on the codec's own error, the level order, flat colour; the measurement kept in the suite); the
+Phase 8–12 export / parity criteria unchanged. Steps 13.3 model & format · 13.4 canvas · 13.5 frame rate · 13.6 project
+settings UI · 13.7 export settings core · 13.8 L1-c · 13.9 export settings UI · 13.10 closeout — details in
+`docs/DEVELOPMENT_PLAN.md` and `progress.md`.
+
 Phase 12 — Editing essentials, branch `feat/phase-12-editing-essentials` (from `47ed2fa`, `main` after the merge of
-PR #11). **Complete locally**: Step 12.9 (final verification & closeout) done on 2026-10-05 — build `-warnaserror` 0 /
-0; the full suite 2324 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2324 / 0 / 2, no
+PR #11). **Complete**: accepted by the product owner on the Step 12.9 verification (closeout `6761c1d`); PR #12 merged
+into `main` as `c0cb600` (2026-10-05), CI green (recorded at Step 13.2, 2026-10-06). Step 12.9 (final verification &
+closeout) done on 2026-10-05 — build `-warnaserror` 0 / 0; the full suite 2324 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2324 / 0 / 2, no
 hang, no dump; the 4K scenes with `AIVE_HEAVY_TESTS=1`: ExportEndToEnd 90 / 90; the Phase 12
 manual plan in the real app (30 scenarios passed, 2 partly, 2 not reproducible by hand and covered by automated tests),
 R1 (a project saved by the Phase 11 build, opened and saved by Phase 12: v3, unchanged), R2 (the export manual plan's UI
-and file scenarios) and R3 (relink, recent projects, fade, dissolve) passed. CI not run yet — the branch is not
-published. Scope from the product owner decisions of 2026-10-05, recorded in DECISIONS.md D027: track delete / reorder,
-removing media from the project, ripple delete and close gap (dissolves of removed clips removed, the others kept,
+and file scenarios) and R3 (relink, recent projects, fade, dissolve) passed; CI green on PR #12. Scope from the
+product owner decisions of 2026-10-05, recorded in DECISIONS.md D027: track delete / reorder, removing media from the project, ripple delete and close gap (dissolves of removed clips removed, the others kept,
 none created), copy / paste / duplicate of clips, markers on the timeline, and the fix of New during a running import;
 `project.json` stays v3; L1-c stays open. Steps 12.3 tracks · 12.4 media removal · 12.5 ripple · 12.6 copy / paste /
 duplicate · 12.7 markers · 12.8 import / New · 12.9 closeout — scope and acceptance criteria in
@@ -185,10 +202,11 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 12 — see `docs/DEVELOPMENT_PLAN.md`. Open after Phase 12: L1-c (a product decision); a
-test cleanup — some 12.3 / 12.5 test helpers give clips the length `F(end − start)` instead of `F(end) − F(start)`
-(a tick off the grid at 30 fps; product owner: a separate cleanup). Left out of Phase 12 by the product owner (2026-10-05):
-AI features, export settings, HDR / colour management, an installer, timeline virtualization, an undoable import.
+None planned after Phase 13 — see `docs/DEVELOPMENT_PLAN.md`; Phase 14 not started. Open outside Phase 13: a test cleanup —
+some 12.3 / 12.5 test helpers give clips the length `F(end − start)` instead of `F(end) − F(start)` (a tick off the grid at
+30 fps; product owner: a separate cleanup); the known flaky CI tests (D028 §8 policy); a new text clip takes `FontSize` 48
+on any canvas (an observation). L1-c is closed (Phase 13 Step 13.8). Left out by the product owner: AI features, HDR /
+colour management, an installer, timeline virtualization, an undoable import.
 
 ## Rule
 

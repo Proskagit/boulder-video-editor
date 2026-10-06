@@ -170,7 +170,8 @@ public static class ProjectSerializer
             FrameHeight = p.Settings.FrameHeight,
             FrameRate = ToDto(p.Settings.FrameRate),
             IsFrameRateLocked = p.Settings.IsFrameRateLocked,
-            AudioSampleRate = p.Settings.AudioSampleRate
+            AudioSampleRate = p.Settings.AudioSampleRate,
+            Export = ToDto(p.Settings.Export)
         },
         MediaAssets = p.MediaAssets.Select(a => ToDto(a, folder)).ToList(),
         Timeline = ToDto(p.Timeline)
@@ -178,6 +179,11 @@ public static class ProjectSerializer
     };
 
     private static FrameRateDto ToDto(FrameRate r) => new() { Numerator = r.Numerator, Denominator = r.Denominator };
+
+    /// <summary>Null (not written) for the default settings (D028, Step 13.3).</summary>
+    private static ExportEncodingDto? ToDto(ExportEncoding e) => e == ExportEncoding.Default
+        ? null
+        : new() { Quality = e.Quality.ToString(), Preset = e.Preset.ToString(), AudioBitrateKbps = e.AudioBitrateKbps };
 
     private static MediaAssetDto ToDto(MediaAsset a, string? folder)
     {
@@ -305,6 +311,7 @@ public static class ProjectSerializer
         if (settingsDto.FrameWidth <= 0 || settingsDto.FrameHeight <= 0) throw Damaged("invalid frame size");
         if (settingsDto.AudioSampleRate <= 0) throw Damaged("invalid audio sample rate");
         var frameRate = ReadFrameRate(settingsDto.FrameRate) ?? throw Damaged("invalid project frame rate");
+        var export = ReadExportEncoding(settingsDto.Export);
 
         var project = new Core.Entities.Project
         {
@@ -319,7 +326,8 @@ public static class ProjectSerializer
                 FrameHeight = settingsDto.FrameHeight,
                 FrameRate = frameRate,
                 IsFrameRateLocked = settingsDto.IsFrameRateLocked,
-                AudioSampleRate = settingsDto.AudioSampleRate
+                AudioSampleRate = settingsDto.AudioSampleRate,
+                Export = export
             },
             Timeline = new Sequence(),
             // LastExportSettings starts empty: session state (D023); a "lastExportSettings" of an older file is ignored.
@@ -419,6 +427,28 @@ public static class ProjectSerializer
 
     private static FrameRate? ReadFrameRate(FrameRateDto? dto) =>
         dto is { Numerator: > 0, Denominator: > 0 } ? new FrameRate(dto.Numerator, dto.Denominator) : null;
+
+    /// <summary>The export settings of <c>settings.export</c> (D028, Step 13.3): absent or null = the default; when
+    /// present, every field must be one of the offered values (EX-4: anything else is a damaged file, as D014).</summary>
+    private static ExportEncoding ReadExportEncoding(ExportEncodingDto? dto)
+    {
+        if (dto is null) return ExportEncoding.Default;
+        var encoding = new ExportEncoding(
+            ReadName<ExportQuality>(dto.Quality, "export quality"),
+            ReadName<ExportSpeedPreset>(dto.Preset, "export speed preset"),
+            dto.AudioBitrateKbps ?? throw Damaged("export audio bitrate is missing"));
+        if (encoding.Validate() is not null) throw Damaged("invalid export settings");
+        return encoding;
+    }
+
+    /// <summary>The <typeparamref name="T"/> value whose name is exactly <paramref name="name"/>.</summary>
+    private static T ReadName<T>(string? name, string what) where T : struct, Enum
+    {
+        if (name is null) throw Damaged($"{what} is missing");
+        foreach (var value in Enum.GetValues<T>())
+            if (string.Equals(value.ToString(), name, StringComparison.Ordinal)) return value;
+        throw Damaged($"unknown {what}");
+    }
 
     private static Sequence FromDto(SequenceDto dto, FrameRate rate, IReadOnlyDictionary<Guid, MediaAsset> assets, int formatVersion)
     {

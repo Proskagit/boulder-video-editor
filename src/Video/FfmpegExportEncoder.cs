@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
@@ -11,8 +12,10 @@ namespace AiVideoEditor.Video;
 /// <summary>
 /// <see cref="IExportEncoder"/> over the ffmpeg CLI (D023, Phase 8 Step 5), in two passes:
 /// <list type="number">
-/// <item>audio: the PCM on stdin → AAC-LC 192 kbps 48 kHz stereo → a temporary <c>.m4a</c>;</item>
-/// <item>video: the BGRA canvases on stdin → BT.709 limited-range 4:2:0 → libx264 CRF 18 medium, muxed with the
+/// <item>audio: the PCM on stdin → AAC-LC 48 kHz stereo at the job's bitrate → a temporary <c>.m4a</c>;</item>
+/// <item>video: the BGRA canvases on stdin → BT.709 limited-range 4:2:0 → libx264 at the job's CRF and preset (D028
+/// Step 13.7; <see cref="ExportEncoding.Default"/> gives exactly the Phase 8–12 command lines — CRF 18, medium,
+/// 192 kbps), muxed with the
 /// temporary audio (stream copy) into a temporary <c>.mp4</c> with <c>+faststart</c>, then moved to the destination.</item>
 /// </list>
 /// Measured with FFmpeg 9.0.1 (progress.md, Step 5): the AAC encoder's 1024 priming samples are recorded in the MP4
@@ -32,9 +35,11 @@ public sealed class FfmpegExportEncoder : IExportEncoder
         _logger = logger;
     }
 
-    public async Task<IExportEncoding> StartAsync(ExportOutput output, string destinationPath, CancellationToken ct = default)
+    public async Task<IExportEncoding> StartAsync(ExportOutput output, ExportEncoding encoding, string destinationPath, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(encoding);
+        if (encoding.Validate() is { } invalid) throw new ArgumentException(invalid, nameof(encoding));
         if (!output.Size.IsValid || output.Size.Width % 2 != 0 || output.Size.Height % 2 != 0)
             throw new ArgumentException($"The frame size {output.Size.Width} × {output.Size.Height} can't be encoded (even sizes only).", nameof(output));
         if (output.FrameCount <= 0 || output.AudioSampleCount <= 0 || !output.FrameRate.IsValid)
@@ -51,32 +56,34 @@ public sealed class FfmpegExportEncoder : IExportEncoder
         var baseName = $".{Path.GetFileNameWithoutExtension(destinationPath)}.{Guid.NewGuid():N}";
         var audioTemp = Path.Combine(folder, baseName + ".audio.m4a");
         var videoTemp = Path.Combine(folder, baseName + ".partial.mp4");
-        var encoding = new FfmpegExportEncoding(ffmpeg, output, destinationPath, audioTemp, videoTemp, _logger);
+        var running = new FfmpegExportEncoding(ffmpeg, output, encoding, destinationPath, audioTemp, videoTemp, _logger);
         try
         {
-            encoding.StartAudio();
+            running.StartAudio();
         }
         catch
         {
-            await encoding.DisposeAsync();
+            await running.DisposeAsync();
             throw;
         }
-        return encoding;
+        return running;
     }
 
     private static readonly string[] Common = { "-hide_banner", "-nostats", "-loglevel", "error", "-y" };
 
-    /// <summary>Pass 1: 48 kHz stereo float PCM on stdin → AAC-LC in an MP4 (m4a) file.</summary>
-    internal static List<string> AudioArguments(string audioPath) => new(Common)
+    /// <summary>Pass 1: 48 kHz stereo float PCM on stdin → AAC-LC at <paramref name="encoding"/>'s bitrate (bits per
+    /// second) in an MP4 (m4a) file.</summary>
+    internal static List<string> AudioArguments(ExportEncoding encoding, string audioPath) => new(Common)
     {
         "-f", "f32le", "-ar", Invariant(ExportFormat.AudioSampleRate), "-ac", Invariant(ExportFormat.AudioChannels), "-i", "pipe:0",
-        "-c:a", "aac", "-profile:a", "aac_low", "-b:a", Invariant(ExportFormat.AudioBitrateBps),
+        "-c:a", "aac", "-profile:a", "aac_low", "-b:a", Invariant(checked(encoding.AudioBitrateKbps * 1000)),
         "-ar", Invariant(ExportFormat.AudioSampleRate), "-ac", Invariant(ExportFormat.AudioChannels),
         "-f", "mp4", audioPath
     };
 
-    /// <summary>Pass 2: BGRA canvases on stdin (exact rational rate) + the encoded audio → the MP4.</summary>
-    internal static List<string> VideoArguments(ExportOutput output, string audioPath, string videoPath) => new(Common)
+    /// <summary>Pass 2: BGRA canvases on stdin (exact rational rate) + the encoded audio → the MP4, libx264 at
+    /// <paramref name="encoding"/>'s preset and CRF.</summary>
+    internal static List<string> VideoArguments(ExportOutput output, ExportEncoding encoding, string audioPath, string videoPath) => new(Common)
     {
         "-f", "rawvideo", "-pix_fmt", "bgra", "-s", $"{Invariant(output.Size.Width)}x{Invariant(output.Size.Height)}",
         "-framerate", $"{Invariant(output.FrameRate.Numerator)}/{Invariant(output.FrameRate.Denominator)}", "-i", "pipe:0",
@@ -86,7 +93,7 @@ public sealed class FfmpegExportEncoder : IExportEncoder
         "-vf", "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p," +
                "setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709",
         "-fps_mode", "passthrough",
-        "-c:v", "libx264", "-preset", ExportFormat.VideoPreset, "-crf", Invariant(ExportFormat.VideoCrf), "-pix_fmt", "yuv420p",
+        "-c:v", "libx264", "-preset", encoding.PresetName, "-crf", Invariant(encoding.Crf), "-pix_fmt", "yuv420p",
         "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv",
         "-c:a", "copy",
         "-movflags", "+faststart",
@@ -101,6 +108,7 @@ internal sealed class FfmpegExportEncoding : IExportEncoding
 {
     private readonly string _ffmpeg;
     private readonly ExportOutput _output;
+    private readonly ExportEncoding _encoding;
     private readonly string _destination;
     private readonly ILogger _logger;
     private readonly int _frameBytes;
@@ -114,10 +122,12 @@ internal sealed class FfmpegExportEncoding : IExportEncoding
     private bool _faulted;
     private bool _disposed;
 
-    public FfmpegExportEncoding(string ffmpeg, ExportOutput output, string destination, string audioTemp, string videoTemp, ILogger logger)
+    public FfmpegExportEncoding(string ffmpeg, ExportOutput output, ExportEncoding encoding, string destination, string audioTemp,
+        string videoTemp, ILogger logger)
     {
         _ffmpeg = ffmpeg;
         _output = output;
+        _encoding = encoding;
         _destination = destination;
         AudioTemp = audioTemp;
         VideoTemp = videoTemp;
@@ -128,7 +138,7 @@ internal sealed class FfmpegExportEncoding : IExportEncoding
     internal string AudioTemp { get; }
     internal string VideoTemp { get; }
 
-    internal void StartAudio() => _audio = Start(FfmpegExportEncoder.AudioArguments(AudioTemp), "audio");
+    internal void StartAudio() => _audio = Start(FfmpegExportEncoder.AudioArguments(_encoding, AudioTemp), "audio");
 
     public async ValueTask WriteAudioAsync(ReadOnlyMemory<float> interleaved, CancellationToken ct = default)
     {
@@ -164,7 +174,7 @@ internal sealed class FfmpegExportEncoding : IExportEncoding
             throw new InvalidOperationException($"More frames than the export's {_output.FrameCount}.");
 
         if (!_audioDone) await FinishAudioAsync(ct);
-        _video ??= Start(FfmpegExportEncoder.VideoArguments(_output, AudioTemp, VideoTemp), "video");
+        _video ??= Start(FfmpegExportEncoder.VideoArguments(_output, _encoding, AudioTemp, VideoTemp), "video");
 
         if (stride == rowBytes)
         {

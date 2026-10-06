@@ -1,0 +1,94 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:common="using:AiVideoEditor.UI.Common"
+             xmlns:controls="using:AiVideoEditor.UI.Controls"
+             x:Class="AiVideoEditor.UI.Views.ProjectSettingsView">
+
+  <!-- Project Settings (Phase 13 Step 13.6, D028): a draft of the canvas size and the frame rate; only Apply changes the
+       project (ProjectSettingsViewModel). -->
+  <UserControl.Styles>
+    <Style Selector="NumericUpDown">
+      <Setter Property="ParsingNumberStyle" Value="{x:Static common:NumericInput.ParsingStyle}"/>
+    </Style>
+    <Style Selector="TextBlock.heading">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Foreground" Value="#9A9A9A"/>
+    </Style>
+    <Style Selector="TextBlock.note">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="Foreground" Value="#AAAAAA"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <Style Selector="TextBlock.error">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="Foreground" Value="#F08A6C"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel Margin="20" Spacing="10">
+
+    <TextBlock Classes="note" Text="{Binding CurrentSummary, StringFormat='Current: {0}'}"/>
+
+    <TextBlock Classes="heading" Text="FRAME SIZE" Margin="0,4,0,0"/>
+    <!-- The size fields take the whole row (four digits and the spinner); Swap sits next to the presets. -->
+    <Grid ColumnDefinitions="*,Auto">
+      <ComboBox x:Name="PresetBox" Grid.Column="0" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
+                HorizontalAlignment="Stretch"/>
+      <Button x:Name="SwapButton" Grid.Column="1" Content="⇄ Swap" Command="{Binding SwapCommand}" Margin="8,0,0,0"
+              ToolTip.Tip="Swap width and height (landscape ↔ portrait)"/>
+    </Grid>
+    <Grid ColumnDefinitions="Auto,*,Auto,*">
+      <TextBlock Grid.Column="0" Text="Width" VerticalAlignment="Center" Margin="0,0,6,0"/>
+      <controls:CommitNumericUpDown x:Name="WidthBox" Grid.Column="1" Value="{Binding Width, Mode=TwoWay}"
+                                    Increment="2" Minimum="0" Maximum="100000" FormatString="0"/>
+      <TextBlock Grid.Column="2" Text="Height" VerticalAlignment="Center" Margin="12,0,6,0"/>
+      <controls:CommitNumericUpDown x:Name="HeightBox" Grid.Column="3" Value="{Binding Height, Mode=TwoWay}"
+                                    Increment="2" Minimum="0" Maximum="100000" FormatString="0"/>
+    </Grid>
+    <TextBlock Classes="error" Text="{Binding CanvasError}" IsVisible="{Binding CanvasError, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+    <TextBlock Classes="note" Text="{Binding ScaleNotice}" IsVisible="{Binding ScaleNotice, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
+    <TextBlock Classes="heading" Text="FRAME RATE" Margin="0,6,0,0"/>
+    <ComboBox x:Name="RateBox" ItemsSource="{Binding Rates}" SelectedItem="{Binding SelectedRate, Mode=TwoWay}"
+              HorizontalAlignment="Stretch"/>
+    <TextBlock Classes="note" Text="{Binding RateNotice}" IsVisible="{Binding RateNotice, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
+    <!-- Export settings (D028, Step 13.9): a draft like the rest; Apply changes them with the size and the rate in one step. -->
+    <TextBlock Classes="heading" Text="EXPORT" Margin="0,6,0,0"/>
+    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+      <Grid.Styles>
+        <Style Selector="ComboBox.choice">
+          <Setter Property="HorizontalAlignment" Value="Stretch"/>
+          <Setter Property="Margin" Value="10,0,0,6"/>
+          <Setter Property="ItemTemplate">
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="8" ToolTip.Tip="{Binding Detail}">
+                <TextBlock Text="{Binding Label}"/>
+                <TextBlock Text="{Binding Detail}" Foreground="#8A8A8A" FontSize="11" VerticalAlignment="Center"/>
+              </StackPanel>
+            </DataTemplate>
+          </Setter>
+        </Style>
+      </Grid.Styles>
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="Quality" VerticalAlignment="Center"/>
+      <ComboBox x:Name="QualityBox" Grid.Row="0" Grid.Column="1" Classes="choice"
+                ItemsSource="{Binding Qualities}" SelectedItem="{Binding SelectedQuality, Mode=TwoWay}"/>
+      <TextBlock Grid.Row="1" Grid.Column="0" Text="Encoding speed" VerticalAlignment="Center"/>
+      <ComboBox x:Name="SpeedBox" Grid.Row="1" Grid.Column="1" Classes="choice"
+                ItemsSource="{Binding Speeds}" SelectedItem="{Binding SelectedSpeed, Mode=TwoWay}"/>
+      <TextBlock Grid.Row="2" Grid.Column="0" Text="Audio bitrate" VerticalAlignment="Center"/>
+      <ComboBox x:Name="BitrateBox" Grid.Row="2" Grid.Column="1" Classes="choice"
+                ItemsSource="{Binding Bitrates}" SelectedItem="{Binding SelectedBitrate, Mode=TwoWay}"/>
+    </Grid>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,8,0,0">
+      <Button x:Name="ApplyButton" Content="Apply" MinWidth="90" Command="{Binding ApplyCommand}"/>
+      <Button x:Name="CancelButton" Content="Cancel" MinWidth="90" IsCancel="True" Command="{Binding CancelCommand}"/>
+    </StackPanel>
+    <TextBlock x:Name="ErrorText" Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
+  </StackPanel>
+
+</UserControl>

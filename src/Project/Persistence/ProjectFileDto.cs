@@ -10,6 +10,7 @@ namespace AiVideoEditor.Project.Persistence;
 // - every FrameRate is an exact { numerator, denominator } pair;
 // - runtime/UI state (IsSelected, IsDirty, IsMissing, analysis progress) is not stored, nor is session state
 //   such as LastExportSettings (D023; a "lastExportSettings" of older files is ignored like any unknown property);
+// - the export settings saved with the project are "settings.export" (D028, optional in v3, see ProjectSettingsDto);
 // - track type is implied by the list a track is in (videoTracks / audioTracks).
 
 internal sealed class ProjectFileDto
@@ -41,6 +42,23 @@ internal sealed class ProjectSettingsDto
     public FrameRateDto? FrameRate { get; set; }
     public bool IsFrameRateLocked { get; set; }
     public int AudioSampleRate { get; set; }
+
+    /// <summary>Added in Phase 13 (D028, Step 13.3) without a format version change (optional): how the project is
+    /// encoded on export. Written only when it differs from <see cref="ExportEncoding.Default"/>, so a project with the
+    /// default settings is saved exactly as before; absent (or null) reads as the default. Not to be confused with the
+    /// ignored top-level <c>lastExportSettings</c> of Phases 6–8.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ExportEncodingDto? Export { get; set; }
+}
+
+/// <summary>Every field is required when the object is present. <see cref="Quality"/> and <see cref="Preset"/> are the
+/// exact names of <see cref="ExportQuality"/> / <see cref="ExportSpeedPreset"/> (e.g. "High", "Medium"): kept as strings
+/// so that only those names are accepted — no numbers, other spellings or combinations.</summary>
+internal sealed class ExportEncodingDto
+{
+    public string? Quality { get; set; }
+    public string? Preset { get; set; }
+    public int? AudioBitrateKbps { get; set; }
 }
 
 internal sealed class MediaAssetDto

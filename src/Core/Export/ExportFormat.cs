@@ -6,10 +6,10 @@ using AiVideoEditor.Core.Playback;
 namespace AiVideoEditor.Core.Export;
 
 /// <summary>
-/// The fixed export format (D023). There are no user settings for quality, size or rate in Phase 8:
-/// the picture is the project canvas at the project frame rate (<see cref="ExportOutput"/>), the
-/// quality is constant. Encoder-specific values are named after libx264, which the FFmpeg encoder
-/// backend uses; they are part of the product contract, not a tuning knob.
+/// The fixed part of the export format (D023): MP4, H.264 (8-bit 4:2:0, BT.709 limited range), AAC-LC 48 kHz stereo;
+/// the picture is the project canvas at the project frame rate (<see cref="ExportOutput"/>). What the user chooses — the
+/// quality (CRF), the libx264 preset and the AAC bitrate — is the project's <see cref="ExportEncoding"/> (D028, Step 13.7),
+/// carried by the <see cref="ExportJob"/>; it is not repeated here.
 /// </summary>
 public static class ExportFormat
 {
@@ -20,17 +20,10 @@ public static class ExportFormat
     /// <summary>File extension of the output (MP4).</summary>
     public const string FileExtension = ".mp4";
 
-    /// <summary>Constant quality (libx264 <c>-crf</c>); no bitrate target.</summary>
-    public const int VideoCrf = 18;
-
-    /// <summary>Encoder speed/efficiency trade-off (libx264 <c>-preset</c>).</summary>
-    public const string VideoPreset = "medium";
-
     /// <summary>The audio track is always present (silence when the timeline has no audio):
     /// AAC-LC at the playback format, 48 kHz stereo (D013).</summary>
     public const int AudioSampleRate = AudioFormat.SampleRate;
     public const int AudioChannels = AudioFormat.Channels;
-    public const int AudioBitrateBps = 192_000;
 }
 
 /// <summary>

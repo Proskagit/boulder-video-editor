@@ -10,6 +10,8 @@ This directory contains:
   and run at its closeout (Step 11.9)
 - `PHASE12_MANUAL_TEST_PLAN.md` — manual checks of Phase 12 (tracks, media removal, ripple delete, copy / paste /
   duplicate, markers, import during New), completed per step and run at its closeout (Step 12.9)
+- `PHASE13_MANUAL_TEST_PLAN.md` — manual checks of Phase 13 (canvas size, frame rate, project and export settings),
+  completed per step and run at its closeout (Step 13.10)
 
 Agent-oriented project context lives in the repository root:
 

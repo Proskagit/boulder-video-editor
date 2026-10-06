@@ -84,7 +84,8 @@ source rates (outside 1–240 FPS) lock a 30 FPS fallback and say so explicitly.
 After locking, the rate never changes automatically; deleting videos doesn't unlock
 — only undoing the locking add does.
 
-Status: Accepted.
+Status: Accepted. Phase 13 (D028, Step 13.5): the user may choose the rate (new or existing project) — the same re-grid,
+one Undo step, and the chosen rate is locked; the automatic rule above is unchanged. D028 "Refined in Step 13.5".
 
 ---
 
@@ -515,7 +516,9 @@ stored landscape with a 90° rotation flag (autorotated by ffmpeg on decode) wou
 probed display size). SAR (non-square pixels) is ignored as before.
 
 Status: Accepted. The export does not use an ffmpeg filtergraph after all (context above): D023
-renders the same layers with the same Core rules offline and uses ffmpeg only to encode.
+renders the same layers with the same Core rules offline and uses ffmpeg only to encode. Phase 13 (D028, Step 13.4): the
+canvas is a user setting (default 1920 × 1080, never taken from a video); a canvas change scales the positions and text
+sizes kept in canvas pixels — D028 "Refined at the start of Step 13.4".
 
 ---
 
@@ -950,7 +953,9 @@ ffprobe/ffmpeg and the app's analysis (Step 8.1).
   The suite also requires SNR ≥ 20 dB as a sanity bound for the AAC round trip (the value the Step 6 tests used); it is
   not a fidelity requirement of this decision.
 - The codec leg MP4 → export canvas (decision L1-c) has **no numeric tolerance**: none is defined here, and the
-  Step 8.6 data below must not be read as one. Whether and how to set one is an open product decision. Unchanged
+  Step 8.6 data below must not be read as one. Whether and how to set one is an open product decision — **decided in
+  Phase 13 Step 13.8: D028 "Refined in Step 13.8" (per-level bounds on the codec's own error, the level order, flat
+  colour through the leg).** Unchanged
   meanwhile: the Step 5 encoder tests (BT.709 values on flat colours) and the Step 6 end-to-end bound "mean |Δ| ≤ 3 per
   frame, MP4 vs canvas" on its nine simple scenes — a test sanity bound of those scenes, not a codec tolerance.
 
@@ -992,7 +997,9 @@ defect was a test error (a same-frame check on a scene whose frames are identica
 `ExportParityViewportTests`, `ExportParityEncodedTests` and the shared checks `ParityMetrics`; each criterion was
 confirmed by mutations of the production code (restored byte for byte afterwards).
 
-Status: Accepted.
+Status: Accepted. Phase 13 (D028, Step 13.7): the quality (CRF), the libx264 preset and the AAC bitrate are the project's
+export settings, carried by the job; their default is this decision's fixed format (CRF 18, medium, 192 kbps), with the
+same command lines. D028 "Refined in Step 13.7".
 
 ---
 
@@ -1432,7 +1439,8 @@ message — except a trim, which is clamped (as trims already are, D008).
 - Speed change of A: A's end moves (D022: the start stays) → the cut separates or would overlap B (already rejected
   by the no-overlap rule) → removed when separated. Speed change of B: the cut stays; rejected when B's handle or the
   zone no longer fits at the new speed.
-- Frame-rate re-grid (the first video fixes the rate): `F` is re-derived; a dissolve whose clips are no longer adjacent
+- Frame-rate re-grid (the first video fixes the rate, or the user changes it — D028 Step 13.5, where every dissolve's
+  handles are checked, FR-1): `F` is re-derived; a dissolve whose clips are no longer adjacent
   is removed; one whose zone or handles no longer fit rejects the whole operation (as other re-grid failures).
 - Clip property edits (opacity, transform, fades, …) never touch a dissolve.
 - A locked track rejects every edit on it, dissolves included (as now).
@@ -2142,10 +2150,487 @@ Closeout (Step 12.9, 2026-10-05; the product owner's decisions for it):
 - Observation, not a Phase 12 change: at the default zoom a short dissolve's zone (0.4 s, about 20 px) is covered by the
   two clips' trim handles, which win the press (D025 "Refined in Step 10.8"), so selecting it needs a zoom in.
 
-Status: Accepted (2026-10-05, product owner decisions of 2026-10-05). Phase 12 closed locally on 2026-10-05 (Step 12.9);
-CI pending until the branch is published. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 12 — Editing
+After the merge (recorded at Step 13.2, 2026-10-06): Phase 12 accepted by the product owner on the Step 12.9 verification
+(closeout `6761c1d`); PR #12 merged into `main` as `c0cb600` (2026-10-05), CI green. Kept open after Phase 12: the
+`F(end − start)` test helpers (a separate cleanup); L1-c moved into Phase 13 (D028 §6).
+
+Status: Accepted (2026-10-05, product owner decisions of 2026-10-05). Phase 12 complete: closed on 2026-10-05 (Step
+12.9), merged as `c0cb600`, CI green. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 12 — Editing
 essentials: steps". Sub-decisions were proposed at the start of their step, confirmed by the product owner and recorded
 as a refinement here.
+
+---
+
+## D028 — Phase 13: project & export settings
+
+Date: 2026-10-06
+
+Decision (product owner, 2026-10-06, after the Step 13.1 audit). Phase 13 replaces the fixed 1920 × 1080 canvas with
+real **project settings** — the canvas size and the frame rate, chosen by the user and changeable in an existing
+project as one undoable step — and adds **export settings**: the quality (libx264 CRF), the encoder speed (libx264
+preset) and the audio bitrate. Because the quality becomes configurable, **L1-c** (the open tolerance of the codec leg
+MP4 → export canvas, D023 Step 8) is decided inside the phase. The container and codecs stay MP4 / H.264 / AAC and the
+export stays the offline rendering of the Preview (D023), so the Preview and the export canvases stay identical by
+construction at any canvas size.
+
+Context (Step 13.1 audit, the code at `c0cb600`, `main` after the merge of PR #12):
+- `ProjectSettings` (`Core/Entities/Project.cs`) has `FrameWidth` / `FrameHeight` (default 1920 × 1080), `FrameRate`,
+  `IsFrameRateLocked` and an unused `AudioSampleRate`. No code outside `ProjectSerializer` assigns the size: a new
+  project is always 1920 × 1080 and only a hand-edited `project.json` gives another one (the Phase 12 manual fixtures
+  used 640 × 360 that way). D018: the canvas is "never taken from a video".
+- The frame rate is a provisional 30 fps until the first video fixes it (D007: re-grid of the existing clips in the same
+  undo step, atomic rejection); after that it never changes. Fades, dissolves (D025) and markers (D027 "Refined in Step
+  12.7") keep their time when the rate changes; a clip's frame count comes from its edges on the grid.
+- The canvas, the rate and `IsFrameRateLocked` are already in `project.json` v3 (`ProjectSettingsDto`); the reader
+  accepts versions 1–3 and refuses a newer one ("saved by a newer version").
+- Composition (D018): positions (`PositionX/Y`) and text sizes are canvas pixels; the picture fit ("contain") is
+  recomputed from the canvas, so pictures follow a canvas change and pixel values don't. The playback snapshot carries
+  the canvas (`PlaybackSnapshot.Canvas`); a canvas change is presentation-only for the decoders
+  (`DiffersOnlyInPresentation`).
+- Export (D023): `ExportFormat` constants — MP4, libx264 CRF 18 preset medium, 8-bit 4:2:0 BT.709 limited, AAC-LC 48 kHz
+  stereo 192 kbps; `FfmpegExportEncoder` builds its arguments from them; `ExportOutput.For(snapshot)` takes the size and
+  rate from the snapshot; the preflight refuses an odd width or height (`ExportIssueKind.InvalidCanvas`).
+  `ExportSettings` (`Project.LastExportSettings`) is session state only — the last output path and single-value enums,
+  never saved, never dirty (`ExportSettingsPersistenceTests` checks that it is not written).
+- Parity (D023 Step 8): the Preview ↔ export canvas checks are byte-exact; the codec leg has no tolerance (L1-c), but
+  some end-to-end tests carry sanity bounds measured at CRF 18 (e.g. `ExportCompositionEndToEndTests`, "mean |Δ| ≤ 3 per
+  frame, MP4 vs canvas" on its nine scenes). The Step 8.6 measurement (one configuration: CRF 18 / medium) is the only
+  data on the codec error.
+- Project JSON in the repository: no fixture files; the tests write `project.json` inline (`Project.Tests`, a few
+  `Timeline.Tests`), and the manual fixture scripts `tools/manual/New-Phase10*Fixture.ps1` write `formatVersion = 3`.
+
+### 1. Scope
+
+- Project settings: the canvas width × height (presets for common sizes and orientations plus a custom size; even
+  values, within limits fixed at 13.3) and the project frame rate (a list of common rates; custom rates only if 13.5
+  shows they are needed). Set for a new project and changed in an existing one; each change is one `IUndoableCommand`
+  with exact Undo / Redo, the save point respected, disabled during an export (`EditingLock`).
+- Export settings: the quality (CRF, offered as named levels with today's CRF 18 among them), the encoder speed (libx264
+  preset) and the AAC bitrate, applied by the existing encoder; the output stays MP4 / H.264 / AAC at the size and rate
+  of the project.
+- L1-c: criteria for the codec leg MP4 → export canvas for every offered quality level (§6).
+- UI: a project settings dialog and the export settings in the export flow; no other UI redesign.
+
+### 2. Constraints
+
+- Unchanged in substance: D001 / D006 (ticks, rational rates), D008 (frame grid, no overlap), D009 / D022 (source frame
+  selection), D013 (the mix at 48 kHz stereo — `AudioSampleRate` stays unused), D014–D016 (persistence, save point,
+  autosave, recovery) apart from the format rule of §5, D018's composition math (only the canvas value varies), D023's
+  architecture (C# compositor, Avalonia rasterizer, FFmpeg only as the encoder), D025, D026, D027.
+- Changed explicitly by this decision, each recorded as a refinement at its step: D018 "default 1920 × 1080" becomes a
+  user setting (a canvas from a video: question 1 below); D007 "after locking, the rate never changes" — the user may
+  change it (§4); D023 "fixed format, no user settings" — quality, speed and audio bitrate become settings, while the
+  container, codecs, pixel format and colour tags stay fixed; L1-c is closed by §6.
+- The canvas-level parity (Preview ↔ export canvas, byte-exact: `Rendering.Tests`, `Export.Tests`, the canvas checks of
+  `ExportEndToEnd.Tests`) is never weakened, re-baselined or removed. New canvas sizes and rates get added scenes;
+  existing scenes keep their expected values.
+- Every new project change is one undoable command; a refused change changes nothing and leaves no Undo step.
+- Builds and test runs on the product owner's command; push, pull request and merge only with the product owner's
+  direct permission; each step accepted before the next one starts.
+
+### 3. Out of scope
+
+AI features; HDR / 10-bit / colour management (incl. tone mapping and colour tags other than BT.709); other containers or
+codecs (HEVC, VP9 / AV1, ProRes, …); hardware encoding; bitrate targets or two-pass encoding; an audio sample rate or
+channel layout other than 48 kHz stereo; exporting a time range; an export size or rate different from the project's
+(unless the D028 acceptance decides otherwise — question 2 below); fit policies other than D018's "contain"; an
+installer; timeline virtualization; an undoable import; fixing the known flaky CI tests (§8); the `F(end − start)`
+test-helper cleanup (separate, product owner); a UI redesign.
+
+### 4. Project settings rules (sub-decisions at the steps' start)
+
+- Canvas (13.4): a canvas change keeps every clip, its timing and its stored properties; pictures re-fit by D018. Left
+  to the start of 13.4: whether `PositionX/Y` and text sizes stay in pixels or scale with the canvas; the presets. The
+  size limits (minimum, maximum — the Preview decodes at most 1280 × 720 per D023 Step 8.3, the export renders at the
+  canvas size) are fixed at the start of 13.3 with the validation rule.
+- Frame rate (13.5): a rate change re-grids the timeline like D007's first lock — every clip edge to its nearest frame
+  of the new grid, a clip that would collapse grows by one frame into free space, otherwise the change is refused
+  atomically; fades, dissolves and markers keep their time (D025, D027) and are validated on the result (a dissolve
+  whose zone no longer fits makes the change refuse rather than leave an invalid one). A user-chosen rate sets
+  `IsFrameRateLocked`, so a later first video no longer changes it. Left to the start of 13.5: the offered rates,
+  custom rates, whether Undo of the change restores the "unlocked" state too; the clipboard keeps D027's rule (a paste
+  after a rate change is refused).
+- New project (13.6): whether New asks for the settings or opens with defaults that can be changed later; the defaults.
+
+### 5. Project format
+
+- The canvas size, the frame rate and `IsFrameRateLocked` are already stored in v3: the project settings need **no**
+  format change.
+- Export settings: saved with the project or kept as an application default — question 3 below, settled at the latest
+  at the start of 13.3. If they are saved, the format is decided at 13.3 by this rule: `formatVersion` stays **3** when
+  the new data is an optional property whose absence reads as today's behaviour (CRF 18, medium, 192 kbps) and no
+  existing property changes its meaning — the precedent of the Phase 7 metadata fields added to v3 without a bump. A
+  **v4** is introduced only if that is not possible (an existing property changes its meaning, or a build that ignores
+  the new data would read the file wrongly rather than just without the setting) — never only because it is cleaner.
+- If v4 is introduced: **no backward migration** — reading v1–v3 projects is not a Phase 13 requirement (product owner,
+  2026-10-06: no user projects in v3 need to be kept). No conversion code is written; 13.3 decides whether the existing
+  v1–v3 reading code stays as it is or old files are refused with a clear message. The repository's project JSON — the
+  inline `project.json` of the tests and the `tools/manual` fixture scripts — moves to v4 at once (rewritten, not
+  converted); the recovery file follows the project format. Tests of v1–v3 reading are kept only if that reading code is
+  kept.
+- If v3 stays: a project of Phase 12 opens and saves unchanged (R1 at the closeout, as before).
+
+### 6. L1-c — codec-leg criteria
+
+- Included because the quality becomes configurable (product owner, 2026-10-06). The old CRF-18 sanity bounds are not
+  kept artificially: a bound measured for CRF 18 (e.g. "mean |Δ| ≤ 3, MP4 vs canvas") is replaced by the L1-c criterion
+  of the level it tests.
+- Method (Step 13.8): every offered quality level (and every offered speed preset) measured with the Step 8.6 method —
+  the MP4 decoded against the export canvas; total / floor / quant; mean, p99, p99.9, max, PSNR — over the existing
+  scenes plus the new canvas sizes; the product owner sets the criterion per level from that data (or decides that a
+  level gets only validity checks: duration, frame count, decodability); the criterion goes into the suite and into
+  this decision.
+- Never changed by L1-c: the canvas-level parity (§2); the audio checks (length, lag and onsets within 10 ms — the SNR
+  sanity bound may be set per audio bitrate by the same method); the encoder's colour contract (BT.709 limited, 4:2:0).
+- A codec-leg criterion changes only in Step 13.8 (or by a later product owner decision), with its data — never to make
+  an unrelated change pass.
+
+### 7. Export settings rules (sub-decisions at the steps' start)
+
+- 13.7: a settings model in Core for the values that become choices (the container, codecs, pixel format and colour
+  tags stay constants); the encoder's arguments built from it; the default is today's output (CRF 18, medium, 192 kbps),
+  so an export with the default settings is what Phase 12 produced. Left to the start of 13.7: the levels and their CRF
+  values, the offered presets and bitrates.
+- 13.9: where the settings are chosen (before the save picker or in a dialog of their own), how they are remembered (per
+  §5), the texts; disabled during an export.
+
+### 8. Known flaky CI tests — policy (product owner, 2026-10-06)
+
+Known tests that have failed intermittently on CI before Phase 12 without a product cause found: the autosave timer
+(`Project.Tests`), an ffprobe timeout in a waveform test, and the 5 s PATH probe of the ffmpeg / ffprobe locators in
+`Video.Tests` (Known issues; D024 Step 9.10). Not fixed in Phase 13.
+- A rerun of one of these specific tests (or of the CI job in which only it failed) is allowed to diagnose or confirm the
+  known cause: the failing test is named, its failure message matches the known cause, and the rerun is recorded (test,
+  message, run) in `progress.md`.
+- A rerun is never a substitute for fixing a real regression and is not a general way to get a green gate: a failure of
+  any other test, or of a known one with a different message, is a real failure — investigated and fixed (or reported
+  to the product owner) before the gate counts. Rerunning until the suite passes is not allowed.
+- A flaky test is never weakened, skipped or removed to make a gate pass.
+
+### Open for the D028 acceptance (product owner)
+
+1. Canvas from the first video: keep D018 "never taken from a video" — the user sets the canvas (recommended: simple and
+   predictable) — or let the first video set the canvas of a new project, as D007 does for the rate?
+2. Export size / rate: always the project's (recommended: the Preview and the export stay identical by construction; a
+   smaller file comes from a smaller canvas or a lower quality) or an export resolution of its own?
+3. Export settings: saved per project (recommended: a project exports the same way after reopening; settles §5) or an
+   application-wide default?
+
+Accepted by the product owner (2026-10-06), with the answers:
+1. The canvas is never taken from a video: it is an independent project setting set by the user. D018 changes only from
+   "always 1920 × 1080" to "1920 × 1080 by default, changeable by the user".
+2. No export resolution of its own: the export size is always the project canvas; no second size setting.
+3. The export settings are saved in `project.json` with the project.
+4. No `formatVersion` 4 in advance: Step 13.3 first checks whether the export settings fit v3 as an optional property
+   (§5); v4 only if objectively needed, and even then without a v3 → v4 migration.
+
+Refined at the start of Step 13.3 (product owner, 2026-10-06, on the step's analysis) and in its implementation:
+- Format (F-1): `formatVersion` stays **3**. The canvas, the rate and `IsFrameRateLocked` were already stored; the export
+  settings are the optional `settings.export`. No existing property changes its meaning; a file without it (every file
+  of Phases 6–12) reads as the default = the Phase 8–12 output; a Phase 12 build ignores the unknown property (the
+  serializer does not refuse unknown members), so it reads the file without the setting rather than wrongly. No
+  migration code.
+- Placement (M-1): `ProjectSettings.Export` (`ExportEncoding`), JSON `settings.export`. The top-level
+  `lastExportSettings` of Phases 6–8 (another shape: size, double rate, bitrates) is not reused and stays ignored;
+  `Project.LastExportSettings` (the output path) stays session-only, never saved.
+- `ExportEncoding` (Core, immutable record): `Quality` (`ExportQuality`: Maximum = CRF 14, **High = CRF 18**, Standard =
+  CRF 23, Compact = CRF 28), `Preset` (`ExportSpeedPreset`: fast / **medium** / slow), `AudioBitrateKbps` (128 / 160 /
+  **192** / 256 / 320); `Default` = (High, Medium, 192), equal to the `ExportFormat` constants (EX-2). The file stores the
+  quality's **name**, not the CRF. `settings.export` is written only when the settings differ from the default (a
+  project with the default settings is saved exactly as before — a Phase 12 project opens and saves unchanged);
+  `"export": null` reads as the default. When present, every field is required; `quality` / `preset` must be the exact
+  enum names ("High", "Medium"; no numbers, other spellings or combinations), the bitrate one of the offered values;
+  anything else makes the file damaged (EX-4, as D014). Unknown properties inside it are ignored, as elsewhere in the file.
+- Canvas limits (L-1, `ProjectSettingsRules.CanvasError`): both sides even, each 64–4096 px, the area at most
+  9 437 184 px (36 864 macroblocks, the H.264 level 5.1 frame size). The presets proposed at the step (landscape 3840 ×
+  2160, 2560 × 1440, 1920 × 1080, 1280 × 720, 640 × 360; portrait 2160 × 3840, 1080 × 1920, 720 × 1280; square 1080 ×
+  1080; 4:5 1080 × 1350; custom; swap W / H) are accepted for the UI of 13.6.
+- Frame rates (L-2, `ProjectSettingsRules.SelectableFrameRates`): 24000/1001, 24, 25, 30000/1001, 30, 50, 60000/1001,
+  60. A rate outside the list already in a project (e.g. fixed by the first video, D007) is kept on load but can't be
+  chosen as a new value.
+- Load (CS-2): the file rules are unchanged — a positive canvas and any positive rational rate open; a canvas outside
+  the user limits is not applied by the UI, and the export preflight checks the limits too (implemented with the canvas
+  change, 13.4).
+- Frame rate change (for 13.5): FR-1 — the source handles of **every** dissolve are checked when the rate changes, also
+  where its clips didn't move (the zone's split around the cut changes in time with the rate); this also applies to the
+  first video fixing the rate (a production change of the transition validation — made in 13.5, with its regression
+  test). FR-2 — markers keep their `MediaTime`; several on one frame are allowed. FR-3 — locked tracks are re-gridded
+  too. FR-4 — choosing the current rate of an unlocked project locks it as one Undo step; of a locked one, nothing.
+- Export settings changes (EX-1): a project change — undoable and dirty; no command when nothing changes (13.9).
+  EX-3: L1-c in 13.8 measures the four levels at medium and the three presets at High; the other combinations get
+  validity checks only.
+- Not decided (product owner): CS-1 — what happens to `PositionX/Y`, `Scale`, `FontSize` and other clip properties when
+  the canvas changes is decided at 13.4 after the canvas coordinates and the transform model are reviewed; until then a
+  canvas change touches no clip property and no hidden fix-up exists. M-2 — the command architecture for the canvas and
+  the rate is decided at 13.4 / 13.5 from the existing `ITimelineEditService` / `EditPlan` / commands; Step 13.3 adds no
+  service or interface.
+- Implementation (13.3): `Core/Entities/ExportEncoding.cs` (the record and enums, `Crf`, `PresetName`, `Validate`),
+  `Core/Entities/ProjectSettingsRules.cs` (canvas limits, selectable rates), `ProjectSettings.Export`;
+  `ProjectFileDto` (`ExportEncodingDto`, written when not null) and `ProjectSerializer` (`ReadExportEncoding`); nothing
+  uses the settings yet — no UI, no command, the encoder still reads `ExportFormat` (13.7), `FrameRateRegrid` unchanged.
+
+Refined at the start of Step 13.4 (product owner, 2026-10-06, on the step's analysis of the canvas semantics) and in its
+implementation:
+- The model as it is (D018): `PositionX / PositionY` are canvas pixels (the offset of the centre from the canvas centre);
+  a picture's `Scale` multiplies its contain-fit, so a picture's size already follows the canvas; text has no fit — its
+  `FontSize` is canvas pixels and its `Scale` an absolute multiplier. A canvas change that kept every value (variant A)
+  moves positioned elements towards the centre or off the canvas (e.g. a logo at 10 % from the left edge of 1920 × 1080
+  lands at x = −228 on 1080 × 1920) and changes text sizes relative to the frame, even at the same aspect ratio.
+- **CS-1 = B**: with `s = min(W' / W, H' / H)` — the factor by which D018's contain fits the old canvas into the new one
+  (the axis chosen by exact cross-multiplication, as `CompositionMath.Layout`) — `PositionX / PositionY` of every video,
+  image and text clip and `FontSize` of every text clip are multiplied by `s`. Nothing else changes: `Scale` (pictures:
+  it is fit-relative already; text: the user's multiplier — B-2), rotation, crop, opacity, timing, source ranges, speed,
+  fades, dissolves, markers, audio, the playhead, the rate. At the same aspect ratio the composition is kept exactly;
+  at another one the old frame is contained in the new canvas, so no positioned element or text leaves it; pictures
+  whose aspect differs from the old canvas follow their own fit.
+- Accepted property of B: the exact round trip is Undo / Redo, **not** a change of the size and back — s is the contain
+  factor both ways, so 1920 × 1080 → 1080 × 1920 → 1920 × 1080 multiplies by 0.5625² = 0.31640625. No hidden history
+  restores the old values (a regression test pins this).
+- B-1: a scaled value outside `ClipPropertyLimits` (`FontSize` 1–1000, positions ±100 000) refuses the whole change —
+  no clamping; the message names the size, the clip (a text clip by its first line, a media clip by its file) and its
+  track, and the validator's reason. Nothing is changed before the refusal.
+- B-3: every video / image / text clip is scaled, on locked and hidden tracks too (the canvas belongs to the whole
+  composition); a locked track does not block the change.
+- B-4: clips copied before a canvas change are refused on paste — "The project frame size changed since the clips were
+  copied. Copy them again." — like after a rate change (D027 §5); `TimelineClipboard.Canvas` records the canvas of the
+  copy; an Undo of the change makes the old clipboard valid again.
+- Command (M-2): `ITimelineEditService.SetCanvasSize(width, height)` — no new interface. `ProjectSettingsRules.CanvasError`
+  first (refused: nothing changes, no Undo step); the same size is `NoChange`; otherwise one `CompositeCommand` "Set
+  Frame Size" = `SetCanvasSizeCommand` (width and height together, absolute old / new) + one `SetClipPropertiesCommand`
+  per clip whose values change (absolute before / after; Undo / Redo write back the stored values), wrapped in one
+  `NotifyingCommand` — one `TimelineChanged`, dirty through the save point, clean again by Undo to it. No media event:
+  thumbnails and waveforms are untouched. The export lock (`EditingLock`) is held by the UI, as for every edit: the
+  service does not know it, and the command is disabled during an export by the dialog of 13.6.
+- Snapshot: the canvas, the positions and the text style are presentation (`DiffersOnlyInPresentation` unchanged), so a
+  canvas change keeps every decoder (a test checks the pipeline, the seek generation and the decoder requests); the
+  Preview takes the new canvas from the rebuilt snapshot, the export from its snapshot.
+- P-1: `ExportPreflight.Check` refuses any canvas `ProjectSettingsRules.CanvasError` refuses (`ExportIssueKind.InvalidCanvas`,
+  "The frame size W × H can't be exported. <reason>"); a loaded file may still carry any positive size (CS-2). The
+  encoder keeps its own even-size guard.
+- D018 changes only in "Canvas: … default 1920 × 1080; never taken from a video": the canvas is a user setting with that
+  default, never taken from a video (D028 answer 1); its composition rules are unchanged.
+- Implementation: `ITimelineEditService.SetCanvasSize`, `TimelineClipboard.Canvas`, `SetCanvasSizeCommand`
+  (`TimelineCommands.cs`), `TimelineEditService.SetCanvasSize` / the paste check, `ExportPreflight`. Not in 13.4: the UI
+  (13.6), the frame-rate change (13.5), the export settings and the encoder (13.7, 13.9).
+- Not changed, noted for later: a new text clip still gets the model's `FontSize` 48 whatever the canvas.
+
+Refined in Step 13.5 (implementation, 2026-10-06; FR-1…FR-4 as confirmed at the start of Step 13.3):
+- `ITimelineEditService.SetFrameRate(rate)` — no new interface. A rate not in `ProjectSettingsRules.SelectableFrameRates`
+  (or an invalid one) is refused ("… FPS is not one of the project frame rates."). The current rate of a locked project
+  is `NoChange`; of an unlocked one it is locked as one Undo step (`SetFrameRateCommand` alone, nothing re-gridded —
+  FR-4). Any other rate: an `EditPlan` with the new rate, locked (`SetFrameRate(rate, locked: true)`), `FrameRateRegrid.Plan`
+  and the usual `Validate` (`ReconcileTransitions`, `ClampFades`, `TimelineValidator` on every track, `TransitionRules` and
+  the source handles); a failure of either refuses the whole change with "Can't change the frame rate to X FPS: <reason>"
+  — nothing changed, no Undo step. Otherwise one "Set Frame Rate" step (`plan.BuildCommand`, absolute before / after
+  states) in one `NotifyingCommand`: one `TimelineChanged`, dirty through the save point.
+- Re-grid (`FrameRateRegrid`, D007's rule, unchanged in substance): every track, locked and hidden ones too (FR-3); each
+  clip edge to its nearest frame of the new grid (ties up), so clips that met still meet and edges of other tracks at
+  the same time land on the same frame; `SourceIn` kept, `SourceOut` follows the new length; a clip that would collapse
+  grows by one frame into free space (right, else left), else the change is refused; a clip past its source is shortened
+  to the source's whole frames; a clip with a speed keeps its source range and speed and takes `SpeedTiming.FramesFor`
+  frames (D022). Order kept or refused; overlap refused.
+- Kept in time: fades (`FadeIn` / `FadeOut` ticks unchanged, frames derived anew; cut to a shorter clip by `ClampFades`),
+  dissolves (`Duration` ticks unchanged, `F` derived anew; removed with D025's note when their clips no longer meet,
+  refused when `F < 2`, the zone doesn't fit or the handles don't suffice), markers (`MediaTime` unchanged, several on
+  one frame allowed — FR-2). The playhead (session state, D015) goes to its nearest frame of the current grid after
+  Execute, Undo and Redo (in the command's notification, never an Undo step of its own).
+- **FR-1 fixed**: `EditPlan.IsTouched` counts every dissolve as touched when the plan changes the rate, so its source
+  handles are checked although none of its clips moved (a rate change re-derives the zone's frames and their split
+  around the cut: 0.1 s is 1 + 2 frames at 30 fps, 3 + 3 at 60). This applies to the first video fixing the rate as well
+  (D007), where an unlocked project's existing dissolve could otherwise be left with too little source. Regression tests:
+  30 → 60 fps with B one 30 fps frame into its source — refused; the same through the first video — refused; with
+  enough source — kept.
+- Clipboard: clips copied before a rate change are refused on paste — the existing D027 §5 rule ("The project frame
+  rate changed since the clips were copied. Copy them again."); an Undo of the change makes the copy valid again.
+- D007 changes only in "after locking, the rate never changes": the user may change it (D028); the automatic rule (the
+  first video fixes an unlocked rate) is unchanged.
+- Not in 13.5: the UI (13.6 — with the `EditingLock`), the export settings / encoder (13.7). `project.json` unchanged.
+
+Refined at the start of Step 13.6 (product owner, 2026-10-06, on the step's UI audit) and in its implementation:
+- `ITimelineEditService.SetProjectSettings(width, height, rate)` — the dialog's Apply. Both parts checked first (the canvas
+  rules, the offered rates). Only the canvas changing → `SetCanvasSize`; only the rate (a different one, or the current one
+  of an unlocked project) → `SetFrameRate`; neither → `NoChange`. Both: the rate part is planned (`EditPlan` with the
+  rate locked, `FrameRateRegrid`, `Validate` — or the lock-only command) and then the canvas part (the scaled positions and
+  font sizes and their limits), both on the unchanged model; a refusal of either returns before any change. Then one
+  `CompositeCommand` "Change Project Settings" — the rate command first, the canvas commands after — in one
+  `NotifyingCommand` (one `TimelineChanged`; the playhead snapped to the grid on Execute / Undo / Redo). Not two public
+  calls in a row. The 13.4 / 13.5 methods share the planning code (`PlanCanvas`, `PlanFrameRate`) and keep their rules.
+- The canvas part's property commands carry only the picture and text groups (`ClipPropertyValues(visual, null, text)`),
+  so they never write back a fade that the re-grid in the same step cuts (`ClampFades`); the rate part's property commands
+  run first and the canvas commands write the scaled positions over them. Undo runs the reverse. (A test with a clip
+  whose stored fade the re-grid cuts and whose position the canvas scales pins this.)
+- `ProjectSettingsRules.ContainFactor` is the one source of the CS-1 B factor (the service and the dialog's notice).
+- New (decision 2): unchanged — a new project has 1920 × 1080 and the provisional 30 fps; no dialog is opened.
+- Errors (decision 3): the canvas rules shown live under the size fields (Apply off while they fail); a refusal by the
+  service shown under Apply with the dialog left open (the values can be corrected and applied again); a successful
+  Apply closes the dialog and reports the service's message in the status bar.
+- Draft: the dialog edits a copy of the size and the rate (`ProjectSettingsViewModel`); only Apply calls the service.
+  Cancel, Esc and the title-bar close change nothing — no edit, no Undo step, no `TimelineChanged`, no dirty flag.
+- Rates offered: the eight project rates, and before them the current rate kept as it is when the project is unlocked
+  ("30 FPS (provisional)" — keeping it leaves the project unlocked; choosing the plain "30 FPS" locks it, FR-4) or when it
+  is not offered ("15 FPS (current)", until another rate is applied). A kept rate with a new size goes to `SetCanvasSize`.
+- Export lock: "Project Settings…" is disabled while `EditingLock` is held (the toolbar's `CanEdit`, refreshed on the
+  lock's change); the workflow refuses with a status message if reached anyway; Apply checks the lock again right before
+  calling the service ("The project settings can't be changed while a video is being exported."). The service layer
+  has no dependency on the UI lock.
+- UI: toolbar "Project Settings…" after Import Media, before Export, with separators; the tooltip "Project Settings —
+  W × H · R FPS" (with "(provisional)") follows every timeline change, Undo / Redo and New / Open / Recover; no hotkey.
+  The dialog (a modal window 460 px wide, `AvaloniaProjectSettingsDialog` hosting `ProjectSettingsView`): the current
+  settings; FRAME SIZE — the presets (Landscape 3840 × 2160, 2560 × 1440, 1920 × 1080, 1280 × 720, 640 × 360; Portrait
+  2160 × 3840, 1080 × 1920, 720 × 1280; Square 1080 × 1080; 4:5 1080 × 1350; Custom) with "⇄ Swap" beside them, then Width
+  / Height (`CommitNumericUpDown`, step 2); the live rule message and the scale notice ("Positions and text sizes will be
+  scaled by 56.25 %."); FRAME RATE with its notice; Apply / Cancel; the service's error. The real-app check at 1024 px
+  found the four-digit sizes cut off with Swap in the size row — Swap moved next to the presets, re-checked at 1024 and
+  1440 px.
+- Not in 13.6: the export settings (13.7 / 13.9), L1-c (13.8).
+
+Refined in Step 13.7 (the step's audit accepted by the product owner, 2026-10-06, and the implementation):
+- One flow: `ProjectSettings.Export` → `ExportPreflight.Check` → `ExportJob.Encoding` → `ExportService` →
+  `IExportEncoder.StartAsync(output, encoding, destination, ct)` → `FfmpegExportEncoder`. `ExportJob(snapshot, outputPath,
+  ExportEncoding? encoding = null)` — null is `ExportEncoding.Default`, a value not offered an `ArgumentException`; the
+  preflight passes `project.Settings.Export` when it makes the job — the same moment and thread as the snapshot. The
+  record is immutable and the project only ever replaces it, so later changes of the project's settings never reach a
+  job (tests: the preflight, a real export through the service). The export service and the encoder read no project.
+- `FfmpegExportEncoder`: `-crf` = `encoding.Crf`, `-preset` = `encoding.PresetName`, `-b:a` = `AudioBitrateKbps × 1000` (bits
+  per second, invariant culture); every other token, its value and the order are unchanged (libx264, AAC-LC, 48 kHz,
+  stereo, yuv420p, BT.709 limited, the filter, the mapping, `-fps_mode passthrough`, `+faststart`, MP4). The encoder
+  validates the settings too, before ffmpeg starts.
+- One source of truth: `ExportFormat.VideoCrf`, `VideoPreset` and `AudioBitrateBps` are removed (no fallback); `ExportFormat`
+  keeps only the fixed format (container, codecs, extension, 48 kHz, 2 channels). The comments of `IExportEncoder` /
+  `FfmpegExportEncoder` no longer call the quality fixed.
+- Default compatibility: golden command lines in `Video.Tests` — the full audio and video argument strings of Phase 12,
+  taken from the Phase 12 code (the test was run against it before the change) — must equal the default's character for
+  character; each quality level / preset / bitrate changes only its own token (`-crf`, `-preset`, `-b:a`); the numbers
+  don't depend on the culture. A byte comparison of MP4 files across ffmpeg builds is not part of the suite (libx264 is
+  deterministic only for the same build and thread count): the arguments and the unchanged canvases / PCM are the contract.
+- Real encodes (validity, not picture criteria — those are L1-c, 13.8): every level at medium and every preset at High
+  give a valid MP4 (frames, numbers, duration, audio length) whose x264 options string carries `crf=14.0 / 18.0 / 23.0 /
+  28.0` and `subme=6 / 7 / 8` (fast / medium / slow); every AAC bitrate gives a valid AAC-LC track; 128–256 kbps within
+  10 % of the request on noise. An export through the whole chain: default for a project without settings, other
+  settings reaching the encoder with the canvases still the Preview's byte for byte.
+- **Observation for 13.8 / 13.9 (not changed):** ffmpeg's native AAC encoder (FFmpeg 9.0.1) does not reach 320 kbps on
+  stereo — about 243 kbps measured, below the ≈ 259 kbps it gives for 256 kbps. The request is passed exactly
+  (`-b:a 320000`); whether 320 stays offered is a product decision for the measurement / UI steps.
+- Not in 13.7: the export settings UI (13.9), L1-c (13.8), `project.json` (unchanged, v3).
+
+Decided after Step 13.7 (product owner, 2026-10-06): 320 kbps stays offered. The contract of an AAC bitrate setting is
+the request passed to ffmpeg (`-b:a 320000`) and a valid AAC-LC 48 kHz stereo track of the right length; the bitrate the
+encoder reaches is not a criterion (FFmpeg 9.0.1's native AAC encoder reaches ≈ 243 kbps for a 320 kbps request on
+stereo noise — its behaviour, recorded here). No test requires ≈ 320 kbps.
+
+Refined in Step 13.8 — **L1-c decided** (2026-10-06; the measurement, the criteria and the mutation checks in one step, as
+the product owner asked; the numbers below await the step's acceptance):
+- Measured (M) with the Step 8.6 method, now in the suite (`ExportEndToEnd.Tests/ExportCodecLegTests`, `CodecLegMetrics`;
+  every line written to the test output): the MP4 decoded by ffmpeg (BT.709 tags honoured) against the canvases the
+  service encoded, R / G / B samples; split with a reference made from the same canvases through the same BGRA → BT.709
+  limited 4:2:0 conversion but libx264 lossless (`-qp 0`): **floor** = reference vs canvas (conversion, chroma
+  subsampling), **quant** = MP4 vs reference (the lossy encoding — what the level changes), **total** = MP4 vs canvas.
+  Eleven scenes (flat colour; PNG with alpha over video; JPEG; text; the moving pattern; a rotated portrait video; 4×
+  speed; mixed layers at 29.97; portrait 180 × 320 and square 240 × 240 canvases; a 1080p canvas) × six settings (the
+  four levels at medium, fast and slow at High). Two runs gave identical numbers (FFmpeg 9.0.1, same machine).
+- Data (lowest per-frame PSNR in dB over the scenes with detail; flat colour is lossless at every level):
+
+  | | Maximum | High | Standard | Compact | High / fast | High / slow |
+  |---|---|---|---|---|---|---|
+  | quant (MP4 vs lossless reference) | 41.3 | 37.5 | 33.3 | 29.9 | 37.6 | 37.8 |
+  | total (MP4 vs canvas) | 24.4 | 24.3 | 24.0 | 23.4 | 24.2 | 24.3 |
+
+  The total is dominated by the floor, which no level changes (worst frame: mean |Δ| 3.6, 24.4 dB on mixed layers — sharp
+  saturated edges through 4:2:0; on flat colour max 1). Quant falls with every level on every scene, at least 3.4 dB per
+  step; the presets stay within 0.7 dB of medium. Worst-frame quant mean |Δ| at High: 0.17–1.26. File sizes relative to
+  High: Maximum ≈ 1.3×, Standard ≈ 0.7×, Compact ≈ 0.45×; the export time of these short scenes barely changes (slow
+  +10–20 %).
+- **Criteria** (pass / fail, `ExportCodecLegTests`, every scene × every setting):
+  1. the codec's own error per level — every frame's PSNR of the MP4 against the lossless reference at least
+     **Maximum 39.0 · High 35.0 · Standard 31.0 · Compact 27.5 dB** (≈ 2.3–2.5 dB below the measured lowest values: thread
+     count or rounding can't fail it, one level's CRF in another's place does); the fast and slow presets meet their
+     level's bound;
+  2. the levels in order on every scene with detail — each at least **2.0 dB** above the next (measured ≥ 3.4);
+  3. flat colour through the whole leg within one YUV code step — **max |Δ| ≤ 2** — at every setting (guards the colour
+     conversion: matrix, range).
+  Reasoning: the quality setting changes only the quantization, so the criterion bounds the quantization per level, on
+  the error that the level is responsible for; the floor is a property of the fixed format (8-bit 4:2:0 BT.709) and is not
+  a quality knob — bounding the total by level would mostly bound the floor. Criterion 2 makes the levels mean something
+  relative to each other (a swapped or collapsed CRF fails it); criterion 3 makes the conversion itself checked at every
+  setting.
+- Sound (unchanged criterion, every offered bitrate): the D023 Step 8.5 checks — the same length, lag and every burst onset
+  within 10 ms, SNR ≥ 20 dB against the Preview's own audio — hold at 128, 160, 192, 256 and 320 kbps
+  (`ExportParityEncodedTests.Sound_through_the_codec_at_every_offered_bitrate`, three sound scenes; measured SNR 24.5–38.4
+  dB, lag 0, onsets 0 ms; not monotonic in the bitrate). Nothing depends on the bitrate the encoder reaches.
+- Kept as they were: the canvas-level Preview ↔ export parity (byte-exact), the Step 8.3–8.5 criteria, the Step 6
+  composition bound "mean |Δ| ≤ 3 per frame, MP4 vs canvas" on its nine scenes (it runs at the default, High, and stays as
+  that level's total sanity bound there — not weakened, not replaced), the 13.7 golden command lines.
+- The default path: its command lines are the Phase 12 ones (13.7 golden), so its encoding is unchanged; the High /
+  medium row of the data is that path.
+- Mutation checks (each reverted; caught by the L1-c tests unless noted): High → CRF 23; Standard collapsed onto 18;
+  Maximum → 18; Compact → 23; Compact → 35; the encoder dropping `-crf`; a BT.601 matrix; full range tagged limited; one
+  damaged frame inside the encoder; the AAC bitrate passed ten times too low (caught by the per-bitrate sound test). Not
+  caught by L1-c and not meant to be: the fast preset mapped to `ultrafast` (still above High's bound) — caught by the 13.7
+  tests (golden command lines, the x264 `subme` check) and `ProjectSettingsRulesTests`.
+
+Refined in Step 13.9 (product owner, 2026-10-06, and the implementation):
+- Where: an EXPORT section in the Project Settings dialog of 13.6 (not a step of the export flow, not a window of its
+  own): Quality (Maximum / High / Standard / Compact; "CRF 14 — largest file", "CRF 18 — default", "CRF 23", "CRF 28 —
+  smallest file" as the secondary text and tooltip), Encoding speed (Fast / Medium / Slow; "H.264 preset …") and Audio
+  bitrate (128 / 160 / 192 / 256 / 320 kbps, "AAC"; 320 kbps shown as chosen — the bitrate reached is never shown). No
+  new values. The current values (`ProjectSettings.Export`; `Default` for a project without `settings.export`) are
+  selected when the dialog opens; the export settings are remembered with the project (question 3) and shown again on the
+  next opening.
+- Draft: the three choices are part of the dialog's draft (`ProjectSettingsViewModel.DraftExport`); changing them changes
+  nothing in the project and makes no Undo step; Cancel, Esc and closing the window change nothing.
+- Apply: one call — `ITimelineEditService.SetProjectSettings(width, height, rate or null, export)`. The method now takes the
+  export settings (null = kept) and a nullable rate (null = the current rate kept as it is, also a provisional one — the
+  dialog's "(provisional)" / "(current)" entries); every part is checked before the first change; one part changing goes
+  to its own method (`SetCanvasSize`, `SetFrameRate`, the new `SetExportSettings`); several are one "Change Project
+  Settings" step; a refusal of any part changes nothing (the export choices included) and stays in the open dialog.
+- `SetExportSettings(export)` (EX-1): `SetExportEncodingCommand` replaces the immutable record — one Undo step, dirty, no
+  step for the same settings, settings not offered refused; no timeline notification (the timeline doesn't change). The
+  next export takes the settings through the 13.7 pipeline (`ExportPreflight` → `ExportJob.Encoding` → encoder); the UI
+  never touches a job or the encoder.
+- Export lock: unchanged from 13.6 — "Project Settings…" disabled during an export; Apply checks the lock again before the
+  service call, so the export choices are refused with the rest.
+- Checked in the real app (1024 px window, 125 % scaling): the section fits under the rate; Compact / Slow / 320 chosen as a
+  draft (title clean, Undo off), Apply ("Export settings: Compact quality, slow encoding, AAC 320 kbps.", `*`), one Undo
+  back to High / Medium / 192, Redo, reopening shows the applied values, Save writes `settings.export` = Compact / Slow /
+  320.
+
+Closeout (Step 13.10, 2026-10-06; the product owner accepted Steps 13.3–13.9):
+- Local QG at `5c01aed`: build `--no-incremental -warnaserror` 0 / 0; the full suite 2585 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2585 / 0 / 2 each, no hang, no
+dump; the full suite with `AIVE_HEAVY_TESTS=1` 2587 passed, 0 skipped, 0 failed; `git diff --check` clean. No
+  failure, no fix; no criterion weakened, re-baselined or removed.
+- R1 (a project saved by the Phase 12 build — `c0cb600` extracted with `git archive`, built in a scratch folder; no
+  worktree, branch or commit): the Phase 12 app opened the fixture, added a marker and saved (v3, no `settings.export`);
+  Phase 13 opened it with the default export settings (High / Medium / 192 kbps in the dialog); a plain Save wrote the
+  file byte for byte as Phase 12 had; after Standard / Fast / 256 applied and saved, the file differed only by
+  `settings.export`; reopening showed Standard / Fast / 256; the Phase 12 app opened that file too (the property
+  ignored).
+- R2: Compact / Slow / 320 as a draft (clean), Apply (dirty, the status message), Undo → Standard / Fast / 256, Redo; an
+  export through the UI (Project Settings… off while it ran): H.264 640 × 360 25 fps, 850 frames, 34.000 s, the x264
+  options `crf=28.0` and `subme=8` (Compact, slow), the ffmpeg command with `-b:a 320000`, an AAC-LC 48 kHz stereo track of
+  34.000 s (≈ 144 kbps reached on that tone — not a criterion). The canvas parity at non-default settings is the
+  automated `ExportSettingsEndToEndTests` / `ExportCodecLegTests`; the export manual plan's other UI scenarios were run at
+  12.9 / 13.6 and no export workflow code changed since (only the job's settings).
+- R3 (canvas 1080 × 1080, 30 fps applied first): a track moved and undone, a marker added, Ctrl+C / Ctrl+D on the title,
+  Ripple Delete and Undo, `Recent ▾` listing the projects, a file renamed outside → offline on window activation →
+  Relink… → linked, Undo (offline again), Redo; saved: the dissolve, the 7 clips with fades and the marker kept, the title
+  font scaled 96 → 162 (× 1.6875).
+- Final state of the decision: canvas and frame rate are project settings (Project Settings…; D018 default only, D007
+  user-changeable); the export settings are an EXPORT section of the same dialog — **a change against the Step 13.2 plan,
+  which had them chosen in the export flow**, made by the product owner at Step 13.9; `settings.export` stays an optional
+  property of `project.json` v3, a project without it reads as `ExportEncoding.Default`; 320 kbps stays an offered target
+  (`-b:a 320000`, a valid track — the bitrate reached is not a criterion); L1-c decided with its measurement kept in the
+  suite (`ExportCodecLegTests`); the Phase 8–12 export / parity criteria are unchanged. Phase 14 not started.
+- Kept open after Phase 13 (not Phase 13 work): the `F(end − start)` test helpers; the known flaky CI tests (§8 policy);
+  the observation that a new text clip takes `FontSize` 48 on any canvas.
+
+Consequences: `ProjectSettings` becomes user-editable through new undoable commands; the export gains a settings model
+used by `FfmpegExportEncoder` (`ExportOutput` and the preflight keep their roles); `project.json` stays v3 or becomes v4
+by §5; the parity suite gains scenes for new canvas sizes and rates and per-level codec criteria (§6);
+`docs/PHASE13_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
+
+Status: Accepted (2026-10-06, product owner). Phase 13 complete locally: Steps 13.1–13.9 accepted (`226c7f2`, `4514f09`,
+`ec51247`, `010a1b8`, `66a0871`, `adf85e4`, `3d08c1b`, `5c01aed`); Step 13.10 (closeout) done on 2026-10-06 — awaiting
+the product owner's acceptance; not published (no push / pull request yet), so CI has not run. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
 
 ---
 
