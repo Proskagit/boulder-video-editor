@@ -56,7 +56,7 @@ and runs cleanly.
       existing projects, undoable), export settings (quality, encoder speed, audio bitrate) on the existing MP4 /
       H.264 / AAC encoder, and the codec-leg criteria of L1-c. Scope, steps and acceptance criteria: section below and
       DECISIONS.md D028 (product owner decisions, 2026-10-06). *(branch `feat/phase-13-project-export-settings`, from
-      `c0cb600`; Step 13.2 done — D028 awaiting acceptance)*
+      `c0cb600`; D028 accepted 2026-10-06; Step 13.3 done — awaiting acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -629,13 +629,13 @@ without backward migration (repository project JSON rewritten in v4). Out of sco
 Git state (PR #12 merged as `c0cb600`, the local `main` behind it), documentation, the canvas / rate / export code and
 the candidates audited; no change (report in `progress.md`).
 
-### 13.2 — Sync after the merge and scope formalization *(done — awaiting acceptance)*
+### 13.2 — Sync after the merge and scope formalization *(done, accepted 2026-10-06 with D028)*
 `main` fast-forwarded to `c0cb600`, branch `feat/phase-13-project-export-settings`; the Phase 12 statements made
 outdated by the merge (CI pending, branch not published, complete locally) corrected and the acceptance / PR #12 /
 `c0cb600` / CI green recorded; D028 (incl. the flaky-test policy, §8), this section, ROADMAP, README, `progress.md`,
 `docs/README.md`, `docs/PHASE13_MANUAL_TEST_PLAN.md` (skeleton). Documentation only.
 
-### 13.3 — Settings model and project format
+### 13.3 — Settings model and project format *(done — awaiting acceptance; D028 "Refined at the start of Step 13.3": v3 kept, `settings.export` optional; the FR-1 regression test moves to 13.5 with its fix, the preflight's canvas limits to 13.4)*
 Scope: D028 §1, §5, §7 (model only).
 - PR: the project settings (canvas width × height, frame rate) are validated by one Core rule (even sizes, limits, a
   supported rate); an invalid value is refused with a message and changes nothing.

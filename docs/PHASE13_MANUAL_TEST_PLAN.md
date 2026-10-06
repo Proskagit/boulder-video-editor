@@ -25,9 +25,9 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 1 | Settings survive save / reopen | Change the canvas, the rate and the export settings; save; close; reopen | Every setting as saved; the project not dirty after the reopen | (13.3) | planned |
-| 2 | Settings survive a recovery | Change settings, wait for the autosave, kill the app, start it, Recover | The recovered project has the changed settings | (13.3) | planned |
-| 3 | An older project file | Open a project written by Phase 12 | v3 kept: opens with the default export settings and saves unchanged; v4: the handling decided at 13.3 (opens, or a clear refusal) | (13.3) | planned |
+| 1 | Settings survive save / reopen | Change the canvas, the rate and the export settings; save; close; reopen | Every setting as saved; the project not dirty after the reopen | `ExportEncodingPersistenceTests` (round trip of every value, not dirty), `ProjectSerializerRoundTripTests` | auto (13.3); manual after 13.6 / 13.9 (no UI before) |
+| 2 | Settings survive a recovery | Change settings, wait for the autosave, kill the app, start it, Recover | The recovered project has the changed settings | `ExportEncodingPersistenceTests` (recovery round trip, default, invalid) | auto (13.3); manual after 13.6 / 13.9 |
+| 3 | An older project file | Open a project written by Phase 12 | v3 kept (D028 Step 13.3): opens with the default export settings and saves unchanged | `ExportEncodingPersistenceTests` (no `settings.export` → default, saved unchanged; old `lastExportSettings` ignored) | auto (13.3); manual at 13.10 (R1) |
 
 ## Step 13.4 — canvas size (D028 §4)
 

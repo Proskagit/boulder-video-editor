@@ -3,8 +3,8 @@
 ## Current phase
 
 Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
-merge of PR #12). Step 13.1 (audit) accepted (2026-10-06); Step 13.2 (sync after the merge, scope formalization,
-documentation only) done — D028 awaiting the product owner's acceptance; no implementation before it. Scope, steps and
+merge of PR #12). Step 13.1 (audit) accepted (2026-10-06); Step 13.2 accepted with D028 (2026-10-06); Step 13.3
+(settings model, validation, `settings.export` in v3) done — awaiting acceptance. Scope, steps and
 acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 13 — Project & export settings: steps"; decision D028.
 
 ### Phase 13 — Project & export settings (in progress)
@@ -57,6 +57,36 @@ push, pull request or merge without direct permission; no next step without the 
     constraints, steps 13.1–13.10 with PR / QG / M / Impl items and dependencies).
   - ARCHITECTURE (verification note), `docs/README.md`, `docs/PHASE13_MANUAL_TEST_PLAN.md` (skeleton: scenarios per
     step, status "planned"), Known issues (the flaky CI tests and the D028 §8 policy).
+  - Committed as `226c7f2`.
+- Step 13.2 and D028 accepted by the product owner (2026-10-06): the canvas never from a video (D018 default only), no
+  export resolution of its own, the export settings saved in `project.json`, no v4 in advance — recorded in D028.
+- Step 13.3 done (2026-10-06) — settings model, validation and persistence (the analysis first, no code; the product
+  owner confirmed F-1, M-1, L-1, L-2, CS-2, FR-1…FR-4, EX-1…EX-4, deferred CS-1 to 13.4 and M-2 to 13.4 / 13.5 — D028
+  "Refined at the start of Step 13.3").
+  - Core: `ExportEncoding` (record: `ExportQuality` Maximum / High / Standard / Compact → CRF 14 / 18 / 23 / 28,
+    `ExportSpeedPreset` fast / medium / slow, `AudioBitrateKbps` 128 / 160 / 192 / 256 / 320; `Default` = High / medium /
+    192 = the `ExportFormat` constants; `Crf`, `PresetName`, `Validate`); `ProjectSettingsRules` (`CanvasError`: even,
+    64–4096 per side, area ≤ 9 437 184; `SelectableFrameRates`, `IsSelectableFrameRate`); `ProjectSettings.Export`.
+  - Project: `ProjectSettingsDto.Export` (`ExportEncodingDto`, strings for the names, omitted when null);
+    `ProjectSerializer` writes it only when not the default and reads it strictly (`ReadExportEncoding`: absent / null →
+    default; a missing field, a name that is not exactly an enum name, a bitrate not offered → damaged). `formatVersion`
+    stays 3; load rules for the canvas and the rate unchanged.
+  - Not done here, by the step's limits: no UI, no canvas / rate command, `FrameRateRegrid` unchanged, the encoder
+    still reads `ExportFormat` (13.7), no export / preflight change. FR-1's regression test needs the production fix of
+    the dissolve-handle check (`ValidateTransitions` / `IsTouched`), so both go to 13.5; the preflight's canvas limits go
+    to 13.4. CS-1 not implemented: a canvas change will touch no clip property until 13.4 decides; no
+    `IProjectSettingsService` or other new interface.
+  - Tests: `Core.Tests/ProjectSettingsRulesTests` (46: canvas sizes valid / odd / out of range / above the area limit,
+    the eight rates, the export levels / presets / bitrates, defaults = `ExportFormat`, validation),
+    `Project.Tests/ExportEncodingPersistenceTests` (round trip of every non-default value, JSON shape and names, default
+    not written, absent / null / explicit default → default and saved unchanged, 19 invalid values + 3 non-objects →
+    damaged, recovery round trip / default / invalid, output path and `lastExportSettings` never written, an old
+    `lastExportSettings` never read as export settings, canvas and rates outside the user limits still open; 49).
+    Existing tests unchanged.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the step's tests (Core 46,
+    Project 139 incl. the serializer, recovery and export-settings classes) green; the full `dotnet test` once: 2419
+    passed, 2 skipped (only the two 4K scenes), 0 failed — Core 494 (+46), Timeline 425, Project 420 (+49), UI 541,
+    Export 99, Rendering 58, Video 294, ExportEndToEnd 88 + 2; `git diff --check` clean.
 
 ### Phase 12 — Editing essentials (complete; PR #12 merged as `c0cb600`, CI green)
 

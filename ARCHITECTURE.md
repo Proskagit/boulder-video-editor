@@ -48,7 +48,9 @@ Domain types (`src/Core/Entities`):
 - `Track` — lane of clips (`Type`, `Order`, mute/hide/lock)
 - `Clip` → `MediaBackedClip` (`SourceIn`/`SourceOut`/`Speed` — exact `ClipSpeed`, timing rule `SpeedTiming`, D022) → `VideoClip`, `AudioClip`, `ImageClip`; plus `TextClip`
 - `MediaAsset` + `MediaMetadata` + `MediaAnalysisStatus`
-- `ExportSettings` (last output path + fixed format enums; session state, D023), `ProjectSettings`, `Effect`,
+- `ExportSettings` (last output path + fixed format enums; session state, D023), `ProjectSettings` (canvas, frame
+  rate, and since Phase 13 `Export` — an `ExportEncoding`: quality level → CRF, libx264 preset, AAC bitrate, saved with
+  the project, D028; the user limits in `ProjectSettingsRules`; not used by the encoder yet), `Effect`,
   `Transition`, `Marker` (`Clip.Effects` is stored but neither played nor exported; transitions are cross dissolves, below)
 - Phase 10 (D025): `Clip.FadeIn` / `FadeOut` (durations; frames derived with `ToNearestFrame`);
   `Transition` anchored on a cut (`LeftClipId` / `RightClipId`, type `crossDissolve`), structural rules in
@@ -307,7 +309,8 @@ recovery, unsaved changes).
 
 - On disk: a project folder with `project.json` (format v3 since Phase 10: clip fades and anchored transitions,
   D025; v2 since Phase 7: the clip speed as an exact fraction `speedRatio`, D022; v1 files are read when their speed
-  is 1; v1 / v2 are read without fades and transitions and saved as v3; files of a newer version are refused). `ProjectSerializer` maps entities
+  is 1; v1 / v2 are read without fades and transitions and saved as v3; files of a newer version are refused; Phase 13
+  adds the optional `settings.export` to v3, written only when not the default, D028). `ProjectSerializer` maps entities
   ⇄ DTOs (`ProjectFileDto.cs`; ticks as `long`, exact frame rates, no runtime state) and
   validates on load (incl. clip property ranges, D017, and the speed timing invariant, D022);
   `ProjectFileStore` reads and writes atomically (temp + `File.Replace`).
@@ -499,6 +502,6 @@ paragraph at the Step 11.3 closeout, the relink paragraph at the Step 11.4 close
 Step 11.5 closeout, the relink UI paragraph at the Step 11.6 implementation, the recent projects paragraphs written at
 Steps 11.7–11.8 (Phase 11 merged into `main` as `47ed2fa`); the Phase 12 editing-essentials and import paragraphs of the
 Timeline section at the Phase 12 closeout (Step 12.9, `d467a84`; Phase 12 merged into `main` as `c0cb600`). Phase 13
-(D028, project & export settings) changes nothing here yet: the canvas is still the fixed default and the export format
-still `ExportFormat`'s constants.
+(D028, project & export settings): the `ProjectSettings` / persistence lines at Step 13.3; the canvas is still the
+fixed default and the export still uses `ExportFormat`'s constants.
 Re-check the code before relying on details that later phases may have changed.

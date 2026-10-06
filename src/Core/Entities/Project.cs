@@ -41,6 +41,10 @@ public sealed class ProjectSettings
     /// <summary>Stored in project.json but not used: playback and export always run at
     /// 48 kHz stereo (<see cref="Playback.AudioFormat"/>, D013, D023).</summary>
     public int AudioSampleRate { get; set; } = 48000;
+
+    /// <summary>How the project is encoded on export (D028): saved with the project, unlike the session-only
+    /// <see cref="Project.LastExportSettings"/> (the last output path).</summary>
+    public ExportEncoding Export { get; set; } = ExportEncoding.Default;
 }
 
 public enum ExportContainer { Mp4 }

@@ -2308,13 +2308,65 @@ Known tests that have failed intermittently on CI before Phase 12 without a prod
 3. Export settings: saved per project (recommended: a project exports the same way after reopening; settles §5) or an
    application-wide default?
 
+Accepted by the product owner (2026-10-06), with the answers:
+1. The canvas is never taken from a video: it is an independent project setting set by the user. D018 changes only from
+   "always 1920 × 1080" to "1920 × 1080 by default, changeable by the user".
+2. No export resolution of its own: the export size is always the project canvas; no second size setting.
+3. The export settings are saved in `project.json` with the project.
+4. No `formatVersion` 4 in advance: Step 13.3 first checks whether the export settings fit v3 as an optional property
+   (§5); v4 only if objectively needed, and even then without a v3 → v4 migration.
+
+Refined at the start of Step 13.3 (product owner, 2026-10-06, on the step's analysis) and in its implementation:
+- Format (F-1): `formatVersion` stays **3**. The canvas, the rate and `IsFrameRateLocked` were already stored; the export
+  settings are the optional `settings.export`. No existing property changes its meaning; a file without it (every file
+  of Phases 6–12) reads as the default = the Phase 8–12 output; a Phase 12 build ignores the unknown property (the
+  serializer does not refuse unknown members), so it reads the file without the setting rather than wrongly. No
+  migration code.
+- Placement (M-1): `ProjectSettings.Export` (`ExportEncoding`), JSON `settings.export`. The top-level
+  `lastExportSettings` of Phases 6–8 (another shape: size, double rate, bitrates) is not reused and stays ignored;
+  `Project.LastExportSettings` (the output path) stays session-only, never saved.
+- `ExportEncoding` (Core, immutable record): `Quality` (`ExportQuality`: Maximum = CRF 14, **High = CRF 18**, Standard =
+  CRF 23, Compact = CRF 28), `Preset` (`ExportSpeedPreset`: fast / **medium** / slow), `AudioBitrateKbps` (128 / 160 /
+  **192** / 256 / 320); `Default` = (High, Medium, 192), equal to the `ExportFormat` constants (EX-2). The file stores the
+  quality's **name**, not the CRF. `settings.export` is written only when the settings differ from the default (a
+  project with the default settings is saved exactly as before — a Phase 12 project opens and saves unchanged);
+  `"export": null` reads as the default. When present, every field is required; `quality` / `preset` must be the exact
+  enum names ("High", "Medium"; no numbers, other spellings or combinations), the bitrate one of the offered values;
+  anything else makes the file damaged (EX-4, as D014). Unknown properties inside it are ignored, as elsewhere in the file.
+- Canvas limits (L-1, `ProjectSettingsRules.CanvasError`): both sides even, each 64–4096 px, the area at most
+  9 437 184 px (36 864 macroblocks, the H.264 level 5.1 frame size). The presets proposed at the step (landscape 3840 ×
+  2160, 2560 × 1440, 1920 × 1080, 1280 × 720, 640 × 360; portrait 2160 × 3840, 1080 × 1920, 720 × 1280; square 1080 ×
+  1080; 4:5 1080 × 1350; custom; swap W / H) are accepted for the UI of 13.6.
+- Frame rates (L-2, `ProjectSettingsRules.SelectableFrameRates`): 24000/1001, 24, 25, 30000/1001, 30, 50, 60000/1001,
+  60. A rate outside the list already in a project (e.g. fixed by the first video, D007) is kept on load but can't be
+  chosen as a new value.
+- Load (CS-2): the file rules are unchanged — a positive canvas and any positive rational rate open; a canvas outside
+  the user limits is not applied by the UI, and the export preflight checks the limits too (implemented with the canvas
+  change, 13.4).
+- Frame rate change (for 13.5): FR-1 — the source handles of **every** dissolve are checked when the rate changes, also
+  where its clips didn't move (the zone's split around the cut changes in time with the rate); this also applies to the
+  first video fixing the rate (a production change of the transition validation — made in 13.5, with its regression
+  test). FR-2 — markers keep their `MediaTime`; several on one frame are allowed. FR-3 — locked tracks are re-gridded
+  too. FR-4 — choosing the current rate of an unlocked project locks it as one Undo step; of a locked one, nothing.
+- Export settings changes (EX-1): a project change — undoable and dirty; no command when nothing changes (13.9).
+  EX-3: L1-c in 13.8 measures the four levels at medium and the three presets at High; the other combinations get
+  validity checks only.
+- Not decided (product owner): CS-1 — what happens to `PositionX/Y`, `Scale`, `FontSize` and other clip properties when
+  the canvas changes is decided at 13.4 after the canvas coordinates and the transform model are reviewed; until then a
+  canvas change touches no clip property and no hidden fix-up exists. M-2 — the command architecture for the canvas and
+  the rate is decided at 13.4 / 13.5 from the existing `ITimelineEditService` / `EditPlan` / commands; Step 13.3 adds no
+  service or interface.
+- Implementation (13.3): `Core/Entities/ExportEncoding.cs` (the record and enums, `Crf`, `PresetName`, `Validate`),
+  `Core/Entities/ProjectSettingsRules.cs` (canvas limits, selectable rates), `ProjectSettings.Export`;
+  `ProjectFileDto` (`ExportEncodingDto`, written when not null) and `ProjectSerializer` (`ReadExportEncoding`); nothing
+  uses the settings yet — no UI, no command, the encoder still reads `ExportFormat` (13.7), `FrameRateRegrid` unchanged.
+
 Consequences: `ProjectSettings` becomes user-editable through new undoable commands; the export gains a settings model
 used by `FfmpegExportEncoder` (`ExportOutput` and the preflight keep their roles); `project.json` stays v3 or becomes v4
 by §5; the parity suite gains scenes for new canvas sizes and rates and per-level codec criteria (§6);
 `docs/PHASE13_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
 
-Status: Proposed (Step 13.2, 2026-10-06) — awaiting the product owner's acceptance; no implementation before it.
-Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
+Status: Accepted (2026-10-06, product owner). Step 13.3 done — awaiting acceptance. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
 
 ---
 
