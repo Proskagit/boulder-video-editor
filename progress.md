@@ -6,8 +6,9 @@ Phase 15 — Editing tools: branch `feat/phase-15-editing-tools` (from `7200976`
 locked by the product owner on 2026-10-07 (DECISIONS.md D030): track controls (mute / hide / lock), trim to the playhead
 (plain and ripple, `Q` / `W`), ripple trim by dragging, slip, a timeline In / Out range (`I` / `O`, loop, range export) as
 unsaved session state, a new text clip's `FontSize = 48 × canvasHeight / 1080`, the audio status reset. Steps 15.1
-(pre-analysis) and 15.2 (documentation, `d1296be`) accepted; Step 15.3 (track controls) done, awaiting acceptance; Q13
-answered, the other open questions of D030 are answered before the steps they concern. Scope, steps and acceptance criteria:
+(pre-analysis), 15.2 (documentation, `d1296be`) and 15.3 (track controls, `1d26165`) accepted; Step 15.4 (trim to the
+playhead) done, awaiting acceptance; Q13, Q1, Q2, Q4, Q5, Q6 answered, the other open questions of D030 are answered
+before the steps they concern. Scope, steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md` "Phase 15 — Editing tools: steps"; manual plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
 ### Phase 15 — Editing tools (in progress)
@@ -104,6 +105,48 @@ command; no push, pull request or merge without direct permission; no next step 
     reopen; an export through the UI with V1 hidden / muted / locked and A1 muted / locked — V1 absent, silence, 27 s /
     675 frames as without the flags; the Phase 15 file opened and saved byte for byte by the Phase 14 build; the header
     at 1024 and 1440 px. Scenario 7 (during an export) automated only.
+  - Committed as `1d26165`; accepted by the product owner (2026-10-07).
+- Product owner decisions at the start of Step 15.4 (2026-10-07), recorded in D030: Q1 selected clips with the playhead
+  strictly inside, nothing implicit; Q2 Q / W plain, Shift+Q / Shift+W ripple; Q4 a dissolve on the trimmed edge is kept
+  and the trim limited, never removed silently; Q5 the playhead to the clip's new start after a ripple of the start; Q6
+  a trim stopped by a dissolve is applied up to the limit with a message. Reconciliation before the code: a plain inward
+  trim of a dissolve's cut edge always opens the gap (D025 §5 removes the dissolve there; D030 §5 had "plain = exactly
+  `TrimClip`"), so Q4 could not be applied as worded — reported, and the product owner chose: a plain Q / W does not
+  trim that edge (limit 0, a message pointing to Shift+Q / Shift+W); with several clips Shift+Q puts the playhead at the
+  earliest start. Only Step 15.4.
+- Step 15.4 done (2026-10-07) — trim to the playhead (D030 §5, "Refined in Step 15.4").
+  - Reconciled first (code and tests): `PlanTrim` / `PlanTrimAtSpeed` (clamps, the 1× and `≠ 1×` source rules,
+    `minFrames` = the far edge's dissolve part), `DissolveParts`, `DissolveHandles`, `Validate` (`ReconcileTransitions`,
+    `ClampFades`, zones, handles of touched dissolves), `Split` (eligibility `start < p < end`, the multi-selection
+    convention), `RippleDeleteClips` / `PlanShift` / `ShiftedState`, `CheckEditable`, markers (never moved), the D015
+    save point. No conflict besides the Q4 one above.
+  - Timeline: `PlanTrim`'s timing part factored out as `TrimmedState` (the drag unchanged — all 510 Timeline tests green
+    before any new code); `ShiftedState` also over a planned state; `TrimToPlayhead` (per clip `allowed = min(wanted,
+    N − minFrames)`, `minFrames` from the dissolve parts — plain: the far edge, ripple: both, plain on a cut edge: no
+    trim; ripple: the clip back at its start, the later clips of its track by `PlanShift`; one `Commit`).
+    `TimelineEditResult.Playhead` (Core) for Q5. Stubs of `ITimelineEditService` (design-time, a UI test) extended.
+  - UI: `TimelineViewModel.TrimStartToPlayhead` / `TrimEndToPlayhead` / `RippleTrimStartToPlayhead` /
+    `RippleTrimEndToPlayhead` (disabled during an export; the result's playhead applied with a seek; status messages);
+    `ShortcutRouter` Q / W / Shift+Q / Shift+W with exact modifiers.
+  - Tests (+76): `TrimToPlayheadTests` (Timeline, 67 incl. two 25-case theories: plain = the edge trim and ripple = trim
+    + move at 23.976 / 25 / 29.97 / 30 / 60 fps × 0.25× / 0.5× / 1× / 2× / 4×, both edges, tick for tick; eligibility
+    and boundaries; one frame inside, down to one frame; several clips, some eligible; Q5 with several clips; gaps,
+    other tracks, markers; adjacent clip; fades; a plain trim on a cut edge refused / skipped among others; ripple on a
+    cut edge kept, stopped at the zone; far-edge limits; a clip between two dissolves; a locked target refused, a locked
+    other video / audio track never rippled; hidden / muted tracks; text and image clips; undo / redo / save point / no
+    step on refusal). `TimelineTrimToPlayheadUiTests` (UI, 4); `ShortcutRoutingTests` (the table +4 rows, +4 non-shortcut
+    cases). `ExportRippleEndToEndTests` (+1): Shift+Q and Shift+W through the service, the export's 21 frames and colours,
+    the Preview equal to the export canvas on both sides of each cut.
+  - Mutations (each restored, `--no-incremental` rebuild after): start / end target swapped → 65 fail; Q4 ignored → 2;
+    the dissolve zone limit ignored → 3; the lock check removed → 1; ripple of every video track (a locked one included)
+    → first survived (the test's other locked track was audio, which the mutant skipped), the test then got a locked and
+    an unlocked V2 / V3 with later clips → 1 fails; the playhead after Shift+Q left at the playhead → 27 fail.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full suite 2697 passed, 2
+    skipped (the two 4K scenes), 0 failed — Core 513, Timeline 577 (+67), Project 426, UI 588 (+8), Export 100, Rendering
+    58, Video 322, ExportEndToEnd 113 + 2 (+1).
+  - Manual (`docs/PHASE15_MANUAL_TEST_PLAN.md`, scenarios 9–14, R7 partly; the results log): Q / W / Shift+Q / Shift+W on
+    the Phase 14 R5 fixture's red, 2× and 0.5× clips, eligibility refusals, the dissolve's cut edge (Q refused with the
+    hint, Shift+Q keeping the dissolve), a far-edge stop, a locked V1, undo back to the save point.
 
 ### Phase 14 — Stabilization / technical debt (complete; PR #14 merged as `7200976`)
 

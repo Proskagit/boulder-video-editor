@@ -177,6 +177,13 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   where an edit is planned (`CheckEditable` and the track / media checks), not by Undo / Redo. UI: M / 👁 / 🔒 next to
   the track name in the header (audio: M / 🔒), coloured when on; a locked lane tinted, a hidden lane's clips dimmed;
   off during an export.
+- Trim to the playhead (Phase 15 Step 15.4, D030 §5): `TrimToPlayhead(clipIds, edge, playhead, ripple)` — the selected
+  clips with the playhead's frame strictly inside, one `EditPlan` / undo step. Each clip's timing is the edge trim's
+  rule (`TrimmedState`, shared with `PlanTrim`); the per-clip limit keeps every dissolve (the zone fit of
+  `DissolveParts`; a plain trim leaves a cut edge alone). Ripple: the clip back at its start (`ShiftedState` over the
+  planned state), the later clips of its track moved by `PlanShift`; other tracks and markers stay.
+  `TimelineEditResult.Playhead` tells the view where the playhead goes after a ripple of the start. Keys Q / W /
+  Shift+Q / Shift+W in `ShortcutRouter`; off during an export.
 - Import (Phase 12 Step 12.8, D027 §7): `MediaImportWorkflow` keeps the project the import started in and adds nothing
   (and queues no analysis) when another project is current after the picker, the status yield or the file check.
 - UI: `TimelineViewModel` projects the `Sequence` (clip view models reused by Id),

@@ -516,6 +516,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
         if (_editingLock.IsLocked) CancelGesture();
         OnPropertyChanged(nameof(IsEditingAllowed));
         SplitAtPlayheadCommand.NotifyCanExecuteChanged();
+        TrimStartToPlayheadCommand.NotifyCanExecuteChanged();
+        TrimEndToPlayheadCommand.NotifyCanExecuteChanged();
+        RippleTrimStartToPlayheadCommand.NotifyCanExecuteChanged();
+        RippleTrimEndToPlayheadCommand.NotifyCanExecuteChanged();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
         RippleDeleteCommand.NotifyCanExecuteChanged();
         CloseGapCommand.NotifyCanExecuteChanged();
@@ -538,6 +542,24 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private void SplitAtPlayhead() =>
         Report(_edit.Split(Playhead, _selection.Count > 0 ? _selection.ToList() : null));
+
+    // --- Trim to the playhead (D030 §5): Q / W plain, Shift+Q / Shift+W ripple ----------------------------
+    // Only the selected clips with the playhead inside them (Q1); every rule is the edit service's. After a ripple trim
+    // of the start the playhead goes to the clip's start (Q5) — session state, not part of the undo step.
+
+    [RelayCommand(CanExecute = nameof(CanEdit))] private void TrimStartToPlayhead() => TrimToPlayhead(ClipEdge.Start, ripple: false);
+    [RelayCommand(CanExecute = nameof(CanEdit))] private void TrimEndToPlayhead() => TrimToPlayhead(ClipEdge.End, ripple: false);
+    [RelayCommand(CanExecute = nameof(CanEdit))] private void RippleTrimStartToPlayhead() => TrimToPlayhead(ClipEdge.Start, ripple: true);
+    [RelayCommand(CanExecute = nameof(CanEdit))] private void RippleTrimEndToPlayhead() => TrimToPlayhead(ClipEdge.End, ripple: true);
+
+    private void TrimToPlayhead(ClipEdge edge, bool ripple)
+    {
+        var result = _edit.TrimToPlayhead(_selection.ToList(), edge, Playhead, ripple);
+        if (result is { Success: true, Playhead: { } playhead }) SetPlayhead(playhead);
+        var count = result.ClipIds.Count;
+        Report(result, successMessage: $"{(ripple ? "Ripple trimmed" : "Trimmed")} the {(edge == ClipEdge.Start ? "start" : "end")} of " +
+            $"{(count == 1 ? "the clip" : $"{count} clips")} to the playhead");
+    }
 
     [RelayCommand(CanExecute = nameof(CanDeleteSelected))]
     private void DeleteSelected()

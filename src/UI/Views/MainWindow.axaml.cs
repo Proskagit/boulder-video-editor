@@ -197,6 +197,7 @@ public partial class MainWindow : Window
         public TimelineEditResult DeleteTrack(Guid trackId) => Nothing;
         public string? GetDeleteTrackBlockReason(Guid trackId) => "Design time.";
         public TimelineEditResult MoveTrack(Guid trackId, int direction) => Nothing;
+        public TimelineEditResult TrimToPlayhead(IReadOnlyCollection<Guid> clipIds, ClipEdge edge, MediaTime playhead, bool ripple) => Nothing;
         public TimelineEditResult SetTrackMuted(Guid trackId, bool muted) => Nothing;
         public TimelineEditResult SetTrackHidden(Guid trackId, bool hidden) => Nothing;
         public TimelineEditResult SetTrackLocked(Guid trackId, bool locked) => Nothing;

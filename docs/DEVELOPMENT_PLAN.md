@@ -71,7 +71,7 @@ and runs cleanly.
       trim by dragging an edge, slip, and a timeline In / Out range (unsaved session state) for loop playback and range
       export; a new text clip's font size relative to the canvas and the audio status after the sound returns. Scope,
       steps and acceptance criteria: section below and DECISIONS.md D030 (product owner decisions, 2026-10-07).
-      *(branch `feat/phase-15-editing-tools`, from `7200976`; Steps 15.1–15.2 accepted; Step 15.3 done — awaiting acceptance)*
+      *(branch `feat/phase-15-editing-tools`, from `7200976`; Steps 15.1–15.3 accepted; Step 15.4 done — awaiting acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -869,7 +869,7 @@ range as unsaved session state, the keys, the font-size formula, the non-goals, 
 semantics, the open questions Q1–Q16); this section; `docs/PHASE15_MANUAL_TEST_PLAN.md`; `docs/README.md`.
 Documentation only — no production code, no test.
 
-### 15.3 — Track controls: mute, hide, lock *(done 2026-10-07 — awaiting acceptance; D030 "Refined in Step 15.3": `SetTrackMuted` / `SetTrackHidden` / `SetTrackLocked` → `SetTrackStateCommand`, Q13 mute / hide allowed on a locked track, M / 👁 / 🔒 in the header)*
+### 15.3 — Track controls: mute, hide, lock *(done, accepted 2026-10-07 — `1d26165`; D030 "Refined in Step 15.3": `SetTrackMuted` / `SetTrackHidden` / `SetTrackLocked` → `SetTrackStateCommand`, Q13 mute / hide allowed on a locked track, M / 👁 / 🔒 in the header)*
 Scope: D030 §4.
 - PR: video tracks get mute / hide / lock toggles, audio tracks mute / lock, in the track header; each toggle one undoable
   command (`ITimelineEditService`), the project dirty, clean again by Undo to the save point; saved in the existing v3
@@ -883,7 +883,7 @@ Scope: D030 §4.
 - Decisions at the start: Q13 (toggles on a locked track); the header layout at 1024 px.
 - Depends on: 15.2 (D030 accepted).
 
-### 15.4 — Trim to the playhead: core, plain and ripple
+### 15.4 — Trim to the playhead: core, plain and ripple *(done 2026-10-07 — awaiting acceptance; D030 "Refined in Step 15.4": `TrimToPlayhead`, Q / W and Shift+Q / Shift+W, a plain trim never trims a dissolve's cut edge, trims stop at a dissolve's frames with a message, the playhead to the clip's start after Shift+Q)*
 Scope: D030 §5, §10, §11.
 - M (before any code): the D030 §10 inventory re-checked against the code at the step's start (`PlanTrim`,
   `PlanTrimAtSpeed`, `PlanShift`, `EditPlan.ClampFades` / `ReconcileTransitions`, `DissolveParts`) and each row mapped to
@@ -893,10 +893,10 @@ Scope: D030 §5, §10, §11.
   after the clip (`W`); one undo step for the whole command.
 - QG: tests for every §10 row the step touches — the frame grid at 23.976 / 25 / 29.97 / 30 / 60 fps; 1× and speeds
   0.25× / 0.5× / 1.5× / 4× (the D022 invariant after every trim, the content under the playhead kept for a plain trim);
-  fade kept / cut (D025 §2) and the PO-8 inactive fade; a dissolve on the cut edge (plain: removed with the note;
+  fade kept / cut (D025 §2) and the PO-8 inactive fade; a dissolve on the cut edge (plain: not trimmed, Q4 as answered;
   ripple: per Q4) and on the far edge (clamped, per Q6); gaps between later clips kept; clips of other tracks, markers
   and the range not moved; the target rules (Q1); a locked track; the playhead not strictly inside → refused; Undo /
-  Redo exact to the tick; the result of a plain trim identical to `TrimClip` of that edge to `p`; an end-to-end export
+  Redo exact to the tick; the result of a plain trim identical to `TrimClip` of that edge to `p` (except a cut edge, Q4); an end-to-end export
   after a ripple trim equal to the Preview.
 - Decisions at the start: Q1, Q2, Q4, Q5, Q6.
 - Depends on: 15.3.

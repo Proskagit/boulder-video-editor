@@ -39,13 +39,13 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 9 | `Q` plain | Select a clip, playhead inside it, `Q` | The clip starts at the playhead, the frame under the playhead unchanged in the Preview; a gap before it; one Undo restores it | | planned |
-| 10 | `W` plain | Select a clip, playhead inside it, `W` | The clip ends at the playhead; a gap after it; Undo | | planned |
-| 11 | Ripple start | Clip with later clips and a gap on its track; the ripple trim start (Q2's access) | The clip keeps its start and begins with the frame that was at the playhead; later clips move left by the trimmed length, the gap between them kept; other tracks and markers unchanged; the playhead as decided (Q5) | | planned |
-| 12 | Ripple end | The ripple trim end on the same layout | Later clips move left; no gap at the trimmed end | | planned |
-| 13 | Speed clip | A 0.5× and a 2× clip: `Q`, `W`, ripple variants | Content as expected at the cut (no jump of the frame under the playhead for a plain trim), the sound in sync | | planned |
-| 14 | Target rules | Playhead outside every selected clip; at a clip's first frame; no selection; two selected clips on two tracks | Refused with a message / nothing to do / as decided by Q1; two tracks trimmed in one undo step | | planned |
-| 15 | Fade | A clip with a 1 s fade in: `Q` 0.5 s into it; a clip with a 2 s fade out trimmed to 1 s with `W` | The fade in stays on the new start; the fade out cut to the clip's length; Undo restores both | | planned |
+| 9 | `Q` plain | Select a clip, playhead inside it, `Q` | The clip starts at the playhead, the frame under the playhead unchanged in the Preview; a gap before it; one Undo restores it | `TrimToPlayheadTests` (plain = the edge trim at 5 rates × 5 speeds), `TimelineTrimToPlayheadUiTests` | app 15.4 (Claude), passed — R5 fixture, red.mp4 (5–9 s) selected by a click, playhead 6 s (Home, Shift+→ ×6), Q: red starts at 6 s (screenshot), "Trimmed the start of the clip to the playhead", title `*`, the playhead stays 00:00:06:00; Ctrl+Z → clean |
+| 10 | `W` plain | Select a clip, playhead inside it, `W` | The clip ends at the playhead; a gap after it; Undo | `TrimToPlayheadTests` | app 15.4 (Claude), passed — W at 7 s: "Trimmed the end of the clip to the playhead", the next clip (10 s) not moved; Ctrl+Z |
+| 11 | Ripple start | Clip with later clips and a gap on its track; the ripple trim start (Q2's access) | The clip keeps its start and begins with the frame that was at the playhead; later clips move left by the trimmed length, the gap between them kept; other tracks and markers unchanged; the playhead as decided (Q5) | `TrimToPlayheadTests` (ripple = trim + move at 5 rates × 5 speeds, Q5), `TimelineTrimToPlayheadUiTests` (seek) | app 15.4 (Claude), passed — Shift+Q at 6 s: red keeps 5 s, the next clip 50 px (1 s) to the left, the playhead 00:00:05:00 (Q5), "Ripple trimmed the start…"; Ctrl+Z restores, title clean |
+| 12 | Ripple end | The ripple trim end on the same layout | Later clips move left; no gap at the trimmed end | `TrimToPlayheadTests` | app 15.4 (Claude), passed — Shift+W at 7 s: the next clip 100 px (2 s) to the left, the playhead stays 00:00:07:00; Ctrl+Z restores |
+| 13 | Speed clip | A 0.5× and a 2× clip: `Q`, `W`, ripple variants | Content as expected at the cut (no jump of the frame under the playhead for a plain trim), the sound in sync | `TrimToPlayheadTests` (0.25× / 0.5× / 2× / 4×, the D022 invariant) | app 15.4 (Claude), passed — the 2× clip (10–12 s): Shift+Q at 11 s, playhead → 10 s; the 0.5× clip (13–17 s): W at 15 s; both done and undone. Sound sync not judged by ear |
+| 14 | Target rules | Playhead outside every selected clip; at a clip's first frame; no selection; two selected clips on two tracks | Refused with a message / nothing to do / as decided by Q1; two tracks trimmed in one undo step | `TrimToPlayheadTests` (boundaries, one frame inside, several clips, some eligible), `TimelineTrimToPlayheadUiTests` | app 15.4 (Claude), passed — red selected, playhead 3 s: Q → "The playhead is not inside the selected clip(s).", title clean; at 5 s (its first frame) Shift+W → the same. Several clips by hand not driven (Ctrl+click) — automated |
+| 15 | Fade | A clip with a 1 s fade in: `Q` 0.5 s into it; a clip with a 2 s fade out trimmed to 1 s with `W` | The fade in stays on the new start; the fade out cut to the clip's length; Undo restores both | `TrimToPlayheadTests.Fades_stay_on_their_edges_and_are_cut_to_a_shorter_clip_undo_restores_them` | auto |
 
 ## Step 15.5 — ripple trim by dragging (D030 §6)
 
@@ -94,7 +94,7 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 | R4 | Trim / ripple trim (9–19) on 30 and 29.97 fps projects with gaps and several tracks | As in 9–19; nothing off the frame grid | planned |
 | R5 | Slip (20–24) incl. a clip at 0.5× and a dissolve next to the slipped clip | As in 20–24; the dissolve's handle limits the slip | planned |
 | R6 | In / Out loop and range export (25–30) | As in 25–30; the range never saved | planned |
-| R7 | Dissolve / fade edges: plain `Q` / `W` on a dissolve's cut edge (dissolve removed, note); the ripple variant on it (Q4); a far-edge trim stopped by a zone (Q6); an inactive (PO-8) fade becoming active after its dissolve is removed; a fade cut by a trim | As decided; Preview and export agree; Undo restores everything | planned |
+| R7 | Dissolve / fade edges: plain `Q` / `W` on a dissolve's cut edge (dissolve removed, note); the ripple variant on it (Q4); a far-edge trim stopped by a zone (Q6); an inactive (PO-8) fade becoming active after its dissolve is removed; a fade cut by a trim | As decided; Preview and export agree; Undo restores everything | partly app 15.4 (Claude), passed — the fixture's dissolve 23–25 | 25–27 s (0.4 s): B selected, playhead 26 s, Q → "Not trimmed where a dissolve is on the clip's start: Shift+Q trims it and keeps the dissolve.", nothing changed; Shift+Q → B 25–26 s, the dissolve kept at 25 s, the Preview at 25 s shows B's source 3.4 s (was at 26 s), the playhead 25 s; A selected, playhead 24 s 24 f, Q → "The trim stopped where a dissolve needs the clip's frames.", the dissolve kept (PO-8 inactive fades of the fixture unchanged). Fades and the rest at 15.9 |
 | R8 | Phase 10–14 regression: fade / dissolve add and remove, relink and Find Missing, Recent, track delete / reorder, media removal, ripple delete / close gap, copy / paste / duplicate, markers, Project Settings (canvas, rate, export settings), autosave / recovery; `docs/EXPORT_MANUAL_TEST_PLAN.md` default export | As before | planned |
 | R9 | No ffmpeg (ffmpeg / ffprobe hidden from PATH): open a project, toggle tracks, trim, slip, set a range, export | Edits work on analysed metadata; the same messages as Phase 14; export refused as before; no crash | planned |
 | R10 | Audio device: scenario 32 with a real device, plus playback with a muted / hidden track | As in 32; the mix as set | planned |
@@ -118,3 +118,13 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
   folder at once and used as the unflagged baseline of scenario 6; the fixture's `project.json` is unchanged (hash
   checked).
 - Scenarios 1–6, 8 and R1 (partly): see the tables. Scenario 7 automated only.
+
+### 2026-10-07 — Step 15.4 development-time run (Claude), Debug build of the 15.4 tree
+
+- The same setup as 15.3, on a fresh copy of the Phase 14 R5 fixture (the original's `project.json` unchanged, hash
+  checked). Clips selected by a mouse click on their timeline label (UI Automation finds it, `SetCursorPos` /
+  `mouse_event` click it); the playhead set with Home and Shift+→ / → (keys sent as extended keys — without that flag
+  Windows drops Shift for the arrow keys); Q / W / Shift+Q / Shift+W / Ctrl+Z by `keybd_event` to the foreground app.
+  Results read from the status bar, the timecode, the window title, the clip labels' positions and screenshots.
+- Scenarios 9–14 and R7 (partly): see the tables; lock: V1 locked by its 🔒, then Q and Shift+Q on red → "Track V1 is
+  locked.", unlocked again. At the end every change undone: title clean, Undo disabled. Scenario 15 automated only.

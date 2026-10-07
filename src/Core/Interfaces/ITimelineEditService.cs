@@ -54,6 +54,17 @@ public interface ITimelineEditService
     /// clip under <paramref name="at"/> on an unlocked track.</summary>
     TimelineEditResult Split(MediaTime at, IReadOnlyCollection<Guid>? clipIds = null);
 
+    /// <summary>Trims the start (<see cref="ClipEdge.Start"/>, the keys Q / Shift+Q) or the end (W / Shift+W) of the
+    /// selected clips that contain <paramref name="playhead"/>'s frame strictly inside to that frame (D030 §5, Q1): the
+    /// frame at the playhead becomes the clip's first frame, or the first frame after it. Plain: the edge trim's rule
+    /// (D008 / D022 / D025), the gap stays. <paramref name="ripple"/>: the clip keeps its start and every later clip of
+    /// its track moves left by the trimmed frames (other tracks and markers stay; after a ripple trim of the start the
+    /// result names the new playhead, <see cref="TimelineEditResult.Playhead"/>, Q5). Dissolves are never removed
+    /// (Q4 / Q6): a plain trim does not trim an edge that is a dissolve's cut, and a trim stops where a dissolve needs
+    /// the clip's frames, with a message. One undo step for all the clips; refused — nothing changes — when no selected
+    /// clip contains the playhead, a trimmed clip's track is locked, or no trim is possible because of dissolves.</summary>
+    TimelineEditResult TrimToPlayhead(IReadOnlyCollection<Guid> clipIds, ClipEdge edge, MediaTime playhead, bool ripple);
+
     TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds);
 
     /// <summary>Ripple delete (D027 §2): removes the clips, and on each track that loses one every other clip that starts
@@ -316,6 +327,10 @@ public sealed class TimelineEditResult
 
     /// <summary>The marker created or removed by the operation, if any.</summary>
     public Guid? MarkerId { get; init; }
+
+    /// <summary>Where the playhead goes after the operation, when the operation moves it (a ripple trim of the start to the
+    /// playhead, D030 Q5); null: it stays. The playhead is session state — not part of the undo step.</summary>
+    public MediaTime? Playhead { get; init; }
 
     public static TimelineEditResult Ok(IReadOnlyList<Guid>? clipIds = null, string? message = null) =>
         new() { Success = true, ClipIds = clipIds ?? Array.Empty<Guid>(), Message = message };

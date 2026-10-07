@@ -3166,6 +3166,51 @@ Refined in Step 15.3 (implementation, 2026-10-07):
   messages "Track V1 muted / unmuted / hidden / shown / locked / unlocked". The buttons are `Button`s with a state class
   (not `ToggleButton`s), so a refused or disabled click can never leave a toggle out of step with the model.
 
+Answered at the start of Step 15.4 (product owner, 2026-10-07):
+- Q1 — `Q` / `W` work only on the selected clips; a selected clip is eligible only when the playhead's frame is strictly
+  inside its timeline interval; with no eligible clip nothing changes and the status says why; a clip under the playhead
+  is never selected implicitly. Several eligible clips follow the existing multi-selection convention (as Split: every
+  eligible selected clip, one undo step; the others are left as they are).
+- Q2 — `Q` plain trim of the start, `W` plain trim of the end, `Shift+Q` / `Shift+W` the ripple variants.
+- Q4 — a trimmed edge that is a dissolve's cut keeps its dissolve; the trim is limited to what keeps the dissolve valid;
+  a dissolve is never removed silently. For a **plain** `Q` / `W` this means (confirmed separately, the product owner's
+  choice between this and D025 §5's removal): any plain inward trim of a cut edge would open a gap, so that clip's edge
+  is **not trimmed** (its limit is 0) and the status says to use `Shift+Q` / `Shift+W` or remove the dissolve first; the
+  other eligible selected clips are still trimmed; if none is, nothing changes and no undo step is made. This
+  supersedes, for `Q` / `W` only, §5's "plain = exactly the existing `TrimClip`" on a cut edge; the edge drag
+  (`TrimClip`) keeps D025 §5 (the dissolve is removed with the status note).
+- Q5 — after a successful ripple trim of the start the playhead goes to the clip's new start (= its unchanged start);
+  with several clips to the earliest of their starts (confirmed separately). A ripple trim of the end leaves it.
+- Q6 — a trim that reaches the frames a dissolve needs (on the far edge, or for a ripple on either edge) is applied up
+  to that limit, not refused, and the status says "The trim stopped where a dissolve needs the clip's frames."; the clip
+  and the dissolve stay valid.
+
+Refined in Step 15.4 (implementation, 2026-10-07):
+- `ITimelineEditService.TrimToPlayhead(clipIds, edge, playhead, ripple)` → one `EditPlan`, one undo step ("Trim Start
+  to Playhead", "Trim End to Playhead", "Ripple Trim Start to Playhead", "Ripple Trim End to Playhead"); the new
+  `TimelineEditResult.Playhead` carries Q5's position (session state, applied by the timeline view model as a seek).
+  Refusals change nothing and leave no step: no clip selected ("Select the clip to trim: the playhead must be inside
+  it."), none containing the playhead ("The playhead is not inside the selected clip(s)."), a locked track of an
+  eligible clip ("Track V1 is locked."), or every eligible clip stopped at 0 by a dissolve.
+- The limit per clip: `allowed = min(wanted, N − minFrames)` with `minFrames = max(1, parts)` — for a plain trim the far
+  edge's dissolve part (`DissolveParts`, D025 §5's zone fit, as the edge drag), for a ripple the parts of both edges
+  (the trimmed edge's cut and dissolve stay); a plain trim of a cut edge: 0 (Q4). An inward trim never shortens a
+  dissolve's source handle, so the limit is the zone fit; the result still goes through `Validate` (zones, handles,
+  fades), like every edit.
+- The trimmed clip's timing is the edge trim's own rule, factored out of `PlanTrim` as `TrimmedState` (no behaviour
+  change of the drag; its tests unchanged): 1× `SourceIn` moves with the edge, `≠ 1×` `SourceLength` / `Normalize`
+  (D022). A ripple of the start then moves the trimmed clip back to its start with the move's rule (`ShiftedState`,
+  which now also takes a planned state); the later clips of the same track — those starting at or after the clip's old
+  end — move left by the trimmed frames (`PlanShift`), gaps between them unchanged. Only the trimmed clip's own track
+  moves; it is unlocked (checked first), so a ripple never touches a locked track; other tracks (locked or not) and the
+  markers stay.
+- Fades follow D025 §2 (`ClampFades` in `Validate`): they stay on their edges and are cut to a shorter clip; this is not
+  Split + Delete.
+- Keys in `ShortcutRouter` with exact modifiers (`Q` / `W` none, `Shift+Q` / `Shift+W` Shift; Ctrl / Alt variants are
+  no shortcut), so one key press runs one command; never while a text box has focus. No new button (the header has no
+  room at 1024 px); the status bar names the done trim ("Trimmed the start of the clip to the playhead", "Ripple trimmed
+  the end of 2 clips to the playhead", …).
+
 Consequences: new commands in the Timeline subsystem (`ITimelineEditService`: track state, trim to the playhead with
 ripple, slip and its limits), sharing the existing trim / shift planners and `EditPlan` reconciliation; a range on the
 export job (`ExportJob` / preflight / encoder input) and in the Preview's loop; the timeline view gains the track
@@ -3173,8 +3218,9 @@ toggles, the ripple / slip gestures and the range band; `project.json` unchanged
 `docs/PHASE15_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
 
 Status: Accepted (2026-10-07, product owner: scope §1, the In / Out range as unsaved session state, the keys `I` / `O` /
-`Q` / `W`, the font-size formula, the non-goals §3). Q13 answered (Step 15.3); the other proposals marked Q1–Q16 are
-open until the product owner answers them. Step 15.2 accepted; Step 15.3 done (awaiting acceptance). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
+`Q` / `W`, the font-size formula, the non-goals §3). Q13 answered (Step 15.3); Q1, Q2, Q4, Q5, Q6 answered (Step
+15.4); the other proposals marked Q1–Q16 are open until the product owner answers them. Steps 15.2 and 15.3 (`1d26165`)
+accepted; Step 15.4 done (awaiting acceptance). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
 
 ---
 
