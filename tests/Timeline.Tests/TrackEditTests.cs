@@ -32,11 +32,30 @@ public class TrackEditTests
 
     private static TextClip Text(TimelineFixture f, Track track, long start, long end)
     {
-        var clip = new TextClip { Text = "T", TimelineStart = F(f, start), Duration = F(f, end - start) };
+        var clip = new TextClip { Text = "T", TimelineStart = F(f, start), Duration = F(f, end) - F(f, start) };
         track.Clips.Add(clip);
         return clip;
     }
 
+    /// <summary>Phase 14 Step 14.5 (D029): the helper builds the duration as <c>F(end) − F(start)</c>, so both edges of
+    /// the clip lie on the frame grid. <c>F(end − start)</c> is a tick off for some starts at the default 30 fps, and the
+    /// clip's end then misses its frame.</summary>
+    [Fact]
+    public void The_text_helper_puts_both_edges_of_a_clip_on_the_frame_grid()
+    {
+        var f = new TimelineFixture();
+        var spansWhereTheFormulasDiffer = 0;
+        for (long start = 0; start < 30; start++)
+            for (long end = start + 1; end <= start + 30; end++)
+            {
+                if (F(f, end - start) != F(f, end) - F(f, start)) spansWhereTheFormulasDiffer++;
+                var clip = Text(f, f.V1, start, end);
+                f.V1.Clips.Remove(clip);
+                Assert.Equal(F(f, start), clip.TimelineStart);
+                Assert.Equal(F(f, end), clip.TimelineEnd);
+            }
+        Assert.True(spansWhereTheFormulasDiffer > 0, "the fixture's rate must make the two formulas differ, or this checks nothing");
+    }
     private static Track AddVideoTrack(TimelineFixture f)
     {
         Ok(f.Service.AddTrack(TrackType.Video));

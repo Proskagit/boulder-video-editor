@@ -788,7 +788,7 @@ Scope: D029 §4.
   the tests that need a real ffmpeg / ffprobe keep running on CI (no new skip).
 - Depends on: 14.3.
 
-### 14.5 — Test helpers: `F(end) − F(start)` and a regression guard
+### 14.5 — Test helpers: `F(end) − F(start)` and a regression guard *(done — D029 "Refined in Step 14.5": three helpers fixed, a guard per class, no expected value changed; the NUL replaced)*
 Scope: D029 §4.
 - QG: the helpers of `TrackEditTests`, `RippleEditTests` and `TimelineRippleUiTests` build a clip's duration as
   `F(end) − F(start)`; a guard test fails when a helper produces a clip off the frame grid (a mutation back to

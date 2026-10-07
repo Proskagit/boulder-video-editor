@@ -137,6 +137,23 @@ command; no push, pull request or merge without direct permission; no next step 
     each), the full `Video.Tests` 10 / 10 green (322 each, about 1 m 35 s per run under load), no hang, the load
     stopped at the end. `ExportEndToEnd.Tests` once without load: 110 passed, 2 skipped (only the 4K scenes). The full
     solution suite runs at 14.8.
+  - Committed as `0a4e6fe`; accepted by the product owner (2026-10-07).
+- Step 14.5 done (2026-10-07) — the `F(end − start)` test helpers and the NUL (D029 "Refined in Step 14.5").
+  - Helpers: `TrackEditTests.Text`, `RippleEditTests.Text`, `TimelineRippleUiTests.Text` — `Duration = F(end) − F(start)`
+    instead of `F(end − start)`. Measured before the change: of the 42 calls in these classes, 6 gave a clip end a tick
+    off the grid at 30 fps (`RippleEditTests` lines 61, 81, 231, 307, 339; `TimelineRippleUiTests` line 75); the tests
+    passed because they read edges with `ToNearestFrame` / compare snapshots. No expected value changed: the outcomes
+    of the 36 existing tests compared by name before / after (TRX) — identical.
+  - Guard: `The_text_helper_puts_both_edges_of_a_clip_on_the_frame_grid` in each class — the helper over every span of
+    1–30 frames from starts 0–29, both edges equal to `F(start)` / `F(end)`, and a check that the rate makes the two
+    formulas differ (so the guard can't pass vacuously).
+  - Mutations (each restored, `--no-incremental` rebuild): the old formula back in each helper → that class's guard
+    fails (3 / 3), every other test passes, as expected.
+  - `ExportSettingsEndToEndTests.cs`: the literal NUL (`IndexOf('<NUL>', at)`) → `'\0'`; content diff only that line
+    (`git diff --text --ignore-cr-at-eol`); the blob moves from CRLF to LF, as Git stores every other text file; its 3
+    tests pass.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; `Timeline.Tests` 497 / 497
+    (+2), `UI.Tests` 574 / 574 (+1), `ExportSettingsEndToEndTests` 3 / 3. No stress: no timing involved.
 
 ### Phase 13 — Project & export settings (complete; PR #13 merged as `ed40b74`)
 
@@ -3560,7 +3577,8 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   one (automated tests; the one-frame race not reproducible by hand).
 - Tests: some Phase 12 test helpers (`TrackEditTests`, `RippleEditTests`, `TimelineRippleUiTests`) give text clips the
   length `F(end − start)` instead of `F(end) − F(start)` — a tick off the frame grid at 30 fps for some values; they
-  pass because their clips happen to land on the grid. A separate cleanup (product owner, Step 12.6).
+  pass because their clips happen to land on the grid. A separate cleanup (product owner, Step 12.6). Fixed in Phase 14 Step 14.5 (`F(end) − F(start)` and a guard
+  per class).
 
 - Text clips (D021): the Preview (Avalonia) silently substitutes a font that isn't installed. Phase 8
   (D023) renders text like the Preview (no `drawtext`), so the export falls back the same way; the

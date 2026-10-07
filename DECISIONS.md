@@ -2803,6 +2803,16 @@ allowed where the limit is not the subject):
   and the helpers' limits, a scripted tool slower than a 500 ms limit counted missing and within a long one available —
   through the process probe and through a locator. The result checks of the waveform / analysis tests unchanged.
 
+Refined in Step 14.5 (test helpers and the NUL):
+- The `Text` helpers of `TrackEditTests`, `RippleEditTests` and `TimelineRippleUiTests` build the duration as
+  `F(end) − F(start)`. Of their 42 calls, 6 had a clip end one tick off the grid at 30 fps with `F(end − start)`; every
+  expected value of these classes reads edges through `ToNearestFrame` or compares snapshots, so none changed — the
+  36 existing tests pass as before. A guard test per class runs the helper over every span of 1–30 frames from starts
+  0–29 and asserts both edges on the grid (and that the rate makes the formulas differ); the old formula fails it in
+  each class.
+- `ExportSettingsEndToEndTests.cs`: the literal NUL in a char literal replaced by `'\0'`; Git reads the file as text again
+  (stored with LF like every other text file — before, as a "binary" file, it was kept with CRLF); the test unchanged.
+
 Consequences: CI no longer needs reruns for the known tests; D028 §8 can be closed at the closeout; the test helpers
 produce on-grid clips; one project fewer in the solution. No change for the user.
 
