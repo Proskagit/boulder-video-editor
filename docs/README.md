@@ -12,6 +12,8 @@ This directory contains:
   duplicate, markers, import during New), completed per step and run at its closeout (Step 12.9)
 - `PHASE13_MANUAL_TEST_PLAN.md` — manual checks of Phase 13 (canvas size, frame rate, project and export settings),
   completed per step and run at its closeout (Step 13.10)
+- `PHASE14_MANUAL_TEST_PLAN.md` — Phase 14 (stabilization, no new user functionality): the regression run of its
+  closeout (Step 14.8)
 
 Agent-oriented project context lives in the repository root:
 

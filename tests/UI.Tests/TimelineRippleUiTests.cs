@@ -39,11 +39,29 @@ public sealed class TimelineRippleUiTests
 
     private static TextClip Text(Track track, long start, long end)
     {
-        var clip = new TextClip { Text = "T", TimelineStart = F(start), Duration = F(end - start) };
+        var clip = new TextClip { Text = "T", TimelineStart = F(start), Duration = F(end) - F(start) };
         track.Clips.Add(clip);
         return clip;
     }
 
+    /// <summary>Phase 14 Step 14.5 (D029): the helper builds the duration as <c>F(end) − F(start)</c>, so both edges of
+    /// the clip lie on the frame grid. <c>F(end − start)</c> is a tick off for some starts at 30 fps, and the clip's end
+    /// then misses its frame.</summary>
+    [Fact]
+    public void The_text_helper_puts_both_edges_of_a_clip_on_the_frame_grid()
+    {
+        var spansWhereTheFormulasDiffer = 0;
+        for (long start = 0; start < 30; start++)
+            for (long end = start + 1; end <= start + 30; end++)
+            {
+                if (F(end - start) != F(end) - F(start)) spansWhereTheFormulasDiffer++;
+                var clip = Text(V1, start, end);
+                V1.Clips.Remove(clip);
+                Assert.Equal(F(start), clip.TimelineStart);
+                Assert.Equal(F(end), clip.TimelineEnd);
+            }
+        Assert.True(spansWhereTheFormulasDiffer > 0, "the rate must make the two formulas differ, or this checks nothing");
+    }
     private static void Select(TimelineViewModel timeline, params Clip[] clips)
     {
         foreach (var clip in clips)

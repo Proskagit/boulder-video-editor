@@ -56,8 +56,16 @@ and runs cleanly.
       existing projects, undoable), export settings (quality, encoder speed, audio bitrate) on the existing MP4 /
       H.264 / AAC encoder, and the codec-leg criteria of L1-c. Scope, steps and acceptance criteria: section below and
       DECISIONS.md D028 (product owner decisions, 2026-10-06). *(branch `feat/phase-13-project-export-settings`, from
-      `c0cb600`; Steps 13.2–13.9 `226c7f2`…`5c01aed`, all accepted; the local QG of Step 13.10 passed on 2026-10-06 —
-      complete locally. Open: not published, so CI has not run)*
+      `c0cb600`; Steps 13.2–13.9 `226c7f2`…`5c01aed`, all accepted; closeout `7d4f6d8`; accepted by the product owner on
+      the Step 13.10 verification; PR #13 merged into `main` as `ed40b74` (2026-10-06), CI green on the pull request. The
+      first CI run on `main` after the merge failed on the known flaky locator test (D028 §8) — fixed in Phase 14)*
+- [x] **Phase 14 — Stabilization / technical debt.** A more deterministic CI and less technical debt without any change
+      of the user functionality: the known flaky CI tests (autosave timer, ffprobe / PATH probe), the `F(end − start)`
+      test helpers with a regression guard, and a decision on the empty `src/Effects` project. Scope, steps and
+      acceptance criteria: section below and DECISIONS.md D029 (product owner decisions, 2026-10-06). *(branch
+      `feat/phase-14-stabilization`, from `ed40b74`; Steps 14.2–14.7 `0a50fe5`…`90caae9`, all accepted, 14.6 out of scope;
+      closeout 14.8 done 2026-10-07 — build 0 / 0, 2600 passed / 2 skipped, three blame-hang runs clean, heavy 2602 / 0 / 0,
+      R1–R5 passed; push and pull request on the product owner's command)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -649,7 +657,7 @@ Scope: D028 §1, §5, §7 (model only).
 - Impl: the v3 / v4 choice by D028 §5's rule, recorded as a D028 refinement with its reason before the code.
 - Depends on: 13.2 (D028 accepted).
 
-### 13.4 — Canvas size change *(done — awaiting acceptance; D028 "Refined at the start of Step 13.4": CS-1 B, B-1…B-4, P-1; `ITimelineEditService.SetCanvasSize`, no UI — the `EditingLock` with the dialog of 13.6)*
+### 13.4 — Canvas size change *(done — accepted 2026-10-06, `ec51247` (acceptance recorded at Step 14.2); D028 "Refined at the start of Step 13.4": CS-1 B, B-1…B-4, P-1; `ITimelineEditService.SetCanvasSize`, no UI — the `EditingLock` with the dialog of 13.6)*
 Scope: D028 §4 (canvas).
 - PR: the canvas of a new or existing project can be changed; one undoable step; the Preview and the export show the
   project at the new size (pictures re-fit by D018; positions and text sizes by the rule decided at the step's start).
@@ -710,7 +718,7 @@ Scope: D028 §7 (13.9).
 - QG: view-model tests (choice, remembering, cancel, `EditingLock`); the dialog at 1024 px in the real app.
 - Depends on: 13.7, 13.8.
 
-### 13.10 — Final verification & closeout *(done locally — 2026-10-06: build `--no-incremental -warnaserror` 0 / 0; the full suite 2585 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2585 / 0 / 2 each, no hang, no dump; the full suite with `AIVE_HEAVY_TESTS=1` 2587 passed, 0 skipped, 0 failed; the manual plan, R1, R2, R3 in the real app; CI pending — not published)*
+### 13.10 — Final verification & closeout *(done locally — 2026-10-06: build `--no-incremental -warnaserror` 0 / 0; the full suite 2585 passed, 2 skipped (only the two 4K scenes), 0 failed; three `--blame-hang` runs 2585 / 0 / 2 each, no hang, no dump; the full suite with `AIVE_HEAVY_TESTS=1` 2587 passed, 0 skipped, 0 failed; the manual plan, R1, R2, R3 in the real app; closeout `7d4f6d8`; accepted; PR #13 merged as `ed40b74`, CI green on the pull request, the first run on `main` failed on the known flaky locator test — D028 §8, fixed in Step 14.4)*
 - QG: `dotnet build --no-incremental -warnaserror` 0 / 0; full suite once plus three times with `--blame-hang`; heavy
   scenes once with `AIVE_HEAVY_TESTS=1`; CI green (D028 §8 policy for the known flaky tests).
 - PR: `docs/PHASE13_MANUAL_TEST_PLAN.md` run in the real app; `docs/EXPORT_MANUAL_TEST_PLAN.md` re-run as a regression
@@ -720,6 +728,99 @@ Scope: D028 §7 (13.9).
 - Documentation: ARCHITECTURE, D028 refinements and status, D007 / D018 / D023 pointers to D028, ROADMAP, README,
   `progress.md`; this plan's Phase 13 checkbox only after the product owner's acceptance.
 - Depends on: 13.3–13.9.
+
+## Phase 14 — Stabilization / technical debt: steps (D029)
+
+Formalized in Step 14.2 (product owner decisions of 2026-10-06, after the Step 14.1 audit). The normative rules are
+D029; this section lists the steps and their acceptance. Labels as in Phases 9–13: **PR** product requirement, **QG**
+quality gate, **M** measurement only, **Impl** implementation constraint. Steps run in this order; each is accepted by
+the product owner before the next one starts; a step's sub-decisions are proposed at its start and confirmed before its
+code changes. No implementation before D029 is accepted.
+
+Goal: a more deterministic CI and less technical debt **without any change of the user functionality** (D029 §1).
+
+Gates for every step 14.3–14.7 (QG): `dotnet build` 0 errors / 0 warnings; the full `dotnet test` green (only the 4K
+heavy scenes skipped); no user-visible behaviour changed — a production-code change only as a behaviour-neutral test
+seam, each listed with its reason (a change of what the user sees needs a separate product owner confirmation, D029 §2);
+no test weakened, skipped, removed or given a looser bound to pass (a test changed only to remove its dependence on
+timing or the environment, with its old and new form recorded, and a mutation showing it still catches the defect it
+guards); the canvas-level parity, the L1-c criteria (D028 §6) and every other expected value unchanged; `project.json`
+unchanged (v3, no new property); `progress.md` updated. The D028 §8 flaky-test policy stays in force until Step 14.8.
+Builds and test runs are started on the product owner's command; push, pull request and merge only with the product
+owner's direct permission.
+
+Out of scope: D029 §3 — among them the former candidate 14.6 (a canvas-relative font size of a new text clip; the status
+after an audio device returns), deferred as product / UX changes.
+
+### 14.1 — Audit *(done, accepted 2026-10-06)*
+Git state (PR #13 merged as `ed40b74`, the local `main` behind it), documentation, technical debt and candidates
+audited; no change (report in `progress.md`).
+
+### 14.2 — Sync after the merge and scope formalization *(done, accepted 2026-10-06 with D029)*
+`main` fast-forwarded to `ed40b74`, branch `feat/phase-14-stabilization`; the Phase 13 statements made outdated by the
+merge corrected (ROADMAP, README, this plan, D028 status, ARCHITECTURE, `progress.md`, the Phase 13 manual plan), the 13.4
+acceptance and the failed first CI run on `main` recorded; D029, this section, `docs/PHASE14_MANUAL_TEST_PLAN.md`
+(skeleton), `docs/README.md`; the `src/Effects` analysis for 14.7 (D029 §6). Documentation only.
+
+### 14.3 — Flaky test: the autosave timer (`Project.Tests`) *(done — D029 "Refined in Step 14.3": the cause a late timer callback after `Stop` in `AutosaveService`; `TimeProvider` + a run token; stress 50 / 50 and 10 / 10)*
+Scope: D029 §4.
+- M: the failing test(s) identified (CI history, the code) and the root cause shown — expected a dependence on wall-clock
+  timing; the finding recorded before the fix.
+- QG: the test(s) deterministic — no dependence on real elapsed time beyond what the behaviour itself needs; the
+  autosave behaviour (2-minute interval, recovery file, the save point) unchanged and still covered; a mutation of the
+  autosave (no write / a wrong interval) still caught; a stress run — the affected test class repeated at least 50 times
+  and `Project.Tests` at least 10 times in full while the machine is loaded — without a failure.
+- QG: the watched `Project.Tests` hang / unidentified failure (Steps 8.4, 9.3d): if the stress runs reproduce it, it is
+  identified and fixed or reported to the product owner; if not, recorded as not reproduced.
+- Impl: a time abstraction only if needed (e.g. .NET 8 `TimeProvider`, no new package), behaviour-neutral, listed.
+- Depends on: 14.2 (D029 accepted).
+
+### 14.4 — Flaky tests: ffprobe timeout in a waveform test, the 5 s PATH probe of the locators (`Video.Tests`) *(done — D029 "Refined in Step 14.4": the app's 5 s / 20 s / 20 s unchanged; test-only limits through internal seams and `FfmpegTools`; locators found once)*
+Scope: D029 §4.
+- M: the failing tests identified — among them
+  `ExecutableLocatorTests.RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg` (the first CI run on
+  `main` after PR #13: `Value is null` after 7 s) — and the root cause shown (the real `-version` probe's 5 s timeout
+  under a loaded runner) before the fix.
+- PR: **no user-visible change** without a separate product owner confirmation: the production probe timeout, the cached
+  "not found" for the rest of the app run and the "FFmpeg missing" handling stay as they are, unless the product owner
+  confirms a change proposed at the step's start with its user-visible effect.
+- QG: each test keeps what it guards (e.g. a cancelled first call caches nothing — checked through the existing probe
+  seam, deterministically) and no longer fails because the real probe is slow; a mutation of the guarded rule still
+  caught; a stress run — the affected classes repeated at least 50 times while the machine is loaded — without a failure;
+  the tests that need a real ffmpeg / ffprobe keep running on CI (no new skip).
+- Depends on: 14.3.
+
+### 14.5 — Test helpers: `F(end) − F(start)` and a regression guard *(done — D029 "Refined in Step 14.5": three helpers fixed, a guard per class, no expected value changed; the NUL replaced)*
+Scope: D029 §4.
+- QG: the helpers of `TrackEditTests`, `RippleEditTests` and `TimelineRippleUiTests` build a clip's duration as
+  `F(end) − F(start)`; a guard test fails when a helper produces a clip off the frame grid (a mutation back to
+  `F(end − start)` caught); no expected value of an existing test changes (if one has to, it is reported as a found
+  defect, not adjusted silently).
+- QG: the literal NUL in `ExportSettingsEndToEndTests.cs` replaced by `'\0'` (D029 answer 2); the file a text file for
+  Git again; the test's behaviour unchanged.
+- Depends on: 14.4.
+
+### 14.6 — *(not taken — D029 §3: a canvas-relative font size of a new text clip and the status after an audio device returns are deferred product / UX changes)*
+
+### 14.7 — `src/Effects` removal *(done — D029 "Refined in Step 14.7": the project out of the solution and `App`, the folder deleted; the effect model and its persistence untouched; 18 projects)*
+- The project removed from the solution and from `App.csproj`; `Clip.Effects`, `Effect`, its
+  persistence and copy (Core, Project, Timeline) untouched — `project.json` reads and writes exactly as before;
+  ARCHITECTURE's module table and the project counts (`CLAUDE.md`, README if stated) corrected; no behaviour change.
+- QG: the step gates; the solution builds without the project; R1 of 14.8 covers the format.
+- Depends on: 14.5.
+
+### 14.8 — Final verification & closeout *(done 2026-10-07 at `90caae9` — Release / Debug 0 / 0; 2600 passed, 2 skipped (only the 4K scenes); three `--blame-hang` runs 2600 / 2 / 0, no hang; heavy 2602 / 0 / 0; R1–R5 PASS against the Phase 13 build; the CI criterion is checked on the pull request's run; D029 "Closeout")*
+- QG: `dotnet build --no-incremental -warnaserror` 0 / 0; the full suite once plus three times with `--blame-hang`;
+  heavy scenes once with `AIVE_HEAVY_TESTS=1`; the stress runs of 14.3 / 14.4 repeated on the final tree; CI green on the
+  pull request **without any rerun** (if a rerun is still needed, the phase goal is not met — reported to the product
+  owner, not hidden by the D028 §8 policy); the D028 §8 policy closed or kept by the product owner's decision.
+- PR: no user-visible change — `docs/PHASE14_MANUAL_TEST_PLAN.md` (regression only) in the real app: R1 a project saved
+  by the Phase 13 build opens and saves byte for byte; R2 the export manual plan's default export; R3 autosave /
+  recovery; R4 FFmpeg found / missing; R5 a full project round trip if `src/Effects` was removed.
+- Documentation: ARCHITECTURE (if 14.7 changed the modules), D029 refinements and status, ROADMAP, README,
+  `progress.md`, Known issues (the fixed flaky tests removed, anything not fixed stated); this plan's Phase 14 checkbox
+  only after the product owner's acceptance.
+- Depends on: 14.3–14.7.
 
 ## Architectural rules that must hold at every phase
 

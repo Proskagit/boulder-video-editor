@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Video.Tests" />
+    <InternalsVisibleTo Include="ExportEndToEnd.Tests" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2619,7 +2619,7 @@ dump; the full suite with `AIVE_HEAVY_TESTS=1` 2587 passed, 0 skipped, 0 failed;
   which had them chosen in the export flow**, made by the product owner at Step 13.9; `settings.export` stays an optional
   property of `project.json` v3, a project without it reads as `ExportEncoding.Default`; 320 kbps stays an offered target
   (`-b:a 320000`, a valid track — the bitrate reached is not a criterion); L1-c decided with its measurement kept in the
-  suite (`ExportCodecLegTests`); the Phase 8–12 export / parity criteria are unchanged. Phase 14 not started.
+  suite (`ExportCodecLegTests`); the Phase 8–12 export / parity criteria are unchanged. Phase 14 not started at that point (it followed — D029).
 - Kept open after Phase 13 (not Phase 13 work): the `F(end − start)` test helpers; the known flaky CI tests (§8 policy);
   the observation that a new text clip takes `FontSize` 48 on any canvas.
 
@@ -2628,9 +2628,218 @@ used by `FfmpegExportEncoder` (`ExportOutput` and the preflight keep their roles
 by §5; the parity suite gains scenes for new canvas sizes and rates and per-level codec criteria (§6);
 `docs/PHASE13_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
 
-Status: Accepted (2026-10-06, product owner). Phase 13 complete locally: Steps 13.1–13.9 accepted (`226c7f2`, `4514f09`,
-`ec51247`, `010a1b8`, `66a0871`, `adf85e4`, `3d08c1b`, `5c01aed`); Step 13.10 (closeout) done on 2026-10-06 — awaiting
-the product owner's acceptance; not published (no push / pull request yet), so CI has not run. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
+After the merge (recorded at Step 14.2, 2026-10-06): Phase 13 accepted by the product owner on the Step 13.10
+verification (closeout `7d4f6d8`); PR #13 merged into `main` as `ed40b74` (2026-10-06), CI green on the pull request
+(first attempt). The first CI run on `main` after the merge (run 37470605596) failed on one test of the §8 list —
+`ExecutableLocatorTests.RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg`, `Assert.NotNull() Failure:
+Value is null` after 7 s, the known cause (the 5 s PATH probe answering "not found" on a loaded runner); 2584 passed, 2
+skipped, 1 failed; not rerun. Kept open after Phase 13, taken into Phase 14 (D029): the known flaky CI tests and the
+`F(end − start)` test helpers; deferred (D029 §3): a new text clip's `FontSize` 48 on any canvas.
+
+Status: Accepted (2026-10-06, product owner). Phase 13 complete: Steps 13.1–13.9 accepted (`226c7f2`, `4514f09`,
+`ec51247`, `010a1b8`, `66a0871`, `adf85e4`, `3d08c1b`, `5c01aed`); Step 13.10 (closeout, `7d4f6d8`) accepted; merged as
+`ed40b74`, CI green on PR #13. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 13 — Project & export settings: steps".
+
+---
+
+## D029 — Phase 14: stabilization / technical debt
+
+Date: 2026-10-06
+
+Decision (product owner, 2026-10-06, after the Step 14.1 audit). Phase 14 is a **stabilization / technical-debt** phase
+with **no new user functionality**: its goal is a more deterministic CI and less technical debt without changing what
+the user sees or does. It fixes the known flaky CI tests that D028 §8 only manages, cleans the `F(end − start)` test
+helpers with a guard against their return, and decides the empty `src/Effects` project on the basis of an analysis.
+
+Context (Step 14.1 audit, the code at `ed40b74`, `main` after the merge of PR #13):
+- Phases 0–13 merged; 2585 tests pass, 2 skip (the 4K scenes), 2587 / 2587 with `AIVE_HEAVY_TESTS=1` (Step 13.10).
+- No phase was planned after Phase 13 (ROADMAP, DEVELOPMENT_PLAN, DECISIONS); candidates reported: stabilization /
+  technical debt (chosen), keyframes, AI features, colour / HDR, distribution.
+- CI needed reruns: the PR #11 run green on attempt 2, the PR #12 run on attempt 3; the first run on `main` after PR #13 failed on
+  `ExecutableLocatorTests.RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg` (D028 "After the merge").
+  The D028 §8 list: the autosave timer (`Project.Tests`), an ffprobe timeout in a waveform test, the 5 s PATH probe of the
+  ffmpeg / ffprobe locators (`Video.Tests`). Also watched: one unidentified `Project.Tests` hang (Step 8.4) and failure
+  (Step 9.3d), never reproduced.
+- `ExecutableLocator.IsExecutableAvailableAsync` runs `<tool> -version` with a fixed 5 s timeout; a slower answer is
+  "not available", cached for the app run (D024 "Known risk"). The locator already has a probe seam (internal
+  constructor) used by tests; `RealLocator_*` tests use the real process.
+- Test helpers `TrackEditTests.cs:35`, `RippleEditTests.cs:27`, `TimelineRippleUiTests.cs:42` build a text clip's
+  duration as `F(end − start)` instead of `F(end) − F(start)` (D027, a separate cleanup).
+- `src/Effects`: see §6.
+
+### 1. Scope
+
+- 14.2 — sync after the merge of PR #13 and this decision (documentation only).
+- 14.3 — the flaky autosave-timer test(s) of `Project.Tests` made deterministic; the watched `Project.Tests` hang /
+  failure looked for in the stress runs.
+- 14.4 — the flaky ffprobe-timeout (waveform) and PATH-probe (locator) tests of `Video.Tests` made deterministic.
+- 14.5 — the `F(end − start)` helpers moved to `F(end) − F(start)` with a regression guard.
+- 14.7 — `src/Effects`: removed or kept by the product owner's decision on §6's analysis.
+- 14.8 — final verification and closeout; CI green without a rerun is the phase's measure.
+- (14.6 is not taken — §3.)
+
+### 2. Constraints
+
+- No user-visible behaviour changes. Production code changes only where a test needs a behaviour-neutral seam (e.g. an
+  injected `TimeProvider` — part of .NET 8, no new package); each listed with its reason. Anything that would change what
+  the user sees — the locator's 5 s probe timeout or its cached "not found", the autosave interval or the recovery
+  behaviour, any message — is proposed at its step with its effect and made only after a separate product owner
+  confirmation.
+- A flaky test is fixed by removing its dependence on timing or the environment, never by a looser bound, a retry
+  loop, a skip, a removal or a weaker assertion. Every changed test keeps what it guards, shown by a mutation; its old and
+  new form recorded in `progress.md`.
+- Unchanged: every decision D001–D028 in substance; the canvas-level parity and the L1-c criteria; `project.json` (v3, no
+  new property); the CI workflow's gates (`-warnaserror`, the skip gate). The D028 §8 policy stays in force until the
+  closeout decides it.
+- Builds and test runs on the product owner's command; push, pull request and merge only with the product owner's
+  direct permission; each step accepted before the next one starts.
+
+### 3. Out of scope
+
+All new user functionality; the former candidate **14.6** — a new text clip's default `FontSize` relative to the canvas
+and the status bar's "Playing without sound…" after the audio device returns — deferred by the product owner as product /
+UX changes; AI features; keyframes; HDR / colour management; an installer; timeline virtualization; an undoable import;
+`ProjectSettings.AudioSampleRate` (unused by D013); `MediaAnalysisCoordinator`'s captured `SynchronizationContext`;
+the Phase 0–13 known issues not listed in §1.
+
+### 4. Flaky tests and helpers — rules
+
+- Each step starts with the measurement: the failing test named, its failure reproduced or its cause shown from the code
+  and the CI logs, before any change.
+- Determinism: a test does not depend on real elapsed time or machine load for its verdict, except a test whose purpose
+  is a real process or device — that test keeps a real dependency but gets no verdict from a timeout the product does not
+  need (e.g. a real locator test checks that a real ffmpeg is found, not the 5 s timeout under load).
+- Stress evidence: the affected test classes repeated at least 50 times while the machine is loaded, without a failure,
+  at the step and again at the closeout.
+- The helpers (14.5) change no expected value; a value that would change is a found defect, reported.
+
+### 5. Measure of the phase
+
+CI green on the Phase 14 pull request without any rerun, on a tree with the fixes of 14.3–14.4. The closeout records
+whether the D028 §8 policy can be closed (the product owner's decision).
+
+### 6. `src/Effects` — analysis (Step 14.2; decision at the acceptance of D029)
+
+Facts at `ed40b74`:
+- `src/Effects/Effects.csproj` (references only Core) contains one file, `ModuleInfo.cs` — an `internal static class`
+  with a `Name` constant and a comment saying the project exists "so the solution's dependency graph is ready" for an
+  effect stack; no public type, nothing registered in DI.
+- Its only reference is `App.csproj` (`ProjectReference`); no code in any project uses `AiVideoEditor.Effects`; no test
+  project references it.
+- The effect *data* does not live there: `Effect` and `Clip.Effects` are in Core (`Core/Entities/Clip.cs`), persisted by
+  `Project` (`EffectDto`, `ProjectSerializer`) and copied by `Timeline` (`TimelineEditService` copy / paste). Removing the
+  project changes none of them and nothing in `project.json`.
+- Phase 10 deliberately put fades and dissolves into Core / Timeline / UI, not into this project (D025); ARCHITECTURE's
+  module table marks it "Reserved for a generic effect stack … Empty". No plan names a phase that would fill it.
+- Recreating a project later is a few minutes' work, so keeping it reserves nothing that would be lost.
+
+Assessment: a dead architectural remnant of the Phase 0 skeleton. Proposal: **remove** it in Step 14.7 (the solution
+entry, the `App.csproj` reference and the folder), keep `Effect` / `Clip.Effects` and their persistence untouched,
+correct ARCHITECTURE's module table and the project counts (`CLAUDE.md`: 19 → 18 projects, 11 → 10 application
+projects). The argument for keeping it — a ready slot in the dependency graph — does not hold against an empty assembly
+built and shipped in every run. Decision: removal, accepted with D029 (answer 1 below).
+
+### Open for the D029 acceptance (product owner)
+
+1. `src/Effects`: remove in 14.7 as §6 proposes, or keep (the reason then recorded here)?
+2. `tests/ExportEndToEnd.Tests/ExportSettingsEndToEndTests.cs` contains a literal NUL character (a char literal for the
+   NUL that ends the x264 SEI string), so Git treats the file as binary (no text diffs). Replace it with the `'\0'`
+   escape in 14.5 (behaviour-neutral, one line), or leave it?
+
+Accepted by the product owner (2026-10-06, with Step 14.2), with the answers:
+1. `src/Effects` is removed in Step 14.7 — a dead skeleton without functional consumers: the project out of the solution,
+   the `App.csproj` reference and the folder removed; ARCHITECTURE and the project counts of `CLAUDE.md` updated. The
+   behaviour and the project format must not change.
+2. The literal NUL in `ExportSettingsEndToEndTests.cs` is replaced by `'\0'` in Step 14.5; no behaviour change.
+3. The failed CI run 37470605596 is not rerun; its fix belongs to Step 14.4.
+
+Refined in Step 14.3 (the autosave timer):
+- Failing test, from the CI logs: `AutosaveServiceTests.Timer_autosaves_periodically_and_stop_ends_it` (PR #12 run
+  37319512750, attempt 1: 705 ms, `Assert.False() Failure` on its last line — the recovery file was there again after
+  `Stop`, a 100 ms pause and a delete). The other CI reruns found in the history (PR #11 attempt 1, Phase 9) were the
+  waveform / concurrency tests of `Video.Tests` (Step 14.4).
+- Cause — in the product, not only in the test: `Stop` disposed a `System.Threading.Timer`, which does not recall a
+  callback already queued (on the thread pool, or posted to the UI thread through the captured
+  `SynchronizationContext`); such a late callback started a full autosave after `Stop`. The test hid it behind a guessed
+  100 ms ("let an in-flight tick finish"); on a slow runner the late tick came after the delete. The same window exists
+  in the app: `ShutdownAsync(keepUnsavedChanges: false)` ("Don't Save" at close) stops the timer and deletes the recovery
+  file, and a tick posted just before could write it again — the next start would then offer changes the user chose not
+  to keep. This contradicts the documented contract (`IAutosaveService.Stop`: "stops the periodic autosave (an autosave
+  already running completes)"; `ShutdownAsync`: "stops autosave and waits for a running one").
+- Fix (the contract enforced, its semantics unchanged — the 2-minute interval, the first tick one interval after
+  `Start`, ticks on the UI thread, one tick at a time, the recovery rules): `AutosaveService` takes a `TimeProvider`
+  (.NET 8 BCL; the public constructor passes `TimeProvider.System`, DI unchanged); each `Start` creates a run token that
+  `Stop` clears under a lock, and a tick starts only if its callback carries the current token — so a late callback
+  starts nothing and `Stop` never interleaves with the start of a tick; `ShutdownAsync` awaits the running tick through
+  the same lock. Product owner's rule respected: no user-visible behaviour is added or changed — only an autosave that
+  the contract already excluded no longer happens.
+- Tests: the real-timer test replaced by tests on a manual clock (`ManualTimeProvider` and a queueing
+  `SynchronizationContext` in `Project.Tests`, no new package): first tick exactly after one interval and then every
+  interval, a clean project writes nothing, `Stop` ends it (timer disposed), a callback queued before `Stop`, a tick
+  posted to the UI thread before `Stop`, `Shutdown` stops the timer, a late tick after a "Don't Save" shutdown; one
+  real-timer test kept (liveness with a 30 s limit; after `Stop` it awaits the running tick instead of guessing a delay).
+
+Refined in Step 14.4 (ffprobe / PATH-probe tests; product owner, 2026-10-06: the app's limits stay, test-only limits
+allowed where the limit is not the subject):
+- Failures, from the CI logs: `ExecutableLocatorTests.RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg`
+  (run 37470605596 on `main`: `Value is null` after 7 s — the real `-version` probe over its 5 s);
+  `WaveformIntegrationTests.A_container_start_time_is_the_origin_of_the_peaks` (PR #12 attempt 1: "FFprobe took too long
+  to respond" — the analysis' 20 s `ProcessTimeout`; PR #11 attempt 1: `NullReferenceException` after 33 s — the audio
+  decoder's 20 s `FirstFrameTimeout`, the waveform then `null`); in Phase 9 "FFprobe could not be found" (a fresh
+  locator's 5 s probe).
+- Cause: tests whose subject is not a limit got their verdict from the app's limits on a loaded runner — the 5 s PATH
+  probe (a new `FfprobeLocator` per analysis in seven test helpers; the real locator test), the 20 s ffprobe run, the 20 s
+  first decoded frame. Also latent: `FfmpegTools` probed PATH once with 5 s, and a miss there would have skipped every
+  ffmpeg test (a CI failure through the skip gate).
+- Fix: the app unchanged — `ExecutableLocator.DefaultProbeTimeout` 5 s, `ProcessTimeout` 20 s, `FirstFrameTimeout` 20 s,
+  the cached "not found". Test seams (internal): `ExecutableLocator` / `FfmpegLocator` / `FfprobeLocator` take a probe
+  limit (one source, `ProbeTimeout`, also used by `ProbeAsync` of the resolution); `IsExecutableAvailableAsync` takes the
+  limit; `Infrastructure` visible to `ExportEndToEnd.Tests`. `FfmpegTools` (shared by `Video.Tests` and
+  `ExportEndToEnd.Tests`): one ffmpeg and one ffprobe locator per run with a 60 s probe limit, `Analysis()` (120 s
+  `ProcessTimeout`) and `AudioDecoderSettings` (120 s first frame) for tests whose subject is not the limit — the seven
+  helpers, the waveform tests and the real locator test use them. Tests of the limits keep their short ones
+  (`FfmpegDiagnosticsTests`, `FfprobeTerminationTests`, `AnalysisConcurrencyIntegrationTests`, the seam tests); new
+  `ExecutableProbeTimeoutTests`: the app's 5 s (both locators), the seam changing only its locator, the app's 20 s / 20 s
+  and the helpers' limits, a scripted tool slower than a 500 ms limit counted missing and within a long one available —
+  through the process probe and through a locator. The result checks of the waveform / analysis tests unchanged.
+
+Refined in Step 14.5 (test helpers and the NUL):
+- The `Text` helpers of `TrackEditTests`, `RippleEditTests` and `TimelineRippleUiTests` build the duration as
+  `F(end) − F(start)`. Of their 42 calls, 6 had a clip end one tick off the grid at 30 fps with `F(end − start)`; every
+  expected value of these classes reads edges through `ToNearestFrame` or compares snapshots, so none changed — the
+  36 existing tests pass as before. A guard test per class runs the helper over every span of 1–30 frames from starts
+  0–29 and asserts both edges on the grid (and that the rate makes the formulas differ); the old formula fails it in
+  each class.
+- `ExportSettingsEndToEndTests.cs`: the literal NUL in a char literal replaced by `'\0'`; Git reads the file as text again
+  (stored with LF like every other text file — before, as a "binary" file, it was kept with CRLF); the test unchanged.
+
+Refined in Step 14.7 (`src/Effects` removed, answer 1): the project left the solution (`dotnet sln remove`: its entry,
+its four configuration lines and its solution folder line) and `App.csproj` (the only reference); `src/Effects`
+(`Effects.csproj`, `ModuleInfo.cs`) deleted. Untouched: `Effect`, `Clip.Effects` (Core), `EffectDto` and the
+`effects` array of `project.json` (Project), the copy of a clip's effects (Timeline). The solution now has 18 projects
+— 10 application, 8 test (`CLAUDE.md`, ARCHITECTURE, README corrected). Debug and Release build 0 / 0.
+
+Closeout (Step 14.8, 2026-10-07, at `90caae9`):
+- Builds `--no-incremental -warnaserror`: Release 0 / 0, Debug 0 / 0 (18 projects).
+- Tests (TRX + the CI gate script each time): the full suite 2600 passed, 2 skipped (only the two 4K scenes), 0 failed;
+  three `--blame-hang --blame-hang-timeout 5m` runs 2600 / 2 / 0 each, no hang, no dump; with `AIVE_HEAVY_TESTS=1` 2602
+  passed, 0 skipped, 0 failed. No retry, no rerun; no test weakened, skipped or re-baselined.
+- Manual regression (`docs/PHASE14_MANUAL_TEST_PLAN.md`, against the Phase 13 build `ed40b74` built apart): R1 a Phase 13
+  project with non-default canvas, rate and export settings opens with them and saves byte for byte; R2 the default export
+  byte-identical to Phase 13's; R3 timer autosave, crash, recovery; R4 ffmpeg found / missing — the same behaviour and
+  messages as Phase 13; R5 every Phase 7–13 clip property and `effects` kept, the saved file and the export identical to
+  Phase 13's. All PASS. No user-visible change found.
+- Final scope: 14.2, 14.3, 14.4, 14.5, 14.7, 14.8 done; 14.6 (a new text clip's font size, the audio status after a
+  device returns) not taken — out of scope (§3), not unfinished work. The D028 §8 policy stays in force until the CI run
+  of the Phase 14 pull request shows §5 (green without a rerun); its result is recorded there.
+
+Consequences: CI no longer needs reruns for the known tests; D028 §8 can be closed at the closeout; the test helpers
+produce on-grid clips; one project fewer in the solution. No change for the user.
+
+Status: Accepted (2026-10-06, product owner). Phase 14 complete: Steps 14.1–14.7 accepted (`0a50fe5`, `ed35f1f`, `0a4e6fe`,
+`b8e6aac`, `90caae9`); Step 14.8 closeout done on 2026-10-07 with every gate green; push and pull request on the product
+owner's command. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 14 — Stabilization / technical debt:
+steps".
 
 ---
 

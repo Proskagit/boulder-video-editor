@@ -47,9 +47,7 @@ public sealed class MediaRelinkIntegrationTests : IDisposable
         return path;
     }
 
-    private static FfprobeMediaAnalysisService Probe() => new(
-        new FfprobeLocator(Options.Create(new FfmpegOptions()), NullLogger<FfprobeLocator>.Instance),
-        NullLogger<FfprobeMediaAnalysisService>.Instance);
+    private static FfprobeMediaAnalysisService Probe() => FfmpegTools.Analysis();
 
     /// <summary>What the relink needs from the project service: the project, the re-check and the notifications.</summary>
     private sealed class OneProject : IProjectService

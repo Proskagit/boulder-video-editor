@@ -13,6 +13,9 @@ namespace AiVideoEditor.Infrastructure;
 /// </summary>
 internal sealed class ExecutableLocator
 {
+    /// <summary>How long the app waits for "-version" before it counts the tool as not available.</summary>
+    internal static readonly TimeSpan DefaultProbeTimeout = TimeSpan.FromSeconds(5);
+
     private readonly string _toolName;
     private readonly Func<string?> _configuredPath;
     private readonly ILogger _logger;
@@ -23,19 +26,39 @@ internal sealed class ExecutableLocator
     private string? _cachedPath;
 
     public ExecutableLocator(string toolName, Func<string?> configuredPath, ILogger logger)
-        : this(toolName, configuredPath, logger, IsExecutableAvailableAsync)
+        : this(toolName, configuredPath, logger, DefaultProbeTimeout, probe: null)
+    {
+    }
+
+    /// <summary>Test seam: the real "-version" probe with another limit than the app's — for tests whose subject is
+    /// not the timeout, so a loaded machine can't turn their verdict into "not found".</summary>
+    internal ExecutableLocator(string toolName, Func<string?> configuredPath, ILogger logger, TimeSpan probeTimeout)
+        : this(toolName, configuredPath, logger, probeTimeout, probe: null)
     {
     }
 
     /// <summary>Test seam: <paramref name="probe"/> replaces the "-version" process probe.</summary>
     internal ExecutableLocator(string toolName, Func<string?> configuredPath, ILogger logger,
         Func<string, CancellationToken, Task<bool>> probe)
+        : this(toolName, configuredPath, logger, DefaultProbeTimeout, probe)
+    {
+    }
+
+    private ExecutableLocator(string toolName, Func<string?> configuredPath, ILogger logger, TimeSpan probeTimeout,
+        Func<string, CancellationToken, Task<bool>>? probe)
     {
         _toolName = toolName;
         _configuredPath = configuredPath;
         _logger = logger;
-        _probe = probe;
+        ProbeTimeout = probeTimeout;
+        _probe = probe ?? ((file, ct) => IsExecutableAvailableAsync(file, ProbeTimeout, ct));
     }
+
+    /// <summary>The limit of the process probe (<see cref="DefaultProbeTimeout"/> unless a test seam set another).</summary>
+    internal TimeSpan ProbeTimeout { get; }
+
+    /// <summary>Runs this locator's probe (the process probe with <see cref="ProbeTimeout"/>, or a test's) on <paramref name="fileName"/>.</summary>
+    internal Task<bool> ProbeAsync(string fileName, CancellationToken ct) => _probe(fileName, ct);
 
     public async Task<string?> GetPathAsync(CancellationToken ct)
     {
@@ -74,7 +97,7 @@ internal sealed class ExecutableLocator
         }
 
         var candidate = OperatingSystem.IsWindows() ? _toolName + ".exe" : _toolName;
-        if (await _probe(candidate, ct))
+        if (await ProbeAsync(candidate, ct))
         {
             _logger.LogInformation("Found {Tool} on PATH as '{Candidate}'.", _toolName, candidate);
             return candidate;
@@ -84,12 +107,15 @@ internal sealed class ExecutableLocator
         return null;
     }
 
+    internal static Task<bool> IsExecutableAvailableAsync(string fileName, CancellationToken ct) =>
+        IsExecutableAvailableAsync(fileName, DefaultProbeTimeout, ct);
+
     /// <summary>
     /// Runs "<paramref name="fileName"/> -version". Returns false when the executable is
-    /// missing, fails, or exceeds the 5 s timeout; throws <see cref="OperationCanceledException"/>
+    /// missing, fails, or exceeds <paramref name="timeout"/>; throws <see cref="OperationCanceledException"/>
     /// only when <paramref name="ct"/> itself is cancelled (that says nothing about the tool).
     /// </summary>
-    internal static async Task<bool> IsExecutableAvailableAsync(string fileName, CancellationToken ct)
+    internal static async Task<bool> IsExecutableAvailableAsync(string fileName, TimeSpan timeout, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         // Declared outside the try so the catch blocks can still kill it (disposal happens last).
@@ -111,7 +137,7 @@ internal sealed class ExecutableLocator
             if (!process.Start())
                 return false;
 
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var timeoutCts = new CancellationTokenSource(timeout);
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
 
             // Drain output so a full pipe buffer can't block "-version".

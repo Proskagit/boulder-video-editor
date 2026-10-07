@@ -159,10 +159,7 @@ public sealed class TestMedia : IDisposable
 
     private static MediaMetadata Analyze(string path)
     {
-        var options = Options.Create(new FfmpegOptions());
-        var service = new FfprobeMediaAnalysisService(new FfprobeLocator(options, NullLogger<FfprobeLocator>.Instance),
-            NullLogger<FfprobeMediaAnalysisService>.Instance);
-        var result = service.AnalyzeAsync(path).GetAwaiter().GetResult();
+        var result = FfmpegTools.Analysis().AnalyzeAsync(path).GetAwaiter().GetResult();
         Assert.True(result.Metadata is not null, $"ffprobe analysis failed for {path}: {result.ErrorMessage}");
         return result.Metadata!;
     }

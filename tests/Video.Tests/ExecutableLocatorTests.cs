@@ -74,7 +74,8 @@ public sealed class ExecutableLocatorTests
     [FfmpegFact]
     public async Task RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg()
     {
-        var locator = new FfmpegLocator(Options.Create(new FfmpegOptions()), NullLogger<FfmpegLocator>.Instance);
+        // The real probe, with the test limit: the subject is the cancelled first call, not the 5 s limit.
+        var locator = new FfmpegLocator(Options.Create(new FfmpegOptions()), NullLogger<FfmpegLocator>.Instance, FfmpegTools.ProbeTimeout);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(1));
         try

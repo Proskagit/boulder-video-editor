@@ -13,7 +13,7 @@ This document describes the verified architecture of the AI Video Editor.
 
 ## Solution
 
-The solution contains 11 application projects under `src/` plus eight test
+The solution contains 10 application projects under `src/` plus eight test
 projects (`tests/Core.Tests`, `tests/Project.Tests`, `tests/Timeline.Tests`, `tests/UI.Tests`,
 `tests/Export.Tests`, `tests/Rendering.Tests`, `tests/Video.Tests`, `tests/ExportEndToEnd.Tests` — Video.Tests runs
 ffmpeg integration tests and skips without ffmpeg; Export.Tests uses the Preview's pipeline and fakes as the oracle of
@@ -33,7 +33,10 @@ rasterizer, ffmpeg encoder → MP4 checked with ffprobe — and skips without ff
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
 | Export | Offline export orchestration (Phase 8, D023): renders an `ExportJob` with the Core rules and hands frames/audio to an encoder. References Core only; no FFmpeg or UI types | `ExportService` over `ExportFrameSource` / `ExportPictureReader`, `ExportAudioSource` / `ExportAudioReader` |
-| Effects | Reserved for a generic effect stack (out of Phase 10's scope, D025) | Empty — the Phase 10 fades and cross dissolve live in Core (`FadeRule`, `TransitionRules`, the snapshot), Timeline (edits) and UI; `Clip.Effects` is only persisted |
+
+The Phase 10 fades and cross dissolve live in Core (`FadeRule`, `TransitionRules`, the snapshot), Timeline (edits) and UI;
+`Effect` / `Clip.Effects` (Core) are only persisted (Project) and copied with a clip (Timeline). An empty `Effects`
+project reserved by the Phase 0 skeleton for a generic effect stack was removed in Phase 14 Step 14.7 (D029 §6).
 
 Dependencies flow one way: App → UI / Infrastructure / subsystems → Core.
 
@@ -262,7 +265,9 @@ the same `MediaAsset` → `IProjectService.MediaAssetsChanged`.
 
 Metadata comes from ffprobe via `IMediaAnalysisService`;
 `IFfprobeLocator` resolves it from `Ffmpeg:FfprobePath` or PATH, `IFfmpegLocator` does the
-same for ffmpeg (playback decoding). After Open only media without saved metadata that is
+same for ffmpeg (playback decoding). Both resolve once per app run; a PATH tool must answer `-version` within
+`ExecutableLocator.DefaultProbeTimeout` (5 s) or counts as not found for the run (tests whose subject is not that limit
+use a longer one through an internal seam, D029 Step 14.4). After Open only media without saved metadata that is
 present on disk is analysed (`MediaAnalysisCoordinator.QueueWhereNeeded`); missing files are
 never probed. Thumbnails use `IThumbnailService`, waveforms `IWaveformService` (below); the export is
 `IExportService` (D023).
@@ -343,7 +348,9 @@ recovery, unsaved changes).
 - Autosave: `AutosaveService` (Project, implements Core `IAutosaveService`) every 2 min,
   snapshot on the UI thread, written by `RecoveryStore` to
   `%LOCALAPPDATA%\AiVideoEditor\recovery\<projectId>.json` (never `project.json`); per-project
-  generation guards against an autosave resurrecting a file a Save made obsolete.
+  generation guards against an autosave resurrecting a file a Save made obsolete. The timer comes from a
+  `TimeProvider` (`TimeProvider.System` in the app, a manual clock in the tests); each `Start` gets a run token, so a
+  timer callback queued before `Stop` / `ShutdownAsync` starts no tick (Phase 14 Step 14.3, D029).
   `IProjectService.RestoreRecoveryAsync` opens a recovery file with the Open validation.
 - UI: `ProjectFileWorkflow` — New / Open / Save / Save As / Close, folder picker
   (`IFilePickerService.PickFolderAsync`), Save / Don't Save / Cancel prompt (`IDialogService`,
@@ -529,5 +536,8 @@ Timeline section at the Phase 12 closeout (Step 12.9, `d467a84`; Phase 12 merged
 (D028, project & export settings): the `ProjectSettings` / persistence lines at Step 13.3, the canvas-size and
 composition lines at Step 13.4, the frame-rate line at Step 13.5, the project-settings line at Step 13.6, the export
 contract (job settings, `ExportFormat`) at Step 13.7, the codec-leg line at Step 13.8, the export-settings UI line at
-Step 13.9; the whole Phase 13 part re-checked at the closeout (Step 13.10, `5c01aed`).
+Step 13.9; the whole Phase 13 part re-checked at the closeout (Step 13.10, `5c01aed`; Phase 13 merged into `main` as
+`ed40b74`). Phase 14 (D029, stabilization): the `Effects` row of the module table checked against the code at Step 14.2
+(empty, referenced only by `App`; D029 §6) and removed with the project at Step 14.7; the autosave paragraph of the Project persistence section at Step 14.3; the locator lines of the media section at
+Step 14.4. At the Phase 14 closeout (Step 14.8, `90caae9`) the Phase 14 parts above and the project counts were checked against the code.
 Re-check the code before relying on details that later phases may have changed.

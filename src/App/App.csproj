@@ -34,7 +34,6 @@
     <ProjectReference Include="..\Audio\Audio.csproj" />
     <ProjectReference Include="..\Timeline\Timeline.csproj" />
     <ProjectReference Include="..\Media\Media.csproj" />
-    <ProjectReference Include="..\Effects\Effects.csproj" />
     <ProjectReference Include="..\Export\Export.csproj" />
     <ProjectReference Include="..\Project\Project.csproj" />
   </ItemGroup>
