@@ -108,8 +108,8 @@ public partial class TimelineView : UserControl
         var (clip, edge) = HitTestClip(e.Source);
 
         // A dissolve zone is drawn over the clips but never hides their trim handles: only a press on a clip body (no
-        // handle, no Ctrl) inside a zone selects the dissolve.
-        if (edge is null && !e.KeyModifiers.HasFlag(KeyModifiers.Control) &&
+        // handle, no Ctrl, no Alt — Alt slips the clip) inside a zone selects the dissolve.
+        if (edge is null && !e.KeyModifiers.HasFlag(KeyModifiers.Control) && !TimelineGestureModifiers.IsSlip(e.KeyModifiers) &&
             _viewModel.TransitionAt(TrackAt(e.GetPosition(TrackRows).Y), e.GetPosition(ContentRoot).X) is { } transition)
         {
             _viewModel.OnTransitionPressed(transition);
@@ -129,6 +129,14 @@ public partial class TimelineView : UserControl
         if (edge is { } trimEdge && !_pressedWithToggle)
         {
             _viewModel.BeginTrim(clip, trimEdge, x, ripple: TimelineGestureModifiers.IsRippleTrim(e.KeyModifiers));
+        }
+        else if (edge is null && TimelineGestureModifiers.IsSlip(e.KeyModifiers))
+        {
+            if (!_viewModel.BeginSlip(clip, x))
+            {
+                e.Handled = true;
+                return; // not a clip that slips (the status says so): no drag
+            }
         }
         else if (!_viewModel.OnClipPressed(clip, _pressedWithToggle))
         {

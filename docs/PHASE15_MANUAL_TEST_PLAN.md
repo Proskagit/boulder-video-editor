@@ -60,11 +60,11 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 20 | Slip a clip | Slip modifier (Q3) + drag the body of a video clip with sound | Start and length unchanged; the content and its sound shift; the source in / out shown during the drag (Q12); one undo step | | planned |
-| 21 | Limits | Slip to the start and to the end of the source | Stops at the source's first / last usable frame | | planned |
-| 22 | Speed | Slip a 2× clip | Content shifts at the clip's speed; length unchanged | | planned |
-| 23 | Refused | Slip an image, a text, a clip on a locked track | Refused / no slip gesture; nothing changes | | planned |
-| 24 | Export | Export after 20 | The output matches the Preview | | planned |
+| 20 | Slip a clip | Slip modifier (Q3) + drag the body of a video clip with sound | Start and length unchanged; the content and its sound shift; the source in / out shown during the drag (Q12); one undo step | `SlipTests` (5 rates × 5 speeds: only the source range moves, by D022's amount), `TimelineSlipUiTests`, `ExportRippleEndToEndTests` (slip parity, picture and sound) | app 15.6 (Claude), passed — R5 fixture, the first pattern clip (0–4 s, 1×, source 0–4 s), playhead 2 s; Alt pressed and released at the press (the mode stays slip), the body dragged 1 s left: during the drag the clip shows "In 00:00:01:00  Out 00:00:05:00", its place, the Preview, the title and Undo unchanged (screenshot); on release the Preview shows the source 1 s later at the same playhead, title `*`, playhead 00:00:02:00; Ctrl+Z / Ctrl+Y / Ctrl+Z; the same at 1024 px |
+| 21 | Limits | Slip to the start and to the end of the source | Stops at the source's first / last usable frame | `SlipTests` (source start / end at 0.25× / 1× / 2× / 4×, no room → no step) | app 15.6 (Claude), passed — the same clip dragged right (earlier content than its source start): "In 00:00:00:00 … (limit)" during the drag, "The slip stopped at the start of the source.", nothing changed, no undo step. The source-end stop automated |
+| 22 | Speed | Slip a 2× clip | Content shifts at the clip's speed; length unchanged | `SlipTests` (a timeline frame = 0.25 / 0.5 / 1 / 2 / 4 source frames) | app 15.6 (Claude), passed — the 0.5× clip (13–17 s, source 0–2 s) dragged 1 s (25 frames) left: "In 00:00:00:12  Out 00:00:02:12" (0.5 s of source, shown at 25 fps) — the speed counted; undone. The 2× clip automated |
+| 23 | Refused | Slip an image, a text, a clip on a locked track | Refused / no slip gesture; nothing changes | `SlipTests`, `TimelineSlipUiTests` (image / text, locked) | app 15.6 (Claude), passed — Alt + drag on still.png and on the text "R148": "Only video and audio clips can be slipped.", nothing moved; V1 locked: "Track V1 is locked.", nothing changed; unlocked. A dissolve: B (25–27 s, source 2.4–4.4 s) dragged 3 s right: "In 00:00:00:05 … (limit)", "The slip stopped where a dissolve needs the clip's source.", the dissolve kept; undone. Esc during a slip: the text gone, nothing changed, Undo disabled, playhead 2 s |
+| 24 | Export | Export after 20 | The output matches the Preview | `ExportRippleEndToEndTests.An_export_after_a_slip_shows_the_slipped_source_in_the_same_place_and_matches_its_preview` | auto — the exported picture and sound after a slip, and the Preview equal to the export canvas |
 
 ## Step 15.7 — In / Out range (D030 §8)
 
@@ -138,3 +138,12 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
   mode is the press's (D030 "Decided at the start of Step 15.5"). Esc by `keybd_event` while the button was held.
 - Scenarios 16–19: see the table. Lock: V1 locked by its 🔒, Shift+drag red's end 9 → 7 s → "Track V1 is locked.",
   nothing moved; unlocked. At the end all undone back to the save point (title clean, Undo disabled).
+
+### 2026-10-07 — Step 15.6 development-time run (Claude), Debug build of the 15.6 tree
+
+- A fresh copy of the Phase 14 R5 fixture (the original unchanged, hash checked), 1440 × 820 then 1024 × 768. Real
+  pointer drags of clip bodies: Alt (`keybd_event` VK_MENU) pressed before the button and released right after it — the
+  gesture stays a slip; the clip's text read through UI Automation while the button was still held, and screenshots
+  before / during / after.
+- Scenarios 20–23: see the table; 24 automated. At the end every change undone: title clean, Undo disabled, the playhead
+  where it was set (2 s) throughout.

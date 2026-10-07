@@ -3262,6 +3262,65 @@ Refined in Step 15.5 (implementation, 2026-10-07):
 - Distinctions, as confirmed: the ordinary drag = the existing trim; Shift + drag = the ripple trim; Q / W = the keyboard
   trim of Step 15.4; Q4's "a plain trim does not trim a dissolve's cut edge" is a rule of Q / W only.
 
+Answered at the start of Step 15.6 (product owner, 2026-10-07): Q12 — during an Alt + body drag the proposed Source In
+/ Source Out are shown on the clip; the Preview is not updated while the pointer moves; the release commits the slip and
+the Preview refreshes as after any edit; Esc (and a lost capture, an export starting) cancels with no change, no dirty
+state, no undo step, no playhead move; a slip that reaches a source or dissolve limit is clamped to the valid range with
+a status message. Slip is its own operation (not trim + move): the clip's timeline start, end and duration, its speed,
+fades and dissolves, the neighbours, gaps, markers, track flags and the sequence length stay; only the source mapping
+changes. Alt is read at the press, fixed for the gesture; Ctrl keeps toggle-select.
+
+Reconciled with D022 and the code before the implementation (Claude, 2026-10-07; §7 applied, two points made exact):
+- The source mapping (D009 / D022): timeline frame `n` of a clip at `S` shows source time
+  `t(n) = SourceIn + (FromFrame(n) − S) · s`; a clip's source range `[SourceIn, SourceOut)` holds its `N` frames by
+  D022's invariant (`SourceLength(N) ≤ SourceOut − SourceIn < SourceLength(N + 1)` at `s ≠ 1`; 1×: `SourceOut = SourceIn
+  + duration`, a sub-frame tail accepted after a speed change). So a slip changes `SourceIn` only, and moves `SourceOut`
+  by the same amount: the width `SourceOut − SourceIn` — and with it `N` and the invariant — is unchanged at every speed.
+  (§7 wrote "`SourceOut'` follows the clip's rule"; that gives the same value for every clip whose width is already
+  minimal and would otherwise trim a 1× clip's sub-frame tail — keeping the width is the exact "only the mapping
+  changes".)
+- The amount `Δ(k)` for a slip of `k` timeline frames is the existing start-trim rule (`TrimmedState` /
+  `PlanTrimAtSpeed`, D022 — §7 as written): 1× `FromFrame(S + k) − FromFrame(S)` (the content moves by exactly `k` of the
+  clip's frames), `s ≠ 1×` `±SourceLength(|k|, s)` — at 0.25× one timeline frame is a quarter of a source frame's time,
+  at 4× four frames' time; never "one frame = one source frame". `Δ` is strictly increasing in `k`.
+- Direction: a positive slip shows later source content (`SourceIn` grows). The drag moves the content with the pointer:
+  the pointer `p` frames to the right is a slip of `−p` (earlier content comes in from the left).
+- Limits: `SourceIn' ≥ 0` and `SourceOut' ≤` the source duration; a dissolve on the clip's start keeps the handle before
+  it, one on its end the handle after it (`DissolveHandles`, D025 §4, the same functions the validator uses). The
+  allowed range of `k` is the interval around 0 where all hold (searched on the monotone `Δ`); a request outside is
+  clamped to its end with "The slip stopped at the start of the source." / "… at the end of the source." / "The slip
+  stopped where a dissolve needs the clip's source."; nothing is ever removed. A clip whose current mapping already
+  breaks a dissolve's handle (media replaced) can't slip (range 0).
+- Which clips: §7 — video and audio clips (a video clip's sound slips with its picture; an audio clip has the same
+  source mapping); images and text have no source range and are refused ("Only video and audio clips can be slipped.");
+  a clip whose source duration is unknown is refused; a locked track refuses ("Track … is locked."). Offline media with
+  saved metadata slips.
+- The gesture: Alt held at the press on a clip's body (not on its trim handles, which keep the trim; Ctrl + Alt is a
+  toggle-select) starts a slip of that clip, which becomes the selection; the view shows the planned Source In / Out
+  (`PreviewSlip`, nothing applied, no notification — so the Preview, the waveforms and the timeline geometry stay); the
+  release commits once (`SlipClip`, "Slip Clip", one undo step); a slip of 0 frames is no step. The playhead never moves.
+
+Refined in Step 15.6 (implementation, 2026-10-07; the rules above as written):
+- `ITimelineEditService.SlipClip(clipId, frames)` / `PreviewSlip(clipId, frames)` (+ `SlipPreview`, Core) over one
+  planner (`PlanSlipOf`): refusals, the allowed interval of `k` (binary search of the monotone limits: the source, then the
+  dissolve handles through `DissolveHandles`), the clamp and its note, `SlippedState` (D022's amount on `SourceIn` and
+  `SourceOut` together), `Validate`, one `Commit` ("Slip Clip"). A clamp to 0 is refused with its note (no step); 0
+  frames is `NoChange`. The preview raises no `TimelineChanged`, so the Preview, the waveforms and the timeline stay
+  until the commit's single notification.
+- Tested mappings at 25 fps: 0.25× four timeline frames = one source frame (0.04 s), 0.5× two = one, 1× one = one, 2× one
+  = two (0.08 s), 4× one = four (0.16 s); at 23.976 / 25 / 29.97 / 30 / 60 fps × the five speeds `SourceIn` and `SourceOut`
+  move by D022's amount computed independently in the test, and every other value of the timeline (all clips' timing,
+  speed, fades, the other clips' source ranges, dissolves, markers, track flags, the sequence length, the playhead) is
+  unchanged.
+- The view: `TimelineGestureModifiers.IsSlip` (Alt without Ctrl) at the press on a clip's body (a dissolve zone there no
+  longer takes an Alt press); `TimelineViewModel.BeginSlip` (refuses images and text with the status message, no
+  gesture); the gesture's `SlipFrames` = minus the pointer's nearest whole frames; the clip shows "In hh:mm:ss:ff  Out
+  hh:mm:ss:ff" (the planned Source In / Out at the project rate; "(limit)" when clamped; "Can't slip" when refused) over
+  its body; the release commits `SlipClip` and reports its note; Esc / a lost capture / an export starting cancel through
+  the existing `CancelGesture`, which also clears the text.
+- End to end: the A/V sync source slipped by +5 frames exports its white frames and bursts 5 frames earlier at the same
+  clip place and length, the Preview equal to the export canvas (`ExportRippleEndToEndTests`).
+
 Consequences: new commands in the Timeline subsystem (`ITimelineEditService`: track state, trim to the playhead with
 ripple, slip and its limits), sharing the existing trim / shift planners and `EditPlan` reconciliation; a range on the
 export job (`ExportJob` / preflight / encoder input) and in the Preview's loop; the timeline view gains the track
@@ -3270,8 +3329,9 @@ toggles, the ripple / slip gestures and the range band; `project.json` unchanged
 
 Status: Accepted (2026-10-07, product owner: scope §1, the In / Out range as unsaved session state, the keys `I` / `O` /
 `Q` / `W`, the font-size formula, the non-goals §3). Q13 answered (Step 15.3); Q1, Q2, Q4, Q5, Q6 answered (Step
-15.4); Q3 answered (Step 15.5); the other proposals marked Q1–Q16 are open until the product owner answers them. Steps
-15.2, 15.3 (`1d26165`) and 15.4 (`f122c9a`) accepted; Step 15.5 done (awaiting acceptance). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
+15.4); Q3 answered (Step 15.5); Q12 answered (Step 15.6); the other proposals marked Q1–Q16 are open until the product
+owner answers them. Steps 15.2, 15.3 (`1d26165`), 15.4 (`f122c9a`) and 15.5 (`efecd24`) accepted; Step 15.6 done (awaiting
+acceptance). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
 
 ---
 

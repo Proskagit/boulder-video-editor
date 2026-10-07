@@ -826,6 +826,119 @@ public sealed class TimelineEditService : ITimelineEditService
 
     private const string DissolveStopNote = "The trim stopped where a dissolve needs the clip's frames.";
 
+    // --- Slip (D030 §7) ------------------------------------------------------------------
+
+    public TimelineEditResult SlipClip(Guid clipId, long frames)
+    {
+        var (plan, applied, note, error) = PlanSlipOf(clipId, frames);
+        if (error is not null) return TimelineEditResult.Fail(error);
+        if (plan is null) return note is null ? TimelineEditResult.Unchanged() : TimelineEditResult.Fail(note);
+
+        Commit(plan, "Slip Clip");
+        return TimelineEditResult.Ok(new[] { clipId }, note);
+    }
+
+    public SlipPreview? PreviewSlip(Guid clipId, long frames)
+    {
+        var (plan, applied, note, error) = PlanSlipOf(clipId, frames);
+        if (error is not null) return null;
+        var clip = (MediaBackedClip)Sequence.VideoTracks.Concat(Sequence.AudioTracks).SelectMany(t => t.Clips).First(c => c.Id == clipId);
+        var state = SlippedState(clip, applied, Settings.FrameRate);
+        return new SlipPreview(state.SourceIn, state.SourceOut, applied, note);
+    }
+
+    /// <summary>The slip's plan (validated), the frames it applies and the note of a limit; Plan null when nothing
+    /// changes.</summary>
+    private (EditPlan? Plan, long Applied, string? Note, string? Error) PlanSlipOf(Guid clipId, long frames)
+    {
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return (null, 0, null, resolveError);
+        var clip = clips[0];
+        if (clip is not (VideoClip or AudioClip)) return (null, 0, null, "Only video and audio clips can be slipped.");
+        if (CheckEditable(plan, clips) is { } editError) return (null, 0, null, editError);
+        if (SourceDuration(clip) is not { } duration) return (null, 0, null, "The clip's media has no known length, so it can't be slipped.");
+
+        var media = (MediaBackedClip)clip;
+        var rate = plan.Rate;
+        var track = plan.TrackOf(clip);
+
+        // A dissolve keeps the source it needs beyond the clip (D025 §4): before its start (B), after its end (A).
+        long needBefore = 0, needAfter = 0;
+        foreach (var t in track.Transitions)
+        {
+            var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(t.Duration, rate));
+            if (t.RightClipId == clip.Id) needBefore = beforeCut;
+            if (t.LeftClipId == clip.Id) needAfter = afterCut;
+        }
+        var asset = AssetOf(clip);
+        bool SourceOk(long k)
+        {
+            var st = SlippedState(media, k, rate);
+            return st.SourceIn >= MediaTime.Zero && st.SourceOut <= duration;
+        }
+        bool DissolveOk(long k)
+        {
+            var st = SlippedState(media, k, rate);
+            return (needBefore == 0 || DissolveHandles.Before(clip, st, asset, rate) >= needBefore) &&
+                   (needAfter == 0 || DissolveHandles.After(clip, st, asset, rate) >= needAfter);
+        }
+
+        // Δ(k) grows with k, so each limit is monotone and the allowed slips are an interval around 0: its ends by binary
+        // search, no further than the whole source.
+        var bound = SpeedTiming.FramesFor(duration, media.Speed, rate) + 2;
+        long Reach(int direction, Func<long, bool> ok)
+        {
+            if (!ok(0)) return 0;
+            long lo = 0, hi = bound;
+            while (lo < hi)
+            {
+                var mid = lo + (hi - lo + 1) / 2;
+                if (ok(direction * mid)) lo = mid;
+                else hi = mid - 1;
+            }
+            return direction * lo;
+        }
+        bool Allowed(long k) => SourceOk(k) && DissolveOk(k);
+        var applied = Math.Clamp(frames, Reach(-1, Allowed), Reach(+1, Allowed));
+
+        string? note = null;
+        if (applied != frames)
+        {
+            var sourceEnd = Reach(frames > 0 ? 1 : -1, SourceOk);
+            note = applied != sourceEnd ? "The slip stopped where a dissolve needs the clip's source."
+                : frames > 0 ? "The slip stopped at the end of the source."
+                : "The slip stopped at the start of the source.";
+        }
+        if (applied == 0) return (null, 0, note, null);
+
+        // Only the source mapping changes: the clip's timing, speed, fades and dissolves stay (D030 §7).
+        plan.Update(clip, track, SlippedState(media, applied, rate));
+        if (Validate(plan) is { } invalid) return (null, 0, null, $"Can't slip: {invalid}");
+        return (plan, applied, note, null);
+    }
+
+    /// <summary><paramref name="clip"/>'s timing slipped by <paramref name="frames"/> timeline frames (D030 §7, D022):
+    /// <c>SourceIn</c> moves by the start trim's own amount — 1× <c>FromFrame(S + k) − FromFrame(S)</c>, another speed
+    /// <c>±SourceLength(|k|)</c> — and <c>SourceOut</c> by the same, so the source width, the frame count and D022's
+    /// invariant are unchanged; start, duration and speed stay. Positive: later source content.</summary>
+    private static ClipState SlippedState(MediaBackedClip clip, long frames, FrameRate rate)
+    {
+        var state = ClipState.Capture(clip);
+        if (frames == 0) return state;
+        MediaTime delta;
+        if (clip.Speed.IsNormal)
+        {
+            var start = clip.TimelineStart.ToNearestFrame(rate);
+            delta = MediaTime.FromFrame(start + frames, rate) - MediaTime.FromFrame(start, rate);
+        }
+        else
+        {
+            var length = SpeedTiming.SourceLength(Math.Abs(frames), clip.Speed, rate);
+            delta = frames > 0 ? length : MediaTime.Zero - length;
+        }
+        return state with { SourceIn = state.SourceIn + delta, SourceOut = state.SourceOut + delta };
+    }
+
     // --- Delete / tracks -------------------------------------------------------
 
     public TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds)

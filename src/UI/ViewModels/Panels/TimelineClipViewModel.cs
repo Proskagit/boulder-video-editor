@@ -43,6 +43,13 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
     /// <summary>True while a drag preview shows a position the edit would reject.</summary>
     [ObservableProperty] private bool _isInvalid;
 
+    /// <summary>While the clip is slipped (D030 §7, Q12): its planned Source In / Out, shown on the clip; null otherwise.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSlipping))]
+    private string? _slipText;
+
+    public bool IsSlipping => SlipText is not null;
+
     /// <summary>What the clip's waveform shows (D024 Step 9.5), or null — a text or image clip, media without sound,
     /// offline media without a cached waveform, or not made yet.</summary>
     [ObservableProperty]

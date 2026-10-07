@@ -261,6 +261,12 @@
                               <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="#EEEEEE" FontSize="10"
                                          Margin="2,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                          IsHitTestVisible="False"/>
+                              <!-- D030 §7 (Q12): while the clip is slipped, its planned Source In / Out over the clip -->
+                              <Border Grid.ColumnSpan="3" IsVisible="{Binding IsSlipping}" IsHitTestVisible="False"
+                                      Background="#D0141414" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                                <TextBlock Text="{Binding SlipText}" Foreground="#FFD54F" FontSize="10" Margin="4,0"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                              </Border>
                               <Border Grid.Column="0" Classes="trimHandle" Tag="TrimStart"/>
                               <Border Grid.Column="2" Classes="trimHandle" Tag="TrimEnd"/>
                             </Grid>

@@ -77,6 +77,17 @@ public interface ITimelineEditService
     /// would change (the trimmed one and the moved ones), nothing applied. Null when it would be refused.</summary>
     RippleTrimPreview? PreviewRippleTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime);
 
+    /// <summary>Slips a video or audio clip by <paramref name="frames"/> timeline frames (D030 §7): only its source mapping
+    /// changes — <c>SourceIn</c> and <c>SourceOut</c> move together by D022's start-trim amount (positive: later content);
+    /// its start, end, duration, speed, fades and dissolves, the other clips, the markers and the playhead stay. Clamped to
+    /// the source and to the handles its dissolves need, with a message; one undo step; <see cref="TimelineEditResult.NoChange"/>
+    /// for 0 frames; refused for images and text, an unknown source length, a locked track, or a clamp to 0.</summary>
+    TimelineEditResult SlipClip(Guid clipId, long frames);
+
+    /// <summary>What <see cref="SlipClip"/> would do now, for the drag's feedback: the clip's planned Source In / Out, the
+    /// frames applied after the clamp and its note; nothing applied. Null when it would be refused.</summary>
+    SlipPreview? PreviewSlip(Guid clipId, long frames);
+
     TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds);
 
     /// <summary>Ripple delete (D027 §2): removes the clips, and on each track that loses one every other clip that starts
@@ -318,6 +329,9 @@ public sealed class TimelineClipboard
 
 /// <summary>One copied clip (a detached copy, never inserted itself) and the id of the track it was copied from.</summary>
 public sealed record TimelineClipboardEntry(Clip Clip, Guid TrackId);
+
+/// <summary>A slip's preview (D030 §7): the planned source range, the frames applied (clamped) and the limit's note.</summary>
+public sealed record SlipPreview(MediaTime SourceIn, MediaTime SourceOut, long Frames, string? Note);
 
 /// <summary>A ripple drag's preview (D030 §6): the planned start and end of each clip the release would change, and
 /// whether a dissolve stopped the trim.</summary>

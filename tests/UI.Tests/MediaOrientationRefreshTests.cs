@@ -219,6 +219,8 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult MoveTrack(Guid trackId, int direction) => No;
         public TimelineEditResult TrimToPlayhead(IReadOnlyCollection<Guid> clipIds, ClipEdge edge, MediaTime playhead, bool ripple) => No;
         public TimelineEditResult RippleTrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime) => No;
+        public TimelineEditResult SlipClip(Guid clipId, long frames) => No;
+        public SlipPreview? PreviewSlip(Guid clipId, long frames) => null;
         public RippleTrimPreview? PreviewRippleTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime) => null;
         public TimelineEditResult SetTrackMuted(Guid trackId, bool muted) => No;
         public TimelineEditResult SetTrackHidden(Guid trackId, bool hidden) => No;

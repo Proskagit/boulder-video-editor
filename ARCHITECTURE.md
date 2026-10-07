@@ -190,6 +190,11 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   `TrimmedState` / `PlanTrimAtSpeed` take a clip state and a neighbour list (none for a ripple). The press's modifiers
   are read by `TimelineGestureModifiers` (Ctrl toggle, Shift ripple); Esc / a lost capture rebuild the layout from the
   model. The ordinary drag is unchanged.
+- Slip (Phase 15 Step 15.6, D030 §7): `SlipClip` / `PreviewSlip` over `PlanSlipOf` — video and audio clips; `SourceIn`
+  and `SourceOut` moved together by D022's start-trim amount (`SlippedState`), the timing untouched; the allowed range
+  from the source and the dissolve handles (`DissolveHandles`), clamped with a note; one undo step. The view starts it on
+  an Alt press on a clip's body (`TimelineGestureModifiers.IsSlip`, `BeginSlip`), shows the planned Source In / Out on
+  the clip (`TimelineClipViewModel.SlipText`) and commits on release.
 - Import (Phase 12 Step 12.8, D027 §7): `MediaImportWorkflow` keeps the project the import started in and adds nothing
   (and queues no analysis) when another project is current after the picker, the status yield or the file check.
 - UI: `TimelineViewModel` projects the `Sequence` (clip view models reused by Id),

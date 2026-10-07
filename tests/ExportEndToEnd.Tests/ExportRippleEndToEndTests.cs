@@ -104,6 +104,47 @@ public sealed class ExportRippleEndToEndTests
         AssertNoFfmpegLeft();
     }
 
+    /// <summary>Phase 15 Step 15.6 (D030 §7): slip end to end. The A/V sync source (a white frame and a 1 kHz burst at
+    /// every source frame n ≡ 15 mod 30) as one clip [0, 60) from source frame 10: white at timeline frames 5 and 35. A slip of
+    /// +5 through the service shows source from frame 15: white at 0 and 30, the burst at 0 s and 1.2 s — the clip's place
+    /// and length unchanged. The Preview drawn from the export's snapshot shows the same bytes.</summary>
+    [FfmpegFact]
+    public async Task An_export_after_a_slip_shows_the_slipped_source_in_the_same_place_and_matches_its_preview()
+    {
+        var p = new ProjectBuilder(FrameRate.Fps25);
+        var v1 = p.VideoTrack();
+        var clip = p.Video(v1, _media.Sync(FrameRate.Fps25), 0, 60, sourceInFrame: 10);
+        var edit = new TimelineEditService(new SceneProject(p.Project), new UndoRedoService(), NullLogger<TimelineEditService>.Instance);
+
+        var slip = edit.SlipClip(clip.Id, 5);
+        Assert.True(slip.Success, slip.Message);
+        Assert.Equal((p.F(0), p.F(60), p.F(15)), (clip.TimelineStart, clip.TimelineEnd, clip.SourceIn));
+
+        var run = await ExportProject(p.Project, Path.Combine(_media.OutputFolder(), "slip.mp4"));
+        AssertValidMp4(run);
+        Assert.Equal(60L, run.Output.FrameCount);
+        foreach (var (frame, white) in new[] { (0, true), (5, false), (30, true), (35, false) })
+        {
+            var (r, g, b) = Pixel(run.Canvases[frame], E2EMedia.Width, E2EMedia.Width / 2, E2EMedia.Height / 2);
+            Assert.True(white ? r > 200 && g > 200 && b > 200 : r < 50 && g < 50 && b < 50, $"frame {frame}: {r}, {g}, {b}");
+        }
+        var pcm = Left(run.Pcm);
+        var rate = Core.Playback.AudioFormat.SampleRate;
+        Assert.True(Rms(pcm.AsSpan(0, rate * 4 / 100)) > 0.3, "the burst at 0 s");
+        Assert.True(Rms(pcm.AsSpan(rate * 20 / 100, rate * 4 / 100)) < 0.01, "no burst at 0.2 s any more");
+        Assert.True(Rms(pcm.AsSpan(rate * 120 / 100, rate * 4 / 100)) > 0.3, "the burst at 1.2 s");
+
+        foreach (var n in new long[] { 0, 5, 30 })
+        {
+            var preview = await Preview(run.Job.Snapshot, n);
+            var canvas = run.Canvases[(int)n];
+            Assert.Equal(canvas.Length, preview.Pixels.Length);
+            var differing = Enumerable.Range(0, canvas.Length).Count(i => preview.Pixels[i] != canvas[i]);
+            Assert.True(differing == 0, $"frame {n}: {differing} bytes differ between the Preview and the export canvas");
+        }
+        AssertNoFfmpegLeft();
+    }
+
     /// <summary>What the edit service needs from the project service: the scene's project and the notifications.</summary>
     private sealed class SceneProject(Core.Entities.Project project) : IProjectService
     {

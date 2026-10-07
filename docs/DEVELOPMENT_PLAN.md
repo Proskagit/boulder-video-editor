@@ -71,7 +71,7 @@ and runs cleanly.
       trim by dragging an edge, slip, and a timeline In / Out range (unsaved session state) for loop playback and range
       export; a new text clip's font size relative to the canvas and the audio status after the sound returns. Scope,
       steps and acceptance criteria: section below and DECISIONS.md D030 (product owner decisions, 2026-10-07).
-      *(branch `feat/phase-15-editing-tools`, from `7200976`; Steps 15.1–15.4 accepted; Step 15.5 done — awaiting acceptance)*
+      *(branch `feat/phase-15-editing-tools`, from `7200976`; Steps 15.1–15.5 accepted; Step 15.6 done — awaiting acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -901,7 +901,7 @@ Scope: D030 §5, §10, §11.
 - Decisions at the start: Q1, Q2, Q4, Q5, Q6.
 - Depends on: 15.3.
 
-### 15.5 — Ripple trim by dragging an edge *(done 2026-10-07 — awaiting acceptance; D030 "Refined in Step 15.5": Shift at the press, one planner with Shift+Q / Shift+W (identical timelines), the preview plans only, one undo step on release, Esc restores, the playhead never moves, the ordinary drag unchanged)*
+### 15.5 — Ripple trim by dragging an edge *(done, accepted 2026-10-07 — `efecd24`; D030 "Refined in Step 15.5": Shift at the press, one planner with Shift+Q / Shift+W (identical timelines), the preview plans only, one undo step on release, Esc restores, the playhead never moves, the ordinary drag unchanged)*
 Scope: D030 §6.
 - PR: an edge drag with the ripple modifier (Q3) previews and commits a ripple trim, inward or outward, through the
   15.4 planner; without the modifier the existing trim is unchanged; snapping as for the trim; `Esc` cancels.
@@ -912,7 +912,7 @@ Scope: D030 §6.
 - Decisions at the start: Q3 (modifier).
 - Depends on: 15.4.
 
-### 15.6 — Slip
+### 15.6 — Slip *(done 2026-10-07 — awaiting acceptance; D030 "Refined in Step 15.6": Alt at the press on a clip's body, SourceIn / SourceOut moved together by D022's start-trim amount, clamped to the source and the dissolve handles with a message, the planned Source In / Out on the clip during the drag, one undo step on release; video and audio clips)*
 Scope: D030 §7, §10.
 - PR: `Alt` (Q3) + drag on a video / audio clip's body slips its source range while its start, length, speed, fades and
   properties stay; clamped to the allowed range; one undo step per gesture; `Esc` cancels.

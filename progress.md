@@ -7,8 +7,8 @@ locked by the product owner on 2026-10-07 (DECISIONS.md D030): track controls (m
 (plain and ripple, `Q` / `W`), ripple trim by dragging, slip, a timeline In / Out range (`I` / `O`, loop, range export) as
 unsaved session state, a new text clip's `FontSize = 48 × canvasHeight / 1080`, the audio status reset. Steps 15.1
 (pre-analysis), 15.2 (documentation, `d1296be`), 15.3 (track controls, `1d26165`) and 15.4 (trim to the playhead,
-`f122c9a`) accepted; Step 15.5 (ripple trim by dragging) done, awaiting acceptance; Q13, Q1–Q6 answered, the other open
-questions of D030 are answered before the steps they concern. Scope, steps and acceptance criteria:
+`f122c9a`) and 15.5 (ripple trim by dragging, `efecd24`) accepted; Step 15.6 (slip) done, awaiting acceptance; Q13,
+Q1–Q6, Q12 answered, the other open questions of D030 are answered before the steps they concern. Scope, steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md` "Phase 15 — Editing tools: steps"; manual plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
 ### Phase 15 — Editing tools (in progress)
@@ -182,6 +182,40 @@ command; no push, pull request or merge without direct permission; no next step 
   - Manual (`docs/PHASE15_MANUAL_TEST_PLAN.md`, scenarios 16–19, the results log): real pointer drags on the Phase 14 R5
     fixture — the ordinary drag stopping at the neighbour, Shift+drag of the end and the start inward, outward on the
     0.5× clip, Esc, a locked V1, the dissolve's cut edge with and without Shift, 1024 px, undo / redo.
+  - Committed as `efecd24`; accepted by the product owner (2026-10-07).
+- Product owner decisions at the start of Step 15.6 (2026-10-07), recorded in D030: Q12 — the planned Source In / Out on
+  the clip during the drag, no live Preview, the commit on release refreshes it; Esc / a lost capture / an export start
+  cancel with nothing changed; a limit clamps with a message; slip a true slip (only the source mapping changes); Alt read
+  at the press; Ctrl unchanged; images and text refused. Recorded in D030 before the code (reconciled with D022 and
+  `TrimmedState` / `PlanTrimAtSpeed` / `DissolveHandles`): the amount is the start-trim rule (1× `FromFrame(S + k) −
+  FromFrame(S)`, other speeds `±SourceLength(|k|)`), `SourceOut` moves by the same amount (the width and `N` unchanged —
+  §7's "follows the clip's rule" made exact), positive = later content and the content follows the pointer, the limits
+  are the source and the dissolve handles, video and audio clips as §7 states (the product owner's message named video
+  clips; audio clips have the same mapping and §7 includes them — reported). Only Step 15.6.
+- Step 15.6 done (2026-10-07) — slip (D030 §7, "Refined in Step 15.6").
+  - Timeline: `SlipClip` / `PreviewSlip` (+ `SlipPreview`, Core) over `PlanSlipOf` (refusals, the allowed interval by
+    binary search of the monotone limits, the clamp note, `Validate`, one `Commit`), `SlippedState`.
+  - UI: `TimelineGestureModifiers.IsSlip`; `TimelineView` starts a slip on an Alt press on a clip's body (a dissolve zone
+    no longer takes that press); `TimelineViewModel.BeginSlip` / `UpdateSlip` (planned Source In / Out as
+    `TimelineClipViewModel.SlipText`, "(limit)", "Can't slip"), `EndGesture` → `SlipClip`, `CancelGesture` clears it;
+    the clip template shows the text over the clip body.
+  - Tests (+49): `SlipTests` (Timeline, 41 incl. a 25-case theory over 5 rates × 5 speeds × four slips with the full
+    invariant set and D022's amount computed in the test; the explicit speed table; the source start / end at four
+    speeds; dissolve handles on both edges; no room → no step; images, text, an unknown length, a locked track; hidden
+    / muted tracks and an audio clip; the preview applies and notifies nothing and equals the release; one undo step,
+    the save point, 0 frames). `TimelineSlipUiTests` (UI, 7: the modifiers; the feedback with geometry, model, Preview
+    notification, undo and dirty unchanged and one step on release; pointer rounding; Esc / lost capture / export start;
+    image and text; a locked track; the limit shown). `ExportRippleEndToEndTests` (+1): slip parity, picture and sound.
+  - Mutations (each restored, `--no-incremental` rebuild after): the source direction reversed at other speeds → 25
+    fail, at 1× → 9, in the view model → 3; the speed ignored → 26; the source start not clamped → 7 + 1; the dissolve
+    constraint ignored → 1; the duration changed → 39; the start moved → 32; the preview mutating → 1 + 3; Alt ignored → 1;
+    Esc committing → 1; every pointer move committing → 3. None survived.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full suite 2795 passed, 2
+    skipped (the two 4K scenes), 0 failed — Core 513, Timeline 660 (+41), Project 426, UI 602 (+7), Export 100, Rendering
+    58, Video 322, ExportEndToEnd 114 + 2 (+1).
+  - Manual (`docs/PHASE15_MANUAL_TEST_PLAN.md`, scenarios 20–23, the results log): Alt + body drags with a real pointer
+    on the Phase 14 R5 fixture — the planned Source In / Out during the drag with the Preview unchanged, the Preview
+    updated on release, 1× and 0.5×, the source start, a dissolve, Esc, image / text, a locked V1, 1024 px, undo / redo.
 
 ### Phase 14 — Stabilization / technical debt (complete; PR #14 merged as `7200976`)
 

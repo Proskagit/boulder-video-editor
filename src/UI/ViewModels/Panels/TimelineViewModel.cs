@@ -1000,6 +1000,12 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
         /// <summary>A ripple trim (D030 §6): Shift was held when the edge was pressed; fixed for the whole gesture.</summary>
         public bool Ripple { get; init; }
+
+        /// <summary>A slip (D030 §7): Alt was held when the clip's body was pressed; fixed for the whole gesture.</summary>
+        public bool Slip { get; init; }
+
+        /// <summary>The slip's frames so far (positive: later source content).</summary>
+        public long SlipFrames { get; set; }
     }
 
     public void BeginMove(double contentX)
@@ -1025,6 +1031,24 @@ public sealed partial class TimelineViewModel : ViewModelBase
         };
     }
 
+    /// <summary>Pointer pressed on a clip's body with Alt (D030 §7): a slip of that clip, which becomes the selection.
+    /// False — no gesture, the status says why — for an image or a text, which have no source to slip.</summary>
+    public bool BeginSlip(TimelineClipViewModel clip, double contentX)
+    {
+        if (!CanEdit()) return false;
+        SelectOnly(clip.Id);
+        if (clip.Clip is not (VideoClip or AudioClip))
+        {
+            _status.Report("Only video and audio clips can be slipped.");
+            return false;
+        }
+        _gesture = new Gesture
+        {
+            Edge = null, StartX = contentX, Clips = new List<TimelineClipViewModel> { clip }, SourceTrack = TrackOf(clip), Slip = true
+        };
+        return true;
+    }
+
     public void UpdateGesture(double contentX, TimelineTrackViewModel? trackUnderPointer)
     {
         if (_gesture is not { } g) return;
@@ -1033,7 +1057,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         g.Active = true;
 
         var rawDelta = TimelineCoordinateMapper.XToTime(contentX - g.StartX, PixelsPerSecond);
-        if (g.Edge is { } edge) UpdateTrim(g, edge, rawDelta);
+        if (g.Slip) UpdateSlip(g, rawDelta);
+        else if (g.Edge is { } edge) UpdateTrim(g, edge, rawDelta);
         else UpdateMove(g, rawDelta, trackUnderPointer);
     }
 
@@ -1104,6 +1129,20 @@ public sealed partial class TimelineViewModel : ViewModelBase
         }
     }
 
+    /// <summary>The slip's feedback (D030 §7, Q12): the content follows the pointer (the pointer to the right brings in
+    /// earlier source: a negative slip), in whole timeline frames; the edit service plans it (nothing applied, so the
+    /// timeline geometry and the Preview stay) and the clip shows the planned Source In / Out and a limit's note.</summary>
+    private void UpdateSlip(Gesture g, MediaTime rawDelta)
+    {
+        var clip = g.Clips[0];
+        g.SlipFrames = -rawDelta.ToNearestFrame(FrameRate);
+        var preview = _edit.PreviewSlip(clip.Id, g.SlipFrames);
+        clip.IsInvalid = preview is null;
+        clip.SlipText = preview is null ? "Can't slip"
+            : $"In {TimeFormat.ToTimecode(preview.SourceIn, FrameRate)}  Out {TimeFormat.ToTimecode(preview.SourceOut, FrameRate)}" +
+              (preview.Note is null ? "" : "  (limit)");
+    }
+
     /// <summary>The ripple drag's preview (D030 §6): the edit service plans the trim (nothing is applied) and the view
     /// shows the trimmed clip and every clip it would move at their planned places, the dissolve zones with their clips;
     /// the rest of the timeline as it is. A refused plan (a locked track) marks the clip invalid.</summary>
@@ -1157,7 +1196,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _gesture = null;
         ResetGestureVisuals(g);
 
-        var result = g.Edge is { } edge
+        var result = g.Slip
+            ? _edit.SlipClip(g.Clips[0].Id, g.SlipFrames)
+            : g.Edge is { } edge
             ? g.Ripple
                 ? _edit.RippleTrimClip(g.Clips[0].Id, edge, g.TrimTime)
                 : _edit.TrimClip(g.Clips[0].Id, edge, g.TrimTime)
@@ -1180,7 +1221,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         IsSnapIndicatorVisible = false;
         ClearDropTargets();
-        foreach (var clip in g.Clips) clip.IsInvalid = false;
+        foreach (var clip in g.Clips)
+        {
+            clip.IsInvalid = false;
+            clip.SlipText = null;
+        }
         foreach (var zone in _transitionViewModels.Values) zone.IsVisible = true;
     }
 
