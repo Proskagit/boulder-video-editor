@@ -218,6 +218,8 @@ public partial class MainWindow : Window
 
     private sealed class DesignTimePlaybackService : IPlaybackService
     {
+        public void SetPlaybackRange(PlaybackRange? range) { }
+        public MediaTime PlaybackEnd => MediaTime.Zero;
         public PlaybackState State => PlaybackState.Paused;
         public bool IsBuffering => false;
         public bool IsAvailable => false;

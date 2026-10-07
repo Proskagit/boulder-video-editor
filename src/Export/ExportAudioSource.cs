@@ -23,13 +23,20 @@ public sealed class ExportAudioSource : IAsyncDisposable
     private readonly IAudioDecoder _decoder;
     private readonly List<(AudioSpan Span, AudioPlacement Placement, float Gain, AudioFadeEnvelope Fade)> _audible;
     private readonly Dictionary<Guid, ExportAudioReader> _readers = new();
+    private readonly long _endSample;
     private bool _disposed;
 
-    public ExportAudioSource(PlaybackSnapshot snapshot, IAudioDecoder decoder)
+    /// <param name="output">The job's output (<see cref="ExportJob.Output"/>): timeline samples
+    /// <c>[output.FirstSample, output.FirstSample + output.AudioSampleCount)</c> (a range export, D030 §8); null = the
+    /// whole sequence from sample 0.</param>
+    public ExportAudioSource(PlaybackSnapshot snapshot, IAudioDecoder decoder, ExportOutput? output = null)
     {
         _snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
         _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
-        SampleCount = ExportOutput.For(snapshot).AudioSampleCount;
+        output ??= ExportOutput.For(snapshot);
+        SampleCount = output.AudioSampleCount;
+        Position = output.FirstSample;
+        _endSample = output.FirstSample + output.AudioSampleCount;
         _audible = snapshot.AudioSpans
             .Select(span => (span, AudioPlacement.Of(span), AudioMix.Gain(span), AudioFadeEnvelope.Of(span, snapshot.FrameRate)))
             .Where(a => a.Item3 != 0 && a.Item2.EndSample > a.Item2.FirstSample)
@@ -54,7 +61,7 @@ public sealed class ExportAudioSource : IAsyncDisposable
             throw new ArgumentException("The buffer must hold whole stereo frames.", nameof(interleaved));
 
         var from = Position;
-        var frames = (int)Math.Min(interleaved.Length / AudioFormat.Channels, SampleCount - from);
+        var frames = (int)Math.Min(interleaved.Length / AudioFormat.Channels, _endSample - from);
         if (frames <= 0) return 0;
         var until = from + frames;
         var mix = interleaved[..(frames * AudioFormat.Channels)];

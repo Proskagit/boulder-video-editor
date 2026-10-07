@@ -33,6 +33,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private readonly StatusService _status;
     private readonly ILogger<TimelineViewModel> _logger;
     private readonly EditingLock _editingLock;
+    private readonly InOutRangeService _inOut;
     private readonly WaveformCoordinator? _waveforms;
     private readonly IDialogService? _dialogs;
 
@@ -56,8 +57,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
         ILogger<TimelineViewModel> logger,
         EditingLock? editingLock = null,
         WaveformCoordinator? waveforms = null,
-        IDialogService? dialogs = null)
+        IDialogService? dialogs = null,
+        InOutRangeService? inOut = null)
     {
+        _inOut = inOut ?? new InOutRangeService(projectService);
+        _inOut.RangeChanged += (_, _) => RefreshRange();
         _projectService = projectService;
         _edit = edit;
         _status = status;
@@ -326,6 +330,80 @@ public sealed partial class TimelineViewModel : ViewModelBase
         PlayheadX = TimelineCoordinateMapper.TimeToX(Playhead, PixelsPerSecond);
         RebuildRuler();
         RebuildMarkers();
+        RefreshRange();
+    }
+
+    // --- In / Out range (D030 §8): session state, never a project change ----------------------------------------------
+
+    /// <summary>The session's In / Out range (shared with the Preview's loop and the export).</summary>
+    public InOutRangeService InOut => _inOut;
+
+    [ObservableProperty] private bool _hasIn;
+    [ObservableProperty] private double _inX;
+    [ObservableProperty] private bool _hasOut;
+    [ObservableProperty] private double _outX;
+
+    /// <summary>The range bar: <c>[In, Out)</c> within the sequence (a missing point: the sequence's start / end).</summary>
+    [ObservableProperty] private bool _hasRange;
+    [ObservableProperty] private double _rangeLeft;
+    [ObservableProperty] private double _rangeWidth;
+
+    /// <summary>The playhead's frame lies in the range (the bar is drawn brighter).</summary>
+    [ObservableProperty] private bool _isPlayheadInRange;
+
+    /// <summary>Where the ✕ that clears the range sits: right of the bar, or right of the only point when the range has
+    /// nothing of the sequence in it.</summary>
+    [ObservableProperty] private double _rangeRight;
+    [ObservableProperty] private bool _canClearRange;
+
+    private void RefreshRange()
+    {
+        var range = _inOut.Range;
+        HasIn = range.In is not null;
+        InX = range.In is { } i ? TimelineCoordinateMapper.TimeToX(i, PixelsPerSecond) : 0;
+        HasOut = range.Out is not null;
+        OutX = range.Out is { } o ? TimelineCoordinateMapper.TimeToX(o, PixelsPerSecond) : 0;
+
+        if (_inOut.Frames is { } frames)
+        {
+            var left = TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(frames.First, FrameRate), PixelsPerSecond);
+            HasRange = true;
+            RangeLeft = left;
+            RangeWidth = TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(frames.End, FrameRate), PixelsPerSecond) - left;
+            var at = Playhead.ToFrameFloor(FrameRate);
+            IsPlayheadInRange = at >= frames.First && at < frames.End;
+        }
+        else
+        {
+            HasRange = false;
+            IsPlayheadInRange = false;
+        }
+        CanClearRange = range.IsSet;
+        RangeRight = HasRange ? RangeLeft + RangeWidth : Math.Max(InX, OutX);
+    }
+
+    /// <summary>I: In at the playhead's frame. Session state: the project stays clean, no undo step (D030 §8).</summary>
+    [RelayCommand]
+    private void SetIn()
+    {
+        _inOut.SetIn(Playhead);
+        _status.Report($"In set at {TimeFormat.ToTimecode(_inOut.Range.In!.Value, FrameRate)}.");
+    }
+
+    /// <summary>O: Out after the playhead's frame — the frame at the playhead is the range's last one (Q7).</summary>
+    [RelayCommand]
+    private void SetOut()
+    {
+        _inOut.SetOut(Playhead);
+        _status.Report($"Out set after {TimeFormat.ToTimecode(Playhead.SnapToFrame(FrameRate), FrameRate)} (that frame is included).");
+    }
+
+    /// <summary>The ✕ on the range bar (Q11).</summary>
+    [RelayCommand]
+    private void ClearInOut()
+    {
+        _inOut.Clear();
+        _status.Report("In / Out cleared.");
     }
 
     private void RebuildMarkers()
@@ -438,6 +516,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         Sequence.PlayheadPosition = position;
         PlayheadX = TimelineCoordinateMapper.TimeToX(position, PixelsPerSecond);
+        RefreshRange();
         PlayheadChanged?.Invoke(this, EventArgs.Empty);
     }
 

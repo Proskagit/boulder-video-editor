@@ -81,6 +81,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFontCatalog, AvaloniaFontCatalog>();
         services.AddSingleton<StatusService>();
         services.AddSingleton<EditingLock>();
+        services.AddSingleton<InOutRangeService>();   // the session's In / Out range (D030 §8)
         services.AddSingleton<IExportProgressDialog, AvaloniaExportProgressDialog>();
         services.AddSingleton<ExportWorkflow>();
         services.AddSingleton<MediaAnalysisCoordinator>();

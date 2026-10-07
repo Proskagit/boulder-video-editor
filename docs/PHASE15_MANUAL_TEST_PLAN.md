@@ -70,19 +70,19 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 25 | Set and show | `I` at 2 s, `O` at 5 s | A band on the ruler and a shade over the tracks; the title has no `*`; Undo does not touch the range | | planned |
-| 26 | Rules | `I` after Out; `O` before In; only In; only Out; clear (Q11) | As decided by Q7 / Q8 / Q11 | | planned |
-| 27 | Loop | Loop on, range set, Play from inside and from outside the range | Playback loops In → Out, starting at In from outside (Q9); Loop off ignores the range | | planned |
-| 28 | Range export | Export with a range (Q10) | The file covers exactly the range; first / last frame and sound match the Preview at In / Out − 1 frame; duration Out − In | | planned |
-| 29 | Not saved | Set a range, Save, close and reopen; set a range, wait for the autosave, kill the process, Recover | No range after reopening and after the recovery; `project.json` and the recovery file contain no range | | planned |
-| 30 | Edits | Ripple delete before the range; change the frame rate | The range stays at its time (nearest frame after the rate change) | | planned |
+| 25 | Set and show | `I` at 2 s, `O` at 5 s | A band on the ruler and a shade over the tracks; the title has no `*`; Undo does not touch the range | `InOutRangeTests`, `InOutRangeUiTests` (points, bar, In / Out lines, playhead-in-range) | app 15.7 (Claude), passed — R5 fixture copy: Home, Shift+→ ×5, I → "In set at 00:00:05:00."; Shift+→ ×3, O → "Out set after 00:00:08:00 (that frame is included)."; the bar on the ruler, the shade over the tracks, the In / Out lines (Out right after the playhead's frame) and the ✕ shown (screenshot); a mouse click on the ruler at 6 s then I → In 6 s; the title never `*`, Undo disabled |
+| 26 | Rules | `I` after Out; `O` before In; only In; only Out; clear (Q11) | As decided by Q7 / Q8 / Q11 | `InOutRangeTests` (Q7 / Q8, only In / only Out, clamp), `InOutRangeUiTests` | app 15.7 (Claude), passed — the ✕ on the bar: "In / Out cleared.", the bar and the ✕ gone, the title clean; the ordering rules automated |
+| 27 | Loop | Loop on, range set, Play from inside and from outside the range | Playback loops In → Out, starting at In from outside (Q9); Loop off ignores the range | `LoopPlaybackTests` (Loop off ignores the range; Loop on loops [In, Out), from before In and after Out starts at In; clearing frees it), `AudioPlaybackServiceTests` (silence from Out) | app 15.7 (Claude), passed — range [5 s, 8 s]: Loop off, Play from 6 s: timecodes 06:11 … 08:08 … 11:15 (through Out); Loop on (Ctrl+L), Play from 2 s: 05:11, 05:23 … 07:20, 05:05 … 08:00, 05:10 … (24 samples, all in 5:00–8:00); from 15 s: 05:20 … — starts at In. The sound at Out judged only by the automated test |
+| 28 | Range export | Export with a range (Q10) | The file covers exactly the range; first / last frame and sound match the Preview at In / Out − 1 frame; duration Out − In | `ExportRangeEndToEndTests` (frames and samples equal the whole export's), `ExportRangeTests`, `ExportWorkflowTests` | app 15.7 (Claude), passed — Export: the question "An In / Out range is set: 00:00:05:00 to 00:00:08:01 (76 frames). Export only the range, or the entire sequence?" with Range / Entire sequence / Cancel; Range → 76 frames, 3.040 s, red (red.mp4 at 5–9 s); with gone-still.png offline (used only at 18–22 s) the range exported, Entire sequence → "Export not possible: 'gone-still.png' is offline (1 clip, first at 00:00:18.000)."; on an intact copy with the range set, Entire sequence → 675 frames, 27.000 s |
+| 29 | Not saved | Set a range, Save, close and reopen; set a range, wait for the autosave, kill the process, Recover | No range after reopening and after the recovery; `project.json` and the recovery file contain no range | `InOutRangeUiTests.The_range_is_not_saved_and_New_Open_and_Recover_start_without_it` | app 15.7 (Claude), passed (partly) — every range change left the title clean and Undo disabled; the copy's `project.json` unchanged by the session (hash), `formatVersion` 3, no range field. New / Open / Recover clearing automated |
+| 30 | Edits | Ripple delete before the range; change the frame rate | The range stays at its time (nearest frame after the rate change) | `InOutRangeUiTests` (edits, undo / redo, zoom, frame-rate change) | auto |
 
 ## Step 15.8 — UX fixes (D030 §9)
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
 | 31 | Text size | `+ Text` on 1920 × 1080, 3840 × 2160, 1080 × 1920, 1280 × 720 | Inspector Size 48, 96, 85.33, 32; existing text clips unchanged | | planned |
-| 32 | Audio status | Play, unplug / disable the audio device (status "Playing without sound…"), plug it back, Play | The stale status gone once the sound is back; a second loss reported again (Q15) | | planned |
+| 32 | Audio status | Play, unplug / disable the audio device (status "Playing without sound…"), plug it back, Play | The stale status gone once the sound is back; a second loss reported again (Q15) | `PreviewSoundStatusTests` | auto (15.7 — Q15 taken into 15.7); manual pending: needs a real audio device unplugged and plugged back (PO) |
 
 ## Regression (Step 15.9)
 
@@ -147,3 +147,16 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
   before / during / after.
 - Scenarios 20–23: see the table; 24 automated. At the end every change undone: title clean, Undo disabled, the playhead
   where it was set (2 s) throughout.
+
+### 2026-10-07 — Step 15.7 development-time run (Claude), Debug build of the 15.7 tree
+
+- Fresh copies of the Phase 14 R5 fixture (the original unchanged, hash checked): one with `still.png` pointed to a missing
+  file (offline, used only at 18–22 s), one intact. Keys by `keybd_event` (I, O, Space, Ctrl+L, navigation keys as
+  extended keys), the ruler by a mouse click, the range's ✕ and the export choice by UI Automation (the choice dialog
+  is a child window of the main window), the native save dialog as before; timecodes sampled every 300–400 ms while
+  playing; the outputs checked with ffprobe / ffmpeg.
+- A first ruler click landed below the ruler (on V2) and selected the text clip — the click position, not the app: a
+  ruler click moves the playhead in the 15.7 and the 15.6 builds alike (checked side by side). Two exports took the save
+  dialog's default name inside the scratch copies' folders; the files were moved to the scratch output folder.
+- Scenarios 25–29: see the table; 30 automated; 32 (the audio status) automated only — it needs a real device
+  removed and restored.

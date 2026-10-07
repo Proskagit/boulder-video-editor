@@ -33,15 +33,20 @@ public sealed class ExportFrameSource : IAsyncDisposable
     private readonly IVideoDecoder _decoder;
     private readonly ExportDecodeSettings _settings;
     private readonly Dictionary<Guid, ExportPictureReader> _readers = new();
+    private readonly long _firstFrame;
     private long _lastIndex = -1;
     private bool _disposed;
 
-    public ExportFrameSource(PlaybackSnapshot snapshot, IVideoDecoder decoder, ExportDecodeSettings? settings = null)
+    /// <param name="output">The job's output (<see cref="ExportJob.Output"/>): output frame n is timeline frame
+    /// <c>output.FirstFrame + n</c> (a range export, D030 §8); null = the whole sequence.</param>
+    public ExportFrameSource(PlaybackSnapshot snapshot, IVideoDecoder decoder, ExportDecodeSettings? settings = null, ExportOutput? output = null)
     {
         _snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
         _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
         _settings = settings ?? new ExportDecodeSettings();
-        FrameCount = ExportOutput.For(snapshot).FrameCount;
+        output ??= ExportOutput.For(snapshot);
+        FrameCount = output.FrameCount;
+        _firstFrame = output.FirstFrame;
     }
 
     public long FrameCount { get; }
@@ -58,7 +63,8 @@ public sealed class ExportFrameSource : IAsyncDisposable
             throw new InvalidOperationException($"Frames must be requested in ascending order ({index} after {_lastIndex}).");
         _lastIndex = index;
 
-        var time = MediaTime.FromFrame(index, _snapshot.FrameRate);
+        var timelineFrame = _firstFrame + index;
+        var time = MediaTime.FromFrame(timelineFrame, _snapshot.FrameRate);
         var layers = _snapshot.LayersAt(time);
 
         var needed = layers.OfType<PictureLayer>().Select(l => l.Span.ClipId).ToHashSet();
@@ -77,7 +83,7 @@ public sealed class ExportFrameSource : IAsyncDisposable
         var readers = layers.Select(l => l is PictureLayer picture ? Reader(picture.Span) : null).ToArray();
         var frames = new Task<DecodedFrame>?[layers.Length];
         for (var i = 0; i < layers.Length; i++) // bottom to top
-            frames[i] = readers[i]?.GetAsync(index, ct).AsTask();
+            frames[i] = readers[i]?.GetAsync(timelineFrame, ct).AsTask();
         // Every fetch ends before anything is reported, also when one fails: no reader is still reading when the
         // caller disposes the source. The first failure in layer order propagates.
         await Task.WhenAll(frames.OfType<Task<DecodedFrame>>());

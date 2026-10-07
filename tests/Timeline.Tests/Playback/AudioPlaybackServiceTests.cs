@@ -84,6 +84,34 @@ public sealed class AudioPlaybackServiceTests : IAsyncLifetime
         Assert.Equal(2, _service.Update().TimelineFrame); // 0.1 s at 25 fps
     }
 
+    /// <summary>Phase 15 Step 15.7 (D030 §8, Q9): with a playback range (Loop with In / Out), Play outside it starts at its
+    /// start, and the device hears nothing from its end on — the sound never runs past Out, even from the buffer.</summary>
+    [Fact]
+    public async Task A_playback_range_starts_at_its_start_and_its_end_is_silent()
+    {
+        AddVideoWithSound("a.mp4", 10);
+        Publish();
+        _service.SetPlaybackRange(new PlaybackRange(MediaTime.FromSeconds(0.2), MediaTime.FromSeconds(0.4)));
+        Assert.Equal(MediaTime.FromSeconds(0.4), _service.PlaybackEnd);
+        await _service.SeekAsync(MediaTime.FromSeconds(5));                        // outside the range
+
+        _service.Play();
+        Assert.Equal(MediaTime.FromSeconds(0.2), _service.Position);              // started at the range's start
+        var audio = await PlayAudio(14_400);                                       // 0.3 s: through the end at 0.4 s
+
+        Assert.Equal(S(0.2), FirstIndex(audio));
+        Assert.NotEqual(0f, audio[(9_600 - 1) * 2]);                               // the last sample before 0.4 s
+        Assert.All(audio[(9_600 * 2)..], v => Assert.Equal(0f, v));                // from 0.4 s on: silence
+
+        _service.Pause();
+        await _service.SeekAsync(MediaTime.FromSeconds(0.1));                      // before the range
+        _service.Play();
+        Assert.Equal(MediaTime.FromSeconds(0.2), _service.Position);
+
+        _service.SetPlaybackRange(null);
+        Assert.Equal(_service.Duration, _service.PlaybackEnd);
+    }
+
     [Fact]
     public async Task Pause_StopsTheDevice_AndResumeContinuesAtTheNextSample()
     {

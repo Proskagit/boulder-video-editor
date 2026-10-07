@@ -7,8 +7,8 @@ locked by the product owner on 2026-10-07 (DECISIONS.md D030): track controls (m
 (plain and ripple, `Q` / `W`), ripple trim by dragging, slip, a timeline In / Out range (`I` / `O`, loop, range export) as
 unsaved session state, a new text clip's `FontSize = 48 × canvasHeight / 1080`, the audio status reset. Steps 15.1
 (pre-analysis), 15.2 (documentation, `d1296be`), 15.3 (track controls, `1d26165`) and 15.4 (trim to the playhead,
-`f122c9a`) and 15.5 (ripple trim by dragging, `efecd24`) accepted; Step 15.6 (slip) done, awaiting acceptance; Q13,
-Q1–Q6, Q12 answered, the other open questions of D030 are answered before the steps they concern. Scope, steps and acceptance criteria:
+`f122c9a`), 15.5 (ripple trim by dragging, `efecd24`) and 15.6 (slip, `aa94da0`) accepted; Step 15.7 (In / Out range,
+loop, range export; the Q15 audio status fix) done, awaiting acceptance; only Q14 (15.8) is still open. Scope, steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md` "Phase 15 — Editing tools: steps"; manual plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
 ### Phase 15 — Editing tools (in progress)
@@ -216,6 +216,42 @@ command; no push, pull request or merge without direct permission; no next step 
   - Manual (`docs/PHASE15_MANUAL_TEST_PLAN.md`, scenarios 20–23, the results log): Alt + body drags with a real pointer
     on the Phase 14 R5 fixture — the planned Source In / Out during the drag with the Preview unchanged, the Preview
     updated on release, 1× and 0.5×, the source start, a dissolve, Esc, image / text, a locked V1, 1024 px, undo / redo.
+  - Committed as `aa94da0`; accepted by the product owner (2026-10-07).
+- Product owner decisions at the start of Step 15.7 (2026-10-07), recorded in D030: Q7 (O includes the playhead's frame,
+  `[In, Out)`), Q8 (the new point kept, the other cleared, no message), Q9 (Loop on: exactly `[In, Out)`, from outside
+  at In; Loop off: free), Q10 (Range / Entire sequence / Cancel), Q11 (an ✕ on the bar, no key), Q16 (the range's media
+  only); the range never saved, cleared on New / Open / Recover, never dirty or undoable; Q15 (the stale audio status)
+  taken into this step. Only Step 15.7.
+- Step 15.7 done (2026-10-07) — In / Out range (D030 §8, "Refined in Step 15.7").
+  - Core: `InOutRange` (+ `PlaybackRange`), `ExportRange`; `ExportOutput.For(snapshot, range)` with `FirstFrame` /
+    `FirstSample`; `ExportJob.Range`; `ExportPreflight.Check(…, range)` (clamp, `EmptyRange`, the range's pictures — with
+    dissolve zones — sounds and texts only); `IPlaybackService.SetPlaybackRange` / `PlaybackEnd`.
+  - Export / Timeline: `ExportFrameSource` / `ExportAudioSource` offset by the output (the service passes `job.Output`);
+    `PlaybackService` (Play outside the range at its start, the end of playing), `AudioMixer.SetEnd` (silence from Out).
+  - UI: `InOutRangeService` (singleton; DI), the timeline's `SetIn` / `SetOut` / `ClearInOut`, the range bar, lines, ✕
+    and playhead-in-range shade; I / O in `ShortcutRouter`; the Preview applies the range only with Loop on and loops at
+    `PlaybackEnd`; `ExportWorkflow` asks Range / Entire sequence / Cancel and passes the range to both preflights; the
+    Q15 fix in `PreviewViewModel`.
+  - Tests (+51 and 4 more cases): Core `InOutRangeTests` (6), `ExportRangeTests` (7); UI `InOutRangeUiTests` (5),
+    `LoopPlaybackTests` (+3), `ExportWorkflowTests` (+3), `PreviewSoundStatusTests` (3), `ShortcutRoutingTests` (+2 table
+    rows, the non-shortcut cases I / O with Shift and X); Timeline `AudioPlaybackServiceTests` (+1: the range's start and
+    the silence from Out); ExportEndToEnd `ExportRangeEndToEndTests` (1: at 29.97 fps across a cut, a fade, a 2× clip, a
+    hidden and a muted track the range export's 38 frames and its samples are byte for byte the whole export's at the same
+    positions; the Preview equal).
+  - Mutations (16, each restored, `--no-incremental` rebuild after): Out without the playhead's frame → 5 + 7 fail; In
+    rounded up → 5; Q8 ignored → 1; no clamp → 1; Range / Entire swapped → 2; Cancel exporting → 1; the frame source not
+    offset → 1; the audio from sample 0 → 1; the first sample rounded to the nearest → first survived (the tested
+    frames rounded the same both ways), a frame where they differ added → 1; the preflight ignoring the range → 2 + 1;
+    dissolve zones not counted → 1; the range surviving another project → 1; the range confining playback with Loop off
+    → 1; Play before In not starting at In → first survived (only "after Out" was tested), a start before In added → 1 +
+    1; the sound running past Out → 1; Out not ending playback → 2 + 1. None survives now.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full suite 2826 passed, 2
+    skipped (the two 4K scenes), 0 failed — Core 526 (+13), Timeline 661 (+1), Project 426, UI 618 (+16), Export 100,
+    Rendering 58, Video 322, ExportEndToEnd 115 + 2 (+1).
+  - Manual (`docs/PHASE15_MANUAL_TEST_PLAN.md`, scenarios 25–29, the results log): I / O by keyboard and after a ruler
+    click, the bar and the ✕, Loop off / on with sampled timecodes, Range (76 frames, 3.04 s) and Entire sequence (675
+    frames) exports, a range export not blocked by media offline only outside it, the project clean and v3 throughout.
+    Not run by hand: the audio status (Q15) — it needs a real device removed and restored.
 
 ### Phase 14 — Stabilization / technical debt (complete; PR #14 merged as `7200976`)
 
@@ -3863,10 +3899,10 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 
 - ffmpeg / ffprobe locators: a PATH probe slower than 5 s counts as "not found" for the app run (a heavily loaded machine
   could hit it; seen once on CI in a test). Known risk, unchanged (D024, Step 9.10).
-- Audio device: after a device was lost during playback and the sound came back at the next Play, the status bar still says
-  "Playing without sound…" (the status shows the last message until another one; D024 "Left as they are", Step 9.10). A real
-  default-device change and a real removal were checked on hardware in Step 9.10 (scenarios 14–17). Deferred out of
-  Phase 14 as a UX change (D029 §3); taken into Phase 15 Step 15.8 (D030 §9).
+- Audio device: after a device was lost during playback and the sound came back at the next Play, the status bar still said
+  "Playing without sound…" (D024 "Left as they are", Step 9.10; deferred by D029 §3). Fixed in Phase 15 Step 15.7 (D030 §9,
+  Q15): the message goes when sound is available again while playing, and a later loss is reported again (automated;
+  the real-device check is pending).
 - Text clips: a new text clip takes `FontSize` 48 on any canvas (`Clip.cs`), small on a 4K canvas (an observation from
   Phase 13). Deferred out of Phase 14 as a product change (D029 §3); taken into Phase 15 Step 15.8 —
   `48 × canvasHeight / 1080` (D030 §9).

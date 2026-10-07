@@ -74,15 +74,17 @@ public sealed partial class PreviewViewModel : ViewModelBase
     public event EventHandler<MediaTime>? PlaybackPositionChanged;
 
     public PreviewViewModel(StatusService status, IPlaybackService playback, IProjectService projectService,
-        ILogger<PreviewViewModel> logger)
+        ILogger<PreviewViewModel> logger, InOutRangeService? inOut = null)
     {
+        _inOut = inOut;
         _status = status;
         _playback = playback;
         _projectService = projectService;
         _logger = logger;
 
         _playback.StateChanged += (_, _) => { IsPlaying = _playback.State == PlaybackState.Playing; _needsTick = true; };
-        _projectService.TimelineChanged += (_, _) => RebuildSnapshot();
+        _projectService.TimelineChanged += (_, _) => { RebuildSnapshot(); ApplyPlaybackRange(); };
+        if (_inOut is not null) _inOut.RangeChanged += (_, _) => ApplyPlaybackRange();
         _projectService.MediaAssetsChanged += (_, _) => OnMediaAssetsChanged();
         _projectService.ProjectChanged += (_, _) => OnProjectChanged();
         Canvas = ProjectCanvas();
@@ -115,9 +117,10 @@ public sealed partial class PreviewViewModel : ViewModelBase
 
         var wasPlaying = _playback.State == PlaybackState.Playing;
         var frame = _playback.Update();
-        if (IsLooping && wasPlaying && frame.State == PlaybackState.Paused && frame.Position >= _playback.Duration)
+        if (IsLooping && wasPlaying && frame.State == PlaybackState.Paused && frame.Position >= _playback.PlaybackEnd)
         {
-            // This update reached the end and paused there (D011); Play at the end starts again from 0.
+            // This update reached the end — of the sequence, or of the In / Out range (D030 §8) — and paused there (D011);
+            // Play at the end starts again from 0, or from In.
             _playback.Play();
             frame = _playback.Update();
         }
@@ -140,7 +143,14 @@ public sealed partial class PreviewViewModel : ViewModelBase
         if (IsPlaying && !_playback.IsAudioAvailable && !_reportedNoAudio)
         {
             _reportedNoAudio = true;
-            _status.Report("Playing without sound: no audio output is available.");
+            _status.Report(NoSoundMessage);
+        }
+        else if (_reportedNoAudio && IsPlaying && _playback.IsAudioAvailable)
+        {
+            // The sound is back (D029 §3, D030 §9 / Q15): the stale message goes — unless something else was reported
+            // since — and a later loss is reported again. Nothing in the project changes.
+            _reportedNoAudio = false;
+            if (_status.Message == NoSoundMessage) _status.Report("Ready.");
         }
 
         if (!IsPlaying && !IsBuffering && AreLayersCurrent)
@@ -237,6 +247,23 @@ public sealed partial class PreviewViewModel : ViewModelBase
     /// <summary>Ctrl+L and the Loop button (PO-H3).</summary>
     [RelayCommand]
     private void ToggleLoop() => IsLooping = !IsLooping;
+
+    private const string NoSoundMessage = "Playing without sound: no audio output is available.";
+
+    private readonly InOutRangeService? _inOut;
+
+    partial void OnIsLoopingChanged(bool value) => ApplyPlaybackRange();
+
+    /// <summary>Loop with an In / Out range plays exactly the range (D030 §8, Q9): playback is confined to it; without
+    /// Loop, or without a range, playback is free (the whole sequence, as before).</summary>
+    private void ApplyPlaybackRange()
+    {
+        var rate = _projectService.Current.Settings.FrameRate;
+        _playback.SetPlaybackRange(IsLooping && _inOut?.Frames is { } f
+            ? new PlaybackRange(MediaTime.FromFrame(f.First, rate), MediaTime.FromFrame(f.End, rate))
+            : null);
+        _needsTick = true;
+    }
 
     [RelayCommand]
     private void Stop()

@@ -87,6 +87,9 @@ public static class ShortcutRouter
             Key.W when none => timeline.TrimEndToPlayheadCommand,
             Key.Q when shift => timeline.RippleTrimStartToPlayheadCommand,
             Key.W when shift => timeline.RippleTrimEndToPlayheadCommand,
+            // Phase 15 Step 15.7 (D030 §8): In / Out at the playhead (Ctrl+I stays Import); no key clears the range.
+            Key.I when none => timeline.SetInCommand,
+            Key.O when none => timeline.SetOutCommand,
             _ => null
         };
     }

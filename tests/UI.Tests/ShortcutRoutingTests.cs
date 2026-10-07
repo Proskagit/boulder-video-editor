@@ -121,6 +121,9 @@ public sealed class ShortcutRoutingTests
             (Key.W, KeyModifiers.None, timeline.TrimEndToPlayheadCommand),
             (Key.Q, shift, timeline.RippleTrimStartToPlayheadCommand),
             (Key.W, shift, timeline.RippleTrimEndToPlayheadCommand),
+            // Phase 15 Step 15.7 (D030 §8)
+            (Key.I, KeyModifiers.None, timeline.SetInCommand),
+            (Key.O, KeyModifiers.None, timeline.SetOutCommand),
         };
     }
 
@@ -136,7 +139,9 @@ public sealed class ShortcutRoutingTests
     [InlineData(Key.Z, KeyModifiers.None)]
     [InlineData(Key.J, KeyModifiers.Shift)]                        // J / K / L only without modifiers
     [InlineData(Key.K, KeyModifiers.Control)]
-    [InlineData(Key.I, KeyModifiers.None)]                         // Import and Export need Ctrl
+    [InlineData(Key.I, KeyModifiers.Shift)]                        // Import needs Ctrl; plain I is In (15.7)
+    [InlineData(Key.O, KeyModifiers.Shift)]                        // plain O is Out (15.7)
+    [InlineData(Key.X, KeyModifiers.None)]                         // no key clears the range (Q11)
     [InlineData(Key.E, KeyModifiers.None)]
     [InlineData(Key.OemPipe, KeyModifiers.Control)]
     [InlineData(Key.C, KeyModifiers.None)]                         // copy / paste / duplicate need Ctrl

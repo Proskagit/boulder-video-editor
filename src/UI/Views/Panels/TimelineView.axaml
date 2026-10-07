@@ -73,6 +73,12 @@
     <Style Selector="Button.trackState.lock.on /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#D0921E"/>
     </Style>
+    <Style Selector="Rectangle.inOutShade">
+      <Setter Property="Fill" Value="#1AF2C94C"/>
+    </Style>
+    <Style Selector="Rectangle.inOutShade.current">
+      <Setter Property="Fill" Value="#2EF2C94C"/>
+    </Style>
     <Style Selector="Border.trackRow.dropTarget">
       <Setter Property="Background" Value="#2A3A4A"/>
     </Style>
@@ -297,6 +303,27 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
+
+            <!-- In / Out range (D030 §8): a shade over the ruler and the tracks, the In / Out lines -->
+            <Canvas Grid.Row="0" Grid.RowSpan="2" IsHitTestVisible="False">
+              <Rectangle Classes="inOutShade" Classes.current="{Binding IsPlayheadInRange}"
+                         Canvas.Left="{Binding RangeLeft}" Width="{Binding RangeWidth}" Height="{Binding PlayheadHeight}"
+                         IsVisible="{Binding HasRange}"/>
+              <Rectangle Canvas.Left="{Binding InX}" Width="2" Height="{Binding PlayheadHeight}" Fill="#F2C94C"
+                         IsVisible="{Binding HasIn}"/>
+              <Rectangle Canvas.Left="{Binding OutX}" Width="2" Margin="-2,0,0,0" Height="{Binding PlayheadHeight}" Fill="#F2C94C"
+                         IsVisible="{Binding HasOut}"/>
+            </Canvas>
+
+            <!-- The range bar on the ruler: In … Out, ✕ clears it (Q11). Its button takes the click; the rest of the ruler
+                 still moves the playhead. -->
+            <Canvas Grid.Row="0" Height="24" VerticalAlignment="Top">
+              <Border Canvas.Left="{Binding RangeLeft}" Width="{Binding RangeWidth}" Height="7" Canvas.Top="17"
+                      Background="#B0F2C94C" IsVisible="{Binding HasRange}" IsHitTestVisible="False"/>
+              <Button Content="✕" Canvas.Left="{Binding RangeRight}" Canvas.Top="1" Margin="2,0,0,0"
+                      FontSize="9" Padding="3,0" MinHeight="0" Height="15" IsVisible="{Binding CanClearRange}"
+                      ToolTip.Tip="Clear In / Out" Command="{Binding ClearInOutCommand}"/>
+            </Canvas>
 
             <!-- Playhead and snap indicator overlay, spanning ruler + tracks -->
             <Canvas Grid.Row="0" Grid.RowSpan="2" IsHitTestVisible="False">

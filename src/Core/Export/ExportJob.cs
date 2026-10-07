@@ -13,7 +13,8 @@ public sealed class ExportJob
 {
     /// <param name="encoding">The export settings; null = <see cref="ExportEncoding.Default"/> (the Phase 8–12 output).
     /// A value that is not offered is an <see cref="ArgumentException"/>.</param>
-    public ExportJob(PlaybackSnapshot snapshot, string outputPath, ExportEncoding? encoding = null)
+    /// <param name="range">Only these timeline frames (the In / Out range, D030 §8); null = the whole sequence.</param>
+    public ExportJob(PlaybackSnapshot snapshot, string outputPath, ExportEncoding? encoding = null, ExportRange? range = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
@@ -22,8 +23,12 @@ public sealed class ExportJob
         Snapshot = snapshot;
         OutputPath = outputPath;
         Encoding = encoding;
-        Output = ExportOutput.For(snapshot);
+        Range = range;
+        Output = ExportOutput.For(snapshot, range);
     }
+
+    /// <summary>The timeline frames exported, or null for the whole sequence.</summary>
+    public ExportRange? Range { get; }
 
     /// <summary>The quality, libx264 preset and AAC bitrate of this export — an immutable record taken from the project
     /// when the job was made; later changes of the project's settings don't reach it.</summary>

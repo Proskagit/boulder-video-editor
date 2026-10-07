@@ -96,7 +96,7 @@ public sealed class ExportService : IExportService
     {
         var total = job.Output.AudioSampleCount;
         progress?.Report(new ExportProgress(ExportStage.Audio, 0, total));
-        await using var audio = new ExportAudioSource(job.Snapshot, _audioDecoder);
+        await using var audio = new ExportAudioSource(job.Snapshot, _audioDecoder, job.Output);
         var buffer = new float[AudioChunkFrames * AudioFormat.Channels];
         long written = 0;
         int read;
@@ -116,7 +116,7 @@ public sealed class ExportService : IExportService
         var stride = size.Width * 4;
         var canvas = new byte[(long)stride * size.Height];
         progress?.Report(new ExportProgress(ExportStage.Video, 0, total));
-        await using var frames = new ExportFrameSource(job.Snapshot, _videoDecoder);
+        await using var frames = new ExportFrameSource(job.Snapshot, _videoDecoder, output: job.Output);
 
         // Frame n + 1 is fetched (decoded) while frame n is rasterized and handed to the encoder (D024 Step 9.7, A):
         // one frame ahead, never more — at most two output frames are in flight. The requests stay in ascending order,

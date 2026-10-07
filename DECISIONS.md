@@ -3321,6 +3321,47 @@ Refined in Step 15.6 (implementation, 2026-10-07; the rules above as written):
 - End to end: the A/V sync source slipped by +5 frames exports its white frames and bursts 5 frames earlier at the same
   clip place and length, the Preview equal to the export canvas (`ExportRippleEndToEndTests`).
 
+Answered at the start of Step 15.7 (product owner, 2026-10-07):
+- Q7 — `I` sets In at the start of the frame containing the playhead, `O` sets Out at the end of that frame (the frame
+  under the playhead is in the range); internally `[In, Out)`; I and O on one frame give one frame.
+- Q8 — `I` / `O` are never refused: the new point is kept and the opposite one cleared when the order would be invalid;
+  no message for it.
+- Q9 — Loop on with a valid range plays exactly `[In, Out)`, and Play with the playhead outside it starts at In; Loop off:
+  the range doesn't constrain playback; clearing the range restores the whole-sequence loop.
+- Q10 — no valid range: the export as before; a valid range: Export asks "Range" / "Entire sequence" / "Cancel"; Range
+  exports exactly `[In, Out)`, Entire sequence ignores the range, Cancel starts nothing; the range is never serialized.
+- Q11 — an ✕ on the range bar of the timeline clears In / Out; no key for it; clearing is session state.
+- Q16 — a range export's preflight checks only the media the composition uses inside the range; media used only outside
+  doesn't block; every other check stays.
+- The range is session state like the playhead but not saved at all: not in `project.json`, not in autosave / recovery,
+  cleared on New / Open / Recover, never dirty, never an undo step; `project.json` stays v3.
+- Q15 (D029 §3, taken into this step): the stale "Playing without sound…" status is cleared through the playback state
+  when sound is available again; no undo or dirty change.
+
+Refined in Step 15.7 (implementation, 2026-10-07):
+- Core: `InOutRange` (the rules: `WithIn` / `WithOut` / `Regrid` / `Frames` — clamped to the sequence, only In = to the
+  end, only Out = from 0), `PlaybackRange`, `ExportRange`. `ExportOutput.For(snapshot, range)`: the range's frames, its
+  duration and the samples `[⌈In · 48000 / 10⁷⌉, ⌈Out · 48000 / 10⁷⌉)` (`FirstFrame`, `FirstSample`); `ExportJob` carries
+  the range; `ExportFrameSource` renders output frame n from timeline frame `FirstFrame + n` and `ExportAudioSource`
+  mixes from `FirstSample` — the same pipeline, offset, so the track flags, fades, dissolves and speed are as in the
+  whole export: a range export's frames and samples are byte for byte the whole export's at the same timeline positions
+  (tested at 29.97 fps across a cut, a fade, a 2× clip, a hidden and a muted track). `ExportPreflight.Check(…, range)`
+  clamps the range to the sequence (an empty one: `EmptyRange`, "The In / Out range has no part of the timeline in it.")
+  and checks a picture where it is shown (its dissolve zones included), a sound where it is placed, a text where it is.
+- Playback: `IPlaybackService.SetPlaybackRange` / `PlaybackEnd` — `PlaybackService` starts Play outside the range at its
+  start and pauses at its end as at the sequence's end; the `AudioMixer` makes every sample from Out on silent, so the
+  buffered sound never runs past it. The Preview applies the range only while Loop is on (and the range is valid), and
+  its existing loop restarts at `PlaybackEnd` — the range's end or the sequence's.
+- UI: `InOutRangeService` (UI.Services, a singleton: the timeline, the Preview, the export) — `SetIn` / `SetOut` / `Clear`,
+  cleared on `ProjectChanged`, re-gridded on a frame-rate change, never touching the project. The timeline view model:
+  `SetIn` (I) / `SetOut` (O) / `ClearInOut` (the ✕), the bar (`RangeLeft` / `RangeWidth`), the In / Out lines, the
+  playhead-in-range state (a brighter shade), all recomputed on the range, zoom, timeline changes and playhead moves;
+  status "In set at …", "Out set after … (that frame is included).", "In / Out cleared.". `ExportWorkflow` asks first,
+  then runs its preflights with the chosen range. Keys I / O in `ShortcutRouter` (Ctrl+I stays Import).
+- Q15: `PreviewViewModel` re-arms the "Playing without sound…" report and sets the status back to "Ready." when sound is
+  available again while playing, if that message is still the one shown. (The message is about the audio output, not
+  about muted clips or tracks — a muted clip or track never produces it.)
+
 Consequences: new commands in the Timeline subsystem (`ITimelineEditService`: track state, trim to the playhead with
 ripple, slip and its limits), sharing the existing trim / shift planners and `EditPlan` reconciliation; a range on the
 export job (`ExportJob` / preflight / encoder input) and in the Preview's loop; the timeline view gains the track
@@ -3329,9 +3370,9 @@ toggles, the ripple / slip gestures and the range band; `project.json` unchanged
 
 Status: Accepted (2026-10-07, product owner: scope §1, the In / Out range as unsaved session state, the keys `I` / `O` /
 `Q` / `W`, the font-size formula, the non-goals §3). Q13 answered (Step 15.3); Q1, Q2, Q4, Q5, Q6 answered (Step
-15.4); Q3 answered (Step 15.5); Q12 answered (Step 15.6); the other proposals marked Q1–Q16 are open until the product
-owner answers them. Steps 15.2, 15.3 (`1d26165`), 15.4 (`f122c9a`) and 15.5 (`efecd24`) accepted; Step 15.6 done (awaiting
-acceptance). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
+15.4); Q3 answered (Step 15.5); Q12 answered (Step 15.6); Q7–Q11, Q15, Q16 answered (Step 15.7); Q14 is open until the
+product owner answers it. Steps 15.2, 15.3 (`1d26165`), 15.4 (`f122c9a`), 15.5 (`efecd24`) and 15.6 (`aa94da0`) accepted;
+Step 15.7 done (awaiting acceptance). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
 
 ---
 

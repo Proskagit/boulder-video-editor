@@ -71,7 +71,7 @@ and runs cleanly.
       trim by dragging an edge, slip, and a timeline In / Out range (unsaved session state) for loop playback and range
       export; a new text clip's font size relative to the canvas and the audio status after the sound returns. Scope,
       steps and acceptance criteria: section below and DECISIONS.md D030 (product owner decisions, 2026-10-07).
-      *(branch `feat/phase-15-editing-tools`, from `7200976`; Steps 15.1–15.5 accepted; Step 15.6 done — awaiting acceptance)*
+      *(branch `feat/phase-15-editing-tools`, from `7200976`; Steps 15.1–15.6 accepted; Step 15.7 done — awaiting acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -912,7 +912,7 @@ Scope: D030 §6.
 - Decisions at the start: Q3 (modifier).
 - Depends on: 15.4.
 
-### 15.6 — Slip *(done 2026-10-07 — awaiting acceptance; D030 "Refined in Step 15.6": Alt at the press on a clip's body, SourceIn / SourceOut moved together by D022's start-trim amount, clamped to the source and the dissolve handles with a message, the planned Source In / Out on the clip during the drag, one undo step on release; video and audio clips)*
+### 15.6 — Slip *(done, accepted 2026-10-07 — `aa94da0`; D030 "Refined in Step 15.6": Alt at the press on a clip's body, SourceIn / SourceOut moved together by D022's start-trim amount, clamped to the source and the dissolve handles with a message, the planned Source In / Out on the clip during the drag, one undo step on release; video and audio clips)*
 Scope: D030 §7, §10.
 - PR: `Alt` (Q3) + drag on a video / audio clip's body slips its source range while its start, length, speed, fades and
   properties stay; clamped to the allowed range; one undo step per gesture; `Esc` cancels.
@@ -923,7 +923,7 @@ Scope: D030 §7, §10.
 - Decisions at the start: Q3, Q12.
 - Depends on: 15.5.
 
-### 15.7 — Timeline In / Out range: loop and range export
+### 15.7 — Timeline In / Out range: loop and range export *(done 2026-10-07 — awaiting acceptance; D030 "Refined in Step 15.7": I / O with the playhead's frame included, the opposite point cleared, the ✕ on the bar, Loop over exactly [In, Out) with silence from Out, Range / Entire sequence / Cancel, a range export byte for byte the whole export's frames and samples, the preflight of the range's media only; the Q15 audio status fix taken here from 15.8)*
 Scope: D030 §8.
 - PR: `I` / `O` set In / Out at the playhead; a clear operation (Q11); the range shown on the ruler and over the tracks;
   loop uses the range (Q9); the export can export only the range (Q10), refused when it is empty.

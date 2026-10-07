@@ -78,6 +78,16 @@ public sealed class PlaybackService : IPlaybackService
 
     public MediaTime Duration => _snapshot?.Duration ?? MediaTime.Zero;
 
+    private PlaybackRange? _range;
+
+    public MediaTime PlaybackEnd => _range is { } r && r.End < Duration ? r.End : Duration;
+
+    public void SetPlaybackRange(PlaybackRange? range)
+    {
+        _range = range;
+        _mixer.SetEnd(range is { } r ? AudioTiming.CeilingSample(r.End) : long.MaxValue);
+    }
+
     /// <summary>Current seek generation (diagnostics and tests). Changes only on user seeks
     /// and snapshot updates, never on decoder-internal recovery.</summary>
     internal long SeekGeneration => Interlocked.Read(ref _seekGeneration);
@@ -141,7 +151,9 @@ public sealed class PlaybackService : IPlaybackService
         if (_released || _snapshot is null || Duration <= MediaTime.Zero || State == PlaybackState.Playing)
             return;
 
-        if (Position >= Duration)
+        if (_range is { } range && (Position < range.Start || Position >= PlaybackEnd))
+            Restart(range.Start);                     // Loop with an In / Out range (D030 §8, Q9)
+        else if (Position >= Duration)
             Restart(MediaTime.Zero);
         StartAudio();
         _clock.Start();
@@ -193,10 +205,11 @@ public sealed class PlaybackService : IPlaybackService
         }
 
         var position = _clock.Position;
-        if (State == PlaybackState.Playing && position >= snapshot.Duration)
+        var end = PlaybackEnd;
+        if (State == PlaybackState.Playing && position >= end)
         {
             Pause();
-            _clock.Seek(snapshot.Duration);
+            _clock.Seek(end);
         }
         position = Clamp(_clock.Position);
         _audio?.Maintain(_audioRunning ? _mixer.WritePosition : AudioTiming.NearestSample(position));

@@ -37,6 +37,7 @@ public sealed class LoopPlaybackTests : IAsyncLifetime
     private readonly FakeReferenceClock _clock = new();
     private readonly PlaybackService _playback;
     private readonly MainWindowViewModel _vm;
+    private readonly InOutRangeService _inOut;
 
     public LoopPlaybackTests()
     {
@@ -44,6 +45,7 @@ public sealed class LoopPlaybackTests : IAsyncLifetime
         _edit = new TimelineEditService(_projects, _undoRedo, NullLogger<TimelineEditService>.Instance);
         _playback = new PlaybackService(_decoder, _clock, NullLogger<PlaybackService>.Instance, new PlaybackSettings { BufferFrames = 4 });
         var status = new StatusService();
+        _inOut = new InOutRangeService(_projects);
         var analysis = new MediaAnalysisCoordinator(new NoAnalysis(), _projects, NullLogger<MediaAnalysisCoordinator>.Instance);
         var picker = new ScriptedPicker();
         var workflow = new MediaImportWorkflow(picker, new NoImport(), _projects, analysis, status, NullLogger<MediaImportWorkflow>.Instance);
@@ -52,9 +54,9 @@ public sealed class LoopPlaybackTests : IAsyncLifetime
         _vm = new MainWindowViewModel(
             new ToolbarViewModel(_undoRedo, files, workflow, status),
             new MediaBrowserViewModel(_projects, workflow, NullLogger<MediaBrowserViewModel>.Instance),
-            new PreviewViewModel(status, _playback, _projects, NullLogger<PreviewViewModel>.Instance),
+            new PreviewViewModel(status, _playback, _projects, NullLogger<PreviewViewModel>.Instance, _inOut),
             new InspectorViewModel(_edit, status),
-            new TimelineViewModel(_projects, _edit, status, NullLogger<TimelineViewModel>.Instance),
+            new TimelineViewModel(_projects, _edit, status, NullLogger<TimelineViewModel>.Instance, inOut: _inOut),
             status, files, _projects, NullLogger<MainWindowViewModel>.Instance);
     }
 
@@ -208,5 +210,83 @@ public sealed class LoopPlaybackTests : IAsyncLifetime
         public IReadOnlySet<string> SupportedExtensions { get; } = new HashSet<string>();
         public Task<MediaImportBatchResult> ImportManyAsync(IEnumerable<string> filePaths, CancellationToken ct = default) =>
             Task.FromResult(new MediaImportBatchResult());
+    }
+    // --- the In / Out range (Phase 15 Step 15.7, D030 §8, Q9) ------------------------------------------------------
+
+    /// <summary>A 100-frame clip with In at 20 and Out after 39: the range [20, 40).</summary>
+    private void Range20To40()
+    {
+        Clip(100);
+        Timeline.SetPlayhead(F(20));
+        Timeline.SetInCommand.Execute(null);
+        Timeline.SetPlayhead(F(39));
+        Timeline.SetOutCommand.Execute(null);
+        Assert.Equal((20L, 40L), _inOut.Frames);
+    }
+
+    [Fact]
+    public async Task With_loop_off_the_range_does_not_confine_playback()
+    {
+        Range20To40();
+        Timeline.SetPlayhead(F(0));
+        await Settled(0);
+
+        Preview.PlayCommand.Execute(null);                                    // from 0, outside the range: no jump
+        await TickUntil(() => Preview.IsPlaying, "did not start");
+        Assert.True(Timeline.Playhead < F(20));
+        _clock.Advance(F(60) - MediaTime.Zero);                              // plays through Out
+        await TickUntil(() => Timeline.Playhead >= F(55), "stopped at the range");
+        Assert.True(Preview.IsPlaying);
+        Assert.Equal(_playback.Duration, _playback.PlaybackEnd);
+    }
+
+    [Fact]
+    public async Task With_loop_on_playback_loops_exactly_the_range_and_starts_at_In_from_outside()
+    {
+        Range20To40();
+        Preview.ToggleLoopCommand.Execute(null);
+        Assert.Equal(F(40), _playback.PlaybackEnd);
+        Timeline.SetPlayhead(F(70));                                        // outside the range
+        await Settled(70);
+
+        Preview.PlayCommand.Execute(null);
+        await TickUntil(() => Preview.IsPlaying && Timeline.Playhead == F(20), "did not start at In");
+        Preview.PauseCommand.Execute(null);
+        Timeline.SetPlayhead(F(5));                                          // before In: also starts at In
+        await Settled(5);
+        Preview.PlayCommand.Execute(null);
+        await TickUntil(() => Preview.IsPlaying && Timeline.Playhead == F(20), "did not start at In from before it");
+
+        _clock.Advance(F(25) - MediaTime.Zero);                              // past Out (frame 45)
+        await TickUntil(() => Preview.IsPlaying && Timeline.Playhead < F(30), "did not loop back to In");
+        Assert.True(Timeline.Playhead >= F(20));
+        var shown = new List<MediaTime>();
+        for (var i = 0; i < 40; i++)
+        {
+            _clock.Advance(F(1) - MediaTime.Zero);
+            Preview.Tick();
+            shown.Add(Timeline.Playhead);
+        }
+        Assert.All(shown, at => Assert.True(at >= F(20) && at <= F(39), $"{at} outside [20, 40)"));   // never outside the range
+        Assert.True(Preview.IsPlaying);
+    }
+
+    [Fact]
+    public async Task Clearing_the_range_or_the_loop_frees_playback_again()
+    {
+        Range20To40();
+        Preview.ToggleLoopCommand.Execute(null);
+        Assert.Equal(F(40), _playback.PlaybackEnd);
+
+        Timeline.ClearInOutCommand.Execute(null);                            // the ✕
+        Assert.Equal(_playback.Duration, _playback.PlaybackEnd);              // the whole-sequence loop again
+
+        Timeline.SetPlayhead(F(20));
+        Timeline.SetInCommand.Execute(null);                                 // only In: [20, end)
+        Assert.Equal(_playback.Duration, _playback.PlaybackEnd);
+        Preview.PlayCommand.Execute(null);
+        await TickUntil(() => Preview.IsPlaying, "did not start");
+        Preview.ToggleLoopCommand.Execute(null);                             // loop off: no confinement
+        Assert.Equal(_playback.Duration, _playback.PlaybackEnd);
     }
 }
