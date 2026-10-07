@@ -3211,6 +3211,57 @@ Refined in Step 15.4 (implementation, 2026-10-07):
   room at 1024 px); the status bar names the done trim ("Trimmed the start of the clip to the playhead", "Ripple trimmed
   the end of 2 clips to the playhead", …).
 
+Answered at the start of Step 15.5 (product owner, 2026-10-07): Q3 — an ordinary edge drag keeps the existing trim
+exactly (D008 / D022 / D025 §5, including the removal of a dissolve whose cut the drag opens); **Shift + edge drag** is
+the ripple trim; `Alt` + body drag belongs to slip (15.6); `Ctrl` keeps its meaning (toggle-select). The Q4 rule "a
+plain trim does not trim a dissolve's cut edge" is specific to the keyboard `Q` / `W` and does not apply to the ordinary
+drag. Shift+drag and Shift+Q / Shift+W share one planner, so an equivalent final edge gives an identical timeline.
+
+Decided at the start of Step 15.5, before the implementation (Claude, within the confirmed Q3; no existing rule
+contradicted):
+- The mode is fixed when the edge is pressed: Shift held at the press → a ripple drag for the whole gesture; without it →
+  the ordinary trim. Pressing or releasing Shift during the drag does not switch modes (a release that commits the
+  other mode by accident is avoided; the press already distinguishes Ctrl = toggle-select).
+- Playhead: an edge drag never moves the playhead — the existing drag rule (D015: the playhead is the user's, edits
+  don't move it). Q5's move to the clip's start is specific to Shift+Q, where the edit is made at the playhead; a drag is
+  made at the pointer. The equivalence with Shift+Q / Shift+W is therefore of the timeline (clips, their timing and
+  source ranges, fades, dissolves, markers, tracks), not of the playhead.
+- Inward, the ripple drag is the Shift+Q / Shift+W rule at the pointer's frame: the trimmed clip keeps its start, the
+  later clips of its track move left, the limit is the dissolve parts of both edges (Q4 / Q6), the message the same.
+- Outward (§6), the clip lengthens and the later clips of its track move right by the added whole frames; the
+  neighbours don't limit it (they move), the source does (`SourceIn ≥ 0`, the end of the source — the edge trim's own
+  clamp, silent as in the ordinary drag), and a dissolve on the dragged edge keeps the source handle it needs (D025 §4):
+  the extension stops there with "The trim stopped where a dissolve needs the clip's frames." A ripple of the start
+  outward keeps the clip's start and shows earlier source content from it (the clip at the same place, its in-point
+  earlier).
+- Preview: during the drag nothing is changed in the project; the edit service plans the ripple on every pointer move
+  and returns the planned timing of the trimmed clip and of the moved clips (`PreviewRippleTrim`), which only the view
+  shows (clips and dissolve zones laid out at the planned places). The release commits once (`RippleTrimClip`, one undo
+  step); Esc, a lost pointer capture, an export starting or a release that changes nothing commit nothing.
+
+Refined in Step 15.5 (implementation, 2026-10-07):
+- One ripple planner, `PlanRippleTrim(plan, clip, track, edge, targetFrame)`, used by Shift+Q / Shift+W (the ripple branch
+  of `TrimToPlayhead`) and by the drag (`RippleTrimClip` on release, `PreviewRippleTrim` while dragging). Tests compare
+  the whole timeline (every clip's timing, source range, speed and fades, the dissolves, the markers, the track flags)
+  of a drag and of Shift+Q / Shift+W at the same frame on the same project: identical at 23.976 / 25 / 29.97 / 30 / 60 fps
+  × 0.25× / 0.5× / 1× / 2× / 4×, both edges, and with the dissolve limits and messages.
+- The edge trim's timing rule (`TrimmedState`, `PlanTrimAtSpeed`) now works on a clip state and a given list of
+  neighbours (the ordinary drag passes the track's other clips, as before; a ripple passes none). A ripple of the start
+  is planned in the clip's own frame of reference (moved right by the frames to add, trimmed back to its start, moved
+  to where it started), so a clip at 0 can grow at its start too.
+- Inward the one-frame minimum stops a drag past the other edge silently (as the ordinary drag); the dissolve message
+  only when a dissolve's frames stop it. Outward the source clamp is silent; a dissolve's handle on the dragged edge
+  stops it with the message.
+- Esc, a lost pointer capture or an export starting cancel the gesture: the view's layout is rebuilt from the
+  (unchanged) model; no edit, no undo step, the dirty state and the playhead as they were. Every pointer move only
+  plans (no notification, no undo step, nothing dirty); the release makes one `Commit`.
+- The view: `TimelineGestureModifiers` (UI.Common) reads the press — Ctrl toggle-select, Shift (without Ctrl) a ripple
+  trim; `TimelineViewModel.BeginTrim(…, ripple)` keeps it in the gesture; the preview lays out the planned clips and the
+  dissolve zones (a zone moves with the clip that starts at its cut). An ordinary drag is unchanged — the same
+  `PreviewTrim` / `TrimClip`, the neighbour clamp, D025 §5's removal of a dissolve whose cut it opens.
+- Distinctions, as confirmed: the ordinary drag = the existing trim; Shift + drag = the ripple trim; Q / W = the keyboard
+  trim of Step 15.4; Q4's "a plain trim does not trim a dissolve's cut edge" is a rule of Q / W only.
+
 Consequences: new commands in the Timeline subsystem (`ITimelineEditService`: track state, trim to the playhead with
 ripple, slip and its limits), sharing the existing trim / shift planners and `EditPlan` reconciliation; a range on the
 export job (`ExportJob` / preflight / encoder input) and in the Preview's loop; the timeline view gains the track
@@ -3219,8 +3270,8 @@ toggles, the ripple / slip gestures and the range band; `project.json` unchanged
 
 Status: Accepted (2026-10-07, product owner: scope §1, the In / Out range as unsaved session state, the keys `I` / `O` /
 `Q` / `W`, the font-size formula, the non-goals §3). Q13 answered (Step 15.3); Q1, Q2, Q4, Q5, Q6 answered (Step
-15.4); the other proposals marked Q1–Q16 are open until the product owner answers them. Steps 15.2 and 15.3 (`1d26165`)
-accepted; Step 15.4 done (awaiting acceptance). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
+15.4); Q3 answered (Step 15.5); the other proposals marked Q1–Q16 are open until the product owner answers them. Steps
+15.2, 15.3 (`1d26165`) and 15.4 (`f122c9a`) accepted; Step 15.5 done (awaiting acceptance). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
 
 ---
 

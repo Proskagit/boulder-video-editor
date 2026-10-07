@@ -65,6 +65,18 @@ public interface ITimelineEditService
     /// clip contains the playhead, a trimmed clip's track is locked, or no trim is possible because of dissolves.</summary>
     TimelineEditResult TrimToPlayhead(IReadOnlyCollection<Guid> clipIds, ClipEdge edge, MediaTime playhead, bool ripple);
 
+    /// <summary>The Shift + edge drag (D030 §6): a ripple trim of <paramref name="edge"/> to <paramref name="edgeTime"/>'s
+    /// nearest frame, inward or outward — the same planner as Shift+Q / Shift+W (an equivalent frame gives an identical
+    /// timeline). The clip keeps its start; the later clips of its track move by the frames removed or added (other
+    /// tracks, markers and the playhead stay); a dissolve is never removed — the trim stops where a dissolve needs the
+    /// clip's frames or source, with a message; the source limits an extension. One undo step;
+    /// <see cref="TimelineEditResult.NoChange"/> when nothing would change; refused on a locked track.</summary>
+    TimelineEditResult RippleTrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime);
+
+    /// <summary>What <see cref="RippleTrimClip"/> would do now, for the drag's preview: the planned timing of every clip it
+    /// would change (the trimmed one and the moved ones), nothing applied. Null when it would be refused.</summary>
+    RippleTrimPreview? PreviewRippleTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime);
+
     TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds);
 
     /// <summary>Ripple delete (D027 §2): removes the clips, and on each track that loses one every other clip that starts
@@ -306,6 +318,10 @@ public sealed class TimelineClipboard
 
 /// <summary>One copied clip (a detached copy, never inserted itself) and the id of the track it was copied from.</summary>
 public sealed record TimelineClipboardEntry(Clip Clip, Guid TrackId);
+
+/// <summary>A ripple drag's preview (D030 §6): the planned start and end of each clip the release would change, and
+/// whether a dissolve stopped the trim.</summary>
+public sealed record RippleTrimPreview(IReadOnlyDictionary<Guid, (MediaTime Start, MediaTime End)> Clips, bool Stopped);
 
 /// <summary>Outcome of a timeline edit. <see cref="Message"/> is safe to show in the
 /// status bar; on success it may carry an informational note (e.g. frame rate fixed).</summary>

@@ -71,7 +71,7 @@ and runs cleanly.
       trim by dragging an edge, slip, and a timeline In / Out range (unsaved session state) for loop playback and range
       export; a new text clip's font size relative to the canvas and the audio status after the sound returns. Scope,
       steps and acceptance criteria: section below and DECISIONS.md D030 (product owner decisions, 2026-10-07).
-      *(branch `feat/phase-15-editing-tools`, from `7200976`; Steps 15.1–15.3 accepted; Step 15.4 done — awaiting acceptance)*
+      *(branch `feat/phase-15-editing-tools`, from `7200976`; Steps 15.1–15.4 accepted; Step 15.5 done — awaiting acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -883,7 +883,7 @@ Scope: D030 §4.
 - Decisions at the start: Q13 (toggles on a locked track); the header layout at 1024 px.
 - Depends on: 15.2 (D030 accepted).
 
-### 15.4 — Trim to the playhead: core, plain and ripple *(done 2026-10-07 — awaiting acceptance; D030 "Refined in Step 15.4": `TrimToPlayhead`, Q / W and Shift+Q / Shift+W, a plain trim never trims a dissolve's cut edge, trims stop at a dissolve's frames with a message, the playhead to the clip's start after Shift+Q)*
+### 15.4 — Trim to the playhead: core, plain and ripple *(done, accepted 2026-10-07 — `f122c9a`; D030 "Refined in Step 15.4": `TrimToPlayhead`, Q / W and Shift+Q / Shift+W, a plain trim never trims a dissolve's cut edge, trims stop at a dissolve's frames with a message, the playhead to the clip's start after Shift+Q)*
 Scope: D030 §5, §10, §11.
 - M (before any code): the D030 §10 inventory re-checked against the code at the step's start (`PlanTrim`,
   `PlanTrimAtSpeed`, `PlanShift`, `EditPlan.ClampFades` / `ReconcileTransitions`, `DissolveParts`) and each row mapped to
@@ -901,7 +901,7 @@ Scope: D030 §5, §10, §11.
 - Decisions at the start: Q1, Q2, Q4, Q5, Q6.
 - Depends on: 15.3.
 
-### 15.5 — Ripple trim by dragging an edge
+### 15.5 — Ripple trim by dragging an edge *(done 2026-10-07 — awaiting acceptance; D030 "Refined in Step 15.5": Shift at the press, one planner with Shift+Q / Shift+W (identical timelines), the preview plans only, one undo step on release, Esc restores, the playhead never moves, the ordinary drag unchanged)*
 Scope: D030 §6.
 - PR: an edge drag with the ripple modifier (Q3) previews and commits a ripple trim, inward or outward, through the
   15.4 planner; without the modifier the existing trim is unchanged; snapping as for the trim; `Esc` cancels.

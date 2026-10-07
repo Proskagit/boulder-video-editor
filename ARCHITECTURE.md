@@ -184,6 +184,12 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   planned state), the later clips of its track moved by `PlanShift`; other tracks and markers stay.
   `TimelineEditResult.Playhead` tells the view where the playhead goes after a ripple of the start. Keys Q / W /
   Shift+Q / Shift+W in `ShortcutRouter`; off during an export.
+- Ripple trim by dragging (Phase 15 Step 15.5, D030 §6): one planner, `PlanRippleTrim`, for Shift+Q / Shift+W and the
+  Shift + edge drag — `PreviewRippleTrim` (planned clip timings, nothing applied) on every pointer move,
+  `RippleTrimClip` (one undo step) on release; inward and outward, the source and the dissolves limiting it.
+  `TrimmedState` / `PlanTrimAtSpeed` take a clip state and a neighbour list (none for a ripple). The press's modifiers
+  are read by `TimelineGestureModifiers` (Ctrl toggle, Shift ripple); Esc / a lost capture rebuild the layout from the
+  model. The ordinary drag is unchanged.
 - Import (Phase 12 Step 12.8, D027 §7): `MediaImportWorkflow` keeps the project the import started in and adds nothing
   (and queues no analysis) when another project is current after the picker, the status yield or the file check.
 - UI: `TimelineViewModel` projects the `Sequence` (clip view models reused by Id),

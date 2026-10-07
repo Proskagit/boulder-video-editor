@@ -123,12 +123,12 @@ public partial class TimelineView : UserControl
             return;
         }
 
-        _pressedWithToggle = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+        _pressedWithToggle = TimelineGestureModifiers.IsToggle(e.KeyModifiers);
         var x = e.GetPosition(ContentRoot).X;
 
         if (edge is { } trimEdge && !_pressedWithToggle)
         {
-            _viewModel.BeginTrim(clip, trimEdge, x);
+            _viewModel.BeginTrim(clip, trimEdge, x, ripple: TimelineGestureModifiers.IsRippleTrim(e.KeyModifiers));
         }
         else if (!_viewModel.OnClipPressed(clip, _pressedWithToggle))
         {

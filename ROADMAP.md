@@ -67,8 +67,9 @@ range — `I` / `O`, loop over the range, range export — as **unsaved session 
 `project.json` stays v3 with no new property. Steps 15.1 (pre-analysis) and 15.2 (sync after the merge, scope
 formalization, `d1296be`) accepted (2026-10-07); Step 15.3 (track controls: mute / hide / lock in the track header, one
 undo step each, mute / hide allowed on a locked track — Q13, `1d26165`) accepted; Step 15.4 (trim to the playhead: Q / W,
-Shift+Q / Shift+W ripple; dissolves kept — Q1, Q2, Q4, Q5, Q6) done, awaiting acceptance; the other open questions of
-D030 are answered before the steps they concern. Scope and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps"; manual
+Shift+Q / Shift+W ripple; dissolves kept — Q1, Q2, Q4, Q5, Q6, `f122c9a`) accepted; Step 15.5 (ripple trim by Shift +
+edge drag, the same planner as Shift+Q / Shift+W — Q3) done, awaiting acceptance; the other open questions of D030 are
+answered before the steps they concern. Scope and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps"; manual
 plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
 ## Previous

@@ -997,6 +997,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
         public long FrameDelta { get; set; }
         public TimelineTrackViewModel? TargetTrack { get; set; }
         public MediaTime TrimTime { get; set; }
+
+        /// <summary>A ripple trim (D030 §6): Shift was held when the edge was pressed; fixed for the whole gesture.</summary>
+        public bool Ripple { get; init; }
     }
 
     public void BeginMove(double contentX)
@@ -1008,14 +1011,17 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _gesture = new Gesture { Edge = null, StartX = contentX, Clips = clips, SourceTrack = tracks.Count == 1 ? tracks[0] : null };
     }
 
-    public void BeginTrim(TimelineClipViewModel clip, ClipEdge edge, double contentX)
+    /// <summary>Pointer pressed on a clip's edge: a trim — the ordinary one, or with <paramref name="ripple"/> (Shift held at
+    /// the press, D030 §6) the ripple trim, for the whole gesture.</summary>
+    public void BeginTrim(TimelineClipViewModel clip, ClipEdge edge, double contentX, bool ripple = false)
     {
         if (!CanEdit()) return;
         SelectOnly(clip.Id);
         _gesture = new Gesture
         {
             Edge = edge, StartX = contentX, Clips = new List<TimelineClipViewModel> { clip }, SourceTrack = TrackOf(clip),
-            TrimTime = edge == ClipEdge.Start ? clip.Clip.TimelineStart : clip.Clip.TimelineEnd
+            TrimTime = edge == ClipEdge.Start ? clip.Clip.TimelineStart : clip.Clip.TimelineEnd,
+            Ripple = ripple
         };
     }
 
@@ -1073,6 +1079,12 @@ public sealed partial class TimelineViewModel : ViewModelBase
         var proposed = origin + ApplySnap(new[] { origin + rawDelta }, g.Clips, rawDelta);
         g.TrimTime = proposed;
 
+        if (g.Ripple)
+        {
+            PreviewRipple(g, clip, edge, proposed);
+            return;
+        }
+
         if (_edit.PreviewTrim(clip.Id, edge, proposed) is { } preview)
         {
             clip.Layout(PixelsPerSecond, preview.Start, preview.End);
@@ -1089,6 +1101,32 @@ public sealed partial class TimelineViewModel : ViewModelBase
         else
         {
             clip.IsInvalid = true;
+        }
+    }
+
+    /// <summary>The ripple drag's preview (D030 §6): the edit service plans the trim (nothing is applied) and the view
+    /// shows the trimmed clip and every clip it would move at their planned places, the dissolve zones with their clips;
+    /// the rest of the timeline as it is. A refused plan (a locked track) marks the clip invalid.</summary>
+    private void PreviewRipple(Gesture g, TimelineClipViewModel clip, ClipEdge edge, MediaTime proposed)
+    {
+        var preview = _edit.PreviewRippleTrim(clip.Id, edge, proposed);
+        var planned = preview?.Clips ?? new Dictionary<Guid, (MediaTime Start, MediaTime End)>();
+        foreach (var vm in _clipViewModels.Values)
+        {
+            if (planned.TryGetValue(vm.Id, out var at)) vm.Layout(PixelsPerSecond, at.Start, at.End);
+            else vm.Layout(PixelsPerSecond);
+        }
+        clip.IsInvalid = preview is null;
+
+        // A zone sits on its cut: it moves with B (the clip starting at the cut) — a ripple never opens a cut.
+        foreach (var zone in _transitionViewModels.Values)
+        {
+            var right = zone.Track.Clips.FirstOrDefault(c => c.Id == zone.Transition.RightClipId);
+            var delta = right is not null && planned.TryGetValue(right.Id, out var at)
+                ? at.Start.ToNearestFrame(FrameRate) - right.TimelineStart.ToNearestFrame(FrameRate)
+                : 0;
+            zone.IsVisible = true;
+            zone.Layout(PixelsPerSecond, FrameRate, delta);
         }
     }
 
@@ -1120,7 +1158,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
         ResetGestureVisuals(g);
 
         var result = g.Edge is { } edge
-            ? _edit.TrimClip(g.Clips[0].Id, edge, g.TrimTime)
+            ? g.Ripple
+                ? _edit.RippleTrimClip(g.Clips[0].Id, edge, g.TrimTime)
+                : _edit.TrimClip(g.Clips[0].Id, edge, g.TrimTime)
             : _edit.MoveClips(g.Clips.Select(c => c.Id).ToList(), g.FrameDelta, g.TargetTrack?.Track.Id);
         Report(result);
         if (!result.Success) Relayout(); // restore the pre-drag positions

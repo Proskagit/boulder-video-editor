@@ -6,9 +6,9 @@ Phase 15 — Editing tools: branch `feat/phase-15-editing-tools` (from `7200976`
 locked by the product owner on 2026-10-07 (DECISIONS.md D030): track controls (mute / hide / lock), trim to the playhead
 (plain and ripple, `Q` / `W`), ripple trim by dragging, slip, a timeline In / Out range (`I` / `O`, loop, range export) as
 unsaved session state, a new text clip's `FontSize = 48 × canvasHeight / 1080`, the audio status reset. Steps 15.1
-(pre-analysis), 15.2 (documentation, `d1296be`) and 15.3 (track controls, `1d26165`) accepted; Step 15.4 (trim to the
-playhead) done, awaiting acceptance; Q13, Q1, Q2, Q4, Q5, Q6 answered, the other open questions of D030 are answered
-before the steps they concern. Scope, steps and acceptance criteria:
+(pre-analysis), 15.2 (documentation, `d1296be`), 15.3 (track controls, `1d26165`) and 15.4 (trim to the playhead,
+`f122c9a`) accepted; Step 15.5 (ripple trim by dragging) done, awaiting acceptance; Q13, Q1–Q6 answered, the other open
+questions of D030 are answered before the steps they concern. Scope, steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md` "Phase 15 — Editing tools: steps"; manual plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
 ### Phase 15 — Editing tools (in progress)
@@ -147,6 +147,41 @@ command; no push, pull request or merge without direct permission; no next step 
   - Manual (`docs/PHASE15_MANUAL_TEST_PLAN.md`, scenarios 9–14, R7 partly; the results log): Q / W / Shift+Q / Shift+W on
     the Phase 14 R5 fixture's red, 2× and 0.5× clips, eligibility refusals, the dissolve's cut edge (Q refused with the
     hint, Shift+Q keeping the dissolve), a far-edge stop, a locked V1, undo back to the save point.
+  - Committed as `f122c9a`; accepted by the product owner (2026-10-07).
+- Product owner decisions at the start of Step 15.5 (2026-10-07), recorded in D030: Q3 — the ordinary edge drag unchanged
+  (D025 §5 included), Shift + edge drag = ripple trim, Alt + body drag left to slip (15.6), Ctrl unchanged; Shift+drag
+  and Shift+Q / Shift+W share the planning, an equivalent edge gives an identical project state; Q4's no-trim rule is
+  for Q / W only. Recorded in D030 before the code ("Decided at the start of Step 15.5"): the mode fixed at the press;
+  a drag never moves the playhead (the existing drag rule; Q5 is Shift+Q's); outward ripple limited by the source and a
+  dissolve's handle; the preview only plans. Only Step 15.5.
+- Step 15.5 done (2026-10-07) — ripple trim by dragging an edge (D030 §6, "Refined in Step 15.5").
+  - Timeline: `PlanRippleTrim` — the one ripple planner (inward: the dissolve parts of both edges; outward: the source
+    clamp and a dissolve's handle on the dragged edge; the start planned in the clip's own frame of reference; the
+    later clips of the track by `PlanShift`); `TrimToPlayhead`'s ripple branch now calls it (its 67 tests unchanged
+    and green); `RippleTrimClip` / `PreviewRippleTrim` (+ `RippleTrimPreview`, Core) for the drag; `TrimmedState` /
+    `PlanTrimAtSpeed` over a clip state and a neighbour list (the ordinary drag passes the same neighbours as before).
+  - UI: `TimelineGestureModifiers` (Ctrl toggle, Shift ripple — read at the press); `BeginTrim(…, ripple)`; the ripple
+    preview lays out the planned clips and the dissolve zones; `EndGesture` commits `RippleTrimClip` once; Esc / a lost
+    capture / an export starting rebuild the layout from the unchanged model (the existing `CancelGesture`).
+  - Tests (+49): `RippleTrimDragTests` (Timeline, 42 incl. a 25-case theory: drag = Shift+Q / Shift+W on the whole
+    timeline at 5 rates × 5 speeds × 3 frames × 2 edges; the dissolve limits and messages equal; the pointer between
+    frames; outward end / start at four speeds, the source limits, a clip at 0; outward on a dissolve edge; past the
+    other edge; other tracks (locked or not), markers, the playhead; a locked track; hidden / muted; the preview
+    applies nothing and equals the release; fades; one undo step, the save point, the same frame no step; the ordinary
+    trim still removes a dissolve). `TimelineRippleDragUiTests` (UI, 7: the modifiers; the preview with the model
+    unchanged and one step on release; Esc; drag = Shift+Q / Shift+W through the view model; the ordinary drag
+    unchanged; a locked track; the dissolve zone in the preview).
+  - Mutations (each restored, `--no-incremental` rebuild after): Shift ignored in the modifier helper → 1 fails; the
+    gesture committing the ordinary trim → 3; the ripple on every track of the kind → 2; the lock not checked → 1 + 1;
+    the pointer floored instead of the nearest frame → 1; Esc still committing → 1; every pointer move committing → 3;
+    the drag with the ordinary trim's semantics → 3; the outward dissolve handle ignored → 1; the inward dissolve parts
+    ignored → 3. None survived.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full suite 2746 passed, 2
+    skipped (the two 4K scenes), 0 failed — Core 513, Timeline 619 (+42), Project 426, UI 595 (+7), Export 100,
+    Rendering 58, Video 322, ExportEndToEnd 113 + 2.
+  - Manual (`docs/PHASE15_MANUAL_TEST_PLAN.md`, scenarios 16–19, the results log): real pointer drags on the Phase 14 R5
+    fixture — the ordinary drag stopping at the neighbour, Shift+drag of the end and the start inward, outward on the
+    0.5× clip, Esc, a locked V1, the dissolve's cut edge with and without Shift, 1024 px, undo / redo.
 
 ### Phase 14 — Stabilization / technical debt (complete; PR #14 merged as `7200976`)
 

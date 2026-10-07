@@ -51,10 +51,10 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 16 | Drag inward with the modifier | Ripple modifier (Q3) + drag a clip's end left | During the drag the later clips follow; release → the same result as the ripple command at that frame | | planned |
-| 17 | Drag outward | The same, outward, then up to the end of the source | Later clips move right; the edge stops at the end of the source | | planned |
-| 18 | `Esc` | Start a ripple drag, press `Esc` | Everything back, no undo step | | planned |
-| 19 | Without the modifier | A plain edge drag | Unchanged Phase 4–14 trim (clamped to the neighbour) | | planned |
+| 16 | Drag inward with the modifier | Ripple modifier (Q3) + drag a clip's end left | During the drag the later clips follow; release → the same result as the ripple command at that frame | `RippleTrimDragTests` (equivalence with Shift+Q / Shift+W at 5 rates × 5 speeds, the preview = the release), `TimelineRippleDragUiTests` | app 15.5 (Claude), passed — real pointer, Shift held at the press: red's end 9 → 7 s → red 5–7 s, the later clips 2 s to the left (10 → 8, 13 → 11, 18 → 16 s); red's start 5 → 6 s → red still at 5 s, 3 s long, the later clips 1 s to the left; the playhead stays 00:00:00:00; each Ctrl+Z restores, title clean. At 1024 px: red's end 9 → 8 s the same way; Ctrl+Z / Ctrl+Y |
+| 17 | Drag outward | The same, outward, then up to the end of the source | Later clips move right; the edge stops at the end of the source | `RippleTrimDragTests` (outward end / start at 0.5× / 1× / 2× / 0.25×, the source limits, a clip at 0, a dissolve's handle) | app 15.5 (Claude), passed — the 0.5× clip's end 17 → 18 s: 13–18 s, still.png 18 → 19 s; undone. The source-end stop automated |
+| 18 | `Esc` | Start a ripple drag, press `Esc` | Everything back, no undo step | `TimelineRippleDragUiTests.Esc_after_moving_restores_everything_and_changes_nothing` | app 15.5 (Claude), passed — Shift+drag red's end 9 → 7 s, Esc before the release, then the release: every clip where it was, title clean, Undo disabled, the playhead unchanged |
+| 19 | Without the modifier | A plain edge drag | Unchanged Phase 4–14 trim (clamped to the neighbour) | `TimelineRippleDragUiTests` (ordinary trim clamped, nothing else moved), `RippleTrimDragTests` (the ordinary trim still removes a dissolve whose cut it opens), every Phase 4–14 trim test unchanged | app 15.5 (Claude), passed — red's end 9 → 11 s without Shift: stops at 10 s (the next clip), nothing else moves; the dissolve's cut edge 25 → 24 s without Shift: the dissolve removed with "A dissolve was removed: its clips no longer meet." (D025 §5, unchanged), with Shift: kept at 24 s, B 24–26 s |
 
 ## Step 15.6 — slip (D030 §7)
 
@@ -128,3 +128,13 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
   Results read from the status bar, the timecode, the window title, the clip labels' positions and screenshots.
 - Scenarios 9–14 and R7 (partly): see the tables; lock: V1 locked by its 🔒, then Q and Shift+Q on red → "Track V1 is
   locked.", unlocked again. At the end every change undone: title clean, Undo disabled. Scenario 15 automated only.
+
+### 2026-10-07 — Step 15.5 development-time run (Claude), Debug build of the 15.5 tree
+
+- A fresh copy of the Phase 14 R5 fixture (the original unchanged, hash checked), the window at 1440 × 820, then 1024 ×
+  768. Real pointer drags: `SetCursorPos` / `mouse_event` from 3 logical px inside the clip's edge handle to the
+  target time, in eight steps; the time axis read from the ruler labels and the clip labels (each clip's start and end
+  read back from its label to ±0.02 s). Shift pressed before the button and released right after it — so the ripple
+  mode is the press's (D030 "Decided at the start of Step 15.5"). Esc by `keybd_event` while the button was held.
+- Scenarios 16–19: see the table. Lock: V1 locked by its 🔒, Shift+drag red's end 9 → 7 s → "Track V1 is locked.",
+  nothing moved; unlocked. At the end all undone back to the save point (title clean, Undo disabled).
