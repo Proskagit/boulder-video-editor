@@ -65,7 +65,13 @@ and runs cleanly.
       acceptance criteria: section below and DECISIONS.md D029 (product owner decisions, 2026-10-06). *(branch
       `feat/phase-14-stabilization`, from `ed40b74`; Steps 14.2–14.7 `0a50fe5`…`90caae9`, all accepted, 14.6 out of scope;
       closeout 14.8 done 2026-10-07 — build 0 / 0, 2600 passed / 2 skipped, three blame-hang runs clean, heavy 2602 / 0 / 0,
-      R1–R5 passed; push and pull request on the product owner's command)*
+      R1–R5 passed; accepted; PR #14 merged into `main` as `7200976` (2026-10-07), CI green on the first attempt on the
+      pull request and on `main`; the D028 §8 policy closed)*
+- [ ] **Phase 15 — Editing tools.** Track controls (mute, hide, lock), trim to the playhead (plain and ripple), ripple
+      trim by dragging an edge, slip, and a timeline In / Out range (unsaved session state) for loop playback and range
+      export; a new text clip's font size relative to the canvas and the audio status after the sound returns. Scope,
+      steps and acceptance criteria: section below and DECISIONS.md D030 (product owner decisions, 2026-10-07).
+      *(branch `feat/phase-15-editing-tools`, from `7200976`; Step 15.1 accepted, Step 15.2 done — awaiting acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -809,7 +815,7 @@ Scope: D029 §4.
 - QG: the step gates; the solution builds without the project; R1 of 14.8 covers the format.
 - Depends on: 14.5.
 
-### 14.8 — Final verification & closeout *(done 2026-10-07 at `90caae9` — Release / Debug 0 / 0; 2600 passed, 2 skipped (only the 4K scenes); three `--blame-hang` runs 2600 / 2 / 0, no hang; heavy 2602 / 0 / 0; R1–R5 PASS against the Phase 13 build; the CI criterion is checked on the pull request's run; D029 "Closeout")*
+### 14.8 — Final verification & closeout *(done 2026-10-07 at `90caae9` — Release / Debug 0 / 0; 2600 passed, 2 skipped (only the 4K scenes); three `--blame-hang` runs 2600 / 2 / 0, no hang; heavy 2602 / 0 / 0; R1–R5 PASS against the Phase 13 build; D029 "Closeout"; accepted; PR #14 merged as `7200976`, CI green on the first attempt on the pull request and on `main`)*
 - QG: `dotnet build --no-incremental -warnaserror` 0 / 0; the full suite once plus three times with `--blame-hang`;
   heavy scenes once with `AIVE_HEAVY_TESTS=1`; the stress runs of 14.3 / 14.4 repeated on the final tree; CI green on the
   pull request **without any rerun** (if a rerun is still needed, the phase goal is not met — reported to the product
@@ -821,6 +827,140 @@ Scope: D029 §4.
   `progress.md`, Known issues (the fixed flaky tests removed, anything not fixed stated); this plan's Phase 14 checkbox
   only after the product owner's acceptance.
 - Depends on: 14.3–14.7.
+
+## Phase 15 — Editing tools: steps (D030)
+
+Formalized in Step 15.2 (product owner decisions of 2026-10-07, after the Step 15.1 pre-analysis). The normative rules
+are D030; this section lists the steps and their acceptance. Labels as in Phases 9–14: **PR** product requirement,
+**QG** quality gate, **M** measurement only, **Impl** implementation constraint. Steps run in this order; each is
+accepted by the product owner before the next one starts; a step's sub-decisions (among them the open questions Q1–Q16
+of D030 that concern it) are proposed at its start and confirmed before its code changes.
+
+Goal: the everyday editing workflow of a bouldering video — cutting long recordings of attempts down to the part that
+matters — with fewer actions and precise control: track controls, trim to the playhead, ripple trim, slip, an In / Out
+range for loop playback and range export (D030 §1).
+
+Gates for every step 15.3–15.8 (QG): `dotnet build` 0 errors / 0 warnings (`-warnaserror`); the full `dotnet test`
+green (only the two 4K heavy scenes skipped); the Preview ↔ Export parity suite, the L1-c criteria (D028 §6) and every
+existing expected value unchanged — new behaviour that reaches the picture or the sound adds parity scenes; `project.json`
+unchanged (`formatVersion` 3, **no new property**; a Phase 14 project opens and saves byte for byte unless the user
+edits it); every new project command one undo step, exact on Undo / Redo, dirty / clean by the save point (D015),
+refused on a locked track and while an export runs (`EditingLock`), a refused or unchanged command leaving no undo step;
+each rule of D030 §10 that the step touches covered by a test, and a mutation of the rule caught by that test; new
+controls checked in the real app at 1024 and 1440 px; `docs/PHASE15_MANUAL_TEST_PLAN.md` scenarios of the step completed
+(texts, automated coverage, development-time run); `progress.md` updated. Builds and test runs are started on the
+product owner's command; push, pull request and merge only with the product owner's direct permission.
+
+Out of scope: D030 §3 — roll edit, a source viewer, insert / overwrite, ripple across all tracks, track solo, keyframes,
+text styling, dragging in the Preview, unlinking audio / J-L cuts / audio crossfades, freeze frame, reverse, speed ramps,
+marquee selection, marker labels, filmstrips, frame export, AI, HDR / colour management, an installer, timeline
+virtualization, an undoable import.
+
+### 15.1 — Pre-analysis *(done, accepted 2026-10-07)*
+Repository state (PR #14 merged as `7200976`, CI green on the first attempt on the pull request and on `main`; build
+0 / 0; 2600 passed, 2 skipped), the delivered functionality, the gaps of the bouldering workflow, 3–5 candidate themes
+with value, scope, risks and complexity; variant A (editing tools) recommended and chosen in full. No change in the
+repository (report in `progress.md`).
+
+### 15.2 — Sync after the merge and scope formalization *(done 2026-10-07 — awaiting acceptance)*
+`main` fast-forwarded to `7200976`, branch `feat/phase-15-editing-tools`; the Phase 14 merge and both first-attempt CI
+runs recorded (ROADMAP, README, this plan, D029, `progress.md`); D028 §8 closed; D030 (the locked scope, the In / Out
+range as unsaved session state, the keys, the font-size formula, the non-goals, the D030 §10 inventory of the existing
+semantics, the open questions Q1–Q16); this section; `docs/PHASE15_MANUAL_TEST_PLAN.md`; `docs/README.md`.
+Documentation only — no production code, no test.
+
+### 15.3 — Track controls: mute, hide, lock
+Scope: D030 §4.
+- PR: video tracks get mute / hide / lock toggles, audio tracks mute / lock, in the track header; each toggle one undoable
+  command (`ITimelineEditService`), the project dirty, clean again by Undo to the save point; saved in the existing v3
+  track fields; a hidden track drawn dimmed, a locked one marked; all disabled during an export.
+- PR: the Preview and the export respect the flags through the shared snapshot — a hidden video track has no picture
+  (clips, texts, dissolve zones) but its sound plays unless muted; a muted track is silent; the sequence length is
+  unchanged.
+- QG: a test over every ordinary edit of `ITimelineEditService` on a locked track (refused, nothing changed, no undo
+  step); end-to-end exports with a hidden track and a muted track equal to the Preview (parity scenes); a Phase 14 file
+  with flags set opens with them and saves byte for byte; a Phase 15 file with flags uses only the existing fields.
+- Decisions at the start: Q13 (toggles on a locked track); the header layout at 1024 px.
+- Depends on: 15.2 (D030 accepted).
+
+### 15.4 — Trim to the playhead: core, plain and ripple
+Scope: D030 §5, §10, §11.
+- M (before any code): the D030 §10 inventory re-checked against the code at the step's start (`PlanTrim`,
+  `PlanTrimAtSpeed`, `PlanShift`, `EditPlan.ClampFades` / `ReconcileTransitions`, `DissolveParts`) and each row mapped to
+  a planned test; a difference between the decisions and the code is reported before the implementation.
+- PR: `Q` / `W` trim the target clips' start / end to the playhead (plain: the gap is left); the ripple variant moves the
+  later clips of the same track by the change of length; the frame `p` is the new first frame (`Q`) / the first frame
+  after the clip (`W`); one undo step for the whole command.
+- QG: tests for every §10 row the step touches — the frame grid at 23.976 / 25 / 29.97 / 30 / 60 fps; 1× and speeds
+  0.25× / 0.5× / 1.5× / 4× (the D022 invariant after every trim, the content under the playhead kept for a plain trim);
+  fade kept / cut (D025 §2) and the PO-8 inactive fade; a dissolve on the cut edge (plain: removed with the note;
+  ripple: per Q4) and on the far edge (clamped, per Q6); gaps between later clips kept; clips of other tracks, markers
+  and the range not moved; the target rules (Q1); a locked track; the playhead not strictly inside → refused; Undo /
+  Redo exact to the tick; the result of a plain trim identical to `TrimClip` of that edge to `p`; an end-to-end export
+  after a ripple trim equal to the Preview.
+- Decisions at the start: Q1, Q2, Q4, Q5, Q6.
+- Depends on: 15.3.
+
+### 15.5 — Ripple trim by dragging an edge
+Scope: D030 §6.
+- PR: an edge drag with the ripple modifier (Q3) previews and commits a ripple trim, inward or outward, through the
+  15.4 planner; without the modifier the existing trim is unchanged; snapping as for the trim; `Esc` cancels.
+- QG: equivalence — for the same clip, edge and target frame the drag result equals the 15.4 command's result tick for
+  tick (a table over speeds, rates, fades, dissolves, gaps); outward limits (source start / end, a dissolve's handle);
+  the preview shows the moved later clips and the zones as the release leaves them; `Esc` and an unchanged release
+  leave no undo step; the existing trim, move and select gestures unchanged (their tests green, `Ctrl` toggle kept).
+- Decisions at the start: Q3 (modifier).
+- Depends on: 15.4.
+
+### 15.6 — Slip
+Scope: D030 §7, §10.
+- PR: `Alt` (Q3) + drag on a video / audio clip's body slips its source range while its start, length, speed, fades and
+  properties stay; clamped to the allowed range; one undo step per gesture; `Esc` cancels.
+- QG: tests — the 1× and `≠ 1×` source rules (the D022 invariant after every slip), the limits (`SourceIn ≥ 0`, the end
+  of the source, a dissolve's handles on either edge), images / text / unknown duration refused, a locked track refused,
+  a video clip's sound slipped with its picture; the limit query equals what the service accepts; an end-to-end export
+  after a slip equal to the Preview (parity scene, picture and sound).
+- Decisions at the start: Q3, Q12.
+- Depends on: 15.5.
+
+### 15.7 — Timeline In / Out range: loop and range export
+Scope: D030 §8.
+- PR: `I` / `O` set In / Out at the playhead; a clear operation (Q11); the range shown on the ruler and over the tracks;
+  loop uses the range (Q9); the export can export only the range (Q10), refused when it is empty.
+- PR: **transient session state** — never in `project.json` or the recovery file, never dirty, never an undo step;
+  New / Open / Recent / Recover start without a range; edits do not move it.
+- QG: tests — the range not serialized (a saved project and a recovery file without any range field, `formatVersion`
+  3), not dirty, not in undo / redo, cleared on New / Open / Recover; In / Out rules (Q7, Q8), the clamp to the
+  sequence, a frame-rate change; the loop boundary (playback reaching Out continues at In; start outside the range);
+  the range export end to end — the frames equal the Preview at the same timeline frames, the samples equal the whole
+  timeline's mix at the same positions (incl. a fade, a dissolve and a speed clip crossing In / Out), the duration
+  `Out − In`, the preflight limited to the range (Q16); the default whole-sequence export unchanged.
+- Decisions at the start: Q7, Q8, Q9, Q10, Q11, Q16.
+- Depends on: 15.6.
+
+### 15.8 — The D029 §3 UX fixes
+Scope: D030 §9.
+- PR: a new text clip takes `FontSize = 48 × canvasHeight / 1080` (exact, `double`, within 1 … 1000); existing clips
+  and the canvas-size scaling unchanged (Q14).
+- PR: the "Playing without sound…" status cleared when the sound is available again, only if it is still shown; a later
+  loss reported again (Q15).
+- QG: tests at 1080 / 2160 / 720 / 1920 / 360 canvas heights (incl. a custom size), a project file unchanged apart from
+  the new clip's value; the status sequence (loss → recovery → loss) through the playback seam; the real-app check with
+  a real audio device unplugged and plugged back.
+- Decisions at the start: Q14, Q15.
+- Depends on: 15.7.
+
+### 15.9 — Final verification & closeout
+- QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
+  `--blame-hang`; the heavy scenes once with `AIVE_HEAVY_TESTS=1`; `git diff --check` clean; CI green on the pull request
+  without a rerun (D028 §8 is closed: any CI failure is a real failure).
+- PR: `docs/PHASE15_MANUAL_TEST_PLAN.md` in the real app — the feature scenarios not yet run and the regression
+  R1–R10 (Phase 14 project round trip, the bouldering workflow, track controls, trims, slip, In / Out, dissolve / fade
+  edges, the Phase 10–14 regression, no ffmpeg, the audio device).
+- Documentation: ARCHITECTURE (the Timeline commands, the snapshot / export range, the timeline view), D030 refinements
+  and status, ROADMAP, README, `progress.md` (Known issues: the two D029 §3 items removed if fixed), this plan's Phase 15
+  checkbox only after the product owner's acceptance.
+- Depends on: 15.3–15.8.
 
 ## Architectural rules that must hold at every phase
 

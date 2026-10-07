@@ -2,14 +2,70 @@
 
 ## Current phase
 
-Phase 14 — Stabilization / technical debt (no new user functionality): **complete** on branch
-`feat/phase-14-stabilization` (from `ed40b74`, `main` after the merge of PR #13) — Steps 14.1–14.7 accepted by the product
-owner (14.6 out of scope, not taken); Step 14.8 (final verification & closeout) done on 2026-10-07 with every gate green.
-Push and pull request on the product owner's command; the D029 §5 measure (CI green on the pull request without a rerun)
-is checked on that run. Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 14 — Stabilization /
-technical debt: steps"; decision D029.
+Phase 15 — Editing tools: branch `feat/phase-15-editing-tools` (from `7200976`, `main` after the merge of PR #14). Scope
+locked by the product owner on 2026-10-07 (DECISIONS.md D030): track controls (mute / hide / lock), trim to the playhead
+(plain and ripple, `Q` / `W`), ripple trim by dragging, slip, a timeline In / Out range (`I` / `O`, loop, range export) as
+unsaved session state, a new text clip's `FontSize = 48 × canvasHeight / 1080`, the audio status reset. Step 15.1
+(pre-analysis) accepted; Step 15.2 (sync after the merge, scope formalization, documentation only) done, awaiting
+acceptance; the open questions Q1–Q16 of D030 await the product owner's answers. Scope, steps and acceptance criteria:
+`docs/DEVELOPMENT_PLAN.md` "Phase 15 — Editing tools: steps"; manual plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
-### Phase 14 — Stabilization / technical debt (complete)
+### Phase 15 — Editing tools (in progress)
+
+Steps (D030; each accepted by the product owner before the next, never started automatically): 15.1 pre-analysis ·
+15.2 sync after the merge & scope formalization · 15.3 track controls · 15.4 trim to the playhead (core, plain and
+ripple) · 15.5 ripple trim by dragging · 15.6 slip · 15.7 In / Out range (loop, range export) · 15.8 the D029 §3 UX fixes
+· 15.9 closeout. Working rules from the product owner (kept from Phases 11–14): no build or test run without a separate
+command; no push, pull request or merge without direct permission; no next step without the product owner's go.
+
+- Step 15.1 done and accepted (2026-10-07) — repository audit and Phase 15 pre-analysis, no change in the repository
+  apart from the local `main` (one `git fetch`, then `git checkout main` + `git merge --ff-only origin/main`: `ed40b74`
+  → `7200976`).
+  - Git: PR #14 (head `0482b80`) merged as `7200976` "Merge pull request #14 …", its tree identical to `0482b80`; clean.
+    CI: PR #14 run 37590085671 green on attempt 1; the first run on `main` after the merge, 37590661647, green on attempt
+    1. Local on `main` (`7200976`): `dotnet build` 0 warnings / 0 errors; `dotnet test` 2600 passed, 2 skipped (the two
+    4K scenes), 0 failed (Core 513, Timeline 497, Project 426, UI 574, Export 100, Rendering 58, Video 322,
+    ExportEndToEnd 110 + 2). 18 projects (10 `src`, 8 `tests`), as `CLAUDE.md` states.
+  - Findings: `Track.IsMuted` / `IsHidden` / `IsLocked` are in the model, `project.json` v3 and the playback snapshot,
+    and the edit service rejects edits on locked tracks, but no command or UI sets them; no ripple trim, trim to the
+    playhead or slip; no In / Out range (loop plays the whole sequence, `ExportJob` has no range); no source viewer;
+    positions only numeric (no pointer handling in the Preview); a video clip's sound cannot be separated; no marker
+    labels, marquee selection or filmstrips; `TimelineEditService.cs` (1420 lines) and `TimelineViewModel.cs` (1092) are
+    the largest files — new trim modes land there. Stale documentation after the merge: "push and pull request on the
+    product owner's command" (ROADMAP, DEVELOPMENT_PLAN, D029, this file), the D028 §8 policy "until the Phase 14 pull
+    request's CI run".
+  - Candidates reported: A editing tools (trim, track controls, slip, In / Out; recommended, L), B source viewer and
+    three-point editing (L–XL, touches the Preview's architecture), C timeline polish (M), D text and overlays (L),
+    E keyframes (XL); dependencies: In / Out and the ripple planner before B; keyframes before audio envelopes.
+- Product owner decisions (2026-10-07), recorded in D030: variant A in full — track controls, trim to the playhead
+  (plain / ripple), ripple trim UI, slip, In / Out range, and the two D029 §3 UX fixes; the In / Out range is **session
+  state, not serialized**, no `project.json` field and no format change; keys `I` / `O` / `Q` / `W`, no separate ripple
+  keys unless confirmed; `FontSize = 48 × canvasHeight / 1080`; the D030 §3 non-goals; before the trim / ripple core
+  the D022 / D025 / D027 semantics are inspected and every edge case identified, nothing invented silently. Only Step
+  15.2 allowed.
+- Step 15.2 done (2026-10-07) — sync after the merge and scope formalization, documentation only (no production code,
+  no test changed, no build or test run). Branch `feat/phase-15-editing-tools` from `7200976`.
+  - Phase 14 recorded as merged (PR #14 → `7200976`, both CI runs green on the first attempt): ROADMAP (Current →
+    Phase 15, Previous, Future phases), README (two status lines), DEVELOPMENT_PLAN (Phase 14 checkbox line, the Phase 15
+    entry), D029 ("After the merge", status), this file (Phase 14 heading, Known issues).
+  - D028 §8 closed ("Closed" paragraph): every CI failure is a real failure, no rerun counts.
+  - D030 written: the decision, the audit context, §1 scope, §2 constraints, §3 non-goals, §4 track controls, §5 trim to
+    the playhead, §6 ripple drag, §7 slip, §8 the In / Out range as transient session state (not serialized, not dirty,
+    not undoable, cleared on New / Open / Recover), §9 the UX fixes with the exact formula, §10 the inventory of the
+    existing semantics (D006 / D007 / D008 / D015 / D022 / D025 / D027) every Phase 15 edit preserves — read from the
+    decisions and checked against `PlanTrim` / `PlanTrimAtSpeed` / `Validate` / `PlaybackSnapshotBuilder` /
+    `PreviewViewModel` at `7200976` — §11 keys, and the open questions Q1–Q16.
+  - Derived from the code at 15.2 (recorded in D030, no code changed): hide is picture only and mute sound only (the
+    snapshot); the sequence length counts hidden / muted tracks; the preflight checks what the snapshot exports; the
+    lock is checked when an edit is planned, not on Undo / Redo; a plain trim to the playhead equals `TrimClip` of that
+    edge (inward, so only the far-edge dissolve clamp can apply); D025 names no rule for a ripple trim of a dissolve's
+    cut edge (Q4); D028's canvas scaling (`ContainFactor`) and the new-text formula differ on a portrait canvas (Q14).
+  - `docs/DEVELOPMENT_PLAN.md` "Phase 15 — Editing tools: steps" (gates, 15.1–15.9 with PR / QG / decisions / depends);
+    `docs/PHASE15_MANUAL_TEST_PLAN.md` (scenarios 1–32 per step, regression R1–R10, status "planned");
+    `docs/README.md` (the new plan).
+  - Not done (by the scope of 15.2): no code, no test, no build or test run; ARCHITECTURE unchanged (no code changed).
+
+### Phase 14 — Stabilization / technical debt (complete; PR #14 merged as `7200976`)
 
 Steps (D029; each accepted by the product owner before the next, never started automatically): 14.1 audit · 14.2 sync
 after the merge & scope formalization · 14.3 flaky autosave test · 14.4 flaky ffprobe / PATH-probe tests · 14.5
@@ -198,6 +254,9 @@ command; no push, pull request or merge without direct permission; no next step 
     ARCHITECTURE (verification note), this file; 14.6 recorded as out of scope; no TODO / FIXME / HACK added by Phase 14
     (the only match in its diff is this file's audit text); no reference to the removed `Effects` project in code or
     project files (only historical documentation).
+- After the merge (recorded at Step 15.2, 2026-10-07): accepted by the product owner; PR #14 merged into `main` as
+  `7200976`; CI green on the first attempt on the pull request (run 37590085671) and on `main` (run 37590661647) — the
+  D029 §5 measure met; the D028 §8 policy closed by the product owner.
 
 ### Phase 13 — Project & export settings (complete; PR #13 merged as `ed40b74`)
 
@@ -3605,10 +3664,9 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   ffprobe timeout in a waveform test, the 5 s PATH probe of the locators in `Video.Tests` (below). Not fixed in Phase 13;
   fixed in Phase 14: the autosave timer by a production fix (a callback queued before `Stop` started a tick —
   Step 14.3), the locator / waveform tests by test-only limits with the app's limits unchanged (Step 14.4); stressed 50×
-  per class and 10× per assembly under load. The CI evidence (D029 §5: green on the pull request without a rerun) comes
-  with the Phase 14 pull request; until then the policy below stays in force. Policy (D028 §8): a rerun of that named test, with the known failure
-  message, is allowed for diagnosis and recorded here; never instead of fixing a real regression, never a
-  rerun-until-green; never weakened, skipped or removed.
+  per class and 10× per assembly under load. Closed: CI green on the first attempt on PR #14 (run 37590085671) and on
+  `main` after its merge (run 37590661647); the D028 §8 rerun policy closed by the product owner (2026-10-07) — any CI
+  failure is now a real failure.
   - 2026-10-06, CI run 37470605596 (push of `ed40b74` to `main`, attempt 1): failed —
     `ExecutableLocatorTests.RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg`, 7 s, `Assert.NotNull()
     Failure: Value is null` (the PATH probe, the known cause); every other test green. Not rerun (recorded at Step 14.2).
@@ -3656,14 +3714,17 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Audio device: after a device was lost during playback and the sound came back at the next Play, the status bar still says
   "Playing without sound…" (the status shows the last message until another one; D024 "Left as they are", Step 9.10). A real
   default-device change and a real removal were checked on hardware in Step 9.10 (scenarios 14–17). Deferred out of
-  Phase 14 as a UX change (D029 §3).
+  Phase 14 as a UX change (D029 §3); taken into Phase 15 Step 15.8 (D030 §9).
 - Text clips: a new text clip takes `FontSize` 48 on any canvas (`Clip.cs`), small on a 4K canvas (an observation from
-  Phase 13). Deferred out of Phase 14 as a product change (D029 §3).
+  Phase 13). Deferred out of Phase 14 as a product change (D029 §3); taken into Phase 15 Step 15.8 —
+  `48 × canvasHeight / 1080` (D030 §9).
 - `MediaAnalysisCoordinator` relies on the captured UI SynchronizationContext.
 - Timecode is non-drop-frame only (29.97 timecode drifts from wall clock by design).
 - Timeline canvas is a plain ItemsControl/Canvas; very long timelines at maximum
   zoom are not virtualized (ruler is).
 - Media import is not undoable (unchanged from Phase 2).
+- Tracks: `IsMuted` / `IsHidden` / `IsLocked` are saved and honoured by the playback snapshot, the export and the edit
+  service, but no command or UI sets them (found at the Phase 15 pre-analysis); taken into Phase 15 Step 15.3 (D030 §4).
 
 ## Verification
 
