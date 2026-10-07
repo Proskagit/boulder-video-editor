@@ -217,6 +217,9 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult DeleteTrack(Guid trackId) => No;
         public string? GetDeleteTrackBlockReason(Guid trackId) => null;
         public TimelineEditResult MoveTrack(Guid trackId, int direction) => No;
+        public TimelineEditResult SetTrackMuted(Guid trackId, bool muted) => No;
+        public TimelineEditResult SetTrackHidden(Guid trackId, bool hidden) => No;
+        public TimelineEditResult SetTrackLocked(Guid trackId, bool locked) => No;
         public int CountClipsUsing(Guid mediaAssetId) => 0;
         public string? GetRemoveMediaBlockReason(Guid mediaAssetId) => null;
         public TimelineEditResult RemoveMedia(Guid mediaAssetId) => No;

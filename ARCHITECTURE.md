@@ -169,6 +169,14 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
     Paste / Duplicate in the timeline header (Copy by Ctrl+C only; Ctrl+C / Ctrl+V / Ctrl+D in `ShortcutRouter`), the
     marker block ◀ ◆+ ◆− ▶ left of the ruler and the markers drawn on it; every command that changes the project is off
     during an export (`EditingLock`).
+- Track state (Phase 15 Step 15.3, D030 §4): `SetTrackMuted` / `SetTrackHidden` / `SetTrackLocked` — one
+  `SetTrackStateCommand` each (one flag, its old value back on Undo), refused only for a missing track and for hiding an
+  audio track; mute / hide are allowed on a locked track. The flags are `Track.IsMuted` / `IsHidden` / `IsLocked` of
+  `project.json` v3; `PlaybackSnapshotBuilder` already reads them (hidden: no layer, no dissolve zones, the sound kept;
+  muted: no audio spans), so the Preview and the export follow, and `Sequence.Duration` ignores them. The lock is checked
+  where an edit is planned (`CheckEditable` and the track / media checks), not by Undo / Redo. UI: M / 👁 / 🔒 next to
+  the track name in the header (audio: M / 🔒), coloured when on; a locked lane tinted, a hidden lane's clips dimmed;
+  off during an export.
 - Import (Phase 12 Step 12.8, D027 §7): `MediaImportWorkflow` keeps the project the import started in and adds nothing
   (and queues no analysis) when another project is current after the picker, the status yield or the file check.
 - UI: `TimelineViewModel` projects the `Sequence` (clip view models reused by Id),

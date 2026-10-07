@@ -185,6 +185,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         {
             Tracks[i].HasTrackAbove = i > 0 && Tracks[i - 1].Type == Tracks[i].Type;
             Tracks[i].HasTrackBelow = i < Tracks.Count - 1 && Tracks[i + 1].Type == Tracks[i].Type;
+            Tracks[i].SyncState();
         }
         MoveTrackUpCommand.NotifyCanExecuteChanged();
         MoveTrackDownCommand.NotifyCanExecuteChanged();
@@ -527,6 +528,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
         MoveTrackUpCommand.NotifyCanExecuteChanged();
         MoveTrackDownCommand.NotifyCanExecuteChanged();
         DeleteTrackCommand.NotifyCanExecuteChanged();
+        ToggleTrackMuteCommand.NotifyCanExecuteChanged();
+        ToggleTrackHiddenCommand.NotifyCanExecuteChanged();
+        ToggleTrackLockCommand.NotifyCanExecuteChanged();
         AddMarkerCommand.NotifyCanExecuteChanged();
         RemoveMarkerCommand.NotifyCanExecuteChanged();
     }
@@ -710,6 +714,37 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (track is null) return;
         Report(_edit.MoveTrack(track.Track.Id, track.Type == TrackType.Video ? -1 : 1), successMessage: $"Track {track.Track.Name} moved down");
+    }
+
+    // --- Track state (D030 §4) ---------------------------------------------------------
+    // The header's mute / hide / lock toggles: each click one undoable command; mute and hide also on a locked track
+    // (D030 Q13); all disabled while an export runs.
+
+    private bool CanToggleTrack(TimelineTrackViewModel? track) => CanEdit() && track is not null;
+    private bool CanToggleTrackHidden(TimelineTrackViewModel? track) => CanToggleTrack(track) && track!.CanHide;
+
+    [RelayCommand(CanExecute = nameof(CanToggleTrack))]
+    private void ToggleTrackMute(TimelineTrackViewModel? track)
+    {
+        if (track is null) return;
+        var muted = !track.Track.IsMuted;
+        Report(_edit.SetTrackMuted(track.Track.Id, muted), successMessage: $"Track {track.Track.Name} {(muted ? "muted" : "unmuted")}");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanToggleTrackHidden))]
+    private void ToggleTrackHidden(TimelineTrackViewModel? track)
+    {
+        if (track is null) return;
+        var hidden = !track.Track.IsHidden;
+        Report(_edit.SetTrackHidden(track.Track.Id, hidden), successMessage: $"Track {track.Track.Name} {(hidden ? "hidden" : "shown")}");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanToggleTrack))]
+    private void ToggleTrackLock(TimelineTrackViewModel? track)
+    {
+        if (track is null) return;
+        var locked = !track.Track.IsLocked;
+        Report(_edit.SetTrackLocked(track.Track.Id, locked), successMessage: $"Track {track.Track.Name} {(locked ? "locked" : "unlocked")}");
     }
 
     /// <summary>Deletes a track; one with clips only after the user confirms (D027 §3). Without a dialog service a track

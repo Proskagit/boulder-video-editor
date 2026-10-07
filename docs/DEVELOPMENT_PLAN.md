@@ -71,7 +71,7 @@ and runs cleanly.
       trim by dragging an edge, slip, and a timeline In / Out range (unsaved session state) for loop playback and range
       export; a new text clip's font size relative to the canvas and the audio status after the sound returns. Scope,
       steps and acceptance criteria: section below and DECISIONS.md D030 (product owner decisions, 2026-10-07).
-      *(branch `feat/phase-15-editing-tools`, from `7200976`; Step 15.1 accepted, Step 15.2 done — awaiting acceptance)*
+      *(branch `feat/phase-15-editing-tools`, from `7200976`; Steps 15.1–15.2 accepted; Step 15.3 done — awaiting acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -862,14 +862,14 @@ Repository state (PR #14 merged as `7200976`, CI green on the first attempt on t
 with value, scope, risks and complexity; variant A (editing tools) recommended and chosen in full. No change in the
 repository (report in `progress.md`).
 
-### 15.2 — Sync after the merge and scope formalization *(done 2026-10-07 — awaiting acceptance)*
+### 15.2 — Sync after the merge and scope formalization *(done, accepted 2026-10-07 — `d1296be`)*
 `main` fast-forwarded to `7200976`, branch `feat/phase-15-editing-tools`; the Phase 14 merge and both first-attempt CI
 runs recorded (ROADMAP, README, this plan, D029, `progress.md`); D028 §8 closed; D030 (the locked scope, the In / Out
 range as unsaved session state, the keys, the font-size formula, the non-goals, the D030 §10 inventory of the existing
 semantics, the open questions Q1–Q16); this section; `docs/PHASE15_MANUAL_TEST_PLAN.md`; `docs/README.md`.
 Documentation only — no production code, no test.
 
-### 15.3 — Track controls: mute, hide, lock
+### 15.3 — Track controls: mute, hide, lock *(done 2026-10-07 — awaiting acceptance; D030 "Refined in Step 15.3": `SetTrackMuted` / `SetTrackHidden` / `SetTrackLocked` → `SetTrackStateCommand`, Q13 mute / hide allowed on a locked track, M / 👁 / 🔒 in the header)*
 Scope: D030 §4.
 - PR: video tracks get mute / hide / lock toggles, audio tracks mute / lock, in the track header; each toggle one undoable
   command (`ITimelineEditService`), the project dirty, clean again by Undo to the save point; saved in the existing v3

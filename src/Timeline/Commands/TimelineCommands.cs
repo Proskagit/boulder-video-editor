@@ -239,6 +239,61 @@ public sealed class SetTrackOrderCommand(IReadOnlyList<TrackOrderChange> changes
     }
 }
 
+/// <summary>One of a track's state flags (D030 §4).</summary>
+public enum TrackStateFlag { Muted, Hidden, Locked }
+
+/// <summary>Sets one state flag of a track (D030 §4) — <see cref="Track.IsMuted"/>, <see cref="Track.IsHidden"/> or
+/// <see cref="Track.IsLocked"/>; Undo writes the value it found back. Nothing else changes.</summary>
+public sealed class SetTrackStateCommand : IUndoableCommand
+{
+    private readonly bool _before;
+
+    public SetTrackStateCommand(Track track, TrackStateFlag flag, bool value)
+    {
+        Track = track;
+        Flag = flag;
+        Value = value;
+        _before = Get(track, flag);
+    }
+
+    public Track Track { get; }
+    public TrackStateFlag Flag { get; }
+    public bool Value { get; }
+
+    public string Description => (Flag, Value) switch
+    {
+        (TrackStateFlag.Muted, true) => "Mute Track",
+        (TrackStateFlag.Muted, false) => "Unmute Track",
+        (TrackStateFlag.Hidden, true) => "Hide Track",
+        (TrackStateFlag.Hidden, false) => "Show Track",
+        (TrackStateFlag.Locked, true) => "Lock Track",
+        _ => "Unlock Track"
+    };
+
+    public void Execute() => Set(Track, Flag, Value);
+
+    public void Undo() => Set(Track, Flag, _before);
+
+    public static bool Get(Track track, TrackStateFlag flag) => flag switch
+    {
+        TrackStateFlag.Muted => track.IsMuted,
+        TrackStateFlag.Hidden => track.IsHidden,
+        TrackStateFlag.Locked => track.IsLocked,
+        _ => throw new ArgumentOutOfRangeException(nameof(flag), flag, null)
+    };
+
+    private static void Set(Track track, TrackStateFlag flag, bool value)
+    {
+        switch (flag)
+        {
+            case TrackStateFlag.Muted: track.IsMuted = value; break;
+            case TrackStateFlag.Hidden: track.IsHidden = value; break;
+            case TrackStateFlag.Locked: track.IsLocked = value; break;
+            default: throw new ArgumentOutOfRangeException(nameof(flag), flag, null);
+        }
+    }
+}
+
 /// <summary>
 /// Sets a clip's non-timing properties from one absolute snapshot to another. Execute writes
 /// <see cref="After"/>, Undo writes <see cref="Before"/> — the captured values themselves, never

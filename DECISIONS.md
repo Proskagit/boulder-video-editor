@@ -3142,6 +3142,30 @@ changed) before the step that implements it starts:
 15. Q15 — audio status: clear it silently when the sound returns (proposed) or show a "sound is back" message?
 16. Q16 — the preflight of a range export checks only the media used inside the range (proposed)?
 
+Answered at the D030 acceptance / the start of Step 15.3 (product owner, 2026-10-07): Q13 — mute and hide may be changed
+on a locked track; the lock blocks ordinary editing of clip / timeline content, not the track's mute / hide state. Also
+confirmed: video tracks expose mute, hide, lock; audio tracks mute and lock, no hide control; the flags stay in the
+existing v3 fields (no format change); hidden is picture only, muted sound only, the sequence length unchanged; the lock
+is checked when an edit is planned, Undo / Redo are not blocked by the current lock state; every track-state command one
+undo step with the dirty / save-point semantics, disabled during an export.
+
+Refined in Step 15.3 (implementation, 2026-10-07):
+- `ITimelineEditService.SetTrackMuted` / `SetTrackHidden` / `SetTrackLocked(trackId, value)` → one
+  `SetTrackStateCommand` (Timeline: the track, the flag, the new value; Undo writes the value it found), wrapped in the
+  usual `NotifyingCommand`, so the timeline, the Preview's snapshot and the waveforms refresh. Descriptions "Mute Track" /
+  "Unmute Track", "Hide Track" / "Show Track", "Lock Track" / "Unlock Track". The same value → `NoChange`, no undo step;
+  a missing track → "That track no longer exists."; hiding an audio track → "Track A1 is an audio track: it has no
+  picture to hide." (nothing changes). No lock check in these commands (Q13).
+- No rendering, mix, preflight or format code changed: the snapshot rules of §4 were already in place; a hidden or
+  muted track and a locked track export as the Preview shows them (new end-to-end scenes); a file with flags set by
+  Phase 15 opens in the Phase 14 build with the same rendering and is saved by it byte for byte.
+- UI (the track header, 84 px column unchanged): the name on the left, small toggle buttons on the right of the same
+  line — **M** (mute), **👁** (hide; video only), **🔒** (lock) — dim when off; when on, filled: mute red, hide blue,
+  lock amber; ▲ / ▼ / ✕ stay on the second line. A locked lane is tinted amber-dark, a hidden lane's clips are drawn at
+  35 % opacity. The lock emoji after the track name (`Label`, since Phase 4) is gone — the 🔒 toggle shows it. Status
+  messages "Track V1 muted / unmuted / hidden / shown / locked / unlocked". The buttons are `Button`s with a state class
+  (not `ToggleButton`s), so a refused or disabled click can never leave a toggle out of step with the model.
+
 Consequences: new commands in the Timeline subsystem (`ITimelineEditService`: track state, trim to the playhead with
 ripple, slip and its limits), sharing the existing trim / shift planners and `EditPlan` reconciliation; a range on the
 export job (`ExportJob` / preflight / encoder input) and in the Preview's loop; the timeline view gains the track
@@ -3149,8 +3173,8 @@ toggles, the ripple / slip gestures and the range band; `project.json` unchanged
 `docs/PHASE15_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
 
 Status: Accepted (2026-10-07, product owner: scope §1, the In / Out range as unsaved session state, the keys `I` / `O` /
-`Q` / `W`, the font-size formula, the non-goals §3). The proposals marked Q1–Q16 are open until the product owner
-answers them. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
+`Q` / `W`, the font-size formula, the non-goals §3). Q13 answered (Step 15.3); the other proposals marked Q1–Q16 are
+open until the product owner answers them. Step 15.2 accepted; Step 15.3 done (awaiting acceptance). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
 
 ---
 

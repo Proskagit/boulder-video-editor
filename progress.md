@@ -5,9 +5,9 @@
 Phase 15 — Editing tools: branch `feat/phase-15-editing-tools` (from `7200976`, `main` after the merge of PR #14). Scope
 locked by the product owner on 2026-10-07 (DECISIONS.md D030): track controls (mute / hide / lock), trim to the playhead
 (plain and ripple, `Q` / `W`), ripple trim by dragging, slip, a timeline In / Out range (`I` / `O`, loop, range export) as
-unsaved session state, a new text clip's `FontSize = 48 × canvasHeight / 1080`, the audio status reset. Step 15.1
-(pre-analysis) accepted; Step 15.2 (sync after the merge, scope formalization, documentation only) done, awaiting
-acceptance; the open questions Q1–Q16 of D030 await the product owner's answers. Scope, steps and acceptance criteria:
+unsaved session state, a new text clip's `FontSize = 48 × canvasHeight / 1080`, the audio status reset. Steps 15.1
+(pre-analysis) and 15.2 (documentation, `d1296be`) accepted; Step 15.3 (track controls) done, awaiting acceptance; Q13
+answered, the other open questions of D030 are answered before the steps they concern. Scope, steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md` "Phase 15 — Editing tools: steps"; manual plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
 ### Phase 15 — Editing tools (in progress)
@@ -64,6 +64,46 @@ command; no push, pull request or merge without direct permission; no next step 
     `docs/PHASE15_MANUAL_TEST_PLAN.md` (scenarios 1–32 per step, regression R1–R10, status "planned");
     `docs/README.md` (the new plan).
   - Not done (by the scope of 15.2): no code, no test, no build or test run; ARCHITECTURE unchanged (no code changed).
+  - Committed as `d1296be`; accepted by the product owner (2026-10-07).
+- Product owner decisions at the start of Step 15.3 (2026-10-07), recorded in D030: Q13 — mute and hide may be changed on
+  a locked track (the lock blocks ordinary editing of clip / timeline content only); video tracks mute / hide / lock,
+  audio tracks mute / lock, no hide control; flags in the existing v3 fields, no format bump; hidden = picture only, muted
+  = sound only, the length unchanged; the lock checked when an edit is planned, Undo / Redo not blocked; one undo step
+  per command with the dirty / save-point semantics, blocked during an export. Only Step 15.3.
+- Step 15.3 done (2026-10-07) — track controls (D030 §4, "Refined in Step 15.3").
+  - Core / Timeline: `ITimelineEditService.SetTrackMuted` / `SetTrackHidden` / `SetTrackLocked`; `SetTrackStateCommand`
+    + `TrackStateFlag` (`TimelineCommands.cs`): one flag, Undo writes the value found; same value → `NoChange` (no
+    step); missing track refused; hiding an audio track refused ("… is an audio track: it has no picture to hide.");
+    no lock check (Q13). The two other `ITimelineEditService` implementations (the design-time stub in
+    `MainWindow.axaml.cs`, a test stub) got the three members. No change to the snapshot, the mix, the export, the
+    preflight or the format — they already honoured the flags.
+  - UI: `TimelineTrackViewModel` mirrors `IsMuted` / `IsHidden` / `IsLocked` (`SyncState` at every timeline refresh,
+    so Undo / Redo / Open update the header), `CanHide` (video only), `Label` = the name (the old "🔒" suffix dropped —
+    the lock toggle shows it); `TimelineViewModel.ToggleTrackMute` / `ToggleTrackHidden` / `ToggleTrackLock` commands
+    (disabled while an export runs; hide only for video), status "Track V1 muted / unmuted / hidden / shown / locked /
+    unlocked"; `TimelineView.axaml`: M / 👁 / 🔒 buttons right of the name in the 84 px header (audio: M / 🔒), off dim,
+    on red / blue / amber; `trackRow.locked` (tinted lane) and `trackRow.hidden` (clips at 35 %).
+  - Tests (+21): `TrackStateEditTests` (Timeline, 13): video mute / hide / lock with the snapshot, audio mute / lock, no
+    hide on audio, same state → no step, missing track, dirty / save point for every toggle, mute / hide on a locked
+    track, every ordinary edit refused on a locked track (18 edits: move, move to a track, trim, split, delete, ripple
+    delete, close gap, paste, duplicate, properties, speed, dissolve remove / length, add clip, delete / move track, move
+    past it, remove media), Undo / Redo not blocked by the current lock, save / reopen / save byte for byte in v3.
+    `TimelineTrackStateUiTests` (UI, 6): rows offer the right toggles, one step each with the row following Undo / Redo,
+    mute / hide on a locked track, a header track edit refused when locked, disabled during an export, headers after
+    Open. `ExportTrackStateEndToEndTests` (ExportEndToEnd, 2): a hidden video track absent from the picture with a
+    locked track drawn, the length kept, the Preview = the export canvas byte for byte; a muted audio track and a muted
+    video track absent from the PCM, a locked one heard, the length kept, the picture unchanged by mute.
+  - Mutations (each restored, `--no-incremental` rebuild): a lock check added to the state commands → 2 tests fail; the
+    audio-hide guard removed → 1 fails; Undo writing the new value → 7 fail.
+  - Verification: `dotnet build AiVideoEditor.sln -warnaserror` 0 / 0; the full suite 2621 passed, 2 skipped (the two 4K
+    scenes), 0 failed — Core 513, Timeline 510 (+13), Project 426, UI 580 (+6), Export 100, Rendering 58, Video 322,
+    ExportEndToEnd 112 + 2 (+2).
+  - Manual (`docs/PHASE15_MANUAL_TEST_PLAN.md`, scenarios 1–6, 8, R1 partly; details in its results log): the Phase 14
+    R5 fixture opened in place and saved byte for byte; toggles, Undo / Redo and the title's `*`; lock refusing ✕ / ▲;
+    mute / hide on a locked track; save → v3 with only the flags (and `modifiedAt`) changed against the Phase 14 save;
+    reopen; an export through the UI with V1 hidden / muted / locked and A1 muted / locked — V1 absent, silence, 27 s /
+    675 frames as without the flags; the Phase 15 file opened and saved byte for byte by the Phase 14 build; the header
+    at 1024 and 1440 px. Scenario 7 (during an export) automated only.
 
 ### Phase 14 — Stabilization / technical debt (complete; PR #14 merged as `7200976`)
 
@@ -3723,8 +3763,8 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Timeline canvas is a plain ItemsControl/Canvas; very long timelines at maximum
   zoom are not virtualized (ruler is).
 - Media import is not undoable (unchanged from Phase 2).
-- Tracks: `IsMuted` / `IsHidden` / `IsLocked` are saved and honoured by the playback snapshot, the export and the edit
-  service, but no command or UI sets them (found at the Phase 15 pre-analysis); taken into Phase 15 Step 15.3 (D030 §4).
+- Tracks: `IsMuted` / `IsHidden` / `IsLocked` had no command or UI (found at the Phase 15 pre-analysis) — fixed in Phase 15
+  Step 15.3 (D030 §4): mute / hide / lock in the track header.
 
 ## Verification
 

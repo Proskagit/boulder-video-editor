@@ -42,6 +42,37 @@
     <Style Selector="Border.trackRow">
       <Setter Property="Background" Value="#202020"/>
     </Style>
+    <!-- D030 §4: a locked lane is tinted, a hidden lane's clips are dimmed (they are not drawn in the Preview / export) -->
+    <Style Selector="Border.trackRow.locked">
+      <Setter Property="Background" Value="#28231A"/>
+    </Style>
+    <Style Selector="Border.trackRow.hidden ItemsControl.canvasItems">
+      <Setter Property="Opacity" Value="0.35"/>
+    </Style>
+    <!-- D030 §4: the track header's mute / hide / lock toggles; off is quiet, on is coloured (lock in amber) -->
+    <Style Selector="Button.trackState">
+      <Setter Property="FontSize" Value="9"/>
+      <Setter Property="Padding" Value="3,0"/>
+      <Setter Property="MinHeight" Value="0"/>
+      <Setter Property="MinWidth" Value="16"/>
+      <Setter Property="Height" Value="16"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="Foreground" Value="#8A8A8A"/>
+      <Setter Property="Opacity" Value="0.6"/>
+    </Style>
+    <Style Selector="Button.trackState.on">
+      <Setter Property="Opacity" Value="1"/>
+      <Setter Property="Foreground" Value="#FFFFFF"/>
+    </Style>
+    <Style Selector="Button.trackState.mute.on /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#B03A3A"/>
+    </Style>
+    <Style Selector="Button.trackState.hide.on /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#3A66B0"/>
+    </Style>
+    <Style Selector="Button.trackState.lock.on /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#D0921E"/>
+    </Style>
     <Style Selector="Border.trackRow.dropTarget">
       <Setter Property="Background" Value="#2A3A4A"/>
     </Style>
@@ -105,7 +136,21 @@
                 <DataTemplate>
                   <Border Height="44" BorderBrush="#1A1A1A" BorderThickness="0,0,1,1">
                     <StackPanel VerticalAlignment="Center" Spacing="2">
-                      <TextBlock Text="{Binding Label}" Foreground="#AAAAAA" FontSize="11" HorizontalAlignment="Center"/>
+                      <!-- The name and the state toggles (D030 §4): video M / 👁 / 🔒, audio M / 🔒 (no hide: no picture) -->
+                      <DockPanel Margin="4,0" LastChildFill="True">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="1">
+                          <Button Classes="trackState mute" Classes.on="{Binding IsMuted}" Content="M"
+                                  ToolTip.Tip="Mute / unmute the track: a muted track is not heard in the Preview or the export"
+                                  Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackMuteCommand}" CommandParameter="{Binding}"/>
+                          <Button Classes="trackState hide" Classes.on="{Binding IsHidden}" Content="👁" IsVisible="{Binding CanHide}"
+                                  ToolTip.Tip="Hide / show the track: a hidden track is not drawn in the Preview or the export (its sound still plays)"
+                                  Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackHiddenCommand}" CommandParameter="{Binding}"/>
+                          <Button Classes="trackState lock" Classes.on="{Binding IsLocked}" Content="🔒"
+                                  ToolTip.Tip="Lock / unlock the track: a locked track's clips and place can't be edited (it still plays and exports)"
+                                  Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackLockCommand}" CommandParameter="{Binding}"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Label}" Foreground="#AAAAAA" FontSize="11" VerticalAlignment="Center"/>
+                      </DockPanel>
                       <!-- D027 §3: move among the tracks of its kind, delete (the edit service decides; locks, last track) -->
                       <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="2">
                         <StackPanel.Styles>
@@ -177,6 +222,7 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
                   <Border Classes="trackRow" Classes.dropTarget="{Binding IsDropTarget}"
+                          Classes.locked="{Binding IsLocked}" Classes.hidden="{Binding IsHidden}"
                           Height="44" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1">
                     <Panel>
                     <ItemsControl Classes="canvasItems" ItemsSource="{Binding Clips}">

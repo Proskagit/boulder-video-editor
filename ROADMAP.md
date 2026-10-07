@@ -64,9 +64,10 @@ Phase 15 — Editing tools, branch `feat/phase-15-editing-tools` (from `7200976`
 playhead, plain and ripple, `Q` / `W` (15.4); ripple trim by dragging an edge (15.5); slip (15.6); a timeline In / Out
 range — `I` / `O`, loop over the range, range export — as **unsaved session state** (15.7); a new text clip's
 `FontSize = 48 × canvasHeight / 1080` and the audio status reset after the sound returns (15.8); closeout (15.9).
-`project.json` stays v3 with no new property. Step 15.1 (pre-analysis) accepted (2026-10-07); Step 15.2 (sync after the
-merge, scope formalization, documentation only) done, awaiting acceptance; the open questions Q1–Q16 of D030 are answered before the
-steps they concern. Scope and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps"; manual
+`project.json` stays v3 with no new property. Steps 15.1 (pre-analysis) and 15.2 (sync after the merge, scope
+formalization, `d1296be`) accepted (2026-10-07); Step 15.3 (track controls: mute / hide / lock in the track header, one
+undo step each, mute / hide allowed on a locked track — Q13) done, awaiting acceptance; the other open questions of D030
+are answered before the steps they concern. Scope and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps"; manual
 plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
 ## Previous

@@ -129,6 +129,22 @@ public interface ITimelineEditService
     /// when there is no neighbour in that direction.</summary>
     TimelineEditResult MoveTrack(Guid trackId, int direction);
 
+    /// <summary>Mutes or unmutes a track (D030 §4): a muted track gives no sound — an audio track's clips, a video track's
+    /// video clips — in the Preview and the export; its picture and the sequence length are unchanged. One Undo step;
+    /// allowed on a locked track (the lock protects the clips, not the monitoring state);
+    /// <see cref="TimelineEditResult.NoChange"/> when the track already has that state.</summary>
+    TimelineEditResult SetTrackMuted(Guid trackId, bool muted);
+
+    /// <summary>Hides or shows a video track (D030 §4): a hidden track draws nothing — clips, texts, dissolves — in the
+    /// Preview and the export; its video clips still sound unless the track is muted, and the sequence length is
+    /// unchanged. One Undo step; allowed on a locked track. Rejected for an audio track (it has no picture).</summary>
+    TimelineEditResult SetTrackHidden(Guid trackId, bool hidden);
+
+    /// <summary>Locks or unlocks a track (D030 §4): every edit of a locked track's clips or of the track itself (move,
+    /// delete) is refused while it is locked; playback and the export are unchanged. One Undo step. The lock is checked
+    /// when an edit is planned — Undo / Redo of earlier steps are not blocked by it.</summary>
+    TimelineEditResult SetTrackLocked(Guid trackId, bool locked);
+
     /// <summary>How many clips of the timeline use the media asset (any track, also hidden, muted or locked).</summary>
     int CountClipsUsing(Guid mediaAssetId);
 

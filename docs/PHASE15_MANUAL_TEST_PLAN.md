@@ -26,14 +26,14 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 1 | Hide a video track | Two overlapping video clips on V1 / V2; hide V2 | The Preview shows V1's clip; V2's clips drawn dimmed; V2's sound still plays; the title gets `*`; Undo shows V2 again and is clean at the save point | | planned |
-| 2 | Mute a track | Mute A1 (music), then V1 (video with sound) | A1 silent, then V1's sound silent, the picture unchanged; waveforms dimmed; Undo / Redo | | planned |
-| 3 | Lock a track | Lock V1; try move, trim, split, delete, ripple delete, paste, speed, a property, a dissolve, Q / W, ripple drag, slip, delete / move the track | Each refused with "Track V1 is locked." (or the step's text), nothing changes, no undo step; copy (Ctrl+C) still works; unlock → edits work again | | planned |
-| 4 | Toggles on a locked track | Lock V1, then hide / mute it | As decided by Q13 | | planned |
-| 5 | Save and reopen | Hide V2, mute A1, lock V1; Save; reopen | The flags come back; the project clean; `project.json` `formatVersion` 3, only `isHidden` / `isMuted` / `isLocked` changed | | planned |
-| 6 | Export | After 5, export | No V2 picture, no A1 sound, V2's video sound present; the length unchanged; the output matches the Preview | | planned |
-| 7 | During an export | Start an export, try the toggles | Disabled; enabled again after the export | | planned |
-| 8 | Header layout | Window at 1024 and 1440 px, video and audio tracks | All header controls visible and clickable, tooltips present, nothing cut | | planned |
+| 1 | Hide a video track | Two overlapping video clips on V1 / V2; hide V2 | The Preview shows V1's clip; V2's clips drawn dimmed; V2's sound still plays; the title gets `*`; Undo shows V2 again and is clean at the save point | `TrackStateEditTests` (hide: layers, sound kept, length), `TimelineTrackStateUiTests`, `ExportTrackStateEndToEndTests` | app 15.3 (Claude), passed — 👁 on V1 of the Phase 14 R5 fixture: title `*`, "Track V1 hidden", V1's clips dimmed, the Preview at 0:00 black; Undo → title clean, Redo → `*` |
+| 2 | Mute a track | Mute A1 (music), then V1 (video with sound) | A1 silent, then V1's sound silent, the picture unchanged; waveforms dimmed; Undo / Redo | `TrackStateEditTests` (video / audio track mute), `ExportTrackStateEndToEndTests` (PCM) | app 15.3 (Claude), passed — M on V1 and A1: "Track V1 muted", "Track A1 muted"; the exported file silent (scenario 6). The Preview's sound not judged by ear |
+| 3 | Lock a track | Lock V1; try move, trim, split, delete, ripple delete, paste, speed, a property, a dissolve, Q / W, ripple drag, slip, delete / move the track | Each refused with "Track V1 is locked." (or the step's text), nothing changes, no undo step; copy (Ctrl+C) still works; unlock → edits work again | `TrackStateEditTests.A_locked_track_refuses_every_ordinary_edit_and_nothing_changes` (18 edits), `TimelineTrackStateUiTests` | app 15.3 (Claude), passed — 🔒 on V1: "Track V1 locked"; ✕ and ▲ on V1 → "Track V1 is locked.", nothing changed; 🔒 on A1, ✕ on A1 → "Track A1 is locked.". Clip edits by pointer not driven (UI Automation) — covered by the service test; Q / W, ripple drag and slip come with 15.4–15.6 |
+| 4 | Toggles on a locked track | Lock V1, then hide / mute it | As decided by Q13 | `TrackStateEditTests.Mute_and_hide_change_on_a_locked_track_as_undoable_steps`, `TimelineTrackStateUiTests` | app 15.3 (Claude), passed — Q13 (allowed): on the locked V1 M → "Track V1 muted", 👁 → "Track V1 shown", 👁 → "Track V1 hidden" |
+| 5 | Save and reopen | Hide V2, mute A1, lock V1; Save; reopen | The flags come back; the project clean; `project.json` `formatVersion` 3, only `isHidden` / `isMuted` / `isLocked` changed | `TrackStateEditTests` (save / reopen / save byte for byte), `TimelineTrackStateUiTests` (headers after Open) | app 15.3 (Claude), passed — saved: `formatVersion` 3, V1 muted / hidden / locked, A1 muted / locked; against the Phase 14 save of the same fixture only the six flag values and `modifiedAt` differ; reopened clean; M / 👁 on V1 and 🔒 on A1 then said "unmuted" / "shown" / "unlocked" (the state was loaded); three Undo → clean, nothing left to undo |
+| 6 | Export | After 5, export | No V2 picture, no A1 sound, V2's video sound present; the length unchanged; the output matches the Preview | `ExportTrackStateEndToEndTests` (Preview = export canvas byte for byte, PCM, length) | app 15.3 (Claude), passed — Export through the UI with V1 hidden + muted + locked, A1 muted + locked: 27.000 s, 675 frames (as the export of the same fixture without the flags); frames at 1 s / 15 s black (0, 0, 0), at 6 s only V2's text "R148"; audio max −91 dB (silence); the unflagged export: red at 6 s, max −19.4 dB |
+| 7 | During an export | Start an export, try the toggles | Disabled; enabled again after the export | `TimelineTrackStateUiTests.The_toggles_are_disabled_while_an_export_runs` | auto — the fixture's export takes about 2 s, too short to probe the header by hand |
+| 8 | Header layout | Window at 1024 and 1440 px, video and audio tracks | All header controls visible and clickable, tooltips present, nothing cut | — | app 15.3 (Claude), passed — screenshots at 1024 × 768 and 1440 × 820 (125 % scaling): V2 / V1 with M 👁 🔒, A1 / A2 with M 🔒, ▲ ▼ ✕ below, nothing cut; off dim, on red / blue / amber; A2's mute from the Phase 14 file shown on |
 
 ## Step 15.4 — trim to the playhead (D030 §5)
 
@@ -88,7 +88,7 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Expected | Status |
 |---|---|---|---|
-| R1 | A project saved by the Phase 14 build (`7200976`, built apart from `git archive`): non-default canvas, rate and export settings, fades, a dissolve, markers, a text clip, and track flags set by editing the file | Opens with everything, the flags shown in the headers; a plain Save writes it byte for byte; the default export byte-identical to Phase 14's; a file saved by Phase 15 with flags opens in Phase 14 and renders the same | planned |
+| R1 | A project saved by the Phase 14 build (`7200976`, built apart from `git archive`): non-default canvas, rate and export settings, fades, a dissolve, markers, a text clip, and track flags set by editing the file | Opens with everything, the flags shown in the headers; a plain Save writes it byte for byte; the default export byte-identical to Phase 14's; a file saved by Phase 15 with flags opens in Phase 14 and renders the same | partly app 15.3 (Claude), passed — the Phase 14 R5 fixture (`r148/r5/p14`, saved by the Phase 14 build; A2 muted) opened in place: A2's M shown on; a plain Save wrote it byte for byte (SHA-256 `d3d13909…`); a copy saved by Phase 15 and by Phase 14 identical; the Phase 15 file with V1 hidden / muted / locked and A1 muted / locked opened in the Phase 14 build ("V1 🔒", "A1 🔒", V1 not drawn) and was saved by it byte for byte. The default-export comparison at 15.9 |
 | R2 | Real bouldering workflow: 6–10 portrait recordings on a 1080 × 1920 canvas; for each attempt `Q` / `W` / ripple trims to the send, a slip of one clip, 0.5× on the crux, a new text with the problem's name (85.33 px), music on A1 muted / unmuted, V2 overlay hidden / shown; an In / Out loop over the crux; a full export and a range export | Every step in a few actions; Preview and both files agree; save / reopen keeps the edit (not the range); no error in the log | planned |
 | R3 | Track mute / hide / lock (scenarios 1–8) end to end with save, reopen, undo and export | As in 1–8 | planned |
 | R4 | Trim / ripple trim (9–19) on 30 and 29.97 fps projects with gaps and several tracks | As in 9–19; nothing off the frame grid | planned |
@@ -102,3 +102,19 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 ## Results log
 
 *(filled by the steps' development-time runs and by Step 15.9)*
+
+### 2026-10-07 — Step 15.3 development-time run (Claude), Debug build of the 15.3 tree
+
+- Builds: the Phase 15 Debug build copied to a scratch folder; the Phase 14 build from the Phase 14 closeout run
+  (`p14bin`) for the compatibility checks. Isolated profiles (`LOCALAPPDATA` / `APPDATA` / `USERPROFILE`),
+  `--open-project`, UI Automation (buttons by name: M, 👁, 🔒, ✕, ▲, Save, Undo, Redo, Export; the native save dialog
+  through `WM_SETTEXT` / `BM_CLICK`); output files checked with ffprobe / ffmpeg (`volumedetect`, 1 × 1 frame averages).
+- Fixture: the Phase 14 R5 fixture (`r148/r5/p14`: 640 × 360, 25 fps, 7 clips on V1, a text on V2, a tone on A1, A2
+  muted). R1 in place (a plain Save, byte for byte); everything else on a copy. A copied project resolves its media by
+  the stored absolute path, so its first Save rewrites the four `relativePath`s — the Phase 14 build does exactly the
+  same with the same copy (identical files): D014's existing rule, not a Phase 15 change.
+- An automation slip, not an app defect: a Phase 15 instance left open on the original fixture received one Export
+  (default name, into the fixture folder, with the fixture's own Phase 14 state); the file was moved out to the scratch
+  folder at once and used as the unflagged baseline of scenario 6; the fixture's `project.json` is unchanged (hash
+  checked).
+- Scenarios 1–6, 8 and R1 (partly): see the tables. Scenario 7 automated only.

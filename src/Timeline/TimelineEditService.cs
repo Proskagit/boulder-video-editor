@@ -681,6 +681,30 @@ public sealed class TimelineEditService : ITimelineEditService
         return TimelineEditResult.Ok();
     }
 
+    // --- Track state (D030 §4) ------------------------------------------------------------
+    // Mute and hide are monitoring state, so a locked track takes them too (D030 Q13); the playback snapshot reads the
+    // flags, so the Preview and the export follow without any other change.
+
+    public TimelineEditResult SetTrackMuted(Guid trackId, bool muted) => SetTrackState(trackId, TrackStateFlag.Muted, muted);
+
+    public TimelineEditResult SetTrackHidden(Guid trackId, bool hidden)
+    {
+        if (FindTrack(trackId) is { Type: TrackType.Audio } track)
+            return TimelineEditResult.Fail($"Track {track.Name} is an audio track: it has no picture to hide.");
+        return SetTrackState(trackId, TrackStateFlag.Hidden, hidden);
+    }
+
+    public TimelineEditResult SetTrackLocked(Guid trackId, bool locked) => SetTrackState(trackId, TrackStateFlag.Locked, locked);
+
+    private TimelineEditResult SetTrackState(Guid trackId, TrackStateFlag flag, bool value)
+    {
+        if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail("That track no longer exists.");
+        if (SetTrackStateCommand.Get(track, flag) == value) return TimelineEditResult.Unchanged();
+
+        _undoRedo.Execute(new NotifyingCommand(new SetTrackStateCommand(track, flag, value), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok();
+    }
+
     // --- Ripple delete and close gap (D027 §2) ---------------------------------
 
     public TimelineEditResult RippleDeleteClips(IReadOnlyCollection<Guid> clipIds)
