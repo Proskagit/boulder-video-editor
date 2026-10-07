@@ -68,8 +68,6 @@ src/
                    (Phase 5).
   Media/           Media import: extension validation, file info (Phase 2);
                    thumbnails, waveforms and their cache (Phase 9).
-  Effects/         Reserved for a generic effect stack. Empty: the Phase 10 fades
-                   and cross dissolve live in Core, Timeline and UI.
   Export/          Offline export orchestration (Phase 8): renders the timeline frame
                    by frame like the Preview and hands frames and audio to the encoder.
   Project/         Current project state (Phase 2); project.json persistence,

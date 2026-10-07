@@ -20,7 +20,7 @@ Status column — kinds of evidence, never mixed:
 | R2 | `docs/EXPORT_MANUAL_TEST_PLAN.md` — the default export through the UI | Passes as before; the MP4 as in Phase 13 at the default settings | planned |
 | R3 | Autosave and recovery (the area of 14.3): edit, wait for the autosave, end the process, start again | The recovery offer (Recover / Discard / Not now) as before; Recover restores the edit | planned |
 | R4 | FFmpeg found / missing (the area of 14.4): start with ffmpeg / ffprobe on PATH, then with them hidden from PATH | Found: analysis, thumbnails, playback, export as before; missing: the same messages as in Phase 13, no crash | planned |
-| R5 | `src/Effects` (only if removed at 14.7): open, edit, save and export a project with every Phase 7–13 clip property | As before — the solution builds, `project.json` unchanged | planned |
+| R5 | `src/Effects` removed at 14.7: open, edit, save and export a project with every Phase 7–13 clip property | As before — the solution builds, `project.json` unchanged | planned |
 
 ## Results log
 

@@ -800,7 +800,7 @@ Scope: D029 §4.
 
 ### 14.6 — *(not taken — D029 §3: a canvas-relative font size of a new text clip and the status after an audio device returns are deferred product / UX changes)*
 
-### 14.7 — `src/Effects` removal *(decided with D029: remove — analysis in D029 §6)*
+### 14.7 — `src/Effects` removal *(done — D029 "Refined in Step 14.7": the project out of the solution and `App`, the folder deleted; the effect model and its persistence untouched; 18 projects)*
 - The project removed from the solution and from `App.csproj`; `Clip.Effects`, `Effect`, its
   persistence and copy (Core, Project, Timeline) untouched — `project.json` reads and writes exactly as before;
   ARCHITECTURE's module table and the project counts (`CLAUDE.md`, README if stated) corrected; no behaviour change.

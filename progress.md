@@ -4,7 +4,7 @@
 
 Phase 14 — Stabilization / technical debt (no new user functionality): **in progress** on branch
 `feat/phase-14-stabilization` (from `ed40b74`, `main` after the merge of PR #13). Step 14.1 (audit) and Step 14.2
-(sync & scope formalization, D029) accepted; Step 14.3 in progress. Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`
+(sync & scope formalization, D029) accepted; Steps 14.3–14.5 accepted; 14.6 not taken; Step 14.7 done — awaiting acceptance; 14.8 next. Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`
 "Phase 14 — Stabilization / technical debt: steps"; decision D029.
 
 ### Phase 14 — Stabilization / technical debt (in progress)
@@ -154,6 +154,25 @@ command; no push, pull request or merge without direct permission; no next step 
     tests pass.
   - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; `Timeline.Tests` 497 / 497
     (+2), `UI.Tests` 574 / 574 (+1), `ExportSettingsEndToEndTests` 3 / 3. No stress: no timing involved.
+  - Committed as `b8e6aac`; accepted by the product owner (2026-10-07).
+- Step 14.6 not taken (D029 §3) — out of scope, not implemented.
+- Step 14.7 done (2026-10-07) — `src/Effects` removed (D029 answer 1, "Refined in Step 14.7").
+  - `dotnet sln remove src/Effects/Effects.csproj` (the project entry, four configuration lines, the solution-folder
+    line); `dotnet remove src/App/App.csproj reference ../Effects/Effects.csproj`; `git rm` of `Effects.csproj` and
+    `ModuleInfo.cs`, the folder (with its ignored `bin` / `obj`) deleted.
+  - Untouched: `Effect` and `Clip.Effects` (Core), `EffectDto` / `ProjectSerializer` (the `effects` array of
+    `project.json`), the copy of a clip's effects in `TimelineEditService` — no file of Core, Project or Timeline in the
+    diff.
+  - Documentation: `CLAUDE.md` 19 → 18 projects, 11 → 10 application; ARCHITECTURE (10 application projects, the
+    `Effects` row replaced by a note on where fades / dissolves and `Clip.Effects` live and that the empty project was
+    removed here; verification note); README (the `Effects/` line of the tree); D029; DEVELOPMENT_PLAN.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0 (Debug) and the same with
+    `-c Release` 0 / 0; `dotnet sln list` 18 projects (10 `src`, 8 `tests`), 10 folders in `src`; the Debug and Release
+    `AiVideoEditor.deps.json` without `Effects` (an `AiVideoEditor.Effects.dll` from a Release build of 2026-09-29 is
+    still in the ignored `src/App/bin/Release` — a stale build output, not referenced). Tests: `Project.Tests` 426 / 426
+    (incl. the serializer round-trip / validation and clip-property persistence classes, 115 / 115, which cover
+    `effects`), `Timeline.Tests` 497 / 497, `UI.Tests` 574 / 574 (incl. the App composition tests). The full suite and R5
+    of the manual plan at 14.8.
 
 ### Phase 13 — Project & export settings (complete; PR #13 merged as `ed40b74`)
 
@@ -3507,7 +3526,7 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 2026-10-06: Phases 0–13 are complete and merged into `main` (last merge `ed40b74`, PR #13, CI green on the pull request;
 the first run on `main` failed on the known flaky locator test). Phase 14 (stabilization / technical debt, D029)
-in progress on `feat/phase-14-stabilization`: Step 14.2 accepted, Step 14.3 in progress. Open items carried forward: see "Known
+in progress on `feat/phase-14-stabilization`: Steps 14.2–14.5 accepted, Step 14.7 done (awaiting acceptance), 14.8 next. Open items carried forward: see "Known
 issues" (taken into Phase 14: the known flaky CI tests incl. the 5 s PATH probe of the locators, the watched
 `Project.Tests` hang / failure, the `F(end − start)` test helpers; deferred out of Phase 14: the audio status message
 after a device returns, a new text clip's `FontSize` 48 on any canvas; also no timeline virtualization, import not

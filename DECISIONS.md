@@ -2813,6 +2813,12 @@ Refined in Step 14.5 (test helpers and the NUL):
 - `ExportSettingsEndToEndTests.cs`: the literal NUL in a char literal replaced by `'\0'`; Git reads the file as text again
   (stored with LF like every other text file — before, as a "binary" file, it was kept with CRLF); the test unchanged.
 
+Refined in Step 14.7 (`src/Effects` removed, answer 1): the project left the solution (`dotnet sln remove`: its entry,
+its four configuration lines and its solution folder line) and `App.csproj` (the only reference); `src/Effects`
+(`Effects.csproj`, `ModuleInfo.cs`) deleted. Untouched: `Effect`, `Clip.Effects` (Core), `EffectDto` and the
+`effects` array of `project.json` (Project), the copy of a clip's effects (Timeline). The solution now has 18 projects
+— 10 application, 8 test (`CLAUDE.md`, ARCHITECTURE, README corrected). Debug and Release build 0 / 0.
+
 Consequences: CI no longer needs reruns for the known tests; D028 §8 can be closed at the closeout; the test helpers
 produce on-grid clips; one project fewer in the solution. No change for the user.
 

@@ -66,7 +66,7 @@ autosave test · 14.4 the flaky ffprobe / PATH-probe tests (no user-visible chan
 14.5 the `F(end − start)` test helpers and a regression guard · 14.7 removal of the empty `src/Effects` project (product owner, D029
 answer 1) · 14.8 closeout. 14.6 (a canvas-relative font size of a new text clip, the status after an audio
 device returns) is **not** taken — out of scope. Step 14.1 (audit) accepted (2026-10-06); Step 14.2 (sync, D029) accepted
-(2026-10-06); Step 14.3 in progress. Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`.
+(2026-10-06); Steps 14.3 (`ed35f1f`), 14.4 (`0a4e6fe`) and 14.5 (`b8e6aac`) accepted; 14.6 not taken; Step 14.7 (`src/Effects` removed) done — awaiting acceptance; 14.8 next. Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`.
 
 ## Previous
 
