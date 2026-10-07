@@ -81,7 +81,7 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
 
 | # | Scenario | Steps | Expected | Automated coverage | Status |
 |---|---|---|---|---|---|
-| 31 | Text size | `+ Text` on 1920 × 1080, 3840 × 2160, 1080 × 1920, 1280 × 720 | Inspector Size 48, 96, 85.33, 32; existing text clips unchanged | | planned |
+| 31 | Text size | `+ Text` on 1920 × 1080, 3840 × 2160, 1080 × 1920, 1280 × 720 | Inspector Size 48, 96, 85.33, 32; existing text clips unchanged | `NewTextFontSizeTests` (720 / 1080 / 1440 / 2160 / 360 / portrait; D028 resize with Scale kept; copies; save / open) | app 15.8 (Claude), passed — a new project (1920 × 1080): + Text → Inspector Size 48; Project Settings → Portrait 1080 × 1920: that text 27 (D028), + Text → 85,33; → 2560 × 1440: + Text → 64 (the portrait text 85.33 × 0.75 = 64); → 3840 × 2160: + Text → 96 (the 1440 text 64 × 1.5 = 96). The 15.7 build on 3840 × 2160: + Text → 48 (before the change) |
 | 32 | Audio status | Play, unplug / disable the audio device (status "Playing without sound…"), plug it back, Play | The stale status gone once the sound is back; a second loss reported again (Q15) | `PreviewSoundStatusTests` | auto (15.7 — Q15 taken into 15.7); manual pending: needs a real audio device unplugged and plugged back (PO) |
 
 ## Regression (Step 15.9)
@@ -160,3 +160,12 @@ A scenario is marked passed only for the run that actually checked it; the "Auto
   dialog's default name inside the scratch copies' folders; the files were moved to the scratch output folder.
 - Scenarios 25–29: see the table; 30 automated; 32 (the audio status) automated only — it needs a real device
   removed and restored.
+
+### 2026-10-07 — Step 15.8 development-time run (Claude), Debug build of the 15.8 tree
+
+- A new project in the app; canvases changed through Project Settings (the preset box, Apply) by UI Automation; the
+  Inspector's Size read from its field. Scenario 31: see the table.
+- An observation, not a 15.8 change: after + Text with the playhead beyond the sequence's previous end (e.g. a new
+  project, the canvas changed, the playhead at 6 s), the Preview stays black until the next seek — the same in the 15.7
+  build (checked side by side); with the playhead inside the sequence the text shows at once. Recorded in
+  `progress.md` Known issues.

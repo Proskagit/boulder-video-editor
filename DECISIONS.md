@@ -3362,6 +3362,18 @@ Refined in Step 15.7 (implementation, 2026-10-07):
   available again while playing, if that message is still the one shown. (The message is about the audio output, not
   about muted clips or tracks — a muted clip or track never produces it.)
 
+Answered at the start of Step 15.8 (product owner, 2026-10-07): Q14 — a newly created text takes
+`FontSize = 48 × canvasHeight / 1080` (720 → 32, 1080 → 48, 1440 → 64, 2160 → 96, 1080 × 1920 → 85.333…); a canvas change
+of an existing project keeps D028 Variant B — the existing font size × `s = min(W'/W, H'/H)`, the text's Scale not
+changed, rotation, crop, opacity and timing as D028 says. A 48 title on 1920 × 1080 becomes 27 on 1080 × 1920 (D028), a
+new title there gets 85.333 (the new-text rule): two different operations, not a contradiction. Nothing else changes.
+
+Refined in Step 15.8 (implementation, 2026-10-07): `ProjectSettingsRules.NewTextFontSize(canvasHeight)` (Core, next to
+`ContainFactor`) — `48.0 × canvasHeight / 1080`, exact in `double`, no rounding (the Inspector shows it with its usual
+`0.##`, e.g. 85.33); within the 1 … 1000 limits for every canvas the rules allow (64 … 4096 px high: 2.84 … 182.04).
+`AddTextClip` is the only place that creates a text and the only caller; copies (paste, duplicate) keep their source's
+size; the model's default 48 (`TextClip.FontSize`) is unchanged, so files load as before. `project.json` unchanged (v3).
+
 Consequences: new commands in the Timeline subsystem (`ITimelineEditService`: track state, trim to the playhead with
 ripple, slip and its limits), sharing the existing trim / shift planners and `EditPlan` reconciliation; a range on the
 export job (`ExportJob` / preflight / encoder input) and in the Preview's loop; the timeline view gains the track
@@ -3370,9 +3382,9 @@ toggles, the ripple / slip gestures and the range band; `project.json` unchanged
 
 Status: Accepted (2026-10-07, product owner: scope §1, the In / Out range as unsaved session state, the keys `I` / `O` /
 `Q` / `W`, the font-size formula, the non-goals §3). Q13 answered (Step 15.3); Q1, Q2, Q4, Q5, Q6 answered (Step
-15.4); Q3 answered (Step 15.5); Q12 answered (Step 15.6); Q7–Q11, Q15, Q16 answered (Step 15.7); Q14 is open until the
-product owner answers it. Steps 15.2, 15.3 (`1d26165`), 15.4 (`f122c9a`), 15.5 (`efecd24`) and 15.6 (`aa94da0`) accepted;
-Step 15.7 done (awaiting acceptance). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
+15.4); Q3 answered (Step 15.5); Q12 answered (Step 15.6); Q7–Q11, Q15, Q16 answered (Step 15.7); Q14 answered (Step 15.8) — every
+open question is answered. Steps 15.2, 15.3 (`1d26165`), 15.4 (`f122c9a`), 15.5 (`efecd24`), 15.6 (`aa94da0`) and 15.7
+(`46eae30`) accepted; Step 15.8 done (awaiting acceptance). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
 
 ---
 

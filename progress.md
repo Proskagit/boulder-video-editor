@@ -7,8 +7,9 @@ locked by the product owner on 2026-10-07 (DECISIONS.md D030): track controls (m
 (plain and ripple, `Q` / `W`), ripple trim by dragging, slip, a timeline In / Out range (`I` / `O`, loop, range export) as
 unsaved session state, a new text clip's `FontSize = 48 × canvasHeight / 1080`, the audio status reset. Steps 15.1
 (pre-analysis), 15.2 (documentation, `d1296be`), 15.3 (track controls, `1d26165`) and 15.4 (trim to the playhead,
-`f122c9a`), 15.5 (ripple trim by dragging, `efecd24`) and 15.6 (slip, `aa94da0`) accepted; Step 15.7 (In / Out range,
-loop, range export; the Q15 audio status fix) done, awaiting acceptance; only Q14 (15.8) is still open. Scope, steps and acceptance criteria:
+`f122c9a`), 15.5 (ripple trim by dragging, `efecd24`), 15.6 (slip, `aa94da0`) and 15.7 (In / Out range, `46eae30`)
+accepted; Step 15.8 (a new text's font size) done, awaiting acceptance; every open question of D030 is answered; the
+closeout (15.9) remains. Scope, steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md` "Phase 15 — Editing tools: steps"; manual plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
 ### Phase 15 — Editing tools (in progress)
@@ -252,6 +253,23 @@ command; no push, pull request or merge without direct permission; no next step 
     click, the bar and the ✕, Loop off / on with sampled timecodes, Range (76 frames, 3.04 s) and Entire sequence (675
     frames) exports, a range export not blocked by media offline only outside it, the project clean and v3 throughout.
     Not run by hand: the audio status (Q15) — it needs a real device removed and restored.
+  - Committed as `46eae30`; accepted by the product owner (2026-10-07).
+- Product owner decision at the start of Step 15.8 (2026-10-07), recorded in D030: Q14 — a new text's `FontSize = 48 ×
+  canvasHeight / 1080`; D028 Variant B unchanged for existing text on a canvas change (× `min(W'/W, H'/H)`, Scale kept).
+  Only Step 15.8.
+- Step 15.8 done (2026-10-07) — a new text's font size (D030 §9, "Refined in Step 15.8").
+  - Core `ProjectSettingsRules.NewTextFontSize`; `TimelineEditService.AddTextClip` uses it (the only creator of text).
+  - Tests (+9): `NewTextFontSizeTests` (Timeline) — 720 → 32, 1080 → 48, 1440 → 64, 2160 → 96, 360 → 16, portrait 85.333…
+    exactly (no rounding); an existing text on 1920 × 1080 → 1080 × 1920: 27, its Scale 1.5, rotation, opacity kept,
+    positions × 0.5625, a new text there 85.333, undo back; copies keep their size; save / open / save byte for byte in v3.
+  - Mutations (7, each restored, `--no-incremental` rebuild after): the width instead of the height → 8 fail; a fixed 48
+    → 7; 1920 as the reference → 8; rounding → 3; D028 max instead of min → 10; D028 also scaling Scale → 8; D028
+    replaced by the new-text formula → 16. None survived.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full suite 2835 passed, 2
+    skipped (the two 4K scenes), 0 failed — Core 526, Timeline 670 (+9), Project 426, UI 618, Export 100, Rendering 58,
+    Video 322, ExportEndToEnd 115 + 2.
+  - Manual (scenario 31): new text 48 / 85,33 / 64 / 96 on 1920 × 1080 / 1080 × 1920 / 2560 × 1440 / 3840 × 2160, the
+    existing 48 → 27 on the portrait canvas; the 15.7 build gave 48 on 4K.
 
 ### Phase 14 — Stabilization / technical debt (complete; PR #14 merged as `7200976`)
 
@@ -3903,9 +3921,11 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   "Playing without sound…" (D024 "Left as they are", Step 9.10; deferred by D029 §3). Fixed in Phase 15 Step 15.7 (D030 §9,
   Q15): the message goes when sound is available again while playing, and a later loss is reported again (automated;
   the real-device check is pending).
-- Text clips: a new text clip takes `FontSize` 48 on any canvas (`Clip.cs`), small on a 4K canvas (an observation from
-  Phase 13). Deferred out of Phase 14 as a product change (D029 §3); taken into Phase 15 Step 15.8 —
-  `48 × canvasHeight / 1080` (D030 §9).
+- Text clips: a new text clip took `FontSize` 48 on any canvas (an observation from Phase 13; D029 §3). Fixed in Phase 15
+  Step 15.8: `48 × canvasHeight / 1080` (D030 §9).
+- Preview (observed at Phase 15 Step 15.8, not changed): after adding a clip with the playhead beyond the sequence's
+  previous end, the Preview stays black until the next seek (the same in the 15.7 build); inside the sequence it shows
+  at once. Not investigated — a separate task.
 - `MediaAnalysisCoordinator` relies on the captured UI SynchronizationContext.
 - Timecode is non-drop-frame only (29.97 timecode drifts from wall clock by design).
 - Timeline canvas is a plain ItemsControl/Canvas; very long timelines at maximum

@@ -158,8 +158,9 @@ public sealed class TimelineEditService : ITimelineEditService
         var startFrame = Math.Max(0, start.ToNearestFrame(rate));
         var frames = Math.Max(1, DefaultTextDuration.ToNearestFrame(rate));
 
-        // Text defaults are the model's (Segoe UI, 48, #FFFFFF, centred); only the content is set.
-        var clip = new TextClip { Text = DefaultText };
+        // Text defaults are the model's (Segoe UI, #FFFFFF, centred); the content is set, and the size from the canvas
+        // height (D030 §9, Q14), so a title reads the same on any canvas.
+        var clip = new TextClip { Text = DefaultText, FontSize = ProjectSettingsRules.NewTextFontSize(Settings.FrameHeight) };
         ClipState.FromFrames(startFrame, startFrame + frames, MediaTime.Zero, rate).ApplyTo(clip);
         plan.Insert(track, clip);
 

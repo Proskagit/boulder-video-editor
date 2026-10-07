@@ -70,8 +70,8 @@ undo step each, mute / hide allowed on a locked track — Q13, `1d26165`) accept
 Shift+Q / Shift+W ripple; dissolves kept — Q1, Q2, Q4, Q5, Q6, `f122c9a`) accepted; Step 15.5 (ripple trim by Shift +
 edge drag, the same planner as Shift+Q / Shift+W — Q3, `efecd24`) accepted; Step 15.6 (slip: Alt + body drag, only the
 source mapping changes — Q12, `aa94da0`) accepted; Step 15.7 (In / Out range: I / O, the ✕, loop over the range, range
-export with its own preflight — Q7–Q11, Q16 — and the stale audio status fix, Q15) done, awaiting acceptance; Q14 is
-answered before 15.8. Scope and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps"; manual
+export with its own preflight — Q7–Q11, Q16 — and the stale audio status fix, Q15, `46eae30`) accepted; Step 15.8 (a new
+text's font size `48 × canvasHeight / 1080` — Q14) done, awaiting acceptance; the closeout (15.9) remains. Scope and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps"; manual
 plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
 ## Previous
