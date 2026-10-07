@@ -940,7 +940,7 @@ Scope: D030 §8.
 
 ### 15.8 — The D029 §3 UX fixes *(done 2026-10-07 — awaiting acceptance; D030 "Refined in Step 15.8": a new text's `FontSize = 48 × canvasHeight / 1080`, exact; D028's canvas scaling of existing text unchanged. The audio status part was done in 15.7)*
 Scope: D030 §9.
-- PR: a new text clip takes `FontSize = 48 × canvasHeight / 1080` (exact, `double`, within 1 … 1000); existing clips
+- PR: a new text clip takes `FontSize = 48 × canvasHeight / 1080` (exact, `double`, within 1 … 1000 for every canvas the settings accept); existing clips
   and the canvas-size scaling unchanged (Q14).
 - PR: the "Playing without sound…" status cleared when the sound is available again, only if it is still shown; a later
   loss reported again (Q15).

@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
@@ -47,6 +48,46 @@ public class NewTextFontSizeTests
         Assert.Equal(48.0 * 1920 / 1080, size);                                       // 85.333…, no rounding
         Assert.Equal(85.333, size, 3);
         Assert.Equal(48.0 * 1920 / 1080, ProjectSettingsRules.NewTextFontSize(1920));
+    }
+
+    [Theory]
+    [InlineData(1000, 810, 36.0)]                                                     // custom sizes, not presets
+    [InlineData(2000, 1530, 68.0)]
+    [InlineData(1660, 2970, 132.0)]
+    public void A_new_text_on_a_custom_canvas_takes_the_same_formula(int width, int height, double expected)
+    {
+        var f = new TimelineFixture();
+        Ok(f.Service.SetCanvasSize(width, height));
+
+        Assert.Equal(expected, NewText(f).FontSize);
+    }
+
+    [Fact]
+    public void A_new_text_on_a_custom_canvas_keeps_a_non_integer_size_unrounded()
+    {
+        var f = new TimelineFixture();
+        Ok(f.Service.SetCanvasSize(1234, 1000));                                     // custom; 48 000 / 1080 = 44.444…
+
+        var size = NewText(f).FontSize;
+
+        Assert.Equal(44.444444444444, size, 12);
+        Assert.NotEqual(Math.Round(size), size);
+    }
+
+    [Theory]
+    [InlineData(128, ProjectSettingsRules.MinCanvasSide, 2.844444444444)]            // the lowest canvas the rules accept
+    [InlineData(2304, ProjectSettingsRules.MaxCanvasSide, 182.044444444444)]         // the highest (2304 × 4096 within the area)
+    public void At_the_canvas_limits_a_new_text_is_within_the_font_size_limits_without_a_clamp(int width, int height, double expected)
+    {
+        Assert.Null(ProjectSettingsRules.CanvasError(width, height));
+        var f = new TimelineFixture();
+        Ok(f.Service.SetCanvasSize(width, height));
+
+        var text = NewText(f);
+
+        Assert.Equal(expected, text.FontSize, 9);                                      // the formula's value, not a limit
+        Assert.InRange(text.FontSize, ClipPropertyLimits.MinFontSize, ClipPropertyLimits.MaxFontSize);
+        Assert.Null(ClipPropertyValidator.ValidateCurrent(text));                      // the ordinary property rules accept it
     }
 
     [Fact]
@@ -108,6 +149,48 @@ public class NewTextFontSizeTests
             Assert.Equal(48.0 * 1920 / 1080, again.FontSize);
             await f.Projects.SaveAsync();
             Assert.Equal(bytes, File.ReadAllBytes(file));
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch (IOException) { }
+        }
+    }
+
+    [Fact]
+    public async Task Adding_a_text_changes_the_saved_file_only_by_the_new_clip()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "AiVideoEditorTests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var f = new TimelineFixture();
+            Ok(f.Service.SetCanvasSize(1280, 720));
+            var video = f.Video(10, f.Rate);
+            f.Place<VideoClip>(f.V1, video, 0, MediaTime.FromSeconds(4).Ticks);
+            f.Place<AudioClip>(f.A1, f.Audio(10), 0, MediaTime.FromSeconds(6).Ticks);
+            var existing = NewText(f, MediaTime.FromSeconds(5).ToNearestFrame(f.Rate));     // 32 on 720
+            f.AssertValid();
+            var folder = Path.Combine(root, "Project");
+            await f.Projects.SaveAsAsync(folder);
+            var file = Path.Combine(folder, "project.json");
+            var before = JsonNode.Parse(File.ReadAllText(file))!;
+
+            var added = NewText(f, MediaTime.FromSeconds(12).ToNearestFrame(f.Rate));
+            await f.Projects.SaveAsync();
+            var after = JsonNode.Parse(File.ReadAllText(file))!;
+
+            Assert.Equal(3, (int)before["formatVersion"]!);
+            Assert.Equal(3, (int)after["formatVersion"]!);
+            var clips = after["timeline"]!["videoTracks"]![0]!["clips"]!.AsArray();
+            var node = clips.Single(c => (string)c!["id"]! == added.Id.ToString());
+            Assert.Equal("text", (string)node!["type"]!);
+            Assert.Equal(32.0, (double)node["fontSize"]!);
+            Assert.Equal(32.0, (double)clips.Single(c => (string)c!["id"]! == existing.Id.ToString())!["fontSize"]!);
+
+            // Without the new clip and the save time stamp, the file is the baseline exactly.
+            clips.Remove(node);
+            after.AsObject().Remove("modifiedAt");
+            before.AsObject().Remove("modifiedAt");
+            Assert.True(JsonNode.DeepEquals(before, after), after.ToJsonString());
         }
         finally
         {

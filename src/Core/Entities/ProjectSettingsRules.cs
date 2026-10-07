@@ -39,17 +39,18 @@ public static class ProjectSettingsRules
         return null;
     }
 
+    /// <summary>The font size of a newly created text clip on a canvas <paramref name="canvasHeight"/> pixels high (D029 §3 →
+    /// D030 §9, Q14): <c>48 × canvasHeight / 1080</c>, exact in <c>double</c> — 48 at 1080, 32 at 720, 64 at 1440, 96 at 2160,
+    /// 85.333… on a 1080 × 1920 portrait canvas. Only for new text: an existing clip's size follows a canvas change by
+    /// <see cref="ContainFactor"/> (D028), a different operation. Not clamped: within the font-size limits for every
+    /// canvas <see cref="CanvasError"/> accepts.</summary>
+    public static double NewTextFontSize(int canvasHeight) => 48.0 * canvasHeight / 1080;
+
     /// <summary>
     /// The factor a canvas change multiplies the values kept in canvas pixels by (D028 Step 13.4, CS-1 B):
     /// <c>min(newWidth / oldWidth, newHeight / oldHeight)</c> — how D018's "contain" fits the old canvas into the new one,
     /// the axis chosen by exact cross-multiplication as in <c>CompositionMath.Layout</c>.
     /// </summary>
-    /// <summary>The font size of a newly created text clip on a canvas <paramref name="canvasHeight"/> pixels high (D029 §3 →
-    /// D030 §9, Q14): <c>48 × canvasHeight / 1080</c>, exact in <c>double</c> — 48 at 1080, 32 at 720, 64 at 1440, 96 at 2160,
-    /// 85.333… on a 1080 × 1920 portrait canvas. Only for new text: an existing clip's size follows a canvas change by
-    /// <see cref="ContainFactor"/> (D028), a different operation.</summary>
-    public static double NewTextFontSize(int canvasHeight) => 48.0 * canvasHeight / 1080;
-
     public static double ContainFactor(int oldWidth, int oldHeight, int newWidth, int newHeight)
     {
         if (oldWidth <= 0 || oldHeight <= 0 || newWidth <= 0 || newHeight <= 0)

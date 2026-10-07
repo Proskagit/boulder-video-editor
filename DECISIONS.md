@@ -3072,7 +3072,9 @@ Terms: the playhead is on frame `p` (it is always on the grid); a clip covers fr
 ### 9. UX fixes deferred by D029 §3 (Step 15.8)
 
 - A new text clip (`AddTextClip`) takes `FontSize = 48 × canvasHeight / 1080` — exactly this formula, in `double`
-  (1080 → 48, 2160 → 96, 720 → 32, 1920 → 85.333…), within the existing limits 1 … 1000 (`ClipPropertyLimits`); existing
+  (1080 → 48, 2160 → 96, 720 → 32, 1920 → 85.333…), within the existing limits 1 … 1000 (`ClipPropertyLimits`) for
+  every canvas the project settings accept (`ProjectSettingsRules.CanvasError`: 64 … 4096 px a side), with no clamp of
+  its own (a hand-written file's out-of-range canvas is not guarded by new validation, as with D028's scaling); existing
   clips and the D028 canvas-size scaling (`ContainFactor`) are unchanged; a project file is unchanged (the value is
   stored as any font size). See Q14 for the difference to the canvas scaling.
 - Audio status: when playback has sound again after "Playing without sound: no audio output is available." was
@@ -3370,7 +3372,9 @@ new title there gets 85.333 (the new-text rule): two different operations, not a
 
 Refined in Step 15.8 (implementation, 2026-10-07): `ProjectSettingsRules.NewTextFontSize(canvasHeight)` (Core, next to
 `ContainFactor`) — `48.0 × canvasHeight / 1080`, exact in `double`, no rounding (the Inspector shows it with its usual
-`0.##`, e.g. 85.33); within the 1 … 1000 limits for every canvas the rules allow (64 … 4096 px high: 2.84 … 182.04).
+`0.##`, e.g. 85.33); within the 1 … 1000 limits for every canvas the settings rules accept (64 … 4096 px high:
+2.84 … 182.04) — guaranteed by those rules, not by a clamp: a canvas outside them (only possible in a file edited by
+hand, which a load accepts when positive) gets the formula's value unclamped, as D028's scaling does.
 `AddTextClip` is the only place that creates a text and the only caller; copies (paste, duplicate) keep their source's
 size; the model's default 48 (`TextClip.FontSize`) is unchanged, so files load as before. `project.json` unchanged (v3).
 

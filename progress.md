@@ -270,6 +270,17 @@ command; no push, pull request or merge without direct permission; no next step 
     Video 322, ExportEndToEnd 115 + 2.
   - Manual (scenario 31): new text 48 / 85,33 / 64 / 96 on 1920 × 1080 / 1080 × 1920 / 2560 × 1440 / 3840 × 2160, the
     existing 48 → 27 on the portrait canvas; the 15.7 build gave 48 on 4K.
+  - Committed as `f9a2253`. Phase-reviewer (2026-10-08): FAIL on missing evidence for two QG items (a custom canvas
+    height; the saved file changed only by the new clip) and a misplaced XML summary in `ProjectSettingsRules`.
+  - Correction (2026-10-08, no production behaviour changed; the formula and D028 as they were, no clamp added):
+    `NewTextFontSizeTests` +7 — custom canvases 1000 × 810 → 36, 2000 × 1530 → 68, 1660 × 2970 → 132 and 1234 × 1000 →
+    44.444… unrounded; the canvas limits 128 × 64 → 2.844… and 2304 × 4096 → 182.044…, inside 1 … 1000 and accepted by
+    `ClipPropertyValidator`; `Adding_a_text_changes_the_saved_file_only_by_the_new_clip` (a saved baseline with a video,
+    an audio and a text clip on 1280 × 720; one + Text; saved again: v3, the new clip 32, and without it and `modifiedAt`
+    the JSON equals the baseline). The summaries of `NewTextFontSize` / `ContainFactor` put back on their methods. D030 §9
+    and its 15.8 refinement, DEVELOPMENT_PLAN 15.8: the 1 … 1000 range holds for every canvas the settings accept,
+    without a clamp. Mutations (5, each restored): a clamp to [3, 180] → 2 fail; a clamp plus rounding → 6; presets only →
+    6; the add also renaming the track → 1; also changing the zoom → 1.
 
 ### Phase 14 — Stabilization / technical debt (complete; PR #14 merged as `7200976`)
 
