@@ -10,7 +10,7 @@ text; MP4 export; quality: stability, thumbnails, waveforms, hotkeys,
 performance, polish, CI; fades and a cross dissolve; media relink and recent projects — Phase 11, merged
 2026-10-05; editing essentials: track delete / reorder, removing media, ripple delete, copy / paste / duplicate,
 markers — Phase 12, merged 2026-10-05 as `c0cb600`, CI green; project & export settings — Phase 13, merged 2026-10-06 as
-`ed40b74`, CI green on PR #13). Phase 14 (stabilization / technical debt, no new user functionality) is in progress —
+`ed40b74`, CI green on PR #13). Phase 14 (stabilization / technical debt, no new user functionality) is complete (closeout 2026-10-07) —
 DECISIONS.md D029.
 
 ## Requirements
@@ -119,7 +119,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–13 complete (Phase 13 merged as `ed40b74`, CI green on PR #13); Phase 14 (stabilization, D029) in progress. Working: media import
+Phases 0–13 complete (Phase 13 merged as `ed40b74`, CI green on PR #13); Phase 14 (stabilization, D029) complete. Working: media import
 with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
 preview playback with video and audio, and projects on disk: New / Open / Save /

@@ -2619,7 +2619,7 @@ dump; the full suite with `AIVE_HEAVY_TESTS=1` 2587 passed, 0 skipped, 0 failed;
   which had them chosen in the export flow**, made by the product owner at Step 13.9; `settings.export` stays an optional
   property of `project.json` v3, a project without it reads as `ExportEncoding.Default`; 320 kbps stays an offered target
   (`-b:a 320000`, a valid track — the bitrate reached is not a criterion); L1-c decided with its measurement kept in the
-  suite (`ExportCodecLegTests`); the Phase 8–12 export / parity criteria are unchanged. Phase 14 not started.
+  suite (`ExportCodecLegTests`); the Phase 8–12 export / parity criteria are unchanged. Phase 14 not started at that point (it followed — D029).
 - Kept open after Phase 13 (not Phase 13 work): the `F(end − start)` test helpers; the known flaky CI tests (§8 policy);
   the observation that a new text clip takes `FontSize` 48 on any canvas.
 
@@ -2819,11 +2819,27 @@ its four configuration lines and its solution folder line) and `App.csproj` (the
 `effects` array of `project.json` (Project), the copy of a clip's effects (Timeline). The solution now has 18 projects
 — 10 application, 8 test (`CLAUDE.md`, ARCHITECTURE, README corrected). Debug and Release build 0 / 0.
 
+Closeout (Step 14.8, 2026-10-07, at `90caae9`):
+- Builds `--no-incremental -warnaserror`: Release 0 / 0, Debug 0 / 0 (18 projects).
+- Tests (TRX + the CI gate script each time): the full suite 2600 passed, 2 skipped (only the two 4K scenes), 0 failed;
+  three `--blame-hang --blame-hang-timeout 5m` runs 2600 / 2 / 0 each, no hang, no dump; with `AIVE_HEAVY_TESTS=1` 2602
+  passed, 0 skipped, 0 failed. No retry, no rerun; no test weakened, skipped or re-baselined.
+- Manual regression (`docs/PHASE14_MANUAL_TEST_PLAN.md`, against the Phase 13 build `ed40b74` built apart): R1 a Phase 13
+  project with non-default canvas, rate and export settings opens with them and saves byte for byte; R2 the default export
+  byte-identical to Phase 13's; R3 timer autosave, crash, recovery; R4 ffmpeg found / missing — the same behaviour and
+  messages as Phase 13; R5 every Phase 7–13 clip property and `effects` kept, the saved file and the export identical to
+  Phase 13's. All PASS. No user-visible change found.
+- Final scope: 14.2, 14.3, 14.4, 14.5, 14.7, 14.8 done; 14.6 (a new text clip's font size, the audio status after a
+  device returns) not taken — out of scope (§3), not unfinished work. The D028 §8 policy stays in force until the CI run
+  of the Phase 14 pull request shows §5 (green without a rerun); its result is recorded there.
+
 Consequences: CI no longer needs reruns for the known tests; D028 §8 can be closed at the closeout; the test helpers
 produce on-grid clips; one project fewer in the solution. No change for the user.
 
-Status: Accepted (2026-10-06, product owner). Step 14.2 accepted. Steps and acceptance criteria:
-`docs/DEVELOPMENT_PLAN.md`, "Phase 14 — Stabilization / technical debt: steps".
+Status: Accepted (2026-10-06, product owner). Phase 14 complete: Steps 14.1–14.7 accepted (`0a50fe5`, `ed35f1f`, `0a4e6fe`,
+`b8e6aac`, `90caae9`); Step 14.8 closeout done on 2026-10-07 with every gate green; push and pull request on the product
+owner's command. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 14 — Stabilization / technical debt:
+steps".
 
 ---
 

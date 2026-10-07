@@ -2,12 +2,14 @@
 
 ## Current phase
 
-Phase 14 — Stabilization / technical debt (no new user functionality): **in progress** on branch
-`feat/phase-14-stabilization` (from `ed40b74`, `main` after the merge of PR #13). Step 14.1 (audit) and Step 14.2
-(sync & scope formalization, D029) accepted; Steps 14.3–14.5 accepted; 14.6 not taken; Step 14.7 done — awaiting acceptance; 14.8 next. Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`
-"Phase 14 — Stabilization / technical debt: steps"; decision D029.
+Phase 14 — Stabilization / technical debt (no new user functionality): **complete** on branch
+`feat/phase-14-stabilization` (from `ed40b74`, `main` after the merge of PR #13) — Steps 14.1–14.7 accepted by the product
+owner (14.6 out of scope, not taken); Step 14.8 (final verification & closeout) done on 2026-10-07 with every gate green.
+Push and pull request on the product owner's command; the D029 §5 measure (CI green on the pull request without a rerun)
+is checked on that run. Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 14 — Stabilization /
+technical debt: steps"; decision D029.
 
-### Phase 14 — Stabilization / technical debt (in progress)
+### Phase 14 — Stabilization / technical debt (complete)
 
 Steps (D029; each accepted by the product owner before the next, never started automatically): 14.1 audit · 14.2 sync
 after the merge & scope formalization · 14.3 flaky autosave test · 14.4 flaky ffprobe / PATH-probe tests · 14.5
@@ -173,6 +175,29 @@ command; no push, pull request or merge without direct permission; no next step 
     (incl. the serializer round-trip / validation and clip-property persistence classes, 115 / 115, which cover
     `effects`), `Timeline.Tests` 497 / 497, `UI.Tests` 574 / 574 (incl. the App composition tests). The full suite and R5
     of the manual plan at 14.8.
+  - Committed as `90caae9`; accepted by the product owner (2026-10-07).
+- Step 14.8 done (2026-10-07) — final verification & closeout at `90caae9` (D029 "Closeout").
+  - Git: `feat/phase-14-stabilization`, clean; the Phase 14 commits `0a50fe5` (14.2), `ed35f1f` (14.3), `0a4e6fe` (14.4),
+    `b8e6aac` (14.5), `90caae9` (14.7) on `ed40b74` (= `origin/main`). Not pushed.
+  - Builds: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` — Release 0 / 0 and Debug 0 / 0 (18 projects
+    each).
+  - Tests (each run with TRX results and the CI gate `.github/scripts/Assert-TestResults.ps1`: 8 TRX files, only the two
+    known 4K scenes may skip): the full suite 2600 passed, 2 skipped (the 4K scenes), 0 failed — Core 513, Timeline 497,
+    Project 426, UI 574, Export 100, Rendering 58, Video 322, ExportEndToEnd 110 + 2; three runs with `--blame-hang
+    --blame-hang-timeout 5m` 2600 / 2 / 0 each, no hang, no dump; the full suite with `AIVE_HEAVY_TESTS=1` 2602 passed,
+    0 skipped, 0 failed. No retry, no rerun, no test or bound changed. Against Phase 13's 2585 / 2: +6 autosave (14.3),
+    +6 probe-limit (14.4), +3 guards (14.5).
+  - Manual (`docs/PHASE14_MANUAL_TEST_PLAN.md`; the Phase 14 Debug build against the Phase 13 build from `git archive
+    ed40b74`, UI Automation, an isolated data folder): R1 a project saved by Phase 13 (640 × 360, 25 fps, Compact / Slow /
+    320, an `effects` entry) opened with every setting, and a plain Save wrote it byte for byte; R2 the default export
+    through the UI byte-identical to Phase 13's; R3 the timer autosave after 2 min, a killed process, the recovery offer,
+    Recover and Save; R4 with ffmpeg everything as before, without it the same messages as Phase 13, no crash; R5 every
+    Phase 7–13 property and `effects` with parameters kept through open / save / edit / save, the saved files and the
+    export identical to Phase 13's. All PASS (details in the plan's results log).
+  - Documentation audit: Phase 14 complete in ROADMAP, README, DEVELOPMENT_PLAN (checkbox), D029 (closeout, status),
+    ARCHITECTURE (verification note), this file; 14.6 recorded as out of scope; no TODO / FIXME / HACK added by Phase 14
+    (the only match in its diff is this file's audit text); no reference to the removed `Effects` project in code or
+    project files (only historical documentation).
 
 ### Phase 13 — Project & export settings (complete; PR #13 merged as `ed40b74`)
 
@@ -3524,13 +3549,12 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-06: Phases 0–13 are complete and merged into `main` (last merge `ed40b74`, PR #13, CI green on the pull request;
-the first run on `main` failed on the known flaky locator test). Phase 14 (stabilization / technical debt, D029)
-in progress on `feat/phase-14-stabilization`: Steps 14.2–14.5 accepted, Step 14.7 done (awaiting acceptance), 14.8 next. Open items carried forward: see "Known
-issues" (taken into Phase 14: the known flaky CI tests incl. the 5 s PATH probe of the locators, the watched
-`Project.Tests` hang / failure, the `F(end − start)` test helpers; deferred out of Phase 14: the audio status message
-after a device returns, a new text clip's `FontSize` 48 on any canvas; also no timeline virtualization, import not
-undoable).
+2026-10-07: Phases 0–13 are complete and merged into `main` (last merge `ed40b74`, PR #13). Phase 14 (stabilization /
+technical debt, D029) is complete on `feat/phase-14-stabilization` (closeout at `90caae9`: 2600 passed, 2 skipped; three
+blame-hang runs clean; heavy 2602 / 0 / 0; R1–R5 passed); push and pull request on the product owner's command. Open
+items carried forward: see "Known issues" (the D028 §8 policy until a CI run on the pull request confirms D029 §5; the
+watched, never reproduced `Project.Tests` hang / failure; deferred out of Phase 14: the audio status message after a
+device returns, a new text clip's `FontSize` 48 on any canvas; also no timeline virtualization, import not undoable).
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -3570,6 +3594,8 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 11 (accepted 2026-10-05; PR #11 merged as `47ed2fa`, CI green)
 - Phase 12 (accepted; PR #12 merged as `c0cb600` on 2026-10-05, CI green)
 - Phase 13 (accepted; PR #13 merged as `ed40b74` on 2026-10-06, CI green on the pull request)
+- Phase 14 (complete 2026-10-07, Step 14.8 closeout; Steps 14.1–14.7 accepted; push / pull request on the product owner's
+  command)
 
 ## Known issues
 
@@ -3577,7 +3603,10 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   (`ExportCodecLegTests`). Closed.
 - Known flaky CI tests (seen on CI before Phase 12, no product cause found): the autosave timer (`Project.Tests`), an
   ffprobe timeout in a waveform test, the 5 s PATH probe of the locators in `Video.Tests` (below). Not fixed in Phase 13;
-  taken into Phase 14 (D029, Steps 14.3–14.4). Policy (D028 §8): a rerun of that named test, with the known failure
+  fixed in Phase 14: the autosave timer by a production fix (a callback queued before `Stop` started a tick —
+  Step 14.3), the locator / waveform tests by test-only limits with the app's limits unchanged (Step 14.4); stressed 50×
+  per class and 10× per assembly under load. The CI evidence (D029 §5: green on the pull request without a rerun) comes
+  with the Phase 14 pull request; until then the policy below stays in force. Policy (D028 §8): a rerun of that named test, with the known failure
   message, is allowed for diagnosis and recorded here; never instead of fixing a real regression, never a
   rerun-until-green; never weakened, skipped or removed.
   - 2026-10-06, CI run 37470605596 (push of `ed40b74` to `main`, attempt 1): failed —

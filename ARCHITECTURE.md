@@ -539,5 +539,5 @@ contract (job settings, `ExportFormat`) at Step 13.7, the codec-leg line at Step
 Step 13.9; the whole Phase 13 part re-checked at the closeout (Step 13.10, `5c01aed`; Phase 13 merged into `main` as
 `ed40b74`). Phase 14 (D029, stabilization): the `Effects` row of the module table checked against the code at Step 14.2
 (empty, referenced only by `App`; D029 §6) and removed with the project at Step 14.7; the autosave paragraph of the Project persistence section at Step 14.3; the locator lines of the media section at
-Step 14.4.
+Step 14.4. At the Phase 14 closeout (Step 14.8, `90caae9`) the Phase 14 parts above and the project counts were checked against the code.
 Re-check the code before relying on details that later phases may have changed.

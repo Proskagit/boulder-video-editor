@@ -59,11 +59,13 @@ and runs cleanly.
       `c0cb600`; Steps 13.2–13.9 `226c7f2`…`5c01aed`, all accepted; closeout `7d4f6d8`; accepted by the product owner on
       the Step 13.10 verification; PR #13 merged into `main` as `ed40b74` (2026-10-06), CI green on the pull request. The
       first CI run on `main` after the merge failed on the known flaky locator test (D028 §8) — fixed in Phase 14)*
-- [ ] **Phase 14 — Stabilization / technical debt.** A more deterministic CI and less technical debt without any change
+- [x] **Phase 14 — Stabilization / technical debt.** A more deterministic CI and less technical debt without any change
       of the user functionality: the known flaky CI tests (autosave timer, ffprobe / PATH probe), the `F(end − start)`
       test helpers with a regression guard, and a decision on the empty `src/Effects` project. Scope, steps and
       acceptance criteria: section below and DECISIONS.md D029 (product owner decisions, 2026-10-06). *(branch
-      `feat/phase-14-stabilization`, from `ed40b74`; in progress)*
+      `feat/phase-14-stabilization`, from `ed40b74`; Steps 14.2–14.7 `0a50fe5`…`90caae9`, all accepted, 14.6 out of scope;
+      closeout 14.8 done 2026-10-07 — build 0 / 0, 2600 passed / 2 skipped, three blame-hang runs clean, heavy 2602 / 0 / 0,
+      R1–R5 passed; push and pull request on the product owner's command)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -807,7 +809,7 @@ Scope: D029 §4.
 - QG: the step gates; the solution builds without the project; R1 of 14.8 covers the format.
 - Depends on: 14.5.
 
-### 14.8 — Final verification & closeout
+### 14.8 — Final verification & closeout *(done 2026-10-07 at `90caae9` — Release / Debug 0 / 0; 2600 passed, 2 skipped (only the 4K scenes); three `--blame-hang` runs 2600 / 2 / 0, no hang; heavy 2602 / 0 / 0; R1–R5 PASS against the Phase 13 build; the CI criterion is checked on the pull request's run; D029 "Closeout")*
 - QG: `dotnet build --no-incremental -warnaserror` 0 / 0; the full suite once plus three times with `--blame-hang`;
   heavy scenes once with `AIVE_HEAVY_TESTS=1`; the stress runs of 14.3 / 14.4 repeated on the final tree; CI green on the
   pull request **without any rerun** (if a rerun is still needed, the phase goal is not met — reported to the product

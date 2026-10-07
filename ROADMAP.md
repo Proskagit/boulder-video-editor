@@ -59,16 +59,24 @@ session state (D015).
 
 ## Current
 
-Phase 14 — Stabilization / technical debt, branch `feat/phase-14-stabilization` (from `ed40b74`, `main` after the merge
-of PR #13). Goal (product owner, 2026-10-06): a more deterministic CI and less technical debt **without any change of the
-user functionality**. Scope (DECISIONS.md D029): 14.2 sync after the merge & scope formalization · 14.3 the flaky
-autosave test · 14.4 the flaky ffprobe / PATH-probe tests (no user-visible change without a separate confirmation) ·
-14.5 the `F(end − start)` test helpers and a regression guard · 14.7 removal of the empty `src/Effects` project (product owner, D029
-answer 1) · 14.8 closeout. 14.6 (a canvas-relative font size of a new text clip, the status after an audio
-device returns) is **not** taken — out of scope. Step 14.1 (audit) accepted (2026-10-06); Step 14.2 (sync, D029) accepted
-(2026-10-06); Steps 14.3 (`ed35f1f`), 14.4 (`0a4e6fe`) and 14.5 (`b8e6aac`) accepted; 14.6 not taken; Step 14.7 (`src/Effects` removed) done — awaiting acceptance; 14.8 next. Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`.
+No phase in progress — Phase 14 complete (closeout 2026-10-07); push and pull request on the product owner's command.
 
 ## Previous
+
+Phase 14 — Stabilization / technical debt, branch `feat/phase-14-stabilization` (from `ed40b74`, `main` after the merge
+of PR #13). **Complete**: Steps 14.1–14.7 accepted by the product owner; Step 14.8 (final verification & closeout) done on
+2026-10-07 — build `--no-incremental -warnaserror` Release and Debug 0 / 0; the full suite 2600 passed, 2 skipped (only
+the two 4K scenes), 0 failed; three `--blame-hang` runs 2600 / 2 / 0 each, no hang, no dump; with `AIVE_HEAVY_TESTS=1`
+2602 passed, 0 skipped, 0 failed; R1–R5 of `docs/PHASE14_MANUAL_TEST_PLAN.md` passed against the Phase 13 build (a Phase 13
+project opens and saves byte for byte; the default export, the saved files and an every-property export identical to
+Phase 13's; autosave / recovery; ffmpeg found / missing). Goal (product owner, D029): a more deterministic CI and less
+technical debt **without any change of the user functionality**. Delivered: 14.2 sync & D029 (`0a50fe5`) · 14.3 the
+autosave timer — a production fix of a tick that a callback queued before `Stop` could start, `TimeProvider`, deterministic
+tests (`ed35f1f`) · 14.4 the ffprobe / PATH-probe tests independent of the app's limits, which stay 5 s / 20 s / 20 s
+(`0a4e6fe`) · 14.5 on-grid test helpers with a guard, the NUL escape (`b8e6aac`) · 14.7 the empty `src/Effects` project
+removed (`90caae9`) · 14.8 closeout. 14.6 (a canvas-relative font size of a new text clip, the status after an audio
+device returns) **not taken — out of scope**. The CI measure (D029 §5: green on the pull request without a rerun) is
+checked on the pull request's run.
 
 Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
 merge of PR #12). **Complete**: accepted by the product owner on the Step 13.10 verification (closeout `7d4f6d8`); PR #13
@@ -212,8 +220,8 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 14 — see `docs/DEVELOPMENT_PLAN.md`. Taken into Phase 14 (D029): the known flaky CI tests (D028 §8
-policy until fixed) and the `F(end − start)` test helpers. Deferred by the product owner as product / UX changes (D029
+None planned after Phase 14 — see `docs/DEVELOPMENT_PLAN.md`. Fixed in Phase 14 (D029): the known flaky CI tests (the D028 §8
+policy stays until the Phase 14 pull request's CI run shows D029 §5) and the `F(end − start)` test helpers. Deferred by the product owner as product / UX changes (D029
 §3): a new text clip takes `FontSize` 48 on any canvas; the status bar keeps "Playing without sound…" after the audio
 device returns. L1-c is closed (Phase 13 Step 13.8). Left out by the product owner: AI features, HDR / colour
 management, an installer, timeline virtualization, an undoable import.
