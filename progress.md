@@ -11,7 +11,7 @@ approved the plan and SQ1–SQ16 and asked for the whole phase without a stop be
 merge without a separate command). Steps and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 16 — Source viewer & three-point
 editing: steps"; manual plan `docs/PHASE16_MANUAL_TEST_PLAN.md`.
 
-### Phase 16 — Source viewer & three-point editing (in progress)
+### Phase 16 — Source viewer & three-point editing (complete; closeout Step 16.7, not yet merged)
 
 Steps (D031): 16.1 pre-flight · 16.2 sync after the merge & scope formalization · 16.3 insert / overwrite core · 16.4 the
 source playback · 16.5 the source viewer UI · 16.6 insert / overwrite from the UI · 16.7 closeout.
@@ -23,8 +23,45 @@ source playback · 16.5 the source viewer UI · 16.6 insert / overwrite from the
   Timeline 678, Project 426, UI 629, Export 101, Rendering 58, Video 322, ExportEndToEnd 116 + 2). An independent
   phase-reviewer pre-flight mapped variants A–G to the code; the product owner chose A (source viewer, insert /
   overwrite) and approved SQ1–SQ16 and the A ↔ D boundary (D031).
-- Step 16.2 done (2026-10-08) — documentation only: the stale "not yet merged" statements of Phase 15 (ROADMAP, README,
-  DEVELOPMENT_PLAN, D030, this file), the Known issue fixed by PR #16, D031, the Phase 16 steps, the manual plan's skeleton.
+- Step 16.2 done (2026-10-08, `392db82`) — documentation only: the stale "not yet merged" statements of Phase 15
+  (ROADMAP, README, DEVELOPMENT_PLAN, D030, this file), the Known issue fixed by PR #16, D031, the Phase 16 steps, the
+  manual plan's skeleton.
+- Step 16.3 done (`cb50435`) — Insert / Overwrite core: `ITimelineEditService.InsertClip` / `OverwriteClip` in
+  `TimelineEditService.Insert.cs` (a `partial` file), built only from the existing rules — `PlanSplitClip` (the per-clip
+  split of `Split`, extracted unchanged), `TrimmedState`, `ShiftedState`, `PlanFirstVideoRate` (the rate lock of `AddClip`,
+  extracted unchanged), `EditPlan` with `Validate` / `Commit`; the two interface stubs return no change. Tests:
+  `Timeline.Tests/InsertOverwriteTests` (17 at the step, each result compared tick for tick with Split / MoveClips /
+  TrimClip / DeleteClips); five rule mutations caught (shift boundary, the right part's zone check, both trim minimums,
+  removal). `dotnet build -warnaserror` 0 / 0; Timeline.Tests 695 / 0 / 0, UI.Tests 629 / 0 / 0.
+- Steps 16.4–16.6 done (`22d2ef4`) — the Source viewer: `GetSourceGrid` (SQ12), `PlaybackSnapshotBuilder.BuildSource`
+  (`Build` of a transient one-clip project), `SourceViewerService` (session state), the Source mode in
+  `PreviewViewModel.Source.cs` (one `PlaybackService`; positions never reach the timeline playhead; Timeline mode rebuilds
+  and seeks to the playhead on the way back; one snapshot version counter), the source bar (`SourceRangeBar`, In / Out / ✕,
+  Insert / Overwrite), the keys by mode in `ShortcutRouter`, Insert / Overwrite commands in `TimelineViewModel.Source.cs`
+  (SQ8 target from the selection, the latest entry first; SQ10), a double click on a video / audio item opens Source (an
+  image is still added). Tests: `UI.Tests/SourceViewerTests` (13 at the step; five mutations caught — the seek guard, the
+  timeline-change guard, the position report, the key map, the target), `ExportEndToEnd.Tests/ExportInsertOverwriteEndToEndTests`
+  (2: Insert / Overwrite export byte for byte like the same timeline laid out directly). `-warnaserror` 0 / 0; full suite
+  2888 passed, 2 skipped (the 4K scenes), 0 failed.
+- Step 16.7 (closeout, 2026-10-08):
+  - The real-app run (`docs/PHASE16_MANUAL_TEST_PLAN.md`, Debug build, isolated profile, UI Automation, at 1440 px and at
+    1024 px) found one defect: after the double click the media list kept the focus and took the arrows / Home / End —
+    fixed in `ac0e3ac` (opening in Source clears the focus), then every scenario PASS. Regression against the Phase 15
+    build: R1 a Phase 15 save opened and saved byte for byte (`formatVersion` 3); R2 the default export byte for byte
+    (216 586 bytes); R3 W, I / O, the loop; R4 no ffmpeg — no crash, the reason shown.
+  - An independent phase review of 16.2–16.6: code sound (Split / AddClip unchanged line by line, the reuse of the
+    existing rules, the mode switching, no change of `project.json`, `PlaybackService`, rendering or export); missing
+    records and tests — corrected in `2216865` (insert at the start / in a gap, Overwrite across a zone covering its cut,
+    the SQ12 re-grid and the SQ3 range drop of `SourceViewerService` with their mutations caught, Redo in the UI test, the
+    Media Browser double click) and in this documentation (D031 "Refined in Steps 16.3–16.7", this record, the manual
+    plan at 1440 / 1024 px).
+  - Gates at `2216865`: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite passed 2893, skipped 2, failed 0;
+    three `--blame-hang-timeout 5m` runs passed 2893, skipped 2, failed 0; hang dumps: 0 / passed 2893, skipped 2, failed 0; hang dumps: 0 / passed 2893, skipped 2, failed 0; hang dumps: 0, no hang; with `AIVE_HEAVY_TESTS=1`
+    passed 2895, skipped 0, failed 0; `git diff --check 1bdeb95` clean.
+  - Notes for later (not changed): the reason shown when an unanalysed asset can't open in Source reuses the Add message
+    ("… can't be added: its duration is unknown …"); the transport row's duration text is cut at 1024 px, as in Phase 15;
+    Insert / Overwrite with a provisional rate that re-grids clips on the target track and the one-tick source-end rule at
+    a non-integral rate are covered by the shared rules' own tests, not by Insert / Overwrite tests.
 
 ### Phase 15 — Editing tools (complete; PR #15 merged as `a3793a4`)
 
@@ -3878,7 +3915,7 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 2026-10-08: Phases 0–15 are complete and merged into `main` (PR #15 → `a3793a4`); the Preview fix of the playhead parked
 past the end merged as PR #16 (`1bdeb95`, 2856 passed, 2 skipped). Phase 16 (source viewer & three-point editing, D031)
-in progress on `feat/phase-16-source-viewer`. Open items: see "Known issues" (the real-device audio status check; the
+complete on `feat/phase-16-source-viewer` (closeout Step 16.7); push and pull request on the product owner's command. Open items: see "Known issues" (the real-device audio status check; the
 watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 
 ### Phase 4 — Timeline (historical notes)

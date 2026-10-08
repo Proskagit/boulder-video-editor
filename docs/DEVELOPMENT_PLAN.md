@@ -80,7 +80,10 @@ and runs cleanly.
       state) and Insert / Overwrite of that range at the timeline playhead on the target track; picture and sound of a
       video file stay one clip (unlinking and other audio editing left to a later phase). Scope, steps and acceptance
       criteria: section below and DECISIONS.md D031 (product owner decisions, 2026-10-08). *(branch
-      `feat/phase-16-source-viewer`, from `1bdeb95`; in progress)*
+      `feat/phase-16-source-viewer`, from `1bdeb95`; Steps 16.2–16.6 `392db82` … `22d2ef4`; closeout 16.7 done
+      2026-10-08 — build 0 / 0 Release and Debug, passed 2893, skipped 2, failed 0, three blame-hang runs and heavy green, the manual plan and the
+      Phase 15 regression in the real app, an independent review and its corrections; not yet merged — push / pull
+      request on the product owner's command; checked after the product owner's acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -995,7 +998,7 @@ Out of scope: D031 §3 (the D side) and §5.
 - Documentation only: the Phase 15 / PR #16 merge recorded (ROADMAP, README, this plan, D030, `progress.md`), D031, this
   section, the manual plan's skeleton.
 
-### 16.3 — Insert / Overwrite: core
+### 16.3 — Insert / Overwrite: core *(done — `cb50435`; review corrections `2216865`)*
 - PR: `ITimelineEditService.InsertClip` / `OverwriteClip` (asset, source In / Out, the timeline point, the target track)
   with D031 SQ6–SQ9, SQ12, SQ13, SQ15 and the range defaults (§2).
 - Impl: built only from the existing planners — the per-clip split of `Split` (extracted, unchanged), the trim rule
@@ -1007,7 +1010,7 @@ Out of scope: D031 §3 (the D side) and §5.
   the range; locked target; a range shorter than one frame; Undo / Redo exact; equivalence with the existing commands
   (split + ripple shift + add / trim give the same timeline).
 
-### 16.4 — Source playback
+### 16.4 — Source playback *(done — `22d2ef4`)*
 - PR: D031 SQ2, SQ3, SQ11, SQ12, SQ14: a single-asset snapshot (Core), the Source / Timeline mode of `PreviewViewModel`,
   a source state service (asset, position, In / Out per asset) cleared on New / Open and when the asset leaves the
   project.
@@ -1017,19 +1020,19 @@ Out of scope: D031 §3 (the D side) and §5.
   timeline frame is shown again after the way back, a timeline edit while in Source, New / Open while in Source, Loop
   over the source range, an audio-only asset.
 
-### 16.5 — Source viewer UI
+### 16.5 — Source viewer UI *(done — `22d2ef4`; the focus fix found in the real app `ac0e3ac`)*
 - PR: D031 SQ1, SQ4, SQ11: the Timeline / Source switch of the Preview, opening an asset by a double click in the Media
   Browser (refusals with a message), the source time and duration, the In / Out band with its ✕, the keys by mode.
 - QG: `UI.Tests` for the view model and `ShortcutRouter` (both key maps, exact modifiers, `Ctrl+I` / `Ctrl+L` unchanged);
   real app at 1024 / 1440 px.
 
-### 16.6 — Insert / Overwrite from the UI
+### 16.6 — Insert / Overwrite from the UI *(done — `22d2ef4`; review corrections `2216865`)*
 - PR: D031 SQ5, SQ8, SQ10, SQ16: `,` / `.` and the Insert / Overwrite buttons; the target track; the playhead and the
   selection after the edit; the status messages.
 - QG: an end-to-end UI test (Source → In / Out → `,` / `.` → the timeline, Undo, Redo); an export test: a timeline built
   with Insert / Overwrite exports byte for byte like the same timeline built with the existing commands.
 
-### 16.7 — Final verification & closeout
+### 16.7 — Final verification & closeout *(done 2026-10-08 — results in `progress.md` and `docs/PHASE16_MANUAL_TEST_PLAN.md`)*
 - QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
   `--blame-hang`; the heavy scenes once with `AIVE_HEAVY_TESTS=1`; `git diff --check` clean; an independent phase review.
 - PR: `docs/PHASE16_MANUAL_TEST_PLAN.md` in the real app, with the regression (a Phase 15 project round trip, export

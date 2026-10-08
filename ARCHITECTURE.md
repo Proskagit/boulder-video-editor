@@ -202,6 +202,19 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   `IPlaybackService.SetPlaybackRange` (Play outside starts at In, the end of playing is Out, the `AudioMixer` silent from
   Out). Range export: `ExportRange` on the `ExportJob`, `ExportOutput.FirstFrame` / `FirstSample` offset the frame and
   audio sources (the same pipeline), `ExportPreflight.Check(…, range)` checks the range's media only.
+- Insert / Overwrite (Phase 16 Step 16.3, D031 SQ6–SQ9): `InsertClip` / `OverwriteClip(asset, sourceIn, sourceOut, at,
+  track)` in `TimelineEditService.Insert.cs` (a `partial` file), one `EditPlan` built only from the existing rules — the
+  per-clip split `PlanSplitClip` (extracted from `Split`, taking the planned state), the trim rule `TrimmedState`, the move
+  rule `ShiftedState`, the first video's rate lock `PlanFirstVideoRate` (extracted from `AddClip`) — then `Validate` /
+  `Commit`. Insert ripples the target track only; Overwrite removes / trims / splits on it; a dissolve whose cut is gone
+  is reconciled away, an edit point inside a zone is refused. `GetSourceGrid(asset)` is the source's frame grid (SQ12),
+  shared by the Source viewer and the placement.
+- Source viewer (Phase 16 Steps 16.4–16.6, D031 SQ1–SQ5, SQ8, SQ10, SQ14, SQ16): `SourceViewerService` (UI.Services,
+  session state: the open asset, its grid, the last position, a source In / Out per asset with `InOutRange`'s rules;
+  closed on another project or when the asset leaves the project / goes missing). The Source mode lives in
+  `PreviewViewModel.Source.cs`; Insert / Overwrite commands in `TimelineViewModel.Source.cs` (target: the track of the
+  latest selected clip of the source's kind, else V1 / A1); `ShortcutRouter` maps the transport and I / O keys to the
+  source while it is shown, `,` / `.` to Insert / Overwrite in both modes.
 - Import (Phase 12 Step 12.8, D027 §7): `MediaImportWorkflow` keeps the project the import started in and adds nothing
   (and queues no analysis) when another project is current after the picker, the status yield or the file check.
 - UI: `TimelineViewModel` projects the `Sequence` (clip view models reused by Id),
@@ -248,7 +261,11 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   parked past the end is shown there, or clamped to the new end). The "Playing without sound: no
   audio output is available." status is about the audio output only (never a muted clip or track); since Phase 15 Step
   15.7 (D030 Q15) `PreviewViewModel` sets "Ready." again when sound is available while playing, if that message is still
-  shown, and re-arms the report for a later loss.
+  shown, and re-arms the report for a later loss. Phase 16 (D031 SQ2): the same `PlaybackService` also plays the Source
+  mode — `PlaybackSnapshotBuilder.BuildSource` builds one asset's snapshot with `Build` from a transient one-clip
+  project; while Source is shown, playback positions go to `SourceViewerService` (never `PlaybackPositionChanged`),
+  timeline seeks and timeline changes do not reach playback, and Timeline mode rebuilds the timeline snapshot and seeks
+  to the playhead on the way back; one snapshot version counter for both modes.
 - Audio (D013): `PlaybackSnapshot.AudioSpans` → `AudioPipeline` (UI thread; look-ahead window,
   reader reuse on snapshot updates) → `AudioSpanReader` per clip (placement: Core `AudioPlacement`, shared with the export) (background ffmpeg decode into
   a bounded ring buffer, aligned by the stream's real first sample) → `AudioMixer`
@@ -585,4 +602,7 @@ Phase 15 (D030, editing tools): the track-state, trim-to-the-playhead, ripple-dr
 Timeline section written at Steps 15.3–15.7, the text-size sentence at Step 15.8 and the audio-status sentence of the
 Preview section (Step 15.7), the still-image sentence of the Export section at Step 15.9; all re-checked against the
 code at the Phase 15 closeout (Step 15.9); the project counts unchanged (18: 10 `src`, 8 `tests`).
+Phase 16 (D031, source viewer & three-point editing): the Insert / Overwrite and Source viewer paragraphs of the Timeline
+section and the Source-mode sentence of the Preview section, written and checked against the code at the Phase 16
+closeout (Step 16.7); the project counts unchanged (18: 10 `src`, 8 `tests`).
 Re-check the code before relying on details that later phases may have changed.

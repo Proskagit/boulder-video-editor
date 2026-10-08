@@ -64,8 +64,12 @@ merge of PR #16). Scope (product owner, 2026-10-08, DECISIONS.md D031): a Source
 video or audio asset, a source In / Out as unsaved session state, Insert (`,`) and Overwrite (`.`) of the source range at
 the timeline playhead on the target track (ripple of the target track only), one undo step each; picture and sound of a
 video file stay one clip — unlinking, J / L cuts and audio crossfades stay out (the A ↔ D boundary). `project.json` stays
-v3. Steps 16.1 (pre-flight) and 16.2 (sync after the merge, scope formalization) done; 16.3–16.7 in progress. Steps and
-acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 16 — Source viewer & three-point editing: steps".
+v3. **Phase 16 complete** on its branch: Steps 16.1–16.6 done (`392db82`, `cb50435`, `22d2ef4`), Step 16.7 closeout on
+2026-10-08 — the real-app run (one focus defect found and fixed, `ac0e3ac`), the regression against the Phase 15 build
+(a Phase 15 save opened and saved byte for byte, the default export byte for byte), an independent review and its
+corrections (`2216865`), the gates green (passed 2893, skipped 2, failed 0). Not yet merged: push and pull request on the product owner's command.
+Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 16 — Source viewer & three-point editing: steps"; manual
+plan `docs/PHASE16_MANUAL_TEST_PLAN.md`.
 
 ## Previous
 

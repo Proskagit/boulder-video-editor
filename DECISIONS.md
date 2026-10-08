@@ -3544,8 +3544,34 @@ stub); the per-clip split of `Split` becomes a shared planner step; a single-ass
 gains the Source mode and a source state service; `ShortcutRouter` maps keys by mode; the manual plan
 `docs/PHASE16_MANUAL_TEST_PLAN.md`.
 
-Status: Accepted (2026-10-08, product owner: variant A, the plan, SQ1–SQ16, the A ↔ D boundary). Steps and acceptance
-criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 16 — Source viewer & three-point editing: steps".
+Refined in Steps 16.3–16.7 (implementation sub-decisions inside the approved rules; recorded at the closeout):
+- 16.3 — the per-clip split of `Split` became `PlanSplitClip` and the first video's rate lock of `AddClip` became
+  `PlanFirstVideoRate`, both unchanged in behaviour; Insert / Overwrite work on the plan's states of the target track
+  (re-gridded when the edit locks the rate). SQ9 read as the trim rule (D025 §5): Overwrite refuses only a split or a trim
+  that would cut into the frames a dissolve that stays needs; a dissolve whose cut the range covers is removed with the
+  note — also when an edge of the range lies inside its zone (`Overwrite_with_an_edge_inside_a_dissolve_zone_…`). Insert
+  at a point inside a zone is refused (it splits there). Images are refused by the service (SQ11).
+- 16.4 — the source snapshot is `PlaybackSnapshotBuilder.Build` of a transient one-clip project (the asset at 1×), so the
+  source plays by the timeline's own rules; its canvas is the asset's display size (the project canvas for audio or an
+  unknown size). The last source position is kept per asset for the session (back to Source, or the asset opened again,
+  shows it); an asset that goes missing closes Source and keeps its range, one that leaves the project loses it.
+  `ITimelineEditService.GetSourceGrid` is the one SQ12 rule for the viewer and the placement.
+- 16.5 — End in Source seeks to the source's end (its last frame shown), O there marks after the last frame; J in Source
+  steps one second back, as in Timeline mode. A double click in the Media Browser opens a video or audio file in Source —
+  before Phase 16 it added the item to the timeline; an image keeps that (it has no source range), and "Add to Timeline"
+  and dragging are unchanged for every kind. Opening in Source takes the focus off the media list, so its arrows / Home
+  / End reach the source (found in the real-app run, `ac0e3ac`).
+- 16.6 — Source stays shown after Insert / Overwrite (the next range can be marked at once). The Insert / Overwrite
+  buttons are on the source bar, shown in Source mode; `,` / `.` work in both modes (SQ5).
+
+Final state at the Phase 16 closeout (Step 16.7, 2026-10-08): every rule of §2 implemented and tested (Timeline.Tests
+`InsertOverwriteTests`, UI.Tests `SourceViewerTests`, ExportEndToEnd.Tests `ExportInsertOverwriteEndToEndTests`), the
+gates and the manual plan in `progress.md` and `docs/PHASE16_MANUAL_TEST_PLAN.md`; `project.json` v3 unchanged (a Phase 15
+save opened and saved byte for byte), the default export byte for byte as Phase 15's.
+
+Status: Accepted (2026-10-08, product owner: variant A, the plan, SQ1–SQ16, the A ↔ D boundary). **Phase 16 complete**
+(Step 16.7 closeout, 2026-10-08); not yet merged (push / pull request on the product owner's command). Steps and
+acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 16 — Source viewer & three-point editing: steps".
 
 ---
 
