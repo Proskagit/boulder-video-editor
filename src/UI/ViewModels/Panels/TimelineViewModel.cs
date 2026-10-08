@@ -58,8 +58,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
         EditingLock? editingLock = null,
         WaveformCoordinator? waveforms = null,
         IDialogService? dialogs = null,
-        InOutRangeService? inOut = null)
+        InOutRangeService? inOut = null,
+        SourceViewerService? source = null)
     {
+        _source = source;
+        if (source is not null) source.SourceChanged += (_, _) => NotifySourceCommands();
         _inOut = inOut ?? new InOutRangeService(projectService);
         _inOut.RangeChanged += (_, _) => RefreshRange();
         _projectService = projectService;
@@ -616,6 +619,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         ToggleTrackLockCommand.NotifyCanExecuteChanged();
         AddMarkerCommand.NotifyCanExecuteChanged();
         RemoveMarkerCommand.NotifyCanExecuteChanged();
+        NotifySourceCommands();
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))]

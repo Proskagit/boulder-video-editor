@@ -2,19 +2,73 @@
 
 ## Current phase
 
-Phase 15 — Editing tools: branch `feat/phase-15-editing-tools` (from `7200976`, `main` after the merge of PR #14). Scope
-locked by the product owner on 2026-10-07 (DECISIONS.md D030): track controls (mute / hide / lock), trim to the playhead
-(plain and ripple, `Q` / `W`), ripple trim by dragging, slip, a timeline In / Out range (`I` / `O`, loop, range export) as
-unsaved session state, a new text clip's `FontSize = 48 × canvasHeight / 1080`, the audio status reset. Steps 15.1
-(pre-analysis), 15.2 (documentation, `d1296be`), 15.3 (track controls, `1d26165`) and 15.4 (trim to the playhead,
-`f122c9a`), 15.5 (ripple trim by dragging, `efecd24`), 15.6 (slip, `aa94da0`), 15.7 (In / Out range, `46eae30`) and 15.8
-(a new text's font size, `f9a2253`, review corrections `9de14c6`) accepted; every open question of D030 is answered.
-**Phase 15 complete**: Step 15.9 (final verification & closeout) done on 2026-10-08 — gates green, R1–R9 run, R10's
-device part not run, a still-image decode defect found by R2 and fixed (below). Not yet merged: push and pull request on
-the product owner's command; no next phase defined. Scope, steps and acceptance criteria:
-`docs/DEVELOPMENT_PLAN.md` "Phase 15 — Editing tools: steps"; manual plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
+Phase 16 — Source viewer & three-point editing: branch `feat/phase-16-source-viewer` (from `1bdeb95`, `main` after the
+merge of PR #16). Scope approved by the product owner on 2026-10-08 (DECISIONS.md D031, variant A of the Phase 16
+pre-flight): a Source mode of the Preview panel that plays one video or audio asset, a source In / Out as unsaved session
+state, Insert (`,`) and Overwrite (`.`) of the source range at the timeline playhead on the target track, the A ↔ D
+boundary (no unlink, J / L cuts or audio crossfades). `project.json` stays v3 with no new property. The product owner
+approved the plan and SQ1–SQ16 and asked for the whole phase without a stop between its steps (no push, pull request or
+merge without a separate command). Steps and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 16 — Source viewer & three-point
+editing: steps"; manual plan `docs/PHASE16_MANUAL_TEST_PLAN.md`.
 
-### Phase 15 — Editing tools (complete; closeout Step 15.9, not yet merged)
+### Phase 16 — Source viewer & three-point editing (complete; closeout Step 16.7, not yet merged)
+
+Steps (D031): 16.1 pre-flight · 16.2 sync after the merge & scope formalization · 16.3 insert / overwrite core · 16.4 the
+source playback · 16.5 the source viewer UI · 16.6 insert / overwrite from the UI · 16.7 closeout.
+
+- Step 16.1 done (2026-10-08) — pre-flight on `main` = `1bdeb95` (PR #16 merged; tree = `a246f9f`), no change in the
+  repository apart from the local `main` (fast-forward `a3793a4` → `1bdeb95`). CI green: PR #15 run 37743022102, `main`
+  after it 37743623800; PR #16 run 37756880756, `main` after it 37757808666. Baseline: `dotnet build --no-incremental
+  -warnaserror` Release and Debug 0 / 0; `dotnet test` 2856 passed, 2 skipped (the two 4K scenes), 0 failed (Core 526,
+  Timeline 678, Project 426, UI 629, Export 101, Rendering 58, Video 322, ExportEndToEnd 116 + 2). An independent
+  phase-reviewer pre-flight mapped variants A–G to the code; the product owner chose A (source viewer, insert /
+  overwrite) and approved SQ1–SQ16 and the A ↔ D boundary (D031).
+- Step 16.2 done (2026-10-08, `392db82`) — documentation only: the stale "not yet merged" statements of Phase 15
+  (ROADMAP, README, DEVELOPMENT_PLAN, D030, this file), the Known issue fixed by PR #16, D031, the Phase 16 steps, the
+  manual plan's skeleton.
+- Step 16.3 done (`cb50435`) — Insert / Overwrite core: `ITimelineEditService.InsertClip` / `OverwriteClip` in
+  `TimelineEditService.Insert.cs` (a `partial` file), built only from the existing rules — `PlanSplitClip` (the per-clip
+  split of `Split`, extracted unchanged), `TrimmedState`, `ShiftedState`, `PlanFirstVideoRate` (the rate lock of `AddClip`,
+  extracted unchanged), `EditPlan` with `Validate` / `Commit`; the two interface stubs return no change. Tests:
+  `Timeline.Tests/InsertOverwriteTests` (17 at the step, each result compared tick for tick with Split / MoveClips /
+  TrimClip / DeleteClips); five rule mutations caught (shift boundary, the right part's zone check, both trim minimums,
+  removal). `dotnet build -warnaserror` 0 / 0; Timeline.Tests 695 / 0 / 0, UI.Tests 629 / 0 / 0.
+- Steps 16.4–16.6 done (`22d2ef4`) — the Source viewer: `GetSourceGrid` (SQ12), `PlaybackSnapshotBuilder.BuildSource`
+  (`Build` of a transient one-clip project), `SourceViewerService` (session state), the Source mode in
+  `PreviewViewModel.Source.cs` (one `PlaybackService`; positions never reach the timeline playhead; Timeline mode rebuilds
+  and seeks to the playhead on the way back; one snapshot version counter), the source bar (`SourceRangeBar`, In / Out / ✕,
+  Insert / Overwrite), the keys by mode in `ShortcutRouter`, Insert / Overwrite commands in `TimelineViewModel.Source.cs`
+  (SQ8 target from the selection, the latest entry first; SQ10), a double click on a video / audio item opens Source (an
+  image is still added). Tests: `UI.Tests/SourceViewerTests` (13 at the step; five mutations caught — the seek guard, the
+  timeline-change guard, the position report, the key map, the target), `ExportEndToEnd.Tests/ExportInsertOverwriteEndToEndTests`
+  (2: Insert / Overwrite export byte for byte like the same timeline laid out directly). `-warnaserror` 0 / 0; full suite
+  2888 passed, 2 skipped (the 4K scenes), 0 failed.
+- Step 16.7 (closeout, 2026-10-08):
+  - The real-app run (`docs/PHASE16_MANUAL_TEST_PLAN.md`, Debug build, isolated profile, UI Automation, at 1440 px and at
+    1024 px) found one defect: after the double click the media list kept the focus and took the arrows / Home / End —
+    fixed in `ac0e3ac` (opening in Source clears the focus), then every scenario PASS. Regression against the Phase 15
+    build: R1 a Phase 15 save opened and saved byte for byte (`formatVersion` 3); R2 the default export byte for byte
+    (216 586 bytes); R3 W, I / O, the loop; R4 no ffmpeg — no crash, the reason shown.
+  - An independent phase review of 16.2–16.6: code sound (Split / AddClip unchanged line by line, the reuse of the
+    existing rules, the mode switching, no change of `project.json`, `PlaybackService`, rendering or export); missing
+    records and tests — corrected in `2216865` (insert at the start / in a gap, Overwrite across a zone covering its cut,
+    the SQ12 re-grid and the SQ3 range drop of `SourceViewerService` with their mutations caught, Redo in the UI test, the
+    Media Browser double click) and in this documentation (D031 "Refined in Steps 16.3–16.7", this record, the manual
+    plan at 1440 / 1024 px).
+  - Gates at `2216865`: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite 2893 passed,
+    2 skipped (the 4K scenes), 0 failed; three `--blame-hang-timeout 5m` runs 2893 / 2 / 0 each, no hang, no dump; with
+    `AIVE_HEAVY_TESTS=1` 2895 / 0 / 0; `git diff --check 1bdeb95` clean. After the second review (PASS WITH NOTES): a test
+    for the source range kept per asset and cleared by another project (`SourceViewerTests`, its two mutations caught),
+    the manual plan's rows marked "auto only" / "NOT RUN" where the run did not cover them; `-warnaserror` 0 / 0 and the
+    full suite then 2894 passed, 2 skipped, 0 failed. (The "another project clears the ranges" line of
+    `SourceViewerService` is a second guard: the ranges of the old project's assets also go with its media change, so its
+    mutation alone is not caught.)
+  - Notes for later (not changed): the reason shown when an unanalysed asset can't open in Source reuses the Add message
+    ("… can't be added: its duration is unknown …"); the transport row's duration text is cut at 1024 px, as in Phase 15;
+    Insert / Overwrite with a provisional rate that re-grids clips on the target track and the one-tick source-end rule at
+    a non-integral rate are covered by the shared rules' own tests, not by Insert / Overwrite tests.
+
+### Phase 15 — Editing tools (complete; PR #15 merged as `a3793a4`)
 
 Steps (D030; each accepted by the product owner before the next, never started automatically): 15.1 pre-analysis ·
 15.2 sync after the merge & scope formalization · 15.3 track controls · 15.4 trim to the playhead (core, plain and
@@ -316,6 +370,10 @@ command; no push, pull request or merge without direct permission; no next step 
     15.9", "Final state at the Phase 15 closeout", status complete), ARCHITECTURE (text size, audio status, the still
     rule, verification note), DEVELOPMENT_PLAN (Phase 15 checked, 15.8 accepted, 15.9 done), ROADMAP, README, the manual
     plan, this file. `project.json` stays v3; no Phase 16 started or defined.
+- After the merge (recorded at Step 16.2, 2026-10-08): accepted by the product owner; PR #15 merged into `main` as
+  `a3793a4` (tree = `4ded033`); CI green on the first attempt on the pull request (run 37743022102) and on `main` (run
+  37743623800). The Preview fix that followed (the playhead parked past the end, below in "Known issues") merged as PR
+  #16 (`a246f9f`, merge `1bdeb95`; CI run 37756880756 on the pull request, 37757808666 on `main`).
 
 ### Phase 14 — Stabilization / technical debt (complete; PR #14 merged as `7200976`)
 
@@ -3860,12 +3918,10 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-08: Phases 0–14 are complete and merged into `main` (last merge `7200976`, PR #14). Phase 15 (editing tools,
-D030) is complete on `feat/phase-15-editing-tools` (closeout Step 15.9: 2845 passed, 2 skipped; heavy 2847 / 0 / 0; three
-blame-hang runs clean; R1–R9 run, R10's device part not run); push and pull request on the product owner's command; no
-next phase defined. Open items: see "Known issues" (the Preview staying black after adding a clip beyond the previous
-end — a separate task; the real-device audio status check; the watched `Project.Tests` hang; no timeline virtualization,
-import not undoable).
+2026-10-08: Phases 0–15 are complete and merged into `main` (PR #15 → `a3793a4`); the Preview fix of the playhead parked
+past the end merged as PR #16 (`1bdeb95`, 2856 passed, 2 skipped). Phase 16 (source viewer & three-point editing, D031)
+complete on `feat/phase-16-source-viewer` (closeout Step 16.7); push and pull request on the product owner's command. Open items: see "Known issues" (the real-device audio status check; the
+watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -3906,8 +3962,8 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 12 (accepted; PR #12 merged as `c0cb600` on 2026-10-05, CI green)
 - Phase 13 (accepted; PR #13 merged as `ed40b74` on 2026-10-06, CI green on the pull request)
 - Phase 14 (accepted; PR #14 merged as `7200976` on 2026-10-07, CI green on the first attempt)
-- Phase 15 (complete 2026-10-08, Step 15.9 closeout; Steps 15.1–15.8 accepted; push / pull request on the product owner's
-  command)
+- Phase 15 (accepted; PR #15 merged as `a3793a4` on 2026-10-08, CI green on the first attempt; the follow-up Preview fix
+  PR #16 merged as `1bdeb95`)
 
 ## Known issues
 
@@ -3974,7 +4030,7 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Preview (observed at Phase 15 Step 15.8, not changed): after adding a clip with the playhead beyond the sequence's
   previous end, the Preview stays black until the next seek (the same in the 15.7 build); inside the sequence it shows
   at once. Not investigated and not fixed in Phase 15 (out of scope; confirmed at the 15.9 closeout) — a separate task.
-  Fixed on `fix/preview-playhead-beyond-end` (on top of `a3793a4`): a seek past the end is clamped by `PlaybackService`
+  Fixed by PR #16 (`a246f9f`, merged into `main` as `1bdeb95` on 2026-10-08): a seek past the end is clamped by `PlaybackService`
   to `Duration`, and when that frame was already reported (always in an empty project — frame 0; in a non-empty one from
   the second seek past the end) nothing goes back to the timeline — the playhead stays parked past the end while playback
   sits at the end; a later edit resynced there (D010), so the Preview showed the wrong frame or nothing.

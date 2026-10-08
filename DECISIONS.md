@@ -3436,9 +3436,142 @@ Status: Accepted (2026-10-07, product owner: scope §1, the In / Out range as un
 open question is answered. Steps 15.2 (`d1296be`), 15.3 (`1d26165`), 15.4 (`f122c9a`), 15.5 (`efecd24`), 15.6
 (`aa94da0`), 15.7 (`46eae30`) and 15.8 (`f9a2253`, review corrections `9de14c6`) accepted. **Phase 15 complete**: Step 15.9
 closeout done (2026-10-08) — final validation, the R1–R10 regression in `docs/PHASE15_MANUAL_TEST_PLAN.md` and the
-still-image fix it led to (above); not yet
-merged (push / pull request on the product owner's command). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`,
-"Phase 15 — Editing tools: steps".
+still-image fix it led to (above); accepted; PR #15 merged as `a3793a4`. Steps and acceptance criteria:
+`docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
+
+After the merge (recorded at Step 16.2, 2026-10-08): Phase 15 accepted by the product owner; PR #15 (head `4ded033`)
+merged into `main` as `a3793a4` (its tree identical to `4ded033`); CI green on the first attempt on the pull request (run
+37743022102) and on `main` (run 37743623800). The Known issue "the Preview stays black after adding a clip with the
+playhead beyond the previous end" was fixed after it by PR #16 (`a246f9f`, merged as `1bdeb95`; CI runs 37756880756 and
+37757808666): playback seeks to a playhead parked past the end when an edit makes the sequence longer; inside
+[0, Duration] the playhead keeps its time, past the new end it is clamped to it — D010 / D011 / D012 unchanged.
+
+---
+
+## D031 — Phase 16: source viewer & three-point editing
+
+Date: 2026-10-08
+
+Decision (product owner, 2026-10-08, after the Phase 16 pre-flight; variant A — the plan and SQ1–SQ16 approved as
+proposed, the A ↔ D boundary approved). Phase 16 lets the user cut long recordings of attempts into the sequence with a
+few keys: open a video or audio asset in a **Source** mode of the Preview panel, mark a source In / Out, and **Insert**
+(`,`) or **Overwrite** (`.`) that range at the timeline playhead on the target track. Every project change is one
+undoable command through `ITimelineEditService`, built from the existing split / trim / shift rules and `EditPlan`;
+the rendering rules are unchanged, so the Preview and the export stay identical by construction; `project.json` stays
+`formatVersion` 3 with no new property.
+
+Context (pre-flight, the code at `1bdeb95`, `main` after the merge of PR #16):
+- Phases 0–15 merged; build 0 / 0; 2856 tests pass, 2 skip (the 4K scenes); CI green on PR #15 / #16 and on `main`.
+- One `PlaybackService`, one `IAudioOutput` (WASAPI, one sample source) and one `IReferenceClock`, all singletons
+  (`ServiceCollectionExtensions`); the playback snapshot is built from the project (`PlaybackSnapshotBuilder`), at the
+  project rate and canvas; the timeline playhead and playback are wired in `MainWindowViewModel` (D011).
+- The Preview column is about 456 px wide at the 1024 px minimum window (`MainWindow.axaml`: 260 + 300 side panels):
+  two monitors side by side do not fit.
+- `ShortcutRouter` is global (no focus context); `I` / `O` are the timeline In / Out (D030 §11); `,` and `.` are free.
+- A video file is one `VideoClip` that carries its own sound (D008); an `AudioClip` refers to an audio asset only
+  (`ProjectSerializer`). The timeline selection is a list of clips whose last one is the primary (`TimelineViewModel`);
+  there is no track selection.
+
+### 1. Scope
+
+1. Source mode (16.4 / 16.5): the Preview panel switches between **Timeline** and **Source**; Source plays one video or
+   audio asset through the same `PlaybackService` and audio output; the timeline playhead does not follow it.
+2. Source In / Out (16.5): set at the source position, shown on the Source bar, cleared with its ✕; session state.
+3. Insert / Overwrite (16.3 core, 16.6 UI): the source range at the timeline playhead on the target track, one undo step.
+
+### 2. Rules (SQ1–SQ16, approved)
+
+- SQ1 — a **mode** of the Preview panel (a Timeline / Source switch), not a second panel.
+- SQ2 — **one** `PlaybackService` and audio output: in Source mode playback gets a snapshot of the one asset; back in
+  Timeline mode the timeline snapshot is rebuilt and playback seeks to the timeline playhead. While Source is shown, the
+  playback position never moves the timeline playhead and timeline changes do not reach playback (they are applied on
+  the way back). `PlaybackService` is not changed for this.
+- SQ3 — the source In / Out is **session state** per asset: not saved, not dirty, not undoable, cleared on New / Open, an
+  asset's range dropped when the asset leaves the project.
+- SQ4 — keys by **mode**, not focus: in Source mode `I` / `O`, `Space`, `J` / `K` / `L`, `←` / `→`, `Shift+←` / `Shift+→`,
+  `Home` / `End` act on the source; in Timeline mode they act as before. Never while a text input has focus.
+- SQ5 — **`,` Insert, `.` Overwrite** (no modifier), and Insert / Overwrite buttons on the Source bar; in both modes.
+- SQ6 — Insert ripples **only the target track**: a clip with the insert point strictly inside is split there (the split
+  rule) and its right part, with every clip of the track that starts at or after the point, moves right by the inserted
+  length (the move rule). Other tracks stay (ripple across all tracks is a D030 §3 non-goal).
+- SQ7 — markers do not move (D027 §2).
+- SQ8 — the target track: the track of the **latest selected clip** on a track of the source's kind (video → a video
+  track, audio → an audio track; the selection's order, the primary last); without one, the first track of that kind
+  (V1 / A1, as "Add to Timeline"). A locked target refuses the edit with a message; no other track is tried.
+- SQ9 — transitions and fades follow the existing rules: a dissolve whose cut is gone is removed with the usual note
+  (D025 §5, `EditPlan.ReconcileTransitions`); an edit point inside a dissolve's zone is refused, as Split refuses it; the
+  split clip's fades stay on its outer edges (D025 §2); a clip Overwrite shortens keeps the trim rule's fades (clamped).
+  Overwrite of a partly covered clip trims it with the trim rule (D008 / D022 / D025), a covered clip is removed, a clip
+  covering the whole range is split at its start and trimmed at its end.
+- SQ10 — after Insert / Overwrite the timeline playhead moves to the end of the new clip, which becomes the selection.
+- SQ11 — Source opens video and audio assets; not images (no own length — "Add to Timeline" adds them), not a missing /
+  offline asset or one whose analysis is not complete (a message instead).
+- SQ12 — the source grid: the project rate when it is locked (the source frames are then chosen by D009); the asset's
+  rate when the project rate is still provisional and the asset is a video (the first insert locks that rate, D007);
+  the range is re-gridded when the project rate changes, as the timeline In / Out is (D030 §8).
+- SQ13 — the inserted clip plays at 1×.
+- SQ14 — Loop in Source mode loops [In, Out) of the source (the D030 §8 playback range); without a range the whole asset.
+- SQ15 — a video asset goes in as **one `VideoClip`, picture and sound together** (D008).
+- SQ16 — during an export the Source viewer plays; Insert / Overwrite are off (`EditingLock`).
+- Without a source In the range starts at the asset's start, without an Out it ends at the asset's last whole frame;
+  a range shorter than one frame is refused.
+
+### 3. Boundary A ↔ D (approved)
+
+In Phase 16: the picture and the sound of a video file stay one `VideoClip`; an audio file goes onto an audio track as an
+`AudioClip`; Insert ripples the target track only, so a video clip's own sound never drifts. Left to a later audio
+phase (D): an `AudioClip` from a video asset, unlinking, linked V / A pairs, source patching (picture only / sound only,
+separate targets), J / L cuts, audio crossfades, syncing other tracks on Insert, and an "insert without sound" option
+(a half-unlink — decided with D). D008 stays as it is.
+
+### 4. Constraints
+
+- Unchanged in substance: D006 / D007 / D009 / D022 (grid, rate, frame selection, speed), D008, D010 / D011 / D012,
+  D013, D014 / D016, D015, D018 / D023, D025, D026, D027, D028, D030. `project.json` v3, no new property.
+- The Preview ↔ Export parity suite, the L1-c criteria and every existing expected value unchanged.
+- Every new command one undo step, refused on a locked track and during an export, a refused or unchanged edit leaving
+  no undo step; no ffmpeg in an edit.
+- New controls checked in the real app at 1024 and 1440 px.
+
+### 5. Non-goals
+
+Everything of D in §3; four-point editing and fit-to-fill; a source In / Out saved in the project; a second monitor;
+waveforms or filmstrips in the Source viewer; images in Source; replace edit; ripple across all tracks; keyframes, text
+styling, AI, HDR.
+
+Consequences: `ITimelineEditService` gains `InsertClip` / `OverwriteClip` (the service, its design-time stub and the test
+stub); the per-clip split of `Split` becomes a shared planner step; a single-asset snapshot builder in Core; the Preview
+gains the Source mode and a source state service; `ShortcutRouter` maps keys by mode; the manual plan
+`docs/PHASE16_MANUAL_TEST_PLAN.md`.
+
+Refined in Steps 16.3–16.7 (implementation sub-decisions inside the approved rules; recorded at the closeout):
+- 16.3 — the per-clip split of `Split` became `PlanSplitClip` and the first video's rate lock of `AddClip` became
+  `PlanFirstVideoRate`, both unchanged in behaviour; Insert / Overwrite work on the plan's states of the target track
+  (re-gridded when the edit locks the rate). SQ9 read as the trim rule (D025 §5): Overwrite refuses only a split or a trim
+  that would cut into the frames a dissolve that stays needs; a dissolve whose cut the range covers is removed with the
+  note — also when an edge of the range lies inside its zone (`Overwrite_with_an_edge_inside_a_dissolve_zone_…`). Insert
+  at a point inside a zone is refused (it splits there). Images are refused by the service (SQ11).
+- 16.4 — the source snapshot is `PlaybackSnapshotBuilder.Build` of a transient one-clip project (the asset at 1×), so the
+  source plays by the timeline's own rules; its canvas is the asset's display size (the project canvas for audio or an
+  unknown size). The last source position is kept per asset for the session (back to Source, or the asset opened again,
+  shows it); an asset that goes missing closes Source and keeps its range, one that leaves the project loses it.
+  `ITimelineEditService.GetSourceGrid` is the one SQ12 rule for the viewer and the placement.
+- 16.5 — End in Source seeks to the source's end (its last frame shown), O there marks after the last frame; J in Source
+  steps one second back, as in Timeline mode. A double click in the Media Browser opens a video or audio file in Source —
+  before Phase 16 it added the item to the timeline; an image keeps that (it has no source range), and "Add to Timeline"
+  and dragging are unchanged for every kind. Opening in Source takes the focus off the media list, so its arrows / Home
+  / End reach the source (found in the real-app run, `ac0e3ac`).
+- 16.6 — Source stays shown after Insert / Overwrite (the next range can be marked at once). The Insert / Overwrite
+  buttons are on the source bar, shown in Source mode; `,` / `.` work in both modes (SQ5).
+
+Final state at the Phase 16 closeout (Step 16.7, 2026-10-08): every rule of §2 implemented and tested (Timeline.Tests
+`InsertOverwriteTests`, UI.Tests `SourceViewerTests`, ExportEndToEnd.Tests `ExportInsertOverwriteEndToEndTests`), the
+gates and the manual plan in `progress.md` and `docs/PHASE16_MANUAL_TEST_PLAN.md`; `project.json` v3 unchanged (a Phase 15
+save opened and saved byte for byte), the default export byte for byte as Phase 15's.
+
+Status: Accepted (2026-10-08, product owner: variant A, the plan, SQ1–SQ16, the A ↔ D boundary). **Phase 16 complete**
+(Step 16.7 closeout, 2026-10-08); not yet merged (push / pull request on the product owner's command). Steps and
+acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 16 — Source viewer & three-point editing: steps".
 
 ---
 

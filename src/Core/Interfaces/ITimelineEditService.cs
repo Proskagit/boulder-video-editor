@@ -88,6 +88,32 @@ public interface ITimelineEditService
     /// frames applied after the clamp and its note; nothing applied. Null when it would be refused.</summary>
     SlipPreview? PreviewSlip(Guid clipId, long frames);
 
+    /// <summary>Insert (D031 SQ6): a new clip for the source range [<paramref name="sourceIn"/>,
+    /// <paramref name="sourceOut"/>) of a video or audio asset — null In = the asset's start, null Out = its last whole
+    /// frame, both snapped to the frame grid — at <paramref name="at"/> (snapped) on <paramref name="trackId"/> (null = the
+    /// first track of the asset's kind, V1 / A1). A clip with <paramref name="at"/> strictly inside is split there (the
+    /// split rule); its right part and every clip of the track from <paramref name="at"/> on move right by the range's
+    /// length (the move rule). Other tracks and the markers stay; a dissolve whose cut is gone is removed with a note;
+    /// the new clip plays at 1×, a video with its sound (SQ15); the first video locks the frame rate as
+    /// <see cref="AddClip"/> does. One Undo step; refused — nothing changes — for an image, a missing or not analysed
+    /// asset, a range shorter than one frame, a locked track, or a point inside a dissolve's zone.
+    /// <see cref="TimelineEditResult.ClipIds"/> is the new clip.</summary>
+    TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null);
+
+    /// <summary>The frame grid a source range of <paramref name="asset"/> lies on (D031 SQ12) — the project rate when it is
+    /// locked, the asset's own rate while it is provisional and the asset is a video (Insert / Overwrite would lock it) —
+    /// and the asset's whole frames on it: what the Source viewer plays and what <see cref="InsertClip"/> places. Null,
+    /// with <paramref name="reason"/>, for an asset that can't be a source (SQ11): an image, a missing asset, one whose
+    /// analysis is not complete or that is shorter than one frame.</summary>
+    SourceGrid? GetSourceGrid(MediaAsset asset, out string? reason);
+
+    /// <summary>Overwrite (D031 SQ9): as <see cref="InsertClip"/>, but nothing moves — the new clip covers
+    /// [<paramref name="at"/>, at + length) of the track: a clip inside it is removed, a clip partly inside is trimmed to
+    /// it (the trim rule), a clip covering it is split at its start and trimmed at its end. A dissolve whose cut the range
+    /// covers is removed with a note (the trim rule, D025 §5); refused as Insert is, and when the split or a trim would cut
+    /// into the frames a dissolve that stays needs.</summary>
+    TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null);
+
     TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds);
 
     /// <summary>Ripple delete (D027 §2): removes the clips, and on each track that loses one every other clip that starts
@@ -336,6 +362,14 @@ public sealed record SlipPreview(MediaTime SourceIn, MediaTime SourceOut, long F
 /// <summary>A ripple drag's preview (D030 §6): the planned start and end of each clip the release would change, and
 /// whether a dissolve stopped the trim.</summary>
 public sealed record RippleTrimPreview(IReadOnlyDictionary<Guid, (MediaTime Start, MediaTime End)> Clips, bool Stopped);
+
+/// <summary>A source asset on the frame grid of <see cref="ITimelineEditService.GetSourceGrid"/> (D031 SQ12):
+/// <paramref name="Frames"/> whole frames of <paramref name="Rate"/>, frame 0 at the asset's start.</summary>
+public sealed record SourceGrid(FrameRate Rate, long Frames)
+{
+    /// <summary>The end of the last whole frame.</summary>
+    public MediaTime Duration => MediaTime.FromFrame(Frames, Rate);
+}
 
 /// <summary>Outcome of a timeline edit. <see cref="Message"/> is safe to show in the
 /// status bar; on success it may carry an informational note (e.g. frame rate fixed).</summary>

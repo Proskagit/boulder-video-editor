@@ -2,7 +2,7 @@
 
 A simplified, desktop-first video editor (Windows 10/11 x64, Avalonia UI, .NET 8),
 architected so professional-grade features can be layered in over time without a
-rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–12
+rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–15
 are complete** (architecture, UI skeleton, media import, ffprobe metadata
 analysis, timeline editing, preview playback with audio, project persistence with
 autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
@@ -12,8 +12,9 @@ performance, polish, CI; fades and a cross dissolve; media relink and recent pro
 markers — Phase 12, merged 2026-10-05 as `c0cb600`, CI green; project & export settings — Phase 13, merged 2026-10-06 as
 `ed40b74`, CI green on PR #13; stabilization / technical debt, no new user functionality — Phase 14, merged 2026-10-07 as
 `7200976`, CI green on the first attempt, DECISIONS.md D029). Phase 15 (editing tools: track mute / hide / lock, trim to
-the playhead, ripple trim, slip, an In / Out range, a canvas-relative size for new text) is complete on its branch
-`feat/phase-15-editing-tools` (closeout Step 15.9; not yet merged) — DECISIONS.md D030.
+the playhead, ripple trim, slip, an In / Out range, a canvas-relative size for new text) merged 2026-10-08 as `a3793a4`,
+CI green — DECISIONS.md D030. Phase 16 (a Source viewer with In / Out, Insert / Overwrite) is complete on
+`feat/phase-16-source-viewer` (closeout Step 16.7; not yet merged) — DECISIONS.md D031.
 
 ## Requirements
 
@@ -121,8 +122,8 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–14 complete (Phase 14 merged as `7200976`, CI green on PR #14 and on `main`); Phase 15 (editing tools, D030)
-complete on its branch, not yet merged. Working: media import
+Phases 0–15 complete (Phase 15 merged as `a3793a4`, CI green on PR #15 and on `main`; the Preview fix PR #16 merged as
+`1bdeb95`); Phase 16 (source viewer & three-point editing, D031) complete on its branch, not yet merged. Working: media import
 with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
 preview playback with video and audio, and projects on disk: New / Open / Save /
@@ -174,7 +175,16 @@ markers keep their time) and, in its EXPORT section, the export quality (Maximum
 encoding speed (Fast / Medium / Slow) and the AAC bitrate (128–320 kbps); one Apply is one Undo step; the export settings
 are saved with the project (`settings.export`; older projects export as before).
 
-Phase 15 (DECISIONS.md D030; complete on `feat/phase-15-editing-tools`, not yet merged): editing tools. Each track
+Phase 16 (DECISIONS.md D031; complete on `feat/phase-16-source-viewer`, not yet merged): the Source viewer. Double-click
+a video or audio file in the Media Browser: the Preview switches to **Source** and plays it (the Timeline / Source switch
+above the picture goes back); I / O mark a source range (the band on the source bar, ✕ clears it; session state, never
+saved), the arrows, Home / End, J / K / L and Space act on the source while it is shown, Loop loops the range. `,`
+**Insert**s the range at the timeline playhead — a clip there is split and the rest of that track moves right — and `.`
+**Overwrite**s from the playhead; the target is the track of the selected clip of the right kind, else V1 / A1; the
+playhead goes to the end of the new clip. A video goes in with its sound as one clip. Every edit is one Undo step and off
+during an export.
+
+Phase 15 (DECISIONS.md D030; merged as `a3793a4`): editing tools. Each track
 header has M (mute), 👁 (hide; video tracks) and 🔒 (lock; a locked track refuses every edit, mute / hide still allowed),
 saved in `project.json` v3. Q / W trim the selected clip's start / end to the playhead, Shift+Q / Shift+W ripple the
 rest of its track; Shift + dragging a clip's edge is a ripple trim; Alt + dragging a video or audio clip's body slips its

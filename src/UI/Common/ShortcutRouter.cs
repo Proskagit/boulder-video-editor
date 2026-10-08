@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using AiVideoEditor.UI.ViewModels;
+using AiVideoEditor.UI.ViewModels.Panels;
 using Avalonia.Controls;
 using Avalonia.Input;
 
@@ -43,6 +44,12 @@ public static class ShortcutRouter
         var shift = modifiers == KeyModifiers.Shift;
         var none = modifiers == KeyModifiers.None;
         var timeline = vm.Timeline;
+        var preview = vm.Preview;
+
+        // Phase 16 (D031 SQ4): while Source is shown the transport and In / Out keys act on the source; every other key
+        // keeps its meaning. By the Preview's mode, never by focus.
+        if (preview.IsSourceMode && SourceCommandFor(preview, key, none, shift) is { } sourceCommand)
+            return sourceCommand;
 
         return key switch
         {
@@ -90,7 +97,25 @@ public static class ShortcutRouter
             // Phase 15 Step 15.7 (D030 §8): In / Out at the playhead (Ctrl+I stays Import); no key clears the range.
             Key.I when none => timeline.SetInCommand,
             Key.O when none => timeline.SetOutCommand,
+            // Phase 16 (D031 SQ5): the source range at the playhead — `,` Insert, `.` Overwrite — in both modes.
+            Key.OemComma when none => timeline.InsertFromSourceCommand,
+            Key.OemPeriod when none => timeline.OverwriteFromSourceCommand,
             _ => null
         };
     }
+
+    /// <summary>The Source mode's keys (D031 SQ4): the timeline's transport and In / Out keys, on the source.</summary>
+    private static ICommand? SourceCommandFor(PreviewViewModel preview, Key key, bool none, bool shift) => key switch
+    {
+        Key.Left when none => preview.SourceStepBackwardCommand,
+        Key.Right when none => preview.SourceStepForwardCommand,
+        Key.Left when shift => preview.SourceStepBackwardSecondCommand,
+        Key.Right when shift => preview.SourceStepForwardSecondCommand,
+        Key.J when none => preview.SourceStepBackwardSecondCommand,
+        Key.Home when none => preview.SourceGoToStartCommand,
+        Key.End when none => preview.SourceGoToEndCommand,
+        Key.I when none => preview.SetSourceInCommand,
+        Key.O when none => preview.SetSourceOutCommand,
+        _ => null                                     // Space, K, L, Ctrl+L: the Preview's own commands, as in Timeline
+    };
 }
