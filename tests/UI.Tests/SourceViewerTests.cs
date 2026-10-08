@@ -284,6 +284,27 @@ public sealed class SourceViewerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void The_source_range_is_kept_per_asset_and_another_project_forgets_it()
+    {
+        var a = Video(100, "a.mp4");
+        var b = Video(100, "b.mp4");
+        Assert.Null(Preview.OpenSource(a));
+        _source.SetIn(F(10));
+        Assert.Null(Preview.OpenSource(b));
+        Assert.False(_source.Range.IsSet);                           // b has none
+        _source.SetOut(F(20));
+
+        Assert.Null(Preview.OpenSource(a));
+        Assert.Equal(F(10), _source.Range.In);                       // SQ3: per asset
+        Assert.Null(_source.Range.Out);
+
+        _projects.CreateNew("Next");
+        _projects.AddMediaAssets(new[] { a });
+        Assert.Null(Preview.OpenSource(a));
+        Assert.False(_source.Range.IsSet);                           // another project starts without ranges
+    }
+
+    [Fact]
     public void An_asset_that_leaves_the_project_loses_its_source_range()
     {
         var source = Video(100, "source.mp4");

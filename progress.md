@@ -55,9 +55,14 @@ source playback · 16.5 the source viewer UI · 16.6 insert / overwrite from the
     the SQ12 re-grid and the SQ3 range drop of `SourceViewerService` with their mutations caught, Redo in the UI test, the
     Media Browser double click) and in this documentation (D031 "Refined in Steps 16.3–16.7", this record, the manual
     plan at 1440 / 1024 px).
-  - Gates at `2216865`: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite passed 2893, skipped 2, failed 0;
-    three `--blame-hang-timeout 5m` runs passed 2893, skipped 2, failed 0; hang dumps: 0 / passed 2893, skipped 2, failed 0; hang dumps: 0 / passed 2893, skipped 2, failed 0; hang dumps: 0, no hang; with `AIVE_HEAVY_TESTS=1`
-    passed 2895, skipped 0, failed 0; `git diff --check 1bdeb95` clean.
+  - Gates at `2216865`: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite 2893 passed,
+    2 skipped (the 4K scenes), 0 failed; three `--blame-hang-timeout 5m` runs 2893 / 2 / 0 each, no hang, no dump; with
+    `AIVE_HEAVY_TESTS=1` 2895 / 0 / 0; `git diff --check 1bdeb95` clean. After the second review (PASS WITH NOTES): a test
+    for the source range kept per asset and cleared by another project (`SourceViewerTests`, its two mutations caught),
+    the manual plan's rows marked "auto only" / "NOT RUN" where the run did not cover them; `-warnaserror` 0 / 0 and the
+    full suite then 2894 passed, 2 skipped, 0 failed. (The "another project clears the ranges" line of
+    `SourceViewerService` is a second guard: the ranges of the old project's assets also go with its media change, so its
+    mutation alone is not caught.)
   - Notes for later (not changed): the reason shown when an unanalysed asset can't open in Source reuses the Add message
     ("… can't be added: its duration is unknown …"); the transport row's duration text is cut at 1024 px, as in Phase 15;
     Insert / Overwrite with a provisional rate that re-grids clips on the target track and the one-tick source-end rule at
