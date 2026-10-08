@@ -221,6 +221,8 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult RippleTrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime) => No;
         public TimelineEditResult SlipClip(Guid clipId, long frames) => No;
         public SlipPreview? PreviewSlip(Guid clipId, long frames) => null;
+        public TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) => No;
+        public TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) => No;
         public RippleTrimPreview? PreviewRippleTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime) => null;
         public TimelineEditResult SetTrackMuted(Guid trackId, bool muted) => No;
         public TimelineEditResult SetTrackHidden(Guid trackId, bool hidden) => No;

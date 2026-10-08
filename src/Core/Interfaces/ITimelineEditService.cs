@@ -88,6 +88,24 @@ public interface ITimelineEditService
     /// frames applied after the clamp and its note; nothing applied. Null when it would be refused.</summary>
     SlipPreview? PreviewSlip(Guid clipId, long frames);
 
+    /// <summary>Insert (D031 SQ6): a new clip for the source range [<paramref name="sourceIn"/>,
+    /// <paramref name="sourceOut"/>) of a video or audio asset — null In = the asset's start, null Out = its last whole
+    /// frame, both snapped to the frame grid — at <paramref name="at"/> (snapped) on <paramref name="trackId"/> (null = the
+    /// first track of the asset's kind, V1 / A1). A clip with <paramref name="at"/> strictly inside is split there (the
+    /// split rule); its right part and every clip of the track from <paramref name="at"/> on move right by the range's
+    /// length (the move rule). Other tracks and the markers stay; a dissolve whose cut is gone is removed with a note;
+    /// the new clip plays at 1×, a video with its sound (SQ15); the first video locks the frame rate as
+    /// <see cref="AddClip"/> does. One Undo step; refused — nothing changes — for an image, a missing or not analysed
+    /// asset, a range shorter than one frame, a locked track, or a point inside a dissolve's zone.
+    /// <see cref="TimelineEditResult.ClipIds"/> is the new clip.</summary>
+    TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null);
+
+    /// <summary>Overwrite (D031 SQ9): as <see cref="InsertClip"/>, but nothing moves — the new clip covers
+    /// [<paramref name="at"/>, at + length) of the track: a clip inside it is removed, a clip partly inside is trimmed to
+    /// it (the trim rule), a clip covering it is split at its start and trimmed at its end. Refused the same way, and when
+    /// an edit point falls inside a dissolve's zone.</summary>
+    TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null);
+
     TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds);
 
     /// <summary>Ripple delete (D027 §2): removes the clips, and on each track that loses one every other clip that starts

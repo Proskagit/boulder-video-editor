@@ -14,7 +14,7 @@ namespace AiVideoEditor.Timeline;
 /// <see cref="TimelineValidator"/>, and only then executes one undoable command.
 /// Must be called on the UI thread (the project model is not thread-safe).
 /// </summary>
-public sealed class TimelineEditService : ITimelineEditService
+public sealed partial class TimelineEditService : ITimelineEditService
 {
     /// <summary>Length of a newly added image clip.</summary>
     public static readonly MediaTime DefaultImageDuration = MediaTime.FromSeconds(5);
@@ -77,20 +77,8 @@ public sealed class TimelineEditService : ITimelineEditService
             return TimelineEditResult.Fail(blocked);
 
         var plan = new EditPlan(Sequence, Settings);
-        string? info = null;
-
-        if (asset.Kind == MediaKind.Video && !Settings.IsFrameRateLocked)
-        {
-            var (rate, fromSource) = ResolveSourceFrameRate(asset);
-            plan.SetFrameRate(rate, locked: true);
-
-            if (rate != Settings.FrameRate && FrameRateRegrid.Plan(plan, rate, FindAsset) is { } regridError)
-                return TimelineEditResult.Fail($"Can't add {asset.FileName}: {regridError}");
-
-            info = fromSource
-                ? $"Project frame rate set to {FormatRate(rate)} FPS from {asset.FileName}."
-                : $"Source frame rate of {asset.FileName} is unknown — project frame rate set to {FormatRate(rate)} FPS (fallback, not the file's actual frame rate).";
-        }
+        if (PlanFirstVideoRate(plan, asset, out var info) is { } regridError)
+            return TimelineEditResult.Fail($"Can't add {asset.FileName}: {regridError}");
 
         var rateForAdd = plan.Rate;
         var kind = asset.Kind == MediaKind.Audio ? TrackType.Audio : TrackType.Video;
@@ -144,6 +132,27 @@ public sealed class TimelineEditService : ITimelineEditService
         Commit(plan, "Add Clip");
         if (info is not null) _logger.LogInformation("{Message}", info);
         return TimelineEditResult.Ok(new[] { clip.Id }, Join(info, TransitionNote(plan)));
+    }
+
+    /// <summary>The first video fixes the project frame rate (D007): while the rate is still provisional, a video
+    /// <paramref name="asset"/> sets its rate (or the fallback) on <paramref name="plan"/>, locked, the existing clips
+    /// re-gridded in the same step; <paramref name="info"/> is the status note. Null when planned (or not needed),
+    /// otherwise why the re-grid is impossible. Shared by Add and Insert / Overwrite (D031 SQ12).</summary>
+    private string? PlanFirstVideoRate(EditPlan plan, MediaAsset asset, out string? info)
+    {
+        info = null;
+        if (asset.Kind != MediaKind.Video || Settings.IsFrameRateLocked) return null;
+
+        var (rate, fromSource) = ResolveSourceFrameRate(asset);
+        plan.SetFrameRate(rate, locked: true);
+
+        if (rate != Settings.FrameRate && FrameRateRegrid.Plan(plan, rate, FindAsset) is { } regridError)
+            return regridError;
+
+        info = fromSource
+            ? $"Project frame rate set to {FormatRate(rate)} FPS from {asset.FileName}."
+            : $"Source frame rate of {asset.FileName} is unknown — project frame rate set to {FormatRate(rate)} FPS (fallback, not the file's actual frame rate).";
+        return null;
     }
 
     public TimelineEditResult AddTextClip(MediaTime start)
@@ -556,51 +565,8 @@ public sealed class TimelineEditService : ITimelineEditService
         var ids = new List<Guid>();
         foreach (var clip in toSplit)
         {
-            var startFrame = clip.TimelineStart.ToNearestFrame(rate);
-            var endFrame = clip.TimelineEnd.ToNearestFrame(rate);
-            var sourceIn = clip is MediaBackedClip m ? m.SourceIn : MediaTime.Zero;
-            var hasSource = SourceDuration(clip) is not null;
-
-            ClipState left, right;
-            if (clip is MediaBackedClip { Speed.IsNormal: false } fast)
-            {
-                // D022: the cut in the source is SourceIn + SourceLength(frames left of the split);
-                // the right half keeps the original SourceOut (normalized only if rounding misses).
-                var cut = fast.SourceIn + SpeedTiming.SourceLength(atFrame - startFrame, fast.Speed, rate);
-                left = ClipState.FromFrames(startFrame, atFrame, fast.SourceIn, cut, fast.Speed, rate);
-                var (rightIn, rightOut) = ClipState.Normalize(endFrame - atFrame, cut, fast.SourceOut, fast.Speed, rate);
-                right = ClipState.FromFrames(atFrame, endFrame, rightIn, rightOut, fast.Speed, rate);
-            }
-            else
-            {
-                left = ClipState.FromFrames(startFrame, atFrame, sourceIn, rate);
-                right = ClipState.FromFrames(atFrame, endFrame, hasSource ? left.SourceOut : sourceIn, rate);
-            }
-
-            var rightClip = CloneClip(clip);
-            right.ApplyTo(rightClip);
-
-            // D025 §2: the fades stay with the outer edges — the right part keeps the fade out, the left part the
-            // fade in; the new inner edges have none.
-            rightClip.FadeIn = MediaTime.Zero;
-            var track = plan.TrackOf(clip);
-            if (clip.FadeOut != MediaTime.Zero)
-                plan.SetProperties(clip, new ClipPropertyValues(null, null, null, new FadeProperties(clip.FadeIn, MediaTime.Zero)));
-
-            // D025 §5: never inside a dissolve's zone; a dissolve at the clip's end moves to the right part (the left
-            // part keeps the clip's id and its dissolve at the start).
-            foreach (var transition in track.Transitions)
-            {
-                var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(transition.Duration, rate));
-                if ((transition.LeftClipId == clip.Id && atFrame > endFrame - beforeCut) ||
-                    (transition.RightClipId == clip.Id && atFrame < startFrame + afterCut))
-                    return TimelineEditResult.Fail("Can't split inside a dissolve.");
-                if (transition.LeftClipId == clip.Id)
-                    plan.UpdateTransition(transition, plan.StateOf(transition) with { LeftClipId = rightClip.Id });
-            }
-
-            plan.Update(clip, track, left);
-            plan.Insert(track, rightClip);
+            if (!PlanSplitClip(plan, plan.TrackOf(clip), clip, ClipState.Capture(clip), atFrame, out var rightClip))
+                return TimelineEditResult.Fail("Can't split inside a dissolve.");
             ids.Add(clip.Id);
             ids.Add(rightClip.Id);
         }
@@ -610,6 +576,67 @@ public sealed class TimelineEditService : ITimelineEditService
 
         Commit(plan, toSplit.Count == 1 ? "Split Clip" : "Split Clips");
         return TimelineEditResult.Ok(ids, TransitionNote(plan));
+    }
+
+    /// <summary>
+    /// The split rule for one clip of <paramref name="track"/> at the timing <paramref name="state"/> (its own, or the one
+    /// a plan gives it), cut at <paramref name="atFrame"/> strictly inside it: the left part keeps the clip (its id and
+    /// its dissolve at the start), <paramref name="rightClip"/> is a new clip planned as an insert; the source cut follows
+    /// D022, the fades stay on the outer edges (D025 §2), a dissolve at the clip's end moves to the right part. Shared by
+    /// Split and Insert / Overwrite (D031 SQ6 / SQ9). False — nothing planned — when the cut is inside a dissolve's zone
+    /// (D025 §5).
+    /// </summary>
+    private bool PlanSplitClip(EditPlan plan, Track track, Clip clip, ClipState state, long atFrame, out Clip rightClip)
+    {
+        var rate = plan.Rate;
+        var startFrame = state.Start.ToNearestFrame(rate);
+        var endFrame = state.End.ToNearestFrame(rate);
+        var sourceIn = clip is MediaBackedClip ? state.SourceIn : MediaTime.Zero;
+        var hasSource = SourceDuration(clip) is not null;
+        rightClip = null!;
+
+        // D025 §5: never inside a dissolve's zone.
+        foreach (var transition in track.Transitions)
+        {
+            var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(transition.Duration, rate));
+            if ((transition.LeftClipId == clip.Id && atFrame > endFrame - beforeCut) ||
+                (transition.RightClipId == clip.Id && atFrame < startFrame + afterCut))
+                return false;
+        }
+
+        ClipState left, right;
+        if (clip is MediaBackedClip && !state.Speed.IsNormal)
+        {
+            // D022: the cut in the source is SourceIn + SourceLength(frames left of the split);
+            // the right half keeps the original SourceOut (normalized only if rounding misses).
+            var cut = state.SourceIn + SpeedTiming.SourceLength(atFrame - startFrame, state.Speed, rate);
+            left = ClipState.FromFrames(startFrame, atFrame, state.SourceIn, cut, state.Speed, rate);
+            var (rightIn, rightOut) = ClipState.Normalize(endFrame - atFrame, cut, state.SourceOut, state.Speed, rate);
+            right = ClipState.FromFrames(atFrame, endFrame, rightIn, rightOut, state.Speed, rate);
+        }
+        else
+        {
+            left = ClipState.FromFrames(startFrame, atFrame, sourceIn, rate);
+            right = ClipState.FromFrames(atFrame, endFrame, hasSource ? left.SourceOut : sourceIn, rate);
+        }
+
+        rightClip = CloneClip(clip);
+        right.ApplyTo(rightClip);
+
+        // D025 §2: the fades stay with the outer edges — the right part keeps the fade out, the left part the
+        // fade in; the new inner edges have none.
+        rightClip.FadeIn = MediaTime.Zero;
+        if (clip.FadeOut != MediaTime.Zero)
+            plan.SetProperties(clip, new ClipPropertyValues(null, null, null, new FadeProperties(clip.FadeIn, MediaTime.Zero)));
+
+        // A dissolve at the clip's end moves to the right part (the left part keeps the clip's id and its dissolve at
+        // the start).
+        foreach (var transition in track.Transitions.Where(t => t.LeftClipId == clip.Id))
+            plan.UpdateTransition(transition, plan.StateOf(transition) with { LeftClipId = rightClip.Id });
+
+        plan.Update(clip, track, left);
+        plan.Insert(track, rightClip);
+        return true;
     }
 
     // --- Trim to the playhead (D030 §5) -----------------------------------------------
