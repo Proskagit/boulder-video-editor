@@ -2,7 +2,7 @@
 
 Run in the real app (`dotnet run --project src/App/App.csproj`, ffmpeg / ffprobe on PATH unless the scenario says
 otherwise). Written at Step 17.2 (D032, product owner decisions of 2026-10-08) as a skeleton: the steps that implement the
-features complete the scenarios (expected results refined by the answers to AQ1–AQ10, automated coverage named);
+features complete the scenarios (expected results refined by the answers to AQ1–AQ13, automated coverage named);
 Step 17.9 runs them in the real app with the regression. Manual runs use an isolated profile (`USERPROFILE` /
 `LOCALAPPDATA` / `APPDATA` pointed to a scratch folder), as in Phases 11–16. Every new control is checked at 1024 and
 1440 px window width.

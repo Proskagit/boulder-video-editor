@@ -88,8 +88,8 @@ and runs cleanly.
       audio clip explicitly (edited as one, the ripple keeping their offset, a locked partner refusing the whole edit),
       J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio tracks; Preview ↔
       export parity; `project.json` v4. Scope, steps and acceptance criteria: section below and DECISIONS.md D032 (product
-      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.2 done; 17.3+
-      after the answers to AQ1–AQ10; checked after the product owner's acceptance)*
+      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.2 done; 17.4+
+      after the answers to AQ1–AQ13; checked after the product owner's acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -1049,7 +1049,7 @@ Out of scope: D031 §3 (the D side) and §5.
 
 Formalized in Step 17.2 (product owner decisions of 2026-10-08: variant A, L1–L7; the technical rules R1–R13 from the
 pre-implementation audit). The normative rules are D032; labels as in Phases 9–16 (**PR**, **QG**, **M**, **Impl**). Push,
-pull request and merge only on a separate command. A step that depends on an open question (AQ1–AQ10) starts only after
+pull request and merge only on a separate command. A step that depends on an open question (AQ1–AQ13) starts only after
 the product owner has answered it.
 
 Goal: edit the sound of a recording apart from its picture — unlink, link, J / L cuts, sound-only insert, crossfades —
@@ -1079,19 +1079,19 @@ Out of scope: D032 L7 and §6.
   updated; nothing renders the new properties yet beyond R10's "detached → no sound" if needed by the tests.
 - QG: `Project.Tests` — a v3 file (every Phase 10–16 property) opens unchanged in meaning and saves as v4 differing only
   in `formatVersion`; v4 round trip tick for tick; damaged v4 files (a link of one clip, two video clips, the same track,
-  a crossfade on a video track, a dissolve on an audio track, an audio clip of an image) refused; a v4 file refused by
-  the "newer version" message is unchanged for v5. The tests pinning `formatVersion` 3 on save changed to 4 (D032 §5).
+  a crossfade on a video track, a dissolve on an audio track, an audio clip of an image) refused; a v5 file refused with
+  the existing "newer version" message. The tests pinning `formatVersion` 3 on save changed to 4 (D032 §5).
 
 ### 17.4 — Unlink Audio, Link, Unlink: core and sound
-- PR: D032 R3, R4, R10 (detached sound), R13; AQ8, AQ9.
+- PR: D032 R3, R4, R10 (detached sound), R13; AQ8, AQ9, AQ11, AQ12 (track delete clearing links).
 - Impl: new commands in a `partial` file of `TimelineEditService`; `EditPlan` link reconciliation (R5) introduced here;
   `PlaybackSnapshotBuilder`: a detached `VideoClip` adds no `AudioSpan`.
 - QG: `Timeline.Tests` (every refusal, Undo / Redo exact, the target track and the new-track case, mute copy);
-  `ExportEndToEnd.Tests`: the export before and after Unlink Audio byte for byte (1×, a non-1× speed, fades, a dissolve on
-  the video track).
+  `ExportEndToEnd.Tests`: the export before and after Unlink Audio byte for byte where no other sound overlaps (1×, a
+  non-1× speed, fades, a dissolve on the video track per AQ11).
 
 ### 17.5 — Linked editing
-- PR: D032 R5, R6; AQ1–AQ7: move, move to a track, trim and the one-side trim, Q / W, ripple trim, slip, split, speed,
+- PR: D032 R5, R6; AQ1–AQ7, AQ12, AQ13: move, move to a track, trim and the one-side trim, Q / W, ripple trim, slip, split, speed,
   delete, ripple delete, close gap, Insert / Overwrite ripple partners, copy / paste / duplicate, track delete and media
   removal clearing links; a locked partner refuses the whole edit; a partner that can't follow refuses with a message.
 - Impl: the link rule added to the existing planners through one shared helper; no planner's rule for a single clip
@@ -1103,14 +1103,16 @@ Out of scope: D032 L7 and §6.
 - PR: D032 R8, R9, R10: Add / Remove / Duration of a crossfade on an audio cut (1 s or the longest that fits), every edit's
   reconciliation (D025 §5), the mix of the zone in the Preview and the export, a fade suppressed on a crossfade edge.
 - Impl: `AudioSpan` extension + ramps, `AudioPlacement` / `AudioFadeEnvelope` / `AudioMix` shared by `AudioSpanReader` and
-  `ExportAudioReader`; the reader windows honour the extended range.
+  `ExportAudioReader`; every place that uses a span's own bounds honours the extended range — `AudioPipeline` (reader key
+  and windows), `ExportAudioSource`, `ExportPreflight` (`window.Plays`, range exports); `AudioFadeEnvelope` keeps the
+  clip's own fade bounds.
 - QG: `Core.Tests` (the ramp, the sample bounds, the zone split), `Timeline.Tests` (edits and reconciliation as the D025
   dissolve tests), `UI.Tests` (playback mixer through the seam), `ExportEndToEnd.Tests` — the exported PCM of a crossfade
   equals the reference formula sample for sample, and the Preview's mix of the same zone equals the export's; audio fades
   of an audio clip of a video asset.
 
 ### 17.7 — Sound-only Insert / Overwrite
-- PR: D032 R7; AQ10.
+- PR: D032 R7; AQ10, AQ13.
 - QG: `Timeline.Tests` (the D031 SQ6 / SQ9 shapes for an `AudioClip` of a video asset, partners rippled per AQ4);
   `UI.Tests` (the Source bar toggle, the target track); an export test: a sound-only insert exports like the same timeline
   built with Unlink Audio + delete of the picture.

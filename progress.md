@@ -32,7 +32,12 @@ Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fa
   order" and "deep-seek decoding" are not defined anywhere and nothing in Phase 17 depends on them — not tasks. Written:
   the Phase 16 merge (ROADMAP, README, docs/README, DEVELOPMENT_PLAN, D031 "After the merge", this file), D032 (L1–L7,
   R1–R13, the open questions AQ1–AQ10 with proposals), the D008 refinement pointer, the Phase 17 steps, the manual plan's
-  skeleton. Steps 17.3+ wait for the product owner's answers to AQ1–AQ10 (17.3 needs none of them).
+  skeleton. Independent phase review of `4c86b39`: PASS WITH NOTES — the audit claims verified against the code, no
+  architectural contradiction; its notes taken in (R3: byte for byte only where no other sound overlaps — the float mix
+  order — and AQ11 for a fade on a dissolve edge; R5: `DeleteTrack` builds no `EditPlan` and must clear links itself;
+  AQ12 a locked partner of a removed clip; AQ13 Insert / Overwrite splitting a linked clip; the reader / preflight places
+  of the crossfade named in 17.6). Steps 17.4+ wait for the product owner's answers to AQ1–AQ13 (17.3 needs none of
+  them).
 
 ### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 
@@ -3943,7 +3948,7 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 2026-10-08: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`, CI green on the pull request and on
 `main`; 2894 passed, 2 skipped). Phase 17 (audio editing, D032) in progress on `feat/phase-17-audio-editing`: Steps 17.1–17.2
-done, AQ1–AQ10 awaiting the product owner. Open items: see "Known issues" (the real-device audio status check — now R10 of
+done, AQ1–AQ13 awaiting the product owner. Open items: see "Known issues" (the real-device audio status check — now R10 of
 the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 
 ### Phase 4 — Timeline (historical notes)

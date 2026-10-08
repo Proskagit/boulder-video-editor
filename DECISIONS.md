@@ -3642,9 +3642,9 @@ audio crossfade; Undo / Redo; locked-track protection; Preview ↔ export parity
   by the available handles and clip edges, built on the existing transition rules and `EditPlan` reconciliation, not on
   parallel rules.
 - L7 — Out of scope: ducking, keyframes, speed ramps, waveform work, a full mixer, volume automation; a separate
-  stabilization phase (only local refactoring needed by Phase 17); the Phase 16 notes for later (the Source message for an
-  unanalysed asset, the duration text cut at 1024 px). The real audio device check R10 (D030) is part of the Phase 17
-  manual plan.
+  stabilization phase (only local refactoring needed by Phase 17). The Phase 16 notes for later (the Source message for an
+  unanalysed asset, the duration text cut at 1024 px) are not mandatory for Phase 17. The real audio device check R10
+  (D030) is part of the Phase 17 manual plan.
 
 ### 3. Technical rules (derived from the audit; binding for the steps)
 
@@ -3663,8 +3663,11 @@ audio crossfade; Undo / Redo; locked-track protection; Preview ↔ export parity
 - R3 — Unlink Audio (one undo step): for a `VideoClip` with an audio stream, not detached, not linked, on an unlocked
   track: a new `AudioClip` with the same asset, timing, source range, speed, volume, mute and fades is placed on an audio
   track (AQ8), the video clip gets `IsAudioDetached = true`. The output does not change: the export before and after is
-  byte for byte the same (tested), except where the video track was muted (AQ8). Refused (with a message) for a clip
-  without sound, a detached or linked clip, a locked track or no possible target.
+  byte for byte the same (tested) where no other sound overlaps the clip — the mix sums spans in snapshot order (video
+  tracks first) in `float`, so with other overlapping sound a sample may differ in its last bits; except where the video
+  track was muted (AQ8) and for a fade on an edge with a video dissolve (stored, not applied to the sound by PO-8 —
+  AQ11). Refused (with a message) for a clip without sound, a detached or linked clip, a locked track or no possible
+  target.
 - R4 — Link / Unlink (one undo step each): Link takes the selection (AQ9); Unlink clears the `LinkId` of both. A link
   never changes timing. `IsAudioDetached` is not touched by Link / Unlink: a linked pair made from an unlinked recording
   stays one picture + one sound.
@@ -3672,7 +3675,9 @@ audio crossfade; Undo / Redo; locked-track protection; Preview ↔ export parity
   into the same `EditPlan`; a partner on a locked track refuses the whole edit (L5); the partner's own track is checked by
   the usual validation (overlap, frame grid, source range), so a partner that cannot follow refuses the edit with a
   message. `EditPlan` gains link reconciliation like `ReconcileTransitions`: a link whose partner the plan removes (Delete
-  of one side, track delete, media removal, Overwrite) is cleared in the same step, so no half link is ever saved. Copy /
+  of one side, track delete, media removal, Overwrite) is cleared in the same step, so no half link is ever saved;
+  `DeleteTrack`, which builds no `EditPlan` today (a bare `RemoveTrackCommand`), gains the same clearing in its command;
+  a partner on a locked track — AQ12. Copy /
   Paste / Duplicate: both partners copied → the copies get a new shared `LinkId`; one side alone → pasted unlinked.
   A frame-rate re-grid re-grids each partner by D007 (their offset may round to the new grid).
 - R6 — J / L cuts: on unlinked clips by the ordinary trims; on a linked pair by trimming one side alone (AQ3). No new
@@ -3711,7 +3716,8 @@ audio crossfade; Undo / Redo; locked-track protection; Preview ↔ export parity
 - AQ2 — Delete / Ripple Delete of a linked clip removes its partner too (Ripple Delete closes up each track). *Proposed:
   yes.*
 - AQ3 — Trim of a linked clip's edge moves the partner's same edge by the same frames (clamped as one: the smaller
-  possible change for both); **Alt + edge drag** trims only that clip — the way to make a J / L cut on a linked pair. Q / W
+  possible change for both); **Alt + edge drag** trims only that clip — the way to make a J / L cut on a linked pair
+  (today Alt + edge is an ordinary trim; only linked clips change). Q / W
   (trim to the playhead) act on the selection, the partner included (AQ1), each edge to the playhead. *Proposed: yes.*
 - AQ4 — Ripple (Insert, Ripple Delete, Close Gap, ripple trim): the partners of the clips a ripple moves move by the same
   frames; the other clips of the partners' tracks do not move (no ripple across all tracks, D030 §3, D031 SQ6); a partner
@@ -3732,6 +3738,15 @@ audio crossfade; Undo / Redo; locked-track protection; Preview ↔ export parity
 - AQ10 — Sound-only Insert / Overwrite: a **"Sound only"** toggle on the Source bar (session state, shown for a video asset
   with sound); `,` / `.` and the buttons then insert the sound as an `AudioClip` on the target audio track (SQ8, kind
   audio). Alternative: the target follows the selected track's kind. *Proposed: the toggle.*
+- AQ11 — Unlink Audio of a video clip with a fade on an edge that has a video dissolve (the fade stored but not applied
+  to the sound, PO-8): the new audio clip gets the **effective** fade (0 on that edge), so the output stays unchanged; or
+  the stored fade (the sound changes). *Proposed: the effective fade.*
+- AQ12 — An edit that removes one side of a link (track delete, media removal, Overwrite, Delete if AQ2 = no) while the
+  partner is on a locked track: refuse the whole edit (L5 read strictly), or allow clearing the partner's link as a
+  link-only change (as mute / hide on a locked track, D030 Q13). *Proposed: refuse (L5).*
+- AQ13 — Insert / Overwrite that splits or trims a linked clip on the target track (D031 SQ6 / SQ9): the partner is split
+  (AQ5) or trimmed (AQ3) too, the edit refused as a whole when the partner can't follow or is locked; or the partner is
+  left alone. *Proposed: the partner follows.*
 
 ### 5. Constraints
 
@@ -3758,7 +3773,11 @@ Link, Unlink) and the link rule in the existing planners (new code in `partial` 
 timeline toolbar buttons, link marks, linked selection, Alt + edge trim; the manual plan `docs/PHASE17_MANUAL_TEST_PLAN.md`.
 
 Status: Accepted (2026-10-08, product owner: variant A, L1–L7). R1–R13 are the pre-implementation audit's reading of the
-architecture (Step 17.2). AQ1–AQ10 **open** — proposals awaiting the product owner. Steps and acceptance criteria:
+architecture (Step 17.2), checked by an independent review (PASS WITH NOTES; its notes taken in: R3's mix-order and
+dissolve-fade limits, `DeleteTrack` in R5, AQ11–AQ13). AQ1–AQ13 **open** — proposals awaiting the product owner. The
+smaller product-visible choices inside R3 (Unlink Audio refused on a linked clip), R5 (one side pasted unlinked), R11 (the
+relink warning) and the narrowing non-goals of §6 are proposals too; the product owner may overrule them with the AQ
+answers. Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 17 — Audio editing: steps".
 
 ---
