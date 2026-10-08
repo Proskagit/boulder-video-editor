@@ -59,6 +59,16 @@ session state (D015).
 
 ## Current
 
+Phase 16 — Source viewer & three-point editing, branch `feat/phase-16-source-viewer` (from `1bdeb95`, `main` after the
+merge of PR #16). Scope (product owner, 2026-10-08, DECISIONS.md D031): a Source mode of the Preview panel playing one
+video or audio asset, a source In / Out as unsaved session state, Insert (`,`) and Overwrite (`.`) of the source range at
+the timeline playhead on the target track (ripple of the target track only), one undo step each; picture and sound of a
+video file stay one clip — unlinking, J / L cuts and audio crossfades stay out (the A ↔ D boundary). `project.json` stays
+v3. Steps 16.1 (pre-flight) and 16.2 (sync after the merge, scope formalization) done; 16.3–16.7 in progress. Steps and
+acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 16 — Source viewer & three-point editing: steps".
+
+## Previous
+
 Phase 15 — Editing tools, branch `feat/phase-15-editing-tools` (from `7200976`, `main` after the merge of PR #14). Scope
 (product owner decisions of 2026-10-07, DECISIONS.md D030): track controls — mute, hide, lock (15.3); trim to the
 playhead, plain and ripple, `Q` / `W` (15.4); ripple trim by dragging an edge (15.5); slip (15.6); a timeline In / Out
@@ -76,11 +86,11 @@ text's font size `48 × canvasHeight / 1080`, no clamp — Q14, `f9a2253`, revie
 -warnaserror` Release and Debug 0 / 0; the full suite, `AIVE_HEAVY_TESTS=1` and three `--blame-hang-timeout 5m` runs
 green (counts in `progress.md`); `git diff --check` clean; R1–R9 of the manual plan run in the real app (R10's audio
 device part not run: it needs a physical audio-output interruption); the R2 run found a still-image decode defect (a long
-image clip entered far into it: range export failed, Preview placeholder) — fixed in the closeout (D030). Not yet merged:
-push and pull request on the product owner's command. No next phase is defined. Scope and acceptance criteria:
-`docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps"; manual plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
-
-## Previous
+image clip entered far into it: range export failed, Preview placeholder) — fixed in the closeout (D030). Accepted; PR
+#15 merged into `main` as `a3793a4` (2026-10-08), CI green on the first attempt on the pull request (run 37743022102) and
+on `main` (run 37743623800). The follow-up Preview fix (a playhead parked past the end) merged as PR #16 (`1bdeb95`).
+Scope and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps"; manual plan
+`docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
 Phase 14 — Stabilization / technical debt, branch `feat/phase-14-stabilization` (from `ed40b74`, `main` after the merge
 of PR #13). **Complete**: accepted by the product owner; PR #14 merged into `main` as `7200976` (2026-10-07), CI green on
@@ -240,10 +250,11 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 15 — see `docs/DEVELOPMENT_PLAN.md`. Candidates named in the Phase 15 pre-analysis (Step 15.1),
-not decided: a source viewer with In / Out and insert / overwrite (builds on Phase 15's range and ripple); text styling
-and dragging objects in the Preview; keyframes; audio editing (unlinking, J / L cuts, crossfades, ducking — after
-keyframes); freeze frame / reverse / speed ramps. Left out by the product owner: AI features, HDR / colour management
+None planned after Phase 16 — see `docs/DEVELOPMENT_PLAN.md`. Candidates named in the Phase 16 pre-flight, not
+decided: audio editing (unlinking, J / L cuts, crossfades — the D side of D031 §3; ducking after keyframes); a
+stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`, the In / Out update order, deep-seek decode
+coverage); text styling and dragging objects in the Preview; keyframes; timeline polish (marker labels, marquee,
+filmstrips); freeze frame / reverse / speed ramps. Left out by the product owner: AI features, HDR / colour management
 (a narrow HDR → SDR tone mapping of phone footage only by a separate decision), an installer, timeline virtualization,
 an undoable import.
 

@@ -243,7 +243,9 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   `WriteableBitmap`s per layer. Playhead ↔ playback wiring lives in
   `MainWindowViewModel`: `TimelineViewModel.SeekRequested` (user moves only) → `SeekAsync`;
   `PreviewViewModel.PlaybackPositionChanged` → `TimelineViewModel.ShowPlaybackPosition` (no
-  seek). Snapshots are rebuilt by `PreviewViewModel` on project/timeline/media events. The "Playing without sound: no
+  seek). Snapshots are rebuilt by `PreviewViewModel` on project/timeline/media events; after a timeline change that
+  makes the sequence longer while playback is paused at its end, it seeks to the timeline playhead (PR #16: a playhead
+  parked past the end is shown there, or clamped to the new end). The "Playing without sound: no
   audio output is available." status is about the audio output only (never a muted clip or track); since Phase 15 Step
   15.7 (D030 Q15) `PreviewViewModel` sets "Ready." again when sound is available while playing, if that message is still
   shown, and re-arms the report for a later loss.

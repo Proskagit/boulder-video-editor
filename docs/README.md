@@ -16,6 +16,8 @@ This directory contains:
   closeout (Step 14.8)
 - `PHASE15_MANUAL_TEST_PLAN.md` — manual checks of Phase 15 (track controls, trim to the playhead, ripple trim, slip,
   In / Out range, text size and audio status), completed per step and run at its closeout (Step 15.9)
+- `PHASE16_MANUAL_TEST_PLAN.md` — manual checks of Phase 16 (Source viewer, source In / Out, Insert / Overwrite),
+  completed per step and run at its closeout (Step 16.7)
 
 Agent-oriented project context lives in the repository root:
 

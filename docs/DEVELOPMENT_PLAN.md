@@ -73,8 +73,14 @@ and runs cleanly.
       steps and acceptance criteria: section below and DECISIONS.md D030 (product owner decisions, 2026-10-07).
       *(branch `feat/phase-15-editing-tools`, from `7200976`; Steps 15.1–15.8 accepted (`d1296be` … `f9a2253`, review
       corrections `9de14c6`); closeout 15.9 done 2026-10-08 — build 0 / 0 Release and Debug, the full suite, heavy and three
-      blame-hang runs green, R1–R9 run (R10's device part not run), the still-image decode fix found by R2; not yet
-      merged — push / pull request on the product owner's command)*
+      blame-hang runs green, R1–R9 run (R10's device part not run), the still-image decode fix found by R2; accepted;
+      PR #15 merged into `main` as `a3793a4` (2026-10-08), CI green on the first attempt on the pull request and on
+      `main`; the follow-up Preview fix PR #16 merged as `1bdeb95`)*
+- [ ] **Phase 16 — Source viewer & three-point editing.** A Source mode of the Preview with a source In / Out (session
+      state) and Insert / Overwrite of that range at the timeline playhead on the target track; picture and sound of a
+      video file stay one clip (unlinking and other audio editing left to a later phase). Scope, steps and acceptance
+      criteria: section below and DECISIONS.md D031 (product owner decisions, 2026-10-08). *(branch
+      `feat/phase-16-source-viewer`, from `1bdeb95`; in progress)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -953,7 +959,7 @@ Scope: D030 §9.
 - Decisions at the start: Q14, Q15.
 - Depends on: 15.7.
 
-### 15.9 — Final verification & closeout *(done 2026-10-08 — results in `progress.md` and `docs/PHASE15_MANUAL_TEST_PLAN.md`; the R2 run found a still-image decode defect, fixed here — D030 "Found and fixed in Step 15.9"; CI on the pull request when the product owner opens it)*
+### 15.9 — Final verification & closeout *(done 2026-10-08 — results in `progress.md` and `docs/PHASE15_MANUAL_TEST_PLAN.md`; the R2 run found a still-image decode defect, fixed here — D030 "Found and fixed in Step 15.9"; PR #15 merged as `a3793a4`, CI green on the first attempt on the pull request and on `main`)*
 - QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
   `--blame-hang`; the heavy scenes once with `AIVE_HEAVY_TESTS=1`; `git diff --check` clean; CI green on the pull request
   without a rerun (D028 §8 is closed: any CI failure is a real failure).
@@ -964,6 +970,71 @@ Scope: D030 §9.
   and status, ROADMAP, README, `progress.md` (Known issues: the two D029 §3 items removed if fixed), this plan's Phase 15
   checkbox only after the product owner's acceptance.
 - Depends on: 15.3–15.8.
+
+## Phase 16 — Source viewer & three-point editing: steps (D031)
+
+Formalized in Step 16.2 (product owner decisions of 2026-10-08: variant A, the plan and SQ1–SQ16, the A ↔ D boundary).
+The normative rules are D031; labels as in Phases 9–15 (**PR**, **QG**, **M**, **Impl**). The product owner asked for the
+whole phase without a stop between its steps; push, pull request and merge only on a separate command.
+
+Goal: cut long recordings into the sequence with a few keys — open an asset in the Source mode of the Preview, mark a
+source In / Out, Insert (`,`) or Overwrite (`.`) it at the timeline playhead (D031 §1).
+
+Gates for every step 16.3–16.6 (QG): `dotnet build` 0 errors / 0 warnings (`-warnaserror`); the full `dotnet test` green
+(only the two 4K heavy scenes skipped); the Preview ↔ Export parity suite, the L1-c criteria (D028 §6) and every existing
+expected value unchanged; `project.json` unchanged (`formatVersion` 3, **no new property**; a Phase 15 project opens and
+saves byte for byte unless the user edits it); every new project command one undo step, exact on Undo / Redo, dirty /
+clean by the save point (D015), refused on a locked track and while an export runs (`EditingLock`), a refused or unchanged
+command leaving no undo step; each rule of D031 §2 that the step touches covered by a test; new controls checked in the
+real app at 1024 and 1440 px; `docs/PHASE16_MANUAL_TEST_PLAN.md` completed for the step; `progress.md` updated.
+
+Out of scope: D031 §3 (the D side) and §5.
+
+### 16.1 — Pre-flight *(done 2026-10-08)*
+### 16.2 — Sync after the merge and scope formalization *(done 2026-10-08)*
+- Documentation only: the Phase 15 / PR #16 merge recorded (ROADMAP, README, this plan, D030, `progress.md`), D031, this
+  section, the manual plan's skeleton.
+
+### 16.3 — Insert / Overwrite: core
+- PR: `ITimelineEditService.InsertClip` / `OverwriteClip` (asset, source In / Out, the timeline point, the target track)
+  with D031 SQ6–SQ9, SQ12, SQ13, SQ15 and the range defaults (§2).
+- Impl: built only from the existing planners — the per-clip split of `Split` (extracted, unchanged), the trim rule
+  (`TrimmedState`), the move rule (`ShiftedState` / `PlanShift`), `EditPlan` with `ReconcileTransitions` / `ClampFades`,
+  `Validate`, `Commit`; the first video locks the rate as `AddClip` does (shared). The new code in
+  `TimelineEditService.Insert.cs` (a `partial` file); no existing code moved.
+- QG: `Timeline.Tests` — insert at the start, inside a clip, in a gap, at the end, at a cut with a dissolve, inside a
+  dissolve's zone (refused), at 0.5× / 2× neighbours; overwrite of every overlap shape, across a dissolve, a clip covering
+  the range; locked target; a range shorter than one frame; Undo / Redo exact; equivalence with the existing commands
+  (split + ripple shift + add / trim give the same timeline).
+
+### 16.4 — Source playback
+- PR: D031 SQ2, SQ3, SQ11, SQ12, SQ14: a single-asset snapshot (Core), the Source / Timeline mode of `PreviewViewModel`,
+  a source state service (asset, position, In / Out per asset) cleared on New / Open and when the asset leaves the
+  project.
+- Impl: `PlaybackService` unchanged; one snapshot version counter for both modes; in Source mode the playback position
+  never reaches the timeline playhead and timeline changes are applied when Timeline mode returns.
+- QG: `UI.Tests` with the real `PlaybackService` and a fake decoder — mode switches keep the timeline playhead, the
+  timeline frame is shown again after the way back, a timeline edit while in Source, New / Open while in Source, Loop
+  over the source range, an audio-only asset.
+
+### 16.5 — Source viewer UI
+- PR: D031 SQ1, SQ4, SQ11: the Timeline / Source switch of the Preview, opening an asset by a double click in the Media
+  Browser (refusals with a message), the source time and duration, the In / Out band with its ✕, the keys by mode.
+- QG: `UI.Tests` for the view model and `ShortcutRouter` (both key maps, exact modifiers, `Ctrl+I` / `Ctrl+L` unchanged);
+  real app at 1024 / 1440 px.
+
+### 16.6 — Insert / Overwrite from the UI
+- PR: D031 SQ5, SQ8, SQ10, SQ16: `,` / `.` and the Insert / Overwrite buttons; the target track; the playhead and the
+  selection after the edit; the status messages.
+- QG: an end-to-end UI test (Source → In / Out → `,` / `.` → the timeline, Undo, Redo); an export test: a timeline built
+  with Insert / Overwrite exports byte for byte like the same timeline built with the existing commands.
+
+### 16.7 — Final verification & closeout
+- QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
+  `--blame-hang`; the heavy scenes once with `AIVE_HEAVY_TESTS=1`; `git diff --check` clean; an independent phase review.
+- PR: `docs/PHASE16_MANUAL_TEST_PLAN.md` in the real app, with the regression (a Phase 15 project round trip, export
+  unchanged, Phase 15 tools, no ffmpeg).
+- Documentation: ARCHITECTURE, D031 refinements and status, ROADMAP, README, `progress.md`, this plan's checkbox.
 
 ## Architectural rules that must hold at every phase
 
