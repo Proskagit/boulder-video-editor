@@ -3974,6 +3974,18 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Preview (observed at Phase 15 Step 15.8, not changed): after adding a clip with the playhead beyond the sequence's
   previous end, the Preview stays black until the next seek (the same in the 15.7 build); inside the sequence it shows
   at once. Not investigated and not fixed in Phase 15 (out of scope; confirmed at the 15.9 closeout) — a separate task.
+  Fixed on `fix/preview-playhead-beyond-end` (on top of `a3793a4`): a seek past the end is clamped by `PlaybackService`
+  to `Duration`, and when that frame was already reported (always in an empty project — frame 0; in a non-empty one from
+  the second seek past the end) nothing goes back to the timeline — the playhead stays parked past the end while playback
+  sits at the end; a later edit resynced there (D010), so the Preview showed the wrong frame or nothing.
+  `PreviewViewModel.OnTimelineChanged` now seeks to the playhead when playback was paused at the end and the edit makes
+  the sequence longer than playback's position: the Preview shows the playhead's frame when the new end reaches it, and
+  the playhead is clamped to the new end when it does not. Playhead semantics after a duration change: kept inside
+  [0, Duration] (at the old end included), clamped to the new `Duration` past it, never moved to the new end by an
+  extension. `PlaybackService`, D010 / D011 / D012, the In / Out range and the project format unchanged. Tests:
+  `UI.Tests/PreviewPlayheadPastEndTests` (11; the five with the playhead parked past the end fail without the fix, the six
+  boundary cases — inside, at the old end, shortening below / exactly to the playhead, no duration change — guard the
+  behaviour that was already right).
 - Still images (found by the Phase 15 Step 15.9 regression, R2): entered far into a long image clip, a still was not
   decoded (range export failure, Preview placeholder after a seek; since Phase 5). Fixed in Step 15.9:
   `SourceFrameSelector.StillImage` (D030).
