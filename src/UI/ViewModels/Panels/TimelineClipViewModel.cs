@@ -43,6 +43,13 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
     /// <summary>True while a drag preview shows a position the edit would reject.</summary>
     [ObservableProperty] private bool _isInvalid;
 
+    /// <summary>While the clip is slipped (D030 §7, Q12): its planned Source In / Out, shown on the clip; null otherwise.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSlipping))]
+    private string? _slipText;
+
+    public bool IsSlipping => SlipText is not null;
+
     /// <summary>What the clip's waveform shows (D024 Step 9.5), or null — a text or image clip, media without sound,
     /// offline media without a cached waveform, or not made yet.</summary>
     [ObservableProperty]
@@ -78,11 +85,32 @@ public sealed partial class TimelineTrackViewModel : ViewModelBase
 {
     public const double Height = 44;
 
-    public TimelineTrackViewModel(Track track) => Track = track;
+    public TimelineTrackViewModel(Track track)
+    {
+        Track = track;
+        SyncState();
+    }
 
     public Track Track { get; }
-    public string Label => Track.IsLocked ? $"{Track.Name} 🔒" : Track.Name;
+    public string Label => Track.Name;
     public TrackType Type => Track.Type;
+
+    /// <summary>Only a video track has a picture to hide (D030 §4): an audio track's header shows no hide control.</summary>
+    public bool CanHide => Track.Type == TrackType.Video;
+
+    /// <summary>The track's state flags as the header shows them (D030 §4); the model is the truth —
+    /// <see cref="SyncState"/> copies it after every timeline change, Undo and Redo included.</summary>
+    [ObservableProperty] private bool _isMuted;
+    [ObservableProperty] private bool _isHidden;
+    [ObservableProperty] private bool _isLocked;
+
+    public void SyncState()
+    {
+        IsMuted = Track.IsMuted;
+        IsHidden = Track.IsHidden;
+        IsLocked = Track.IsLocked;
+    }
+
     public ObservableCollection<TimelineClipViewModel> Clips { get; } = new();
 
     /// <summary>The track's dissolves, drawn over the clips at their zones (D025 §3).</summary>

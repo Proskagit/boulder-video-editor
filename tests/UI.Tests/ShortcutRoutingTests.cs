@@ -116,6 +116,14 @@ public sealed class ShortcutRoutingTests
             (Key.C, ctrl, timeline.CopyCommand),
             (Key.V, ctrl, timeline.PasteCommand),
             (Key.D, ctrl, timeline.DuplicateCommand),
+            // Phase 15 Step 15.4 (D030 §5, Q2)
+            (Key.Q, KeyModifiers.None, timeline.TrimStartToPlayheadCommand),
+            (Key.W, KeyModifiers.None, timeline.TrimEndToPlayheadCommand),
+            (Key.Q, shift, timeline.RippleTrimStartToPlayheadCommand),
+            (Key.W, shift, timeline.RippleTrimEndToPlayheadCommand),
+            // Phase 15 Step 15.7 (D030 §8)
+            (Key.I, KeyModifiers.None, timeline.SetInCommand),
+            (Key.O, KeyModifiers.None, timeline.SetOutCommand),
         };
     }
 
@@ -131,12 +139,18 @@ public sealed class ShortcutRoutingTests
     [InlineData(Key.Z, KeyModifiers.None)]
     [InlineData(Key.J, KeyModifiers.Shift)]                        // J / K / L only without modifiers
     [InlineData(Key.K, KeyModifiers.Control)]
-    [InlineData(Key.I, KeyModifiers.None)]                         // Import and Export need Ctrl
+    [InlineData(Key.I, KeyModifiers.Shift)]                        // Import needs Ctrl; plain I is In (15.7)
+    [InlineData(Key.O, KeyModifiers.Shift)]                        // plain O is Out (15.7)
+    [InlineData(Key.X, KeyModifiers.None)]                         // no key clears the range (Q11)
     [InlineData(Key.E, KeyModifiers.None)]
     [InlineData(Key.OemPipe, KeyModifiers.Control)]
     [InlineData(Key.C, KeyModifiers.None)]                         // copy / paste / duplicate need Ctrl
     [InlineData(Key.V, KeyModifiers.None)]
     [InlineData(Key.D, KeyModifiers.None)]
+    [InlineData(Key.Q, KeyModifiers.Control)]                      // trim to the playhead: Q / W, Shift only
+    [InlineData(Key.W, KeyModifiers.Control)]
+    [InlineData(Key.Q, KeyModifiers.Alt)]
+    [InlineData(Key.W, KeyModifiers.Control | KeyModifiers.Shift)]
     [InlineData(Key.C, KeyModifiers.Control | KeyModifiers.Shift)]
     public void Other_keys_and_modifiers_are_not_shortcuts_and_are_not_consumed(Key key, KeyModifiers modifiers)
     {

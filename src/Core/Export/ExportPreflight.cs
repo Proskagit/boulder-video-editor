@@ -34,7 +34,9 @@ public enum ExportIssueKind
     /// <summary>The clip can't play this media (e.g. a video clip on an image).</summary>
     MediaUnsupported,
     /// <summary>A text clip's font is not installed; the Preview's fallback font is used (warning).</summary>
-    FontMissing
+    FontMissing,
+    /// <summary>The In / Out range to export has no part of the timeline in it (D030 §8).</summary>
+    EmptyRange
 }
 
 /// <summary>One problem found by <see cref="ExportPreflight"/>. Media and font problems name every
@@ -78,12 +80,17 @@ public sealed record ExportPreflightResult(ImmutableArray<ExportIssue> Issues, E
 /// Only clips that reach the output are checked — exactly the ones the snapshot plays: picture clips on
 /// visible video tracks with opacity above 0; audio of clips on unmuted tracks that are not muted and have
 /// a volume above 0; text clips on visible tracks with opacity above 0 and non-blank text. Media problems
-/// (offline, not analysed, unsupported) block; a missing font is a warning.
+/// (offline, not analysed, unsupported) block; a missing font is a warning. A range export (D030 §8, Q16) checks
+/// only what reaches its frames: a picture shown in it (the clip with its dissolve zones), a sound placed in its
+/// samples, a text in it — media used only outside the range don't block it; every other check is unchanged.
 /// </para>
 /// </summary>
 public static class ExportPreflight
 {
-    public static ExportPreflightResult Check(Project project, string? outputPath, ExportPreflightEnvironment environment)
+    /// <param name="range">Only these timeline frames (the In / Out range, clamped to the sequence here); null = the
+    /// whole sequence, exactly as before.</param>
+    public static ExportPreflightResult Check(Project project, string? outputPath, ExportPreflightEnvironment environment,
+        ExportRange? range = null)
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(environment);
@@ -106,12 +113,43 @@ public static class ExportPreflight
         if (!environment.EncoderAvailable)
             issues.Add(Error(ExportIssueKind.EncoderUnavailable, "ffmpeg could not be found, so the video can't be encoded."));
 
-        CheckMedia(project, snapshot, environment, issues);
-        CheckFonts(snapshot, environment, issues);
+        // The range within the sequence; the window of timeline time and samples the output covers.
+        ExportRange? exported = null;
+        var window = Window.Everything;
+        if (range is { } r && snapshot.Duration > MediaTime.Zero)
+        {
+            var total = ExportOutput.For(snapshot).FrameCount;
+            var clamped = new ExportRange(Math.Max(0, r.FirstFrame), Math.Min(r.EndFrame, total));
+            if (clamped.FrameCount <= 0)
+            {
+                issues.Add(Error(ExportIssueKind.EmptyRange, "The In / Out range has no part of the timeline in it."));
+            }
+            else
+            {
+                exported = clamped;
+                var output = ExportOutput.For(snapshot, clamped);
+                window = new Window(MediaTime.FromFrame(clamped.FirstFrame, snapshot.FrameRate), MediaTime.FromFrame(clamped.EndFrame, snapshot.FrameRate),
+                    output.FirstSample, output.FirstSample + output.AudioSampleCount);
+            }
+        }
+
+        CheckMedia(project, snapshot, environment, issues, window);
+        CheckFonts(snapshot, environment, issues, window);
 
         var ordered = issues.OrderBy(i => i.Severity).ToImmutableArray();
-        var job = ordered.Any(i => i.Severity == ExportIssueSeverity.Error) ? null : new ExportJob(snapshot, fullOutputPath!, project.Settings.Export);
+        var job = ordered.Any(i => i.Severity == ExportIssueSeverity.Error)
+            ? null
+            : new ExportJob(snapshot, fullOutputPath!, project.Settings.Export, exported);
         return new ExportPreflightResult(ordered, job);
+    }
+
+    /// <summary>The part of the timeline the output covers: <c>[Start, End)</c> in time, <c>[FirstSample, EndSample)</c>
+    /// in timeline samples.</summary>
+    private readonly record struct Window(MediaTime Start, MediaTime End, long FirstSample, long EndSample)
+    {
+        public static readonly Window Everything = new(new MediaTime(long.MinValue), new MediaTime(long.MaxValue), long.MinValue, long.MaxValue);
+        public bool Shows(MediaTime start, MediaTime end) => start < End && end > Start;
+        public bool Plays(AudioPlacement placement) => placement.FirstSample < EndSample && placement.EndSample > FirstSample;
     }
 
     private static string? CheckOutputPath(Project project, string? outputPath, ExportPreflightEnvironment env, List<ExportIssue> issues)
@@ -161,16 +199,18 @@ public static class ExportPreflight
         return full;
     }
 
-    private static void CheckMedia(Project project, PlaybackSnapshot snapshot, ExportPreflightEnvironment env, List<ExportIssue> issues)
+    private static void CheckMedia(Project project, PlaybackSnapshot snapshot, ExportPreflightEnvironment env, List<ExportIssue> issues,
+        Window window)
     {
         var assets = project.MediaAssets.ToDictionary(a => a.Id);
 
-        // (clip, asset, span status, timeline start) of every clip whose picture or sound reaches the output.
+        // (clip, asset, span status, timeline start) of every clip whose picture or sound reaches the output — in the
+        // range: the picture where it is shown (with its dissolve zones), the sound where it is placed.
         var used = snapshot.VideoLayers.SelectMany(l => l.Spans)
-            .Where(s => s.Visual.Opacity > 0)
+            .Where(s => s.Visual.Opacity > 0 && window.Shows(s.ShownStart, s.ShownEnd))
             .Select(s => (s.ClipId, s.AssetId, s.Status, s.TimelineStart))
             .Concat(snapshot.AudioSpans
-                .Where(s => s.EffectiveGain > 0)
+                .Where(s => s.EffectiveGain > 0 && window.Plays(AudioPlacement.Of(s)))
                 .Select(s => (s.ClipId, s.AssetId, s.Status, s.TimelineStart)));
 
         var problems = new Dictionary<(ExportIssueKind Kind, Guid AssetId), List<(Guid ClipId, MediaTime Start)>>();
@@ -215,10 +255,10 @@ public static class ExportPreflight
         return status is SpanStatus.Video or SpanStatus.StillImage or SpanStatus.Audio ? null : ExportIssueKind.MediaOffline;
     }
 
-    private static void CheckFonts(PlaybackSnapshot snapshot, ExportPreflightEnvironment env, List<ExportIssue> issues)
+    private static void CheckFonts(PlaybackSnapshot snapshot, ExportPreflightEnvironment env, List<ExportIssue> issues, Window window)
     {
         var missing = snapshot.VideoLayers.SelectMany(l => l.Texts)
-            .Where(t => t.Visual.Opacity > 0 && !string.IsNullOrWhiteSpace(t.Text.Text))
+            .Where(t => t.Visual.Opacity > 0 && !string.IsNullOrWhiteSpace(t.Text.Text) && window.Shows(t.TimelineStart, t.TimelineEnd))
             .GroupBy(t => t.Text.FontFamily, StringComparer.OrdinalIgnoreCase)
             .Where(g => !env.IsFontInstalled(g.Key))
             .OrderBy(g => g.Min(t => t.TimelineStart));

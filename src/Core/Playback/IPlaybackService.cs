@@ -109,8 +109,18 @@ public interface IPlaybackService : IAsyncDisposable
     /// state; resyncs decoding at the current position.</summary>
     void UpdateSnapshot(PlaybackSnapshot snapshot);
 
-    /// <summary>Starts playing; at the end of the sequence starts again from 0.</summary>
+    /// <summary>Starts playing; at the end of the sequence starts again from 0. With a <see cref="SetPlaybackRange"/>
+    /// range, a position outside it starts at its start.</summary>
     void Play();
+
+    /// <summary>Confines playback to <paramref name="range"/> (Loop with an In / Out range, D030 §8, Q9) or frees it
+    /// (null): Play outside the range starts at its start; reaching its end pauses there exactly as at the end of the
+    /// sequence (the caller's loop then plays it again), and no sound is heard from its end on. Nothing in the project
+    /// changes.</summary>
+    void SetPlaybackRange(PlaybackRange? range);
+
+    /// <summary>Where playing stops: the end of the <see cref="SetPlaybackRange"/> range, or <see cref="Duration"/>.</summary>
+    MediaTime PlaybackEnd { get; }
 
     void Pause();
 

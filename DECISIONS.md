@@ -2307,6 +2307,11 @@ Known tests that have failed intermittently on CI before Phase 12 without a prod
   to the product owner) before the gate counts. Rerunning until the suite passes is not allowed.
 - A flaky test is never weakened, skipped or removed to make a gate pass.
 
+Closed (product owner, 2026-10-07, recorded at Step 15.2): the three tests were fixed in Phase 14 (D029, Steps 14.3–14.4)
+and the D029 §5 measure was met — CI green on the first attempt on the Phase 14 pull request (PR #14, run 37590085671)
+and on the first run on `main` after its merge (run 37590661647). This policy no longer applies: every CI failure is a
+real failure, investigated and fixed (or reported to the product owner); no rerun counts towards a gate.
+
 ### Open for the D028 acceptance (product owner)
 
 1. Canvas from the first video: keep D018 "never taken from a video" — the user sets the canvas (recommended: simple and
@@ -2836,10 +2841,604 @@ Closeout (Step 14.8, 2026-10-07, at `90caae9`):
 Consequences: CI no longer needs reruns for the known tests; D028 §8 can be closed at the closeout; the test helpers
 produce on-grid clips; one project fewer in the solution. No change for the user.
 
+After the merge (recorded at Step 15.2, 2026-10-07): Phase 14 accepted by the product owner; PR #14 (head `0482b80`)
+merged into `main` as `7200976` (2026-10-07; its tree identical to `0482b80`). CI green on the **first attempt** on the
+pull request (run 37590085671) and on the first run on `main` after the merge (run 37590661647) — the §5 measure met. The
+D028 §8 policy is closed (product owner, 2026-10-07; D028 §8 "Closed"). On `main` after the merge: build 0 / 0, the full
+suite 2600 passed, 2 skipped (the 4K scenes), 0 failed (the Phase 15 audit, Step 15.1). Taken into Phase 15 (D030 §9):
+the two §3 items — a new text clip's font size relative to the canvas and the audio status after the device returns.
+
 Status: Accepted (2026-10-06, product owner). Phase 14 complete: Steps 14.1–14.7 accepted (`0a50fe5`, `ed35f1f`, `0a4e6fe`,
-`b8e6aac`, `90caae9`); Step 14.8 closeout done on 2026-10-07 with every gate green; push and pull request on the product
-owner's command. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 14 — Stabilization / technical debt:
-steps".
+`b8e6aac`, `90caae9`); Step 14.8 closeout (`0482b80`) accepted; PR #14 merged as `7200976`, CI green on the first attempt
+on the pull request and on `main`. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 14 —
+Stabilization / technical debt: steps".
+
+---
+
+## D030 — Phase 15: editing tools — trim, track controls, slip, In / Out range
+
+Date: 2026-10-07
+
+Decision (product owner, 2026-10-07, after the Step 15.1 pre-analysis; variant A in full). Phase 15 adds the editing
+tools that the everyday workflow of a bouldering video still lacks — cutting long phone recordings of attempts down to
+the part that matters: **track controls** (mute, hide, lock; Step 15.3), **trim to the playhead**, plain and ripple
+(15.4), **ripple trim by dragging an edge** (15.5), **slip** (15.6), a **timeline In / Out range** for loop playback and
+range export (15.7), and the two UX fixes deferred by D029 §3 (15.8). Every project change is one undoable command
+through `ITimelineEditService`; the rendering rules are unchanged, so the Preview and the export stay identical by
+construction; `project.json` stays `formatVersion` 3 with no new property.
+
+Context (Step 15.1 pre-analysis, the code at `7200976`, `main` after the merge of PR #14):
+- Phases 0–14 merged; build 0 / 0; 2600 tests pass, 2 skip (the 4K scenes); CI green on the first attempt on PR #14
+  and on `main`; 18 projects (10 application, 8 test).
+- `Track.IsMuted` / `IsHidden` / `IsLocked` exist in the model and in `project.json` v3 (`TrackDto`), the playback
+  snapshot honours them (`PlaybackSnapshotBuilder`: a hidden video track has no layer and no dissolve zones; a muted
+  video track gives no sound from its video clips; a muted audio track is not mixed) and the edit service rejects edits
+  on a locked track — but **no command sets them and no UI shows them**: a user cannot mute, hide or lock a track.
+- Trim exists only as a drag of a clip edge (`TrimClip`, clamped — D008 / D022 / D025); there is no ripple trim, no trim
+  to the playhead and no slip; D027 §1 left ripple trim and an In / Out range out of Phase 12.
+- Loop (D024 Step 9.6, PO-H3) plays the whole sequence; the export always covers the whole sequence (`ExportJob` has no
+  range). The keys `I`, `O`, `Q`, `W` are free (`Ctrl+I` is Import); the timeline uses `Ctrl` for toggle-select and
+  `Ctrl`+wheel for zoom; `Shift` and `Alt` are unused by its gestures. The timeline header has no room left at 1024 px
+  (D027 Steps 12.6 / 12.7); the UI has no context menus.
+- A new text clip takes `FontSize` 48 on any canvas (`Clip.cs`); the status bar keeps "Playing without sound: no audio
+  output is available." after the sound comes back (`PreviewViewModel` reports it once and never clears it).
+
+### 1. Scope (locked by the product owner, 2026-10-07)
+
+1. Track controls (15.3): mute, hide, lock — undoable commands with the D015 dirty / save-point semantics, persisted in
+   the existing v3 track fields; playback and export respect them; a locked track rejects every ordinary edit.
+2. Trim to the playhead (15.4): trim start / trim end to the playhead; a plain trim leaves the resulting gap, a ripple
+   trim moves the later clips of the same track; the frame grid, the source mapping / speed rules and the fade /
+   dissolve rules (D022, D025) preserved; a locked track rejects it.
+3. Ripple trim UI (15.5): dragging an edge with the agreed modifier; the result previewed during the gesture; `Esc`
+   cancels; the same semantics as the command of 15.4.
+4. Slip (15.6): the source content inside a clip changes while its timeline boundaries stay; source limits and speed
+   defined and tested explicitly; a locked track rejects it.
+5. Timeline In / Out range (15.7): `I` sets In at the playhead, `O` sets Out at the playhead, a clear reset operation,
+   the range shown on the timeline, loop playback uses the range when one is defined, the export can export only the
+   range.
+6. The D029 §3 UX fixes (15.8): a new text clip's default `FontSize = 48 × canvasHeight / 1080`; the stale "Playing
+   without sound…" status reset when the sound is available again.
+
+### 2. Constraints
+
+- Unchanged in substance: D006 / D007 (frame grid, rate), D008 (no overlap on a track, one-frame minimum, trims clamped),
+  D009 / D022 (source frame selection, the speed timing rule), D013 (mix), D014 / D016 (persistence, autosave,
+  recovery), D015 (dirty / save point; session state), D018 / D023 (composition, export), D025 (fades, dissolves), D026,
+  D027 (ripple delete, tracks, markers), D028 (settings, L1-c criteria). A rule of those decisions is applied as written;
+  where Phase 15 needs a rule they do not state, it is derived from them, written here (§10) and confirmed by the
+  product owner before it is implemented — never invented silently.
+- `project.json` stays `formatVersion` 3, **no new property**: the track flags already exist; the In / Out range is not
+  saved (§8). A step that finds it needs a format change stops and asks.
+- The Preview ↔ Export parity suite and the L1-c criteria are never weakened, re-baselined or removed; new behaviour
+  that reaches the picture or the sound (track flags, slip, range export) gets parity scenes.
+- Every new project command is one undo step, is disabled while an export runs (`EditingLock`) and is rejected on a
+  locked track, like the existing edits; a refused edit changes nothing and leaves no undo step.
+- Keyboard (§11): `I`, `O`, `Q`, `W` as locked; no other new key unless confirmed; never while a text input has focus
+  (the `ShortcutRouter` guard).
+- No UI redesign: new controls fit the existing panels; the 1024 px minimum width is checked in the real app for every
+  new control.
+- Working rules (kept from Phases 11–14): builds and test runs on the product owner's command; no push, pull request or
+  merge without direct permission; each step accepted before the next one starts; a step's sub-decisions proposed at
+  its start and confirmed before its code changes.
+
+### 3. Out of scope (explicit non-goals)
+
+Roll edit; a source viewer / source editing; insert / overwrite editing; ripple across all tracks; track solo;
+keyframes; text outline / shadow / background; dragging objects directly in the Preview; unlinking audio, J / L cuts,
+audio crossfades; freeze frame; reverse; variable speed ramps; marquee selection; marker labels; filmstrips; frame
+export; AI features; HDR / colour management; an installer; timeline virtualization; an undoable import.
+
+Note (Phase 15 closeout): §§4–9 and "Open for the D030 acceptance" are the Step 15.2 proposals, kept as written. Where an
+answer or a "Refined in Step 15.x" block below differs (e.g. Q5: the playhead moves after `Shift+Q`; Q11: no key clears
+the range; Q4: a plain `Q` / `W` does not trim a dissolve's cut edge), the answer and the refinement are binding; the
+summary "Final state at the Phase 15 closeout" lists the accepted result.
+
+### 4. Track controls (Step 15.3)
+
+- Video tracks: **mute** (the sound of their video clips), **hide** (their picture: clips, texts and dissolve zones),
+  **lock**. Audio tracks: **mute**, **lock** — `IsHidden` has no effect on an audio track (the snapshot ignores it), so
+  no hide control is offered there. The existing snapshot rules are the semantics; nothing in the composition or the mix
+  changes: hide is picture only (a hidden video track's clips still sound unless the track is muted), mute is sound
+  only.
+- Each toggle is one undoable project change (one command per click, no merging), marks the project dirty, and Undo /
+  Redo back to the save point make it clean (D015); saved in the existing `isMuted` / `isHidden` / `isLocked` of the
+  track — a file from Phase 14 or earlier opens with its flags, a file saved by Phase 15 opens in Phase 14 with the same
+  rendering (the flags existed and were honoured).
+- Playback and export: the Preview and the export read the same snapshot, so a hidden track is absent from both, a
+  muted track silent in both. The sequence length is unchanged by hide / mute (`Sequence.Duration` counts every clip;
+  a hidden track's content past the other tracks' end exports as black, as an empty track would). The export preflight
+  checks what the snapshot exports (it reads the snapshot's spans): offline media used only by a hidden and muted track
+  does not block the export.
+- Lock: every ordinary edit of `ITimelineEditService` on a clip of a locked track, or on the track itself (move, delete),
+  is rejected with "Track … is locked." (existing); new Phase 15 edits (trim to the playhead, ripple trim, slip) too.
+  Undo / Redo replay recorded commands and are not blocked by a lock set later (existing behaviour: the lock is checked
+  when an edit is planned). Copy from a locked track stays allowed (D027 Step 12.6). Markers are not on a track and are
+  not affected. Selection on a locked or hidden track stays possible.
+- The toggles live in the track header (84 px column, next to ▲ / ▼ / ✕); their layout is checked at 1024 and 1440 px;
+  disabled while an export runs. A hidden track's clips are drawn dimmed, a locked track is marked; a muted track's
+  waveforms are already dimmed (D024 Step 9.5).
+- Proposed default, confirmed at 15.3 (§ "Open" Q13): mute and hide stay toggleable on a locked track (lock protects
+  the clips and the track's place, not its monitoring state).
+
+### 5. Trim to the playhead (Step 15.4)
+
+Terms: the playhead is on frame `p` (it is always on the grid); a clip covers frames `[s, e)`.
+- Target (proposed, Q1): the **selected** clips whose frames contain `p` strictly inside, `s < p < e` — at most one per
+  track (no overlap, D008). Selected clips that do not contain `p` are not trimmed; none containing it → refused with a
+  status message, nothing changes.
+- **Trim start to the playhead** (`Q`): the clip's new start is `p`; the frame `p` stays the clip's first frame, the
+  frames `[s, p)` are removed. **Trim end to the playhead** (`W`): the clip's new end is `p`; the frames `[p, e)` are
+  removed (the playhead frame is the first frame after the clip — the same cut point as Split at the playhead, D008).
+- **Plain** (gap left): exactly the existing `TrimClip` of that edge to `p` — the same planner, the same clamps and the
+  same results as dragging that edge to `p`. Since `s < p < e`, the trim is always inward: the neighbour and source
+  clamps never apply and the one-frame minimum holds by construction; only the dissolve clamp of the far edge can apply
+  (below). The content does not move on the timeline (a start trim moves `SourceIn` so the frame at `p` stays where it
+  is — D008 / D022).
+- **Ripple**: the same trim of the clip's source range and length, but the clip keeps its start frame `s` (a ripple
+  trim start places the shortened clip back at `s`, so it shows from `s` the content that was at `p`); every clip of
+  **the same track** that starts at or after the trimmed clip's original end moves by the change of the clip's length
+  (left for a shorter clip), in whole frames with the move's timing rule (D027 Step 12.5, `PlanShift`) — the following
+  clips close up. Gaps between the
+  later clips are kept (they move with the clips after them); the gap before the trimmed clip is untouched. No overlap
+  can arise (all later clips move by the same distance). Clips of other tracks, the markers and the In / Out range do
+  not move (D027 §2: ripple only on the edited track; sync with other tracks may change, as for ripple delete).
+- Source mapping and speed (D022, applied as written): 1× — a start trim moves `SourceIn` by
+  `FromFrame(s + Δ) − FromFrame(s)`, an end trim sets `SourceOut = SourceIn + duration`; speed `≠ 1×` — the end trim
+  sets `SourceOut = SourceIn + SourceLength(N)`, the start trim moves `SourceIn` by `SourceLength(Δ)` and keeps
+  `SourceOut`, normalized only when the rounding misses the invariant. A ripple shift changes neither the length, the
+  source range nor the speed of the shifted clips.
+- Fades (D025 §2, applied as written): a fade stays attached to its edge — a trimmed start keeps the clip's fade in; an
+  edit that leaves the clip shorter than a stored fade cuts that fade to the clip's length in the same undo step
+  (`EditPlan.ClampFades`). This is **not** Split + Delete (a split gives the inner edges no fade). The shifted clips'
+  fades are unchanged.
+- Dissolves (D025 §5, D027 §2):
+  - plain trim of a **cut edge** (A's end, B's start): it opens a gap → the dissolve is removed in the same undo step
+    with D025's status note (existing);
+  - plain or ripple trim of a **far edge**: the cut is kept; the trim is clamped so the dissolve's part inside the clip
+    still fits (existing `minFrames`); proposed (Q6): the clamped result is applied and the status bar says the trim
+    stopped where the dissolve needs its frames;
+  - ripple trim of a **cut edge**: the clips still meet after the ripple (A's end and B move together; B keeps its start
+    next to A) — a case D025 does not name. Derived from D025 §5's general rule ("an edit that keeps the cut but would
+    break the dissolve is rejected — except a trim, which is clamped"): the dissolve is **kept**, the trim clamped so the
+    zone fits the shorter clip and the handles still suffice; proposed for confirmation (Q4);
+  - dissolves between later clips of the track move with them unchanged (D027 §2.2); none is created (D025);
+  - the zones and the handles are validated by the existing `Validate` / `ReconcileTransitions` on the planned result.
+- Playhead (proposed, Q5): stays where it is for `Q`, `W` and the ripple trim end (it then shows the new first frame of
+  the clip, resp. the edit point); after a ripple trim start it moves to the clip's start `s` (the edit point, where the
+  frame that was at `p` now is) — unlike D027's ripple delete, which never moves it.
+- Undo / Redo: one step for the whole command (every trimmed clip, every shifted clip, every fade cut and dissolve
+  change); Undo restores every tick exactly.
+- Hidden / muted tracks: no influence on trimming (they are not locked); a locked track's selected clip refuses the
+  whole command (as `CheckEditable` does for every multi-clip edit).
+- How the ripple variant is reached from the keyboard / UI: Q2.
+
+### 6. Ripple trim by dragging (Step 15.5)
+
+- An edge drag with the ripple modifier (proposed `Shift`, Q3) plans a ripple trim of that edge to the pointer's frame
+  through the **same planner** as §5 (the playhead replaced by the target frame, inward or outward); without the
+  modifier the existing trim is unchanged.
+- Outward with ripple: the clip lengthens and the later clips move right; the neighbour clamp does not apply (the
+  neighbours move), the source limits do (`SourceIn ≥ 0`, the end of the source: D006 `MaxWholeFrames` / D022
+  `FramesFor`), and for a cut edge with a dissolve the handle the dissolve needs (§5).
+- Snapping as for the existing trim gesture; the gesture preview shows the trimmed clip and the moved later clips (and
+  the zones) as the release will leave them; `Esc` cancels with no change and no undo step; a release that changes
+  nothing leaves no undo step.
+- Acceptance includes an equivalence check: for the same clip, edge and target frame, the drag's result equals the
+  command's result tick for tick.
+
+### 7. Slip (Step 15.6)
+
+- Slip by `k` frames: the clip keeps `TimelineStart`, its frame count `N`, its speed, fades and properties; its source
+  range moves — `SourceIn' = SourceIn + Δ`, where `Δ` is exactly how a start trim by `k` frames would move `SourceIn`
+  (1×: `FromFrame(s + k) − FromFrame(s)`; `≠ 1×`: `±SourceLength(|k|)` — D022), and `SourceOut'` follows the clip's
+  rule (1×: `SourceIn' + duration`; `≠ 1×`: `SourceIn' + SourceLength(N)`, normalized like D022's trim start).
+- Limits: `SourceIn' ≥ 0` and the range ends within the source (the same limits as the trims: D006 `MaxWholeFrames`,
+  D022 `FramesFor`); a dissolve on either edge keeps its source handle (D025 §4) — slip keeps the cuts, so by D025 §5 an
+  edit that would break a dissolve is rejected; the gesture clamps to the allowed range, which the service reports (a
+  query like `MaxTransitionFrames`), so a drag never ends in a refusal.
+- Only video and audio clips slip (a video clip's sound slips with its picture); images and text have no source range →
+  refused. A clip whose source duration is unknown is refused. Offline media with saved metadata can be slipped.
+- A slip is a timing change (the snapshot's `SourceIn` changes, decoders reopen), never presentation-only; the export
+  after a slip matches the Preview (parity scene).
+- One undoable step per gesture (the drag commits once on release); `Esc` cancels; locked track → refused.
+- UI (proposed, Q3 / Q12): `Alt` + drag on the clip body; dragging right shows earlier source content (the content moves
+  with the pointer); during the gesture the timeline shows the new source in / out; the Preview shows the result after
+  the release.
+
+### 8. Timeline In / Out range (Step 15.7) — transient session state
+
+- The range is **session state of the timeline view, not project state**: it is **not serialized** — no field in
+  `project.json`, none in the recovery file, no format change. Setting or clearing it never makes the project dirty,
+  never triggers an autosave and never enters undo / redo. Opening a project (Open, Recent, Recover, New) starts with
+  **no** range; reopening the same project starts with none. (Unlike the playhead, which D015 saves in `project.json`
+  as session state, the range is not saved at all — the product owner's decision.)
+- `I` sets In at the playhead's frame, `O` sets Out at the playhead's frame (proposed, Q7: Out is the last frame of the
+  range, inclusive — the range covers `[In, Out + 1 frame)`, so `I` and `O` on one frame give a one-frame range). Only
+  In set: the range runs to the end of the sequence; only Out: from 0. Setting In at or after Out (or Out before In)
+  clears the other point (proposed, Q8). A clear operation removes both (Q11).
+- Edits never move In / Out (like markers, D027 §2); after a frame-rate change they keep their time, and "on a frame"
+  means the nearest frame of the new grid (like markers, D027 Step 12.7). A range past the end of the sequence is kept
+  and clamped where it is used.
+- Shown on the timeline: a band on the ruler and a light shade over the tracks; not a snap target in Phase 15 (proposed).
+- Loop (proposed, Q9): with Loop on and a range, playback reaching Out continues from In, and Play with the playhead
+  outside the range starts at In; with Loop on and no range, the whole sequence loops (unchanged); with Loop off the
+  range does not affect playback.
+- Range export (proposed, Q10 / Q16): when a range exists, Export asks whether to export the range or the whole
+  sequence. The range export renders timeline frames `[In, Out)` (clamped to the sequence) with the unchanged
+  composition — output frame 0 is timeline frame In; fades, dissolves and speed clips crossing a boundary are rendered
+  as they are at those frames — and the sound of timeline samples `[⌈In · 48000 / 10⁷⌉, ⌈Out · 48000 / 10⁷⌉)` (the
+  `AudioPlacement` rule); duration `Out − In`. A range that is empty after clamping is refused with a message. The
+  preflight checks the media used inside the range. Parity: the range export's frames and samples equal those of the
+  whole timeline at the same timeline positions.
+- The range belongs to the current project in the session: cleared on New / Open / Recover; available during an
+  export (not a project change), but the running export keeps the range it started with.
+
+### 9. UX fixes deferred by D029 §3 (Step 15.8)
+
+- A new text clip (`AddTextClip`) takes `FontSize = 48 × canvasHeight / 1080` — exactly this formula, in `double`
+  (1080 → 48, 2160 → 96, 720 → 32, 1920 → 85.333…), within the existing limits 1 … 1000 (`ClipPropertyLimits`) for
+  every canvas the project settings accept (`ProjectSettingsRules.CanvasError`: 64 … 4096 px a side), with no clamp of
+  its own (a hand-written file's out-of-range canvas is not guarded by new validation, as with D028's scaling); existing
+  clips and the D028 canvas-size scaling (`ContainFactor`) are unchanged; a project file is unchanged (the value is
+  stored as any font size). See Q14 for the difference to the canvas scaling.
+- Audio status: when playback has sound again after "Playing without sound: no audio output is available." was
+  reported, that status is cleared if it is still the one shown (another message since then is kept), and the report is
+  re-armed so that a later loss is reported again (proposed, Q15). No change to the playback, the device handling or
+  the mix.
+
+### 10. Existing semantics that every Phase 15 edit preserves (inventory for Steps 15.4–15.6)
+
+Collected from D006, D007, D008, D015, D022, D025 and D027 before any implementation; each item gets a test in the step
+that touches it (the 15.4 / 15.6 test lists map to this table).
+
+| Area | Rule (source) | Phase 15 consequence |
+|---|---|---|
+| Frame grid | Every clip edge on the project grid; edges from frame indices (D006) | Targets are frames (playhead / pointer frame); shifts in whole frames (`PlanShift`) |
+| Source mapping 1× | `SourceOut = SourceIn + duration`; a start trim moves `SourceIn` with the edge so the content under the playhead stays (D008, D022) | Plain trim: content does not move; ripple: content moves with the clip; slip: §7 |
+| Constant speed | One rounding rule `SourceLength(N)` / `FramesFor`, invariant `SourceLength(N) ≤ SourceOut − SourceIn < SourceLength(N+1)`, normalization by the smallest change (D022) | The trim / slip planners use it; ripple shifts keep length, range, speed |
+| Minimum length | One frame (D008); larger when a dissolve part must fit (D025 §5) | `s < p < e` guarantees ≥ 1 frame; the dissolve clamp applies |
+| Source limits | `SourceIn ≥ 0`, the end of the source (`MaxWholeFrames`, `FramesFor`) (D006, D022) | Outward ripple drag and slip clamp to them |
+| Neighbours | No overlap on a track; trims clamp to neighbours (D008) | Plain trims to the playhead are inward (never clamp); ripple moves later clips instead of clamping |
+| Fade truncation | Fades follow their edges; an edit leaving the clip shorter than a fade cuts it in the same step; a longer clip later does not restore it (D025 §2) | Applied to trimmed clips; shifted clips unchanged; slip never changes fades |
+| PO-8 | A fade on an edge with a dissolve is inactive, kept stored (D025) | Unchanged; becomes active again when a trim removes that dissolve |
+| Dissolve at a trimmed edge | Cut edge trimmed → gap → removed; far edge → clamped; handles validated for changed dissolves (D025 §5, Step 10.6) | Plain trim as is; ripple of a cut edge keeps the cut → kept and clamped (Q4) |
+| Adjacent clips | Ripple moves clips at or after the end of the edited span; gaps keep their size (D027 §2) | Same rule for ripple trim |
+| Locked tracks | Every edit on a locked track rejected, nothing changed, no undo step (D008, D027 §3) | All Phase 15 edits; the track toggles themselves per §4 |
+| Hidden / muted | Not an edit restriction; snapshot only (existing) | Edits on hidden / muted tracks work |
+| Markers | Never moved by any edit (D027 §2, Step 12.7) | Not moved by ripple trim, slip or range |
+| Undo / redo | One command per edit, absolute before / after, exact restore; dirty by the save point (D008, D015) | One step per command / gesture; refused or unchanged → no step |
+| Other tracks | Ripple only on the edited track (D027 §1) | Ripple trim only on the trimmed clip's track |
+| Existing gaps | Kept, move with the clips after them (D027 §2) | Same; the gap before the trimmed clip is untouched |
+| Session state | Playhead, zoom, snapping are session state (D015) | In / Out is session state and not saved at all (§8) |
+
+### 11. Keyboard
+
+`I` set In · `O` set Out · `Q` trim start to the playhead · `W` trim end to the playhead (plain). No separate key for
+the ripple trim unless the product owner confirms an explicit modifier variant (Q2). Keys act only when no text input
+has focus (`ShortcutRouter`); `Ctrl+I` stays Import.
+
+### Open for the D030 acceptance (product owner) — all answered (Steps 15.3–15.8, below)
+
+Semantic questions that the existing decisions do not answer; each carries the proposal above and is confirmed (or
+changed) before the step that implements it starts:
+
+1. Q1 — target of `Q` / `W`: the selected clips that contain the playhead strictly inside (proposed), or, with no
+   selection, the clip under the playhead on some track?
+2. Q2 — reaching the ripple trim to the playhead: `Shift+Q` / `Shift+W` as an explicit modifier on the same keys
+   (proposed), or only a UI command (the header has no room at 1024 px and there are no context menus)?
+3. Q3 — drag modifiers: `Shift` + edge drag = ripple trim, `Alt` + body drag = slip (proposed; `Ctrl` is toggle-select).
+4. Q4 — ripple trim of a cut edge that has a dissolve: keep the dissolve, clamped to fit (proposed, derived from D025
+   §5), or remove it like a plain trim of that edge?
+5. Q5 — playhead after a ripple trim start: moves to the clip's start (proposed) or stays (as after a ripple delete)?
+6. Q6 — `Q` / `W` stopped short by a dissolve on the far edge: apply the clamped trim with a status message (proposed,
+   as the drag clamps) or refuse?
+7. Q7 — `O` inclusive (the playhead frame is the range's last frame; proposed) or exclusive?
+8. Q8 — In set at / after Out (or Out before In): clear the other point (proposed) or refuse?
+9. Q9 — loop with a range as §8 (proposed)?
+10. Q10 — choosing a range export: Export asks "In / Out range" / "Whole sequence" / "Cancel" when a range exists
+    (proposed), or another way?
+11. Q11 — clearing the range: a ✕ on the range band of the ruler plus a key (e.g. `Alt+X`; proposed), or a button
+    elsewhere?
+12. Q12 — slip feedback: source in / out shown during the drag, the Preview after the release (proposed), or a live
+    Preview during the drag?
+13. Q13 — mute / hide toggleable on a locked track (proposed) or blocked by the lock?
+14. Q14 — the locked `48 × canvasHeight / 1080` differs from D028's canvas scaling (`ContainFactor`): a text made at
+    48 on 1920 × 1080 becomes 27 after a change to 1080 × 1920, while a new text there gets 85.33. Keep both as they are
+    (proposed — the formula is locked; the scaling is D028), and keep the exact value (no rounding)?
+15. Q15 — audio status: clear it silently when the sound returns (proposed) or show a "sound is back" message?
+16. Q16 — the preflight of a range export checks only the media used inside the range (proposed)?
+
+Answered at the D030 acceptance / the start of Step 15.3 (product owner, 2026-10-07): Q13 — mute and hide may be changed
+on a locked track; the lock blocks ordinary editing of clip / timeline content, not the track's mute / hide state. Also
+confirmed: video tracks expose mute, hide, lock; audio tracks mute and lock, no hide control; the flags stay in the
+existing v3 fields (no format change); hidden is picture only, muted sound only, the sequence length unchanged; the lock
+is checked when an edit is planned, Undo / Redo are not blocked by the current lock state; every track-state command one
+undo step with the dirty / save-point semantics, disabled during an export.
+
+Refined in Step 15.3 (implementation, 2026-10-07):
+- `ITimelineEditService.SetTrackMuted` / `SetTrackHidden` / `SetTrackLocked(trackId, value)` → one
+  `SetTrackStateCommand` (Timeline: the track, the flag, the new value; Undo writes the value it found), wrapped in the
+  usual `NotifyingCommand`, so the timeline, the Preview's snapshot and the waveforms refresh. Descriptions "Mute Track" /
+  "Unmute Track", "Hide Track" / "Show Track", "Lock Track" / "Unlock Track". The same value → `NoChange`, no undo step;
+  a missing track → "That track no longer exists."; hiding an audio track → "Track A1 is an audio track: it has no
+  picture to hide." (nothing changes). No lock check in these commands (Q13).
+- No rendering, mix, preflight or format code changed: the snapshot rules of §4 were already in place; a hidden or
+  muted track and a locked track export as the Preview shows them (new end-to-end scenes); a file with flags set by
+  Phase 15 opens in the Phase 14 build with the same rendering and is saved by it byte for byte.
+- UI (the track header, 84 px column unchanged): the name on the left, small toggle buttons on the right of the same
+  line — **M** (mute), **👁** (hide; video only), **🔒** (lock) — dim when off; when on, filled: mute red, hide blue,
+  lock amber; ▲ / ▼ / ✕ stay on the second line. A locked lane is tinted amber-dark, a hidden lane's clips are drawn at
+  35 % opacity. The lock emoji after the track name (`Label`, since Phase 4) is gone — the 🔒 toggle shows it. Status
+  messages "Track V1 muted / unmuted / hidden / shown / locked / unlocked". The buttons are `Button`s with a state class
+  (not `ToggleButton`s), so a refused or disabled click can never leave a toggle out of step with the model.
+
+Answered at the start of Step 15.4 (product owner, 2026-10-07):
+- Q1 — `Q` / `W` work only on the selected clips; a selected clip is eligible only when the playhead's frame is strictly
+  inside its timeline interval; with no eligible clip nothing changes and the status says why; a clip under the playhead
+  is never selected implicitly. Several eligible clips follow the existing multi-selection convention (as Split: every
+  eligible selected clip, one undo step; the others are left as they are).
+- Q2 — `Q` plain trim of the start, `W` plain trim of the end, `Shift+Q` / `Shift+W` the ripple variants.
+- Q4 — a trimmed edge that is a dissolve's cut keeps its dissolve; the trim is limited to what keeps the dissolve valid;
+  a dissolve is never removed silently. For a **plain** `Q` / `W` this means (confirmed separately, the product owner's
+  choice between this and D025 §5's removal): any plain inward trim of a cut edge would open a gap, so that clip's edge
+  is **not trimmed** (its limit is 0) and the status says to use `Shift+Q` / `Shift+W` or remove the dissolve first; the
+  other eligible selected clips are still trimmed; if none is, nothing changes and no undo step is made. This
+  supersedes, for `Q` / `W` only, §5's "plain = exactly the existing `TrimClip`" on a cut edge; the edge drag
+  (`TrimClip`) keeps D025 §5 (the dissolve is removed with the status note).
+- Q5 — after a successful ripple trim of the start the playhead goes to the clip's new start (= its unchanged start);
+  with several clips to the earliest of their starts (confirmed separately). A ripple trim of the end leaves it.
+- Q6 — a trim that reaches the frames a dissolve needs (on the far edge, or for a ripple on either edge) is applied up
+  to that limit, not refused, and the status says "The trim stopped where a dissolve needs the clip's frames."; the clip
+  and the dissolve stay valid.
+
+Refined in Step 15.4 (implementation, 2026-10-07):
+- `ITimelineEditService.TrimToPlayhead(clipIds, edge, playhead, ripple)` → one `EditPlan`, one undo step ("Trim Start
+  to Playhead", "Trim End to Playhead", "Ripple Trim Start to Playhead", "Ripple Trim End to Playhead"); the new
+  `TimelineEditResult.Playhead` carries Q5's position (session state, applied by the timeline view model as a seek).
+  Refusals change nothing and leave no step: no clip selected ("Select the clip to trim: the playhead must be inside
+  it."), none containing the playhead ("The playhead is not inside the selected clip(s)."), a locked track of an
+  eligible clip ("Track V1 is locked."), or every eligible clip stopped at 0 by a dissolve.
+- The limit per clip: `allowed = min(wanted, N − minFrames)` with `minFrames = max(1, parts)` — for a plain trim the far
+  edge's dissolve part (`DissolveParts`, D025 §5's zone fit, as the edge drag), for a ripple the parts of both edges
+  (the trimmed edge's cut and dissolve stay); a plain trim of a cut edge: 0 (Q4). An inward trim never shortens a
+  dissolve's source handle, so the limit is the zone fit; the result still goes through `Validate` (zones, handles,
+  fades), like every edit.
+- The trimmed clip's timing is the edge trim's own rule, factored out of `PlanTrim` as `TrimmedState` (no behaviour
+  change of the drag; its tests unchanged): 1× `SourceIn` moves with the edge, `≠ 1×` `SourceLength` / `Normalize`
+  (D022). A ripple of the start then moves the trimmed clip back to its start with the move's rule (`ShiftedState`,
+  which now also takes a planned state); the later clips of the same track — those starting at or after the clip's old
+  end — move left by the trimmed frames (`PlanShift`), gaps between them unchanged. Only the trimmed clip's own track
+  moves; it is unlocked (checked first), so a ripple never touches a locked track; other tracks (locked or not) and the
+  markers stay.
+- Fades follow D025 §2 (`ClampFades` in `Validate`): they stay on their edges and are cut to a shorter clip; this is not
+  Split + Delete.
+- Keys in `ShortcutRouter` with exact modifiers (`Q` / `W` none, `Shift+Q` / `Shift+W` Shift; Ctrl / Alt variants are
+  no shortcut), so one key press runs one command; never while a text box has focus. No new button (the header has no
+  room at 1024 px); the status bar names the done trim ("Trimmed the start of the clip to the playhead", "Ripple trimmed
+  the end of 2 clips to the playhead", …).
+
+Answered at the start of Step 15.5 (product owner, 2026-10-07): Q3 — an ordinary edge drag keeps the existing trim
+exactly (D008 / D022 / D025 §5, including the removal of a dissolve whose cut the drag opens); **Shift + edge drag** is
+the ripple trim; `Alt` + body drag belongs to slip (15.6); `Ctrl` keeps its meaning (toggle-select). The Q4 rule "a
+plain trim does not trim a dissolve's cut edge" is specific to the keyboard `Q` / `W` and does not apply to the ordinary
+drag. Shift+drag and Shift+Q / Shift+W share one planner, so an equivalent final edge gives an identical timeline.
+
+Decided at the start of Step 15.5, before the implementation (Claude, within the confirmed Q3; no existing rule
+contradicted):
+- The mode is fixed when the edge is pressed: Shift held at the press → a ripple drag for the whole gesture; without it →
+  the ordinary trim. Pressing or releasing Shift during the drag does not switch modes (a release that commits the
+  other mode by accident is avoided; the press already distinguishes Ctrl = toggle-select).
+- Playhead: an edge drag never moves the playhead — the existing drag rule (D015: the playhead is the user's, edits
+  don't move it). Q5's move to the clip's start is specific to Shift+Q, where the edit is made at the playhead; a drag is
+  made at the pointer. The equivalence with Shift+Q / Shift+W is therefore of the timeline (clips, their timing and
+  source ranges, fades, dissolves, markers, tracks), not of the playhead.
+- Inward, the ripple drag is the Shift+Q / Shift+W rule at the pointer's frame: the trimmed clip keeps its start, the
+  later clips of its track move left, the limit is the dissolve parts of both edges (Q4 / Q6), the message the same.
+- Outward (§6), the clip lengthens and the later clips of its track move right by the added whole frames; the
+  neighbours don't limit it (they move), the source does (`SourceIn ≥ 0`, the end of the source — the edge trim's own
+  clamp, silent as in the ordinary drag), and a dissolve on the dragged edge keeps the source handle it needs (D025 §4):
+  the extension stops there with "The trim stopped where a dissolve needs the clip's frames." A ripple of the start
+  outward keeps the clip's start and shows earlier source content from it (the clip at the same place, its in-point
+  earlier).
+- Preview: during the drag nothing is changed in the project; the edit service plans the ripple on every pointer move
+  and returns the planned timing of the trimmed clip and of the moved clips (`PreviewRippleTrim`), which only the view
+  shows (clips and dissolve zones laid out at the planned places). The release commits once (`RippleTrimClip`, one undo
+  step); Esc, a lost pointer capture, an export starting or a release that changes nothing commit nothing.
+
+Refined in Step 15.5 (implementation, 2026-10-07):
+- One ripple planner, `PlanRippleTrim(plan, clip, track, edge, targetFrame)`, used by Shift+Q / Shift+W (the ripple branch
+  of `TrimToPlayhead`) and by the drag (`RippleTrimClip` on release, `PreviewRippleTrim` while dragging). Tests compare
+  the whole timeline (every clip's timing, source range, speed and fades, the dissolves, the markers, the track flags)
+  of a drag and of Shift+Q / Shift+W at the same frame on the same project: identical at 23.976 / 25 / 29.97 / 30 / 60 fps
+  × 0.25× / 0.5× / 1× / 2× / 4×, both edges, and with the dissolve limits and messages.
+- The edge trim's timing rule (`TrimmedState`, `PlanTrimAtSpeed`) now works on a clip state and a given list of
+  neighbours (the ordinary drag passes the track's other clips, as before; a ripple passes none). A ripple of the start
+  is planned in the clip's own frame of reference (moved right by the frames to add, trimmed back to its start, moved
+  to where it started), so a clip at 0 can grow at its start too.
+- Inward the one-frame minimum stops a drag past the other edge silently (as the ordinary drag); the dissolve message
+  only when a dissolve's frames stop it. Outward the source clamp is silent; a dissolve's handle on the dragged edge
+  stops it with the message.
+- Esc, a lost pointer capture or an export starting cancel the gesture: the view's layout is rebuilt from the
+  (unchanged) model; no edit, no undo step, the dirty state and the playhead as they were. Every pointer move only
+  plans (no notification, no undo step, nothing dirty); the release makes one `Commit`.
+- The view: `TimelineGestureModifiers` (UI.Common) reads the press — Ctrl toggle-select, Shift (without Ctrl) a ripple
+  trim; `TimelineViewModel.BeginTrim(…, ripple)` keeps it in the gesture; the preview lays out the planned clips and the
+  dissolve zones (a zone moves with the clip that starts at its cut). An ordinary drag is unchanged — the same
+  `PreviewTrim` / `TrimClip`, the neighbour clamp, D025 §5's removal of a dissolve whose cut it opens.
+- Distinctions, as confirmed: the ordinary drag = the existing trim; Shift + drag = the ripple trim; Q / W = the keyboard
+  trim of Step 15.4; Q4's "a plain trim does not trim a dissolve's cut edge" is a rule of Q / W only.
+
+Answered at the start of Step 15.6 (product owner, 2026-10-07): Q12 — during an Alt + body drag the proposed Source In
+/ Source Out are shown on the clip; the Preview is not updated while the pointer moves; the release commits the slip and
+the Preview refreshes as after any edit; Esc (and a lost capture, an export starting) cancels with no change, no dirty
+state, no undo step, no playhead move; a slip that reaches a source or dissolve limit is clamped to the valid range with
+a status message. Slip is its own operation (not trim + move): the clip's timeline start, end and duration, its speed,
+fades and dissolves, the neighbours, gaps, markers, track flags and the sequence length stay; only the source mapping
+changes. Alt is read at the press, fixed for the gesture; Ctrl keeps toggle-select.
+
+Reconciled with D022 and the code before the implementation (Claude, 2026-10-07; §7 applied, two points made exact):
+- The source mapping (D009 / D022): timeline frame `n` of a clip at `S` shows source time
+  `t(n) = SourceIn + (FromFrame(n) − S) · s`; a clip's source range `[SourceIn, SourceOut)` holds its `N` frames by
+  D022's invariant (`SourceLength(N) ≤ SourceOut − SourceIn < SourceLength(N + 1)` at `s ≠ 1`; 1×: `SourceOut = SourceIn
+  + duration`, a sub-frame tail accepted after a speed change). So a slip changes `SourceIn` only, and moves `SourceOut`
+  by the same amount: the width `SourceOut − SourceIn` — and with it `N` and the invariant — is unchanged at every speed.
+  (§7 wrote "`SourceOut'` follows the clip's rule"; that gives the same value for every clip whose width is already
+  minimal and would otherwise trim a 1× clip's sub-frame tail — keeping the width is the exact "only the mapping
+  changes".)
+- The amount `Δ(k)` for a slip of `k` timeline frames is the existing start-trim rule (`TrimmedState` /
+  `PlanTrimAtSpeed`, D022 — §7 as written): 1× `FromFrame(S + k) − FromFrame(S)` (the content moves by exactly `k` of the
+  clip's frames), `s ≠ 1×` `±SourceLength(|k|, s)` — at 0.25× one timeline frame is a quarter of a source frame's time,
+  at 4× four frames' time; never "one frame = one source frame". `Δ` is strictly increasing in `k`.
+- Direction: a positive slip shows later source content (`SourceIn` grows). The drag moves the content with the pointer:
+  the pointer `p` frames to the right is a slip of `−p` (earlier content comes in from the left).
+- Limits: `SourceIn' ≥ 0` and `SourceOut' ≤` the source duration; a dissolve on the clip's start keeps the handle before
+  it, one on its end the handle after it (`DissolveHandles`, D025 §4, the same functions the validator uses). The
+  allowed range of `k` is the interval around 0 where all hold (searched on the monotone `Δ`); a request outside is
+  clamped to its end with "The slip stopped at the start of the source." / "… at the end of the source." / "The slip
+  stopped where a dissolve needs the clip's source."; nothing is ever removed. A clip whose current mapping already
+  breaks a dissolve's handle (media replaced) can't slip (range 0).
+- Which clips: §7 — video and audio clips (a video clip's sound slips with its picture; an audio clip has the same
+  source mapping); images and text have no source range and are refused ("Only video and audio clips can be slipped.");
+  a clip whose source duration is unknown is refused; a locked track refuses ("Track … is locked."). Offline media with
+  saved metadata slips.
+- The gesture: Alt held at the press on a clip's body (not on its trim handles, which keep the trim; Ctrl + Alt is a
+  toggle-select) starts a slip of that clip, which becomes the selection; the view shows the planned Source In / Out
+  (`PreviewSlip`, nothing applied, no notification — so the Preview, the waveforms and the timeline geometry stay); the
+  release commits once (`SlipClip`, "Slip Clip", one undo step); a slip of 0 frames is no step. The playhead never moves.
+
+Refined in Step 15.6 (implementation, 2026-10-07; the rules above as written):
+- `ITimelineEditService.SlipClip(clipId, frames)` / `PreviewSlip(clipId, frames)` (+ `SlipPreview`, Core) over one
+  planner (`PlanSlipOf`): refusals, the allowed interval of `k` (binary search of the monotone limits: the source, then the
+  dissolve handles through `DissolveHandles`), the clamp and its note, `SlippedState` (D022's amount on `SourceIn` and
+  `SourceOut` together), `Validate`, one `Commit` ("Slip Clip"). A clamp to 0 is refused with its note (no step); 0
+  frames is `NoChange`. The preview raises no `TimelineChanged`, so the Preview, the waveforms and the timeline stay
+  until the commit's single notification.
+- Tested mappings at 25 fps: 0.25× four timeline frames = one source frame (0.04 s), 0.5× two = one, 1× one = one, 2× one
+  = two (0.08 s), 4× one = four (0.16 s); at 23.976 / 25 / 29.97 / 30 / 60 fps × the five speeds `SourceIn` and `SourceOut`
+  move by D022's amount computed independently in the test, and every other value of the timeline (all clips' timing,
+  speed, fades, the other clips' source ranges, dissolves, markers, track flags, the sequence length, the playhead) is
+  unchanged.
+- The view: `TimelineGestureModifiers.IsSlip` (Alt without Ctrl) at the press on a clip's body (a dissolve zone there no
+  longer takes an Alt press); `TimelineViewModel.BeginSlip` (refuses images and text with the status message, no
+  gesture); the gesture's `SlipFrames` = minus the pointer's nearest whole frames; the clip shows "In hh:mm:ss:ff  Out
+  hh:mm:ss:ff" (the planned Source In / Out at the project rate; "(limit)" when clamped; "Can't slip" when refused) over
+  its body; the release commits `SlipClip` and reports its note; Esc / a lost capture / an export starting cancel through
+  the existing `CancelGesture`, which also clears the text.
+- End to end: the A/V sync source slipped by +5 frames exports its white frames and bursts 5 frames earlier at the same
+  clip place and length, the Preview equal to the export canvas (`ExportRippleEndToEndTests`).
+
+Answered at the start of Step 15.7 (product owner, 2026-10-07):
+- Q7 — `I` sets In at the start of the frame containing the playhead, `O` sets Out at the end of that frame (the frame
+  under the playhead is in the range); internally `[In, Out)`; I and O on one frame give one frame.
+- Q8 — `I` / `O` are never refused: the new point is kept and the opposite one cleared when the order would be invalid;
+  no message for it.
+- Q9 — Loop on with a valid range plays exactly `[In, Out)`, and Play with the playhead outside it starts at In; Loop off:
+  the range doesn't constrain playback; clearing the range restores the whole-sequence loop.
+- Q10 — no valid range: the export as before; a valid range: Export asks "Range" / "Entire sequence" / "Cancel"; Range
+  exports exactly `[In, Out)`, Entire sequence ignores the range, Cancel starts nothing; the range is never serialized.
+- Q11 — an ✕ on the range bar of the timeline clears In / Out; no key for it; clearing is session state.
+- Q16 — a range export's preflight checks only the media the composition uses inside the range; media used only outside
+  doesn't block; every other check stays.
+- The range is session state like the playhead but not saved at all: not in `project.json`, not in autosave / recovery,
+  cleared on New / Open / Recover, never dirty, never an undo step; `project.json` stays v3.
+- Q15 (D029 §3, taken into this step): the stale "Playing without sound…" status is cleared through the playback state
+  when sound is available again; no undo or dirty change.
+
+Refined in Step 15.7 (implementation, 2026-10-07):
+- Core: `InOutRange` (the rules: `WithIn` / `WithOut` / `Regrid` / `Frames` — clamped to the sequence, only In = to the
+  end, only Out = from 0), `PlaybackRange`, `ExportRange`. `ExportOutput.For(snapshot, range)`: the range's frames, its
+  duration and the samples `[⌈In · 48000 / 10⁷⌉, ⌈Out · 48000 / 10⁷⌉)` (`FirstFrame`, `FirstSample`); `ExportJob` carries
+  the range; `ExportFrameSource` renders output frame n from timeline frame `FirstFrame + n` and `ExportAudioSource`
+  mixes from `FirstSample` — the same pipeline, offset, so the track flags, fades, dissolves and speed are as in the
+  whole export: a range export's frames and samples are byte for byte the whole export's at the same timeline positions
+  (tested at 29.97 fps across a cut, a fade, a 2× clip, a hidden and a muted track). `ExportPreflight.Check(…, range)`
+  clamps the range to the sequence (an empty one: `EmptyRange`, "The In / Out range has no part of the timeline in it.")
+  and checks a picture where it is shown (its dissolve zones included), a sound where it is placed, a text where it is.
+- Playback: `IPlaybackService.SetPlaybackRange` / `PlaybackEnd` — `PlaybackService` starts Play outside the range at its
+  start and pauses at its end as at the sequence's end; the `AudioMixer` makes every sample from Out on silent, so the
+  buffered sound never runs past it. The Preview applies the range only while Loop is on (and the range is valid), and
+  its existing loop restarts at `PlaybackEnd` — the range's end or the sequence's.
+- UI: `InOutRangeService` (UI.Services, a singleton: the timeline, the Preview, the export) — `SetIn` / `SetOut` / `Clear`,
+  cleared on `ProjectChanged`, re-gridded on a frame-rate change, never touching the project. The timeline view model:
+  `SetIn` (I) / `SetOut` (O) / `ClearInOut` (the ✕), the bar (`RangeLeft` / `RangeWidth`), the In / Out lines, the
+  playhead-in-range state (a brighter shade), all recomputed on the range, zoom, timeline changes and playhead moves;
+  status "In set at …", "Out set after … (that frame is included).", "In / Out cleared.". `ExportWorkflow` asks first,
+  then runs its preflights with the chosen range. Keys I / O in `ShortcutRouter` (Ctrl+I stays Import).
+- Q15: `PreviewViewModel` re-arms the "Playing without sound…" report and sets the status back to "Ready." when sound is
+  available again while playing, if that message is still the one shown. (The message is about the audio output, not
+  about muted clips or tracks — a muted clip or track never produces it.)
+
+Answered at the start of Step 15.8 (product owner, 2026-10-07): Q14 — a newly created text takes
+`FontSize = 48 × canvasHeight / 1080` (720 → 32, 1080 → 48, 1440 → 64, 2160 → 96, 1080 × 1920 → 85.333…); a canvas change
+of an existing project keeps D028 Variant B — the existing font size × `s = min(W'/W, H'/H)`, the text's Scale not
+changed, rotation, crop, opacity and timing as D028 says. A 48 title on 1920 × 1080 becomes 27 on 1080 × 1920 (D028), a
+new title there gets 85.333 (the new-text rule): two different operations, not a contradiction. Nothing else changes.
+
+Refined in Step 15.8 (implementation, 2026-10-07): `ProjectSettingsRules.NewTextFontSize(canvasHeight)` (Core, next to
+`ContainFactor`) — `48.0 × canvasHeight / 1080`, exact in `double`, no rounding (the Inspector shows it with its usual
+`0.##`, e.g. 85.33); within the 1 … 1000 limits for every canvas the settings rules accept (64 … 4096 px high:
+2.84 … 182.04) — guaranteed by those rules, not by a clamp: a canvas outside them (only possible in a file edited by
+hand, which a load accepts when positive) gets the formula's value unclamped, as D028's scaling does.
+`AddTextClip` is the only place that creates a text and the only caller; copies (paste, duplicate) keep their source's
+size; the model's default 48 (`TextClip.FontSize`) is unchanged, so files load as before. `project.json` unchanged (v3).
+
+Found and fixed in Step 15.9 (closeout regression R2, product owner's decision 2026-10-08 to fix it in both places): a
+still image entered far into its clip was not decoded — the Preview's `SpanReader` and the export's
+`ExportPictureReader` opened the decoder at the timeline frame's sample point, but a still's one frame is at its file's
+start, beyond the decoder's 10 s preroll (`FrameNotReached`). It showed as a range export that failed when a long image
+clip crossed In more than ~10 s after its start (the whole export, opening the reader at the clip's start, passed), and
+as a placeholder instead of the image after a Preview seek into such a clip — the latter since Phase 5, the reader code
+unchanged by Phase 15. Fix: one rule, `SourceFrameSelector.StillImage` — a still is always opened at the start of its
+file (D009's hold-first; its timeline position never selects a frame). No other behaviour changes: video spans keep
+their sample point; the default export stays byte for byte as before (R1). Tests: `ExportFrameSourceTests`,
+`PlaybackServiceTests` (the request's point) and `ExportRangeEndToEndTests` (a range 16 s into a 20 s PNG clip equals the
+whole export's frames, the Preview seeked there equal to them, real ffmpeg); each reader's old line restored fails its
+tests.
+
+Final state at the Phase 15 closeout (Step 15.9, 2026-10-08) — the accepted answers and rules, as implemented:
+- Q1 — `Q` / `W` act on the selected clips whose interval strictly contains the playhead's frame; nothing implicit;
+  several clips in one step. Q2 — `Q` / `W` plain, `Shift+Q` / `Shift+W` ripple (the later clips of the clip's own track
+  move; other tracks and markers stay). Q4 — a dissolve on the trimmed edge is kept: plain `Q` / `W` don't trim a cut
+  edge (status points to the Shift variant), the ripple variants trim it up to the dissolve's limit; the ordinary edge
+  drag keeps D025 §5. Q5 — after `Shift+Q` the playhead goes to the clip's start (the earliest with several clips); a
+  drag never moves it. Q6 — a trim stopped by a dissolve is applied up to the limit with a message.
+- Q3 — Shift + edge drag = ripple trim (the same planner as `Shift+Q` / `Shift+W`), Alt + body drag = slip, the mode
+  fixed at the press, Ctrl unchanged; the ordinary drag unchanged.
+- Q12 — slip: the planned Source In / Out shown on the clip during the drag, the Preview after the release; Esc
+  cancels. Slip applies to **video and audio clips** (a video clip's sound slips with it; an audio clip has the same
+  source mapping); images and text are refused; only `SourceIn` / `SourceOut` move, by D022's amount; source and
+  dissolve-handle limits clamp with a message.
+- Q13 — mute and hide are allowed on a locked track; the lock refuses every ordinary edit (clips, track delete / move,
+  trims, ripple, slip); video tracks M / 👁 / 🔒, audio tracks M / 🔒.
+- Q7–Q11, Q16 — the In / Out range is **transient session state** with exact `[In, Out)` semantics (`I` = start of the
+  playhead's frame, `O` = end of it, so that frame is included); never refused (Q8 clears the other point); not saved,
+  not in autosave / recovery, not dirty, not undoable, cleared on New / Open / Recover, re-gridded on a rate change.
+  Loop on with a range plays exactly `[In, Out)` (Play outside starts at In); Loop off ignores it. Export with a valid
+  range asks Range / Entire sequence / Cancel; Range exports exactly `[In, Out)` — frames and samples equal to the whole
+  export's at the same positions — with a preflight over the range's media only; ✕ on the range bar clears it, no key.
+- Q15 — "Playing without sound: no audio output is available." is about the **audio output device**, not about mute; it is
+  cleared ("Ready.") when sound is available again, if still shown, and a later loss is reported again.
+- Q14 — a new text's `FontSize = 48 × canvasHeight / 1080`, exact `double`, **no clamp** (within 1 … 1000 for every canvas
+  the settings accept); D028's scaling of existing text unchanged.
+- Every project change is one undoable command, off during an export, refused on a locked track (except Q13);
+  `project.json` stays **`formatVersion` 3** with no new property; no ffmpeg call in any edit.
+
+Consequences: new commands in the Timeline subsystem (`ITimelineEditService`: track state, trim to the playhead with
+ripple, slip and its limits), sharing the existing trim / shift planners and `EditPlan` reconciliation; a range on the
+export job (`ExportJob` / preflight / encoder input) and in the Preview's loop; the timeline view gains the track
+toggles, the ripple / slip gestures and the range band; `project.json` unchanged (v3);
+`docs/PHASE15_MANUAL_TEST_PLAN.md` holds the real-app scenarios.
+
+Status: Accepted (2026-10-07, product owner: scope §1, the In / Out range as unsaved session state, the keys `I` / `O` /
+`Q` / `W`, the font-size formula, the non-goals §3). Q13 answered (Step 15.3); Q1, Q2, Q4, Q5, Q6 answered (Step
+15.4); Q3 answered (Step 15.5); Q12 answered (Step 15.6); Q7–Q11, Q15, Q16 answered (Step 15.7); Q14 answered (Step 15.8) — every
+open question is answered. Steps 15.2 (`d1296be`), 15.3 (`1d26165`), 15.4 (`f122c9a`), 15.5 (`efecd24`), 15.6
+(`aa94da0`), 15.7 (`46eae30`) and 15.8 (`f9a2253`, review corrections `9de14c6`) accepted. **Phase 15 complete**: Step 15.9
+closeout done (2026-10-08) — final validation, the R1–R10 regression in `docs/PHASE15_MANUAL_TEST_PLAN.md` and the
+still-image fix it led to (above); not yet
+merged (push / pull request on the product owner's command). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`,
+"Phase 15 — Editing tools: steps".
 
 ---
 

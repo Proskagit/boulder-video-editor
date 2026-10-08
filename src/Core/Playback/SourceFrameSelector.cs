@@ -35,6 +35,13 @@ public static class SourceFrameSelector
 {
     private const long TicksPerSecond = TimeSpan.TicksPerSecond;
 
+    /// <summary>The sample point a still image is opened at: the start of its file, whatever timeline frame asks for it.
+    /// A still has one frame, held for the whole span (D009's hold-first), so its position on the timeline never selects
+    /// a frame — while a sample point further into the file than the decoder's preroll would never reach that frame
+    /// (a long image clip entered mid-span: a seek in the Preview, a range export starting inside it; Phase 15 Step
+    /// 15.9).</summary>
+    public static SourceSamplePoint StillImage { get; } = new(0, 1);
+
     /// <summary>
     /// Nominal source frame rate used for <c>Ssrc</c>: <c>avg_frame_rate</c>, falling back to
     /// <c>r_frame_rate</c>. Null when neither is known (δ then uses the timeline frame only).

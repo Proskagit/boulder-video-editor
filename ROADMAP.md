@@ -59,12 +59,33 @@ session state (D015).
 
 ## Current
 
-No phase in progress — Phase 14 complete (closeout 2026-10-07); push and pull request on the product owner's command.
+Phase 15 — Editing tools, branch `feat/phase-15-editing-tools` (from `7200976`, `main` after the merge of PR #14). Scope
+(product owner decisions of 2026-10-07, DECISIONS.md D030): track controls — mute, hide, lock (15.3); trim to the
+playhead, plain and ripple, `Q` / `W` (15.4); ripple trim by dragging an edge (15.5); slip (15.6); a timeline In / Out
+range — `I` / `O`, loop over the range, range export — as **unsaved session state** (15.7); a new text clip's
+`FontSize = 48 × canvasHeight / 1080` and the audio status reset after the sound returns (15.8); closeout (15.9).
+`project.json` stays v3 with no new property. Steps 15.1 (pre-analysis) and 15.2 (sync after the merge, scope
+formalization, `d1296be`) accepted (2026-10-07); Step 15.3 (track controls: mute / hide / lock in the track header, one
+undo step each, mute / hide allowed on a locked track — Q13, `1d26165`) accepted; Step 15.4 (trim to the playhead: Q / W,
+Shift+Q / Shift+W ripple; dissolves kept — Q1, Q2, Q4, Q5, Q6, `f122c9a`) accepted; Step 15.5 (ripple trim by Shift +
+edge drag, the same planner as Shift+Q / Shift+W — Q3, `efecd24`) accepted; Step 15.6 (slip: Alt + body drag, only the
+source mapping changes — Q12, `aa94da0`) accepted; Step 15.7 (In / Out range: I / O, the ✕, loop over the range, range
+export with its own preflight — Q7–Q11, Q16 — and the stale audio status fix, Q15, `46eae30`) accepted; Step 15.8 (a new
+text's font size `48 × canvasHeight / 1080`, no clamp — Q14, `f9a2253`, review corrections `9de14c6`) accepted.
+**Phase 15 complete** — Step 15.9 (final verification & closeout) done on 2026-10-08: build `--no-incremental
+-warnaserror` Release and Debug 0 / 0; the full suite, `AIVE_HEAVY_TESTS=1` and three `--blame-hang-timeout 5m` runs
+green (counts in `progress.md`); `git diff --check` clean; R1–R9 of the manual plan run in the real app (R10's audio
+device part not run: it needs a physical audio-output interruption); the R2 run found a still-image decode defect (a long
+image clip entered far into it: range export failed, Preview placeholder) — fixed in the closeout (D030). Not yet merged:
+push and pull request on the product owner's command. No next phase is defined. Scope and acceptance criteria:
+`docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps"; manual plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
 ## Previous
 
 Phase 14 — Stabilization / technical debt, branch `feat/phase-14-stabilization` (from `ed40b74`, `main` after the merge
-of PR #13). **Complete**: Steps 14.1–14.7 accepted by the product owner; Step 14.8 (final verification & closeout) done on
+of PR #13). **Complete**: accepted by the product owner; PR #14 merged into `main` as `7200976` (2026-10-07), CI green on
+the first attempt on the pull request (run 37590085671) and on `main` (run 37590661647) — the D029 §5 measure met, the
+D028 §8 flaky-test policy closed. Steps 14.1–14.7 accepted by the product owner; Step 14.8 (final verification & closeout) done on
 2026-10-07 — build `--no-incremental -warnaserror` Release and Debug 0 / 0; the full suite 2600 passed, 2 skipped (only
 the two 4K scenes), 0 failed; three `--blame-hang` runs 2600 / 2 / 0 each, no hang, no dump; with `AIVE_HEAVY_TESTS=1`
 2602 passed, 0 skipped, 0 failed; R1–R5 of `docs/PHASE14_MANUAL_TEST_PLAN.md` passed against the Phase 13 build (a Phase 13
@@ -75,8 +96,7 @@ autosave timer — a production fix of a tick that a callback queued before `Sto
 tests (`ed35f1f`) · 14.4 the ffprobe / PATH-probe tests independent of the app's limits, which stay 5 s / 20 s / 20 s
 (`0a4e6fe`) · 14.5 on-grid test helpers with a guard, the NUL escape (`b8e6aac`) · 14.7 the empty `src/Effects` project
 removed (`90caae9`) · 14.8 closeout. 14.6 (a canvas-relative font size of a new text clip, the status after an audio
-device returns) **not taken — out of scope**. The CI measure (D029 §5: green on the pull request without a rerun) is
-checked on the pull request's run.
+device returns) **not taken — out of scope** (both taken into Phase 15, D030 §9).
 
 Phase 13 — Project & export settings, branch `feat/phase-13-project-export-settings` (from `c0cb600`, `main` after the
 merge of PR #12). **Complete**: accepted by the product owner on the Step 13.10 verification (closeout `7d4f6d8`); PR #13
@@ -220,11 +240,12 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 14 — see `docs/DEVELOPMENT_PLAN.md`. Fixed in Phase 14 (D029): the known flaky CI tests (the D028 §8
-policy stays until the Phase 14 pull request's CI run shows D029 §5) and the `F(end − start)` test helpers. Deferred by the product owner as product / UX changes (D029
-§3): a new text clip takes `FontSize` 48 on any canvas; the status bar keeps "Playing without sound…" after the audio
-device returns. L1-c is closed (Phase 13 Step 13.8). Left out by the product owner: AI features, HDR / colour
-management, an installer, timeline virtualization, an undoable import.
+None planned after Phase 15 — see `docs/DEVELOPMENT_PLAN.md`. Candidates named in the Phase 15 pre-analysis (Step 15.1),
+not decided: a source viewer with In / Out and insert / overwrite (builds on Phase 15's range and ripple); text styling
+and dragging objects in the Preview; keyframes; audio editing (unlinking, J / L cuts, crossfades, ducking — after
+keyframes); freeze frame / reverse / speed ramps. Left out by the product owner: AI features, HDR / colour management
+(a narrow HDR → SDR tone mapping of phone footage only by a separate decision), an installer, timeline virtualization,
+an undoable import.
 
 ## Rule
 

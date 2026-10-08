@@ -170,6 +170,28 @@ public sealed class ExportFrameSourceTests
     }
 
     [Fact]
+    public async Task A_still_image_entered_mid_span_is_opened_at_its_files_start()
+    {
+        // Phase 15 Step 15.9: a range export starting 20 s into a 30 s image clip — its one frame is at the file's start,
+        // beyond any preroll from the timeline's sample point; the reader asks for the still's own point instead.
+        _decoder.Add(File, new FakeSource(Rate, 1));
+        var asset = Guid.NewGuid();
+        var span = new PictureSpan(Guid.NewGuid(), asset, SpanStatus.StillImage, F(0), F(750), MediaTime.Zero);
+        var snapshot = new PlaybackSnapshot(1, Rate, F(750),
+            ImmutableArray.Create(new VideoLayer(Guid.NewGuid(), ImmutableArray.Create(span))),
+            ImmutableArray<AudioSpan>.Empty,
+            ImmutableDictionary<Guid, PlaybackAsset>.Empty.Add(asset, new PlaybackAsset(asset, File, MediaKind.Image, MediaTime.Zero, Rate)),
+            new FrameSize(1920, 1080));
+        await using var source = new ExportFrameSource(snapshot, _decoder, output: ExportOutput.For(snapshot, new ExportRange(500, 510)));
+
+        Assert.Equal(0, Number(await source.GetFrameAsync(0)));
+        Assert.Equal(0, Number(await source.GetFrameAsync(9)));
+
+        var request = Assert.Single(_decoder.Requests);
+        Assert.Equal(SourceFrameSelector.StillImage, request.FirstSamplePoint);
+    }
+
+    [Fact]
     public async Task Sources_are_decoded_at_full_resolution_in_software()
     {
         _decoder.Add(File, new FakeSource(Rate, 100));

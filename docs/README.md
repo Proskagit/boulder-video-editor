@@ -14,6 +14,8 @@ This directory contains:
   completed per step and run at its closeout (Step 13.10)
 - `PHASE14_MANUAL_TEST_PLAN.md` — Phase 14 (stabilization, no new user functionality): the regression run of its
   closeout (Step 14.8)
+- `PHASE15_MANUAL_TEST_PLAN.md` — manual checks of Phase 15 (track controls, trim to the playhead, ripple trim, slip,
+  In / Out range, text size and audio status), completed per step and run at its closeout (Step 15.9)
 
 Agent-oriented project context lives in the repository root:
 

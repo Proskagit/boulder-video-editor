@@ -54,6 +54,40 @@ public interface ITimelineEditService
     /// clip under <paramref name="at"/> on an unlocked track.</summary>
     TimelineEditResult Split(MediaTime at, IReadOnlyCollection<Guid>? clipIds = null);
 
+    /// <summary>Trims the start (<see cref="ClipEdge.Start"/>, the keys Q / Shift+Q) or the end (W / Shift+W) of the
+    /// selected clips that contain <paramref name="playhead"/>'s frame strictly inside to that frame (D030 §5, Q1): the
+    /// frame at the playhead becomes the clip's first frame, or the first frame after it. Plain: the edge trim's rule
+    /// (D008 / D022 / D025), the gap stays. <paramref name="ripple"/>: the clip keeps its start and every later clip of
+    /// its track moves left by the trimmed frames (other tracks and markers stay; after a ripple trim of the start the
+    /// result names the new playhead, <see cref="TimelineEditResult.Playhead"/>, Q5). Dissolves are never removed
+    /// (Q4 / Q6): a plain trim does not trim an edge that is a dissolve's cut, and a trim stops where a dissolve needs
+    /// the clip's frames, with a message. One undo step for all the clips; refused — nothing changes — when no selected
+    /// clip contains the playhead, a trimmed clip's track is locked, or no trim is possible because of dissolves.</summary>
+    TimelineEditResult TrimToPlayhead(IReadOnlyCollection<Guid> clipIds, ClipEdge edge, MediaTime playhead, bool ripple);
+
+    /// <summary>The Shift + edge drag (D030 §6): a ripple trim of <paramref name="edge"/> to <paramref name="edgeTime"/>'s
+    /// nearest frame, inward or outward — the same planner as Shift+Q / Shift+W (an equivalent frame gives an identical
+    /// timeline). The clip keeps its start; the later clips of its track move by the frames removed or added (other
+    /// tracks, markers and the playhead stay); a dissolve is never removed — the trim stops where a dissolve needs the
+    /// clip's frames or source, with a message; the source limits an extension. One undo step;
+    /// <see cref="TimelineEditResult.NoChange"/> when nothing would change; refused on a locked track.</summary>
+    TimelineEditResult RippleTrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime);
+
+    /// <summary>What <see cref="RippleTrimClip"/> would do now, for the drag's preview: the planned timing of every clip it
+    /// would change (the trimmed one and the moved ones), nothing applied. Null when it would be refused.</summary>
+    RippleTrimPreview? PreviewRippleTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime);
+
+    /// <summary>Slips a video or audio clip by <paramref name="frames"/> timeline frames (D030 §7): only its source mapping
+    /// changes — <c>SourceIn</c> and <c>SourceOut</c> move together by D022's start-trim amount (positive: later content);
+    /// its start, end, duration, speed, fades and dissolves, the other clips, the markers and the playhead stay. Clamped to
+    /// the source and to the handles its dissolves need, with a message; one undo step; <see cref="TimelineEditResult.NoChange"/>
+    /// for 0 frames; refused for images and text, an unknown source length, a locked track, or a clamp to 0.</summary>
+    TimelineEditResult SlipClip(Guid clipId, long frames);
+
+    /// <summary>What <see cref="SlipClip"/> would do now, for the drag's feedback: the clip's planned Source In / Out, the
+    /// frames applied after the clamp and its note; nothing applied. Null when it would be refused.</summary>
+    SlipPreview? PreviewSlip(Guid clipId, long frames);
+
     TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds);
 
     /// <summary>Ripple delete (D027 §2): removes the clips, and on each track that loses one every other clip that starts
@@ -128,6 +162,22 @@ public interface ITimelineEditService
     /// One Undo step. Rejected when the track or that neighbour is locked; <see cref="TimelineEditResult.NoChange"/>
     /// when there is no neighbour in that direction.</summary>
     TimelineEditResult MoveTrack(Guid trackId, int direction);
+
+    /// <summary>Mutes or unmutes a track (D030 §4): a muted track gives no sound — an audio track's clips, a video track's
+    /// video clips — in the Preview and the export; its picture and the sequence length are unchanged. One Undo step;
+    /// allowed on a locked track (the lock protects the clips, not the monitoring state);
+    /// <see cref="TimelineEditResult.NoChange"/> when the track already has that state.</summary>
+    TimelineEditResult SetTrackMuted(Guid trackId, bool muted);
+
+    /// <summary>Hides or shows a video track (D030 §4): a hidden track draws nothing — clips, texts, dissolves — in the
+    /// Preview and the export; its video clips still sound unless the track is muted, and the sequence length is
+    /// unchanged. One Undo step; allowed on a locked track. Rejected for an audio track (it has no picture).</summary>
+    TimelineEditResult SetTrackHidden(Guid trackId, bool hidden);
+
+    /// <summary>Locks or unlocks a track (D030 §4): every edit of a locked track's clips or of the track itself (move,
+    /// delete) is refused while it is locked; playback and the export are unchanged. One Undo step. The lock is checked
+    /// when an edit is planned — Undo / Redo of earlier steps are not blocked by it.</summary>
+    TimelineEditResult SetTrackLocked(Guid trackId, bool locked);
 
     /// <summary>How many clips of the timeline use the media asset (any track, also hidden, muted or locked).</summary>
     int CountClipsUsing(Guid mediaAssetId);
@@ -280,6 +330,13 @@ public sealed class TimelineClipboard
 /// <summary>One copied clip (a detached copy, never inserted itself) and the id of the track it was copied from.</summary>
 public sealed record TimelineClipboardEntry(Clip Clip, Guid TrackId);
 
+/// <summary>A slip's preview (D030 §7): the planned source range, the frames applied (clamped) and the limit's note.</summary>
+public sealed record SlipPreview(MediaTime SourceIn, MediaTime SourceOut, long Frames, string? Note);
+
+/// <summary>A ripple drag's preview (D030 §6): the planned start and end of each clip the release would change, and
+/// whether a dissolve stopped the trim.</summary>
+public sealed record RippleTrimPreview(IReadOnlyDictionary<Guid, (MediaTime Start, MediaTime End)> Clips, bool Stopped);
+
 /// <summary>Outcome of a timeline edit. <see cref="Message"/> is safe to show in the
 /// status bar; on success it may carry an informational note (e.g. frame rate fixed).</summary>
 public sealed class TimelineEditResult
@@ -300,6 +357,10 @@ public sealed class TimelineEditResult
 
     /// <summary>The marker created or removed by the operation, if any.</summary>
     public Guid? MarkerId { get; init; }
+
+    /// <summary>Where the playhead goes after the operation, when the operation moves it (a ripple trim of the start to the
+    /// playhead, D030 Q5); null: it stays. The playhead is session state — not part of the undo step.</summary>
+    public MediaTime? Playhead { get; init; }
 
     public static TimelineEditResult Ok(IReadOnlyList<Guid>? clipIds = null, string? message = null) =>
         new() { Success = true, ClipIds = clipIds ?? Array.Empty<Guid>(), Message = message };

@@ -33,6 +33,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private readonly StatusService _status;
     private readonly ILogger<TimelineViewModel> _logger;
     private readonly EditingLock _editingLock;
+    private readonly InOutRangeService _inOut;
     private readonly WaveformCoordinator? _waveforms;
     private readonly IDialogService? _dialogs;
 
@@ -56,8 +57,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
         ILogger<TimelineViewModel> logger,
         EditingLock? editingLock = null,
         WaveformCoordinator? waveforms = null,
-        IDialogService? dialogs = null)
+        IDialogService? dialogs = null,
+        InOutRangeService? inOut = null)
     {
+        _inOut = inOut ?? new InOutRangeService(projectService);
+        _inOut.RangeChanged += (_, _) => RefreshRange();
         _projectService = projectService;
         _edit = edit;
         _status = status;
@@ -185,6 +189,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         {
             Tracks[i].HasTrackAbove = i > 0 && Tracks[i - 1].Type == Tracks[i].Type;
             Tracks[i].HasTrackBelow = i < Tracks.Count - 1 && Tracks[i + 1].Type == Tracks[i].Type;
+            Tracks[i].SyncState();
         }
         MoveTrackUpCommand.NotifyCanExecuteChanged();
         MoveTrackDownCommand.NotifyCanExecuteChanged();
@@ -325,6 +330,80 @@ public sealed partial class TimelineViewModel : ViewModelBase
         PlayheadX = TimelineCoordinateMapper.TimeToX(Playhead, PixelsPerSecond);
         RebuildRuler();
         RebuildMarkers();
+        RefreshRange();
+    }
+
+    // --- In / Out range (D030 §8): session state, never a project change ----------------------------------------------
+
+    /// <summary>The session's In / Out range (shared with the Preview's loop and the export).</summary>
+    public InOutRangeService InOut => _inOut;
+
+    [ObservableProperty] private bool _hasIn;
+    [ObservableProperty] private double _inX;
+    [ObservableProperty] private bool _hasOut;
+    [ObservableProperty] private double _outX;
+
+    /// <summary>The range bar: <c>[In, Out)</c> within the sequence (a missing point: the sequence's start / end).</summary>
+    [ObservableProperty] private bool _hasRange;
+    [ObservableProperty] private double _rangeLeft;
+    [ObservableProperty] private double _rangeWidth;
+
+    /// <summary>The playhead's frame lies in the range (the bar is drawn brighter).</summary>
+    [ObservableProperty] private bool _isPlayheadInRange;
+
+    /// <summary>Where the ✕ that clears the range sits: right of the bar, or right of the only point when the range has
+    /// nothing of the sequence in it.</summary>
+    [ObservableProperty] private double _rangeRight;
+    [ObservableProperty] private bool _canClearRange;
+
+    private void RefreshRange()
+    {
+        var range = _inOut.Range;
+        HasIn = range.In is not null;
+        InX = range.In is { } i ? TimelineCoordinateMapper.TimeToX(i, PixelsPerSecond) : 0;
+        HasOut = range.Out is not null;
+        OutX = range.Out is { } o ? TimelineCoordinateMapper.TimeToX(o, PixelsPerSecond) : 0;
+
+        if (_inOut.Frames is { } frames)
+        {
+            var left = TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(frames.First, FrameRate), PixelsPerSecond);
+            HasRange = true;
+            RangeLeft = left;
+            RangeWidth = TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(frames.End, FrameRate), PixelsPerSecond) - left;
+            var at = Playhead.ToFrameFloor(FrameRate);
+            IsPlayheadInRange = at >= frames.First && at < frames.End;
+        }
+        else
+        {
+            HasRange = false;
+            IsPlayheadInRange = false;
+        }
+        CanClearRange = range.IsSet;
+        RangeRight = HasRange ? RangeLeft + RangeWidth : Math.Max(InX, OutX);
+    }
+
+    /// <summary>I: In at the playhead's frame. Session state: the project stays clean, no undo step (D030 §8).</summary>
+    [RelayCommand]
+    private void SetIn()
+    {
+        _inOut.SetIn(Playhead);
+        _status.Report($"In set at {TimeFormat.ToTimecode(_inOut.Range.In!.Value, FrameRate)}.");
+    }
+
+    /// <summary>O: Out after the playhead's frame — the frame at the playhead is the range's last one (Q7).</summary>
+    [RelayCommand]
+    private void SetOut()
+    {
+        _inOut.SetOut(Playhead);
+        _status.Report($"Out set after {TimeFormat.ToTimecode(Playhead.SnapToFrame(FrameRate), FrameRate)} (that frame is included).");
+    }
+
+    /// <summary>The ✕ on the range bar (Q11).</summary>
+    [RelayCommand]
+    private void ClearInOut()
+    {
+        _inOut.Clear();
+        _status.Report("In / Out cleared.");
     }
 
     private void RebuildMarkers()
@@ -437,6 +516,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         Sequence.PlayheadPosition = position;
         PlayheadX = TimelineCoordinateMapper.TimeToX(position, PixelsPerSecond);
+        RefreshRange();
         PlayheadChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -515,6 +595,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
         if (_editingLock.IsLocked) CancelGesture();
         OnPropertyChanged(nameof(IsEditingAllowed));
         SplitAtPlayheadCommand.NotifyCanExecuteChanged();
+        TrimStartToPlayheadCommand.NotifyCanExecuteChanged();
+        TrimEndToPlayheadCommand.NotifyCanExecuteChanged();
+        RippleTrimStartToPlayheadCommand.NotifyCanExecuteChanged();
+        RippleTrimEndToPlayheadCommand.NotifyCanExecuteChanged();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
         RippleDeleteCommand.NotifyCanExecuteChanged();
         CloseGapCommand.NotifyCanExecuteChanged();
@@ -527,6 +611,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
         MoveTrackUpCommand.NotifyCanExecuteChanged();
         MoveTrackDownCommand.NotifyCanExecuteChanged();
         DeleteTrackCommand.NotifyCanExecuteChanged();
+        ToggleTrackMuteCommand.NotifyCanExecuteChanged();
+        ToggleTrackHiddenCommand.NotifyCanExecuteChanged();
+        ToggleTrackLockCommand.NotifyCanExecuteChanged();
         AddMarkerCommand.NotifyCanExecuteChanged();
         RemoveMarkerCommand.NotifyCanExecuteChanged();
     }
@@ -534,6 +621,24 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private void SplitAtPlayhead() =>
         Report(_edit.Split(Playhead, _selection.Count > 0 ? _selection.ToList() : null));
+
+    // --- Trim to the playhead (D030 §5): Q / W plain, Shift+Q / Shift+W ripple ----------------------------
+    // Only the selected clips with the playhead inside them (Q1); every rule is the edit service's. After a ripple trim
+    // of the start the playhead goes to the clip's start (Q5) — session state, not part of the undo step.
+
+    [RelayCommand(CanExecute = nameof(CanEdit))] private void TrimStartToPlayhead() => TrimToPlayhead(ClipEdge.Start, ripple: false);
+    [RelayCommand(CanExecute = nameof(CanEdit))] private void TrimEndToPlayhead() => TrimToPlayhead(ClipEdge.End, ripple: false);
+    [RelayCommand(CanExecute = nameof(CanEdit))] private void RippleTrimStartToPlayhead() => TrimToPlayhead(ClipEdge.Start, ripple: true);
+    [RelayCommand(CanExecute = nameof(CanEdit))] private void RippleTrimEndToPlayhead() => TrimToPlayhead(ClipEdge.End, ripple: true);
+
+    private void TrimToPlayhead(ClipEdge edge, bool ripple)
+    {
+        var result = _edit.TrimToPlayhead(_selection.ToList(), edge, Playhead, ripple);
+        if (result is { Success: true, Playhead: { } playhead }) SetPlayhead(playhead);
+        var count = result.ClipIds.Count;
+        Report(result, successMessage: $"{(ripple ? "Ripple trimmed" : "Trimmed")} the {(edge == ClipEdge.Start ? "start" : "end")} of " +
+            $"{(count == 1 ? "the clip" : $"{count} clips")} to the playhead");
+    }
 
     [RelayCommand(CanExecute = nameof(CanDeleteSelected))]
     private void DeleteSelected()
@@ -710,6 +815,37 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (track is null) return;
         Report(_edit.MoveTrack(track.Track.Id, track.Type == TrackType.Video ? -1 : 1), successMessage: $"Track {track.Track.Name} moved down");
+    }
+
+    // --- Track state (D030 §4) ---------------------------------------------------------
+    // The header's mute / hide / lock toggles: each click one undoable command; mute and hide also on a locked track
+    // (D030 Q13); all disabled while an export runs.
+
+    private bool CanToggleTrack(TimelineTrackViewModel? track) => CanEdit() && track is not null;
+    private bool CanToggleTrackHidden(TimelineTrackViewModel? track) => CanToggleTrack(track) && track!.CanHide;
+
+    [RelayCommand(CanExecute = nameof(CanToggleTrack))]
+    private void ToggleTrackMute(TimelineTrackViewModel? track)
+    {
+        if (track is null) return;
+        var muted = !track.Track.IsMuted;
+        Report(_edit.SetTrackMuted(track.Track.Id, muted), successMessage: $"Track {track.Track.Name} {(muted ? "muted" : "unmuted")}");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanToggleTrackHidden))]
+    private void ToggleTrackHidden(TimelineTrackViewModel? track)
+    {
+        if (track is null) return;
+        var hidden = !track.Track.IsHidden;
+        Report(_edit.SetTrackHidden(track.Track.Id, hidden), successMessage: $"Track {track.Track.Name} {(hidden ? "hidden" : "shown")}");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanToggleTrack))]
+    private void ToggleTrackLock(TimelineTrackViewModel? track)
+    {
+        if (track is null) return;
+        var locked = !track.Track.IsLocked;
+        Report(_edit.SetTrackLocked(track.Track.Id, locked), successMessage: $"Track {track.Track.Name} {(locked ? "locked" : "unlocked")}");
     }
 
     /// <summary>Deletes a track; one with clips only after the user confirms (D027 §3). Without a dialog service a track
@@ -940,6 +1076,15 @@ public sealed partial class TimelineViewModel : ViewModelBase
         public long FrameDelta { get; set; }
         public TimelineTrackViewModel? TargetTrack { get; set; }
         public MediaTime TrimTime { get; set; }
+
+        /// <summary>A ripple trim (D030 §6): Shift was held when the edge was pressed; fixed for the whole gesture.</summary>
+        public bool Ripple { get; init; }
+
+        /// <summary>A slip (D030 §7): Alt was held when the clip's body was pressed; fixed for the whole gesture.</summary>
+        public bool Slip { get; init; }
+
+        /// <summary>The slip's frames so far (positive: later source content).</summary>
+        public long SlipFrames { get; set; }
     }
 
     public void BeginMove(double contentX)
@@ -951,15 +1096,36 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _gesture = new Gesture { Edge = null, StartX = contentX, Clips = clips, SourceTrack = tracks.Count == 1 ? tracks[0] : null };
     }
 
-    public void BeginTrim(TimelineClipViewModel clip, ClipEdge edge, double contentX)
+    /// <summary>Pointer pressed on a clip's edge: a trim — the ordinary one, or with <paramref name="ripple"/> (Shift held at
+    /// the press, D030 §6) the ripple trim, for the whole gesture.</summary>
+    public void BeginTrim(TimelineClipViewModel clip, ClipEdge edge, double contentX, bool ripple = false)
     {
         if (!CanEdit()) return;
         SelectOnly(clip.Id);
         _gesture = new Gesture
         {
             Edge = edge, StartX = contentX, Clips = new List<TimelineClipViewModel> { clip }, SourceTrack = TrackOf(clip),
-            TrimTime = edge == ClipEdge.Start ? clip.Clip.TimelineStart : clip.Clip.TimelineEnd
+            TrimTime = edge == ClipEdge.Start ? clip.Clip.TimelineStart : clip.Clip.TimelineEnd,
+            Ripple = ripple
         };
+    }
+
+    /// <summary>Pointer pressed on a clip's body with Alt (D030 §7): a slip of that clip, which becomes the selection.
+    /// False — no gesture, the status says why — for an image or a text, which have no source to slip.</summary>
+    public bool BeginSlip(TimelineClipViewModel clip, double contentX)
+    {
+        if (!CanEdit()) return false;
+        SelectOnly(clip.Id);
+        if (clip.Clip is not (VideoClip or AudioClip))
+        {
+            _status.Report("Only video and audio clips can be slipped.");
+            return false;
+        }
+        _gesture = new Gesture
+        {
+            Edge = null, StartX = contentX, Clips = new List<TimelineClipViewModel> { clip }, SourceTrack = TrackOf(clip), Slip = true
+        };
+        return true;
     }
 
     public void UpdateGesture(double contentX, TimelineTrackViewModel? trackUnderPointer)
@@ -970,7 +1136,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         g.Active = true;
 
         var rawDelta = TimelineCoordinateMapper.XToTime(contentX - g.StartX, PixelsPerSecond);
-        if (g.Edge is { } edge) UpdateTrim(g, edge, rawDelta);
+        if (g.Slip) UpdateSlip(g, rawDelta);
+        else if (g.Edge is { } edge) UpdateTrim(g, edge, rawDelta);
         else UpdateMove(g, rawDelta, trackUnderPointer);
     }
 
@@ -1016,6 +1183,12 @@ public sealed partial class TimelineViewModel : ViewModelBase
         var proposed = origin + ApplySnap(new[] { origin + rawDelta }, g.Clips, rawDelta);
         g.TrimTime = proposed;
 
+        if (g.Ripple)
+        {
+            PreviewRipple(g, clip, edge, proposed);
+            return;
+        }
+
         if (_edit.PreviewTrim(clip.Id, edge, proposed) is { } preview)
         {
             clip.Layout(PixelsPerSecond, preview.Start, preview.End);
@@ -1032,6 +1205,46 @@ public sealed partial class TimelineViewModel : ViewModelBase
         else
         {
             clip.IsInvalid = true;
+        }
+    }
+
+    /// <summary>The slip's feedback (D030 §7, Q12): the content follows the pointer (the pointer to the right brings in
+    /// earlier source: a negative slip), in whole timeline frames; the edit service plans it (nothing applied, so the
+    /// timeline geometry and the Preview stay) and the clip shows the planned Source In / Out and a limit's note.</summary>
+    private void UpdateSlip(Gesture g, MediaTime rawDelta)
+    {
+        var clip = g.Clips[0];
+        g.SlipFrames = -rawDelta.ToNearestFrame(FrameRate);
+        var preview = _edit.PreviewSlip(clip.Id, g.SlipFrames);
+        clip.IsInvalid = preview is null;
+        clip.SlipText = preview is null ? "Can't slip"
+            : $"In {TimeFormat.ToTimecode(preview.SourceIn, FrameRate)}  Out {TimeFormat.ToTimecode(preview.SourceOut, FrameRate)}" +
+              (preview.Note is null ? "" : "  (limit)");
+    }
+
+    /// <summary>The ripple drag's preview (D030 §6): the edit service plans the trim (nothing is applied) and the view
+    /// shows the trimmed clip and every clip it would move at their planned places, the dissolve zones with their clips;
+    /// the rest of the timeline as it is. A refused plan (a locked track) marks the clip invalid.</summary>
+    private void PreviewRipple(Gesture g, TimelineClipViewModel clip, ClipEdge edge, MediaTime proposed)
+    {
+        var preview = _edit.PreviewRippleTrim(clip.Id, edge, proposed);
+        var planned = preview?.Clips ?? new Dictionary<Guid, (MediaTime Start, MediaTime End)>();
+        foreach (var vm in _clipViewModels.Values)
+        {
+            if (planned.TryGetValue(vm.Id, out var at)) vm.Layout(PixelsPerSecond, at.Start, at.End);
+            else vm.Layout(PixelsPerSecond);
+        }
+        clip.IsInvalid = preview is null;
+
+        // A zone sits on its cut: it moves with B (the clip starting at the cut) — a ripple never opens a cut.
+        foreach (var zone in _transitionViewModels.Values)
+        {
+            var right = zone.Track.Clips.FirstOrDefault(c => c.Id == zone.Transition.RightClipId);
+            var delta = right is not null && planned.TryGetValue(right.Id, out var at)
+                ? at.Start.ToNearestFrame(FrameRate) - right.TimelineStart.ToNearestFrame(FrameRate)
+                : 0;
+            zone.IsVisible = true;
+            zone.Layout(PixelsPerSecond, FrameRate, delta);
         }
     }
 
@@ -1062,8 +1275,12 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _gesture = null;
         ResetGestureVisuals(g);
 
-        var result = g.Edge is { } edge
-            ? _edit.TrimClip(g.Clips[0].Id, edge, g.TrimTime)
+        var result = g.Slip
+            ? _edit.SlipClip(g.Clips[0].Id, g.SlipFrames)
+            : g.Edge is { } edge
+            ? g.Ripple
+                ? _edit.RippleTrimClip(g.Clips[0].Id, edge, g.TrimTime)
+                : _edit.TrimClip(g.Clips[0].Id, edge, g.TrimTime)
             : _edit.MoveClips(g.Clips.Select(c => c.Id).ToList(), g.FrameDelta, g.TargetTrack?.Track.Id);
         Report(result);
         if (!result.Success) Relayout(); // restore the pre-drag positions
@@ -1083,7 +1300,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         IsSnapIndicatorVisible = false;
         ClearDropTargets();
-        foreach (var clip in g.Clips) clip.IsInvalid = false;
+        foreach (var clip in g.Clips)
+        {
+            clip.IsInvalid = false;
+            clip.SlipText = null;
+        }
         foreach (var zone in _transitionViewModels.Values) zone.IsVisible = true;
     }
 

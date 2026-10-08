@@ -48,10 +48,12 @@ public sealed class ExportWorkflowTests : IDisposable
         try { Directory.Delete(_root, recursive: true); } catch (IOException) { }
     }
 
-    private ExportWorkflow Workflow(params int?[] answers)
+    private ExportWorkflow Workflow(params int?[] answers) => Workflow(null, answers);
+
+    private ExportWorkflow Workflow(InOutRangeService? inOut, params int?[] answers)
     {
         _dialogs = new ScriptedDialogs(answers);
-        return new ExportWorkflow(_projects, _export, new Fonts("Segoe UI"), _picker, _dialogs, _progressDialog, _lock, _status, _log);
+        return new ExportWorkflow(_projects, _export, new Fonts("Segoe UI"), _picker, _dialogs, _progressDialog, _lock, _status, _log, inOut);
     }
 
     private string Output(string name = "out.mp4") => Path.Combine(_root, name);
@@ -195,6 +197,89 @@ public sealed class ExportWorkflowTests : IDisposable
         Assert.Equal("Export warnings", _dialogs.Asked[0].Title);
         Assert.Contains("No Such Font", _dialogs.Asked[0].Message);
         Assert.Single(_export.Jobs);
+    }
+
+    // --- the In / Out range (Phase 15 Step 15.7, D030 §8, Q10 / Q16) -----------------------------------------------------
+
+    private const int RangeChoice = 0, EntireSequence = 1, CancelExport = 2;
+
+    /// <summary>The exportable project (a 150-frame text at 30 fps) with In at 30 and Out after 59: [30, 60).</summary>
+    private InOutRangeService WithRange()
+    {
+        ExportableProject();
+        var inOut = new InOutRangeService(_projects);
+        inOut.SetIn(MediaTime.FromFrame(30, FrameRate.Fps30));
+        inOut.SetOut(MediaTime.FromFrame(59, FrameRate.Fps30));
+        Assert.Equal((30L, 60L), inOut.Frames);
+        return inOut;
+    }
+
+    [Fact]
+    public async Task Without_a_range_nothing_is_asked_and_the_whole_sequence_is_exported()
+    {
+        ExportableProject();
+        _picker.SaveFiles.Enqueue(Output());
+
+        var outcome = await Workflow(new InOutRangeService(_projects), Ok).RunAsync();
+
+        Assert.Equal(ExportOutcomeKind.Succeeded, outcome.Kind);
+        Assert.Null(Assert.Single(_export.Jobs).Range);
+        Assert.Equal(150, _export.Jobs[0].Output.FrameCount);
+        Assert.DoesNotContain(_dialogs.Asked, a => a.Buttons.Contains("Entire sequence"));
+    }
+
+    [Fact]
+    public async Task With_a_range_the_user_chooses_Range_Entire_sequence_or_Cancel()
+    {
+        var inOut = WithRange();
+
+        _picker.SaveFiles.Enqueue(Output("range.mp4"));
+        var range = await Workflow(inOut, RangeChoice, Ok).RunAsync();
+        var question = _dialogs.Asked[0];
+        Assert.Equal(new[] { "Range", "Entire sequence", "Cancel" }, question.Buttons);
+        Assert.Contains("(30 frames)", question.Message);
+        Assert.Equal(ExportOutcomeKind.Succeeded, range.Kind);
+        var job = _export.Jobs[^1];
+        Assert.Equal(new ExportRange(30, 60), job.Range);
+        Assert.Equal((30L, 30L), (job.Output.FrameCount, job.Output.FirstFrame));
+
+        _picker.SaveFiles.Enqueue(Output("entire.mp4"));
+        var entire = await Workflow(inOut, EntireSequence, Ok).RunAsync();
+        Assert.Equal(ExportOutcomeKind.Succeeded, entire.Kind);
+        Assert.Null(_export.Jobs[^1].Range);
+        Assert.Equal(150, _export.Jobs[^1].Output.FrameCount);
+
+        var requests = _picker.SaveRequests.Count;
+        var cancelled = await Workflow(inOut, CancelExport).RunAsync();
+        Assert.Equal(ExportOutcomeKind.NotStarted, cancelled.Kind);
+        Assert.Equal(2, _export.Jobs.Count);                                            // nothing started
+        Assert.Equal(requests, _picker.SaveRequests.Count);                              // no file asked for
+        Assert.True(inOut.Range.IsSet);                                                  // the range stays as it was
+    }
+
+    [Fact]
+    public async Task A_range_export_is_not_blocked_by_media_used_only_outside_the_range()
+    {
+        var inOut = WithRange();
+        var asset = new MediaAsset
+        {
+            FilePath = Path.Combine(_root, "gone.mp4"), Kind = MediaKind.Video, AnalysisStatus = MediaAnalysisStatus.Completed,
+            Metadata = new MediaMetadata { Duration = MediaTime.FromSeconds(5), FrameRate = FrameRate.Fps30, Width = 64, Height = 36 }
+        };
+        _projects.Current.MediaAssets.Add(asset);
+        _projects.Current.Timeline.VideoTracks[0].Clips.Add(new VideoClip
+        {
+            MediaAssetId = asset.Id, TimelineStart = MediaTime.FromFrame(100, FrameRate.Fps30), Duration = MediaTime.FromFrame(20, FrameRate.Fps30),
+            SourceOut = MediaTime.FromFrame(20, FrameRate.Fps30)
+        });                                                                              // offline, only at [100, 120)
+
+        var entire = await Workflow(inOut, EntireSequence, Ok).RunAsync();
+        Assert.Equal(ExportOutcomeKind.PreflightFailed, entire.Kind);
+
+        _picker.SaveFiles.Enqueue(Output());
+        var range = await Workflow(inOut, RangeChoice, Ok).RunAsync();
+        Assert.Equal(ExportOutcomeKind.Succeeded, range.Kind);
+        Assert.Equal(new ExportRange(30, 60), Assert.Single(_export.Jobs).Range);
     }
 
     [Fact]

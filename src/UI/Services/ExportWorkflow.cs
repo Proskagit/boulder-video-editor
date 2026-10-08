@@ -1,6 +1,8 @@
 using System.Text;
+using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.ViewModels;
 using Microsoft.Extensions.Logging;
 
@@ -53,6 +55,7 @@ public sealed class ExportWorkflow
     private readonly EditingLock _editingLock;
     private readonly StatusService _status;
     private readonly ILogger<ExportWorkflow> _logger;
+    private readonly InOutRangeService? _inOut;
     private bool _running;
 
     public ExportWorkflow(
@@ -64,8 +67,10 @@ public sealed class ExportWorkflow
         IExportProgressDialog progressDialog,
         EditingLock editingLock,
         StatusService status,
-        ILogger<ExportWorkflow> logger)
+        ILogger<ExportWorkflow> logger,
+        InOutRangeService? inOut = null)
     {
+        _inOut = inOut;
         _projects = projects;
         _export = export;
         _fonts = fonts;
@@ -117,10 +122,28 @@ public sealed class ExportWorkflow
         if (project is null)
             return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, "There is no project to export."));
 
+        // 0. With an In / Out range: the range or the entire sequence (D030 §8, Q10). The range is the session's — the
+        //    export copies it now; later changes of it don't reach this export.
+        ExportRange? range = null;
+        if (_inOut?.Frames is { } frames)
+        {
+            var rate = project.Settings.FrameRate;
+            var choice = await _dialogs.AskAsync(new DialogRequest
+            {
+                Title = "Export",
+                Message = $"An In / Out range is set: {TimeFormat.ToTimecode(MediaTime.FromFrame(frames.First, rate), rate)} to " +
+                          $"{TimeFormat.ToTimecode(MediaTime.FromFrame(frames.End, rate), rate)} ({frames.End - frames.First} frames).\n\n" +
+                          "Export only the range, or the entire sequence?",
+                Buttons = new[] { "Range", "Entire sequence", "Cancel" }
+            });
+            if (choice == 0) range = new ExportRange(frames.First, frames.End);
+            else if (choice != 1) return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, "Export cancelled."));
+        }
+
         var environment = ExportPreflightEnvironment.Default(await _export.IsAvailableAsync(), IsFontInstalled);
 
         // 1. Everything but the output file, which is chosen next.
-        var check = ExportPreflight.Check(project, null, environment);
+        var check = ExportPreflight.Check(project, null, environment, range);
         var errors = check.Errors.Where(i => !IsAboutOutputFile(i.Kind)).ToList();
         var warnings = check.Warnings.ToList();
         if (errors.Count > 0)
@@ -134,7 +157,7 @@ public sealed class ExportWorkflow
             return new ExportOutcome(ExportOutcomeKind.NotStarted, "No output file was chosen.");
 
         // 3. The job: the preflight again, now with the file (it takes the snapshot the export uses).
-        check = ExportPreflight.Check(project, outputPath, environment);
+        check = ExportPreflight.Check(project, outputPath, environment, range);
         if (check.Job is not { } job)
             return await PreflightFailedAsync(check.Errors.ToList(), check.Warnings.ToList());
 

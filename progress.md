@@ -2,14 +2,322 @@
 
 ## Current phase
 
-Phase 14 — Stabilization / technical debt (no new user functionality): **complete** on branch
-`feat/phase-14-stabilization` (from `ed40b74`, `main` after the merge of PR #13) — Steps 14.1–14.7 accepted by the product
-owner (14.6 out of scope, not taken); Step 14.8 (final verification & closeout) done on 2026-10-07 with every gate green.
-Push and pull request on the product owner's command; the D029 §5 measure (CI green on the pull request without a rerun)
-is checked on that run. Scope, steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md` "Phase 14 — Stabilization /
-technical debt: steps"; decision D029.
+Phase 15 — Editing tools: branch `feat/phase-15-editing-tools` (from `7200976`, `main` after the merge of PR #14). Scope
+locked by the product owner on 2026-10-07 (DECISIONS.md D030): track controls (mute / hide / lock), trim to the playhead
+(plain and ripple, `Q` / `W`), ripple trim by dragging, slip, a timeline In / Out range (`I` / `O`, loop, range export) as
+unsaved session state, a new text clip's `FontSize = 48 × canvasHeight / 1080`, the audio status reset. Steps 15.1
+(pre-analysis), 15.2 (documentation, `d1296be`), 15.3 (track controls, `1d26165`) and 15.4 (trim to the playhead,
+`f122c9a`), 15.5 (ripple trim by dragging, `efecd24`), 15.6 (slip, `aa94da0`), 15.7 (In / Out range, `46eae30`) and 15.8
+(a new text's font size, `f9a2253`, review corrections `9de14c6`) accepted; every open question of D030 is answered.
+**Phase 15 complete**: Step 15.9 (final verification & closeout) done on 2026-10-08 — gates green, R1–R9 run, R10's
+device part not run, a still-image decode defect found by R2 and fixed (below). Not yet merged: push and pull request on
+the product owner's command; no next phase defined. Scope, steps and acceptance criteria:
+`docs/DEVELOPMENT_PLAN.md` "Phase 15 — Editing tools: steps"; manual plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
-### Phase 14 — Stabilization / technical debt (complete)
+### Phase 15 — Editing tools (complete; closeout Step 15.9, not yet merged)
+
+Steps (D030; each accepted by the product owner before the next, never started automatically): 15.1 pre-analysis ·
+15.2 sync after the merge & scope formalization · 15.3 track controls · 15.4 trim to the playhead (core, plain and
+ripple) · 15.5 ripple trim by dragging · 15.6 slip · 15.7 In / Out range (loop, range export) · 15.8 the D029 §3 UX fixes
+· 15.9 closeout. Working rules from the product owner (kept from Phases 11–14): no build or test run without a separate
+command; no push, pull request or merge without direct permission; no next step without the product owner's go.
+
+- Step 15.1 done and accepted (2026-10-07) — repository audit and Phase 15 pre-analysis, no change in the repository
+  apart from the local `main` (one `git fetch`, then `git checkout main` + `git merge --ff-only origin/main`: `ed40b74`
+  → `7200976`).
+  - Git: PR #14 (head `0482b80`) merged as `7200976` "Merge pull request #14 …", its tree identical to `0482b80`; clean.
+    CI: PR #14 run 37590085671 green on attempt 1; the first run on `main` after the merge, 37590661647, green on attempt
+    1. Local on `main` (`7200976`): `dotnet build` 0 warnings / 0 errors; `dotnet test` 2600 passed, 2 skipped (the two
+    4K scenes), 0 failed (Core 513, Timeline 497, Project 426, UI 574, Export 100, Rendering 58, Video 322,
+    ExportEndToEnd 110 + 2). 18 projects (10 `src`, 8 `tests`), as `CLAUDE.md` states.
+  - Findings: `Track.IsMuted` / `IsHidden` / `IsLocked` are in the model, `project.json` v3 and the playback snapshot,
+    and the edit service rejects edits on locked tracks, but no command or UI sets them; no ripple trim, trim to the
+    playhead or slip; no In / Out range (loop plays the whole sequence, `ExportJob` has no range); no source viewer;
+    positions only numeric (no pointer handling in the Preview); a video clip's sound cannot be separated; no marker
+    labels, marquee selection or filmstrips; `TimelineEditService.cs` (1420 lines) and `TimelineViewModel.cs` (1092) are
+    the largest files — new trim modes land there. Stale documentation after the merge: "push and pull request on the
+    product owner's command" (ROADMAP, DEVELOPMENT_PLAN, D029, this file), the D028 §8 policy "until the Phase 14 pull
+    request's CI run".
+  - Candidates reported: A editing tools (trim, track controls, slip, In / Out; recommended, L), B source viewer and
+    three-point editing (L–XL, touches the Preview's architecture), C timeline polish (M), D text and overlays (L),
+    E keyframes (XL); dependencies: In / Out and the ripple planner before B; keyframes before audio envelopes.
+- Product owner decisions (2026-10-07), recorded in D030: variant A in full — track controls, trim to the playhead
+  (plain / ripple), ripple trim UI, slip, In / Out range, and the two D029 §3 UX fixes; the In / Out range is **session
+  state, not serialized**, no `project.json` field and no format change; keys `I` / `O` / `Q` / `W`, no separate ripple
+  keys unless confirmed; `FontSize = 48 × canvasHeight / 1080`; the D030 §3 non-goals; before the trim / ripple core
+  the D022 / D025 / D027 semantics are inspected and every edge case identified, nothing invented silently. Only Step
+  15.2 allowed.
+- Step 15.2 done (2026-10-07) — sync after the merge and scope formalization, documentation only (no production code,
+  no test changed, no build or test run). Branch `feat/phase-15-editing-tools` from `7200976`.
+  - Phase 14 recorded as merged (PR #14 → `7200976`, both CI runs green on the first attempt): ROADMAP (Current →
+    Phase 15, Previous, Future phases), README (two status lines), DEVELOPMENT_PLAN (Phase 14 checkbox line, the Phase 15
+    entry), D029 ("After the merge", status), this file (Phase 14 heading, Known issues).
+  - D028 §8 closed ("Closed" paragraph): every CI failure is a real failure, no rerun counts.
+  - D030 written: the decision, the audit context, §1 scope, §2 constraints, §3 non-goals, §4 track controls, §5 trim to
+    the playhead, §6 ripple drag, §7 slip, §8 the In / Out range as transient session state (not serialized, not dirty,
+    not undoable, cleared on New / Open / Recover), §9 the UX fixes with the exact formula, §10 the inventory of the
+    existing semantics (D006 / D007 / D008 / D015 / D022 / D025 / D027) every Phase 15 edit preserves — read from the
+    decisions and checked against `PlanTrim` / `PlanTrimAtSpeed` / `Validate` / `PlaybackSnapshotBuilder` /
+    `PreviewViewModel` at `7200976` — §11 keys, and the open questions Q1–Q16.
+  - Derived from the code at 15.2 (recorded in D030, no code changed): hide is picture only and mute sound only (the
+    snapshot); the sequence length counts hidden / muted tracks; the preflight checks what the snapshot exports; the
+    lock is checked when an edit is planned, not on Undo / Redo; a plain trim to the playhead equals `TrimClip` of that
+    edge (inward, so only the far-edge dissolve clamp can apply); D025 names no rule for a ripple trim of a dissolve's
+    cut edge (Q4); D028's canvas scaling (`ContainFactor`) and the new-text formula differ on a portrait canvas (Q14).
+  - `docs/DEVELOPMENT_PLAN.md` "Phase 15 — Editing tools: steps" (gates, 15.1–15.9 with PR / QG / decisions / depends);
+    `docs/PHASE15_MANUAL_TEST_PLAN.md` (scenarios 1–32 per step, regression R1–R10, status "planned");
+    `docs/README.md` (the new plan).
+  - Not done (by the scope of 15.2): no code, no test, no build or test run; ARCHITECTURE unchanged (no code changed).
+  - Committed as `d1296be`; accepted by the product owner (2026-10-07).
+- Product owner decisions at the start of Step 15.3 (2026-10-07), recorded in D030: Q13 — mute and hide may be changed on
+  a locked track (the lock blocks ordinary editing of clip / timeline content only); video tracks mute / hide / lock,
+  audio tracks mute / lock, no hide control; flags in the existing v3 fields, no format bump; hidden = picture only, muted
+  = sound only, the length unchanged; the lock checked when an edit is planned, Undo / Redo not blocked; one undo step
+  per command with the dirty / save-point semantics, blocked during an export. Only Step 15.3.
+- Step 15.3 done (2026-10-07) — track controls (D030 §4, "Refined in Step 15.3").
+  - Core / Timeline: `ITimelineEditService.SetTrackMuted` / `SetTrackHidden` / `SetTrackLocked`; `SetTrackStateCommand`
+    + `TrackStateFlag` (`TimelineCommands.cs`): one flag, Undo writes the value found; same value → `NoChange` (no
+    step); missing track refused; hiding an audio track refused ("… is an audio track: it has no picture to hide.");
+    no lock check (Q13). The two other `ITimelineEditService` implementations (the design-time stub in
+    `MainWindow.axaml.cs`, a test stub) got the three members. No change to the snapshot, the mix, the export, the
+    preflight or the format — they already honoured the flags.
+  - UI: `TimelineTrackViewModel` mirrors `IsMuted` / `IsHidden` / `IsLocked` (`SyncState` at every timeline refresh,
+    so Undo / Redo / Open update the header), `CanHide` (video only), `Label` = the name (the old "🔒" suffix dropped —
+    the lock toggle shows it); `TimelineViewModel.ToggleTrackMute` / `ToggleTrackHidden` / `ToggleTrackLock` commands
+    (disabled while an export runs; hide only for video), status "Track V1 muted / unmuted / hidden / shown / locked /
+    unlocked"; `TimelineView.axaml`: M / 👁 / 🔒 buttons right of the name in the 84 px header (audio: M / 🔒), off dim,
+    on red / blue / amber; `trackRow.locked` (tinted lane) and `trackRow.hidden` (clips at 35 %).
+  - Tests (+21): `TrackStateEditTests` (Timeline, 13): video mute / hide / lock with the snapshot, audio mute / lock, no
+    hide on audio, same state → no step, missing track, dirty / save point for every toggle, mute / hide on a locked
+    track, every ordinary edit refused on a locked track (18 edits: move, move to a track, trim, split, delete, ripple
+    delete, close gap, paste, duplicate, properties, speed, dissolve remove / length, add clip, delete / move track, move
+    past it, remove media), Undo / Redo not blocked by the current lock, save / reopen / save byte for byte in v3.
+    `TimelineTrackStateUiTests` (UI, 6): rows offer the right toggles, one step each with the row following Undo / Redo,
+    mute / hide on a locked track, a header track edit refused when locked, disabled during an export, headers after
+    Open. `ExportTrackStateEndToEndTests` (ExportEndToEnd, 2): a hidden video track absent from the picture with a
+    locked track drawn, the length kept, the Preview = the export canvas byte for byte; a muted audio track and a muted
+    video track absent from the PCM, a locked one heard, the length kept, the picture unchanged by mute.
+  - Mutations (each restored, `--no-incremental` rebuild): a lock check added to the state commands → 2 tests fail; the
+    audio-hide guard removed → 1 fails; Undo writing the new value → 7 fail.
+  - Verification: `dotnet build AiVideoEditor.sln -warnaserror` 0 / 0; the full suite 2621 passed, 2 skipped (the two 4K
+    scenes), 0 failed — Core 513, Timeline 510 (+13), Project 426, UI 580 (+6), Export 100, Rendering 58, Video 322,
+    ExportEndToEnd 112 + 2 (+2).
+  - Manual (`docs/PHASE15_MANUAL_TEST_PLAN.md`, scenarios 1–6, 8, R1 partly; details in its results log): the Phase 14
+    R5 fixture opened in place and saved byte for byte; toggles, Undo / Redo and the title's `*`; lock refusing ✕ / ▲;
+    mute / hide on a locked track; save → v3 with only the flags (and `modifiedAt`) changed against the Phase 14 save;
+    reopen; an export through the UI with V1 hidden / muted / locked and A1 muted / locked — V1 absent, silence, 27 s /
+    675 frames as without the flags; the Phase 15 file opened and saved byte for byte by the Phase 14 build; the header
+    at 1024 and 1440 px. Scenario 7 (during an export) automated only.
+  - Committed as `1d26165`; accepted by the product owner (2026-10-07).
+- Product owner decisions at the start of Step 15.4 (2026-10-07), recorded in D030: Q1 selected clips with the playhead
+  strictly inside, nothing implicit; Q2 Q / W plain, Shift+Q / Shift+W ripple; Q4 a dissolve on the trimmed edge is kept
+  and the trim limited, never removed silently; Q5 the playhead to the clip's new start after a ripple of the start; Q6
+  a trim stopped by a dissolve is applied up to the limit with a message. Reconciliation before the code: a plain inward
+  trim of a dissolve's cut edge always opens the gap (D025 §5 removes the dissolve there; D030 §5 had "plain = exactly
+  `TrimClip`"), so Q4 could not be applied as worded — reported, and the product owner chose: a plain Q / W does not
+  trim that edge (limit 0, a message pointing to Shift+Q / Shift+W); with several clips Shift+Q puts the playhead at the
+  earliest start. Only Step 15.4.
+- Step 15.4 done (2026-10-07) — trim to the playhead (D030 §5, "Refined in Step 15.4").
+  - Reconciled first (code and tests): `PlanTrim` / `PlanTrimAtSpeed` (clamps, the 1× and `≠ 1×` source rules,
+    `minFrames` = the far edge's dissolve part), `DissolveParts`, `DissolveHandles`, `Validate` (`ReconcileTransitions`,
+    `ClampFades`, zones, handles of touched dissolves), `Split` (eligibility `start < p < end`, the multi-selection
+    convention), `RippleDeleteClips` / `PlanShift` / `ShiftedState`, `CheckEditable`, markers (never moved), the D015
+    save point. No conflict besides the Q4 one above.
+  - Timeline: `PlanTrim`'s timing part factored out as `TrimmedState` (the drag unchanged — all 510 Timeline tests green
+    before any new code); `ShiftedState` also over a planned state; `TrimToPlayhead` (per clip `allowed = min(wanted,
+    N − minFrames)`, `minFrames` from the dissolve parts — plain: the far edge, ripple: both, plain on a cut edge: no
+    trim; ripple: the clip back at its start, the later clips of its track by `PlanShift`; one `Commit`).
+    `TimelineEditResult.Playhead` (Core) for Q5. Stubs of `ITimelineEditService` (design-time, a UI test) extended.
+  - UI: `TimelineViewModel.TrimStartToPlayhead` / `TrimEndToPlayhead` / `RippleTrimStartToPlayhead` /
+    `RippleTrimEndToPlayhead` (disabled during an export; the result's playhead applied with a seek; status messages);
+    `ShortcutRouter` Q / W / Shift+Q / Shift+W with exact modifiers.
+  - Tests (+76): `TrimToPlayheadTests` (Timeline, 67 incl. two 25-case theories: plain = the edge trim and ripple = trim
+    + move at 23.976 / 25 / 29.97 / 30 / 60 fps × 0.25× / 0.5× / 1× / 2× / 4×, both edges, tick for tick; eligibility
+    and boundaries; one frame inside, down to one frame; several clips, some eligible; Q5 with several clips; gaps,
+    other tracks, markers; adjacent clip; fades; a plain trim on a cut edge refused / skipped among others; ripple on a
+    cut edge kept, stopped at the zone; far-edge limits; a clip between two dissolves; a locked target refused, a locked
+    other video / audio track never rippled; hidden / muted tracks; text and image clips; undo / redo / save point / no
+    step on refusal). `TimelineTrimToPlayheadUiTests` (UI, 4); `ShortcutRoutingTests` (the table +4 rows, +4 non-shortcut
+    cases). `ExportRippleEndToEndTests` (+1): Shift+Q and Shift+W through the service, the export's 21 frames and colours,
+    the Preview equal to the export canvas on both sides of each cut.
+  - Mutations (each restored, `--no-incremental` rebuild after): start / end target swapped → 65 fail; Q4 ignored → 2;
+    the dissolve zone limit ignored → 3; the lock check removed → 1; ripple of every video track (a locked one included)
+    → first survived (the test's other locked track was audio, which the mutant skipped), the test then got a locked and
+    an unlocked V2 / V3 with later clips → 1 fails; the playhead after Shift+Q left at the playhead → 27 fail.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full suite 2697 passed, 2
+    skipped (the two 4K scenes), 0 failed — Core 513, Timeline 577 (+67), Project 426, UI 588 (+8), Export 100, Rendering
+    58, Video 322, ExportEndToEnd 113 + 2 (+1).
+  - Manual (`docs/PHASE15_MANUAL_TEST_PLAN.md`, scenarios 9–14, R7 partly; the results log): Q / W / Shift+Q / Shift+W on
+    the Phase 14 R5 fixture's red, 2× and 0.5× clips, eligibility refusals, the dissolve's cut edge (Q refused with the
+    hint, Shift+Q keeping the dissolve), a far-edge stop, a locked V1, undo back to the save point.
+  - Committed as `f122c9a`; accepted by the product owner (2026-10-07).
+- Product owner decisions at the start of Step 15.5 (2026-10-07), recorded in D030: Q3 — the ordinary edge drag unchanged
+  (D025 §5 included), Shift + edge drag = ripple trim, Alt + body drag left to slip (15.6), Ctrl unchanged; Shift+drag
+  and Shift+Q / Shift+W share the planning, an equivalent edge gives an identical project state; Q4's no-trim rule is
+  for Q / W only. Recorded in D030 before the code ("Decided at the start of Step 15.5"): the mode fixed at the press;
+  a drag never moves the playhead (the existing drag rule; Q5 is Shift+Q's); outward ripple limited by the source and a
+  dissolve's handle; the preview only plans. Only Step 15.5.
+- Step 15.5 done (2026-10-07) — ripple trim by dragging an edge (D030 §6, "Refined in Step 15.5").
+  - Timeline: `PlanRippleTrim` — the one ripple planner (inward: the dissolve parts of both edges; outward: the source
+    clamp and a dissolve's handle on the dragged edge; the start planned in the clip's own frame of reference; the
+    later clips of the track by `PlanShift`); `TrimToPlayhead`'s ripple branch now calls it (its 67 tests unchanged
+    and green); `RippleTrimClip` / `PreviewRippleTrim` (+ `RippleTrimPreview`, Core) for the drag; `TrimmedState` /
+    `PlanTrimAtSpeed` over a clip state and a neighbour list (the ordinary drag passes the same neighbours as before).
+  - UI: `TimelineGestureModifiers` (Ctrl toggle, Shift ripple — read at the press); `BeginTrim(…, ripple)`; the ripple
+    preview lays out the planned clips and the dissolve zones; `EndGesture` commits `RippleTrimClip` once; Esc / a lost
+    capture / an export starting rebuild the layout from the unchanged model (the existing `CancelGesture`).
+  - Tests (+49): `RippleTrimDragTests` (Timeline, 42 incl. a 25-case theory: drag = Shift+Q / Shift+W on the whole
+    timeline at 5 rates × 5 speeds × 3 frames × 2 edges; the dissolve limits and messages equal; the pointer between
+    frames; outward end / start at four speeds, the source limits, a clip at 0; outward on a dissolve edge; past the
+    other edge; other tracks (locked or not), markers, the playhead; a locked track; hidden / muted; the preview
+    applies nothing and equals the release; fades; one undo step, the save point, the same frame no step; the ordinary
+    trim still removes a dissolve). `TimelineRippleDragUiTests` (UI, 7: the modifiers; the preview with the model
+    unchanged and one step on release; Esc; drag = Shift+Q / Shift+W through the view model; the ordinary drag
+    unchanged; a locked track; the dissolve zone in the preview).
+  - Mutations (each restored, `--no-incremental` rebuild after): Shift ignored in the modifier helper → 1 fails; the
+    gesture committing the ordinary trim → 3; the ripple on every track of the kind → 2; the lock not checked → 1 + 1;
+    the pointer floored instead of the nearest frame → 1; Esc still committing → 1; every pointer move committing → 3;
+    the drag with the ordinary trim's semantics → 3; the outward dissolve handle ignored → 1; the inward dissolve parts
+    ignored → 3. None survived.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full suite 2746 passed, 2
+    skipped (the two 4K scenes), 0 failed — Core 513, Timeline 619 (+42), Project 426, UI 595 (+7), Export 100,
+    Rendering 58, Video 322, ExportEndToEnd 113 + 2.
+  - Manual (`docs/PHASE15_MANUAL_TEST_PLAN.md`, scenarios 16–19, the results log): real pointer drags on the Phase 14 R5
+    fixture — the ordinary drag stopping at the neighbour, Shift+drag of the end and the start inward, outward on the
+    0.5× clip, Esc, a locked V1, the dissolve's cut edge with and without Shift, 1024 px, undo / redo.
+  - Committed as `efecd24`; accepted by the product owner (2026-10-07).
+- Product owner decisions at the start of Step 15.6 (2026-10-07), recorded in D030: Q12 — the planned Source In / Out on
+  the clip during the drag, no live Preview, the commit on release refreshes it; Esc / a lost capture / an export start
+  cancel with nothing changed; a limit clamps with a message; slip a true slip (only the source mapping changes); Alt read
+  at the press; Ctrl unchanged; images and text refused. Recorded in D030 before the code (reconciled with D022 and
+  `TrimmedState` / `PlanTrimAtSpeed` / `DissolveHandles`): the amount is the start-trim rule (1× `FromFrame(S + k) −
+  FromFrame(S)`, other speeds `±SourceLength(|k|)`), `SourceOut` moves by the same amount (the width and `N` unchanged —
+  §7's "follows the clip's rule" made exact), positive = later content and the content follows the pointer, the limits
+  are the source and the dissolve handles, video and audio clips as §7 states (the product owner's message named video
+  clips; audio clips have the same mapping and §7 includes them — reported). Only Step 15.6.
+- Step 15.6 done (2026-10-07) — slip (D030 §7, "Refined in Step 15.6").
+  - Timeline: `SlipClip` / `PreviewSlip` (+ `SlipPreview`, Core) over `PlanSlipOf` (refusals, the allowed interval by
+    binary search of the monotone limits, the clamp note, `Validate`, one `Commit`), `SlippedState`.
+  - UI: `TimelineGestureModifiers.IsSlip`; `TimelineView` starts a slip on an Alt press on a clip's body (a dissolve zone
+    no longer takes that press); `TimelineViewModel.BeginSlip` / `UpdateSlip` (planned Source In / Out as
+    `TimelineClipViewModel.SlipText`, "(limit)", "Can't slip"), `EndGesture` → `SlipClip`, `CancelGesture` clears it;
+    the clip template shows the text over the clip body.
+  - Tests (+49): `SlipTests` (Timeline, 41 incl. a 25-case theory over 5 rates × 5 speeds × four slips with the full
+    invariant set and D022's amount computed in the test; the explicit speed table; the source start / end at four
+    speeds; dissolve handles on both edges; no room → no step; images, text, an unknown length, a locked track; hidden
+    / muted tracks and an audio clip; the preview applies and notifies nothing and equals the release; one undo step,
+    the save point, 0 frames). `TimelineSlipUiTests` (UI, 7: the modifiers; the feedback with geometry, model, Preview
+    notification, undo and dirty unchanged and one step on release; pointer rounding; Esc / lost capture / export start;
+    image and text; a locked track; the limit shown). `ExportRippleEndToEndTests` (+1): slip parity, picture and sound.
+  - Mutations (each restored, `--no-incremental` rebuild after): the source direction reversed at other speeds → 25
+    fail, at 1× → 9, in the view model → 3; the speed ignored → 26; the source start not clamped → 7 + 1; the dissolve
+    constraint ignored → 1; the duration changed → 39; the start moved → 32; the preview mutating → 1 + 3; Alt ignored → 1;
+    Esc committing → 1; every pointer move committing → 3. None survived.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full suite 2795 passed, 2
+    skipped (the two 4K scenes), 0 failed — Core 513, Timeline 660 (+41), Project 426, UI 602 (+7), Export 100, Rendering
+    58, Video 322, ExportEndToEnd 114 + 2 (+1).
+  - Manual (`docs/PHASE15_MANUAL_TEST_PLAN.md`, scenarios 20–23, the results log): Alt + body drags with a real pointer
+    on the Phase 14 R5 fixture — the planned Source In / Out during the drag with the Preview unchanged, the Preview
+    updated on release, 1× and 0.5×, the source start, a dissolve, Esc, image / text, a locked V1, 1024 px, undo / redo.
+  - Committed as `aa94da0`; accepted by the product owner (2026-10-07).
+- Product owner decisions at the start of Step 15.7 (2026-10-07), recorded in D030: Q7 (O includes the playhead's frame,
+  `[In, Out)`), Q8 (the new point kept, the other cleared, no message), Q9 (Loop on: exactly `[In, Out)`, from outside
+  at In; Loop off: free), Q10 (Range / Entire sequence / Cancel), Q11 (an ✕ on the bar, no key), Q16 (the range's media
+  only); the range never saved, cleared on New / Open / Recover, never dirty or undoable; Q15 (the stale audio status)
+  taken into this step. Only Step 15.7.
+- Step 15.7 done (2026-10-07) — In / Out range (D030 §8, "Refined in Step 15.7").
+  - Core: `InOutRange` (+ `PlaybackRange`), `ExportRange`; `ExportOutput.For(snapshot, range)` with `FirstFrame` /
+    `FirstSample`; `ExportJob.Range`; `ExportPreflight.Check(…, range)` (clamp, `EmptyRange`, the range's pictures — with
+    dissolve zones — sounds and texts only); `IPlaybackService.SetPlaybackRange` / `PlaybackEnd`.
+  - Export / Timeline: `ExportFrameSource` / `ExportAudioSource` offset by the output (the service passes `job.Output`);
+    `PlaybackService` (Play outside the range at its start, the end of playing), `AudioMixer.SetEnd` (silence from Out).
+  - UI: `InOutRangeService` (singleton; DI), the timeline's `SetIn` / `SetOut` / `ClearInOut`, the range bar, lines, ✕
+    and playhead-in-range shade; I / O in `ShortcutRouter`; the Preview applies the range only with Loop on and loops at
+    `PlaybackEnd`; `ExportWorkflow` asks Range / Entire sequence / Cancel and passes the range to both preflights; the
+    Q15 fix in `PreviewViewModel`.
+  - Tests (+51 and 4 more cases): Core `InOutRangeTests` (6), `ExportRangeTests` (7); UI `InOutRangeUiTests` (5),
+    `LoopPlaybackTests` (+3), `ExportWorkflowTests` (+3), `PreviewSoundStatusTests` (3), `ShortcutRoutingTests` (+2 table
+    rows, the non-shortcut cases I / O with Shift and X); Timeline `AudioPlaybackServiceTests` (+1: the range's start and
+    the silence from Out); ExportEndToEnd `ExportRangeEndToEndTests` (1: at 29.97 fps across a cut, a fade, a 2× clip, a
+    hidden and a muted track the range export's 38 frames and its samples are byte for byte the whole export's at the same
+    positions; the Preview equal).
+  - Mutations (16, each restored, `--no-incremental` rebuild after): Out without the playhead's frame → 5 + 7 fail; In
+    rounded up → 5; Q8 ignored → 1; no clamp → 1; Range / Entire swapped → 2; Cancel exporting → 1; the frame source not
+    offset → 1; the audio from sample 0 → 1; the first sample rounded to the nearest → first survived (the tested
+    frames rounded the same both ways), a frame where they differ added → 1; the preflight ignoring the range → 2 + 1;
+    dissolve zones not counted → 1; the range surviving another project → 1; the range confining playback with Loop off
+    → 1; Play before In not starting at In → first survived (only "after Out" was tested), a start before In added → 1 +
+    1; the sound running past Out → 1; Out not ending playback → 2 + 1. None survives now.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full suite 2826 passed, 2
+    skipped (the two 4K scenes), 0 failed — Core 526 (+13), Timeline 661 (+1), Project 426, UI 618 (+16), Export 100,
+    Rendering 58, Video 322, ExportEndToEnd 115 + 2 (+1).
+  - Manual (`docs/PHASE15_MANUAL_TEST_PLAN.md`, scenarios 25–29, the results log): I / O by keyboard and after a ruler
+    click, the bar and the ✕, Loop off / on with sampled timecodes, Range (76 frames, 3.04 s) and Entire sequence (675
+    frames) exports, a range export not blocked by media offline only outside it, the project clean and v3 throughout.
+    Not run by hand: the audio status (Q15) — it needs a real device removed and restored.
+  - Committed as `46eae30`; accepted by the product owner (2026-10-07).
+- Product owner decision at the start of Step 15.8 (2026-10-07), recorded in D030: Q14 — a new text's `FontSize = 48 ×
+  canvasHeight / 1080`; D028 Variant B unchanged for existing text on a canvas change (× `min(W'/W, H'/H)`, Scale kept).
+  Only Step 15.8.
+- Step 15.8 done (2026-10-07) — a new text's font size (D030 §9, "Refined in Step 15.8").
+  - Core `ProjectSettingsRules.NewTextFontSize`; `TimelineEditService.AddTextClip` uses it (the only creator of text).
+  - Tests (+9): `NewTextFontSizeTests` (Timeline) — 720 → 32, 1080 → 48, 1440 → 64, 2160 → 96, 360 → 16, portrait 85.333…
+    exactly (no rounding); an existing text on 1920 × 1080 → 1080 × 1920: 27, its Scale 1.5, rotation, opacity kept,
+    positions × 0.5625, a new text there 85.333, undo back; copies keep their size; save / open / save byte for byte in v3.
+  - Mutations (7, each restored, `--no-incremental` rebuild after): the width instead of the height → 8 fail; a fixed 48
+    → 7; 1920 as the reference → 8; rounding → 3; D028 max instead of min → 10; D028 also scaling Scale → 8; D028
+    replaced by the new-text formula → 16. None survived.
+  - Verification: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0; the full suite 2835 passed, 2
+    skipped (the two 4K scenes), 0 failed — Core 526, Timeline 670 (+9), Project 426, UI 618, Export 100, Rendering 58,
+    Video 322, ExportEndToEnd 115 + 2.
+  - Manual (scenario 31): new text 48 / 85,33 / 64 / 96 on 1920 × 1080 / 1080 × 1920 / 2560 × 1440 / 3840 × 2160, the
+    existing 48 → 27 on the portrait canvas; the 15.7 build gave 48 on 4K.
+  - Committed as `f9a2253`. Phase-reviewer (2026-10-08): FAIL on missing evidence for two QG items (a custom canvas
+    height; the saved file changed only by the new clip) and a misplaced XML summary in `ProjectSettingsRules`.
+  - Correction (2026-10-08, no production behaviour changed; the formula and D028 as they were, no clamp added):
+    `NewTextFontSizeTests` +7 — custom canvases 1000 × 810 → 36, 2000 × 1530 → 68, 1660 × 2970 → 132 and 1234 × 1000 →
+    44.444… unrounded; the canvas limits 128 × 64 → 2.844… and 2304 × 4096 → 182.044…, inside 1 … 1000 and accepted by
+    `ClipPropertyValidator`; `Adding_a_text_changes_the_saved_file_only_by_the_new_clip` (a saved baseline with a video,
+    an audio and a text clip on 1280 × 720; one + Text; saved again: v3, the new clip 32, and without it and `modifiedAt`
+    the JSON equals the baseline). The summaries of `NewTextFontSize` / `ContainFactor` put back on their methods. D030 §9
+    and its 15.8 refinement, DEVELOPMENT_PLAN 15.8: the 1 … 1000 range holds for every canvas the settings accept,
+    without a clamp. Mutations (5, each restored): a clamp to [3, 180] → 2 fail; a clamp plus rounding → 6; presets only →
+    6; the add also renaming the track → 1; also changing the zoom → 1.
+  - Phase-reviewer re-review of `46eae30..9de14c6`: PASS WITH NOTES (both findings closed). Accepted by the product owner
+    (2026-10-08).
+- Step 15.9 done (2026-10-08) — final verification & closeout (the product owner's go, 2026-10-08; phase-reviewer as the
+  quality gate).
+  - Audit `7200976..HEAD`: the seven step commits plus `9de14c6`, the agreed scope only (src: Core, Timeline, Export, UI;
+    tests; documents); no new skip, no test weakened or re-baselined (the only removed test lines: constructor arguments
+    of three UI fixtures, and the "plain I is no shortcut" case — `I` sets In since 15.7, D030 §11); mutation campaigns
+    of 15.3–15.8 recorded above, no surviving mutant accepted as behaviour (the first-round survivors — one in 15.4, two
+    in 15.7 — were closed by new tests).
+  - Gates first run on `9de14c6`: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 2842 passed, 2
+    skipped (the two 4K scenes), 0 failed (`Assert-TestResults.ps1`); `AIVE_HEAVY_TESTS=1` 2844 / 0 / 0; three
+    `--blame-hang --blame-hang-timeout 5m` runs 2842 / 2 / 0 each, no dump; `git diff --check` clean.
+  - Manual regression (`docs/PHASE15_MANUAL_TEST_PLAN.md`, its 15.9 log): R1, R3–R9 passed (R8 partly); R2 on generated
+    stand-ins found a defect; R10's device part and scenario 32 **NOT RUN — requires physical audio-output
+    interruption**; playback with muted / hidden tracks checked.
+  - Defect found by R2 (product owner: fix both): a still image entered far into its clip was not decoded — a range
+    export failed ("'overlay.png' could not be decoded (FrameNotReached) … within a 10 s preroll") when a long image clip
+    crossed In more than ~10 s after its start, and the Preview showed a placeholder after a seek into it (since Phase
+    5; the readers unchanged by Phase 15). Fix: `SourceFrameSelector.StillImage` — `ExportPictureReader` and the
+    Preview's `SpanReader` open a still at its file's start. Tests (+3): `ExportFrameSourceTests` (a range starting 20 s
+    into a 30 s still asks for the still's point), `PlaybackServiceTests` (a seek into a still the same),
+    `ExportRangeEndToEndTests` (a range 16 s into a 20 s PNG clip: frames equal to the whole export's, the Preview there
+    equal, real ffmpeg). Mutations: each reader's old line back → its unit test and the end-to-end test fail. In the app:
+    R2's range export 181 frames equal to the full export's (PSNR 49.8 dB), the Preview shows the overlay at 3:36; R1's
+    default export still byte-identical to Phase 14's.
+  - Final gates on the fixed tree: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 2845 passed, 2
+    skipped, 0 failed — Core 526, Timeline 678 (+1), Project 426, UI 618, Export 101 (+1), Rendering 58, Video 322,
+    ExportEndToEnd 116 + 2 (+1); `AIVE_HEAVY_TESTS=1` 2847 / 0 / 0; three blame-hang runs 2845 / 2 / 0 each, no dump;
+    `git diff --check 7200976` clean.
+  - Documents: D030 (the Step 15.2 proposals marked as superseded where answered otherwise, "Found and fixed in Step
+    15.9", "Final state at the Phase 15 closeout", status complete), ARCHITECTURE (text size, audio status, the still
+    rule, verification note), DEVELOPMENT_PLAN (Phase 15 checked, 15.8 accepted, 15.9 done), ROADMAP, README, the manual
+    plan, this file. `project.json` stays v3; no Phase 16 started or defined.
+
+### Phase 14 — Stabilization / technical debt (complete; PR #14 merged as `7200976`)
 
 Steps (D029; each accepted by the product owner before the next, never started automatically): 14.1 audit · 14.2 sync
 after the merge & scope formalization · 14.3 flaky autosave test · 14.4 flaky ffprobe / PATH-probe tests · 14.5
@@ -198,6 +506,9 @@ command; no push, pull request or merge without direct permission; no next step 
     ARCHITECTURE (verification note), this file; 14.6 recorded as out of scope; no TODO / FIXME / HACK added by Phase 14
     (the only match in its diff is this file's audit text); no reference to the removed `Effects` project in code or
     project files (only historical documentation).
+- After the merge (recorded at Step 15.2, 2026-10-07): accepted by the product owner; PR #14 merged into `main` as
+  `7200976`; CI green on the first attempt on the pull request (run 37590085671) and on `main` (run 37590661647) — the
+  D029 §5 measure met; the D028 §8 policy closed by the product owner.
 
 ### Phase 13 — Project & export settings (complete; PR #13 merged as `ed40b74`)
 
@@ -3549,12 +3860,12 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-07: Phases 0–13 are complete and merged into `main` (last merge `ed40b74`, PR #13). Phase 14 (stabilization /
-technical debt, D029) is complete on `feat/phase-14-stabilization` (closeout at `90caae9`: 2600 passed, 2 skipped; three
-blame-hang runs clean; heavy 2602 / 0 / 0; R1–R5 passed); push and pull request on the product owner's command. Open
-items carried forward: see "Known issues" (the D028 §8 policy until a CI run on the pull request confirms D029 §5; the
-watched, never reproduced `Project.Tests` hang / failure; deferred out of Phase 14: the audio status message after a
-device returns, a new text clip's `FontSize` 48 on any canvas; also no timeline virtualization, import not undoable).
+2026-10-08: Phases 0–14 are complete and merged into `main` (last merge `7200976`, PR #14). Phase 15 (editing tools,
+D030) is complete on `feat/phase-15-editing-tools` (closeout Step 15.9: 2845 passed, 2 skipped; heavy 2847 / 0 / 0; three
+blame-hang runs clean; R1–R9 run, R10's device part not run); push and pull request on the product owner's command; no
+next phase defined. Open items: see "Known issues" (the Preview staying black after adding a clip beyond the previous
+end — a separate task; the real-device audio status check; the watched `Project.Tests` hang; no timeline virtualization,
+import not undoable).
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -3594,7 +3905,8 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 11 (accepted 2026-10-05; PR #11 merged as `47ed2fa`, CI green)
 - Phase 12 (accepted; PR #12 merged as `c0cb600` on 2026-10-05, CI green)
 - Phase 13 (accepted; PR #13 merged as `ed40b74` on 2026-10-06, CI green on the pull request)
-- Phase 14 (complete 2026-10-07, Step 14.8 closeout; Steps 14.1–14.7 accepted; push / pull request on the product owner's
+- Phase 14 (accepted; PR #14 merged as `7200976` on 2026-10-07, CI green on the first attempt)
+- Phase 15 (complete 2026-10-08, Step 15.9 closeout; Steps 15.1–15.8 accepted; push / pull request on the product owner's
   command)
 
 ## Known issues
@@ -3605,10 +3917,9 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   ffprobe timeout in a waveform test, the 5 s PATH probe of the locators in `Video.Tests` (below). Not fixed in Phase 13;
   fixed in Phase 14: the autosave timer by a production fix (a callback queued before `Stop` started a tick —
   Step 14.3), the locator / waveform tests by test-only limits with the app's limits unchanged (Step 14.4); stressed 50×
-  per class and 10× per assembly under load. The CI evidence (D029 §5: green on the pull request without a rerun) comes
-  with the Phase 14 pull request; until then the policy below stays in force. Policy (D028 §8): a rerun of that named test, with the known failure
-  message, is allowed for diagnosis and recorded here; never instead of fixing a real regression, never a
-  rerun-until-green; never weakened, skipped or removed.
+  per class and 10× per assembly under load. Closed: CI green on the first attempt on PR #14 (run 37590085671) and on
+  `main` after its merge (run 37590661647); the D028 §8 rerun policy closed by the product owner (2026-10-07) — any CI
+  failure is now a real failure.
   - 2026-10-06, CI run 37470605596 (push of `ed40b74` to `main`, attempt 1): failed —
     `ExecutableLocatorTests.RealLocator_FirstCallCancelledMidProbe_SecondCallStillFindsFfmpeg`, 7 s, `Assert.NotNull()
     Failure: Value is null` (the PATH probe, the known cause); every other test green. Not rerun (recorded at Step 14.2).
@@ -3653,17 +3964,26 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 
 - ffmpeg / ffprobe locators: a PATH probe slower than 5 s counts as "not found" for the app run (a heavily loaded machine
   could hit it; seen once on CI in a test). Known risk, unchanged (D024, Step 9.10).
-- Audio device: after a device was lost during playback and the sound came back at the next Play, the status bar still says
-  "Playing without sound…" (the status shows the last message until another one; D024 "Left as they are", Step 9.10). A real
-  default-device change and a real removal were checked on hardware in Step 9.10 (scenarios 14–17). Deferred out of
-  Phase 14 as a UX change (D029 §3).
-- Text clips: a new text clip takes `FontSize` 48 on any canvas (`Clip.cs`), small on a 4K canvas (an observation from
-  Phase 13). Deferred out of Phase 14 as a product change (D029 §3).
+- Audio device: after a device was lost during playback and the sound came back at the next Play, the status bar still said
+  "Playing without sound…" (D024 "Left as they are", Step 9.10; deferred by D029 §3). Fixed in Phase 15 Step 15.7 (D030 §9,
+  Q15): the message goes when sound is available again while playing, and a later loss is reported again (automated;
+  the real-device check NOT RUN at the Phase 15 closeout — it needs a physical audio-output interruption; for the product
+  owner).
+- Text clips: a new text clip took `FontSize` 48 on any canvas (an observation from Phase 13; D029 §3). Fixed in Phase 15
+  Step 15.8: `48 × canvasHeight / 1080` (D030 §9).
+- Preview (observed at Phase 15 Step 15.8, not changed): after adding a clip with the playhead beyond the sequence's
+  previous end, the Preview stays black until the next seek (the same in the 15.7 build); inside the sequence it shows
+  at once. Not investigated and not fixed in Phase 15 (out of scope; confirmed at the 15.9 closeout) — a separate task.
+- Still images (found by the Phase 15 Step 15.9 regression, R2): entered far into a long image clip, a still was not
+  decoded (range export failure, Preview placeholder after a seek; since Phase 5). Fixed in Step 15.9:
+  `SourceFrameSelector.StillImage` (D030).
 - `MediaAnalysisCoordinator` relies on the captured UI SynchronizationContext.
 - Timecode is non-drop-frame only (29.97 timecode drifts from wall clock by design).
 - Timeline canvas is a plain ItemsControl/Canvas; very long timelines at maximum
   zoom are not virtualized (ruler is).
 - Media import is not undoable (unchanged from Phase 2).
+- Tracks: `IsMuted` / `IsHidden` / `IsLocked` had no command or UI (found at the Phase 15 pre-analysis) — fixed in Phase 15
+  Step 15.3 (D030 §4): mute / hide / lock in the track header.
 
 ## Verification
 

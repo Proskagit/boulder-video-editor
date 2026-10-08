@@ -10,8 +10,10 @@ text; MP4 export; quality: stability, thumbnails, waveforms, hotkeys,
 performance, polish, CI; fades and a cross dissolve; media relink and recent projects — Phase 11, merged
 2026-10-05; editing essentials: track delete / reorder, removing media, ripple delete, copy / paste / duplicate,
 markers — Phase 12, merged 2026-10-05 as `c0cb600`, CI green; project & export settings — Phase 13, merged 2026-10-06 as
-`ed40b74`, CI green on PR #13). Phase 14 (stabilization / technical debt, no new user functionality) is complete (closeout 2026-10-07) —
-DECISIONS.md D029.
+`ed40b74`, CI green on PR #13; stabilization / technical debt, no new user functionality — Phase 14, merged 2026-10-07 as
+`7200976`, CI green on the first attempt, DECISIONS.md D029). Phase 15 (editing tools: track mute / hide / lock, trim to
+the playhead, ripple trim, slip, an In / Out range, a canvas-relative size for new text) is complete on its branch
+`feat/phase-15-editing-tools` (closeout Step 15.9; not yet merged) — DECISIONS.md D030.
 
 ## Requirements
 
@@ -119,7 +121,8 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–13 complete (Phase 13 merged as `ed40b74`, CI green on PR #13); Phase 14 (stabilization, D029) complete. Working: media import
+Phases 0–14 complete (Phase 14 merged as `7200976`, CI green on PR #14 and on `main`); Phase 15 (editing tools, D030)
+complete on its branch, not yet merged. Working: media import
 with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
 preview playback with video and audio, and projects on disk: New / Open / Save /
@@ -170,3 +173,12 @@ Swap; positions and text sizes scale with it), the frame rate (the clips move to
 markers keep their time) and, in its EXPORT section, the export quality (Maximum / High / Standard / Compact), the
 encoding speed (Fast / Medium / Slow) and the AAC bitrate (128–320 kbps); one Apply is one Undo step; the export settings
 are saved with the project (`settings.export`; older projects export as before).
+
+Phase 15 (DECISIONS.md D030; complete on `feat/phase-15-editing-tools`, not yet merged): editing tools. Each track
+header has M (mute), 👁 (hide; video tracks) and 🔒 (lock; a locked track refuses every edit, mute / hide still allowed),
+saved in `project.json` v3. Q / W trim the selected clip's start / end to the playhead, Shift+Q / Shift+W ripple the
+rest of its track; Shift + dragging a clip's edge is a ripple trim; Alt + dragging a video or audio clip's body slips its
+source (the clip stays in place). I / O set an In / Out range on the ruler (the playhead's frame included; ✕ clears it)
+— with Loop on, playback loops over it, and Export asks Range / Entire sequence; the range is session state, never
+saved. A new text clip's size follows the canvas height (48 at 1080 px). Every edit is one Undo step and off during an
+export.

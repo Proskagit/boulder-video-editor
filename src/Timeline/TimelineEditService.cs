@@ -158,8 +158,9 @@ public sealed class TimelineEditService : ITimelineEditService
         var startFrame = Math.Max(0, start.ToNearestFrame(rate));
         var frames = Math.Max(1, DefaultTextDuration.ToNearestFrame(rate));
 
-        // Text defaults are the model's (Segoe UI, 48, #FFFFFF, centred); only the content is set.
-        var clip = new TextClip { Text = DefaultText };
+        // Text defaults are the model's (Segoe UI, #FFFFFF, centred); the content is set, and the size from the canvas
+        // height (D030 §9, Q14), so a title reads the same on any canvas.
+        var clip = new TextClip { Text = DefaultText, FontSize = ProjectSettingsRules.NewTextFontSize(Settings.FrameHeight) };
         ClipState.FromFrames(startFrame, startFrame + frames, MediaTime.Zero, rate).ApplyTo(clip);
         plan.Insert(track, clip);
 
@@ -234,20 +235,25 @@ public sealed class TimelineEditService : ITimelineEditService
 
     /// <summary>The timing <paramref name="clip"/> has when moved by <paramref name="frameDelta"/> whole frames (the move's
     /// rule, also used for pasted copies), or why it can't move.</summary>
-    private (ClipState State, string? Error) ShiftedState(Clip clip, long frameDelta, FrameRate rate)
+    private (ClipState State, string? Error) ShiftedState(Clip clip, long frameDelta, FrameRate rate) =>
+        ShiftedState(clip, ClipState.Capture(clip), frameDelta, rate);
+
+    /// <summary>The move's rule applied to <paramref name="state"/> (the timing <paramref name="clip"/> has, or is planned
+    /// to have): also used by the ripple trim (D030 §5), which moves a clip it has just trimmed.</summary>
+    private (ClipState State, string? Error) ShiftedState(Clip clip, ClipState state, long frameDelta, FrameRate rate)
     {
-        var startFrame = clip.TimelineStart.ToNearestFrame(rate) + frameDelta;
-        var endFrame = clip.TimelineEnd.ToNearestFrame(rate) + frameDelta;
+        var startFrame = state.Start.ToNearestFrame(rate) + frameDelta;
+        var endFrame = state.End.ToNearestFrame(rate) + frameDelta;
         if (startFrame < 0)
             return (default, "Clips can't be moved before the beginning of the timeline.");
 
-        if (clip is MediaBackedClip { Speed.IsNormal: false } fast)
+        if (clip is MediaBackedClip && !state.Speed.IsNormal)
         {
             // D022: the source range and speed move along unchanged; so does the frame count.
-            return (ClipState.FromFrames(startFrame, endFrame, fast.SourceIn, fast.SourceOut, fast.Speed, rate), null);
+            return (ClipState.FromFrames(startFrame, endFrame, state.SourceIn, state.SourceOut, state.Speed, rate), null);
         }
 
-        var sourceIn = clip is MediaBackedClip m ? m.SourceIn : MediaTime.Zero;
+        var sourceIn = clip is MediaBackedClip ? state.SourceIn : MediaTime.Zero;
         var after = ClipState.FromFrames(startFrame, endFrame, sourceIn, rate);
 
         // The tick length of the same frame count can differ by one tick between
@@ -364,50 +370,12 @@ public sealed class TimelineEditService : ITimelineEditService
         var track = plan.TrackOf(clip);
         var rate = plan.Rate;
 
-        var startFrame = clip.TimelineStart.ToNearestFrame(rate);
-        var endFrame = clip.TimelineEnd.ToNearestFrame(rate);
-        var targetFrame = edgeTime.ToNearestFrame(rate);
-        var others = track.Clips.Where(c => c != clip).ToList();
-        var sourceIn = clip is MediaBackedClip m ? m.SourceIn : MediaTime.Zero;
-        var sourceDuration = SourceDuration(clip);
-
         // D025 §5: a trim of the far edge keeps the part of the dissolve on the other edge inside the clip (the trimmed
         // edge's own dissolve, if any, goes when its cut opens).
         var (partAtStart, partAtEnd) = DissolveParts(track, clip, rate);
         var minFrames = Math.Max(1, edge == ClipEdge.End ? partAtStart : partAtEnd);
 
-        ClipState after;
-        if (clip is MediaBackedClip { Speed.IsNormal: false } fast)
-        {
-            after = PlanTrimAtSpeed(fast, edge, startFrame, endFrame, targetFrame, others, sourceDuration, rate, minFrames);
-        }
-        else if (edge == ClipEdge.End)
-        {
-            var hi = others.Where(c => c.TimelineStart >= clip.TimelineEnd)
-                .Select(c => c.TimelineStart.ToNearestFrame(rate))
-                .DefaultIfEmpty(long.MaxValue).Min();
-            if (sourceDuration is { } duration)
-                hi = Math.Min(hi, startFrame + FrameMath.MaxWholeFrames(duration - sourceIn, rate));
-
-            var newEnd = Math.Clamp(targetFrame, startFrame + minFrames, Math.Max(startFrame + minFrames, hi));
-            after = ClipState.FromFrames(startFrame, newEnd, sourceIn, rate);
-        }
-        else
-        {
-            var lo = others.Where(c => c.TimelineEnd <= clip.TimelineStart)
-                .Select(c => c.TimelineEnd.ToNearestFrame(rate))
-                .DefaultIfEmpty(0).Max();
-            if (sourceDuration is not null)
-                lo = Math.Max(lo, FrameMath.CeilingFrame(clip.TimelineStart - sourceIn, rate)); // keeps SourceIn ≥ 0
-
-            var newStart = Math.Clamp(targetFrame, Math.Min(lo, endFrame - minFrames), endFrame - minFrames);
-            var newStartTime = MediaTime.FromFrame(newStart, rate);
-
-            // Video/audio: the in-point follows the edge so the content under the
-            // playhead doesn't shift. Images have no source timing: SourceIn stays 0.
-            var newSourceIn = sourceDuration is not null ? sourceIn + (newStartTime - clip.TimelineStart) : sourceIn;
-            after = ClipState.FromFrames(newStart, endFrame, newSourceIn, rate);
-        }
+        var after = TrimmedState(clip, track, edge, edgeTime.ToNearestFrame(rate), minFrames, rate);
 
         if (after == ClipState.Capture(clip)) return (null, after, null);
 
@@ -418,6 +386,58 @@ public sealed class TimelineEditService : ITimelineEditService
         return (plan, after, null);
     }
 
+    /// <summary>The timing of <paramref name="clip"/> with <paramref name="edge"/> trimmed to
+    /// <paramref name="targetFrame"/>, clamped to the neighbours on <paramref name="track"/>, the source (start ≥ 0, its
+    /// end) and <paramref name="minFrames"/> — the trim's one rule (D008 / D022 / D025), shared by the edge drag and the
+    /// trim to the playhead (D030 §5).</summary>
+    private ClipState TrimmedState(Clip clip, Track track, ClipEdge edge, long targetFrame, long minFrames, FrameRate rate) =>
+        TrimmedState(clip, ClipState.Capture(clip), track.Clips.Where(c => c != clip).ToList(), edge, targetFrame, minFrames, rate);
+
+    /// <summary>The same rule for <paramref name="clip"/> at the timing <paramref name="state"/> (planned, or its own) and
+    /// the neighbours <paramref name="others"/> — none for a ripple, whose neighbours move instead of limiting it.</summary>
+    private ClipState TrimmedState(Clip clip, ClipState state, IReadOnlyList<Clip> others, ClipEdge edge, long targetFrame,
+        long minFrames, FrameRate rate)
+    {
+        var startFrame = state.Start.ToNearestFrame(rate);
+        var endFrame = state.End.ToNearestFrame(rate);
+        var sourceIn = clip is MediaBackedClip ? state.SourceIn : MediaTime.Zero;
+        var sourceDuration = SourceDuration(clip);
+
+        ClipState after;
+        if (clip is MediaBackedClip && !state.Speed.IsNormal)
+        {
+            after = PlanTrimAtSpeed(state, edge, startFrame, endFrame, targetFrame, others, sourceDuration, rate, minFrames);
+        }
+        else if (edge == ClipEdge.End)
+        {
+            var hi = others.Where(c => c.TimelineStart >= state.End)
+                .Select(c => c.TimelineStart.ToNearestFrame(rate))
+                .DefaultIfEmpty(long.MaxValue).Min();
+            if (sourceDuration is { } duration)
+                hi = Math.Min(hi, startFrame + FrameMath.MaxWholeFrames(duration - sourceIn, rate));
+
+            var newEnd = Math.Clamp(targetFrame, startFrame + minFrames, Math.Max(startFrame + minFrames, hi));
+            after = ClipState.FromFrames(startFrame, newEnd, sourceIn, rate);
+        }
+        else
+        {
+            var lo = others.Where(c => c.TimelineEnd <= state.Start)
+                .Select(c => c.TimelineEnd.ToNearestFrame(rate))
+                .DefaultIfEmpty(0).Max();
+            if (sourceDuration is not null)
+                lo = Math.Max(lo, FrameMath.CeilingFrame(state.Start - sourceIn, rate)); // keeps SourceIn ≥ 0
+
+            var newStart = Math.Clamp(targetFrame, Math.Min(lo, endFrame - minFrames), endFrame - minFrames);
+            var newStartTime = MediaTime.FromFrame(newStart, rate);
+
+            // Video/audio: the in-point follows the edge so the content under the
+            // playhead doesn't shift. Images have no source timing: SourceIn stays 0.
+            var newSourceIn = sourceDuration is not null ? sourceIn + (newStartTime - state.Start) : sourceIn;
+            after = ClipState.FromFrames(newStart, endFrame, newSourceIn, rate);
+        }
+        return after;
+    }
+
     /// <summary>
     /// Trim of a clip at a speed other than 1× (D022), in the same one rounding rule
     /// (<see cref="SpeedTiming.SourceLength"/>): the end edge sets SourceOut = SourceIn +
@@ -426,13 +446,13 @@ public sealed class TimelineEditService : ITimelineEditService
     /// the rounding. Limits: neighbours, <paramref name="minFrames"/> (one frame, or a dissolve's part), SourceIn ≥ 0
     /// and the end of the source.
     /// </summary>
-    private static ClipState PlanTrimAtSpeed(MediaBackedClip clip, ClipEdge edge, long startFrame, long endFrame, long targetFrame,
-        List<Clip> others, MediaTime? sourceDuration, FrameRate rate, long minFrames)
+    private static ClipState PlanTrimAtSpeed(ClipState clip, ClipEdge edge, long startFrame, long endFrame, long targetFrame,
+        IReadOnlyList<Clip> others, MediaTime? sourceDuration, FrameRate rate, long minFrames)
     {
         var speed = clip.Speed;
         if (edge == ClipEdge.End)
         {
-            var hi = others.Where(c => c.TimelineStart >= clip.TimelineEnd)
+            var hi = others.Where(c => c.TimelineStart >= clip.End)
                 .Select(c => c.TimelineStart.ToNearestFrame(rate))
                 .DefaultIfEmpty(long.MaxValue).Min();
             if (sourceDuration is { } duration)
@@ -443,7 +463,7 @@ public sealed class TimelineEditService : ITimelineEditService
             return ClipState.FromFrames(startFrame, newEnd, clip.SourceIn, sourceOut, speed, rate);
         }
 
-        var lo = others.Where(c => c.TimelineEnd <= clip.TimelineStart)
+        var lo = others.Where(c => c.TimelineEnd <= clip.Start)
             .Select(c => c.TimelineEnd.ToNearestFrame(rate))
             .DefaultIfEmpty(0).Max();
         lo = Math.Max(lo, startFrame - SpeedTiming.FramesFor(clip.SourceIn, speed, rate)); // keeps SourceIn ≥ 0
@@ -592,6 +612,334 @@ public sealed class TimelineEditService : ITimelineEditService
         return TimelineEditResult.Ok(ids, TransitionNote(plan));
     }
 
+    // --- Trim to the playhead (D030 §5) -----------------------------------------------
+
+    public TimelineEditResult TrimToPlayhead(IReadOnlyCollection<Guid> clipIds, ClipEdge edge, MediaTime playhead, bool ripple)
+    {
+        if (clipIds.Count == 0)
+            return TimelineEditResult.Fail("Select the clip to trim: the playhead must be inside it.");
+
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, clipIds, out var selected) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+        var rate = plan.Rate;
+        var at = playhead.ToNearestFrame(rate);
+
+        // Q1: only selected clips with the playhead's frame strictly inside; the others are left as they are (as Split).
+        var eligible = selected
+            .Where(c => c.TimelineStart.ToNearestFrame(rate) < at && at < c.TimelineEnd.ToNearestFrame(rate))
+            .ToList();
+        if (eligible.Count == 0) return TimelineEditResult.Fail("The playhead is not inside the selected clip(s).");
+        if (CheckEditable(plan, eligible) is { } editError) return TimelineEditResult.Fail(editError);
+
+        var trimmed = new List<Clip>();
+        var keptAtCut = 0;      // plain trims not made: the trimmed edge is a dissolve's cut (Q4)
+        var stopped = 0;        // trims stopped where a dissolve needs the clip's frames (Q4 / Q6)
+        long? playheadAfter = null;
+        foreach (var clip in eligible)
+        {
+            var track = plan.TrackOf(clip);
+            var start = clip.TimelineStart.ToNearestFrame(rate);
+            var end = clip.TimelineEnd.ToNearestFrame(rate);
+            var wanted = edge == ClipEdge.Start ? at - start : end - at;
+
+            // The frames each dissolve keeps inside the clip (D025 §5 zone fit). A plain trim opens the trimmed edge, so a
+            // dissolve there could not stay: that edge is not trimmed (Q4). A ripple keeps the trimmed edge's cut — its
+            // dissolve stays and keeps its part; the far edge's dissolve always does (Q6).
+            if (ripple)
+            {
+                // The ripple trim's one planner, shared with the Shift + edge drag (D030 §5 / §6).
+                var (changed, wasStopped, rippleError) = PlanRippleTrim(plan, clip, track, edge, at);
+                if (rippleError is not null) return TimelineEditResult.Fail($"Can't trim: {rippleError}");
+                if (wasStopped) stopped++;
+                if (!changed) continue;
+                if (edge == ClipEdge.Start) playheadAfter = Math.Min(playheadAfter ?? long.MaxValue, start);   // Q5
+                trimmed.Add(clip);
+                continue;
+            }
+
+            var (partAtStart, partAtEnd) = DissolveParts(track, clip, rate);
+            long allowed;
+            if ((edge == ClipEdge.Start ? partAtStart : partAtEnd) > 0)
+            {
+                allowed = 0;
+                keptAtCut++;
+            }
+            else
+            {
+                var minFrames = Math.Max(1, edge == ClipEdge.Start ? partAtEnd : partAtStart);
+                allowed = Math.Min(wanted, Math.Max(0, end - start - minFrames));
+                if (allowed < wanted) stopped++;
+            }
+            if (allowed == 0) continue;
+
+            // The edge trim's own rule (source mapping, speed — D022) to the allowed frame; inward, so no neighbour limits it.
+            plan.Update(clip, track, TrimmedState(clip, track, edge, edge == ClipEdge.Start ? start + allowed : end - allowed, 1, rate));
+            trimmed.Add(clip);
+        }
+
+        var notes = Join(
+            keptAtCut == 0 ? null : edge == ClipEdge.Start
+                ? "Not trimmed where a dissolve is on the clip's start: Shift+Q trims it and keeps the dissolve."
+                : "Not trimmed where a dissolve is on the clip's end: Shift+W trims it and keeps the dissolve.",
+            stopped == 0 ? null : DissolveStopNote);
+        if (trimmed.Count == 0) return TimelineEditResult.Fail(notes!);
+
+        if (Validate(plan) is { } error) return TimelineEditResult.Fail($"Can't trim: {error}");
+
+        Commit(plan, (ripple, edge) switch
+        {
+            (false, ClipEdge.Start) => "Trim Start to Playhead",
+            (false, _) => "Trim End to Playhead",
+            (true, ClipEdge.Start) => "Ripple Trim Start to Playhead",
+            _ => "Ripple Trim End to Playhead"
+        });
+        return new TimelineEditResult
+        {
+            Success = true,
+            ClipIds = trimmed.Select(c => c.Id).ToList(),
+            Message = Join(notes, TransitionNote(plan)),
+            Playhead = playheadAfter is { } frame ? MediaTime.FromFrame(frame, rate) : null
+        };
+    }
+
+    /// <summary>Ripple trim of <paramref name="clip"/>'s <paramref name="edge"/> to <paramref name="targetFrame"/> (D030 §5 /
+    /// §6), planned into <paramref name="plan"/> — the one rule of Shift+Q / Shift+W and the Shift + edge drag. The clip
+    /// keeps its start; its length changes by whole frames; every clip of its track that starts at or after its old end
+    /// moves by the same frames (other tracks, markers, the playhead stay). Inward the clip keeps the frames its dissolves
+    /// need (Q4 / Q6: <c>Stopped</c>); outward the source limits it (the edge trim's clamp) and a dissolve on the dragged
+    /// edge keeps its source handle (D025 §4, <c>Stopped</c>). <c>Changed</c> false: nothing to do (the same frame, or no
+    /// room). The caller checks the lock and validates the plan.</summary>
+    private (bool Changed, bool Stopped, string? Error) PlanRippleTrim(EditPlan plan, Clip clip, Track track, ClipEdge edge, long targetFrame)
+    {
+        var rate = plan.Rate;
+        var start = clip.TimelineStart.ToNearestFrame(rate);
+        var end = clip.TimelineEnd.ToNearestFrame(rate);
+        var change = edge == ClipEdge.End ? targetFrame - end : start - targetFrame;    // frames added (> 0) or removed (< 0)
+        if (change == 0) return (false, false, null);
+
+        long frames;
+        bool stopped;
+        if (change < 0)
+        {
+            var (partAtStart, partAtEnd) = DissolveParts(track, clip, rate);
+            var minFrames = Math.Max(1, partAtStart + partAtEnd);
+            frames = -Math.Min(-change, Math.Max(0, end - start - minFrames));
+            stopped = frames != change && minFrames > 1;    // the dissolve stopped it, not the one-frame minimum
+        }
+        else
+        {
+            // A dissolve on the dragged edge needs the source beyond it: A after its end, B before its start (D025 §4).
+            var needed = 0L;
+            foreach (var t in track.Transitions)
+            {
+                var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(t.Duration, rate));
+                if (edge == ClipEdge.End && t.LeftClipId == clip.Id) needed = afterCut;
+                if (edge == ClipEdge.Start && t.RightClipId == clip.Id) needed = beforeCut;
+            }
+            var room = long.MaxValue;
+            if (needed > 0)
+            {
+                var state = ClipState.Capture(clip);
+                var handle = edge == ClipEdge.End
+                    ? DissolveHandles.After(clip, state, AssetOf(clip), rate)
+                    : DissolveHandles.Before(clip, state, AssetOf(clip), rate);
+                room = Math.Max(0, handle - needed);
+            }
+            frames = Math.Min(change, room);
+            stopped = frames != change;
+        }
+        if (frames == 0) return (false, stopped, null);
+
+        // The edge trim's own rule (source mapping, speed — D022) with no neighbour: they move. For the start, in the
+        // clip's own frame of reference — moved right by the frames to add, trimmed back to its start, then moved so that
+        // it starts where it did (the move's rule) — so the trimmed timeline never runs before 0.
+        ClipState after;
+        if (edge == ClipEdge.End)
+        {
+            after = TrimmedState(clip, ClipState.Capture(clip), Array.Empty<Clip>(), edge, end + frames, 1, rate);
+        }
+        else
+        {
+            var added = Math.Max(0, frames);
+            var moved = ClipState.Capture(clip);
+            if (added > 0)
+            {
+                var (shifted, moveError) = ShiftedState(clip, moved, added, rate);
+                if (moveError is not null) return (false, stopped, moveError);
+                moved = shifted;
+            }
+            after = TrimmedState(clip, moved, Array.Empty<Clip>(), edge, start + Math.Max(0, -frames), 1, rate);
+            var back = start - after.Start.ToNearestFrame(rate);
+            if (back != 0)
+            {
+                var (shifted, backError) = ShiftedState(clip, after, back, rate);
+                if (backError is not null) return (false, stopped, backError);
+                after = shifted;
+            }
+        }
+        frames = after.End.ToNearestFrame(rate) - end;                                   // after the source clamp
+        if (frames == 0) return (false, stopped, null);
+
+        plan.Update(clip, track, after);
+        foreach (var later in track.Clips.Where(c => c != clip && c.TimelineStart.ToNearestFrame(rate) >= end))
+        {
+            if (PlanShift(plan, later, track, frames) is { } shiftError)
+                return (false, stopped, shiftError);
+        }
+        return (true, stopped, null);
+    }
+
+    public TimelineEditResult RippleTrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime)
+    {
+        var (plan, stopped, error) = PlanRippleTrimOf(clipId, edge, edgeTime);
+        if (error is not null) return TimelineEditResult.Fail(error);
+        if (plan is null) return stopped ? TimelineEditResult.Fail(DissolveStopNote) : TimelineEditResult.Unchanged();
+
+        Commit(plan, edge == ClipEdge.Start ? "Ripple Trim Start" : "Ripple Trim End");
+        return TimelineEditResult.Ok(new[] { clipId }, Join(stopped ? DissolveStopNote : null, TransitionNote(plan)));
+    }
+
+    public RippleTrimPreview? PreviewRippleTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime)
+    {
+        var (plan, stopped, error) = PlanRippleTrimOf(clipId, edge, edgeTime);
+        if (error is not null) return null;
+        if (plan is null) return new RippleTrimPreview(new Dictionary<Guid, (MediaTime, MediaTime)>(), stopped);
+        var clips = plan.AffectedTracks.SelectMany(plan.EffectiveClips)
+            .Where(c => c.State != ClipState.Capture(c.Clip))
+            .ToDictionary(c => c.Clip.Id, c => (c.State.Start, c.State.End));
+        return new RippleTrimPreview(clips, stopped);
+    }
+
+    /// <summary>The ripple drag's plan (validated), or null when nothing would change; refused on a locked track.</summary>
+    private (EditPlan? Plan, bool Stopped, string? Error) PlanRippleTrimOf(Guid clipId, ClipEdge edge, MediaTime edgeTime)
+    {
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return (null, false, resolveError);
+        if (CheckEditable(plan, clips) is { } editError) return (null, false, editError);
+
+        var clip = clips[0];
+        var (changed, stopped, error) = PlanRippleTrim(plan, clip, plan.TrackOf(clip), edge, edgeTime.ToNearestFrame(plan.Rate));
+        if (error is not null) return (null, stopped, $"Can't trim: {error}");
+        if (!changed) return (null, stopped, null);
+        if (Validate(plan) is { } invalid) return (null, stopped, $"Can't trim: {invalid}");
+        return (plan, stopped, null);
+    }
+
+    private const string DissolveStopNote = "The trim stopped where a dissolve needs the clip's frames.";
+
+    // --- Slip (D030 §7) ------------------------------------------------------------------
+
+    public TimelineEditResult SlipClip(Guid clipId, long frames)
+    {
+        var (plan, applied, note, error) = PlanSlipOf(clipId, frames);
+        if (error is not null) return TimelineEditResult.Fail(error);
+        if (plan is null) return note is null ? TimelineEditResult.Unchanged() : TimelineEditResult.Fail(note);
+
+        Commit(plan, "Slip Clip");
+        return TimelineEditResult.Ok(new[] { clipId }, note);
+    }
+
+    public SlipPreview? PreviewSlip(Guid clipId, long frames)
+    {
+        var (plan, applied, note, error) = PlanSlipOf(clipId, frames);
+        if (error is not null) return null;
+        var clip = (MediaBackedClip)Sequence.VideoTracks.Concat(Sequence.AudioTracks).SelectMany(t => t.Clips).First(c => c.Id == clipId);
+        var state = SlippedState(clip, applied, Settings.FrameRate);
+        return new SlipPreview(state.SourceIn, state.SourceOut, applied, note);
+    }
+
+    /// <summary>The slip's plan (validated), the frames it applies and the note of a limit; Plan null when nothing
+    /// changes.</summary>
+    private (EditPlan? Plan, long Applied, string? Note, string? Error) PlanSlipOf(Guid clipId, long frames)
+    {
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return (null, 0, null, resolveError);
+        var clip = clips[0];
+        if (clip is not (VideoClip or AudioClip)) return (null, 0, null, "Only video and audio clips can be slipped.");
+        if (CheckEditable(plan, clips) is { } editError) return (null, 0, null, editError);
+        if (SourceDuration(clip) is not { } duration) return (null, 0, null, "The clip's media has no known length, so it can't be slipped.");
+
+        var media = (MediaBackedClip)clip;
+        var rate = plan.Rate;
+        var track = plan.TrackOf(clip);
+
+        // A dissolve keeps the source it needs beyond the clip (D025 §4): before its start (B), after its end (A).
+        long needBefore = 0, needAfter = 0;
+        foreach (var t in track.Transitions)
+        {
+            var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(t.Duration, rate));
+            if (t.RightClipId == clip.Id) needBefore = beforeCut;
+            if (t.LeftClipId == clip.Id) needAfter = afterCut;
+        }
+        var asset = AssetOf(clip);
+        bool SourceOk(long k)
+        {
+            var st = SlippedState(media, k, rate);
+            return st.SourceIn >= MediaTime.Zero && st.SourceOut <= duration;
+        }
+        bool DissolveOk(long k)
+        {
+            var st = SlippedState(media, k, rate);
+            return (needBefore == 0 || DissolveHandles.Before(clip, st, asset, rate) >= needBefore) &&
+                   (needAfter == 0 || DissolveHandles.After(clip, st, asset, rate) >= needAfter);
+        }
+
+        // Δ(k) grows with k, so each limit is monotone and the allowed slips are an interval around 0: its ends by binary
+        // search, no further than the whole source.
+        var bound = SpeedTiming.FramesFor(duration, media.Speed, rate) + 2;
+        long Reach(int direction, Func<long, bool> ok)
+        {
+            if (!ok(0)) return 0;
+            long lo = 0, hi = bound;
+            while (lo < hi)
+            {
+                var mid = lo + (hi - lo + 1) / 2;
+                if (ok(direction * mid)) lo = mid;
+                else hi = mid - 1;
+            }
+            return direction * lo;
+        }
+        bool Allowed(long k) => SourceOk(k) && DissolveOk(k);
+        var applied = Math.Clamp(frames, Reach(-1, Allowed), Reach(+1, Allowed));
+
+        string? note = null;
+        if (applied != frames)
+        {
+            var sourceEnd = Reach(frames > 0 ? 1 : -1, SourceOk);
+            note = applied != sourceEnd ? "The slip stopped where a dissolve needs the clip's source."
+                : frames > 0 ? "The slip stopped at the end of the source."
+                : "The slip stopped at the start of the source.";
+        }
+        if (applied == 0) return (null, 0, note, null);
+
+        // Only the source mapping changes: the clip's timing, speed, fades and dissolves stay (D030 §7).
+        plan.Update(clip, track, SlippedState(media, applied, rate));
+        if (Validate(plan) is { } invalid) return (null, 0, null, $"Can't slip: {invalid}");
+        return (plan, applied, note, null);
+    }
+
+    /// <summary><paramref name="clip"/>'s timing slipped by <paramref name="frames"/> timeline frames (D030 §7, D022):
+    /// <c>SourceIn</c> moves by the start trim's own amount — 1× <c>FromFrame(S + k) − FromFrame(S)</c>, another speed
+    /// <c>±SourceLength(|k|)</c> — and <c>SourceOut</c> by the same, so the source width, the frame count and D022's
+    /// invariant are unchanged; start, duration and speed stay. Positive: later source content.</summary>
+    private static ClipState SlippedState(MediaBackedClip clip, long frames, FrameRate rate)
+    {
+        var state = ClipState.Capture(clip);
+        if (frames == 0) return state;
+        MediaTime delta;
+        if (clip.Speed.IsNormal)
+        {
+            var start = clip.TimelineStart.ToNearestFrame(rate);
+            delta = MediaTime.FromFrame(start + frames, rate) - MediaTime.FromFrame(start, rate);
+        }
+        else
+        {
+            var length = SpeedTiming.SourceLength(Math.Abs(frames), clip.Speed, rate);
+            delta = frames > 0 ? length : MediaTime.Zero - length;
+        }
+        return state with { SourceIn = state.SourceIn + delta, SourceOut = state.SourceOut + delta };
+    }
+
     // --- Delete / tracks -------------------------------------------------------
 
     public TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds)
@@ -678,6 +1026,30 @@ public sealed class TimelineEditService : ITimelineEditService
         }
 
         _undoRedo.Execute(new NotifyingCommand(new SetTrackOrderCommand(changes), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok();
+    }
+
+    // --- Track state (D030 §4) ------------------------------------------------------------
+    // Mute and hide are monitoring state, so a locked track takes them too (D030 Q13); the playback snapshot reads the
+    // flags, so the Preview and the export follow without any other change.
+
+    public TimelineEditResult SetTrackMuted(Guid trackId, bool muted) => SetTrackState(trackId, TrackStateFlag.Muted, muted);
+
+    public TimelineEditResult SetTrackHidden(Guid trackId, bool hidden)
+    {
+        if (FindTrack(trackId) is { Type: TrackType.Audio } track)
+            return TimelineEditResult.Fail($"Track {track.Name} is an audio track: it has no picture to hide.");
+        return SetTrackState(trackId, TrackStateFlag.Hidden, hidden);
+    }
+
+    public TimelineEditResult SetTrackLocked(Guid trackId, bool locked) => SetTrackState(trackId, TrackStateFlag.Locked, locked);
+
+    private TimelineEditResult SetTrackState(Guid trackId, TrackStateFlag flag, bool value)
+    {
+        if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail("That track no longer exists.");
+        if (SetTrackStateCommand.Get(track, flag) == value) return TimelineEditResult.Unchanged();
+
+        _undoRedo.Execute(new NotifyingCommand(new SetTrackStateCommand(track, flag, value), _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok();
     }
 

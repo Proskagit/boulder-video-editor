@@ -16,6 +16,7 @@ internal sealed class AudioMixer : IAudioSampleSource
 {
     private MixEntry[] _entries = Array.Empty<MixEntry>();
     private long _writeSample;
+    private long _endSample = long.MaxValue;
 
     /// <summary>Timeline sample of the next frame the device will pull.</summary>
     public long WritePosition => Interlocked.Read(ref _writeSample);
@@ -25,6 +26,10 @@ internal sealed class AudioMixer : IAudioSampleSource
 
     /// <summary>Publishes the readers to mix from now on (UI thread).</summary>
     public void SetEntries(MixEntry[] entries) => Volatile.Write(ref _entries, entries);
+
+    /// <summary>Samples at or after <paramref name="sample"/> are silence — the end of a loop range (D030 §8), so the
+    /// buffered sound never runs past Out; <see cref="long.MaxValue"/>: no end (UI thread).</summary>
+    public void SetEnd(long sample) => Interlocked.Exchange(ref _endSample, sample);
 
     public void Read(Span<float> interleaved)
     {
@@ -40,6 +45,10 @@ internal sealed class AudioMixer : IAudioSampleSource
         }
 
         AudioMix.Clamp(interleaved);
+
+        var end = Interlocked.Read(ref _endSample);
+        if (end < until)
+            interleaved[(int)(Math.Max(0, end - from) * AudioFormat.Channels)..].Clear();
 
         Interlocked.Add(ref _writeSample, frames);
     }

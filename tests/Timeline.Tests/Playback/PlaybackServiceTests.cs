@@ -279,6 +279,24 @@ public sealed class PlaybackServiceTests : IAsyncLifetime
         Assert.Equal(1, _decoder.OpenCount(image.FilePath));
     }
 
+    [Fact]
+    public async Task StillImage_EnteredBySeekMidSpan_IsOpenedAtItsFilesStart()
+    {
+        // Phase 15 Step 15.9: a seek 4 s into an image clip asks the decoder for the still's own point (its file's start),
+        // never the timeline's sample point — far into a long clip that point lies beyond any preroll and found no frame.
+        var image = _f.Image("logo.png");
+        _decoder.Add(image.FilePath, new FakeSource(Rate, 1));
+        Assert.True(_f.Service.AddClip(image.Id).Success); // 5 s
+        Publish();
+
+        await _service.SeekAsync(F(100));
+
+        Assert.Equal(0, Number(await SettleAsync()));
+        var requests = _decoder.Requests.Where(r => r.FilePath == image.FilePath).ToList();
+        Assert.NotEmpty(requests);
+        Assert.All(requests, r => Assert.Equal(SourceFrameSelector.StillImage, r.FirstSamplePoint));
+    }
+
     // --- Unavailable media and decoder failures -------------------------------------------------------
 
     [Fact]

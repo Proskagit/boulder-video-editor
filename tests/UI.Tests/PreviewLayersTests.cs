@@ -70,6 +70,8 @@ public sealed class PreviewLayersTests : IAsyncLifetime
         public bool IsAudioAvailable => inner.IsAudioAvailable;
         public MediaTime Position => inner.Position;
         public MediaTime Duration => inner.Duration;
+        public MediaTime PlaybackEnd => inner.PlaybackEnd;
+        public void SetPlaybackRange(PlaybackRange? range) => inner.SetPlaybackRange(range);
         public event EventHandler? StateChanged { add => inner.StateChanged += value; remove => inner.StateChanged -= value; }
         public void UpdateSnapshot(PlaybackSnapshot snapshot) => inner.UpdateSnapshot(snapshot);
         public void Play() => inner.Play();

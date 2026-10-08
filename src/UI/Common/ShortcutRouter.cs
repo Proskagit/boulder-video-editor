@@ -81,6 +81,15 @@ public static class ShortcutRouter
             Key.C when ctrl => timeline.CopyCommand,
             Key.V when ctrl => timeline.PasteCommand,
             Key.D when ctrl => timeline.DuplicateCommand,
+            // Phase 15 Step 15.4 (D030 §5, Q2): trim the selected clips to the playhead — Q the start, W the end; with
+            // Shift the ripple variant. Exact modifiers, so Shift+Q never also runs Q.
+            Key.Q when none => timeline.TrimStartToPlayheadCommand,
+            Key.W when none => timeline.TrimEndToPlayheadCommand,
+            Key.Q when shift => timeline.RippleTrimStartToPlayheadCommand,
+            Key.W when shift => timeline.RippleTrimEndToPlayheadCommand,
+            // Phase 15 Step 15.7 (D030 §8): In / Out at the playhead (Ctrl+I stays Import); no key clears the range.
+            Key.I when none => timeline.SetInCommand,
+            Key.O when none => timeline.SetOutCommand,
             _ => null
         };
     }
