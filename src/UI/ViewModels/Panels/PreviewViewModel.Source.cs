@@ -101,6 +101,7 @@ public sealed partial class PreviewViewModel
 
     private void LoadSourceSnapshot(MediaTime position)
     {
+        if (_released) return;   // the window is closing: playback is being released
         var asset = _source!.Asset!;
         var grid = _source.Grid!;
         Layers = ImmutableArray<LayerPicture>.Empty;

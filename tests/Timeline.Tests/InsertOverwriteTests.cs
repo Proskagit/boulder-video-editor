@@ -152,6 +152,23 @@ public class InsertOverwriteTests
         f.AssertValid();
     }
 
+    [Fact]
+    public void Insert_at_the_start_moves_every_clip_and_insert_in_a_gap_moves_only_the_later_ones()
+    {
+        var (f, video, clips) = Track(100);
+        Ok(f.Service.AddClip(video.Id, null, F(300)));                 // a gap 100–300, then a clip
+        var far = f.V1.Clips.Single(c => c != clips[0]);
+
+        Ok(f.Service.InsertClip(video.Id, F(0), F(30), F(0)));         // at the start: everything moves
+        Assert.Equal((30, 130), Frames(clips[0]));
+        Assert.Equal((330, 830), Frames(far));
+
+        Ok(f.Service.InsertClip(video.Id, F(0), F(20), F(200)));       // in the gap: only the later clip
+        Assert.Equal((30, 130), Frames(clips[0]));
+        Assert.Equal((350, 850), Frames(far));
+        f.AssertValid();
+    }
+
     [Theory]
     [InlineData(20)]
     [InlineData(10)]
@@ -279,6 +296,24 @@ public class InsertOverwriteTests
         Assert.Equal("A dissolve was removed: its clips no longer meet.", result.Message);
         Assert.Empty(f.V1.Transitions);
         Assert.Equal((0, 80), Frames(clips[0]));
+        Assert.Equal((130, 200), Frames(clips[1]));
+        f.AssertValid();
+    }
+
+    [Fact]
+    public void Overwrite_with_an_edge_inside_a_dissolve_zone_that_covers_its_cut_removes_the_dissolve()
+    {
+        // D031 "Refined in Step 16.7": the cut is gone, so the dissolve goes with the note — the trim rule (D025 §5); only
+        // an edit that would leave a surviving dissolve without its frames is refused (the next test).
+        var (f, video, clips) = Track(100, 100);
+        Ok(f.Service.AddTransition(clips[0].Id, clips[1].Id, F(20)));   // zone 90–110
+
+        var result = f.Service.OverwriteClip(video.Id, F(0), F(38), F(92));            // [92, 130)
+
+        Ok(result);
+        Assert.Equal("A dissolve was removed: its clips no longer meet.", result.Message);
+        Assert.Empty(f.V1.Transitions);
+        Assert.Equal((0, 92), Frames(clips[0]));
         Assert.Equal((130, 200), Frames(clips[1]));
         f.AssertValid();
     }

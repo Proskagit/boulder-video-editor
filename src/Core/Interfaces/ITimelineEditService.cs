@@ -109,8 +109,9 @@ public interface ITimelineEditService
 
     /// <summary>Overwrite (D031 SQ9): as <see cref="InsertClip"/>, but nothing moves — the new clip covers
     /// [<paramref name="at"/>, at + length) of the track: a clip inside it is removed, a clip partly inside is trimmed to
-    /// it (the trim rule), a clip covering it is split at its start and trimmed at its end. Refused the same way, and when
-    /// an edit point falls inside a dissolve's zone.</summary>
+    /// it (the trim rule), a clip covering it is split at its start and trimmed at its end. A dissolve whose cut the range
+    /// covers is removed with a note (the trim rule, D025 §5); refused as Insert is, and when the split or a trim would cut
+    /// into the frames a dissolve that stays needs.</summary>
     TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null);
 
     TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds);

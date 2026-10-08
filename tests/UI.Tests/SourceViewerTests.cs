@@ -67,19 +67,20 @@ public sealed class SourceViewerTests : IAsyncLifetime
     private PreviewViewModel Preview => _vm.Preview;
     private static MediaTime F(long frame) => MediaTime.FromFrame(frame, Rate);
 
-    private MediaAsset Video(int frames, string name = "v.mp4", bool sound = false)
+    private MediaAsset Video(int frames, string name = "v.mp4", bool sound = false, FrameRate? rate = null)
     {
+        var r = rate ?? Rate;
         var asset = new MediaAsset
         {
             FilePath = Path.Combine(Path.GetTempPath(), "aive-ui-tests", Guid.NewGuid().ToString("N"), name),
             Kind = MediaKind.Video, AnalysisStatus = MediaAnalysisStatus.Completed,
             Metadata = new MediaMetadata
             {
-                Duration = F(frames), FrameRate = Rate, AvgFrameRate = Rate, Width = 64, Height = 36, DisplayWidth = 64, DisplayHeight = 36,
+                Duration = MediaTime.FromFrame(frames, r), FrameRate = r, AvgFrameRate = r, Width = 64, Height = 36, DisplayWidth = 64, DisplayHeight = 36,
                 AudioCodec = sound ? "aac" : null, AudioSampleRate = sound ? 48000 : null
             }
         };
-        _decoder.Add(asset.FilePath, new FakeSource(Rate, frames));
+        _decoder.Add(asset.FilePath, new FakeSource(r, frames));
         _projects.AddMediaAssets(new[] { asset });
         return asset;
     }
@@ -263,6 +264,60 @@ public sealed class SourceViewerTests : IAsyncLifetime
         Assert.Equal(100, _source.Grid.Frames);
     }
 
+    [Fact]
+    public void A_frame_rate_lock_regrids_the_open_source_and_keeps_its_times()
+    {
+        var source = Video(100, "source.mp4");                       // 25 fps, the project still provisional
+        Assert.Null(Preview.OpenSource(source));
+        _source.SetIn(F(10));                                        // 0.4 s
+        _source.SetOut(F(49));                                       // after 1.96 s → 2 s
+        _source.SetPosition(F(10));
+
+        var other = Video(90, "thirty.mp4", rate: FrameRate.Fps30);
+        Assert.True(_edit.AddClip(other.Id).Success);                // locks 30 fps: the source is now on the project grid
+
+        Assert.Equal(FrameRate.Fps30, _source.Grid!.Rate);           // SQ12
+        Assert.Equal(120, _source.Grid.Frames);
+        Assert.Equal((12L, 60L), _source.Frames);                    // the same times on the new grid
+        Assert.Equal(MediaTime.FromFrame(12, FrameRate.Fps30), _source.Position);
+        Assert.True(Preview.IsSourceMode);
+    }
+
+    [Fact]
+    public void An_asset_that_leaves_the_project_loses_its_source_range()
+    {
+        var source = Video(100, "source.mp4");
+        Assert.Null(Preview.OpenSource(source));
+        _source.SetIn(F(10));
+        Assert.True(_source.Range.IsSet);
+
+        Assert.True(_edit.RemoveMedia(source.Id).Success);
+        _undo.Undo();                                                // the asset is back
+        Assert.Contains(source, _projects.Current.MediaAssets);
+
+        Assert.Null(Preview.OpenSource(source));
+        Assert.False(_source.Range.IsSet);                           // SQ3: dropped when it left
+    }
+
+    [Fact]
+    public void A_double_click_opens_a_video_in_Source_and_adds_an_image_to_the_timeline()
+    {
+        var video = Video(100, "source.mp4");
+        var image = new MediaAsset { FilePath = @"C:\x\logo.png", Kind = MediaKind.Image, AnalysisStatus = MediaAnalysisStatus.Completed };
+        _projects.AddMediaAssets(new[] { image });
+        var browser = _vm.MediaBrowser;
+
+        browser.Activate(browser.Items.Single(i => i.Asset == video));
+        Assert.True(Preview.IsSourceMode);
+        Assert.Same(video, _source.Asset);
+        Assert.Empty(_projects.Current.Timeline.VideoTracks[0].Clips);
+
+        browser.SelectedItem = browser.Items.Single(i => i.Asset == image);
+        browser.Activate(browser.SelectedItem);
+        Assert.Contains(_projects.Current.Timeline.VideoTracks[0].Clips, c => c is ImageClip);
+        Assert.Same(video, _source.Asset);                           // the image never opens in Source
+    }
+
     // --- 16.5: the keys by mode (SQ4) ------------------------------------------------------------------------------------
 
     [Fact]
@@ -354,6 +409,9 @@ public sealed class SourceViewerTests : IAsyncLifetime
         _vm.Toolbar.UndoCommand.Execute(null);
         Assert.Single(v1.Clips);
         Assert.Equal(F(250), clip.TimelineEnd);
+        _vm.Toolbar.RedoCommand.Execute(null);
+        Assert.Equal(3, v1.Clips.Count);
+        Assert.Equal((F(50), F(80)), (inserted.TimelineStart, inserted.TimelineEnd));
     }
 
     [Fact]
