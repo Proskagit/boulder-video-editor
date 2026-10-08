@@ -106,7 +106,9 @@ Decision:
 - Any timeline change marks the project dirty; a save point (clean after undo) is Phase 6.
 
 Status: Accepted. Refined by D022 (Phase 7 Step 9): speeds other than 1× are editable; move, trim,
-split and re-grid follow D022's timing rule.
+split and re-grid follow D022's timing rule. Refined by D032 (Phase 17): the `VideoClip` with its own sound stays
+the base model; its sound can be unlinked into an `AudioClip` of the same asset, and a video clip and an audio clip can be
+explicitly linked.
 
 ---
 
@@ -3569,9 +3571,195 @@ Final state at the Phase 16 closeout (Step 16.7, 2026-10-08): every rule of §2 
 gates and the manual plan in `progress.md` and `docs/PHASE16_MANUAL_TEST_PLAN.md`; `project.json` v3 unchanged (a Phase 15
 save opened and saved byte for byte), the default export byte for byte as Phase 15's.
 
+After the merge (recorded at Step 17.2, 2026-10-08): Phase 16 accepted by the product owner; PR #17 (head `f5a1ec2`)
+merged into `main` as `79e4e78` (its tree identical to `f5a1ec2`); CI green on the pull request (run 37776542826) and on
+`main` (run 37778354822). The Phase 17 baseline on `79e4e78`: `dotnet build --no-incremental -warnaserror` Release and
+Debug 0 / 0; the full suite 2894 passed, 2 skipped (the 4K scenes), 0 failed. The D side of §3 is taken by D032.
+
 Status: Accepted (2026-10-08, product owner: variant A, the plan, SQ1–SQ16, the A ↔ D boundary). **Phase 16 complete**
-(Step 16.7 closeout, 2026-10-08); not yet merged (push / pull request on the product owner's command). Steps and
-acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 16 — Source viewer & three-point editing: steps".
+(Step 16.7 closeout, 2026-10-08), accepted and merged (PR #17, `79e4e78`). Steps and acceptance criteria:
+`docs/DEVELOPMENT_PLAN.md`, "Phase 16 — Source viewer & three-point editing: steps".
+
+---
+
+## D032 — Phase 17: audio editing — unlink / link, J / L cuts, sound-only insert, audio crossfades
+
+Date: 2026-10-08
+
+Decision (product owner, 2026-10-08, after the Phase 17 pre-flight; variant A — the D side of D031 §3, without a separate
+stabilization phase before it). Phase 17 lets the user edit the sound of a recording apart from its picture: unlink a
+video clip's sound into an independent audio clip, link a video clip and an audio clip explicitly, make J / L cuts,
+insert or overwrite only the sound of a source, and cross-fade audio clips. Every project change is one undoable command
+through `ITimelineEditService`, built on `EditPlan` and the existing rules; the sound of the Preview and of the export comes
+from the same Core rules, so they stay identical by construction. `project.json` becomes `formatVersion` **4**.
+
+Context (pre-flight and pre-implementation audit, the code at `79e4e78`, `main` after the merge of PR #17):
+- Phases 0–16 merged; build 0 / 0; 2894 tests pass, 2 skip (the 4K scenes); CI green on PR #17 and on `main`.
+- A video file is one `VideoClip` carrying its own sound (`Volume`, `IsMuted`, the clip's fades) — D008, D031 SQ15.
+  `AudioClip` (`MediaAssetId`, source range, `Speed`, `Volume`, `IsMuted`, fades) exists and lives on audio tracks only
+  (`TimelineValidator.IsCompatible`); it is created only from audio assets (`TimelineEditService.CreateClip`) and the
+  serializer refuses an `AudioClip` of another asset kind (`ProjectSerializer.KindMatches`).
+- Playback and export already accept the sound of a video asset in an `AudioClip`: `PlaybackSnapshotBuilder.AudioStatus`
+  takes audio and video assets; a `VideoClip` with an audio stream adds an `AudioSpan` (on any video track, hidden or not;
+  none on a muted track). Both the Preview's `AudioSpanReader` / `AudioMixer` and the export's `ExportAudioReader` place and
+  mix by the shared `AudioPlacement`, `AudioFadeEnvelope` and `AudioMix` (D013, D023, D025 §2).
+- Transitions (D025): `Track.Transitions` with `LeftClipId` / `RightClipId`; `TransitionRules` (zone, `MinFrames`,
+  `MaxFrames`) refuses any transition on an audio track ("Only video tracks have transitions."); `DissolveHandles` gives
+  every non-`VideoClip` unlimited handles; `EditPlan.ReconcileTransitions` / `ClampFades` and the service's `Validate`
+  keep transitions and fades consistent for every edit. A dissolve's sound is a hard cut (D025 PO-5).
+- Fades already exist on every clip kind, audio clips included (D025 §1; Inspector `HasFades`); audio split and trim
+  already exist for `AudioClip` (the same planners as for video).
+- No link concept exists anywhere (model, `EditPlan`, serializer, UI). Every edit planner works per clip on its own track,
+  except the ripple edits (target track only, D027 §2, D030 §3, D031 SQ6).
+- The UI's "Dissolve" command adds `DefaultDissolveDuration` (1 s) or the longest that fits (`MaxTransitionFrames`).
+  Gestures: Shift + edge = ripple trim, Alt + body = slip, Ctrl = toggle select; Alt + edge is free.
+- Audit result: **no contradiction** between the approved model below and the architecture. The model change is additive
+  (two clip properties, one transition type, one relaxed kind rule); links fit `EditPlan` the way transitions do (planned,
+  reconciled, validated before one command). The two oversized files (`TimelineEditService.cs` 1819 lines,
+  `TimelineViewModel.cs` 1317 lines) are extended with `partial` files as in Phase 16, without a split for its own sake.
+  The two ROADMAP stabilization items ("the In / Out update order", "deep-seek decode coverage") are not defined anywhere
+  in the documents and no concrete defect or dependency of Phase 17 on them was found: they are not Phase 17 tasks.
+
+### 1. Scope
+
+Unlink Audio; Link / Unlink; J-cut and L-cut; sound-only Insert and Overwrite; audio split / trim; audio fade in / out;
+audio crossfade; Undo / Redo; locked-track protection; Preview ↔ export parity; the ripple of linked clips.
+
+### 2. Rules decided by the product owner (2026-10-08)
+
+- L1 — `project.json` v4. A v3 (v1 / v2) project opens without any change of meaning and is saved as v4; v4 → v3 is not
+  supported (a v3 build refuses a v4 file with the existing "saved by a newer version" message, D014).
+- L2 — The base model stays D008 / D031 SQ15: a video file is one `VideoClip` with its own sound. The timeline is **not**
+  remodelled so that every video clip is a `VideoClip` + `AudioClip` pair.
+- L3 — **Unlink Audio** moves a video clip's sound into an independent `AudioClip` (the same asset); afterwards the two
+  are independent.
+- L4 — **Link** sets an explicit link between an existing video clip and an existing audio clip; **Unlink** removes it;
+  after Unlink the clips are fully independent.
+- L5 — Explicitly linked clips are edited as one where an edit touches both; a ripple keeps their relative offset; an
+  edit that would have to change a **locked** partner is refused as a whole — no partial application and no fallback to
+  another track.
+- L6 — Audio crossfade: 1 s by default, linear (unless that contradicted the architecture — it does not, §3 R9), limited
+  by the available handles and clip edges, built on the existing transition rules and `EditPlan` reconciliation, not on
+  parallel rules.
+- L7 — Out of scope: ducking, keyframes, speed ramps, waveform work, a full mixer, volume automation; a separate
+  stabilization phase (only local refactoring needed by Phase 17); the Phase 16 notes for later (the Source message for an
+  unanalysed asset, the duration text cut at 1024 px). The real audio device check R10 (D030) is part of the Phase 17
+  manual plan.
+
+### 3. Technical rules (derived from the audit; binding for the steps)
+
+- R1 — Model (Core): `Clip.LinkId` (`Guid?`, only on `VideoClip` / `AudioClip`): the clips sharing a `LinkId` form a link;
+  a link is exactly **one `VideoClip` and one `AudioClip` on different tracks**. `VideoClip.IsAudioDetached` (`bool`):
+  the clip's own sound was unlinked — the clip produces no sound; its `Volume` / `IsMuted` are kept but unused.
+  `AudioClip` may refer to a **video asset with an audio stream**. A new transition type `"crossfade"`, allowed only on
+  audio tracks; `"crossDissolve"` stays video-only. Both are D017-style typed properties, not `Clip.Effects`.
+- R2 — Format v4 (`ProjectSerializer`): `linkId` written only when set, `isAudioDetached` only when true, so a v3 project
+  saved again as v4 differs only in `formatVersion` (tested byte for byte apart from that number). Loading v4 validates
+  (damaged = the whole file refused, D014): a link of exactly one video and one audio clip on different tracks; an audio
+  clip refers to an audio or a video asset (the audio stream is not checked on load — media may change; a clip whose
+  source has no sound plays silence, as a `VideoClip` without sound does); crossfades by the D025 zone rules on audio
+  tracks. v1–v3 have no links, no detached sound, no audio
+  transitions and no audio clip of a video asset (refused as now).
+- R3 — Unlink Audio (one undo step): for a `VideoClip` with an audio stream, not detached, not linked, on an unlocked
+  track: a new `AudioClip` with the same asset, timing, source range, speed, volume, mute and fades is placed on an audio
+  track (AQ8), the video clip gets `IsAudioDetached = true`. The output does not change: the export before and after is
+  byte for byte the same (tested), except where the video track was muted (AQ8). Refused (with a message) for a clip
+  without sound, a detached or linked clip, a locked track or no possible target.
+- R4 — Link / Unlink (one undo step each): Link takes the selection (AQ9); Unlink clears the `LinkId` of both. A link
+  never changes timing. `IsAudioDetached` is not touched by Link / Unlink: a linked pair made from an unlinked recording
+  stays one picture + one sound.
+- R5 — Links in edits: every planner that changes a linked clip adds its partner by the link rule of the edit (AQ1–AQ7)
+  into the same `EditPlan`; a partner on a locked track refuses the whole edit (L5); the partner's own track is checked by
+  the usual validation (overlap, frame grid, source range), so a partner that cannot follow refuses the edit with a
+  message. `EditPlan` gains link reconciliation like `ReconcileTransitions`: a link whose partner the plan removes (Delete
+  of one side, track delete, media removal, Overwrite) is cleared in the same step, so no half link is ever saved. Copy /
+  Paste / Duplicate: both partners copied → the copies get a new shared `LinkId`; one side alone → pasted unlinked.
+  A frame-rate re-grid re-grids each partner by D007 (their offset may round to the new grid).
+- R6 — J / L cuts: on unlinked clips by the ordinary trims; on a linked pair by trimming one side alone (AQ3). No new
+  timing rule: the trim, ripple trim and slip rules of D008 / D022 / D030 apply unchanged to the clip that changes.
+- R7 — Sound-only Insert / Overwrite (D031 §3 "source patching", sound side only): the source range of a video asset with
+  sound goes in as an `AudioClip` of that asset onto the target audio track (D031 SQ8 with the kind "audio"), by the D031
+  SQ6 / SQ9 / SQ10 / SQ13 rules; how the user asks for it — AQ10. A picture-only insert stays out (D031 §3's "insert
+  without sound" is not in L-scope).
+- R8 — Audio fades: the existing D025 §2 fades of `AudioClip`s, unchanged; Phase 17 covers them for audio clips of video
+  assets and for unlinked sound (tests), and suppresses a fade on an edge that has a crossfade (as PO-8 does for a
+  dissolve).
+- R9 — Audio crossfade (`"crossfade"`, audio tracks): on the cut `c` between A and B of one audio track (A's end is B's
+  start), `F ≥ TransitionRules.MinFrames` frames of the project rate, the D025 zone `[c − ⌊F/2⌋, c + ⌈F/2⌉)`; A plays on
+  past its end and B starts early from their **source handles**, computed by the D025 §4 rule now applied to `AudioClip`
+  too (`DissolveHandles`; audio clips had unlimited handles only because they had no transitions). Over the zone's
+  timeline samples `[Z0, Z1)` (`AudioPlacement`'s `⌈t · 48000 / 10⁷⌉`), `M = Z1 − Z0`, sample `k`: B's gain factor
+  `ramp(k − Z0, M) = (k − Z0 + 1)/(M + 1)`, A's `1 − ramp(k − Z0, M)` — linear, the two factors sum to 1 (no equal-power
+  curve, as D025 §2). It multiplies the clip's volume / mute and fade factor. Extended samples use the unchanged
+  placement rule (`k + d` at 1×, D022 otherwise). Add / Remove / Duration and every edit's reconciliation reuse the D025
+  §5 rules and the `EditPlan` transition machinery; the UI's default is 1 s or the longest that fits (`MaxTransitionFrames`).
+  Video-track dissolves keep their hard sound cut (D025 PO-5 unchanged).
+- R10 — Snapshot and mix (Core, shared by the Preview and the export): a `VideoClip` with `IsAudioDetached` adds no
+  `AudioSpan`; an `AudioSpan` gains its crossfade extension and ramps; `AudioPlacement` / `AudioFadeEnvelope` / `AudioMix`
+  evaluate them for both readers in the same order of operations. A crossfade change is a timing change for the readers
+  (the extended range), not a presentation-only change.
+- R11 — Relink (D026) counts the audio clips of an asset: a candidate without an audio stream for an asset whose sound is
+  used by audio clips is reported among the warnings.
+- R12 — Detached sound in the UI: a detached video clip shows no audio group in the Inspector and no waveform; the timeline
+  marks linked clips. Selection, playhead, In / Out stay session state (D015).
+- R13 — Every new command: one undo step, exact on Undo / Redo, dirty by the save point (D015), refused on a locked track
+  and while an export runs (`EditingLock`), a refused or unchanged edit leaving no undo step; no ffmpeg in an edit.
+
+### 4. Open questions (proposals; the product owner's answers are needed before the step that uses them)
+
+- AQ1 — Selection: clicking a linked clip selects its partner too; Ctrl + click toggles the pair. *Proposed: yes.*
+- AQ2 — Delete / Ripple Delete of a linked clip removes its partner too (Ripple Delete closes up each track). *Proposed:
+  yes.*
+- AQ3 — Trim of a linked clip's edge moves the partner's same edge by the same frames (clamped as one: the smaller
+  possible change for both); **Alt + edge drag** trims only that clip — the way to make a J / L cut on a linked pair. Q / W
+  (trim to the playhead) act on the selection, the partner included (AQ1), each edge to the playhead. *Proposed: yes.*
+- AQ4 — Ripple (Insert, Ripple Delete, Close Gap, ripple trim): the partners of the clips a ripple moves move by the same
+  frames; the other clips of the partners' tracks do not move (no ripple across all tracks, D030 §3, D031 SQ6); a partner
+  that would then overlap a clip refuses the whole edit with a message. *Proposed: yes.*
+- AQ5 — Split of a linked clip also splits its partner when it covers the split point; the two right parts form a new
+  link. *Proposed: yes.*
+- AQ6 — A speed change of a linked clip applies the same speed to its partner (one step, refused as a whole if one can't
+  take it). *Proposed: yes.*
+- AQ7 — Move: the partner moves by the same frames in time; dragging one clip to another track changes only that clip's
+  track. Slip slips both by the same source frames. *Proposed: yes.*
+- AQ8 — Unlink Audio's target: the first audio track (A1, A2, … in order) free over the clip's range, otherwise a new audio
+  track added in the same undo step. The new audio clip is muted when the video track was muted (the output stays
+  unchanged); unmuting it is the user's choice. *Proposed: yes.*
+- AQ9 — Link takes exactly one video clip and one audio clip of the selection, on different tracks, both unlocked and not
+  yet linked; any offset and any assets. Unlink Audio, Link and Unlink are buttons of the timeline toolbar (no new
+  shortcut keys); for a selection with a linked clip the toolbar offers Unlink, for a video clip with sound Unlink Audio.
+  *Proposed: yes.*
+- AQ10 — Sound-only Insert / Overwrite: a **"Sound only"** toggle on the Source bar (session state, shown for a video asset
+  with sound); `,` / `.` and the buttons then insert the sound as an `AudioClip` on the target audio track (SQ8, kind
+  audio). Alternative: the target follows the selected track's kind. *Proposed: the toggle.*
+
+### 5. Constraints
+
+- Unchanged in substance: D006 / D007 / D009 / D022 (grid, rate, frame selection, speed), D010–D013 (playback, the audio
+  clock), D014 / D016 except the format version, D015, D017, D018 / D023 (composition, export), D025 (fades, dissolves on
+  video tracks), D026, D027, D028 (settings, L1-c), D030, D031 (refined only by R7 and AQ4 for linked partners).
+- The Preview ↔ Export parity suite, the L1-c criteria and every existing expected value unchanged, except the format
+  version tests that pin `formatVersion` 3 on save (changed to 4 with the reason in their step) and the rule tests that
+  pin "no transitions on audio tracks" (replaced by the crossfade rule).
+- A v3 project of Phase 16 opens, renders and exports exactly as before (export byte for byte) and is saved as v4
+  differing only in `formatVersion`.
+- New controls checked in the real app at 1024 and 1440 px.
+
+### 6. Non-goals
+
+L7; equal-power or other crossfade curves; crossfades on video tracks' sound; a picture-only insert; links of more than
+two clips or of images / text; sync markers or "out of sync" offsets display; merging an unlinked sound back into its
+video clip; ripple across all tracks; keyframes, AI, HDR.
+
+Consequences: `Clip.LinkId`, `VideoClip.IsAudioDetached`, the `"crossfade"` type; `ProjectSerializer` v4; `TransitionRules`
+and `DissolveHandles` per track type; `EditPlan` link reconciliation; new `ITimelineEditService` commands (Unlink Audio,
+Link, Unlink) and the link rule in the existing planners (new code in `partial` files); `PlaybackSnapshotBuilder`,
+`AudioSpan`, `AudioPlacement`, `AudioFadeEnvelope` / `AudioMix` for the crossfade; the Source bar's sound-only toggle; the
+timeline toolbar buttons, link marks, linked selection, Alt + edge trim; the manual plan `docs/PHASE17_MANUAL_TEST_PLAN.md`.
+
+Status: Accepted (2026-10-08, product owner: variant A, L1–L7). R1–R13 are the pre-implementation audit's reading of the
+architecture (Step 17.2). AQ1–AQ10 **open** — proposals awaiting the product owner. Steps and acceptance criteria:
+`docs/DEVELOPMENT_PLAN.md`, "Phase 17 — Audio editing: steps".
 
 ---
 

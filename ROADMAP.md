@@ -59,6 +59,21 @@ session state (D015).
 
 ## Current
 
+Phase 17 — Audio editing, branch `feat/phase-17-audio-editing` (from `79e4e78`, `main` after the merge of PR #17). Scope
+(product owner, 2026-10-08, DECISIONS.md D032 — variant A of the Phase 17 pre-flight, the D side of D031 §3): Unlink Audio
+(a video clip's sound becomes an independent `AudioClip` of the same asset), Link (an explicit link of a video clip and an
+audio clip, edited as one where an edit touches both), J / L cuts, sound-only Insert / Overwrite from the Source viewer,
+audio split / trim / fades, audio crossfades on audio tracks (1 s by default, linear, limited by the handles), the ripple of
+linked clips; every edit one undo step, refused as a whole when a locked partner would change; Preview ↔ export parity;
+`project.json` **v4** (v3 opens unchanged in meaning and is saved as v4; no v4 → v3). The base model stays D008's
+`VideoClip` with its own sound. Out: ducking, keyframes, speed ramps, waveform work, a mixer, volume automation, a separate
+stabilization phase. Step 17.1 (pre-flight) and Step 17.2 (sync after the merge, D032, the Phase 17 steps, the manual
+plan's skeleton) done; Steps 17.3+ start after the product owner's answers to D032's open questions AQ1–AQ10. Steps and
+acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 17 — Audio editing: steps"; manual plan
+`docs/PHASE17_MANUAL_TEST_PLAN.md`.
+
+## Previous
+
 Phase 16 — Source viewer & three-point editing, branch `feat/phase-16-source-viewer` (from `1bdeb95`, `main` after the
 merge of PR #16). Scope (product owner, 2026-10-08, DECISIONS.md D031): a Source mode of the Preview panel playing one
 video or audio asset, a source In / Out as unsaved session state, Insert (`,`) and Overwrite (`.`) of the source range at
@@ -67,11 +82,11 @@ video file stay one clip — unlinking, J / L cuts and audio crossfades stay out
 v3. **Phase 16 complete** on its branch: Steps 16.1–16.6 done (`392db82`, `cb50435`, `22d2ef4`), Step 16.7 closeout on
 2026-10-08 — the real-app run (one focus defect found and fixed, `ac0e3ac`), the regression against the Phase 15 build
 (a Phase 15 save opened and saved byte for byte, the default export byte for byte), an independent review and its
-corrections (`2216865`), the gates green (passed 2893, skipped 2, failed 0). Not yet merged: push and pull request on the product owner's command.
+corrections (`2216865`), the gates green (passed 2894, skipped 2, failed 0 after the second review's test). Accepted; PR
+#17 merged into `main` as `79e4e78` (2026-10-08), CI green on the pull request (run 37776542826) and on `main` (run
+37778354822).
 Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 16 — Source viewer & three-point editing: steps"; manual
 plan `docs/PHASE16_MANUAL_TEST_PLAN.md`.
-
-## Previous
 
 Phase 15 — Editing tools, branch `feat/phase-15-editing-tools` (from `7200976`, `main` after the merge of PR #14). Scope
 (product owner decisions of 2026-10-07, DECISIONS.md D030): track controls — mute, hide, lock (15.3); trim to the
@@ -254,8 +269,8 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 16 — see `docs/DEVELOPMENT_PLAN.md`. Candidates named in the Phase 16 pre-flight, not
-decided: audio editing (unlinking, J / L cuts, crossfades — the D side of D031 §3; ducking after keyframes); a
+None planned after Phase 17 — see `docs/DEVELOPMENT_PLAN.md`. Candidates named in the Phase 16 / 17 pre-flights, not
+decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`, the In / Out update order, deep-seek decode
 coverage); text styling and dragging objects in the Preview; keyframes; timeline polish (marker labels, marquee,
 filmstrips); freeze frame / reverse / speed ramps. Left out by the product owner: AI features, HDR / colour management

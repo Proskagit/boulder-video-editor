@@ -2,16 +2,39 @@
 
 ## Current phase
 
-Phase 16 — Source viewer & three-point editing: branch `feat/phase-16-source-viewer` (from `1bdeb95`, `main` after the
-merge of PR #16). Scope approved by the product owner on 2026-10-08 (DECISIONS.md D031, variant A of the Phase 16
-pre-flight): a Source mode of the Preview panel that plays one video or audio asset, a source In / Out as unsaved session
-state, Insert (`,`) and Overwrite (`.`) of the source range at the timeline playhead on the target track, the A ↔ D
-boundary (no unlink, J / L cuts or audio crossfades). `project.json` stays v3 with no new property. The product owner
-approved the plan and SQ1–SQ16 and asked for the whole phase without a stop between its steps (no push, pull request or
-merge without a separate command). Steps and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 16 — Source viewer & three-point
-editing: steps"; manual plan `docs/PHASE16_MANUAL_TEST_PLAN.md`.
+Phase 17 — Audio editing: branch `feat/phase-17-audio-editing` (from `79e4e78`, `main` after the merge of PR #17). Scope
+approved by the product owner on 2026-10-08 (DECISIONS.md D032, variant A of the Phase 17 pre-flight, L1–L7): Unlink
+Audio, Link / Unlink, J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio
+tracks (1 s by default, linear, limited by the handles), linked clips edited as one (the ripple keeping their offset, a
+locked partner refusing the whole edit), Preview ↔ export parity, `project.json` v4 (v3 opens unchanged in meaning, saved
+as v4; no v4 → v3). The base model stays D008's `VideoClip` with its own sound. No separate stabilization phase; only the
+local refactoring Phase 17 needs. No push, pull request or merge without a separate command. Steps and acceptance:
+`docs/DEVELOPMENT_PLAN.md` "Phase 17 — Audio editing: steps"; manual plan `docs/PHASE17_MANUAL_TEST_PLAN.md`.
 
-### Phase 16 — Source viewer & three-point editing (complete; closeout Step 16.7, not yet merged)
+### Phase 17 — Audio editing (in progress)
+
+Steps (D032): 17.1 pre-flight · 17.2 sync after the merge, audit & scope formalization · 17.3 model & format v4 · 17.4
+Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fades · 17.7 sound-only Insert / Overwrite ·
+17.8 UI · 17.9 closeout.
+
+- Step 17.1 done (2026-10-08) — pre-flight on `main` = `79e4e78` (PR #17 merged; tree = `f5a1ec2`), no change in the
+  repository apart from the local `main` (fast-forward `1bdeb95` → `79e4e78`). CI green: PR #17 run 37776542826, `main`
+  after it 37778354822. Baseline: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; `dotnet test`
+  2894 passed, 2 skipped (the two 4K scenes), 0 failed (Core 526, Timeline 697, Project 426, UI 646, Export 101,
+  Rendering 58, Video 322, ExportEndToEnd 118 + 2). An independent phase-reviewer pre-flight: the merge sound, the
+  documents stale on the merge (fixed in 17.2), variants A–F mapped to the code; the product owner chose A with L1–L7.
+- Step 17.2 done (2026-10-08) — documentation only. The pre-implementation audit of the audio / `VideoClip` / `EditPlan`
+  model found **no contradiction** with the approved model (D032 "Context"): the playback and export layers already play
+  an `AudioClip` of a video asset (`PlaybackSnapshotBuilder.AudioStatus`) and share `AudioPlacement` / `AudioFadeEnvelope`
+  / `AudioMix`; what blocks it is the serializer's kind rule and `CreateClip`; transitions are refused on audio tracks only
+  by `TransitionRules` and `DissolveHandles` gives audio clips unlimited handles; fades and split / trim of audio clips
+  already exist; links fit `EditPlan` like transitions (planned, reconciled, validated). The ROADMAP items "In / Out update
+  order" and "deep-seek decoding" are not defined anywhere and nothing in Phase 17 depends on them — not tasks. Written:
+  the Phase 16 merge (ROADMAP, README, docs/README, DEVELOPMENT_PLAN, D031 "After the merge", this file), D032 (L1–L7,
+  R1–R13, the open questions AQ1–AQ10 with proposals), the D008 refinement pointer, the Phase 17 steps, the manual plan's
+  skeleton. Steps 17.3+ wait for the product owner's answers to AQ1–AQ10 (17.3 needs none of them).
+
+### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 
 Steps (D031): 16.1 pre-flight · 16.2 sync after the merge & scope formalization · 16.3 insert / overwrite core · 16.4 the
 source playback · 16.5 the source viewer UI · 16.6 insert / overwrite from the UI · 16.7 closeout.
@@ -3918,10 +3941,10 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-08: Phases 0–15 are complete and merged into `main` (PR #15 → `a3793a4`); the Preview fix of the playhead parked
-past the end merged as PR #16 (`1bdeb95`, 2856 passed, 2 skipped). Phase 16 (source viewer & three-point editing, D031)
-complete on `feat/phase-16-source-viewer` (closeout Step 16.7); push and pull request on the product owner's command. Open items: see "Known issues" (the real-device audio status check; the
-watched `Project.Tests` hang; no timeline virtualization, import not undoable).
+2026-10-08: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`, CI green on the pull request and on
+`main`; 2894 passed, 2 skipped). Phase 17 (audio editing, D032) in progress on `feat/phase-17-audio-editing`: Steps 17.1–17.2
+done, AQ1–AQ10 awaiting the product owner. Open items: see "Known issues" (the real-device audio status check — now R10 of
+the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -3964,6 +3987,7 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 14 (accepted; PR #14 merged as `7200976` on 2026-10-07, CI green on the first attempt)
 - Phase 15 (accepted; PR #15 merged as `a3793a4` on 2026-10-08, CI green on the first attempt; the follow-up Preview fix
   PR #16 merged as `1bdeb95`)
+- Phase 16 (accepted; PR #17 merged as `79e4e78` on 2026-10-08, CI green on the pull request and on `main`)
 
 ## Known issues
 
@@ -4024,7 +4048,7 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   "Playing without sound…" (D024 "Left as they are", Step 9.10; deferred by D029 §3). Fixed in Phase 15 Step 15.7 (D030 §9,
   Q15): the message goes when sound is available again while playing, and a later loss is reported again (automated;
   the real-device check NOT RUN at the Phase 15 closeout — it needs a physical audio-output interruption; for the product
-  owner).
+  owner; included in the Phase 17 manual plan as R10, D032 L7).
 - Text clips: a new text clip took `FontSize` 48 on any canvas (an observation from Phase 13; D029 §3). Fixed in Phase 15
   Step 15.8: `48 × canvasHeight / 1080` (D030 §9).
 - Preview (observed at Phase 15 Step 15.8, not changed): after adding a clip with the playhead beyond the sequence's

@@ -18,6 +18,9 @@ This directory contains:
   In / Out range, text size and audio status), completed per step and run at its closeout (Step 15.9)
 - `PHASE16_MANUAL_TEST_PLAN.md` — manual checks of Phase 16 (Source viewer, source In / Out, Insert / Overwrite),
   completed per step and run at its closeout (Step 16.7)
+- `PHASE17_MANUAL_TEST_PLAN.md` — manual checks of Phase 17 (audio editing: unlink / link, J / L cuts, sound-only
+  Insert / Overwrite, audio fades and crossfades, `project.json` v4, the real audio device check R10), completed per step
+  and run at its closeout
 
 Agent-oriented project context lives in the repository root:
 

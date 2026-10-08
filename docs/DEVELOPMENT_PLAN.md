@@ -76,14 +76,20 @@ and runs cleanly.
       blame-hang runs green, R1–R9 run (R10's device part not run), the still-image decode fix found by R2; accepted;
       PR #15 merged into `main` as `a3793a4` (2026-10-08), CI green on the first attempt on the pull request and on
       `main`; the follow-up Preview fix PR #16 merged as `1bdeb95`)*
-- [ ] **Phase 16 — Source viewer & three-point editing.** A Source mode of the Preview with a source In / Out (session
+- [x] **Phase 16 — Source viewer & three-point editing.** A Source mode of the Preview with a source In / Out (session
       state) and Insert / Overwrite of that range at the timeline playhead on the target track; picture and sound of a
       video file stay one clip (unlinking and other audio editing left to a later phase). Scope, steps and acceptance
       criteria: section below and DECISIONS.md D031 (product owner decisions, 2026-10-08). *(branch
       `feat/phase-16-source-viewer`, from `1bdeb95`; Steps 16.2–16.6 `392db82` … `22d2ef4`; closeout 16.7 done
       2026-10-08 — build 0 / 0 Release and Debug, passed 2893, skipped 2, failed 0, three blame-hang runs and heavy green, the manual plan and the
-      Phase 15 regression in the real app, an independent review and its corrections; not yet merged — push / pull
-      request on the product owner's command; checked after the product owner's acceptance)*
+      Phase 15 regression in the real app, an independent review and its corrections; accepted; PR #17 merged into `main`
+      as `79e4e78` (2026-10-08), CI green on the pull request and on `main`)*
+- [ ] **Phase 17 — Audio editing.** Unlink a video clip's sound into an independent audio clip, link a video clip and an
+      audio clip explicitly (edited as one, the ripple keeping their offset, a locked partner refusing the whole edit),
+      J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio tracks; Preview ↔
+      export parity; `project.json` v4. Scope, steps and acceptance criteria: section below and DECISIONS.md D032 (product
+      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.2 done; 17.3+
+      after the answers to AQ1–AQ10; checked after the product owner's acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -1032,12 +1038,96 @@ Out of scope: D031 §3 (the D side) and §5.
 - QG: an end-to-end UI test (Source → In / Out → `,` / `.` → the timeline, Undo, Redo); an export test: a timeline built
   with Insert / Overwrite exports byte for byte like the same timeline built with the existing commands.
 
-### 16.7 — Final verification & closeout *(done 2026-10-08 — results in `progress.md` and `docs/PHASE16_MANUAL_TEST_PLAN.md`)*
+### 16.7 — Final verification & closeout *(done 2026-10-08 — results in `progress.md` and `docs/PHASE16_MANUAL_TEST_PLAN.md`; PR #17 merged as `79e4e78`, CI green on the pull request (run 37776542826) and on `main` (run 37778354822))*
 - QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
   `--blame-hang`; the heavy scenes once with `AIVE_HEAVY_TESTS=1`; `git diff --check` clean; an independent phase review.
 - PR: `docs/PHASE16_MANUAL_TEST_PLAN.md` in the real app, with the regression (a Phase 15 project round trip, export
   unchanged, Phase 15 tools, no ffmpeg).
 - Documentation: ARCHITECTURE, D031 refinements and status, ROADMAP, README, `progress.md`, this plan's checkbox.
+
+## Phase 17 — Audio editing: steps (D032)
+
+Formalized in Step 17.2 (product owner decisions of 2026-10-08: variant A, L1–L7; the technical rules R1–R13 from the
+pre-implementation audit). The normative rules are D032; labels as in Phases 9–16 (**PR**, **QG**, **M**, **Impl**). Push,
+pull request and merge only on a separate command. A step that depends on an open question (AQ1–AQ10) starts only after
+the product owner has answered it.
+
+Goal: edit the sound of a recording apart from its picture — unlink, link, J / L cuts, sound-only insert, crossfades —
+with the Preview and the export identical and every edit one undo step (D032 §1).
+
+Gates for every step 17.3–17.8 (QG): `dotnet build` 0 errors / 0 warnings (`-warnaserror`); the full `dotnet test` green
+(only the two 4K heavy scenes skipped); the Preview ↔ Export parity suite, the L1-c criteria (D028 §6) and every existing
+expected value unchanged, except the D032 §5 exceptions changed in their step with the reason; `project.json` v4 per
+D032 R2 (a Phase 16 v3 project opens, renders and exports exactly as before and saves as v4 differing only in
+`formatVersion`); every new project command one undo step, exact on Undo / Redo, dirty / clean by the save point (D015),
+refused on a locked track — a locked **partner** included (L5) — and while an export runs (`EditingLock`), a refused or
+unchanged command leaving no undo step; no ffmpeg in an edit; each rule of D032 §3 that the step touches covered by a test
+that a mutation of the rule would fail; new controls checked in the real app at 1024 and 1440 px;
+`docs/PHASE17_MANUAL_TEST_PLAN.md` completed for the step; `progress.md` updated.
+
+Out of scope: D032 L7 and §6.
+
+### 17.1 — Pre-flight *(done 2026-10-08)*
+### 17.2 — Sync after the merge, audit and scope formalization *(done 2026-10-08)*
+- Documentation only: the Phase 16 / PR #17 merge recorded (ROADMAP, README, this plan, D031, `progress.md`), the
+  pre-implementation audit of the audio / `VideoClip` / `EditPlan` model, D032, this section, the manual plan's skeleton.
+
+### 17.3 — Model and format v4
+- PR: D032 R1, R2: `Clip.LinkId`, `VideoClip.IsAudioDetached`, `AudioClip` of a video asset, the `"crossfade"` type on
+  audio tracks; `project.json` v4 written, v1–v4 read; v4 load validation (links, kinds, crossfade zones).
+- Impl: `TimelineValidator`, `TransitionRules` (type per track kind) and `DissolveHandles` (D025 §4 for `AudioClip`)
+  updated; nothing renders the new properties yet beyond R10's "detached → no sound" if needed by the tests.
+- QG: `Project.Tests` — a v3 file (every Phase 10–16 property) opens unchanged in meaning and saves as v4 differing only
+  in `formatVersion`; v4 round trip tick for tick; damaged v4 files (a link of one clip, two video clips, the same track,
+  a crossfade on a video track, a dissolve on an audio track, an audio clip of an image) refused; a v4 file refused by
+  the "newer version" message is unchanged for v5. The tests pinning `formatVersion` 3 on save changed to 4 (D032 §5).
+
+### 17.4 — Unlink Audio, Link, Unlink: core and sound
+- PR: D032 R3, R4, R10 (detached sound), R13; AQ8, AQ9.
+- Impl: new commands in a `partial` file of `TimelineEditService`; `EditPlan` link reconciliation (R5) introduced here;
+  `PlaybackSnapshotBuilder`: a detached `VideoClip` adds no `AudioSpan`.
+- QG: `Timeline.Tests` (every refusal, Undo / Redo exact, the target track and the new-track case, mute copy);
+  `ExportEndToEnd.Tests`: the export before and after Unlink Audio byte for byte (1×, a non-1× speed, fades, a dissolve on
+  the video track).
+
+### 17.5 — Linked editing
+- PR: D032 R5, R6; AQ1–AQ7: move, move to a track, trim and the one-side trim, Q / W, ripple trim, slip, split, speed,
+  delete, ripple delete, close gap, Insert / Overwrite ripple partners, copy / paste / duplicate, track delete and media
+  removal clearing links; a locked partner refuses the whole edit; a partner that can't follow refuses with a message.
+- Impl: the link rule added to the existing planners through one shared helper; no planner's rule for a single clip
+  changes (the existing tests stay as they are).
+- QG: `Timeline.Tests` per edit — linked vs. unlinked results compared clip for clip with the same edit applied to each
+  clip; the locked partner for every edit kind; J / L cut shapes; Undo / Redo exact; mutations of the partner rule caught.
+
+### 17.6 — Audio crossfade and audio fades
+- PR: D032 R8, R9, R10: Add / Remove / Duration of a crossfade on an audio cut (1 s or the longest that fits), every edit's
+  reconciliation (D025 §5), the mix of the zone in the Preview and the export, a fade suppressed on a crossfade edge.
+- Impl: `AudioSpan` extension + ramps, `AudioPlacement` / `AudioFadeEnvelope` / `AudioMix` shared by `AudioSpanReader` and
+  `ExportAudioReader`; the reader windows honour the extended range.
+- QG: `Core.Tests` (the ramp, the sample bounds, the zone split), `Timeline.Tests` (edits and reconciliation as the D025
+  dissolve tests), `UI.Tests` (playback mixer through the seam), `ExportEndToEnd.Tests` — the exported PCM of a crossfade
+  equals the reference formula sample for sample, and the Preview's mix of the same zone equals the export's; audio fades
+  of an audio clip of a video asset.
+
+### 17.7 — Sound-only Insert / Overwrite
+- PR: D032 R7; AQ10.
+- QG: `Timeline.Tests` (the D031 SQ6 / SQ9 shapes for an `AudioClip` of a video asset, partners rippled per AQ4);
+  `UI.Tests` (the Source bar toggle, the target track); an export test: a sound-only insert exports like the same timeline
+  built with Unlink Audio + delete of the picture.
+
+### 17.8 — UI
+- PR: D032 R12, the crossfade UI of R9, AQ1, AQ3, AQ9: the Unlink Audio / Link / Unlink buttons, link marks on the
+  clips, the linked selection, Alt + edge drag, the "Dissolve" command adding a crossfade on an audio cut, the Inspector
+  for a crossfade and for a detached video clip, no waveform on a detached video clip.
+- QG: `UI.Tests` for the view models and gesture modifiers; real app at 1024 / 1440 px.
+
+### 17.9 — Final verification & closeout
+- QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
+  `--blame-hang`; the heavy scenes once with `AIVE_HEAVY_TESTS=1`; `git diff --check` clean; an independent phase review.
+- PR: `docs/PHASE17_MANUAL_TEST_PLAN.md` in the real app, with the regression (a Phase 16 project opened and saved as v4,
+  the default export byte for byte, the Phase 15–16 tools, no ffmpeg) and R10 with a real audio device unplugged and
+  plugged back (D030).
+- Documentation: ARCHITECTURE, D032 refinements and status, ROADMAP, README, `progress.md`, this plan's checkbox.
 
 ## Architectural rules that must hold at every phase
 
