@@ -83,7 +83,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
         _logger = logger;
 
         _playback.StateChanged += (_, _) => { IsPlaying = _playback.State == PlaybackState.Playing; _needsTick = true; };
-        _projectService.TimelineChanged += (_, _) => { RebuildSnapshot(); ApplyPlaybackRange(); };
+        _projectService.TimelineChanged += (_, _) => OnTimelineChanged();
         if (_inOut is not null) _inOut.RangeChanged += (_, _) => ApplyPlaybackRange();
         _projectService.MediaAssetsChanged += (_, _) => OnMediaAssetsChanged();
         _projectService.ProjectChanged += (_, _) => OnProjectChanged();
@@ -193,6 +193,27 @@ public sealed partial class PreviewViewModel : ViewModelBase
         _assetStates = PlaybackSnapshotBuilder.CaptureAssetStates(_projectService.Current);
         _playback.UpdateSnapshot(PlaybackSnapshotBuilder.Build(_projectService.Current, ++_snapshotVersion));
         _needsTick = true;
+    }
+
+    /// <summary>
+    /// The timeline owns the playhead (D011); playback keeps its position inside [0, Duration]. A seek past the end is
+    /// clamped to the end, and when that frame was already reported (always in an empty project) nothing goes back to the
+    /// timeline: the playhead stays parked past the end while playback sits at it. When an edit makes the sequence longer
+    /// than that, playback seeks to the playhead — shown there if the new end reaches it, clamped to the new end (and
+    /// reported, so the playhead follows) if not. Otherwise the resync stays where playback is (D010), so edits inside the
+    /// sequence never seek and an extension never moves the playhead.
+    /// </summary>
+    private void OnTimelineChanged()
+    {
+        var parkedAtEnd = _playback.State != PlaybackState.Playing && _playback.Position >= _playback.Duration;
+        RebuildSnapshot();
+        ApplyPlaybackRange();
+        if (!parkedAtEnd) return;
+
+        var rate = _projectService.Current.Settings.FrameRate;
+        var playhead = _projectService.Current.Timeline.PlayheadPosition.SnapToFrame(rate);
+        if (playhead.ToFrameFloor(rate) > _playback.Position.ToFrameFloor(rate) && _playback.Position < _playback.Duration)
+            Seek(playhead);
     }
 
     /// <summary>Media changes (import, analysis, missing files) rebuild only if an asset the
