@@ -22,8 +22,12 @@ public partial class MediaBrowserView : UserControl
 
         MediaList.DoubleTapped += (_, e) =>
         {
-            if (DataContext is MediaBrowserViewModel vm && ItemFrom(e.Source) is { } item)
-                vm.Activate(item);
+            if (DataContext is not MediaBrowserViewModel vm || ItemFrom(e.Source) is not { } item) return;
+            vm.Activate(item);
+            // Opened in Source: the list must not keep the focus, or it would take the arrows, Home and End the Source
+            // viewer's keys use (the window's shortcuts only see keys no focused control handled).
+            if (item.Asset.Kind != Core.Entities.MediaKind.Image)
+                TopLevel.GetTopLevel(this)?.FocusManager?.ClearFocus();
         };
 
         // Tunnel: see the press before the ListBox handles it for selection.
