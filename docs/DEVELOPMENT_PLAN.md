@@ -67,11 +67,14 @@ and runs cleanly.
       closeout 14.8 done 2026-10-07 — build 0 / 0, 2600 passed / 2 skipped, three blame-hang runs clean, heavy 2602 / 0 / 0,
       R1–R5 passed; accepted; PR #14 merged into `main` as `7200976` (2026-10-07), CI green on the first attempt on the
       pull request and on `main`; the D028 §8 policy closed)*
-- [ ] **Phase 15 — Editing tools.** Track controls (mute, hide, lock), trim to the playhead (plain and ripple), ripple
+- [x] **Phase 15 — Editing tools.** Track controls (mute, hide, lock), trim to the playhead (plain and ripple), ripple
       trim by dragging an edge, slip, and a timeline In / Out range (unsaved session state) for loop playback and range
       export; a new text clip's font size relative to the canvas and the audio status after the sound returns. Scope,
       steps and acceptance criteria: section below and DECISIONS.md D030 (product owner decisions, 2026-10-07).
-      *(branch `feat/phase-15-editing-tools`, from `7200976`; Steps 15.1–15.7 accepted; Step 15.8 done — awaiting acceptance)*
+      *(branch `feat/phase-15-editing-tools`, from `7200976`; Steps 15.1–15.8 accepted (`d1296be` … `f9a2253`, review
+      corrections `9de14c6`); closeout 15.9 done 2026-10-08 — build 0 / 0 Release and Debug, the full suite, heavy and three
+      blame-hang runs green, R1–R9 run (R10's device part not run), the still-image decode fix found by R2; not yet
+      merged — push / pull request on the product owner's command)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -938,7 +941,7 @@ Scope: D030 §8.
 - Decisions at the start: Q7, Q8, Q9, Q10, Q11, Q16.
 - Depends on: 15.6.
 
-### 15.8 — The D029 §3 UX fixes *(done 2026-10-07 — awaiting acceptance; D030 "Refined in Step 15.8": a new text's `FontSize = 48 × canvasHeight / 1080`, exact; D028's canvas scaling of existing text unchanged. The audio status part was done in 15.7)*
+### 15.8 — The D029 §3 UX fixes *(done, accepted 2026-10-08 — `f9a2253`, review corrections `9de14c6`; D030 "Refined in Step 15.8": a new text's `FontSize = 48 × canvasHeight / 1080`, exact; D028's canvas scaling of existing text unchanged. The audio status part was done in 15.7)*
 Scope: D030 §9.
 - PR: a new text clip takes `FontSize = 48 × canvasHeight / 1080` (exact, `double`, within 1 … 1000 for every canvas the settings accept); existing clips
   and the canvas-size scaling unchanged (Q14).
@@ -950,7 +953,7 @@ Scope: D030 §9.
 - Decisions at the start: Q14, Q15.
 - Depends on: 15.7.
 
-### 15.9 — Final verification & closeout
+### 15.9 — Final verification & closeout *(done 2026-10-08 — results in `progress.md` and `docs/PHASE15_MANUAL_TEST_PLAN.md`; the R2 run found a still-image decode defect, fixed here — D030 "Found and fixed in Step 15.9"; CI on the pull request when the product owner opens it)*
 - QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
   `--blame-hang`; the heavy scenes once with `AIVE_HEAVY_TESTS=1`; `git diff --check` clean; CI green on the pull request
   without a rerun (D028 §8 is closed: any CI failure is a real failure).

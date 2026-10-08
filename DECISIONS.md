@@ -2929,6 +2929,11 @@ keyframes; text outline / shadow / background; dragging objects directly in the 
 audio crossfades; freeze frame; reverse; variable speed ramps; marquee selection; marker labels; filmstrips; frame
 export; AI features; HDR / colour management; an installer; timeline virtualization; an undoable import.
 
+Note (Phase 15 closeout): §§4–9 and "Open for the D030 acceptance" are the Step 15.2 proposals, kept as written. Where an
+answer or a "Refined in Step 15.x" block below differs (e.g. Q5: the playhead moves after `Shift+Q`; Q11: no key clears
+the range; Q4: a plain `Q` / `W` does not trim a dissolve's cut edge), the answer and the refinement are binding; the
+summary "Final state at the Phase 15 closeout" lists the accepted result.
+
 ### 4. Track controls (Step 15.3)
 
 - Video tracks: **mute** (the sound of their video clips), **hide** (their picture: clips, texts and dissolve zones),
@@ -3113,7 +3118,7 @@ that touches it (the 15.4 / 15.6 test lists map to this table).
 the ripple trim unless the product owner confirms an explicit modifier variant (Q2). Keys act only when no text input
 has focus (`ShortcutRouter`); `Ctrl+I` stays Import.
 
-### Open for the D030 acceptance (product owner)
+### Open for the D030 acceptance (product owner) — all answered (Steps 15.3–15.8, below)
 
 Semantic questions that the existing decisions do not answer; each carries the proposal above and is confirmed (or
 changed) before the step that implements it starts:
@@ -3378,6 +3383,47 @@ hand, which a load accepts when positive) gets the formula's value unclamped, as
 `AddTextClip` is the only place that creates a text and the only caller; copies (paste, duplicate) keep their source's
 size; the model's default 48 (`TextClip.FontSize`) is unchanged, so files load as before. `project.json` unchanged (v3).
 
+Found and fixed in Step 15.9 (closeout regression R2, product owner's decision 2026-10-08 to fix it in both places): a
+still image entered far into its clip was not decoded — the Preview's `SpanReader` and the export's
+`ExportPictureReader` opened the decoder at the timeline frame's sample point, but a still's one frame is at its file's
+start, beyond the decoder's 10 s preroll (`FrameNotReached`). It showed as a range export that failed when a long image
+clip crossed In more than ~10 s after its start (the whole export, opening the reader at the clip's start, passed), and
+as a placeholder instead of the image after a Preview seek into such a clip — the latter since Phase 5, the reader code
+unchanged by Phase 15. Fix: one rule, `SourceFrameSelector.StillImage` — a still is always opened at the start of its
+file (D009's hold-first; its timeline position never selects a frame). No other behaviour changes: video spans keep
+their sample point; the default export stays byte for byte as before (R1). Tests: `ExportFrameSourceTests`,
+`PlaybackServiceTests` (the request's point) and `ExportRangeEndToEndTests` (a range 16 s into a 20 s PNG clip equals the
+whole export's frames, the Preview seeked there equal to them, real ffmpeg); each reader's old line restored fails its
+tests.
+
+Final state at the Phase 15 closeout (Step 15.9, 2026-10-08) — the accepted answers and rules, as implemented:
+- Q1 — `Q` / `W` act on the selected clips whose interval strictly contains the playhead's frame; nothing implicit;
+  several clips in one step. Q2 — `Q` / `W` plain, `Shift+Q` / `Shift+W` ripple (the later clips of the clip's own track
+  move; other tracks and markers stay). Q4 — a dissolve on the trimmed edge is kept: plain `Q` / `W` don't trim a cut
+  edge (status points to the Shift variant), the ripple variants trim it up to the dissolve's limit; the ordinary edge
+  drag keeps D025 §5. Q5 — after `Shift+Q` the playhead goes to the clip's start (the earliest with several clips); a
+  drag never moves it. Q6 — a trim stopped by a dissolve is applied up to the limit with a message.
+- Q3 — Shift + edge drag = ripple trim (the same planner as `Shift+Q` / `Shift+W`), Alt + body drag = slip, the mode
+  fixed at the press, Ctrl unchanged; the ordinary drag unchanged.
+- Q12 — slip: the planned Source In / Out shown on the clip during the drag, the Preview after the release; Esc
+  cancels. Slip applies to **video and audio clips** (a video clip's sound slips with it; an audio clip has the same
+  source mapping); images and text are refused; only `SourceIn` / `SourceOut` move, by D022's amount; source and
+  dissolve-handle limits clamp with a message.
+- Q13 — mute and hide are allowed on a locked track; the lock refuses every ordinary edit (clips, track delete / move,
+  trims, ripple, slip); video tracks M / 👁 / 🔒, audio tracks M / 🔒.
+- Q7–Q11, Q16 — the In / Out range is **transient session state** with exact `[In, Out)` semantics (`I` = start of the
+  playhead's frame, `O` = end of it, so that frame is included); never refused (Q8 clears the other point); not saved,
+  not in autosave / recovery, not dirty, not undoable, cleared on New / Open / Recover, re-gridded on a rate change.
+  Loop on with a range plays exactly `[In, Out)` (Play outside starts at In); Loop off ignores it. Export with a valid
+  range asks Range / Entire sequence / Cancel; Range exports exactly `[In, Out)` — frames and samples equal to the whole
+  export's at the same positions — with a preflight over the range's media only; ✕ on the range bar clears it, no key.
+- Q15 — "Playing without sound: no audio output is available." is about the **audio output device**, not about mute; it is
+  cleared ("Ready.") when sound is available again, if still shown, and a later loss is reported again.
+- Q14 — a new text's `FontSize = 48 × canvasHeight / 1080`, exact `double`, **no clamp** (within 1 … 1000 for every canvas
+  the settings accept); D028's scaling of existing text unchanged.
+- Every project change is one undoable command, off during an export, refused on a locked track (except Q13);
+  `project.json` stays **`formatVersion` 3** with no new property; no ffmpeg call in any edit.
+
 Consequences: new commands in the Timeline subsystem (`ITimelineEditService`: track state, trim to the playhead with
 ripple, slip and its limits), sharing the existing trim / shift planners and `EditPlan` reconciliation; a range on the
 export job (`ExportJob` / preflight / encoder input) and in the Preview's loop; the timeline view gains the track
@@ -3387,8 +3433,12 @@ toggles, the ripple / slip gestures and the range band; `project.json` unchanged
 Status: Accepted (2026-10-07, product owner: scope §1, the In / Out range as unsaved session state, the keys `I` / `O` /
 `Q` / `W`, the font-size formula, the non-goals §3). Q13 answered (Step 15.3); Q1, Q2, Q4, Q5, Q6 answered (Step
 15.4); Q3 answered (Step 15.5); Q12 answered (Step 15.6); Q7–Q11, Q15, Q16 answered (Step 15.7); Q14 answered (Step 15.8) — every
-open question is answered. Steps 15.2, 15.3 (`1d26165`), 15.4 (`f122c9a`), 15.5 (`efecd24`), 15.6 (`aa94da0`) and 15.7
-(`46eae30`) accepted; Step 15.8 done (awaiting acceptance). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps".
+open question is answered. Steps 15.2 (`d1296be`), 15.3 (`1d26165`), 15.4 (`f122c9a`), 15.5 (`efecd24`), 15.6
+(`aa94da0`), 15.7 (`46eae30`) and 15.8 (`f9a2253`, review corrections `9de14c6`) accepted. **Phase 15 complete**: Step 15.9
+closeout done (2026-10-08) — final validation, the R1–R10 regression in `docs/PHASE15_MANUAL_TEST_PLAN.md` and the
+still-image fix it led to (above); not yet
+merged (push / pull request on the product owner's command). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`,
+"Phase 15 — Editing tools: steps".
 
 ---
 

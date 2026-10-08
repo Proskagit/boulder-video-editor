@@ -76,4 +76,35 @@ public sealed class ExportRangeEndToEndTests
         }
         AssertNoFfmpegLeft();
     }
+
+    /// <summary>Phase 15 Step 15.9 (found by the R2 regression): a long image clip entered far past the decoder's preroll —
+    /// a range starting 16 s into it, the Preview seeked there — shows its one frame: a still is decoded from its file's
+    /// start (<c>SourceFrameSelector.StillImage</c>), not at the timeline's sample point (which found no frame before).</summary>
+    [FfmpegFact]
+    public async Task A_range_inside_a_long_image_clip_exports_and_previews_the_image()
+    {
+        var rate = FrameRate.Fps25;
+        var p = new ProjectBuilder(rate);
+        var v1 = p.VideoTrack();
+        p.Image(v1, _media.PngAlpha(), 0, 500);                                           // 20 s, its only frame at 0
+
+        var whole = await ExportRange(p.Project, Path.Combine(_media.OutputFolder(), "range-image-whole.mp4"), null);
+        var part = await ExportRange(p.Project, Path.Combine(_media.OutputFolder(), "range-image-part.mp4"), new ExportRange(400, 410));
+
+        AssertValidMp4(part);
+        Assert.Equal(10, part.Canvases.Count);
+        for (var m = 0; m < part.Canvases.Count; m++)
+            Assert.True(part.Canvases[m].AsSpan().SequenceEqual(whole.Canvases[400 + m]), $"range frame {m} ≠ timeline frame {400 + m}");
+        Assert.True(part.Canvases[0].AsSpan().SequenceEqual(whole.Canvases[0]), "the image held from frame 0 is not the picture at 16 s");
+        var lit = Enumerable.Range(0, whole.Canvases[0].Length / 4).Count(i => whole.Canvases[0][4 * i] + whole.Canvases[0][4 * i + 1] + whole.Canvases[0][4 * i + 2] > 0);
+        Assert.True(lit > whole.Canvases[0].Length / 16, $"only {lit} pixels drawn: the image is missing");   // not the black background
+
+        foreach (var n in new long[] { 400, 409 })                                         // the Preview seeked 16 s in: no placeholder
+        {
+            var preview = await Preview(part.Job.Snapshot, n);
+            var differing = Enumerable.Range(0, whole.Canvases[(int)n].Length).Count(i => preview.Pixels[i] != whole.Canvases[(int)n][i]);
+            Assert.True(differing == 0, $"timeline frame {n}: {differing} bytes differ from the export");
+        }
+        AssertNoFfmpegLeft();
+    }
 }

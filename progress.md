@@ -7,12 +7,14 @@ locked by the product owner on 2026-10-07 (DECISIONS.md D030): track controls (m
 (plain and ripple, `Q` / `W`), ripple trim by dragging, slip, a timeline In / Out range (`I` / `O`, loop, range export) as
 unsaved session state, a new text clip's `FontSize = 48 × canvasHeight / 1080`, the audio status reset. Steps 15.1
 (pre-analysis), 15.2 (documentation, `d1296be`), 15.3 (track controls, `1d26165`) and 15.4 (trim to the playhead,
-`f122c9a`), 15.5 (ripple trim by dragging, `efecd24`), 15.6 (slip, `aa94da0`) and 15.7 (In / Out range, `46eae30`)
-accepted; Step 15.8 (a new text's font size) done, awaiting acceptance; every open question of D030 is answered; the
-closeout (15.9) remains. Scope, steps and acceptance criteria:
+`f122c9a`), 15.5 (ripple trim by dragging, `efecd24`), 15.6 (slip, `aa94da0`), 15.7 (In / Out range, `46eae30`) and 15.8
+(a new text's font size, `f9a2253`, review corrections `9de14c6`) accepted; every open question of D030 is answered.
+**Phase 15 complete**: Step 15.9 (final verification & closeout) done on 2026-10-08 — gates green, R1–R9 run, R10's
+device part not run, a still-image decode defect found by R2 and fixed (below). Not yet merged: push and pull request on
+the product owner's command; no next phase defined. Scope, steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md` "Phase 15 — Editing tools: steps"; manual plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
-### Phase 15 — Editing tools (in progress)
+### Phase 15 — Editing tools (complete; closeout Step 15.9, not yet merged)
 
 Steps (D030; each accepted by the product owner before the next, never started automatically): 15.1 pre-analysis ·
 15.2 sync after the merge & scope formalization · 15.3 track controls · 15.4 trim to the playhead (core, plain and
@@ -281,6 +283,39 @@ command; no push, pull request or merge without direct permission; no next step 
     and its 15.8 refinement, DEVELOPMENT_PLAN 15.8: the 1 … 1000 range holds for every canvas the settings accept,
     without a clamp. Mutations (5, each restored): a clamp to [3, 180] → 2 fail; a clamp plus rounding → 6; presets only →
     6; the add also renaming the track → 1; also changing the zoom → 1.
+  - Phase-reviewer re-review of `46eae30..9de14c6`: PASS WITH NOTES (both findings closed). Accepted by the product owner
+    (2026-10-08).
+- Step 15.9 done (2026-10-08) — final verification & closeout (the product owner's go, 2026-10-08; phase-reviewer as the
+  quality gate).
+  - Audit `7200976..HEAD`: the seven step commits plus `9de14c6`, the agreed scope only (src: Core, Timeline, Export, UI;
+    tests; documents); no new skip, no test weakened or re-baselined (the only removed test lines: constructor arguments
+    of three UI fixtures, and the "plain I is no shortcut" case — `I` sets In since 15.7, D030 §11); mutation campaigns
+    of 15.3–15.8 recorded above, no surviving mutant accepted as behaviour (the first-round survivors — one in 15.4, two
+    in 15.7 — were closed by new tests).
+  - Gates first run on `9de14c6`: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 2842 passed, 2
+    skipped (the two 4K scenes), 0 failed (`Assert-TestResults.ps1`); `AIVE_HEAVY_TESTS=1` 2844 / 0 / 0; three
+    `--blame-hang --blame-hang-timeout 5m` runs 2842 / 2 / 0 each, no dump; `git diff --check` clean.
+  - Manual regression (`docs/PHASE15_MANUAL_TEST_PLAN.md`, its 15.9 log): R1, R3–R9 passed (R8 partly); R2 on generated
+    stand-ins found a defect; R10's device part and scenario 32 **NOT RUN — requires physical audio-output
+    interruption**; playback with muted / hidden tracks checked.
+  - Defect found by R2 (product owner: fix both): a still image entered far into its clip was not decoded — a range
+    export failed ("'overlay.png' could not be decoded (FrameNotReached) … within a 10 s preroll") when a long image clip
+    crossed In more than ~10 s after its start, and the Preview showed a placeholder after a seek into it (since Phase
+    5; the readers unchanged by Phase 15). Fix: `SourceFrameSelector.StillImage` — `ExportPictureReader` and the
+    Preview's `SpanReader` open a still at its file's start. Tests (+3): `ExportFrameSourceTests` (a range starting 20 s
+    into a 30 s still asks for the still's point), `PlaybackServiceTests` (a seek into a still the same),
+    `ExportRangeEndToEndTests` (a range 16 s into a 20 s PNG clip: frames equal to the whole export's, the Preview there
+    equal, real ffmpeg). Mutations: each reader's old line back → its unit test and the end-to-end test fail. In the app:
+    R2's range export 181 frames equal to the full export's (PSNR 49.8 dB), the Preview shows the overlay at 3:36; R1's
+    default export still byte-identical to Phase 14's.
+  - Final gates on the fixed tree: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 2845 passed, 2
+    skipped, 0 failed — Core 526, Timeline 678 (+1), Project 426, UI 618, Export 101 (+1), Rendering 58, Video 322,
+    ExportEndToEnd 116 + 2 (+1); `AIVE_HEAVY_TESTS=1` 2847 / 0 / 0; three blame-hang runs 2845 / 2 / 0 each, no dump;
+    `git diff --check 7200976` clean.
+  - Documents: D030 (the Step 15.2 proposals marked as superseded where answered otherwise, "Found and fixed in Step
+    15.9", "Final state at the Phase 15 closeout", status complete), ARCHITECTURE (text size, audio status, the still
+    rule, verification note), DEVELOPMENT_PLAN (Phase 15 checked, 15.8 accepted, 15.9 done), ROADMAP, README, the manual
+    plan, this file. `project.json` stays v3; no Phase 16 started or defined.
 
 ### Phase 14 — Stabilization / technical debt (complete; PR #14 merged as `7200976`)
 
@@ -3825,12 +3860,12 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-07: Phases 0–13 are complete and merged into `main` (last merge `ed40b74`, PR #13). Phase 14 (stabilization /
-technical debt, D029) is complete on `feat/phase-14-stabilization` (closeout at `90caae9`: 2600 passed, 2 skipped; three
-blame-hang runs clean; heavy 2602 / 0 / 0; R1–R5 passed); push and pull request on the product owner's command. Open
-items carried forward: see "Known issues" (the D028 §8 policy until a CI run on the pull request confirms D029 §5; the
-watched, never reproduced `Project.Tests` hang / failure; deferred out of Phase 14: the audio status message after a
-device returns, a new text clip's `FontSize` 48 on any canvas; also no timeline virtualization, import not undoable).
+2026-10-08: Phases 0–14 are complete and merged into `main` (last merge `7200976`, PR #14). Phase 15 (editing tools,
+D030) is complete on `feat/phase-15-editing-tools` (closeout Step 15.9: 2845 passed, 2 skipped; heavy 2847 / 0 / 0; three
+blame-hang runs clean; R1–R9 run, R10's device part not run); push and pull request on the product owner's command; no
+next phase defined. Open items: see "Known issues" (the Preview staying black after adding a clip beyond the previous
+end — a separate task; the real-device audio status check; the watched `Project.Tests` hang; no timeline virtualization,
+import not undoable).
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -3870,7 +3905,8 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 11 (accepted 2026-10-05; PR #11 merged as `47ed2fa`, CI green)
 - Phase 12 (accepted; PR #12 merged as `c0cb600` on 2026-10-05, CI green)
 - Phase 13 (accepted; PR #13 merged as `ed40b74` on 2026-10-06, CI green on the pull request)
-- Phase 14 (complete 2026-10-07, Step 14.8 closeout; Steps 14.1–14.7 accepted; push / pull request on the product owner's
+- Phase 14 (accepted; PR #14 merged as `7200976` on 2026-10-07, CI green on the first attempt)
+- Phase 15 (complete 2026-10-08, Step 15.9 closeout; Steps 15.1–15.8 accepted; push / pull request on the product owner's
   command)
 
 ## Known issues
@@ -3931,12 +3967,16 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Audio device: after a device was lost during playback and the sound came back at the next Play, the status bar still said
   "Playing without sound…" (D024 "Left as they are", Step 9.10; deferred by D029 §3). Fixed in Phase 15 Step 15.7 (D030 §9,
   Q15): the message goes when sound is available again while playing, and a later loss is reported again (automated;
-  the real-device check is pending).
+  the real-device check NOT RUN at the Phase 15 closeout — it needs a physical audio-output interruption; for the product
+  owner).
 - Text clips: a new text clip took `FontSize` 48 on any canvas (an observation from Phase 13; D029 §3). Fixed in Phase 15
   Step 15.8: `48 × canvasHeight / 1080` (D030 §9).
 - Preview (observed at Phase 15 Step 15.8, not changed): after adding a clip with the playhead beyond the sequence's
   previous end, the Preview stays black until the next seek (the same in the 15.7 build); inside the sequence it shows
-  at once. Not investigated — a separate task.
+  at once. Not investigated and not fixed in Phase 15 (out of scope; confirmed at the 15.9 closeout) — a separate task.
+- Still images (found by the Phase 15 Step 15.9 regression, R2): entered far into a long image clip, a still was not
+  decoded (range export failure, Preview placeholder after a seek; since Phase 5). Fixed in Step 15.9:
+  `SourceFrameSelector.StillImage` (D030).
 - `MediaAnalysisCoordinator` relies on the captured UI SynchronizationContext.
 - Timecode is non-drop-frame only (29.97 timecode drifts from wall clock by design).
 - Timeline canvas is a plain ItemsControl/Canvas; very long timelines at maximum

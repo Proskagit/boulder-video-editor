@@ -115,7 +115,9 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
 - Text clips (Phase 7, D021): `ITimelineEditService.AddTextClip(start)` — topmost video track,
   frame-grid start, 5 s, one "Add Text" step; "+ Text" in the timeline header adds at the playhead
   and selects the clip. The timeline label of a text clip is its first line (`(empty text)` for
-  blank text), recomputed on every timeline refresh.
+  blank text), recomputed on every timeline refresh. Since Phase 15 Step 15.8 (D030 §9) a new text's font size is
+  `ProjectSettingsRules.NewTextFontSize(canvasHeight)` = `48 × canvasHeight / 1080` (exact `double`, no clamp — within
+  1 … 1000 for every canvas the settings accept); copies keep their size, a canvas change scales existing text by D028.
 - Clip properties (Phase 7, D017): `SetClipProperties` with typed `VisualProperties` /
   `AudioProperties` / `TextProperties` (Core/Entities/ClipProperties.cs, limits in
   `ClipPropertyLimits`), validated by `ClipPropertyValidator` (Core; also used on load), applied by
@@ -241,7 +243,10 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   `WriteableBitmap`s per layer. Playhead ↔ playback wiring lives in
   `MainWindowViewModel`: `TimelineViewModel.SeekRequested` (user moves only) → `SeekAsync`;
   `PreviewViewModel.PlaybackPositionChanged` → `TimelineViewModel.ShowPlaybackPosition` (no
-  seek). Snapshots are rebuilt by `PreviewViewModel` on project/timeline/media events.
+  seek). Snapshots are rebuilt by `PreviewViewModel` on project/timeline/media events. The "Playing without sound: no
+  audio output is available." status is about the audio output only (never a muted clip or track); since Phase 15 Step
+  15.7 (D030 Q15) `PreviewViewModel` sets "Ready." again when sound is available while playing, if that message is still
+  shown, and re-arms the report for a later loss.
 - Audio (D013): `PlaybackSnapshot.AudioSpans` → `AudioPipeline` (UI thread; look-ahead window,
   reader reuse on snapshot updates) → `AudioSpanReader` per clip (placement: Core `AudioPlacement`, shared with the export) (background ffmpeg decode into
   a bounded ring buffer, aligned by the stream's real first sample) → `AudioMixer`
@@ -489,6 +494,9 @@ Routine refactoring needed to implement a feature does not.
   D009/D022 sample point, hold-first/hold-last), readers opened/closed with the layer set like the Preview's
   `VideoPipeline`. The picture layers of one output frame are fetched at the same time (their decoders run in
   parallel, each reader's requests stay ascending, D024 Step 9.7); every fetch ends before a failure propagates.
+  A still image is opened at the start of its file (`SourceFrameSelector.StillImage`), never at the timeline's sample
+  point — in the export's reader and in the Preview's `SpanReader` alike (Phase 15 Step 15.9, D030), so a long image clip
+  entered mid-span (a range export, a seek) is decoded like one entered at its start.
 - Composition (Step 3): `ExportFrame.DrawPlan()` = Core `CompositionDrawPlan` at the canvas size (the Preview's plan
   through identity) → `ICompositionRasterizer` (Core) = `AvaloniaCompositionRasterizer` (UI/Rendering): Avalonia
   offscreen `RenderTargetBitmap` + `CompositionPainter`, the Preview's drawing routine; runs off the UI thread,
@@ -571,4 +579,8 @@ Step 13.9; the whole Phase 13 part re-checked at the closeout (Step 13.10, `5c01
 `ed40b74`). Phase 14 (D029, stabilization): the `Effects` row of the module table checked against the code at Step 14.2
 (empty, referenced only by `App`; D029 §6) and removed with the project at Step 14.7; the autosave paragraph of the Project persistence section at Step 14.3; the locator lines of the media section at
 Step 14.4. At the Phase 14 closeout (Step 14.8, `90caae9`) the Phase 14 parts above and the project counts were checked against the code.
+Phase 15 (D030, editing tools): the track-state, trim-to-the-playhead, ripple-drag, slip and In / Out paragraphs of the
+Timeline section written at Steps 15.3–15.7, the text-size sentence at Step 15.8 and the audio-status sentence of the
+Preview section (Step 15.7), the still-image sentence of the Export section at Step 15.9; all re-checked against the
+code at the Phase 15 closeout (Step 15.9); the project counts unchanged (18: 10 `src`, 8 `tests`).
 Re-check the code before relying on details that later phases may have changed.

@@ -89,7 +89,7 @@ internal sealed class ExportPictureReader : IAsyncDisposable
                 {
                     FilePath = _asset.FilePath,
                     StartTime = _asset.StartTime,
-                    FirstSamplePoint = point,
+                    FirstSamplePoint = IsStill ? SourceFrameSelector.StillImage : point,   // a still: from its file's start
                     NominalFrameRate = _asset.NominalFrameRate,
                     MaxWidth = ExportDecodeSettings.FullResolutionBound,
                     MaxHeight = ExportDecodeSettings.FullResolutionBound,

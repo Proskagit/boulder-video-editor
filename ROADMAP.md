@@ -71,8 +71,14 @@ Shift+Q / Shift+W ripple; dissolves kept — Q1, Q2, Q4, Q5, Q6, `f122c9a`) acce
 edge drag, the same planner as Shift+Q / Shift+W — Q3, `efecd24`) accepted; Step 15.6 (slip: Alt + body drag, only the
 source mapping changes — Q12, `aa94da0`) accepted; Step 15.7 (In / Out range: I / O, the ✕, loop over the range, range
 export with its own preflight — Q7–Q11, Q16 — and the stale audio status fix, Q15, `46eae30`) accepted; Step 15.8 (a new
-text's font size `48 × canvasHeight / 1080` — Q14) done, awaiting acceptance; the closeout (15.9) remains. Scope and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps"; manual
-plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
+text's font size `48 × canvasHeight / 1080`, no clamp — Q14, `f9a2253`, review corrections `9de14c6`) accepted.
+**Phase 15 complete** — Step 15.9 (final verification & closeout) done on 2026-10-08: build `--no-incremental
+-warnaserror` Release and Debug 0 / 0; the full suite, `AIVE_HEAVY_TESTS=1` and three `--blame-hang-timeout 5m` runs
+green (counts in `progress.md`); `git diff --check` clean; R1–R9 of the manual plan run in the real app (R10's audio
+device part not run: it needs a physical audio-output interruption); the R2 run found a still-image decode defect (a long
+image clip entered far into it: range export failed, Preview placeholder) — fixed in the closeout (D030). Not yet merged:
+push and pull request on the product owner's command. No next phase is defined. Scope and acceptance criteria:
+`docs/DEVELOPMENT_PLAN.md`, "Phase 15 — Editing tools: steps"; manual plan `docs/PHASE15_MANUAL_TEST_PLAN.md`.
 
 ## Previous
 

@@ -135,7 +135,7 @@ internal sealed class SpanReader : IAsyncDisposable
                 {
                     FilePath = _asset.FilePath,
                     StartTime = _asset.StartTime,
-                    FirstSamplePoint = SamplePoint(from),
+                    FirstSamplePoint = IsStill ? SourceFrameSelector.StillImage : SamplePoint(from),
                     NominalFrameRate = _asset.NominalFrameRate,
                     MaxWidth = _settings.MaxWidth,
                     MaxHeight = _settings.MaxHeight,
