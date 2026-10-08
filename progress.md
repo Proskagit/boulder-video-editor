@@ -36,8 +36,20 @@ Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fa
   architectural contradiction; its notes taken in (R3: byte for byte only where no other sound overlaps — the float mix
   order — and AQ11 for a fade on a dissolve edge; R5: `DeleteTrack` builds no `EditPlan` and must clear links itself;
   AQ12 a locked partner of a removed clip; AQ13 Insert / Overwrite splitting a linked clip; the reader / preflight places
-  of the crossfade named in 17.6). Steps 17.4+ wait for the product owner's answers to AQ1–AQ13 (17.3 needs none of
-  them).
+  of the crossfade named in 17.6). The product owner then accepted AQ1–AQ13 as proposed and the smaller R3 / R5 / R11 / §6
+  choices (AQ11: the effective fade — Unlink never changes the sound) and asked for the whole phase without a stop between
+  steps.
+- Step 17.3 done — model and `project.json` v4 (D032 R1, R2): `MediaBackedClip.LinkId`, `VideoClip.IsAudioDetached`,
+  `LinkRules` (Core; in `TimelineValidator.ValidateSequence` and on load), `TransitionRules.Crossfade` / `TypeFor` (the
+  type per track kind), `DissolveHandles` for `AudioClip`; `ProjectSerializer` v4 (`linkId` / `isAudioDetached` written
+  only when set, an audio clip of a video file and a crossfade only from v4, links validated); the snapshot gives a
+  detached video clip no sound. Tests: `Project.Tests/AudioEditingPersistenceTests` (a v3 file saved as v4 differing only
+  in `formatVersion`; v4 round trip byte for byte; damaged links / kinds / transitions; v5 refused), `Core.Tests/LinkRulesTests`,
+  `TransitionRulesTests` (the D025 audio-track test replaced by the per-kind rule, D032 §5), `PlaybackSnapshotBuilderTests`
+  (unlinked sound), `Timeline.Tests/AudioModelTests` (handles, the validator). The tests pinning `formatVersion` 3 on save
+  changed to 4 (D032 §5: Project 7, Timeline 6, UI 1 — only the number and the test names). Four serializer mutations
+  caught (v3 link read, v3 audio-of-video kind, load link check, v3 detached read). `-warnaserror` 0 / 0; the full suite
+  2927 passed, 2 skipped, 0 failed.
 
 ### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 
@@ -3948,7 +3960,7 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 2026-10-08: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`, CI green on the pull request and on
 `main`; 2894 passed, 2 skipped). Phase 17 (audio editing, D032) in progress on `feat/phase-17-audio-editing`: Steps 17.1–17.2
-done, AQ1–AQ13 awaiting the product owner. Open items: see "Known issues" (the real-device audio status check — now R10 of
+done, AQ1–AQ13 answered (as proposed), Step 17.3 done. Open items: see "Known issues" (the real-device audio status check — now R10 of
 the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 
 ### Phase 4 — Timeline (historical notes)

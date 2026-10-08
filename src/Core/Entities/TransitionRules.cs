@@ -10,8 +10,14 @@ namespace AiVideoEditor.Core.Entities;
 /// </summary>
 public static class TransitionRules
 {
-    /// <summary>The only transition type (D025).</summary>
+    /// <summary>The transition of a video track (D025).</summary>
     public const string CrossDissolve = "crossDissolve";
+
+    /// <summary>The transition of an audio track (D032 R9): a linear crossfade of the two clips' sound.</summary>
+    public const string Crossfade = "crossfade";
+
+    /// <summary>The one transition type a track of <paramref name="trackType"/> takes.</summary>
+    public static string TypeFor(TrackType trackType) => trackType == TrackType.Audio ? Crossfade : CrossDissolve;
 
     /// <summary>The shortest transition, in frames: one frame on each side of the cut.</summary>
     public const long MinFrames = 2;
@@ -29,7 +35,7 @@ public static class TransitionRules
     /// <see cref="MinFrames"/> frames, two different clips of this track that touch exactly (A's end is B's start),
     /// at most one transition per cut, and every zone part fits its clip — together with the part of a
     /// transition on the clip's other edge. Returns a short user-facing reason for the first violation, or null.
-    /// Audio tracks have no transitions.
+    /// A video track takes dissolves, an audio track crossfades (D032 R1, R9); both follow the same zone rules.
     /// </summary>
     public static string? ValidateTrack(Track track, FrameRate rate)
     {
@@ -51,8 +57,13 @@ public static class TransitionRules
 
         foreach (var transition in transitions)
         {
-            if (trackType != TrackType.Video) return "Only video tracks have transitions.";
-            if (transition.TypeId != CrossDissolve) return "A transition has an unknown type.";
+            if (transition.TypeId != TypeFor(trackType))
+                return transition.TypeId switch
+                {
+                    CrossDissolve => "Only video tracks have dissolves.",
+                    Crossfade => "Only audio tracks have crossfades.",
+                    _ => "A transition has an unknown type."
+                };
             if (transition.Duration < MediaTime.Zero) return "A transition has a negative duration.";
 
             var frames = Frames(transition.Duration, rate);

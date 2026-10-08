@@ -87,14 +87,46 @@ public class TransitionRulesTests
         Assert.Equal("A transition's clips don't touch.", TransitionRules.ValidateTrack(track, Rate));
     }
 
+    // D032 R1 / R9 replaced D025's "audio tracks have no transitions": a video track takes dissolves, an audio track
+    // crossfades, each by the same zone rules.
     [Fact]
-    public void An_audio_track_has_no_transitions()
+    public void An_audio_track_has_no_dissolves()
     {
         var (track, a, b) = Cut();
         track.Type = TrackType.Audio;
         track.Transitions.Add(Dissolve(a, b, 4));
-        Assert.Equal("Only video tracks have transitions.", TransitionRules.ValidateTrack(track, Rate));
+        Assert.Equal("Only video tracks have dissolves.", TransitionRules.ValidateTrack(track, Rate));
     }
+
+    [Fact]
+    public void A_video_track_has_no_crossfades()
+    {
+        var (track, a, b) = Cut();
+        track.Transitions.Add(Crossfade(a, b, 4));
+        Assert.Equal("Only audio tracks have crossfades.", TransitionRules.ValidateTrack(track, Rate));
+    }
+
+    [Fact]
+    public void A_crossfade_on_an_audio_cut_follows_the_zone_rules()
+    {
+        var (track, a, b) = Cut(aFrames: 3, bFrames: 20);
+        track.Type = TrackType.Audio;
+        track.Transitions.Add(Crossfade(a, b, 6));   // ⌊6/2⌋ = 3 frames of A: fits exactly
+        Assert.Null(TransitionRules.ValidateTrack(track, Rate));
+
+        track.Transitions[0].Duration = F(8);        // 4 frames of A: too many
+        Assert.Equal("A clip is too short for its transitions.", TransitionRules.ValidateTrack(track, Rate));
+    }
+
+    [Fact]
+    public void The_type_follows_the_track_kind()
+    {
+        Assert.Equal(TransitionRules.CrossDissolve, TransitionRules.TypeFor(TrackType.Video));
+        Assert.Equal(TransitionRules.Crossfade, TransitionRules.TypeFor(TrackType.Audio));
+    }
+
+    private static Transition Crossfade(Clip a, Clip b, long frames) =>
+        new() { TransitionTypeId = TransitionRules.Crossfade, Duration = F(frames), LeftClipId = a.Id, RightClipId = b.Id };
 
     [Theory]
     [InlineData(60, 10, 40, 60, 20)]     // after the cut: 10 frames of B → F = 2·10

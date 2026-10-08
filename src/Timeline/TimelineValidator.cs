@@ -95,7 +95,7 @@ public static class TimelineValidator
             if (TransitionRules.ValidateTrack(track, rate) is { } transitionError) return transitionError;
         }
 
-        return null;
+        return LinkRules.Validate(sequence);
     }
 
     public static bool IsCompatible(Clip clip, TrackType trackType) =>

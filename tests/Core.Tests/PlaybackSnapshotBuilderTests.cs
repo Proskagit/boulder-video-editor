@@ -57,6 +57,27 @@ public class PlaybackSnapshotBuilderTests
 
     private PlaybackSnapshot Build(long version = 1) => PlaybackSnapshotBuilder.Build(_project, version);
 
+    // D032 R10: a video clip whose sound was unlinked plays no sound; the audio clip holding that sound (an audio clip
+    // of the video file) is the one span, with the same placement as the video clip's own sound had.
+    [Fact]
+    public void An_unlinked_video_clip_plays_no_sound_and_its_audio_clip_plays_the_video_files_sound()
+    {
+        var video = Asset(MediaKind.Video);
+        var withSound = Add(_v1, new VideoClip { MediaAssetId = video.Id }, 0, 50, sourceInFrame: 7);
+        var before = Assert.Single(Build().AudioSpans);
+
+        withSound.IsAudioDetached = true;
+        Assert.Empty(Build().AudioSpans);
+
+        var sound = Add(_a1, new AudioClip { MediaAssetId = video.Id }, 0, 50, sourceInFrame: 7);
+        var span = Assert.Single(Build().AudioSpans);
+        Assert.Equal(sound.Id, span.ClipId);
+        Assert.Equal(SpanStatus.Audio, span.Status);
+        Assert.Equal((before.AssetId, before.TimelineStart, before.TimelineEnd, before.SourceIn, before.Gain, before.Speed),
+            (span.AssetId, span.TimelineStart, span.TimelineEnd, span.SourceIn, span.Gain, span.Speed));
+        Assert.Single(Build().VideoLayers.Single(l => l.TrackId == _v1.Id).Spans);   // the picture stays
+    }
+
     [Fact]
     public void TopmostVisibleTrackWins_LowerClipIsNotSplit()
     {

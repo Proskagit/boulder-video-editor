@@ -3772,12 +3772,26 @@ Link, Unlink) and the link rule in the existing planners (new code in `partial` 
 `AudioSpan`, `AudioPlacement`, `AudioFadeEnvelope` / `AudioMix` for the crossfade; the Source bar's sound-only toggle; the
 timeline toolbar buttons, link marks, linked selection, Alt + edge trim; the manual plan `docs/PHASE17_MANUAL_TEST_PLAN.md`.
 
-Status: Accepted (2026-10-08, product owner: variant A, L1–L7). R1–R13 are the pre-implementation audit's reading of the
-architecture (Step 17.2), checked by an independent review (PASS WITH NOTES; its notes taken in: R3's mix-order and
-dissolve-fade limits, `DeleteTrack` in R5, AQ11–AQ13). AQ1–AQ13 **open** — proposals awaiting the product owner. The
-smaller product-visible choices inside R3 (Unlink Audio refused on a linked clip), R5 (one side pasted unlinked), R11 (the
-relink warning) and the narrowing non-goals of §6 are proposals too; the product owner may overrule them with the AQ
-answers. Steps and acceptance criteria:
+Answers (product owner, 2026-10-08, after Step 17.2): **AQ1–AQ13 accepted exactly as proposed**; also the smaller
+choices — Unlink Audio of an already linked clip is refused (R3), one side of a linked pair is pasted unlinked (R5), a
+relink to a file without sound when the asset's sound is used by audio clips gives a warning (R11), the non-goals of §6
+stay. AQ11 stated: Unlink Audio keeps the sound's current **effective** fade, so the operation never changes what is heard.
+The whole phase is carried out without a stop between its steps; an architectural contradiction with D032 / AQ1–AQ13 or
+a scope change stops the work. Binding for the implementation: linked clips go through `EditPlan` and the existing
+split / trim / ripple / transition rules (no parallel rules for linked clips); a locked partner always refuses the whole
+edit; one undo step per user command; the Preview and the export stay identical.
+
+Refined in Step 17.3 (model and format v4): `LinkId` is a property of `MediaBackedClip` (the link rule forbids it on
+images); `LinkRules` (Core) checks links and is part of `TimelineValidator.ValidateSequence` and of loading; the
+transition type follows the track kind (`TransitionRules.TypeFor`: "Only video tracks have dissolves." / "Only audio
+tracks have crossfades." replace D025's "Only video tracks have transitions."); `DissolveHandles` gives `AudioClip` the
+video rule. A v3 file is read without links and unlinked sound (stray v4 properties ignored); an audio clip of a video
+file or a crossfade in a v1–v3 file is damaged. `CloneClip` copies `IsAudioDetached` but never the link. The snapshot
+gives a detached video clip no sound (R10, needed for the format to mean what it says).
+
+Status: Accepted (2026-10-08, product owner: variant A, L1–L7, AQ1–AQ13). R1–R13 are the pre-implementation audit's
+reading of the architecture (Step 17.2), checked by an independent review (PASS WITH NOTES; its notes taken in: R3's
+mix-order and dissolve-fade limits, `DeleteTrack` in R5, AQ11–AQ13). Steps and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 17 — Audio editing: steps".
 
 ---

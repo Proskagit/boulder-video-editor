@@ -88,8 +88,8 @@ and runs cleanly.
       audio clip explicitly (edited as one, the ripple keeping their offset, a locked partner refusing the whole edit),
       J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio tracks; Preview ↔
       export parity; `project.json` v4. Scope, steps and acceptance criteria: section below and DECISIONS.md D032 (product
-      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.2 done; 17.4+
-      after the answers to AQ1–AQ13; checked after the product owner's acceptance)*
+      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.3 done; AQ1–AQ13
+      answered (as proposed); checked after the product owner's acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -1049,8 +1049,8 @@ Out of scope: D031 §3 (the D side) and §5.
 
 Formalized in Step 17.2 (product owner decisions of 2026-10-08: variant A, L1–L7; the technical rules R1–R13 from the
 pre-implementation audit). The normative rules are D032; labels as in Phases 9–16 (**PR**, **QG**, **M**, **Impl**). Push,
-pull request and merge only on a separate command. A step that depends on an open question (AQ1–AQ13) starts only after
-the product owner has answered it.
+pull request and merge only on a separate command. AQ1–AQ13 answered by the product owner (2026-10-08, as proposed); the
+whole phase runs without a stop between its steps.
 
 Goal: edit the sound of a recording apart from its picture — unlink, link, J / L cuts, sound-only insert, crossfades —
 with the Preview and the export identical and every edit one undo step (D032 §1).
@@ -1072,7 +1072,7 @@ Out of scope: D032 L7 and §6.
 - Documentation only: the Phase 16 / PR #17 merge recorded (ROADMAP, README, this plan, D031, `progress.md`), the
   pre-implementation audit of the audio / `VideoClip` / `EditPlan` model, D032, this section, the manual plan's skeleton.
 
-### 17.3 — Model and format v4
+### 17.3 — Model and format v4 *(done)*
 - PR: D032 R1, R2: `Clip.LinkId`, `VideoClip.IsAudioDetached`, `AudioClip` of a video asset, the `"crossfade"` type on
   audio tracks; `project.json` v4 written, v1–v4 read; v4 load validation (links, kinds, crossfade zones).
 - Impl: `TimelineValidator`, `TransitionRules` (type per track kind) and `DissolveHandles` (D025 §4 for `AudioClip`)

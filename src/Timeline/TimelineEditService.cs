@@ -1777,7 +1777,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return clip;
     }
 
-    /// <summary>Copy of every clip property with a new Id (used for the right half of a split).</summary>
+    /// <summary>Copy of every clip property with a new Id (used for the right half of a split). The link is not copied:
+    /// whoever makes the copy decides its link (D032 R5).</summary>
     private static Clip CloneClip(Clip source)
     {
         Clip copy = source switch
@@ -1786,7 +1787,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             {
                 MediaAssetId = v.MediaAssetId, Speed = v.Speed, PositionX = v.PositionX, PositionY = v.PositionY,
                 Scale = v.Scale, RotationDegrees = v.RotationDegrees, Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted,
-                Crop = v.Crop
+                Crop = v.Crop, IsAudioDetached = v.IsAudioDetached
             },
             AudioClip a => new AudioClip { MediaAssetId = a.MediaAssetId, Speed = a.Speed, Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClip i => new ImageClip

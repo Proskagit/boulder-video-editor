@@ -66,7 +66,8 @@ public static class PlaybackSnapshotBuilder
                         ExtendedEnd = dissolves.FirstOrDefault(z => z.LeftClipId == clip.Id)?.End
                     });
 
-                if (media is VideoClip video && !track.IsMuted && asset?.Metadata?.AudioCodec is not null)
+                // An unlinked video clip's sound is its audio clip's (D032 R10).
+                if (media is VideoClip { IsAudioDetached: false } video && !track.IsMuted && asset?.Metadata?.AudioCodec is not null)
                 {
                     var (audioStatus, audioReason) = AudioStatus(media, asset);
                     audio.Add(new AudioSpan(clip.Id, media.MediaAssetId, audioStatus, clip.TimelineStart, clip.TimelineEnd,
