@@ -41,9 +41,24 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
     /// Inspector never reference each other directly.</summary>
     public event EventHandler<MediaAsset?>? SelectionChanged;
 
-    /// <summary>Raised by "Add to Timeline" (button / double-click). MainWindowViewModel
+    /// <summary>Raised by "Add to Timeline" (the button, an image's double click). MainWindowViewModel
     /// forwards it to the Timeline panel, which owns the edit and reports the result.</summary>
     public event EventHandler<MediaAsset>? AddToTimelineRequested;
+
+    /// <summary>The item should open in the Preview's Source mode (Phase 16, D031 SQ11).</summary>
+    public event EventHandler<MediaAsset>? OpenInSourceRequested;
+
+    /// <summary>A double click (Phase 16): a video or audio file opens in Source; an image — which has no source
+    /// range — is added to the timeline, as before.</summary>
+    public void Activate(MediaBrowserItemViewModel item)
+    {
+        if (item.Asset.Kind == MediaKind.Image)
+        {
+            if (AddToTimelineCommand.CanExecute(null)) AddToTimelineCommand.Execute(null);
+            return;
+        }
+        OpenInSourceRequested?.Invoke(this, item.Asset);
+    }
 
     public MediaBrowserViewModel(
         IProjectService projectService,

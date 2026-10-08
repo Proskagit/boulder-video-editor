@@ -17,6 +17,24 @@ public sealed partial class TimelineEditService
     public TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) =>
         PlaceSourceRange(mediaAssetId, sourceIn, sourceOut, at, trackId, overwrite: true);
 
+    public SourceGrid? GetSourceGrid(MediaAsset asset, out string? reason)
+    {
+        reason = asset.Kind == MediaKind.Image
+            ? "Images have no source range: add them with Add to Timeline."
+            : GetAddBlockReason(asset);
+        if (reason is not null) return null;
+
+        // SQ12: the rate PlanFirstVideoRate would give the project with this asset, or the project's.
+        var rate = asset.Kind == MediaKind.Video && !Settings.IsFrameRateLocked ? ResolveSourceFrameRate(asset).Rate : Settings.FrameRate;
+        var frames = FrameMath.MaxWholeFrames(asset.Metadata!.Duration, rate);
+        if (frames < 1)
+        {
+            reason = $"{asset.FileName} is shorter than one frame.";
+            return null;
+        }
+        return new SourceGrid(rate, frames);
+    }
+
     private TimelineEditResult PlaceSourceRange(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at,
         Guid? trackId, bool overwrite)
     {

@@ -74,9 +74,10 @@ public sealed partial class PreviewViewModel : ViewModelBase
     public event EventHandler<MediaTime>? PlaybackPositionChanged;
 
     public PreviewViewModel(StatusService status, IPlaybackService playback, IProjectService projectService,
-        ILogger<PreviewViewModel> logger, InOutRangeService? inOut = null)
+        ILogger<PreviewViewModel> logger, InOutRangeService? inOut = null, SourceViewerService? source = null)
     {
         _inOut = inOut;
+        _source = source;
         _status = status;
         _playback = playback;
         _projectService = projectService;
@@ -87,19 +88,29 @@ public sealed partial class PreviewViewModel : ViewModelBase
         if (_inOut is not null) _inOut.RangeChanged += (_, _) => ApplyPlaybackRange();
         _projectService.MediaAssetsChanged += (_, _) => OnMediaAssetsChanged();
         _projectService.ProjectChanged += (_, _) => OnProjectChanged();
+        if (_source is not null)
+        {
+            _source.SourceChanged += (_, _) => OnSourceChanged();
+            _source.RangeChanged += (_, _) => { UpdateSourceRange(); if (IsSourceMode) ApplyPlaybackRange(); };
+        }
         Canvas = ProjectCanvas();
         RebuildSnapshot();
     }
 
+    /// <summary>The timeline playhead and duration to show (the Source mode shows the source's instead, D031 SQ2).</summary>
     public void SetPosition(MediaTime playhead, MediaTime duration, FrameRate rate)
     {
+        _timelineDisplay = (playhead, duration, rate);
+        if (IsSourceMode) return;
         CurrentTimeDisplay = TimeFormat.ToTimecode(playhead, rate);
         DurationDisplay = TimeFormat.ToTimecode(duration, rate);
     }
 
-    /// <summary>User moved the playhead: seek there without changing Playing/Paused.</summary>
+    /// <summary>User moved the playhead: seek there without changing Playing/Paused. While Source is shown the timeline
+    /// playhead does not reach playback (D031 SQ2): Timeline mode seeks to it on the way back.</summary>
     public void Seek(MediaTime position)
     {
+        if (IsSourceMode) return;
         _ = _playback.SeekAsync(position);
         _needsTick = true;
     }
@@ -128,7 +139,11 @@ public sealed partial class PreviewViewModel : ViewModelBase
         IsBuffering = frame.IsBuffering;
         ShowLayers(frame);
 
-        if (frame.TimelineFrame != _lastReportedFrame)
+        if (IsSourceMode)
+        {
+            ShowSourcePosition(frame.TimelineFrame);   // never the timeline playhead (D031 SQ2)
+        }
+        else if (frame.TimelineFrame != _lastReportedFrame)
         {
             _lastReportedFrame = frame.TimelineFrame;
             PlaybackPositionChanged?.Invoke(this, MediaTime.FromFrame(frame.TimelineFrame, _projectService.Current.Settings.FrameRate));
@@ -205,6 +220,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     /// </summary>
     private void OnTimelineChanged()
     {
+        if (IsSourceMode) return;  // applied when Timeline mode returns (D031 SQ2)
         var parkedAtEnd = _playback.State != PlaybackState.Playing && _playback.Position >= _playback.Duration;
         RebuildSnapshot();
         ApplyPlaybackRange();
@@ -221,6 +237,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     /// decoders, are left alone.</summary>
     private void OnMediaAssetsChanged()
     {
+        if (IsSourceMode) { OnSourceMediaChanged(); return; }
         var states = PlaybackSnapshotBuilder.CaptureAssetStates(_projectService.Current);
         if (PlaybackSnapshotBuilder.AssetStatesDiffer(states, _assetStates))
             RebuildSnapshot();
@@ -228,6 +245,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
 
     private void OnProjectChanged()
     {
+        LeaveSourceModeForProject();
         Layers = ImmutableArray<LayerPicture>.Empty; // the old project's layers must not survive
         Canvas = ProjectCanvas();
         _playback.Pause();
@@ -279,6 +297,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     /// Loop, or without a range, playback is free (the whole sequence, as before).</summary>
     private void ApplyPlaybackRange()
     {
+        if (IsSourceMode) { ApplySourcePlaybackRange(); return; }
         var rate = _projectService.Current.Settings.FrameRate;
         _playback.SetPlaybackRange(IsLooping && _inOut?.Frames is { } f
             ? new PlaybackRange(MediaTime.FromFrame(f.First, rate), MediaTime.FromFrame(f.End, rate))
@@ -294,8 +313,8 @@ public sealed partial class PreviewViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void PreviousFrame() => FrameStepRequested?.Invoke(this, -1);
+    private void PreviousFrame() { if (IsSourceMode) StepSource(-1); else FrameStepRequested?.Invoke(this, -1); }
 
     [RelayCommand]
-    private void NextFrame() => FrameStepRequested?.Invoke(this, 1);
+    private void NextFrame() { if (IsSourceMode) StepSource(1); else FrameStepRequested?.Invoke(this, 1); }
 }

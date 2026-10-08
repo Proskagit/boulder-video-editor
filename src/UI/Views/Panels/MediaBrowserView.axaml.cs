@@ -7,8 +7,8 @@ using Avalonia.Interactivity;
 
 namespace AiVideoEditor.UI.Views.Panels;
 
-/// <summary>View glue: double-click adds the item to the timeline, and dragging an item
-/// starts a drag-and-drop carrying its asset id (dropped onto a timeline track).</summary>
+/// <summary>View glue: a double click opens a video or audio item in the Preview's Source mode (an image is added to
+/// the timeline), and dragging an item starts a drag-and-drop carrying its asset id (dropped onto a timeline track).</summary>
 public partial class MediaBrowserView : UserControl
 {
     private const double DragStartDistance = 6;
@@ -22,11 +22,8 @@ public partial class MediaBrowserView : UserControl
 
         MediaList.DoubleTapped += (_, e) =>
         {
-            if (DataContext is MediaBrowserViewModel vm && ItemFrom(e.Source) is not null &&
-                vm.AddToTimelineCommand.CanExecute(null))
-            {
-                vm.AddToTimelineCommand.Execute(null);
-            }
+            if (DataContext is MediaBrowserViewModel vm && ItemFrom(e.Source) is { } item)
+                vm.Activate(item);
         };
 
         // Tunnel: see the press before the ListBox handles it for selection.

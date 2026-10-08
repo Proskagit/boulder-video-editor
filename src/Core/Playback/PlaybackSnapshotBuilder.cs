@@ -97,6 +97,34 @@ public static class PlaybackSnapshotBuilder
     }
 
     /// <summary>
+    /// The Source viewer's snapshot (D031 SQ2): one video or audio asset from its start, <paramref name="frames"/> whole
+    /// frames of <paramref name="rate"/>, at 1× — built by <see cref="Build"/> from a transient one-clip project, so the
+    /// source plays by exactly the timeline's rules (D009 frame selection, D013 sound). The canvas is the asset's display
+    /// size, <paramref name="fallbackCanvas"/> for audio or an unknown size. Nothing here touches the user's project.
+    /// </summary>
+    public static PlaybackSnapshot BuildSource(MediaAsset asset, FrameRate rate, long frames, FrameSize fallbackCanvas, long version)
+    {
+        var canvas = asset.Kind == MediaKind.Video && DisplaySize(asset.Metadata) is { } size ? size : fallbackCanvas;
+        var source = new Project
+        {
+            Settings = new ProjectSettings { FrameRate = rate, IsFrameRateLocked = true, FrameWidth = canvas.Width, FrameHeight = canvas.Height }
+        };
+        source.MediaAssets.Add(asset);
+
+        var audioOnly = asset.Kind == MediaKind.Audio;
+        var track = new Track { Type = audioOnly ? TrackType.Audio : TrackType.Video, Name = "Source" };
+        MediaBackedClip clip = audioOnly ? new AudioClip { MediaAssetId = asset.Id } : new VideoClip { MediaAssetId = asset.Id };
+        clip.TimelineStart = MediaTime.Zero;
+        clip.Duration = MediaTime.FromFrame(Math.Max(0, frames), rate);
+        clip.SourceIn = MediaTime.Zero;
+        clip.SourceOut = clip.Duration;
+        track.Clips.Add(clip);
+        (audioOnly ? source.Timeline.AudioTracks : source.Timeline.VideoTracks).Add(track);
+
+        return Build(source, version);
+    }
+
+    /// <summary>
     /// Everything about one asset that <see cref="Build"/> depends on. Two captures that are equal
     /// for every asset the timeline uses produce the same snapshot, so a media change that leaves
     /// them equal (e.g. an unused asset finished analysis) needs no rebuild.

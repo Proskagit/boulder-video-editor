@@ -113,6 +113,15 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         MediaBrowser.AddToTimelineRequested += (_, asset) => Timeline.AddMedia(asset);
 
+        // Phase 16 (D031): a double click opens the asset in the Preview's Source mode; the source bar's Insert /
+        // Overwrite are the timeline's commands (the target track, the playhead, the selection are the timeline's).
+        MediaBrowser.OpenInSourceRequested += (_, asset) =>
+        {
+            if (Preview.OpenSource(asset) is { } reason) Status.Report(reason);
+        };
+        Preview.InsertCommand = Timeline.InsertFromSourceCommand;
+        Preview.OverwriteCommand = Timeline.OverwriteFromSourceCommand;
+
         // Playhead ↔ playback. User moves (SeekRequested) seek playback; playback positions are
         // shown with ShowPlaybackPosition, which never raises SeekRequested — no feedback loop.
         Timeline.PlayheadChanged += (_, _) => UpdatePreviewPosition();

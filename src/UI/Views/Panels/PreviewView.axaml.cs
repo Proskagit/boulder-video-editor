@@ -22,6 +22,7 @@ public partial class PreviewView : UserControl
     {
         InitializeComponent();
         _timer = new DispatcherTimer(TickInterval, DispatcherPriority.Render, (_, _) => _viewModel?.Tick());
+        SourceBar.FrameRequested += (_, frame) => _viewModel?.SeekSource(frame);
     }
 
     protected override void OnDataContextChanged(EventArgs e)

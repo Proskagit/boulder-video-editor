@@ -100,6 +100,13 @@ public interface ITimelineEditService
     /// <see cref="TimelineEditResult.ClipIds"/> is the new clip.</summary>
     TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null);
 
+    /// <summary>The frame grid a source range of <paramref name="asset"/> lies on (D031 SQ12) — the project rate when it is
+    /// locked, the asset's own rate while it is provisional and the asset is a video (Insert / Overwrite would lock it) —
+    /// and the asset's whole frames on it: what the Source viewer plays and what <see cref="InsertClip"/> places. Null,
+    /// with <paramref name="reason"/>, for an asset that can't be a source (SQ11): an image, a missing asset, one whose
+    /// analysis is not complete or that is shorter than one frame.</summary>
+    SourceGrid? GetSourceGrid(MediaAsset asset, out string? reason);
+
     /// <summary>Overwrite (D031 SQ9): as <see cref="InsertClip"/>, but nothing moves — the new clip covers
     /// [<paramref name="at"/>, at + length) of the track: a clip inside it is removed, a clip partly inside is trimmed to
     /// it (the trim rule), a clip covering it is split at its start and trimmed at its end. Refused the same way, and when
@@ -354,6 +361,14 @@ public sealed record SlipPreview(MediaTime SourceIn, MediaTime SourceOut, long F
 /// <summary>A ripple drag's preview (D030 §6): the planned start and end of each clip the release would change, and
 /// whether a dissolve stopped the trim.</summary>
 public sealed record RippleTrimPreview(IReadOnlyDictionary<Guid, (MediaTime Start, MediaTime End)> Clips, bool Stopped);
+
+/// <summary>A source asset on the frame grid of <see cref="ITimelineEditService.GetSourceGrid"/> (D031 SQ12):
+/// <paramref name="Frames"/> whole frames of <paramref name="Rate"/>, frame 0 at the asset's start.</summary>
+public sealed record SourceGrid(FrameRate Rate, long Frames)
+{
+    /// <summary>The end of the last whole frame.</summary>
+    public MediaTime Duration => MediaTime.FromFrame(Frames, Rate);
+}
 
 /// <summary>Outcome of a timeline edit. <see cref="Message"/> is safe to show in the
 /// status bar; on success it may carry an informational note (e.g. frame rate fixed).</summary>

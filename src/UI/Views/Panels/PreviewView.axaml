@@ -1,21 +1,74 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:rendering="using:AiVideoEditor.UI.Rendering"
+             xmlns:controls="using:AiVideoEditor.UI.Controls"
              x:Class="AiVideoEditor.UI.Views.Panels.PreviewView">
 
-  <Grid RowDefinitions="*,Auto" Background="#1E1E1E">
+  <Grid RowDefinitions="Auto,*,Auto,Auto" Background="#1E1E1E">
+
+    <!-- Timeline / Source (Phase 16, D031 SQ1): one panel, two modes; Source plays the asset opened from the Media
+         Browser (double click). -->
+    <Border Grid.Row="0" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1" Padding="8,4">
+      <DockPanel>
+        <StackPanel Orientation="Horizontal" Spacing="2" DockPanel.Dock="Left">
+          <StackPanel.Styles>
+            <Style Selector="Button.mode">
+              <Setter Property="FontSize" Value="11"/>
+              <Setter Property="Padding" Value="8,2"/>
+            </Style>
+            <Style Selector="Button.mode.shown /template/ ContentPresenter">
+              <Setter Property="Background" Value="#0E639C"/>
+              <Setter Property="Foreground" Value="#FFFFFF"/>
+            </Style>
+          </StackPanel.Styles>
+          <Button Classes="mode" Classes.shown="{Binding IsTimelineMode}" Content="Timeline"
+                  Command="{Binding ShowTimelineCommand}" ToolTip.Tip="Show the timeline at its playhead"/>
+          <Button Classes="mode" Classes.shown="{Binding IsSourceMode}" Content="Source"
+                  Command="{Binding ShowSourceCommand}"
+                  ToolTip.Tip="Show the media opened in Source (double-click a video or audio file in the Media Browser)"/>
+        </StackPanel>
+        <TextBlock Text="{Binding SourceName}" Foreground="#9A9A9A" FontSize="11" Margin="8,0,0,0"
+                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+      </DockPanel>
+    </Border>
 
     <!-- Composition (Phase 7 Step 7): the project canvas with its real proportions, letterboxed
          in the available space; every layer is drawn by CompositionView (D018/D019). -->
-    <Grid Grid.Row="0" Margin="16">
+    <Grid Grid.Row="1" Margin="16">
       <rendering:CompositionView Layers="{Binding Layers}" Canvas="{Binding Canvas}"/>
       <TextBlock Text="Buffering…" IsVisible="{Binding IsBuffering}"
                  Foreground="#7A7A7A" FontSize="12" Margin="8"
                  HorizontalAlignment="Right" VerticalAlignment="Top"/>
     </Grid>
 
+    <!-- The source bar (Source mode only): position and In / Out on the asset, Insert (,) / Overwrite (.). -->
+    <Border Grid.Row="2" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,1,0,0" Padding="8,4"
+            IsVisible="{Binding IsSourceMode}">
+      <StackPanel Spacing="4">
+        <controls:SourceRangeBar x:Name="SourceBar" Height="16" Cursor="Hand"
+                                 Frames="{Binding SourceFrames}" Frame="{Binding SourceFrame}"
+                                 InFrame="{Binding SourceInFrame}" OutFrame="{Binding SourceOutFrame}"/>
+        <DockPanel>
+          <StackPanel Orientation="Horizontal" Spacing="4" DockPanel.Dock="Right">
+            <Button Content="Insert" FontSize="11" Padding="6,2" Command="{Binding InsertCommand}"
+                    ToolTip.Tip="Insert the source range at the playhead on the target track (,)"/>
+            <Button Content="Overwrite" FontSize="11" Padding="6,2" Command="{Binding OverwriteCommand}"
+                    ToolTip.Tip="Overwrite the target track with the source range from the playhead (.)"/>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <Button Content="In" FontSize="11" Padding="6,2" Command="{Binding SetSourceInCommand}" ToolTip.Tip="Source In (I)"/>
+            <Button Content="Out" FontSize="11" Padding="6,2" Command="{Binding SetSourceOutCommand}" ToolTip.Tip="Source Out (O)"/>
+            <TextBlock Text="{Binding SourceRangeDisplay}" Foreground="#9A9A9A" FontSize="11" VerticalAlignment="Center"
+                       Margin="4,0,0,0"/>
+            <Button Content="✕" FontSize="10" Padding="5,1" VerticalAlignment="Center" IsVisible="{Binding HasSourceRange}"
+                    Command="{Binding ClearSourceRangeCommand}" ToolTip.Tip="Clear the source In / Out"/>
+          </StackPanel>
+        </DockPanel>
+      </StackPanel>
+    </Border>
+
     <!-- Transport controls -->
-    <Border Grid.Row="1" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,1,0,0" Padding="8">
+    <Border Grid.Row="3" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,1,0,0" Padding="8">
       <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
         <Button Content="⏮" Command="{Binding PreviousFrameCommand}" ToolTip.Tip="Previous frame (←)"/>
         <Button Content="{Binding PlayPauseLabel}" Command="{Binding PlayPauseCommand}" MinWidth="64"

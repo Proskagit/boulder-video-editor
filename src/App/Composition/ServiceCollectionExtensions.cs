@@ -82,6 +82,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<StatusService>();
         services.AddSingleton<EditingLock>();
         services.AddSingleton<InOutRangeService>();   // the session's In / Out range (D030 §8)
+        services.AddSingleton<SourceViewerService>();  // the Source viewer's asset and source In / Out (D031)
         services.AddSingleton<IExportProgressDialog, AvaloniaExportProgressDialog>();
         services.AddSingleton<ExportWorkflow>();
         services.AddSingleton<MediaAnalysisCoordinator>();

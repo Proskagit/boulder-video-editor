@@ -203,6 +203,7 @@ public partial class MainWindow : Window
         public SlipPreview? PreviewSlip(Guid clipId, long frames) => null;
         public TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) => Nothing;
         public TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) => Nothing;
+        public SourceGrid? GetSourceGrid(MediaAsset asset, out string? reason) { reason = null; return null; }
         public RippleTrimPreview? PreviewRippleTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime) => null;
         public TimelineEditResult SetTrackMuted(Guid trackId, bool muted) => Nothing;
         public TimelineEditResult SetTrackHidden(Guid trackId, bool hidden) => Nothing;
