@@ -53,6 +53,9 @@ public sealed class EditPlan
     /// <summary>Dissolves <see cref="ReconcileTransitions"/> removed because their cut no longer exists.</summary>
     public int AutoRemovedTransitions { get; private set; }
 
+    /// <summary>Of those, the crossfades (audio tracks, D032 R9): the note names them as such.</summary>
+    public int AutoRemovedCrossfades { get; private set; }
+
     /// <summary>True when the plan changes a transition.</summary>
     public bool ChangesTransitions => _transitionUpdates.Count > 0 || _transitionAdds.Count > 0 || _transitionRemoves.Count > 0;
 
@@ -253,6 +256,7 @@ public sealed class EditPlan
             {
                 _transitionRemoves.Add(transition);
                 AutoRemovedTransitions++;
+                if (state.Track.Type == TrackType.Audio) AutoRemovedCrossfades++;
             }
             else if (left.Track != state.Track)
             {

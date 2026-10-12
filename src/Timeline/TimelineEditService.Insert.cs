@@ -134,7 +134,7 @@ public sealed partial class TimelineEditService
             if (start < atFrame && atFrame < end)
             {
                 if (!PlanSplitClip(plan, track, clip, state, atFrame, out var right))
-                    return "Can't insert inside a dissolve.";
+                    return $"Can't insert inside a {TransitionNoun(track)}.";
                 splits.Add((clip, right));
                 var (moved, error) = ShiftedState(right, frames, rate);
                 if (error is not null) return $"Can't insert: {error}";
@@ -157,7 +157,7 @@ public sealed partial class TimelineEditService
     private string? PlanOverwrite(EditPlan plan, Track track, IReadOnlyList<(Clip Clip, ClipState State)> existing, long from, long to,
         List<(Clip Left, Clip Right)> splits)
     {
-        const string insideDissolve = "Can't overwrite inside a dissolve.";
+        var insideDissolve = $"Can't overwrite inside a {TransitionNoun(track)}.";
         var rate = plan.Rate;
         var none = Array.Empty<Clip>();
         foreach (var (clip, state) in existing)

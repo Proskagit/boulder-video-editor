@@ -72,6 +72,19 @@ Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fa
   untouched clips of their tracks; J / L cuts; the clamp; 14 edit kinds refused by a locked partner; Alt + edge with a locked
   partner; an unlinked pair as before). Twelve mutations of the partner rules caught (one — the ripple partner's room — after
   a test was added for it). `--no-incremental -warnaserror` 0 / 0; the full suite 2988 passed, 2 skipped, 0 failed.
+- Step 17.6 done — audio crossfade and fades (D032 R8, R9, R10; D032 "Refined in Step 17.6"): the transition edits on audio
+  cuts (type by track kind, messages and undo names by kind, a separate crossfade removal note); `AudioSpan.CrossfadeIn` /
+  `CrossfadeOut` / `PlayStart` / `PlayEnd` and `CrossfadeZone`; `AudioPlacement` over the played range with the clip's own
+  source offset; `AudioFadeEnvelope` with the crossfade ramps; `AudioPipeline` window and reader key by the played range.
+  Tests: `Export.Tests/ExportAudioContractTests` (6 new: the export equals the Preview's mix sample for sample for crossfades
+  of 2, 9, 30 frames; two constants follow the linear ramps exactly and sum to one; the extension is the clip's own source
+  mapping on both sides; playback started inside the zone — also with a look-ahead shorter than the extension — equals the
+  export; a video dissolve's sound still a hard cut), `Timeline.Tests/CrossfadeEditTests` (6: add / undo, limits and
+  messages, D025 §5 reconciliation, the far-edge clamp, the suppressed fades and the spans' zones, an audio clip of a video
+  file), `ExportEndToEnd.Tests/ExportCrossfadeEndToEndTests` (2, real decoder: the crossfade equals the two extended sounds
+  exported alone, weighted by the ramps, sample for sample; the picture unchanged). Six mutations caught (the placement, the
+  out ramp, the builder's zone, both look-ahead bounds — the start bound after the short look-ahead test was added).
+  `--no-incremental -warnaserror` 0 / 0; the full suite 3003 passed, 2 skipped, 0 failed.
 
 ### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 
@@ -3982,7 +3995,7 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 2026-10-08: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`, CI green on the pull request and on
 `main`; 2894 passed, 2 skipped). Phase 17 (audio editing, D032) in progress on `feat/phase-17-audio-editing`: Steps 17.1–17.2
-done, AQ1–AQ13 answered (as proposed), Steps 17.3–17.5 done. Open items: see "Known issues" (the real-device audio status check — now R10 of
+done, AQ1–AQ13 answered (as proposed), Steps 17.3–17.6 done. Open items: see "Known issues" (the real-device audio status check — now R10 of
 the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 
 ### Phase 4 — Timeline (historical notes)

@@ -29,27 +29,29 @@ public readonly record struct AudioPlacement
     private readonly MediaTime _sourceIn;
     private readonly long _sourceOffset;   // d at 1×
 
-    private AudioPlacement(MediaTime start, MediaTime end, MediaTime sourceIn, ClipSpeed speed)
+    private AudioPlacement(MediaTime playStart, MediaTime playEnd, MediaTime start, MediaTime sourceIn, ClipSpeed speed)
     {
         _start = start;
         _sourceIn = sourceIn;
         Speed = speed;
-        FirstSample = AudioTiming.CeilingSample(start);
-        EndSample = AudioTiming.CeilingSample(end);
+        FirstSample = AudioTiming.CeilingSample(playStart);
+        EndSample = AudioTiming.CeilingSample(playEnd);
         _sourceOffset = AudioTiming.SourceOffset(start, sourceIn);
     }
 
-    public static AudioPlacement Of(AudioSpan span) => new(span.TimelineStart, span.TimelineEnd, span.SourceIn, span.Speed);
+    /// <summary>The placement of <paramref name="span"/>: the samples it plays — its own, and a crossfade's zone beyond its
+    /// edges (D032 R9) — placed by its own start and SourceIn, so the extended samples follow the same mapping (D025 §4).</summary>
+    public static AudioPlacement Of(AudioSpan span) => new(span.PlayStart, span.PlayEnd, span.TimelineStart, span.SourceIn, span.Speed);
 
     public static AudioPlacement Of(MediaTime timelineStart, MediaTime timelineEnd, MediaTime sourceIn, ClipSpeed speed) =>
-        new(timelineStart, timelineEnd, sourceIn, speed);
+        new(timelineStart, timelineEnd, timelineStart, sourceIn, speed);
 
     public ClipSpeed Speed { get; }
 
-    /// <summary>First timeline sample the clip owns.</summary>
+    /// <summary>First timeline sample the clip plays (its own first, or its crossfade-in zone's).</summary>
     public long FirstSample { get; }
 
-    /// <summary>First timeline sample after the clip.</summary>
+    /// <summary>First timeline sample after the clip's sound (its own end, or its crossfade-out zone's).</summary>
     public long EndSample { get; }
 
     /// <summary><paramref name="timelineSample"/> moved into <c>[FirstSample, EndSample]</c>.</summary>

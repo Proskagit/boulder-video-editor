@@ -618,7 +618,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         foreach (var clip in toSplit)
         {
             if (!PlanSplitClip(plan, plan.TrackOf(clip), clip, ClipState.Capture(clip), atFrame, out var rightClip))
-                return TimelineEditResult.Fail("Can't split inside a dissolve.");
+                return TimelineEditResult.Fail($"Can't split inside a {TransitionNoun(plan.TrackOf(clip))}.");
             ids.Add(clip.Id);
             ids.Add(rightClip.Id);
             splits.Add((clip, rightClip));
@@ -1625,26 +1625,28 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var plan = new EditPlan(Sequence, Settings);
         if (ResolveCut(plan, leftClipId, rightClipId, out var track, out var left, out var right) is { } cutError)
             return TimelineEditResult.Fail(cutError);
+        var noun = TransitionNoun(track);
         if (track.Transitions.Any(t => t.LeftClipId == left.Id))
-            return TimelineEditResult.Fail("This cut already has a dissolve.");
+            return TimelineEditResult.Fail($"This cut already has a {noun}.");
 
         var rate = plan.Rate;
         var frames = TransitionRules.Frames(duration, rate);
         if (frames < TransitionRules.MinFrames)
-            return TimelineEditResult.Fail($"A dissolve must be at least {TransitionRules.MinFrames} frames long.");
-        if (TooLong(frames, MaxFrames(track, left, right, rate, except: null)) is { } tooLong)
+            return TimelineEditResult.Fail($"A {noun} must be at least {TransitionRules.MinFrames} frames long.");
+        if (TooLong(frames, MaxFrames(track, left, right, rate, except: null), noun) is { } tooLong)
             return TimelineEditResult.Fail(tooLong);
 
+        // The track's kind decides the type: a dissolve on a video track, a crossfade on an audio track (D032 R9).
         var transition = new Transition
         {
-            TransitionTypeId = TransitionRules.CrossDissolve, Duration = MediaTime.FromFrame(frames, rate),
+            TransitionTypeId = TransitionRules.TypeFor(track.Type), Duration = MediaTime.FromFrame(frames, rate),
             LeftClipId = left.Id, RightClipId = right.Id
         };
         plan.AddTransition(track, transition);
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail($"Can't add the dissolve: {error}");
+            return TimelineEditResult.Fail($"Can't add the {noun}: {error}");
 
-        _undoRedo.Execute(new NotifyingCommand(new AddTransitionCommand(track, transition), _projectService.NotifyTimelineChanged));
+        _undoRedo.Execute(new NotifyingCommand(new AddTransitionCommand(track, transition, $"Add {Title(noun)}"), _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, ClipIds = new[] { left.Id, right.Id }, TransitionId = transition.Id };
     }
 
@@ -1654,7 +1656,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var (track, transition) = found;
         if (track.IsLocked) return TimelineEditResult.Fail($"Track {track.Name} is locked.");
 
-        _undoRedo.Execute(new NotifyingCommand(new RemoveTransitionCommand(track, transition), _projectService.NotifyTimelineChanged));
+        _undoRedo.Execute(new NotifyingCommand(new RemoveTransitionCommand(track, transition, $"Remove {Title(TransitionNoun(track))}"),
+            _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, ClipIds = new[] { transition.LeftClipId, transition.RightClipId } };
     }
 
@@ -1666,24 +1669,26 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         var plan = new EditPlan(Sequence, Settings);
         var rate = plan.Rate;
+        var noun = TransitionNoun(track);
         var frames = TransitionRules.Frames(duration, rate);
         if (frames < TransitionRules.MinFrames)
-            return TimelineEditResult.Fail($"A dissolve must be at least {TransitionRules.MinFrames} frames long.");
+            return TimelineEditResult.Fail($"A {noun} must be at least {TransitionRules.MinFrames} frames long.");
         var stored = MediaTime.FromFrame(frames, rate);
         if (stored == transition.Duration) return TimelineEditResult.Unchanged();
 
         var left = track.Clips.First(c => c.Id == transition.LeftClipId);
         var right = track.Clips.First(c => c.Id == transition.RightClipId);
-        if (TooLong(frames, MaxFrames(track, left, right, rate, except: transition)) is { } tooLong)
+        if (TooLong(frames, MaxFrames(track, left, right, rate, except: transition), noun) is { } tooLong)
             return TimelineEditResult.Fail(tooLong);
 
         var before = TransitionState.Capture(track, transition);
         var after = before with { Duration = stored };
         plan.UpdateTransition(transition, after);
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail($"Can't change the dissolve: {error}");
+            return TimelineEditResult.Fail($"Can't change the {noun}: {error}");
 
-        _undoRedo.Execute(new NotifyingCommand(new UpdateTransitionCommand(transition, before, after), _projectService.NotifyTimelineChanged));
+        _undoRedo.Execute(new NotifyingCommand(new UpdateTransitionCommand(transition, before, after, $"Change {Title(noun)} Duration"),
+            _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, ClipIds = new[] { left.Id, right.Id }, TransitionId = transition.Id };
     }
 
@@ -1696,7 +1701,14 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return MaxFrames(track, left, right, plan.Rate, except: own);
     }
 
-    /// <summary>Two touching clips of one (unlocked) video track, A left of B.</summary>
+    /// <summary>What a transition of <paramref name="track"/> is called: a dissolve on a video track, a crossfade on an audio
+    /// track (D032 R9).</summary>
+    private static string TransitionNoun(Track track) => track.Type == TrackType.Audio ? "crossfade" : "dissolve";
+
+    private static string Title(string noun) => char.ToUpperInvariant(noun[0]) + noun[1..];
+
+    /// <summary>Two touching clips of one (unlocked) track, A left of B: a dissolve on a video track, a crossfade on an audio
+    /// track (D032 R9).</summary>
     private static string? ResolveCut(EditPlan plan, Guid leftClipId, Guid rightClipId, out Track track, out Clip left, out Clip right,
         bool allowLocked = false)
     {
@@ -1707,9 +1719,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         (left, right) = (clips[0], clips[1]);
         track = plan.TrackOf(left);
         if (plan.TrackOf(right) != track) return "A dissolve joins two clips of the same track.";
-        if (track.Type != TrackType.Video) return "Only clips on a video track can have a dissolve.";
         if (!allowLocked && track.IsLocked) return $"Track {track.Name} is locked.";
-        if (left.TimelineEnd != right.TimelineStart) return "A dissolve needs two clips that meet: the first must end where the second starts.";
+        if (left.TimelineEnd != right.TimelineStart)
+            return $"A {TransitionNoun(track)} needs two clips that meet: the first must end where the second starts.";
         return null;
     }
 
@@ -1732,10 +1744,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
             handleBeforeRight: DissolveHandles.Before(right, rightState, AssetOf(right), rate));
     }
 
-    private static string? TooLong(long frames, long max) =>
+    private static string? TooLong(long frames, long max, string noun) =>
         frames <= max ? null
-        : max < TransitionRules.MinFrames ? NotEnoughMedia
-        : $"A dissolve of {frames} frames doesn't fit here; the longest that fits is {max} frames.";
+        : max < TransitionRules.MinFrames ? NotEnoughMediaFor(noun)
+        : $"A {noun} of {frames} frames doesn't fit here; the longest that fits is {max} frames.";
+
+    /// <summary><see cref="NotEnoughMedia"/> for a dissolve, the same words for a crossfade.</summary>
+    private static string NotEnoughMediaFor(string noun) => $"There is not enough media beyond the clips for the {noun}.";
 
     private (Track Track, Transition Transition)? FindTransition(Guid id)
     {
@@ -1869,7 +1884,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             var right = clips[state.RightClipId];
             if (afterCut > DissolveHandles.After(left.Clip, left.State, AssetOf(left.Clip), plan.Rate) ||
                 beforeCut > DissolveHandles.Before(right.Clip, right.State, AssetOf(right.Clip), plan.Rate))
-                return NotEnoughMedia;
+                return NotEnoughMediaFor(TransitionNoun(track));
         }
         return null;
     }
@@ -1890,12 +1905,19 @@ public sealed partial class TimelineEditService : ITimelineEditService
     }
 
     /// <summary>The status note for dissolves an edit removed because their cut is gone (D025 §5), or null.</summary>
-    private static string? TransitionNote(EditPlan plan) => plan.AutoRemovedTransitions switch
-    {
-        0 => null,
-        1 => "A dissolve was removed: its clips no longer meet.",
-        var n => $"{n} dissolves were removed: their clips no longer meet."
-    };
+    private static string? TransitionNote(EditPlan plan) => Join(
+        (plan.AutoRemovedTransitions - plan.AutoRemovedCrossfades) switch
+        {
+            0 => null,
+            1 => "A dissolve was removed: its clips no longer meet.",
+            var n => $"{n} dissolves were removed: their clips no longer meet."
+        },
+        plan.AutoRemovedCrossfades switch
+        {
+            0 => null,
+            1 => "A crossfade was removed: its clips no longer meet.",
+            var n => $"{n} crossfades were removed: their clips no longer meet."
+        });
 
     private static string? Join(string? a, string? b) => a is null ? b : b is null ? a : $"{a} {b}";
 

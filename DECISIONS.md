@@ -3825,6 +3825,19 @@ partner alone on its own track (nothing placed there); a clip Overwrite removes 
 AQ12). (9) Copy / Paste / Duplicate (R5): the clipboard copy keeps the link; both clips of a link pasted → a new link,
 one alone → unlinked.
 
+Refined in Step 17.6 (audio crossfade and fades): the transition edits (Add, Duration, Remove, `MaxTransitionFrames`) take
+an audio cut and create the type of the track's kind; their messages, undo steps and the auto-removal note name a
+"crossfade" there ("Add Crossfade", "Change Crossfade Duration", "Remove Crossfade", "A crossfade was removed: its clips no
+longer meet.", "There is not enough media beyond the clips for the crossfade.", "Can't split / insert / overwrite inside a
+crossfade."); every video message is unchanged. The playback snapshot gives an audio track the dissolve's zones
+(`Dissolves`) and each `AudioSpan` its `CrossfadeIn` / `CrossfadeOut` zone; `PlayStart` / `PlayEnd` are the samples the
+clip plays — `AudioPlacement.Of(span)` covers them while keeping the source offset of the clip's own start, so the
+extension plays exactly the source a trim would (D025 §4), and every user of the placement follows: both readers, the
+export source, the export preflight window; the Preview's look-ahead window and reader key use the played range.
+`AudioFadeEnvelope` multiplies the fade by the crossfade ramps (A `1 − ramp`, B `ramp` over the zone's samples), in the one
+`AudioMix.Add` both sides call. A fade on an edge with a crossfade is not applied (the existing PO-8 rule, by track
+transitions). A crossfade change is a timing change for the Preview (not presentation-only).
+
 Status: Accepted (2026-10-08, product owner: variant A, L1–L7, AQ1–AQ13). R1–R13 are the pre-implementation audit's
 reading of the architecture (Step 17.2), checked by an independent review (PASS WITH NOTES; its notes taken in: R3's
 mix-order and dissolve-fade limits, `DeleteTrack` in R5, AQ11–AQ13). Steps and acceptance criteria:

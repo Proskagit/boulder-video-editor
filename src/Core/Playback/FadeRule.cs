@@ -54,19 +54,30 @@ public static class FadeRule
 /// <c>FadeInEnd = ⌈FromFrame(s + Fin) · 48000 / 10⁷⌉</c>, the fade out <c>[FadeOutStart, EndSample)</c> with
 /// <c>FadeOutStart = ⌈FromFrame(e − Fout) · 48000 / 10⁷⌉</c>. Sample <c>k</c> gets
 /// <c>ramp(k − FirstSample, FadeInEnd − FirstSample) · ramp(EndSample − 1 − k, EndSample − FadeOutStart)</c>.
-/// The default value fades nothing.
+/// A crossfade (D032 R9) adds its ramps over its zone's samples <c>[Z0, Z1)</c>, <c>M = Z1 − Z0</c>: the clip fading in
+/// (B) gets <c>ramp(k − Z0, M) = (k − Z0 + 1)/(M + 1)</c>, the clip fading out (A) <c>1 − ramp(k − Z0, M)</c> — linear, the
+/// two factors of a sample summing to 1 (no equal-power curve). The default value fades nothing.
 /// </summary>
 public readonly record struct AudioFadeEnvelope(long FirstSample, long FadeInEnd, long FadeOutStart, long EndSample)
 {
     /// <summary>No fade: every gain is exactly 1.</summary>
     public static readonly AudioFadeEnvelope None = default;
 
-    public bool HasFade => FadeInEnd > FirstSample || FadeOutStart < EndSample;
+    /// <summary>The crossfade-in zone's samples <c>[Z0, Z1)</c> (empty: none).</summary>
+    public long CrossfadeInStart { get; init; }
+    public long CrossfadeInEnd { get; init; }
+
+    /// <summary>The crossfade-out zone's samples (empty: none).</summary>
+    public long CrossfadeOutStart { get; init; }
+    public long CrossfadeOutEnd { get; init; }
+
+    public bool HasFade => FadeInEnd > FirstSample || FadeOutStart < EndSample
+        || CrossfadeInEnd > CrossfadeInStart || CrossfadeOutEnd > CrossfadeOutStart;
 
     /// <summary>The envelope of <paramref name="span"/> at the project rate <paramref name="rate"/>.</summary>
     public static AudioFadeEnvelope Of(AudioSpan span, FrameRate rate)
     {
-        if (span.FadeInFrames == 0 && span.FadeOutFrames == 0) return None;
+        if (span.FadeInFrames == 0 && span.FadeOutFrames == 0 && span.CrossfadeIn is null && span.CrossfadeOut is null) return None;
         var startFrame = span.TimelineStart.ToFrameFloor(rate);
         var endFrame = span.TimelineEnd.ToFrameFloor(rate);
         var first = AudioTiming.CeilingSample(span.TimelineStart);
@@ -74,14 +85,29 @@ public readonly record struct AudioFadeEnvelope(long FirstSample, long FadeInEnd
         return new AudioFadeEnvelope(first,
             AudioTiming.CeilingSample(MediaTime.FromFrame(startFrame + span.FadeInFrames, rate)),
             AudioTiming.CeilingSample(MediaTime.FromFrame(endFrame - span.FadeOutFrames, rate)),
-            end);
+            end)
+        {
+            CrossfadeInStart = span.CrossfadeIn is { } zoneIn ? AudioTiming.CeilingSample(zoneIn.Start) : 0,
+            CrossfadeInEnd = span.CrossfadeIn is { } zoneInEnd ? AudioTiming.CeilingSample(zoneInEnd.End) : 0,
+            CrossfadeOutStart = span.CrossfadeOut is { } zoneOut ? AudioTiming.CeilingSample(zoneOut.Start) : 0,
+            CrossfadeOutEnd = span.CrossfadeOut is { } zoneOutEnd ? AudioTiming.CeilingSample(zoneOutEnd.End) : 0
+        };
     }
 
-    /// <summary>The gain factor of timeline sample <paramref name="sample"/> (1 outside the ramps).</summary>
-    public double Gain(long sample) =>
-        FadeRule.Ramp(sample - FirstSample, FadeInEnd - FirstSample) * FadeRule.Ramp(EndSample - 1 - sample, EndSample - FadeOutStart);
+    /// <summary>The gain factor of timeline sample <paramref name="sample"/> (1 outside the ramps). A sample before the
+    /// clip's first or after its last (a crossfade's extension) is outside its fades.</summary>
+    public double Gain(long sample)
+    {
+        var gain = FadeRule.Ramp(sample - FirstSample, FadeInEnd - FirstSample) * FadeRule.Ramp(EndSample - 1 - sample, EndSample - FadeOutStart);
+        if (sample >= CrossfadeInStart && sample < CrossfadeInEnd)
+            gain *= FadeRule.Ramp(sample - CrossfadeInStart, CrossfadeInEnd - CrossfadeInStart);
+        if (sample >= CrossfadeOutStart && sample < CrossfadeOutEnd)
+            gain *= 1 - FadeRule.Ramp(sample - CrossfadeOutStart, CrossfadeOutEnd - CrossfadeOutStart);
+        return gain;
+    }
 
     /// <summary>True when a sample in <c>[from, until)</c> lies in a ramp.</summary>
     public bool Affects(long from, long until) =>
-        HasFade && ((from < FadeInEnd && until > FirstSample) || (until > FadeOutStart && from < EndSample));
+        HasFade && ((from < FadeInEnd && until > FirstSample) || (until > FadeOutStart && from < EndSample)
+                    || (from < CrossfadeInEnd && until > CrossfadeInStart) || (from < CrossfadeOutEnd && until > CrossfadeOutStart));
 }

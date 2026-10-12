@@ -88,7 +88,7 @@ and runs cleanly.
       audio clip explicitly (edited as one, the ripple keeping their offset, a locked partner refusing the whole edit),
       J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio tracks; Preview ↔
       export parity; `project.json` v4. Scope, steps and acceptance criteria: section below and DECISIONS.md D032 (product
-      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.5 done; AQ1–AQ13
+      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.6 done; AQ1–AQ13
       answered (as proposed); checked after the product owner's acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
@@ -1099,7 +1099,7 @@ Out of scope: D032 L7 and §6.
 - QG: `Timeline.Tests` per edit — linked vs. unlinked results compared clip for clip with the same edit applied to each
   clip; the locked partner for every edit kind; J / L cut shapes; Undo / Redo exact; mutations of the partner rule caught.
 
-### 17.6 — Audio crossfade and audio fades
+### 17.6 — Audio crossfade and audio fades *(done)*
 - PR: D032 R8, R9, R10: Add / Remove / Duration of a crossfade on an audio cut (1 s or the longest that fits), every edit's
   reconciliation (D025 §5), the mix of the zone in the Preview and the export, a fade suppressed on a crossfade edge.
 - Impl: `AudioSpan` extension + ramps, `AudioPlacement` / `AudioFadeEnvelope` / `AudioMix` shared by `AudioSpanReader` and
