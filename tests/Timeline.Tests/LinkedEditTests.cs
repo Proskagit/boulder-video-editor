@@ -434,6 +434,26 @@ public class LinkedEditTests
     public void Every_edit_of_a_linked_clip_is_refused_as_a_whole_when_the_partner_is_locked(string edit) =>
         AssertRefusedByLockedPartner(EditsByName[edit]);
 
+    // AQ12 / L5: an Overwrite that removes a linked clip would clear its partner's link — refused when that partner is on
+    // a locked track (picture over the video side, the sound alone over the audio side).
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void An_overwrite_removing_a_linked_clip_is_refused_when_its_partner_is_locked(bool soundOnly)
+    {
+        var (f, take, _, _) = Pair();
+        Ok(f.Service.SetTrackLocked((soundOnly ? f.V1 : f.A1).Id, true));
+        var before = f.Snapshot();
+        var top = f.UndoRedo.CurrentPosition;
+
+        var result = f.Service.OverwriteClip(take.Id, F(0), F(110), F(15), soundOnly: soundOnly);
+
+        Assert.False(result.Success);
+        Assert.Contains($"Track {(soundOnly ? "V1" : "A1")} is locked.", result.Message);
+        Assert.Equal(before, f.Snapshot());
+        Assert.Same(top, f.UndoRedo.CurrentPosition);
+    }
+
     [Fact]
     public void Alt_edge_on_a_clip_whose_partner_is_locked_is_allowed()
     {

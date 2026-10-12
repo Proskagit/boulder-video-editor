@@ -3859,7 +3859,13 @@ and no waveform. Every new control is off during an export (`CanEdit`).
 
 Refined in Step 17.9 (closeout): the real-app run at 1024 px found the two new toolbar buttons pushing −, + and Fit past
 the window's edge; the timeline tools are now a `WrapPanel` (the same buttons and order; at 1440 px one row as before, at
-1024 px −, + and Fit on a second row) — the only layout change of the phase.
+1024 px −, + and Fit on a second row) — the only layout change of the phase. After the independent closeout review (FAIL on
+one missing test): the AQ12 refusal of an Overwrite that removes a linked clip whose partner is locked is now tested
+(picture and sound-only; its mutation caught); and Alt changes only a **linked** clip's edge — on an unlinked clip Alt +
+edge is the ordinary trim and Shift + Alt + edge the ripple trim, as before Phase 17 (AQ3: "only linked clips change").
+Ripple Delete of a linked pair closes up each track by its own removed clips (AQ2, "Refined in Step 17.5" (7)); a later
+pair with a J / L offset may then move by different lengths on its two tracks — left as documented, a question for the
+product owner.
 
 Final state at the Phase 17 closeout (Step 17.9, 2026-10-12): every rule of §2–§4 implemented and tested (Project.Tests
 `AudioEditingPersistenceTests`, Core.Tests `LinkRulesTests` / `TransitionRulesTests`, Timeline.Tests `LinkEditTests` /

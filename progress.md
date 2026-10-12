@@ -119,6 +119,13 @@ Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fa
     with the machine idle after the toolbar fix: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite 3020 passed, 2 skipped (the 4K scenes), 0 failed; three `--blame-hang-timeout 5m` runs 3020 / 2 / 0 each, no hang, no dump; with `AIVE_HEAVY_TESTS=1` 3022 / 0 / 0; `git diff --check 79e4e78` clean.
   - Documentation: ARCHITECTURE (the links paragraph, the Audio sentence, the format line, the Project row), D032
     refinements, final state and status, ROADMAP, README, this plan.
+  - Independent phase review of `f52180f`: FAIL on one missing test — the AQ12 refusal of an Overwrite that removes a
+    linked clip whose partner is locked (the `Validate` cleared-link check) had no test that a mutation would fail. Fixed:
+    `LinkedEditTests.An_overwrite_removing_a_linked_clip_is_refused_when_its_partner_is_locked` (picture and sound-only;
+    the check's mutation caught by both). Its note on Shift + Alt + edge fixed too: Alt now changes only a linked clip's
+    edge, so Shift + Alt on an unlinked clip ripples as before (`TimelineLinkUiTests`, mutation caught). Its question —
+    Ripple Delete of an offset pair closing each track by its own lengths (AQ2 vs AQ4) — left for the product owner.
+    Gates again after the fixes, the machine idle: build --no-incremental -warnaserror Release and Debug 0 / 0; the full suite 3023 passed, 2 skipped, 0 failed; three --blame-hang-timeout 5m runs 3023 / 2 / 0 each; AIVE_HEAVY_TESTS=1 3025 / 0 / 0.
 
 ### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 
@@ -4028,7 +4035,7 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 ## Last known state
 
 2026-10-12: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`). Phase 17 (audio editing, D032) complete
-on `feat/phase-17-audio-editing` (closeout Step 17.9; 3020 passed, 2 skipped); push and pull request on the product owner's
+on `feat/phase-17-audio-editing` (closeout Step 17.9; 3023 passed, 2 skipped); push and pull request on the product owner's
 command. Open items: see "Known issues" (the real-device audio status check — now R10 of
 the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 

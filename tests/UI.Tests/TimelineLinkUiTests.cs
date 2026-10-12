@@ -158,6 +158,29 @@ public sealed class TimelineLinkUiTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Alt_changes_only_a_linked_clips_edge_and_Shift_Alt_on_an_unlinked_clip_still_ripples()
+    {
+        var video = Recording();
+        var other = new MediaAsset
+        {
+            FilePath = Path.Combine(Path.GetTempPath(), "aive-link-ui", Guid.NewGuid().ToString("N"), "b.mp4"),
+            Kind = MediaKind.Video, AnalysisStatus = MediaAnalysisStatus.Completed,
+            Metadata = new MediaMetadata { Duration = MediaTime.FromSeconds(20), FrameRate = Rate, Width = 1920, Height = 1080 }
+        };
+        _projects.AddMediaAssets(new[] { other });
+        Assert.True(_edit.AddClip(other.Id, V1.Id, F(100)).Success);              // right after the recording
+        var later = V1.Clips[1];
+        var pps = Timeline.PixelsPerSecond;
+        double X(long frame) => frame / 25.0 * pps;
+
+        Timeline.BeginTrim(Vm(video), ClipEdge.End, X(100), ripple: true, alone: true);   // Shift + Alt, unlinked: a ripple
+        Timeline.UpdateGesture(X(80), null);
+        Timeline.EndGesture();
+        Assert.Equal(F(80), video.TimelineEnd);
+        Assert.Equal(F(80), later.TimelineStart);                                  // the later clip moved: rippled
+    }
+
+    [Fact]
     public void The_Dissolve_command_adds_a_crossfade_on_an_audio_cut_and_the_Inspector_names_it()
     {
         var video = Recording();

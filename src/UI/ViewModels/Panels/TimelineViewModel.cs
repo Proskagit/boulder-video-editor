@@ -1149,6 +1149,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     public void BeginTrim(TimelineClipViewModel clip, ClipEdge edge, double contentX, bool ripple = false, bool alone = false)
     {
         if (!CanEdit()) return;
+        alone = alone && PartnerViewModel(clip) is not null;   // AQ3: Alt changes only a linked clip's edge (Shift + Alt ripples as before)
         SelectOnly(clip.Id, withPartner: !alone);
         _gesture = new Gesture
         {
