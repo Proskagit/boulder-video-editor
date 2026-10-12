@@ -181,6 +181,30 @@ public sealed class TimelineLinkUiTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Ripple_Delete_from_the_timeline_closes_both_tracks_by_the_clicked_clips_length()
+    {
+        var video = Recording();                                                       // V1 [0, 100)
+        Assert.True(_edit.UnlinkAudio(video.Id).Success);
+        var sound = (AudioClip)A1.Clips[0];
+        Assert.True(_edit.LinkClips(new[] { video.Id, sound.Id }).Success);
+        Assert.True(_edit.TrimClip(sound.Id, ClipEdge.End, F(110), alone: true).Success);   // an L cut: the sound 110 frames
+        Assert.True(_edit.AddClip(video.MediaAssetId, V1.Id, F(150)).Success);
+        var laterV = V1.Clips[1];
+        Assert.True(_edit.UnlinkAudio(laterV.Id).Success);
+        var laterA = A1.Clips[1];
+        Assert.True(_edit.LinkClips(new[] { laterV.Id, laterA.Id }).Success);
+
+        Click(sound);                                                                  // the sound is the primary
+        Timeline.RippleDeleteCommand.Execute(null);
+
+        Assert.Equal(F(40), laterV.TimelineStart);                                    // both tracks by the sound's 110 frames
+        Assert.Equal(F(40), laterA.TimelineStart);
+        _vm.Toolbar.UndoCommand.Execute(null);
+        Assert.Equal(F(150), laterV.TimelineStart);
+        Assert.Equal(F(150), laterA.TimelineStart);
+    }
+
+    [Fact]
     public void The_Dissolve_command_adds_a_crossfade_on_an_audio_cut_and_the_Inspector_names_it()
     {
         var video = Recording();

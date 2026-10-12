@@ -128,6 +128,15 @@ Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fa
     Gates again after the fixes, the machine idle: build --no-incremental -warnaserror Release and Debug 0 / 0; the full suite 3023 passed, 2 skipped, 0 failed; three --blame-hang-timeout 5m runs 3023 / 2 / 0 each; AIVE_HEAVY_TESTS=1 3025 / 0 / 0.
   - Re-review of `b29fade`: PASS WITH NOTES — no blocking issue; open for the product owner: the Ripple Delete question
     above and R10 (a real audio device).
+- After the closeout (2026-10-12): the product owner accepted Phase 17 on the checks and asked, before publishing, for
+  Ripple Delete of a linked pair to close **both tracks by the same frames — the target clip's length** (D032 "Changed
+  by the product owner"); R10 stays an open manual check that does not block the pull request. Done in
+  `RippleDeleteClips` (each removed clip's close-up: its own length, a linked pair's both the target's — the one named
+  last); the existing ripple tests unchanged and green. Tests: `LinkedEditTests` (5: the video or the sound as the
+  target of a J-cut pair with a later J-cut pair keeping its offset, Undo / Redo exact as one step, the target when both
+  are named, the locked track and the overlap refusals, unlinked clips by their own lengths), `TimelineLinkUiTests` (the
+  clicked clip is the target, Undo). Mutations caught (per-track lengths: 4 tests; the first named instead of the last:
+  1). Gates: build --no-incremental -warnaserror Release and Debug 0 / 0; the full suite 3029 passed, 2 skipped, 0 failed; --blame-hang-timeout 5m: runs 1 and 2 3029 / 2 / 0, run 3 aborted — the Video.Tests and ExportEndToEnd.Tests hosts stopped at the same instant in ffmpeg integration tests (their Sequence files, no failure, no hang dump; cause not determined), then three further full runs 3029 / 2 / 0 each, no abort; AIVE_HEAVY_TESTS=1 3031 / 0 / 0; git diff --check clean.
 
 ### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 

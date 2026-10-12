@@ -1215,21 +1215,34 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, clipIds, out var selected) is { } resolveError) return TimelineEditResult.Fail(resolveError);
-        var clips = WithPartners(plan, selected);   // AQ2: a linked clip goes with its partner; each track closes up
+        var clips = WithPartners(plan, selected);   // AQ2: a linked clip goes with its partner
         if (CheckEditable(plan, clips) is { } editError) return TimelineEditResult.Fail(editError);
 
         var rate = plan.Rate;
         var removed = clips.ToHashSet();
+
+        // What each removed clip closes up: its own length — except a linked pair, whose two tracks both close by the
+        // length of its target clip (the one named last, the selection's primary; or the one named): so the later clips of
+        // both tracks move by the same frames and later linked pairs keep their offset, J / L cuts included (product
+        // owner, 2026-10-12, after the Phase 17 closeout; AQ4 / L5).
+        long Frames(Clip c) => c.TimelineEnd.ToNearestFrame(rate) - c.TimelineStart.ToNearestFrame(rate);
+        var closes = clips.ToDictionary(c => c, Frames);
+        foreach (var clip in selected)
+        {
+            if (PartnerOf(plan, clip) is { } partner && removed.Contains(partner))
+                closes[clip] = closes[partner] = Frames(clip);
+        }
+
         foreach (var group in clips.GroupBy(plan.TrackOf))
         {
-            // Per track: a clip that is not removed moves left by the length of the removed clips that end at or before
-            // its start. Clips on other tracks, the playhead and the markers stay; gaps that are not removed move along.
-            var spans = group.Select(c => (Start: c.TimelineStart.ToNearestFrame(rate), End: c.TimelineEnd.ToNearestFrame(rate))).ToList();
+            // Per track: a clip that is not removed moves left by what the removed clips that end at or before its start
+            // close up. Clips on other tracks, the playhead and the markers stay; gaps that are not removed move along.
+            var spans = group.Select(c => (End: c.TimelineEnd.ToNearestFrame(rate), Closes: closes[c])).ToList();
             foreach (var clip in group) plan.Remove(clip);
             foreach (var clip in group.Key.Clips.Where(c => !removed.Contains(c)))
             {
                 var start = clip.TimelineStart.ToNearestFrame(rate);
-                var shift = spans.Where(s => s.End <= start).Sum(s => s.End - s.Start);
+                var shift = spans.Where(s => s.End <= start).Sum(s => s.Closes);
                 if (shift > 0 && PlanShift(plan, clip, group.Key, -shift) is { } shiftError)
                     return TimelineEditResult.Fail($"Can't ripple delete: {shiftError}");
             }

@@ -3863,9 +3863,17 @@ the window's edge; the timeline tools are now a `WrapPanel` (the same buttons an
 one missing test): the AQ12 refusal of an Overwrite that removes a linked clip whose partner is locked is now tested
 (picture and sound-only; its mutation caught); and Alt changes only a **linked** clip's edge — on an unlinked clip Alt +
 edge is the ordinary trim and Shift + Alt + edge the ripple trim, as before Phase 17 (AQ3: "only linked clips change").
-Ripple Delete of a linked pair closes up each track by its own removed clips (AQ2, "Refined in Step 17.5" (7)); a later
-pair with a J / L offset may then move by different lengths on its two tracks — left as documented, a question for the
-product owner.
+Ripple Delete of a linked pair closed up each track by its own removed clips (AQ2, "Refined in Step 17.5" (7)); a later
+pair with a J / L offset could then move by different lengths on its two tracks — asked of the product owner, answered
+below.
+
+**Changed by the product owner (2026-10-12, after the Phase 17 closeout): Ripple Delete of a linked pair.** Both tracks
+close by the same frames — the length of the deleted pair's **target** clip (the clip the user deletes: the one named
+last, the selection's primary, or the one named) — so every later clip of both tracks moves by the same frames and later
+linked pairs keep their relative offset, J / L cuts included. This replaces "Refined in Step 17.5" (7) for linked clips;
+unlinked clips still close their track by their own lengths (D027 §2). Where closing a track by the target's length would
+put a later clip over an earlier one (the partner shorter than the target), the whole edit is refused with the overlap
+message; a locked partner or track refuses it as before (L5). One undo step.
 
 Final state at the Phase 17 closeout (Step 17.9, 2026-10-12): every rule of §2–§4 implemented and tested (Project.Tests
 `AudioEditingPersistenceTests`, Core.Tests `LinkRulesTests` / `TransitionRulesTests`, Timeline.Tests `LinkEditTests` /

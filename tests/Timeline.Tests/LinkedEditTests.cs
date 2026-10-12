@@ -312,6 +312,111 @@ public class LinkedEditTests
                 Ok(f.Service.AddClip(music.Id, f.A1.Id, F(150)));
             });
 
+    // --- Ripple Delete of a pair of different lengths (product owner, 2026-10-12): both tracks close by the target's length
+
+    /// <summary>The pair with a J cut (its sound starts 10 frames early: V [20, 120), A [10, 120)) and a later linked pair
+    /// with a J cut (V2 [160, 250), A2 [150, 250)).</summary>
+    private static (TimelineFixture F, VideoClip V, AudioClip A, VideoClip V2, AudioClip A2) TwoOffsetPairs()
+    {
+        var (f, take, v, a) = Pair();
+        Ok(f.Service.TrimClip(a.Id, ClipEdge.Start, F(10), alone: true));
+        Ok(f.Service.AddClip(take.Id, f.V1.Id, F(150)));
+        var v2 = (VideoClip)f.V1.Clips[1];
+        Ok(f.Service.TrimClip(v2.Id, ClipEdge.End, F(250)));
+        Ok(f.Service.UnlinkAudio(v2.Id));
+        var a2 = (AudioClip)f.A1.Clips[1];
+        Ok(f.Service.LinkClips(new[] { v2.Id, a2.Id }));
+        Ok(f.Service.TrimClip(v2.Id, ClipEdge.Start, F(160), alone: true));
+        Assert.Equal(((10L, 120L), (20L, 120L), (150L, 250L), (160L, 250L)), (Frames(a), Frames(v), Frames(a2), Frames(v2)));
+        f.UndoRedo.Clear();
+        return (f, v, a, v2, a2);
+    }
+
+    [Fact]
+    public void Ripple_deleting_the_video_of_an_offset_pair_closes_both_tracks_by_the_videos_length()
+    {
+        var (f, v, a, v2, a2) = TwoOffsetPairs();
+        var before = f.Snapshot();
+
+        Ok(f.Service.RippleDeleteClips(new[] { v.Id }));                    // the target: 100 frames
+
+        Assert.DoesNotContain(v, f.V1.Clips);
+        Assert.DoesNotContain(a, f.A1.Clips);
+        Assert.Equal((60L, 150L), Frames(v2));                               // both by 100: the J offset of 10 is kept
+        Assert.Equal((50L, 150L), Frames(a2));
+        f.AssertValid();
+        var after = f.Snapshot();
+        f.UndoRedo.Undo();
+        Assert.Equal(before, f.Snapshot());
+        Assert.False(f.UndoRedo.CanUndo);                                    // one step
+        f.UndoRedo.Redo();
+        Assert.Equal(after, f.Snapshot());
+    }
+
+    [Fact]
+    public void Ripple_deleting_the_sound_of_an_offset_pair_closes_both_tracks_by_the_sounds_length()
+    {
+        var (f, _, a, v2, a2) = TwoOffsetPairs();
+
+        Ok(f.Service.RippleDeleteClips(new[] { a.Id }));                    // the target: 110 frames
+
+        Assert.Equal((50L, 140L), Frames(v2));
+        Assert.Equal((40L, 140L), Frames(a2));
+        f.AssertValid();
+    }
+
+    [Fact]
+    public void With_both_clips_named_the_last_one_is_the_target()
+    {
+        var (f, v, a, v2, a2) = TwoOffsetPairs();
+        Ok(f.Service.RippleDeleteClips(new[] { a.Id, v.Id }));              // the UI's order: the partner, then the primary
+        Assert.Equal(((60L, 150L), (50L, 150L)), (Frames(v2), Frames(a2)));
+
+        var (g, gv, ga, gv2, ga2) = TwoOffsetPairs();
+        Ok(g.Service.RippleDeleteClips(new[] { gv.Id, ga.Id }));
+        Assert.Equal(((50L, 140L), (40L, 140L)), (Frames(gv2), Frames(ga2)));
+    }
+
+    [Fact]
+    public void An_offset_pairs_ripple_delete_is_refused_when_a_track_is_locked_or_a_clip_would_overlap()
+    {
+        var (f, v, _, _, _) = TwoOffsetPairs();
+        Ok(f.Service.SetTrackLocked(f.A1.Id, true));
+        var before = f.Snapshot();
+        var top = f.UndoRedo.CurrentPosition;
+        var locked = f.Service.RippleDeleteClips(new[] { v.Id });
+        Assert.False(locked.Success);
+        Assert.Contains("Track A1 is locked.", locked.Message);
+        Assert.Equal(before, f.Snapshot());
+        Assert.Same(top, f.UndoRedo.CurrentPosition);
+
+        // The sound shorter than the picture (it starts 10 frames late): closing A1 by the picture's 100 frames would put
+        // the sting right after the sound over the intro before it — refused as a whole.
+        var (g, gv, ga, _, _) = TwoOffsetPairs();
+        Ok(g.Service.TrimClip(ga.Id, ClipEdge.Start, F(30), alone: true));
+        var music = g.Audio(10, "intro.wav");
+        g.Place<AudioClip>(g.A1, music, 0, F(25).Ticks);                     // A1: intro [0, 25), the sound [30, 120),
+        g.Place<AudioClip>(g.A1, music, F(120).Ticks, F(140).Ticks);         // a sting [120, 140) → [20, 40): over the intro
+        before = g.Snapshot();
+        top = g.UndoRedo.CurrentPosition;
+        var overlap = g.Service.RippleDeleteClips(new[] { gv.Id });
+        Assert.False(overlap.Success);
+        Assert.Contains("overlap on track A1", overlap.Message);
+        Assert.Equal(before, g.Snapshot());
+        Assert.Same(top, g.UndoRedo.CurrentPosition);
+    }
+
+    [Fact]
+    public void Ripple_deleting_unlinked_clips_still_closes_each_track_by_its_own_lengths()
+    {
+        var (f, _, a, _, _) = TwoOffsetPairs();
+        Ok(f.Service.UnlinkClips(new[] { a.Id }));
+        var v = (VideoClip)f.V1.Clips[0];
+        Ok(f.Service.RippleDeleteClips(new[] { v.Id, a.Id }));
+        Assert.Equal((60L, 150L), Frames(f.V1.Clips[0]));                   // V1 by 100
+        Assert.Equal((40L, 140L), Frames(f.A1.Clips[0]));                   // A1 by 110
+    }
+
     // --- ripples move the partners of the clips they move (AQ4) --------------------------------------------------------
 
     [Fact]
