@@ -3846,6 +3846,17 @@ sound-only insert of a video file fixes the project rate as the file itself woul
 source bar, shown for a video with sound, held by `SourceViewerService` for the session (not saved, not undoable; it
 applies only while the open asset has sound); the status says "Inserted the sound of …".
 
+Refined in Step 17.8 (UI): the timeline toolbar gets two buttons — one unlink button labelled "Unlink" while the selection
+holds a linked clip (Unlink, R4) and "Unlink Audio" otherwise (enabled when the primary is a video clip with sound, R3),
+and "Link" (exactly one video and one audio clip, none linked, AQ9); no shortcut keys. A linked clip carries a "🔗" mark
+before its name. Selecting a linked clip selects its partner first and the clip last (it stays the Inspector's primary);
+Ctrl + click toggles the pair; the commands that need one or two clips count the primary's partner once — Close Gap acts
+on the primary, Dissolve on the two selected clips of the primary's track (so a crossfade between two linked audio clips
+can be added). Alt + edge (`TimelineGestureModifiers.IsTrimAlone`) trims the clip alone and selects only it; a plain edge
+drag shows the partner's edge following. The Dissolve command on an audio cut adds a crossfade ("Crossfade added: …"); the
+Inspector's section reads CROSSFADE / "Remove Crossfade" there. A video clip whose sound was unlinked shows no audio group
+and no waveform. Every new control is off during an export (`CanEdit`).
+
 Status: Accepted (2026-10-08, product owner: variant A, L1–L7, AQ1–AQ13). R1–R13 are the pre-implementation audit's
 reading of the architecture (Step 17.2), checked by an independent review (PASS WITH NOTES; its notes taken in: R3's
 mix-order and dissolve-fade limits, `DeleteTrack` in R5, AQ11–AQ13). Steps and acceptance criteria:

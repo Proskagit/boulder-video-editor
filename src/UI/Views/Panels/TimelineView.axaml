@@ -105,7 +105,9 @@
             <Button Content="Close Gap" Command="{Binding CloseGapCommand}" ToolTip.Tip="Remove the empty space before the selected clip: it and the later clips of its track move left" FontSize="11"/>
             <Button Content="Paste" Command="{Binding PasteCommand}" ToolTip.Tip="Paste the copied clips at the playhead, on their tracks (Ctrl+V)" FontSize="11"/>
             <Button Content="Duplicate" Command="{Binding DuplicateCommand}" ToolTip.Tip="Copy the selected clips right after them (Ctrl+D)" FontSize="11"/>
-            <Button Content="Dissolve" Command="{Binding AddDissolveCommand}" ToolTip.Tip="Add a dissolve between the two selected clips (they must meet on a video track)" FontSize="11"/>
+            <Button Content="Dissolve" Command="{Binding AddDissolveCommand}" ToolTip.Tip="Add a dissolve between the two selected clips that meet — on an audio track, a crossfade" FontSize="11"/>
+            <Button Content="{Binding UnlinkLabel}" Command="{Binding UnlinkCommand}" ToolTip.Tip="Unlink: a video clip's sound becomes an audio clip of its own; a linked pair becomes two independent clips" FontSize="11"/>
+            <Button Content="Link" Command="{Binding LinkCommand}" ToolTip.Tip="Link the selected video clip and audio clip: they are edited together" FontSize="11"/>
             <ToggleButton Content="Snap" IsChecked="{Binding SnappingEnabled}" ToolTip.Tip="Snapping (N)" FontSize="11"/>
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
             <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out (Ctrl+−)" FontSize="11"/>
@@ -264,7 +266,7 @@
                                   </LinearGradientBrush>
                                 </Border.Background>
                               </Border>
-                              <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="#EEEEEE" FontSize="10"
+                              <TextBlock Grid.Column="1" Text="{Binding Label}" Foreground="#EEEEEE" FontSize="10"
                                          Margin="2,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                          IsHitTestVisible="False"/>
                               <!-- D030 §7 (Q12): while the clip is slipped, its planned Source In / Out over the clip -->

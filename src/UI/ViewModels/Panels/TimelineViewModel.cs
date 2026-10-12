@@ -261,6 +261,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         // Reused only for the same clip object: a view model shows and hands out the clip it wraps.
         if (!_clipViewModels.TryGetValue(clip.Id, out var vm) || vm.Clip != clip)
             _clipViewModels[clip.Id] = vm = new TimelineClipViewModel(clip, ClipName(clip));
+        vm.IsLinked = clip is MediaBackedClip { LinkId: not null };   // D032 R12: the mark follows Link / Unlink / Undo
         return vm;
     }
 
@@ -442,7 +443,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         var (media, volume, muted, lowerHalf) = clip switch
         {
             AudioClip a => ((MediaBackedClip)a, a.Volume, a.IsMuted, false),
-            VideoClip v => ((MediaBackedClip)v, v.Volume, v.IsMuted, true),
+            VideoClip { IsAudioDetached: false } v => ((MediaBackedClip)v, v.Volume, v.IsMuted, true),
             _ => (null, 0.0, false, false)
         };
         if (media is null || _waveforms.Get(media.MediaAssetId) is not { } data) return null;
@@ -589,14 +590,25 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private bool CanDeleteSelected() => CanEdit() && (HasSelection || HasTransitionSelection);
 
-    /// <summary>The Dissolve command needs two selected clips; whether they meet on a video track and how long a
-    /// dissolve fits there is the edit service's call (D025 §3–§5).</summary>
-    private bool CanAddDissolve() => CanEdit() && _selection.Count == 2;
+    /// <summary>The Dissolve command needs two selected clips on one track (a linked clip brings its partner into the
+    /// selection, AQ1: the clips of the primary's track count); whether they meet and how long a dissolve — a crossfade on
+    /// an audio track (D032 R9) — fits there is the edit service's call (D025 §3–§5).</summary>
+    private bool CanAddDissolve() => CanEdit() && DissolvePair() is not null;
+
+    private (Clip Left, Clip Right)? DissolvePair()
+    {
+        if (_selection.Count == 0 || !_clipViewModels.TryGetValue(_selection[^1], out var primary)) return null;
+        var track = TrackOf(primary);
+        var clips = _selection.Select(id => _clipViewModels.TryGetValue(id, out var vm) ? vm : null)
+            .Where(vm => vm is not null && TrackOf(vm) == track).Select(vm => vm!.Clip).OrderBy(c => c.TimelineStart).ToList();
+        return clips.Count == 2 ? (clips[0], clips[1]) : null;
+    }
 
     private void OnEditingLockChanged()
     {
         if (_editingLock.IsLocked) CancelGesture();
         OnPropertyChanged(nameof(IsEditingAllowed));
+        NotifyLinkCommands();
         SplitAtPlayheadCommand.NotifyCanExecuteChanged();
         TrimStartToPlayheadCommand.NotifyCanExecuteChanged();
         TrimEndToPlayheadCommand.NotifyCanExecuteChanged();
@@ -667,14 +679,14 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanAddDissolve))]
     private void AddDissolve()
     {
-        var clips = _selection.Select(id => _clipViewModels.TryGetValue(id, out var vm) ? vm.Clip : null).OfType<Clip>()
-            .OrderBy(c => c.TimelineStart).ToList();
-        if (clips.Count != 2) return;
-        var (left, right) = (clips[0], clips[1]);
+        if (DissolvePair() is not var (left, right)) return;
+        var crossfade = left is AudioClip;
 
         if (_edit.MaxTransitionFrames(left.Id, right.Id) is not { } max)
         {
-            _status.Report("Select two clips that meet on a video track (the first ends where the second starts) to add a dissolve.");
+            _status.Report(crossfade
+                ? "Select two clips that meet on an audio track (the first ends where the second starts) to add a crossfade."
+                : "Select two clips that meet on a video track (the first ends where the second starts) to add a dissolve.");
             return;
         }
 
@@ -683,9 +695,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
         var result = _edit.AddTransition(left.Id, right.Id, MediaTime.FromFrame(frames, FrameRate));
         if (result.Success && result.TransitionId is { } id)
             SelectTransition(id);
+        var what = crossfade ? "Crossfade" : "Dissolve";
         Report(result, successMessage: frames < wanted
-            ? $"Dissolve added: {frames} frames, the longest that fits here."
-            : $"Dissolve added: {frames} frames.");
+            ? $"{what} added: {frames} frames, the longest that fits here."
+            : $"{what} added: {frames} frames.");
     }
 
     // --- Ripple delete and close gap (D027 §2) -------------------------------------
@@ -695,7 +708,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private bool CanRippleDelete() => CanEdit() && HasSelection;
 
     /// <summary>Close Gap works on the gap right before the one selected clip, on its track.</summary>
-    private bool CanCloseGap() => CanEdit() && _selection.Count == 1;
+    private bool CanCloseGap() => CanEdit() && SelectionWithoutPrimaryPartner().Count == 1;
 
     /// <summary>"Ripple Delete": the selected clips go and the later clips of their tracks close up (D027 §2).</summary>
     [RelayCommand(CanExecute = nameof(CanRippleDelete))]
@@ -711,8 +724,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanCloseGap))]
     private void CloseGap()
     {
-        if (_selection.Count != 1) return;
-        Report(_edit.CloseGapBefore(_selection[0]), successMessage: "Gap closed");
+        if (SelectionWithoutPrimaryPartner() is not [var only]) return;
+        Report(_edit.CloseGapBefore(only), successMessage: "Gap closed");
     }
 
     // --- Copy / paste / duplicate (D027 §5) ------------------------------------------
@@ -949,7 +962,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
         DropTransitionSelection();
         if (toggle)
         {
-            if (!_selection.Remove(clip.Id)) _selection.Add(clip.Id);
+            // D032 AQ1: Ctrl toggles a linked clip together with its partner.
+            var group = SelectionGroup(clip.Id);
+            if (_selection.Contains(clip.Id)) _selection.RemoveAll(group.Contains);
+            else _selection.AddRange(group.Where(id => !_selection.Contains(id)));
             UpdateSelectionVisuals();
             RaiseSelectionChanged();
             return false;
@@ -963,7 +979,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// <summary>Pointer released on a clip without dragging: collapse a multi-selection to it.</summary>
     public void OnClipClicked(TimelineClipViewModel clip, bool toggle)
     {
-        if (!toggle && (_selection.Count != 1 || _selection[0] != clip.Id))
+        if (!toggle && !_selection.SequenceEqual(SelectionGroup(clip.Id)))
             SelectOnly(clip.Id);
     }
 
@@ -1031,13 +1047,36 @@ public sealed partial class TimelineViewModel : ViewModelBase
         UpdateSelectionVisuals();
     }
 
-    private void SelectOnly(Guid id)
+    /// <summary>Selects <paramref name="id"/> alone — with its link partner (D032 AQ1) unless <paramref name="withPartner"/>
+    /// is false; the clip itself stays the primary (the last entry).</summary>
+    private void SelectOnly(Guid id, bool withPartner = true)
     {
         DropTransitionSelection();
         _selection.Clear();
-        _selection.Add(id);
+        _selection.AddRange(withPartner ? SelectionGroup(id) : new[] { id });
         UpdateSelectionVisuals();
         RaiseSelectionChanged();
+    }
+
+    /// <summary>What selecting <paramref name="id"/> selects: its link partner first, then the clip (D032 AQ1).</summary>
+    private List<Guid> SelectionGroup(Guid id) =>
+        _clipViewModels.TryGetValue(id, out var vm) && PartnerViewModel(vm) is { } partner
+            ? new List<Guid> { partner.Id, id }
+            : new List<Guid> { id };
+
+    /// <summary>The view model of <paramref name="clip"/>'s link partner, or null.</summary>
+    private TimelineClipViewModel? PartnerViewModel(TimelineClipViewModel clip) =>
+        clip.Clip is MediaBackedClip { LinkId: { } link }
+            ? _clipViewModels.Values.FirstOrDefault(v => v != clip && v.Clip is MediaBackedClip { LinkId: { } other } && other == link)
+            : null;
+
+    /// <summary>The selection without the primary's link partner: the clips the user picked (a linked pair counts once
+    /// for the commands that need one or two clips).</summary>
+    private List<Guid> SelectionWithoutPrimaryPartner()
+    {
+        if (_selection.Count == 0 || !_clipViewModels.TryGetValue(_selection[^1], out var primary)) return _selection.ToList();
+        var partner = PartnerViewModel(primary);
+        return _selection.Where(id => id != partner?.Id).ToList();
     }
 
     private void UpdateSelectionVisuals()
@@ -1052,6 +1091,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         // HasSelection true.
         AddDissolveCommand.NotifyCanExecuteChanged();
         CloseGapCommand.NotifyCanExecuteChanged();
+        NotifyLinkCommands();
     }
 
     private void RaiseSelectionChanged()
@@ -1084,6 +1124,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
         /// <summary>A ripple trim (D030 §6): Shift was held when the edge was pressed; fixed for the whole gesture.</summary>
         public bool Ripple { get; init; }
 
+        /// <summary>Alt + edge (D032 AQ3): the trim leaves the link partner as it is.</summary>
+        public bool Alone { get; init; }
+
         /// <summary>A slip (D030 §7): Alt was held when the clip's body was pressed; fixed for the whole gesture.</summary>
         public bool Slip { get; init; }
 
@@ -1101,16 +1144,17 @@ public sealed partial class TimelineViewModel : ViewModelBase
     }
 
     /// <summary>Pointer pressed on a clip's edge: a trim — the ordinary one, or with <paramref name="ripple"/> (Shift held at
-    /// the press, D030 §6) the ripple trim, for the whole gesture.</summary>
-    public void BeginTrim(TimelineClipViewModel clip, ClipEdge edge, double contentX, bool ripple = false)
+    /// the press, D030 §6) the ripple trim, for the whole gesture. A linked clip's partner follows (D032 AQ3) unless
+    /// <paramref name="alone"/> (Alt): then only this clip is trimmed — a J / L cut — and only it is selected.</summary>
+    public void BeginTrim(TimelineClipViewModel clip, ClipEdge edge, double contentX, bool ripple = false, bool alone = false)
     {
         if (!CanEdit()) return;
-        SelectOnly(clip.Id);
+        SelectOnly(clip.Id, withPartner: !alone);
         _gesture = new Gesture
         {
             Edge = edge, StartX = contentX, Clips = new List<TimelineClipViewModel> { clip }, SourceTrack = TrackOf(clip),
             TrimTime = edge == ClipEdge.Start ? clip.Clip.TimelineStart : clip.Clip.TimelineEnd,
-            Ripple = ripple
+            Ripple = ripple && !alone, Alone = alone
         };
     }
 
@@ -1193,10 +1237,19 @@ public sealed partial class TimelineViewModel : ViewModelBase
             return;
         }
 
-        if (_edit.PreviewTrim(clip.Id, edge, proposed) is { } preview)
+        if (_edit.PreviewTrim(clip.Id, edge, proposed, g.Alone) is { } preview)
         {
             clip.Layout(PixelsPerSecond, preview.Start, preview.End);
             clip.IsInvalid = false;
+
+            // D032 AQ3: the partner's same edge follows by the same time (the release plans it by the trim rule).
+            if (!g.Alone && PartnerViewModel(clip) is { } partner)
+            {
+                var moved = (edge == ClipEdge.Start ? preview.Start : preview.End) - origin;
+                partner.Layout(PixelsPerSecond,
+                    edge == ClipEdge.Start ? partner.Clip.TimelineStart + moved : partner.Clip.TimelineStart,
+                    edge == ClipEdge.End ? partner.Clip.TimelineEnd + moved : partner.Clip.TimelineEnd);
+            }
 
             // Trimming the cut edge opens the cut: its dissolve is hidden in the preview (the release removes it). A
             // far-edge trim keeps the cut, its zone stays where it is.
@@ -1284,7 +1337,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             : g.Edge is { } edge
             ? g.Ripple
                 ? _edit.RippleTrimClip(g.Clips[0].Id, edge, g.TrimTime)
-                : _edit.TrimClip(g.Clips[0].Id, edge, g.TrimTime)
+                : _edit.TrimClip(g.Clips[0].Id, edge, g.TrimTime, g.Alone)
             : _edit.MoveClips(g.Clips.Select(c => c.Id).ToList(), g.FrameDelta, g.TargetTrack?.Track.Id);
         Report(result);
         if (!result.Success) Relayout(); // restore the pre-drag positions

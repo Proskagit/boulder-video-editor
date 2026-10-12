@@ -323,6 +323,15 @@ public sealed partial class InspectorViewModel : ViewModelBase
     [ObservableProperty] private string _dissolveLimitDisplay = "";
     [ObservableProperty] private string _dissolveClipsDisplay = "";
 
+    /// <summary>"Dissolve" on a video track, "Crossfade" on an audio track (D032 R9).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TransitionHeader))]
+    [NotifyPropertyChangedFor(nameof(RemoveTransitionLabel))]
+    private string _transitionTitle = "Dissolve";
+
+    public string TransitionHeader => TransitionTitle.ToUpperInvariant();
+    public string RemoveTransitionLabel => $"Remove {TransitionTitle}";
+
     /// <summary>Shows a dissolve selected on the timeline. Called again after every timeline change (undo / redo too).</summary>
     public void ShowTransition(TimelineTransitionSelection selection)
     {
@@ -346,6 +355,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
             DissolveTimeDisplay = TimeFormat.ToTimecode(MediaTime.FromFrame(frames, s.Rate), s.Rate);
             DissolveLimitDisplay = s.MaxFrames is { } max ? $"Longest that fits here: {max} frames" : "";
             DissolveClipsDisplay = $"{s.LeftName} → {s.RightName} ({s.Track.Name})";
+            TransitionTitle = s.Track.Type == TrackType.Audio ? "Crossfade" : "Dissolve";
         }
         finally
         {
@@ -460,7 +470,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
         _clip = clip;
         _transition = null;
         // A video file without an audio stream has nothing to mix; unknown metadata still shows it.
-        HasAudioProperties = clip is AudioClip || (clip is VideoClip && selection.Asset?.Metadata is not { AudioCodec: null });
+        // D032 R12: a video clip whose sound was unlinked has no sound of its own.
+        HasAudioProperties = clip is AudioClip
+            || (clip is VideoClip { IsAudioDetached: false } && selection.Asset?.Metadata is not { AudioCodec: null });
         HasVisualProperties = VisualProperties.Of(clip) is not null;
         HasCrop = clip is VideoClip or ImageClip;
         HasTextProperties = clip is TextClip;

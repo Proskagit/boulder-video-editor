@@ -128,7 +128,8 @@ public partial class TimelineView : UserControl
 
         if (edge is { } trimEdge && !_pressedWithToggle)
         {
-            _viewModel.BeginTrim(clip, trimEdge, x, ripple: TimelineGestureModifiers.IsRippleTrim(e.KeyModifiers));
+            _viewModel.BeginTrim(clip, trimEdge, x, ripple: TimelineGestureModifiers.IsRippleTrim(e.KeyModifiers),
+                alone: TimelineGestureModifiers.IsTrimAlone(e.KeyModifiers));
         }
         else if (edge is null && TimelineGestureModifiers.IsSlip(e.KeyModifiers))
         {

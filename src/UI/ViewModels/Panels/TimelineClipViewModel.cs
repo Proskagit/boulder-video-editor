@@ -26,7 +26,17 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
     public Guid Id => Clip.Id;
 
     /// <summary>The label on the rectangle; follows the model (file name, text of a text clip).</summary>
-    [ObservableProperty] private string _name;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Label))]
+    private string _name;
+
+    /// <summary>The clip is linked to a clip of the other kind (D032 R12): marked on the rectangle.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Label))]
+    private bool _isLinked;
+
+    /// <summary>What the rectangle shows: the name, with the link mark when linked.</summary>
+    public string Label => IsLinked ? "🔗 " + Name : Name;
 
     public string ColorHex => Clip switch
     {

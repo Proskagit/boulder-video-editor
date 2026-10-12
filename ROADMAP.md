@@ -69,7 +69,7 @@ linked clips; every edit one undo step, refused as a whole when a locked partner
 `VideoClip` with its own sound. Out: ducking, keyframes, speed ramps, waveform work, a mixer, volume automation, a separate
 stabilization phase. Step 17.1 (pre-flight) and Step 17.2 (sync after the merge, D032, the Phase 17 steps, the manual
 plan's skeleton) done; AQ1–AQ13 answered as proposed; Steps 17.3 (model and `project.json` v4), 17.4 (Unlink Audio, Link, Unlink), 17.5 (linked editing) and 17.6 (audio
-crossfades) and 17.7 (sound-only Insert / Overwrite) done; the phase runs to its
+crossfades), 17.7 (sound-only Insert / Overwrite) and 17.8 (UI) done; the phase runs to its
 closeout without a stop between steps. Steps and
 acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 17 — Audio editing: steps"; manual plan
 `docs/PHASE17_MANUAL_TEST_PLAN.md`.

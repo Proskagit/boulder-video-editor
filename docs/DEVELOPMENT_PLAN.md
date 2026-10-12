@@ -88,7 +88,7 @@ and runs cleanly.
       audio clip explicitly (edited as one, the ripple keeping their offset, a locked partner refusing the whole edit),
       J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio tracks; Preview ↔
       export parity; `project.json` v4. Scope, steps and acceptance criteria: section below and DECISIONS.md D032 (product
-      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.7 done; AQ1–AQ13
+      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.8 done; AQ1–AQ13
       answered (as proposed); checked after the product owner's acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
@@ -1117,7 +1117,7 @@ Out of scope: D032 L7 and §6.
   `UI.Tests` (the Source bar toggle, the target track); an export test: a sound-only insert exports like the same timeline
   built with Unlink Audio + delete of the picture.
 
-### 17.8 — UI
+### 17.8 — UI *(done; the real-app check at 1024 / 1440 px in the closeout run)*
 - PR: D032 R12, the crossfade UI of R9, AQ1, AQ3, AQ9: the Unlink Audio / Link / Unlink buttons, link marks on the
   clips, the linked selection, Alt + edge drag, the "Dissolve" command adding a crossfade on an audio cut, the Inspector
   for a crossfade and for a detached video clip, no waveform on a detached video clip.

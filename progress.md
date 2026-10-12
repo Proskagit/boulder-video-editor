@@ -94,6 +94,14 @@ Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fa
   `ExportEndToEnd.Tests/ExportInsertOverwriteEndToEndTests` (a sound-only insert exports byte for byte like the whole file
   inserted, unlinked and its picture deleted). Mutations caught (the service flag, the UI flag). `--no-incremental
   -warnaserror` 0 / 0; the full suite 3014 passed, 2 skipped, 0 failed.
+- Step 17.8 done — UI (D032 R12, R9, AQ1, AQ3, AQ9; D032 "Refined in Step 17.8"): `TimelineViewModel.Links.cs` (Unlink /
+  Unlink Audio, Link, `UnlinkLabel`), the linked selection (`SelectionGroup`, `PartnerViewModel`,
+  `SelectionWithoutPrimaryPartner`), `DissolvePair`, Alt + edge (`IsTrimAlone`, `Gesture.Alone`, the partner's preview),
+  `TimelineClipViewModel.IsLinked` / `Label`, no waveform for a detached video clip, the Inspector's audio group and
+  `TransitionHeader` / `RemoveTransitionLabel`, the two toolbar buttons and the source bar's toggle. Tests:
+  `UI.Tests/TimelineLinkUiTests` (6). Five mutations caught (the selection group, Alt + edge, the Inspector's detached
+  check, the Dissolve pair, Close Gap's count). `--no-incremental -warnaserror` 0 / 0; the full suite 3020 passed, 2
+  skipped, 0 failed. The real-app check of the new controls at 1024 / 1440 px is part of the closeout run.
 
 ### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 
@@ -4004,7 +4012,7 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 2026-10-08: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`, CI green on the pull request and on
 `main`; 2894 passed, 2 skipped). Phase 17 (audio editing, D032) in progress on `feat/phase-17-audio-editing`: Steps 17.1–17.2
-done, AQ1–AQ13 answered (as proposed), Steps 17.3–17.7 done. Open items: see "Known issues" (the real-device audio status check — now R10 of
+done, AQ1–AQ13 answered (as proposed), Steps 17.3–17.8 done. Open items: see "Known issues" (the real-device audio status check — now R10 of
 the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 
 ### Phase 4 — Timeline (historical notes)
