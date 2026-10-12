@@ -126,6 +126,8 @@ Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fa
     edge, so Shift + Alt on an unlinked clip ripples as before (`TimelineLinkUiTests`, mutation caught). Its question —
     Ripple Delete of an offset pair closing each track by its own lengths (AQ2 vs AQ4) — left for the product owner.
     Gates again after the fixes, the machine idle: build --no-incremental -warnaserror Release and Debug 0 / 0; the full suite 3023 passed, 2 skipped, 0 failed; three --blame-hang-timeout 5m runs 3023 / 2 / 0 each; AIVE_HEAVY_TESTS=1 3025 / 0 / 0.
+  - Re-review of `b29fade`: PASS WITH NOTES — no blocking issue; open for the product owner: the Ripple Delete question
+    above and R10 (a real audio device).
 
 ### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 
