@@ -114,6 +114,15 @@ public sealed class E2EMedia : IDisposable
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "4", "-pix_fmt", "yuv420p", "-c:a", "pcm_s16le", "-shortest", path));
     }
 
+    /// <summary>The test pattern (<see cref="Pattern()"/>, 25 fps, 4 s) with sound: a 440 Hz sine rising from 0.1 to 0.5 over
+    /// the 4 s on both channels (every sample differs, so a wrongly placed sound shows), PCM — a recording whose sound can
+    /// be unlinked (D032).</summary>
+    public MediaAsset PatternWithTone() =>
+        Get("pattern-tone.mkv", MediaKind.Video, path => Ffmpeg(
+            "-f", "lavfi", "-i", $"testsrc2=s={Width}x{Height}:r=25:d=4",
+            "-f", "lavfi", "-i", "aevalsrc=(0.1+0.1*t)*sin(2*PI*440*t)|(0.1+0.1*t)*sin(2*PI*440*t):s=48000:d=4",
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "4", "-pix_fmt", "yuv420p", "-c:a", "pcm_s16le", "-shortest", path));
+
     /// <summary>A 440 Hz sine at 0.25 on both channels, 6 s, PCM.</summary>
     public MediaAsset Tone() =>
         Get("tone.wav", MediaKind.Audio, path => Ffmpeg(

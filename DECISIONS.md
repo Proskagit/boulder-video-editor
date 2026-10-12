@@ -3789,6 +3789,19 @@ video rule. A v3 file is read without links and unlinked sound (stray v4 propert
 file or a crossfade in a v1–v3 file is damaged. `CloneClip` copies `IsAudioDetached` but never the link. The snapshot
 gives a detached video clip no sound (R10, needed for the format to mean what it says).
 
+Refined in Step 17.4 (Unlink Audio, Link, Unlink): the link state is changed through `EditPlan.SetLink` and one
+`SetClipLinkCommand` per clip, in the edit's single undo step; `EditPlan.ReconcileLinks` (called by the service's
+`Validate` and by Remove Media) clears a link left without its other clip, and a cleared link on a locked track refuses the
+edit (AQ12); `DeleteTrack` clears its partners' links in its own command (and `GetDeleteTrackBlockReason` names a locked
+partner's track). AQ8 read so that nothing heard changes: Unlink Audio's target is the first audio track that is
+**unlocked, not muted** and free over the clip (a muted or locked track is skipped, never used), otherwise a new track
+named and ordered as "Add Track"; the new clip copies timing, speed, volume and mute (muted when the video track is), and
+its fades are the effective ones — a stored fade that applies is kept tick for tick, one on a dissolve edge becomes 0
+(AQ11). R11 needed no new code: the relink check's existing "no sound" warning of a video file (D026) covers the audio
+clips of its sound too (tested). Messages: "Sound unlinked to track A1.", "The clip has no sound.", "The clip's sound is
+already unlinked.", "The clip is linked: Unlink it first.", "Select one video clip and one audio clip to link them.",
+"A selected clip is already linked: Unlink it first.", "Track … is locked.".
+
 Status: Accepted (2026-10-08, product owner: variant A, L1–L7, AQ1–AQ13). R1–R13 are the pre-implementation audit's
 reading of the architecture (Step 17.2), checked by an independent review (PASS WITH NOTES; its notes taken in: R3's
 mix-order and dissolve-fade limits, `DeleteTrack` in R5, AQ11–AQ13). Steps and acceptance criteria:

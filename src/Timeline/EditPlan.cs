@@ -23,6 +23,8 @@ public sealed class EditPlan
     private readonly Dictionary<Transition, TransitionState> _transitionUpdates = new();
     private readonly List<(Track Track, Transition Transition)> _transitionAdds = new();
     private readonly HashSet<Transition> _transitionRemoves = new();
+    private readonly Dictionary<MediaBackedClip, ClipLinkState> _links = new();
+    private readonly List<MediaBackedClip> _clearedLinks = new();
 
     public EditPlan(Sequence sequence, ProjectSettings settings)
     {
@@ -46,7 +48,7 @@ public sealed class EditPlan
     public IEnumerable<Track> AllTracks => _sequence.VideoTracks.Concat(_sequence.AudioTracks);
 
     public bool IsEmpty => NewFrameRate is null && _updates.Count == 0 && _inserts.Count == 0 && _removes.Count == 0 && _properties.Count == 0
-        && _transitionUpdates.Count == 0 && _transitionAdds.Count == 0 && _transitionRemoves.Count == 0;
+        && _transitionUpdates.Count == 0 && _transitionAdds.Count == 0 && _transitionRemoves.Count == 0 && _links.Count == 0;
 
     /// <summary>Dissolves <see cref="ReconcileTransitions"/> removed because their cut no longer exists.</summary>
     public int AutoRemovedTransitions { get; private set; }
@@ -128,6 +130,59 @@ public sealed class EditPlan
             var fields = ClipPropertyValues.Diff(before, full);
             if (fields != ClipPropertyFields.None)
                 commands.Add(new SetClipPropertiesCommand(clip, before, full, fields));
+        }
+        return commands;
+    }
+
+    // --- Links (D032 R5) ---------------------------------------------------------------------------------------------
+
+    /// <summary>Sets an existing clip's link state as part of the edit (Link, Unlink, Unlink Audio).</summary>
+    public void SetLink(MediaBackedClip clip, ClipLinkState after) => _links[clip] = after;
+
+    /// <summary>The link state the plan leaves on <paramref name="clip"/> (an inserted clip: its own).</summary>
+    public ClipLinkState LinkStateOf(MediaBackedClip clip) =>
+        _links.TryGetValue(clip, out var after) ? after : ClipLinkState.Capture(clip);
+
+    /// <summary>Existing clips whose link <see cref="ReconcileLinks"/> cleared because their partner is gone.</summary>
+    public IReadOnlyList<MediaBackedClip> ClearedLinks => _clearedLinks;
+
+    /// <summary>Every clip the plan would leave on any track (a new track of an insert included), with its planned link.</summary>
+    public IEnumerable<(Clip Clip, Guid? LinkId)> EffectiveLinks() =>
+        AllTracks.Concat(_inserts.Select(i => i.Track)).Distinct()
+            .SelectMany(EffectiveClips)
+            .Select(c => (c.Clip, c.Clip is MediaBackedClip m ? LinkStateOf(m).LinkId : null));
+
+    /// <summary>
+    /// No half link is ever kept (D032 R5): a link whose other clip the plan removes (or that is left alone for any other
+    /// reason) is cleared in the same step — on an existing clip by a planned link change (<see cref="ClearedLinks"/>,
+    /// which the service refuses on a locked track, AQ12), on an inserted clip directly.
+    /// </summary>
+    public void ReconcileLinks()
+    {
+        var members = EffectiveLinks().Where(c => c.LinkId is not null).GroupBy(c => c.LinkId!.Value);
+        foreach (var group in members)
+        {
+            if (group.Count() != 1) continue;
+            var clip = (MediaBackedClip)group.Single().Clip;
+            if (_inserts.Any(i => i.Clip == clip))
+            {
+                clip.LinkId = null;
+                continue;
+            }
+            _links[clip] = LinkStateOf(clip) with { LinkId = null };
+            _clearedLinks.Add(clip);
+        }
+    }
+
+    /// <summary>The commands for the link changes alone.</summary>
+    public List<IUndoableCommand> BuildLinkCommands(string description)
+    {
+        var commands = new List<IUndoableCommand>();
+        foreach (var (clip, after) in _links)
+        {
+            if (_removes.ContainsKey(clip)) continue;
+            var before = ClipLinkState.Capture(clip);
+            if (before != after) commands.Add(new SetClipLinkCommand(clip, before, after, description));
         }
         return commands;
     }
@@ -289,6 +344,7 @@ public sealed class EditPlan
 
         commands.AddRange(BuildPropertyCommands());
         commands.AddRange(BuildTransitionCommands());
+        commands.AddRange(BuildLinkCommands(description));
 
         if (commands.Count == 0)
             throw new InvalidOperationException("Cannot build a command from an empty plan.");

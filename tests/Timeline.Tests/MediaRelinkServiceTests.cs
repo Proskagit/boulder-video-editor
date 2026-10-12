@@ -342,6 +342,22 @@ public sealed class MediaRelinkServiceTests : IDisposable
 
     // --- warnings ----------------------------------------------------------------------------------------------------
 
+    // D032 R11: an audio clip holding a video file's sound (Unlink Audio) is warned about like the video clip's own sound —
+    // the existing "no sound" warning of the file (D026); nothing is adapted, the audio clip plays silence.
+    [Fact]
+    public async Task A_file_without_sound_is_warned_about_when_its_sound_is_used_by_an_unlinked_audio_clip()
+    {
+        var asset = Offline("take.mp4", MediaKind.Video, VideoMeta(10));
+        var clip = AddClip(asset);
+        Assert.True(_f.Service.UnlinkAudio(clip.Id).Success);
+        var path = NewFile("silent.mp4", VideoMeta(10, audio: null));
+
+        var check = await _relink.CheckAsync(asset.Id, path);
+
+        Assert.True(check.CanApply);
+        Assert.Contains(check.Warnings, w => w.Kind == RelinkWarningKind.NoAudio);
+    }
+
     [Fact]
     public async Task Differing_characteristics_are_warned_about_and_nothing_is_adapted()
     {

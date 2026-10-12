@@ -50,6 +50,18 @@ Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fa
   changed to 4 (D032 §5: Project 7, Timeline 6, UI 1 — only the number and the test names). Four serializer mutations
   caught (v3 link read, v3 audio-of-video kind, load link check, v3 detached read). `-warnaserror` 0 / 0; the full suite
   2927 passed, 2 skipped, 0 failed.
+- Step 17.4 done — Unlink Audio, Link, Unlink (D032 R3, R4, R5, R11, AQ8, AQ9, AQ11, AQ12): `ITimelineEditService.UnlinkAudio`
+  / `GetUnlinkAudioBlockReason` / `LinkClips` / `UnlinkClips` in `TimelineEditService.Links.cs` (a `partial` file);
+  `EditPlan.SetLink` / `ReconcileLinks` / `EffectiveLinks` and `SetClipLinkCommand`; the service's `Validate` reconciles
+  and checks links; Remove Media and Delete Track clear a partner's link in the same step, refused on a locked track;
+  `AddTrack`'s naming shared as `NewTrack`. Tests: `Timeline.Tests/LinkEditTests` (10: the audio clip, Undo / Redo, speed,
+  mute, effective fades, the target track and the new track in one step, every refusal, Link / Unlink, a locked partner,
+  track delete, media removal), `MediaRelinkServiceTests` (R11: the "no sound" warning for an unlinked sound),
+  `ExportEndToEnd.Tests/ExportUnlinkAudioEndToEndTests` (4: the export before and after Unlink Audio identical — every
+  canvas and every mixed sample — at 1×, at 1.5×, with a dissolve and fades on its edges, on a muted track; a new media
+  generator `PatternWithTone`). Mutations caught: the snapshot ignoring the unlinked sound (3 tests), stored instead of
+  effective fades, the muted-track copy. `--no-incremental -warnaserror` 0 / 0; the full suite 2942 passed, 2 skipped,
+  0 failed.
 
 ### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 
@@ -3960,7 +3972,7 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 2026-10-08: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`, CI green on the pull request and on
 `main`; 2894 passed, 2 skipped). Phase 17 (audio editing, D032) in progress on `feat/phase-17-audio-editing`: Steps 17.1–17.2
-done, AQ1–AQ13 answered (as proposed), Step 17.3 done. Open items: see "Known issues" (the real-device audio status check — now R10 of
+done, AQ1–AQ13 answered (as proposed), Steps 17.3–17.4 done. Open items: see "Known issues" (the real-device audio status check — now R10 of
 the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 
 ### Phase 4 — Timeline (historical notes)

@@ -516,3 +516,29 @@ public sealed class UpdateTransitionCommand(Transition transition, TransitionSta
         return true;
     }
 }
+
+/// <summary>The link side of a media clip (D032 R1): its <see cref="MediaBackedClip.LinkId"/> and, for a video clip,
+/// <see cref="VideoClip.IsAudioDetached"/>.</summary>
+public readonly record struct ClipLinkState(Guid? LinkId, bool IsAudioDetached)
+{
+    public static ClipLinkState Capture(MediaBackedClip clip) => new(clip.LinkId, clip is VideoClip { IsAudioDetached: true });
+
+    public void ApplyTo(MediaBackedClip clip)
+    {
+        clip.LinkId = LinkId;
+        if (clip is VideoClip video) video.IsAudioDetached = IsAudioDetached;
+    }
+}
+
+/// <summary>Sets a clip's link state from one absolute snapshot to another (Link, Unlink, Unlink Audio, a link a removed
+/// partner leaves behind — D032 R3–R5).</summary>
+public sealed class SetClipLinkCommand(MediaBackedClip clip, ClipLinkState before, ClipLinkState after, string description) : IUndoableCommand
+{
+    public MediaBackedClip Clip { get; } = clip;
+    public ClipLinkState Before { get; } = before;
+    public ClipLinkState After { get; } = after;
+    public string Description { get; } = description;
+
+    public void Execute() => After.ApplyTo(Clip);
+    public void Undo() => Before.ApplyTo(Clip);
+}

@@ -204,6 +204,10 @@ public partial class MainWindow : Window
         public TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) => Nothing;
         public TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) => Nothing;
         public SourceGrid? GetSourceGrid(MediaAsset asset, out string? reason) { reason = null; return null; }
+        public TimelineEditResult UnlinkAudio(Guid videoClipId) => Nothing;
+        public string? GetUnlinkAudioBlockReason(Guid clipId) => null;
+        public TimelineEditResult LinkClips(IReadOnlyCollection<Guid> clipIds) => Nothing;
+        public TimelineEditResult UnlinkClips(IReadOnlyCollection<Guid> clipIds) => Nothing;
         public RippleTrimPreview? PreviewRippleTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime) => null;
         public TimelineEditResult SetTrackMuted(Guid trackId, bool muted) => Nothing;
         public TimelineEditResult SetTrackHidden(Guid trackId, bool hidden) => Nothing;

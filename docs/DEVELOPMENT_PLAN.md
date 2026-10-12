@@ -88,7 +88,7 @@ and runs cleanly.
       audio clip explicitly (edited as one, the ripple keeping their offset, a locked partner refusing the whole edit),
       J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio tracks; Preview ↔
       export parity; `project.json` v4. Scope, steps and acceptance criteria: section below and DECISIONS.md D032 (product
-      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.3 done; AQ1–AQ13
+      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.4 done; AQ1–AQ13
       answered (as proposed); checked after the product owner's acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
@@ -1082,7 +1082,7 @@ Out of scope: D032 L7 and §6.
   a crossfade on a video track, a dissolve on an audio track, an audio clip of an image) refused; a v5 file refused with
   the existing "newer version" message. The tests pinning `formatVersion` 3 on save changed to 4 (D032 §5).
 
-### 17.4 — Unlink Audio, Link, Unlink: core and sound
+### 17.4 — Unlink Audio, Link, Unlink: core and sound *(done)*
 - PR: D032 R3, R4, R10 (detached sound), R13; AQ8, AQ9, AQ11, AQ12 (track delete clearing links).
 - Impl: new commands in a `partial` file of `TimelineEditService`; `EditPlan` link reconciliation (R5) introduced here;
   `PlaybackSnapshotBuilder`: a detached `VideoClip` adds no `AudioSpan`.

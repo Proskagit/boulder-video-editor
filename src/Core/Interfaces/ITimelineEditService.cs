@@ -114,6 +114,24 @@ public interface ITimelineEditService
     /// into the frames a dissolve that stays needs.</summary>
     TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null);
 
+    /// <summary>Unlink Audio (D032 R3, AQ8, AQ11): the sound of a video clip becomes an independent audio clip of the same
+    /// file on the first unlocked, unmuted audio track free over the clip's range (otherwise on a new audio track added in
+    /// the same step), with the clip's timing, speed, volume, mute (muted when the video track is) and its effective fades;
+    /// the video clip plays no sound any more. What is heard does not change. Refused for a clip without sound, a clip
+    /// already unlinked or linked, a locked track. One undo step; the result's clips are the video and the audio clip.</summary>
+    TimelineEditResult UnlinkAudio(Guid videoClipId);
+
+    /// <summary>Why <see cref="UnlinkAudio"/> would refuse <paramref name="clipId"/>, or null when it can run.</summary>
+    string? GetUnlinkAudioBlockReason(Guid clipId);
+
+    /// <summary>Link (D032 R4, AQ9): <paramref name="clipIds"/> must be exactly one video clip and one audio clip, on
+    /// unlocked tracks, neither linked; they become one link. Timing never changes. One undo step.</summary>
+    TimelineEditResult LinkClips(IReadOnlyCollection<Guid> clipIds);
+
+    /// <summary>Unlink (D032 R4): the links of <paramref name="clipIds"/> are removed (both clips of each link; a locked
+    /// partner refuses the whole edit, L5). Unchanged when none is linked. One undo step.</summary>
+    TimelineEditResult UnlinkClips(IReadOnlyCollection<Guid> clipIds);
+
     TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds);
 
     /// <summary>Ripple delete (D027 §2): removes the clips, and on each track that loses one every other clip that starts

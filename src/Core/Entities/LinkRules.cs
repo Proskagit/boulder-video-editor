@@ -9,13 +9,17 @@ public static class LinkRules
 {
     /// <summary>Checks every link of <paramref name="clips"/> (all clips of a sequence, or of a planned result); returns a
     /// short user-facing reason for the first violation, or null.</summary>
-    public static string? Validate(IEnumerable<Clip> clips)
+    public static string? Validate(IEnumerable<Clip> clips) =>
+        Validate(clips.Select(c => (c, (c as MediaBackedClip)?.LinkId)));
+
+    /// <summary>As <see cref="Validate(IEnumerable{Clip})"/> with each clip's link as an edit would leave it.</summary>
+    public static string? Validate(IEnumerable<(Clip Clip, Guid? LinkId)> clips)
     {
         var groups = new Dictionary<Guid, (int Video, int Audio)>();
-        foreach (var clip in clips)
+        foreach (var (clip, link) in clips)
         {
-            if (clip is not MediaBackedClip { LinkId: { } linkId }) continue;
-            if (clip is ImageClip) return "Only video and audio clips can be linked.";
+            if (link is not { } linkId) continue;
+            if (clip is not (VideoClip or AudioClip)) return "Only video and audio clips can be linked.";
             var (video, audio) = groups.GetValueOrDefault(linkId);
             groups[linkId] = clip is VideoClip ? (video + 1, audio) : (video, audio + 1);
         }

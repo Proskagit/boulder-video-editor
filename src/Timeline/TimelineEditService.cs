@@ -988,18 +988,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     public TimelineEditResult AddTrack(TrackType type)
     {
-        var list = type == TrackType.Video ? Sequence.VideoTracks : Sequence.AudioTracks;
-        var prefix = type == TrackType.Video ? "V" : "A";
-        var number = list.Count + 1;
-        while (list.Any(t => t.Name == $"{prefix}{number}")) number++;
-
-        var track = new Track
-        {
-            Type = type,
-            Name = $"{prefix}{number}",
-            Order = list.Count == 0 ? 0 : list.Max(t => t.Order) + 1
-        };
-
+        var track = NewTrack(type);
         _undoRedo.Execute(new NotifyingCommand(new AddTrackCommand(Sequence, track), _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok();
     }
@@ -1009,16 +998,35 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (FindTrack(trackId) is not { } track) return "That track no longer exists.";
         if (track.IsLocked) return $"Track {track.Name} is locked.";
         if (Sequence.VideoTracks.Count + Sequence.AudioTracks.Count <= 1) return "The timeline needs at least one track.";
+        // D032 R5, AQ12: deleting the track clears the links of its clips' partners — never on a locked track.
+        if (LinkedPartners(track).FirstOrDefault(p => p.Track.IsLocked) is { Track: { } lockedTrack })
+            return $"Track {lockedTrack.Name} is locked.";
         return null;
     }
+
+    /// <summary>The clips on other tracks linked to a clip of <paramref name="track"/>, with their tracks.</summary>
+    private List<(Track Track, MediaBackedClip Clip)> LinkedPartners(Track track) =>
+        Sequence.VideoTracks.Concat(Sequence.AudioTracks).Where(t => t != track)
+            .SelectMany(t => t.Clips.OfType<MediaBackedClip>().Select(c => (Track: t, Clip: c)))
+            .Where(p => p.Clip.LinkId is { } link && track.Clips.OfType<MediaBackedClip>().Any(c => c.LinkId == link))
+            .ToList();
 
     public TimelineEditResult DeleteTrack(Guid trackId)
     {
         if (GetDeleteTrackBlockReason(trackId) is { } blocked) return TimelineEditResult.Fail(blocked);
         var track = FindTrack(trackId)!;
 
+        // D032 R5: the clips linked to the track's clips lose their link in the same step (a locked one refused above).
+        var partners = LinkedPartners(track);
+
         // The clips and dissolves stay on the track object, so Undo brings them back exactly (D027 §3).
-        _undoRedo.Execute(new NotifyingCommand(new RemoveTrackCommand(Sequence, track), _projectService.NotifyTimelineChanged));
+        IUndoableCommand command = new RemoveTrackCommand(Sequence, track);
+        if (partners.Count > 0)
+            command = new CompositeCommand(command.Description, partners
+                .Select(p => (IUndoableCommand)new SetClipLinkCommand(p.Clip, ClipLinkState.Capture(p.Clip),
+                    ClipLinkState.Capture(p.Clip) with { LinkId = null }, command.Description))
+                .Prepend(command));
+        _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok();
     }
 
@@ -1222,6 +1230,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var clips = plan.AllTracks.SelectMany(t => t.Clips).Where(c => Uses(c, mediaAssetId)).ToList();
         foreach (var clip in clips) plan.Remove(clip);
         plan.ReconcileTransitions();   // the removed clips' dissolves go with them (D025 §5)
+        plan.ReconcileLinks();         // and the links of their partners (D032 R5), never on a locked track (AQ12)
+        if (plan.ClearedLinks.FirstOrDefault(c => plan.TrackOf(c).IsLocked) is { } lockedPartner)
+            return TimelineEditResult.Fail($"Track {plan.TrackOf(lockedPartner).Name} is locked.");
 
         // The clips (and dissolves) first, then the asset: no clip ever refers to an asset that isn't in the project.
         var removeAsset = new RemoveMediaAssetCommand(Project.MediaAssets, asset, _projectService.NotifyMediaAssetsChanged);
@@ -1688,12 +1699,14 @@ public sealed partial class TimelineEditService : ITimelineEditService
     }
 
     /// <summary>Validates the plan: the dissolves are first brought in line with the planned clips (D025 §5: removed
-    /// where their cut is gone, moved with their clips), then every affected track's clips and dissolves are checked —
-    /// zones against the clips, and the source handles of every dissolve the edit creates or keeps (§4).</summary>
+    /// where their cut is gone, moved with their clips) and so are the links (D032 R5: a link left without its other clip
+    /// is cleared); then every affected track's clips and dissolves are checked — zones against the clips, and the source
+    /// handles of every dissolve the edit creates or keeps (§4) — and the links.</summary>
     private string? Validate(EditPlan plan)
     {
         plan.ReconcileTransitions();
         plan.ClampFades();
+        plan.ReconcileLinks();
         foreach (var track in plan.AffectedTracks)
         {
             if (TimelineValidator.ValidateTrack(track, plan.EffectiveClips(track), plan.Rate, FindAsset) is { } error)
@@ -1704,7 +1717,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
             if (ValidateTransitions(plan, track) is { } error)
                 return error;
         }
-        return null;
+        // A link the edit leaves without its other clip is cleared — never on a locked track (D032 L5, AQ12).
+        foreach (var clip in plan.ClearedLinks)
+        {
+            if (plan.TrackOf(clip).IsLocked)
+                return $"Track {plan.TrackOf(clip).Name} is locked.";
+        }
+        return LinkRules.Validate(plan.EffectiveLinks());
     }
 
     public const string NotEnoughMedia = "There is not enough media beyond the clips for the dissolve.";
