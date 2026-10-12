@@ -11,11 +11,13 @@ namespace AiVideoEditor.Timeline;
 // (PlanFirstVideoRate) — in one EditPlan, validated and committed like every other edit.
 public sealed partial class TimelineEditService
 {
-    public TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) =>
-        PlaceSourceRange(mediaAssetId, sourceIn, sourceOut, at, trackId, overwrite: false);
+    public TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null,
+        bool soundOnly = false) =>
+        PlaceSourceRange(mediaAssetId, sourceIn, sourceOut, at, trackId, overwrite: false, soundOnly);
 
-    public TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) =>
-        PlaceSourceRange(mediaAssetId, sourceIn, sourceOut, at, trackId, overwrite: true);
+    public TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null,
+        bool soundOnly = false) =>
+        PlaceSourceRange(mediaAssetId, sourceIn, sourceOut, at, trackId, overwrite: true, soundOnly);
 
     public SourceGrid? GetSourceGrid(MediaAsset asset, out string? reason)
     {
@@ -36,7 +38,7 @@ public sealed partial class TimelineEditService
     }
 
     private TimelineEditResult PlaceSourceRange(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at,
-        Guid? trackId, bool overwrite)
+        Guid? trackId, bool overwrite, bool soundOnly)
     {
         var verb = overwrite ? "overwrite" : "insert";
         if (FindAsset(mediaAssetId) is not { } asset)
@@ -46,12 +48,18 @@ public sealed partial class TimelineEditService
         if (GetAddBlockReason(asset) is { } blocked)
             return TimelineEditResult.Fail(blocked);
 
+        // R7 / AQ10: the sound of a video file alone, as an audio clip of that file. Its grid is the Source viewer's (SQ12),
+        // so a first video file's sound fixes the project rate as the file itself would (D007).
+        var sound = soundOnly && asset.Kind == MediaKind.Video;
+        if (sound && asset.Metadata?.AudioCodec is null)
+            return TimelineEditResult.Fail($"{asset.FileName} has no sound.");
+
         var plan = new EditPlan(Sequence, Settings);
         if (PlanFirstVideoRate(plan, asset, out var info) is { } regridError)
             return TimelineEditResult.Fail($"Can't {verb} {asset.FileName}: {regridError}");
         var rate = plan.Rate;
 
-        var kind = asset.Kind == MediaKind.Audio ? TrackType.Audio : TrackType.Video;
+        var kind = asset.Kind == MediaKind.Audio || sound ? TrackType.Audio : TrackType.Video;
         Track? track;
         if (trackId is { } id)
         {
@@ -79,7 +87,9 @@ public sealed partial class TimelineEditService
 
         // The new clip at 1× (SQ13): built at 0 and moved to the point by the move rule, which also keeps its source end
         // inside the media (the one-tick rule of a frame count's length at another position).
-        var clip = CreateClip(asset, ClipState.FromFrames(0, frames, MediaTime.FromFrame(inFrame, rate), rate));
+        var state = ClipState.FromFrames(0, frames, MediaTime.FromFrame(inFrame, rate), rate);
+        Clip clip = sound ? new AudioClip { MediaAssetId = asset.Id } : CreateClip(asset, state);
+        state.ApplyTo(clip);
         var (placed, placeError) = ShiftedState(clip, atFrame, rate);
         if (placeError is not null) return TimelineEditResult.Fail($"Can't {verb}: {placeError}");
         placed.ApplyTo(clip);

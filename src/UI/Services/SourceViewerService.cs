@@ -57,7 +57,28 @@ public sealed class SourceViewerService
         : Frames is { } f ? (MediaTime.FromFrame(f.First, g.Rate), MediaTime.FromFrame(f.End, g.Rate))
         : (MediaTime.Zero, g.Duration);
 
-    /// <summary>The asset, its grid or the position changed (Open, Close, a re-grid).</summary>
+    /// <summary>"Sound only" on the source bar (D032 R7, AQ10): session state, never saved. It applies only while
+    /// <see cref="CanSoundOnly"/>.</summary>
+    public bool SoundOnly
+    {
+        get => _soundOnly;
+        set
+        {
+            if (_soundOnly == value) return;
+            _soundOnly = value;
+            SourceChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private bool _soundOnly;
+
+    /// <summary>The open asset is a video file with sound: its sound can go in alone.</summary>
+    public bool CanSoundOnly => Asset is { Kind: MediaKind.Video, Metadata.AudioCodec: not null };
+
+    /// <summary>What Insert / Overwrite place now: the sound alone (<see cref="SoundOnly"/> on a video with sound).</summary>
+    public bool PlacesSoundOnly => SoundOnly && CanSoundOnly;
+
+    /// <summary>The asset, its grid or the position changed (Open, Close, a re-grid), or "Sound only".</summary>
     public event EventHandler? SourceChanged;
 
     /// <summary>The open asset's In / Out changed.</summary>

@@ -66,6 +66,46 @@ public sealed class ExportInsertOverwriteEndToEndTests
         await AssertSameExport(edited, direct, "overwrite");
     }
 
+    // Phase 17 Step 17.7 (D032 R7): the sound alone, as an audio clip of the file — the same as inserting the whole file,
+    // unlinking its sound and deleting the picture.
+    [FfmpegFact]
+    public async Task A_sound_only_insert_exports_like_the_whole_file_unlinked_with_its_picture_deleted()
+    {
+        var take = _media.PatternWithTone();
+        var edited = new ProjectBuilder(FrameRate.Fps25);
+        edited.Video(edited.VideoTrack(), _media.Solid("000000", FrameRate.Fps25), 0, 60);
+        edited.AudioTrack();
+        edited.Project.MediaAssets.Add(take);
+        var edit = new TimelineEditService(new SceneProject(edited.Project), new UndoRedoService(), NullLogger<TimelineEditService>.Instance);
+        var result = edit.InsertClip(take.Id, edited.F(12), edited.F(42), edited.F(9), soundOnly: true);
+        Assert.True(result.Success, result.Message);
+        Assert.IsType<AudioClip>(edited.Project.Timeline.AudioTracks[0].Clips.Single());
+
+        var direct = new ProjectBuilder(FrameRate.Fps25);
+        var d1 = direct.VideoTrack();
+        direct.Video(d1, _media.Solid("000000", FrameRate.Fps25), 0, 60);
+        direct.AudioTrack();
+        var directTake = _media.PatternWithTone();
+        direct.Project.MediaAssets.Add(directTake);
+        var directEdit = new TimelineEditService(new SceneProject(direct.Project), new UndoRedoService(), NullLogger<TimelineEditService>.Instance);
+        var v2 = new Track { Type = TrackType.Video, Name = "V2", Order = 1 };
+        direct.Project.Timeline.VideoTracks.Add(v2);
+        Assert.True(directEdit.InsertClip(directTake.Id, direct.F(12), direct.F(42), direct.F(9), v2.Id).Success);
+        var picture = v2.Clips.Single();
+        Assert.True(directEdit.UnlinkAudio(picture.Id).Success);
+        Assert.True(directEdit.DeleteClips(new[] { picture.Id }).Success);
+
+        var a = await ExportProject(edited.Project, Path.Combine(_media.OutputFolder(), "sound-only-edited.mp4"));
+        var b = await ExportProject(direct.Project, Path.Combine(_media.OutputFolder(), "sound-only-direct.mp4"));
+        AssertValidMp4(a);
+        Assert.True(a.Pcm.AsSpan().SequenceEqual(b.Pcm), "the sound differs");
+        Assert.Contains(a.Pcm, s => s != 0);
+        Assert.Equal(b.Canvases.Count, a.Canvases.Count);
+        for (var i = 0; i < a.Canvases.Count; i++)
+            Assert.True(a.Canvases[i].AsSpan().SequenceEqual(b.Canvases[i]), $"frame {i} differs");
+        AssertNoFfmpegLeft();
+    }
+
     private async Task AssertSameExport(ProjectBuilder edited, ProjectBuilder direct, string name)
     {
         var a = await ExportProject(edited.Project, Path.Combine(_media.OutputFolder(), $"{name}-edited.mp4"));

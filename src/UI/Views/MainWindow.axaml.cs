@@ -201,8 +201,8 @@ public partial class MainWindow : Window
         public TimelineEditResult RippleTrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime) => Nothing;
         public TimelineEditResult SlipClip(Guid clipId, long frames) => Nothing;
         public SlipPreview? PreviewSlip(Guid clipId, long frames) => null;
-        public TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) => Nothing;
-        public TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) => Nothing;
+        public TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null, bool soundOnly = false) => Nothing;
+        public TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null, bool soundOnly = false) => Nothing;
         public SourceGrid? GetSourceGrid(MediaAsset asset, out string? reason) { reason = null; return null; }
         public TimelineEditResult UnlinkAudio(Guid videoClipId) => Nothing;
         public string? GetUnlinkAudioBlockReason(Guid clipId) => null;

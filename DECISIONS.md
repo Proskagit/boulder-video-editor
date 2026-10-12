@@ -3838,6 +3838,14 @@ export source, the export preflight window; the Preview's look-ahead window and 
 `AudioMix.Add` both sides call. A fade on an edge with a crossfade is not applied (the existing PO-8 rule, by track
 transitions). A crossfade change is a timing change for the Preview (not presentation-only).
 
+Refined in Step 17.7 (sound-only Insert / Overwrite): `InsertClip` / `OverwriteClip` take `soundOnly`; for a video file it
+places an `AudioClip` of the file on the audio target (SQ8 with the kind "audio"; an explicit video track is refused as for
+any audio), by the same SQ6 / SQ9 / SQ13 code — the clip is the only difference; a video without sound is refused
+("… has no sound."); for an audio file the flag changes nothing. Its grid is the Source viewer's (SQ12), so the first
+sound-only insert of a video file fixes the project rate as the file itself would (D007). "Sound only" is a toggle of the
+source bar, shown for a video with sound, held by `SourceViewerService` for the session (not saved, not undoable; it
+applies only while the open asset has sound); the status says "Inserted the sound of …".
+
 Status: Accepted (2026-10-08, product owner: variant A, L1–L7, AQ1–AQ13). R1–R13 are the pre-implementation audit's
 reading of the architecture (Step 17.2), checked by an independent review (PASS WITH NOTES; its notes taken in: R3's
 mix-order and dissolve-fade limits, `DeleteTrack` in R5, AQ11–AQ13). Steps and acceptance criteria:

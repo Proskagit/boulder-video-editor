@@ -85,6 +85,15 @@ Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fa
   exported alone, weighted by the ramps, sample for sample; the picture unchanged). Six mutations caught (the placement, the
   out ramp, the builder's zone, both look-ahead bounds — the start bound after the short look-ahead test was added).
   `--no-incremental -warnaserror` 0 / 0; the full suite 3003 passed, 2 skipped, 0 failed.
+- Step 17.7 done — sound-only Insert / Overwrite (D032 R7, AQ10; D032 "Refined in Step 17.7"): `soundOnly` on
+  `InsertClip` / `OverwriteClip` (interface, service, both stubs); `SourceViewerService.SoundOnly` / `CanSoundOnly` /
+  `PlacesSoundOnly`; the source bar's "Sound only" toggle (`PreviewViewModel.CanSourceSoundOnly` / `IsSourceSoundOnly`);
+  `TimelineViewModel.PlaceSource` targets an audio track. Tests: `Timeline.Tests/SoundOnlyInsertTests` (9: Insert /
+  Overwrite of the sound give A1 exactly the shape the whole file gives V1, Undo; refusals; the target; AQ4 partners; the
+  rate lock), `UI.Tests/SourceViewerTests` (the toggle, the target, the status, the toggle without sound),
+  `ExportEndToEnd.Tests/ExportInsertOverwriteEndToEndTests` (a sound-only insert exports byte for byte like the whole file
+  inserted, unlinked and its picture deleted). Mutations caught (the service flag, the UI flag). `--no-incremental
+  -warnaserror` 0 / 0; the full suite 3014 passed, 2 skipped, 0 failed.
 
 ### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 
@@ -3995,7 +4004,7 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 2026-10-08: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`, CI green on the pull request and on
 `main`; 2894 passed, 2 skipped). Phase 17 (audio editing, D032) in progress on `feat/phase-17-audio-editing`: Steps 17.1–17.2
-done, AQ1–AQ13 answered (as proposed), Steps 17.3–17.6 done. Open items: see "Known issues" (the real-device audio status check — now R10 of
+done, AQ1–AQ13 answered (as proposed), Steps 17.3–17.7 done. Open items: see "Known issues" (the real-device audio status check — now R10 of
 the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 
 ### Phase 4 — Timeline (historical notes)

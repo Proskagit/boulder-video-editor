@@ -88,7 +88,7 @@ and runs cleanly.
       audio clip explicitly (edited as one, the ripple keeping their offset, a locked partner refusing the whole edit),
       J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio tracks; Preview ↔
       export parity; `project.json` v4. Scope, steps and acceptance criteria: section below and DECISIONS.md D032 (product
-      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.6 done; AQ1–AQ13
+      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.7 done; AQ1–AQ13
       answered (as proposed); checked after the product owner's acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
@@ -1111,7 +1111,7 @@ Out of scope: D032 L7 and §6.
   equals the reference formula sample for sample, and the Preview's mix of the same zone equals the export's; audio fades
   of an audio clip of a video asset.
 
-### 17.7 — Sound-only Insert / Overwrite
+### 17.7 — Sound-only Insert / Overwrite *(done)*
 - PR: D032 R7; AQ10, AQ13.
 - QG: `Timeline.Tests` (the D031 SQ6 / SQ9 shapes for an `AudioClip` of a video asset, partners rippled per AQ4);
   `UI.Tests` (the Source bar toggle, the target track); an export test: a sound-only insert exports like the same timeline
