@@ -94,7 +94,13 @@
             <TextBlock Text="TIMELINE" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A" VerticalAlignment="Center"/>
             <TextBlock Text="{Binding FrameRateDisplay}" FontSize="11" Foreground="#7A7A7A" VerticalAlignment="Center"/>
           </StackPanel>
-          <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+          <!-- The tools wrap onto a second row when the window is too narrow for one (1024 px since Phase 17's Unlink / Link). -->
+          <WrapPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <WrapPanel.Styles>
+              <Style Selector="WrapPanel > Button, WrapPanel > ToggleButton">
+                <Setter Property="Margin" Value="2,1"/>
+              </Style>
+            </WrapPanel.Styles>
             <Button Content="+ Video Track" Command="{Binding AddVideoTrackCommand}" ToolTip.Tip="Add a video track" FontSize="11"/>
             <Button Content="+ Audio Track" Command="{Binding AddAudioTrackCommand}" ToolTip.Tip="Add an audio track" FontSize="11"/>
             <Button Content="+ Text" Command="{Binding AddTextCommand}" ToolTip.Tip="Add a text clip at the playhead on the top video track" FontSize="11"/>
@@ -113,7 +119,7 @@
             <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out (Ctrl+−)" FontSize="11"/>
             <Button Content="+" Command="{Binding ZoomInCommand}" ToolTip.Tip="Zoom in (Ctrl+=)" FontSize="11"/>
             <Button Content="Fit" Command="{Binding ZoomToFitCommand}" ToolTip.Tip="Zoom to fit (\)" FontSize="11"/>
-          </StackPanel>
+          </WrapPanel>
         </DockPanel>
       </Border>
 

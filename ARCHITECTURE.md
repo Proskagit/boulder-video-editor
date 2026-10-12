@@ -29,7 +29,7 @@ rasterizer, ffmpeg encoder → MP4 checked with ffprobe — and skips without ff
 | Infrastructure | Serilog setup, `AppPaths` (incl. the recovery folder and the unsaved projects' cache root), `FfprobeLocator` / `FfmpegLocator` + `FfmpegOptions` | Implemented |
 | Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS); `FfmpegAudioDecoder` (ffmpeg CLI → 48 kHz stereo float); `FfmpegExportEncoder`; shared `FfmpegProcess` | Probe, video/audio decode, export encoder |
 | Media | `MediaImportService` (extension validation, file size); `ThumbnailService` / `WaveformService` and their cache files (Phase 9) | Implemented |
-| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022; v3 since Phase 10, D025) |
+| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022; v3 since Phase 10, D025; v4 since Phase 17, D032) |
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
 | Export | Offline export orchestration (Phase 8, D023): renders an `ExportJob` with the Core rules and hands frames/audio to an encoder. References Core only; no FFmpeg or UI types | `ExportService` over `ExportFrameSource` / `ExportPictureReader`, `ExportAudioSource` / `ExportAudioReader` |
@@ -215,6 +215,21 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   `PreviewViewModel.Source.cs`; Insert / Overwrite commands in `TimelineViewModel.Source.cs` (target: the track of the
   latest selected clip of the source's kind, else V1 / A1); `ShortcutRouter` maps the transport and I / O keys to the
   source while it is shown, `,` / `.` to Insert / Overwrite in both modes.
+- Links and the sound of a video (Phase 17, D032): `MediaBackedClip.LinkId` joins one `VideoClip` and one `AudioClip`
+  (Core `LinkRules`, checked by `TimelineValidator.ValidateSequence` and on load); `VideoClip.IsAudioDetached` marks a video
+  clip whose sound was unlinked into an `AudioClip` of the same file (an `AudioClip` may hold a video file's sound).
+  `UnlinkAudio` / `LinkClips` / `UnlinkClips` in `TimelineEditService.Links.cs` change the link state through
+  `EditPlan.SetLink` (`SetClipLinkCommand`); `EditPlan.ReconcileLinks` (in `Validate`, and Remove Media; `DeleteTrack` in
+  its own command) clears a link left without its other clip, refused on a locked track. Linked editing
+  (`TimelineEditService.Linked.cs`) adds no rule: the partner is planned by the rule the edit applies — `PlanPartnerShifts`
+  in `Validate` gives every clip the plan moves its partner (move rule), the trim (clamped as one; `alone` for Alt + edge),
+  ripple trim (`RippleTrimmedState`), split (`LinkSplitParts`), speed, slip, delete, Insert / Overwrite (the same rule on
+  the partner alone) and copy / paste take the partner explicitly; a locked partner refuses the whole edit. Transitions:
+  `TransitionRules.TypeFor` — a dissolve on a video track, a crossfade on an audio track, the same zone / handle /
+  reconciliation rules (`DissolveHandles` for audio clips too). Sound-only Insert / Overwrite: `soundOnly` on
+  `InsertClip` / `OverwriteClip`, the Source viewer's "Sound only" (`SourceViewerService.SoundOnly`, session state). UI:
+  `TimelineViewModel.Links.cs` (Unlink / Unlink Audio, Link), the linked selection (`SelectionGroup`), Alt + edge
+  (`TimelineGestureModifiers.IsTrimAlone`), the "🔗" mark (`TimelineClipViewModel.Label`).
 - Import (Phase 12 Step 12.8, D027 §7): `MediaImportWorkflow` keeps the project the import started in and adds nothing
   (and queues no analysis) when another project is current after the picker, the status yield or the file check.
 - UI: `TimelineViewModel` projects the `Sequence` (clip view models reused by Id),
@@ -272,7 +287,11 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   (`IAudioSampleSource`, device thread, never blocks) → `IAudioOutput` = `WasapiAudioOutput`
   (Audio project, NAudio). The output's played-frames clock is the playback master while it
   runs; Stopwatch otherwise. Core holds only backend-neutral contracts (`AudioContracts.cs`,
-  `AudioTiming`).
+  `AudioTiming`). Phase 17 (D032 R9, R10): a video clip with `IsAudioDetached` adds no `AudioSpan`; an audio clip with a
+  crossfade carries `CrossfadeIn` / `CrossfadeOut` zones, plays `[PlayStart, PlayEnd)` (`AudioPlacement.Of(span)` over
+  that range with the source offset of its own start) and is weighted by the crossfade ramps in `AudioFadeEnvelope` —
+  the same for `AudioPipeline` (window and reader key by the played range), the readers, `ExportAudioSource` and
+  `ExportPreflight`.
 - Volume/mute (Phase 7, D013 refinement): muted clips stay as silent spans (`AudioSpan.IsMuted`,
   mixed at `EffectiveGain` 0). A snapshot that `DiffersOnlyInPresentation` (D018) from the current one keeps the
   video pipeline, seek generation, picture and every reader; only `AudioPipeline.UpdateMix`
@@ -386,10 +405,12 @@ waveform never changes the audio.
 Decisions: D014 (format, Open/Save, missing media), D015 (save point), D016 (autosave,
 recovery, unsaved changes).
 
-- On disk: a project folder with `project.json` (format v3 since Phase 10: clip fades and anchored transitions,
-  D025; v2 since Phase 7: the clip speed as an exact fraction `speedRatio`, D022; v1 files are read when their speed
-  is 1; v1 / v2 are read without fades and transitions and saved as v3; files of a newer version are refused; Phase 13
-  adds the optional `settings.export` to v3, written only when not the default, D028). `ProjectSerializer` maps entities
+- On disk: a project folder with `project.json` (format v4 since Phase 17: `linkId`, `isAudioDetached` — each written
+  only when set —, audio clips of video files and crossfades on audio tracks, D032; v3 since Phase 10: clip fades and
+  anchored transitions, D025; v2 since Phase 7: the clip speed as an exact fraction `speedRatio`, D022; v1 files are read
+  when their speed is 1; v1 / v2 are read without fades and transitions, v1–v3 without links; all are saved as v4, a v3
+  project differing only in `formatVersion`; files of a newer version are refused; Phase 13 adds the optional
+  `settings.export`, written only when not the default, D028). `ProjectSerializer` maps entities
   ⇄ DTOs (`ProjectFileDto.cs`; ticks as `long`, exact frame rates, no runtime state) and
   validates on load (incl. clip property ranges, D017, and the speed timing invariant, D022);
   `ProjectFileStore` reads and writes atomically (temp + `File.Replace`).
@@ -605,4 +626,7 @@ code at the Phase 15 closeout (Step 15.9); the project counts unchanged (18: 10 
 Phase 16 (D031, source viewer & three-point editing): the Insert / Overwrite and Source viewer paragraphs of the Timeline
 section and the Source-mode sentence of the Preview section, written and checked against the code at the Phase 16
 closeout (Step 16.7); the project counts unchanged (18: 10 `src`, 8 `tests`).
+Phase 17 (D032, audio editing): the links paragraph of the Timeline section, the Phase 17 sentence of the Audio section,
+the format line of the persistence section and the Project row, written and checked against the code at the Phase 17
+closeout (Step 17.9); the project counts unchanged (18: 10 `src`, 8 `tests`).
 Re-check the code before relying on details that later phases may have changed.

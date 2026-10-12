@@ -3857,10 +3857,24 @@ drag shows the partner's edge following. The Dissolve command on an audio cut ad
 Inspector's section reads CROSSFADE / "Remove Crossfade" there. A video clip whose sound was unlinked shows no audio group
 and no waveform. Every new control is off during an export (`CanEdit`).
 
+Refined in Step 17.9 (closeout): the real-app run at 1024 px found the two new toolbar buttons pushing −, + and Fit past
+the window's edge; the timeline tools are now a `WrapPanel` (the same buttons and order; at 1440 px one row as before, at
+1024 px −, + and Fit on a second row) — the only layout change of the phase.
+
+Final state at the Phase 17 closeout (Step 17.9, 2026-10-12): every rule of §2–§4 implemented and tested (Project.Tests
+`AudioEditingPersistenceTests`, Core.Tests `LinkRulesTests` / `TransitionRulesTests`, Timeline.Tests `LinkEditTests` /
+`LinkedEditTests` / `CrossfadeEditTests` / `SoundOnlyInsertTests` / `AudioModelTests`, Export.Tests
+`ExportAudioContractTests`, UI.Tests `TimelineLinkUiTests` / `SourceViewerTests`, ExportEndToEnd.Tests
+`ExportUnlinkAudioEndToEndTests` / `ExportCrossfadeEndToEndTests` / `ExportInsertOverwriteEndToEndTests`); the gates and the
+manual plan in `progress.md` and `docs/PHASE17_MANUAL_TEST_PLAN.md`; a Phase 16 project saved again differs only in
+`formatVersion`, the default export byte for byte as Phase 16's, a v4 file refused by the Phase 16 build. R10 (a real
+audio device) not run: it needs the product owner.
+
 Status: Accepted (2026-10-08, product owner: variant A, L1–L7, AQ1–AQ13). R1–R13 are the pre-implementation audit's
 reading of the architecture (Step 17.2), checked by an independent review (PASS WITH NOTES; its notes taken in: R3's
-mix-order and dissolve-fade limits, `DeleteTrack` in R5, AQ11–AQ13). Steps and acceptance criteria:
-`docs/DEVELOPMENT_PLAN.md`, "Phase 17 — Audio editing: steps".
+mix-order and dissolve-fade limits, `DeleteTrack` in R5, AQ11–AQ13). **Phase 17 complete** (Step 17.9 closeout,
+2026-10-12) on `feat/phase-17-audio-editing`; not yet merged (push / pull request on the product owner's command). Steps
+and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 17 — Audio editing: steps".
 
 ---
 

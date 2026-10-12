@@ -68,9 +68,13 @@ linked clips; every edit one undo step, refused as a whole when a locked partner
 `project.json` **v4** (v3 opens unchanged in meaning and is saved as v4; no v4 → v3). The base model stays D008's
 `VideoClip` with its own sound. Out: ducking, keyframes, speed ramps, waveform work, a mixer, volume automation, a separate
 stabilization phase. Step 17.1 (pre-flight) and Step 17.2 (sync after the merge, D032, the Phase 17 steps, the manual
-plan's skeleton) done; AQ1–AQ13 answered as proposed; Steps 17.3 (model and `project.json` v4), 17.4 (Unlink Audio, Link, Unlink), 17.5 (linked editing) and 17.6 (audio
-crossfades), 17.7 (sound-only Insert / Overwrite) and 17.8 (UI) done; the phase runs to its
-closeout without a stop between steps. Steps and
+plan's skeleton) done; AQ1–AQ13 answered as proposed; Steps 17.3 (model and `project.json` v4), 17.4 (Unlink Audio, Link,
+Unlink), 17.5 (linked editing), 17.6 (audio crossfades), 17.7 (sound-only Insert / Overwrite) and 17.8 (UI) done. **Phase 17
+complete** on its branch: Step 17.9 closeout on 2026-10-12 — the real-app run (one layout defect found and fixed: the
+toolbar at 1024 px), the regression against the Phase 16 build (a Phase 16 save saved again differs only in
+`formatVersion`, the default export byte for byte, a v4 file refused by Phase 16), the gates green (passed 3020, skipped
+2, failed 0; heavy 3022 / 0 / 0). R10 (a real audio device) for the product owner. Not yet merged: push and pull request
+on the product owner's command. Steps and
 acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 17 — Audio editing: steps"; manual plan
 `docs/PHASE17_MANUAL_TEST_PLAN.md`.
 

@@ -89,7 +89,10 @@ and runs cleanly.
       J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio tracks; Preview ↔
       export parity; `project.json` v4. Scope, steps and acceptance criteria: section below and DECISIONS.md D032 (product
       owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.8 done; AQ1–AQ13
-      answered (as proposed); checked after the product owner's acceptance)*
+      answered (as proposed); closeout 17.9 done 2026-10-12 — build 0 / 0 Release and Debug, passed 3020, skipped 2, failed
+      0, three blame-hang runs and heavy green, the manual plan and the Phase 16 regression in the real app (R10 for the
+      product owner); not yet merged — push / pull request on the product owner's command; checked after the product
+      owner's acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -1123,7 +1126,7 @@ Out of scope: D032 L7 and §6.
   for a crossfade and for a detached video clip, no waveform on a detached video clip.
 - QG: `UI.Tests` for the view models and gesture modifiers; real app at 1024 / 1440 px.
 
-### 17.9 — Final verification & closeout
+### 17.9 — Final verification & closeout *(done 2026-10-12 — results in `progress.md` and `docs/PHASE17_MANUAL_TEST_PLAN.md`; the 1024 px toolbar overflow found and fixed)*
 - QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
   `--blame-hang`; the heavy scenes once with `AIVE_HEAVY_TESTS=1`; `git diff --check` clean; an independent phase review.
 - PR: `docs/PHASE17_MANUAL_TEST_PLAN.md` in the real app, with the regression (a Phase 16 project opened and saved as v4,

@@ -15,8 +15,8 @@ markers — Phase 12, merged 2026-10-05 as `c0cb600`, CI green; project & export
 the playhead, ripple trim, slip, an In / Out range, a canvas-relative size for new text) merged 2026-10-08 as `a3793a4`,
 CI green — DECISIONS.md D030. Phase 16 (a Source viewer with In / Out, Insert / Overwrite) merged 2026-10-08 as
 `79e4e78`, CI green on PR #17 and on `main` — DECISIONS.md D031. Phase 17 (audio editing: unlink / link, J / L cuts,
-sound-only Insert / Overwrite, audio crossfades; `project.json` v4) is in progress on `feat/phase-17-audio-editing` —
-DECISIONS.md D032.
+sound-only Insert / Overwrite, audio crossfades; `project.json` v4) is complete on `feat/phase-17-audio-editing`
+(closeout Step 17.9; not yet merged) — DECISIONS.md D032.
 
 ## Requirements
 
@@ -125,7 +125,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 ## Status
 
 Phases 0–16 complete (Phase 16 merged as `79e4e78`, CI green on PR #17 and on `main`); Phase 17 (audio editing, D032)
-in progress on `feat/phase-17-audio-editing`. Working: media import
+complete on its branch, not yet merged. Working: media import
 with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
 preview playback with video and audio, and projects on disk: New / Open / Save /
@@ -185,6 +185,15 @@ saved), the arrows, Home / End, J / K / L and Space act on the source while it i
 **Overwrite**s from the playhead; the target is the track of the selected clip of the right kind, else V1 / A1; the
 playhead goes to the end of the new clip. A video goes in with its sound as one clip. Every edit is one Undo step and off
 during an export.
+
+Phase 17 (DECISIONS.md D032; complete on `feat/phase-17-audio-editing`, not yet merged): audio editing. **Unlink Audio** in
+the timeline tools turns a video clip's sound into an audio clip of its own (on the first free audio track; what you hear
+does not change); **Link** joins a video clip and an audio clip, and **Unlink** separates them again. Linked clips are
+selected, moved, trimmed, split, rippled, sped up, slipped, deleted and copied together (a locked partner refuses the
+edit); Alt + drag of an edge trims one of them alone — a J or L cut (🔗 marks linked clips). **Dissolve** on two audio
+clips that meet adds a linear crossfade (1 s, or the longest that fits). In the Source viewer, **Sound only** inserts or
+overwrites just the sound of a video. Projects are saved as `project.json` v4 (older projects open as before; Phase 16
+can't open a v4 file).
 
 Phase 15 (DECISIONS.md D030; merged as `a3793a4`): editing tools. Each track
 header has M (mute), 👁 (hide; video tracks) and 🔒 (lock; a locked track refuses every edit, mute / hide still allowed),

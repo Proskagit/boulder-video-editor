@@ -2,7 +2,8 @@
 
 ## Current phase
 
-Phase 17 — Audio editing: branch `feat/phase-17-audio-editing` (from `79e4e78`, `main` after the merge of PR #17). Scope
+Phase 17 — Audio editing: branch `feat/phase-17-audio-editing` (from `79e4e78`, `main` after the merge of PR #17); **complete**
+(closeout Step 17.9, 2026-10-12), not yet merged. Scope
 approved by the product owner on 2026-10-08 (DECISIONS.md D032, variant A of the Phase 17 pre-flight, L1–L7): Unlink
 Audio, Link / Unlink, J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio
 tracks (1 s by default, linear, limited by the handles), linked clips edited as one (the ripple keeping their offset, a
@@ -11,7 +12,7 @@ as v4; no v4 → v3). The base model stays D008's `VideoClip` with its own sound
 local refactoring Phase 17 needs. No push, pull request or merge without a separate command. Steps and acceptance:
 `docs/DEVELOPMENT_PLAN.md` "Phase 17 — Audio editing: steps"; manual plan `docs/PHASE17_MANUAL_TEST_PLAN.md`.
 
-### Phase 17 — Audio editing (in progress)
+### Phase 17 — Audio editing (complete; closeout Step 17.9, not yet merged)
 
 Steps (D032): 17.1 pre-flight · 17.2 sync after the merge, audit & scope formalization · 17.3 model & format v4 · 17.4
 Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fades · 17.7 sound-only Insert / Overwrite ·
@@ -102,6 +103,22 @@ Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fa
   `UI.Tests/TimelineLinkUiTests` (6). Five mutations caught (the selection group, Alt + edge, the Inspector's detached
   check, the Dissolve pair, Close Gap's count). `--no-incremental -warnaserror` 0 / 0; the full suite 3020 passed, 2
   skipped, 0 failed. The real-app check of the new controls at 1024 / 1440 px is part of the closeout run.
+- Step 17.9 (closeout, 2026-10-12):
+  - The real-app run (`docs/PHASE17_MANUAL_TEST_PLAN.md`, Debug build, isolated profile, UI Automation, at 1440 and 1024 px)
+    — Unlink Audio, Link, the trim of a linked pair, Alt + edge (an L cut), the move of a pair, Split of a pair, a crossfade
+    by Dissolve on an audio cut (the Inspector's CROSSFADE), Sound only from Source, a locked partner refusing a move, Copy
+    / Paste of a pair, Sound only hidden for a silent video, checked by the saved `project.json` — found one defect: at
+    1024 px the two new toolbar buttons pushed −, + and Fit past the window's edge; fixed (the timeline tools wrap: a
+    `WrapPanel`, D032 "Refined in Step 17.9"), re-checked at 1024 and 1440 px. Regression against the Phase 16 build
+    (`79e4e78` from `git archive`): R1 a Phase 16 save opened and saved by Phase 17 differs only in `formatVersion` (3 → 4);
+    R2 the default export byte for byte (216 586 bytes, the same SHA-256); R4 no ffmpeg — the v4 project opens, the reason
+    shown; R5 the Phase 16 build refuses the v4 file ("saved by a newer version"). R10 (a real audio device) NOT RUN — for
+    the product owner.
+  - Gates: a first run while the real-app session was driving ffmpeg had 3 Video.Tests failures in its third
+    `--blame-hang` run (Video.Tests alone then 322 / 0 / 0) — contention, not a product defect; every gate was run again
+    with the machine idle after the toolbar fix: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite 3020 passed, 2 skipped (the 4K scenes), 0 failed; three `--blame-hang-timeout 5m` runs 3020 / 2 / 0 each, no hang, no dump; with `AIVE_HEAVY_TESTS=1` 3022 / 0 / 0; `git diff --check 79e4e78` clean.
+  - Documentation: ARCHITECTURE (the links paragraph, the Audio sentence, the format line, the Project row), D032
+    refinements, final state and status, ROADMAP, README, this plan.
 
 ### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 
@@ -4010,9 +4027,9 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-08: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`, CI green on the pull request and on
-`main`; 2894 passed, 2 skipped). Phase 17 (audio editing, D032) in progress on `feat/phase-17-audio-editing`: Steps 17.1–17.2
-done, AQ1–AQ13 answered (as proposed), Steps 17.3–17.8 done. Open items: see "Known issues" (the real-device audio status check — now R10 of
+2026-10-12: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`). Phase 17 (audio editing, D032) complete
+on `feat/phase-17-audio-editing` (closeout Step 17.9; 3020 passed, 2 skipped); push and pull request on the product owner's
+command. Open items: see "Known issues" (the real-device audio status check — now R10 of
 the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 
 ### Phase 4 — Timeline (historical notes)
