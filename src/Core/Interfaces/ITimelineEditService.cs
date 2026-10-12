@@ -43,11 +43,11 @@ public interface ITimelineEditService
 
     /// <summary>Moves one edge of a clip to <paramref name="edgeTime"/> (snapped to the
     /// frame grid), clamped to neighbours, the source media and a one-frame minimum.</summary>
-    TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime);
+    TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false);
 
     /// <summary>Dry run of <see cref="TrimClip"/> for drag previews: the clamped timing the
     /// clip would get, or null if the trim isn't allowed.</summary>
-    (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime);
+    (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false);
 
     /// <summary>Splits clips at <paramref name="at"/> (snapped to the frame grid). With a
     /// non-empty <paramref name="clipIds"/> only those clips are split; otherwise every
@@ -98,7 +98,10 @@ public interface ITimelineEditService
     /// <see cref="AddClip"/> does. One Undo step; refused — nothing changes — for an image, a missing or not analysed
     /// asset, a range shorter than one frame, a locked track, or a point inside a dissolve's zone.
     /// <see cref="TimelineEditResult.ClipIds"/> is the new clip.</summary>
-    TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null);
+    /// <remarks><paramref name="soundOnly"/> (D032 R7, AQ10): the sound of a video file goes in as an audio clip of that
+    /// file, on an audio track (refused for a video without sound); for an audio file it changes nothing.</remarks>
+    TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null,
+        bool soundOnly = false);
 
     /// <summary>The frame grid a source range of <paramref name="asset"/> lies on (D031 SQ12) — the project rate when it is
     /// locked, the asset's own rate while it is provisional and the asset is a video (Insert / Overwrite would lock it) —
@@ -112,7 +115,26 @@ public interface ITimelineEditService
     /// it (the trim rule), a clip covering it is split at its start and trimmed at its end. A dissolve whose cut the range
     /// covers is removed with a note (the trim rule, D025 §5); refused as Insert is, and when the split or a trim would cut
     /// into the frames a dissolve that stays needs.</summary>
-    TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null);
+    TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null,
+        bool soundOnly = false);
+
+    /// <summary>Unlink Audio (D032 R3, AQ8, AQ11): the sound of a video clip becomes an independent audio clip of the same
+    /// file on the first unlocked, unmuted audio track free over the clip's range (otherwise on a new audio track added in
+    /// the same step), with the clip's timing, speed, volume, mute (muted when the video track is) and its effective fades;
+    /// the video clip plays no sound any more. What is heard does not change. Refused for a clip without sound, a clip
+    /// already unlinked or linked, a locked track. One undo step; the result's clips are the video and the audio clip.</summary>
+    TimelineEditResult UnlinkAudio(Guid videoClipId);
+
+    /// <summary>Why <see cref="UnlinkAudio"/> would refuse <paramref name="clipId"/>, or null when it can run.</summary>
+    string? GetUnlinkAudioBlockReason(Guid clipId);
+
+    /// <summary>Link (D032 R4, AQ9): <paramref name="clipIds"/> must be exactly one video clip and one audio clip, on
+    /// unlocked tracks, neither linked; they become one link. Timing never changes. One undo step.</summary>
+    TimelineEditResult LinkClips(IReadOnlyCollection<Guid> clipIds);
+
+    /// <summary>Unlink (D032 R4): the links of <paramref name="clipIds"/> are removed (both clips of each link; a locked
+    /// partner refuses the whole edit, L5). Unchanged when none is linked. One undo step.</summary>
+    TimelineEditResult UnlinkClips(IReadOnlyCollection<Guid> clipIds);
 
     TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds);
 

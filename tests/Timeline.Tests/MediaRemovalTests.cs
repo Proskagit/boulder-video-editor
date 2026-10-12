@@ -220,7 +220,7 @@ public class MediaRemovalTests
     }
 
     [Fact]
-    public async Task A_removal_survives_save_and_reopen_in_format_3()
+    public async Task A_removal_survives_save_and_reopen_in_format_4()
     {
         var root = Path.Combine(Path.GetTempPath(), "AiVideoEditorTests", Guid.NewGuid().ToString("N"));
         try
@@ -234,7 +234,7 @@ public class MediaRemovalTests
             var folder = Path.Combine(root, "Project");
             await f.Projects.SaveAsAsync(folder);
             var json = File.ReadAllText(Path.Combine(folder, "project.json"));
-            Assert.Contains("\"formatVersion\": 3", json);
+            Assert.Contains("\"formatVersion\": 4", json);
             Assert.DoesNotContain("removed.png", json);
 
             var reopened = await f.Projects.OpenAsync(folder);

@@ -23,6 +23,8 @@ public sealed class EditPlan
     private readonly Dictionary<Transition, TransitionState> _transitionUpdates = new();
     private readonly List<(Track Track, Transition Transition)> _transitionAdds = new();
     private readonly HashSet<Transition> _transitionRemoves = new();
+    private readonly Dictionary<MediaBackedClip, ClipLinkState> _links = new();
+    private readonly List<MediaBackedClip> _clearedLinks = new();
 
     public EditPlan(Sequence sequence, ProjectSettings settings)
     {
@@ -46,10 +48,13 @@ public sealed class EditPlan
     public IEnumerable<Track> AllTracks => _sequence.VideoTracks.Concat(_sequence.AudioTracks);
 
     public bool IsEmpty => NewFrameRate is null && _updates.Count == 0 && _inserts.Count == 0 && _removes.Count == 0 && _properties.Count == 0
-        && _transitionUpdates.Count == 0 && _transitionAdds.Count == 0 && _transitionRemoves.Count == 0;
+        && _transitionUpdates.Count == 0 && _transitionAdds.Count == 0 && _transitionRemoves.Count == 0 && _links.Count == 0;
 
     /// <summary>Dissolves <see cref="ReconcileTransitions"/> removed because their cut no longer exists.</summary>
     public int AutoRemovedTransitions { get; private set; }
+
+    /// <summary>Of those, the crossfades (audio tracks, D032 R9): the note names them as such.</summary>
+    public int AutoRemovedCrossfades { get; private set; }
 
     /// <summary>True when the plan changes a transition.</summary>
     public bool ChangesTransitions => _transitionUpdates.Count > 0 || _transitionAdds.Count > 0 || _transitionRemoves.Count > 0;
@@ -67,6 +72,15 @@ public sealed class EditPlan
     public void Insert(Track track, Clip clip) => _inserts.Add((track, clip));
 
     public void Remove(Clip clip) => _removes[clip] = _currentTrack[clip];
+
+    /// <summary>The planned clip changes (move, trim, re-grid, …): each existing clip, its track and its timing after.</summary>
+    public IEnumerable<(Clip Clip, Track To, ClipState After)> Updates => _updates.Select(u => (u.Key, u.Value.To, u.Value.After));
+
+    /// <summary>True when the plan changes or removes the existing <paramref name="clip"/>.</summary>
+    public bool Changes(Clip clip) => _updates.ContainsKey(clip) || _removes.ContainsKey(clip);
+
+    /// <summary>True when the plan removes the existing <paramref name="clip"/>.</summary>
+    public bool Removes(Clip clip) => _removes.ContainsKey(clip);
 
     /// <summary>Sets non-timing properties of an existing clip as part of the edit (e.g. the fade a split takes off
     /// the left part, D025); only the groups given in <paramref name="after"/> change. Timing validation ignores them.</summary>
@@ -132,6 +146,59 @@ public sealed class EditPlan
         return commands;
     }
 
+    // --- Links (D032 R5) ---------------------------------------------------------------------------------------------
+
+    /// <summary>Sets an existing clip's link state as part of the edit (Link, Unlink, Unlink Audio).</summary>
+    public void SetLink(MediaBackedClip clip, ClipLinkState after) => _links[clip] = after;
+
+    /// <summary>The link state the plan leaves on <paramref name="clip"/> (an inserted clip: its own).</summary>
+    public ClipLinkState LinkStateOf(MediaBackedClip clip) =>
+        _links.TryGetValue(clip, out var after) ? after : ClipLinkState.Capture(clip);
+
+    /// <summary>Existing clips whose link <see cref="ReconcileLinks"/> cleared because their partner is gone.</summary>
+    public IReadOnlyList<MediaBackedClip> ClearedLinks => _clearedLinks;
+
+    /// <summary>Every clip the plan would leave on any track (a new track of an insert included), with its planned link.</summary>
+    public IEnumerable<(Clip Clip, Guid? LinkId)> EffectiveLinks() =>
+        AllTracks.Concat(_inserts.Select(i => i.Track)).Distinct()
+            .SelectMany(EffectiveClips)
+            .Select(c => (c.Clip, c.Clip is MediaBackedClip m ? LinkStateOf(m).LinkId : null));
+
+    /// <summary>
+    /// No half link is ever kept (D032 R5): a link whose other clip the plan removes (or that is left alone for any other
+    /// reason) is cleared in the same step — on an existing clip by a planned link change (<see cref="ClearedLinks"/>,
+    /// which the service refuses on a locked track, AQ12), on an inserted clip directly.
+    /// </summary>
+    public void ReconcileLinks()
+    {
+        var members = EffectiveLinks().Where(c => c.LinkId is not null).GroupBy(c => c.LinkId!.Value);
+        foreach (var group in members)
+        {
+            if (group.Count() != 1) continue;
+            var clip = (MediaBackedClip)group.Single().Clip;
+            if (_inserts.Any(i => i.Clip == clip))
+            {
+                clip.LinkId = null;
+                continue;
+            }
+            _links[clip] = LinkStateOf(clip) with { LinkId = null };
+            _clearedLinks.Add(clip);
+        }
+    }
+
+    /// <summary>The commands for the link changes alone.</summary>
+    public List<IUndoableCommand> BuildLinkCommands(string description)
+    {
+        var commands = new List<IUndoableCommand>();
+        foreach (var (clip, after) in _links)
+        {
+            if (_removes.ContainsKey(clip)) continue;
+            var before = ClipLinkState.Capture(clip);
+            if (before != after) commands.Add(new SetClipLinkCommand(clip, before, after, description));
+        }
+        return commands;
+    }
+
     // --- Transitions (D025) ------------------------------------------------------------------------------------------
 
     public void AddTransition(Track track, Transition transition) => _transitionAdds.Add((track, transition));
@@ -189,6 +256,7 @@ public sealed class EditPlan
             {
                 _transitionRemoves.Add(transition);
                 AutoRemovedTransitions++;
+                if (state.Track.Type == TrackType.Audio) AutoRemovedCrossfades++;
             }
             else if (left.Track != state.Track)
             {
@@ -289,6 +357,7 @@ public sealed class EditPlan
 
         commands.AddRange(BuildPropertyCommands());
         commands.AddRange(BuildTransitionCommands());
+        commands.AddRange(BuildLinkCommands(description));
 
         if (commands.Count == 0)
             throw new InvalidOperationException("Cannot build a command from an empty plan.");

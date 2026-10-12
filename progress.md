@@ -2,16 +2,147 @@
 
 ## Current phase
 
-Phase 16 — Source viewer & three-point editing: branch `feat/phase-16-source-viewer` (from `1bdeb95`, `main` after the
-merge of PR #16). Scope approved by the product owner on 2026-10-08 (DECISIONS.md D031, variant A of the Phase 16
-pre-flight): a Source mode of the Preview panel that plays one video or audio asset, a source In / Out as unsaved session
-state, Insert (`,`) and Overwrite (`.`) of the source range at the timeline playhead on the target track, the A ↔ D
-boundary (no unlink, J / L cuts or audio crossfades). `project.json` stays v3 with no new property. The product owner
-approved the plan and SQ1–SQ16 and asked for the whole phase without a stop between its steps (no push, pull request or
-merge without a separate command). Steps and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 16 — Source viewer & three-point
-editing: steps"; manual plan `docs/PHASE16_MANUAL_TEST_PLAN.md`.
+Phase 17 — Audio editing: branch `feat/phase-17-audio-editing` (from `79e4e78`, `main` after the merge of PR #17); **complete**
+(closeout Step 17.9, 2026-10-12), not yet merged. Scope
+approved by the product owner on 2026-10-08 (DECISIONS.md D032, variant A of the Phase 17 pre-flight, L1–L7): Unlink
+Audio, Link / Unlink, J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio
+tracks (1 s by default, linear, limited by the handles), linked clips edited as one (the ripple keeping their offset, a
+locked partner refusing the whole edit), Preview ↔ export parity, `project.json` v4 (v3 opens unchanged in meaning, saved
+as v4; no v4 → v3). The base model stays D008's `VideoClip` with its own sound. No separate stabilization phase; only the
+local refactoring Phase 17 needs. No push, pull request or merge without a separate command. Steps and acceptance:
+`docs/DEVELOPMENT_PLAN.md` "Phase 17 — Audio editing: steps"; manual plan `docs/PHASE17_MANUAL_TEST_PLAN.md`.
 
-### Phase 16 — Source viewer & three-point editing (complete; closeout Step 16.7, not yet merged)
+### Phase 17 — Audio editing (complete; closeout Step 17.9, not yet merged)
+
+Steps (D032): 17.1 pre-flight · 17.2 sync after the merge, audit & scope formalization · 17.3 model & format v4 · 17.4
+Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fades · 17.7 sound-only Insert / Overwrite ·
+17.8 UI · 17.9 closeout.
+
+- Step 17.1 done (2026-10-08) — pre-flight on `main` = `79e4e78` (PR #17 merged; tree = `f5a1ec2`), no change in the
+  repository apart from the local `main` (fast-forward `1bdeb95` → `79e4e78`). CI green: PR #17 run 37776542826, `main`
+  after it 37778354822. Baseline: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; `dotnet test`
+  2894 passed, 2 skipped (the two 4K scenes), 0 failed (Core 526, Timeline 697, Project 426, UI 646, Export 101,
+  Rendering 58, Video 322, ExportEndToEnd 118 + 2). An independent phase-reviewer pre-flight: the merge sound, the
+  documents stale on the merge (fixed in 17.2), variants A–F mapped to the code; the product owner chose A with L1–L7.
+- Step 17.2 done (2026-10-08) — documentation only. The pre-implementation audit of the audio / `VideoClip` / `EditPlan`
+  model found **no contradiction** with the approved model (D032 "Context"): the playback and export layers already play
+  an `AudioClip` of a video asset (`PlaybackSnapshotBuilder.AudioStatus`) and share `AudioPlacement` / `AudioFadeEnvelope`
+  / `AudioMix`; what blocks it is the serializer's kind rule and `CreateClip`; transitions are refused on audio tracks only
+  by `TransitionRules` and `DissolveHandles` gives audio clips unlimited handles; fades and split / trim of audio clips
+  already exist; links fit `EditPlan` like transitions (planned, reconciled, validated). The ROADMAP items "In / Out update
+  order" and "deep-seek decoding" are not defined anywhere and nothing in Phase 17 depends on them — not tasks. Written:
+  the Phase 16 merge (ROADMAP, README, docs/README, DEVELOPMENT_PLAN, D031 "After the merge", this file), D032 (L1–L7,
+  R1–R13, the open questions AQ1–AQ10 with proposals), the D008 refinement pointer, the Phase 17 steps, the manual plan's
+  skeleton. Independent phase review of `4c86b39`: PASS WITH NOTES — the audit claims verified against the code, no
+  architectural contradiction; its notes taken in (R3: byte for byte only where no other sound overlaps — the float mix
+  order — and AQ11 for a fade on a dissolve edge; R5: `DeleteTrack` builds no `EditPlan` and must clear links itself;
+  AQ12 a locked partner of a removed clip; AQ13 Insert / Overwrite splitting a linked clip; the reader / preflight places
+  of the crossfade named in 17.6). The product owner then accepted AQ1–AQ13 as proposed and the smaller R3 / R5 / R11 / §6
+  choices (AQ11: the effective fade — Unlink never changes the sound) and asked for the whole phase without a stop between
+  steps.
+- Step 17.3 done — model and `project.json` v4 (D032 R1, R2): `MediaBackedClip.LinkId`, `VideoClip.IsAudioDetached`,
+  `LinkRules` (Core; in `TimelineValidator.ValidateSequence` and on load), `TransitionRules.Crossfade` / `TypeFor` (the
+  type per track kind), `DissolveHandles` for `AudioClip`; `ProjectSerializer` v4 (`linkId` / `isAudioDetached` written
+  only when set, an audio clip of a video file and a crossfade only from v4, links validated); the snapshot gives a
+  detached video clip no sound. Tests: `Project.Tests/AudioEditingPersistenceTests` (a v3 file saved as v4 differing only
+  in `formatVersion`; v4 round trip byte for byte; damaged links / kinds / transitions; v5 refused), `Core.Tests/LinkRulesTests`,
+  `TransitionRulesTests` (the D025 audio-track test replaced by the per-kind rule, D032 §5), `PlaybackSnapshotBuilderTests`
+  (unlinked sound), `Timeline.Tests/AudioModelTests` (handles, the validator). The tests pinning `formatVersion` 3 on save
+  changed to 4 (D032 §5: Project 7, Timeline 6, UI 1 — only the number and the test names). Four serializer mutations
+  caught (v3 link read, v3 audio-of-video kind, load link check, v3 detached read). `-warnaserror` 0 / 0; the full suite
+  2927 passed, 2 skipped, 0 failed.
+- Step 17.4 done — Unlink Audio, Link, Unlink (D032 R3, R4, R5, R11, AQ8, AQ9, AQ11, AQ12): `ITimelineEditService.UnlinkAudio`
+  / `GetUnlinkAudioBlockReason` / `LinkClips` / `UnlinkClips` in `TimelineEditService.Links.cs` (a `partial` file);
+  `EditPlan.SetLink` / `ReconcileLinks` / `EffectiveLinks` and `SetClipLinkCommand`; the service's `Validate` reconciles
+  and checks links; Remove Media and Delete Track clear a partner's link in the same step, refused on a locked track;
+  `AddTrack`'s naming shared as `NewTrack`. Tests: `Timeline.Tests/LinkEditTests` (10: the audio clip, Undo / Redo, speed,
+  mute, effective fades, the target track and the new track in one step, every refusal, Link / Unlink, a locked partner,
+  track delete, media removal), `MediaRelinkServiceTests` (R11: the "no sound" warning for an unlinked sound),
+  `ExportEndToEnd.Tests/ExportUnlinkAudioEndToEndTests` (4: the export before and after Unlink Audio identical — every
+  canvas and every mixed sample — at 1×, at 1.5×, with a dissolve and fades on its edges, on a muted track; a new media
+  generator `PatternWithTone`). Mutations caught: the snapshot ignoring the unlinked sound (3 tests), stored instead of
+  effective fades, the muted-track copy. `--no-incremental -warnaserror` 0 / 0; the full suite 2942 passed, 2 skipped,
+  0 failed.
+- Step 17.5 done — linked editing (D032 R5, R6, L5, AQ1–AQ7, AQ13; D032 "Refined in Step 17.5"): `TimelineEditService.Linked.cs`
+  (`FollowingPartner`, `PlanPartnerShifts` in `Validate`, `LinkSplitParts`, `WithPartnersCovering`, `RoomAfter`) and the
+  partner in the existing planners — Move (target track by kind), Trim (clamped as one; `alone` for Alt + edge),
+  Q / W, ripple trim (`PlanRippleTrim` split into `RippleTrimmedState` + `PlanRippleTrimAlone`, local refactoring), Split,
+  Speed, Slip, Delete, Ripple Delete, Insert / Overwrite (`PlanInsert` / `PlanOverwrite` collect their splits), Copy /
+  Paste; `EditPlan.Updates` / `Changes` / `Removes`. Tests: `Timeline.Tests/LinkedEditTests` (46: each linked edit compared
+  tick for tick with the same edit made to both clips unlinked, Undo / Redo exact as one step; the ripple partners and the
+  untouched clips of their tracks; J / L cuts; the clamp; 14 edit kinds refused by a locked partner; Alt + edge with a locked
+  partner; an unlinked pair as before). Twelve mutations of the partner rules caught (one — the ripple partner's room — after
+  a test was added for it). `--no-incremental -warnaserror` 0 / 0; the full suite 2988 passed, 2 skipped, 0 failed.
+- Step 17.6 done — audio crossfade and fades (D032 R8, R9, R10; D032 "Refined in Step 17.6"): the transition edits on audio
+  cuts (type by track kind, messages and undo names by kind, a separate crossfade removal note); `AudioSpan.CrossfadeIn` /
+  `CrossfadeOut` / `PlayStart` / `PlayEnd` and `CrossfadeZone`; `AudioPlacement` over the played range with the clip's own
+  source offset; `AudioFadeEnvelope` with the crossfade ramps; `AudioPipeline` window and reader key by the played range.
+  Tests: `Export.Tests/ExportAudioContractTests` (6 new: the export equals the Preview's mix sample for sample for crossfades
+  of 2, 9, 30 frames; two constants follow the linear ramps exactly and sum to one; the extension is the clip's own source
+  mapping on both sides; playback started inside the zone — also with a look-ahead shorter than the extension — equals the
+  export; a video dissolve's sound still a hard cut), `Timeline.Tests/CrossfadeEditTests` (6: add / undo, limits and
+  messages, D025 §5 reconciliation, the far-edge clamp, the suppressed fades and the spans' zones, an audio clip of a video
+  file), `ExportEndToEnd.Tests/ExportCrossfadeEndToEndTests` (2, real decoder: the crossfade equals the two extended sounds
+  exported alone, weighted by the ramps, sample for sample; the picture unchanged). Six mutations caught (the placement, the
+  out ramp, the builder's zone, both look-ahead bounds — the start bound after the short look-ahead test was added).
+  `--no-incremental -warnaserror` 0 / 0; the full suite 3003 passed, 2 skipped, 0 failed.
+- Step 17.7 done — sound-only Insert / Overwrite (D032 R7, AQ10; D032 "Refined in Step 17.7"): `soundOnly` on
+  `InsertClip` / `OverwriteClip` (interface, service, both stubs); `SourceViewerService.SoundOnly` / `CanSoundOnly` /
+  `PlacesSoundOnly`; the source bar's "Sound only" toggle (`PreviewViewModel.CanSourceSoundOnly` / `IsSourceSoundOnly`);
+  `TimelineViewModel.PlaceSource` targets an audio track. Tests: `Timeline.Tests/SoundOnlyInsertTests` (9: Insert /
+  Overwrite of the sound give A1 exactly the shape the whole file gives V1, Undo; refusals; the target; AQ4 partners; the
+  rate lock), `UI.Tests/SourceViewerTests` (the toggle, the target, the status, the toggle without sound),
+  `ExportEndToEnd.Tests/ExportInsertOverwriteEndToEndTests` (a sound-only insert exports byte for byte like the whole file
+  inserted, unlinked and its picture deleted). Mutations caught (the service flag, the UI flag). `--no-incremental
+  -warnaserror` 0 / 0; the full suite 3014 passed, 2 skipped, 0 failed.
+- Step 17.8 done — UI (D032 R12, R9, AQ1, AQ3, AQ9; D032 "Refined in Step 17.8"): `TimelineViewModel.Links.cs` (Unlink /
+  Unlink Audio, Link, `UnlinkLabel`), the linked selection (`SelectionGroup`, `PartnerViewModel`,
+  `SelectionWithoutPrimaryPartner`), `DissolvePair`, Alt + edge (`IsTrimAlone`, `Gesture.Alone`, the partner's preview),
+  `TimelineClipViewModel.IsLinked` / `Label`, no waveform for a detached video clip, the Inspector's audio group and
+  `TransitionHeader` / `RemoveTransitionLabel`, the two toolbar buttons and the source bar's toggle. Tests:
+  `UI.Tests/TimelineLinkUiTests` (6). Five mutations caught (the selection group, Alt + edge, the Inspector's detached
+  check, the Dissolve pair, Close Gap's count). `--no-incremental -warnaserror` 0 / 0; the full suite 3020 passed, 2
+  skipped, 0 failed. The real-app check of the new controls at 1024 / 1440 px is part of the closeout run.
+- Step 17.9 (closeout, 2026-10-12):
+  - The real-app run (`docs/PHASE17_MANUAL_TEST_PLAN.md`, Debug build, isolated profile, UI Automation, at 1440 and 1024 px)
+    — Unlink Audio, Link, the trim of a linked pair, Alt + edge (an L cut), the move of a pair, Split of a pair, a crossfade
+    by Dissolve on an audio cut (the Inspector's CROSSFADE), Sound only from Source, a locked partner refusing a move, Copy
+    / Paste of a pair, Sound only hidden for a silent video, checked by the saved `project.json` — found one defect: at
+    1024 px the two new toolbar buttons pushed −, + and Fit past the window's edge; fixed (the timeline tools wrap: a
+    `WrapPanel`, D032 "Refined in Step 17.9"), re-checked at 1024 and 1440 px. Regression against the Phase 16 build
+    (`79e4e78` from `git archive`): R1 a Phase 16 save opened and saved by Phase 17 differs only in `formatVersion` (3 → 4);
+    R2 the default export byte for byte (216 586 bytes, the same SHA-256); R4 no ffmpeg — the v4 project opens, the reason
+    shown; R5 the Phase 16 build refuses the v4 file ("saved by a newer version"). R10 (a real audio device) NOT RUN — for
+    the product owner.
+  - Gates: a first run while the real-app session was driving ffmpeg had 3 Video.Tests failures in its third
+    `--blame-hang` run (Video.Tests alone then 322 / 0 / 0) — contention, not a product defect; every gate was run again
+    with the machine idle after the toolbar fix: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite 3020 passed, 2 skipped (the 4K scenes), 0 failed; three `--blame-hang-timeout 5m` runs 3020 / 2 / 0 each, no hang, no dump; with `AIVE_HEAVY_TESTS=1` 3022 / 0 / 0; `git diff --check 79e4e78` clean.
+  - Documentation: ARCHITECTURE (the links paragraph, the Audio sentence, the format line, the Project row), D032
+    refinements, final state and status, ROADMAP, README, this plan.
+  - Independent phase review of `f52180f`: FAIL on one missing test — the AQ12 refusal of an Overwrite that removes a
+    linked clip whose partner is locked (the `Validate` cleared-link check) had no test that a mutation would fail. Fixed:
+    `LinkedEditTests.An_overwrite_removing_a_linked_clip_is_refused_when_its_partner_is_locked` (picture and sound-only;
+    the check's mutation caught by both). Its note on Shift + Alt + edge fixed too: Alt now changes only a linked clip's
+    edge, so Shift + Alt on an unlinked clip ripples as before (`TimelineLinkUiTests`, mutation caught). Its question —
+    Ripple Delete of an offset pair closing each track by its own lengths (AQ2 vs AQ4) — left for the product owner.
+    Gates again after the fixes, the machine idle: build --no-incremental -warnaserror Release and Debug 0 / 0; the full suite 3023 passed, 2 skipped, 0 failed; three --blame-hang-timeout 5m runs 3023 / 2 / 0 each; AIVE_HEAVY_TESTS=1 3025 / 0 / 0.
+  - Re-review of `b29fade`: PASS WITH NOTES — no blocking issue; open for the product owner: the Ripple Delete question
+    above and R10 (a real audio device).
+- After the closeout (2026-10-12): the product owner accepted Phase 17 on the checks and asked, before publishing, for
+  Ripple Delete of a linked pair to close **both tracks by the same frames — the target clip's length** (D032 "Changed
+  by the product owner"); R10 stays an open manual check that does not block the pull request. Done in
+  `RippleDeleteClips` (each removed clip's close-up: its own length, a linked pair's both the target's — the one named
+  last); the existing ripple tests unchanged and green. Tests: `LinkedEditTests` (5: the video or the sound as the
+  target of a J-cut pair with a later J-cut pair keeping its offset, Undo / Redo exact as one step, the target when both
+  are named, the locked track and the overlap refusals, unlinked clips by their own lengths), `TimelineLinkUiTests` (the
+  clicked clip is the target, Undo). Mutations caught (per-track lengths: 4 tests; the first named instead of the last:
+  1). Gates: build --no-incremental -warnaserror Release and Debug 0 / 0; the full suite 3029 passed, 2 skipped, 0 failed; --blame-hang-timeout 5m: runs 1 and 2 3029 / 2 / 0, run 3 aborted — the Video.Tests and ExportEndToEnd.Tests hosts stopped at the same instant in ffmpeg integration tests (their Sequence files, no failure, no hang dump; cause not determined), then three further full `--blame-hang-timeout 5m` runs 3029 / 2 / 0 each, no abort; AIVE_HEAVY_TESTS=1 3031 / 0 / 0; git diff --check clean.
+  The audit of this change (`ba95614`, `3a4c488`): PASS WITH NOTES; its notes taken in — a test of two linked pairs in one
+  Ripple Delete (each closes by its own target; the per-track-lengths mutation caught), the pointer in D032's (7), the
+  wording above, the aborted run under Known issues. After that test-only addition: `--no-incremental -warnaserror`
+  0 / 0, the full suite 3030 passed, 2 skipped, 0 failed.
+
+### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 
 Steps (D031): 16.1 pre-flight · 16.2 sync after the merge & scope formalization · 16.3 insert / overwrite core · 16.4 the
 source playback · 16.5 the source viewer UI · 16.6 insert / overwrite from the UI · 16.7 closeout.
@@ -3918,10 +4049,10 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-08: Phases 0–15 are complete and merged into `main` (PR #15 → `a3793a4`); the Preview fix of the playhead parked
-past the end merged as PR #16 (`1bdeb95`, 2856 passed, 2 skipped). Phase 16 (source viewer & three-point editing, D031)
-complete on `feat/phase-16-source-viewer` (closeout Step 16.7); push and pull request on the product owner's command. Open items: see "Known issues" (the real-device audio status check; the
-watched `Project.Tests` hang; no timeline virtualization, import not undoable).
+2026-10-12: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`). Phase 17 (audio editing, D032) complete
+on `feat/phase-17-audio-editing` (closeout Step 17.9 and the Ripple Delete change; 3030 passed, 2 skipped); push and pull request on the product owner's
+command. Open items: see "Known issues" (the real-device audio status check — now R10 of
+the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -3964,8 +4095,14 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 14 (accepted; PR #14 merged as `7200976` on 2026-10-07, CI green on the first attempt)
 - Phase 15 (accepted; PR #15 merged as `a3793a4` on 2026-10-08, CI green on the first attempt; the follow-up Preview fix
   PR #16 merged as `1bdeb95`)
+- Phase 16 (accepted; PR #17 merged as `79e4e78` on 2026-10-08, CI green on the pull request and on `main`)
 
 ## Known issues
+
+- Test-host abort (watched, 2026-10-12): in one `--blame-hang` run of the Phase 17 gates the Video.Tests and
+  ExportEndToEnd.Tests hosts stopped at the same instant inside ffmpeg integration tests (their blame `Sequence` files; no
+  failed test, no hang dump; cause not determined); the next three full `--blame-hang` runs were clean. If it recurs,
+  capture the full `dotnet test` output (the abort line) and the hosts' exit codes.
 
 - Export codec leg (D023 Step 8, decision L1-c): decided in Phase 13 Step 13.8 — D028 "Refined in Step 13.8"
   (`ExportCodecLegTests`). Closed.
@@ -4024,7 +4161,7 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   "Playing without sound…" (D024 "Left as they are", Step 9.10; deferred by D029 §3). Fixed in Phase 15 Step 15.7 (D030 §9,
   Q15): the message goes when sound is available again while playing, and a later loss is reported again (automated;
   the real-device check NOT RUN at the Phase 15 closeout — it needs a physical audio-output interruption; for the product
-  owner).
+  owner; included in the Phase 17 manual plan as R10, D032 L7).
 - Text clips: a new text clip took `FontSize` 48 on any canvas (an observation from Phase 13; D029 §3). Fixed in Phase 15
   Step 15.8: `48 × canvasHeight / 1080` (D030 §9).
 - Preview (observed at Phase 15 Step 15.8, not changed): after adding a clip with the playhead beyond the sequence's

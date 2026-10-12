@@ -50,6 +50,9 @@
                                  InFrame="{Binding SourceInFrame}" OutFrame="{Binding SourceOutFrame}"/>
         <DockPanel>
           <StackPanel Orientation="Horizontal" Spacing="4" DockPanel.Dock="Right">
+            <ToggleButton Content="Sound only" FontSize="11" Padding="6,2" IsVisible="{Binding CanSourceSoundOnly}"
+                          IsChecked="{Binding IsSourceSoundOnly, Mode=TwoWay}"
+                          ToolTip.Tip="Insert / Overwrite only the sound of this video, as an audio clip on the target audio track"/>
             <Button Content="Insert" FontSize="11" Padding="6,2" Command="{Binding InsertCommand}"
                     ToolTip.Tip="Insert the source range at the playhead on the target track (,)"/>
             <Button Content="Overwrite" FontSize="11" Padding="6,2" Command="{Binding OverwriteCommand}"

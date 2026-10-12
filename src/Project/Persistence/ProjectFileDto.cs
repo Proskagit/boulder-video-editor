@@ -162,6 +162,11 @@ internal abstract class MediaBackedClipDto : ClipDto
     /// <summary>Format v2: the exact speed as a reduced fraction (D022).</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public SpeedDto? SpeedRatio { get; set; }
+
+    /// <summary>Format v4 (D032 R2): the link of a video and an audio clip; written only when set. Ignored in older
+    /// files, which have none.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? LinkId { get; set; }
 }
 
 internal sealed class SpeedDto
@@ -184,6 +189,10 @@ internal sealed class VideoClipDto : MediaBackedClipDto
     public bool IsMuted { get; set; }
 
     public CropDto? Crop { get; set; }
+
+    /// <summary>Format v4 (D032 R2): the clip's sound was unlinked into an audio clip; written only when true.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsAudioDetached { get; set; }
 }
 
 internal sealed class AudioClipDto : MediaBackedClipDto

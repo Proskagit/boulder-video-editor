@@ -199,8 +199,8 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId) => null;
         public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => No;
         public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => null;
-        public TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime) => No;
-        public (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime) => null;
+        public TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false) => No;
+        public (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false) => null;
         public TimelineEditResult Split(MediaTime at, IReadOnlyCollection<Guid>? clipIds = null) => No;
         public TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds) => No;
         public TimelineEditResult RippleDeleteClips(IReadOnlyCollection<Guid> clipIds) => No;
@@ -221,9 +221,13 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult RippleTrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime) => No;
         public TimelineEditResult SlipClip(Guid clipId, long frames) => No;
         public SlipPreview? PreviewSlip(Guid clipId, long frames) => null;
-        public TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) => No;
-        public TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) => No;
+        public TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null, bool soundOnly = false) => No;
+        public TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null, bool soundOnly = false) => No;
         public SourceGrid? GetSourceGrid(MediaAsset asset, out string? reason) { reason = null; return null; }
+        public TimelineEditResult UnlinkAudio(Guid videoClipId) => No;
+        public string? GetUnlinkAudioBlockReason(Guid clipId) => null;
+        public TimelineEditResult LinkClips(IReadOnlyCollection<Guid> clipIds) => No;
+        public TimelineEditResult UnlinkClips(IReadOnlyCollection<Guid> clipIds) => No;
         public RippleTrimPreview? PreviewRippleTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime) => null;
         public TimelineEditResult SetTrackMuted(Guid trackId, bool muted) => No;
         public TimelineEditResult SetTrackHidden(Guid trackId, bool hidden) => No;

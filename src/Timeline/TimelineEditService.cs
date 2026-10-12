@@ -209,6 +209,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
         {
             target = FindTrack(tid);
             if (target is null) return (null, clips, "That track no longer exists.");
+            // AQ7: only the clips of the target's kind change track; a linked clip's partner of the other kind (selected
+            // with it, AQ1) moves in time on its own track — taken along by the move rule (PlanPartnerShifts).
+            var others = clips.Where(c => !TimelineValidator.IsCompatible(c, target.Type)).ToList();
+            if (others.Count > 0 && others.Count < clips.Count && others.All(o => clips.Contains(PartnerOf(plan, o)!)))
+                clips = clips.Except(others).ToList();
             if (clips.Select(plan.TrackOf).Distinct().Count() != 1)
                 return (null, clips, "Clips from several tracks can only be moved in time, not to another track.");
             if (target.IsLocked) return (null, clips, $"Track {target.Name} is locked.");
@@ -288,7 +293,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, clipIds, out var clips) is not null) return null;
         var entries = clips.OrderBy(c => c.TimelineStart)
-            .Select(c => new TimelineClipboardEntry(CloneClip(c), plan.TrackOf(c).Id))
+            .Select(c => new TimelineClipboardEntry(CopyWithLink(c), plan.TrackOf(c).Id))
             .ToList();
         return new TimelineClipboard(plan.Rate, CurrentCanvas, entries);
     }
@@ -324,6 +329,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
             return TimelineEditResult.Fail("The project frame size changed since the clips were copied. Copy them again.");
 
         var earliest = clipboard.Entries.Min(e => e.Clip.TimelineStart.ToNearestFrame(rate));
+        // D032 R5: both clips of a link copied → the copies form a new link; one alone is pasted unlinked.
+        var newLinks = clipboard.Entries.Select(e => (e.Clip as MediaBackedClip)?.LinkId).OfType<Guid>()
+            .GroupBy(l => l).Where(g => g.Count() == 2).ToDictionary(g => g.Key, _ => Guid.NewGuid());
         var ids = new List<Guid>();
         foreach (var entry in clipboard.Entries)
         {
@@ -335,6 +343,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 return TimelineEditResult.Fail($"Can't {verb}: the media of a copied clip is no longer in the project.");
 
             var copy = CloneClip(entry.Clip);                      // a new id; the same asset, never the file
+            if (copy is MediaBackedClip linked && entry.Clip is MediaBackedClip { LinkId: { } link } && newLinks.TryGetValue(link, out var newLink))
+                linked.LinkId = newLink;
             var (state, error) = ShiftedState(copy, atFrame - earliest, rate);
             if (error is not null) return TimelineEditResult.Fail($"Can't {verb}: {error}");
             state.ApplyTo(copy);
@@ -351,9 +361,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     // --- Trim ------------------------------------------------------------------
 
-    public TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime)
+    public TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false)
     {
-        var (plan, _, error) = PlanTrim(clipId, edge, edgeTime);
+        var (plan, _, error) = PlanTrim(clipId, edge, edgeTime, alone);
         if (error is not null) return TimelineEditResult.Fail(error);
         if (plan is null) return TimelineEditResult.Unchanged();
 
@@ -361,15 +371,15 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return TimelineEditResult.Ok(new[] { clipId }, TransitionNote(plan));
     }
 
-    public (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime)
+    public (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false)
     {
-        var (_, after, error) = PlanTrim(clipId, edge, edgeTime);
+        var (_, after, error) = PlanTrim(clipId, edge, edgeTime, alone);
         return error is null && after is { } state ? (state.Start, state.End) : null;
     }
 
     /// <summary>Clamped trim result. Plan is null when nothing would change; After is
     /// the resulting timing either way (null on error).</summary>
-    private (EditPlan? Plan, ClipState? After, string? Error) PlanTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime)
+    private (EditPlan? Plan, ClipState? After, string? Error) PlanTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone)
     {
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return (null, null, resolveError);
@@ -384,9 +394,34 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var (partAtStart, partAtEnd) = DissolveParts(track, clip, rate);
         var minFrames = Math.Max(1, edge == ClipEdge.End ? partAtStart : partAtEnd);
 
+        var before = ClipState.Capture(clip);
         var after = TrimmedState(clip, track, edge, edgeTime.ToNearestFrame(rate), minFrames, rate);
 
-        if (after == ClipState.Capture(clip)) return (null, after, null);
+        // AQ3: the partner's same edge moves by the same frames, by the same rule; where one of them is limited, both take
+        // the smaller change. Alt + edge (alone) trims the clip by itself: a J / L cut (R6).
+        var (partner, partnerError) = FollowingPartner(plan, clip, alone);
+        if (partnerError is not null) return (null, null, partnerError);
+        ClipState? partnerAfter = null;
+        if (partner is not null)
+        {
+            var partnerTrack = plan.TrackOf(partner);
+            var partnerBefore = ClipState.Capture(partner);
+            var (partnerAtStart, partnerAtEnd) = DissolveParts(partnerTrack, partner, rate);
+            var partnerMin = Math.Max(1, edge == ClipEdge.End ? partnerAtStart : partnerAtEnd);
+            for (var round = 0; round < 3; round++)
+            {
+                var delta = EdgeFrame(after, edge, rate) - EdgeFrame(before, edge, rate);
+                partnerAfter = TrimmedState(partner, partnerTrack, edge, EdgeFrame(partnerBefore, edge, rate) + delta, partnerMin, rate);
+                var partnerDelta = EdgeFrame(partnerAfter.Value, edge, rate) - EdgeFrame(partnerBefore, edge, rate);
+                if (partnerDelta == delta) break;
+                after = TrimmedState(clip, track, edge, EdgeFrame(before, edge, rate) + partnerDelta, minFrames, rate);
+            }
+            if (EdgeFrame(partnerAfter!.Value, edge, rate) - EdgeFrame(partnerBefore, edge, rate) != EdgeFrame(after, edge, rate) - EdgeFrame(before, edge, rate))
+                return (null, null, $"Can't trim: {PartnerCantFollow}");
+            if (partnerAfter != partnerBefore) plan.Update(partner, partnerTrack, partnerAfter.Value);
+        }
+
+        if (after == before) return (null, after, null);
 
         plan.Update(clip, track, after);
         if (Validate(plan) is { } error)
@@ -518,6 +553,21 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var before = ClipState.Capture(clip);
         var after = ClipState.FromFrames(startFrame, startFrame + frames, clip.SourceIn, clip.SourceOut, speed, rate);
         plan.Update(clip, plan.TrackOf(clip), after);
+
+        // AQ6: the partner takes the same speed by the same rule (its own source range gives its frame count).
+        var (partner, partnerError) = FollowingPartner(plan, clip);
+        if (partnerError is not null) return TimelineEditResult.Fail(partnerError);
+        ClipChange? partnerChange = null;
+        if (partner is not null && partner.Speed != speed)
+        {
+            var partnerFrames = SpeedTiming.FramesFor(partner.SourceOut - partner.SourceIn, speed, rate);
+            if (partnerFrames < 1) return TimelineEditResult.Fail($"At {speed} the linked clip would be shorter than one frame.");
+            var partnerStart = partner.TimelineStart.ToNearestFrame(rate);
+            var partnerAfter = ClipState.FromFrames(partnerStart, partnerStart + partnerFrames, partner.SourceIn, partner.SourceOut, speed, rate);
+            var partnerTrack = plan.TrackOf(partner);
+            plan.Update(partner, partnerTrack, partnerAfter);
+            partnerChange = new ClipChange(partner, partnerTrack, ClipState.Capture(partner), partnerTrack, partnerAfter);
+        }
         if (Validate(plan) is { } error)
             return TimelineEditResult.Fail($"Can't change the speed: {error}");
 
@@ -526,6 +576,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         // speed, the fades and the dissolve together.
         var changes = plan.BuildPropertyCommands();
         changes.AddRange(plan.BuildTransitionCommands());
+        if (partnerChange is not null) changes.Insert(0, new UpdateClipsCommand("Change Speed", new[] { partnerChange }));
         var command = new SetClipSpeedCommand(clip, before, after, changes.Count > 0 ? changes : null);
         _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id }, TransitionNote(plan));
@@ -551,9 +602,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
             candidates = plan.AllTracks.Where(t => !t.IsLocked).SelectMany(t => t.Clips).ToList();
         }
 
-        var toSplit = candidates
-            .Where(c => c.TimelineStart.ToNearestFrame(rate) < atFrame && atFrame < c.TimelineEnd.ToNearestFrame(rate))
-            .ToList();
+        // AQ5: a linked clip's partner covering the point is split too — refused with the whole split when it is locked.
+        var toSplit = WithPartnersCovering(plan, candidates
+            .Where(c => c.TimelineStart.ToNearestFrame(rate) < atFrame && atFrame < c.TimelineEnd.ToNearestFrame(rate)), atFrame);
 
         if (toSplit.Count == 0)
             return TimelineEditResult.Fail(explicitSelection
@@ -563,13 +614,16 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (CheckEditable(plan, toSplit) is { } editError) return TimelineEditResult.Fail(editError);
 
         var ids = new List<Guid>();
+        var splits = new List<(Clip Left, Clip Right)>();
         foreach (var clip in toSplit)
         {
             if (!PlanSplitClip(plan, plan.TrackOf(clip), clip, ClipState.Capture(clip), atFrame, out var rightClip))
-                return TimelineEditResult.Fail("Can't split inside a dissolve.");
+                return TimelineEditResult.Fail($"Can't split inside a {TransitionNoun(plan.TrackOf(clip))}.");
             ids.Add(clip.Id);
             ids.Add(rightClip.Id);
+            splits.Add((clip, rightClip));
         }
+        LinkSplitParts(splits);
 
         if (Validate(plan) is { } error)
             return TimelineEditResult.Fail($"Can't split: {error}");
@@ -652,9 +706,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var at = playhead.ToNearestFrame(rate);
 
         // Q1: only selected clips with the playhead's frame strictly inside; the others are left as they are (as Split).
-        var eligible = selected
-            .Where(c => c.TimelineStart.ToNearestFrame(rate) < at && at < c.TimelineEnd.ToNearestFrame(rate))
-            .ToList();
+        var eligible = WithPartnersCovering(plan, selected
+            .Where(c => c.TimelineStart.ToNearestFrame(rate) < at && at < c.TimelineEnd.ToNearestFrame(rate)), at)
+            .OrderBy(c => c is VideoClip ? 0 : 1).ToList();   // AQ3: a linked pair's video clip leads a ripple
         if (eligible.Count == 0) return TimelineEditResult.Fail("The playhead is not inside the selected clip(s).");
         if (CheckEditable(plan, eligible) is { } editError) return TimelineEditResult.Fail(editError);
 
@@ -674,6 +728,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
             // dissolve stays and keeps its part; the far edge's dissolve always does (Q6).
             if (ripple)
             {
+                if (plan.Changes(clip)) continue;    // the partner a linked clip's ripple trim already took along (AQ3)
+
                 // The ripple trim's one planner, shared with the Shift + edge drag (D030 §5 / §6).
                 var (changed, wasStopped, rippleError) = PlanRippleTrim(plan, clip, track, edge, at);
                 if (rippleError is not null) return TimelineEditResult.Fail($"Can't trim: {rippleError}");
@@ -744,6 +800,58 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var change = edge == ClipEdge.End ? targetFrame - end : start - targetFrame;    // frames added (> 0) or removed (< 0)
         if (change == 0) return (false, false, null);
 
+        // AQ3 / AQ4: the partner's same edge changes by the same frames (its start stays, as the clip's does) — limited by
+        // the room after it, since its neighbours don't move; both take the smaller change.
+        var (partner, partnerError) = FollowingPartner(plan, clip);
+        if (partnerError is not null) return (false, false, partnerError);
+        if (partner is null) return PlanRippleTrimAlone(plan, clip, track, change, edge);
+
+        var partnerTrack = plan.TrackOf(partner);
+        var (_, partnerFrames, partnerStopped, partnerError2) =
+            RippleTrimmedState(plan, partner, partnerTrack, edge, change > 0 ? Math.Min(change, RoomAfter(partner, partnerTrack, plan.Rate)) : change);
+        if (partnerError2 is not null) return (false, partnerStopped, partnerError2);
+        if (partnerFrames == 0) return (false, true, null);
+        var result = PlanRippleTrimAlone(plan, clip, track, Math.Abs(partnerFrames) < Math.Abs(change) ? partnerFrames : change, edge);
+        if (result.Error is not null || !result.Changed) return result;
+
+        var frames = plan.Updates.Single(u => u.Clip == clip).After.End.ToNearestFrame(plan.Rate) - clip.TimelineEnd.ToNearestFrame(plan.Rate);
+        var (partnerAfter, followed, _, followError) = RippleTrimmedState(plan, partner, partnerTrack, edge, frames);
+        if (followError is not null) return (false, result.Stopped, followError);
+        if (followed != frames) return (false, result.Stopped, PartnerCantFollow);
+        plan.Update(partner, partnerTrack, partnerAfter!.Value);
+        return (true, result.Stopped || partnerStopped, null);
+    }
+
+    /// <summary><see cref="PlanRippleTrim"/> for one clip: <paramref name="change"/> frames added (&gt; 0) or removed at
+    /// <paramref name="edge"/>, the later clips of its track moved by the frames the clip's end moves.</summary>
+    private (bool Changed, bool Stopped, string? Error) PlanRippleTrimAlone(EditPlan plan, Clip clip, Track track, long change, ClipEdge edge)
+    {
+        var rate = plan.Rate;
+        var end = clip.TimelineEnd.ToNearestFrame(rate);
+        var (after, frames, stopped, error) = RippleTrimmedState(plan, clip, track, edge, change);
+        if (error is not null) return (false, stopped, error);
+        if (after is null) return (false, stopped, null);
+
+        plan.Update(clip, track, after.Value);
+        foreach (var later in track.Clips.Where(c => c != clip && c.TimelineStart.ToNearestFrame(rate) >= end))
+        {
+            if (PlanShift(plan, later, track, frames) is { } shiftError)
+                return (false, stopped, shiftError);
+        }
+        return (true, stopped, null);
+    }
+
+    /// <summary>The ripple trim's timing of <paramref name="clip"/> with <paramref name="change"/> frames added (&gt; 0) or
+    /// removed at <paramref name="edge"/>: its start stays, its end moves by <c>Frames</c> (after the dissolve and source
+    /// limits; <c>After</c> null when that is 0).</summary>
+    private (ClipState? After, long Frames, bool Stopped, string? Error) RippleTrimmedState(EditPlan plan, Clip clip, Track track,
+        ClipEdge edge, long change)
+    {
+        var rate = plan.Rate;
+        var start = clip.TimelineStart.ToNearestFrame(rate);
+        var end = clip.TimelineEnd.ToNearestFrame(rate);
+        if (change == 0) return (null, 0, false, null);
+
         long frames;
         bool stopped;
         if (change < 0)
@@ -775,7 +883,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             frames = Math.Min(change, room);
             stopped = frames != change;
         }
-        if (frames == 0) return (false, stopped, null);
+        if (frames == 0) return (null, 0, stopped, null);
 
         // The edge trim's own rule (source mapping, speed — D022) with no neighbour: they move. For the start, in the
         // clip's own frame of reference — moved right by the frames to add, trimmed back to its start, then moved so that
@@ -792,7 +900,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             if (added > 0)
             {
                 var (shifted, moveError) = ShiftedState(clip, moved, added, rate);
-                if (moveError is not null) return (false, stopped, moveError);
+                if (moveError is not null) return (null, 0, stopped, moveError);
                 moved = shifted;
             }
             after = TrimmedState(clip, moved, Array.Empty<Clip>(), edge, start + Math.Max(0, -frames), 1, rate);
@@ -800,20 +908,12 @@ public sealed partial class TimelineEditService : ITimelineEditService
             if (back != 0)
             {
                 var (shifted, backError) = ShiftedState(clip, after, back, rate);
-                if (backError is not null) return (false, stopped, backError);
+                if (backError is not null) return (null, 0, stopped, backError);
                 after = shifted;
             }
         }
         frames = after.End.ToNearestFrame(rate) - end;                                   // after the source clamp
-        if (frames == 0) return (false, stopped, null);
-
-        plan.Update(clip, track, after);
-        foreach (var later in track.Clips.Where(c => c != clip && c.TimelineStart.ToNearestFrame(rate) >= end))
-        {
-            if (PlanShift(plan, later, track, frames) is { } shiftError)
-                return (false, stopped, shiftError);
-        }
-        return (true, stopped, null);
+        return frames == 0 ? (null, 0, stopped, null) : (after, frames, stopped, null);
     }
 
     public TimelineEditResult RippleTrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime)
@@ -877,7 +977,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     /// <summary>The slip's plan (validated), the frames it applies and the note of a limit; Plan null when nothing
     /// changes.</summary>
-    private (EditPlan? Plan, long Applied, string? Note, string? Error) PlanSlipOf(Guid clipId, long frames)
+    private (EditPlan? Plan, long Applied, string? Note, string? Error) PlanSlipOf(Guid clipId, long frames, bool alone = false)
     {
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return (null, 0, null, resolveError);
@@ -937,6 +1037,24 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 : frames > 0 ? "The slip stopped at the end of the source."
                 : "The slip stopped at the start of the source.";
         }
+
+        // AQ7: the partner slips by the same timeline frames, by the same rule and limits; both take the smaller slip.
+        if (!alone && applied != 0)
+        {
+            var (partner, partnerError) = FollowingPartner(plan, clip);
+            if (partnerError is not null) return (null, 0, null, partnerError);
+            if (partner is not null)
+            {
+                var (_, partnerApplied, partnerNote, slipError) = PlanSlipOf(partner.Id, applied, alone: true);
+                if (slipError is not null) return (null, 0, null, slipError);
+                if (partnerApplied != applied)
+                {
+                    applied = partnerApplied;
+                    note = partnerNote;
+                }
+                if (applied != 0) plan.Update(partner, plan.TrackOf(partner), SlippedState(partner, applied, rate));
+            }
+        }
         if (applied == 0) return (null, 0, note, null);
 
         // Only the source mapping changes: the clip's timing, speed, fades and dissolves stay (D030 §7).
@@ -974,7 +1092,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (clipIds.Count == 0) return TimelineEditResult.Unchanged();
 
         var plan = new EditPlan(Sequence, Settings);
-        if (Resolve(plan, clipIds, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+        if (Resolve(plan, clipIds, out var selected) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+        var clips = WithPartners(plan, selected);   // AQ2: a linked clip goes with its partner
 
         if (clips.Select(plan.TrackOf).FirstOrDefault(t => t.IsLocked) is { } locked)
             return TimelineEditResult.Fail($"Track {locked.Name} is locked.");
@@ -988,18 +1107,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     public TimelineEditResult AddTrack(TrackType type)
     {
-        var list = type == TrackType.Video ? Sequence.VideoTracks : Sequence.AudioTracks;
-        var prefix = type == TrackType.Video ? "V" : "A";
-        var number = list.Count + 1;
-        while (list.Any(t => t.Name == $"{prefix}{number}")) number++;
-
-        var track = new Track
-        {
-            Type = type,
-            Name = $"{prefix}{number}",
-            Order = list.Count == 0 ? 0 : list.Max(t => t.Order) + 1
-        };
-
+        var track = NewTrack(type);
         _undoRedo.Execute(new NotifyingCommand(new AddTrackCommand(Sequence, track), _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok();
     }
@@ -1009,16 +1117,35 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (FindTrack(trackId) is not { } track) return "That track no longer exists.";
         if (track.IsLocked) return $"Track {track.Name} is locked.";
         if (Sequence.VideoTracks.Count + Sequence.AudioTracks.Count <= 1) return "The timeline needs at least one track.";
+        // D032 R5, AQ12: deleting the track clears the links of its clips' partners — never on a locked track.
+        if (LinkedPartners(track).FirstOrDefault(p => p.Track.IsLocked) is { Track: { } lockedTrack })
+            return $"Track {lockedTrack.Name} is locked.";
         return null;
     }
+
+    /// <summary>The clips on other tracks linked to a clip of <paramref name="track"/>, with their tracks.</summary>
+    private List<(Track Track, MediaBackedClip Clip)> LinkedPartners(Track track) =>
+        Sequence.VideoTracks.Concat(Sequence.AudioTracks).Where(t => t != track)
+            .SelectMany(t => t.Clips.OfType<MediaBackedClip>().Select(c => (Track: t, Clip: c)))
+            .Where(p => p.Clip.LinkId is { } link && track.Clips.OfType<MediaBackedClip>().Any(c => c.LinkId == link))
+            .ToList();
 
     public TimelineEditResult DeleteTrack(Guid trackId)
     {
         if (GetDeleteTrackBlockReason(trackId) is { } blocked) return TimelineEditResult.Fail(blocked);
         var track = FindTrack(trackId)!;
 
+        // D032 R5: the clips linked to the track's clips lose their link in the same step (a locked one refused above).
+        var partners = LinkedPartners(track);
+
         // The clips and dissolves stay on the track object, so Undo brings them back exactly (D027 §3).
-        _undoRedo.Execute(new NotifyingCommand(new RemoveTrackCommand(Sequence, track), _projectService.NotifyTimelineChanged));
+        IUndoableCommand command = new RemoveTrackCommand(Sequence, track);
+        if (partners.Count > 0)
+            command = new CompositeCommand(command.Description, partners
+                .Select(p => (IUndoableCommand)new SetClipLinkCommand(p.Clip, ClipLinkState.Capture(p.Clip),
+                    ClipLinkState.Capture(p.Clip) with { LinkId = null }, command.Description))
+                .Prepend(command));
+        _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok();
     }
 
@@ -1087,21 +1214,35 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (clipIds.Count == 0) return TimelineEditResult.Unchanged();
 
         var plan = new EditPlan(Sequence, Settings);
-        if (Resolve(plan, clipIds, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+        if (Resolve(plan, clipIds, out var selected) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+        var clips = WithPartners(plan, selected);   // AQ2: a linked clip goes with its partner
         if (CheckEditable(plan, clips) is { } editError) return TimelineEditResult.Fail(editError);
 
         var rate = plan.Rate;
         var removed = clips.ToHashSet();
+
+        // What each removed clip closes up: its own length — except a linked pair, whose two tracks both close by the
+        // length of its target clip (the one named last, the selection's primary; or the one named): so the later clips of
+        // both tracks move by the same frames and later linked pairs keep their offset, J / L cuts included (product
+        // owner, 2026-10-12, after the Phase 17 closeout; AQ4 / L5).
+        long Frames(Clip c) => c.TimelineEnd.ToNearestFrame(rate) - c.TimelineStart.ToNearestFrame(rate);
+        var closes = clips.ToDictionary(c => c, Frames);
+        foreach (var clip in selected)
+        {
+            if (PartnerOf(plan, clip) is { } partner && removed.Contains(partner))
+                closes[clip] = closes[partner] = Frames(clip);
+        }
+
         foreach (var group in clips.GroupBy(plan.TrackOf))
         {
-            // Per track: a clip that is not removed moves left by the length of the removed clips that end at or before
-            // its start. Clips on other tracks, the playhead and the markers stay; gaps that are not removed move along.
-            var spans = group.Select(c => (Start: c.TimelineStart.ToNearestFrame(rate), End: c.TimelineEnd.ToNearestFrame(rate))).ToList();
+            // Per track: a clip that is not removed moves left by what the removed clips that end at or before its start
+            // close up. Clips on other tracks, the playhead and the markers stay; gaps that are not removed move along.
+            var spans = group.Select(c => (End: c.TimelineEnd.ToNearestFrame(rate), Closes: closes[c])).ToList();
             foreach (var clip in group) plan.Remove(clip);
             foreach (var clip in group.Key.Clips.Where(c => !removed.Contains(c)))
             {
                 var start = clip.TimelineStart.ToNearestFrame(rate);
-                var shift = spans.Where(s => s.End <= start).Sum(s => s.End - s.Start);
+                var shift = spans.Where(s => s.End <= start).Sum(s => s.Closes);
                 if (shift > 0 && PlanShift(plan, clip, group.Key, -shift) is { } shiftError)
                     return TimelineEditResult.Fail($"Can't ripple delete: {shiftError}");
             }
@@ -1222,6 +1363,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var clips = plan.AllTracks.SelectMany(t => t.Clips).Where(c => Uses(c, mediaAssetId)).ToList();
         foreach (var clip in clips) plan.Remove(clip);
         plan.ReconcileTransitions();   // the removed clips' dissolves go with them (D025 §5)
+        plan.ReconcileLinks();         // and the links of their partners (D032 R5), never on a locked track (AQ12)
+        if (plan.ClearedLinks.FirstOrDefault(c => plan.TrackOf(c).IsLocked) is { } lockedPartner)
+            return TimelineEditResult.Fail($"Track {plan.TrackOf(lockedPartner).Name} is locked.");
 
         // The clips (and dissolves) first, then the asset: no clip ever refers to an asset that isn't in the project.
         var removeAsset = new RemoveMediaAssetCommand(Project.MediaAssets, asset, _projectService.NotifyMediaAssetsChanged);
@@ -1494,26 +1638,28 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var plan = new EditPlan(Sequence, Settings);
         if (ResolveCut(plan, leftClipId, rightClipId, out var track, out var left, out var right) is { } cutError)
             return TimelineEditResult.Fail(cutError);
+        var noun = TransitionNoun(track);
         if (track.Transitions.Any(t => t.LeftClipId == left.Id))
-            return TimelineEditResult.Fail("This cut already has a dissolve.");
+            return TimelineEditResult.Fail($"This cut already has a {noun}.");
 
         var rate = plan.Rate;
         var frames = TransitionRules.Frames(duration, rate);
         if (frames < TransitionRules.MinFrames)
-            return TimelineEditResult.Fail($"A dissolve must be at least {TransitionRules.MinFrames} frames long.");
-        if (TooLong(frames, MaxFrames(track, left, right, rate, except: null)) is { } tooLong)
+            return TimelineEditResult.Fail($"A {noun} must be at least {TransitionRules.MinFrames} frames long.");
+        if (TooLong(frames, MaxFrames(track, left, right, rate, except: null), noun) is { } tooLong)
             return TimelineEditResult.Fail(tooLong);
 
+        // The track's kind decides the type: a dissolve on a video track, a crossfade on an audio track (D032 R9).
         var transition = new Transition
         {
-            TransitionTypeId = TransitionRules.CrossDissolve, Duration = MediaTime.FromFrame(frames, rate),
+            TransitionTypeId = TransitionRules.TypeFor(track.Type), Duration = MediaTime.FromFrame(frames, rate),
             LeftClipId = left.Id, RightClipId = right.Id
         };
         plan.AddTransition(track, transition);
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail($"Can't add the dissolve: {error}");
+            return TimelineEditResult.Fail($"Can't add the {noun}: {error}");
 
-        _undoRedo.Execute(new NotifyingCommand(new AddTransitionCommand(track, transition), _projectService.NotifyTimelineChanged));
+        _undoRedo.Execute(new NotifyingCommand(new AddTransitionCommand(track, transition, $"Add {Title(noun)}"), _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, ClipIds = new[] { left.Id, right.Id }, TransitionId = transition.Id };
     }
 
@@ -1523,7 +1669,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var (track, transition) = found;
         if (track.IsLocked) return TimelineEditResult.Fail($"Track {track.Name} is locked.");
 
-        _undoRedo.Execute(new NotifyingCommand(new RemoveTransitionCommand(track, transition), _projectService.NotifyTimelineChanged));
+        _undoRedo.Execute(new NotifyingCommand(new RemoveTransitionCommand(track, transition, $"Remove {Title(TransitionNoun(track))}"),
+            _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, ClipIds = new[] { transition.LeftClipId, transition.RightClipId } };
     }
 
@@ -1535,24 +1682,26 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         var plan = new EditPlan(Sequence, Settings);
         var rate = plan.Rate;
+        var noun = TransitionNoun(track);
         var frames = TransitionRules.Frames(duration, rate);
         if (frames < TransitionRules.MinFrames)
-            return TimelineEditResult.Fail($"A dissolve must be at least {TransitionRules.MinFrames} frames long.");
+            return TimelineEditResult.Fail($"A {noun} must be at least {TransitionRules.MinFrames} frames long.");
         var stored = MediaTime.FromFrame(frames, rate);
         if (stored == transition.Duration) return TimelineEditResult.Unchanged();
 
         var left = track.Clips.First(c => c.Id == transition.LeftClipId);
         var right = track.Clips.First(c => c.Id == transition.RightClipId);
-        if (TooLong(frames, MaxFrames(track, left, right, rate, except: transition)) is { } tooLong)
+        if (TooLong(frames, MaxFrames(track, left, right, rate, except: transition), noun) is { } tooLong)
             return TimelineEditResult.Fail(tooLong);
 
         var before = TransitionState.Capture(track, transition);
         var after = before with { Duration = stored };
         plan.UpdateTransition(transition, after);
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail($"Can't change the dissolve: {error}");
+            return TimelineEditResult.Fail($"Can't change the {noun}: {error}");
 
-        _undoRedo.Execute(new NotifyingCommand(new UpdateTransitionCommand(transition, before, after), _projectService.NotifyTimelineChanged));
+        _undoRedo.Execute(new NotifyingCommand(new UpdateTransitionCommand(transition, before, after, $"Change {Title(noun)} Duration"),
+            _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, ClipIds = new[] { left.Id, right.Id }, TransitionId = transition.Id };
     }
 
@@ -1565,7 +1714,14 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return MaxFrames(track, left, right, plan.Rate, except: own);
     }
 
-    /// <summary>Two touching clips of one (unlocked) video track, A left of B.</summary>
+    /// <summary>What a transition of <paramref name="track"/> is called: a dissolve on a video track, a crossfade on an audio
+    /// track (D032 R9).</summary>
+    private static string TransitionNoun(Track track) => track.Type == TrackType.Audio ? "crossfade" : "dissolve";
+
+    private static string Title(string noun) => char.ToUpperInvariant(noun[0]) + noun[1..];
+
+    /// <summary>Two touching clips of one (unlocked) track, A left of B: a dissolve on a video track, a crossfade on an audio
+    /// track (D032 R9).</summary>
     private static string? ResolveCut(EditPlan plan, Guid leftClipId, Guid rightClipId, out Track track, out Clip left, out Clip right,
         bool allowLocked = false)
     {
@@ -1576,9 +1732,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         (left, right) = (clips[0], clips[1]);
         track = plan.TrackOf(left);
         if (plan.TrackOf(right) != track) return "A dissolve joins two clips of the same track.";
-        if (track.Type != TrackType.Video) return "Only clips on a video track can have a dissolve.";
         if (!allowLocked && track.IsLocked) return $"Track {track.Name} is locked.";
-        if (left.TimelineEnd != right.TimelineStart) return "A dissolve needs two clips that meet: the first must end where the second starts.";
+        if (left.TimelineEnd != right.TimelineStart)
+            return $"A {TransitionNoun(track)} needs two clips that meet: the first must end where the second starts.";
         return null;
     }
 
@@ -1601,10 +1757,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
             handleBeforeRight: DissolveHandles.Before(right, rightState, AssetOf(right), rate));
     }
 
-    private static string? TooLong(long frames, long max) =>
+    private static string? TooLong(long frames, long max, string noun) =>
         frames <= max ? null
-        : max < TransitionRules.MinFrames ? NotEnoughMedia
-        : $"A dissolve of {frames} frames doesn't fit here; the longest that fits is {max} frames.";
+        : max < TransitionRules.MinFrames ? NotEnoughMediaFor(noun)
+        : $"A {noun} of {frames} frames doesn't fit here; the longest that fits is {max} frames.";
+
+    /// <summary><see cref="NotEnoughMedia"/> for a dissolve, the same words for a crossfade.</summary>
+    private static string NotEnoughMediaFor(string noun) => $"There is not enough media beyond the clips for the {noun}.";
 
     private (Track Track, Transition Transition)? FindTransition(Guid id)
     {
@@ -1688,12 +1847,15 @@ public sealed partial class TimelineEditService : ITimelineEditService
     }
 
     /// <summary>Validates the plan: the dissolves are first brought in line with the planned clips (D025 §5: removed
-    /// where their cut is gone, moved with their clips), then every affected track's clips and dissolves are checked —
-    /// zones against the clips, and the source handles of every dissolve the edit creates or keeps (§4).</summary>
+    /// where their cut is gone, moved with their clips) and so are the links (D032 R5: a link left without its other clip
+    /// is cleared); then every affected track's clips and dissolves are checked — zones against the clips, and the source
+    /// handles of every dissolve the edit creates or keeps (§4) — and the links.</summary>
     private string? Validate(EditPlan plan)
     {
+        if (PlanPartnerShifts(plan) is { } partnerError) return partnerError;
         plan.ReconcileTransitions();
         plan.ClampFades();
+        plan.ReconcileLinks();
         foreach (var track in plan.AffectedTracks)
         {
             if (TimelineValidator.ValidateTrack(track, plan.EffectiveClips(track), plan.Rate, FindAsset) is { } error)
@@ -1704,7 +1866,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
             if (ValidateTransitions(plan, track) is { } error)
                 return error;
         }
-        return null;
+        // A link the edit leaves without its other clip is cleared — never on a locked track (D032 L5, AQ12).
+        foreach (var clip in plan.ClearedLinks)
+        {
+            if (plan.TrackOf(clip).IsLocked)
+                return $"Track {plan.TrackOf(clip).Name} is locked.";
+        }
+        return LinkRules.Validate(plan.EffectiveLinks());
     }
 
     public const string NotEnoughMedia = "There is not enough media beyond the clips for the dissolve.";
@@ -1729,7 +1897,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             var right = clips[state.RightClipId];
             if (afterCut > DissolveHandles.After(left.Clip, left.State, AssetOf(left.Clip), plan.Rate) ||
                 beforeCut > DissolveHandles.Before(right.Clip, right.State, AssetOf(right.Clip), plan.Rate))
-                return NotEnoughMedia;
+                return NotEnoughMediaFor(TransitionNoun(track));
         }
         return null;
     }
@@ -1750,12 +1918,19 @@ public sealed partial class TimelineEditService : ITimelineEditService
     }
 
     /// <summary>The status note for dissolves an edit removed because their cut is gone (D025 §5), or null.</summary>
-    private static string? TransitionNote(EditPlan plan) => plan.AutoRemovedTransitions switch
-    {
-        0 => null,
-        1 => "A dissolve was removed: its clips no longer meet.",
-        var n => $"{n} dissolves were removed: their clips no longer meet."
-    };
+    private static string? TransitionNote(EditPlan plan) => Join(
+        (plan.AutoRemovedTransitions - plan.AutoRemovedCrossfades) switch
+        {
+            0 => null,
+            1 => "A dissolve was removed: its clips no longer meet.",
+            var n => $"{n} dissolves were removed: their clips no longer meet."
+        },
+        plan.AutoRemovedCrossfades switch
+        {
+            0 => null,
+            1 => "A crossfade was removed: its clips no longer meet.",
+            var n => $"{n} crossfades were removed: their clips no longer meet."
+        });
 
     private static string? Join(string? a, string? b) => a is null ? b : b is null ? a : $"{a} {b}";
 
@@ -1777,7 +1952,17 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return clip;
     }
 
-    /// <summary>Copy of every clip property with a new Id (used for the right half of a split).</summary>
+    /// <summary>The clipboard's copy of <paramref name="clip"/>: <see cref="CloneClip"/> keeping the link, so a paste can
+    /// tell which copied clips belong together (D032 R5). Never inserted itself.</summary>
+    private static Clip CopyWithLink(Clip clip)
+    {
+        var copy = CloneClip(clip);
+        if (copy is MediaBackedClip media && clip is MediaBackedClip source) media.LinkId = source.LinkId;
+        return copy;
+    }
+
+    /// <summary>Copy of every clip property with a new Id (used for the right half of a split). The link is not copied:
+    /// whoever makes the copy decides its link (D032 R5).</summary>
     private static Clip CloneClip(Clip source)
     {
         Clip copy = source switch
@@ -1786,7 +1971,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             {
                 MediaAssetId = v.MediaAssetId, Speed = v.Speed, PositionX = v.PositionX, PositionY = v.PositionY,
                 Scale = v.Scale, RotationDegrees = v.RotationDegrees, Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted,
-                Crop = v.Crop
+                Crop = v.Crop, IsAudioDetached = v.IsAudioDetached
             },
             AudioClip a => new AudioClip { MediaAssetId = a.MediaAssetId, Speed = a.Speed, Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClip i => new ImageClip

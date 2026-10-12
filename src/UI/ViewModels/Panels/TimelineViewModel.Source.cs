@@ -23,10 +23,11 @@ public sealed partial class TimelineViewModel
     private void PlaceSource(bool overwrite)
     {
         if (_source?.Asset is not { } asset || _source.Selection is not { } range) return;
-        var target = SourceTargetTrack(asset);
+        var soundOnly = _source.PlacesSoundOnly;                                       // D032 R7, AQ10
+        var target = SourceTargetTrack(asset, soundOnly);
         var result = overwrite
-            ? _edit.OverwriteClip(asset.Id, range.In, range.Out, Playhead, target?.Id)
-            : _edit.InsertClip(asset.Id, range.In, range.Out, Playhead, target?.Id);
+            ? _edit.OverwriteClip(asset.Id, range.In, range.Out, Playhead, target?.Id, soundOnly)
+            : _edit.InsertClip(asset.Id, range.In, range.Out, Playhead, target?.Id, soundOnly);
         if (result.Success)
         {
             // SQ10: the new clip is the selection and the playhead goes to its end, ready for the next one.
@@ -34,14 +35,16 @@ public sealed partial class TimelineViewModel
             var clip = Sequence.VideoTracks.Concat(Sequence.AudioTracks).SelectMany(t => t.Clips).First(c => c.Id == result.ClipIds[0]);
             SetPlayhead(clip.TimelineEnd);
         }
-        Report(result, successMessage: overwrite ? $"Overwrote with {asset.FileName}" : $"Inserted {asset.FileName}");
+        var what = soundOnly ? $"the sound of {asset.FileName}" : asset.FileName;
+        Report(result, successMessage: overwrite ? $"Overwrote with {what}" : $"Inserted {what}");
     }
 
     /// <summary>SQ8: the track of the latest selected clip on a track of the source's kind (the selection's last entry is
-    /// the primary); null without one — the edit service then takes the first track of that kind (V1 / A1).</summary>
-    private Track? SourceTargetTrack(MediaAsset asset)
+    /// the primary) — an audio track for the sound alone (R7); null without one — the edit service then takes the first
+    /// track of that kind (V1 / A1).</summary>
+    private Track? SourceTargetTrack(MediaAsset asset, bool soundOnly)
     {
-        var type = asset.Kind == MediaKind.Audio ? TrackType.Audio : TrackType.Video;
+        var type = asset.Kind == MediaKind.Audio || soundOnly ? TrackType.Audio : TrackType.Video;
         for (var i = _selection.Count - 1; i >= 0; i--)
         {
             var id = _selection[i];

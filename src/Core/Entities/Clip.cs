@@ -48,6 +48,10 @@ public abstract class MediaBackedClip : Clip
     /// <summary>Playback speed (D022): exact multiples of 0.05 from 0.25× to 4× for video and audio
     /// clips; always 1× for images.</summary>
     public ClipSpeed Speed { get; set; }
+
+    /// <summary>The explicit link of a video clip and an audio clip (D032 R1): the two clips sharing a value form one
+    /// link (<see cref="LinkRules"/>); null when the clip is not linked. Never set on images.</summary>
+    public Guid? LinkId { get; set; }
 }
 
 public sealed class VideoClip : MediaBackedClip
@@ -66,8 +70,13 @@ public sealed class VideoClip : MediaBackedClip
 
     /// <summary>Crop expressed as normalized (0..1) insets from each edge.</summary>
     public CropRect Crop { get; set; } = CropRect.None;
+
+    /// <summary>The clip's own sound was unlinked into an <see cref="AudioClip"/> (D032 R1, R3): the clip produces no
+    /// sound; <see cref="Volume"/> and <see cref="IsMuted"/> are kept but unused.</summary>
+    public bool IsAudioDetached { get; set; }
 }
 
+/// <summary>A clip on an audio track: the sound of an audio file, or (D032 R1) the sound of a video file.</summary>
 public sealed class AudioClip : MediaBackedClip
 {
     public double Volume { get; set; } = 1.0;

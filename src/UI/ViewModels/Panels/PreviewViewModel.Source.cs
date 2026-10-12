@@ -48,6 +48,21 @@ public sealed partial class PreviewViewModel
     [ObservableProperty] private bool _hasSourceRange;
     [ObservableProperty] private string _sourceRangeDisplay = "";
 
+    /// <summary>"Sound only" is offered: the open asset is a video file with sound (D032 R7, AQ10).</summary>
+    [ObservableProperty] private bool _canSourceSoundOnly;
+
+    /// <summary>The source bar's "Sound only" toggle — the Source viewer's session state.</summary>
+    public bool IsSourceSoundOnly
+    {
+        get => _source?.SoundOnly ?? false;
+        set
+        {
+            if (_source is null || _source.SoundOnly == value) return;
+            _source.SoundOnly = value;
+            OnPropertyChanged();
+        }
+    }
+
     /// <summary>Insert (<c>,</c>) and Overwrite (<c>.</c>) for the source bar's buttons — the timeline's commands (SQ5),
     /// given by the shell.</summary>
     public ICommand? InsertCommand { get; set; }
@@ -122,6 +137,8 @@ public sealed partial class PreviewViewModel
         HasSource = asset is not null;
         SourceName = asset?.FileName ?? "";
         SourceFrames = _source.Grid?.Frames ?? 0;
+        CanSourceSoundOnly = _source.CanSoundOnly;
+        OnPropertyChanged(nameof(IsSourceSoundOnly));
         UpdateSourceRange();
         if (!IsSourceMode) return;
         if (asset is null) ShowTimeline();                    // closed: the asset left the project, another project

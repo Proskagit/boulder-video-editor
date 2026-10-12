@@ -66,7 +66,8 @@ public static class PlaybackSnapshotBuilder
                         ExtendedEnd = dissolves.FirstOrDefault(z => z.LeftClipId == clip.Id)?.End
                     });
 
-                if (media is VideoClip video && !track.IsMuted && asset?.Metadata?.AudioCodec is not null)
+                // An unlinked video clip's sound is its audio clip's (D032 R10).
+                if (media is VideoClip { IsAudioDetached: false } video && !track.IsMuted && asset?.Metadata?.AudioCodec is not null)
                 {
                     var (audioStatus, audioReason) = AudioStatus(media, asset);
                     audio.Add(new AudioSpan(clip.Id, media.MediaAssetId, audioStatus, clip.TimelineStart, clip.TimelineEnd,
@@ -80,6 +81,7 @@ public static class PlaybackSnapshotBuilder
         foreach (var track in sequence.AudioTracks)
         {
             if (track.IsMuted) continue;
+            var crossfades = Dissolves(track, rate);   // the same zones on an audio track: crossfades (D032 R9)
             foreach (var clip in track.Clips.OfType<AudioClip>().OrderBy(c => c.TimelineStart))
             {
                 assets.TryGetValue(clip.MediaAssetId, out var asset);
@@ -87,7 +89,11 @@ public static class PlaybackSnapshotBuilder
                 var (status, reason) = AudioStatus(clip, asset);
                 var (fadeIn, fadeOut) = Fades(clip, track, rate);
                 audio.Add(new AudioSpan(clip.Id, clip.MediaAssetId, status, clip.TimelineStart, clip.TimelineEnd, clip.SourceIn, clip.Volume, reason, clip.IsMuted)
-                    { Speed = clip.Speed, FadeInFrames = fadeIn, FadeOutFrames = fadeOut });
+                {
+                    Speed = clip.Speed, FadeInFrames = fadeIn, FadeOutFrames = fadeOut,
+                    CrossfadeIn = crossfades.FirstOrDefault(z => z.RightClipId == clip.Id) is { } zoneIn ? new CrossfadeZone(zoneIn.Start, zoneIn.End) : null,
+                    CrossfadeOut = crossfades.FirstOrDefault(z => z.LeftClipId == clip.Id) is { } zoneOut ? new CrossfadeZone(zoneOut.Start, zoneOut.End) : null
+                });
             }
         }
 

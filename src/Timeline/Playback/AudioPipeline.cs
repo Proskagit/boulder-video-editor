@@ -24,7 +24,7 @@ internal sealed class AudioPipeline : IAsyncDisposable
 
     /// <summary>What must match for a reader to be reused (gain and mute are applied by the mixer).</summary>
     private readonly record struct ReaderKey(Guid ClipId, Guid AssetId, MediaTime Start, MediaTime End, MediaTime SourceIn,
-        string FilePath, MediaTime StartTime);
+        string FilePath, MediaTime StartTime, MediaTime PlayStart, MediaTime PlayEnd);
 
     public AudioPipeline(PlaybackSnapshot snapshot, long seekGeneration, long startSample, AudioMixer mixer,
         IAudioDecoder decoder, PlaybackSettings settings, ILogger logger, AudioPipeline? previous = null)
@@ -82,8 +82,8 @@ internal sealed class AudioPipeline : IAsyncDisposable
         foreach (var span in _snapshot.AudioSpans)
         {
             if (!IsPlayable(span)) continue;
-            if (AudioTiming.CeilingSample(span.TimelineEnd) <= position) continue;
-            if (AudioTiming.CeilingSample(span.TimelineStart) >= windowEnd) continue;
+            if (AudioTiming.CeilingSample(span.PlayEnd) <= position) continue;      // a crossfade's zone included (D032 R9)
+            if (AudioTiming.CeilingSample(span.PlayStart) >= windowEnd) continue;
             active[Key(span)] = span;
         }
 
@@ -114,7 +114,8 @@ internal sealed class AudioPipeline : IAsyncDisposable
     private ReaderKey Key(AudioSpan span)
     {
         var asset = _snapshot.Assets[span.AssetId];
-        return new ReaderKey(span.ClipId, span.AssetId, span.TimelineStart, span.TimelineEnd, span.SourceIn, asset.FilePath, asset.StartTime);
+        return new ReaderKey(span.ClipId, span.AssetId, span.TimelineStart, span.TimelineEnd, span.SourceIn, asset.FilePath, asset.StartTime,
+            span.PlayStart, span.PlayEnd);
     }
 
     public async ValueTask DisposeAsync()

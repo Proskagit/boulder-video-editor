@@ -35,6 +35,13 @@ internal sealed class TimelineFixture
     public MediaAsset Audio(double seconds, string name = "music.mp3") =>
         AddAsset(name, MediaKind.Audio, new MediaMetadata { Duration = MediaTime.FromSeconds(seconds), AudioSampleRate = 48000 });
 
+    /// <summary>A video file with sound (D032: its sound can be unlinked).</summary>
+    public MediaAsset VideoWithSound(double seconds, FrameRate? rate, string name = "take.mp4") =>
+        AddAsset(name, MediaKind.Video, new MediaMetadata
+        {
+            Duration = MediaTime.FromSeconds(seconds), FrameRate = rate, Width = 1920, Height = 1080, AudioCodec = "aac", AudioSampleRate = 48000
+        });
+
     public MediaAsset Image(string name = "logo.png") => AddAsset(name, MediaKind.Image, null, MediaAnalysisStatus.Pending);
 
     public MediaAsset AddAsset(string name, MediaKind kind, MediaMetadata? metadata, MediaAnalysisStatus status = MediaAnalysisStatus.Completed)
@@ -87,7 +94,9 @@ internal sealed class TimelineFixture
             foreach (var clip in track.Clips)
             {
                 var s = ClipState.Capture(clip);
-                sb.Append($"{clip.Id}:{clip.GetType().Name}:{s.Start.Ticks},{s.Duration.Ticks},{s.SourceIn.Ticks},{s.SourceOut.Ticks},{s.Speed},fades={clip.FadeIn.Ticks}/{clip.FadeOut.Ticks};");
+                sb.Append($"{clip.Id}:{clip.GetType().Name}:{s.Start.Ticks},{s.Duration.Ticks},{s.SourceIn.Ticks},{s.SourceOut.Ticks},{s.Speed},fades={clip.FadeIn.Ticks}/{clip.FadeOut.Ticks}");
+                if (clip is MediaBackedClip m) sb.Append($",link={m.LinkId},detached={clip is VideoClip { IsAudioDetached: true }}");
+                sb.Append(';');
             }
             foreach (var t in track.Transitions)
                 sb.Append($"T{t.Id}:{t.TransitionTypeId}:{t.LeftClipId}|{t.RightClipId}:{t.Duration.Ticks};");

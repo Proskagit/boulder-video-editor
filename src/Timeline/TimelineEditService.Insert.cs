@@ -11,11 +11,13 @@ namespace AiVideoEditor.Timeline;
 // (PlanFirstVideoRate) — in one EditPlan, validated and committed like every other edit.
 public sealed partial class TimelineEditService
 {
-    public TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) =>
-        PlaceSourceRange(mediaAssetId, sourceIn, sourceOut, at, trackId, overwrite: false);
+    public TimelineEditResult InsertClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null,
+        bool soundOnly = false) =>
+        PlaceSourceRange(mediaAssetId, sourceIn, sourceOut, at, trackId, overwrite: false, soundOnly);
 
-    public TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null) =>
-        PlaceSourceRange(mediaAssetId, sourceIn, sourceOut, at, trackId, overwrite: true);
+    public TimelineEditResult OverwriteClip(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at, Guid? trackId = null,
+        bool soundOnly = false) =>
+        PlaceSourceRange(mediaAssetId, sourceIn, sourceOut, at, trackId, overwrite: true, soundOnly);
 
     public SourceGrid? GetSourceGrid(MediaAsset asset, out string? reason)
     {
@@ -36,7 +38,7 @@ public sealed partial class TimelineEditService
     }
 
     private TimelineEditResult PlaceSourceRange(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at,
-        Guid? trackId, bool overwrite)
+        Guid? trackId, bool overwrite, bool soundOnly)
     {
         var verb = overwrite ? "overwrite" : "insert";
         if (FindAsset(mediaAssetId) is not { } asset)
@@ -46,12 +48,18 @@ public sealed partial class TimelineEditService
         if (GetAddBlockReason(asset) is { } blocked)
             return TimelineEditResult.Fail(blocked);
 
+        // R7 / AQ10: the sound of a video file alone, as an audio clip of that file. Its grid is the Source viewer's (SQ12),
+        // so a first video file's sound fixes the project rate as the file itself would (D007).
+        var sound = soundOnly && asset.Kind == MediaKind.Video;
+        if (sound && asset.Metadata?.AudioCodec is null)
+            return TimelineEditResult.Fail($"{asset.FileName} has no sound.");
+
         var plan = new EditPlan(Sequence, Settings);
         if (PlanFirstVideoRate(plan, asset, out var info) is { } regridError)
             return TimelineEditResult.Fail($"Can't {verb} {asset.FileName}: {regridError}");
         var rate = plan.Rate;
 
-        var kind = asset.Kind == MediaKind.Audio ? TrackType.Audio : TrackType.Video;
+        var kind = asset.Kind == MediaKind.Audio || sound ? TrackType.Audio : TrackType.Video;
         Track? track;
         if (trackId is { } id)
         {
@@ -79,17 +87,39 @@ public sealed partial class TimelineEditService
 
         // The new clip at 1× (SQ13): built at 0 and moved to the point by the move rule, which also keeps its source end
         // inside the media (the one-tick rule of a frame count's length at another position).
-        var clip = CreateClip(asset, ClipState.FromFrames(0, frames, MediaTime.FromFrame(inFrame, rate), rate));
+        var state = ClipState.FromFrames(0, frames, MediaTime.FromFrame(inFrame, rate), rate);
+        Clip clip = sound ? new AudioClip { MediaAssetId = asset.Id } : CreateClip(asset, state);
+        state.ApplyTo(clip);
         var (placed, placeError) = ShiftedState(clip, atFrame, rate);
         if (placeError is not null) return TimelineEditResult.Fail($"Can't {verb}: {placeError}");
         placed.ApplyTo(clip);
 
         // The track's clips as the plan leaves them so far (re-gridded when this edit fixes the frame rate).
         var existing = plan.EffectiveClips(track).ToList();
+        var splits = new List<(Clip Left, Clip Right)>();
         var error = overwrite
-            ? PlanOverwrite(plan, track, existing, atFrame, atFrame + frames)
-            : PlanInsert(plan, track, existing, atFrame, frames);
+            ? PlanOverwrite(plan, track, existing, atFrame, atFrame + frames, splits)
+            : PlanInsert(plan, track, existing, atFrame, frames, splits);
         if (error is not null) return TimelineEditResult.Fail(error);
+
+        // AQ13: a linked clip the edit splits or trims takes its partner along — the same insert / overwrite rule applied
+        // to the partner alone on its own track (nothing is placed there); a removed clip's partner stays, its link cleared
+        // (R5). The clips the insert only moves take theirs along by the move rule (Validate).
+        foreach (var (covered, _) in existing)
+        {
+            var split = splits.Any(s => s.Left == covered);
+            if (!split && (!overwrite || !plan.Changes(covered) || plan.Removes(covered))) continue;
+            var (partner, partnerError) = FollowingPartner(plan, covered);
+            if (partnerError is not null) return TimelineEditResult.Fail(partnerError);
+            if (partner is null) continue;
+            var partnerTrack = plan.TrackOf(partner);
+            var partnerOnly = new[] { (Clip: (Clip)partner, State: ClipState.Capture(partner)) };
+            if ((overwrite
+                    ? PlanOverwrite(plan, partnerTrack, partnerOnly, atFrame, atFrame + frames, splits)
+                    : PlanInsert(plan, partnerTrack, partnerOnly, atFrame, frames, splits)) is { } partnerPlanError)
+                return TimelineEditResult.Fail(partnerPlanError);
+        }
+        LinkSplitParts(splits);
 
         plan.Insert(track, clip);
         if (Validate(plan) is { } invalid)
@@ -103,7 +133,8 @@ public sealed partial class TimelineEditService
     /// <summary>SQ6: a clip with <paramref name="atFrame"/> strictly inside is split there, and its right part with every
     /// clip from <paramref name="atFrame"/> on moves right by <paramref name="frames"/> — only on <paramref name="track"/>.
     /// Null when planned, otherwise the message.</summary>
-    private string? PlanInsert(EditPlan plan, Track track, IReadOnlyList<(Clip Clip, ClipState State)> existing, long atFrame, long frames)
+    private string? PlanInsert(EditPlan plan, Track track, IReadOnlyList<(Clip Clip, ClipState State)> existing, long atFrame, long frames,
+        List<(Clip Left, Clip Right)> splits)
     {
         var rate = plan.Rate;
         foreach (var (clip, state) in existing)
@@ -113,7 +144,8 @@ public sealed partial class TimelineEditService
             if (start < atFrame && atFrame < end)
             {
                 if (!PlanSplitClip(plan, track, clip, state, atFrame, out var right))
-                    return "Can't insert inside a dissolve.";
+                    return $"Can't insert inside a {TransitionNoun(track)}.";
+                splits.Add((clip, right));
                 var (moved, error) = ShiftedState(right, frames, rate);
                 if (error is not null) return $"Can't insert: {error}";
                 moved.ApplyTo(right);              // a planned insert, not in the model yet
@@ -132,9 +164,10 @@ public sealed partial class TimelineEditService
     /// clip — a clip inside it is removed, a clip partly inside is trimmed to it by the trim rule (which keeps the frames
     /// a dissolve at its other edge needs), a clip covering it is split at <paramref name="from"/> and its right part
     /// trimmed to start at <paramref name="to"/>. Null when planned, otherwise the message.</summary>
-    private string? PlanOverwrite(EditPlan plan, Track track, IReadOnlyList<(Clip Clip, ClipState State)> existing, long from, long to)
+    private string? PlanOverwrite(EditPlan plan, Track track, IReadOnlyList<(Clip Clip, ClipState State)> existing, long from, long to,
+        List<(Clip Left, Clip Right)> splits)
     {
-        const string insideDissolve = "Can't overwrite inside a dissolve.";
+        var insideDissolve = $"Can't overwrite inside a {TransitionNoun(track)}.";
         var rate = plan.Rate;
         var none = Array.Empty<Clip>();
         foreach (var (clip, state) in existing)
@@ -152,6 +185,7 @@ public sealed partial class TimelineEditService
             {
                 if (!PlanSplitClip(plan, track, clip, state, from, out var right))
                     return insideDissolve;
+                splits.Add((clip, right));
                 var rightAfter = TrimmedState(right, ClipState.Capture(right), none, ClipEdge.Start, to, Math.Max(1, partAtEnd), rate);
                 if (rightAfter.Start.ToNearestFrame(rate) != to) return insideDissolve;
                 rightAfter.ApplyTo(right);         // a planned insert, not in the model yet

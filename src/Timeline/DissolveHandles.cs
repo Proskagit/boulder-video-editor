@@ -7,7 +7,8 @@ namespace AiVideoEditor.Timeline;
 /// Source handles of a dissolve (D025 §4): how many frames of the project rate a clip's source reaches past its end
 /// (<see cref="After"/>, needed by A) and before its start (<see cref="Before"/>, needed by B), at the clip's speed —
 /// exactly how far a trim of that edge outward could go. Images and text have <see cref="Unlimited"/> handles; a video
-/// clip whose source duration is unknown has none.
+/// or audio clip whose source duration is unknown has none. Audio clips follow the video rule (D032 R9: the handles of a
+/// crossfade).
 /// </summary>
 public static class DissolveHandles
 {
@@ -17,7 +18,7 @@ public static class DissolveHandles
     /// <summary>Frames of source after the clip's end.</summary>
     public static long After(Clip clip, ClipState state, MediaAsset? asset, FrameRate rate)
     {
-        if (clip is not VideoClip) return Unlimited;
+        if (clip is not (VideoClip or AudioClip)) return Unlimited;
         if (asset?.Metadata is not { } metadata || metadata.Duration <= MediaTime.Zero) return 0;
 
         var frames = Frames(state, rate);
@@ -31,7 +32,7 @@ public static class DissolveHandles
     /// <summary>Frames of source before the clip's start (the source time stays ≥ 0).</summary>
     public static long Before(Clip clip, ClipState state, MediaAsset? asset, FrameRate rate)
     {
-        if (clip is not VideoClip) return Unlimited;
+        if (clip is not (VideoClip or AudioClip)) return Unlimited;
         if (asset?.Metadata is not { } metadata || metadata.Duration <= MediaTime.Zero) return 0;
 
         var handle = state.Speed.IsNormal

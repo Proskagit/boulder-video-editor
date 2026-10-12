@@ -23,14 +23,19 @@ namespace AiVideoEditor.Project.Persistence;
 public static class ProjectSerializer
 {
     public const string FormatId = "AiVideoEditor.Project";
-    /// <summary>3 since Phase 10 (D025): clip fades and anchored transitions. 2 since Phase 7 Step 9: the clip
-    /// speed is an exact fraction (D022). Version 1 files (speed must be 1) and version 2 files are read as projects
-    /// without fades and transitions, and saved as version 3.</summary>
-    public const int CurrentFormatVersion = 3;
+    /// <summary>4 since Phase 17 (D032): links of video and audio clips, a video clip's unlinked sound, audio clips of
+    /// video files and crossfades on audio tracks. 3 since Phase 10 (D025): clip fades and anchored transitions. 2 since
+    /// Phase 7 Step 9: the clip speed is an exact fraction (D022). Version 1 files (speed must be 1) and version 2 files
+    /// are read as projects without fades and transitions, version 3 files without links; all are saved as version 4.
+    /// </summary>
+    public const int CurrentFormatVersion = 4;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
     private const int FadesAndTransitionsVersion = 3;
+
+    /// <summary>The first version with links, unlinked sound and audio clips of video files (D032).</summary>
+    private const int AudioEditingVersion = 4;
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -257,7 +262,8 @@ public static class ProjectSerializer
             VideoClip v => new VideoClipDto
             {
                 PositionX = v.PositionX, PositionY = v.PositionY, Scale = v.Scale, RotationDegrees = v.RotationDegrees,
-                Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted, Crop = ToDto(v.Crop)
+                Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted, Crop = ToDto(v.Crop),
+                IsAudioDetached = v.IsAudioDetached
             },
             AudioClip a => new AudioClipDto { Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClip i => new ImageClipDto
@@ -286,6 +292,7 @@ public static class ProjectSerializer
             mediaDto.SourceInTicks = media.SourceIn.Ticks;
             mediaDto.SourceOutTicks = media.SourceOut.Ticks;
             mediaDto.SpeedRatio = new SpeedDto { Numerator = media.Speed.Numerator, Denominator = media.Speed.Denominator };
+            mediaDto.LinkId = media.LinkId;
         }
 
         return dto;
@@ -476,6 +483,9 @@ public static class ProjectSerializer
             if (TransitionRules.ValidateTrack(track, rate) is { } invalid)
                 throw Damaged($"a transition on track {track.Name} is invalid: {invalid.TrimEnd('.')}");
 
+        if (LinkRules.Validate(sequence) is { } invalidLink)
+            throw Damaged($"a link is invalid: {invalidLink.TrimEnd('.')}");
+
         var markerIds = new HashSet<Guid>();
         foreach (var m in dto.Markers ?? new List<MarkerDto>())
         {
@@ -541,6 +551,8 @@ public static class ProjectSerializer
             if (formatVersion < FadesAndTransitionsVersion) continue;
 
             if (!ids.Transitions.Add(x.Id)) throw Damaged("duplicate transition id");
+            if (formatVersion < AudioEditingVersion && x.TransitionTypeId != TransitionRules.CrossDissolve)
+                throw Damaged("unknown transition type");
             track.Transitions.Add(new Transition
             {
                 Id = x.Id, TransitionTypeId = x.TransitionTypeId, Duration = new MediaTime(x.DurationTicks),
@@ -567,7 +579,9 @@ public static class ProjectSerializer
             {
                 Id = v.Id, MediaAssetId = v.MediaAssetId, PositionX = v.PositionX, PositionY = v.PositionY, Scale = v.Scale,
                 RotationDegrees = v.RotationDegrees, Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted,
-                Crop = FromDto(v.Crop)
+                Crop = FromDto(v.Crop),
+                // v1–v3 have no unlinked sound (D032).
+                IsAudioDetached = formatVersion >= AudioEditingVersion && v.IsAudioDetached
             },
             AudioClipDto a => new AudioClip { Id = a.Id, MediaAssetId = a.MediaAssetId, Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClipDto i => new ImageClip
@@ -598,7 +612,7 @@ public static class ProjectSerializer
         if (clip is MediaBackedClip media && dto is MediaBackedClipDto mediaDto)
         {
             if (!assets.TryGetValue(mediaDto.MediaAssetId, out var asset)) throw Damaged("a clip refers to media that is not in the project");
-            if (!KindMatches(clip, asset.Kind)) throw Damaged($"a clip doesn't match the kind of {asset.FileName}");
+            if (!KindMatches(clip, asset.Kind, formatVersion)) throw Damaged($"a clip doesn't match the kind of {asset.FileName}");
             var speed = ReadSpeed(mediaDto, formatVersion);
             if (clip is ImageClip && !speed.IsNormal) throw Damaged("an image clip has a speed");
             if (mediaDto.SourceInTicks < 0 || mediaDto.SourceOutTicks < mediaDto.SourceInTicks) throw Damaged("invalid clip source range");
@@ -606,6 +620,12 @@ public static class ProjectSerializer
             media.SourceIn = new MediaTime(mediaDto.SourceInTicks);
             media.SourceOut = new MediaTime(mediaDto.SourceOutTicks);
             media.Speed = speed;
+            // v1–v3 have no links (D032).
+            if (formatVersion >= AudioEditingVersion && mediaDto.LinkId is { } linkId)
+            {
+                if (linkId == Guid.Empty) throw Damaged("a clip has an empty link id");
+                media.LinkId = linkId;
+            }
 
             // v1: the source range is exactly the duration (the only thing v1 could hold). v2: the
             // duration is the whole number of frames the source range allows at the clip's speed —
@@ -644,10 +664,11 @@ public static class ProjectSerializer
         return speed;
     }
 
-    private static bool KindMatches(Clip clip, MediaKind kind) => clip switch
+    /// <summary>The asset kind a clip may refer to; from v4 on an audio clip may hold the sound of a video file (D032 R1).</summary>
+    private static bool KindMatches(Clip clip, MediaKind kind, int formatVersion) => clip switch
     {
         VideoClip => kind == MediaKind.Video,
-        AudioClip => kind == MediaKind.Audio,
+        AudioClip => kind == MediaKind.Audio || (kind == MediaKind.Video && formatVersion >= AudioEditingVersion),
         ImageClip => kind == MediaKind.Image,
         _ => false
     };

@@ -466,6 +466,50 @@ public sealed class SourceViewerTests : IAsyncLifetime
         Assert.Equal(2, _projects.Current.Timeline.AudioTracks[0].Clips.Count);
     }
 
+    // --- Phase 17 Step 17.7: the sound alone (D032 R7, AQ10) -----------------------------------------------------------
+
+    [Fact]
+    public async Task Sound_only_inserts_the_sound_of_a_video_as_an_audio_clip_on_the_audio_target()
+    {
+        await TimelineWithPlayheadAt50();
+        var silent = Video(100, "silent.mp4");
+        Assert.Null(Preview.OpenSource(silent));
+        Assert.False(Preview.CanSourceSoundOnly);                    // a video without sound: not offered
+
+        var take = Video(100, "take.mp4", sound: true);
+        Assert.Null(Preview.OpenSource(take));
+        Assert.True(Preview.CanSourceSoundOnly);
+        Preview.IsSourceSoundOnly = true;
+        Assert.True(_source.PlacesSoundOnly);
+        Preview.SeekSource(10);
+        await TickUntil(() => Settled && Shown == 10, "source at 10");
+        Key(Avalonia.Input.Key.I);
+        Preview.SeekSource(29);
+        await TickUntil(() => Settled && Shown == 29, "source at 29");
+        Key(Avalonia.Input.Key.O);                                   // [10, 30)
+        var v1 = _projects.Current.Timeline.VideoTracks[0];
+        var videoBefore = v1.Clips.Count;
+
+        Key(Avalonia.Input.Key.OemComma);
+
+        var a1 = _projects.Current.Timeline.AudioTracks[0];
+        var sound = Assert.IsType<AudioClip>(Assert.Single(a1.Clips));
+        Assert.Equal(take.Id, sound.MediaAssetId);
+        Assert.Equal((F(50), F(70), F(10)), (sound.TimelineStart, sound.TimelineEnd, sound.SourceIn));
+        Assert.Equal(videoBefore, v1.Clips.Count);                  // the picture tracks are untouched
+        Assert.Equal(F(70), Timeline.Playhead);
+        Assert.Equal("Inserted the sound of take.mp4", _status.Message);
+        Assert.DoesNotContain(_projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips), c => c is VideoClip v && v.MediaAssetId == take.Id);
+
+        Preview.IsSourceSoundOnly = false;                           // the whole recording again: picture and sound
+        Key(Avalonia.Input.Key.OemComma);
+        Assert.Contains(v1.Clips, c => c is VideoClip v && v.MediaAssetId == take.Id);
+
+        Assert.Null(Preview.OpenSource(silent));                    // the toggle stays, but applies to a video with sound only
+        Preview.IsSourceSoundOnly = true;
+        Assert.False(_source.PlacesSoundOnly);
+    }
+
     [Fact]
     public async Task Refused_on_a_locked_target_and_off_during_an_export()
     {

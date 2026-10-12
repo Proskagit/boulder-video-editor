@@ -95,7 +95,24 @@ public sealed record AudioSpan(
     /// (<see cref="AudioFadeEnvelope"/>).</summary>
     public long FadeInFrames { get; init; }
     public long FadeOutFrames { get; init; }
+
+    /// <summary>The crossfade at the clip's start (D032 R9): the clip plays from the zone's start, from its source handle,
+    /// fading in over the zone. Null without one.</summary>
+    public CrossfadeZone? CrossfadeIn { get; init; }
+
+    /// <summary>The crossfade at the clip's end: the clip plays on to the zone's end, fading out over the zone.</summary>
+    public CrossfadeZone? CrossfadeOut { get; init; }
+
+    /// <summary>Where the clip's sound starts: its start, or the start of its crossfade-in zone.</summary>
+    public MediaTime PlayStart => CrossfadeIn?.Start ?? TimelineStart;
+
+    /// <summary>Where the clip's sound ends: its end, or the end of its crossfade-out zone.</summary>
+    public MediaTime PlayEnd => CrossfadeOut?.End ?? TimelineEnd;
 }
+
+/// <summary>A crossfade's zone on an audio track (D032 R9): <c>[Start, End)</c>, the D025 zone of its frames around the
+/// cut.</summary>
+public readonly record struct CrossfadeZone(MediaTime Start, MediaTime End);
 
 /// <summary>A visible video track: its media clips (<see cref="Spans"/>) and text clips
 /// (<see cref="Texts"/>), each in timeline order; no two of them overlap (as on the track).</summary>

@@ -98,12 +98,12 @@ public class FadeTransitionPersistenceTests
     }
 
     [Fact]
-    public void The_file_is_version_3_with_fade_ticks_and_transition_anchors()
+    public void The_file_is_version_4_with_fade_ticks_and_transition_anchors()
     {
         var project = Build();
         var root = Json(project);
 
-        Assert.Equal(3, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(4, root["formatVersion"]!.GetValue<int>());
         Assert.Equal(F(5).Ticks, Clips(root)[0]!["fadeInTicks"]!.GetValue<long>());
         Assert.Equal(0, Clips(root)[0]!["fadeOutTicks"]!.GetValue<long>());
         var transition = Transitions(root)[0]!;
@@ -132,7 +132,7 @@ public class FadeTransitionPersistenceTests
     // --- older and newer versions -----------------------------------------------------------------------------------
 
     [Fact]
-    public void A_version_2_file_is_read_without_fades_and_transitions_and_saved_as_version_3()
+    public void A_version_2_file_is_read_without_fades_and_transitions_and_saved_as_version_4()
     {
         // A v2 build never wrote these fields; a v2 file that has them (edited by hand) is still read without them.
         var root = Json(Build());
@@ -146,7 +146,7 @@ public class FadeTransitionPersistenceTests
         Assert.Equal(5, loaded.Timeline.VideoTracks.Concat(loaded.Timeline.AudioTracks).SelectMany(t => t.Clips).Count());
 
         var resaved = Json(loaded);
-        Assert.Equal(3, resaved["formatVersion"]!.GetValue<int>());
+        Assert.Equal(4, resaved["formatVersion"]!.GetValue<int>());
         Assert.Empty(Transitions(resaved));
         Assert.Equal(0, Clips(resaved)[0]!["fadeInTicks"]!.GetValue<long>());
     }
@@ -167,10 +167,10 @@ public class FadeTransitionPersistenceTests
     }
 
     [Fact]
-    public void A_version_4_file_is_refused_as_newer()
+    public void A_version_5_file_is_refused_as_newer()
     {
         var root = Json(Build());
-        root["formatVersion"] = 4;
+        root["formatVersion"] = 5;
 
         Assert.Contains("newer version", Rejected(root).Message);
     }
