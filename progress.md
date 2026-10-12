@@ -4046,7 +4046,7 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 ## Last known state
 
 2026-10-12: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`). Phase 17 (audio editing, D032) complete
-on `feat/phase-17-audio-editing` (closeout Step 17.9; 3023 passed, 2 skipped); push and pull request on the product owner's
+on `feat/phase-17-audio-editing` (closeout Step 17.9 and the Ripple Delete change; 3029 passed, 2 skipped); push and pull request on the product owner's
 command. Open items: see "Known issues" (the real-device audio status check — now R10 of
 the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 

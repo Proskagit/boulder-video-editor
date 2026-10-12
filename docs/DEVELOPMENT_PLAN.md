@@ -89,7 +89,7 @@ and runs cleanly.
       J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio tracks; Preview ↔
       export parity; `project.json` v4. Scope, steps and acceptance criteria: section below and DECISIONS.md D032 (product
       owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.8 done; AQ1–AQ13
-      answered (as proposed); closeout 17.9 done 2026-10-12 — build 0 / 0 Release and Debug, passed 3023, skipped 2, failed
+      answered (as proposed); closeout 17.9 done 2026-10-12 — build 0 / 0 Release and Debug, passed 3029, skipped 2, failed
       0, three blame-hang runs and heavy green, the manual plan and the Phase 16 regression in the real app (R10 for the
       product owner); not yet merged — push / pull request on the product owner's command; checked after the product
       owner's acceptance)*
