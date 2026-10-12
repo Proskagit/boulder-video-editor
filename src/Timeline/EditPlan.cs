@@ -70,6 +70,15 @@ public sealed class EditPlan
 
     public void Remove(Clip clip) => _removes[clip] = _currentTrack[clip];
 
+    /// <summary>The planned clip changes (move, trim, re-grid, …): each existing clip, its track and its timing after.</summary>
+    public IEnumerable<(Clip Clip, Track To, ClipState After)> Updates => _updates.Select(u => (u.Key, u.Value.To, u.Value.After));
+
+    /// <summary>True when the plan changes or removes the existing <paramref name="clip"/>.</summary>
+    public bool Changes(Clip clip) => _updates.ContainsKey(clip) || _removes.ContainsKey(clip);
+
+    /// <summary>True when the plan removes the existing <paramref name="clip"/>.</summary>
+    public bool Removes(Clip clip) => _removes.ContainsKey(clip);
+
     /// <summary>Sets non-timing properties of an existing clip as part of the edit (e.g. the fade a split takes off
     /// the left part, D025); only the groups given in <paramref name="after"/> change. Timing validation ignores them.</summary>
     public void SetProperties(Clip clip, ClipPropertyValues after) => _properties.Add((clip, after));

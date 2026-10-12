@@ -62,6 +62,16 @@ Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fa
   generator `PatternWithTone`). Mutations caught: the snapshot ignoring the unlinked sound (3 tests), stored instead of
   effective fades, the muted-track copy. `--no-incremental -warnaserror` 0 / 0; the full suite 2942 passed, 2 skipped,
   0 failed.
+- Step 17.5 done — linked editing (D032 R5, R6, L5, AQ1–AQ7, AQ13; D032 "Refined in Step 17.5"): `TimelineEditService.Linked.cs`
+  (`FollowingPartner`, `PlanPartnerShifts` in `Validate`, `LinkSplitParts`, `WithPartnersCovering`, `RoomAfter`) and the
+  partner in the existing planners — Move (target track by kind), Trim (clamped as one; `alone` for Alt + edge),
+  Q / W, ripple trim (`PlanRippleTrim` split into `RippleTrimmedState` + `PlanRippleTrimAlone`, local refactoring), Split,
+  Speed, Slip, Delete, Ripple Delete, Insert / Overwrite (`PlanInsert` / `PlanOverwrite` collect their splits), Copy /
+  Paste; `EditPlan.Updates` / `Changes` / `Removes`. Tests: `Timeline.Tests/LinkedEditTests` (46: each linked edit compared
+  tick for tick with the same edit made to both clips unlinked, Undo / Redo exact as one step; the ripple partners and the
+  untouched clips of their tracks; J / L cuts; the clamp; 14 edit kinds refused by a locked partner; Alt + edge with a locked
+  partner; an unlinked pair as before). Twelve mutations of the partner rules caught (one — the ripple partner's room — after
+  a test was added for it). `--no-incremental -warnaserror` 0 / 0; the full suite 2988 passed, 2 skipped, 0 failed.
 
 ### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 
@@ -3972,7 +3982,7 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 2026-10-08: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`, CI green on the pull request and on
 `main`; 2894 passed, 2 skipped). Phase 17 (audio editing, D032) in progress on `feat/phase-17-audio-editing`: Steps 17.1–17.2
-done, AQ1–AQ13 answered (as proposed), Steps 17.3–17.4 done. Open items: see "Known issues" (the real-device audio status check — now R10 of
+done, AQ1–AQ13 answered (as proposed), Steps 17.3–17.5 done. Open items: see "Known issues" (the real-device audio status check — now R10 of
 the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 
 ### Phase 4 — Timeline (historical notes)

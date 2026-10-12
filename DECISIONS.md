@@ -3802,6 +3802,29 @@ clips of its sound too (tested). Messages: "Sound unlinked to track A1.", "The c
 already unlinked.", "The clip is linked: Unlink it first.", "Select one video clip and one audio clip to link them.",
 "A selected clip is already linked: Unlink it first.", "Track … is locked.".
 
+Refined in Step 17.5 (linked editing; `TimelineEditService.Linked.cs`): no rule of its own — the partner is planned into the
+same `EditPlan` by the rule the edit applies, and a locked partner refuses the whole edit (L5). (1) The move rule: the
+service's `Validate` gives every clip the plan moves (frame count unchanged, start changed) its partner, moved by the same
+frames on its own track — so Move, the ripple shifts of Insert, Ripple Delete, Close Gap and ripple trims all take partners
+along (AQ4 / AQ7) and nothing else of the partner's track moves; a partner that then overlaps refuses the edit. A drag to
+another track with the pair selected (AQ1) changes the track of the clips of the target's kind only; the partner of the
+other kind moves in time. (2) Trim (AQ3): the partner's same edge by the same frames, by the trim rule with its own
+neighbours, dissolves and source; where one is limited both take the smaller change (also the drag preview);
+`TrimClip` / `PreviewTrim` gain `alone` for Alt + edge, which trims one clip by itself (R6: J / L cuts) — allowed even when
+the partner's track is locked, since the partner does not change. Q / W take the partners covering the playhead. (3) Ripple
+trim: the partner takes the same edge change (its start stays, its end moves by the same frames), limited by the room after
+it, since its track does not ripple (AQ4); in Shift+Q / Shift+W the video clip of a selected pair leads and the audio clip
+follows. (4) Split (AQ5): the partner covering the point is split too — also by Split under the playhead, which is then
+refused when that partner is locked; the two right parts get a new link, the left parts keep theirs; a partner not under
+the point stays linked to the left part. (5) Speed (AQ6): the partner takes the same speed in the same (mergeable) speed
+step, its frame count from its own source range. (6) Slip (AQ7): the same timeline frames, the nearer limit of the two.
+(7) Delete / Ripple Delete (AQ2): the partner goes too; Ripple Delete closes up each track by its own removed clips (a pair
+with a J / L offset may then move by different lengths on its two tracks — the D027 §2 rule per track). (8) Insert /
+Overwrite (AQ13): a clip they split or trim takes its partner along by the same insert / overwrite rule applied to the
+partner alone on its own track (nothing placed there); a clip Overwrite removes leaves its partner, link cleared (R5,
+AQ12). (9) Copy / Paste / Duplicate (R5): the clipboard copy keeps the link; both clips of a link pasted → a new link,
+one alone → unlinked.
+
 Status: Accepted (2026-10-08, product owner: variant A, L1–L7, AQ1–AQ13). R1–R13 are the pre-implementation audit's
 reading of the architecture (Step 17.2), checked by an independent review (PASS WITH NOTES; its notes taken in: R3's
 mix-order and dissolve-fade limits, `DeleteTrack` in R5, AQ11–AQ13). Steps and acceptance criteria:

@@ -199,8 +199,8 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId) => null;
         public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => No;
         public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => null;
-        public TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime) => No;
-        public (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime) => null;
+        public TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false) => No;
+        public (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false) => null;
         public TimelineEditResult Split(MediaTime at, IReadOnlyCollection<Guid>? clipIds = null) => No;
         public TimelineEditResult DeleteClips(IReadOnlyCollection<Guid> clipIds) => No;
         public TimelineEditResult RippleDeleteClips(IReadOnlyCollection<Guid> clipIds) => No;

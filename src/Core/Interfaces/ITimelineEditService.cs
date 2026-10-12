@@ -43,11 +43,11 @@ public interface ITimelineEditService
 
     /// <summary>Moves one edge of a clip to <paramref name="edgeTime"/> (snapped to the
     /// frame grid), clamped to neighbours, the source media and a one-frame minimum.</summary>
-    TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime);
+    TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false);
 
     /// <summary>Dry run of <see cref="TrimClip"/> for drag previews: the clamped timing the
     /// clip would get, or null if the trim isn't allowed.</summary>
-    (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime);
+    (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false);
 
     /// <summary>Splits clips at <paramref name="at"/> (snapped to the frame grid). With a
     /// non-empty <paramref name="clipIds"/> only those clips are split; otherwise every

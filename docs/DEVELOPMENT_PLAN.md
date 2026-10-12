@@ -88,7 +88,7 @@ and runs cleanly.
       audio clip explicitly (edited as one, the ripple keeping their offset, a locked partner refusing the whole edit),
       J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio tracks; Preview ↔
       export parity; `project.json` v4. Scope, steps and acceptance criteria: section below and DECISIONS.md D032 (product
-      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.4 done; AQ1–AQ13
+      owner decisions, 2026-10-08). *(branch `feat/phase-17-audio-editing`, from `79e4e78`; Steps 17.1–17.5 done; AQ1–AQ13
       answered (as proposed); checked after the product owner's acceptance)*
 
 ## Phase 9 — Quality: steps (D024)
@@ -1090,7 +1090,7 @@ Out of scope: D032 L7 and §6.
   `ExportEndToEnd.Tests`: the export before and after Unlink Audio byte for byte where no other sound overlaps (1×, a
   non-1× speed, fades, a dissolve on the video track per AQ11).
 
-### 17.5 — Linked editing
+### 17.5 — Linked editing *(done)*
 - PR: D032 R5, R6; AQ1–AQ7, AQ12, AQ13: move, move to a track, trim and the one-side trim, Q / W, ripple trim, slip, split, speed,
   delete, ripple delete, close gap, Insert / Overwrite ripple partners, copy / paste / duplicate, track delete and media
   removal clearing links; a locked partner refuses the whole edit; a partner that can't follow refuses with a message.
