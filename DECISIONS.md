@@ -3819,7 +3819,8 @@ refused when that partner is locked; the two right parts get a new link, the lef
 the point stays linked to the left part. (5) Speed (AQ6): the partner takes the same speed in the same (mergeable) speed
 step, its frame count from its own source range. (6) Slip (AQ7): the same timeline frames, the nearer limit of the two.
 (7) Delete / Ripple Delete (AQ2): the partner goes too; Ripple Delete closes up each track by its own removed clips (a pair
-with a J / L offset may then move by different lengths on its two tracks — the D027 §2 rule per track). (8) Insert /
+with a J / L offset may then move by different lengths on its two tracks — the D027 §2 rule per track; **replaced for linked
+clips by the product owner's change of 2026-10-12, below: both tracks close by the target clip's length**). (8) Insert /
 Overwrite (AQ13): a clip they split or trim takes its partner along by the same insert / overwrite rule applied to the
 partner alone on its own track (nothing placed there); a clip Overwrite removes leaves its partner, link cleared (R5,
 AQ12). (9) Copy / Paste / Duplicate (R5): the clipboard copy keeps the link; both clips of a link pasted → a new link,

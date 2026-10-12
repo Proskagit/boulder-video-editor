@@ -366,6 +366,22 @@ public class LinkedEditTests
     }
 
     [Fact]
+    public void Two_pairs_in_one_ripple_delete_each_close_by_their_own_target()
+    {
+        var (f, v, a, v2, a2) = TwoOffsetPairs();                            // targets: V (100 frames) and V2 (90)
+        Ok(f.Service.AddClip(f.Project.MediaAssets[0].Id, f.V1.Id, F(300)));
+        var music = f.Audio(30);
+        Ok(f.Service.AddClip(music.Id, f.A1.Id, F(300)));
+        var (laterV, laterA) = (f.V1.Clips[2], f.A1.Clips[2]);
+
+        Ok(f.Service.RippleDeleteClips(new[] { a.Id, v.Id, a2.Id, v2.Id }));   // the UI's order: partner, then primary
+
+        Assert.Equal(110L, Frames(laterV).Item1);                            // 300 − (100 + 90) on both tracks
+        Assert.Equal(110L, Frames(laterA).Item1);
+        f.AssertValid();
+    }
+
+    [Fact]
     public void With_both_clips_named_the_last_one_is_the_target()
     {
         var (f, v, a, v2, a2) = TwoOffsetPairs();

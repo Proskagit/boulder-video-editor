@@ -136,7 +136,11 @@ Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fa
   target of a J-cut pair with a later J-cut pair keeping its offset, Undo / Redo exact as one step, the target when both
   are named, the locked track and the overlap refusals, unlinked clips by their own lengths), `TimelineLinkUiTests` (the
   clicked clip is the target, Undo). Mutations caught (per-track lengths: 4 tests; the first named instead of the last:
-  1). Gates: build --no-incremental -warnaserror Release and Debug 0 / 0; the full suite 3029 passed, 2 skipped, 0 failed; --blame-hang-timeout 5m: runs 1 and 2 3029 / 2 / 0, run 3 aborted — the Video.Tests and ExportEndToEnd.Tests hosts stopped at the same instant in ffmpeg integration tests (their Sequence files, no failure, no hang dump; cause not determined), then three further full runs 3029 / 2 / 0 each, no abort; AIVE_HEAVY_TESTS=1 3031 / 0 / 0; git diff --check clean.
+  1). Gates: build --no-incremental -warnaserror Release and Debug 0 / 0; the full suite 3029 passed, 2 skipped, 0 failed; --blame-hang-timeout 5m: runs 1 and 2 3029 / 2 / 0, run 3 aborted — the Video.Tests and ExportEndToEnd.Tests hosts stopped at the same instant in ffmpeg integration tests (their Sequence files, no failure, no hang dump; cause not determined), then three further full `--blame-hang-timeout 5m` runs 3029 / 2 / 0 each, no abort; AIVE_HEAVY_TESTS=1 3031 / 0 / 0; git diff --check clean.
+  The audit of this change (`ba95614`, `3a4c488`): PASS WITH NOTES; its notes taken in — a test of two linked pairs in one
+  Ripple Delete (each closes by its own target; the per-track-lengths mutation caught), the pointer in D032's (7), the
+  wording above, the aborted run under Known issues. After that test-only addition: `--no-incremental -warnaserror`
+  0 / 0, the full suite 3030 passed, 2 skipped, 0 failed.
 
 ### Phase 16 — Source viewer & three-point editing (complete; PR #17 merged as `79e4e78`, CI green)
 
@@ -4046,7 +4050,7 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 ## Last known state
 
 2026-10-12: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`). Phase 17 (audio editing, D032) complete
-on `feat/phase-17-audio-editing` (closeout Step 17.9 and the Ripple Delete change; 3029 passed, 2 skipped); push and pull request on the product owner's
+on `feat/phase-17-audio-editing` (closeout Step 17.9 and the Ripple Delete change; 3030 passed, 2 skipped); push and pull request on the product owner's
 command. Open items: see "Known issues" (the real-device audio status check — now R10 of
 the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
 
@@ -4094,6 +4098,11 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 16 (accepted; PR #17 merged as `79e4e78` on 2026-10-08, CI green on the pull request and on `main`)
 
 ## Known issues
+
+- Test-host abort (watched, 2026-10-12): in one `--blame-hang` run of the Phase 17 gates the Video.Tests and
+  ExportEndToEnd.Tests hosts stopped at the same instant inside ffmpeg integration tests (their blame `Sequence` files; no
+  failed test, no hang dump; cause not determined); the next three full `--blame-hang` runs were clean. If it recurs,
+  capture the full `dotnet test` output (the abort line) and the hosts' exit codes.
 
 - Export codec leg (D023 Step 8, decision L1-c): decided in Phase 13 Step 13.8 — D028 "Refined in Step 13.8"
   (`ExportCodecLegTests`). Closed.

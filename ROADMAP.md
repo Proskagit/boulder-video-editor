@@ -72,7 +72,7 @@ plan's skeleton) done; AQ1–AQ13 answered as proposed; Steps 17.3 (model and `p
 Unlink), 17.5 (linked editing), 17.6 (audio crossfades), 17.7 (sound-only Insert / Overwrite) and 17.8 (UI) done. **Phase 17
 complete** on its branch: Step 17.9 closeout on 2026-10-12 — the real-app run (one layout defect found and fixed: the
 toolbar at 1024 px), the regression against the Phase 16 build (a Phase 16 save saved again differs only in
-`formatVersion`, the default export byte for byte, a v4 file refused by Phase 16), the gates green (passed 3029, skipped
+`formatVersion`, the default export byte for byte, a v4 file refused by Phase 16), the gates green (passed 3030, skipped
 2, failed 0; heavy 3031 / 0 / 0; after the independent review's test fixes and the product owner's Ripple Delete change of
 2026-10-12: a linked pair closes both tracks by its target clip's length). R10 (a real audio device): an open manual check,
 not blocking the pull request. Not yet merged: push and pull request
