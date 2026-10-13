@@ -25,7 +25,8 @@ public sealed class HdrLutStore : IHdrLutStore
     private readonly string _folder;
     private readonly ILogger<HdrLutStore> _logger;
     private readonly ConcurrentDictionary<string, Lazy<Task<string>>> _ready = new();
-    private int _cleaned;
+    private readonly object _cleanupLock = new();
+    private bool _cleaned;
 
     public HdrLutStore(string folder, ILogger<HdrLutStore> logger)
     {
@@ -49,8 +50,16 @@ public sealed class HdrLutStore : IHdrLutStore
     private string Prepare(HdrConversion conversion, string name)
     {
         Directory.CreateDirectory(_folder);
-        if (Interlocked.Exchange(ref _cleaned, 1) == 0)
-            RemoveStale();
+        // The clean-up runs once, before any write of this store: a preparation of another key waits for it here, so it
+        // never deletes that preparation's temporary file.
+        lock (_cleanupLock)
+        {
+            if (!_cleaned)
+            {
+                RemoveStale();
+                _cleaned = true;
+            }
+        }
 
         var path = Path.Combine(_folder, name);
         var bytes = Utf8.GetBytes(HdrLut.Generate(conversion));

@@ -75,6 +75,17 @@ Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization
   mutations caught. Gates: `dotnet build --no-incremental -warnaserror` 0 / 0; the full suite 3147 passed, 2 skipped (the
   4K scenes), 0 failed (Core 618, Timeline 782, Project 446, UI 660, Export 108, Rendering 58, Video 350, ExportEndToEnd
   125 + 2) — the Preview ↔ Export parity suite and the L1-c tests among them, unchanged.
+- Re-review of 18.3–18.5: PASS WITH NOTES; its notes fixed in 18.6 — the LUT store's clean-up runs once before any write
+  (two keys prepared at once could lose a temporary file), a thumbnail of a newly imported HDR file is made once (only
+  analysed videos count as seen by the colour check); tests for both (the coordinator's mutation caught).
+- Step 18.6 done — parity, export, measurement: `ExportEndToEnd.Tests/ExportHdrEndToEndTests` (HLG, PQ with HDR10): the
+  export canvas byte for byte the Preview's, its patches the rule within ΔE76 ≤ 0.74, the thumbnail's flat colours equal
+  to the export's (0.00 code values); the E2E harness's decoders share one LUT store (as the app). `HdrMedia` (with
+  `DeltaE`) linked into ExportEndToEnd. M (in-app, the app's decoder + LUT store on the Vivo 4K 60 fps clip, 600 frames,
+  software): SDR graph at the export bound 12.7 fps, HDR 12.5 fps — the 4K cost is the BGRA pipe, not the conversion; the
+  Preview bound SDR 159 fps, HDR 162 fps, HDR with `-hwaccel auto` 182 fps; the LUT prepared in 208 ms. Hardware vs
+  software (HQ5): 20 / 20 frames identical byte for byte on the Vivo and the Huawei clip at both bounds (`dxva2`, this
+  machine). Scratch measurement program outside the repository.
 
 ### Phase 17 — Audio editing (complete; PR #18 merged as `fa96468`, CI green)
 

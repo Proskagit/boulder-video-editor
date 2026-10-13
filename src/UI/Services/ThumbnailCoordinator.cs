@@ -42,7 +42,9 @@ public sealed class ThumbnailCoordinator : MediaCacheCoordinator<Thumbnail>
     private void RestartWhereColourChanged()
     {
         var changed = new List<Guid>();
-        foreach (var asset in _projects.Current.MediaAssets.Where(a => a.Kind == MediaKind.Video))
+        // Only analysed videos count as seen: a new import's first thumbnail is made once, with its colour already known.
+        foreach (var asset in _projects.Current.MediaAssets.Where(a =>
+                     a.Kind == MediaKind.Video && a.AnalysisStatus == MediaAnalysisStatus.Completed && a.Metadata is not null))
         {
             var colour = HdrColor.Classify(asset.Kind, asset.Metadata).Conversion;
             if (_colour.TryGetValue(asset.Id, out var before) && before != colour)

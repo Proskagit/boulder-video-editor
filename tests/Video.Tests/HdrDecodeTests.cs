@@ -79,23 +79,6 @@ public sealed class HdrDecodeTests : IDisposable
         return output.Select(v => v * 255).ToArray();
     }
 
-    /// <summary>CIE76 between two BT.709 R'G'B' (0–255) colours displayed with gamma 2.4.</summary>
-    internal static double DeltaE(double[] a, double[] b)
-    {
-        static (double L, double A, double B) Lab(double[] rgb)
-        {
-            var (r, g, b) = (Math.Pow(rgb[0] / 255, 2.4), Math.Pow(rgb[1] / 255, 2.4), Math.Pow(rgb[2] / 255, 2.4));
-            var x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047;
-            var y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-            var z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883;
-            static double F(double t) => t > 0.008856 ? Math.Cbrt(t) : 7.787 * t + 16.0 / 116;
-            return (116 * F(y) - 16, 500 * (F(x) - F(y)), 200 * (F(y) - F(z)));
-        }
-        var (l1, a1, b1) = Lab(a);
-        var (l2, a2, b2) = Lab(b);
-        return Math.Sqrt((l1 - l2) * (l1 - l2) + (a1 - a2) * (a1 - a2) + (b1 - b2) * (b1 - b2));
-    }
-
     // --- arguments -----------------------------------------------------------------------------------------------
 
     [Fact]
@@ -165,7 +148,7 @@ public sealed class HdrDecodeTests : IDisposable
         {
             var actual = Mean(frame, patch);
             var expected = Expected(hdr, patch);
-            var de = DeltaE(actual, expected);
+            var de = HdrMedia.DeltaE(actual, expected);
             _output.WriteLine($"{name} {HdrMedia.Describe(patch)}: actual {string.Join(",", actual.Select(v => v.ToString("0.0")))} " +
                               $"expected {string.Join(",", expected.Select(v => v.ToString("0.0")))} dE {de:0.00}");
             Assert.True(de <= 1.0, $"{name} {HdrMedia.Describe(patch)}: ΔE76 {de:0.00}");
@@ -181,7 +164,7 @@ public sealed class HdrDecodeTests : IDisposable
         // The washed-out picture of Phase 17 (D033 "Context"): the HDR graph really changes the output.
         var hdr = await First(Decoder(Store()), Request(HdrMedia.Hlg, HdrConversion.Hlg()));
         var sdr = await First(Decoder(Store()), Request(HdrMedia.Hlg, null));
-        var largest = Enumerable.Range(0, HdrMedia.Patches.Length).Max(p => DeltaE(Mean(hdr, p), Mean(sdr, p)));
+        var largest = Enumerable.Range(0, HdrMedia.Patches.Length).Max(p => HdrMedia.DeltaE(Mean(hdr, p), Mean(sdr, p)));
         _output.WriteLine($"largest ΔE76 between the HDR and the SDR path: {largest:0.0}");
         Assert.True(largest > 10, $"largest ΔE76 {largest:0.0}");
     }
@@ -201,7 +184,7 @@ public sealed class HdrDecodeTests : IDisposable
     {
         var folder = Path.Combine(_dir, "Pröbe O'Brien, [x]; y");
         var frame = await First(Decoder(Store(folder)), Request(HdrMedia.Hlg, HdrConversion.Hlg()));
-        Assert.True(DeltaE(Mean(frame, 0), Expected(HdrConversion.Hlg(), 0)) <= 1.0);
+        Assert.True(HdrMedia.DeltaE(Mean(frame, 0), Expected(HdrConversion.Hlg(), 0)) <= 1.0);
         Assert.Single(Directory.GetFiles(folder, "*.cube"));
     }
 

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 
 namespace AiVideoEditor.Video.Tests;
@@ -7,7 +8,7 @@ namespace AiVideoEditor.Video.Tests;
 /// 320 × 180, 10 frames at 25 fps, 10-bit HEVC (lossless, so the only error left is the 8-bit → 10-bit Y'CbCr step),
 /// eight flat patches of known <b>signal</b> R'G'B' values (4 columns × 2 rows of 80 × 90 px). The tags say which
 /// transfer / primaries / matrix the signal is in; nothing is converted, so a patch's expected SDR output is
-/// <c>HdrToSdr.Convert</c> of its signal.
+/// <c>HdrToSdr.Convert</c> of its signal. Also linked into ExportEndToEnd.Tests.
 /// </summary>
 internal static class HdrMedia
 {
@@ -68,7 +69,7 @@ internal static class HdrMedia
             var path = Path.Combine(Dir, name);
             // RGB signal → Y'CbCr with the BT.2020 / BT.709 matrix and limited range; the transfer is only a tag.
             var matrixName = matrix == "bt709" ? "709" : "2020_ncl";
-            TestMedia.Run(FfmpegTools.Ffmpeg!, new[]
+            Run(new[]
             {
                 "-hide_banner", "-loglevel", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24",
                 "-s", $"{Width}x{Height}", "-r", "25", "-i", raw,
@@ -93,6 +94,35 @@ internal static class HdrMedia
             (frame[i], frame[i + 1], frame[i + 2]) = (patch.R, patch.G, patch.B);
         }
         return Enumerable.Repeat(frame, count).SelectMany(f => f).ToArray();
+    }
+
+    /// <summary>CIE76 between two BT.709 R'G'B' (0–255) colours displayed with gamma 2.4.</summary>
+    public static double DeltaE(double[] a, double[] b)
+    {
+        static (double L, double A, double B) Lab(double[] rgb)
+        {
+            var (r, g, b) = (Math.Pow(rgb[0] / 255, 2.4), Math.Pow(rgb[1] / 255, 2.4), Math.Pow(rgb[2] / 255, 2.4));
+            var x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047;
+            var y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            var z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883;
+            static double F(double t) => t > 0.008856 ? Math.Cbrt(t) : 7.787 * t + 16.0 / 116;
+            return (116 * F(y) - 16, 500 * (F(x) - F(y)), 200 * (F(y) - F(z)));
+        }
+        var (l1, a1, b1) = Lab(a);
+        var (l2, a2, b2) = Lab(b);
+        return Math.Sqrt((l1 - l2) * (l1 - l2) + (a1 - a2) * (a1 - a2) + (b1 - b2) * (b1 - b2));
+    }
+
+    /// <summary>Runs ffmpeg; its own runner, since the copy linked into ExportEndToEnd.Tests has no other helper.</summary>
+    private static void Run(IEnumerable<string> args)
+    {
+        var start = new ProcessStartInfo(FfmpegTools.Ffmpeg!) { RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true };
+        foreach (var arg in args) start.ArgumentList.Add(arg);
+        using var process = Process.Start(start)!;
+        var stderr = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        if (process.ExitCode != 0)
+            throw new InvalidOperationException($"ffmpeg failed ({process.ExitCode}): {stderr}");
     }
 
     public static string Describe(int patch) =>

@@ -1200,7 +1200,7 @@ Out of scope: D033 §7.
   decoded within ΔE76 ≤ 1 of the reference, neutral patches neutral; the LUT cache (one file per key, concurrent first use,
   a broken file regenerated); `Export.Tests` for the preflight rule.
 
-### 18.6 — Parity, export and measurement
+### 18.6 — Parity, export and measurement *(done)*
 - PR: the Preview, the thumbnail and the export of an HLG and a PQ scene equal on flat patches within 1 LSB; SDR output
   unchanged.
 - QG: `ExportEndToEnd.Tests` (HLG, PQ scenes; the existing scenes unchanged); M: in-app decode / export throughput of a 4K

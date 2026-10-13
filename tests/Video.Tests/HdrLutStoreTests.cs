@@ -50,6 +50,22 @@ public sealed class HdrLutStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task Two_keys_prepared_at_once_in_a_folder_with_stale_files_both_succeed()
+    {
+        // The first use cleans up; it must never remove the other key's temporary file (re-review note, 18.5).
+        for (var round = 0; round < 5; round++)
+        {
+            Directory.CreateDirectory(_folder);
+            File.WriteAllText(Path.Combine(_folder, $"{HdrLut.FilePrefix}{HdrToSdr.RuleVersion + 9}-pq-1000.cube"), "old");
+            var store = Store();
+            var paths = await Task.WhenAll(
+                Task.Run(() => store.GetLutPathAsync(HdrConversion.Hlg())),
+                Task.Run(() => store.GetLutPathAsync(new HdrConversion(HdrTransfer.Pq, 1000 + round, false))));
+            Assert.All(paths, p => Assert.True(File.Exists(p), p));
+        }
+    }
+
+    [Fact]
     public async Task A_damaged_file_is_written_again_in_the_next_session()
     {
         var path = await Store().GetLutPathAsync(HdrConversion.Hlg());

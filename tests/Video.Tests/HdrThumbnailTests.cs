@@ -72,7 +72,7 @@ public sealed class HdrThumbnailTests : IDisposable
             var (r, g, b) = HdrMedia.Patches[patch];
             var expected = new double[3];
             HdrToSdr.Convert(HdrTransfer.Hlg, 1000, new[] { r / 255.0, g / 255.0, b / 255.0 }, expected);
-            Assert.True(HdrDecodeTests.DeltaE(Patch(hdr!, patch), expected.Select(v => v * 255).ToArray()) <= 1.5,
+            Assert.True(HdrMedia.DeltaE(Patch(hdr!, patch), expected.Select(v => v * 255).ToArray()) <= 1.5,
                 $"patch {patch}");   // a 160 × 90 thumbnail: the patches' edges are scaled in
         }
     }

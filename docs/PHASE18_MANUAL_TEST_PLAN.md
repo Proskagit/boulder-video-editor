@@ -36,8 +36,8 @@ Status column — kinds of evidence, never mixed:
 | 5 | The five clips in the Preview at the reference moments | Not washed out; skin, the gym wall, the holds and the blue cloth as in the pre-flight's L2 renders; no banding in skies and walls | planned | planned |
 | 6 | Bright light sources (the sun, lamps, the window, the TV) | White, without coloured fringes or posterized edges | planned | planned |
 | 7 | Thumbnails of the five clips | The same look as the Preview (regenerated once after the update) | `HdrThumbnailTests` (the rule's colours, the name), `ThumbnailCoordinatorTests` (made again after the probe) | auto (18.5) |
-| 8 | Export a timeline with the five clips; compare frames with the Preview | The same picture (flat areas within 1 code value) | planned | planned |
-| 9 | Hardware decoding on / the software fallback | The same picture | — (the shared graph after the download; equality measured in 18.6) | planned |
+| 8 | Export a timeline with the five clips; compare frames with the Preview | The same picture (flat areas within 1 code value) | `ExportHdrEndToEndTests` (synthetic HLG / PQ: byte for byte; thumbnail 0.00) | auto (18.6); the real clips: planned |
+| 9 | Hardware decoding on / the software fallback | The same picture | M 18.6: 20 / 20 frames identical (Vivo, Huawei; dxva2) | measured (18.6); the app: planned |
 | 10 | A portrait clip at 1024 px (odd Preview bound) | Decodes and shows (sizes made even) | `HdrDecodeTests.An_odd_Preview_bound_gives_even_frame_sizes` | auto (18.5) |
 | 11 | Export while an HDR clip's colour is still unknown (old project, probe running) | The preflight blocks with the existing "still being analysed" reason, then exports after the probe | planned | planned |
 | 11a | Export of an old project with an untagged SDR clip, and with ffprobe missing | Never blocked; the output as in Phase 17 (D033 T3) | planned | planned |

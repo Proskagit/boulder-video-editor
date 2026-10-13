@@ -292,11 +292,15 @@ public static class EndToEnd
         return result.Job!;
     }
 
+    /// <summary>The HDR → SDR LUTs (D033) for the export's and the Preview's decoders, as the app shares one store.</summary>
+    public static readonly AiVideoEditor.Media.Caching.HdrLutStore Luts =
+        new(Path.Combine(Path.GetTempPath(), "aive-e2e-luts"), NullLogger<AiVideoEditor.Media.Caching.HdrLutStore>.Instance);
+
     public static ExportService Service(IExportEncoder encoder, IFfmpegLocator? locator = null)
     {
         locator ??= FfmpegTools.FfmpegLocator;
         return new ExportService(locator,
-            new FfmpegVideoDecoder(locator, NullLogger<FfmpegVideoDecoder>.Instance),
+            new FfmpegVideoDecoder(locator, NullLogger<FfmpegVideoDecoder>.Instance, luts: Luts),
             new FfmpegAudioDecoder(locator, NullLogger<FfmpegAudioDecoder>.Instance),
             encoder, () => new AvaloniaCompositionRasterizer(), NullLogger<ExportService>.Instance);
     }
@@ -381,7 +385,7 @@ public static class EndToEnd
     /// <paramref name="viewportWidth"/> × <paramref name="viewportHeight"/> control (the canvas "contained" in it).</summary>
     public static async Task<Image> Preview(PlaybackSnapshot snapshot, long n, int? viewportWidth = null, int? viewportHeight = null)
     {
-        var decoder = new FfmpegVideoDecoder(FfmpegTools.FfmpegLocator, NullLogger<FfmpegVideoDecoder>.Instance);
+        var decoder = new FfmpegVideoDecoder(FfmpegTools.FfmpegLocator, NullLogger<FfmpegVideoDecoder>.Instance, luts: Luts);
         await using var pipeline = new VideoPipeline(snapshot, 1, n, decoder,
             new PlaybackSettings { Hardware = HardwareDecoding.Disabled }, NullLogger.Instance);
         var watch = Stopwatch.StartNew();

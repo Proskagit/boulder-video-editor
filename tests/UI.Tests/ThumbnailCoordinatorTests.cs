@@ -207,12 +207,25 @@ public sealed class ThumbnailCoordinatorTests : IDisposable
         await Settle();
         Assert.Equal(2, _thumbnails.Makes.Count);
 
+        var imported = Video("hdr.mp4", status: MediaAnalysisStatus.Analyzing);  // an HDR file imported: analysed later
+        _projects.AddMediaAssets(new[] { imported });
+        await Settle();
+        imported.Metadata = new MediaMetadata
+        {
+            Duration = MediaTime.FromSeconds(10), Width = 64, Height = 36, PixelFormat = "yuv420p10le", BitDepth = 10,
+            ColorTransfer = "smpte2084", ColorPrimaries = "bt2020", ColorMatrix = "bt2020nc"
+        };
+        imported.AnalysisStatus = MediaAnalysisStatus.Completed;
+        _projects.NotifyMediaAssetsChanged();
+        await Settle();
+        Assert.Equal(3, _thumbnails.Makes.Count);                           // made once, not again for "null → PQ"
+
         var sdr = Import(1)[0];                                              // a probe that finds SDR changes nothing
         await Settle();
         (sdr.Metadata!.PixelFormat, sdr.Metadata.BitDepth) = ("yuv420p", 8);
         _projects.NotifyMediaAssetsChanged();
         await Settle();
-        Assert.Equal(3, _thumbnails.Makes.Count);
+        Assert.Equal(4, _thumbnails.Makes.Count);
     }
 
     [Fact]
