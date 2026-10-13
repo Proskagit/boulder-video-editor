@@ -4169,6 +4169,41 @@ graph is not changed (its arguments byte for byte as before).
   - If any criterion fails, the step stops: the measured results and the options to fix it are presented to the
     product owner; no option — a larger LUT, a shaper curve before the LUT, a change of the graph — is chosen without
     the product owner's decision.
+  - **Refined after Step 18.9 (product owner, 2026-10-14) — for HLG; S1, the 65³ LUT and tetrahedral interpolation
+    unchanged.** Step 18.9 stopped on C3 / C4 and the 1.1 domain; a study (dense random sampling, real frames; outside
+    the repository) located the LUT's error at the kinks of the rule itself — where the largest channel of max(R, G, B)
+    changes while the knee is active, at the top clamp, at the clamp to 0 of out-of-gamut colours — and found it
+    accurate wherever the rule is smooth (real frames ≤ 0.61 code). The criteria, as now binding for HLG:
+    - **C1, C2** unchanged (measured 0 and ≤ 0.20 code).
+    - **C3** unchanged (≤ 0.5 neutral / ≤ 1.0 coloured) on every sample whose LUT cell is smooth for the rule (measured
+      0.05 / 0.20). **Exception, ≤ 1.0 code:** samples whose LUT cell crosses the clip — one of the cell's eight nodes
+      (65³ grid) has a channel whose value before the clamp of step 9 is ≥ 1, so the rule has a kink inside that
+      cell and the linear interpolation cuts its corner (error ≈ slope jump × cell size / 4). Applies to C3 only, only
+      to those cells; measured 0.52 (the brightest superwhite, code 1019: 254.48 instead of 255; the cool ramp near
+      code 1004).
+    - **C4:** the neutral ramp strictly non-decreasing and neutral (unchanged; measured 0 drops); on every ramp no
+      reversal of the 8-bit output code where the rule does not decrease (measured 0) and the largest channel never
+      decreasing (measured 0); a non-largest channel may drop in float by **≤ 0.1 code** — a tenth of an 8-bit step,
+      below what the 8-bit output can show, and the reversal check above still catches any visible one. Measured: ≤
+      0.0094 code, only where that channel of the rule is nearly constant (its step ≤ 0.014 code per input code) — the
+      piecewise-linear pieces of the tetrahedra there take the opposite sign; each drop is smaller than the LUT's own
+      absolute error at the point.
+    - **C5**, synthetic saturated / gamut-edge colours (ΔE76 ≤ 1.5; measured 1.21) and real 4K crops (ΔE76 ≤ 1.0;
+      measured 0.72) unchanged.
+    - **The 1.1 domain:** the threshold ΔE76 ≤ 2.0 kept; the measured 2.001 is recorded as a borderline deviation in a
+      cell that crosses the clip (a yellow-green superwhite), not a reason to change the threshold.
+    - **Real footage (a bench criterion, added):** the application's LUT against the rule on every pixel of 39 frames —
+      three per clip (20 / 50 / 80 % of the duration) of the product owner's 13 HLG clips, area-scaled to 1920 on the
+      long side, float output — **not every frame of the videos**. Criterion: max ΔE76 < 2.3, the distribution recorded.
+      Measured: 80.9 M pixels, max e 3.84 code, p99.99 2.13, e > 1 code 0.17 %, **e > 2 codes 0.014 %**, **max ΔE76
+      1.65**, no pixel ≥ 2.3; by cell: smooth (86.2 % of the pixels) ≤ 0.61 code / ΔE 0.13; the max(R, G, B) ridge
+      (13.1 %) ≤ 3.40 / 1.65; the top clip (0.018 %) ≤ 3.84 / 1.53; the clamp to 0 (0.67 %) ≤ 2.01 / 0.12. ΔE76 < 2.3 is a
+      bench threshold, **not a guarantee that a difference is invisible**; the visual check of the application's export
+      remains required (Step 18.12).
+    - PQ: the same bench (the ramps, synthetic colours, PQ derived from the HLG frames) shows larger errors at the clip
+      (C3 up to 3.9 codes at `Lpeak` 203, synthetic ΔE76 up to 7.0); these are properties of the algorithm on synthetic
+      data, **not evidence about real PQ video**. PQ is not verified on real PQ footage (§8); no PQ criterion is
+      relaxed or declared passed.
 - PQ peak: MaxCLL wins; mastering maximum when MaxCLL is 0 / absent; 1000 when both absent; the limits 203 / 10 000.
 - LUT generator: 65³ entries, the order, `DOMAIN_*` lines, two generations byte-identical, nodes equal to the rule, the
   name changes with the rule version and the key.
@@ -4217,6 +4252,14 @@ other decoder limitations of `progress.md`.
 - *(R1)* Shadows are deep (the BT.709 OETF's linear toe at −0.55 EV; reference p5 L\* ≈ 4, the same as the phone's
   rendition); a "texture loss" in dark clothes was noted for a darker variant (−0.5 EV) during the comparison.
 - *(R1)* The Huawei clips (HDR Vivid) and other phones were judged visually only, not against a phone-made SDR reference.
+- *(R1, Step 18.9)* HLG through the 65³ LUT: the LUT's error lies mostly at the kinks of the rule — where the largest
+  channel of max(R, G, B) changes with the knee active, at the top clamp, at the clamp to 0 — up to 3.8 codes there
+  (ΔE76 ≤ 1.65, 0.014 % of the measured pixels > 2 codes); the brightest superwhite (code 1019) may come out as 254
+  instead of 255. Measured on 39 frames (three per clip) of the 13 clips, not on every frame; the product owner's visual
+  check of the application's export is still to be done (Step 18.12).
+- *(R1)* **PQ is not verified on real PQ footage.** Its results come from synthetic tests and from PQ data derived from
+  the HLG clips; they do not show the quality on real PQ video, and full PQ support is **not** considered confirmed. The
+  PQ implementation and its tests are kept as they are.
 - The CI's pinned ffmpeg (the same 9.0.1 essentials build) has `libx265`, `zscale` and `lut3d`, so the synthetic HDR
   fixtures need no new skip; without ffmpeg the Video tests skip as today (ARCHITECTURE CI section).
 
@@ -4326,8 +4369,10 @@ The superseded rule L2 (rule version 1, implemented in `bb7da2e`–`b321087`), f
 BT.2100 OOTF on luminance (Lw 1000, γ 1.2) → ÷ 203 → BT.2020 → BT.709 → RGC → mobius j 0.3 on max RGB, peak 1000 / 203
 (PQ: `Lpeak` / 203, no OOTF) → clamp → `L^(1/2.4)`; HLG 75 % → 217.
 
-Status of R1: **proposed** (2026-10-13) — the rule chosen by the product owner; this text and the implementation plan
-(docs/DEVELOPMENT_PLAN.md, Steps 18.9–18.12) await the product owner's approval. Implementation not started.
+Status of R1: **accepted** — the text and the plan (docs/DEVELOPMENT_PLAN.md, Steps 18.9–18.12) approved by the product
+owner (docs committed as `1e07a73`, 2026-10-13); Step 18.9 stopped on the LUT accuracy criteria, the product owner
+accepted S1 with the 65³ LUT for HLG and refined the criteria (§5 "Refined after Step 18.9", 2026-10-14); PQ stays
+unverified on real footage (§8). Steps 18.10–18.12 follow.
 
 ---
 

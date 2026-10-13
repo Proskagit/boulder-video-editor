@@ -1223,7 +1223,7 @@ Out of scope: D033 §7.
 - Documentation: ARCHITECTURE (the colour rule, the LUT cache, the decode graph), D033 refinements and status, ROADMAP,
   README, `progress.md`, this plan's checkbox.
 
-### Revision R1 — the colour rule S1 (D033 Revision R1) *(proposed 2026-10-13; awaiting the product owner's approval)*
+### Revision R1 — the colour rule S1 (D033 Revision R1) *(approved 2026-10-13, docs `1e07a73`; 18.9 criteria refined 2026-10-14)*
 
 The product owner's visual check of the L2 export failed; after the measurement series the product owner chose S1
 ("Telegram-match-sat100", D033 §3 as revised). The steps below replace the rule and only what depends on it, on the
@@ -1270,6 +1270,16 @@ produces. A step whose criterion fails stops and is reported, not loosened.
   equal the §3 values for both settings (e.g. 501 nit → 254.97 / 254.79, 502 nit and above → 255 / 255); continuity —
   for every neutral input 0.05–1000 nit the two settings differ by ≤ 0.25 code (measured 0.18) and each is monotonic
   in the input; the same two cases through the LUT within the accuracy criteria.
+- **Refined after the stop (product owner, 2026-10-14; D033 §5 "Refined after Step 18.9").** 18.9 stopped on C3 / C4
+  and the 1.1 domain (HLG) and on C3–C5 / synthetic (PQ). Accepted for HLG with S1, the 65³ LUT and tetrahedral
+  interpolation unchanged; the binding HLG criteria: C1, C2, C5, synthetic, 4K crops unchanged; C3 unchanged in smooth
+  cells, ≤ 1.0 code only in LUT cells that cross the clip (a node with a pre-clamp channel ≥ 1); C4 — neutral strict, no
+  8-bit reversal, the largest channel never decreasing, a non-largest channel's float drop ≤ 0.1 code; the 1.1 domain
+  ΔE76 ≤ 2.0 kept (2.001 recorded as a borderline deviation in a clip cell); added: the real-footage bench (39 frames,
+  three per clip of the 13 HLG clips, not every frame) max ΔE76 < 2.3 with the distribution recorded (measured 1.65, e >
+  2 codes 0.014 %) — a bench threshold, not a guarantee of invisibility; the visual check stays in 18.12. PQ: the bench
+  results (synthetic, PQ derived from HLG) recorded, not passed; PQ not verified on real footage (D033 §8). No other
+  option (a larger LUT, another curve) taken.
 
 #### 18.10 — Decoder, cache keys, thumbnails
 - PR: the decode graph unchanged except the LUT file name (`hdr-r2-…`); the LUT store's start-up clean-up removes the
