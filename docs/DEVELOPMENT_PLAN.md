@@ -1206,7 +1206,7 @@ Out of scope: D033 §7.
 - QG: `ExportEndToEnd.Tests` (HLG, PQ scenes; the existing scenes unchanged); M: in-app decode / export throughput of a 4K
   HLG clip (software and hardware) recorded, no pass / fail (HQ6).
 
-### 18.7 — UI
+### 18.7 — UI *(done; the real-app check in the closeout run)*
 - PR: the Inspector's colour line placed and checked at 1024 / 1440 px; no switch (HQ4).
 - QG: `UI.Tests`; real app.
 

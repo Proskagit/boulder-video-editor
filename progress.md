@@ -86,6 +86,9 @@ Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization
   Preview bound SDR 159 fps, HDR 162 fps, HDR with `-hwaccel auto` 182 fps; the LUT prepared in 208 ms. Hardware vs
   software (HQ5): 20 / 20 frames identical byte for byte on the Vivo and the Huawei clip at both bounds (`dxva2`, this
   machine). Scratch measurement program outside the repository.
+- Step 18.7 done — UI: the Inspector's "Color" row (18.4) — its value text now wraps (the longest, "HDR · HLG · BT.2020 ·
+  10-bit · Dolby Vision 8.4 (not applied)", is wider than the 300 px Inspector); no switch (HQ4); the OQ1 warning uses the
+  export's existing warnings dialog. UI 660 / 0. The real-app check at 1024 / 1440 px: closeout run.
 
 ### Phase 17 — Audio editing (complete; PR #18 merged as `fa96468`, CI green)
 
