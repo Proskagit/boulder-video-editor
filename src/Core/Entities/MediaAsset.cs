@@ -111,4 +111,42 @@ public sealed class MediaMetadata
     public int? AudioChannels { get; set; }
     public int? AudioSampleRate { get; set; }
     public long? BitrateBps { get; set; }
+
+    // Colour of the video / image stream (D033 T1), as ffprobe names it. Null when the file does not state it.
+
+    /// <summary>The decoded pixel format, e.g. <c>yuv420p10le</c>. Every stream analysed since Phase 18 has one: its
+    /// absence on video metadata marks metadata saved before colour was probed (<see cref="NeedsColorProbe"/>).</summary>
+    public string? PixelFormat { get; set; }
+
+    /// <summary>Bits per component, from <see cref="PixelFormat"/>; null when unknown.</summary>
+    public int? BitDepth { get; set; }
+
+    /// <summary>Transfer characteristics, e.g. <c>bt709</c>, <c>arib-std-b67</c> (HLG), <c>smpte2084</c> (PQ).</summary>
+    public string? ColorTransfer { get; set; }
+
+    /// <summary>Colour primaries, e.g. <c>bt709</c>, <c>bt2020</c>.</summary>
+    public string? ColorPrimaries { get; set; }
+
+    /// <summary>Matrix coefficients (ffprobe's <c>color_space</c>), e.g. <c>bt709</c>, <c>bt2020nc</c>.</summary>
+    public string? ColorMatrix { get; set; }
+
+    /// <summary><c>tv</c> (limited) or <c>pc</c> (full).</summary>
+    public string? ColorRange { get; set; }
+
+    /// <summary>The mastering display's maximum luminance in nit (HDR10 static metadata); null when absent.</summary>
+    public double? MasteringMaxLuminance { get; set; }
+
+    /// <summary>MaxCLL in nit (content light level); null when absent. 0 means "not set" in the file.</summary>
+    public int? MaxContentLightLevel { get; set; }
+
+    /// <summary>The Dolby Vision profile of the stream's configuration record; null when there is none. Shown only: the
+    /// dynamic metadata is not applied (D033 HQ1).</summary>
+    public int? DolbyVisionProfile { get; set; }
+
+    /// <summary>The stream carries HDR Vivid (CUVA) dynamic metadata. Shown only: not applied (D033 HQ1).</summary>
+    public bool HasHdrVivid { get; set; }
+
+    /// <summary>True for picture metadata saved before Phase 18 — a coded size but no pixel format. Such video is probed
+    /// again in the background when it is available (D033 T3).</summary>
+    public bool NeedsColorProbe => Width is not null && Height is not null && PixelFormat is null;
 }
