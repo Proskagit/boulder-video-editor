@@ -79,7 +79,7 @@ public sealed class MediaAnalysisCoordinator
                 QueueAnalysis(asset);
                 queued++;
             }
-            else if (asset.AnalysisStatus == MediaAnalysisStatus.Completed && asset.Metadata is { NeedsDisplaySizeProbe: true })
+            else if (asset.AnalysisStatus == MediaAnalysisStatus.Completed && NeedsRefresh(asset))
             {
                 RefreshDisplaySize(asset);
                 queued++;
@@ -88,6 +88,11 @@ public sealed class MediaAnalysisCoordinator
         if (queued > 0)
             _logger.LogInformation("Analysing {Count} media file(s) that are available again.", queued);
     }
+
+    /// <summary>Saved metadata that lacks what a later phase reads: the display size (before Phase 7, D019) or, for a video,
+    /// the colour (before Phase 18, D033 T3).</summary>
+    private static bool NeedsRefresh(MediaAsset asset) =>
+        asset.Metadata is { } m && (m.NeedsDisplaySizeProbe || (asset.Kind == MediaKind.Video && m.NeedsColorProbe));
 
     /// <summary>The asset is no longer what an analysis started for: its file is missing now, or it has another path.</summary>
     private static bool ChangedSince(MediaAsset asset, string path) =>
@@ -130,7 +135,7 @@ public sealed class MediaAnalysisCoordinator
                 QueueAnalysis(asset);
                 queued++;
             }
-            else if (asset.AnalysisStatus == MediaAnalysisStatus.Completed && asset.Metadata is { NeedsDisplaySizeProbe: true })
+            else if (asset.AnalysisStatus == MediaAnalysisStatus.Completed && NeedsRefresh(asset))
             {
                 RefreshDisplaySize(asset);
                 queued++;
@@ -140,15 +145,16 @@ public sealed class MediaAnalysisCoordinator
     }
 
     /// <summary>
-    /// Metadata saved before orientation was probed (Phase 7) has a coded size but no display size.
-    /// Probes the file again in the background without changing the asset's state: the asset stays
-    /// Completed and usable, a successful probe replaces its metadata (a runtime refresh — the project
+    /// Metadata saved before orientation was probed (Phase 7) has a coded size but no display size; a video's metadata
+    /// saved before Phase 18 has no colour (D033 T3). Probes the file again in the background without changing the
+    /// asset's state: the asset stays Completed and usable, a successful probe replaces its metadata (a runtime refresh — the project
     /// does not become dirty), a failed one keeps the saved metadata and is only logged.
     /// </summary>
     private void RefreshDisplaySize(MediaAsset asset)
     {
         if (!_inFlight.TryAdd(asset, 0))
             return;
+        asset.IsMetadataRefreshing = true;   // the export preflight waits while a video's colour is unknown (D033 T3)
         Track(RefreshDisplaySizeAsync(asset, asset.FilePath, _generation.Token));
     }
 
@@ -191,6 +197,9 @@ public sealed class MediaAnalysisCoordinator
         finally
         {
             if (slot) _slots.Release();
+            // Success or not, the probe is over: a failed one leaves the saved metadata, and the asset is treated as
+            // before Phase 18 (SDR) — the export never waits for it again.
+            asset.IsMetadataRefreshing = false;
             _inFlight.TryRemove(asset, out _);
         }
     }

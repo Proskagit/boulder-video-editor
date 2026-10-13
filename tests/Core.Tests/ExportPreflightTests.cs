@@ -409,4 +409,88 @@ public class ExportPreflightTests
 
         Assert.Empty(Check().Issues);
     }
+
+    // --- HDR (Phase 18, D033 T3 and OQ1) ----------------------------------------------------------------
+
+    private static void Colour(MediaAsset asset, string? transfer, string? primaries = "bt2020", string? matrix = "bt2020nc",
+        string pixelFormat = "yuv420p10le")
+    {
+        var m = asset.Metadata!;
+        (m.PixelFormat, m.BitDepth) = (pixelFormat, Color.HdrColor.BitDepthOf(pixelFormat));
+        (m.ColorTransfer, m.ColorPrimaries, m.ColorMatrix, m.ColorRange) = (transfer, primaries, matrix, "tv");
+    }
+
+    [Fact]
+    public void A_video_whose_colour_probe_is_pending_blocks_until_the_probe_is_over()
+    {
+        var video = Asset(MediaKind.Video);           // saved before Phase 18: no pixel format
+        video.IsMetadataRefreshing = true;
+        var clip = Add(_v1, new VideoClip { MediaAssetId = video.Id }, 0, 50);
+
+        var issue = Only(Check(), ExportIssueKind.MediaNotAnalyzed);
+        Assert.Equal(new[] { clip.Id }, issue.ClipIds);
+        Assert.Contains("has not been analysed yet", issue.Message);
+
+        video.IsMetadataRefreshing = false;            // the probe ended — failed or not: never waited for again
+        Assert.True(Check().CanExport);
+    }
+
+    [Fact]
+    public void A_refresh_of_a_video_whose_colour_is_known_does_not_block()
+    {
+        var video = Asset(MediaKind.Video);
+        Colour(video, "bt709", "bt709", "bt709", "yuv420p");
+        video.IsMetadataRefreshing = true;             // e.g. the Phase 7 display-size refresh
+        Add(_v1, new VideoClip { MediaAssetId = video.Id }, 0, 50);
+
+        Assert.True(Check().CanExport);
+    }
+
+    [Fact]
+    public void An_unsupported_HDR_variant_is_a_warning_naming_the_file_and_the_reason_and_the_export_is_allowed()
+    {
+        var video = Asset(MediaKind.Video);
+        Colour(video, "arib-std-b67", primaries: "bt709");
+        var first = Add(_v1, new VideoClip { MediaAssetId = video.Id }, 0, 50);
+        var second = Add(_v1, new VideoClip { MediaAssetId = video.Id }, 60, 80);
+
+        var result = Check();
+
+        Assert.True(result.CanExport);
+        var issue = Only(result, ExportIssueKind.HdrNotConverted);
+        Assert.Equal(ExportIssueSeverity.Warning, issue.Severity);
+        Assert.Equal(new[] { first.Id, second.Id }, issue.ClipIds);
+        Assert.Equal(video.FilePath, issue.Subject);
+        Assert.Contains(video.FileName, issue.Message);
+        Assert.Contains("BT.709 primaries", issue.Message);
+    }
+
+    [Theory]
+    [InlineData("arib-std-b67", "bt2020", "bt2020nc", "yuv420p10le")]   // supported HLG
+    [InlineData("smpte2084", "bt2020", "bt2020nc", "yuv420p10le")]      // supported PQ
+    [InlineData("bt709", "bt709", "bt709", "yuv420p")]                  // SDR
+    [InlineData(null, null, null, "yuv420p")]                           // untagged: never HDR (OQ1)
+    [InlineData(null, null, null, "yuv420p10le")]                       // untagged 10 bit: never HDR either
+    public void Supported_HDR_SDR_and_untagged_videos_are_never_warned_about(string? transfer, string? primaries, string? matrix,
+        string pixelFormat)
+    {
+        var video = Asset(MediaKind.Video);
+        Colour(video, transfer, primaries, matrix, pixelFormat);
+        Add(_v1, new VideoClip { MediaAssetId = video.Id }, 0, 50);
+
+        var result = Check();
+
+        Assert.True(result.CanExport);
+        Assert.Empty(result.Issues);
+    }
+
+    [Fact]
+    public void An_unsupported_HDR_variant_outside_the_output_is_not_warned_about()
+    {
+        var video = Asset(MediaKind.Video);
+        Colour(video, "smpte2084", matrix: "bt2020c");
+        Add(_v1, new VideoClip { MediaAssetId = video.Id, Opacity = 0 }, 0, 50);   // invisible: does not reach the output
+
+        Assert.DoesNotContain(Check().Issues, i => i.Kind == ExportIssueKind.HdrNotConverted);
+    }
 }

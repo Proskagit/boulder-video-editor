@@ -65,6 +65,12 @@ public sealed class MediaAsset
     /// re-check during the session (<c>IProjectService.RecheckMediaAsync</c>, D026 §2). Runtime state, never saved.</summary>
     public bool IsMissing { get; set; }
 
+    /// <summary>A background probe of saved metadata (D019 display size, D033 T3 colour) is queued or running for this
+    /// asset; the asset stays <see cref="MediaAnalysisStatus.Completed"/> meanwhile. The export preflight waits for it
+    /// only when the asset's colour is still unknown (<see cref="MediaMetadata.NeedsColorProbe"/>). Runtime state,
+    /// never saved.</summary>
+    public bool IsMetadataRefreshing { get; set; }
+
     public DateTimeOffset ImportedAt { get; init; } = DateTimeOffset.UtcNow;
 }
 

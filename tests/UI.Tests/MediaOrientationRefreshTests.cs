@@ -55,11 +55,12 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         }
     }
 
-    /// <summary>A phone video as probed now: coded landscape, displayed portrait.</summary>
+    /// <summary>A phone video as probed now: coded landscape, displayed portrait (with its pixel format, as every probe
+    /// since Phase 18 — D033 T2).</summary>
     private static MediaMetadata Portrait() => new()
     {
         Duration = MediaTime.FromSeconds(10), Width = 1920, Height = 1080,
-        DisplayRotation = 90, DisplayWidth = 1080, DisplayHeight = 1920, VideoCodec = "h264"
+        DisplayRotation = 90, DisplayWidth = 1080, DisplayHeight = 1920, VideoCodec = "h264", PixelFormat = "yuv420p", BitDepth = 8
     };
 
     /// <summary>The same video as saved by Phase 6: coded size only.</summary>
