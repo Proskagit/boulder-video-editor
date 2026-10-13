@@ -30,7 +30,9 @@ public sealed class HdrLutStore : IHdrLutStore
 
     public HdrLutStore(string folder, ILogger<HdrLutStore> logger)
     {
-        _folder = folder;
+        // Always a full path: the path goes to ffmpeg, whose working directory is not the app's concern (with an unset
+        // profile LocalApplicationData can be empty and the app's folders relative — found in the 18.8 real-app run).
+        _folder = Path.GetFullPath(folder);
         _logger = logger;
     }
 

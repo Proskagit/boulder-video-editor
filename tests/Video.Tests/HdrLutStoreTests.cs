@@ -40,6 +40,15 @@ public sealed class HdrLutStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task A_relative_folder_gives_a_full_path()
+    {
+        var relative = Path.GetRelativePath(Environment.CurrentDirectory, _folder);
+        var path = await new HdrLutStore(relative, NullLogger<HdrLutStore>.Instance).GetLutPathAsync(HdrConversion.Hlg());
+        Assert.True(Path.IsPathFullyQualified(path), path);
+        Assert.Equal(Path.Combine(_folder, HdrLut.FileName(HdrConversion.Hlg())), path);
+    }
+
+    [Fact]
     public async Task Concurrent_first_uses_share_one_file_and_leave_no_temporary_file()
     {
         var store = Store();
