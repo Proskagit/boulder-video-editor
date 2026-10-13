@@ -2,17 +2,174 @@
 
 ## Current phase
 
-Phase 17 — Audio editing: branch `feat/phase-17-audio-editing` (from `79e4e78`, `main` after the merge of PR #17); **complete**
-(closeout Step 17.9, 2026-10-12), not yet merged. Scope
-approved by the product owner on 2026-10-08 (DECISIONS.md D032, variant A of the Phase 17 pre-flight, L1–L7): Unlink
-Audio, Link / Unlink, J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio
-tracks (1 s by default, linear, limited by the handles), linked clips edited as one (the ripple keeping their offset, a
-locked partner refusing the whole edit), Preview ↔ export parity, `project.json` v4 (v3 opens unchanged in meaning, saved
-as v4; no v4 → v3). The base model stays D008's `VideoClip` with its own sound. No separate stabilization phase; only the
-local refactoring Phase 17 needs. No push, pull request or merge without a separate command. Steps and acceptance:
-`docs/DEVELOPMENT_PLAN.md` "Phase 17 — Audio editing: steps"; manual plan `docs/PHASE17_MANUAL_TEST_PLAN.md`.
+Phase 18 — HDR → SDR of phone footage, on branch `feat/phase-18-hdr-sdr` (from `fa96468`, `main` after
+the merge of PR #18; DECISIONS.md D033, product owner decisions of 2026-10-13, OQ1 answered); closeout Step 18.8 done
+2026-10-13; the product owner's visual check of the L2 export failed → D033 Revision R1 (rule S1), Steps 18.9–18.12;
+Steps 18.9–18.12 done 2026-10-14 (S1 accepted for HLG with the 65³ LUT, criteria refined; PQ not verified on real
+footage); the product owner's visual check of the S1 export open. Pushed; pull request into `main` opened, not merged. Builds and tests run by Claude as needed; no push, pull request or merge
+without a separate command. Scope: HDR
+video (HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 / HDR Vivid by the HLG base layer) converted by the rule S1 of D033 §3 (Revision R1; L2 until 18.8)
+as an application-generated 65³ LUT, the same for the Preview, the thumbnails and the export; SDR decoding unchanged;
+optional colour metadata (`project.json` stays v4); no per-asset switch. Steps and acceptance: `docs/DEVELOPMENT_PLAN.md`
+"Phase 18 — HDR → SDR of phone footage: steps"; manual plan `docs/PHASE18_MANUAL_TEST_PLAN.md`.
 
-### Phase 17 — Audio editing (complete; closeout Step 17.9, not yet merged)
+### Phase 18 — HDR → SDR of phone footage (complete; closeout Step 18.8, not yet merged)
+
+Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization · 18.3 colour rule & LUT generator ·
+18.4 colour metadata · 18.5 decoder & LUT cache · 18.6 parity, export & measurement · 18.7 UI · 18.8 closeout.
+
+- Step 18.1 done (2026-10-13) — pre-flight on `origin/main` = `fa96468` (PR #18 merged; tree = `1564c02`); local `main`
+  fast-forwarded `79e4e78` → `fa96468`. Candidates reported: A keyframes, B on-canvas manipulation + text styling, C HDR →
+  SDR (recommended), D freeze frame / reverse, E stabilization; an independent phase-reviewer pre-flight (PASS WITH NOTES:
+  10 of 11 claims confirmed, the leftover-branch claim partly). The product owner chose C. Measurements (scripts and
+  results in the session's scratch folder, outside the repository; no code, no test run of the project):
+  - Inventory of the product owner's 13 files in `VideosForTest/` (excluded locally by `.git/info/exclude`): all HEVC
+    Main 10, 4K, HLG / BT.2020 NCL / limited; Vivo: Dolby Vision 8.4, 60 fps; Huawei: HDR Vivid, mastering 1000 nit,
+    30 fps; 9 portrait; 3 with dropped frames.
+  - 25 moments of 5 clips × 12 variants (current chain, gamut-only diagnostic, clip / hable / mobius / reinhard at `npl`
+    100 / 203, `desat` 2): the current picture washed out; hable dull, clip blows highlights, `desat=2` washes out.
+  - The warm shift of the `zscale` candidates traced to zimg's per-channel HLG OOTF (`agamma=1`, the default; source and
+    measurement); the BT.2100 OOTF on luminance (`agamma=0` or a LUT) matches the product owner's gallery screenshots in
+    relative saturation; the per-channel tone curve shifts saturated hues (rejected); gamut compression changes only
+    near-edge colours. L2 chosen.
+  - The 65³ LUT against a double-precision reference: ΔE76 ≤ 1.0 on real 4K crops, ≤ 1.5 on synthetic gamut-edge colours,
+    neutral ≤ 0.03 LSB; no visible artifact. Throughput (ffmpeg): L2 at 4K about 56 fps, at the Preview bound about 140
+    fps; hardware = software bit for bit (`dxva2`, one machine).
+  - Superwhites: up to 0.9 % of pixels above 1.0 (max 1.18); with a 1000 nit peak neutral highlights render white either
+    way and the footage carries no detail above 1000 nit; kept to 1.1 by the LUT domain (`DOMAIN_MAX`, verified), the gain
+    for coloured light sources not shown on real footage. PQ checked for feasibility on synthetic files (formulas, the
+    reference white consistent with HLG, mastering / CLL read by ffprobe).
+  - Found for the implementation: the Preview bound gives odd portrait sizes that `zscale` refuses on 4:2:0.
+- Step 18.2 done (2026-10-13) — documentation only: the PR #18 merge (ROADMAP, README, DEVELOPMENT_PLAN, D032 "After the
+  merge", this file), the ROADMAP's two undefined stabilization items removed (D032 "Context"), D033, the Phase 18 steps,
+  `docs/PHASE18_MANUAL_TEST_PLAN.md` (skeleton), `docs/README.md`. Product owner decisions recorded in D033 §2 (HQ1–HQ6,
+  superwhites, LUT generated at 65³, PQ in scope). Independent phase review of the documents: PASS WITH NOTES, no
+  blocking issue; its notes taken into D033 (T1 probes, T2 / T3 the "colour probed" marker and no export block for
+  SDR / untagged / unprobeable assets, the step-0 options, `Lpeak` = 203, the LUT cache location, the HQ5 wording); OQ1
+  (a preflight warning for unsupported HDR variants) answered by the product owner: yes, non-blocking, the file and the
+  reason named, never for SDR or untagged files. Committed on `feat/phase-18-hdr-sdr` (`abb2254`); no build or test run.
+- Step 18.3 done (`bb7da2e`) — the rule in Core (D033 §3): `Core.Color.HdrToSdr` (double precision, each step once; the
+  BT.2020 → BT.709 matrix derived from the primaries so neutral stays exactly neutral — the rounded 4-decimal matrix
+  tinted grey by ~10⁻⁴), `HdrColor` (which assets, unsupported reasons, the PQ peak, the Inspector text, bit depth from
+  the pixel format), `HdrLut` (the 65³ `.cube`, deterministic). `Core.Tests/HdrToSdrTests` (63, against independently
+  evaluated BT.2100 / ST 2084 values and a step-by-step reference); 13 mutations caught. Core 601 / 0.
+- Step 18.4 done (`a5a6d2f`) — colour metadata (T1–T3, OQ1): ffprobe colour, HDR10 static metadata (stream, else the first
+  frame — that probe now also runs for HLG / PQ), Dolby Vision profile, HDR Vivid; optional `MediaMetadataDto`
+  properties (v4); the background colour probe of Phase 17 metadata with the runtime `MediaAsset.IsMetadataRefreshing`;
+  the preflight wait (only while a used video's colour probe is pending) and the `HdrNotConverted` warning (OQ1); the
+  Inspector's "Color" row. Tests: Video `FfprobeColorMetadataTests` (synthetic HLG / PQ ± HDR10 / SDR / HLG-709 files made
+  by libx265 — `HdrMedia`), Project `MediaColorPersistenceTests`, UI `MediaColorRefreshTests`, Core preflight tests; the
+  orientation refresh test's "current metadata" got its pixel format (current metadata always has one since 18.4). 10
+  mutations caught. Subsets run at the time (Core, Project, UI, the new Video class) — the full suite was run at 18.5.
+- Independent review of 18.3–18.4: FAIL on records only — no full-suite run recorded, `progress.md` not updated, the
+  manual plan's 18.4 texts differing from the Inspector's; the formulas confirmed against D033 §3, `vf_tonemap.c` and ACES
+  1.3. Taken in at 18.5: the full suite run and recorded (below), these entries, D033 "Refined in Steps 18.3–18.5", the
+  manual plan aligned; its notes fixed — the Dolby Vision compatibility id read and shown ("Dolby Vision 8.4"), float
+  pixel formats without a bit depth, a missing `pix_fmt` written as "unknown" (probed once, not at every Open).
+- Step 18.5 done (`0532e76`) — HDR decoding (§3 "Graph", T3–T5): `VideoDecodeRequest.Hdr`, `PlaybackAsset.Hdr`,
+  `AssetState.Hdr`; the decoder's HDR graph (even sizes, zscale R'G'B' only, `lut3d` tetrahedral; the LUT path escaped for
+  both graph levels); no LUT → the open fails (no silent SDR); `IHdrLutStore` / `HdrLutStore` (`%LOCALAPPDATA%\AiVideoEditor\
+  cache\color-luts`); thumbnails rule version 2 with the conversion in the name, made again after the probe finds HDR.
+  Tests: Video `HdrDecodeTests` (the SDR arguments pinned; decoded HLG / PQ / PQ+HDR10 patches equal the rule within
+  ΔE76 ≤ 0.74, neutral neutral; odd bounds; a hostile LUT folder name; no fallback), `HdrLutStoreTests`, `HdrThumbnailTests`,
+  Core `HdrSnapshotTests`, UI coordinator restart; `ThumbnailServiceTests` expects rule version 2 (D033 T4). 11
+  mutations caught. Gates: `dotnet build --no-incremental -warnaserror` 0 / 0; the full suite 3147 passed, 2 skipped (the
+  4K scenes), 0 failed (Core 618, Timeline 782, Project 446, UI 660, Export 108, Rendering 58, Video 350, ExportEndToEnd
+  125 + 2) — the Preview ↔ Export parity suite and the L1-c tests among them, unchanged.
+- Re-review of 18.3–18.5: PASS WITH NOTES; its notes fixed in 18.6 — the LUT store's clean-up runs once before any write
+  (two keys prepared at once could lose a temporary file), a thumbnail of a newly imported HDR file is made once (only
+  analysed videos count as seen by the colour check); tests for both (the coordinator's mutation caught).
+- Step 18.6 done — parity, export, measurement: `ExportEndToEnd.Tests/ExportHdrEndToEndTests` (HLG, PQ with HDR10): the
+  export canvas byte for byte the Preview's, its patches the rule within ΔE76 ≤ 0.74, the thumbnail's flat colours equal
+  to the export's (0.00 code values); the E2E harness's decoders share one LUT store (as the app). `HdrMedia` (with
+  `DeltaE`) linked into ExportEndToEnd. M (in-app, the app's decoder + LUT store on the Vivo 4K 60 fps clip, 600 frames,
+  software): SDR graph at the export bound 12.7 fps, HDR 12.5 fps — the 4K cost is the BGRA pipe, not the conversion; the
+  Preview bound SDR 159 fps, HDR 162 fps, HDR with `-hwaccel auto` 182 fps; the LUT prepared in 208 ms. Hardware vs
+  software (HQ5): 20 / 20 frames identical byte for byte on the Vivo and the Huawei clip at both bounds (`dxva2`, this
+  machine). Scratch measurement program outside the repository.
+- Step 18.7 done — UI: the Inspector's "Color" row (18.4) — its value text now wraps (the longest, "HDR · HLG · BT.2020 ·
+  10-bit · Dolby Vision 8.4 (not applied)", is wider than the 300 px Inspector); no switch (HQ4); the OQ1 warning uses the
+  export's existing warnings dialog. UI 660 / 0. The real-app check at 1024 / 1440 px: closeout run.
+- Step 18.8 (closeout, 2026-10-13):
+  - Gates at `ff57787` (the machine idle, no app driven meanwhile): `dotnet build --no-incremental -warnaserror` Release
+    and Debug 0 / 0; the full suite 3150 passed, 2 skipped (the 4K scenes), 0 failed (Core 618, Timeline 782, Project 446,
+    UI 660, Export 108, Rendering 58, Video 351, ExportEndToEnd 127 + 2); three `--blame-hang-timeout 5m` runs the same,
+    no hang, no dump; `AIVE_HEAVY_TESTS=1` 3152 / 0 / 0; `git diff --check fa96468` clean.
+  - Real app (Debug builds, isolated profile, UI Automation; the helpers of Phases 15–17 in this session's scratch
+    folder): the HDR fixture — the five comparison clips, saved Phase 17-style (no colour) — opened: the background probe
+    ran, the title stayed clean, the LUT was written, the Preview showed the converted picture, the Inspector's Color row
+    read "… Dolby Vision 8.4 (not applied)" / "… HDR Vivid (not applied)", one line at 1440 px, wrapped at 1024 px; the
+    fixture exported through the UI — its frames at the five reference moments match the pre-flight's L2 renders by eye.
+    Regression against the Phase 17 build (`fa96468`, built from `git archive`): R1 the SDR fixture saved by Phase 18
+    differs only by `pixelFormat` (and the D014 `relativePath` of the copy); R2 its default export byte for byte the Phase
+    17 build's (SHA-256 3F0E9DB7…A59811); R3 the Phase 18 save opens in Phase 17; R4 no ffmpeg — opens, the reason shown.
+    Details: `docs/PHASE18_MANUAL_TEST_PLAN.md`.
+  - Found and fixed in the run: with an isolated profile `LocalApplicationData` was empty and the LUT folder relative —
+    the path reached ffmpeg relative to its working directory (it worked only because ffmpeg inherits the app's);
+    `HdrLutStore` now uses a full path (`7463aec`, test + mutation). Video 351 → 352 after it (the LUT store tests 7 / 0).
+  - Gates again on the final code (`9c8785e`, after the LUT path fix): `dotnet build --no-incremental -warnaserror`
+    Release and Debug 0 / 0; the full suite 3151 passed, 2 skipped (the 4K scenes), 0 failed (Video 352); `git diff
+    --check fa96468` clean. (The three blame-hang runs and the heavy run are those at `ff57787`; 7463aec changed only
+    `HdrLutStore`'s constructor and added its test.)
+  - Measurement note: the 4K figure of D033 HQ6 (about 56 fps) is ffmpeg alone writing to null; in the app's decoder 4K
+    frames come through the BGRA pipe at about 12.5–12.7 fps with or without the conversion — the conversion adds
+    nothing measurable. Not measured: an export's own throughput and hardware decoding at 4K (M, no pass / fail).
+  - Independent closeout review: FAIL on one record (the gates were at `ff57787`, before 7463aec) — the run above
+    recorded; its notes taken in (the ΔE wording, R3's wording, the plan's open item). Its questions for the product
+    owner are in the final report.
+  - Not run: the product owner's visual check of an exported HDR clip on an SDR screen (manual plan 12); scenario 3 and
+    11 in the app (automated); R5 on HDR clips in the app (the Phase 15–17 suites unchanged). Known limitations: D033 §8.
+- The product owner's visual check of the L2 export **failed** (too bright, washed out) → D033 **Revision R1**, the rule
+  S1 ("Telegram-match-sat100"), and Steps 18.9–18.12 (docs `1e07a73`, 2026-10-13).
+- Step 18.9 (2026-10-14) — first **stopped on the LUT accuracy criteria** (D033 §5 R1), then accepted for HLG:
+  - Done: `HdrToSdr` per S1 (no OOTF on HLG; PQ ÷ 1000 → inverse OOTF on luminance; exposure k = 1.77843; mobius j 0.375,
+    peak k · P, skipped at k · P ≤ 1; no saturation step; the BT.709 OETF; `RuleVersion` 2); `HdrToSdrTests` rewritten
+    (the §3 check values, the 501 / 502 boundary and its continuity — 0.18 code, the PQ peak rows, the approved LUT's
+    nodes within 1e-6). 12 mutations, each caught. Full suite 3194 passed, 2 skipped, 0 failed; build -warnaserror 0 / 0.
+  - LUT accuracy (harness in the session's scratch folder: the app's `.cube` through ffmpeg `lut3d` tetrahedral vs
+    `HdrToSdr` on identical float32 signal triplets): C1 (black) and C2 (near black, ≤ 0.2 LSB everywhere) pass for HLG
+    and PQ 203 / 1000 / 4000; HLG real crops ΔE76 ≤ 0.72. Fail: C3 — HLG 0.52 LSB at code 1019 (the knee's top), PQ 203
+    3.9 LSB at the 501-nit clip corner, PQ 1000 1.1 / 1.7, PQ 4000 0.33 / 1.5 (coloured, a 10 000-nit red); C4 — 63–92
+    drops of ≤ 0.07 LSB on coloured ramps (neutral ramps monotonic); C5 — PQ only (up to 4 codes at PQ 203); synthetic
+    ΔE76 PQ 2.6–7.0; the 1.1 domain 2.001. Every failure sits where the rule reaches its clamp at 1 (a kink inside a
+    LUT cell). A diagnostic 129³ LUT: HLG passes all but C4; PQ still fails C3 / C5; each decoder start +1.25 s (65³:
+    +0.16 s). Reported to the product owner with the options; no option chosen.
+  - Study (outside the repository, 2026-10-14): the LUT's error lies at the kinks of the rule (the max(R, G, B) ridge with
+    the knee active, the top clamp, the clamp to 0); where the rule is smooth the LUT is accurate. A soft top (A1) did not
+    reduce it on real content; a 129³ LUT halves it at +1.25 s per decoder start; L2 (accepted in 18.8) had up to 12.4
+    codes on the same frames. Real-footage bench, all 13 HLG clips (39 frames, three per clip, 80.9 M pixels): max e 3.84
+    code, e > 2 codes 0.014 %, max ΔE76 1.65 (smooth cells ≤ 0.61 / 0.13).
+  - Decision (product owner, 2026-10-14): S1 + 65³ accepted for HLG; criteria refined (D033 §5 "Refined after Step
+    18.9", docs `dae89b4`): C3 ≤ 1 code only in clip cells (0.52), C4 neutral strict / no 8-bit reversal / largest
+    channel never decreasing / minor drop ≤ 0.1 code (0.0094), the 1.1 domain 2.0 kept (2.001 a borderline deviation),
+    the real-footage bench added. PQ: not verified on real PQ footage; its bench results recorded, not passed.
+- Step 18.10 (2026-10-14) — decoder, cache keys, thumbnails: the decode graph unchanged except the LUT name, now
+  `hdr-r2-…` through `RuleVersion`; the LUT store's clean-up (once per session, before its first write) removes the rule-1 (L2) files (test with an
+  `hdr-r1-hlg-1000.cube`); an HDR thumbnail's colour tag carries the colour rule's version (`…-v2-r2hlg1000.thumb`), so
+  HDR thumbnails are made again once, the old file replaced (test), SDR names unchanged (`ThumbnailServiceTests`). Mutation
+  (the rule version dropped from the tag) caught by 2 tests. Build -warnaserror 0 / 0; full suite 3196 passed, 2 skipped,
+  0 failed.
+- Step 18.11 (2026-10-14) — end to end and the real footage (no code change): `ExportEndToEnd.Tests` green (the HLG and
+  PQ scenes, every SDR scene unchanged); the generated LUT vs the approved cube: 274 624 nodes within 1e-6, one node
+  2.48e-4 (0.06 code, on the BT.709 OETF's break at 0.018); the app's decoder with its own LUT vs the approved cube on all
+  13 clips (20 frames each, 1280 × 720 and 4K): ≤ 1 code, 0.0073 % of the values; hardware = software (3 clips × 2 bounds ×
+  20 frames, byte-identical). Real app (the S1 Debug build, isolated profile): the HDR fixture's Preview at 1440 / 1024,
+  the Inspector, the L2-era thumbnails replaced by `…-r2hlg1000`, the L2 LUT removed before the first LUT write, the UI export
+  bit-identical to the scripted export and within the encoder's noise of the approved render (PSNR 46.5 dB); R2: the SDR
+  fixture's export byte for byte the Phase 17 build's. PQ: not verified on real footage. Details:
+  `docs/PHASE18_MANUAL_TEST_PLAN.md` "Revision R1".
+- Step 18.12 (2026-10-14) — closeout of R1: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the
+  full suite passed 3196, skipped 2 (the 4K scenes), failed 0; three `--blame-hang-timeout 5m` runs the same, no hang;
+  `AIVE_HEAVY_TESTS=1` 3198 / 0 / 0; `git diff --check fa96468` clean. Documentation: ARCHITECTURE (the S1 rule, the
+  thumbnail name, the accuracy), D033 R1 final state, ROADMAP, README, DEVELOPMENT_PLAN, the manual plan, this file. The
+  independent phase review of R1 (18.9–18.12): PASS WITH NOTES, no blocking issue — its notes taken in (stale L2 / "not
+  pushed" wording, the accuracy qualifiers in ARCHITECTURE, "HLG measured" instead of "verified" while the visual check is
+  open, the rule-1 LUT clean-up worded as "before the first LUT write of a session"); not changed: the mobius curve test
+  keeps its vf_tonemap reference case (the S1 j / peak are pinned by `MobiusJ` / `KneePeak` and the chain's check values).
+  Its question for the product owner: the one LUT node 2.48e-4 off the approved cube (plan 18.11's 1e-6 bound). Open: the product owner's visual check of the S1 export (manual plan 12); PQ on real
+  PQ footage. Known limitations: D033 §8.
+
+### Phase 17 — Audio editing (complete; PR #18 merged as `fa96468`, CI green)
 
 Steps (D032): 17.1 pre-flight · 17.2 sync after the merge, audit & scope formalization · 17.3 model & format v4 · 17.4
 Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fades · 17.7 sound-only Insert / Overwrite ·
@@ -4142,6 +4299,8 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   (ffmpeg converts straight to 8-bit BGRA). Proper HDR/10-bit/color-management handling is
   deferred to the later color/export pipeline phase. Do not add ad-hoc ffmpeg color filters
   or tone-mapping hacks to the preview decoder to compensate in the meantime.
+  Measured at the Phase 18 pre-flight (2026-10-13): every Vivo / Huawei file is HLG / BT.2020; the export is washed out
+  as well (the same decoder). Planned fix: Phase 18, DECISIONS.md D033 (one exact rule, not ad-hoc filters).
 
 - MPEG-TS: ffmpeg `-ss` lands on the keyframe *after* the target, so TS seeks need
   preroll retries (3–4 decoder launches observed); correct but slower to open.

@@ -73,7 +73,7 @@ public sealed class ThumbnailServiceTests : IDisposable
         Assert.Equal((160, 90, HardwareDecoding.Disabled, true), (request.MaxWidth, request.MaxHeight, request.Hardware, request.StrictEnd));
         var file = Assert.Single(CacheFiles());
         Assert.StartsWith($"{asset.Id:N}-", Path.GetFileName(file));
-        Assert.EndsWith("-v1.thumb", file);
+        Assert.EndsWith("-v2.thumb", file);   // rule version 2 since Phase 18 (D033 T4); an SDR asset gets no colour tag
 
         var fresh = Service();                                            // e.g. the project reopened
         Assert.Equal(25, Number((await fresh.GetOrCreateAsync(asset, _cache))!));

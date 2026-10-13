@@ -30,6 +30,10 @@ public static class AppPaths
     /// (<c>&lt;root&gt;\&lt;projectId&gt;\thumbnails</c>, <c>…\waveforms</c>). Not created here.</summary>
     public static string UnsavedCacheRoot => Path.Combine(AppDataRoot, "cache", "unsaved");
 
+    /// <summary>The HDR → SDR LUTs (D033 §3), shared by every project. Not created here (the store creates it on first
+    /// use).</summary>
+    public static string ColorLutFolder => Path.Combine(AppDataRoot, "cache", "color-luts");
+
     public static string ProjectMediaFolder(string projectFolderPath) =>
         EnsureExists(Path.Combine(projectFolderPath, "media"));
 

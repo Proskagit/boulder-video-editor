@@ -48,7 +48,24 @@ internal sealed class FfprobeStream
     [JsonPropertyName("channels")]
     public int? Channels { get; set; }
 
-    /// <summary>Stream side data; a "Display Matrix" entry carries the orientation.</summary>
+    // Colour (D033 T1); ffprobe's names, e.g. pix_fmt "yuv420p10le", color_transfer "arib-std-b67".
+    [JsonPropertyName("pix_fmt")]
+    public string? PixelFormat { get; set; }
+
+    [JsonPropertyName("color_transfer")]
+    public string? ColorTransfer { get; set; }
+
+    [JsonPropertyName("color_primaries")]
+    public string? ColorPrimaries { get; set; }
+
+    [JsonPropertyName("color_space")]
+    public string? ColorSpace { get; set; }
+
+    [JsonPropertyName("color_range")]
+    public string? ColorRange { get; set; }
+
+    /// <summary>Stream side data; a "Display Matrix" entry carries the orientation, a "DOVI configuration record" the
+    /// Dolby Vision profile, "Mastering display metadata" / "Content light level metadata" the HDR10 static metadata.</summary>
     [JsonPropertyName("side_data_list")]
     public List<FfprobeSideData>? SideDataList { get; set; }
 
@@ -69,6 +86,22 @@ internal sealed class FfprobeSideData
 
     [JsonPropertyName("displaymatrix")]
     public string? DisplayMatrix { get; set; }
+
+    /// <summary>Mastering display maximum luminance as a rational in cd/m², e.g. "10000000/10000".</summary>
+    [JsonPropertyName("max_luminance")]
+    public string? MaxLuminance { get; set; }
+
+    /// <summary>MaxCLL in cd/m² (content light level metadata).</summary>
+    [JsonPropertyName("max_content")]
+    public int? MaxContent { get; set; }
+
+    /// <summary>The Dolby Vision profile of a "DOVI configuration record".</summary>
+    [JsonPropertyName("dv_profile")]
+    public int? DvProfile { get; set; }
+
+    /// <summary>The Dolby Vision base layer's signal compatibility id (4 = HLG).</summary>
+    [JsonPropertyName("dv_bl_signal_compatibility_id")]
+    public int? DvCompatibility { get; set; }
 }
 
 /// <summary>Shape of `ffprobe -show_frames` output (first frame only).</summary>

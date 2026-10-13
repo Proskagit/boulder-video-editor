@@ -8,6 +8,7 @@ using AiVideoEditor.Export;
 using AiVideoEditor.Infrastructure;
 using AiVideoEditor.Infrastructure.Configuration;
 using AiVideoEditor.Media;
+using AiVideoEditor.Media.Caching;
 using AiVideoEditor.Media.Thumbnails;
 using AiVideoEditor.Media.Waveforms;
 using AiVideoEditor.Project;
@@ -41,6 +42,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFfprobeLocator, FfprobeLocator>();
         services.AddSingleton<IMediaAnalysisService, FfprobeMediaAnalysisService>();
         services.AddSingleton<IFfmpegLocator, FfmpegLocator>();
+        // HDR → SDR (D033): one LUT store for every decoder (the Preview, the thumbnails, the export).
+        services.AddSingleton<IHdrLutStore>(sp => new HdrLutStore(AppPaths.ColorLutFolder,
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<HdrLutStore>>()));
         services.AddSingleton<IVideoDecoder, FfmpegVideoDecoder>();
         services.AddSingleton<IAudioDecoder, FfmpegAudioDecoder>();
         services.AddSingleton<IAudioOutput, WasapiAudioOutput>();

@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\src\Timeline\Timeline.csproj" />
     <ProjectReference Include="..\..\src\Export\Export.csproj" />
     <ProjectReference Include="..\..\src\UI\UI.csproj" />
+    <ProjectReference Include="..\..\src\Media\Media.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +32,7 @@
     <Compile Include="..\Rendering.Tests\RenderHarness.cs" Link="Shared\RenderHarness.cs" />
     <Compile Include="..\Video.Tests\FfmpegTools.cs" Link="Shared\FfmpegTools.cs" />
     <Compile Include="..\Video.Tests\ExportEncoderHarness.cs" Link="Shared\ExportEncoderHarness.cs" />
+    <Compile Include="..\Video.Tests\HdrMedia.cs" Link="Shared\HdrMedia.cs" />
   </ItemGroup>
 
 </Project>

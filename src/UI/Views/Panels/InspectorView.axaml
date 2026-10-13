@@ -76,7 +76,7 @@
                   <DataTemplate>
                     <StackPanel Spacing="2" Margin="0,0,0,6">
                       <TextBlock Text="{Binding Label}" Foreground="#7A7A7A" FontSize="10"/>
-                      <TextBlock Text="{Binding Value}" Foreground="#DDDDDD"/>
+                      <TextBlock Text="{Binding Value}" Foreground="#DDDDDD" TextWrapping="Wrap"/>
                     </StackPanel>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>

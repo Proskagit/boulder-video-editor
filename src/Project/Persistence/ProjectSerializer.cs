@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
@@ -224,7 +225,17 @@ public static class ProjectSerializer
         AudioCodec = m.AudioCodec,
         AudioChannels = m.AudioChannels,
         AudioSampleRate = m.AudioSampleRate,
-        BitrateBps = m.BitrateBps
+        BitrateBps = m.BitrateBps,
+        PixelFormat = m.PixelFormat,
+        ColorTransfer = m.ColorTransfer,
+        ColorPrimaries = m.ColorPrimaries,
+        ColorMatrix = m.ColorMatrix,
+        ColorRange = m.ColorRange,
+        MasteringMaxLuminance = m.MasteringMaxLuminance,
+        MaxContentLightLevel = m.MaxContentLightLevel,
+        DolbyVisionProfile = m.DolbyVisionProfile,
+        DolbyVisionCompatibility = m.DolbyVisionCompatibility,
+        HasHdrVivid = m.HasHdrVivid ? true : null
     };
 
     private static SequenceDto ToDto(Sequence s) => new()
@@ -428,7 +439,18 @@ public static class ProjectSerializer
             AudioCodec = dto.AudioCodec,
             AudioChannels = dto.AudioChannels,
             AudioSampleRate = dto.AudioSampleRate,
-            BitrateBps = dto.BitrateBps
+            BitrateBps = dto.BitrateBps,
+            PixelFormat = dto.PixelFormat,
+            BitDepth = HdrColor.BitDepthOf(dto.PixelFormat),
+            ColorTransfer = dto.ColorTransfer,
+            ColorPrimaries = dto.ColorPrimaries,
+            ColorMatrix = dto.ColorMatrix,
+            ColorRange = dto.ColorRange,
+            MasteringMaxLuminance = dto.MasteringMaxLuminance,
+            MaxContentLightLevel = dto.MaxContentLightLevel,
+            DolbyVisionProfile = dto.DolbyVisionProfile,
+            DolbyVisionCompatibility = dto.DolbyVisionCompatibility,
+            HasHdrVivid = dto.HasHdrVivid == true
         };
     }
 

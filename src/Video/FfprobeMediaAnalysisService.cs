@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
+using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
@@ -99,6 +100,11 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
     /// rotation, really delivers). Priority: the stream's display matrix (or a legacy "rotate" tag),
     /// then the first decoded frame's display matrix — where images carry their EXIF orientation —,
     /// otherwise 0°. A failed frame probe never fails the analysis.
+    /// <para>
+    /// HDR (D033 T1): for a stream whose transfer is HLG or PQ the first frame is probed as well, for the mastering
+    /// display and content light level (when the stream does not carry them) and HDR Vivid's dynamic metadata. Other
+    /// streams are probed exactly as before.
+    /// </para>
     /// </summary>
     private async Task ApplyOrientationAsync(MediaMetadata metadata, FfprobeStream? videoStream, string ffprobePath, string filePath,
         CancellationToken ct)
@@ -106,7 +112,15 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         if (videoStream is null || metadata.Width is not > 0 || metadata.Height is not > 0)
             return;
 
-        var hint = StreamHint(videoStream) ?? await FirstFrameHintAsync(ffprobePath, filePath, ct);
+        var hint = StreamHint(videoStream);
+        var hdr = metadata.ColorTransfer is HdrColor.HlgTransfer or HdrColor.PqTransfer;
+        if (hint is null || hdr)
+        {
+            var frameSideData = await FirstFrameSideDataAsync(ffprobePath, filePath, ct);
+            hint ??= DisplayMatrixHint(frameSideData);
+            if (hdr)
+                ApplyHdrSideData(metadata, frameSideData);
+        }
         var result = DisplayOrientation.Resolve(metadata.Width.Value, metadata.Height.Value, hint);
         metadata.DisplayRotation = result.Rotation;
         metadata.DisplayWidth = result.DisplayWidth;
@@ -140,17 +154,19 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         return new OrientationHint(matrix.Rotation ?? 0, DisplayOrientation.IsMirrored(matrix.DisplayMatrix) ?? false);
     }
 
-    private async Task<OrientationHint?> FirstFrameHintAsync(string ffprobePath, string filePath, CancellationToken ct)
+    /// <summary>The first decoded frame's side data (orientation, HDR static / dynamic metadata); null when the probe
+    /// fails (logged, never failing the analysis).</summary>
+    private async Task<List<FfprobeSideData>?> FirstFrameSideDataAsync(string ffprobePath, string filePath, CancellationToken ct)
     {
         try
         {
             var stdout = await RunFfprobeAsync(ffprobePath, new[]
             {
                 "-select_streams", "v:0", "-read_intervals", "%+#1", "-show_frames",
-                "-show_entries", "frame=width,height:frame_side_data=side_data_type,rotation,displaymatrix"
+                "-show_entries", "frame=width,height:frame_side_data=side_data_type,rotation,displaymatrix,max_luminance,max_content"
             }, filePath, ct);
             var frames = JsonSerializer.Deserialize<FfprobeFramesOutput>(stdout);
-            return DisplayMatrixHint(frames?.Frames?.FirstOrDefault()?.SideDataList);
+            return frames?.Frames?.FirstOrDefault()?.SideDataList;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -158,9 +174,43 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "First-frame orientation probe failed for '{Path}'; assuming 0°.", filePath);
+            _logger.LogDebug(ex, "First-frame probe failed for '{Path}'; assuming 0° and no frame metadata.", filePath);
             return null;
         }
+    }
+
+    /// <summary>HDR side data (D033 T1): the Dolby Vision profile, the mastering display maximum and MaxCLL, HDR Vivid's
+    /// presence. The stream's values win; the first frame's fill what the stream lacks.</summary>
+    internal static void ApplyHdrSideData(MediaMetadata metadata, IEnumerable<FfprobeSideData>? sideData)
+    {
+        foreach (var entry in sideData ?? Enumerable.Empty<FfprobeSideData>())
+        {
+            var type = entry.SideDataType ?? "";
+            if (type.Contains("DOVI configuration", StringComparison.OrdinalIgnoreCase))
+            {
+                metadata.DolbyVisionProfile ??= entry.DvProfile;
+                metadata.DolbyVisionCompatibility ??= entry.DvCompatibility;
+            }
+            else if (type.Contains("Mastering display", StringComparison.OrdinalIgnoreCase))
+                metadata.MasteringMaxLuminance ??= ParseRational(entry.MaxLuminance);
+            else if (type.Contains("Content light level", StringComparison.OrdinalIgnoreCase))
+                metadata.MaxContentLightLevel ??= entry.MaxContent;
+            else if (type.Contains("CUVA", StringComparison.OrdinalIgnoreCase) || type.Contains("Vivid", StringComparison.OrdinalIgnoreCase))
+                metadata.HasHdrVivid = true;
+        }
+    }
+
+    /// <summary>"10000000/10000" → 1000; a plain number as it is; null when unparseable or the denominator is 0.</summary>
+    private static double? ParseRational(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var parts = text.Split('/');
+        if (!double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var numerator)) return null;
+        if (parts.Length == 1) return numerator;
+        if (parts.Length != 2 || !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var denominator) ||
+            denominator == 0)
+            return null;
+        return numerator / denominator;
     }
 
     /// <summary>
@@ -318,6 +368,18 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
             metadata.VideoCodec = videoStream.CodecName;
             metadata.FrameRate = ParseFrameRate(videoStream.RFrameRate);
             metadata.AvgFrameRate = ParseFrameRate(videoStream.AvgFrameRate);
+
+            // Colour (D033 T1): only what the file states; "unknown" / "unspecified" count as not stated.
+            // Always set for a picture stream (D033 T2: it marks "colour probed"); "unknown" when ffprobe has none, so
+            // such a file is not probed again at every Open.
+            metadata.PixelFormat = Stated(videoStream.PixelFormat) ?? "unknown";
+            metadata.BitDepth = HdrColor.BitDepthOf(metadata.PixelFormat);
+            metadata.ColorTransfer = Stated(videoStream.ColorTransfer);
+            metadata.ColorPrimaries = Stated(videoStream.ColorPrimaries);
+            metadata.ColorMatrix = Stated(videoStream.ColorSpace);
+            metadata.ColorRange = Stated(videoStream.ColorRange);
+            if (metadata.ColorTransfer is HdrColor.HlgTransfer or HdrColor.PqTransfer)
+                ApplyHdrSideData(metadata, videoStream.SideDataList);
         }
 
         if (audioStream is not null)
@@ -334,6 +396,9 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
 
         return metadata;
     }
+
+    private static string? Stated(string? value) =>
+        string.IsNullOrWhiteSpace(value) || value is "unknown" or "unspecified" or "reserved" ? null : value;
 
     /// <summary>Keeps ffprobe's rational form (e.g. "30000/1001") exact. "0/0" and
     /// anything unparseable mean "unknown" and yield null.</summary>

@@ -1,4 +1,5 @@
 using System.Globalization;
+using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
 using Microsoft.Extensions.Logging;
@@ -47,7 +48,12 @@ public sealed class FfmpegVideoDecoderSettings
 /// without <c>-hwaccel</c>, and the rest of this open stays in software.
 /// </para>
 /// <para>
-/// Known limitations (not handled): HDR / 10-bit tone mapping, interlaced content
+/// HDR (D033): a request with <see cref="VideoDecodeRequest.Hdr"/> (supported HLG / PQ) takes the HDR graph — the
+/// application's LUT of the HDR → SDR rule — and fails rather than decode without it; every other request takes the
+/// SDR graph above, unchanged.
+/// </para>
+/// <para>
+/// Known limitations (not handled): HDR variants other than D033's (decoded as SDR), interlaced content
 /// (no deinterlacing), non-square pixels (SAR ignored), rotation metadata (ffmpeg's
 /// autorotate applies, dimensions may swap), resolution changes mid-stream (each frame
 /// carries its own size, untested), and phone-specific VFR quirks beyond the tested cases.
@@ -61,12 +67,15 @@ public sealed class FfmpegVideoDecoder : IVideoDecoder
     private readonly IFfmpegLocator _locator;
     private readonly ILogger<FfmpegVideoDecoder> _logger;
     private readonly FfmpegVideoDecoderSettings _settings;
+    private readonly IHdrLutStore? _luts;
 
-    public FfmpegVideoDecoder(IFfmpegLocator locator, ILogger<FfmpegVideoDecoder> logger, FfmpegVideoDecoderSettings? settings = null)
+    public FfmpegVideoDecoder(IFfmpegLocator locator, ILogger<FfmpegVideoDecoder> logger, FfmpegVideoDecoderSettings? settings = null,
+        IHdrLutStore? luts = null)
     {
         _locator = locator;
         _logger = logger;
         _settings = settings ?? new FfmpegVideoDecoderSettings();
+        _luts = luts;
     }
 
     public async Task<IVideoFrameStream> OpenAsync(VideoDecodeRequest request, CancellationToken ct = default) =>
@@ -78,6 +87,7 @@ public sealed class FfmpegVideoDecoder : IVideoDecoder
             ?? throw new VideoDecodeException(VideoDecodeError.DecoderUnavailable, "ffmpeg could not be found.");
         if (!File.Exists(request.FilePath))
             throw new VideoDecodeException(VideoDecodeError.FileNotFound, $"File not found: {request.FilePath}");
+        var lut = request.Hdr is { } hdr ? await LutPathAsync(hdr, request.FilePath, ct) : null;
 
         var point = request.FirstSamplePoint;
         var pointTicks = (long)Floor(point.TicksNumerator, point.TicksDenominator);
@@ -90,7 +100,7 @@ public sealed class FfmpegVideoDecoder : IVideoDecoder
             var seekTicks = pointTicks - preroll;
             var fromStart = seekTicks <= 0;
             var arguments = BuildArguments(request, fromStart ? null : seekTicks,
-                hardware == HardwareDecoding.Auto ? _settings.HardwareAccelerator : null);
+                hardware == HardwareDecoding.Auto ? _settings.HardwareAccelerator : null, lut);
             _logger.LogDebug("Decode attempt {Attempt} for '{Path}' at {Point}.", attempt, request.FilePath, point); // command line: FfmpegProcess
 
             var stream = FfmpegVideoFrameStream.Start(ffmpeg, arguments, _settings.FrameTimeout, _logger, request.StrictEnd);
@@ -152,7 +162,30 @@ public sealed class FfmpegVideoDecoder : IVideoDecoder
             ? (long)Ceiling((Int128)TimeSpan.TicksPerSecond * rate.Denominator, rate.Numerator)
             : DefaultFrameTicks;
 
-    internal static List<string> BuildArguments(VideoDecodeRequest request, long? seekTicks, string? hardwareAccelerator)
+    /// <summary>The LUT of an HDR request (D033). Any failure is the open's failure — never a fallback to the SDR path.</summary>
+    private async Task<string> LutPathAsync(HdrConversion hdr, string filePath, CancellationToken ct)
+    {
+        if (_luts is null)
+            throw new VideoDecodeException(VideoDecodeError.DecoderFailed,
+                $"'{filePath}' is HDR, but no HDR → SDR conversion is available to decode it.");
+        try
+        {
+            return await _luts.GetLutPathAsync(hdr, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "The HDR → SDR table for '{Path}' could not be prepared.", filePath);
+            throw new VideoDecodeException(VideoDecodeError.DecoderFailed,
+                $"'{filePath}' is HDR, and its HDR → SDR conversion could not be prepared: {ex.Message}", ex);
+        }
+    }
+
+    internal static List<string> BuildArguments(VideoDecodeRequest request, long? seekTicks, string? hardwareAccelerator,
+        string? lutPath = null)
     {
         var args = new List<string> { "-hide_banner", "-nostdin", "-nostats", "-loglevel", "info" };
         if (hardwareAccelerator is not null)
@@ -167,15 +200,55 @@ public sealed class FfmpegVideoDecoder : IVideoDecoder
 
         var w = request.MaxWidth.ToString(CultureInfo.InvariantCulture);
         var h = request.MaxHeight.ToString(CultureInfo.InvariantCulture);
+        var filters = request.Hdr is { } hdr
+            ? HdrFilters(hdr, w, h, lutPath ?? throw new ArgumentNullException(nameof(lutPath), "An HDR request needs its LUT."))
+            : $"scale=w='min(iw,{w})':h='min(ih,{h})':force_original_aspect_ratio=decrease,format=bgra,showinfo=checksum=0";
         args.AddRange(new[]
         {
-            "-vf", $"scale=w='min(iw,{w})':h='min(ih,{h})':force_original_aspect_ratio=decrease,format=bgra,showinfo=checksum=0",
+            "-vf", filters,
             "-fps_mode", "passthrough",
             "-pix_fmt", "bgra",
             "-f", "rawvideo",
             "pipe:1"
         });
         return args;
+    }
+
+    /// <summary>
+    /// The HDR graph (D033 §3 "Graph"): scale to the bound first, both sizes even (zscale refuses odd sizes of 4:2:0
+    /// frames, D033 "Context"); <c>zscale</c> only turns Y'CbCr into R'G'B' float (BT.2020 NCL matrix, the file's range →
+    /// full; transfer and primaries unchanged — step 0); the LUT does steps 1–9; nothing else converts colour.
+    /// </summary>
+    private static string HdrFilters(HdrConversion hdr, string w, string h, string lutPath)
+    {
+        var transfer = hdr.Transfer == HdrTransfer.Hlg ? HdrColor.HlgTransfer : HdrColor.PqTransfer;
+        var range = hdr.FullRange ? "full" : "limited";
+        return $"scale=w='min(iw,{w})':h='min(ih,{h})':force_original_aspect_ratio=decrease:force_divisible_by=2," +
+               $"zscale=min={HdrColor.Bt2020NclMatrix}:pin={HdrColor.Bt2020Primaries}:tin={transfer}:rin={range}:" +
+               $"p={HdrColor.Bt2020Primaries}:t={transfer}:r=full,format=gbrpf32le," +
+               $"lut3d=file={FilterValue(lutPath)}:interp=tetrahedral,format=bgra,showinfo=checksum=0";
+    }
+
+    /// <summary>
+    /// A file path as a filter option value inside a <c>-vf</c> graph: forward slashes, then ffmpeg's two levels of
+    /// escaping — the option value (<c>\ ' :</c>) and the graph (<c>\ ' [ ] , ;</c>) — so any folder name works (a drive's
+    /// colon, spaces, apostrophes, commas, brackets, non-Latin letters).
+    /// </summary>
+    internal static string FilterValue(string path)
+    {
+        var value = Escape(path.Replace('\\', '/'), @"\':");
+        return Escape(value, @"\'[],;");
+
+        static string Escape(string text, string special)
+        {
+            var escaped = new System.Text.StringBuilder(text.Length + 8);
+            foreach (var c in text)
+            {
+                if (special.Contains(c)) escaped.Append('\\');
+                escaped.Append(c);
+            }
+            return escaped.ToString();
+        }
     }
 
     /// <summary>Exact decimal seconds for a tick count (ffmpeg rounds to microseconds).</summary>

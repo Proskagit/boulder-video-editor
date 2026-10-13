@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
@@ -680,6 +681,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
                 AddRow("Orientation", ResolutionFormat.Orientation(m));
                 AddRow("Frame Rate", m.FrameRate.HasValue ? $"{Math.Round(m.FrameRate.Value.ToDouble(), 2)} FPS" : null);
                 AddRow("Video Codec", m.VideoCodec?.ToUpperInvariant());
+                AddRow("Color", HdrColor.Describe(kind, m));   // D033: HDR kind, bit depth, dynamic metadata not applied
                 AddRow("Audio Codec", m.AudioCodec?.ToUpperInvariant());
                 AddRow("Bitrate", m.BitrateBps.HasValue ? FormatBitrate(m.BitrateBps.Value) : null);
                 break;

@@ -21,6 +21,8 @@ This directory contains:
 - `PHASE17_MANUAL_TEST_PLAN.md` — manual checks of Phase 17 (audio editing: unlink / link, J / L cuts, sound-only
   Insert / Overwrite, audio fades and crossfades, `project.json` v4, the real audio device check R10), completed per step
   and run at its closeout
+- `PHASE18_MANUAL_TEST_PLAN.md` — manual checks of Phase 18 (HDR → SDR of phone footage: colour metadata, the picture in
+  the Preview, the thumbnails and the export, the regression against Phase 17), completed per step and run at its closeout
 
 Agent-oriented project context lives in the repository root:
 

@@ -2,7 +2,7 @@
 
 A simplified, desktop-first video editor (Windows 10/11 x64, Avalonia UI, .NET 8),
 architected so professional-grade features can be layered in over time without a
-rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–16
+rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–17
 are complete** (architecture, UI skeleton, media import, ffprobe metadata
 analysis, timeline editing, preview playback with audio, project persistence with
 autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
@@ -15,8 +15,9 @@ markers — Phase 12, merged 2026-10-05 as `c0cb600`, CI green; project & export
 the playhead, ripple trim, slip, an In / Out range, a canvas-relative size for new text) merged 2026-10-08 as `a3793a4`,
 CI green — DECISIONS.md D030. Phase 16 (a Source viewer with In / Out, Insert / Overwrite) merged 2026-10-08 as
 `79e4e78`, CI green on PR #17 and on `main` — DECISIONS.md D031. Phase 17 (audio editing: unlink / link, J / L cuts,
-sound-only Insert / Overwrite, audio crossfades; `project.json` v4) is complete on `feat/phase-17-audio-editing`
-(closeout Step 17.9; not yet merged) — DECISIONS.md D032.
+sound-only Insert / Overwrite, audio crossfades; `project.json` v4) merged 2026-10-13 as `fa96468` (PR #18), CI green —
+DECISIONS.md D032. Phase 18 (HDR → SDR of phone footage: HLG measured on the product owner's footage — their visual check open — PQ implemented but not verified on real PQ footage) is complete on `feat/phase-18-hdr-sdr` (Revision R1, closeout Step 18.12; pull request open, not yet merged) —
+DECISIONS.md D033.
 
 ## Requirements
 
@@ -124,8 +125,8 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–16 complete (Phase 16 merged as `79e4e78`, CI green on PR #17 and on `main`); Phase 17 (audio editing, D032)
-complete on its branch, not yet merged. Working: media import
+Phases 0–17 complete (Phase 17 merged as `fa96468`, PR #18, CI green); Phase 18 (HDR → SDR, D033 with Revision R1) complete on its branch, pull request open, not yet merged.
+Working: media import
 with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
 preview playback with video and audio, and projects on disk: New / Open / Save /
@@ -186,7 +187,7 @@ saved), the arrows, Home / End, J / K / L and Space act on the source while it i
 playhead goes to the end of the new clip. A video goes in with its sound as one clip. Every edit is one Undo step and off
 during an export.
 
-Phase 17 (DECISIONS.md D032; complete on `feat/phase-17-audio-editing`, not yet merged): audio editing. **Unlink Audio** in
+Phase 17 (DECISIONS.md D032; merged as `fa96468`): audio editing. **Unlink Audio** in
 the timeline tools turns a video clip's sound into an audio clip of its own (on the first free audio track; what you hear
 does not change); **Link** joins a video clip and an audio clip, and **Unlink** separates them again. Linked clips are
 selected, moved, trimmed, split, rippled, sped up, slipped, deleted and copied together (a locked partner refuses the
@@ -194,6 +195,15 @@ edit); Alt + drag of an edge trims one of them alone — a J or L cut (🔗 mark
 clips that meet adds a linear crossfade (1 s, or the longest that fits). In the Source viewer, **Sound only** inserts or
 overwrites just the sound of a video. Projects are saved as `project.json` v4 (older projects open as before; Phase 16
 can't open a v4 file).
+
+Phase 18 (DECISIONS.md D033 with Revision R1; complete on `feat/phase-18-hdr-sdr`, not yet merged): HDR footage from
+phones (HLG and PQ, BT.2020, 10 bit — Dolby Vision 8.4 and HDR Vivid by their HLG base layer) is converted to the
+editor's SDR picture by one fixed rule — a scene-light rendering close to the phone's own SDR conversion — the same in the
+Preview, the Media Browser's thumbnails and the export; SDR footage looks and exports exactly as before. HLG is measured
+on the product owner's phone footage (their visual check of the export still open); PQ is implemented but **not verified on real PQ footage**. The Inspector's **Color** row shows what a file is
+("HDR · HLG · BT.2020 · 10-bit · Dolby Vision 8.4 (not applied)"); an HDR file in a combination the rule does not convert
+is named with the reason when you export. Projects stay `project.json` v4; older projects get their clips' colour read in
+the background after Open.
 
 Phase 15 (DECISIONS.md D030; merged as `a3793a4`): editing tools. Each track
 header has M (mute), 👁 (hide; video tracks) and 🔒 (lock; a locked track refuses every edit, mute / hide still allowed),

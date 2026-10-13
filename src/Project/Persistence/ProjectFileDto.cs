@@ -104,6 +104,41 @@ internal sealed class MediaMetadataDto
     public int? AudioChannels { get; set; }
     public int? AudioSampleRate { get; set; }
     public long? BitrateBps { get; set; }
+
+    /// <summary>Added in Phase 18 (D033 HQ2, T2) without a format version change (optional, written only when known):
+    /// the stream's colour as ffprobe names it. A video analysed since Phase 18 always has <see cref="PixelFormat"/>;
+    /// metadata without it was saved before and is probed again in the background (not dirty). The bit depth is not
+    /// stored: it follows from the pixel format.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PixelFormat { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ColorTransfer { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ColorPrimaries { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ColorMatrix { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ColorRange { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? MasteringMaxLuminance { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? MaxContentLightLevel { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? DolbyVisionProfile { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? DolbyVisionCompatibility { get; set; }
+
+    /// <summary>Written only when true.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? HasHdrVivid { get; set; }
 }
 
 internal sealed class SequenceDto

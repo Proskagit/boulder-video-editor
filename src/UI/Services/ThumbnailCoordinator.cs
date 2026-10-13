@@ -1,3 +1,4 @@
+using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -20,6 +21,8 @@ public sealed class ThumbnailCoordinator : MediaCacheCoordinator<Thumbnail>
 
     private readonly IThumbnailService _thumbnails;
     private readonly IThumbnailCacheLocation _location;
+    private readonly IProjectService _projects;
+    private readonly Dictionary<Guid, HdrConversion?> _colour = new();
 
     public ThumbnailCoordinator(IThumbnailService thumbnails, IProjectService projects, IThumbnailCacheLocation location,
         ILogger<ThumbnailCoordinator> logger)
@@ -27,7 +30,29 @@ public sealed class ThumbnailCoordinator : MediaCacheCoordinator<Thumbnail>
     {
         _thumbnails = thumbnails;
         _location = location;
+        _projects = projects;
+        projects.ProjectChanged += (_, _) => { _colour.Clear(); RestartWhereColourChanged(); };   // records the new project's
+        projects.MediaAssetsChanged += (_, _) => RestartWhereColourChanged();
+        RestartWhereColourChanged();
         RequestAll();
+    }
+
+    /// <summary>D033 T3: when an asset's HDR conversion changes — its background colour probe found HDR — its thumbnail
+    /// is made again (the old one stays shown until the new one is ready).</summary>
+    private void RestartWhereColourChanged()
+    {
+        var changed = new List<Guid>();
+        // Only analysed videos count as seen: a new import's first thumbnail is made once, with its colour already known.
+        foreach (var asset in _projects.Current.MediaAssets.Where(a =>
+                     a.Kind == MediaKind.Video && a.AnalysisStatus == MediaAnalysisStatus.Completed && a.Metadata is not null))
+        {
+            var colour = HdrColor.Classify(asset.Kind, asset.Metadata).Conversion;
+            if (_colour.TryGetValue(asset.Id, out var before) && before != colour)
+                changed.Add(asset.Id);
+            _colour[asset.Id] = colour;
+        }
+        if (changed.Count > 0)
+            Restart(changed);
     }
 
     /// <summary>Raised (on the caller's context) with the asset id when its thumbnail is ready — only for the current

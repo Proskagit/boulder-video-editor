@@ -346,6 +346,29 @@ present on disk is analysed (`MediaAnalysisCoordinator.QueueWhereNeeded`); missi
 never probed. Thumbnails use `IThumbnailService`, waveforms `IWaveformService` (below); the export is
 `IExportService` (D023).
 
+## HDR → SDR (Phase 18, D033)
+
+One rule for every picture consumer (the Preview, the Source viewer, the thumbnails, the export), so they stay alike.
+- Core.Color: `HdrToSdr` — the rule S1 of D033 §3 (Revision R1, rule version 2) in double precision: scene light (HLG
+  inverse OETF, no OOTF; PQ EOTF ÷ 1000 and the inverse BT.2100 OOTF on luminance), BT.2020 → BT.709, ACES RGC, exposure
+  k, mobius j 0.375 on max RGB with the peak k · P, the BT.709 OETF; `HdrColor` — which assets take the
+  HDR path (HLG / PQ, BT.2020, BT.2020 NCL, ≥ 10 bit; never from missing metadata), the PQ peak, the Inspector text;
+  `HdrLut` — the 65³ `.cube` of the rule (`DOMAIN_MAX 1.1`), deterministic, named by rule version and key.
+- Metadata: ffprobe's colour properties and HDR side data on `MediaMetadata` (optional `MediaMetadataDto` properties,
+  `project.json` v4); video metadata without a pixel format (saved before Phase 18) is probed again in the background by
+  `MediaAnalysisCoordinator` (not dirty; `MediaAsset.IsMetadataRefreshing` meanwhile — the export preflight waits).
+- Decoding: the asset's `HdrConversion` travels in `PlaybackAsset.Hdr` / `VideoDecodeRequest.Hdr`;
+  `FfmpegVideoDecoder` builds the HDR graph (scale with even sizes → `zscale` Y'CbCr → R'G'B' float only → `lut3d`
+  tetrahedral → BGRA) from the LUT of `IHdrLutStore` (`HdrLutStore`, `%LOCALAPPDATA%\AiVideoEditor\cache\color-luts`,
+  one file per key, verified per session); without it the open fails — never a silent SDR decode. Requests without
+  `Hdr` take the SDR graph, unchanged since Phase 17. A colour change rebuilds the Preview (`AssetState.Hdr`) and
+  remakes the thumbnail (`ThumbnailCoordinator`).
+- Export preflight: `HdrNotConverted` warns about an HDR file in an unsupported combination (D033 OQ1).
+- Accuracy (D033 §5, §8): the 65³ LUT is exact to the rule where it is smooth; its error sits at the rule's kinks (the
+  max(R, G, B) ridge, the clamps) — on the product owner's HLG footage ≤ 3.8 codes, ΔE76 ≤ 1.65, measured on 39 frames
+  (three per clip of 13 clips), not every frame; ΔE76 < 2.3 is a bench threshold, not a guarantee of invisibility. PQ is
+  not verified on real PQ footage.
+
 ## Thumbnails (Phase 9 Step 9.4)
 
 Decision: D024 "Refined in Step 9.4". Media Browser only; playback and export never read the cache.
@@ -356,7 +379,8 @@ Decision: D024 "Refined in Step 9.4". Media Browser only; playback and export ne
   Step 9.5).
 - Media: `ThumbnailService` — source time `T = min(⌊Duration / 10⌋, 5 s)` (ticks from the start time), decoded by the
   app's `IVideoDecoder` (software, fit into 160 × 90, upright) and selected by `SourceFrameSelector` (D009: last frame
-  at or before T). Cache file `{assetId:N}-{size:x}-{lastWriteUtcTicks:x}-v{rule}.thumb` (`AIVT` header + BGRA),
+  at or before T). Cache file `{assetId:N}-{size:x}-{lastWriteUtcTicks:x}-v{rule}[-r2hlg1000|-r2pq1500…].thumb` (`AIVT`
+  header + BGRA; rule 2 since Phase 18, an HDR asset's colour rule version and conversion in the name — D033 T4, R1),
   written to a temporary name and moved; any other name, a damaged or unreadable file is a miss. Offline media
   (missing, or the file gone) is never decoded: the last cached file or none.
 - Project: `ThumbnailCacheLocation` — saved `<project>/cache/thumbnails` (`AppPaths.ProjectCacheFolder`), unsaved

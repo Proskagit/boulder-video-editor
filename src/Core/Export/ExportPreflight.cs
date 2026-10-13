@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Playback;
@@ -36,7 +37,10 @@ public enum ExportIssueKind
     /// <summary>A text clip's font is not installed; the Preview's fallback font is used (warning).</summary>
     FontMissing,
     /// <summary>The In / Out range to export has no part of the timeline in it (D030 §8).</summary>
-    EmptyRange
+    EmptyRange,
+    /// <summary>The media's metadata states HDR in a combination the HDR → SDR rule does not convert (D033 §3, OQ1): its
+    /// picture is exported unconverted, as the Preview shows it (warning).</summary>
+    HdrNotConverted
 }
 
 /// <summary>One problem found by <see cref="ExportPreflight"/>. Media and font problems name every
@@ -245,6 +249,31 @@ public static class ExportPreflight
                 ClipIds = clips.OrderBy(c => c.Start).Select(c => c.ClipId).ToImmutableArray()
             });
         }
+
+        // D033 OQ1: a picture whose metadata states HDR in an unsupported combination is exported unconverted — a
+        // warning naming the file and the reason; the export is allowed. SDR and untagged media are never warned about.
+        var unconverted = snapshot.VideoLayers.SelectMany(l => l.Spans)
+            .Where(s => s.Status == SpanStatus.Video && s.Visual.Opacity > 0 && window.Shows(s.ShownStart, s.ShownEnd))
+            .Where(s => !problems.Keys.Any(k => k.AssetId == s.AssetId))
+            .Select(s => (Span: s, Asset: assets.GetValueOrDefault(s.AssetId)))
+            .Where(p => p.Asset is not null && HdrColor.Classify(p.Asset.Kind, p.Asset.Metadata).Kind == HdrKind.UnsupportedHdr)
+            .GroupBy(p => p.Asset!.Id)
+            .OrderBy(g => g.Min(p => p.Span.TimelineStart));
+        foreach (var group in unconverted)
+        {
+            var asset = group.First().Asset!;
+            var clips = group.OrderBy(p => p.Span.TimelineStart).Select(p => p.Span.ClipId).Distinct().ToImmutableArray();
+            var count = clips.Length == 1 ? "1 clip" : $"{clips.Length} clips";
+            var reason = HdrColor.Classify(asset.Kind, asset.Metadata).Reason;
+            issues.Add(new ExportIssue(ExportIssueSeverity.Warning, ExportIssueKind.HdrNotConverted,
+                $"'{asset.FileName}' is HDR that can't be converted to SDR — {reason}; it is exported unconverted, as the Preview " +
+                $"shows it ({count}, first at {group.Min(p => p.Span.TimelineStart)}).")
+            {
+                AssetId = asset.Id,
+                Subject = asset.FilePath,
+                ClipIds = clips
+            });
+        }
     }
 
     private static ExportIssueKind? Classify(MediaAsset? asset, SpanStatus status, ExportPreflightEnvironment env)
@@ -252,6 +281,10 @@ public static class ExportPreflight
         if (asset is null || asset.IsMissing || !env.FileExists(asset.FilePath)) return ExportIssueKind.MediaOffline;
         if (status == SpanStatus.Unsupported) return ExportIssueKind.MediaUnsupported;
         if (asset.AnalysisStatus != MediaAnalysisStatus.Completed || asset.Metadata is null) return ExportIssueKind.MediaNotAnalyzed;
+        // D033 T3: a video whose saved metadata predates the colour probe is waited for while that probe is pending or
+        // running, so an export never mixes the SDR and the HDR path; once the probe is over (or failed) never again.
+        if (asset.Kind == MediaKind.Video && asset.IsMetadataRefreshing && asset.Metadata.NeedsColorProbe)
+            return ExportIssueKind.MediaNotAnalyzed;
         return status is SpanStatus.Video or SpanStatus.StillImage or SpanStatus.Audio ? null : ExportIssueKind.MediaOffline;
     }
 
