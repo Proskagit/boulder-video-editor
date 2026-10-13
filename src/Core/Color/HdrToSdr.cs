@@ -11,9 +11,10 @@ public enum HdrTransfer
 }
 
 /// <summary>
-/// How one HDR asset is converted (D033 §3): its transfer, the peak luminance the tone curve maps to SDR white and the
-/// range of its Y'CbCr samples. <see cref="PeakNits"/> is always 1000 for HLG; for PQ it comes from
-/// <see cref="HdrColor.PqPeakNits"/>. <see cref="FullRange"/> only affects the decoder's Y'CbCr → R'G'B' step, not the LUT.
+/// How one HDR asset is converted (D033 §3): its transfer, the peak luminance that sets the tone curve's knee and the
+/// range of its Y'CbCr samples. <see cref="PeakNits"/> is always 1000 for HLG (its key; the rule uses
+/// <see cref="HdrToSdr.HlgKneePeak"/>); for PQ it comes from <see cref="HdrColor.PqPeakNits"/>. <see cref="FullRange"/>
+/// only affects the decoder's Y'CbCr → R'G'B' step, not the LUT.
 /// </summary>
 public sealed record HdrConversion(HdrTransfer Transfer, int PeakNits, bool FullRange)
 {
@@ -21,31 +22,33 @@ public sealed record HdrConversion(HdrTransfer Transfer, int PeakNits, bool Full
 }
 
 /// <summary>
-/// The HDR → SDR rule of D033 §3 (L2), in double precision. Every step is applied exactly once, in this order:
+/// The HDR → SDR rule S1 of D033 §3 (Revision R1), in double precision: the picture is rendered from scene light, the
+/// way a camera renders SDR. Every step is applied exactly once, in this order:
 /// <list type="number">
 /// <item>the signal limited to <c>[0, <see cref="SignalDomainMax"/>]</c> (PQ further to <c>[0, 1]</c>);</item>
 /// <item>signal → light: the HLG inverse OETF (scene light) or the PQ EOTF (display light, nit);</item>
-/// <item>HLG only: the BT.2100 OOTF on luminance, <c>F = Lw · Ys^(γ − 1) · E</c> with Lw = 1000 nit, γ = 1.2 —
-/// never per channel (zimg's <c>agamma=1</c> form raises saturation, D033 "Context"); PQ has no OOTF;</item>
-/// <item>÷ <see cref="ReferenceWhiteNits"/> (BT.2408);</item>
+/// <item>PQ only: ÷ <see cref="PqSceneNormalizationNits"/> and the <b>inverse</b> BT.2100 OOTF on luminance
+/// (<c>E = Fd · Yd^((1 − γ) / γ)</c>, γ = 1.2) → the equivalent HLG scene light; HLG has no OOTF at all;</item>
 /// <item>BT.2020 → BT.709 primaries in linear light;</item>
 /// <item>ACES Reference Gamut Compression 1.3 (its formula and parameters, here on linear BT.709);</item>
-/// <item>mobius (ffmpeg <c>vf_tonemap.c</c>, j = 0.3) on <c>max(R, G, B)</c>, every channel × the same factor; skipped when
-/// the peak is at most the reference white;</item>
+/// <item>the exposure × <see cref="Exposure"/>;</item>
+/// <item>mobius (ffmpeg <c>vf_tonemap.c</c>, j = <see cref="MobiusJ"/>) on <c>max(R, G, B)</c>, every channel × the same
+/// factor, its peak <c>k · P</c> (<see cref="KneePeak"/>); skipped when <c>k · P ≤ 1</c>;</item>
+/// <item>no saturation change;</item>
 /// <item>clamp to <c>[0, 1]</c>;</item>
-/// <item>inverse BT.1886 EOTF, <c>L^(1/2.4)</c> → R'G'B' BT.709 full range.</item>
+/// <item>the BT.709 OETF → R'G'B' BT.709 full range.</item>
 /// </list>
 /// </summary>
 public static class HdrToSdr
 {
     /// <summary>Version of this rule. Part of every LUT's key: changing any formula, constant or the LUT format changes
-    /// it, so no LUT of an older rule is ever used.</summary>
-    public const int RuleVersion = 1;
+    /// it, so no LUT of an older rule is ever used. 1 was L2; 2 is S1 (D033 Revision R1).</summary>
+    public const int RuleVersion = 2;
 
-    /// <summary>BT.2408 reference (diffuse) white: linear 1.0 after the normalization.</summary>
+    /// <summary>BT.2408 reference (diffuse) white; the lower limit of the PQ peak (D033 §3 "PQ peak").</summary>
     public const double ReferenceWhiteNits = 203.0;
 
-    /// <summary>HLG's nominal peak (BT.2100 Lw); HLG always uses it, whatever the file's metadata says.</summary>
+    /// <summary>HLG's nominal peak (BT.2100 Lw): the key of every HLG conversion, whatever the file's metadata says.</summary>
     public const int HlgPeakNits = 1000;
 
     /// <summary>The largest signal value the rule takes (the LUT's <c>DOMAIN_MAX</c>, D033 superwhites): 10-bit limited
@@ -66,6 +69,10 @@ public static class HdrToSdr
     public const double PqC3 = 2392.0 / 4096 * 32;
     public const double PqMaxNits = 10_000;
 
+    /// <summary>PQ display light is divided by this before the inverse OOTF (BT.2408's PQ → HLG conversion at a 1000-nit
+    /// display) — a constant, never the file's peak, so the exposure does not depend on the metadata.</summary>
+    public const double PqSceneNormalizationNits = 1000;
+
     // BT.2020 luma
     public const double Kr2020 = 0.2627, Kg2020 = 0.6780, Kb2020 = 0.0593;
 
@@ -80,10 +87,19 @@ public static class HdrToSdr
     public static readonly double[] RgcLimit = { 1.147, 1.264, 1.312 };
     public const double RgcPower = 1.2;
 
-    /// <summary>mobius' linear part ends here (ffmpeg's default <c>param</c> for mobius).</summary>
-    public const double MobiusJ = 0.3;
+    /// <summary>The exposure k (step 6): the scene's reference white (HLG 75 %, scene light 0.265) → 0.69 · 2^−0.55, i.e.
+    /// 0.55 stop below the scene light 0.69 that the BT.709 OETF encodes as 0.85. ≈ 1.77843.</summary>
+    public static readonly double Exposure = 0.69 * Math.Pow(2, -0.55) / 0.265;
 
-    public const double Bt1886Gamma = 2.4;
+    /// <summary>mobius' linear part ends here (S1).</summary>
+    public const double MobiusJ = 0.375;
+
+    /// <summary>HLG's knee peak in scene light (P): the scene light of 10-bit limited code 1019 (1.6402), rounded as
+    /// approved.</summary>
+    public const double HlgKneePeak = 1.64;
+
+    // BT.709 OETF
+    public const double Bt709Alpha = 1.099, Bt709Beta = 0.018, Bt709Power = 0.45, Bt709LinearSlope = 4.5;
 
     /// <summary>BT.2100 HLG inverse OETF: signal → normalized scene light. Continued above 1 (superwhites).</summary>
     public static double HlgInverseOetf(double e) =>
@@ -107,8 +123,12 @@ public static class HdrToSdr
         return Math.Pow((PqC1 + PqC2 * y) / (1 + PqC3 * y), PqM2);
     }
 
+    /// <summary>BT.709 OETF: linear light in [0, 1] → signal.</summary>
+    public static double Bt709Oetf(double l) =>
+        l < Bt709Beta ? Bt709LinearSlope * l : Bt709Alpha * Math.Pow(l, Bt709Power) - (Bt709Alpha - 1);
+
     /// <summary>ffmpeg's mobius (<c>vf_tonemap.c</c>): identity up to <paramref name="j"/>, then a curve reaching 1 at
-    /// <paramref name="peak"/> (both relative to the reference white).</summary>
+    /// <paramref name="peak"/>.</summary>
     public static double Mobius(double x, double j, double peak)
     {
         if (x <= j)
@@ -139,30 +159,35 @@ public static class HdrToSdr
         }
     }
 
-    /// <summary>Signal → light normalized to the reference white, BT.2020, linear: steps 1–4.</summary>
-    public static void ToLinear(HdrTransfer transfer, ReadOnlySpan<double> signal, Span<double> linear)
+    /// <summary>Signal → scene light, BT.2020, linear (steps 1–3): HLG's inverse OETF; PQ's EOTF, ÷ 1000 and the inverse
+    /// BT.2100 OOTF on luminance (one factor for the three channels; <c>Yd ≤ 0</c> → black).</summary>
+    public static void ToSceneLight(HdrTransfer transfer, ReadOnlySpan<double> signal, Span<double> scene)
     {
         if (transfer == HdrTransfer.Hlg)
         {
             for (var c = 0; c < 3; c++)
-                linear[c] = HlgInverseOetf(Math.Clamp(signal[c], 0, SignalDomainMax));
-            var ys = Kr2020 * linear[0] + Kg2020 * linear[1] + Kb2020 * linear[2];
-            var k = ys > 0 ? HlgPeakNits * Math.Pow(ys, HlgGamma - 1) / ReferenceWhiteNits : 0;
-            for (var c = 0; c < 3; c++)
-                linear[c] *= k;
+                scene[c] = HlgInverseOetf(Math.Clamp(signal[c], 0, SignalDomainMax));
+            return;
         }
-        else
-        {
-            for (var c = 0; c < 3; c++)
-                linear[c] = PqEotfNits(Math.Clamp(signal[c], 0, 1)) / ReferenceWhiteNits;
-        }
+
+        for (var c = 0; c < 3; c++)
+            scene[c] = PqEotfNits(Math.Clamp(signal[c], 0, 1)) / PqSceneNormalizationNits;
+        var yd = Kr2020 * scene[0] + Kg2020 * scene[1] + Kb2020 * scene[2];
+        var factor = yd > 0 ? Math.Pow(yd, (1 - HlgGamma) / HlgGamma) : 0;
+        for (var c = 0; c < 3; c++)
+            scene[c] *= factor;
     }
+
+    /// <summary>The knee's peak in scene light, P (step 7): HLG's <see cref="HlgKneePeak"/>; for PQ the scene light of a
+    /// neutral at the peak, <c>(Lpeak / 1000)^(1/γ)</c>.</summary>
+    public static double KneePeak(HdrTransfer transfer, int peakNits) =>
+        transfer == HdrTransfer.Hlg ? HlgKneePeak : Math.Pow(peakNits / PqSceneNormalizationNits, 1 / HlgGamma);
 
     /// <summary>The whole rule: R'G'B' HDR signal (BT.2020, full range) → R'G'B' BT.709 SDR, each in [0, 1].</summary>
     public static void Convert(HdrTransfer transfer, int peakNits, ReadOnlySpan<double> signal, Span<double> output)
     {
         Span<double> light = stackalloc double[3];
-        ToLinear(transfer, signal, light);
+        ToSceneLight(transfer, signal, light);
 
         Span<double> rgb = stackalloc double[3];
         for (var r = 0; r < 3; r++)
@@ -170,7 +195,10 @@ public static class HdrToSdr
 
         GamutCompress(rgb);
 
-        var peak = peakNits / ReferenceWhiteNits;
+        for (var c = 0; c < 3; c++)
+            rgb[c] *= Exposure;
+
+        var peak = Exposure * KneePeak(transfer, peakNits);
         if (peak > 1)
         {
             var sig = Math.Max(Math.Max(Math.Max(rgb[0], rgb[1]), rgb[2]), 1e-6);
@@ -180,7 +208,7 @@ public static class HdrToSdr
         }
 
         for (var c = 0; c < 3; c++)
-            output[c] = Math.Pow(Math.Clamp(rgb[c], 0, 1), 1 / Bt1886Gamma);
+            output[c] = Bt709Oetf(Math.Clamp(rgb[c], 0, 1));
     }
 
     /// <summary>The RGB → XYZ matrix of primaries (x, y) with the D65 white point (0.3127, 0.3290).</summary>

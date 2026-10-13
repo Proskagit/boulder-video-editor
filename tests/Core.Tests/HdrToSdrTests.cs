@@ -6,10 +6,11 @@ using Xunit;
 namespace AiVideoEditor.Core.Tests;
 
 /// <summary>
-/// Phase 18 Step 18.3 (D033 §3, §5): the HDR → SDR rule — HLG / PQ transfer functions, the BT.2100 OOTF on luminance,
-/// the gamut compression, mobius on max RGB, BT.1886, the order of the steps (each once), the signal domain's
-/// boundaries, the PQ peak, the asset classification and the LUT generator. Expected values are the BT.2100 / ST 2084
-/// formulas evaluated independently (the pre-flight's reference, D033 "Context"), not this implementation's output.
+/// Phase 18 (D033 §3, §5; the rule S1 of Revision R1, Step 18.9): the HDR → SDR rule — HLG / PQ transfer functions, no
+/// OOTF on HLG, the inverse BT.2100 OOTF on luminance for PQ, the gamut compression, the exposure, mobius on max RGB with
+/// the S1 knee, the BT.709 OETF, the order of the steps (each once), the signal domain's boundaries, the PQ peak and its
+/// 501 / 502 nit boundary, the asset classification and the LUT generator. Expected values are the BT.2100 / ST 2084 /
+/// BT.709 formulas evaluated independently (the measurement series' reference, D033 R1), not this implementation's output.
 /// </summary>
 public class HdrToSdrTests
 {
@@ -22,13 +23,17 @@ public class HdrToSdrTests
 
     private static double[] Hlg(double r, double g, double b) => Out(HdrTransfer.Hlg, 1000, r, g, b);
     private static double[] Hlg(double v) => Hlg(v, v, v);
-    private static int Code(double v) => (int)Math.Round(v * 255, MidpointRounding.AwayFromZero);
-
-    private static double[] Linear(HdrTransfer transfer, double r, double g, double b)
+    private static double[] PqNits(int peak, double nits)
     {
-        var linear = new double[3];
-        HdrToSdr.ToLinear(transfer, new[] { r, g, b }, linear);
-        return linear;
+        var s = HdrToSdr.PqInverseEotf(nits);
+        return Out(HdrTransfer.Pq, peak, s, s, s);
+    }
+
+    private static double[] Scene(HdrTransfer transfer, double r, double g, double b)
+    {
+        var scene = new double[3];
+        HdrToSdr.ToSceneLight(transfer, new[] { r, g, b }, scene);
+        return scene;
     }
 
     // --- transfer functions ------------------------------------------------------------------------------------------
@@ -65,37 +70,52 @@ public class HdrToSdrTests
         Assert.Equal(nits, HdrToSdr.PqEotfNits(HdrToSdr.PqInverseEotf(nits)), 6);
     }
 
-    // --- light: the OOTF, once, on luminance; none for PQ ------------------------------------------------------------
+    [Fact]
+    public void The_BT_709_OETF_has_its_linear_part_below_0_018()
+    {
+        Assert.Equal(0.0, HdrToSdr.Bt709Oetf(0));
+        Assert.Equal(4.5 * 0.01, HdrToSdr.Bt709Oetf(0.01), 15);              // linear part
+        Assert.Equal(1.099 * Math.Pow(0.018, 0.45) - 0.099, HdrToSdr.Bt709Oetf(0.018), 15);
+        Assert.Equal(0.081, HdrToSdr.Bt709Oetf(0.018), 3);                    // the two parts meet
+        Assert.Equal(0.409008, HdrToSdr.Bt709Oetf(0.18), 6);                 // not L^(1/2.4) = 0.489
+        Assert.Equal(1.0, HdrToSdr.Bt709Oetf(1), 12);
+    }
+
+    // --- light: no OOTF for HLG; PQ → ÷ 1000 → the inverse OOTF on luminance ----------------------------------------
 
     [Fact]
-    public void HLG_reference_white_is_203_nit_and_signal_1_is_1000_nit()
+    public void HLG_takes_no_OOTF_its_scene_light_is_the_inverse_OETF_per_channel()
     {
-        Assert.Equal(203.15 / 203, Linear(HdrTransfer.Hlg, 0.75, 0.75, 0.75)[0], 4);
-        Assert.Equal(1000.0 / 203, Linear(HdrTransfer.Hlg, 1, 1, 1)[1], 5);   // BT.2100's rounded a, b, c: 1 − 3·10⁻⁸
+        var scene = Scene(HdrTransfer.Hlg, 0.8, 0.7, 0.6);
+        Assert.Equal(HdrToSdr.HlgInverseOetf(0.8), scene[0], 15);
+        Assert.Equal(HdrToSdr.HlgInverseOetf(0.7), scene[1], 15);
+        Assert.Equal(HdrToSdr.HlgInverseOetf(0.6), scene[2], 15);
+        Assert.Equal(0.2649626, Scene(HdrTransfer.Hlg, 0.75, 0.75, 0.75)[0], 7);   // not 203 nit / 203 (L2)
     }
 
     [Fact]
-    public void The_HLG_OOTF_is_applied_on_luminance_not_per_channel()
+    public void PQ_takes_the_inverse_OOTF_on_luminance_after_dividing_by_1000_nit()
     {
-        // BT.2100: F = Lw · Ys^0.2 · E — the colour's channel ratios are kept. zimg's per-channel form (zscale agamma=1)
-        // would give (1.3631, 0.7404, 0.4180) here (D033 "Context").
-        var light = Linear(HdrTransfer.Hlg, 0.8, 0.7, 0.6);
-        Assert.Equal(1.2665, light[0], 4);
-        Assert.Equal(0.7616, light[1], 4);
-        Assert.Equal(0.4729, light[2], 4);
+        // Fd = (0.8, 0.7, 0.6): E = Fd · Yd^(−1/6). The per-channel form would give (0.8303, 0.7429, 0.6533), the forward
+        // OOTF (0.7492, 0.6555, 0.5619) — D033 §5 (R1).
+        var scene = Scene(HdrTransfer.Pq, HdrToSdr.PqInverseEotf(800), HdrToSdr.PqInverseEotf(700), HdrToSdr.PqInverseEotf(600));
+        Assert.Equal(0.844955, scene[0], 5);
+        Assert.Equal(0.739336, scene[1], 5);
+        Assert.Equal(0.633716, scene[2], 5);
+        Assert.Equal(0.8 / 0.6, scene[0] / scene[2], 6);                     // the channel ratios kept
 
-        var e = new[] { HdrToSdr.HlgInverseOetf(0.8), HdrToSdr.HlgInverseOetf(0.7), HdrToSdr.HlgInverseOetf(0.6) };
-        Assert.Equal(e[0] / e[2], light[0] / light[2], 10);
+        // 203 nit → the scene light of HLG 75 %, within 0.1 %
+        Assert.Equal(0.264797, Scene(HdrTransfer.Pq, HdrToSdr.PqInverseEotf(203), HdrToSdr.PqInverseEotf(203), HdrToSdr.PqInverseEotf(203))[1], 5);
+        Assert.Equal(new[] { 0.0, 0.0, 0.0 }, Scene(HdrTransfer.Pq, 0, 0, 0));   // Yd = 0 → black
     }
 
     [Fact]
-    public void PQ_has_no_OOTF_its_light_is_the_EOTF_per_channel()
+    public void PQ_scene_light_does_not_depend_on_the_peak()
     {
-        var light = Linear(HdrTransfer.Pq, 0.7, 0.55, 0.4);
-        Assert.Equal(HdrToSdr.PqEotfNits(0.7) / 203, light[0], 12);
-        Assert.Equal(HdrToSdr.PqEotfNits(0.55) / 203, light[1], 12);
-        Assert.Equal(HdrToSdr.PqEotfNits(0.4) / 203, light[2], 12);
-        Assert.Equal(1.0, Linear(HdrTransfer.Pq, 0.580690, 0.580690, 0.580690)[0], 4);   // 203 nit → 1
+        var s = HdrToSdr.PqInverseEotf(100);
+        Assert.Equal(PqNits(1000, 100), Out(HdrTransfer.Pq, 4000, s, s, s));   // below both knees: the peak changes nothing
+        Assert.Equal(127.88 / 255, PqNits(203, 100)[0], 4);
+        Assert.Equal(127.88 / 255, PqNits(1000, 100)[0], 4);
     }
 
     [Fact]
@@ -110,7 +130,19 @@ public class HdrToSdrTests
         }
     }
 
-    // --- mobius ------------------------------------------------------------------------------------------------------
+    // --- exposure and mobius -----------------------------------------------------------------------------------------
+
+    [Fact]
+    public void The_S1_exposure_knee_and_peaks_are_D033s()
+    {
+        Assert.Equal(1.778430, HdrToSdr.Exposure, 6);
+        Assert.Equal(0.471284, HdrToSdr.Exposure * 0.265, 6);                // reference white → 0.69 · 2^−0.55
+        Assert.Equal(0.375, HdrToSdr.MobiusJ);
+        Assert.Equal(1.64, HdrToSdr.KneePeak(HdrTransfer.Hlg, 1000));
+        Assert.Equal(1.64, HdrToSdr.KneePeak(HdrTransfer.Hlg, 4000));        // HLG ignores the peak
+        Assert.Equal(1.0, HdrToSdr.KneePeak(HdrTransfer.Pq, 1000), 12);
+        Assert.Equal(Math.Pow(4, 1 / 1.2), HdrToSdr.KneePeak(HdrTransfer.Pq, 4000), 12);
+    }
 
     [Fact]
     public void Mobius_is_the_vf_tonemap_curve()
@@ -118,7 +150,7 @@ public class HdrToSdrTests
         const double peak = 1000.0 / 203;
         Assert.Equal(0.25, HdrToSdr.Mobius(0.25, 0.3, peak));             // identity up to j
         Assert.Equal(0.3, HdrToSdr.Mobius(0.3, 0.3, peak));
-        Assert.Equal(0.678648, HdrToSdr.Mobius(1.0, 0.3, peak), 6);       // reference white
+        Assert.Equal(0.678648, HdrToSdr.Mobius(1.0, 0.3, peak), 6);
         Assert.Equal(1.0, HdrToSdr.Mobius(peak, 0.3, peak), 4);           // the peak reaches 1
         var previous = 0.0;
         for (var x = 0.0; x <= 2 * peak; x += 0.01)
@@ -157,36 +189,77 @@ public class HdrToSdrTests
         Assert.True(edge[1] > 0);
     }
 
-    // --- the whole rule ----------------------------------------------------------------------------------------------
+    // --- the whole rule: the check values of D033 §3 (R1) ------------------------------------------------------------
+
+    [Theory]
+    [InlineData(0.0, 0.0)]
+    [InlineData(0.5, 93.45)]
+    [InlineData(0.75, 172.58)]      // reference white (L2: 217)
+    [InlineData(1.0, 241.5)]        // below white: the knee's peak is the superwhite top
+    [InlineData(1.0902, 255.0)]     // 10-bit limited code 1019
+    [InlineData(1.1, 255.0)]
+    public void HLG_neutrals_land_on_the_D033_check_values(double signal, double code) =>
+        Assert.All(Hlg(signal), v => Assert.Equal(code, v * 255, 2));
+
+    [Theory]
+    [InlineData(1000, 0.1, 0.95)]
+    [InlineData(1000, 1.0, 6.45)]
+    [InlineData(1000, 5.0, 24.55)]
+    [InlineData(1000, 100.0, 127.88)]
+    [InlineData(1000, 203.0, 173.01)]   // within 0.5 code of HLG 75 %
+    [InlineData(1000, 500.0, 224.81)]
+    [InlineData(1000, 1000.0, 255.0)]
+    [InlineData(1000, 2000.0, 255.0)]   // above Lpeak: white
+    [InlineData(203, 100.0, 127.88)]
+    [InlineData(203, 203.0, 174.45)]
+    [InlineData(203, 400.0, 232.28)]    // no knee at 203: clamp only
+    [InlineData(300, 300.0, 205.95)]
+    [InlineData(300, 600.0, 255.0)]
+    [InlineData(400, 400.0, 232.28)]
+    [InlineData(4000, 203.0, 172.25)]
+    [InlineData(4000, 1000.0, 234.69)]
+    [InlineData(4000, 4000.0, 255.0)]
+    [InlineData(10000, 1000.0, 231.61)]
+    public void PQ_neutrals_land_on_the_D033_check_values(int peak, double nits, double code) =>
+        Assert.All(PqNits(peak, nits), v => Assert.Equal(code, v * 255, 2));
 
     [Fact]
-    public void Black_stays_black_and_HLG_reference_white_and_peak_land_on_217_and_255()
+    public void Black_stays_black()
     {
         Assert.All(Hlg(0), v => Assert.Equal(0.0, v));
-        Assert.All(Hlg(0.75), v => Assert.Equal(217, Code(v)));
-        Assert.All(Hlg(0.75), v => Assert.Equal(216.97 / 255, v, 3));     // a second transfer / OOTF / tone map breaks this
-        Assert.All(Hlg(1.0), v => Assert.Equal(255, Code(v)));
+        foreach (var peak in new[] { 203, 1000, 4000, 10000 })
+            Assert.All(Out(HdrTransfer.Pq, peak, 0, 0, 0), v => Assert.Equal(0.0, v));
     }
 
     [Fact]
-    public void PQ_reference_white_at_a_1000_nit_peak_lands_on_217_like_HLG()
+    public void PQ_at_501_nit_skips_the_knee_and_at_502_applies_it_continuously()
     {
-        var pq203 = HdrToSdr.PqInverseEotf(203);
-        Assert.All(Out(HdrTransfer.Pq, 1000, pq203, pq203, pq203), v => Assert.Equal(217, Code(v)));
-    }
+        Assert.Equal(0.99977, HdrToSdr.Exposure * HdrToSdr.KneePeak(HdrTransfer.Pq, 501), 5);   // ≤ 1: skipped
+        Assert.Equal(1.00144, HdrToSdr.Exposure * HdrToSdr.KneePeak(HdrTransfer.Pq, 502), 5);   // > 1: applied
 
-    [Fact]
-    public void PQ_at_a_peak_of_203_nit_skips_the_tone_map_and_only_clamps()
-    {
-        var pq203 = HdrToSdr.PqInverseEotf(203);
-        Assert.All(Out(HdrTransfer.Pq, 203, pq203, pq203, pq203), v => Assert.Equal(1.0, v, 6));
-        var pq100 = HdrToSdr.PqInverseEotf(100);
-        Assert.All(Out(HdrTransfer.Pq, 203, pq100, pq100, pq100), v => Assert.Equal(Math.Pow(100.0 / 203, 1 / 2.4), v, 6));
-        Assert.All(Out(HdrTransfer.Pq, 203, 1, 1, 1), v => Assert.Equal(1.0, v));
+        foreach (var (nits, at501, at502) in new[] { (400.0, 232.28, 232.18), (490.0, 252.65, 252.48), (500.0, 254.76, 254.58),
+                     (501.0, 254.97, 254.79), (502.0, 255.0, 255.0), (503.0, 255.0, 255.0), (600.0, 255.0, 255.0) })
+        {
+            Assert.Equal(at501, PqNits(501, nits)[0] * 255, 2);
+            Assert.Equal(at502, PqNits(502, nits)[0] * 255, 2);
+        }
+
+        double previous501 = -1, previous502 = -1, largest = 0;
+        for (var i = 1; i <= 20000; i++)
+        {
+            var nits = i * 0.05;
+            var a = PqNits(501, nits)[0];
+            var b = PqNits(502, nits)[0];
+            largest = Math.Max(largest, Math.Abs(a - b) * 255);
+            Assert.True(a >= previous501 && b >= previous502, $"not monotonic at {nits} nit");
+            (previous501, previous502) = (a, b);
+        }
+        Assert.InRange(largest, 0.17, 0.25);   // measured 0.18 code (D033 §3), the plan's bound 0.25
     }
 
     [Theory]
     [InlineData(HdrTransfer.Hlg, 1000)]
+    [InlineData(HdrTransfer.Pq, 203)]
     [InlineData(HdrTransfer.Pq, 1000)]
     [InlineData(HdrTransfer.Pq, 4000)]
     public void A_neutral_ramp_stays_neutral_and_monotonic(HdrTransfer transfer, int peak)
@@ -200,6 +273,22 @@ public class HdrToSdrTests
             Assert.Equal(o[0], o[2], 12);
             Assert.True(o[0] >= previous, $"not monotonic at {v}");
             previous = o[0];
+        }
+    }
+
+    [Fact]
+    public void There_is_no_saturation_step()
+    {
+        // A colour well inside the gamut and below the knee: after the matrix and the exposure only the OETF follows, so
+        // the output is the OETF of k · (the matrix × the scene light) — a saturation step ≠ 1 would move it.
+        var e = new[] { HdrToSdr.HlgInverseOetf(0.45), HdrToSdr.HlgInverseOetf(0.40), HdrToSdr.HlgInverseOetf(0.35) };
+        var m = HdrToSdr.Bt2020ToBt709;
+        var output = Hlg(0.45, 0.40, 0.35);
+        for (var c = 0; c < 3; c++)
+        {
+            var linear = HdrToSdr.Exposure * (m[c, 0] * e[0] + m[c, 1] * e[1] + m[c, 2] * e[2]);
+            Assert.True(linear < HdrToSdr.MobiusJ);
+            Assert.Equal(HdrToSdr.Bt709Oetf(linear), output[c], 12);
         }
     }
 
@@ -223,8 +312,8 @@ public class HdrToSdrTests
         var at11 = Hlg(1.1, 0.6, 0.4);
         Assert.Equal(1.0, at11[0], 6);
         Assert.True(at105[1] < at1[1] && at11[1] < at105[1]);
-        // Neutral superwhites render white: the 1000 nit peak is unchanged (D033 superwhites).
-        Assert.All(Hlg(1.05), v => Assert.Equal(1.0, v));
+        // Neutral superwhites keep a gradation up to the knee's peak (code 1019), then white (D033 superwhites, R1).
+        Assert.True(Hlg(1.0)[0] < Hlg(1.05)[0] && Hlg(1.05)[0] < Hlg(1.08)[0] && Hlg(1.08)[0] < 1.0);
         Assert.All(Hlg(1.1), v => Assert.Equal(1.0, v));
     }
 
@@ -243,7 +332,7 @@ public class HdrToSdrTests
         for (var i = 0; i < 2000; i++)
         {
             var transfer = i % 2 == 0 ? HdrTransfer.Hlg : HdrTransfer.Pq;
-            var peak = transfer == HdrTransfer.Hlg ? 1000 : 600 + i;
+            var peak = transfer == HdrTransfer.Hlg ? 1000 : 203 + 4 * i;
             var s = new[] { random.NextDouble() * 1.2 - 0.05, random.NextDouble() * 1.2 - 0.05, random.NextDouble() * 1.2 - 0.05 };
             var expected = Reference(transfer, peak, s);
             var actual = Out(transfer, peak, s[0], s[1], s[2]);
@@ -252,28 +341,31 @@ public class HdrToSdrTests
         }
     }
 
-    /// <summary>D033 §3 written out step by step, independently of <see cref="HdrToSdr"/>.</summary>
+    /// <summary>D033 §3 (S1) written out step by step, independently of <see cref="HdrToSdr"/>.</summary>
     private static double[] Reference(HdrTransfer transfer, int peakNits, double[] signal)
     {
         const double a = 0.17883277, b = 0.28466892, c = 0.55991073;
-        double[] light;
+        double[] scene;
+        double p;
         if (transfer == HdrTransfer.Hlg)
         {
-            var e = signal.Select(v => Math.Clamp(v, 0, 1.1)).Select(v => v <= 0.5 ? v * v / 3 : (Math.Exp((v - c) / a) + b) / 12).ToArray();
-            var ys = 0.2627 * e[0] + 0.6780 * e[1] + 0.0593 * e[2];
-            light = e.Select(v => ys > 0 ? 1000 * Math.Pow(ys, 0.2) * v / 203 : 0).ToArray();
+            scene = signal.Select(v => Math.Clamp(v, 0, 1.1)).Select(v => v <= 0.5 ? v * v / 3 : (Math.Exp((v - c) / a) + b) / 12).ToArray();
+            p = 1.64;
         }
         else
         {
             const double m1 = 2610.0 / 16384, m2 = 2523.0 / 4096 * 128, c1 = 3424.0 / 4096, c2 = 2413.0 / 4096 * 32, c3 = 2392.0 / 4096 * 32;
-            light = signal.Select(v => Math.Clamp(v, 0, 1)).Select(v =>
+            var fd = signal.Select(v => Math.Clamp(v, 0, 1)).Select(v =>
             {
-                var p = Math.Pow(v, 1 / m2);
-                return 10000 * Math.Pow(Math.Max(p - c1, 0) / (c2 - c3 * p), 1 / m1) / 203;
+                var q = Math.Pow(v, 1 / m2);
+                return 10000 * Math.Pow(Math.Max(q - c1, 0) / (c2 - c3 * q), 1 / m1) / 1000;
             }).ToArray();
+            var yd = 0.2627 * fd[0] + 0.6780 * fd[1] + 0.0593 * fd[2];
+            scene = fd.Select(v => yd > 0 ? v * Math.Pow(yd, -0.2 / 1.2) : 0).ToArray();
+            p = Math.Pow(peakNits / 1000.0, 1 / 1.2);
         }
-        var m = HdrToSdr.Bt2020ToBt709;   // checked on its own below
-        var rgb = Enumerable.Range(0, 3).Select(r => m[r, 0] * light[0] + m[r, 1] * light[1] + m[r, 2] * light[2]).ToArray();
+        var m = HdrToSdr.Bt2020ToBt709;   // checked on its own above
+        var rgb = Enumerable.Range(0, 3).Select(r => m[r, 0] * scene[0] + m[r, 1] * scene[1] + m[r, 2] * scene[2]).ToArray();
 
         var ach = rgb.Max();
         if (ach > 0)
@@ -288,11 +380,13 @@ public class HdrToSdrTests
             }
         }
 
-        var peak = peakNits / 203.0;
+        var exposure = 0.69 * Math.Pow(2, -0.55) / 0.265;
+        rgb = rgb.Select(v => v * exposure).ToArray();
+        var peak = exposure * p;
         if (peak > 1)
         {
             var sig = Math.Max(rgb.Max(), 1e-6);
-            const double j = 0.3;
+            const double j = 0.375;
             var mapped = sig;
             if (sig > j)
             {
@@ -302,20 +396,25 @@ public class HdrToSdrTests
             }
             rgb = rgb.Select(v => v * mapped / sig).ToArray();
         }
-        return rgb.Select(v => Math.Pow(Math.Clamp(v, 0, 1), 1 / 2.4)).ToArray();
+        return rgb.Select(v => Math.Clamp(v, 0, 1)).Select(l => l < 0.018 ? 4.5 * l : 1.099 * Math.Pow(l, 0.45) - 0.099).ToArray();
     }
 
     // --- PQ peak (D033 §3) -------------------------------------------------------------------------------------------
 
     [Theory]
     [InlineData(1500, 4000.0, 1500)]     // MaxCLL wins
+    [InlineData(4000, 1000.0, 4000)]     // a contradiction: MaxCLL above the mastering maximum — taken as stated
+    [InlineData(300, 1000.0, 300)]       // a contradiction: MaxCLL far below it — taken as stated
     [InlineData(0, 4000.0, 4000)]        // MaxCLL 0 = not set → the mastering maximum
+    [InlineData(-5, 4000.0, 4000)]       // ≤ 0 = not set
     [InlineData(null, 1000.0, 1000)]
     [InlineData(null, null, 1000)]       // neither → the 1000 nit fallback
     [InlineData(0, 0.0, 1000)]
+    [InlineData(null, double.NaN, 1000)] // not a number = not set
     [InlineData(100, null, 203)]         // limited to [203, 10 000]
     [InlineData(null, 12000.0, 10000)]
     [InlineData(null, 999.6, 1000)]      // whole nit
+    [InlineData(null, 500.5, 501)]       // halves away from zero
     public void The_PQ_peak_is_MaxCLL_else_the_mastering_maximum_else_1000(int? maxCll, double? mastering, int expected) =>
         Assert.Equal(expected, HdrColor.PqPeakNits(new MediaMetadata { MaxContentLightLevel = maxCll, MasteringMaxLuminance = mastering }));
 
@@ -447,5 +546,29 @@ public class HdrToSdrTests
         Assert.Equal($"hdr-r{HdrToSdr.RuleVersion}-pq-4000.cube", HdrLut.FileName(pq));
         Assert.Equal(HdrLut.FileName(pq), HdrLut.FileName(pq with { FullRange = true }));
         Assert.StartsWith(HdrLut.FilePrefix, HdrLut.FileName(pq));
+    }
+
+    /// <summary>The generated LUT reproduces the LUT the product owner approved ("Telegram-match-sat100", D033 R1) — its
+    /// nodes copied here from that file (6 decimals), not regenerated.</summary>
+    [Theory]
+    [InlineData(0, 0, 0, 0.000000, 0.000000, 0.000000)]
+    [InlineData(3, 3, 3, 0.007092, 0.007092, 0.007092)]
+    [InlineData(10, 10, 10, 0.078805, 0.078805, 0.078805)]
+    [InlineData(20, 5, 40, 0.270290, 0.102052, 0.615234)]
+    [InlineData(44, 44, 44, 0.685861, 0.685861, 0.685861)]
+    [InlineData(55, 55, 55, 0.904324, 0.904324, 0.904324)]
+    [InlineData(64, 64, 64, 1.000000, 1.000000, 1.000000)]
+    [InlineData(64, 30, 10, 1.000000, 0.199978, 0.175501)]
+    [InlineData(5, 40, 60, 0.000000, 0.376626, 0.978311)]
+    [InlineData(30, 50, 20, 0.000000, 0.840080, 0.128824)]
+    [InlineData(60, 2, 2, 1.000000, 0.164429, 0.169622)]
+    public void The_HLG_LUT_reproduces_the_approved_one(int r, int g, int b, double outR, double outG, double outB)
+    {
+        var output = Hlg(HdrLut.Node(r), HdrLut.Node(g), HdrLut.Node(b));
+        // within 1e-6 (the plan's bound): the file's 6 decimals plus its rounded BT.2020 → BT.709 matrix (the rule derives
+        // it exactly, D033 "Refined in 18.3")
+        Assert.InRange(Math.Abs(outR - output[0]), 0, 1e-6);
+        Assert.InRange(Math.Abs(outG - output[1]), 0, 1e-6);
+        Assert.InRange(Math.Abs(outB - output[2]), 0, 1e-6);
     }
 }

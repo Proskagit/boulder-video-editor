@@ -2,9 +2,11 @@
 
 ## Current phase
 
-Phase 18 — HDR → SDR of phone footage: **complete** on branch `feat/phase-18-hdr-sdr` (from `fa96468`, `main` after
+Phase 18 — HDR → SDR of phone footage, on branch `feat/phase-18-hdr-sdr` (from `fa96468`, `main` after
 the merge of PR #18; DECISIONS.md D033, product owner decisions of 2026-10-13, OQ1 answered); closeout Step 18.8 done
-2026-10-13; awaiting the product owner's acceptance (their visual check of an exported HDR clip is open). Not pushed. Builds and tests run by Claude as needed; no push, pull request or merge
+2026-10-13; the product owner's visual check of the L2 export failed → D033 Revision R1 (rule S1), Steps 18.9–18.12;
+Step 18.9 done (S1 accepted for HLG with the 65³ LUT, criteria refined 2026-10-14; PQ unverified on real footage); Steps
+18.10–18.12 in progress. Not pushed. Builds and tests run by Claude as needed; no push, pull request or merge
 without a separate command. Scope: HDR
 video (HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 / HDR Vivid by the HLG base layer) converted by the L2 rule of D033 §3
 as an application-generated 65³ LUT, the same for the Preview, the thumbnails and the export; SDR decoding unchanged;
@@ -117,6 +119,30 @@ Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization
     owner are in the final report.
   - Not run: the product owner's visual check of an exported HDR clip on an SDR screen (manual plan 12); scenario 3 and
     11 in the app (automated); R5 on HDR clips in the app (the Phase 15–17 suites unchanged). Known limitations: D033 §8.
+- The product owner's visual check of the L2 export **failed** (too bright, washed out) → D033 **Revision R1**, the rule
+  S1 ("Telegram-match-sat100"), and Steps 18.9–18.12 (docs `1e07a73`, 2026-10-13).
+- Step 18.9 (2026-10-14) — first **stopped on the LUT accuracy criteria** (D033 §5 R1), then accepted for HLG:
+  - Done: `HdrToSdr` per S1 (no OOTF on HLG; PQ ÷ 1000 → inverse OOTF on luminance; exposure k = 1.77843; mobius j 0.375,
+    peak k · P, skipped at k · P ≤ 1; no saturation step; the BT.709 OETF; `RuleVersion` 2); `HdrToSdrTests` rewritten
+    (the §3 check values, the 501 / 502 boundary and its continuity — 0.18 code, the PQ peak rows, the approved LUT's
+    nodes within 1e-6). 12 mutations, each caught. Full suite 3194 passed, 2 skipped, 0 failed; build -warnaserror 0 / 0.
+  - LUT accuracy (harness in the session's scratch folder: the app's `.cube` through ffmpeg `lut3d` tetrahedral vs
+    `HdrToSdr` on identical float32 signal triplets): C1 (black) and C2 (near black, ≤ 0.2 LSB everywhere) pass for HLG
+    and PQ 203 / 1000 / 4000; HLG real crops ΔE76 ≤ 0.72. Fail: C3 — HLG 0.52 LSB at code 1019 (the knee's top), PQ 203
+    3.9 LSB at the 501-nit clip corner, PQ 1000 1.1 / 1.7, PQ 4000 0.33 / 1.5 (coloured, a 10 000-nit red); C4 — 63–92
+    drops of ≤ 0.07 LSB on coloured ramps (neutral ramps monotonic); C5 — PQ only (up to 4 codes at PQ 203); synthetic
+    ΔE76 PQ 2.6–7.0; the 1.1 domain 2.001. Every failure sits where the rule reaches its clamp at 1 (a kink inside a
+    LUT cell). A diagnostic 129³ LUT: HLG passes all but C4; PQ still fails C3 / C5; each decoder start +1.25 s (65³:
+    +0.16 s). Reported to the product owner with the options; no option chosen.
+  - Study (outside the repository, 2026-10-14): the LUT's error lies at the kinks of the rule (the max(R, G, B) ridge with
+    the knee active, the top clamp, the clamp to 0); where the rule is smooth the LUT is accurate. A soft top (A1) did not
+    reduce it on real content; a 129³ LUT halves it at +1.25 s per decoder start; L2 (accepted in 18.8) had up to 12.4
+    codes on the same frames. Real-footage bench, all 13 HLG clips (39 frames, three per clip, 80.9 M pixels): max e 3.84
+    code, e > 2 codes 0.014 %, max ΔE76 1.65 (smooth cells ≤ 0.61 / 0.13).
+  - Decision (product owner, 2026-10-14): S1 + 65³ accepted for HLG; criteria refined (D033 §5 "Refined after Step
+    18.9", docs `dae89b4`): C3 ≤ 1 code only in clip cells (0.52), C4 neutral strict / no 8-bit reversal / largest
+    channel never decreasing / minor drop ≤ 0.1 code (0.0094), the 1.1 domain 2.0 kept (2.001 a borderline deviation),
+    the real-footage bench added. PQ: not verified on real PQ footage; its bench results recorded, not passed.
 
 ### Phase 17 — Audio editing (complete; PR #18 merged as `fa96468`, CI green)
 
