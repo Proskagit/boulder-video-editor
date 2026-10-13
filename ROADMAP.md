@@ -59,6 +59,18 @@ session state (D015).
 
 ## Current
 
+Phase 18 — HDR → SDR of phone footage (in progress on `feat/phase-18-hdr-sdr`; DECISIONS.md D033, product owner decisions of 2026-10-13). HDR video —
+HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 and HDR Vivid by their HLG base layer — converted to the editor's SDR
+picture by one exact rule (the BT.2100 OOTF on luminance, BT.2020 → BT.709, gamut compression, mobius on max RGB,
+BT.1886) as an application-generated 65³ LUT, the same for the Preview, the thumbnails and the export; SDR media decoded
+byte for byte as before; colour metadata read and kept as optional properties (`project.json` stays v4). Step 18.1
+(pre-flight: the product owner's 13 HDR files measured, tone-mapping variants compared, the zimg OOTF finding) and Step
+18.2 (sync after the merge, D033, the steps, the manual plan's skeleton) done on 2026-10-13; the implementation
+(18.3–18.8) approved by the product owner on 2026-10-13. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 18 — HDR →
+SDR of phone footage: steps"; manual plan `docs/PHASE18_MANUAL_TEST_PLAN.md`.
+
+## Previous
+
 Phase 17 — Audio editing, branch `feat/phase-17-audio-editing` (from `79e4e78`, `main` after the merge of PR #17). Scope
 (product owner, 2026-10-08, DECISIONS.md D032 — variant A of the Phase 17 pre-flight, the D side of D031 §3): Unlink Audio
 (a video clip's sound becomes an independent `AudioClip` of the same asset), Link (an explicit link of a video clip and an
@@ -75,12 +87,10 @@ toolbar at 1024 px), the regression against the Phase 16 build (a Phase 16 save 
 `formatVersion`, the default export byte for byte, a v4 file refused by Phase 16), the gates green (passed 3030, skipped
 2, failed 0; heavy 3031 / 0 / 0; after the independent review's test fixes and the product owner's Ripple Delete change of
 2026-10-12: a linked pair closes both tracks by its target clip's length). R10 (a real audio device): an open manual check,
-not blocking the pull request. Not yet merged: push and pull request
-on the product owner's command. Steps and
+not blocking the pull request. Accepted; PR #18 merged into `main` as `fa96468` (2026-10-13, its tree
+identical to `1564c02`), CI green (checked by the product owner). Steps and
 acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 17 — Audio editing: steps"; manual plan
 `docs/PHASE17_MANUAL_TEST_PLAN.md`.
-
-## Previous
 
 Phase 16 — Source viewer & three-point editing, branch `feat/phase-16-source-viewer` (from `1bdeb95`, `main` after the
 merge of PR #16). Scope (product owner, 2026-10-08, DECISIONS.md D031): a Source mode of the Preview panel playing one
@@ -277,13 +287,13 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 17 — see `docs/DEVELOPMENT_PLAN.md`. Candidates named in the Phase 16 / 17 pre-flights, not
+None planned after Phase 18 — see `docs/DEVELOPMENT_PLAN.md`. Candidates named in the Phase 16–18 pre-flights, not
 decided: ducking (after keyframes); a
-stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`, the In / Out update order, deep-seek decode
-coverage); text styling and dragging objects in the Preview; keyframes; timeline polish (marker labels, marquee,
-filmstrips); freeze frame / reverse / speed ramps. Left out by the product owner: AI features, HDR / colour management
-(a narrow HDR → SDR tone mapping of phone footage only by a separate decision), an installer, timeline virtualization,
-an undoable import.
+stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
+Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The
+In / Out update order" and "deep-seek decode coverage", listed here before, were defined nowhere and are not tasks —
+D032 "Context"; removed at Step 18.2.) Left out by the product owner: AI features, colour management beyond the HDR → SDR
+conversion of D033 (HDR output, grading, ICC), an installer, timeline virtualization, an undoable import.
 
 ## Rule
 

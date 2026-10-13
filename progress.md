@@ -2,17 +2,53 @@
 
 ## Current phase
 
-Phase 17 — Audio editing: branch `feat/phase-17-audio-editing` (from `79e4e78`, `main` after the merge of PR #17); **complete**
-(closeout Step 17.9, 2026-10-12), not yet merged. Scope
-approved by the product owner on 2026-10-08 (DECISIONS.md D032, variant A of the Phase 17 pre-flight, L1–L7): Unlink
-Audio, Link / Unlink, J / L cuts, sound-only Insert / Overwrite, audio split / trim / fades, audio crossfades on audio
-tracks (1 s by default, linear, limited by the handles), linked clips edited as one (the ripple keeping their offset, a
-locked partner refusing the whole edit), Preview ↔ export parity, `project.json` v4 (v3 opens unchanged in meaning, saved
-as v4; no v4 → v3). The base model stays D008's `VideoClip` with its own sound. No separate stabilization phase; only the
-local refactoring Phase 17 needs. No push, pull request or merge without a separate command. Steps and acceptance:
-`docs/DEVELOPMENT_PLAN.md` "Phase 17 — Audio editing: steps"; manual plan `docs/PHASE17_MANUAL_TEST_PLAN.md`.
+Phase 18 — HDR → SDR of phone footage: **in progress** on branch `feat/phase-18-hdr-sdr` (from `fa96468`, `main` after
+the merge of PR #18; DECISIONS.md D033, product owner decisions of 2026-10-13, OQ1 answered). Steps 18.1 (pre-flight) and
+18.2 (sync after the merge, D033, the steps, the manual plan's skeleton) done; the implementation 18.3–18.7 approved to run
+without a stop between steps, 18.8 the closeout. Builds and tests run by Claude as needed; no push, pull request or merge
+without a separate command. Scope: HDR
+video (HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 / HDR Vivid by the HLG base layer) converted by the L2 rule of D033 §3
+as an application-generated 65³ LUT, the same for the Preview, the thumbnails and the export; SDR decoding unchanged;
+optional colour metadata (`project.json` stays v4); no per-asset switch. Steps and acceptance: `docs/DEVELOPMENT_PLAN.md`
+"Phase 18 — HDR → SDR of phone footage: steps"; manual plan `docs/PHASE18_MANUAL_TEST_PLAN.md`.
 
-### Phase 17 — Audio editing (complete; closeout Step 17.9, not yet merged)
+### Phase 18 — HDR → SDR of phone footage (planned)
+
+Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization · 18.3 colour rule & LUT generator ·
+18.4 colour metadata · 18.5 decoder & LUT cache · 18.6 parity, export & measurement · 18.7 UI · 18.8 closeout.
+
+- Step 18.1 done (2026-10-13) — pre-flight on `origin/main` = `fa96468` (PR #18 merged; tree = `1564c02`); local `main`
+  fast-forwarded `79e4e78` → `fa96468`. Candidates reported: A keyframes, B on-canvas manipulation + text styling, C HDR →
+  SDR (recommended), D freeze frame / reverse, E stabilization; an independent phase-reviewer pre-flight (PASS WITH NOTES:
+  10 of 11 claims confirmed, the leftover-branch claim partly). The product owner chose C. Measurements (scripts and
+  results in the session's scratch folder, outside the repository; no code, no test run of the project):
+  - Inventory of the product owner's 13 files in `VideosForTest/` (excluded locally by `.git/info/exclude`): all HEVC
+    Main 10, 4K, HLG / BT.2020 NCL / limited; Vivo: Dolby Vision 8.4, 60 fps; Huawei: HDR Vivid, mastering 1000 nit,
+    30 fps; 9 portrait; 3 with dropped frames.
+  - 25 moments of 5 clips × 12 variants (current chain, gamut-only diagnostic, clip / hable / mobius / reinhard at `npl`
+    100 / 203, `desat` 2): the current picture washed out; hable dull, clip blows highlights, `desat=2` washes out.
+  - The warm shift of the `zscale` candidates traced to zimg's per-channel HLG OOTF (`agamma=1`, the default; source and
+    measurement); the BT.2100 OOTF on luminance (`agamma=0` or a LUT) matches the product owner's gallery screenshots in
+    relative saturation; the per-channel tone curve shifts saturated hues (rejected); gamut compression changes only
+    near-edge colours. L2 chosen.
+  - The 65³ LUT against a double-precision reference: ΔE76 ≤ 1.0 on real 4K crops, ≤ 1.5 on synthetic gamut-edge colours,
+    neutral ≤ 0.03 LSB; no visible artifact. Throughput (ffmpeg): L2 at 4K about 56 fps, at the Preview bound about 140
+    fps; hardware = software bit for bit (`dxva2`, one machine).
+  - Superwhites: up to 0.9 % of pixels above 1.0 (max 1.18); with a 1000 nit peak neutral highlights render white either
+    way and the footage carries no detail above 1000 nit; kept to 1.1 by the LUT domain (`DOMAIN_MAX`, verified), the gain
+    for coloured light sources not shown on real footage. PQ checked for feasibility on synthetic files (formulas, the
+    reference white consistent with HLG, mastering / CLL read by ffprobe).
+  - Found for the implementation: the Preview bound gives odd portrait sizes that `zscale` refuses on 4:2:0.
+- Step 18.2 done (2026-10-13) — documentation only: the PR #18 merge (ROADMAP, README, DEVELOPMENT_PLAN, D032 "After the
+  merge", this file), the ROADMAP's two undefined stabilization items removed (D032 "Context"), D033, the Phase 18 steps,
+  `docs/PHASE18_MANUAL_TEST_PLAN.md` (skeleton), `docs/README.md`. Product owner decisions recorded in D033 §2 (HQ1–HQ6,
+  superwhites, LUT generated at 65³, PQ in scope). Independent phase review of the documents: PASS WITH NOTES, no
+  blocking issue; its notes taken into D033 (T1 probes, T2 / T3 the "colour probed" marker and no export block for
+  SDR / untagged / unprobeable assets, the step-0 options, `Lpeak` = 203, the LUT cache location, the HQ5 wording); OQ1
+  (a preflight warning for unsupported HDR variants) answered by the product owner: yes, non-blocking, the file and the
+  reason named, never for SDR or untagged files. Committed on `feat/phase-18-hdr-sdr`; no build or test run.
+
+### Phase 17 — Audio editing (complete; PR #18 merged as `fa96468`, CI green)
 
 Steps (D032): 17.1 pre-flight · 17.2 sync after the merge, audit & scope formalization · 17.3 model & format v4 · 17.4
 Unlink Audio / Link / Unlink · 17.5 linked editing · 17.6 audio crossfade & fades · 17.7 sound-only Insert / Overwrite ·
@@ -4142,6 +4178,8 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
   (ffmpeg converts straight to 8-bit BGRA). Proper HDR/10-bit/color-management handling is
   deferred to the later color/export pipeline phase. Do not add ad-hoc ffmpeg color filters
   or tone-mapping hacks to the preview decoder to compensate in the meantime.
+  Measured at the Phase 18 pre-flight (2026-10-13): every Vivo / Huawei file is HLG / BT.2020; the export is washed out
+  as well (the same decoder). Planned fix: Phase 18, DECISIONS.md D033 (one exact rule, not ad-hoc filters).
 
 - MPEG-TS: ffmpeg `-ss` lands on the keyframe *after* the target, so TS seeks need
   preroll retries (3–4 decoder launches observed); correct but slower to open.

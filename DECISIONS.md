@@ -3888,8 +3888,243 @@ audio device) not run: it needs the product owner.
 Status: Accepted (2026-10-08, product owner: variant A, L1–L7, AQ1–AQ13). R1–R13 are the pre-implementation audit's
 reading of the architecture (Step 17.2), checked by an independent review (PASS WITH NOTES; its notes taken in: R3's
 mix-order and dissolve-fade limits, `DeleteTrack` in R5, AQ11–AQ13). **Phase 17 complete** (Step 17.9 closeout,
-2026-10-12) on `feat/phase-17-audio-editing`; not yet merged (push / pull request on the product owner's command). Steps
-and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 17 — Audio editing: steps".
+2026-10-12), accepted and merged (PR #18, `fa96468`). Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 17
+— Audio editing: steps".
+
+After the merge (recorded at Step 18.2, 2026-10-13): PR #18 (head `1564c02`) merged into `main` as `fa96468` on
+2026-10-13, its tree identical to `1564c02`; CI green, checked by the product owner (no separate post-merge audit, by
+the product owner's choice). R10 (a real audio device) stays an open manual check outside the phases.
+
+---
+
+## D033 — Phase 18: HDR → SDR of phone footage (HLG and PQ, BT.2020)
+
+Date: 2026-10-13
+
+Decision (product owner, 2026-10-13, after the Phase 18 pre-flight — variant C — and the measurement series on real
+footage; HQ1–HQ6, the L2 chain, the superwhite handling and PQ approved). Phase 18 makes HDR footage from phones look
+right: every HDR video asset (HLG or PQ, BT.2020, 10 bit) is converted to the editor's SDR picture (BT.709, 8-bit BGRA)
+by one fixed, exactly specified rule — the same for the Preview, the thumbnails and the export, so they stay identical
+by construction (hardware decoding in the Preview, HQ5, is the one place where equality is measured, not constructed). SDR assets are not touched: their decoding stays byte for byte as before. `project.json` stays
+`formatVersion` 4; the media metadata gains optional colour properties.
+
+Context (pre-flight and measurements, the code at `fa96468`, `main` after the merge of PR #18; scripts and results kept
+outside the repository, in the session's scratch folder):
+- Phases 0–17 merged; CI green on PR #18 (checked by the product owner).
+- `FfmpegVideoDecoder.BuildArguments` decodes every video with `-vf scale=…,format=bgra` (8-bit BGRA, swscale, no
+  transfer or primaries conversion); one `IVideoDecoder` serves the Preview (`SpanReader`, `HardwareDecoding.Auto`), the
+  thumbnails (`ThumbnailService`, `Disabled`) and the export (`ExportFrameSource` / `ExportPictureReader`, `Disabled`).
+  ffprobe reads no colour property (`FfprobeStream`, `MediaMetadata`); the analysis already reads the first frame's side
+  data (`FfprobeMediaAnalysisService`, display matrix). The thumbnail cache name carries
+  `ThumbnailService.CurrentRuleVersion` (1). `MediaMetadataDto` already took optional properties without a format change
+  (D019 display size: older metadata kept and re-probed in the background, the project not dirty).
+- The product owner's 13 files (Vivo X300 Pro ×11, Huawei P60 Pro ×2; kept in `VideosForTest/`, excluded locally through
+  `.git/info/exclude`, never committed): every one HEVC Main 10, 3840 × 2160, `yuv420p10le`, limited range, BT.2020 NCL,
+  **HLG** (`arib-std-b67`); Vivo: Dolby Vision profile 8.4 (RPU, HLG base layer), 60 fps, no mastering / content-light
+  metadata; Huawei: HDR Vivid (CUVA) dynamic metadata, mastering display 1000 nit, MaxCLL 0, 30 fps; 9 of 13 portrait
+  (display matrix −90°); three with dropped frames (VFR, D009 handles them). No PQ file.
+- The current picture (V0) is washed out: about half the saturation of the phone's own display (CIELAB C\*/L\* of wall,
+  skin and cloth patches 0.11–0.29 vs 0.21–0.62 on the phone's gallery screenshots).
+- ffmpeg 9.0.1 essentials (the pinned CI build) has `zscale` (zimg), `tonemap`, `lut3d` and `libx265`; no libplacebo.
+  zimg (source checked: release-3.0.6, `colorspace/gamma.cpp`, `operation.cpp`; FFmpeg `vf_zscale.c`) applies the HLG OOTF
+  **per channel** (`arib_b67_eotf = ootf_1_2(inverse_oetf(x))`, "a per-channel correction instead of the iterative method
+  specified in Rec.2100") unless `agamma=0`, which selects the BT.2100 OOTF on luminance; `zscale`'s `agamma` defaults to
+  1. Measured on the pinned build: `agamma=1` equals the per-channel form (relative error 1.5·10⁻⁴), `agamma=0` the
+  BT.2100 form (1.5·10⁻⁷). The per-channel OOTF raises saturation — the cause of the warm, over-saturated look of the
+  first candidates. `zscale`'s `t=bt709` output is the inverse BT.1886 EOTF (L^(1/2.4)), not the BT.709 OETF (measured).
+  `vf_tonemap.c`'s mobius works on max(R, G, B) and scales the three channels by one factor; `desat=0` skips its
+  desaturation; an explicit `peak` ignores side data.
+- Variants compared on 25 moments of 5 clips and on 3 moments matched (SSIM) to the product owner's gallery screenshots:
+  clip, hable, reinhard, mobius at `npl` 100 / 203, `desat` 2, the per-channel and the luminance OOTF, max-RGB and
+  per-channel curves, with and without gamut compression. Chosen: **L2** (§3). Its relative saturation matches the
+  screenshots within a few per cent on skin, wall and cloth; the per-channel curve turns the blue cloth cyan and magenta
+  pink (rejected); clip blows faces and lamps, hable is dull, `desat=2` washes the picture out again (rejected).
+- The L2 chain as a 65³ LUT (`lut3d`, tetrahedral) against a double-precision reference of the same formulas: neutral
+  ramp ≤ 0.03 LSB and monotonic; real 4K crops ΔE76 ≤ 1.0 (p99.9 ≤ 0.85); synthetic saturated / gamut-edge colours
+  ΔE76 ≤ 1.5 (`DOMAIN_MAX 1.1`: ≤ 2.0); the largest channel errors (up to 14 LSB) only on channels the reference clips to
+  0, ~10⁻⁴ in linear light; no visible structure in a ×40 difference image. The LUT of the per-channel OOTF reproduces
+  `zscale` to 3 decimals, and `zscale agamma=0` + `tonemap` reproduces the reference (ΔE76 ≤ 0.03): the formulas are
+  verified by two independent implementations.
+- Throughput (ffmpeg alone, 16 cores, 10 s of a 4K 60 fps clip): the current chain about 155 fps; L2 by LUT at 4K about
+  56 fps (`zscale` + `tonemap` about 31 fps); at the Preview bound (≤ 1280 × 720, scaled first) about 140 fps in software,
+  about 195 fps with `dxva2`. Hardware and software decoding gave bit-identical frames on this machine (3 clips × 20
+  frames, two runs each).
+- The pre-LUT `zscale` stage changes only the matrix and the range (checked: R'G'B' in = out within 10-bit
+  quantization). The app's Preview bound gives odd sizes for portrait video (405 × 720), which `zscale` refuses on 4:2:0
+  ("image dimensions must be divisible by subsampling factor").
+
+### 1. Scope
+
+1. Colour metadata of video assets (transfer, primaries, matrix, range, bit depth, mastering display peak, MaxCLL, the
+   presence of Dolby Vision / HDR Vivid dynamic metadata) read by the analysis, kept in the media metadata, shown in the
+   Inspector.
+2. The HDR → SDR rule (§3) in Core, its 3D LUT generated by the application.
+3. The decoder applies it to HDR assets (HLG and PQ) for the Preview, the thumbnails and the export; SDR assets decode as
+   before.
+4. Tests (§5), the manual plan with the product owner's real footage, the regression against the Phase 17 build.
+
+### 2. Product decisions (product owner, 2026-10-13)
+
+- HQ1 — Formats. HLG / BT.2020 / 10 bit: the main, verified format. Dolby Vision profile 8.4 and HDR Vivid: by their HLG
+  base layer, the dynamic metadata not applied. **PQ / BT.2020 / 10 bit: in scope**, implemented by its own correct
+  branch (§3, PQ), covered by synthetic tests of the EOTF, the ranges, the metadata and the fallback when it is absent —
+  not by swapping one transfer function for another. If a correct PQ needs a substantially larger phase, the work stops
+  and the product owner is told before that part is implemented; PQ is not cut silently.
+- HQ2 — `project.json` stays v4: optional colour properties of the media metadata (written only when known); older
+  metadata without them is kept and the media is probed again in the background when the file is available (the D019
+  precedent: the asset stays Completed, the project does not become dirty). D028 §5: a Phase 17 build ignores the new
+  properties and shows the file as before (no tone mapping) — reads it without the setting, not wrongly.
+- HQ3 — The conversion: **L2** (§3), a 65³ 3D LUT generated by the application, tetrahedral interpolation.
+- HQ4 — No per-asset switch (no "without tone mapping" option) in this phase.
+- HQ5 — Hardware decoding allowed; the frame goes through the same post-decode chain (software filters after the
+  download). Equality is measured, not required bit for bit; the tests decode in software.
+- HQ6 — Performance is a measurement (M), not a pass / fail criterion: the Preview cost is small, a 4K export slower
+  (about 56 fps of decoding per stream, measured in ffmpeg); the in-app measurement is part of the phase.
+- Superwhites (signal above 1.0): **kept up to 1.1** by the LUT's input domain (`DOMAIN_MAX 1.1`), the mobius peak
+  unchanged (1000 nit for HLG); values above 1.1 are limited to 1.1, negative values to 0. Known limitation: the benefit
+  for coloured light sources (the channel ratios of a coloured highlight kept instead of one channel cut) is shown
+  mathematically and on synthetic values, **not yet on a real HDR clip** — the product owner's footage has no saturated
+  coloured light source; neutral highlights render white in every variant (with a 1000 nit peak there is no gradation
+  above 1000 nit, and the footage carries none: the sun is clipped by the camera).
+
+### 3. The HDR → SDR rule (normative)
+
+**Which assets.** The HDR path applies to a video asset when its metadata says transfer `arib-std-b67` (HLG) or
+`smpte2084` (PQ), primaries `bt2020`, matrix `bt2020nc`, and a bit depth ≥ 10. Every other asset — SDR, untagged, or an
+HDR variant outside this list (BT.709 primaries with HLG, `bt2020c`, 8-bit HDR) — takes the existing SDR path unchanged
+(an unsupported HDR variant is logged, named in the Inspector and warned about by the export preflight — OQ1; nothing is
+guessed from an untagged file).
+
+**Order of operations** (each step exactly once; no second OOTF, tone curve or transfer function anywhere):
+
+| # | Step | HLG | PQ |
+|---|---|---|---|
+| 0 | `zscale`: Y'CbCr → R'G'B' (matrix BT.2020 NCL, the file's range → full), float `gbrpf32le`; transfer and primaries unchanged | `tin=arib-std-b67:t=arib-std-b67`, `pin=p=bt2020` | `tin=smpte2084:t=smpte2084`, `pin=p=bt2020` |
+| 1 | Range of the signal (the LUT's input domain `[0, 1.1]`) | `< 0` → 0, `> 1.1` → 1.1 | the same; then PQ signal `> 1` → 1 (1.0 = 10 000 nit) |
+| 2 | Signal → light, once | BT.2100 HLG inverse OETF (a = 0.17883277, b = 0.28466892, c = 0.55991073), continued above 1 → scene light E | BT.2100 / ST 2084 PQ EOTF per component (m1 = 2610/16384, m2 = 2523/4096·128, c1 = 3424/4096, c2 = 2413/4096·32, c3 = 2392/4096·32) → display light in nit |
+| 3 | OOTF, once | BT.2100 on luminance: `F = Lw · Ys^(γ−1) · E`, Lw = 1000 nit, Lb = 0, γ = 1.2, `Ys = 0.2627 R + 0.6780 G + 0.0593 B` | **none** — PQ is display light already |
+| 4 | Normalization | `/ 203` (BT.2408 reference white) | `/ 203` |
+| 5 | Primaries | BT.2020 → BT.709, linear light | the same |
+| 6 | Gamut compression | ACES Reference Gamut Compression 1.3 formula and parameters on linear BT.709: thresholds 0.815 / 0.803 / 0.880, limits 1.147 / 1.264 / 1.312, power 1.2 (achromatic and low-saturation colours unchanged). ACES specifies it in AP1 (ACEScg); here it runs in linear BT.709 by intent — measured in the pre-flight (only near-edge colours change) | the same |
+| 7 | Tone mapping | mobius on `sig = max(R, G, B)`, j = 0.3, peak = 1000 / 203; all channels × `mobius(sig) / sig` (the `vf_tonemap.c` formula) | the same with peak = `Lpeak / 203` (below) |
+| 8 | Clamp | `[0, 1]` | `[0, 1]` |
+| 9 | Encoding, once | inverse BT.1886: `L^(1/2.4)` → R'G'B' BT.709 full range | the same |
+| 10 | Output | 8-bit BGRA (the decoder's existing output) | the same |
+
+Checks of the formulas: HLG 75 % → 203.15 nit → SDR code 217, and PQ 203 nit at `Lpeak` = 1000 → 217 too; HLG 1.0 →
+1000 nit → 255; black → 0.
+
+**PQ peak** (`Lpeak`, nit, an integer): MaxCLL when > 0, else the mastering display's maximum luminance when > 0, else
+**1000** (the fallback when the metadata is absent); limited to `[203, 10 000]`. At `Lpeak` = 203 step 7 is skipped (the
+clamp of step 8 only), so the degenerate mobius (`peak − 1` → 0) is never evaluated. HLG always uses 1000 nit (its
+nominal peak), whatever its metadata says.
+
+**LUT.** Steps 1–9 are one 3D LUT: 65 × 65 × 65 nodes, `.cube`, `DOMAIN_MIN 0 0 0`, `DOMAIN_MAX 1.1 1.1 1.1`, red
+changing fastest, values written with the invariant culture and 6 decimals; applied by `lut3d` with tetrahedral
+interpolation on float input. Generated by the application from the Core rule — a pure, deterministic function of
+(transfer, `Lpeak`, the rule version) — once per key, into `%LOCALAPPDATA%\AiVideoEditor\cache\color-luts\` (the
+application's cache, not the project; a few files of ~8 MB, one per key), written atomically (temporary file, then
+rename); the file name carries the rule version and the key, so a rule change makes a new file; files of other rule
+versions are deleted at startup; a file that fails to load is generated again. The path is escaped for the filter graph
+(`:` and `\`). Nothing else in the graph converts colour.
+
+**Graph** (HDR asset): `-vf <scale to the bound, sizes even>,zscale=<step 0>,format=gbrpf32le,lut3d=file=<LUT>:interp=
+tetrahedral,format=bgra,showinfo=…` — the scaling first (in Y'CbCr, as the current graph does), both sizes even. The SDR
+graph is not changed (its arguments byte for byte as before).
+
+### 4. Technical rules (binding for the steps)
+
+- T1 — Analysis: the stream's `color_transfer`, `color_primaries`, `color_space`, `color_range` and `pix_fmt` (→ bit depth)
+  from the existing `-show_streams` call; the Dolby Vision profile from the stream's "DOVI configuration record"; the
+  mastering display and content light level from the stream side data, else from the first frame's side data — the
+  first-frame probe (today run only when the stream has no display hint, `FfprobeMediaAnalysisService`) runs as well for
+  a video whose transfer is HLG or PQ, and reads those entries too (HDR Vivid presence included).
+- T2 — Persistence: the new `MediaMetadataDto` properties are optional; for a video asset analysed by Phase 18 the
+  **pixel format is always written** (every decodable video has one) and marks "colour probed"; the colour properties are
+  written when the file states them (an untagged file has none, and is SDR). A v4 file without them reads unchanged; a
+  Phase 17 build reads a Phase 18 file without them (D014: unknown properties ignored).
+- T3 — Older metadata (a video asset with saved metadata but no pixel format): probed again in the background when its
+  file is available (the D019 path), not dirty; a failed probe or a missing ffprobe keeps the old metadata, and the asset
+  is then treated as SDR, exactly as in Phase 17. Until its colour is known the asset decodes by the SDR path. When the
+  probe completes and changes the asset's path to HDR, its open Preview readers / decoders are reopened and its thumbnail
+  is regenerated (the thumbnail's rule version and the asset's colour are in its cache key). The export preflight blocks
+  (with the existing "still being analysed" reason) only while such a background probe of a used asset is **pending or
+  running**; it never blocks an SDR, untagged or unprobeable asset — no regression of Phase 17 exports.
+- T4 — One builder of the decode graph for the Preview, the thumbnails and the export; the same LUT file for the same
+  key; `ThumbnailService.CurrentRuleVersion` → 2 (old thumbnails regenerated once).
+- T5 — Hardware decoding: the frame is downloaded and then goes through the same filters; the decoder's existing software
+  fallback unchanged.
+- T6 — No project mutation is added: nothing new is undoable or dirty; the edits, the `EditingLock`, locked tracks and
+  `project.json` semantics are untouched; no ffmpeg in an edit.
+- T7 — Core holds the rule and the LUT generator (pure, unit-tested); Video builds the graph; UI only shows the
+  metadata. No ffmpeg filter string in Core.
+
+### 5. Tests (minimum, each with a mutation the test must catch)
+
+- Core: HLG OETF / inverse round trip; 75 % → 203 nit, 1.0 → 1000 nit; the OOTF on luminance ((0.8, 0.7, 0.6) → (1.2665,
+  0.7616, 0.4729) at 203 — fails if the per-channel form returns); PQ EOTF at 0 / 100 / 203 / 1000 / 10 000 nit and its
+  inverse; no OOTF on PQ; mobius as `vf_tonemap.c` (identity below j, 1 at the peak, monotonic); gamut compression leaves
+  neutral, skin and wall colours unchanged and brings out-of-gamut colours inside; the whole chain: neutral in → neutral
+  out, monotonic, black → 0, reference white → 217, a double transfer / OOTF / tone map would fail it.
+- LUT domain and boundaries: inputs < 0, 0, 1.0, between 1.0 and 1.1, 1.1 and above 1.1 (HLG: > 1.1 equals 1.1; PQ: > 1
+  equals 1); neutral and coloured.
+- PQ peak: MaxCLL wins; mastering maximum when MaxCLL is 0 / absent; 1000 when both absent; the limits 203 / 10 000.
+- LUT generator: 65³ entries, the order, `DOMAIN_*` lines, two generations byte-identical, nodes equal to the rule, the
+  name changes with the rule version and the key.
+- Video (ffmpeg): the SDR arguments byte for byte as before; the HDR graph as specified (even sizes, `lut3d`
+  tetrahedral); synthetic HLG and PQ fixtures generated with ffmpeg / libx265 (PQ with and without mastering / CLL
+  metadata) decoded by the app's decoder within ΔE76 ≤ 1 of the reference, neutral patches neutral; the metadata read.
+- Persistence: colour properties round trip; a v4 file without them reads unchanged; an older-metadata asset is
+  re-probed without dirtying the project.
+- ExportEndToEnd: an HLG and a PQ scene — the Preview, the thumbnail and the export equal on flat patches within 1 LSB;
+  every existing parity / golden / L1-c expected value unchanged.
+
+### 6. Constraints
+
+- Unchanged in substance: D001, D006–D009 (an HDR file's timing and frame selection as any file's), D010–D013, D014
+  except the optional properties, D015–D032; the SDR decode graph and every existing expected value.
+- A Phase 17 project opens, renders and exports as before for SDR media (the default export byte for byte); saved again,
+  it differs only by the new optional metadata properties (after the background probe).
+- New UI checked in the real app at 1024 and 1440 px.
+
+### 7. Non-goals
+
+HDR export (HDR10 / HLG output) and HDR display output; applying Dolby Vision RPU or HDR Vivid dynamic metadata; other
+tone curves, a user-adjustable curve, exposure or colour grading; a per-asset switch; LUT files supplied by the user;
+ICC / display colour management; HDR images (photos); the HDR variants listed as unsupported in §3; deinterlacing, SAR,
+other decoder limitations of `progress.md`.
+
+### 8. Known limitations
+
+- Coloured superwhites (§2): the gain of the 1.1 domain shown mathematically, not on a real clip.
+- The gallery screenshots are orientation marks, not a colour reference (a lossy, downscaled capture of an HDR display
+  path; about 25 L\* darker than any SDR render); the remaining warm shift of the gym wall (hue 66° vs 73° on the phone)
+  is unexplained (Dolby Vision processing or the phone's white balance are possible causes).
+- PQ is verified only on synthetic files.
+- Hardware / software equality measured on one machine (`dxva2`).
+- The CI's pinned ffmpeg (the same 9.0.1 essentials build) has `libx265`, `zscale` and `lut3d`, so the synthetic HDR
+  fixtures need no new skip; without ffmpeg the Video tests skip as today (ARCHITECTURE CI section).
+
+Answered by the product owner (2026-10-13):
+- OQ1 — An unsupported HDR variant (§3) takes the SDR path; it is named in the Inspector **and** the export preflight shows
+  a non-blocking warning naming the file and the reason; the export is allowed. Only a file whose metadata states an HDR
+  transfer (HLG or PQ) can be an unsupported HDR variant: an SDR file, or a file without colour tags, is never warned
+  about, and missing metadata alone never counts as HDR.
+
+Consequences: `MediaMetadata` / `MediaMetadataDto` colour properties; `FfprobeStream` and the analysis's first-frame
+probe; a Core colour rule and LUT generator; a LUT cache; `FfmpegVideoDecoder.BuildArguments` with the HDR graph; the
+thumbnail rule version; the export preflight's unknown-colour check; the Inspector's colour line; the manual plan
+`docs/PHASE18_MANUAL_TEST_PLAN.md`.
+
+Status: Accepted (2026-10-13, product owner: variant C, HQ1–HQ6, L2, LUT generated by the application at 65³, superwhites
+variant B, PQ in scope). Independent review of the Step 18.2 documents: PASS WITH NOTES — its notes taken in (T1 the
+probes that carry the colour data, T2 / T3 the "colour probed" marker and the preflight block only while a probe is pending,
+the step-0 options written out, `Lpeak` = 203 skipping step 7, the check value's `Lpeak`, RGC in BT.709 stated, the LUT
+cache location, the HQ5 qualification). OQ1 answered (2026-10-13). The product owner approved the implementation on
+2026-10-13: Steps 18.3–18.7 without a stop between them, 18.8 as the closeout, branch `feat/phase-18-hdr-sdr` from
+`fa96468`. Binding for the implementation: the SDR filter graph unchanged; colour processing only for HDR files with
+supported metadata; a failure of the HDR conversion is reported as a decode error, never silently replaced by another
+processing; no change of the project format or of other decisions beyond D033.
 
 ---
 
