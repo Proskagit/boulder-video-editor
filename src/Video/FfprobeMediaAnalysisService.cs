@@ -187,7 +187,10 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         {
             var type = entry.SideDataType ?? "";
             if (type.Contains("DOVI configuration", StringComparison.OrdinalIgnoreCase))
+            {
                 metadata.DolbyVisionProfile ??= entry.DvProfile;
+                metadata.DolbyVisionCompatibility ??= entry.DvCompatibility;
+            }
             else if (type.Contains("Mastering display", StringComparison.OrdinalIgnoreCase))
                 metadata.MasteringMaxLuminance ??= ParseRational(entry.MaxLuminance);
             else if (type.Contains("Content light level", StringComparison.OrdinalIgnoreCase))
@@ -367,7 +370,9 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
             metadata.AvgFrameRate = ParseFrameRate(videoStream.AvgFrameRate);
 
             // Colour (D033 T1): only what the file states; "unknown" / "unspecified" count as not stated.
-            metadata.PixelFormat = Stated(videoStream.PixelFormat);
+            // Always set for a picture stream (D033 T2: it marks "colour probed"); "unknown" when ffprobe has none, so
+            // such a file is not probed again at every Open.
+            metadata.PixelFormat = Stated(videoStream.PixelFormat) ?? "unknown";
             metadata.BitDepth = HdrColor.BitDepthOf(metadata.PixelFormat);
             metadata.ColorTransfer = Stated(videoStream.ColorTransfer);
             metadata.ColorPrimaries = Stated(videoStream.ColorPrimaries);

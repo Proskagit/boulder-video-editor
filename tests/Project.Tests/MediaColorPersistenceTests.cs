@@ -30,6 +30,7 @@ public class MediaColorPersistenceTests
         video.MasteringMaxLuminance = 1000;
         video.MaxContentLightLevel = 0;
         video.DolbyVisionProfile = 8;
+        video.DolbyVisionCompatibility = 4;
         video.HasHdrVivid = true;
         return project;
     }
@@ -44,8 +45,8 @@ public class MediaColorPersistenceTests
 
         Assert.Equal(("yuv420p10le", 10, "arib-std-b67", "bt2020", "bt2020nc", "tv"),
             (m.PixelFormat, m.BitDepth, m.ColorTransfer, m.ColorPrimaries, m.ColorMatrix, m.ColorRange));
-        Assert.Equal((1000.0, 0, 8, true), (m.MasteringMaxLuminance!.Value, m.MaxContentLightLevel!.Value, m.DolbyVisionProfile!.Value,
-            m.HasHdrVivid));
+        Assert.Equal((1000.0, 0, 8, 4, true), (m.MasteringMaxLuminance!.Value, m.MaxContentLightLevel!.Value, m.DolbyVisionProfile!.Value,
+            m.DolbyVisionCompatibility!.Value, m.HasHdrVivid));
         Assert.False(m.NeedsColorProbe);
         Assert.Equal(HdrColor.Classify(MediaKind.Video, Sample().MediaAssets[0].Metadata),
             HdrColor.Classify(MediaKind.Video, m));
@@ -59,7 +60,7 @@ public class MediaColorPersistenceTests
         var plain = ProjectTestData.Build(Folder + @"\media");   // no colour at all
         var json = ProjectSerializer.Serialize(plain, Folder);
         foreach (var name in new[] { "pixelFormat", "colorTransfer", "colorPrimaries", "colorMatrix", "colorRange",
-                     "masteringMaxLuminance", "maxContentLightLevel", "dolbyVisionProfile", "hasHdrVivid", "bitDepth" })
+                     "masteringMaxLuminance", "maxContentLightLevel", "dolbyVisionProfile", "dolbyVisionCompatibility", "hasHdrVivid", "bitDepth" })
             Assert.DoesNotContain(name, json);
         Assert.Equal(4, JsonNode.Parse(json)!["formatVersion"]!.GetValue<int>());
 
@@ -89,7 +90,7 @@ public class MediaColorPersistenceTests
         var root = JsonNode.Parse(ProjectSerializer.Serialize(sample, Folder))!.AsObject();
         var metadata = root["mediaAssets"]![0]!["metadata"]!.AsObject();
         foreach (var name in new[] { "pixelFormat", "colorTransfer", "colorPrimaries", "colorMatrix", "colorRange",
-                     "masteringMaxLuminance", "maxContentLightLevel", "dolbyVisionProfile", "hasHdrVivid" })
+                     "masteringMaxLuminance", "maxContentLightLevel", "dolbyVisionProfile", "dolbyVisionCompatibility", "hasHdrVivid" })
             Assert.True(metadata.Remove(name), name);
 
         var stripped = ProjectSerializer.Serialize(
@@ -98,7 +99,7 @@ public class MediaColorPersistenceTests
         (withoutColour.PixelFormat, withoutColour.BitDepth, withoutColour.ColorTransfer, withoutColour.ColorPrimaries,
             withoutColour.ColorMatrix, withoutColour.ColorRange) = (null, null, null, null, null, null);
         (withoutColour.MasteringMaxLuminance, withoutColour.MaxContentLightLevel, withoutColour.DolbyVisionProfile,
-            withoutColour.HasHdrVivid) = (null, null, null, false);
+            withoutColour.DolbyVisionCompatibility, withoutColour.HasHdrVivid) = (null, null, null, null, false);
         Assert.Equal(ProjectSerializer.Serialize(sample, Folder), stripped);
     }
 }

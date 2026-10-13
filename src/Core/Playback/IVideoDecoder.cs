@@ -34,6 +34,13 @@ public sealed record VideoDecodeRequest
     public HardwareDecoding Hardware { get; init; } = HardwareDecoding.Auto;
 
     /// <summary>
+    /// The HDR → SDR conversion of D033 §3 for an HDR asset (<see cref="Color.HdrColor.Classify"/>); null decodes by the
+    /// SDR path, exactly as before Phase 18. A conversion that can't be set up fails the open (a
+    /// <see cref="VideoDecodeException"/>): the picture is never decoded by another path instead.
+    /// </summary>
+    public Color.HdrConversion? Hdr { get; init; }
+
+    /// <summary>
     /// How the end of the stream is judged (D023). False (playback): the stream simply ends when the decoder's
     /// output ends — a decoder that fails after it delivered frames leaves the last frame held. True (export): the
     /// end is only a normal end if the decoder finished successfully; a decoder process that failed after

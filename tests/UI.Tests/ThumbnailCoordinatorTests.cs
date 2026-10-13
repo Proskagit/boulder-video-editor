@@ -189,6 +189,33 @@ public sealed class ThumbnailCoordinatorTests : IDisposable
     }
 
     [Fact]
+    public async Task A_video_whose_background_probe_finds_HDR_gets_its_thumbnail_made_again_and_only_then()
+    {
+        // D033 T3: the thumbnail made while the colour was unknown (the SDR path) is replaced once the probe finds HDR.
+        var asset = Import(1)[0];
+        await Settle();
+        Assert.Single(_thumbnails.Makes);
+
+        var m = asset.Metadata!;
+        (m.PixelFormat, m.BitDepth, m.ColorTransfer, m.ColorPrimaries, m.ColorMatrix) =
+            ("yuv420p10le", 10, "arib-std-b67", "bt2020", "bt2020nc");
+        _projects.NotifyMediaAssetsChanged();                                 // the probe's result
+        await Settle();
+        Assert.Equal(2, _thumbnails.Makes.Count);
+
+        _projects.NotifyMediaAssetsChanged();                                 // nothing changed since
+        await Settle();
+        Assert.Equal(2, _thumbnails.Makes.Count);
+
+        var sdr = Import(1)[0];                                              // a probe that finds SDR changes nothing
+        await Settle();
+        (sdr.Metadata!.PixelFormat, sdr.Metadata.BitDepth) = ("yuv420p", 8);
+        _projects.NotifyMediaAssetsChanged();
+        await Settle();
+        Assert.Equal(3, _thumbnails.Makes.Count);
+    }
+
+    [Fact]
     public async Task A_cached_thumbnail_takes_no_slot_and_is_never_made()
     {
         _gates.Add(_thumbnails.Close());

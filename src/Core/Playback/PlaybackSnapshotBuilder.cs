@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
@@ -137,7 +138,7 @@ public static class PlaybackSnapshotBuilder
     /// </summary>
     public readonly record struct AssetState(
         bool InProject, string? FilePath, MediaKind Kind, bool IsMissing, bool HasMetadata, bool HasAudio,
-        MediaTime StartTime, FrameRate? NominalFrameRate, FrameSize? DisplaySize = null);
+        MediaTime StartTime, FrameRate? NominalFrameRate, FrameSize? DisplaySize = null, HdrConversion? Hdr = null);
 
     /// <summary>The picture size composition uses: the display size of the metadata, or null when
     /// it is unknown (then the renderer lays the picture out from the decoded frame, D018).</summary>
@@ -156,7 +157,8 @@ public static class PlaybackSnapshotBuilder
             if (states.ContainsKey(clip.MediaAssetId)) continue;
             states[clip.MediaAssetId] = assets.TryGetValue(clip.MediaAssetId, out var a)
                 ? new AssetState(true, a.FilePath, a.Kind, a.IsMissing, a.Metadata is not null, a.Metadata?.AudioCodec is not null,
-                    a.Metadata?.StartTime ?? MediaTime.Zero, SourceFrameSelector.NominalRate(a.Metadata), DisplaySize(a.Metadata))
+                    a.Metadata?.StartTime ?? MediaTime.Zero, SourceFrameSelector.NominalRate(a.Metadata), DisplaySize(a.Metadata),
+                    HdrColor.Classify(a.Kind, a.Metadata).Conversion)
                 : new AssetState(false, null, default, false, false, false, MediaTime.Zero, null);
         }
         return states.ToImmutable();
@@ -228,6 +230,9 @@ public static class PlaybackSnapshotBuilder
     {
         if (asset is null || used.ContainsKey(asset.Id)) return;
         used[asset.Id] = new PlaybackAsset(asset.Id, asset.FilePath, asset.Kind,
-            asset.Metadata?.StartTime ?? MediaTime.Zero, SourceFrameSelector.NominalRate(asset.Metadata));
+            asset.Metadata?.StartTime ?? MediaTime.Zero, SourceFrameSelector.NominalRate(asset.Metadata))
+        {
+            Hdr = HdrColor.Classify(asset.Kind, asset.Metadata).Conversion
+        };
     }
 }

@@ -139,7 +139,8 @@ internal sealed class SpanReader : IAsyncDisposable
                     NominalFrameRate = _asset.NominalFrameRate,
                     MaxWidth = _settings.MaxWidth,
                     MaxHeight = _settings.MaxHeight,
-                    Hardware = hardware
+                    Hardware = hardware,
+                    Hdr = _asset.Hdr   // D033: the same conversion as the thumbnail and the export
                 };
 
                 // A reader retired before its task ran (e.g. superseded by the next seek at once)

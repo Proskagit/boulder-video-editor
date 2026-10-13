@@ -133,6 +133,9 @@ internal sealed class MediaMetadataDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? DolbyVisionProfile { get; set; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? DolbyVisionCompatibility { get; set; }
+
     /// <summary>Written only when true.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? HasHdrVivid { get; set; }

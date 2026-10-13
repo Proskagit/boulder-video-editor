@@ -100,7 +100,10 @@ public static class HdrColor
                 break;
         }
         if (metadata.BitDepth is { } depth) parts.Add($"{depth}-bit");
-        if (metadata.DolbyVisionProfile is { } profile) parts.Add($"Dolby Vision {profile} (not applied)");
+        if (metadata.DolbyVisionProfile is { } profile)
+            parts.Add(metadata.DolbyVisionCompatibility is { } compatibility
+                ? $"Dolby Vision {profile}.{compatibility} (not applied)"
+                : $"Dolby Vision {profile} (not applied)");
         if (metadata.HasHdrVivid) parts.Add("HDR Vivid (not applied)");
         return string.Join(" · ", parts);
     }
@@ -114,6 +117,8 @@ public static class HdrColor
         var name = pixelFormat.ToLowerInvariant();
         if (name.EndsWith("le") || name.EndsWith("be"))
             name = name[..^2];
+        if (name.Contains("f16") || name.Contains("f32"))
+            return null;   // floating point: not a bit depth of the integer kind meant here
         switch (name)
         {
             case "p010": case "p210": case "p410": return 10;

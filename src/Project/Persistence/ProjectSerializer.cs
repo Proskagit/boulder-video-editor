@@ -234,6 +234,7 @@ public static class ProjectSerializer
         MasteringMaxLuminance = m.MasteringMaxLuminance,
         MaxContentLightLevel = m.MaxContentLightLevel,
         DolbyVisionProfile = m.DolbyVisionProfile,
+        DolbyVisionCompatibility = m.DolbyVisionCompatibility,
         HasHdrVivid = m.HasHdrVivid ? true : null
     };
 
@@ -448,6 +449,7 @@ public static class ProjectSerializer
             MasteringMaxLuminance = dto.MasteringMaxLuminance,
             MaxContentLightLevel = dto.MaxContentLightLevel,
             DolbyVisionProfile = dto.DolbyVisionProfile,
+            DolbyVisionCompatibility = dto.DolbyVisionCompatibility,
             HasHdrVivid = dto.HasHdrVivid == true
         };
     }

@@ -84,7 +84,7 @@ public sealed class FfprobeColorMetadataTests
             """;
         var vivo = new MediaMetadata { ColorTransfer = "arib-std-b67" };
         FfprobeMediaAnalysisService.ApplyHdrSideData(vivo, JsonSerializer.Deserialize<List<FfprobeSideData>>(vivoStream));
-        Assert.Equal(8, vivo.DolbyVisionProfile);
+        Assert.Equal((8, 4), (vivo.DolbyVisionProfile!.Value, vivo.DolbyVisionCompatibility!.Value));
         Assert.False(vivo.HasHdrVivid);
 
         var huawei = new MediaMetadata { ColorTransfer = "arib-std-b67" };

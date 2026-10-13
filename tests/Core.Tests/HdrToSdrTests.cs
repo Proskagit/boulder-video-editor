@@ -376,6 +376,11 @@ public class HdrToSdrTests
     [InlineData("gray16le", 16)]
     [InlineData("rgb48le", 16)]
     [InlineData("rgba", 8)]
+    [InlineData("gbrp10le", 10)]
+    [InlineData("gray10le", 10)]
+    [InlineData("yuva444p10le", 10)]
+    [InlineData("gbrpf32le", null)]   // float: no integer bit depth
+    [InlineData("unknown", null)]     // ffprobe gave none (D033 T2's marker)
     [InlineData(null, null)]
     [InlineData("something", null)]
     public void The_bit_depth_comes_from_the_pixel_format(string? pixelFormat, int? bits) =>
@@ -395,6 +400,8 @@ public class HdrToSdrTests
         var vivo = Meta("arib-std-b67");
         vivo.DolbyVisionProfile = 8;
         Assert.Equal("HDR · HLG · BT.2020 · 10-bit · Dolby Vision 8 (not applied)", HdrColor.Describe(MediaKind.Video, vivo));
+        vivo.DolbyVisionCompatibility = 4;
+        Assert.Equal("HDR · HLG · BT.2020 · 10-bit · Dolby Vision 8.4 (not applied)", HdrColor.Describe(MediaKind.Video, vivo));
         var huawei = Meta("arib-std-b67");
         huawei.HasHdrVivid = true;
         Assert.Equal("HDR · HLG · BT.2020 · 10-bit · HDR Vivid (not applied)", HdrColor.Describe(MediaKind.Video, huawei));

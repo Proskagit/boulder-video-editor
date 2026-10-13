@@ -98,6 +98,10 @@ internal sealed class FfprobeSideData
     /// <summary>The Dolby Vision profile of a "DOVI configuration record".</summary>
     [JsonPropertyName("dv_profile")]
     public int? DvProfile { get; set; }
+
+    /// <summary>The Dolby Vision base layer's signal compatibility id (4 = HLG).</summary>
+    [JsonPropertyName("dv_bl_signal_compatibility_id")]
+    public int? DvCompatibility { get; set; }
 }
 
 /// <summary>Shape of `ffprobe -show_frames` output (first frame only).</summary>

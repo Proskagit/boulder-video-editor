@@ -149,6 +149,10 @@ public sealed class MediaMetadata
     /// dynamic metadata is not applied (D033 HQ1).</summary>
     public int? DolbyVisionProfile { get; set; }
 
+    /// <summary>The Dolby Vision base layer's signal compatibility id (profile 8.4: 4 = an HLG base layer); null when
+    /// there is none. Shown only.</summary>
+    public int? DolbyVisionCompatibility { get; set; }
+
     /// <summary>The stream carries HDR Vivid (CUVA) dynamic metadata. Shown only: not applied (D033 HQ1).</summary>
     public bool HasHdrVivid { get; set; }
 

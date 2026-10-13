@@ -59,7 +59,7 @@ public sealed class MediaColorRefreshTests : IDisposable
     {
         Duration = MediaTime.FromSeconds(10), Width = 3840, Height = 2160, DisplayRotation = 0, DisplayWidth = 3840, DisplayHeight = 2160,
         VideoCodec = "hevc", PixelFormat = "yuv420p10le", BitDepth = 10, ColorTransfer = "arib-std-b67", ColorPrimaries = "bt2020",
-        ColorMatrix = "bt2020nc", ColorRange = "tv", DolbyVisionProfile = 8
+        ColorMatrix = "bt2020nc", ColorRange = "tv", DolbyVisionProfile = 8, DolbyVisionCompatibility = 4
     };
 
     /// <summary>The same clip as saved by Phase 17: display size, no colour.</summary>
@@ -164,7 +164,7 @@ public sealed class MediaColorRefreshTests : IDisposable
         });
 
         var row = Assert.Single(inspector.TechnicalRows, r => r.Label == "Color");
-        Assert.Equal("HDR · HLG · BT.2020 · 10-bit · Dolby Vision 8 (not applied)", row.Value);
+        Assert.Equal("HDR · HLG · BT.2020 · 10-bit · Dolby Vision 8.4 (not applied)", row.Value);
 
         inspector.ShowMedia(SavedByPhase17(Path.Combine(_root, "old.mp4")));   // colour not probed yet: no row
         Assert.DoesNotContain(inspector.TechnicalRows, r => r.Label == "Color");

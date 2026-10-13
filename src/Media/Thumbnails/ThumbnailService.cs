@@ -1,3 +1,4 @@
+using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
@@ -27,9 +28,9 @@ namespace AiVideoEditor.Media.Thumbnails;
 /// </summary>
 public sealed class ThumbnailService : IThumbnailService
 {
-    /// <summary>Version of the thumbnail rules (source time, size bound, file format). Changing any rule changes it,
-    /// which makes every cached thumbnail a miss.</summary>
-    public const int CurrentRuleVersion = 1;
+    /// <summary>Version of the thumbnail rules (source time, size bound, file format, colour). Changing any rule changes
+    /// it, which makes every cached thumbnail a miss. 2: Phase 18's HDR → SDR conversion (D033 T4).</summary>
+    public const int CurrentRuleVersion = 2;
 
     public const int DefaultMaxWidth = 160;
     public const int DefaultMaxHeight = 90;
@@ -119,6 +120,7 @@ public sealed class ThumbnailService : IThumbnailService
             MaxWidth = MaxWidth,
             MaxHeight = MaxHeight,
             Hardware = HardwareDecoding.Disabled, // deterministic, and no competition with the Preview's decoders
+            Hdr = HdrConversionOf(asset),         // D033: the Preview's conversion
             StrictEnd = true                      // a decoder that fails mid-stream leaves the choice uncertain
         }, ct);
 
@@ -157,6 +159,14 @@ public sealed class ThumbnailService : IThumbnailService
         }
     }
 
+    /// <summary>The HDR conversion is part of the name (e.g. <c>…-v2-hlg1000.thumb</c>): a thumbnail made while the
+    /// asset's colour was unknown (SDR) is a miss once its background probe finds HDR (D033 T3).</summary>
     private string FileName(MediaAsset asset, (long Size, long LastWriteTicks) identity) =>
-        SourceFileCache.FileName(asset, identity, RuleVersion, Extension);
+        SourceFileCache.FileName(asset, identity, RuleVersion, ColourTag(asset) + Extension);
+
+    private static string ColourTag(MediaAsset asset) => HdrConversionOf(asset) is { } hdr
+        ? $"-{(hdr.Transfer == HdrTransfer.Hlg ? "hlg" : "pq")}{hdr.PeakNits}{(hdr.FullRange ? "f" : "")}"
+        : "";
+
+    private static HdrConversion? HdrConversionOf(MediaAsset asset) => HdrColor.Classify(asset.Kind, asset.Metadata).Conversion;
 }

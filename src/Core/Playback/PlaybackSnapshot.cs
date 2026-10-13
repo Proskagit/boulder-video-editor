@@ -22,7 +22,12 @@ public enum SpanStatus
 }
 
 /// <summary>What a snapshot needs to know about one media asset.</summary>
-public sealed record PlaybackAsset(Guid Id, string FilePath, MediaKind Kind, MediaTime StartTime, FrameRate? NominalFrameRate);
+public sealed record PlaybackAsset(Guid Id, string FilePath, MediaKind Kind, MediaTime StartTime, FrameRate? NominalFrameRate)
+{
+    /// <summary>How the picture is converted from HDR (D033 §3); null = the SDR path. Part of decoding: a change (the
+    /// background colour probe, T3) reopens the asset's decoders.</summary>
+    public Color.HdrConversion? Hdr { get; init; }
+}
 
 /// <summary>
 /// One clip on a visible video track, as a logical span. It is not split where higher tracks

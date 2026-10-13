@@ -94,6 +94,7 @@ internal sealed class ExportPictureReader : IAsyncDisposable
                     MaxWidth = ExportDecodeSettings.FullResolutionBound,
                     MaxHeight = ExportDecodeSettings.FullResolutionBound,
                     Hardware = _settings.Hardware,
+                    Hdr = _asset.Hdr,   // D033: the same conversion as the Preview
                     StrictEnd = true   // a decoder failing after some frames is an export error, never a held frame
                 }, ct);
                 // The decoder's first frame is at or before the point, or the stream's very first frame
