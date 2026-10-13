@@ -99,7 +99,10 @@ and runs cleanly.
       the Preview, the thumbnails and the export; SDR media decoded byte for byte as before; colour metadata read, kept
       (optional properties, `project.json` stays v4) and shown. Scope, steps and acceptance criteria: section below and
       DECISIONS.md D033 (product owner decisions, 2026-10-13). *(Steps 18.1–18.2 done 2026-10-13; implementation not
-      approved 2026-10-13 — branch `feat/phase-18-hdr-sdr`)*
+      approved 2026-10-13 — branch `feat/phase-18-hdr-sdr`; Steps 18.3–18.7 done; closeout 18.8 done 2026-10-13 — build 0 / 0
+      Release and Debug, passed 3150, skipped 2, failed 0, three blame-hang runs and heavy green, the manual plan and the
+      Phase 17 regression in the real app (the product owner's visual check open); not yet merged — push / pull request on
+      the product owner's command)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -1210,7 +1213,7 @@ Out of scope: D033 §7.
 - PR: the Inspector's colour line placed and checked at 1024 / 1440 px; no switch (HQ4).
 - QG: `UI.Tests`; real app.
 
-### 18.8 — Final verification & closeout
+### 18.8 — Final verification & closeout *(done 2026-10-13 — results in `progress.md` and `docs/PHASE18_MANUAL_TEST_PLAN.md`; the relative LUT folder found and fixed)*
 - QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
   `--blame-hang`; the heavy scenes once with `AIVE_HEAVY_TESTS=1`; `git diff --check` clean; an independent phase review.
 - PR: `docs/PHASE18_MANUAL_TEST_PLAN.md` in the real app with the product owner's footage (the five comparison clips) and

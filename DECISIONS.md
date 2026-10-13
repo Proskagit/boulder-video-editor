@@ -4144,6 +4144,24 @@ cache location, the HQ5 qualification). OQ1 answered (2026-10-13). The product o
 supported metadata; a failure of the HDR conversion is reported as a decode error, never silently replaced by another
 processing; no change of the project format or of other decisions beyond D033.
 
+Refined in Steps 18.6–18.8: the end-to-end parity of an HLG and a PQ scene (the export canvas byte for byte the Preview's,
+the rule within ΔE76 ≤ 0.74, the thumbnail's flat colours equal); the re-review notes — the LUT store's clean-up once before
+any write, a newly imported HDR file's thumbnail made once; the Inspector's values wrap (the Color row is wider than the
+300 px panel); found in the closeout's real-app run: with an isolated profile the LUT folder could be relative, so the
+store resolves it to a full path. Measured (HQ5, HQ6): in the app's decoder the conversion costs nothing measurable (4K
+12.5 vs 12.7 fps — bound by the BGRA pipe; the Preview bound 162 vs 159 fps); hardware = software, 20 / 20 frames
+identical (Vivo, Huawei; `dxva2`).
+
+Final state at the Phase 18 closeout (Step 18.8, 2026-10-13): every rule of §2–§4 and OQ1 implemented and tested
+(Core.Tests `HdrToSdrTests`, `HdrSnapshotTests`, preflight tests; Video.Tests `FfprobeColorMetadataTests`,
+`HdrDecodeTests`, `HdrLutStoreTests`, `HdrThumbnailTests`; Project.Tests `MediaColorPersistenceTests`; UI.Tests
+`MediaColorRefreshTests`, `ThumbnailCoordinatorTests`; ExportEndToEnd.Tests `ExportHdrEndToEndTests`); the gates and the
+manual plan in `progress.md` and `docs/PHASE18_MANUAL_TEST_PLAN.md`; the SDR graph unchanged (pinned), a Phase 17 SDR
+project's default export byte for byte the Phase 17 build's, a Phase 17 save differing after the Phase 18 save only by the
+optional colour properties, a Phase 18 save opened by Phase 17. Open: the product owner's visual check of an exported HDR
+clip on an SDR screen; §8.
+**Phase 18 complete** on `feat/phase-18-hdr-sdr`; awaiting the product owner's acceptance; not pushed.
+
 ---
 
 ## How to add a decision

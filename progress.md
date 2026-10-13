@@ -2,17 +2,16 @@
 
 ## Current phase
 
-Phase 18 — HDR → SDR of phone footage: **in progress** on branch `feat/phase-18-hdr-sdr` (from `fa96468`, `main` after
-the merge of PR #18; DECISIONS.md D033, product owner decisions of 2026-10-13, OQ1 answered). Steps 18.1 (pre-flight) and
-18.2 (sync after the merge, D033, the steps, the manual plan's skeleton) done; the implementation 18.3–18.7 approved to run
-without a stop between steps, 18.8 the closeout. Builds and tests run by Claude as needed; no push, pull request or merge
+Phase 18 — HDR → SDR of phone footage: **complete** on branch `feat/phase-18-hdr-sdr` (from `fa96468`, `main` after
+the merge of PR #18; DECISIONS.md D033, product owner decisions of 2026-10-13, OQ1 answered); closeout Step 18.8 done
+2026-10-13; awaiting the product owner's acceptance (their visual check of an exported HDR clip is open). Not pushed. Builds and tests run by Claude as needed; no push, pull request or merge
 without a separate command. Scope: HDR
 video (HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 / HDR Vivid by the HLG base layer) converted by the L2 rule of D033 §3
 as an application-generated 65³ LUT, the same for the Preview, the thumbnails and the export; SDR decoding unchanged;
 optional colour metadata (`project.json` stays v4); no per-asset switch. Steps and acceptance: `docs/DEVELOPMENT_PLAN.md`
 "Phase 18 — HDR → SDR of phone footage: steps"; manual plan `docs/PHASE18_MANUAL_TEST_PLAN.md`.
 
-### Phase 18 — HDR → SDR of phone footage (planned)
+### Phase 18 — HDR → SDR of phone footage (complete; closeout Step 18.8, not yet merged)
 
 Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization · 18.3 colour rule & LUT generator ·
 18.4 colour metadata · 18.5 decoder & LUT cache · 18.6 parity, export & measurement · 18.7 UI · 18.8 closeout.
@@ -89,6 +88,25 @@ Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization
 - Step 18.7 done — UI: the Inspector's "Color" row (18.4) — its value text now wraps (the longest, "HDR · HLG · BT.2020 ·
   10-bit · Dolby Vision 8.4 (not applied)", is wider than the 300 px Inspector); no switch (HQ4); the OQ1 warning uses the
   export's existing warnings dialog. UI 660 / 0. The real-app check at 1024 / 1440 px: closeout run.
+- Step 18.8 (closeout, 2026-10-13):
+  - Gates at `ff57787` (the machine idle, no app driven meanwhile): `dotnet build --no-incremental -warnaserror` Release
+    and Debug 0 / 0; the full suite 3150 passed, 2 skipped (the 4K scenes), 0 failed (Core 618, Timeline 782, Project 446,
+    UI 660, Export 108, Rendering 58, Video 351, ExportEndToEnd 127 + 2); three `--blame-hang-timeout 5m` runs the same,
+    no hang, no dump; `AIVE_HEAVY_TESTS=1` 3152 / 0 / 0; `git diff --check fa96468` clean.
+  - Real app (Debug builds, isolated profile, UI Automation; the helpers of Phases 15–17 in this session's scratch
+    folder): the HDR fixture — the five comparison clips, saved Phase 17-style (no colour) — opened: the background probe
+    ran, the title stayed clean, the LUT was written, the Preview showed the converted picture, the Inspector's Color row
+    read "… Dolby Vision 8.4 (not applied)" / "… HDR Vivid (not applied)", one line at 1440 px, wrapped at 1024 px; the
+    fixture exported through the UI — its frames at the five reference moments match the pre-flight's L2 renders by eye.
+    Regression against the Phase 17 build (`fa96468`, built from `git archive`): R1 the SDR fixture saved by Phase 18
+    differs only by `pixelFormat` (and the D014 `relativePath` of the copy); R2 its default export byte for byte the Phase
+    17 build's (SHA-256 3F0E9DB7…A59811); R3 the Phase 18 save opens in Phase 17; R4 no ffmpeg — opens, the reason shown.
+    Details: `docs/PHASE18_MANUAL_TEST_PLAN.md`.
+  - Found and fixed in the run: with an isolated profile `LocalApplicationData` was empty and the LUT folder relative —
+    the path reached ffmpeg relative to its working directory (it worked only because ffmpeg inherits the app's);
+    `HdrLutStore` now uses a full path (`7463aec`, test + mutation). Video 351 → 352 after it (the LUT store tests 7 / 0).
+  - Not run: the product owner's visual check of an exported HDR clip on an SDR screen (manual plan 12); scenario 3 and
+    11 in the app (automated); R5 on HDR clips in the app (the Phase 15–17 suites unchanged). Known limitations: D033 §8.
 
 ### Phase 17 — Audio editing (complete; PR #18 merged as `fa96468`, CI green)
 

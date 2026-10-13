@@ -24,38 +24,38 @@ Status column — kinds of evidence, never mixed:
 
 | # | Scenario | Expected | Automated coverage | Status |
 |---|---|---|---|---|
-| 1 | Import a Vivo clip | Inspector "Color": HDR · HLG · BT.2020 · 10-bit · Dolby Vision 8.4 (not applied) | `HdrToSdrTests` (the text), `FfprobeColorMetadataTests` (the phone side data) | auto (18.4) |
-| 2 | Import the Huawei clip | Inspector "Color": HDR · HLG · BT.2020 · 10-bit · HDR Vivid (not applied) | the same | auto (18.4) |
-| 3 | Import an SDR clip | Inspector "Color": SDR · BT.709 · 8-bit (no HDR wording) | `HdrToSdrTests.The_Inspector_text_…` | auto (18.4) |
-| 4 | Open a Phase 17 project with an HDR clip | The clip is probed again in the background; the title gets no `*`; after the probe the Preview shows the HDR rule | `MediaColorRefreshTests` (the probe, not dirty); the Preview part: 18.5 | auto (18.4) |
+| 1 | Import a Vivo clip | Inspector "Color": HDR · HLG · BT.2020 · 10-bit · Dolby Vision 8.4 (not applied) | `HdrToSdrTests` (the text), `FfprobeColorMetadataTests` (the phone side data) | auto (18.4); 18.8 (Claude): PASS — the four Vivo clips: "HDR · HLG · BT.2020 · 10-bit · Dolby Vision 8.4 (not applied)" |
+| 2 | Import the Huawei clip | Inspector "Color": HDR · HLG · BT.2020 · 10-bit · HDR Vivid (not applied) | the same | auto (18.4); 18.8 (Claude): PASS — "HDR · HLG · BT.2020 · 10-bit · HDR Vivid (not applied)" |
+| 3 | Import an SDR clip | Inspector "Color": SDR · BT.709 · 8-bit (no HDR wording) | `HdrToSdrTests.The_Inspector_text_…` | auto (18.4); in the app: NOT RUN (the SDR fixture's untagged clip only had its pixel format added, R1) |
+| 4 | Open a Phase 17 project with an HDR clip | The clip is probed again in the background; the title gets no `*`; after the probe the Preview shows the HDR rule | `MediaColorRefreshTests` (the probe, not dirty); the Preview part: 18.5 | 18.8 (Claude): PASS — the HDR fixture saved Phase 17-style: probed in the background, the title without `*`, the LUT written, the Preview converted |
 
 ## HDR → SDR picture (Steps 18.5–18.7)
 
 | # | Scenario | Expected | Automated coverage | Status |
 |---|---|---|---|---|
-| 5 | The five clips in the Preview at the reference moments | Not washed out; skin, the gym wall, the holds and the blue cloth as in the pre-flight's L2 renders; no banding in skies and walls | planned | planned |
-| 6 | Bright light sources (the sun, lamps, the window, the TV) | White, without coloured fringes or posterized edges | planned | planned |
-| 7 | Thumbnails of the five clips | The same look as the Preview (regenerated once after the update) | `HdrThumbnailTests` (the rule's colours, the name), `ThumbnailCoordinatorTests` (made again after the probe) | auto (18.5) |
-| 8 | Export a timeline with the five clips; compare frames with the Preview | The same picture (flat areas within 1 code value) | `ExportHdrEndToEndTests` (synthetic HLG / PQ: byte for byte; thumbnail 0.00) | auto (18.6); the real clips: planned |
-| 9 | Hardware decoding on / the software fallback | The same picture | M 18.6: 20 / 20 frames identical (Vivo, Huawei; dxva2) | measured (18.6); the app: planned |
-| 10 | A portrait clip at 1024 px (odd Preview bound) | Decodes and shows (sizes made even) | `HdrDecodeTests.An_odd_Preview_bound_gives_even_frame_sizes` | auto (18.5) |
-| 11 | Export while an HDR clip's colour is still unknown (old project, probe running) | The preflight blocks with the existing "still being analysed" reason, then exports after the probe | planned | planned |
-| 11a | Export of an old project with an untagged SDR clip, and with ffprobe missing | Never blocked; the output as in Phase 17 (D033 T3) | planned | planned |
-| 12 | PO: the exported HDR clip on a phone / an SDR monitor | Looks right to the product owner | — | PO |
+| 5 | The five clips in the Preview at the reference moments | Not washed out; skin, the gym wall, the holds and the blue cloth as in the pre-flight's L2 renders; no banding in skies and walls | planned | 18.8 (Claude): PASS for the Preview at the bouldering moment (1440 / 1024 px) and the export of all five moments — the frames match the pre-flight's L2 renders by eye; no banding seen. The product owner's view: open (12) |
+| 6 | Bright light sources (the sun, lamps, the window, the TV) | White, without coloured fringes or posterized edges | planned | 18.8 (Claude): PASS by eye on the exported frames (the sun, the lamps, the window: white, no coloured fringes) |
+| 7 | Thumbnails of the five clips | The same look as the Preview (regenerated once after the update) | `HdrThumbnailTests` (the rule's colours, the name), `ThumbnailCoordinatorTests` (made again after the probe) | auto (18.5); 18.8 (Claude): PASS — the Media Browser's thumbnails of the five clips converted (screenshots) |
+| 8 | Export a timeline with the five clips; compare frames with the Preview | The same picture (flat areas within 1 code value) | `ExportHdrEndToEndTests` (synthetic HLG / PQ: byte for byte; thumbnail 0.00) | auto (18.6); 18.8 (Claude): PASS — the exported HDR fixture (UI, 15 s) at the five reference moments equals the L2 renders by eye |
+| 9 | Hardware decoding on / the software fallback | The same picture | M 18.6: 20 / 20 frames identical (Vivo, Huawei; dxva2) | measured (18.6): 20 / 20 frames identical (Vivo, Huawei; dxva2); the app's own fallback path: auto (decoder tests) |
+| 10 | A portrait clip at 1024 px (odd Preview bound) | Decodes and shows (sizes made even) | `HdrDecodeTests.An_odd_Preview_bound_gives_even_frame_sizes` | auto (18.5); 18.8 (Claude): PASS — the portrait bouldering clip at 1024 px shown |
+| 11 | Export while an HDR clip's colour is still unknown (old project, probe running) | The preflight blocks with the existing "still being analysed" reason, then exports after the probe | planned | auto (18.4: the preflight tests); in the app: NOT RUN (a probe of 5 files ends within seconds) |
+| 11a | Export of an old project with an untagged SDR clip, and with ffprobe missing | Never blocked; the output as in Phase 17 (D033 T3) | planned | auto (18.4); 18.8 (Claude): PASS — the untagged SDR fixture (Phase 17 metadata) exported at once by the Phase 18 build (R2) |
+| 12 | PO: the exported HDR clip on a phone / an SDR monitor | Looks right to the product owner | — | PO: open |
 
 ## Layout (Step 18.7)
 
 | # | Check | Expected | Status |
 |---|---|---|---|
-| L1 | 1440 px | The Inspector's colour line fits | planned |
-| L2 | 1024 px | The Inspector's colour line fits or wraps, nothing cut | planned |
+| L1 | 1440 px | The Inspector's colour line fits | 18.8 (Claude): PASS — the Color row on one line at 1440 px |
+| L2 | 1024 px | The Inspector's colour line fits or wraps, nothing cut | 18.8 (Claude): PASS — the Color row wraps onto two lines at 1024 px, nothing cut |
 
 ## Regression (Step 18.8)
 
 | # | Check | Expected | Status |
 |---|---|---|---|
-| R1 | A Phase 17 project with SDR media | Opens, plays and exports as in the Phase 17 build; saved again — only the new optional colour properties added | planned |
-| R2 | Export of an SDR project | Byte for byte as the Phase 17 build's | planned |
-| R3 | A Phase 18 file in the Phase 17 build | Opens (the new properties ignored), HDR media shown as before (no tone mapping) | planned |
-| R4 | No ffmpeg | No crash; the reasons shown as before | planned |
-| R5 | Phase 15–17 tools on HDR clips (trim, slip, Source viewer, linked sound) | As before | planned |
+| R1 | A Phase 17 project with SDR media | Opens, plays and exports as in the Phase 17 build; saved again — only the new optional colour properties added | 18.8 (Claude): PASS — the SDR fixture saved by Phase 18: only `pixelFormat` added (and `relativePath` rewritten for the copied folder, D014) |
+| R2 | Export of an SDR project | Byte for byte as the Phase 17 build's | 18.8 (Claude): PASS — the default export of the SDR fixture by the Phase 17 build (`fa96468`) and the Phase 18 build: the same SHA-256 (3F0E9DB7…A59811) |
+| R3 | A Phase 18 file in the Phase 17 build | Opens (the new properties ignored), HDR media shown as before (no tone mapping) | 18.8 (Claude): PASS — the Phase 18 save opened by the Phase 17 build ("Opened project") |
+| R4 | No ffmpeg | No crash; the reasons shown as before | 18.8 (Claude): PASS — no ffmpeg: the HDR fixture opens, Space: "Playback is unavailable: FFmpeg could not be found…", the app runs |
+| R5 | Phase 15–17 tools on HDR clips (trim, slip, Source viewer, linked sound) | As before | auto (the full suite; Phase 15–17 tests unchanged); in the app: NOT RUN on HDR clips |
