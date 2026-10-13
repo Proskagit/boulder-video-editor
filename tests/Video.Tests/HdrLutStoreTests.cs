@@ -102,6 +102,20 @@ public sealed class HdrLutStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task The_previous_rules_LUT_left_by_the_L2_build_is_removed_at_the_first_use()
+    {
+        Assert.Equal(2, HdrToSdr.RuleVersion);   // S1 (D033 R1)
+        Directory.CreateDirectory(_folder);
+        var l2 = Path.Combine(_folder, "hdr-r1-hlg-1000.cube");
+        File.WriteAllText(l2, "rule 1");
+
+        var path = await Store().GetLutPathAsync(HdrConversion.Hlg());
+
+        Assert.False(File.Exists(l2));
+        Assert.EndsWith("hdr-r2-hlg-1000.cube", path);
+    }
+
+    [Fact]
     public async Task A_failure_is_thrown_and_retried_on_the_next_request()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(_folder)!);

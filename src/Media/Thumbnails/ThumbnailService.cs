@@ -159,13 +159,14 @@ public sealed class ThumbnailService : IThumbnailService
         }
     }
 
-    /// <summary>The HDR conversion is part of the name (e.g. <c>…-v2-hlg1000.thumb</c>): a thumbnail made while the
-    /// asset's colour was unknown (SDR) is a miss once its background probe finds HDR (D033 T3).</summary>
+    /// <summary>The HDR conversion and the colour rule's version are part of the name (e.g. <c>…-v2-r2hlg1000.thumb</c>): a
+    /// thumbnail made while the asset's colour was unknown (SDR) is a miss once its background probe finds HDR (D033 T3),
+    /// and one made under another colour rule is a miss too (D033 R1) — only HDR thumbnails, SDR names carry no tag.</summary>
     private string FileName(MediaAsset asset, (long Size, long LastWriteTicks) identity) =>
         SourceFileCache.FileName(asset, identity, RuleVersion, ColourTag(asset) + Extension);
 
     private static string ColourTag(MediaAsset asset) => HdrConversionOf(asset) is { } hdr
-        ? $"-{(hdr.Transfer == HdrTransfer.Hlg ? "hlg" : "pq")}{hdr.PeakNits}{(hdr.FullRange ? "f" : "")}"
+        ? $"-r{HdrToSdr.RuleVersion}{(hdr.Transfer == HdrTransfer.Hlg ? "hlg" : "pq")}{hdr.PeakNits}{(hdr.FullRange ? "f" : "")}"
         : "";
 
     private static HdrConversion? HdrConversionOf(MediaAsset asset) => HdrColor.Classify(asset.Kind, asset.Metadata).Conversion;

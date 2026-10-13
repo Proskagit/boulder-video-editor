@@ -143,6 +143,12 @@ Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization
     18.9", docs `dae89b4`): C3 ≤ 1 code only in clip cells (0.52), C4 neutral strict / no 8-bit reversal / largest
     channel never decreasing / minor drop ≤ 0.1 code (0.0094), the 1.1 domain 2.0 kept (2.001 a borderline deviation),
     the real-footage bench added. PQ: not verified on real PQ footage; its bench results recorded, not passed.
+- Step 18.10 (2026-10-14) — decoder, cache keys, thumbnails: the decode graph unchanged except the LUT name, now
+  `hdr-r2-…` through `RuleVersion`; the LUT store's start-up clean-up removes the rule-1 (L2) files (test with an
+  `hdr-r1-hlg-1000.cube`); an HDR thumbnail's colour tag carries the colour rule's version (`…-v2-r2hlg1000.thumb`), so
+  HDR thumbnails are made again once, the old file replaced (test), SDR names unchanged (`ThumbnailServiceTests`). Mutation
+  (the rule version dropped from the tag) caught by 2 tests. Build -warnaserror 0 / 0; full suite 3196 passed, 2 skipped,
+  0 failed.
 
 ### Phase 17 — Audio editing (complete; PR #18 merged as `fa96468`, CI green)
 

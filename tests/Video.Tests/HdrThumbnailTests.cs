@@ -9,9 +9,9 @@ using Xunit;
 namespace AiVideoEditor.Video.Tests;
 
 /// <summary>
-/// Phase 18 Step 18.5 (D033 T3, T4): a thumbnail of an HDR video is decoded with the same conversion as the Preview (its
-/// colours equal the rule), under the rule version 2 and a name that carries the conversion — so the thumbnail made while
-/// the colour was unknown is a miss once the probe finds HDR.
+/// Phase 18 Steps 18.5 / 18.10 (D033 T3, T4, R1): a thumbnail of an HDR video is decoded with the same conversion as the
+/// Preview (its colours equal the rule), under the rule version 2 and a name that carries the conversion and the colour
+/// rule's version — so the thumbnail made while the colour was unknown, or under another colour rule, is a miss.
 /// </summary>
 public sealed class HdrThumbnailTests : IDisposable
 {
@@ -65,7 +65,7 @@ public sealed class HdrThumbnailTests : IDisposable
 
         Assert.NotNull(hdr);
         var name = Path.GetFileName(Assert.Single(Directory.GetFiles(cache)));
-        Assert.Contains($"-v{ThumbnailService.CurrentRuleVersion}-hlg1000.thumb", name);
+        Assert.Contains($"-v{ThumbnailService.CurrentRuleVersion}-r{HdrToSdr.RuleVersion}hlg1000.thumb", name);
         Assert.Equal(2, ThumbnailService.CurrentRuleVersion);
         for (var patch = 0; patch < HdrMedia.Patches.Length; patch++)
         {
@@ -100,5 +100,24 @@ public sealed class HdrThumbnailTests : IDisposable
         var hdr = await service.GetOrCreateAsync(probed, cache);
         Assert.False(hdr!.Pixels.Span.SequenceEqual(sdr!.Pixels.Span));
         Assert.Single(Directory.GetFiles(cache));                   // the SDR one is replaced, not kept
+    }
+
+    [FfmpegFact]
+    public async Task A_thumbnail_made_under_the_previous_colour_rule_is_a_miss_and_replaced()
+    {
+        var asset = await Asset(HdrMedia.Hlg);
+        var cache = Path.Combine(_dir, "thumbs");
+        var service = Service();
+        Assert.NotNull(await service.GetOrCreateAsync(asset, cache));
+
+        // the same thumbnail under the name the L2 build (colour rule 1, no rule in the tag) gave it
+        var current = Assert.Single(Directory.GetFiles(cache));
+        var old = current.Replace($"-r{HdrToSdr.RuleVersion}hlg1000", "-hlg1000");
+        Assert.NotEqual(current, old);
+        File.Move(current, old);
+
+        Assert.Null(service.TryGetCached(asset, cache));
+        Assert.NotNull(await service.GetOrCreateAsync(asset, cache));
+        Assert.Equal(new[] { current }, Directory.GetFiles(cache));   // made again under the current rule, the old one removed
     }
 }

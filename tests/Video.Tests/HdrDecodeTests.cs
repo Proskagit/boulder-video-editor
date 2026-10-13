@@ -103,12 +103,12 @@ public sealed class HdrDecodeTests : IDisposable
         HdrTransfer transfer, bool fullRange, string trc, string range)
     {
         var request = Request(@"C:\media\a.mp4", new HdrConversion(transfer, 1000, fullRange), 1280, 720);
-        var args = FfmpegVideoDecoder.BuildArguments(request, null, null, @"C:\Users\Me\AppData\Local\AiVideoEditor\cache\color-luts\hdr-r1-hlg-1000.cube");
+        var args = FfmpegVideoDecoder.BuildArguments(request, null, null, @"C:\Users\Me\AppData\Local\AiVideoEditor\cache\color-luts\hdr-r2-hlg-1000.cube");
         var vf = args[args.IndexOf("-vf") + 1];
         Assert.Equal(
             "scale=w='min(iw,1280)':h='min(ih,720)':force_original_aspect_ratio=decrease:force_divisible_by=2," +
             $"zscale=min=bt2020nc:pin=bt2020:tin={trc}:rin={range}:p=bt2020:t={trc}:r=full,format=gbrpf32le," +
-            @"lut3d=file=C\\:/Users/Me/AppData/Local/AiVideoEditor/cache/color-luts/hdr-r1-hlg-1000.cube:interp=tetrahedral," +
+            @"lut3d=file=C\\:/Users/Me/AppData/Local/AiVideoEditor/cache/color-luts/hdr-r2-hlg-1000.cube:interp=tetrahedral," +
             "format=bgra,showinfo=checksum=0", vf);
         Assert.Equal(new[] { "-fps_mode", "passthrough", "-pix_fmt", "bgra", "-f", "rawvideo", "pipe:1" }, args.Skip(args.IndexOf("-vf") + 2));
         Assert.Throws<ArgumentNullException>(() => FfmpegVideoDecoder.BuildArguments(request, null, null));
