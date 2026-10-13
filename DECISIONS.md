@@ -4372,7 +4372,12 @@ BT.2100 OOTF on luminance (Lw 1000, γ 1.2) → ÷ 203 → BT.2020 → BT.709 �
 Status of R1: **accepted** — the text and the plan (docs/DEVELOPMENT_PLAN.md, Steps 18.9–18.12) approved by the product
 owner (docs committed as `1e07a73`, 2026-10-13); Step 18.9 stopped on the LUT accuracy criteria, the product owner
 accepted S1 with the 65³ LUT for HLG and refined the criteria (§5 "Refined after Step 18.9", 2026-10-14); PQ stays
-unverified on real footage (§8). Steps 18.10–18.12 follow.
+unverified on real footage (§8). Steps 18.10–18.12 done (2026-10-14): thumbnails and LUTs keyed by the colour rule
+(`…-v2-r2hlg1000.thumb`, the rule-1 LUTs removed before the LUT store's first write in a session), the real footage (the app's LUT within 1 code of the
+approved cube on all 13 clips; the UI export within the encoder's noise of the approved render), the closeout gates green
+(passed 3196, skipped 2, failed 0; heavy 3198 / 0 / 0). Open: the product owner's visual check of the S1 export; PQ on
+real PQ footage. Found at 18.11: one LUT node differs from the approved cube by 2.48·10⁻⁴ (0.06 code) — it lies on the
+BT.709 OETF's break at L = 0.018, where the standard's rounded constants jump from 0.081 to 0.08124.
 
 ---
 

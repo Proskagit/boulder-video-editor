@@ -94,15 +94,17 @@ and runs cleanly.
       product owner); accepted, the Ripple Delete change of 2026-10-12 included; PR #18 merged into `main` as `fa96468`
       (2026-10-13), CI green)*
 - [ ] **Phase 18 — HDR → SDR of phone footage.** HDR video (HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 and HDR Vivid
-      by their HLG base layer) converted to the editor's SDR picture by one exact rule (the BT.2100 OOTF on luminance,
-      BT.2020 → BT.709, gamut compression, mobius on max RGB, BT.1886) as an application-generated 65³ LUT — the same for
+      by their HLG base layer) converted to the editor's SDR picture by one exact rule (S1 since D033 Revision R1: scene
+      light, BT.2020 → BT.709, gamut compression, exposure, mobius on max RGB, the BT.709 OETF) as an application-generated 65³ LUT — the same for
       the Preview, the thumbnails and the export; SDR media decoded byte for byte as before; colour metadata read, kept
       (optional properties, `project.json` stays v4) and shown. Scope, steps and acceptance criteria: section below and
-      DECISIONS.md D033 (product owner decisions, 2026-10-13). *(Steps 18.1–18.2 done 2026-10-13; implementation not
+      DECISIONS.md D033 (product owner decisions, 2026-10-13). *(Steps 18.1–18.2 done 2026-10-13; implementation
       approved 2026-10-13 — branch `feat/phase-18-hdr-sdr`; Steps 18.3–18.7 done; closeout 18.8 done 2026-10-13 — build 0 / 0
       Release and Debug, passed 3150, skipped 2, failed 0, three blame-hang runs and heavy green, the manual plan and the
-      Phase 17 regression in the real app (the product owner's visual check open); not yet merged — push / pull request on
-      the product owner's command)*
+      Phase 17 regression in the real app; the product owner's visual check of the L2 export failed → D033 Revision R1, the
+      rule S1, Steps 18.9–18.12 done 2026-10-14 — build 0 / 0 Release and Debug, passed 3196, skipped 2, failed 0, three
+      blame-hang runs and heavy (3198 / 0 / 0) green; HLG measured on the 13 clips (the visual check open), PQ not verified on real PQ footage; the
+      product owner's visual check of the S1 export open; pushed, pull request into `main` opened, not merged)*
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -1223,16 +1225,16 @@ Out of scope: D033 §7.
 - Documentation: ARCHITECTURE (the colour rule, the LUT cache, the decode graph), D033 refinements and status, ROADMAP,
   README, `progress.md`, this plan's checkbox.
 
-### Revision R1 — the colour rule S1 (D033 Revision R1) *(approved 2026-10-13, docs `1e07a73`; 18.9 criteria refined 2026-10-14)*
+### Revision R1 — the colour rule S1 (D033 Revision R1) *(approved 2026-10-13, docs `1e07a73`; 18.9 criteria refined 2026-10-14; Steps 18.9–18.12 done 2026-10-14)*
 
 The product owner's visual check of the L2 export failed; after the measurement series the product owner chose S1
 ("Telegram-match-sat100", D033 §3 as revised). The steps below replace the rule and only what depends on it, on the
-same branch `feat/phase-18-hdr-sdr` (not pushed). The gates of 18.3–18.7 hold for every step; in addition: for SDR
+same branch `feat/phase-18-hdr-sdr`. The gates of 18.3–18.7 hold for every step; in addition: for SDR
 media nothing changes (the decoder's arguments byte for byte, the parity suite, the goldens, L1-c, the SDR thumbnail
 names); only HDR expected values move, each to a value computed from D033 §3 (S1) — never adjusted to whatever the code
 produces. A step whose criterion fails stops and is reported, not loosened.
 
-#### 18.9 — The rule S1 in Core
+#### 18.9 — The rule S1 in Core *(done — `867952d`; criteria refined in `dae89b4`)*
 - PR: `HdrToSdr` per D033 §3 (S1): HLG without the OOTF and without ÷ 203; PQ → the inverse BT.2100 OOTF on luminance
   at 1000 nit (γ 1.2); the exposure k = 0.69 · 2^−0.55 / 0.265; mobius j 0.375 with the peak k · P (HLG P = 1.64, PQ
   P = (Lpeak / 1000)^(1/1.2), skipped when k · P ≤ 1); no saturation step; the BT.709 OETF instead of the inverse
@@ -1281,15 +1283,15 @@ produces. A step whose criterion fails stops and is reported, not loosened.
   results (synthetic, PQ derived from HLG) recorded, not passed; PQ not verified on real footage (D033 §8). No other
   option (a larger LUT, another curve) taken.
 
-#### 18.10 — Decoder, cache keys, thumbnails
+#### 18.10 — Decoder, cache keys, thumbnails *(done — `a09efb8`)*
 - PR: the decode graph unchanged except the LUT file name (`hdr-r2-…`); the LUT store's start-up clean-up removes the
   rule-1 files (existing behaviour); an HDR thumbnail's colour tag carries the rule version (`…-v2-r2hlg1000.thumb`), so
   HDR thumbnails are made again once and SDR thumbnails keep their names; `ThumbnailCoordinator` unchanged otherwise.
 - QG: `Video.Tests` — the HDR golden arguments with `hdr-r2-…`, the SDR arguments byte for byte; the HLG and PQ fixtures
   (PQ with and without mastering / CLL) decoded within ΔE76 ≤ 1 of the S1 reference, neutral patches neutral; the
-  rule-1 LUT removed at start-up; `HdrThumbnailTests` with the new tag; `ThumbnailServiceTests` (SDR names unchanged).
+  rule-1 LUT removed before the store's first write in a session; `HdrThumbnailTests` with the new tag; `ThumbnailServiceTests` (SDR names unchanged).
 
-#### 18.11 — End to end, PQ and the real footage
+#### 18.11 — End to end, PQ and the real footage *(done — `46a9e38`; PQ not verified on real footage)*
 - PR: no new code expected; fixes found by the checks only.
 - QG: `ExportEndToEnd.Tests` — the HLG and PQ scenes (Preview = export canvas byte for byte, the rule within ΔE76 ≤ 1,
   the thumbnail's flat colours equal), every SDR scene unchanged.
@@ -1300,7 +1302,7 @@ produces. A step whose criterion fails stops and is reported, not loosened.
   equal to the approved cube within 1·10⁻⁶ per node, the frames within 1 LSB; the Preview, thumbnails and export the same
   picture; hardware = software on 20 frames.
 
-#### 18.12 — Closeout of R1
+#### 18.12 — Closeout of R1 *(done 2026-10-14 — build -warnaserror Release / Debug 0 / 0; passed 3196, skipped 2, failed 0; three blame-hang runs the same; heavy 3198 / 0 / 0; git diff --check clean; the product owner's visual check of the S1 export open)*
 - QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
   `--blame-hang`; the heavy scenes once; `git diff --check`; an independent phase review of R1 against D033.
 - PR: the product owner's visual check of the application's own export (the five clips) on a phone and an SDR monitor;

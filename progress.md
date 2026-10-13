@@ -5,10 +5,10 @@
 Phase 18 — HDR → SDR of phone footage, on branch `feat/phase-18-hdr-sdr` (from `fa96468`, `main` after
 the merge of PR #18; DECISIONS.md D033, product owner decisions of 2026-10-13, OQ1 answered); closeout Step 18.8 done
 2026-10-13; the product owner's visual check of the L2 export failed → D033 Revision R1 (rule S1), Steps 18.9–18.12;
-Step 18.9 done (S1 accepted for HLG with the 65³ LUT, criteria refined 2026-10-14; PQ unverified on real footage); Steps
-18.10–18.12 in progress. Not pushed. Builds and tests run by Claude as needed; no push, pull request or merge
+Steps 18.9–18.12 done 2026-10-14 (S1 accepted for HLG with the 65³ LUT, criteria refined; PQ not verified on real
+footage); the product owner's visual check of the S1 export open. Pushed; pull request into `main` opened, not merged. Builds and tests run by Claude as needed; no push, pull request or merge
 without a separate command. Scope: HDR
-video (HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 / HDR Vivid by the HLG base layer) converted by the L2 rule of D033 §3
+video (HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 / HDR Vivid by the HLG base layer) converted by the rule S1 of D033 §3 (Revision R1; L2 until 18.8)
 as an application-generated 65³ LUT, the same for the Preview, the thumbnails and the export; SDR decoding unchanged;
 optional colour metadata (`project.json` stays v4); no per-asset switch. Steps and acceptance: `docs/DEVELOPMENT_PLAN.md`
 "Phase 18 — HDR → SDR of phone footage: steps"; manual plan `docs/PHASE18_MANUAL_TEST_PLAN.md`.
@@ -144,7 +144,7 @@ Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization
     channel never decreasing / minor drop ≤ 0.1 code (0.0094), the 1.1 domain 2.0 kept (2.001 a borderline deviation),
     the real-footage bench added. PQ: not verified on real PQ footage; its bench results recorded, not passed.
 - Step 18.10 (2026-10-14) — decoder, cache keys, thumbnails: the decode graph unchanged except the LUT name, now
-  `hdr-r2-…` through `RuleVersion`; the LUT store's start-up clean-up removes the rule-1 (L2) files (test with an
+  `hdr-r2-…` through `RuleVersion`; the LUT store's clean-up (once per session, before its first write) removes the rule-1 (L2) files (test with an
   `hdr-r1-hlg-1000.cube`); an HDR thumbnail's colour tag carries the colour rule's version (`…-v2-r2hlg1000.thumb`), so
   HDR thumbnails are made again once, the old file replaced (test), SDR names unchanged (`ThumbnailServiceTests`). Mutation
   (the rule version dropped from the tag) caught by 2 tests. Build -warnaserror 0 / 0; full suite 3196 passed, 2 skipped,
@@ -154,10 +154,20 @@ Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization
   2.48e-4 (0.06 code, on the BT.709 OETF's break at 0.018); the app's decoder with its own LUT vs the approved cube on all
   13 clips (20 frames each, 1280 × 720 and 4K): ≤ 1 code, 0.0073 % of the values; hardware = software (3 clips × 2 bounds ×
   20 frames, byte-identical). Real app (the S1 Debug build, isolated profile): the HDR fixture's Preview at 1440 / 1024,
-  the Inspector, the L2-era thumbnails replaced by `…-r2hlg1000`, the L2 LUT removed at start-up, the UI export
+  the Inspector, the L2-era thumbnails replaced by `…-r2hlg1000`, the L2 LUT removed before the first LUT write, the UI export
   bit-identical to the scripted export and within the encoder's noise of the approved render (PSNR 46.5 dB); R2: the SDR
   fixture's export byte for byte the Phase 17 build's. PQ: not verified on real footage. Details:
   `docs/PHASE18_MANUAL_TEST_PLAN.md` "Revision R1".
+- Step 18.12 (2026-10-14) — closeout of R1: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the
+  full suite passed 3196, skipped 2 (the 4K scenes), failed 0; three `--blame-hang-timeout 5m` runs the same, no hang;
+  `AIVE_HEAVY_TESTS=1` 3198 / 0 / 0; `git diff --check fa96468` clean. Documentation: ARCHITECTURE (the S1 rule, the
+  thumbnail name, the accuracy), D033 R1 final state, ROADMAP, README, DEVELOPMENT_PLAN, the manual plan, this file. The
+  independent phase review of R1 (18.9–18.12): PASS WITH NOTES, no blocking issue — its notes taken in (stale L2 / "not
+  pushed" wording, the accuracy qualifiers in ARCHITECTURE, "HLG measured" instead of "verified" while the visual check is
+  open, the rule-1 LUT clean-up worded as "before the first LUT write of a session"); not changed: the mobius curve test
+  keeps its vf_tonemap reference case (the S1 j / peak are pinned by `MobiusJ` / `KneePeak` and the chain's check values).
+  Its question for the product owner: the one LUT node 2.48e-4 off the approved cube (plan 18.11's 1e-6 bound). Open: the product owner's visual check of the S1 export (manual plan 12); PQ on real
+  PQ footage. Known limitations: D033 §8.
 
 ### Phase 17 — Audio editing (complete; PR #18 merged as `fa96468`, CI green)
 

@@ -16,7 +16,7 @@ the playhead, ripple trim, slip, an In / Out range, a canvas-relative size for n
 CI green — DECISIONS.md D030. Phase 16 (a Source viewer with In / Out, Insert / Overwrite) merged 2026-10-08 as
 `79e4e78`, CI green on PR #17 and on `main` — DECISIONS.md D031. Phase 17 (audio editing: unlink / link, J / L cuts,
 sound-only Insert / Overwrite, audio crossfades; `project.json` v4) merged 2026-10-13 as `fa96468` (PR #18), CI green —
-DECISIONS.md D032. Phase 18 (HDR → SDR of phone footage: HLG and PQ, BT.2020) is complete on `feat/phase-18-hdr-sdr` (closeout Step 18.8; not yet merged) —
+DECISIONS.md D032. Phase 18 (HDR → SDR of phone footage: HLG measured on the product owner's footage — their visual check open — PQ implemented but not verified on real PQ footage) is complete on `feat/phase-18-hdr-sdr` (Revision R1, closeout Step 18.12; pull request open, not yet merged) —
 DECISIONS.md D033.
 
 ## Requirements
@@ -125,7 +125,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–17 complete (Phase 17 merged as `fa96468`, PR #18, CI green); Phase 18 (HDR → SDR, D033) complete on its branch, not yet merged.
+Phases 0–17 complete (Phase 17 merged as `fa96468`, PR #18, CI green); Phase 18 (HDR → SDR, D033 with Revision R1) complete on its branch, pull request open, not yet merged.
 Working: media import
 with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
@@ -196,10 +196,11 @@ clips that meet adds a linear crossfade (1 s, or the longest that fits). In the 
 overwrites just the sound of a video. Projects are saved as `project.json` v4 (older projects open as before; Phase 16
 can't open a v4 file).
 
-Phase 18 (DECISIONS.md D033; complete on `feat/phase-18-hdr-sdr`, not yet merged): HDR footage from phones (HLG and
-PQ, BT.2020, 10 bit — Dolby Vision 8.4 and HDR Vivid by their HLG base layer) is converted to the editor's SDR picture by
-one fixed rule — the same in the Preview, the Media Browser's thumbnails and the export, so HDR clips no longer look
-washed out; SDR footage looks and exports exactly as before. The Inspector's **Color** row shows what a file is
+Phase 18 (DECISIONS.md D033 with Revision R1; complete on `feat/phase-18-hdr-sdr`, not yet merged): HDR footage from
+phones (HLG and PQ, BT.2020, 10 bit — Dolby Vision 8.4 and HDR Vivid by their HLG base layer) is converted to the
+editor's SDR picture by one fixed rule — a scene-light rendering close to the phone's own SDR conversion — the same in the
+Preview, the Media Browser's thumbnails and the export; SDR footage looks and exports exactly as before. HLG is measured
+on the product owner's phone footage (their visual check of the export still open); PQ is implemented but **not verified on real PQ footage**. The Inspector's **Color** row shows what a file is
 ("HDR · HLG · BT.2020 · 10-bit · Dolby Vision 8.4 (not applied)"); an HDR file in a combination the rule does not convert
 is named with the reason when you export. Projects stay `project.json` v4; older projects get their clips' colour read in
 the background after Open.

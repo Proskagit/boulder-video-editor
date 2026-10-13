@@ -59,10 +59,10 @@ session state (D015).
 
 ## Current
 
-Phase 18 — HDR → SDR of phone footage (**complete** on `feat/phase-18-hdr-sdr`, not yet merged; DECISIONS.md D033, product owner decisions of 2026-10-13). HDR video —
+Phase 18 — HDR → SDR of phone footage (**complete** on `feat/phase-18-hdr-sdr`, pull request open, not yet merged; DECISIONS.md D033 with Revision R1, product owner decisions of 2026-10-13 / 14). HDR video —
 HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 and HDR Vivid by their HLG base layer — converted to the editor's SDR
-picture by one exact rule (the BT.2100 OOTF on luminance, BT.2020 → BT.709, gamut compression, mobius on max RGB,
-BT.1886) as an application-generated 65³ LUT, the same for the Preview, the thumbnails and the export; SDR media decoded
+picture by one exact rule — S1 since Revision R1: scene light (PQ through the inverse BT.2100 OOTF), BT.2020 → BT.709,
+gamut compression, exposure, mobius on max RGB, the BT.709 OETF — as an application-generated 65³ LUT, the same for the Preview, the thumbnails and the export; SDR media decoded
 byte for byte as before; colour metadata read and kept as optional properties (`project.json` stays v4). Step 18.1
 (pre-flight: the product owner's 13 HDR files measured, tone-mapping variants compared, the zimg OOTF finding) and Step
 18.2 (sync after the merge, D033, the steps, the manual plan's skeleton) done on 2026-10-13; the implementation
@@ -70,7 +70,11 @@ byte for byte as before; colour metadata read and kept as optional properties (`
 (at `ff57787`: passed 3150, skipped 2, failed 0; heavy 3152 / 0 / 0; three blame-hang runs clean; on the final
 `9c8785e`: build -warnaserror Release / Debug 0 / 0, passed 3151, skipped 2, failed 0), the real-app run with the product
 owner's footage, the regression against the Phase 17 build (an SDR project's default export byte for byte); the product
-owner's visual check of an exported HDR clip open. Push and pull request on the product owner's command. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 18 — HDR →
+owner's visual check of the L2 export **failed** (too bright, washed out) → D033 Revision R1 (2026-10-13 / 14): the rule
+S1 chosen on a phone-made SDR reference, Steps 18.9–18.12 done (S1 in Core, the HLG criteria refined after the LUT
+accuracy study, thumbnails and LUTs keyed by the colour rule, the real footage, closeout: build -warnaserror Release / Debug 0 / 0; passed 3196, skipped 2, failed 0; three blame-hang runs the same; heavy 3198 / 0 / 0; git diff --check clean). HLG
+measured on the product owner's 13 clips; PQ not verified on real PQ footage; the product owner's visual check of the S1
+export open. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 18 — HDR →
 SDR of phone footage: steps"; manual plan `docs/PHASE18_MANUAL_TEST_PLAN.md`.
 
 ## Previous
