@@ -1223,6 +1223,84 @@ Out of scope: D033 §7.
 - Documentation: ARCHITECTURE (the colour rule, the LUT cache, the decode graph), D033 refinements and status, ROADMAP,
   README, `progress.md`, this plan's checkbox.
 
+### Revision R1 — the colour rule S1 (D033 Revision R1) *(proposed 2026-10-13; awaiting the product owner's approval)*
+
+The product owner's visual check of the L2 export failed; after the measurement series the product owner chose S1
+("Telegram-match-sat100", D033 §3 as revised). The steps below replace the rule and only what depends on it, on the
+same branch `feat/phase-18-hdr-sdr` (not pushed). The gates of 18.3–18.7 hold for every step; in addition: for SDR
+media nothing changes (the decoder's arguments byte for byte, the parity suite, the goldens, L1-c, the SDR thumbnail
+names); only HDR expected values move, each to a value computed from D033 §3 (S1) — never adjusted to whatever the code
+produces. A step whose criterion fails stops and is reported, not loosened.
+
+#### 18.9 — The rule S1 in Core
+- PR: `HdrToSdr` per D033 §3 (S1): HLG without the OOTF and without ÷ 203; PQ → the inverse BT.2100 OOTF on luminance
+  at 1000 nit (γ 1.2); the exposure k = 0.69 · 2^−0.55 / 0.265; mobius j 0.375 with the peak k · P (HLG P = 1.64, PQ
+  P = (Lpeak / 1000)^(1/1.2), skipped when k · P ≤ 1); no saturation step; the BT.709 OETF instead of the inverse
+  BT.1886; `RuleVersion` 2; the LUT's `TITLE` names the rule. `HdrConversion`, the PQ peak rule, the matrix, RGC, the
+  LUT generator's format and key unchanged.
+- QG: `Core.Tests` per D033 §5 (R1) — every listed formula with a mutation it catches (an OOTF returned to HLG, the PQ
+  inverse OOTF per channel or forward, j 0.3, the old peak, the inverse BT.1886, a saturation ≠ 1, k off by 1 %); the
+  §3 check values (HLG 75 % → 172.58, 1.0 → 241.5, 1019 → 255; PQ 203 nit @1000 → 173.01, 400 nit @400 → 232.28, 1000
+  nit @4000 → 234.69); the independent evaluation of §3 rewritten for S1; LUT nodes equal to the approved
+  "Telegram-match-sat100" cube within 1·10⁻⁶ on a fixed sample of nodes (values copied into the test, not the 8 MB file).
+- QG / M: the LUT accuracy measurement of D033 §5 "LUT accuracy, shadows and gradients" (R1) — HLG and PQ at `Lpeak`
+  203 / 1000 / 4000; the application's `.cube` through ffmpeg `lut3d` tetrahedral on float input against `HdrToSdr` in
+  double precision **on the identical float32 signal triplets** (R'G'B' BT.2020 full range, the LUT's own input; the
+  `gbrpf32le` plane order mapped explicitly) and compared in the same space (R'G'B' BT.709 full range, S1 encoding,
+  float); PQ samples are PQ signal values that both sides take through the EOTF → ÷ 1000 → inverse OOTF → S1 chain,
+  each PQ LUT with its own `Lpeak`; the harness first reproduces the §3 check values on both sides. e in 8-bit LSB per
+  channel; samples (a) black, (b) near-black neutral (every 10-bit input code up to rule output code 32), (c)
+  near-black along six colour directions, (d) full neutral and coloured ramps up to the 1.1 domain; criteria C1 black
+  exactly 0, C2 near black ≤ 0.5 LSB, C3 ramps ≤ 0.5 LSB neutral / ≤ 1.0 LSB coloured, C4 monotonic and neutral, and
+  **C5 bands / jumps as an additional check — not instead of C1–C3**; plus real 4K crops ΔE76 ≤ 1.0 and synthetic
+  saturated colours ≤ 1.5 (1.1 domain ≤ 2.0).
+- Report of 18.9 (in `progress.md` and to the product owner), **separately for HLG and PQ at `Lpeak` 203 / 1000 /
+  4000**: per criterion the maximum error, pass / fail and the coordinates of the worst samples (set, direction, input
+  signal and 10-bit code, nit for PQ, V_rule and V_LUT per channel); the error curves.
+- Stop rule: the BT.709 OETF's toe and the PQ inverse OOTF are steeper near black than L2's encoding; if any criterion
+  fails, 18.9 stops before 18.10, and the measured results with the possible fixes (e.g. a larger LUT, a 1D shaper
+  before the 3D LUT, another graph) and their costs are presented — none is chosen without the product owner.
+- PQ specifics (D033 §3 "PQ in detail"): Core tests for the order EOTF → ÷ 1000 (not ÷ `Lpeak`) → inverse OOTF on
+  luminance → the S1 steps; `Yd = 0` → black; the knee peak from `Lpeak`; content above `Lpeak` white; the `Lpeak`
+  table (MaxCLL wins, the mastering maximum when MaxCLL is absent / ≤ 0, the 1000 fallback, the limits 203 / 10 000,
+  rounding, an unreadable rational, a contradiction such as MaxCLL 4000 vs mastering 1000 or 300 vs 1000 taken by the
+  order, never as an error — the metadata taken as stated) — the existing PQ-peak tests kept, the new rows added.
+- The `Lpeak` 501 / 502 boundary (D033 §3): `k · P` 0.99977 → the knee skipped, 1.00144 → applied (a mutation moving
+  the threshold or evaluating mobius at `peak ≤ 1` fails); the outputs at 400, 490, 500, 501, 502, 503 and 600 nit
+  equal the §3 values for both settings (e.g. 501 nit → 254.97 / 254.79, 502 nit and above → 255 / 255); continuity —
+  for every neutral input 0.05–1000 nit the two settings differ by ≤ 0.25 code (measured 0.18) and each is monotonic
+  in the input; the same two cases through the LUT within the accuracy criteria.
+
+#### 18.10 — Decoder, cache keys, thumbnails
+- PR: the decode graph unchanged except the LUT file name (`hdr-r2-…`); the LUT store's start-up clean-up removes the
+  rule-1 files (existing behaviour); an HDR thumbnail's colour tag carries the rule version (`…-v2-r2hlg1000.thumb`), so
+  HDR thumbnails are made again once and SDR thumbnails keep their names; `ThumbnailCoordinator` unchanged otherwise.
+- QG: `Video.Tests` — the HDR golden arguments with `hdr-r2-…`, the SDR arguments byte for byte; the HLG and PQ fixtures
+  (PQ with and without mastering / CLL) decoded within ΔE76 ≤ 1 of the S1 reference, neutral patches neutral; the
+  rule-1 LUT removed at start-up; `HdrThumbnailTests` with the new tag; `ThumbnailServiceTests` (SDR names unchanged).
+
+#### 18.11 — End to end, PQ and the real footage
+- PR: no new code expected; fixes found by the checks only.
+- QG: `ExportEndToEnd.Tests` — the HLG and PQ scenes (Preview = export canvas byte for byte, the rule within ΔE76 ≤ 1,
+  the thumbnail's flat colours equal), every SDR scene unchanged.
+- PQ (synthetic, no real PQ footage exists): the inverse OOTF, the `Lpeak` from MaxCLL / mastering / the 1000 fallback,
+  the knee skipped at `Lpeak` ≤ 501 nit, the 203-nit reference white of PQ within 2 codes of HLG 75 %.
+- M / manual (`docs/PHASE18_MANUAL_TEST_PLAN.md` rows 5–8, 10–12 again, with the five comparison clips): the
+  application's export of the fixture project compared with the approved `fair_tgfit-sat100` render — the generated LUT
+  equal to the approved cube within 1·10⁻⁶ per node, the frames within 1 LSB; the Preview, thumbnails and export the same
+  picture; hardware = software on 20 frames.
+
+#### 18.12 — Closeout of R1
+- QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
+  `--blame-hang`; the heavy scenes once; `git diff --check`; an independent phase review of R1 against D033.
+- PR: the product owner's visual check of the application's own export (the five clips) on a phone and an SDR monitor;
+  after acceptance, the real editing trial (D033 §8: the parameters are to be re-checked in the finished application).
+- Documentation: ARCHITECTURE (the S1 rule), D033 R1 status and refinements, `progress.md`, ROADMAP / README, the manual
+  plan, this plan's checkbox.
+
+Commits per step on the branch after the product owner approves this plan; push, pull request and merge only on a
+separate command.
+
 ## Architectural rules that must hold at every phase
 
 - UI (`src/UI`, `src/App`) contains no business logic — only view models that
