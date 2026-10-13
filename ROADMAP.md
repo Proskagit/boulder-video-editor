@@ -67,7 +67,8 @@ byte for byte as before; colour metadata read and kept as optional properties (`
 (pre-flight: the product owner's 13 HDR files measured, tone-mapping variants compared, the zimg OOTF finding) and Step
 18.2 (sync after the merge, D033, the steps, the manual plan's skeleton) done on 2026-10-13; the implementation
 (18.3–18.8) approved by the product owner on 2026-10-13 and done: closeout Step 18.8 on 2026-10-13 — the gates green
-(passed 3150, skipped 2, failed 0; heavy 3152 / 0 / 0; three blame-hang runs clean), the real-app run with the product
+(at `ff57787`: passed 3150, skipped 2, failed 0; heavy 3152 / 0 / 0; three blame-hang runs clean; on the final
+`9c8785e`: build -warnaserror Release / Debug 0 / 0, passed 3151, skipped 2, failed 0), the real-app run with the product
 owner's footage, the regression against the Phase 17 build (an SDR project's default export byte for byte); the product
 owner's visual check of an exported HDR clip open. Push and pull request on the product owner's command. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 18 — HDR →
 SDR of phone footage: steps"; manual plan `docs/PHASE18_MANUAL_TEST_PLAN.md`.

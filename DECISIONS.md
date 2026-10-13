@@ -4145,7 +4145,7 @@ supported metadata; a failure of the HDR conversion is reported as a decode erro
 processing; no change of the project format or of other decisions beyond D033.
 
 Refined in Steps 18.6–18.8: the end-to-end parity of an HLG and a PQ scene (the export canvas byte for byte the Preview's,
-the rule within ΔE76 ≤ 0.74, the thumbnail's flat colours equal); the re-review notes — the LUT store's clean-up once before
+the rule within the test's ΔE76 ≤ 1 — measured at most 0.74 —, the thumbnail's flat colours equal); the re-review notes — the LUT store's clean-up once before
 any write, a newly imported HDR file's thumbnail made once; the Inspector's values wrap (the Color row is wider than the
 300 px panel); found in the closeout's real-app run: with an isolated profile the LUT folder could be relative, so the
 store resolves it to a full path. Measured (HQ5, HQ6): in the app's decoder the conversion costs nothing measurable (4K

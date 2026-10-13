@@ -105,6 +105,16 @@ Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization
   - Found and fixed in the run: with an isolated profile `LocalApplicationData` was empty and the LUT folder relative —
     the path reached ffmpeg relative to its working directory (it worked only because ffmpeg inherits the app's);
     `HdrLutStore` now uses a full path (`7463aec`, test + mutation). Video 351 → 352 after it (the LUT store tests 7 / 0).
+  - Gates again on the final code (`9c8785e`, after the LUT path fix): `dotnet build --no-incremental -warnaserror`
+    Release and Debug 0 / 0; the full suite 3151 passed, 2 skipped (the 4K scenes), 0 failed (Video 352); `git diff
+    --check fa96468` clean. (The three blame-hang runs and the heavy run are those at `ff57787`; 7463aec changed only
+    `HdrLutStore`'s constructor and added its test.)
+  - Measurement note: the 4K figure of D033 HQ6 (about 56 fps) is ffmpeg alone writing to null; in the app's decoder 4K
+    frames come through the BGRA pipe at about 12.5–12.7 fps with or without the conversion — the conversion adds
+    nothing measurable. Not measured: an export's own throughput and hardware decoding at 4K (M, no pass / fail).
+  - Independent closeout review: FAIL on one record (the gates were at `ff57787`, before 7463aec) — the run above
+    recorded; its notes taken in (the ΔE wording, R3's wording, the plan's open item). Its questions for the product
+    owner are in the final report.
   - Not run: the product owner's visual check of an exported HDR clip on an SDR screen (manual plan 12); scenario 3 and
     11 in the app (automated); R5 on HDR clips in the app (the Phase 15–17 suites unchanged). Known limitations: D033 §8.
 

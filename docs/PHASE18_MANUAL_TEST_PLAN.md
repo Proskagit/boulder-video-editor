@@ -56,6 +56,6 @@ Status column — kinds of evidence, never mixed:
 |---|---|---|---|
 | R1 | A Phase 17 project with SDR media | Opens, plays and exports as in the Phase 17 build; saved again — only the new optional colour properties added | 18.8 (Claude): PASS — the SDR fixture saved by Phase 18: only `pixelFormat` added (and `relativePath` rewritten for the copied folder, D014) |
 | R2 | Export of an SDR project | Byte for byte as the Phase 17 build's | 18.8 (Claude): PASS — the default export of the SDR fixture by the Phase 17 build (`fa96468`) and the Phase 18 build: the same SHA-256 (3F0E9DB7…A59811) |
-| R3 | A Phase 18 file in the Phase 17 build | Opens (the new properties ignored), HDR media shown as before (no tone mapping) | 18.8 (Claude): PASS — the Phase 18 save opened by the Phase 17 build ("Opened project") |
+| R3 | A Phase 18 file in the Phase 17 build | Opens (the new properties ignored), HDR media shown as before (no tone mapping) | 18.8 (Claude): PASS for the opening — the Phase 18 save opened by the Phase 17 build ("Opened project"); the HDR picture in the Phase 17 build: NOT RUN (it has no conversion by construction) |
 | R4 | No ffmpeg | No crash; the reasons shown as before | 18.8 (Claude): PASS — no ffmpeg: the HDR fixture opens, Space: "Playback is unavailable: FFmpeg could not be found…", the app runs |
 | R5 | Phase 15–17 tools on HDR clips (trim, slip, Source viewer, linked sound) | As before | auto (the full suite; Phase 15–17 tests unchanged); in the app: NOT RUN on HDR clips |

@@ -1213,7 +1213,7 @@ Out of scope: D033 §7.
 - PR: the Inspector's colour line placed and checked at 1024 / 1440 px; no switch (HQ4).
 - QG: `UI.Tests`; real app.
 
-### 18.8 — Final verification & closeout *(done 2026-10-13 — results in `progress.md` and `docs/PHASE18_MANUAL_TEST_PLAN.md`; the relative LUT folder found and fixed)*
+### 18.8 — Final verification & closeout *(done 2026-10-13 — results in `progress.md` and `docs/PHASE18_MANUAL_TEST_PLAN.md`; the relative LUT folder found and fixed; open: the product owner's visual check of an exported HDR clip)*
 - QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
   `--blame-hang`; the heavy scenes once with `AIVE_HEAVY_TESTS=1`; `git diff --check` clean; an independent phase review.
 - PR: `docs/PHASE18_MANUAL_TEST_PLAN.md` in the real app with the product owner's footage (the five comparison clips) and
