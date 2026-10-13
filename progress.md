@@ -149,6 +149,15 @@ Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization
   HDR thumbnails are made again once, the old file replaced (test), SDR names unchanged (`ThumbnailServiceTests`). Mutation
   (the rule version dropped from the tag) caught by 2 tests. Build -warnaserror 0 / 0; full suite 3196 passed, 2 skipped,
   0 failed.
+- Step 18.11 (2026-10-14) — end to end and the real footage (no code change): `ExportEndToEnd.Tests` green (the HLG and
+  PQ scenes, every SDR scene unchanged); the generated LUT vs the approved cube: 274 624 nodes within 1e-6, one node
+  2.48e-4 (0.06 code, on the BT.709 OETF's break at 0.018); the app's decoder with its own LUT vs the approved cube on all
+  13 clips (20 frames each, 1280 × 720 and 4K): ≤ 1 code, 0.0073 % of the values; hardware = software (3 clips × 2 bounds ×
+  20 frames, byte-identical). Real app (the S1 Debug build, isolated profile): the HDR fixture's Preview at 1440 / 1024,
+  the Inspector, the L2-era thumbnails replaced by `…-r2hlg1000`, the L2 LUT removed at start-up, the UI export
+  bit-identical to the scripted export and within the encoder's noise of the approved render (PSNR 46.5 dB); R2: the SDR
+  fixture's export byte for byte the Phase 17 build's. PQ: not verified on real footage. Details:
+  `docs/PHASE18_MANUAL_TEST_PLAN.md` "Revision R1".
 
 ### Phase 17 — Audio editing (complete; PR #18 merged as `fa96468`, CI green)
 

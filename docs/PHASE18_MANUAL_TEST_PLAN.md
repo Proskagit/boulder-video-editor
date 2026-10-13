@@ -59,3 +59,21 @@ Status column — kinds of evidence, never mixed:
 | R3 | A Phase 18 file in the Phase 17 build | Opens (the new properties ignored), HDR media shown as before (no tone mapping) | 18.8 (Claude): PASS for the opening — the Phase 18 save opened by the Phase 17 build ("Opened project"); the HDR picture in the Phase 17 build: NOT RUN (it has no conversion by construction) |
 | R4 | No ffmpeg | No crash; the reasons shown as before | 18.8 (Claude): PASS — no ffmpeg: the HDR fixture opens, Space: "Playback is unavailable: FFmpeg could not be found…", the app runs |
 | R5 | Phase 15–17 tools on HDR clips (trim, slip, Source viewer, linked sound) | As before | auto (the full suite; Phase 15–17 tests unchanged); in the app: NOT RUN on HDR clips |
+
+## Revision R1 — the rule S1 (Step 18.11, 2026-10-14)
+
+The L2 rows above record the 18.8 run; the product owner's visual check of that export failed (D033 Revision R1). Re-run
+with the S1 build (`a09efb8` + the Debug build of it), the same fixtures; `VideosForTest/` as before.
+
+| # | Check | Result |
+|---|---|---|
+| 5 / 10 | The Preview at 1440 and 1024 px (the portrait bouldering clip at the odd bound) | 18.11 (Claude): PASS — the S1 picture, not washed out; the portrait clip shown at 1024 px |
+| 6 | Bright light sources on the exported frames (the sun on the water, the lamps, the window) | 18.11 (Claude): PASS by eye — white, no coloured fringes or posterized edges |
+| 7 | Thumbnails | 18.11 (Claude): PASS — the fixture's five L2-era thumbnails (`…-v2-hlg1000.thumb`) replaced by `…-v2-r2hlg1000.thumb` on open; the Media Browser shows the S1 look |
+| 8 | Export through the UI vs the approved render | 18.11 (Claude): PASS — 1920 × 1080, 25 fps, 375 frames, SDR BT.709 tags; bit-identical to the same export run outside the UI (PSNR ∞) and equal to the approved "Telegram-match-sat100" render within the encoder's noise (PSNR 46.5 dB, min 40.8; another variant gives 37 dB). Before encoding (the decoder's BGRA, all 13 clips, 20 frames each, 1280 × 720 and 4K): the app's LUT vs the approved cube differ by at most 1 code in 0.0073 % of the values |
+| 9 | Hardware vs software decoding | 18.11 (Claude): PASS — 3 clips × 2 bounds × 20 frames byte-identical (`dxva2`) |
+| LUT | The generated LUT vs the approved cube | 274 624 of 274 625 nodes within the file's 6-decimal rounding (≤ 1·10⁻⁶); one node (50, 63, 27) differs by 2.48·10⁻⁴ (0.06 code) — it lies on the BT.709 OETF's break at L = 0.018, where the standard's rounded constants give 0.081 vs 0.08124 and the two implementations took different branches |
+| — | The L2 LUT left by the previous build | 18.11 (Claude): PASS — `hdr-r1-hlg-1000.cube` removed at start-up, `hdr-r2-hlg-1000.cube` written |
+| R2 | SDR export byte for byte | 18.11 (Claude): PASS — the SDR fixture's default export by the S1 build: SHA-256 3F0E9DB7…A59811, the Phase 17 build's |
+| 12 | PO: the exported HDR clip on a phone / an SDR monitor | PO: open (the S1 export to be checked, D033 §8) |
+| PQ | Real PQ footage | not available — PQ is **not verified on real PQ footage** (D033 §8) |
