@@ -46,7 +46,35 @@ Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization
   blocking issue; its notes taken into D033 (T1 probes, T2 / T3 the "colour probed" marker and no export block for
   SDR / untagged / unprobeable assets, the step-0 options, `Lpeak` = 203, the LUT cache location, the HQ5 wording); OQ1
   (a preflight warning for unsupported HDR variants) answered by the product owner: yes, non-blocking, the file and the
-  reason named, never for SDR or untagged files. Committed on `feat/phase-18-hdr-sdr`; no build or test run.
+  reason named, never for SDR or untagged files. Committed on `feat/phase-18-hdr-sdr` (`abb2254`); no build or test run.
+- Step 18.3 done (`bb7da2e`) — the rule in Core (D033 §3): `Core.Color.HdrToSdr` (double precision, each step once; the
+  BT.2020 → BT.709 matrix derived from the primaries so neutral stays exactly neutral — the rounded 4-decimal matrix
+  tinted grey by ~10⁻⁴), `HdrColor` (which assets, unsupported reasons, the PQ peak, the Inspector text, bit depth from
+  the pixel format), `HdrLut` (the 65³ `.cube`, deterministic). `Core.Tests/HdrToSdrTests` (63, against independently
+  evaluated BT.2100 / ST 2084 values and a step-by-step reference); 13 mutations caught. Core 601 / 0.
+- Step 18.4 done (`a5a6d2f`) — colour metadata (T1–T3, OQ1): ffprobe colour, HDR10 static metadata (stream, else the first
+  frame — that probe now also runs for HLG / PQ), Dolby Vision profile, HDR Vivid; optional `MediaMetadataDto`
+  properties (v4); the background colour probe of Phase 17 metadata with the runtime `MediaAsset.IsMetadataRefreshing`;
+  the preflight wait (only while a used video's colour probe is pending) and the `HdrNotConverted` warning (OQ1); the
+  Inspector's "Color" row. Tests: Video `FfprobeColorMetadataTests` (synthetic HLG / PQ ± HDR10 / SDR / HLG-709 files made
+  by libx265 — `HdrMedia`), Project `MediaColorPersistenceTests`, UI `MediaColorRefreshTests`, Core preflight tests; the
+  orientation refresh test's "current metadata" got its pixel format (current metadata always has one since 18.4). 10
+  mutations caught. Subsets run at the time (Core, Project, UI, the new Video class) — the full suite was run at 18.5.
+- Independent review of 18.3–18.4: FAIL on records only — no full-suite run recorded, `progress.md` not updated, the
+  manual plan's 18.4 texts differing from the Inspector's; the formulas confirmed against D033 §3, `vf_tonemap.c` and ACES
+  1.3. Taken in at 18.5: the full suite run and recorded (below), these entries, D033 "Refined in Steps 18.3–18.5", the
+  manual plan aligned; its notes fixed — the Dolby Vision compatibility id read and shown ("Dolby Vision 8.4"), float
+  pixel formats without a bit depth, a missing `pix_fmt` written as "unknown" (probed once, not at every Open).
+- Step 18.5 done (`0532e76`) — HDR decoding (§3 "Graph", T3–T5): `VideoDecodeRequest.Hdr`, `PlaybackAsset.Hdr`,
+  `AssetState.Hdr`; the decoder's HDR graph (even sizes, zscale R'G'B' only, `lut3d` tetrahedral; the LUT path escaped for
+  both graph levels); no LUT → the open fails (no silent SDR); `IHdrLutStore` / `HdrLutStore` (`%LOCALAPPDATA%\AiVideoEditor\
+  cache\color-luts`); thumbnails rule version 2 with the conversion in the name, made again after the probe finds HDR.
+  Tests: Video `HdrDecodeTests` (the SDR arguments pinned; decoded HLG / PQ / PQ+HDR10 patches equal the rule within
+  ΔE76 ≤ 0.74, neutral neutral; odd bounds; a hostile LUT folder name; no fallback), `HdrLutStoreTests`, `HdrThumbnailTests`,
+  Core `HdrSnapshotTests`, UI coordinator restart; `ThumbnailServiceTests` expects rule version 2 (D033 T4). 11
+  mutations caught. Gates: `dotnet build --no-incremental -warnaserror` 0 / 0; the full suite 3147 passed, 2 skipped (the
+  4K scenes), 0 failed (Core 618, Timeline 782, Project 446, UI 660, Export 108, Rendering 58, Video 350, ExportEndToEnd
+  125 + 2) — the Preview ↔ Export parity suite and the L1-c tests among them, unchanged.
 
 ### Phase 17 — Audio editing (complete; PR #18 merged as `fa96468`, CI green)
 

@@ -24,10 +24,10 @@ Status column — kinds of evidence, never mixed:
 
 | # | Scenario | Expected | Automated coverage | Status |
 |---|---|---|---|---|
-| 1 | Import a Vivo clip | Inspector: HDR · HLG · BT.2020 · 10-bit · Dolby Vision 8.4 base layer | planned | planned |
-| 2 | Import the Huawei clip | Inspector: HDR · HLG · BT.2020 · 10-bit · HDR Vivid (not applied) | planned | planned |
-| 3 | Import an SDR clip | Inspector: SDR · BT.709 (no HDR line) | planned | planned |
-| 4 | Open a Phase 17 project with an HDR clip | The clip is probed again in the background; the title gets no `*`; after the probe the Preview shows the HDR rule | planned | planned |
+| 1 | Import a Vivo clip | Inspector "Color": HDR · HLG · BT.2020 · 10-bit · Dolby Vision 8.4 (not applied) | `HdrToSdrTests` (the text), `FfprobeColorMetadataTests` (the phone side data) | auto (18.4) |
+| 2 | Import the Huawei clip | Inspector "Color": HDR · HLG · BT.2020 · 10-bit · HDR Vivid (not applied) | the same | auto (18.4) |
+| 3 | Import an SDR clip | Inspector "Color": SDR · BT.709 · 8-bit (no HDR wording) | `HdrToSdrTests.The_Inspector_text_…` | auto (18.4) |
+| 4 | Open a Phase 17 project with an HDR clip | The clip is probed again in the background; the title gets no `*`; after the probe the Preview shows the HDR rule | `MediaColorRefreshTests` (the probe, not dirty); the Preview part: 18.5 | auto (18.4) |
 
 ## HDR → SDR picture (Steps 18.5–18.7)
 
@@ -35,10 +35,10 @@ Status column — kinds of evidence, never mixed:
 |---|---|---|---|---|
 | 5 | The five clips in the Preview at the reference moments | Not washed out; skin, the gym wall, the holds and the blue cloth as in the pre-flight's L2 renders; no banding in skies and walls | planned | planned |
 | 6 | Bright light sources (the sun, lamps, the window, the TV) | White, without coloured fringes or posterized edges | planned | planned |
-| 7 | Thumbnails of the five clips | The same look as the Preview (regenerated once after the update) | planned | planned |
+| 7 | Thumbnails of the five clips | The same look as the Preview (regenerated once after the update) | `HdrThumbnailTests` (the rule's colours, the name), `ThumbnailCoordinatorTests` (made again after the probe) | auto (18.5) |
 | 8 | Export a timeline with the five clips; compare frames with the Preview | The same picture (flat areas within 1 code value) | planned | planned |
-| 9 | Hardware decoding on / the software fallback | The same picture | planned | planned |
-| 10 | A portrait clip at 1024 px (odd Preview bound) | Decodes and shows (sizes made even) | planned | planned |
+| 9 | Hardware decoding on / the software fallback | The same picture | — (the shared graph after the download; equality measured in 18.6) | planned |
+| 10 | A portrait clip at 1024 px (odd Preview bound) | Decodes and shows (sizes made even) | `HdrDecodeTests.An_odd_Preview_bound_gives_even_frame_sizes` | auto (18.5) |
 | 11 | Export while an HDR clip's colour is still unknown (old project, probe running) | The preflight blocks with the existing "still being analysed" reason, then exports after the probe | planned | planned |
 | 11a | Export of an old project with an untagged SDR clip, and with ffprobe missing | Never blocked; the output as in Phase 17 (D033 T3) | planned | planned |
 | 12 | PO: the exported HDR clip on a phone / an SDR monitor | Looks right to the product owner | — | PO |

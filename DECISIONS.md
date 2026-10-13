@@ -4111,6 +4111,24 @@ Answered by the product owner (2026-10-13):
   transfer (HLG or PQ) can be an unsupported HDR variant: an SDR file, or a file without colour tags, is never warned
   about, and missing metadata alone never counts as HDR.
 
+Refined in Steps 18.3–18.5 (implementation sub-decisions inside D033):
+- 18.3 — `Core.Color`: `HdrToSdr` (the rule, `RuleVersion` 1), `HdrColor` (classification, PQ peak, the Inspector text),
+  `HdrLut`. The BT.2020 → BT.709 matrix is derived in double precision from the primaries and D65 (each row sums to 1;
+  the rounded BT.2087 matrix tinted neutral grey by ~10⁻⁴). At `Lpeak` ≤ 203 step 7 is skipped (§3). The `.cube` carries a
+  `TITLE` line (ignored by `lut3d`); the file is `hdr-r<rule>-<hlg|pq>-<peak>.cube`.
+- 18.4 — ffprobe's "unknown" / "unspecified" / "reserved" count as not stated; a picture stream without `pix_fmt` is
+  written as "unknown" (the T2 marker, so it is probed once); the bit depth is not stored (it follows from the pixel format;
+  float formats have none); the Dolby Vision base-layer compatibility id is read and shown ("Dolby Vision 8.4 (not
+  applied)"); the Inspector's row is "Color" (e.g. "HDR · HLG · BT.2020 · 10-bit · Dolby Vision 8.4 (not applied)",
+  "SDR · BT.709 · 8-bit"); the runtime flag is `MediaAsset.IsMetadataRefreshing`; the preflight's wait uses the existing
+  "has not been analysed yet" message; OQ1's warning is `ExportIssueKind.HdrNotConverted`.
+- 18.5 — `IHdrLutStore` (Core.Interfaces) / `HdrLutStore` (Media.Caching), `AppPaths.ColorLutFolder`; the LUT is
+  generated once per key and session and compared with the file (a different or damaged file is written again); a
+  failure is not cached. The decoder takes the store; an HDR request without one, or whose LUT can't be prepared, fails
+  with `DecoderFailed`. The thumbnail name carries the conversion (`…-v2-hlg1000.thumb`); `ThumbnailCoordinator` restarts
+  an asset whose conversion changes. `PlaybackAsset.Hdr` / `AssetState.Hdr` make a conversion change a rebuild of the
+  Preview.
+
 Consequences: `MediaMetadata` / `MediaMetadataDto` colour properties; `FfprobeStream` and the analysis's first-frame
 probe; a Core colour rule and LUT generator; a LUT cache; `FfmpegVideoDecoder.BuildArguments` with the HDR graph; the
 thumbnail rule version; the export preflight's unknown-colour check; the Inspector's colour line; the manual plan
