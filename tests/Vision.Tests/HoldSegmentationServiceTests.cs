@@ -158,6 +158,15 @@ public sealed class HoldSegmentationServiceTests : IDisposable
         Assert.Equal(0, HoldCandidateRules.Choose(set));
     }
 
+    [Fact]
+    public async Task A_relative_model_folder_is_named_in_full()
+    {
+        var relative = Path.Combine("aive-missing-" + Guid.NewGuid().ToString("N"), "sam2.1-large");
+        var status = await new HoldModelVerifier(relative).VerifyAsync(null, CancellationToken.None);
+        Assert.Equal(HoldModelState.Missing, status.State);
+        Assert.Contains(Path.GetFullPath(relative), status.Message);
+    }
+
     [Theory]
     [InlineData("Non-zero status code returned while running Conv node. ErrorCode: 887A0005 DXGI_ERROR_DEVICE_REMOVED", true)]
     [InlineData("D3D12 device hung (887A0006)", true)]

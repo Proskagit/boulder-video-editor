@@ -47,7 +47,9 @@ public sealed class HoldModelVerifier
     /// <summary>For tests: other expected files (small fakes with their own SHA-256).</summary>
     internal HoldModelVerifier(string folder, IReadOnlyList<HoldModelFile> files)
     {
-        Folder = folder;
+        // Always a full path, so the messages name the real folder (with an unset profile LocalApplicationData can be
+        // empty and the app's folders relative — found in the Step 19.8 real-app run, as for the LUTs in 18.8).
+        Folder = Path.GetFullPath(folder);
         _files = files;
     }
 

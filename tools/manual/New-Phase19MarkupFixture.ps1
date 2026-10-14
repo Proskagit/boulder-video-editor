@@ -42,7 +42,8 @@ $video = Join-Path $media ('clip' + [System.IO.Path]::GetExtension($Clip))
 Copy-Item -LiteralPath $Clip $video
 
 $ffprobe = (Get-Command ffprobe -ErrorAction Stop).Source
-$rate = (& $ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of csv=p=0 $video).Trim()
+# The nominal rate (r_frame_rate): a phone clip's average rate can be an odd fraction (variable frame rate).
+$rate = (& $ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 $video).Trim()
 $num, $den = $rate.Split('/') | ForEach-Object { [long]$_ }
 $ticks = [long]$Seconds * 10000000
 $now = [DateTimeOffset]::Now.ToString('o')
