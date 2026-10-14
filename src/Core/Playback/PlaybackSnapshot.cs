@@ -61,6 +61,21 @@ public sealed record PictureSpan(
     public MediaTime ShownEnd => ExtendedEnd ?? TimelineEnd;
 
     public bool Contains(MediaTime time) => time >= TimelineStart && time < TimelineEnd;
+
+    /// <summary>The route outline of the clip's hold markup (D034 §6); null without holds. Presentation only.</summary>
+    public HoldOutline? Outline { get; init; }
+}
+
+/// <summary>
+/// What is drawn for a clip's hold markup (D034 §4–§6), renderer-neutral: the contours in normalized coordinates of the
+/// display-oriented source frame, the stroke per 1080 px of the canvas's short side, the route colour and whether the
+/// keyline is drawn (both resolved when the markup was edited).
+/// </summary>
+public sealed record HoldOutline(ImmutableArray<ImmutableArray<NormalizedPoint>> Polygons, double StrokeWidth1080, string ColorHex, bool Keyline)
+{
+    public static HoldOutline? Of(HoldMarkup? markup) => markup is { Holds.Length: > 0 }
+        ? new HoldOutline(markup.Holds.Select(h => h.Points).ToImmutableArray(), markup.StrokeWidth1080, markup.ColorHex, markup.KeylineActive)
+        : null;
 }
 
 /// <summary>A text clip on a visible video track (renderer-neutral content and style, D018).</summary>
@@ -304,7 +319,8 @@ public sealed class PlaybackSnapshot
     /// decoding — frame rate, duration, visible tracks, the timing and media of every clip, audio
     /// spans and assets — and differ at most in presentation: the mix (<see cref="AudioSpan.Gain"/>,
     /// <see cref="AudioSpan.IsMuted"/>), fades (D025), picture properties (<see cref="PictureSpan.Visual"/>,
-    /// <see cref="PictureSpan.SourceSize"/>), text content/style, the canvas and their version.
+    /// <see cref="PictureSpan.SourceSize"/>, the hold outline <see cref="PictureSpan.Outline"/>), text content/style, the canvas and
+    /// their version.
     /// Playback can then keep every decoder.
     /// </summary>
     public bool DiffersOnlyInPresentation(PlaybackSnapshot other)
@@ -333,7 +349,7 @@ public sealed class PlaybackSnapshot
 
         static AudioSpan WithoutMix(AudioSpan span) => span with { Gain = 0, IsMuted = false, FadeInFrames = 0, FadeOutFrames = 0 };
         static PictureSpan WithoutPresentation(PictureSpan span) =>
-            span with { Visual = VisualProperties.Default, SourceSize = null, FadeInFrames = 0, FadeOutFrames = 0 };
+            span with { Visual = VisualProperties.Default, SourceSize = null, FadeInFrames = 0, FadeOutFrames = 0, Outline = null };
         static (Guid, MediaTime, MediaTime) TextTiming(TextSpan span) => (span.ClipId, span.TimelineStart, span.TimelineEnd);
     }
 

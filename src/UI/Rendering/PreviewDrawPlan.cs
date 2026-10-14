@@ -22,6 +22,9 @@ public sealed record PlaceholderDraw(Guid ClipId, Affine2D Transform, double Opa
 /// </summary>
 public static class PreviewDrawPlan
 {
+    /// <summary>The thinnest route outline the Preview draws, in screen pixels (D034 §4; the export is unaffected).</summary>
+    public const double MinOutlinePixels = 1;
+
     public static CompositionDrawPlan Build(FrameSize canvas, double controlWidth, double controlHeight, IEnumerable<LayerPicture> layers)
     {
         if (!canvas.IsValid || !(controlWidth > 0) || !(controlHeight > 0))
@@ -32,7 +35,14 @@ public static class PreviewDrawPlan
         foreach (var picture in layers) // bottom to top
         {
             if (Operation(canvas, viewport, picture) is { } operation)
+            {
                 operations.Add(operation);
+                // D034: the route outline right above its frame, never on a placeholder; a line at least one screen
+                // pixel wide here only (the export keeps the exact width).
+                if (operation is FrameDraw && picture is { Layer: PictureLayer layer, Frame: { } frame } &&
+                    CompositionDrawPlan.Outline(canvas, viewport, layer, new FrameSize(frame.Width, frame.Height), MinOutlinePixels) is { } outline)
+                    operations.Add(outline);
+            }
         }
         return new CompositionDrawPlan(canvas, viewport, CompositionDrawPlan.Bounds(canvas, viewport), operations.ToImmutable());
     }
