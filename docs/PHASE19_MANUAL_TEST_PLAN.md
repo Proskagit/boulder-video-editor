@@ -46,7 +46,7 @@ Status column — kinds of evidence, never mixed:
 | 13 | Stroke on 1080p, 720p, 4K and a 1080 × 1920 canvas | The width per the short side (default 4 at 1080); Preview and export consistent | (19.3) | |
 | 14 | Auto colour; add / remove holds, also from another frame | One colour for the route; recomputed only on add / remove; never per frame | (19.2) | |
 | 15 | Manual colour; keyline Auto / On / Off | The keyline per D034 §5 for the automatic and the manual colour | (19.2) | |
-| 16 | The threshold examples (with / without the keyline): `<E1>esults\calibration-20261014-224451\sheet_band*.png`, `sheet_auto_*.png`, `README.md` | T = 0.12 (calibrated, proposed) accepted by the product owner — or another value read off the sheets | (19.6) | PO |
+| 16 | The threshold examples (with / without the keyline): `<E1>/results/calibration-20261014-224451/sheet_band*.png`, `sheet_auto_*.png`, `README.md` | T = 0.12 (calibrated, proposed) accepted by the product owner — or another value read off the sheets | (19.6) | PO |
 | 17 | Crop, position, scale, rotation; fades, a dissolve, a hidden track | As D034 §6 | (19.3) | |
 
 ## Edits and project (Steps 19.1, 19.2)

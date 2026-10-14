@@ -71,7 +71,7 @@ and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps";
   older one. Tests: `tests/UI.Tests/HoldMarkupUiTests.cs` (13); the local `MarkupPipelineTests` — the markup frame of
   c6 at 0.5 s is bit-identical to the E1 reference frame and a reference click gives a valid hold. Full solution suite:
   3295 passed, 2 skipped (the known 4K scenes). The scenario in the real app — the manual plan (product owner).
-- Step 19.6: keyline threshold calibrated outside the repository (`<E1>esults\calibration-20261014-224451\`): the
+- Step 19.6: keyline threshold calibrated outside the repository (`<E1>/results/calibration-20261014-224451/`): the
   colour samples of the 164 E1 clicks through the app's own pipeline (local `KeylineCalibrationTests`; 162 sampled, c1
   №16 / №19 no candidate), 24 routes (holds grouped by surface colour); the Auto colour scores ≥ 0.50 on every route, so
   T matters for manual colours (scores 0.028–0.773). Example sheets per score band with and without the keyline: below
