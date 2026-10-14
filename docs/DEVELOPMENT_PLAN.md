@@ -93,7 +93,7 @@ and runs cleanly.
       0, three blame-hang runs and heavy green, the manual plan and the Phase 16 regression in the real app (R10 for the
       product owner); accepted, the Ripple Delete change of 2026-10-12 included; PR #18 merged into `main` as `fa96468`
       (2026-10-13), CI green)*
-- [ ] **Phase 18 — HDR → SDR of phone footage.** HDR video (HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 and HDR Vivid
+- [x] **Phase 18 — HDR → SDR of phone footage.** HDR video (HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 and HDR Vivid
       by their HLG base layer) converted to the editor's SDR picture by one exact rule (S1 since D033 Revision R1: scene
       light, BT.2020 → BT.709, gamut compression, exposure, mobius on max RGB, the BT.709 OETF) as an application-generated 65³ LUT — the same for
       the Preview, the thumbnails and the export; SDR media decoded byte for byte as before; colour metadata read, kept
@@ -104,7 +104,37 @@ and runs cleanly.
       Phase 17 regression in the real app; the product owner's visual check of the L2 export failed → D033 Revision R1, the
       rule S1, Steps 18.9–18.12 done 2026-10-14 — build 0 / 0 Release and Debug, passed 3196, skipped 2, failed 0, three
       blame-hang runs and heavy (3198 / 0 / 0) green; HLG measured on the 13 clips (the visual check open), PQ not verified on real PQ footage; the
-      product owner's visual check of the S1 export open; pushed, pull request into `main` opened, not merged)*
+      product owner's visual check of the S1 export open; PR #19 merged into `main` as `c29a767` (2026-10-14), CI green;
+      still open: the product owner's visual check of the S1 export, PQ on real PQ footage)*
+- [ ] **Phase 19 — AI hold markup.** On a paused frame of a video clip the user clicks holds; SAM 2.1 Large (pinned model
+      `sam2.1-large-v1`, ONNX, local only, DirectML with a CPU fallback) returns their real contours; the confirmed holds
+      are drawn over the clip for its whole duration as one route outline, identical in the Preview and the export;
+      undo / redo; `project.json` v5. Scope, steps and acceptance criteria: section below and DECISIONS.md D034
+      (accepted 2026-10-14, specification revision 5). *(Pre-analysis and the experiments E1 / E2 done 2026-10-14
+      outside the repository; branch `feat/ai-hold-markup` from `c29a767`; implementation not started — it needs the
+      product owner's separate permission)*
+
+## Future ideas (not phases)
+
+Recorded so they are not lost. None of them is a phase, has acceptance criteria or is approved for implementation.
+
+### Route animation after the AI hold markup *(idea, 2026-10-14)*
+
+Once the holds of a route are marked (the AI hold markup, DECISIONS.md D034 — accepted, not implemented yet), the user
+can switch on an animation of the holds appearing over the video:
+1. At the start all hold contours are hidden.
+2. The holds appear one after another at a configurable interval (e.g. 0.5 s).
+3. A hold that has appeared stays visible while the next ones appear.
+4. After the last hold all contours stay visible for a set time (e.g. 3 s).
+5. Then all contours disappear at once; a fade-out may be a parameter of the implementation.
+
+Showing several holds as a group at the same time is desirable but not required for a first version, which may show
+one hold at a time with one common interval.
+
+Boundaries: a separate future function, not part of the AI hold markup MVP, whose scope it does not change. Keeping the
+contours on the holds while the camera moves is a separate motion compensation / tracking task, not a requirement of
+the MVP. Open, to be decided with the function: the order in which the holds appear, the moment the animation starts,
+the fade parameters, the grouping.
 
 ## Phase 9 — Quality: steps (D024)
 
@@ -1312,6 +1342,111 @@ produces. A step whose criterion fails stops and is reported, not loosened.
 
 Commits per step on the branch after the product owner approves this plan; push, pull request and merge only on a
 separate command.
+
+## Phase 19 — AI hold markup: steps (D034)
+
+Formalized on 2026-10-14 (DECISIONS.md D034, specification revision 5, accepted by the product owner). The normative
+text is D034; labels as in Phases 9–18 (**PR**, **QG**, **M**, **Impl**). Branch `feat/ai-hold-markup` from `c29a767`.
+**The implementation needs the product owner's separate permission**; each step is accepted before the next one starts;
+commits only with permission; push, pull request and merge only on a separate command; builds and test runs on the
+product owner's command.
+
+Goal: the user marks the holds of a route with their real contours by clicking on a paused frame; the route outline is
+drawn over the clip, the same in the Preview and the export (D034 §1).
+
+Gates for every implementation step 19.1–19.7 (QG): `dotnet build` 0 errors / 0 warnings (`-warnaserror`); the full
+`dotnet test AiVideoEditor.sln` green (only the two 4K heavy scenes skipped) **without the model weights or a GPU**; the
+Preview ↔ export parity suite, the L1-c criteria and every existing expected value unchanged; Core gets no ML
+dependency; new UI checked in the real app at 1024 and 1440 px; `docs/PHASE19_MANUAL_TEST_PLAN.md` completed for the
+step; `progress.md` updated.
+
+Reference data (outside the repository, never committed — the product owner's footage):
+`%USERPROFILE%\Desktop\AiVideoEditor-E1-Reference\` (frames, the 164 SDR + 24 HDR clicks, the graded masks and sheets,
+the owner's О / К marks, the pinned ONNX model, the reference ONNX masks, the scripts; `README.md`, `MANIFEST.sha256`).
+
+Local real-weights suite (D034 §7): the test project `tests/Vision.ModelTests`, **not part of `AiVideoEditor.sln`**, so
+the regular CI never sees it (no CI configuration change). Run: `dotnet test tests/Vision.ModelTests/Vision.ModelTests.csproj
+-c Release`; `AIVE_AI_MODEL_DIR` (default `%LOCALAPPDATA%\AiVideoEditor\models\sam2.1-large`) and `AIVE_AI_E1_DIR`
+(default the reference folder). Its report (Markdown + JSON, `<reference>\results\<timestamp>\`): model id and SHA-256s,
+ONNX Runtime, OS, GPU and driver; the three alternatives against the reference ONNX masks (score order, IoU); refinement
+with several points; DirectML vs CPU; performance; the criterion-10 table of all 164 SDR clicks (IoU, inherited mark or
+RECHECK). Required and recorded before the phase is accepted.
+
+Criterion 10 (D034 §8) — protocol: the same 164 SDR clicks, frames and grading rule; a click whose C#-pipeline mask has
+IoU ≥ 0.98 with the graded mask inherits the owner's mark, otherwise (no mask, ambiguous) it is re-checked by the product
+owner on a sheet of the same format; IoU and the final mark kept for every click; pass ≥ 155/164. Before the
+implementation (variant B, product owner 2026-10-14): the graded masks come from PyTorch with bf16, so the 38 SDR clicks
+where the pinned ONNX model's mask has IoU < 0.98 with them are re-graded once on the ONNX masks; the re-grade is kept
+apart from the original marks and the protocol records which marks are inherited and which re-graded. The C#
+preprocessing reproduces SAM 2's own (a bilinear antialiased resize to 1024 × 1024, ImageNet normalization; the logits
+upsampled bilinearly, threshold 0) — `reference/onnx_reference.json`.
+
+Out of scope: D034 §1 "Not in the MVP" — among them tracking, camera motion compensation, automatic route detection and
+the route animation (future ideas above).
+
+### 19.0 — Documentation *(done 2026-10-14 in the working tree, not committed)*
+- The Phase 18 merge (README, ROADMAP, this plan, `progress.md`); Phase 19 and these steps; the skeleton of
+  `docs/PHASE19_MANUAL_TEST_PLAN.md`.
+
+### 19.1 — Hold markup model and project format v5
+- Impl: Core — `HoldMarkup`, `Hold`, the OKLab colour type, validation; Project — `formatVersion` 5, v4 read and written
+  as v5 on save, damaged markup refused; Timeline — the markup copied by Split, Duplicate and Paste (`CloneClip`,
+  `CopyWithLink`). No UI.
+- QG: **the serialization of every hold's `SurfaceLab`, `WallLab` and `SourceTime`** (D034 §7: exact round trip, a
+  second save identical to the first, holds from different frames, non-round values; a hold without samples or with
+  non-finite values refused); v4 opens; a file newer than v5 refused; Split / Duplicate / Paste copies independent.
+
+### 19.2 — Edits, route colour and keyline
+- Impl: `ITimelineEditService` commands through `EditPlan` — add a hold, remove a hold, set the style; style changes merge
+  (D017); refused on a locked track and during an export. A pure colour service in Core (palette, maximin over hold and
+  wall, keyline Auto / On / Off), recomputed only when the set of holds changes, from the stored samples.
+- QG: undo / redo of every edit; the colour on synthetic OKLab samples incl. holds from different frames; the colour
+  service has no decoder dependency (no frame decoded); no recomputation with an unchanged set; Manual; the keyline for
+  the automatic and the manual colour.
+
+### 19.3 — One rendering path for the Preview and the export
+- Impl: the markup in the playback snapshot (`DiffersOnlyInPresentation`); a new `DrawOperation` of the clip's layer in
+  `CompositionDrawPlan` (normalized source → crop → layer matrix → canvas; clipped to the crop; the layer's opacity; the
+  stroke per the canvas's short side; the keyline 50 / 25 / 25), painted by `CompositionPainter`; the one-screen-pixel
+  minimum in the Preview only.
+- QG: geometry; the stroke on 1280 × 720, 1920 × 1080, 3840 × 2160 and 1080 × 1920 canvases (±0.5 px in the exported
+  frame of a synthetic scene), independent of the clip's scale, proportional in the Preview at several control sizes;
+  Preview ↔ export parity; fades, dissolves, hidden track, offline media.
+
+### 19.4 — `src/Vision`: local inference
+- Impl: `IHoldSegmentationService` in Core; `src/Vision` on `Microsoft.ML.OnnxRuntime.DirectML` — the model folder and the
+  SHA-256 check (`sam2.1-large-v1`), a lazily created, reused session; the CPU fallback for known DirectML start / run
+  errors with the status-bar message; cancellation; SAM 2's pre- / postprocessing; the colour samples of a confirmed
+  hold from its mask and frame. `tests/Vision.ModelTests` outside the solution.
+- QG (regular CI, no weights): a missing model, a wrong SHA-256, a simulated DirectML failure → CPU, cancellation without
+  a partial result — through a test double of the session. Local suite: green (the three alternatives within median
+  IoU ≥ 0.98 of the reference, refinement gives one mask, DirectML vs CPU, performance: frame ≤ 1 s GPU / ≤ 10 s CPU,
+  click ≤ 150 ms).
+
+### 19.5 — Markup mode (UI)
+- Impl: the full-resolution frame under the playhead through `IVideoDecoder` (the HDR rule of D033), prepared in the
+  background with progress and cancellation; pointer input over the Preview; candidate, alternatives, Shift+click, Enter /
+  Esc / Delete routed to the mode (never to the timeline), zoom / loupe, leaving the mode; the Inspector section (stroke,
+  colour Auto / Manual, keyline Auto / On / Off).
+- QG: view-model tests of the scenario and of the key routing; M: the scenario in the real app.
+
+### 19.6 — Threshold T calibration
+- Outside the repository on the E1 frames: the keyline threshold and the palette; examples with and without the keyline
+  shown to the product owner; the accepted values become constants with a test.
+
+### 19.7 — `docs/AI_MODEL.md`
+- The checked licences and notices of every pinned component (SAM 2 `LICENSE` and `NOTICE` at `2b90b9f`,
+  `LICENSE_cctorch`, the checkpoint statement, samexporter 0.5.0 with its third-party licences, ONNX Runtime, onnx — source,
+  date, conclusion); the full reproducible export recipe giving the pinned SHA-256s; installing the model; the error
+  messages. ARCHITECTURE, CLAUDE.md (the project count), `docs/README.md`.
+
+### 19.8 — Final verification & closeout
+- QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
+  `--blame-hang`; the heavy scenes once; `git diff --check`; **the local real-weights suite** with its report; criterion 10
+  on the E1 set (≥ 155/164, the protocol above); an independent phase review against D034.
+- M: `docs/PHASE19_MANUAL_TEST_PLAN.md` — the product owner's 2–3 clips: markup, export, viewing; the time to mark a route
+  recorded; the threshold examples accepted.
+- Documentation: D034 status, ARCHITECTURE, `progress.md`, ROADMAP / README, the manual plan, this plan's checkbox.
 
 ## Architectural rules that must hold at every phase
 

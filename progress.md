@@ -2,18 +2,50 @@
 
 ## Current phase
 
-Phase 18 — HDR → SDR of phone footage, on branch `feat/phase-18-hdr-sdr` (from `fa96468`, `main` after
-the merge of PR #18; DECISIONS.md D033, product owner decisions of 2026-10-13, OQ1 answered); closeout Step 18.8 done
-2026-10-13; the product owner's visual check of the L2 export failed → D033 Revision R1 (rule S1), Steps 18.9–18.12;
-Steps 18.9–18.12 done 2026-10-14 (S1 accepted for HLG with the 65³ LUT, criteria refined; PQ not verified on real
-footage); the product owner's visual check of the S1 export open. Pushed; pull request into `main` opened, not merged. Builds and tests run by Claude as needed; no push, pull request or merge
-without a separate command. Scope: HDR
-video (HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 / HDR Vivid by the HLG base layer) converted by the rule S1 of D033 §3 (Revision R1; L2 until 18.8)
-as an application-generated 65³ LUT, the same for the Preview, the thumbnails and the export; SDR decoding unchanged;
-optional colour metadata (`project.json` stays v4); no per-asset switch. Steps and acceptance: `docs/DEVELOPMENT_PLAN.md`
-"Phase 18 — HDR → SDR of phone footage: steps"; manual plan `docs/PHASE18_MANUAL_TEST_PLAN.md`.
+Phase 19 — AI hold markup, branch `feat/ai-hold-markup` (from `c29a767`, `main` after the merge of PR #19; DECISIONS.md
+D034, specification revision 5, accepted 2026-10-14). Preparation done; **implementation not started** — it needs the
+product owner's separate permission. Commits, push, pull request and merge only on the product owner's command. Steps
+and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps"; manual plan
+`docs/PHASE19_MANUAL_TEST_PLAN.md`.
 
-### Phase 18 — HDR → SDR of phone footage (complete; closeout Step 18.8, not yet merged)
+### Phase 19 — AI hold markup (planned; implementation not started)
+
+- 2026-10-14 — read-only pre-flights after the Phase 18 merge (timeline / media / Preview / localization UX; the roadmap
+  revision with AI as the main product direction — no AI code existed; the AI MVP pre-analysis). No repository change.
+- 2026-10-14 — experiments outside the repository (a separate Python environment; nothing added to the solution):
+  E1 — SAM 2.1 Large, one click per hold, graded by the product owner on numbered sheets: 164 SDR clicks on 7 clips,
+  155/164 without marked problems (О 4: c6 №16, c1 №16, c8 №8, c8 №24 — the wall instead of a hold; К 5: c0 №19 — an
+  occluded edge, c1 №3 / №8 / №18, c8 №16); HDR pilot 22/24 (biased sample, separate). ONNX (samexporter) + DirectML
+  works; DirectML = CPU on the E1 set. E2 — 12 SDR clips: static contours drift ≤ 6.3 px (p95 ≤ 4.2 px) at 1080p; a
+  global 2D compensation deferred. RF-DETR-Seg not tried (no dataset with a verifiable licence). Licences of everything
+  downloaded recorded.
+- 2026-10-14 — D034 accepted (specification revision 5); ROADMAP / DEVELOPMENT_PLAN: AI is the main direction, the
+  route animation recorded as a future idea (not a phase).
+- 2026-10-14 — branch `feat/ai-hold-markup` created from `origin/main` = `c29a767`; the D034 / ROADMAP / plan changes
+  carried over from the working tree (identical to a backup patch); not committed.
+- 2026-10-14 — the E1 / E2 reference data moved out of the temporary folder to
+  `%USERPROFILE%\Desktop\AiVideoEditor-E1-Reference\` (never in the repository): 2424 files identical by SHA-256 to the
+  source, plus the owner's marks, the environment lock, the reference ONNX masks, the protocol, `README.md`,
+  `MANIFEST.sha256`.
+- 2026-10-14 — criterion-10 protocol checked: with SAM 2's own preprocessing the pinned ONNX model matches the graded
+  (PyTorch bf16) masks with median IoU 0.9955; 126 of 164 SDR clicks reach IoU ≥ 0.98, 38 do not → variant B (product
+  owner): the 38 re-graded once on the ONNX masks before the implementation; re-check sheets prepared; the owner's
+  re-grade pending.
+- 2026-10-14 — Step 19.0 (documentation): the Phase 18 merge recorded, Phase 19 and its steps, the manual plan's skeleton;
+  not committed.
+- 2026-10-14 — the product owner's re-check of the 38 clicks (kept apart from the original marks; reference folder
+  `recheck/`): 32 without problems, О 3 (c1 №19, c6 №16, c8 №8 — clicks on the wall), К 3 (c1 №3, №8, №18). With the 126
+  inherited marks (122 without problems): **154/164** for the pinned ONNX model on the E1 set — one below the D034
+  criterion-10 bar of 155. For c1 №16 (inherited О) and c1 №19 all three masks exceed 2 % of the frame: the sheets showed
+  the highest-scoring (wall) mask, while D034 §1 hides masks over 2 % (no candidate).
+- 2026-10-14 — E1 final (product owner): c1 №16 and c1 №19 graded on the D034 behaviour (sheet `nomask_c1`): no
+  candidate is shown — without problems. Two views, both recorded in the reference folder (`recheck/summary_final.json`,
+  `recheck/protocol_d034_behaviour.csv`; the original marks and protocols unchanged): segmentation quality of the pinned
+  ONNX model **154/164** (О 5, К 5); user-visible behaviour under D034 **156/164** (О 3: c6 №16, c8 №8, c8 №24; К 5:
+  c0 №19 — occlusion, c1 №3, №8, №18, c8 №16) — **criterion 10 (≥ 155/164) met on the E1 set**. D034 unchanged. The
+  implementation not started — it needs the product owner's separate permission.
+
+### Phase 18 — HDR → SDR of phone footage (complete; PR #19 merged as `c29a767`, CI green)
 
 Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization · 18.3 colour rule & LUT generator ·
 18.4 colour metadata · 18.5 decoder & LUT cache · 18.6 parity, export & measurement · 18.7 UI · 18.8 closeout.
@@ -168,6 +200,9 @@ Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization
   keeps its vf_tonemap reference case (the S1 j / peak are pinned by `MobiusJ` / `KneePeak` and the chain's check values).
   Its question for the product owner: the one LUT node 2.48e-4 off the approved cube (plan 18.11's 1e-6 bound). Open: the product owner's visual check of the S1 export (manual plan 12); PQ on real
   PQ footage. Known limitations: D033 §8.
+- After the merge (2026-10-14): PR #19 merged into `main` as `c29a767` (tree = `adddfb2`), CI green on `main` (run
+  38479318881). Still open, not part of the merge: the product owner's visual check of the S1 export (manual plan 12) and
+  PQ on real PQ footage.
 
 ### Phase 17 — Audio editing (complete; PR #18 merged as `fa96468`, CI green)
 

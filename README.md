@@ -2,7 +2,7 @@
 
 A simplified, desktop-first video editor (Windows 10/11 x64, Avalonia UI, .NET 8),
 architected so professional-grade features can be layered in over time without a
-rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–17
+rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–18
 are complete** (architecture, UI skeleton, media import, ffprobe metadata
 analysis, timeline editing, preview playback with audio, project persistence with
 autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
@@ -16,8 +16,8 @@ the playhead, ripple trim, slip, an In / Out range, a canvas-relative size for n
 CI green — DECISIONS.md D030. Phase 16 (a Source viewer with In / Out, Insert / Overwrite) merged 2026-10-08 as
 `79e4e78`, CI green on PR #17 and on `main` — DECISIONS.md D031. Phase 17 (audio editing: unlink / link, J / L cuts,
 sound-only Insert / Overwrite, audio crossfades; `project.json` v4) merged 2026-10-13 as `fa96468` (PR #18), CI green —
-DECISIONS.md D032. Phase 18 (HDR → SDR of phone footage: HLG measured on the product owner's footage — their visual check open — PQ implemented but not verified on real PQ footage) is complete on `feat/phase-18-hdr-sdr` (Revision R1, closeout Step 18.12; pull request open, not yet merged) —
-DECISIONS.md D033.
+DECISIONS.md D032. Phase 18 (HDR → SDR of phone footage: HLG measured on the product owner's footage — their visual check open — PQ implemented but not verified on real PQ footage; Revision R1, closeout Step 18.12) merged 2026-10-14 as `c29a767` (PR #19), CI green —
+DECISIONS.md D033. Phase 19 (the AI hold markup, DECISIONS.md D034) is planned; its implementation has not started.
 
 ## Requirements
 
@@ -125,7 +125,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–17 complete (Phase 17 merged as `fa96468`, PR #18, CI green); Phase 18 (HDR → SDR, D033 with Revision R1) complete on its branch, pull request open, not yet merged.
+Phases 0–18 complete (Phase 18 — HDR → SDR, D033 with Revision R1 — merged as `c29a767`, PR #19, CI green; the product owner's visual check of the S1 export and PQ on real PQ footage still open). Phase 19 (AI hold markup, D034) planned, not started.
 Working: media import
 with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
