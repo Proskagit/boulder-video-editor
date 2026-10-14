@@ -316,6 +316,19 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_locked_track_offers_no_markup_and_locking_it_leaves_the_mode()
+    {
+        // Found in the real-app run (Step 19.8): the mode opened on a locked track and every confirm was refused.
+        var clip = await StartOnClip();
+        var track = _projects.Current.Timeline.VideoTracks.Single(t => t.Clips.Contains(clip));
+        Assert.True(_edit.SetTrackLocked(track.Id, true).Success);
+        Assert.False(Markup.IsActive);
+        Assert.False(Markup.StartCommand.CanExecute(null));
+        Assert.True(_edit.SetTrackLocked(track.Id, false).Success);
+        Assert.True(Markup.StartCommand.CanExecute(null));
+    }
+
+    [Fact]
     public async Task Esc_while_the_frame_is_prepared_cancels_without_a_candidate_or_an_edit()
     {
         var clip = AddVideo();

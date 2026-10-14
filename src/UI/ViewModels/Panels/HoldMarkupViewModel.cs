@@ -186,9 +186,13 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             return;
         }
         LoadStyle();
+        if (IsActive && _clip is not null && TrackIsLocked(_clip)) Exit();   // locked meanwhile: nothing could be added
         if (IsActive) UpdateOverlay();
         RefreshCommands();
     }
+
+    private bool TrackIsLocked(Clip clip) =>
+        _projects.Current.Timeline.VideoTracks.FirstOrDefault(t => t.Clips.Contains(clip)) is { IsLocked: true };
 
     private bool ClipIsInProject(Clip clip) =>
         _projects.Current.Timeline.VideoTracks.Any(t => t.Clips.Contains(clip));
@@ -200,6 +204,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     [ObservableProperty] private double _prepareProgress;
     [ObservableProperty] private string? _modeText;
     [ObservableProperty] private bool _isLoupeOn = true;
+
+    /// <summary>The mode's keys in full (the status line's tooltip).</summary>
+    public string ModeHelp => "Click a hold for its outline. Shift+click adds a point to refine it; Tab, Shift+Tab or the " +
+        "wheel switch between the outlines offered; Enter confirms, Esc discards. Click a marked hold to select it, Delete " +
+        "removes it. Done, a seek, Play or another clip leave the markup; the marked holds stay.";
 
     /// <summary>The candidate's contour (normalized source coordinates); empty without a candidate.</summary>
     [ObservableProperty] private ImmutableArray<NormalizedPoint> _candidateContour = ImmutableArray<NormalizedPoint>.Empty;
@@ -219,7 +228,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     public bool CanStart()
     {
         if (IsActive || _clip is null || _lock.IsLocked || _segmentation is null || _frames is null) return false;
-        if (!IsPausedOnTimeline()) return false;
+        if (!IsPausedOnTimeline() || TrackIsLocked(_clip)) return false;   // a locked track refuses every hold anyway
         var playhead = Playhead();
         return playhead >= _clip.TimelineStart && playhead < _clip.TimelineEnd && Asset(_clip) is { Metadata: not null, IsMissing: false };
     }
@@ -269,7 +278,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             PrepareProgress = 1;
             IsPreparing = false;
             UpdateOverlay();
-            ModeText = "Click a hold. Shift+click refines it, Tab or the wheel switches the outline, Enter confirms, Esc discards, Del removes a selected hold.";
+            ModeText = "Hold markup — click a hold, Enter confirms";
         }
         catch (OperationCanceledException) when (cts.IsCancellationRequested)
         {

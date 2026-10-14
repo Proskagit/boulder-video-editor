@@ -27,37 +27,40 @@
                   Command="{Binding ShowSourceCommand}"
                   ToolTip.Tip="Show the media opened in Source (double-click a video or audio file in the Media Browser)"/>
         </StackPanel>
-        <TextBlock Text="{Binding SourceName}" Foreground="#9A9A9A" FontSize="11" Margin="8,0,0,0"
-                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        <!-- AI hold markup (Phase 19, D034): the mode's status and buttons live in this bar, so the picture keeps its
+             size and nothing covers a hold. -->
+        <StackPanel Orientation="Horizontal" Spacing="6" DockPanel.Dock="Right" Margin="8,0,0,0"
+                    IsVisible="{Binding HoldMarkup.IsActive, FallbackValue=False}">
+          <TextBlock Text="{Binding HoldMarkup.AlternativeText}" Foreground="#00E5FF" FontSize="11" VerticalAlignment="Center"
+                     IsVisible="{Binding HoldMarkup.AlternativeText, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+          <ProgressBar IsVisible="{Binding HoldMarkup.IsPreparing}" Minimum="0" Maximum="1" Width="80" Height="4"
+                       Value="{Binding HoldMarkup.PrepareProgress}" VerticalAlignment="Center"/>
+          <ToggleButton Content="Loupe" FontSize="11" Padding="6,2" IsChecked="{Binding HoldMarkup.IsLoupeOn, Mode=TwoWay}"
+                        IsVisible="{Binding !HoldMarkup.IsPreparing}" ToolTip.Tip="A magnified view of the frame under the pointer"/>
+          <Button Content="Confirm" FontSize="11" Padding="6,2" Command="{Binding HoldMarkup.ConfirmCommand}"
+                  IsVisible="{Binding !HoldMarkup.IsPreparing}" ToolTip.Tip="Confirm the hold (Enter)"/>
+          <Button Content="Cancel" FontSize="11" Padding="6,2" Command="{Binding HoldMarkup.EscapeCommand}"
+                  IsVisible="{Binding HoldMarkup.IsPreparing}" ToolTip.Tip="Stop preparing the frame (Esc)"/>
+          <Button Content="Done" FontSize="11" Padding="6,2" Command="{Binding HoldMarkup.DoneCommand}"
+                  ToolTip.Tip="Leave the hold markup (the marked holds stay)"/>
+        </StackPanel>
+        <Panel Margin="8,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="{Binding SourceName}" Foreground="#9A9A9A" FontSize="11" TextTrimming="CharacterEllipsis"
+                     IsVisible="{Binding HoldMarkup.IsActive, Converter={x:Static BoolConverters.Not}, FallbackValue=True}"/>
+          <TextBlock Text="{Binding HoldMarkup.ModeText}" Foreground="#DDDDDD" FontSize="11" TextTrimming="CharacterEllipsis"
+                     ToolTip.Tip="{Binding HoldMarkup.ModeHelp}"
+                     IsVisible="{Binding HoldMarkup.IsActive, FallbackValue=False}"/>
+        </Panel>
       </DockPanel>
     </Border>
 
     <!-- Composition (Phase 7 Step 7): the project canvas with its real proportions, letterboxed
          in the available space; every layer is drawn by CompositionView (D018/D019). -->
-    <Grid Grid.Row="1" Margin="16" RowDefinitions="*,Auto">
+    <Grid Grid.Row="1" Margin="16">
       <rendering:CompositionView Layers="{Binding Layers}" Canvas="{Binding Canvas}"/>
-      <!-- AI hold markup (Phase 19, D034): clicks, the candidate, the selected hold and the loupe; the mode's hints and
-           buttons below the picture, never over a hold. -->
+      <!-- AI hold markup (Phase 19, D034): clicks, the candidate, the selected hold and the loupe (status and buttons in
+           the bar above). -->
       <rendering:HoldMarkupOverlay Markup="{Binding HoldMarkup}"/>
-      <Border Grid.Row="1" IsVisible="{Binding HoldMarkup.IsActive, FallbackValue=False}" Background="#252526" CornerRadius="3"
-              Padding="8,4" Margin="0,8,0,0">
-        <StackPanel Spacing="4">
-          <TextBlock Text="{Binding HoldMarkup.ModeText}" Foreground="#DDDDDD" FontSize="11" TextWrapping="Wrap"/>
-          <ProgressBar IsVisible="{Binding HoldMarkup.IsPreparing}" Minimum="0" Maximum="1"
-                       Value="{Binding HoldMarkup.PrepareProgress}" Height="4"/>
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBlock Text="{Binding HoldMarkup.AlternativeText}" Foreground="#00E5FF" FontSize="11" VerticalAlignment="Center"
-                       IsVisible="{Binding HoldMarkup.AlternativeText, Converter={x:Static ObjectConverters.IsNotNull}}"/>
-            <ToggleButton Content="Loupe" FontSize="10" Padding="5,1" IsChecked="{Binding HoldMarkup.IsLoupeOn, Mode=TwoWay}"
-                          IsVisible="{Binding !HoldMarkup.IsPreparing}"/>
-            <Button Content="Confirm" FontSize="10" Padding="5,1" Command="{Binding HoldMarkup.ConfirmCommand}" ToolTip.Tip="Confirm the hold (Enter)"/>
-            <Button Content="Cancel" FontSize="10" Padding="5,1" Command="{Binding HoldMarkup.EscapeCommand}"
-                    IsVisible="{Binding HoldMarkup.IsPreparing}" ToolTip.Tip="Stop preparing the frame (Esc)"/>
-            <Button Content="Done" FontSize="10" Padding="5,1" Command="{Binding HoldMarkup.DoneCommand}"
-                    ToolTip.Tip="Leave the hold markup (the marked holds stay)"/>
-          </StackPanel>
-        </StackPanel>
-      </Border>
       <TextBlock Text="Buffering…" IsVisible="{Binding IsBuffering}"
                  Foreground="#7A7A7A" FontSize="12" Margin="8"
                  HorizontalAlignment="Right" VerticalAlignment="Top"/>
