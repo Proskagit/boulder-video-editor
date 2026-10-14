@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>AiVideoEditor.Vision</RootNamespace>
+    <AssemblyName>AiVideoEditor.Vision</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- D034 §3: local inference through ONNX Runtime with the DirectML execution provider (MIT); the CPU provider is part
+         of the same package (the fallback). The version matches the one the E1 reference masks were made with. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.4" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core\Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Vision.Tests" />
+    <InternalsVisibleTo Include="Vision.ModelTests" />
+  </ItemGroup>
+
+</Project>
