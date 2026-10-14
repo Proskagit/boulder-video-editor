@@ -4567,8 +4567,23 @@ successor path); a ~870 MB model outside the repository with pinned checksums; a
 `project.json` v5; pointer input in the Preview; a CI configuration change keeping the real-weights suite out of the
 regular run; `docs/AI_MODEL.md`. ROADMAP's "left out: AI features" no longer holds (updated 2026-10-14).
 
-Status: Accepted (2026-10-14, product owner: specification revision 5). Implementation not started — it needs a separate
-permission.
+Status: Accepted (2026-10-14, product owner: specification revision 5). Implemented in Phase 19 (branch
+`feat/ai-hold-markup`, 2026-10-14, the product owner's permission of the same day); the decision text above unchanged.
+
+Implementation notes (Phase 19; technical choices within the decision, not changes of it):
+- Multi-point prompts: the pinned decoder was exported with `multimask_output = True` and always returns three masks; a
+  candidate refined by Shift+click shows the highest-scoring visible one (masks over 2 % hidden) — "one mask, no
+  alternatives" as §1 (`docs/AI_MODEL.md`).
+- `DirectML.dll`: the redistributable (`Microsoft.AI.DirectML`, a dependency of the ONNX Runtime package) is under the
+  Microsoft Software License Terms, not a permissive licence; it is not shipped — ONNX Runtime loads the Windows copy and
+  the §3 CPU fallback covers its failure. Shipping it is left to the product owner.
+- SAM 2 has no `NOTICE` file at the pinned commit (confirmed 2026-10-14 through the GitHub API listing of the commit's
+  tree; the §2 check had been blocked by a 503).
+- Threshold T calibrated at Step 19.6 to **0.12** (from the 0.20 hypothesis) on 24 E1 routes; the Auto colour scores
+  ≥ 0.50 on every one of them, so T decides for manual colours. The product owner's acceptance of the examples: manual
+  plan item 16.
+- The markup frame is decoded by the application's decoder (software, the D033 HDR rule) at the asset's display size;
+  on the E1 clip c6 at 0.5 s it is bit-identical to the E1 reference frame (local `MarkupPipelineTests`).
 
 ---
 

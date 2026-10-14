@@ -34,12 +34,13 @@
 
     <!-- Composition (Phase 7 Step 7): the project canvas with its real proportions, letterboxed
          in the available space; every layer is drawn by CompositionView (D018/D019). -->
-    <Grid Grid.Row="1" Margin="16">
+    <Grid Grid.Row="1" Margin="16" RowDefinitions="*,Auto">
       <rendering:CompositionView Layers="{Binding Layers}" Canvas="{Binding Canvas}"/>
-      <!-- AI hold markup (Phase 19, D034): clicks, the candidate, the selected hold and the loupe. -->
+      <!-- AI hold markup (Phase 19, D034): clicks, the candidate, the selected hold and the loupe; the mode's hints and
+           buttons below the picture, never over a hold. -->
       <rendering:HoldMarkupOverlay Markup="{Binding HoldMarkup}"/>
-      <Border IsVisible="{Binding HoldMarkup.IsActive, FallbackValue=False}" Background="#CC1E1E1E" CornerRadius="3"
-              Padding="8,4" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Top" MaxWidth="520">
+      <Border Grid.Row="1" IsVisible="{Binding HoldMarkup.IsActive, FallbackValue=False}" Background="#252526" CornerRadius="3"
+              Padding="8,4" Margin="0,8,0,0">
         <StackPanel Spacing="4">
           <TextBlock Text="{Binding HoldMarkup.ModeText}" Foreground="#DDDDDD" FontSize="11" TextWrapping="Wrap"/>
           <ProgressBar IsVisible="{Binding HoldMarkup.IsPreparing}" Minimum="0" Maximum="1"

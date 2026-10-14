@@ -111,8 +111,8 @@ and runs cleanly.
       are drawn over the clip for its whole duration as one route outline, identical in the Preview and the export;
       undo / redo; `project.json` v5. Scope, steps and acceptance criteria: section below and DECISIONS.md D034
       (accepted 2026-10-14, specification revision 5). *(Pre-analysis and the experiments E1 / E2 done 2026-10-14
-      outside the repository; branch `feat/ai-hold-markup` from `c29a767`; implementation not started — it needs the
-      product owner's separate permission)*
+      outside the repository; branch `feat/ai-hold-markup` from `c29a767`; implemented on the branch, Steps 19.0–19.8 committed, not pushed or merged; awaiting the product owner's acceptance — the threshold examples and the real-app scenarios on their clips; the checkbox is
+      set at acceptance)*
 
 ## Future ideas (not phases)
 
@@ -1440,7 +1440,7 @@ the route animation (future ideas above).
   date, conclusion); the full reproducible export recipe giving the pinned SHA-256s; installing the model; the error
   messages. ARCHITECTURE, CLAUDE.md (the project count), `docs/README.md`.
 
-### 19.8 — Final verification & closeout
+### 19.8 — Final verification & closeout *(done by Claude 2026-10-14; the PO items open)*
 - QG: `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0; the full suite once plus three times with
   `--blame-hang`; the heavy scenes once; `git diff --check`; **the local real-weights suite** with its report; criterion 10
   on the E1 set (≥ 155/164, the protocol above); an independent phase review against D034.

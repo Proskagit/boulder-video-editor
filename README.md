@@ -17,7 +17,8 @@ CI green — DECISIONS.md D030. Phase 16 (a Source viewer with In / Out, Insert 
 `79e4e78`, CI green on PR #17 and on `main` — DECISIONS.md D031. Phase 17 (audio editing: unlink / link, J / L cuts,
 sound-only Insert / Overwrite, audio crossfades; `project.json` v4) merged 2026-10-13 as `fa96468` (PR #18), CI green —
 DECISIONS.md D032. Phase 18 (HDR → SDR of phone footage: HLG measured on the product owner's footage — their visual check open — PQ implemented but not verified on real PQ footage; Revision R1, closeout Step 18.12) merged 2026-10-14 as `c29a767` (PR #19), CI green —
-DECISIONS.md D033. Phase 19 (the AI hold markup, DECISIONS.md D034) is planned; its implementation has not started.
+DECISIONS.md D033. Phase 19 (the AI hold markup, DECISIONS.md D034) is implemented on `feat/ai-hold-markup` and awaits the product owner's
+acceptance; the model is installed by hand (`docs/AI_MODEL.md`).
 
 ## Requirements
 
@@ -125,7 +126,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–18 complete (Phase 18 — HDR → SDR, D033 with Revision R1 — merged as `c29a767`, PR #19, CI green; the product owner's visual check of the S1 export and PQ on real PQ footage still open). Phase 19 (AI hold markup, D034) planned, not started.
+Phases 0–18 complete (Phase 18 — HDR → SDR, D033 with Revision R1 — merged as `c29a767`, PR #19, CI green; the product owner's visual check of the S1 export and PQ on real PQ footage still open). Phase 19 (AI hold markup, D034) implemented on `feat/ai-hold-markup`, awaiting acceptance (not merged).
 Working: media import
 with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),

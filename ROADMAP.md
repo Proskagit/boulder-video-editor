@@ -59,14 +59,15 @@ session state (D015).
 
 ## Current
 
-Phase 19 — AI hold markup (**planned**; DECISIONS.md D034 accepted 2026-10-14, specification revision 5; branch
-`feat/ai-hold-markup` from `c29a767`; implementation not started — it needs the product owner's separate permission). On
+Phase 19 — AI hold markup (**implemented, awaiting acceptance**; DECISIONS.md D034 accepted 2026-10-14, specification
+revision 5; branch `feat/ai-hold-markup` from `c29a767`; implemented on the branch, Steps 19.0–19.8 committed, not pushed or merged; awaiting the product owner's acceptance — the threshold examples and the real-app scenarios on their clips). On
 a paused frame of a video clip the user clicks holds; SAM 2.1 Large (pinned model `sam2.1-large-v1`, ONNX, local only,
 DirectML with a CPU fallback) returns their real contours; confirmed holds are drawn over the clip for its whole
 duration as one route outline (one colour chosen from the holds and the wall, a keyline when the contrast is low, a
 stroke per the canvas's short side), identical in the Preview and the export; undo / redo; `project.json` v5. The
 experiments E1 / E2 ran outside the repository (reference data outside the repository too); E1: 155/164 SDR clicks
-without marked problems — the acceptance bar (D034 §8, criterion 10). Steps 19.0–19.8 and acceptance criteria:
+without marked problems — the acceptance bar (D034 §8, criterion 10); the implementation's pinned ONNX model: 156/164.
+Steps 19.0–19.8 and acceptance criteria:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 19 — AI hold markup: steps"; manual plan `docs/PHASE19_MANUAL_TEST_PLAN.md`.
 
 ## Previous
@@ -306,7 +307,7 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-Phase 19 (AI hold markup, D034) is planned — see "Current" and `docs/DEVELOPMENT_PLAN.md`. Candidates named in the
+Phase 19 (AI hold markup, D034) is implemented and awaits acceptance — see "Current" and `docs/DEVELOPMENT_PLAN.md`. Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The

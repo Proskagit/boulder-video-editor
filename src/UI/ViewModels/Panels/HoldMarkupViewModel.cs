@@ -53,6 +53,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     private int _alternative;
     private byte[]? _componentMask;
     private int _generation;
+    private Task _confirming = Task.CompletedTask;
 
     public HoldMarkupViewModel(ITimelineEditService edit, IProjectService projects, StatusService status,
         IHoldSegmentationService? segmentation = null, IHoldMarkupFrameSource? frames = null, EditingLock? editingLock = null)
@@ -291,6 +292,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     {
         if (!IsActive) return;
         if (IsPreparing) { Exit(); return; }
+        if (!_confirming.IsCompleted) return;   // Enter came first: the hold is being added
         if (HasCandidate) { ClearCandidate(); return; }
         if (SelectedHoldId is not null) { Select(null); return; }
         Exit();
@@ -312,6 +314,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     /// <paramref name="additive"/>: Shift was held.</summary>
     public async Task OnClickAsync(NormalizedPoint point, bool additive)
     {
+        // A confirm still sampling the colours finishes first: a quick next click never drops it.
+        if (!_confirming.IsCompleted) await _confirming;
         if (!IsActive || IsPreparing || _encoded is null || MarkupFrame is null) return;
         if (point.X is < 0 or > 1 || point.Y is < 0 or > 1) return;
 
@@ -380,7 +384,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     private void CycleAlternative(int step)
     {
-        if (!HasCandidate || _visible.Length < 2) return;
+        if (!HasCandidate || _visible.Length < 2 || !_confirming.IsCompleted) return;
         _alternative = (_alternative + step + _visible.Length) % _visible.Length;
         _ = ShowAlternativeAsync(++_generation);
     }
@@ -389,7 +393,13 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     /// <summary>Enter: the candidate becomes a hold of the clip — one undo step with its contour and colour samples.</summary>
     [RelayCommand(CanExecute = nameof(CanConfirm))]
-    private async Task Confirm()
+    private Task Confirm()
+    {
+        if (!_confirming.IsCompleted) return _confirming;
+        return _confirming = ConfirmCore();
+    }
+
+    private async Task ConfirmCore()
     {
         if (!CanConfirm() || _clip is null || MarkupFrame is not { } frame || _componentMask is not { } component) return;
         var clip = _clip;

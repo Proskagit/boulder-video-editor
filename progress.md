@@ -5,7 +5,9 @@
 Phase 19 — AI hold markup, branch `feat/ai-hold-markup` (from `c29a767`, `main` after the merge of PR #19; DECISIONS.md
 D034, specification revision 5, accepted 2026-10-14). **Implementation in progress** (the product owner's permission of
 2026-10-14: code, tests, documentation and commits on this branch; no push, pull request or merge without a separate
-permission). Steps 19.0–19.5 committed; next 19.6 (threshold T), 19.7 (`docs/AI_MODEL.md`), 19.8 (closeout). Steps
+permission). Steps 19.0–19.8 committed; nothing pushed or merged. Open: the product owner's acceptance — the threshold examples
+(manual plan #16), the real-app scenarios on their clips (#9 re-check, #26, the rows not run), then push / PR / merge on
+their command. Steps
 and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps"; manual plan
 `docs/PHASE19_MANUAL_TEST_PLAN.md`.
 
@@ -87,6 +89,21 @@ and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps";
   Terms (Windows / Xbox only, usage data collection) — not a permissive licence, so it is **not shipped**; ONNX Runtime
   uses the Windows copy (as in the 19.4 measurements), the CPU fallback covers its failure; shipping it is left to the
   product owner. ARCHITECTURE (Vision, the AI section, format v5), CLAUDE.md (20 projects), `docs/README.md`.
+- Step 19.8 (closeout, Claude): `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0 (also the local
+  suite's project); the full suite 3296 passed / 2 skipped (the 4K scenes) / 0 failed, three `--blame-hang` runs the same,
+  no hang; `AIVE_HEAVY_TESTS=1` ExportEndToEnd 129 / 0 / 0; after the fix below 3297 / 2 / 0 and three more
+  `--blame-hang` runs (see the closeout note). Local real-weights suite 9 / 9 (report `<E1>/results/20261014-230816/`):
+  C# = Python reference (median IoU 1.0000, order 188/188), **criterion 10: 156/164** (О 3, К 5, RECHECK 0), DirectML =
+  CPU (median IoU 1.0000), GPU frame 417 ms median / CPU 8.0 s, click 49 ms; the calibration samples identical between
+  runs (system vs redistributable DirectML). Real app (Debug, isolated profile, fixture
+  `tools/manual/New-Phase19MarkupFixture.ps1` with c6): the Holds section, Mark holds with progress (5.9 s with the first
+  SHA-256 check), a candidate under the click, "Outline 1 of 3" → Tab → "2 of 3", the "No hold there" message, the loupe
+  matching the frame, Enter adding a hold drawn by the composition in the Auto colour (black). Of five quick click / Enter
+  pairs only one hold was added; not reproduced headlessly with the real model (new local `MarkupScenarioTests`, 6 of 6);
+  the click-during-confirm race closed anyway (a click waits for a running confirm; Tab / wheel / Esc don't cancel it;
+  UI test). The mode's hint moved below the picture (it covered holds). The run was stopped early because the product
+  owner was using the desktop (synthesized input could reach other windows; the last Esc and click may have gone to a
+  browser window — no visible effect). D034 status and implementation notes recorded (decision text unchanged).
 
 ### Phase 18 — HDR → SDR of phone footage (complete; PR #19 merged as `c29a767`, CI green)
 

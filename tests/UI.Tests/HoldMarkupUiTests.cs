@@ -192,6 +192,20 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_click_right_after_enter_never_drops_the_hold_being_confirmed()
+    {
+        // Found in the real-app run (Step 19.8): the next click came while the confirm was still sampling the colours.
+        var clip = await StartOnClip();
+        await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), false);
+        var confirm = Markup.ConfirmCommand.ExecuteAsync(null);                 // not awaited
+        var click = Markup.OnClickAsync(new NormalizedPoint(0.2, 0.5), false);   // at once
+        Markup.EscapeCommand.Execute(null);                                     // Enter came first: ignored for the hold
+        await Task.WhenAll(confirm, click);
+        Assert.Single(clip.HoldMarkup!.Holds);
+        Assert.True(Markup.HasCandidate);                                       // the new click's candidate
+    }
+
+    [Fact]
     public async Task Shift_click_refines_the_same_candidate_to_one_mask_and_esc_discards_it()
     {
         var clip = await StartOnClip();
