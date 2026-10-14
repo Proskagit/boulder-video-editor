@@ -21,10 +21,14 @@ public readonly record struct PaletteColor(string Name, string Hex, OkLabColor L
 public static class RouteColor
 {
     /// <summary>
-    /// The keyline threshold T on the route score (ΔE_OK). Calibrated at Step 19.6 on the E1 frames and accepted by the
-    /// product owner from examples with and without the keyline (D034 §5).
+    /// The keyline threshold T on the route score (ΔE_OK; D034 §5, starting hypothesis 0.20). Calibrated at Step 19.6 on
+    /// the E1 frames (24 routes of 3–11 holds from the app's own samples; example sheets with and without the keyline per
+    /// score band, 1080p, stroke 4): below ≈ 0.12 the plain line merges with the holds (pink on pink, orange on orange),
+    /// from ≈ 0.15 it reads without help and the keyline only halves the coloured core. The Auto colour of every E1 route
+    /// scores ≥ 0.50, so in practice T decides for manual colours. The product owner's acceptance of the examples is an
+    /// item of the manual plan.
     /// </summary>
-    public const double KeylineThreshold = 0.20;
+    public const double KeylineThreshold = 0.12;
 
     /// <summary>The fixed Auto palette (D034 §5): 12 saturated colours, then white and black, in this order.</summary>
     public static readonly ImmutableArray<PaletteColor> Palette = ImmutableArray.Create(

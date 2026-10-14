@@ -120,4 +120,23 @@ public class RouteColorTests
         Assert.NotNull(HoldMarkupRules.ValidateHold(new Hold(Guid.NewGuid(), Tri, new OkLabColor(double.NaN, 0, 0), default, MediaTime.Zero)));
         Assert.NotNull(HoldMarkupRules.ValidateHold(new Hold(Guid.NewGuid(), Tri, default, default, new MediaTime(-1))));
     }
+
+    [Fact]
+    public void The_calibrated_threshold_turns_the_keyline_on_just_below_0_12()
+    {
+        // Step 19.6: T = 0.12. One hold whose surface lies at a chosen OKLab distance from the manual colour (the wall far
+        // away): 0.119 → keyline, 0.121 → none; On / Off ignore the score.
+        Assert.Equal(0.12, RouteColor.KeylineThreshold);
+        var core = RouteColor.HexToOkLab("#FF4081");
+        HoldMarkup At(double distance, KeylineMode mode) => RouteColor.WithResolved(new HoldMarkup
+        {
+            ColorMode = HoldColorMode.Manual, ColorHex = "#FF4081", Keyline = mode,
+            Holds = ImmutableArray.Create(new Hold(Guid.NewGuid(), Tri, new OkLabColor(core.L - distance, core.A, core.B),
+                new OkLabColor(0.2, 0, 0), MediaTime.Zero))
+        });
+        Assert.True(At(0.119, KeylineMode.Auto).KeylineActive);
+        Assert.False(At(0.121, KeylineMode.Auto).KeylineActive);
+        Assert.True(At(0.5, KeylineMode.On).KeylineActive);
+        Assert.False(At(0.01, KeylineMode.Off).KeylineActive);
+    }
 }
