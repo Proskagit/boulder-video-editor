@@ -66,9 +66,8 @@ and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps";
   seek / Play / Source / another clip / an export / another project leave the mode), `HoldMarkupFrameSource` (the
   Preview's frame under the playhead at full display size through the app's decoder, software, the D033 HDR rule),
   `HoldMarkupOverlay` over the Preview (click mapping through the viewport and the layer geometry, candidate, selected
-  hold, loupe), `ShortcutRouter` keys of the mode first; App: `AppPaths.ModelsFolder`, the service registrations; the
-  x64 `DirectML.dll` redistributable (Microsoft.AI.DirectML 1.15.4) copied next to the app instead of the system's
-  older one. Tests: `tests/UI.Tests/HoldMarkupUiTests.cs` (13); the local `MarkupPipelineTests` — the markup frame of
+  hold, loupe), `ShortcutRouter` keys of the mode first; App: `AppPaths.ModelsFolder`, the service registrations
+  (copying the x64 `DirectML.dll` redistributable next to the app was tried and withdrawn at 19.7 — see there). Tests: `tests/UI.Tests/HoldMarkupUiTests.cs` (13); the local `MarkupPipelineTests` — the markup frame of
   c6 at 0.5 s is bit-identical to the E1 reference frame and a reference click gives a valid hold. Full solution suite:
   3295 passed, 2 skipped (the known 4K scenes). The scenario in the real app — the manual plan (product owner).
 - Step 19.6: keyline threshold calibrated outside the repository (`<E1>/results/calibration-20261014-224451/`): the
@@ -79,6 +78,15 @@ and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps";
   the product owner's acceptance pending (manual plan #16). Observation for the owner: the Auto colour is mostly black or
   white on the E1 walls (the maximin favours lightness contrast) — D034 allows adjusting the palette at this step; left
   unchanged.
+- Step 19.7: `docs/AI_MODEL.md` — the files and checksums, installing, the messages, the runtime, the multi-point
+  decision (the pinned decoder always returns three masks; a refined candidate shows the best visible one), the licences
+  checked 2026-10-14 (SAM 2 at `2b90b9f`: Apache-2.0, **no NOTICE file** — confirmed through the GitHub API listing of
+  the commit's tree; `LICENSE_cctorch` BSD-3 not part of the ONNX; the checkpoint Apache-2.0 per the commit's README;
+  samexporter 0.5.0 MIT with the OpenAI CLIP MIT licence; onnx, PyTorch, ONNX Runtime) and the export recipe with the
+  checkpoint's SHA-256. Found while checking: the `DirectML.dll` redistributable is under the Microsoft Software License
+  Terms (Windows / Xbox only, usage data collection) — not a permissive licence, so it is **not shipped**; ONNX Runtime
+  uses the Windows copy (as in the 19.4 measurements), the CPU fallback covers its failure; shipping it is left to the
+  product owner. ARCHITECTURE (Vision, the AI section, format v5), CLAUDE.md (20 projects), `docs/README.md`.
 
 ### Phase 18 — HDR → SDR of phone footage (complete; PR #19 merged as `c29a767`, CI green)
 

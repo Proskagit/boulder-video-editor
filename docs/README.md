@@ -24,6 +24,10 @@ This directory contains:
 - `PHASE18_MANUAL_TEST_PLAN.md` — manual checks of Phase 18 (HDR → SDR of phone footage: colour metadata, the picture in
   the Preview, the thumbnails and the export, the regression against Phase 17), completed per step and run at its closeout
 
+- `PHASE19_MANUAL_TEST_PLAN.md` — manual checks of Phase 19 (AI hold markup: the markup mode, the route outline in the
+  Preview and the export, the model's absence and the CPU fallback, the threshold examples), run at its closeout
+- `AI_MODEL.md` — the AI hold model: files and checksums, installing, messages, licences and notices, the export recipe
+
 Agent-oriented project context lives in the repository root:
 
 - `CLAUDE.md` — instructions for AI coding agents

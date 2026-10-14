@@ -13,9 +13,11 @@ This document describes the verified architecture of the AI Video Editor.
 
 ## Solution
 
-The solution contains 10 application projects under `src/` plus eight test
+The solution contains 11 application projects under `src/` plus nine test
 projects (`tests/Core.Tests`, `tests/Project.Tests`, `tests/Timeline.Tests`, `tests/UI.Tests`,
-`tests/Export.Tests`, `tests/Rendering.Tests`, `tests/Video.Tests`, `tests/ExportEndToEnd.Tests` — Video.Tests runs
+`tests/Export.Tests`, `tests/Rendering.Tests`, `tests/Video.Tests`, `tests/ExportEndToEnd.Tests`, `tests/Vision.Tests`
+— Vision.Tests checks the AI service with a test double of the ONNX session, no weights; `tests/Vision.ModelTests`, the
+local suite with the real model weights and the E1 reference data, is deliberately outside the solution — Video.Tests runs
 ffmpeg integration tests and skips without ffmpeg; Export.Tests uses the Preview's pipeline and fakes as the oracle of
 the export contract; Rendering.Tests initialises Avalonia like the app and checks pixels of the Preview control and the
 export rasterizer; ExportEndToEnd.Tests runs whole exports — preflight → `ExportService` → real decoders, Avalonia
@@ -29,9 +31,10 @@ rasterizer, ffmpeg encoder → MP4 checked with ffprobe — and skips without ff
 | Infrastructure | Serilog setup, `AppPaths` (incl. the recovery folder and the unsaved projects' cache root), `FfprobeLocator` / `FfmpegLocator` + `FfmpegOptions` | Implemented |
 | Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS); `FfmpegAudioDecoder` (ffmpeg CLI → 48 kHz stereo float); `FfmpegExportEncoder`; shared `FfmpegProcess` | Probe, video/audio decode, export encoder |
 | Media | `MediaImportService` (extension validation, file size); `ThumbnailService` / `WaveformService` and their cache files (Phase 9) | Implemented |
-| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022; v3 since Phase 10, D025; v4 since Phase 17, D032) |
+| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022; v3 since Phase 10, D025; v4 since Phase 17, D032; v5 since Phase 19, D034) |
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
+| Vision | The AI hold segmentation (Phase 19, D034): `OnnxHoldSegmentationService` over ONNX Runtime with DirectML (CPU fallback), `HoldModelVerifier` (size + SHA-256 of the pinned files), SAM 2 pre- / postprocessing. References Core only | Implemented |
 | Export | Offline export orchestration (Phase 8, D023): renders an `ExportJob` with the Core rules and hands frames/audio to an encoder. References Core only; no FFmpeg or UI types | `ExportService` over `ExportFrameSource` / `ExportPictureReader`, `ExportAudioSource` / `ExportAudioReader` |
 
 The Phase 10 fades and cross dissolve live in Core (`FadeRule`, `TransitionRules`, the snapshot), Timeline (edits) and UI;
@@ -369,6 +372,27 @@ One rule for every picture consumer (the Preview, the Source viewer, the thumbna
   (three per clip of 13 clips), not every frame; ΔE76 < 2.3 is a bench threshold, not a guarantee of invisibility. PQ is
   not verified on real PQ footage.
 
+## AI hold markup (Phase 19, D034)
+
+The product's main AI function: the route's holds outlined on a video clip, one colour for the route.
+- Model: SAM 2.1 Large as ONNX (`sam2.1-large-v1`), placed by hand in `%LOCALAPPDATA%\AiVideoEditor\models\sam2.1-large\`
+  (`AppPaths.ModelsFolder`), never downloaded or replaced; `docs/AI_MODEL.md` (files, checksums, licences, the export
+  recipe). Missing or mismatching files disable only the markup.
+- Core: `HoldMarkup` / `Hold` (normalized outer contour, `SurfaceLab` / `WallLab` OKLab samples, `SourceTime`) on
+  `VideoClip`; `RouteColor` (palette of 12 + white + black, maximin over the stored samples, keyline threshold T = 0.12);
+  `IHoldSegmentationService` / `IHoldFrame` (three masks per prompt); `Holds/` — `HoldCandidateRules` (masks over 2 % of
+  the frame hidden, best score first), `MaskContour` (largest component, Moore outer contour, Douglas–Peucker),
+  `HoldColorSampler` (eroded surface, wall ring without the other holds, trimmed medians).
+- Timeline: `AddHold` / `RemoveHold` / `SetHoldStyle` — one `SetHoldMarkupCommand` each (style changes merge); the
+  colour is recomputed only when the set of holds changes, never from a frame; Split / Duplicate / Paste copy the markup.
+- Rendering: the snapshot's `PictureSpan.Outline` → `CompositionDrawPlan.OutlineDraw` (layer-local, clipped to the crop,
+  the layer's opacity, stroke `StrokeWidth1080 × short side / 1080`, keyline 25 / 50 / 25) → `CompositionPainter` — the
+  same path for the Preview (1 px minimum) and the export.
+- UI: `HoldMarkupViewModel` (the Inspector's "Holds" section and the markup mode), `HoldMarkupFrameSource` (the Preview's
+  frame under the playhead at full display size through `IVideoDecoder`, the D033 HDR rule), `HoldMarkupOverlay` over
+  the Preview's `CompositionView` (clicks mapped through the viewport and `LayerGeometry`, the candidate, the selected
+  hold, the loupe); the mode's keys (Enter, Esc, Delete, Tab) come first in `ShortcutRouter`.
+
 ## Thumbnails (Phase 9 Step 9.4)
 
 Decision: D024 "Refined in Step 9.4". Media Browser only; playback and export never read the cache.
@@ -429,7 +453,9 @@ waveform never changes the audio.
 Decisions: D014 (format, Open/Save, missing media), D015 (save point), D016 (autosave,
 recovery, unsaved changes).
 
-- On disk: a project folder with `project.json` (format v4 since Phase 17: `linkId`, `isAudioDetached` — each written
+- On disk: a project folder with `project.json` (format v5 since Phase 19: the optional `holdMarkup` of a video clip —
+  style, route colour, keyline and the holds with their contours and colour samples, D034; v4 is read and saved as v5;
+  format v4 since Phase 17: `linkId`, `isAudioDetached` — each written
   only when set —, audio clips of video files and crossfades on audio tracks, D032; v3 since Phase 10: clip fades and
   anchored transitions, D025; v2 since Phase 7: the clip speed as an exact fraction `speedRatio`, D022; v1 files are read
   when their speed is 1; v1 / v2 are read without fades and transitions, v1–v3 without links; all are saved as v4, a v3

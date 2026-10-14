@@ -1434,7 +1434,7 @@ the route animation (future ideas above).
 - Outside the repository on the E1 frames: the keyline threshold and the palette; examples with and without the keyline
   shown to the product owner; the accepted values become constants with a test.
 
-### 19.7 — `docs/AI_MODEL.md`
+### 19.7 — `docs/AI_MODEL.md` *(done)*
 - The checked licences and notices of every pinned component (SAM 2 `LICENSE` and `NOTICE` at `2b90b9f`,
   `LICENSE_cctorch`, the checkpoint statement, samexporter 0.5.0 with its third-party licences, ONNX Runtime, onnx — source,
   date, conclusion); the full reproducible export recipe giving the pinned SHA-256s; installing the model; the error
