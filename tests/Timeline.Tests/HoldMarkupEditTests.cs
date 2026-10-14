@@ -80,6 +80,19 @@ public class HoldMarkupEditTests
         Assert.True(f.Service.SetHoldStyle(clip.Id, HoldStyle.Of(clip.HoldMarkup) with { StrokeWidth1080 = 6 }).Success);
         Assert.Equal(colour, clip.HoldMarkup!.ColorHex);
         Assert.True(f.Service.SetHoldStyle(clip.Id, HoldStyle.Of(clip.HoldMarkup)).NoChange);
+
+        // Even a stored Auto colour the maximin would not choose today (a project from a build with another palette or
+        // T) stays through width and keyline edits; the keyline is re-evaluated for it. Switching Manual → Auto
+        // recomputes.
+        var stored = RouteColor.Palette.First(p => p.Hex != colour).Hex;
+        clip.HoldMarkup = clip.HoldMarkup! with { ColorHex = stored };
+        Assert.True(f.Service.SetHoldStyle(clip.Id, HoldStyle.Of(clip.HoldMarkup) with { StrokeWidth1080 = 8 }).Success);
+        Assert.Equal(stored, clip.HoldMarkup!.ColorHex);
+        Assert.True(f.Service.SetHoldStyle(clip.Id, HoldStyle.Of(clip.HoldMarkup) with { Keyline = KeylineMode.Off }).Success);
+        Assert.Equal((stored, false), (clip.HoldMarkup!.ColorHex, clip.HoldMarkup.KeylineActive));
+        Assert.True(f.Service.SetHoldStyle(clip.Id, HoldStyle.Of(clip.HoldMarkup) with { ColorMode = HoldColorMode.Manual, ManualColorHex = stored }).Success);
+        Assert.True(f.Service.SetHoldStyle(clip.Id, HoldStyle.Of(clip.HoldMarkup!) with { ColorMode = HoldColorMode.Auto, ManualColorHex = null }).Success);
+        Assert.Equal(colour, clip.HoldMarkup!.ColorHex);
     }
 
     [Fact]

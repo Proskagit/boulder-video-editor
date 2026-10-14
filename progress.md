@@ -104,6 +104,17 @@ and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps";
   UI test). The mode's hint moved below the picture (it covered holds). The run was stopped early because the product
   owner was using the desktop (synthesized input could reach other windows; the last Esc and click may have gone to a
   browser window — no visible effect). D034 status and implementation notes recorded (decision text unchanged).
+- Step 19.8 phase review (independent, read-only): FAIL with four small corrections, no architectural issue — all fixed:
+  the missing-model message names the expected version `sam2.1-large-v1`; only known DirectML failures of a run (DXGI
+  device removed / hung / reset, out of memory, D3D12 / DirectML) move to the CPU, an unknown one aborts on the device
+  (test of the mapping); view-model tests for Play, the Source mode, an export (style edit refused, mode left), another
+  project and Esc while preparing; the manual plan's statuses corrected; a stale ROADMAP line. Also from its notes: an
+  Enter pressed while the model is still predicting is applied when the candidate appears (the likely cause of the
+  real-app #9 result); a late `Start` continuation never acts on a newer session; a faulted confirm is reported, never
+  thrown into the pointer handler; a style edit keeps the stored Auto colour (D034 §5: recomputed only when the holds
+  change or on switching to Auto), the test now able to see a recompute. Open questions for the product owner: which
+  statistic the §7 performance bounds use (medians meet them; the first GPU frame after loading took 3.8 s, the slowest
+  click 155 ms); whether a Shift+click leaving every mask over 2 % should keep the earlier candidate (now discarded).
 
 ### Phase 18 — HDR → SDR of phone footage (complete; PR #19 merged as `c29a767`, CI green)
 

@@ -44,10 +44,15 @@ public sealed partial class TimelineEditService
         var before = clip.HoldMarkup;
         var current = before ?? new HoldMarkup();
         var colorHex = style.ColorMode == HoldColorMode.Manual ? (style.ManualColorHex ?? current.ColorHex).ToUpperInvariant() : current.ColorHex;
-        var after = RouteColor.WithResolved(current with
+        var restyled = current with
         {
             StrokeWidth1080 = style.StrokeWidth1080, ColorMode = style.ColorMode, ColorHex = colorHex, Keyline = style.Keyline
-        });
+        };
+        // Auto stays Auto: the stored colour stays (D034 §5 — recomputed only when the set of holds changes); only the
+        // keyline is re-evaluated for it. Switching to Auto resolves the colour of the current set at once.
+        var after = style.ColorMode == HoldColorMode.Auto && current.ColorMode == HoldColorMode.Auto && current.Holds.Length > 0
+            ? RouteColor.WithKeyline(restyled)
+            : RouteColor.WithResolved(restyled);
 
         var fields = HoldMarkupFields.None;
         if (!after.StrokeWidth1080.Equals(current.StrokeWidth1080)) fields |= HoldMarkupFields.StrokeWidth;

@@ -65,7 +65,7 @@ public sealed class HoldModelVerifier
             var path = PathOf(file);
             if (!File.Exists(path))
                 return new HoldModelStatus(HoldModelState.Missing,
-                    $"The hold model is not installed: {file.Name} is missing in {Folder}. See docs/AI_MODEL.md.");
+                    $"The hold model {HoldModel.Id} is not installed: {file.Name} is missing in {Folder}. See docs/AI_MODEL.md.");
         }
 
         long total = files.Sum(f => f.Length), done = 0;

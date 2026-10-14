@@ -57,6 +57,11 @@ public static class RouteColor
         return (color, keyline);
     }
 
+    /// <summary><paramref name="markup"/> with <see cref="HoldMarkup.KeylineActive"/> resolved for its stored
+    /// <see cref="HoldMarkup.ColorHex"/> (the colour itself kept).</summary>
+    public static HoldMarkup WithKeyline(HoldMarkup markup) =>
+        markup with { KeylineActive = Resolve(markup with { ColorMode = HoldColorMode.Manual }).KeylineActive };
+
     /// <summary><paramref name="markup"/> with <see cref="HoldMarkup.ColorHex"/> and <see cref="HoldMarkup.KeylineActive"/>
     /// resolved.</summary>
     public static HoldMarkup WithResolved(HoldMarkup markup)

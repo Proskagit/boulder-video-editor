@@ -54,6 +54,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     private byte[]? _componentMask;
     private int _generation;
     private Task _confirming = Task.CompletedTask;
+    private bool _predicting;
+    private bool _confirmPending;
 
     public HoldMarkupViewModel(ITimelineEditService edit, IProjectService projects, StatusService status,
         IHoldSegmentationService? segmentation = null, IHoldMarkupFrameSource? frames = null, EditingLock? editingLock = null)
@@ -238,7 +240,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         RefreshCommands();
         try
         {
-            var status = await _segmentation!.EnsureReadyAsync(new Progress<double>(p => { PrepareProgress = p * 0.5; }), cts.Token);
+            var status = await _segmentation!.EnsureReadyAsync(new Progress<double>(p => { if (_modeCts == cts) PrepareProgress = p * 0.5; }), cts.Token);
+            if (_modeCts != cts) return;   // left (and maybe restarted) meanwhile
             if (!status.IsReady)
             {
                 _status.Report(status.Message ?? "The hold model is not available.");
@@ -250,10 +253,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             ModeText = "Decoding the frame…";
             PrepareProgress = 0.55;
             var frame = await _frames!.GetAsync(clip, asset, _modePlayhead, _projects.Current.Settings.FrameRate, cts.Token);
+            if (_modeCts != cts) return;
             ModeText = "Preparing the frame for the model…";
             PrepareProgress = 0.7;
             var encoded = await _segmentation.PrepareFrameAsync(frame.Frame, cts.Token);
-            if (cts.IsCancellationRequested || !IsActive)
+            if (cts.IsCancellationRequested || !IsActive || _modeCts != cts)
             {
                 encoded.Dispose();
                 return;
@@ -271,10 +275,14 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         {
             // cancelled by the user or by leaving the mode: nothing changed
         }
-        catch (Exception ex)
+        catch (Exception ex) when (_modeCts == cts)
         {
             _status.Report($"Hold markup is not possible: {ex.Message}");
             Exit();
+        }
+        catch (Exception)
+        {
+            // a session left meanwhile: nothing to report
         }
         finally
         {
@@ -319,6 +327,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (!IsActive || IsPreparing || _encoded is null || MarkupFrame is null) return;
         if (point.X is < 0 or > 1 || point.Y is < 0 or > 1) return;
 
+        _confirmPending = false;
         if (!(additive && HasCandidate))
         {
             if (!HasCandidate && HitHold(point) is { } hit)
@@ -339,6 +348,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         var encoded = _encoded!;
         var points = _points.ToList();
         var token = _modeCts?.Token ?? CancellationToken.None;
+        _predicting = true;
+        RefreshCommands();
         try
         {
             var set = await encoded.PredictAsync(points, token);
@@ -362,6 +373,20 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         catch (Exception ex)
         {
             if (generation == _generation) _status.Report($"Hold markup failed: {ex.Message}");
+        }
+        finally
+        {
+            if (generation == _generation)
+            {
+                _predicting = false;
+                RefreshCommands();
+                // Enter pressed before the candidate appeared: confirm it now (no candidate → forgotten).
+                if (_confirmPending)
+                {
+                    _confirmPending = false;
+                    if (HasCandidate) _ = Confirm();
+                }
+            }
         }
     }
 
@@ -389,19 +414,36 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         _ = ShowAlternativeAsync(++_generation);
     }
 
-    private bool CanConfirm() => IsActive && HasCandidate && !IsPreparing;
+    private bool CanConfirm() => IsActive && !IsPreparing && (HasCandidate || _predicting);
 
     /// <summary>Enter: the candidate becomes a hold of the clip — one undo step with its contour and colour samples.</summary>
     [RelayCommand(CanExecute = nameof(CanConfirm))]
     private Task Confirm()
     {
         if (!_confirming.IsCompleted) return _confirming;
+        if (_predicting)
+        {
+            _confirmPending = true;   // applied when the prediction finishes
+            return Task.CompletedTask;
+        }
         return _confirming = ConfirmCore();
     }
 
     private async Task ConfirmCore()
     {
-        if (!CanConfirm() || _clip is null || MarkupFrame is not { } frame || _componentMask is not { } component) return;
+        try
+        {
+            await AddCandidate();
+        }
+        catch (Exception ex)
+        {
+            _status.Report($"The hold could not be added: {ex.Message}");
+        }
+    }
+
+    private async Task AddCandidate()
+    {
+        if (!CanConfirm() || !HasCandidate || _clip is null || MarkupFrame is not { } frame || _componentMask is not { } component) return;
         var clip = _clip;
         var contour = CandidateContour;
         var others = (clip.HoldMarkup?.Holds ?? ImmutableArray<Hold>.Empty).Select(h => (IReadOnlyList<NormalizedPoint>)h.Points).ToList();
@@ -449,6 +491,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     public void Exit()
     {
         _generation++;
+        _predicting = false;
+        _confirmPending = false;
         _modeCts?.Cancel();
         _modeCts = null;
         _encoded?.Dispose();
@@ -472,6 +516,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     private void ClearCandidate()
     {
         _generation++;
+        _predicting = false;
+        _confirmPending = false;
         _points.Clear();
         _maskSet = null;
         _visible = ImmutableArray<int>.Empty;

@@ -315,7 +315,7 @@ In / Out update order" and "deep-seek decode coverage", listed here before, were
 D032 "Context"; removed at Step 18.2.) Left out by the product owner: colour management beyond the HDR → SDR
 conversion of D033 (HDR output, grading, ICC), an installer, timeline virtualization, an undoable import. AI features,
 listed here before as left out, are the product's main direction since 2026-10-14: the AI hold markup MVP is decided —
-DECISIONS.md D034 (accepted 2026-10-14, after experiments outside the repository); its implementation has not started.
+DECISIONS.md D034 (accepted 2026-10-14, after experiments outside the repository); implemented in Phase 19, awaiting acceptance.
 
 Future idea, not a phase (recorded 2026-10-14): a route animation after the AI hold markup — the marked holds appear
 over the video one by one at a configurable interval, stay visible, and disappear together after a set time. Not part

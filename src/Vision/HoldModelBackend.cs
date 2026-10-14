@@ -114,8 +114,27 @@ public sealed class OnnxHoldModelBackend : IHoldModelBackend
         }
         catch (OnnxRuntimeException ex)
         {
-            throw new HoldBackendException($"The hold model failed on the {Describe(Device)}: {ex.Message}", Device == InferenceDevice.Gpu, ex);
+            throw new HoldBackendException($"The hold model failed on the {Describe(Device)}: {ex.Message}",
+                Device == InferenceDevice.Gpu && IsKnownDeviceError(ex.Message), ex);
         }
+    }
+
+    /// <summary>
+    /// D034 §3: the DirectML failures a run recovers from on the CPU — the device removed, hung or reset (DXGI), out of
+    /// (video) memory, a Direct3D 12 / DirectML failure. Anything else (e.g. a shape error) is an unknown error: the
+    /// operation aborts and the device stays. At session creation every GPU failure counts as one of these — the files
+    /// were verified by SHA-256 before, so a GPU-only load failure is the provider's or the adapter's.
+    /// </summary>
+    internal static bool IsKnownDeviceError(string? message)
+    {
+        if (string.IsNullOrEmpty(message)) return false;
+        string[] known =
+        {
+            "DXGI_ERROR", "887A0005", "887A0006", "887A0007", "887A0020",          // device removed / hung / reset / driver
+            "E_OUTOFMEMORY", "8007000E", "out of memory", "OutOfMemory",           // (video) memory
+            "D3D12", "DirectML", "DmlExecutionProvider", "dml_"
+        };
+        return known.Any(k => message.Contains(k, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string Describe(InferenceDevice device) => device == InferenceDevice.Gpu ? "GPU (DirectML)" : "CPU";

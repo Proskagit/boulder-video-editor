@@ -41,6 +41,7 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     private readonly StatusService _status = new();
     private readonly FakeSegmentation _model = new();
     private readonly FakeFrames _frames = new();
+    private readonly EditingLock _lock = new();
     private readonly MainWindowViewModel _vm;
 
     public HoldMarkupUiTests()
@@ -60,7 +61,7 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
             new InspectorViewModel(_edit, _status),
             new TimelineViewModel(_projects, _edit, _status, NullLogger<TimelineViewModel>.Instance),
             _status, files, _projects, NullLogger<MainWindowViewModel>.Instance,
-            holdMarkup: new HoldMarkupViewModel(_edit, _projects, _status, _model, _frames));
+            holdMarkup: new HoldMarkupViewModel(_edit, _projects, _status, _model, _frames, _lock));
         _undo.StateChanged += (_, _) => _history++;
     }
 
@@ -283,6 +284,83 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Play_the_source_mode_an_export_and_another_project_leave_the_mode()
+    {
+        var clip = await StartOnClip();
+        await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), false);
+        _vm.Preview.IsPlaying = true;                                  // Play
+        Assert.False(Markup.IsActive);
+        Assert.False(Markup.HasCandidate);
+        Assert.False(Markup.StartCommand.CanExecute(null));
+        _vm.Preview.IsPlaying = false;
+
+        await Markup.StartCommand.ExecuteAsync(null);
+        _vm.Preview.IsSourceMode = true;                               // the Source mode
+        Assert.False(Markup.IsActive);
+        _vm.Preview.IsSourceMode = false;
+
+        await Markup.StartCommand.ExecuteAsync(null);
+        using (_lock.Acquire())                                        // an export
+        {
+            Assert.False(Markup.IsActive);
+            Assert.False(Markup.StartCommand.CanExecute(null));
+            Markup.StrokeWidth = 9;                                    // refused, the section shows the model again
+            Assert.Null(clip.HoldMarkup);
+            Assert.Equal(4m, Markup.StrokeWidth);
+        }
+
+        await Markup.StartCommand.ExecuteAsync(null);
+        _projects.CreateNew("Other");                                  // another project
+        Assert.False(Markup.IsActive);
+        Assert.False(Markup.HasClip);
+    }
+
+    [Fact]
+    public async Task Esc_while_the_frame_is_prepared_cancels_without_a_candidate_or_an_edit()
+    {
+        var clip = AddVideo();
+        _vm.Timeline.SetPlayhead(clip.TimelineStart);
+        var dirty = _projects.Current.IsDirty;
+        var history = _history;
+        _model.Gate = new TaskCompletionSource();
+        var start = Markup.StartCommand.ExecuteAsync(null);
+        Assert.True(Markup.IsPreparing);
+        Assert.Same(Markup.EscapeCommand, ShortcutRouter.CommandFor(_vm, Key.Escape, KeyModifiers.None));
+        Markup.EscapeCommand.Execute(null);
+        Assert.False(Markup.IsActive);
+        _model.Gate.SetResult();
+        await start;
+        Assert.False(Markup.IsActive);                                 // the late continuation changes nothing
+        Assert.False(Markup.HasCandidate);
+        Assert.Equal((dirty, history), (_projects.Current.IsDirty, _history));
+        Assert.Null(_frames.LastPlayhead);
+    }
+
+    [Fact]
+    public async Task Enter_pressed_before_the_candidate_appears_confirms_it_when_it_does()
+    {
+        // Found in the real-app run (Step 19.8): a quick Enter while the model was still predicting was swallowed.
+        var clip = await StartOnClip();
+        _model.PredictDelay = TimeSpan.FromMilliseconds(200);
+        var click = Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), false);
+        Assert.True(Markup.ConfirmCommand.CanExecute(null));           // routed and accepted while predicting
+        await Markup.ConfirmCommand.ExecuteAsync(null);
+        Assert.Null(clip.HoldMarkup);                                  // not yet: no candidate
+        await click;
+        await WaitFor(() => clip.HoldMarkup is { Holds.Length: 1 });
+        Assert.False(Markup.HasCandidate);
+
+        // A new click before the prediction ends forgets the early Enter.
+        var first = Markup.OnClickAsync(new NormalizedPoint(0.2, 0.5), false);
+        await Markup.ConfirmCommand.ExecuteAsync(null);
+        var second = Markup.OnClickAsync(new NormalizedPoint(0.8, 0.5), false);
+        await Task.WhenAll(first, second);
+        await Task.Delay(100);
+        Assert.Single(clip.HoldMarkup!.Holds);
+        Assert.True(Markup.HasCandidate);
+    }
+
+    [Fact]
     public async Task A_missing_model_says_so_and_never_enters_the_mode()
     {
         var clip = AddVideo();
@@ -374,12 +452,15 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
         public bool OnlyWalls { get; set; }
         public IReadOnlyList<PointD>? LastPoints { get; private set; }
         public int FramesDisposed { get; private set; }
+        public TaskCompletionSource? Gate { get; set; }
+        public TimeSpan PredictDelay { get; set; }
         public event EventHandler? DeviceChanged { add { } remove { } }
 
-        public Task<HoldModelStatus> EnsureReadyAsync(IProgress<double>? progress = null, CancellationToken cancellationToken = default)
+        public async Task<HoldModelStatus> EnsureReadyAsync(IProgress<double>? progress = null, CancellationToken cancellationToken = default)
         {
+            if (Gate is { } gate) await gate.Task;
             progress?.Report(1);
-            return Task.FromResult(Status);
+            return Status;
         }
 
         public Task<IHoldFrame> PrepareFrameAsync(DecodedFrame frame, CancellationToken cancellationToken = default) =>
@@ -399,14 +480,15 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
             public int Width => width;
             public int Height => height;
 
-            public Task<HoldMaskSet> PredictAsync(IReadOnlyList<PointD> points, CancellationToken cancellationToken = default)
+            public async Task<HoldMaskSet> PredictAsync(IReadOnlyList<PointD> points, CancellationToken cancellationToken = default)
             {
+                if (owner.PredictDelay > TimeSpan.Zero) await Task.Delay(owner.PredictDelay, cancellationToken);
                 owner.LastPoints = points.ToList();
                 var all = new HoldMask(W, H, Enumerable.Repeat((byte)1, W * H).ToArray(), 0.95);
                 var masks = owner.OnlyWalls
                     ? ImmutableArray.Create(all, all, all)
                     : ImmutableArray.Create(Square(points[0], 9, 0.9), all, Square(points[0], 3, 0.5 + 0.1 * (points.Count - 1)));
-                return Task.FromResult(new HoldMaskSet(masks));
+                return new HoldMaskSet(masks);
             }
 
             public void Dispose() => owner.FramesDisposed++;

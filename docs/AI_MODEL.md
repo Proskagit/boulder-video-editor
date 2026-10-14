@@ -21,7 +21,7 @@ it; without it only the hold markup is unavailable — everything else works.
    any other size or checksum is never loaded.
 
 Messages (the status bar; the rest of the editor stays usable):
-- *The hold model is not installed: `<file>` is missing in `<folder>`. See docs/AI_MODEL.md.*
+- *The hold model sam2.1-large-v1 is not installed: `<file>` is missing in `<folder>`. See docs/AI_MODEL.md.*
 - *The hold model file `<file>` in `<folder>` is damaged or another version (expected sam2.1-large-v1, SHA-256 …). It was
   not loaded. See docs/AI_MODEL.md.*
 - *AI runs on the CPU — processing may be slower.* — DirectML was not available or failed (D034 §3); the CPU is used for

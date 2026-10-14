@@ -56,6 +56,7 @@ public sealed class HoldSegmentationServiceTests : IDisposable
         Assert.Equal(HoldModelState.Missing, status.State);
         Assert.Contains("dec.onnx", status.Message);
         Assert.Contains(_folder, status.Message);
+        Assert.Contains(HoldModel.Id, status.Message);                  // the expected version (D034 §2)
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.PrepareFrameAsync(Frame()));
     }
 
@@ -155,6 +156,20 @@ public sealed class HoldSegmentationServiceTests : IDisposable
         Assert.Equal(new[] { 0.9, 0.5, 0.7 }, set.Masks.Select(m => Math.Round(m.Score, 6)));
         Assert.True(set.Masks[0].Area > 0);                       // the fake's plane 0 is positive in its centre
         Assert.Equal(0, HoldCandidateRules.Choose(set));
+    }
+
+    [Theory]
+    [InlineData("Non-zero status code returned while running Conv node. ErrorCode: 887A0005 DXGI_ERROR_DEVICE_REMOVED", true)]
+    [InlineData("D3D12 device hung (887A0006)", true)]
+    [InlineData("Failed to allocate memory: E_OUTOFMEMORY", true)]
+    [InlineData("DmlExecutionProvider: the operator failed", true)]
+    [InlineData("[ONNXRuntimeError] : 2 : INVALID_ARGUMENT : Got invalid dimensions for input: point_coords", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void Only_known_DirectML_failures_of_a_run_count_as_device_errors(string? message, bool known)
+    {
+        // D034 §3: the known failures retry on the CPU; an unknown one (a shape error) aborts on the device.
+        Assert.Equal(known, OnnxHoldModelBackend.IsKnownDeviceError(message));
     }
 
     private sealed class SyncProgress(Action<double> report) : IProgress<double>
