@@ -46,6 +46,9 @@ public sealed partial class PreviewViewModel : ViewModelBase
 
     [ObservableProperty] private bool _isBuffering;
 
+    /// <summary>The AI hold markup (D034) drawn and clicked over the composition; set by the shell.</summary>
+    [ObservableProperty] private HoldMarkupViewModel? _holdMarkup;
+
     /// <summary>Loop (D024 Step 9.6, PO-H3): while on, playback that reaches the end of the sequence continues from the
     /// start (the whole sequence — there is no in / out range); off, the D011 end rule is unchanged (paused at the end).
     /// Session state only: not saved in the project, not an edit, not undoable, kept across New / Open.</summary>

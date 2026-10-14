@@ -15,6 +15,14 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
   </ItemGroup>
 
+  <!-- The DirectML redistributable the DirectML execution provider is built against (Microsoft.AI.DirectML 1.15.4, a
+       dependency of the package above). Its own targets copy it only for an explicit x64 / ARM64 PlatformTarget; this
+       AnyCPU build copies the x64 library next to the application, so the operating system's older DirectML.dll is not
+       picked up instead. On other architectures the system library is used (or the CPU fallback). -->
+  <ItemGroup Condition="'$(Microsoft_AI_DirectML_Bin_Dir_Windows_x64)' != '' AND '$(PlatformTarget)' != 'x64' AND '$(OS)' == 'Windows_NT'">
+    <None Include="$(Microsoft_AI_DirectML_Bin_Dir_Windows_x64)\DirectML.dll" Link="DirectML.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Core\Core.csproj" />
   </ItemGroup>

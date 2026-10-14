@@ -3,12 +3,13 @@
 ## Current phase
 
 Phase 19 — AI hold markup, branch `feat/ai-hold-markup` (from `c29a767`, `main` after the merge of PR #19; DECISIONS.md
-D034, specification revision 5, accepted 2026-10-14). Preparation done; **implementation not started** — it needs the
-product owner's separate permission. Commits, push, pull request and merge only on the product owner's command. Steps
+D034, specification revision 5, accepted 2026-10-14). **Implementation in progress** (the product owner's permission of
+2026-10-14: code, tests, documentation and commits on this branch; no push, pull request or merge without a separate
+permission). Steps 19.0–19.5 committed; next 19.6 (threshold T), 19.7 (`docs/AI_MODEL.md`), 19.8 (closeout). Steps
 and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps"; manual plan
 `docs/PHASE19_MANUAL_TEST_PLAN.md`.
 
-### Phase 19 — AI hold markup (planned; implementation not started)
+### Phase 19 — AI hold markup (in progress)
 
 - 2026-10-14 — read-only pre-flights after the Phase 18 merge (timeline / media / Preview / localization UX; the roadmap
   revision with AI as the main product direction — no AI code existed; the AI MVP pre-analysis). No repository change.
@@ -44,6 +45,32 @@ and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps";
   ONNX model **154/164** (О 5, К 5); user-visible behaviour under D034 **156/164** (О 3: c6 №16, c8 №8, c8 №24; К 5:
   c0 №19 — occlusion, c1 №3, №8, №18, c8 №16) — **criterion 10 (≥ 155/164) met on the E1 set**. D034 unchanged. The
   implementation not started — it needs the product owner's separate permission.
+- 2026-10-14 — the product owner's permission to implement Phase 19 by D034 rev. 5 (scope and criteria unchanged).
+- Steps 19.1–19.2 (`4a83032`): Core `HoldMarkup` / `Hold` / OKLab / `RouteColor` (palette of 12 + white + black, maximin,
+  keyline T = 0.20 until 19.6); `project.json` v5 (v4 read, a newer version refused, damaged markup refused; the samples
+  of every hold round-trip exactly); `AddHold` / `RemoveHold` / `SetHoldStyle` as undoable commands (style changes
+  merge, holds never); Split / Duplicate / Paste copy the markup.
+- Step 19.3 (`90de6f4`): the outline in the playback snapshot and one `OutlineDraw` in `CompositionDrawPlan`, painted by
+  `CompositionPainter` for the Preview and the export (layer-local, clipped to the crop, the layer's opacity, the stroke on
+  the canvas's short side, keyline 50 / 25 / 25; 1 px minimum in the Preview only).
+- Step 19.4 (`8f2c0dc`): `src/Vision` — `OnnxHoldSegmentationService` (ONNX Runtime DirectML 1.24.4, SHA-256 check of
+  the pinned files, CPU fallback with one retry, cancellation), SAM 2 pre- / postprocessing in C#; Core
+  `HoldCandidateRules` (masks > 2 % hidden), `MaskContour`, `HoldColorSampler`; `tests/Vision.Tests` (in the solution, no
+  weights) and `tests/Vision.ModelTests` (local, outside the solution). Local run `results/20261014-215129`: the three
+  alternatives equal to the Python reference (median IoU 1.0000, order 188/188), criterion 10 156/164, DirectML = CPU,
+  GPU frame 368 ms / CPU 8.4 s, click 45 ms (median).
+- Step 19.5: the markup mode — `HoldMarkupViewModel` (the Inspector's "Holds" section: width, colour Auto / Manual with
+  the palette and #RRGGBB, keyline Auto / On / Off; "Mark holds": guards, model check and frame preparation with progress
+  and cancellation, click → candidate with its visible alternatives (Tab / Shift+Tab / wheel), Shift+click refines to one
+  mask, Enter confirms (contour + colour samples, one undo step), Esc, a click on a hold selects it and Delete removes it;
+  seek / Play / Source / another clip / an export / another project leave the mode), `HoldMarkupFrameSource` (the
+  Preview's frame under the playhead at full display size through the app's decoder, software, the D033 HDR rule),
+  `HoldMarkupOverlay` over the Preview (click mapping through the viewport and the layer geometry, candidate, selected
+  hold, loupe), `ShortcutRouter` keys of the mode first; App: `AppPaths.ModelsFolder`, the service registrations; the
+  x64 `DirectML.dll` redistributable (Microsoft.AI.DirectML 1.15.4) copied next to the app instead of the system's
+  older one. Tests: `tests/UI.Tests/HoldMarkupUiTests.cs` (13); the local `MarkupPipelineTests` — the markup frame of
+  c6 at 0.5 s is bit-identical to the E1 reference frame and a reference click gives a valid hold. Full solution suite:
+  3295 passed, 2 skipped (the known 4K scenes). The scenario in the real app — the manual plan (product owner).
 
 ### Phase 18 — HDR → SDR of phone footage (complete; PR #19 merged as `c29a767`, CI green)
 

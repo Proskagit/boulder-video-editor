@@ -36,6 +36,7 @@
     <ProjectReference Include="..\Media\Media.csproj" />
     <ProjectReference Include="..\Export\Export.csproj" />
     <ProjectReference Include="..\Project\Project.csproj" />
+    <ProjectReference Include="..\Vision\Vision.csproj" />
   </ItemGroup>
 
 </Project>

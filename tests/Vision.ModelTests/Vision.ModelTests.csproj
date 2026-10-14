@@ -22,6 +22,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Vision\Vision.csproj" />
     <ProjectReference Include="..\..\src\Core\Core.csproj" />
+    <!-- The markup frame through the app's own decoder (HoldMarkupFrameSource): Video, Infrastructure, UI. -->
+    <ProjectReference Include="..\..\src\Video\Video.csproj" />
+    <ProjectReference Include="..\..\src\Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\UI\UI.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1384,11 +1384,11 @@ upsampled bilinearly, threshold 0) — `reference/onnx_reference.json`.
 Out of scope: D034 §1 "Not in the MVP" — among them tracking, camera motion compensation, automatic route detection and
 the route animation (future ideas above).
 
-### 19.0 — Documentation *(done 2026-10-14 in the working tree, not committed)*
+### 19.0 — Documentation *(done, `a8f656a`)*
 - The Phase 18 merge (README, ROADMAP, this plan, `progress.md`); Phase 19 and these steps; the skeleton of
   `docs/PHASE19_MANUAL_TEST_PLAN.md`.
 
-### 19.1 — Hold markup model and project format v5
+### 19.1 — Hold markup model and project format v5 *(done, `4a83032`)*
 - Impl: Core — `HoldMarkup`, `Hold`, the OKLab colour type, validation; Project — `formatVersion` 5, v4 read and written
   as v5 on save, damaged markup refused; Timeline — the markup copied by Split, Duplicate and Paste (`CloneClip`,
   `CopyWithLink`). No UI.
@@ -1396,7 +1396,7 @@ the route animation (future ideas above).
   second save identical to the first, holds from different frames, non-round values; a hold without samples or with
   non-finite values refused); v4 opens; a file newer than v5 refused; Split / Duplicate / Paste copies independent.
 
-### 19.2 — Edits, route colour and keyline
+### 19.2 — Edits, route colour and keyline *(done, `4a83032`)*
 - Impl: `ITimelineEditService` commands through `EditPlan` — add a hold, remove a hold, set the style; style changes merge
   (D017); refused on a locked track and during an export. A pure colour service in Core (palette, maximin over hold and
   wall, keyline Auto / On / Off), recomputed only when the set of holds changes, from the stored samples.
@@ -1404,7 +1404,7 @@ the route animation (future ideas above).
   service has no decoder dependency (no frame decoded); no recomputation with an unchanged set; Manual; the keyline for
   the automatic and the manual colour.
 
-### 19.3 — One rendering path for the Preview and the export
+### 19.3 — One rendering path for the Preview and the export *(done, `90de6f4`)*
 - Impl: the markup in the playback snapshot (`DiffersOnlyInPresentation`); a new `DrawOperation` of the clip's layer in
   `CompositionDrawPlan` (normalized source → crop → layer matrix → canvas; clipped to the crop; the layer's opacity; the
   stroke per the canvas's short side; the keyline 50 / 25 / 25), painted by `CompositionPainter`; the one-screen-pixel
@@ -1413,7 +1413,7 @@ the route animation (future ideas above).
   frame of a synthetic scene), independent of the clip's scale, proportional in the Preview at several control sizes;
   Preview ↔ export parity; fades, dissolves, hidden track, offline media.
 
-### 19.4 — `src/Vision`: local inference
+### 19.4 — `src/Vision`: local inference *(done, `8f2c0dc`)*
 - Impl: `IHoldSegmentationService` in Core; `src/Vision` on `Microsoft.ML.OnnxRuntime.DirectML` — the model folder and the
   SHA-256 check (`sam2.1-large-v1`), a lazily created, reused session; the CPU fallback for known DirectML start / run
   errors with the status-bar message; cancellation; SAM 2's pre- / postprocessing; the colour samples of a confirmed
@@ -1423,7 +1423,7 @@ the route animation (future ideas above).
   IoU ≥ 0.98 of the reference, refinement gives one mask, DirectML vs CPU, performance: frame ≤ 1 s GPU / ≤ 10 s CPU,
   click ≤ 150 ms).
 
-### 19.5 — Markup mode (UI)
+### 19.5 — Markup mode (UI) *(done; M pending)*
 - Impl: the full-resolution frame under the playhead through `IVideoDecoder` (the HDR rule of D033), prepared in the
   background with progress and cancellation; pointer input over the Preview; candidate, alternatives, Shift+click, Enter /
   Esc / Delete routed to the mode (never to the timeline), zoom / loupe, leaving the mode; the Inspector section (stroke,

@@ -44,6 +44,10 @@ public static class AppPaths
     /// recovery can be offered at startup without knowing which project was open.</summary>
     public static string RecoveryFolder => Path.Combine(AppDataRoot, "recovery");
 
+    /// <summary>The local AI models (D034 §2): one subfolder per model, placed there by the user (docs/AI_MODEL.md). The
+    /// application never downloads, writes or replaces anything here.</summary>
+    public static string ModelsFolder => Path.Combine(AppDataRoot, "models");
+
     private static string EnsureExists(string path)
     {
         Directory.CreateDirectory(path);

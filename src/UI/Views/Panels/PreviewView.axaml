@@ -36,6 +36,27 @@
          in the available space; every layer is drawn by CompositionView (D018/D019). -->
     <Grid Grid.Row="1" Margin="16">
       <rendering:CompositionView Layers="{Binding Layers}" Canvas="{Binding Canvas}"/>
+      <!-- AI hold markup (Phase 19, D034): clicks, the candidate, the selected hold and the loupe. -->
+      <rendering:HoldMarkupOverlay Markup="{Binding HoldMarkup}"/>
+      <Border IsVisible="{Binding HoldMarkup.IsActive, FallbackValue=False}" Background="#CC1E1E1E" CornerRadius="3"
+              Padding="8,4" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Top" MaxWidth="520">
+        <StackPanel Spacing="4">
+          <TextBlock Text="{Binding HoldMarkup.ModeText}" Foreground="#DDDDDD" FontSize="11" TextWrapping="Wrap"/>
+          <ProgressBar IsVisible="{Binding HoldMarkup.IsPreparing}" Minimum="0" Maximum="1"
+                       Value="{Binding HoldMarkup.PrepareProgress}" Height="4"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="{Binding HoldMarkup.AlternativeText}" Foreground="#00E5FF" FontSize="11" VerticalAlignment="Center"
+                       IsVisible="{Binding HoldMarkup.AlternativeText, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+            <ToggleButton Content="Loupe" FontSize="10" Padding="5,1" IsChecked="{Binding HoldMarkup.IsLoupeOn, Mode=TwoWay}"
+                          IsVisible="{Binding !HoldMarkup.IsPreparing}"/>
+            <Button Content="Confirm" FontSize="10" Padding="5,1" Command="{Binding HoldMarkup.ConfirmCommand}" ToolTip.Tip="Confirm the hold (Enter)"/>
+            <Button Content="Cancel" FontSize="10" Padding="5,1" Command="{Binding HoldMarkup.EscapeCommand}"
+                    IsVisible="{Binding HoldMarkup.IsPreparing}" ToolTip.Tip="Stop preparing the frame (Esc)"/>
+            <Button Content="Done" FontSize="10" Padding="5,1" Command="{Binding HoldMarkup.DoneCommand}"
+                    ToolTip.Tip="Leave the hold markup (the marked holds stay)"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
       <TextBlock Text="Buffering…" IsVisible="{Binding IsBuffering}"
                  Foreground="#7A7A7A" FontSize="12" Margin="8"
                  HorizontalAlignment="Right" VerticalAlignment="Top"/>

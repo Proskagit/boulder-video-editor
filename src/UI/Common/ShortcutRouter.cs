@@ -46,6 +46,12 @@ public static class ShortcutRouter
         var timeline = vm.Timeline;
         var preview = vm.Preview;
 
+        // Phase 19 (D034 §1): while the hold markup is on, Enter confirms the candidate, Esc discards it, Delete removes
+        // the selected hold (never a clip), Tab / Shift+Tab switch the candidate's outline. Every other key keeps its
+        // meaning (a seek or Play leaves the mode).
+        if (vm.HoldMarkup is { IsActive: true } markup && MarkupCommandFor(markup, key, none, shift) is { } markupCommand)
+            return markupCommand;
+
         // Phase 16 (D031 SQ4): while Source is shown the transport and In / Out keys act on the source; every other key
         // keeps its meaning. By the Preview's mode, never by focus.
         if (preview.IsSourceMode && SourceCommandFor(preview, key, none, shift) is { } sourceCommand)
@@ -103,6 +109,17 @@ public static class ShortcutRouter
             _ => null
         };
     }
+
+    /// <summary>The hold markup mode's keys (D034 §1).</summary>
+    private static ICommand? MarkupCommandFor(HoldMarkupViewModel markup, Key key, bool none, bool shift) => key switch
+    {
+        Key.Enter when none => markup.ConfirmCommand,
+        Key.Escape when none => markup.EscapeCommand,
+        Key.Delete or Key.Back when none => markup.DeleteSelectedCommand,
+        Key.Tab when none => markup.NextAlternativeCommand,
+        Key.Tab when shift => markup.PreviousAlternativeCommand,
+        _ => null
+    };
 
     /// <summary>The Source mode's keys (D031 SQ4): the timeline's transport and In / Out keys, on the source.</summary>
     private static ICommand? SourceCommandFor(PreviewViewModel preview, Key key, bool none, bool shift) => key switch
