@@ -146,7 +146,7 @@ public class MarkerEditTests
     }
 
     [Fact]
-    public async Task Markers_survive_save_and_reopen_in_format_4()
+    public async Task Markers_survive_save_and_reopen_in_format_5()
     {
         var root = Path.Combine(Path.GetTempPath(), "AiVideoEditorTests", Guid.NewGuid().ToString("N"));
         try
@@ -157,7 +157,7 @@ public class MarkerEditTests
             var expected = Markers(f).Select(m => (m.Id, m.Position, m.ColorHex)).ToList();
             var folder = Path.Combine(root, "Project");
             await f.Projects.SaveAsAsync(folder);
-            Assert.Contains("\"formatVersion\": 4", File.ReadAllText(Path.Combine(folder, "project.json")));
+            Assert.Contains("\"formatVersion\": 5", File.ReadAllText(Path.Combine(folder, "project.json")));
 
             var reopened = await f.Projects.OpenAsync(folder);
 

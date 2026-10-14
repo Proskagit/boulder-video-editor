@@ -364,7 +364,7 @@ public class TrackStateEditTests
     // --- persistence ----------------------------------------------------------------------------------------------------
 
     [Fact]
-    public async Task The_flags_survive_save_and_reopen_in_format_4_and_save_again_byte_for_byte()
+    public async Task The_flags_survive_save_and_reopen_in_format_5_and_save_again_byte_for_byte()
     {
         var root = Path.Combine(Path.GetTempPath(), "AiVideoEditorTests", Guid.NewGuid().ToString("N"));
         try
@@ -381,7 +381,7 @@ public class TrackStateEditTests
             await f.Projects.SaveAsAsync(folder);
             var file = Path.Combine(folder, "project.json");
             var json = File.ReadAllText(file);
-            Assert.Contains("\"formatVersion\": 4", json);
+            Assert.Contains("\"formatVersion\": 5", json);
             var expected = f.Project.Timeline.VideoTracks.Concat(f.Project.Timeline.AudioTracks)
                 .Select(t => (t.Id, t.IsMuted, t.IsHidden, t.IsLocked)).ToList();
             var bytes = File.ReadAllBytes(file);

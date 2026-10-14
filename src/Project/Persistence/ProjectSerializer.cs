@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AiVideoEditor.Core.Color;
@@ -24,12 +25,13 @@ namespace AiVideoEditor.Project.Persistence;
 public static class ProjectSerializer
 {
     public const string FormatId = "AiVideoEditor.Project";
-    /// <summary>4 since Phase 17 (D032): links of video and audio clips, a video clip's unlinked sound, audio clips of
-    /// video files and crossfades on audio tracks. 3 since Phase 10 (D025): clip fades and anchored transitions. 2 since
-    /// Phase 7 Step 9: the clip speed is an exact fraction (D022). Version 1 files (speed must be 1) and version 2 files
-    /// are read as projects without fades and transitions, version 3 files without links; all are saved as version 4.
+    /// <summary>5 since Phase 19 (D034): the hold markup of video clips. 4 since Phase 17 (D032): links of video and audio
+    /// clips, a video clip's unlinked sound, audio clips of video files and crossfades on audio tracks. 3 since Phase 10
+    /// (D025): clip fades and anchored transitions. 2 since Phase 7 Step 9: the clip speed is an exact fraction (D022).
+    /// Version 1 files (speed must be 1) and version 2 files are read as projects without fades and transitions, version 3
+    /// files without links, version 4 files without hold markup; all are saved as version 5.
     /// </summary>
-    public const int CurrentFormatVersion = 4;
+    public const int CurrentFormatVersion = 5;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -37,6 +39,9 @@ public static class ProjectSerializer
 
     /// <summary>The first version with links, unlinked sound and audio clips of video files (D032).</summary>
     private const int AudioEditingVersion = 4;
+
+    /// <summary>The first version with the hold markup of video clips (D034).</summary>
+    private const int HoldMarkupVersion = 5;
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -274,7 +279,7 @@ public static class ProjectSerializer
             {
                 PositionX = v.PositionX, PositionY = v.PositionY, Scale = v.Scale, RotationDegrees = v.RotationDegrees,
                 Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted, Crop = ToDto(v.Crop),
-                IsAudioDetached = v.IsAudioDetached
+                IsAudioDetached = v.IsAudioDetached, HoldMarkup = v.HoldMarkup is { } markup ? ToDto(markup) : null
             },
             AudioClip a => new AudioClipDto { Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClip i => new ImageClipDto
@@ -308,6 +313,20 @@ public static class ProjectSerializer
 
         return dto;
     }
+
+    private static HoldMarkupDto ToDto(HoldMarkup m) => new()
+    {
+        StrokeWidth1080 = m.StrokeWidth1080, ColorMode = m.ColorMode, ColorHex = m.ColorHex, Keyline = m.Keyline,
+        KeylineActive = m.KeylineActive, ModelId = m.ModelId,
+        Holds = m.Holds.Select(h => (HoldDto?)new HoldDto
+        {
+            Id = h.Id,
+            Points = h.Points.SelectMany(p => new[] { p.X, p.Y }).ToList(),
+            SurfaceLab = ToDto(h.SurfaceLab), WallLab = ToDto(h.WallLab), SourceTimeTicks = h.SourceTime.Ticks
+        }).ToList()
+    };
+
+    private static OkLabDto ToDto(OkLabColor c) => new() { L = c.L, A = c.A, B = c.B };
 
     private static CropDto ToDto(CropRect c) => new() { Left = c.Left, Top = c.Top, Right = c.Right, Bottom = c.Bottom };
 
@@ -603,7 +622,9 @@ public static class ProjectSerializer
                 RotationDegrees = v.RotationDegrees, Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted,
                 Crop = FromDto(v.Crop),
                 // v1–v3 have no unlinked sound (D032).
-                IsAudioDetached = formatVersion >= AudioEditingVersion && v.IsAudioDetached
+                IsAudioDetached = formatVersion >= AudioEditingVersion && v.IsAudioDetached,
+                // v1–v4 have no hold markup (D034).
+                HoldMarkup = formatVersion >= HoldMarkupVersion && v.HoldMarkup is { } markup ? FromDto(markup) : null
             },
             AudioClipDto a => new AudioClip { Id = a.Id, MediaAssetId = a.MediaAssetId, Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClipDto i => new ImageClip
@@ -726,6 +747,43 @@ public static class ProjectSerializer
     private static void RequireId(Guid id, string what)
     {
         if (id == Guid.Empty) throw Damaged($"{what} id is missing");
+    }
+
+    /// <summary>A hold markup (D034 §6): every member required, the samples finite, the rules of
+    /// <see cref="HoldMarkupRules"/>; anything else is a damaged file.</summary>
+    private static HoldMarkup FromDto(HoldMarkupDto dto)
+    {
+        var holds = new List<Hold>();
+        foreach (var h in dto.Holds ?? throw Damaged("a hold markup has no hold list"))
+        {
+            if (h is null) throw Damaged("empty hold entry");
+            var flat = h.Points ?? throw Damaged("a hold has no contour");
+            if (flat.Count % 2 != 0) throw Damaged("a hold's contour has an odd number of coordinates");
+            var points = ImmutableArray.CreateBuilder<NormalizedPoint>(flat.Count / 2);
+            for (var i = 0; i < flat.Count; i += 2) points.Add(new NormalizedPoint(flat[i], flat[i + 1]));
+            holds.Add(new Hold(h.Id, points.MoveToImmutable(),
+                ReadLab(h.SurfaceLab, "surface"), ReadLab(h.WallLab, "wall"),
+                new MediaTime(h.SourceTimeTicks ?? throw Damaged("a hold has no markup frame time"))));
+        }
+
+        var markup = new HoldMarkup
+        {
+            StrokeWidth1080 = dto.StrokeWidth1080 ?? throw Damaged("a hold markup has no outline width"),
+            ColorMode = dto.ColorMode ?? throw Damaged("a hold markup has no colour mode"),
+            ColorHex = dto.ColorHex ?? throw Damaged("a hold markup has no colour"),
+            Keyline = dto.Keyline ?? throw Damaged("a hold markup has no keyline mode"),
+            KeylineActive = dto.KeylineActive ?? throw Damaged("a hold markup has no keyline state"),
+            ModelId = dto.ModelId ?? throw Damaged("a hold markup has no model id"),
+            Holds = holds.ToImmutableArray()
+        };
+        if (HoldMarkupRules.Validate(markup) is { } error) throw Damaged($"invalid hold markup: {error.TrimEnd('.')}");
+        return markup;
+
+        static OkLabColor ReadLab(OkLabDto? lab, string what)
+        {
+            if (lab?.L is not { } l || lab.A is not { } a || lab.B is not { } b) throw Damaged($"a hold has no {what} colour sample");
+            return new OkLabColor(l, a, b);
+        }
     }
 
     private static ProjectFileException Damaged(string reason, Exception? inner = null) =>

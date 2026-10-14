@@ -542,3 +542,51 @@ public sealed class SetClipLinkCommand(MediaBackedClip clip, ClipLinkState befor
     public void Execute() => After.ApplyTo(Clip);
     public void Undo() => Before.ApplyTo(Clip);
 }
+
+/// <summary>What a hold-markup step changes (D034): the holds, or one style setting — the unit of undo merging.</summary>
+[Flags]
+public enum HoldMarkupFields
+{
+    None = 0,
+    Holds = 1,
+    StrokeWidth = 2,
+    Color = 4,
+    Keyline = 8
+}
+
+/// <summary>
+/// Replaces a video clip's hold markup (D034 §6): absolute before / after values (immutable), written back verbatim on
+/// Execute / Undo / Redo. Consecutive changes of the same style setting of the same clip merge into one step (D017); a
+/// change back to where the step started removes it. Adding or removing a hold is always its own step.
+/// </summary>
+public sealed class SetHoldMarkupCommand(VideoClip clip, HoldMarkup? before, HoldMarkup? after, HoldMarkupFields fields) : IMergeableCommand
+{
+    public VideoClip Clip { get; } = clip;
+    public HoldMarkup? Before { get; } = before;
+    public HoldMarkup? After { get; } = after;
+    public HoldMarkupFields Fields { get; } = fields;
+
+    public string Description => Fields switch
+    {
+        HoldMarkupFields.Holds => (After?.Holds.Length ?? 0) > (Before?.Holds.Length ?? 0) ? "Add Hold" : "Remove Hold",
+        HoldMarkupFields.StrokeWidth => "Change Outline Width",
+        HoldMarkupFields.Color => "Change Outline Colour",
+        HoldMarkupFields.Keyline => "Change Keyline",
+        _ => "Change Outline"
+    };
+
+    public void Execute() => Clip.HoldMarkup = After;
+    public void Undo() => Clip.HoldMarkup = Before;
+
+    public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
+    {
+        merged = null;
+        if (Fields.HasFlag(HoldMarkupFields.Holds) || next is not SetHoldMarkupCommand n || n.Clip != Clip || n.Fields != Fields
+            || !ReferenceEquals(n.Before, After))
+            return false;
+
+        if (n.After is null || Before is null || !n.After.SameAs(Before))
+            merged = new SetHoldMarkupCommand(Clip, Before, n.After, Fields);
+        return true; // merged stays null when the second edit restored the first one's "before"
+    }
+}

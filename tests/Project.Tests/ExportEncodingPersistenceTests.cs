@@ -72,7 +72,7 @@ public class ExportEncodingPersistenceTests
         Assert.Equal("Slow", export["preset"]!.GetValue<string>());
         Assert.Equal(320, export["audioBitrateKbps"]!.GetValue<int>());
         Assert.Equal(3, export.Count);
-        Assert.Equal(4, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(5, root["formatVersion"]!.GetValue<int>());
         Assert.False(root.ContainsKey("export"));
         Assert.False(root.ContainsKey("lastExportSettings"));
     }

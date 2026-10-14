@@ -1971,7 +1971,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
             {
                 MediaAssetId = v.MediaAssetId, Speed = v.Speed, PositionX = v.PositionX, PositionY = v.PositionY,
                 Scale = v.Scale, RotationDegrees = v.RotationDegrees, Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted,
-                Crop = v.Crop, IsAudioDetached = v.IsAudioDetached
+                Crop = v.Crop, IsAudioDetached = v.IsAudioDetached,
+                // D034 §6: the markup goes with the copy; it is immutable, so the two clips stay independent.
+                HoldMarkup = v.HoldMarkup
             },
             AudioClip a => new AudioClip { MediaAssetId = a.MediaAssetId, Speed = a.Speed, Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClip i => new ImageClip

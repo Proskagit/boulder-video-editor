@@ -74,6 +74,10 @@ public sealed class VideoClip : MediaBackedClip
     /// <summary>The clip's own sound was unlinked into an <see cref="AudioClip"/> (D032 R1, R3): the clip produces no
     /// sound; <see cref="Volume"/> and <see cref="IsMuted"/> are kept but unused.</summary>
     public bool IsAudioDetached { get; set; }
+
+    /// <summary>The clip's hold markup (D034): its confirmed holds and the route outline's style; null = none. An
+    /// immutable value, replaced as a whole by every edit; Split, Duplicate and Paste copy it.</summary>
+    public HoldMarkup? HoldMarkup { get; set; }
 }
 
 /// <summary>A clip on an audio track: the sound of an audio file, or (D032 R1) the sound of a video file.</summary>
