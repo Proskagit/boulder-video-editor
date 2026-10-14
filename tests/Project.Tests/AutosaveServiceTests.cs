@@ -235,7 +235,9 @@ public sealed class AutosaveServiceTests : IDisposable
         {
             var folder = t._temp.Combine("Film");
             t.Edit("saved");
-            var save = t._projects.SaveAsAsync(folder);
+            // Off the test thread, so a synchronously completing write can't block it in BeforeCommit (see
+            // ProjectCommandsTests.Edit_made_while_saving_from_the_prompt_is_not_lost).
+            var save = Task.Run(() => t._projects.SaveAsAsync(folder));
             await reachedCommit.WaitAsync();
 
             t.Edit("edited while saving");

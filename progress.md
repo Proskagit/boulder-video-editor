@@ -115,6 +115,14 @@ and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps";
   change or on switching to Auto), the test now able to see a recompute. Open questions for the product owner: which
   statistic the §7 performance bounds use (medians meet them; the first GPU frame after loading took 3.8 s, the slowest
   click 155 ms); whether a Shift+click leaving every mask over 2 % should keep the earlier candidate (now discarded).
+- Step 19.8 final verification (after the review corrections): `-warnaserror` Release and Debug 0 / 0; the full suite
+  **3307 passed, 2 skipped (the 4K scenes), 0 failed**, three `--blame-hang` runs the same, no hang; `AIVE_HEAVY_TESTS=1`
+  ExportEndToEnd 129 / 0 / 0; the local real-weights suite 9 / 9, criterion 10 156/164 (report
+  `<E1>/results/20261014-232154/`). On the way one `--blame-hang` run hung in
+  `ProjectCommandsTests.Edit_made_while_saving_from_the_prompt_is_not_lost` (Phase 6, untouched by Phase 19): a test
+  deadlock when the file writes complete synchronously — `BeforeCommit` then blocks the test thread before the close
+  task is returned; the close (and the same pattern in `AutosaveServiceTests`) now runs off the test thread. A timing
+  race in the new early-Enter UI test fixed too (15 of 15 repeats green).
 
 ### Phase 18 — HDR → SDR of phone footage (complete; PR #19 merged as `c29a767`, CI green)
 

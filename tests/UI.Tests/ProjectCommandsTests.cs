@@ -419,7 +419,9 @@ public sealed class ProjectCommandsTests : IDisposable
             // Save → (edit lands during the write) → asked again → Cancel.
             var (workflow, dialogs, _) = t.Create(Answers(Save, Cancel), t.Folder("Film"));
 
-            var closing = workflow.PrepareToCloseAsync();
+            // Off the test thread: should the file writes complete synchronously, BeforeCommit would otherwise block
+            // this thread before `closing` is returned, and the test could never release it (a hang seen at Step 19.8).
+            var closing = Task.Run(() => workflow.PrepareToCloseAsync());
             await reachedCommit.WaitAsync();
             t.Edit();
             release.Release();

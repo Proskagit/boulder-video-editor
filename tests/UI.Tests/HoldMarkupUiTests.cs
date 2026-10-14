@@ -347,8 +347,7 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
         await Markup.ConfirmCommand.ExecuteAsync(null);
         Assert.Null(clip.HoldMarkup);                                  // not yet: no candidate
         await click;
-        await WaitFor(() => clip.HoldMarkup is { Holds.Length: 1 });
-        Assert.False(Markup.HasCandidate);
+        await WaitFor(() => clip.HoldMarkup is { Holds.Length: 1 } && !Markup.HasCandidate);   // added, then cleared
 
         // A new click before the prediction ends forgets the early Enter.
         var first = Markup.OnClickAsync(new NormalizedPoint(0.2, 0.5), false);
