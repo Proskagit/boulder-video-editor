@@ -244,6 +244,23 @@ internal sealed class HoldMarkupDto
     public bool? KeylineActive { get; set; }
     public string? ModelId { get; set; }
     public List<HoldDto?>? Holds { get; set; }
+
+    /// <summary>Format v6 (D036): the outline animation; written only when on. Ignored in older files, which have none.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public HoldAnimationDto? Animation { get; set; }
+}
+
+/// <summary>Format v6 (D036 §2): the appear / disappear animation; times in ticks — the start a source time, the rest
+/// timeline durations. Every member is required when the animation is present.</summary>
+internal sealed class HoldAnimationDto
+{
+    public HoldAnimationOrder? Order { get; set; }
+    public long? StartSourceTimeTicks { get; set; }
+    public long? IntervalTicks { get; set; }
+    public long? AppearFadeTicks { get; set; }
+    public long? StayAfterLastTicks { get; set; }
+    public bool? StayUntilClipEnd { get; set; }
+    public long? DisappearFadeTicks { get; set; }
 }
 
 /// <summary>One hold: the contour as a flat list <c>[x0, y0, x1, y1, …]</c> of normalized source coordinates, the colour

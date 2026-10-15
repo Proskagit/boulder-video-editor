@@ -31,7 +31,7 @@ rasterizer, ffmpeg encoder → MP4 checked with ffprobe — and skips without ff
 | Infrastructure | Serilog setup, `AppPaths` (incl. the recovery folder and the unsaved projects' cache root), `FfprobeLocator` / `FfmpegLocator` + `FfmpegOptions` | Implemented |
 | Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS); `FfmpegAudioDecoder` (ffmpeg CLI → 48 kHz stereo float); `FfmpegExportEncoder`; shared `FfmpegProcess` | Probe, video/audio decode, export encoder |
 | Media | `MediaImportService` (extension validation, file size); `ThumbnailService` / `WaveformService` and their cache files (Phase 9) | Implemented |
-| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022; v3 since Phase 10, D025; v4 since Phase 17, D032; v5 since Phase 19, D034) |
+| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022; v3 since Phase 10, D025; v4 since Phase 17, D032; v5 since Phase 19, D034; v6 since Phase 21, D036) |
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
 | Vision | The AI hold segmentation (Phase 19, D034): `OnnxHoldSegmentationService` over ONNX Runtime with DirectML (CPU fallback), `HoldModelVerifier` (size + SHA-256 of the pinned files), SAM 2 pre- / postprocessing. References Core only | Implemented |
@@ -399,6 +399,13 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   colour kept; `SetHoldMarkupCommand` with `HoldMarkupFields.Contour`, never merged) ← `HoldMarkupViewModel` (one step per
   gesture, the export lock) ← `HoldMarkupOverlay` (handles and edge hit-testing in view pixels, the drag; the handles are
   drawn only in the overlay, never in the composition or the export). No format change (v5).
+- Outline animation (Phase 21, D036): `HoldMarkup.Animation` (`HoldAnimation`, null = off; the start a source time, the
+  durations timeline time) → `Core/Playback/HoldAnimationRule` / `HoldSchedule` (timeline frames, the D025 ramps; built
+  into `HoldOutline.Schedule` with the clip's timing) → `PlaybackSnapshot.LayersAt` sets `PictureLayer.OutlineOpacities`
+  → `CompositionDrawPlan.Outline` (`OutlineDraw.PolygonOpacities`, hidden contours left out) → `CompositionPainter` (one
+  opacity-mask layer per opacity group, the combined hold × layer opacity) — the same path for the Preview and the export.
+  `ITimelineEditService.SetHoldAnimation` (`HoldMarkupFields.Animation*`, one setting merges); the Inspector's "Animation"
+  block in `HoldMarkupViewModel`; the markup overlay outlines every contour dashed while the route is animated. Format v6.
 
 ## Thumbnails (Phase 9 Step 9.4)
 
@@ -460,7 +467,8 @@ waveform never changes the audio.
 Decisions: D014 (format, Open/Save, missing media), D015 (save point), D016 (autosave,
 recovery, unsaved changes).
 
-- On disk: a project folder with `project.json` (format v5 since Phase 19: the optional `holdMarkup` of a video clip —
+- On disk: a project folder with `project.json` (format v6 since Phase 21: the optional `holdMarkup.animation`, D036; v5
+  is read without animation and saved as v6; format v5 since Phase 19: the optional `holdMarkup` of a video clip —
   style, route colour, keyline and the holds with their contours and colour samples, D034; v4 is read and saved as v5;
   format v4 since Phase 17: `linkId`, `isAudioDetached` — each written
   only when set —, audio clips of video files and crossfades on audio tracks, D032; v3 since Phase 10: clip fades and

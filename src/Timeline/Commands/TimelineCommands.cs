@@ -554,14 +554,28 @@ public enum HoldMarkupFields
     Keyline = 8,
 
     /// <summary>One hold's contour corrected by hand (D035).</summary>
-    Contour = 16
+    Contour = 16,
+
+    /// <summary>The outline animation switched on or off (D036).</summary>
+    AnimationOn = 32,
+    AnimationOrder = 64,
+    AnimationStart = 128,
+    AnimationInterval = 256,
+    AnimationAppearFade = 512,
+
+    /// <summary>The time after the last hold or "until clip end".</summary>
+    AnimationStay = 1024,
+    AnimationDisappearFade = 2048,
+
+    /// <summary>Any animation setting.</summary>
+    Animation = AnimationOn | AnimationOrder | AnimationStart | AnimationInterval | AnimationAppearFade | AnimationStay | AnimationDisappearFade
 }
 
 /// <summary>
 /// Replaces a video clip's hold markup (D034 §6): absolute before / after values (immutable), written back verbatim on
-/// Execute / Undo / Redo. Consecutive changes of the same style setting of the same clip merge into one step (D017); a
-/// change back to where the step started removes it. Adding or removing a hold and correcting a contour are always their own
-/// steps.
+/// Execute / Undo / Redo. Consecutive changes of the same style or animation setting (D036) of the same clip merge into one
+/// step (D017); a change back to where the step started removes it. Adding or removing a hold, correcting a contour and
+/// switching the animation on or off are always their own steps.
 /// </summary>
 public sealed class SetHoldMarkupCommand(VideoClip clip, HoldMarkup? before, HoldMarkup? after, HoldMarkupFields fields) : IMergeableCommand
 {
@@ -577,6 +591,8 @@ public sealed class SetHoldMarkupCommand(VideoClip clip, HoldMarkup? before, Hol
         HoldMarkupFields.Color => "Change Outline Colour",
         HoldMarkupFields.Keyline => "Change Keyline",
         HoldMarkupFields.Contour => "Edit Hold Outline",
+        HoldMarkupFields.AnimationOn => After?.Animation is null ? "Turn Off Hold Animation" : "Animate Holds",
+        _ when (Fields & HoldMarkupFields.Animation) != 0 => "Change Hold Animation",
         _ => "Change Outline"
     };
 
@@ -586,8 +602,9 @@ public sealed class SetHoldMarkupCommand(VideoClip clip, HoldMarkup? before, Hol
     public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
     {
         merged = null;
-        // Adding or removing a hold and a contour correction (one gesture each, D035) are always their own steps.
-        if ((Fields & (HoldMarkupFields.Holds | HoldMarkupFields.Contour)) != 0 || next is not SetHoldMarkupCommand n || n.Clip != Clip || n.Fields != Fields
+        // Adding or removing a hold, a contour correction (one gesture each, D035) and switching the animation on or off
+        // (D036) are always their own steps.
+        if ((Fields & (HoldMarkupFields.Holds | HoldMarkupFields.Contour | HoldMarkupFields.AnimationOn)) != 0 || next is not SetHoldMarkupCommand n || n.Clip != Clip || n.Fields != Fields
             || !ReferenceEquals(n.Before, After))
             return false;
 

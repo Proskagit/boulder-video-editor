@@ -114,6 +114,14 @@ and runs cleanly.
       outside the repository; branch `feat/ai-hold-markup` from `c29a767`; implemented on the branch, Steps 19.0–19.8 committed, not pushed or merged; awaiting the product owner's acceptance — the threshold examples and the real-app scenarios on their clips; the checkbox is
       set at acceptance)*
 
+- [ ] **Phase 21 — Animation of the hold outlines.** With "Animate" on, a clip's hold contours are hidden before a start
+      bound to the source time, appear one by one (Bottom to top or the marking order) with a fade, stay, and disappear
+      together with a fade — or stay to the clip's end; computed on timeline frames in `PlaybackSnapshot.LayersAt`, so the
+      Preview and the export agree on every frame; undo / redo; `project.json` v6. Scope, steps and acceptance criteria:
+      section below and DECISIONS.md D036 (accepted 2026-10-15). *(Branch `feat/phase-21-hold-animation` from `a657bff`;
+      Steps 21.1–21.6 committed, not pushed or merged; awaiting the product owner's check on their own clips — the checkbox
+      is set at acceptance)*
+
 ## Future ideas (not phases)
 
 Recorded so they are not lost. None of them is a phase, has acceptance criteria or is approved for implementation.
@@ -147,7 +155,7 @@ Minimal variant — editing the vertices of a confirmed hold's contour in the ma
   a dragged handle through crop and rotation (the existing `HoldMarkupOverlay` mapping), parity of an edited hold in the
   rendering tests; a manual check on the owner's close-ups with the known wrong large masks.
 
-### Route animation after the AI hold markup *(idea, 2026-10-14)*
+### Route animation after the AI hold markup *(idea, 2026-10-14; taken up as Phase 21, DECISIONS.md D036 — the sketch below kept as history; D036 decides the open points: the start bound to the source time, Bottom to top by default, the fade parameters, no grouping)*
 
 Once the holds of a route are marked (the AI hold markup, DECISIONS.md D034 — accepted, not implemented yet), the user
 can switch on an animation of the holds appearing over the video:
@@ -1525,6 +1533,60 @@ Out of scope (D035): negative points, new recognition modes, the route animation
 - The product owner's check on their own clips (plan row 16): passed, the implementation accepted (2026-10-15); merge
   only on a separate confirmation.
 
+
+## Phase 21 — Animation of the hold outlines: steps (D036)
+
+Assigned on 2026-10-15 by the product owner (the specification and the answers to its five questions); the normative text
+is DECISIONS.md D036. Branch `feat/phase-21-hold-animation` from `origin/main` = `a657bff` (the merge of PR #21, Phase 20).
+The permission covers the code, tests, documentation and commits on this branch; **no push, pull request or merge without a
+separate command**.
+
+Goal: the route's holds appear one by one from a moment of the video, stay, and disappear together — the same on every
+frame of the Preview and the export.
+
+Gates: `dotnet build -warnaserror` 0 / 0; the full `dotnet test AiVideoEditor.sln` green; `project.json` v6 (v5 read);
+the Phase 20 tests unchanged and green; the scenarios of `docs/PHASE21_MANUAL_TEST_PLAN.md` in the real app and on the
+product owner's clips; `progress.md` updated.
+
+Out of scope (D036 §5): tracking / motion compensation, groups, per-hold intervals or animation, reordering by hand,
+keyframes, markers on the clip.
+
+### 21.1 — Model and timing rule (Core) *(done)*
+- `HoldAnimation` / `HoldAnimationOrder` on `HoldMarkup` (null = off), `HoldMarkupRules.ValidateAnimation`;
+  `Core/Playback/HoldAnimationRule` (the start frame from the source time, `SourceTimeAt` for "Set to playhead", the ranks,
+  the area centroid) and `HoldSchedule` (appear frames, the D025 ramps).
+- Tests: `Core.Tests/HoldAnimationRuleTests` (24 / 30 / 60 / 29.97 fps, every speed, no drift, ramps, ties, a corrected
+  contour).
+
+### 21.2 — Snapshot and drawing (Core, UI rendering) *(done)*
+- `HoldOutline.Schedule` (built with the clip's timing), `PictureLayer.OutlineOpacities` from `LayersAt`,
+  `OutlineDraw.PolygonOpacities` / `OpacityGroups`; `CompositionPainter` draws each opacity group through an opacity mask
+  with the combined hold × layer opacity.
+- Tests: `Core.Tests/HoldAnimationSnapshotTests`; `Rendering.Tests/HoldAnimationRenderTests` (Preview = export pixels in
+  the fades, a hidden contour, the keyline group, no darkened corners); `ExportEndToEnd.Tests/ExportHoldAnimationEndToEndTests`.
+
+### 21.3 — The edit (Timeline) *(done)*
+- `ITimelineEditService.SetHoldAnimation` → `SetHoldMarkupCommand` with `HoldMarkupFields.Animation*` (one setting merges;
+  on / off never).
+- Tests: `Timeline.Tests/HoldAnimationEditTests` (undo / redo, merging, refusals, a correction / add / remove reordering,
+  Trim, Slip, Speed, Move, Split continuing, Duplicate, Paste).
+
+### 21.4 — Format v6 (Project) *(done)*
+- `HoldAnimationDto`, `CurrentFormatVersion = 6`, v5 read without animation.
+- Tests: `Project.Tests/HoldAnimationPersistenceTests`; the current-version assertions of the older persistence tests moved
+  to 6.
+
+### 21.5 — Inspector and markup mode (UI) *(done)*
+- `HoldMarkupViewModel`: the "Animation" block (Animate, Order, Start + Set to playhead, the four durations, until clip end,
+  the summary and the warning; the export lock); `AnimatedContours` while the mode is on; `HoldMarkupOverlay` draws them
+  thin and dashed; `InspectorView.axaml`.
+- Tests: `UI.Tests/HoldMarkupUiTests` (Phase 21 section).
+
+### 21.6 — Verification & documentation *(done in the cloud session; the real-app and the product owner's checks open)*
+- The full suite, `-warnaserror`, the diff review; D036, ARCHITECTURE, ROADMAP, README, `progress.md`,
+  `docs/PHASE21_MANUAL_TEST_PLAN.md`.
+- Open: the real-app run of the manual plan (Windows, Avalonia GUI), an export of a real clip checked with ffmpeg, the
+  product owner's check on their own clips.
 ## Architectural rules that must hold at every phase
 
 - UI (`src/UI`, `src/App`) contains no business logic — only view models that

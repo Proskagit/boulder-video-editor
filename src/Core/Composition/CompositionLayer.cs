@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Playback;
 
@@ -24,6 +25,11 @@ public sealed record PictureLayer(Guid TrackId, PictureSpan Span, LayerGeometry?
     /// covers the canvas, so neither hides what is below; placeholders are decided by the renderer.
     /// </summary>
     public bool OccludesBelow => Span.Status == SpanStatus.Video && Opacity == 1 && Geometry is { CoversCanvas: true };
+
+    /// <summary>The opacity of each contour of <see cref="PictureSpan.Outline"/> on this frame (D036), by hold index, on
+    /// top of the layer's <see cref="CompositionLayer.Opacity"/>; default (not set): every contour fully shown — an outline
+    /// without animation.</summary>
+    public ImmutableArray<double> OutlineOpacities { get; init; }
 }
 
 /// <summary>

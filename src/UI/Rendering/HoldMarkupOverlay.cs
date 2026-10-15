@@ -20,7 +20,9 @@ namespace AiVideoEditor.UI.Rendering;
 /// the selected hold, and a loupe of the full-size markup frame under the pointer. The selected hold's handles (D035) are
 /// grabbed here: a drag moves one, Alt+click on the outline inserts a vertex, a double-click on a handle removes it — the
 /// view-model applies each gesture as one step. Hit-testable only while the mode is on; the confirmed outlines themselves
-/// are the composition's (Preview = export), the handles exist only in this overlay and never reach the export.
+/// are the composition's (Preview = export), the handles exist only in this overlay and never reach the export. On an
+/// animated route (D036) the overlay also outlines every confirmed contour thin and dashed — the composition shows the
+/// frame's animated state, in which some holds may be hidden.
 /// </summary>
 public sealed class HoldMarkupOverlay : Control, ICustomHitTest
 {
@@ -44,6 +46,9 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
     private static readonly IPen CandidateKeyline = new Pen(new SolidColorBrush(Color.FromArgb(200, 0, 0, 0)), 4, lineJoin: PenLineJoin.Round);
     private static readonly IPen CandidatePen = new Pen(new SolidColorBrush(Color.Parse("#00E5FF")), 2, lineJoin: PenLineJoin.Round);
     private static readonly IPen SelectedPen = new Pen(new SolidColorBrush(Color.Parse("#FFEA00")), 2, new DashStyle(new double[] { 3, 2 }, 0), lineJoin: PenLineJoin.Round);
+    // D036 §4: every contour of an animated route, thin and dashed (an aid of the mode only, never in the export).
+    private static readonly IPen AnimatedKeyline = new Pen(new SolidColorBrush(Color.FromArgb(140, 0, 0, 0)), 2.5, lineJoin: PenLineJoin.Round);
+    private static readonly IPen AnimatedPen = new Pen(new SolidColorBrush(Color.FromArgb(230, 255, 255, 255)), 1, new DashStyle(new double[] { 4, 3 }, 0), lineJoin: PenLineJoin.Round);
     private static readonly IPen LoupeBorder = new Pen(Brushes.White, 1);
     private static readonly IPen Crosshair = new Pen(new SolidColorBrush(Color.FromArgb(220, 255, 255, 255)), 1);
     private static readonly IPen InvalidPen = new Pen(new SolidColorBrush(Color.Parse("#FF1744")), 2, lineJoin: PenLineJoin.Round);
@@ -284,6 +289,10 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
         if (_markup is not { IsActive: true, Geometry: { } geometry } markup || !markup.Canvas.IsValid) return;
         var view = Bounds.Size;
 
+        // An animated route (D036): the composition shows this frame's honest state; every contour — also those hidden on
+        // it — is outlined here so it can be selected and corrected.
+        foreach (var contour in markup.AnimatedContours)
+            DrawContour(context, geometry, markup.Canvas, view, contour, AnimatedKeyline, AnimatedPen);
         DrawContour(context, geometry, markup.Canvas, view, markup.SelectedContour, null, markup.IsContourInvalid ? InvalidPen : SelectedPen);
         if (markup.CanEditContour || markup.IsDraggingVertex) DrawHandles(context, geometry, markup, view);
         DrawContour(context, geometry, markup.Canvas, view, markup.CandidateContour, CandidateKeyline, CandidatePen);

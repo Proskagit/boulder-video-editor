@@ -13,7 +13,8 @@ namespace AiVideoEditor.Project.Tests;
 /// test of the colour samples: every hold's <c>SurfaceLab</c>, <c>WallLab</c> and <c>SourceTime</c> survive a save / open
 /// / save exactly (holds from different markup frames, non-round values), the second file equals the first, and the Auto
 /// colour recomputed from the restored samples alone equals the one before saving; a hold without samples or with
-/// non-finite values refuses the file. A v4 file opens without markup and is saved as v5; a file newer than v5 is refused.
+/// non-finite values refuses the file. A v4 file opens without markup and is saved as the current version (v6 since Phase 21,
+/// D036); a file newer than the current version is refused.
 /// </summary>
 public class HoldMarkupPersistenceTests
 {
@@ -114,10 +115,10 @@ public class HoldMarkupPersistenceTests
     }
 
     [Fact]
-    public void The_file_is_version_5_and_a_clip_without_markup_writes_nothing()
+    public void The_file_is_the_current_version_and_a_clip_without_markup_writes_nothing()
     {
         var withMarkup = Json(Build(Markup()));
-        Assert.Equal(5, (int)withMarkup["formatVersion"]!);
+        Assert.Equal(6, (int)withMarkup["formatVersion"]!);
         var hold = ClipJson(withMarkup)["holdMarkup"]!["holds"]![0]!;
         Assert.NotNull(hold["surfaceLab"]!["l"]);
         Assert.NotNull(hold["wallLab"]!["b"]);
@@ -127,13 +128,13 @@ public class HoldMarkupPersistenceTests
     }
 
     [Fact]
-    public void A_version_4_file_opens_without_markup_and_is_saved_as_version_5()
+    public void A_version_4_file_opens_without_markup_and_is_saved_as_the_current_version()
     {
         var root = Json(Build(null));
         root["formatVersion"] = 4;
         var project = Load(root.ToJsonString());
         Assert.Null(((VideoClip)project.Timeline.VideoTracks[0].Clips[0]).HoldMarkup);
-        Assert.Equal(5, (int)JsonNode.Parse(Save(project))!["formatVersion"]!);
+        Assert.Equal(6, (int)JsonNode.Parse(Save(project))!["formatVersion"]!);
 
         // A v4 file can't have markup; anything there is ignored, as every older version ignores newer properties.
         var stray = Json(Build(Markup()));
@@ -142,10 +143,10 @@ public class HoldMarkupPersistenceTests
     }
 
     [Fact]
-    public void A_file_newer_than_version_5_is_refused()
+    public void A_file_newer_than_the_current_version_is_refused()
     {
         var root = Json(Build(Markup()));
-        root["formatVersion"] = 6;
+        root["formatVersion"] = 7;
         Assert.Contains("newer version", Rejected(root).Message);
     }
 
@@ -226,7 +227,7 @@ public class HoldMarkupPersistenceTests
     [Fact]
     public void A_corrected_contour_survives_a_save_open_save_exactly_as_the_same_hold_with_its_samples()
     {
-        // Phase 20 (D035): a correction replaces only the hold's points — still format v5 with the same members.
+        // Phase 20 (D035): a correction replaces only the hold's points — the same members (format v5 then, v6 since D036).
         var markup = Markup();
         var original = markup.Holds[0];
         var edit = new Core.Holds.ContourEdit(original.Points, Enumerable.Range(0, original.Points.Length).ToImmutableArray());
@@ -238,7 +239,7 @@ public class HoldMarkupPersistenceTests
         var first = Save(project);
         var reopened = Load(first);
         Assert.Equal(first, Save(reopened));
-        Assert.Equal(5, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(6, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
 
         var loaded = LoadedMarkup(reopened).Holds[0];
         Assert.True(corrected.SameAs(loaded));                                 // id, every point, the samples, the time

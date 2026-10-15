@@ -221,6 +221,7 @@ public partial class MainWindow : Window
         public TimelineEditResult RemoveHold(Guid clipId, Guid holdId) => Nothing;
         public TimelineEditResult ReplaceHoldContour(Guid clipId, Guid holdId, ImmutableArray<NormalizedPoint> points) => Nothing;
         public TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style) => Nothing;
+        public TimelineEditResult SetHoldAnimation(Guid clipId, HoldAnimation? animation) => Nothing;
         public TimelineEditResult SetCanvasSize(int width, int height) => Nothing;
         public TimelineEditResult SetFrameRate(FrameRate rate) => Nothing;
         public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null) => Nothing;

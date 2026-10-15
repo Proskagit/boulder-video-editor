@@ -69,13 +69,27 @@ public sealed record PictureSpan(
 /// <summary>
 /// What is drawn for a clip's hold markup (D034 §4–§6), renderer-neutral: the contours in normalized coordinates of the
 /// display-oriented source frame, the stroke per 1080 px of the canvas's short side, the route colour and whether the
-/// keyline is drawn (both resolved when the markup was edited).
+/// keyline is drawn (both resolved when the markup was edited). <see cref="Schedule"/>: the appear / disappear animation
+/// on timeline frames (D036), null without one — every contour fully shown.
 /// </summary>
 public sealed record HoldOutline(ImmutableArray<ImmutableArray<NormalizedPoint>> Polygons, double StrokeWidth1080, string ColorHex, bool Keyline)
 {
+    public HoldSchedule? Schedule { get; init; }
+
+    /// <summary>The outline of <paramref name="markup"/> without the animation (it needs the clip's timing).</summary>
     public static HoldOutline? Of(HoldMarkup? markup) => markup is { Holds.Length: > 0 }
         ? new HoldOutline(markup.Holds.Select(h => h.Points).ToImmutableArray(), markup.StrokeWidth1080, markup.ColorHex, markup.KeylineActive)
         : null;
+
+    /// <summary>The outline of <paramref name="markup"/> on a clip at <paramref name="clipStart"/> / <paramref name="sourceIn"/>
+    /// / <paramref name="speed"/>, with its animation's schedule (D036) at <paramref name="rate"/>.</summary>
+    public static HoldOutline? Of(HoldMarkup? markup, MediaTime clipStart, MediaTime sourceIn, ClipSpeed speed, FrameRate rate)
+    {
+        if (Of(markup) is not { } outline) return null;
+        if (markup!.Animation is not { } animation) return outline;
+        var start = HoldAnimationRule.StartFrame(clipStart, sourceIn, speed, animation.StartSourceTime, rate);
+        return outline with { Schedule = HoldAnimationRule.Schedule(animation, markup.Holds, start, rate) };
+    }
 }
 
 /// <summary>A text clip on a visible video track (renderer-neutral content and style, D018).</summary>
@@ -219,7 +233,7 @@ public sealed class PlaybackSnapshot
                 if (picture.Visual.Opacity == 0) continue;
                 var geometry = picture.SourceSize is { } size ? CompositionMath.Layout(Canvas, size, picture.Visual) : null;
                 var fade = FadeAt(picture.TimelineStart, picture.TimelineEnd, picture.FadeInFrames, picture.FadeOutFrames, time, ref frame);
-                var pictureLayer = new PictureLayer(layer.TrackId, picture, geometry, fade);
+                var pictureLayer = WithOutlineOpacities(new PictureLayer(layer.TrackId, picture, geometry, fade), time, ref frame);
                 topDown.Add(pictureLayer);
                 if (pictureLayer.OccludesBelow && (mayOcclude?.Invoke(pictureLayer) ?? true)) break;
             }
@@ -244,7 +258,7 @@ public sealed class PlaybackSnapshot
             if (picture.Visual.Opacity == 0) return null;
             var geometry = picture.SourceSize is { } size ? CompositionMath.Layout(Canvas, size, picture.Visual) : null;
             var fade = FadeAt(picture.TimelineStart, picture.TimelineEnd, picture.FadeInFrames, picture.FadeOutFrames, time, ref frame);
-            return new PictureLayer(layer.TrackId, picture, geometry, fade * factor);
+            return WithOutlineOpacities(new PictureLayer(layer.TrackId, picture, geometry, fade * factor), time, ref frame);
         }
         if (FindText(layer.Texts, at) is { } text && text.Visual.Opacity > 0 && !string.IsNullOrWhiteSpace(text.Text.Text))
         {
@@ -252,6 +266,15 @@ public sealed class PlaybackSnapshot
             return new TextLayer(layer.TrackId, text, CompositionMath.TextTransform(Canvas, text.Visual), fade * factor);
         }
         return null;
+    }
+
+    /// <summary>D036: an animated outline's opacity per hold on the frame of <paramref name="time"/> — the one value the
+    /// Preview and the export draw (inside a dissolve zone the frame index simply runs on past the clip).</summary>
+    private PictureLayer WithOutlineOpacities(PictureLayer picture, MediaTime time, ref long? frame)
+    {
+        if (picture.Span.Outline?.Schedule is not { } schedule) return picture;
+        frame ??= time.ToFrameFloor(FrameRate);
+        return picture with { OutlineOpacities = schedule.OpacitiesAt(frame.Value) };
     }
 
     private static DissolveZone? FindZone(ImmutableArray<DissolveZone> zones, MediaTime time)

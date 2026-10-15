@@ -245,6 +245,61 @@
                   <TextBlock Text="on" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding KeylineActive}"
                              ToolTip.Tip="A dark or light edge around the line makes it readable on this wall"/>
                 </StackPanel>
+
+                <!-- Animation (Phase 21, D036): the holds appear one by one from a moment of the video, stay, and vanish
+                     together. Every change is one undo step (consecutive changes of one setting merge). -->
+                <CheckBox Content="Animate" IsChecked="{Binding IsAnimated, Mode=TwoWay}"
+                          ToolTip.Tip="The holds appear one by one from the start, stay, and then disappear together"/>
+                <StackPanel Spacing="6" IsVisible="{Binding IsAnimated}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Order" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <ComboBox ItemsSource="{Binding AnimationOrders}" SelectedIndex="{Binding AnimationOrderIndex, Mode=TwoWay}" Width="140"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Start" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <controls:CommitNumericUpDown Value="{Binding AnimationStart, Mode=TwoWay}" Increment="0.1" Minimum="0" Maximum="{Binding MaxAnimationStart}"
+                                   FormatString="0.###" Width="110"
+                                   ToolTip.Tip="A time in the source video (seconds): trimming, a speed change or a split keep the animation on the same moment"/>
+                    <TextBlock Text="s" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="" Width="96"/>
+                    <Button Content="Set to playhead" Command="{Binding SetStartToPlayheadCommand}"
+                            ToolTip.Tip="Start the animation on the frame under the playhead (pause on this clip first)"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Interval" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <controls:CommitNumericUpDown Value="{Binding AnimationInterval, Mode=TwoWay}" Increment="0.05" Minimum="{Binding MinAnimationInterval}" Maximum="{Binding MaxAnimationInterval}"
+                                   FormatString="0.###" Width="110"/>
+                    <TextBlock Text="s" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Appear fade" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <controls:CommitNumericUpDown Value="{Binding AppearFade, Mode=TwoWay}" Increment="0.05" Minimum="0" Maximum="{Binding MaxAnimationFade}"
+                                   FormatString="0.###" Width="110" ToolTip.Tip="0 = at once"/>
+                    <TextBlock Text="s" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Stay after last" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <controls:CommitNumericUpDown Value="{Binding StayAfterLast, Mode=TwoWay}" Increment="0.5" Minimum="0" Maximum="{Binding MaxAnimationStay}"
+                                   FormatString="0.###" Width="110" IsEnabled="{Binding !StayUntilClipEnd}"/>
+                    <TextBlock Text="s" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="" Width="96"/>
+                    <CheckBox Content="until clip end" IsChecked="{Binding StayUntilClipEnd, Mode=TwoWay}"
+                              ToolTip.Tip="Keep every contour to the clip's end instead of letting them disappear"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !StayUntilClipEnd}">
+                    <TextBlock Text="Disappear fade" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <controls:CommitNumericUpDown Value="{Binding DisappearFade, Mode=TwoWay}" Increment="0.05" Minimum="0" Maximum="{Binding MaxAnimationFade}"
+                                   FormatString="0.###" Width="110" ToolTip.Tip="0 = at once"/>
+                    <TextBlock Text="s" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  </StackPanel>
+                  <TextBlock Text="{Binding AnimationSummary}" Foreground="#AAAAAA" TextWrapping="Wrap"/>
+                  <TextBlock Text="{Binding AnimationWarning}" Foreground="#E0A040" TextWrapping="Wrap"
+                             IsVisible="{Binding AnimationWarning, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                </StackPanel>
               </StackPanel>
             </StackPanel>
 

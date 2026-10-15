@@ -18,8 +18,9 @@ CI green — DECISIONS.md D030. Phase 16 (a Source viewer with In / Out, Insert 
 sound-only Insert / Overwrite, audio crossfades; `project.json` v4) merged 2026-10-13 as `fa96468` (PR #18), CI green —
 DECISIONS.md D032. Phase 18 (HDR → SDR of phone footage: HLG measured on the product owner's footage — their visual check open — PQ implemented but not verified on real PQ footage; Revision R1, closeout Step 18.12) merged 2026-10-14 as `c29a767` (PR #19), CI green —
 DECISIONS.md D033. Phase 19 (the AI hold markup, DECISIONS.md D034) merged 2026-10-15 as `2d0a10b` (PR #20), CI green; the model
-is installed by hand (`docs/AI_MODEL.md`). Phase 20 (the manual correction of hold contours, DECISIONS.md D035) is implemented on
-`feat/phase-20-hold-contour-editing`, accepted by the product owner (not merged).
+is installed by hand (`docs/AI_MODEL.md`). Phase 20 (the manual correction of hold contours, DECISIONS.md D035) merged as
+`a657bff` (PR #21). Phase 21 (the animation of the hold outlines, DECISIONS.md D036; `project.json` v6) is implemented on
+`feat/phase-21-hold-animation`, awaiting the product owner's check (not pushed or merged).
 
 ## Requirements
 
@@ -127,7 +128,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–18 complete (Phase 18 — HDR → SDR, D033 with Revision R1 — merged as `c29a767`, PR #19, CI green; the product owner's visual check of the S1 export and PQ on real PQ footage still open). Phase 19 (AI hold markup, D034) merged as `2d0a10b` (PR #20). Phase 20 (hold contour correction, D035) implemented on `feat/phase-20-hold-contour-editing`, accepted (not merged).
+Phases 0–18 complete (Phase 18 — HDR → SDR, D033 with Revision R1 — merged as `c29a767`, PR #19, CI green; the product owner's visual check of the S1 export and PQ on real PQ footage still open). Phase 19 (AI hold markup, D034) merged as `2d0a10b` (PR #20). Phase 20 (hold contour correction, D035) merged as `a657bff` (PR #21). Phase 21 (animation of the hold outlines, D036, `project.json` v6) implemented on `feat/phase-21-hold-animation`, awaiting acceptance (not merged).
 Working: media import
 with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),

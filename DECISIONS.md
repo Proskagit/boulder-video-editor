@@ -4698,6 +4698,96 @@ their own clips.
 
 ---
 
+## D036 — Animation of the hold outlines (Phase 21)
+
+Date: 2026-10-15
+
+Decision (product owner, 2026-10-15: the Phase 21 specification with the answers to its five questions — the start bound
+to the source time, Bottom to top by default with Marking order supported, the defaults 0.5 / 0.25 / 3 / 0.5 s, format v6,
+the dashed outlines of the markup mode). Extends D034 (whose §1 listed "the route animation" as not in the MVP — superseded
+for the outlines' appearance by this decision) and keeps D035 as it is. The idea of 2026-10-14 (`docs/DEVELOPMENT_PLAN.md`,
+"Future ideas") is taken up here.
+
+### 1. Scenario
+
+- With the animation on, a clip's hold contours: hidden before the start; from the start the holds appear one by one
+  every *Interval*, each fading in over *Appear fade*; an appeared hold stays; after the last one every contour stays
+  *Stay after last* and then all disappear together over *Disappear fade* — or, with **until clip end**, stay to the
+  clip's end. With the animation off everything is as before: every contour for the whole clip.
+- Inspector, section "Holds", block "Animation": **Animate** (a check box; off = no animation); **Order** — *Bottom to
+  top* (default: from the lowest hold up, by the centre of each contour — routes usually go up) or *Marking order*;
+  **Start** (a source time in seconds) with **Set to playhead**; **Interval** 0.5 s; **Appear fade** 0.25 s (0 = at once);
+  **Stay after last** 3 s with **until clip end**; **Disappear fade** 0.5 s. A line gives the animation's length; when it
+  runs past the clip's end a warning (not an error) says so — the animation is cut there. Switching on starts at the
+  source time under the playhead when it is on the clip, otherwise at the clip's first source frame.
+
+### 2. Data, timing and format
+
+- `HoldMarkup.Animation` (`HoldAnimation`, immutable; null = off): `Order` (`BottomToTop` / `MarkingOrder`),
+  `StartSourceTime` (ticks — a time of the **source**, as `Hold.SourceTime`), `Interval`, `AppearFade`, `StayAfterLast`,
+  `DisappearFade` (ticks of **timeline** — output — time), `StayUntilClipEnd`. Limits: Interval 0.05–10 s, the fades 0–5 s,
+  Stay 0–60 s, the start 0–24 h.
+- Why the source time: the animation stays on a moment of the video (the start of the climb) — a trim of the clip's head,
+  a slip or a speed change never move it against the picture, and the second half of a split continues it without a
+  restart. The durations are output time, so the clip's speed does not stretch them.
+- On timeline frames, like the fades of D025 (`Core/Playback/HoldAnimationRule`, `HoldSchedule`): the start frame `n0` is
+  the first timeline frame whose source time `t(n) = SourceIn + (FromFrame(n) − S) · speed` (D009 / D022) is at or after
+  `StartSourceTime` — `T0 = S + (StartSourceTime − SourceIn) / speed` moved up to the grid, exact in integers; it may lie
+  before or after the clip. Durations become frames by `TransitionRules.Frames` (`ToNearestFrame`). The hold of rank `r`
+  appears at `A_r = n0 + Frames(r · Interval)` (the product rounded once, so a rounded interval never drifts); its opacity is
+  0 before `A_r`, then `FadeRule.Ramp(n − A_r, Fa)`; the disappear starts at `D = A_last + Fa + Frames(StayAfterLast)` —
+  "after the last" counts from the last hold fully shown — and multiplies by `(Fd − j)/(Fd + 1)` for `j = n − D < Fd`, 0
+  after (the D025 ramps); with "until clip end" there is no `D`.
+- Bottom to top: by the contour's area centroid (the vertex mean only for a degenerate one, so dense vertices on one side
+  do not bias it), larger Y (lower in the frame) first; level centres (within 1e-9) left to right; then the marking order.
+- `project.json` **v6**: the optional `holdMarkup.animation` (every member required when present; values outside the
+  limits refuse the file as in D034). A v5 file opens without animation and is saved as v6; a v5 build refuses a v6 file
+  by its existing newer-version check (had the member been added to v5, an older build would silently drop it on a save).
+
+### 3. Edits
+
+- `ITimelineEditService.SetHoldAnimation(clipId, animation?)` → one `SetHoldMarkupCommand` with the
+  `HoldMarkupFields.Animation*` field of what changed. Consecutive changes of one setting merge into one undo step
+  (D017), switching on or off is always its own step; unchanged values are no step. Refused outside the limits, for other
+  clips, on a locked track (the service) and during an export (`EditingLock` in the view-model). The colour and the keyline
+  are not resolved again.
+- A presentation-only change (`DiffersOnlyInPresentation`): decoding is not restarted.
+- Split / Duplicate / Paste copy the animation with the markup; Trim, Slip, Speed and Move leave it (§2).
+- The contour correction of D035 is unchanged — the animation only reads `Points`; a correction, an added or a removed
+  hold shows at once, and with Bottom to top a correction may change the order when the contour's centre moved.
+
+### 4. Preview and export — one rule
+
+- Each hold's opacity is computed in `PlaybackSnapshot.LayersAt(time)` — the one place both the Preview and the export take
+  a frame from: `PictureLayer.OutlineOpacities`; `CompositionDrawPlan.Outline` keeps the shown contours with their
+  opacities (`OutlineDraw.PolygonOpacities`; the hidden ones left out; all at 1 → exactly the outline without animation).
+- `CompositionPainter` draws the contours of one opacity as a group with the combined opacity hold × layer (clip opacity
+  × fade or dissolve, D025 / D018), through an opacity **mask** — a layer — not a plain opacity, which in Avalonia's Skia
+  backend fades every draw call on its own: a fading hold's keyline then never shows through its core and its overlapping
+  segments (the round caps at the vertices) never darken. Found by the rendering test; it also changes, for the better,
+  an outline with a keyline on a fading or translucent clip (Phase 19 drew the keyline and the core faded separately).
+- Paused and after a seek the Preview shows the animation's state on the frame under the playhead — what the export
+  writes for that frame.
+- Markup mode: the composition keeps the honest animated state; the overlay draws every confirmed contour thin and dashed
+  (`HoldMarkupViewModel.AnimatedContours`, only while the mode is on and the route is animated), so a hold hidden on that
+  frame can be selected and corrected. Like the D035 handles, an editing aid only — never in the export.
+
+### 5. Not in this decision
+
+Tracking or camera motion compensation (the contours stay where they are), groups of holds, per-hold intervals, reordering
+by hand, per-hold animation, keyframes, markers of the animation on the clip in the timeline.
+
+Context: the route animation idea of 2026-10-14 after the hold markup (D034) and the contour correction (D035).
+
+Consequences: `project.json` v6; a new rule class in Core and an init property on `PictureLayer` / `OutlineDraw`; one edit
+method and seven command fields; the Inspector's "Holds" section grows the "Animation" block; the outline painter
+composites groups through a layer.
+
+Status: Accepted (2026-10-15, product owner: the Phase 21 specification). Implemented in Phase 21 (branch
+`feat/phase-21-hold-animation`); awaiting the product owner's check on their own clips.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:
