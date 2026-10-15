@@ -4784,7 +4784,8 @@ method and seven command fields; the Inspector's "Holds" section grows the "Anim
 composites groups through a layer.
 
 Status: Accepted (2026-10-15, product owner: the Phase 21 specification). Implemented in Phase 21 (branch
-`feat/phase-21-hold-animation`); awaiting the product owner's check on their own clips.
+`feat/phase-21-hold-animation`); the main functionality accepted by the product owner on 2026-10-15 after their check in the
+real app (`docs/PHASE21_MANUAL_TEST_PLAN.md`).
 
 ---
 

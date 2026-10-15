@@ -114,13 +114,13 @@ and runs cleanly.
       outside the repository; branch `feat/ai-hold-markup` from `c29a767`; implemented on the branch, Steps 19.0–19.8 committed, not pushed or merged; awaiting the product owner's acceptance — the threshold examples and the real-app scenarios on their clips; the checkbox is
       set at acceptance)*
 
-- [ ] **Phase 21 — Animation of the hold outlines.** With "Animate" on, a clip's hold contours are hidden before a start
+- [x] **Phase 21 — Animation of the hold outlines.** With "Animate" on, a clip's hold contours are hidden before a start
       bound to the source time, appear one by one (Bottom to top or the marking order) with a fade, stay, and disappear
       together with a fade — or stay to the clip's end; computed on timeline frames in `PlaybackSnapshot.LayersAt`, so the
       Preview and the export agree on every frame; undo / redo; `project.json` v6. Scope, steps and acceptance criteria:
       section below and DECISIONS.md D036 (accepted 2026-10-15). *(Branch `feat/phase-21-hold-animation` from `a657bff`;
-      Steps 21.1–21.6 committed, not pushed or merged; awaiting the product owner's check on their own clips — the checkbox
-      is set at acceptance)*
+      Steps 21.1–21.6 committed; the main functionality accepted by the product owner in the real app on 2026-10-15;
+      pull request into `main`, not merged)*
 
 ## Future ideas (not phases)
 
@@ -1582,11 +1582,16 @@ keyframes, markers on the clip.
   thin and dashed; `InspectorView.axaml`.
 - Tests: `UI.Tests/HoldMarkupUiTests` (Phase 21 section).
 
-### 21.6 — Verification & documentation *(done in the cloud session; the real-app and the product owner's checks open)*
+### 21.6 — Verification & documentation *(done 2026-10-15; the main functionality accepted by the product owner)*
 - The full suite, `-warnaserror`, the diff review; D036, ARCHITECTURE, ROADMAP, README, `progress.md`,
   `docs/PHASE21_MANUAL_TEST_PLAN.md`.
-- Open: the real-app run of the manual plan (Windows, Avalonia GUI), an export of a real clip checked with ffmpeg, the
-  product owner's check on their own clips.
+- Windows (Claude, `8e28d32`): Release build with `-warnaserror` 0 errors / 0 warnings; full suite passed 3407, failed 0,
+  skipped 2 (base `a657bff`: 3352 / 0 / 2 — no new failures).
+- The product owner's real-app check (2026-10-15): the animation and fades in the Preview, the dashed contours in the
+  markup mode, the contour correction, Trim / Slip / speed / Split, the timeline display, the export (the video reopened)
+  and save + reopen passed; the main functionality accepted. The other rows of `docs/PHASE21_MANUAL_TEST_PLAN.md` stay
+  NOT RUN in the real app. Follow-ups outside the phase (two marker issues, the vertical-video export framing): `ROADMAP.md`
+  "Follow-ups and backlog".
 ## Architectural rules that must hold at every phase
 
 - UI (`src/UI`, `src/App`) contains no business logic — only view models that

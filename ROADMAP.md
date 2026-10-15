@@ -59,8 +59,9 @@ session state (D015).
 
 ## Current
 
-Phase 21 — animation of the hold outlines (**implemented, awaiting the product owner's check**; DECISIONS.md D036,
-2026-10-15; branch `feat/phase-21-hold-animation` from `a657bff`; not pushed or merged). With "Animate" on, a clip's hold
+Phase 21 — animation of the hold outlines (**accepted 2026-10-15 — main functionality checked by the product owner in the
+real app; pull request open, not merged**; DECISIONS.md D036, 2026-10-15; branch `feat/phase-21-hold-animation` from
+`a657bff`). With "Animate" on, a clip's hold
 contours are hidden before a start bound to the source time, appear one by one (Bottom to top by default, or the marking
 order) every Interval with an appear fade, stay, and disappear together with a fade after a set time — or stay to the
 clip's end; computed on timeline frames in `PlaybackSnapshot.LayersAt`, so the Preview and the export agree on every
@@ -316,7 +317,7 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is implemented — see "Current". Candidates named in the
+Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is accepted, its pull request not merged yet — see "Current". Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The
@@ -332,6 +333,22 @@ Taken up as Phase 21 (DECISIONS.md D036, 2026-10-15) — recorded 2026-10-14 as 
 over the video one by one at a configurable interval, stay visible, and disappear together after a set time. Not part
 of the AI hold markup MVP; keeping the contours on the holds while the camera moves is a separate motion compensation /
 tracking task. Sketch: `docs/DEVELOPMENT_PLAN.md`, "Future ideas (not phases)".
+
+## Follow-ups and backlog
+
+Separate tasks recorded at the Phase 21 acceptance (2026-10-15); none is part of Phase 21 or decided yet.
+
+- **FU-21.1 — "Previous marker" status message (marker issue).** Going to a marker outside the clip sometimes first shows
+  "There is no marker before the playhead", although a second press moves the playhead; after returning, the warning
+  stays in the status bar. Cause to be found (Previous / Next compare with the playhead's nearest frame; a successful jump
+  reports nothing, so an earlier message is not replaced). Details: `docs/PHASE21_MANUAL_TEST_PLAN.md`, "Follow-ups".
+- **FU-21.2 — Markers stay in place when a clip is moved (marker semantics).** Markers are sequence (timeline) markers and
+  D027 says no edit moves them, so this is the current decided behaviour. Open product question: whether markers bound
+  to a clip (moving with it) are wanted. Not to be treated as a bug before that is decided.
+- **Export of vertical video without unwanted black bars (backlog).** A vertical (portrait) clip exported on a landscape
+  canvas comes out with black bars at the sides (the D018 fit of a picture to the canvas). The expected framing must be
+  decided first — e.g. a portrait canvas from the clip, a fill / crop-to-canvas mode, or a choice at export — before any
+  change of the export or the composition code. No code changed for it in Phase 21.
 
 ## Rule
 

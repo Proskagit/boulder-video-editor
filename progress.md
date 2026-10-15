@@ -3,11 +3,11 @@
 ## Current phase
 
 Phase 21 — animation of the hold outlines, branch `feat/phase-21-hold-animation` (from `origin/main` = `a657bff`, the merge
-of PR #21; DECISIONS.md D036, 2026-10-15). Implemented in a cloud session and committed on the branch; **not pushed, no pull
-request, no merge** without the product owner's separate permission. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 21 — Animation
-of the hold outlines: steps"; manual plan `docs/PHASE21_MANUAL_TEST_PLAN.md` (every real-app row open).
+of PR #21; DECISIONS.md D036, 2026-10-15). Implemented in a cloud session; **main functionality accepted by the product
+owner (2026-10-15)** after their check in the real app; push and a pull request into `main` permitted, no merge. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 21 — Animation
+of the hold outlines: steps"; manual plan `docs/PHASE21_MANUAL_TEST_PLAN.md` (the product owner's checks recorded; the other real-app rows open).
 
-### Phase 21 — Animation of the hold outlines (implemented 2026-10-15; awaiting the product owner's check)
+### Phase 21 — Animation of the hold outlines (accepted 2026-10-15; pull request open, not merged)
 
 - 2026-10-15 — `main` = `origin/main` = `a657bff` (PR #21 merged, Phase 20). Branch created from it. Read: the D036
   specification and the five answers, D025 (the frame-grid fades), D034, D035, the snapshot / draw plan / painter path, the
@@ -40,8 +40,19 @@ of the hold outlines: steps"; manual plan `docs/PHASE21_MANUAL_TEST_PLAN.md` (ev
   Release after the last edits: no failure outside the baseline. The Phase 20 tests (`HoldMarkupUiTests`,
   `HoldMarkupEditTests`, `ContourEditingTests`, `HoldMarkupPersistenceTests`, `HoldOutlineRenderTests`) pass. `git diff
   --check` clean.
-- Open: the full suite on Windows (green there is the gate); the real-app run of `docs/PHASE21_MANUAL_TEST_PLAN.md`; an
-  export of a real clip checked with ffmpeg; the product owner's check on their own clips.
+- 2026-10-15 — verification on Windows (Claude, a separate check of `8e28d32`, no file changed): Release build with
+  `-warnaserror` 0 errors / 0 warnings; full `dotnet test AiVideoEditor.sln` (Release) passed 3407, failed 0, skipped 2
+  (the 4K heavy scenes); on the base `a657bff` 3352 / 0 / 2 — the +55 are exactly the new Phase 21 tests, no test lost, no
+  new failure. The cloud's end-to-end AAC failure does not occur on Windows.
+- 2026-10-15 — the product owner checked Phase 21 in the real app and accepted the main functionality: the outline
+  animation and fades in the Preview, the dashed contours in the markup mode, the manual contour correction, Trim / Slip /
+  speed change / Split, the timeline display, the export with the exported video reopened, save and reopen of the project
+  (manual plan rows 3, 10, 11, 14–17, 22, 23). The other rows stay NOT RUN in the real app.
+- Follow-ups recorded, not in the scope of Phase 21 (`ROADMAP.md` "Follow-ups and backlog"): FU-21.1 the "Previous marker"
+  status message; FU-21.2 markers staying in place when a clip moves — by D027 the decided behaviour of sequence markers, a
+  product question whether clip-bound markers are wanted; the export of vertical video without unwanted black bars — the
+  framing to be decided before any code change.
+- Next: the pull request into `main` (no merge without the product owner's confirmation).
 
 ### Phase 20 — Manual correction of hold contours (merged 2026-10-15 as `a657bff`, PR #21)
 
