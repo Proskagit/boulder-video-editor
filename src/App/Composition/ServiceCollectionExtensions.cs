@@ -113,6 +113,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<PreviewViewModel>();
         services.AddTransient<InspectorViewModel>();
         services.AddTransient<HoldMarkupViewModel>();
+        services.AddTransient<PreviewTransformViewModel>();
         services.AddTransient<TimelineViewModel>();
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();

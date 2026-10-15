@@ -41,6 +41,9 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// mode over the Preview. Null without the model service (design time, tests).</summary>
     public HoldMarkupViewModel? HoldMarkup { get; }
 
+    /// <summary>The Preview's Move / Crop tools (D038). Null when not composed (design time, some tests).</summary>
+    public PreviewTransformViewModel? PreviewTransform { get; }
+
     public MainWindowViewModel(
         ToolbarViewModel toolbar,
         MediaBrowserViewModel mediaBrowser,
@@ -55,7 +58,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         WaveformCoordinator? waveforms = null,
         MediaAvailabilityMonitor? mediaAvailability = null,
         IMediaRelinkService? relink = null,
-        HoldMarkupViewModel? holdMarkup = null)
+        HoldMarkupViewModel? holdMarkup = null,
+        PreviewTransformViewModel? previewTransform = null)
     {
         // A file found not to fit its clips after a later analysis (D026 §3, Step 11.4): said, never undone by itself.
         if (relink is not null)
@@ -120,6 +124,8 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         HoldMarkup = holdMarkup;
         if (holdMarkup is not null) WireHoldMarkup(holdMarkup);
+        PreviewTransform = previewTransform;
+        if (previewTransform is not null) WirePreviewTransform(previewTransform);
 
         // Phase 16 (D031): a double click opens the asset in the Preview's Source mode; the source bar's Insert /
         // Overwrite are the timeline's commands (the target track, the playhead, the selection are the timeline's).
@@ -186,6 +192,39 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             if (e.PropertyName is nameof(PreviewViewModel.IsPlaying) or nameof(PreviewViewModel.IsSourceMode))
                 markup.OnPreviewStateChanged();
+        };
+    }
+
+    /// <summary>D038: the tools act on the timeline's primary selected clip under the playhead; a click on a picture selects
+    /// its clip in the timeline; playback, the Source mode, a save and the hold markup mode end a gesture or the tool.</summary>
+    private void WirePreviewTransform(PreviewTransformViewModel transform)
+    {
+        Preview.Transform = transform;
+        transform.Playhead = () => Timeline.Playhead;
+        transform.IsPlaying = () => Preview.IsPlaying;
+        transform.IsSourceMode = () => Preview.IsSourceMode;
+        transform.SelectClip = id => Timeline.SelectClipFromPreview(id);
+        Timeline.SelectionChanged += (_, selection) => transform.SetClip(selection?.Clip);
+        Timeline.TransitionSelectionChanged += (_, selection) => { if (selection is not null) transform.SetClip(null); };
+        MediaBrowser.SelectionChanged += (_, asset) => { if (asset is not null) transform.SetClip(null); };
+        Timeline.PlayheadChanged += (_, _) => transform.OnPlayheadMoved();
+        Preview.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(PreviewViewModel.IsPlaying) or nameof(PreviewViewModel.IsSourceMode))
+                transform.OnPreviewStateChanged();
+        };
+        _projectFiles.BeforeSave += (_, _) => transform.CancelGesture();
+        transform.OnPreviewStateChanged();
+
+        // A tool and the hold markup mode exclude each other (D038 §1).
+        if (HoldMarkup is not { } markup) return;
+        transform.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(PreviewTransformViewModel.IsActive) && transform.IsActive && markup.IsActive) markup.Exit();
+        };
+        markup.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(HoldMarkupViewModel.IsActive) && markup.IsActive) transform.TurnOff();
         };
     }
 

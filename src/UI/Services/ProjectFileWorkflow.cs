@@ -99,8 +99,15 @@ public sealed class ProjectFileWorkflow
 
     /// <summary>Save: to the project's folder, or through Save As if it has never been saved.
     /// Returns true only if project.json was actually written.</summary>
-    public Task<bool> SaveAsync() =>
-        _projectService.Current.ProjectFolderPath is null ? SaveAsAsync() : SaveToCurrentFolderAsync();
+    public Task<bool> SaveAsync()
+    {
+        BeforeSave?.Invoke(this, EventArgs.Empty);
+        return _projectService.Current.ProjectFolderPath is null ? SaveAsAsync() : SaveToCurrentFolderAsync();
+    }
+
+    /// <summary>Raised before Save, Save As and the unsaved-changes prompt (New / Open / Close): a running Preview gesture
+    /// is cancelled first, so the save point is never set inside a gesture (D038 §4).</summary>
+    public event EventHandler? BeforeSave;
 
     private async Task<bool> SaveToCurrentFolderAsync()
     {
@@ -124,6 +131,7 @@ public sealed class ProjectFileWorkflow
     /// project.json was actually written.</summary>
     public async Task<bool> SaveAsAsync()
     {
+        BeforeSave?.Invoke(this, EventArgs.Empty);
         var current = _projectService.Current;
         var folder = await _picker.PickFolderAsync(new FolderPickerRequest
         {
@@ -174,6 +182,7 @@ public sealed class ProjectFileWorkflow
     /// as Cancel; if the project was edited while it was being saved, the question is asked again.</summary>
     public async Task<UnsavedChangesDecision> ConfirmUnsavedChangesAsync(string action)
     {
+        BeforeSave?.Invoke(this, EventArgs.Empty);
         while (_projectService.Current.IsDirty)
         {
             var choice = await _dialogs.AskAsync(new DialogRequest

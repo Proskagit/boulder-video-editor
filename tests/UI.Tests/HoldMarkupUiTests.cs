@@ -63,7 +63,8 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
             new InspectorViewModel(_edit, _status),
             new TimelineViewModel(_projects, _edit, _status, NullLogger<TimelineViewModel>.Instance),
             _status, files, _projects, NullLogger<MainWindowViewModel>.Instance,
-            holdMarkup: new HoldMarkupViewModel(_edit, _projects, _status, _model, _frames, _lock));
+            holdMarkup: new HoldMarkupViewModel(_edit, _projects, _status, _model, _frames, _lock),
+            previewTransform: new PreviewTransformViewModel(_edit, _projects, _status, _lock, _ => (10, 10)));
         _undo.StateChanged += (_, _) => _history++;
     }
 
@@ -116,6 +117,22 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     /// <summary>History changes so far: each executed command is one (undo / redo too).</summary>
     private int _history;
     private int UndoSteps() => _history;
+
+    // --- D038 §1: the Preview's Move / Crop tools and the markup mode exclude each other ------------------------------------
+
+    [Fact]
+    public async Task A_Preview_tool_leaves_the_markup_mode_and_the_markup_mode_turns_the_tool_off()
+    {
+        await StartOnClip();
+        _vm.PreviewTransform!.IsMoveOn = true;
+        Assert.False(Markup.IsActive);
+        Assert.True(_vm.PreviewTransform.IsActive);
+
+        Assert.True(Markup.StartCommand.CanExecute(null));
+        await Markup.StartCommand.ExecuteAsync(null);
+        Assert.True(Markup.IsActive);
+        Assert.False(_vm.PreviewTransform.IsActive);
+    }
 
     // --- the Inspector section ---------------------------------------------------------------------------------------
 

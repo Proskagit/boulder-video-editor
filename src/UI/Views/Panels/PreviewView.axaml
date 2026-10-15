@@ -27,6 +27,23 @@
                   Command="{Binding ShowSourceCommand}"
                   ToolTip.Tip="Show the media opened in Source (double-click a video or audio file in the Media Browser)"/>
         </StackPanel>
+        <!-- Move / Crop (Phase 23, D038 §1): two exclusive tools over the timeline's picture; off in Source mode and
+             during an export. -->
+        <StackPanel Orientation="Horizontal" Spacing="2" DockPanel.Dock="Right" Margin="8,0,0,0"
+                    IsVisible="{Binding Transform, Converter={x:Static ObjectConverters.IsNotNull}}">
+          <StackPanel.Styles>
+            <Style Selector="ToggleButton.tool">
+              <Setter Property="FontSize" Value="11"/>
+              <Setter Property="Padding" Value="8,2"/>
+            </Style>
+          </StackPanel.Styles>
+          <ToggleButton Classes="tool" Content="Move" IsChecked="{Binding Transform.IsMoveOn, Mode=TwoWay}"
+                        IsEnabled="{Binding Transform.IsAvailable, FallbackValue=False}"
+                        ToolTip.Tip="Drag the selected clip in the picture; drag a corner of its frame to scale it (Esc cancels a drag)"/>
+          <ToggleButton Classes="tool" Content="Crop" IsChecked="{Binding Transform.IsCropOn, Mode=TwoWay}"
+                        IsEnabled="{Binding Transform.IsAvailable, FallbackValue=False}"
+                        ToolTip.Tip="Drag the handles of the selected clip's frame to crop it; the picture stays in place (Esc cancels a drag)"/>
+        </StackPanel>
         <!-- AI hold markup (Phase 19, D034): the mode's status and buttons live in this bar, so the picture keeps its
              size and nothing covers a hold. -->
         <StackPanel Orientation="Horizontal" Spacing="6" DockPanel.Dock="Right" Margin="8,0,0,0"
@@ -45,8 +62,16 @@
                   ToolTip.Tip="Leave the hold markup (the marked holds stay)"/>
         </StackPanel>
         <Panel Margin="8,0,0,0" VerticalAlignment="Center">
-          <TextBlock Text="{Binding SourceName}" Foreground="#9A9A9A" FontSize="11" TextTrimming="CharacterEllipsis"
-                     IsVisible="{Binding HoldMarkup.IsActive, Converter={x:Static BoolConverters.Not}, FallbackValue=True}"/>
+          <TextBlock Text="{Binding SourceName}" Foreground="#9A9A9A" FontSize="11" TextTrimming="CharacterEllipsis">
+            <TextBlock.IsVisible>
+              <MultiBinding Converter="{x:Static BoolConverters.And}">
+                <Binding Path="HoldMarkup.IsActive" Converter="{x:Static BoolConverters.Not}" FallbackValue="True"/>
+                <Binding Path="Transform.IsActive" Converter="{x:Static BoolConverters.Not}" FallbackValue="True"/>
+              </MultiBinding>
+            </TextBlock.IsVisible>
+          </TextBlock>
+          <TextBlock Text="{Binding Transform.ModeText}" Foreground="#DDDDDD" FontSize="11" TextTrimming="CharacterEllipsis"
+                     IsVisible="{Binding Transform.IsActive, FallbackValue=False}"/>
           <TextBlock Text="{Binding HoldMarkup.ModeText}" Foreground="#DDDDDD" FontSize="11" TextTrimming="CharacterEllipsis"
                      ToolTip.Tip="{Binding HoldMarkup.ModeHelp}"
                      IsVisible="{Binding HoldMarkup.IsActive, FallbackValue=False}"/>
@@ -61,6 +86,8 @@
       <!-- AI hold markup (Phase 19, D034): clicks, the candidate, the selected hold and the loupe (status and buttons in
            the bar above). -->
       <rendering:HoldMarkupOverlay Markup="{Binding HoldMarkup}"/>
+      <!-- Move / Crop (Phase 23, D038): the selected clip's frame and handles, clicks and drags (text in the bar above). -->
+      <rendering:PreviewTransformOverlay Transform="{Binding Transform}" Layers="{Binding Layers}"/>
       <TextBlock Text="Buffering…" IsVisible="{Binding IsBuffering}"
                  Foreground="#7A7A7A" FontSize="12" Margin="8"
                  HorizontalAlignment="Right" VerticalAlignment="Top"/>

@@ -1024,6 +1024,14 @@ public sealed partial class TimelineViewModel : ViewModelBase
         return true;
     }
 
+    /// <summary>A press on a clip's picture in the Preview with a tool on (D038 §2): the clip is selected as a click on it
+    /// here would select it (with its link partner) unless it already is the primary.</summary>
+    public void SelectClipFromPreview(Guid id)
+    {
+        if (!_clipViewModels.ContainsKey(id) || (_selection.Count > 0 && _selection[^1] == id && _selectedTransitionId is null)) return;
+        SelectOnly(id);
+    }
+
     /// <summary>Pointer released on a clip without dragging: collapse a multi-selection to it.</summary>
     public void OnClipClicked(TimelineClipViewModel clip, bool toggle)
     {
