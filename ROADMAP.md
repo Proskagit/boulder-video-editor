@@ -65,8 +65,8 @@ that never makes an overlap, also for a drop from the Media Browser (a new clip 
 edits (move, nudge, drop, Paste, Duplicate, + Text) push the clips on the right by the overlap instead of being refused —
 on one track, a partner follows or the whole edit is refused, a dissolve of untouched clips never opened, one undo step; a
 collision on the left still refused; Alt+arrow nudges; auto-scroll while dragging; `project.json` stays v6. Steps
-22.0–22.6 done (closeout by Claude 2026-10-16: gates green, the manual plan run in the real app, all rows PASS); awaiting the
-product owner's acceptance; nothing pushed. Steps:
+22.0–22.6 done (closeout by Claude 2026-10-16: gates green, the manual plan run in the real app, all rows PASS); **accepted
+by the product owner on 2026-10-16**; pull request into `main`, not merged. Steps:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 22 — Timeline selection, snapping and making room: steps"; manual plan
 `docs/PHASE22_MANUAL_TEST_PLAN.md`.
 

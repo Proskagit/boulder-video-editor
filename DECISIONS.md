@@ -4891,8 +4891,9 @@ Consequences: no format change; the edit service's placement edits (`MoveClips`,
 `DuplicateClips`, `AddTextClip`) make room on the right; a move preview of every clip it changes; a snap that can skip a
 target; a selection helper and the marquee in the timeline view-model and view; new shortcuts Ctrl+A, Esc, Alt+arrows.
 
-Status: Accepted (2026-10-15, product owner: the Phase 22 specification, revision 2, and the answers Q1–Q11). Phase 22,
-branch `feat/phase-22-timeline-ux`.
+Status: Accepted (2026-10-15, product owner: the Phase 22 specification, revision 2, and the answers Q1–Q11). Implemented in
+Phase 22 (branch `feat/phase-22-timeline-ux`); accepted by the product owner on 2026-10-16 after the real-app run of
+`docs/PHASE22_MANUAL_TEST_PLAN.md` (25 / 25 PASS).
 
 ---
 

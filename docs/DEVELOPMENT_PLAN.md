@@ -126,7 +126,8 @@ and runs cleanly.
       an empty track at 0); placement edits push the clips on the right instead of being refused (one track, a partner
       follows or the edit is refused, atomic, one undo step); Alt+arrow nudges; auto-scroll while dragging. `project.json`
       stays v6. Scope, steps and acceptance criteria: section below and DECISIONS.md D037 (accepted 2026-10-15).
-      *(Branch `feat/phase-22-timeline-ux` from `7318ba8`, the merge of PR #22)*
+      *(Branch `feat/phase-22-timeline-ux` from `7318ba8`, the merge of PR #22; Steps 22.0–22.6 `3cc9bac` … `0f03ba3`;
+      accepted by the product owner on 2026-10-16; pull request into `main`, not merged)*
 
 ## Future ideas (not phases)
 
@@ -1660,7 +1661,7 @@ multi-track selection between tracks, multi-clip property editing; FU-21.1, FU-2
 - Tests: `ShortcutRoutingTests`, `UI.Tests/TimelineSelectionUiTests` (one step each, refusals with no step, the export lock,
   a push and a left collision, the auto-scroll speed rule).
 
-### 22.6 — Verification & closeout *(done by Claude 2026-10-16; awaiting the product owner's acceptance)*
+### 22.6 — Verification & closeout *(done by Claude 2026-10-16; Phase 22 accepted by the product owner on 2026-10-16)*
 - Build `-warnaserror` Release and Debug, the full suite, the heavy scenes, three `--blame-hang` runs, `git diff --check`;
   the manual plan in the real app at 1024 and 1440 px; a Phase 21 project opened and saved byte for byte; the docs.
 - Result (code `f4383c3`, no product code changed in the step): Release and Debug `--no-incremental -warnaserror` 0 / 0;

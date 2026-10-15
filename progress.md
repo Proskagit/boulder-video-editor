@@ -68,7 +68,10 @@ product owner's command.
   - Side effects on this machine: the app writes its logs, recovery files and the recent-projects list under the real
     `%LOCALAPPDATA%\AiVideoEditor` (the `LOCALAPPDATA` variable does not move it) — the fixture folder was added to
     "Recent"; every run closed normally, no recovery file left.
-  - State: Phase 22 implemented and verified by Claude; awaiting the product owner's acceptance; no push, PR or merge.
+  - State: Phase 22 implemented and verified by Claude.
+- 2026-10-16 — **Phase 22 accepted by the product owner** (the manual plan passed, the gates green). Push of
+  `feat/phase-22-timeline-ux` and a pull request into `main` permitted; the merge stays with the product owner. FU-21.1,
+  FU-21.2, the vertical-video export and FU-22.1 stay outside the phase.
 - Not merged branch noticed, untouched: `fix/preview-refresh-beyond-end` (`7b118a7`, worktree `.claude/worktrees/
   modest-albattani-c2ae6e`) — probably superseded by PR #16.
 
