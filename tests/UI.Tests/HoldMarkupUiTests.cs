@@ -227,6 +227,62 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_refinement_without_an_allowed_mask_keeps_the_previous_candidate_and_drops_only_the_new_point()
+    {
+        var clip = await StartOnClip();
+        await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), additive: false);
+        var contour = Markup.CandidateContour.ToArray();
+
+        Markup.NextAlternativeCommand.Execute(null);
+        await WaitFor(() => Markup.AlternativeText == "Outline 2 of 2");
+        contour = Markup.CandidateContour.ToArray();
+        var history = _history;
+
+        _model.OnlyWalls = true;                                       // the refined prompt: every mask over 2 %
+        await Markup.OnClickAsync(new NormalizedPoint(0.52, 0.5), additive: true);
+        Assert.Equal(2, _model.LastPoints!.Count);
+        Assert.True(Markup.HasCandidate);                              // kept as it was
+        Assert.Equal(contour, Markup.CandidateContour.ToArray());
+        Assert.Equal("Outline 2 of 2", Markup.AlternativeText);
+        Assert.Equal(HoldMarkupViewModel.RefineRejectedMessage, _status.Message);
+        Assert.Null(clip.HoldMarkup);                                  // nothing confirmed, nothing changed
+        Assert.Equal(history, _history);
+
+        _model.OnlyWalls = false;                                      // the next refinement starts from the first point only
+        await Markup.OnClickAsync(new NormalizedPoint(0.48, 0.5), additive: true);
+        Assert.Equal(new[] { new PointD(100, 50), new PointD(96, 50) }, _model.LastPoints);
+        Assert.Null(Markup.AlternativeText);                           // a normal refinement: one mask
+        await Markup.ConfirmCommand.ExecuteAsync(null);
+        Assert.Single(clip.HoldMarkup!.Holds);
+
+    }
+
+    [Fact]
+    public async Task A_rejected_refinement_never_confirms_on_an_early_enter_and_a_shift_click_without_a_candidate_is_a_plain_click()
+    {
+        var clip = await StartOnClip();
+        // No candidate yet: Shift+click is a plain click; without an allowed mask there is no candidate and the usual message.
+        _model.OnlyWalls = true;
+        await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), additive: true);
+        Assert.Single(_model.LastPoints!);
+        Assert.False(Markup.HasCandidate);
+        Assert.Contains("No hold there", _status.Message);
+
+        _model.OnlyWalls = false;
+        await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), additive: false);
+        var contour = Markup.CandidateContour.ToArray();
+        _model.OnlyWalls = true;
+        _model.PredictDelay = TimeSpan.FromMilliseconds(150);
+        var refine = Markup.OnClickAsync(new NormalizedPoint(0.52, 0.5), additive: true);
+        await Markup.ConfirmCommand.ExecuteAsync(null);                // Enter while the refinement runs
+        await refine;
+        await Task.Delay(100);
+        Assert.Null(clip.HoldMarkup);                                  // the early Enter is dropped with the refinement
+        Assert.Equal(contour, Markup.CandidateContour.ToArray());
+        Assert.Equal(HoldMarkupViewModel.RefineRejectedMessage, _status.Message);
+    }
+
+    [Fact]
     public async Task When_every_mask_is_larger_than_two_percent_there_is_no_candidate_and_a_message()
     {
         await StartOnClip();

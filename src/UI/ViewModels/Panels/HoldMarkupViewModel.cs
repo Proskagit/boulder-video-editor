@@ -31,6 +31,9 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 {
     public const string CpuMessage = "AI runs on the CPU — processing may be slower.";
 
+    public const string RefineRejectedMessage =
+        "That point gives no outline under 2 % of the frame — the previous outline is kept. Shift+click on the hold itself.";
+
     private readonly ITimelineEditService _edit;
     private readonly IProjectService _projects;
     private readonly IHoldSegmentationService? _segmentation;
@@ -365,6 +368,15 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             if (generation != _generation || !IsActive) return;
             var visible = HoldCandidateRules.Visible(set);
             if (points.Count > 1 && visible.Length > 1) visible = ImmutableArray.Create(visible[0]);   // one mask, no alternatives
+            if (visible.IsEmpty && points.Count > 1)
+            {
+                // A refinement without an allowed mask: the candidate stays as it was, only the new point goes, and an
+                // Enter pressed meanwhile is dropped (it meant the refined outline, which does not exist).
+                if (_points.Count == points.Count) _points.RemoveAt(_points.Count - 1);
+                _confirmPending = false;
+                _status.Report(RefineRejectedMessage);
+                return;
+            }
             if (visible.IsEmpty)
             {
                 ClearCandidate();
@@ -381,7 +393,13 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            if (generation == _generation) _status.Report($"Hold markup failed: {ex.Message}");
+            if (generation == _generation)
+            {
+                // A failed refinement keeps the candidate as it was, without the new point.
+                if (points.Count > 1 && _points.Count == points.Count) _points.RemoveAt(_points.Count - 1);
+                _confirmPending = false;
+                _status.Report($"Hold markup failed: {ex.Message}");
+            }
         }
         finally
         {
