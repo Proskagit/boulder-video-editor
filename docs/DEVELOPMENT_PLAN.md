@@ -118,7 +118,7 @@ and runs cleanly.
 
 Recorded so they are not lost. None of them is a phase, has acceptance criteria or is approved for implementation.
 
-### Hold contour correction — the next product stage *(proposal, 2026-10-15)*
+### Hold contour correction — the next product stage *(proposal, 2026-10-15; taken up as Phase 20, DECISIONS.md D035 — the sketch below kept as history; D035 differs: dense contours keep every vertex, the handles are only a display subset)*
 
 The product owner's priority: as few actions as possible — show the model's best mask at once and, when its boundary is
 wrong (a large mask that took part of the wall, a part of a hold, a printed logo), let the user correct it directly
@@ -1481,6 +1481,45 @@ the route animation (future ideas above).
 - M: `docs/PHASE19_MANUAL_TEST_PLAN.md` — the product owner's 2–3 clips: markup, export, viewing; the time to mark a route
   recorded; the threshold examples accepted.
 - Documentation: D034 status, ARCHITECTURE, `progress.md`, ROADMAP / README, the manual plan, this plan's checkbox.
+
+## Phase 20 — Manual correction of hold contours: steps (D035)
+
+Assigned on 2026-10-15 by the product owner after the merge of PR #20 (`2d0a10b`); the normative text is DECISIONS.md D035.
+Branch `feat/phase-20-hold-contour-editing` from `origin/main` = `2d0a10b`. The product owner's permission covers the code,
+tests, documentation and commits on this branch; **no push, pull request or merge without a separate command**.
+
+Goal: the user corrects a wrong boundary of a confirmed hold by hand — drag a vertex, Alt+click to add one, Delete /
+double-click to remove one — without cycling the model's alternatives; the corrected contour is saved in the project and
+drawn the same in the Preview and the export.
+
+Gates: `dotnet build -warnaserror` 0 / 0; the full `dotnet test AiVideoEditor.sln` green (the two 4K heavy scenes skipped)
+without the model weights or a GPU; every existing expected value unchanged; `project.json` stays v5; the gestures checked
+in the real app (`docs/PHASE20_MANUAL_TEST_PLAN.md`); `progress.md` updated.
+
+Out of scope (D035): negative points, new recognition modes, the route animation, timeline / localization / other UX.
+
+### 20.1 — Contour geometry (Core) *(done)*
+- `Core/Holds/ContourEditing`: the handles (every vertex up to 32, else Douglas–Peucker at 2 % of the size), a drag with
+  the falloff over the hidden vertices (every other vertex exact), insert on an edge, removal of a handle (at least three
+  stay), the check that an edit introduces no crossing / touch / zero area; `MaskContour.SimplifyIndices`.
+- Tests: `Core.Tests/ContourEditingTests`.
+
+### 20.2 — The edit (Timeline) *(done)*
+- `ITimelineEditService.ReplaceHoldContour` → `SetHoldMarkupCommand` with `HoldMarkupFields.Contour` (never merged); the
+  same hold, samples and colour; validation, crossing, locked track.
+- Tests: `Timeline.Tests/HoldMarkupEditTests` (undo / redo, separate steps, refusals, Split, the drawn outline);
+  `Project.Tests/HoldMarkupPersistenceTests` (save / open / save of a corrected contour, v5);
+  `Rendering.Tests/HoldOutlineRenderTests` (a corrected contour, Preview and export).
+
+### 20.3 — Markup mode gestures (UI) *(done)*
+- `HoldMarkupViewModel`: handles of the selected hold, drag / insert / delete as one step each, the live crossing state,
+  Esc, Delete over a handle, the export lock, undo / redo refreshing the selection; `HoldMarkupOverlay`: handle and edge
+  hit-testing in view pixels, the drag with pointer capture and a 3 px threshold, the handles and the red invalid contour.
+- Tests: `UI.Tests/HoldMarkupUiTests` (Phase 20 section).
+
+### 20.4 — Verification & closeout
+- The full suite; the real-app check of `docs/PHASE20_MANUAL_TEST_PLAN.md`; documentation (D035, ARCHITECTURE, ROADMAP,
+  README, `progress.md`).
 
 ## Architectural rules that must hold at every phase
 

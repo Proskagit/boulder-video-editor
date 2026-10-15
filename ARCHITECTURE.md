@@ -393,6 +393,12 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   frame under the playhead at full display size through `IVideoDecoder`, the D033 HDR rule), `HoldMarkupOverlay` over
   the Preview's `CompositionView` (clicks mapped through the viewport and `LayerGeometry`, the candidate, the selected
   hold, the loupe); the mode's keys (Enter, Esc, Delete, Tab) come first in `ShortcutRouter`.
+- Contour correction (Phase 20, D035): `Core/Holds/ContourEditing` (pure geometry — the handles of a contour: every
+  vertex up to 32, else a Douglas–Peucker display subset; a drag with a falloff over the hidden vertices, insert, removal,
+  at least three; no new self-crossing) → `ITimelineEditService.ReplaceHoldContour` (the same hold, its samples and the
+  colour kept; `SetHoldMarkupCommand` with `HoldMarkupFields.Contour`, never merged) ← `HoldMarkupViewModel` (one step per
+  gesture, the export lock) ← `HoldMarkupOverlay` (handles and edge hit-testing in view pixels, the drag; the handles are
+  drawn only in the overlay, never in the composition or the export). No format change (v5).
 
 ## Thumbnails (Phase 9 Step 9.4)
 

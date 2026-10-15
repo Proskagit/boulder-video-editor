@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Collections.Concurrent;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
@@ -239,6 +240,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change) => No;
         public TimelineEditResult AddHold(Guid clipId, Hold hold) => No;
         public TimelineEditResult RemoveHold(Guid clipId, Guid holdId) => No;
+        public TimelineEditResult ReplaceHoldContour(Guid clipId, Guid holdId, ImmutableArray<NormalizedPoint> points) => No;
         public TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style) => No;
         public TimelineEditResult SetCanvasSize(int width, int height) => No;
         public TimelineEditResult SetFrameRate(FrameRate rate) => No;

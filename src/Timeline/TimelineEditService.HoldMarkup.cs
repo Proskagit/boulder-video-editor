@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Holds;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Timeline.Commands;
 
@@ -32,6 +34,23 @@ public sealed partial class TimelineEditService
         if (before is null || index < 0) return TimelineEditResult.Fail("That hold is not marked on the clip.");
 
         return Apply(clip, before, RouteColor.WithResolved(before with { Holds = before.Holds.RemoveAt(index) }), HoldMarkupFields.Holds);
+    }
+
+    public TimelineEditResult ReplaceHoldContour(Guid clipId, Guid holdId, ImmutableArray<NormalizedPoint> points)
+    {
+        if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
+        var before = clip.HoldMarkup;
+        var index = before is null ? -1 : before.Holds.IndexOf(before.Holds.FirstOrDefault(h => h.Id == holdId)!);
+        if (before is null || index < 0) return TimelineEditResult.Fail("That hold is not marked on the clip.");
+
+        var old = before.Holds[index];
+        var corrected = new Hold(old.Id, points, old.SurfaceLab, old.WallLab, old.SourceTime);
+        if (HoldMarkupRules.ValidateHold(corrected) is { } holdError) return TimelineEditResult.Fail(holdError);
+        if (corrected.SameAs(old)) return TimelineEditResult.Unchanged();
+        if (ContourEditing.IntroducesCrossing(old.Points, corrected.Points)) return TimelineEditResult.Fail(ContourEditing.CrossingMessage);
+
+        // The samples stay as taken at the confirm (D034 §5), so the colour and the keyline are not resolved again.
+        return Apply(clip, before, before with { Holds = before.Holds.SetItem(index, corrected) }, HoldMarkupFields.Contour);
     }
 
     public TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style)

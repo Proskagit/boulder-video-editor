@@ -223,4 +223,26 @@ public class HoldMarkupPersistenceTests
         ClipJson(color)["holdMarkup"]!["colorHex"] = "magenta";
         Assert.Contains("damaged", Rejected(color).Message);
     }
+    [Fact]
+    public void A_corrected_contour_survives_a_save_open_save_exactly_as_the_same_hold_with_its_samples()
+    {
+        // Phase 20 (D035): a correction replaces only the hold's points — still format v5 with the same members.
+        var markup = Markup();
+        var original = markup.Holds[0];
+        var edit = new Core.Holds.ContourEdit(original.Points, Enumerable.Range(0, original.Points.Length).ToImmutableArray());
+        edit = Core.Holds.ContourEditing.MoveHandle(edit, 1, new NormalizedPoint(0.12398765432101, 0.43812345678901), 1920, 1080);
+        edit = Core.Holds.ContourEditing.InsertVertex(edit, 2, 0.3141592653589793)!;
+        var corrected = new Hold(original.Id, edit.Points, original.SurfaceLab, original.WallLab, original.SourceTime);
+        var project = Build(markup with { Holds = markup.Holds.SetItem(0, corrected) });
+
+        var first = Save(project);
+        var reopened = Load(first);
+        Assert.Equal(first, Save(reopened));
+        Assert.Equal(5, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
+
+        var loaded = LoadedMarkup(reopened).Holds[0];
+        Assert.True(corrected.SameAs(loaded));                                 // id, every point, the samples, the time
+        Assert.Equal(edit.Points.Length, loaded.Points.Length);
+        Assert.Equal(markup.ColorHex, LoadedMarkup(reopened).ColorHex);
+    }
 }

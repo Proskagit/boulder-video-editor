@@ -2,9 +2,11 @@ using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Holds;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.Project;
+using AiVideoEditor.Project.Persistence;
 using AiVideoEditor.Timeline;
 using AiVideoEditor.Timeline.Playback;
 using AiVideoEditor.Timeline.Tests.Playback;
@@ -477,6 +479,186 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
         // Outside the visible (cropped) picture: no point.
         var cropped = HoldMarkupOverlay.ToView(geometry, canvas, view, new NormalizedPoint(0.98, 0.5));
         Assert.Null(HoldMarkupOverlay.ToSource(geometry, canvas, view, cropped));
+    }
+
+    // --- Phase 20 (D035): the manual contour correction ----------------------------------------------------------------
+
+    private async Task<(VideoClip Clip, Hold Hold)> SelectedHold()
+    {
+        var clip = await StartOnClip();
+        await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), false);
+        await Markup.ConfirmCommand.ExecuteAsync(null);
+        var hold = Assert.Single(clip.HoldMarkup!.Holds);
+        await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), false);
+        Assert.Equal(hold.Id, Markup.SelectedHoldId);
+        Assert.True(Markup.CanEditContour);
+        return (clip, hold);
+    }
+
+    /// <summary>A drag of handle <paramref name="handle"/> through a midway point to <paramref name="to"/>.</summary>
+    private void Drag(int handle, NormalizedPoint to)
+    {
+        var from = Markup.SelectedContour[Markup.SelectedHandles[handle]];
+        Assert.True(Markup.BeginVertexDrag(handle));
+        Markup.DragVertex(new NormalizedPoint((from.X + to.X) / 2, (from.Y + to.Y) / 2));
+        Markup.DragVertex(to);
+        Markup.EndVertexDrag();
+    }
+
+    [Fact]
+    public async Task A_selected_hold_shows_its_handles_and_a_drag_is_one_undo_step_of_the_same_hold()
+    {
+        var (clip, hold) = await SelectedHold();
+        Assert.Equal(hold.Points.Length, Markup.SelectedHandles.Length);           // a small contour: every vertex
+        Assert.Equal(HoldMarkupViewModel.SelectedText, Markup.ModeText);
+        var colour = clip.HoldMarkup!.ColorHex;
+        var steps = UndoSteps();
+
+        Drag(0, new NormalizedPoint(0.4, 0.3));
+        Assert.Equal(steps + 1, UndoSteps());                                       // the whole gesture: one step
+        var edited = Assert.Single(clip.HoldMarkup!.Holds);
+        Assert.Equal(hold.Id, edited.Id);
+        Assert.Equal(new NormalizedPoint(0.4, 0.3), edited.Points[0]);
+        Assert.Equal(hold.Points.Skip(1), edited.Points.Skip(1));
+        Assert.Equal((hold.SurfaceLab, hold.WallLab, hold.SourceTime), (edited.SurfaceLab, edited.WallLab, edited.SourceTime));
+        Assert.Equal(colour, clip.HoldMarkup.ColorHex);
+        Assert.Equal(edited.Points.ToArray(), Markup.SelectedContour.ToArray());
+        Assert.Equal(1, Markup.HoldCount);
+
+        _undo.Undo();                                                               // the overlay follows the model
+        Assert.Equal(hold.Points.ToArray(), clip.HoldMarkup!.Holds[0].Points.ToArray());
+        Assert.Equal(hold.Points.ToArray(), Markup.SelectedContour.ToArray());
+        Assert.Equal(hold.Id, Markup.SelectedHoldId);
+        _undo.Redo();
+        Assert.Equal(edited.Points.ToArray(), clip.HoldMarkup!.Holds[0].Points.ToArray());
+        Assert.Equal(edited.Points.ToArray(), Markup.SelectedContour.ToArray());
+    }
+
+    [Fact]
+    public async Task Alt_click_inserts_a_vertex_and_delete_over_a_handle_removes_one_but_never_below_three()
+    {
+        var (clip, hold) = await SelectedHold();
+        var steps = UndoSteps();
+
+        Markup.InsertVertex(0, 0.5);
+        Assert.Equal(hold.Points.Length + 1, clip.HoldMarkup!.Holds[0].Points.Length);
+        Assert.Equal(hold.Points.Length + 1, Markup.SelectedHandles.Length);       // the new vertex is a handle
+        Assert.Equal(steps + 1, UndoSteps());
+
+        // Delete with the pointer over a handle removes that vertex, not the hold.
+        Markup.HoveredHandle = 1;
+        ShortcutRouter.CommandFor(_vm, Key.Delete, KeyModifiers.None)!.Execute(null);
+        Assert.Equal(hold.Points.ToArray(), clip.HoldMarkup!.Holds[0].Points.ToArray());
+        Assert.Equal(steps + 2, UndoSteps());
+
+        Markup.DeleteVertex(0);
+        Assert.Equal(3, clip.HoldMarkup!.Holds[0].Points.Length);
+        Markup.DeleteVertex(0);                                                     // refused: three stay
+        Assert.Equal(3, clip.HoldMarkup!.Holds[0].Points.Length);
+        Assert.Equal(ContourEditing.TooFewPointsMessage, _status.Message);
+        Assert.Equal(steps + 3, UndoSteps());
+
+        Markup.HoveredHandle = null;                                                // not over a handle: the hold goes
+        ShortcutRouter.CommandFor(_vm, Key.Delete, KeyModifiers.None)!.Execute(null);
+        Assert.Empty(clip.HoldMarkup!.Holds);
+    }
+
+    [Fact]
+    public async Task A_drag_that_crosses_the_contour_shows_it_and_is_refused_on_release()
+    {
+        var (clip, hold) = await SelectedHold();
+        var steps = UndoSteps();
+        Assert.True(Markup.BeginVertexDrag(0));
+        Markup.DragVertex(new NormalizedPoint(0.5, 0.7));                            // the top-left corner across the bottom edge
+        Assert.True(Markup.IsContourInvalid);
+        Markup.EndVertexDrag();
+        Assert.False(Markup.IsContourInvalid);
+        Assert.Equal(hold.Points.ToArray(), clip.HoldMarkup!.Holds[0].Points.ToArray());
+        Assert.Equal(hold.Points.ToArray(), Markup.SelectedContour.ToArray());
+        Assert.Equal(ContourEditing.CrossingMessage, _status.Message);
+        Assert.Equal(steps, UndoSteps());
+    }
+
+    [Fact]
+    public async Task Esc_abandons_a_drag_and_an_export_ends_it_without_an_edit()
+    {
+        var (clip, hold) = await SelectedHold();
+        var steps = UndoSteps();
+        Assert.True(Markup.BeginVertexDrag(0));
+        Markup.DragVertex(new NormalizedPoint(0.4, 0.3));
+        Markup.EscapeCommand.Execute(null);                                          // Esc: the drag only
+        Assert.False(Markup.IsDraggingVertex);
+        Assert.Equal(hold.Points.ToArray(), Markup.SelectedContour.ToArray());
+        Assert.Equal(hold.Id, Markup.SelectedHoldId);
+
+        Assert.True(Markup.BeginVertexDrag(0));
+        Markup.DragVertex(new NormalizedPoint(0.4, 0.3));
+        using (_lock.Acquire())                                                      // an export starts mid-drag
+        {
+            Assert.False(Markup.IsActive);
+            Markup.EndVertexDrag();
+            Markup.InsertVertex(0, 0.5);
+            Assert.False(Markup.CanEditContour);
+        }
+        Assert.Equal(hold.Points.ToArray(), clip.HoldMarkup!.Holds[0].Points.ToArray());
+        Assert.Equal(steps, UndoSteps());
+    }
+
+    [Fact]
+    public async Task On_a_locked_track_a_correction_is_refused()
+    {
+        var (clip, hold) = await SelectedHold();
+        // Locked without a notification (the mode leaves on a notified lock): the edit service refuses the step.
+        var track = _projects.Current.Timeline.VideoTracks.Single(t => t.Clips.Contains(clip));
+        track.IsLocked = true;
+        Drag(0, new NormalizedPoint(0.4, 0.3));
+        Assert.Equal(hold.Points.ToArray(), clip.HoldMarkup!.Holds[0].Points.ToArray());
+        Assert.Equal(hold.Points.ToArray(), Markup.SelectedContour.ToArray());
+        Assert.Contains("locked", _status.Message);
+    }
+
+    [Fact]
+    public async Task A_corrected_contour_is_saved_and_reopened_as_the_same_hold()
+    {
+        var (clip, hold) = await SelectedHold();
+        Drag(1, new NormalizedPoint(0.62, 0.33));
+        Markup.InsertVertex(2, 0.37);
+        var corrected = clip.HoldMarkup!.Holds[0];
+        Assert.Equal(hold.Points.Length + 1, corrected.Points.Length);
+
+        var folder = Path.Combine(_root, "project");
+        var json = ProjectSerializer.Serialize(_projects.Current, folder);
+        var reopened = ProjectSerializer.Deserialize(json, folder, _ => true);
+        var loaded = reopened.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>().Single().HoldMarkup!.Holds.Single();
+        Assert.True(corrected.SameAs(loaded));
+        Assert.Equal(hold.Id, loaded.Id);
+        Assert.Equal(json, ProjectSerializer.Serialize(reopened, folder));
+    }
+
+    [Fact]
+    public void The_overlay_finds_a_handle_and_an_edge_in_view_pixels()
+    {
+        var canvas = new FrameSize(1920, 1080);
+        var geometry = CompositionMath.Layout(canvas, new FrameSize(1920, 1080), VisualProperties.Default with { RotationDegrees = 90, Scale = 0.5 });
+        var view = new Size(960, 540);
+        var contour = ImmutableArray.Create(new NormalizedPoint(0.4, 0.4), new NormalizedPoint(0.6, 0.4), new NormalizedPoint(0.6, 0.6), new NormalizedPoint(0.4, 0.6));
+        var handles = ImmutableArray.Create(0, 1, 2, 3);
+
+        var corner = HoldMarkupOverlay.ToView(geometry, canvas, view, contour[2]);
+        Assert.Equal(2, HoldMarkupOverlay.HandleAt(geometry, canvas, view, contour, handles, corner + new Point(3, -2)));
+        Assert.Null(HoldMarkupOverlay.HandleAt(geometry, canvas, view, contour, handles, corner + new Point(20, 0)));
+
+        var a = HoldMarkupOverlay.ToView(geometry, canvas, view, contour[0]);
+        var b = HoldMarkupOverlay.ToView(geometry, canvas, view, contour[1]);
+        var quarter = new Point(a.X + (b.X - a.X) * 0.25, a.Y + (b.Y - a.Y) * 0.25);
+        var hit = HoldMarkupOverlay.EdgeAt(geometry, canvas, view, contour, quarter + new Point(2, 2))!.Value;
+        Assert.Equal(0, hit.Edge);
+        Assert.InRange(hit.T, 0.2, 0.3);
+        Assert.Null(HoldMarkupOverlay.EdgeAt(geometry, canvas, view, contour, new Point(0, 0)));
+
+        // A dragged handle may leave the picture: its point is still given (the edit clamps it to the frame).
+        Assert.NotNull(HoldMarkupOverlay.ToSourceUnbounded(geometry, canvas, view, new Point(1, 1), out var inside));
+        Assert.False(inside);
     }
 
     // --- helpers -----------------------------------------------------------------------------------------------------

@@ -243,4 +243,91 @@ public class HoldMarkupEditTests
         f.UndoRedo.Undo();
         Assert.Equal(before + 2, f.TimelineChangedCount);
     }
+    // --- Phase 20 (D035): the manual correction of a hold's contour ---------------------------------------------------
+
+    [Fact]
+    public void A_contour_correction_keeps_the_hold_its_samples_and_the_colour_and_is_one_undo_step()
+    {
+        var f = WithVideo(out var clip);
+        var hold = Hold("#E53935", sourceTicks: 7_654_321);
+        Assert.True(f.Service.AddHold(clip.Id, hold).Success);
+        Assert.True(f.Service.AddHold(clip.Id, Hold("#1E88E5", x: 0.2)).Success);
+        var (colour, keyline) = (clip.HoldMarkup!.ColorHex, clip.HoldMarkup.KeylineActive);
+        var before = clip.HoldMarkup;
+
+        var corrected = hold.Points.SetItem(1, new NormalizedPoint(0.53, 0.47));
+        var result = f.Service.ReplaceHoldContour(clip.Id, hold.Id, corrected);
+        Assert.True(result.Success, result.Message);
+        Assert.Equal("Edit Hold Outline", f.UndoRedo.NextUndo!.Description);
+
+        var edited = clip.HoldMarkup!.Holds[0];
+        Assert.Equal(hold.Id, edited.Id);                                           // the same object, not a new hold
+        Assert.Equal(corrected, edited.Points);
+        Assert.Equal((hold.SurfaceLab, hold.WallLab, hold.SourceTime), (edited.SurfaceLab, edited.WallLab, edited.SourceTime));
+        Assert.Equal(2, clip.HoldMarkup.Holds.Length);
+        Assert.Equal((colour, keyline), (clip.HoldMarkup.ColorHex, clip.HoldMarkup.KeylineActive));   // never re-sampled
+        Assert.Equal(corrected, Core.Playback.HoldOutline.Of(clip.HoldMarkup)!.Polygons[0]);        // what the Preview and the export draw
+
+        f.UndoRedo.Undo();
+        Assert.Same(before, clip.HoldMarkup);
+        Assert.Equal(hold.Points, clip.HoldMarkup!.Holds[0].Points);
+        f.UndoRedo.Redo();
+        Assert.Equal(corrected, clip.HoldMarkup!.Holds[0].Points);
+        Assert.Equal(hold.Id, clip.HoldMarkup.Holds[0].Id);
+    }
+
+    [Fact]
+    public void Consecutive_contour_corrections_are_separate_steps()
+    {
+        var f = WithVideo(out var clip);
+        var hold = Hold("#E53935");
+        Assert.True(f.Service.AddHold(clip.Id, hold).Success);
+        var first = hold.Points.SetItem(1, new NormalizedPoint(0.53, 0.47));
+        var second = first.SetItem(2, new NormalizedPoint(0.53, 0.53));
+        Assert.True(f.Service.ReplaceHoldContour(clip.Id, hold.Id, first).Success);
+        Assert.True(f.Service.ReplaceHoldContour(clip.Id, hold.Id, second).Success);
+
+        f.UndoRedo.Undo();
+        Assert.Equal(first, clip.HoldMarkup!.Holds[0].Points);
+        f.UndoRedo.Undo();
+        Assert.Equal(hold.Points, clip.HoldMarkup!.Holds[0].Points);
+        Assert.Equal("Add Hold", f.UndoRedo.NextUndo!.Description);
+    }
+
+    [Fact]
+    public void A_contour_correction_is_refused_when_invalid_crossing_itself_unchanged_or_on_a_locked_track()
+    {
+        var f = WithVideo(out var clip);
+        var hold = Hold("#E53935");
+        Assert.True(f.Service.AddHold(clip.Id, hold).Success);
+        var markup = clip.HoldMarkup;
+
+        Assert.False(f.Service.ReplaceHoldContour(clip.Id, hold.Id, hold.Points.RemoveAt(0).RemoveAt(0)).Success);       // two points
+        Assert.False(f.Service.ReplaceHoldContour(clip.Id, hold.Id, hold.Points.SetItem(0, new NormalizedPoint(1.2, 0.5))).Success);   // outside
+        var bowtie = hold.Points.SetItem(1, new NormalizedPoint(0.49, 0.6));
+        var crossing = f.Service.ReplaceHoldContour(clip.Id, hold.Id, bowtie);
+        Assert.False(crossing.Success);
+        Assert.Equal(Core.Holds.ContourEditing.CrossingMessage, crossing.Message);
+        Assert.False(f.Service.ReplaceHoldContour(clip.Id, Guid.NewGuid(), hold.Points).Success);                       // no such hold
+        Assert.True(f.Service.ReplaceHoldContour(clip.Id, hold.Id, hold.Points.ToArray().ToImmutableArray()).NoChange);  // same contour: no step
+        Assert.Equal("Add Hold", f.UndoRedo.NextUndo!.Description);
+
+        Assert.True(f.Service.SetTrackLocked(f.V1.Id, true).Success);
+        var locked = f.Service.ReplaceHoldContour(clip.Id, hold.Id, hold.Points.SetItem(1, new NormalizedPoint(0.53, 0.47)));
+        Assert.False(locked.Success);
+        Assert.Contains("locked", locked.Message);
+        Assert.Same(markup, clip.HoldMarkup);
+    }
+
+    [Fact]
+    public void Split_copies_the_corrected_contour()
+    {
+        var f = WithVideo(out var clip);
+        var hold = Hold("#E53935");
+        Assert.True(f.Service.AddHold(clip.Id, hold).Success);
+        var corrected = hold.Points.SetItem(1, new NormalizedPoint(0.53, 0.47));
+        Assert.True(f.Service.ReplaceHoldContour(clip.Id, hold.Id, corrected).Success);
+        Assert.True(f.Service.Split(MediaTime.FromSeconds(4)).Success);
+        Assert.All(f.V1.Clips.OfType<VideoClip>(), c => Assert.Equal(corrected.ToArray(), c.HoldMarkup!.Holds[0].Points.ToArray()));
+    }
 }

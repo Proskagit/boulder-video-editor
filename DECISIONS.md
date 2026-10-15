@@ -4571,7 +4571,7 @@ successor path); a ~870 MB model outside the repository with pinned checksums; a
 regular run; `docs/AI_MODEL.md`. ROADMAP's "left out: AI features" no longer holds (updated 2026-10-14).
 
 Status: Accepted (2026-10-14, product owner: specification revision 5). Implemented in Phase 19 (branch
-`feat/ai-hold-markup`, 2026-10-14, the product owner's permission of the same day); the decision text above unchanged.
+`feat/ai-hold-markup`, 2026-10-14, the product owner's permission of the same day); the decision text above unchanged. Vertex editing (§1 "Not in the MVP") is taken up for confirmed holds by D035 (2026-10-15, Phase 20).
 
 Implementation notes (Phase 19; technical choices within the decision, not changes of it):
 - Multi-point prompts: the pinned decoder was exported with `multimask_output = True` and always returns three masks; a
@@ -4626,6 +4626,70 @@ Implementation notes (Phase 19; technical choices within the decision, not chang
   the metric, and must be visible to the user through the markup's progress. The **full user scenario** (from Mark
   holds to clickable, with the decode and, when needed, the cold start) is reported as well. Definitions, conditions
   and values: `docs/AI_MODEL.md`, "Performance".
+
+---
+
+## D035 — Manual correction of hold contours (Phase 20)
+
+Date: 2026-10-15
+
+Decision (product owner, 2026-10-15: the Phase 20 assignment; extends D034, whose §1 listed "vertex editing" as not in the
+MVP — that line is superseded by this decision for confirmed holds; nothing else of D034 changes). The user corrects a
+wrong boundary of a confirmed hold directly (a mask that took part of the floor or the wall, a part of a hold) instead of
+cycling the model's alternatives. Built on the proposal of 2026-10-15 (`docs/DEVELOPMENT_PLAN.md`, formerly "Future ideas").
+
+### 1. Gestures (markup mode, a selected confirmed hold, no candidate)
+
+- The selected hold shows **handles** at its vertices (white squares; the one under the pointer yellow). Only in the
+  markup mode's overlay — never in the composition, so never in the export.
+- **Drag** a handle: the contour follows the pointer live; the release is **one** undo step. A point outside the frame is
+  clamped to it. Esc during a drag abandons it (nothing changes).
+- **Alt+click on the outline** (within 6 view pixels of an edge) inserts a vertex there; it becomes a handle. Alt+click
+  never starts a candidate.
+- **Delete with the pointer over a handle**, or a **double-click on a handle**, removes it; Delete elsewhere removes the
+  selected hold as in D034. At least **three** handles stay (so at least three vertices): a removal below that is refused
+  with a message.
+- **No self-crossing**: while a drag crosses or touches the contour it is drawn red and its release is refused with a
+  message; an insert or a removal that would cross is refused the same way (also by the edit service). Crossings the
+  traced contour already had among the edges an edit does not change (a mask can touch itself at a one-pixel neck) never
+  block an edit elsewhere.
+
+### 2. Dense contours — simplified handles, lossless geometry
+
+- A contour from the model is simplified to ~1 source pixel (D034 §6) and can have hundreds of vertices. Up to 32
+  vertices every vertex is a handle; above that the handles are the Douglas–Peucker subset at 2 % of the contour's
+  bounding-box diagonal (at least 1.5 source pixels).
+- The stored polygon is **never simplified** by the editor: a drag moves the handle's vertex to the pointer and the hidden
+  vertices between it and its neighbouring handles by a share of the move growing linearly with their arc length towards
+  it; every other vertex stays exactly as it was and the vertex count is unchanged. A removal replaces the stretch between
+  the removed handle's neighbours by a straight edge (that stretch's hidden vertices go with it — the user's edit). An
+  insert adds one vertex on an edge of the full polygon.
+
+### 3. Data, undo, locks
+
+- A correction replaces the hold's `Points` under the **same id**; `SurfaceLab`, `WallLab` and `SourceTime` stay as taken
+  at the confirm (D034 §5: never re-sampled), so the route colour and the keyline do not change. Limits as D034 (3–8192
+  points inside [0, 1]). `ITimelineEditService.ReplaceHoldContour` → one `SetHoldMarkupCommand` (field `Contour`, "Edit
+  Hold Outline"), never merged with another step; an unchanged contour is no step.
+- Refused on a locked track (the edit service) and during an export (`EditingLock` — the mode leaves, a running drag is
+  dropped). Split / Duplicate / Paste copy the corrected contour like any other.
+- `project.json` stays **v5** with the same members — no format change (a corrected contour is an ordinary polygon).
+
+### 4. Preview and export
+
+Unchanged by construction: both draw the stored polygon through the one `CompositionDrawPlan` outline path (D034 §6).
+
+Not in this decision: negative segmentation points, new recognition modes, the route animation, timeline / localization /
+other UX work.
+
+Context: Phase 19's amended candidate rule offers large masks that can take the wall, the floor or a person (D034
+implementation notes); the product owner wants a fast correction with as few actions as possible.
+
+Consequences: no format or dependency change; one new edit method and command field; the markup overlay grows the handle
+gestures. Editing needs the markup mode, so the model must be installed (the frame is prepared as for marking).
+
+Status: Accepted (2026-10-15, product owner: the Phase 20 assignment). Implemented in Phase 20 (branch
+`feat/phase-20-hold-contour-editing`).
 
 ---
 

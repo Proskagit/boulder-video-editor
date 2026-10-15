@@ -551,13 +551,17 @@ public enum HoldMarkupFields
     Holds = 1,
     StrokeWidth = 2,
     Color = 4,
-    Keyline = 8
+    Keyline = 8,
+
+    /// <summary>One hold's contour corrected by hand (D035).</summary>
+    Contour = 16
 }
 
 /// <summary>
 /// Replaces a video clip's hold markup (D034 §6): absolute before / after values (immutable), written back verbatim on
 /// Execute / Undo / Redo. Consecutive changes of the same style setting of the same clip merge into one step (D017); a
-/// change back to where the step started removes it. Adding or removing a hold is always its own step.
+/// change back to where the step started removes it. Adding or removing a hold and correcting a contour are always their own
+/// steps.
 /// </summary>
 public sealed class SetHoldMarkupCommand(VideoClip clip, HoldMarkup? before, HoldMarkup? after, HoldMarkupFields fields) : IMergeableCommand
 {
@@ -572,6 +576,7 @@ public sealed class SetHoldMarkupCommand(VideoClip clip, HoldMarkup? before, Hol
         HoldMarkupFields.StrokeWidth => "Change Outline Width",
         HoldMarkupFields.Color => "Change Outline Colour",
         HoldMarkupFields.Keyline => "Change Keyline",
+        HoldMarkupFields.Contour => "Edit Hold Outline",
         _ => "Change Outline"
     };
 
@@ -581,7 +586,8 @@ public sealed class SetHoldMarkupCommand(VideoClip clip, HoldMarkup? before, Hol
     public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
     {
         merged = null;
-        if (Fields.HasFlag(HoldMarkupFields.Holds) || next is not SetHoldMarkupCommand n || n.Clip != Clip || n.Fields != Fields
+        // Adding or removing a hold and a contour correction (one gesture each, D035) are always their own steps.
+        if ((Fields & (HoldMarkupFields.Holds | HoldMarkupFields.Contour)) != 0 || next is not SetHoldMarkupCommand n || n.Clip != Clip || n.Fields != Fields
             || !ReferenceEquals(n.Before, After))
             return false;
 
