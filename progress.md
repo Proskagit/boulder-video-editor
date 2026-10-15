@@ -6,8 +6,8 @@ Phase 19 — AI hold markup, branch `feat/ai-hold-markup` (from `c29a767`, `main
 D034, specification revision 5, accepted 2026-10-14). **Implementation in progress** (the product owner's permission of
 2026-10-14: code, tests, documentation and commits on this branch; no push, pull request or merge without a separate
 permission). Steps 19.0–19.8 committed and the real-app acceptance run done by Claude (2026-10-15); nothing pushed or merged.
-Open for the product owner: T = 0.12 (manual plan #16), the performance statistic (D034 §7), the Shift+click proposal,
-the human marking time (#26); then push / PR / merge on their command. Steps
+Open for the product owner: T (manual plan #16; report `T_REPORT.md`), the human marking time (#26); then push / PR /
+merge on their command. Steps
 and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps"; manual plan
 `docs/PHASE19_MANUAL_TEST_PLAN.md`.
 
@@ -158,6 +158,26 @@ and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps";
   median 350 / max 472 ms (first 379 ms), click median 41 / max 122 ms, CPU 7.4 s. Stray app data written to the
   repository root during the no-model run (an unset profile makes the app's data folder relative) removed; the model
   folder itself is named in full since `8f2ff61`.
+- 2026-10-15 — the product owner's closing items:
+  - Shift+click (`5dc65f3`): a refinement leaving no mask under 2 % keeps the previous candidate (masks, outline, the
+    alternative shown), drops only the new point and says so; an Enter pressed during it is dropped; nothing is
+    confirmed. UI tests: the rejected refinement, the following normal refinement, the early Enter, Shift+click without
+    a candidate (a plain click; "No hold there").
+  - D034 §7 reading (`416a71a`): frame preparation = decoded frame → ready for the first click, GPU median ≤ 1 s; the
+    decode and the cold start reported separately; the full user scenario reported. Recorded as a D034 implementation
+    note (§7 text and thresholds unchanged); `docs/AI_MODEL.md` "Performance": frame preparation median 350 ms (max
+    472; the first after loading 428), CPU 7.4 s, click 41 ms median / 122 ms max through the service; decode 699 ms
+    median; cold start 3.96 s (SHA-256 455 ms + sessions 3.25 s); full scenario ≈ 5.1 s first in a session (5.8 s
+    observed in the app), ≈ 1 s later. The cold start is now said in the progress ("Loading the hold model…").
+  - T: report for the owner (`<E1>/results/calibration-20261014-224451/T_REPORT.md`, `T_examples.png`,
+    `zoom_bands.png`). Revised finding: in 0.12–0.20 both versions read — a trade-off, not a clear win for 0.12; routes
+    outlined in their own colour score 0.03–0.30 (keyline on for 5 / 24 at 0.12, 16 / 24 at 0.20). The real-app
+    observation (Auto black, Auto keyline never on) is explained by the scores (Auto 0.39–0.62, best saturated colour
+    0.33–0.42), confirmed by an independent recomputation and a ring analysis on c8's dark panels — no check error; the
+    E1 walls have no very dark wall or mixed-colour route. T unchanged (0.12), not accepted; the code comment reworded.
+  - Verification: UI.Tests 680 / 680 after each change (the changes touch the UI view model and documentation only);
+    criterion 10 unchanged at 156/164 — no code on the model path (Core, Vision) changed since the last real-weights run except a comment
+    (`<E1>/results/20261015-110340/`), so the suites were not rerun (the product owner's instruction).
 
 ### Phase 18 — HDR → SDR of phone footage (complete; PR #19 merged as `c29a767`, CI green)
 

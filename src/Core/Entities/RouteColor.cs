@@ -23,10 +23,11 @@ public static class RouteColor
     /// <summary>
     /// The keyline threshold T on the route score (ΔE_OK; D034 §5, starting hypothesis 0.20). Calibrated at Step 19.6 on
     /// the E1 frames (24 routes of 3–11 holds from the app's own samples; example sheets with and without the keyline per
-    /// score band, 1080p, stroke 4): below ≈ 0.12 the plain line merges with the holds (pink on pink, orange on orange),
-    /// from ≈ 0.15 it reads without help and the keyline only halves the coloured core. The Auto colour of every E1 route
-    /// scores ≥ 0.50, so in practice T decides for manual colours. The product owner's acceptance of the examples is an
-    /// item of the manual plan.
+    /// score band, 1080p, stroke 4): below ≈ 0.12 the plain line merges with the holds (pink on pink, orange on orange);
+    /// between 0.12 and 0.20 both versions read and the keyline trades a crisper edge for half the coloured core — a
+    /// choice for the product owner (report `T_REPORT.md` with the calibration). The Auto colour of every E1 route scores
+    /// ≥ 0.33 even without black and white, so in practice T decides for manual colours (routes outlined in their own
+    /// hold colour score 0.03–0.30). Not accepted yet: manual plan item 16.
     /// </summary>
     public const double KeylineThreshold = 0.12;
 
