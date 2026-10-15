@@ -13,7 +13,8 @@ public readonly record struct PaletteColor(string Name, string Hex, OkLabColor L
 /// <item>Score of a colour c for hold i: <c>min(ΔE_OK(c, SurfaceLab_i), 2 · ΔE_OK(c, WallLab_i))</c> — the wall counts with
 /// weight 0.5, as only the outer half of the line lies on it.</item>
 /// <item>Route score: the minimum over the holds (the worst case first).</item>
-/// <item>Auto: the palette colour with the largest route score; ties → the larger mean score, then the palette order.</item>
+/// <item>Auto: saturated colours first — the maximin over the 12 saturated colours when it reaches the keyline threshold,
+/// else white / black when they reach it, else the maximin over all with the keyline (see <see cref="Choose"/>).</item>
 /// <item>Keyline Auto: on when the route score of the colour in use is below <see cref="KeylineThreshold"/>; On always; Off
 /// never — for the automatic and the manual colour alike.</item>
 /// </list>
@@ -71,13 +72,33 @@ public static class RouteColor
         return markup with { ColorHex = color, KeylineActive = keyline };
     }
 
-    /// <summary>The Auto choice for <paramref name="holds"/> (at least one).</summary>
+    /// <summary>The 12 saturated colours — the Auto colour's first choice.</summary>
+    public const int SaturatedCount = 12;
+
+    /// <summary>
+    /// The Auto choice for <paramref name="holds"/> (at least one) — saturated colours first (the product owner,
+    /// 2026-10-15): the maximin over the 12 saturated colours when its route score reaches <see cref="KeylineThreshold"/>
+    /// (the line reads without a keyline — the readability bound calibrated on the E1 frames); otherwise the better of the
+    /// reserve, white and black, when it reaches it; otherwise the maximin over all 14, and the Auto keyline turns on. Ties
+    /// within a step: the larger mean score, then the palette order.
+    /// </summary>
     public static PaletteColor Choose(IReadOnlyList<Hold> holds)
     {
         if (holds.Count == 0) throw new ArgumentException("At least one hold is needed.", nameof(holds));
-        var best = Palette[0];
+        var (saturated, saturatedScore) = Maximin(Palette.Take(SaturatedCount), holds);
+        if (saturatedScore >= KeylineThreshold) return saturated;
+        var (reserve, reserveScore) = Maximin(Palette.Skip(SaturatedCount), holds);
+        if (reserveScore >= KeylineThreshold) return reserve;
+        return Maximin(Palette, holds).Color;
+    }
+
+    /// <summary>The colour of <paramref name="candidates"/> with the largest route score; ties → the larger mean, then the
+    /// order given.</summary>
+    private static (PaletteColor Color, double Score) Maximin(IEnumerable<PaletteColor> candidates, IReadOnlyList<Hold> holds)
+    {
+        PaletteColor best = default;
         double bestMin = double.NegativeInfinity, bestMean = double.NegativeInfinity;
-        foreach (var candidate in Palette)
+        foreach (var candidate in candidates)
         {
             double min = double.PositiveInfinity, sum = 0;
             foreach (var hold in holds)
@@ -92,7 +113,7 @@ public static class RouteColor
                 (best, bestMin, bestMean) = (candidate, min, mean);
             }
         }
-        return best;
+        return (best, bestMin);
     }
 
     /// <summary>The score of <paramref name="color"/> for one hold.</summary>

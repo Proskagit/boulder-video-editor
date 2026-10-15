@@ -61,7 +61,70 @@ public class RouteColorTests
         Assert.NotEqual("#2979FF", choice.Hex);
         Assert.NotEqual("#FFEA00", choice.Hex);
         var min = RouteColor.RouteScore(choice.Lab, holds);
-        Assert.All(RouteColor.Palette, p => Assert.True(RouteColor.RouteScore(p.Lab, holds) <= min));
+        Assert.All(Saturated, p => Assert.True(RouteColor.RouteScore(p.Lab, holds) <= min));   // the maximin among them
+    }
+
+    private static IEnumerable<PaletteColor> Saturated => RouteColor.Palette.Take(RouteColor.SaturatedCount);
+
+    [Fact]
+    public void Auto_prefers_a_saturated_colour_to_black_or_white_when_it_reads_without_a_keyline()
+    {
+        // A red and a yellow hold on a beige wall: black scores highest of all 14, yet a saturated colour reaches the
+        // threshold, so it is chosen — the best saturated one — and no keyline is needed.
+        var holds = new[] { H("#E53935", "#E8DCC8"), H("#FDD835", "#E8DCC8") };
+        var black = RouteColor.RouteScore(RouteColor.HexToOkLab("#000000"), holds);
+        Assert.True(RouteColor.Palette.All(p => RouteColor.RouteScore(p.Lab, holds) <= black));
+        var choice = RouteColor.Choose(holds);
+        Assert.Contains(choice, Saturated);
+        var score = RouteColor.RouteScore(choice.Lab, holds);
+        Assert.True(score >= RouteColor.KeylineThreshold);
+        Assert.Equal(Saturated.Max(p => RouteColor.RouteScore(p.Lab, holds)), score);
+        Assert.False(RouteColor.WithResolved(new HoldMarkup { Holds = ImmutableArray.Create(holds) }).KeylineActive);
+    }
+
+    [Fact]
+    public void Black_or_white_is_the_reserve_when_no_saturated_colour_reads()
+    {
+        // One hold in each saturated colour on a light wall: every saturated colour scores 0 on its own hold; black reads
+        // on all of them and is chosen, without a keyline.
+        var holds = Saturated.Select(p => H(p.Hex, "#F0F0F0")).ToArray();
+        Assert.True(Saturated.All(p => RouteColor.RouteScore(p.Lab, holds) < RouteColor.KeylineThreshold));
+        var markup = RouteColor.WithResolved(new HoldMarkup { Holds = ImmutableArray.Create(holds) });
+        Assert.Equal("#000000", markup.ColorHex);
+        Assert.False(markup.KeylineActive);
+    }
+
+    [Fact]
+    public void When_nothing_reads_the_best_contrast_of_all_is_taken_and_the_keyline_turns_on()
+    {
+        // Holds in every palette colour, black and white included, on a mid-grey wall: no colour reaches the threshold;
+        // the maximin over all 14 decides and the Auto keyline is on.
+        var holds = RouteColor.Palette.Select(p => H(p.Hex, "#808080")).ToArray();
+        var markup = RouteColor.WithResolved(new HoldMarkup { Holds = ImmutableArray.Create(holds) });
+        var best = RouteColor.Palette.Max(p => RouteColor.RouteScore(p.Lab, holds));
+        Assert.True(best < RouteColor.KeylineThreshold);
+        Assert.Equal(best, RouteColor.RouteScore(RouteColor.HexToOkLab(markup.ColorHex), holds));
+        Assert.True(markup.KeylineActive);
+    }
+
+    [Fact]
+    public void The_saturated_preference_never_takes_the_contrast_below_the_threshold_when_a_readable_colour_exists()
+    {
+        // Pseudo-random routes of 1–8 holds (fixed seed): whenever some palette colour reads (score ≥ T), the Auto colour
+        // reads too; otherwise it is the best of all 14. Saturated whenever a saturated colour reads.
+        var random = new Random(19);
+        OkLabColor Any() => RouteColor.SrgbToOkLab((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256));
+        for (var i = 0; i < 500; i++)
+        {
+            var holds = Enumerable.Range(0, 1 + random.Next(8)).Select(_ => H(Any(), Any())).ToArray();
+            var choice = RouteColor.Choose(holds);
+            var score = RouteColor.RouteScore(choice.Lab, holds);
+            var best = RouteColor.Palette.Max(p => RouteColor.RouteScore(p.Lab, holds));
+            if (best >= RouteColor.KeylineThreshold) Assert.True(score >= RouteColor.KeylineThreshold);
+            else Assert.Equal(best, score);
+            if (Saturated.Any(p => RouteColor.RouteScore(p.Lab, holds) >= RouteColor.KeylineThreshold))
+                Assert.Contains(choice, Saturated);
+        }
     }
 
     [Fact]
@@ -71,8 +134,9 @@ public class RouteColorTests
         // colour; the choice is the first of the best-scoring colours in palette order (deterministic).
         var holds = new[] { H("#808080", "#808080") };
         var first = RouteColor.Choose(holds);
-        var best = RouteColor.Palette.Max(p => RouteColor.RouteScore(p.Lab, holds));
-        Assert.Equal(RouteColor.Palette.First(p => RouteColor.RouteScore(p.Lab, holds) == best).Hex, first.Hex);
+        var best = Saturated.Max(p => RouteColor.RouteScore(p.Lab, holds));
+        Assert.True(best >= RouteColor.KeylineThreshold);                // a saturated colour reads on mid grey
+        Assert.Equal(Saturated.First(p => RouteColor.RouteScore(p.Lab, holds) == best).Hex, first.Hex);
         Assert.Equal(first, RouteColor.Choose(holds));   // deterministic
     }
 

@@ -4586,6 +4586,14 @@ Implementation notes (Phase 19; technical choices within the decision, not chang
   trades a crisper edge for half the coloured core. Same samples and protocol: of the 24 E1 routes outlined in their
   own hold colour the keyline turns on for 9 at 0.16 (5 at 0.12, 16 at 0.20; added: c10 blue, c10 yellow, c6 red, c7
   teal); the Auto colour turns it on for none (Auto scores ≥ 0.33). Examples: `T016_examples.png` with the calibration.
+- Auto colour — saturated colours first (product owner, 2026-10-15; refines the §5 Auto rule, whose palette D034 lets
+  the calibration adjust; the §5 text above kept as accepted): the maximin over the 12 saturated colours is taken when
+  its route score reaches T (the line reads without a keyline — the readability bound calibrated on the E1 frames, no
+  other weight); otherwise the better of white and black, when it reaches T; otherwise the maximin over all 14 with
+  the Auto keyline. Recomputed only when the holds change, as before. On the 24 E1 routes: saturated on all 24 (lime 14,
+  magenta 7, yellow 2, indigo 1; before: black 14, white 5, lime 5), the minimum route score 0.325–0.659 (median 0.460;
+  before 0.502–0.773, median 0.545) — at least twice T, no keyline anywhere. Comparison and examples:
+  `palette_old_vs_new.png` and `T_REPORT.md` with the calibration.
 - The markup frame is decoded by the application's decoder (software, the D033 HDR rule) at the asset's display size;
   on the E1 clip c6 at 0.5 s it is bit-identical to the E1 reference frame (local `MarkupPipelineTests`).
 - §7 performance — reading of the criterion (product owner, 2026-10-15; the §7 text and its thresholds unchanged): the

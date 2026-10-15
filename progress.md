@@ -6,8 +6,8 @@ Phase 19 — AI hold markup, branch `feat/ai-hold-markup` (from `c29a767`, `main
 D034, specification revision 5, accepted 2026-10-14). **Implementation in progress** (the product owner's permission of
 2026-10-14: code, tests, documentation and commits on this branch; no push, pull request or merge without a separate
 permission). Steps 19.0–19.8 committed and the real-app acceptance run done by Claude (2026-10-15); nothing pushed or merged.
-Open for the product owner: T (manual plan #16; report `T_REPORT.md`), the human marking time (#26); then push / PR /
-merge on their command. Steps
+T = 0.16 and the saturated-first Auto colour decided by the product owner (2026-10-15); the human time to mark a
+route is not measured yet (not blocking). Open: push / PR / merge on the product owner's command. Steps
 and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps"; manual plan
 `docs/PHASE19_MANUAL_TEST_PLAN.md`.
 
@@ -178,6 +178,18 @@ and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps";
   - Verification: UI.Tests 680 / 680 after each change (the changes touch the UI view model and documentation only);
     criterion 10 unchanged at 156/164 — no code on the model path (Core, Vision) changed since the last real-weights run except a comment
     (`<E1>/results/20261015-110340/`), so the suites were not rerun (the product owner's instruction).
+- 2026-10-15 — the product owner's final decisions:
+  - T = 0.16 (`56e0fbc`), checked first on the same samples and protocol: own-colour routes with the keyline 9 / 24
+    (5 at 0.12, 16 at 0.20; added c10 blue 0.147, c10 yellow 0.141, c6 red 0.160, c7 teal 0.148); the Auto colour none.
+    Examples `T016_examples.png` with the calibration.
+  - Auto colour saturated first: the maximin over the 12 saturated colours when it reaches T, else white / black when
+    they reach T, else the maximin over all 14 with the keyline; the readability bound is T itself (calibrated on E1),
+    no new weight. E1: saturated on 24 / 24 routes (lime 14, magenta 7, yellow 2, indigo 1; before black 14, white 5,
+    lime 5); the minimum route score 0.325–0.659, median 0.460 (before 0.502–0.773, 0.545) — ≥ 2 × T, no keyline; the
+    app projects c6 / c8 / HLG black → magenta. `palette_old_vs_new.png`; scripts in the calibration's `scripts/`. Tests:
+    a saturated colour over black, the reserve, the keyline when nothing reads, 500 pseudo-random routes (never below T
+    when a readable colour exists). Stored Auto colours of existing markups stay until their holds change (§5).
+  - The human time to mark a route: not measured yet (manual plan #26), not blocking Phase 19.
 
 ### Phase 18 — HDR → SDR of phone footage (complete; PR #19 merged as `c29a767`, CI green)
 
