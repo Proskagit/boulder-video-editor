@@ -41,6 +41,51 @@ public class HoldMaskTests
         Assert.Null(HoldCandidateRules.Choose(new HoldMaskSet(ImmutableArray.Create(Mask(10, 10, 0.9, (_, _) => false)))));
     }
 
+    /// <summary>A mask of exactly <paramref name="pixels"/> pixels on a 100 × 100 frame (1 pixel = 0.01 %).</summary>
+    private static HoldMask Pixels(int pixels, double score) => Mask(100, 100, score, (x, y) => y * 100 + x < pixels);
+
+    [Theory]
+    [InlineData(200, 0.10, true)]     // exactly 2 %: offered whatever the score (the original rule)
+    [InlineData(1, 0.01, true)]       // a tiny mask, a low score: offered
+    [InlineData(201, 0.95, true)]     // just over 2 %, confident: offered
+    [InlineData(201, 0.89, false)]    // just over 2 %, not confident: hidden
+    [InlineData(2000, 0.99, true)]    // exactly 20 %, confident: offered
+    [InlineData(2001, 0.99, false)]   // just over 20 %: hidden however confident
+    [InlineData(5200, 0.97, false)]   // the whole wall in a close-up: hidden
+    [InlineData(0, 0.99, false)]      // an empty mask: never
+    public void The_area_and_score_bounds_of_a_candidate(int pixels, double score, bool offered) =>
+        Assert.Equal(offered, HoldCandidateRules.IsOffered(Pixels(pixels, score)));
+
+    [Fact]
+    public void A_score_of_exactly_0_9_from_the_model_passes_and_just_below_does_not()
+    {
+        Assert.True(HoldCandidateRules.IsOffered(Pixels(500, 0.9f)));          // the model's float 0.9 (0.8999999762 as double)
+        Assert.True(HoldCandidateRules.IsOffered(Pixels(500, 0.9)));
+        Assert.False(HoldCandidateRules.IsOffered(Pixels(500, 0.8999)));
+    }
+
+    [Fact]
+    public void A_large_hold_in_a_close_up_is_the_first_candidate_and_the_wall_still_gives_none()
+    {
+        // The masks measured for the blue hold of the owner's close-up (2026-10-15): the hold at 2.40 % (score 0.99), a
+        // part of it at 1.76 % (0.72) and the hold with its surroundings at 4.96 % (0.54). The hold comes first, the part
+        // stays an alternative, the uncertain larger one is hidden.
+        var hold = Pixels(240, 0.993); var part = Pixels(176, 0.722); var wider = Pixels(496, 0.535);
+        var set = new HoldMaskSet(ImmutableArray.Create(part, wider, hold));
+        Assert.Equal(new[] { 2, 0 }, HoldCandidateRules.Visible(set));
+        Assert.Equal(2, HoldCandidateRules.Choose(set));
+
+        // A click on the wall of that close-up: the whole wall (52.8 %, 0.97), a wall area (24.7 %, 0.84), a part of it
+        // (14.6 %, 0.58) — no candidate.
+        var wall = new HoldMaskSet(ImmutableArray.Create(Pixels(5280, 0.968), Pixels(2470, 0.84), Pixels(1460, 0.58)));
+        Assert.Empty(HoldCandidateRules.Visible(wall));
+        Assert.Null(HoldCandidateRules.Choose(wall));
+
+        // Ordinary small holds are unchanged: every mask up to 2 % offered, best score first.
+        var small = new HoldMaskSet(ImmutableArray.Create(Pixels(40, 0.95), Pixels(120, 0.30), Pixels(90, 0.70)));
+        Assert.Equal(new[] { 0, 2, 1 }, HoldCandidateRules.Visible(small));
+    }
+
     [Fact]
     public void The_contour_of_a_rectangle_is_its_four_corners_through_the_pixel_centres()
     {

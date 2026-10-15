@@ -18,7 +18,7 @@ namespace AiVideoEditor.UI.ViewModels.Panels;
 /// <para>
 /// Markup mode (§1): on a paused frame of the clip (Timeline mode, the playhead inside the clip) the frame under the
 /// playhead is decoded at full size and encoded by the model in the background (progress, cancellation). A click creates a
-/// candidate — the model's best visible mask (masks over 2 % of the frame hidden, <see cref="HoldCandidateRules"/>); the
+/// candidate — the model's best visible mask (too large masks hidden, <see cref="HoldCandidateRules"/>); the
 /// wheel or Tab cycles through the visible alternatives of a single-point candidate; Shift+click adds a positive point to
 /// the same candidate (one mask, no alternatives); Enter confirms it (one undo step: the outer contour and the colour
 /// samples, <see cref="HoldColorSampler"/>); Esc discards it. A click on a confirmed contour without a candidate selects
@@ -32,7 +32,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     public const string CpuMessage = "AI runs on the CPU — processing may be slower.";
 
     public const string RefineRejectedMessage =
-        "That point gives no outline under 2 % of the frame — the previous outline is kept. Shift+click on the hold itself.";
+        "That point gives no usable outline (only the wall or a too large area) — the previous outline is kept. Shift+click on the hold itself.";
 
     private readonly ITimelineEditService _edit;
     private readonly IProjectService _projects;
@@ -387,7 +387,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             if (visible.IsEmpty)
             {
                 ClearCandidate();
-                _status.Report("No hold there: every outline the model found is larger than 2 % of the frame (probably the wall). Click on the hold itself.");
+                _status.Report("No hold there: every outline the model found is the wall or a too large area. Click on the hold itself.");
                 return;
             }
             _maskSet = set;

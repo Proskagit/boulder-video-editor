@@ -290,7 +290,7 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
         await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), additive: false);
         Assert.False(Markup.HasCandidate);
         Assert.False(Markup.ConfirmCommand.CanExecute(null));
-        Assert.Contains("2 %", _status.Message);
+        Assert.Contains("too large", _status.Message);
     }
 
     [Fact]
