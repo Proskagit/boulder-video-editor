@@ -4897,6 +4897,120 @@ Phase 22 (branch `feat/phase-22-timeline-ux`); accepted by the product owner on 
 
 ---
 
+## D038 — Direct Move, Scale and Crop in the Preview (Phase 23)
+
+Date: 2026-10-16
+
+Decision (product owner, 2026-10-16: the Phase 23 specification with the answers Q1–Q7 as recommended — Q1 anchored crop,
+Q2 the Inspector's crop unchanged, Q3 a click selects the topmost layer, Q4 two buttons and no new shortcuts, Q5 text moves,
+Q6 whole canvas / source pixels, Q7 gestures only while paused — and the addition of scaling by the frame's corner handles).
+Extends D017 (property edits and undo merging: a gesture's edits merge into one step, §4) and D020 (the Inspector's Transform
+and Crop stay as they are). D018 (the composition model) is unchanged: every gesture writes ordinary `VisualProperties`.
+`project.json` stays **v6**, no new property.
+
+### 1. Tools
+
+- Two toggle buttons in the Preview's top bar, **Move** and **Crop**, at most one on (pressing one turns the other off); both
+  off = the Preview as before (it takes no pointer input except the hold markup's). No keyboard shortcuts for them.
+- Available only in the Preview's Timeline mode and not during an export (`EditingLock`): the Source mode or an export turns
+  the tool off (an export also cancels a running gesture, §4). The hold markup mode (D034) and a tool exclude each other:
+  turning a tool on leaves the markup mode, entering the markup mode turns the tool off.
+- A tool stays on across seeks, undo / redo and selection changes. **Gestures only while paused** (Q7): while playing the
+  frame and handles are hidden and a press does nothing; Play during a gesture cancels it.
+- Esc: during a gesture cancels it (§4); otherwise turns the tool off. While a gesture runs every other key is swallowed
+  (no Undo, Redo, Save, Play or timeline key reaches its command).
+
+### 2. The target and its frame
+
+- The target is the timeline's primary selected clip (D037 §1) when it is a video, image or text clip whose span covers the
+  playhead; its geometry comes from the model (`CompositionMath.Layout` / `TextTransform`, the asset's display size as in
+  `PlaybackSnapshotBuilder.DisplaySize`), so it is shown also when the layer is culled under an opaque video, hidden, or
+  faded out. Not a target (the bar says why): no clip selected, an audio clip, the playhead outside the clip, a picture of
+  unknown size. Several clips selected: only the primary changes.
+- The frame: the visible picture — the crop rectangle through the layer transform (a rotated rectangle) — or a text clip's
+  text box (the painter's layout: `MaxTextWidth × Height` centred on the local origin). Drawn in the overlay only (never in
+  the composition, never in the export) in a light blue with a dark keyline, the centre marked. On a locked track the frame
+  is grey and dashed, no handles; a press says "Track … is locked." and changes nothing.
+- **Selecting by a click** (Q3): a press outside the target's frame (and outside its handles) selects the topmost visible
+  layer of the Preview under the pointer (`PlaybackFrame.Layers`, top to bottom; a picture by its frame, a text by its box,
+  placeholders included; layers of unknown size are skipped) — the same as a click on that clip in the timeline (its link
+  partner comes along, the Inspector follows). Inside the target's frame the target wins even when another layer is on top.
+  In Move the same press then drags the newly selected clip; a press on no layer changes nothing.
+
+### 3. Gestures
+
+Coordinates: the pointer (view pixels) → canvas through the Preview's viewport (`CompositionDrawPlan.Viewport`, frozen at
+the gesture's start), → source pixels through the target's layer transform (`LayerGeometry.Transform` extended by
+`SourceRect`'s origin, also frozen). A press becomes a gesture after 3 view pixels of movement; a click without movement
+changes nothing (apart from a selection change, if any).
+
+- **Move** (Move tool; a press inside the frame): `Position` moves by the pointer's canvas delta, **rounded to whole canvas
+  pixels** (Q6; the delta is rounded, so a fractional starting position keeps its fraction and a return to the start is the
+  start exactly). Shift keeps the axis with the larger delta. Rotation, scale and crop do not affect it (Position is in
+  canvas pixels, D018). Position is clamped to the limit (±100 000 px). Video, image and text.
+- **Scale** (Move tool; a press on one of the frame's four **corner handles**): the scale changes **proportionally around
+  the clip's centre**; `Position` never changes. The new scale = the start scale × the projection of the grabbed corner's
+  new place (the pointer minus the grab offset) on the centre→corner diagonal at the start, divided by that diagonal's
+  length — so it follows the corner along the diagonal for any rotation, and a pointer moved across the diagonal does not
+  change it. Rounded to 0.01 % (the Inspector's shown precision). Clamped to the limits [1 %, 1000 %]: at a limit the frame
+  stops and the pointer runs on; a pointer past the centre gives the minimum. Video, image and text (text has a scale too).
+  The corner handles exist only in Move — Scale never starts a crop.
+- **Crop** (Crop tool; a press on one of the eight **handles** of the crop rectangle — four corners, four edge midpoints):
+  video and image only (text has no crop; the bar says so). The full source frame is outlined dashed around the crop.
+  The dragged edge(s) follow the pointer in source pixels, **rounded to whole source pixels** (of the display size); the
+  edges not dragged keep their exact values. **Anchored** (Q1): the picture that stays visible does not move or resize on
+  the screen — the gesture writes the crop together with a compensating `Scale = k / fit′` and `Position` (the new crop
+  centre placed where the source showed it), where `k = fit · Scale` at the start and `fit′` is D018's fit of the new crop.
+  The compensation values are stored unrounded. Constraints, applied to the dragged edge (it stops, the anchoring stays
+  exact): the crop stays inside the source; at least `max(4 px, 1 % of the side)` stays on each axis; the compensating
+  scale stays within [1 %, 1000 %] (it is `k · max(w / canvasW, h / canvasH)` — the edge stops where it would leave the
+  range); a value the validator would still reject leaves the crop as it was. Rotation is honoured (the handles lie on the
+  rotated rectangle; the pointer is mapped back through the transform).
+- The **Inspector's** crop fields keep D018's re-fit (Q2): a crop typed there re-centres and re-fits the picture as before.
+  After an anchored crop the Inspector shows the new Crop, Scale and Position values.
+
+### 4. Model updates, undo, saving
+
+- The model is changed **live** during a gesture through `ITimelineEditService.SetClipProperties` (the Preview, the
+  Inspector and an export all read the same values — Preview = export by construction, D023), only when the computed value
+  differs from the model.
+- **One undo step per gesture:** `ClipPropertyChange.Gesture` (a `ClipPropertyGesture` object per gesture, with the step's
+  description "Move Clip" / "Scale Clip" / "Crop Clip") is carried into `SetClipPropertiesCommand`; edits of the same gesture
+  merge with each other whatever properties they change (the fields of the step are the union), and never with an edit of
+  another gesture or without one. Edits without a gesture (the Inspector) merge exactly as in D017.
+- **Esc cancels** a gesture by writing the values from its start: the merged step returns to its own "before" and is
+  removed (D017's rule), so no step and no redo entry stay. The same happens when the pointer capture is lost, playback
+  starts, the selection or the target changes, the tool turns off, the Preview switches to Source, an export starts or the
+  project is saved / replaced.
+- **Saving during a gesture** (Save, Save As, the unsaved-changes prompt of New / Open / Close): the gesture is **cancelled
+  first**, then the project is saved. This keeps the save point on a completed step (a save inside a gesture would make the
+  rest of the gesture a second step, D017 (b)) and the saved file free of a half-made change. Autosave (recovery files)
+  does not set the save point and is unaffected.
+- A locked track refuses every gesture (the edit service and the overlay); during an export the tool is off.
+
+### 5. Not in this decision
+
+Rotation by the mouse; guides and snapping in the Preview; transforming several clips at once; scaling the crop rectangle
+as a whole or moving the crop window; arrow-key nudges in the Preview; shortcuts for the tools; transforming during
+playback; changing the Inspector's crop semantics; keyframes; the dimmed picture of the cropped-away part (only its outline
+is drawn). The backlog stays outside Phase 23 (`ROADMAP.md`): FU-21.1, FU-21.2, FU-22.1, the export of vertical video without
+unwanted black bars.
+
+Context: the Phase 23 audit of 2026-10-16 found the composition model and its exact view ↔ canvas ↔ source mapping in
+place (D018, D020; used by the hold markup overlay, D034 / D035), no pointer input on the Preview except the hold markup,
+D018's crop re-fit (a literal crop drag would move the opposite edge and, for a portrait picture on a landscape canvas,
+change its size), and no way to keep two gestures of the same properties apart in the undo history (D017's merge rule).
+
+Consequences: no format change and no new dependency; a pure gesture-math class in Core; a gesture object on
+`ClipPropertyChange` and the merge rule of `SetClipPropertiesCommand`; a tool view-model and an overlay over the Preview; the
+two buttons in the Preview bar; `ShortcutRouter` gives a running gesture Esc and swallows the rest; the save workflow cancels
+a gesture before saving.
+
+Status: Accepted (2026-10-16, product owner: the Phase 23 specification and the answers Q1–Q7, with Scale by the corner
+handles added). To be implemented in Phase 23 (branch `feat/phase-23-preview-transform`).
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

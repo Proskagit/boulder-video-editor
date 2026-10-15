@@ -2,12 +2,20 @@
 
 ## Current phase
 
-Phase 22 — timeline selection, snapping and making room, branch `feat/phase-22-timeline-ux` (from `origin/main` = `7318ba8`,
-the merge of PR #22; DECISIONS.md D037, 2026-10-15). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 22 — Timeline selection,
-snapping and making room: steps"; manual plan `docs/PHASE22_MANUAL_TEST_PLAN.md`. No push, pull request or merge without the
-product owner's command.
+Phase 23 — direct Move, Scale and Crop in the Preview, branch `feat/phase-23-preview-transform` (from `origin/main` =
+`1aaedc8`, the merge of PR #23; DECISIONS.md D038, 2026-10-16). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 23 — Direct Move,
+Scale and Crop in the Preview: steps"; manual plan `docs/PHASE23_MANUAL_TEST_PLAN.md`. Local work only: no push, pull
+request or merge without the product owner's command.
 
-### Phase 22 — Timeline selection, snapping and making room (in progress)
+### Phase 23 — Direct Move, Scale and Crop in the Preview (in progress)
+
+- 2026-10-16 — audit (read only) and the specification; accepted by the product owner the same day with Q1–Q7 as
+  recommended and Scale by the frame's corner handles added (D038).
+- 2026-10-16 — Step 23.0: `origin/main` = `1aaedc8` (PR #23 merged; the local `main` still at `7318ba8`, not touched); the
+  branch created from `origin/main`; D038, the Phase 23 steps, the manual plan skeleton, ROADMAP (Phase 22 merged, Phase 23
+  current).
+
+### Phase 22 — Timeline selection, snapping and making room (merged 2026-10-16 as `1aaedc8`, PR #23)
 
 - 2026-10-15 — pre-flight (read only): local `main` was 3 commits behind `origin/main` (a fast-forward), the working tree
   clean except the untracked `.claude/`. Found in the code: Ctrl+click multi-selection with the link partner (AQ1), group

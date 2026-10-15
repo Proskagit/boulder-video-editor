@@ -1672,6 +1672,73 @@ multi-track selection between tracks, multi-clip property editing; FU-21.1, FU-2
   No defect found in the product; one harness error found and corrected (arrow keys sent without the extended-key flag
   lose Shift on Windows). An observation outside D037 recorded in ROADMAP (FU-22.1).
 
+## Phase 23 — Direct Move, Scale and Crop in the Preview: steps (D038)
+
+Assigned on 2026-10-16 by the product owner (the specification with the answers Q1–Q7, Scale by the corner handles added);
+the normative text is DECISIONS.md D038. Branch `feat/phase-23-preview-transform` from `origin/main` = `1aaedc8` (the merge
+of PR #23, Phase 22). The permission covers the code, tests, documentation and local commits on this branch; **no push, pull
+request or merge without a separate command**.
+
+Goal: the selected clip moved, scaled and cropped with the mouse directly in the Preview — Move with corner handles for a
+proportional scale around the centre, Crop with eight handles and an anchored crop — Preview, Inspector and export agreeing,
+one undo step per gesture.
+
+Gates for every step (QG): `dotnet build -warnaserror` 0 / 0; the full `dotnet test AiVideoEditor.sln` green (only the two 4K
+heavy scenes skipped); `project.json` v6 unchanged; the Inspector's Transform / Crop behaviour and every existing expected
+value unchanged; the Preview ↔ export parity suites unchanged; every gesture one undo step, a cancelled one none; each rule of
+D038 covered by a test that a mutation of the rule fails; `docs/PHASE23_MANUAL_TEST_PLAN.md` and `progress.md` updated.
+
+Out of scope (D038 §5): rotation by the mouse, guides / snapping, several clips at once, scaling or moving the crop rectangle
+as a whole, arrow nudges and shortcuts for the tools, transforming during playback, the Inspector's crop semantics,
+keyframes, the dimmed picture of the cropped-away part; FU-21.1, FU-21.2, FU-22.1 and the vertical-video export framing.
+
+### 23.0 — Sync and documentation
+- The branch from `origin/main` = `1aaedc8`; D038; these steps; the manual plan skeleton; ROADMAP and `progress.md`.
+
+### 23.1 — Gesture math (Core)
+- `Core/Composition/PreviewTransformMath`: the frame of a picture / text (local rectangle, corners, containment), Move (the
+  canvas delta rounded to whole pixels, Shift's axis, the limit), Scale from a corner (the projection on the start diagonal,
+  0.01 %, the limits), the anchored crop (the dragged edges in whole source pixels; the minimum size; the compensating
+  scale and position; the scale-limit and validator constraints).
+- Tests: `Core.Tests/PreviewTransformMathTests` — the anchoring kept exactly (the source → canvas map unchanged to 1e-9) at
+  0°, 90°, 180°, 37°, scales 0.5 / 2, a portrait source on a landscape canvas and the reverse; every handle; the limits
+  (the edge stops, the result valid); rounding; Move and Scale with rotation; containment of a rotated frame.
+
+### 23.2 — One undo step per gesture (Timeline)
+- `ClipPropertyGesture` and `ClipPropertyChange.Gesture`; `SetClipPropertiesCommand` merges the edits of one gesture
+  (fields united, its description) and never across gestures or with an edit without one; D017's rule unchanged otherwise.
+- Tests: `Timeline.Tests` — one step for a gesture changing different fields, two gestures two steps, a gesture after an
+  Inspector edit of the same field not merged and the reverse, a return to the start removes the step and leaves no redo,
+  the save point, a locked track, exact undo / redo.
+
+### 23.3 — Tool view-model and modes (UI)
+- `PreviewTransformViewModel`: Move / Crop (exclusive), availability (Timeline mode, no export), the hold markup exclusion,
+  the target (the primary selection under the playhead; its frame from the model), the bar's text, gestures (begin / update
+  / end / cancel in canvas coordinates, the frozen geometry), the cancellations of D038 §4, the save hook in
+  `ProjectFileWorkflow`, the selection by a click (`TimelineViewModel.SelectClipFromPreview`); `ShortcutRouter` (Esc, other
+  keys swallowed during a gesture); the shell wiring.
+- Tests: `UI.Tests/PreviewTransformUiTests`.
+
+### 23.4 — Overlay: the frame, selection and Move (UI)
+- `PreviewTransformOverlay` over the Preview's `CompositionView` (view ↔ canvas through the viewport; the frame, its
+  keyline and centre; the topmost layer under the pointer; the press / drag / release / capture loss; cursors); the two
+  buttons and the bar's text in `PreviewView.axaml`.
+- Tests: `UI.Tests/PreviewTransformUiTests` (the hit test through the viewport with a letterbox, a rotated frame, text,
+  the topmost layer, the target winning inside its frame).
+
+### 23.5 — Scale by the corner handles (UI)
+- The four corner handles in Move; the scale gesture; the handles' priority over the inside; no handle in Crop.
+- Tests: `UI.Tests/PreviewTransformUiTests` (a corner drag through the view, rotation, the limits, Position unchanged).
+
+### 23.6 — Crop handles (UI)
+- The eight handles in Crop (pictures only), the full source outline, the anchored crop gesture.
+- Tests: `UI.Tests/PreviewTransformUiTests` (an edge / corner drag through the view, the anchoring on the screen, a
+  portrait clip, rotation, the limits, text refused).
+
+### 23.7 — Verification & closeout
+- Build `-warnaserror` Release and Debug, the full suite, the heavy scenes, three `--blame-hang` runs, `git diff --check`;
+  Preview ↔ export parity of transformed clips; the manual plan in the real app; the docs.
+
 ## Architectural rules that must hold at every phase
 
 - UI (`src/UI`, `src/App`) contains no business logic — only view models that
