@@ -237,6 +237,9 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public string? GetRemoveMediaBlockReason(Guid mediaAssetId) => null;
         public TimelineEditResult RemoveMedia(Guid mediaAssetId) => No;
         public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change) => No;
+        public TimelineEditResult AddHold(Guid clipId, Hold hold) => No;
+        public TimelineEditResult RemoveHold(Guid clipId, Guid holdId) => No;
+        public TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style) => No;
         public TimelineEditResult SetCanvasSize(int width, int height) => No;
         public TimelineEditResult SetFrameRate(FrameRate rate) => No;
         public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null) => No;

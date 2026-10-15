@@ -300,7 +300,7 @@ public class TrackEditTests
     // --- persistence ----------------------------------------------------------------------------------------------------
 
     [Fact]
-    public async Task Order_and_deleted_tracks_survive_save_and_reopen_in_format_4()
+    public async Task Order_and_deleted_tracks_survive_save_and_reopen_in_format_5()
     {
         var root = Path.Combine(Path.GetTempPath(), "AiVideoEditorTests", Guid.NewGuid().ToString("N"));
         try
@@ -313,7 +313,7 @@ public class TrackEditTests
             Ok(f.Service.MoveTrack(v3.Id, -1));                             // V3 below V1
             var folder = Path.Combine(root, "Project");
             await f.Projects.SaveAsAsync(folder);
-            Assert.Contains("\"formatVersion\": 4", File.ReadAllText(Path.Combine(folder, "project.json")));
+            Assert.Contains("\"formatVersion\": 5", File.ReadAllText(Path.Combine(folder, "project.json")));
 
             var v1 = f.V1;
             var expected = new[] { (v1.Id, v1.Order), (v3.Id, v3.Order) };

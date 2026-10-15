@@ -38,6 +38,25 @@ public sealed record TextDraw(Guid ClipId, Affine2D Transform, double Opacity, T
     : DrawOperation(ClipId, Transform, Opacity);
 
 /// <summary>
+/// The route outline of a picture layer's hold markup (D034 §4–§6), drawn right above the layer's frame with the layer's
+/// opacity. Like <see cref="FrameDraw"/> it lives in the layer's crop-local coordinates (source pixels):
+/// <see cref="Polygons"/> are the contours there, <see cref="LocalRect"/> is the crop (the outline is clipped to it) and
+/// <see cref="Transform"/> maps them to the target. The stroke is <see cref="StrokeWidth"/> canvas pixels —
+/// <c>StrokeWidth1080 × short side / 1080</c>, so it does not depend on the clip's scale — i.e.
+/// <c>StrokeWidth × CanvasScale</c> target pixels (<see cref="CanvasScale"/>: target pixels per canvas pixel), at least
+/// <see cref="MinTargetStroke"/> (0 for the export; the Preview alone keeps a line visible at one screen pixel); centred on
+/// each contour, round joins. With a keyline (<see cref="KeylineHex"/> not null) the width is shared: the keyline colour
+/// across the whole width, the core colour over its middle half — a keyline of a quarter on each side.
+/// </summary>
+public sealed record OutlineDraw(Guid ClipId, Affine2D Transform, double Opacity, ImmutableArray<ImmutableArray<PointD>> Polygons,
+    RectD LocalRect, double StrokeWidth, double CanvasScale, string CoreHex, string? KeylineHex, double MinTargetStroke = 0)
+    : DrawOperation(ClipId, Transform, Opacity)
+{
+    /// <summary>The core's share of the stroke when there is a keyline.</summary>
+    public const double CoreShare = 0.5;
+}
+
+/// <summary>
 /// What is drawn for one composition — shared by the Preview and the export (D018, D023). The target
 /// is first filled with <see cref="Background"/> inside <see cref="CanvasBounds"/> (the canvas mapped by
 /// <see cref="CanvasToTarget"/>); every operation is then drawn bottom to top, clipped to
@@ -66,8 +85,44 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
     {
         if (!canvas.IsValid) throw new ArgumentOutOfRangeException(nameof(canvas), "The canvas must have a positive size.");
         return new CompositionDrawPlan(canvas, canvasToTarget, Bounds(canvas, canvasToTarget),
-            layers.Select(layer => Operation(canvas, canvasToTarget, layer)).ToImmutableArray());
+            layers.SelectMany(layer => LayerOperations(canvas, canvasToTarget, layer)).ToImmutableArray());
     }
+
+    /// <summary>The operations of one layer: <see cref="Operation"/>, then the layer's route outline, if any (D034).</summary>
+    public static IEnumerable<DrawOperation> LayerOperations(FrameSize canvas, Affine2D canvasToTarget, ResolvedLayer resolved, double minTargetStroke = 0)
+    {
+        yield return Operation(canvas, canvasToTarget, resolved);
+        if (resolved.Layer is PictureLayer { Span.Outline: { } } picture && resolved.Frame is { } frame &&
+            Outline(canvas, canvasToTarget, picture, new FrameSize(frame.Width, frame.Height), minTargetStroke) is { } outline)
+            yield return outline;
+    }
+
+    /// <summary>
+    /// The route outline of <paramref name="picture"/> (D034 §6): each normalized source point → the crop-local
+    /// coordinates of the layer's D018 geometry (drawn through its transform, like the frame); the geometry from the source
+    /// size, or — unknown — from
+    /// <paramref name="decodedSize"/>, like the frame itself. Null without an outline.
+    /// </summary>
+    public static OutlineDraw? Outline(FrameSize canvas, Affine2D canvasToTarget, PictureLayer picture, FrameSize decodedSize, double minTargetStroke = 0)
+    {
+        if (picture.Span.Outline is not { } outline) return null;
+        var geometry = picture.Geometry ?? CompositionMath.Layout(canvas, decodedSize, picture.Span.Visual);
+        var (w, h) = (geometry.Source.Width, geometry.Source.Height);
+        var crop = geometry.SourceRect;
+        var m = geometry.Transform;
+
+        var polygons = outline.Polygons
+            .Select(poly => poly.Select(p => new PointD(p.X * w - crop.X, p.Y * h - crop.Y)).ToImmutableArray())
+            .ToImmutableArray();
+        return new OutlineDraw(picture.ClipId, canvasToTarget.Compose(m), picture.Opacity, polygons,
+            new RectD(0, 0, crop.Width, crop.Height), StrokeWidthOn(canvas, outline.StrokeWidth1080),
+            Math.Sqrt(Math.Abs(canvasToTarget.Determinant)), outline.ColorHex,
+            outline.Keyline ? RouteColor.KeylineHex(outline.ColorHex) : null, minTargetStroke);
+    }
+
+    /// <summary>D034 §4: the stroke in canvas (= output) pixels — <c>StrokeWidth1080 × short side / 1080</c>.</summary>
+    public static double StrokeWidthOn(FrameSize canvas, double strokeWidth1080) =>
+        strokeWidth1080 * Math.Min(canvas.Width, canvas.Height) / 1080.0;
 
     /// <summary>The target rectangle of the canvas (for a scale-and-translate <paramref name="canvasToTarget"/>).</summary>
     public static RectD Bounds(FrameSize canvas, Affine2D canvasToTarget) =>

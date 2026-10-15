@@ -200,6 +200,54 @@
               </StackPanel>
             </StackPanel>
 
+            <!-- Holds (Phase 19, D034): video clips only. The AI markup of the route on this clip and the outline's
+                 style; every change is one undo step (consecutive changes of one field merge). -->
+            <StackPanel Spacing="6" IsVisible="{Binding HoldMarkup.HasClip, FallbackValue=False}">
+              <TextBlock Text="HOLDS" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <StackPanel Spacing="6" DataContext="{Binding HoldMarkup}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Content="Mark holds" Command="{Binding StartCommand}" IsVisible="{Binding !IsActive}"
+                          ToolTip.Tip="Mark the route's holds on the frame under the playhead (pause on this clip first)"/>
+                  <Button Content="Done" Command="{Binding DoneCommand}" IsVisible="{Binding IsActive}"
+                          ToolTip.Tip="Leave the hold markup (the marked holds stay)"/>
+                  <TextBlock Text="{Binding HoldCount, StringFormat='{}{0} marked'}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Width" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <controls:CommitNumericUpDown Value="{Binding StrokeWidth, Mode=TwoWay}" Increment="1" Minimum="{Binding MinStrokeWidth}" Maximum="{Binding MaxStrokeWidth}"
+                                 FormatString="0.#" Width="110"/>
+                  <TextBlock Text="px at 1080" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Colour" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <ComboBox ItemsSource="{Binding ColorModes}" SelectedIndex="{Binding ColorModeIndex, Mode=TwoWay}" Width="110"/>
+                  <Border Width="22" Height="22" CornerRadius="2" BorderBrush="#5A5A5A" BorderThickness="1"
+                          Background="{Binding ColorHex}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsManualColor}">
+                  <TextBlock Text="" Width="80"/>
+                  <ComboBox ItemsSource="{Binding Palette}" SelectedItem="{Binding PaletteSelection, Mode=TwoWay}" Width="110"
+                            PlaceholderText="Palette">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <Border Width="14" Height="14" CornerRadius="2" BorderBrush="#5A5A5A" BorderThickness="1" Background="{Binding Hex}"/>
+                          <TextBlock Text="{Binding Name}"/>
+                        </StackPanel>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <TextBox Text="{Binding ColorHex, Mode=TwoWay}" Width="80" MaxLength="7"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Keyline" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <ComboBox ItemsSource="{Binding KeylineModes}" SelectedIndex="{Binding KeylineIndex, Mode=TwoWay}" Width="110"/>
+                  <TextBlock Text="on" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding KeylineActive}"
+                             ToolTip.Tip="A dark or light edge around the line makes it readable on this wall"/>
+                </StackPanel>
+              </StackPanel>
+            </StackPanel>
+
             <!-- Fades (Phase 10, D025): every clip kind, in whole frames of the project rate; the time is shown next to
                  each. On an edge with a dissolve the fade is kept but not applied (PO-8). -->
             <StackPanel Spacing="6" IsVisible="{Binding HasFades}">

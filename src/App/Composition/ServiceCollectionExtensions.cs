@@ -21,6 +21,7 @@ using AiVideoEditor.UI.Views;
 using AiVideoEditor.UI.ViewModels;
 using AiVideoEditor.UI.ViewModels.Panels;
 using AiVideoEditor.Video;
+using AiVideoEditor.Vision;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AiVideoEditor.App.Composition;
@@ -83,6 +84,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFilePickerService, AvaloniaFilePickerService>();
         services.AddSingleton<IDialogService, AvaloniaDialogService>();
         services.AddSingleton<IFontCatalog, AvaloniaFontCatalog>();
+        // AI hold markup (D034): the pinned model from the user's models folder, checked before every first use; the
+        // markup frame decoded by the existing decoder.
+        services.AddSingleton<IHoldSegmentationService>(sp => new OnnxHoldSegmentationService(
+            Path.Combine(AppPaths.ModelsFolder, HoldModel.FolderName),
+            sp.GetService<Microsoft.Extensions.Logging.ILogger<OnnxHoldSegmentationService>>()));
+        services.AddSingleton<IHoldMarkupFrameSource, HoldMarkupFrameSource>();
         services.AddSingleton<StatusService>();
         services.AddSingleton<EditingLock>();
         services.AddSingleton<InOutRangeService>();   // the session's In / Out range (D030 §8)
@@ -105,6 +112,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<MediaBrowserViewModel>();
         services.AddTransient<PreviewViewModel>();
         services.AddTransient<InspectorViewModel>();
+        services.AddTransient<HoldMarkupViewModel>();
         services.AddTransient<TimelineViewModel>();
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();

@@ -37,6 +37,10 @@ public sealed class MainWindowViewModel : ViewModelBase
     public TimelineViewModel Timeline { get; }
     public StatusService Status { get; }
 
+    /// <summary>The AI hold markup of the selected video clip (D034): the Inspector's "Holds" section and the markup
+    /// mode over the Preview. Null without the model service (design time, tests).</summary>
+    public HoldMarkupViewModel? HoldMarkup { get; }
+
     public MainWindowViewModel(
         ToolbarViewModel toolbar,
         MediaBrowserViewModel mediaBrowser,
@@ -50,7 +54,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         ThumbnailCoordinator? thumbnails = null,
         WaveformCoordinator? waveforms = null,
         MediaAvailabilityMonitor? mediaAvailability = null,
-        IMediaRelinkService? relink = null)
+        IMediaRelinkService? relink = null,
+        HoldMarkupViewModel? holdMarkup = null)
     {
         // A file found not to fit its clips after a later analysis (D026 §3, Step 11.4): said, never undone by itself.
         if (relink is not null)
@@ -113,6 +118,9 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         MediaBrowser.AddToTimelineRequested += (_, asset) => Timeline.AddMedia(asset);
 
+        HoldMarkup = holdMarkup;
+        if (holdMarkup is not null) WireHoldMarkup(holdMarkup);
+
         // Phase 16 (D031): a double click opens the asset in the Preview's Source mode; the source bar's Insert /
         // Overwrite are the timeline's commands (the target track, the playhead, the selection are the timeline's).
         MediaBrowser.OpenInSourceRequested += (_, asset) =>
@@ -160,6 +168,25 @@ public sealed class MainWindowViewModel : ViewModelBase
         if (_waveforms is not null)
             await _waveforms.ShutdownAsync();  // never throws
         return true;
+    }
+
+    /// <summary>D034: the markup follows the selected video clip and the playhead; seek, Play, the Source mode or
+    /// another selection leave the markup mode (the confirmed markup stays).</summary>
+    private void WireHoldMarkup(HoldMarkupViewModel markup)
+    {
+        Inspector.HoldMarkup = markup;
+        Preview.HoldMarkup = markup;
+        markup.Playhead = () => Timeline.Playhead;
+        markup.IsPausedOnTimeline = () => !Preview.IsPlaying && !Preview.IsSourceMode;
+        Timeline.SelectionChanged += (_, selection) => markup.SetClip(selection?.Clip);
+        Timeline.TransitionSelectionChanged += (_, selection) => { if (selection is not null) markup.SetClip(null); };
+        MediaBrowser.SelectionChanged += (_, asset) => { if (asset is not null) markup.SetClip(null); };
+        Timeline.PlayheadChanged += (_, _) => markup.OnPlayheadMoved();
+        Preview.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(PreviewViewModel.IsPlaying) or nameof(PreviewViewModel.IsSourceMode))
+                markup.OnPreviewStateChanged();
+        };
     }
 
     private void UpdatePreviewPosition() =>

@@ -57,6 +57,9 @@ public static class CompositionPainter
                         case PlaceholderDraw placeholder:
                             DrawPlaceholder(context, placeholder);
                             break;
+                        case OutlineDraw outline:
+                            DrawOutline(context, outline);
+                            break;
                         default:
                             throw new NotSupportedException($"Unknown draw operation {op.GetType().Name}.");
                     }
@@ -88,6 +91,45 @@ public static class CompositionPainter
         var formatted = Layout(text);
         context.DrawText(formatted, new Point(-formatted.MaxTextWidth / 2, -formatted.Height / 2));
     }
+
+    /// <summary>
+    /// The route outline (D034, <see cref="OutlineDraw"/>), in the layer's crop-local coordinates under its transform
+    /// already pushed: clipped to the crop rectangle; each contour a closed polyline of segments with round caps (round
+    /// joins) — no geometry objects, so it runs off the UI thread like the rest of the painter; with a keyline, every
+    /// contour in the keyline colour over the full width first, then every core over the middle half, so the keyline of
+    /// one hold never covers the core of another.
+    /// </summary>
+    private static void DrawOutline(DrawingContext context, OutlineDraw op)
+    {
+        var localScale = Math.Sqrt(Math.Abs(op.Transform.Determinant));   // target pixels per local unit
+        if (!(localScale > 0) || op.Polygons.IsEmpty) return;
+        var width = Math.Max(op.StrokeWidth * op.CanvasScale, op.MinTargetStroke) / localScale;
+
+        using (context.PushClip(RenderConversions.ToRect(op.LocalRect)))
+        {
+            if (op.KeylineHex is { } keyline)
+            {
+                Stroke(context, op, Pen(keyline, width));
+                width *= OutlineDraw.CoreShare;
+            }
+            Stroke(context, op, Pen(op.CoreHex, width));
+        }
+    }
+
+    private static void Stroke(DrawingContext context, OutlineDraw op, ImmutablePen pen)
+    {
+        foreach (var polygon in op.Polygons)
+        {
+            for (var i = 0; i < polygon.Length; i++)
+            {
+                var (a, b) = (polygon[i], polygon[(i + 1) % polygon.Length]);
+                context.DrawLine(pen, new Point(a.X, a.Y), new Point(b.X, b.Y));
+            }
+        }
+    }
+
+    private static ImmutablePen Pen(string hex, double width) =>
+        new(new ImmutableSolidColorBrush(Color.Parse(hex)), width, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
 
     private static void DrawPlaceholder(DrawingContext context, PlaceholderDraw op)
     {

@@ -228,6 +228,40 @@ internal sealed class VideoClipDto : MediaBackedClipDto
     /// <summary>Format v4 (D032 R2): the clip's sound was unlinked into an audio clip; written only when true.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool IsAudioDetached { get; set; }
+
+    /// <summary>Format v5 (D034): the clip's hold markup; written only when set. Ignored in older files, which have none.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public HoldMarkupDto? HoldMarkup { get; set; }
+}
+
+/// <summary>Format v5 (D034 §6): a video clip's hold markup. Every member is required when the markup is present.</summary>
+internal sealed class HoldMarkupDto
+{
+    public double? StrokeWidth1080 { get; set; }
+    public HoldColorMode? ColorMode { get; set; }
+    public string? ColorHex { get; set; }
+    public KeylineMode? Keyline { get; set; }
+    public bool? KeylineActive { get; set; }
+    public string? ModelId { get; set; }
+    public List<HoldDto?>? Holds { get; set; }
+}
+
+/// <summary>One hold: the contour as a flat list <c>[x0, y0, x1, y1, …]</c> of normalized source coordinates, the colour
+/// samples (OKLab) and the markup frame's source time in ticks.</summary>
+internal sealed class HoldDto
+{
+    public Guid Id { get; set; }
+    public List<double>? Points { get; set; }
+    public OkLabDto? SurfaceLab { get; set; }
+    public OkLabDto? WallLab { get; set; }
+    public long? SourceTimeTicks { get; set; }
+}
+
+internal sealed class OkLabDto
+{
+    public double? L { get; set; }
+    public double? A { get; set; }
+    public double? B { get; set; }
 }
 
 internal sealed class AudioClipDto : MediaBackedClipDto

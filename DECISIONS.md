@@ -4381,6 +4381,254 @@ BT.709 OETF's break at L = 0.018, where the standard's rounded constants jump fr
 
 ---
 
+## D034 — AI hold markup MVP
+
+Date: 2026-10-14
+
+Decision (product owner, 2026-10-14, specification revision 5, after the AI pre-analysis and the experiments E1 / E2
+run outside the repository). The product's main function is AI processing of bouldering video; its first function is
+the markup of a route's holds with their real contours. Implementation not started — it needs a separate permission;
+the phase number is assigned then.
+
+### 1. Product scenario
+
+- On a paused frame of a selected **video clip** (Timeline mode, the playhead inside the clip) the user switches the
+  Preview into a markup mode (Inspector, section "Holds"). The frame under the playhead is decoded at full resolution by
+  the existing decoder with the same HDR rule as the Preview (D033) and encoded by the model in the background, with
+  progress and cancellation.
+- A click on a hold creates a **candidate** (mask preview: contour and translucent fill, not yet in the markup). For a
+  single-point candidate the wheel / Tab cycles through SAM's three masks; masks larger than 2 % of the frame are hidden.
+  *(Amended 2026-10-15: masks over 2 % up to 20 % are offered when the model's score is ≥ 0.9 — implementation notes
+  below.)*
+- **Additive click** (Shift+click) adds a positive point to the **current candidate**; the model recomputes one mask from
+  all its points. It refines one hold and never creates a new one; a multi-point candidate has no alternatives; without
+  a candidate Shift+click acts as a plain click.
+- Enter / a button confirms the candidate: one hold added to the clip's markup, one undo step. Esc discards the whole
+  candidate. A click on a confirmed contour (no active candidate) selects it; Delete removes it. Zoom / a loupe for
+  precise clicks. "Done", Seek or Play leave the mode; the confirmed markup stays, a candidate is discarded.
+- Confirmed contours are drawn over the clip for its whole duration as one route outline.
+- Not in the MVP: automatic route detection, automatic proposals, the route animation and camera motion compensation
+  (future ideas — ROADMAP, DEVELOPMENT_PLAN "Future ideas"), tracking, occlusion handling or reconstruction of hidden
+  edges, vertex editing, exclusive clicks, per-hold colours, fills, numbers, the Source viewer, images and text clips,
+  batch markup, the Tiny / Base+ models.
+
+### 2. Model and ONNX — "sam2.1-large-v1"
+
+- SAM 2.1 Hiera Large: checkpoint `sam2.1_hiera_large.pt` (release 092824,
+  `dl.fbaipublicfiles.com/segment_anything_2/092824/`), SHA-256
+  `2647878d5dfa5098f2f8649825738a9345572bae2d4350a2468587ece47dd318`; code `facebookresearch/sam2` at commit
+  `2b90b9f5ceec907a1c18123530e92e794ad901a4`.
+- Exported with samexporter 0.5.0 under PyTorch 2.14.1, ONNX opset 18 (byte for byte reproducible in that environment —
+  checked; other versions may give other files, which the application does not accept):
+  `sam2.1_large.encoder.onnx` SHA-256 `5ca0f505138811202a60445427383559fb84afcd80e7a5e2d1ce5d9f546e3362` (852 451 097
+  bytes), `sam2.1_large.decoder.onnx` SHA-256 `d2ef7f723ed226f424d590cd382bfef135fdfd4cb74f3a76f6bd563a63b28f10`
+  (16 519 627 bytes).
+- Placed by hand in `%LOCALAPPDATA%\AiVideoEditor\models\sam2.1-large\` — one copy per machine; never in the repository
+  or a project; never downloaded, replaced or repaired by the application. The checksums are verified at the first load
+  in a session; a missing or mismatching file disables **only** the AI hold markup, with a message naming the file, the
+  folder and the expected version; the rest of the work is never blocked.
+- Licences: SAM 2 code and checkpoints Apache-2.0 (`cc_torch` BSD-3-Clause, not part of the ONNX); samexporter, ONNX
+  Runtime MIT; onnx Apache-2.0. `docs/AI_MODEL.md` (written with the implementation, before acceptance) records the
+  checked licences and notices of every pinned component — the exact `LICENSE` and the presence / content of `NOTICE` of
+  SAM 2 at the pinned commit (not yet confirmed: GitHub answered 503 at the check), `LICENSE_cctorch`, the checkpoint
+  licence statement, samexporter 0.5.0 with its third-party licences, ONNX Runtime, onnx — each with source, date and
+  conclusion; and the full reproducible export recipe (Python version, exact package versions and sources, the
+  checkpoint download and SHA-256, the export command, the expected ONNX SHA-256s). Should the weights ever be
+  distributed: the Apache-2.0 text, the attribution notices and NOTICE (if any), a statement of the ONNX conversion. An
+  export script is not part of the MVP.
+
+### 3. Inference
+
+- Local only: ONNX Runtime with the DirectML execution provider (`Microsoft.ML.OnnxRuntime.DirectML`, MIT). Core holds the
+  markup types and `IHoldSegmentationService` without any ML dependency; a new project hosts the ONNX implementation
+  (pre- / post-processing as in E1: resize to 1024, ImageNet normalization, logits upsampled, threshold 0, outer
+  contour, simplification); the session is created lazily and reused.
+- CPU fallback: on a known error creating the DirectML session (no provider, no DirectX 12 adapter, a driver error) or a
+  known DirectML run error (device removed, out of memory) the operation is retried once on the CPU where that is safe
+  and the session stays on the CPU, with a non-blocking status-bar message ("AI runs on the CPU — processing may be
+  slower"). Unknown errors and errors of the CPU path abort the operation with a message; no recovery is promised.
+- Cancellation through ONNX Runtime's run cancellation. The project changes only through the confirm command:
+  cancellation or an error never applies a partial result, never makes the project dirty, never blocks the Timeline or
+  the export.
+
+### 4. Stroke
+
+- Output stroke = `StrokeWidth1080 × (short side of the canvas / 1080)`, default `StrokeWidth1080` = 4 (1920 × 1080 and
+  1080 × 1920 → 4 px, 1280 × 720 → 2.67 px, 3840 × 2160 → 8 px); set by the user. The output is the project canvas
+  (D028), so a canvas change rescales it. Independent of the clip's scale (the pen lives in canvas coordinates). The
+  width includes the core and the keyline. One rule for the Preview and the export; the Preview alone never draws a
+  line thinner than one screen pixel (the export is unaffected).
+
+### 5. Route colour and keyline
+
+- One outline colour for all holds of the clip; never per-hold colours.
+- **Colour samples per hold:** when a hold is confirmed, from the frame it was marked on: `SurfaceLab` — robust surface
+  colour in OKLab (mask eroded by ~10 % of the equivalent radius, at least 2 px; the darkest and brightest 10 % dropped;
+  median); `WallLab` — the same for a ring outside the mask (~15 % of the equivalent radius, at least 4 px, other masks
+  excluded); `SourceTime` — the markup frame time. Stored with the hold; never changed afterwards.
+- **Auto:** from a fixed palette (12 saturated colours — red, orange, yellow, lime, green, teal, cyan, blue, indigo,
+  violet, magenta, pink — plus white and black; adjustable at the threshold calibration) the colour maximizing over the
+  palette the minimum over the holds of `min(ΔE_OK(c, SurfaceLab_i), 2 × ΔE_OK(c, WallLab_i))`; ties → the larger mean,
+  then the palette order. Recomputed only when holds are added or removed (and by the undo / redo of that), from the
+  stored samples of all holds — holds marked on different frames each contribute their own samples; **frames are never
+  decoded again**; never on open, playback, export, lighting changes, trims, slips, speed, crop or transforms; with an
+  unchanged set the colour stays. A deliberate product decision: a stable colour matters more than following the light.
+- **Manual:** any colour; kept as set; the samples stay stored, so switching back to Auto yields the colour of the
+  current set at once.
+- **Keyline** (whole route; inside the stroke width — core 50 %, keyline 25 % each side; black when the core is light,
+  `L_OK > 0.6`, otherwise white): **Auto** — on when the route's minimum score for the colour in use is below the
+  threshold T; **On** — always; **Off** — never; the same rule for the automatic and the manual colour; re-evaluated
+  with the colour and on a change of the manual colour or the keyline mode.
+- **Threshold T** is not fixed: starting hypothesis 0.20; calibrated on the E1 frames, with examples with and without the
+  keyline shown to the product owner before acceptance.
+- Known limit: a route of very different hold colours has no single colour contrasting with all; the maximin minimizes
+  the worst case and the keyline provides the readability.
+
+### 6. Rendering, edits, data, format
+
+- Rendering: one draw operation of the clip's layer in `CompositionDrawPlan`, painted by `CompositionPainter` — the
+  Preview and the export identical by construction (D018 / D020 / D023); points: normalized source → crop → layer matrix
+  → canvas; clipped to the crop rectangle; follows the layer transform; multiplied by the layer's opacity, so the
+  contours fade with the clip's fades (D025) and dissolves and vanish with an opacity-0, hidden or occluded layer (D018);
+  not drawn for offline media (kept). A markup change is presentation-only (`DiffersOnlyInPresentation`).
+- Edits: undoable commands through `ITimelineEditService` / `EditPlan` — a confirmed hold, a removal, a style change =
+  one step each; style changes merge (D017); refused on a locked track and during an export (`EditingLock`). Trim, slip,
+  speed, move and track changes leave the markup as it is; Split, Duplicate and Paste give independent copies (samples
+  included); crop clips the contours; position / scale / rotation carry them.
+- Data: `VideoClip.HoldMarkup` (null = none) — `StrokeWidth1080`; `ColorMode` (Auto / Manual) and `ColorHex` (the resolved
+  colour, stored in Auto too); `Keyline` (Auto / On / Off) and `KeylineActive` (the resolved state); `ModelId`; `Holds`:
+  `Id`, `Points` (polygon in normalized coordinates of the display-oriented source frame, D019, simplified to ~1 source
+  pixel), `SurfaceLab`, `WallLab`, `SourceTime` (ticks). Never stored: click points, candidates, alternatives,
+  embeddings.
+- Format: `project.json` **v5**; a v4 project opens without markup and is written as v5 on save; builds before v5 refuse
+  a v5 file with the existing "saved by a newer version" check.
+
+### 7. Tests
+
+- **Regular CI** (no weights, no GPU; the segmentation service is a test double): geometry and crop clipping; the stroke
+  on 1280 × 720, 1920 × 1080, 3840 × 2160 and a 1080 × 1920 canvas (±0.5 px in the exported frame of a synthetic scene),
+  independent of the clip's scale, proportional in the Preview at several control sizes, the one-screen-pixel minimum in
+  the Preview only; colour samples on synthetic masks with shadows and highlights; the maximin with the wall; Auto
+  recomputed on add / remove from stored samples, also for holds from different frames, **without decoding a frame**;
+  no recomputation with an unchanged set; Manual; the keyline Auto / On / Off for the automatic and the manual colour;
+  determinism; Preview / export parity; opacity, fades, dissolves; undo / redo; Split / Duplicate / Paste (samples
+  copied); the v4 → v5 migration and the refusal of v5 by a v4 build; a missing model, a wrong SHA-256; the CPU fallback
+  through a simulated DirectML failure; cancellation without a partial result.
+- **Serialization of the colour samples (required):** a v5 project with holds whose `SurfaceLab`, `WallLab` and
+  `SourceTime` are known — including holds from different markup frames and non-round values — is saved, reopened and
+  saved again: every hold's `SurfaceLab` (L, a, b), `WallLab` (L, a, b) and `SourceTime` (ticks) restored exactly, the
+  second file identical to the first; after the reopen, adding / removing a hold recomputes Auto from the restored
+  samples alone (no frame decoded) and yields the same colour as before saving. A file missing a hold's samples or with
+  non-finite values is rejected as damaged.
+- **Local suite with the real weights** (a separate test project kept out of the regular CI run — a CI configuration
+  change of the implementation; required and recorded before acceptance): ONNX load and SHA-256; mask quality on the E1
+  clicks; the three alternatives in the order and within median IoU ≥ 0.98 of the Python ONNX reference; refinement
+  with several points giving one mask; DirectML vs CPU (median IoU ≥ 0.98); performance (frame preparation ≤ 1 s GPU /
+  ≤ 10 s CPU, click preview ≤ 150 ms, on an RTX 4070 SUPER with a 4K frame). User footage never enters the repository;
+  the real data stay local.
+
+### 8. Acceptance criteria
+
+1. The scenario of §1 complete: candidate, alternatives, additive click, confirm, delete, zoom / loupe, leaving the mode.
+2. Every confirm, removal and style change one undo / redo step; style changes merge.
+3. Edits, opacity, fades and dissolves as §6.
+4. The stroke as §4 on 720p, 1080p, 4K and portrait; the Preview and the export consistent.
+5. The colour and keyline as §5; T calibrated, its examples shown to and accepted by the product owner.
+   5a. Auto recomputed from the stored samples on add / remove, also for holds marked on different frames, no frame
+   decoded; unchanged with an unchanged set.
+   5b. Keyline Auto by T, On always, Off never — for the automatic and the manual colour.
+6. The model and its errors as §2: only the AI hold markup disabled, nothing replaced.
+   6a. `docs/AI_MODEL.md` records the checked licences and notices (NOTICE included) and the full export recipe that
+   yields the pinned SHA-256s.
+7. The CPU fallback, the status message and cancellation as §3.
+8. Format v5: the save / open cycle lossless, the colour samples included (§7); v4 opens; an older build refuses v5.
+9. The regular CI green without weights or a GPU; the local real-weights suite passed and recorded.
+10. On **the same E1 set** (the same 7 SDR clips, frames and 164 click points) and **the same grading protocol** (the
+    highest-scoring mask, masks over 2 % of the frame dropped *(the original protocol; under the amended rule of
+    2026-10-15 the result is reported separately — implementation notes)*; the product owner's О / К marks on numbered sheets of
+    the same format) the share of clicks without marked problems in the C# pipeline is **at least 155/164**. It shows
+    the implementation is not worse than the experiment on this set; it is not an accuracy of the model on arbitrary
+    clicks and is not generalized beyond the set.
+11. A manual check on 2–3 of the product owner's clips: markup, export, viewing; the contours readable and equal to the
+    Preview; the time to mark a route recorded.
+
+Context: AI pre-analysis and experiments of 2026-10-14, outside the repository (the session's scratch folder; no
+repository change). E1 — SAM 2.1 Large, one click per hold, on 7 SDR clips (164 clicks) graded by the product owner:
+155/164 = 94.5 % without marked problems — О 4 (the wall instead of a hold: c6 №16, c1 №16, c8 №8, c8 №24), К 5 (c0 №19
+— an edge hidden by a hand, an occlusion; c1 №3 — a donut hole; c1 №8 — a C-shaped concavity cut straight; c1 №18 —
+extra area; c8 №16 — the lighter part of a two-tone hold missing); a result of this sample and protocol only. HDR (the
+pilot clip through S1, portrait; deliberately biased): 22/24, К 2 (donut holes). Among SAM's alternatives there was a
+whole-hold mask in every donut-hole case; C-shaped concavities and occluded edges remain. ONNX + DirectML matches
+PyTorch (median IoU 0.985 on 50 clicks); Large: encode ~0.2 s on the GPU (0.32 s cold) / ~4.2 s on the CPU, a click
+~13 ms; GPU memory +3.0 GB. E2 — 12 SDR clips (tripod): static contours drift ≤ 6.3 px (p95 ≤ 4.2 px) at 1080p; a global
+2D compensation would leave ≤ 2.8 px (an estimate) — not in the MVP; the HDR pilot clip (78 s, phone stabilization on)
+drifted up to 13–14 px. Automatic proposals (SAM's grid generator) found the holds but cost ~25 s per frame (Tiny at half
+resolution) to minutes; RF-DETR-Seg was not tried (no dataset with a verifiable licence; not needed after E1).
+
+Consequences: a new dependency `Microsoft.ML.OnnxRuntime.DirectML` (DirectML is in sustained engineering; WinML is the
+successor path); a ~870 MB model outside the repository with pinned checksums; a new project in the solution;
+`project.json` v5; pointer input in the Preview; a CI configuration change keeping the real-weights suite out of the
+regular run; `docs/AI_MODEL.md`. ROADMAP's "left out: AI features" no longer holds (updated 2026-10-14).
+
+Status: Accepted (2026-10-14, product owner: specification revision 5). Implemented in Phase 19 (branch
+`feat/ai-hold-markup`, 2026-10-14, the product owner's permission of the same day); the decision text above unchanged.
+
+Implementation notes (Phase 19; technical choices within the decision, not changes of it):
+- Multi-point prompts: the pinned decoder was exported with `multimask_output = True` and always returns three masks; a
+  candidate refined by Shift+click shows the highest-scoring visible one (masks over 2 % hidden) — "one mask, no
+  alternatives" as §1 (`docs/AI_MODEL.md`).
+- `DirectML.dll`: the redistributable (`Microsoft.AI.DirectML`, a dependency of the ONNX Runtime package) is under the
+  Microsoft Software License Terms, not a permissive licence; it is not shipped — ONNX Runtime loads the Windows copy and
+  the §3 CPU fallback covers its failure. Shipping it is left to the product owner.
+- SAM 2 has no `NOTICE` file at the pinned commit (confirmed 2026-10-14 through the GitHub API listing of the commit's
+  tree; the §2 check had been blocked by a 503).
+- Threshold T calibrated at Step 19.6 to **0.12** (from the 0.20 hypothesis) on 24 E1 routes; the Auto colour scores
+  ≥ 0.50 on every one of them, so T decides for manual colours. The product owner's acceptance of the examples: manual
+  plan item 16.
+- T set to **0.16** (product owner, 2026-10-15) after the T report: below 0.12 the keyline is needed, in 0.12–0.20 it
+  trades a crisper edge for half the coloured core. Same samples and protocol: of the 24 E1 routes outlined in their
+  own hold colour the keyline turns on for 9 at 0.16 (5 at 0.12, 16 at 0.20; added: c10 blue, c10 yellow, c6 red, c7
+  teal); the Auto colour turns it on for none (Auto scores ≥ 0.33). Examples: `T016_examples.png` with the calibration.
+- Auto colour — saturated colours first (product owner, 2026-10-15; refines the §5 Auto rule, whose palette D034 lets
+  the calibration adjust; the §5 text above kept as accepted): the maximin over the 12 saturated colours is taken when
+  its route score reaches T (the line reads without a keyline — the readability bound calibrated on the E1 frames, no
+  other weight); otherwise the better of white and black, when it reaches T; otherwise the maximin over all 14 with
+  the Auto keyline. Recomputed only when the holds change, as before. On the 24 E1 routes: saturated on all 24 (lime 14,
+  magenta 7, yellow 2, indigo 1; before: black 14, white 5, lime 5), the minimum route score 0.325–0.659 (median 0.460;
+  before 0.502–0.773, median 0.545) — at least twice T, no keyline anywhere. Comparison and examples:
+  `palette_old_vs_new.png` and `T_REPORT.md` with the calibration.
+- §1 candidate rule — **amended 2026-10-15** (product owner, variant A; the original rule above kept as history):
+  masks up to 2 % of the frame are offered as before; masks over 2 % and up to 20 % are offered when the model's score
+  is ≥ 0.9; masks over 20 % stay hidden. Offered masks keep the order by score (the best one first) — no Tab step is
+  added to the main flow. Reason: in a close-up a real hold can exceed 2 % of the frame; on the owner's clip
+  `VID_20251223_193501.mp4` three holds of 2.48 / 3.39 / 6.18 % had the model's best mask (score 0.99, IoU ≈ 0.95 with the
+  owner's outline) hidden, so the app offered only parts (IoU 0.07–0.71) or nothing, and Shift+click could not help (it
+  converged on the same hidden mask). **A high score does not guarantee the right object:** a large mask can take the
+  wall, the floor, the ceiling or a person. Found with scores ≥ 0.9 on four more of the owner's close-ups (clips 5, 15,
+  29, 32 of 2026-10-15): a wall panel 18.7 %, the floor 9.0 % and 18.4 %, the ceiling 5.6 % and 2.3 %, a wall-bottom strip
+  2.4 %, graffiti areas 2.8 / 3.8 %, people 2.3–4.9 %. A click on the hold still gives the hold; a click on such an area
+  can now offer it as the candidate (confirmed only by Enter). The bounds 2 % / 20 % / 0.9 are provisional — from E1,
+  one problem frame and four close-ups — and are not universally safe. Data: `<E1>/results/large-holds-20261015/`.
+  The correction of a wrong boundary without cycling alternatives is the next product stage (`docs/DEVELOPMENT_PLAN.md`,
+  "Future ideas"), not Phase 19.
+- §8 criterion 10 under the amended rule: the original result **156/164** (the 2 % rule, recorded 2026-10-14 / 15) stays
+  the accepted metric; the same set and grading rule with the amended candidate rule gives **156/164** as well (local
+  suite `<E1>/results/20261015-121935/`, RECHECK 0 — the amended rule changes the choice on none of the 164 clicks: every
+  E1 mask over 2 % scores ≤ 0.58). The two are reported separately.
+- The markup frame is decoded by the application's decoder (software, the D033 HDR rule) at the asset's display size;
+  on the E1 clip c6 at 0.5 s it is bit-identical to the E1 reference frame (local `MarkupPipelineTests`).
+- §7 performance — reading of the criterion (product owner, 2026-10-15; the §7 text and its thresholds unchanged): the
+  §7 text "frame preparation ≤ 1 s GPU / ≤ 10 s CPU, click preview ≤ 150 ms" does not name the statistic or the stages.
+  It is read as: **frame preparation** = from a decoded frame in memory to the model being ready to return masks for
+  the first click (the preprocessing and the image encoder), with the sessions loaded; the GPU **median** must be
+  ≤ 1 s. The frame's **decode** is measured and reported separately and is not part of it. The **cold start** (the
+  SHA-256 check and the session creation, once per session) is measured and reported separately, is not a failure of
+  the metric, and must be visible to the user through the markup's progress. The **full user scenario** (from Mark
+  holds to clickable, with the decode and, when needed, the cold start) is reported as well. Definitions, conditions
+  and values: `docs/AI_MODEL.md`, "Performance".
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

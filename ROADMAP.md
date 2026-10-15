@@ -59,7 +59,21 @@ session state (D015).
 
 ## Current
 
-Phase 18 — HDR → SDR of phone footage (**complete** on `feat/phase-18-hdr-sdr`, pull request open, not yet merged; DECISIONS.md D033 with Revision R1, product owner decisions of 2026-10-13 / 14). HDR video —
+Phase 19 — AI hold markup (**implemented, awaiting acceptance**; DECISIONS.md D034 accepted 2026-10-14, specification
+revision 5; branch `feat/ai-hold-markup` from `c29a767`; implemented on the branch, Steps 19.0–19.8 committed, not pushed or merged; awaiting the product owner's acceptance — the threshold examples and the real-app scenarios on their clips). On
+a paused frame of a video clip the user clicks holds; SAM 2.1 Large (pinned model `sam2.1-large-v1`, ONNX, local only,
+DirectML with a CPU fallback) returns their real contours; confirmed holds are drawn over the clip for its whole
+duration as one route outline (one colour chosen from the holds and the wall, a keyline when the contrast is low, a
+stroke per the canvas's short side), identical in the Preview and the export; undo / redo; `project.json` v5. The
+experiments E1 / E2 ran outside the repository (reference data outside the repository too); E1: 155/164 SDR clicks
+without marked problems — the acceptance bar (D034 §8, criterion 10); the implementation's pinned ONNX model: 156/164.
+Steps 19.0–19.8 and acceptance criteria:
+`docs/DEVELOPMENT_PLAN.md`, "Phase 19 — AI hold markup: steps"; manual plan `docs/PHASE19_MANUAL_TEST_PLAN.md`.
+
+## Previous
+
+Phase 18 — HDR → SDR of phone footage (**complete**; PR #19 merged into `main` as `c29a767` on 2026-10-14, CI green;
+still open: the product owner's visual check of the S1 export and PQ on real PQ footage; DECISIONS.md D033 with Revision R1, product owner decisions of 2026-10-13 / 14). HDR video —
 HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 and HDR Vivid by their HLG base layer — converted to the editor's SDR
 picture by one exact rule — S1 since Revision R1: scene light (PQ through the inverse BT.2100 OOTF), BT.2020 → BT.709,
 gamut compression, exposure, mobius on max RGB, the BT.709 OETF — as an application-generated 65³ LUT, the same for the Preview, the thumbnails and the export; SDR media decoded
@@ -76,8 +90,6 @@ accuracy study, thumbnails and LUTs keyed by the colour rule, the real footage, 
 measured on the product owner's 13 clips; PQ not verified on real PQ footage; the product owner's visual check of the S1
 export open. Steps and acceptance criteria: `docs/DEVELOPMENT_PLAN.md`, "Phase 18 — HDR →
 SDR of phone footage: steps"; manual plan `docs/PHASE18_MANUAL_TEST_PLAN.md`.
-
-## Previous
 
 Phase 17 — Audio editing, branch `feat/phase-17-audio-editing` (from `79e4e78`, `main` after the merge of PR #17). Scope
 (product owner, 2026-10-08, DECISIONS.md D032 — variant A of the Phase 17 pre-flight, the D side of D031 §3): Unlink Audio
@@ -295,13 +307,23 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-None planned after Phase 18 — see `docs/DEVELOPMENT_PLAN.md`. Candidates named in the Phase 16–18 pre-flights, not
-decided: ducking (after keyframes); a
+Phase 19 (AI hold markup, D034) is implemented and awaits acceptance — see "Current" and `docs/DEVELOPMENT_PLAN.md`. Candidates named in the
+Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The
 In / Out update order" and "deep-seek decode coverage", listed here before, were defined nowhere and are not tasks —
-D032 "Context"; removed at Step 18.2.) Left out by the product owner: AI features, colour management beyond the HDR → SDR
-conversion of D033 (HDR output, grading, ICC), an installer, timeline virtualization, an undoable import.
+D032 "Context"; removed at Step 18.2.) Left out by the product owner: colour management beyond the HDR → SDR
+conversion of D033 (HDR output, grading, ICC), an installer, timeline virtualization, an undoable import. AI features,
+listed here before as left out, are the product's main direction since 2026-10-14: the AI hold markup MVP is decided —
+DECISIONS.md D034 (accepted 2026-10-14, after experiments outside the repository); implemented in Phase 19, awaiting acceptance.
+
+Next product stage proposed (2026-10-15): correction of a hold's contour by editing its vertices, so a wrong boundary
+is fixed without cycling alternatives — sketch in `docs/DEVELOPMENT_PLAN.md`, "Future ideas"; needs a D034 extension.
+
+Future idea, not a phase (recorded 2026-10-14): a route animation after the AI hold markup — the marked holds appear
+over the video one by one at a configurable interval, stay visible, and disappear together after a set time. Not part
+of the AI hold markup MVP; keeping the contours on the holds while the camera moves is a separate motion compensation /
+tracking task. Sketch: `docs/DEVELOPMENT_PLAN.md`, "Future ideas (not phases)".
 
 ## Rule
 

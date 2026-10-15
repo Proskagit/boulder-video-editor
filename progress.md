@@ -2,18 +2,208 @@
 
 ## Current phase
 
-Phase 18 — HDR → SDR of phone footage, on branch `feat/phase-18-hdr-sdr` (from `fa96468`, `main` after
-the merge of PR #18; DECISIONS.md D033, product owner decisions of 2026-10-13, OQ1 answered); closeout Step 18.8 done
-2026-10-13; the product owner's visual check of the L2 export failed → D033 Revision R1 (rule S1), Steps 18.9–18.12;
-Steps 18.9–18.12 done 2026-10-14 (S1 accepted for HLG with the 65³ LUT, criteria refined; PQ not verified on real
-footage); the product owner's visual check of the S1 export open. Pushed; pull request into `main` opened, not merged. Builds and tests run by Claude as needed; no push, pull request or merge
-without a separate command. Scope: HDR
-video (HLG and PQ, BT.2020, 10 bit; Dolby Vision 8.4 / HDR Vivid by the HLG base layer) converted by the rule S1 of D033 §3 (Revision R1; L2 until 18.8)
-as an application-generated 65³ LUT, the same for the Preview, the thumbnails and the export; SDR decoding unchanged;
-optional colour metadata (`project.json` stays v4); no per-asset switch. Steps and acceptance: `docs/DEVELOPMENT_PLAN.md`
-"Phase 18 — HDR → SDR of phone footage: steps"; manual plan `docs/PHASE18_MANUAL_TEST_PLAN.md`.
+Phase 19 — AI hold markup, branch `feat/ai-hold-markup` (from `c29a767`, `main` after the merge of PR #19; DECISIONS.md
+D034, specification revision 5, accepted 2026-10-14). **Implementation in progress** (the product owner's permission of
+2026-10-14: code, tests, documentation and commits on this branch; no push, pull request or merge without a separate
+permission). Steps 19.0–19.8 committed and the real-app acceptance run done by Claude (2026-10-15); nothing pushed or merged.
+T = 0.16 and the saturated-first Auto colour decided by the product owner (2026-10-15); the human time to mark a
+route is not measured yet (not blocking). Open: push / PR / merge on the product owner's command. Steps
+and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps"; manual plan
+`docs/PHASE19_MANUAL_TEST_PLAN.md`.
 
-### Phase 18 — HDR → SDR of phone footage (complete; closeout Step 18.8, not yet merged)
+### Phase 19 — AI hold markup (in progress)
+
+- 2026-10-14 — read-only pre-flights after the Phase 18 merge (timeline / media / Preview / localization UX; the roadmap
+  revision with AI as the main product direction — no AI code existed; the AI MVP pre-analysis). No repository change.
+- 2026-10-14 — experiments outside the repository (a separate Python environment; nothing added to the solution):
+  E1 — SAM 2.1 Large, one click per hold, graded by the product owner on numbered sheets: 164 SDR clicks on 7 clips,
+  155/164 without marked problems (О 4: c6 №16, c1 №16, c8 №8, c8 №24 — the wall instead of a hold; К 5: c0 №19 — an
+  occluded edge, c1 №3 / №8 / №18, c8 №16); HDR pilot 22/24 (biased sample, separate). ONNX (samexporter) + DirectML
+  works; DirectML = CPU on the E1 set. E2 — 12 SDR clips: static contours drift ≤ 6.3 px (p95 ≤ 4.2 px) at 1080p; a
+  global 2D compensation deferred. RF-DETR-Seg not tried (no dataset with a verifiable licence). Licences of everything
+  downloaded recorded.
+- 2026-10-14 — D034 accepted (specification revision 5); ROADMAP / DEVELOPMENT_PLAN: AI is the main direction, the
+  route animation recorded as a future idea (not a phase).
+- 2026-10-14 — branch `feat/ai-hold-markup` created from `origin/main` = `c29a767`; the D034 / ROADMAP / plan changes
+  carried over from the working tree (identical to a backup patch); not committed.
+- 2026-10-14 — the E1 / E2 reference data moved out of the temporary folder to
+  `%USERPROFILE%\Desktop\AiVideoEditor-E1-Reference\` (never in the repository): 2424 files identical by SHA-256 to the
+  source, plus the owner's marks, the environment lock, the reference ONNX masks, the protocol, `README.md`,
+  `MANIFEST.sha256`.
+- 2026-10-14 — criterion-10 protocol checked: with SAM 2's own preprocessing the pinned ONNX model matches the graded
+  (PyTorch bf16) masks with median IoU 0.9955; 126 of 164 SDR clicks reach IoU ≥ 0.98, 38 do not → variant B (product
+  owner): the 38 re-graded once on the ONNX masks before the implementation; re-check sheets prepared; the owner's
+  re-grade pending.
+- 2026-10-14 — Step 19.0 (documentation): the Phase 18 merge recorded, Phase 19 and its steps, the manual plan's skeleton;
+  not committed.
+- 2026-10-14 — the product owner's re-check of the 38 clicks (kept apart from the original marks; reference folder
+  `recheck/`): 32 without problems, О 3 (c1 №19, c6 №16, c8 №8 — clicks on the wall), К 3 (c1 №3, №8, №18). With the 126
+  inherited marks (122 without problems): **154/164** for the pinned ONNX model on the E1 set — one below the D034
+  criterion-10 bar of 155. For c1 №16 (inherited О) and c1 №19 all three masks exceed 2 % of the frame: the sheets showed
+  the highest-scoring (wall) mask, while D034 §1 hides masks over 2 % (no candidate).
+- 2026-10-14 — E1 final (product owner): c1 №16 and c1 №19 graded on the D034 behaviour (sheet `nomask_c1`): no
+  candidate is shown — without problems. Two views, both recorded in the reference folder (`recheck/summary_final.json`,
+  `recheck/protocol_d034_behaviour.csv`; the original marks and protocols unchanged): segmentation quality of the pinned
+  ONNX model **154/164** (О 5, К 5); user-visible behaviour under D034 **156/164** (О 3: c6 №16, c8 №8, c8 №24; К 5:
+  c0 №19 — occlusion, c1 №3, №8, №18, c8 №16) — **criterion 10 (≥ 155/164) met on the E1 set**. D034 unchanged. The
+  implementation not started — it needs the product owner's separate permission.
+- 2026-10-14 — the product owner's permission to implement Phase 19 by D034 rev. 5 (scope and criteria unchanged).
+- Steps 19.1–19.2 (`4a83032`): Core `HoldMarkup` / `Hold` / OKLab / `RouteColor` (palette of 12 + white + black, maximin,
+  keyline T = 0.20 until 19.6); `project.json` v5 (v4 read, a newer version refused, damaged markup refused; the samples
+  of every hold round-trip exactly); `AddHold` / `RemoveHold` / `SetHoldStyle` as undoable commands (style changes
+  merge, holds never); Split / Duplicate / Paste copy the markup.
+- Step 19.3 (`90de6f4`): the outline in the playback snapshot and one `OutlineDraw` in `CompositionDrawPlan`, painted by
+  `CompositionPainter` for the Preview and the export (layer-local, clipped to the crop, the layer's opacity, the stroke on
+  the canvas's short side, keyline 50 / 25 / 25; 1 px minimum in the Preview only).
+- Step 19.4 (`8f2c0dc`): `src/Vision` — `OnnxHoldSegmentationService` (ONNX Runtime DirectML 1.24.4, SHA-256 check of
+  the pinned files, CPU fallback with one retry, cancellation), SAM 2 pre- / postprocessing in C#; Core
+  `HoldCandidateRules` (masks > 2 % hidden), `MaskContour`, `HoldColorSampler`; `tests/Vision.Tests` (in the solution, no
+  weights) and `tests/Vision.ModelTests` (local, outside the solution). Local run `results/20261014-215129`: the three
+  alternatives equal to the Python reference (median IoU 1.0000, order 188/188), criterion 10 156/164, DirectML = CPU,
+  GPU frame 368 ms / CPU 8.4 s, click 45 ms (median).
+- Step 19.5: the markup mode — `HoldMarkupViewModel` (the Inspector's "Holds" section: width, colour Auto / Manual with
+  the palette and #RRGGBB, keyline Auto / On / Off; "Mark holds": guards, model check and frame preparation with progress
+  and cancellation, click → candidate with its visible alternatives (Tab / Shift+Tab / wheel), Shift+click refines to one
+  mask, Enter confirms (contour + colour samples, one undo step), Esc, a click on a hold selects it and Delete removes it;
+  seek / Play / Source / another clip / an export / another project leave the mode), `HoldMarkupFrameSource` (the
+  Preview's frame under the playhead at full display size through the app's decoder, software, the D033 HDR rule),
+  `HoldMarkupOverlay` over the Preview (click mapping through the viewport and the layer geometry, candidate, selected
+  hold, loupe), `ShortcutRouter` keys of the mode first; App: `AppPaths.ModelsFolder`, the service registrations
+  (copying the x64 `DirectML.dll` redistributable next to the app was tried and withdrawn at 19.7 — see there). Tests: `tests/UI.Tests/HoldMarkupUiTests.cs` (13); the local `MarkupPipelineTests` — the markup frame of
+  c6 at 0.5 s is bit-identical to the E1 reference frame and a reference click gives a valid hold. Full solution suite:
+  3295 passed, 2 skipped (the known 4K scenes). The scenario in the real app — the manual plan (product owner).
+- Step 19.6: keyline threshold calibrated outside the repository (`<E1>/results/calibration-20261014-224451/`): the
+  colour samples of the 164 E1 clicks through the app's own pipeline (local `KeylineCalibrationTests`; 162 sampled, c1
+  №16 / №19 no candidate), 24 routes (holds grouped by surface colour); the Auto colour scores ≥ 0.50 on every route, so
+  T matters for manual colours (scores 0.028–0.773). Example sheets per score band with and without the keyline: below
+  ≈ 0.12 the plain line merges with the holds, from ≈ 0.15 it reads alone → **T = 0.12** in `RouteColor` with a test;
+  the product owner's acceptance pending (manual plan #16). Observation for the owner: the Auto colour is mostly black or
+  white on the E1 walls (the maximin favours lightness contrast) — D034 allows adjusting the palette at this step; left
+  unchanged.
+- Step 19.7: `docs/AI_MODEL.md` — the files and checksums, installing, the messages, the runtime, the multi-point
+  decision (the pinned decoder always returns three masks; a refined candidate shows the best visible one), the licences
+  checked 2026-10-14 (SAM 2 at `2b90b9f`: Apache-2.0, **no NOTICE file** — confirmed through the GitHub API listing of
+  the commit's tree; `LICENSE_cctorch` BSD-3 not part of the ONNX; the checkpoint Apache-2.0 per the commit's README;
+  samexporter 0.5.0 MIT with the OpenAI CLIP MIT licence; onnx, PyTorch, ONNX Runtime) and the export recipe with the
+  checkpoint's SHA-256. Found while checking: the `DirectML.dll` redistributable is under the Microsoft Software License
+  Terms (Windows / Xbox only, usage data collection) — not a permissive licence, so it is **not shipped**; ONNX Runtime
+  uses the Windows copy (as in the 19.4 measurements), the CPU fallback covers its failure; shipping it is left to the
+  product owner. ARCHITECTURE (Vision, the AI section, format v5), CLAUDE.md (20 projects), `docs/README.md`.
+- Step 19.8 (closeout, Claude): `dotnet build --no-incremental -warnaserror` Release and Debug 0 / 0 (also the local
+  suite's project); the full suite 3296 passed / 2 skipped (the 4K scenes) / 0 failed, three `--blame-hang` runs the same,
+  no hang; `AIVE_HEAVY_TESTS=1` ExportEndToEnd 129 / 0 / 0; after the fix below 3297 / 2 / 0 and three more
+  `--blame-hang` runs (see the closeout note). Local real-weights suite 9 / 9 (report `<E1>/results/20261014-230816/`):
+  C# = Python reference (median IoU 1.0000, order 188/188), **criterion 10: 156/164** (О 3, К 5, RECHECK 0), DirectML =
+  CPU (median IoU 1.0000), GPU frame 417 ms median / CPU 8.0 s, click 49 ms; the calibration samples identical between
+  runs (system vs redistributable DirectML). Real app (Debug, isolated profile, fixture
+  `tools/manual/New-Phase19MarkupFixture.ps1` with c6): the Holds section, Mark holds with progress (5.9 s with the first
+  SHA-256 check), a candidate under the click, "Outline 1 of 3" → Tab → "2 of 3", the "No hold there" message, the loupe
+  matching the frame, Enter adding a hold drawn by the composition in the Auto colour (black). Of five quick click / Enter
+  pairs only one hold was added; not reproduced headlessly with the real model (new local `MarkupScenarioTests`, 6 of 6);
+  the click-during-confirm race closed anyway (a click waits for a running confirm; Tab / wheel / Esc don't cancel it;
+  UI test). The mode's hint moved below the picture (it covered holds). The run was stopped early because the product
+  owner was using the desktop (synthesized input could reach other windows; the last Esc and click may have gone to a
+  browser window — no visible effect). D034 status and implementation notes recorded (decision text unchanged).
+- Step 19.8 phase review (independent, read-only): FAIL with four small corrections, no architectural issue — all fixed:
+  the missing-model message names the expected version `sam2.1-large-v1`; only known DirectML failures of a run (DXGI
+  device removed / hung / reset, out of memory, D3D12 / DirectML) move to the CPU, an unknown one aborts on the device
+  (test of the mapping); view-model tests for Play, the Source mode, an export (style edit refused, mode left), another
+  project and Esc while preparing; the manual plan's statuses corrected; a stale ROADMAP line. Also from its notes: an
+  Enter pressed while the model is still predicting is applied when the candidate appears (the likely cause of the
+  real-app #9 result); a late `Start` continuation never acts on a newer session; a faulted confirm is reported, never
+  thrown into the pointer handler; a style edit keeps the stored Auto colour (D034 §5: recomputed only when the holds
+  change or on switching to Auto), the test now able to see a recompute. Open questions for the product owner: which
+  statistic the §7 performance bounds use (medians meet them; the first GPU frame after loading took 3.8 s, the slowest
+  click 155 ms); whether a Shift+click leaving every mask over 2 % should keep the earlier candidate (now discarded).
+- Step 19.8 final verification (after the review corrections): `-warnaserror` Release and Debug 0 / 0; the full suite
+  **3307 passed, 2 skipped (the 4K scenes), 0 failed**, three `--blame-hang` runs the same, no hang; `AIVE_HEAVY_TESTS=1`
+  ExportEndToEnd 129 / 0 / 0; the local real-weights suite 9 / 9, criterion 10 156/164 (report
+  `<E1>/results/20261014-232154/`). On the way one `--blame-hang` run hung in
+  `ProjectCommandsTests.Edit_made_while_saving_from_the_prompt_is_not_lost` (Phase 6, untouched by Phase 19): a test
+  deadlock when the file writes complete synchronously — `BeforeCommit` then blocks the test thread before the close
+  task is returned; the close (and the same pattern in `AutosaveServiceTests`) now runs off the test thread. A timing
+  race in the new early-Enter UI test fixed too (15 of 15 repeats green).
+- 2026-10-15 — real-app acceptance run by Claude with the product owner's permission (GUI; results per row in
+  `docs/PHASE19_MANUAL_TEST_PLAN.md`, "real-app run 2"): Debug build, isolated profiles, fixtures for c6, c8 and the HLG
+  clip; synthesized input only after a foreground / window-under-point check (it stopped the run once — no input sent).
+  PASS: 1–3, 5–11, 12 at the markup frame, 13 (1080p, 1080 × 1920, 4K), 14, 15, 17–23, 26 (three clips), R1 (the v4
+  project exported byte-identical by the Phase 18 and the Phase 19 builds), R2 for the tools run. #9: 7 of 7 quick
+  click / Enter pairs, twice. BLOCKED: #4 (no way to force a DirectML failure in the GUI). NOT RUN: 720p canvas; in R2
+  slip, ripple trim, J / L cuts, unlink, sound-only insert. Not accepted (the owner's): #16 (T), the human time to mark
+  a route (#26). Limitation seen: the HLG clip reframes after ≈ 1 s, so static outlines leave the holds — camera motion,
+  not in the MVP (D034).
+  Defects found and fixed (with tests): the markup hint below the picture shrank the Preview by a quarter → status and
+  buttons in the Preview bar; Mark holds was offered on a locked track where every confirm is refused → off there, and
+  locking leaves the mode (`9c145ca`); the missing-model message named a relative folder under an unset profile → full
+  path (`8f2ff61`); the fixture script took a phone clip's odd average frame rate → `r_frame_rate` (`8f2ff61`).
+- 2026-10-15 — performance profile (local `PerformanceProfileTests`, no GUI, RTX 4070 SUPER, E1 4K frames; report
+  `<E1>/results/perf-20261015-002945/perf.md`, repeated in `perf-20261015-110442`; ms, median / p95 / max): model check (SHA-256) 476 / 496 / 496; session
+  creation 3279 / 3600 / 3600; fresh service `EnsureReady` (check + sessions) 4088 / 4089 / 4089 — once per session;
+  first `PrepareFrame` after it 444 / 450 / 450, then 237; warm encode 191 / 194 / 195, preprocess 43 / 58 / 60; the
+  app's 4K markup frame decode 682 / 853 / 853; click (decode + upsample of three masks) 37 / 64 / 125 over 164 clicks;
+  confirm (component + contour + colour samples) 27 / 48 / 1128 (the maximum on a whole-wall mask, which the app never
+  offers). The earlier "first frame 3.8 s" and "slowest click 155 ms" of the local suite were taken while xUnit ran
+  the other GPU test classes in parallel — not representative (a parallel rerun even showed a 2.4 s click); the local
+  suite now runs one class at a time (`xunit.runner.json`). Open for the owner: whether "frame preparation ≤ 1 s"
+  includes the 4K decode (with it ≈ 0.9–1.3 s) and the once-per-session start (≈ 4–6 s in the app).
+- 2026-10-15 — Shift+click proposal (not implemented, the owner decides): when a refinement (two or more points) leaves
+  no mask under 2 % of the frame, keep the previous candidate (its points, masks and shown outline) and drop only the
+  new point, with the status "No smaller outline with that point — kept the previous one."; today the candidate is
+  discarded. Change: `HoldMarkupViewModel.PredictAsync` restores the saved state instead of `ClearCandidate()` when
+  `points.Count > 1`; a UI test (fake model: walls only on the second prediction) checks the candidate and its points.
+- 2026-10-15 — final verification after the real-app fixes: `-warnaserror` Release and Debug 0 / 0; the full suite
+  **3309 passed, 2 skipped, 0 failed**, three `--blame-hang` runs the same (no hang, no dump); `AIVE_HEAVY_TESTS=1`
+  ExportEndToEnd 129 / 0 / 0; the local real-weights suite **10 / 10** (one class at a time; report
+  `<E1>/results/20261015-110340/`): criterion 10 156/164, C# = Python reference, DirectML = CPU, frame preparation
+  median 350 / max 472 ms (first 379 ms), click median 41 / max 122 ms, CPU 7.4 s. Stray app data written to the
+  repository root during the no-model run (an unset profile makes the app's data folder relative) removed; the model
+  folder itself is named in full since `8f2ff61`.
+- 2026-10-15 — the product owner's closing items:
+  - Shift+click (`5dc65f3`): a refinement leaving no mask under 2 % keeps the previous candidate (masks, outline, the
+    alternative shown), drops only the new point and says so; an Enter pressed during it is dropped; nothing is
+    confirmed. UI tests: the rejected refinement, the following normal refinement, the early Enter, Shift+click without
+    a candidate (a plain click; "No hold there").
+  - D034 §7 reading (`416a71a`): frame preparation = decoded frame → ready for the first click, GPU median ≤ 1 s; the
+    decode and the cold start reported separately; the full user scenario reported. Recorded as a D034 implementation
+    note (§7 text and thresholds unchanged); `docs/AI_MODEL.md` "Performance": frame preparation median 350 ms (max
+    472; the first after loading 428), CPU 7.4 s, click 41 ms median / 122 ms max through the service; decode 699 ms
+    median; cold start 3.96 s (SHA-256 455 ms + sessions 3.25 s); full scenario ≈ 5.1 s first in a session (5.8 s
+    observed in the app), ≈ 1 s later. The cold start is now said in the progress ("Loading the hold model…").
+  - T: report for the owner (`<E1>/results/calibration-20261014-224451/T_REPORT.md`, `T_examples.png`,
+    `zoom_bands.png`). Revised finding: in 0.12–0.20 both versions read — a trade-off, not a clear win for 0.12; routes
+    outlined in their own colour score 0.03–0.30 (keyline on for 5 / 24 at 0.12, 16 / 24 at 0.20). The real-app
+    observation (Auto black, Auto keyline never on) is explained by the scores (Auto 0.39–0.62, best saturated colour
+    0.33–0.42), confirmed by an independent recomputation and a ring analysis on c8's dark panels — no check error; the
+    E1 walls have no very dark wall or mixed-colour route. T unchanged (0.12), not accepted; the code comment reworded.
+  - Verification: UI.Tests 680 / 680 after each change (the changes touch the UI view model and documentation only);
+    criterion 10 unchanged at 156/164 — no code on the model path (Core, Vision) changed since the last real-weights run except a comment
+    (`<E1>/results/20261015-110340/`), so the suites were not rerun (the product owner's instruction).
+- 2026-10-15 — the product owner's final decisions:
+  - T = 0.16 (`56e0fbc`), checked first on the same samples and protocol: own-colour routes with the keyline 9 / 24
+    (5 at 0.12, 16 at 0.20; added c10 blue 0.147, c10 yellow 0.141, c6 red 0.160, c7 teal 0.148); the Auto colour none.
+    Examples `T016_examples.png` with the calibration.
+  - Auto colour saturated first: the maximin over the 12 saturated colours when it reaches T, else white / black when
+    they reach T, else the maximin over all 14 with the keyline; the readability bound is T itself (calibrated on E1),
+    no new weight. E1: saturated on 24 / 24 routes (lime 14, magenta 7, yellow 2, indigo 1; before black 14, white 5,
+    lime 5); the minimum route score 0.325–0.659, median 0.460 (before 0.502–0.773, 0.545) — ≥ 2 × T, no keyline; the
+    app projects c6 / c8 / HLG black → magenta. `palette_old_vs_new.png`; scripts in the calibration's `scripts/`. Tests:
+    a saturated colour over black, the reserve, the keyline when nothing reads, 500 pseudo-random routes (never below T
+    when a readable colour exists). Stored Auto colours of existing markups stay until their holds change (§5).
+  - The human time to mark a route: not measured yet (manual plan #26), not blocking Phase 19.
+- 2026-10-15 — large holds (the product owner's report on `VID_20251223_193501.mp4`, frame at 0.600 s): three holds of
+  2.48 / 3.39 / 6.18 % of the frame; the model's best mask for each (score 0.99, IoU ≈ 0.95 with the owner's outline) was
+  hidden by the 2 % rule, so only parts (IoU 0.07–0.71) or nothing were offered and Shift+click converged on the same
+  hidden mask. Investigation data `<E1>/results/large-holds-20261015/`. Variant A chosen: masks up to 2 % as before,
+  2–20 % with score ≥ 0.9, over 20 % hidden (`HoldCandidateRules.IsOffered`; tests for the 2 % / 20 % / 0.9 bounds, a
+  large correct mask, the wall, small masks; status messages no longer say "2 %"). Checks: the problem frame (local
+  `LargeHoldsTests`) 14 of 15 clicks give the hold at once, the logo click after one Shift+click, 40 wall clicks no
+  candidate over 2 %; E1 original rule 156/164 (accepted) and amended rule 156/164 (`20261015-121935`, no choice
+  changed). Known wrong large candidates on four more close-ups (clips 5, 15, 29, 32): wall panel 18.7 %, floor 9.0 /
+  18.4 %, ceiling 5.6 / 2.3 %, wall-bottom strip, graffiti areas, people 2.3–4.9 % — recorded in D034 (a high score does
+  not guarantee the right object; bounds provisional). Next product stage proposed: vertex editing of a hold's contour
+  (`docs/DEVELOPMENT_PLAN.md`, "Future ideas"; ROADMAP).
+
+### Phase 18 — HDR → SDR of phone footage (complete; PR #19 merged as `c29a767`, CI green)
 
 Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization · 18.3 colour rule & LUT generator ·
 18.4 colour metadata · 18.5 decoder & LUT cache · 18.6 parity, export & measurement · 18.7 UI · 18.8 closeout.
@@ -168,6 +358,9 @@ Steps (D033): 18.1 pre-flight · 18.2 sync after the merge & scope formalization
   keeps its vf_tonemap reference case (the S1 j / peak are pinned by `MobiusJ` / `KneePeak` and the chain's check values).
   Its question for the product owner: the one LUT node 2.48e-4 off the approved cube (plan 18.11's 1e-6 bound). Open: the product owner's visual check of the S1 export (manual plan 12); PQ on real
   PQ footage. Known limitations: D033 §8.
+- After the merge (2026-10-14): PR #19 merged into `main` as `c29a767` (tree = `adddfb2`), CI green on `main` (run
+  38479318881). Still open, not part of the merge: the product owner's visual check of the S1 export (manual plan 12) and
+  PQ on real PQ footage.
 
 ### Phase 17 — Audio editing (complete; PR #18 merged as `fa96468`, CI green)
 

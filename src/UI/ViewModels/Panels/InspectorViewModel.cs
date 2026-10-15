@@ -84,6 +84,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsTransitionSelected))]
     private InspectorSelectionKind _selectionKind = InspectorSelectionKind.None;
 
+    /// <summary>The "Holds" section of a video clip (D034); set by the shell, which tells it the selected clip.</summary>
+    [ObservableProperty] private HoldMarkupViewModel? _holdMarkup;
+
     public bool IsMediaSelected => SelectionKind == InspectorSelectionKind.Media;
     public bool IsTimelineClipSelected => SelectionKind == InspectorSelectionKind.TimelineClip;
     public bool IsNothingSelected => SelectionKind == InspectorSelectionKind.None;

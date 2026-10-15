@@ -123,11 +123,11 @@ public class AudioEditingPersistenceTests
     public void A_version_3_file_opens_with_the_same_meaning_and_is_saved_as_version_4_differing_only_in_the_version()
     {
         var v4Text = ProjectSerializer.Serialize(BuildV3Content(), Folder);
-        Assert.Contains("\"formatVersion\": 4", v4Text);
+        Assert.Contains("\"formatVersion\": 5", v4Text);   // saved as the current version (v5 since Phase 19)
         Assert.DoesNotContain("linkId", v4Text);
         Assert.DoesNotContain("isAudioDetached", v4Text);
 
-        var v3Text = v4Text.Replace("\"formatVersion\": 4", "\"formatVersion\": 3");
+        var v3Text = v4Text.Replace("\"formatVersion\": 5", "\"formatVersion\": 3");
         var loaded = Load(v3Text);
 
         Assert.All(loaded.Timeline.VideoTracks.Concat(loaded.Timeline.AudioTracks).SelectMany(t => t.Clips).OfType<MediaBackedClip>(),
@@ -210,10 +210,10 @@ public class AudioEditingPersistenceTests
     }
 
     [Fact]
-    public void A_version_5_file_is_refused_as_newer()
+    public void A_version_6_file_is_refused_as_newer()
     {
         var root = Json(BuildV4());
-        root["formatVersion"] = 5;
+        root["formatVersion"] = 6;
         Assert.Contains("newer version", Rejected(root).Message);
     }
 

@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- D034 §7: the local suite with the real model weights and the E1 reference data. Deliberately NOT part of
+       AiVideoEditor.sln, so the regular CI never builds or runs it. Run:
+       dotnet test tests/Vision.ModelTests/Vision.ModelTests.csproj -c Release
+       AIVE_AI_MODEL_DIR (default %LOCALAPPDATA%\AiVideoEditor\models\sam2.1-large) and AIVE_AI_E1_DIR (default
+       %USERPROFILE%\Desktop\AiVideoEditor-E1-Reference); ffmpeg on PATH (frames and masks are read through it). -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>AiVideoEditor.Vision.ModelTests</RootNamespace>
+  </PropertyGroup>
+
+  <!-- One test class at a time: the classes share the GPU, and run in parallel they distort each other's timings
+       (found at Step 19.8: a "slowest click" of 2.4 s). -->
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Vision\Vision.csproj" />
+    <ProjectReference Include="..\..\src\Core\Core.csproj" />
+    <!-- The markup frame through the app's own decoder (HoldMarkupFrameSource): Video, Infrastructure, UI. -->
+    <ProjectReference Include="..\..\src\Video\Video.csproj" />
+    <ProjectReference Include="..\..\src\Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\UI\UI.csproj" />
+    <ProjectReference Include="..\..\src\Project\Project.csproj" />
+    <ProjectReference Include="..\..\src\Timeline\Timeline.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -249,6 +249,17 @@ public interface ITimelineEditService
     /// properties of the same clip are merged into one Undo step.</summary>
     TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change);
 
+    /// <summary>Adds a confirmed hold to a video clip's markup (D034): one undo step; the Auto colour and the keyline are
+    /// recomputed from the stored samples of all holds. Refused for other clips and on a locked track.</summary>
+    TimelineEditResult AddHold(Guid clipId, Hold hold);
+
+    /// <summary>Removes a hold from a video clip's markup: one undo step; the colour recomputed as for <see cref="AddHold"/>.</summary>
+    TimelineEditResult RemoveHold(Guid clipId, Guid holdId);
+
+    /// <summary>Changes the route outline's style of a video clip (D034 §4, §5): one undo step; consecutive changes of
+    /// the same setting merge (D017).</summary>
+    TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style);
+
     /// <summary>
     /// Changes the project canvas (D028, Step 13.4) to <paramref name="width"/> × <paramref name="height"/> as one Undo
     /// step. Refused, changing nothing, when the size breaks <see cref="ProjectSettingsRules.CanvasError"/>; the same
@@ -333,6 +344,15 @@ public enum ClipEdge
 {
     Start,
     End
+}
+
+/// <summary>The route outline's style for <see cref="ITimelineEditService.SetHoldStyle"/> (D034 §4, §5): the stroke per
+/// 1080 px of the canvas's short side, the colour mode with the manual colour (<c>#RRGGBB</c>; null keeps the colour in
+/// use) and the keyline mode.</summary>
+public sealed record HoldStyle(double StrokeWidth1080, HoldColorMode ColorMode, string? ManualColorHex, KeylineMode Keyline)
+{
+    public static HoldStyle Of(HoldMarkup markup) =>
+        new(markup.StrokeWidth1080, markup.ColorMode, markup.ColorMode == HoldColorMode.Manual ? markup.ColorHex : null, markup.Keyline);
 }
 
 /// <summary>New values for <see cref="ITimelineEditService.SetClipProperties"/>. A null group is
