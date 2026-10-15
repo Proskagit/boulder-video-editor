@@ -22,9 +22,12 @@ namespace AiVideoEditor.UI.ViewModels.Panels;
 /// wheel or Tab cycles through the visible alternatives of a single-point candidate; Shift+click adds a positive point to
 /// the same candidate (one mask, no alternatives); Enter confirms it (one undo step: the outer contour and the colour
 /// samples, <see cref="HoldColorSampler"/>); Esc discards it. A click on a confirmed contour without a candidate selects
-/// it; Delete removes it. Seek, Play, the Source mode, another selection, an export or another project leave the mode;
-/// a candidate is discarded, the confirmed markup stays. Nothing changes the project except the confirm, the removal and
-/// the style edits.
+/// it; Delete removes it. A selected hold's contour can be corrected by hand (D035, <see cref="ContourEditing"/>): drag a
+/// handle, Alt+click on the outline adds a vertex, Delete over a handle or a double-click on it removes one — each gesture
+/// one undo step through <see cref="ITimelineEditService.ReplaceHoldContour"/>, the same hold, its colour samples kept.
+/// Seek, Play, the Source mode, another selection, an export or another project leave the mode;
+/// a candidate is discarded, the confirmed markup stays. Nothing changes the project except the confirm, the removal, a
+/// contour correction and the style edits.
 /// </para>
 /// </summary>
 public sealed partial class HoldMarkupViewModel : ViewModelBase
@@ -211,7 +214,12 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     /// <summary>The mode's keys in full (the status line's tooltip).</summary>
     public string ModeHelp => "Click a hold for its outline. Shift+click adds a point to refine it; Tab, Shift+Tab or the " +
         "wheel switch between the outlines offered; Enter confirms, Esc discards. Click a marked hold to select it, Delete " +
-        "removes it. Done, a seek, Play or another clip leave the markup; the marked holds stay.";
+        "removes it. On a selected hold drag a point to correct its outline, Alt+click the outline to add a point, Delete over " +
+        "a point (or a double-click on it) removes the point. Done, a seek, Play or another clip leave the markup; the " +
+        "marked holds stay.";
+
+    public const string SelectedText = "Hold selected — drag a point to correct the outline, Alt+click adds a point, Delete removes";
+    public const string ReadyText = "Hold markup — click a hold, Enter confirms";
 
     /// <summary>The candidate's contour (normalized source coordinates); empty without a candidate.</summary>
     [ObservableProperty] private ImmutableArray<NormalizedPoint> _candidateContour = ImmutableArray<NormalizedPoint>.Empty;
@@ -220,6 +228,13 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     [ObservableProperty] private Guid? _selectedHoldId;
     [ObservableProperty] private ImmutableArray<NormalizedPoint> _selectedContour = ImmutableArray<NormalizedPoint>.Empty;
+
+    /// <summary>The selected hold's vertices shown as handles (indices into <see cref="SelectedContour"/>; a coarser
+    /// subset for a dense contour — D035); empty without a selection.</summary>
+    [ObservableProperty] private ImmutableArray<int> _selectedHandles = ImmutableArray<int>.Empty;
+
+    /// <summary>The contour being dragged crosses itself: the release will be refused.</summary>
+    [ObservableProperty] private bool _isContourInvalid;
 
     /// <summary>The markup frame (full size; the loupe draws from it) and where the clip's picture lies on the canvas.</summary>
     [ObservableProperty] private DecodedFrame? _markupFrame;
@@ -288,7 +303,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             PrepareProgress = 1;
             IsPreparing = false;
             UpdateOverlay();
-            ModeText = "Hold markup — click a hold, Enter confirms";
+            ModeText = ReadyText;
         }
         catch (OperationCanceledException) when (cts.IsCancellationRequested)
         {
@@ -320,6 +335,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (!IsActive) return;
         if (IsPreparing) { Exit(); return; }
         if (!_confirming.IsCompleted) return;   // Enter came first: the hold is being added
+        if (IsDraggingVertex) { CancelVertexDrag(); return; }
         if (HasCandidate) { ClearCandidate(); return; }
         if (SelectedHoldId is not null) { Select(null); return; }
         Exit();
@@ -502,6 +518,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     private void DeleteSelected()
     {
         if (_clip is null || SelectedHoldId is not { } id) return;
+        if (HoveredHandle is { } handle && CanEditContour)
+        {
+            DeleteVertex(handle);   // Delete over a handle removes that vertex, not the hold (D035)
+            return;
+        }
         var result = _edit.RemoveHold(_clip.Id, id);
         if (!result.Success) _status.Report(result.Message ?? "The hold could not be removed.");
         Select(null);
@@ -540,6 +561,10 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         AlternativeText = null;
         SelectedHoldId = null;
         SelectedContour = ImmutableArray<NormalizedPoint>.Empty;
+        SelectedHandles = ImmutableArray<int>.Empty;
+        _drag = null;
+        IsContourInvalid = false;
+        HoveredHandle = null;
         MarkupFrame = null;
         IsPreparing = false;
         ModeText = null;
@@ -564,11 +589,166 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     private void Select(Guid? id)
     {
+        _drag = null;
+        IsContourInvalid = false;
+        HoveredHandle = null;
         SelectedHoldId = id;
         SelectedContour = id is { } h && _clip?.HoldMarkup?.Holds.FirstOrDefault(x => x.Id == h) is { } hold
             ? hold.Points
             : ImmutableArray<NormalizedPoint>.Empty;
+        SelectedHandles = SelectedContour.Length >= 3 && MarkupFrame is { } frame
+            ? ContourEditing.Handles(SelectedContour, frame.Width, frame.Height, _handleSpacing)
+            : ImmutableArray<int>.Empty;
+        if (IsActive && !IsPreparing) ModeText = id is null ? ReadyText : SelectedText;
         RefreshCommands();
+    }
+
+    // ---- contour correction (D035) --------------------------------------------------------------------------------
+
+    private ContourEdit? _drag;
+    private int _dragHandle;
+    private double _handleSpacing;
+
+    /// <summary>The least distance between handles in frame pixels, set by the overlay from a fixed spacing on the screen,
+    /// so a hold that is small in the Preview shows fewer handles (the geometry keeps every vertex). A change of more than a
+    /// quarter re-derives the selected hold's handles (not during a drag).</summary>
+    public void SetHandleSpacing(double framePixels)
+    {
+        if (!double.IsFinite(framePixels) || framePixels <= 0) return;
+        if (_handleSpacing > 0 && Math.Abs(framePixels - _handleSpacing) <= 0.25 * _handleSpacing) return;
+        _handleSpacing = framePixels;
+        if (SelectedHoldId is { } id && !IsDraggingVertex) Select(id);
+    }
+
+    /// <summary>The handle under the pointer (an index into <see cref="SelectedHandles"/>), set by the overlay: Delete
+    /// removes that vertex instead of the hold.</summary>
+    public int? HoveredHandle { get; set; }
+
+    public bool IsDraggingVertex => _drag is not null;
+
+    /// <summary>The selected hold's contour can be corrected now: the mode ready, no candidate, no confirm running, no
+    /// export.</summary>
+    public bool CanEditContour => IsActive && !IsPreparing && SelectedHoldId is not null && !HasCandidate &&
+                                  _confirming.IsCompleted && MarkupFrame is not null && !SelectedHandles.IsEmpty && !_lock.IsLocked;
+
+    /// <summary>A drag of handle <paramref name="handle"/> starts; nothing changes until <see cref="EndVertexDrag"/>.</summary>
+    public bool BeginVertexDrag(int handle)
+    {
+        if (!CanEditContour || handle < 0 || handle >= SelectedHandles.Length) return false;
+        _drag = new ContourEdit(SelectedContour, SelectedHandles);
+        _dragHandle = handle;
+        IsContourInvalid = false;
+        return true;
+    }
+
+    /// <summary>The dragged handle is at <paramref name="point"/> (normalized source coordinates, clamped to the frame):
+    /// the overlay shows the contour as it would become.</summary>
+    public void DragVertex(NormalizedPoint point)
+    {
+        if (_drag is null || MarkupFrame is not { } frame) return;
+        var moved = ContourEditing.MoveHandle(_drag, _dragHandle, point, frame.Width, frame.Height);
+        SelectedContour = moved.Points;
+        IsContourInvalid = ContourEditing.IntroducesCrossing(_drag.Points, moved.Points);
+    }
+
+    /// <summary>The drag ends: one undo step — or the contour goes back when it would cross itself.</summary>
+    public void EndVertexDrag()
+    {
+        if (_drag is not { } start) return;
+        _drag = null;
+        var edited = new ContourEdit(SelectedContour, start.Handles);
+        if (IsContourInvalid)
+        {
+            Restore(start);
+            _status.Report(ContourEditing.CrossingMessage);
+            return;
+        }
+        Commit(start, edited);
+    }
+
+    /// <summary>The drag is abandoned (Esc, a lost pointer): the contour as it was, nothing changed.</summary>
+    public void CancelVertexDrag()
+    {
+        if (_drag is not { } start) return;
+        _drag = null;
+        Restore(start);
+    }
+
+    /// <summary>Alt+click on edge <paramref name="edge"/> of the selected contour at <paramref name="t"/> along it: a new
+    /// vertex (a handle) there — one undo step; on a vertex of a dense contour that vertex becomes a handle (no step).</summary>
+    public void InsertVertex(int edge, double t)
+    {
+        if (!CanEditContour || IsDraggingVertex || MarkupFrame is not { } frame) return;
+        var current = new ContourEdit(SelectedContour, SelectedHandles);
+        if (edge < 0 || edge >= current.Points.Length) return;
+        if (ContourEditing.InsertVertex(current, edge, t, frame.Width, frame.Height) is not { } inserted)
+        {
+            if (current.Points.Length >= HoldMarkupRules.MaxPoints) _status.Report($"An outline can have at most {HoldMarkupRules.MaxPoints} points.");
+            return;   // otherwise a handle is there already
+        }
+        if (inserted.Points == current.Points)
+        {
+            SelectedHandles = inserted.Handles;   // a hidden vertex of a dense contour shown as a handle: the geometry unchanged
+            return;
+        }
+        Commit(current, inserted);
+    }
+
+    public const string OffOutlineMessage = "Alt+click on the selected outline adds a point there.";
+
+    /// <summary>Alt+click away from the selected outline: nothing changes, the user is told where to click.</summary>
+    public void ReportOffOutline()
+    {
+        if (CanEditContour) _status.Report(OffOutlineMessage);
+    }
+
+    /// <summary>Removes handle <paramref name="handle"/> (Delete over it, a double-click on it): one undo step; refused when
+    /// fewer than three would stay.</summary>
+    public void DeleteVertex(int handle)
+    {
+        if (!CanEditContour || IsDraggingVertex || handle < 0 || handle >= SelectedHandles.Length) return;
+        var current = new ContourEdit(SelectedContour, SelectedHandles);
+        if (ContourEditing.RemoveHandle(current, handle) is not { } removed)
+        {
+            _status.Report(ContourEditing.TooFewPointsMessage);
+            return;
+        }
+        HoveredHandle = null;
+        Commit(current, removed);
+    }
+
+    /// <summary>Applies <paramref name="edited"/> to the selected hold as one step; on a refusal the contour goes back to
+    /// <paramref name="before"/>. The handles are set first, so the notification of the step keeps them (an inserted
+    /// vertex stays a handle).</summary>
+    private void Commit(ContourEdit before, ContourEdit edited)
+    {
+        if (_clip is null || SelectedHoldId is not { } id) return;
+        if (_lock.IsLocked)
+        {
+            Restore(before);
+            _status.Report("The outline can't be changed while an export is running.");
+            return;
+        }
+        SelectedContour = edited.Points;
+        SelectedHandles = edited.Handles;
+        IsContourInvalid = false;
+        var result = _edit.ReplaceHoldContour(_clip.Id, id, edited.Points);
+        if (!result.Success)
+        {
+            Restore(before);
+            _status.Report(result.Message ?? "The outline could not be changed.");
+        }
+        else if (_clip.HoldMarkup?.Holds.FirstOrDefault(h => h.Id == id)?.Points != edited.Points)
+        {
+            Restore(before);   // unchanged: no step
+        }
+    }
+
+    private void Restore(ContourEdit edit)
+    {
+        SelectedContour = edit.Points;
+        SelectedHandles = edit.Handles;
+        IsContourInvalid = false;
     }
 
     /// <summary>The confirmed hold whose contour contains <paramref name="p"/> (the topmost: the last confirmed).</summary>
@@ -600,7 +780,15 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         Geometry = _clip is not null && MarkupFrame is { } frame && VisualProperties.Of(_clip) is { } visual
             ? CompositionMath.Layout(Canvas, new FrameSize(frame.Width, frame.Height), visual)
             : null;
-        if (SelectedHoldId is { } id && _clip?.HoldMarkup?.Holds.Any(h => h.Id == id) != true) Select(null);
+        if (SelectedHoldId is not { } id) return;
+        if (_clip?.HoldMarkup?.Holds.FirstOrDefault(h => h.Id == id) is not { } hold)
+        {
+            Select(null);
+            return;
+        }
+        // The selected hold's contour changed elsewhere (undo / redo): show it with fresh handles; a drag is abandoned.
+        var shown = _drag?.Points ?? SelectedContour;
+        if (hold.Points != shown) Select(id);
     }
 
     private MediaAsset? Asset(MediaBackedClip clip) => _projects.Current.MediaAssets.FirstOrDefault(a => a.Id == clip.MediaAssetId);

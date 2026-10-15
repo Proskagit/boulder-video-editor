@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
@@ -255,6 +256,12 @@ public interface ITimelineEditService
 
     /// <summary>Removes a hold from a video clip's markup: one undo step; the colour recomputed as for <see cref="AddHold"/>.</summary>
     TimelineEditResult RemoveHold(Guid clipId, Guid holdId);
+
+    /// <summary>Replaces the contour of a confirmed hold with a corrected one (D035): the same hold (id, colour samples,
+    /// frame time), one undo step, never merged with another; the route colour and the keyline stay as they are. Refused
+    /// for an invalid polygon, for a correction that makes the contour cross itself, for other clips and on a locked
+    /// track.</summary>
+    TimelineEditResult ReplaceHoldContour(Guid clipId, Guid holdId, ImmutableArray<NormalizedPoint> points);
 
     /// <summary>Changes the route outline's style of a video clip (D034 §4, §5): one undo step; consecutive changes of
     /// the same setting merge (D017).</summary>

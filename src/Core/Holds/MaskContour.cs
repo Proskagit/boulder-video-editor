@@ -103,9 +103,14 @@ public static class MaskContour
     }
 
     /// <summary>Douglas–Peucker on a closed polygon with tolerance <paramref name="epsilon"/> pixels.</summary>
-    public static List<(double X, double Y)> Simplify(IReadOnlyList<(double X, double Y)> closed, double epsilon)
+    public static List<(double X, double Y)> Simplify(IReadOnlyList<(double X, double Y)> closed, double epsilon) =>
+        SimplifyIndices(closed, epsilon).Select(i => closed[i]).ToList();
+
+    /// <summary>The indices (ascending) of the vertices Douglas–Peucker keeps on a closed polygon with tolerance
+    /// <paramref name="epsilon"/>.</summary>
+    public static List<int> SimplifyIndices(IReadOnlyList<(double X, double Y)> closed, double epsilon)
     {
-        if (closed.Count <= 3) return closed.ToList();
+        if (closed.Count <= 3) return Enumerable.Range(0, closed.Count).ToList();
         // Split the ring at its two farthest-apart points and simplify both halves.
         var (a, b) = (0, 0);
         double far = -1;
@@ -118,8 +123,8 @@ public static class MaskContour
         keep[a] = keep[b] = true;
         Rdp(closed, a, b, epsilon, keep);
         Rdp(closed, b, closed.Count, epsilon, keep);   // wraps to index 0
-        var result = new List<(double X, double Y)>();
-        for (var i = 0; i < closed.Count; i++) if (keep[i]) result.Add(closed[i]);
+        var result = new List<int>();
+        for (var i = 0; i < closed.Count; i++) if (keep[i]) result.Add(i);
         return result;
     }
 

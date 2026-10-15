@@ -26,14 +26,14 @@ public sealed class HoldOutlineRenderTests
         new NormalizedPoint(0.25, 0.25), new NormalizedPoint(0.75, 0.25), new NormalizedPoint(0.75, 0.75), new NormalizedPoint(0.25, 0.75));
 
     private static ResolvedLayer Layer(FrameSize canvas, double width1080, VisualProperties? visual = null, string color = "#FFFFFF",
-        bool keyline = false, double fade = 1.0)
+        bool keyline = false, double fade = 1.0, ImmutableArray<NormalizedPoint>? polygon = null)
     {
         var source = canvas.Width >= canvas.Height ? new FrameSize(160, 90) : new FrameSize(90, 160);
         var v = visual ?? VisualProperties.Default;
         var span = new PictureSpan(Guid.NewGuid(), Guid.NewGuid(), SpanStatus.Video, MediaTime.Zero, MediaTime.FromSeconds(1), MediaTime.Zero)
         {
             Visual = v, SourceSize = source,
-            Outline = new HoldOutline(ImmutableArray.Create(Rect), width1080, color, keyline)
+            Outline = new HoldOutline(ImmutableArray.Create(polygon ?? Rect), width1080, color, keyline)
         };
         return new ResolvedLayer(new PictureLayer(Guid.NewGuid(), span, CompositionMath.Layout(canvas, source, v), fade),
             Scene.Solid(source.Width, source.Height, Grey, Grey, Grey));
@@ -160,5 +160,26 @@ public sealed class HoldOutlineRenderTests
         var plan = Scene.Plan(canvas, new ResolvedLayer(new PictureLayer(Guid.NewGuid(), span, CompositionMath.Layout(canvas, source, span.Visual)),
             Scene.Solid(160, 90, Grey, Grey, Grey)));
         Assert.Single(plan.Operations);
+    }
+    [Fact]
+    public void A_corrected_contour_is_drawn_from_its_stored_points_the_same_in_the_preview_and_the_export()
+    {
+        // Phase 20 (D035): the corner (0.75, 0.75) dragged in to (0.6, 0.6) — the stored polygon is all either path draws;
+        // the edit handles belong to the markup overlay only and never reach the composition.
+        var canvas = new FrameSize(1920, 1080);
+        var corrected = Rect.SetItem(2, new NormalizedPoint(0.6, 0.6));
+        var layer = Layer(canvas, 4, polygon: corrected);
+        var export = Render.Export(Scene.Plan(canvas, layer));
+        var preview = Render.Preview(canvas, 1920, 1080, new[] { Scene.AsPreview(layer) });
+
+        foreach (var image in new[] { export, preview })
+        {
+            Assert.True(image.At(1296, 459).G > 200);                 // the middle of the new edge (0.75, 0.25)–(0.6, 0.6)
+            Assert.True(image.At(1152, 648).G > 200);                 // the moved vertex
+            Assert.Equal(Grey, image.At(1440, 810).G);                // the old corner: no line any more
+            Assert.Equal(Grey, image.At(1440, 700).G);                // nor the old right edge below the new edge
+        }
+        Assert.InRange(BrightWidth(export, 540, 480 - 30, 480 + 30), 4 - Tolerance, 4 + Tolerance);
+        Assert.InRange(BrightWidth(preview, 540, 480 - 30, 480 + 30), 4 - Tolerance, 4 + Tolerance);
     }
 }
