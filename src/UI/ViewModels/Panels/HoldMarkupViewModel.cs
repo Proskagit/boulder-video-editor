@@ -252,7 +252,14 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         RefreshCommands();
         try
         {
-            var status = await _segmentation!.EnsureReadyAsync(new Progress<double>(p => { if (_modeCts == cts) PrepareProgress = p * 0.5; }), cts.Token);
+            // The checksum check reports its progress; once it is done the sessions are created (≈ 3 s on the first use in a
+            // session, D034 §7 note) — said, so the wait is never silent.
+            var status = await _segmentation!.EnsureReadyAsync(new Progress<double>(p =>
+            {
+                if (_modeCts != cts) return;
+                PrepareProgress = p * 0.5;
+                if (p >= 1) ModeText = "Loading the hold model…";
+            }), cts.Token);
             if (_modeCts != cts) return;   // left (and maybe restarted) meanwhile
             if (!status.IsReady)
             {

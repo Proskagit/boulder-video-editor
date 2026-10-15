@@ -4584,6 +4584,15 @@ Implementation notes (Phase 19; technical choices within the decision, not chang
   plan item 16.
 - The markup frame is decoded by the application's decoder (software, the D033 HDR rule) at the asset's display size;
   on the E1 clip c6 at 0.5 s it is bit-identical to the E1 reference frame (local `MarkupPipelineTests`).
+- §7 performance — reading of the criterion (product owner, 2026-10-15; the §7 text and its thresholds unchanged): the
+  §7 text "frame preparation ≤ 1 s GPU / ≤ 10 s CPU, click preview ≤ 150 ms" does not name the statistic or the stages.
+  It is read as: **frame preparation** = from a decoded frame in memory to the model being ready to return masks for
+  the first click (the preprocessing and the image encoder), with the sessions loaded; the GPU **median** must be
+  ≤ 1 s. The frame's **decode** is measured and reported separately and is not part of it. The **cold start** (the
+  SHA-256 check and the session creation, once per session) is measured and reported separately, is not a failure of
+  the metric, and must be visible to the user through the markup's progress. The **full user scenario** (from Mark
+  holds to clickable, with the decode and, when needed, the cold start) is reported as well. Definitions, conditions
+  and values: `docs/AI_MODEL.md`, "Performance".
 
 ---
 

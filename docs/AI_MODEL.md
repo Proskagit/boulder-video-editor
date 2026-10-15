@@ -25,10 +25,7 @@ Messages (the status bar; the rest of the editor stays usable):
 - *The hold model file `<file>` in `<folder>` is damaged or another version (expected sam2.1-large-v1, SHA-256 …). It was
   not loaded. See docs/AI_MODEL.md.*
 - *AI runs on the CPU — processing may be slower.* — DirectML was not available or failed (D034 §3); the CPU is used for
-  the rest of the session. Measured on the reference machine (RTX 4070 SUPER, 4K frames, medians): the first Mark holds
-  of a session ≈ 4 s for the model check (0.5 s) and the sessions (3.3 s); then per frame the 4K decode ≈ 0.7 s and
-  the encoding ≈ 0.24 s (≈ 8 s on the CPU); a click ≈ 37 ms (p95 64 ms). Profile: `tests/Vision.ModelTests`,
-  `PerformanceProfileTests`.
+  the rest of the session. Timings: "Performance" below.
 
 ## Runtime
 
@@ -48,6 +45,42 @@ Messages (the status bar; the rest of the editor stays usable):
   masks, also for several points. A candidate refined by Shift+click (D034 §1: one mask, no alternatives) shows the
   highest-scoring visible mask of the three (masks over 2 % of the frame hidden, as for one point). Verified locally:
   the refined candidate contains both clicks.
+
+## Performance
+
+D034 §7 asks for "frame preparation ≤ 1 s GPU / ≤ 10 s CPU, click preview ≤ 150 ms". Its reading (D034 implementation
+notes, 2026-10-15):
+
+| Measure | Definition | Criterion |
+|---|---|---|
+| Frame preparation | From a decoded frame in memory to the model being ready for the first click: preprocessing (resize to 1024², normalization) and the image encoder; sessions already loaded | GPU median ≤ 1 s; CPU ≤ 10 s |
+| Click preview | The decoder for one prompt and the upsampling of its three masks to the frame | ≤ 150 ms |
+| Frame decode | The app decoding the markup frame at full display size (separate, not in the frame preparation) | reported |
+| Cold start | The SHA-256 check of both files and the creation of the two sessions — once per session (separate) | reported; shown by the progress ("Checking the hold model…", then "Loading the hold model…") |
+| Full user scenario | From Mark holds to clickable: decode + frame preparation, plus the cold start on the first use in a session | reported |
+
+Conditions: Windows 11, RTX 4070 SUPER (DirectML), 16-core CPU; the 7 E1 4K SDR frames (3840 × 2160); the local suite
+with one test class at a time (classes sharing the GPU distort each other's timings); release build.
+
+Values (2026-10-15; reports `<E1>/results/20261015-110340/report.md` and `<E1>/results/perf-20261015-110442/perf.md`;
+ms unless stated):
+
+| Measure | n | median | p95 | max | Criterion |
+|---|---|---|---|---|---|
+| Frame preparation, GPU, over the E1 frames (service, each frame once) | all | 350 | — | 472 | ≤ 1000 median — met |
+| Frame preparation, GPU, the first after the sessions are created | 3 | 428 | 466 | 466 | — |
+| of which: preprocessing / encoder (warm) | 21 | 41 / 192 | 54 / 198 | 58 / 198 | — |
+| Frame preparation, CPU | 1 | 7400 | — | — | ≤ 10 s — met |
+| Click preview, GPU, through the service (all E1 clicks) | 188 | 41 | — | 122 | ≤ 150 — met (also the maximum) |
+| Click preview, GPU, decoder + upsampling (SDR clicks, profile) | 164 | 31 | 46 | 112 | — |
+| Frame decode, 4K, app decoder | 8 | 699 | 868 | 868 | separate |
+| Cold start: SHA-256 check / session creation | 3 | 455 / 3248 | 470 / 3514 | 470 / 3514 | separate |
+| Cold start total (a fresh service's EnsureReady) | 3 | 3956 | 3967 | 3967 | separate |
+
+Full user scenario (from these stages): the first Mark holds of a session ≈ 4.0 s cold start + 0.7 s decode + 0.43 s
+preparation ≈ 5.1 s; later ones ≈ 0.7 s decode + 0.24–0.35 s preparation ≈ 0.95–1.05 s. Observed in the real app
+(Debug build, 2026-10-15): the first Mark holds in a session 5.5 / 5.8 / 5.8 / 6.0 s (four sessions, median 5.8 s,
+including the UI), a later one 1.1 s (one sample). Profile: `tests/Vision.ModelTests/PerformanceProfileTests.cs`.
 
 ## Licences (checked 2026-10-14)
 

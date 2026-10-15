@@ -394,6 +394,7 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
         _model.Gate = new TaskCompletionSource();
         var start = Markup.StartCommand.ExecuteAsync(null);
         Assert.True(Markup.IsPreparing);
+        await WaitFor(() => Markup.ModeText == "Loading the hold model…");   // the cold start is said, not silent
         Assert.Same(Markup.EscapeCommand, ShortcutRouter.CommandFor(_vm, Key.Escape, KeyModifiers.None));
         Markup.EscapeCommand.Execute(null);
         Assert.False(Markup.IsActive);
@@ -526,8 +527,8 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
 
         public async Task<HoldModelStatus> EnsureReadyAsync(IProgress<double>? progress = null, CancellationToken cancellationToken = default)
         {
-            if (Gate is { } gate) await gate.Task;
-            progress?.Report(1);
+            progress?.Report(1);                                       // the checksum check done
+            if (Gate is { } gate) await gate.Task;                    // the sessions being created
             return Status;
         }
 
