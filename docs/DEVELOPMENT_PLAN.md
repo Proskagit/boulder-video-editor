@@ -1518,11 +1518,12 @@ Out of scope (D035): negative points, new recognition modes, the route animation
   hit-testing in view pixels, the drag with pointer capture and a 3 px threshold, the handles and the red invalid contour.
 - Tests: `UI.Tests/HoldMarkupUiTests` (Phase 20 section).
 
-### 20.4 — Verification & closeout *(done by Claude 2026-10-15; the PO check open)*
+### 20.4 — Verification & closeout *(done 2026-10-15; accepted by the product owner after their check on their own clips)*
 - The full suite; the real-app check of `docs/PHASE20_MANUAL_TEST_PLAN.md` (rows 1–12 passed; three defects found and
   fixed in the run — overlapping handles on a small hold, Alt+click ignored on a dense contour and taken by a near
   handle); documentation (D035, ARCHITECTURE, ROADMAP, README, `progress.md`).
-- Open: the product owner's check on their close-ups (plan row 16); push / pull request / merge on command.
+- The product owner's check on their own clips (plan row 16): passed, the implementation accepted (2026-10-15); merge
+  only on a separate confirmation.
 
 ## Architectural rules that must hold at every phase
 

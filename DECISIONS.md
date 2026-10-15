@@ -4693,7 +4693,8 @@ Consequences: no format or dependency change; one new edit method and command fi
 gestures. Editing needs the markup mode, so the model must be installed (the frame is prepared as for marking).
 
 Status: Accepted (2026-10-15, product owner: the Phase 20 assignment). Implemented in Phase 20 (branch
-`feat/phase-20-hold-contour-editing`).
+`feat/phase-20-hold-contour-editing`); the implementation accepted by the product owner on 2026-10-15 after their check on
+their own clips.
 
 ---
 

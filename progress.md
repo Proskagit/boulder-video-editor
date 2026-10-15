@@ -3,12 +3,12 @@
 ## Current phase
 
 Phase 20 — manual correction of hold contours, branch `feat/phase-20-hold-contour-editing` (from `origin/main` =
-`2d0a10b`, the merge of PR #20; DECISIONS.md D035, 2026-10-15). **Implemented, awaiting the product owner's acceptance**
-(the product owner's assignment of 2026-10-15: code, tests, documentation and commits on this branch; no push, pull
-request or merge without a separate command). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 20 — Manual correction of hold
+`2d0a10b`, the merge of PR #20; DECISIONS.md D035, 2026-10-15). **Accepted by the product owner (2026-10-15)** after their
+check on their own clips; push and a pull request into `main` permitted; no merge and no Phase 21 without a separate
+confirmation. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 20 — Manual correction of hold
 contours: steps"; manual plan `docs/PHASE20_MANUAL_TEST_PLAN.md`.
 
-### Phase 20 — Manual correction of hold contours (implemented, awaiting acceptance)
+### Phase 20 — Manual correction of hold contours (accepted 2026-10-15; pull request open, not merged)
 
 - 2026-10-15 — PR #20 (Phase 19) merged into `main` as `2d0a10b`, CI green (the product owner). Branch
   `feat/phase-20-hold-contour-editing` created from `origin/main` = `2d0a10b`. Read: D034, the "Hold contour correction"
@@ -34,8 +34,9 @@ contours: steps"; manual plan `docs/PHASE20_MANUAL_TEST_PLAN.md`.
   0 errors / 0 warnings; full suite (Release) passed 3352, skipped 2 (the 4K heavy scenes), failed 0; `git diff --check`
   clean. Not run in this phase: the local real-weights suite (`tests/Vision.ModelTests` — Phase 20 changes no inference
   code), the `--blame-hang` repeats.
-- Open: the product owner's check on their close-ups with wrong large masks (plan row 16); push / pull request / merge
-  on the product owner's command.
+- 2026-10-15 — the product owner checked the correction on their own clips: everything correct, the implementation
+  accepted (manual plan row 16). Push of the branch and a pull request into `main` permitted; merge and Phase 21 only
+  after a separate confirmation.
 
 ### Phase 19 — AI hold markup (merged 2026-10-15 as `2d0a10b`, PR #20)
 

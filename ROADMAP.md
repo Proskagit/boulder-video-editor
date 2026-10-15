@@ -59,7 +59,7 @@ session state (D015).
 
 ## Current
 
-Phase 20 — manual correction of hold contours (**implemented, awaiting acceptance**; DECISIONS.md D035, 2026-10-15; branch
+Phase 20 — manual correction of hold contours (**accepted 2026-10-15, pull request open, not merged**; DECISIONS.md D035, 2026-10-15; branch
 `feat/phase-20-hold-contour-editing` from `2d0a10b`; not pushed or merged). In the markup mode a selected hold shows
 handles at its vertices: drag one to move the boundary, Alt+click on the outline adds a vertex, Delete over a handle or a
 double-click removes one (at least three stay), a self-crossing result is refused; each gesture is one undo step of the
@@ -312,7 +312,7 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-Phase 19 (AI hold markup, D034) is merged; Phase 20 (contour correction, D035) is implemented and awaits acceptance — see "Current". Candidates named in the
+Phase 19 (AI hold markup, D034) is merged; Phase 20 (contour correction, D035) is accepted, its pull request not merged yet — see "Current". Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The

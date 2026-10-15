@@ -34,4 +34,4 @@ contour. Footage and screenshots stay outside the repository.
 | 13 | An export running | The mode leaves, no correction possible | `HoldMarkupUiTests` | auto (the export dialog is modal in the real app) |
 | 14 | A locked track | The mode leaves on locking; a correction is refused by the edit service | `HoldMarkupUiTests`, `HoldMarkupEditTests` | auto |
 | 15 | The route colour and the colour samples after corrections | Unchanged (the samples never re-taken) | `HoldMarkupEditTests`, `HoldMarkupUiTests` | auto; in the run the Auto colour stayed #FF00FF through every correction |
-| 16 | The product owner's close-ups with wrong large masks (floor, wall panel) | A wrong boundary corrected in a few gestures | — | **PO** |
+| 16 | The product owner's close-ups with wrong large masks (floor, wall panel) | A wrong boundary corrected in a few gestures | — | **PO: PASS** — checked by the product owner on their own clips (2026-10-15); the implementation accepted |
