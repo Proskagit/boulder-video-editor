@@ -1447,7 +1447,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var fields = ClipPropertyValues.Diff(before, after);
         if (fields == ClipPropertyFields.None) return TimelineEditResult.Unchanged();
 
-        var command = new SetClipPropertiesCommand(clip, before, after, fields);
+        var command = new SetClipPropertiesCommand(clip, before, after, fields, change.Gesture);
         _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id });
     }

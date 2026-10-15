@@ -401,6 +401,24 @@ public sealed record ClipPropertyChange
     /// <summary>Every clip kind (D025). Each value is a whole number of frames of the project rate, at most the clip's
     /// length; it is stored as exactly that many frames.</summary>
     public FadeProperties? Fade { get; init; }
+
+    /// <summary>The Preview gesture this change belongs to (D038 §4), or null (the Inspector). The changes of one gesture
+    /// merge into one undo step whatever properties they change; they never merge with a change of another gesture or
+    /// with one without a gesture.</summary>
+    public ClipPropertyGesture? Gesture { get; init; }
+}
+
+/// <summary>One Preview gesture (a drag from press to release, D038 §4): its identity keeps its property changes in one
+/// undo step and apart from every other step. Compared by reference.</summary>
+public sealed class ClipPropertyGesture
+{
+    public ClipPropertyGesture(string description)
+    {
+        Description = description;
+    }
+
+    /// <summary>The undo step's name ("Move Clip", "Scale Clip", "Crop Clip").</summary>
+    public string Description { get; }
 }
 
 /// <summary>What <see cref="ITimelineEditService.CopyClips"/> took (D027 §5): detached copies of clips — never part of a
