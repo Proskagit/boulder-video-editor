@@ -118,6 +118,35 @@ and runs cleanly.
 
 Recorded so they are not lost. None of them is a phase, has acceptance criteria or is approved for implementation.
 
+### Hold contour correction — the next product stage *(proposal, 2026-10-15)*
+
+The product owner's priority: as few actions as possible — show the model's best mask at once and, when its boundary is
+wrong (a large mask that took part of the wall, a part of a hold, a printed logo), let the user correct it directly
+instead of cycling alternatives. Not in Phase 19; needs a D034 extension (a new gesture and edit) before implementation.
+
+Minimal variant — editing the vertices of a confirmed hold's contour in the markup mode:
+- **Gestures.** A click on a confirmed hold selects it (exists); its contour shows handles at its vertices. Drag a handle
+  to move a vertex; Alt+click on an edge inserts a vertex there; Delete (or a double-click on a handle) removes the vertex
+  under the pointer — at least 3 stay; Esc ends the edit. A self-intersecting result is refused with a message. The
+  contour comes from the mask simplified with Douglas–Peucker at 1 px, so a large hold has dozens to hundreds of
+  vertices; for handles the edit view shows a coarser simplification (e.g. ≈ 0.5 % of the hold's size) and edits that
+  polygon.
+- **Storage.** No mask is stored today — a hold is its normalized outer contour plus `SurfaceLab`, `WallLab` and
+  `SourceTime`; an edit replaces the hold's `Points` under the same id and the same limits (3–8192, inside [0, 1]). The
+  colour samples stay as taken at the confirm (D034 §5: never recomputed from a frame; the route colour changes only
+  when holds are added or removed), so an edit never changes the route colour. `project.json` stays v5 (same members);
+  an optional "edited" flag only if the product needs it.
+- **Undo / Redo.** One edit operation per gesture: a drag, an insert or a delete is one `SetHoldMarkupCommand` (fields
+  Holds, before / after markup) through `ITimelineEditService` — a new `ReplaceHold(clipId, holdId, points)` with the
+  same validation and locked-track / export refusal as `AddHold`; consecutive drags are not merged, so each can be
+  undone. Split / Duplicate / Paste copy the edited contour like any other.
+- **Preview / export parity.** Unchanged by construction: both draw the stored polygon through the one
+  `CompositionDrawPlan.OutlineDraw` path; the edit handles are an overlay of the markup mode only (like the candidate and
+  the loupe), never in the export.
+- **Tests.** The command's undo / redo and validation, the polygon limits and self-intersection, the overlay's mapping of
+  a dragged handle through crop and rotation (the existing `HoldMarkupOverlay` mapping), parity of an edited hold in the
+  rendering tests; a manual check on the owner's close-ups with the known wrong large masks.
+
 ### Route animation after the AI hold markup *(idea, 2026-10-14)*
 
 Once the holds of a route are marked (the AI hold markup, DECISIONS.md D034 — accepted, not implemented yet), the user
@@ -1380,6 +1409,11 @@ where the pinned ONNX model's mask has IoU < 0.98 with them are re-graded once o
 apart from the original marks and the protocol records which marks are inherited and which re-graded. The C#
 preprocessing reproduces SAM 2's own (a bilinear antialiased resize to 1024 × 1024, ImageNet normalization; the logits
 upsampled bilinearly, threshold 0) — `reference/onnx_reference.json`.
+
+Amended candidate rule (D034 §1, 2026-10-15): masks over 2 % up to 20 % of the frame are offered when the model's score is
+≥ 0.9, over 20 % stay hidden. Criterion 10 is reported under both: the original rule **156/164** (the accepted metric) and
+the amended rule **156/164** (`<E1>/results/20261015-121935/`, no choice changed). The bounds are provisional; known
+wrong large masks on close-ups (wall panel, floor, ceiling, people) — D034 implementation notes.
 
 Out of scope: D034 §1 "Not in the MVP" — among them tracking, camera motion compensation, automatic route detection and
 the route animation (future ideas above).

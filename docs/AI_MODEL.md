@@ -43,7 +43,8 @@ Messages (the status bar; the rest of the editor stays usable):
   bilinearly (align_corners = false) to the frame, threshold > 0.
 - **Multi-point prompts.** The pinned decoder was exported with `multimask_output = True`, so it always returns three
   masks, also for several points. A candidate refined by Shift+click (D034 §1: one mask, no alternatives) shows the
-  highest-scoring visible mask of the three (masks over 2 % of the frame hidden, as for one point). Verified locally:
+  highest-scoring visible mask of the three (the same candidate rule as for one point: up to 2 % of the frame always,
+  2–20 % only with score ≥ 0.9, larger hidden — D034 §1 as amended 2026-10-15). Verified locally:
   the refined candidate contains both clicks.
 
 ## Performance

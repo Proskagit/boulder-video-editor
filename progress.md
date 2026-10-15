@@ -190,6 +190,18 @@ and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps";
     a saturated colour over black, the reserve, the keyline when nothing reads, 500 pseudo-random routes (never below T
     when a readable colour exists). Stored Auto colours of existing markups stay until their holds change (§5).
   - The human time to mark a route: not measured yet (manual plan #26), not blocking Phase 19.
+- 2026-10-15 — large holds (the product owner's report on `VID_20251223_193501.mp4`, frame at 0.600 s): three holds of
+  2.48 / 3.39 / 6.18 % of the frame; the model's best mask for each (score 0.99, IoU ≈ 0.95 with the owner's outline) was
+  hidden by the 2 % rule, so only parts (IoU 0.07–0.71) or nothing were offered and Shift+click converged on the same
+  hidden mask. Investigation data `<E1>/results/large-holds-20261015/`. Variant A chosen: masks up to 2 % as before,
+  2–20 % with score ≥ 0.9, over 20 % hidden (`HoldCandidateRules.IsOffered`; tests for the 2 % / 20 % / 0.9 bounds, a
+  large correct mask, the wall, small masks; status messages no longer say "2 %"). Checks: the problem frame (local
+  `LargeHoldsTests`) 14 of 15 clicks give the hold at once, the logo click after one Shift+click, 40 wall clicks no
+  candidate over 2 %; E1 original rule 156/164 (accepted) and amended rule 156/164 (`20261015-121935`, no choice
+  changed). Known wrong large candidates on four more close-ups (clips 5, 15, 29, 32): wall panel 18.7 %, floor 9.0 /
+  18.4 %, ceiling 5.6 / 2.3 %, wall-bottom strip, graffiti areas, people 2.3–4.9 % — recorded in D034 (a high score does
+  not guarantee the right object; bounds provisional). Next product stage proposed: vertex editing of a hold's contour
+  (`docs/DEVELOPMENT_PLAN.md`, "Future ideas"; ROADMAP).
 
 ### Phase 18 — HDR → SDR of phone footage (complete; PR #19 merged as `c29a767`, CI green)
 

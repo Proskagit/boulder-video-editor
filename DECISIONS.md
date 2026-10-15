@@ -4398,6 +4398,8 @@ the phase number is assigned then.
   progress and cancellation.
 - A click on a hold creates a **candidate** (mask preview: contour and translucent fill, not yet in the markup). For a
   single-point candidate the wheel / Tab cycles through SAM's three masks; masks larger than 2 % of the frame are hidden.
+  *(Amended 2026-10-15: masks over 2 % up to 20 % are offered when the model's score is ≥ 0.9 — implementation notes
+  below.)*
 - **Additive click** (Shift+click) adds a positive point to the **current candidate**; the model recomputes one mask from
   all its points. It refines one hold and never creates a new one; a multi-point candidate has no alternatives; without
   a candidate Shift+click acts as a plain click.
@@ -4542,7 +4544,8 @@ the phase number is assigned then.
 8. Format v5: the save / open cycle lossless, the colour samples included (§7); v4 opens; an older build refuses v5.
 9. The regular CI green without weights or a GPU; the local real-weights suite passed and recorded.
 10. On **the same E1 set** (the same 7 SDR clips, frames and 164 click points) and **the same grading protocol** (the
-    highest-scoring mask, masks over 2 % of the frame dropped; the product owner's О / К marks on numbered sheets of
+    highest-scoring mask, masks over 2 % of the frame dropped *(the original protocol; under the amended rule of
+    2026-10-15 the result is reported separately — implementation notes)*; the product owner's О / К marks on numbered sheets of
     the same format) the share of clicks without marked problems in the C# pipeline is **at least 155/164**. It shows
     the implementation is not worse than the experiment on this set; it is not an accuracy of the model on arbitrary
     clicks and is not generalized beyond the set.
@@ -4594,6 +4597,24 @@ Implementation notes (Phase 19; technical choices within the decision, not chang
   magenta 7, yellow 2, indigo 1; before: black 14, white 5, lime 5), the minimum route score 0.325–0.659 (median 0.460;
   before 0.502–0.773, median 0.545) — at least twice T, no keyline anywhere. Comparison and examples:
   `palette_old_vs_new.png` and `T_REPORT.md` with the calibration.
+- §1 candidate rule — **amended 2026-10-15** (product owner, variant A; the original rule above kept as history):
+  masks up to 2 % of the frame are offered as before; masks over 2 % and up to 20 % are offered when the model's score
+  is ≥ 0.9; masks over 20 % stay hidden. Offered masks keep the order by score (the best one first) — no Tab step is
+  added to the main flow. Reason: in a close-up a real hold can exceed 2 % of the frame; on the owner's clip
+  `VID_20251223_193501.mp4` three holds of 2.48 / 3.39 / 6.18 % had the model's best mask (score 0.99, IoU ≈ 0.95 with the
+  owner's outline) hidden, so the app offered only parts (IoU 0.07–0.71) or nothing, and Shift+click could not help (it
+  converged on the same hidden mask). **A high score does not guarantee the right object:** a large mask can take the
+  wall, the floor, the ceiling or a person. Found with scores ≥ 0.9 on four more of the owner's close-ups (clips 5, 15,
+  29, 32 of 2026-10-15): a wall panel 18.7 %, the floor 9.0 % and 18.4 %, the ceiling 5.6 % and 2.3 %, a wall-bottom strip
+  2.4 %, graffiti areas 2.8 / 3.8 %, people 2.3–4.9 %. A click on the hold still gives the hold; a click on such an area
+  can now offer it as the candidate (confirmed only by Enter). The bounds 2 % / 20 % / 0.9 are provisional — from E1,
+  one problem frame and four close-ups — and are not universally safe. Data: `<E1>/results/large-holds-20261015/`.
+  The correction of a wrong boundary without cycling alternatives is the next product stage (`docs/DEVELOPMENT_PLAN.md`,
+  "Future ideas"), not Phase 19.
+- §8 criterion 10 under the amended rule: the original result **156/164** (the 2 % rule, recorded 2026-10-14 / 15) stays
+  the accepted metric; the same set and grading rule with the amended candidate rule gives **156/164** as well (local
+  suite `<E1>/results/20261015-121935/`, RECHECK 0 — the amended rule changes the choice on none of the 164 clicks: every
+  E1 mask over 2 % scores ≤ 0.58). The two are reported separately.
 - The markup frame is decoded by the application's decoder (software, the D033 HDR rule) at the asset's display size;
   on the E1 clip c6 at 0.5 s it is bit-identical to the E1 reference frame (local `MarkupPipelineTests`).
 - §7 performance — reading of the criterion (product owner, 2026-10-15; the §7 text and its thresholds unchanged): the

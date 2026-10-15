@@ -317,6 +317,9 @@ conversion of D033 (HDR output, grading, ICC), an installer, timeline virtualiza
 listed here before as left out, are the product's main direction since 2026-10-14: the AI hold markup MVP is decided —
 DECISIONS.md D034 (accepted 2026-10-14, after experiments outside the repository); implemented in Phase 19, awaiting acceptance.
 
+Next product stage proposed (2026-10-15): correction of a hold's contour by editing its vertices, so a wrong boundary
+is fixed without cycling alternatives — sketch in `docs/DEVELOPMENT_PLAN.md`, "Future ideas"; needs a D034 extension.
+
 Future idea, not a phase (recorded 2026-10-14): a route animation after the AI hold markup — the marked holds appear
 over the video one by one at a configurable interval, stay visible, and disappear together after a set time. Not part
 of the AI hold markup MVP; keeping the contours on the holds while the camera moves is a separate motion compensation /

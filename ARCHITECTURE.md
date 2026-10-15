@@ -381,8 +381,8 @@ The product's main AI function: the route's holds outlined on a video clip, one 
 - Core: `HoldMarkup` / `Hold` (normalized outer contour, `SurfaceLab` / `WallLab` OKLab samples, `SourceTime`) on
   `VideoClip`; `RouteColor` (palette of 12 saturated + white + black; Auto = the maximin over the saturated colours when it reaches T,
   else white / black, else the maximin over all with the keyline; from the stored samples; keyline threshold T = 0.16);
-  `IHoldSegmentationService` / `IHoldFrame` (three masks per prompt); `Holds/` — `HoldCandidateRules` (masks over 2 % of
-  the frame hidden, best score first), `MaskContour` (largest component, Moore outer contour, Douglas–Peucker),
+  `IHoldSegmentationService` / `IHoldFrame` (three masks per prompt); `Holds/` — `HoldCandidateRules` (masks up to 2 %
+  of the frame offered, 2–20 % only with score ≥ 0.9, larger hidden; best score first), `MaskContour` (largest component, Moore outer contour, Douglas–Peucker),
   `HoldColorSampler` (eroded surface, wall ring without the other holds, trimmed medians).
 - Timeline: `AddHold` / `RemoveHold` / `SetHoldStyle` — one `SetHoldMarkupCommand` each (style changes merge); the
   colour is recomputed only when the set of holds changes, never from a frame; Split / Duplicate / Paste copy the markup.
