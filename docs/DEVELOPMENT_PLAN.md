@@ -1660,9 +1660,16 @@ multi-track selection between tracks, multi-clip property editing; FU-21.1, FU-2
 - Tests: `ShortcutRoutingTests`, `UI.Tests/TimelineSelectionUiTests` (one step each, refusals with no step, the export lock,
   a push and a left collision, the auto-scroll speed rule).
 
-### 22.6 — Verification & closeout
+### 22.6 — Verification & closeout *(done by Claude 2026-10-16; awaiting the product owner's acceptance)*
 - Build `-warnaserror` Release and Debug, the full suite, the heavy scenes, three `--blame-hang` runs, `git diff --check`;
   the manual plan in the real app at 1024 and 1440 px; a Phase 21 project opened and saved byte for byte; the docs.
+- Result (code `f4383c3`, no product code changed in the step): Release and Debug `--no-incremental -warnaserror` 0 / 0;
+  the full suite passed 3446, skipped 2 (the 4K scenes), failed 0; `AIVE_HEAVY_TESTS=1` 3448 / 0 / 0; three
+  `--blame-hang --blame-hang-timeout 5m` runs 3446 / 2 / 0 each, no hang, no dump; `git diff --check` clean. The manual
+  plan's 25 rows run in the real app (UI Automation and system input, Debug build): all PASS, the parts left to the
+  automated tests named in the rows; the Phase 21 build (`7318ba8`) and Phase 22 save the fixture byte for byte (v6).
+  No defect found in the product; one harness error found and corrected (arrow keys sent without the extended-key flag
+  lose Shift on Windows). An observation outside D037 recorded in ROADMAP (FU-22.1).
 
 ## Architectural rules that must hold at every phase
 

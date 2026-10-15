@@ -45,6 +45,30 @@ product owner's command.
   4K heavy scenes), failed 0 — base `7318ba8` 3407 / 2 / 0; `git diff --check` clean. Not run: the heavy scenes, the
   `--blame-hang` runs, and every row of `docs/PHASE22_MANUAL_TEST_PLAN.md` in the real app (the marquee drawing, the
   drop indicator, the auto-scroll timer and the Alt keys on Windows are checked only there) — Step 22.6.
+- 2026-10-15 / 16 — Step 22.6 (verification & closeout), on `f4383c3`; no product code changed:
+  - Gates: `dotnet build AiVideoEditor.sln -c Release --no-incremental -warnaserror` and the same in Debug 0 / 0; `dotnet
+    test AiVideoEditor.sln -c Release --no-build` passed 3446, skipped 2 (the 4K scenes), failed 0; `AIVE_HEAVY_TESTS=1`
+    the same command 3448 / 0 / 0; three runs with `--blame-hang --blame-hang-timeout 5m` 3446 / 2 / 0 each, no hang, no
+    dump; `git diff --check` clean.
+  - Real app (Debug, the Phase 10 fixture, UI Automation and system mouse / keyboard input, results read from the saved
+    `project.json`, the status bar, the Inspector and screenshots): the 25 rows of `docs/PHASE22_MANUAL_TEST_PLAN.md` PASS —
+    Ctrl+A with locked tracks and a partner, Ctrl+A in a text box and in the markup mode, Esc, the marquee (live, Ctrl,
+    Esc), the commands on such selections, Snap of a clip and a group, a skipped snap that would push, the snapped drop
+    (an edge, an empty track at 0, Snap off), the push with its preview and a gap, the left collision, a linked partner
+    following / refusing, dissolves kept / refusing, Paste / Duplicate / + Text, Insert / Overwrite unchanged, Alt nudges
+    with the Preview, the auto-scroll (clip, marquee, edge), a locked track, a running export (the modal progress window
+    blocks the main window), trims / Close Gap / Ripple Delete, the 1024 / 1440 px layouts. Regression: the fixture saved
+    by the Phase 21 build (`7318ba8` from `git archive`) and by Phase 22 is byte for byte the same v6 file; Phase 21 opens
+    the Phase 22 save.
+  - Found: no product defect. A harness error first looked like one — Alt+Shift+arrow moving by one frame: the arrows were
+    sent without `KEYEVENTF_EXTENDEDKEY`, so Windows treated them as numpad arrows and released Shift before them (a key
+    log in a temporary, reverted line of `MainWindow.OnKeyDown` showed `Right Alt`); with the flag the app receives
+    `Right Alt, Shift` and moves one second. Observation outside D037: FU-22.1 (ROADMAP) — the hold markup mode left on its
+    own once after entering it at 00:00:10:00 (the playhead then on 00:00:09:23).
+  - Side effects on this machine: the app writes its logs, recovery files and the recent-projects list under the real
+    `%LOCALAPPDATA%\AiVideoEditor` (the `LOCALAPPDATA` variable does not move it) — the fixture folder was added to
+    "Recent"; every run closed normally, no recovery file left.
+  - State: Phase 22 implemented and verified by Claude; awaiting the product owner's acceptance; no push, PR or merge.
 - Not merged branch noticed, untouched: `fix/preview-refresh-beyond-end` (`7b118a7`, worktree `.claude/worktrees/
   modest-albattani-c2ae6e`) — probably superseded by PR #16.
 

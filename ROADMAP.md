@@ -64,7 +64,9 @@ Phase 22 — timeline selection, snapping and making room (**in progress**; DECI
 that never makes an overlap, also for a drop from the Media Browser (a new clip on an empty track at 0); the placement
 edits (move, nudge, drop, Paste, Duplicate, + Text) push the clips on the right by the overlap instead of being refused —
 on one track, a partner follows or the whole edit is refused, a dissolve of untouched clips never opened, one undo step; a
-collision on the left still refused; Alt+arrow nudges; auto-scroll while dragging; `project.json` stays v6. Steps:
+collision on the left still refused; Alt+arrow nudges; auto-scroll while dragging; `project.json` stays v6. Steps
+22.0–22.6 done (closeout by Claude 2026-10-16: gates green, the manual plan run in the real app, all rows PASS); awaiting the
+product owner's acceptance; nothing pushed. Steps:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 22 — Timeline selection, snapping and making room: steps"; manual plan
 `docs/PHASE22_MANUAL_TEST_PLAN.md`.
 
@@ -355,6 +357,10 @@ Phase 22 (D037 §5, product owner, 2026-10-15).
 - **FU-21.2 — Markers stay in place when a clip is moved (marker semantics).** Markers are sequence (timeline) markers and
   D027 says no edit moves them, so this is the current decided behaviour. Open product question: whether markers bound
   to a clip (moving with it) are wanted. Not to be treated as a bug before that is decided.
+- **FU-22.1 — The hold markup mode left on its own after entering it (observed at Step 22.6, not investigated).** With the
+  playhead put on 00:00:10:00 by a click on the ruler and a video clip selected, "Mark holds" entered the mode ("Preparing
+  the frame…"); a few seconds later the playhead stood on 00:00:09:23 and the mode was off (a seek leaves it, D034). Entering
+  again at 00:00:09:23 kept it. Phase 19 code (D034), untouched by Phase 22; to be reproduced and analysed separately.
 - **Export of vertical video without unwanted black bars (backlog).** A vertical (portrait) clip exported on a landscape
   canvas comes out with black bars at the sides (the D018 fit of a picture to the canvas). The expected framing must be
   decided first — e.g. a portrait canvas from the clip, a fill / crop-to-canvas mode, or a choice at export — before any
