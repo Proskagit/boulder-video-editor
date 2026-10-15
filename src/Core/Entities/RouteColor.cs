@@ -23,13 +23,13 @@ public static class RouteColor
     /// <summary>
     /// The keyline threshold T on the route score (ΔE_OK; D034 §5, starting hypothesis 0.20). Calibrated at Step 19.6 on
     /// the E1 frames (24 routes of 3–11 holds from the app's own samples; example sheets with and without the keyline per
-    /// score band, 1080p, stroke 4): below ≈ 0.12 the plain line merges with the holds (pink on pink, orange on orange);
-    /// between 0.12 and 0.20 both versions read and the keyline trades a crisper edge for half the coloured core — a
-    /// choice for the product owner (report `T_REPORT.md` with the calibration). The Auto colour of every E1 route scores
-    /// ≥ 0.33 even without black and white, so in practice T decides for manual colours (routes outlined in their own
-    /// hold colour score 0.03–0.30). Not accepted yet: manual plan item 16.
+    /// score band, 1080p, stroke 4): below ≈ 0.12 the plain line merges with the holds; between 0.12 and 0.20 the keyline
+    /// trades a crisper edge for half the coloured core. **0.16** — the product owner's compromise (2026-10-15): of the 24
+    /// routes outlined in their own hold colour the keyline turns on for 9 (5 at 0.12, 16 at 0.20); the Auto colour of
+    /// every E1 route scores ≥ 0.33, so it stays without one. Report `T_REPORT.md` / `T016_examples.png` with the
+    /// calibration.
     /// </summary>
-    public const double KeylineThreshold = 0.12;
+    public const double KeylineThreshold = 0.16;
 
     /// <summary>The fixed Auto palette (D034 §5): 12 saturated colours, then white and black, in this order.</summary>
     public static readonly ImmutableArray<PaletteColor> Palette = ImmutableArray.Create(

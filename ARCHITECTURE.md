@@ -379,7 +379,7 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   (`AppPaths.ModelsFolder`), never downloaded or replaced; `docs/AI_MODEL.md` (files, checksums, licences, the export
   recipe). Missing or mismatching files disable only the markup.
 - Core: `HoldMarkup` / `Hold` (normalized outer contour, `SurfaceLab` / `WallLab` OKLab samples, `SourceTime`) on
-  `VideoClip`; `RouteColor` (palette of 12 + white + black, maximin over the stored samples, keyline threshold T = 0.12);
+  `VideoClip`; `RouteColor` (palette of 12 + white + black, maximin over the stored samples, keyline threshold T = 0.16);
   `IHoldSegmentationService` / `IHoldFrame` (three masks per prompt); `Holds/` — `HoldCandidateRules` (masks over 2 % of
   the frame hidden, best score first), `MaskContour` (largest component, Moore outer contour, Douglas–Peucker),
   `HoldColorSampler` (eroded surface, wall ring without the other holds, trimmed medians).

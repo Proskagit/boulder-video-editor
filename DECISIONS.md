@@ -4582,6 +4582,10 @@ Implementation notes (Phase 19; technical choices within the decision, not chang
 - Threshold T calibrated at Step 19.6 to **0.12** (from the 0.20 hypothesis) on 24 E1 routes; the Auto colour scores
   ≥ 0.50 on every one of them, so T decides for manual colours. The product owner's acceptance of the examples: manual
   plan item 16.
+- T set to **0.16** (product owner, 2026-10-15) after the T report: below 0.12 the keyline is needed, in 0.12–0.20 it
+  trades a crisper edge for half the coloured core. Same samples and protocol: of the 24 E1 routes outlined in their
+  own hold colour the keyline turns on for 9 at 0.16 (5 at 0.12, 16 at 0.20; added: c10 blue, c10 yellow, c6 red, c7
+  teal); the Auto colour turns it on for none (Auto scores ≥ 0.33). Examples: `T016_examples.png` with the calibration.
 - The markup frame is decoded by the application's decoder (software, the D033 HDR rule) at the asset's display size;
   on the E1 clip c6 at 0.5 s it is bit-identical to the E1 reference frame (local `MarkupPipelineTests`).
 - §7 performance — reading of the criterion (product owner, 2026-10-15; the §7 text and its thresholds unchanged): the

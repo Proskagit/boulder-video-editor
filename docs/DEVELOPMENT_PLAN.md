@@ -1430,7 +1430,7 @@ the route animation (future ideas above).
   colour Auto / Manual, keyline Auto / On / Off).
 - QG: view-model tests of the scenario and of the key routing; M: the scenario in the real app.
 
-### 19.6 — Threshold T calibration *(done: T = 0.12 proposed; the owner's acceptance pending, manual plan #16)*
+### 19.6 — Threshold T calibration *(done: T = 0.16, the product owner's decision of 2026-10-15)*
 - Outside the repository on the E1 frames: the keyline threshold and the palette; examples with and without the keyline
   shown to the product owner; the accepted values become constants with a test.
 
