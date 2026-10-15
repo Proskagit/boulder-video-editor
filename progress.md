@@ -2,13 +2,59 @@
 
 ## Current phase
 
-Phase 20 — manual correction of hold contours, branch `feat/phase-20-hold-contour-editing` (from `origin/main` =
-`2d0a10b`, the merge of PR #20; DECISIONS.md D035, 2026-10-15). **Accepted by the product owner (2026-10-15)** after their
-check on their own clips; push and a pull request into `main` permitted; no merge and no Phase 21 without a separate
-confirmation. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 20 — Manual correction of hold
-contours: steps"; manual plan `docs/PHASE20_MANUAL_TEST_PLAN.md`.
+Phase 21 — animation of the hold outlines, branch `feat/phase-21-hold-animation` (from `origin/main` = `a657bff`, the merge
+of PR #21; DECISIONS.md D036, 2026-10-15). Implemented in a cloud session; **main functionality accepted by the product
+owner (2026-10-15)** after their check in the real app; push and a pull request into `main` permitted, no merge. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 21 — Animation
+of the hold outlines: steps"; manual plan `docs/PHASE21_MANUAL_TEST_PLAN.md` (the product owner's checks recorded; the other real-app rows open).
 
-### Phase 20 — Manual correction of hold contours (accepted 2026-10-15; pull request open, not merged)
+### Phase 21 — Animation of the hold outlines (accepted 2026-10-15; pull request open, not merged)
+
+- 2026-10-15 — `main` = `origin/main` = `a657bff` (PR #21 merged, Phase 20). Branch created from it. Read: the D036
+  specification and the five answers, D025 (the frame-grid fades), D034, D035, the snapshot / draw plan / painter path, the
+  markup view-model and overlay, the serializer.
+- Done (Steps 21.1–21.5): `HoldAnimation` on `HoldMarkup` (null = off) with limits; `Core/Playback/HoldAnimationRule`
+  (start frame from the source time, exact at every rate and speed; `n0 + Frames(r · Interval)`; the D025 ramps; area
+  centroid order) and `HoldSchedule`; `HoldOutline.Schedule` built with the clip's timing; `LayersAt` sets
+  `PictureLayer.OutlineOpacities`; `OutlineDraw.PolygonOpacities` (hidden contours left out); `CompositionPainter` composites
+  each opacity group through an opacity mask; `SetHoldAnimation` + `HoldMarkupFields.Animation*` (one setting merges, on / off
+  never); `project.json` v6; the Inspector's "Animation" block (summary, past-the-end warning, Set to playhead, export lock);
+  the markup overlay's dashed outlines of every contour while the route is animated.
+- Found by the tests and fixed in the phase: Avalonia's Skia `PushOpacity` multiplies each draw call's alpha (no layer), so a
+  fading keyline showed through its core (143 instead of ≈ 160 on the test) → the outline groups are composited through
+  `PushOpacityMask` with the combined hold × layer opacity. This also changes, for the better, an outline with a keyline on a
+  translucent or fading clip (D036 §4).
+- Tests added: `Core.Tests/HoldAnimationRuleTests`, `HoldAnimationSnapshotTests` (20); `Timeline.Tests/HoldAnimationEditTests`
+  (5); `Project.Tests/HoldAnimationPersistenceTests` (18); `Rendering.Tests/HoldAnimationRenderTests` (7); `UI.Tests/
+  HoldMarkupUiTests` Phase 21 section (4); `ExportEndToEnd.Tests/ExportHoldAnimationEndToEndTests` (1). The current-version
+  assertions of older persistence tests moved from 5 to 6.
+- Cloud verification environment (not Windows): Ubuntu 24.04, .NET SDK 8.0.131 from apt, Xvfb for the Avalonia rendering
+  tests, ffmpeg 7.0.2 static (PyPI `imageio-ffmpeg`) with the distribution's ffprobe 6.1. The baseline on `a657bff` there:
+  201 failing tests, all environment-specific (Windows paths `C:\…`, `.cmd` scripts, a missing font, AAC sample counts of
+  the ffmpeg / ffprobe pair in the end-to-end harness). The comparison with this baseline is in "Verification" below.
+- Verification in the cloud (2026-10-15): `dotnet build AiVideoEditor.sln -c Release --no-incremental -warnaserror`
+  0 errors / 0 warnings; the full `dotnet test AiVideoEditor.sln` (Debug): 3409 run, 3205 passed, 2 skipped, 202 failed —
+  the 201 baseline failures unchanged, none fixed or added by the phase, plus the new end-to-end test, whose every
+  animation check passes (Preview = export canvas bytes on frames 4 / 7 / 12 / 20 / 34 / 40, the schedule's pixel values,
+  MP4 vs canvas mean |Δ| ≤ 2.02) and which then fails in the harness's `AssertValidMp4` on the AAC sample count (96256 vs
+  96000) — the same environment failure as 88 baseline end-to-end tests. Core / Timeline / Project / Rendering / UI again in
+  Release after the last edits: no failure outside the baseline. The Phase 20 tests (`HoldMarkupUiTests`,
+  `HoldMarkupEditTests`, `ContourEditingTests`, `HoldMarkupPersistenceTests`, `HoldOutlineRenderTests`) pass. `git diff
+  --check` clean.
+- 2026-10-15 — verification on Windows (Claude, a separate check of `8e28d32`, no file changed): Release build with
+  `-warnaserror` 0 errors / 0 warnings; full `dotnet test AiVideoEditor.sln` (Release) passed 3407, failed 0, skipped 2
+  (the 4K heavy scenes); on the base `a657bff` 3352 / 0 / 2 — the +55 are exactly the new Phase 21 tests, no test lost, no
+  new failure. The cloud's end-to-end AAC failure does not occur on Windows.
+- 2026-10-15 — the product owner checked Phase 21 in the real app and accepted the main functionality: the outline
+  animation and fades in the Preview, the dashed contours in the markup mode, the manual contour correction, Trim / Slip /
+  speed change / Split, the timeline display, the export with the exported video reopened, save and reopen of the project
+  (manual plan rows 3, 10, 11, 14–17, 22, 23). The other rows stay NOT RUN in the real app.
+- Follow-ups recorded, not in the scope of Phase 21 (`ROADMAP.md` "Follow-ups and backlog"): FU-21.1 the "Previous marker"
+  status message; FU-21.2 markers staying in place when a clip moves — by D027 the decided behaviour of sequence markers, a
+  product question whether clip-bound markers are wanted; the export of vertical video without unwanted black bars — the
+  framing to be decided before any code change.
+- Next: the pull request into `main` (no merge without the product owner's confirmation).
+
+### Phase 20 — Manual correction of hold contours (merged 2026-10-15 as `a657bff`, PR #21)
 
 - 2026-10-15 — PR #20 (Phase 19) merged into `main` as `2d0a10b`, CI green (the product owner). Branch
   `feat/phase-20-hold-contour-editing` created from `origin/main` = `2d0a10b`. Read: D034, the "Hold contour correction"

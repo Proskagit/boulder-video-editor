@@ -47,6 +47,12 @@ public sealed record TextDraw(Guid ClipId, Affine2D Transform, double Opacity, T
 /// <see cref="MinTargetStroke"/> (0 for the export; the Preview alone keeps a line visible at one screen pixel); centred on
 /// each contour, round joins. With a keyline (<see cref="KeylineHex"/> not null) the width is shared: the keyline colour
 /// across the whole width, the core colour over its middle half — a keyline of a quarter on each side.
+/// <para>
+/// <see cref="PolygonOpacities"/> (D036): each contour's own opacity on this frame, by index into <see cref="Polygons"/>,
+/// on top of <see cref="DrawOperation.Opacity"/>; empty — every contour at 1. The contours of one opacity are drawn as a
+/// group with that opacity (keyline and core together, so a fading hold's keyline never shows through its core and its
+/// overlapping segments never darken); contours at 0 are left out of <see cref="Polygons"/> altogether.
+/// </para>
 /// </summary>
 public sealed record OutlineDraw(Guid ClipId, Affine2D Transform, double Opacity, ImmutableArray<ImmutableArray<PointD>> Polygons,
     RectD LocalRect, double StrokeWidth, double CanvasScale, string CoreHex, string? KeylineHex, double MinTargetStroke = 0)
@@ -54,6 +60,35 @@ public sealed record OutlineDraw(Guid ClipId, Affine2D Transform, double Opacity
 {
     /// <summary>The core's share of the stroke when there is a keyline.</summary>
     public const double CoreShare = 0.5;
+
+    public ImmutableArray<double> PolygonOpacities { get; init; } = ImmutableArray<double>.Empty;
+
+    /// <summary>The opacity of contour <paramref name="index"/>.</summary>
+    public double PolygonOpacity(int index) => PolygonOpacities.IsDefaultOrEmpty ? 1.0 : PolygonOpacities[index];
+
+    /// <summary>The contours grouped by their opacity (D036), in order of each group's first contour; one group at 1
+    /// without animation.</summary>
+    public IEnumerable<(double Opacity, ImmutableArray<ImmutableArray<PointD>> Polygons)> OpacityGroups()
+    {
+        if (PolygonOpacities.IsDefaultOrEmpty)
+        {
+            yield return (1.0, Polygons);
+            yield break;
+        }
+        var order = new List<double>();
+        var groups = new Dictionary<double, ImmutableArray<ImmutableArray<PointD>>.Builder>();
+        for (var i = 0; i < Polygons.Length; i++)
+        {
+            var opacity = PolygonOpacities[i];
+            if (!groups.TryGetValue(opacity, out var group))
+            {
+                groups[opacity] = group = ImmutableArray.CreateBuilder<ImmutableArray<PointD>>();
+                order.Add(opacity);
+            }
+            group.Add(Polygons[i]);
+        }
+        foreach (var opacity in order) yield return (opacity, groups[opacity].ToImmutable());
+    }
 }
 
 /// <summary>
@@ -101,7 +136,9 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
     /// The route outline of <paramref name="picture"/> (D034 §6): each normalized source point → the crop-local
     /// coordinates of the layer's D018 geometry (drawn through its transform, like the frame); the geometry from the source
     /// size, or — unknown — from
-    /// <paramref name="decodedSize"/>, like the frame itself. Null without an outline.
+    /// <paramref name="decodedSize"/>, like the frame itself. An animated outline (D036) carries the opacity of each
+    /// contour shown on the layer's frame (<see cref="PictureLayer.OutlineOpacities"/>); the hidden ones are left out. Null
+    /// without an outline or when no contour is shown.
     /// </summary>
     public static OutlineDraw? Outline(FrameSize canvas, Affine2D canvasToTarget, PictureLayer picture, FrameSize decodedSize, double minTargetStroke = 0)
     {
@@ -111,13 +148,26 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
         var crop = geometry.SourceRect;
         var m = geometry.Transform;
 
-        var polygons = outline.Polygons
-            .Select(poly => poly.Select(p => new PointD(p.X * w - crop.X, p.Y * h - crop.Y)).ToImmutableArray())
-            .ToImmutableArray();
-        return new OutlineDraw(picture.ClipId, canvasToTarget.Compose(m), picture.Opacity, polygons,
+        var opacities = picture.OutlineOpacities;
+        var animated = !opacities.IsDefault && opacities.Length == outline.Polygons.Length;
+        var polygons = ImmutableArray.CreateBuilder<ImmutableArray<PointD>>(outline.Polygons.Length);
+        var shown = ImmutableArray.CreateBuilder<double>(animated ? outline.Polygons.Length : 0);
+        for (var i = 0; i < outline.Polygons.Length; i++)
+        {
+            if (animated && !(opacities[i] > 0)) continue;
+            polygons.Add(outline.Polygons[i].Select(p => new PointD(p.X * w - crop.X, p.Y * h - crop.Y)).ToImmutableArray());
+            if (animated) shown.Add(opacities[i]);
+        }
+        if (polygons.Count == 0) return null;
+
+        return new OutlineDraw(picture.ClipId, canvasToTarget.Compose(m), picture.Opacity, polygons.ToImmutable(),
             new RectD(0, 0, crop.Width, crop.Height), StrokeWidthOn(canvas, outline.StrokeWidth1080),
             Math.Sqrt(Math.Abs(canvasToTarget.Determinant)), outline.ColorHex,
-            outline.Keyline ? RouteColor.KeylineHex(outline.ColorHex) : null, minTargetStroke);
+            outline.Keyline ? RouteColor.KeylineHex(outline.ColorHex) : null, minTargetStroke)
+        {
+            // Every contour at 1 draws exactly as an outline without animation.
+            PolygonOpacities = animated && shown.Any(o => o < 1) ? shown.ToImmutable() : ImmutableArray<double>.Empty
+        };
     }
 
     /// <summary>D034 §4: the stroke in canvas (= output) pixels — <c>StrokeWidth1080 × short side / 1080</c>.</summary>

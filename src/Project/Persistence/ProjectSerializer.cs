@@ -25,13 +25,14 @@ namespace AiVideoEditor.Project.Persistence;
 public static class ProjectSerializer
 {
     public const string FormatId = "AiVideoEditor.Project";
-    /// <summary>5 since Phase 19 (D034): the hold markup of video clips. 4 since Phase 17 (D032): links of video and audio
+    /// <summary>6 since Phase 21 (D036): the animation of the hold outlines. 5 since Phase 19 (D034): the hold markup of video clips. 4 since Phase 17 (D032): links of video and audio
     /// clips, a video clip's unlinked sound, audio clips of video files and crossfades on audio tracks. 3 since Phase 10
     /// (D025): clip fades and anchored transitions. 2 since Phase 7 Step 9: the clip speed is an exact fraction (D022).
     /// Version 1 files (speed must be 1) and version 2 files are read as projects without fades and transitions, version 3
-    /// files without links, version 4 files without hold markup; all are saved as version 5.
+    /// files without links, version 4 files without hold markup, version 5 files without the outline animation; all are
+    /// saved as version 6. A newer version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 5;
+    public const int CurrentFormatVersion = 6;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -42,6 +43,9 @@ public static class ProjectSerializer
 
     /// <summary>The first version with the hold markup of video clips (D034).</summary>
     private const int HoldMarkupVersion = 5;
+
+    /// <summary>The first version with the animation of the hold outlines (D036).</summary>
+    private const int HoldAnimationVersion = 6;
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -323,7 +327,15 @@ public static class ProjectSerializer
             Id = h.Id,
             Points = h.Points.SelectMany(p => new[] { p.X, p.Y }).ToList(),
             SurfaceLab = ToDto(h.SurfaceLab), WallLab = ToDto(h.WallLab), SourceTimeTicks = h.SourceTime.Ticks
-        }).ToList()
+        }).ToList(),
+        Animation = m.Animation is { } a
+            ? new HoldAnimationDto
+            {
+                Order = a.Order, StartSourceTimeTicks = a.StartSourceTime.Ticks, IntervalTicks = a.Interval.Ticks,
+                AppearFadeTicks = a.AppearFade.Ticks, StayAfterLastTicks = a.StayAfterLast.Ticks,
+                StayUntilClipEnd = a.StayUntilClipEnd, DisappearFadeTicks = a.DisappearFade.Ticks
+            }
+            : null
     };
 
     private static OkLabDto ToDto(OkLabColor c) => new() { L = c.L, A = c.A, B = c.B };
@@ -624,7 +636,7 @@ public static class ProjectSerializer
                 // v1–v3 have no unlinked sound (D032).
                 IsAudioDetached = formatVersion >= AudioEditingVersion && v.IsAudioDetached,
                 // v1–v4 have no hold markup (D034).
-                HoldMarkup = formatVersion >= HoldMarkupVersion && v.HoldMarkup is { } markup ? FromDto(markup) : null
+                HoldMarkup = formatVersion >= HoldMarkupVersion && v.HoldMarkup is { } markup ? FromDto(markup, formatVersion) : null
             },
             AudioClipDto a => new AudioClip { Id = a.Id, MediaAssetId = a.MediaAssetId, Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClipDto i => new ImageClip
@@ -751,7 +763,7 @@ public static class ProjectSerializer
 
     /// <summary>A hold markup (D034 §6): every member required, the samples finite, the rules of
     /// <see cref="HoldMarkupRules"/>; anything else is a damaged file.</summary>
-    private static HoldMarkup FromDto(HoldMarkupDto dto)
+    private static HoldMarkup FromDto(HoldMarkupDto dto, int formatVersion)
     {
         var holds = new List<Hold>();
         foreach (var h in dto.Holds ?? throw Damaged("a hold markup has no hold list"))
@@ -774,7 +786,8 @@ public static class ProjectSerializer
             Keyline = dto.Keyline ?? throw Damaged("a hold markup has no keyline mode"),
             KeylineActive = dto.KeylineActive ?? throw Damaged("a hold markup has no keyline state"),
             ModelId = dto.ModelId ?? throw Damaged("a hold markup has no model id"),
-            Holds = holds.ToImmutableArray()
+            Holds = holds.ToImmutableArray(),
+            Animation = formatVersion >= HoldAnimationVersion && dto.Animation is { } animation ? FromDto(animation) : null
         };
         if (HoldMarkupRules.Validate(markup) is { } error) throw Damaged($"invalid hold markup: {error.TrimEnd('.')}");
         return markup;
@@ -785,6 +798,18 @@ public static class ProjectSerializer
             return new OkLabColor(l, a, b);
         }
     }
+
+    /// <summary>The outline animation (D036 §2): every member required; the limits are checked with the markup.</summary>
+    private static HoldAnimation FromDto(HoldAnimationDto dto) => new()
+    {
+        Order = dto.Order ?? throw Damaged("a hold animation has no order"),
+        StartSourceTime = new MediaTime(dto.StartSourceTimeTicks ?? throw Damaged("a hold animation has no start")),
+        Interval = new MediaTime(dto.IntervalTicks ?? throw Damaged("a hold animation has no interval")),
+        AppearFade = new MediaTime(dto.AppearFadeTicks ?? throw Damaged("a hold animation has no appear fade")),
+        StayAfterLast = new MediaTime(dto.StayAfterLastTicks ?? throw Damaged("a hold animation has no time after the last hold")),
+        StayUntilClipEnd = dto.StayUntilClipEnd ?? throw Damaged("a hold animation has no stay mode"),
+        DisappearFade = new MediaTime(dto.DisappearFadeTicks ?? throw Damaged("a hold animation has no disappear fade"))
+    };
 
     private static ProjectFileException Damaged(string reason, Exception? inner = null) =>
         new($"The project file is damaged and can't be opened ({reason}).", inner);

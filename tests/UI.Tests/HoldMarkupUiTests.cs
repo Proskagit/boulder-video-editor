@@ -679,6 +679,110 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
         Assert.False(inside);
     }
 
+    // --- Phase 21 (D036): the outline animation ------------------------------------------------------------------------
+
+    [Fact]
+    public void Animate_starts_at_the_playhead_source_time_with_the_defaults_and_each_setting_is_one_undo_step()
+    {
+        var clip = AddVideo();
+        Assert.False(Markup.IsAnimated);
+        Assert.Equal(0.5m, Markup.AnimationInterval);                                   // the defaults shown
+        Assert.Equal(0.25m, Markup.AppearFade);
+        Assert.Equal(3m, Markup.StayAfterLast);
+        Assert.Equal(0.5m, Markup.DisappearFade);
+        Assert.Equal(0, Markup.AnimationOrderIndex);                                    // bottom to top
+        _vm.Timeline.SetPlayhead(clip.TimelineStart + MediaTime.FromSeconds(2));
+
+        Markup.IsAnimated = true;
+        var animation = clip.HoldMarkup!.Animation!;
+        Assert.Equal(MediaTime.FromSeconds(2), animation.StartSourceTime);              // the source time under the playhead
+        Assert.Equal(new HoldAnimation { StartSourceTime = MediaTime.FromSeconds(2) }, animation);
+        Assert.Equal(2m, Markup.AnimationStart);
+        Assert.Equal("No holds marked yet.", Markup.AnimationSummary);
+
+        Markup.AnimationInterval = 0.6m;
+        Markup.AnimationInterval = 0.7m;                                                // one setting: merged
+        Markup.AnimationOrderIndex = 1;
+        Markup.StayUntilClipEnd = true;
+        Assert.Equal(new HoldAnimation
+        {
+            StartSourceTime = MediaTime.FromSeconds(2), Interval = MediaTime.FromSeconds(0.7), Order = HoldAnimationOrder.MarkingOrder,
+            StayUntilClipEnd = true
+        }, clip.HoldMarkup!.Animation);
+
+        _undo.Undo();
+        _undo.Undo();
+        Assert.Equal(HoldAnimationOrder.BottomToTop, clip.HoldMarkup!.Animation!.Order);
+        Assert.Equal(0.7m, Markup.AnimationInterval);
+        _undo.Undo();
+        Assert.Equal(0.5m, Markup.AnimationInterval);                                   // the Inspector follows the undo
+        _undo.Undo();
+        Assert.Null(clip.HoldMarkup?.Animation);
+        Assert.False(Markup.IsAnimated);
+    }
+
+    [Fact]
+    public void Set_to_playhead_moves_the_start_and_the_summary_warns_when_the_animation_runs_past_the_clip()
+    {
+        var clip = AddVideo();                                                          // 10 s
+        _vm.Timeline.SetPlayhead(clip.TimelineStart + MediaTime.FromSeconds(1));
+        Markup.IsAnimated = true;
+        foreach (var x in new[] { 0.2, 0.4, 0.6 })
+            Assert.True(_edit.AddHold(clip.Id, new Hold(Guid.NewGuid(), ImmutableArray.Create(new NormalizedPoint(x, 0.5),
+                new NormalizedPoint(x + 0.05, 0.5), new NormalizedPoint(x, 0.55)), default, default, MediaTime.Zero)).Success);
+        Assert.Equal("All 3 shown after 1.24 s, gone after 4.76 s.", Markup.AnimationSummary);   // 25 + 6 frames; + 75 + 13
+        Assert.Null(Markup.AnimationWarning);
+
+        _vm.Timeline.SetPlayhead(clip.TimelineStart + MediaTime.FromSeconds(8));
+        Assert.True(Markup.SetStartToPlayheadCommand.CanExecute(null));
+        Markup.SetStartToPlayheadCommand.Execute(null);
+        Assert.Equal(MediaTime.FromSeconds(8), clip.HoldMarkup!.Animation!.StartSourceTime);
+        Assert.NotNull(Markup.AnimationWarning);                                        // a warning, not an error
+
+        _vm.Timeline.SetPlayhead(clip.TimelineEnd + MediaTime.FromSeconds(1));          // off the clip
+        Assert.False(Markup.SetStartToPlayheadCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void During_an_export_the_animation_cannot_change()
+    {
+        var clip = AddVideo();
+        Markup.IsAnimated = true;
+        using (_lock.Acquire())
+        {
+            Markup.AnimationInterval = 2m;
+            Assert.Contains("export", _status.Message);
+            Assert.Equal(0.5m, Markup.AnimationInterval);
+            Markup.IsAnimated = false;
+            Assert.True(Markup.IsAnimated);
+        }
+        Assert.Equal(HoldAnimation.DefaultInterval, clip.HoldMarkup!.Animation!.Interval);
+    }
+
+    [Fact]
+    public async Task In_the_markup_mode_every_contour_of_an_animated_route_is_outlined_and_can_be_corrected()
+    {
+        var (clip, hold) = await SelectedHold();
+        Assert.Empty(Markup.AnimatedContours);                                          // no animation: nothing extra
+
+        // The animation starts after the markup frame: the composition hides the hold here, the overlay outlines it.
+        Assert.True(_edit.SetHoldAnimation(clip.Id, new HoldAnimation { StartSourceTime = MediaTime.FromSeconds(5) }).Success);
+        Assert.True(Markup.IsActive);
+        var dashed = Assert.Single(Markup.AnimatedContours);
+        Assert.Equal(hold.Points, dashed);
+        var snapshot = PlaybackSnapshotBuilder.Build(_projects.Current, 1);
+        Assert.All(snapshot.LayersAt(_vm.Timeline.Playhead).OfType<PictureLayer>().Single().OutlineOpacities, o => Assert.Equal(0, o));
+
+        // D035 still works on the hidden hold, and the dashed outline follows the correction.
+        Assert.True(Markup.CanEditContour);
+        Drag(0, new NormalizedPoint(0.4, 0.3));
+        Assert.Equal(clip.HoldMarkup!.Holds[0].Points, Assert.Single(Markup.AnimatedContours));
+        Assert.NotEqual(hold.Points, clip.HoldMarkup.Holds[0].Points);
+
+        Markup.DoneCommand.Execute(null);
+        Assert.Empty(Markup.AnimatedContours);                                          // only while the mode is on
+    }
+
     // --- helpers -----------------------------------------------------------------------------------------------------
 
     private static async Task WaitFor(Func<bool> condition)

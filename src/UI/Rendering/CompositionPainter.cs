@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using AiVideoEditor.Core.Composition;
@@ -43,7 +44,8 @@ public static class CompositionPainter
             foreach (var op in plan.Operations)
             {
                 using (context.PushTransform(RenderConversions.ToMatrix(op.Transform)))
-                using (context.PushOpacity(op.Opacity))
+                // An outline composites its opacity itself, as a group (D036 §4).
+                using (context.PushOpacity(op is OutlineDraw ? 1.0 : op.Opacity))
                 {
                     switch (op)
                     {
@@ -97,28 +99,43 @@ public static class CompositionPainter
     /// already pushed: clipped to the crop rectangle; each contour a closed polyline of segments with round caps (round
     /// joins) — no geometry objects, so it runs off the UI thread like the rest of the painter; with a keyline, every
     /// contour in the keyline colour over the full width first, then every core over the middle half, so the keyline of
-    /// one hold never covers the core of another.
+    /// one hold never covers the core of another. The contours are drawn per group of one opacity
+    /// (<see cref="OutlineDraw.OpacityGroups"/>; one group without animation), each group composited once with the hold's ×
+    /// the layer's opacity through an opacity mask (a layer, D036 §4) — the keyline and the core of a fading hold fade
+    /// together and its overlapping segments never darken; the keyline-then-core rule holds within a group.
     /// </summary>
     private static void DrawOutline(DrawingContext context, OutlineDraw op)
     {
         var localScale = Math.Sqrt(Math.Abs(op.Transform.Determinant));   // target pixels per local unit
         if (!(localScale > 0) || op.Polygons.IsEmpty) return;
-        var width = Math.Max(op.StrokeWidth * op.CanvasScale, op.MinTargetStroke) / localScale;
+        var fullWidth = Math.Max(op.StrokeWidth * op.CanvasScale, op.MinTargetStroke) / localScale;
 
-        using (context.PushClip(RenderConversions.ToRect(op.LocalRect)))
+        var bounds = RenderConversions.ToRect(op.LocalRect);
+        using (context.PushClip(bounds))
         {
-            if (op.KeylineHex is { } keyline)
+            foreach (var (holdOpacity, polygons) in op.OpacityGroups())
             {
-                Stroke(context, op, Pen(keyline, width));
-                width *= OutlineDraw.CoreShare;
+                // The group's opacity — the hold's × the layer's (clip opacity, fade, dissolve) — applied once to what the
+                // group drew (an opacity mask is a layer; a plain opacity would fade every segment on its own).
+                var opacity = holdOpacity * op.Opacity;
+                if (!(opacity > 0)) continue;
+                using (opacity < 1 ? context.PushOpacityMask(new ImmutableSolidColorBrush(Colors.White, opacity), bounds) : default(DrawingContext.PushedState?))
+                {
+                    var width = fullWidth;
+                    if (op.KeylineHex is { } keyline)
+                    {
+                        Stroke(context, polygons, Pen(keyline, width));
+                        width *= OutlineDraw.CoreShare;
+                    }
+                    Stroke(context, polygons, Pen(op.CoreHex, width));
+                }
             }
-            Stroke(context, op, Pen(op.CoreHex, width));
         }
     }
 
-    private static void Stroke(DrawingContext context, OutlineDraw op, ImmutablePen pen)
+    private static void Stroke(DrawingContext context, ImmutableArray<ImmutableArray<PointD>> polygons, ImmutablePen pen)
     {
-        foreach (var polygon in op.Polygons)
+        foreach (var polygon in polygons)
         {
             for (var i = 0; i < polygon.Length; i++)
             {

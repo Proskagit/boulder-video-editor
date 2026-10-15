@@ -267,6 +267,11 @@ public interface ITimelineEditService
     /// the same setting merge (D017).</summary>
     TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style);
 
+    /// <summary>Sets the appear / disappear animation of a video clip's hold outlines (D036); null switches it off. One undo
+    /// step; consecutive changes of the same setting merge (D017), switching on or off is its own step. Refused outside the
+    /// limits of <see cref="HoldMarkupRules.ValidateAnimation"/>, for other clips and on a locked track.</summary>
+    TimelineEditResult SetHoldAnimation(Guid clipId, HoldAnimation? animation);
+
     /// <summary>
     /// Changes the project canvas (D028, Step 13.4) to <paramref name="width"/> × <paramref name="height"/> as one Undo
     /// step. Refused, changing nothing, when the size breaks <see cref="ProjectSettingsRules.CanvasError"/>; the same

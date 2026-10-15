@@ -295,7 +295,7 @@ public class ClipboardEditTests
             Ok(result);
             var folder = Path.Combine(root, "Project");
             await f.Projects.SaveAsAsync(folder);
-            Assert.Contains("\"formatVersion\": 5", File.ReadAllText(Path.Combine(folder, "project.json")));
+            Assert.Contains("\"formatVersion\": 6", File.ReadAllText(Path.Combine(folder, "project.json")));
 
             var reopened = await f.Projects.OpenAsync(folder);
 

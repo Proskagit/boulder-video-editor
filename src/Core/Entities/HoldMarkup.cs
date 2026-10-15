@@ -40,6 +40,41 @@ public enum KeylineMode
     Off
 }
 
+/// <summary>The order in which the holds of an animated route appear (D036 §1).</summary>
+public enum HoldAnimationOrder
+{
+    /// <summary>From the lowest hold to the highest, by the centre of each contour (routes usually go up).</summary>
+    BottomToTop,
+
+    /// <summary>In the order the holds were marked.</summary>
+    MarkingOrder
+}
+
+/// <summary>
+/// The appear / disappear animation of a route's outlines (D036): before the start every contour is hidden; from it the
+/// holds appear one by one every <see cref="Interval"/>, each fading in over <see cref="AppearFade"/>, and stay; after the
+/// last one all of them stay <see cref="StayAfterLast"/> and then fade out together over <see cref="DisappearFade"/> —
+/// or, with <see cref="StayUntilClipEnd"/>, stay to the clip's end. <see cref="StartSourceTime"/> is a time of the source
+/// (ticks from the file's start, like <see cref="Hold.SourceTime"/>), so trimming, slipping, a speed change or a split
+/// never move the animation against the picture; the durations are timeline (output) time, so the clip's speed does
+/// not stretch them. Immutable, part of the markup value.
+/// </summary>
+public sealed record HoldAnimation
+{
+    public static readonly MediaTime DefaultInterval = MediaTime.FromSeconds(0.5);
+    public static readonly MediaTime DefaultAppearFade = MediaTime.FromSeconds(0.25);
+    public static readonly MediaTime DefaultStayAfterLast = MediaTime.FromSeconds(3);
+    public static readonly MediaTime DefaultDisappearFade = MediaTime.FromSeconds(0.5);
+
+    public HoldAnimationOrder Order { get; init; } = HoldAnimationOrder.BottomToTop;
+    public MediaTime StartSourceTime { get; init; }
+    public MediaTime Interval { get; init; } = DefaultInterval;
+    public MediaTime AppearFade { get; init; } = DefaultAppearFade;
+    public MediaTime StayAfterLast { get; init; } = DefaultStayAfterLast;
+    public bool StayUntilClipEnd { get; init; }
+    public MediaTime DisappearFade { get; init; } = DefaultDisappearFade;
+}
+
 /// <summary>
 /// One confirmed hold (D034 §6): its outer contour as a polygon in normalized source coordinates and the colour samples
 /// taken when it was confirmed, from the frame it was marked on — <see cref="SurfaceLab"/> (the hold's surface) and
@@ -99,11 +134,14 @@ public sealed record HoldMarkup
 
     public ImmutableArray<Hold> Holds { get; init; } = ImmutableArray<Hold>.Empty;
 
-    /// <summary>Same style and the same holds (value comparison of every hold).</summary>
+    /// <summary>The appear / disappear animation (D036); null: off — every contour shown for the whole clip.</summary>
+    public HoldAnimation? Animation { get; init; }
+
+    /// <summary>Same style, the same animation and the same holds (value comparison of every hold).</summary>
     public bool SameAs(HoldMarkup other) =>
         StrokeWidth1080.Equals(other.StrokeWidth1080) && ColorMode == other.ColorMode &&
         string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase) && Keyline == other.Keyline &&
-        KeylineActive == other.KeylineActive && ModelId == other.ModelId &&
+        KeylineActive == other.KeylineActive && ModelId == other.ModelId && Equals(Animation, other.Animation) &&
         Holds.Length == other.Holds.Length && Holds.Zip(other.Holds).All(p => p.First.SameAs(p.Second));
 }
 
@@ -117,6 +155,15 @@ public static class HoldMarkupRules
     public const int MaxPoints = 8192;
     public const int MaxHolds = 500;
 
+    /// <summary>The animation's limits (D036 §2).</summary>
+    public static readonly MediaTime MinInterval = MediaTime.FromSeconds(0.05);
+    public static readonly MediaTime MaxInterval = MediaTime.FromSeconds(10);
+    public static readonly MediaTime MaxFade = MediaTime.FromSeconds(5);
+    public static readonly MediaTime MaxStay = MediaTime.FromSeconds(60);
+
+    /// <summary>The latest animation start: 24 hours into the source.</summary>
+    public static readonly MediaTime MaxStartSourceTime = MediaTime.FromSeconds(24 * 3600);
+
     /// <summary>Null when <paramref name="markup"/> is valid, otherwise why not.</summary>
     public static string? Validate(HoldMarkup markup)
     {
@@ -127,6 +174,7 @@ public static class HoldMarkupRules
         if (!IsColorHex(markup.ColorHex)) return "The outline colour must be #RRGGBB.";
         if (string.IsNullOrWhiteSpace(markup.ModelId)) return "The markup's model is missing.";
         if (markup.Holds.Length > MaxHolds) return $"A clip can have at most {MaxHolds} holds.";
+        if (markup.Animation is { } animation && ValidateAnimation(animation) is { } animationError) return animationError;
 
         var ids = new HashSet<Guid>();
         foreach (var hold in markup.Holds)
@@ -149,6 +197,25 @@ public static class HoldMarkupRules
         if (hold.SourceTime < MediaTime.Zero) return "A hold's frame time is negative.";
         return null;
     }
+
+    /// <summary>Null when <paramref name="animation"/> is within the limits of D036 §2, otherwise why not.</summary>
+    public static string? ValidateAnimation(HoldAnimation animation)
+    {
+        if (!Enum.IsDefined(animation.Order)) return "Unknown animation order.";
+        if (animation.StartSourceTime < MediaTime.Zero || animation.StartSourceTime > MaxStartSourceTime)
+            return "The animation start must lie within the source.";
+        if (animation.Interval < MinInterval || animation.Interval > MaxInterval)
+            return $"The animation interval must be between {Seconds(MinInterval)} and {Seconds(MaxInterval)} s.";
+        if (animation.AppearFade < MediaTime.Zero || animation.AppearFade > MaxFade)
+            return $"The appear fade must be between 0 and {Seconds(MaxFade)} s.";
+        if (animation.DisappearFade < MediaTime.Zero || animation.DisappearFade > MaxFade)
+            return $"The disappear fade must be between 0 and {Seconds(MaxFade)} s.";
+        if (animation.StayAfterLast < MediaTime.Zero || animation.StayAfterLast > MaxStay)
+            return $"The time after the last hold must be between 0 and {Seconds(MaxStay)} s.";
+        return null;
+    }
+
+    private static string Seconds(MediaTime time) => time.TotalSeconds.ToString("0.##", CultureInfo.InvariantCulture);
 
     public static bool IsColorHex(string? hex) =>
         hex is { Length: 7 } && hex[0] == '#' && hex.Skip(1).All(Uri.IsHexDigit);

@@ -83,6 +83,33 @@ public sealed partial class TimelineEditService
         return Apply(clip, before, after, fields);
     }
 
+    public TimelineEditResult SetHoldAnimation(Guid clipId, HoldAnimation? animation)
+    {
+        if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
+        if (animation is not null && HoldMarkupRules.ValidateAnimation(animation) is { } invalid) return TimelineEditResult.Fail(invalid);
+
+        var before = clip.HoldMarkup;
+        var current = before ?? new HoldMarkup();
+        var fields = AnimationFields(current.Animation, animation);
+        if (fields == HoldMarkupFields.None) return TimelineEditResult.Unchanged();
+        // Only the timing of the outlines changes (D036): the colour and the keyline stay as resolved.
+        return Apply(clip, before, current with { Animation = animation }, fields);
+    }
+
+    /// <summary>Which animation settings differ (D036 §3 — the unit of undo merging).</summary>
+    private static HoldMarkupFields AnimationFields(HoldAnimation? a, HoldAnimation? b)
+    {
+        if (a is null || b is null) return (a is null) == (b is null) ? HoldMarkupFields.None : HoldMarkupFields.AnimationOn;
+        var fields = HoldMarkupFields.None;
+        if (a.Order != b.Order) fields |= HoldMarkupFields.AnimationOrder;
+        if (a.StartSourceTime != b.StartSourceTime) fields |= HoldMarkupFields.AnimationStart;
+        if (a.Interval != b.Interval) fields |= HoldMarkupFields.AnimationInterval;
+        if (a.AppearFade != b.AppearFade) fields |= HoldMarkupFields.AnimationAppearFade;
+        if (a.StayAfterLast != b.StayAfterLast || a.StayUntilClipEnd != b.StayUntilClipEnd) fields |= HoldMarkupFields.AnimationStay;
+        if (a.DisappearFade != b.DisappearFade) fields |= HoldMarkupFields.AnimationDisappearFade;
+        return fields;
+    }
+
     /// <summary>Validates the new markup and executes it as one command; unchanged values are no step.</summary>
     private TimelineEditResult Apply(VideoClip clip, HoldMarkup? before, HoldMarkup after, HoldMarkupFields fields)
     {

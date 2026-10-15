@@ -59,16 +59,21 @@ session state (D015).
 
 ## Current
 
-Phase 20 — manual correction of hold contours (**accepted 2026-10-15, pull request open, not merged**; DECISIONS.md D035, 2026-10-15; branch
-`feat/phase-20-hold-contour-editing` from `2d0a10b`; not pushed or merged). In the markup mode a selected hold shows
-handles at its vertices: drag one to move the boundary, Alt+click on the outline adds a vertex, Delete over a handle or a
-double-click removes one (at least three stay), a self-crossing result is refused; each gesture is one undo step of the
-same hold, its colour samples and the route colour unchanged; dense contours show a simplified set of handles while the
-stored geometry keeps every vertex; `project.json` stays v5; the Preview and the export draw the same stored polygon.
-Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 20 — Manual correction of hold contours: steps"; manual plan
-`docs/PHASE20_MANUAL_TEST_PLAN.md`.
+Phase 21 — animation of the hold outlines (**accepted 2026-10-15 — main functionality checked by the product owner in the
+real app; pull request open, not merged**; DECISIONS.md D036, 2026-10-15; branch `feat/phase-21-hold-animation` from
+`a657bff`). With "Animate" on, a clip's hold
+contours are hidden before a start bound to the source time, appear one by one (Bottom to top by default, or the marking
+order) every Interval with an appear fade, stay, and disappear together with a fade after a set time — or stay to the
+clip's end; computed on timeline frames in `PlaybackSnapshot.LayersAt`, so the Preview and the export agree on every
+frame; one undo step per change (one setting merges); `project.json` v6 (v5 read without animation); in the markup mode
+every contour is outlined dashed so hidden holds stay editable (D035 unchanged). Steps: `docs/DEVELOPMENT_PLAN.md`,
+"Phase 21 — Animation of the hold outlines: steps"; manual plan `docs/PHASE21_MANUAL_TEST_PLAN.md`.
 
 ## Previous
+
+Phase 20 — manual correction of hold contours (**merged**; PR #21 merged into `main` as `a657bff` on 2026-10-15; DECISIONS.md
+D035): in the markup mode a selected hold shows handles — drag, Alt+click to add, Delete / double-click to remove (at least
+three), no self-crossing; one undo step per gesture; `project.json` stayed v5.
 
 Phase 19 — AI hold markup (**merged**; PR #20 merged into `main` as `2d0a10b` on 2026-10-15, CI green; DECISIONS.md D034,
 specification revision 5). On a paused frame of a video clip the user clicks holds; SAM 2.1 Large (pinned model
@@ -312,7 +317,7 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-Phase 19 (AI hold markup, D034) is merged; Phase 20 (contour correction, D035) is accepted, its pull request not merged yet — see "Current". Candidates named in the
+Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is accepted, its pull request not merged yet — see "Current". Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The
@@ -324,10 +329,26 @@ DECISIONS.md D034 (accepted 2026-10-14, after experiments outside the repository
 
 Correction of a hold's contour by editing its vertices (proposed 2026-10-15) is Phase 20 — DECISIONS.md D035.
 
-Future idea, not a phase (recorded 2026-10-14): a route animation after the AI hold markup — the marked holds appear
+Taken up as Phase 21 (DECISIONS.md D036, 2026-10-15) — recorded 2026-10-14 as a future idea: a route animation after the AI hold markup — the marked holds appear
 over the video one by one at a configurable interval, stay visible, and disappear together after a set time. Not part
 of the AI hold markup MVP; keeping the contours on the holds while the camera moves is a separate motion compensation /
 tracking task. Sketch: `docs/DEVELOPMENT_PLAN.md`, "Future ideas (not phases)".
+
+## Follow-ups and backlog
+
+Separate tasks recorded at the Phase 21 acceptance (2026-10-15); none is part of Phase 21 or decided yet.
+
+- **FU-21.1 — "Previous marker" status message (marker issue).** Going to a marker outside the clip sometimes first shows
+  "There is no marker before the playhead", although a second press moves the playhead; after returning, the warning
+  stays in the status bar. Cause to be found (Previous / Next compare with the playhead's nearest frame; a successful jump
+  reports nothing, so an earlier message is not replaced). Details: `docs/PHASE21_MANUAL_TEST_PLAN.md`, "Follow-ups".
+- **FU-21.2 — Markers stay in place when a clip is moved (marker semantics).** Markers are sequence (timeline) markers and
+  D027 says no edit moves them, so this is the current decided behaviour. Open product question: whether markers bound
+  to a clip (moving with it) are wanted. Not to be treated as a bug before that is decided.
+- **Export of vertical video without unwanted black bars (backlog).** A vertical (portrait) clip exported on a landscape
+  canvas comes out with black bars at the sides (the D018 fit of a picture to the canvas). The expected framing must be
+  decided first — e.g. a portrait canvas from the clip, a fill / crop-to-canvas mode, or a choice at export — before any
+  change of the export or the composition code. No code changed for it in Phase 21.
 
 ## Rule
 

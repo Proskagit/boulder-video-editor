@@ -133,6 +133,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             PaletteSelection = RouteColor.Palette.FirstOrDefault(p => string.Equals(p.Hex, markup.ColorHex, StringComparison.OrdinalIgnoreCase)) is { Hex: not null } found ? found : null;
             KeylineIndex = (int)markup.Keyline;
             KeylineActive = markup.KeylineActive;
+            LoadAnimation(markup);
         }
         finally
         {
@@ -184,6 +185,162 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         LoadStyle();
     }
 
+    // ---- the animation (D036) ---------------------------------------------------------------------------------------
+
+    public IReadOnlyList<string> AnimationOrders { get; } = new[] { "Bottom to top", "Marking order" };
+
+    [ObservableProperty] private bool _isAnimated;
+    [ObservableProperty] private int _animationOrderIndex;
+
+    /// <summary>The start as a source time in seconds (D036 §2: a moment of the video, not of the timeline).</summary>
+    [ObservableProperty] private decimal? _animationStart;
+    [ObservableProperty] private decimal? _animationInterval = Seconds(HoldAnimation.DefaultInterval);
+    [ObservableProperty] private decimal? _appearFade = Seconds(HoldAnimation.DefaultAppearFade);
+    [ObservableProperty] private decimal? _stayAfterLast = Seconds(HoldAnimation.DefaultStayAfterLast);
+    [ObservableProperty] private bool _stayUntilClipEnd;
+    [ObservableProperty] private decimal? _disappearFade = Seconds(HoldAnimation.DefaultDisappearFade);
+
+    /// <summary>The animation's length in words; the warning when it runs past the clip's end (not an error).</summary>
+    [ObservableProperty] private string? _animationSummary;
+    [ObservableProperty] private string? _animationWarning;
+
+    public decimal MaxAnimationStart => Seconds(HoldMarkupRules.MaxStartSourceTime);
+    public decimal MinAnimationInterval => Seconds(HoldMarkupRules.MinInterval);
+    public decimal MaxAnimationInterval => Seconds(HoldMarkupRules.MaxInterval);
+    public decimal MaxAnimationFade => Seconds(HoldMarkupRules.MaxFade);
+    public decimal MaxAnimationStay => Seconds(HoldMarkupRules.MaxStay);
+
+    private static decimal Seconds(MediaTime time) => time.Ticks / (decimal)TimeSpan.TicksPerSecond;
+
+    /// <summary>Seconds as ticks, rounded to the nearest tick (the inputs carry at most three decimals).</summary>
+    private static MediaTime Ticks(decimal seconds) => new((long)Math.Round(seconds * TimeSpan.TicksPerSecond, MidpointRounding.AwayFromZero));
+
+    private void LoadAnimation(HoldMarkup markup)
+    {
+        var animation = markup.Animation;
+        IsAnimated = animation is not null;
+        var shown = animation ?? new HoldAnimation { StartSourceTime = _clip?.SourceIn ?? MediaTime.Zero };
+        AnimationOrderIndex = (int)shown.Order;
+        AnimationStart = Seconds(shown.StartSourceTime);
+        AnimationInterval = Seconds(shown.Interval);
+        AppearFade = Seconds(shown.AppearFade);
+        StayAfterLast = Seconds(shown.StayAfterLast);
+        StayUntilClipEnd = shown.StayUntilClipEnd;
+        DisappearFade = Seconds(shown.DisappearFade);
+        (AnimationSummary, AnimationWarning) = Summary(markup);
+        AnimatedContours = IsActive && animation is not null
+            ? markup.Holds.Select(h => h.Points).ToImmutableArray()
+            : ImmutableArray<ImmutableArray<NormalizedPoint>>.Empty;
+    }
+
+    /// <summary>"Animate" switched on: the defaults (D036), starting at the source time under the playhead when it is on
+    /// the clip, otherwise at the clip's first source frame. Off: the animation goes (one undo step either way).</summary>
+    partial void OnIsAnimatedChanged(bool value)
+    {
+        if (_syncing || _clip is null) return;
+        EditAnimation(_ => value ? new HoldAnimation { StartSourceTime = PlayheadSourceTime() ?? _clip.SourceIn } : null);
+    }
+
+    partial void OnAnimationOrderIndexChanged(int value)
+    {
+        if (!_syncing && value >= 0) EditAnimation(a => a with { Order = (HoldAnimationOrder)value });
+    }
+
+    partial void OnAnimationStartChanged(decimal? value)
+    {
+        if (!_syncing && value is { } v) EditAnimation(a => a with { StartSourceTime = Ticks(v) });
+    }
+
+    partial void OnAnimationIntervalChanged(decimal? value)
+    {
+        if (!_syncing && value is { } v) EditAnimation(a => a with { Interval = Ticks(v) });
+    }
+
+    partial void OnAppearFadeChanged(decimal? value)
+    {
+        if (!_syncing && value is { } v) EditAnimation(a => a with { AppearFade = Ticks(v) });
+    }
+
+    partial void OnStayAfterLastChanged(decimal? value)
+    {
+        if (!_syncing && value is { } v) EditAnimation(a => a with { StayAfterLast = Ticks(v) });
+    }
+
+    partial void OnStayUntilClipEndChanged(bool value)
+    {
+        if (!_syncing) EditAnimation(a => a with { StayUntilClipEnd = value });
+    }
+
+    partial void OnDisappearFadeChanged(decimal? value)
+    {
+        if (!_syncing && value is { } v) EditAnimation(a => a with { DisappearFade = Ticks(v) });
+    }
+
+    private bool CanSetStartToPlayhead() => _clip?.HoldMarkup?.Animation is not null && PlayheadSourceTime() is not null;
+
+    /// <summary>"Set to playhead": the animation starts on the frame under the playhead (its source time, D036 §2).</summary>
+    [RelayCommand(CanExecute = nameof(CanSetStartToPlayhead))]
+    private void SetStartToPlayhead()
+    {
+        if (PlayheadSourceTime() is { } start) EditAnimation(a => a with { StartSourceTime = start });
+    }
+
+    /// <summary>The source time of the frame under the playhead, when it is on the selected clip.</summary>
+    private MediaTime? PlayheadSourceTime()
+    {
+        if (_clip is null) return null;
+        var playhead = Playhead();
+        if (playhead < _clip.TimelineStart || playhead >= _clip.TimelineEnd) return null;
+        var rate = _projects.Current.Settings.FrameRate;
+        var time = HoldAnimationRule.SourceTimeAt(_clip.TimelineStart, _clip.SourceIn, _clip.Speed, playhead.ToFrameFloor(rate), rate);
+        return time < MediaTime.Zero ? MediaTime.Zero : time;
+    }
+
+    /// <summary>Applies <paramref name="change"/> to the clip's animation (switched off: only switching on applies).</summary>
+    private void EditAnimation(Func<HoldAnimation, HoldAnimation?> change)
+    {
+        if (_clip is null) return;
+        if (_lock.IsLocked)
+        {
+            _status.Report("The animation can't be changed while an export is running.");
+            LoadStyle();
+            return;
+        }
+        var current = _clip.HoldMarkup?.Animation;
+        if (current is null && !IsAnimated)
+        {
+            LoadStyle();
+            return;
+        }
+        var result = _edit.SetHoldAnimation(_clip.Id, change(current ?? new HoldAnimation()));
+        if (!result.Success) _status.Report(result.Message ?? "The animation could not be changed.");
+        LoadStyle();
+        RefreshCommands();
+    }
+
+    /// <summary>The animation's length from its start (D036 §1) and a warning when it reaches past the clip's end.</summary>
+    private (string?, string?) Summary(HoldMarkup markup)
+    {
+        if (_clip is null || markup.Animation is not { } animation) return (null, null);
+        if (markup.Holds.IsEmpty) return ("No holds marked yet.", null);
+        var rate = _projects.Current.Settings.FrameRate;
+        var outline = HoldOutline.Of(markup, _clip.TimelineStart, _clip.SourceIn, _clip.Speed, rate)!;
+        var schedule = outline.Schedule!;
+        string At(long frame) => (MediaTime.FromFrame(frame, rate) - MediaTime.FromFrame(schedule.StartFrame, rate)).TotalSeconds
+            .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " s";
+
+        var shown = markup.Holds.Length == 1 ? "The hold shown" : $"All {markup.Holds.Length} shown";
+        var summary = schedule.EndFrame is { } end
+            ? $"{shown} after {At(schedule.AllVisibleFrame)}, gone after {At(end)}."
+            : $"{shown} after {At(schedule.AllVisibleFrame)}, then until the clip's end.";
+        var clipEnd = _clip.TimelineEnd.ToFrameCeiling(rate);
+        var last = schedule.EndFrame ?? schedule.AllVisibleFrame;
+        var warning = schedule.StartFrame >= clipEnd ? "The animation starts after the clip's end — no hold is shown."
+            : last > clipEnd ? "The animation runs past the clip's end; it is cut there."
+            : null;
+        return (summary, warning);
+    }
+
     private void OnTimelineChanged()
     {
         if (_clip is not null && !ClipIsInProject(_clip))
@@ -228,6 +385,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     [ObservableProperty] private Guid? _selectedHoldId;
     [ObservableProperty] private ImmutableArray<NormalizedPoint> _selectedContour = ImmutableArray<NormalizedPoint>.Empty;
+
+    /// <summary>Every confirmed contour while the mode is on and the route is animated (D036 §4): the overlay draws them
+    /// thin and dashed, so a hold hidden on this frame can still be selected and corrected. Never in the export.</summary>
+    [ObservableProperty] private ImmutableArray<ImmutableArray<NormalizedPoint>> _animatedContours =
+        ImmutableArray<ImmutableArray<NormalizedPoint>>.Empty;
 
     /// <summary>The selected hold's vertices shown as handles (indices into <see cref="SelectedContour"/>; a coarser
     /// subset for a dense contour — D035); empty without a selection.</summary>
@@ -302,6 +464,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             MarkupFrame = frame.Frame;
             PrepareProgress = 1;
             IsPreparing = false;
+            LoadStyle();   // the dashed contours of an animated route (D036)
             UpdateOverlay();
             ModeText = ReadyText;
         }
@@ -562,6 +725,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         SelectedHoldId = null;
         SelectedContour = ImmutableArray<NormalizedPoint>.Empty;
         SelectedHandles = ImmutableArray<int>.Empty;
+        AnimatedContours = ImmutableArray<ImmutableArray<NormalizedPoint>>.Empty;
         _drag = null;
         IsContourInvalid = false;
         HoveredHandle = null;
@@ -796,6 +960,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     private void RefreshCommands()
     {
         StartCommand.NotifyCanExecuteChanged();
+        SetStartToPlayheadCommand.NotifyCanExecuteChanged();
         ConfirmCommand.NotifyCanExecuteChanged();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
     }

@@ -65,7 +65,9 @@ public static class PlaybackSnapshotBuilder
                         FadeOutFrames = fadeOut,
                         ExtendedStart = dissolves.FirstOrDefault(z => z.RightClipId == clip.Id)?.Start,
                         ExtendedEnd = dissolves.FirstOrDefault(z => z.LeftClipId == clip.Id)?.End,
-                        Outline = media is VideoClip { HoldMarkup: { } markup } ? HoldOutline.Of(markup) : null
+                        Outline = media is VideoClip { HoldMarkup: { } markup }
+                            ? HoldOutline.Of(markup, clip.TimelineStart, media.SourceIn, media.Speed, rate)
+                            : null
                     });
 
                 // An unlinked video clip's sound is its audio clip's (D032 R10).

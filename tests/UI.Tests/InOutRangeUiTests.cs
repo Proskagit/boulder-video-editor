@@ -153,7 +153,7 @@ public sealed class InOutRangeUiTests : IDisposable
         await _projects.SaveAsAsync(Path.Combine(_root, "Again"));
         Assert.Equal(saved.Replace("Project", "Again"), File.ReadAllText(Path.Combine(_root, "Again", "project.json"))
             .Replace("Project", "Again"));                                               // nothing of the range in the file
-        Assert.Contains("\"formatVersion\": 5", saved);
+        Assert.Contains("\"formatVersion\": 6", saved);
         Assert.DoesNotContain("\"in", File.ReadAllText(Path.Combine(_root, "Again", "project.json")), StringComparison.OrdinalIgnoreCase);
 
         _projects.CreateNew("Other");                                                    // New
