@@ -59,18 +59,23 @@ session state (D015).
 
 ## Current
 
-Phase 19 — AI hold markup (**implemented, awaiting acceptance**; DECISIONS.md D034 accepted 2026-10-14, specification
-revision 5; branch `feat/ai-hold-markup` from `c29a767`; implemented on the branch, Steps 19.0–19.8 committed, not pushed or merged; awaiting the product owner's acceptance — the threshold examples and the real-app scenarios on their clips). On
-a paused frame of a video clip the user clicks holds; SAM 2.1 Large (pinned model `sam2.1-large-v1`, ONNX, local only,
-DirectML with a CPU fallback) returns their real contours; confirmed holds are drawn over the clip for its whole
-duration as one route outline (one colour chosen from the holds and the wall, a keyline when the contrast is low, a
-stroke per the canvas's short side), identical in the Preview and the export; undo / redo; `project.json` v5. The
-experiments E1 / E2 ran outside the repository (reference data outside the repository too); E1: 155/164 SDR clicks
-without marked problems — the acceptance bar (D034 §8, criterion 10); the implementation's pinned ONNX model: 156/164.
-Steps 19.0–19.8 and acceptance criteria:
-`docs/DEVELOPMENT_PLAN.md`, "Phase 19 — AI hold markup: steps"; manual plan `docs/PHASE19_MANUAL_TEST_PLAN.md`.
+Phase 20 — manual correction of hold contours (**implemented, awaiting acceptance**; DECISIONS.md D035, 2026-10-15; branch
+`feat/phase-20-hold-contour-editing` from `2d0a10b`; not pushed or merged). In the markup mode a selected hold shows
+handles at its vertices: drag one to move the boundary, Alt+click on the outline adds a vertex, Delete over a handle or a
+double-click removes one (at least three stay), a self-crossing result is refused; each gesture is one undo step of the
+same hold, its colour samples and the route colour unchanged; dense contours show a simplified set of handles while the
+stored geometry keeps every vertex; `project.json` stays v5; the Preview and the export draw the same stored polygon.
+Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 20 — Manual correction of hold contours: steps"; manual plan
+`docs/PHASE20_MANUAL_TEST_PLAN.md`.
 
 ## Previous
+
+Phase 19 — AI hold markup (**merged**; PR #20 merged into `main` as `2d0a10b` on 2026-10-15, CI green; DECISIONS.md D034,
+specification revision 5). On a paused frame of a video clip the user clicks holds; SAM 2.1 Large (pinned model
+`sam2.1-large-v1`, ONNX, local only, DirectML with a CPU fallback) returns their real contours; confirmed holds are drawn
+over the clip for its whole duration as one route outline, identical in the Preview and the export; `project.json` v5.
+Criterion 10 on the E1 set: 156/164. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 19 — AI hold markup: steps"; manual plan
+`docs/PHASE19_MANUAL_TEST_PLAN.md`.
 
 Phase 18 — HDR → SDR of phone footage (**complete**; PR #19 merged into `main` as `c29a767` on 2026-10-14, CI green;
 still open: the product owner's visual check of the S1 export and PQ on real PQ footage; DECISIONS.md D033 with Revision R1, product owner decisions of 2026-10-13 / 14). HDR video —
@@ -307,7 +312,7 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-Phase 19 (AI hold markup, D034) is implemented and awaits acceptance — see "Current" and `docs/DEVELOPMENT_PLAN.md`. Candidates named in the
+Phase 19 (AI hold markup, D034) is merged; Phase 20 (contour correction, D035) is implemented and awaits acceptance — see "Current". Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The
@@ -315,10 +320,9 @@ In / Out update order" and "deep-seek decode coverage", listed here before, were
 D032 "Context"; removed at Step 18.2.) Left out by the product owner: colour management beyond the HDR → SDR
 conversion of D033 (HDR output, grading, ICC), an installer, timeline virtualization, an undoable import. AI features,
 listed here before as left out, are the product's main direction since 2026-10-14: the AI hold markup MVP is decided —
-DECISIONS.md D034 (accepted 2026-10-14, after experiments outside the repository); implemented in Phase 19, awaiting acceptance.
+DECISIONS.md D034 (accepted 2026-10-14, after experiments outside the repository); implemented in Phase 19, merged 2026-10-15.
 
-Next product stage proposed (2026-10-15): correction of a hold's contour by editing its vertices, so a wrong boundary
-is fixed without cycling alternatives — sketch in `docs/DEVELOPMENT_PLAN.md`, "Future ideas"; needs a D034 extension.
+Correction of a hold's contour by editing its vertices (proposed 2026-10-15) is Phase 20 — DECISIONS.md D035.
 
 Future idea, not a phase (recorded 2026-10-14): a route animation after the AI hold markup — the marked holds appear
 over the video one by one at a configurable interval, stay visible, and disappear together after a set time. Not part

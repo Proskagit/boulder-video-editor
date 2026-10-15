@@ -74,10 +74,28 @@ public class ContourEditingTests
     }
 
     [Fact]
+    public void Handles_are_thinned_to_a_spacing_on_the_screen_but_never_below_three()
+    {
+        var circle = Circle(400);                                                   // radius 100 frame pixels
+        var spaced = ContourEditing.Handles(circle, W, H, minSpacingPixels: 60);
+        Assert.InRange(spaced.Length, ContourEditing.MinHandles, ContourEditing.Handles(circle, W, H).Length);
+        for (var i = 0; i < spaced.Length; i++)
+        {
+            var (a, b) = (circle[spaced[i]], circle[spaced[(i + 1) % spaced.Length]]);
+            Assert.True(Math.Sqrt(Math.Pow((a.X - b.X) * W, 2) + Math.Pow((a.Y - b.Y) * H, 2)) >= 60 - 1e-9);
+        }
+
+        // Far more than the contour's size: still three, spread along it; a small contour too.
+        Assert.Equal(3, ContourEditing.Handles(circle, W, H, minSpacingPixels: 10_000).Length);
+        Assert.Equal(3, ContourEditing.Handles(Square(), W, H, minSpacingPixels: 10_000).Length);
+        Assert.Equal(4, ContourEditing.Handles(Square(), W, H, minSpacingPixels: 1).Length);
+    }
+
+    [Fact]
     public void Inserting_puts_a_vertex_on_the_edge_and_makes_it_a_handle()
     {
         var edit = All(Square());
-        var inserted = ContourEditing.InsertVertex(edit, 1, 0.25)!;
+        var inserted = ContourEditing.InsertVertex(edit, 1, 0.25, W, H)!;
         Assert.Equal(5, inserted.Points.Length);
         Assert.Equal(0.6, inserted.Points[2].X, 12);
         Assert.Equal(0.45, inserted.Points[2].Y, 12);
@@ -87,7 +105,7 @@ public class ContourEditingTests
         // On a dense contour the other handles shift past the new vertex.
         var circle = Circle(400);
         var dense = new ContourEdit(circle, ContourEditing.Handles(circle, W, H));
-        var after = ContourEditing.InsertVertex(dense, dense.Handles[2], 0.5)!;
+        var after = ContourEditing.InsertVertex(dense, dense.Handles[2], 0.5, W, H)!;
         Assert.Equal(circle.Length + 1, after.Points.Length);
         Assert.Equal(dense.Handles.Length + 1, after.Handles.Length);
         Assert.Contains(dense.Handles[2] + 1, after.Handles);
@@ -98,13 +116,26 @@ public class ContourEditingTests
     public void Inserting_beyond_the_point_limit_is_refused()
     {
         var full = Circle(HoldMarkupRules.MaxPoints, 0.4);
-        Assert.Null(ContourEditing.InsertVertex(new ContourEdit(full, ImmutableArray.Create(0, 100, 200)), 0, 0.5));
+        Assert.Null(ContourEditing.InsertVertex(new ContourEdit(full, ImmutableArray.Create(0, 100, 200)), 0, 0.5, 100_000, 50_000));
+    }
+
+    [Fact]
+    public void Inserting_on_a_vertex_of_a_dense_contour_makes_that_vertex_a_handle_without_changing_the_points()
+    {
+        var circle = Circle(400);                                                   // edges of about 1.6 frame pixels
+        var dense = new ContourEdit(circle, ContourEditing.Handles(circle, W, H));
+        var hidden = Enumerable.Range(0, circle.Length).First(i => !dense.Handles.Contains(i));
+        var promoted = ContourEditing.InsertVertex(dense, hidden, 0.1, W, H)!;
+        Assert.True(promoted.Points == circle);                                     // the same array: no edit
+        Assert.Contains(hidden, promoted.Handles);
+        Assert.True(promoted.Handles.SequenceEqual(promoted.Handles.Order()));
+        Assert.Null(ContourEditing.InsertVertex(promoted, hidden, 0.1, W, H));      // a handle already
     }
 
     [Fact]
     public void Removing_a_vertex_keeps_at_least_three()
     {
-        var pentagon = ContourEditing.InsertVertex(All(Square()), 0, 0.5)!;
+        var pentagon = ContourEditing.InsertVertex(All(Square()), 0, 0.5, W, H)!;
         var square = ContourEditing.RemoveHandle(pentagon, 1)!;
         Assert.Equal(Square().ToArray(), square.Points.ToArray());
         Assert.Equal(new[] { 0, 1, 2, 3 }, square.Handles);

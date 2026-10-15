@@ -4644,8 +4644,10 @@ cycling the model's alternatives. Built on the proposal of 2026-10-15 (`docs/DEV
   markup mode's overlay — never in the composition, so never in the export.
 - **Drag** a handle: the contour follows the pointer live; the release is **one** undo step. A point outside the frame is
   clamped to it. Esc during a drag abandons it (nothing changes).
-- **Alt+click on the outline** (within 6 view pixels of an edge) inserts a vertex there; it becomes a handle. Alt+click
-  never starts a candidate.
+- **Alt+click on the outline** (within 6 view pixels of an edge) inserts a vertex there; it becomes a handle. On a dense
+  contour, where an edge is about a pixel long, a click within half a frame pixel of a hidden vertex makes that vertex a
+  handle instead (no geometry change, no undo step). With Alt held the outline wins over a handle near by; Alt+click
+  away from the outline only says where to click; it never starts a candidate.
 - **Delete with the pointer over a handle**, or a **double-click on a handle**, removes it; Delete elsewhere removes the
   selected hold as in D034. At least **three** handles stay (so at least three vertices): a removal below that is refused
   with a message.
@@ -4658,7 +4660,9 @@ cycling the model's alternatives. Built on the proposal of 2026-10-15 (`docs/DEV
 
 - A contour from the model is simplified to ~1 source pixel (D034 §6) and can have hundreds of vertices. Up to 32
   vertices every vertex is a handle; above that the handles are the Douglas–Peucker subset at 2 % of the contour's
-  bounding-box diagonal (at least 1.5 source pixels).
+  bounding-box diagonal (at least 1.5 source pixels). The handles are then thinned to at least 14 screen pixels apart for
+  the Preview's current size (never fewer than three; re-derived when the size changes by more than a quarter) — found in
+  the real-app check, where a small hold in the Preview showed overlapping handles.
 - The stored polygon is **never simplified** by the editor: a drag moves the handle's vertex to the pointer and the hidden
   vertices between it and its neighbouring handles by a share of the move growing linearly with their arc length towards
   it; every other vertex stays exactly as it was and the vertex count is unchanged. A removal replaces the stretch between

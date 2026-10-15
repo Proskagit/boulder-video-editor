@@ -1499,7 +1499,8 @@ in the real app (`docs/PHASE20_MANUAL_TEST_PLAN.md`); `progress.md` updated.
 Out of scope (D035): negative points, new recognition modes, the route animation, timeline / localization / other UX.
 
 ### 20.1 — Contour geometry (Core) *(done)*
-- `Core/Holds/ContourEditing`: the handles (every vertex up to 32, else Douglas–Peucker at 2 % of the size), a drag with
+- `Core/Holds/ContourEditing`: the handles (every vertex up to 32, else Douglas–Peucker at 2 % of the size; thinned to a
+  spacing on the screen, at least three), a drag with
   the falloff over the hidden vertices (every other vertex exact), insert on an edge, removal of a handle (at least three
   stay), the check that an edit introduces no crossing / touch / zero area; `MaskContour.SimplifyIndices`.
 - Tests: `Core.Tests/ContourEditingTests`.
@@ -1517,9 +1518,11 @@ Out of scope (D035): negative points, new recognition modes, the route animation
   hit-testing in view pixels, the drag with pointer capture and a 3 px threshold, the handles and the red invalid contour.
 - Tests: `UI.Tests/HoldMarkupUiTests` (Phase 20 section).
 
-### 20.4 — Verification & closeout
-- The full suite; the real-app check of `docs/PHASE20_MANUAL_TEST_PLAN.md`; documentation (D035, ARCHITECTURE, ROADMAP,
-  README, `progress.md`).
+### 20.4 — Verification & closeout *(done by Claude 2026-10-15; the PO check open)*
+- The full suite; the real-app check of `docs/PHASE20_MANUAL_TEST_PLAN.md` (rows 1–12 passed; three defects found and
+  fixed in the run — overlapping handles on a small hold, Alt+click ignored on a dense contour and taken by a near
+  handle); documentation (D035, ARCHITECTURE, ROADMAP, README, `progress.md`).
+- Open: the product owner's check on their close-ups (plan row 16); push / pull request / merge on command.
 
 ## Architectural rules that must hold at every phase
 

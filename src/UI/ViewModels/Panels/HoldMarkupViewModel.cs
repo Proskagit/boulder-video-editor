@@ -597,7 +597,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             ? hold.Points
             : ImmutableArray<NormalizedPoint>.Empty;
         SelectedHandles = SelectedContour.Length >= 3 && MarkupFrame is { } frame
-            ? ContourEditing.Handles(SelectedContour, frame.Width, frame.Height)
+            ? ContourEditing.Handles(SelectedContour, frame.Width, frame.Height, _handleSpacing)
             : ImmutableArray<int>.Empty;
         if (IsActive && !IsPreparing) ModeText = id is null ? ReadyText : SelectedText;
         RefreshCommands();
@@ -607,6 +607,18 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     private ContourEdit? _drag;
     private int _dragHandle;
+    private double _handleSpacing;
+
+    /// <summary>The least distance between handles in frame pixels, set by the overlay from a fixed spacing on the screen,
+    /// so a hold that is small in the Preview shows fewer handles (the geometry keeps every vertex). A change of more than a
+    /// quarter re-derives the selected hold's handles (not during a drag).</summary>
+    public void SetHandleSpacing(double framePixels)
+    {
+        if (!double.IsFinite(framePixels) || framePixels <= 0) return;
+        if (_handleSpacing > 0 && Math.Abs(framePixels - _handleSpacing) <= 0.25 * _handleSpacing) return;
+        _handleSpacing = framePixels;
+        if (SelectedHoldId is { } id && !IsDraggingVertex) Select(id);
+    }
 
     /// <summary>The handle under the pointer (an index into <see cref="SelectedHandles"/>), set by the overlay: Delete
     /// removes that vertex instead of the hold.</summary>
@@ -663,21 +675,31 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     }
 
     /// <summary>Alt+click on edge <paramref name="edge"/> of the selected contour at <paramref name="t"/> along it: a new
-    /// vertex (a handle) there — one undo step.</summary>
+    /// vertex (a handle) there — one undo step; on a vertex of a dense contour that vertex becomes a handle (no step).</summary>
     public void InsertVertex(int edge, double t)
     {
         if (!CanEditContour || IsDraggingVertex || MarkupFrame is not { } frame) return;
         var current = new ContourEdit(SelectedContour, SelectedHandles);
         if (edge < 0 || edge >= current.Points.Length) return;
-        var (a, b) = (current.Points[edge], current.Points[(edge + 1) % current.Points.Length]);
-        var length = Math.Sqrt(Math.Pow((b.X - a.X) * frame.Width, 2) + Math.Pow((b.Y - a.Y) * frame.Height, 2));
-        if (length * Math.Min(t, 1 - t) < 0.5) return;   // a vertex is already there
-        if (ContourEditing.InsertVertex(current, edge, t) is not { } inserted)
+        if (ContourEditing.InsertVertex(current, edge, t, frame.Width, frame.Height) is not { } inserted)
         {
-            _status.Report($"An outline can have at most {HoldMarkupRules.MaxPoints} points.");
+            if (current.Points.Length >= HoldMarkupRules.MaxPoints) _status.Report($"An outline can have at most {HoldMarkupRules.MaxPoints} points.");
+            return;   // otherwise a handle is there already
+        }
+        if (inserted.Points == current.Points)
+        {
+            SelectedHandles = inserted.Handles;   // a hidden vertex of a dense contour shown as a handle: the geometry unchanged
             return;
         }
         Commit(current, inserted);
+    }
+
+    public const string OffOutlineMessage = "Alt+click on the selected outline adds a point there.";
+
+    /// <summary>Alt+click away from the selected outline: nothing changes, the user is told where to click.</summary>
+    public void ReportOffOutline()
+    {
+        if (CanEditContour) _status.Report(OffOutlineMessage);
     }
 
     /// <summary>Removes handle <paramref name="handle"/> (Delete over it, a double-click on it): one undo step; refused when

@@ -32,6 +32,9 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
     public const double HandleReach = 8;
     public const double EdgeReach = 6;
 
+    /// <summary>The least spacing of handles on the screen (view pixels): a hold small in the Preview shows fewer.</summary>
+    public const double HandleSpacing = 14;
+
     /// <summary>A press on a handle becomes a drag once the pointer has moved this far (view pixels).</summary>
     public const double DragThreshold = 3;
 
@@ -82,8 +85,25 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
 
     private void OnMarkupChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is nameof(HoldMarkupViewModel.Geometry) or nameof(HoldMarkupViewModel.MarkupFrame) or nameof(HoldMarkupViewModel.Canvas))
+            UpdateHandleSpacing();
         UpdateCursor();
         InvalidateVisual();
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == BoundsProperty) UpdateHandleSpacing();
+    }
+
+    /// <summary>Tells the view-model how many frame pixels <see cref="HandleSpacing"/> view pixels are now.</summary>
+    private void UpdateHandleSpacing()
+    {
+        if (_markup is not { Geometry: { } geometry, MarkupFrame: { } frame } markup || !markup.Canvas.IsValid) return;
+        var viewPerSource = CompositionDrawPlan.Viewport(markup.Canvas, Bounds.Width, Bounds.Height).A * geometry.FitScale * geometry.Scale;
+        var viewPerFrame = viewPerSource * geometry.Source.Width / frame.Width;
+        if (viewPerFrame > 0) markup.SetHandleSpacing(HandleSpacing / viewPerFrame);
     }
 
     private void UpdateCursor() =>
@@ -164,6 +184,15 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
 
         if (markup.CanEditContour)
         {
+            // Alt+click is for the outline only (it wins over a handle near by) and never starts a candidate.
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+            {
+                if (EdgeAt(geometry, markup.Canvas, Bounds.Size, markup.SelectedContour, point.Position) is { } edge)
+                    markup.InsertVertex(edge.Edge, edge.T);
+                else
+                    markup.ReportOffOutline();
+                return;
+            }
             if (HandleAt(geometry, markup.Canvas, Bounds.Size, markup.SelectedContour, markup.SelectedHandles, point.Position) is { } handle)
             {
                 if (e.ClickCount >= 2)
@@ -176,12 +205,6 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
                 _dragging = false;
                 e.Pointer.Capture(this);
                 return;
-            }
-            if (e.KeyModifiers.HasFlag(KeyModifiers.Alt))
-            {
-                if (EdgeAt(geometry, markup.Canvas, Bounds.Size, markup.SelectedContour, point.Position) is { } edge)
-                    markup.InsertVertex(edge.Edge, edge.T);
-                return;   // Alt+click is for the outline only: it never starts a candidate
             }
         }
         if (ToSource(geometry, markup.Canvas, Bounds.Size, point.Position) is { } source)

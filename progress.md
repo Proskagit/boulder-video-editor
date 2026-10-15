@@ -2,16 +2,42 @@
 
 ## Current phase
 
-Phase 19 — AI hold markup, branch `feat/ai-hold-markup` (from `c29a767`, `main` after the merge of PR #19; DECISIONS.md
-D034, specification revision 5, accepted 2026-10-14). **Implementation in progress** (the product owner's permission of
-2026-10-14: code, tests, documentation and commits on this branch; no push, pull request or merge without a separate
-permission). Steps 19.0–19.8 committed and the real-app acceptance run done by Claude (2026-10-15); nothing pushed or merged.
-T = 0.16 and the saturated-first Auto colour decided by the product owner (2026-10-15); the human time to mark a
-route is not measured yet (not blocking). Open: push / PR / merge on the product owner's command. Steps
-and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps"; manual plan
-`docs/PHASE19_MANUAL_TEST_PLAN.md`.
+Phase 20 — manual correction of hold contours, branch `feat/phase-20-hold-contour-editing` (from `origin/main` =
+`2d0a10b`, the merge of PR #20; DECISIONS.md D035, 2026-10-15). **Implemented, awaiting the product owner's acceptance**
+(the product owner's assignment of 2026-10-15: code, tests, documentation and commits on this branch; no push, pull
+request or merge without a separate command). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 20 — Manual correction of hold
+contours: steps"; manual plan `docs/PHASE20_MANUAL_TEST_PLAN.md`.
 
-### Phase 19 — AI hold markup (in progress)
+### Phase 20 — Manual correction of hold contours (implemented, awaiting acceptance)
+
+- 2026-10-15 — PR #20 (Phase 19) merged into `main` as `2d0a10b`, CI green (the product owner). Branch
+  `feat/phase-20-hold-contour-editing` created from `origin/main` = `2d0a10b`. Read: D034, the "Hold contour correction"
+  proposal (DEVELOPMENT_PLAN "Future ideas"), ROADMAP, ARCHITECTURE, the markup code (`HoldMarkupViewModel`,
+  `HoldMarkupOverlay`, `TimelineEditService.HoldMarkup`, `SetHoldMarkupCommand`, `MaskContour`).
+- Decision D035 (from the assignment): the gestures (drag, Alt+click insert, Delete over a handle / double-click remove,
+  at least three, no self-crossing), dense contours with a display subset of handles and lossless geometry (a drag moves
+  the hidden vertices by a falloff, every other vertex exact), the same hold id and samples, the colour unchanged, one
+  undo step per gesture, never merged, locked track / export refused, `project.json` stays v5 (no format change needed:
+  a corrected contour is an ordinary polygon). A deliberate difference from the proposal: the proposal edited the coarse
+  polygon (lossy); D035 keeps every vertex, as the assignment requires.
+- Steps 20.1–20.3 (`7b2616d`): Core `ContourEditing` (+ `MaskContour.SimplifyIndices`); `ReplaceHoldContour` +
+  `HoldMarkupFields.Contour`; the view-model and overlay gestures; tests in Core / Timeline / Project / Rendering / UI.
+  Full suite (Release): passed 3349, skipped 2 (the 4K heavy scenes), failed 0.
+- Step 20.4 — real-app run (Claude, 2026-10-15; `docs/PHASE20_MANUAL_TEST_PLAN.md`): scenarios 1–12 passed; three
+  defects found and fixed in the run: (1) a small hold in the Preview showed overlapping handles → handles thinned to at
+  least 14 screen pixels apart (`ContourEditing.Handles(..., minSpacingPixels)`, `HoldMarkupViewModel.SetHandleSpacing`
+  from the overlay); (2) Alt+click on a dense contour (edges shorter than a pixel) was silently ignored → the vertex there
+  becomes a handle; (3) Alt+click near a handle was taken as a handle press → with Alt the outline wins; Alt+click away
+  from the outline now says where to click. Export checked with ffmpeg: the saved 14-vertex contour drawn exactly (381 of
+  381 edge samples on the line), no handles in the video.
+- Closeout verification after the fixes: `dotnet build AiVideoEditor.sln -c Release --no-incremental -warnaserror`
+  0 errors / 0 warnings; full suite (Release) passed 3352, skipped 2 (the 4K heavy scenes), failed 0; `git diff --check`
+  clean. Not run in this phase: the local real-weights suite (`tests/Vision.ModelTests` — Phase 20 changes no inference
+  code), the `--blame-hang` repeats.
+- Open: the product owner's check on their close-ups with wrong large masks (plan row 16); push / pull request / merge
+  on the product owner's command.
+
+### Phase 19 — AI hold markup (merged 2026-10-15 as `2d0a10b`, PR #20)
 
 - 2026-10-14 — read-only pre-flights after the Phase 18 merge (timeline / media / Preview / localization UX; the roadmap
   revision with AI as the main product direction — no AI code existed; the AI MVP pre-analysis). No repository change.

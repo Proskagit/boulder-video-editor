@@ -26,6 +26,8 @@ This directory contains:
 
 - `PHASE19_MANUAL_TEST_PLAN.md` — manual checks of Phase 19 (AI hold markup: the markup mode, the route outline in the
   Preview and the export, the model's absence and the CPU fallback, the threshold examples), run at its closeout
+- `PHASE20_MANUAL_TEST_PLAN.md` — manual checks of Phase 20 (the manual correction of hold contours: handles, drag,
+  insert, removal, crossing, undo / redo, save / reopen, the Preview and the export)
 - `AI_MODEL.md` — the AI hold model: files and checksums, installing, messages, licences and notices, the export recipe
 
 Agent-oriented project context lives in the repository root:

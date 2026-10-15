@@ -231,7 +231,7 @@ public class HoldMarkupPersistenceTests
         var original = markup.Holds[0];
         var edit = new Core.Holds.ContourEdit(original.Points, Enumerable.Range(0, original.Points.Length).ToImmutableArray());
         edit = Core.Holds.ContourEditing.MoveHandle(edit, 1, new NormalizedPoint(0.12398765432101, 0.43812345678901), 1920, 1080);
-        edit = Core.Holds.ContourEditing.InsertVertex(edit, 2, 0.3141592653589793)!;
+        edit = Core.Holds.ContourEditing.InsertVertex(edit, 2, 0.3141592653589793, 1920, 1080)!;
         var corrected = new Hold(original.Id, edit.Points, original.SurfaceLab, original.WallLab, original.SourceTime);
         var project = Build(markup with { Holds = markup.Holds.SetItem(0, corrected) });
 

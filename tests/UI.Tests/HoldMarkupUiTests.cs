@@ -636,6 +636,24 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Handles_follow_the_spacing_on_the_screen_and_alt_click_off_the_outline_only_says_where_to_click()
+    {
+        var (clip, hold) = await SelectedHold();
+        Assert.Equal(4, Markup.SelectedHandles.Length);
+        Markup.SetHandleSpacing(1000);                                              // a tiny Preview: three handles stay
+        Assert.Equal(3, Markup.SelectedHandles.Length);
+        Assert.Equal(hold.Points.ToArray(), Markup.SelectedContour.ToArray());      // the geometry untouched
+        Markup.SetHandleSpacing(1);
+        Assert.Equal(4, Markup.SelectedHandles.Length);
+
+        var steps = UndoSteps();
+        Markup.ReportOffOutline();
+        Assert.Equal(HoldMarkupViewModel.OffOutlineMessage, _status.Message);
+        Assert.Equal(steps, UndoSteps());
+        Assert.Same(hold, clip.HoldMarkup!.Holds[0]);
+    }
+
+    [Fact]
     public void The_overlay_finds_a_handle_and_an_edge_in_view_pixels()
     {
         var canvas = new FrameSize(1920, 1080);
