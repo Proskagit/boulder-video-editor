@@ -13,6 +13,12 @@
     <RootNamespace>AiVideoEditor.Vision.ModelTests</RootNamespace>
   </PropertyGroup>
 
+  <!-- One test class at a time: the classes share the GPU, and run in parallel they distort each other's timings
+       (found at Step 19.8: a "slowest click" of 2.4 s). -->
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.0" />

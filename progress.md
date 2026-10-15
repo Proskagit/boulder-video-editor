@@ -5,9 +5,9 @@
 Phase 19 — AI hold markup, branch `feat/ai-hold-markup` (from `c29a767`, `main` after the merge of PR #19; DECISIONS.md
 D034, specification revision 5, accepted 2026-10-14). **Implementation in progress** (the product owner's permission of
 2026-10-14: code, tests, documentation and commits on this branch; no push, pull request or merge without a separate
-permission). Steps 19.0–19.8 committed; nothing pushed or merged. Open: the product owner's acceptance — the threshold examples
-(manual plan #16), the real-app scenarios on their clips (#9 re-check, #26, the rows not run), then push / PR / merge on
-their command. Steps
+permission). Steps 19.0–19.8 committed and the real-app acceptance run done by Claude (2026-10-15); nothing pushed or merged.
+Open for the product owner: T = 0.12 (manual plan #16), the performance statistic (D034 §7), the Shift+click proposal,
+the human marking time (#26); then push / PR / merge on their command. Steps
 and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps"; manual plan
 `docs/PHASE19_MANUAL_TEST_PLAN.md`.
 
@@ -123,6 +123,41 @@ and acceptance: `docs/DEVELOPMENT_PLAN.md` "Phase 19 — AI hold markup: steps";
   deadlock when the file writes complete synchronously — `BeforeCommit` then blocks the test thread before the close
   task is returned; the close (and the same pattern in `AutosaveServiceTests`) now runs off the test thread. A timing
   race in the new early-Enter UI test fixed too (15 of 15 repeats green).
+- 2026-10-15 — real-app acceptance run by Claude with the product owner's permission (GUI; results per row in
+  `docs/PHASE19_MANUAL_TEST_PLAN.md`, "real-app run 2"): Debug build, isolated profiles, fixtures for c6, c8 and the HLG
+  clip; synthesized input only after a foreground / window-under-point check (it stopped the run once — no input sent).
+  PASS: 1–3, 5–11, 12 at the markup frame, 13 (1080p, 1080 × 1920, 4K), 14, 15, 17–23, 26 (three clips), R1 (the v4
+  project exported byte-identical by the Phase 18 and the Phase 19 builds), R2 for the tools run. #9: 7 of 7 quick
+  click / Enter pairs, twice. BLOCKED: #4 (no way to force a DirectML failure in the GUI). NOT RUN: 720p canvas; in R2
+  slip, ripple trim, J / L cuts, unlink, sound-only insert. Not accepted (the owner's): #16 (T), the human time to mark
+  a route (#26). Limitation seen: the HLG clip reframes after ≈ 1 s, so static outlines leave the holds — camera motion,
+  not in the MVP (D034).
+  Defects found and fixed (with tests): the markup hint below the picture shrank the Preview by a quarter → status and
+  buttons in the Preview bar; Mark holds was offered on a locked track where every confirm is refused → off there, and
+  locking leaves the mode (`9c145ca`); the missing-model message named a relative folder under an unset profile → full
+  path (`8f2ff61`); the fixture script took a phone clip's odd average frame rate → `r_frame_rate` (`8f2ff61`).
+- 2026-10-15 — performance profile (local `PerformanceProfileTests`, no GUI, RTX 4070 SUPER, E1 4K frames; report
+  `<E1>/results/perf-20261015-002945/perf.md`, repeated in `perf-20261015-110442`; ms, median / p95 / max): model check (SHA-256) 476 / 496 / 496; session
+  creation 3279 / 3600 / 3600; fresh service `EnsureReady` (check + sessions) 4088 / 4089 / 4089 — once per session;
+  first `PrepareFrame` after it 444 / 450 / 450, then 237; warm encode 191 / 194 / 195, preprocess 43 / 58 / 60; the
+  app's 4K markup frame decode 682 / 853 / 853; click (decode + upsample of three masks) 37 / 64 / 125 over 164 clicks;
+  confirm (component + contour + colour samples) 27 / 48 / 1128 (the maximum on a whole-wall mask, which the app never
+  offers). The earlier "first frame 3.8 s" and "slowest click 155 ms" of the local suite were taken while xUnit ran
+  the other GPU test classes in parallel — not representative (a parallel rerun even showed a 2.4 s click); the local
+  suite now runs one class at a time (`xunit.runner.json`). Open for the owner: whether "frame preparation ≤ 1 s"
+  includes the 4K decode (with it ≈ 0.9–1.3 s) and the once-per-session start (≈ 4–6 s in the app).
+- 2026-10-15 — Shift+click proposal (not implemented, the owner decides): when a refinement (two or more points) leaves
+  no mask under 2 % of the frame, keep the previous candidate (its points, masks and shown outline) and drop only the
+  new point, with the status "No smaller outline with that point — kept the previous one."; today the candidate is
+  discarded. Change: `HoldMarkupViewModel.PredictAsync` restores the saved state instead of `ClearCandidate()` when
+  `points.Count > 1`; a UI test (fake model: walls only on the second prediction) checks the candidate and its points.
+- 2026-10-15 — final verification after the real-app fixes: `-warnaserror` Release and Debug 0 / 0; the full suite
+  **3309 passed, 2 skipped, 0 failed**, three `--blame-hang` runs the same (no hang, no dump); `AIVE_HEAVY_TESTS=1`
+  ExportEndToEnd 129 / 0 / 0; the local real-weights suite **10 / 10** (one class at a time; report
+  `<E1>/results/20261015-110340/`): criterion 10 156/164, C# = Python reference, DirectML = CPU, frame preparation
+  median 350 / max 472 ms (first 379 ms), click median 41 / max 122 ms, CPU 7.4 s. Stray app data written to the
+  repository root during the no-model run (an unset profile makes the app's data folder relative) removed; the model
+  folder itself is named in full since `8f2ff61`.
 
 ### Phase 18 — HDR → SDR of phone footage (complete; PR #19 merged as `c29a767`, CI green)
 

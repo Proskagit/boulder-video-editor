@@ -25,8 +25,10 @@ Messages (the status bar; the rest of the editor stays usable):
 - *The hold model file `<file>` in `<folder>` is damaged or another version (expected sam2.1-large-v1, SHA-256 …). It was
   not loaded. See docs/AI_MODEL.md.*
 - *AI runs on the CPU — processing may be slower.* — DirectML was not available or failed (D034 §3); the CPU is used for
-  the rest of the session. Measured on the reference machine: preparing a 4K frame ≈ 0.4 s on the GPU, ≈ 8.4 s on the CPU;
-  a click ≈ 45 ms.
+  the rest of the session. Measured on the reference machine (RTX 4070 SUPER, 4K frames, medians): the first Mark holds
+  of a session ≈ 4 s for the model check (0.5 s) and the sessions (3.3 s); then per frame the 4K decode ≈ 0.7 s and
+  the encoding ≈ 0.24 s (≈ 8 s on the CPU); a click ≈ 37 ms (p95 64 ms). Profile: `tests/Vision.ModelTests`,
+  `PerformanceProfileTests`.
 
 ## Runtime
 
