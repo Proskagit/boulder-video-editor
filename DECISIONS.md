@@ -4789,6 +4789,112 @@ real app (`docs/PHASE21_MANUAL_TEST_PLAN.md`).
 
 ---
 
+## D037 — Timeline selection, magnetic snapping and making room (Phase 22)
+
+Date: 2026-10-15
+
+Decision (product owner, 2026-10-15: the Phase 22 specification, revision 2, with the answers Q1–Q11 — Q3 variant B, Q8
+new media only, Q9 refuse, Q10 every placement edit, Q11 refuse; the clarification that the exact editing commands keep
+their meaning). Extends D008 (selection stays view state; "overlapping clips on a track are rejected" is refined by §3:
+a placement edit now makes room on the right instead of being rejected, a collision on the left is still rejected), D027 §5
+(copy / paste / duplicate), D030 (track lock), D032 AQ1 (a linked clip is selected with its partner) and AQ4 / AQ7 / L5
+(a partner follows a shift by the same frames; a locked partner refuses the edit). `project.json` stays **v6**, no new
+property.
+
+### 1. Selection (view state, never an undo step — D008)
+
+- **Ctrl+A** selects every clip of every unlocked track (Q1); hidden and muted tracks included. A selected clip brings its
+  link partner (AQ1) — also when the partner is on a locked track, exactly as a click does (an edit is then refused by L5,
+  as today). The primary (the Inspector's clip) is the earliest clip, a tie to the topmost track. The status says "N clips
+  selected". Not in the markup mode (D034), never while typing (the existing text-input guard).
+- **Esc** (no gesture, no marquee, no markup mode, not typing) clears the selection; during a drag it cancels the drag
+  (as before), during a marquee it restores the selection from before the marquee.
+- **Marquee:** a press on an empty place of a track lane (not a clip, not a dissolve zone, not the ruler) and a drag past
+  the drag threshold draws a rectangle in the lanes, across tracks. Every clip the rectangle **intersects** (Q2) is
+  selected, except the clips of locked tracks (Q1); partners come along (AQ1). Without Ctrl the marquee replaces the
+  selection, with Ctrl it adds to the selection it started with. The selection follows the rectangle live; the primary is the
+  earliest selected clip (a tie: the topmost track). A plain press and release without a drag clears the selection as
+  before; with Ctrl it leaves it. Not in the markup mode.
+- **Inspector:** with more than one clip selected the clip's name reads "<name> (1 of N selected)" (Q7); N counts the
+  selected clips, partners included. Properties are still edited for the primary only (Phase 7).
+- Not in Phase 22: Shift+click range selection (Q6), editing several clips' properties at once.
+
+### 2. Magnetic snapping
+
+- On by default (`Timeline.SnappingEnabled`, as since Phase 4), the **Snap** toggle and **N** unchanged; its persistence
+  unchanged (D015). Targets as before: 0, the playhead, the markers (D027 §6), the edges of every clip not being dragged;
+  the tolerance 8 px.
+- **A snap never makes an overlap.** A target whose snapped placement would overlap a clip (on any track the placement
+  touches) while the unsnapped one would not is skipped; the next nearest target within the tolerance is taken, or none.
+  An overlap the pointer itself asks for is resolved by §3, never created by the magnet.
+- **Dragging clips** (one or a group): the group's outer edges (its earliest start and latest end) are the candidates, as
+  before, with the rule above.
+- **A drop from the Media Browser:** the new clip's start and end are candidates; while dragging over a lane the snap
+  indicator shows where it will land. **Q8:** a drop onto a track with no clip, Snap on, places the clip at 0 — only for new
+  media from the Media Browser; existing clips moved onto an empty track keep the threshold snap only. With Snap off the clip
+  lands exactly under the pointer and gaps stay.
+- **Not snapped** (they keep their exact meaning): Add to Timeline (the end of the first track, as before), Paste and
+  + Text (at the playhead), Duplicate (right after the selection), Insert / Overwrite (D031), the trims to the playhead
+  (D030), the keyboard nudge (§4).
+- Not in Phase 22: a magnetic main track that closes gaps automatically (CapCut-like) — a candidate for the future.
+
+### 3. Making room on the right (Q3 — variant B, Q9, Q10, Q11)
+
+- Applies to every placement edit: a move by drag (one clip or a group, on its tracks or onto another track as before), the
+  keyboard nudge (§4), a drop from the Media Browser (`AddClip` at a position), Paste, Duplicate and + Text (Q10). Not to
+  Insert / Overwrite (their own rules, D031), trims (they clamp at the neighbour), Split, Slip, a speed change, Unlink Audio.
+- On each track the placed clips (the moved or new ones, with the partners that move with them) are fixed. A clip **S** of
+  that track that is not placed and that a placed clip **X** overlaps:
+  - with `S.start ≥ X.start` (it starts at or after X): S moves right by exactly the overlap — to X's end;
+  - with `S.start < X.start` (X starts inside S): a **collision on the left** — the whole edit is refused (Q11), as before.
+  The track's later clips move only when the moved clip now overlaps them, each by its own overlap: a gap absorbs the push,
+  the rest of the track stays. A clip pushed into a placed clip (one that would itself have to move) refuses the edit.
+- **Linked clips (variant B):** a pushed clip's partner moves by the same frames on its own track by the move rule
+  (AQ4 / AQ7) — it does not push that track's clips. If the partner would overlap a clip there, or its track is locked
+  (L5), the whole edit is refused: a link is never put out of sync, and a push never spreads beyond the track it starts on.
+  (Variant A, the cascade across linked tracks, is not taken; it can be added later on top of this rule.)
+- **Dissolves:** pushed neighbours that touch move by the same frames, so a dissolve between them is kept. A push that would
+  open the cut of a dissolve between a pushed clip and a clip that is not moved is **refused** (Q9) — a dissolve of clips
+  the user did not touch is never removed. A moved clip's own dissolves follow D025 §5 as before.
+- **Atomic, one undo step:** the whole result is planned in one `EditPlan` and validated as a whole (D008); a refusal
+  changes nothing and leaves no undo step; a success is one undo step named as the edit ("Move Clips", "Paste Clips" …).
+  A locked track (D030) or a running export (`EditingLock`) refuses as before.
+- **The drag's preview** shows the clips the release would push at their planned places (as the ripple trim's preview,
+  D030 §6); a refused placement is marked invalid (red) and the release changes nothing. The Preview panel changes only
+  after the release (one snapshot update), as before.
+- Ripple Delete, Close Gap (D027 §2) and Insert / Overwrite (D031) keep their rules; they share only the move's timing
+  rule (`ShiftedState`), unchanged.
+
+### 4. Moving
+
+- **Alt+← / Alt+→** move the selection by one frame, **Alt+Shift+← / Alt+Shift+→** by one second (the frame count of 1 s
+  on the project grid); each press is its own undo step (Q4); not snapped; §3 applies (a push to the right; a collision on
+  the left refused). Refused — no undo step — on a locked track, during an export, or before the start of the timeline. Not
+  while typing.
+- **Auto-scroll:** while dragging a clip, a clip's edge or a marquee with the pointer near the left or right edge of the
+  timeline's view (within 32 px, or past it), the view scrolls, faster the farther in; the gesture follows the content
+  under the pointer.
+- Not in Phase 22: moving a selection from several tracks to other tracks (Q5) — still "only in time".
+
+### 5. Not in this decision
+
+The magnetic main track (CapCut-like gap closing); variant A (a cascade across linked tracks); Shift+click ranges; moving a
+multi-track selection between tracks; editing the properties of several clips. The backlog stays outside Phase 22
+(`ROADMAP.md` "Follow-ups and backlog"): FU-21.1 (the marker navigation status message), FU-21.2 (clip-bound markers), the
+export of vertical video without unwanted black bars.
+
+Context: the Phase 22 pre-flight of 2026-10-15 found multi-selection (Ctrl+click), group moves and drag snapping already in
+place, and no Ctrl+A, no marquee, no keyboard nudge, no auto-scroll, no snapping of a drop, and every collision rejected.
+
+Consequences: no format change; the edit service's placement edits (`MoveClips`, `AddClip` at a position, `PasteClips`,
+`DuplicateClips`, `AddTextClip`) make room on the right; a move preview of every clip it changes; a snap that can skip a
+target; a selection helper and the marquee in the timeline view-model and view; new shortcuts Ctrl+A, Esc, Alt+arrows.
+
+Status: Accepted (2026-10-15, product owner: the Phase 22 specification, revision 2, and the answers Q1–Q11). Phase 22,
+branch `feat/phase-22-timeline-ux`.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

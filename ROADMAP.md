@@ -59,8 +59,19 @@ session state (D015).
 
 ## Current
 
-Phase 21 — animation of the hold outlines (**accepted 2026-10-15 — main functionality checked by the product owner in the
-real app; pull request open, not merged**; DECISIONS.md D036, 2026-10-15; branch `feat/phase-21-hold-animation` from
+Phase 22 — timeline selection, snapping and making room (**in progress**; DECISIONS.md D037, 2026-10-15; branch
+`feat/phase-22-timeline-ux` from `7318ba8`, the merge of PR #22). Ctrl+A, Esc, a marquee and "1 of N selected"; a magnet
+that never makes an overlap, also for a drop from the Media Browser (a new clip on an empty track at 0); the placement
+edits (move, nudge, drop, Paste, Duplicate, + Text) push the clips on the right by the overlap instead of being refused —
+on one track, a partner follows or the whole edit is refused, a dissolve of untouched clips never opened, one undo step; a
+collision on the left still refused; Alt+arrow nudges; auto-scroll while dragging; `project.json` stays v6. Steps:
+`docs/DEVELOPMENT_PLAN.md`, "Phase 22 — Timeline selection, snapping and making room: steps"; manual plan
+`docs/PHASE22_MANUAL_TEST_PLAN.md`.
+
+## Previous
+
+Phase 21 — animation of the hold outlines (**merged**; PR #22 merged into `main` as `7318ba8` on 2026-10-15; accepted 2026-10-15 — main functionality checked by the product owner in the
+real app; DECISIONS.md D036, 2026-10-15; branch `feat/phase-21-hold-animation` from
 `a657bff`). With "Animate" on, a clip's hold
 contours are hidden before a start bound to the source time, appear one by one (Bottom to top by default, or the marking
 order) every Interval with an appear fade, stay, and disappear together with a fade after a set time — or stay to the
@@ -68,8 +79,6 @@ clip's end; computed on timeline frames in `PlaybackSnapshot.LayersAt`, so the P
 frame; one undo step per change (one setting merges); `project.json` v6 (v5 read without animation); in the markup mode
 every contour is outlined dashed so hidden holds stay editable (D035 unchanged). Steps: `docs/DEVELOPMENT_PLAN.md`,
 "Phase 21 — Animation of the hold outlines: steps"; manual plan `docs/PHASE21_MANUAL_TEST_PLAN.md`.
-
-## Previous
 
 Phase 20 — manual correction of hold contours (**merged**; PR #21 merged into `main` as `a657bff` on 2026-10-15; DECISIONS.md
 D035): in the markup mode a selected hold shows handles — drag, Alt+click to add, Delete / double-click to remove (at least
@@ -317,7 +326,7 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is accepted, its pull request not merged yet — see "Current". Candidates named in the
+Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is current. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The
@@ -336,7 +345,8 @@ tracking task. Sketch: `docs/DEVELOPMENT_PLAN.md`, "Future ideas (not phases)".
 
 ## Follow-ups and backlog
 
-Separate tasks recorded at the Phase 21 acceptance (2026-10-15); none is part of Phase 21 or decided yet.
+Separate tasks recorded at the Phase 21 acceptance (2026-10-15); none is part of Phase 21 or decided yet, and none is part of
+Phase 22 (D037 §5, product owner, 2026-10-15).
 
 - **FU-21.1 — "Previous marker" status message (marker issue).** Going to a marker outside the clip sometimes first shows
   "There is no marker before the playhead", although a second press moves the playhead; after returning, the warning

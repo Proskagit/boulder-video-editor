@@ -2,12 +2,26 @@
 
 ## Current phase
 
-Phase 21 — animation of the hold outlines, branch `feat/phase-21-hold-animation` (from `origin/main` = `a657bff`, the merge
-of PR #21; DECISIONS.md D036, 2026-10-15). Implemented in a cloud session; **main functionality accepted by the product
-owner (2026-10-15)** after their check in the real app; push and a pull request into `main` permitted, no merge. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 21 — Animation
-of the hold outlines: steps"; manual plan `docs/PHASE21_MANUAL_TEST_PLAN.md` (the product owner's checks recorded; the other real-app rows open).
+Phase 22 — timeline selection, snapping and making room, branch `feat/phase-22-timeline-ux` (from `origin/main` = `7318ba8`,
+the merge of PR #22; DECISIONS.md D037, 2026-10-15). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 22 — Timeline selection,
+snapping and making room: steps"; manual plan `docs/PHASE22_MANUAL_TEST_PLAN.md`. No push, pull request or merge without the
+product owner's command.
 
-### Phase 21 — Animation of the hold outlines (accepted 2026-10-15; pull request open, not merged)
+### Phase 22 — Timeline selection, snapping and making room (in progress)
+
+- 2026-10-15 — pre-flight (read only): local `main` was 3 commits behind `origin/main` (a fast-forward), the working tree
+  clean except the untracked `.claude/`. Found in the code: Ctrl+click multi-selection with the link partner (AQ1), group
+  moves in time (to another track only from one track), drag snapping by the group's outer edges (0, playhead, markers,
+  clip edges; 8 px; on by default, N); no Ctrl+A, no marquee, no keyboard nudge, no auto-scroll, no snap of a drop; every
+  overlap of a move, drop, paste, duplicate or text rejected. The specification (revision 2) and Q1–Q11 accepted by the
+  product owner the same day (D037).
+- 2026-10-15 — Step 22.0: `main` fast-forwarded to `7318ba8`; branch created; D037, the Phase 22 steps, the manual plan
+  skeleton, ROADMAP (Phase 21 merged, Phase 22 current; the backlog FU-21.1, FU-21.2 and the vertical-video export kept
+  outside Phase 22; the magnetic main track a future candidate).
+- Not merged branch noticed, untouched: `fix/preview-refresh-beyond-end` (`7b118a7`, worktree `.claude/worktrees/
+  modest-albattani-c2ae6e`) — probably superseded by PR #16.
+
+### Phase 21 — Animation of the hold outlines (merged 2026-10-15 as `7318ba8`, PR #22)
 
 - 2026-10-15 — `main` = `origin/main` = `a657bff` (PR #21 merged, Phase 20). Branch created from it. Read: the D036
   specification and the five answers, D025 (the frame-grid fades), D034, D035, the snapshot / draw plan / painter path, the
