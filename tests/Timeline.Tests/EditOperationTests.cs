@@ -43,15 +43,17 @@ public class EditOperationTests
     }
 
     [Fact]
-    public void Move_IntoOverlap_OrBeforeZero_IsRejected_WithoutChanges()
+    public void Move_StartingInsideAClip_OrBeforeZero_IsRejected_WithoutChanges()
     {
+        // D037 §3 (Phase 22): moving onto a clip that starts later makes room (MakeRoomEditTests); a clip moved to start
+        // inside another one — a collision on the left — is rejected as before.
         var f = new TimelineFixture();
         var img = f.Image();
         f.Service.AddClip(img.Id);
         f.Service.AddClip(img.Id);
         var before = f.Snapshot();
 
-        Assert.False(f.Service.MoveClips(TimelineFixture.Ids(f.V1.Clips[0]), 10).Success);
+        Assert.False(f.Service.MoveClips(TimelineFixture.Ids(f.V1.Clips[1]), -10).Success);
         Assert.False(f.Service.MoveClips(TimelineFixture.Ids(f.V1.Clips[1]), -10_000).Success);
         Assert.Equal(before, f.Snapshot());
         Assert.Equal(2, CountUndo(f));

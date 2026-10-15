@@ -23,24 +23,37 @@ public interface ITimelineEditService
 
     /// <summary>Adds a clip for the asset. <paramref name="trackId"/> null = the first
     /// compatible track (V1 / A1); <paramref name="start"/> null = appended after the
-    /// last clip on that track. An explicit start is snapped to the frame grid.
+    /// last clip on that track. An explicit start is snapped to the frame grid; the clips the new one overlaps from their
+    /// start on make room on the right (D037 §3), one that it would start inside refuses the add.
     /// Adding the first video fixes the project frame rate (see
     /// <see cref="ProjectSettings.IsFrameRateLocked"/>) in the same undo step.</summary>
     TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null);
 
+    /// <summary>How long a clip <see cref="AddClip"/> would make for the asset is (on the grid the add would use — the
+    /// asset's own rate when it is the first video, D007); null when it can't be added now. For a drop's snap (D037 §2).</summary>
+    MediaTime? AddedClipDuration(Guid mediaAssetId);
+
     /// <summary>Adds a text clip with the default text properties ("Text", Segoe UI 48, white,
     /// centred) and a 5 s duration on the topmost video track, starting at <paramref name="start"/>
-    /// (snapped to the frame grid). Rejected — nothing changes — when that track is locked, the
-    /// clip would overlap another clip there, or the timeline has no video track. One Undo step.</summary>
+    /// (snapped to the frame grid); clips it overlaps from their start on make room on the right (D037 §3). Rejected —
+    /// nothing changes — when that track is locked, the clip would start inside another clip there, room can't be made,
+    /// or the timeline has no video track. One Undo step.</summary>
     TimelineEditResult AddTextClip(MediaTime start);
 
     /// <summary>Moves clips by a whole number of frames. With <paramref name="targetTrackId"/>
-    /// all clips must currently be on one track and move to the target track.</summary>
+    /// all clips must currently be on one track and move to the target track. The clips they then overlap from their start
+    /// on make room on the right (D037 §3: on their track only; a partner follows or the move is refused); a moved clip
+    /// starting inside another clip refuses the move.</summary>
     TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null);
 
     /// <summary>Dry run of <see cref="MoveClips"/> for drag previews: null when the move
     /// would succeed (or change nothing), otherwise the reason it would be rejected.</summary>
     string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null);
+
+    /// <summary>Dry run of <see cref="MoveClips"/> for the drag's preview (D037 §3): every clip the move would change — the
+    /// moved clips, the partners that follow and the clips that make room — at its planned place; nothing applied. Null
+    /// when the move would be refused; an empty map when it changes nothing.</summary>
+    MovePreview? PreviewMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null);
 
     /// <summary>Moves one edge of a clip to <paramref name="edgeTime"/> (snapped to the
     /// frame grid), clamped to neighbours, the source media and a one-frame minimum.</summary>
@@ -166,15 +179,17 @@ public interface ITimelineEditService
 
     /// <summary>Paste (D027 §5): new clips (new ids) from <paramref name="clipboard"/>, the earliest starting at
     /// <paramref name="at"/> (snapped to the frame grid) and the others at their copied distances from it, each on the
-    /// track it was copied from. Rejected as a whole — nothing pasted — when a clip would overlap another or break a
-    /// rule: its track no longer exists or is locked, its media is no longer in the project, the project frame rate
+    /// track it was copied from; the clips the copies overlap from their start on make room on the right (D037 §3).
+    /// Rejected as a whole — nothing pasted — when a copy would start inside another clip, room can't be made, or a
+    /// rule breaks: its track no longer exists or is locked, its media is no longer in the project, the project frame rate
     /// changed since the copy. Offline media is pasted like any other (the clip refers to the same asset). One Undo
     /// step; <see cref="TimelineEditResult.ClipIds"/> are the new clips.</summary>
     TimelineEditResult PasteClips(TimelineClipboard clipboard, MediaTime at);
 
     /// <summary>Duplicate (D027 §5): copies the clips and pastes them in one step right after them — the earliest copy
     /// starts where the last of them ends, every copy on its clip's track, the distances kept. Rejected as
-    /// <see cref="PasteClips"/> is (an overlap, a locked track). One Undo step.</summary>
+    /// <see cref="PasteClips"/> is (a copy starting inside a clip, a locked track); room is made as for a paste. One Undo
+    /// step.</summary>
     TimelineEditResult DuplicateClips(IReadOnlyCollection<Guid> clipIds);
 
     /// <summary>Adds a marker (D027 §6) at <paramref name="at"/>, snapped to the frame grid, with the model's default
@@ -348,8 +363,10 @@ public interface ITimelineEditService
 
     /// <summary>Finds the snap target nearest to any of <paramref name="candidates"/>
     /// within <paramref name="tolerance"/>. Targets: time zero, the playhead, every marker (D027 §6) and every
-    /// clip edge except those of <paramref name="excludedClipIds"/>.</summary>
-    SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds);
+    /// clip edge except those of <paramref name="excludedClipIds"/>. With <paramref name="accept"/> the nearest snap it
+    /// accepts (the others skipped — D037 §2: a snap that would make an overlap), or none.</summary>
+    SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds,
+        Func<SnapResult, bool>? accept = null);
 }
 
 public enum ClipEdge
@@ -415,6 +432,9 @@ public sealed record SlipPreview(MediaTime SourceIn, MediaTime SourceOut, long F
 
 /// <summary>A ripple drag's preview (D030 §6): the planned start and end of each clip the release would change, and
 /// whether a dissolve stopped the trim.</summary>
+/// <summary>A planned move (<see cref="ITimelineEditService.PreviewMove"/>): the clips it changes, by id, at their new times.</summary>
+public sealed record MovePreview(IReadOnlyDictionary<Guid, (MediaTime Start, MediaTime End)> Clips);
+
 public sealed record RippleTrimPreview(IReadOnlyDictionary<Guid, (MediaTime Start, MediaTime End)> Clips, bool Stopped);
 
 /// <summary>A source asset on the frame grid of <see cref="ITimelineEditService.GetSourceGrid"/> (D031 SQ12):

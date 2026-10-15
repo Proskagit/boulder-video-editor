@@ -2,12 +2,80 @@
 
 ## Current phase
 
-Phase 21 — animation of the hold outlines, branch `feat/phase-21-hold-animation` (from `origin/main` = `a657bff`, the merge
-of PR #21; DECISIONS.md D036, 2026-10-15). Implemented in a cloud session; **main functionality accepted by the product
-owner (2026-10-15)** after their check in the real app; push and a pull request into `main` permitted, no merge. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 21 — Animation
-of the hold outlines: steps"; manual plan `docs/PHASE21_MANUAL_TEST_PLAN.md` (the product owner's checks recorded; the other real-app rows open).
+Phase 22 — timeline selection, snapping and making room, branch `feat/phase-22-timeline-ux` (from `origin/main` = `7318ba8`,
+the merge of PR #22; DECISIONS.md D037, 2026-10-15). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 22 — Timeline selection,
+snapping and making room: steps"; manual plan `docs/PHASE22_MANUAL_TEST_PLAN.md`. No push, pull request or merge without the
+product owner's command.
 
-### Phase 21 — Animation of the hold outlines (accepted 2026-10-15; pull request open, not merged)
+### Phase 22 — Timeline selection, snapping and making room (in progress)
+
+- 2026-10-15 — pre-flight (read only): local `main` was 3 commits behind `origin/main` (a fast-forward), the working tree
+  clean except the untracked `.claude/`. Found in the code: Ctrl+click multi-selection with the link partner (AQ1), group
+  moves in time (to another track only from one track), drag snapping by the group's outer edges (0, playhead, markers,
+  clip edges; 8 px; on by default, N); no Ctrl+A, no marquee, no keyboard nudge, no auto-scroll, no snap of a drop; every
+  overlap of a move, drop, paste, duplicate or text rejected. The specification (revision 2) and Q1–Q11 accepted by the
+  product owner the same day (D037).
+- 2026-10-15 — Step 22.0: `main` fast-forwarded to `7318ba8`; branch created; D037, the Phase 22 steps, the manual plan
+  skeleton, ROADMAP (Phase 21 merged, Phase 22 current; the backlog FU-21.1, FU-21.2 and the vertical-video export kept
+  outside Phase 22; the magnetic main track a future candidate).
+- 2026-10-15 — Steps 22.1–22.5 implemented:
+  - 22.1 / 22.2 (`UI`): `TimelineViewModel.Selection.cs` — Select All (unlocked tracks, partners, the earliest clip the
+    primary), Escape (marquee → gesture → selection), the marquee (intersect, live, Ctrl adds, locked tracks skipped, Esc
+    restores, a click without a drag clears / with Ctrl keeps); `TimelineClipSelection.SelectedCount` → the Inspector's
+    "(1 of N selected)"; `ShortcutRouter` Ctrl+A (off in the markup mode) and Esc; the marquee overlay in
+    `TimelineView.axaml`. In the markup mode a marquee leaves the mode as a click does — D037 §1 refined.
+  - 22.3 (`Timeline`): `TimelineEditService.MakeRoom.cs` — the push on one track by the overlap, a gap absorbing it; the
+    left collision, a push into a placed clip, a pushed partner without room / on a locked track, a dissolve of an
+    unmoved clip refused; used by `MoveClips` (after `PlanPartnerShifts`, so the partners that follow a move are placed
+    too), `AddClip` at a position, `PasteClips` / `DuplicateClips`, `AddTextClip`; `PreviewMove` for the drag preview.
+  - 22.4: `Snap(…, accept)` and `SnapEngine.FindAll` — a target that would push a clip (or refuse the move) where the
+    pointer's place would not is skipped; the drop snaps its start / end with the indicator while dragging
+    (`ShowDropPreview`, `AddedClipDuration`), onto an empty track at 0 (Q8), exactly under the pointer with Snap off; the
+    drag preview lays out every clip the move changes.
+  - 22.5: `NudgeLeft` / `NudgeRight` (1 frame), `…Second` (the Shift+← / → step), Alt / Alt+Shift + arrows; the
+    auto-scroll rule `AutoScrollStep` and a 16 ms timer in the view for a clip / edge drag and a marquee.
+  - Tests: `Timeline.Tests/MakeRoomEditTests` (14), `UI.Tests/TimelineSelectionUiTests` (25 test cases with the theory rows),
+    `ShortcutRoutingTests` (6 rows of its table). Changed by the refined rule (D037 §3): `EditOperationTests`, `ClipboardEditTests` ×2,
+    `LinkedEditTests`, `TimelineClipboardUiTests` now assert the push or the left-collision refusal.
+  - Found while writing the tests: none in the product code — three test setups were wrong (positions computed on the
+    default 30 fps grid before the first 25 fps video fixed the rate; pointer moves under the 3 px drag threshold; the
+    right auto-scroll zone's first pixel).
+- Verification (Windows, Claude, 2026-10-15): `dotnet build AiVideoEditor.sln -c Release --no-incremental -warnaserror`
+  0 errors / 0 warnings (Debug with `-warnaserror` also 0 / 0); full `dotnet test` (Release) passed 3446, skipped 2 (the
+  4K heavy scenes), failed 0 — base `7318ba8` 3407 / 2 / 0; `git diff --check` clean. Not run: the heavy scenes, the
+  `--blame-hang` runs, and every row of `docs/PHASE22_MANUAL_TEST_PLAN.md` in the real app (the marquee drawing, the
+  drop indicator, the auto-scroll timer and the Alt keys on Windows are checked only there) — Step 22.6.
+- 2026-10-15 / 16 — Step 22.6 (verification & closeout), on `f4383c3`; no product code changed:
+  - Gates: `dotnet build AiVideoEditor.sln -c Release --no-incremental -warnaserror` and the same in Debug 0 / 0; `dotnet
+    test AiVideoEditor.sln -c Release --no-build` passed 3446, skipped 2 (the 4K scenes), failed 0; `AIVE_HEAVY_TESTS=1`
+    the same command 3448 / 0 / 0; three runs with `--blame-hang --blame-hang-timeout 5m` 3446 / 2 / 0 each, no hang, no
+    dump; `git diff --check` clean.
+  - Real app (Debug, the Phase 10 fixture, UI Automation and system mouse / keyboard input, results read from the saved
+    `project.json`, the status bar, the Inspector and screenshots): the 25 rows of `docs/PHASE22_MANUAL_TEST_PLAN.md` PASS —
+    Ctrl+A with locked tracks and a partner, Ctrl+A in a text box and in the markup mode, Esc, the marquee (live, Ctrl,
+    Esc), the commands on such selections, Snap of a clip and a group, a skipped snap that would push, the snapped drop
+    (an edge, an empty track at 0, Snap off), the push with its preview and a gap, the left collision, a linked partner
+    following / refusing, dissolves kept / refusing, Paste / Duplicate / + Text, Insert / Overwrite unchanged, Alt nudges
+    with the Preview, the auto-scroll (clip, marquee, edge), a locked track, a running export (the modal progress window
+    blocks the main window), trims / Close Gap / Ripple Delete, the 1024 / 1440 px layouts. Regression: the fixture saved
+    by the Phase 21 build (`7318ba8` from `git archive`) and by Phase 22 is byte for byte the same v6 file; Phase 21 opens
+    the Phase 22 save.
+  - Found: no product defect. A harness error first looked like one — Alt+Shift+arrow moving by one frame: the arrows were
+    sent without `KEYEVENTF_EXTENDEDKEY`, so Windows treated them as numpad arrows and released Shift before them (a key
+    log in a temporary, reverted line of `MainWindow.OnKeyDown` showed `Right Alt`); with the flag the app receives
+    `Right Alt, Shift` and moves one second. Observation outside D037: FU-22.1 (ROADMAP) — the hold markup mode left on its
+    own once after entering it at 00:00:10:00 (the playhead then on 00:00:09:23).
+  - Side effects on this machine: the app writes its logs, recovery files and the recent-projects list under the real
+    `%LOCALAPPDATA%\AiVideoEditor` (the `LOCALAPPDATA` variable does not move it) — the fixture folder was added to
+    "Recent"; every run closed normally, no recovery file left.
+  - State: Phase 22 implemented and verified by Claude.
+- 2026-10-16 — **Phase 22 accepted by the product owner** (the manual plan passed, the gates green). Push of
+  `feat/phase-22-timeline-ux` and a pull request into `main` permitted; the merge stays with the product owner. FU-21.1,
+  FU-21.2, the vertical-video export and FU-22.1 stay outside the phase.
+- Not merged branch noticed, untouched: `fix/preview-refresh-beyond-end` (`7b118a7`, worktree `.claude/worktrees/
+  modest-albattani-c2ae6e`) — probably superseded by PR #16.
+
+### Phase 21 — Animation of the hold outlines (merged 2026-10-15 as `7318ba8`, PR #22)
 
 - 2026-10-15 — `main` = `origin/main` = `a657bff` (PR #21 merged, Phase 20). Branch created from it. Read: the D036
   specification and the five answers, D025 (the frame-grid fades), D034, D035, the snapshot / draw plan / painter path, the

@@ -108,18 +108,27 @@ public class LinkedEditTests
     }
 
     [Fact]
-    public void A_partner_that_would_overlap_a_clip_of_its_track_refuses_the_move()
+    public void A_partner_moved_onto_a_clip_of_its_track_makes_room_there_or_refuses_the_move_when_it_would_start_inside()
     {
-        var (f, _, v, _) = Pair();
+        // D037 §3 (Phase 22): the partner that follows a moved clip is placed like it — the clip of its track it moves onto
+        // makes room; a partner that would start inside a clip still refuses the whole move (Q11).
+        var (f, _, v, a) = Pair();
         var music = f.Audio(30);
         Ok(f.Service.AddClip(music.Id, f.A1.Id, F(130)));
         f.UndoRedo.Clear();
         var before = f.Snapshot();
 
-        var result = f.Service.MoveClips(new[] { v.Id }, 20);
+        Ok(f.Service.MoveClips(new[] { v.Id }, 20));
 
-        Assert.False(result.Success);
-        Assert.Contains("overlap on track A1", result.Message);
+        Assert.Equal((40L, 140L), Frames(a));
+        Assert.Equal((140L, 890L), Frames(f.A1.Clips.Single(c => c.Id != a.Id)));
+        f.UndoRedo.Undo();
+        Assert.Equal(before, f.Snapshot());
+        Assert.False(f.UndoRedo.CanUndo);
+
+        var refused = f.Service.MoveClips(new[] { v.Id }, 120);           // the partner would start at 140, inside the music
+        Assert.False(refused.Success);
+        Assert.Contains("start inside another clip", refused.Message);
         Assert.Equal(before, f.Snapshot());
         Assert.False(f.UndoRedo.CanUndo);
     }

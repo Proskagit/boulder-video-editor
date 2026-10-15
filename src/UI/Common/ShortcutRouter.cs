@@ -42,6 +42,8 @@ public static class ShortcutRouter
         var ctrl = modifiers == KeyModifiers.Control;
         var ctrlShift = modifiers == (KeyModifiers.Control | KeyModifiers.Shift);
         var shift = modifiers == KeyModifiers.Shift;
+        var alt = modifiers == KeyModifiers.Alt;
+        var altShift = modifiers == (KeyModifiers.Alt | KeyModifiers.Shift);
         var none = modifiers == KeyModifiers.None;
         var timeline = vm.Timeline;
         var preview = vm.Preview;
@@ -106,6 +108,15 @@ public static class ShortcutRouter
             // Phase 16 (D031 SQ5): the source range at the playhead — `,` Insert, `.` Overwrite — in both modes.
             Key.OemComma when none => timeline.InsertFromSourceCommand,
             Key.OemPeriod when none => timeline.OverwriteFromSourceCommand,
+            // Phase 22 (D037 §1): select every clip of the unlocked tracks — not in the hold markup mode, whose keys come
+            // first (above) and which owns the selection of its clip; Esc cancels a marquee / drag or clears the selection.
+            Key.A when ctrl => vm.HoldMarkup is { IsActive: true } ? null : timeline.SelectAllCommand,
+            Key.Escape when none => timeline.EscapeCommand,
+            // Phase 22 (D037 §4, Q4): nudge the selection — one frame, with Shift one second; each press one undo step.
+            Key.Left when alt => timeline.NudgeLeftCommand,
+            Key.Right when alt => timeline.NudgeRightCommand,
+            Key.Left when altShift => timeline.NudgeLeftSecondCommand,
+            Key.Right when altShift => timeline.NudgeRightSecondCommand,
             _ => null
         };
     }

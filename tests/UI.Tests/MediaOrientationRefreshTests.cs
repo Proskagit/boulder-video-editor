@@ -193,6 +193,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public FrameRate FrameRate => FrameRate.Default;
         public string? GetAddBlockReason(MediaAsset asset) => null;
         public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null) => No;
+        public MediaTime? AddedClipDuration(Guid mediaAssetId) => null;
         public TimelineEditResult AddTextClip(MediaTime start) => No;
         public TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed) => No;
         public TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, MediaTime duration) => No;
@@ -201,6 +202,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId) => null;
         public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => No;
         public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => null;
+        public MovePreview? PreviewMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => null;
         public TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false) => No;
         public (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false) => null;
         public TimelineEditResult Split(MediaTime at, IReadOnlyCollection<Guid>? clipIds = null) => No;
@@ -247,6 +249,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult SetFrameRate(FrameRate rate) => No;
         public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null) => No;
         public TimelineEditResult SetExportSettings(ExportEncoding export) => No;
-        public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds) => SnapResult.None;
+        public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds,
+            Func<SnapResult, bool>? accept = null) => SnapResult.None;
     }
 }

@@ -333,6 +333,12 @@
                       ToolTip.Tip="Clear In / Out" Command="{Binding ClearInOutCommand}"/>
             </Canvas>
 
+            <!-- The marquee (D037 §1), over the lanes -->
+            <Canvas Grid.Row="1" IsHitTestVisible="False">
+              <Rectangle Canvas.Left="{Binding MarqueeLeft}" Canvas.Top="{Binding MarqueeTop}" Width="{Binding MarqueeWidth}" Height="{Binding MarqueeHeight}"
+                         Fill="#334FC3F7" Stroke="#4FC3F7" StrokeThickness="1" IsVisible="{Binding IsMarqueeVisible}"/>
+            </Canvas>
+
             <!-- Playhead and snap indicator overlay, spanning ruler + tracks -->
             <Canvas Grid.Row="0" Grid.RowSpan="2" IsHitTestVisible="False">
               <Rectangle Canvas.Left="{Binding SnapIndicatorX}" Width="1" Height="{Binding PlayheadHeight}"

@@ -190,6 +190,7 @@ public sealed class TimelineMarkerViewModel : ViewModelBase
 }
 
 /// <summary>The primary selected timeline clip, as passed to the Inspector. <paramref name="DissolveAtStart"/> /
-/// <paramref name="DissolveAtEnd"/>: a dissolve sits on that edge, so the clip's fade there is not applied (D025 PO-8).</summary>
+/// <paramref name="DissolveAtEnd"/>: a dissolve sits on that edge, so the clip's fade there is not applied (D025 PO-8).
+/// <paramref name="SelectedCount"/>: how many clips are selected with it, partners included (D037 §1).</summary>
 public sealed record TimelineClipSelection(Clip Clip, string Name, MediaAsset? Asset, FrameRate Rate,
-    bool DissolveAtStart = false, bool DissolveAtEnd = false);
+    bool DissolveAtStart = false, bool DissolveAtEnd = false, int SelectedCount = 1);

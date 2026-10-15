@@ -168,13 +168,15 @@ public class ClipboardEditTests
     }
 
     [Fact]
-    public void A_paste_that_would_overlap_is_rejected_whole()
+    public void A_paste_that_would_start_inside_a_clip_is_rejected_whole()
     {
+        // D037 §3 (Phase 22): a copy overlapping a clip that starts after it makes room (ClipboardMakeRoom tests); a copy
+        // that starts inside a clip — a collision on the left — still rejects the whole paste.
         var f = new TimelineFixture();
         var v2 = AddTrack(f, TrackType.Video);
         var a = Text(f, f.V1, 0, 20);
         var b = Text(f, v2, 0, 20);
-        Text(f, v2, 60, 80);                                                // B's copy at 50 would overlap this
+        Text(f, v2, 40, 80);                                                // B's copy at 50 would start inside this
         var clipboard = f.Service.CopyClips(new[] { a.Id, b.Id })!;
         var before = f.Snapshot();
         var top = f.UndoRedo.CurrentPosition;
@@ -333,14 +335,18 @@ public class ClipboardEditTests
     }
 
     [Fact]
-    public void Duplicate_is_rejected_when_a_copy_would_overlap_or_the_track_is_locked()
+    public void Duplicate_is_rejected_when_a_copy_would_start_inside_a_clip_or_the_track_is_locked()
     {
+        // D037 §3 (Phase 22): a copy overlapping a clip that starts after it makes room; one starting inside a clip (here
+        // B's copy at 20, inside [12, 30) of V2) rejects the whole duplicate.
         var f = new TimelineFixture();
+        var v2 = AddTrack(f, TrackType.Video);
         var a = Text(f, f.V1, 0, 20);
-        Text(f, f.V1, 30, 40);                                              // A's copy at 20 would overlap it
+        var b = Text(f, v2, 0, 10);
+        Text(f, v2, 12, 30);
         var before = f.Snapshot();
 
-        var overlap = f.Service.DuplicateClips(new[] { a.Id });
+        var overlap = f.Service.DuplicateClips(new[] { a.Id, b.Id });
         f.V1.IsLocked = true;
         var locked = f.Service.DuplicateClips(new[] { a.Id });
 

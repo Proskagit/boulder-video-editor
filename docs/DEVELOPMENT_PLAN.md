@@ -121,6 +121,13 @@ and runs cleanly.
       section below and DECISIONS.md D036 (accepted 2026-10-15). *(Branch `feat/phase-21-hold-animation` from `a657bff`;
       Steps 21.1–21.6 committed; the main functionality accepted by the product owner in the real app on 2026-10-15;
       pull request into `main`, not merged)*
+- [ ] **Phase 22 — Timeline selection, snapping and making room.** Ctrl+A, Esc, marquee selection, "1 of N selected" in
+      the Inspector; magnetic snapping that never makes an overlap, also for a drop from the Media Browser (a new clip on
+      an empty track at 0); placement edits push the clips on the right instead of being refused (one track, a partner
+      follows or the edit is refused, atomic, one undo step); Alt+arrow nudges; auto-scroll while dragging. `project.json`
+      stays v6. Scope, steps and acceptance criteria: section below and DECISIONS.md D037 (accepted 2026-10-15).
+      *(Branch `feat/phase-22-timeline-ux` from `7318ba8`, the merge of PR #22; Steps 22.0–22.6 `3cc9bac` … `0f03ba3`;
+      accepted by the product owner on 2026-10-16; pull request into `main`, not merged)*
 
 ## Future ideas (not phases)
 
@@ -1592,6 +1599,79 @@ keyframes, markers on the clip.
   and save + reopen passed; the main functionality accepted. The other rows of `docs/PHASE21_MANUAL_TEST_PLAN.md` stay
   NOT RUN in the real app. Follow-ups outside the phase (two marker issues, the vertical-video export framing): `ROADMAP.md`
   "Follow-ups and backlog".
+
+## Phase 22 — Timeline selection, snapping and making room: steps (D037)
+
+Assigned on 2026-10-15 by the product owner (the specification, revision 2, and the answers Q1–Q11); the normative text is
+DECISIONS.md D037. Branch `feat/phase-22-timeline-ux` from `origin/main` = `7318ba8` (the merge of PR #22, Phase 21). The
+permission covers the code, tests, documentation and commits on this branch; **no push, pull request or merge without a
+separate command**.
+
+Goal: selecting and moving clips with fewer actions — select all, a marquee, a magnet that never makes an overlap, room made
+on the right instead of a refusal, exact nudges, a view that follows the drag.
+
+Gates for every step (QG): `dotnet build -warnaserror` 0 / 0; the full `dotnet test AiVideoEditor.sln` green (only the two 4K
+heavy scenes skipped); `project.json` v6 unchanged (a Phase 21 project opens and saves byte for byte); the Preview ↔ export
+parity suites and every expected value outside the refined rule of D037 §3 unchanged — a test that asserted a refused
+overlap now asserts the push or the left-collision refusal, with a note; every new edit one undo step, a refused one none;
+each rule of D037 covered by a test that a mutation of the rule fails; `docs/PHASE22_MANUAL_TEST_PLAN.md` and `progress.md`
+updated.
+
+Out of scope (D037 §5): the magnetic main track, the cascade across linked tracks (variant A), Shift+click ranges, moving a
+multi-track selection between tracks, multi-clip property editing; FU-21.1, FU-21.2 and the vertical-video export framing.
+
+### 22.0 — Sync and documentation *(done)*
+- `main` fast-forwarded to `origin/main` = `7318ba8`; the branch; D037; these steps; the manual plan skeleton; ROADMAP and
+  `progress.md`.
+
+### 22.1 — Selection: Ctrl+A, Esc, the primary, "1 of N selected" *(done)*
+- `TimelineViewModel`: Select All (unlocked tracks, partners), Escape (cancel the gesture / marquee, else clear), the primary
+  rule; the selection count in `TimelineClipSelection`; the Inspector's name line; `ShortcutRouter` Ctrl+A / Esc (not in the
+  markup mode, not while typing).
+- Tests: `UI.Tests/TimelineSelectionUiTests` (Select All, Esc, the Inspector line) and `ShortcutRoutingTests`.
+
+### 22.2 — Marquee *(done)*
+- The view-model's marquee (begin / update / end / cancel; intersect; locked tracks skipped; Ctrl adds; live selection);
+  the view: a press on an empty lane, the rectangle overlay, Esc.
+- Tests: `UI.Tests/TimelineSelectionUiTests` (the rectangle → the clips live, Ctrl, locked, partners, Esc, a click without
+  a drag). In the markup mode a marquee leaves the mode as a click does (D037 §1); only Ctrl+A is off there.
+
+### 22.3 — Making room (Timeline) *(done)*
+- The push planner on one track (D037 §3) used by `MoveClips` / `CanMoveClips`, `AddClip` at a position, `PasteClips`,
+  `DuplicateClips`, `AddTextClip`; the partners follow or refuse; the dissolve refusal; `PreviewMove` with every clip the
+  move changes.
+- Tests: `Timeline.Tests` make-room tests (the exact overlap, a gap absorbing it, a chain, the left collision, a pushed clip
+  into a placed one, a group on several tracks, a partner following / blocked / locked, dissolves kept / refused, speed ≠ 1,
+  the frame grid, undo / redo, no step on a refusal) — `Timeline.Tests/MakeRoomEditTests`; the tests that asserted a
+  refused overlap (`EditOperationTests`, `ClipboardEditTests` ×2, `LinkedEditTests`, `TimelineClipboardUiTests`) now
+  assert the push or the left-collision refusal; `TextClipEditTests` / `TextClipUiTests` pass unchanged (a text inside a
+  clip is a left collision, its message still names the overlap).
+
+### 22.4 — Snapping: no overlap, the drop *(done)*
+- `Snap` with a filter of targets that would overlap; the drag uses it; the drop snaps the new clip's start / end and shows
+  the indicator while dragging over a lane; a drop on an empty track with Snap on lands at 0; the drag preview of pushed
+  clips.
+- `ITimelineEditService.Snap(…, accept)`, `SnapEngine.FindAll`, `AddedClipDuration`, `PreviewMove`.
+- Tests: `UI.Tests/TimelineSelectionUiTests` (a snap that would push skipped, one that would not taken, the drag preview,
+  the drop: empty track → 0, Snap off, an edge with the indicator, a drop inside a clip refused, a drop making room).
+
+### 22.5 — Nudge and auto-scroll *(done; the auto-scroll timer itself only in the real app)*
+- Alt+← / → (one frame), Alt+Shift+← / → (one second) through `MoveClips`; the auto-scroll speed rule in the view-model and
+  the timer in the view.
+- Tests: `ShortcutRoutingTests`, `UI.Tests/TimelineSelectionUiTests` (one step each, refusals with no step, the export lock,
+  a push and a left collision, the auto-scroll speed rule).
+
+### 22.6 — Verification & closeout *(done by Claude 2026-10-16; Phase 22 accepted by the product owner on 2026-10-16)*
+- Build `-warnaserror` Release and Debug, the full suite, the heavy scenes, three `--blame-hang` runs, `git diff --check`;
+  the manual plan in the real app at 1024 and 1440 px; a Phase 21 project opened and saved byte for byte; the docs.
+- Result (code `f4383c3`, no product code changed in the step): Release and Debug `--no-incremental -warnaserror` 0 / 0;
+  the full suite passed 3446, skipped 2 (the 4K scenes), failed 0; `AIVE_HEAVY_TESTS=1` 3448 / 0 / 0; three
+  `--blame-hang --blame-hang-timeout 5m` runs 3446 / 2 / 0 each, no hang, no dump; `git diff --check` clean. The manual
+  plan's 25 rows run in the real app (UI Automation and system input, Debug build): all PASS, the parts left to the
+  automated tests named in the rows; the Phase 21 build (`7318ba8`) and Phase 22 save the fixture byte for byte (v6).
+  No defect found in the product; one harness error found and corrected (arrow keys sent without the extended-key flag
+  lose Shift on Windows). An observation outside D037 recorded in ROADMAP (FU-22.1).
+
 ## Architectural rules that must hold at every phase
 
 - UI (`src/UI`, `src/App`) contains no business logic — only view models that
