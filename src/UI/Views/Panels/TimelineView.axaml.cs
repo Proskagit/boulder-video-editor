@@ -23,6 +23,12 @@ public partial class TimelineView : UserControl
     private TimelineClipViewModel? _pressedClip;
     private bool _pressedWithToggle;
     private bool _gestureStarted;
+    private bool _marqueeStarted;
+
+    // D037 §4: while a drag is near an edge of the view, a timer scrolls it and replays the pointer at the same view place.
+    private readonly DispatcherTimer _autoScroll = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    private double _pointerViewportX;
+    private double _pointerLanesY;
 
     public TimelineView()
     {
@@ -38,11 +44,17 @@ public partial class TimelineView : UserControl
         TrackRows.PointerPressed += OnTracksPressed;
         TrackRows.PointerMoved += OnTracksMoved;
         TrackRows.PointerReleased += OnTracksReleased;
-        TrackRows.PointerCaptureLost += (_, _) => { if (_pressedClip is not null) CancelGesture(); };
+        TrackRows.PointerCaptureLost += (_, _) =>
+        {
+            if (_pressedClip is not null) CancelGesture();
+            if (_marqueeStarted) CancelMarquee();
+        };
 
         TrackRows.AddHandler(DragDrop.DragOverEvent, OnDragOver);
         TrackRows.AddHandler(DragDrop.DragLeaveEvent, (_, _) => _viewModel?.ClearDropTargets());
         TrackRows.AddHandler(DragDrop.DropEvent, OnDrop);
+
+        _autoScroll.Tick += (_, _) => AutoScrollTick();
 
         // Tunnel so Ctrl+wheel zooms instead of letting the ScrollViewer scroll first.
         ContentScroll.AddHandler(PointerWheelChangedEvent, OnWheel, RoutingStrategies.Tunnel);
@@ -75,6 +87,12 @@ public partial class TimelineView : UserControl
         if (e.Key == Key.Escape && _viewModel?.IsGestureActive == true)
         {
             CancelGesture();
+            e.Handled = true;
+            return;
+        }
+        if (e.Key == Key.Escape && _marqueeStarted)
+        {
+            CancelMarquee();
             e.Handled = true;
             return;
         }
@@ -119,7 +137,13 @@ public partial class TimelineView : UserControl
 
         if (clip is null)
         {
-            _viewModel.ClearSelection();
+            // D037 §1: an empty place starts a marquee; a press without a drag clears the selection on release (with Ctrl
+            // it leaves it).
+            _viewModel.BeginMarquee(e.GetPosition(ContentRoot).X, e.GetPosition(TrackRows).Y,
+                additive: TimelineGestureModifiers.IsToggle(e.KeyModifiers));
+            _marqueeStarted = true;
+            e.Pointer.Capture(TrackRows);
+            e.Handled = true;
             return;
         }
 
@@ -157,13 +181,34 @@ public partial class TimelineView : UserControl
 
     private void OnTracksMoved(object? sender, PointerEventArgs e)
     {
-        if (_viewModel is null || !_gestureStarted) return;
+        if (_viewModel is null) return;
+        if (_marqueeStarted || _gestureStarted)
+        {
+            _pointerViewportX = e.GetPosition(ContentScroll).X;
+            _pointerLanesY = e.GetPosition(TrackRows).Y;
+            UpdateAutoScroll();
+        }
+        if (_marqueeStarted)
+        {
+            _viewModel.UpdateMarquee(e.GetPosition(ContentRoot).X, e.GetPosition(TrackRows).Y);
+            return;
+        }
+        if (!_gestureStarted) return;
         _viewModel.UpdateGesture(e.GetPosition(ContentRoot).X, TrackAt(e.GetPosition(TrackRows).Y));
     }
 
     private void OnTracksReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (_viewModel is null || !_gestureStarted) return;
+        if (_viewModel is null) return;
+        _autoScroll.Stop();
+        if (_marqueeStarted)
+        {
+            _marqueeStarted = false;
+            _viewModel.EndMarquee();
+            e.Pointer.Capture(null);
+            return;
+        }
+        if (!_gestureStarted) return;
         var wasDrag = _viewModel.IsGestureActive;
         var clip = _pressedClip;
 
@@ -176,8 +221,45 @@ public partial class TimelineView : UserControl
             _viewModel.OnClipClicked(clip, _pressedWithToggle);
     }
 
+    private void UpdateAutoScroll()
+    {
+        var scrolling = (_marqueeStarted || _gestureStarted)
+                        && TimelineViewModel.AutoScrollStep(_pointerViewportX, ContentScroll.Viewport.Width) != 0;
+        if (scrolling) _autoScroll.Start();
+        else _autoScroll.Stop();
+    }
+
+    private void AutoScrollTick()
+    {
+        if (_viewModel is null || !(_marqueeStarted || _gestureStarted))
+        {
+            _autoScroll.Stop();
+            return;
+        }
+        var step = TimelineViewModel.AutoScrollStep(_pointerViewportX, ContentScroll.Viewport.Width);
+        var max = Math.Max(0, ContentScroll.Extent.Width - ContentScroll.Viewport.Width);
+        var offset = Math.Clamp(ContentScroll.Offset.X + step, 0, max);
+        if (step == 0 || offset == ContentScroll.Offset.X)
+        {
+            _autoScroll.Stop();
+            return;
+        }
+        ContentScroll.Offset = new Vector(offset, ContentScroll.Offset.Y);
+        var contentX = _pointerViewportX + offset;
+        if (_marqueeStarted) _viewModel.UpdateMarquee(contentX, _pointerLanesY);
+        else _viewModel.UpdateGesture(contentX, TrackAt(_pointerLanesY));
+    }
+
+    private void CancelMarquee()
+    {
+        _autoScroll.Stop();
+        _marqueeStarted = false;
+        _viewModel?.CancelMarquee();
+    }
+
     private void CancelGesture()
     {
+        _autoScroll.Stop();
         _gestureStarted = false;
         _pressedClip = null;
         _viewModel?.CancelGesture();
@@ -227,7 +309,11 @@ public partial class TimelineView : UserControl
             return;
         }
         e.DragEffects = DragDropEffects.Copy;
-        _viewModel.ShowDropTarget(TrackAt(e.GetPosition(TrackRows).Y));
+        var track = TrackAt(e.GetPosition(TrackRows).Y);
+        if (e.Data.Get(DragFormats.MediaAssetId) is string text && Guid.TryParse(text, out var assetId))
+            _viewModel.ShowDropPreview(assetId, track, e.GetPosition(ContentRoot).X);   // D037 §2: the snap indicator
+        else
+            _viewModel.ShowDropTarget(track);
     }
 
     private void OnDrop(object? sender, DragEventArgs e)

@@ -18,6 +18,33 @@ product owner's command.
 - 2026-10-15 — Step 22.0: `main` fast-forwarded to `7318ba8`; branch created; D037, the Phase 22 steps, the manual plan
   skeleton, ROADMAP (Phase 21 merged, Phase 22 current; the backlog FU-21.1, FU-21.2 and the vertical-video export kept
   outside Phase 22; the magnetic main track a future candidate).
+- 2026-10-15 — Steps 22.1–22.5 implemented:
+  - 22.1 / 22.2 (`UI`): `TimelineViewModel.Selection.cs` — Select All (unlocked tracks, partners, the earliest clip the
+    primary), Escape (marquee → gesture → selection), the marquee (intersect, live, Ctrl adds, locked tracks skipped, Esc
+    restores, a click without a drag clears / with Ctrl keeps); `TimelineClipSelection.SelectedCount` → the Inspector's
+    "(1 of N selected)"; `ShortcutRouter` Ctrl+A (off in the markup mode) and Esc; the marquee overlay in
+    `TimelineView.axaml`. In the markup mode a marquee leaves the mode as a click does — D037 §1 refined.
+  - 22.3 (`Timeline`): `TimelineEditService.MakeRoom.cs` — the push on one track by the overlap, a gap absorbing it; the
+    left collision, a push into a placed clip, a pushed partner without room / on a locked track, a dissolve of an
+    unmoved clip refused; used by `MoveClips` (after `PlanPartnerShifts`, so the partners that follow a move are placed
+    too), `AddClip` at a position, `PasteClips` / `DuplicateClips`, `AddTextClip`; `PreviewMove` for the drag preview.
+  - 22.4: `Snap(…, accept)` and `SnapEngine.FindAll` — a target that would push a clip (or refuse the move) where the
+    pointer's place would not is skipped; the drop snaps its start / end with the indicator while dragging
+    (`ShowDropPreview`, `AddedClipDuration`), onto an empty track at 0 (Q8), exactly under the pointer with Snap off; the
+    drag preview lays out every clip the move changes.
+  - 22.5: `NudgeLeft` / `NudgeRight` (1 frame), `…Second` (the Shift+← / → step), Alt / Alt+Shift + arrows; the
+    auto-scroll rule `AutoScrollStep` and a 16 ms timer in the view for a clip / edge drag and a marquee.
+  - Tests: `Timeline.Tests/MakeRoomEditTests` (14), `UI.Tests/TimelineSelectionUiTests` (25 test cases with the theory rows),
+    `ShortcutRoutingTests` (6 rows of its table). Changed by the refined rule (D037 §3): `EditOperationTests`, `ClipboardEditTests` ×2,
+    `LinkedEditTests`, `TimelineClipboardUiTests` now assert the push or the left-collision refusal.
+  - Found while writing the tests: none in the product code — three test setups were wrong (positions computed on the
+    default 30 fps grid before the first 25 fps video fixed the rate; pointer moves under the 3 px drag threshold; the
+    right auto-scroll zone's first pixel).
+- Verification (Windows, Claude, 2026-10-15): `dotnet build AiVideoEditor.sln -c Release --no-incremental -warnaserror`
+  0 errors / 0 warnings (Debug with `-warnaserror` also 0 / 0); full `dotnet test` (Release) passed 3446, skipped 2 (the
+  4K heavy scenes), failed 0 — base `7318ba8` 3407 / 2 / 0; `git diff --check` clean. Not run: the heavy scenes, the
+  `--blame-hang` runs, and every row of `docs/PHASE22_MANUAL_TEST_PLAN.md` in the real app (the marquee drawing, the
+  drop indicator, the auto-scroll timer and the Alt keys on Windows are checked only there) — Step 22.6.
 - Not merged branch noticed, untouched: `fix/preview-refresh-beyond-end` (`7b118a7`, worktree `.claude/worktrees/
   modest-albattani-c2ae6e`) — probably superseded by PR #16.
 

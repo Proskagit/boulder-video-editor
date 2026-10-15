@@ -4814,7 +4814,8 @@ property.
   selected, except the clips of locked tracks (Q1); partners come along (AQ1). Without Ctrl the marquee replaces the
   selection, with Ctrl it adds to the selection it started with. The selection follows the rectangle live; the primary is the
   earliest selected clip (a tie: the topmost track). A plain press and release without a drag clears the selection as
-  before; with Ctrl it leaves it. Not in the markup mode.
+  before; with Ctrl it leaves it. In the markup mode a marquee is a change of the selection like a click on a clip or
+  an empty place: it leaves the markup mode (D034, unchanged); only Ctrl+A is off there.
 - **Inspector:** with more than one clip selected the clip's name reads "<name> (1 of N selected)" (Q7); N counts the
   selected clips, partners included. Properties are still edited for the primary only (Phase 7).
 - Not in Phase 22: Shift+click range selection (Q6), editing several clips' properties at once.
@@ -4867,8 +4868,8 @@ property.
 
 ### 4. Moving
 
-- **Alt+← / Alt+→** move the selection by one frame, **Alt+Shift+← / Alt+Shift+→** by one second (the frame count of 1 s
-  on the project grid); each press is its own undo step (Q4); not snapped; §3 applies (a push to the right; a collision on
+- **Alt+← / Alt+→** move the selection by one frame, **Alt+Shift+← / Alt+Shift+→** by one second (the step of Shift+← /
+  Shift+→: the nominal frame count of a second, e.g. 30 at 29.97 fps); each press is its own undo step (Q4); not snapped; §3 applies (a push to the right; a collision on
   the left refused). Refused — no undo step — on a locked track, during an export, or before the start of the timeline. Not
   while typing.
 - **Auto-scroll:** while dragging a clip, a clip's edge or a marquee with the pointer near the left or right edge of the

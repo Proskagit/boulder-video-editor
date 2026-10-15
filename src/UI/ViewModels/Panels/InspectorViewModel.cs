@@ -487,7 +487,8 @@ public sealed partial class InspectorViewModel : ViewModelBase
         IsFadeOutInactive = selection.DissolveAtEnd;
         SyncFromModel();
 
-        ClipName = selection.Name;
+        // D037 §1 (Q7): the properties shown are the primary's; the line says it is one of several.
+        ClipName = selection.SelectedCount > 1 ? $"{selection.Name} (1 of {selection.SelectedCount} selected)" : selection.Name;
         ClipTypeLabel = clip switch
         {
             VideoClip => "Video clip",

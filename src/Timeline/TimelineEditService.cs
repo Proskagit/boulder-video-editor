@@ -126,12 +126,25 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var clip = CreateClip(asset, ClipState.FromFrames(startFrame, startFrame + frames, MediaTime.Zero, rateForAdd));
         plan.Insert(track, clip);
 
+        // D037 §3: a drop onto clips makes room on the right (a drop that starts inside a clip is refused).
+        if (MakeRoom(plan, new[] { ((Clip)clip, track) }, $"add {asset.FileName}") is { } roomError)
+            return TimelineEditResult.Fail(roomError);
         if (Validate(plan) is { } error)
             return TimelineEditResult.Fail($"Can't add {asset.FileName}: {error}");
 
         Commit(plan, "Add Clip");
         if (info is not null) _logger.LogInformation("{Message}", info);
         return TimelineEditResult.Ok(new[] { clip.Id }, Join(info, TransitionNote(plan)));
+    }
+
+    public MediaTime? AddedClipDuration(Guid mediaAssetId)
+    {
+        if (FindAsset(mediaAssetId) is not { } asset || GetAddBlockReason(asset) is not null) return null;
+        var rate = asset.Kind == MediaKind.Video && !Settings.IsFrameRateLocked ? ResolveSourceFrameRate(asset).Rate : Settings.FrameRate;
+        var frames = asset.Kind == MediaKind.Image
+            ? Math.Max(1, DefaultImageDuration.ToNearestFrame(rate))
+            : FrameMath.MaxWholeFrames(asset.Metadata!.Duration, rate);
+        return frames < 1 ? null : MediaTime.FromFrame(frames, rate);
     }
 
     /// <summary>The first video fixes the project frame rate (D007): while the rate is still provisional, a video
@@ -173,6 +186,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
         ClipState.FromFrames(startFrame, startFrame + frames, MediaTime.Zero, rate).ApplyTo(clip);
         plan.Insert(track, clip);
 
+        if (MakeRoom(plan, new[] { ((Clip)clip, track) }, $"add text on {track.Name}") is { } roomError)   // D037 §3
+            return TimelineEditResult.Fail(roomError);
         if (Validate(plan) is { } error)
             return TimelineEditResult.Fail($"Can't add text on {track.Name}: {error}");
 
@@ -194,6 +209,15 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) =>
         PlanMove(clipIds, frameDelta, targetTrackId).Error;
+
+    public MovePreview? PreviewMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null)
+    {
+        var (plan, _, error) = PlanMove(clipIds, frameDelta, targetTrackId);
+        if (error is not null) return null;
+        var clips = plan?.Updates.ToDictionary(u => u.Clip.Id, u => (u.After.Start, u.After.End))
+            ?? new Dictionary<Guid, (MediaTime Start, MediaTime End)>();
+        return new MovePreview(clips);
+    }
 
     /// <summary>Plan + validation for a move. Plan is null (and Error null) when nothing would change.</summary>
     private (EditPlan? Plan, List<Clip> Clips, string? Error) PlanMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId)
@@ -228,6 +252,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 return (null, clips, shiftError);
         }
 
+        // D037 §3: the moved clips and the partners that follow them are placed; the clips on their right make room.
+        if (PlanPartnerShifts(plan) is { } partnerError)
+            return (null, clips, $"Can't move: {partnerError}");
+        if (MakeRoom(plan, PlacedByUpdates(plan), "move") is { } roomError)
+            return (null, clips, roomError);
         if (Validate(plan) is { } error)
             return (null, clips, $"Can't move: {error}");
 
@@ -333,6 +362,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var newLinks = clipboard.Entries.Select(e => (e.Clip as MediaBackedClip)?.LinkId).OfType<Guid>()
             .GroupBy(l => l).Where(g => g.Count() == 2).ToDictionary(g => g.Key, _ => Guid.NewGuid());
         var ids = new List<Guid>();
+        var placed = new List<(Clip Clip, Track Track)>();
         foreach (var entry in clipboard.Entries)
         {
             if (FindTrack(entry.TrackId) is not { } track)
@@ -350,9 +380,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
             state.ApplyTo(copy);
             plan.Insert(track, copy);
             ids.Add(copy.Id);
+            placed.Add((copy, track));
         }
 
-        // An overlap or any other broken rule rejects the whole paste (D027 §5); no dissolve is created.
+        // D037 §3 (Q10): the clips on the right make room; a copy starting inside a clip is refused.
+        if (MakeRoom(plan, placed, verb) is { } roomError) return TimelineEditResult.Fail(roomError);
+
+        // Any other broken rule rejects the whole paste (D027 §5); no dissolve is created.
         if (Validate(plan) is { } invalid) return TimelineEditResult.Fail($"Can't {verb}: {invalid}");
 
         Commit(plan, description);
@@ -1775,7 +1809,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     // --- Snapping --------------------------------------------------------------
 
-    public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds)
+    public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds,
+        Func<SnapResult, bool>? accept = null)
     {
         var excluded = excludedClipIds as ISet<Guid> ?? excludedClipIds.ToHashSet();
         var targets = new List<MediaTime> { MediaTime.Zero, Sequence.PlayheadPosition };
@@ -1790,7 +1825,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
             }
         }
 
-        return SnapEngine.Find(candidates, targets, tolerance);
+        return accept is null
+            ? SnapEngine.Find(candidates, targets, tolerance)
+            : SnapEngine.FindAll(candidates, targets, tolerance).FirstOrDefault(accept);
     }
 
     // --- Helpers ---------------------------------------------------------------

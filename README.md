@@ -19,8 +19,9 @@ sound-only Insert / Overwrite, audio crossfades; `project.json` v4) merged 2026-
 DECISIONS.md D032. Phase 18 (HDR → SDR of phone footage: HLG measured on the product owner's footage — their visual check open — PQ implemented but not verified on real PQ footage; Revision R1, closeout Step 18.12) merged 2026-10-14 as `c29a767` (PR #19), CI green —
 DECISIONS.md D033. Phase 19 (the AI hold markup, DECISIONS.md D034) merged 2026-10-15 as `2d0a10b` (PR #20), CI green; the model
 is installed by hand (`docs/AI_MODEL.md`). Phase 20 (the manual correction of hold contours, DECISIONS.md D035) merged as
-`a657bff` (PR #21). Phase 21 (the animation of the hold outlines, DECISIONS.md D036; `project.json` v6) is implemented on
-`feat/phase-21-hold-animation`, accepted by the product owner (not merged).
+`a657bff` (PR #21). Phase 21 (the animation of the hold outlines, DECISIONS.md D036; `project.json` v6) merged as `7318ba8`
+(PR #22). Phase 22 (timeline selection, snapping and making room, DECISIONS.md D037) is in progress on
+`feat/phase-22-timeline-ux`.
 
 ## Requirements
 
@@ -128,7 +129,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–18 complete (Phase 18 — HDR → SDR, D033 with Revision R1 — merged as `c29a767`, PR #19, CI green; the product owner's visual check of the S1 export and PQ on real PQ footage still open). Phase 19 (AI hold markup, D034) merged as `2d0a10b` (PR #20). Phase 20 (hold contour correction, D035) merged as `a657bff` (PR #21). Phase 21 (animation of the hold outlines, D036, `project.json` v6) implemented on `feat/phase-21-hold-animation`, accepted (not merged).
+Phases 0–18 complete (Phase 18 — HDR → SDR, D033 with Revision R1 — merged as `c29a767`, PR #19, CI green; the product owner's visual check of the S1 export and PQ on real PQ footage still open). Phase 19 (AI hold markup, D034) merged as `2d0a10b` (PR #20). Phase 20 (hold contour correction, D035) merged as `a657bff` (PR #21). Phase 21 (animation of the hold outlines, D036, `project.json` v6) merged as `7318ba8` (PR #22). Phase 22 (timeline selection, snapping and making room, D037) in progress on `feat/phase-22-timeline-ux`.
 Working: media import
 with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
@@ -174,6 +175,13 @@ removes the selected clips and closes up their tracks; Close Gap removes the emp
 Ctrl+C / Ctrl+V (Paste) / Ctrl+D (Duplicate) copy clips with all their properties (never a dissolve) to the playhead or
 right after them. ◀ ◆+ ◆− ▶ left of the ruler add, remove and go to markers (snap targets too). Every one of these is
 undoable and off during an export; an import interrupted by New / Open / Recover adds nothing to the other project.
+
+Phase 22 (DECISIONS.md D037): Ctrl+A selects every clip of the unlocked tracks, Esc clears the selection, a drag from an
+empty place of the lanes draws a marquee (with Ctrl it adds); the Inspector says "(1 of N selected)". Snap (on by default,
+N) never makes an overlap and also places a drop from the Media Browser (onto an empty track at 0). A move, a drop, Paste,
+Duplicate or + Text onto clips pushes them right by the overlap — on their track; a linked partner follows or nothing
+changes; a clip landing inside another one is refused. Alt+← / Alt+→ nudge the selection by a frame, with Shift by a
+second; a drag near the view's edge scrolls it.
 
 Phase 13 (DECISIONS.md D028; merged as `ed40b74`): **Project Settings…** in the toolbar — the frame size (presets, custom, ⇄
 Swap; positions and text sizes scale with it), the frame rate (the clips move to the new frame grid; fades, dissolves and

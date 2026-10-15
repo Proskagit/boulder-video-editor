@@ -1623,36 +1623,42 @@ multi-track selection between tracks, multi-clip property editing; FU-21.1, FU-2
 - `main` fast-forwarded to `origin/main` = `7318ba8`; the branch; D037; these steps; the manual plan skeleton; ROADMAP and
   `progress.md`.
 
-### 22.1 — Selection: Ctrl+A, Esc, the primary, "1 of N selected"
+### 22.1 — Selection: Ctrl+A, Esc, the primary, "1 of N selected" *(done)*
 - `TimelineViewModel`: Select All (unlocked tracks, partners), Escape (cancel the gesture / marquee, else clear), the primary
   rule; the selection count in `TimelineClipSelection`; the Inspector's name line; `ShortcutRouter` Ctrl+A / Esc (not in the
   markup mode, not while typing).
-- Tests: `UI.Tests` selection tests and `ShortcutRoutingTests`.
+- Tests: `UI.Tests/TimelineSelectionUiTests` (Select All, Esc, the Inspector line) and `ShortcutRoutingTests`.
 
-### 22.2 — Marquee
+### 22.2 — Marquee *(done)*
 - The view-model's marquee (begin / update / end / cancel; intersect; locked tracks skipped; Ctrl adds; live selection);
   the view: a press on an empty lane, the rectangle overlay, Esc.
-- Tests: `UI.Tests` marquee tests (the rectangle → the clips, Ctrl, locked, partners, cancel, a click without a drag).
+- Tests: `UI.Tests/TimelineSelectionUiTests` (the rectangle → the clips live, Ctrl, locked, partners, Esc, a click without
+  a drag). In the markup mode a marquee leaves the mode as a click does (D037 §1); only Ctrl+A is off there.
 
-### 22.3 — Making room (Timeline)
+### 22.3 — Making room (Timeline) *(done)*
 - The push planner on one track (D037 §3) used by `MoveClips` / `CanMoveClips`, `AddClip` at a position, `PasteClips`,
   `DuplicateClips`, `AddTextClip`; the partners follow or refuse; the dissolve refusal; `PreviewMove` with every clip the
   move changes.
 - Tests: `Timeline.Tests` make-room tests (the exact overlap, a gap absorbing it, a chain, the left collision, a pushed clip
   into a placed one, a group on several tracks, a partner following / blocked / locked, dissolves kept / refused, speed ≠ 1,
-  the frame grid, undo / redo, no step on a refusal); the existing tests that asserted a refused overlap updated.
+  the frame grid, undo / redo, no step on a refusal) — `Timeline.Tests/MakeRoomEditTests`; the tests that asserted a
+  refused overlap (`EditOperationTests`, `ClipboardEditTests` ×2, `LinkedEditTests`, `TimelineClipboardUiTests`) now
+  assert the push or the left-collision refusal; `TextClipEditTests` / `TextClipUiTests` pass unchanged (a text inside a
+  clip is a left collision, its message still names the overlap).
 
-### 22.4 — Snapping: no overlap, the drop
+### 22.4 — Snapping: no overlap, the drop *(done)*
 - `Snap` with a filter of targets that would overlap; the drag uses it; the drop snaps the new clip's start / end and shows
   the indicator while dragging over a lane; a drop on an empty track with Snap on lands at 0; the drag preview of pushed
   clips.
-- Tests: `Timeline.Tests` snap tests, `UI.Tests` drag / drop tests.
+- `ITimelineEditService.Snap(…, accept)`, `SnapEngine.FindAll`, `AddedClipDuration`, `PreviewMove`.
+- Tests: `UI.Tests/TimelineSelectionUiTests` (a snap that would push skipped, one that would not taken, the drag preview,
+  the drop: empty track → 0, Snap off, an edge with the indicator, a drop inside a clip refused, a drop making room).
 
-### 22.5 — Nudge and auto-scroll
+### 22.5 — Nudge and auto-scroll *(done; the auto-scroll timer itself only in the real app)*
 - Alt+← / → (one frame), Alt+Shift+← / → (one second) through `MoveClips`; the auto-scroll speed rule in the view-model and
   the timer in the view.
-- Tests: `ShortcutRoutingTests`, `UI.Tests` nudge tests (one step each, refusals with no step, the export lock), the speed
-  rule.
+- Tests: `ShortcutRoutingTests`, `UI.Tests/TimelineSelectionUiTests` (one step each, refusals with no step, the export lock,
+  a push and a left collision, the auto-scroll speed rule).
 
 ### 22.6 — Verification & closeout
 - Build `-warnaserror` Release and Debug, the full suite, the heavy scenes, three `--blame-hang` runs, `git diff --check`;

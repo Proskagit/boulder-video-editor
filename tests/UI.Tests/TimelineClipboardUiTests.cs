@@ -95,7 +95,8 @@ public sealed class TimelineClipboardUiTests
         Assert.Equal(V1.Clips.Skip(2).Select(c => c.Id).ToHashSet(), Selected(timeline).ToHashSet());
         Assert.Equal("2 clips pasted", _status.Message);
 
-        timeline.PasteCommand.Execute(null);                              // the same place again: it would overlap
+        _projects.Current.Timeline.PlayheadPosition = F(45);              // inside the first copy: a collision on the left
+        timeline.PasteCommand.Execute(null);                              // (D037 §3; at 40 again it would make room)
         Assert.StartsWith("Can't paste:", _status.Message);
         Assert.Equal(4, V1.Clips.Count);
     }

@@ -200,6 +200,14 @@ New projects get tracks V1 and A1. Clips are created only by `ITimelineEditServi
   from the source and the dissolve handles (`DissolveHandles`), clamped with a note; one undo step. The view starts it on
   an Alt press on a clip's body (`TimelineGestureModifiers.IsSlip`, `BeginSlip`), shows the planned Source In / Out on
   the clip (`TimelineClipViewModel.SlipText`) and commits on release.
+- Selection, snapping and making room (Phase 22, D037): the placement edits (`MoveClips`, `AddClip` at a position,
+  `PasteClips` / `DuplicateClips`, `AddTextClip`) plan their clips, then `MakeRoom` (`TimelineEditService.MakeRoom.cs`)
+  pushes the clips they overlap from their start on, on the same track, by the overlap (a gap absorbs it); a placed clip
+  starting inside another one, a push into a placed clip, a pushed partner without room or a dissolve of an unmoved clip
+  the push would open refuses the edit; the partners follow by `PlanPartnerShifts`. `PreviewMove` returns every clip a
+  move changes for the drag preview. `Snap(…, accept)` / `SnapEngine.FindAll` skip a target that would make an overlap;
+  `AddedClipDuration` sizes a drop's snap. The view-model's `TimelineViewModel.Selection.cs` holds Select All, Escape,
+  the marquee, the nudges and the auto-scroll rule; the view draws the marquee and runs the auto-scroll timer.
 - In / Out range (Phase 15 Step 15.7, D030 §8): session state in `InOutRangeService` (UI.Services, one instance for the
   timeline, the Preview and the export; rules in Core `InOutRange`), never in the project. Loop with a range:
   `IPlaybackService.SetPlaybackRange` (Play outside starts at In, the end of playing is Out, the `AudioMixer` silent from

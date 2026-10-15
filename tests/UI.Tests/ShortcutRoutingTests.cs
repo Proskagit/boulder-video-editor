@@ -124,6 +124,13 @@ public sealed class ShortcutRoutingTests
             // Phase 15 Step 15.7 (D030 §8)
             (Key.I, KeyModifiers.None, timeline.SetInCommand),
             (Key.O, KeyModifiers.None, timeline.SetOutCommand),
+            // Phase 22 (D037 §1, §4)
+            (Key.A, ctrl, timeline.SelectAllCommand),
+            (Key.Escape, KeyModifiers.None, timeline.EscapeCommand),
+            (Key.Left, KeyModifiers.Alt, timeline.NudgeLeftCommand),
+            (Key.Right, KeyModifiers.Alt, timeline.NudgeRightCommand),
+            (Key.Left, KeyModifiers.Alt | shift, timeline.NudgeLeftSecondCommand),
+            (Key.Right, KeyModifiers.Alt | shift, timeline.NudgeRightSecondCommand),
         };
     }
 

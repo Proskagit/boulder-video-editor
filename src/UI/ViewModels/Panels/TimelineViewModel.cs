@@ -117,6 +117,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(RippleDeleteCommand))]
     [NotifyCanExecuteChangedFor(nameof(CopyCommand))]
     [NotifyCanExecuteChangedFor(nameof(DuplicateCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NudgeLeftCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NudgeRightCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NudgeLeftSecondCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NudgeRightSecondCommand))]
     private bool _hasSelection;
 
     /// <summary>A dissolve is selected (and no clip).</summary>
@@ -155,6 +159,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void OnProjectReplaced()
     {
         CancelGesture();
+        _marquee = null;
+        IsMarqueeVisible = false;
         _selection.Clear();
         // The new project's clips are new objects, and the same project opened again has the same ids: view models of
         // the previous project must not be reused for them.
@@ -619,6 +625,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
         CloseGapCommand.NotifyCanExecuteChanged();
         PasteCommand.NotifyCanExecuteChanged();
         DuplicateCommand.NotifyCanExecuteChanged();
+        NudgeLeftCommand.NotifyCanExecuteChanged();
+        NudgeRightCommand.NotifyCanExecuteChanged();
+        NudgeLeftSecondCommand.NotifyCanExecuteChanged();
+        NudgeRightSecondCommand.NotifyCanExecuteChanged();
         AddDissolveCommand.NotifyCanExecuteChanged();
         AddVideoTrackCommand.NotifyCanExecuteChanged();
         AddAudioTrackCommand.NotifyCanExecuteChanged();
@@ -910,11 +920,45 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// <summary>"Add to Timeline" from the Media Browser: end of V1 / A1.</summary>
     public void AddMedia(MediaAsset asset) => AddMediaAt(asset.Id, null, null);
 
-    /// <summary>Drag-and-drop from the Media Browser onto a track position.</summary>
+    /// <summary>Drag-and-drop from the Media Browser onto a track position (snapped, D037 §2).</summary>
     public void DropMedia(Guid assetId, TimelineTrackViewModel? track, double contentX)
     {
+        var start = DropStart(assetId, track, contentX);
         ClearDropTargets();
-        AddMediaAt(assetId, track?.Track.Id, TimelineCoordinateMapper.XToFrameTime(contentX, PixelsPerSecond, FrameRate));
+        AddMediaAt(assetId, track?.Track.Id, start);
+    }
+
+    /// <summary>While media is dragged over the lanes: the target track and the snap indicator where it would land.</summary>
+    public void ShowDropPreview(Guid assetId, TimelineTrackViewModel? track, double contentX)
+    {
+        ShowDropTarget(track);
+        DropStart(assetId, track, contentX);
+    }
+
+    /// <summary>Where a drop at <paramref name="contentX"/> puts the new clip (D037 §2): with Snap on, onto a track with no
+    /// clip at 0 (Q8), otherwise its start or end onto the nearest target within the tolerance that makes no overlap the
+    /// pointer's own place would not; with Snap off exactly under the pointer. Shows the snap indicator.</summary>
+    private MediaTime DropStart(Guid assetId, TimelineTrackViewModel? track, double contentX)
+    {
+        var raw = TimelineCoordinateMapper.XToFrameTime(contentX, PixelsPerSecond, FrameRate);
+        IsSnapIndicatorVisible = false;
+        if (!SnappingEnabled || FindAsset(assetId) is not { } asset) return raw;
+
+        var target = track?.Track ?? (asset.Kind == MediaKind.Audio ? Sequence.AudioTracks : Sequence.VideoTracks).FirstOrDefault();
+        if (target is null) return raw;
+        if (target.Clips.Count == 0)
+        {
+            SnapIndicatorX = 0;
+            IsSnapIndicatorVisible = true;
+            return MediaTime.Zero;
+        }
+
+        var duration = _edit.AddedClipDuration(assetId) ?? MediaTime.Zero;
+        bool Overlaps(MediaTime start) => target.Clips.Any(c => c.TimelineStart < start + duration && c.TimelineEnd > start);
+        var rawOverlaps = Overlaps(raw);
+        var candidates = duration > MediaTime.Zero ? new[] { raw, raw + duration } : new[] { raw };
+        return raw + ApplySnap(candidates, Array.Empty<TimelineClipViewModel>(), MediaTime.Zero,
+            accept: rawOverlaps ? null : s => !Overlaps(raw + s.Offset));
     }
 
     private void AddMediaAt(Guid assetId, Guid? trackId, MediaTime? start)
@@ -940,7 +984,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
         foreach (var t in Tracks) t.IsDropTarget = t == track;
     }
 
-    public void ClearDropTargets() => ShowDropTarget(null);
+    public void ClearDropTargets()
+    {
+        ShowDropTarget(null);
+        IsSnapIndicatorVisible = false;
+    }
 
     private void Report(TimelineEditResult result, string? successMessage = null)
     {
@@ -1100,7 +1148,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         {
             var asset = primary.Clip is MediaBackedClip m ? FindAsset(m.MediaAssetId) : null;
             var (dissolveAtStart, dissolveAtEnd) = Dissolves(primary.Clip);
-            SelectionChanged?.Invoke(this, new TimelineClipSelection(primary.Clip, primary.Name, asset, FrameRate, dissolveAtStart, dissolveAtEnd));
+            SelectionChanged?.Invoke(this, new TimelineClipSelection(primary.Clip, primary.Name, asset, FrameRate, dissolveAtStart, dissolveAtEnd,
+                _selection.Count));
         }
         else
         {
@@ -1194,35 +1243,62 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         var groupStart = g.Clips.Min(c => c.Clip.TimelineStart);
         var groupEnd = g.Clips.Max(c => c.Clip.TimelineEnd);
-        var delta = ApplySnap(new[] { groupStart + rawDelta, groupEnd + rawDelta }, g.Clips, rawDelta);
-
         var startFrame = groupStart.ToNearestFrame(FrameRate);
-        g.FrameDelta = Math.Max(-startFrame, (groupStart + delta).ToNearestFrame(FrameRate) - startFrame);
+        long FramesOf(MediaTime delta) => Math.Max(-startFrame, (groupStart + delta).ToNearestFrame(FrameRate) - startFrame);
 
         g.TargetTrack = g.SourceTrack is not null && trackUnderPointer is not null && trackUnderPointer != g.SourceTrack
             ? trackUnderPointer
             : null;
         ShowDropTarget(g.TargetTrack);
 
-        var invalid = _edit.CanMoveClips(g.Clips.Select(c => c.Id).ToList(), g.FrameDelta, g.TargetTrack?.Track.Id) is not null;
-        foreach (var clip in g.Clips)
-        {
-            var start = MediaTime.FromFrame(clip.Clip.TimelineStart.ToNearestFrame(FrameRate) + g.FrameDelta, FrameRate);
-            var end = MediaTime.FromFrame(clip.Clip.TimelineEnd.ToNearestFrame(FrameRate) + g.FrameDelta, FrameRate);
-            clip.Layout(PixelsPerSecond, start, end);
-            clip.IsInvalid = invalid;
-        }
+        // D037 §2: a snap never makes an overlap — a target that would push a clip (or refuse the move) where the pointer's
+        // own place would not is skipped.
+        var ids = g.Clips.Select(c => c.Id).ToList();
+        var target = g.TargetTrack?.Track.Id;
+        var rawOverlaps = MoveOverlaps(ids, FramesOf(rawDelta), target);
+        var snapped = ApplySnap(new[] { groupStart + rawDelta, groupEnd + rawDelta }, g.Clips, rawDelta,
+            accept: rawOverlaps ? null : s => !MoveOverlaps(ids, FramesOf(rawDelta + s.Offset), target));
+        g.FrameDelta = FramesOf(snapped);
 
-        // Dissolves follow the preview (D025 §5): both clips dragged together carry their zone along; a zone whose cut
-        // the drag would open is hidden (the release removes it).
-        var moved = g.Clips.Select(c => c.Id).ToHashSet();
+        // D037 §3: the preview shows every clip the release would change — the dragged ones, the partners that follow and
+        // the clips that make room — at its planned place; a refused move shows the dragged clips where the pointer has
+        // them, marked invalid.
+        var preview = _edit.PreviewMove(ids, g.FrameDelta, target);
+        var planned = preview?.Clips ?? g.Clips.ToDictionary(c => c.Id, c => (
+            MediaTime.FromFrame(c.Clip.TimelineStart.ToNearestFrame(FrameRate) + g.FrameDelta, FrameRate),
+            MediaTime.FromFrame(c.Clip.TimelineEnd.ToNearestFrame(FrameRate) + g.FrameDelta, FrameRate)));
+        foreach (var vm in _clipViewModels.Values)
+        {
+            if (planned.TryGetValue(vm.Id, out var at)) vm.Layout(PixelsPerSecond, at.Start, at.End);
+            else vm.Layout(PixelsPerSecond);
+        }
+        foreach (var clip in g.Clips) clip.IsInvalid = preview is null;
+
+        // Dissolves follow the preview (D025 §5): a zone whose two clips move by the same frames moves along; a zone whose
+        // cut the move would open is hidden (the release removes it — never one of clips that only make room, D037 Q9).
         foreach (var zone in _transitionViewModels.Values)
         {
-            var (left, right) = (moved.Contains(zone.Transition.LeftClipId), moved.Contains(zone.Transition.RightClipId));
-            if (!left && !right) continue;
-            zone.IsVisible = left && right;
-            if (zone.IsVisible) zone.Layout(PixelsPerSecond, FrameRate, g.FrameDelta);
+            var (left, right) = (FramesMoved(zone.Transition.LeftClipId), FramesMoved(zone.Transition.RightClipId));
+            zone.IsVisible = left == right;
+            zone.Layout(PixelsPerSecond, FrameRate, zone.IsVisible ? left : 0);
         }
+
+        long FramesMoved(Guid id) =>
+            planned.TryGetValue(id, out var at) && _clipViewModels.TryGetValue(id, out var vm)
+                ? at.Start.ToNearestFrame(FrameRate) - vm.Clip.TimelineStart.ToNearestFrame(FrameRate)
+                : 0;
+    }
+
+    /// <summary>Whether moving <paramref name="ids"/> by <paramref name="frames"/> would push a clip that is not moved with
+    /// them (D037 §3) or be refused — what a snap must not cause on its own (D037 §2).</summary>
+    private bool MoveOverlaps(IReadOnlyCollection<Guid> ids, long frames, Guid? targetTrackId)
+    {
+        if (_edit.PreviewMove(ids, frames, targetTrackId) is not { } preview) return true;
+        var moving = ids.ToHashSet();
+        foreach (var id in ids)
+            if (_clipViewModels.TryGetValue(id, out var vm) && PartnerViewModel(vm) is { } partner)
+                moving.Add(partner.Id);
+        return preview.Clips.Keys.Any(id => !moving.Contains(id));
     }
 
     private void UpdateTrim(Gesture g, ClipEdge edge, MediaTime rawDelta)
@@ -1308,13 +1384,14 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     /// <summary>Returns <paramref name="rawDelta"/> adjusted so the nearest candidate edge
     /// lands on a snap target (when snapping is on), and shows the snap indicator.</summary>
-    private MediaTime ApplySnap(IReadOnlyList<MediaTime> candidates, IEnumerable<TimelineClipViewModel> dragged, MediaTime rawDelta)
+    private MediaTime ApplySnap(IReadOnlyList<MediaTime> candidates, IEnumerable<TimelineClipViewModel> dragged, MediaTime rawDelta,
+        Func<SnapResult, bool>? accept = null)
     {
         IsSnapIndicatorVisible = false;
         if (!SnappingEnabled) return rawDelta;
 
         var tolerance = TimelineCoordinateMapper.XToTime(SnapTolerancePixels, PixelsPerSecond);
-        var snap = _edit.Snap(candidates, tolerance, dragged.Select(c => c.Id).ToList());
+        var snap = _edit.Snap(candidates, tolerance, dragged.Select(c => c.Id).ToList(), accept);
         if (!snap.Snapped) return rawDelta;
 
         SnapIndicatorX = TimelineCoordinateMapper.TimeToX(snap.Target, PixelsPerSecond);
