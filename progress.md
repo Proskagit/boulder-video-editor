@@ -2,12 +2,22 @@
 
 ## Current phase
 
-Phase 24 — Russian localization and interface polish, branch `feat/phase-24-localization` (from `origin/main` = `c652667`,
-the merge of PR #24; DECISIONS.md D039, 2026-10-19). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 24 — Russian localization
-and interface polish: steps"; manual plan `docs/PHASE24_MANUAL_TEST_PLAN.md`. Local work only: no push, pull request or
+Phase 25 — technical backlog and small UX improvements, branch `feat/phase-25-backlog-ux` (from `origin/main` = `d3df0ba`,
+the merge of PR #25; DECISIONS.md D040, 2026-10-19). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 25 — Technical backlog and
+small UX improvements: steps"; manual plan `docs/PHASE25_MANUAL_TEST_PLAN.md`. Local work only: no push, pull request or
 merge without the product owner's command.
 
-### Phase 24 — Russian localization and interface polish (in progress)
+### Phase 25 — Technical backlog and small UX improvements (in progress)
+
+- 2026-10-19 — audit (read only) after the merge of PR #25: `origin/main` = `d3df0ba` (its tree identical to `e8a67b0`), CI
+  green on the pull request (run 39268732382) and on `main` (run 39270377059); locally on `e8a67b0` Release `--no-incremental
+  -warnaserror` 0 / 0, the full suite 3892 passed, 2 skipped, 0 failed. The next phase was not defined in the documentation;
+  the specification accepted by the product owner the same day (D040).
+- 2026-10-19 — Step 25.0: local `main` fast-forwarded `c652667` → `d3df0ba`; the branch; D040, the Phase 25 steps, the manual
+  plan skeleton; the documentation brought in line with the merges (DEVELOPMENT_PLAN's list: Phases 19, 22, 24 checked,
+  Phase 20 added; ROADMAP: Phase 24 merged, Phase 25 current, FU-24.2 recorded).
+
+### Phase 24 — Russian localization and interface polish (merged 2026-10-19 as `d3df0ba`, PR #25)
 
 - 2026-10-19 — audit (read only): no localization infrastructure, ~700 English user-visible strings (AXAML, view-models,
   service layer), ~675 test assertions on English text, the OS UI culture ru-RU here and en-US on CI; fixed 80 px Inspector

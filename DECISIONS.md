@@ -5179,6 +5179,66 @@ Status: Accepted (2026-10-19, product owner). Implemented in Phase 24 (branch `f
 on 2026-10-19 (the gates, the `project.json` v6 byte comparison with `c652667`, the real-app run of
 `docs/PHASE24_MANUAL_TEST_PLAN.md`); accepted by the product owner on 2026-10-19.
 
+
+---
+
+## D040 — Technical backlog and small UX improvements (Phase 25)
+
+Date: 2026-10-19
+
+Decision (product owner, 2026-10-19: the post-Phase 24 audit's proposal "Phase 25 — technical backlog and small UX
+improvements" with the answers to its questions). No format change: `project.json` stays **v6**; the composition, the mix,
+the decoders and the export unchanged.
+
+### 1. Configuration (FU-24.2)
+
+`appsettings.json` is read from the application's folder (`AppContext.BaseDirectory` as the host's content root), never
+from the process's current directory; the command-line arguments go to the host builder. Recorded at Phase 24 (D039
+implementation notes) as an observation: started from another folder, the app ran with the defaults and without the
+`Ffmpeg:*` paths.
+
+### 2. Marker navigation (FU-21.1)
+
+Previous / Next marker: a successful jump reports a localized status with the marker's timecode (it replaces any earlier
+message); a refusal ("no marker before / after the playhead") keeps its message. Which marker is the previous / next one is
+decided on the playhead's frame, as before (D027 §6). The marker model is unchanged (FU-21.2 stays deferred).
+
+### 3. The hold markup mode left on its own (FU-22.1)
+
+Reproduce first. If the mode is left by the playhead's own adjustment while the markup frame is prepared, D034 is refined:
+that internal adjustment is not a user seek and does not leave the mode; every user seek still leaves it. If the two cannot
+be told apart reliably, or another change of agreed behaviour is needed, the product owner decides before the code.
+
+### 4. Sliders (FU-24.1, in part)
+
+Fade In / Fade Out of video and audio clips and the hold line width get a slider under their numeric field, as Opacity and
+Volume (D039 §8): bound to the same property, the field keeps exact typing, one finished drag is one undo step (D017's
+merge of consecutive changes of one field); the Fade slider's maximum is the field's maximum and follows the clip's length.
+No Speed slider: exact values matter and a speed change moves the clip's length and placement.
+
+### 5. Icons on the timeline's tool bar
+
+The D039 §7 icon set (one stroke style, path geometries, no dependency) extended to + Text, + Video / Audio track, Paste,
+Duplicate, Ripple Delete, Close Gap, Dissolve, Link and Fit; each keeps its localized label and its tooltip (name and
+shortcut) — no button becomes nameless for compactness. Checked at 1024 × 640 and 1440 × 900.
+
+### 6. Verification
+
+The Phase 24 manual gaps (sound, model errors, a damaged project, a failed export, the track and marker tooltips) are run in
+the real app or recorded as NOT RUN. `project.json` v6 is compared byte for byte with a save by `d3df0ba` (`ru` and `en`).
+
+### 7. Not in this decision
+
+FU-21.2 (markers bound to a clip — the marker model unchanged); the export of vertical video without black bars (a separate
+future phase); a Speed slider, dragging on labels; a general redesign; new dependencies; unrelated backlog.
+
+Context: the post-Phase 24 audit of 2026-10-19 — the next phase was not defined in the documentation; the backlog held
+FU-21.1, FU-21.2, FU-22.1, FU-24.1, the vertical-video export and the `appsettings.json` observation; several Phase 24 manual
+rows were "auto only"; the documentation lagged the merges of Phases 19, 20, 22 and 24.
+
+Consequences: no new dependency, no format change; a few new resources (en + ru); the guards unchanged.
+
+Status: Accepted (2026-10-19, product owner).
 ---
 
 ## How to add a decision

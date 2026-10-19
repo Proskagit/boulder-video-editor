@@ -59,18 +59,23 @@ session state (D015).
 
 ## Current
 
-Phase 24 — Russian localization and interface polish (**in progress**; DECISIONS.md D039, 2026-10-19; branch
-`feat/phase-24-localization` from `c652667`, the merge of PR #24). The whole interface in Russian — English the neutral
-language of the resources, Russian chosen by `App:Language` in `appsettings.json`, no switch in the interface — including
-the service layer's messages; guard tests against untranslated text; the layout checked at 1024 × 640 and 1440 × 900;
-vector icons for the frequent commands; sliders for Opacity and Volume; `project.json` stays v6. Steps:
-`docs/DEVELOPMENT_PLAN.md`, "Phase 24 — Russian localization and interface polish: steps"; manual plan
-`docs/PHASE24_MANUAL_TEST_PLAN.md`. Steps 24.0–24.8 done (verified by Claude 2026-10-19: Release / Debug
-`--no-incremental -warnaserror` 0 / 0, the full suite green, `project.json` v6 byte for byte with `c652667`, the manual plan
-run in the real app at 1024 and 1440 px with the parts not reached marked "auto only"); **accepted by the product owner on
-2026-10-19**; pull request into `main`, not merged.
+Phase 25 — technical backlog and small UX improvements (**in progress**; DECISIONS.md D040, 2026-10-19; branch
+`feat/phase-25-backlog-ux` from `d3df0ba`, the merge of PR #25). `appsettings.json` read from the application's folder
+(FU-24.2), the marker navigation status (FU-21.1), the hold markup mode left on its own (FU-22.1), sliders for Fade In / Out
+and the hold line width (FU-24.1 in part), icons on the timeline's tool bar, the Phase 24 manual gaps; `project.json` stays
+v6. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 25 — Technical backlog and small UX improvements: steps"; manual plan
+`docs/PHASE25_MANUAL_TEST_PLAN.md`.
 
 ## Previous
+
+Phase 24 — Russian localization and interface polish (**merged**; PR #25 merged into `main` as `d3df0ba` on 2026-10-19, CI
+green on the pull request and on `main`; DECISIONS.md D039, 2026-10-19; branch `feat/phase-24-localization` from `c652667`).
+The whole interface in Russian — English the neutral language of the resources, Russian chosen by `App:Language` in
+`appsettings.json`, no switch in the interface — including the service layer's messages; guard tests against untranslated
+text; the layout checked at 1024 × 640 and 1440 × 900; vector icons for the frequent commands; sliders for Opacity and
+Volume; `project.json` stays v6. Steps 24.0–24.8 done (verified by Claude 2026-10-19: Release / Debug `--no-incremental
+-warnaserror` 0 / 0, the full suite green, `project.json` v6 byte for byte with `c652667`, the manual plan run in the real
+app at 1024 and 1440 px with the parts not reached marked "auto only"); **accepted by the product owner on 2026-10-19**.
 
 Phase 23 — direct Move, Scale and Crop in the Preview (**merged**; PR #24 merged into `main` as `c652667` on 2026-10-19;
 DECISIONS.md D038, 2026-10-16; branch `feat/phase-23-preview-transform` from `1aaedc8`, the merge of PR #23). Two tools in
@@ -348,7 +353,7 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is current. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
+Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is merged (PR #25, `d3df0ba`); Phase 25 (technical backlog and small UX improvements, D040) is current. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The
@@ -367,27 +372,31 @@ tracking task. Sketch: `docs/DEVELOPMENT_PLAN.md`, "Future ideas (not phases)".
 
 ## Follow-ups and backlog
 
-Separate tasks recorded at the Phase 21 acceptance (2026-10-15); none is part of Phase 21 or decided yet, and none is part of
-Phase 22 (D037 §5, product owner, 2026-10-15).
+Separate tasks recorded at the Phase 21 acceptance (2026-10-15) and later; none is part of Phase 21 or 22 (D037 §5). Phase 25
+(D040) takes FU-21.1, FU-22.1, FU-24.2 and FU-24.1 in part; FU-21.2 and the vertical-video export stay out.
 
-- **FU-21.1 — "Previous marker" status message (marker issue).** Going to a marker outside the clip sometimes first shows
+- **FU-21.1 — "Previous marker" status message (marker issue)** — *Phase 25 (D040 §2).* Going to a marker outside the clip sometimes first shows
   "There is no marker before the playhead", although a second press moves the playhead; after returning, the warning
   stays in the status bar. Cause to be found (Previous / Next compare with the playhead's nearest frame; a successful jump
   reports nothing, so an earlier message is not replaced). Details: `docs/PHASE21_MANUAL_TEST_PLAN.md`, "Follow-ups".
 - **FU-21.2 — Markers stay in place when a clip is moved (marker semantics).** Markers are sequence (timeline) markers and
   D027 says no edit moves them, so this is the current decided behaviour. Open product question: whether markers bound
   to a clip (moving with it) are wanted. Not to be treated as a bug before that is decided.
-- **FU-22.1 — The hold markup mode left on its own after entering it (observed at Step 22.6, not investigated).** With the
+- **FU-22.1 — The hold markup mode left on its own after entering it (observed at Step 22.6)** — *Phase 25 (D040 §3).* With the
   playhead put on 00:00:10:00 by a click on the ruler and a video clip selected, "Mark holds" entered the mode ("Preparing
   the frame…"); a few seconds later the playhead stood on 00:00:09:23 and the mode was off (a seek leaves it, D034). Entering
   again at 00:00:09:23 kept it. Phase 19 code (D034), untouched by Phase 22; to be reproduced and analysed separately.
-- **Export of vertical video without unwanted black bars (backlog).** A vertical (portrait) clip exported on a landscape
+- **Export of vertical video without unwanted black bars (backlog; a separate future phase, D040 §7).** A vertical (portrait) clip exported on a landscape
   canvas comes out with black bars at the sides (the D018 fit of a picture to the canvas). The expected framing must be
   decided first — e.g. a portrait canvas from the clip, a fill / crop-to-canvas mode, or a choice at export — before any
   change of the export or the composition code. No code changed for it in Phase 21.
-- **FU-24.1 — Sliders for other numeric fields (recorded at Phase 24, D039 §8).** Phase 24 adds sliders only to Opacity
+- **FU-24.1 — Sliders for other numeric fields (recorded at Phase 24, D039 §8)** — *Fade In / Out and the hold line width in
+  Phase 25 (D040 §4); a Speed slider not wanted; dragging on labels stays backlog.* Phase 24 adds sliders only to Opacity
   and Volume. Candidates: Fade In / Out (a slider up to the clip's length), Speed (detents at 0.5 / 1 / 2 ×), dragging on
   the label of Scale / Rotation / Position, the hold line width. Not decided; the exact numeric fields stay in every case.
+- **FU-24.2 — `appsettings.json` read from the current directory (observed at Phase 24, D039 implementation notes)** —
+  *Phase 25 (D040 §1).* The host's content root was the process's current directory: started from another folder the app
+  ran with the defaults and without the `Ffmpeg:*` paths.
 
 ## Rule
 
