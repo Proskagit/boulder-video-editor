@@ -1767,42 +1767,42 @@ expected value unchanged — English assertions stay as they are (the neutral la
 Out of scope (D039 §9): a language switch, a general redesign, translated documentation, sliders other than Opacity and
 Volume; FU-21.1, FU-21.2, FU-22.1 and the vertical-video export framing.
 
-### 24.0 — Sync and documentation
+### 24.0 — Sync and documentation *(done, `e328112`)*
 - `main` fast-forwarded to `origin/main` = `c652667`; the branch; D039; these steps; the manual plan skeleton; ROADMAP and
   `progress.md`.
 
-### 24.1 — Infrastructure and guards
+### 24.1 — Infrastructure and guards *(done, `9d2c6bb`)*
 - `Core/Localization/Messages.resx` (+ `.ru`), `UI/Localization/Strings.resx` (+ `.ru`), generated classes; `UiLanguage`
   (the neutral default, `Apply` at start from `App:Language`); `Plural`; the three guard tests with an allowlist of what
   is left (shrinking step by step); the first strings (the status bar's «Готово.»).
 - Tests: `Core.Tests` (plural forms, `UiLanguage`), `UI.Tests` (the guards, a Russian resource read).
 
-### 24.2 — The shell: tool bar, recent projects, Media Browser, dialogs and workflows
+### 24.2 — The shell: tool bar, recent projects, Media Browser, dialogs and workflows *(done, `246aead`)*
 - `ToolbarView`, `RecentProjectsViewModel`, `MediaBrowserView` / view-models, project settings, export (dialogs, progress,
   the file picker), import, relink, open / save / autosave / recovery, the window title.
 
-### 24.3 — The Preview
+### 24.3 — The Preview *(done, `246aead`)*
 - Modes, transport, the source bar, Move / Crop, the hold markup bar and its messages.
 
-### 24.4 — The timeline and its service messages
+### 24.4 — The timeline and its service messages *(done, `246aead` / `7cdf952`)*
 - The tool bar, track headers, markers, the empty state, selection, statuses; `TimelineEditService` (all partials),
   `TimelineValidator`, `MediaRelinkService`; new text clips «Текст».
 
-### 24.5 — The Inspector
+### 24.5 — The Inspector *(done, `246aead` / `7cdf952`)*
 - Every section, the drop-downs without enum names, `ClipPropertyValidator` and the other Core validators that reach the
   user.
 
-### 24.6 — Project, export, video and units
+### 24.6 — Project, export, video and units *(done, `7cdf952`)*
 - `ProjectService`, `ProjectSerializer`, `AutosaveService`, export preflight / encoder messages shown to the user, decoder
   messages; `FileSizeFormat`, the media kind, frame rates.
 
-### 24.7 — Layout, icons, sliders, keyboard
+### 24.7 — Layout, icons, sliders, keyboard *(done, `932027a`)*
 - The Inspector's label style, the status bar's trimming and tooltip, Play / Pause width, the two tool bars at 1024 px;
   the icon set (D039 §7); the Opacity and Volume sliders (D039 §8); shortcuts in the Russian layout.
 - Tests: view binding tests for the sliders (one undo step per drag), the icons' presence; the real app at 1024 × 640 and
   1440 × 900.
 
-### 24.8 — Verification & closeout
+### 24.8 — Verification & closeout *(done by Claude 2026-10-19 — fixes `1e43e26`; results in `progress.md` and the manual plan)*
 - The allowlist holds only accepted technical tokens; Release and Debug `--no-incremental -warnaserror`, the full suite,
   `git diff --check`; the manual plan in the real app (both sizes, the Russian layout); a Phase 23 project opened and saved
   byte for byte; the docs.

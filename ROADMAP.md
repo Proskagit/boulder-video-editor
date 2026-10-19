@@ -65,7 +65,10 @@ language of the resources, Russian chosen by `App:Language` in `appsettings.json
 the service layer's messages; guard tests against untranslated text; the layout checked at 1024 × 640 and 1440 × 900;
 vector icons for the frequent commands; sliders for Opacity and Volume; `project.json` stays v6. Steps:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 24 — Russian localization and interface polish: steps"; manual plan
-`docs/PHASE24_MANUAL_TEST_PLAN.md`.
+`docs/PHASE24_MANUAL_TEST_PLAN.md`. Steps 24.0–24.8 done (verified by Claude 2026-10-19: Release / Debug
+`--no-incremental -warnaserror` 0 / 0, the full suite green, `project.json` v6 byte for byte with `c652667`, the manual plan
+run in the real app at 1024 and 1440 px with the parts not reached marked "auto only"); the product owner's acceptance
+pending; local commits only — no push, pull request or merge.
 
 ## Previous
 

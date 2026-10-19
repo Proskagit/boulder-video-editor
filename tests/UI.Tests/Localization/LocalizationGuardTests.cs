@@ -101,7 +101,7 @@ public sealed partial class LocalizationGuardTests
             {
                 if (SkippedLine().IsMatch(line)) continue;
                 foreach (Match m in Literal().Matches(line))
-                    if (LatinWords().IsMatch(Holes().Replace(m.Groups[1].Value, " "))) found.Add((rel, m.Groups[1].Value));
+                    if (LatinWords().IsMatch(Holes().Replace(m.Groups[1].Value, " "))) found.Add((rel, m.Groups[1].Value.TrimEnd()));
             }
         }
         AssertListed(found, ".cs");
@@ -115,7 +115,7 @@ public sealed partial class LocalizationGuardTests
         var allowed = File.ReadLines(allowFile)
             .Where(l => l.Length > 0 && !l.StartsWith('#'))
             .Select(l => l.Split('\t', 2))
-            .Select(p => (File: p[0], Literal: p.Length > 1 ? p[1] : ""))
+            .Select(p => (File: p[0], Literal: p.Length > 1 ? p[1].TrimEnd() : ""))   // stored without trailing spaces (git diff --check)
             .Where(a => a.File.EndsWith(extension, StringComparison.Ordinal))
             .ToHashSet();
         var unlisted = found.Except(allowed).OrderBy(a => a.File, StringComparer.Ordinal).Select(a => $"{a.File}\t{a.Literal}").ToList();

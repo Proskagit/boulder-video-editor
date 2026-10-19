@@ -176,8 +176,8 @@ src/Core/Playback/PlaybackSnapshotBuilder.cs	The media is not in the project.
 src/Core/Playback/PlaybackSnapshotBuilder.cs	{asset.Kind} media has no audio.
 src/Export/ExportAudioReader.cs	The audio of '{Path.GetFileName(_asset.FilePath)}' could not be decoded ({error}): {message}
 src/Export/ExportAudioReader.cs	ffmpeg could not be found.
-src/Export/ExportAudioSource.cs	The audio of a clip at {span.TimelineStart} can't be exported ({span.Status}{(span.Reason is null ? 
-src/Export/ExportFrameSource.cs	A clip at {span.TimelineStart} can't be exported ({span.Status}{(span.Reason is null ? 
+src/Export/ExportAudioSource.cs	The audio of a clip at {span.TimelineStart} can't be exported ({span.Status}{(span.Reason is null ?
+src/Export/ExportFrameSource.cs	A clip at {span.TimelineStart} can't be exported ({span.Status}{(span.Reason is null ?
 src/Export/ExportPictureReader.cs	'{Path.GetFileName(_asset.FilePath)}' could not be decoded ({error}): {message}
 src/Export/ExportPictureReader.cs	'{_asset.FilePath}' produced no frame.
 src/Export/ExportPictureReader.cs	ffmpeg could not be found.
@@ -232,7 +232,7 @@ src/Timeline/MediaRelinkService.cs	not probed: ffprobe unavailable
 src/UI/Services/MediaAnalysisCoordinator.cs	Metadata analysis failed for '{Path}': {Outcome} — {Message}
 
 # Data and names, not interface text: a font family, the internal sequence name, a LUT file header, a format name, the product name.
-src/Core/Color/HdrLut.cs	TITLE \"AiVideoEditor HDR to SDR, rule 
+src/Core/Color/HdrLut.cs	TITLE \"AiVideoEditor HDR to SDR, rule
 src/Core/Entities/Clip.cs	Segoe UI
 src/Core/Entities/Timeline.cs	Main Sequence
 src/UI/ViewModels/MainWindowViewModel.cs	)} — AI Video Editor

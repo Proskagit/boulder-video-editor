@@ -5156,7 +5156,28 @@ labels, a main tool bar without wrapping and a status bar without trimming.
 Consequences: no new dependency; two resource pairs and their generated classes; a culture switch at start; every
 user-visible literal replaced by a resource; English tests keep their assertions; three guard tests.
 
-Status: Accepted (2026-10-19, product owner).
+Implementation notes (2026-10-19, Phase 24):
+- Resources: 557 interface keys (`Strings`), 317 service-layer keys (`Messages`); the guards found ~850 English literals at
+  the start; 228 remain in `tests/UI.Tests/Localization/untranslated-allowlist.txt`, in six groups with their reasons (undo
+  descriptions, damaged-file reasons, FFmpeg / decoder / model runtime detail, log templates, data and names, design-time
+  stand-ins). The reasons of a damaged `project.json` stay English in parentheses after the translated sentence, as the
+  FFmpeg detail (§2). Sentences that named «dissolve / crossfade» or a verb have one resource per noun and the verb as an
+  infinitive resource («Нельзя {0}: …»), never a noun glued into a sentence.
+- Layout (§6): the main tool bar is a wrap panel (one row at 1024 and 1440 px); the Inspector's label column is 116 px and
+  wraps; the fade / dissolve time is shown below its field (it was cut at the panel's edge, also in English); the Media
+  panel's offline strip puts its heading above the wrapping buttons; the status bar trims and the bar carries the tooltip.
+  While the hold markup mode is on, Переместить / Кадрировать show only their icons, so the mode's buttons fit at 1024 px
+  (the picture keeps its size, D034); the «preparing» progress bar has no 200 px minimum width any more.
+- Icons (§7): Undo / Redo, the transport and Loop are icon-only buttons (Loop: with a label the timecode no longer fitted
+  the Preview at 1024 px); Split, Delete, Snap, Move and Crop have an icon and a label; the eye and the lock replace the
+  emoji. The geometries are path data parsed when an icon is shown (a geometry needs the platform's renderer).
+- Sliders (§8): Opacity and Volume, under their fields; a drag is one undo step by D017's merge (checked in the app).
+- The configuration (`appsettings.json`) is read from the process's current directory (`Host.CreateApplicationBuilder`,
+  unchanged by Phase 24): started from another folder the app runs with the defaults, `ru` included. Recorded, not changed.
+
+Status: Accepted (2026-10-19, product owner). Implemented in Phase 24 (branch `feat/phase-24-localization`); verified by Claude
+on 2026-10-19 (the gates, the `project.json` v6 byte comparison with `c652667`, the real-app run of
+`docs/PHASE24_MANUAL_TEST_PLAN.md`); the product owner's acceptance pending.
 
 ---
 
