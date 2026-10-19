@@ -5281,7 +5281,89 @@ Implementation notes (2026-10-19, Phase 25):
 
 Status: Accepted (2026-10-19, product owner). Implemented in Phase 25 (branch `feat/phase-25-backlog-ux`); verified by Claude
 on 2026-10-19 (the gates, the `project.json` v6 byte comparison with `d3df0ba`, the real-app run of
-`docs/PHASE25_MANUAL_TEST_PLAN.md`); the product owner's acceptance pending.
+`docs/PHASE25_MANUAL_TEST_PLAN.md`); accepted by the product owner on 2026-10-19 — PASS WITH NOTES (with FU-25.1 and FU-25.2);
+**merged**: PR #26 into `main` as `58c48cb` (2026-10-19), its tree identical to `1a1ea76`.
+
+---
+
+## D041 — Vertical video and framing (Phase 26)
+
+Date: 2026-10-20
+
+Decision (product owner, 2026-10-20: the post-Phase 25 audit's variant A, "Vertical video and framing", with the answers
+Q1–Q4). No format change: `project.json` stays **v6**; D018's composition (crop → fit "contain" → scale → rotation →
+position), the mix, the decoders and the export unchanged. Goal: a phone video — portrait, as most climbing clips are —
+gives an export without unwanted black bars in a few clicks.
+
+### 1. The canvas offered by the first video (Q1 — a dialog)
+
+When the first video clip is added to the timeline of an empty project with the default canvas, the editor offers to change
+the canvas to the size and orientation of the source. Never silently.
+- **When.** The add (from the Media Browser — a drop or the add command — or Insert / Overwrite from the Source viewer)
+  succeeded and created a video clip with its picture (a sound-only Insert / Overwrite creates none); the timeline had no
+  clip on any track before it; the canvas is the default 1920 × 1080; no offer was made in this project's session yet and
+  the canvas was not changed in it; the asset's orientation is known — `MediaMetadata.DisplayRotation` is 0, 90, 180 or 270
+  (null — an odd angle, a mirrored matrix, unknown — means no offer) — and so is its display size (`DisplayWidth ×
+  DisplayHeight`, the frames as the decoder delivers them, after the rotation); the offered canvas differs from the current
+  one. Never during an export (no add is possible then).
+- **The offered canvas** (`ProjectSettingsRules.SuggestedCanvas`): the shape of the source at the default canvas's class —
+  the short side 1080 (as the default 1920 × 1080), the long side `1080 × long / short` rounded to the nearest even number
+  (a half up); a square source gives 1080 × 1080. A long side above `MaxCanvasSide` (4096) is set to 4096 and the short side
+  derived the same way. The result passes `ProjectSettingsRules.CanvasError` (even sides for libx264 4:2:0, the side and area
+  limits) — otherwise no offer. Examples: 2160 × 3840 and 1080 × 1920 → 1080 × 1920; 1080 × 2400 → 1080 × 2400; 3840 × 2160
+  → 1920 × 1080, the current canvas → no offer; 1440 × 1080 (4 : 3) → 1440 × 1080. The source's own resolution never raises
+  the canvas above the default class (no 4K canvas offered); Project Settings stay the way to choose another size. Rounding
+  to even may leave the canvas's aspect a fraction of a pixel off the source's (a picture of an odd side).
+- **The dialog** names the file, its size and the current and offered canvas; «Сменить холст» (default) / «Оставить».
+  Accept → `ITimelineEditService.SetCanvasSize`, the existing D028 change: **one Undo step of its own**, after the add's step
+  (Undo first restores the canvas, a second Undo removes the clip); the clip's position follows the canvas by D028's rule
+  (0 stays 0). Decline or close → nothing changes. Either way the offer is not made again in this project's session (New /
+  Open / Recover start a new one); a project opened with clips never gets it (its timeline is not empty).
+- **Limitation**: "the user already changed the canvas" is known only within the session (a canvas other than 1920 × 1080,
+  or any canvas change in the session); a project saved earlier with an explicitly chosen 1920 × 1080 and an empty timeline
+  counts as default — nothing in `project.json` v6 records the difference.
+
+### 2. Fill frame / Fit in frame (Q2 — one-off commands)
+
+Two commands for a video or image clip: **«Заполнить кадр»** (Fill — the picture covers the canvas, the excess cut off by the
+canvas edges) and **«Вписать в кадр»** (Fit — the whole picture visible, bars allowed). Each computes a `Scale` and writes
+it into the clip — no mode, nothing new stored: a later canvas change does not recompute it (D028 leaves `Scale` as it is).
+- **The rule** (Core, `CompositionMath.FillScale` / `FitScale`): on the clip's cropped source rectangle (`w × h`, display
+  pixels of the asset), at its current `RotationDegrees` θ, with D018's fit `f`, for the picture **centred** on the canvas
+  `W × H`: Fit `= min(W / (f·(w·|cos θ| + h·|sin θ|)), H / (f·(w·|sin θ| + h·|cos θ|)))`; Fill
+  `= max((W·|cos θ| + H·|sin θ|) / (f·w), (W·|sin θ| + H·|cos θ|) / (f·h))`. Without rotation Fit is exactly 1 (D018's
+  "contain") and Fill `max(W/w, H/h) / f`. For multiples of 90° the value is computed exactly (rational) and rounded outward
+  to a double — Fill up, Fit down — so the picture provably covers / stays inside the canvas by `CoversCanvas`'s exact test;
+  other angles in double with the margin `CoversCanvas` uses (10⁻⁶ of the picture size).
+- **Unchanged**: `PositionX / Y`, rotation, crop, opacity and every other property. With a zero position Fill leaves no bar
+  and Fit shows the whole picture; with an offset the picture keeps its offset (it is not moved back to the centre), so Fill
+  may leave a strip at the far edge and Fit may push a part past it — the documented behaviour, no surprise shift.
+- **One Undo step** per command (the edit as a gesture of its own — `ClipPropertyGesture`, D038 §4 — never merged with a
+  typed Scale before or after it); the value already there → no step, a status says so. Refused, nothing changed, the status
+  saying why: a text or audio clip, a clip whose source size is unknown, a locked track, a value outside `ClipPropertyLimits`
+  Scale [1 %, 1000 %] (no clamping), during an export (`EditingLock`).
+- **Where**: the Inspector (two buttons under Масштаб, for the selected video / image clip) and a new context menu of a clip
+  on the timeline (right click: the two commands for the clicked clip; no other items in this phase).
+- **Parity**: the Preview and the export draw the stored values through the one D018 path, so they agree by construction.
+
+### 3. No warning before the export (Q3)
+
+The export preflight is unchanged; an orientation mismatch is not reported.
+
+### 4. Not in this decision (Q4 and the agreed exclusions)
+
+A blurred background instead of bars; an automatic reframe or tracking; a persistent Fill / Fit mode; `project.json` v7;
+FU-21.2; AI features; the technical-debt refactoring; new dependencies; unrelated improvements. A need to change the format,
+the architecture or agreed behaviour beyond §1–§3 is reported with variants before the change.
+
+Context: the post-Phase 25 audit of 2026-10-20 — the vertical-video export recorded as a separate future phase (D040 §7);
+portrait canvas presets exist since Phase 13 (D028) and the display orientation is read since Phase 7, but the canvas is
+never taken from a video (D018) and no command fitted a picture to the canvas other than the default "contain".
+
+Consequences: no format change, no new dependency; a few new resources (en + ru); one Core rule set and one service edit;
+the timeline's first context menu.
+
+Status: Accepted (2026-10-20, product owner). Phase 26, branch `feat/phase-26-vertical-video` from `58c48cb`.
 ---
 
 ## How to add a decision

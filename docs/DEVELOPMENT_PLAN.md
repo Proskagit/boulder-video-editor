@@ -144,12 +144,18 @@ and runs cleanly.
       below and DECISIONS.md D039 (accepted 2026-10-19). *(Branch `feat/phase-24-localization` from `c652667`; Steps
       24.0–24.8; accepted by the product owner on 2026-10-19; PR #25 merged into `main` as `d3df0ba` (2026-10-19), CI green
       on the pull request and on `main`)*
-- [ ] **Phase 25 — Technical backlog and small UX improvements.** `appsettings.json` read from the application's folder
+- [x] **Phase 25 — Technical backlog and small UX improvements.** `appsettings.json` read from the application's folder
       (FU-24.2); the marker navigation status (FU-21.1); the hold markup mode left on its own (FU-22.1); sliders for Fade
       In / Out and the hold line width (FU-24.1, in part); icons on the timeline's tool bar; the Phase 24 manual gaps.
       `project.json` stays v6. Scope, steps and acceptance criteria: section below and DECISIONS.md D040 (accepted
-      2026-10-19). *(Branch `feat/phase-25-backlog-ux` from `d3df0ba`; Steps 25.0–25.6 done and verified by Claude on
-      2026-10-19; awaiting the product owner's acceptance; local commits only)*
+      2026-10-19). *(Branch `feat/phase-25-backlog-ux` from `d3df0ba`; Steps 25.0–25.6, FU-25.1 and FU-25.2; accepted by
+      the product owner on 2026-10-19 — PASS WITH NOTES; PR #26 merged into `main` as `58c48cb` (2026-10-19), CI green on
+      the pull request)*
+- [ ] **Phase 26 — Vertical video and framing.** The first video of an empty project with the default canvas offers a
+      canvas of its shape (a dialog, one Undo step); «Заполнить кадр» / «Вписать в кадр» compute a clip's Scale (the
+      Inspector and the clip's context menu, one Undo step each). `project.json` stays v6. Scope, steps and acceptance
+      criteria: section below and DECISIONS.md D041 (accepted 2026-10-20). *(Branch `feat/phase-26-vertical-video` from
+      `58c48cb`; local commits only)*
 
 ## Future ideas (not phases)
 
@@ -1876,6 +1882,58 @@ separate future phase), a Speed slider, a general redesign, new dependencies, un
 - Release and Debug `--no-incremental -warnaserror`; the full suite, `AIVE_HEAVY_TESTS=1`, three `--blame-hang` runs;
   `git diff --check`; `project.json` v6 byte for byte with `d3df0ba` (`ru` and `en`); parity and undo-step counts; the
   manual plan at 1024 × 640 and 1440 × 900.
+
+## Phase 26 — Vertical video and framing: steps (D041)
+
+Assigned on 2026-10-20 by the product owner (the post-Phase 25 audit's variant A with the answers Q1–Q4); the normative
+text is DECISIONS.md D041. Branch `feat/phase-26-vertical-video` from `origin/main` = `58c48cb` (the merge of PR #26, Phase
+25). The permission covers the code, tests, documentation and local commits on this branch; **no push, pull request or
+merge without a separate command**. A need to change the format, the architecture or agreed behaviour beyond D041 is
+reported with variants before the change.
+
+Goal: a phone video — portrait above all — exported without unwanted black bars in a few clicks; the composition, the
+format and the export otherwise unchanged.
+
+Gates for every step (QG): `dotnet build -warnaserror` 0 / 0; the affected test projects green, the full suite, the heavy
+scenes and `--blame-hang` at the closeout; `project.json` v6 unchanged (byte comparison with `58c48cb`, `ru` and `en`); the
+Preview ↔ export parity suites and every expected value unchanged; every new user-visible text in `Strings` / `Messages`
+with `.ru` (the D039 guards); `docs/PHASE26_MANUAL_TEST_PLAN.md` and `progress.md` updated.
+
+Out of scope (D041 §4): a blurred background, an automatic reframe or tracking, a persistent Fill mode, `project.json` v7,
+a warning before the export, FU-21.2, AI features, the technical-debt refactoring, new dependencies, unrelated improvements.
+
+### 26.0 — Sync and documentation
+- `main` fast-forwarded to `origin/main` = `58c48cb`; the branch; D041 (and D040's merge status); these steps; the manual
+  plan's skeleton; Phase 25 recorded as merged (ROADMAP, `progress.md`, the list above).
+
+### 26.1 — Core rules
+- `ProjectSettingsRules.SuggestedCanvas` (D041 §1: the short side 1080, the long side by the source's aspect rounded to
+  even, the 4096 limit, `CanvasError`); `CompositionMath.FillScale` / `FitScale` (D041 §2: crop, rotation, exact for
+  multiples of 90° and rounded outward, the margin for other angles).
+- Tests: portrait / landscape / square / 20 : 9 / 4 : 3 sources, odd sides, the 4096 limit, sizes `CanvasError` refuses;
+  Fill / Fit with crop, 0 / 90 / 180 / 270 and an odd angle, `CoversCanvas` true after Fill and the picture inside the canvas
+  after Fit, Fit = 1 without rotation, values outside the Scale limits.
+
+### 26.2 — The canvas offer
+- The timeline's view model: after a successful add of a video clip with
+  its picture to an empty timeline, the conditions of D041 §1 → the dialog → `SetCanvasSize` (one Undo step); the session
+  flag reset by New / Open / Recover; localized texts.
+- Tests: shown / not shown (orientation null, size unknown, a non-empty timeline, a canvas not default, a canvas changed in
+  the session, a second add, sound only, a landscape 16 : 9 source), accept / decline / close, Undo / Redo (canvas, then the
+  add), Insert / Overwrite from the Source viewer.
+
+### 26.3 — Fill / Fit commands
+- `ITimelineEditService.FrameClip(clipId, ClipFraming)` — the D041 §2 rule, one Undo step as a gesture of its own,
+  NoChange, the refusals; the Inspector's two buttons; the clip's context menu on the timeline (right click); the export's
+  editing lock; localized texts.
+- Tests: the edit (values, one step, no merge with a typed Scale, refusals, locked track), the Inspector and the menu's
+  commands, a rendering parity test of a filled portrait clip on a landscape canvas and a landscape clip on a portrait one.
+
+### 26.4 — Verification & closeout
+- Release and Debug `--no-incremental -warnaserror`; the full suite, `AIVE_HEAVY_TESTS=1`, three `--blame-hang` runs;
+  `git diff --check`; `project.json` v6 byte for byte with `58c48cb` (`ru` and `en`); the manual plan in the real app at
+  1024 × 640 and 1440 × 900 with the product owner's Vivo and Huawei clips (portrait and landscape, with and without rotation
+  metadata), an export watched in a player; the documentation.
 
 ## Architectural rules that must hold at every phase
 

@@ -2,12 +2,22 @@
 
 ## Current phase
 
-Phase 25 — technical backlog and small UX improvements, branch `feat/phase-25-backlog-ux` (from `origin/main` = `d3df0ba`,
-the merge of PR #25; DECISIONS.md D040, 2026-10-19). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 25 — Technical backlog and
-small UX improvements: steps"; manual plan `docs/PHASE25_MANUAL_TEST_PLAN.md`. Local work only: no push, pull request or
-merge without the product owner's command.
+Phase 26 — vertical video and framing, branch `feat/phase-26-vertical-video` (from `origin/main` = `58c48cb`, the merge of
+PR #26; DECISIONS.md D041, 2026-10-20). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 26 — Vertical video and framing: steps";
+manual plan `docs/PHASE26_MANUAL_TEST_PLAN.md`. Local work only: no push, pull request or merge without the product
+owner's command.
 
-### Phase 25 — Technical backlog and small UX improvements (in progress)
+### Phase 26 — Vertical video and framing (in progress)
+
+- 2026-10-20 — audit (read only) after the merge of PR #26: `origin/main` = `58c48cb` (its tree identical to `1a1ea76`); CI
+  green on the pull request (run 39324613809); the run on `main` (39325624702) still shown as in progress by `gh` — not
+  confirmed green. Worktrees `.claude/worktrees/*` left as they are (`fix/preview-refresh-beyond-end` holds one unmerged
+  commit `7b118a7` of the Phase 15 time). The specification (variant A, Q1–Q4) accepted by the product owner the same day
+  (D041).
+- 2026-10-20 — Step 26.0: local `main` fast-forwarded `d3df0ba` → `58c48cb`; the branch; D041 and D040's merge status; the
+  Phase 26 steps; the manual plan's skeleton; Phase 25 recorded as merged (ROADMAP, DEVELOPMENT_PLAN's list, this file).
+
+### Phase 25 — Technical backlog and small UX improvements (merged 2026-10-19 as `58c48cb`, PR #26)
 
 - 2026-10-19 — audit (read only) after the merge of PR #25: `origin/main` = `d3df0ba` (its tree identical to `e8a67b0`), CI
   green on the pull request (run 39268732382) and on `main` (run 39270377059); locally on `e8a67b0` Release `--no-incremental
@@ -76,6 +86,8 @@ merge without the product owner's command.
 - 2026-10-19 — FU-25.2 accepted by the product owner (PASS WITH NOTES). The last check before publishing: the Inspector at
   1024 × 640 in the real app with the build of `b869c13` (manual plan row G9) — PASS, no defect; no code changed, the suite
   not rerun. The branch holds Phase 25 (`01dbb92` … `62620f9`), FU-25.1 (`1cf6505`) and FU-25.2 (`b869c13`); not pushed.
+- 2026-10-19 — pushed at the product owner's command; PR #26 green (run 39324613809) and merged into `main` as `58c48cb`, its
+  tree identical to `1a1ea76`.
 
 ### Phase 24 — Russian localization and interface polish (merged 2026-10-19 as `d3df0ba`, PR #25)
 

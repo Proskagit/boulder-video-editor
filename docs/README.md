@@ -28,6 +28,11 @@ This directory contains:
   Preview and the export, the model's absence and the CPU fallback, the threshold examples), run at its closeout
 - `PHASE20_MANUAL_TEST_PLAN.md` — manual checks of Phase 20 (the manual correction of hold contours: handles, drag,
   insert, removal, crossing, undo / redo, save / reopen, the Preview and the export)
+- `PHASE21_MANUAL_TEST_PLAN.md` … `PHASE25_MANUAL_TEST_PLAN.md` — manual checks of Phases 21–25 (the outline animation,
+  timeline selection and making room, Move / Scale / Crop in the Preview, the Russian localization, the backlog and small
+  UX improvements), run at their closeouts
+- `PHASE26_MANUAL_TEST_PLAN.md` — manual checks of Phase 26 (the canvas offered by the first video, Fill / Fit, the export
+  of portrait and landscape phone clips), completed per step and run at its closeout
 - `AI_MODEL.md` — the AI hold model: files and checksums, installing, messages, licences and notices, the export recipe
 
 Agent-oriented project context lives in the repository root:

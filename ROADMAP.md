@@ -59,7 +59,17 @@ session state (D015).
 
 ## Current
 
-Phase 25 — technical backlog and small UX improvements (**in progress**; DECISIONS.md D040, 2026-10-19; branch
+Phase 26 — vertical video and framing (**in progress**; DECISIONS.md D041, 2026-10-20; branch
+`feat/phase-26-vertical-video` from `58c48cb`, the merge of PR #26). The first video of an empty project with the default
+canvas offers a canvas of its shape and orientation (a dialog; one Undo step; no offer when the orientation is unknown);
+«Заполнить кадр» / «Вписать в кадр» write a computed Scale into a video or image clip (the Inspector and the clip's context
+menu; one Undo step each; no persistent mode); `project.json` stays v6. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 26 —
+Vertical video and framing: steps"; manual plan `docs/PHASE26_MANUAL_TEST_PLAN.md`. Local commits only.
+
+## Previous
+
+Phase 25 — technical backlog and small UX improvements (**merged**; PR #26 merged into `main` as `58c48cb` on 2026-10-19,
+CI green on the pull request; DECISIONS.md D040, 2026-10-19; branch
 `feat/phase-25-backlog-ux` from `d3df0ba`, the merge of PR #25). `appsettings.json` read from the application's folder
 (FU-24.2), the marker navigation status (FU-21.1), the hold markup mode left on its own (FU-22.1), sliders for Fade In / Out
 and the hold line width (FU-24.1 in part), icons on the timeline's tool bar, the Phase 24 manual gaps; `project.json` stays
@@ -68,9 +78,7 @@ v6. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 25 — Technical backlog and small
 -warnaserror` 0 / 0, the full suite 3910 / 2 / 0, heavy 3912 / 0 / 0, three blame-hang runs clean, `project.json` v6 byte for
 byte with `d3df0ba` in `ru` and `en`, the manual plan run in the real app with its NOT RUN parts named); FU-21.1 fixed, FU-22.1
 not reproduced, FU-24.2 fixed, FU-24.1 in part; **accepted by the product owner on 2026-10-19 — PASS WITH NOTES** (the NOT RUN
-rows stay as they are); FU-25.1 fixed afterwards on the branch at their request, FU-25.2 found; not pushed.
-
-## Previous
+rows stay as they are); FU-25.1 and FU-25.2 fixed afterwards on the branch at their request and accepted.
 
 Phase 24 — Russian localization and interface polish (**merged**; PR #25 merged into `main` as `d3df0ba` on 2026-10-19, CI
 green on the pull request and on `main`; DECISIONS.md D039, 2026-10-19; branch `feat/phase-24-localization` from `c652667`).
@@ -357,7 +365,7 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is merged (PR #25, `d3df0ba`); Phase 25 (technical backlog and small UX improvements, D040) is current. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
+Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is merged (PR #25, `d3df0ba`); Phase 25 (technical backlog and small UX improvements, D040) is merged (PR #26, `58c48cb`); Phase 26 (vertical video and framing, D041) is current. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The
@@ -377,7 +385,8 @@ tracking task. Sketch: `docs/DEVELOPMENT_PLAN.md`, "Future ideas (not phases)".
 ## Follow-ups and backlog
 
 Separate tasks recorded at the Phase 21 acceptance (2026-10-15) and later; none is part of Phase 21 or 22 (D037 §5). Phase 25
-(D040) takes FU-21.1, FU-22.1, FU-24.2 and FU-24.1 in part; FU-21.2 and the vertical-video export stay out.
+(D040) takes FU-21.1, FU-22.1, FU-24.2 and FU-24.1 in part; FU-21.2 and the vertical-video export stay out. Phase 26 (D041)
+takes the vertical-video export.
 
 - **FU-21.1 — "Previous marker" status message (marker issue)** — *Phase 25 (D040 §2).* Going to a marker outside the clip sometimes first shows
   "There is no marker before the playhead", although a second press moves the playhead; after returning, the warning
@@ -390,10 +399,9 @@ Separate tasks recorded at the Phase 21 acceptance (2026-10-15) and later; none 
   playhead put on 00:00:10:00 by a click on the ruler and a video clip selected, "Mark holds" entered the mode ("Preparing
   the frame…"); a few seconds later the playhead stood on 00:00:09:23 and the mode was off (a seek leaves it, D034). Entering
   again at 00:00:09:23 kept it. Phase 19 code (D034), untouched by Phase 22; to be reproduced and analysed separately.
-- **Export of vertical video without unwanted black bars (backlog; a separate future phase, D040 §7).** A vertical (portrait) clip exported on a landscape
-  canvas comes out with black bars at the sides (the D018 fit of a picture to the canvas). The expected framing must be
-  decided first — e.g. a portrait canvas from the clip, a fill / crop-to-canvas mode, or a choice at export — before any
-  change of the export or the composition code. No code changed for it in Phase 21.
+- **Export of vertical video without unwanted black bars** — *Phase 26 (D041): the canvas offered by the first video,
+  one-off Fill / Fit commands; a blurred background and a persistent mode left out.* A vertical (portrait) clip exported on
+  a landscape canvas comes out with black bars at the sides (the D018 fit of a picture to the canvas).
 - **FU-24.1 — Sliders for other numeric fields (recorded at Phase 24, D039 §8)** — *Fade In / Out and the hold line width in
   Phase 25 (D040 §4); a Speed slider not wanted; dragging on labels stays backlog.* Phase 24 adds sliders only to Opacity
   and Volume. Candidates: Fade In / Out (a slider up to the clip's length), Speed (detents at 0.5 / 1 / 2 ×), dragging on
