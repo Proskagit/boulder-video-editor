@@ -3,6 +3,7 @@ using AiVideoEditor.UI.ViewModels;
 using AiVideoEditor.UI.ViewModels.Panels;
 using Avalonia.Controls;
 using Avalonia.Input;
+using CommunityToolkit.Mvvm.Input;
 
 namespace AiVideoEditor.UI.Common;
 
@@ -33,6 +34,9 @@ public static class ShortcutRouter
         return true;
     }
 
+    /// <summary>A key consumed without an action (a running Preview gesture, D038 §1).</summary>
+    public static readonly ICommand Swallowed = new RelayCommand(() => { }, () => false);
+
     /// <summary>Whether <paramref name="element"/> takes typed text, so shortcuts must stay off.</summary>
     public static bool IsTextInput(object? element) => element is TextBox;
 
@@ -47,6 +51,14 @@ public static class ShortcutRouter
         var none = modifiers == KeyModifiers.None;
         var timeline = vm.Timeline;
         var preview = vm.Preview;
+
+        // Phase 23 (D038 §1): during a Preview gesture only Esc acts (it cancels the gesture); every other key is swallowed —
+        // no Undo, Save, Play or timeline key in the middle of a drag. With a tool on, Esc turns it off.
+        if (vm.PreviewTransform is { } transform)
+        {
+            if (transform.IsGestureActive) return key == Key.Escape && none ? transform.EscapeCommand : Swallowed;
+            if (transform.IsActive && key == Key.Escape && none) return transform.EscapeCommand;
+        }
 
         // Phase 19 (D034 §1): while the hold markup is on, Enter confirms the candidate, Esc discards it, Delete removes
         // the selected hold (never a clip), Tab / Shift+Tab switch the candidate's outline. Every other key keeps its

@@ -415,6 +415,25 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   `ITimelineEditService.SetHoldAnimation` (`HoldMarkupFields.Animation*`, one setting merges); the Inspector's "Animation"
   block in `HoldMarkupViewModel`; the markup overlay outlines every contour dashed while the route is animated. Format v6.
 
+## Preview tools: Move, Scale, Crop (Phase 23, D038)
+
+- Core: `Composition/PreviewTransformMath` — pure gesture math on `VisualProperties`: `TransformFrame` (a layer's local
+  rectangle through its transform: a picture's crop rectangle or a text box; corners, edge midpoints, containment of a
+  rotated frame), Move (the canvas delta rounded to whole pixels, Shift's axis), Scale from a corner (the projection on the
+  start diagonal, 0.01 %, the limits; the position kept), the anchored crop (the dragged edges in whole source pixels; the
+  compensating `Scale = k / fit′` and position so the visible picture keeps its place; the edge stops at the source, the
+  minimum size and the scale limits). D018 is unchanged.
+- Undo: `ClipPropertyChange.Gesture` (`ClipPropertyGesture`, compared by reference) → `SetClipPropertiesCommand.Gesture`;
+  the changes of one gesture merge whatever fields they change, never across gestures or with an edit without one; a
+  gesture back at its start removes its step (D017's rule). No format change (v6).
+- UI: `PreviewTransformViewModel` (Move / Crop toggles, the target = the primary selection under the playhead with its frame
+  from the model, gestures in canvas pixels written live through `SetClipProperties`, the cancellations — Esc, capture
+  loss, playback, another selection, Source, `EditingLock`, `ProjectFileWorkflow.BeforeSave`) ← `PreviewTransformOverlay`
+  over the `CompositionView` (reaches over the Preview's 16 px margin, `Inset`, and clips to its bounds; view ↔ canvas
+  through the same viewport, frozen during a gesture; the topmost layer under the pointer selects it through
+  `TimelineViewModel.SelectClipFromPreview`); `ShortcutRouter` gives a running gesture Esc and swallows every other key; the
+  tools and the hold markup mode exclude each other (`MainWindowViewModel`). The frame and handles never reach the export.
+
 ## Thumbnails (Phase 9 Step 9.4)
 
 Decision: D024 "Refined in Step 9.4". Media Browser only; playback and export never read the cache.

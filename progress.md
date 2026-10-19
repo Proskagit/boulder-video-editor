@@ -2,12 +2,62 @@
 
 ## Current phase
 
-Phase 22 — timeline selection, snapping and making room, branch `feat/phase-22-timeline-ux` (from `origin/main` = `7318ba8`,
-the merge of PR #22; DECISIONS.md D037, 2026-10-15). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 22 — Timeline selection,
-snapping and making room: steps"; manual plan `docs/PHASE22_MANUAL_TEST_PLAN.md`. No push, pull request or merge without the
-product owner's command.
+Phase 23 — direct Move, Scale and Crop in the Preview, branch `feat/phase-23-preview-transform` (from `origin/main` =
+`1aaedc8`, the merge of PR #23; DECISIONS.md D038, 2026-10-16). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 23 — Direct Move,
+Scale and Crop in the Preview: steps"; manual plan `docs/PHASE23_MANUAL_TEST_PLAN.md`. Local work only: no push, pull
+request or merge without the product owner's command.
 
-### Phase 22 — Timeline selection, snapping and making room (in progress)
+### Phase 23 — Direct Move, Scale and Crop in the Preview (in progress)
+
+- 2026-10-16 — audit (read only) and the specification; accepted by the product owner the same day with Q1–Q7 as
+  recommended and Scale by the frame's corner handles added (D038).
+- 2026-10-16 — Step 23.0: `origin/main` = `1aaedc8` (PR #23 merged; the local `main` still at `7318ba8`, not touched); the
+  branch created from `origin/main`; D038, the Phase 23 steps, the manual plan skeleton, ROADMAP (Phase 22 merged, Phase 23
+  current).
+- 2026-10-16 / 19 — Steps 23.1–23.6 implemented (commits `2584104`, `589b66f`, `8c34f65`; 23.3–23.6 in one commit — the
+  view-model, overlay, Scale and Crop share one control and were built together):
+  - 23.1 (`Core`): `Composition/PreviewTransformMath` (`TransformFrame`, Move, ScaleFromCorner, AnchoredCrop) —
+    `Core.Tests/PreviewTransformMathTests` (the anchoring checked on 320 layouts: two canvases × four sources × five
+    visuals incl. 37° / −123.5° and scales 0.5–2 × eight drags; the limits, rounding, frames).
+  - 23.2 (`Core`, `Timeline`): `ClipPropertyGesture` / `ClipPropertyChange.Gesture`, the merge rule of
+    `SetClipPropertiesCommand` (X | Y now named "Change Position") — `Timeline.Tests/ClipPropertyGestureTests` (10).
+  - 23.3–23.6 (`UI`, `App`): `PreviewTransformViewModel`, `PreviewTransformOverlay`, the Move / Crop buttons and the bar
+    text in `PreviewView.axaml`, `ShortcutRouter` (Esc / swallowed keys), `ProjectFileWorkflow.BeforeSave`,
+    `TimelineViewModel.SelectClipFromPreview`, `PreviewViewModel.Transform`, the shell wiring and the DI registration —
+    `UI.Tests/PreviewTransformUiTests` (34 test cases), `HoldMarkupUiTests` (+1: the exclusion),
+    `Rendering.Tests/PreviewTransformParityTests` (6: the anchored crop's pixels in the export, the 2 × 2 composition
+    Preview = export, the text box hit test).
+  - A save during a gesture: the gesture is cancelled first (its start written back, no step), then saved — the save point
+    is always a completed step (test: `A_save_during_a_gesture_cancels_it_first_and_the_save_point_is_a_completed_step`).
+- 2026-10-19 — Step 23.7 (verification & closeout):
+  - Real app (Debug, `tools/manual/New-Phase23TransformFixture.ps1`, system input and UI Automation): the 24 rows of
+    `docs/PHASE23_MANUAL_TEST_PLAN.md` — 23 PASS (parts left to the automated tests named in the rows), 1 NOT RUN (row 23,
+    holds after a crop: no holds in the synthetic fixture). Found and fixed (`99b3118`): a frame past the canvas drawn
+    over the neighbouring panels (the overlay now clips to its bounds); the corner handles of a full-canvas clip half cut
+    off on the overlay's edge (the overlay reaches over the Preview's 16 px margin, `Inset`). Preview vs export: frame 1 of
+    the exported 2 × 2 composition (moved, cropped, scaled) against the Preview — mean difference 2.5 / 255.
+  - Gates: `dotnet build AiVideoEditor.sln -c Release --no-incremental -warnaserror` and the same in Debug 0 / 0;
+    `dotnet test AiVideoEditor.sln -c Release --no-build` passed 3846, skipped 2 (the 4K scenes), failed 0 (Core 1085,
+    Timeline 826, Project 485, UI 752, Export 108, Rendering 84, Video 354, ExportEndToEnd 128 + 2, Vision 24) — base
+    `1aaedc8` 3446 / 2 / 0; `AIVE_HEAVY_TESTS=1` 3848 / 0 / 0; three runs with `--blame-hang --blame-hang-timeout 5m`
+    3846 / 2 / 0 each, no hang, no dump; `git diff --check` clean.
+  - State: Phase 23 implemented and verified by Claude; the product owner's acceptance pending. Local commits only — no
+    push, pull request or merge.
+- 2026-10-19 — **Phase 23 accepted by the product owner: PASS WITH NOTES** (23 / 24 rows PASS, row 23 NOT RUN). Two test
+  additions requested before publishing, no product code changed (no defect found):
+  - `PreviewTransformUiTests.The_hold_markup_stays_and_follows_the_picture_after_a_Move_and_a_Crop_and_survives_a_save`
+    and `…Undoing_a_Move_and_a_Crop_leaves_the_hold_markup_untouched` — the markup object untouched by both gestures and
+    their undo / redo; the route outline in the Preview's draw plan through the frame's own transform, moved with the
+    picture, kept in place by the anchored crop and clipped to it; the same hold and place after a save and an open (v6).
+  - `A_text_clip_moves_and_scales_but_has_no_crop` now drags the text's corner handle: Scale 1.5 → 2 around the centre,
+    the position kept, the Inspector 200 %, one undo step "Scale Clip", Undo / Redo exact, no crop.
+  - Row 23 of the manual plan stays NOT RUN (not checked in the real app); its automated coverage column names the new
+    tests. Push of the branch and a pull request into `main` permitted; the merge stays with the product owner.
+  - Gates after the additions: Release and Debug `--no-incremental -warnaserror` 0 / 0; the full suite passed 3848, skipped
+    2 (the 4K scenes), failed 0 (UI 754); `AIVE_HEAVY_TESTS=1` 3850 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m`
+    runs 3848 / 2 / 0 each, no hang, no dump; `git diff --check` clean.
+
+### Phase 22 — Timeline selection, snapping and making room (merged 2026-10-16 as `1aaedc8`, PR #23)
 
 - 2026-10-15 — pre-flight (read only): local `main` was 3 commits behind `origin/main` (a fast-forward), the working tree
   clean except the untracked `.claude/`. Found in the code: Ctrl+click multi-selection with the link partner (AQ1), group

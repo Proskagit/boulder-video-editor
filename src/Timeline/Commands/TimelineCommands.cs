@@ -1,5 +1,6 @@
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Interfaces;
 
 namespace AiVideoEditor.Timeline.Commands;
 
@@ -298,19 +299,24 @@ public sealed class SetTrackStateCommand : IUndoableCommand
 /// Sets a clip's non-timing properties from one absolute snapshot to another. Execute writes
 /// <see cref="After"/>, Undo writes <see cref="Before"/> — the captured values themselves, never
 /// recomputed. Consecutive changes of the same <see cref="Fields"/> of the same clip merge into
-/// one step whose Undo still restores the state before the first of them.
+/// one step whose Undo still restores the state before the first of them. The changes of one Preview gesture
+/// (<see cref="Gesture"/>, D038 §4) merge with each other whatever fields they change, and never with any other.
 /// </summary>
-public sealed class SetClipPropertiesCommand(Clip clip, ClipPropertyValues before, ClipPropertyValues after, ClipPropertyFields fields)
+public sealed class SetClipPropertiesCommand(Clip clip, ClipPropertyValues before, ClipPropertyValues after, ClipPropertyFields fields,
+    ClipPropertyGesture? gesture = null)
     : IMergeableCommand
 {
     public Clip Clip { get; } = clip;
     public ClipPropertyValues Before { get; } = before;
     public ClipPropertyValues After { get; } = after;
 
-    /// <summary>The properties this step changes (fixed by its first edit when merged).</summary>
+    /// <summary>The properties this step changes (fixed by its first edit when merged; a gesture's step: all of them).</summary>
     public ClipPropertyFields Fields { get; } = fields;
 
-    public string Description => Describe(Fields);
+    /// <summary>The Preview gesture the step belongs to, or null.</summary>
+    public ClipPropertyGesture? Gesture { get; } = gesture;
+
+    public string Description => Gesture?.Description ?? Describe(Fields);
 
     public void Execute() => After.ApplyTo(Clip);
     public void Undo() => Before.ApplyTo(Clip);
@@ -318,17 +324,18 @@ public sealed class SetClipPropertiesCommand(Clip clip, ClipPropertyValues befor
     public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
     {
         merged = null;
-        if (next is not SetClipPropertiesCommand n || n.Clip != Clip || n.Fields != Fields || n.Before != After)
+        if (next is not SetClipPropertiesCommand n || n.Clip != Clip || n.Before != After || !ReferenceEquals(n.Gesture, Gesture))
             return false;
+        if (Gesture is null && n.Fields != Fields) return false;
 
         if (n.After != Before)
-            merged = new SetClipPropertiesCommand(Clip, Before, n.After, Fields);
+            merged = new SetClipPropertiesCommand(Clip, Before, n.After, Gesture is null ? Fields : Fields | n.Fields, Gesture);
         return true; // merged stays null when the second edit restored the first one's "before"
     }
 
     private static string Describe(ClipPropertyFields fields) => fields switch
     {
-        ClipPropertyFields.PositionX or ClipPropertyFields.PositionY => "Change Position",
+        ClipPropertyFields.PositionX or ClipPropertyFields.PositionY or (ClipPropertyFields.PositionX | ClipPropertyFields.PositionY) => "Change Position",
         ClipPropertyFields.Scale => "Change Scale",
         ClipPropertyFields.Rotation => "Change Rotation",
         ClipPropertyFields.Opacity => "Change Opacity",
