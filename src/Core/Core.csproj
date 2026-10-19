@@ -14,4 +14,10 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- D039: user-visible texts; English neutral, Russian satellite. MSBuild generates the strongly typed class (no package). -->
+    <EmbeddedResource Update="Localization\Messages.resx" StronglyTypedFileName="$(IntermediateOutputPath)Messages.g.cs" StronglyTypedLanguage="CSharp"
+                      StronglyTypedNamespace="AiVideoEditor.Core.Localization" StronglyTypedClassName="Messages" PublicClass="true" />
+  </ItemGroup>
+
 </Project>

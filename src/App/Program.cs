@@ -1,7 +1,9 @@
 using AiVideoEditor.App.Composition;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Infrastructure.Configuration;
 using AiVideoEditor.Infrastructure.Logging;
 using Avalonia;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -27,6 +29,11 @@ internal static class Program
 
             using var host = CreateHost();
             App.Services = host.Services;
+
+            // D039 §1: the interface language comes from App:Language ("ru" by default), never from the OS.
+            var language = host.Services.GetRequiredService<IConfiguration>()["App:Language"] ?? "ru";
+            if (!UiLanguage.Apply(language))
+                Log.Warning("Unknown App:Language {Language}; the interface is in English.", language);
 
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 
