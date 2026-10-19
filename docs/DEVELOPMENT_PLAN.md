@@ -148,7 +148,8 @@ and runs cleanly.
       (FU-24.2); the marker navigation status (FU-21.1); the hold markup mode left on its own (FU-22.1); sliders for Fade
       In / Out and the hold line width (FU-24.1, in part); icons on the timeline's tool bar; the Phase 24 manual gaps.
       `project.json` stays v6. Scope, steps and acceptance criteria: section below and DECISIONS.md D040 (accepted
-      2026-10-19). *(Branch `feat/phase-25-backlog-ux` from `d3df0ba`)*
+      2026-10-19). *(Branch `feat/phase-25-backlog-ux` from `d3df0ba`; Steps 25.0–25.6 done and verified by Claude on
+      2026-10-19; awaiting the product owner's acceptance; local commits only)*
 
 ## Future ideas (not phases)
 
@@ -1837,39 +1838,39 @@ the Preview ↔ export parity suites and every expected value unchanged; every n
 Out of scope (D040 §7): FU-21.2 (clip-bound markers, no change of the marker model), the export of vertical video (a
 separate future phase), a Speed slider, a general redesign, new dependencies, unrelated backlog.
 
-### 25.0 — Sync and documentation
+### 25.0 — Sync and documentation *(done, `01dbb92`)*
 - `main` fast-forwarded to `origin/main` = `d3df0ba`; the branch; D040; these steps; the manual plan skeleton; the
   documentation brought in line with the merges (Phases 19, 20, 22, 24 in the list above, ROADMAP, `progress.md`).
 
-### 25.1 — Configuration (FU-24.2)
+### 25.1 — Configuration (FU-24.2) *(done, `3fbdf5e`)*
 - The host's content root is `AppContext.BaseDirectory`, so `appsettings.json` next to the exe is read whatever the
   process's current directory; the command-line `args` go to the builder.
 - Tests: the host built with another current directory reads `App:Language` and `Ffmpeg:*` from the application's folder.
 
-### 25.2 — Marker navigation status (FU-21.1)
+### 25.2 — Marker navigation status (FU-21.1) *(done, `4e491d1`; the cause and the fix in D040 "Refined in Step 25.2")*
 - Reproduce, find the cause; a successful Previous / Next marker reports a localized status with the marker's timecode,
   a refusal keeps its message.
 - Tests: frame boundaries (the playhead on, just before / after a marker's frame), the playhead past the sequence's end,
   the status replaced after a refusal.
 
-### 25.3 — The hold markup mode left on its own (FU-22.1)
+### 25.3 — The hold markup mode left on its own (FU-22.1) *(done, `a7b1811` — not reproduced, no product code changed; D040 "Refined in Step 25.3")*
 - Reproduce, find the cause, a regression test. If the mode is left by the playhead's own adjustment while the frame is
   prepared, D034 is refined: that internal adjustment is not a user seek; a user seek still leaves the mode. If the two
   cannot be told apart reliably, or the fix needs another change of agreed behaviour — stop and report before the code.
 
-### 25.4 — Sliders (FU-24.1, in part)
+### 25.4 — Sliders (FU-24.1, in part) *(done, `4a471fa`)*
 - Fade In / Fade Out (video and audio clips) and the hold line width get a slider under their field, bound to the same
   property; the field keeps exact typing; one finished drag is one undo step (D017's merge); the Fade maximum is the
   field's existing maximum and follows the clip's length.
 - Tests: the binding and one undo step per drag for each new slider and for Volume (the Phase 24 gap); Volume checked in
   the real app on a clip with sound. No Speed slider.
 
-### 25.5 — Icons on the timeline's tool bar
+### 25.5 — Icons on the timeline's tool bar *(done, `4c53633`; Unlink taken with Link)*
 - Icons from the D039 §7 set (same style) for + Text, + Video / Audio track, Paste, Duplicate, Ripple Delete, Close Gap,
   Dissolve, Link and Fit; the localized labels and tooltips stay — no button becomes nameless for compactness.
 - The layout checked at 1024 × 640 and 1440 × 900.
 
-### 25.6 — Verification & closeout
+### 25.6 — Verification & closeout *(done by Claude 2026-10-19 — results in `progress.md` and the manual plan)*
 - The Phase 24 manual gaps (sound, model errors, a damaged project, a failed export, the track and marker tooltips) run in
   the real app or marked NOT RUN — never PASS without a run.
 - Release and Debug `--no-incremental -warnaserror`; the full suite, `AIVE_HEAVY_TESTS=1`, three `--blame-hang` runs;

@@ -5225,9 +5225,11 @@ encoder) reads the playhead and never seeks, and a paused playback clock does no
 playback, the Preview's timer running while the model loads, the playhead put by the ruler on 00:00:10:00 (a clip's first
 frame) and inside a clip: the mode stays on and the playhead does not move (`HoldMarkupUiTests`). The Step 22.6 run drove
 the app with synthetic keys, and in that run arrows sent without `KEYEVENTF_EXTENDEDKEY` lost their modifier (progress.md,
-Phase 22): a bare Left arrow is a one-frame step back — exactly 00:00:10:00 → 00:00:09:23 — and a user seek, which leaves the
-mode by D034. The most likely cause is therefore the harness, not the product; the real-app check is row 5 of
-`docs/PHASE25_MANUAL_TEST_PLAN.md`.
+Phase 22): a bare Left arrow is a one-frame step back and a user seek, which leaves the mode by D034; 00:00:10:00 →
+00:00:09:23 at 25 fps is two such frames (one step gives 00:00:09:24, checked in the real app). The most likely cause is
+therefore stray keys of the harness, not the product — not proven, as the 22.6 key log is gone. Real app (Step 25.6, row 5
+of `docs/PHASE25_MANUAL_TEST_PLAN.md`): the ruler click on 00:00:10:00, the clip selected, «Разметить зацепки» — the mode
+on for 12 s with the model loaded, the playhead unmoved; a Left arrow then left it (00:00:09:24).
 
 ### 4. Sliders (FU-24.1, in part)
 
@@ -5258,7 +5260,21 @@ rows were "auto only"; the documentation lagged the merges of Phases 19, 20, 22 
 
 Consequences: no new dependency, no format change; a few new resources (en + ru); the guards unchanged.
 
-Status: Accepted (2026-10-19, product owner).
+Implementation notes (2026-10-19, Phase 25):
+- §1: `App/Composition/AppHostBuilder` (the content root `AppContext.BaseDirectory`, the `args`); checked in the real app with
+  another current directory and ffmpeg off PATH.
+- §2: see "Refined in Step 25.2" — the fix also keeps a click on the ruler past the end where it was put at the first click
+  (before, the first such seek in a non-empty project was pulled back to the end, the next ones not).
+- §3: see "Refined in Step 25.3" — not reproduced; no code changed.
+- §4: Fade In / Out and the hold line width, as Opacity / Volume; the Volume slider now has its own test and was checked in
+  the app.
+- §5: eleven icons; Unlink was taken with Link (the two are one pair of buttons, the label stays bound); − / + stay glyphs.
+  The «Insert» of the specification is the bar's «Вставить» (Paste).
+- Found outside the scope (Step 25.6), not changed: the Inspector's numeric fields cut a three-digit value (FU-25.1).
+
+Status: Accepted (2026-10-19, product owner). Implemented in Phase 25 (branch `feat/phase-25-backlog-ux`); verified by Claude
+on 2026-10-19 (the gates, the `project.json` v6 byte comparison with `d3df0ba`, the real-app run of
+`docs/PHASE25_MANUAL_TEST_PLAN.md`); the product owner's acceptance pending.
 ---
 
 ## How to add a decision

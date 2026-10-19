@@ -24,7 +24,7 @@ merge without the product owner's command.
   25.2"; `Marker_Reached` (en + ru); `UI.Tests/MarkerNavigationTests` (7). UI.Tests 780 / 0 / 0, Timeline.Tests 828 / 0 / 0.
 - 2026-10-19 — Step 25.3 (FU-22.1): not reproduced in code — nothing moves the playhead while the frame is prepared;
   replayed with the real shell and playback (`HoldMarkupUiTests`, 2 cases: the mode stays on, a step back still leaves it).
-  Most likely cause: the Step 22.6 harness's arrow key that lost its modifier (a one-frame step back). No product code and
+  Most likely cause: stray arrow keys of the Step 22.6 harness (09:23 is two frames back; not proven). No product code and
   no D034 change (D040 "Refined in Step 25.3"); the real-app check in the manual plan (row 5).
 - 2026-10-19 — Step 25.4: sliders under Fade In / Fade Out (every clip kind with fades) and the hold line width (1–32),
   the same `Slider.under` style and `DecimalDouble` as Opacity / Volume; the Fade maximum bound to the field's
@@ -36,6 +36,21 @@ merge without the product owner's command.
   owner's «Insert» is the bar's «Вставить» (Paste) — the bar has no Insert. `IconViewTests` + 1 (the AXAML: every command an
   icon, a resource label and a tooltip). Real app (Debug, the Phase 10 fixture): two rows at 1024 × 640 and at 1440 × 900,
   nothing cut. UI.Tests 788 / 0 / 0.
+- 2026-10-19 — Step 25.6 (verification & closeout):
+  - Gates: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` Release and Debug 0 / 0; `dotnet test` Release passed
+    3910, skipped 2 (the 4K scenes), failed 0 (Core 1111, Timeline 828, Project 485, UI 788, Export 108, Rendering 84, Video
+    354, ExportEndToEnd 128 + 2, Vision 24); `AIVE_HEAVY_TESTS=1` 3912 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m`
+    runs 3910 / 2 / 0 each, no hang, no dump; `git diff --check` clean. The parity suites (Rendering, ExportEndToEnd) and
+    every expected value unchanged; the undo-step counts covered by the slider tests and the real-app rows 6–8.
+  - `project.json` v6 against `d3df0ba`: the base built from `git archive d3df0ba` (Debug); a fresh Phase 10 fixture saved by
+    it (v6); three copies opened and saved without an edit — by the base, by this build with `ru` and with `en` (the
+    exe's folder as the current directory) — 11 678 bytes each, byte-identical (SHA-256 `6DD5EF8B…`).
+  - Real app (`docs/PHASE25_MANUAL_TEST_PLAN.md`, 15 rows): 1–11, 15 PASS; 13 and 14 PASS in part (the Open dialog path and
+    the warnings dialog NOT RUN); 12 NOT RUN (it needs the installed model damaged); 8's audible part NOT RUN. FU-22.1 not
+    reproduced in the real app either. Found outside the scope, not changed: FU-25.1 (the Inspector's numeric fields cut
+    «100» to «10(»).
+  - State: Phase 25 implemented and verified by Claude; the product owner's acceptance pending. Local commits only — no push,
+    pull request or merge.
 
 ### Phase 24 — Russian localization and interface polish (merged 2026-10-19 as `d3df0ba`, PR #25)
 

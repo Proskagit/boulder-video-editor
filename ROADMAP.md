@@ -64,7 +64,10 @@ Phase 25 — technical backlog and small UX improvements (**in progress**; DECIS
 (FU-24.2), the marker navigation status (FU-21.1), the hold markup mode left on its own (FU-22.1), sliders for Fade In / Out
 and the hold line width (FU-24.1 in part), icons on the timeline's tool bar, the Phase 24 manual gaps; `project.json` stays
 v6. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 25 — Technical backlog and small UX improvements: steps"; manual plan
-`docs/PHASE25_MANUAL_TEST_PLAN.md`.
+`docs/PHASE25_MANUAL_TEST_PLAN.md`. Steps 25.0–25.6 done (verified by Claude 2026-10-19: Release / Debug `--no-incremental
+-warnaserror` 0 / 0, the full suite 3910 / 2 / 0, heavy 3912 / 0 / 0, three blame-hang runs clean, `project.json` v6 byte for
+byte with `d3df0ba` in `ru` and `en`, the manual plan run in the real app with its NOT RUN parts named); FU-21.1 fixed, FU-22.1
+not reproduced, FU-24.2 fixed, FU-24.1 in part; FU-25.1 found; the product owner's acceptance pending.
 
 ## Previous
 
@@ -397,6 +400,9 @@ Separate tasks recorded at the Phase 21 acceptance (2026-10-15) and later; none 
 - **FU-24.2 — `appsettings.json` read from the current directory (observed at Phase 24, D039 implementation notes)** —
   *Phase 25 (D040 §1).* The host's content root was the process's current directory: started from another folder the app
   ran with the defaults and without the `Ffmpeg:*` paths.
+- **FU-25.1 — The Inspector's numeric fields cut a three-digit value (found at Step 25.6, not changed).** «100» shows as «10(»
+  in Громкость, Масштаб and Непрозрачность: the field is 104 px wide with its two spinner buttons (at 125 %). Present since
+  before Phase 25. Proposed: a wider field or stacked spinner buttons, checked at 1024 / 1440. Not decided.
 
 ## Rule
 
