@@ -5006,8 +5006,14 @@ Consequences: no format change and no new dependency; a pure gesture-math class 
 two buttons in the Preview bar; `ShortcutRouter` gives a running gesture Esc and swallows the rest; the save workflow cancels
 a gesture before saving.
 
+Implementation notes (2026-10-19, Phase 23): only the handles are grab targets (not the frame's edge lines); the overlay
+reaches over the Preview's 16 px margin so the handles of a clip that fills the canvas are whole, and it clips to the
+Preview so a frame past the canvas never covers the panels around it (both found in the real-app run); the model is written
+on every pointer move whose rounded result differs (no throttling was needed in the real-app run).
+
 Status: Accepted (2026-10-16, product owner: the Phase 23 specification and the answers Q1–Q7, with Scale by the corner
-handles added). To be implemented in Phase 23 (branch `feat/phase-23-preview-transform`).
+handles added). Implemented in Phase 23 (branch `feat/phase-23-preview-transform`); verified by Claude on 2026-10-19 (the
+gates and the real-app run of `docs/PHASE23_MANUAL_TEST_PLAN.md`); the product owner's acceptance pending.
 
 ---
 

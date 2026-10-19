@@ -1692,10 +1692,10 @@ Out of scope (D038 §5): rotation by the mouse, guides / snapping, several clips
 as a whole, arrow nudges and shortcuts for the tools, transforming during playback, the Inspector's crop semantics,
 keyframes, the dimmed picture of the cropped-away part; FU-21.1, FU-21.2, FU-22.1 and the vertical-video export framing.
 
-### 23.0 — Sync and documentation
+### 23.0 — Sync and documentation *(done)*
 - The branch from `origin/main` = `1aaedc8`; D038; these steps; the manual plan skeleton; ROADMAP and `progress.md`.
 
-### 23.1 — Gesture math (Core)
+### 23.1 — Gesture math (Core) *(done)*
 - `Core/Composition/PreviewTransformMath`: the frame of a picture / text (local rectangle, corners, containment), Move (the
   canvas delta rounded to whole pixels, Shift's axis, the limit), Scale from a corner (the projection on the start diagonal,
   0.01 %, the limits), the anchored crop (the dragged edges in whole source pixels; the minimum size; the compensating
@@ -1704,14 +1704,14 @@ keyframes, the dimmed picture of the cropped-away part; FU-21.1, FU-21.2, FU-22.
   0°, 90°, 180°, 37°, scales 0.5 / 2, a portrait source on a landscape canvas and the reverse; every handle; the limits
   (the edge stops, the result valid); rounding; Move and Scale with rotation; containment of a rotated frame.
 
-### 23.2 — One undo step per gesture (Timeline)
+### 23.2 — One undo step per gesture (Timeline) *(done)*
 - `ClipPropertyGesture` and `ClipPropertyChange.Gesture`; `SetClipPropertiesCommand` merges the edits of one gesture
   (fields united, its description) and never across gestures or with an edit without one; D017's rule unchanged otherwise.
 - Tests: `Timeline.Tests` — one step for a gesture changing different fields, two gestures two steps, a gesture after an
   Inspector edit of the same field not merged and the reverse, a return to the start removes the step and leaves no redo,
   the save point, a locked track, exact undo / redo.
 
-### 23.3 — Tool view-model and modes (UI)
+### 23.3 — Tool view-model and modes (UI) *(done)*
 - `PreviewTransformViewModel`: Move / Crop (exclusive), availability (Timeline mode, no export), the hold markup exclusion,
   the target (the primary selection under the playhead; its frame from the model), the bar's text, gestures (begin / update
   / end / cancel in canvas coordinates, the frozen geometry), the cancellations of D038 §4, the save hook in
@@ -1719,23 +1719,23 @@ keyframes, the dimmed picture of the cropped-away part; FU-21.1, FU-21.2, FU-22.
   keys swallowed during a gesture); the shell wiring.
 - Tests: `UI.Tests/PreviewTransformUiTests`.
 
-### 23.4 — Overlay: the frame, selection and Move (UI)
+### 23.4 — Overlay: the frame, selection and Move (UI) *(done)*
 - `PreviewTransformOverlay` over the Preview's `CompositionView` (view ↔ canvas through the viewport; the frame, its
   keyline and centre; the topmost layer under the pointer; the press / drag / release / capture loss; cursors); the two
   buttons and the bar's text in `PreviewView.axaml`.
 - Tests: `UI.Tests/PreviewTransformUiTests` (the hit test through the viewport with a letterbox, a rotated frame, text,
   the topmost layer, the target winning inside its frame).
 
-### 23.5 — Scale by the corner handles (UI)
+### 23.5 — Scale by the corner handles (UI) *(done)*
 - The four corner handles in Move; the scale gesture; the handles' priority over the inside; no handle in Crop.
 - Tests: `UI.Tests/PreviewTransformUiTests` (a corner drag through the view, rotation, the limits, Position unchanged).
 
-### 23.6 — Crop handles (UI)
+### 23.6 — Crop handles (UI) *(done)*
 - The eight handles in Crop (pictures only), the full source outline, the anchored crop gesture.
 - Tests: `UI.Tests/PreviewTransformUiTests` (an edge / corner drag through the view, the anchoring on the screen, a
   portrait clip, rotation, the limits, text refused).
 
-### 23.7 — Verification & closeout
+### 23.7 — Verification & closeout *(done by Claude 2026-10-19; acceptance by the product owner pending)*
 - Build `-warnaserror` Release and Debug, the full suite, the heavy scenes, three `--blame-hang` runs, `git diff --check`;
   Preview ↔ export parity of transformed clips; the manual plan in the real app; the docs.
 

@@ -14,6 +14,35 @@ request or merge without the product owner's command.
 - 2026-10-16 — Step 23.0: `origin/main` = `1aaedc8` (PR #23 merged; the local `main` still at `7318ba8`, not touched); the
   branch created from `origin/main`; D038, the Phase 23 steps, the manual plan skeleton, ROADMAP (Phase 22 merged, Phase 23
   current).
+- 2026-10-16 / 19 — Steps 23.1–23.6 implemented (commits `2584104`, `589b66f`, `8c34f65`; 23.3–23.6 in one commit — the
+  view-model, overlay, Scale and Crop share one control and were built together):
+  - 23.1 (`Core`): `Composition/PreviewTransformMath` (`TransformFrame`, Move, ScaleFromCorner, AnchoredCrop) —
+    `Core.Tests/PreviewTransformMathTests` (the anchoring checked on 320 layouts: two canvases × four sources × five
+    visuals incl. 37° / −123.5° and scales 0.5–2 × eight drags; the limits, rounding, frames).
+  - 23.2 (`Core`, `Timeline`): `ClipPropertyGesture` / `ClipPropertyChange.Gesture`, the merge rule of
+    `SetClipPropertiesCommand` (X | Y now named "Change Position") — `Timeline.Tests/ClipPropertyGestureTests` (10).
+  - 23.3–23.6 (`UI`, `App`): `PreviewTransformViewModel`, `PreviewTransformOverlay`, the Move / Crop buttons and the bar
+    text in `PreviewView.axaml`, `ShortcutRouter` (Esc / swallowed keys), `ProjectFileWorkflow.BeforeSave`,
+    `TimelineViewModel.SelectClipFromPreview`, `PreviewViewModel.Transform`, the shell wiring and the DI registration —
+    `UI.Tests/PreviewTransformUiTests` (34 test cases), `HoldMarkupUiTests` (+1: the exclusion),
+    `Rendering.Tests/PreviewTransformParityTests` (6: the anchored crop's pixels in the export, the 2 × 2 composition
+    Preview = export, the text box hit test).
+  - A save during a gesture: the gesture is cancelled first (its start written back, no step), then saved — the save point
+    is always a completed step (test: `A_save_during_a_gesture_cancels_it_first_and_the_save_point_is_a_completed_step`).
+- 2026-10-19 — Step 23.7 (verification & closeout):
+  - Real app (Debug, `tools/manual/New-Phase23TransformFixture.ps1`, system input and UI Automation): the 24 rows of
+    `docs/PHASE23_MANUAL_TEST_PLAN.md` — 23 PASS (parts left to the automated tests named in the rows), 1 NOT RUN (row 23,
+    holds after a crop: no holds in the synthetic fixture). Found and fixed (`99b3118`): a frame past the canvas drawn
+    over the neighbouring panels (the overlay now clips to its bounds); the corner handles of a full-canvas clip half cut
+    off on the overlay's edge (the overlay reaches over the Preview's 16 px margin, `Inset`). Preview vs export: frame 1 of
+    the exported 2 × 2 composition (moved, cropped, scaled) against the Preview — mean difference 2.5 / 255.
+  - Gates: `dotnet build AiVideoEditor.sln -c Release --no-incremental -warnaserror` and the same in Debug 0 / 0;
+    `dotnet test AiVideoEditor.sln -c Release --no-build` passed 3846, skipped 2 (the 4K scenes), failed 0 (Core 1085,
+    Timeline 826, Project 485, UI 752, Export 108, Rendering 84, Video 354, ExportEndToEnd 128 + 2, Vision 24) — base
+    `1aaedc8` 3446 / 2 / 0; `AIVE_HEAVY_TESTS=1` 3848 / 0 / 0; three runs with `--blame-hang --blame-hang-timeout 5m`
+    3846 / 2 / 0 each, no hang, no dump; `git diff --check` clean.
+  - State: Phase 23 implemented and verified by Claude; the product owner's acceptance pending. Local commits only — no
+    push, pull request or merge.
 
 ### Phase 22 — Timeline selection, snapping and making room (merged 2026-10-16 as `1aaedc8`, PR #23)
 
