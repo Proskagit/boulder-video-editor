@@ -5177,7 +5177,7 @@ Implementation notes (2026-10-19, Phase 24):
 
 Status: Accepted (2026-10-19, product owner). Implemented in Phase 24 (branch `feat/phase-24-localization`); verified by Claude
 on 2026-10-19 (the gates, the `project.json` v6 byte comparison with `c652667`, the real-app run of
-`docs/PHASE24_MANUAL_TEST_PLAN.md`); the product owner's acceptance pending.
+`docs/PHASE24_MANUAL_TEST_PLAN.md`); accepted by the product owner on 2026-10-19.
 
 ---
 

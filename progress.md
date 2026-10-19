@@ -50,6 +50,8 @@ merge without the product owner's command.
     hold no stray English apart from technical tokens (a config key, a file name, SHA-256).
   - State: Phase 24 implemented and verified by Claude; the product owner's acceptance pending. Local commits only — no push,
     pull request or merge.
+- 2026-10-19 — **Phase 24 accepted by the product owner.** Push of the branch and a pull request into `main` permitted; the
+  merge stays with the product owner.
 
 ### Phase 23 — Direct Move, Scale and Crop in the Preview (merged 2026-10-19 as `c652667`, PR #24)
 
