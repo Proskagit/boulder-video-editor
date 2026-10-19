@@ -19,6 +19,40 @@ public static class ProjectSettingsRules
     /// <summary>The largest canvas area, in pixels: 36 864 macroblocks of 16 × 16, the frame-size limit of H.264 level 5.1.</summary>
     public const long MaxCanvasArea = 36_864L * 16 * 16;
 
+    /// <summary>The canvas of a new project (D018: never taken from a video by itself).</summary>
+    public const int DefaultCanvasWidth = 1920;
+
+    /// <summary>The canvas of a new project.</summary>
+    public const int DefaultCanvasHeight = 1080;
+
+    /// <summary>
+    /// The canvas the first video offers (D041 §1): the source's shape at the default canvas's class — the short side 1080,
+    /// the long side <c>1080 × long / short</c> rounded to the nearest even number (a half up), in the source's orientation;
+    /// a long side above <see cref="MaxCanvasSide"/> is set to it and the short side derived the same way. Null when the
+    /// size is not positive or the result breaks <see cref="CanvasError"/>. <paramref name="sourceWidth"/> ×
+    /// <paramref name="sourceHeight"/> is the display size — the frames as the decoder delivers them, after the rotation.
+    /// </summary>
+    public static (int Width, int Height)? SuggestedCanvas(int sourceWidth, int sourceHeight)
+    {
+        if (sourceWidth <= 0 || sourceHeight <= 0) return null;
+
+        long shortSource = Math.Min(sourceWidth, sourceHeight), longSource = Math.Max(sourceWidth, sourceHeight);
+        long shortSide = Math.Min(DefaultCanvasWidth, DefaultCanvasHeight);
+        var longSide = NearestEven(shortSide * longSource, shortSource);
+        if (longSide > MaxCanvasSide)
+        {
+            longSide = MaxCanvasSide;
+            shortSide = NearestEven(MaxCanvasSide * shortSource, longSource);
+        }
+
+        var (width, height) = sourceWidth >= sourceHeight ? ((int)longSide, (int)shortSide) : ((int)shortSide, (int)longSide);
+        return CanvasError(width, height) is null ? (width, height) : null;
+    }
+
+    /// <summary>The even number nearest to <paramref name="numerator"/> / <paramref name="denominator"/> (both positive),
+    /// a half up: <c>2 · ⌊(n + d) / 2d⌋</c>, in integers.</summary>
+    private static long NearestEven(long numerator, long denominator) => 2 * ((numerator + denominator) / (2 * denominator));
+
     /// <summary>The project frame rates a user may choose: 23.976, 24, 25, 29.97, 30, 50, 59.94, 60.</summary>
     public static IReadOnlyList<FrameRate> SelectableFrameRates { get; } = new[]
     {

@@ -80,6 +80,55 @@ public static class CompositionMath
     }
 
     /// <summary>
+    /// The <see cref="VisualProperties.Scale"/> at which the picture, centred on the canvas, covers it (D041 §2 "Fill"):
+    /// the cropped source <c>w × h</c> at its rotation θ, with D018's fit <c>f</c>,
+    /// <c>max((W·|cos θ| + H·|sin θ|) / (f·w), (W·|sin θ| + H·|cos θ|) / (f·h))</c>. Multiples of 90° are exact (rational)
+    /// and rounded up, so <see cref="LayerGeometry.CoversCanvas"/> holds at a zero position; other angles keep twice
+    /// <see cref="Covers"/>'s margin. Only the scale is computed — the position, rotation and crop are the given ones. The
+    /// result is not limited to <see cref="ClipPropertyLimits"/>; throws for invalid input as <see cref="Layout"/>.
+    /// </summary>
+    public static double FillScale(FrameSize canvas, FrameSize source, VisualProperties visual) =>
+        FrameScale(canvas, source, visual, fill: true);
+
+    /// <summary>
+    /// The <see cref="VisualProperties.Scale"/> at which the whole picture, centred on the canvas, is visible (D041 §2
+    /// "Fit"): <c>min(W / (f·(w·|cos θ| + h·|sin θ|)), H / (f·(w·|sin θ| + h·|cos θ|)))</c> — exactly 1 without rotation
+    /// (D018's "contain"). Multiples of 90° are exact and rounded down. Not limited; throws as <see cref="Layout"/>.
+    /// </summary>
+    public static double FitScale(FrameSize canvas, FrameSize source, VisualProperties visual) =>
+        FrameScale(canvas, source, visual, fill: false);
+
+    private static double FrameScale(FrameSize canvas, FrameSize source, VisualProperties visual, bool fill)
+    {
+        var g = Layout(canvas, source, visual with { Scale = 1, PositionX = 0, PositionY = 0 });
+
+        if (Affine2D.QuarterTurns(visual.RotationDegrees) is { } quarters)
+        {
+            // The same exact values as Covers: the crop from the model's doubles, the fit as the exact "contain".
+            ExactRational R(double x) => ExactRational.FromDouble(x);
+            ExactRational cw = canvas.Width, ch = canvas.Height;
+            var w = (1 - R(visual.Crop.Left) - R(visual.Crop.Right)) * source.Width;
+            var h = (1 - R(visual.Crop.Top) - R(visual.Crop.Bottom)) * source.Height;
+            var f = ExactRational.Min(cw / w, ch / h);
+            var (dw, dh) = quarters % 2 == 0 ? (w * f, h * f) : (h * f, w * f);
+            return fill
+                ? ExactRational.Max(cw / dw, ch / dh).ToDoubleAtLeast()
+                : ExactRational.Min(cw / dw, ch / dh).ToDoubleAtMost();
+        }
+
+        var (sin, cos) = Affine2D.SinCos(visual.RotationDegrees);
+        (sin, cos) = (Math.Abs(sin), Math.Abs(cos));
+        double W = canvas.Width, H = canvas.Height, sw = g.SourceRect.Width, sh = g.SourceRect.Height, fit = g.FitScale;
+        if (fill)
+        {
+            // Covers maps the canvas corners back into the picture and wants them a margin inside every edge.
+            var margin = 2 * 1e-6 * Math.Max(1.0, Math.Max(sw, sh));
+            return Math.Max((W * cos + H * sin) / (fit * (sw - 2 * margin)), (W * sin + H * cos) / (fit * (sh - 2 * margin)));
+        }
+        return Math.Min(W / (fit * (sw * cos + sh * sin)), H / (fit * (sw * sin + sh * cos)));
+    }
+
+    /// <summary>
     /// Transform of a text layer: text has no source picture and is not fitted. The renderer lays the
     /// text out at the given font size (canvas pixels), centres the resulting box on the local origin
     /// and applies this transform: <c>T(canvasW/2 + PositionX, canvasH/2 + PositionY) · R(rotation) · S(scale)</c>.

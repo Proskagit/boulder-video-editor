@@ -28,8 +28,8 @@ public sealed class Project
 
 public sealed class ProjectSettings
 {
-    public int FrameWidth { get; set; } = 1920;
-    public int FrameHeight { get; set; } = 1080;
+    public int FrameWidth { get; set; } = ProjectSettingsRules.DefaultCanvasWidth;
+    public int FrameHeight { get; set; } = ProjectSettingsRules.DefaultCanvasHeight;
     /// <summary>Timeline frame grid. Exact rational rate — see <see cref="Common.FrameRate"/>.</summary>
     public Common.FrameRate FrameRate { get; set; } = Common.FrameRate.Default;
 
