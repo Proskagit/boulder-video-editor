@@ -1,6 +1,5 @@
 using AiVideoEditor.App.Composition;
 using AiVideoEditor.Core.Localization;
-using AiVideoEditor.Infrastructure.Configuration;
 using AiVideoEditor.Infrastructure.Logging;
 using Avalonia;
 using Microsoft.Extensions.Configuration;
@@ -27,7 +26,7 @@ internal static class Program
         {
             Log.Information("Starting AI Video Editor.");
 
-            using var host = CreateHost();
+            using var host = CreateHost(args);
             App.Services = host.Services;
 
             // D039 §1: the interface language comes from App:Language ("ru" by default), never from the OS.
@@ -53,15 +52,13 @@ internal static class Program
         }
     }
 
-    private static IHost CreateHost()
+    private static IHost CreateHost(string[] args)
     {
-        var builder = Host.CreateApplicationBuilder();
+        // D040 §1: appsettings.json from the application's folder, whatever the current directory.
+        var builder = AppHostBuilder.Create(args);
 
         builder.Logging.ClearProviders();
         builder.Logging.AddSerilog(Log.Logger, dispose: false);
-
-        // Bound from the "Ffmpeg" section of appsettings.json — see FfprobeLocator.
-        builder.Services.Configure<FfmpegOptions>(builder.Configuration.GetSection("Ffmpeg"));
 
         builder.Services.AddAiVideoEditor();
 
