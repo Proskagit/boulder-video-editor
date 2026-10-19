@@ -10,6 +10,19 @@
     <Style Selector="NumericUpDown">
       <Setter Property="ParsingNumberStyle" Value="{x:Static common:NumericInput.ParsingStyle}"/>
     </Style>
+    <!-- FU-25.1: in a 104 px field Fluent's two spinner buttons (≈ 35 px each) left the text ≈ 19 px — «100» showed as «10(».
+         Narrower buttons (22 px) and a smaller text padding give the text ≈ 49 px at the same field width and height; the
+         buttons, the arrow keys and typing work as before. Fluent sizes these parts in theme styles with an activator, which
+         win over a plain selector, so these selectors carry one too (`:not(.theme-size)` — no element has that class). -->
+    <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ RepeatButton:not(.theme-size)">
+      <Setter Property="MinWidth" Value="0"/>
+      <Setter Property="Width" Value="22"/>
+      <Setter Property="Padding" Value="0"/>
+    </Style>
+    <Style Selector="NumericUpDown /template/ TextBox:not(.theme-size)">
+      <Setter Property="MinWidth" Value="0"/>
+      <Setter Property="Padding" Value="6,5,4,6"/>
+    </Style>
     <!-- D039 §6: one label column for every field — wide enough for the Russian labels, a long one wraps instead of being cut. -->
     <Style Selector="TextBlock.label">
       <Setter Property="Width" Value="116"/>

@@ -67,7 +67,8 @@ v6. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 25 — Technical backlog and small
 `docs/PHASE25_MANUAL_TEST_PLAN.md`. Steps 25.0–25.6 done (verified by Claude 2026-10-19: Release / Debug `--no-incremental
 -warnaserror` 0 / 0, the full suite 3910 / 2 / 0, heavy 3912 / 0 / 0, three blame-hang runs clean, `project.json` v6 byte for
 byte with `d3df0ba` in `ru` and `en`, the manual plan run in the real app with its NOT RUN parts named); FU-21.1 fixed, FU-22.1
-not reproduced, FU-24.2 fixed, FU-24.1 in part; FU-25.1 found; the product owner's acceptance pending.
+not reproduced, FU-24.2 fixed, FU-24.1 in part; **accepted by the product owner on 2026-10-19 — PASS WITH NOTES** (the NOT RUN
+rows stay as they are); FU-25.1 fixed afterwards on the branch at their request, FU-25.2 found; not pushed.
 
 ## Previous
 
@@ -400,9 +401,19 @@ Separate tasks recorded at the Phase 21 acceptance (2026-10-15) and later; none 
 - **FU-24.2 — `appsettings.json` read from the current directory (observed at Phase 24, D039 implementation notes)** —
   *Phase 25 (D040 §1).* The host's content root was the process's current directory: started from another folder the app
   ran with the defaults and without the `Ffmpeg:*` paths.
-- **FU-25.1 — The Inspector's numeric fields cut a three-digit value (found at Step 25.6, not changed).** «100» shows as «10(»
-  in Громкость, Масштаб and Непрозрачность: the field is 104 px wide with its two spinner buttons (at 125 %). Present since
-  before Phase 25. Proposed: a wider field or stacked spinner buttons, checked at 1024 / 1440. Not decided.
+- **FU-25.1 — The Inspector's numeric fields cut a three-digit value (found at Step 25.6)** — *fixed in Phase 25 (FU-25.1
+  commit, the product owner's request of 2026-10-19).* «100» showed as «10(» (Громкость, Масштаб, Непрозрачность and every
+  other Inspector field with a long value): Fluent's two spinner buttons (≈ 35 px each) left the 104 px field ≈ 19 px of
+  text. The Inspector's numeric-field style narrows the buttons to 22 px and the text padding (the text ≈ 49 px; width,
+  height and behaviour unchanged). Checked in the real app at 1024 × 640 and 1440 × 900: 0, 1, 10, 99, 100, 999,5, 1000 /
+  0, 10, 99, 100 / 0, 10, 99, 100, 200 whole, the spinner buttons, Undo / Redo, a save and reopen
+  (`docs/PHASE25_MANUAL_TEST_PLAN.md`, FU-25.1 rows).
+- **FU-25.2 — A field with a slider loses a typed fraction (found at the FU-25.1 check, not changed).** Typed into Непрозрачность,
+  Громкость or Толщина, «50,5» / «150,5» / «4,5» become 50 / 150 / 4: the slider under the field snaps to whole steps
+  (`IsSnapToTickEnabled`, `TickFrequency` 1) and writes the rounded value back (`DecimalDouble.ConvertBack`, banker's
+  rounding). Since Phase 24 for Opacity / Volume (the same in `d3df0ba`), Phase 25 for the line width; the fields without a
+  slider keep fractions (Скорость 1,55, Поворот 12,5). Against D039 §8 ("the field keeps exact typing"). Proposed: no snapping
+  on these sliders, the rounding only for a value that comes from a drag. Not decided.
 
 ## Rule
 

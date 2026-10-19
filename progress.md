@@ -51,6 +51,17 @@ merge without the product owner's command.
     «100» to «10(»).
   - State: Phase 25 implemented and verified by Claude; the product owner's acceptance pending. Local commits only — no push,
     pull request or merge.
+- 2026-10-19 — **Phase 25 accepted by the product owner — PASS WITH NOTES** (the NOT RUN rows stay; FU-22.1 not reproduced,
+  no product code or D034 change). Before publishing: FU-25.1 fixed on the branch in its own commit.
+- 2026-10-19 — FU-25.1: Fluent's two spinner buttons (≈ 35 px each) left a 104 px Inspector field ≈ 19 px of text; plain
+  selectors lost to Fluent's theme styles (they carry an activator), so the Inspector's two styles carry `:not(.theme-size)`
+  — the buttons 22 px, the text padding smaller: text ≈ 49 px, width / height / behaviour unchanged (all 21 fields).
+  `UI.Tests/InspectorFieldStyleTests` (2). Real app (manual plan rows F1–F9): values 0 … 1000 / 0 … 100 / 0 … 200 whole at
+  1440 and 1024, out-of-range input not applied (as in `d3df0ba`), the spinner buttons, Undo / Redo, a save and reopen;
+  Volume's rendered sound measured in exports at 50 / 100 / 200 % (−30,11 / −24,09 / −18,07 dB RMS, ±6,02 dB); listening by
+  ear NOT RUN (no capture device, no listener). Found, not changed: FU-25.2 (a field with a slider loses a typed fraction,
+  since Phase 24). Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 3912 / 2 / 0; heavy 3914 /
+  0 / 0; three `--blame-hang` runs 3912 / 2 / 0, no hang; `git diff --check` clean. Not pushed.
 
 ### Phase 24 — Russian localization and interface polish (merged 2026-10-19 as `d3df0ba`, PR #25)
 

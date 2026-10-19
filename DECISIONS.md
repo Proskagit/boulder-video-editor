@@ -5270,7 +5270,10 @@ Implementation notes (2026-10-19, Phase 25):
   the app.
 - §5: eleven icons; Unlink was taken with Link (the two are one pair of buttons, the label stays bound); − / + stay glyphs.
   The «Insert» of the specification is the bar's «Вставить» (Paste).
-- Found outside the scope (Step 25.6), not changed: the Inspector's numeric fields cut a three-digit value (FU-25.1).
+- Found outside the scope (Step 25.6): the Inspector's numeric fields cut a three-digit value (FU-25.1) — fixed afterwards at
+  the product owner's request (2026-10-19): the Inspector's numeric-field style narrows Fluent's spinner buttons to 22 px and
+  the text padding (selectors with an activator, as Fluent's own theme styles have one); width 104, height and behaviour
+  unchanged. Found at that check, not changed: FU-25.2 (a field with a slider loses a typed fraction, since Phase 24).
 
 Status: Accepted (2026-10-19, product owner). Implemented in Phase 25 (branch `feat/phase-25-backlog-ux`); verified by Claude
 on 2026-10-19 (the gates, the `project.json` v6 byte comparison with `d3df0ba`, the real-app run of
