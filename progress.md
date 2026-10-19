@@ -30,6 +30,12 @@ merge without the product owner's command.
   the same `Slider.under` style and `DecimalDouble` as Opacity / Volume; the Fade maximum bound to the field's
   `MaxFade*Frames` (the clip's length). `SliderViewBindingTests` 1 → 6 (Fade on a video and an audio clip, the maximum after
   a trim, Volume — the Phase 24 gap —, the line width; each drag one undo step, typing moves the slider). UI.Tests 787 / 0 / 0.
+- 2026-10-19 — Step 25.5: eleven icons in `Icons` (video / audio track, text, ripple delete, close gap, paste, duplicate,
+  dissolve, link, unlink, fit; the D039 §7 line style) on the timeline's tool bar with their labels and tooltips; Unlink taken
+  with Link (one pair of buttons; its label stays bound, «Отделить звук» / «Разъединить»); − / + stay glyphs. The product
+  owner's «Insert» is the bar's «Вставить» (Paste) — the bar has no Insert. `IconViewTests` + 1 (the AXAML: every command an
+  icon, a resource label and a tooltip). Real app (Debug, the Phase 10 fixture): two rows at 1024 × 640 and at 1440 × 900,
+  nothing cut. UI.Tests 788 / 0 / 0.
 
 ### Phase 24 — Russian localization and interface polish (merged 2026-10-19 as `d3df0ba`, PR #25)
 

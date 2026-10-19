@@ -96,16 +96,32 @@
             <TextBlock Text="{x:Static l:Strings.Timeline_Heading}" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A" VerticalAlignment="Center"/>
             <TextBlock Text="{Binding FrameRateDisplay}" FontSize="11" Foreground="#7A7A7A" VerticalAlignment="Center"/>
           </StackPanel>
-          <!-- The tools wrap onto a second row when the window is too narrow for one (1024 px since Phase 17's Unlink / Link). -->
+          <!-- The tools wrap onto a second row when the window is too narrow for one (1024 px since Phase 17's Unlink / Link). Each
+               command an icon and its label (D039 §7, D040 §5); − / + stay glyphs. -->
           <WrapPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <WrapPanel.Styles>
               <Style Selector="WrapPanel > Button, WrapPanel > ToggleButton">
                 <Setter Property="Margin" Value="2,1"/>
               </Style>
             </WrapPanel.Styles>
-            <Button Content="{x:Static l:Strings.Timeline_AddVideoTrack}" Command="{Binding AddVideoTrackCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddVideoTrackTip}" FontSize="11"/>
-            <Button Content="{x:Static l:Strings.Timeline_AddAudioTrack}" Command="{Binding AddAudioTrackCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddAudioTrackTip}" FontSize="11"/>
-            <Button Content="{x:Static l:Strings.Timeline_AddText}" Command="{Binding AddTextCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddTextTip}" FontSize="11"/>
+            <Button Command="{Binding AddVideoTrackCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddVideoTrackTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.VideoTrack}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_AddVideoTrack}"/>
+              </StackPanel>
+            </Button>
+            <Button Command="{Binding AddAudioTrackCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddAudioTrackTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.AudioTrack}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_AddAudioTrack}"/>
+              </StackPanel>
+            </Button>
+            <Button Command="{Binding AddTextCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddTextTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Text}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_AddText}"/>
+              </StackPanel>
+            </Button>
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
             <Button Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_SplitTip}" FontSize="11">
               <StackPanel Orientation="Horizontal" Spacing="4">
@@ -119,13 +135,48 @@
                 <TextBlock Text="{x:Static l:Strings.Timeline_Delete}"/>
               </StackPanel>
             </Button>
-            <Button Content="{x:Static l:Strings.Timeline_RippleDelete}" Command="{Binding RippleDeleteCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_RippleDeleteTip}" FontSize="11"/>
-            <Button Content="{x:Static l:Strings.Timeline_CloseGap}" Command="{Binding CloseGapCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_CloseGapTip}" FontSize="11"/>
-            <Button Content="{x:Static l:Strings.Timeline_Paste}" Command="{Binding PasteCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_PasteTip}" FontSize="11"/>
-            <Button Content="{x:Static l:Strings.Timeline_Duplicate}" Command="{Binding DuplicateCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DuplicateTip}" FontSize="11"/>
-            <Button Content="{x:Static l:Strings.Timeline_Dissolve}" Command="{Binding AddDissolveCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DissolveTip}" FontSize="11"/>
-            <Button Content="{Binding UnlinkLabel}" Command="{Binding UnlinkCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_UnlinkTip}" FontSize="11"/>
-            <Button Content="{x:Static l:Strings.Timeline_Link}" Command="{Binding LinkCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_LinkTip}" FontSize="11"/>
+            <Button Command="{Binding RippleDeleteCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_RippleDeleteTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.RippleDelete}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_RippleDelete}"/>
+              </StackPanel>
+            </Button>
+            <Button Command="{Binding CloseGapCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_CloseGapTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.CloseGap}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_CloseGap}"/>
+              </StackPanel>
+            </Button>
+            <Button Command="{Binding PasteCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_PasteTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Paste}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Paste}"/>
+              </StackPanel>
+            </Button>
+            <Button Command="{Binding DuplicateCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DuplicateTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Duplicate}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Duplicate}"/>
+              </StackPanel>
+            </Button>
+            <Button Command="{Binding AddDissolveCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DissolveTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Dissolve}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Dissolve}"/>
+              </StackPanel>
+            </Button>
+            <Button Command="{Binding UnlinkCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_UnlinkTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Unlink}" Width="12" Height="12"/>
+                <TextBlock Text="{Binding UnlinkLabel}"/>
+              </StackPanel>
+            </Button>
+            <Button Command="{Binding LinkCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_LinkTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Link}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Link}"/>
+              </StackPanel>
+            </Button>
             <ToggleButton IsChecked="{Binding SnappingEnabled}" ToolTip.Tip="{x:Static l:Strings.Timeline_SnapTip}" FontSize="11">
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <controls:IconPath Glyph="{x:Static controls:Icons.Snap}" Width="12" Height="12"/>
@@ -135,7 +186,12 @@
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
             <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_ZoomOutTip}" FontSize="11"/>
             <Button Content="+" Command="{Binding ZoomInCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_ZoomInTip}" FontSize="11"/>
-            <Button Content="{x:Static l:Strings.Timeline_Fit}" Command="{Binding ZoomToFitCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_FitTip}" FontSize="11"/>
+            <Button Command="{Binding ZoomToFitCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_FitTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Fit}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Fit}"/>
+              </StackPanel>
+            </Button>
           </WrapPanel>
         </DockPanel>
       </Border>
