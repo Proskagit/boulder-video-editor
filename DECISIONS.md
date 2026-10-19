@@ -5363,7 +5363,18 @@ never taken from a video (D018) and no command fitted a picture to the canvas ot
 Consequences: no format change, no new dependency; a few new resources (en + ru); one Core rule set and one service edit;
 the timeline's first context menu.
 
-Status: Accepted (2026-10-20, product owner). Phase 26, branch `feat/phase-26-vertical-video` from `58c48cb`.
+Implementation notes (2026-10-20, Phase 26):
+- §1: `ProjectSettingsRules.SuggestedCanvas` returns the size as a pair (`DefaultCanvasWidth / Height` are now the
+  constants `ProjectSettings` uses); the offer lives in `TimelineViewModel.Framing` (`AddMediaAt` and the Source viewer's
+  Insert / Overwrite call it with "the timeline was empty"); a closed dialog counts as «Оставить». The sizes in the dialog
+  and the status are joined by non-breaking spaces (found at the real-app run: «1080 / × 1920» broke across lines).
+- §2: `ITimelineEditService.FrameClip(clipId, ClipFraming)`; the timeline had no context menu — `TimelineView` builds
+  it on a right click (which also selects the clicked clip, as a plain click); `CompositionMath.FillScale` keeps twice
+  `Covers`' margin for odd angles (a scale ≈ 4·10⁻⁶ larger than the exact cover).
+
+Status: Accepted (2026-10-20, product owner). Phase 26, branch `feat/phase-26-vertical-video` from `58c48cb`; implemented and
+verified by Claude on 2026-10-20 (the gates, the `project.json` v6 byte comparison with `58c48cb`, the real-app run of
+`docs/PHASE26_MANUAL_TEST_PLAN.md`); the product owner's acceptance pending.
 
 ## D042 — Product concept, scope boundaries and the order of the remaining phases
 

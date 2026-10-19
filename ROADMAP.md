@@ -75,7 +75,11 @@ Phase 26 — vertical video and framing (**in progress**, Steps 26.0–26.3 done
 canvas offers a canvas of its shape and orientation (a dialog; one Undo step; no offer when the orientation is unknown);
 «Заполнить кадр» / «Вписать в кадр» write a computed Scale into a video or image clip (the Inspector and the clip's context
 menu; one Undo step each; no persistent mode); `project.json` stays v6. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 26 —
-Vertical video and framing: steps"; manual plan `docs/PHASE26_MANUAL_TEST_PLAN.md`. Local commits only.
+Vertical video and framing: steps"; manual plan `docs/PHASE26_MANUAL_TEST_PLAN.md`. Steps 26.0–26.4 done (verified by Claude
+2026-10-20: Release / Debug `--no-incremental -warnaserror` 0 / 0, the full suite 4020 / 2 / 0, heavy 4022 / 0 / 0, three
+blame-hang runs clean, `project.json` v6 byte for byte with `58c48cb` in `ru` and `en`, the manual plan run in the real app
+with the product owner's Vivo / Huawei clips, its NOT RUN parts named); awaiting the product owner's acceptance. Local
+commits only.
 
 ## Previous
 

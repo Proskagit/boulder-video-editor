@@ -16,6 +16,30 @@ owner's command.
   (D041).
 - 2026-10-20 — Step 26.0: local `main` fast-forwarded `d3df0ba` → `58c48cb`; the branch; D041 and D040's merge status; the
   Phase 26 steps; the manual plan's skeleton; Phase 25 recorded as merged (ROADMAP, DEVELOPMENT_PLAN's list, this file).
+- 2026-10-20 — Step 26.1 (`c01f93d`): `ProjectSettingsRules.SuggestedCanvas` (+ `DefaultCanvasWidth / Height`, used by
+  `ProjectSettings`), `CompositionMath.FillScale / FitScale`, `ExactRational.ToDoubleAtLeast / AtMost / Max`;
+  `Core.Tests/FramingRulesTests` (37).
+- 2026-10-20 — Steps 26.2–26.3 (`4aedaf4`): `ITimelineEditService.FrameClip` + `ClipFraming` (`TimelineEditService.Framing`,
+  a `ClipPropertyGesture` per command; `Messages.Frame_*`); `TimelineViewModel.Framing` (the canvas offer after
+  `AddMediaAt` / Insert / Overwrite from the Source viewer, the session flag; `FillFrame` / `FitFrame` for the menu);
+  `TimelineView` opens the clip's context menu on a right click (the timeline had none: built in code, `ClipMenu`); the
+  Inspector's two buttons under Масштаб; `Strings.Canvas_Offer*` / `Frame_*` (en + ru); the undo descriptions in the
+  localization allowlist. Tests: `FrameClipTests` (11), `VerticalVideoUiTests` (21), `FramingViewTests` (3),
+  `FramingRenderTests` (8 — Preview ↔ export parity of Fill / Fit). Full suite 4020 / 2 / 0.
+- 2026-10-20 — Step 26.4 (verification & closeout):
+  - Found in the real-app run and fixed: the offer's sizes broke across lines («1080 / × 1920») — non-breaking spaces
+    around «×» in `Canvas_OfferMessage` / `Canvas_OfferApplied` (en + ru).
+  - Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4020 / 2 / 0 (Core 1162, Timeline 839, Project 485, UI 828, Export 108, Rendering 92, Video 354, ExportEndToEnd 128 + 2, Vision 24); `AIVE_HEAVY_TESTS=1` 4022 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m` runs 4020 / 2 / 0 each, no hang, no dump; `git diff --check` clean.
+  - `project.json` v6 against `58c48cb`: the base built from `git archive 58c48cb` (Debug); a fresh Phase 10 fixture saved
+    by it (v6); three copies opened and saved without an edit — by the base, by this build with `ru` and with `en` —
+    11 774 bytes each, byte-identical (SHA-256 `79ECB9FBB210…`).
+  - Real app (`docs/PHASE26_MANUAL_TEST_PLAN.md`, 16 rows) with the product owner's Vivo / Huawei clips and two ffmpeg
+    fixtures (45°, mirrored): 1–11 and 16 PASS; 12 auto only; 13–15 PASS in part. NOT RUN: watching the export in a video
+    player (the file checked: 1080 × 1920, `cropdetect` full frame, frames looked at), the dialog and the menu at
+    1024 × 640, closing the dialog without a button, Overwrite from the Source viewer, an audio clip and a running export
+    in the real app (all covered by automated tests).
+  - State: Phase 26 implemented and verified by Claude; the product owner's acceptance pending. Local commits only — no
+    push, pull request or merge.
 - 2026-10-20 — planning, documentation only (the product owner's request, outside Phase 26's steps): D042 — the product
   concept (a simplified editor for bouldering videos, the main path of eight steps), its boundaries (no parity goal, ≈ 5
   transitions and ≈ 5 effects, no audio studio / multicam / motion design, a large function only through a new decision) and

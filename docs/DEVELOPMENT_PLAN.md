@@ -155,7 +155,8 @@ and runs cleanly.
       canvas of its shape (a dialog, one Undo step); «Заполнить кадр» / «Вписать в кадр» compute a clip's Scale (the
       Inspector and the clip's context menu, one Undo step each). `project.json` stays v6. Scope, steps and acceptance
       criteria: section below and DECISIONS.md D041 (accepted 2026-10-20). *(Branch `feat/phase-26-vertical-video` from
-      `58c48cb`; local commits only)*
+      `58c48cb`; Steps 26.0–26.4 done and verified by Claude on 2026-10-20; awaiting the product owner's acceptance;
+      local commits only)*
 - [ ] **Planned (D042, provisional; numbers given when taken up):** A — text animation · B — transition library · C —
       ready-made effects and music · G — stabilisation of the main path · R1 → D — automatic hold proposals · R2 → E —
       outlines following the camera · R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
@@ -2072,7 +2073,7 @@ a warning before the export, FU-21.2, AI features, the technical-debt refactorin
 - Tests: the edit (values, one step, no merge with a typed Scale, refusals, locked track), the Inspector and the menu's
   commands, a rendering parity test of a filled portrait clip on a landscape canvas and a landscape clip on a portrait one.
 
-### 26.4 — Verification & closeout
+### 26.4 — Verification & closeout *(done by Claude 2026-10-20 — results in `progress.md` and the manual plan)*
 - Release and Debug `--no-incremental -warnaserror`; the full suite, `AIVE_HEAVY_TESTS=1`, three `--blame-hang` runs;
   `git diff --check`; `project.json` v6 byte for byte with `58c48cb` (`ru` and `en`); the manual plan in the real app at
   1024 × 640 and 1440 × 900 with the product owner's Vivo and Huawei clips (portrait and landscape, with and without rotation

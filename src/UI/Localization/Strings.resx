@@ -1707,7 +1707,7 @@ If you don't save, your changes will be lost.</value>
     <value>Project Canvas</value>
   </data>
   <data name="Canvas_OfferMessage" xml:space="preserve">
-    <value>The video “{0}” is {1} × {2}. On the {3} × {4} canvas it would have black bars. Change the project canvas to {5} × {6}?</value>
+    <value>The video “{0}” is {1} × {2}. On the {3} × {4} canvas it would have black bars. Change the project canvas to {5} × {6}?</value>
   </data>
   <data name="Canvas_OfferAccept" xml:space="preserve">
     <value>Change Canvas</value>
@@ -1716,7 +1716,7 @@ If you don't save, your changes will be lost.</value>
     <value>Keep</value>
   </data>
   <data name="Canvas_OfferApplied" xml:space="preserve">
-    <value>Project canvas: {0} × {1}.</value>
+    <value>Project canvas: {0} × {1}.</value>
   </data>
   <data name="Frame_Fill" xml:space="preserve">
     <value>Fill Frame</value>
