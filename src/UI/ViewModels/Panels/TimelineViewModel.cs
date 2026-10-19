@@ -816,17 +816,21 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void RemoveMarker() => Report(_edit.RemoveMarkerAt(Playhead), successMessage: Strings.Marker_Removed);
 
     [RelayCommand]
-    private void PreviousMarker()
-    {
-        if (_edit.PreviousMarker(Playhead) is { } at) SetPlayhead(at);
-        else _status.Report(Strings.Marker_NoneBefore);
-    }
+    private void PreviousMarker() => GoToMarker(_edit.PreviousMarker(Playhead), Strings.Marker_NoneBefore);
 
     [RelayCommand]
-    private void NextMarker()
+    private void NextMarker() => GoToMarker(_edit.NextMarker(Playhead), Strings.Marker_NoneAfter);
+
+    /// <summary>D040 §2 (FU-21.1): a jump reports where it went, so an earlier refusal never stays in the status bar.</summary>
+    private void GoToMarker(MediaTime? marker, string refusal)
     {
-        if (_edit.NextMarker(Playhead) is { } at) SetPlayhead(at);
-        else _status.Report(Strings.Marker_NoneAfter);
+        if (marker is not { } at)
+        {
+            _status.Report(refusal);
+            return;
+        }
+        SetPlayhead(at);
+        _status.Report(string.Format(Strings.Marker_Reached, TimeFormat.ToTimecode(Playhead, FrameRate)));
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))] private void AddVideoTrack() => Report(_edit.AddTrack(TrackType.Video));

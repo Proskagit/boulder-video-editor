@@ -678,6 +678,9 @@ The file is replaced only when the export succeeds.</value>
   <data name="Marker_NoneBefore" xml:space="preserve">
     <value>There is no marker before the playhead.</value>
   </data>
+  <data name="Marker_Reached" xml:space="preserve">
+    <value>At the marker {0}</value>
+  </data>
   <data name="Marker_Removed" xml:space="preserve">
     <value>Marker removed</value>
   </data>

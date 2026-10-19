@@ -1,11 +1,13 @@
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Project;
 using AiVideoEditor.Timeline;
 using AiVideoEditor.UI.Services;
 using AiVideoEditor.UI.ViewModels.Panels;
 using AiVideoEditor.UI.Views.Panels;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Avalonia.LogicalTree;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -13,8 +15,9 @@ using Xunit;
 namespace AiVideoEditor.UI.Tests.Localization;
 
 /// <summary>
-/// D039 §8: the Opacity slider in the real Inspector view — it shows the field's value, a drag (several values in a row)
-/// writes the clip and is one undo step (D017's merge of consecutive changes of one field), the field follows the slider.
+/// D039 §8 / D040 §4: the sliders in the real Inspector view (Opacity, Volume, Fade In / Out, the hold line width) — each
+/// shows its field's value and limits, a drag (several values in a row) writes the clip and is one undo step (D017's merge
+/// of consecutive changes of one field), the field follows the slider and typing moves it.
 /// </summary>
 [Collection(AvaloniaControlsCollection.Name)]
 public sealed class SliderViewBindingTests
@@ -49,5 +52,304 @@ public sealed class SliderViewBindingTests
 
         inspector.OpacityPercent = 35m;                                          // typing moves the slider
         Assert.Equal(35, slider.Value);
+    }
+
+    private sealed class Rig
+    {
+        public readonly UndoRedoService Undo = new();
+        public readonly ProjectService Projects;
+        public readonly TimelineEditService Edit;
+        public readonly InspectorViewModel Inspector;
+        public readonly InspectorView View;
+
+        public Rig()
+        {
+            Projects = new ProjectService(Undo, NullLogger<ProjectService>.Instance);
+            Edit = new TimelineEditService(Projects, Undo, NullLogger<TimelineEditService>.Instance);
+            Inspector = new InspectorViewModel(Edit, new StatusService());
+            View = new InspectorView { DataContext = Inspector };
+        }
+
+        public MediaAsset Asset(MediaKind kind)
+        {
+            var asset = new MediaAsset
+            {
+                FilePath = Path.Combine(Path.GetTempPath(), "aive-ui-tests", Guid.NewGuid().ToString("N"), kind == MediaKind.Audio ? "a.wav" : "v.mp4"),
+                Kind = kind, AnalysisStatus = MediaAnalysisStatus.Completed,
+                Metadata = new MediaMetadata
+                {
+                    Duration = MediaTime.FromFrame(250, Rate), FrameRate = kind == MediaKind.Audio ? null : Rate,
+                    AvgFrameRate = kind == MediaKind.Audio ? null : Rate,
+                    Width = kind == MediaKind.Audio ? null : 64, Height = kind == MediaKind.Audio ? null : 36, AudioCodec = "aac"
+                }
+            };
+            Projects.AddMediaAssets(new[] { asset });
+            return asset;
+        }
+
+        public Clip Add(MediaKind kind)
+        {
+            var result = Edit.AddClip(Asset(kind).Id);
+            Assert.True(result.Success);
+            var clip = Projects.Current.Timeline.VideoTracks.Concat(Projects.Current.Timeline.AudioTracks)
+                .SelectMany(t => t.Clips).Single(c => c.Id == result.ClipIds.First());
+            Show(clip);
+            return clip;
+        }
+
+        public void Show(Clip clip) =>
+            Inspector.ShowClip(new TimelineClipSelection(clip, "clip", null, ProjectRate, DissolveAtStart: false, DissolveAtEnd: false));
+
+        /// <summary>The project's rate: 25 fps after a video clip, the provisional default with sound only.</summary>
+        public FrameRate ProjectRate => Projects.Current.Settings.FrameRate;
+
+        public Slider Slider(string name) => View.GetLogicalDescendants().OfType<Slider>().Single(s => s.Name == name);
+    }
+
+    [Theory]
+    [InlineData(MediaKind.Video)]
+    [InlineData(MediaKind.Audio)]
+    public void The_fade_sliders_follow_their_fields_and_a_drag_is_one_undo_step(MediaKind kind)
+    {
+        var rig = new Rig();
+        var clip = rig.Add(kind);                                    // 10 s
+        var fadeIn = rig.Slider("FadeInSlider");
+        var fadeOut = rig.Slider("FadeOutSlider");
+        Assert.Equal(0, fadeIn.Value);
+        Assert.Equal(0, fadeIn.Minimum);
+        var length = (double)MediaTime.FromSeconds(10).ToFrameFloor(rig.ProjectRate);
+        Assert.Equal(length, fadeIn.Maximum);                        // the field's maximum: the clip's length
+        Assert.Equal(length, fadeOut.Maximum);
+        Assert.Equal(rig.Inspector.MaxFadeOutFrames, (decimal)fadeOut.Maximum);
+        Assert.False(fadeIn.Focusable);
+        var before = rig.Undo.CurrentPosition;                       // after the clip was added
+
+        foreach (var value in new[] { 5.0, 12.0, 20.0 }) fadeIn.Value = value;   // a drag
+        Assert.Equal(MediaTime.FromFrame(20, rig.ProjectRate), clip.FadeIn);
+        Assert.Equal(20m, rig.Inspector.FadeInFrames);
+        foreach (var value in new[] { 3.0, 9.0 }) fadeOut.Value = value;
+        Assert.Equal(MediaTime.FromFrame(9, rig.ProjectRate), clip.FadeOut);
+
+        rig.Undo.Undo();                                             // the Fade Out drag at once
+        Assert.Equal(MediaTime.Zero, clip.FadeOut);
+        rig.Undo.Undo();                                             // the Fade In drag at once
+        Assert.Equal(MediaTime.Zero, clip.FadeIn);
+        Assert.Same(before, rig.Undo.CurrentPosition);
+        rig.Show(clip);
+
+        rig.Inspector.FadeInFrames = 7m;                             // typing moves the slider
+        Assert.Equal(7, fadeIn.Value);
+    }
+
+    [Fact]
+    public void The_fade_maximum_follows_the_clip_length()
+    {
+        var rig = new Rig();
+        var clip = rig.Add(MediaKind.Video);
+        Assert.True(rig.Edit.TrimClip(clip.Id, ClipEdge.End, MediaTime.FromFrame(100, rig.ProjectRate)).Success);
+        rig.Show(clip);                                              // the timeline shows the trimmed clip again
+
+        Assert.Equal(100, rig.Slider("FadeInSlider").Maximum);
+        Assert.Equal(100, rig.Slider("FadeOutSlider").Maximum);
+        Assert.Equal(rig.Inspector.MaxFadeInFrames, (decimal)rig.Slider("FadeInSlider").Maximum);
+    }
+
+    [Fact]
+    public void The_volume_slider_follows_the_field_and_a_drag_is_one_undo_step()
+    {
+        var rig = new Rig();
+        var clip = (AudioClip)rig.Add(MediaKind.Audio);
+        var before = rig.Undo.CurrentPosition;                       // after the clip was added
+        var slider = rig.Slider("VolumeSlider");
+        Assert.Equal(100, slider.Value);
+        Assert.Equal(0, slider.Minimum);
+        Assert.Equal(200, slider.Maximum);
+        Assert.False(slider.Focusable);
+
+        foreach (var value in new[] { 120.0, 150.0, 180.0 }) slider.Value = value;
+        Assert.Equal(1.8, clip.Volume, 6);
+        Assert.Equal(180m, rig.Inspector.VolumePercent);
+
+        rig.Undo.Undo();
+        Assert.Equal(1.0, clip.Volume, 6);
+        Assert.Same(before, rig.Undo.CurrentPosition);
+        rig.Show(clip);
+
+        rig.Inspector.VolumePercent = 40m;
+        Assert.Equal(40, slider.Value);
+    }
+
+    [Fact]
+    public void The_hold_line_width_slider_follows_the_field_and_a_drag_is_one_undo_step()
+    {
+        var rig = new Rig();
+        var markup = new HoldMarkupViewModel(rig.Edit, rig.Projects, new StatusService());
+        rig.Inspector.HoldMarkup = markup;
+        var clip = (VideoClip)rig.Add(MediaKind.Video);
+        var before = rig.Undo.CurrentPosition;
+        markup.SetClip(clip);
+        var slider = rig.Slider("StrokeWidthSlider");
+        Assert.Equal(HoldMarkup.DefaultStrokeWidth1080, slider.Value);
+        Assert.Equal(HoldMarkupRules.MinStrokeWidth1080, slider.Minimum);
+        Assert.Equal(HoldMarkupRules.MaxStrokeWidth1080, slider.Maximum);
+        Assert.False(slider.Focusable);
+
+        foreach (var value in new[] { 6.0, 9.0, 12.0 }) slider.Value = value;
+        Assert.Equal(12, clip.HoldMarkup!.StrokeWidth1080);
+        Assert.Equal(12m, markup.StrokeWidth);
+
+        rig.Undo.Undo();
+        Assert.Equal(HoldMarkup.DefaultStrokeWidth1080, clip.HoldMarkup?.StrokeWidth1080 ?? HoldMarkup.DefaultStrokeWidth1080);
+        Assert.Same(before, rig.Undo.CurrentPosition);
+
+        markup.StrokeWidth = 3m;
+        Assert.Equal(3, slider.Value);
+    }
+
+    // --- FU-25.2: Opacity, Volume and the line width take whole values; a fraction already saved is shown as it is ---------
+
+    [Theory]
+    [InlineData(50.5, 51)]
+    [InlineData(50.4, 50)]
+    [InlineData(0.5, 1)]
+    [InlineData(99.5, 100)]
+    public void A_typed_opacity_fraction_is_rounded_and_the_field_the_slider_and_the_model_agree(double typed, int whole)
+    {
+        var rig = new Rig();
+        var clip = rig.Add(MediaKind.Video);
+        var slider = rig.Slider("OpacitySlider");
+
+        rig.Inspector.OpacityPercent = (decimal)typed;
+        Dispatcher.UIThread.RunJobs();                                            // the field is announced again
+
+        Assert.Equal(whole / 100.0, VisualProperties.Of(clip)!.Value.Opacity, 9);
+        Assert.Equal(whole, rig.Inspector.OpacityPercent);
+        Assert.Equal(whole, slider.Value);
+    }
+
+    [Theory]
+    [InlineData(150.5, 151)]
+    [InlineData(150.4, 150)]
+    [InlineData(199.5, 200)]
+    public void A_typed_volume_fraction_is_rounded_and_the_field_the_slider_and_the_model_agree(double typed, int whole)
+    {
+        var rig = new Rig();
+        var clip = (AudioClip)rig.Add(MediaKind.Audio);
+        var slider = rig.Slider("VolumeSlider");
+
+        rig.Inspector.VolumePercent = (decimal)typed;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(whole / 100.0, clip.Volume, 9);
+        Assert.Equal(whole, rig.Inspector.VolumePercent);
+        Assert.Equal(whole, slider.Value);
+    }
+
+    [Theory]
+    [InlineData(4.5, 5)]
+    [InlineData(6.4, 6)]
+    [InlineData(31.5, 32)]
+    public void A_typed_line_width_fraction_is_rounded_and_the_field_the_slider_and_the_model_agree(double typed, int whole)
+    {
+        var rig = new Rig();
+        var markup = new HoldMarkupViewModel(rig.Edit, rig.Projects, new StatusService());
+        rig.Inspector.HoldMarkup = markup;
+        var clip = (VideoClip)rig.Add(MediaKind.Video);
+        markup.SetClip(clip);
+        var slider = rig.Slider("StrokeWidthSlider");
+
+        markup.StrokeWidth = (decimal)typed;
+
+        Assert.Equal(whole, clip.HoldMarkup!.StrokeWidth1080, 9);
+        Assert.Equal(whole, markup.StrokeWidth);
+        Assert.Equal(whole, slider.Value);
+    }
+
+    [Fact]
+    public void A_fraction_already_in_the_model_is_shown_as_it_is_and_never_changed_by_showing_it()
+    {
+        var rig = new Rig();
+        var video = rig.Add(MediaKind.Video);
+        var audio = (AudioClip)rig.Add(MediaKind.Audio);
+        var markup = new HoldMarkupViewModel(rig.Edit, rig.Projects, new StatusService());
+        rig.Inspector.HoldMarkup = markup;
+        // Saved before FU-25.2 (the edit service takes any value in range).
+        Assert.True(rig.Edit.SetClipProperties(video.Id, new ClipPropertyChange { Visual = VisualProperties.Of(video)!.Value with { Opacity = 0.505 } }).Success);
+        Assert.True(rig.Edit.SetClipProperties(audio.Id, new ClipPropertyChange { Audio = AudioProperties.Of(audio)!.Value with { Volume = 1.505 } }).Success);
+        Assert.True(rig.Edit.SetHoldStyle(video.Id, HoldStyle.Of(new HoldMarkup()) with { StrokeWidth1080 = 4.5 }).Success);
+        var before = rig.Undo.CurrentPosition;
+
+        rig.Show(video);
+        markup.SetClip((VideoClip)video);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(50.5m, rig.Inspector.OpacityPercent);
+        Assert.Equal(50.5, rig.Slider("OpacitySlider").Value);
+        Assert.Equal(0.505, VisualProperties.Of(video)!.Value.Opacity, 9);
+        Assert.Equal(4.5m, markup.StrokeWidth);
+        Assert.Equal(4.5, rig.Slider("StrokeWidthSlider").Value);
+        Assert.Equal(4.5, ((VideoClip)video).HoldMarkup!.StrokeWidth1080, 9);
+
+        rig.Show(audio);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(150.5m, rig.Inspector.VolumePercent);
+        Assert.Equal(150.5, rig.Slider("VolumeSlider").Value);
+        Assert.Equal(1.505, audio.Volume, 9);
+
+        Assert.Same(before, rig.Undo.CurrentPosition);                            // showing is never an edit
+
+        rig.Inspector.VolumePercent = 151.5m;                                     // the up arrow from 150,5: changed, so whole
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(1.52, audio.Volume, 9);
+        Assert.Equal(152m, rig.Inspector.VolumePercent);
+    }
+
+    [Fact]
+    public void Typing_then_dragging_then_typing_keeps_the_field_and_the_model_together_and_is_one_undo_step()
+    {
+        var rig = new Rig();
+        var clip = rig.Add(MediaKind.Video);
+        var slider = rig.Slider("OpacitySlider");
+        var before = rig.Undo.CurrentPosition;
+
+        rig.Inspector.OpacityPercent = 40.5m;                                     // typed -> 41
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(41, slider.Value);
+        foreach (var value in new[] { 45.0, 60.0 }) slider.Value = value;       // a drag (whole steps)
+        Assert.Equal(60m, rig.Inspector.OpacityPercent);
+        Assert.Equal(0.6, VisualProperties.Of(clip)!.Value.Opacity, 9);
+        rig.Inspector.OpacityPercent = 33.3m;                                     // typed after the drag -> 33
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(0.33, VisualProperties.Of(clip)!.Value.Opacity, 9);
+        Assert.Equal(33m, rig.Inspector.OpacityPercent);
+        Assert.Equal(33, slider.Value);
+
+        rig.Undo.Undo();                                                          // one field's run of changes (D017)
+        Assert.Same(before, rig.Undo.CurrentPosition);
+        Assert.Equal(1.0, VisualProperties.Of(clip)!.Value.Opacity, 9);
+        rig.Undo.Redo();
+        rig.Show(clip);
+        Assert.Equal(0.33, VisualProperties.Of(clip)!.Value.Opacity, 9);
+        Assert.Equal(33m, rig.Inspector.OpacityPercent);
+        Assert.Equal(33, slider.Value);
+    }
+
+    [Fact]
+    public void The_other_numeric_fields_keep_their_fractions()
+    {
+        var rig = new Rig();
+        var clip = (MediaBackedClip)rig.Add(MediaKind.Video);
+
+        rig.Inspector.ScalePercent = 99.5m;
+        rig.Inspector.Rotation = 12.5m;
+        rig.Inspector.CropLeftPercent = 12.5m;
+        rig.Inspector.SpeedValue = 1.55m;
+        Dispatcher.UIThread.RunJobs();
+
+        var visual = VisualProperties.Of(clip)!.Value;
+        Assert.Equal(0.995, visual.Scale, 9);
+        Assert.Equal(12.5, visual.RotationDegrees, 9);
+        Assert.Equal(0.125, visual.Crop.Left, 9);
+        Assert.Equal(1.55m, clip.Speed.ToDecimal());
+        Assert.Equal((99.5m, 12.5m, 12.5m, 1.55m), (rig.Inspector.ScalePercent, rig.Inspector.Rotation, rig.Inspector.CropLeftPercent, rig.Inspector.SpeedValue));
     }
 }

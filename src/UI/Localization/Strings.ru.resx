@@ -678,6 +678,9 @@
   <data name="Marker_NoneBefore" xml:space="preserve">
     <value>Перед указателем нет маркеров.</value>
   </data>
+  <data name="Marker_Reached" xml:space="preserve">
+    <value>Переход к маркеру {0}</value>
+  </data>
   <data name="Marker_Removed" xml:space="preserve">
     <value>Маркер удалён</value>
   </data>

@@ -142,8 +142,16 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
     partial void OnVolumePercentChanged(decimal? value)
     {
-        if (!_syncing && value is { } volume) EditAudio(a => a with { Volume = (double)(volume / 100m) });
+        if (_syncing || value is not { } volume) return;
+        var whole = WholePercent(volume);
+        EditAudio(a => a with { Volume = (double)(whole / 100m) });
+        if (whole != volume) ShowModelAfterRejection();   // the field shows the whole value that was applied
     }
+
+    /// <summary>FU-25.2: Opacity and Volume take whole percent — a typed fraction is rounded, a half up (the slider under
+    /// the field moves by whole steps too). A fraction already in the model (typed before) is shown as it is until the value
+    /// is changed.</summary>
+    internal static decimal WholePercent(decimal value) => Math.Round(value, MidpointRounding.AwayFromZero);
 
     partial void OnIsMutedChanged(bool value)
     {
@@ -213,7 +221,13 @@ public sealed partial class InspectorViewModel : ViewModelBase
     partial void OnPositionYChanged(decimal? value) => EditVisual(value, (v, x) => v with { PositionY = (double)x });
     partial void OnScalePercentChanged(decimal? value) => EditVisual(value, (v, x) => v with { Scale = (double)(x / 100m) });
     partial void OnRotationChanged(decimal? value) => EditVisual(value, (v, x) => v with { RotationDegrees = (double)x });
-    partial void OnOpacityPercentChanged(decimal? value) => EditVisual(value, (v, x) => v with { Opacity = (double)(x / 100m) });
+    partial void OnOpacityPercentChanged(decimal? value)
+    {
+        if (_syncing || value is not { } opacity) return;
+        var whole = WholePercent(opacity);
+        EditVisual(whole, (v, x) => v with { Opacity = (double)(x / 100m) });
+        if (whole != opacity) ShowModelAfterRejection();   // the field shows the whole value that was applied
+    }
     partial void OnCropLeftPercentChanged(decimal? value) => EditVisual(value, (v, x) => v with { Crop = v.Crop with { Left = (double)(x / 100m) } });
     partial void OnCropTopPercentChanged(decimal? value) => EditVisual(value, (v, x) => v with { Crop = v.Crop with { Top = (double)(x / 100m) } });
     partial void OnCropRightPercentChanged(decimal? value) => EditVisual(value, (v, x) => v with { Crop = v.Crop with { Right = (double)(x / 100m) } });

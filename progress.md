@@ -2,12 +2,82 @@
 
 ## Current phase
 
-Phase 24 — Russian localization and interface polish, branch `feat/phase-24-localization` (from `origin/main` = `c652667`,
-the merge of PR #24; DECISIONS.md D039, 2026-10-19). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 24 — Russian localization
-and interface polish: steps"; manual plan `docs/PHASE24_MANUAL_TEST_PLAN.md`. Local work only: no push, pull request or
+Phase 25 — technical backlog and small UX improvements, branch `feat/phase-25-backlog-ux` (from `origin/main` = `d3df0ba`,
+the merge of PR #25; DECISIONS.md D040, 2026-10-19). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 25 — Technical backlog and
+small UX improvements: steps"; manual plan `docs/PHASE25_MANUAL_TEST_PLAN.md`. Local work only: no push, pull request or
 merge without the product owner's command.
 
-### Phase 24 — Russian localization and interface polish (in progress)
+### Phase 25 — Technical backlog and small UX improvements (in progress)
+
+- 2026-10-19 — audit (read only) after the merge of PR #25: `origin/main` = `d3df0ba` (its tree identical to `e8a67b0`), CI
+  green on the pull request (run 39268732382) and on `main` (run 39270377059); locally on `e8a67b0` Release `--no-incremental
+  -warnaserror` 0 / 0, the full suite 3892 passed, 2 skipped, 0 failed. The next phase was not defined in the documentation;
+  the specification accepted by the product owner the same day (D040).
+- 2026-10-19 — Step 25.0: local `main` fast-forwarded `c652667` → `d3df0ba`; the branch; D040, the Phase 25 steps, the manual
+  plan skeleton; the documentation brought in line with the merges (DEVELOPMENT_PLAN's list: Phases 19, 22, 24 checked,
+  Phase 20 added; ROADMAP: Phase 24 merged, Phase 25 current, FU-24.2 recorded).
+- 2026-10-19 — Step 25.1 (`3fbdf5e`): `App/Composition/AppHostBuilder` — the content root `AppContext.BaseDirectory`, the
+  `args` to the builder; `UI.Tests/AppConfigurationTests` (3, in a non-parallel collection: they change the current
+  directory). UI.Tests 773 / 0 / 0.
+- 2026-10-19 — Step 25.2 (FU-21.1): reproduced in a test — Next to a marker past the end left the playhead at the end (the
+  Preview reported the clamped end frame back after the first seek past the end); cause and fix in D040 "Refined in Step
+  25.2"; `Marker_Reached` (en + ru); `UI.Tests/MarkerNavigationTests` (7). UI.Tests 780 / 0 / 0, Timeline.Tests 828 / 0 / 0.
+- 2026-10-19 — Step 25.3 (FU-22.1): not reproduced in code — nothing moves the playhead while the frame is prepared;
+  replayed with the real shell and playback (`HoldMarkupUiTests`, 2 cases: the mode stays on, a step back still leaves it).
+  Most likely cause: stray arrow keys of the Step 22.6 harness (09:23 is two frames back; not proven). No product code and
+  no D034 change (D040 "Refined in Step 25.3"); the real-app check in the manual plan (row 5).
+- 2026-10-19 — Step 25.4: sliders under Fade In / Fade Out (every clip kind with fades) and the hold line width (1–32),
+  the same `Slider.under` style and `DecimalDouble` as Opacity / Volume; the Fade maximum bound to the field's
+  `MaxFade*Frames` (the clip's length). `SliderViewBindingTests` 1 → 6 (Fade on a video and an audio clip, the maximum after
+  a trim, Volume — the Phase 24 gap —, the line width; each drag one undo step, typing moves the slider). UI.Tests 787 / 0 / 0.
+- 2026-10-19 — Step 25.5: eleven icons in `Icons` (video / audio track, text, ripple delete, close gap, paste, duplicate,
+  dissolve, link, unlink, fit; the D039 §7 line style) on the timeline's tool bar with their labels and tooltips; Unlink taken
+  with Link (one pair of buttons; its label stays bound, «Отделить звук» / «Разъединить»); − / + stay glyphs. The product
+  owner's «Insert» is the bar's «Вставить» (Paste) — the bar has no Insert. `IconViewTests` + 1 (the AXAML: every command an
+  icon, a resource label and a tooltip). Real app (Debug, the Phase 10 fixture): two rows at 1024 × 640 and at 1440 × 900,
+  nothing cut. UI.Tests 788 / 0 / 0.
+- 2026-10-19 — Step 25.6 (verification & closeout):
+  - Gates: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` Release and Debug 0 / 0; `dotnet test` Release passed
+    3910, skipped 2 (the 4K scenes), failed 0 (Core 1111, Timeline 828, Project 485, UI 788, Export 108, Rendering 84, Video
+    354, ExportEndToEnd 128 + 2, Vision 24); `AIVE_HEAVY_TESTS=1` 3912 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m`
+    runs 3910 / 2 / 0 each, no hang, no dump; `git diff --check` clean. The parity suites (Rendering, ExportEndToEnd) and
+    every expected value unchanged; the undo-step counts covered by the slider tests and the real-app rows 6–8.
+  - `project.json` v6 against `d3df0ba`: the base built from `git archive d3df0ba` (Debug); a fresh Phase 10 fixture saved by
+    it (v6); three copies opened and saved without an edit — by the base, by this build with `ru` and with `en` (the
+    exe's folder as the current directory) — 11 678 bytes each, byte-identical (SHA-256 `6DD5EF8B…`).
+  - Real app (`docs/PHASE25_MANUAL_TEST_PLAN.md`, 15 rows): 1–11, 15 PASS; 13 and 14 PASS in part (the Open dialog path and
+    the warnings dialog NOT RUN); 12 NOT RUN (it needs the installed model damaged); 8's audible part NOT RUN. FU-22.1 not
+    reproduced in the real app either. Found outside the scope, not changed: FU-25.1 (the Inspector's numeric fields cut
+    «100» to «10(»).
+  - State: Phase 25 implemented and verified by Claude; the product owner's acceptance pending. Local commits only — no push,
+    pull request or merge.
+- 2026-10-19 — **Phase 25 accepted by the product owner — PASS WITH NOTES** (the NOT RUN rows stay; FU-22.1 not reproduced,
+  no product code or D034 change). Before publishing: FU-25.1 fixed on the branch in its own commit.
+- 2026-10-19 — FU-25.1: Fluent's two spinner buttons (≈ 35 px each) left a 104 px Inspector field ≈ 19 px of text; plain
+  selectors lost to Fluent's theme styles (they carry an activator), so the Inspector's two styles carry `:not(.theme-size)`
+  — the buttons 22 px, the text padding smaller: text ≈ 49 px, width / height / behaviour unchanged (all 21 fields).
+  `UI.Tests/InspectorFieldStyleTests` (2). Real app (manual plan rows F1–F9): values 0 … 1000 / 0 … 100 / 0 … 200 whole at
+  1440 and 1024, out-of-range input not applied (as in `d3df0ba`), the spinner buttons, Undo / Redo, a save and reopen;
+  Volume's rendered sound measured in exports at 50 / 100 / 200 % (−30,11 / −24,09 / −18,07 dB RMS, ±6,02 dB); listening by
+  ear NOT RUN (no capture device, no listener). Found, not changed: FU-25.2 (a field with a slider loses a typed fraction,
+  since Phase 24). Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 3912 / 2 / 0; heavy 3914 /
+  0 / 0; three `--blame-hang` runs 3912 / 2 / 0, no hang; `git diff --check` clean. Not pushed.
+- 2026-10-19 — FU-25.1 accepted by the product owner. FU-25.2, their variant 1: Opacity, Volume and the hold line width take
+  whole values. Cause: `DecimalDouble.ConvertBack` rounded every slider write-back (also the one after the field moved the
+  slider), so a typed fraction became whole as a side effect and a saved fraction was hidden (0,505 showed as 50); removing
+  the slider's snapping alone did not help (tested). Fix: the converter passes values through; `InspectorViewModel` /
+  `HoldMarkupViewModel` round a typed value, a half up; the three fields step 1, format «0.####» (a saved fraction shown as it
+  is). Tests: `SliderViewBindingTests` + 13 (rounding theories, a saved fraction shown and never changed by showing it,
+  typing ↔ dragging with Undo / Redo, the other fields keep fractions), `InspectorFieldStyleTests` + 1 (formats, steps and
+  the `Slider.under` snapping read from the AXAML — a test view has no styling root, which made the first check of the
+  sliders' properties fail). Real app: manual plan rows G1–G8 PASS. Gates: Release / Debug `--no-incremental -warnaserror`
+  0 / 0; the full suite 3926 / 2 / 0; heavy 3928 / 0 / 0; three `--blame-hang` runs 3926 / 2 / 0; `git diff --check` clean.
+  Not pushed.
+- 2026-10-19 — FU-25.2 accepted by the product owner (PASS WITH NOTES). The last check before publishing: the Inspector at
+  1024 × 640 in the real app with the build of `b869c13` (manual plan row G9) — PASS, no defect; no code changed, the suite
+  not rerun. The branch holds Phase 25 (`01dbb92` … `62620f9`), FU-25.1 (`1cf6505`) and FU-25.2 (`b869c13`); not pushed.
+
+### Phase 24 — Russian localization and interface polish (merged 2026-10-19 as `d3df0ba`, PR #25)
 
 - 2026-10-19 — audit (read only): no localization infrastructure, ~700 English user-visible strings (AXAML, view-models,
   service layer), ~675 test assertions on English text, the OS UI culture ru-RU here and en-US on CI; fixed 80 px Inspector

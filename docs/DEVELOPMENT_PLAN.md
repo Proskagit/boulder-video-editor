@@ -106,38 +106,50 @@ and runs cleanly.
       blame-hang runs and heavy (3198 / 0 / 0) green; HLG measured on the 13 clips (the visual check open), PQ not verified on real PQ footage; the
       product owner's visual check of the S1 export open; PR #19 merged into `main` as `c29a767` (2026-10-14), CI green;
       still open: the product owner's visual check of the S1 export, PQ on real PQ footage)*
-- [ ] **Phase 19 — AI hold markup.** On a paused frame of a video clip the user clicks holds; SAM 2.1 Large (pinned model
+- [x] **Phase 19 — AI hold markup.** On a paused frame of a video clip the user clicks holds; SAM 2.1 Large (pinned model
       `sam2.1-large-v1`, ONNX, local only, DirectML with a CPU fallback) returns their real contours; the confirmed holds
       are drawn over the clip for its whole duration as one route outline, identical in the Preview and the export;
       undo / redo; `project.json` v5. Scope, steps and acceptance criteria: section below and DECISIONS.md D034
       (accepted 2026-10-14, specification revision 5). *(Pre-analysis and the experiments E1 / E2 done 2026-10-14
-      outside the repository; branch `feat/ai-hold-markup` from `c29a767`; implemented on the branch, Steps 19.0–19.8 committed, not pushed or merged; awaiting the product owner's acceptance — the threshold examples and the real-app scenarios on their clips; the checkbox is
-      set at acceptance)*
+      outside the repository; branch `feat/ai-hold-markup` from `c29a767`; Steps 19.0–19.8; PR #20 merged into `main` as
+      `2d0a10b` (2026-10-15), CI green)*
+- [x] **Phase 20 — Manual correction of hold contours.** In the markup mode a selected hold shows handles: drag a vertex,
+      Alt+click to add one, Delete / double-click to remove one (at least three stay), no self-crossing; one undo step per
+      gesture; `project.json` stays v5. Scope, steps and acceptance criteria: section below and DECISIONS.md D035.
+      *(Steps 20.1–20.4; accepted by the product owner on 2026-10-15; PR #21 merged into `main` as `a657bff` (2026-10-15))*
 
 - [x] **Phase 21 — Animation of the hold outlines.** With "Animate" on, a clip's hold contours are hidden before a start
       bound to the source time, appear one by one (Bottom to top or the marking order) with a fade, stay, and disappear
       together with a fade — or stay to the clip's end; computed on timeline frames in `PlaybackSnapshot.LayersAt`, so the
       Preview and the export agree on every frame; undo / redo; `project.json` v6. Scope, steps and acceptance criteria:
       section below and DECISIONS.md D036 (accepted 2026-10-15). *(Branch `feat/phase-21-hold-animation` from `a657bff`;
-      Steps 21.1–21.6 committed; the main functionality accepted by the product owner in the real app on 2026-10-15;
-      pull request into `main`, not merged)*
-- [ ] **Phase 22 — Timeline selection, snapping and making room.** Ctrl+A, Esc, marquee selection, "1 of N selected" in
+      Steps 21.1–21.6; the main functionality accepted by the product owner in the real app on 2026-10-15;
+      PR #22 merged into `main` as `7318ba8` (2026-10-15))*
+- [x] **Phase 22 — Timeline selection, snapping and making room.** Ctrl+A, Esc, marquee selection, "1 of N selected" in
       the Inspector; magnetic snapping that never makes an overlap, also for a drop from the Media Browser (a new clip on
       an empty track at 0); placement edits push the clips on the right instead of being refused (one track, a partner
       follows or the edit is refused, atomic, one undo step); Alt+arrow nudges; auto-scroll while dragging. `project.json`
       stays v6. Scope, steps and acceptance criteria: section below and DECISIONS.md D037 (accepted 2026-10-15).
       *(Branch `feat/phase-22-timeline-ux` from `7318ba8`, the merge of PR #22; Steps 22.0–22.6 `3cc9bac` … `0f03ba3`;
-      accepted by the product owner on 2026-10-16; pull request into `main`, not merged)*
+      accepted by the product owner on 2026-10-16; PR #23 merged into `main` as `1aaedc8` (2026-10-16))*
 - [x] **Phase 23 — Direct Move, Scale and Crop in the Preview.** Move (drag; the frame's corner handles scale around the
       centre) and Crop (eight handles, anchored) tools in the Preview's bar; one undo step per gesture; `project.json` v6.
       Scope, steps and acceptance criteria: section below and DECISIONS.md D038. *(Branch
       `feat/phase-23-preview-transform`; accepted by the product owner on 2026-10-19 — PASS WITH NOTES; PR #24 merged into
       `main` as `c652667`)*
-- [ ] **Phase 24 — Russian localization and interface polish.** The whole interface in Russian (English the neutral
+- [x] **Phase 24 — Russian localization and interface polish.** The whole interface in Russian (English the neutral
       language of the resources, Russian chosen in `appsettings.json`), the service layer's user messages included; guard
       tests against untranslated text; layout checked at 1024 × 640 and 1440 × 900; vector icons for the frequent
       commands; sliders for Opacity and Volume. `project.json` stays v6. Scope, steps and acceptance criteria: section
-      below and DECISIONS.md D039 (accepted 2026-10-19). *(Branch `feat/phase-24-localization` from `c652667`)*
+      below and DECISIONS.md D039 (accepted 2026-10-19). *(Branch `feat/phase-24-localization` from `c652667`; Steps
+      24.0–24.8; accepted by the product owner on 2026-10-19; PR #25 merged into `main` as `d3df0ba` (2026-10-19), CI green
+      on the pull request and on `main`)*
+- [ ] **Phase 25 — Technical backlog and small UX improvements.** `appsettings.json` read from the application's folder
+      (FU-24.2); the marker navigation status (FU-21.1); the hold markup mode left on its own (FU-22.1); sliders for Fade
+      In / Out and the hold line width (FU-24.1, in part); icons on the timeline's tool bar; the Phase 24 manual gaps.
+      `project.json` stays v6. Scope, steps and acceptance criteria: section below and DECISIONS.md D040 (accepted
+      2026-10-19). *(Branch `feat/phase-25-backlog-ux` from `d3df0ba`; Steps 25.0–25.6 done and verified by Claude on
+      2026-10-19; awaiting the product owner's acceptance; local commits only)*
 
 ## Future ideas (not phases)
 
@@ -1806,6 +1818,64 @@ Volume; FU-21.1, FU-21.2, FU-22.1 and the vertical-video export framing.
 - The allowlist holds only accepted technical tokens; Release and Debug `--no-incremental -warnaserror`, the full suite,
   `git diff --check`; the manual plan in the real app (both sizes, the Russian layout); a Phase 23 project opened and saved
   byte for byte; the docs.
+
+## Phase 25 — Technical backlog and small UX improvements: steps (D040)
+
+Assigned on 2026-10-19 by the product owner (the post-Phase 24 audit's proposal with the answers to its questions); the
+normative text is DECISIONS.md D040. Branch `feat/phase-25-backlog-ux` from `origin/main` = `d3df0ba` (the merge of PR
+#25, Phase 24). The permission covers the code, tests, documentation and local commits on this branch; **no push, pull
+request or merge without a separate command**. A defect found outside this scope is reported (cause and proposed fix)
+before it is changed.
+
+Goal: close the small technical backlog left after Phase 24 and finish the slider and icon passes of D039 §7 / §8;
+behaviour otherwise, the project format and the export unchanged.
+
+Gates for every step (QG): `dotnet build -warnaserror` 0 / 0; the affected test projects green, the full suite, the heavy
+scenes and `--blame-hang` at the closeout; `project.json` v6 unchanged (byte comparison with `d3df0ba`, `ru` and `en`);
+the Preview ↔ export parity suites and every expected value unchanged; every new user-visible text in `Strings` /
+`Messages` with `.ru` (the D039 guards); `docs/PHASE25_MANUAL_TEST_PLAN.md` and `progress.md` updated.
+
+Out of scope (D040 §7): FU-21.2 (clip-bound markers, no change of the marker model), the export of vertical video (a
+separate future phase), a Speed slider, a general redesign, new dependencies, unrelated backlog.
+
+### 25.0 — Sync and documentation *(done, `01dbb92`)*
+- `main` fast-forwarded to `origin/main` = `d3df0ba`; the branch; D040; these steps; the manual plan skeleton; the
+  documentation brought in line with the merges (Phases 19, 20, 22, 24 in the list above, ROADMAP, `progress.md`).
+
+### 25.1 — Configuration (FU-24.2) *(done, `3fbdf5e`)*
+- The host's content root is `AppContext.BaseDirectory`, so `appsettings.json` next to the exe is read whatever the
+  process's current directory; the command-line `args` go to the builder.
+- Tests: the host built with another current directory reads `App:Language` and `Ffmpeg:*` from the application's folder.
+
+### 25.2 — Marker navigation status (FU-21.1) *(done, `4e491d1`; the cause and the fix in D040 "Refined in Step 25.2")*
+- Reproduce, find the cause; a successful Previous / Next marker reports a localized status with the marker's timecode,
+  a refusal keeps its message.
+- Tests: frame boundaries (the playhead on, just before / after a marker's frame), the playhead past the sequence's end,
+  the status replaced after a refusal.
+
+### 25.3 — The hold markup mode left on its own (FU-22.1) *(done, `a7b1811` — not reproduced, no product code changed; D040 "Refined in Step 25.3")*
+- Reproduce, find the cause, a regression test. If the mode is left by the playhead's own adjustment while the frame is
+  prepared, D034 is refined: that internal adjustment is not a user seek; a user seek still leaves the mode. If the two
+  cannot be told apart reliably, or the fix needs another change of agreed behaviour — stop and report before the code.
+
+### 25.4 — Sliders (FU-24.1, in part) *(done, `4a471fa`)*
+- Fade In / Fade Out (video and audio clips) and the hold line width get a slider under their field, bound to the same
+  property; the field keeps exact typing; one finished drag is one undo step (D017's merge); the Fade maximum is the
+  field's existing maximum and follows the clip's length.
+- Tests: the binding and one undo step per drag for each new slider and for Volume (the Phase 24 gap); Volume checked in
+  the real app on a clip with sound. No Speed slider.
+
+### 25.5 — Icons on the timeline's tool bar *(done, `4c53633`; Unlink taken with Link)*
+- Icons from the D039 §7 set (same style) for + Text, + Video / Audio track, Paste, Duplicate, Ripple Delete, Close Gap,
+  Dissolve, Link and Fit; the localized labels and tooltips stay — no button becomes nameless for compactness.
+- The layout checked at 1024 × 640 and 1440 × 900.
+
+### 25.6 — Verification & closeout *(done by Claude 2026-10-19 — results in `progress.md` and the manual plan)*
+- The Phase 24 manual gaps (sound, model errors, a damaged project, a failed export, the track and marker tooltips) run in
+  the real app or marked NOT RUN — never PASS without a run.
+- Release and Debug `--no-incremental -warnaserror`; the full suite, `AIVE_HEAVY_TESTS=1`, three `--blame-hang` runs;
+  `git diff --check`; `project.json` v6 byte for byte with `d3df0ba` (`ru` and `en`); parity and undo-step counts; the
+  manual plan at 1024 × 640 and 1440 × 900.
 
 ## Architectural rules that must hold at every phase
 

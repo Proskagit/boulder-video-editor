@@ -10,6 +10,19 @@
     <Style Selector="NumericUpDown">
       <Setter Property="ParsingNumberStyle" Value="{x:Static common:NumericInput.ParsingStyle}"/>
     </Style>
+    <!-- FU-25.1: in a 104 px field Fluent's two spinner buttons (≈ 35 px each) left the text ≈ 19 px — «100» showed as «10(».
+         Narrower buttons (22 px) and a smaller text padding give the text ≈ 49 px at the same field width and height; the
+         buttons, the arrow keys and typing work as before. Fluent sizes these parts in theme styles with an activator, which
+         win over a plain selector, so these selectors carry one too (`:not(.theme-size)` — no element has that class). -->
+    <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ RepeatButton:not(.theme-size)">
+      <Setter Property="MinWidth" Value="0"/>
+      <Setter Property="Width" Value="22"/>
+      <Setter Property="Padding" Value="0"/>
+    </Style>
+    <Style Selector="NumericUpDown /template/ TextBox:not(.theme-size)">
+      <Setter Property="MinWidth" Value="0"/>
+      <Setter Property="Padding" Value="6,5,4,6"/>
+    </Style>
     <!-- D039 §6: one label column for every field — wide enough for the Russian labels, a long one wraps instead of being cut. -->
     <Style Selector="TextBlock.label">
       <Setter Property="Width" Value="116"/>
@@ -17,7 +30,10 @@
       <Setter Property="Foreground" Value="#AAAAAA"/>
       <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
-    <!-- D039 §8: a slider under a bounded field (Opacity, Volume); the field keeps exact typing, a drag is one undo step (D017). -->
+    <!-- D039 §8 / D040 §4: a slider under a bounded field (Opacity, Volume, Fade In / Out, the hold line width); the field keeps
+         exact typing, a drag is one undo step (D017). FU-25.2: Opacity, Volume and the line width take whole values (their
+         view models round a typed fraction, step 1); their «0.####» shows a whole value as whole and a fraction saved
+         before as it is. -->
     <Style Selector="Slider.under">
       <Setter Property="Width" Value="118"/>
       <Setter Property="Margin" Value="124,-10,0,-6"/>
@@ -186,7 +202,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{x:Static l:Strings.Inspector_Opacity}" Classes="label"/>
                   <controls:CommitNumericUpDown Value="{Binding OpacityPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinOpacityPercent}" Maximum="{Binding MaxOpacityPercent}"
-                                 FormatString="0.#" Width="104"/>
+                                 FormatString="0.####" Width="104"/>
                   <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
                 <Slider x:Name="OpacitySlider" Classes="under" Focusable="False" Minimum="{Binding MinOpacityPercent, Converter={x:Static common:DecimalDouble.Instance}}"
@@ -242,10 +258,15 @@
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{x:Static l:Strings.Holds_Width}" Classes="label"/>
                   <controls:CommitNumericUpDown Value="{Binding StrokeWidth, Mode=TwoWay}" Increment="1" Minimum="{Binding MinStrokeWidth}" Maximum="{Binding MaxStrokeWidth}"
-                                 FormatString="0.#" Width="104"/>
+                                 FormatString="0.####" Width="104"/>
                   <TextBlock Text="{x:Static l:Strings.Holds_WidthUnit}" Foreground="#AAAAAA" VerticalAlignment="Center"
                              ToolTip.Tip="{x:Static l:Strings.Holds_WidthUnitTip}"/>
                 </StackPanel>
+                <Slider x:Name="StrokeWidthSlider" Classes="under" Focusable="False"
+                        Minimum="{Binding MinStrokeWidth, Converter={x:Static common:DecimalDouble.Instance}}"
+                        Maximum="{Binding MaxStrokeWidth, Converter={x:Static common:DecimalDouble.Instance}}"
+                        Value="{Binding StrokeWidth, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                        ToolTip.Tip="{x:Static l:Strings.Holds_Width}"/>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{x:Static l:Strings.Holds_Colour}" Classes="label"/>
                   <ComboBox ItemsSource="{Binding ColorModes}" SelectedIndex="{Binding ColorModeIndex, Mode=TwoWay}" Width="110"/>
@@ -341,6 +362,10 @@
                                Maximum="{Binding MaxFadeInFrames}" FormatString="0" Width="104"/>
                 <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
               </StackPanel>
+              <Slider x:Name="FadeInSlider" Classes="under" Focusable="False" Minimum="0"
+                      Maximum="{Binding MaxFadeInFrames, Converter={x:Static common:DecimalDouble.Instance}}"
+                      Value="{Binding FadeInFrames, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                      ToolTip.Tip="{x:Static l:Strings.Inspector_FadeIn}"/>
               <TextBlock Text="{Binding FadeInTimeDisplay}" Foreground="#7A7A7A" FontSize="10" Margin="124,-4,0,0"/>
               <TextBlock IsVisible="{Binding IsFadeInInactive}" Text="{x:Static l:Strings.Inspector_FadeInactive}"
                          Foreground="#C8A060" FontSize="10" Margin="124,0,0,0" TextWrapping="Wrap"/>
@@ -350,6 +375,10 @@
                                Maximum="{Binding MaxFadeOutFrames}" FormatString="0" Width="104"/>
                 <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
               </StackPanel>
+              <Slider x:Name="FadeOutSlider" Classes="under" Focusable="False" Minimum="0"
+                      Maximum="{Binding MaxFadeOutFrames, Converter={x:Static common:DecimalDouble.Instance}}"
+                      Value="{Binding FadeOutFrames, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                      ToolTip.Tip="{x:Static l:Strings.Inspector_FadeOut}"/>
               <TextBlock Text="{Binding FadeOutTimeDisplay}" Foreground="#7A7A7A" FontSize="10" Margin="124,-4,0,0"/>
               <TextBlock IsVisible="{Binding IsFadeOutInactive}" Text="{x:Static l:Strings.Inspector_FadeInactive}"
                          Foreground="#C8A060" FontSize="10" Margin="124,0,0,0" TextWrapping="Wrap"/>
@@ -374,7 +403,7 @@
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Inspector_Volume}" Classes="label"/>
                 <controls:CommitNumericUpDown Value="{Binding VolumePercent, Mode=TwoWay}" Increment="1"
-                               Minimum="0" Maximum="200" FormatString="0.#" Width="104"/>
+                               Minimum="0" Maximum="200" FormatString="0.####" Width="104"/>
                 <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
               </StackPanel>
               <Slider x:Name="VolumeSlider" Classes="under" Focusable="False" Minimum="0" Maximum="200"

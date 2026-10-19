@@ -118,6 +118,17 @@ public sealed partial class PreviewViewModel : ViewModelBase
     public void Seek(MediaTime position)
     {
         if (IsSourceMode) return;
+        // D040 §2 (FU-21.1): past the end playback is clamped to the end; that frame is not reported back, so the
+        // playhead stays where the user put it (a marker past the end, a click on the ruler) — at the first seek as at
+        // the next ones, which found the end already reported. Only for the user's seek: the resync after an edit
+        // (OnTimelineChanged) reports the new end, which clamps the playhead there.
+        if (position > _playback.Duration)
+            _lastReportedFrame = _playback.Duration.ToFrameFloor(_projectService.Current.Settings.FrameRate);
+        SeekPlayback(position);
+    }
+
+    private void SeekPlayback(MediaTime position)
+    {
         _ = _playback.SeekAsync(position);
         _needsTick = true;
     }
@@ -236,7 +247,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
         var rate = _projectService.Current.Settings.FrameRate;
         var playhead = _projectService.Current.Timeline.PlayheadPosition.SnapToFrame(rate);
         if (playhead.ToFrameFloor(rate) > _playback.Position.ToFrameFloor(rate) && _playback.Position < _playback.Duration)
-            Seek(playhead);
+            SeekPlayback(playhead);
     }
 
     /// <summary>Media changes (import, analysis, missing files) rebuild only if an asset the

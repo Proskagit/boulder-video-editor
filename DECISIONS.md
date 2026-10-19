@@ -5179,6 +5179,109 @@ Status: Accepted (2026-10-19, product owner). Implemented in Phase 24 (branch `f
 on 2026-10-19 (the gates, the `project.json` v6 byte comparison with `c652667`, the real-app run of
 `docs/PHASE24_MANUAL_TEST_PLAN.md`); accepted by the product owner on 2026-10-19.
 
+
+---
+
+## D040 — Technical backlog and small UX improvements (Phase 25)
+
+Date: 2026-10-19
+
+Decision (product owner, 2026-10-19: the post-Phase 24 audit's proposal "Phase 25 — technical backlog and small UX
+improvements" with the answers to its questions). No format change: `project.json` stays **v6**; the composition, the mix,
+the decoders and the export unchanged.
+
+### 1. Configuration (FU-24.2)
+
+`appsettings.json` is read from the application's folder (`AppContext.BaseDirectory` as the host's content root), never
+from the process's current directory; the command-line arguments go to the host builder. Recorded at Phase 24 (D039
+implementation notes) as an observation: started from another folder, the app ran with the defaults and without the
+`Ffmpeg:*` paths.
+
+### 2. Marker navigation (FU-21.1)
+
+Previous / Next marker: a successful jump reports a localized status with the marker's timecode (it replaces any earlier
+message); a refusal ("no marker before / after the playhead") keeps its message. Which marker is the previous / next one is
+decided on the playhead's frame, as before (D027 §6). The marker model is unchanged (FU-21.2 stays deferred).
+
+Refined in Step 25.2 — the cause: a jump to a marker past the sequence's end seeks there; playback clamps the seek to the
+end and the Preview reported that clamped frame back, so the playhead was pulled back to the end — but only when the end
+frame had not been reported before (a second press found it reported and stayed). From the end the next Previous could
+find no marker before it («Перед указателем нет маркеров»), and a successful jump never replaced that message. Fixed: the
+user's seek past the end does not report the clamped frame back (`PreviewViewModel.Seek`), so the playhead stays where
+the user put it at the first seek as at the next ones — for a marker, a click on the ruler past the end or a step; the
+resync after an edit (PR #16) still clamps the playhead to a new end before it. A jump reports «Переход к маркеру
+{timecode}» (`Marker_Reached`). Tests: `UI.Tests/MarkerNavigationTests`.
+
+### 3. The hold markup mode left on its own (FU-22.1)
+
+Reproduce first. If the mode is left by the playhead's own adjustment while the markup frame is prepared, D034 is refined:
+that internal adjustment is not a user seek and does not leave the mode; every user seek still leaves it. If the two cannot
+be told apart reliably, or another change of agreed behaviour is needed, the product owner decides before the code.
+
+Refined in Step 25.3 — not reproduced, no code changed, D034 unchanged. Only two things move the timeline playhead: a user
+action (`TimelineViewModel.SetPlayhead` — the ruler, the arrows, the markers, Go to start / end) and playback's report of
+its position (`ShowPlaybackPosition`); the markup mode's preparation (the model check and load, the frame decode, the
+encoder) reads the playhead and never seeks, and a paused playback clock does not move. Replayed with the real shell and
+playback, the Preview's timer running while the model loads, the playhead put by the ruler on 00:00:10:00 (a clip's first
+frame) and inside a clip: the mode stays on and the playhead does not move (`HoldMarkupUiTests`). The Step 22.6 run drove
+the app with synthetic keys, and in that run arrows sent without `KEYEVENTF_EXTENDEDKEY` lost their modifier (progress.md,
+Phase 22): a bare Left arrow is a one-frame step back and a user seek, which leaves the mode by D034; 00:00:10:00 →
+00:00:09:23 at 25 fps is two such frames (one step gives 00:00:09:24, checked in the real app). The most likely cause is
+therefore stray keys of the harness, not the product — not proven, as the 22.6 key log is gone. Real app (Step 25.6, row 5
+of `docs/PHASE25_MANUAL_TEST_PLAN.md`): the ruler click on 00:00:10:00, the clip selected, «Разметить зацепки» — the mode
+on for 12 s with the model loaded, the playhead unmoved; a Left arrow then left it (00:00:09:24).
+
+### 4. Sliders (FU-24.1, in part)
+
+Fade In / Fade Out of video and audio clips and the hold line width get a slider under their numeric field, as Opacity and
+Volume (D039 §8): bound to the same property, the field keeps exact typing, one finished drag is one undo step (D017's
+merge of consecutive changes of one field); the Fade slider's maximum is the field's maximum and follows the clip's length.
+No Speed slider: exact values matter and a speed change moves the clip's length and placement.
+
+### 5. Icons on the timeline's tool bar
+
+The D039 §7 icon set (one stroke style, path geometries, no dependency) extended to + Text, + Video / Audio track, Paste,
+Duplicate, Ripple Delete, Close Gap, Dissolve, Link and Fit; each keeps its localized label and its tooltip (name and
+shortcut) — no button becomes nameless for compactness. Checked at 1024 × 640 and 1440 × 900.
+
+### 6. Verification
+
+The Phase 24 manual gaps (sound, model errors, a damaged project, a failed export, the track and marker tooltips) are run in
+the real app or recorded as NOT RUN. `project.json` v6 is compared byte for byte with a save by `d3df0ba` (`ru` and `en`).
+
+### 7. Not in this decision
+
+FU-21.2 (markers bound to a clip — the marker model unchanged); the export of vertical video without black bars (a separate
+future phase); a Speed slider, dragging on labels; a general redesign; new dependencies; unrelated backlog.
+
+Context: the post-Phase 24 audit of 2026-10-19 — the next phase was not defined in the documentation; the backlog held
+FU-21.1, FU-21.2, FU-22.1, FU-24.1, the vertical-video export and the `appsettings.json` observation; several Phase 24 manual
+rows were "auto only"; the documentation lagged the merges of Phases 19, 20, 22 and 24.
+
+Consequences: no new dependency, no format change; a few new resources (en + ru); the guards unchanged.
+
+Implementation notes (2026-10-19, Phase 25):
+- §1: `App/Composition/AppHostBuilder` (the content root `AppContext.BaseDirectory`, the `args`); checked in the real app with
+  another current directory and ffmpeg off PATH.
+- §2: see "Refined in Step 25.2" — the fix also keeps a click on the ruler past the end where it was put at the first click
+  (before, the first such seek in a non-empty project was pulled back to the end, the next ones not).
+- §3: see "Refined in Step 25.3" — not reproduced; no code changed.
+- §4: Fade In / Out and the hold line width, as Opacity / Volume; the Volume slider now has its own test and was checked in
+  the app.
+- §5: eleven icons; Unlink was taken with Link (the two are one pair of buttons, the label stays bound); − / + stay glyphs.
+  The «Insert» of the specification is the bar's «Вставить» (Paste).
+- Found outside the scope (Step 25.6): the Inspector's numeric fields cut a three-digit value (FU-25.1) — fixed afterwards at
+  the product owner's request (2026-10-19): the Inspector's numeric-field style narrows Fluent's spinner buttons to 22 px and
+  the text padding (selectors with an activator, as Fluent's own theme styles have one); width 104, height and behaviour
+  unchanged. Found at that check: FU-25.2 (a field with a slider lost a typed fraction, since Phase 24) — decided by the
+  product owner on 2026-10-19 (variant 1): Opacity, Volume and the hold line width take whole values — the view models round a
+  typed value, a half up; the slider's converter no longer rounds (it rounded every write-back, also the one after the field
+  moved the slider, and hid a saved fraction); a fraction saved before is shown as it is («0.####») until it is changed; the
+  other numeric fields keep their precision. This refines D039 §8 for these three fields ("exact typing" → whole values).
+
+Status: Accepted (2026-10-19, product owner). Implemented in Phase 25 (branch `feat/phase-25-backlog-ux`); verified by Claude
+on 2026-10-19 (the gates, the `project.json` v6 byte comparison with `d3df0ba`, the real-app run of
+`docs/PHASE25_MANUAL_TEST_PLAN.md`); the product owner's acceptance pending.
 ---
 
 ## How to add a decision

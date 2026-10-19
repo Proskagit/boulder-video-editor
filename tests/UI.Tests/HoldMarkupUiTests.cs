@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
@@ -44,13 +45,14 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     private readonly FakeSegmentation _model = new();
     private readonly FakeFrames _frames = new();
     private readonly EditingLock _lock = new();
+    private readonly FakeVideoDecoder _decoder = new();
     private readonly MainWindowViewModel _vm;
 
     public HoldMarkupUiTests()
     {
         _projects = new ProjectService(_undo, NullLogger<ProjectService>.Instance);
         _edit = new TimelineEditService(_projects, _undo, NullLogger<TimelineEditService>.Instance);
-        _playback = new PlaybackService(new FakeVideoDecoder(), new FakeReferenceClock(), NullLogger<PlaybackService>.Instance,
+        _playback = new PlaybackService(_decoder, new FakeReferenceClock(), NullLogger<PlaybackService>.Instance,
             new PlaybackSettings { BufferFrames = 4 }, new FakeAudioDecoder(), new FakeAudioOutput());
         var analysis = new MediaAnalysisCoordinator(new NoAnalysis(), _projects, NullLogger<MediaAnalysisCoordinator>.Instance);
         var import = new MediaImportWorkflow(new ScriptedPicker(), new NoImport(), _projects, analysis, _status, NullLogger<MediaImportWorkflow>.Instance);
@@ -117,6 +119,51 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     /// <summary>History changes so far: each executed command is one (undo / redo too).</summary>
     private int _history;
     private int UndoSteps() => _history;
+
+    // --- FU-22.1 (D040 §3): the mode stays on while the frame is prepared ------------------------------------------------
+
+    /// <summary>The Step 22.6 observation, replayed with the Preview's timer running: the playhead put on 00:00:10:00 by a
+    /// click on the ruler (the second clip's first frame, and inside a clip), the selected clip, the mode entered while
+    /// the model loads for a while. Nothing moves the playhead meanwhile — the mode stays on; a step by the user leaves it.</summary>
+    [Theory]
+    [InlineData(250)]   // 00:00:10:00 — the first frame of the second clip
+    [InlineData(375)]   // 00:00:15:00 — inside it
+    public async Task Entered_at_a_playhead_set_on_the_ruler_the_mode_stays_on_while_the_model_loads(long frame)
+    {
+        AddVideo("a.mp4");
+        var clip = AddVideo("b.mp4");                                // 10–20 s, selected
+        foreach (var asset in _projects.Current.MediaAssets) _decoder.Add(asset.FilePath, new FakeSource(Rate, 250));
+        var at = MediaTime.FromFrame(frame, Rate);
+        _vm.Timeline.SetPlayheadFromX(TimelineCoordinateMapper.TimeToX(at, _vm.Timeline.PixelsPerSecond));
+        Assert.Equal(at, _vm.Timeline.Playhead);
+        await TickPreview(TimeSpan.FromMilliseconds(200));         // the seek settles
+
+        _model.Gate = new TaskCompletionSource();
+        var start = Markup.StartCommand.ExecuteAsync(null);
+        Assert.True(Markup.IsPreparing);
+        await TickPreview(TimeSpan.FromMilliseconds(500));         // the Preview's timer runs while the model loads
+        _model.Gate.SetResult();
+        await start;
+        await TickPreview(TimeSpan.FromMilliseconds(200));
+
+        Assert.True(Markup.IsActive);
+        Assert.False(Markup.IsPreparing);
+        Assert.Equal(at, _vm.Timeline.Playhead);
+        Assert.Equal(at - clip.TimelineStart, _frames.LastPlayhead!.Value - clip.TimelineStart);
+
+        _vm.Timeline.StepFrames(-1);                                 // a user seek (Left) still leaves the mode (D034)
+        Assert.False(Markup.IsActive);
+    }
+
+    private async Task TickPreview(TimeSpan duration)
+    {
+        var watch = Stopwatch.StartNew();
+        while (watch.Elapsed < duration)
+        {
+            _vm.Preview.Tick();
+            await Task.Delay(1);
+        }
+    }
 
     // --- D038 §1: the Preview's Move / Crop tools and the markup mode exclude each other ------------------------------------
 
