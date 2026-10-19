@@ -19,9 +19,9 @@ namespace AiVideoEditor.UI.Tests;
 /// <summary>
 /// The playhead after an edit that changes the sequence's duration (the Phase 15 Step 15.8 observation): kept inside
 /// [0, Duration] — at the old end included — and never moved to the new end by an extension; clamped to the new
-/// Duration past it. The playhead parked past the end (playback clamps a seek to the end and does not report a frame it
-/// already reported: always in an empty project, in a non-empty one from the second seek past the end): a clip added
-/// there shows in the Preview at once, without another seek. Edits inside the sequence keep the D010 / D011 behaviour.
+/// Duration past it. The playhead parked past the end (playback clamps a seek to the end, and the Preview does not report
+/// that clamped frame back after the user's seek — D040 §2, `MarkerNavigationTests`): a clip added there shows in the
+/// Preview at once, without another seek. Edits inside the sequence keep the D010 / D011 behaviour.
 /// Real shell and real playback service (fake decoder, manual clock; ticks driven like the view's timer).
 /// </summary>
 public sealed class PreviewPlayheadPastEndTests : IAsyncLifetime

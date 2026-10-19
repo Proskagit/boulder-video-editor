@@ -5203,6 +5203,15 @@ Previous / Next marker: a successful jump reports a localized status with the ma
 message); a refusal ("no marker before / after the playhead") keeps its message. Which marker is the previous / next one is
 decided on the playhead's frame, as before (D027 §6). The marker model is unchanged (FU-21.2 stays deferred).
 
+Refined in Step 25.2 — the cause: a jump to a marker past the sequence's end seeks there; playback clamps the seek to the
+end and the Preview reported that clamped frame back, so the playhead was pulled back to the end — but only when the end
+frame had not been reported before (a second press found it reported and stayed). From the end the next Previous could
+find no marker before it («Перед указателем нет маркеров»), and a successful jump never replaced that message. Fixed: the
+user's seek past the end does not report the clamped frame back (`PreviewViewModel.Seek`), so the playhead stays where
+the user put it at the first seek as at the next ones — for a marker, a click on the ruler past the end or a step; the
+resync after an edit (PR #16) still clamps the playhead to a new end before it. A jump reports «Переход к маркеру
+{timecode}» (`Marker_Reached`). Tests: `UI.Tests/MarkerNavigationTests`.
+
 ### 3. The hold markup mode left on its own (FU-22.1)
 
 Reproduce first. If the mode is left by the playhead's own adjustment while the markup frame is prepared, D034 is refined:

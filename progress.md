@@ -16,6 +16,12 @@ merge without the product owner's command.
 - 2026-10-19 — Step 25.0: local `main` fast-forwarded `c652667` → `d3df0ba`; the branch; D040, the Phase 25 steps, the manual
   plan skeleton; the documentation brought in line with the merges (DEVELOPMENT_PLAN's list: Phases 19, 22, 24 checked,
   Phase 20 added; ROADMAP: Phase 24 merged, Phase 25 current, FU-24.2 recorded).
+- 2026-10-19 — Step 25.1 (`3fbdf5e`): `App/Composition/AppHostBuilder` — the content root `AppContext.BaseDirectory`, the
+  `args` to the builder; `UI.Tests/AppConfigurationTests` (3, in a non-parallel collection: they change the current
+  directory). UI.Tests 773 / 0 / 0.
+- 2026-10-19 — Step 25.2 (FU-21.1): reproduced in a test — Next to a marker past the end left the playhead at the end (the
+  Preview reported the clamped end frame back after the first seek past the end); cause and fix in D040 "Refined in Step
+  25.2"; `Marker_Reached` (en + ru); `UI.Tests/MarkerNavigationTests` (7). UI.Tests 780 / 0 / 0, Timeline.Tests 828 / 0 / 0.
 
 ### Phase 24 — Russian localization and interface polish (merged 2026-10-19 as `d3df0ba`, PR #25)
 
