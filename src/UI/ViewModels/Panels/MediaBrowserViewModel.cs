@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -197,14 +199,13 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         if (clipCount > 0)
         {
             if (_dialogs is null) return;
-            var clips = clipCount == 1 ? "1 clip" : $"{clipCount} clips";
             var choice = await _dialogs.AskAsync(new DialogRequest
             {
-                Title = "Remove Media",
-                Message = $"{asset.FileName} is used by {clips} on the timeline. Removing it from the project deletes " +
-                          $"{(clipCount == 1 ? "that clip" : "those clips")} too, and any dissolves on them.\n\n" +
-                          "The file on disk is not deleted. You can undo this with Undo.",
-                Buttons = new[] { "Remove", "Cancel" }
+                Title = Strings.Media_RemoveTitle,
+                Message = clipCount == 1
+                    ? string.Format(Strings.Media_RemoveQuestionOne, asset.FileName)
+                    : Plural.Format(clipCount, Strings.Media_RemoveQuestionMany, asset.FileName),
+                Buttons = new[] { Strings.Common_Remove, Strings.Common_Cancel }
             });
             // The answer may come after an export or a relink started, or the project was replaced; the service
             // re-checks the rest.
@@ -214,12 +215,14 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         var result = _edit.RemoveMedia(asset.Id);
         if (!result.Success)
         {
-            _status?.Report(result.Message ?? "The media could not be removed.");
+            _status?.Report(result.Message ?? Strings.Media_NotRemoved);
             return;
         }
         var removed = clipCount == 0
-            ? $"Removed {asset.FileName} from the project."
-            : $"Removed {asset.FileName} and {(clipCount == 1 ? "its clip" : $"its {clipCount} clips")} from the project.";
+            ? string.Format(Strings.Media_Removed, asset.FileName)
+            : clipCount == 1
+                ? string.Format(Strings.Media_RemovedWithClipOne, asset.FileName)
+                : Plural.Format(clipCount, Strings.Media_RemovedWithClipsMany, asset.FileName);
         _status?.Report(result.Message is { } note ? $"{removed} {note}" : removed);
     }
 }

@@ -1,6 +1,7 @@
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Project.Persistence;
 using Microsoft.Extensions.Logging;
 
@@ -67,7 +68,7 @@ public sealed class ProjectService : IProjectService
         _logger = logger;
         _store = store;
         _fileExists = fileExists;
-        Current = NewProject("Untitled Project", null);
+        Current = NewProject(Messages.Project_DefaultName, null);
         _undoRedo.StateChanged += (_, _) => UpdateDirty();
         UpdateDirty();
     }

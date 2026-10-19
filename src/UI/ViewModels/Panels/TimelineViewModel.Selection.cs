@@ -1,4 +1,6 @@
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Common;
+using AiVideoEditor.UI.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -35,7 +37,7 @@ public sealed partial class TimelineViewModel
         var clips = Tracks.Where(t => !t.Track.IsLocked).SelectMany(t => t.Clips).ToList();
         if (clips.Count == 0)
         {
-            _status.Report("There is no clip on an unlocked track to select.");
+            _status.Report(Strings.Selection_NothingToSelect);
             return;
         }
         SetSelection(clips);
@@ -153,9 +155,8 @@ public sealed partial class TimelineViewModel
     private void ReportSelectionCount() =>
         _status.Report(_selection.Count switch
         {
-            0 => "No clip selected.",
-            1 => "1 clip selected",
-            var n => $"{n} clips selected"
+            0 => Strings.Selection_None,
+            var n => Plural.Format(n, Strings.Selection_Count)
         });
 
     // --- Nudge and auto-scroll (D037 §4) ----------------------------------------------------------------------------------

@@ -2,7 +2,9 @@ using System.Globalization;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Common;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -13,7 +15,16 @@ namespace AiVideoEditor.UI.ViewModels;
 public sealed record CanvasPresetOption(string Group, string Name, int Width, int Height)
 {
     public bool IsCustom => Width == 0;
-    public string Label => IsCustom ? "Custom" : $"{Group} — {Width} × {Height}{(Name.Length > 0 ? $" ({Name})" : "")}";
+    public string Label => IsCustom ? Strings.Settings_Custom : $"{GroupText} — {Width} × {Height}{(Name.Length > 0 ? $" ({Name})" : "")}";
+
+    /// <summary>The group as the user reads it; <see cref="Group"/> itself is the preset's fixed English name.</summary>
+    private string GroupText => Group switch
+    {
+        "Landscape" => Strings.Settings_Landscape,
+        "Portrait" => Strings.Settings_Portrait,
+        "Square" => Strings.Settings_Square,
+        _ => Group
+    };
     public override string ToString() => Label;
 }
 
@@ -39,7 +50,7 @@ public sealed record FrameRateOption(FrameRate Rate, string Label, bool IsKeep)
 /// </summary>
 public sealed partial class ProjectSettingsViewModel : ObservableObject
 {
-    public const string LockedMessage = "The project settings can't be changed while a video is being exported.";
+    public static string LockedMessage => Strings.Settings_Locked;
 
     private readonly ITimelineEditService _edit;
     private readonly StatusService _status;
@@ -73,21 +84,21 @@ public sealed partial class ProjectSettingsViewModel : ObservableObject
 
     public static IReadOnlyList<ExportChoice<ExportQuality>> QualityOptions { get; } = new[]
     {
-        new ExportChoice<ExportQuality>(ExportQuality.Maximum, "Maximum", "CRF 14 — largest file"),
-        new ExportChoice<ExportQuality>(ExportQuality.High, "High", "CRF 18 — default"),
-        new ExportChoice<ExportQuality>(ExportQuality.Standard, "Standard", "CRF 23"),
-        new ExportChoice<ExportQuality>(ExportQuality.Compact, "Compact", "CRF 28 — smallest file"),
+        new ExportChoice<ExportQuality>(ExportQuality.Maximum, Strings.Quality_Maximum, Strings.Quality_MaximumDetail),
+        new ExportChoice<ExportQuality>(ExportQuality.High, Strings.Quality_High, Strings.Quality_HighDetail),
+        new ExportChoice<ExportQuality>(ExportQuality.Standard, Strings.Quality_Standard, "CRF 23"),
+        new ExportChoice<ExportQuality>(ExportQuality.Compact, Strings.Quality_Compact, Strings.Quality_CompactDetail),
     };
 
     public static IReadOnlyList<ExportChoice<ExportSpeedPreset>> SpeedOptions { get; } = new[]
     {
-        new ExportChoice<ExportSpeedPreset>(ExportSpeedPreset.Fast, "Fast", "H.264 preset fast — quicker, larger file"),
-        new ExportChoice<ExportSpeedPreset>(ExportSpeedPreset.Medium, "Medium", "H.264 preset medium — default"),
-        new ExportChoice<ExportSpeedPreset>(ExportSpeedPreset.Slow, "Slow", "H.264 preset slow — slower, smaller file"),
+        new ExportChoice<ExportSpeedPreset>(ExportSpeedPreset.Fast, Strings.Speed_Fast, Strings.Speed_FastDetail),
+        new ExportChoice<ExportSpeedPreset>(ExportSpeedPreset.Medium, Strings.Speed_Medium, Strings.Speed_MediumDetail),
+        new ExportChoice<ExportSpeedPreset>(ExportSpeedPreset.Slow, Strings.Speed_Slow, Strings.Speed_SlowDetail),
     };
 
     public static IReadOnlyList<ExportChoice<int>> BitrateOptions { get; } =
-        ExportEncoding.AudioBitratesKbps.Select(k => new ExportChoice<int>(k, $"{k} kbps", k == 192 ? "AAC — default" : "AAC")).ToList();
+        ExportEncoding.AudioBitratesKbps.Select(k => new ExportChoice<int>(k, string.Format(Strings.Unit_Kbps, k), k == 192 ? Strings.Audio_Default : "AAC")).ToList();
 
     public IReadOnlyList<ExportChoice<ExportQuality>> Qualities => QualityOptions;
     public IReadOnlyList<ExportChoice<ExportSpeedPreset>> Speeds => SpeedOptions;
@@ -161,7 +172,7 @@ public sealed partial class ProjectSettingsViewModel : ObservableObject
     public event EventHandler<bool>? CloseRequested;
 
     public static string Summary(int width, int height, FrameRate rate, bool locked) =>
-        $"{width} × {height} · {RateFormat.Fps(rate)}{(locked ? "" : " (provisional)")}";
+        $"{width} × {height} · {(locked ? RateFormat.Fps(rate) : string.Format(Strings.Rate_Provisional, RateFormat.Fps(rate)))}";
 
     partial void OnSelectedPresetChanged(CanvasPresetOption value)
     {
@@ -212,12 +223,12 @@ public sealed partial class ProjectSettingsViewModel : ObservableObject
 
         if (!result.Success)
         {
-            Error = result.Message ?? "The project settings could not be changed.";
+            Error = result.Message ?? Strings.Settings_NotChanged;
             return;
         }
         Error = null;
         if (!result.NoChange)
-            _status.Report(result.Message ?? $"Frame size set to {width} × {height}.");
+            _status.Report(result.Message ?? string.Format(Strings.Settings_FrameSizeSet, width, height));
         CloseRequested?.Invoke(this, true);
     }
 
@@ -237,21 +248,21 @@ public sealed partial class ProjectSettingsViewModel : ObservableObject
         var size = DraftSize();
         CanvasError = size is (int w, int h)
             ? ProjectSettingsRules.CanvasError(w, h)
-            : Width is null || Height is null ? "Enter the frame width and height." : "The frame width and height must be whole numbers.";
+            : Width is null || Height is null ? Strings.Settings_EnterSize : Strings.Settings_WholeNumbers;
 
         ScaleNotice = null;
         if (CanvasError is null && size is (int nw, int nh) && (nw != CurrentWidth || nh != CurrentHeight))
         {
             var factor = ProjectSettingsRules.ContainFactor(CurrentWidth, CurrentHeight, nw, nh);
             ScaleNotice = factor == 1
-                ? "Positions and text sizes stay as they are."
-                : $"Positions and text sizes will be scaled by {(factor * 100).ToString("0.##", CultureInfo.InvariantCulture)} %.";
+                ? Strings.Settings_PositionsStay
+                : string.Format(Strings.Settings_PositionsScaled, (factor * 100).ToString("0.##", CultureInfo.InvariantCulture));
         }
 
         RateNotice = !SelectedRate.IsKeep && SelectedRate.Rate != CurrentRate
-            ? $"Clips move to the nearest frames of {RateFormat.Fps(SelectedRate.Rate)}; fades, dissolves and markers keep their time."
+            ? string.Format(Strings.Settings_RateChange, RateFormat.Fps(SelectedRate.Rate))
             : !SelectedRate.IsKeep && !IsCurrentRateLocked
-                ? $"{RateFormat.Fps(SelectedRate.Rate)} will be kept: a video added later won't change it."
+                ? string.Format(Strings.Settings_RateKept, RateFormat.Fps(SelectedRate.Rate))
                 : null;
 
         CanApply = CanvasError is null;
@@ -264,9 +275,9 @@ public sealed partial class ProjectSettingsViewModel : ObservableObject
     {
         var list = new List<FrameRateOption>();
         if (!locked)
-            list.Add(new FrameRateOption(current, $"{RateFormat.Fps(current)} (provisional)", IsKeep: true));
+            list.Add(new FrameRateOption(current, string.Format(Strings.Rate_Provisional, RateFormat.Fps(current)), IsKeep: true));
         else if (!ProjectSettingsRules.IsSelectableFrameRate(current))
-            list.Add(new FrameRateOption(current, $"{RateFormat.Fps(current)} (current)", IsKeep: true));
+            list.Add(new FrameRateOption(current, string.Format(Strings.Rate_Current, RateFormat.Fps(current)), IsKeep: true));
         list.AddRange(ProjectSettingsRules.SelectableFrameRates.Select(r => new FrameRateOption(r, RateFormat.Fps(r), IsKeep: false)));
         return list;
     }

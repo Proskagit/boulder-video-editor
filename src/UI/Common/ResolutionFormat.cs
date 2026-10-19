@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.UI.Localization;
 
 namespace AiVideoEditor.UI.Common;
 
@@ -13,5 +14,5 @@ public static class ResolutionFormat
 
     /// <summary>"Rotated 90°" etc. for a right-angle orientation; null for none or unknown.</summary>
     public static string? Orientation(MediaMetadata m) =>
-        m.DisplayRotation is 90 or 180 or 270 ? $"Rotated {m.DisplayRotation}°" : null;
+        m.DisplayRotation is 90 or 180 or 270 ? string.Format(Strings.Orientation_Rotated, m.DisplayRotation) : null;
 }

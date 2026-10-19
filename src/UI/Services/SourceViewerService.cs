@@ -1,7 +1,9 @@
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Core.Playback;
+using AiVideoEditor.UI.Localization;
 
 namespace AiVideoEditor.UI.Services;
 
@@ -87,7 +89,7 @@ public sealed class SourceViewerService
     /// <summary>Opens <paramref name="asset"/> (SQ11). Null when opened, otherwise why not (nothing changes).</summary>
     public string? Open(MediaAsset asset)
     {
-        if (!_projects.Current.MediaAssets.Contains(asset)) return "That media is not in the project.";
+        if (!_projects.Current.MediaAssets.Contains(asset)) return Strings.Source_NotInProject;
         if (_edit.GetSourceGrid(asset, out var reason) is not { } grid) return reason;
         Asset = asset;
         Grid = grid;

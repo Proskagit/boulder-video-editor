@@ -1,4 +1,6 @@
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
+using AiVideoEditor.UI.Localization;
 using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.UI.Services;
@@ -111,12 +113,12 @@ public sealed class MediaAvailabilityMonitor
         var parts = new List<string>();
         if (e.Gone.Count > 0)
             parts.Add(e.Gone.Count == 1
-                ? $"\"{e.Gone[0].FileName}\" is missing now and is shown as offline."
-                : $"{e.Gone.Count} media files are missing now and are shown as offline.");
+                ? string.Format(Strings.Availability_GoneOne, e.Gone[0].FileName)
+                : Plural.Format(e.Gone.Count, Strings.Availability_GoneMany));
         if (e.Returned.Count > 0)
             parts.Add(e.Returned.Count == 1
-                ? $"\"{e.Returned[0].FileName}\" is available again."
-                : $"{e.Returned.Count} media files are available again.");
+                ? string.Format(Strings.Availability_BackOne, e.Returned[0].FileName)
+                : Plural.Format(e.Returned.Count, Strings.Availability_BackMany));
         if (parts.Count > 0)
             _status.Report(string.Join(" ", parts));
     }

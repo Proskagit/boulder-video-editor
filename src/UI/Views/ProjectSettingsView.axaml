@@ -1,4 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:l="using:AiVideoEditor.UI.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:common="using:AiVideoEditor.UI.Common"
              xmlns:controls="using:AiVideoEditor.UI.Controls"
@@ -29,34 +30,34 @@
 
   <StackPanel Margin="20" Spacing="10">
 
-    <TextBlock Classes="note" Text="{Binding CurrentSummary, StringFormat='Current: {0}'}"/>
+    <TextBlock Classes="note" Text="{Binding CurrentSummary, StringFormat={x:Static l:Strings.Settings_Current}}"/>
 
-    <TextBlock Classes="heading" Text="FRAME SIZE" Margin="0,4,0,0"/>
+    <TextBlock Classes="heading" Text="{x:Static l:Strings.Settings_FrameSize}" Margin="0,4,0,0"/>
     <!-- The size fields take the whole row (four digits and the spinner); Swap sits next to the presets. -->
     <Grid ColumnDefinitions="*,Auto">
       <ComboBox x:Name="PresetBox" Grid.Column="0" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
                 HorizontalAlignment="Stretch"/>
-      <Button x:Name="SwapButton" Grid.Column="1" Content="⇄ Swap" Command="{Binding SwapCommand}" Margin="8,0,0,0"
-              ToolTip.Tip="Swap width and height (landscape ↔ portrait)"/>
+      <Button x:Name="SwapButton" Grid.Column="1" Content="{x:Static l:Strings.Settings_Swap}" Command="{Binding SwapCommand}" Margin="8,0,0,0"
+              ToolTip.Tip="{x:Static l:Strings.Settings_SwapTip}"/>
     </Grid>
     <Grid ColumnDefinitions="Auto,*,Auto,*">
-      <TextBlock Grid.Column="0" Text="Width" VerticalAlignment="Center" Margin="0,0,6,0"/>
+      <TextBlock Grid.Column="0" Text="{x:Static l:Strings.Settings_Width}" VerticalAlignment="Center" Margin="0,0,6,0"/>
       <controls:CommitNumericUpDown x:Name="WidthBox" Grid.Column="1" Value="{Binding Width, Mode=TwoWay}"
                                     Increment="2" Minimum="0" Maximum="100000" FormatString="0"/>
-      <TextBlock Grid.Column="2" Text="Height" VerticalAlignment="Center" Margin="12,0,6,0"/>
+      <TextBlock Grid.Column="2" Text="{x:Static l:Strings.Settings_Height}" VerticalAlignment="Center" Margin="12,0,6,0"/>
       <controls:CommitNumericUpDown x:Name="HeightBox" Grid.Column="3" Value="{Binding Height, Mode=TwoWay}"
                                     Increment="2" Minimum="0" Maximum="100000" FormatString="0"/>
     </Grid>
     <TextBlock Classes="error" Text="{Binding CanvasError}" IsVisible="{Binding CanvasError, Converter={x:Static ObjectConverters.IsNotNull}}"/>
     <TextBlock Classes="note" Text="{Binding ScaleNotice}" IsVisible="{Binding ScaleNotice, Converter={x:Static ObjectConverters.IsNotNull}}"/>
 
-    <TextBlock Classes="heading" Text="FRAME RATE" Margin="0,6,0,0"/>
+    <TextBlock Classes="heading" Text="{x:Static l:Strings.Settings_FrameRate}" Margin="0,6,0,0"/>
     <ComboBox x:Name="RateBox" ItemsSource="{Binding Rates}" SelectedItem="{Binding SelectedRate, Mode=TwoWay}"
               HorizontalAlignment="Stretch"/>
     <TextBlock Classes="note" Text="{Binding RateNotice}" IsVisible="{Binding RateNotice, Converter={x:Static ObjectConverters.IsNotNull}}"/>
 
     <!-- Export settings (D028, Step 13.9): a draft like the rest; Apply changes them with the size and the rate in one step. -->
-    <TextBlock Classes="heading" Text="EXPORT" Margin="0,6,0,0"/>
+    <TextBlock Classes="heading" Text="{x:Static l:Strings.Settings_Export}" Margin="0,6,0,0"/>
     <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
       <Grid.Styles>
         <Style Selector="ComboBox.choice">
@@ -72,20 +73,20 @@
           </Setter>
         </Style>
       </Grid.Styles>
-      <TextBlock Grid.Row="0" Grid.Column="0" Text="Quality" VerticalAlignment="Center"/>
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static l:Strings.Settings_Quality}" VerticalAlignment="Center"/>
       <ComboBox x:Name="QualityBox" Grid.Row="0" Grid.Column="1" Classes="choice"
                 ItemsSource="{Binding Qualities}" SelectedItem="{Binding SelectedQuality, Mode=TwoWay}"/>
-      <TextBlock Grid.Row="1" Grid.Column="0" Text="Encoding speed" VerticalAlignment="Center"/>
+      <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static l:Strings.Settings_EncodingSpeed}" VerticalAlignment="Center"/>
       <ComboBox x:Name="SpeedBox" Grid.Row="1" Grid.Column="1" Classes="choice"
                 ItemsSource="{Binding Speeds}" SelectedItem="{Binding SelectedSpeed, Mode=TwoWay}"/>
-      <TextBlock Grid.Row="2" Grid.Column="0" Text="Audio bitrate" VerticalAlignment="Center"/>
+      <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static l:Strings.Settings_AudioBitrate}" VerticalAlignment="Center"/>
       <ComboBox x:Name="BitrateBox" Grid.Row="2" Grid.Column="1" Classes="choice"
                 ItemsSource="{Binding Bitrates}" SelectedItem="{Binding SelectedBitrate, Mode=TwoWay}"/>
     </Grid>
 
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,8,0,0">
-      <Button x:Name="ApplyButton" Content="Apply" MinWidth="90" Command="{Binding ApplyCommand}"/>
-      <Button x:Name="CancelButton" Content="Cancel" MinWidth="90" IsCancel="True" Command="{Binding CancelCommand}"/>
+      <Button x:Name="ApplyButton" Content="{x:Static l:Strings.Settings_Apply}" MinWidth="90" Command="{Binding ApplyCommand}"/>
+      <Button x:Name="CancelButton" Content="{x:Static l:Strings.Common_Cancel}" MinWidth="90" IsCancel="True" Command="{Binding CancelCommand}"/>
     </StackPanel>
     <TextBlock x:Name="ErrorText" Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}"/>
 

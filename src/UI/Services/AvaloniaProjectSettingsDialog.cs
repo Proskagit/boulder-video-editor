@@ -1,3 +1,5 @@
+using AiVideoEditor.Core.Localization;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.ViewModels;
 using AiVideoEditor.UI.Views;
 using Avalonia.Controls;
@@ -19,7 +21,7 @@ public sealed class AvaloniaProjectSettingsDialog : IProjectSettingsDialog
 
         var window = new Window
         {
-            Title = "Project Settings",
+            Title = Strings.Settings_Title,
             Width = 460,
             SizeToContent = SizeToContent.Height,
             CanResize = false,

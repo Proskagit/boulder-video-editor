@@ -1,3 +1,5 @@
+using AiVideoEditor.Core.Localization;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.ViewModels;
 using Avalonia;
 using Avalonia.Controls;
@@ -34,7 +36,7 @@ public sealed class AvaloniaExportProgressDialog : IExportProgressDialog
 
         var window = new Window
         {
-            Title = "Exporting",
+            Title = Strings.Export_WindowTitle,
             Width = 460,
             SizeToContent = SizeToContent.Height,
             CanResize = false,
@@ -49,7 +51,7 @@ public sealed class AvaloniaExportProgressDialog : IExportProgressDialog
         bar.Bind(RangeBase.ValueProperty, new Binding(nameof(ExportProgressViewModel.Percent)));
         var detail = new TextBlock();
         detail.Bind(TextBlock.TextProperty, new Binding(nameof(ExportProgressViewModel.DetailText)));
-        var cancel = new Button { Content = "Cancel", MinWidth = 90, IsCancel = true, HorizontalAlignment = HorizontalAlignment.Right };
+        var cancel = new Button { Content = Strings.Common_Cancel, MinWidth = 90, IsCancel = true, HorizontalAlignment = HorizontalAlignment.Right };
         cancel.Bind(Button.CommandProperty, new Binding(nameof(ExportProgressViewModel.CancelCommand)));
 
         window.Content = new StackPanel

@@ -1,6 +1,8 @@
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Common;
+using AiVideoEditor.UI.Localization;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
@@ -23,13 +25,7 @@ public sealed class MediaBrowserItemViewModel : ViewModelBase
 
     public string FormatLabel => Asset.FileExtension.TrimStart('.').ToUpperInvariant();
 
-    public string KindLabel => Asset.Kind switch
-    {
-        MediaKind.Video => "VIDEO",
-        MediaKind.Audio => "AUDIO",
-        MediaKind.Image => "IMAGE",
-        _ => "?"
-    };
+    public string KindLabel => MediaKindText.Badge(Asset.Kind);
 
     public string FileSizeDisplay => FileSizeFormat.ToShortString(Asset.FileSizeBytes);
 
@@ -43,14 +39,14 @@ public sealed class MediaBrowserItemViewModel : ViewModelBase
     /// the list never displays a made-up value. "Media offline" when the file was missing
     /// when the project was opened.
     /// </summary>
-    public string? TechnicalSummary => Asset.IsMissing ? "Media offline" : Asset.AnalysisStatus switch
+    public string? TechnicalSummary => Asset.IsMissing ? Strings.Analysis_Offline : Asset.AnalysisStatus switch
     {
-        MediaAnalysisStatus.Analyzing => "Analyzing…",
-        MediaAnalysisStatus.Failed => "Metadata unavailable",
+        MediaAnalysisStatus.Analyzing => Strings.Analysis_Analyzing,
+        MediaAnalysisStatus.Failed => Strings.Analysis_Unavailable,
         MediaAnalysisStatus.Completed => BuildTechnicalSummary(),
         // Pending: not analysed yet — a relink without ffprobe stays so until a later Open (D026 §3); an import is
         // Analyzing at once, and offline media says so above.
-        _ => "Not analysed yet"
+        _ => Strings.Analysis_Pending
     };
 
     public bool HasTechnicalSummary => TechnicalSummary is not null;
@@ -66,12 +62,12 @@ public sealed class MediaBrowserItemViewModel : ViewModelBase
             {
                 m.Duration.Ticks > 0 ? TimeFormat.ToShortString(m.Duration) : null,
                 ResolutionFormat.Display(m),
-                m.FrameRate.HasValue ? $"{Math.Round(m.FrameRate.Value.ToDouble())} FPS" : null
+                m.FrameRate.HasValue ? string.Format(Strings.Rate_Fps, Math.Round(m.FrameRate.Value.ToDouble())) : null
             },
             MediaKind.Audio => new[]
             {
                 m.Duration.Ticks > 0 ? TimeFormat.ToShortString(m.Duration) : null,
-                m.AudioSampleRate.HasValue ? $"{m.AudioSampleRate / 1000} kHz" : null,
+                m.AudioSampleRate.HasValue ? string.Format(Strings.Unit_KHz, m.AudioSampleRate / 1000) : null,
                 DescribeChannels(m.AudioChannels)
             },
             MediaKind.Image => new[]
@@ -87,9 +83,9 @@ public sealed class MediaBrowserItemViewModel : ViewModelBase
 
     private static string? DescribeChannels(int? channels) => channels switch
     {
-        1 => "Mono",
-        2 => "Stereo",
-        > 2 => $"{channels} ch",
+        1 => Strings.Channels_Mono,
+        2 => Strings.Channels_Stereo,
+        > 2 => string.Format(Strings.Channels_Short, channels),
         _ => null
     };
 

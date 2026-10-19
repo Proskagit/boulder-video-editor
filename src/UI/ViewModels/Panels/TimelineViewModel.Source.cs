@@ -1,4 +1,6 @@
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Localization;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.Input;
 
@@ -35,8 +37,14 @@ public sealed partial class TimelineViewModel
             var clip = Sequence.VideoTracks.Concat(Sequence.AudioTracks).SelectMany(t => t.Clips).First(c => c.Id == result.ClipIds[0]);
             SetPlayhead(clip.TimelineEnd);
         }
-        var what = soundOnly ? $"the sound of {asset.FileName}" : asset.FileName;
-        Report(result, successMessage: overwrite ? $"Overwrote with {what}" : $"Inserted {what}");
+        var message = (overwrite, soundOnly) switch
+        {
+            (true, true) => Strings.Source_OverwroteSound,
+            (true, false) => Strings.Source_Overwrote,
+            (false, true) => Strings.Source_InsertedSound,
+            (false, false) => Strings.Source_Inserted
+        };
+        Report(result, successMessage: string.Format(message, asset.FileName));
     }
 
     /// <summary>SQ8: the track of the latest selected clip on a track of the source's kind (the selection's last entry is

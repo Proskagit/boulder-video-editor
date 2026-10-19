@@ -3,7 +3,9 @@ using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Common;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -155,7 +157,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Audio = change(current) });
         if (!result.Success)
         {
-            _status.Report(result.Message ?? "The clip could not be changed.");
+            _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
             ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
@@ -224,7 +226,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Visual = change(current, x) });
         if (!result.Success)
         {
-            _status.Report(result.Message ?? "The clip could not be changed.");
+            _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
             ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
@@ -248,7 +250,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
         if (!ClipSpeed.TryFromDecimal(entered, out var speed))
         {
-            _status.Report($"Speed must be a multiple of 0.05× from {ClipSpeed.Min} to {ClipSpeed.Max}.");
+            _status.Report(string.Format(Strings.Inspector_SpeedStep, ClipSpeed.Min, ClipSpeed.Max));
             ShowModelAfterRejection(); // the fields show what the model really has
             return;
         }
@@ -256,7 +258,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         var result = _edit.SetClipSpeed(_clip.Id, speed);
         if (!result.Success)
         {
-            _status.Report(result.Message ?? "The speed could not be changed.");
+            _status.Report(result.Message ?? Strings.Inspector_SpeedNotChanged);
             ShowModelAfterRejection(); // the fields show what the model really has
         }
         else if (result.Message is not null)
@@ -298,7 +300,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
         if (frames < 0 || frames != decimal.Truncate(frames))
         {
-            _status.Report("A fade is a whole number of frames.");
+            _status.Report(Strings.Inspector_FadeWholeFrames);
             ShowModelAfterRejection(); // the fields show what the model really has
             return;
         }
@@ -307,7 +309,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Fade = change(FadeProperties.Of(_clip), length) });
         if (!result.Success)
         {
-            _status.Report(result.Message ?? "The fade could not be changed.");
+            _status.Report(result.Message ?? Strings.Inspector_FadeNotChanged);
             ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
@@ -331,10 +333,10 @@ public sealed partial class InspectorViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TransitionHeader))]
     [NotifyPropertyChangedFor(nameof(RemoveTransitionLabel))]
-    private string _transitionTitle = "Dissolve";
+    private string _transitionTitle = Strings.Transition_Dissolve;
 
     public string TransitionHeader => TransitionTitle.ToUpperInvariant();
-    public string RemoveTransitionLabel => $"Remove {TransitionTitle}";
+    public string RemoveTransitionLabel => TransitionTitle == Strings.Transition_Crossfade ? Strings.Transition_RemoveCrossfade : Strings.Transition_RemoveDissolve;
 
     /// <summary>Shows a dissolve selected on the timeline. Called again after every timeline change (undo / redo too).</summary>
     public void ShowTransition(TimelineTransitionSelection selection)
@@ -357,9 +359,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
             MaxDissolveFrames = Math.Max(frames, s.MaxFrames ?? frames);
             DissolveFrames = frames;
             DissolveTimeDisplay = TimeFormat.ToTimecode(MediaTime.FromFrame(frames, s.Rate), s.Rate);
-            DissolveLimitDisplay = s.MaxFrames is { } max ? $"Longest that fits here: {max} frames" : "";
+            DissolveLimitDisplay = s.MaxFrames is { } max ? string.Format(Strings.Transition_Longest, Plural.Format(max, Strings.Plural_Frames)) : "";
             DissolveClipsDisplay = $"{s.LeftName} → {s.RightName} ({s.Track.Name})";
-            TransitionTitle = s.Track.Type == TrackType.Audio ? "Crossfade" : "Dissolve";
+            TransitionTitle = s.Track.Type == TrackType.Audio ? Strings.Transition_Crossfade : Strings.Transition_Dissolve;
         }
         finally
         {
@@ -373,7 +375,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
         if (frames != decimal.Truncate(frames))
         {
-            _status.Report("A dissolve is a whole number of frames.");
+            _status.Report(Strings.Transition_WholeFrames);
             ShowModelAfterRejection(); // the fields show what the model really has
             return;
         }
@@ -381,7 +383,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         var result = _edit.SetTransitionDuration(s.Transition.Id, MediaTime.FromFrame((long)frames, s.Rate));
         if (!result.Success)
         {
-            _status.Report(result.Message ?? "The dissolve could not be changed.");
+            _status.Report(result.Message ?? Strings.Transition_NotChanged);
             ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
@@ -391,7 +393,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     {
         if (_transition is not { } s || RejectWhileLocked()) return;
         var result = _edit.RemoveTransition(s.Transition.Id);
-        _status.Report(result.Success ? "Dissolve removed" : result.Message ?? "The dissolve could not be removed.");
+        _status.Report(result.Success ? Strings.Dissolve_Removed : result.Message ?? Strings.Transition_NotRemoved);
     }
 
     // --- Text (Phase 7 Step 8): text clips ---------------------------------------------------
@@ -453,7 +455,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         var result = _edit.SetClipProperties(_clip.Id, new ClipPropertyChange { Text = change(current) });
         if (!result.Success)
         {
-            _status.Report(result.Message ?? "The clip could not be changed.");
+            _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
             ShowModelAfterRejection(); // the fields show what the model really has
         }
     }
@@ -488,21 +490,21 @@ public sealed partial class InspectorViewModel : ViewModelBase
         SyncFromModel();
 
         // D037 §1 (Q7): the properties shown are the primary's; the line says it is one of several.
-        ClipName = selection.SelectedCount > 1 ? $"{selection.Name} (1 of {selection.SelectedCount} selected)" : selection.Name;
+        ClipName = selection.SelectedCount > 1 ? string.Format(Strings.Inspector_PrimaryOfMany, selection.Name, selection.SelectedCount) : selection.Name;
         ClipTypeLabel = clip switch
         {
-            VideoClip => "Video clip",
-            AudioClip => "Audio clip",
-            ImageClip => "Image clip",
-            TextClip => "Text clip",
-            _ => "Clip"
+            VideoClip => Strings.ClipType_Video,
+            AudioClip => Strings.ClipType_Audio,
+            ImageClip => Strings.ClipType_Image,
+            TextClip => Strings.ClipType_Text,
+            _ => Strings.Clip_Generic
         };
         StartTimeDisplay = TimeFormat.ToTimecode(clip.TimelineStart, selection.Rate);
         EndTimeDisplay = TimeFormat.ToTimecode(clip.TimelineEnd, selection.Rate);
         DurationDisplay = TimeFormat.ToTimecode(clip.Duration, selection.Rate);
         ClipFrameRateDisplay = selection.Rate.Denominator == 1
-            ? $"{selection.Rate.Numerator} FPS"
-            : $"{Math.Round(selection.Rate.ToDouble(), 3)} FPS ({selection.Rate})";
+            ? string.Format(Strings.Rate_Fps, selection.Rate.Numerator)
+            : string.Format(Strings.Rate_FpsExact, Math.Round(selection.Rate.ToDouble(), 3), selection.Rate);
 
         TechnicalRows.Clear();
         SelectionKind = InspectorSelectionKind.TimelineClip;
@@ -518,23 +520,19 @@ public sealed partial class InspectorViewModel : ViewModelBase
     {
         ForgetClip();
         MediaFileName = asset.FileName;
-        MediaTypeLabel = asset.Kind switch
-        {
-            MediaKind.Video => "Video",
-            MediaKind.Audio => "Audio",
-            MediaKind.Image => "Image",
-            _ => "Unknown"
-        };
+        MediaTypeLabel = asset.Kind is MediaKind.Video or MediaKind.Audio or MediaKind.Image
+            ? MediaKindText.Name(asset.Kind)
+            : Strings.MediaKind_Unknown;
         MediaFormatLabel = asset.FileExtension.TrimStart('.').ToUpperInvariant();
         MediaFileSizeDisplay = FileSizeFormat.ToShortString(asset.FileSizeBytes);
         MediaFilePath = asset.FilePath;
 
         // The same order as the Media Browser's row: offline first, then what the analysis actually does.
         IsAnalyzing = !asset.IsMissing && asset.AnalysisStatus == MediaAnalysisStatus.Analyzing;
-        AnalysisStatusText = asset.IsMissing ? "Media offline" : asset.AnalysisStatus switch
+        AnalysisStatusText = asset.IsMissing ? Strings.Analysis_Offline : asset.AnalysisStatus switch
         {
-            MediaAnalysisStatus.Analyzing => "Analyzing…",
-            MediaAnalysisStatus.Pending => "Not analysed yet",
+            MediaAnalysisStatus.Analyzing => Strings.Analysis_Analyzing,
+            MediaAnalysisStatus.Pending => Strings.Analysis_Pending,
             _ => null
         };
         AnalysisErrorMessage = !asset.IsMissing && asset.AnalysisStatus == MediaAnalysisStatus.Failed ? asset.AnalysisError : null;
@@ -680,28 +678,28 @@ public sealed partial class InspectorViewModel : ViewModelBase
         switch (kind)
         {
             case MediaKind.Video:
-                AddRow("Duration", m.Duration.Ticks > 0 ? TimeFormat.ToShortString(m.Duration) : null);
-                AddRow("Resolution", ResolutionFormat.Display(m));
-                AddRow("Orientation", ResolutionFormat.Orientation(m));
-                AddRow("Frame Rate", m.FrameRate.HasValue ? $"{Math.Round(m.FrameRate.Value.ToDouble(), 2)} FPS" : null);
-                AddRow("Video Codec", m.VideoCodec?.ToUpperInvariant());
-                AddRow("Color", HdrColor.Describe(kind, m));   // D033: HDR kind, bit depth, dynamic metadata not applied
-                AddRow("Audio Codec", m.AudioCodec?.ToUpperInvariant());
-                AddRow("Bitrate", m.BitrateBps.HasValue ? FormatBitrate(m.BitrateBps.Value) : null);
+                AddRow(Strings.Tech_Duration, m.Duration.Ticks > 0 ? TimeFormat.ToShortString(m.Duration) : null);
+                AddRow(Strings.Tech_Resolution, ResolutionFormat.Display(m));
+                AddRow(Strings.Tech_Orientation, ResolutionFormat.Orientation(m));
+                AddRow(Strings.Tech_FrameRate, m.FrameRate.HasValue ? string.Format(Strings.Rate_Fps, Math.Round(m.FrameRate.Value.ToDouble(), 2)) : null);
+                AddRow(Strings.Tech_VideoCodec, m.VideoCodec?.ToUpperInvariant());
+                AddRow(Strings.Tech_Color, HdrColor.Describe(kind, m));   // D033: HDR kind, bit depth, dynamic metadata not applied
+                AddRow(Strings.Tech_AudioCodec, m.AudioCodec?.ToUpperInvariant());
+                AddRow(Strings.Tech_Bitrate, m.BitrateBps.HasValue ? FormatBitrate(m.BitrateBps.Value) : null);
                 break;
 
             case MediaKind.Audio:
-                AddRow("Duration", m.Duration.Ticks > 0 ? TimeFormat.ToShortString(m.Duration) : null);
-                AddRow("Audio Codec", m.AudioCodec?.ToUpperInvariant());
-                AddRow("Sample Rate", m.AudioSampleRate.HasValue ? $"{m.AudioSampleRate / 1000} kHz" : null);
-                AddRow("Channels", DescribeChannels(m.AudioChannels));
-                AddRow("Bitrate", m.BitrateBps.HasValue ? FormatBitrate(m.BitrateBps.Value) : null);
+                AddRow(Strings.Tech_Duration, m.Duration.Ticks > 0 ? TimeFormat.ToShortString(m.Duration) : null);
+                AddRow(Strings.Tech_AudioCodec, m.AudioCodec?.ToUpperInvariant());
+                AddRow(Strings.Tech_SampleRate, m.AudioSampleRate.HasValue ? string.Format(Strings.Unit_KHz, m.AudioSampleRate / 1000) : null);
+                AddRow(Strings.Tech_Channels, DescribeChannels(m.AudioChannels));
+                AddRow(Strings.Tech_Bitrate, m.BitrateBps.HasValue ? FormatBitrate(m.BitrateBps.Value) : null);
                 break;
 
             case MediaKind.Image:
-                AddRow("Width", (m.DisplayWidth ?? m.Width) is { } w ? $"{w}px" : null);
-                AddRow("Height", (m.DisplayHeight ?? m.Height) is { } h ? $"{h}px" : null);
-                AddRow("Orientation", ResolutionFormat.Orientation(m));
+                AddRow(Strings.Tech_Width, (m.DisplayWidth ?? m.Width) is { } w ? string.Format(Strings.Unit_PxValue, w) : null);
+                AddRow(Strings.Tech_Height, (m.DisplayHeight ?? m.Height) is { } h ? string.Format(Strings.Unit_PxValue, h) : null);
+                AddRow(Strings.Tech_Orientation, ResolutionFormat.Orientation(m));
                 break;
         }
     }
@@ -715,14 +713,14 @@ public sealed partial class InspectorViewModel : ViewModelBase
     private static string FormatBitrate(long bitsPerSecond)
     {
         var kbps = bitsPerSecond / 1000.0;
-        return kbps >= 1000 ? $"{kbps / 1000:0.#} Mbps" : $"{kbps:0} kbps";
+        return kbps >= 1000 ? string.Format(Strings.Unit_Mbps, (kbps / 1000).ToString("0.#")) : string.Format(Strings.Unit_Kbps, kbps.ToString("0"));
     }
 
     private static string? DescribeChannels(int? channels) => channels switch
     {
-        1 => "Mono",
-        2 => "Stereo",
-        > 2 => $"{channels} channels",
+        1 => Strings.Channels_Mono,
+        2 => Strings.Channels_Stereo,
+        > 2 => Plural.Format(channels.Value, Strings.Channels_Many),
         _ => null
     };
 }

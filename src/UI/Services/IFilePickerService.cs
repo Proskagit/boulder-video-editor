@@ -1,3 +1,5 @@
+using AiVideoEditor.Core.Localization;
+using AiVideoEditor.UI.Localization;
 namespace AiVideoEditor.UI.Services;
 
 /// <summary>
@@ -27,7 +29,7 @@ public interface IFilePickerService
 
 public sealed class SaveFilePickerRequest
 {
-    public string Title { get; init; } = "Save File";
+    public string Title { get; init; } = Strings.Picker_SaveFile;
 
     /// <summary>Folder the dialog starts in, if it exists.</summary>
     public string? StartFolder { get; init; }
@@ -43,7 +45,7 @@ public sealed class SaveFilePickerRequest
 
 public sealed class FolderPickerRequest
 {
-    public string Title { get; init; } = "Select Folder";
+    public string Title { get; init; } = Strings.Picker_SelectFolder;
 
     /// <summary>Folder the dialog starts in, if it exists.</summary>
     public string? StartFolder { get; init; }
@@ -51,7 +53,7 @@ public sealed class FolderPickerRequest
 
 public sealed class FilePickerRequest
 {
-    public string Title { get; init; } = "Open File";
+    public string Title { get; init; } = Strings.Picker_OpenFile;
     public bool AllowMultiple { get; init; } = true;
 
     /// <summary>Folder the dialog starts in, if it exists (e.g. the old folder of a file to relink, D026 §5).</summary>

@@ -1,4 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:l="using:AiVideoEditor.UI.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:common="using:AiVideoEditor.UI.Common"
              xmlns:controls="using:AiVideoEditor.UI.Controls"
@@ -15,7 +16,7 @@
     <DockPanel>
 
       <Border DockPanel.Dock="Top" Padding="8" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1">
-        <TextBlock Text="INSPECTOR" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A"/>
+        <TextBlock Text="{x:Static l:Strings.Inspector_Heading}" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A"/>
       </Border>
 
       <ScrollViewer>
@@ -23,37 +24,37 @@
 
           <!-- Nothing selected -->
           <TextBlock IsVisible="{Binding IsNothingSelected}"
-                     Text="Nothing selected. Choose an item in the Media Browser or a clip on the timeline to see its properties."
+                     Text="{x:Static l:Strings.Inspector_NothingSelected}"
                      Foreground="#6A6A6A" FontSize="11" TextWrapping="Wrap"/>
 
           <!-- Media Browser selection (Phase 2) -->
           <StackPanel IsVisible="{Binding IsMediaSelected}" Spacing="16">
             <StackPanel Spacing="6">
-              <TextBlock Text="MEDIA" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <TextBlock Text="{x:Static l:Strings.Inspector_MediaHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
 
               <StackPanel Spacing="6">
                 <StackPanel Spacing="2">
-                  <TextBlock Text="File Name" Foreground="#7A7A7A" FontSize="10"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_FileName}" Foreground="#7A7A7A" FontSize="10"/>
                   <TextBlock Text="{Binding MediaFileName}" Foreground="#DDDDDD" TextWrapping="Wrap"/>
                 </StackPanel>
 
                 <StackPanel Spacing="2">
-                  <TextBlock Text="Type" Foreground="#7A7A7A" FontSize="10"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Type}" Foreground="#7A7A7A" FontSize="10"/>
                   <TextBlock Text="{Binding MediaTypeLabel}" Foreground="#DDDDDD"/>
                 </StackPanel>
 
                 <StackPanel Spacing="2">
-                  <TextBlock Text="Format" Foreground="#7A7A7A" FontSize="10"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Format}" Foreground="#7A7A7A" FontSize="10"/>
                   <TextBlock Text="{Binding MediaFormatLabel}" Foreground="#DDDDDD"/>
                 </StackPanel>
 
                 <StackPanel Spacing="2">
-                  <TextBlock Text="File Size" Foreground="#7A7A7A" FontSize="10"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_FileSize}" Foreground="#7A7A7A" FontSize="10"/>
                   <TextBlock Text="{Binding MediaFileSizeDisplay}" Foreground="#DDDDDD"/>
                 </StackPanel>
 
                 <StackPanel Spacing="2">
-                  <TextBlock Text="Path" Foreground="#7A7A7A" FontSize="10"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Path}" Foreground="#7A7A7A" FontSize="10"/>
                   <TextBlock Text="{Binding MediaFilePath}" Foreground="#DDDDDD" FontSize="11" TextWrapping="Wrap"/>
                 </StackPanel>
               </StackPanel>
@@ -62,7 +63,7 @@
             <Rectangle Height="1" Fill="#3A3A3A"/>
 
             <StackPanel Spacing="6">
-              <TextBlock Text="TECHNICAL INFORMATION" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <TextBlock Text="{x:Static l:Strings.Inspector_TechHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
 
               <TextBlock IsVisible="{Binding HasAnalysisStatusText}"
                          Text="{Binding AnalysisStatusText}" Foreground="#8A8A8A" FontSize="11"/>
@@ -90,10 +91,10 @@
             <TextBlock Text="{Binding TransitionHeader}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
             <TextBlock Text="{Binding DissolveClipsDisplay}" Foreground="#DDDDDD" TextWrapping="Wrap"/>
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <TextBlock Text="Duration" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+              <TextBlock Text="{x:Static l:Strings.Inspector_Duration}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
               <controls:CommitNumericUpDown Value="{Binding DissolveFrames, Mode=TwoWay}" Increment="1" Minimum="{Binding MinDissolveFrames}"
                              Maximum="{Binding MaxDissolveFrames}" FormatString="0" Width="110"/>
-              <TextBlock Text="{Binding DissolveTimeDisplay, StringFormat='frames  {0}'}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+              <TextBlock Text="{Binding DissolveTimeDisplay, StringFormat={x:Static l:Strings.Inspector_FramesTime}}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
             </StackPanel>
             <TextBlock Text="{Binding DissolveLimitDisplay}" Foreground="#7A7A7A" FontSize="10" Margin="88,0,0,0" TextWrapping="Wrap"/>
             <Button Content="{Binding RemoveTransitionLabel}" Command="{Binding RemoveDissolveCommand}" Margin="88,4,0,0" FontSize="11"/>
@@ -104,29 +105,35 @@
             <!-- Text (Phase 7 Step 8): text clips only. Every field applies live; consecutive changes of one
                  field merge into one undo step. The color applies once it is a complete #RRGGBB. -->
             <StackPanel Spacing="6" IsVisible="{Binding HasTextProperties}">
-              <TextBlock Text="TEXT" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <TextBlock Text="{x:Static l:Strings.Inspector_TextHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <TextBox Text="{Binding TextContent, Mode=TwoWay}" AcceptsReturn="True" TextWrapping="Wrap"
                        MinHeight="60" MaxHeight="160"/>
               <StackPanel Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Font" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Font}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <ComboBox ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding FontFamilyName, Mode=TwoWay}" Width="180"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Size" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Size}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <controls:CommitNumericUpDown Value="{Binding FontSize, Mode=TwoWay}" Increment="1" Minimum="{Binding MinFontSize}" Maximum="{Binding MaxFontSize}"
                                  FormatString="0.##" Width="110"/>
-                  <TextBlock Text="px" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Color" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Color}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <TextBox Text="{Binding TextColorHex, Mode=TwoWay}" Width="110" MaxLength="7"/>
                   <Border Width="22" Height="22" CornerRadius="2" BorderBrush="#5A5A5A" BorderThickness="1"
                           Background="{Binding TextColorSwatch}" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Alignment" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
-                  <ComboBox ItemsSource="{Binding Alignments}" SelectedItem="{Binding Alignment, Mode=TwoWay}" Width="110"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Alignment}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <ComboBox ItemsSource="{Binding Alignments}" SelectedItem="{Binding Alignment, Mode=TwoWay}" Width="150">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding Converter={x:Static l:AlignmentText.Instance}}"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
                 </StackPanel>
               </StackPanel>
             </StackPanel>
@@ -134,34 +141,34 @@
             <!-- Transform and opacity (Phase 7): video, image and text clips. Every change is one edit;
                  consecutive changes of one field merge into one undo step. -->
             <StackPanel Spacing="6" IsVisible="{Binding HasVisualProperties}">
-              <TextBlock Text="TRANSFORM" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <TextBlock Text="{x:Static l:Strings.Inspector_TransformHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <StackPanel Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Position X" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_PositionX}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <controls:CommitNumericUpDown Value="{Binding PositionX, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
                                  FormatString="0.##" Width="110"/>
-                  <TextBlock Text="px" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Position Y" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_PositionY}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <controls:CommitNumericUpDown Value="{Binding PositionY, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
                                  FormatString="0.##" Width="110"/>
-                  <TextBlock Text="px" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Scale" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Scale}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <controls:CommitNumericUpDown Value="{Binding ScalePercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinScalePercent}" Maximum="{Binding MaxScalePercent}"
                                  FormatString="0.##" Width="110"/>
                   <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Rotation" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Rotation}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <controls:CommitNumericUpDown Value="{Binding Rotation, Mode=TwoWay}" Increment="1" Minimum="{Binding MinRotation}" Maximum="{Binding MaxRotation}"
                                  FormatString="0.##" Width="110"/>
                   <TextBlock Text="°" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Opacity" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Opacity}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <controls:CommitNumericUpDown Value="{Binding OpacityPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinOpacityPercent}" Maximum="{Binding MaxOpacityPercent}"
                                  FormatString="0.#" Width="110"/>
                   <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
@@ -171,28 +178,28 @@
 
             <!-- Crop (Phase 7): pictures only, fractions of the source per edge. -->
             <StackPanel Spacing="6" IsVisible="{Binding HasCrop}">
-              <TextBlock Text="CROP" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <TextBlock Text="{x:Static l:Strings.Inspector_CropHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <StackPanel Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Left" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Left}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <controls:CommitNumericUpDown Value="{Binding CropLeftPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
                                  FormatString="0.#" Width="110"/>
                   <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Top" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Top}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <controls:CommitNumericUpDown Value="{Binding CropTopPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
                                  FormatString="0.#" Width="110"/>
                   <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Right" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Right}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <controls:CommitNumericUpDown Value="{Binding CropRightPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
                                  FormatString="0.#" Width="110"/>
                   <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Bottom" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Bottom}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <controls:CommitNumericUpDown Value="{Binding CropBottomPercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinCropPercent}" Maximum="{Binding MaxCropPercent}"
                                  FormatString="0.#" Width="110"/>
                   <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
@@ -203,23 +210,23 @@
             <!-- Holds (Phase 19, D034): video clips only. The AI markup of the route on this clip and the outline's
                  style; every change is one undo step (consecutive changes of one field merge). -->
             <StackPanel Spacing="6" IsVisible="{Binding HoldMarkup.HasClip, FallbackValue=False}">
-              <TextBlock Text="HOLDS" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <TextBlock Text="{x:Static l:Strings.Inspector_HoldsHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <StackPanel Spacing="6" DataContext="{Binding HoldMarkup}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <Button Content="Mark holds" Command="{Binding StartCommand}" IsVisible="{Binding !IsActive}"
-                          ToolTip.Tip="Mark the route's holds on the frame under the playhead (pause on this clip first)"/>
-                  <Button Content="Done" Command="{Binding DoneCommand}" IsVisible="{Binding IsActive}"
-                          ToolTip.Tip="Leave the hold markup (the marked holds stay)"/>
-                  <TextBlock Text="{Binding HoldCount, StringFormat='{}{0} marked'}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <Button Content="{x:Static l:Strings.Holds_MarkHolds}" Command="{Binding StartCommand}" IsVisible="{Binding !IsActive}"
+                          ToolTip.Tip="{x:Static l:Strings.Holds_MarkHoldsTip}"/>
+                  <Button Content="{x:Static l:Strings.Holds_Done}" Command="{Binding DoneCommand}" IsVisible="{Binding IsActive}"
+                          ToolTip.Tip="{x:Static l:Strings.Holds_DoneTip}"/>
+                  <TextBlock Text="{Binding HoldCount, StringFormat={x:Static l:Strings.Holds_MarkedCount}}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Width" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Holds_Width}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <controls:CommitNumericUpDown Value="{Binding StrokeWidth, Mode=TwoWay}" Increment="1" Minimum="{Binding MinStrokeWidth}" Maximum="{Binding MaxStrokeWidth}"
                                  FormatString="0.#" Width="110"/>
-                  <TextBlock Text="px at 1080" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Holds_WidthUnit}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Colour" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Holds_Colour}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <ComboBox ItemsSource="{Binding ColorModes}" SelectedIndex="{Binding ColorModeIndex, Mode=TwoWay}" Width="110"/>
                   <Border Width="22" Height="22" CornerRadius="2" BorderBrush="#5A5A5A" BorderThickness="1"
                           Background="{Binding ColorHex}" VerticalAlignment="Center"/>
@@ -227,7 +234,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsManualColor}">
                   <TextBlock Text="" Width="80"/>
                   <ComboBox ItemsSource="{Binding Palette}" SelectedItem="{Binding PaletteSelection, Mode=TwoWay}" Width="110"
-                            PlaceholderText="Palette">
+                            PlaceholderText="{x:Static l:Strings.Holds_Palette}">
                     <ComboBox.ItemTemplate>
                       <DataTemplate>
                         <StackPanel Orientation="Horizontal" Spacing="6">
@@ -240,61 +247,61 @@
                   <TextBox Text="{Binding ColorHex, Mode=TwoWay}" Width="80" MaxLength="7"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Keyline" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Holds_Keyline}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <ComboBox ItemsSource="{Binding KeylineModes}" SelectedIndex="{Binding KeylineIndex, Mode=TwoWay}" Width="110"/>
-                  <TextBlock Text="on" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding KeylineActive}"
-                             ToolTip.Tip="A dark or light edge around the line makes it readable on this wall"/>
+                  <TextBlock Text="{x:Static l:Strings.Holds_KeylineOn}" Foreground="#AAAAAA" VerticalAlignment="Center" IsVisible="{Binding KeylineActive}"
+                             ToolTip.Tip="{x:Static l:Strings.Holds_KeylineTip}"/>
                 </StackPanel>
 
                 <!-- Animation (Phase 21, D036): the holds appear one by one from a moment of the video, stay, and vanish
                      together. Every change is one undo step (consecutive changes of one setting merge). -->
-                <CheckBox Content="Animate" IsChecked="{Binding IsAnimated, Mode=TwoWay}"
-                          ToolTip.Tip="The holds appear one by one from the start, stay, and then disappear together"/>
+                <CheckBox Content="{x:Static l:Strings.Holds_Animate}" IsChecked="{Binding IsAnimated, Mode=TwoWay}"
+                          ToolTip.Tip="{x:Static l:Strings.Holds_AnimateTip}"/>
                 <StackPanel Spacing="6" IsVisible="{Binding IsAnimated}">
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="Order" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <TextBlock Text="{x:Static l:Strings.Holds_Order}" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                     <ComboBox ItemsSource="{Binding AnimationOrders}" SelectedIndex="{Binding AnimationOrderIndex, Mode=TwoWay}" Width="140"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="Start" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <TextBlock Text="{x:Static l:Strings.Holds_Start}" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                     <controls:CommitNumericUpDown Value="{Binding AnimationStart, Mode=TwoWay}" Increment="0.1" Minimum="0" Maximum="{Binding MaxAnimationStart}"
                                    FormatString="0.###" Width="110"
-                                   ToolTip.Tip="A time in the source video (seconds): trimming, a speed change or a split keep the animation on the same moment"/>
-                    <TextBlock Text="s" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                                   ToolTip.Tip="{x:Static l:Strings.Holds_StartTip}"/>
+                    <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="" Width="96"/>
-                    <Button Content="Set to playhead" Command="{Binding SetStartToPlayheadCommand}"
-                            ToolTip.Tip="Start the animation on the frame under the playhead (pause on this clip first)"/>
+                    <Button Content="{x:Static l:Strings.Holds_SetToPlayhead}" Command="{Binding SetStartToPlayheadCommand}"
+                            ToolTip.Tip="{x:Static l:Strings.Holds_SetToPlayheadTip}"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="Interval" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <TextBlock Text="{x:Static l:Strings.Holds_Interval}" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                     <controls:CommitNumericUpDown Value="{Binding AnimationInterval, Mode=TwoWay}" Increment="0.05" Minimum="{Binding MinAnimationInterval}" Maximum="{Binding MaxAnimationInterval}"
                                    FormatString="0.###" Width="110"/>
-                    <TextBlock Text="s" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="Appear fade" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <TextBlock Text="{x:Static l:Strings.Holds_AppearFade}" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                     <controls:CommitNumericUpDown Value="{Binding AppearFade, Mode=TwoWay}" Increment="0.05" Minimum="0" Maximum="{Binding MaxAnimationFade}"
-                                   FormatString="0.###" Width="110" ToolTip.Tip="0 = at once"/>
-                    <TextBlock Text="s" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                                   FormatString="0.###" Width="110" ToolTip.Tip="{x:Static l:Strings.Holds_FadeTip}"/>
+                    <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="Stay after last" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <TextBlock Text="{x:Static l:Strings.Holds_StayAfterLast}" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                     <controls:CommitNumericUpDown Value="{Binding StayAfterLast, Mode=TwoWay}" Increment="0.5" Minimum="0" Maximum="{Binding MaxAnimationStay}"
                                    FormatString="0.###" Width="110" IsEnabled="{Binding !StayUntilClipEnd}"/>
-                    <TextBlock Text="s" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="" Width="96"/>
-                    <CheckBox Content="until clip end" IsChecked="{Binding StayUntilClipEnd, Mode=TwoWay}"
-                              ToolTip.Tip="Keep every contour to the clip's end instead of letting them disappear"/>
+                    <CheckBox Content="{x:Static l:Strings.Holds_UntilClipEnd}" IsChecked="{Binding StayUntilClipEnd, Mode=TwoWay}"
+                              ToolTip.Tip="{x:Static l:Strings.Holds_UntilClipEndTip}"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !StayUntilClipEnd}">
-                    <TextBlock Text="Disappear fade" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    <TextBlock Text="{x:Static l:Strings.Holds_DisappearFade}" Width="96" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                     <controls:CommitNumericUpDown Value="{Binding DisappearFade, Mode=TwoWay}" Increment="0.05" Minimum="0" Maximum="{Binding MaxAnimationFade}"
-                                   FormatString="0.###" Width="110" ToolTip.Tip="0 = at once"/>
-                    <TextBlock Text="s" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                                   FormatString="0.###" Width="110" ToolTip.Tip="{x:Static l:Strings.Holds_FadeTip}"/>
+                    <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
                   <TextBlock Text="{Binding AnimationSummary}" Foreground="#AAAAAA" TextWrapping="Wrap"/>
                   <TextBlock Text="{Binding AnimationWarning}" Foreground="#E0A040" TextWrapping="Wrap"
@@ -306,31 +313,31 @@
             <!-- Fades (Phase 10, D025): every clip kind, in whole frames of the project rate; the time is shown next to
                  each. On an edge with a dissolve the fade is kept but not applied (PO-8). -->
             <StackPanel Spacing="6" IsVisible="{Binding HasFades}">
-              <TextBlock Text="FADES" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <TextBlock Text="{x:Static l:Strings.Inspector_FadesHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="Fade In" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                <TextBlock Text="{x:Static l:Strings.Inspector_FadeIn}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 <controls:CommitNumericUpDown Value="{Binding FadeInFrames, Mode=TwoWay}" Increment="1" Minimum="0"
                                Maximum="{Binding MaxFadeInFrames}" FormatString="0" Width="110"/>
-                <TextBlock Text="{Binding FadeInTimeDisplay, StringFormat='frames  {0}'}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding FadeInTimeDisplay, StringFormat={x:Static l:Strings.Inspector_FramesTime}}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
               </StackPanel>
-              <TextBlock IsVisible="{Binding IsFadeInInactive}" Text="Not applied: a dissolve is on this edge."
+              <TextBlock IsVisible="{Binding IsFadeInInactive}" Text="{x:Static l:Strings.Inspector_FadeInactive}"
                          Foreground="#C8A060" FontSize="10" Margin="88,0,0,0" TextWrapping="Wrap"/>
               <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="Fade Out" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                <TextBlock Text="{x:Static l:Strings.Inspector_FadeOut}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 <controls:CommitNumericUpDown Value="{Binding FadeOutFrames, Mode=TwoWay}" Increment="1" Minimum="0"
                                Maximum="{Binding MaxFadeOutFrames}" FormatString="0" Width="110"/>
-                <TextBlock Text="{Binding FadeOutTimeDisplay, StringFormat='frames  {0}'}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding FadeOutTimeDisplay, StringFormat={x:Static l:Strings.Inspector_FramesTime}}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
               </StackPanel>
-              <TextBlock IsVisible="{Binding IsFadeOutInactive}" Text="Not applied: a dissolve is on this edge."
+              <TextBlock IsVisible="{Binding IsFadeOutInactive}" Text="{x:Static l:Strings.Inspector_FadeInactive}"
                          Foreground="#C8A060" FontSize="10" Margin="88,0,0,0" TextWrapping="Wrap"/>
             </StackPanel>
 
             <!-- Speed (Phase 7 Step 9, D022): video and audio clips; 0.25×–4× in steps of 0.05×. The start and
                  the source range stay, the duration follows. Consecutive changes merge into one undo step. -->
             <StackPanel Spacing="6" IsVisible="{Binding HasSpeed}">
-              <TextBlock Text="SPEED" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <TextBlock Text="{x:Static l:Strings.Inspector_SpeedHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="Speed" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                <TextBlock Text="{x:Static l:Strings.Inspector_Speed}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 <controls:CommitNumericUpDown Value="{Binding SpeedValue, Mode=TwoWay}" Increment="{Binding SpeedIncrement}"
                                Minimum="{Binding MinSpeed}" Maximum="{Binding MaxSpeed}" FormatString="0.00" Width="110"/>
                 <TextBlock Text="×" Foreground="#AAAAAA" VerticalAlignment="Center"/>
@@ -339,50 +346,50 @@
 
             <!-- Audio (Phase 7): volume and mute are independent; every change is one edit. -->
             <StackPanel Spacing="6" IsVisible="{Binding HasAudioProperties}">
-              <TextBlock Text="AUDIO" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <TextBlock Text="{x:Static l:Strings.Inspector_AudioHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
 
               <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="Volume" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                <TextBlock Text="{x:Static l:Strings.Inspector_Volume}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 <controls:CommitNumericUpDown Value="{Binding VolumePercent, Mode=TwoWay}" Increment="1"
                                Minimum="0" Maximum="200" FormatString="0.#" Width="110"/>
                 <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
               </StackPanel>
 
               <!-- Not focusable: Space stays Play/Pause instead of toggling the box after a click. -->
-              <CheckBox Content="Mute" IsChecked="{Binding IsMuted, Mode=TwoWay}" Focusable="False"
+              <CheckBox Content="{x:Static l:Strings.Inspector_Mute}" IsChecked="{Binding IsMuted, Mode=TwoWay}" Focusable="False"
                         Margin="88,0,0,0" Foreground="#DDDDDD"/>
             </StackPanel>
 
             <StackPanel Spacing="6">
-              <TextBlock Text="CLIP" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <TextBlock Text="{x:Static l:Strings.Inspector_ClipHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
 
               <StackPanel Spacing="6">
                 <StackPanel Spacing="2">
-                  <TextBlock Text="Source" Foreground="#7A7A7A" FontSize="10"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Source}" Foreground="#7A7A7A" FontSize="10"/>
                   <TextBlock Text="{Binding ClipName}" Foreground="#DDDDDD" TextWrapping="Wrap"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Type" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Type}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <TextBlock Text="{Binding ClipTypeLabel}" Foreground="#DDDDDD" VerticalAlignment="Center"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Start Time" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_StartTime}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <TextBlock Text="{Binding StartTimeDisplay}" Foreground="#DDDDDD" VerticalAlignment="Center"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="End Time" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_EndTime}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <TextBlock Text="{Binding EndTimeDisplay}" Foreground="#DDDDDD" VerticalAlignment="Center"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="Duration" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Duration}" Width="80" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   <TextBlock Text="{Binding DurationDisplay}" Foreground="#DDDDDD" VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <TextBlock Text="{Binding ClipFrameRateDisplay, StringFormat='Timecode (non-drop-frame) at {0}'}"
+                <TextBlock Text="{Binding ClipFrameRateDisplay, StringFormat={x:Static l:Strings.Inspector_Timecode}}"
                            Foreground="#6A6A6A" FontSize="10" TextWrapping="Wrap"/>
               </StackPanel>
             </StackPanel>

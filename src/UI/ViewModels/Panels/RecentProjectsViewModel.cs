@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -168,7 +170,7 @@ public sealed partial class RecentProjectsViewModel : ViewModelBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Opening the recent project {Folder} failed.", item.FolderPath);
-            _status.Report($"Couldn't open the project. {ex.Message}");
+            _status.Report(string.Format(Strings.Recent_OpenFailed, ex.Message));
         }
         finally
         {
@@ -207,7 +209,7 @@ public sealed partial class RecentProjectsViewModel : ViewModelBase
             }
             else
             {
-                _status.Report($"Couldn't remove \"{item.Name}\" from the recent projects.");
+                _status.Report(string.Format(Strings.Recent_RemoveFailed, item.Name));
             }
         }
         finally
@@ -265,8 +267,8 @@ public sealed partial class RecentProjectItemViewModel : ViewModelBase
 
     public string StateText => Availability switch
     {
-        RecentProjectAvailability.Checking => "Checking…",
-        RecentProjectAvailability.Unavailable => "Unavailable",
+        RecentProjectAvailability.Checking => Strings.Recent_Checking,
+        RecentProjectAvailability.Unavailable => Strings.Recent_Unavailable,
         _ => ""
     };
 
@@ -274,9 +276,9 @@ public sealed partial class RecentProjectItemViewModel : ViewModelBase
 
     public string ToolTip => Availability switch
     {
-        RecentProjectAvailability.Checking => $"{FolderPath}\nChecking whether the project is there…",
-        RecentProjectAvailability.Unavailable => $"{FolderPath}\nThe project can't be found there now. Remove it from the list with ✕.",
-        _ => $"{FolderPath}\nLast used {LastUsedAt.LocalDateTime:g}"
+        RecentProjectAvailability.Checking => string.Format(Strings.Recent_CheckingTip, FolderPath),
+        RecentProjectAvailability.Unavailable => string.Format(Strings.Recent_UnavailableTip, FolderPath),
+        _ => string.Format(Strings.Recent_LastUsedTip, FolderPath, LastUsedAt.LocalDateTime.ToString("g"))
     };
 
     /// <summary>No longer shown (the list was read again, or the entry removed).</summary>

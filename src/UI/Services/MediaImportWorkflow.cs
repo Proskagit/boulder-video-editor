@@ -1,4 +1,6 @@
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
+using AiVideoEditor.UI.Localization;
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
 
@@ -48,7 +50,7 @@ public sealed class MediaImportWorkflow
     }
 
     /// <summary>Status message when the project changed while the import ran (D027 §7).</summary>
-    public const string ProjectChangedMessage = "Import stopped: another project was opened, so nothing was added.";
+    public static string ProjectChangedMessage => Strings.Import_ProjectChanged;
 
     public async Task RunAsync(CancellationToken ct = default)
     {
@@ -57,16 +59,16 @@ public sealed class MediaImportWorkflow
 
         var request = new FilePickerRequest
         {
-            Title = "Import Media",
+            Title = Strings.Import_PickerTitle,
             AllowMultiple = true,
             FileTypeFilters = new[]
             {
-                new FilePickerFileTypeFilter { Name = "Video files", Patterns = new[] { "*.mp4", "*.mov", "*.mkv", "*.webm", "*.avi" } },
-                new FilePickerFileTypeFilter { Name = "Audio files", Patterns = new[] { "*.mp3", "*.wav", "*.flac", "*.aac", "*.m4a" } },
-                new FilePickerFileTypeFilter { Name = "Image files", Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.webp", "*.bmp" } },
+                new FilePickerFileTypeFilter { Name = Strings.FileFilter_Video, Patterns = new[] { "*.mp4", "*.mov", "*.mkv", "*.webm", "*.avi" } },
+                new FilePickerFileTypeFilter { Name = Strings.FileFilter_Audio, Patterns = new[] { "*.mp3", "*.wav", "*.flac", "*.aac", "*.m4a" } },
+                new FilePickerFileTypeFilter { Name = Strings.FileFilter_Image, Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.webp", "*.bmp" } },
                 new FilePickerFileTypeFilter
                 {
-                    Name = "All supported media",
+                    Name = Strings.FileFilter_AllMedia,
                     Patterns = new[]
                     {
                         "*.mp4", "*.mov", "*.mkv", "*.webm", "*.avi",
@@ -88,7 +90,7 @@ public sealed class MediaImportWorkflow
         if (ProjectChanged(project)) return;
 
         // Feedback only (D024 Step 9.8): the import itself is unchanged; the result message below replaces this one.
-        _status.Report(paths.Count == 1 ? "Importing 1 file…" : $"Importing {paths.Count} files…");
+        _status.Report(Plural.Format(paths.Count, Strings.Import_Importing));
         await _showStatus();
         if (ProjectChanged(project)) return;
 
@@ -99,7 +101,7 @@ public sealed class MediaImportWorkflow
         }
         catch
         {
-            _status.Report("Import didn't finish.");
+            _status.Report(Strings.Import_DidntFinish);
             throw;
         }
         if (ProjectChanged(project)) return;
@@ -131,24 +133,22 @@ public sealed class MediaImportWorkflow
     private static string BuildStatusMessage(int imported, int duplicates, int unsupported, int missing)
     {
         if (imported == 0 && duplicates == 0 && missing == 0 && unsupported > 0)
-            return "No supported media files selected";
+            return Strings.Import_NoSupported;
 
         var parts = new List<string>();
 
         if (imported > 0)
-            parts.Add(imported == 1 ? "Imported 1 media file" : $"Imported {imported} media files");
+            parts.Add(Plural.Format(imported, Strings.Import_Imported));
 
         if (duplicates > 0)
-            parts.Add(duplicates == 1
-                ? "1 file skipped because it is already imported"
-                : $"{duplicates} files skipped because they are already imported");
+            parts.Add(Plural.Format(duplicates, Strings.Import_Duplicates));
 
         if (unsupported > 0)
-            parts.Add(unsupported == 1 ? "1 unsupported file skipped" : $"{unsupported} unsupported files skipped");
+            parts.Add(Plural.Format(unsupported, Strings.Import_Unsupported));
 
         if (missing > 0)
-            parts.Add(missing == 1 ? "1 file skipped because it is missing" : $"{missing} files skipped because they are missing");
+            parts.Add(Plural.Format(missing, Strings.Import_Missing));
 
-        return parts.Count > 0 ? string.Join("; ", parts) : "Nothing imported";
+        return parts.Count > 0 ? string.Join("; ", parts) : Strings.Import_Nothing;
     }
 }
