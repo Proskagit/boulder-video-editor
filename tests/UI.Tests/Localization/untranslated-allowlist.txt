@@ -1,0 +1,244 @@
+# D039 §5 — literals that look like English text but are not shown to the user as interface text, each group with its
+# reason. Format: <path relative to the repository><TAB><the literal exactly as in the source>.
+# LocalizationGuardTests fails on a literal missing here and on an entry no longer found. New user-visible text goes to
+# src/UI/Localization/Strings.resx or src/Core/Localization/Messages.resx (with .ru), never here.
+
+# Undo history descriptions (IUndoableCommand.Description) — never shown in the interface, kept English with the logs (D039 §1).
+src/Timeline/Commands/RelinkMediaCommand.cs	Relink Media
+src/Timeline/Commands/TimelineCommands.cs	Add Clip
+src/Timeline/Commands/TimelineCommands.cs	Add Dissolve
+src/Timeline/Commands/TimelineCommands.cs	Add Hold
+src/Timeline/Commands/TimelineCommands.cs	Animate Holds
+src/Timeline/Commands/TimelineCommands.cs	Change Clip Properties
+src/Timeline/Commands/TimelineCommands.cs	Change Crop
+src/Timeline/Commands/TimelineCommands.cs	Change Dissolve Duration
+src/Timeline/Commands/TimelineCommands.cs	Change Fade In
+src/Timeline/Commands/TimelineCommands.cs	Change Fade Out
+src/Timeline/Commands/TimelineCommands.cs	Change Fades
+src/Timeline/Commands/TimelineCommands.cs	Change Font
+src/Timeline/Commands/TimelineCommands.cs	Change Font Size
+src/Timeline/Commands/TimelineCommands.cs	Change Hold Animation
+src/Timeline/Commands/TimelineCommands.cs	Change Keyline
+src/Timeline/Commands/TimelineCommands.cs	Change Opacity
+src/Timeline/Commands/TimelineCommands.cs	Change Outline
+src/Timeline/Commands/TimelineCommands.cs	Change Outline Colour
+src/Timeline/Commands/TimelineCommands.cs	Change Outline Width
+src/Timeline/Commands/TimelineCommands.cs	Change Position
+src/Timeline/Commands/TimelineCommands.cs	Change Rotation
+src/Timeline/Commands/TimelineCommands.cs	Change Scale
+src/Timeline/Commands/TimelineCommands.cs	Change Text Alignment
+src/Timeline/Commands/TimelineCommands.cs	Change Text Color
+src/Timeline/Commands/TimelineCommands.cs	Change Volume
+src/Timeline/Commands/TimelineCommands.cs	Edit Hold Outline
+src/Timeline/Commands/TimelineCommands.cs	Edit Text
+src/Timeline/Commands/TimelineCommands.cs	Hide Track
+src/Timeline/Commands/TimelineCommands.cs	Lock Track
+src/Timeline/Commands/TimelineCommands.cs	Mute Clip
+src/Timeline/Commands/TimelineCommands.cs	Mute Track
+src/Timeline/Commands/TimelineCommands.cs	Remove Dissolve
+src/Timeline/Commands/TimelineCommands.cs	Remove Hold
+src/Timeline/Commands/TimelineCommands.cs	Show Track
+src/Timeline/Commands/TimelineCommands.cs	Turn Off Hold Animation
+src/Timeline/Commands/TimelineCommands.cs	Unlock Track
+src/Timeline/Commands/TimelineCommands.cs	Unmute Track
+src/Timeline/EditPlan.cs	Update Dissolve
+src/Timeline/MediaRelinkService.cs	Relink Media
+src/Timeline/MediaRelinkService.cs	Relink {relinks.Count} Media Files
+src/Timeline/TimelineEditService.Insert.cs	Insert Clip
+src/Timeline/TimelineEditService.Insert.cs	Overwrite Clip
+src/Timeline/TimelineEditService.Links.cs	Link Clips
+src/Timeline/TimelineEditService.Links.cs	Unlink Audio
+src/Timeline/TimelineEditService.Links.cs	Unlink Clips
+src/Timeline/TimelineEditService.cs	Add Clip
+src/Timeline/TimelineEditService.cs	Add Text
+src/Timeline/TimelineEditService.cs	Change Project Settings
+src/Timeline/TimelineEditService.cs	Change Speed
+src/Timeline/TimelineEditService.cs	Change {Title(noun)} Duration
+src/Timeline/TimelineEditService.cs	Close Gap
+src/Timeline/TimelineEditService.cs	Delete Clip
+src/Timeline/TimelineEditService.cs	Delete Clips
+src/Timeline/TimelineEditService.cs	Duplicate Clip
+src/Timeline/TimelineEditService.cs	Duplicate Clips
+src/Timeline/TimelineEditService.cs	Move Clip
+src/Timeline/TimelineEditService.cs	Move Clips
+src/Timeline/TimelineEditService.cs	Paste Clip
+src/Timeline/TimelineEditService.cs	Paste Clips
+src/Timeline/TimelineEditService.cs	Remove Media
+src/Timeline/TimelineEditService.cs	Ripple Delete Clip
+src/Timeline/TimelineEditService.cs	Ripple Delete Clips
+src/Timeline/TimelineEditService.cs	Ripple Trim End
+src/Timeline/TimelineEditService.cs	Ripple Trim End to Playhead
+src/Timeline/TimelineEditService.cs	Ripple Trim Start
+src/Timeline/TimelineEditService.cs	Ripple Trim Start to Playhead
+src/Timeline/TimelineEditService.cs	Set Frame Rate
+src/Timeline/TimelineEditService.cs	Set Frame Size
+src/Timeline/TimelineEditService.cs	Slip Clip
+src/Timeline/TimelineEditService.cs	Split Clip
+src/Timeline/TimelineEditService.cs	Split Clips
+src/Timeline/TimelineEditService.cs	Trim Clip
+src/Timeline/TimelineEditService.cs	Trim End to Playhead
+src/Timeline/TimelineEditService.cs	Trim Start to Playhead
+src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Crop Clip
+src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Clip
+src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Scale Clip
+
+# Reasons of a damaged file — for project.json the diagnostic detail in parentheses after the translated sentence (D039 §2); for the recent-projects list written to the log only.
+src/Project/Persistence/ProjectSerializer.cs	a clip doesn't match the kind of {asset.FileName}
+src/Project/Persistence/ProjectSerializer.cs	a clip has a negative fade
+src/Project/Persistence/ProjectSerializer.cs	a clip has an empty link id
+src/Project/Persistence/ProjectSerializer.cs	a clip has an invalid property: {invalid.TrimEnd('.')}
+src/Project/Persistence/ProjectSerializer.cs	a clip has no duration
+src/Project/Persistence/ProjectSerializer.cs	a clip is not aligned to the project frame grid
+src/Project/Persistence/ProjectSerializer.cs	a clip is on the wrong kind of track ({track.Name})
+src/Project/Persistence/ProjectSerializer.cs	a clip refers to media that is not in the project
+src/Project/Persistence/ProjectSerializer.cs	a clip speed in the version 1 form
+src/Project/Persistence/ProjectSerializer.cs	a clip speed other than 1 in a version 1 project
+src/Project/Persistence/ProjectSerializer.cs	a clip starts before the beginning of the timeline
+src/Project/Persistence/ProjectSerializer.cs	a clip's source range doesn't match its duration
+src/Project/Persistence/ProjectSerializer.cs	a hold animation has no appear fade
+src/Project/Persistence/ProjectSerializer.cs	a hold animation has no disappear fade
+src/Project/Persistence/ProjectSerializer.cs	a hold animation has no interval
+src/Project/Persistence/ProjectSerializer.cs	a hold animation has no order
+src/Project/Persistence/ProjectSerializer.cs	a hold animation has no start
+src/Project/Persistence/ProjectSerializer.cs	a hold animation has no stay mode
+src/Project/Persistence/ProjectSerializer.cs	a hold animation has no time after the last hold
+src/Project/Persistence/ProjectSerializer.cs	a hold has no contour
+src/Project/Persistence/ProjectSerializer.cs	a hold has no markup frame time
+src/Project/Persistence/ProjectSerializer.cs	a hold has no {what} colour sample
+src/Project/Persistence/ProjectSerializer.cs	a hold markup has no colour
+src/Project/Persistence/ProjectSerializer.cs	a hold markup has no colour mode
+src/Project/Persistence/ProjectSerializer.cs	a hold markup has no hold list
+src/Project/Persistence/ProjectSerializer.cs	a hold markup has no keyline mode
+src/Project/Persistence/ProjectSerializer.cs	a hold markup has no keyline state
+src/Project/Persistence/ProjectSerializer.cs	a hold markup has no model id
+src/Project/Persistence/ProjectSerializer.cs	a hold markup has no outline width
+src/Project/Persistence/ProjectSerializer.cs	a hold's contour has an odd number of coordinates
+src/Project/Persistence/ProjectSerializer.cs	a link is invalid: {invalidLink.TrimEnd('.')}
+src/Project/Persistence/ProjectSerializer.cs	a transition on track {track.Name} is invalid: {invalid.TrimEnd('.')}
+src/Project/Persistence/ProjectSerializer.cs	an image clip has a speed
+src/Project/Persistence/ProjectSerializer.cs	audio track list is missing
+src/Project/Persistence/ProjectSerializer.cs	clip list is missing
+src/Project/Persistence/ProjectSerializer.cs	clips overlap on track {track.Name}
+src/Project/Persistence/ProjectSerializer.cs	duplicate clip id
+src/Project/Persistence/ProjectSerializer.cs	duplicate marker id
+src/Project/Persistence/ProjectSerializer.cs	duplicate media id
+src/Project/Persistence/ProjectSerializer.cs	duplicate track id
+src/Project/Persistence/ProjectSerializer.cs	duplicate transition id
+src/Project/Persistence/ProjectSerializer.cs	effect type is missing
+src/Project/Persistence/ProjectSerializer.cs	empty clip entry
+src/Project/Persistence/ProjectSerializer.cs	empty effect entry
+src/Project/Persistence/ProjectSerializer.cs	empty hold entry
+src/Project/Persistence/ProjectSerializer.cs	empty marker entry
+src/Project/Persistence/ProjectSerializer.cs	empty media entry
+src/Project/Persistence/ProjectSerializer.cs	empty track entry
+src/Project/Persistence/ProjectSerializer.cs	empty transition entry
+src/Project/Persistence/ProjectSerializer.cs	export audio bitrate is missing
+src/Project/Persistence/ProjectSerializer.cs	export quality
+src/Project/Persistence/ProjectSerializer.cs	export speed preset
+src/Project/Persistence/ProjectSerializer.cs	invalid audio sample rate
+src/Project/Persistence/ProjectSerializer.cs	invalid clip source range
+src/Project/Persistence/ProjectSerializer.cs	invalid clip speed
+src/Project/Persistence/ProjectSerializer.cs	invalid export settings
+src/Project/Persistence/ProjectSerializer.cs	invalid frame size
+src/Project/Persistence/ProjectSerializer.cs	invalid hold markup: {error.TrimEnd('.')}
+src/Project/Persistence/ProjectSerializer.cs	invalid media file path
+src/Project/Persistence/ProjectSerializer.cs	invalid project frame rate
+src/Project/Persistence/ProjectSerializer.cs	invalid timeline zoom
+src/Project/Persistence/ProjectSerializer.cs	media file path is missing
+src/Project/Persistence/ProjectSerializer.cs	media list is missing
+src/Project/Persistence/ProjectSerializer.cs	negative marker position
+src/Project/Persistence/ProjectSerializer.cs	negative playhead position
+src/Project/Persistence/ProjectSerializer.cs	negative transition duration
+src/Project/Persistence/ProjectSerializer.cs	project name is missing
+src/Project/Persistence/ProjectSerializer.cs	project settings are missing
+src/Project/Persistence/ProjectSerializer.cs	timeline is missing
+src/Project/Persistence/ProjectSerializer.cs	transition type is missing
+src/Project/Persistence/ProjectSerializer.cs	unknown clip type
+src/Project/Persistence/ProjectSerializer.cs	unknown format version
+src/Project/Persistence/ProjectSerializer.cs	unknown media kind
+src/Project/Persistence/ProjectSerializer.cs	unknown text alignment
+src/Project/Persistence/ProjectSerializer.cs	unknown transition type
+src/Project/Persistence/ProjectSerializer.cs	video track list is missing
+src/Project/Persistence/ProjectSerializer.cs	{what} id is missing
+src/Project/Persistence/ProjectSerializer.cs	{what} is missing
+src/Project/Persistence/RecentProjectsStore.cs	a newer format version
+src/Project/Persistence/RecentProjectsStore.cs	no list of projects
+src/Project/Persistence/RecentProjectsStore.cs	no valid format version
+src/Project/Persistence/RecentProjectsStore.cs	not JSON
+src/Project/Persistence/RecentProjectsStore.cs	not a recent-projects list
+src/Project/Persistence/RecentProjectsStore.cs	not an object
+
+# FFmpeg / FFprobe / decoder / model runtime detail — technical, in parentheses after a translated sentence where shown (D039 §2).
+src/Core/Playback/PlaybackSnapshotBuilder.cs	A {clip.GetType().Name} cannot play {asset.Kind} media.
+src/Core/Playback/PlaybackSnapshotBuilder.cs	Media information is not available.
+src/Core/Playback/PlaybackSnapshotBuilder.cs	The media file is missing.
+src/Core/Playback/PlaybackSnapshotBuilder.cs	The media is not in the project.
+src/Core/Playback/PlaybackSnapshotBuilder.cs	{asset.Kind} media has no audio.
+src/Export/ExportAudioReader.cs	The audio of '{Path.GetFileName(_asset.FilePath)}' could not be decoded ({error}): {message}
+src/Export/ExportAudioReader.cs	ffmpeg could not be found.
+src/Export/ExportAudioSource.cs	The audio of a clip at {span.TimelineStart} can't be exported ({span.Status}{(span.Reason is null ?
+src/Export/ExportFrameSource.cs	A clip at {span.TimelineStart} can't be exported ({span.Status}{(span.Reason is null ?
+src/Export/ExportPictureReader.cs	'{Path.GetFileName(_asset.FilePath)}' could not be decoded ({error}): {message}
+src/Export/ExportPictureReader.cs	'{_asset.FilePath}' produced no frame.
+src/Export/ExportPictureReader.cs	ffmpeg could not be found.
+src/Export/ExportService.cs	quality {Quality} (CRF {Crf}), preset {Preset}, AAC {Bitrate} kbps)
+src/Media/Thumbnails/ThumbnailService.cs	'{asset.FilePath}' produced no frame.
+src/Project/MediaCacheLocation.cs	The {_kind} file is gone.
+src/Timeline/Playback/SpanReader.cs	'{_asset.FilePath}' produced no frame.
+src/UI/Services/HoldMarkupFrameSource.cs	'{asset.FilePath}' produced no frame.
+src/Video/DisplayOrientation.cs	, CultureInfo.InvariantCulture)}° is not a right angle
+src/Video/DisplayOrientation.cs	mirrored display matrix
+src/Video/DisplayOrientation.cs	rotation of {h.RotationDegrees.ToString(
+src/Video/FfmpegAudioDecoder.cs	File not found: {request.FilePath}
+src/Video/FfmpegAudioDecoder.cs	The audio stream ended early: {failure}
+src/Video/FfmpegAudioDecoder.cs	Unexpected ffmpeg output: {ex.Message}
+src/Video/FfmpegAudioDecoder.cs	ffmpeg could not be found.
+src/Video/FfmpegAudioDecoder.cs	ffmpeg could not be started.
+src/Video/FfmpegAudioDecoder.cs	ffmpeg exited with code {process.ExitCode}. {process.StderrTail()}
+src/Video/FfmpegAudioDecoder.cs	ffmpeg produced no audio within {_settings.FirstFrameTimeout.TotalSeconds:0.#} s.
+src/Video/FfmpegExportEncoder.cs	The export could not be written to '{_destination}': {ex.Message}
+src/Video/FfmpegExportEncoder.cs	The folder '{folder}' does not exist.
+src/Video/FfmpegExportEncoder.cs	The video encoder produced no file.
+src/Video/FfmpegExportEncoder.cs	The {pass} encoder failed while its input was closed. {reason}
+src/Video/FfmpegExportEncoder.cs	The {pass} encoder stopped accepting input. {reason}
+src/Video/FfmpegExportEncoder.cs	The {pass} encoding failed: {failure}
+src/Video/FfmpegExportEncoder.cs	ffmpeg could not be found.
+src/Video/FfmpegExportEncoder.cs	ffmpeg could not be started: {ex.Message}
+src/Video/FfmpegExportEncoder.cs	ffmpeg exited normally.
+src/Video/FfmpegProcess.cs	(no stderr output)
+src/Video/FfmpegProcess.cs	ffmpeg exited with code {_process.ExitCode}. {StderrTail()}
+src/Video/FfmpegVideoDecoder.cs	'{filePath}' is HDR, and its HDR → SDR conversion could not be prepared: {ex.Message}
+src/Video/FfmpegVideoDecoder.cs	'{filePath}' is HDR, but no HDR → SDR conversion is available to decode it.
+src/Video/FfmpegVideoDecoder.cs	'{request.FilePath}' has no decodable video frames.
+src/Video/FfmpegVideoDecoder.cs	File not found: {request.FilePath}
+src/Video/FfmpegVideoDecoder.cs	No frame at or before {point} in '{request.FilePath}' within a {TimeSpan.FromTicks(maxPreroll).TotalSeconds:0.###} s preroll.
+src/Video/FfmpegVideoDecoder.cs	ffmpeg could not be found.
+src/Video/FfmpegVideoFrameStream.cs	The video stream ended early after {_delivered} frames: {failure}
+src/Video/FfmpegVideoFrameStream.cs	Unexpected ffmpeg output: {cause.Message}
+src/Video/FfmpegVideoFrameStream.cs	ffmpeg could not be started.
+src/Video/FfmpegVideoFrameStream.cs	ffmpeg output ended in the middle of frame {info.Index}. {_process.StderrTail()}
+src/Video/FfmpegVideoFrameStream.cs	ffmpeg produced no frame within {_frameTimeout.TotalSeconds:0.#} s. {_process.StderrTail()}
+src/Video/FfprobeMediaAnalysisService.cs	(no stderr output)
+src/Video/FfprobeMediaAnalysisService.cs	Content light level
+src/Video/FfprobeMediaAnalysisService.cs	DOVI configuration
+src/Video/FfprobeMediaAnalysisService.cs	Mastering display
+src/Video/FfprobeMediaAnalysisService.cs	ffprobe exited with code {process.ExitCode}.
+src/Video/ShowInfoParser.cs	config in time_base:
+src/Vision/HoldModelBackend.cs	out of memory
+
+# Log message templates written on a line of their own (the logs stay English, D039 §1).
+src/Media/MediaImportService.cs	Media import batch: {Imported} imported, {Unsupported} unsupported, {Missing} missing.
+src/Timeline/MediaRelinkService.cs	not probed: ffprobe unavailable
+src/UI/Services/MediaAnalysisCoordinator.cs	Metadata analysis failed for '{Path}': {Outcome} — {Message}
+
+# Data and names, not interface text: a font family, the internal sequence name, a LUT file header, a format name, the product name.
+src/Core/Color/HdrLut.cs	TITLE \"AiVideoEditor HDR to SDR, rule
+src/Core/Entities/Clip.cs	Segoe UI
+src/Core/Entities/Timeline.cs	Main Sequence
+src/UI/ViewModels/MainWindowViewModel.cs	)} — AI Video Editor
+src/UI/ViewModels/ProjectSettingsViewModel.cs	Full HD
+
+# Design-time stand-ins of the main window (the XAML previewer only).
+src/UI/Views/MainWindow.axaml.cs	Design Time
+src/UI/Views/MainWindow.axaml.cs	Design time — not analyzed.
+src/UI/Views/MainWindow.axaml.cs	Design time.

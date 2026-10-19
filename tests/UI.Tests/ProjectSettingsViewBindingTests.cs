@@ -45,7 +45,7 @@ public sealed class ProjectSettingsViewBindingTests
         var toolbar = new ToolbarViewModel(_undo, null!, null!, _status, null, _lock, null, workflow);
         var view = new ToolbarView { DataContext = toolbar };
 
-        var row = view.GetLogicalDescendants().OfType<StackPanel>().First(p => p.Orientation == Avalonia.Layout.Orientation.Horizontal);
+        var row = view.GetLogicalDescendants().OfType<WrapPanel>().First();   // the tool bar wraps (D039 §6)
         var buttons = row.Children.OfType<Button>().Select(b => b.Content as string).ToList();
         var settings = row.Children.OfType<Button>().Single(b => Equals(b.Content, "Project Settings…"));
         Assert.Equal(buttons.IndexOf("Import Media") + 1, buttons.IndexOf("Project Settings…"));

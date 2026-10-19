@@ -1,3 +1,4 @@
+using AiVideoEditor.UI.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace AiVideoEditor.UI.Services;
@@ -13,7 +14,7 @@ namespace AiVideoEditor.UI.Services;
 public sealed partial class StatusService : ObservableObject
 {
     [ObservableProperty]
-    private string _message = "Ready.";
+    private string _message = Strings.Status_Ready;
 
     public void Report(string message) => Message = message;
 }

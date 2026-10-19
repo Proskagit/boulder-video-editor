@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Playback;
+using AiVideoEditor.UI.Localization;
 
 namespace AiVideoEditor.UI.Rendering;
 
@@ -71,9 +72,9 @@ public static class PreviewDrawPlan
 
     public static string PlaceholderLabel(LayerPictureState state) => state switch
     {
-        LayerPictureState.Offline => "Media offline",
-        LayerPictureState.Unsupported => "Unsupported clip",
-        LayerPictureState.DecodeError => "Cannot decode media",
+        LayerPictureState.Offline => Strings.Placeholder_Offline,
+        LayerPictureState.Unsupported => Strings.Placeholder_Unsupported,
+        LayerPictureState.DecodeError => Strings.Placeholder_DecodeError,
         _ => ""
     };
 }

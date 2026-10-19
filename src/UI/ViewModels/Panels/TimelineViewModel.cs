@@ -2,8 +2,10 @@ using System.Collections.ObjectModel;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.UI.Common;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -239,8 +241,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _selection.RemoveAll(id => !liveIds.Contains(id));
 
         FrameRateDisplay = _projectService.Current.Settings.IsFrameRateLocked
-            ? $"{FormatRate(FrameRate)} FPS"
-            : $"{FormatRate(FrameRate)} FPS (provisional)";
+            ? string.Format(Strings.Rate_Fps, FormatRate(FrameRate))
+            : string.Format(Strings.Rate_FpsProvisional, FormatRate(FrameRate));
 
         TracksHeight = Tracks.Count * TimelineTrackViewModel.Height;
         PixelsPerSecond = TimelineCoordinateMapper.ClampZoom(PixelsPerSecond, FrameRate);
@@ -279,12 +281,12 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private string ClipName(Clip clip) => clip switch
     {
-        MediaBackedClip m => FindAsset(m.MediaAssetId)?.FileName ?? "(missing media)",
+        MediaBackedClip m => FindAsset(m.MediaAssetId)?.FileName ?? Strings.Clip_MissingMedia,
         TextClip t => TextLabel(t.Text),
-        _ => "Clip"
+        _ => Strings.Clip_Generic
     };
 
-    public const string EmptyTextLabel = "(empty text)";
+    public static string EmptyTextLabel => Strings.Clip_EmptyText;
 
     /// <summary>First line of a text clip's text (any line break), or <see cref="EmptyTextLabel"/>
     /// when the text is empty or only whitespace (such a clip draws nothing).</summary>
@@ -397,7 +399,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void SetIn()
     {
         _inOut.SetIn(Playhead);
-        _status.Report($"In set at {TimeFormat.ToTimecode(_inOut.Range.In!.Value, FrameRate)}.");
+        _status.Report(string.Format(Strings.InOut_InSet, TimeFormat.ToTimecode(_inOut.Range.In!.Value, FrameRate)));
     }
 
     /// <summary>O: Out after the playhead's frame — the frame at the playhead is the range's last one (Q7).</summary>
@@ -405,7 +407,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void SetOut()
     {
         _inOut.SetOut(Playhead);
-        _status.Report($"Out set after {TimeFormat.ToTimecode(Playhead.SnapToFrame(FrameRate), FrameRate)} (that frame is included).");
+        _status.Report(string.Format(Strings.InOut_OutSet, TimeFormat.ToTimecode(Playhead.SnapToFrame(FrameRate), FrameRate)));
     }
 
     /// <summary>The ✕ on the range bar (Q11).</summary>
@@ -413,7 +415,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void ClearInOut()
     {
         _inOut.Clear();
-        _status.Report("In / Out cleared.");
+        _status.Report(Strings.InOut_Cleared);
     }
 
     private void RebuildMarkers()
@@ -662,8 +664,14 @@ public sealed partial class TimelineViewModel : ViewModelBase
         var result = _edit.TrimToPlayhead(_selection.ToList(), edge, Playhead, ripple);
         if (result is { Success: true, Playhead: { } playhead }) SetPlayhead(playhead);
         var count = result.ClipIds.Count;
-        Report(result, successMessage: $"{(ripple ? "Ripple trimmed" : "Trimmed")} the {(edge == ClipEdge.Start ? "start" : "end")} of " +
-            $"{(count == 1 ? "the clip" : $"{count} clips")} to the playhead");
+        var (one, many) = (ripple, edge == ClipEdge.Start) switch
+        {
+            (false, true) => (Strings.Trim_StartOne, Strings.Trim_StartMany),
+            (false, false) => (Strings.Trim_EndOne, Strings.Trim_EndMany),
+            (true, true) => (Strings.Trim_RippleStartOne, Strings.Trim_RippleStartMany),
+            (true, false) => (Strings.Trim_RippleEndOne, Strings.Trim_RippleEndMany)
+        };
+        Report(result, successMessage: count == 1 ? one : Plural.Format(count, many));
     }
 
     [RelayCommand(CanExecute = nameof(CanDeleteSelected))]
@@ -671,7 +679,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (_selectedTransitionId is { } transitionId && _selection.Count == 0)
         {
-            Report(_edit.RemoveTransition(transitionId), successMessage: "Dissolve removed");
+            Report(_edit.RemoveTransition(transitionId), successMessage: Strings.Dissolve_Removed);
             return;
         }
 
@@ -695,8 +703,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         if (_edit.MaxTransitionFrames(left.Id, right.Id) is not { } max)
         {
             _status.Report(crossfade
-                ? "Select two clips that meet on an audio track (the first ends where the second starts) to add a crossfade."
-                : "Select two clips that meet on a video track (the first ends where the second starts) to add a dissolve.");
+                ? Strings.Dissolve_SelectAudio
+                : Strings.Dissolve_SelectVideo);
             return;
         }
 
@@ -705,10 +713,14 @@ public sealed partial class TimelineViewModel : ViewModelBase
         var result = _edit.AddTransition(left.Id, right.Id, MediaTime.FromFrame(frames, FrameRate));
         if (result.Success && result.TransitionId is { } id)
             SelectTransition(id);
-        var what = crossfade ? "Crossfade" : "Dissolve";
-        Report(result, successMessage: frames < wanted
-            ? $"{what} added: {frames} frames, the longest that fits here."
-            : $"{what} added: {frames} frames.");
+        var added = (crossfade, frames < wanted) switch
+        {
+            (true, true) => Strings.Crossfade_AddedLongest,
+            (true, false) => Strings.Crossfade_Added,
+            (false, true) => Strings.Dissolve_AddedLongest,
+            (false, false) => Strings.Dissolve_Added
+        };
+        Report(result, successMessage: string.Format(added, Plural.Format(frames, Strings.Plural_Frames)));
     }
 
     // --- Ripple delete and close gap (D027 §2) -------------------------------------
@@ -726,7 +738,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         var result = _edit.RippleDeleteClips(_selection.ToList());
         if (result.Success) ClearSelection();
-        Report(result, successMessage: result.ClipIds.Count == 1 ? "Clip ripple deleted" : $"{result.ClipIds.Count} clips ripple deleted");
+        Report(result, successMessage: result.ClipIds.Count == 1 ? Strings.RippleDelete_One : Plural.Format(result.ClipIds.Count, Strings.RippleDelete_Many));
     }
 
     /// <summary>"Close Gap": the empty span before the selected clip goes; that clip and the later ones of its track move
@@ -735,7 +747,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void CloseGap()
     {
         if (SelectionWithoutPrimaryPartner() is not [var only]) return;
-        Report(_edit.CloseGapBefore(only), successMessage: "Gap closed");
+        Report(_edit.CloseGapBefore(only), successMessage: Strings.Gap_Closed);
     }
 
     // --- Copy / paste / duplicate (D027 §5) ------------------------------------------
@@ -765,11 +777,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (_edit.CopyClips(_selection.ToList()) is not { } copied)
         {
-            _status.Report("Nothing was copied: a selected clip no longer exists.");
+            _status.Report(Strings.Copy_NothingCopied);
             return;
         }
         Clipboard = copied;
-        _status.Report(copied.Count == 1 ? "1 clip copied" : $"{copied.Count} clips copied");
+        _status.Report(Plural.Format(copied.Count, Strings.Copy_Copied));
     }
 
     /// <summary>"Paste" (Ctrl+V): the copied clips at the playhead, on their tracks; the pasted clips are selected.</summary>
@@ -779,7 +791,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         if (Clipboard is not { } clipboard) return;
         var result = _edit.PasteClips(clipboard, Playhead);
         SelectAdded(result);
-        Report(result, successMessage: result.ClipIds.Count == 1 ? "1 clip pasted" : $"{result.ClipIds.Count} clips pasted");
+        Report(result, successMessage: Plural.Format(result.ClipIds.Count, Strings.Copy_Pasted));
     }
 
     /// <summary>"Duplicate" (Ctrl+D): copies of the selected clips right after them; the copies are selected.</summary>
@@ -788,7 +800,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         var result = _edit.DuplicateClips(_selection.ToList());
         SelectAdded(result);
-        Report(result, successMessage: result.ClipIds.Count == 1 ? "1 clip duplicated" : $"{result.ClipIds.Count} clips duplicated");
+        Report(result, successMessage: Plural.Format(result.ClipIds.Count, Strings.Copy_Duplicated));
     }
 
     // --- Markers (D027 §6) --------------------------------------------------------------
@@ -797,24 +809,24 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     /// <summary>"Add Marker": a marker at the playhead.</summary>
     [RelayCommand(CanExecute = nameof(CanEdit))]
-    private void AddMarker() => Report(_edit.AddMarker(Playhead), successMessage: $"Marker added at {TimeFormat.ToTimecode(Playhead, FrameRate)}");
+    private void AddMarker() => Report(_edit.AddMarker(Playhead), successMessage: string.Format(Strings.Marker_Added, TimeFormat.ToTimecode(Playhead, FrameRate)));
 
     /// <summary>"Remove Marker": the marker at the playhead (go to it first).</summary>
     [RelayCommand(CanExecute = nameof(CanEdit))]
-    private void RemoveMarker() => Report(_edit.RemoveMarkerAt(Playhead), successMessage: "Marker removed");
+    private void RemoveMarker() => Report(_edit.RemoveMarkerAt(Playhead), successMessage: Strings.Marker_Removed);
 
     [RelayCommand]
     private void PreviousMarker()
     {
         if (_edit.PreviousMarker(Playhead) is { } at) SetPlayhead(at);
-        else _status.Report("There is no marker before the playhead.");
+        else _status.Report(Strings.Marker_NoneBefore);
     }
 
     [RelayCommand]
     private void NextMarker()
     {
         if (_edit.NextMarker(Playhead) is { } at) SetPlayhead(at);
-        else _status.Report("There is no marker after the playhead.");
+        else _status.Report(Strings.Marker_NoneAfter);
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))] private void AddVideoTrack() => Report(_edit.AddTrack(TrackType.Video));
@@ -834,14 +846,14 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void MoveTrackUp(TimelineTrackViewModel? track)
     {
         if (track is null) return;
-        Report(_edit.MoveTrack(track.Track.Id, track.Type == TrackType.Video ? 1 : -1), successMessage: $"Track {track.Track.Name} moved up");
+        Report(_edit.MoveTrack(track.Track.Id, track.Type == TrackType.Video ? 1 : -1), successMessage: string.Format(Strings.Track_MovedUp, track.Track.Name));
     }
 
     [RelayCommand(CanExecute = nameof(CanMoveTrackDown))]
     private void MoveTrackDown(TimelineTrackViewModel? track)
     {
         if (track is null) return;
-        Report(_edit.MoveTrack(track.Track.Id, track.Type == TrackType.Video ? -1 : 1), successMessage: $"Track {track.Track.Name} moved down");
+        Report(_edit.MoveTrack(track.Track.Id, track.Type == TrackType.Video ? -1 : 1), successMessage: string.Format(Strings.Track_MovedDown, track.Track.Name));
     }
 
     // --- Track state (D030 §4) ---------------------------------------------------------
@@ -856,7 +868,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (track is null) return;
         var muted = !track.Track.IsMuted;
-        Report(_edit.SetTrackMuted(track.Track.Id, muted), successMessage: $"Track {track.Track.Name} {(muted ? "muted" : "unmuted")}");
+        Report(_edit.SetTrackMuted(track.Track.Id, muted), successMessage: string.Format(muted ? Strings.Track_Muted : Strings.Track_Unmuted, track.Track.Name));
     }
 
     [RelayCommand(CanExecute = nameof(CanToggleTrackHidden))]
@@ -864,7 +876,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (track is null) return;
         var hidden = !track.Track.IsHidden;
-        Report(_edit.SetTrackHidden(track.Track.Id, hidden), successMessage: $"Track {track.Track.Name} {(hidden ? "hidden" : "shown")}");
+        Report(_edit.SetTrackHidden(track.Track.Id, hidden), successMessage: string.Format(hidden ? Strings.Track_Hidden : Strings.Track_Shown, track.Track.Name));
     }
 
     [RelayCommand(CanExecute = nameof(CanToggleTrack))]
@@ -872,7 +884,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (track is null) return;
         var locked = !track.Track.IsLocked;
-        Report(_edit.SetTrackLocked(track.Track.Id, locked), successMessage: $"Track {track.Track.Name} {(locked ? "locked" : "unlocked")}");
+        Report(_edit.SetTrackLocked(track.Track.Id, locked), successMessage: string.Format(locked ? Strings.Track_Locked : Strings.Track_Unlocked, track.Track.Name));
     }
 
     /// <summary>Deletes a track; one with clips only after the user confirms (D027 §3). Without a dialog service a track
@@ -893,17 +905,17 @@ public sealed partial class TimelineViewModel : ViewModelBase
             if (_dialogs is null) return;
             var choice = await _dialogs.AskAsync(new DialogRequest
             {
-                Title = "Delete Track",
+                Title = Strings.Track_DeleteTitle,
                 Message = clipCount == 1
-                    ? $"Track {name} has 1 clip. Deleting the track deletes the clip too.\n\nYou can undo this with Undo."
-                    : $"Track {name} has {clipCount} clips. Deleting the track deletes them too, and any dissolves between them.\n\nYou can undo this with Undo.",
-                Buttons = new[] { "Delete Track", "Cancel" }
+                    ? string.Format(Strings.Track_DeleteOne, name)
+                    : Plural.Format(clipCount, Strings.Track_DeleteMany, name),
+                Buttons = new[] { Strings.Track_DeleteButton, Strings.Common_Cancel }
             });
             // The answer may come after an export started or the project was replaced; the service re-checks the rest.
             if (choice != 0 || !CanEdit()) return;
         }
 
-        Report(_edit.DeleteTrack(track.Track.Id), successMessage: $"Track {name} deleted");
+        Report(_edit.DeleteTrack(track.Track.Id), successMessage: string.Format(Strings.Track_Deleted, name));
     }
 
     [RelayCommand] private void ToggleSnapping() => SnappingEnabled = !SnappingEnabled;
@@ -914,7 +926,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         var result = _edit.AddTextClip(Playhead);
         SelectAdded(result);
-        Report(result, successMessage: "Text added");
+        Report(result, successMessage: Strings.Text_Added);
     }
 
     /// <summary>"Add to Timeline" from the Media Browser: end of V1 / A1.</summary>
@@ -966,7 +978,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         if (!CanEdit()) return;
         var result = _edit.AddClip(assetId, trackId, start);
         SelectAdded(result);
-        Report(result, successMessage: "Added to timeline");
+        Report(result, successMessage: Strings.Timeline_Added);
     }
 
     private void SelectAdded(TimelineEditResult result)
@@ -993,7 +1005,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void Report(TimelineEditResult result, string? successMessage = null)
     {
         if (!result.Success)
-            _status.Report(result.Message ?? "The timeline edit was not possible.");
+            _status.Report(result.Message ?? Strings.Timeline_EditNotPossible);
         else if (result.Message is not null)
             _status.Report(result.Message);
         else if (successMessage is not null && !result.NoChange)
@@ -1224,7 +1236,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         SelectOnly(clip.Id);
         if (clip.Clip is not (VideoClip or AudioClip))
         {
-            _status.Report("Only video and audio clips can be slipped.");
+            _status.Report(Strings.Slip_OnlyMedia);
             return false;
         }
         _gesture = new Gesture
@@ -1359,9 +1371,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
         g.SlipFrames = -rawDelta.ToNearestFrame(FrameRate);
         var preview = _edit.PreviewSlip(clip.Id, g.SlipFrames);
         clip.IsInvalid = preview is null;
-        clip.SlipText = preview is null ? "Can't slip"
-            : $"In {TimeFormat.ToTimecode(preview.SourceIn, FrameRate)}  Out {TimeFormat.ToTimecode(preview.SourceOut, FrameRate)}" +
-              (preview.Note is null ? "" : "  (limit)");
+        clip.SlipText = preview is null ? Strings.Slip_Cannot
+            : string.Format(Strings.Slip_Range, TimeFormat.ToTimecode(preview.SourceIn, FrameRate), TimeFormat.ToTimecode(preview.SourceOut, FrameRate)) +
+              (preview.Note is null ? "" : "  " + Strings.Slip_Limit);
     }
 
     /// <summary>The ripple drag's preview (D030 §6): the edit service plans the trim (nothing is applied) and the view

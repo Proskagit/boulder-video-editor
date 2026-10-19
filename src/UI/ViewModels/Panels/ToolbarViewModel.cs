@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.Input;
 
@@ -61,8 +62,8 @@ public sealed partial class ToolbarViewModel : ViewModelBase
 
     /// <summary>"Project Settings — 1920 × 1080 · 25 FPS".</summary>
     public string ProjectSettingsToolTip => _projectSettings is null
-        ? "Project Settings"
-        : $"Project Settings — {_projectSettings.Summary}";
+        ? Strings.Settings_Title
+        : string.Format(Strings.Toolbar_SettingsTip, _projectSettings.Summary);
 
     private void NotifyAllCommands()
     {
@@ -114,7 +115,7 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     {
         if (_projectSettings is null)
         {
-            _status.Report("Project settings are not available.");
+            _status.Report(Strings.Toolbar_SettingsUnavailable);
             return;
         }
         await _projectSettings.RunAsync();
@@ -127,7 +128,7 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     {
         if (_exportWorkflow is null)
         {
-            _status.Report("Exporting is not available.");
+            _status.Report(Strings.Toolbar_ExportUnavailable);
             return;
         }
         await _exportWorkflow.RunAsync();

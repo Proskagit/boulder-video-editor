@@ -1,5 +1,7 @@
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
+using AiVideoEditor.UI.Localization;
 using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.UI.Services;
@@ -76,7 +78,7 @@ public sealed class MediaRelinkWorkflow
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Relinking failed unexpectedly.");
-            _status.Report("Relinking failed unexpectedly; nothing more was changed. See the log for details.");
+            _status.Report(Strings.Relink_Unexpected);
             return false;
         }
         finally
@@ -89,12 +91,12 @@ public sealed class MediaRelinkWorkflow
     private bool ExportRunning()
     {
         if (!_editingLock.IsLocked) return false;
-        _status.Report("An export is running — nothing was relinked.");
+        _status.Report(Strings.Relink_ExportRunning);
         return true;
     }
 
     private Task Tell(string title, string message) =>
-        _dialogs.AskAsync(new DialogRequest { Title = title, Message = message, Buttons = new[] { "OK" } });
+        _dialogs.AskAsync(new DialogRequest { Title = title, Message = message, Buttons = new[] { Strings.Common_OK } });
 
     private async Task<string?> ExistingFolderAsync(string? folder)
     {
@@ -131,17 +133,17 @@ public sealed class MediaRelinkWorkflow
         if (_projects.Current.MediaAssets.FirstOrDefault(a => a.Id == assetId) is not { } asset) return false;
         if (!asset.IsMissing)
         {
-            _status.Report($"\"{asset.FileName}\" is not offline — nothing to relink.");
+            _status.Report(string.Format(Strings.Relink_NotOffline, asset.FileName));
             return false;
         }
 
         var extensions = MediaFileTypes.ByExtension.Where(p => p.Value == asset.Kind).Select(p => "*" + p.Key).ToList();
         var files = await _picker.PickFilesAsync(new FilePickerRequest
         {
-            Title = $"Relink \"{asset.FileName}\" — choose its file",
+            Title = string.Format(Strings.Relink_PickerTitle, asset.FileName),
             AllowMultiple = false,
             StartFolder = await ExistingFolderAsync(FolderOf(asset.FilePath)),
-            FileTypeFilters = new[] { new FilePickerFileTypeFilter { Name = $"{asset.Kind} files", Patterns = extensions } }
+            FileTypeFilters = new[] { new FilePickerFileTypeFilter { Name = MediaKindText.FileFilter(asset.Kind), Patterns = extensions } }
         });
         if (files.Count == 0) return false;                          // the picker was cancelled
         if (ExportRunning()) return false;
@@ -150,8 +152,8 @@ public sealed class MediaRelinkWorkflow
         if (ExportRunning()) return false;
         if (!check.CanApply)
         {
-            _status.Report($"\"{asset.FileName}\" was not relinked.");
-            await Tell("Can't relink", check.Message);
+            _status.Report(string.Format(Strings.Relink_NotRelinked, asset.FileName));
+            await Tell(Strings.Relink_CantTitle, check.Message);
             return false;
         }
 
@@ -161,17 +163,16 @@ public sealed class MediaRelinkWorkflow
             var notChecked = check.Warnings.Any(w => w.Kind == RelinkWarningKind.NotChecked);
             var choice = await _dialogs.AskAsync(new DialogRequest
             {
-                Title = notChecked ? "Relink without a compatibility check?" : "Relink with differences?",
-                Message = (notChecked
-                              ? $"The technical compatibility of \"{Path.GetFileName(check.FilePath)}\" with \"{asset.FileName}\" was not checked:\n\n"
-                              : $"\"{Path.GetFileName(check.FilePath)}\" differs from what \"{asset.FileName}\" was:\n\n") +
+                Title = notChecked ? Strings.Relink_UncheckedTitle : Strings.Relink_DifferencesTitle,
+                Message = string.Format(notChecked ? Strings.Relink_Unchecked : Strings.Relink_Differs,
+                              Path.GetFileName(check.FilePath), asset.FileName) + "\n\n" +
                           string.Join("\n", check.Warnings.Select(w => "• " + w.Message)) +
-                          "\n\nThe clips stay as they are.",
-                Buttons = new[] { "Relink Anyway", "Cancel" }
+                          "\n\n" + Strings.Relink_ClipsStay,
+                Buttons = new[] { Strings.Relink_Anyway, Strings.Common_Cancel }
             });
             if (choice != 0)
             {
-                _status.Report("Relink cancelled.");
+                _status.Report(Strings.Relink_Cancelled);
                 return false;
             }
         }
@@ -180,8 +181,8 @@ public sealed class MediaRelinkWorkflow
         var result = await _relink.ApplyAsync(check);
         if (!result.Applied)
         {
-            _status.Report($"\"{asset.FileName}\" was not relinked.");
-            await Tell("Relink not applied", result.Message);
+            _status.Report(string.Format(Strings.Relink_NotRelinked, asset.FileName));
+            await Tell(Strings.Relink_NotAppliedTitle, result.Message);
             return false;
         }
         _status.Report(result.Message);
@@ -192,11 +193,9 @@ public sealed class MediaRelinkWorkflow
         {
             var search = await _dialogs.AskAsync(new DialogRequest
             {
-                Title = "Find other missing media?",
-                Message = others == 1
-                    ? $"1 other media file is offline. Look for it in \"{folder}\"?"
-                    : $"{others} other media files are offline. Look for them in \"{folder}\"?",
-                Buttons = new[] { "Search", "Not Now" }
+                Title = Strings.Relink_FindOthersTitle,
+                Message = Plural.Format(others, Strings.Relink_FindOthers, folder),
+                Buttons = new[] { Strings.Relink_Search, Strings.Relink_NotNow }
             });
             if (search == 0)
                 await SearchAndApplyAsync(folder);
@@ -215,13 +214,13 @@ public sealed class MediaRelinkWorkflow
         var offline = _projects.Current.MediaAssets.FirstOrDefault(a => a.IsMissing);
         if (offline is null)
         {
-            _status.Report("No media is offline.");
+            _status.Report(Strings.Relink_NoneOffline);
             return false;
         }
 
         var folder = await _picker.PickFolderAsync(new FolderPickerRequest
         {
-            Title = "Find Missing Media — choose the folder to search",
+            Title = Strings.Relink_FolderPickerTitle,
             StartFolder = await ExistingFolderAsync(FolderOf(offline.FilePath))
         });
         if (folder is null) return false;
@@ -240,33 +239,33 @@ public sealed class MediaRelinkWorkflow
             // Matches that can't be used are not "nothing found" (D5).
             var unusable = search.Entries.Any(e => e.Outcome is RelinkSearchOutcome.Rejected or RelinkSearchOutcome.Ambiguous);
             _status.Report(search.Problem ?? (unusable
-                ? "Files with matching names were found in the folder, but none of them can be used."
-                : "No offline media file was found in the folder."));
-            await Tell("Find Missing Media", search.Summary());
+                ? Strings.Relink_FoundUnusable
+                : Strings.Relink_NothingFound));
+            await Tell(Strings.Relink_FindTitle, search.Summary());
             return false;
         }
 
         var choice = await _dialogs.AskAsync(new DialogRequest
         {
-            Title = "Find Missing Media",
+            Title = Strings.Relink_FindTitle,
             Message = search.Summary(),
-            Buttons = new[] { applicable.Count == 1 ? "Relink 1 File" : $"Relink {applicable.Count} Files", "Cancel" }
+            Buttons = new[] { Plural.Format(applicable.Count, Strings.Relink_RelinkFiles), Strings.Common_Cancel }
         });
         if (choice != 0)
         {
-            _status.Report("Nothing was relinked.");
+            _status.Report(Strings.Relink_NothingRelinked);
             return false;
         }
 
         if (ExportRunning()) return false;                           // right before applying
         var result = await _relink.ApplyAllAsync(applicable);
         var refused = result.Results.Where(r => !r.Applied).ToList();
-        _status.Report(result.AppliedCount == 1 ? "Relinked 1 media file." : $"Relinked {result.AppliedCount} media files.");
+        _status.Report(Plural.Format(result.AppliedCount, Strings.Relink_Relinked));
         if (refused.Count > 0)
         {
-            string Name(Guid id) => _projects.Current.MediaAssets.FirstOrDefault(a => a.Id == id)?.FileName ?? "(removed)";
-            await Tell($"Relinked {result.AppliedCount} of {result.Results.Count}",
-                "These were not relinked and stay offline:\n\n" + string.Join("\n", refused.Select(r => $"• {Name(r.AssetId)}: {r.Message}")));
+            string Name(Guid id) => _projects.Current.MediaAssets.FirstOrDefault(a => a.Id == id)?.FileName ?? Strings.Relink_Removed;
+            await Tell(string.Format(Strings.Relink_PartialTitle, result.AppliedCount, result.Results.Count),
+                Strings.Relink_Refused + "\n\n" + string.Join("\n", refused.Select(r => $"• {Name(r.AssetId)}: {r.Message}")));
         }
         return result.AppliedCount > 0;
     }

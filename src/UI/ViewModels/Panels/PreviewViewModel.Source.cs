@@ -5,6 +5,7 @@ using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.UI.Common;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -74,7 +75,7 @@ public sealed partial class PreviewViewModel
     /// shown, otherwise why not (SQ11).</summary>
     public string? OpenSource(MediaAsset asset)
     {
-        if (_source is null) return "The Source viewer is not available.";
+        if (_source is null) return Strings.Source_ViewerUnavailable;
         if (_source.Open(asset) is { } reason) return reason;
         ShowSource();
         return null;
@@ -184,7 +185,8 @@ public sealed partial class PreviewViewModel
         SourceOutFrame = grid is not null && range.Out is { } o ? o.ToNearestFrame(grid.Rate) : -1;
         HasSourceRange = grid is not null && range.IsSet;
         SourceRangeDisplay = grid is null || !range.IsSet ? ""
-            : $"In {(range.In is { } a ? TimeFormat.ToTimecode(a, grid.Rate) : "start")} · Out {(range.Out is { } b ? TimeFormat.ToTimecode(b, grid.Rate) : "end")}";
+            : string.Format(Strings.Source_RangeDisplay, range.In is { } a ? TimeFormat.ToTimecode(a, grid.Rate) : Strings.Source_RangeStart,
+                range.Out is { } b ? TimeFormat.ToTimecode(b, grid.Rate) : Strings.Source_RangeEnd);
     }
 
     // --- Source transport (SQ4: the keys act here while Source is shown) -------------------------------------------------
@@ -215,7 +217,7 @@ public sealed partial class PreviewViewModel
     {
         if (!IsSourceMode || _source?.Grid is not { } grid) return;
         _source.SetIn(MediaTime.FromFrame(CurrentSourceFrame, grid.Rate));
-        _status.Report($"Source In set at {TimeFormat.ToTimecode(_source.Range.In!.Value, grid.Rate)}.");
+        _status.Report(string.Format(Strings.Source_InSet, TimeFormat.ToTimecode(_source.Range.In!.Value, grid.Rate)));
     }
 
     [RelayCommand]
@@ -223,7 +225,7 @@ public sealed partial class PreviewViewModel
     {
         if (!IsSourceMode || _source?.Grid is not { } grid) return;
         _source.SetOut(MediaTime.FromFrame(CurrentSourceFrame, grid.Rate));
-        _status.Report($"Source Out set at {TimeFormat.ToTimecode(_source.Range.Out!.Value, grid.Rate)}.");
+        _status.Report(string.Format(Strings.Source_OutSet, TimeFormat.ToTimecode(_source.Range.Out!.Value, grid.Rate)));
     }
 
     [RelayCommand]
@@ -231,6 +233,6 @@ public sealed partial class PreviewViewModel
     {
         if (_source is null || !_source.Range.IsSet) return;
         _source.ClearRange();
-        _status.Report("Source In / Out cleared.");
+        _status.Report(Strings.Source_RangeCleared);
     }
 }

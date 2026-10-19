@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Export;
+using AiVideoEditor.UI.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -36,7 +37,7 @@ public sealed partial class ExportProgressViewModel : ObservableObject, IProgres
     [ObservableProperty] private double _percent;
 
     /// <summary>"Audio", "Video", … — or "Cancelling…" once Cancel was pressed.</summary>
-    [ObservableProperty] private string _stageText = "Starting…";
+    [ObservableProperty] private string _stageText = Strings.Export_Starting;
 
     /// <summary>"1 234 / 5 678 frames (21 %)".</summary>
     [ObservableProperty] private string _detailText = "";
@@ -65,19 +66,19 @@ public sealed partial class ExportProgressViewModel : ObservableObject, IProgres
         if (!IsCancelling) StageText = StageName(p.Stage);
         DetailText = p.Stage switch
         {
-            ExportStage.Audio => $"{p.Done:N0} / {p.Total:N0} audio samples ({Percent:0} %)",
-            ExportStage.Video => $"{p.Done:N0} / {p.Total:N0} frames ({Percent:0} %)",
-            ExportStage.Finalizing => "Writing the output file…",
-            _ => "Preparing the encoder…"
+            ExportStage.Audio => string.Format(Strings.Export_AudioProgress, p.Done.ToString("N0"), p.Total.ToString("N0"), Percent.ToString("0")),
+            ExportStage.Video => string.Format(Strings.Export_VideoProgress, p.Done.ToString("N0"), p.Total.ToString("N0"), Percent.ToString("0")),
+            ExportStage.Finalizing => Strings.Export_Writing,
+            _ => Strings.Export_PreparingEncoder
         };
     }
 
     public static string StageName(ExportStage stage) => stage switch
     {
-        ExportStage.Preparing => "Preparing",
-        ExportStage.Audio => "Audio",
-        ExportStage.Video => "Video",
-        _ => "Finalizing"
+        ExportStage.Preparing => Strings.Export_StagePreparing,
+        ExportStage.Audio => Strings.Export_StageAudio,
+        ExportStage.Video => Strings.Export_StageVideo,
+        _ => Strings.Export_StageFinalizing
     };
 
     /// <summary>Requests cancellation (the export's token); the window stays until the export has finished.</summary>
@@ -86,7 +87,7 @@ public sealed partial class ExportProgressViewModel : ObservableObject, IProgres
     {
         if (IsCancelling) return;
         IsCancelling = true;
-        StageText = "Cancelling…";
+        StageText = Strings.Export_Cancelling;
         _cancel();
     }
 

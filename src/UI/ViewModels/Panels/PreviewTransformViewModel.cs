@@ -3,7 +3,9 @@ using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Core.Playback;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Rendering;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -223,19 +225,19 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasCropHandles));
     }
 
-    public const string MoveText = "Move — drag the clip; a corner scales it; Shift keeps an axis; Esc cancels";
-    public const string CropText = "Crop — drag a handle; the picture stays in place; Esc cancels";
-    public const string NoClipText = "Select a clip under the playhead (click its picture)";
-    public const string NotUnderPlayheadText = "The selected clip is not under the playhead";
-    public const string NoPictureText = "The selected clip has no picture";
-    public const string UnknownSizeText = "The size of this clip's picture is not known yet";
-    public const string TextHasNoCrop = "Text clips have no crop — use Move";
-    public const string PlayingText = "Pause to move, scale or crop";
+    public static string MoveText => Strings.Transform_MoveText;
+    public static string CropText => Strings.Transform_CropText;
+    public static string NoClipText => Strings.Transform_NoClip;
+    public static string NotUnderPlayheadText => Strings.Transform_NotUnderPlayhead;
+    public static string NoPictureText => Strings.Transform_NoPicture;
+    public static string UnknownSizeText => Strings.Transform_UnknownSize;
+    public static string TextHasNoCrop => Strings.Transform_TextNoCrop;
+    public static string PlayingText => Strings.Transform_Playing;
 
     private string ReadyText()
     {
         if (!IsPaused) return PlayingText;
-        if (Target is { IsLocked: true } locked) return $"Track {locked.Track.Name} is locked.";
+        if (Target is { IsLocked: true } locked) return string.Format(Messages.Edit_TrackLocked, locked.Track.Name);
         if (Tool == PreviewTool.Crop && Target is { IsText: true }) return TextHasNoCrop;
         return Tool == PreviewTool.Crop ? CropText : MoveText;
     }
@@ -292,7 +294,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     /// <summary>A press on a locked target: says why nothing happens.</summary>
     public void ReportLocked()
     {
-        if (Target is { IsLocked: true } t) _status.Report($"Track {t.Track.Name} is locked.");
+        if (Target is { IsLocked: true } t) _status.Report(string.Format(Messages.Edit_TrackLocked, t.Track.Name));
     }
 
     // ---- gestures ---------------------------------------------------------------------------------------------------
@@ -395,7 +397,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
             var result = _edit.SetClipProperties(g.Clip.Id, new ClipPropertyChange { Visual = next, Gesture = g.Undo });
             if (!result.Success)
             {
-                _status.Report(result.Message ?? "The clip could not be changed.");
+                _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
                 CancelGesture();
                 return;
             }
@@ -435,9 +437,9 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         if (_gesture is not { } g) return;
         ModeText = g.Kind switch
         {
-            TransformGestureKind.Move => $"Position X {Num(v.PositionX)} px · Y {Num(v.PositionY)} px",
-            TransformGestureKind.Scale => $"Scale {Num(v.Scale * 100)} %",
-            _ => $"Crop L {Num(v.Crop.Left * 100)} % · T {Num(v.Crop.Top * 100)} % · R {Num(v.Crop.Right * 100)} % · B {Num(v.Crop.Bottom * 100)} %"
+            TransformGestureKind.Move => string.Format(Strings.Transform_MoveValue, Num(v.PositionX), Num(v.PositionY)),
+            TransformGestureKind.Scale => string.Format(Strings.Transform_ScaleValue, Num(v.Scale * 100)),
+            _ => string.Format(Strings.Transform_CropValue, Num(v.Crop.Left * 100), Num(v.Crop.Top * 100), Num(v.Crop.Right * 100), Num(v.Crop.Bottom * 100))
         };
     }
 

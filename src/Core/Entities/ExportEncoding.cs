@@ -1,3 +1,4 @@
+using AiVideoEditor.Core.Localization;
 namespace AiVideoEditor.Core.Entities;
 
 /// <summary>The quality of an export (D028 §7, refined in Step 13.3): a named level, stored by name; each level is one
@@ -64,9 +65,9 @@ public sealed record ExportEncoding(ExportQuality Quality, ExportSpeedPreset Pre
     /// <summary>A short user-facing reason when a value is not one of the offered ones, or null.</summary>
     public string? Validate()
     {
-        if (!Enum.IsDefined(Quality)) return "The export quality is unknown.";
-        if (!Enum.IsDefined(Preset)) return "The export speed preset is unknown.";
-        if (!AudioBitratesKbps.Contains(AudioBitrateKbps)) return $"The audio bitrate {AudioBitrateKbps} kbps is not supported.";
+        if (!Enum.IsDefined(Quality)) return Messages.Encoding_Quality;
+        if (!Enum.IsDefined(Preset)) return Messages.Encoding_Preset;
+        if (!AudioBitratesKbps.Contains(AudioBitrateKbps)) return string.Format(Messages.Encoding_Bitrate, AudioBitrateKbps);
         return null;
     }
 }

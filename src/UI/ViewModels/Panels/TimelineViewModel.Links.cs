@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.UI.Localization;
 using CommunityToolkit.Mvvm.Input;
 
 namespace AiVideoEditor.UI.ViewModels.Panels;
@@ -9,7 +10,7 @@ namespace AiVideoEditor.UI.ViewModels.Panels;
 public sealed partial class TimelineViewModel
 {
     /// <summary>The unlink button's label: "Unlink" while the selection holds a linked clip, else "Unlink Audio".</summary>
-    public string UnlinkLabel => SelectedClips().Any(IsLinked) ? "Unlink" : "Unlink Audio";
+    public string UnlinkLabel => SelectedClips().Any(IsLinked) ? Strings.Timeline_Unlink : Strings.Timeline_UnlinkAudio;
 
     private bool CanUnlink()
     {

@@ -25,4 +25,10 @@
     <InternalsVisibleTo Include="Video.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- D039: user-visible texts; English neutral, Russian satellite. MSBuild generates the strongly typed class (no package). -->
+    <EmbeddedResource Update="Localization\Strings.resx" StronglyTypedFileName="$(IntermediateOutputPath)Strings.g.cs" StronglyTypedLanguage="CSharp"
+                      StronglyTypedNamespace="AiVideoEditor.UI.Localization" StronglyTypedClassName="Strings" PublicClass="true" />
+  </ItemGroup>
+
 </Project>

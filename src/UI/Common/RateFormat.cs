@@ -1,5 +1,6 @@
 using System.Globalization;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.UI.Localization;
 
 namespace AiVideoEditor.UI.Common;
 
@@ -11,5 +12,5 @@ public static class RateFormat
         : Math.Round(rate.ToDouble(), 3).ToString("0.###", CultureInfo.InvariantCulture);
 
     /// <summary>"25 FPS".</summary>
-    public static string Fps(FrameRate rate) => $"{Number(rate)} FPS";
+    public static string Fps(FrameRate rate) => string.Format(Strings.Rate_Fps, Number(rate));
 }

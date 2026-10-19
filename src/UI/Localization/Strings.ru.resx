@@ -1,0 +1,1707 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Align_Center" xml:space="preserve">
+    <value>По центру</value>
+  </data>
+  <data name="Align_Left" xml:space="preserve">
+    <value>По левому краю</value>
+  </data>
+  <data name="Align_Right" xml:space="preserve">
+    <value>По правому краю</value>
+  </data>
+  <data name="Analysis_Analyzing" xml:space="preserve">
+    <value>Анализ…</value>
+  </data>
+  <data name="Analysis_Offline" xml:space="preserve">
+    <value>Файл офлайн</value>
+  </data>
+  <data name="Analysis_Pending" xml:space="preserve">
+    <value>Ещё не проанализирован</value>
+  </data>
+  <data name="Analysis_Unavailable" xml:space="preserve">
+    <value>Метаданные недоступны</value>
+  </data>
+  <data name="Analysis_UnexpectedError" xml:space="preserve">
+    <value>При анализе этого файла произошла ошибка.</value>
+  </data>
+  <data name="Audio_Default" xml:space="preserve">
+    <value>AAC — по умолчанию</value>
+  </data>
+  <data name="Availability_BackMany" xml:space="preserve">
+    <value>{0} медиафайл снова доступен.|{0} медиафайла снова доступны.|{0} медиафайлов снова доступны.</value>
+  </data>
+  <data name="Availability_BackOne" xml:space="preserve">
+    <value>Файл «{0}» снова доступен.</value>
+  </data>
+  <data name="Availability_GoneMany" xml:space="preserve">
+    <value>{0} медиафайл больше не найден и показан как офлайн.|{0} медиафайла больше не найдены и показаны как офлайн.|{0} медиафайлов больше не найдены и показаны как офлайн.</value>
+  </data>
+  <data name="Availability_GoneOne" xml:space="preserve">
+    <value>Файл «{0}» больше не найден и показан как офлайн.</value>
+  </data>
+  <data name="Channels_Many" xml:space="preserve">
+    <value>{0} канал|{0} канала|{0} каналов</value>
+  </data>
+  <data name="Channels_Mono" xml:space="preserve">
+    <value>Моно</value>
+  </data>
+  <data name="Channels_Short" xml:space="preserve">
+    <value>{0} кан.</value>
+  </data>
+  <data name="Channels_Stereo" xml:space="preserve">
+    <value>Стерео</value>
+  </data>
+  <data name="Clip_EmptyText" xml:space="preserve">
+    <value>(пустой текст)</value>
+  </data>
+  <data name="Clip_Generic" xml:space="preserve">
+    <value>Клип</value>
+  </data>
+  <data name="Clip_MissingMedia" xml:space="preserve">
+    <value>(нет медиафайла)</value>
+  </data>
+  <data name="ClipType_Audio" xml:space="preserve">
+    <value>Аудиоклип</value>
+  </data>
+  <data name="ClipType_Image" xml:space="preserve">
+    <value>Клип-изображение</value>
+  </data>
+  <data name="ClipType_Text" xml:space="preserve">
+    <value>Текстовый клип</value>
+  </data>
+  <data name="ClipType_Video" xml:space="preserve">
+    <value>Видеоклип</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="Common_Continue" xml:space="preserve">
+    <value>Продолжить</value>
+  </data>
+  <data name="Common_DontSave" xml:space="preserve">
+    <value>Не сохранять</value>
+  </data>
+  <data name="Common_OK" xml:space="preserve">
+    <value>ОК</value>
+  </data>
+  <data name="Common_Remove" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="Common_Replace" xml:space="preserve">
+    <value>Заменить</value>
+  </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="Copy_Copied" xml:space="preserve">
+    <value>{0} клип скопирован|{0} клипа скопировано|{0} клипов скопировано</value>
+  </data>
+  <data name="Copy_Duplicated" xml:space="preserve">
+    <value>{0} клип продублирован|{0} клипа продублировано|{0} клипов продублировано</value>
+  </data>
+  <data name="Copy_NothingCopied" xml:space="preserve">
+    <value>Ничего не скопировано: выбранного клипа больше нет.</value>
+  </data>
+  <data name="Copy_Pasted" xml:space="preserve">
+    <value>{0} клип вставлен|{0} клипа вставлено|{0} клипов вставлено</value>
+  </data>
+  <data name="Crossfade_Added" xml:space="preserve">
+    <value>Перекрёстное затухание добавлено: {0}.</value>
+  </data>
+  <data name="Crossfade_AddedLongest" xml:space="preserve">
+    <value>Перекрёстное затухание добавлено: {0} — самое длинное, что здесь помещается.</value>
+  </data>
+  <data name="Dissolve_Added" xml:space="preserve">
+    <value>Наплыв добавлен: {0}.</value>
+  </data>
+  <data name="Dissolve_AddedLongest" xml:space="preserve">
+    <value>Наплыв добавлен: {0} — самый длинный, что здесь помещается.</value>
+  </data>
+  <data name="Dissolve_Removed" xml:space="preserve">
+    <value>Наплыв удалён</value>
+  </data>
+  <data name="Dissolve_SelectAudio" xml:space="preserve">
+    <value>Выберите два соседних клипа на аудиодорожке (первый заканчивается там, где начинается второй), чтобы добавить перекрёстное затухание.</value>
+  </data>
+  <data name="Dissolve_SelectVideo" xml:space="preserve">
+    <value>Выберите два соседних клипа на видеодорожке (первый заканчивается там, где начинается второй), чтобы добавить наплыв.</value>
+  </data>
+  <data name="Export_AlreadyRunning" xml:space="preserve">
+    <value>Экспорт уже выполняется.</value>
+  </data>
+  <data name="Export_AudioProgress" xml:space="preserve">
+    <value>{0} / {1} аудиосэмплов ({2} %)</value>
+  </data>
+  <data name="Export_Cancelled" xml:space="preserve">
+    <value>Экспорт отменён.</value>
+  </data>
+  <data name="Export_CancelledKept" xml:space="preserve">
+    <value>Экспорт отменён. Существующий файл не изменён.</value>
+  </data>
+  <data name="Export_Cancelling" xml:space="preserve">
+    <value>Отмена…</value>
+  </data>
+  <data name="Export_CanRunButNote" xml:space="preserve">
+    <value>Экспорт возможен, но обратите внимание:</value>
+  </data>
+  <data name="Export_CantExport" xml:space="preserve">
+    <value>Проект нельзя экспортировать:</value>
+  </data>
+  <data name="Export_ContinueQuestion" xml:space="preserve">
+    <value>Продолжить экспорт?</value>
+  </data>
+  <data name="Export_EntireSequence" xml:space="preserve">
+    <value>Весь таймлайн</value>
+  </data>
+  <data name="Export_Errors" xml:space="preserve">
+    <value>Ошибки</value>
+  </data>
+  <data name="Export_Fail" xml:space="preserve">
+    <value>Экспорт не удался. ({0})</value>
+  </data>
+  <data name="Export_FailDecode" xml:space="preserve">
+    <value>Не удалось прочитать исходный файл, экспорт остановлен. Проверьте, что медиафайлы доступны. ({0})</value>
+  </data>
+  <data name="Export_FailedTitle" xml:space="preserve">
+    <value>Ошибка экспорта</value>
+  </data>
+  <data name="Export_FailEncode" xml:space="preserve">
+    <value>Не удалось закодировать видео, экспорт остановлен. ({0})</value>
+  </data>
+  <data name="Export_FailEncoderUnavailable" xml:space="preserve">
+    <value>Не найден ffmpeg, поэтому видео нельзя закодировать. Установите ffmpeg (или укажите "Ffmpeg:FfmpegPath" в appsettings.json) и повторите попытку. ({0})</value>
+  </data>
+  <data name="Export_FailOutput" xml:space="preserve">
+    <value>Не удалось записать выходной файл. Проверьте папку и убедитесь, что файл не открыт в другой программе. ({0})</value>
+  </data>
+  <data name="Export_Finished" xml:space="preserve">
+    <value>Видео экспортировано в
+{0}</value>
+  </data>
+  <data name="Export_FinishedTitle" xml:space="preserve">
+    <value>Экспорт завершён</value>
+  </data>
+  <data name="Export_Mp4Filter" xml:space="preserve">
+    <value>Видео MP4</value>
+  </data>
+  <data name="Export_NoFileWritten" xml:space="preserve">
+    <value>{0} Файл не записан; существующий файл не изменён.</value>
+  </data>
+  <data name="Export_NoOutputFile" xml:space="preserve">
+    <value>Файл для экспорта не выбран.</value>
+  </data>
+  <data name="Export_NoProject" xml:space="preserve">
+    <value>Нет проекта для экспорта.</value>
+  </data>
+  <data name="Export_NotPossibleMany" xml:space="preserve">
+    <value>Экспорт невозможен: {0} проблема.|Экспорт невозможен: {0} проблемы.|Экспорт невозможен: {0} проблем.</value>
+  </data>
+  <data name="Export_NotPossibleOne" xml:space="preserve">
+    <value>Экспорт невозможен: {0}</value>
+  </data>
+  <data name="Export_NotPossibleTitle" xml:space="preserve">
+    <value>Экспорт невозможен</value>
+  </data>
+  <data name="Export_PickerTitle" xml:space="preserve">
+    <value>Экспорт — выберите файл</value>
+  </data>
+  <data name="Export_PreparingEncoder" xml:space="preserve">
+    <value>Подготовка кодировщика…</value>
+  </data>
+  <data name="Export_Range" xml:space="preserve">
+    <value>Диапазон</value>
+  </data>
+  <data name="Export_RangeQuestion" xml:space="preserve">
+    <value>Задан диапазон входа и выхода: с {0} по {1} ({2}).
+
+Экспортировать только диапазон или весь таймлайн?</value>
+  </data>
+  <data name="Export_ReplaceQuestion" xml:space="preserve">
+    <value>Файл «{0}» уже существует. Заменить его результатом экспорта?
+
+Файл будет заменён, только если экспорт завершится успешно.</value>
+  </data>
+  <data name="Export_ReplaceTitle" xml:space="preserve">
+    <value>Заменить файл?</value>
+  </data>
+  <data name="Export_StageAudio" xml:space="preserve">
+    <value>Звук</value>
+  </data>
+  <data name="Export_StageFinalizing" xml:space="preserve">
+    <value>Завершение</value>
+  </data>
+  <data name="Export_StagePreparing" xml:space="preserve">
+    <value>Подготовка</value>
+  </data>
+  <data name="Export_StageVideo" xml:space="preserve">
+    <value>Видео</value>
+  </data>
+  <data name="Export_Starting" xml:space="preserve">
+    <value>Запуск…</value>
+  </data>
+  <data name="Export_Succeeded" xml:space="preserve">
+    <value>Экспортировано в {0}.</value>
+  </data>
+  <data name="Export_Title" xml:space="preserve">
+    <value>Экспорт</value>
+  </data>
+  <data name="Export_Unexpected" xml:space="preserve">
+    <value>Экспорт не удался из-за непредвиденной ошибки ({0}: {1}). Файл не записан; подробности — в журнале.</value>
+  </data>
+  <data name="Export_VideoProgress" xml:space="preserve">
+    <value>{0} / {1} кадров ({2} %)</value>
+  </data>
+  <data name="Export_Warnings" xml:space="preserve">
+    <value>Предупреждения</value>
+  </data>
+  <data name="Export_WarningsTitle" xml:space="preserve">
+    <value>Предупреждения экспорта</value>
+  </data>
+  <data name="Export_WindowTitle" xml:space="preserve">
+    <value>Экспорт</value>
+  </data>
+  <data name="Export_Writing" xml:space="preserve">
+    <value>Запись выходного файла…</value>
+  </data>
+  <data name="FileFilter_AllMedia" xml:space="preserve">
+    <value>Все поддерживаемые медиафайлы</value>
+  </data>
+  <data name="FileFilter_Audio" xml:space="preserve">
+    <value>Аудиофайлы</value>
+  </data>
+  <data name="FileFilter_Image" xml:space="preserve">
+    <value>Изображения</value>
+  </data>
+  <data name="FileFilter_Video" xml:space="preserve">
+    <value>Видеофайлы</value>
+  </data>
+  <data name="Gap_Closed" xml:space="preserve">
+    <value>Промежуток закрыт</value>
+  </data>
+  <data name="Holds_Added" xml:space="preserve">
+    <value>Зацепка добавлена (на клипе: {0}).</value>
+  </data>
+  <data name="Holds_AddFailed" xml:space="preserve">
+    <value>Не удалось добавить зацепку: {0}</value>
+  </data>
+  <data name="Holds_Animate" xml:space="preserve">
+    <value>Анимация</value>
+  </data>
+  <data name="Holds_AnimateTip" xml:space="preserve">
+    <value>Зацепки появляются по одной от начала, остаются на экране, а затем исчезают вместе</value>
+  </data>
+  <data name="Holds_AnimationExportRunning" xml:space="preserve">
+    <value>Анимацию нельзя изменить во время экспорта.</value>
+  </data>
+  <data name="Holds_AnimationNotChanged" xml:space="preserve">
+    <value>Не удалось изменить анимацию.</value>
+  </data>
+  <data name="Holds_AppearFade" xml:space="preserve">
+    <value>Появление</value>
+  </data>
+  <data name="Holds_CancelTip" xml:space="preserve">
+    <value>Прекратить подготовку кадра (Esc)</value>
+  </data>
+  <data name="Holds_CheckingModel" xml:space="preserve">
+    <value>Проверка модели зацепок…</value>
+  </data>
+  <data name="Holds_Colour" xml:space="preserve">
+    <value>Цвет</value>
+  </data>
+  <data name="Holds_Confirm" xml:space="preserve">
+    <value>Подтвердить</value>
+  </data>
+  <data name="Holds_ConfirmTip" xml:space="preserve">
+    <value>Подтвердить зацепку (Enter)</value>
+  </data>
+  <data name="Holds_Cpu" xml:space="preserve">
+    <value>ИИ работает на процессоре — обработка может идти медленнее.</value>
+  </data>
+  <data name="Holds_DecodingFrame" xml:space="preserve">
+    <value>Декодирование кадра…</value>
+  </data>
+  <data name="Holds_DisappearFade" xml:space="preserve">
+    <value>Исчезание</value>
+  </data>
+  <data name="Holds_Done" xml:space="preserve">
+    <value>Готово</value>
+  </data>
+  <data name="Holds_DoneTip" xml:space="preserve">
+    <value>Выйти из разметки зацепок (отмеченные зацепки сохранятся)</value>
+  </data>
+  <data name="Holds_FadeTip" xml:space="preserve">
+    <value>0 — сразу</value>
+  </data>
+  <data name="Holds_Failed" xml:space="preserve">
+    <value>Ошибка разметки зацепок: {0}</value>
+  </data>
+  <data name="Holds_Interval" xml:space="preserve">
+    <value>Интервал</value>
+  </data>
+  <data name="Holds_Keyline" xml:space="preserve">
+    <value>Обводка</value>
+  </data>
+  <data name="Holds_KeylineOffItem" xml:space="preserve">
+    <value>Выкл.</value>
+  </data>
+  <data name="Holds_KeylineOn" xml:space="preserve">
+    <value>вкл.</value>
+  </data>
+  <data name="Holds_KeylineOnItem" xml:space="preserve">
+    <value>Вкл.</value>
+  </data>
+  <data name="Holds_KeylineTip" xml:space="preserve">
+    <value>Тёмный или светлый край вокруг линии делает её заметной на этой стене</value>
+  </data>
+  <data name="Holds_LoadingModel" xml:space="preserve">
+    <value>Загрузка модели зацепок…</value>
+  </data>
+  <data name="Holds_Loupe" xml:space="preserve">
+    <value>Лупа</value>
+  </data>
+  <data name="Holds_LoupeTip" xml:space="preserve">
+    <value>Увеличенный вид кадра под указателем мыши</value>
+  </data>
+  <data name="Holds_MarkedCount" xml:space="preserve">
+    <value>Отмечено: {0}</value>
+  </data>
+  <data name="Holds_MarkHolds" xml:space="preserve">
+    <value>Разметить зацепки</value>
+  </data>
+  <data name="Holds_MarkHoldsTip" xml:space="preserve">
+    <value>Отметить зацепки трассы на кадре под указателем (сначала поставьте паузу на этом клипе)</value>
+  </data>
+  <data name="Holds_MaxPoints" xml:space="preserve">
+    <value>В контуре может быть не больше {0} точек.</value>
+  </data>
+  <data name="Holds_ModeAuto" xml:space="preserve">
+    <value>Авто</value>
+  </data>
+  <data name="Holds_ModeHelp" xml:space="preserve">
+    <value>Щёлкните зацепку, чтобы получить её контур. Щелчок с Shift добавляет точку для уточнения; Tab, Shift+Tab или колесо мыши переключают предложенные контуры; Enter подтверждает, Esc отменяет. Щелчок по отмеченной зацепке выбирает её, Delete удаляет. У выбранной зацепки перетаскивайте точку, чтобы исправить контур; Alt+щелчок по контуру добавляет точку; Delete над точкой (или двойной щелчок по ней) удаляет точку. «Готово», перемотка, воспроизведение или другой клип завершают разметку; отмеченные зацепки сохраняются.</value>
+  </data>
+  <data name="Holds_ModelUnavailable" xml:space="preserve">
+    <value>Модель зацепок недоступна.</value>
+  </data>
+  <data name="Holds_ModeManual" xml:space="preserve">
+    <value>Вручную</value>
+  </data>
+  <data name="Holds_NoHoldThere" xml:space="preserve">
+    <value>Здесь нет зацепки: все найденные контуры — стена или слишком большая область. Щёлкните по самой зацепке.</value>
+  </data>
+  <data name="Holds_NoneMarked" xml:space="preserve">
+    <value>Зацепки ещё не отмечены.</value>
+  </data>
+  <data name="Holds_NotAdded" xml:space="preserve">
+    <value>Не удалось добавить зацепку.</value>
+  </data>
+  <data name="Holds_NotPossible" xml:space="preserve">
+    <value>Разметка зацепок невозможна: {0}</value>
+  </data>
+  <data name="Holds_NotRemoved" xml:space="preserve">
+    <value>Не удалось удалить зацепку.</value>
+  </data>
+  <data name="Holds_OffOutline" xml:space="preserve">
+    <value>Alt+щелчок по выбранному контуру добавляет на нём точку.</value>
+  </data>
+  <data name="Holds_Order" xml:space="preserve">
+    <value>Порядок</value>
+  </data>
+  <data name="Holds_OrderBottomToTop" xml:space="preserve">
+    <value>Снизу вверх</value>
+  </data>
+  <data name="Holds_OrderMarking" xml:space="preserve">
+    <value>В порядке разметки</value>
+  </data>
+  <data name="Holds_OutlineExportRunning" xml:space="preserve">
+    <value>Контур нельзя изменить во время экспорта.</value>
+  </data>
+  <data name="Holds_OutlineNotChanged" xml:space="preserve">
+    <value>Не удалось изменить контур.</value>
+  </data>
+  <data name="Holds_OutlineOf" xml:space="preserve">
+    <value>Контур {0} из {1}</value>
+  </data>
+  <data name="Holds_Palette" xml:space="preserve">
+    <value>Палитра</value>
+  </data>
+  <data name="Holds_PreparingFrame" xml:space="preserve">
+    <value>Подготовка кадра для модели…</value>
+  </data>
+  <data name="Holds_ReadyText" xml:space="preserve">
+    <value>Разметка зацепок — щёлкните зацепку, Enter подтверждает</value>
+  </data>
+  <data name="Holds_RefineRejected" xml:space="preserve">
+    <value>Эта точка не даёт подходящего контура (только стена или слишком большая область) — оставлен прежний контур. Щёлкните с Shift по самой зацепке.</value>
+  </data>
+  <data name="Holds_RunsPastEnd" xml:space="preserve">
+    <value>Анимация выходит за конец клипа и обрезается там.</value>
+  </data>
+  <data name="Holds_SelectedText" xml:space="preserve">
+    <value>Зацепка выбрана — перетащите точку, чтобы исправить контур; Alt+щелчок добавляет точку, Delete удаляет</value>
+  </data>
+  <data name="Holds_SetToPlayhead" xml:space="preserve">
+    <value>По указателю</value>
+  </data>
+  <data name="Holds_SetToPlayheadTip" xml:space="preserve">
+    <value>Начать анимацию с кадра под указателем (сначала поставьте паузу на этом клипе)</value>
+  </data>
+  <data name="Holds_Start" xml:space="preserve">
+    <value>Начало</value>
+  </data>
+  <data name="Holds_StartsAfterEnd" xml:space="preserve">
+    <value>Анимация начинается после конца клипа — зацепки не показываются.</value>
+  </data>
+  <data name="Holds_StartTip" xml:space="preserve">
+    <value>Время в исходном видео (секунды): обрезка, изменение скорости или разрезание оставляют анимацию на том же моменте</value>
+  </data>
+  <data name="Holds_StayAfterLast" xml:space="preserve">
+    <value>Пауза после последней</value>
+  </data>
+  <data name="Holds_SummaryAllGone" xml:space="preserve">
+    <value>Все {0} видны через {1}, исчезают через {2}.</value>
+  </data>
+  <data name="Holds_SummaryAllStays" xml:space="preserve">
+    <value>Все {0} видны через {1} и до конца клипа.</value>
+  </data>
+  <data name="Holds_SummaryOneGone" xml:space="preserve">
+    <value>Зацепка видна через {0}, исчезает через {1}.</value>
+  </data>
+  <data name="Holds_SummaryOneStays" xml:space="preserve">
+    <value>Зацепка видна через {0} и до конца клипа.</value>
+  </data>
+  <data name="Holds_UntilClipEnd" xml:space="preserve">
+    <value>до конца клипа</value>
+  </data>
+  <data name="Holds_UntilClipEndTip" xml:space="preserve">
+    <value>Оставить все контуры до конца клипа, не убирая их</value>
+  </data>
+  <data name="Holds_Width" xml:space="preserve">
+    <value>Толщина</value>
+  </data>
+  <data name="Holds_WidthUnit" xml:space="preserve">
+    <value>пикс.</value>
+  </data>
+  <data name="Holds_WidthUnitTip" xml:space="preserve">
+    <value>Пиксели при высоте кадра 1080 (линия масштабируется вместе с изображением)</value>
+  </data>
+  <data name="Import_DidntFinish" xml:space="preserve">
+    <value>Импорт не завершён.</value>
+  </data>
+  <data name="Import_Duplicates" xml:space="preserve">
+    <value>{0} файл пропущен: он уже импортирован|{0} файла пропущено: они уже импортированы|{0} файлов пропущено: они уже импортированы</value>
+  </data>
+  <data name="Import_Imported" xml:space="preserve">
+    <value>Импортирован {0} медиафайл|Импортировано {0} медиафайла|Импортировано {0} медиафайлов</value>
+  </data>
+  <data name="Import_Importing" xml:space="preserve">
+    <value>Импорт {0} файла…|Импорт {0} файлов…|Импорт {0} файлов…</value>
+  </data>
+  <data name="Import_Missing" xml:space="preserve">
+    <value>{0} файл пропущен: он не найден|{0} файла пропущено: они не найдены|{0} файлов пропущено: они не найдены</value>
+  </data>
+  <data name="Import_NoSupported" xml:space="preserve">
+    <value>Не выбрано ни одного поддерживаемого медиафайла</value>
+  </data>
+  <data name="Import_Nothing" xml:space="preserve">
+    <value>Ничего не импортировано</value>
+  </data>
+  <data name="Import_PickerTitle" xml:space="preserve">
+    <value>Импорт медиа</value>
+  </data>
+  <data name="Import_ProjectChanged" xml:space="preserve">
+    <value>Импорт остановлен: открыт другой проект, поэтому ничего не добавлено.</value>
+  </data>
+  <data name="Import_Unsupported" xml:space="preserve">
+    <value>{0} неподдерживаемый файл пропущен|{0} неподдерживаемых файла пропущено|{0} неподдерживаемых файлов пропущено</value>
+  </data>
+  <data name="InOut_Cleared" xml:space="preserve">
+    <value>Вход и выход сброшены.</value>
+  </data>
+  <data name="InOut_InSet" xml:space="preserve">
+    <value>Вход установлен на {0}.</value>
+  </data>
+  <data name="InOut_OutSet" xml:space="preserve">
+    <value>Выход установлен после {0} (этот кадр включён).</value>
+  </data>
+  <data name="Inspector_Alignment" xml:space="preserve">
+    <value>Выравнивание</value>
+  </data>
+  <data name="Inspector_AudioHeading" xml:space="preserve">
+    <value>ЗВУК</value>
+  </data>
+  <data name="Inspector_Bottom" xml:space="preserve">
+    <value>Снизу</value>
+  </data>
+  <data name="Inspector_ClipHeading" xml:space="preserve">
+    <value>КЛИП</value>
+  </data>
+  <data name="Inspector_ClipNotChanged" xml:space="preserve">
+    <value>Не удалось изменить клип.</value>
+  </data>
+  <data name="Inspector_Color" xml:space="preserve">
+    <value>Цвет</value>
+  </data>
+  <data name="Inspector_CropHeading" xml:space="preserve">
+    <value>КАДРИРОВАНИЕ</value>
+  </data>
+  <data name="Inspector_Duration" xml:space="preserve">
+    <value>Длительность</value>
+  </data>
+  <data name="Inspector_EndTime" xml:space="preserve">
+    <value>Конец</value>
+  </data>
+  <data name="Inspector_FadeIn" xml:space="preserve">
+    <value>Появление</value>
+  </data>
+  <data name="Inspector_FadeInactive" xml:space="preserve">
+    <value>Не применяется: на этом краю наплыв.</value>
+  </data>
+  <data name="Inspector_FadeNotChanged" xml:space="preserve">
+    <value>Не удалось изменить появление или исчезание.</value>
+  </data>
+  <data name="Inspector_FadeOut" xml:space="preserve">
+    <value>Исчезание</value>
+  </data>
+  <data name="Inspector_FadesHeading" xml:space="preserve">
+    <value>ПОЯВЛЕНИЕ И ИСЧЕЗАНИЕ</value>
+  </data>
+  <data name="Inspector_FadeWholeFrames" xml:space="preserve">
+    <value>Длительность появления и исчезания — целое число кадров.</value>
+  </data>
+  <data name="Inspector_FileName" xml:space="preserve">
+    <value>Имя файла</value>
+  </data>
+  <data name="Inspector_FileSize" xml:space="preserve">
+    <value>Размер файла</value>
+  </data>
+  <data name="Inspector_Font" xml:space="preserve">
+    <value>Шрифт</value>
+  </data>
+  <data name="Inspector_Format" xml:space="preserve">
+    <value>Формат</value>
+  </data>
+  <data name="Inspector_Heading" xml:space="preserve">
+    <value>СВОЙСТВА</value>
+  </data>
+  <data name="Inspector_HoldsHeading" xml:space="preserve">
+    <value>ЗАЦЕПКИ</value>
+  </data>
+  <data name="Inspector_Left" xml:space="preserve">
+    <value>Слева</value>
+  </data>
+  <data name="Inspector_MediaHeading" xml:space="preserve">
+    <value>МЕДИА</value>
+  </data>
+  <data name="Inspector_Mute" xml:space="preserve">
+    <value>Без звука</value>
+  </data>
+  <data name="Inspector_NothingSelected" xml:space="preserve">
+    <value>Ничего не выбрано. Выберите файл в панели «Медиа» или клип на таймлайне, чтобы увидеть его свойства.</value>
+  </data>
+  <data name="Inspector_Opacity" xml:space="preserve">
+    <value>Непрозрачность</value>
+  </data>
+  <data name="Inspector_Path" xml:space="preserve">
+    <value>Путь</value>
+  </data>
+  <data name="Inspector_PositionX" xml:space="preserve">
+    <value>Позиция X</value>
+  </data>
+  <data name="Inspector_PositionY" xml:space="preserve">
+    <value>Позиция Y</value>
+  </data>
+  <data name="Inspector_PrimaryOfMany" xml:space="preserve">
+    <value>{0} (1 из {1} выбранных)</value>
+  </data>
+  <data name="Inspector_Right" xml:space="preserve">
+    <value>Справа</value>
+  </data>
+  <data name="Inspector_Rotation" xml:space="preserve">
+    <value>Поворот</value>
+  </data>
+  <data name="Inspector_Scale" xml:space="preserve">
+    <value>Масштаб</value>
+  </data>
+  <data name="Inspector_Size" xml:space="preserve">
+    <value>Размер</value>
+  </data>
+  <data name="Inspector_Source" xml:space="preserve">
+    <value>Источник</value>
+  </data>
+  <data name="Inspector_Speed" xml:space="preserve">
+    <value>Скорость</value>
+  </data>
+  <data name="Inspector_SpeedHeading" xml:space="preserve">
+    <value>СКОРОСТЬ</value>
+  </data>
+  <data name="Inspector_SpeedNotChanged" xml:space="preserve">
+    <value>Не удалось изменить скорость.</value>
+  </data>
+  <data name="Inspector_SpeedStep" xml:space="preserve">
+    <value>Скорость должна быть кратна 0,05× в пределах от {0} до {1}.</value>
+  </data>
+  <data name="Inspector_StartTime" xml:space="preserve">
+    <value>Начало</value>
+  </data>
+  <data name="Inspector_TechHeading" xml:space="preserve">
+    <value>ТЕХНИЧЕСКИЕ ДАННЫЕ</value>
+  </data>
+  <data name="Inspector_TextHeading" xml:space="preserve">
+    <value>ТЕКСТ</value>
+  </data>
+  <data name="Inspector_Timecode" xml:space="preserve">
+    <value>Таймкод (без пропуска кадров) при {0}</value>
+  </data>
+  <data name="Inspector_Top" xml:space="preserve">
+    <value>Сверху</value>
+  </data>
+  <data name="Inspector_TransformHeading" xml:space="preserve">
+    <value>ТРАНСФОРМАЦИЯ</value>
+  </data>
+  <data name="Inspector_Type" xml:space="preserve">
+    <value>Тип</value>
+  </data>
+  <data name="Inspector_Volume" xml:space="preserve">
+    <value>Громкость</value>
+  </data>
+  <data name="Marker_Added" xml:space="preserve">
+    <value>Маркер добавлен в {0}</value>
+  </data>
+  <data name="Marker_NoneAfter" xml:space="preserve">
+    <value>После указателя нет маркеров.</value>
+  </data>
+  <data name="Marker_NoneBefore" xml:space="preserve">
+    <value>Перед указателем нет маркеров.</value>
+  </data>
+  <data name="Marker_Removed" xml:space="preserve">
+    <value>Маркер удалён</value>
+  </data>
+  <data name="Media_AddToTimeline" xml:space="preserve">
+    <value>На таймлайн</value>
+  </data>
+  <data name="Media_AddToTimelineTip" xml:space="preserve">
+    <value>Добавить выбранный файл в конец V1 / A1 (или перетащите его на дорожку)</value>
+  </data>
+  <data name="Media_Empty" xml:space="preserve">
+    <value>Медиафайлы не импортированы</value>
+  </data>
+  <data name="Media_EmptyHint" xml:space="preserve">
+    <value>Импортируйте видео, аудио или изображения, чтобы начать монтаж.</value>
+  </data>
+  <data name="Media_FindMissing" xml:space="preserve">
+    <value>Найти файлы…</value>
+  </data>
+  <data name="Media_FindMissingTip" xml:space="preserve">
+    <value>Найти отсутствующие файлы в одной папке</value>
+  </data>
+  <data name="Media_Heading" xml:space="preserve">
+    <value>МЕДИА</value>
+  </data>
+  <data name="Media_Import" xml:space="preserve">
+    <value>+ Импорт</value>
+  </data>
+  <data name="Media_MissingSuffix" xml:space="preserve">
+    <value>{0} медиафайл не найден и показан как офлайн — используйте «Перепривязать…» или «Найти файлы…» в панели «Медиа».|{0} медиафайла не найдены и показаны как офлайн — используйте «Перепривязать…» или «Найти файлы…» в панели «Медиа».|{0} медиафайлов не найдены и показаны как офлайн — используйте «Перепривязать…» или «Найти файлы…» в панели «Медиа».</value>
+  </data>
+  <data name="Media_NotRemoved" xml:space="preserve">
+    <value>Не удалось удалить медиафайл.</value>
+  </data>
+  <data name="Media_Offline" xml:space="preserve">
+    <value>ОФЛАЙН</value>
+  </data>
+  <data name="Media_Relink" xml:space="preserve">
+    <value>Перепривязать…</value>
+  </data>
+  <data name="Media_RelinkTip" xml:space="preserve">
+    <value>Указать новое расположение файла выбранного офлайн-медиа</value>
+  </data>
+  <data name="Media_Removed" xml:space="preserve">
+    <value>Файл {0} удалён из проекта.</value>
+  </data>
+  <data name="Media_RemovedWithClipOne" xml:space="preserve">
+    <value>Файл {0} и его клип удалены из проекта.</value>
+  </data>
+  <data name="Media_RemovedWithClipsMany" xml:space="preserve">
+    <value>Файл {1} и его {0} клип удалены из проекта.|Файл {1} и его {0} клипа удалены из проекта.|Файл {1} и его {0} клипов удалены из проекта.</value>
+  </data>
+  <data name="Media_RemoveQuestionMany" xml:space="preserve">
+    <value>Файл {1} используется {0} клипом на таймлайне. При удалении файла из проекта будут удалены и эти клипы, и наплывы на них.
+
+Файл на диске не удаляется. Это можно отменить командой «Отменить».|Файл {1} используется {0} клипами на таймлайне. При удалении файла из проекта будут удалены и эти клипы, и наплывы на них.
+
+Файл на диске не удаляется. Это можно отменить командой «Отменить».|Файл {1} используется {0} клипами на таймлайне. При удалении файла из проекта будут удалены и эти клипы, и наплывы на них.
+
+Файл на диске не удаляется. Это можно отменить командой «Отменить».</value>
+  </data>
+  <data name="Media_RemoveQuestionOne" xml:space="preserve">
+    <value>Файл {0} используется 1 клипом на таймлайне. При удалении файла из проекта будет удалён и этот клип, и наплывы на нём.
+
+Файл на диске не удаляется. Это можно отменить командой «Отменить».</value>
+  </data>
+  <data name="Media_RemoveTip" xml:space="preserve">
+    <value>Удалить из проекта (если файл используют клипы, сначала будет вопрос; файл на диске останется)</value>
+  </data>
+  <data name="Media_RemoveTitle" xml:space="preserve">
+    <value>Удаление медиафайла</value>
+  </data>
+  <data name="MediaKind_Audio" xml:space="preserve">
+    <value>Аудио</value>
+  </data>
+  <data name="MediaKind_AudioBadge" xml:space="preserve">
+    <value>АУДИО</value>
+  </data>
+  <data name="MediaKind_Image" xml:space="preserve">
+    <value>Изображение</value>
+  </data>
+  <data name="MediaKind_ImageBadge" xml:space="preserve">
+    <value>ИЗОБРАЖЕНИЕ</value>
+  </data>
+  <data name="MediaKind_Unknown" xml:space="preserve">
+    <value>Неизвестно</value>
+  </data>
+  <data name="MediaKind_Video" xml:space="preserve">
+    <value>Видео</value>
+  </data>
+  <data name="MediaKind_VideoBadge" xml:space="preserve">
+    <value>ВИДЕО</value>
+  </data>
+  <data name="Orientation_Rotated" xml:space="preserve">
+    <value>Повёрнуто на {0}°</value>
+  </data>
+  <data name="Picker_OpenFile" xml:space="preserve">
+    <value>Открыть файл</value>
+  </data>
+  <data name="Picker_SaveFile" xml:space="preserve">
+    <value>Сохранить файл</value>
+  </data>
+  <data name="Picker_SelectFolder" xml:space="preserve">
+    <value>Выбрать папку</value>
+  </data>
+  <data name="Placeholder_DecodeError" xml:space="preserve">
+    <value>Не удаётся декодировать файл</value>
+  </data>
+  <data name="Placeholder_Offline" xml:space="preserve">
+    <value>Файл офлайн</value>
+  </data>
+  <data name="Placeholder_Unsupported" xml:space="preserve">
+    <value>Неподдерживаемый клип</value>
+  </data>
+  <data name="Playback_NoFfmpeg" xml:space="preserve">
+    <value>Воспроизведение недоступно: не найден FFmpeg. Установите FFmpeg или укажите путь к нему.</value>
+  </data>
+  <data name="Playback_NoSound" xml:space="preserve">
+    <value>Воспроизведение без звука: нет доступного аудиовыхода.</value>
+  </data>
+  <data name="Plural_Frames" xml:space="preserve">
+    <value>{0} кадр|{0} кадра|{0} кадров</value>
+  </data>
+  <data name="Preview_Buffering" xml:space="preserve">
+    <value>Буферизация…</value>
+  </data>
+  <data name="Preview_Crop" xml:space="preserve">
+    <value>Кадрировать</value>
+  </data>
+  <data name="Preview_CropTip" xml:space="preserve">
+    <value>Тяните за маркеры рамки выбранного клипа, чтобы кадрировать его; изображение остаётся на месте (Esc отменяет перетаскивание)</value>
+  </data>
+  <data name="Preview_Move" xml:space="preserve">
+    <value>Переместить</value>
+  </data>
+  <data name="Preview_MoveTip" xml:space="preserve">
+    <value>Перетаскивайте выбранный клип в кадре; тяните за угол рамки, чтобы изменить масштаб (Esc отменяет перетаскивание)</value>
+  </data>
+  <data name="Preview_SourceMode" xml:space="preserve">
+    <value>Источник</value>
+  </data>
+  <data name="Preview_SourceModeTip" xml:space="preserve">
+    <value>Показать файл, открытый в источнике (дважды щёлкните видео или аудио в панели «Медиа»)</value>
+  </data>
+  <data name="Preview_TimelineMode" xml:space="preserve">
+    <value>Таймлайн</value>
+  </data>
+  <data name="Preview_TimelineModeTip" xml:space="preserve">
+    <value>Показать таймлайн в позиции указателя воспроизведения</value>
+  </data>
+  <data name="Project_ChangesWhileSaving" xml:space="preserve">
+    <value>{0} Изменения, сделанные во время сохранения, ещё не сохранены.</value>
+  </data>
+  <data name="Project_Created" xml:space="preserve">
+    <value>Создан новый проект.</value>
+  </data>
+  <data name="Project_Opened" xml:space="preserve">
+    <value>Открыт проект «{0}».</value>
+  </data>
+  <data name="Project_OpenFailed" xml:space="preserve">
+    <value>Не удалось открыть проект. {0}</value>
+  </data>
+  <data name="Project_OpenPickerTitle" xml:space="preserve">
+    <value>Открыть проект — выберите папку проекта</value>
+  </data>
+  <data name="Project_ReplaceQuestion" xml:space="preserve">
+    <value>В папке «{0}» уже есть проект. Заменить его проектом «{1}»?</value>
+  </data>
+  <data name="Project_ReplaceTitle" xml:space="preserve">
+    <value>Заменить проект?</value>
+  </data>
+  <data name="Project_SaveAsPickerTitle" xml:space="preserve">
+    <value>Сохранить проект как — выберите или создайте папку для проекта</value>
+  </data>
+  <data name="Project_Saved" xml:space="preserve">
+    <value>Проект «{0}» сохранён.</value>
+  </data>
+  <data name="Project_SavedTo" xml:space="preserve">
+    <value>Проект «{0}» сохранён в {1}.</value>
+  </data>
+  <data name="Project_SaveFailed" xml:space="preserve">
+    <value>Не удалось сохранить «{0}». {1}</value>
+  </data>
+  <data name="Quality_Compact" xml:space="preserve">
+    <value>Компактное</value>
+  </data>
+  <data name="Quality_CompactDetail" xml:space="preserve">
+    <value>CRF 28 — самый маленький файл</value>
+  </data>
+  <data name="Quality_High" xml:space="preserve">
+    <value>Высокое</value>
+  </data>
+  <data name="Quality_HighDetail" xml:space="preserve">
+    <value>CRF 18 — по умолчанию</value>
+  </data>
+  <data name="Quality_Maximum" xml:space="preserve">
+    <value>Максимальное</value>
+  </data>
+  <data name="Quality_MaximumDetail" xml:space="preserve">
+    <value>CRF 14 — самый большой файл</value>
+  </data>
+  <data name="Quality_Standard" xml:space="preserve">
+    <value>Стандартное</value>
+  </data>
+  <data name="Rate_Current" xml:space="preserve">
+    <value>{0} (текущая)</value>
+  </data>
+  <data name="Rate_Fps" xml:space="preserve">
+    <value>{0} к/с</value>
+  </data>
+  <data name="Rate_FpsExact" xml:space="preserve">
+    <value>{0} к/с ({1})</value>
+  </data>
+  <data name="Rate_FpsProvisional" xml:space="preserve">
+    <value>{0} к/с (предварительно)</value>
+  </data>
+  <data name="Rate_Provisional" xml:space="preserve">
+    <value>{0} (предварительно)</value>
+  </data>
+  <data name="Recent_Checking" xml:space="preserve">
+    <value>Проверка…</value>
+  </data>
+  <data name="Recent_CheckingTip" xml:space="preserve">
+    <value>{0}
+Проверка, на месте ли проект…</value>
+  </data>
+  <data name="Recent_Empty" xml:space="preserve">
+    <value>Недавних проектов пока нет. Здесь появятся проекты, которые вы откроете или сохраните.</value>
+  </data>
+  <data name="Recent_Heading" xml:space="preserve">
+    <value>НЕДАВНИЕ ПРОЕКТЫ</value>
+  </data>
+  <data name="Recent_LastUsedTip" xml:space="preserve">
+    <value>{0}
+Последнее открытие: {1}</value>
+  </data>
+  <data name="Recent_OpenFailed" xml:space="preserve">
+    <value>Не удалось открыть проект. {0}</value>
+  </data>
+  <data name="Recent_RemoveFailed" xml:space="preserve">
+    <value>Не удалось убрать «{0}» из недавних проектов.</value>
+  </data>
+  <data name="Recent_RemoveTip" xml:space="preserve">
+    <value>Убрать из списка (сам проект не изменится)</value>
+  </data>
+  <data name="Recent_Unavailable" xml:space="preserve">
+    <value>Недоступен</value>
+  </data>
+  <data name="Recent_UnavailableTip" xml:space="preserve">
+    <value>{0}
+Проект сейчас там не найден. Уберите его из списка кнопкой ✕.</value>
+  </data>
+  <data name="Recovery_Discard" xml:space="preserve">
+    <value>Отбросить</value>
+  </data>
+  <data name="Recovery_Discarded" xml:space="preserve">
+    <value>Автосохранённые изменения проекта «{0}» отброшены.</value>
+  </data>
+  <data name="Recovery_Failed" xml:space="preserve">
+    <value>Не удалось восстановить «{0}». {1}</value>
+  </data>
+  <data name="Recovery_Folder" xml:space="preserve">
+    <value>Папка проекта: {0}</value>
+  </data>
+  <data name="Recovery_Kept" xml:space="preserve">
+    <value>Автосохранённые изменения проекта «{0}» оставлены; вопрос будет задан при следующем запуске.</value>
+  </data>
+  <data name="Recovery_NotNow" xml:space="preserve">
+    <value>Не сейчас</value>
+  </data>
+  <data name="Recovery_NotSavedYet" xml:space="preserve">
+    <value>Проект ещё не был сохранён.</value>
+  </data>
+  <data name="Recovery_Question" xml:space="preserve">
+    <value>AI Video Editor был закрыт некорректно. Несохранённые изменения проекта «{0}» были автоматически сохранены {1}.
+{2}
+
+Восстановить их сейчас? Отброшенные изменения вернуть нельзя.</value>
+  </data>
+  <data name="Recovery_Recover" xml:space="preserve">
+    <value>Восстановить</value>
+  </data>
+  <data name="Recovery_Recovered" xml:space="preserve">
+    <value>Несохранённые изменения проекта «{0}» восстановлены — сохраните проект, чтобы не потерять их.</value>
+  </data>
+  <data name="Recovery_SetAside" xml:space="preserve">
+    <value>{0} файл восстановления не удалось использовать, он отложен.|{0} файла восстановления не удалось использовать, они отложены.|{0} файлов восстановления не удалось использовать, они отложены.</value>
+  </data>
+  <data name="Recovery_Title" xml:space="preserve">
+    <value>Восстановить несохранённую работу</value>
+  </data>
+  <data name="Relink_Anyway" xml:space="preserve">
+    <value>Всё равно перепривязать</value>
+  </data>
+  <data name="Relink_Cancelled" xml:space="preserve">
+    <value>Перепривязка отменена.</value>
+  </data>
+  <data name="Relink_CantTitle" xml:space="preserve">
+    <value>Перепривязка невозможна</value>
+  </data>
+  <data name="Relink_ClipsStay" xml:space="preserve">
+    <value>Клипы останутся без изменений.</value>
+  </data>
+  <data name="Relink_DifferencesTitle" xml:space="preserve">
+    <value>Перепривязать, несмотря на различия?</value>
+  </data>
+  <data name="Relink_Differs" xml:space="preserve">
+    <value>«{0}» отличается от прежнего «{1}»:</value>
+  </data>
+  <data name="Relink_ExportRunning" xml:space="preserve">
+    <value>Идёт экспорт — ничего не перепривязано.</value>
+  </data>
+  <data name="Relink_FindOthers" xml:space="preserve">
+    <value>Ещё {0} медиафайл офлайн. Поискать его в «{1}»?|Ещё {0} медиафайла офлайн. Поискать их в «{1}»?|Ещё {0} медиафайлов офлайн. Поискать их в «{1}»?</value>
+  </data>
+  <data name="Relink_FindOthersTitle" xml:space="preserve">
+    <value>Найти другие отсутствующие файлы?</value>
+  </data>
+  <data name="Relink_FindTitle" xml:space="preserve">
+    <value>Поиск отсутствующих файлов</value>
+  </data>
+  <data name="Relink_FolderPickerTitle" xml:space="preserve">
+    <value>Поиск отсутствующих файлов — выберите папку для поиска</value>
+  </data>
+  <data name="Relink_FoundUnusable" xml:space="preserve">
+    <value>В папке найдены файлы с подходящими именами, но ни один из них нельзя использовать.</value>
+  </data>
+  <data name="Relink_NoneOffline" xml:space="preserve">
+    <value>Офлайн-медиафайлов нет.</value>
+  </data>
+  <data name="Relink_NotAppliedTitle" xml:space="preserve">
+    <value>Перепривязка не выполнена</value>
+  </data>
+  <data name="Relink_NothingFound" xml:space="preserve">
+    <value>В папке не найдено ни одного офлайн-медиафайла.</value>
+  </data>
+  <data name="Relink_NothingRelinked" xml:space="preserve">
+    <value>Ничего не перепривязано.</value>
+  </data>
+  <data name="Relink_NotNow" xml:space="preserve">
+    <value>Не сейчас</value>
+  </data>
+  <data name="Relink_NotOffline" xml:space="preserve">
+    <value>Файл «{0}» не офлайн — перепривязывать нечего.</value>
+  </data>
+  <data name="Relink_NotRelinked" xml:space="preserve">
+    <value>Файл «{0}» не перепривязан.</value>
+  </data>
+  <data name="Relink_PartialTitle" xml:space="preserve">
+    <value>Перепривязано {0} из {1}</value>
+  </data>
+  <data name="Relink_PickerTitle" xml:space="preserve">
+    <value>Перепривязать «{0}» — выберите файл</value>
+  </data>
+  <data name="Relink_Refused" xml:space="preserve">
+    <value>Эти файлы не перепривязаны и остаются офлайн:</value>
+  </data>
+  <data name="Relink_Relinked" xml:space="preserve">
+    <value>Перепривязан {0} медиафайл.|Перепривязано {0} медиафайла.|Перепривязано {0} медиафайлов.</value>
+  </data>
+  <data name="Relink_RelinkFiles" xml:space="preserve">
+    <value>Перепривязать {0} файл|Перепривязать {0} файла|Перепривязать {0} файлов</value>
+  </data>
+  <data name="Relink_Removed" xml:space="preserve">
+    <value>(удалён)</value>
+  </data>
+  <data name="Relink_Search" xml:space="preserve">
+    <value>Искать</value>
+  </data>
+  <data name="Relink_Unchecked" xml:space="preserve">
+    <value>Техническая совместимость «{0}» с «{1}» не проверена:</value>
+  </data>
+  <data name="Relink_UncheckedTitle" xml:space="preserve">
+    <value>Перепривязать без проверки совместимости?</value>
+  </data>
+  <data name="Relink_Unexpected" xml:space="preserve">
+    <value>Перепривязка неожиданно не удалась; больше ничего не изменено. Подробности — в журнале.</value>
+  </data>
+  <data name="RippleDelete_Many" xml:space="preserve">
+    <value>{0} клип удалён со сдвигом|{0} клипа удалено со сдвигом|{0} клипов удалено со сдвигом</value>
+  </data>
+  <data name="RippleDelete_One" xml:space="preserve">
+    <value>Клип удалён со сдвигом</value>
+  </data>
+  <data name="Selection_Count" xml:space="preserve">
+    <value>Выбран {0} клип|Выбрано {0} клипа|Выбрано {0} клипов</value>
+  </data>
+  <data name="Selection_None" xml:space="preserve">
+    <value>Клипы не выбраны.</value>
+  </data>
+  <data name="Selection_NothingToSelect" xml:space="preserve">
+    <value>Нет клипов на разблокированных дорожках, которые можно выбрать.</value>
+  </data>
+  <data name="Settings_Apply" xml:space="preserve">
+    <value>Применить</value>
+  </data>
+  <data name="Settings_AudioBitrate" xml:space="preserve">
+    <value>Битрейт звука</value>
+  </data>
+  <data name="Settings_Current" xml:space="preserve">
+    <value>Сейчас: {0}</value>
+  </data>
+  <data name="Settings_Custom" xml:space="preserve">
+    <value>Свой размер</value>
+  </data>
+  <data name="Settings_EncodingSpeed" xml:space="preserve">
+    <value>Скорость кодирования</value>
+  </data>
+  <data name="Settings_EnterSize" xml:space="preserve">
+    <value>Введите ширину и высоту кадра.</value>
+  </data>
+  <data name="Settings_Export" xml:space="preserve">
+    <value>ЭКСПОРТ</value>
+  </data>
+  <data name="Settings_FrameRate" xml:space="preserve">
+    <value>ЧАСТОТА КАДРОВ</value>
+  </data>
+  <data name="Settings_FrameSize" xml:space="preserve">
+    <value>РАЗМЕР КАДРА</value>
+  </data>
+  <data name="Settings_FrameSizeSet" xml:space="preserve">
+    <value>Размер кадра: {0} × {1}.</value>
+  </data>
+  <data name="Settings_Height" xml:space="preserve">
+    <value>Высота</value>
+  </data>
+  <data name="Settings_Landscape" xml:space="preserve">
+    <value>Альбомная</value>
+  </data>
+  <data name="Settings_Locked" xml:space="preserve">
+    <value>Параметры проекта нельзя изменить во время экспорта видео.</value>
+  </data>
+  <data name="Settings_NotChanged" xml:space="preserve">
+    <value>Не удалось изменить параметры проекта.</value>
+  </data>
+  <data name="Settings_Portrait" xml:space="preserve">
+    <value>Портретная</value>
+  </data>
+  <data name="Settings_PositionsScaled" xml:space="preserve">
+    <value>Позиции и размеры текста будут масштабированы на {0} %.</value>
+  </data>
+  <data name="Settings_PositionsStay" xml:space="preserve">
+    <value>Позиции и размеры текста не изменятся.</value>
+  </data>
+  <data name="Settings_Quality" xml:space="preserve">
+    <value>Качество</value>
+  </data>
+  <data name="Settings_RateChange" xml:space="preserve">
+    <value>Клипы сдвинутся к ближайшим кадрам при {0}; появление, исчезание, наплывы и маркеры сохранят своё время.</value>
+  </data>
+  <data name="Settings_RateKept" xml:space="preserve">
+    <value>{0} будет сохранена: видео, добавленное позже, её не изменит.</value>
+  </data>
+  <data name="Settings_Square" xml:space="preserve">
+    <value>Квадрат</value>
+  </data>
+  <data name="Settings_Swap" xml:space="preserve">
+    <value>⇄ Поменять</value>
+  </data>
+  <data name="Settings_SwapTip" xml:space="preserve">
+    <value>Поменять ширину и высоту местами (альбомная ↔ портретная)</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Параметры проекта</value>
+  </data>
+  <data name="Settings_WholeNumbers" xml:space="preserve">
+    <value>Ширина и высота кадра должны быть целыми числами.</value>
+  </data>
+  <data name="Settings_Width" xml:space="preserve">
+    <value>Ширина</value>
+  </data>
+  <data name="Slip_Cannot" xml:space="preserve">
+    <value>Сдвиг невозможен</value>
+  </data>
+  <data name="Slip_Limit" xml:space="preserve">
+    <value>(предел)</value>
+  </data>
+  <data name="Slip_OnlyMedia" xml:space="preserve">
+    <value>Сдвигать содержимое можно только у видео- и аудиоклипов.</value>
+  </data>
+  <data name="Slip_Range" xml:space="preserve">
+    <value>Вход {0}  Выход {1}</value>
+  </data>
+  <data name="Source_ClearRangeTip" xml:space="preserve">
+    <value>Сбросить точки входа и выхода источника</value>
+  </data>
+  <data name="Source_In" xml:space="preserve">
+    <value>Вход</value>
+  </data>
+  <data name="Source_Insert" xml:space="preserve">
+    <value>Вставить</value>
+  </data>
+  <data name="Source_Inserted" xml:space="preserve">
+    <value>Вставлен {0}</value>
+  </data>
+  <data name="Source_InsertedSound" xml:space="preserve">
+    <value>Вставлен звук {0}</value>
+  </data>
+  <data name="Source_InsertTip" xml:space="preserve">
+    <value>Вставить диапазон источника в позицию указателя на целевую дорожку (,)</value>
+  </data>
+  <data name="Source_InSet" xml:space="preserve">
+    <value>Вход источника установлен на {0}.</value>
+  </data>
+  <data name="Source_InTip" xml:space="preserve">
+    <value>Точка входа источника (I)</value>
+  </data>
+  <data name="Source_NotInProject" xml:space="preserve">
+    <value>Этого файла нет в проекте.</value>
+  </data>
+  <data name="Source_Out" xml:space="preserve">
+    <value>Выход</value>
+  </data>
+  <data name="Source_OutSet" xml:space="preserve">
+    <value>Выход источника установлен на {0}.</value>
+  </data>
+  <data name="Source_OutTip" xml:space="preserve">
+    <value>Точка выхода источника (O)</value>
+  </data>
+  <data name="Source_Overwrite" xml:space="preserve">
+    <value>Заменить</value>
+  </data>
+  <data name="Source_OverwriteTip" xml:space="preserve">
+    <value>Заменить содержимое целевой дорожки диапазоном источника от позиции указателя (.)</value>
+  </data>
+  <data name="Source_Overwrote" xml:space="preserve">
+    <value>Заменено на {0}</value>
+  </data>
+  <data name="Source_OverwroteSound" xml:space="preserve">
+    <value>Заменено на звук {0}</value>
+  </data>
+  <data name="Source_RangeCleared" xml:space="preserve">
+    <value>Вход и выход источника сброшены.</value>
+  </data>
+  <data name="Source_RangeDisplay" xml:space="preserve">
+    <value>Вход: {0} · Выход: {1}</value>
+  </data>
+  <data name="Source_RangeEnd" xml:space="preserve">
+    <value>конец</value>
+  </data>
+  <data name="Source_RangeStart" xml:space="preserve">
+    <value>начало</value>
+  </data>
+  <data name="Source_SoundOnly" xml:space="preserve">
+    <value>Только звук</value>
+  </data>
+  <data name="Source_SoundOnlyTip" xml:space="preserve">
+    <value>Вставлять или заменять только звук этого видео — аудиоклипом на целевой аудиодорожке</value>
+  </data>
+  <data name="Source_ViewerUnavailable" xml:space="preserve">
+    <value>Просмотр источника недоступен.</value>
+  </data>
+  <data name="Speed_Fast" xml:space="preserve">
+    <value>Быстро</value>
+  </data>
+  <data name="Speed_FastDetail" xml:space="preserve">
+    <value>fast — быстрее, файл больше</value>
+  </data>
+  <data name="Speed_Medium" xml:space="preserve">
+    <value>Средне</value>
+  </data>
+  <data name="Speed_MediumDetail" xml:space="preserve">
+    <value>medium — по умолчанию</value>
+  </data>
+  <data name="Speed_Slow" xml:space="preserve">
+    <value>Медленно</value>
+  </data>
+  <data name="Speed_SlowDetail" xml:space="preserve">
+    <value>slow — медленнее, файл меньше</value>
+  </data>
+  <data name="Status_Ready" xml:space="preserve">
+    <value>Готово.</value>
+  </data>
+  <data name="Tech_AudioCodec" xml:space="preserve">
+    <value>Аудиокодек</value>
+  </data>
+  <data name="Tech_Bitrate" xml:space="preserve">
+    <value>Битрейт</value>
+  </data>
+  <data name="Tech_Channels" xml:space="preserve">
+    <value>Каналы</value>
+  </data>
+  <data name="Tech_Color" xml:space="preserve">
+    <value>Цвет</value>
+  </data>
+  <data name="Tech_Duration" xml:space="preserve">
+    <value>Длительность</value>
+  </data>
+  <data name="Tech_FrameRate" xml:space="preserve">
+    <value>Частота кадров</value>
+  </data>
+  <data name="Tech_Height" xml:space="preserve">
+    <value>Высота</value>
+  </data>
+  <data name="Tech_Orientation" xml:space="preserve">
+    <value>Ориентация</value>
+  </data>
+  <data name="Tech_Resolution" xml:space="preserve">
+    <value>Разрешение</value>
+  </data>
+  <data name="Tech_SampleRate" xml:space="preserve">
+    <value>Частота дискретизации</value>
+  </data>
+  <data name="Tech_VideoCodec" xml:space="preserve">
+    <value>Видеокодек</value>
+  </data>
+  <data name="Tech_Width" xml:space="preserve">
+    <value>Ширина</value>
+  </data>
+  <data name="Text_Added" xml:space="preserve">
+    <value>Текст добавлен</value>
+  </data>
+  <data name="Timeline_AddAudioTrack" xml:space="preserve">
+    <value>+ Аудиодорожка</value>
+  </data>
+  <data name="Timeline_AddAudioTrackTip" xml:space="preserve">
+    <value>Добавить аудиодорожку</value>
+  </data>
+  <data name="Timeline_Added" xml:space="preserve">
+    <value>Добавлено на таймлайн</value>
+  </data>
+  <data name="Timeline_AddMarkerTip" xml:space="preserve">
+    <value>Добавить маркер в позиции указателя</value>
+  </data>
+  <data name="Timeline_AddText" xml:space="preserve">
+    <value>+ Текст</value>
+  </data>
+  <data name="Timeline_AddTextTip" xml:space="preserve">
+    <value>Добавить текстовый клип в позицию указателя на верхнюю видеодорожку</value>
+  </data>
+  <data name="Timeline_AddVideoTrack" xml:space="preserve">
+    <value>+ Видеодорожка</value>
+  </data>
+  <data name="Timeline_AddVideoTrackTip" xml:space="preserve">
+    <value>Добавить видеодорожку</value>
+  </data>
+  <data name="Timeline_ClearInOutTip" xml:space="preserve">
+    <value>Сбросить вход / выход</value>
+  </data>
+  <data name="Timeline_CloseGap" xml:space="preserve">
+    <value>Закрыть промежуток</value>
+  </data>
+  <data name="Timeline_CloseGapTip" xml:space="preserve">
+    <value>Убрать пустое место перед выбранным клипом: он и следующие клипы дорожки сдвинутся влево</value>
+  </data>
+  <data name="Timeline_Delete" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="Timeline_DeleteTip" xml:space="preserve">
+    <value>Удалить выбранные клипы или наплыв (Delete)</value>
+  </data>
+  <data name="Timeline_Dissolve" xml:space="preserve">
+    <value>Наплыв</value>
+  </data>
+  <data name="Timeline_DissolveTip" xml:space="preserve">
+    <value>Добавить наплыв между двумя выбранными соседними клипами (на аудиодорожке — перекрёстное затухание)</value>
+  </data>
+  <data name="Timeline_Duplicate" xml:space="preserve">
+    <value>Дублировать</value>
+  </data>
+  <data name="Timeline_DuplicateTip" xml:space="preserve">
+    <value>Скопировать выбранные клипы сразу за ними (Ctrl+D)</value>
+  </data>
+  <data name="Timeline_EditNotPossible" xml:space="preserve">
+    <value>Это изменение таймлайна невозможно.</value>
+  </data>
+  <data name="Timeline_Empty" xml:space="preserve">
+    <value>Таймлайн пуст</value>
+  </data>
+  <data name="Timeline_EmptyHint" xml:space="preserve">
+    <value>Перетащите сюда файлы из панели «Медиа» или выберите файл и нажмите «На таймлайн». Кнопка «+ Текст» добавляет текстовый клип.</value>
+  </data>
+  <data name="Timeline_Fit" xml:space="preserve">
+    <value>Вместить</value>
+  </data>
+  <data name="Timeline_FitTip" xml:space="preserve">
+    <value>Показать весь таймлайн (\)</value>
+  </data>
+  <data name="Timeline_Heading" xml:space="preserve">
+    <value>ТАЙМЛАЙН</value>
+  </data>
+  <data name="Timeline_Link" xml:space="preserve">
+    <value>Связать</value>
+  </data>
+  <data name="Timeline_LinkTip" xml:space="preserve">
+    <value>Связать выбранные видеоклип и аудиоклип: они будут редактироваться вместе</value>
+  </data>
+  <data name="Timeline_NextMarkerTip" xml:space="preserve">
+    <value>Перейти к следующему маркеру</value>
+  </data>
+  <data name="Timeline_Paste" xml:space="preserve">
+    <value>Вставить</value>
+  </data>
+  <data name="Timeline_PasteTip" xml:space="preserve">
+    <value>Вставить скопированные клипы в позицию указателя на их дорожки (Ctrl+V)</value>
+  </data>
+  <data name="Timeline_PrevMarkerTip" xml:space="preserve">
+    <value>Перейти к предыдущему маркеру</value>
+  </data>
+  <data name="Timeline_RemoveMarkerTip" xml:space="preserve">
+    <value>Удалить маркер в позиции указателя</value>
+  </data>
+  <data name="Timeline_RippleDelete" xml:space="preserve">
+    <value>Удалить со сдвигом</value>
+  </data>
+  <data name="Timeline_RippleDeleteTip" xml:space="preserve">
+    <value>Удалить выбранные клипы и сдвинуть следующие клипы их дорожек влево, закрыв промежуток</value>
+  </data>
+  <data name="Timeline_Snap" xml:space="preserve">
+    <value>Привязка</value>
+  </data>
+  <data name="Timeline_SnapTip" xml:space="preserve">
+    <value>Привязка (N)</value>
+  </data>
+  <data name="Timeline_Split" xml:space="preserve">
+    <value>Разрезать</value>
+  </data>
+  <data name="Timeline_SplitTip" xml:space="preserve">
+    <value>Разрезать в позиции указателя (S)</value>
+  </data>
+  <data name="Timeline_Unlink" xml:space="preserve">
+    <value>Разъединить</value>
+  </data>
+  <data name="Timeline_UnlinkAudio" xml:space="preserve">
+    <value>Отделить звук</value>
+  </data>
+  <data name="Timeline_UnlinkTip" xml:space="preserve">
+    <value>Отделить звук: звук видеоклипа становится отдельным аудиоклипом; связанная пара становится двумя независимыми клипами</value>
+  </data>
+  <data name="Timeline_ZoomInTip" xml:space="preserve">
+    <value>Увеличить масштаб (Ctrl+=)</value>
+  </data>
+  <data name="Timeline_ZoomOutTip" xml:space="preserve">
+    <value>Уменьшить масштаб (Ctrl+−)</value>
+  </data>
+  <data name="Toolbar_Export" xml:space="preserve">
+    <value>Экспорт</value>
+  </data>
+  <data name="Toolbar_ExportTip" xml:space="preserve">
+    <value>Экспортировать видео (Ctrl+E)</value>
+  </data>
+  <data name="Toolbar_ExportUnavailable" xml:space="preserve">
+    <value>Экспорт недоступен.</value>
+  </data>
+  <data name="Toolbar_Import" xml:space="preserve">
+    <value>Импорт медиа</value>
+  </data>
+  <data name="Toolbar_ImportTip" xml:space="preserve">
+    <value>Импортировать медиафайлы в проект (Ctrl+I)</value>
+  </data>
+  <data name="Toolbar_New" xml:space="preserve">
+    <value>Создать</value>
+  </data>
+  <data name="Toolbar_NewTip" xml:space="preserve">
+    <value>Новый проект (Ctrl+N)</value>
+  </data>
+  <data name="Toolbar_Open" xml:space="preserve">
+    <value>Открыть</value>
+  </data>
+  <data name="Toolbar_OpenTip" xml:space="preserve">
+    <value>Открыть проект (Ctrl+O)</value>
+  </data>
+  <data name="Toolbar_ProjectSettings" xml:space="preserve">
+    <value>Параметры…</value>
+  </data>
+  <data name="Toolbar_Recent" xml:space="preserve">
+    <value>Недавние</value>
+  </data>
+  <data name="Toolbar_RecentTip" xml:space="preserve">
+    <value>Открыть недавний проект</value>
+  </data>
+  <data name="Toolbar_Redo" xml:space="preserve">
+    <value>Повторить</value>
+  </data>
+  <data name="Toolbar_RedoTip" xml:space="preserve">
+    <value>Повторить (Ctrl+Y)</value>
+  </data>
+  <data name="Toolbar_Save" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="Toolbar_SaveAs" xml:space="preserve">
+    <value>Сохранить как</value>
+  </data>
+  <data name="Toolbar_SaveAsTip" xml:space="preserve">
+    <value>Сохранить проект как (Ctrl+Shift+S)</value>
+  </data>
+  <data name="Toolbar_SaveTip" xml:space="preserve">
+    <value>Сохранить проект (Ctrl+S)</value>
+  </data>
+  <data name="Toolbar_SettingsTip" xml:space="preserve">
+    <value>Параметры проекта — {0}</value>
+  </data>
+  <data name="Toolbar_SettingsUnavailable" xml:space="preserve">
+    <value>Параметры проекта недоступны.</value>
+  </data>
+  <data name="Toolbar_Undo" xml:space="preserve">
+    <value>Отменить</value>
+  </data>
+  <data name="Toolbar_UndoTip" xml:space="preserve">
+    <value>Отменить (Ctrl+Z)</value>
+  </data>
+  <data name="Track_DeleteButton" xml:space="preserve">
+    <value>Удалить дорожку</value>
+  </data>
+  <data name="Track_Deleted" xml:space="preserve">
+    <value>Дорожка {0} удалена</value>
+  </data>
+  <data name="Track_DeleteMany" xml:space="preserve">
+    <value>На дорожке {1} {0} клип. При удалении дорожки будут удалены и клипы, и наплывы между ними.
+
+Это можно отменить командой «Отменить».|На дорожке {1} {0} клипа. При удалении дорожки будут удалены и клипы, и наплывы между ними.
+
+Это можно отменить командой «Отменить».|На дорожке {1} {0} клипов. При удалении дорожки будут удалены и клипы, и наплывы между ними.
+
+Это можно отменить командой «Отменить».</value>
+  </data>
+  <data name="Track_DeleteOne" xml:space="preserve">
+    <value>На дорожке {0} есть 1 клип. При удалении дорожки клип тоже будет удалён.
+
+Это можно отменить командой «Отменить».</value>
+  </data>
+  <data name="Track_DeleteTip" xml:space="preserve">
+    <value>Удалить дорожку (если на ней есть клипы, сначала будет вопрос)</value>
+  </data>
+  <data name="Track_DeleteTitle" xml:space="preserve">
+    <value>Удаление дорожки</value>
+  </data>
+  <data name="Track_Hidden" xml:space="preserve">
+    <value>Дорожка {0} скрыта</value>
+  </data>
+  <data name="Track_HideTip" xml:space="preserve">
+    <value>Скрыть / показать дорожку: скрытая дорожка не видна в просмотре и в экспорте (её звук слышен)</value>
+  </data>
+  <data name="Track_Locked" xml:space="preserve">
+    <value>Дорожка {0} заблокирована</value>
+  </data>
+  <data name="Track_LockTip" xml:space="preserve">
+    <value>Заблокировать / разблокировать дорожку: клипы и место заблокированной дорожки нельзя изменить (она воспроизводится и экспортируется)</value>
+  </data>
+  <data name="Track_MovedDown" xml:space="preserve">
+    <value>Дорожка {0} перемещена вниз</value>
+  </data>
+  <data name="Track_MoveDownTip" xml:space="preserve">
+    <value>Переместить дорожку вниз</value>
+  </data>
+  <data name="Track_MovedUp" xml:space="preserve">
+    <value>Дорожка {0} перемещена вверх</value>
+  </data>
+  <data name="Track_MoveUpTip" xml:space="preserve">
+    <value>Переместить дорожку вверх</value>
+  </data>
+  <data name="Track_Muted" xml:space="preserve">
+    <value>Звук дорожки {0} выключен</value>
+  </data>
+  <data name="Track_MuteTip" xml:space="preserve">
+    <value>Выключить / включить звук дорожки: выключенная дорожка не звучит в просмотре и в экспорте</value>
+  </data>
+  <data name="Track_Shown" xml:space="preserve">
+    <value>Дорожка {0} показана</value>
+  </data>
+  <data name="Track_Unlocked" xml:space="preserve">
+    <value>Дорожка {0} разблокирована</value>
+  </data>
+  <data name="Track_Unmuted" xml:space="preserve">
+    <value>Звук дорожки {0} включён</value>
+  </data>
+  <data name="Transform_CropText" xml:space="preserve">
+    <value>Кадрирование — тяните маркер; изображение остаётся на месте; Esc отменяет</value>
+  </data>
+  <data name="Transform_CropValue" xml:space="preserve">
+    <value>Кадрирование: слева {0} % · сверху {1} % · справа {2} % · снизу {3} %</value>
+  </data>
+  <data name="Transform_MoveText" xml:space="preserve">
+    <value>Перемещение — перетащите клип; угол меняет масштаб; Shift фиксирует ось; Esc отменяет</value>
+  </data>
+  <data name="Transform_MoveValue" xml:space="preserve">
+    <value>Позиция X {0} пикс. · Y {1} пикс.</value>
+  </data>
+  <data name="Transform_NoClip" xml:space="preserve">
+    <value>Выберите клип под указателем (щёлкните по его изображению)</value>
+  </data>
+  <data name="Transform_NoPicture" xml:space="preserve">
+    <value>У выбранного клипа нет изображения</value>
+  </data>
+  <data name="Transform_NotUnderPlayhead" xml:space="preserve">
+    <value>Выбранный клип не под указателем</value>
+  </data>
+  <data name="Transform_Playing" xml:space="preserve">
+    <value>Поставьте паузу, чтобы перемещать, масштабировать или кадрировать</value>
+  </data>
+  <data name="Transform_ScaleValue" xml:space="preserve">
+    <value>Масштаб {0} %</value>
+  </data>
+  <data name="Transform_TextNoCrop" xml:space="preserve">
+    <value>Текстовые клипы нельзя кадрировать — используйте перемещение</value>
+  </data>
+  <data name="Transform_UnknownSize" xml:space="preserve">
+    <value>Размер изображения этого клипа ещё неизвестен</value>
+  </data>
+  <data name="Transition_Crossfade" xml:space="preserve">
+    <value>Перекрёстное затухание</value>
+  </data>
+  <data name="Transition_Dissolve" xml:space="preserve">
+    <value>Наплыв</value>
+  </data>
+  <data name="Transition_Longest" xml:space="preserve">
+    <value>Самое длинное, что здесь помещается: {0}</value>
+  </data>
+  <data name="Transition_NotChanged" xml:space="preserve">
+    <value>Не удалось изменить наплыв.</value>
+  </data>
+  <data name="Transition_NotRemoved" xml:space="preserve">
+    <value>Не удалось удалить наплыв.</value>
+  </data>
+  <data name="Transition_RemoveCrossfade" xml:space="preserve">
+    <value>Удалить перекрёстное затухание</value>
+  </data>
+  <data name="Transition_RemoveDissolve" xml:space="preserve">
+    <value>Удалить наплыв</value>
+  </data>
+  <data name="Transition_WholeFrames" xml:space="preserve">
+    <value>Длительность наплыва — целое число кадров.</value>
+  </data>
+  <data name="Transport_Loop" xml:space="preserve">
+    <value>Повтор</value>
+  </data>
+  <data name="Transport_LoopTip" xml:space="preserve">
+    <value>Воспроизводить по кругу (Ctrl+L)</value>
+  </data>
+  <data name="Transport_NextTip" xml:space="preserve">
+    <value>Следующий кадр (→)</value>
+  </data>
+  <data name="Transport_Pause" xml:space="preserve">
+    <value>Пауза</value>
+  </data>
+  <data name="Transport_Play" xml:space="preserve">
+    <value>Воспроизвести</value>
+  </data>
+  <data name="Transport_PlayPauseTip" xml:space="preserve">
+    <value>Воспроизведение / пауза (Пробел; L — воспроизвести, K — пауза, J — на секунду назад)</value>
+  </data>
+  <data name="Transport_PrevTip" xml:space="preserve">
+    <value>Предыдущий кадр (←)</value>
+  </data>
+  <data name="Transport_StopTip" xml:space="preserve">
+    <value>Остановить</value>
+  </data>
+  <data name="Trim_EndMany" xml:space="preserve">
+    <value>Конец {0} клипа обрезан по указателю|Конец {0} клипов обрезан по указателю|Конец {0} клипов обрезан по указателю</value>
+  </data>
+  <data name="Trim_EndOne" xml:space="preserve">
+    <value>Конец клипа обрезан по указателю</value>
+  </data>
+  <data name="Trim_RippleEndMany" xml:space="preserve">
+    <value>Конец {0} клипа обрезан по указателю со сдвигом|Конец {0} клипов обрезан по указателю со сдвигом|Конец {0} клипов обрезан по указателю со сдвигом</value>
+  </data>
+  <data name="Trim_RippleEndOne" xml:space="preserve">
+    <value>Конец клипа обрезан по указателю со сдвигом</value>
+  </data>
+  <data name="Trim_RippleStartMany" xml:space="preserve">
+    <value>Начало {0} клипа обрезано по указателю со сдвигом|Начало {0} клипов обрезано по указателю со сдвигом|Начало {0} клипов обрезано по указателю со сдвигом</value>
+  </data>
+  <data name="Trim_RippleStartOne" xml:space="preserve">
+    <value>Начало клипа обрезано по указателю со сдвигом</value>
+  </data>
+  <data name="Trim_StartMany" xml:space="preserve">
+    <value>Начало {0} клипа обрезано по указателю|Начало {0} клипов обрезано по указателю|Начало {0} клипов обрезано по указателю</value>
+  </data>
+  <data name="Trim_StartOne" xml:space="preserve">
+    <value>Начало клипа обрезано по указателю</value>
+  </data>
+  <data name="Unit_B" xml:space="preserve">
+    <value>Б</value>
+  </data>
+  <data name="Unit_Frames" xml:space="preserve">
+    <value>кадр.</value>
+  </data>
+  <data name="Unit_GB" xml:space="preserve">
+    <value>ГБ</value>
+  </data>
+  <data name="Unit_KB" xml:space="preserve">
+    <value>КБ</value>
+  </data>
+  <data name="Unit_Kbps" xml:space="preserve">
+    <value>{0} кбит/с</value>
+  </data>
+  <data name="Unit_KHz" xml:space="preserve">
+    <value>{0} кГц</value>
+  </data>
+  <data name="Unit_MB" xml:space="preserve">
+    <value>МБ</value>
+  </data>
+  <data name="Unit_Mbps" xml:space="preserve">
+    <value>{0} Мбит/с</value>
+  </data>
+  <data name="Unit_Px" xml:space="preserve">
+    <value>пикс.</value>
+  </data>
+  <data name="Unit_PxValue" xml:space="preserve">
+    <value>{0} пикс.</value>
+  </data>
+  <data name="Unit_Seconds" xml:space="preserve">
+    <value>с</value>
+  </data>
+  <data name="Unit_SecondsValue" xml:space="preserve">
+    <value>{0} с</value>
+  </data>
+  <data name="Unit_TB" xml:space="preserve">
+    <value>ТБ</value>
+  </data>
+  <data name="Unsaved_ActionClose" xml:space="preserve">
+    <value>закрытием</value>
+  </data>
+  <data name="Unsaved_ActionNew" xml:space="preserve">
+    <value>созданием нового проекта</value>
+  </data>
+  <data name="Unsaved_ActionOpen" xml:space="preserve">
+    <value>открытием другого проекта</value>
+  </data>
+  <data name="Unsaved_Question" xml:space="preserve">
+    <value>Сохранить изменения в «{0}» перед {1}?
+
+Если не сохранить, изменения будут потеряны.</value>
+  </data>
+  <data name="Unsaved_Title" xml:space="preserve">
+    <value>Несохранённые изменения</value>
+  </data>
+</root>

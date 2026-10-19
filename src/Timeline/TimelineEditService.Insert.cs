@@ -1,6 +1,7 @@
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.Timeline;
@@ -22,7 +23,7 @@ public sealed partial class TimelineEditService
     public SourceGrid? GetSourceGrid(MediaAsset asset, out string? reason)
     {
         reason = asset.Kind == MediaKind.Image
-            ? "Images have no source range: add them with Add to Timeline."
+            ? Messages.Edit_ImagesNoRange
             : GetAddBlockReason(asset);
         if (reason is not null) return null;
 
@@ -31,7 +32,7 @@ public sealed partial class TimelineEditService
         var frames = FrameMath.MaxWholeFrames(asset.Metadata!.Duration, rate);
         if (frames < 1)
         {
-            reason = $"{asset.FileName} is shorter than one frame.";
+            reason = string.Format(Messages.Edit_FileShorterThanFrame, asset.FileName);
             return null;
         }
         return new SourceGrid(rate, frames);
@@ -40,11 +41,11 @@ public sealed partial class TimelineEditService
     private TimelineEditResult PlaceSourceRange(Guid mediaAssetId, MediaTime? sourceIn, MediaTime? sourceOut, MediaTime at,
         Guid? trackId, bool overwrite, bool soundOnly)
     {
-        var verb = overwrite ? "overwrite" : "insert";
+        var verb = overwrite ? Messages.Verb_Overwrite : Messages.Verb_Insert;
         if (FindAsset(mediaAssetId) is not { } asset)
-            return TimelineEditResult.Fail("That media is not in the project.");
+            return TimelineEditResult.Fail(Messages.Edit_MediaNotInProject);
         if (asset.Kind == MediaKind.Image)
-            return TimelineEditResult.Fail("Images have no source range: add them with Add to Timeline.");
+            return TimelineEditResult.Fail(Messages.Edit_ImagesNoRange);
         if (GetAddBlockReason(asset) is { } blocked)
             return TimelineEditResult.Fail(blocked);
 
@@ -52,7 +53,7 @@ public sealed partial class TimelineEditService
         // so a first video file's sound fixes the project rate as the file itself would (D007).
         var sound = soundOnly && asset.Kind == MediaKind.Video;
         if (sound && asset.Metadata?.AudioCodec is null)
-            return TimelineEditResult.Fail($"{asset.FileName} has no sound.");
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_NoSound, asset.FileName));
 
         var plan = new EditPlan(Sequence, Settings);
         if (PlanFirstVideoRate(plan, asset, out var info) is { } regridError)
@@ -64,17 +65,17 @@ public sealed partial class TimelineEditService
         if (trackId is { } id)
         {
             track = FindTrack(id);
-            if (track is null) return TimelineEditResult.Fail("That track no longer exists.");
+            if (track is null) return TimelineEditResult.Fail(Messages.Edit_TrackGone);
             if (track.Type != kind)
-                return TimelineEditResult.Fail(kind == TrackType.Audio ? "Audio can only go on an audio track." : "Video can only go on a video track.");
+                return TimelineEditResult.Fail(kind == TrackType.Audio ? Messages.Edit_AudioOnAudioTrack : Messages.Edit_VideoOnlyVideoTrack);
         }
         else
         {
             track = (kind == TrackType.Video ? Sequence.VideoTracks : Sequence.AudioTracks).FirstOrDefault();
-            if (track is null) return TimelineEditResult.Fail($"The timeline has no {(kind == TrackType.Video ? "video" : "audio")} track.");
+            if (track is null) return TimelineEditResult.Fail(kind == TrackType.Video ? Messages.Edit_NoVideoTrack : Messages.Edit_NoAudioTrack);
         }
         if (track.IsLocked)
-            return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
 
         // The range on the grid (SQ12): In defaults to the start, Out to the last whole frame of the source.
         var lastFrame = FrameMath.MaxWholeFrames(asset.Metadata!.Duration, rate);
@@ -82,7 +83,7 @@ public sealed partial class TimelineEditService
         var outFrame = Math.Clamp(sourceOut?.ToNearestFrame(rate) ?? lastFrame, 0, lastFrame);
         var frames = outFrame - inFrame;
         if (frames < 1)
-            return TimelineEditResult.Fail("The source range is shorter than one frame.");
+            return TimelineEditResult.Fail(Messages.Edit_RangeShorterThanFrame);
         var atFrame = Math.Max(0, at.ToNearestFrame(rate));
 
         // The new clip at 1× (SQ13): built at 0 and moved to the point by the move rule, which also keeps its source end
@@ -144,16 +145,16 @@ public sealed partial class TimelineEditService
             if (start < atFrame && atFrame < end)
             {
                 if (!PlanSplitClip(plan, track, clip, state, atFrame, out var right))
-                    return $"Can't insert inside a {TransitionNoun(track)}.";
+                    return Tr(track, Messages.Insert_InsideDissolve, Messages.Insert_InsideCrossfade);
                 splits.Add((clip, right));
                 var (moved, error) = ShiftedState(right, frames, rate);
-                if (error is not null) return $"Can't insert: {error}";
+                if (error is not null) return string.Format(Messages.Edit_CantInsert, error);
                 moved.ApplyTo(right);              // a planned insert, not in the model yet
             }
             else if (start >= atFrame)
             {
                 var (moved, error) = ShiftedState(clip, state, frames, rate);
-                if (error is not null) return $"Can't insert: {error}";
+                if (error is not null) return string.Format(Messages.Edit_CantInsert, error);
                 plan.Update(clip, track, moved);
             }
         }
@@ -167,7 +168,7 @@ public sealed partial class TimelineEditService
     private string? PlanOverwrite(EditPlan plan, Track track, IReadOnlyList<(Clip Clip, ClipState State)> existing, long from, long to,
         List<(Clip Left, Clip Right)> splits)
     {
-        var insideDissolve = $"Can't overwrite inside a {TransitionNoun(track)}.";
+        var insideDissolve = Tr(track, Messages.Overwrite_InsideDissolve, Messages.Overwrite_InsideCrossfade);
         var rate = plan.Rate;
         var none = Array.Empty<Clip>();
         foreach (var (clip, state) in existing)

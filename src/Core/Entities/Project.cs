@@ -7,7 +7,7 @@ namespace AiVideoEditor.Core.Entities;
 public sealed class Project
 {
     public Guid Id { get; init; } = Guid.NewGuid();
-    public string Name { get; set; } = "Untitled Project";
+    public string Name { get; set; } = Localization.Messages.Project_DefaultName;
 
     /// <summary>Folder on disk containing project.json and cache/ (thumbnails in cache/thumbnails).</summary>
     public string? ProjectFolderPath { get; set; }

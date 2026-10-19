@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Holds;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Timeline.Commands;
 
 namespace AiVideoEditor.Timeline;
@@ -20,8 +21,8 @@ public sealed partial class TimelineEditService
 
         var before = clip.HoldMarkup;
         var current = before ?? new HoldMarkup();
-        if (current.Holds.Any(h => h.Id == hold.Id)) return TimelineEditResult.Fail("That hold is already marked.");
-        if (current.Holds.Length >= HoldMarkupRules.MaxHolds) return TimelineEditResult.Fail($"A clip can have at most {HoldMarkupRules.MaxHolds} holds.");
+        if (current.Holds.Any(h => h.Id == hold.Id)) return TimelineEditResult.Fail(Messages.Holds_AlreadyMarked);
+        if (current.Holds.Length >= HoldMarkupRules.MaxHolds) return TimelineEditResult.Fail(string.Format(Messages.Holds_MaxHolds, HoldMarkupRules.MaxHolds));
 
         return Apply(clip, before, RouteColor.WithResolved(current with { Holds = current.Holds.Add(hold) }), HoldMarkupFields.Holds);
     }
@@ -31,7 +32,7 @@ public sealed partial class TimelineEditService
         if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
         var before = clip.HoldMarkup;
         var index = before is null ? -1 : before.Holds.IndexOf(before.Holds.FirstOrDefault(h => h.Id == holdId)!);
-        if (before is null || index < 0) return TimelineEditResult.Fail("That hold is not marked on the clip.");
+        if (before is null || index < 0) return TimelineEditResult.Fail(Messages.Holds_NotMarked);
 
         return Apply(clip, before, RouteColor.WithResolved(before with { Holds = before.Holds.RemoveAt(index) }), HoldMarkupFields.Holds);
     }
@@ -41,7 +42,7 @@ public sealed partial class TimelineEditService
         if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
         var before = clip.HoldMarkup;
         var index = before is null ? -1 : before.Holds.IndexOf(before.Holds.FirstOrDefault(h => h.Id == holdId)!);
-        if (before is null || index < 0) return TimelineEditResult.Fail("That hold is not marked on the clip.");
+        if (before is null || index < 0) return TimelineEditResult.Fail(Messages.Holds_NotMarked);
 
         var old = before.Holds[index];
         var corrected = new Hold(old.Id, points, old.SurfaceLab, old.WallLab, old.SourceTime);
@@ -58,7 +59,7 @@ public sealed partial class TimelineEditService
         ArgumentNullException.ThrowIfNull(style);
         if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
         if (style.ManualColorHex is { } manual && !HoldMarkupRules.IsColorHex(manual))
-            return TimelineEditResult.Fail("The outline colour must be #RRGGBB.");
+            return TimelineEditResult.Fail(Messages.Holds_ColourFormat);
 
         var before = clip.HoldMarkup;
         var current = before ?? new HoldMarkup();
@@ -127,9 +128,9 @@ public sealed partial class TimelineEditService
         clip = null!;
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return resolveError;
-        if (clips[0] is not VideoClip video) return "Holds can be marked only on a video clip.";
+        if (clips[0] is not VideoClip video) return Messages.Holds_OnlyVideo;
         var track = plan.TrackOf(video);
-        if (track.IsLocked) return $"Track {track.Name} is locked.";
+        if (track.IsLocked) return string.Format(Messages.Edit_TrackLocked, track.Name);
         clip = video;
         return null;
     }

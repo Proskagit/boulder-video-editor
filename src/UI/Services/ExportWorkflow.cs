@@ -2,7 +2,9 @@ using System.Text;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Common;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.ViewModels;
 using Microsoft.Extensions.Logging;
 
@@ -93,7 +95,7 @@ public sealed class ExportWorkflow
     public async Task<ExportOutcome> RunAsync()
     {
         if (_running || _editingLock.IsLocked)
-            return new ExportOutcome(ExportOutcomeKind.NotStarted, "An export is already running.");
+            return new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_AlreadyRunning);
 
         SetRunning(true);
         try
@@ -120,7 +122,7 @@ public sealed class ExportWorkflow
 
         var project = _projects.Current;
         if (project is null)
-            return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, "There is no project to export."));
+            return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_NoProject));
 
         // 0. With an In / Out range: the range or the entire sequence (D030 §8, Q10). The range is the session's — the
         //    export copies it now; later changes of it don't reach this export.
@@ -130,14 +132,15 @@ public sealed class ExportWorkflow
             var rate = project.Settings.FrameRate;
             var choice = await _dialogs.AskAsync(new DialogRequest
             {
-                Title = "Export",
-                Message = $"An In / Out range is set: {TimeFormat.ToTimecode(MediaTime.FromFrame(frames.First, rate), rate)} to " +
-                          $"{TimeFormat.ToTimecode(MediaTime.FromFrame(frames.End, rate), rate)} ({frames.End - frames.First} frames).\n\n" +
-                          "Export only the range, or the entire sequence?",
-                Buttons = new[] { "Range", "Entire sequence", "Cancel" }
+                Title = Strings.Export_Title,
+                Message = string.Format(Strings.Export_RangeQuestion,
+                    TimeFormat.ToTimecode(MediaTime.FromFrame(frames.First, rate), rate),
+                    TimeFormat.ToTimecode(MediaTime.FromFrame(frames.End, rate), rate),
+                    Plural.Format(frames.End - frames.First, Strings.Plural_Frames)),
+                Buttons = new[] { Strings.Export_Range, Strings.Export_EntireSequence, Strings.Common_Cancel }
             });
             if (choice == 0) range = new ExportRange(frames.First, frames.End);
-            else if (choice != 1) return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, "Export cancelled."));
+            else if (choice != 1) return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_Cancelled));
         }
 
         var environment = ExportPreflightEnvironment.Default(await _export.IsAvailableAsync(), IsFontInstalled);
@@ -149,12 +152,12 @@ public sealed class ExportWorkflow
         if (errors.Count > 0)
             return await PreflightFailedAsync(errors, warnings);
         if (warnings.Count > 0 && !await ContinueDespiteWarningsAsync(warnings))
-            return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, "Export cancelled."));
+            return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_Cancelled));
 
         // 2. The output file.
         var outputPath = await _picker.PickSaveFileAsync(OutputRequest(project));
         if (outputPath is null)
-            return new ExportOutcome(ExportOutcomeKind.NotStarted, "No output file was chosen.");
+            return new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_NoOutputFile);
 
         // 3. The job: the preflight again, now with the file (it takes the snapshot the export uses).
         check = ExportPreflight.Check(project, outputPath, environment, range);
@@ -162,7 +165,7 @@ public sealed class ExportWorkflow
             return await PreflightFailedAsync(check.Errors.ToList(), check.Warnings.ToList());
 
         if (File.Exists(job.OutputPath) && !await ConfirmReplaceAsync(job.OutputPath))
-            return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, "Export cancelled."));
+            return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_Cancelled));
 
         // 4. The export.
         var outcome = await ExportAsync(job);
@@ -183,12 +186,12 @@ public sealed class ExportWorkflow
         try
         {
             await _export.ExportAsync(job, progress, cts.Token);
-            return new ExportOutcome(ExportOutcomeKind.Succeeded, $"Exported to {job.OutputPath}.", job.OutputPath);
+            return new ExportOutcome(ExportOutcomeKind.Succeeded, string.Format(Strings.Export_Succeeded, job.OutputPath), job.OutputPath);
         }
         catch (OperationCanceledException)
         {
-            var kept = File.Exists(job.OutputPath) ? " The existing file was left unchanged." : "";
-            return new ExportOutcome(ExportOutcomeKind.Cancelled, $"Export cancelled.{kept}", job.OutputPath);
+            var message = File.Exists(job.OutputPath) ? Strings.Export_CancelledKept : Strings.Export_Cancelled;
+            return new ExportOutcome(ExportOutcomeKind.Cancelled, message, job.OutputPath);
         }
         catch (ExportException ex)
         {
@@ -199,8 +202,7 @@ public sealed class ExportWorkflow
         {
             _logger.LogError(ex, "Export to {Path} failed unexpectedly.", job.OutputPath);
             return new ExportOutcome(ExportOutcomeKind.Failed,
-                $"The export failed because of an unexpected error ({ex.GetType().Name}: {ex.Message}). " +
-                "No file was written; details are in the log.", job.OutputPath);
+                string.Format(Strings.Export_Unexpected, ex.GetType().Name, ex.Message), job.OutputPath);
         }
         finally
         {
@@ -210,19 +212,15 @@ public sealed class ExportWorkflow
         }
     }
 
-    public static string FailureMessage(ExportException ex) => ex.Failure switch
+    // The exception's own message (ffmpeg's detail) stays as it is, in parentheses (D039 §2).
+    public static string FailureMessage(ExportException ex) => string.Format(Strings.Export_NoFileWritten, string.Format(ex.Failure switch
     {
-        ExportFailure.EncoderUnavailable =>
-            "ffmpeg could not be found, so the video can't be encoded. Install ffmpeg (or set \"Ffmpeg:FfmpegPath\" in " +
-            $"appsettings.json) and try again. ({ex.Message})",
-        ExportFailure.DecodeFailed =>
-            $"A source file could not be read, so the export was stopped. Check that the media is still available. ({ex.Message})",
-        ExportFailure.EncodeFailed =>
-            $"The video could not be encoded, so the export was stopped. ({ex.Message})",
-        ExportFailure.OutputFailed =>
-            $"The output file could not be written. Check the folder and that the file is not open elsewhere. ({ex.Message})",
-        _ => $"The export failed. ({ex.Message})"
-    } + " No file was written; an existing file was left unchanged.";
+        ExportFailure.EncoderUnavailable => Strings.Export_FailEncoderUnavailable,
+        ExportFailure.DecodeFailed => Strings.Export_FailDecode,
+        ExportFailure.EncodeFailed => Strings.Export_FailEncode,
+        ExportFailure.OutputFailed => Strings.Export_FailOutput,
+        _ => Strings.Export_Fail
+    }, ex.Message));
 
     private static bool IsAboutOutputFile(ExportIssueKind kind) =>
         kind is ExportIssueKind.InvalidOutputPath or ExportIssueKind.OutputFolderMissing or ExportIssueKind.OutputIsProjectMedia;
@@ -248,31 +246,31 @@ public sealed class ExportWorkflow
         }
         return new SaveFilePickerRequest
         {
-            Title = "Export — choose the output file",
+            Title = Strings.Export_PickerTitle,
             StartFolder = folder ?? project.ProjectFolderPath,
             SuggestedFileName = string.IsNullOrEmpty(name) ? project.Name + ExportFormat.FileExtension : name,
             DefaultExtension = ExportFormat.FileExtension.TrimStart('.'),
-            FileTypeFilters = new[] { new FilePickerFileTypeFilter { Name = "MP4 video", Patterns = new[] { "*" + ExportFormat.FileExtension } } }
+            FileTypeFilters = new[] { new FilePickerFileTypeFilter { Name = Strings.Export_Mp4Filter, Patterns = new[] { "*" + ExportFormat.FileExtension } } }
         };
     }
 
     private async Task<ExportOutcome> PreflightFailedAsync(IReadOnlyList<ExportIssue> errors, IReadOnlyList<ExportIssue> warnings)
     {
-        var message = new StringBuilder("The project can't be exported:\n");
-        AppendIssues(message, "Errors", errors);
-        if (warnings.Count > 0) AppendIssues(message.Append('\n'), "Warnings", warnings);
-        await _dialogs.AskAsync(new DialogRequest { Title = "Export not possible", Message = message.ToString(), Buttons = new[] { "OK" } });
+        var message = new StringBuilder(Strings.Export_CantExport).Append('\n');
+        AppendIssues(message, Strings.Export_Errors, errors);
+        if (warnings.Count > 0) AppendIssues(message.Append('\n'), Strings.Export_Warnings, warnings);
+        await _dialogs.AskAsync(new DialogRequest { Title = Strings.Export_NotPossibleTitle, Message = message.ToString(), Buttons = new[] { Strings.Common_OK } });
         var outcome = new ExportOutcome(ExportOutcomeKind.PreflightFailed,
-            errors.Count == 1 ? $"Export not possible: {errors[0].Message}" : $"Export not possible: {errors.Count} problems.");
+            errors.Count == 1 ? string.Format(Strings.Export_NotPossibleOne, errors[0].Message) : Plural.Format(errors.Count, Strings.Export_NotPossibleMany));
         return Report(outcome);
     }
 
     private async Task<bool> ContinueDespiteWarningsAsync(IReadOnlyList<ExportIssue> warnings)
     {
-        var message = new StringBuilder("The export can run, but note:\n");
-        AppendIssues(message, "Warnings", warnings);
-        message.Append("\nContinue with the export?");
-        var choice = await _dialogs.AskAsync(new DialogRequest { Title = "Export warnings", Message = message.ToString(), Buttons = new[] { "Continue", "Cancel" } });
+        var message = new StringBuilder(Strings.Export_CanRunButNote).Append('\n');
+        AppendIssues(message, Strings.Export_Warnings, warnings);
+        message.Append('\n').Append(Strings.Export_ContinueQuestion);
+        var choice = await _dialogs.AskAsync(new DialogRequest { Title = Strings.Export_WarningsTitle, Message = message.ToString(), Buttons = new[] { Strings.Common_Continue, Strings.Common_Cancel } });
         return choice == 0;
     }
 
@@ -280,9 +278,9 @@ public sealed class ExportWorkflow
     {
         var choice = await _dialogs.AskAsync(new DialogRequest
         {
-            Title = "Replace file?",
-            Message = $"\"{path}\" already exists. Replace it with the export?\n\nThe file is replaced only when the export succeeds.",
-            Buttons = new[] { "Replace", "Cancel" }
+            Title = Strings.Export_ReplaceTitle,
+            Message = string.Format(Strings.Export_ReplaceQuestion, path),
+            Buttons = new[] { Strings.Common_Replace, Strings.Common_Cancel }
         });
         return choice == 0;
     }
@@ -299,10 +297,10 @@ public sealed class ExportWorkflow
         switch (outcome.Kind)
         {
             case ExportOutcomeKind.Succeeded:
-                await _dialogs.AskAsync(new DialogRequest { Title = "Export finished", Message = $"The video was exported to\n{outcome.OutputPath}", Buttons = new[] { "OK" } });
+                await _dialogs.AskAsync(new DialogRequest { Title = Strings.Export_FinishedTitle, Message = string.Format(Strings.Export_Finished, outcome.OutputPath), Buttons = new[] { Strings.Common_OK } });
                 break;
             case ExportOutcomeKind.Failed:
-                await _dialogs.AskAsync(new DialogRequest { Title = "Export failed", Message = outcome.Message, Buttons = new[] { "OK" } });
+                await _dialogs.AskAsync(new DialogRequest { Title = Strings.Export_FailedTitle, Message = outcome.Message, Buttons = new[] { Strings.Common_OK } });
                 break;
             // Cancelled: the status message is enough — cancelling is not an error.
         }

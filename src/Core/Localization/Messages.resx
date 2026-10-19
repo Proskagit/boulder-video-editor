@@ -1,0 +1,958 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Analysis_BadOutput" xml:space="preserve">
+    <value>FFprobe returned output that could not be understood.</value>
+  </data>
+  <data name="Analysis_Cancelled" xml:space="preserve">
+    <value>Analysis was cancelled.</value>
+  </data>
+  <data name="Analysis_Failed" xml:space="preserve">
+    <value>FFprobe failed to analyze this file.</value>
+  </data>
+  <data name="Analysis_FileNotFound" xml:space="preserve">
+    <value>The file could not be found.</value>
+  </data>
+  <data name="Analysis_NoFfprobe" xml:space="preserve">
+    <value>FFprobe could not be found. Install FFmpeg (with ffprobe on PATH) or configure its path in settings.</value>
+  </data>
+  <data name="Analysis_NoStreams" xml:space="preserve">
+    <value>This file doesn't appear to contain readable media streams.</value>
+  </data>
+  <data name="Analysis_Timeout" xml:space="preserve">
+    <value>FFprobe took too long to respond.</value>
+  </data>
+  <data name="Canvas_Even" xml:space="preserve">
+    <value>The frame width and height must be even.</value>
+  </data>
+  <data name="Canvas_SideRange" xml:space="preserve">
+    <value>The frame size must be between {0} and {1} pixels on each side.</value>
+  </data>
+  <data name="Canvas_TooLarge" xml:space="preserve">
+    <value>The frame size {0} × {1} is too large (at most {2} pixels).</value>
+  </data>
+  <data name="Contour_MinPoints" xml:space="preserve">
+    <value>An outline keeps at least three points.</value>
+  </data>
+  <data name="Contour_SelfCross" xml:space="preserve">
+    <value>The outline can't cross itself — the change is not applied.</value>
+  </data>
+  <data name="Describe_ImageClip" xml:space="preserve">
+    <value>an image clip</value>
+  </data>
+  <data name="Describe_ImageClipOf" xml:space="preserve">
+    <value>the image clip of {0}</value>
+  </data>
+  <data name="Describe_TextClip" xml:space="preserve">
+    <value>the text clip "{0}"</value>
+  </data>
+  <data name="Describe_VideoClip" xml:space="preserve">
+    <value>a video clip</value>
+  </data>
+  <data name="Describe_VideoClipOf" xml:space="preserve">
+    <value>the video clip of {0}</value>
+  </data>
+  <data name="Edit_AnalysisFailed" xml:space="preserve">
+    <value>analysis failed</value>
+  </data>
+  <data name="Edit_AudioOnAudioTrack" xml:space="preserve">
+    <value>Audio can only go on an audio track.</value>
+  </data>
+  <data name="Edit_AudioTrackNoPicture" xml:space="preserve">
+    <value>Track {0} is an audio track: it has no picture to hide.</value>
+  </data>
+  <data name="Edit_BeforeTimelineStart" xml:space="preserve">
+    <value>Clips can't be moved before the beginning of the timeline.</value>
+  </data>
+  <data name="Edit_CantAddFile" xml:space="preserve">
+    <value>Can't add {0}: {1}</value>
+  </data>
+  <data name="Edit_CantAddText" xml:space="preserve">
+    <value>Can't add text on {0}: {1}</value>
+  </data>
+  <data name="Edit_CantChangeRate" xml:space="preserve">
+    <value>Can't change the frame rate to {0} FPS: {1}</value>
+  </data>
+  <data name="Edit_CantChangeSize" xml:space="preserve">
+    <value>Can't change the frame size to {0} × {1}: {2} on track {3} — {4}</value>
+  </data>
+  <data name="Edit_CantChangeSpeed" xml:space="preserve">
+    <value>Can't change the speed: {0}</value>
+  </data>
+  <data name="Edit_CantCloseGap" xml:space="preserve">
+    <value>Can't close the gap: {0}</value>
+  </data>
+  <data name="Edit_CantInsert" xml:space="preserve">
+    <value>Can't insert: {0}</value>
+  </data>
+  <data name="Edit_CantMove" xml:space="preserve">
+    <value>Can't move: {0}</value>
+  </data>
+  <data name="Edit_CantRippleDelete" xml:space="preserve">
+    <value>Can't ripple delete: {0}</value>
+  </data>
+  <data name="Edit_CantSlip" xml:space="preserve">
+    <value>Can't slip: {0}</value>
+  </data>
+  <data name="Edit_CantSplit" xml:space="preserve">
+    <value>Can't split: {0}</value>
+  </data>
+  <data name="Edit_CantTrim" xml:space="preserve">
+    <value>Can't trim: {0}</value>
+  </data>
+  <data name="Edit_ClipPastSourceEnd" xml:space="preserve">
+    <value>A clip can't extend past the end of its source media.</value>
+  </data>
+  <data name="Edit_CopiedMediaGone" xml:space="preserve">
+    <value>Can't {0}: the media of a copied clip is no longer in the project.</value>
+  </data>
+  <data name="Edit_CopiedTrackGone" xml:space="preserve">
+    <value>Can't {0}: the track of a copied clip no longer exists.</value>
+  </data>
+  <data name="Edit_CrossfadeRemoved" xml:space="preserve">
+    <value>A crossfade was removed: its clips no longer meet.</value>
+  </data>
+  <data name="Edit_CrossfadesRemoved" xml:space="preserve">
+    <value>{0} crossfades were removed: their clips no longer meet.</value>
+  </data>
+  <data name="Edit_DissolveBack" xml:space="preserve">
+    <value>The dissolve is back: its clips meet again.</value>
+  </data>
+  <data name="Edit_DissolveGone" xml:space="preserve">
+    <value>That dissolve no longer exists.</value>
+  </data>
+  <data name="Edit_DissolveRemoved" xml:space="preserve">
+    <value>A dissolve was removed: its clips no longer meet.</value>
+  </data>
+  <data name="Edit_DissolveSameTrack" xml:space="preserve">
+    <value>A dissolve joins two clips of the same track.</value>
+  </data>
+  <data name="Edit_DissolvesRemoved" xml:space="preserve">
+    <value>{0} dissolves were removed: their clips no longer meet.</value>
+  </data>
+  <data name="Edit_DissolveTwoClips" xml:space="preserve">
+    <value>A dissolve needs two different clips.</value>
+  </data>
+  <data name="Edit_DurationUnknown" xml:space="preserve">
+    <value>{0} can't be added: its duration is unknown.</value>
+  </data>
+  <data name="Edit_DurationUnknownBecause" xml:space="preserve">
+    <value>{0} can't be added: its duration is unknown ({1}).</value>
+  </data>
+  <data name="Edit_FadeInTooLong" xml:space="preserve">
+    <value>The fade in can't be longer than the clip.</value>
+  </data>
+  <data name="Edit_FadeNegative" xml:space="preserve">
+    <value>A fade can't be negative.</value>
+  </data>
+  <data name="Edit_FadeOutTooLong" xml:space="preserve">
+    <value>The fade out can't be longer than the clip.</value>
+  </data>
+  <data name="Edit_FileMissing" xml:space="preserve">
+    <value>{0} is missing.</value>
+  </data>
+  <data name="Edit_FileShorterThanFrame" xml:space="preserve">
+    <value>{0} is shorter than one frame.</value>
+  </data>
+  <data name="Edit_FrameSizeSet" xml:space="preserve">
+    <value>Frame size set to {0} × {1}.</value>
+  </data>
+  <data name="Edit_ImagesNoRange" xml:space="preserve">
+    <value>Images have no source range: add them with Add to Timeline.</value>
+  </data>
+  <data name="Edit_MarkerExists" xml:space="preserve">
+    <value>A marker is already there.</value>
+  </data>
+  <data name="Edit_MediaGone" xml:space="preserve">
+    <value>That media is no longer in the project.</value>
+  </data>
+  <data name="Edit_MediaNotInProject" xml:space="preserve">
+    <value>That media is not in the project.</value>
+  </data>
+  <data name="Edit_NeedsOneTrack" xml:space="preserve">
+    <value>The timeline needs at least one track.</value>
+  </data>
+  <data name="Edit_NoAudioTrack" xml:space="preserve">
+    <value>The timeline has no audio track.</value>
+  </data>
+  <data name="Edit_NoClipToSplit" xml:space="preserve">
+    <value>There is no clip under the playhead to split.</value>
+  </data>
+  <data name="Edit_NoGapBefore" xml:space="preserve">
+    <value>There is no gap before this clip.</value>
+  </data>
+  <data name="Edit_NoGapNoClipFollows" xml:space="preserve">
+    <value>There is no gap there: no clip follows it on the track.</value>
+  </data>
+  <data name="Edit_NoGapThere" xml:space="preserve">
+    <value>There is no gap there.</value>
+  </data>
+  <data name="Edit_NoMarkerAtPlayhead" xml:space="preserve">
+    <value>There is no marker at the playhead.</value>
+  </data>
+  <data name="Edit_NoSound" xml:space="preserve">
+    <value>{0} has no sound.</value>
+  </data>
+  <data name="Edit_NotTrimmedEnd" xml:space="preserve">
+    <value>Not trimmed where a dissolve is on the clip's end: Shift+W trims it and keeps the dissolve.</value>
+  </data>
+  <data name="Edit_NotTrimmedStart" xml:space="preserve">
+    <value>Not trimmed where a dissolve is on the clip's start: Shift+Q trims it and keeps the dissolve.</value>
+  </data>
+  <data name="Edit_NoVideoTrack" xml:space="preserve">
+    <value>The timeline has no video track.</value>
+  </data>
+  <data name="Edit_NoVideoTrackPlain" xml:space="preserve">
+    <value>The timeline has no video track.</value>
+  </data>
+  <data name="Edit_PlayheadNotInside" xml:space="preserve">
+    <value>The playhead is not inside the selected clip(s).</value>
+  </data>
+  <data name="Edit_RangeShorterThanFrame" xml:space="preserve">
+    <value>The source range is shorter than one frame.</value>
+  </data>
+  <data name="Edit_RateChangedSinceCopy" xml:space="preserve">
+    <value>The project frame rate changed since the clips were copied. Copy them again.</value>
+  </data>
+  <data name="Edit_RateKept" xml:space="preserve">
+    <value>Project frame rate kept at {0} FPS.</value>
+  </data>
+  <data name="Edit_RateNotOffered" xml:space="preserve">
+    <value>{0} FPS is not one of the project frame rates.</value>
+  </data>
+  <data name="Edit_RateSet" xml:space="preserve">
+    <value>Project frame rate set to {0} FPS.</value>
+  </data>
+  <data name="Edit_RateSetFrom" xml:space="preserve">
+    <value>Project frame rate set to {0} FPS from {1}.</value>
+  </data>
+  <data name="Edit_RateUnknownFallback" xml:space="preserve">
+    <value>Source frame rate of {0} is unknown — project frame rate set to {1} FPS (fallback, not the file's actual frame rate).</value>
+  </data>
+  <data name="Edit_SelectClipToTrim" xml:space="preserve">
+    <value>Select the clip to trim: the playhead must be inside it.</value>
+  </data>
+  <data name="Edit_SelectedClipGone" xml:space="preserve">
+    <value>A selected clip no longer exists.</value>
+  </data>
+  <data name="Edit_SeveralTracksInTime" xml:space="preserve">
+    <value>Clips from several tracks can only be moved in time, not to another track.</value>
+  </data>
+  <data name="Edit_SizeChangedSinceCopy" xml:space="preserve">
+    <value>The project frame size changed since the clips were copied. Copy them again.</value>
+  </data>
+  <data name="Edit_SlipNoLength" xml:space="preserve">
+    <value>The clip's media has no known length, so it can't be slipped.</value>
+  </data>
+  <data name="Edit_SlipOnlyMedia" xml:space="preserve">
+    <value>Only video and audio clips can be slipped.</value>
+  </data>
+  <data name="Edit_SlipStoppedDissolve" xml:space="preserve">
+    <value>The slip stopped where a dissolve needs the clip's source.</value>
+  </data>
+  <data name="Edit_SlipStoppedEnd" xml:space="preserve">
+    <value>The slip stopped at the end of the source.</value>
+  </data>
+  <data name="Edit_SlipStoppedStart" xml:space="preserve">
+    <value>The slip stopped at the start of the source.</value>
+  </data>
+  <data name="Edit_SpeedOnlyMedia" xml:space="preserve">
+    <value>Only video and audio clips have a speed.</value>
+  </data>
+  <data name="Edit_SpeedTooShort" xml:space="preserve">
+    <value>At {0} the clip would be shorter than one frame.</value>
+  </data>
+  <data name="Edit_SpeedTooShortLinked" xml:space="preserve">
+    <value>At {0} the linked clip would be shorter than one frame.</value>
+  </data>
+  <data name="Edit_StillAnalyzing" xml:space="preserve">
+    <value>{0} is still being analyzed. It can be added once its duration is known.</value>
+  </data>
+  <data name="Edit_ThatRateNotOffered" xml:space="preserve">
+    <value>That FPS is not one of the project frame rates.</value>
+  </data>
+  <data name="Edit_TrackGone" xml:space="preserve">
+    <value>That track no longer exists.</value>
+  </data>
+  <data name="Edit_TrackLocked" xml:space="preserve">
+    <value>Track {0} is locked.</value>
+  </data>
+  <data name="Edit_TrackLockedNeighbour" xml:space="preserve">
+    <value>Track {0} is locked, so {1} can't move past it.</value>
+  </data>
+  <data name="Edit_TrimStoppedDissolve" xml:space="preserve">
+    <value>The trim stopped where a dissolve needs the clip's frames.</value>
+  </data>
+  <data name="Edit_UsedOnLockedTrack" xml:space="preserve">
+    <value>{0} is used on track {1}, which is locked.</value>
+  </data>
+  <data name="Edit_VideoOnlyVideoTrack" xml:space="preserve">
+    <value>Video can only go on a video track.</value>
+  </data>
+  <data name="Edit_VideoOnVideoTrack" xml:space="preserve">
+    <value>Video and images can only go on a video track.</value>
+  </data>
+  <data name="Encoding_Bitrate" xml:space="preserve">
+    <value>The audio bitrate {0} kbps is not supported.</value>
+  </data>
+  <data name="Encoding_Preset" xml:space="preserve">
+    <value>The export speed preset is unknown.</value>
+  </data>
+  <data name="Encoding_Quality" xml:space="preserve">
+    <value>The export quality is unknown.</value>
+  </data>
+  <data name="ExportQuality_Compact" xml:space="preserve">
+    <value>Compact</value>
+  </data>
+  <data name="ExportQuality_High" xml:space="preserve">
+    <value>High</value>
+  </data>
+  <data name="ExportQuality_Maximum" xml:space="preserve">
+    <value>Maximum</value>
+  </data>
+  <data name="ExportQuality_Standard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="Hdr_BitDepth" xml:space="preserve">
+    <value>{0}-bit</value>
+  </data>
+  <data name="Hdr_Bits" xml:space="preserve">
+    <value>{0} at {1} bits (at least 10 are needed)</value>
+  </data>
+  <data name="Hdr_DolbyVision" xml:space="preserve">
+    <value>Dolby Vision {0} (not applied)</value>
+  </data>
+  <data name="Hdr_DolbyVisionCompat" xml:space="preserve">
+    <value>Dolby Vision {0}.{1} (not applied)</value>
+  </data>
+  <data name="Hdr_Matrix" xml:space="preserve">
+    <value>{0} with the {1} matrix (only BT.2020 non-constant luminance is supported)</value>
+  </data>
+  <data name="Hdr_NotConverted" xml:space="preserve">
+    <value>HDR not converted: {0}</value>
+  </data>
+  <data name="Hdr_PqPeak" xml:space="preserve">
+    <value>PQ (peak {0} nit)</value>
+  </data>
+  <data name="Hdr_Primaries" xml:space="preserve">
+    <value>{0} with {1} primaries (only BT.2020 is supported)</value>
+  </data>
+  <data name="Hdr_Unknown" xml:space="preserve">
+    <value>unknown</value>
+  </data>
+  <data name="Hdr_UnknownBits" xml:space="preserve">
+    <value>{0} with an unknown bit depth</value>
+  </data>
+  <data name="Hdr_Vivid" xml:space="preserve">
+    <value>HDR Vivid (not applied)</value>
+  </data>
+  <data name="Holds_AlreadyMarked" xml:space="preserve">
+    <value>That hold is already marked.</value>
+  </data>
+  <data name="Holds_AppearRange" xml:space="preserve">
+    <value>The appear fade must be between 0 and {0} s.</value>
+  </data>
+  <data name="Holds_BadId" xml:space="preserve">
+    <value>A hold has a missing or duplicate id.</value>
+  </data>
+  <data name="Holds_BadPointCount" xml:space="preserve">
+    <value>A hold's contour has too few or too many points.</value>
+  </data>
+  <data name="Holds_BadSamples" xml:space="preserve">
+    <value>A hold's colour samples are invalid.</value>
+  </data>
+  <data name="Holds_ColourFormat" xml:space="preserve">
+    <value>The outline colour must be #RRGGBB.</value>
+  </data>
+  <data name="Holds_DisappearRange" xml:space="preserve">
+    <value>The disappear fade must be between 0 and {0} s.</value>
+  </data>
+  <data name="Holds_IntervalRange" xml:space="preserve">
+    <value>The animation interval must be between {0} and {1} s.</value>
+  </data>
+  <data name="Holds_MaxHolds" xml:space="preserve">
+    <value>A clip can have at most {0} holds.</value>
+  </data>
+  <data name="Holds_MaxHoldsRule" xml:space="preserve">
+    <value>A clip can have at most {0} holds.</value>
+  </data>
+  <data name="Holds_ModelMissing" xml:space="preserve">
+    <value>The markup's model is missing.</value>
+  </data>
+  <data name="Holds_NegativeTime" xml:space="preserve">
+    <value>A hold's frame time is negative.</value>
+  </data>
+  <data name="Holds_NotMarked" xml:space="preserve">
+    <value>That hold is not marked on the clip.</value>
+  </data>
+  <data name="Holds_OnlyVideo" xml:space="preserve">
+    <value>Holds can be marked only on a video clip.</value>
+  </data>
+  <data name="Holds_OutsideFrame" xml:space="preserve">
+    <value>A hold's contour lies outside the frame.</value>
+  </data>
+  <data name="Holds_StartInSource" xml:space="preserve">
+    <value>The animation start must lie within the source.</value>
+  </data>
+  <data name="Holds_StayRange" xml:space="preserve">
+    <value>The time after the last hold must be between 0 and {0} s.</value>
+  </data>
+  <data name="Holds_UnknownColourMode" xml:space="preserve">
+    <value>Unknown colour mode.</value>
+  </data>
+  <data name="Holds_UnknownKeylineMode" xml:space="preserve">
+    <value>Unknown keyline mode.</value>
+  </data>
+  <data name="Holds_UnknownOrder" xml:space="preserve">
+    <value>Unknown animation order.</value>
+  </data>
+  <data name="Holds_WidthRange" xml:space="preserve">
+    <value>The outline width must be between {0} and {1} px.</value>
+  </data>
+  <data name="Insert_InsideCrossfade" xml:space="preserve">
+    <value>Can't insert inside a crossfade.</value>
+  </data>
+  <data name="Insert_InsideDissolve" xml:space="preserve">
+    <value>Can't insert inside a dissolve.</value>
+  </data>
+  <data name="Kind_Audio" xml:space="preserve">
+    <value>Audio</value>
+  </data>
+  <data name="Kind_Image" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="Kind_Other" xml:space="preserve">
+    <value>These</value>
+  </data>
+  <data name="Kind_Text" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Kind_Video" xml:space="preserve">
+    <value>Video</value>
+  </data>
+  <data name="Link_AlreadyLinked" xml:space="preserve">
+    <value>A selected clip is already linked: Unlink it first.</value>
+  </data>
+  <data name="Link_AlreadyUnlinked" xml:space="preserve">
+    <value>The clip's sound is already unlinked.</value>
+  </data>
+  <data name="Link_CantFollow" xml:space="preserve">
+    <value>The linked clip can't follow.</value>
+  </data>
+  <data name="Link_CantLink" xml:space="preserve">
+    <value>Can't link: {0}</value>
+  </data>
+  <data name="Link_CantUnlink" xml:space="preserve">
+    <value>Can't unlink the sound: {0}</value>
+  </data>
+  <data name="Link_CantUnlinkClips" xml:space="preserve">
+    <value>Can't unlink: {0}</value>
+  </data>
+  <data name="Link_ClipLinked" xml:space="preserve">
+    <value>The clip is linked: Unlink it first.</value>
+  </data>
+  <data name="Link_Linked" xml:space="preserve">
+    <value>Clips linked.</value>
+  </data>
+  <data name="Link_NoSound" xml:space="preserve">
+    <value>The clip has no sound.</value>
+  </data>
+  <data name="Link_OneVideoOneAudio" xml:space="preserve">
+    <value>A link must join exactly one video clip and one audio clip.</value>
+  </data>
+  <data name="Link_OnlyMedia" xml:space="preserve">
+    <value>Only video and audio clips can be linked.</value>
+  </data>
+  <data name="Link_OnlyVideoSound" xml:space="preserve">
+    <value>Only a video clip's sound can be unlinked.</value>
+  </data>
+  <data name="Link_SelectPair" xml:space="preserve">
+    <value>Select one video clip and one audio clip to link them.</value>
+  </data>
+  <data name="Link_SoundUnlinkedTo" xml:space="preserve">
+    <value>Sound unlinked to track {0}.</value>
+  </data>
+  <data name="Link_Unlinked" xml:space="preserve">
+    <value>Clips unlinked.</value>
+  </data>
+  <data name="MakeRoom_InsideClip" xml:space="preserve">
+    <value>Can't {0}: a clip would start inside another clip (clips on a track can't overlap).</value>
+  </data>
+  <data name="MakeRoom_NoRoom" xml:space="preserve">
+    <value>Can't {0}: there is no room to move the clips on {1} aside.</value>
+  </data>
+  <data name="MakeRoom_OpensCrossfade" xml:space="preserve">
+    <value>Can't {0}: making room would open a crossfade between clips that are not moved. Remove it first.</value>
+  </data>
+  <data name="MakeRoom_OpensDissolve" xml:space="preserve">
+    <value>Can't {0}: making room would open a dissolve between clips that are not moved. Remove it first.</value>
+  </data>
+  <data name="MakeRoom_PartnerDifferent" xml:space="preserve">
+    <value>Can't {0}: a linked clip would move by a different amount than its partner.</value>
+  </data>
+  <data name="MakeRoom_PartnerNoRoom" xml:space="preserve">
+    <value>Can't {0}: a clip linked to a clip that makes room has no room on {1}.</value>
+  </data>
+  <data name="MakeRoom_RateSet" xml:space="preserve">
+    <value>Can't {0}: there is no room to move linked clips aside while the frame rate is set.</value>
+  </data>
+  <data name="Model_LoadFailed" xml:space="preserve">
+    <value>The hold model could not be loaded on the {0}: {1}</value>
+  </data>
+  <data name="Model_Mismatch" xml:space="preserve">
+    <value>The hold model file {0} in {1} is damaged or another version (expected {2}, SHA-256 {3}). It was not loaded. See docs/AI_MODEL.md.</value>
+  </data>
+  <data name="Model_NotInstalled" xml:space="preserve">
+    <value>The hold model {0} is not installed: {1} is missing in {2}. See docs/AI_MODEL.md.</value>
+  </data>
+  <data name="Model_RunFailed" xml:space="preserve">
+    <value>The hold model failed on the {0}: {1}</value>
+  </data>
+  <data name="Overwrite_InsideCrossfade" xml:space="preserve">
+    <value>Can't overwrite inside a crossfade.</value>
+  </data>
+  <data name="Overwrite_InsideDissolve" xml:space="preserve">
+    <value>Can't overwrite inside a dissolve.</value>
+  </data>
+  <data name="Plural_Clips" xml:space="preserve">
+    <value>{0} clip|{0} clips</value>
+  </data>
+  <data name="Plural_TextClips" xml:space="preserve">
+    <value>{0} text clip|{0} text clips</value>
+  </data>
+  <data name="Preflight_AnalysisFailed" xml:space="preserve">
+    <value>'{0}' could not be analysed ({1}, first at {2}).</value>
+  </data>
+  <data name="Preflight_CanvasError" xml:space="preserve">
+    <value>The frame size {0} × {1} can't be exported. {2}</value>
+  </data>
+  <data name="Preflight_EmptyRange" xml:space="preserve">
+    <value>The In / Out range has no part of the timeline in it.</value>
+  </data>
+  <data name="Preflight_EmptyTimeline" xml:space="preserve">
+    <value>The timeline is empty.</value>
+  </data>
+  <data name="Preflight_Extension" xml:space="preserve">
+    <value>The output file must be an {0} file.</value>
+  </data>
+  <data name="Preflight_FontMissing" xml:space="preserve">
+    <value>The font '{0}' is not installed ({1}); a fallback font is used, as in the Preview.</value>
+  </data>
+  <data name="Preflight_HdrNotConverted" xml:space="preserve">
+    <value>'{0}' is HDR that can't be converted to SDR — {1}; it is exported unconverted, as the Preview shows it ({2}, first at {3}).</value>
+  </data>
+  <data name="Preflight_IsFolder" xml:space="preserve">
+    <value>'{0}' is a folder, not a file.</value>
+  </data>
+  <data name="Preflight_MediaNotInProject" xml:space="preserve">
+    <value>(media not in the project)</value>
+  </data>
+  <data name="Preflight_MediaOffline" xml:space="preserve">
+    <value>'{0}' is offline ({1}, first at {2}).</value>
+  </data>
+  <data name="Preflight_NoFfmpeg" xml:space="preserve">
+    <value>ffmpeg could not be found, so the video can't be encoded.</value>
+  </data>
+  <data name="Preflight_NoFolder" xml:space="preserve">
+    <value>The folder '{0}' does not exist.</value>
+  </data>
+  <data name="Preflight_NoOutput" xml:space="preserve">
+    <value>No output file was chosen.</value>
+  </data>
+  <data name="Preflight_NotAnalysedYet" xml:space="preserve">
+    <value>'{0}' has not been analysed yet ({1}, first at {2}).</value>
+  </data>
+  <data name="Preflight_NotValidPath" xml:space="preserve">
+    <value>'{0}' is not a valid output file path.</value>
+  </data>
+  <data name="Preflight_OverwritesMedia" xml:space="preserve">
+    <value>The output would overwrite the project media '{0}'.</value>
+  </data>
+  <data name="Preflight_Unsupported" xml:space="preserve">
+    <value>'{0}' is not supported by its clip ({1}, first at {2}).</value>
+  </data>
+  <data name="Project_DefaultName" xml:space="preserve">
+    <value>Untitled Project</value>
+  </data>
+  <data name="ProjectFile_Damaged" xml:space="preserve">
+    <value>The project file is damaged and can't be opened ({0}).</value>
+  </data>
+  <data name="ProjectFile_DamagedPlain" xml:space="preserve">
+    <value>The project file is damaged and can't be opened.</value>
+  </data>
+  <data name="ProjectFile_InvalidFolder" xml:space="preserve">
+    <value>"{0}" is not a valid folder path.</value>
+  </data>
+  <data name="ProjectFile_Newer" xml:space="preserve">
+    <value>This project was saved by a newer version of AI Video Editor and can't be opened.</value>
+  </data>
+  <data name="ProjectFile_NoFolder" xml:space="preserve">
+    <value>No project folder was given.</value>
+  </data>
+  <data name="ProjectFile_NotFound" xml:space="preserve">
+    <value>{0} was not found in {1}.</value>
+  </data>
+  <data name="ProjectFile_NotProject" xml:space="preserve">
+    <value>This file is not an AI Video Editor project.</value>
+  </data>
+  <data name="ProjectFile_NotRecovery" xml:space="preserve">
+    <value>This file is not an AI Video Editor recovery file.</value>
+  </data>
+  <data name="ProjectFile_ReadFailed" xml:space="preserve">
+    <value>The project file couldn't be read: {0}</value>
+  </data>
+  <data name="ProjectFile_RecoveryDamaged" xml:space="preserve">
+    <value>The recovery file is damaged and can't be used.</value>
+  </data>
+  <data name="ProjectFile_RecoveryNewer" xml:space="preserve">
+    <value>This recovery file was written by a newer version of AI Video Editor and can't be used.</value>
+  </data>
+  <data name="ProjectFile_SaveFailed" xml:space="preserve">
+    <value>The project couldn't be saved: {0}</value>
+  </data>
+  <data name="Prop_AudioNoPicture" xml:space="preserve">
+    <value>Audio clips have no picture properties.</value>
+  </data>
+  <data name="Prop_ColorFormat" xml:space="preserve">
+    <value>Color must be written as #RRGGBB.</value>
+  </data>
+  <data name="Prop_CropNothing" xml:space="preserve">
+    <value>Crop would leave nothing of the picture.</value>
+  </data>
+  <data name="Prop_CropRange" xml:space="preserve">
+    <value>Each crop edge must be between 0 % and 100 %.</value>
+  </data>
+  <data name="Prop_FontNameLong" xml:space="preserve">
+    <value>The font name is too long.</value>
+  </data>
+  <data name="Prop_FontSize" xml:space="preserve">
+    <value>Font size must be between {0} and {1}.</value>
+  </data>
+  <data name="Prop_NoSound" xml:space="preserve">
+    <value>{0} clips have no sound.</value>
+  </data>
+  <data name="Prop_OnlyText" xml:space="preserve">
+    <value>Only text clips have text properties.</value>
+  </data>
+  <data name="Prop_Opacity" xml:space="preserve">
+    <value>Opacity must be between {0} and {1}.</value>
+  </data>
+  <data name="Prop_Position" xml:space="preserve">
+    <value>Position must be between {0} and {1} pixels.</value>
+  </data>
+  <data name="Prop_Rotation" xml:space="preserve">
+    <value>Rotation must be between {0}° and {1}°.</value>
+  </data>
+  <data name="Prop_Scale" xml:space="preserve">
+    <value>Scale must be between {0} and {1}.</value>
+  </data>
+  <data name="Prop_TextLength" xml:space="preserve">
+    <value>Text can be at most {0} characters long.</value>
+  </data>
+  <data name="Prop_TextMissing" xml:space="preserve">
+    <value>Text is missing.</value>
+  </data>
+  <data name="Prop_TextNoCrop" xml:space="preserve">
+    <value>Text clips can't be cropped.</value>
+  </data>
+  <data name="Prop_UnknownAlignment" xml:space="preserve">
+    <value>Unknown text alignment.</value>
+  </data>
+  <data name="Prop_Volume" xml:space="preserve">
+    <value>Volume must be between {0} and {1}.</value>
+  </data>
+  <data name="Regrid_ClipFromShort" xml:space="preserve">
+    <value>A clip from {0} is shorter than one frame at the new frame rate.</value>
+  </data>
+  <data name="Regrid_ClipOnTrackShort" xml:space="preserve">
+    <value>A clip on track {0} is shorter than one frame at the new frame rate.</value>
+  </data>
+  <data name="Regrid_NoRoom" xml:space="preserve">
+    <value>A very short clip on track {0} has no room on the new frame grid.</value>
+  </data>
+  <data name="Regrid_Order" xml:space="preserve">
+    <value>Clips on track {0} can't keep their order on the new frame grid.</value>
+  </data>
+  <data name="Regrid_Overlap" xml:space="preserve">
+    <value>Clips on track {0} would overlap on the new frame grid.</value>
+  </data>
+  <data name="Regrid_SourceUnknown" xml:space="preserve">
+    <value>A clip's source duration is unknown.</value>
+  </data>
+  <data name="Relink_AlreadyInBatch" xml:space="preserve">
+    <value>The media item is already relinked by another entry of this batch.</value>
+  </data>
+  <data name="Relink_AlreadyInProject" xml:space="preserve">
+    <value>"{0}" is already in the project as "{1}" — two media items can't share a file.</value>
+  </data>
+  <data name="Relink_CantRead" xml:space="preserve">
+    <value>"{0}" can't be read as media.</value>
+  </data>
+  <data name="Relink_ChangedSinceCheck" xml:space="preserve">
+    <value>"{0}" changed since it was checked; check it again.</value>
+  </data>
+  <data name="Relink_ChosenTwice" xml:space="preserve">
+    <value>"{0}" is chosen for another media item of this batch — two media items can't share a file.</value>
+  </data>
+  <data name="Relink_DiffAudioCodec" xml:space="preserve">
+    <value>Audio codec: {0} before, {1} now.</value>
+  </data>
+  <data name="Relink_DiffChannels" xml:space="preserve">
+    <value>Audio channels: {0} before, {1} now.</value>
+  </data>
+  <data name="Relink_DiffRate" xml:space="preserve">
+    <value>Frame rate: {0} before, {1} now.</value>
+  </data>
+  <data name="Relink_DiffSampleRate" xml:space="preserve">
+    <value>Sample rate: {0} Hz before, {1} Hz now.</value>
+  </data>
+  <data name="Relink_DiffSize" xml:space="preserve">
+    <value>Picture size: {0}×{1} before, {2}×{3} now.</value>
+  </data>
+  <data name="Relink_DiffStart" xml:space="preserve">
+    <value>Start time: {0} before, {1} now — the clips may show other moments.</value>
+  </data>
+  <data name="Relink_DiffVideoCodec" xml:space="preserve">
+    <value>Video codec: {0} before, {1} now.</value>
+  </data>
+  <data name="Relink_DissolveHoldsMany" xml:space="preserve">
+    <value>The new file has too little media beyond its clips for {0} dissolves; they will hold a frame.</value>
+  </data>
+  <data name="Relink_DissolveHoldsOne" xml:space="preserve">
+    <value>The new file has too little media beyond a clip for its dissolve; the dissolve will hold a frame.</value>
+  </data>
+  <data name="Relink_DoesNotExist" xml:space="preserve">
+    <value>"{0}" doesn't exist.</value>
+  </data>
+  <data name="Relink_FolderUnreadable" xml:space="preserve">
+    <value>The folder "{0}" can't be read.</value>
+  </data>
+  <data name="Relink_GoneNow" xml:space="preserve">
+    <value>"{0}" doesn't exist any more.</value>
+  </data>
+  <data name="Relink_InvalidFilePath" xml:space="preserve">
+    <value>"{0}" is not a valid file path.</value>
+  </data>
+  <data name="Relink_InvalidFolderPath" xml:space="preserve">
+    <value>"{0}" is not a valid folder path.</value>
+  </data>
+  <data name="Relink_KindAudio" xml:space="preserve">
+    <value>an audio</value>
+  </data>
+  <data name="Relink_KindDiffers" xml:space="preserve">
+    <value>"{0}" is {1} file; "{2}" is {3} file.</value>
+  </data>
+  <data name="Relink_KindImage" xml:space="preserve">
+    <value>an image</value>
+  </data>
+  <data name="Relink_KindVideo" xml:space="preserve">
+    <value>a video</value>
+  </data>
+  <data name="Relink_LengthUnknown" xml:space="preserve">
+    <value>The length of "{0}" is unknown, but the clips of "{1}" use it up to {2}.</value>
+  </data>
+  <data name="Relink_LinkedTo" xml:space="preserve">
+    <value>"{0}" is linked to {1}.</value>
+  </data>
+  <data name="Relink_NoAudioStream" xml:space="preserve">
+    <value>"{0}" has no audio stream.</value>
+  </data>
+  <data name="Relink_NoPicture" xml:space="preserve">
+    <value>"{0}" has no picture.</value>
+  </data>
+  <data name="Relink_NoSound" xml:space="preserve">
+    <value>The new file has no sound; its clips will be silent.</value>
+  </data>
+  <data name="Relink_NotInFolder" xml:space="preserve">
+    <value>"{0}" is not in the folder.</value>
+  </data>
+  <data name="Relink_NotInProject" xml:space="preserve">
+    <value>The media is not in the project.</value>
+  </data>
+  <data name="Relink_NotOfflineThere" xml:space="preserve">
+    <value>"{0}" is not offline — its file is there, nothing to relink.</value>
+  </data>
+  <data name="Relink_NotProbed" xml:space="preserve">
+    <value>ffprobe is not available, so only the file type was checked. The media stays unanalysed — its clips can't be edited or exported until it has been analysed (when the project is opened with ffprobe).</value>
+  </data>
+  <data name="Relink_NotSupported" xml:space="preserve">
+    <value>"{0}" is not a supported media file.</value>
+  </data>
+  <data name="Relink_NoVideoStream" xml:space="preserve">
+    <value>"{0}" has no video stream.</value>
+  </data>
+  <data name="Relink_OtherProject" xml:space="preserve">
+    <value>Another project is open now.</value>
+  </data>
+  <data name="Relink_SameNames" xml:space="preserve">
+    <value>{0} offline media items are named "{1}"; relink them one by one.</value>
+  </data>
+  <data name="Relink_TooShort" xml:space="preserve">
+    <value>"{0}" is {1} long, but the clips of "{2}" use it up to {3}.</value>
+  </data>
+  <data name="Relink_UndoBack" xml:space="preserve">
+    <value>{0} If it was just relinked, Undo brings the previous file back.</value>
+  </data>
+  <data name="RelinkSummary_CantUse" xml:space="preserve">
+    <value>Can't be used:</value>
+  </data>
+  <data name="RelinkSummary_Found" xml:space="preserve">
+    <value>Found {1} of {0} offline media files in "{2}".|Found {1} of {0} offline media files in "{2}".</value>
+  </data>
+  <data name="RelinkSummary_Missing" xml:space="preserve">
+    <value>Not in the folder (stay offline): {0}.</value>
+  </data>
+  <data name="RelinkSummary_NoneOffline" xml:space="preserve">
+    <value>No media is offline.</value>
+  </data>
+  <data name="Settings_ExportSet" xml:space="preserve">
+    <value>Export settings: {0} quality, {1} encoding, AAC {2} kbps.</value>
+  </data>
+  <data name="Split_InsideCrossfade" xml:space="preserve">
+    <value>Can't split inside a crossfade.</value>
+  </data>
+  <data name="Split_InsideDissolve" xml:space="preserve">
+    <value>Can't split inside a dissolve.</value>
+  </data>
+  <data name="Text_Default" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Transition_CantAddCrossfade" xml:space="preserve">
+    <value>Can't add the crossfade: {0}</value>
+  </data>
+  <data name="Transition_CantAddDissolve" xml:space="preserve">
+    <value>Can't add the dissolve: {0}</value>
+  </data>
+  <data name="Transition_CantChangeCrossfade" xml:space="preserve">
+    <value>Can't change the crossfade: {0}</value>
+  </data>
+  <data name="Transition_CantChangeDissolve" xml:space="preserve">
+    <value>Can't change the dissolve: {0}</value>
+  </data>
+  <data name="Transition_CutHasCrossfade" xml:space="preserve">
+    <value>This cut already has a crossfade.</value>
+  </data>
+  <data name="Transition_CutHasDissolve" xml:space="preserve">
+    <value>This cut already has a dissolve.</value>
+  </data>
+  <data name="Transition_MinCrossfade" xml:space="preserve">
+    <value>A crossfade must be at least {0} frames long.</value>
+  </data>
+  <data name="Transition_MinDissolve" xml:space="preserve">
+    <value>A dissolve must be at least {0} frames long.</value>
+  </data>
+  <data name="Transition_NeedsMeetCrossfade" xml:space="preserve">
+    <value>A crossfade needs two clips that meet: the first must end where the second starts.</value>
+  </data>
+  <data name="Transition_NeedsMeetDissolve" xml:space="preserve">
+    <value>A dissolve needs two clips that meet: the first must end where the second starts.</value>
+  </data>
+  <data name="Transition_NotEnoughMediaCrossfade" xml:space="preserve">
+    <value>There is not enough media beyond the clips for the crossfade.</value>
+  </data>
+  <data name="Transition_NotEnoughMediaDissolve" xml:space="preserve">
+    <value>There is not enough media beyond the clips for the dissolve.</value>
+  </data>
+  <data name="Transition_TooLongCrossfade" xml:space="preserve">
+    <value>A crossfade of {0} frames doesn't fit here; the longest that fits is {1} frames.</value>
+  </data>
+  <data name="Transition_TooLongDissolve" xml:space="preserve">
+    <value>A dissolve of {0} frames doesn't fit here; the longest that fits is {1} frames.</value>
+  </data>
+  <data name="TransitionRule_AudioOnly" xml:space="preserve">
+    <value>Only audio tracks have crossfades.</value>
+  </data>
+  <data name="TransitionRule_ClipTooShort" xml:space="preserve">
+    <value>A clip is too short for its transitions.</value>
+  </data>
+  <data name="TransitionRule_DontTouch" xml:space="preserve">
+    <value>A transition's clips don't touch.</value>
+  </data>
+  <data name="TransitionRule_Min" xml:space="preserve">
+    <value>A transition must be at least {0} frames long.</value>
+  </data>
+  <data name="TransitionRule_Negative" xml:space="preserve">
+    <value>A transition has a negative duration.</value>
+  </data>
+  <data name="TransitionRule_NotOnTrack" xml:space="preserve">
+    <value>A transition refers to a clip that is not on track {0}.</value>
+  </data>
+  <data name="TransitionRule_TwoClips" xml:space="preserve">
+    <value>A transition needs two different clips.</value>
+  </data>
+  <data name="TransitionRule_TwoOnCut" xml:space="preserve">
+    <value>A cut has more than one transition.</value>
+  </data>
+  <data name="TransitionRule_UnknownType" xml:space="preserve">
+    <value>A transition has an unknown type.</value>
+  </data>
+  <data name="TransitionRule_VideoOnly" xml:space="preserve">
+    <value>Only video tracks have dissolves.</value>
+  </data>
+  <data name="Validate_BeforeSourceStart" xml:space="preserve">
+    <value>A clip can't start before the beginning of its source media.</value>
+  </data>
+  <data name="Validate_BeforeTimelineStart" xml:space="preserve">
+    <value>A clip can't start before the beginning of the timeline.</value>
+  </data>
+  <data name="Validate_DurationUnknown" xml:space="preserve">
+    <value>The duration of {0} is unknown.</value>
+  </data>
+  <data name="Validate_ImagesNoSpeed" xml:space="preserve">
+    <value>Images have no speed.</value>
+  </data>
+  <data name="Validate_KindNotOnAudio" xml:space="preserve">
+    <value>{0} clips can't go on an audio track.</value>
+  </data>
+  <data name="Validate_KindNotOnVideo" xml:space="preserve">
+    <value>{0} clips can't go on a video track.</value>
+  </data>
+  <data name="Validate_MediaNotInProject" xml:space="preserve">
+    <value>A clip refers to media that is not in the project.</value>
+  </data>
+  <data name="Validate_MinOneFrame" xml:space="preserve">
+    <value>A clip must be at least one frame long.</value>
+  </data>
+  <data name="Validate_NotSorted" xml:space="preserve">
+    <value>Track {0} clips are not sorted.</value>
+  </data>
+  <data name="Validate_OnGrid" xml:space="preserve">
+    <value>Clip edges must lie on the project frame grid.</value>
+  </data>
+  <data name="Validate_Overlap" xml:space="preserve">
+    <value>Clips would overlap on track {0}.</value>
+  </data>
+  <data name="Validate_PastEndOf" xml:space="preserve">
+    <value>A clip can't extend past the end of {0}.</value>
+  </data>
+  <data name="Validate_RangeMismatch" xml:space="preserve">
+    <value>Clip source range doesn't match its duration.</value>
+  </data>
+  <data name="Validate_WrongList" xml:space="preserve">
+    <value>Track {0} is in the wrong track list.</value>
+  </data>
+  <data name="Verb_AddFile" xml:space="preserve">
+    <value>add {0}</value>
+  </data>
+  <data name="Verb_AddText" xml:space="preserve">
+    <value>add text on {0}</value>
+  </data>
+  <data name="Verb_Duplicate" xml:space="preserve">
+    <value>duplicate</value>
+  </data>
+  <data name="Verb_Insert" xml:space="preserve">
+    <value>insert</value>
+  </data>
+  <data name="Verb_Move" xml:space="preserve">
+    <value>move</value>
+  </data>
+  <data name="Verb_Overwrite" xml:space="preserve">
+    <value>overwrite</value>
+  </data>
+  <data name="Verb_Paste" xml:space="preserve">
+    <value>paste</value>
+  </data>
+</root>

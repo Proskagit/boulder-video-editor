@@ -5,6 +5,7 @@ using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.Video;
@@ -34,14 +35,14 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
     public async Task<MediaAnalysisResult> AnalyzeAsync(string filePath, CancellationToken ct = default)
     {
         if (!File.Exists(filePath))
-            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.FileNotFound, "The file could not be found.");
+            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.FileNotFound, Messages.Analysis_FileNotFound);
 
         var ffprobePath = await _locator.GetFfprobePathAsync(ct);
         if (ffprobePath is null)
         {
             return MediaAnalysisResult.Failure(
                 MediaAnalysisOutcome.ProbeToolUnavailable,
-                "FFprobe could not be found. Install FFmpeg (with ffprobe on PATH) or configure its path in settings.");
+                Messages.Analysis_NoFfprobe);
         }
 
         string stdout;
@@ -51,22 +52,22 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.Cancelled, "Analysis was cancelled.");
+            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.Cancelled, Messages.Analysis_Cancelled);
         }
         catch (OperationCanceledException)
         {
             // The timeout; logged with the command line and stderr where ffprobe ran.
-            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.ProbeProcessFailed, "FFprobe took too long to respond.");
+            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.ProbeProcessFailed, Messages.Analysis_Timeout);
         }
         catch (FfprobeFailedException)
         {
             // Logged with the command line, exit code and stderr where ffprobe ran.
-            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.ProbeProcessFailed, "FFprobe failed to analyze this file.");
+            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.ProbeProcessFailed, Messages.Analysis_Failed);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "ffprobe could not be run for '{Path}'.", filePath);
-            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.ProbeProcessFailed, "FFprobe failed to analyze this file.");
+            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.ProbeProcessFailed, Messages.Analysis_Failed);
         }
 
         FfprobeOutput? parsed;
@@ -77,11 +78,11 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         catch (JsonException ex)
         {
             _logger.LogWarning(ex, "Could not parse ffprobe output for '{Path}'.", filePath);
-            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.InvalidOutput, "FFprobe returned output that could not be understood.");
+            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.InvalidOutput, Messages.Analysis_BadOutput);
         }
 
         if (parsed?.Streams is null || parsed.Streams.Count == 0)
-            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.InvalidMedia, "This file doesn't appear to contain readable media streams.");
+            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.InvalidMedia, Messages.Analysis_NoStreams);
 
         var metadata = BuildMetadata(parsed);
         try
@@ -90,7 +91,7 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.Cancelled, "Analysis was cancelled.");
+            return MediaAnalysisResult.Failure(MediaAnalysisOutcome.Cancelled, Messages.Analysis_Cancelled);
         }
         return MediaAnalysisResult.Success(metadata);
     }

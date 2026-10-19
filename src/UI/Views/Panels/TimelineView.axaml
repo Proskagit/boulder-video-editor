@@ -1,6 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:l="using:AiVideoEditor.UI.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:rendering="using:AiVideoEditor.UI.Rendering"
+             xmlns:controls="using:AiVideoEditor.UI.Controls"
              x:Class="AiVideoEditor.UI.Views.Panels.TimelineView"
              Focusable="True">
 
@@ -91,7 +93,7 @@
       <Border DockPanel.Dock="Top" Padding="8,4" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1">
         <DockPanel>
           <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-            <TextBlock Text="TIMELINE" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A" VerticalAlignment="Center"/>
+            <TextBlock Text="{x:Static l:Strings.Timeline_Heading}" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A" VerticalAlignment="Center"/>
             <TextBlock Text="{Binding FrameRateDisplay}" FontSize="11" Foreground="#7A7A7A" VerticalAlignment="Center"/>
           </StackPanel>
           <!-- The tools wrap onto a second row when the window is too narrow for one (1024 px since Phase 17's Unlink / Link). -->
@@ -101,24 +103,39 @@
                 <Setter Property="Margin" Value="2,1"/>
               </Style>
             </WrapPanel.Styles>
-            <Button Content="+ Video Track" Command="{Binding AddVideoTrackCommand}" ToolTip.Tip="Add a video track" FontSize="11"/>
-            <Button Content="+ Audio Track" Command="{Binding AddAudioTrackCommand}" ToolTip.Tip="Add an audio track" FontSize="11"/>
-            <Button Content="+ Text" Command="{Binding AddTextCommand}" ToolTip.Tip="Add a text clip at the playhead on the top video track" FontSize="11"/>
+            <Button Content="{x:Static l:Strings.Timeline_AddVideoTrack}" Command="{Binding AddVideoTrackCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddVideoTrackTip}" FontSize="11"/>
+            <Button Content="{x:Static l:Strings.Timeline_AddAudioTrack}" Command="{Binding AddAudioTrackCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddAudioTrackTip}" FontSize="11"/>
+            <Button Content="{x:Static l:Strings.Timeline_AddText}" Command="{Binding AddTextCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddTextTip}" FontSize="11"/>
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
-            <Button Content="Split" Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="Split at playhead (S)" FontSize="11"/>
-            <Button Content="Delete" Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="Delete the selected clips or dissolve (Delete)" FontSize="11"/>
-            <Button Content="Ripple Delete" Command="{Binding RippleDeleteCommand}" ToolTip.Tip="Delete the selected clips and move the later clips of their tracks left to close up" FontSize="11"/>
-            <Button Content="Close Gap" Command="{Binding CloseGapCommand}" ToolTip.Tip="Remove the empty space before the selected clip: it and the later clips of its track move left" FontSize="11"/>
-            <Button Content="Paste" Command="{Binding PasteCommand}" ToolTip.Tip="Paste the copied clips at the playhead, on their tracks (Ctrl+V)" FontSize="11"/>
-            <Button Content="Duplicate" Command="{Binding DuplicateCommand}" ToolTip.Tip="Copy the selected clips right after them (Ctrl+D)" FontSize="11"/>
-            <Button Content="Dissolve" Command="{Binding AddDissolveCommand}" ToolTip.Tip="Add a dissolve between the two selected clips that meet — on an audio track, a crossfade" FontSize="11"/>
-            <Button Content="{Binding UnlinkLabel}" Command="{Binding UnlinkCommand}" ToolTip.Tip="Unlink: a video clip's sound becomes an audio clip of its own; a linked pair becomes two independent clips" FontSize="11"/>
-            <Button Content="Link" Command="{Binding LinkCommand}" ToolTip.Tip="Link the selected video clip and audio clip: they are edited together" FontSize="11"/>
-            <ToggleButton Content="Snap" IsChecked="{Binding SnappingEnabled}" ToolTip.Tip="Snapping (N)" FontSize="11"/>
+            <Button Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_SplitTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Split}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Split}"/>
+              </StackPanel>
+            </Button>
+            <Button Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DeleteTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Delete}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Delete}"/>
+              </StackPanel>
+            </Button>
+            <Button Content="{x:Static l:Strings.Timeline_RippleDelete}" Command="{Binding RippleDeleteCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_RippleDeleteTip}" FontSize="11"/>
+            <Button Content="{x:Static l:Strings.Timeline_CloseGap}" Command="{Binding CloseGapCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_CloseGapTip}" FontSize="11"/>
+            <Button Content="{x:Static l:Strings.Timeline_Paste}" Command="{Binding PasteCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_PasteTip}" FontSize="11"/>
+            <Button Content="{x:Static l:Strings.Timeline_Duplicate}" Command="{Binding DuplicateCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DuplicateTip}" FontSize="11"/>
+            <Button Content="{x:Static l:Strings.Timeline_Dissolve}" Command="{Binding AddDissolveCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DissolveTip}" FontSize="11"/>
+            <Button Content="{Binding UnlinkLabel}" Command="{Binding UnlinkCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_UnlinkTip}" FontSize="11"/>
+            <Button Content="{x:Static l:Strings.Timeline_Link}" Command="{Binding LinkCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_LinkTip}" FontSize="11"/>
+            <ToggleButton IsChecked="{Binding SnappingEnabled}" ToolTip.Tip="{x:Static l:Strings.Timeline_SnapTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Snap}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Snap}"/>
+              </StackPanel>
+            </ToggleButton>
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
-            <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out (Ctrl+−)" FontSize="11"/>
-            <Button Content="+" Command="{Binding ZoomInCommand}" ToolTip.Tip="Zoom in (Ctrl+=)" FontSize="11"/>
-            <Button Content="Fit" Command="{Binding ZoomToFitCommand}" ToolTip.Tip="Zoom to fit (\)" FontSize="11"/>
+            <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_ZoomOutTip}" FontSize="11"/>
+            <Button Content="+" Command="{Binding ZoomInCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_ZoomInTip}" FontSize="11"/>
+            <Button Content="{x:Static l:Strings.Timeline_Fit}" Command="{Binding ZoomToFitCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_FitTip}" FontSize="11"/>
           </WrapPanel>
         </DockPanel>
       </Border>
@@ -140,10 +157,10 @@
                   <Setter Property="VerticalAlignment" Value="Center"/>
                 </Style>
               </StackPanel.Styles>
-              <Button Content="◀" Command="{Binding PreviousMarkerCommand}" ToolTip.Tip="Go to the previous marker"/>
-              <Button Content="◆+" Command="{Binding AddMarkerCommand}" ToolTip.Tip="Add a marker at the playhead"/>
-              <Button Content="◆−" Command="{Binding RemoveMarkerCommand}" ToolTip.Tip="Remove the marker at the playhead"/>
-              <Button Content="▶" Command="{Binding NextMarkerCommand}" ToolTip.Tip="Go to the next marker"/>
+              <Button Content="◀" Command="{Binding PreviousMarkerCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_PrevMarkerTip}"/>
+              <Button Content="◆+" Command="{Binding AddMarkerCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddMarkerTip}"/>
+              <Button Content="◆−" Command="{Binding RemoveMarkerCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_RemoveMarkerTip}"/>
+              <Button Content="▶" Command="{Binding NextMarkerCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_NextMarkerTip}"/>
             </StackPanel>
             <ItemsControl ItemsSource="{Binding Tracks}">
               <ItemsControl.ItemTemplate>
@@ -154,14 +171,18 @@
                       <DockPanel Margin="4,0" LastChildFill="True">
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="1">
                           <Button Classes="trackState mute" Classes.on="{Binding IsMuted}" Content="M"
-                                  ToolTip.Tip="Mute / unmute the track: a muted track is not heard in the Preview or the export"
+                                  ToolTip.Tip="{x:Static l:Strings.Track_MuteTip}"
                                   Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackMuteCommand}" CommandParameter="{Binding}"/>
-                          <Button Classes="trackState hide" Classes.on="{Binding IsHidden}" Content="👁" IsVisible="{Binding CanHide}"
-                                  ToolTip.Tip="Hide / show the track: a hidden track is not drawn in the Preview or the export (its sound still plays)"
-                                  Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackHiddenCommand}" CommandParameter="{Binding}"/>
-                          <Button Classes="trackState lock" Classes.on="{Binding IsLocked}" Content="🔒"
-                                  ToolTip.Tip="Lock / unlock the track: a locked track's clips and place can't be edited (it still plays and exports)"
-                                  Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackLockCommand}" CommandParameter="{Binding}"/>
+                          <Button Classes="trackState hide" Classes.on="{Binding IsHidden}" IsVisible="{Binding CanHide}"
+                                  ToolTip.Tip="{x:Static l:Strings.Track_HideTip}"
+                                  Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackHiddenCommand}" CommandParameter="{Binding}">
+                            <controls:IconPath Glyph="{x:Static controls:Icons.Eye}" Width="10" Height="10" StrokeThickness="1.3"/>
+                          </Button>
+                          <Button Classes="trackState lock" Classes.on="{Binding IsLocked}"
+                                  ToolTip.Tip="{x:Static l:Strings.Track_LockTip}"
+                                  Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackLockCommand}" CommandParameter="{Binding}">
+                            <controls:IconPath Glyph="{x:Static controls:Icons.Lock}" Width="10" Height="10" StrokeThickness="1.3"/>
+                          </Button>
                         </StackPanel>
                         <TextBlock Text="{Binding Label}" Foreground="#AAAAAA" FontSize="11" VerticalAlignment="Center"/>
                       </DockPanel>
@@ -175,11 +196,11 @@
                             <Setter Property="Height" Value="16"/>
                           </Style>
                         </StackPanel.Styles>
-                        <Button Content="▲" ToolTip.Tip="Move the track up"
+                        <Button Content="▲" ToolTip.Tip="{x:Static l:Strings.Track_MoveUpTip}"
                                 Command="{Binding $parent[ItemsControl].DataContext.MoveTrackUpCommand}" CommandParameter="{Binding}"/>
-                        <Button Content="▼" ToolTip.Tip="Move the track down"
+                        <Button Content="▼" ToolTip.Tip="{x:Static l:Strings.Track_MoveDownTip}"
                                 Command="{Binding $parent[ItemsControl].DataContext.MoveTrackDownCommand}" CommandParameter="{Binding}"/>
-                        <Button Content="✕" ToolTip.Tip="Delete the track (asks first when it has clips)"
+                        <Button Content="✕" ToolTip.Tip="{x:Static l:Strings.Track_DeleteTip}"
                                 Command="{Binding $parent[ItemsControl].DataContext.DeleteTrackCommand}" CommandParameter="{Binding}"/>
                       </StackPanel>
                     </StackPanel>
@@ -330,7 +351,7 @@
                       Background="#B0F2C94C" IsVisible="{Binding HasRange}" IsHitTestVisible="False"/>
               <Button Content="✕" Canvas.Left="{Binding RangeRight}" Canvas.Top="1" Margin="2,0,0,0"
                       FontSize="9" Padding="3,0" MinHeight="0" Height="15" IsVisible="{Binding CanClearRange}"
-                      ToolTip.Tip="Clear In / Out" Command="{Binding ClearInOutCommand}"/>
+                      ToolTip.Tip="{x:Static l:Strings.Timeline_ClearInOutTip}" Command="{Binding ClearInOutCommand}"/>
             </Canvas>
 
             <!-- The marquee (D037 §1), over the lanes -->
@@ -352,8 +373,8 @@
         <!-- Empty timeline (D024 Step 9.8): how to add a clip. Not hit-testable, so drops reach the tracks. -->
         <StackPanel Grid.Column="1" IsVisible="{Binding IsEmpty}" IsHitTestVisible="False" Spacing="4" Margin="16,0,16,28"
                     HorizontalAlignment="Center" VerticalAlignment="Bottom">
-          <TextBlock Text="The timeline is empty" Foreground="#AAAAAA" FontSize="13" HorizontalAlignment="Center"/>
-          <TextBlock Text="Drag media here from the Media Browser, or select it and click Add to Timeline. + Text adds a text clip."
+          <TextBlock Text="{x:Static l:Strings.Timeline_Empty}" Foreground="#AAAAAA" FontSize="13" HorizontalAlignment="Center"/>
+          <TextBlock Text="{x:Static l:Strings.Timeline_EmptyHint}"
                      Foreground="#7A7A7A" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
         </StackPanel>
 

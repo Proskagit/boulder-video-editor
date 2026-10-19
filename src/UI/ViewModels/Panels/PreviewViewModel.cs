@@ -4,6 +4,7 @@ using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.UI.Common;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -71,7 +72,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     /// until every layer has its picture (e.g. a layer uncovered by an opacity change while paused).</summary>
     [ObservableProperty] private bool _areLayersCurrent = true;
 
-    public string PlayPauseLabel => IsPlaying ? "Pause" : "Play";
+    public string PlayPauseLabel => IsPlaying ? Strings.Transport_Pause : Strings.Transport_Play;
 
     /// <summary>Requests a playhead step by this many frames (negative = back).</summary>
     public event EventHandler<long>? FrameStepRequested;
@@ -158,7 +159,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
         if (!_playback.IsAvailable && !_reportedUnavailable)
         {
             _reportedUnavailable = true;
-            _status.Report("Playback is unavailable: FFmpeg could not be found. Install FFmpeg or configure its path.");
+            _status.Report(Strings.Playback_NoFfmpeg);
         }
 
         if (IsPlaying && !_playback.IsAudioAvailable && !_reportedNoAudio)
@@ -171,7 +172,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
             // The sound is back (D029 §3, D030 §9 / Q15): the stale message goes — unless something else was reported
             // since — and a later loss is reported again. Nothing in the project changes.
             _reportedNoAudio = false;
-            if (_status.Message == NoSoundMessage) _status.Report("Ready.");
+            if (_status.Message == NoSoundMessage) _status.Report(Strings.Status_Ready);
         }
 
         if (!IsPlaying && !IsBuffering && AreLayersCurrent)
@@ -293,7 +294,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     [RelayCommand]
     private void ToggleLoop() => IsLooping = !IsLooping;
 
-    private const string NoSoundMessage = "Playing without sound: no audio output is available.";
+    private static string NoSoundMessage => Strings.Playback_NoSound;
 
     private readonly InOutRangeService? _inOut;
 

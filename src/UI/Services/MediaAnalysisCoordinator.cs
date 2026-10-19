@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.UI.Localization;
 using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.UI.Services;
@@ -298,7 +299,7 @@ public sealed class MediaAnalysisCoordinator
             // this is a last-resort net so a truly unexpected failure still leaves
             // the asset in a clean Failed state instead of stuck "Analyzing" forever.
             asset.AnalysisStatus = MediaAnalysisStatus.Failed;
-            asset.AnalysisError = "Something went wrong while analyzing this file.";
+            asset.AnalysisError = Strings.Analysis_UnexpectedError;
             _logger.LogError(ex, "Unexpected error analyzing '{Path}'.", asset.FilePath);
             _projectService.NotifyMediaAssetsChanged();
         }

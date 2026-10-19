@@ -1,6 +1,7 @@
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.Timeline.Commands;
 
@@ -17,11 +18,11 @@ public sealed partial class TimelineEditService
     {
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, new[] { clipId }, out var clips) is { } missing) return missing;
-        if (clips[0] is not VideoClip video) return "Only a video clip's sound can be unlinked.";
-        if (video.IsAudioDetached) return "The clip's sound is already unlinked.";
-        if (video.LinkId is not null) return "The clip is linked: Unlink it first.";
+        if (clips[0] is not VideoClip video) return Messages.Link_OnlyVideoSound;
+        if (video.IsAudioDetached) return Messages.Link_AlreadyUnlinked;
+        if (video.LinkId is not null) return Messages.Link_ClipLinked;
         if (FindAsset(video.MediaAssetId)?.Metadata is not { AudioCodec: not null })
-            return "The clip has no sound.";
+            return Messages.Link_NoSound;
         return CheckEditable(plan, clips);
     }
 
@@ -58,14 +59,14 @@ public sealed partial class TimelineEditService
         plan.SetLink(video, ClipLinkState.Capture(video) with { IsAudioDetached = true });
 
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail($"Can't unlink the sound: {error}");
+            return TimelineEditResult.Fail(string.Format(Messages.Link_CantUnlink, error));
 
         var command = plan.BuildCommand(UnlinkAudioDescription);
         if (newTrack is not null)
             command = new CompositeCommand(UnlinkAudioDescription, new[] { new AddTrackCommand(Sequence, newTrack), command });
         _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { video.Id, sound.Id },
-            $"Sound unlinked to track {(target ?? newTrack)!.Name}.");
+            string.Format(Messages.Link_SoundUnlinkedTo, (target ?? newTrack)!.Name));
     }
 
     public TimelineEditResult LinkClips(IReadOnlyCollection<Guid> clipIds)
@@ -73,18 +74,18 @@ public sealed partial class TimelineEditService
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, clipIds, out var clips) is { } missing) return TimelineEditResult.Fail(missing);
         if (clips.Count != 2 || clips.OfType<VideoClip>().Count() != 1 || clips.OfType<AudioClip>().Count() != 1)
-            return TimelineEditResult.Fail("Select one video clip and one audio clip to link them.");
+            return TimelineEditResult.Fail(Messages.Link_SelectPair);
         if (clips.Cast<MediaBackedClip>().Any(c => c.LinkId is not null))
-            return TimelineEditResult.Fail("A selected clip is already linked: Unlink it first.");
+            return TimelineEditResult.Fail(Messages.Link_AlreadyLinked);
         if (CheckEditable(plan, clips) is { } locked) return TimelineEditResult.Fail(locked);
 
         var link = Guid.NewGuid();
         foreach (var clip in clips.Cast<MediaBackedClip>())
             plan.SetLink(clip, ClipLinkState.Capture(clip) with { LinkId = link });
 
-        if (Validate(plan) is { } error) return TimelineEditResult.Fail($"Can't link: {error}");
+        if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Link_CantLink, error));
         Commit(plan, "Link Clips");
-        return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), "Clips linked.");
+        return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), Messages.Link_Linked);
     }
 
     public TimelineEditResult UnlinkClips(IReadOnlyCollection<Guid> clipIds)
@@ -99,9 +100,9 @@ public sealed partial class TimelineEditService
         foreach (var clip in linked)
             plan.SetLink(clip, ClipLinkState.Capture(clip) with { LinkId = null });
 
-        if (Validate(plan) is { } error) return TimelineEditResult.Fail($"Can't unlink: {error}");
+        if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Link_CantUnlinkClips, error));
         Commit(plan, "Unlink Clips");
-        return TimelineEditResult.Ok(linked.Select(c => c.Id).ToList(), "Clips unlinked.");
+        return TimelineEditResult.Ok(linked.Select(c => c.Id).ToList(), Messages.Link_Unlinked);
     }
 
     /// <summary><paramref name="clips"/> with the other clip of each link among them (D032 R5), each once, in order.</summary>

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Core.Playback;
 
 namespace AiVideoEditor.Core.Export;
@@ -103,19 +104,19 @@ public static class ExportPreflight
         var issues = new List<ExportIssue>();
 
         if (snapshot.Duration <= MediaTime.Zero)
-            issues.Add(Error(ExportIssueKind.EmptyTimeline, "The timeline is empty."));
+            issues.Add(Error(ExportIssueKind.EmptyTimeline, Messages.Preflight_EmptyTimeline));
 
         // The canvas rules of D028 (Step 13.4, P-1): a file may carry any positive size (written by hand), but only a
         // size the user could choose is exported; ProjectSettingsRules is the one source of these limits.
         var canvas = snapshot.Canvas;
         if (ProjectSettingsRules.CanvasError(canvas.Width, canvas.Height) is { } canvasError)
             issues.Add(Error(ExportIssueKind.InvalidCanvas,
-                $"The frame size {canvas.Width} × {canvas.Height} can't be exported. {canvasError}"));
+                string.Format(Messages.Preflight_CanvasError, canvas.Width, canvas.Height, canvasError)));
 
         var fullOutputPath = CheckOutputPath(project, outputPath, environment, issues);
 
         if (!environment.EncoderAvailable)
-            issues.Add(Error(ExportIssueKind.EncoderUnavailable, "ffmpeg could not be found, so the video can't be encoded."));
+            issues.Add(Error(ExportIssueKind.EncoderUnavailable, Messages.Preflight_NoFfmpeg));
 
         // The range within the sequence; the window of timeline time and samples the output covers.
         ExportRange? exported = null;
@@ -126,7 +127,7 @@ public static class ExportPreflight
             var clamped = new ExportRange(Math.Max(0, r.FirstFrame), Math.Min(r.EndFrame, total));
             if (clamped.FrameCount <= 0)
             {
-                issues.Add(Error(ExportIssueKind.EmptyRange, "The In / Out range has no part of the timeline in it."));
+                issues.Add(Error(ExportIssueKind.EmptyRange, Messages.Preflight_EmptyRange));
             }
             else
             {
@@ -160,7 +161,7 @@ public static class ExportPreflight
     {
         if (string.IsNullOrWhiteSpace(outputPath))
         {
-            issues.Add(Error(ExportIssueKind.InvalidOutputPath, "No output file was chosen."));
+            issues.Add(Error(ExportIssueKind.InvalidOutputPath, Messages.Preflight_NoOutput));
             return null;
         }
 
@@ -176,28 +177,28 @@ public static class ExportPreflight
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
-            issues.Add(Error(ExportIssueKind.InvalidOutputPath, $"'{outputPath}' is not a valid output file path."));
+            issues.Add(Error(ExportIssueKind.InvalidOutputPath, string.Format(Messages.Preflight_NotValidPath, outputPath)));
             return null;
         }
 
         if (!string.Equals(Path.GetExtension(full), ExportFormat.FileExtension, StringComparison.OrdinalIgnoreCase))
         {
-            issues.Add(Error(ExportIssueKind.InvalidOutputPath, $"The output file must be an {ExportFormat.FileExtension} file."));
+            issues.Add(Error(ExportIssueKind.InvalidOutputPath, string.Format(Messages.Preflight_Extension, ExportFormat.FileExtension)));
             return null;
         }
 
         if (env.DirectoryExists(full))
         {
-            issues.Add(Error(ExportIssueKind.InvalidOutputPath, $"'{full}' is a folder, not a file."));
+            issues.Add(Error(ExportIssueKind.InvalidOutputPath, string.Format(Messages.Preflight_IsFolder, full)));
             return null;
         }
 
         var folder = Path.GetDirectoryName(full);
         if (string.IsNullOrEmpty(folder) || !env.DirectoryExists(folder))
-            issues.Add(Error(ExportIssueKind.OutputFolderMissing, $"The folder '{folder}' does not exist."));
+            issues.Add(Error(ExportIssueKind.OutputFolderMissing, string.Format(Messages.Preflight_NoFolder, folder)));
 
         if (project.MediaAssets.FirstOrDefault(a => SamePath(a.FilePath, full)) is { } media)
-            issues.Add(Error(ExportIssueKind.OutputIsProjectMedia, $"The output would overwrite the project media '{media.FileName}'.") with
+            issues.Add(Error(ExportIssueKind.OutputIsProjectMedia, string.Format(Messages.Preflight_OverwritesMedia, media.FileName)) with
                 { AssetId = media.Id, Subject = media.FilePath });
 
         return full;
@@ -232,17 +233,17 @@ public static class ExportPreflight
                      .OrderBy(p => p.Key.Kind).ThenBy(p => p.Value.Min(c => c.Start)))
         {
             assets.TryGetValue(assetId, out var asset);
-            var name = asset?.FileName ?? "(media not in the project)";
-            var count = clips.Count == 1 ? "1 clip" : $"{clips.Count} clips";
+            var name = asset?.FileName ?? Messages.Preflight_MediaNotInProject;
+            var count = Plural.Format(clips.Count, Messages.Plural_Clips);
             var first = clips.Min(c => c.Start);
-            var what = kind switch
+            var message = kind switch
             {
-                ExportIssueKind.MediaOffline => "is offline",
+                ExportIssueKind.MediaOffline => Messages.Preflight_MediaOffline,
                 ExportIssueKind.MediaNotAnalyzed => asset?.AnalysisStatus == MediaAnalysisStatus.Failed
-                    ? "could not be analysed" : "has not been analysed yet",
-                _ => "is not supported by its clip"
+                    ? Messages.Preflight_AnalysisFailed : Messages.Preflight_NotAnalysedYet,
+                _ => Messages.Preflight_Unsupported
             };
-            issues.Add(Error(kind, $"'{name}' {what} ({count}, first at {first}).") with
+            issues.Add(Error(kind, string.Format(message, name, count, first)) with
             {
                 AssetId = assetId,
                 Subject = asset?.FilePath,
@@ -263,11 +264,10 @@ public static class ExportPreflight
         {
             var asset = group.First().Asset!;
             var clips = group.OrderBy(p => p.Span.TimelineStart).Select(p => p.Span.ClipId).Distinct().ToImmutableArray();
-            var count = clips.Length == 1 ? "1 clip" : $"{clips.Length} clips";
+            var count = Plural.Format(clips.Length, Messages.Plural_Clips);
             var reason = HdrColor.Classify(asset.Kind, asset.Metadata).Reason;
             issues.Add(new ExportIssue(ExportIssueSeverity.Warning, ExportIssueKind.HdrNotConverted,
-                $"'{asset.FileName}' is HDR that can't be converted to SDR — {reason}; it is exported unconverted, as the Preview " +
-                $"shows it ({count}, first at {group.Min(p => p.Span.TimelineStart)}).")
+                string.Format(Messages.Preflight_HdrNotConverted, asset.FileName, reason, count, group.Min(p => p.Span.TimelineStart)))
             {
                 AssetId = asset.Id,
                 Subject = asset.FilePath,
@@ -299,9 +299,9 @@ public static class ExportPreflight
         foreach (var font in missing)
         {
             var clips = font.OrderBy(t => t.TimelineStart).Select(t => t.ClipId).Distinct().ToImmutableArray();
-            var count = clips.Length == 1 ? "1 text clip" : $"{clips.Length} text clips";
+            var count = Plural.Format(clips.Length, Messages.Plural_TextClips);
             issues.Add(new ExportIssue(ExportIssueSeverity.Warning, ExportIssueKind.FontMissing,
-                $"The font '{font.Key}' is not installed ({count}); a fallback font is used, as in the Preview.")
+                string.Format(Messages.Preflight_FontMissing, font.Key, count))
             {
                 Subject = font.Key,
                 ClipIds = clips

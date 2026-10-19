@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 
@@ -53,7 +54,7 @@ public sealed class OnnxHoldModelBackend : IHoldModelBackend
         }
         catch (Exception ex) when (ex is OnnxRuntimeException or DllNotFoundException or EntryPointNotFoundException)
         {
-            throw new HoldBackendException($"The hold model could not be loaded on the {Describe(device)}: {ex.Message}", device == InferenceDevice.Gpu, ex);
+            throw new HoldBackendException(string.Format(Messages.Model_LoadFailed, Describe(device), ex.Message), device == InferenceDevice.Gpu, ex);
         }
     }
 
@@ -114,7 +115,7 @@ public sealed class OnnxHoldModelBackend : IHoldModelBackend
         }
         catch (OnnxRuntimeException ex)
         {
-            throw new HoldBackendException($"The hold model failed on the {Describe(Device)}: {ex.Message}",
+            throw new HoldBackendException(string.Format(Messages.Model_RunFailed, Describe(Device), ex.Message),
                 Device == InferenceDevice.Gpu && IsKnownDeviceError(ex.Message), ex);
         }
     }

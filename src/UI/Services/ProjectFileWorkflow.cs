@@ -1,4 +1,6 @@
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
+using AiVideoEditor.UI.Localization;
 using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.UI.Services;
@@ -54,13 +56,13 @@ public sealed class ProjectFileWorkflow
     public async Task<bool> NewProjectAsync()
     {
         var previousId = _projectService.Current.Id;
-        var decision = await ConfirmUnsavedChangesAsync("creating a new project");
+        var decision = await ConfirmUnsavedChangesAsync(Strings.Unsaved_ActionNew);
         if (decision == UnsavedChangesDecision.Cancel) return false;
 
-        _projectService.CreateNew("Untitled Project"); // also resets the undo history
+        _projectService.CreateNew(Messages.Project_DefaultName); // also resets the undo history
         if (decision == UnsavedChangesDecision.DontSave)
             await DiscardRecoveryQuietlyAsync(previousId);
-        _status.Report("New project created.");
+        _status.Report(Strings.Project_Created);
         return true;
     }
 
@@ -71,7 +73,7 @@ public sealed class ProjectFileWorkflow
     {
         var folder = await _picker.PickFolderAsync(new FolderPickerRequest
         {
-            Title = "Open Project — select the project folder",
+            Title = Strings.Project_OpenPickerTitle,
             StartFolder = ParentOf(_projectService.Current.ProjectFolderPath)
         });
         if (folder is null) return false;
@@ -86,7 +88,7 @@ public sealed class ProjectFileWorkflow
     public async Task<bool> OpenFolderAsync(string projectFolderPath)
     {
         var previousId = _projectService.Current.Id;
-        var decision = await ConfirmUnsavedChangesAsync("opening another project");
+        var decision = await ConfirmUnsavedChangesAsync(Strings.Unsaved_ActionOpen);
         if (decision == UnsavedChangesDecision.Cancel) return false;
 
         if (!await OpenAsync(projectFolderPath)) return false;
@@ -118,11 +120,11 @@ public sealed class ProjectFileWorkflow
         catch (ProjectFileException ex)
         {
             _logger.LogWarning(ex, "Save failed.");
-            _status.Report($"Couldn't save \"{_projectService.Current.Name}\". {ex.Message}");
+            _status.Report(string.Format(Strings.Project_SaveFailed, _projectService.Current.Name, ex.Message));
             return false;
         }
 
-        _status.Report(SavedMessage($"Saved project \"{_projectService.Current.Name}\"."));
+        _status.Report(SavedMessage(string.Format(Strings.Project_Saved, _projectService.Current.Name)));
         return true;
     }
 
@@ -135,7 +137,7 @@ public sealed class ProjectFileWorkflow
         var current = _projectService.Current;
         var folder = await _picker.PickFolderAsync(new FolderPickerRequest
         {
-            Title = "Save Project As — select or create a folder for the project",
+            Title = Strings.Project_SaveAsPickerTitle,
             StartFolder = ParentOf(current.ProjectFolderPath)
         });
         if (folder is null) return false;
@@ -146,9 +148,9 @@ public sealed class ProjectFileWorkflow
         {
             var replace = await _dialogs.AskAsync(new DialogRequest
             {
-                Title = "Replace project?",
-                Message = $"The folder \"{folder}\" already contains a project. Replace it with \"{current.Name}\"?",
-                Buttons = new[] { "Replace", "Cancel" }
+                Title = Strings.Project_ReplaceTitle,
+                Message = string.Format(Strings.Project_ReplaceQuestion, folder, current.Name),
+                Buttons = new[] { Strings.Common_Replace, Strings.Common_Cancel }
             });
             if (replace != 0) return false;
         }
@@ -160,11 +162,11 @@ public sealed class ProjectFileWorkflow
         catch (ProjectFileException ex)
         {
             _logger.LogWarning(ex, "Save As to {Folder} failed.", folder);
-            _status.Report($"Couldn't save \"{current.Name}\". {ex.Message}");
+            _status.Report(string.Format(Strings.Project_SaveFailed, current.Name, ex.Message));
             return false;
         }
 
-        _status.Report(SavedMessage($"Saved project \"{_projectService.Current.Name}\" to {folder}."));
+        _status.Report(SavedMessage(string.Format(Strings.Project_SavedTo, _projectService.Current.Name, folder)));
         // The folder written, also when Open replaced the project while it was being saved (project.json is there).
         var savedFolder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder));
         await RememberRecentAsync(savedFolder, Path.GetFileName(savedFolder) is { Length: > 0 } name ? name : current.Name);
@@ -172,7 +174,7 @@ public sealed class ProjectFileWorkflow
     }
 
     private string SavedMessage(string message) => _projectService.Current.IsDirty
-        ? message + " Changes made while saving are not saved yet."
+        ? string.Format(Strings.Project_ChangesWhileSaving, message)
         : message;
 
     // ---- Unsaved changes -------------------------------------------------------------
@@ -187,10 +189,9 @@ public sealed class ProjectFileWorkflow
         {
             var choice = await _dialogs.AskAsync(new DialogRequest
             {
-                Title = "Unsaved changes",
-                Message = $"Do you want to save the changes to \"{_projectService.Current.Name}\" before {action}?\n\n" +
-                          "If you don't save, your changes will be lost.",
-                Buttons = new[] { "Save", "Don't Save", "Cancel" }
+                Title = Strings.Unsaved_Title,
+                Message = string.Format(Strings.Unsaved_Question, _projectService.Current.Name, action),
+                Buttons = new[] { Strings.Common_Save, Strings.Common_DontSave, Strings.Common_Cancel }
             });
 
             switch (choice)
@@ -238,7 +239,7 @@ public sealed class ProjectFileWorkflow
         catch (ProjectFileException ex)
         {
             _logger.LogWarning(ex, "Couldn't open project from {Folder}.", projectFolderPath);
-            _status.Report($"Couldn't open the project. {ex.Message}");
+            _status.Report(string.Format(Strings.Project_OpenFailed, ex.Message));
             return false;
         }
         catch (OperationCanceledException)
@@ -247,7 +248,7 @@ public sealed class ProjectFileWorkflow
         }
 
         AnalyseWhereNeeded(project);
-        _status.Report($"Opened project \"{project.Name}\".{MissingSuffix(project)}");
+        _status.Report(string.Format(Strings.Project_Opened, project.Name) + MissingSuffix(project));
         await RememberRecentAsync(project.ProjectFolderPath!, project.Name);
         return true;
     }
@@ -266,12 +267,7 @@ public sealed class ProjectFileWorkflow
                 await _waveformCache.CleanUpUnsavedAsync();
 
             var scan = await _autosave.FindRecoveryAsync();
-            var setAside = scan.DamagedFiles switch
-            {
-                0 => "",
-                1 => " 1 recovery file couldn't be used and was set aside.",
-                _ => $" {scan.DamagedFiles} recovery files couldn't be used and were set aside."
-            };
+            var setAside = scan.DamagedFiles == 0 ? "" : " " + Plural.Format(scan.DamagedFiles, Strings.Recovery_SetAside);
 
             if (scan.Candidate is { } candidate)
                 await OfferRecoveryAsync(candidate, setAside);
@@ -298,12 +294,12 @@ public sealed class ProjectFileWorkflow
         catch (ProjectFileException ex)
         {
             _logger.LogWarning(ex, "Couldn't recover from {File}.", candidate.FilePath);
-            _status.Report($"Couldn't recover \"{candidate.ProjectName}\". {ex.Message}{suffix}");
+            _status.Report(string.Format(Strings.Recovery_Failed, candidate.ProjectName, ex.Message) + suffix);
             return;
         }
 
         AnalyseWhereNeeded(project);
-        _status.Report($"Recovered unsaved changes to \"{project.Name}\" — save the project to keep them.{MissingSuffix(project)}{suffix}");
+        _status.Report(string.Format(Strings.Recovery_Recovered, project.Name) + MissingSuffix(project) + suffix);
         if (project.ProjectFolderPath is { } folder)
             await RememberRecentAsync(folder, project.Name); // also when the folder is gone: listed as unavailable
     }
@@ -311,15 +307,13 @@ public sealed class ProjectFileWorkflow
     private async Task OfferRecoveryAsync(RecoveryCandidate candidate, string suffix)
     {
         var where = candidate.ProjectFolderPath is null
-            ? "The project had not been saved yet."
-            : $"Project folder: {candidate.ProjectFolderPath}";
+            ? Strings.Recovery_NotSavedYet
+            : string.Format(Strings.Recovery_Folder, candidate.ProjectFolderPath);
         var choice = await _dialogs.AskAsync(new DialogRequest
         {
-            Title = "Recover unsaved work",
-            Message = $"AI Video Editor didn't close normally. Unsaved changes to \"{candidate.ProjectName}\" " +
-                      $"were autosaved at {candidate.AutosavedAt.LocalDateTime:g}.\n{where}\n\n" +
-                      "Recover them now? Discarded changes can't be restored.",
-            Buttons = new[] { "Recover", "Discard", "Not now" }
+            Title = Strings.Recovery_Title,
+            Message = string.Format(Strings.Recovery_Question, candidate.ProjectName, candidate.AutosavedAt.LocalDateTime.ToString("g"), where),
+            Buttons = new[] { Strings.Recovery_Recover, Strings.Recovery_Discard, Strings.Recovery_NotNow }
         });
 
         switch (choice)
@@ -329,10 +323,10 @@ public sealed class ProjectFileWorkflow
                 break;
             case 1:
                 await _autosave.DiscardRecoveryAsync(candidate);
-                _status.Report($"Discarded the autosaved changes to \"{candidate.ProjectName}\".{suffix}");
+                _status.Report(string.Format(Strings.Recovery_Discarded, candidate.ProjectName) + suffix);
                 break;
             default:
-                _status.Report($"Autosaved changes to \"{candidate.ProjectName}\" were kept; you'll be asked again next time.{suffix}");
+                _status.Report(string.Format(Strings.Recovery_Kept, candidate.ProjectName) + suffix);
                 break;
         }
     }
@@ -343,7 +337,7 @@ public sealed class ProjectFileWorkflow
     /// may close.</summary>
     public async Task<bool> PrepareToCloseAsync()
     {
-        var decision = await ConfirmUnsavedChangesAsync("closing");
+        var decision = await ConfirmUnsavedChangesAsync(Strings.Unsaved_ActionClose);
         if (decision == UnsavedChangesDecision.Cancel) return false;
 
         try
@@ -384,8 +378,7 @@ public sealed class ProjectFileWorkflow
     private static string MissingSuffix(Core.Entities.Project project) => project.MediaAssets.Count(a => a.IsMissing) switch
     {
         0 => "",
-        1 => " 1 media file is missing and is shown as offline — use Relink or Find Missing in the Media Browser.",
-        var n => $" {n} media files are missing and are shown as offline — use Relink or Find Missing in the Media Browser."
+        var n => " " + Plural.Format(n, Strings.Media_MissingSuffix)
     };
 }
 

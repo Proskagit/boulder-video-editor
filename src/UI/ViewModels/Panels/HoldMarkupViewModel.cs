@@ -5,6 +5,7 @@ using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Holds;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -32,10 +33,9 @@ namespace AiVideoEditor.UI.ViewModels.Panels;
 /// </summary>
 public sealed partial class HoldMarkupViewModel : ViewModelBase
 {
-    public const string CpuMessage = "AI runs on the CPU — processing may be slower.";
+    public static string CpuMessage => Strings.Holds_Cpu;
 
-    public const string RefineRejectedMessage =
-        "That point gives no usable outline (only the wall or a too large area) — the previous outline is kept. Shift+click on the hold itself.";
+    public static string RefineRejectedMessage => Strings.Holds_RefineRejected;
 
     private readonly ITimelineEditService _edit;
     private readonly IProjectService _projects;
@@ -88,8 +88,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     public Func<bool> IsPausedOnTimeline { get; set; } = () => true;
 
     public ImmutableArray<PaletteColor> Palette => RouteColor.Palette;
-    public IReadOnlyList<string> ColorModes { get; } = new[] { "Auto", "Manual" };
-    public IReadOnlyList<string> KeylineModes { get; } = new[] { "Auto", "On", "Off" };
+    public IReadOnlyList<string> ColorModes { get; } = new[] { Strings.Holds_ModeAuto, Strings.Holds_ModeManual };
+    public IReadOnlyList<string> KeylineModes { get; } = new[] { Strings.Holds_ModeAuto, Strings.Holds_KeylineOnItem, Strings.Holds_KeylineOffItem };
 
     // ---- the Inspector section ------------------------------------------------------------------------------------
 
@@ -175,19 +175,19 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (_clip is null) return;
         if (_lock.IsLocked)
         {
-            _status.Report("The outline can't be changed while an export is running.");
+            _status.Report(Strings.Holds_OutlineExportRunning);
             LoadStyle();
             return;
         }
         var current = HoldStyle.Of(_clip.HoldMarkup ?? new HoldMarkup());
         var result = _edit.SetHoldStyle(_clip.Id, change(current));
-        if (!result.Success) _status.Report(result.Message ?? "The outline could not be changed.");
+        if (!result.Success) _status.Report(result.Message ?? Strings.Holds_OutlineNotChanged);
         LoadStyle();
     }
 
     // ---- the animation (D036) ---------------------------------------------------------------------------------------
 
-    public IReadOnlyList<string> AnimationOrders { get; } = new[] { "Bottom to top", "Marking order" };
+    public IReadOnlyList<string> AnimationOrders { get; } = new[] { Strings.Holds_OrderBottomToTop, Strings.Holds_OrderMarking };
 
     [ObservableProperty] private bool _isAnimated;
     [ObservableProperty] private int _animationOrderIndex;
@@ -302,7 +302,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (_clip is null) return;
         if (_lock.IsLocked)
         {
-            _status.Report("The animation can't be changed while an export is running.");
+            _status.Report(Strings.Holds_AnimationExportRunning);
             LoadStyle();
             return;
         }
@@ -313,7 +313,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             return;
         }
         var result = _edit.SetHoldAnimation(_clip.Id, change(current ?? new HoldAnimation()));
-        if (!result.Success) _status.Report(result.Message ?? "The animation could not be changed.");
+        if (!result.Success) _status.Report(result.Message ?? Strings.Holds_AnimationNotChanged);
         LoadStyle();
         RefreshCommands();
     }
@@ -322,21 +322,23 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     private (string?, string?) Summary(HoldMarkup markup)
     {
         if (_clip is null || markup.Animation is not { } animation) return (null, null);
-        if (markup.Holds.IsEmpty) return ("No holds marked yet.", null);
+        if (markup.Holds.IsEmpty) return (Strings.Holds_NoneMarked, null);
         var rate = _projects.Current.Settings.FrameRate;
         var outline = HoldOutline.Of(markup, _clip.TimelineStart, _clip.SourceIn, _clip.Speed, rate)!;
         var schedule = outline.Schedule!;
-        string At(long frame) => (MediaTime.FromFrame(frame, rate) - MediaTime.FromFrame(schedule.StartFrame, rate)).TotalSeconds
-            .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " s";
+        string At(long frame) => string.Format(Strings.Unit_SecondsValue, (MediaTime.FromFrame(frame, rate) - MediaTime.FromFrame(schedule.StartFrame, rate)).TotalSeconds
+            .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
 
-        var shown = markup.Holds.Length == 1 ? "The hold shown" : $"All {markup.Holds.Length} shown";
+        var one = markup.Holds.Length == 1;
         var summary = schedule.EndFrame is { } end
-            ? $"{shown} after {At(schedule.AllVisibleFrame)}, gone after {At(end)}."
-            : $"{shown} after {At(schedule.AllVisibleFrame)}, then until the clip's end.";
+            ? (one ? string.Format(Strings.Holds_SummaryOneGone, At(schedule.AllVisibleFrame), At(end))
+                   : string.Format(Strings.Holds_SummaryAllGone, markup.Holds.Length, At(schedule.AllVisibleFrame), At(end)))
+            : (one ? string.Format(Strings.Holds_SummaryOneStays, At(schedule.AllVisibleFrame))
+                   : string.Format(Strings.Holds_SummaryAllStays, markup.Holds.Length, At(schedule.AllVisibleFrame)));
         var clipEnd = _clip.TimelineEnd.ToFrameCeiling(rate);
         var last = schedule.EndFrame ?? schedule.AllVisibleFrame;
-        var warning = schedule.StartFrame >= clipEnd ? "The animation starts after the clip's end — no hold is shown."
-            : last > clipEnd ? "The animation runs past the clip's end; it is cut there."
+        var warning = schedule.StartFrame >= clipEnd ? Strings.Holds_StartsAfterEnd
+            : last > clipEnd ? Strings.Holds_RunsPastEnd
             : null;
         return (summary, warning);
     }
@@ -369,14 +371,10 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     [ObservableProperty] private bool _isLoupeOn = true;
 
     /// <summary>The mode's keys in full (the status line's tooltip).</summary>
-    public string ModeHelp => "Click a hold for its outline. Shift+click adds a point to refine it; Tab, Shift+Tab or the " +
-        "wheel switch between the outlines offered; Enter confirms, Esc discards. Click a marked hold to select it, Delete " +
-        "removes it. On a selected hold drag a point to correct its outline, Alt+click the outline to add a point, Delete over " +
-        "a point (or a double-click on it) removes the point. Done, a seek, Play or another clip leave the markup; the " +
-        "marked holds stay.";
+    public string ModeHelp => Strings.Holds_ModeHelp;
 
-    public const string SelectedText = "Hold selected — drag a point to correct the outline, Alt+click adds a point, Delete removes";
-    public const string ReadyText = "Hold markup — click a hold, Enter confirms";
+    public static string SelectedText => Strings.Holds_SelectedText;
+    public static string ReadyText => Strings.Holds_ReadyText;
 
     /// <summary>The candidate's contour (normalized source coordinates); empty without a candidate.</summary>
     [ObservableProperty] private ImmutableArray<NormalizedPoint> _candidateContour = ImmutableArray<NormalizedPoint>.Empty;
@@ -425,7 +423,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         IsActive = true;
         IsPreparing = true;
         PrepareProgress = 0;
-        ModeText = "Checking the hold model…";
+        ModeText = Strings.Holds_CheckingModel;
         RefreshCommands();
         try
         {
@@ -435,22 +433,22 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             {
                 if (_modeCts != cts) return;
                 PrepareProgress = p * 0.5;
-                if (p >= 1) ModeText = "Loading the hold model…";
+                if (p >= 1) ModeText = Strings.Holds_LoadingModel;
             }), cts.Token);
             if (_modeCts != cts) return;   // left (and maybe restarted) meanwhile
             if (!status.IsReady)
             {
-                _status.Report(status.Message ?? "The hold model is not available.");
+                _status.Report(status.Message ?? Strings.Holds_ModelUnavailable);
                 Exit();
                 return;
             }
             if (_segmentation.Device == InferenceDevice.Cpu) _status.Report(CpuMessage);
 
-            ModeText = "Decoding the frame…";
+            ModeText = Strings.Holds_DecodingFrame;
             PrepareProgress = 0.55;
             var frame = await _frames!.GetAsync(clip, asset, _modePlayhead, _projects.Current.Settings.FrameRate, cts.Token);
             if (_modeCts != cts) return;
-            ModeText = "Preparing the frame for the model…";
+            ModeText = Strings.Holds_PreparingFrame;
             PrepareProgress = 0.7;
             var encoded = await _segmentation.PrepareFrameAsync(frame.Frame, cts.Token);
             if (cts.IsCancellationRequested || !IsActive || _modeCts != cts)
@@ -474,7 +472,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         }
         catch (Exception ex) when (_modeCts == cts)
         {
-            _status.Report($"Hold markup is not possible: {ex.Message}");
+            _status.Report(string.Format(Strings.Holds_NotPossible, ex.Message));
             Exit();
         }
         catch (Exception)
@@ -566,7 +564,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             if (visible.IsEmpty)
             {
                 ClearCandidate();
-                _status.Report("No hold there: every outline the model found is the wall or a too large area. Click on the hold itself.");
+                _status.Report(Strings.Holds_NoHoldThere);
                 return;
             }
             _maskSet = set;
@@ -584,7 +582,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
                 // A failed refinement keeps the candidate as it was, without the new point.
                 if (points.Count > 1 && _points.Count == points.Count) _points.RemoveAt(_points.Count - 1);
                 _confirmPending = false;
-                _status.Report($"Hold markup failed: {ex.Message}");
+                _status.Report(string.Format(Strings.Holds_Failed, ex.Message));
             }
         }
         finally
@@ -616,7 +614,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         _componentMask = component;
         CandidateContour = contour;
         HasCandidate = contour.Length >= 3;
-        AlternativeText = _visible.Length > 1 ? $"Outline {_alternative + 1} of {_visible.Length}" : null;
+        AlternativeText = _visible.Length > 1 ? string.Format(Strings.Holds_OutlineOf, _alternative + 1, _visible.Length) : null;
         RefreshCommands();
     }
 
@@ -650,7 +648,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            _status.Report($"The hold could not be added: {ex.Message}");
+            _status.Report(string.Format(Strings.Holds_AddFailed, ex.Message));
         }
     }
 
@@ -667,11 +665,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         var result = _edit.AddHold(clip.Id, new Hold(Guid.NewGuid(), contour, surface, wall, _sourceTime));
         if (!result.Success)
         {
-            _status.Report(result.Message ?? "The hold could not be added.");
+            _status.Report(result.Message ?? Strings.Holds_NotAdded);
             return;
         }
         ClearCandidate();
-        _status.Report($"Hold added ({clip.HoldMarkup?.Holds.Length ?? 0} on the clip).");
+        _status.Report(string.Format(Strings.Holds_Added, clip.HoldMarkup?.Holds.Length ?? 0));
     }
 
     private bool CanDeleteSelected() => IsActive && SelectedHoldId is not null;
@@ -687,7 +685,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             return;
         }
         var result = _edit.RemoveHold(_clip.Id, id);
-        if (!result.Success) _status.Report(result.Message ?? "The hold could not be removed.");
+        if (!result.Success) _status.Report(result.Message ?? Strings.Holds_NotRemoved);
         Select(null);
     }
 
@@ -847,7 +845,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (edge < 0 || edge >= current.Points.Length) return;
         if (ContourEditing.InsertVertex(current, edge, t, frame.Width, frame.Height) is not { } inserted)
         {
-            if (current.Points.Length >= HoldMarkupRules.MaxPoints) _status.Report($"An outline can have at most {HoldMarkupRules.MaxPoints} points.");
+            if (current.Points.Length >= HoldMarkupRules.MaxPoints) _status.Report(string.Format(Strings.Holds_MaxPoints, HoldMarkupRules.MaxPoints));
             return;   // otherwise a handle is there already
         }
         if (inserted.Points == current.Points)
@@ -858,7 +856,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         Commit(current, inserted);
     }
 
-    public const string OffOutlineMessage = "Alt+click on the selected outline adds a point there.";
+    public static string OffOutlineMessage => Strings.Holds_OffOutline;
 
     /// <summary>Alt+click away from the selected outline: nothing changes, the user is told where to click.</summary>
     public void ReportOffOutline()
@@ -890,7 +888,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (_lock.IsLocked)
         {
             Restore(before);
-            _status.Report("The outline can't be changed while an export is running.");
+            _status.Report(Strings.Holds_OutlineExportRunning);
             return;
         }
         SelectedContour = edited.Points;
@@ -900,7 +898,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (!result.Success)
         {
             Restore(before);
-            _status.Report(result.Message ?? "The outline could not be changed.");
+            _status.Report(result.Message ?? Strings.Holds_OutlineNotChanged);
         }
         else if (_clip.HoldMarkup?.Holds.FirstOrDefault(h => h.Id == id)?.Points != edited.Points)
         {

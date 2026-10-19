@@ -1,5 +1,6 @@
 using System.Globalization;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using static AiVideoEditor.Core.Entities.ClipPropertyLimits;
 
 namespace AiVideoEditor.Core.Entities;
@@ -17,20 +18,20 @@ public static class ClipPropertyValidator
     {
         if (change.Visual is { } visual)
         {
-            if (VisualProperties.Of(clip) is null) return "Audio clips have no picture properties.";
+            if (VisualProperties.Of(clip) is null) return Messages.Prop_AudioNoPicture;
             if (ValidateVisual(visual, allowCrop: clip is not TextClip) is { } error) return error;
         }
 
         if (change.Audio is { } audio)
         {
-            if (AudioProperties.Of(clip) is null) return $"{KindName(clip)} clips have no sound.";
+            if (AudioProperties.Of(clip) is null) return string.Format(Messages.Prop_NoSound, KindName(clip));
             if (!InRange(audio.Volume, MinVolume, MaxVolume))
-                return $"Volume must be between {Pct(MinVolume)} and {Pct(MaxVolume)}.";
+                return string.Format(Messages.Prop_Volume, Pct(MinVolume), Pct(MaxVolume));
         }
 
         if (change.Text is { } text)
         {
-            if (clip is not TextClip) return "Only text clips have text properties.";
+            if (clip is not TextClip) return Messages.Prop_OnlyText;
             if (ValidateText(text) is { } error) return error;
         }
 
@@ -50,44 +51,44 @@ public static class ClipPropertyValidator
     {
         if (!InRange(v.PositionX, -MaxPositionMagnitude, MaxPositionMagnitude) ||
             !InRange(v.PositionY, -MaxPositionMagnitude, MaxPositionMagnitude))
-            return $"Position must be between {Num(-MaxPositionMagnitude)} and {Num(MaxPositionMagnitude)} pixels.";
+            return string.Format(Messages.Prop_Position, Num(-MaxPositionMagnitude), Num(MaxPositionMagnitude));
 
         if (!InRange(v.Scale, MinScale, MaxScale))
-            return $"Scale must be between {Pct(MinScale)} and {Pct(MaxScale)}.";
+            return string.Format(Messages.Prop_Scale, Pct(MinScale), Pct(MaxScale));
 
         if (!InRange(v.RotationDegrees, MinRotationDegrees, MaxRotationDegrees))
-            return $"Rotation must be between {Num(MinRotationDegrees)}° and {Num(MaxRotationDegrees)}°.";
+            return string.Format(Messages.Prop_Rotation, Num(MinRotationDegrees), Num(MaxRotationDegrees));
 
         if (!InRange(v.Opacity, MinOpacity, MaxOpacity))
-            return $"Opacity must be between {Pct(MinOpacity)} and {Pct(MaxOpacity)}.";
+            return string.Format(Messages.Prop_Opacity, Pct(MinOpacity), Pct(MaxOpacity));
 
         var crop = v.Crop;
         if (!allowCrop)
-            return crop == CropRect.None ? null : "Text clips can't be cropped.";
+            return crop == CropRect.None ? null : Messages.Prop_TextNoCrop;
 
         if (!IsInset(crop.Left) || !IsInset(crop.Top) || !IsInset(crop.Right) || !IsInset(crop.Bottom))
-            return "Each crop edge must be between 0 % and 100 %.";
+            return Messages.Prop_CropRange;
 
         if (crop.Left + crop.Right >= MaxCropSum || crop.Top + crop.Bottom >= MaxCropSum)
-            return "Crop would leave nothing of the picture.";
+            return Messages.Prop_CropNothing;
 
         return null;
     }
 
     private static string? ValidateText(TextProperties t)
     {
-        if (t.Text is null) return "Text is missing.";
-        if (t.Text.Length > MaxTextLength) return $"Text can be at most {MaxTextLength} characters long.";
+        if (t.Text is null) return Messages.Prop_TextMissing;
+        if (t.Text.Length > MaxTextLength) return string.Format(Messages.Prop_TextLength, MaxTextLength);
 
         if (string.IsNullOrWhiteSpace(t.FontFamily)) return "Choose a font.";
-        if (t.FontFamily.Length > MaxFontFamilyLength) return "The font name is too long.";
+        if (t.FontFamily.Length > MaxFontFamilyLength) return Messages.Prop_FontNameLong;
 
         if (!InRange(t.FontSize, MinFontSize, MaxFontSize))
-            return $"Font size must be between {Num(MinFontSize)} and {Num(MaxFontSize)}.";
+            return string.Format(Messages.Prop_FontSize, Num(MinFontSize), Num(MaxFontSize));
 
-        if (!IsHexColor(t.ColorHex)) return "Color must be written as #RRGGBB.";
+        if (!IsHexColor(t.ColorHex)) return Messages.Prop_ColorFormat;
 
-        if (!Enum.IsDefined(t.Alignment)) return "Unknown text alignment.";
+        if (!Enum.IsDefined(t.Alignment)) return Messages.Prop_UnknownAlignment;
 
         return null;
     }
@@ -107,8 +108,8 @@ public static class ClipPropertyValidator
 
     private static string KindName(Clip clip) => clip switch
     {
-        ImageClip => "Image",
-        TextClip => "Text",
-        _ => "These"
+        ImageClip => Messages.Kind_Image,
+        TextClip => Messages.Kind_Text,
+        _ => Messages.Kind_Other
     };
 }

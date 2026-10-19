@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Localization;
 
 namespace AiVideoEditor.Core.Color;
 
@@ -49,13 +50,13 @@ public static class HdrColor
 
         var name = transfer == HdrTransfer.Hlg ? "HLG" : "PQ";
         if (!Is(metadata.ColorPrimaries, Bt2020Primaries))
-            return Unsupported($"{name} with {Describe(metadata.ColorPrimaries)} primaries (only BT.2020 is supported)");
+            return Unsupported(string.Format(Messages.Hdr_Primaries, name, Describe(metadata.ColorPrimaries)));
         if (!Is(metadata.ColorMatrix, Bt2020NclMatrix))
-            return Unsupported($"{name} with the {Describe(metadata.ColorMatrix)} matrix (only BT.2020 non-constant luminance is supported)");
+            return Unsupported(string.Format(Messages.Hdr_Matrix, name, Describe(metadata.ColorMatrix)));
         if (metadata.BitDepth is not >= 10)
             return Unsupported(metadata.BitDepth is { } bits
-                ? $"{name} at {bits} bits (at least 10 are needed)"
-                : $"{name} with an unknown bit depth");
+                ? string.Format(Messages.Hdr_Bits, name, bits)
+                : string.Format(Messages.Hdr_UnknownBits, name));
 
         var fullRange = Is(metadata.ColorRange, "pc");
         var peak = transfer == HdrTransfer.Hlg ? HdrToSdr.HlgPeakNits : PqPeakNits(metadata);
@@ -88,23 +89,23 @@ public static class HdrColor
         {
             case HdrKind.Hdr:
                 parts.Add("HDR");
-                parts.Add(classification.Conversion!.Transfer == HdrTransfer.Hlg ? "HLG" : $"PQ (peak {classification.Conversion.PeakNits} nit)");
+                parts.Add(classification.Conversion!.Transfer == HdrTransfer.Hlg ? "HLG" : string.Format(Messages.Hdr_PqPeak, classification.Conversion.PeakNits));
                 parts.Add("BT.2020");
                 break;
             case HdrKind.UnsupportedHdr:
-                parts.Add("HDR not converted: " + classification.Reason);
+                parts.Add(string.Format(Messages.Hdr_NotConverted, classification.Reason));
                 break;
             default:
                 parts.Add("SDR");
                 if (metadata.ColorPrimaries is { } primaries) parts.Add(Describe(primaries));
                 break;
         }
-        if (metadata.BitDepth is { } depth) parts.Add($"{depth}-bit");
+        if (metadata.BitDepth is { } depth) parts.Add(string.Format(Messages.Hdr_BitDepth, depth));
         if (metadata.DolbyVisionProfile is { } profile)
             parts.Add(metadata.DolbyVisionCompatibility is { } compatibility
-                ? $"Dolby Vision {profile}.{compatibility} (not applied)"
-                : $"Dolby Vision {profile} (not applied)");
-        if (metadata.HasHdrVivid) parts.Add("HDR Vivid (not applied)");
+                ? string.Format(Messages.Hdr_DolbyVisionCompat, profile, compatibility)
+                : string.Format(Messages.Hdr_DolbyVision, profile));
+        if (metadata.HasHdrVivid) parts.Add(Messages.Hdr_Vivid);
         return string.Join(" · ", parts);
     }
 
@@ -141,7 +142,7 @@ public static class HdrColor
 
     private static string Describe(string? value) => value switch
     {
-        null => "unknown",
+        null => Messages.Hdr_Unknown,
         "bt709" => "BT.709",
         "bt2020" => "BT.2020",
         "bt2020nc" => "BT.2020 NCL",

@@ -1,0 +1,1703 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Align_Center" xml:space="preserve">
+    <value>Center</value>
+  </data>
+  <data name="Align_Left" xml:space="preserve">
+    <value>Left</value>
+  </data>
+  <data name="Align_Right" xml:space="preserve">
+    <value>Right</value>
+  </data>
+  <data name="Analysis_Analyzing" xml:space="preserve">
+    <value>Analyzing…</value>
+  </data>
+  <data name="Analysis_Offline" xml:space="preserve">
+    <value>Media offline</value>
+  </data>
+  <data name="Analysis_Pending" xml:space="preserve">
+    <value>Not analysed yet</value>
+  </data>
+  <data name="Analysis_Unavailable" xml:space="preserve">
+    <value>Metadata unavailable</value>
+  </data>
+  <data name="Analysis_UnexpectedError" xml:space="preserve">
+    <value>Something went wrong while analyzing this file.</value>
+  </data>
+  <data name="Audio_Default" xml:space="preserve">
+    <value>AAC — default</value>
+  </data>
+  <data name="Availability_BackMany" xml:space="preserve">
+    <value>{0} media file is available again.|{0} media files are available again.</value>
+  </data>
+  <data name="Availability_BackOne" xml:space="preserve">
+    <value>"{0}" is available again.</value>
+  </data>
+  <data name="Availability_GoneMany" xml:space="preserve">
+    <value>{0} media file is missing now and is shown as offline.|{0} media files are missing now and are shown as offline.</value>
+  </data>
+  <data name="Availability_GoneOne" xml:space="preserve">
+    <value>"{0}" is missing now and is shown as offline.</value>
+  </data>
+  <data name="Channels_Many" xml:space="preserve">
+    <value>{0} channel|{0} channels</value>
+  </data>
+  <data name="Channels_Mono" xml:space="preserve">
+    <value>Mono</value>
+  </data>
+  <data name="Channels_Short" xml:space="preserve">
+    <value>{0} ch</value>
+  </data>
+  <data name="Channels_Stereo" xml:space="preserve">
+    <value>Stereo</value>
+  </data>
+  <data name="Clip_EmptyText" xml:space="preserve">
+    <value>(empty text)</value>
+  </data>
+  <data name="Clip_Generic" xml:space="preserve">
+    <value>Clip</value>
+  </data>
+  <data name="Clip_MissingMedia" xml:space="preserve">
+    <value>(missing media)</value>
+  </data>
+  <data name="ClipType_Audio" xml:space="preserve">
+    <value>Audio clip</value>
+  </data>
+  <data name="ClipType_Image" xml:space="preserve">
+    <value>Image clip</value>
+  </data>
+  <data name="ClipType_Text" xml:space="preserve">
+    <value>Text clip</value>
+  </data>
+  <data name="ClipType_Video" xml:space="preserve">
+    <value>Video clip</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Common_Continue" xml:space="preserve">
+    <value>Continue</value>
+  </data>
+  <data name="Common_DontSave" xml:space="preserve">
+    <value>Don't Save</value>
+  </data>
+  <data name="Common_OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Common_Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Common_Replace" xml:space="preserve">
+    <value>Replace</value>
+  </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Copy_Copied" xml:space="preserve">
+    <value>{0} clip copied|{0} clips copied</value>
+  </data>
+  <data name="Copy_Duplicated" xml:space="preserve">
+    <value>{0} clip duplicated|{0} clips duplicated</value>
+  </data>
+  <data name="Copy_NothingCopied" xml:space="preserve">
+    <value>Nothing was copied: a selected clip no longer exists.</value>
+  </data>
+  <data name="Copy_Pasted" xml:space="preserve">
+    <value>{0} clip pasted|{0} clips pasted</value>
+  </data>
+  <data name="Crossfade_Added" xml:space="preserve">
+    <value>Crossfade added: {0}.</value>
+  </data>
+  <data name="Crossfade_AddedLongest" xml:space="preserve">
+    <value>Crossfade added: {0}, the longest that fits here.</value>
+  </data>
+  <data name="Dissolve_Added" xml:space="preserve">
+    <value>Dissolve added: {0}.</value>
+  </data>
+  <data name="Dissolve_AddedLongest" xml:space="preserve">
+    <value>Dissolve added: {0}, the longest that fits here.</value>
+  </data>
+  <data name="Dissolve_Removed" xml:space="preserve">
+    <value>Dissolve removed</value>
+  </data>
+  <data name="Dissolve_SelectAudio" xml:space="preserve">
+    <value>Select two clips that meet on an audio track (the first ends where the second starts) to add a crossfade.</value>
+  </data>
+  <data name="Dissolve_SelectVideo" xml:space="preserve">
+    <value>Select two clips that meet on a video track (the first ends where the second starts) to add a dissolve.</value>
+  </data>
+  <data name="Export_AlreadyRunning" xml:space="preserve">
+    <value>An export is already running.</value>
+  </data>
+  <data name="Export_AudioProgress" xml:space="preserve">
+    <value>{0} / {1} audio samples ({2} %)</value>
+  </data>
+  <data name="Export_Cancelled" xml:space="preserve">
+    <value>Export cancelled.</value>
+  </data>
+  <data name="Export_CancelledKept" xml:space="preserve">
+    <value>Export cancelled. The existing file was left unchanged.</value>
+  </data>
+  <data name="Export_Cancelling" xml:space="preserve">
+    <value>Cancelling…</value>
+  </data>
+  <data name="Export_CanRunButNote" xml:space="preserve">
+    <value>The export can run, but note:</value>
+  </data>
+  <data name="Export_CantExport" xml:space="preserve">
+    <value>The project can't be exported:</value>
+  </data>
+  <data name="Export_ContinueQuestion" xml:space="preserve">
+    <value>Continue with the export?</value>
+  </data>
+  <data name="Export_EntireSequence" xml:space="preserve">
+    <value>Entire sequence</value>
+  </data>
+  <data name="Export_Errors" xml:space="preserve">
+    <value>Errors</value>
+  </data>
+  <data name="Export_Fail" xml:space="preserve">
+    <value>The export failed. ({0})</value>
+  </data>
+  <data name="Export_FailDecode" xml:space="preserve">
+    <value>A source file could not be read, so the export was stopped. Check that the media is still available. ({0})</value>
+  </data>
+  <data name="Export_FailedTitle" xml:space="preserve">
+    <value>Export failed</value>
+  </data>
+  <data name="Export_FailEncode" xml:space="preserve">
+    <value>The video could not be encoded, so the export was stopped. ({0})</value>
+  </data>
+  <data name="Export_FailEncoderUnavailable" xml:space="preserve">
+    <value>ffmpeg could not be found, so the video can't be encoded. Install ffmpeg (or set "Ffmpeg:FfmpegPath" in appsettings.json) and try again. ({0})</value>
+  </data>
+  <data name="Export_FailOutput" xml:space="preserve">
+    <value>The output file could not be written. Check the folder and that the file is not open elsewhere. ({0})</value>
+  </data>
+  <data name="Export_Finished" xml:space="preserve">
+    <value>The video was exported to
+{0}</value>
+  </data>
+  <data name="Export_FinishedTitle" xml:space="preserve">
+    <value>Export finished</value>
+  </data>
+  <data name="Export_Mp4Filter" xml:space="preserve">
+    <value>MP4 video</value>
+  </data>
+  <data name="Export_NoFileWritten" xml:space="preserve">
+    <value>{0} No file was written; an existing file was left unchanged.</value>
+  </data>
+  <data name="Export_NoOutputFile" xml:space="preserve">
+    <value>No output file was chosen.</value>
+  </data>
+  <data name="Export_NoProject" xml:space="preserve">
+    <value>There is no project to export.</value>
+  </data>
+  <data name="Export_NotPossibleMany" xml:space="preserve">
+    <value>Export not possible: {0} problem.|Export not possible: {0} problems.</value>
+  </data>
+  <data name="Export_NotPossibleOne" xml:space="preserve">
+    <value>Export not possible: {0}</value>
+  </data>
+  <data name="Export_NotPossibleTitle" xml:space="preserve">
+    <value>Export not possible</value>
+  </data>
+  <data name="Export_PickerTitle" xml:space="preserve">
+    <value>Export — choose the output file</value>
+  </data>
+  <data name="Export_PreparingEncoder" xml:space="preserve">
+    <value>Preparing the encoder…</value>
+  </data>
+  <data name="Export_Range" xml:space="preserve">
+    <value>Range</value>
+  </data>
+  <data name="Export_RangeQuestion" xml:space="preserve">
+    <value>An In / Out range is set: {0} to {1} ({2}).
+
+Export only the range, or the entire sequence?</value>
+  </data>
+  <data name="Export_ReplaceQuestion" xml:space="preserve">
+    <value>"{0}" already exists. Replace it with the export?
+
+The file is replaced only when the export succeeds.</value>
+  </data>
+  <data name="Export_ReplaceTitle" xml:space="preserve">
+    <value>Replace file?</value>
+  </data>
+  <data name="Export_StageAudio" xml:space="preserve">
+    <value>Audio</value>
+  </data>
+  <data name="Export_StageFinalizing" xml:space="preserve">
+    <value>Finalizing</value>
+  </data>
+  <data name="Export_StagePreparing" xml:space="preserve">
+    <value>Preparing</value>
+  </data>
+  <data name="Export_StageVideo" xml:space="preserve">
+    <value>Video</value>
+  </data>
+  <data name="Export_Starting" xml:space="preserve">
+    <value>Starting…</value>
+  </data>
+  <data name="Export_Succeeded" xml:space="preserve">
+    <value>Exported to {0}.</value>
+  </data>
+  <data name="Export_Title" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="Export_Unexpected" xml:space="preserve">
+    <value>The export failed because of an unexpected error ({0}: {1}). No file was written; details are in the log.</value>
+  </data>
+  <data name="Export_VideoProgress" xml:space="preserve">
+    <value>{0} / {1} frames ({2} %)</value>
+  </data>
+  <data name="Export_Warnings" xml:space="preserve">
+    <value>Warnings</value>
+  </data>
+  <data name="Export_WarningsTitle" xml:space="preserve">
+    <value>Export warnings</value>
+  </data>
+  <data name="Export_WindowTitle" xml:space="preserve">
+    <value>Exporting</value>
+  </data>
+  <data name="Export_Writing" xml:space="preserve">
+    <value>Writing the output file…</value>
+  </data>
+  <data name="FileFilter_AllMedia" xml:space="preserve">
+    <value>All supported media</value>
+  </data>
+  <data name="FileFilter_Audio" xml:space="preserve">
+    <value>Audio files</value>
+  </data>
+  <data name="FileFilter_Image" xml:space="preserve">
+    <value>Image files</value>
+  </data>
+  <data name="FileFilter_Video" xml:space="preserve">
+    <value>Video files</value>
+  </data>
+  <data name="Gap_Closed" xml:space="preserve">
+    <value>Gap closed</value>
+  </data>
+  <data name="Holds_Added" xml:space="preserve">
+    <value>Hold added ({0} on the clip).</value>
+  </data>
+  <data name="Holds_AddFailed" xml:space="preserve">
+    <value>The hold could not be added: {0}</value>
+  </data>
+  <data name="Holds_Animate" xml:space="preserve">
+    <value>Animate</value>
+  </data>
+  <data name="Holds_AnimateTip" xml:space="preserve">
+    <value>The holds appear one by one from the start, stay, and then disappear together</value>
+  </data>
+  <data name="Holds_AnimationExportRunning" xml:space="preserve">
+    <value>The animation can't be changed while an export is running.</value>
+  </data>
+  <data name="Holds_AnimationNotChanged" xml:space="preserve">
+    <value>The animation could not be changed.</value>
+  </data>
+  <data name="Holds_AppearFade" xml:space="preserve">
+    <value>Appear fade</value>
+  </data>
+  <data name="Holds_CancelTip" xml:space="preserve">
+    <value>Stop preparing the frame (Esc)</value>
+  </data>
+  <data name="Holds_CheckingModel" xml:space="preserve">
+    <value>Checking the hold model…</value>
+  </data>
+  <data name="Holds_Colour" xml:space="preserve">
+    <value>Colour</value>
+  </data>
+  <data name="Holds_Confirm" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="Holds_ConfirmTip" xml:space="preserve">
+    <value>Confirm the hold (Enter)</value>
+  </data>
+  <data name="Holds_Cpu" xml:space="preserve">
+    <value>AI runs on the CPU — processing may be slower.</value>
+  </data>
+  <data name="Holds_DecodingFrame" xml:space="preserve">
+    <value>Decoding the frame…</value>
+  </data>
+  <data name="Holds_DisappearFade" xml:space="preserve">
+    <value>Disappear fade</value>
+  </data>
+  <data name="Holds_Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="Holds_DoneTip" xml:space="preserve">
+    <value>Leave the hold markup (the marked holds stay)</value>
+  </data>
+  <data name="Holds_FadeTip" xml:space="preserve">
+    <value>0 = at once</value>
+  </data>
+  <data name="Holds_Failed" xml:space="preserve">
+    <value>Hold markup failed: {0}</value>
+  </data>
+  <data name="Holds_Interval" xml:space="preserve">
+    <value>Interval</value>
+  </data>
+  <data name="Holds_Keyline" xml:space="preserve">
+    <value>Keyline</value>
+  </data>
+  <data name="Holds_KeylineOffItem" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Holds_KeylineOn" xml:space="preserve">
+    <value>on</value>
+  </data>
+  <data name="Holds_KeylineOnItem" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="Holds_KeylineTip" xml:space="preserve">
+    <value>A dark or light edge around the line makes it readable on this wall</value>
+  </data>
+  <data name="Holds_LoadingModel" xml:space="preserve">
+    <value>Loading the hold model…</value>
+  </data>
+  <data name="Holds_Loupe" xml:space="preserve">
+    <value>Loupe</value>
+  </data>
+  <data name="Holds_LoupeTip" xml:space="preserve">
+    <value>A magnified view of the frame under the pointer</value>
+  </data>
+  <data name="Holds_MarkedCount" xml:space="preserve">
+    <value>{0} marked</value>
+  </data>
+  <data name="Holds_MarkHolds" xml:space="preserve">
+    <value>Mark holds</value>
+  </data>
+  <data name="Holds_MarkHoldsTip" xml:space="preserve">
+    <value>Mark the route's holds on the frame under the playhead (pause on this clip first)</value>
+  </data>
+  <data name="Holds_MaxPoints" xml:space="preserve">
+    <value>An outline can have at most {0} points.</value>
+  </data>
+  <data name="Holds_ModeAuto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Holds_ModeHelp" xml:space="preserve">
+    <value>Click a hold for its outline. Shift+click adds a point to refine it; Tab, Shift+Tab or the wheel switch between the outlines offered; Enter confirms, Esc discards. Click a marked hold to select it, Delete removes it. On a selected hold drag a point to correct its outline, Alt+click the outline to add a point, Delete over a point (or a double-click on it) removes the point. Done, a seek, Play or another clip leave the markup; the marked holds stay.</value>
+  </data>
+  <data name="Holds_ModelUnavailable" xml:space="preserve">
+    <value>The hold model is not available.</value>
+  </data>
+  <data name="Holds_ModeManual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="Holds_NoHoldThere" xml:space="preserve">
+    <value>No hold there: every outline the model found is the wall or a too large area. Click on the hold itself.</value>
+  </data>
+  <data name="Holds_NoneMarked" xml:space="preserve">
+    <value>No holds marked yet.</value>
+  </data>
+  <data name="Holds_NotAdded" xml:space="preserve">
+    <value>The hold could not be added.</value>
+  </data>
+  <data name="Holds_NotPossible" xml:space="preserve">
+    <value>Hold markup is not possible: {0}</value>
+  </data>
+  <data name="Holds_NotRemoved" xml:space="preserve">
+    <value>The hold could not be removed.</value>
+  </data>
+  <data name="Holds_OffOutline" xml:space="preserve">
+    <value>Alt+click on the selected outline adds a point there.</value>
+  </data>
+  <data name="Holds_Order" xml:space="preserve">
+    <value>Order</value>
+  </data>
+  <data name="Holds_OrderBottomToTop" xml:space="preserve">
+    <value>Bottom to top</value>
+  </data>
+  <data name="Holds_OrderMarking" xml:space="preserve">
+    <value>Marking order</value>
+  </data>
+  <data name="Holds_OutlineExportRunning" xml:space="preserve">
+    <value>The outline can't be changed while an export is running.</value>
+  </data>
+  <data name="Holds_OutlineNotChanged" xml:space="preserve">
+    <value>The outline could not be changed.</value>
+  </data>
+  <data name="Holds_OutlineOf" xml:space="preserve">
+    <value>Outline {0} of {1}</value>
+  </data>
+  <data name="Holds_Palette" xml:space="preserve">
+    <value>Palette</value>
+  </data>
+  <data name="Holds_PreparingFrame" xml:space="preserve">
+    <value>Preparing the frame for the model…</value>
+  </data>
+  <data name="Holds_ReadyText" xml:space="preserve">
+    <value>Hold markup — click a hold, Enter confirms</value>
+  </data>
+  <data name="Holds_RefineRejected" xml:space="preserve">
+    <value>That point gives no usable outline (only the wall or a too large area) — the previous outline is kept. Shift+click on the hold itself.</value>
+  </data>
+  <data name="Holds_RunsPastEnd" xml:space="preserve">
+    <value>The animation runs past the clip's end; it is cut there.</value>
+  </data>
+  <data name="Holds_SelectedText" xml:space="preserve">
+    <value>Hold selected — drag a point to correct the outline, Alt+click adds a point, Delete removes</value>
+  </data>
+  <data name="Holds_SetToPlayhead" xml:space="preserve">
+    <value>Set to playhead</value>
+  </data>
+  <data name="Holds_SetToPlayheadTip" xml:space="preserve">
+    <value>Start the animation on the frame under the playhead (pause on this clip first)</value>
+  </data>
+  <data name="Holds_Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="Holds_StartsAfterEnd" xml:space="preserve">
+    <value>The animation starts after the clip's end — no hold is shown.</value>
+  </data>
+  <data name="Holds_StartTip" xml:space="preserve">
+    <value>A time in the source video (seconds): trimming, a speed change or a split keep the animation on the same moment</value>
+  </data>
+  <data name="Holds_StayAfterLast" xml:space="preserve">
+    <value>Stay after last</value>
+  </data>
+  <data name="Holds_SummaryAllGone" xml:space="preserve">
+    <value>All {0} shown after {1}, gone after {2}.</value>
+  </data>
+  <data name="Holds_SummaryAllStays" xml:space="preserve">
+    <value>All {0} shown after {1}, then until the clip's end.</value>
+  </data>
+  <data name="Holds_SummaryOneGone" xml:space="preserve">
+    <value>The hold shown after {0}, gone after {1}.</value>
+  </data>
+  <data name="Holds_SummaryOneStays" xml:space="preserve">
+    <value>The hold shown after {0}, then until the clip's end.</value>
+  </data>
+  <data name="Holds_UntilClipEnd" xml:space="preserve">
+    <value>until clip end</value>
+  </data>
+  <data name="Holds_UntilClipEndTip" xml:space="preserve">
+    <value>Keep every contour to the clip's end instead of letting them disappear</value>
+  </data>
+  <data name="Holds_Width" xml:space="preserve">
+    <value>Width</value>
+  </data>
+  <data name="Holds_WidthUnit" xml:space="preserve">
+    <value>px at 1080</value>
+  </data>
+  <data name="Holds_WidthUnitTip" xml:space="preserve">
+    <value>Pixels at a frame height of 1080 (the line scales with the picture)</value>
+  </data>
+  <data name="Import_DidntFinish" xml:space="preserve">
+    <value>Import didn't finish.</value>
+  </data>
+  <data name="Import_Duplicates" xml:space="preserve">
+    <value>{0} file skipped because it is already imported|{0} files skipped because they are already imported</value>
+  </data>
+  <data name="Import_Imported" xml:space="preserve">
+    <value>Imported {0} media file|Imported {0} media files</value>
+  </data>
+  <data name="Import_Importing" xml:space="preserve">
+    <value>Importing {0} file…|Importing {0} files…</value>
+  </data>
+  <data name="Import_Missing" xml:space="preserve">
+    <value>{0} file skipped because it is missing|{0} files skipped because they are missing</value>
+  </data>
+  <data name="Import_NoSupported" xml:space="preserve">
+    <value>No supported media files selected</value>
+  </data>
+  <data name="Import_Nothing" xml:space="preserve">
+    <value>Nothing imported</value>
+  </data>
+  <data name="Import_PickerTitle" xml:space="preserve">
+    <value>Import Media</value>
+  </data>
+  <data name="Import_ProjectChanged" xml:space="preserve">
+    <value>Import stopped: another project was opened, so nothing was added.</value>
+  </data>
+  <data name="Import_Unsupported" xml:space="preserve">
+    <value>{0} unsupported file skipped|{0} unsupported files skipped</value>
+  </data>
+  <data name="InOut_Cleared" xml:space="preserve">
+    <value>In / Out cleared.</value>
+  </data>
+  <data name="InOut_InSet" xml:space="preserve">
+    <value>In set at {0}.</value>
+  </data>
+  <data name="InOut_OutSet" xml:space="preserve">
+    <value>Out set after {0} (that frame is included).</value>
+  </data>
+  <data name="Inspector_Alignment" xml:space="preserve">
+    <value>Alignment</value>
+  </data>
+  <data name="Inspector_AudioHeading" xml:space="preserve">
+    <value>AUDIO</value>
+  </data>
+  <data name="Inspector_Bottom" xml:space="preserve">
+    <value>Bottom</value>
+  </data>
+  <data name="Inspector_ClipHeading" xml:space="preserve">
+    <value>CLIP</value>
+  </data>
+  <data name="Inspector_ClipNotChanged" xml:space="preserve">
+    <value>The clip could not be changed.</value>
+  </data>
+  <data name="Inspector_Color" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="Inspector_CropHeading" xml:space="preserve">
+    <value>CROP</value>
+  </data>
+  <data name="Inspector_Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Inspector_EndTime" xml:space="preserve">
+    <value>End Time</value>
+  </data>
+  <data name="Inspector_FadeIn" xml:space="preserve">
+    <value>Fade In</value>
+  </data>
+  <data name="Inspector_FadeInactive" xml:space="preserve">
+    <value>Not applied: a dissolve is on this edge.</value>
+  </data>
+  <data name="Inspector_FadeNotChanged" xml:space="preserve">
+    <value>The fade could not be changed.</value>
+  </data>
+  <data name="Inspector_FadeOut" xml:space="preserve">
+    <value>Fade Out</value>
+  </data>
+  <data name="Inspector_FadesHeading" xml:space="preserve">
+    <value>FADES</value>
+  </data>
+  <data name="Inspector_FadeWholeFrames" xml:space="preserve">
+    <value>A fade is a whole number of frames.</value>
+  </data>
+  <data name="Inspector_FileName" xml:space="preserve">
+    <value>File Name</value>
+  </data>
+  <data name="Inspector_FileSize" xml:space="preserve">
+    <value>File Size</value>
+  </data>
+  <data name="Inspector_Font" xml:space="preserve">
+    <value>Font</value>
+  </data>
+  <data name="Inspector_Format" xml:space="preserve">
+    <value>Format</value>
+  </data>
+  <data name="Inspector_Heading" xml:space="preserve">
+    <value>INSPECTOR</value>
+  </data>
+  <data name="Inspector_HoldsHeading" xml:space="preserve">
+    <value>HOLDS</value>
+  </data>
+  <data name="Inspector_Left" xml:space="preserve">
+    <value>Left</value>
+  </data>
+  <data name="Inspector_MediaHeading" xml:space="preserve">
+    <value>MEDIA</value>
+  </data>
+  <data name="Inspector_Mute" xml:space="preserve">
+    <value>Mute</value>
+  </data>
+  <data name="Inspector_NothingSelected" xml:space="preserve">
+    <value>Nothing selected. Choose an item in the Media Browser or a clip on the timeline to see its properties.</value>
+  </data>
+  <data name="Inspector_Opacity" xml:space="preserve">
+    <value>Opacity</value>
+  </data>
+  <data name="Inspector_Path" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="Inspector_PositionX" xml:space="preserve">
+    <value>Position X</value>
+  </data>
+  <data name="Inspector_PositionY" xml:space="preserve">
+    <value>Position Y</value>
+  </data>
+  <data name="Inspector_PrimaryOfMany" xml:space="preserve">
+    <value>{0} (1 of {1} selected)</value>
+  </data>
+  <data name="Inspector_Right" xml:space="preserve">
+    <value>Right</value>
+  </data>
+  <data name="Inspector_Rotation" xml:space="preserve">
+    <value>Rotation</value>
+  </data>
+  <data name="Inspector_Scale" xml:space="preserve">
+    <value>Scale</value>
+  </data>
+  <data name="Inspector_Size" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="Inspector_Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="Inspector_Speed" xml:space="preserve">
+    <value>Speed</value>
+  </data>
+  <data name="Inspector_SpeedHeading" xml:space="preserve">
+    <value>SPEED</value>
+  </data>
+  <data name="Inspector_SpeedNotChanged" xml:space="preserve">
+    <value>The speed could not be changed.</value>
+  </data>
+  <data name="Inspector_SpeedStep" xml:space="preserve">
+    <value>Speed must be a multiple of 0.05× from {0} to {1}.</value>
+  </data>
+  <data name="Inspector_StartTime" xml:space="preserve">
+    <value>Start Time</value>
+  </data>
+  <data name="Inspector_TechHeading" xml:space="preserve">
+    <value>TECHNICAL INFORMATION</value>
+  </data>
+  <data name="Inspector_TextHeading" xml:space="preserve">
+    <value>TEXT</value>
+  </data>
+  <data name="Inspector_Timecode" xml:space="preserve">
+    <value>Timecode (non-drop-frame) at {0}</value>
+  </data>
+  <data name="Inspector_Top" xml:space="preserve">
+    <value>Top</value>
+  </data>
+  <data name="Inspector_TransformHeading" xml:space="preserve">
+    <value>TRANSFORM</value>
+  </data>
+  <data name="Inspector_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Inspector_Volume" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+  <data name="Marker_Added" xml:space="preserve">
+    <value>Marker added at {0}</value>
+  </data>
+  <data name="Marker_NoneAfter" xml:space="preserve">
+    <value>There is no marker after the playhead.</value>
+  </data>
+  <data name="Marker_NoneBefore" xml:space="preserve">
+    <value>There is no marker before the playhead.</value>
+  </data>
+  <data name="Marker_Removed" xml:space="preserve">
+    <value>Marker removed</value>
+  </data>
+  <data name="Media_AddToTimeline" xml:space="preserve">
+    <value>Add to Timeline</value>
+  </data>
+  <data name="Media_AddToTimelineTip" xml:space="preserve">
+    <value>Add the selected media to the end of V1 / A1 (or drag it onto a track)</value>
+  </data>
+  <data name="Media_Empty" xml:space="preserve">
+    <value>No media imported</value>
+  </data>
+  <data name="Media_EmptyHint" xml:space="preserve">
+    <value>Import video, audio or image files to start editing.</value>
+  </data>
+  <data name="Media_FindMissing" xml:space="preserve">
+    <value>Find Missing…</value>
+  </data>
+  <data name="Media_FindMissingTip" xml:space="preserve">
+    <value>Look for the offline media files in one folder</value>
+  </data>
+  <data name="Media_Heading" xml:space="preserve">
+    <value>MEDIA</value>
+  </data>
+  <data name="Media_Import" xml:space="preserve">
+    <value>+ Import</value>
+  </data>
+  <data name="Media_MissingSuffix" xml:space="preserve">
+    <value>{0} media file is missing and is shown as offline — use Relink or Find Missing in the Media Browser.|{0} media files are missing and are shown as offline — use Relink or Find Missing in the Media Browser.</value>
+  </data>
+  <data name="Media_NotRemoved" xml:space="preserve">
+    <value>The media could not be removed.</value>
+  </data>
+  <data name="Media_Offline" xml:space="preserve">
+    <value>OFFLINE</value>
+  </data>
+  <data name="Media_Relink" xml:space="preserve">
+    <value>Relink…</value>
+  </data>
+  <data name="Media_RelinkTip" xml:space="preserve">
+    <value>Link the selected offline media to its file at another place</value>
+  </data>
+  <data name="Media_Removed" xml:space="preserve">
+    <value>Removed {0} from the project.</value>
+  </data>
+  <data name="Media_RemovedWithClipOne" xml:space="preserve">
+    <value>Removed {0} and its clip from the project.</value>
+  </data>
+  <data name="Media_RemovedWithClipsMany" xml:space="preserve">
+    <value>Removed {1} and its {0} clip from the project.|Removed {1} and its {0} clips from the project.</value>
+  </data>
+  <data name="Media_RemoveQuestionMany" xml:space="preserve">
+    <value>{1} is used by {0} clip on the timeline. Removing it from the project deletes those clips too, and any dissolves on them.
+
+The file on disk is not deleted. You can undo this with Undo.|{1} is used by {0} clips on the timeline. Removing it from the project deletes those clips too, and any dissolves on them.
+
+The file on disk is not deleted. You can undo this with Undo.</value>
+  </data>
+  <data name="Media_RemoveQuestionOne" xml:space="preserve">
+    <value>{0} is used by 1 clip on the timeline. Removing it from the project deletes that clip too, and any dissolves on them.
+
+The file on disk is not deleted. You can undo this with Undo.</value>
+  </data>
+  <data name="Media_RemoveTip" xml:space="preserve">
+    <value>Remove from the project (asks first when clips use it; the file on disk stays)</value>
+  </data>
+  <data name="Media_RemoveTitle" xml:space="preserve">
+    <value>Remove Media</value>
+  </data>
+  <data name="MediaKind_Audio" xml:space="preserve">
+    <value>Audio</value>
+  </data>
+  <data name="MediaKind_AudioBadge" xml:space="preserve">
+    <value>AUDIO</value>
+  </data>
+  <data name="MediaKind_Image" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="MediaKind_ImageBadge" xml:space="preserve">
+    <value>IMAGE</value>
+  </data>
+  <data name="MediaKind_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="MediaKind_Video" xml:space="preserve">
+    <value>Video</value>
+  </data>
+  <data name="MediaKind_VideoBadge" xml:space="preserve">
+    <value>VIDEO</value>
+  </data>
+  <data name="Orientation_Rotated" xml:space="preserve">
+    <value>Rotated {0}°</value>
+  </data>
+  <data name="Picker_OpenFile" xml:space="preserve">
+    <value>Open File</value>
+  </data>
+  <data name="Picker_SaveFile" xml:space="preserve">
+    <value>Save File</value>
+  </data>
+  <data name="Picker_SelectFolder" xml:space="preserve">
+    <value>Select Folder</value>
+  </data>
+  <data name="Placeholder_DecodeError" xml:space="preserve">
+    <value>Cannot decode media</value>
+  </data>
+  <data name="Placeholder_Offline" xml:space="preserve">
+    <value>Media offline</value>
+  </data>
+  <data name="Placeholder_Unsupported" xml:space="preserve">
+    <value>Unsupported clip</value>
+  </data>
+  <data name="Playback_NoFfmpeg" xml:space="preserve">
+    <value>Playback is unavailable: FFmpeg could not be found. Install FFmpeg or configure its path.</value>
+  </data>
+  <data name="Playback_NoSound" xml:space="preserve">
+    <value>Playing without sound: no audio output is available.</value>
+  </data>
+  <data name="Plural_Frames" xml:space="preserve">
+    <value>{0} frame|{0} frames</value>
+  </data>
+  <data name="Preview_Buffering" xml:space="preserve">
+    <value>Buffering…</value>
+  </data>
+  <data name="Preview_Crop" xml:space="preserve">
+    <value>Crop</value>
+  </data>
+  <data name="Preview_CropTip" xml:space="preserve">
+    <value>Drag the handles of the selected clip's frame to crop it; the picture stays in place (Esc cancels a drag)</value>
+  </data>
+  <data name="Preview_Move" xml:space="preserve">
+    <value>Move</value>
+  </data>
+  <data name="Preview_MoveTip" xml:space="preserve">
+    <value>Drag the selected clip in the picture; drag a corner of its frame to scale it (Esc cancels a drag)</value>
+  </data>
+  <data name="Preview_SourceMode" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="Preview_SourceModeTip" xml:space="preserve">
+    <value>Show the media opened in Source (double-click a video or audio file in the Media Browser)</value>
+  </data>
+  <data name="Preview_TimelineMode" xml:space="preserve">
+    <value>Timeline</value>
+  </data>
+  <data name="Preview_TimelineModeTip" xml:space="preserve">
+    <value>Show the timeline at its playhead</value>
+  </data>
+  <data name="Project_ChangesWhileSaving" xml:space="preserve">
+    <value>{0} Changes made while saving are not saved yet.</value>
+  </data>
+  <data name="Project_Created" xml:space="preserve">
+    <value>New project created.</value>
+  </data>
+  <data name="Project_Opened" xml:space="preserve">
+    <value>Opened project "{0}".</value>
+  </data>
+  <data name="Project_OpenFailed" xml:space="preserve">
+    <value>Couldn't open the project. {0}</value>
+  </data>
+  <data name="Project_OpenPickerTitle" xml:space="preserve">
+    <value>Open Project — select the project folder</value>
+  </data>
+  <data name="Project_ReplaceQuestion" xml:space="preserve">
+    <value>The folder "{0}" already contains a project. Replace it with "{1}"?</value>
+  </data>
+  <data name="Project_ReplaceTitle" xml:space="preserve">
+    <value>Replace project?</value>
+  </data>
+  <data name="Project_SaveAsPickerTitle" xml:space="preserve">
+    <value>Save Project As — select or create a folder for the project</value>
+  </data>
+  <data name="Project_Saved" xml:space="preserve">
+    <value>Saved project "{0}".</value>
+  </data>
+  <data name="Project_SavedTo" xml:space="preserve">
+    <value>Saved project "{0}" to {1}.</value>
+  </data>
+  <data name="Project_SaveFailed" xml:space="preserve">
+    <value>Couldn't save "{0}". {1}</value>
+  </data>
+  <data name="Quality_Compact" xml:space="preserve">
+    <value>Compact</value>
+  </data>
+  <data name="Quality_CompactDetail" xml:space="preserve">
+    <value>CRF 28 — smallest file</value>
+  </data>
+  <data name="Quality_High" xml:space="preserve">
+    <value>High</value>
+  </data>
+  <data name="Quality_HighDetail" xml:space="preserve">
+    <value>CRF 18 — default</value>
+  </data>
+  <data name="Quality_Maximum" xml:space="preserve">
+    <value>Maximum</value>
+  </data>
+  <data name="Quality_MaximumDetail" xml:space="preserve">
+    <value>CRF 14 — largest file</value>
+  </data>
+  <data name="Quality_Standard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="Rate_Current" xml:space="preserve">
+    <value>{0} (current)</value>
+  </data>
+  <data name="Rate_Fps" xml:space="preserve">
+    <value>{0} FPS</value>
+  </data>
+  <data name="Rate_FpsExact" xml:space="preserve">
+    <value>{0} FPS ({1})</value>
+  </data>
+  <data name="Rate_FpsProvisional" xml:space="preserve">
+    <value>{0} FPS (provisional)</value>
+  </data>
+  <data name="Rate_Provisional" xml:space="preserve">
+    <value>{0} (provisional)</value>
+  </data>
+  <data name="Recent_Checking" xml:space="preserve">
+    <value>Checking…</value>
+  </data>
+  <data name="Recent_CheckingTip" xml:space="preserve">
+    <value>{0}
+Checking whether the project is there…</value>
+  </data>
+  <data name="Recent_Empty" xml:space="preserve">
+    <value>No recent projects yet. Projects you open or save appear here.</value>
+  </data>
+  <data name="Recent_Heading" xml:space="preserve">
+    <value>RECENT PROJECTS</value>
+  </data>
+  <data name="Recent_LastUsedTip" xml:space="preserve">
+    <value>{0}
+Last used {1}</value>
+  </data>
+  <data name="Recent_OpenFailed" xml:space="preserve">
+    <value>Couldn't open the project. {0}</value>
+  </data>
+  <data name="Recent_RemoveFailed" xml:space="preserve">
+    <value>Couldn't remove "{0}" from the recent projects.</value>
+  </data>
+  <data name="Recent_RemoveTip" xml:space="preserve">
+    <value>Remove from the list (the project itself is not changed)</value>
+  </data>
+  <data name="Recent_Unavailable" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="Recent_UnavailableTip" xml:space="preserve">
+    <value>{0}
+The project can't be found there now. Remove it from the list with ✕.</value>
+  </data>
+  <data name="Recovery_Discard" xml:space="preserve">
+    <value>Discard</value>
+  </data>
+  <data name="Recovery_Discarded" xml:space="preserve">
+    <value>Discarded the autosaved changes to "{0}".</value>
+  </data>
+  <data name="Recovery_Failed" xml:space="preserve">
+    <value>Couldn't recover "{0}". {1}</value>
+  </data>
+  <data name="Recovery_Folder" xml:space="preserve">
+    <value>Project folder: {0}</value>
+  </data>
+  <data name="Recovery_Kept" xml:space="preserve">
+    <value>Autosaved changes to "{0}" were kept; you'll be asked again next time.</value>
+  </data>
+  <data name="Recovery_NotNow" xml:space="preserve">
+    <value>Not now</value>
+  </data>
+  <data name="Recovery_NotSavedYet" xml:space="preserve">
+    <value>The project had not been saved yet.</value>
+  </data>
+  <data name="Recovery_Question" xml:space="preserve">
+    <value>AI Video Editor didn't close normally. Unsaved changes to "{0}" were autosaved at {1}.
+{2}
+
+Recover them now? Discarded changes can't be restored.</value>
+  </data>
+  <data name="Recovery_Recover" xml:space="preserve">
+    <value>Recover</value>
+  </data>
+  <data name="Recovery_Recovered" xml:space="preserve">
+    <value>Recovered unsaved changes to "{0}" — save the project to keep them.</value>
+  </data>
+  <data name="Recovery_SetAside" xml:space="preserve">
+    <value>{0} recovery file couldn't be used and was set aside.|{0} recovery files couldn't be used and were set aside.</value>
+  </data>
+  <data name="Recovery_Title" xml:space="preserve">
+    <value>Recover unsaved work</value>
+  </data>
+  <data name="Relink_Anyway" xml:space="preserve">
+    <value>Relink Anyway</value>
+  </data>
+  <data name="Relink_Cancelled" xml:space="preserve">
+    <value>Relink cancelled.</value>
+  </data>
+  <data name="Relink_CantTitle" xml:space="preserve">
+    <value>Can't relink</value>
+  </data>
+  <data name="Relink_ClipsStay" xml:space="preserve">
+    <value>The clips stay as they are.</value>
+  </data>
+  <data name="Relink_DifferencesTitle" xml:space="preserve">
+    <value>Relink with differences?</value>
+  </data>
+  <data name="Relink_Differs" xml:space="preserve">
+    <value>"{0}" differs from what "{1}" was:</value>
+  </data>
+  <data name="Relink_ExportRunning" xml:space="preserve">
+    <value>An export is running — nothing was relinked.</value>
+  </data>
+  <data name="Relink_FindOthers" xml:space="preserve">
+    <value>{0} other media file is offline. Look for it in "{1}"?|{0} other media files are offline. Look for them in "{1}"?</value>
+  </data>
+  <data name="Relink_FindOthersTitle" xml:space="preserve">
+    <value>Find other missing media?</value>
+  </data>
+  <data name="Relink_FindTitle" xml:space="preserve">
+    <value>Find Missing Media</value>
+  </data>
+  <data name="Relink_FolderPickerTitle" xml:space="preserve">
+    <value>Find Missing Media — choose the folder to search</value>
+  </data>
+  <data name="Relink_FoundUnusable" xml:space="preserve">
+    <value>Files with matching names were found in the folder, but none of them can be used.</value>
+  </data>
+  <data name="Relink_NoneOffline" xml:space="preserve">
+    <value>No media is offline.</value>
+  </data>
+  <data name="Relink_NotAppliedTitle" xml:space="preserve">
+    <value>Relink not applied</value>
+  </data>
+  <data name="Relink_NothingFound" xml:space="preserve">
+    <value>No offline media file was found in the folder.</value>
+  </data>
+  <data name="Relink_NothingRelinked" xml:space="preserve">
+    <value>Nothing was relinked.</value>
+  </data>
+  <data name="Relink_NotNow" xml:space="preserve">
+    <value>Not Now</value>
+  </data>
+  <data name="Relink_NotOffline" xml:space="preserve">
+    <value>"{0}" is not offline — nothing to relink.</value>
+  </data>
+  <data name="Relink_NotRelinked" xml:space="preserve">
+    <value>"{0}" was not relinked.</value>
+  </data>
+  <data name="Relink_PartialTitle" xml:space="preserve">
+    <value>Relinked {0} of {1}</value>
+  </data>
+  <data name="Relink_PickerTitle" xml:space="preserve">
+    <value>Relink "{0}" — choose its file</value>
+  </data>
+  <data name="Relink_Refused" xml:space="preserve">
+    <value>These were not relinked and stay offline:</value>
+  </data>
+  <data name="Relink_Relinked" xml:space="preserve">
+    <value>Relinked {0} media file.|Relinked {0} media files.</value>
+  </data>
+  <data name="Relink_RelinkFiles" xml:space="preserve">
+    <value>Relink {0} File|Relink {0} Files</value>
+  </data>
+  <data name="Relink_Removed" xml:space="preserve">
+    <value>(removed)</value>
+  </data>
+  <data name="Relink_Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Relink_Unchecked" xml:space="preserve">
+    <value>The technical compatibility of "{0}" with "{1}" was not checked:</value>
+  </data>
+  <data name="Relink_UncheckedTitle" xml:space="preserve">
+    <value>Relink without a compatibility check?</value>
+  </data>
+  <data name="Relink_Unexpected" xml:space="preserve">
+    <value>Relinking failed unexpectedly; nothing more was changed. See the log for details.</value>
+  </data>
+  <data name="RippleDelete_Many" xml:space="preserve">
+    <value>{0} clip ripple deleted|{0} clips ripple deleted</value>
+  </data>
+  <data name="RippleDelete_One" xml:space="preserve">
+    <value>Clip ripple deleted</value>
+  </data>
+  <data name="Selection_Count" xml:space="preserve">
+    <value>{0} clip selected|{0} clips selected</value>
+  </data>
+  <data name="Selection_None" xml:space="preserve">
+    <value>No clip selected.</value>
+  </data>
+  <data name="Selection_NothingToSelect" xml:space="preserve">
+    <value>There is no clip on an unlocked track to select.</value>
+  </data>
+  <data name="Settings_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Settings_AudioBitrate" xml:space="preserve">
+    <value>Audio bitrate</value>
+  </data>
+  <data name="Settings_Current" xml:space="preserve">
+    <value>Current: {0}</value>
+  </data>
+  <data name="Settings_Custom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="Settings_EncodingSpeed" xml:space="preserve">
+    <value>Encoding speed</value>
+  </data>
+  <data name="Settings_EnterSize" xml:space="preserve">
+    <value>Enter the frame width and height.</value>
+  </data>
+  <data name="Settings_Export" xml:space="preserve">
+    <value>EXPORT</value>
+  </data>
+  <data name="Settings_FrameRate" xml:space="preserve">
+    <value>FRAME RATE</value>
+  </data>
+  <data name="Settings_FrameSize" xml:space="preserve">
+    <value>FRAME SIZE</value>
+  </data>
+  <data name="Settings_FrameSizeSet" xml:space="preserve">
+    <value>Frame size set to {0} × {1}.</value>
+  </data>
+  <data name="Settings_Height" xml:space="preserve">
+    <value>Height</value>
+  </data>
+  <data name="Settings_Landscape" xml:space="preserve">
+    <value>Landscape</value>
+  </data>
+  <data name="Settings_Locked" xml:space="preserve">
+    <value>The project settings can't be changed while a video is being exported.</value>
+  </data>
+  <data name="Settings_NotChanged" xml:space="preserve">
+    <value>The project settings could not be changed.</value>
+  </data>
+  <data name="Settings_Portrait" xml:space="preserve">
+    <value>Portrait</value>
+  </data>
+  <data name="Settings_PositionsScaled" xml:space="preserve">
+    <value>Positions and text sizes will be scaled by {0} %.</value>
+  </data>
+  <data name="Settings_PositionsStay" xml:space="preserve">
+    <value>Positions and text sizes stay as they are.</value>
+  </data>
+  <data name="Settings_Quality" xml:space="preserve">
+    <value>Quality</value>
+  </data>
+  <data name="Settings_RateChange" xml:space="preserve">
+    <value>Clips move to the nearest frames of {0}; fades, dissolves and markers keep their time.</value>
+  </data>
+  <data name="Settings_RateKept" xml:space="preserve">
+    <value>{0} will be kept: a video added later won't change it.</value>
+  </data>
+  <data name="Settings_Square" xml:space="preserve">
+    <value>Square</value>
+  </data>
+  <data name="Settings_Swap" xml:space="preserve">
+    <value>⇄ Swap</value>
+  </data>
+  <data name="Settings_SwapTip" xml:space="preserve">
+    <value>Swap width and height (landscape ↔ portrait)</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Project Settings</value>
+  </data>
+  <data name="Settings_WholeNumbers" xml:space="preserve">
+    <value>The frame width and height must be whole numbers.</value>
+  </data>
+  <data name="Settings_Width" xml:space="preserve">
+    <value>Width</value>
+  </data>
+  <data name="Slip_Cannot" xml:space="preserve">
+    <value>Can't slip</value>
+  </data>
+  <data name="Slip_Limit" xml:space="preserve">
+    <value>(limit)</value>
+  </data>
+  <data name="Slip_OnlyMedia" xml:space="preserve">
+    <value>Only video and audio clips can be slipped.</value>
+  </data>
+  <data name="Slip_Range" xml:space="preserve">
+    <value>In {0}  Out {1}</value>
+  </data>
+  <data name="Source_ClearRangeTip" xml:space="preserve">
+    <value>Clear the source In / Out</value>
+  </data>
+  <data name="Source_In" xml:space="preserve">
+    <value>In</value>
+  </data>
+  <data name="Source_Insert" xml:space="preserve">
+    <value>Insert</value>
+  </data>
+  <data name="Source_Inserted" xml:space="preserve">
+    <value>Inserted {0}</value>
+  </data>
+  <data name="Source_InsertedSound" xml:space="preserve">
+    <value>Inserted the sound of {0}</value>
+  </data>
+  <data name="Source_InsertTip" xml:space="preserve">
+    <value>Insert the source range at the playhead on the target track (,)</value>
+  </data>
+  <data name="Source_InSet" xml:space="preserve">
+    <value>Source In set at {0}.</value>
+  </data>
+  <data name="Source_InTip" xml:space="preserve">
+    <value>Source In (I)</value>
+  </data>
+  <data name="Source_NotInProject" xml:space="preserve">
+    <value>That media is not in the project.</value>
+  </data>
+  <data name="Source_Out" xml:space="preserve">
+    <value>Out</value>
+  </data>
+  <data name="Source_OutSet" xml:space="preserve">
+    <value>Source Out set at {0}.</value>
+  </data>
+  <data name="Source_OutTip" xml:space="preserve">
+    <value>Source Out (O)</value>
+  </data>
+  <data name="Source_Overwrite" xml:space="preserve">
+    <value>Overwrite</value>
+  </data>
+  <data name="Source_OverwriteTip" xml:space="preserve">
+    <value>Overwrite the target track with the source range from the playhead (.)</value>
+  </data>
+  <data name="Source_Overwrote" xml:space="preserve">
+    <value>Overwrote with {0}</value>
+  </data>
+  <data name="Source_OverwroteSound" xml:space="preserve">
+    <value>Overwrote with the sound of {0}</value>
+  </data>
+  <data name="Source_RangeCleared" xml:space="preserve">
+    <value>Source In / Out cleared.</value>
+  </data>
+  <data name="Source_RangeDisplay" xml:space="preserve">
+    <value>In {0} · Out {1}</value>
+  </data>
+  <data name="Source_RangeEnd" xml:space="preserve">
+    <value>end</value>
+  </data>
+  <data name="Source_RangeStart" xml:space="preserve">
+    <value>start</value>
+  </data>
+  <data name="Source_SoundOnly" xml:space="preserve">
+    <value>Sound only</value>
+  </data>
+  <data name="Source_SoundOnlyTip" xml:space="preserve">
+    <value>Insert / Overwrite only the sound of this video, as an audio clip on the target audio track</value>
+  </data>
+  <data name="Source_ViewerUnavailable" xml:space="preserve">
+    <value>The Source viewer is not available.</value>
+  </data>
+  <data name="Speed_Fast" xml:space="preserve">
+    <value>Fast</value>
+  </data>
+  <data name="Speed_FastDetail" xml:space="preserve">
+    <value>H.264 preset fast — quicker, larger file</value>
+  </data>
+  <data name="Speed_Medium" xml:space="preserve">
+    <value>Medium</value>
+  </data>
+  <data name="Speed_MediumDetail" xml:space="preserve">
+    <value>H.264 preset medium — default</value>
+  </data>
+  <data name="Speed_Slow" xml:space="preserve">
+    <value>Slow</value>
+  </data>
+  <data name="Speed_SlowDetail" xml:space="preserve">
+    <value>H.264 preset slow — slower, smaller file</value>
+  </data>
+  <data name="Status_Ready" xml:space="preserve">
+    <value>Ready.</value>
+  </data>
+  <data name="Tech_AudioCodec" xml:space="preserve">
+    <value>Audio Codec</value>
+  </data>
+  <data name="Tech_Bitrate" xml:space="preserve">
+    <value>Bitrate</value>
+  </data>
+  <data name="Tech_Channels" xml:space="preserve">
+    <value>Channels</value>
+  </data>
+  <data name="Tech_Color" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="Tech_Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Tech_FrameRate" xml:space="preserve">
+    <value>Frame Rate</value>
+  </data>
+  <data name="Tech_Height" xml:space="preserve">
+    <value>Height</value>
+  </data>
+  <data name="Tech_Orientation" xml:space="preserve">
+    <value>Orientation</value>
+  </data>
+  <data name="Tech_Resolution" xml:space="preserve">
+    <value>Resolution</value>
+  </data>
+  <data name="Tech_SampleRate" xml:space="preserve">
+    <value>Sample Rate</value>
+  </data>
+  <data name="Tech_VideoCodec" xml:space="preserve">
+    <value>Video Codec</value>
+  </data>
+  <data name="Tech_Width" xml:space="preserve">
+    <value>Width</value>
+  </data>
+  <data name="Text_Added" xml:space="preserve">
+    <value>Text added</value>
+  </data>
+  <data name="Timeline_AddAudioTrack" xml:space="preserve">
+    <value>+ Audio Track</value>
+  </data>
+  <data name="Timeline_AddAudioTrackTip" xml:space="preserve">
+    <value>Add an audio track</value>
+  </data>
+  <data name="Timeline_Added" xml:space="preserve">
+    <value>Added to timeline</value>
+  </data>
+  <data name="Timeline_AddMarkerTip" xml:space="preserve">
+    <value>Add a marker at the playhead</value>
+  </data>
+  <data name="Timeline_AddText" xml:space="preserve">
+    <value>+ Text</value>
+  </data>
+  <data name="Timeline_AddTextTip" xml:space="preserve">
+    <value>Add a text clip at the playhead on the top video track</value>
+  </data>
+  <data name="Timeline_AddVideoTrack" xml:space="preserve">
+    <value>+ Video Track</value>
+  </data>
+  <data name="Timeline_AddVideoTrackTip" xml:space="preserve">
+    <value>Add a video track</value>
+  </data>
+  <data name="Timeline_ClearInOutTip" xml:space="preserve">
+    <value>Clear In / Out</value>
+  </data>
+  <data name="Timeline_CloseGap" xml:space="preserve">
+    <value>Close Gap</value>
+  </data>
+  <data name="Timeline_CloseGapTip" xml:space="preserve">
+    <value>Remove the empty space before the selected clip: it and the later clips of its track move left</value>
+  </data>
+  <data name="Timeline_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Timeline_DeleteTip" xml:space="preserve">
+    <value>Delete the selected clips or dissolve (Delete)</value>
+  </data>
+  <data name="Timeline_Dissolve" xml:space="preserve">
+    <value>Dissolve</value>
+  </data>
+  <data name="Timeline_DissolveTip" xml:space="preserve">
+    <value>Add a dissolve between the two selected clips that meet — on an audio track, a crossfade</value>
+  </data>
+  <data name="Timeline_Duplicate" xml:space="preserve">
+    <value>Duplicate</value>
+  </data>
+  <data name="Timeline_DuplicateTip" xml:space="preserve">
+    <value>Copy the selected clips right after them (Ctrl+D)</value>
+  </data>
+  <data name="Timeline_EditNotPossible" xml:space="preserve">
+    <value>The timeline edit was not possible.</value>
+  </data>
+  <data name="Timeline_Empty" xml:space="preserve">
+    <value>The timeline is empty</value>
+  </data>
+  <data name="Timeline_EmptyHint" xml:space="preserve">
+    <value>Drag media here from the Media Browser, or select it and click Add to Timeline. + Text adds a text clip.</value>
+  </data>
+  <data name="Timeline_Fit" xml:space="preserve">
+    <value>Fit</value>
+  </data>
+  <data name="Timeline_FitTip" xml:space="preserve">
+    <value>Zoom to fit (\)</value>
+  </data>
+  <data name="Timeline_Heading" xml:space="preserve">
+    <value>TIMELINE</value>
+  </data>
+  <data name="Timeline_Link" xml:space="preserve">
+    <value>Link</value>
+  </data>
+  <data name="Timeline_LinkTip" xml:space="preserve">
+    <value>Link the selected video clip and audio clip: they are edited together</value>
+  </data>
+  <data name="Timeline_NextMarkerTip" xml:space="preserve">
+    <value>Go to the next marker</value>
+  </data>
+  <data name="Timeline_Paste" xml:space="preserve">
+    <value>Paste</value>
+  </data>
+  <data name="Timeline_PasteTip" xml:space="preserve">
+    <value>Paste the copied clips at the playhead, on their tracks (Ctrl+V)</value>
+  </data>
+  <data name="Timeline_PrevMarkerTip" xml:space="preserve">
+    <value>Go to the previous marker</value>
+  </data>
+  <data name="Timeline_RemoveMarkerTip" xml:space="preserve">
+    <value>Remove the marker at the playhead</value>
+  </data>
+  <data name="Timeline_RippleDelete" xml:space="preserve">
+    <value>Ripple Delete</value>
+  </data>
+  <data name="Timeline_RippleDeleteTip" xml:space="preserve">
+    <value>Delete the selected clips and move the later clips of their tracks left to close up</value>
+  </data>
+  <data name="Timeline_Snap" xml:space="preserve">
+    <value>Snap</value>
+  </data>
+  <data name="Timeline_SnapTip" xml:space="preserve">
+    <value>Snapping (N)</value>
+  </data>
+  <data name="Timeline_Split" xml:space="preserve">
+    <value>Split</value>
+  </data>
+  <data name="Timeline_SplitTip" xml:space="preserve">
+    <value>Split at playhead (S)</value>
+  </data>
+  <data name="Timeline_Unlink" xml:space="preserve">
+    <value>Unlink</value>
+  </data>
+  <data name="Timeline_UnlinkAudio" xml:space="preserve">
+    <value>Unlink Audio</value>
+  </data>
+  <data name="Timeline_UnlinkTip" xml:space="preserve">
+    <value>Unlink: a video clip's sound becomes an audio clip of its own; a linked pair becomes two independent clips</value>
+  </data>
+  <data name="Timeline_ZoomInTip" xml:space="preserve">
+    <value>Zoom in (Ctrl+=)</value>
+  </data>
+  <data name="Timeline_ZoomOutTip" xml:space="preserve">
+    <value>Zoom out (Ctrl+−)</value>
+  </data>
+  <data name="Toolbar_Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="Toolbar_ExportTip" xml:space="preserve">
+    <value>Export the sequence (Ctrl+E)</value>
+  </data>
+  <data name="Toolbar_ExportUnavailable" xml:space="preserve">
+    <value>Exporting is not available.</value>
+  </data>
+  <data name="Toolbar_Import" xml:space="preserve">
+    <value>Import Media</value>
+  </data>
+  <data name="Toolbar_ImportTip" xml:space="preserve">
+    <value>Import media into the project (Ctrl+I)</value>
+  </data>
+  <data name="Toolbar_New" xml:space="preserve">
+    <value>New</value>
+  </data>
+  <data name="Toolbar_NewTip" xml:space="preserve">
+    <value>New Project (Ctrl+N)</value>
+  </data>
+  <data name="Toolbar_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Toolbar_OpenTip" xml:space="preserve">
+    <value>Open Project (Ctrl+O)</value>
+  </data>
+  <data name="Toolbar_ProjectSettings" xml:space="preserve">
+    <value>Project Settings…</value>
+  </data>
+  <data name="Toolbar_Recent" xml:space="preserve">
+    <value>Recent</value>
+  </data>
+  <data name="Toolbar_RecentTip" xml:space="preserve">
+    <value>Open a recent project</value>
+  </data>
+  <data name="Toolbar_Redo" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="Toolbar_RedoTip" xml:space="preserve">
+    <value>Redo (Ctrl+Y)</value>
+  </data>
+  <data name="Toolbar_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Toolbar_SaveAs" xml:space="preserve">
+    <value>Save As</value>
+  </data>
+  <data name="Toolbar_SaveAsTip" xml:space="preserve">
+    <value>Save Project As (Ctrl+Shift+S)</value>
+  </data>
+  <data name="Toolbar_SaveTip" xml:space="preserve">
+    <value>Save Project (Ctrl+S)</value>
+  </data>
+  <data name="Toolbar_SettingsTip" xml:space="preserve">
+    <value>Project Settings — {0}</value>
+  </data>
+  <data name="Toolbar_SettingsUnavailable" xml:space="preserve">
+    <value>Project settings are not available.</value>
+  </data>
+  <data name="Toolbar_Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Toolbar_UndoTip" xml:space="preserve">
+    <value>Undo (Ctrl+Z)</value>
+  </data>
+  <data name="Track_DeleteButton" xml:space="preserve">
+    <value>Delete Track</value>
+  </data>
+  <data name="Track_Deleted" xml:space="preserve">
+    <value>Track {0} deleted</value>
+  </data>
+  <data name="Track_DeleteMany" xml:space="preserve">
+    <value>Track {1} has {0} clip. Deleting the track deletes them too, and any dissolves between them.
+
+You can undo this with Undo.|Track {1} has {0} clips. Deleting the track deletes them too, and any dissolves between them.
+
+You can undo this with Undo.</value>
+  </data>
+  <data name="Track_DeleteOne" xml:space="preserve">
+    <value>Track {0} has 1 clip. Deleting the track deletes the clip too.
+
+You can undo this with Undo.</value>
+  </data>
+  <data name="Track_DeleteTip" xml:space="preserve">
+    <value>Delete the track (asks first when it has clips)</value>
+  </data>
+  <data name="Track_DeleteTitle" xml:space="preserve">
+    <value>Delete Track</value>
+  </data>
+  <data name="Track_Hidden" xml:space="preserve">
+    <value>Track {0} hidden</value>
+  </data>
+  <data name="Track_HideTip" xml:space="preserve">
+    <value>Hide / show the track: a hidden track is not drawn in the Preview or the export (its sound still plays)</value>
+  </data>
+  <data name="Track_Locked" xml:space="preserve">
+    <value>Track {0} locked</value>
+  </data>
+  <data name="Track_LockTip" xml:space="preserve">
+    <value>Lock / unlock the track: a locked track's clips and place can't be edited (it still plays and exports)</value>
+  </data>
+  <data name="Track_MovedDown" xml:space="preserve">
+    <value>Track {0} moved down</value>
+  </data>
+  <data name="Track_MoveDownTip" xml:space="preserve">
+    <value>Move the track down</value>
+  </data>
+  <data name="Track_MovedUp" xml:space="preserve">
+    <value>Track {0} moved up</value>
+  </data>
+  <data name="Track_MoveUpTip" xml:space="preserve">
+    <value>Move the track up</value>
+  </data>
+  <data name="Track_Muted" xml:space="preserve">
+    <value>Track {0} muted</value>
+  </data>
+  <data name="Track_MuteTip" xml:space="preserve">
+    <value>Mute / unmute the track: a muted track is not heard in the Preview or the export</value>
+  </data>
+  <data name="Track_Shown" xml:space="preserve">
+    <value>Track {0} shown</value>
+  </data>
+  <data name="Track_Unlocked" xml:space="preserve">
+    <value>Track {0} unlocked</value>
+  </data>
+  <data name="Track_Unmuted" xml:space="preserve">
+    <value>Track {0} unmuted</value>
+  </data>
+  <data name="Transform_CropText" xml:space="preserve">
+    <value>Crop — drag a handle; the picture stays in place; Esc cancels</value>
+  </data>
+  <data name="Transform_CropValue" xml:space="preserve">
+    <value>Crop L {0} % · T {1} % · R {2} % · B {3} %</value>
+  </data>
+  <data name="Transform_MoveText" xml:space="preserve">
+    <value>Move — drag the clip; a corner scales it; Shift keeps an axis; Esc cancels</value>
+  </data>
+  <data name="Transform_MoveValue" xml:space="preserve">
+    <value>Position X {0} px · Y {1} px</value>
+  </data>
+  <data name="Transform_NoClip" xml:space="preserve">
+    <value>Select a clip under the playhead (click its picture)</value>
+  </data>
+  <data name="Transform_NoPicture" xml:space="preserve">
+    <value>The selected clip has no picture</value>
+  </data>
+  <data name="Transform_NotUnderPlayhead" xml:space="preserve">
+    <value>The selected clip is not under the playhead</value>
+  </data>
+  <data name="Transform_Playing" xml:space="preserve">
+    <value>Pause to move, scale or crop</value>
+  </data>
+  <data name="Transform_ScaleValue" xml:space="preserve">
+    <value>Scale {0} %</value>
+  </data>
+  <data name="Transform_TextNoCrop" xml:space="preserve">
+    <value>Text clips have no crop — use Move</value>
+  </data>
+  <data name="Transform_UnknownSize" xml:space="preserve">
+    <value>The size of this clip's picture is not known yet</value>
+  </data>
+  <data name="Transition_Crossfade" xml:space="preserve">
+    <value>Crossfade</value>
+  </data>
+  <data name="Transition_Dissolve" xml:space="preserve">
+    <value>Dissolve</value>
+  </data>
+  <data name="Transition_Longest" xml:space="preserve">
+    <value>Longest that fits here: {0}</value>
+  </data>
+  <data name="Transition_NotChanged" xml:space="preserve">
+    <value>The dissolve could not be changed.</value>
+  </data>
+  <data name="Transition_NotRemoved" xml:space="preserve">
+    <value>The dissolve could not be removed.</value>
+  </data>
+  <data name="Transition_RemoveCrossfade" xml:space="preserve">
+    <value>Remove Crossfade</value>
+  </data>
+  <data name="Transition_RemoveDissolve" xml:space="preserve">
+    <value>Remove Dissolve</value>
+  </data>
+  <data name="Transition_WholeFrames" xml:space="preserve">
+    <value>A dissolve is a whole number of frames.</value>
+  </data>
+  <data name="Transport_Loop" xml:space="preserve">
+    <value>Loop</value>
+  </data>
+  <data name="Transport_LoopTip" xml:space="preserve">
+    <value>Loop playback (Ctrl+L)</value>
+  </data>
+  <data name="Transport_NextTip" xml:space="preserve">
+    <value>Next frame (→)</value>
+  </data>
+  <data name="Transport_Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Transport_Play" xml:space="preserve">
+    <value>Play</value>
+  </data>
+  <data name="Transport_PlayPauseTip" xml:space="preserve">
+    <value>Play / Pause (Space; L plays, K pauses, J one second back)</value>
+  </data>
+  <data name="Transport_PrevTip" xml:space="preserve">
+    <value>Previous frame (←)</value>
+  </data>
+  <data name="Transport_StopTip" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Trim_EndMany" xml:space="preserve">
+    <value>Trimmed the end of {0} clip to the playhead|Trimmed the end of {0} clips to the playhead</value>
+  </data>
+  <data name="Trim_EndOne" xml:space="preserve">
+    <value>Trimmed the end of the clip to the playhead</value>
+  </data>
+  <data name="Trim_RippleEndMany" xml:space="preserve">
+    <value>Ripple trimmed the end of {0} clip to the playhead|Ripple trimmed the end of {0} clips to the playhead</value>
+  </data>
+  <data name="Trim_RippleEndOne" xml:space="preserve">
+    <value>Ripple trimmed the end of the clip to the playhead</value>
+  </data>
+  <data name="Trim_RippleStartMany" xml:space="preserve">
+    <value>Ripple trimmed the start of {0} clip to the playhead|Ripple trimmed the start of {0} clips to the playhead</value>
+  </data>
+  <data name="Trim_RippleStartOne" xml:space="preserve">
+    <value>Ripple trimmed the start of the clip to the playhead</value>
+  </data>
+  <data name="Trim_StartMany" xml:space="preserve">
+    <value>Trimmed the start of {0} clip to the playhead|Trimmed the start of {0} clips to the playhead</value>
+  </data>
+  <data name="Trim_StartOne" xml:space="preserve">
+    <value>Trimmed the start of the clip to the playhead</value>
+  </data>
+  <data name="Unit_B" xml:space="preserve">
+    <value>B</value>
+  </data>
+  <data name="Unit_Frames" xml:space="preserve">
+    <value>frames</value>
+  </data>
+  <data name="Unit_GB" xml:space="preserve">
+    <value>GB</value>
+  </data>
+  <data name="Unit_KB" xml:space="preserve">
+    <value>KB</value>
+  </data>
+  <data name="Unit_Kbps" xml:space="preserve">
+    <value>{0} kbps</value>
+  </data>
+  <data name="Unit_KHz" xml:space="preserve">
+    <value>{0} kHz</value>
+  </data>
+  <data name="Unit_MB" xml:space="preserve">
+    <value>MB</value>
+  </data>
+  <data name="Unit_Mbps" xml:space="preserve">
+    <value>{0} Mbps</value>
+  </data>
+  <data name="Unit_Px" xml:space="preserve">
+    <value>px</value>
+  </data>
+  <data name="Unit_PxValue" xml:space="preserve">
+    <value>{0}px</value>
+  </data>
+  <data name="Unit_Seconds" xml:space="preserve">
+    <value>s</value>
+  </data>
+  <data name="Unit_SecondsValue" xml:space="preserve">
+    <value>{0} s</value>
+  </data>
+  <data name="Unit_TB" xml:space="preserve">
+    <value>TB</value>
+  </data>
+  <data name="Unsaved_ActionClose" xml:space="preserve">
+    <value>closing</value>
+  </data>
+  <data name="Unsaved_ActionNew" xml:space="preserve">
+    <value>creating a new project</value>
+  </data>
+  <data name="Unsaved_ActionOpen" xml:space="preserve">
+    <value>opening another project</value>
+  </data>
+  <data name="Unsaved_Question" xml:space="preserve">
+    <value>Do you want to save the changes to "{0}" before {1}?
+
+If you don't save, your changes will be lost.</value>
+  </data>
+  <data name="Unsaved_Title" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+</root>

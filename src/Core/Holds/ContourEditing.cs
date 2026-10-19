@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Localization;
 
 namespace AiVideoEditor.Core.Holds;
 
@@ -37,9 +38,9 @@ public static class ContourEditing
     /// <summary>An inserted point this close to a vertex (frame pixels) is that vertex.</summary>
     public const double SameVertexPixels = 0.5;
 
-    public const string CrossingMessage = "The outline can't cross itself — the change is not applied.";
+    public static string CrossingMessage => Messages.Contour_SelfCross;
 
-    public const string TooFewPointsMessage = "An outline keeps at least three points.";
+    public static string TooFewPointsMessage => Messages.Contour_MinPoints;
 
     /// <summary>The handles of <paramref name="points"/>: every vertex up to <see cref="AllHandlesUpTo"/>, otherwise the
     /// Douglas–Peucker subset at <see cref="HandleToleranceShare"/> of the contour's size; then thinned so that consecutive

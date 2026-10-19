@@ -1,5 +1,6 @@
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Localization;
 
 namespace AiVideoEditor.Timeline;
 
@@ -42,7 +43,7 @@ public static class FrameRateRegrid
                 var nextStart = i + 1 < clips.Count ? starts[i + 1] : long.MaxValue;
 
                 if (startFrame < prevEnd)
-                    return $"Clips on track {track.Name} can't keep their order on the new frame grid.";
+                    return string.Format(Messages.Regrid_Order, track.Name);
 
                 if (clip is MediaBackedClip { Speed.IsNormal: false } fast)
                 {
@@ -50,9 +51,9 @@ public static class FrameRateRegrid
                     // grid as the range allows (the same rule as a speed change).
                     var frames = SpeedTiming.FramesFor(fast.SourceOut - fast.SourceIn, fast.Speed, newRate);
                     if (frames < 1)
-                        return $"A clip on track {track.Name} is shorter than one frame at the new frame rate.";
+                        return string.Format(Messages.Regrid_ClipOnTrackShort, track.Name);
                     if (startFrame + frames > nextStart)
-                        return $"Clips on track {track.Name} would overlap on the new frame grid.";
+                        return string.Format(Messages.Regrid_Overlap, track.Name);
 
                     prevEnd = startFrame + frames;
                     var regridded = ClipState.FromFrames(startFrame, prevEnd, fast.SourceIn, fast.SourceOut, fast.Speed, newRate);
@@ -68,7 +69,7 @@ public static class FrameRateRegrid
                     else if (startFrame - 1 >= prevEnd)
                         (startFrame, endFrame) = (startFrame - 1, startFrame);
                     else
-                        return $"A very short clip on track {track.Name} has no room on the new frame grid.";
+                        return string.Format(Messages.Regrid_NoRoom, track.Name);
                 }
 
                 var sourceIn = clip is MediaBackedClip media ? media.SourceIn : MediaTime.Zero;
@@ -76,17 +77,17 @@ public static class FrameRateRegrid
                 {
                     var asset = findAsset(((MediaBackedClip)clip).MediaAssetId);
                     if (asset?.Metadata is not { } metadata || metadata.Duration <= MediaTime.Zero)
-                        return "A clip's source duration is unknown.";
+                        return Messages.Regrid_SourceUnknown;
 
                     var maxFrames = FrameMath.MaxWholeFrames(metadata.Duration - sourceIn, newRate);
                     if (maxFrames < 1)
-                        return $"A clip from {asset.FileName} is shorter than one frame at the new frame rate.";
+                        return string.Format(Messages.Regrid_ClipFromShort, asset.FileName);
                     if (endFrame - startFrame > maxFrames)
                         endFrame = startFrame + maxFrames;
                 }
 
                 if (endFrame > nextStart)
-                    return $"Clips on track {track.Name} would overlap on the new frame grid.";
+                    return string.Format(Messages.Regrid_Overlap, track.Name);
 
                 starts[i] = startFrame;
                 prevEnd = endFrame;

@@ -404,9 +404,9 @@ public sealed class TextClipUiTests : IAsyncLifetime
     [InlineData("First\r\nSecond", "First")]
     [InlineData("First\rSecond", "First")]
     [InlineData("  padded  \nx", "  padded  ")]
-    [InlineData("", TimelineViewModel.EmptyTextLabel)]
-    [InlineData("   ", TimelineViewModel.EmptyTextLabel)]
-    [InlineData(" \r\n\t\n ", TimelineViewModel.EmptyTextLabel)]
+    [InlineData("", "(empty text)")]
+    [InlineData("   ", "(empty text)")]
+    [InlineData(" \r\n\t\n ", "(empty text)")]
     public void The_label_is_the_first_line_or_empty_text(string text, string label) =>
         Assert.Equal(label, TimelineViewModel.TextLabel(text));
 

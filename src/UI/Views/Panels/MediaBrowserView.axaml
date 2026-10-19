@@ -1,4 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:l="using:AiVideoEditor.UI.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:rendering="using:AiVideoEditor.UI.Rendering"
              x:Class="AiVideoEditor.UI.Views.Panels.MediaBrowserView">
@@ -8,37 +9,37 @@
 
       <Border DockPanel.Dock="Top" Padding="8" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1">
         <DockPanel>
-          <TextBlock Text="MEDIA" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A"
+          <TextBlock Text="{x:Static l:Strings.Media_Heading}" FontSize="11" FontWeight="Bold" Foreground="#9A9A9A"
                      VerticalAlignment="Center" DockPanel.Dock="Left"/>
           <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
-            <Button Content="Add to Timeline" Command="{Binding AddToTimelineCommand}"
-                    ToolTip.Tip="Add the selected media to the end of V1 / A1 (or drag it onto a track)"/>
-            <Button Content="+ Import" Command="{Binding ImportCommand}"/>
+            <Button Content="{x:Static l:Strings.Media_AddToTimeline}" Command="{Binding AddToTimelineCommand}"
+                    ToolTip.Tip="{x:Static l:Strings.Media_AddToTimelineTip}"/>
+            <Button Content="{x:Static l:Strings.Media_Import}" Command="{Binding ImportCommand}"/>
           </StackPanel>
         </DockPanel>
       </Border>
 
-      <!-- Offline media (Phase 11 Step 11.6, D026 §5): shown only while some media is offline. -->
+      <!-- Offline media (Phase 11 Step 11.6, D026 §5): shown only while some media is offline. The heading above the
+           buttons, which wrap: with the Russian labels both no longer fit beside it in the 260 px panel (D039 §6). -->
       <Border DockPanel.Dock="Top" Padding="8,4,8,6" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1"
               IsVisible="{Binding HasOfflineMedia}">
-        <DockPanel>
-          <TextBlock Text="OFFLINE" FontSize="10" FontWeight="Bold" Foreground="#C0864A"
-                     VerticalAlignment="Center" DockPanel.Dock="Left"/>
-          <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
-            <Button Content="Relink…" Command="{Binding RelinkCommand}"
-                    ToolTip.Tip="Link the selected offline media to its file at another place"/>
-            <Button Content="Find Missing…" Command="{Binding FindMissingCommand}"
-                    ToolTip.Tip="Look for the offline media files in one folder"/>
-          </StackPanel>
-        </DockPanel>
+        <StackPanel Spacing="4">
+          <TextBlock Text="{x:Static l:Strings.Media_Offline}" FontSize="10" FontWeight="Bold" Foreground="#C0864A"/>
+          <WrapPanel Orientation="Horizontal">
+            <Button Content="{x:Static l:Strings.Media_Relink}" Command="{Binding RelinkCommand}" Margin="0,0,4,4"
+                    ToolTip.Tip="{x:Static l:Strings.Media_RelinkTip}"/>
+            <Button Content="{x:Static l:Strings.Media_FindMissing}" Command="{Binding FindMissingCommand}" Margin="0,0,4,4"
+                    ToolTip.Tip="{x:Static l:Strings.Media_FindMissingTip}"/>
+          </WrapPanel>
+        </StackPanel>
       </Border>
 
       <Panel>
         <!-- Empty state -->
         <StackPanel IsVisible="{Binding HasNoMedia}" Margin="16" Spacing="6" VerticalAlignment="Center">
-          <TextBlock Text="No media imported" Foreground="#AAAAAA" FontSize="13"
+          <TextBlock Text="{x:Static l:Strings.Media_Empty}" Foreground="#AAAAAA" FontSize="13"
                      HorizontalAlignment="Center" TextWrapping="Wrap"/>
-          <TextBlock Text="Import video, audio or image files to start editing."
+          <TextBlock Text="{x:Static l:Strings.Media_EmptyHint}"
                      Foreground="#6A6A6A" FontSize="11" TextWrapping="Wrap"
                      HorizontalAlignment="Center" TextAlignment="Center"/>
         </StackPanel>
@@ -57,7 +58,7 @@
                 <Button DockPanel.Dock="Right" Content="✕" FontSize="10" Padding="5,1" VerticalAlignment="Center"
                         IsVisible="{Binding $parent[ListBoxItem].IsSelected}"
                         Command="{Binding $parent[ListBox].DataContext.RemoveCommand}"
-                        ToolTip.Tip="Remove from the project (asks first when clips use it; the file on disk stays)"/>
+                        ToolTip.Tip="{x:Static l:Strings.Media_RemoveTip}"/>
                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="2">
 
                   <!-- The kind's colour is the placeholder; a thumbnail, once ready, is drawn over it (D024 Step 9.4). -->
