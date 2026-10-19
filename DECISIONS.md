@@ -5374,7 +5374,7 @@ Implementation notes (2026-10-20, Phase 26):
 
 Status: Accepted (2026-10-20, product owner). Phase 26, branch `feat/phase-26-vertical-video` from `58c48cb`; implemented and
 verified by Claude on 2026-10-20 (the gates, the `project.json` v6 byte comparison with `58c48cb`, the real-app run of
-`docs/PHASE26_MANUAL_TEST_PLAN.md`); the product owner's acceptance pending.
+`docs/PHASE26_MANUAL_TEST_PLAN.md`); **accepted by the product owner on 2026-10-20**; push and a pull request permitted.
 
 ## D042 — Product concept, scope boundaries and the order of the remaining phases
 

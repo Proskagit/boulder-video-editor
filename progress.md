@@ -40,6 +40,8 @@ owner's command.
     in the real app (all covered by automated tests).
   - State: Phase 26 implemented and verified by Claude; the product owner's acceptance pending. Local commits only — no
     push, pull request or merge.
+- 2026-10-20 — **Phase 26 accepted by the product owner**; push of `feat/phase-26-vertical-video` and a pull request
+  permitted (the NOT RUN rows of the manual plan stay as they are).
 - 2026-10-20 — planning, documentation only (the product owner's request, outside Phase 26's steps): D042 — the product
   concept (a simplified editor for bouldering videos, the main path of eight steps), its boundaries (no parity goal, ≈ 5
   transitions and ≈ 5 effects, no audio studio / multicam / motion design, a large function only through a new decision) and

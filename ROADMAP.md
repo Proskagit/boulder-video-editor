@@ -78,8 +78,8 @@ menu; one Undo step each; no persistent mode); `project.json` stays v6. Steps: `
 Vertical video and framing: steps"; manual plan `docs/PHASE26_MANUAL_TEST_PLAN.md`. Steps 26.0–26.4 done (verified by Claude
 2026-10-20: Release / Debug `--no-incremental -warnaserror` 0 / 0, the full suite 4020 / 2 / 0, heavy 4022 / 0 / 0, three
 blame-hang runs clean, `project.json` v6 byte for byte with `58c48cb` in `ru` and `en`, the manual plan run in the real app
-with the product owner's Vivo / Huawei clips, its NOT RUN parts named); awaiting the product owner's acceptance. Local
-commits only.
+with the product owner's Vivo / Huawei clips, its NOT RUN parts named); **accepted by the product owner on 2026-10-20**; push and a pull request
+permitted.
 
 ## Previous
 

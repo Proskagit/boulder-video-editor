@@ -155,8 +155,8 @@ and runs cleanly.
       canvas of its shape (a dialog, one Undo step); «Заполнить кадр» / «Вписать в кадр» compute a clip's Scale (the
       Inspector and the clip's context menu, one Undo step each). `project.json` stays v6. Scope, steps and acceptance
       criteria: section below and DECISIONS.md D041 (accepted 2026-10-20). *(Branch `feat/phase-26-vertical-video` from
-      `58c48cb`; Steps 26.0–26.4 done and verified by Claude on 2026-10-20; awaiting the product owner's acceptance;
-      local commits only)*
+      `58c48cb`; Steps 26.0–26.4 done and verified by Claude on 2026-10-20; accepted by the product owner on
+      2026-10-20; push and a pull request permitted)*
 - [ ] **Planned (D042, provisional; numbers given when taken up):** A — text animation · B — transition library · C —
       ready-made effects and music · G — stabilisation of the main path · R1 → D — automatic hold proposals · R2 → E —
       outlines following the camera · R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
