@@ -707,6 +707,21 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
         Assert.Equal(new Point(500, 500), ViewOf(new PointD(960, 540)));
     }
 
+    [Fact]
+    public void The_overlay_reaches_over_the_margin_and_maps_the_canvas_as_the_composition_does()
+    {
+        // The overlay is 16 px larger on every side than the composition's 1000 × 1000 area.
+        var inset = PreviewTransformOverlay.ViewportIn(Landscape, new Size(1000 + 2 * PreviewTransformOverlay.Inset, 1000 + 2 * PreviewTransformOverlay.Inset));
+        var composition = CompositionDrawPlan.Viewport(Landscape, 1000, 1000);
+        foreach (var p in new[] { new PointD(0, 0), new PointD(1920, 1080), new PointD(960, 540) })
+        {
+            var a = inset.Apply(p);
+            var b = composition.Apply(p);
+            Assert.Equal(b.X + PreviewTransformOverlay.Inset, a.X, 9);
+            Assert.Equal(b.Y + PreviewTransformOverlay.Inset, a.Y, 9);
+        }
+    }
+
     private static void AssertNear(PointD expected, PointD actual)
     {
         Assert.Equal(expected.X, actual.X, 9);

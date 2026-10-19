@@ -66,6 +66,8 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
         TransformProperty.Changed.AddClassHandler<PreviewTransformOverlay>((o, e) => o.Attach(e.NewValue as PreviewTransformViewModel));
         AffectsRender<PreviewTransformOverlay>(LayersProperty);
         FocusableProperty.OverrideDefaultValue<PreviewTransformOverlay>(true);   // a press takes the focus off text inputs
+        // A frame scaled or moved past the canvas is drawn up to the Preview's edge, never over the panels around it.
+        ClipToBoundsProperty.OverrideDefaultValue<PreviewTransformOverlay>(true);
     }
 
     public PreviewTransformViewModel? Transform
@@ -103,6 +105,15 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
 
     /// <summary>The viewport canvas → view for the overlay's current size.</summary>
     public static Affine2D Viewport(FrameSize canvas, Size view) => CompositionDrawPlan.Viewport(canvas, view.Width, view.Height);
+
+    /// <summary>The overlay reaches <see cref="Inset"/> view pixels past the picture's area on every side (its margin in
+    /// the Preview), so the handles of a clip that fills the canvas are whole and can be grabbed at the letterbox edge;
+    /// the canvas maps into the area inside that border exactly as the <see cref="CompositionView"/> maps it.</summary>
+    public const double Inset = 16;
+
+    /// <summary>The viewport canvas → overlay for an overlay of <paramref name="bounds"/> with the <see cref="Inset"/> border.</summary>
+    public static Affine2D ViewportIn(FrameSize canvas, Size bounds) =>
+        Affine2D.Translation(Inset, Inset).Compose(Viewport(canvas, new Size(Math.Max(0, bounds.Width - 2 * Inset), Math.Max(0, bounds.Height - 2 * Inset))));
 
     public static PointD ToCanvas(Affine2D viewport, Point p) => viewport.Invert().Apply(new PointD(p.X, p.Y));
 
@@ -163,7 +174,7 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
         Focus();
         if (!t.IsPaused || t.IsGestureActive) return;
 
-        var viewport = Viewport(t.Canvas, Bounds.Size);
+        var viewport = ViewportIn(t.Canvas, Bounds.Size);
         var canvasPoint = ToCanvas(viewport, point.Position);
         var kind = PressKind.None;
         var handle = CropEdges.None;
@@ -264,7 +275,7 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
             Cursor = null;
             return;
         }
-        var viewport = _press?.Viewport ?? Viewport(t.Canvas, Bounds.Size);
+        var viewport = _press?.Viewport ?? ViewportIn(t.Canvas, Bounds.Size);
         CropEdges handle;
         if (_press is { Kind: PressKind.Scale or PressKind.Crop } press) handle = press.Handle;
         else if (_press is { Kind: PressKind.Move }) handle = CropEdges.None;
@@ -303,7 +314,7 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
     public override void Render(DrawingContext context)
     {
         if (_transform is not { IsActive: true, IsPaused: true } t || !t.Canvas.IsValid) return;
-        var viewport = _press?.Viewport ?? Viewport(t.Canvas, Bounds.Size);
+        var viewport = _press?.Viewport ?? ViewportIn(t.Canvas, Bounds.Size);
 
         // Another layer under the pointer: a thin outline (a click selects it).
         if (_press is null && _pointer is { } pointer && !Layers.IsDefault)

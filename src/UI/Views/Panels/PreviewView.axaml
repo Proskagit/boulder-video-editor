@@ -86,8 +86,9 @@
       <!-- AI hold markup (Phase 19, D034): clicks, the candidate, the selected hold and the loupe (status and buttons in
            the bar above). -->
       <rendering:HoldMarkupOverlay Markup="{Binding HoldMarkup}"/>
-      <!-- Move / Crop (Phase 23, D038): the selected clip's frame and handles, clicks and drags (text in the bar above). -->
-      <rendering:PreviewTransformOverlay Transform="{Binding Transform}" Layers="{Binding Layers}"/>
+      <!-- Move / Crop (Phase 23, D038): the selected clip's frame and handles, clicks and drags (text in the bar above); it
+           reaches over the picture's 16 px margin (PreviewTransformOverlay.Inset) so handles on the canvas edge are whole. -->
+      <rendering:PreviewTransformOverlay Transform="{Binding Transform}" Layers="{Binding Layers}" Margin="-16"/>
       <TextBlock Text="Buffering…" IsVisible="{Binding IsBuffering}"
                  Foreground="#7A7A7A" FontSize="12" Margin="8"
                  HorizontalAlignment="Right" VerticalAlignment="Top"/>
