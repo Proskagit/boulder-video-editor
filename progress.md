@@ -26,6 +26,10 @@ merge without the product owner's command.
   replayed with the real shell and playback (`HoldMarkupUiTests`, 2 cases: the mode stays on, a step back still leaves it).
   Most likely cause: the Step 22.6 harness's arrow key that lost its modifier (a one-frame step back). No product code and
   no D034 change (D040 "Refined in Step 25.3"); the real-app check in the manual plan (row 5).
+- 2026-10-19 — Step 25.4: sliders under Fade In / Fade Out (every clip kind with fades) and the hold line width (1–32),
+  the same `Slider.under` style and `DecimalDouble` as Opacity / Volume; the Fade maximum bound to the field's
+  `MaxFade*Frames` (the clip's length). `SliderViewBindingTests` 1 → 6 (Fade on a video and an audio clip, the maximum after
+  a trim, Volume — the Phase 24 gap —, the line width; each drag one undo step, typing moves the slider). UI.Tests 787 / 0 / 0.
 
 ### Phase 24 — Russian localization and interface polish (merged 2026-10-19 as `d3df0ba`, PR #25)
 

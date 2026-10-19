@@ -17,7 +17,8 @@
       <Setter Property="Foreground" Value="#AAAAAA"/>
       <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
-    <!-- D039 §8: a slider under a bounded field (Opacity, Volume); the field keeps exact typing, a drag is one undo step (D017). -->
+    <!-- D039 §8 / D040 §4: a slider under a bounded field (Opacity, Volume, Fade In / Out, the hold line width); the field keeps
+         exact typing, a drag is one undo step (D017). -->
     <Style Selector="Slider.under">
       <Setter Property="Width" Value="118"/>
       <Setter Property="Margin" Value="124,-10,0,-6"/>
@@ -246,6 +247,11 @@
                   <TextBlock Text="{x:Static l:Strings.Holds_WidthUnit}" Foreground="#AAAAAA" VerticalAlignment="Center"
                              ToolTip.Tip="{x:Static l:Strings.Holds_WidthUnitTip}"/>
                 </StackPanel>
+                <Slider x:Name="StrokeWidthSlider" Classes="under" Focusable="False"
+                        Minimum="{Binding MinStrokeWidth, Converter={x:Static common:DecimalDouble.Instance}}"
+                        Maximum="{Binding MaxStrokeWidth, Converter={x:Static common:DecimalDouble.Instance}}"
+                        Value="{Binding StrokeWidth, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                        ToolTip.Tip="{x:Static l:Strings.Holds_Width}"/>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{x:Static l:Strings.Holds_Colour}" Classes="label"/>
                   <ComboBox ItemsSource="{Binding ColorModes}" SelectedIndex="{Binding ColorModeIndex, Mode=TwoWay}" Width="110"/>
@@ -341,6 +347,10 @@
                                Maximum="{Binding MaxFadeInFrames}" FormatString="0" Width="104"/>
                 <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
               </StackPanel>
+              <Slider x:Name="FadeInSlider" Classes="under" Focusable="False" Minimum="0"
+                      Maximum="{Binding MaxFadeInFrames, Converter={x:Static common:DecimalDouble.Instance}}"
+                      Value="{Binding FadeInFrames, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                      ToolTip.Tip="{x:Static l:Strings.Inspector_FadeIn}"/>
               <TextBlock Text="{Binding FadeInTimeDisplay}" Foreground="#7A7A7A" FontSize="10" Margin="124,-4,0,0"/>
               <TextBlock IsVisible="{Binding IsFadeInInactive}" Text="{x:Static l:Strings.Inspector_FadeInactive}"
                          Foreground="#C8A060" FontSize="10" Margin="124,0,0,0" TextWrapping="Wrap"/>
@@ -350,6 +360,10 @@
                                Maximum="{Binding MaxFadeOutFrames}" FormatString="0" Width="104"/>
                 <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
               </StackPanel>
+              <Slider x:Name="FadeOutSlider" Classes="under" Focusable="False" Minimum="0"
+                      Maximum="{Binding MaxFadeOutFrames, Converter={x:Static common:DecimalDouble.Instance}}"
+                      Value="{Binding FadeOutFrames, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                      ToolTip.Tip="{x:Static l:Strings.Inspector_FadeOut}"/>
               <TextBlock Text="{Binding FadeOutTimeDisplay}" Foreground="#7A7A7A" FontSize="10" Margin="124,-4,0,0"/>
               <TextBlock IsVisible="{Binding IsFadeOutInactive}" Text="{x:Static l:Strings.Inspector_FadeInactive}"
                          Foreground="#C8A060" FontSize="10" Margin="124,0,0,0" TextWrapping="Wrap"/>
