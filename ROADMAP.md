@@ -408,12 +408,16 @@ Separate tasks recorded at the Phase 21 acceptance (2026-10-15) and later; none 
   height and behaviour unchanged). Checked in the real app at 1024 × 640 and 1440 × 900: 0, 1, 10, 99, 100, 999,5, 1000 /
   0, 10, 99, 100 / 0, 10, 99, 100, 200 whole, the spinner buttons, Undo / Redo, a save and reopen
   (`docs/PHASE25_MANUAL_TEST_PLAN.md`, FU-25.1 rows).
-- **FU-25.2 — A field with a slider loses a typed fraction (found at the FU-25.1 check, not changed).** Typed into Непрозрачность,
-  Громкость or Толщина, «50,5» / «150,5» / «4,5» become 50 / 150 / 4: the slider under the field snaps to whole steps
-  (`IsSnapToTickEnabled`, `TickFrequency` 1) and writes the rounded value back (`DecimalDouble.ConvertBack`, banker's
-  rounding). Since Phase 24 for Opacity / Volume (the same in `d3df0ba`), Phase 25 for the line width; the fields without a
-  slider keep fractions (Скорость 1,55, Поворот 12,5). Against D039 §8 ("the field keeps exact typing"). Proposed: no snapping
-  on these sliders, the rounding only for a value that comes from a drag. Not decided.
+- **FU-25.2 — A field with a slider lost a typed fraction (found at the FU-25.1 check)** — *fixed on the branch; the product
+  owner's decision of 2026-10-19: Opacity, Volume and the hold line width take whole values, a fraction saved before is shown
+  as it is until it is changed.* Cause: `DecimalDouble.ConvertBack` rounded every value the slider wrote back — and the binding
+  writes back also after the field moved the slider — so a typed «50,5» became 50 as a side effect, and a clip with a saved
+  0,505 opacity showed 50 while the model kept 50,5 (the field hid the model's value). Removing the slider's snapping alone did
+  not help (checked). Fix: the converter passes the value through unchanged; the view models round a typed value to a whole
+  one, a half up (Opacity / Volume in `InspectorViewModel`, the line width in `HoldMarkupViewModel`); the three fields step by
+  1 and show «0.####» (a whole value whole, a saved fraction as it is); the sliders' whole-step snapping of a drag unchanged.
+  The other numeric fields keep their fractions (Скорость, Поворот, Масштаб, Кадрирование). Checked in the real app
+  (`docs/PHASE25_MANUAL_TEST_PLAN.md`, FU-25.2 rows).
 
 ## Rule
 

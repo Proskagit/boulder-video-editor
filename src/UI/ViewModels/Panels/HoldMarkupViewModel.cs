@@ -143,7 +143,9 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     partial void OnStrokeWidthChanged(decimal? value)
     {
-        if (!_syncing && value is { } width) EditStyle(s => s with { StrokeWidth1080 = (double)width });
+        // FU-25.2: whole pixels — a typed fraction is rounded, a half up; EditStyle shows the applied value again. A fraction
+        // already in the model is shown as it is until the width is changed.
+        if (!_syncing && value is { } width) EditStyle(s => s with { StrokeWidth1080 = (double)Math.Round(width, MidpointRounding.AwayFromZero) });
     }
 
     partial void OnColorModeIndexChanged(int value)

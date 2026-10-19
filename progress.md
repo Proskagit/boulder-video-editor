@@ -62,6 +62,17 @@ merge without the product owner's command.
   ear NOT RUN (no capture device, no listener). Found, not changed: FU-25.2 (a field with a slider loses a typed fraction,
   since Phase 24). Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 3912 / 2 / 0; heavy 3914 /
   0 / 0; three `--blame-hang` runs 3912 / 2 / 0, no hang; `git diff --check` clean. Not pushed.
+- 2026-10-19 — FU-25.1 accepted by the product owner. FU-25.2, their variant 1: Opacity, Volume and the hold line width take
+  whole values. Cause: `DecimalDouble.ConvertBack` rounded every slider write-back (also the one after the field moved the
+  slider), so a typed fraction became whole as a side effect and a saved fraction was hidden (0,505 showed as 50); removing
+  the slider's snapping alone did not help (tested). Fix: the converter passes values through; `InspectorViewModel` /
+  `HoldMarkupViewModel` round a typed value, a half up; the three fields step 1, format «0.####» (a saved fraction shown as it
+  is). Tests: `SliderViewBindingTests` + 13 (rounding theories, a saved fraction shown and never changed by showing it,
+  typing ↔ dragging with Undo / Redo, the other fields keep fractions), `InspectorFieldStyleTests` + 1 (formats, steps and
+  the `Slider.under` snapping read from the AXAML — a test view has no styling root, which made the first check of the
+  sliders' properties fail). Real app: manual plan rows G1–G8 PASS. Gates: Release / Debug `--no-incremental -warnaserror`
+  0 / 0; the full suite 3926 / 2 / 0; heavy 3928 / 0 / 0; three `--blame-hang` runs 3926 / 2 / 0; `git diff --check` clean.
+  Not pushed.
 
 ### Phase 24 — Russian localization and interface polish (merged 2026-10-19 as `d3df0ba`, PR #25)
 

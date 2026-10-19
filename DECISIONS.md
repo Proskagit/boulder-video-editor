@@ -5273,7 +5273,11 @@ Implementation notes (2026-10-19, Phase 25):
 - Found outside the scope (Step 25.6): the Inspector's numeric fields cut a three-digit value (FU-25.1) — fixed afterwards at
   the product owner's request (2026-10-19): the Inspector's numeric-field style narrows Fluent's spinner buttons to 22 px and
   the text padding (selectors with an activator, as Fluent's own theme styles have one); width 104, height and behaviour
-  unchanged. Found at that check, not changed: FU-25.2 (a field with a slider loses a typed fraction, since Phase 24).
+  unchanged. Found at that check: FU-25.2 (a field with a slider lost a typed fraction, since Phase 24) — decided by the
+  product owner on 2026-10-19 (variant 1): Opacity, Volume and the hold line width take whole values — the view models round a
+  typed value, a half up; the slider's converter no longer rounds (it rounded every write-back, also the one after the field
+  moved the slider, and hid a saved fraction); a fraction saved before is shown as it is («0.####») until it is changed; the
+  other numeric fields keep their precision. This refines D039 §8 for these three fields ("exact typing" → whole values).
 
 Status: Accepted (2026-10-19, product owner). Implemented in Phase 25 (branch `feat/phase-25-backlog-ux`); verified by Claude
 on 2026-10-19 (the gates, the `project.json` v6 byte comparison with `d3df0ba`, the real-app run of

@@ -64,3 +64,22 @@ the same). Run by Claude on the Debug build with the fix, a fresh Phase 10 fixtu
 Found in the FU-25.1 run, not changed (reported): **FU-25.2** — a field with a slider loses a typed fraction (Непрозрачность
 50,5 → 50, Громкость 150,5 → 150, Толщина 4,5 → 4; fields without a slider keep fractions); the slider's whole-step
 snapping writes the rounded value back. Present since Phase 24 (the base `d3df0ba` the same); recorded in ROADMAP.
+
+## FU-25.2 — whole values in Непрозрачность, Громкость and Толщина (2026-10-19, the product owner's variant 1)
+
+Run by Claude on the Debug build with the fix, a fresh Phase 10 fixture (`fx252`), at 1440 × 900; values read from UI
+Automation (the field's text, the slider's value), the window title (`*`) and the saved `project.json`. A value is committed
+by Tab (focus loss).
+
+| # | Scenario | Expected | Automated coverage | Status |
+|---|---|---|---|---|
+| G1 | Type a fraction → commit → display | Rounded to a whole value, a half up; the field, the slider and the model agree | `SliderViewBindingTests` (three theories) | local (Claude): PASS — Непрозрачность 50,5 → 51, 50,4 → 50, 70,5 → 71; Толщина 4,5 → 5; Громкость 150,5 → 151; the slider the same value each time |
+| G2 | Typed fraction → slider drag | The drag lands on whole steps | `Typing_then_dragging_then_typing…` | local (Claude): PASS — 71 → 49 (Непрозрачность), 5 → 10 (Толщина), 151 → 128 (Громкость), field = slider |
+| G3 | Drag → typed fraction | Rounded | the same test | local (Claude): PASS — 33,3 → 33, 7,5 → 8, 120,5 → 121 |
+| G4 | The arrow buttons | ±1 | — | local (Claude): PASS — 33 → 34 → 32, 8 → 9 → 7, 121 → 122 → 120 |
+| G5 | Undo / Redo | The run of one field's changes back and forth (D017) | the same test | local (Claude): PASS — Undo to the value before the run (50 / 4 / 100), Redo to 32 / 7 / 120; field = slider |
+| G6 | Save and reopen | Whole values kept | — | local (Claude): PASS — saved `opacity` 0.32, `volume` 1.2, `strokeWidth1080` 7 (v6), reopened as 32 / 120 / 7 |
+| G7 | A fraction saved before (0.505 / 1.505 / 4.5 written into `project.json`) | Shown as it is, never changed by showing it | `A_fraction_already_in_the_model…` | local (Claude): PASS — 50,5 / 150,5 / 4,5 in the fields and the sliders; no `*`, Undo disabled; ▲ from 150,5 gives 151,5 → 152 (changed, so whole); Undo → 150,5 |
+| G8 | The other fields keep fractions | Exact | `The_other_numeric_fields_keep_their_fractions` | local (Claude): PASS — Поворот 12,5 and Масштаб 99,5 typed, saved (`rotationDegrees` 12.5, `scale` 0.995) and reopened as 12,5 / 99,5 |
+
+Not run for FU-25.2: the layout at 1024 × 640 (only the number format changed; FU-25.1's 1024 check covers the field's width).

@@ -48,4 +48,27 @@ public sealed class InspectorFieldStyleTests
         Assert.Equal(21, fields.Count);
         Assert.All(fields, f => Assert.Equal("104", (string?)f.Attribute("Width")));
     }
+
+    /// <summary>FU-25.2: the three whole-value fields step by 1 and show a whole value as whole (a saved fraction as it is);
+    /// the sliders under bounded fields land a drag on whole steps. Read from the AXAML: a test view has no styling root, so
+    /// the `Slider.under` style is not applied to its sliders (the reason a check of the sliders' properties failed).</summary>
+    [Fact]
+    public void The_whole_value_fields_and_the_slider_steps()
+    {
+        var xaml = Inspector();
+        var fields = xaml.Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown")
+            .ToDictionary(e => ((string)e.Attribute("Value")!).Split(',')[0].Replace("{Binding ", ""));
+        foreach (var name in new[] { "OpacityPercent", "VolumePercent", "StrokeWidth" })
+        {
+            Assert.Equal("1", (string?)fields[name].Attribute("Increment"));
+            Assert.Equal("0.####", (string?)fields[name].Attribute("FormatString"));
+        }
+        Assert.Equal("0.00", (string?)fields["SpeedValue"].Attribute("FormatString"));   // the others keep their fractions
+        Assert.Equal("0.##", (string?)fields["Rotation"].Attribute("FormatString"));
+        Assert.Equal("0.##", (string?)fields["ScalePercent"].Attribute("FormatString"));
+
+        var slider = Style(xaml, "Slider.under");
+        Assert.Equal("True", Setter(slider, "IsSnapToTickEnabled"));
+        Assert.Equal("1", Setter(slider, "TickFrequency"));
+    }
 }
