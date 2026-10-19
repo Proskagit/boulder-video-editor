@@ -800,7 +800,7 @@
     <value>Can't be used:</value>
   </data>
   <data name="RelinkSummary_Found" xml:space="preserve">
-    <value>Found {0} of {1} offline media files in "{2}".</value>
+    <value>Found {1} of {0} offline media files in "{2}".|Found {1} of {0} offline media files in "{2}".</value>
   </data>
   <data name="RelinkSummary_Missing" xml:space="preserve">
     <value>Not in the folder (stay offline): {0}.</value>

@@ -19,19 +19,19 @@
         </DockPanel>
       </Border>
 
-      <!-- Offline media (Phase 11 Step 11.6, D026 §5): shown only while some media is offline. -->
+      <!-- Offline media (Phase 11 Step 11.6, D026 §5): shown only while some media is offline. The heading above the
+           buttons, which wrap: with the Russian labels both no longer fit beside it in the 260 px panel (D039 §6). -->
       <Border DockPanel.Dock="Top" Padding="8,4,8,6" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1"
               IsVisible="{Binding HasOfflineMedia}">
-        <DockPanel>
-          <TextBlock Text="{x:Static l:Strings.Media_Offline}" FontSize="10" FontWeight="Bold" Foreground="#C0864A"
-                     VerticalAlignment="Center" DockPanel.Dock="Left"/>
-          <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
-            <Button Content="{x:Static l:Strings.Media_Relink}" Command="{Binding RelinkCommand}"
+        <StackPanel Spacing="4">
+          <TextBlock Text="{x:Static l:Strings.Media_Offline}" FontSize="10" FontWeight="Bold" Foreground="#C0864A"/>
+          <WrapPanel Orientation="Horizontal">
+            <Button Content="{x:Static l:Strings.Media_Relink}" Command="{Binding RelinkCommand}" Margin="0,0,4,4"
                     ToolTip.Tip="{x:Static l:Strings.Media_RelinkTip}"/>
-            <Button Content="{x:Static l:Strings.Media_FindMissing}" Command="{Binding FindMissingCommand}"
+            <Button Content="{x:Static l:Strings.Media_FindMissing}" Command="{Binding FindMissingCommand}" Margin="0,0,4,4"
                     ToolTip.Tip="{x:Static l:Strings.Media_FindMissingTip}"/>
-          </StackPanel>
-        </DockPanel>
+          </WrapPanel>
+        </StackPanel>
       </Border>
 
       <Panel>

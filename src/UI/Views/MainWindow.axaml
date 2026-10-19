@@ -31,10 +31,9 @@
     <panels:TimelineView Grid.Row="3" DataContext="{Binding Timeline}"/>
 
     <!-- Status bar -->
-    <Border Grid.Row="4" Background="#007ACC" Padding="10,4">
-      <!-- D039 §6: a long message is trimmed with an ellipsis; the whole of it is in the tooltip. -->
-      <TextBlock Text="{Binding Status.Message}" Foreground="White" FontSize="11" TextTrimming="CharacterEllipsis"
-                 ToolTip.Tip="{Binding Status.Message}"/>
+    <!-- D039 §6: a long message is trimmed with an ellipsis; the whole of it is in the bar's tooltip. -->
+    <Border Grid.Row="4" Background="#007ACC" Padding="10,4" ToolTip.Tip="{Binding Status.Message}">
+      <TextBlock Text="{Binding Status.Message}" Foreground="White" FontSize="11" TextTrimming="CharacterEllipsis"/>
     </Border>
 
   </Grid>

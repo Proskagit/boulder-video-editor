@@ -942,7 +942,7 @@
     <value>Папка проекта: {0}</value>
   </data>
   <data name="Recovery_Kept" xml:space="preserve">
-    <value>Автосохранённые изменения проекта «{0}» сохранены; вопрос будет задан при следующем запуске.</value>
+    <value>Автосохранённые изменения проекта «{0}» оставлены; вопрос будет задан при следующем запуске.</value>
   </data>
   <data name="Recovery_NotNow" xml:space="preserve">
     <value>Не сейчас</value>

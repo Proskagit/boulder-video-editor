@@ -800,7 +800,7 @@
     <value>Нельзя использовать:</value>
   </data>
   <data name="RelinkSummary_Found" xml:space="preserve">
-    <value>Найдено {0} из {1} офлайн-медиафайлов в «{2}».</value>
+    <value>Найдено {1} из {0} офлайн-медиафайла в «{2}».|Найдено {1} из {0} офлайн-медиафайлов в «{2}».|Найдено {1} из {0} офлайн-медиафайлов в «{2}».</value>
   </data>
   <data name="RelinkSummary_Missing" xml:space="preserve">
     <value>Нет в папке (остаются офлайн): {0}.</value>

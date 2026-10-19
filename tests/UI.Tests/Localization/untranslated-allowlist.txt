@@ -82,7 +82,7 @@ src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Crop Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Scale Clip
 
-# Reasons of a damaged project / recent-projects file — diagnostic detail shown in parentheses after the translated sentence (D039 §2).
+# Reasons of a damaged file — for project.json the diagnostic detail in parentheses after the translated sentence (D039 §2); for the recent-projects list written to the log only.
 src/Project/Persistence/ProjectSerializer.cs	a clip doesn't match the kind of {asset.FileName}
 src/Project/Persistence/ProjectSerializer.cs	a clip has a negative fade
 src/Project/Persistence/ProjectSerializer.cs	a clip has an empty link id

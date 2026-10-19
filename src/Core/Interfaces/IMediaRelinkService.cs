@@ -174,7 +174,7 @@ public sealed class RelinkSearch
 
         var lines = new List<string>();
         var found = Entries.Where(e => e.Outcome == RelinkSearchOutcome.Found).ToList();
-        lines.Add(string.Format(Messages.RelinkSummary_Found, found.Count, Entries.Count, Folder));
+        lines.Add(Plural.Format(Entries.Count, Messages.RelinkSummary_Found, found.Count, Folder));
         foreach (var e in found)
         {
             lines.Add($"• {e.FileName}");

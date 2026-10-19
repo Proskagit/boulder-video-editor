@@ -29,7 +29,8 @@
                   ToolTip.Tip="{x:Static l:Strings.Preview_SourceModeTip}"/>
         </StackPanel>
         <!-- Move / Crop (Phase 23, D038 §1): two exclusive tools over the timeline's picture; off in Source mode and
-             during an export. -->
+             during an export. While the hold markup is on (the tools are off then) only their icons are shown, so the
+             markup's buttons fit beside them at 1024 px with the Russian labels (D039 §6); the names stay in the tooltips. -->
         <StackPanel Orientation="Horizontal" Spacing="2" DockPanel.Dock="Right" Margin="8,0,0,0"
                     IsVisible="{Binding Transform, Converter={x:Static ObjectConverters.IsNotNull}}">
           <StackPanel.Styles>
@@ -43,7 +44,7 @@
                         ToolTip.Tip="{x:Static l:Strings.Preview_MoveTip}">
             <StackPanel Orientation="Horizontal" Spacing="4">
               <controls:IconPath Glyph="{x:Static controls:Icons.Move}" Width="12" Height="12"/>
-              <TextBlock Text="{x:Static l:Strings.Preview_Move}"/>
+              <TextBlock Text="{x:Static l:Strings.Preview_Move}" IsVisible="{Binding !HoldMarkup.IsActive, FallbackValue=True}"/>
             </StackPanel>
           </ToggleButton>
           <ToggleButton Classes="tool" IsChecked="{Binding Transform.IsCropOn, Mode=TwoWay}"
@@ -51,7 +52,7 @@
                         ToolTip.Tip="{x:Static l:Strings.Preview_CropTip}">
             <StackPanel Orientation="Horizontal" Spacing="4">
               <controls:IconPath Glyph="{x:Static controls:Icons.Crop}" Width="12" Height="12"/>
-              <TextBlock Text="{x:Static l:Strings.Preview_Crop}"/>
+              <TextBlock Text="{x:Static l:Strings.Preview_Crop}" IsVisible="{Binding !HoldMarkup.IsActive, FallbackValue=True}"/>
             </StackPanel>
           </ToggleButton>
         </StackPanel>
@@ -61,7 +62,7 @@
                     IsVisible="{Binding HoldMarkup.IsActive, FallbackValue=False}">
           <TextBlock Text="{Binding HoldMarkup.AlternativeText}" Foreground="#00E5FF" FontSize="11" VerticalAlignment="Center"
                      IsVisible="{Binding HoldMarkup.AlternativeText, Converter={x:Static ObjectConverters.IsNotNull}}"/>
-          <ProgressBar IsVisible="{Binding HoldMarkup.IsPreparing}" Minimum="0" Maximum="1" Width="80" Height="4"
+          <ProgressBar IsVisible="{Binding HoldMarkup.IsPreparing}" Minimum="0" Maximum="1" Width="80" MinWidth="0" Height="4"
                        Value="{Binding HoldMarkup.PrepareProgress}" VerticalAlignment="Center"/>
           <ToggleButton Content="{x:Static l:Strings.Holds_Loupe}" FontSize="11" Padding="6,2" IsChecked="{Binding HoldMarkup.IsLoupeOn, Mode=TwoWay}"
                         IsVisible="{Binding !HoldMarkup.IsPreparing}" ToolTip.Tip="{x:Static l:Strings.Holds_LoupeTip}"/>
