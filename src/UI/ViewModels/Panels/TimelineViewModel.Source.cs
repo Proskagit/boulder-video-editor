@@ -26,6 +26,7 @@ public sealed partial class TimelineViewModel
         if (_source?.Asset is not { } asset || _source.Selection is not { } range) return;
         var soundOnly = _source.PlacesSoundOnly;                                       // D032 R7, AQ10
         var target = SourceTargetTrack(asset, soundOnly);
+        var wasEmpty = IsTimelineEmpty;
         var result = overwrite
             ? _edit.OverwriteClip(asset.Id, range.In, range.Out, Playhead, target?.Id, soundOnly)
             : _edit.InsertClip(asset.Id, range.In, range.Out, Playhead, target?.Id, soundOnly);
@@ -44,6 +45,7 @@ public sealed partial class TimelineViewModel
             (false, false) => Strings.Source_Inserted
         };
         Report(result, successMessage: string.Format(message, asset.FileName));
+        OfferCanvasAfterAdd(wasEmpty, result);   // D041 §1: a sound-only placement creates no video clip, so no offer
     }
 
     /// <summary>SQ8: the track of the latest selected clip on a track of the source's kind (the selection's last entry is

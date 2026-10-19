@@ -1703,4 +1703,37 @@ If you don't save, your changes will be lost.</value>
   <data name="Unsaved_Title" xml:space="preserve">
     <value>Unsaved changes</value>
   </data>
+  <data name="Canvas_OfferTitle" xml:space="preserve">
+    <value>Project Canvas</value>
+  </data>
+  <data name="Canvas_OfferMessage" xml:space="preserve">
+    <value>The video “{0}” is {1} × {2}. On the {3} × {4} canvas it would have black bars. Change the project canvas to {5} × {6}?</value>
+  </data>
+  <data name="Canvas_OfferAccept" xml:space="preserve">
+    <value>Change Canvas</value>
+  </data>
+  <data name="Canvas_OfferKeep" xml:space="preserve">
+    <value>Keep</value>
+  </data>
+  <data name="Canvas_OfferApplied" xml:space="preserve">
+    <value>Project canvas: {0} × {1}.</value>
+  </data>
+  <data name="Frame_Fill" xml:space="preserve">
+    <value>Fill Frame</value>
+  </data>
+  <data name="Frame_Fit" xml:space="preserve">
+    <value>Fit in Frame</value>
+  </data>
+  <data name="Frame_FillTip" xml:space="preserve">
+    <value>Scale the picture to cover the whole frame — what goes past its edges is cut off</value>
+  </data>
+  <data name="Frame_FitTip" xml:space="preserve">
+    <value>Scale the picture so that it is wholly visible in the frame</value>
+  </data>
+  <data name="Frame_Filled" xml:space="preserve">
+    <value>The picture fills the frame: scale {0} %.</value>
+  </data>
+  <data name="Frame_Fitted" xml:space="preserve">
+    <value>The picture fits in the frame: scale {0} %.</value>
+  </data>
 </root>

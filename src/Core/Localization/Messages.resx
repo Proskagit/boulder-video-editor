@@ -955,4 +955,19 @@
   <data name="Verb_Paste" xml:space="preserve">
     <value>paste</value>
   </data>
+  <data name="Frame_NoPicture" xml:space="preserve">
+    <value>Only a video or an image clip can fill or fit the frame.</value>
+  </data>
+  <data name="Frame_SizeUnknown" xml:space="preserve">
+    <value>The picture size of “{0}” is not known yet — wait until the file is analysed.</value>
+  </data>
+  <data name="Frame_ScaleOutOfRange" xml:space="preserve">
+    <value>That needs a scale of {0} %, outside the limits {1} – {2} %.</value>
+  </data>
+  <data name="Frame_AlreadyFills" xml:space="preserve">
+    <value>The picture already fills the frame.</value>
+  </data>
+  <data name="Frame_AlreadyFits" xml:space="preserve">
+    <value>The picture already fits in the frame.</value>
+  </data>
 </root>

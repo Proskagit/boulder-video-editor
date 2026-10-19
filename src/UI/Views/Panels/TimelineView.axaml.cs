@@ -1,5 +1,6 @@
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.UI.Common;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.ViewModels.Panels;
 using Avalonia;
 using Avalonia.Controls;
@@ -120,7 +121,13 @@ public partial class TimelineView : UserControl
 
     private void OnTracksPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (_viewModel is null || !e.GetCurrentPoint(TrackRows).Properties.IsLeftButtonPressed) return;
+        if (_viewModel is null) return;
+        if (e.GetCurrentPoint(TrackRows).Properties.IsRightButtonPressed)
+        {
+            OnTracksRightPressed(e);
+            return;
+        }
+        if (!e.GetCurrentPoint(TrackRows).Properties.IsLeftButtonPressed) return;
         Focus();
 
         var (clip, edge) = HitTestClip(e.Source);
@@ -264,6 +271,28 @@ public partial class TimelineView : UserControl
         _pressedClip = null;
         _viewModel?.CancelGesture();
     }
+
+    /// <summary>D041 §2: a right click on a clip selects it (as a plain click, without a drag) and opens its context menu —
+    /// «Заполнить кадр» / «Вписать в кадр» for that clip, unavailable for a clip without a picture or during an export.</summary>
+    private void OnTracksRightPressed(PointerPressedEventArgs e)
+    {
+        if (_viewModel is null || HitTestClip(e.Source).Clip is not { } clip || e.Source is not Control target) return;
+        Focus();
+        if (!clip.IsSelected) _viewModel.OnClipPressed(clip, toggle: false);
+        ClipMenu(_viewModel, clip).Open(target);
+        e.Handled = true;
+    }
+
+    /// <summary>The clip's context menu, built for the clicked clip each time it opens.</summary>
+    internal static ContextMenu ClipMenu(TimelineViewModel viewModel, TimelineClipViewModel clip) => new()
+    {
+        Name = "ClipContextMenu",
+        ItemsSource = new[]
+        {
+            new MenuItem { Header = Strings.Frame_Fill, Command = viewModel.FillFrameCommand, CommandParameter = clip, Name = "FillFrameItem" },
+            new MenuItem { Header = Strings.Frame_Fit, Command = viewModel.FitFrameCommand, CommandParameter = clip, Name = "FitFrameItem" }
+        }
+    };
 
     /// <summary>Finds the clip under the pointer and whether a trim handle was hit.</summary>
     private static (TimelineClipViewModel? Clip, ClipEdge? Edge) HitTestClip(object? source)

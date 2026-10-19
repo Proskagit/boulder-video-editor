@@ -1902,11 +1902,11 @@ with `.ru` (the D039 guards); `docs/PHASE26_MANUAL_TEST_PLAN.md` and `progress.m
 Out of scope (D041 §4): a blurred background, an automatic reframe or tracking, a persistent Fill mode, `project.json` v7,
 a warning before the export, FU-21.2, AI features, the technical-debt refactoring, new dependencies, unrelated improvements.
 
-### 26.0 — Sync and documentation
+### 26.0 — Sync and documentation *(done, `3b3d0b6`)*
 - `main` fast-forwarded to `origin/main` = `58c48cb`; the branch; D041 (and D040's merge status); these steps; the manual
   plan's skeleton; Phase 25 recorded as merged (ROADMAP, `progress.md`, the list above).
 
-### 26.1 — Core rules
+### 26.1 — Core rules *(done, `c01f93d`)*
 - `ProjectSettingsRules.SuggestedCanvas` (D041 §1: the short side 1080, the long side by the source's aspect rounded to
   even, the 4096 limit, `CanvasError`); `CompositionMath.FillScale` / `FitScale` (D041 §2: crop, rotation, exact for
   multiples of 90° and rounded outward, the margin for other angles).
@@ -1914,7 +1914,7 @@ a warning before the export, FU-21.2, AI features, the technical-debt refactorin
   Fill / Fit with crop, 0 / 90 / 180 / 270 and an odd angle, `CoversCanvas` true after Fill and the picture inside the canvas
   after Fit, Fit = 1 without rotation, values outside the Scale limits.
 
-### 26.2 — The canvas offer
+### 26.2 — The canvas offer *(done with 26.3)*
 - The timeline's view model: after a successful add of a video clip with
   its picture to an empty timeline, the conditions of D041 §1 → the dialog → `SetCanvasSize` (one Undo step); the session
   flag reset by New / Open / Recover; localized texts.
@@ -1922,7 +1922,7 @@ a warning before the export, FU-21.2, AI features, the technical-debt refactorin
   the session, a second add, sound only, a landscape 16 : 9 source), accept / decline / close, Undo / Redo (canvas, then the
   add), Insert / Overwrite from the Source viewer.
 
-### 26.3 — Fill / Fit commands
+### 26.3 — Fill / Fit commands *(done; the clip's context menu opened from the view's right click — the timeline had no context menu)*
 - `ITimelineEditService.FrameClip(clipId, ClipFraming)` — the D041 §2 rule, one Undo step as a gesture of its own,
   NoChange, the refusals; the Inspector's two buttons; the clip's context menu on the timeline (right click); the export's
   editing lock; localized texts.

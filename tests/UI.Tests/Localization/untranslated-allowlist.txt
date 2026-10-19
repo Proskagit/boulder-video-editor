@@ -64,6 +64,8 @@ src/Timeline/TimelineEditService.cs	Move Clips
 src/Timeline/TimelineEditService.cs	Paste Clip
 src/Timeline/TimelineEditService.cs	Paste Clips
 src/Timeline/TimelineEditService.cs	Remove Media
+src/Timeline/TimelineEditService.Framing.cs	Fill Frame
+src/Timeline/TimelineEditService.Framing.cs	Fit in Frame
 src/Timeline/TimelineEditService.cs	Ripple Delete Clip
 src/Timeline/TimelineEditService.cs	Ripple Delete Clips
 src/Timeline/TimelineEditService.cs	Ripple Trim End

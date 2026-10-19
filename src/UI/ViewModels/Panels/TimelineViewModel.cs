@@ -75,6 +75,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _editingLock.PropertyChanged += (_, _) => OnEditingLockChanged();
 
         _projectService.TimelineChanged += (_, _) => Refresh();
+        _projectService.TimelineChanged += (_, _) => NoteCanvasChange();
         _projectService.ProjectChanged += (_, _) => OnProjectReplaced();
         _projectService.MediaAssetsChanged += (_, _) =>
         {
@@ -88,6 +89,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
         _pixelsPerSecond = Sequence.ZoomPixelsPerSecond;
         _snappingEnabled = Sequence.SnappingEnabled;
+        ResetCanvasOffer();
         Refresh();
     }
 
@@ -172,6 +174,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         Clipboard = null;   // copied clips refer to the previous project's media and tracks (D027 §5)
         PixelsPerSecond = Sequence.ZoomPixelsPerSecond;
         SnappingEnabled = Sequence.SnappingEnabled;
+        ResetCanvasOffer();
         Refresh();
     }
 
@@ -627,6 +630,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         CloseGapCommand.NotifyCanExecuteChanged();
         PasteCommand.NotifyCanExecuteChanged();
         DuplicateCommand.NotifyCanExecuteChanged();
+        FillFrameCommand.NotifyCanExecuteChanged();
+        FitFrameCommand.NotifyCanExecuteChanged();
         NudgeLeftCommand.NotifyCanExecuteChanged();
         NudgeRightCommand.NotifyCanExecuteChanged();
         NudgeLeftSecondCommand.NotifyCanExecuteChanged();
@@ -980,9 +985,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void AddMediaAt(Guid assetId, Guid? trackId, MediaTime? start)
     {
         if (!CanEdit()) return;
+        var wasEmpty = IsTimelineEmpty;
         var result = _edit.AddClip(assetId, trackId, start);
         SelectAdded(result);
         Report(result, successMessage: Strings.Timeline_Added);
+        OfferCanvasAfterAdd(wasEmpty, result);
     }
 
     private void SelectAdded(TimelineEditResult result)
