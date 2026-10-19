@@ -5018,6 +5018,148 @@ on 2026-10-19 with the status PASS WITH NOTES.
 
 ---
 
+## D039 — Russian localization and interface polish (Phase 24)
+
+Date: 2026-10-19
+
+Decision (product owner, 2026-10-19: the Phase 24 specification with the recommended answers — Q1 variant A, Q2 every
+user-visible text including the service layer, Q3 the glossary below, Q4 new text clips read «Текст» — and two additions:
+a limited icon pass over the frequent commands, and an inventory of numeric fields with sliders proposed where they help).
+No format change: `project.json` stays **v6**; editing and export behaviour unchanged.
+
+### 1. Language model (Q1, variant A)
+
+- English is the neutral language of the resources; Russian is a satellite (`*.ru.resx`). The language is chosen at
+  start from `appsettings.json` `App:Language` (default `"ru"`; `"en"` or an empty value = the neutral English; an unknown
+  value = English and a warning in the log). No language switch in the interface.
+- The language never comes from the operating system: the UI culture of the resources is set explicitly at start
+  (`UiLanguage.Apply`); until then (tests, tools) it is the neutral English, whatever the OS language. Number and date
+  formatting (`CurrentCulture`) is unchanged — it follows the OS as before (`NumericInput`).
+- Logs (Serilog), internal exceptions (`InvalidOperationException` and the like for programming errors), undo descriptions
+  (`IUndoableCommand.Description`, never shown) and the repository's documentation stay English.
+
+### 2. What is translated (Q2)
+
+Every text the user sees: labels, buttons, tooltips (with their shortcuts), section headings, empty states, the status bar,
+dialogs (title, message, buttons), the export and project-settings windows, file-picker titles and filters, the window
+title (apart from the product name), drop-down items (alignment, colour mode, animation order — no enum names shown), the
+media kind, units, and the messages of the service layer that reach the user: edit refusals (`TimelineEditResult`), relink
+results, export preflight issues and failures, project open / save / autosave / recovery errors, clip-property validation.
+Technical detail from FFmpeg / FFprobe / the OS stays as it is, in parentheses after the translated sentence, where it
+helps diagnosis.
+
+Not translated: the product name «AI Video Editor»; codec and format names (H.264, AAC, MP4, HDR, SDR); key names (Ctrl,
+Shift, Alt, Esc, Enter); timecode; the user's data — track names (V1, A1, …), clip texts, file and project names. New
+text clips read «Текст» (Q4); existing texts are never changed.
+
+### 3. Strings
+
+- Two resource pairs, generated into strongly typed classes by MSBuild itself (`EmbeddedResource` metadata
+  `StronglyTyped*`; no package): `src/Core/Localization/Messages.resx` (+ `.ru`) for the service layer (Core, Timeline,
+  Project, Export, Video, Vision reference Core) and `src/UI/Localization/Strings.resx` (+ `.ru`) for the interface. AXAML
+  uses `{x:Static}`; code uses the properties and `string.Format` with numbered placeholders — never sentences glued from
+  pieces.
+- Keys: `Area_Name` (e.g. `Toolbar_Save`, `Toolbar_SaveTip`, `Edit_TrackLocked`). Placeholders are the same in both
+  languages.
+- Plural forms: a value with forms separated by `|` — English two (`one|other`), Russian three (`one|few|many`:
+  1 клип / 2 клипа / 5 клипов) — chosen by `Plural.Format(count, forms)` from the number of forms, never from the culture.
+
+### 4. Glossary (Q3)
+
+| English | Русский |
+|---|---|
+| Timeline | Таймлайн |
+| Track | Дорожка |
+| Clip | Клип |
+| Media / Media Browser | Медиа |
+| Source | Источник |
+| Inspector | Свойства |
+| Dissolve | Наплыв |
+| Crossfade | Перекрёстное затухание |
+| Fade In / Fade Out | Появление / Исчезание |
+| Ripple Delete | Удалить со сдвигом |
+| Close Gap | Закрыть промежуток |
+| Snap / Snapping | Привязка |
+| Split | Разрезать |
+| Unlink Audio / Unlink / Link | Отделить звук / Разъединить / Связать |
+| Marker | Маркер |
+| Holds / Mark holds | Зацепки / Разметить зацепки |
+| Keyline | Обводка |
+| Move / Crop / Scale | Переместить / Кадрировать / Масштаб |
+| Export | Экспорт |
+| Project Settings | Параметры проекта |
+| Import Media | Импорт медиа |
+| Relink | Перепривязать |
+| Offline | Офлайн (файл не найден) |
+| Undo / Redo | Отменить / Повторить |
+
+Units: Б / КБ / МБ / ГБ, «с» (seconds), «кадр.» (frames), «пикс.» (pixels), «к/с» (frames per second), «%», «°», «×».
+
+### 5. Guards
+
+- An AXAML test: no literal with a Latin letter in `Text`, `Content`, `ToolTip.Tip`, `Title`, `Watermark`, `Header`,
+  `PlaceholderText` or a binding's `StringFormat` in `src/UI` / `src/App` — only `{x:Static}` / bindings; a short
+  allowlist of symbols and technical tokens.
+- A resource test: both pairs have the same keys, no empty value, the same placeholders, valid plural forms; a Russian
+  value equal to the English one only for an allowlisted technical token.
+- A source test: string literals of two or more Latin words in the files that build user text are refused unless they are
+  logging, an internal exception or allowlisted (the allowlist names each file and literal).
+- Tests in Russian: a few flows run with the Russian UI culture and check the real texts.
+
+### 6. Layout and polish
+
+Checked in the real app at 1024 × 640 and 1440 × 900: no clipped label or button text. The Inspector's label column is one
+style (wider, wrapping); the status bar trims with an ellipsis and shows the whole message as a tooltip; Play / Pause keeps
+one width; the timeline's tool bar takes at most two rows at 1024 px; the main tool bar fits at 1024 px. Shortcuts work in
+the Russian keyboard layout (they are matched by key, not by the typed character).
+
+### 7. Icons (addition)
+
+A small vector icon set drawn for the project (path geometries in one resource dictionary, one stroke style, no external
+file, dependency or licence question) for the frequent commands: transport (previous / next frame, Play / Pause, Stop —
+icon only, as their glyphs are today; Loop — icon and label), Undo / Redo, Split, Delete, Snap, Move / Crop, a track's hide
+and lock (replacing the emoji). An icon goes with a short localized label except where the button is already a bare glyph;
+the full command name and its shortcut stay in the tooltip. The other buttons stay text only. No other redesign.
+
+### 8. Numeric fields and sliders (addition)
+
+Inventory and proposal:
+
+| Field | Range / unit | Proposal |
+|---|---|---|
+| Opacity | 0–100 % | **numeric + slider (Phase 24)** — bounded, judged by eye |
+| Volume | 0–200 % | **numeric + slider (Phase 24)** — bounded, judged by ear |
+| Fade In / Fade Out | 0…clip length, frames | numeric (exact frames; the maximum depends on the clip) — slider: backlog |
+| Speed | 0.25–4 ×, step 0.05 | numeric (exact values matter) — slider with detents: backlog |
+| Scale / Rotation / Position | 1–1000 % / ±360° / ±100 000 px | numeric (Preview gestures cover dragging, D038) — drag on the label: backlog |
+| Crop L / T / R / B | 0–100 % | numeric (the Preview's Crop tool covers dragging) |
+| Dissolve duration | frames | numeric |
+| Text size | px | numeric |
+| Hold line width | px at 1080 | numeric — slider: backlog |
+| Hold animation (start, interval, fades, stay) | seconds | numeric (exact timing) |
+| Project width / height | px | numeric |
+
+A slider and its field are bound to the same property; a drag is one undo step by D017's merge of consecutive changes of
+one field; the field keeps exact typing.
+
+### 9. Not in this decision
+
+A language switch in the interface; a general redesign, themes, new panels; translated documentation; sliders other than
+Opacity and Volume (backlog FU-24.1); the backlog FU-21.1, FU-21.2, FU-22.1 and the export of vertical video without
+unwanted black bars.
+
+Context: the Phase 24 audit of 2026-10-19 found no localization infrastructure (no resources, no culture handling, no
+Cyrillic in `src/`), about 700 English user-visible strings in AXAML, view-models and the service layer, about 675 test
+assertions on English text, an OS UI culture of ru-RU on the development machine and en-US on CI, fixed 80 px Inspector
+labels, a main tool bar without wrapping and a status bar without trimming.
+
+Consequences: no new dependency; two resource pairs and their generated classes; a culture switch at start; every
+user-visible literal replaced by a resource; English tests keep their assertions; three guard tests.
+
+Status: Accepted (2026-10-19, product owner).
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

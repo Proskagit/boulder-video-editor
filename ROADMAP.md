@@ -59,17 +59,24 @@ session state (D015).
 
 ## Current
 
-Phase 23 — direct Move, Scale and Crop in the Preview (**in progress**; DECISIONS.md D038, 2026-10-16; branch
-`feat/phase-23-preview-transform` from `1aaedc8`, the merge of PR #23). Two tools in the Preview's bar: Move (drag the
-selected clip; its frame's corner handles scale it proportionally around its centre) and Crop (eight handles; anchored —
-the visible picture stays in place, the scale and position compensate); a click selects the topmost layer; one undo step per
-gesture, Esc cancels it without a trace; only while paused, never during an export; the Inspector's crop unchanged;
-`project.json` stays v6. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 23 — Direct Move, Scale and Crop in the Preview: steps";
-manual plan `docs/PHASE23_MANUAL_TEST_PLAN.md`. Steps 23.0–23.7 done (verified by Claude 2026-10-19: gates green, the manual
-plan run in the real app — 23 / 24 PASS, row 23 (holds after a crop / move in the app) NOT RUN); **accepted by the product
-owner on 2026-10-19 with the status PASS WITH NOTES**; pull request into `main`, not merged.
+Phase 24 — Russian localization and interface polish (**in progress**; DECISIONS.md D039, 2026-10-19; branch
+`feat/phase-24-localization` from `c652667`, the merge of PR #24). The whole interface in Russian — English the neutral
+language of the resources, Russian chosen by `App:Language` in `appsettings.json`, no switch in the interface — including
+the service layer's messages; guard tests against untranslated text; the layout checked at 1024 × 640 and 1440 × 900;
+vector icons for the frequent commands; sliders for Opacity and Volume; `project.json` stays v6. Steps:
+`docs/DEVELOPMENT_PLAN.md`, "Phase 24 — Russian localization and interface polish: steps"; manual plan
+`docs/PHASE24_MANUAL_TEST_PLAN.md`.
 
 ## Previous
+
+Phase 23 — direct Move, Scale and Crop in the Preview (**merged**; PR #24 merged into `main` as `c652667` on 2026-10-19;
+DECISIONS.md D038, 2026-10-16; branch `feat/phase-23-preview-transform` from `1aaedc8`, the merge of PR #23). Two tools in
+the Preview's bar: Move (drag the selected clip; its frame's corner handles scale it proportionally around its centre) and
+Crop (eight handles; anchored — the visible picture stays in place, the scale and position compensate); a click selects the
+topmost layer; one undo step per gesture, Esc cancels it without a trace; only while paused, never during an export; the
+Inspector's crop unchanged; `project.json` stays v6. Steps 23.0–23.7 done (verified by Claude 2026-10-19: gates green, the
+manual plan run in the real app — 23 / 24 PASS, row 23 NOT RUN); **accepted by the product owner on 2026-10-19 with the
+status PASS WITH NOTES**.
 
 Phase 22 — timeline selection, snapping and making room (**merged**; PR #23 merged into `main` as `1aaedc8` on 2026-10-16; DECISIONS.md D037, 2026-10-15; branch
 `feat/phase-22-timeline-ux` from `7318ba8`, the merge of PR #22). Ctrl+A, Esc, a marquee and "1 of N selected"; a magnet
@@ -338,7 +345,7 @@ task): closing the app after a project with media was open hangs the process —
 
 ## Future phases
 
-Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is current. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
+Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is current. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The
@@ -375,6 +382,9 @@ Phase 22 (D037 §5, product owner, 2026-10-15).
   canvas comes out with black bars at the sides (the D018 fit of a picture to the canvas). The expected framing must be
   decided first — e.g. a portrait canvas from the clip, a fill / crop-to-canvas mode, or a choice at export — before any
   change of the export or the composition code. No code changed for it in Phase 21.
+- **FU-24.1 — Sliders for other numeric fields (recorded at Phase 24, D039 §8).** Phase 24 adds sliders only to Opacity
+  and Volume. Candidates: Fade In / Out (a slider up to the clip's length), Speed (detents at 0.5 / 1 / 2 ×), dragging on
+  the label of Scale / Rotation / Position, the hold line width. Not decided; the exact numeric fields stay in every case.
 
 ## Rule
 

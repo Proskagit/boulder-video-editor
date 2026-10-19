@@ -2,12 +2,21 @@
 
 ## Current phase
 
-Phase 23 — direct Move, Scale and Crop in the Preview, branch `feat/phase-23-preview-transform` (from `origin/main` =
-`1aaedc8`, the merge of PR #23; DECISIONS.md D038, 2026-10-16). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 23 — Direct Move,
-Scale and Crop in the Preview: steps"; manual plan `docs/PHASE23_MANUAL_TEST_PLAN.md`. Local work only: no push, pull
-request or merge without the product owner's command.
+Phase 24 — Russian localization and interface polish, branch `feat/phase-24-localization` (from `origin/main` = `c652667`,
+the merge of PR #24; DECISIONS.md D039, 2026-10-19). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 24 — Russian localization
+and interface polish: steps"; manual plan `docs/PHASE24_MANUAL_TEST_PLAN.md`. Local work only: no push, pull request or
+merge without the product owner's command.
 
-### Phase 23 — Direct Move, Scale and Crop in the Preview (in progress)
+### Phase 24 — Russian localization and interface polish (in progress)
+
+- 2026-10-19 — audit (read only): no localization infrastructure, ~700 English user-visible strings (AXAML, view-models,
+  service layer), ~675 test assertions on English text, the OS UI culture ru-RU here and en-US on CI; fixed 80 px Inspector
+  labels, an unwrapped main tool bar, an untrimmed status bar. The specification accepted by the product owner the same day
+  with Q1–Q4 as recommended, the icon pass and the slider inventory added (D039).
+- 2026-10-19 — Step 24.0: local `main` fast-forwarded `7318ba8` → `c652667`; the branch; D039, the Phase 24 steps, the
+  manual plan skeleton, ROADMAP (Phase 23 merged, Phase 24 current, FU-24.1).
+
+### Phase 23 — Direct Move, Scale and Crop in the Preview (merged 2026-10-19 as `c652667`, PR #24)
 
 - 2026-10-16 — audit (read only) and the specification; accepted by the product owner the same day with Q1–Q7 as
   recommended and Scale by the frame's corner handles added (D038).

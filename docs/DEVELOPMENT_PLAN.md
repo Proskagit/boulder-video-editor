@@ -128,6 +128,16 @@ and runs cleanly.
       stays v6. Scope, steps and acceptance criteria: section below and DECISIONS.md D037 (accepted 2026-10-15).
       *(Branch `feat/phase-22-timeline-ux` from `7318ba8`, the merge of PR #22; Steps 22.0–22.6 `3cc9bac` … `0f03ba3`;
       accepted by the product owner on 2026-10-16; pull request into `main`, not merged)*
+- [x] **Phase 23 — Direct Move, Scale and Crop in the Preview.** Move (drag; the frame's corner handles scale around the
+      centre) and Crop (eight handles, anchored) tools in the Preview's bar; one undo step per gesture; `project.json` v6.
+      Scope, steps and acceptance criteria: section below and DECISIONS.md D038. *(Branch
+      `feat/phase-23-preview-transform`; accepted by the product owner on 2026-10-19 — PASS WITH NOTES; PR #24 merged into
+      `main` as `c652667`)*
+- [ ] **Phase 24 — Russian localization and interface polish.** The whole interface in Russian (English the neutral
+      language of the resources, Russian chosen in `appsettings.json`), the service layer's user messages included; guard
+      tests against untranslated text; layout checked at 1024 × 640 and 1440 × 900; vector icons for the frequent
+      commands; sliders for Opacity and Volume. `project.json` stays v6. Scope, steps and acceptance criteria: section
+      below and DECISIONS.md D039 (accepted 2026-10-19). *(Branch `feat/phase-24-localization` from `c652667`)*
 
 ## Future ideas (not phases)
 
@@ -1738,6 +1748,64 @@ keyframes, the dimmed picture of the cropped-away part; FU-21.1, FU-21.2, FU-22.
 ### 23.7 — Verification & closeout *(done by Claude 2026-10-19; accepted by the product owner on 2026-10-19 — PASS WITH NOTES)*
 - Build `-warnaserror` Release and Debug, the full suite, the heavy scenes, three `--blame-hang` runs, `git diff --check`;
   Preview ↔ export parity of transformed clips; the manual plan in the real app; the docs.
+
+## Phase 24 — Russian localization and interface polish: steps (D039)
+
+Assigned on 2026-10-19 by the product owner (the audit's specification with the recommended answers Q1–Q4, the icon pass
+and the slider inventory added); the normative text is DECISIONS.md D039. Branch `feat/phase-24-localization` from
+`origin/main` = `c652667` (the merge of PR #24, Phase 23). The permission covers the code, tests, documentation and local
+commits on this branch; **no push, pull request or merge without a separate command**.
+
+Goal: the whole interface in Russian with one terminology, nothing clipped at 1024 × 640 and 1440 × 900, the frequent
+commands compact and recognizable; behaviour, the project format and the export unchanged.
+
+Gates for every step (QG): `dotnet build -warnaserror` 0 / 0; the affected test projects green, the full suite at the
+closeout (only the two 4K heavy scenes skipped); `project.json` v6 unchanged; the Preview ↔ export parity suites and every
+expected value unchanged — English assertions stay as they are (the neutral language), Russian ones are added;
+`docs/PHASE24_MANUAL_TEST_PLAN.md` and `progress.md` updated.
+
+Out of scope (D039 §9): a language switch, a general redesign, translated documentation, sliders other than Opacity and
+Volume; FU-21.1, FU-21.2, FU-22.1 and the vertical-video export framing.
+
+### 24.0 — Sync and documentation
+- `main` fast-forwarded to `origin/main` = `c652667`; the branch; D039; these steps; the manual plan skeleton; ROADMAP and
+  `progress.md`.
+
+### 24.1 — Infrastructure and guards
+- `Core/Localization/Messages.resx` (+ `.ru`), `UI/Localization/Strings.resx` (+ `.ru`), generated classes; `UiLanguage`
+  (the neutral default, `Apply` at start from `App:Language`); `Plural`; the three guard tests with an allowlist of what
+  is left (shrinking step by step); the first strings (the status bar's «Готово.»).
+- Tests: `Core.Tests` (plural forms, `UiLanguage`), `UI.Tests` (the guards, a Russian resource read).
+
+### 24.2 — The shell: tool bar, recent projects, Media Browser, dialogs and workflows
+- `ToolbarView`, `RecentProjectsViewModel`, `MediaBrowserView` / view-models, project settings, export (dialogs, progress,
+  the file picker), import, relink, open / save / autosave / recovery, the window title.
+
+### 24.3 — The Preview
+- Modes, transport, the source bar, Move / Crop, the hold markup bar and its messages.
+
+### 24.4 — The timeline and its service messages
+- The tool bar, track headers, markers, the empty state, selection, statuses; `TimelineEditService` (all partials),
+  `TimelineValidator`, `MediaRelinkService`; new text clips «Текст».
+
+### 24.5 — The Inspector
+- Every section, the drop-downs without enum names, `ClipPropertyValidator` and the other Core validators that reach the
+  user.
+
+### 24.6 — Project, export, video and units
+- `ProjectService`, `ProjectSerializer`, `AutosaveService`, export preflight / encoder messages shown to the user, decoder
+  messages; `FileSizeFormat`, the media kind, frame rates.
+
+### 24.7 — Layout, icons, sliders, keyboard
+- The Inspector's label style, the status bar's trimming and tooltip, Play / Pause width, the two tool bars at 1024 px;
+  the icon set (D039 §7); the Opacity and Volume sliders (D039 §8); shortcuts in the Russian layout.
+- Tests: view binding tests for the sliders (one undo step per drag), the icons' presence; the real app at 1024 × 640 and
+  1440 × 900.
+
+### 24.8 — Verification & closeout
+- The allowlist holds only accepted technical tokens; Release and Debug `--no-incremental -warnaserror`, the full suite,
+  `git diff --check`; the manual plan in the real app (both sizes, the Russian layout); a Phase 23 project opened and saved
+  byte for byte; the docs.
 
 ## Architectural rules that must hold at every phase
 
