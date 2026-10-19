@@ -43,6 +43,19 @@ request or merge without the product owner's command.
     3846 / 2 / 0 each, no hang, no dump; `git diff --check` clean.
   - State: Phase 23 implemented and verified by Claude; the product owner's acceptance pending. Local commits only — no
     push, pull request or merge.
+- 2026-10-19 — **Phase 23 accepted by the product owner: PASS WITH NOTES** (23 / 24 rows PASS, row 23 NOT RUN). Two test
+  additions requested before publishing, no product code changed (no defect found):
+  - `PreviewTransformUiTests.The_hold_markup_stays_and_follows_the_picture_after_a_Move_and_a_Crop_and_survives_a_save`
+    and `…Undoing_a_Move_and_a_Crop_leaves_the_hold_markup_untouched` — the markup object untouched by both gestures and
+    their undo / redo; the route outline in the Preview's draw plan through the frame's own transform, moved with the
+    picture, kept in place by the anchored crop and clipped to it; the same hold and place after a save and an open (v6).
+  - `A_text_clip_moves_and_scales_but_has_no_crop` now drags the text's corner handle: Scale 1.5 → 2 around the centre,
+    the position kept, the Inspector 200 %, one undo step "Scale Clip", Undo / Redo exact, no crop.
+  - Row 23 of the manual plan stays NOT RUN (not checked in the real app); its automated coverage column names the new
+    tests. Push of the branch and a pull request into `main` permitted; the merge stays with the product owner.
+  - Gates after the additions: Release and Debug `--no-incremental -warnaserror` 0 / 0; the full suite passed 3848, skipped
+    2 (the 4K scenes), failed 0 (UI 754); `AIVE_HEAVY_TESTS=1` 3850 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m`
+    runs 3848 / 2 / 0 each, no hang, no dump; `git diff --check` clean.
 
 ### Phase 22 — Timeline selection, snapping and making room (merged 2026-10-16 as `1aaedc8`, PR #23)
 

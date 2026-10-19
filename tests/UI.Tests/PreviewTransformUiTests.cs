@@ -590,6 +590,100 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
         Assert.Equal(steps, Steps());
     }
 
+    // --- hold markup after Move and Crop -------------------------------------------------------------------------------
+
+    private static readonly ImmutableArray<NormalizedPoint> HoldSquare = ImmutableArray.Create(
+        new NormalizedPoint(0.4, 0.4), new NormalizedPoint(0.6, 0.4), new NormalizedPoint(0.6, 0.6), new NormalizedPoint(0.4, 0.6));
+
+    /// <summary>The Preview's draw plan at the playhead (the snapshot the Preview plays, a decoded frame of the source size)
+    /// and its route outline: where the clip's first hold vertex lands on the canvas.</summary>
+    private (OutlineDraw Outline, FrameDraw Frame, PointD FirstVertex) PreviewOutline(VideoClip clip)
+    {
+        var at = _vm.Timeline.Playhead;
+        var layer = PlaybackSnapshotBuilder.Build(_projects.Current, 1).LayersAt(at).OfType<PictureLayer>().Single(l => l.ClipId == clip.Id);
+        var decoded = new DecodedFrame(1920, 1080, 1920 * 4, new byte[1920 * 1080 * 4], new SourceTimestamp(0, new TimeBase(1, 25)));
+        var plan = PreviewDrawPlan.Build(Landscape, 1920, 1080, new[] { new LayerPicture(layer, LayerPictureState.Frame, decoded) });
+        var outline = plan.Operations.OfType<OutlineDraw>().Single();
+        var frame = plan.Operations.OfType<FrameDraw>().Single();
+        return (outline, frame, outline.Transform.Apply(outline.Polygons[0][0]));
+    }
+
+    [Fact]
+    public async Task The_hold_markup_stays_and_follows_the_picture_after_a_Move_and_a_Crop_and_survives_a_save()
+    {
+        var clip = AddVideo();
+        var hold = new Hold(Guid.NewGuid(), HoldSquare, RouteColor.HexToOkLab("#E53935"), RouteColor.HexToOkLab("#EEEEEE"), MediaTime.Zero);
+        Assert.True(_edit.AddHold(clip.Id, hold).Success);
+        var markup = clip.HoldMarkup!;
+        Assert.Equal(new PointD(0.4 * 1920, 0.4 * 1080), PreviewOutline(clip).FirstVertex);   // (768, 432) on the canvas
+
+        // Move by (100, −50): the markup is the same object, the outline moves with the picture.
+        Tool.IsMoveOn = true;
+        Tool.BeginMove(new PointD(960, 540));
+        Tool.UpdateGesture(new PointD(1060, 490), keepAxis: false);
+        Tool.EndGesture();
+        Assert.Same(markup, clip.HoldMarkup);
+        var moved = PreviewOutline(clip);
+        Assert.Equal(new PointD(868, 382), moved.FirstVertex);
+        Assert.Equal(moved.Frame.Transform, moved.Outline.Transform);   // drawn through the frame's own transform
+
+        // Crop the left quarter (the hold's left edge at x = 0.4 stays visible): anchored — the outline stays where it was,
+        // clipped to the new crop rectangle.
+        Tool.IsCropOn = true;
+        Tool.BeginCrop(CropEdges.Left, Tool.Target!.Frame.HandlePoint(CropEdges.Left));
+        Tool.UpdateGesture(new PointD(580, 490), keepAxis: false);      // canvas x 100 + 480 = source x 480
+        Tool.EndGesture();
+        Assert.Equal(new CropRect(0.25, 0, 0, 0), Visual(clip).Crop);
+        Assert.Same(markup, clip.HoldMarkup);
+        var cropped = PreviewOutline(clip);
+        Assert.Equal(868, cropped.FirstVertex.X, 9);
+        Assert.Equal(382, cropped.FirstVertex.Y, 9);
+        Assert.Equal(cropped.Frame.LocalRect, cropped.Outline.LocalRect);   // clipped to the crop
+        Assert.Equal(hold.Id, markup.Holds.Single().Id);
+        Assert.Equal(HoldSquare.AsEnumerable(), markup.Holds.Single().Points.AsEnumerable());
+
+        // Saved and opened again: the same hold, the same picture properties, the same outline place.
+        var folder = Path.Combine(_root, "holds");
+        Directory.CreateDirectory(_root);
+        await _projects.SaveAsAsync(folder);
+        var visual = Visual(clip);
+        await _projects.OpenAsync(folder);
+        var reopened = _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>().Single();
+        Assert.Equal(visual, Visual(reopened));
+        Assert.Equal(hold.Id, reopened.HoldMarkup!.Holds.Single().Id);
+        Assert.Equal(HoldSquare.AsEnumerable(), reopened.HoldMarkup.Holds.Single().Points.AsEnumerable());
+        var after = PreviewOutline(reopened);
+        Assert.Equal(868, after.FirstVertex.X, 9);
+        Assert.Equal(382, after.FirstVertex.Y, 9);
+    }
+
+    [Fact]
+    public void Undoing_a_Move_and_a_Crop_leaves_the_hold_markup_untouched()
+    {
+        var clip = AddVideo();
+        Assert.True(_edit.AddHold(clip.Id,
+            new Hold(Guid.NewGuid(), HoldSquare, RouteColor.HexToOkLab("#1E88E5"), RouteColor.HexToOkLab("#EEEEEE"), MediaTime.Zero)).Success);
+        var markup = clip.HoldMarkup!;
+        Tool.IsMoveOn = true;
+        Tool.BeginMove(new PointD(960, 540));
+        Tool.UpdateGesture(new PointD(1000, 540), keepAxis: false);
+        Tool.EndGesture();
+        Tool.IsCropOn = true;
+        Tool.BeginCrop(CropEdges.Top, Tool.Target!.Frame.HandlePoint(CropEdges.Top));
+        Tool.UpdateGesture(new PointD(1000, 108), keepAxis: false);
+        Tool.EndGesture();
+
+        _undo.Undo();
+        _undo.Undo();
+        Assert.Equal(VisualProperties.Default, Visual(clip));
+        Assert.Same(markup, clip.HoldMarkup);
+        Assert.Equal(new PointD(768, 432), PreviewOutline(clip).FirstVertex);
+        _undo.Redo();
+        _undo.Redo();
+        Assert.Same(markup, clip.HoldMarkup);
+        Assert.Equal(new PointD(808, 432), PreviewOutline(clip).FirstVertex);   // moved by 40, the top crop anchored
+    }
+
     // --- text -------------------------------------------------------------------------------------------------------
 
     [Fact]
@@ -609,8 +703,33 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
         Tool.EndGesture();
         Assert.Equal((-60, 60), (Visual(text).PositionX, Visual(text).PositionY));
 
-        Assert.True(Tool.BeginScale(CropEdges.Right | CropEdges.Bottom, Tool.Target!.Frame.HandlePoint(CropEdges.Right | CropEdges.Bottom)));
+        // Scale by the bottom-right corner, dragged to twice its distance from the centre (900, 600): the text doubles
+        // around its centre, the position stays; one undo step; no crop appears.
+        var steps = Steps();
+        var frame = Tool.Target!.Frame;
+        Assert.Equal(new PointD(900, 600), frame.Center);
+        var corner = frame.HandlePoint(CropEdges.Right | CropEdges.Bottom);
+        Assert.Equal(new PointD(940, 625), corner);
+        Assert.True(Tool.BeginScale(CropEdges.Right | CropEdges.Bottom, corner));
+        Tool.UpdateGesture(new PointD(960, 637.5), keepAxis: false);   // ×1.5 on the way
+        Assert.Equal(1.5, Visual(text).Scale);
+        Tool.UpdateGesture(new PointD(980, 650), keepAxis: false);     // ×2
         Tool.EndGesture();
+
+        var scaled = Visual(text);
+        Assert.Equal(VisualProperties.Default with { PositionX = -60, PositionY = 60, Scale = 2 }, scaled);
+        Assert.Equal(CropRect.None, scaled.Crop);
+        Assert.Equal(new PointD(980, 650), Tool.Target!.Frame.HandlePoint(CropEdges.Right | CropEdges.Bottom));
+        Assert.Equal(new PointD(900, 600), Tool.Target.Frame.Center);
+        Assert.Equal(200m, _vm.Inspector.ScalePercent);
+        Assert.Equal(steps + 1, Steps());
+        Assert.Equal("Scale Clip", _undo.NextUndo!.Description);
+
+        _undo.Undo();
+        Assert.Equal(VisualProperties.Default with { PositionX = -60, PositionY = 60 }, Visual(text));   // the move stays
+        _undo.Redo();
+        Assert.Equal(scaled, Visual(text));
+        Assert.Equal(CropRect.None, Visual(text).Crop);
 
         Tool.IsCropOn = true;
         Assert.False(Tool.HasCropHandles);

@@ -1735,7 +1735,7 @@ keyframes, the dimmed picture of the cropped-away part; FU-21.1, FU-21.2, FU-22.
 - Tests: `UI.Tests/PreviewTransformUiTests` (an edge / corner drag through the view, the anchoring on the screen, a
   portrait clip, rotation, the limits, text refused).
 
-### 23.7 — Verification & closeout *(done by Claude 2026-10-19; acceptance by the product owner pending)*
+### 23.7 — Verification & closeout *(done by Claude 2026-10-19; accepted by the product owner on 2026-10-19 — PASS WITH NOTES)*
 - Build `-warnaserror` Release and Debug, the full suite, the heavy scenes, three `--blame-hang` runs, `git diff --check`;
   Preview ↔ export parity of transformed clips; the manual plan in the real app; the docs.
 

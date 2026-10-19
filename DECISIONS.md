@@ -5013,7 +5013,8 @@ on every pointer move whose rounded result differs (no throttling was needed in 
 
 Status: Accepted (2026-10-16, product owner: the Phase 23 specification and the answers Q1–Q7, with Scale by the corner
 handles added). Implemented in Phase 23 (branch `feat/phase-23-preview-transform`); verified by Claude on 2026-10-19 (the
-gates and the real-app run of `docs/PHASE23_MANUAL_TEST_PLAN.md`); the product owner's acceptance pending.
+gates and the real-app run of `docs/PHASE23_MANUAL_TEST_PLAN.md`, 23 / 24 PASS, row 23 NOT RUN); accepted by the product owner
+on 2026-10-19 with the status PASS WITH NOTES.
 
 ---
 

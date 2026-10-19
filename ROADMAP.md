@@ -65,7 +65,9 @@ selected clip; its frame's corner handles scale it proportionally around its cen
 the visible picture stays in place, the scale and position compensate); a click selects the topmost layer; one undo step per
 gesture, Esc cancels it without a trace; only while paused, never during an export; the Inspector's crop unchanged;
 `project.json` stays v6. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 23 — Direct Move, Scale and Crop in the Preview: steps";
-manual plan `docs/PHASE23_MANUAL_TEST_PLAN.md`.
+manual plan `docs/PHASE23_MANUAL_TEST_PLAN.md`. Steps 23.0–23.7 done (verified by Claude 2026-10-19: gates green, the manual
+plan run in the real app — 23 / 24 PASS, row 23 (holds after a crop / move in the app) NOT RUN); **accepted by the product
+owner on 2026-10-19 with the status PASS WITH NOTES**; pull request into `main`, not merged.
 
 ## Previous
 
