@@ -73,6 +73,9 @@ merge without the product owner's command.
   sliders' properties fail). Real app: manual plan rows G1–G8 PASS. Gates: Release / Debug `--no-incremental -warnaserror`
   0 / 0; the full suite 3926 / 2 / 0; heavy 3928 / 0 / 0; three `--blame-hang` runs 3926 / 2 / 0; `git diff --check` clean.
   Not pushed.
+- 2026-10-19 — FU-25.2 accepted by the product owner (PASS WITH NOTES). The last check before publishing: the Inspector at
+  1024 × 640 in the real app with the build of `b869c13` (manual plan row G9) — PASS, no defect; no code changed, the suite
+  not rerun. The branch holds Phase 25 (`01dbb92` … `62620f9`), FU-25.1 (`1cf6505`) and FU-25.2 (`b869c13`); not pushed.
 
 ### Phase 24 — Russian localization and interface polish (merged 2026-10-19 as `d3df0ba`, PR #25)
 
