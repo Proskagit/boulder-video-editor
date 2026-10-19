@@ -16,6 +16,14 @@ owner's command.
   (D041).
 - 2026-10-20 — Step 26.0: local `main` fast-forwarded `d3df0ba` → `58c48cb`; the branch; D041 and D040's merge status; the
   Phase 26 steps; the manual plan's skeleton; Phase 25 recorded as merged (ROADMAP, DEVELOPMENT_PLAN's list, this file).
+- 2026-10-20 — planning, documentation only (the product owner's request, outside Phase 26's steps): D042 — the product
+  concept (a simplified editor for bouldering videos, the main path of eight steps), its boundaries (no parity goal, ≈ 5
+  transitions and ≈ 5 effects, no audio studio / multicam / motion design, a large function only through a new decision) and
+  the provisional order of the remaining phases A–H with the research stages R1–R3; the COROS Pace 4 phase (R3 → F, FIT
+  recorded as the preliminary format — it was nowhere in the repository before) and the Final UX Pass (H) as the last phase.
+  `docs/DEVELOPMENT_PLAN.md` "Planned phases after Phase 26 (D042)"; `ROADMAP.md` "Product concept" and "Remaining plan";
+  the old "Future phases" candidates put under D042 §3–§4. No code, no format change; Phase 26's scope and its uncommitted
+  work (ARCHITECTURE.md, the manual plan, `Strings*.resx`) untouched; not committed.
 
 ### Phase 25 — Technical backlog and small UX improvements (merged 2026-10-19 as `58c48cb`, PR #26)
 

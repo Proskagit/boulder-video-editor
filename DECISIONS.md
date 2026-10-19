@@ -5364,6 +5364,134 @@ Consequences: no format change, no new dependency; a few new resources (en + ru)
 the timeline's first context menu.
 
 Status: Accepted (2026-10-20, product owner). Phase 26, branch `feat/phase-26-vertical-video` from `58c48cb`.
+
+## D042 — Product concept, scope boundaries and the order of the remaining phases
+
+Date: 2026-10-20
+
+Decision (product owner, 2026-10-20). A planning decision: it fixes what the product is, what it deliberately is not, and
+the provisional order of the phases after Phase 26. It changes no code, no format and no earlier decision; each planned
+phase still gets its own decision (scope, steps, acceptance criteria) when it is taken up. The plan itself:
+`docs/DEVELOPMENT_PLAN.md`, "Planned phases after Phase 26 (D042)"; the status summary: `ROADMAP.md`.
+
+### 1. The product
+
+A specialised, simplified video editor for finished bouldering videos — not a general replacement of CapCut, Premiere or
+DaVinci Resolve. The main user path (the target of the functional core; not a statement that all of it exists):
+1. Import videos from the climbing gym.
+2. Cut away the excess, split and arrange the clips on the timeline.
+3. Recognise holds, choose the wanted ones and overlay their outlines.
+4. Later: holds proposed automatically, and their outlines following the holds while the camera moves.
+5. Add text with an animated appearance and disappearance.
+6. Add transitions between clips.
+7. Add music, set its volume, apply a small set of ready-made effects.
+8. Set the framing, check the Preview and export the video.
+
+State on 2026-10-20: 1, 2, 3 (D034–D036), the music track with volume and fades (D017, D025, D032), framing (D038, D041 —
+Phase 26), the Preview and the export (D018, D023) exist; text exists without its own animation beyond the clip fades
+(D021, D025); transitions are the cross dissolve and the fades only (D025); no ready-made effect exists (`Clip.Effects` is
+persisted but never rendered, D025); 4 is excluded from the MVP by D034 and D036 and is a future extension.
+
+### 2. Principles
+
+- The AI hold markup and, later, the outlines following the holds are the main specialisation and the product's key
+  difference (since 2026-10-14, D034).
+- Basic editing is complete and reliable, but not overloaded.
+- Text, simple animations, transitions, music and a few ready-made effects belong to the intended core.
+- The reference size of the future libraries: about **five transitions** and about **five ready-made effects**; the exact
+  sets are decided in their phases.
+- The width of the functionality is reduced, never its quality: reliability, a predictable Undo / Redo (one step per user
+  action), the Preview matching the export (D018, D023), `MediaTime` precision (D007) — the standing rules of
+  `docs/DEVELOPMENT_PLAN.md` — hold for every planned phase.
+
+### 3. Boundaries
+
+- No goal of parity with CapCut, Premiere or DaVinci Resolve; a function is not added because a competitor has it.
+- No unlimited library of effects or transitions.
+- Not planned unless a separate justification appears: advanced multi-track editing beyond the current tracks, a complex
+  audio studio (reverb, a mixer, volume automation, ducking), the synchronisation of many sources (multicam), full motion
+  design (keyframes, speed ramps, motion paths).
+- The specialisation on bouldering videos, the AI hold markup and the outline tracking is kept.
+- A new **large** function enters the plan only after a separate justification and the product owner's approval (a new
+  decision). Obvious UX defects found during development are fixed when found (as FU-25.1 / FU-25.2) and do not wait for the
+  Final UX Pass.
+
+### 4. The candidates recorded earlier
+
+The candidates named in the Phase 16–18 pre-flights and D037 §5 (`ROADMAP.md`, "Future phases") are subordinate to §3:
+keyframes, speed ramps, freeze frame / reverse and ducking are **not planned** (§3); the magnetic main track (D037 §5), text
+styling and timeline polish stay backlog candidates that a planned phase or the Final UX Pass may take with a justification;
+dragging objects in the Preview is done (Phase 23, D038). Nothing earlier is superseded: D034's and D036's exclusions of
+automatic proposals and camera motion compensation stay valid for those decisions — the planned AI phases (§5) extend
+them only through new decisions after their research.
+
+### 5. The remaining phases (provisional order)
+
+Phases get their numbers when they are taken up (the next one is Phase 27); the letters below are working labels.
+Research stages (R) change no product code (experiments outside the repository, as E1 / E2 of D034) and end in a go / no-go
+and a specification for the product owner.
+- Phase 26 — vertical video and framing (D041, current): its closeout 26.4.
+- A — text appearance / disappearance animation.
+- B — the transition library (≈ 5, the cross dissolve included).
+- C — ready-made effects (≈ 5) and the music scenario.
+- G — stabilisation of the main path (a release candidate: the eight steps of §1 end to end).
+- R1 → D — research, then (on a go) automatic hold proposals.
+- R2 → E — research, then (on a go) outlines that follow the holds while the camera moves.
+- R3 → F — research, then «COROS Pace 4: пульс и телеметрия в видео» (§6).
+- H — «Final UX Pass: аудит и упрощение интерфейса» (§7), the last large phase.
+Dependencies: B and C after A (they all change the composition; one at a time); F after A (its overlay uses the animated
+overlay path A establishes) and after R3; D after R1, E after R2 (and after D when D is taken); H after the planned core
+including F, with a regression run of the main path. R1, R2 and R3 may run in parallel with A–C. The order of the AI
+phases against B / C may be changed by the product owner once the research results are known.
+
+### 6. COROS Pace 4: heart rate and telemetry in the video (preliminary scope)
+
+The original idea, restored: heart-rate data from a COROS Pace 4 watch, synchronised with the bouldering video and shown in
+the export. Preliminary — not specified and **not technically solved**.
+- **Only COROS Pace 4** in the first version; no general support of Garmin, Apple Watch or other devices. An extension is
+  possible later if the first version proves useful, through its own decision.
+- **The source** is a training file exported from the watch's ecosystem; no direct connection to the watch or a cloud
+  service is assumed.
+- **The format**: FIT as the preliminary direction, TCX as the fallback. Recorded here for the first time (the earlier
+  discussion was not in the repository); to be confirmed on real COROS Pace 4 exports in R3, including how a parser is
+  obtained (an own reader or an SDK — a dependency to be justified under the project's rules).
+- **Synchronisation**: the heart rate placed on the video's timeline preferably from the video's internal timestamps and the
+  training file's timestamps, not only from a manual offset; a correction (an offset the user sets, and whatever R3 shows to
+  be needed, e.g. for drift) when the automatic match is not enough. Whether the phone footage's timestamps exist, their
+  precision, time zone and drift, and the heart-rate sampling rate and gaps are open questions of R3. A design hint, to be
+  confirmed: bound to the video clip's source time, as the holds are (D034, D036), so Trim / Split / Move keep the match.
+- **The overlay** in the Preview and the export: a numeric value, a graphic representation and a simple animation; its look
+  and position adjustable within a small set of options — not a full sports-telemetry editor.
+- **R3 (research)**: real Pace 4 exports and real gym videos; the supported format; timestamps, sampling, gaps; the
+  available video timestamps and their accuracy and drift; a specification. **F (implementation)**: synchronisation;
+  overlay settings and Preview; the export rendering (parity); tests of synchronisation, seeking, Trim / Split, incomplete
+  data; a manual check on a real gym video with a real watch export.
+
+### 7. Final UX Pass (the last large phase)
+
+After the planned core (including F) and the stabilisation of the main scenarios. Goal: not more functionality — the
+existing functions simpler and faster to use. **Research**: CapCut, DaVinci Resolve and Kdenlive (official materials and
+demonstrations, real user scenarios, user reviews and discussions of video-editor UX); concrete scenarios compared, not the
+looks — selection, moving and trimming clips, the timeline, the Inspector, numeric fields and sliders, hotkeys, context
+menus, text and animation, transitions, music, the export and the AI hold markup; the findings matched against this
+product, its architecture and its audience; a prioritised list of about 10–15 justified improvements with benefit,
+complexity and risk. No interface is copied without an assessment. **Implementation**: only the improvements that reduce the
+actions of the typical scenarios, make the behaviour more predictable, make the editor easier to learn, improve the
+handling of holds and their outlines, and do not turn the editor into a professional editing system. **Success
+criterion**: a user without deep video-editing experience goes from importing a source to a finished bouldering video
+without learning a professional editing system. The Final UX Pass is the place for a systematic, agreed interface change;
+until then the rule "no redesign of unrelated UI" (D040 §7, `CLAUDE.md`) stays.
+
+Context: the product owner's planning request of 2026-10-20, during Phase 26: the long-term product strategy and the order
+of the remaining phases were nowhere recorded; the COROS idea of the earliest discussion was not in the repository; the
+"Future phases" of `ROADMAP.md` listed candidates (keyframes, speed ramps) that conflict with the intended simplicity.
+
+Consequences: documentation only — `DECISIONS.md` (this decision), `docs/DEVELOPMENT_PLAN.md` (the planned phases),
+`ROADMAP.md` (the status and the remaining phases), `progress.md`. No code, no format, no dependency, no change of Phase 26's
+scope (D041).
+
+Status: Accepted (2026-10-20, product owner) as the concept and the boundaries; the phase order and the scopes of A–H are
+provisional and are fixed by each phase's own decision.
 ---
 
 ## How to add a decision

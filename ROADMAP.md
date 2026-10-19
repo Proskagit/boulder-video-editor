@@ -3,6 +3,17 @@
 The canonical phase list, with per-phase scope, is `docs/DEVELOPMENT_PLAN.md`.
 This file summarizes status only.
 
+## Product concept (DECISIONS.md D042, 2026-10-20)
+
+A specialised, simplified editor for finished bouldering videos — not a replacement of CapCut, Premiere or DaVinci
+Resolve. Main path: import → trim / split / arrange → recognise holds and overlay their outlines (later: proposed
+automatically and following the camera) → animated text → transitions → music, volume, a few ready-made effects → framing,
+Preview, export. The AI hold markup and the outline tracking are the specialisation; basic editing is complete and reliable
+but not overloaded; about five transitions and five effects, no unlimited library; no parity goal; no advanced multi-track
+editing, audio studio, multicam or motion design without a separate justification; a new large function only through a new
+decision. The width is reduced, not the quality: Undo / Redo, Preview = export, `MediaTime` precision. The remaining phases
+and their order: "Remaining plan" below.
+
 ## Completed
 
 ### Phase 0 — Architecture
@@ -59,7 +70,7 @@ session state (D015).
 
 ## Current
 
-Phase 26 — vertical video and framing (**in progress**; DECISIONS.md D041, 2026-10-20; branch
+Phase 26 — vertical video and framing (**in progress**, Steps 26.0–26.3 done, closeout 26.4 left; DECISIONS.md D041, 2026-10-20; branch
 `feat/phase-26-vertical-video` from `58c48cb`, the merge of PR #26). The first video of an empty project with the default
 canvas offers a canvas of its shape and orientation (a dialog; one Undo step; no offer when the orientation is unknown);
 «Заполнить кадр» / «Вписать в кадр» write a computed Scale into a video or image clip (the Inspector and the clip's context
@@ -363,7 +374,46 @@ mute, opacity, transform, crop and text clips per clip (no keyframes), multi-lay
 must reproduce D018 exactly; text fonts (D021) — resolved by D023. Known issue (pre-Phase 7, separate
 task): closing the app after a project with media was open hangs the process — fixed in Phase 9 Step 9.3a. Details: `progress.md`.
 
+## Remaining plan (D042, provisional; 2026-10-20)
+
+Scopes, steps-to-be and dependencies: `docs/DEVELOPMENT_PLAN.md`, "Planned phases after Phase 26 (D042)". The letters are
+working labels — a phase gets its number (27, 28, …) and its own decision when it is taken up. Nothing below is started.
+
+Status on 2026-10-20: Phases 0–25 complete and merged; Phase 26 current (Steps 26.0–26.3 done, the closeout 26.4 left).
+
+| Label | Phase | Kind | Rough size | Depends on |
+|---|---|---|---|---|
+| 26.4 | Phase 26 closeout (vertical video and framing, D041) | core | small | — |
+| A | Text appearance / disappearance animation | core | medium | Phase 26 |
+| B | Transition library (≈ 5, the dissolve included) | core | medium–large | A (one composition change at a time) |
+| C | Ready-made effects (≈ 5) and the music scenario | core | medium | B |
+| G | Stabilisation of the main path (release candidate) | core | medium | A–C |
+| R1 | Automatic hold proposals — research | research | research | — (parallel with A–C) |
+| D | Automatic hold proposals — implementation, on a go | AI | large | R1 |
+| R2 | Outlines following the holds while the camera moves — research | research | research (highest uncertainty) | — (parallel) |
+| E | Outline tracking — implementation, on a go | AI | large | R2; after D if D is taken |
+| R3 | COROS Pace 4 exports and video timestamps — research | research | research (needs real files) | — (parallel) |
+| F | «COROS Pace 4: пульс и телеметрия в видео» | telemetry | large | R3, A |
+| H | «Final UX Pass: аудит и упрощение интерфейса» (research, then implementation) | UX | research + medium–large | the core incl. F, G, a regression run |
+
+Stopping points — the product is usable after each:
+- **S0 — now / after 26.4**: a vertical bouldering video with manually chosen AI holds, their animation, static text with
+  fades, dissolves, music and export.
+- **S1 — the minimum useful release**: + A, B, C, G — the whole main path of D042 §1 except its step 4.
+- **S2**: + D and / or E, as far as their research allows.
+- **S3**: + F (COROS Pace 4).
+- **S4 — the full plan**: + H.
+
+Deferred, not blocking a release: see "Follow-ups and backlog" and the open checks of Phases 17, 18, 23 and 25 (the R10
+audio device, the product owner's visual check of the S1 HDR export and PQ on real PQ footage, the NOT RUN manual rows),
+FU-21.2, the magnetic main track (D037 §5), a blurred background for vertical video (D041 §4), the technical-debt split of
+`TimelineEditService` / `TimelineViewModel`, an installer (left out by the product owner).
+
 ## Future phases
+
+The candidates in this section are subordinate to D042 §3–§4 (2026-10-20): keyframes, speed ramps, freeze frame / reverse
+and ducking are not planned; the magnetic main track, text styling and timeline polish stay backlog candidates; dragging
+objects in the Preview is done (Phase 23). The planned phases are in "Remaining plan" above. History:
 
 Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is merged (PR #25, `d3df0ba`); Phase 25 (technical backlog and small UX improvements, D040) is merged (PR #26, `58c48cb`); Phase 26 (vertical video and framing, D041) is current. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
@@ -432,3 +482,6 @@ takes the vertical-video export.
 Do not silently mark a phase complete.
 
 A phase is complete only after its acceptance criteria are implemented and verified.
+
+A new large function enters the plan only through its own justification and decision (D042 §3); the plan is not a list of
+features to reach parity with other editors.

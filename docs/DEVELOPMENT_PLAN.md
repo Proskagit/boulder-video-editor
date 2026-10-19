@@ -156,6 +156,149 @@ and runs cleanly.
       Inspector and the clip's context menu, one Undo step each). `project.json` stays v6. Scope, steps and acceptance
       criteria: section below and DECISIONS.md D041 (accepted 2026-10-20). *(Branch `feat/phase-26-vertical-video` from
       `58c48cb`; local commits only)*
+- [ ] **Planned (D042, provisional; numbers given when taken up):** A — text animation · B — transition library · C —
+      ready-made effects and music · G — stabilisation of the main path · R1 → D — automatic hold proposals · R2 → E —
+      outlines following the camera · R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
+
+## Planned phases after Phase 26 (D042)
+
+The normative text is DECISIONS.md D042 (2026-10-20): the product concept, its boundaries and this provisional order. None
+of these phases is started or approved for implementation; each gets its own decision, steps, acceptance criteria and
+manual plan when it is taken up, and its number then (the next is Phase 27). The scopes below are sketches to be refined —
+not specifications. Every phase keeps the standing rules at the end of this file: one Undo step per user action, the
+Preview identical to the export, `MediaTime` ticks, heavy work off the UI thread, the localization guards (D039), the gates
+of the recent phases (build `-warnaserror`, the full suite, heavy, `--blame-hang`, `project.json` compared byte for byte
+when the format does not change).
+
+Kinds: **core** — the functional core of D042 §1; **research** — no product code, experiments outside the repository, a
+go / no-go and a specification for the product owner; **AI**, **telemetry**, **UX** — the specialisation phases.
+Sizes are rough, relative to the past phases (small ≈ Phase 25's size, medium ≈ Phases 21–23, large ≈ Phases 17–19);
+no calendar estimate is fixed here.
+
+### Order and dependencies
+
+```
+26.4 ─► A ─► B ─► C ─► G                          S1 — the minimum useful release
+R1 ─(go)─► D                                        S2 — with D and / or E
+R2 ─(go)─► E   (after D when D is taken)
+R3 ─(go)─► F   (also after A)                       S3
+G + D / E as taken + F ─► regression run ─► H       S4 — the full plan
+```
+
+- A, B and C each change the composition (`PlaybackSnapshot.LayersAt`, `CompositionDrawPlan`) — one at a time, never in
+  parallel sessions.
+- R1, R2 and R3 change no product code and may run in parallel with A–C; R3 needs the product owner's real files.
+- F uses the animated overlay path that A establishes; D and E use the hold model of D034–D036.
+- The order of D / E against B / C may be changed by the product owner once R1 / R2 report (D042 §5).
+
+### A — Text appearance / disappearance animation *(core, medium)*
+- Today: text clips (D021) with the clip fades (D025); no other animation.
+- Sketch: a small set of in / out presets per text clip (e.g. fade, slide, scale / pop; the set decided in the phase), a
+  duration each; computed on timeline frames like the hold animation (D036), so the Preview and the export agree; one
+  Undo step per change. Likely `project.json` v7 (to be decided). Possibly basic readability styling (an outline or a
+  background) — only if the phase's decision justifies it.
+- Out: keyframes, motion paths, per-letter animation editors (D042 §3).
+
+### B — Transition library *(core, medium–large)*
+- Today: the cross dissolve of one video track (D025) and the fades.
+- Sketch: about five transitions in total, the dissolve included (the set decided in the phase — e.g. dip to black /
+  white, a wipe, a slide / push, a zoom), on D025's model (a cut of one track, centred, source handles, the zone fit); one
+  Undo step; a choice in the existing dissolve UI; parity tests per transition.
+- Out: a transition editor, custom curves, an unlimited library.
+
+### C — Ready-made effects and the music scenario *(core, medium)*
+- Today: `Clip.Effects` persisted but never rendered (D025); music as an audio clip with volume, fades and crossfades
+  (D017, D025, D032).
+- Sketch: about five one-click picture effects (the set decided in the phase — colour looks such as black and white, vivid,
+  warm, and e.g. a vignette), each with at most one strength value; the reuse of the Phase 18 LUT path for the colour looks
+  and the use or replacement of `Clip.Effects` to be decided in the phase; the music path checked end to end (adding a
+  track under the video, its fade-out at the video's end) and only the gaps of that path fixed.
+- Out: grading, effect stacks with many parameters, an audio studio (reverb, a mixer, automation, ducking).
+
+### G — Stabilisation of the main path *(core, medium; the release candidate)*
+- The eight steps of D042 §1 (without step 4) run end to end in the real app on the product owner's footage at 1024 × 640
+  and 1440 × 900; the defects found fixed; the open manual checks of earlier phases run or recorded; the performance of a
+  typical project (several minutes, a few tracks, holds, text, transitions) measured; a build the product owner can use
+  (a portable folder — an installer stays left out unless decided otherwise).
+
+### R1 → D — Automatic hold proposals *(research, then AI large)*
+- R1: on the product owner's footage, whether holds can be proposed on a frame without clicks (e.g. the model of D034 on a
+  grid of prompts, or another model — licence, size and local inference as in D034), the quality against the E1 set, the
+  time per frame; a go / no-go and a specification.
+- D (on a go): proposals shown in the markup mode, the user accepts or rejects them; the confirmed holds are the D034
+  holds (nothing else changes downstream).
+
+### R2 → E — Outlines following the holds while the camera moves *(research — the highest uncertainty, then AI large)*
+- R2: camera motion on real gym videos (hand-held, pans, zoom); approaches (feature tracking and a homography of the wall
+  plane, optical flow, re-segmentation per frame); accuracy, jitter, cost per frame, behaviour on occlusion by the climber;
+  how the result would be stored (per-frame transforms bound to the source time) and its format impact; a go / no-go.
+- E (on a go): the holds' outlines follow the camera in the Preview and the export identically; a manual correction when
+  the tracking is wrong; D036's animation unchanged on top of it.
+
+### R3 → F — «COROS Pace 4: пульс и телеметрия в видео» *(research, then telemetry large)*
+
+The original idea of the project (D042 §6): heart-rate data from a COROS Pace 4 watch, synchronised with a bouldering video
+and shown in the export. Only COROS Pace 4 in the first version; no Garmin, Apple Watch or other devices in this scope; the
+data from an exported training file, no direct connection to the watch or a cloud service. **The synchronisation by
+timestamps is not technically solved** — R3 decides whether and how it works.
+
+R3 — research (no product code):
+1. Real COROS Pace 4 exports of climbing sessions: which formats the ecosystem offers; FIT the preliminary direction, TCX the
+   fallback — confirmed or changed on the real files; how a FIT reader is obtained (an own minimal reader or an SDK — a new
+   dependency only with a justification, its licence checked).
+2. The heart-rate data: the timestamps (absolute time, time zone), the sampling interval, gaps and pauses, the start and
+   end of the recording.
+3. The video side: which timestamps the product owner's phone footage carries (creation time in the container, its
+   meaning — the start or the end of the recording —, its precision, time zone), whether ffprobe exposes them, the clock
+   difference and drift between the phone and the watch over a session.
+4. A specification for the product owner: the automatic match and its expected accuracy, the correction the user needs
+   (an offset; more only if drift is shown), the overlay's options, the format impact, the tests.
+
+F — implementation (after R3's go and A):
+1. The import of a COROS Pace 4 training file in the format chosen by R3, with its validation and messages (a damaged or
+   foreign file refused with a reason).
+2. The synchronisation with the video's timeline — preferably from the timestamps, bound to the clip's source time (a design
+   hint to be confirmed: as the holds, D034 / D036, so Trim / Split / Move keep the match) — and the correction of the
+   offset; one Undo step per change.
+3. The overlay: the numeric value, a graphic (e.g. a small curve or a bar) and a simple animation; its look and position
+   chosen from a few options; the Preview.
+4. The export rendering through the one composition path (Preview = export).
+5. Tests: the synchronisation (automatic and corrected), seeking, Trim / Split / Move, the data's gaps, the start and the
+   end outside the recording, an incomplete or damaged file, persistence and Undo / Redo.
+6. A manual check on a real gym video with a real Pace 4 export.
+- Out: other devices; a sports-telemetry editor; maps, GPS, pace and other fields unless R3 justifies one; a direct
+  device or cloud connection.
+
+### H — «Final UX Pass: аудит и упрощение интерфейса» *(research, then UX medium–large; the last large phase)*
+
+After the planned core (including F), G and a regression run of the main path. Goal: not more functionality — the
+existing functions simpler and faster to use (D042 §7). Obvious UX defects found earlier are fixed when found and do not
+wait for H.
+
+Research:
+1. CapCut, DaVinci Resolve and Kdenlive: official materials and demonstrations, real user scenarios, user reviews and
+   discussions of video-editor UX problems.
+2. Concrete scenarios compared, not the looks: selection, moving and trimming clips; the timeline; the Inspector; numeric
+   fields and sliders; hotkeys; context menus; text and animation; transitions; music; the export; the AI hold markup.
+3. The findings matched against this product, its architecture and its audience; no interface copied without an
+   assessment of its use.
+4. A prioritised list of about 10–15 justified improvements, each with its benefit, complexity and risk, for the product
+   owner's choice.
+
+Implementation — only the chosen improvements that reduce the actions of the typical scenarios, make the behaviour more
+predictable, make the editor easier to learn, improve the handling of holds and their outlines, and do not turn the editor
+into a professional editing system.
+
+Success criterion: a user without deep video-editing experience goes from importing a source to a finished bouldering
+video without learning a professional editing system (checked with the product owner on the main path).
+
+### Deferred, not blocking a release
+
+FU-21.2 (markers bound to a clip); dragging on labels (FU-24.1's rest); the magnetic main track (D037 §5); a blurred
+background for vertical video (D041 §4); the technical-debt split of `TimelineEditService` / `TimelineViewModel`; the open
+manual checks — R10 (a real audio device, Phase 17), the product owner's visual check of the S1 HDR export and PQ on real PQ
+footage (Phase 18), the NOT RUN rows of Phases 23 and 25; an installer (left out by the product owner). Not planned (D042
+§3): keyframes, speed ramps, freeze frame / reverse, ducking, multicam, an audio studio.
 
 ## Future ideas (not phases)
 
