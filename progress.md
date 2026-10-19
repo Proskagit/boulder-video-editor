@@ -22,6 +22,10 @@ merge without the product owner's command.
 - 2026-10-19 — Step 25.2 (FU-21.1): reproduced in a test — Next to a marker past the end left the playhead at the end (the
   Preview reported the clamped end frame back after the first seek past the end); cause and fix in D040 "Refined in Step
   25.2"; `Marker_Reached` (en + ru); `UI.Tests/MarkerNavigationTests` (7). UI.Tests 780 / 0 / 0, Timeline.Tests 828 / 0 / 0.
+- 2026-10-19 — Step 25.3 (FU-22.1): not reproduced in code — nothing moves the playhead while the frame is prepared;
+  replayed with the real shell and playback (`HoldMarkupUiTests`, 2 cases: the mode stays on, a step back still leaves it).
+  Most likely cause: the Step 22.6 harness's arrow key that lost its modifier (a one-frame step back). No product code and
+  no D034 change (D040 "Refined in Step 25.3"); the real-app check in the manual plan (row 5).
 
 ### Phase 24 — Russian localization and interface polish (merged 2026-10-19 as `d3df0ba`, PR #25)
 

@@ -5218,6 +5218,17 @@ Reproduce first. If the mode is left by the playhead's own adjustment while the 
 that internal adjustment is not a user seek and does not leave the mode; every user seek still leaves it. If the two cannot
 be told apart reliably, or another change of agreed behaviour is needed, the product owner decides before the code.
 
+Refined in Step 25.3 — not reproduced, no code changed, D034 unchanged. Only two things move the timeline playhead: a user
+action (`TimelineViewModel.SetPlayhead` — the ruler, the arrows, the markers, Go to start / end) and playback's report of
+its position (`ShowPlaybackPosition`); the markup mode's preparation (the model check and load, the frame decode, the
+encoder) reads the playhead and never seeks, and a paused playback clock does not move. Replayed with the real shell and
+playback, the Preview's timer running while the model loads, the playhead put by the ruler on 00:00:10:00 (a clip's first
+frame) and inside a clip: the mode stays on and the playhead does not move (`HoldMarkupUiTests`). The Step 22.6 run drove
+the app with synthetic keys, and in that run arrows sent without `KEYEVENTF_EXTENDEDKEY` lost their modifier (progress.md,
+Phase 22): a bare Left arrow is a one-frame step back — exactly 00:00:10:00 → 00:00:09:23 — and a user seek, which leaves the
+mode by D034. The most likely cause is therefore the harness, not the product; the real-app check is row 5 of
+`docs/PHASE25_MANUAL_TEST_PLAN.md`.
+
 ### 4. Sliders (FU-24.1, in part)
 
 Fade In / Fade Out of video and audio clips and the hold line width get a slider under their numeric field, as Opacity and
