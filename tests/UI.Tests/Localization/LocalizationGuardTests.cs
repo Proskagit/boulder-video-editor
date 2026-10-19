@@ -157,7 +157,7 @@ public sealed partial class LocalizationGuardTests
     // A C# string literal on one line (regular, interpolated or verbatim); its text is group 1.
     [GeneratedRegex(@"\$?@?""((?:[^""\\\n]|\\.)*)""")] private static partial Regex Literal();
     // Two Latin words in a row: a sentence, not an identifier, a path or a format token.
-    [GeneratedRegex(@"[A-Za-z]{2,}[,.:;!?]?\s+[A-Za-z]{2,}")] private static partial Regex LatinWords();
+    [GeneratedRegex(@"[A-Za-z][A-Za-z']+[,.:;!?]?\s+[A-Za-z]{2,}")] private static partial Regex LatinWords();
     // Interpolation holes and format items are not text.
     [GeneratedRegex(@"\{[^}]*\}")] private static partial Regex Holes();
     // Comments, attributes, logging, internal exceptions, undo descriptions and debug checks are not shown to the user.

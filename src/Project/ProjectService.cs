@@ -188,14 +188,14 @@ public sealed class ProjectService : IProjectService
     private static string FullFolderPath(string projectFolderPath)
     {
         if (string.IsNullOrWhiteSpace(projectFolderPath))
-            throw new ProjectFileException("No project folder was given.");
+            throw new ProjectFileException(Messages.ProjectFile_NoFolder);
         try
         {
             return Path.TrimEndingDirectorySeparator(Path.GetFullPath(projectFolderPath));
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
-            throw new ProjectFileException($"\"{projectFolderPath}\" is not a valid folder path.", ex);
+            throw new ProjectFileException(string.Format(Messages.ProjectFile_InvalidFolder, projectFolderPath), ex);
         }
     }
 

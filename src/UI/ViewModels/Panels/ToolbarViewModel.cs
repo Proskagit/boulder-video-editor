@@ -1,5 +1,4 @@
 using AiVideoEditor.Core.Common;
-using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.Input;

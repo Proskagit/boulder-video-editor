@@ -1648,11 +1648,23 @@
   <data name="Trim_StartOne" xml:space="preserve">
     <value>Начало клипа обрезано по указателю</value>
   </data>
+  <data name="Unit_B" xml:space="preserve">
+    <value>Б</value>
+  </data>
+  <data name="Unit_GB" xml:space="preserve">
+    <value>ГБ</value>
+  </data>
+  <data name="Unit_KB" xml:space="preserve">
+    <value>КБ</value>
+  </data>
   <data name="Unit_Kbps" xml:space="preserve">
     <value>{0} кбит/с</value>
   </data>
   <data name="Unit_KHz" xml:space="preserve">
     <value>{0} кГц</value>
+  </data>
+  <data name="Unit_MB" xml:space="preserve">
+    <value>МБ</value>
   </data>
   <data name="Unit_Mbps" xml:space="preserve">
     <value>{0} Мбит/с</value>
@@ -1668,6 +1680,9 @@
   </data>
   <data name="Unit_SecondsValue" xml:space="preserve">
     <value>{0} с</value>
+  </data>
+  <data name="Unit_TB" xml:space="preserve">
+    <value>ТБ</value>
   </data>
   <data name="Unsaved_ActionClose" xml:space="preserve">
     <value>закрытием</value>

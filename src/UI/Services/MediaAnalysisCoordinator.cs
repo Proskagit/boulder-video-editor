@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
-using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Localization;
 using Microsoft.Extensions.Logging;
 

@@ -2,7 +2,6 @@ using System.Globalization;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
-using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;

@@ -1,5 +1,6 @@
 using System.Text;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 
 namespace AiVideoEditor.Project.Persistence;
 
@@ -29,11 +30,11 @@ public sealed class ProjectFileStore
         }
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {
-            throw new ProjectFileException($"{Path.GetFileName(path)} was not found in {Path.GetDirectoryName(path)}.", ex);
+            throw new ProjectFileException(string.Format(Messages.ProjectFile_NotFound, Path.GetFileName(path), Path.GetDirectoryName(path)), ex);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
-            throw new ProjectFileException($"The project file couldn't be read: {ex.Message}", ex);
+            throw new ProjectFileException(string.Format(Messages.ProjectFile_ReadFailed, ex.Message), ex);
         }
     }
 
@@ -70,7 +71,7 @@ public sealed class ProjectFileStore
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             TryDelete(tempPath);
-            throw new ProjectFileException($"The project couldn't be saved: {ex.Message}", ex);
+            throw new ProjectFileException(string.Format(Messages.ProjectFile_SaveFailed, ex.Message), ex);
         }
         catch
         {

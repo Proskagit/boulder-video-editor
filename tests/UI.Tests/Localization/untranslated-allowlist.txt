@@ -1,123 +1,88 @@
-# D039 §5 — user-visible-looking literals that are not translated, each a technical token or an internal message.
-# Format: <path relative to the repository><TAB><the literal exactly as in the source>. Lines starting with # are comments.
-# The guard tests (LocalizationGuardTests) fail on a literal missing here and on an entry no longer found.
-src/Core/Color/HdrColor.cs	Dolby Vision {profile} (not applied)
-src/Core/Color/HdrColor.cs	Dolby Vision {profile}.{compatibility} (not applied)
-src/Core/Color/HdrColor.cs	HDR Vivid (not applied)
-src/Core/Color/HdrColor.cs	HDR not converted: 
-src/Core/Color/HdrColor.cs	PQ (peak {classification.Conversion.PeakNits} nit)
-src/Core/Color/HdrColor.cs	{name} at {bits} bits (at least 10 are needed)
-src/Core/Color/HdrColor.cs	{name} with an unknown bit depth
-src/Core/Color/HdrColor.cs	{name} with the {Describe(metadata.ColorMatrix)} matrix (only BT.2020 non-constant luminance is supported)
-src/Core/Color/HdrColor.cs	{name} with {Describe(metadata.ColorPrimaries)} primaries (only BT.2020 is supported)
-src/Core/Color/HdrLut.cs	TITLE \"AiVideoEditor HDR to SDR, rule 
-src/Core/Entities/Clip.cs	Segoe UI
-src/Core/Entities/ClipPropertyValidator.cs	Audio clips have no picture properties.
-src/Core/Entities/ClipPropertyValidator.cs	Color must be written as #RRGGBB.
-src/Core/Entities/ClipPropertyValidator.cs	Crop would leave nothing of the picture.
-src/Core/Entities/ClipPropertyValidator.cs	Each crop edge must be between 0 % and 100 %.
-src/Core/Entities/ClipPropertyValidator.cs	Font size must be between {Num(MinFontSize)} and {Num(MaxFontSize)}.
-src/Core/Entities/ClipPropertyValidator.cs	Only text clips have text properties.
-src/Core/Entities/ClipPropertyValidator.cs	Opacity must be between {Pct(MinOpacity)} and {Pct(MaxOpacity)}.
-src/Core/Entities/ClipPropertyValidator.cs	Position must be between {Num(-MaxPositionMagnitude)} and {Num(MaxPositionMagnitude)} pixels.
-src/Core/Entities/ClipPropertyValidator.cs	Rotation must be between {Num(MinRotationDegrees)}° and {Num(MaxRotationDegrees)}°.
-src/Core/Entities/ClipPropertyValidator.cs	Scale must be between {Pct(MinScale)} and {Pct(MaxScale)}.
-src/Core/Entities/ClipPropertyValidator.cs	Text can be at most {MaxTextLength} characters long.
-src/Core/Entities/ClipPropertyValidator.cs	Text clips can't be cropped.
-src/Core/Entities/ClipPropertyValidator.cs	Text is missing.
-src/Core/Entities/ClipPropertyValidator.cs	The font name is too long.
-src/Core/Entities/ClipPropertyValidator.cs	Unknown text alignment.
-src/Core/Entities/ClipPropertyValidator.cs	Volume must be between {Pct(MinVolume)} and {Pct(MaxVolume)}.
-src/Core/Entities/ClipPropertyValidator.cs	{KindName(clip)} clips have no sound.
-src/Core/Entities/ExportEncoding.cs	The audio bitrate {AudioBitrateKbps} kbps is not supported.
-src/Core/Entities/ExportEncoding.cs	The export quality is unknown.
-src/Core/Entities/ExportEncoding.cs	The export speed preset is unknown.
-src/Core/Entities/HoldMarkup.cs	A clip can have at most {MaxHolds} holds.
-src/Core/Entities/HoldMarkup.cs	A hold has a missing or duplicate id.
-src/Core/Entities/HoldMarkup.cs	A hold's colour samples are invalid.
-src/Core/Entities/HoldMarkup.cs	A hold's contour has too few or too many points.
-src/Core/Entities/HoldMarkup.cs	A hold's contour lies outside the frame.
-src/Core/Entities/HoldMarkup.cs	A hold's frame time is negative.
-src/Core/Entities/HoldMarkup.cs	The animation interval must be between {Seconds(MinInterval)} and {Seconds(MaxInterval)} s.
-src/Core/Entities/HoldMarkup.cs	The animation start must lie within the source.
-src/Core/Entities/HoldMarkup.cs	The appear fade must be between 0 and {Seconds(MaxFade)} s.
-src/Core/Entities/HoldMarkup.cs	The disappear fade must be between 0 and {Seconds(MaxFade)} s.
-src/Core/Entities/HoldMarkup.cs	The markup's model is missing.
-src/Core/Entities/HoldMarkup.cs	The outline colour must be #RRGGBB.
-src/Core/Entities/HoldMarkup.cs	The outline width must be between {MinStrokeWidth1080.ToString(CultureInfo.InvariantCulture)} and {MaxStrokeWidth1080.ToString(CultureInfo.InvariantCulture)} px.
-src/Core/Entities/HoldMarkup.cs	The time after the last hold must be between 0 and {Seconds(MaxStay)} s.
-src/Core/Entities/HoldMarkup.cs	Unknown animation order.
-src/Core/Entities/HoldMarkup.cs	Unknown colour mode.
-src/Core/Entities/HoldMarkup.cs	Unknown keyline mode.
-src/Core/Entities/LinkRules.cs	A link must join exactly one video clip and one audio clip.
-src/Core/Entities/LinkRules.cs	Only video and audio clips can be linked.
-src/Core/Entities/ProjectSettingsRules.cs	The frame size must be between {MinCanvasSide} and {MaxCanvasSide} pixels on each side.
-src/Core/Entities/ProjectSettingsRules.cs	The frame size {width} × {height} is too large (at most {MaxCanvasArea} pixels).
-src/Core/Entities/ProjectSettingsRules.cs	The frame width and height must be even.
-src/Core/Entities/Timeline.cs	Main Sequence
-src/Core/Entities/TransitionRules.cs	A clip is too short for its transitions.
-src/Core/Entities/TransitionRules.cs	A cut has more than one transition.
-src/Core/Entities/TransitionRules.cs	A transition has a negative duration.
-src/Core/Entities/TransitionRules.cs	A transition has an unknown type.
-src/Core/Entities/TransitionRules.cs	A transition must be at least {MinFrames} frames long.
-src/Core/Entities/TransitionRules.cs	A transition needs two different clips.
-src/Core/Entities/TransitionRules.cs	A transition refers to a clip that is not on track {trackName}.
-src/Core/Entities/TransitionRules.cs	A transition's clips don't touch.
-src/Core/Entities/TransitionRules.cs	Only audio tracks have crossfades.
-src/Core/Entities/TransitionRules.cs	Only video tracks have dissolves.
-src/Core/Export/ExportPreflight.cs	'{asset.FileName}' is HDR that can't be converted to SDR — {reason}; it is exported unconverted, as the Preview 
-src/Core/Export/ExportPreflight.cs	'{full}' is a folder, not a file.
-src/Core/Export/ExportPreflight.cs	'{name}' {what} ({count}, first at {first}).
-src/Core/Export/ExportPreflight.cs	'{outputPath}' is not a valid output file path.
-src/Core/Export/ExportPreflight.cs	(media not in the project)
-src/Core/Export/ExportPreflight.cs	1 text clip
-src/Core/Export/ExportPreflight.cs	No output file was chosen.
-src/Core/Export/ExportPreflight.cs	The In / Out range has no part of the timeline in it.
-src/Core/Export/ExportPreflight.cs	The folder '{folder}' does not exist.
-src/Core/Export/ExportPreflight.cs	The font '{font.Key}' is not installed ({count}); a fallback font is used, as in the Preview.
-src/Core/Export/ExportPreflight.cs	The frame size {canvas.Width} × {canvas.Height} can't be exported. {canvasError}
-src/Core/Export/ExportPreflight.cs	The output file must be an {ExportFormat.FileExtension} file.
-src/Core/Export/ExportPreflight.cs	The output would overwrite the project media '{media.FileName}'.
-src/Core/Export/ExportPreflight.cs	The timeline is empty.
-src/Core/Export/ExportPreflight.cs	could not be analysed
-src/Core/Export/ExportPreflight.cs	ffmpeg could not be found, so the video can't be encoded.
-src/Core/Export/ExportPreflight.cs	has not been analysed yet
-src/Core/Export/ExportPreflight.cs	is not supported by its clip
-src/Core/Export/ExportPreflight.cs	is offline
-src/Core/Export/ExportPreflight.cs	shows it ({count}, first at {group.Min(p => p.Span.TimelineStart)}).
-src/Core/Export/ExportPreflight.cs	{clips.Length} text clips
-src/Core/Holds/ContourEditing.cs	An outline keeps at least three points.
-src/Core/Holds/ContourEditing.cs	The outline can't cross itself — the change is not applied.
-src/Core/Interfaces/IMediaRelinkService.cs	Can't be used:
-src/Core/Interfaces/IMediaRelinkService.cs	Found {found.Count} of {Entries.Count} offline media files in \"{Folder}\".
-src/Core/Interfaces/IMediaRelinkService.cs	No media is offline.
-src/Core/Interfaces/IMediaRelinkService.cs	Not in the folder (stay offline): {string.Join(
-src/Core/Playback/PlaybackSnapshotBuilder.cs	A {clip.GetType().Name} cannot play {asset.Kind} media.
-src/Core/Playback/PlaybackSnapshotBuilder.cs	Media information is not available.
-src/Core/Playback/PlaybackSnapshotBuilder.cs	The media file is missing.
-src/Core/Playback/PlaybackSnapshotBuilder.cs	The media is not in the project.
-src/Core/Playback/PlaybackSnapshotBuilder.cs	{asset.Kind} media has no audio.
-src/Export/ExportAudioReader.cs	The audio of '{Path.GetFileName(_asset.FilePath)}' could not be decoded ({error}): {message}
-src/Export/ExportAudioReader.cs	ffmpeg could not be found.
-src/Export/ExportAudioSource.cs	The audio of a clip at {span.TimelineStart} can't be exported ({span.Status}{(span.Reason is null ? 
-src/Export/ExportFrameSource.cs	A clip at {span.TimelineStart} can't be exported ({span.Status}{(span.Reason is null ? 
-src/Export/ExportPictureReader.cs	'{Path.GetFileName(_asset.FilePath)}' could not be decoded ({error}): {message}
-src/Export/ExportPictureReader.cs	'{_asset.FilePath}' produced no frame.
-src/Export/ExportPictureReader.cs	ffmpeg could not be found.
-src/Export/ExportService.cs	quality {Quality} (CRF {Crf}), preset {Preset}, AAC {Bitrate} kbps)
-src/Media/MediaImportService.cs	Media import batch: {Imported} imported, {Unsupported} unsupported, {Missing} missing.
-src/Media/Thumbnails/ThumbnailService.cs	'{asset.FilePath}' produced no frame.
-src/Project/MediaCacheLocation.cs	The {_kind} file is gone.
-src/Project/Persistence/ProjectFileStore.cs	The project couldn't be saved: {ex.Message}
-src/Project/Persistence/ProjectFileStore.cs	The project file couldn't be read: {ex.Message}
-src/Project/Persistence/ProjectFileStore.cs	{Path.GetFileName(path)} was not found in {Path.GetDirectoryName(path)}.
-src/Project/Persistence/ProjectSerializer.cs	The project file is damaged and can't be opened ({reason}).
-src/Project/Persistence/ProjectSerializer.cs	The project file is damaged and can't be opened.
-src/Project/Persistence/ProjectSerializer.cs	The recovery file is damaged and can't be used.
-src/Project/Persistence/ProjectSerializer.cs	This file is not an AI Video Editor project.
-src/Project/Persistence/ProjectSerializer.cs	This file is not an AI Video Editor recovery file.
-src/Project/Persistence/ProjectSerializer.cs	This project was saved by a newer version of AI Video Editor and can't be opened.
-src/Project/Persistence/ProjectSerializer.cs	This recovery file was written by a newer version of AI Video Editor and can't be used.
+# D039 §5 — literals that look like English text but are not shown to the user as interface text, each group with its
+# reason. Format: <path relative to the repository><TAB><the literal exactly as in the source>.
+# LocalizationGuardTests fails on a literal missing here and on an entry no longer found. New user-visible text goes to
+# src/UI/Localization/Strings.resx or src/Core/Localization/Messages.resx (with .ru), never here.
+
+# Undo history descriptions (IUndoableCommand.Description) — never shown in the interface, kept English with the logs (D039 §1).
+src/Timeline/Commands/RelinkMediaCommand.cs	Relink Media
+src/Timeline/Commands/TimelineCommands.cs	Add Clip
+src/Timeline/Commands/TimelineCommands.cs	Add Dissolve
+src/Timeline/Commands/TimelineCommands.cs	Add Hold
+src/Timeline/Commands/TimelineCommands.cs	Animate Holds
+src/Timeline/Commands/TimelineCommands.cs	Change Clip Properties
+src/Timeline/Commands/TimelineCommands.cs	Change Crop
+src/Timeline/Commands/TimelineCommands.cs	Change Dissolve Duration
+src/Timeline/Commands/TimelineCommands.cs	Change Fade In
+src/Timeline/Commands/TimelineCommands.cs	Change Fade Out
+src/Timeline/Commands/TimelineCommands.cs	Change Fades
+src/Timeline/Commands/TimelineCommands.cs	Change Font
+src/Timeline/Commands/TimelineCommands.cs	Change Font Size
+src/Timeline/Commands/TimelineCommands.cs	Change Hold Animation
+src/Timeline/Commands/TimelineCommands.cs	Change Keyline
+src/Timeline/Commands/TimelineCommands.cs	Change Opacity
+src/Timeline/Commands/TimelineCommands.cs	Change Outline
+src/Timeline/Commands/TimelineCommands.cs	Change Outline Colour
+src/Timeline/Commands/TimelineCommands.cs	Change Outline Width
+src/Timeline/Commands/TimelineCommands.cs	Change Position
+src/Timeline/Commands/TimelineCommands.cs	Change Rotation
+src/Timeline/Commands/TimelineCommands.cs	Change Scale
+src/Timeline/Commands/TimelineCommands.cs	Change Text Alignment
+src/Timeline/Commands/TimelineCommands.cs	Change Text Color
+src/Timeline/Commands/TimelineCommands.cs	Change Volume
+src/Timeline/Commands/TimelineCommands.cs	Edit Hold Outline
+src/Timeline/Commands/TimelineCommands.cs	Edit Text
+src/Timeline/Commands/TimelineCommands.cs	Hide Track
+src/Timeline/Commands/TimelineCommands.cs	Lock Track
+src/Timeline/Commands/TimelineCommands.cs	Mute Clip
+src/Timeline/Commands/TimelineCommands.cs	Mute Track
+src/Timeline/Commands/TimelineCommands.cs	Remove Dissolve
+src/Timeline/Commands/TimelineCommands.cs	Remove Hold
+src/Timeline/Commands/TimelineCommands.cs	Show Track
+src/Timeline/Commands/TimelineCommands.cs	Turn Off Hold Animation
+src/Timeline/Commands/TimelineCommands.cs	Unlock Track
+src/Timeline/Commands/TimelineCommands.cs	Unmute Track
+src/Timeline/EditPlan.cs	Update Dissolve
+src/Timeline/MediaRelinkService.cs	Relink Media
+src/Timeline/MediaRelinkService.cs	Relink {relinks.Count} Media Files
+src/Timeline/TimelineEditService.Insert.cs	Insert Clip
+src/Timeline/TimelineEditService.Insert.cs	Overwrite Clip
+src/Timeline/TimelineEditService.Links.cs	Link Clips
+src/Timeline/TimelineEditService.Links.cs	Unlink Audio
+src/Timeline/TimelineEditService.Links.cs	Unlink Clips
+src/Timeline/TimelineEditService.cs	Add Clip
+src/Timeline/TimelineEditService.cs	Add Text
+src/Timeline/TimelineEditService.cs	Change Project Settings
+src/Timeline/TimelineEditService.cs	Change Speed
+src/Timeline/TimelineEditService.cs	Change {Title(noun)} Duration
+src/Timeline/TimelineEditService.cs	Close Gap
+src/Timeline/TimelineEditService.cs	Delete Clip
+src/Timeline/TimelineEditService.cs	Delete Clips
+src/Timeline/TimelineEditService.cs	Duplicate Clip
+src/Timeline/TimelineEditService.cs	Duplicate Clips
+src/Timeline/TimelineEditService.cs	Move Clip
+src/Timeline/TimelineEditService.cs	Move Clips
+src/Timeline/TimelineEditService.cs	Paste Clip
+src/Timeline/TimelineEditService.cs	Paste Clips
+src/Timeline/TimelineEditService.cs	Remove Media
+src/Timeline/TimelineEditService.cs	Ripple Delete Clip
+src/Timeline/TimelineEditService.cs	Ripple Delete Clips
+src/Timeline/TimelineEditService.cs	Ripple Trim End
+src/Timeline/TimelineEditService.cs	Ripple Trim End to Playhead
+src/Timeline/TimelineEditService.cs	Ripple Trim Start
+src/Timeline/TimelineEditService.cs	Ripple Trim Start to Playhead
+src/Timeline/TimelineEditService.cs	Set Frame Rate
+src/Timeline/TimelineEditService.cs	Set Frame Size
+src/Timeline/TimelineEditService.cs	Slip Clip
+src/Timeline/TimelineEditService.cs	Split Clip
+src/Timeline/TimelineEditService.cs	Split Clips
+src/Timeline/TimelineEditService.cs	Trim Clip
+src/Timeline/TimelineEditService.cs	Trim End to Playhead
+src/Timeline/TimelineEditService.cs	Trim Start to Playhead
+src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Crop Clip
+src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Clip
+src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Scale Clip
+
+# Reasons of a damaged project / recent-projects file — diagnostic detail shown in parentheses after the translated sentence (D039 §2).
 src/Project/Persistence/ProjectSerializer.cs	a clip doesn't match the kind of {asset.FileName}
 src/Project/Persistence/ProjectSerializer.cs	a clip has a negative fade
 src/Project/Persistence/ProjectSerializer.cs	a clip has an empty link id
@@ -202,275 +167,25 @@ src/Project/Persistence/RecentProjectsStore.cs	no valid format version
 src/Project/Persistence/RecentProjectsStore.cs	not JSON
 src/Project/Persistence/RecentProjectsStore.cs	not a recent-projects list
 src/Project/Persistence/RecentProjectsStore.cs	not an object
-src/Project/ProjectService.cs	No project folder was given.
-src/Project/ProjectService.cs	\"{projectFolderPath}\" is not a valid folder path.
-src/Timeline/Commands/RelinkMediaCommand.cs	Relink Media
-src/Timeline/Commands/TimelineCommands.cs	Add Clip
-src/Timeline/Commands/TimelineCommands.cs	Add Dissolve
-src/Timeline/Commands/TimelineCommands.cs	Add Hold
-src/Timeline/Commands/TimelineCommands.cs	Animate Holds
-src/Timeline/Commands/TimelineCommands.cs	Change Clip Properties
-src/Timeline/Commands/TimelineCommands.cs	Change Crop
-src/Timeline/Commands/TimelineCommands.cs	Change Dissolve Duration
-src/Timeline/Commands/TimelineCommands.cs	Change Fade In
-src/Timeline/Commands/TimelineCommands.cs	Change Fade Out
-src/Timeline/Commands/TimelineCommands.cs	Change Fades
-src/Timeline/Commands/TimelineCommands.cs	Change Font
-src/Timeline/Commands/TimelineCommands.cs	Change Font Size
-src/Timeline/Commands/TimelineCommands.cs	Change Hold Animation
-src/Timeline/Commands/TimelineCommands.cs	Change Keyline
-src/Timeline/Commands/TimelineCommands.cs	Change Opacity
-src/Timeline/Commands/TimelineCommands.cs	Change Outline
-src/Timeline/Commands/TimelineCommands.cs	Change Outline Colour
-src/Timeline/Commands/TimelineCommands.cs	Change Outline Width
-src/Timeline/Commands/TimelineCommands.cs	Change Position
-src/Timeline/Commands/TimelineCommands.cs	Change Rotation
-src/Timeline/Commands/TimelineCommands.cs	Change Scale
-src/Timeline/Commands/TimelineCommands.cs	Change Text Alignment
-src/Timeline/Commands/TimelineCommands.cs	Change Text Color
-src/Timeline/Commands/TimelineCommands.cs	Change Volume
-src/Timeline/Commands/TimelineCommands.cs	Edit Hold Outline
-src/Timeline/Commands/TimelineCommands.cs	Edit Text
-src/Timeline/Commands/TimelineCommands.cs	Hide Track
-src/Timeline/Commands/TimelineCommands.cs	Lock Track
-src/Timeline/Commands/TimelineCommands.cs	Mute Clip
-src/Timeline/Commands/TimelineCommands.cs	Mute Track
-src/Timeline/Commands/TimelineCommands.cs	Remove Dissolve
-src/Timeline/Commands/TimelineCommands.cs	Remove Hold
-src/Timeline/Commands/TimelineCommands.cs	Show Track
-src/Timeline/Commands/TimelineCommands.cs	Turn Off Hold Animation
-src/Timeline/Commands/TimelineCommands.cs	Unlock Track
-src/Timeline/Commands/TimelineCommands.cs	Unmute Track
-src/Timeline/EditPlan.cs	Update Dissolve
-src/Timeline/FrameRateRegrid.cs	A clip from {asset.FileName} is shorter than one frame at the new frame rate.
-src/Timeline/FrameRateRegrid.cs	A clip on track {track.Name} is shorter than one frame at the new frame rate.
-src/Timeline/FrameRateRegrid.cs	A clip's source duration is unknown.
-src/Timeline/FrameRateRegrid.cs	A very short clip on track {track.Name} has no room on the new frame grid.
-src/Timeline/FrameRateRegrid.cs	Clips on track {track.Name} can't keep their order on the new frame grid.
-src/Timeline/FrameRateRegrid.cs	Clips on track {track.Name} would overlap on the new frame grid.
-src/Timeline/MediaRelinkService.cs	Another project is open now.
-src/Timeline/MediaRelinkService.cs	Audio channels: {ca} before, {cb} now.
-src/Timeline/MediaRelinkService.cs	Audio codec: {was.AudioCodec} before, {now.AudioCodec} now.
-src/Timeline/MediaRelinkService.cs	Frame rate: {Fps(ra)} before, {Fps(rb)} now.
-src/Timeline/MediaRelinkService.cs	Picture size: {a.W}×{a.H} before, {b.W}×{b.H} now.
-src/Timeline/MediaRelinkService.cs	Relink Media
-src/Timeline/MediaRelinkService.cs	Relink {relinks.Count} Media Files
-src/Timeline/MediaRelinkService.cs	Sample rate: {sa} Hz before, {sb} Hz now.
-src/Timeline/MediaRelinkService.cs	Start time: {Time(was.StartTime ?? MediaTime.Zero)} before, {Time(now.StartTime ?? MediaTime.Zero)} now — the clips may show other moments.
-src/Timeline/MediaRelinkService.cs	The folder \"{fullFolder}\" can't be read.
-src/Timeline/MediaRelinkService.cs	The length of \"{name}\" is unknown, but the clips of \"{asset.FileName}\" use it up to {Time(required)}.
-src/Timeline/MediaRelinkService.cs	The media is not in the project.
-src/Timeline/MediaRelinkService.cs	The media item is already relinked by another entry of this batch.
-src/Timeline/MediaRelinkService.cs	The new file has no sound; its clips will be silent.
-src/Timeline/MediaRelinkService.cs	The new file has too little media beyond a clip for its dissolve; the dissolve will hold a frame.
-src/Timeline/MediaRelinkService.cs	The new file has too little media beyond its clips for {count} dissolves; they will hold a frame.
-src/Timeline/MediaRelinkService.cs	Video codec: {was.VideoCodec} before, {now.VideoCodec} now.
-src/Timeline/MediaRelinkService.cs	\"{Path.GetFileName(check.FilePath)}\" changed since it was checked; check it again.
-src/Timeline/MediaRelinkService.cs	\"{Path.GetFileName(check.FilePath)}\" doesn't exist any more.
-src/Timeline/MediaRelinkService.cs	\"{Path.GetFileName(check.FilePath)}\" is chosen for another media item of this batch — two media items can't share a file.
-src/Timeline/MediaRelinkService.cs	\"{Path.GetFileName(path)}\" can't be read as media.{(result.ErrorMessage is { } m ? 
-src/Timeline/MediaRelinkService.cs	\"{Path.GetFileName(path)}\" is already in the project as \"{other.FileName}\" — two media items can't share a file.
-src/Timeline/MediaRelinkService.cs	\"{Path.GetFileName(path)}\" is not a supported media file.
-src/Timeline/MediaRelinkService.cs	\"{Path.GetFileName(path)}\" is {Article(kind.Value)} file; \"{asset.FileName}\" is {Article(asset.Kind)} file.
-src/Timeline/MediaRelinkService.cs	\"{asset.FileName}\" is linked to {check.FilePath}.
-src/Timeline/MediaRelinkService.cs	\"{asset.FileName}\" is not in the folder.
-src/Timeline/MediaRelinkService.cs	\"{asset.FileName}\" is not offline — its file is there, nothing to relink.
-src/Timeline/MediaRelinkService.cs	\"{filePath}\" is not a valid file path.
-src/Timeline/MediaRelinkService.cs	\"{folder}\" is not a valid folder path.
-src/Timeline/MediaRelinkService.cs	\"{name}\" has no audio stream.
-src/Timeline/MediaRelinkService.cs	\"{name}\" has no picture.
-src/Timeline/MediaRelinkService.cs	\"{name}\" has no video stream.
-src/Timeline/MediaRelinkService.cs	\"{name}\" is {Time(metadata.Duration)} long, but the clips of \"{asset.FileName}\" use it up to {Time(required)}.
-src/Timeline/MediaRelinkService.cs	an audio
-src/Timeline/MediaRelinkService.cs	an image
-src/Timeline/MediaRelinkService.cs	can't be edited or exported until it has been analysed (when the project is opened with ffprobe).
-src/Timeline/MediaRelinkService.cs	ffprobe is not available, so only the file type was checked. The media stays unanalysed — its clips 
-src/Timeline/MediaRelinkService.cs	not probed: ffprobe unavailable
-src/Timeline/MediaRelinkService.cs	{nameCounts[asset.FileName]} offline media items are named \"{asset.FileName}\"; relink them one by one.
-src/Timeline/MediaRelinkService.cs	{problem} If it was just relinked, Undo brings the previous file back.
+
+# FFmpeg / FFprobe / decoder / model runtime detail — technical, in parentheses after a translated sentence where shown (D039 §2).
+src/Core/Playback/PlaybackSnapshotBuilder.cs	A {clip.GetType().Name} cannot play {asset.Kind} media.
+src/Core/Playback/PlaybackSnapshotBuilder.cs	Media information is not available.
+src/Core/Playback/PlaybackSnapshotBuilder.cs	The media file is missing.
+src/Core/Playback/PlaybackSnapshotBuilder.cs	The media is not in the project.
+src/Core/Playback/PlaybackSnapshotBuilder.cs	{asset.Kind} media has no audio.
+src/Export/ExportAudioReader.cs	The audio of '{Path.GetFileName(_asset.FilePath)}' could not be decoded ({error}): {message}
+src/Export/ExportAudioReader.cs	ffmpeg could not be found.
+src/Export/ExportAudioSource.cs	The audio of a clip at {span.TimelineStart} can't be exported ({span.Status}{(span.Reason is null ? 
+src/Export/ExportFrameSource.cs	A clip at {span.TimelineStart} can't be exported ({span.Status}{(span.Reason is null ? 
+src/Export/ExportPictureReader.cs	'{Path.GetFileName(_asset.FilePath)}' could not be decoded ({error}): {message}
+src/Export/ExportPictureReader.cs	'{_asset.FilePath}' produced no frame.
+src/Export/ExportPictureReader.cs	ffmpeg could not be found.
+src/Export/ExportService.cs	quality {Quality} (CRF {Crf}), preset {Preset}, AAC {Bitrate} kbps)
+src/Media/Thumbnails/ThumbnailService.cs	'{asset.FilePath}' produced no frame.
+src/Project/MediaCacheLocation.cs	The {_kind} file is gone.
 src/Timeline/Playback/SpanReader.cs	'{_asset.FilePath}' produced no frame.
-src/Timeline/TimelineEditService.HoldMarkup.cs	A clip can have at most {HoldMarkupRules.MaxHolds} holds.
-src/Timeline/TimelineEditService.HoldMarkup.cs	Holds can be marked only on a video clip.
-src/Timeline/TimelineEditService.HoldMarkup.cs	That hold is already marked.
-src/Timeline/TimelineEditService.HoldMarkup.cs	That hold is not marked on the clip.
-src/Timeline/TimelineEditService.HoldMarkup.cs	The outline colour must be #RRGGBB.
-src/Timeline/TimelineEditService.HoldMarkup.cs	Track {track.Name} is locked.
-src/Timeline/TimelineEditService.Insert.cs	Audio can only go on an audio track.
-src/Timeline/TimelineEditService.Insert.cs	Can't insert inside a {TransitionNoun(track)}.
-src/Timeline/TimelineEditService.Insert.cs	Can't overwrite inside a {TransitionNoun(track)}.
-src/Timeline/TimelineEditService.Insert.cs	Images have no source range: add them with Add to Timeline.
-src/Timeline/TimelineEditService.Insert.cs	Insert Clip
-src/Timeline/TimelineEditService.Insert.cs	Overwrite Clip
-src/Timeline/TimelineEditService.Insert.cs	That media is not in the project.
-src/Timeline/TimelineEditService.Insert.cs	That track no longer exists.
-src/Timeline/TimelineEditService.Insert.cs	The source range is shorter than one frame.
-src/Timeline/TimelineEditService.Insert.cs	The timeline has no {(kind == TrackType.Video ? 
-src/Timeline/TimelineEditService.Insert.cs	Track {track.Name} is locked.
-src/Timeline/TimelineEditService.Insert.cs	Video can only go on a video track.
-src/Timeline/TimelineEditService.Insert.cs	{asset.FileName} has no sound.
-src/Timeline/TimelineEditService.Insert.cs	{asset.FileName} is shorter than one frame.
-src/Timeline/TimelineEditService.Linked.cs	The linked clip can't follow.
-src/Timeline/TimelineEditService.Linked.cs	Track {track.Name} is locked.
-src/Timeline/TimelineEditService.Links.cs	A selected clip is already linked: Unlink it first.
-src/Timeline/TimelineEditService.Links.cs	Can't unlink the sound: {error}
-src/Timeline/TimelineEditService.Links.cs	Clips linked.
-src/Timeline/TimelineEditService.Links.cs	Clips unlinked.
-src/Timeline/TimelineEditService.Links.cs	Link Clips
-src/Timeline/TimelineEditService.Links.cs	Only a video clip's sound can be unlinked.
-src/Timeline/TimelineEditService.Links.cs	Select one video clip and one audio clip to link them.
-src/Timeline/TimelineEditService.Links.cs	Sound unlinked to track {(target ?? newTrack)!.Name}.
-src/Timeline/TimelineEditService.Links.cs	The clip has no sound.
-src/Timeline/TimelineEditService.Links.cs	The clip is linked: Unlink it first.
-src/Timeline/TimelineEditService.Links.cs	The clip's sound is already unlinked.
-src/Timeline/TimelineEditService.Links.cs	Unlink Audio
-src/Timeline/TimelineEditService.Links.cs	Unlink Clips
-src/Timeline/TimelineEditService.MakeRoom.cs	Can't {verb}: a clip linked to a clip that makes room has no room on {track.Name}.
-src/Timeline/TimelineEditService.MakeRoom.cs	Can't {verb}: a clip would start inside another clip (clips on a track can't overlap).
-src/Timeline/TimelineEditService.MakeRoom.cs	Can't {verb}: a linked clip would move by a different amount than its partner.
-src/Timeline/TimelineEditService.MakeRoom.cs	Can't {verb}: making room would open a {TransitionNoun(track)} between clips that are not moved. Remove it first.
-src/Timeline/TimelineEditService.MakeRoom.cs	Can't {verb}: there is no room to move linked clips aside while the frame rate is set.
-src/Timeline/TimelineEditService.MakeRoom.cs	Can't {verb}: there is no room to move the clips on {track.Name} aside.
-src/Timeline/TimelineEditService.cs	)} FPS is not one of the project frame rates.
-src/Timeline/TimelineEditService.cs	A clip can't extend past the end of its source media.
-src/Timeline/TimelineEditService.cs	A crossfade was removed: its clips no longer meet.
-src/Timeline/TimelineEditService.cs	A dissolve joins two clips of the same track.
-src/Timeline/TimelineEditService.cs	A dissolve needs two different clips.
-src/Timeline/TimelineEditService.cs	A dissolve was removed: its clips no longer meet.
-src/Timeline/TimelineEditService.cs	A fade can't be negative.
-src/Timeline/TimelineEditService.cs	A marker is already there.
-src/Timeline/TimelineEditService.cs	A selected clip no longer exists.
-src/Timeline/TimelineEditService.cs	A {TransitionNoun(track)} needs two clips that meet: the first must end where the second starts.
-src/Timeline/TimelineEditService.cs	A {noun} must be at least {TransitionRules.MinFrames} frames long.
-src/Timeline/TimelineEditService.cs	A {noun} of {frames} frames doesn't fit here; the longest that fits is {max} frames.
-src/Timeline/TimelineEditService.cs	Add Clip
-src/Timeline/TimelineEditService.cs	Add Text
-src/Timeline/TimelineEditService.cs	At {speed} the clip would be shorter than one frame.
-src/Timeline/TimelineEditService.cs	At {speed} the linked clip would be shorter than one frame.
-src/Timeline/TimelineEditService.cs	Audio can only go on an audio track.
-src/Timeline/TimelineEditService.cs	Can't add text on {track.Name}: {error}
-src/Timeline/TimelineEditService.cs	Can't add the {noun}: {error}
-src/Timeline/TimelineEditService.cs	Can't change the frame rate to {FormatRate(rate)} FPS: {error}
-src/Timeline/TimelineEditService.cs	Can't change the frame rate to {FormatRate(rate)} FPS: {regridError}
-src/Timeline/TimelineEditService.cs	Can't change the frame size to {width} × {height}: {Describe(clip)} on track {track.Name} — {error}
-src/Timeline/TimelineEditService.cs	Can't change the speed: {error}
-src/Timeline/TimelineEditService.cs	Can't change the {noun}: {error}
-src/Timeline/TimelineEditService.cs	Can't close the gap: {error}
-src/Timeline/TimelineEditService.cs	Can't close the gap: {shiftError}
-src/Timeline/TimelineEditService.cs	Can't ripple delete: {error}
-src/Timeline/TimelineEditService.cs	Can't ripple delete: {shiftError}
-src/Timeline/TimelineEditService.cs	Can't split inside a {TransitionNoun(plan.TrackOf(clip))}.
-src/Timeline/TimelineEditService.cs	Can't {verb}: the media of a copied clip is no longer in the project.
-src/Timeline/TimelineEditService.cs	Can't {verb}: the track of a copied clip no longer exists.
-src/Timeline/TimelineEditService.cs	Change Project Settings
-src/Timeline/TimelineEditService.cs	Change Speed
-src/Timeline/TimelineEditService.cs	Change {Title(noun)} Duration
-src/Timeline/TimelineEditService.cs	Clips can't be moved before the beginning of the timeline.
-src/Timeline/TimelineEditService.cs	Clips from several tracks can only be moved in time, not to another track.
-src/Timeline/TimelineEditService.cs	Close Gap
-src/Timeline/TimelineEditService.cs	Delete Clip
-src/Timeline/TimelineEditService.cs	Delete Clips
-src/Timeline/TimelineEditService.cs	Duplicate Clip
-src/Timeline/TimelineEditService.cs	Duplicate Clips
-src/Timeline/TimelineEditService.cs	Export settings: {e.Quality} quality, {e.PresetName} encoding, AAC {e.AudioBitrateKbps} kbps.
-src/Timeline/TimelineEditService.cs	Frame size set to {width} × {height}.
-src/Timeline/TimelineEditService.cs	Move Clip
-src/Timeline/TimelineEditService.cs	Move Clips
-src/Timeline/TimelineEditService.cs	Not trimmed where a dissolve is on the clip's end: Shift+W trims it and keeps the dissolve.
-src/Timeline/TimelineEditService.cs	Not trimmed where a dissolve is on the clip's start: Shift+Q trims it and keeps the dissolve.
-src/Timeline/TimelineEditService.cs	Only video and audio clips can be slipped.
-src/Timeline/TimelineEditService.cs	Only video and audio clips have a speed.
-src/Timeline/TimelineEditService.cs	Paste Clip
-src/Timeline/TimelineEditService.cs	Paste Clips
-src/Timeline/TimelineEditService.cs	Project frame rate kept at {FormatRate(rate)} FPS.
-src/Timeline/TimelineEditService.cs	Project frame rate set to {FormatRate(rate)} FPS from {asset.FileName}.
-src/Timeline/TimelineEditService.cs	Project frame rate set to {FormatRate(rate)} FPS.
-src/Timeline/TimelineEditService.cs	Remove Media
-src/Timeline/TimelineEditService.cs	Ripple Delete Clip
-src/Timeline/TimelineEditService.cs	Ripple Delete Clips
-src/Timeline/TimelineEditService.cs	Ripple Trim End
-src/Timeline/TimelineEditService.cs	Ripple Trim End to Playhead
-src/Timeline/TimelineEditService.cs	Ripple Trim Start
-src/Timeline/TimelineEditService.cs	Ripple Trim Start to Playhead
-src/Timeline/TimelineEditService.cs	Select the clip to trim: the playhead must be inside it.
-src/Timeline/TimelineEditService.cs	Set Frame Rate
-src/Timeline/TimelineEditService.cs	Set Frame Size
-src/Timeline/TimelineEditService.cs	Slip Clip
-src/Timeline/TimelineEditService.cs	Source frame rate of {asset.FileName} is unknown — project frame rate set to {FormatRate(rate)} FPS (fallback, not the file's actual frame rate).
-src/Timeline/TimelineEditService.cs	Split Clip
-src/Timeline/TimelineEditService.cs	Split Clips
-src/Timeline/TimelineEditService.cs	That dissolve no longer exists.
-src/Timeline/TimelineEditService.cs	That media is no longer in the project.
-src/Timeline/TimelineEditService.cs	That media is not in the project.
-src/Timeline/TimelineEditService.cs	That track no longer exists.
-src/Timeline/TimelineEditService.cs	The clip's media has no known length, so it can't be slipped.
-src/Timeline/TimelineEditService.cs	The dissolve is back: its clips meet again.
-src/Timeline/TimelineEditService.cs	The fade in can't be longer than the clip.
-src/Timeline/TimelineEditService.cs	The fade out can't be longer than the clip.
-src/Timeline/TimelineEditService.cs	The playhead is not inside the selected clip(s).
-src/Timeline/TimelineEditService.cs	The project frame rate changed since the clips were copied. Copy them again.
-src/Timeline/TimelineEditService.cs	The project frame size changed since the clips were copied. Copy them again.
-src/Timeline/TimelineEditService.cs	The slip stopped at the end of the source.
-src/Timeline/TimelineEditService.cs	The slip stopped at the start of the source.
-src/Timeline/TimelineEditService.cs	The slip stopped where a dissolve needs the clip's source.
-src/Timeline/TimelineEditService.cs	The timeline has no video track.
-src/Timeline/TimelineEditService.cs	The timeline has no {(kind == TrackType.Video ? 
-src/Timeline/TimelineEditService.cs	The timeline needs at least one track.
-src/Timeline/TimelineEditService.cs	The trim stopped where a dissolve needs the clip's frames.
-src/Timeline/TimelineEditService.cs	There is no clip under the playhead to split.
-src/Timeline/TimelineEditService.cs	There is no gap before this clip.
-src/Timeline/TimelineEditService.cs	There is no gap there.
-src/Timeline/TimelineEditService.cs	There is no gap there: no clip follows it on the track.
-src/Timeline/TimelineEditService.cs	There is no marker at the playhead.
-src/Timeline/TimelineEditService.cs	There is not enough media beyond the clips for the dissolve.
-src/Timeline/TimelineEditService.cs	There is not enough media beyond the clips for the {noun}.
-src/Timeline/TimelineEditService.cs	This cut already has a {noun}.
-src/Timeline/TimelineEditService.cs	Track {locked.Name} is locked.
-src/Timeline/TimelineEditService.cs	Track {lockedTrack.Name} is locked.
-src/Timeline/TimelineEditService.cs	Track {neighbour.Name} is locked, so {track.Name} can't move past it.
-src/Timeline/TimelineEditService.cs	Track {plan.TrackOf(clip).Name} is locked.
-src/Timeline/TimelineEditService.cs	Track {plan.TrackOf(lockedPartner).Name} is locked.
-src/Timeline/TimelineEditService.cs	Track {target.Name} is locked.
-src/Timeline/TimelineEditService.cs	Track {track.Name} is an audio track: it has no picture to hide.
-src/Timeline/TimelineEditService.cs	Track {track.Name} is locked.
-src/Timeline/TimelineEditService.cs	Trim Clip
-src/Timeline/TimelineEditService.cs	Trim End to Playhead
-src/Timeline/TimelineEditService.cs	Trim Start to Playhead
-src/Timeline/TimelineEditService.cs	Video and images can only go on a video track.
-src/Timeline/TimelineEditService.cs	add text on {track.Name}
-src/Timeline/TimelineEditService.cs	the text clip \"{line[..30]}…\"
-src/Timeline/TimelineEditService.cs	the text clip \"{line}\"
-src/Timeline/TimelineEditService.cs	the {kind} clip of {name}
-src/Timeline/TimelineEditService.cs	{asset.FileName} can't be added: its duration is unknown ({asset.AnalysisError ?? 
-src/Timeline/TimelineEditService.cs	{asset.FileName} can't be added: its duration is unknown.
-src/Timeline/TimelineEditService.cs	{asset.FileName} is missing.
-src/Timeline/TimelineEditService.cs	{asset.FileName} is shorter than one frame.
-src/Timeline/TimelineEditService.cs	{asset.FileName} is still being analyzed. It can be added once its duration is known.
-src/Timeline/TimelineEditService.cs	{asset.FileName} is used on track {locked.Name}, which is locked.
-src/Timeline/TimelineEditService.cs	{n} crossfades were removed: their clips no longer meet.
-src/Timeline/TimelineEditService.cs	{n} dissolves were removed: their clips no longer meet.
-src/Timeline/TimelineValidator.cs	A clip can't extend past the end of {asset.FileName}.
-src/Timeline/TimelineValidator.cs	A clip can't start before the beginning of its source media.
-src/Timeline/TimelineValidator.cs	A clip can't start before the beginning of the timeline.
-src/Timeline/TimelineValidator.cs	A clip must be at least one frame long.
-src/Timeline/TimelineValidator.cs	A clip refers to media that is not in the project.
-src/Timeline/TimelineValidator.cs	Clip edges must lie on the project frame grid.
-src/Timeline/TimelineValidator.cs	Clip source range doesn't match its duration.
-src/Timeline/TimelineValidator.cs	Clips would overlap on track {track.Name}.
-src/Timeline/TimelineValidator.cs	Images have no speed.
-src/Timeline/TimelineValidator.cs	The duration of {asset.FileName} is unknown.
-src/Timeline/TimelineValidator.cs	Track {track.Name} clips are not sorted.
-src/Timeline/TimelineValidator.cs	Track {track.Name} is in the wrong track list.
-src/Timeline/TimelineValidator.cs	{KindName(clip)} clips can't go on {(track.Type == TrackType.Video ? 
 src/UI/Services/HoldMarkupFrameSource.cs	'{asset.FilePath}' produced no frame.
-src/UI/Services/MediaAnalysisCoordinator.cs	Metadata analysis failed for '{Path}': {Outcome} — {Message}
-src/UI/ViewModels/MainWindowViewModel.cs	)} — AI Video Editor
-src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Crop Clip
-src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Clip
-src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Scale Clip
-src/UI/ViewModels/ProjectSettingsViewModel.cs	Full HD
-src/UI/Views/MainWindow.axaml.cs	Design Time
-src/UI/Views/MainWindow.axaml.cs	Design time — not analyzed.
-src/UI/Views/MainWindow.axaml.cs	Design time.
 src/Video/DisplayOrientation.cs	, CultureInfo.InvariantCulture)}° is not a right angle
 src/Video/DisplayOrientation.cs	mirrored display matrix
 src/Video/DisplayOrientation.cs	rotation of {h.RotationDegrees.ToString(
@@ -504,21 +219,26 @@ src/Video/FfmpegVideoFrameStream.cs	ffmpeg could not be started.
 src/Video/FfmpegVideoFrameStream.cs	ffmpeg output ended in the middle of frame {info.Index}. {_process.StderrTail()}
 src/Video/FfmpegVideoFrameStream.cs	ffmpeg produced no frame within {_frameTimeout.TotalSeconds:0.#} s. {_process.StderrTail()}
 src/Video/FfprobeMediaAnalysisService.cs	(no stderr output)
-src/Video/FfprobeMediaAnalysisService.cs	Analysis was cancelled.
 src/Video/FfprobeMediaAnalysisService.cs	Content light level
 src/Video/FfprobeMediaAnalysisService.cs	DOVI configuration
-src/Video/FfprobeMediaAnalysisService.cs	FFprobe could not be found. Install FFmpeg (with ffprobe on PATH) or configure its path in settings.
-src/Video/FfprobeMediaAnalysisService.cs	FFprobe failed to analyze this file.
-src/Video/FfprobeMediaAnalysisService.cs	FFprobe returned output that could not be understood.
-src/Video/FfprobeMediaAnalysisService.cs	FFprobe took too long to respond.
 src/Video/FfprobeMediaAnalysisService.cs	Mastering display
-src/Video/FfprobeMediaAnalysisService.cs	The file could not be found.
-src/Video/FfprobeMediaAnalysisService.cs	This file doesn't appear to contain readable media streams.
 src/Video/FfprobeMediaAnalysisService.cs	ffprobe exited with code {process.ExitCode}.
 src/Video/ShowInfoParser.cs	config in time_base:
-src/Vision/HoldModel.cs	The hold model file {file.Name} in {Folder} is damaged or another version (expected {HoldModel.Id}, SHA-256 
-src/Vision/HoldModel.cs	The hold model {HoldModel.Id} is not installed: {file.Name} is missing in {Folder}. See docs/AI_MODEL.md.
-src/Vision/HoldModel.cs	{file.Sha256}). It was not loaded. See docs/AI_MODEL.md.
-src/Vision/HoldModelBackend.cs	The hold model could not be loaded on the {Describe(device)}: {ex.Message}
-src/Vision/HoldModelBackend.cs	The hold model failed on the {Describe(Device)}: {ex.Message}
 src/Vision/HoldModelBackend.cs	out of memory
+
+# Log message templates written on a line of their own (the logs stay English, D039 §1).
+src/Media/MediaImportService.cs	Media import batch: {Imported} imported, {Unsupported} unsupported, {Missing} missing.
+src/Timeline/MediaRelinkService.cs	not probed: ffprobe unavailable
+src/UI/Services/MediaAnalysisCoordinator.cs	Metadata analysis failed for '{Path}': {Outcome} — {Message}
+
+# Data and names, not interface text: a font family, the internal sequence name, a LUT file header, a format name, the product name.
+src/Core/Color/HdrLut.cs	TITLE \"AiVideoEditor HDR to SDR, rule 
+src/Core/Entities/Clip.cs	Segoe UI
+src/Core/Entities/Timeline.cs	Main Sequence
+src/UI/ViewModels/MainWindowViewModel.cs	)} — AI Video Editor
+src/UI/ViewModels/ProjectSettingsViewModel.cs	Full HD
+
+# Design-time stand-ins of the main window (the XAML previewer only).
+src/UI/Views/MainWindow.axaml.cs	Design Time
+src/UI/Views/MainWindow.axaml.cs	Design time — not analyzed.
+src/UI/Views/MainWindow.axaml.cs	Design time.

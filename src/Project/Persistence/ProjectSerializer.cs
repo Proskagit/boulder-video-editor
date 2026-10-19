@@ -5,6 +5,7 @@ using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 
 namespace AiVideoEditor.Project.Persistence;
 
@@ -87,7 +88,7 @@ public static class ProjectSerializer
         ArgumentException.ThrowIfNullOrEmpty(projectFolderPath);
         var folder = Path.GetFullPath(projectFolderPath);
 
-        var dto = Parse<ProjectFileDto>(json, "The project file is damaged and can't be opened.");
+        var dto = Parse<ProjectFileDto>(json, Messages.ProjectFile_DamagedPlain);
         CheckHeader(dto);
         return FromDto(dto!, folder, fileExists ?? File.Exists);
     }
@@ -122,13 +123,13 @@ public static class ProjectSerializer
     public static (Core.Entities.Project Project, RecoveryInfo Info) DeserializeRecovery(string json, Func<string, bool>? fileExists = null)
     {
         ArgumentNullException.ThrowIfNull(json);
-        const string damaged = "The recovery file is damaged and can't be used.";
+        var damaged = Messages.ProjectFile_RecoveryDamaged;
 
         var dto = Parse<RecoveryFileDto>(json, damaged);
         if (dto is null || dto.Format != RecoveryFormatId)
-            throw new ProjectFileException("This file is not an AI Video Editor recovery file.");
+            throw new ProjectFileException(Messages.ProjectFile_NotRecovery);
         if (dto.FormatVersion > CurrentFormatVersion)
-            throw new ProjectFileException("This recovery file was written by a newer version of AI Video Editor and can't be used.");
+            throw new ProjectFileException(Messages.ProjectFile_RecoveryNewer);
         if (dto.FormatVersion < 1 || dto.Project is null)
             throw new ProjectFileException(damaged);
 
@@ -162,9 +163,9 @@ public static class ProjectSerializer
     private static void CheckHeader(ProjectFileDto? dto)
     {
         if (dto is null || dto.Format != FormatId)
-            throw new ProjectFileException("This file is not an AI Video Editor project.");
+            throw new ProjectFileException(Messages.ProjectFile_NotProject);
         if (dto.FormatVersion > CurrentFormatVersion)
-            throw new ProjectFileException("This project was saved by a newer version of AI Video Editor and can't be opened.");
+            throw new ProjectFileException(Messages.ProjectFile_Newer);
         if (dto.FormatVersion < 1)
             throw Damaged("unknown format version");
     }
@@ -812,5 +813,5 @@ public static class ProjectSerializer
     };
 
     private static ProjectFileException Damaged(string reason, Exception? inner = null) =>
-        new($"The project file is damaged and can't be opened ({reason}).", inner);
+        new(string.Format(Messages.ProjectFile_Damaged, reason), inner);
 }

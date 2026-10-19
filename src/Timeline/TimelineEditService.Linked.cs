@@ -1,6 +1,7 @@
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 
 namespace AiVideoEditor.Timeline;
 
@@ -11,7 +12,7 @@ namespace AiVideoEditor.Timeline;
 // result is validated as a whole. A partner on a locked track refuses the whole edit (L5).
 public sealed partial class TimelineEditService
 {
-    private const string PartnerCantFollow = "The linked clip can't follow.";
+    private static string PartnerCantFollow => Messages.Link_CantFollow;
 
     /// <summary>The other clip of <paramref name="clip"/>'s link, or null.</summary>
     private static MediaBackedClip? PartnerOf(EditPlan plan, Clip clip) =>
@@ -23,7 +24,7 @@ public sealed partial class TimelineEditService
     {
         if (alone || PartnerOf(plan, clip) is not { } partner || plan.Changes(partner)) return (null, null);
         var track = plan.TrackOf(partner);
-        return track.IsLocked ? (null, $"Track {track.Name} is locked.") : (partner, null);
+        return track.IsLocked ? (null, string.Format(Messages.Edit_TrackLocked, track.Name)) : (partner, null);
     }
 
     /// <summary>

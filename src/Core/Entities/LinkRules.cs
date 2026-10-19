@@ -1,3 +1,4 @@
+using AiVideoEditor.Core.Localization;
 namespace AiVideoEditor.Core.Entities;
 
 /// <summary>
@@ -19,14 +20,14 @@ public static class LinkRules
         foreach (var (clip, link) in clips)
         {
             if (link is not { } linkId) continue;
-            if (clip is not (VideoClip or AudioClip)) return "Only video and audio clips can be linked.";
+            if (clip is not (VideoClip or AudioClip)) return Messages.Link_OnlyMedia;
             var (video, audio) = groups.GetValueOrDefault(linkId);
             groups[linkId] = clip is VideoClip ? (video + 1, audio) : (video, audio + 1);
         }
 
         foreach (var (video, audio) in groups.Values)
         {
-            if (video != 1 || audio != 1) return "A link must join exactly one video clip and one audio clip.";
+            if (video != 1 || audio != 1) return Messages.Link_OneVideoOneAudio;
         }
         return null;
     }

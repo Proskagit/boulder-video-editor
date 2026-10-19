@@ -1,4 +1,3 @@
-using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.ViewModels;
 using Avalonia;

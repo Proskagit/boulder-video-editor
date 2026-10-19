@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Localization;
 
 namespace AiVideoEditor.Core.Interfaces;
 
@@ -169,11 +170,11 @@ public sealed class RelinkSearch
     public string Summary()
     {
         if (Problem is not null) return Problem;
-        if (Entries.Count == 0) return "No media is offline.";
+        if (Entries.Count == 0) return Messages.RelinkSummary_NoneOffline;
 
         var lines = new List<string>();
         var found = Entries.Where(e => e.Outcome == RelinkSearchOutcome.Found).ToList();
-        lines.Add($"Found {found.Count} of {Entries.Count} offline media files in \"{Folder}\".");
+        lines.Add(string.Format(Messages.RelinkSummary_Found, found.Count, Entries.Count, Folder));
         foreach (var e in found)
         {
             lines.Add($"• {e.FileName}");
@@ -183,13 +184,13 @@ public sealed class RelinkSearch
         var unusable = Entries.Where(e => e.Outcome is RelinkSearchOutcome.Rejected or RelinkSearchOutcome.Ambiguous).ToList();
         if (unusable.Count > 0)
         {
-            lines.Add("Can't be used:");
+            lines.Add(Messages.RelinkSummary_CantUse);
             foreach (var e in unusable)
                 lines.Add($"• {e.FileName}: {e.Message}");
         }
         var missing = Entries.Where(e => e.Outcome == RelinkSearchOutcome.NotFound).Select(e => e.FileName).ToList();
         if (missing.Count > 0)
-            lines.Add($"Not in the folder (stay offline): {string.Join(", ", missing)}.");
+            lines.Add(string.Format(Messages.RelinkSummary_Missing, string.Join(", ", missing)));
         return string.Join(Environment.NewLine, lines);
     }
 }

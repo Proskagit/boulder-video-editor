@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 
 namespace AiVideoEditor.Vision;
 
@@ -67,7 +68,7 @@ public sealed class HoldModelVerifier
             var path = PathOf(file);
             if (!File.Exists(path))
                 return new HoldModelStatus(HoldModelState.Missing,
-                    $"The hold model {HoldModel.Id} is not installed: {file.Name} is missing in {Folder}. See docs/AI_MODEL.md.");
+                    string.Format(Messages.Model_NotInstalled, HoldModel.Id, file.Name, Folder));
         }
 
         long total = files.Sum(f => f.Length), done = 0;
@@ -95,6 +96,5 @@ public sealed class HoldModelVerifier
     }
 
     private HoldModelStatus Mismatch(HoldModelFile file) => new(HoldModelState.Mismatch,
-        $"The hold model file {file.Name} in {Folder} is damaged or another version (expected {HoldModel.Id}, SHA-256 " +
-        $"{file.Sha256}). It was not loaded. See docs/AI_MODEL.md.");
+        string.Format(Messages.Model_Mismatch, file.Name, Folder, HoldModel.Id, file.Sha256));
 }

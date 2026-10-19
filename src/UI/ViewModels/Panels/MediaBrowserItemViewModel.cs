@@ -1,6 +1,5 @@
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
-using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Localization;
 

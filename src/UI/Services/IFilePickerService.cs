@@ -1,4 +1,3 @@
-using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Localization;
 namespace AiVideoEditor.UI.Services;
 

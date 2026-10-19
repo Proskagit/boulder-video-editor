@@ -4,13 +4,955 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Analysis_BadOutput" xml:space="preserve">
+    <value>FFprobe вернул непонятный результат.</value>
+  </data>
+  <data name="Analysis_Cancelled" xml:space="preserve">
+    <value>Анализ отменён.</value>
+  </data>
+  <data name="Analysis_Failed" xml:space="preserve">
+    <value>FFprobe не удалось проанализировать этот файл.</value>
+  </data>
+  <data name="Analysis_FileNotFound" xml:space="preserve">
+    <value>Файл не найден.</value>
+  </data>
+  <data name="Analysis_NoFfprobe" xml:space="preserve">
+    <value>Не найден FFprobe. Установите FFmpeg (ffprobe должен быть в PATH) или укажите путь к нему в настройках.</value>
+  </data>
+  <data name="Analysis_NoStreams" xml:space="preserve">
+    <value>Похоже, в этом файле нет читаемых медиапотоков.</value>
+  </data>
+  <data name="Analysis_Timeout" xml:space="preserve">
+    <value>FFprobe слишком долго не отвечал.</value>
+  </data>
+  <data name="Canvas_Even" xml:space="preserve">
+    <value>Ширина и высота кадра должны быть чётными.</value>
+  </data>
+  <data name="Canvas_SideRange" xml:space="preserve">
+    <value>Каждая сторона кадра должна быть от {0} до {1} пикс.</value>
+  </data>
+  <data name="Canvas_TooLarge" xml:space="preserve">
+    <value>Размер кадра {0} × {1} слишком большой (не больше {2} пикс.).</value>
+  </data>
+  <data name="Contour_MinPoints" xml:space="preserve">
+    <value>В контуре должно остаться не меньше трёх точек.</value>
+  </data>
+  <data name="Contour_SelfCross" xml:space="preserve">
+    <value>Контур не может пересекать сам себя — изменение не применено.</value>
+  </data>
+  <data name="Describe_ImageClip" xml:space="preserve">
+    <value>клип-изображение</value>
+  </data>
+  <data name="Describe_ImageClipOf" xml:space="preserve">
+    <value>клип-изображение из {0}</value>
+  </data>
+  <data name="Describe_TextClip" xml:space="preserve">
+    <value>текстовый клип «{0}»</value>
+  </data>
+  <data name="Describe_VideoClip" xml:space="preserve">
+    <value>видеоклип</value>
+  </data>
+  <data name="Describe_VideoClipOf" xml:space="preserve">
+    <value>видеоклип из {0}</value>
+  </data>
+  <data name="Edit_AnalysisFailed" xml:space="preserve">
+    <value>анализ не удался</value>
+  </data>
+  <data name="Edit_AudioOnAudioTrack" xml:space="preserve">
+    <value>Аудио можно поместить только на аудиодорожку.</value>
+  </data>
+  <data name="Edit_AudioTrackNoPicture" xml:space="preserve">
+    <value>Дорожка {0} — аудиодорожка: у неё нет изображения, которое можно скрыть.</value>
+  </data>
+  <data name="Edit_BeforeTimelineStart" xml:space="preserve">
+    <value>Клипы нельзя переместить за начало таймлайна.</value>
+  </data>
+  <data name="Edit_CantAddFile" xml:space="preserve">
+    <value>Нельзя добавить {0}: {1}</value>
+  </data>
+  <data name="Edit_CantAddText" xml:space="preserve">
+    <value>Нельзя добавить текст на {0}: {1}</value>
+  </data>
+  <data name="Edit_CantChangeRate" xml:space="preserve">
+    <value>Нельзя изменить частоту кадров на {0} к/с: {1}</value>
+  </data>
+  <data name="Edit_CantChangeSize" xml:space="preserve">
+    <value>Нельзя изменить размер кадра на {0} × {1}: {2} на дорожке {3} — {4}</value>
+  </data>
+  <data name="Edit_CantChangeSpeed" xml:space="preserve">
+    <value>Нельзя изменить скорость: {0}</value>
+  </data>
+  <data name="Edit_CantCloseGap" xml:space="preserve">
+    <value>Нельзя закрыть промежуток: {0}</value>
+  </data>
+  <data name="Edit_CantInsert" xml:space="preserve">
+    <value>Нельзя вставить: {0}</value>
+  </data>
+  <data name="Edit_CantMove" xml:space="preserve">
+    <value>Нельзя переместить: {0}</value>
+  </data>
+  <data name="Edit_CantRippleDelete" xml:space="preserve">
+    <value>Нельзя удалить со сдвигом: {0}</value>
+  </data>
+  <data name="Edit_CantSlip" xml:space="preserve">
+    <value>Нельзя сдвинуть содержимое: {0}</value>
+  </data>
+  <data name="Edit_CantSplit" xml:space="preserve">
+    <value>Нельзя разрезать: {0}</value>
+  </data>
+  <data name="Edit_CantTrim" xml:space="preserve">
+    <value>Нельзя обрезать: {0}</value>
+  </data>
+  <data name="Edit_ClipPastSourceEnd" xml:space="preserve">
+    <value>Клип не может выходить за конец исходного файла.</value>
+  </data>
+  <data name="Edit_CopiedMediaGone" xml:space="preserve">
+    <value>Нельзя {0}: медиафайла скопированного клипа больше нет в проекте.</value>
+  </data>
+  <data name="Edit_CopiedTrackGone" xml:space="preserve">
+    <value>Нельзя {0}: дорожки скопированного клипа больше нет.</value>
+  </data>
+  <data name="Edit_CrossfadeRemoved" xml:space="preserve">
+    <value>Перекрёстное затухание удалено: его клипы больше не соседние.</value>
+  </data>
+  <data name="Edit_CrossfadesRemoved" xml:space="preserve">
+    <value>Удалено перекрёстных затуханий: {0} — их клипы больше не соседние.</value>
+  </data>
+  <data name="Edit_DissolveBack" xml:space="preserve">
+    <value>Наплыв восстановлен: его клипы снова соседние.</value>
+  </data>
+  <data name="Edit_DissolveGone" xml:space="preserve">
+    <value>Этого наплыва больше нет.</value>
+  </data>
+  <data name="Edit_DissolveRemoved" xml:space="preserve">
+    <value>Наплыв удалён: его клипы больше не соседние.</value>
+  </data>
+  <data name="Edit_DissolveSameTrack" xml:space="preserve">
+    <value>Наплыв соединяет два клипа одной дорожки.</value>
+  </data>
+  <data name="Edit_DissolvesRemoved" xml:space="preserve">
+    <value>Удалено наплывов: {0} — их клипы больше не соседние.</value>
+  </data>
+  <data name="Edit_DissolveTwoClips" xml:space="preserve">
+    <value>Для наплыва нужны два разных клипа.</value>
+  </data>
+  <data name="Edit_DurationUnknown" xml:space="preserve">
+    <value>Файл {0} нельзя добавить: длительность неизвестна.</value>
+  </data>
+  <data name="Edit_DurationUnknownBecause" xml:space="preserve">
+    <value>Файл {0} нельзя добавить: длительность неизвестна ({1}).</value>
+  </data>
+  <data name="Edit_FadeInTooLong" xml:space="preserve">
+    <value>Появление не может быть длиннее клипа.</value>
+  </data>
+  <data name="Edit_FadeNegative" xml:space="preserve">
+    <value>Появление и исчезание не могут быть отрицательными.</value>
+  </data>
+  <data name="Edit_FadeOutTooLong" xml:space="preserve">
+    <value>Исчезание не может быть длиннее клипа.</value>
+  </data>
+  <data name="Edit_FileMissing" xml:space="preserve">
+    <value>Файл {0} не найден.</value>
+  </data>
+  <data name="Edit_FileShorterThanFrame" xml:space="preserve">
+    <value>Файл {0} короче одного кадра.</value>
+  </data>
+  <data name="Edit_FrameSizeSet" xml:space="preserve">
+    <value>Размер кадра: {0} × {1}.</value>
+  </data>
+  <data name="Edit_ImagesNoRange" xml:space="preserve">
+    <value>У изображений нет диапазона источника: добавляйте их кнопкой «На таймлайн».</value>
+  </data>
+  <data name="Edit_MarkerExists" xml:space="preserve">
+    <value>Здесь уже есть маркер.</value>
+  </data>
+  <data name="Edit_MediaGone" xml:space="preserve">
+    <value>Этого медиафайла больше нет в проекте.</value>
+  </data>
+  <data name="Edit_MediaNotInProject" xml:space="preserve">
+    <value>Этого медиафайла нет в проекте.</value>
+  </data>
+  <data name="Edit_NeedsOneTrack" xml:space="preserve">
+    <value>На таймлайне должна быть хотя бы одна дорожка.</value>
+  </data>
+  <data name="Edit_NoAudioTrack" xml:space="preserve">
+    <value>На таймлайне нет аудиодорожки.</value>
+  </data>
+  <data name="Edit_NoClipToSplit" xml:space="preserve">
+    <value>Под указателем нет клипа, который можно разрезать.</value>
+  </data>
+  <data name="Edit_NoGapBefore" xml:space="preserve">
+    <value>Перед этим клипом нет промежутка.</value>
+  </data>
+  <data name="Edit_NoGapNoClipFollows" xml:space="preserve">
+    <value>Здесь нет промежутка: за ним на дорожке нет клипов.</value>
+  </data>
+  <data name="Edit_NoGapThere" xml:space="preserve">
+    <value>Здесь нет промежутка.</value>
+  </data>
+  <data name="Edit_NoMarkerAtPlayhead" xml:space="preserve">
+    <value>В позиции указателя нет маркера.</value>
+  </data>
+  <data name="Edit_NoSound" xml:space="preserve">
+    <value>В файле {0} нет звука.</value>
+  </data>
+  <data name="Edit_NotTrimmedEnd" xml:space="preserve">
+    <value>Не обрезано там, где на конце клипа наплыв: Shift+W обрезает его, сохраняя наплыв.</value>
+  </data>
+  <data name="Edit_NotTrimmedStart" xml:space="preserve">
+    <value>Не обрезано там, где на начале клипа наплыв: Shift+Q обрезает его, сохраняя наплыв.</value>
+  </data>
+  <data name="Edit_NoVideoTrack" xml:space="preserve">
+    <value>На таймлайне нет видеодорожки.</value>
+  </data>
+  <data name="Edit_NoVideoTrackPlain" xml:space="preserve">
+    <value>На таймлайне нет видеодорожки.</value>
+  </data>
+  <data name="Edit_PlayheadNotInside" xml:space="preserve">
+    <value>Указатель не находится внутри выбранных клипов.</value>
+  </data>
+  <data name="Edit_RangeShorterThanFrame" xml:space="preserve">
+    <value>Диапазон источника короче одного кадра.</value>
+  </data>
+  <data name="Edit_RateChangedSinceCopy" xml:space="preserve">
+    <value>Частота кадров проекта изменилась после копирования клипов. Скопируйте их снова.</value>
+  </data>
+  <data name="Edit_RateKept" xml:space="preserve">
+    <value>Частота кадров проекта оставлена: {0} к/с.</value>
+  </data>
+  <data name="Edit_RateNotOffered" xml:space="preserve">
+    <value>{0} к/с нет среди частот кадров проекта.</value>
+  </data>
+  <data name="Edit_RateSet" xml:space="preserve">
+    <value>Частота кадров проекта: {0} к/с.</value>
+  </data>
+  <data name="Edit_RateSetFrom" xml:space="preserve">
+    <value>Частота кадров проекта установлена по файлу {1}: {0} к/с.</value>
+  </data>
+  <data name="Edit_RateUnknownFallback" xml:space="preserve">
+    <value>Частота кадров файла {0} неизвестна — для проекта установлено {1} к/с (по умолчанию, а не настоящая частота файла).</value>
+  </data>
+  <data name="Edit_SelectClipToTrim" xml:space="preserve">
+    <value>Выберите клип для обрезки: указатель должен быть внутри него.</value>
+  </data>
+  <data name="Edit_SelectedClipGone" xml:space="preserve">
+    <value>Выбранного клипа больше нет.</value>
+  </data>
+  <data name="Edit_SeveralTracksInTime" xml:space="preserve">
+    <value>Клипы с нескольких дорожек можно перемещать только по времени, не на другую дорожку.</value>
+  </data>
+  <data name="Edit_SizeChangedSinceCopy" xml:space="preserve">
+    <value>Размер кадра проекта изменился после копирования клипов. Скопируйте их снова.</value>
+  </data>
+  <data name="Edit_SlipNoLength" xml:space="preserve">
+    <value>Длина исходного файла клипа неизвестна, поэтому сдвиг содержимого невозможен.</value>
+  </data>
+  <data name="Edit_SlipOnlyMedia" xml:space="preserve">
+    <value>Сдвигать содержимое можно только у видео- и аудиоклипов.</value>
+  </data>
+  <data name="Edit_SlipStoppedDissolve" xml:space="preserve">
+    <value>Сдвиг остановлен там, где материал клипа нужен наплыву.</value>
+  </data>
+  <data name="Edit_SlipStoppedEnd" xml:space="preserve">
+    <value>Сдвиг остановлен в конце исходного файла.</value>
+  </data>
+  <data name="Edit_SlipStoppedStart" xml:space="preserve">
+    <value>Сдвиг остановлен в начале исходного файла.</value>
+  </data>
+  <data name="Edit_SpeedOnlyMedia" xml:space="preserve">
+    <value>Скорость есть только у видео- и аудиоклипов.</value>
+  </data>
+  <data name="Edit_SpeedTooShort" xml:space="preserve">
+    <value>При скорости {0} клип станет короче одного кадра.</value>
+  </data>
+  <data name="Edit_SpeedTooShortLinked" xml:space="preserve">
+    <value>При скорости {0} связанный клип станет короче одного кадра.</value>
+  </data>
+  <data name="Edit_StillAnalyzing" xml:space="preserve">
+    <value>Файл {0} ещё анализируется. Его можно будет добавить, когда станет известна длительность.</value>
+  </data>
+  <data name="Edit_ThatRateNotOffered" xml:space="preserve">
+    <value>Такой частоты кадров нет среди частот кадров проекта.</value>
+  </data>
+  <data name="Edit_TrackGone" xml:space="preserve">
+    <value>Этой дорожки больше нет.</value>
+  </data>
   <data name="Edit_TrackLocked" xml:space="preserve">
     <value>Дорожка {0} заблокирована.</value>
+  </data>
+  <data name="Edit_TrackLockedNeighbour" xml:space="preserve">
+    <value>Дорожка {0} заблокирована, поэтому {1} нельзя переместить за неё.</value>
+  </data>
+  <data name="Edit_TrimStoppedDissolve" xml:space="preserve">
+    <value>Обрезка остановлена там, где кадры клипа нужны наплыву.</value>
+  </data>
+  <data name="Edit_UsedOnLockedTrack" xml:space="preserve">
+    <value>Файл {0} используется на заблокированной дорожке {1}.</value>
+  </data>
+  <data name="Edit_VideoOnlyVideoTrack" xml:space="preserve">
+    <value>Видео можно поместить только на видеодорожку.</value>
+  </data>
+  <data name="Edit_VideoOnVideoTrack" xml:space="preserve">
+    <value>Видео и изображения можно поместить только на видеодорожку.</value>
+  </data>
+  <data name="Encoding_Bitrate" xml:space="preserve">
+    <value>Битрейт звука {0} кбит/с не поддерживается.</value>
+  </data>
+  <data name="Encoding_Preset" xml:space="preserve">
+    <value>Неизвестная скорость кодирования.</value>
+  </data>
+  <data name="Encoding_Quality" xml:space="preserve">
+    <value>Неизвестное качество экспорта.</value>
+  </data>
+  <data name="ExportQuality_Compact" xml:space="preserve">
+    <value>компактное</value>
+  </data>
+  <data name="ExportQuality_High" xml:space="preserve">
+    <value>высокое</value>
+  </data>
+  <data name="ExportQuality_Maximum" xml:space="preserve">
+    <value>максимальное</value>
+  </data>
+  <data name="ExportQuality_Standard" xml:space="preserve">
+    <value>стандартное</value>
+  </data>
+  <data name="Hdr_BitDepth" xml:space="preserve">
+    <value>{0} бит</value>
+  </data>
+  <data name="Hdr_Bits" xml:space="preserve">
+    <value>{0}, {1} бит (нужно не меньше 10)</value>
+  </data>
+  <data name="Hdr_DolbyVision" xml:space="preserve">
+    <value>Dolby Vision {0} (не применяется)</value>
+  </data>
+  <data name="Hdr_DolbyVisionCompat" xml:space="preserve">
+    <value>Dolby Vision {0}.{1} (не применяется)</value>
+  </data>
+  <data name="Hdr_Matrix" xml:space="preserve">
+    <value>{0} с матрицей {1} (поддерживается только BT.2020 NCL)</value>
+  </data>
+  <data name="Hdr_NotConverted" xml:space="preserve">
+    <value>HDR не преобразован: {0}</value>
+  </data>
+  <data name="Hdr_PqPeak" xml:space="preserve">
+    <value>PQ (пик {0} нит)</value>
+  </data>
+  <data name="Hdr_Primaries" xml:space="preserve">
+    <value>{0} с основными цветами {1} (поддерживаются только BT.2020)</value>
+  </data>
+  <data name="Hdr_Unknown" xml:space="preserve">
+    <value>неизвестно</value>
+  </data>
+  <data name="Hdr_UnknownBits" xml:space="preserve">
+    <value>{0} с неизвестной разрядностью</value>
+  </data>
+  <data name="Hdr_Vivid" xml:space="preserve">
+    <value>HDR Vivid (не применяется)</value>
+  </data>
+  <data name="Holds_AlreadyMarked" xml:space="preserve">
+    <value>Эта зацепка уже отмечена.</value>
+  </data>
+  <data name="Holds_AppearRange" xml:space="preserve">
+    <value>Появление должно длиться от 0 до {0} с.</value>
+  </data>
+  <data name="Holds_BadId" xml:space="preserve">
+    <value>У зацепки нет идентификатора или он повторяется.</value>
+  </data>
+  <data name="Holds_BadPointCount" xml:space="preserve">
+    <value>В контуре зацепки слишком мало или слишком много точек.</value>
+  </data>
+  <data name="Holds_BadSamples" xml:space="preserve">
+    <value>Неверные образцы цвета зацепки.</value>
+  </data>
+  <data name="Holds_ColourFormat" xml:space="preserve">
+    <value>Цвет контура должен быть в формате #RRGGBB.</value>
+  </data>
+  <data name="Holds_DisappearRange" xml:space="preserve">
+    <value>Исчезание должно длиться от 0 до {0} с.</value>
+  </data>
+  <data name="Holds_IntervalRange" xml:space="preserve">
+    <value>Интервал анимации должен быть от {0} до {1} с.</value>
+  </data>
+  <data name="Holds_MaxHolds" xml:space="preserve">
+    <value>На клипе может быть не больше {0} зацепок.</value>
+  </data>
+  <data name="Holds_MaxHoldsRule" xml:space="preserve">
+    <value>На клипе может быть не больше {0} зацепок.</value>
+  </data>
+  <data name="Holds_ModelMissing" xml:space="preserve">
+    <value>Не указана модель разметки.</value>
+  </data>
+  <data name="Holds_NegativeTime" xml:space="preserve">
+    <value>Время кадра зацепки отрицательное.</value>
+  </data>
+  <data name="Holds_NotMarked" xml:space="preserve">
+    <value>Эта зацепка не отмечена на клипе.</value>
+  </data>
+  <data name="Holds_OnlyVideo" xml:space="preserve">
+    <value>Зацепки можно отмечать только на видеоклипе.</value>
+  </data>
+  <data name="Holds_OutsideFrame" xml:space="preserve">
+    <value>Контур зацепки выходит за пределы кадра.</value>
+  </data>
+  <data name="Holds_StartInSource" xml:space="preserve">
+    <value>Начало анимации должно быть в пределах исходного видео.</value>
+  </data>
+  <data name="Holds_StayRange" xml:space="preserve">
+    <value>Пауза после последней зацепки должна быть от 0 до {0} с.</value>
+  </data>
+  <data name="Holds_UnknownColourMode" xml:space="preserve">
+    <value>Неизвестный режим цвета.</value>
+  </data>
+  <data name="Holds_UnknownKeylineMode" xml:space="preserve">
+    <value>Неизвестный режим обводки.</value>
+  </data>
+  <data name="Holds_UnknownOrder" xml:space="preserve">
+    <value>Неизвестный порядок анимации.</value>
+  </data>
+  <data name="Holds_WidthRange" xml:space="preserve">
+    <value>Толщина контура должна быть от {0} до {1} пикс.</value>
+  </data>
+  <data name="Insert_InsideCrossfade" xml:space="preserve">
+    <value>Нельзя вставить внутрь перекрёстного затухания.</value>
+  </data>
+  <data name="Insert_InsideDissolve" xml:space="preserve">
+    <value>Нельзя вставить внутрь наплыва.</value>
+  </data>
+  <data name="Kind_Audio" xml:space="preserve">
+    <value>Аудио</value>
+  </data>
+  <data name="Kind_Image" xml:space="preserve">
+    <value>Изображение</value>
+  </data>
+  <data name="Kind_Other" xml:space="preserve">
+    <value>Другие</value>
+  </data>
+  <data name="Kind_Text" xml:space="preserve">
+    <value>Текст</value>
+  </data>
+  <data name="Kind_Video" xml:space="preserve">
+    <value>Видео</value>
+  </data>
+  <data name="Link_AlreadyLinked" xml:space="preserve">
+    <value>Выбранный клип уже связан: сначала разъедините его.</value>
+  </data>
+  <data name="Link_AlreadyUnlinked" xml:space="preserve">
+    <value>Звук клипа уже отделён.</value>
+  </data>
+  <data name="Link_CantFollow" xml:space="preserve">
+    <value>Связанный клип не может последовать.</value>
+  </data>
+  <data name="Link_CantLink" xml:space="preserve">
+    <value>Нельзя связать: {0}</value>
+  </data>
+  <data name="Link_CantUnlink" xml:space="preserve">
+    <value>Нельзя отделить звук: {0}</value>
+  </data>
+  <data name="Link_CantUnlinkClips" xml:space="preserve">
+    <value>Нельзя разъединить: {0}</value>
+  </data>
+  <data name="Link_ClipLinked" xml:space="preserve">
+    <value>Клип связан: сначала разъедините его.</value>
+  </data>
+  <data name="Link_Linked" xml:space="preserve">
+    <value>Клипы связаны.</value>
+  </data>
+  <data name="Link_NoSound" xml:space="preserve">
+    <value>У клипа нет звука.</value>
+  </data>
+  <data name="Link_OneVideoOneAudio" xml:space="preserve">
+    <value>Связать можно ровно один видеоклип и один аудиоклип.</value>
+  </data>
+  <data name="Link_OnlyMedia" xml:space="preserve">
+    <value>Связывать можно только видео- и аудиоклипы.</value>
+  </data>
+  <data name="Link_OnlyVideoSound" xml:space="preserve">
+    <value>Отделить можно только звук видеоклипа.</value>
+  </data>
+  <data name="Link_SelectPair" xml:space="preserve">
+    <value>Выберите один видеоклип и один аудиоклип, чтобы связать их.</value>
+  </data>
+  <data name="Link_SoundUnlinkedTo" xml:space="preserve">
+    <value>Звук отделён на дорожку {0}.</value>
+  </data>
+  <data name="Link_Unlinked" xml:space="preserve">
+    <value>Клипы разъединены.</value>
+  </data>
+  <data name="MakeRoom_InsideClip" xml:space="preserve">
+    <value>Нельзя {0}: клип начнётся внутри другого клипа (клипы на дорожке не могут перекрываться).</value>
+  </data>
+  <data name="MakeRoom_NoRoom" xml:space="preserve">
+    <value>Нельзя {0}: на {1} нет места, чтобы отодвинуть клипы.</value>
+  </data>
+  <data name="MakeRoom_OpensCrossfade" xml:space="preserve">
+    <value>Нельзя {0}: освобождение места разорвёт перекрёстное затухание между клипами, которые не сдвигаются. Сначала удалите его.</value>
+  </data>
+  <data name="MakeRoom_OpensDissolve" xml:space="preserve">
+    <value>Нельзя {0}: освобождение места разорвёт наплыв между клипами, которые не сдвигаются. Сначала удалите его.</value>
+  </data>
+  <data name="MakeRoom_PartnerDifferent" xml:space="preserve">
+    <value>Нельзя {0}: связанный клип сдвинется не так, как его пара.</value>
+  </data>
+  <data name="MakeRoom_PartnerNoRoom" xml:space="preserve">
+    <value>Нельзя {0}: клипу, связанному с освобождающим место клипом, не хватает места на {1}.</value>
+  </data>
+  <data name="MakeRoom_RateSet" xml:space="preserve">
+    <value>Нельзя {0}: при установке частоты кадров нет места, чтобы отодвинуть связанные клипы.</value>
+  </data>
+  <data name="Model_LoadFailed" xml:space="preserve">
+    <value>Не удалось загрузить модель зацепок на {0}: {1}</value>
+  </data>
+  <data name="Model_Mismatch" xml:space="preserve">
+    <value>Файл модели зацепок {0} в {1} повреждён или другой версии (ожидается {2}, SHA-256 {3}). Модель не загружена. См. docs/AI_MODEL.md.</value>
+  </data>
+  <data name="Model_NotInstalled" xml:space="preserve">
+    <value>Модель зацепок {0} не установлена: в {2} нет файла {1}. См. docs/AI_MODEL.md.</value>
+  </data>
+  <data name="Model_RunFailed" xml:space="preserve">
+    <value>Ошибка модели зацепок на {0}: {1}</value>
+  </data>
+  <data name="Overwrite_InsideCrossfade" xml:space="preserve">
+    <value>Нельзя заменить внутри перекрёстного затухания.</value>
+  </data>
+  <data name="Overwrite_InsideDissolve" xml:space="preserve">
+    <value>Нельзя заменить внутри наплыва.</value>
   </data>
   <data name="Plural_Clips" xml:space="preserve">
     <value>{0} клип|{0} клипа|{0} клипов</value>
   </data>
+  <data name="Plural_TextClips" xml:space="preserve">
+    <value>{0} текстовый клип|{0} текстовых клипа|{0} текстовых клипов</value>
+  </data>
+  <data name="Preflight_AnalysisFailed" xml:space="preserve">
+    <value>«{0}» не удалось проанализировать ({1}, первый в {2}).</value>
+  </data>
+  <data name="Preflight_CanvasError" xml:space="preserve">
+    <value>Размер кадра {0} × {1} нельзя экспортировать. {2}</value>
+  </data>
+  <data name="Preflight_EmptyRange" xml:space="preserve">
+    <value>В диапазоне входа и выхода нет ни одной части таймлайна.</value>
+  </data>
+  <data name="Preflight_EmptyTimeline" xml:space="preserve">
+    <value>Таймлайн пуст.</value>
+  </data>
+  <data name="Preflight_Extension" xml:space="preserve">
+    <value>Выходной файл должен быть файлом {0}.</value>
+  </data>
+  <data name="Preflight_FontMissing" xml:space="preserve">
+    <value>Шрифт «{0}» не установлен ({1}); используется запасной шрифт, как в просмотре.</value>
+  </data>
+  <data name="Preflight_HdrNotConverted" xml:space="preserve">
+    <value>«{0}» — HDR, который нельзя преобразовать в SDR ({1}); он экспортируется без преобразования, как в просмотре ({2}, первый в {3}).</value>
+  </data>
+  <data name="Preflight_IsFolder" xml:space="preserve">
+    <value>«{0}» — это папка, а не файл.</value>
+  </data>
+  <data name="Preflight_MediaNotInProject" xml:space="preserve">
+    <value>(медиафайла нет в проекте)</value>
+  </data>
+  <data name="Preflight_MediaOffline" xml:space="preserve">
+    <value>«{0}» — офлайн ({1}, первый в {2}).</value>
+  </data>
+  <data name="Preflight_NoFfmpeg" xml:space="preserve">
+    <value>Не найден ffmpeg, поэтому видео нельзя закодировать.</value>
+  </data>
+  <data name="Preflight_NoFolder" xml:space="preserve">
+    <value>Папка «{0}» не существует.</value>
+  </data>
+  <data name="Preflight_NoOutput" xml:space="preserve">
+    <value>Выходной файл не выбран.</value>
+  </data>
+  <data name="Preflight_NotAnalysedYet" xml:space="preserve">
+    <value>«{0}» ещё не проанализирован ({1}, первый в {2}).</value>
+  </data>
+  <data name="Preflight_NotValidPath" xml:space="preserve">
+    <value>«{0}» — недопустимый путь к выходному файлу.</value>
+  </data>
+  <data name="Preflight_OverwritesMedia" xml:space="preserve">
+    <value>Выходной файл перезапишет медиафайл проекта «{0}».</value>
+  </data>
+  <data name="Preflight_Unsupported" xml:space="preserve">
+    <value>«{0}» не поддерживается своим клипом ({1}, первый в {2}).</value>
+  </data>
   <data name="Project_DefaultName" xml:space="preserve">
     <value>Новый проект</value>
+  </data>
+  <data name="ProjectFile_Damaged" xml:space="preserve">
+    <value>Файл проекта повреждён и не может быть открыт ({0}).</value>
+  </data>
+  <data name="ProjectFile_DamagedPlain" xml:space="preserve">
+    <value>Файл проекта повреждён и не может быть открыт.</value>
+  </data>
+  <data name="ProjectFile_InvalidFolder" xml:space="preserve">
+    <value>«{0}» — недопустимый путь к папке.</value>
+  </data>
+  <data name="ProjectFile_Newer" xml:space="preserve">
+    <value>Этот проект сохранён более новой версией AI Video Editor и не может быть открыт.</value>
+  </data>
+  <data name="ProjectFile_NoFolder" xml:space="preserve">
+    <value>Не указана папка проекта.</value>
+  </data>
+  <data name="ProjectFile_NotFound" xml:space="preserve">
+    <value>{0} не найден в {1}.</value>
+  </data>
+  <data name="ProjectFile_NotProject" xml:space="preserve">
+    <value>Этот файл не является проектом AI Video Editor.</value>
+  </data>
+  <data name="ProjectFile_NotRecovery" xml:space="preserve">
+    <value>Этот файл не является файлом восстановления AI Video Editor.</value>
+  </data>
+  <data name="ProjectFile_ReadFailed" xml:space="preserve">
+    <value>Не удалось прочитать файл проекта: {0}</value>
+  </data>
+  <data name="ProjectFile_RecoveryDamaged" xml:space="preserve">
+    <value>Файл восстановления повреждён и не может быть использован.</value>
+  </data>
+  <data name="ProjectFile_RecoveryNewer" xml:space="preserve">
+    <value>Этот файл восстановления записан более новой версией AI Video Editor и не может быть использован.</value>
+  </data>
+  <data name="ProjectFile_SaveFailed" xml:space="preserve">
+    <value>Не удалось сохранить проект: {0}</value>
+  </data>
+  <data name="Prop_AudioNoPicture" xml:space="preserve">
+    <value>У аудиоклипов нет свойств изображения.</value>
+  </data>
+  <data name="Prop_ColorFormat" xml:space="preserve">
+    <value>Цвет нужно указать в формате #RRGGBB.</value>
+  </data>
+  <data name="Prop_CropNothing" xml:space="preserve">
+    <value>После кадрирования от изображения ничего не останется.</value>
+  </data>
+  <data name="Prop_CropRange" xml:space="preserve">
+    <value>Каждый край кадрирования должен быть от 0 % до 100 %.</value>
+  </data>
+  <data name="Prop_FontNameLong" xml:space="preserve">
+    <value>Слишком длинное название шрифта.</value>
+  </data>
+  <data name="Prop_FontSize" xml:space="preserve">
+    <value>Размер шрифта должен быть от {0} до {1}.</value>
+  </data>
+  <data name="Prop_NoSound" xml:space="preserve">
+    <value>У клипов типа «{0}» нет звука.</value>
+  </data>
+  <data name="Prop_OnlyText" xml:space="preserve">
+    <value>Свойства текста есть только у текстовых клипов.</value>
+  </data>
+  <data name="Prop_Opacity" xml:space="preserve">
+    <value>Непрозрачность должна быть от {0} до {1}.</value>
+  </data>
+  <data name="Prop_Position" xml:space="preserve">
+    <value>Позиция должна быть от {0} до {1} пикс.</value>
+  </data>
+  <data name="Prop_Rotation" xml:space="preserve">
+    <value>Поворот должен быть от {0}° до {1}°.</value>
+  </data>
+  <data name="Prop_Scale" xml:space="preserve">
+    <value>Масштаб должен быть от {0} до {1}.</value>
+  </data>
+  <data name="Prop_TextLength" xml:space="preserve">
+    <value>Текст может содержать не больше {0} символов.</value>
+  </data>
+  <data name="Prop_TextMissing" xml:space="preserve">
+    <value>Нет текста.</value>
+  </data>
+  <data name="Prop_TextNoCrop" xml:space="preserve">
+    <value>Текстовые клипы нельзя кадрировать.</value>
+  </data>
+  <data name="Prop_UnknownAlignment" xml:space="preserve">
+    <value>Неизвестное выравнивание текста.</value>
+  </data>
+  <data name="Prop_Volume" xml:space="preserve">
+    <value>Громкость должна быть от {0} до {1}.</value>
+  </data>
+  <data name="Regrid_ClipFromShort" xml:space="preserve">
+    <value>Клип из файла {0} короче одного кадра при новой частоте кадров.</value>
+  </data>
+  <data name="Regrid_ClipOnTrackShort" xml:space="preserve">
+    <value>Клип на дорожке {0} короче одного кадра при новой частоте кадров.</value>
+  </data>
+  <data name="Regrid_NoRoom" xml:space="preserve">
+    <value>Очень короткому клипу на дорожке {0} не хватает места на новой сетке кадров.</value>
+  </data>
+  <data name="Regrid_Order" xml:space="preserve">
+    <value>Клипы на дорожке {0} не могут сохранить порядок на новой сетке кадров.</value>
+  </data>
+  <data name="Regrid_Overlap" xml:space="preserve">
+    <value>Клипы на дорожке {0} перекроются на новой сетке кадров.</value>
+  </data>
+  <data name="Regrid_SourceUnknown" xml:space="preserve">
+    <value>Длительность источника клипа неизвестна.</value>
+  </data>
+  <data name="Relink_AlreadyInBatch" xml:space="preserve">
+    <value>Этот медиафайл уже перепривязывается другой записью этого пакета.</value>
+  </data>
+  <data name="Relink_AlreadyInProject" xml:space="preserve">
+    <value>«{0}» уже есть в проекте как «{1}» — два медиафайла не могут использовать один файл.</value>
+  </data>
+  <data name="Relink_CantRead" xml:space="preserve">
+    <value>«{0}» не удаётся прочитать как медиафайл.</value>
+  </data>
+  <data name="Relink_ChangedSinceCheck" xml:space="preserve">
+    <value>«{0}» изменился после проверки; проверьте его снова.</value>
+  </data>
+  <data name="Relink_ChosenTwice" xml:space="preserve">
+    <value>«{0}» уже выбран для другого медиафайла этого пакета — два медиафайла не могут использовать один файл.</value>
+  </data>
+  <data name="Relink_DiffAudioCodec" xml:space="preserve">
+    <value>Аудиокодек: был {0}, стал {1}.</value>
+  </data>
+  <data name="Relink_DiffChannels" xml:space="preserve">
+    <value>Аудиоканалы: было {0}, стало {1}.</value>
+  </data>
+  <data name="Relink_DiffRate" xml:space="preserve">
+    <value>Частота кадров: была {0}, стала {1}.</value>
+  </data>
+  <data name="Relink_DiffSampleRate" xml:space="preserve">
+    <value>Частота дискретизации: была {0} Гц, стала {1} Гц.</value>
+  </data>
+  <data name="Relink_DiffSize" xml:space="preserve">
+    <value>Размер изображения: был {0}×{1}, стал {2}×{3}.</value>
+  </data>
+  <data name="Relink_DiffStart" xml:space="preserve">
+    <value>Время начала: было {0}, стало {1} — клипы могут показывать другие моменты.</value>
+  </data>
+  <data name="Relink_DiffVideoCodec" xml:space="preserve">
+    <value>Видеокодек: был {0}, стал {1}.</value>
+  </data>
+  <data name="Relink_DissolveHoldsMany" xml:space="preserve">
+    <value>В новом файле недостаточно материала за краями клипов для наплывов ({0}); они будут держать кадр.</value>
+  </data>
+  <data name="Relink_DissolveHoldsOne" xml:space="preserve">
+    <value>В новом файле недостаточно материала за краем клипа для его наплыва; наплыв будет держать кадр.</value>
+  </data>
+  <data name="Relink_DoesNotExist" xml:space="preserve">
+    <value>«{0}» не существует.</value>
+  </data>
+  <data name="Relink_FolderUnreadable" xml:space="preserve">
+    <value>Папку «{0}» не удаётся прочитать.</value>
+  </data>
+  <data name="Relink_GoneNow" xml:space="preserve">
+    <value>«{0}» больше не существует.</value>
+  </data>
+  <data name="Relink_InvalidFilePath" xml:space="preserve">
+    <value>«{0}» — недопустимый путь к файлу.</value>
+  </data>
+  <data name="Relink_InvalidFolderPath" xml:space="preserve">
+    <value>«{0}» — недопустимый путь к папке.</value>
+  </data>
+  <data name="Relink_KindAudio" xml:space="preserve">
+    <value>аудиофайл</value>
+  </data>
+  <data name="Relink_KindDiffers" xml:space="preserve">
+    <value>«{0}» — {1}, а «{2}» — {3}.</value>
+  </data>
+  <data name="Relink_KindImage" xml:space="preserve">
+    <value>изображение</value>
+  </data>
+  <data name="Relink_KindVideo" xml:space="preserve">
+    <value>видеофайл</value>
+  </data>
+  <data name="Relink_LengthUnknown" xml:space="preserve">
+    <value>Длина «{0}» неизвестна, а клипы «{1}» используют его до {2}.</value>
+  </data>
+  <data name="Relink_LinkedTo" xml:space="preserve">
+    <value>«{0}» перепривязан к {1}.</value>
+  </data>
+  <data name="Relink_NoAudioStream" xml:space="preserve">
+    <value>В «{0}» нет аудиопотока.</value>
+  </data>
+  <data name="Relink_NoPicture" xml:space="preserve">
+    <value>В «{0}» нет изображения.</value>
+  </data>
+  <data name="Relink_NoSound" xml:space="preserve">
+    <value>В новом файле нет звука; его клипы будут беззвучными.</value>
+  </data>
+  <data name="Relink_NotInFolder" xml:space="preserve">
+    <value>«{0}» нет в папке.</value>
+  </data>
+  <data name="Relink_NotInProject" xml:space="preserve">
+    <value>Этого медиафайла нет в проекте.</value>
+  </data>
+  <data name="Relink_NotOfflineThere" xml:space="preserve">
+    <value>«{0}» не офлайн — его файл на месте, перепривязывать нечего.</value>
+  </data>
+  <data name="Relink_NotProbed" xml:space="preserve">
+    <value>ffprobe недоступен, поэтому проверен только тип файла. Файл остаётся непроанализированным — его клипы нельзя редактировать и экспортировать, пока он не будет проанализирован (при открытии проекта с ffprobe).</value>
+  </data>
+  <data name="Relink_NotSupported" xml:space="preserve">
+    <value>«{0}» — неподдерживаемый медиафайл.</value>
+  </data>
+  <data name="Relink_NoVideoStream" xml:space="preserve">
+    <value>В «{0}» нет видеопотока.</value>
+  </data>
+  <data name="Relink_OtherProject" xml:space="preserve">
+    <value>Сейчас открыт другой проект.</value>
+  </data>
+  <data name="Relink_SameNames" xml:space="preserve">
+    <value>Офлайн-медиафайлов с именем «{1}»: {0}; перепривяжите их по одному.</value>
+  </data>
+  <data name="Relink_TooShort" xml:space="preserve">
+    <value>Длина «{0}» — {1}, а клипы «{2}» используют его до {3}.</value>
+  </data>
+  <data name="Relink_UndoBack" xml:space="preserve">
+    <value>{0} Если файл только что перепривязан, «Отменить» вернёт прежний файл.</value>
+  </data>
+  <data name="RelinkSummary_CantUse" xml:space="preserve">
+    <value>Нельзя использовать:</value>
+  </data>
+  <data name="RelinkSummary_Found" xml:space="preserve">
+    <value>Найдено {0} из {1} офлайн-медиафайлов в «{2}».</value>
+  </data>
+  <data name="RelinkSummary_Missing" xml:space="preserve">
+    <value>Нет в папке (остаются офлайн): {0}.</value>
+  </data>
+  <data name="RelinkSummary_NoneOffline" xml:space="preserve">
+    <value>Офлайн-медиафайлов нет.</value>
+  </data>
+  <data name="Settings_ExportSet" xml:space="preserve">
+    <value>Параметры экспорта: качество {0}, кодирование {1}, AAC {2} кбит/с.</value>
+  </data>
+  <data name="Split_InsideCrossfade" xml:space="preserve">
+    <value>Нельзя разрезать внутри перекрёстного затухания.</value>
+  </data>
+  <data name="Split_InsideDissolve" xml:space="preserve">
+    <value>Нельзя разрезать внутри наплыва.</value>
+  </data>
+  <data name="Text_Default" xml:space="preserve">
+    <value>Текст</value>
+  </data>
+  <data name="Transition_CantAddCrossfade" xml:space="preserve">
+    <value>Нельзя добавить перекрёстное затухание: {0}</value>
+  </data>
+  <data name="Transition_CantAddDissolve" xml:space="preserve">
+    <value>Нельзя добавить наплыв: {0}</value>
+  </data>
+  <data name="Transition_CantChangeCrossfade" xml:space="preserve">
+    <value>Нельзя изменить перекрёстное затухание: {0}</value>
+  </data>
+  <data name="Transition_CantChangeDissolve" xml:space="preserve">
+    <value>Нельзя изменить наплыв: {0}</value>
+  </data>
+  <data name="Transition_CutHasCrossfade" xml:space="preserve">
+    <value>На этой склейке уже есть перекрёстное затухание.</value>
+  </data>
+  <data name="Transition_CutHasDissolve" xml:space="preserve">
+    <value>На этой склейке уже есть наплыв.</value>
+  </data>
+  <data name="Transition_MinCrossfade" xml:space="preserve">
+    <value>Перекрёстное затухание должно длиться не меньше {0} кадр.</value>
+  </data>
+  <data name="Transition_MinDissolve" xml:space="preserve">
+    <value>Наплыв должен длиться не меньше {0} кадр.</value>
+  </data>
+  <data name="Transition_NeedsMeetCrossfade" xml:space="preserve">
+    <value>Для перекрёстного затухания нужны два соседних клипа: первый должен заканчиваться там, где начинается второй.</value>
+  </data>
+  <data name="Transition_NeedsMeetDissolve" xml:space="preserve">
+    <value>Для наплыва нужны два соседних клипа: первый должен заканчиваться там, где начинается второй.</value>
+  </data>
+  <data name="Transition_NotEnoughMediaCrossfade" xml:space="preserve">
+    <value>За краями клипов недостаточно материала для перекрёстного затухания.</value>
+  </data>
+  <data name="Transition_NotEnoughMediaDissolve" xml:space="preserve">
+    <value>За краями клипов недостаточно материала для наплыва.</value>
+  </data>
+  <data name="Transition_TooLongCrossfade" xml:space="preserve">
+    <value>Перекрёстное затухание длиной {0} кадр. здесь не помещается; самое длинное возможное — {1} кадр.</value>
+  </data>
+  <data name="Transition_TooLongDissolve" xml:space="preserve">
+    <value>Наплыв длиной {0} кадр. здесь не помещается; самый длинный возможный — {1} кадр.</value>
+  </data>
+  <data name="TransitionRule_AudioOnly" xml:space="preserve">
+    <value>Перекрёстное затухание бывает только на аудиодорожках.</value>
+  </data>
+  <data name="TransitionRule_ClipTooShort" xml:space="preserve">
+    <value>Клип слишком короткий для своих переходов.</value>
+  </data>
+  <data name="TransitionRule_DontTouch" xml:space="preserve">
+    <value>Клипы перехода не соприкасаются.</value>
+  </data>
+  <data name="TransitionRule_Min" xml:space="preserve">
+    <value>Переход должен длиться не меньше {0} кадр.</value>
+  </data>
+  <data name="TransitionRule_Negative" xml:space="preserve">
+    <value>У перехода отрицательная длительность.</value>
+  </data>
+  <data name="TransitionRule_NotOnTrack" xml:space="preserve">
+    <value>Переход ссылается на клип, которого нет на дорожке {0}.</value>
+  </data>
+  <data name="TransitionRule_TwoClips" xml:space="preserve">
+    <value>Для перехода нужны два разных клипа.</value>
+  </data>
+  <data name="TransitionRule_TwoOnCut" xml:space="preserve">
+    <value>На склейке больше одного перехода.</value>
+  </data>
+  <data name="TransitionRule_UnknownType" xml:space="preserve">
+    <value>У перехода неизвестный тип.</value>
+  </data>
+  <data name="TransitionRule_VideoOnly" xml:space="preserve">
+    <value>Наплыв бывает только на видеодорожках.</value>
+  </data>
+  <data name="Validate_BeforeSourceStart" xml:space="preserve">
+    <value>Клип не может начинаться раньше начала исходного файла.</value>
+  </data>
+  <data name="Validate_BeforeTimelineStart" xml:space="preserve">
+    <value>Клип не может начинаться раньше начала таймлайна.</value>
+  </data>
+  <data name="Validate_DurationUnknown" xml:space="preserve">
+    <value>Длительность файла {0} неизвестна.</value>
+  </data>
+  <data name="Validate_ImagesNoSpeed" xml:space="preserve">
+    <value>У изображений нет скорости.</value>
+  </data>
+  <data name="Validate_KindNotOnAudio" xml:space="preserve">
+    <value>Клипы типа «{0}» нельзя поместить на аудиодорожку.</value>
+  </data>
+  <data name="Validate_KindNotOnVideo" xml:space="preserve">
+    <value>Клипы типа «{0}» нельзя поместить на видеодорожку.</value>
+  </data>
+  <data name="Validate_MediaNotInProject" xml:space="preserve">
+    <value>Клип ссылается на медиафайл, которого нет в проекте.</value>
+  </data>
+  <data name="Validate_MinOneFrame" xml:space="preserve">
+    <value>Клип должен быть длиной не меньше одного кадра.</value>
+  </data>
+  <data name="Validate_NotSorted" xml:space="preserve">
+    <value>Клипы дорожки {0} не упорядочены.</value>
+  </data>
+  <data name="Validate_OnGrid" xml:space="preserve">
+    <value>Края клипа должны совпадать с кадрами проекта.</value>
+  </data>
+  <data name="Validate_Overlap" xml:space="preserve">
+    <value>Клипы перекроются на дорожке {0}.</value>
+  </data>
+  <data name="Validate_PastEndOf" xml:space="preserve">
+    <value>Клип не может выходить за конец файла {0}.</value>
+  </data>
+  <data name="Validate_RangeMismatch" xml:space="preserve">
+    <value>Диапазон источника клипа не совпадает с его длительностью.</value>
+  </data>
+  <data name="Validate_WrongList" xml:space="preserve">
+    <value>Дорожка {0} находится не в том списке дорожек.</value>
+  </data>
+  <data name="Verb_AddFile" xml:space="preserve">
+    <value>добавить {0}</value>
+  </data>
+  <data name="Verb_AddText" xml:space="preserve">
+    <value>добавить текст на {0}</value>
+  </data>
+  <data name="Verb_Duplicate" xml:space="preserve">
+    <value>дублировать</value>
+  </data>
+  <data name="Verb_Insert" xml:space="preserve">
+    <value>вставить</value>
+  </data>
+  <data name="Verb_Move" xml:space="preserve">
+    <value>переместить</value>
+  </data>
+  <data name="Verb_Overwrite" xml:space="preserve">
+    <value>заменить</value>
+  </data>
+  <data name="Verb_Paste" xml:space="preserve">
+    <value>вставить</value>
   </data>
 </root>

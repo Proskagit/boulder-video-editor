@@ -1,5 +1,6 @@
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Localization;
 
 namespace AiVideoEditor.Timeline;
 
@@ -30,39 +31,39 @@ public static class TimelineValidator
         foreach (var (clip, state) in ordered)
         {
             if (!IsCompatible(clip, track.Type))
-                return $"{KindName(clip)} clips can't go on {(track.Type == TrackType.Video ? "a video" : "an audio")} track.";
+                return string.Format(track.Type == TrackType.Video ? Messages.Validate_KindNotOnVideo : Messages.Validate_KindNotOnAudio, KindName(clip));
 
             if (state.Start < MediaTime.Zero)
-                return "A clip can't start before the beginning of the timeline.";
+                return Messages.Validate_BeforeTimelineStart;
 
             if (state.Duration <= MediaTime.Zero)
-                return "A clip must be at least one frame long.";
+                return Messages.Validate_MinOneFrame;
 
             if (!state.Start.IsOnFrameGrid(rate) || !state.End.IsOnFrameGrid(rate))
-                return "Clip edges must lie on the project frame grid.";
+                return Messages.Validate_OnGrid;
 
             if (clip is MediaBackedClip media)
             {
                 if (findAsset(media.MediaAssetId) is not { } asset)
-                    return "A clip refers to media that is not in the project.";
+                    return Messages.Validate_MediaNotInProject;
 
                 if (clip is ImageClip && !state.Speed.IsNormal)
-                    return "Images have no speed.";
+                    return Messages.Validate_ImagesNoSpeed;
 
                 if (state.SourceIn < MediaTime.Zero)
-                    return "A clip can't start before the beginning of its source media.";
+                    return Messages.Validate_BeforeSourceStart;
 
                 var frames = state.End.ToFrameFloor(rate) - state.Start.ToFrameFloor(rate);
                 if (!SpeedTiming.Fits(frames, state.SourceOut - state.SourceIn, state.Speed, rate))
-                    return "Clip source range doesn't match its duration.";
+                    return Messages.Validate_RangeMismatch;
 
                 if (clip is VideoClip or AudioClip)
                 {
                     if (asset.Metadata is not { } metadata || metadata.Duration <= MediaTime.Zero)
-                        return $"The duration of {asset.FileName} is unknown.";
+                        return string.Format(Messages.Validate_DurationUnknown, asset.FileName);
 
                     if (state.SourceOut > metadata.Duration)
-                        return $"A clip can't extend past the end of {asset.FileName}.";
+                        return string.Format(Messages.Validate_PastEndOf, asset.FileName);
                 }
             }
         }
@@ -70,7 +71,7 @@ public static class TimelineValidator
         for (var i = 1; i < ordered.Count; i++)
         {
             if (ordered[i - 1].State.End > ordered[i].State.Start)
-                return $"Clips would overlap on track {track.Name}.";
+                return string.Format(Messages.Validate_Overlap, track.Name);
         }
 
         return null;
@@ -81,17 +82,17 @@ public static class TimelineValidator
     {
         foreach (var track in sequence.VideoTracks)
         {
-            if (track.Type != TrackType.Video) return $"Track {track.Name} is in the wrong track list.";
+            if (track.Type != TrackType.Video) return string.Format(Messages.Validate_WrongList, track.Name);
             if (ValidateTrack(track, track.Clips.Select(c => (c, ClipState.Capture(c))), rate, findAsset) is { } error) return error;
-            if (!IsSorted(track)) return $"Track {track.Name} clips are not sorted.";
+            if (!IsSorted(track)) return string.Format(Messages.Validate_NotSorted, track.Name);
             if (TransitionRules.ValidateTrack(track, rate) is { } transitionError) return transitionError;
         }
 
         foreach (var track in sequence.AudioTracks)
         {
-            if (track.Type != TrackType.Audio) return $"Track {track.Name} is in the wrong track list.";
+            if (track.Type != TrackType.Audio) return string.Format(Messages.Validate_WrongList, track.Name);
             if (ValidateTrack(track, track.Clips.Select(c => (c, ClipState.Capture(c))), rate, findAsset) is { } error) return error;
-            if (!IsSorted(track)) return $"Track {track.Name} clips are not sorted.";
+            if (!IsSorted(track)) return string.Format(Messages.Validate_NotSorted, track.Name);
             if (TransitionRules.ValidateTrack(track, rate) is { } transitionError) return transitionError;
         }
 
@@ -111,10 +112,10 @@ public static class TimelineValidator
 
     private static string KindName(Clip clip) => clip switch
     {
-        VideoClip => "Video",
-        AudioClip => "Audio",
-        ImageClip => "Image",
-        TextClip => "Text",
-        _ => "These"
+        VideoClip => Messages.Kind_Video,
+        AudioClip => Messages.Kind_Audio,
+        ImageClip => Messages.Kind_Image,
+        TextClip => Messages.Kind_Text,
+        _ => Messages.Kind_Other
     };
 }

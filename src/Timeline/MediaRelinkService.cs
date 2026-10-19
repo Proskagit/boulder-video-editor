@@ -2,6 +2,7 @@ using System.Globalization;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Timeline.Commands;
 using Microsoft.Extensions.Logging;
 
@@ -86,7 +87,7 @@ public sealed class MediaRelinkService : IMediaRelinkService
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
-            return Reject(assetId, filePath, Guid.Empty, RelinkRejection.FileNotFound, $"\"{filePath}\" is not a valid file path.");
+            return Reject(assetId, filePath, Guid.Empty, RelinkRejection.FileNotFound, string.Format(Messages.Relink_InvalidFilePath, filePath));
         }
 
         await _projects.RecheckMediaAsync(ct);                       // PO-5: what is offline now, not at the last check
@@ -104,14 +105,14 @@ public sealed class MediaRelinkService : IMediaRelinkService
         var size = await FileSizeAsync(path);
         ct.ThrowIfCancellationRequested();
         if (!ReferenceEquals(project, _projects.Current))
-            return Reject(assetId, path, project.Id, RelinkRejection.Stale, "Another project is open now.");
+            return Reject(assetId, path, project.Id, RelinkRejection.Stale, Messages.Relink_OtherProject);
         if (size is not { } bytes)
-            return Reject(assetId, path, project.Id, RelinkRejection.FileNotFound, $"\"{Path.GetFileName(path)}\" doesn't exist.");
+            return Reject(assetId, path, project.Id, RelinkRejection.FileNotFound, string.Format(Messages.Relink_DoesNotExist, Path.GetFileName(path)));
 
         var result = await _analysis.AnalyzeAsync(path, ct);
         ct.ThrowIfCancellationRequested();
         if (!ReferenceEquals(project, _projects.Current))
-            return Reject(assetId, path, project.Id, RelinkRejection.Stale, "Another project is open now.");
+            return Reject(assetId, path, project.Id, RelinkRejection.Stale, Messages.Relink_OtherProject);
 
         switch (result.Outcome)
         {
@@ -135,19 +136,18 @@ public sealed class MediaRelinkService : IMediaRelinkService
                     Warnings = new[]
                     {
                         new RelinkWarning(RelinkWarningKind.NotChecked,
-                            "ffprobe is not available, so only the file type was checked. The media stays unanalysed — its clips " +
-                            "can't be edited or exported until it has been analysed (when the project is opened with ffprobe).")
+                            Messages.Relink_NotProbed)
                     }
                 };
             case MediaAnalysisOutcome.FileNotFound:
-                return Reject(assetId, path, project.Id, RelinkRejection.FileNotFound, $"\"{Path.GetFileName(path)}\" doesn't exist.");
+                return Reject(assetId, path, project.Id, RelinkRejection.FileNotFound, string.Format(Messages.Relink_DoesNotExist, Path.GetFileName(path)));
             case MediaAnalysisOutcome.Cancelled:
                 ct.ThrowIfCancellationRequested();
                 goto default;
             default:
                 // ffprobe ran and could not read it (product owner, Step 11.4): its type can't be confirmed.
                 return Reject(assetId, path, project.Id, RelinkRejection.UnreadableMedia,
-                    $"\"{Path.GetFileName(path)}\" can't be read as media.{(result.ErrorMessage is { } m ? " " + m : "")}");
+                    string.Format(Messages.Relink_CantRead, Path.GetFileName(path)) + (result.ErrorMessage is { } m ? " " + m : ""));
         }
     }
 
@@ -155,22 +155,22 @@ public sealed class MediaRelinkService : IMediaRelinkService
     private static RelinkCheck? Basics(Core.Entities.Project project, Guid assetId, string path)
     {
         if (project.MediaAssets.FirstOrDefault(a => a.Id == assetId) is not { } asset)
-            return Reject(assetId, path, project.Id, RelinkRejection.AssetNotFound, "The media is not in the project.");
+            return Reject(assetId, path, project.Id, RelinkRejection.AssetNotFound, Messages.Relink_NotInProject);
         if (!asset.IsMissing)
             return Reject(assetId, path, project.Id, RelinkRejection.NotOffline,
-                $"\"{asset.FileName}\" is not offline — its file is there, nothing to relink.");
+                string.Format(Messages.Relink_NotOfflineThere, asset.FileName));
 
         var kind = MediaFileTypes.KindOf(path);
         if (kind is null)
             return Reject(assetId, path, project.Id, RelinkRejection.WrongMediaType,
-                $"\"{Path.GetFileName(path)}\" is not a supported media file.");
+                string.Format(Messages.Relink_NotSupported, Path.GetFileName(path)));
         if (kind != asset.Kind)
             return Reject(assetId, path, project.Id, RelinkRejection.WrongMediaType,
-                $"\"{Path.GetFileName(path)}\" is {Article(kind.Value)} file; \"{asset.FileName}\" is {Article(asset.Kind)} file.");
+                string.Format(Messages.Relink_KindDiffers, Path.GetFileName(path), KindOf(kind.Value), asset.FileName, KindOf(asset.Kind)));
 
         if (project.MediaAssets.FirstOrDefault(a => a.Id != assetId && SamePath(a.FilePath, path)) is { } other)
             return Reject(assetId, path, project.Id, RelinkRejection.PathInUse,
-                $"\"{Path.GetFileName(path)}\" is already in the project as \"{other.FileName}\" — two media items can't share a file.");
+                string.Format(Messages.Relink_AlreadyInProject, Path.GetFileName(path), other.FileName));
         return null;
     }
 
@@ -186,11 +186,11 @@ public sealed class MediaRelinkService : IMediaRelinkService
         }
     }
 
-    private static string Article(MediaKind kind) => kind switch
+    private static string KindOf(MediaKind kind) => kind switch
     {
-        MediaKind.Video => "a video",
-        MediaKind.Audio => "an audio",
-        _ => "an image"
+        MediaKind.Video => Messages.Relink_KindVideo,
+        MediaKind.Audio => Messages.Relink_KindAudio,
+        _ => Messages.Relink_KindImage
     };
 
     private static RelinkCheck Reject(Guid assetId, string path, Guid projectId, RelinkRejection rejection, string message) =>
@@ -199,9 +199,9 @@ public sealed class MediaRelinkService : IMediaRelinkService
     /// <summary>The probed file lacks what its kind needs (a hard reject: another kind of media).</summary>
     private static string? StreamProblem(MediaKind kind, MediaMetadata metadata, string name) => kind switch
     {
-        MediaKind.Video when metadata.VideoCodec is null => $"\"{name}\" has no video stream.",
-        MediaKind.Audio when metadata.AudioCodec is null => $"\"{name}\" has no audio stream.",
-        MediaKind.Image when metadata.Width is not > 0 || metadata.Height is not > 0 => $"\"{name}\" has no picture.",
+        MediaKind.Video when metadata.VideoCodec is null => string.Format(Messages.Relink_NoVideoStream, name),
+        MediaKind.Audio when metadata.AudioCodec is null => string.Format(Messages.Relink_NoAudioStream, name),
+        MediaKind.Image when metadata.Width is not > 0 || metadata.Height is not > 0 => string.Format(Messages.Relink_NoPicture, name),
         _ => null
     };
 
@@ -226,8 +226,8 @@ public sealed class MediaRelinkService : IMediaRelinkService
         if (asset.Kind == MediaKind.Image || RequiredDuration(project, asset.Id) is not { } required) return null;
         if (metadata.Duration > MediaTime.Zero && metadata.Duration >= required) return null;
         return metadata.Duration > MediaTime.Zero
-            ? $"\"{name}\" is {Time(metadata.Duration)} long, but the clips of \"{asset.FileName}\" use it up to {Time(required)}."
-            : $"The length of \"{name}\" is unknown, but the clips of \"{asset.FileName}\" use it up to {Time(required)}.";
+            ? string.Format(Messages.Relink_TooShort, name, Time(metadata.Duration), asset.FileName, Time(required))
+            : string.Format(Messages.Relink_LengthUnknown, name, asset.FileName, Time(required));
     }
 
     private static string Time(MediaTime time) => time.ToTimeSpan().ToString(@"h\:mm\:ss\.fff", CultureInfo.InvariantCulture);
@@ -244,30 +244,30 @@ public sealed class MediaRelinkService : IMediaRelinkService
             var bothHaveAudio = was.AudioCodec is not null && now.AudioCodec is not null;
 
             if (visual && Size(was) is { } a && Size(now) is { } b && a != b)
-                warnings.Add(new(RelinkWarningKind.DisplaySize, $"Picture size: {a.W}×{a.H} before, {b.W}×{b.H} now."));
+                warnings.Add(new(RelinkWarningKind.DisplaySize, string.Format(Messages.Relink_DiffSize, a.W, a.H, b.W, b.H)));
             if (asset.Kind == MediaKind.Video && Rate(was) is { } ra && Rate(now) is { } rb && ra != rb)
-                warnings.Add(new(RelinkWarningKind.FrameRate, $"Frame rate: {Fps(ra)} before, {Fps(rb)} now."));
+                warnings.Add(new(RelinkWarningKind.FrameRate, string.Format(Messages.Relink_DiffRate, Fps(ra), Fps(rb))));
             if (asset.Kind == MediaKind.Video && was.AudioCodec is not null && now.AudioCodec is null)
-                warnings.Add(new(RelinkWarningKind.NoAudio, "The new file has no sound; its clips will be silent."));
+                warnings.Add(new(RelinkWarningKind.NoAudio, Messages.Relink_NoSound));
             if (visual && (was.DisplayRotation ?? 0) != (now.DisplayRotation ?? 0))
                 warnings.Add(new(RelinkWarningKind.Rotation, $"Rotation: {was.DisplayRotation ?? 0}° before, {now.DisplayRotation ?? 0}° now."));
             if (timed && (was.StartTime ?? MediaTime.Zero) != (now.StartTime ?? MediaTime.Zero))
                 warnings.Add(new(RelinkWarningKind.StartTime,
-                    $"Start time: {Time(was.StartTime ?? MediaTime.Zero)} before, {Time(now.StartTime ?? MediaTime.Zero)} now — the clips may show other moments."));
+                    string.Format(Messages.Relink_DiffStart, Time(was.StartTime ?? MediaTime.Zero), Time(now.StartTime ?? MediaTime.Zero))));
             if (visual && Differs(was.VideoCodec, now.VideoCodec))
-                warnings.Add(new(RelinkWarningKind.VideoCodec, $"Video codec: {was.VideoCodec} before, {now.VideoCodec} now."));
+                warnings.Add(new(RelinkWarningKind.VideoCodec, string.Format(Messages.Relink_DiffVideoCodec, was.VideoCodec, now.VideoCodec)));
             if (bothHaveAudio && Differs(was.AudioCodec, now.AudioCodec))
-                warnings.Add(new(RelinkWarningKind.AudioCodec, $"Audio codec: {was.AudioCodec} before, {now.AudioCodec} now."));
+                warnings.Add(new(RelinkWarningKind.AudioCodec, string.Format(Messages.Relink_DiffAudioCodec, was.AudioCodec, now.AudioCodec)));
             if (bothHaveAudio && was.AudioSampleRate is { } sa && now.AudioSampleRate is { } sb && sa != sb)
-                warnings.Add(new(RelinkWarningKind.SampleRate, $"Sample rate: {sa} Hz before, {sb} Hz now."));
+                warnings.Add(new(RelinkWarningKind.SampleRate, string.Format(Messages.Relink_DiffSampleRate, sa, sb)));
             if (bothHaveAudio && was.AudioChannels is { } ca && now.AudioChannels is { } cb && ca != cb)
-                warnings.Add(new(RelinkWarningKind.Channels, $"Audio channels: {ca} before, {cb} now."));
+                warnings.Add(new(RelinkWarningKind.Channels, string.Format(Messages.Relink_DiffChannels, ca, cb)));
         }
 
         if (ShortDissolves(project, asset, now) is var count and > 0)
             warnings.Add(new(RelinkWarningKind.DissolveHandles, count == 1
-                ? "The new file has too little media beyond a clip for its dissolve; the dissolve will hold a frame."
-                : $"The new file has too little media beyond its clips for {count} dissolves; they will hold a frame."));
+                ? Messages.Relink_DissolveHoldsOne
+                : string.Format(Messages.Relink_DissolveHoldsMany, count)));
         return warnings;
     }
 
@@ -360,7 +360,7 @@ public sealed class MediaRelinkService : IMediaRelinkService
             var after = new MediaFileState(check.FilePath, sizes[i]!.Value, check.Metadata,
                 check.Metadata is null ? MediaAnalysisStatus.Pending : MediaAnalysisStatus.Completed, null, IsMissing: false);
             relinks.Add(new MediaRelink(asset, MediaFileState.Capture(asset), after));
-            results[i] = new RelinkResult(true, null, $"\"{asset.FileName}\" is linked to {check.FilePath}.", asset.Id);
+            results[i] = new RelinkResult(true, null, string.Format(Messages.Relink_LinkedTo, asset.FileName, check.FilePath), asset.Id);
         }
 
         if (relinks.Count > 0)
@@ -378,22 +378,22 @@ public sealed class MediaRelinkService : IMediaRelinkService
         RelinkResult? Validate(RelinkCheck check, long? size)
         {
             if (!ReferenceEquals(project, _projects.Current) || project.Id != check.ProjectId)
-                return new RelinkResult(false, RelinkRejection.Stale, "Another project is open now.", check.AssetId);
+                return new RelinkResult(false, RelinkRejection.Stale, Messages.Relink_OtherProject, check.AssetId);
             if (Basics(project, check.AssetId, check.FilePath) is { } basic)
                 return new RelinkResult(false, basic.Rejection, basic.Message, check.AssetId);
             if (!claimedAssets.Add(check.AssetId))
                 return new RelinkResult(false, RelinkRejection.Stale,
-                    "The media item is already relinked by another entry of this batch.", check.AssetId);
+                    Messages.Relink_AlreadyInBatch, check.AssetId);
             if (!claimedPaths.Add(check.FilePath))
                 return new RelinkResult(false, RelinkRejection.PathInUse,
-                    $"\"{Path.GetFileName(check.FilePath)}\" is chosen for another media item of this batch — two media items can't share a file.",
+                    string.Format(Messages.Relink_ChosenTwice, Path.GetFileName(check.FilePath)),
                     check.AssetId);
             if (size is not { } bytes)
                 return new RelinkResult(false, RelinkRejection.FileNotFound,
-                    $"\"{Path.GetFileName(check.FilePath)}\" doesn't exist any more.", check.AssetId);
+                    string.Format(Messages.Relink_GoneNow, Path.GetFileName(check.FilePath)), check.AssetId);
             if (bytes != check.FileSizeBytes)
                 return new RelinkResult(false, RelinkRejection.Stale,
-                    $"\"{Path.GetFileName(check.FilePath)}\" changed since it was checked; check it again.", check.AssetId);
+                    string.Format(Messages.Relink_ChangedSinceCheck, Path.GetFileName(check.FilePath)), check.AssetId);
             var asset = project.MediaAssets.First(a => a.Id == check.AssetId);
             if (check.Metadata is { } metadata && TooShort(project, asset, metadata, Path.GetFileName(check.FilePath)) is { } shortBy)
                 return new RelinkResult(false, RelinkRejection.TooShort, shortBy, check.AssetId);  // a clip was lengthened meanwhile
@@ -425,7 +425,7 @@ public sealed class MediaRelinkService : IMediaRelinkService
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
-            return new RelinkSearch { Folder = folder, Problem = $"\"{folder}\" is not a valid folder path." };
+            return new RelinkSearch { Folder = folder, Problem = string.Format(Messages.Relink_InvalidFolderPath, folder) };
         }
 
         await _projects.RecheckMediaAsync(ct);                       // PO-5: which media are offline now
@@ -451,9 +451,9 @@ public sealed class MediaRelinkService : IMediaRelinkService
         }
         ct.ThrowIfCancellationRequested();
         if (files is null)
-            return new RelinkSearch { Folder = fullFolder, Problem = $"The folder \"{fullFolder}\" can't be read." };
+            return new RelinkSearch { Folder = fullFolder, Problem = string.Format(Messages.Relink_FolderUnreadable, fullFolder) };
         if (!ReferenceEquals(project, _projects.Current))
-            return new RelinkSearch { Folder = fullFolder, Problem = "Another project is open now." };
+            return new RelinkSearch { Folder = fullFolder, Problem = Messages.Relink_OtherProject };
 
         // Exact names, compared as the Windows file system does (case-insensitive); a name that belongs to more than one
         // offline item is never given to any of them (no automatic choice, PO-4).
@@ -471,7 +471,7 @@ public sealed class MediaRelinkService : IMediaRelinkService
                 entries.Add(new RelinkSearchEntry
                 {
                     AssetId = asset.Id, FileName = asset.FileName, Outcome = RelinkSearchOutcome.NotFound,
-                    Message = $"\"{asset.FileName}\" is not in the folder."
+                    Message = string.Format(Messages.Relink_NotInFolder, asset.FileName)
                 });
                 continue;
             }
@@ -480,7 +480,7 @@ public sealed class MediaRelinkService : IMediaRelinkService
                 entries.Add(new RelinkSearchEntry
                 {
                     AssetId = asset.Id, FileName = asset.FileName, Outcome = RelinkSearchOutcome.Ambiguous, CandidatePath = candidate,
-                    Message = $"{nameCounts[asset.FileName]} offline media items are named \"{asset.FileName}\"; relink them one by one."
+                    Message = string.Format(Messages.Relink_SameNames, nameCounts[asset.FileName], asset.FileName)
                 });
                 continue;
             }
@@ -513,7 +513,7 @@ public sealed class MediaRelinkService : IMediaRelinkService
             var problem = StreamProblem(asset.Kind, metadata, asset.FileName) ?? TooShort(project, asset, metadata, asset.FileName);
             if (problem is null) continue;
 
-            var message = $"{problem} If it was just relinked, Undo brings the previous file back.";
+            var message = string.Format(Messages.Relink_UndoBack, problem);
             _logger.LogWarning("Media found incompatible with its clips after analysis: {Path} — {Problem}", asset.FilePath, problem);
             RelinkedMediaFoundIncompatible?.Invoke(this, new RelinkedMediaIncompatibleEventArgs { Asset = asset, Message = message });
         }

@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Localization;
 
 namespace AiVideoEditor.Core.Entities;
 
@@ -31,11 +32,11 @@ public static class ProjectSettingsRules
     public static string? CanvasError(int width, int height)
     {
         if (width < MinCanvasSide || height < MinCanvasSide || width > MaxCanvasSide || height > MaxCanvasSide)
-            return $"The frame size must be between {MinCanvasSide} and {MaxCanvasSide} pixels on each side.";
+            return string.Format(Messages.Canvas_SideRange, MinCanvasSide, MaxCanvasSide);
         if (width % 2 != 0 || height % 2 != 0)
-            return "The frame width and height must be even.";
+            return Messages.Canvas_Even;
         if ((long)width * height > MaxCanvasArea)
-            return $"The frame size {width} × {height} is too large (at most {MaxCanvasArea} pixels).";
+            return string.Format(Messages.Canvas_TooLarge, width, height, MaxCanvasArea);
         return null;
     }
 

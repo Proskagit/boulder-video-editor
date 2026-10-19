@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Localization;
 
 namespace AiVideoEditor.Timeline;
 
@@ -33,7 +34,7 @@ public sealed partial class TimelineEditService
 
             // Q11: a placed clip may not start inside a clip that stays.
             if (others.Any(o => fixedSpans.Any(f => o.Start < f.Start && f.Start < o.End)))
-                return $"Can't {verb}: a clip would start inside another clip (clips on a track can't overlap).";
+                return string.Format(Messages.MakeRoom_InsideClip, verb);
 
             var previousEnd = long.MinValue;
             foreach (var other in others)
@@ -47,7 +48,7 @@ public sealed partial class TimelineEditService
                     {
                         if (fixedEnd <= start || fixedStart >= start + length) continue;
                         // A placed clip starting inside a clip that is being pushed: the push would run into it.
-                        if (fixedStart > start) return $"Can't {verb}: there is no room to move the clips on {track.Name} aside.";
+                        if (fixedStart > start) return string.Format(Messages.MakeRoom_NoRoom, verb, track.Name);
                         start = fixedEnd;
                         moved = true;
                     }
@@ -64,7 +65,7 @@ public sealed partial class TimelineEditService
 
         if (pushed.Count == 0) return null;
         if (plan.NewFrameRate is not null && pushed.Keys.Any(c => PartnerOf(plan, c) is not null))
-            return $"Can't {verb}: there is no room to move linked clips aside while the frame rate is set.";
+            return string.Format(Messages.MakeRoom_RateSet, verb);
 
         // Variant B: a pushed clip's partner follows by the same frames (the move rule, AQ4 / AQ7) and pushes nothing.
         var moving = new Dictionary<Clip, (Track Track, long Delta)>(pushed);
@@ -72,14 +73,14 @@ public sealed partial class TimelineEditService
         {
             if (PartnerOf(plan, clip) is not { } partner) continue;
             if (placedSet.Contains(partner) || (pushed.TryGetValue(partner, out var partnerPush) && partnerPush.Delta != delta))
-                return $"Can't {verb}: a linked clip would move by a different amount than its partner.";
+                return string.Format(Messages.MakeRoom_PartnerDifferent, verb);
             moving.TryAdd(partner, (plan.TrackOf(partner), delta));
         }
         if (PlanPartnerShifts(plan) is { } partnerError) return $"Can't {verb}: {partnerError}";
         foreach (var track in moving.Where(m => !pushed.ContainsKey(m.Key)).Select(m => m.Value.Track).Distinct())
         {
             if (Overlaps(plan.EffectiveClips(track), rate))
-                return $"Can't {verb}: a clip linked to a clip that makes room has no room on {track.Name}.";
+                return string.Format(Messages.MakeRoom_PartnerNoRoom, verb, track.Name);
         }
 
         // Q9: a clip that makes room (or its partner) keeps every dissolve it has with a clip moving by the same frames; one
@@ -93,7 +94,7 @@ public sealed partial class TimelineEditService
                 var otherClip = plan.EffectiveClips(track).FirstOrDefault(c => c.Clip.Id == otherId).Clip;
                 if (otherClip is null || placedSet.Contains(otherClip)) continue;   // a moved clip's own dissolves: D025 §5
                 if (!moving.TryGetValue(otherClip, out var otherMove) || otherMove.Delta != delta)
-                    return $"Can't {verb}: making room would open a {TransitionNoun(track)} between clips that are not moved. Remove it first.";
+                    return string.Format(Tr(track, Messages.MakeRoom_OpensDissolve, Messages.MakeRoom_OpensCrossfade), verb);
             }
         }
         return null;

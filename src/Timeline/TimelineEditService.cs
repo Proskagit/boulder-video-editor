@@ -3,6 +3,7 @@ using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Timeline.Commands;
 using Microsoft.Extensions.Logging;
 
@@ -23,7 +24,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     public static readonly MediaTime DefaultTextDuration = MediaTime.FromSeconds(5);
 
     /// <summary>Content of a newly added text clip (empty text would not be visible).</summary>
-    public const string DefaultText = "Text";
+    public static string DefaultText => Messages.Text_Default;
 
     /// <summary>Source frame rates outside this range are treated as unknown.</summary>
     public const int MinSourceFps = 1;
@@ -51,7 +52,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     public string? GetAddBlockReason(MediaAsset asset)
     {
         if (asset.IsMissing)
-            return $"{asset.FileName} is missing.";
+            return string.Format(Messages.Edit_FileMissing, asset.FileName);
 
         if (asset.Kind == MediaKind.Image)
             return null;
@@ -59,11 +60,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return asset.AnalysisStatus switch
         {
             MediaAnalysisStatus.Pending or MediaAnalysisStatus.Analyzing =>
-                $"{asset.FileName} is still being analyzed. It can be added once its duration is known.",
+                string.Format(Messages.Edit_StillAnalyzing, asset.FileName),
             MediaAnalysisStatus.Failed =>
-                $"{asset.FileName} can't be added: its duration is unknown ({asset.AnalysisError ?? "analysis failed"}).",
+                string.Format(Messages.Edit_DurationUnknownBecause, asset.FileName, asset.AnalysisError ?? Messages.Edit_AnalysisFailed),
             _ when asset.Metadata is not { } m || m.Duration <= MediaTime.Zero =>
-                $"{asset.FileName} can't be added: its duration is unknown.",
+                string.Format(Messages.Edit_DurationUnknown, asset.FileName),
             _ => null
         };
     }
@@ -71,14 +72,14 @@ public sealed partial class TimelineEditService : ITimelineEditService
     public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null)
     {
         if (FindAsset(mediaAssetId) is not { } asset)
-            return TimelineEditResult.Fail("That media is not in the project.");
+            return TimelineEditResult.Fail(Messages.Edit_MediaNotInProject);
 
         if (GetAddBlockReason(asset) is { } blocked)
             return TimelineEditResult.Fail(blocked);
 
         var plan = new EditPlan(Sequence, Settings);
         if (PlanFirstVideoRate(plan, asset, out var info) is { } regridError)
-            return TimelineEditResult.Fail($"Can't add {asset.FileName}: {regridError}");
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_CantAddFile, asset.FileName, regridError));
 
         var rateForAdd = plan.Rate;
         var kind = asset.Kind == MediaKind.Audio ? TrackType.Audio : TrackType.Video;
@@ -87,18 +88,18 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (trackId is { } id)
         {
             track = FindTrack(id);
-            if (track is null) return TimelineEditResult.Fail("That track no longer exists.");
+            if (track is null) return TimelineEditResult.Fail(Messages.Edit_TrackGone);
             if (track.Type != kind)
-                return TimelineEditResult.Fail(kind == TrackType.Audio ? "Audio can only go on an audio track." : "Video and images can only go on a video track.");
+                return TimelineEditResult.Fail(kind == TrackType.Audio ? Messages.Edit_AudioOnAudioTrack : Messages.Edit_VideoOnVideoTrack);
         }
         else
         {
             track = (kind == TrackType.Video ? Sequence.VideoTracks : Sequence.AudioTracks).FirstOrDefault();
-            if (track is null) return TimelineEditResult.Fail($"The timeline has no {(kind == TrackType.Video ? "video" : "audio")} track.");
+            if (track is null) return TimelineEditResult.Fail(kind == TrackType.Video ? Messages.Edit_NoVideoTrack : Messages.Edit_NoAudioTrack);
         }
 
         if (track.IsLocked)
-            return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
 
         long frames;
         if (asset.Kind == MediaKind.Image)
@@ -109,7 +110,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         {
             frames = FrameMath.MaxWholeFrames(asset.Metadata!.Duration, rateForAdd);
             if (frames < 1)
-                return TimelineEditResult.Fail($"{asset.FileName} is shorter than one frame.");
+                return TimelineEditResult.Fail(string.Format(Messages.Edit_FileShorterThanFrame, asset.FileName));
         }
 
         long startFrame;
@@ -127,10 +128,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
         plan.Insert(track, clip);
 
         // D037 §3: a drop onto clips makes room on the right (a drop that starts inside a clip is refused).
-        if (MakeRoom(plan, new[] { ((Clip)clip, track) }, $"add {asset.FileName}") is { } roomError)
+        if (MakeRoom(plan, new[] { ((Clip)clip, track) }, string.Format(Messages.Verb_AddFile, asset.FileName)) is { } roomError)
             return TimelineEditResult.Fail(roomError);
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail($"Can't add {asset.FileName}: {error}");
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_CantAddFile, asset.FileName, error));
 
         Commit(plan, "Add Clip");
         if (info is not null) _logger.LogInformation("{Message}", info);
@@ -163,8 +164,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
             return regridError;
 
         info = fromSource
-            ? $"Project frame rate set to {FormatRate(rate)} FPS from {asset.FileName}."
-            : $"Source frame rate of {asset.FileName} is unknown — project frame rate set to {FormatRate(rate)} FPS (fallback, not the file's actual frame rate).";
+            ? string.Format(Messages.Edit_RateSetFrom, FormatRate(rate), asset.FileName)
+            : string.Format(Messages.Edit_RateUnknownFallback, asset.FileName, FormatRate(rate));
         return null;
     }
 
@@ -172,8 +173,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
     {
         // Titles go over the picture: the topmost video track, never a new one.
         var track = Sequence.VideoTracks.OrderByDescending(t => t.Order).FirstOrDefault();
-        if (track is null) return TimelineEditResult.Fail("The timeline has no video track.");
-        if (track.IsLocked) return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+        if (track is null) return TimelineEditResult.Fail(Messages.Edit_NoVideoTrackPlain);
+        if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
 
         var plan = new EditPlan(Sequence, Settings);
         var rate = plan.Rate;
@@ -186,10 +187,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
         ClipState.FromFrames(startFrame, startFrame + frames, MediaTime.Zero, rate).ApplyTo(clip);
         plan.Insert(track, clip);
 
-        if (MakeRoom(plan, new[] { ((Clip)clip, track) }, $"add text on {track.Name}") is { } roomError)   // D037 §3
+        if (MakeRoom(plan, new[] { ((Clip)clip, track) }, string.Format(Messages.Verb_AddText, track.Name)) is { } roomError)   // D037 §3
             return TimelineEditResult.Fail(roomError);
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail($"Can't add text on {track.Name}: {error}");
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_CantAddText, track.Name, error));
 
         Commit(plan, "Add Text");
         return TimelineEditResult.Ok(new[] { clip.Id });
@@ -232,15 +233,15 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (targetTrackId is { } tid)
         {
             target = FindTrack(tid);
-            if (target is null) return (null, clips, "That track no longer exists.");
+            if (target is null) return (null, clips, Messages.Edit_TrackGone);
             // AQ7: only the clips of the target's kind change track; a linked clip's partner of the other kind (selected
             // with it, AQ1) moves in time on its own track — taken along by the move rule (PlanPartnerShifts).
             var others = clips.Where(c => !TimelineValidator.IsCompatible(c, target.Type)).ToList();
             if (others.Count > 0 && others.Count < clips.Count && others.All(o => clips.Contains(PartnerOf(plan, o)!)))
                 clips = clips.Except(others).ToList();
             if (clips.Select(plan.TrackOf).Distinct().Count() != 1)
-                return (null, clips, "Clips from several tracks can only be moved in time, not to another track.");
-            if (target.IsLocked) return (null, clips, $"Track {target.Name} is locked.");
+                return (null, clips, Messages.Edit_SeveralTracksInTime);
+            if (target.IsLocked) return (null, clips, string.Format(Messages.Edit_TrackLocked, target.Name));
             if (target == plan.TrackOf(clips[0])) target = null;
         }
 
@@ -254,11 +255,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         // D037 §3: the moved clips and the partners that follow them are placed; the clips on their right make room.
         if (PlanPartnerShifts(plan) is { } partnerError)
-            return (null, clips, $"Can't move: {partnerError}");
-        if (MakeRoom(plan, PlacedByUpdates(plan), "move") is { } roomError)
+            return (null, clips, string.Format(Messages.Edit_CantMove, partnerError));
+        if (MakeRoom(plan, PlacedByUpdates(plan), Messages.Verb_Move) is { } roomError)
             return (null, clips, roomError);
         if (Validate(plan) is { } error)
-            return (null, clips, $"Can't move: {error}");
+            return (null, clips, string.Format(Messages.Edit_CantMove, error));
 
         return (plan, clips, null);
     }
@@ -269,7 +270,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     private string? PlanShift(EditPlan plan, Clip clip, Track toTrack, long frameDelta)
     {
         if (!TimelineValidator.IsCompatible(clip, toTrack.Type))
-            return clip is AudioClip ? "Audio can only go on an audio track." : "Video and images can only go on a video track.";
+            return clip is AudioClip ? Messages.Edit_AudioOnAudioTrack : Messages.Edit_VideoOnVideoTrack;
         var (after, error) = ShiftedState(clip, frameDelta, plan.Rate);
         if (error is not null) return error;
         plan.Update(clip, toTrack, after);
@@ -288,7 +289,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var startFrame = state.Start.ToNearestFrame(rate) + frameDelta;
         var endFrame = state.End.ToNearestFrame(rate) + frameDelta;
         if (startFrame < 0)
-            return (default, "Clips can't be moved before the beginning of the timeline.");
+            return (default, Messages.Edit_BeforeTimelineStart);
 
         if (clip is MediaBackedClip && !state.Speed.IsNormal)
         {
@@ -307,7 +308,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         {
             var excess = after.SourceOut - sourceDuration;
             if (after.SourceIn < excess)
-                return (default, "A clip can't extend past the end of its source media.");
+                return (default, Messages.Edit_ClipPastSourceEnd);
             after = after with { SourceIn = after.SourceIn - excess, SourceOut = sourceDuration };
         }
 
@@ -332,7 +333,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         ArgumentNullException.ThrowIfNull(clipboard);
         if (clipboard.Count == 0) return TimelineEditResult.Unchanged();
         var plan = new EditPlan(Sequence, Settings);
-        return PasteInto(plan, clipboard, Math.Max(0, at.ToNearestFrame(plan.Rate)), clipboard.Count == 1 ? "Paste Clip" : "Paste Clips", "paste");
+        return PasteInto(plan, clipboard, Math.Max(0, at.ToNearestFrame(plan.Rate)), clipboard.Count == 1 ? "Paste Clip" : "Paste Clips", Messages.Verb_Paste);
     }
 
     public TimelineEditResult DuplicateClips(IReadOnlyCollection<Guid> clipIds)
@@ -344,7 +345,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         var clipboard = CopyClips(clipIds)!;
         var end = clips.Max(c => c.TimelineEnd.ToNearestFrame(plan.Rate));
-        return PasteInto(plan, clipboard, end, clips.Count == 1 ? "Duplicate Clip" : "Duplicate Clips", "duplicate");
+        return PasteInto(plan, clipboard, end, clips.Count == 1 ? "Duplicate Clip" : "Duplicate Clips", Messages.Verb_Duplicate);
     }
 
     /// <summary>New copies of the clipboard's clips, the earliest at <paramref name="atFrame"/>, each on its own track,
@@ -353,9 +354,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
     {
         var rate = plan.Rate;
         if (clipboard.FrameRate != rate)
-            return TimelineEditResult.Fail("The project frame rate changed since the clips were copied. Copy them again.");
+            return TimelineEditResult.Fail(Messages.Edit_RateChangedSinceCopy);
         if (clipboard.Canvas != CurrentCanvas)
-            return TimelineEditResult.Fail("The project frame size changed since the clips were copied. Copy them again.");
+            return TimelineEditResult.Fail(Messages.Edit_SizeChangedSinceCopy);
 
         var earliest = clipboard.Entries.Min(e => e.Clip.TimelineStart.ToNearestFrame(rate));
         // D032 R5: both clips of a link copied → the copies form a new link; one alone is pasted unlinked.
@@ -366,11 +367,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
         foreach (var entry in clipboard.Entries)
         {
             if (FindTrack(entry.TrackId) is not { } track)
-                return TimelineEditResult.Fail($"Can't {verb}: the track of a copied clip no longer exists.");
+                return TimelineEditResult.Fail(string.Format(Messages.Edit_CopiedTrackGone, verb));
             if (track.IsLocked)
-                return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+                return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
             if (entry.Clip is MediaBackedClip media && FindAsset(media.MediaAssetId) is null)
-                return TimelineEditResult.Fail($"Can't {verb}: the media of a copied clip is no longer in the project.");
+                return TimelineEditResult.Fail(string.Format(Messages.Edit_CopiedMediaGone, verb));
 
             var copy = CloneClip(entry.Clip);                      // a new id; the same asset, never the file
             if (copy is MediaBackedClip linked && entry.Clip is MediaBackedClip { LinkId: { } link } && newLinks.TryGetValue(link, out var newLink))
@@ -451,7 +452,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 after = TrimmedState(clip, track, edge, EdgeFrame(before, edge, rate) + partnerDelta, minFrames, rate);
             }
             if (EdgeFrame(partnerAfter!.Value, edge, rate) - EdgeFrame(partnerBefore, edge, rate) != EdgeFrame(after, edge, rate) - EdgeFrame(before, edge, rate))
-                return (null, null, $"Can't trim: {PartnerCantFollow}");
+                return (null, null, string.Format(Messages.Edit_CantTrim, PartnerCantFollow));
             if (partnerAfter != partnerBefore) plan.Update(partner, partnerTrack, partnerAfter.Value);
         }
 
@@ -459,7 +460,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         plan.Update(clip, track, after);
         if (Validate(plan) is { } error)
-            return (null, null, $"Can't trim: {error}");
+            return (null, null, string.Format(Messages.Edit_CantTrim, error));
 
         return (plan, after, null);
     }
@@ -561,7 +562,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     {
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
-        if (clips[0] is not (VideoClip or AudioClip)) return TimelineEditResult.Fail("Only video and audio clips have a speed.");
+        if (clips[0] is not (VideoClip or AudioClip)) return TimelineEditResult.Fail(Messages.Edit_SpeedOnlyMedia);
         if (CheckEditable(plan, clips) is { } editError) return TimelineEditResult.Fail(editError);
 
         var clip = (MediaBackedClip)clips[0];
@@ -575,13 +576,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
         {
             _undoRedo.Undo();
             return TimelineEditResult.Ok(new[] { clip.Id },
-                step.Changes.Any(c => c is RemoveTransitionCommand) ? "The dissolve is back: its clips meet again." : null);
+                step.Changes.Any(c => c is RemoveTransitionCommand) ? Messages.Edit_DissolveBack : null);
         }
 
         // The speed never changes the source range: the frame count follows from it.
         var rate = plan.Rate;
         var frames = SpeedTiming.FramesFor(clip.SourceOut - clip.SourceIn, speed, rate);
-        if (frames < 1) return TimelineEditResult.Fail($"At {speed} the clip would be shorter than one frame.");
+        if (frames < 1) return TimelineEditResult.Fail(string.Format(Messages.Edit_SpeedTooShort, speed));
 
         var startFrame = clip.TimelineStart.ToNearestFrame(rate);
         var before = ClipState.Capture(clip);
@@ -595,7 +596,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (partner is not null && partner.Speed != speed)
         {
             var partnerFrames = SpeedTiming.FramesFor(partner.SourceOut - partner.SourceIn, speed, rate);
-            if (partnerFrames < 1) return TimelineEditResult.Fail($"At {speed} the linked clip would be shorter than one frame.");
+            if (partnerFrames < 1) return TimelineEditResult.Fail(string.Format(Messages.Edit_SpeedTooShortLinked, speed));
             var partnerStart = partner.TimelineStart.ToNearestFrame(rate);
             var partnerAfter = ClipState.FromFrames(partnerStart, partnerStart + partnerFrames, partner.SourceIn, partner.SourceOut, speed, rate);
             var partnerTrack = plan.TrackOf(partner);
@@ -603,7 +604,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             partnerChange = new ClipChange(partner, partnerTrack, ClipState.Capture(partner), partnerTrack, partnerAfter);
         }
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail($"Can't change the speed: {error}");
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_CantChangeSpeed, error));
 
         // A speed change of A moves its end: its dissolve goes (D025 §5), and fades longer than the shorter clip are cut
         // (§2), in the same step — which still merges with the next speed changes of the clip, so one Undo restores the
@@ -642,8 +643,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         if (toSplit.Count == 0)
             return TimelineEditResult.Fail(explicitSelection
-                ? "The playhead is not inside the selected clip(s)."
-                : "There is no clip under the playhead to split.");
+                ? Messages.Edit_PlayheadNotInside
+                : Messages.Edit_NoClipToSplit);
 
         if (CheckEditable(plan, toSplit) is { } editError) return TimelineEditResult.Fail(editError);
 
@@ -652,7 +653,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         foreach (var clip in toSplit)
         {
             if (!PlanSplitClip(plan, plan.TrackOf(clip), clip, ClipState.Capture(clip), atFrame, out var rightClip))
-                return TimelineEditResult.Fail($"Can't split inside a {TransitionNoun(plan.TrackOf(clip))}.");
+                return TimelineEditResult.Fail(Tr(plan.TrackOf(clip), Messages.Split_InsideDissolve, Messages.Split_InsideCrossfade));
             ids.Add(clip.Id);
             ids.Add(rightClip.Id);
             splits.Add((clip, rightClip));
@@ -660,7 +661,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         LinkSplitParts(splits);
 
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail($"Can't split: {error}");
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_CantSplit, error));
 
         Commit(plan, toSplit.Count == 1 ? "Split Clip" : "Split Clips");
         return TimelineEditResult.Ok(ids, TransitionNote(plan));
@@ -732,7 +733,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     public TimelineEditResult TrimToPlayhead(IReadOnlyCollection<Guid> clipIds, ClipEdge edge, MediaTime playhead, bool ripple)
     {
         if (clipIds.Count == 0)
-            return TimelineEditResult.Fail("Select the clip to trim: the playhead must be inside it.");
+            return TimelineEditResult.Fail(Messages.Edit_SelectClipToTrim);
 
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, clipIds, out var selected) is { } resolveError) return TimelineEditResult.Fail(resolveError);
@@ -743,7 +744,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var eligible = WithPartnersCovering(plan, selected
             .Where(c => c.TimelineStart.ToNearestFrame(rate) < at && at < c.TimelineEnd.ToNearestFrame(rate)), at)
             .OrderBy(c => c is VideoClip ? 0 : 1).ToList();   // AQ3: a linked pair's video clip leads a ripple
-        if (eligible.Count == 0) return TimelineEditResult.Fail("The playhead is not inside the selected clip(s).");
+        if (eligible.Count == 0) return TimelineEditResult.Fail(Messages.Edit_PlayheadNotInside);
         if (CheckEditable(plan, eligible) is { } editError) return TimelineEditResult.Fail(editError);
 
         var trimmed = new List<Clip>();
@@ -766,7 +767,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
                 // The ripple trim's one planner, shared with the Shift + edge drag (D030 §5 / §6).
                 var (changed, wasStopped, rippleError) = PlanRippleTrim(plan, clip, track, edge, at);
-                if (rippleError is not null) return TimelineEditResult.Fail($"Can't trim: {rippleError}");
+                if (rippleError is not null) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantTrim, rippleError));
                 if (wasStopped) stopped++;
                 if (!changed) continue;
                 if (edge == ClipEdge.Start) playheadAfter = Math.Min(playheadAfter ?? long.MaxValue, start);   // Q5
@@ -796,12 +797,12 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         var notes = Join(
             keptAtCut == 0 ? null : edge == ClipEdge.Start
-                ? "Not trimmed where a dissolve is on the clip's start: Shift+Q trims it and keeps the dissolve."
-                : "Not trimmed where a dissolve is on the clip's end: Shift+W trims it and keeps the dissolve.",
+                ? Messages.Edit_NotTrimmedStart
+                : Messages.Edit_NotTrimmedEnd,
             stopped == 0 ? null : DissolveStopNote);
         if (trimmed.Count == 0) return TimelineEditResult.Fail(notes!);
 
-        if (Validate(plan) is { } error) return TimelineEditResult.Fail($"Can't trim: {error}");
+        if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantTrim, error));
 
         Commit(plan, (ripple, edge) switch
         {
@@ -980,13 +981,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         var clip = clips[0];
         var (changed, stopped, error) = PlanRippleTrim(plan, clip, plan.TrackOf(clip), edge, edgeTime.ToNearestFrame(plan.Rate));
-        if (error is not null) return (null, stopped, $"Can't trim: {error}");
+        if (error is not null) return (null, stopped, string.Format(Messages.Edit_CantTrim, error));
         if (!changed) return (null, stopped, null);
-        if (Validate(plan) is { } invalid) return (null, stopped, $"Can't trim: {invalid}");
+        if (Validate(plan) is { } invalid) return (null, stopped, string.Format(Messages.Edit_CantTrim, invalid));
         return (plan, stopped, null);
     }
 
-    private const string DissolveStopNote = "The trim stopped where a dissolve needs the clip's frames.";
+    private static string DissolveStopNote => Messages.Edit_TrimStoppedDissolve;
 
     // --- Slip (D030 §7) ------------------------------------------------------------------
 
@@ -1016,9 +1017,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return (null, 0, null, resolveError);
         var clip = clips[0];
-        if (clip is not (VideoClip or AudioClip)) return (null, 0, null, "Only video and audio clips can be slipped.");
+        if (clip is not (VideoClip or AudioClip)) return (null, 0, null, Messages.Edit_SlipOnlyMedia);
         if (CheckEditable(plan, clips) is { } editError) return (null, 0, null, editError);
-        if (SourceDuration(clip) is not { } duration) return (null, 0, null, "The clip's media has no known length, so it can't be slipped.");
+        if (SourceDuration(clip) is not { } duration) return (null, 0, null, Messages.Edit_SlipNoLength);
 
         var media = (MediaBackedClip)clip;
         var rate = plan.Rate;
@@ -1067,9 +1068,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (applied != frames)
         {
             var sourceEnd = Reach(frames > 0 ? 1 : -1, SourceOk);
-            note = applied != sourceEnd ? "The slip stopped where a dissolve needs the clip's source."
-                : frames > 0 ? "The slip stopped at the end of the source."
-                : "The slip stopped at the start of the source.";
+            note = applied != sourceEnd ? Messages.Edit_SlipStoppedDissolve
+                : frames > 0 ? Messages.Edit_SlipStoppedEnd
+                : Messages.Edit_SlipStoppedStart;
         }
 
         // AQ7: the partner slips by the same timeline frames, by the same rule and limits; both take the smaller slip.
@@ -1093,7 +1094,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         // Only the source mapping changes: the clip's timing, speed, fades and dissolves stay (D030 §7).
         plan.Update(clip, track, SlippedState(media, applied, rate));
-        if (Validate(plan) is { } invalid) return (null, 0, null, $"Can't slip: {invalid}");
+        if (Validate(plan) is { } invalid) return (null, 0, null, string.Format(Messages.Edit_CantSlip, invalid));
         return (plan, applied, note, null);
     }
 
@@ -1130,7 +1131,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var clips = WithPartners(plan, selected);   // AQ2: a linked clip goes with its partner
 
         if (clips.Select(plan.TrackOf).FirstOrDefault(t => t.IsLocked) is { } locked)
-            return TimelineEditResult.Fail($"Track {locked.Name} is locked.");
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, locked.Name));
 
         foreach (var clip in clips) plan.Remove(clip);
         plan.ReconcileTransitions();   // a deleted clip's dissolves go with it (D025 §5)
@@ -1148,12 +1149,12 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     public string? GetDeleteTrackBlockReason(Guid trackId)
     {
-        if (FindTrack(trackId) is not { } track) return "That track no longer exists.";
-        if (track.IsLocked) return $"Track {track.Name} is locked.";
-        if (Sequence.VideoTracks.Count + Sequence.AudioTracks.Count <= 1) return "The timeline needs at least one track.";
+        if (FindTrack(trackId) is not { } track) return Messages.Edit_TrackGone;
+        if (track.IsLocked) return string.Format(Messages.Edit_TrackLocked, track.Name);
+        if (Sequence.VideoTracks.Count + Sequence.AudioTracks.Count <= 1) return Messages.Edit_NeedsOneTrack;
         // D032 R5, AQ12: deleting the track clears the links of its clips' partners — never on a locked track.
         if (LinkedPartners(track).FirstOrDefault(p => p.Track.IsLocked) is { Track: { } lockedTrack })
-            return $"Track {lockedTrack.Name} is locked.";
+            return string.Format(Messages.Edit_TrackLocked, lockedTrack.Name);
         return null;
     }
 
@@ -1186,8 +1187,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
     public TimelineEditResult MoveTrack(Guid trackId, int direction)
     {
         if (direction is not (1 or -1)) throw new ArgumentOutOfRangeException(nameof(direction), direction, "Use +1 or −1.");
-        if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail("That track no longer exists.");
-        if (track.IsLocked) return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+        if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail(Messages.Edit_TrackGone);
+        if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
 
         // The layer order as the playback snapshot draws it (PlaybackSnapshotBuilder): by Order, equal orders by their
         // place in the list — lowest first.
@@ -1198,7 +1199,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (target < 0 || target >= ordered.Count) return TimelineEditResult.Unchanged();
 
         var neighbour = ordered[target];
-        if (neighbour.IsLocked) return TimelineEditResult.Fail($"Track {neighbour.Name} is locked, so {track.Name} can't move past it.");
+        if (neighbour.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLockedNeighbour, neighbour.Name, track.Name));
 
         List<TrackOrderChange> changes;
         if (track.Order != neighbour.Order)
@@ -1226,7 +1227,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     public TimelineEditResult SetTrackHidden(Guid trackId, bool hidden)
     {
         if (FindTrack(trackId) is { Type: TrackType.Audio } track)
-            return TimelineEditResult.Fail($"Track {track.Name} is an audio track: it has no picture to hide.");
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_AudioTrackNoPicture, track.Name));
         return SetTrackState(trackId, TrackStateFlag.Hidden, hidden);
     }
 
@@ -1234,7 +1235,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     private TimelineEditResult SetTrackState(Guid trackId, TrackStateFlag flag, bool value)
     {
-        if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail("That track no longer exists.");
+        if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail(Messages.Edit_TrackGone);
         if (SetTrackStateCommand.Get(track, flag) == value) return TimelineEditResult.Unchanged();
 
         _undoRedo.Execute(new NotifyingCommand(new SetTrackStateCommand(track, flag, value), _projectService.NotifyTimelineChanged));
@@ -1278,13 +1279,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 var start = clip.TimelineStart.ToNearestFrame(rate);
                 var shift = spans.Where(s => s.End <= start).Sum(s => s.Closes);
                 if (shift > 0 && PlanShift(plan, clip, group.Key, -shift) is { } shiftError)
-                    return TimelineEditResult.Fail($"Can't ripple delete: {shiftError}");
+                    return TimelineEditResult.Fail(string.Format(Messages.Edit_CantRippleDelete, shiftError));
             }
         }
 
         // A removed clip's dissolves go with it; every other dissolve has both clips moved by the same distance and is
         // kept as it is; none is created where clips now meet (D027 §2, D025 §5). The result is validated like any edit.
-        if (Validate(plan) is { } error) return TimelineEditResult.Fail($"Can't ripple delete: {error}");
+        if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantRippleDelete, error));
 
         Commit(plan, clips.Count == 1 ? "Ripple Delete Clip" : "Ripple Delete Clips");
         return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), TransitionNote(plan));
@@ -1292,18 +1293,18 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     public TimelineEditResult CloseGap(Guid trackId, MediaTime at)
     {
-        if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail("That track no longer exists.");
-        if (track.IsLocked) return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+        if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail(Messages.Edit_TrackGone);
+        if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
 
         var plan = new EditPlan(Sequence, Settings);
         var rate = plan.Rate;
         var frame = at.ToFrameFloor(rate);
         var spans = track.Clips.Select(c => (Clip: c, Start: c.TimelineStart.ToNearestFrame(rate), End: c.TimelineEnd.ToNearestFrame(rate))).ToList();
         if (frame < 0 || spans.Any(s => s.Start <= frame && frame < s.End))
-            return TimelineEditResult.Fail("There is no gap there.");
+            return TimelineEditResult.Fail(Messages.Edit_NoGapThere);
         var following = spans.Where(s => s.Start > frame).ToList();
         if (following.Count == 0)
-            return TimelineEditResult.Fail("There is no gap there: no clip follows it on the track.");
+            return TimelineEditResult.Fail(Messages.Edit_NoGapNoClipFollows);
         var gapEnd = following.Min(s => s.Start);
         var gapStart = spans.Where(s => s.End <= frame).Select(s => s.End).DefaultIfEmpty(0).Max();
 
@@ -1311,9 +1312,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         foreach (var s in following)
         {
             if (PlanShift(plan, s.Clip, track, gapStart - gapEnd) is { } shiftError)
-                return TimelineEditResult.Fail($"Can't close the gap: {shiftError}");
+                return TimelineEditResult.Fail(string.Format(Messages.Edit_CantCloseGap, shiftError));
         }
-        if (Validate(plan) is { } error) return TimelineEditResult.Fail($"Can't close the gap: {error}");
+        if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantCloseGap, error));
 
         Commit(plan, "Close Gap");
         return TimelineEditResult.Ok(following.Select(s => s.Clip.Id).ToList(), TransitionNote(plan));
@@ -1328,7 +1329,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var startFrame = clip.TimelineStart.ToNearestFrame(rate);
         var track = plan.TrackOf(clip);
         if (startFrame == 0 || track.Clips.Any(c => c != clip && c.TimelineEnd.ToNearestFrame(rate) == startFrame))
-            return TimelineEditResult.Fail("There is no gap before this clip.");
+            return TimelineEditResult.Fail(Messages.Edit_NoGapBefore);
         return CloseGap(track.Id, MediaTime.FromFrame(startFrame - 1, rate));
     }
 
@@ -1342,7 +1343,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     public TimelineEditResult AddMarker(MediaTime at)
     {
         var frame = Math.Max(0, at.ToNearestFrame(FrameRate));
-        if (MarkerOnFrame(frame) is not null) return TimelineEditResult.Fail("A marker is already there.");
+        if (MarkerOnFrame(frame) is not null) return TimelineEditResult.Fail(Messages.Edit_MarkerExists);
 
         var marker = new Marker { Position = MediaTime.FromFrame(frame, FrameRate) };
         _undoRedo.Execute(new NotifyingCommand(new AddMarkerCommand(Sequence, marker), _projectService.NotifyTimelineChanged));
@@ -1352,7 +1353,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     public TimelineEditResult RemoveMarkerAt(MediaTime at)
     {
         if (MarkerOnFrame(at.ToNearestFrame(FrameRate)) is not { } marker)
-            return TimelineEditResult.Fail("There is no marker at the playhead.");
+            return TimelineEditResult.Fail(Messages.Edit_NoMarkerAtPlayhead);
 
         _undoRedo.Execute(new NotifyingCommand(new RemoveMarkerCommand(Sequence, marker), _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, MarkerId = marker.Id };
@@ -1381,10 +1382,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     public string? GetRemoveMediaBlockReason(Guid mediaAssetId)
     {
-        if (FindAsset(mediaAssetId) is not { } asset) return "That media is no longer in the project.";
+        if (FindAsset(mediaAssetId) is not { } asset) return Messages.Edit_MediaGone;
         if (Sequence.VideoTracks.Concat(Sequence.AudioTracks).FirstOrDefault(t => t.IsLocked && t.Clips.Any(c => Uses(c, mediaAssetId)))
             is { } locked)
-            return $"{asset.FileName} is used on track {locked.Name}, which is locked.";
+            return string.Format(Messages.Edit_UsedOnLockedTrack, asset.FileName, locked.Name);
         return null;
     }
 
@@ -1399,7 +1400,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         plan.ReconcileTransitions();   // the removed clips' dissolves go with them (D025 §5)
         plan.ReconcileLinks();         // and the links of their partners (D032 R5), never on a locked track (AQ12)
         if (plan.ClearedLinks.FirstOrDefault(c => plan.TrackOf(c).IsLocked) is { } lockedPartner)
-            return TimelineEditResult.Fail($"Track {plan.TrackOf(lockedPartner).Name} is locked.");
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, plan.TrackOf(lockedPartner).Name));
 
         // The clips (and dissolves) first, then the asset: no clip ever refers to an asset that isn't in the project.
         var removeAsset = new RemoveMediaAssetCommand(Project.MediaAssets, asset, _projectService.NotifyMediaAssetsChanged);
@@ -1422,7 +1423,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         var clip = clips[0];
         var track = plan.TrackOf(clip);
-        if (track.IsLocked) return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+        if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
 
         if (ClipPropertyValidator.Validate(clip, change) is { } error)
             return TimelineEditResult.Fail(error);
@@ -1466,7 +1467,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     private static string? RateError(FrameRate rate) => rate.IsValid && ProjectSettingsRules.IsSelectableFrameRate(rate)
         ? null
-        : $"{(rate.IsValid ? FormatRate(rate) : "That")} FPS is not one of the project frame rates.";
+        : rate.IsValid ? string.Format(Messages.Edit_RateNotOffered, FormatRate(rate)) : Messages.Edit_ThatRateNotOffered;
 
     /// <summary>A different rate, or the current one of an unlocked project (FR-4: choosing it locks it).</summary>
     private bool ChangesRate(FrameRate rate) => rate != Settings.FrameRate || !Settings.IsFrameRateLocked;
@@ -1489,9 +1490,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         plan = new EditPlan(Sequence, Settings);
         plan.SetFrameRate(rate, locked: true);
         if (FrameRateRegrid.Plan(plan, rate, FindAsset) is { } regridError)
-            return $"Can't change the frame rate to {FormatRate(rate)} FPS: {regridError}";
+            return string.Format(Messages.Edit_CantChangeRate, FormatRate(rate), regridError);
         if (Validate(plan) is { } error)
-            return $"Can't change the frame rate to {FormatRate(rate)} FPS: {error}";
+            return string.Format(Messages.Edit_CantChangeRate, FormatRate(rate), error);
         command = plan.BuildCommand("Set Frame Rate");
         return null;
     }
@@ -1505,8 +1506,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
     }
 
     private string RateMessage(FrameRate rate, EditPlan? plan) => plan is null
-        ? $"Project frame rate kept at {FormatRate(rate)} FPS."
-        : Join($"Project frame rate set to {FormatRate(rate)} FPS.", TransitionNote(plan))!;
+        ? string.Format(Messages.Edit_RateKept, FormatRate(rate))
+        : Join(string.Format(Messages.Edit_RateSet, FormatRate(rate)), TransitionNote(plan))!;
 
     // --- Canvas (D028, Step 13.4) -------------------------------------------------------------------------------------
 
@@ -1547,7 +1548,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
                     Text = text is { } t ? t with { FontSize = t.FontSize * scale } : null
                 };
                 if (ClipPropertyValidator.Validate(clip, change) is { } error)
-                    return $"Can't change the frame size to {width} × {height}: {Describe(clip)} on track {track.Name} — {error}";
+                    return string.Format(Messages.Edit_CantChangeSize, width, height, Describe(clip), track.Name, error);
 
                 var before = new ClipPropertyValues(visual, null, text);
                 var after = new ClipPropertyValues(change.Visual, null, change.Text);
@@ -1600,7 +1601,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         {
             if (PlanCanvas(width, height, out canvasCommands) is { } canvasError) return TimelineEditResult.Fail(canvasError);
             commands.AddRange(canvasCommands);
-            messages.Add($"Frame size set to {width} × {height}.");
+            messages.Add(string.Format(Messages.Edit_FrameSizeSet, width, height));
         }
         if (rateChanges) messages.Add(RateMessage(rate!.Value, plan));
         if (exportChanges)
@@ -1628,7 +1629,14 @@ public sealed partial class TimelineEditService : ITimelineEditService
     }
 
     private static string ExportMessage(ExportEncoding e) =>
-        $"Export settings: {e.Quality} quality, {e.PresetName} encoding, AAC {e.AudioBitrateKbps} kbps.";
+        string.Format(Messages.Settings_ExportSet, e.Quality switch
+        {
+            ExportQuality.Maximum => Messages.ExportQuality_Maximum,
+            ExportQuality.High => Messages.ExportQuality_High,
+            ExportQuality.Standard => Messages.ExportQuality_Standard,
+            ExportQuality.Compact => Messages.ExportQuality_Compact,
+            _ => e.Quality.ToString()
+        }, e.PresetName, e.AudioBitrateKbps);
 
     /// <summary>How a clip is named in a message: a text clip by its first line, a media clip by its file.</summary>
     private string Describe(Clip clip)
@@ -1636,11 +1644,12 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (clip is TextClip text)
         {
             var line = text.Text.Split('\n')[0].Trim();
-            return line.Length > 30 ? $"the text clip \"{line[..30]}…\"" : $"the text clip \"{line}\"";
+            return string.Format(Messages.Describe_TextClip, line.Length > 30 ? line[..30] + "…" : line);
         }
         var name = clip is MediaBackedClip media ? FindAsset(media.MediaAssetId)?.FileName : null;
-        var kind = clip is ImageClip ? "image" : "video";
-        return name is null ? $"a {kind} clip" : $"the {kind} clip of {name}";
+        return clip is ImageClip
+            ? name is null ? Messages.Describe_ImageClip : string.Format(Messages.Describe_ImageClipOf, name)
+            : name is null ? Messages.Describe_VideoClip : string.Format(Messages.Describe_VideoClipOf, name);
     }
 
     /// <summary>
@@ -1651,13 +1660,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
     private static string? NormalizeFades(Clip clip, FadeProperties requested, FrameRate rate, out FadeProperties normalized)
     {
         normalized = FadeProperties.Of(clip);
-        if (requested.FadeIn < MediaTime.Zero || requested.FadeOut < MediaTime.Zero) return "A fade can't be negative.";
+        if (requested.FadeIn < MediaTime.Zero || requested.FadeOut < MediaTime.Zero) return Messages.Edit_FadeNegative;
 
         var frames = TransitionRules.ClipFrames(clip, rate);
         var fadeIn = requested.FadeIn == clip.FadeIn ? clip.FadeIn : Normalize(requested.FadeIn);
         var fadeOut = requested.FadeOut == clip.FadeOut ? clip.FadeOut : Normalize(requested.FadeOut);
-        if (fadeIn != clip.FadeIn && TransitionRules.Frames(fadeIn, rate) > frames) return "The fade in can't be longer than the clip.";
-        if (fadeOut != clip.FadeOut && TransitionRules.Frames(fadeOut, rate) > frames) return "The fade out can't be longer than the clip.";
+        if (fadeIn != clip.FadeIn && TransitionRules.Frames(fadeIn, rate) > frames) return Messages.Edit_FadeInTooLong;
+        if (fadeOut != clip.FadeOut && TransitionRules.Frames(fadeOut, rate) > frames) return Messages.Edit_FadeOutTooLong;
 
         normalized = new FadeProperties(fadeIn, fadeOut);
         return null;
@@ -1674,12 +1683,12 @@ public sealed partial class TimelineEditService : ITimelineEditService
             return TimelineEditResult.Fail(cutError);
         var noun = TransitionNoun(track);
         if (track.Transitions.Any(t => t.LeftClipId == left.Id))
-            return TimelineEditResult.Fail($"This cut already has a {noun}.");
+            return TimelineEditResult.Fail(Tr(noun, Messages.Transition_CutHasDissolve, Messages.Transition_CutHasCrossfade));
 
         var rate = plan.Rate;
         var frames = TransitionRules.Frames(duration, rate);
         if (frames < TransitionRules.MinFrames)
-            return TimelineEditResult.Fail($"A {noun} must be at least {TransitionRules.MinFrames} frames long.");
+            return TimelineEditResult.Fail(string.Format(Tr(noun, Messages.Transition_MinDissolve, Messages.Transition_MinCrossfade), TransitionRules.MinFrames));
         if (TooLong(frames, MaxFrames(track, left, right, rate, except: null), noun) is { } tooLong)
             return TimelineEditResult.Fail(tooLong);
 
@@ -1691,7 +1700,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         };
         plan.AddTransition(track, transition);
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail($"Can't add the {noun}: {error}");
+            return TimelineEditResult.Fail(string.Format(Tr(noun, Messages.Transition_CantAddDissolve, Messages.Transition_CantAddCrossfade), error));
 
         _undoRedo.Execute(new NotifyingCommand(new AddTransitionCommand(track, transition, $"Add {Title(noun)}"), _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, ClipIds = new[] { left.Id, right.Id }, TransitionId = transition.Id };
@@ -1699,9 +1708,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     public TimelineEditResult RemoveTransition(Guid transitionId)
     {
-        if (FindTransition(transitionId) is not { } found) return TimelineEditResult.Fail("That dissolve no longer exists.");
+        if (FindTransition(transitionId) is not { } found) return TimelineEditResult.Fail(Messages.Edit_DissolveGone);
         var (track, transition) = found;
-        if (track.IsLocked) return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+        if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
 
         _undoRedo.Execute(new NotifyingCommand(new RemoveTransitionCommand(track, transition, $"Remove {Title(TransitionNoun(track))}"),
             _projectService.NotifyTimelineChanged));
@@ -1710,16 +1719,16 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     public TimelineEditResult SetTransitionDuration(Guid transitionId, MediaTime duration)
     {
-        if (FindTransition(transitionId) is not { } found) return TimelineEditResult.Fail("That dissolve no longer exists.");
+        if (FindTransition(transitionId) is not { } found) return TimelineEditResult.Fail(Messages.Edit_DissolveGone);
         var (track, transition) = found;
-        if (track.IsLocked) return TimelineEditResult.Fail($"Track {track.Name} is locked.");
+        if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
 
         var plan = new EditPlan(Sequence, Settings);
         var rate = plan.Rate;
         var noun = TransitionNoun(track);
         var frames = TransitionRules.Frames(duration, rate);
         if (frames < TransitionRules.MinFrames)
-            return TimelineEditResult.Fail($"A {noun} must be at least {TransitionRules.MinFrames} frames long.");
+            return TimelineEditResult.Fail(string.Format(Tr(noun, Messages.Transition_MinDissolve, Messages.Transition_MinCrossfade), TransitionRules.MinFrames));
         var stored = MediaTime.FromFrame(frames, rate);
         if (stored == transition.Duration) return TimelineEditResult.Unchanged();
 
@@ -1732,7 +1741,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var after = before with { Duration = stored };
         plan.UpdateTransition(transition, after);
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail($"Can't change the {noun}: {error}");
+            return TimelineEditResult.Fail(string.Format(Tr(noun, Messages.Transition_CantChangeDissolve, Messages.Transition_CantChangeCrossfade), error));
 
         _undoRedo.Execute(new NotifyingCommand(new UpdateTransitionCommand(transition, before, after, $"Change {Title(noun)} Duration"),
             _projectService.NotifyTimelineChanged));
@@ -1762,13 +1771,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
         track = null!;
         left = right = null!;
         if (Resolve(plan, new[] { leftClipId, rightClipId }, out var clips) is { } resolveError) return resolveError;
-        if (clips.Count != 2) return "A dissolve needs two different clips.";
+        if (clips.Count != 2) return Messages.Edit_DissolveTwoClips;
         (left, right) = (clips[0], clips[1]);
         track = plan.TrackOf(left);
-        if (plan.TrackOf(right) != track) return "A dissolve joins two clips of the same track.";
-        if (!allowLocked && track.IsLocked) return $"Track {track.Name} is locked.";
+        if (plan.TrackOf(right) != track) return Messages.Edit_DissolveSameTrack;
+        if (!allowLocked && track.IsLocked) return string.Format(Messages.Edit_TrackLocked, track.Name);
         if (left.TimelineEnd != right.TimelineStart)
-            return $"A {TransitionNoun(track)} needs two clips that meet: the first must end where the second starts.";
+            return Tr(track, Messages.Transition_NeedsMeetDissolve, Messages.Transition_NeedsMeetCrossfade);
         return null;
     }
 
@@ -1794,10 +1803,15 @@ public sealed partial class TimelineEditService : ITimelineEditService
     private static string? TooLong(long frames, long max, string noun) =>
         frames <= max ? null
         : max < TransitionRules.MinFrames ? NotEnoughMediaFor(noun)
-        : $"A {noun} of {frames} frames doesn't fit here; the longest that fits is {max} frames.";
+        : string.Format(Tr(noun, Messages.Transition_TooLongDissolve, Messages.Transition_TooLongCrossfade), frames, max);
 
     /// <summary><see cref="NotEnoughMedia"/> for a dissolve, the same words for a crossfade.</summary>
-    private static string NotEnoughMediaFor(string noun) => $"There is not enough media beyond the clips for the {noun}.";
+    private static string NotEnoughMediaFor(string noun) => Tr(noun, Messages.Transition_NotEnoughMediaDissolve, Messages.Transition_NotEnoughMediaCrossfade);
+
+    /// <summary>The message of a dissolve or of a crossfade (D039: no noun is glued into a sentence).</summary>
+    private static string Tr(string noun, string dissolve, string crossfade) => noun == "crossfade" ? crossfade : dissolve;
+
+    private static string Tr(Track track, string dissolve, string crossfade) => Tr(TransitionNoun(track), dissolve, crossfade);
 
     private (Track Track, Transition Transition)? FindTransition(Guid id)
     {
@@ -1867,7 +1881,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         foreach (var id in ids.Distinct())
         {
             if (!byId.TryGetValue(id, out var clip))
-                return "A selected clip no longer exists.";
+                return Messages.Edit_SelectedClipGone;
             clips.Add(clip);
         }
         return null;
@@ -1878,7 +1892,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         foreach (var clip in clips)
         {
             if (plan.TrackOf(clip).IsLocked)
-                return $"Track {plan.TrackOf(clip).Name} is locked.";
+                return string.Format(Messages.Edit_TrackLocked, plan.TrackOf(clip).Name);
         }
         return null;
     }
@@ -1907,12 +1921,12 @@ public sealed partial class TimelineEditService : ITimelineEditService
         foreach (var clip in plan.ClearedLinks)
         {
             if (plan.TrackOf(clip).IsLocked)
-                return $"Track {plan.TrackOf(clip).Name} is locked.";
+                return string.Format(Messages.Edit_TrackLocked, plan.TrackOf(clip).Name);
         }
         return LinkRules.Validate(plan.EffectiveLinks());
     }
 
-    public const string NotEnoughMedia = "There is not enough media beyond the clips for the dissolve.";
+    public static string NotEnoughMedia => Messages.Transition_NotEnoughMediaDissolve;
 
     private string? ValidateTransitions(EditPlan plan, Track track)
     {
@@ -1959,14 +1973,14 @@ public sealed partial class TimelineEditService : ITimelineEditService
         (plan.AutoRemovedTransitions - plan.AutoRemovedCrossfades) switch
         {
             0 => null,
-            1 => "A dissolve was removed: its clips no longer meet.",
-            var n => $"{n} dissolves were removed: their clips no longer meet."
+            1 => Messages.Edit_DissolveRemoved,
+            var n => string.Format(Messages.Edit_DissolvesRemoved, n)
         },
         plan.AutoRemovedCrossfades switch
         {
             0 => null,
-            1 => "A crossfade was removed: its clips no longer meet.",
-            var n => $"{n} crossfades were removed: their clips no longer meet."
+            1 => Messages.Edit_CrossfadeRemoved,
+            var n => string.Format(Messages.Edit_CrossfadesRemoved, n)
         });
 
     private static string? Join(string? a, string? b) => a is null ? b : b is null ? a : $"{a} {b}";

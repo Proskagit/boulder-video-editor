@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Localization;
 
 namespace AiVideoEditor.Core.Entities;
 
@@ -60,24 +61,24 @@ public static class TransitionRules
             if (transition.TypeId != TypeFor(trackType))
                 return transition.TypeId switch
                 {
-                    CrossDissolve => "Only video tracks have dissolves.",
-                    Crossfade => "Only audio tracks have crossfades.",
-                    _ => "A transition has an unknown type."
+                    CrossDissolve => Messages.TransitionRule_VideoOnly,
+                    Crossfade => Messages.TransitionRule_AudioOnly,
+                    _ => Messages.TransitionRule_UnknownType
                 };
-            if (transition.Duration < MediaTime.Zero) return "A transition has a negative duration.";
+            if (transition.Duration < MediaTime.Zero) return Messages.TransitionRule_Negative;
 
             var frames = Frames(transition.Duration, rate);
-            if (frames < MinFrames) return $"A transition must be at least {MinFrames} frames long.";
+            if (frames < MinFrames) return string.Format(Messages.TransitionRule_Min, MinFrames);
 
-            if (transition.LeftClipId == transition.RightClipId) return "A transition needs two different clips.";
+            if (transition.LeftClipId == transition.RightClipId) return Messages.TransitionRule_TwoClips;
             if (clipEdges(transition.LeftClipId) is not { } left || clipEdges(transition.RightClipId) is not { } right)
-                return $"A transition refers to a clip that is not on track {trackName}.";
-            if (left.End != right.Start) return "A transition's clips don't touch.";
-            if (!lefts.Add(transition.LeftClipId)) return "A cut has more than one transition.";
+                return string.Format(Messages.TransitionRule_NotOnTrack, trackName);
+            if (left.End != right.Start) return Messages.TransitionRule_DontTouch;
+            if (!lefts.Add(transition.LeftClipId)) return Messages.TransitionRule_TwoOnCut;
 
             var (beforeCut, afterCut) = Zone(frames);
             if (Add(transition.LeftClipId, left, beforeCut) || Add(transition.RightClipId, right, afterCut))
-                return "A clip is too short for its transitions.";
+                return Messages.TransitionRule_ClipTooShort;
         }
 
         return null;

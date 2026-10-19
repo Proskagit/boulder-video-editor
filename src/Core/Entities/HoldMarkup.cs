@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Globalization;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Localization;
 
 namespace AiVideoEditor.Core.Entities;
 
@@ -168,18 +169,18 @@ public static class HoldMarkupRules
     public static string? Validate(HoldMarkup markup)
     {
         if (!double.IsFinite(markup.StrokeWidth1080) || markup.StrokeWidth1080 < MinStrokeWidth1080 || markup.StrokeWidth1080 > MaxStrokeWidth1080)
-            return $"The outline width must be between {MinStrokeWidth1080.ToString(CultureInfo.InvariantCulture)} and {MaxStrokeWidth1080.ToString(CultureInfo.InvariantCulture)} px.";
-        if (!Enum.IsDefined(markup.ColorMode)) return "Unknown colour mode.";
-        if (!Enum.IsDefined(markup.Keyline)) return "Unknown keyline mode.";
-        if (!IsColorHex(markup.ColorHex)) return "The outline colour must be #RRGGBB.";
-        if (string.IsNullOrWhiteSpace(markup.ModelId)) return "The markup's model is missing.";
-        if (markup.Holds.Length > MaxHolds) return $"A clip can have at most {MaxHolds} holds.";
+            return string.Format(Messages.Holds_WidthRange, MinStrokeWidth1080.ToString(CultureInfo.InvariantCulture), MaxStrokeWidth1080.ToString(CultureInfo.InvariantCulture));
+        if (!Enum.IsDefined(markup.ColorMode)) return Messages.Holds_UnknownColourMode;
+        if (!Enum.IsDefined(markup.Keyline)) return Messages.Holds_UnknownKeylineMode;
+        if (!IsColorHex(markup.ColorHex)) return Messages.Holds_ColourFormat;
+        if (string.IsNullOrWhiteSpace(markup.ModelId)) return Messages.Holds_ModelMissing;
+        if (markup.Holds.Length > MaxHolds) return string.Format(Messages.Holds_MaxHoldsRule, MaxHolds);
         if (markup.Animation is { } animation && ValidateAnimation(animation) is { } animationError) return animationError;
 
         var ids = new HashSet<Guid>();
         foreach (var hold in markup.Holds)
         {
-            if (hold.Id == Guid.Empty || !ids.Add(hold.Id)) return "A hold has a missing or duplicate id.";
+            if (hold.Id == Guid.Empty || !ids.Add(hold.Id)) return Messages.Holds_BadId;
             if (ValidateHold(hold) is { } error) return error;
         }
         return null;
@@ -187,31 +188,31 @@ public static class HoldMarkupRules
 
     public static string? ValidateHold(Hold hold)
     {
-        if (hold.Points.Length < MinPoints || hold.Points.Length > MaxPoints) return "A hold's contour has too few or too many points.";
+        if (hold.Points.Length < MinPoints || hold.Points.Length > MaxPoints) return Messages.Holds_BadPointCount;
         foreach (var p in hold.Points)
         {
             if (!double.IsFinite(p.X) || !double.IsFinite(p.Y) || p.X < 0 || p.X > 1 || p.Y < 0 || p.Y > 1)
-                return "A hold's contour lies outside the frame.";
+                return Messages.Holds_OutsideFrame;
         }
-        if (!hold.SurfaceLab.IsFinite || !hold.WallLab.IsFinite) return "A hold's colour samples are invalid.";
-        if (hold.SourceTime < MediaTime.Zero) return "A hold's frame time is negative.";
+        if (!hold.SurfaceLab.IsFinite || !hold.WallLab.IsFinite) return Messages.Holds_BadSamples;
+        if (hold.SourceTime < MediaTime.Zero) return Messages.Holds_NegativeTime;
         return null;
     }
 
     /// <summary>Null when <paramref name="animation"/> is within the limits of D036 §2, otherwise why not.</summary>
     public static string? ValidateAnimation(HoldAnimation animation)
     {
-        if (!Enum.IsDefined(animation.Order)) return "Unknown animation order.";
+        if (!Enum.IsDefined(animation.Order)) return Messages.Holds_UnknownOrder;
         if (animation.StartSourceTime < MediaTime.Zero || animation.StartSourceTime > MaxStartSourceTime)
-            return "The animation start must lie within the source.";
+            return Messages.Holds_StartInSource;
         if (animation.Interval < MinInterval || animation.Interval > MaxInterval)
-            return $"The animation interval must be between {Seconds(MinInterval)} and {Seconds(MaxInterval)} s.";
+            return string.Format(Messages.Holds_IntervalRange, Seconds(MinInterval), Seconds(MaxInterval));
         if (animation.AppearFade < MediaTime.Zero || animation.AppearFade > MaxFade)
-            return $"The appear fade must be between 0 and {Seconds(MaxFade)} s.";
+            return string.Format(Messages.Holds_AppearRange, Seconds(MaxFade));
         if (animation.DisappearFade < MediaTime.Zero || animation.DisappearFade > MaxFade)
-            return $"The disappear fade must be between 0 and {Seconds(MaxFade)} s.";
+            return string.Format(Messages.Holds_DisappearRange, Seconds(MaxFade));
         if (animation.StayAfterLast < MediaTime.Zero || animation.StayAfterLast > MaxStay)
-            return $"The time after the last hold must be between 0 and {Seconds(MaxStay)} s.";
+            return string.Format(Messages.Holds_StayRange, Seconds(MaxStay));
         return null;
     }
 
