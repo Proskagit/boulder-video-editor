@@ -38,12 +38,22 @@
               <Setter Property="Padding" Value="8,2"/>
             </Style>
           </StackPanel.Styles>
-          <ToggleButton Classes="tool" Content="{x:Static l:Strings.Preview_Move}" IsChecked="{Binding Transform.IsMoveOn, Mode=TwoWay}"
+          <ToggleButton Classes="tool" IsChecked="{Binding Transform.IsMoveOn, Mode=TwoWay}"
                         IsEnabled="{Binding Transform.IsAvailable, FallbackValue=False}"
-                        ToolTip.Tip="{x:Static l:Strings.Preview_MoveTip}"/>
-          <ToggleButton Classes="tool" Content="{x:Static l:Strings.Preview_Crop}" IsChecked="{Binding Transform.IsCropOn, Mode=TwoWay}"
+                        ToolTip.Tip="{x:Static l:Strings.Preview_MoveTip}">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <controls:IconPath Glyph="{x:Static controls:Icons.Move}" Width="12" Height="12"/>
+              <TextBlock Text="{x:Static l:Strings.Preview_Move}"/>
+            </StackPanel>
+          </ToggleButton>
+          <ToggleButton Classes="tool" IsChecked="{Binding Transform.IsCropOn, Mode=TwoWay}"
                         IsEnabled="{Binding Transform.IsAvailable, FallbackValue=False}"
-                        ToolTip.Tip="{x:Static l:Strings.Preview_CropTip}"/>
+                        ToolTip.Tip="{x:Static l:Strings.Preview_CropTip}">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <controls:IconPath Glyph="{x:Static controls:Icons.Crop}" Width="12" Height="12"/>
+              <TextBlock Text="{x:Static l:Strings.Preview_Crop}"/>
+            </StackPanel>
+          </ToggleButton>
         </StackPanel>
         <!-- AI hold markup (Phase 19, D034): the mode's status and buttons live in this bar, so the picture keeps its
              size and nothing covers a hold. -->
@@ -126,15 +136,31 @@
 
     <!-- Transport controls -->
     <Border Grid.Row="3" Background="#252526" BorderBrush="#1A1A1A" BorderThickness="0,1,0,0" Padding="8">
-      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-        <Button Content="⏮" Command="{Binding PreviousFrameCommand}" ToolTip.Tip="{x:Static l:Strings.Transport_PrevTip}"/>
-        <Button Content="{Binding PlayPauseLabel}" Command="{Binding PlayPauseCommand}" MinWidth="64"
-                ToolTip.Tip="{x:Static l:Strings.Transport_PlayPauseTip}"/>
-        <Button Content="⏹" Command="{Binding StopCommand}" ToolTip.Tip="{x:Static l:Strings.Transport_StopTip}"/>
-        <Button Content="⏭" Command="{Binding NextFrameCommand}" ToolTip.Tip="{x:Static l:Strings.Transport_NextTip}"/>
-        <ToggleButton Content="{x:Static l:Strings.Transport_Loop}" IsChecked="{Binding IsLooping, Mode=TwoWay}" ToolTip.Tip="{x:Static l:Strings.Transport_LoopTip}"/>
+      <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+        <!-- D039 §7: the transport as icons (Play / Pause one button of one width); names and shortcuts in the tooltips. -->
+        <Button Command="{Binding PreviousFrameCommand}" ToolTip.Tip="{x:Static l:Strings.Transport_PrevTip}" Padding="10,6">
+          <controls:IconPath Glyph="{x:Static controls:Icons.PreviousFrame}" Filled="True"/>
+        </Button>
+        <Button x:Name="PlayPauseButton" Command="{Binding PlayPauseCommand}" MinWidth="48" Padding="10,6"
+                ToolTip.Tip="{x:Static l:Strings.Transport_PlayPauseTip}" AutomationProperties.Name="{Binding PlayPauseLabel}">
+          <Panel>
+            <controls:IconPath Glyph="{x:Static controls:Icons.Play}" Filled="True" IsVisible="{Binding !IsPlaying}"/>
+            <controls:IconPath Glyph="{x:Static controls:Icons.Pause}" StrokeThickness="2.5" IsVisible="{Binding IsPlaying}"/>
+          </Panel>
+        </Button>
+        <Button Command="{Binding StopCommand}" ToolTip.Tip="{x:Static l:Strings.Transport_StopTip}" Padding="10,6">
+          <controls:IconPath Glyph="{x:Static controls:Icons.Stop}" Filled="True"/>
+        </Button>
+        <Button Command="{Binding NextFrameCommand}" ToolTip.Tip="{x:Static l:Strings.Transport_NextTip}" Padding="10,6">
+          <controls:IconPath Glyph="{x:Static controls:Icons.NextFrame}" Filled="True"/>
+        </Button>
+        <!-- An icon only, as the others: with a label the timecode no longer fits the Preview at 1024 px (D039 §7). -->
+        <ToggleButton IsChecked="{Binding IsLooping, Mode=TwoWay}" ToolTip.Tip="{x:Static l:Strings.Transport_LoopTip}" Padding="10,6"
+                      AutomationProperties.Name="{x:Static l:Strings.Transport_Loop}">
+          <controls:IconPath Glyph="{x:Static controls:Icons.Loop}"/>
+        </ToggleButton>
 
-        <TextBlock Text="{Binding CurrentTimeDisplay}" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="12,0,0,0"/>
+        <TextBlock Text="{Binding CurrentTimeDisplay}" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="6,0,0,0"/>
         <TextBlock Text="/" Foreground="#6A6A6A" VerticalAlignment="Center"/>
         <TextBlock Text="{Binding DurationDisplay}" Foreground="#8A8A8A" VerticalAlignment="Center"/>
       </StackPanel>

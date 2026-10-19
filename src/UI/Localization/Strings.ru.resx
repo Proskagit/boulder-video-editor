@@ -484,7 +484,10 @@
     <value>Толщина</value>
   </data>
   <data name="Holds_WidthUnit" xml:space="preserve">
-    <value>пикс. при 1080</value>
+    <value>пикс.</value>
+  </data>
+  <data name="Holds_WidthUnitTip" xml:space="preserve">
+    <value>Пиксели при высоте кадра 1080 (линия масштабируется вместе с изображением)</value>
   </data>
   <data name="Import_DidntFinish" xml:space="preserve">
     <value>Импорт не завершён.</value>
@@ -581,9 +584,6 @@
   </data>
   <data name="Inspector_Format" xml:space="preserve">
     <value>Формат</value>
-  </data>
-  <data name="Inspector_FramesTime" xml:space="preserve">
-    <value>кадр.  {0}</value>
   </data>
   <data name="Inspector_Heading" xml:space="preserve">
     <value>СВОЙСТВА</value>
@@ -1212,7 +1212,7 @@
     <value>Вход и выход источника сброшены.</value>
   </data>
   <data name="Source_RangeDisplay" xml:space="preserve">
-    <value>Вход {0} · Выход {1}</value>
+    <value>Вход: {0} · Выход: {1}</value>
   </data>
   <data name="Source_RangeEnd" xml:space="preserve">
     <value>конец</value>
@@ -1233,19 +1233,19 @@
     <value>Быстро</value>
   </data>
   <data name="Speed_FastDetail" xml:space="preserve">
-    <value>Пресет H.264 fast — быстрее, файл больше</value>
+    <value>fast — быстрее, файл больше</value>
   </data>
   <data name="Speed_Medium" xml:space="preserve">
     <value>Средне</value>
   </data>
   <data name="Speed_MediumDetail" xml:space="preserve">
-    <value>Пресет H.264 medium — по умолчанию</value>
+    <value>medium — по умолчанию</value>
   </data>
   <data name="Speed_Slow" xml:space="preserve">
     <value>Медленно</value>
   </data>
   <data name="Speed_SlowDetail" xml:space="preserve">
-    <value>Пресет H.264 slow — медленнее, файл меньше</value>
+    <value>slow — медленнее, файл меньше</value>
   </data>
   <data name="Status_Ready" xml:space="preserve">
     <value>Готово.</value>
@@ -1440,7 +1440,7 @@
     <value>Открыть проект (Ctrl+O)</value>
   </data>
   <data name="Toolbar_ProjectSettings" xml:space="preserve">
-    <value>Параметры проекта…</value>
+    <value>Параметры…</value>
   </data>
   <data name="Toolbar_Recent" xml:space="preserve">
     <value>Недавние</value>
@@ -1650,6 +1650,9 @@
   </data>
   <data name="Unit_B" xml:space="preserve">
     <value>Б</value>
+  </data>
+  <data name="Unit_Frames" xml:space="preserve">
+    <value>кадр.</value>
   </data>
   <data name="Unit_GB" xml:space="preserve">
     <value>ГБ</value>

@@ -2,6 +2,7 @@
              xmlns:l="using:AiVideoEditor.UI.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:rendering="using:AiVideoEditor.UI.Rendering"
+             xmlns:controls="using:AiVideoEditor.UI.Controls"
              x:Class="AiVideoEditor.UI.Views.Panels.TimelineView"
              Focusable="True">
 
@@ -106,8 +107,18 @@
             <Button Content="{x:Static l:Strings.Timeline_AddAudioTrack}" Command="{Binding AddAudioTrackCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddAudioTrackTip}" FontSize="11"/>
             <Button Content="{x:Static l:Strings.Timeline_AddText}" Command="{Binding AddTextCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_AddTextTip}" FontSize="11"/>
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
-            <Button Content="{x:Static l:Strings.Timeline_Split}" Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_SplitTip}" FontSize="11"/>
-            <Button Content="{x:Static l:Strings.Timeline_Delete}" Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DeleteTip}" FontSize="11"/>
+            <Button Command="{Binding SplitAtPlayheadCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_SplitTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Split}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Split}"/>
+              </StackPanel>
+            </Button>
+            <Button Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DeleteTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Delete}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Delete}"/>
+              </StackPanel>
+            </Button>
             <Button Content="{x:Static l:Strings.Timeline_RippleDelete}" Command="{Binding RippleDeleteCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_RippleDeleteTip}" FontSize="11"/>
             <Button Content="{x:Static l:Strings.Timeline_CloseGap}" Command="{Binding CloseGapCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_CloseGapTip}" FontSize="11"/>
             <Button Content="{x:Static l:Strings.Timeline_Paste}" Command="{Binding PasteCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_PasteTip}" FontSize="11"/>
@@ -115,7 +126,12 @@
             <Button Content="{x:Static l:Strings.Timeline_Dissolve}" Command="{Binding AddDissolveCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DissolveTip}" FontSize="11"/>
             <Button Content="{Binding UnlinkLabel}" Command="{Binding UnlinkCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_UnlinkTip}" FontSize="11"/>
             <Button Content="{x:Static l:Strings.Timeline_Link}" Command="{Binding LinkCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_LinkTip}" FontSize="11"/>
-            <ToggleButton Content="{x:Static l:Strings.Timeline_Snap}" IsChecked="{Binding SnappingEnabled}" ToolTip.Tip="{x:Static l:Strings.Timeline_SnapTip}" FontSize="11"/>
+            <ToggleButton IsChecked="{Binding SnappingEnabled}" ToolTip.Tip="{x:Static l:Strings.Timeline_SnapTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Snap}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Snap}"/>
+              </StackPanel>
+            </ToggleButton>
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
             <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_ZoomOutTip}" FontSize="11"/>
             <Button Content="+" Command="{Binding ZoomInCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_ZoomInTip}" FontSize="11"/>
@@ -157,12 +173,16 @@
                           <Button Classes="trackState mute" Classes.on="{Binding IsMuted}" Content="M"
                                   ToolTip.Tip="{x:Static l:Strings.Track_MuteTip}"
                                   Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackMuteCommand}" CommandParameter="{Binding}"/>
-                          <Button Classes="trackState hide" Classes.on="{Binding IsHidden}" Content="👁" IsVisible="{Binding CanHide}"
+                          <Button Classes="trackState hide" Classes.on="{Binding IsHidden}" IsVisible="{Binding CanHide}"
                                   ToolTip.Tip="{x:Static l:Strings.Track_HideTip}"
-                                  Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackHiddenCommand}" CommandParameter="{Binding}"/>
-                          <Button Classes="trackState lock" Classes.on="{Binding IsLocked}" Content="🔒"
+                                  Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackHiddenCommand}" CommandParameter="{Binding}">
+                            <controls:IconPath Glyph="{x:Static controls:Icons.Eye}" Width="10" Height="10" StrokeThickness="1.3"/>
+                          </Button>
+                          <Button Classes="trackState lock" Classes.on="{Binding IsLocked}"
                                   ToolTip.Tip="{x:Static l:Strings.Track_LockTip}"
-                                  Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackLockCommand}" CommandParameter="{Binding}"/>
+                                  Command="{Binding $parent[ItemsControl].DataContext.ToggleTrackLockCommand}" CommandParameter="{Binding}">
+                            <controls:IconPath Glyph="{x:Static controls:Icons.Lock}" Width="10" Height="10" StrokeThickness="1.3"/>
+                          </Button>
                         </StackPanel>
                         <TextBlock Text="{Binding Label}" Foreground="#AAAAAA" FontSize="11" VerticalAlignment="Center"/>
                       </DockPanel>

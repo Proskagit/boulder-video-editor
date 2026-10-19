@@ -486,6 +486,9 @@ The file is replaced only when the export succeeds.</value>
   <data name="Holds_WidthUnit" xml:space="preserve">
     <value>px at 1080</value>
   </data>
+  <data name="Holds_WidthUnitTip" xml:space="preserve">
+    <value>Pixels at a frame height of 1080 (the line scales with the picture)</value>
+  </data>
   <data name="Import_DidntFinish" xml:space="preserve">
     <value>Import didn't finish.</value>
   </data>
@@ -581,9 +584,6 @@ The file is replaced only when the export succeeds.</value>
   </data>
   <data name="Inspector_Format" xml:space="preserve">
     <value>Format</value>
-  </data>
-  <data name="Inspector_FramesTime" xml:space="preserve">
-    <value>frames  {0}</value>
   </data>
   <data name="Inspector_Heading" xml:space="preserve">
     <value>INSPECTOR</value>
@@ -1646,6 +1646,9 @@ You can undo this with Undo.</value>
   </data>
   <data name="Unit_B" xml:space="preserve">
     <value>B</value>
+  </data>
+  <data name="Unit_Frames" xml:space="preserve">
+    <value>frames</value>
   </data>
   <data name="Unit_GB" xml:space="preserve">
     <value>GB</value>

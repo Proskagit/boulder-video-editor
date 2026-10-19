@@ -1,10 +1,24 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:l="using:AiVideoEditor.UI.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:AiVideoEditor.UI.Controls"
              x:Class="AiVideoEditor.UI.Views.Panels.ToolbarView">
 
   <Border Background="#2D2D30" BorderBrush="#1A1A1A" BorderThickness="0,0,0,1" Padding="8,6">
-    <StackPanel Orientation="Horizontal" Spacing="6">
+    <!-- D039 §6: the commands wrap onto a second row rather than push the window's layout wider (Russian labels are longer). -->
+    <WrapPanel Orientation="Horizontal">
+      <WrapPanel.Styles>
+        <Style Selector="WrapPanel > Button, WrapPanel > DropDownButton">
+          <Setter Property="Margin" Value="0,0,6,0"/>
+        </Style>
+        <Style Selector="WrapPanel > Rectangle">
+          <Setter Property="Width" Value="1"/>
+          <Setter Property="Height" Value="22"/>
+          <Setter Property="Fill" Value="#444444"/>
+          <Setter Property="Margin" Value="0,0,6,0"/>
+          <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+      </WrapPanel.Styles>
 
       <Button Content="{x:Static l:Strings.Toolbar_New}" Command="{Binding NewProjectCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_NewTip}"/>
       <Button Content="{x:Static l:Strings.Toolbar_Open}" Command="{Binding OpenCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_OpenTip}"/>
@@ -52,26 +66,31 @@
       <Button Content="{x:Static l:Strings.Toolbar_Save}" Command="{Binding SaveCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_SaveTip}"/>
       <Button Content="{x:Static l:Strings.Toolbar_SaveAs}" Command="{Binding SaveAsCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_SaveAsTip}"/>
 
-      <Rectangle Width="1" Fill="#444444" Margin="6,2"/>
+      <Rectangle/>
 
-      <Button Content="{x:Static l:Strings.Toolbar_Undo}" Command="{Binding UndoCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_UndoTip}"/>
-      <Button Content="{x:Static l:Strings.Toolbar_Redo}" Command="{Binding RedoCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_RedoTip}"/>
+      <!-- D039 §7: Undo / Redo as icons (as in every editor); the name and the shortcut in the tooltip. -->
+      <Button Command="{Binding UndoCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_UndoTip}" AutomationProperties.Name="{x:Static l:Strings.Toolbar_Undo}">
+        <controls:IconPath Glyph="{x:Static controls:Icons.Undo}"/>
+      </Button>
+      <Button Command="{Binding RedoCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_RedoTip}" AutomationProperties.Name="{x:Static l:Strings.Toolbar_Redo}">
+        <controls:IconPath Glyph="{x:Static controls:Icons.Redo}"/>
+      </Button>
 
-      <Rectangle Width="1" Fill="#444444" Margin="6,2"/>
+      <Rectangle/>
 
       <Button Content="{x:Static l:Strings.Toolbar_Import}" Command="{Binding ImportMediaCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_ImportTip}"/>
 
-      <Rectangle Width="1" Fill="#444444" Margin="6,2"/>
+      <Rectangle/>
 
       <!-- Project Settings… (D028, Step 13.6): canvas size and frame rate; the tooltip shows the current ones. -->
       <Button x:Name="ProjectSettingsButton" Content="{x:Static l:Strings.Toolbar_ProjectSettings}" Command="{Binding ProjectSettingsCommand}"
               ToolTip.Tip="{Binding ProjectSettingsToolTip}"/>
 
-      <Rectangle Width="1" Fill="#444444" Margin="6,2"/>
+      <Rectangle/>
 
       <Button Content="{x:Static l:Strings.Toolbar_Export}" Command="{Binding ExportCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_ExportTip}"/>
 
-    </StackPanel>
+    </WrapPanel>
   </Border>
 
 </UserControl>

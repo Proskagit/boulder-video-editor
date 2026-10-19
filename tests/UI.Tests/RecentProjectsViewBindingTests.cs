@@ -53,7 +53,7 @@ public sealed class RecentProjectsViewBindingTests : IDisposable
         var (toolbar, _, editingLock) = Toolbar();
         var view = new ToolbarView { DataContext = toolbar };
 
-        var row = view.GetLogicalDescendants().OfType<StackPanel>().First(p => p.Orientation == Avalonia.Layout.Orientation.Horizontal);
+        var row = view.GetLogicalDescendants().OfType<WrapPanel>().First();   // the tool bar wraps (D039 §6)
         var open = row.Children.OfType<Button>().Single(b => Equals(b.Content, "Open"));
         var recent = Assert.IsType<DropDownButton>(row.Children[row.Children.IndexOf(open) + 1]);
         Assert.Equal("Recent", recent.Content);

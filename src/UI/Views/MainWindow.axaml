@@ -32,7 +32,9 @@
 
     <!-- Status bar -->
     <Border Grid.Row="4" Background="#007ACC" Padding="10,4">
-      <TextBlock Text="{Binding Status.Message}" Foreground="White" FontSize="11"/>
+      <!-- D039 §6: a long message is trimmed with an ellipsis; the whole of it is in the tooltip. -->
+      <TextBlock Text="{Binding Status.Message}" Foreground="White" FontSize="11" TextTrimming="CharacterEllipsis"
+                 ToolTip.Tip="{Binding Status.Message}"/>
     </Border>
 
   </Grid>
