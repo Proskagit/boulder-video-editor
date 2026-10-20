@@ -2126,12 +2126,12 @@ on a curve, wrapping, font files, animation of other clip kinds, new dependencie
 - **Unsatisfactory → stop**: the measurements and the alternatives (with their quality and cost) go to the product owner;
   no fallback is chosen automatically (D043 §9, §12).
 
-### 27.2 — Model, validation and `project.json` v7
+### 27.2 — Model, validation and `project.json` v7 *(done with 27.3, `03168e2`)*
 - `TextClip` / `TextProperties`: `MotionIn`, `MotionOut`, `Bold`, `Style`; `ClipPropertyValidator`; the DTOs and the
   serializer (v7, the members optional; v6 read; a v6 build's refusal by the version check).
 - Tests: the round trip, v6 → v7 differing only in `formatVersion`, damaged values refused.
 
-### 27.3 — Core rules: motion and placement
+### 27.3 — Core rules: motion and placement *(done, `03168e2`)*
 - The motion on timeline frames (D043 §1: D025's ramp, the ease-out, Slide `d = 8 %` of the short side, Zoom 70 → 100 %,
   clamped, none on a dissolve edge) applied to the `TextLayer`'s transform in `PlaybackSnapshot.LayersAt`; the grid
   placement (D043 §3: nine cells at 8 % of the canvas's short side from the edges, the box from the painter's layout rule
@@ -2139,7 +2139,7 @@ on a curve, wrapping, font files, animation of other clip kinds, new dependencie
 - Tests: every frame of the ramps, short clips, the frame-rate change, the dissolve edge, the nine cells on portrait /
   landscape canvases; a v6 text's fades unchanged.
 
-### 27.4 — Rendering: outline, background, bold
+### 27.4 — Rendering: outline, background, bold *(done, `13f48db`; one glyph cache per consumer — D043 implementation notes)*
 - `TextDraw` carries the outline, the background and the weight; `CompositionPainter` draws the background, then the
   outline, then the fill; the Move tool's frame includes the background's padding.
 - The outline by variant B (D043 "Refined in Step 27.1", conditions 1–7): a glyph-geometry cache keyed by the text, family,
@@ -2151,14 +2151,14 @@ on a curve, wrapping, font files, animation of other clip kinds, new dependencie
   thread is busy; a dispatcher that no longer runs; the guard tests of `TextOutlineFeasibilityTests` kept; 16 px quality,
   parallel exports, the cost per frame. A failed guard or an export whose end cannot be guaranteed → stop (condition 7).
 
-### 27.5 — Edits and the Inspector
+### 27.5 — Edits and the Inspector *(done, `7fb0d3d`)*
 - `SetClipProperties` for the new fields (the merges of D017, one step per choice); the «Анимация» block replacing FADES for
   text clips (D043 Q2), «Обводка» and «Подложка» rows (each on its own), the swatches, the size slider, the 3 × 3 grid,
   «Жирный»; the defaults of "+ Text" (D043 §4); the `EditingLock`; resources en + ru.
 - Tests: the edits (steps, merges, refusals, split / trim / duplicate / paste, Undo / Redo), the view models and AXAML, the
   localization guards; the real app at 1024 × 640 and 1440 × 900.
 
-### 27.6 — Verification & closeout
+### 27.6 — Verification & closeout *(done by Claude 2026-10-20 — results in `progress.md` and the manual plan; the product owner's acceptance pending)*
 - Release and Debug `--no-incremental -warnaserror`; the full suite, `AIVE_HEAVY_TESTS=1`, three `--blame-hang` runs; `git
   diff --check`; a Phase 26 v6 project with text opened and saved (only `formatVersion` differs) and its export compared
   with the Phase 26 build's; the manual plan in the real app on the product owner's portrait gym clip in `ru` and `en`, an

@@ -76,8 +76,11 @@ text clip (Нет, Проявление, Выезд with four directions, Уве
 an outline and a background (each on its own), colour swatches, a 3 × 3 placement grid (the free move in the Preview kept),
 bold, defaults for a caption (white bold, bottom centre, a black 60 % background, Выезд снизу 0.4 s / Проявление 0.3 s);
 v6 texts look exactly as before; `project.json` v7. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 27 — Text animation and
-readability: steps"; manual plan `docs/PHASE27_MANUAL_TEST_PLAN.md`. Step 27.0 done; Step 27.1 (the outline's feasibility,
-a gate) waits for the product owner's go. Local commits only.
+readability: steps"; manual plan `docs/PHASE27_MANUAL_TEST_PLAN.md`. Steps 27.0–27.6 done (27.1: variant B chosen by the
+product owner; verified by Claude 2026-10-20: Release / Debug `--no-incremental -warnaserror` 0 / 0, the full suite 4164 / 2
+/ 0, heavy 4166 / 0 / 0, three blame-hang runs clean, a v6 project's texts byte-identical with the Phase 26 code, the
+manual plan run in the real app with its NOT RUN parts named); **awaiting the product owner's acceptance**. Local commits
+only.
 
 ## Previous
 

@@ -5719,7 +5719,8 @@ Consequences: `project.json` v7; Core (the motion and placement rules), the text
 the painter, the Inspector; new resources (en + ru). No new dependency.
 
 Status: Accepted (2026-10-20, product owner). Phase 27, branch `feat/phase-27-text-animation` from `41dadf2`. Step 27.1 (the
-outline's feasibility) is a gate: the implementation of 27.2 and later only after its result and the owner's go.
+outline's feasibility) is a gate: the implementation of 27.2 and later only after its result and the owner's go. Implemented
+and verified by Claude on 2026-10-20 (Steps 27.2–27.6, `progress.md`); the product owner's acceptance pending.
 
 ### Refined in Step 27.1 — the outline's feasibility (2026-10-20; **variant B chosen by the product owner the same day** — see "Decision" below)
 
@@ -5777,6 +5778,38 @@ outline accepted). Conditions, to be met by the implementation (Step 27.4) and s
    exports, the cost per frame (cached: +0.1–0.6 ms at 1080 × 1920 measured here).
 7. **Stop rule.** If a guard test fails, or the correct end of an export (cancel, close) cannot be guaranteed, the work
    stops and the problem goes to the product owner; no automatic switch to a worse variant (offset copies, no outline).
+
+### Implementation notes (Steps 27.2–27.5, 2026-10-20)
+
+- **Condition 3, refined before the implementation (the pre-start check):** the 27.1 test of one geometry drawn by 16
+  threads at once shows that no difference was observed — Avalonia documents no thread safety for drawing one `Geometry`
+  concurrently, so the implementation does not rely on it: one `TextGlyphCache` per drawing consumer (the Preview's
+  `CompositionView` — UI thread; each export's `AvaloniaCompositionRasterizer` — its thread, used sequentially), so a
+  geometry is created and first drawn on the UI thread and afterwards drawn by one thread only. The 16-thread test stays
+  as an observation in the guard suite. Within the approved variant B; no architecture change.
+- Model (27.2): `TextClip` / `TextProperties` — `Bold`, `Outline`, `Background`, `MotionIn`, `MotionOut` as init members
+  defaulting to none (`TextProperties.IsPlain` — a text drawn exactly as before); `project.json` v7 writes them only when
+  set (`bold: true`; `outline` / `background` when they differ from their defaults, off ones included; a motion when not
+  None); a v6 file ignores them; members of an object all required. `CloneClip` copies them (split, duplicate, paste; a
+  split's fades follow D025). The canvas change scales `FontSize` as before — the outline's thickness is relative to it.
+- Core (27.3): `TextMotionRule` and `TextPlacement` as specified; the motion only when a kind is set, so a text without
+  motion keeps its transform bit for bit. `AddTextClip(start, measureBox)` — the §4 defaults (the fades 0.4 s / 0.3 s
+  rounded to whole frames: 10 / 8 at 25 fps, 12 / 9 at 30, 24 / 18 at 60) and the bottom-centre position by the measured
+  box in the same "Add Text" step; centred when no measurer is given.
+- Rendering (27.4): `CompositionPainter` — a plain text by the unchanged `DrawText` path (tested against a replica of the
+  old routine, pixel for pixel); a styled one: the background (a rounded rectangle, padding 25 %, corner 12 % of the size,
+  its own opacity), the outline (a round-join pen of twice the visible width), the fill from the same geometry when the
+  outline is on, else `DrawText` (bold or a background only). An outlined text without a cache is refused (never drawn
+  without its outline). `ExportFailure.RenderFailed` (`Export_FailRender`, en + ru) for a wait that ends by the shutdown or
+  the 60 s timeout; a cancel stays a cancellation. `ICompositionRasterizer.Render(…, CancellationToken)` (a default
+  method; `ExportService` passes its token). The Move tool's frame includes the background's padding.
+- Inspector (27.5): «Анимация» replaces the fades section for a text; switching from «Нет» to a kind gives the §4 default
+  (0.4 s In, 0.3 s Out, clamped to the clip); a Zoom keeps the stored side (not shown); the durations are shown as the
+  seconds of the stored frames (two decimals). Swatches: white, black, yellow #FFD600, orange #FF8C00, red #E53935, green
+  #43A047, light blue #4FC3F7, pink #F06292. The thickness and the opacity take whole percent (as FU-25.2). Discrete
+  choices carry a `ClipPropertyGesture` (one step, never merged). `ITextBoxMeasurer` is injected (the app registers the
+  painter's `TextBoxMeasure`), so the view models work without a running platform in tests; `TimelineClipSelection`
+  carries the canvas.
 ---
 
 ## How to add a decision

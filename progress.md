@@ -4,8 +4,8 @@
 
 Phase 27 — text animation and readability (D042 Phase A), branch `feat/phase-27-text-animation` (from `origin/main` =
 `41dadf2`, the merge of PR #27; DECISIONS.md D043, accepted 2026-10-20). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 27 — Text
-animation and readability: steps"; manual plan `docs/PHASE27_MANUAL_TEST_PLAN.md`. Each step after 27.0 only on the product
-owner's confirmation; 27.1 (the outline's feasibility) is a gate. No push, pull request or merge without the product
+animation and readability: steps"; manual plan `docs/PHASE27_MANUAL_TEST_PLAN.md`. Steps 27.0–27.6 done (the owner's go for
+the implementation after 27.1); awaiting the product owner's acceptance. No push, pull request or merge without the product
 owner's command.
 
 ### Phase 27 — Text animation and readability (in progress)
@@ -48,6 +48,44 @@ owner's command.
   cancellation and application closing never hanging, the guard tests kept, the quality / parity / parallel / cost checks
   kept, stop on a failed guard. Step 27.4 in `docs/DEVELOPMENT_PLAN.md` extended accordingly. The Step 27.1 results (the
   test harness and these records) committed separately; no product code. Next steps only on the owner's confirmation.
+- 2026-10-20 — the owner's go for the whole implementation. Pre-start check: the branch holds `621c61d` and `b06a966`, the
+  tree clean (`.claude/` aside); D043, the steps and the harness consistent with the text architecture; the 16-thread
+  test shows only that no difference was observed (Avalonia documents no thread safety for drawing one geometry at once)
+  → one glyph cache per drawing consumer, so no geometry is drawn by two threads (condition 3 met without that guarantee;
+  D043 implementation notes). No blocker.
+- 2026-10-20 — Steps 27.2–27.3 (`03168e2`): the model and `project.json` v7, `TextMotionRule`, `TextPlacement`, the D043 §4
+  defaults of "+ Text", `CloneClip` copying the style (a gap found and fixed: split / duplicate / paste would have dropped
+  it); the earlier tests' format-version literals moved to 7. Tests: `TextStylePersistenceTests` (22),
+  `TextMotionRuleTests` + `TextPlacementTests` (39), `TextStyleEditTests` (15).
+- 2026-10-20 — Step 27.4 (`13f48db`): the painter (a plain text by the unchanged path, tested against a replica of the old
+  routine), `TextGlyphCache` (key, bound 64, lock, one per consumer, the UI-thread build with the export's token, shutdown
+  and 60 s timeout → `ExportFailure.RenderFailed`), `ICompositionRasterizer.Render(…, ct)`. `TextStyleRenderTests` (23):
+  Preview = export for every style, 16 px, rotation / scale / opacity and every frame of a motion; a cancel while the UI
+  thread is busy ends in < 5 s (cache and rasterizer); shutdown and timeout fail as render failures; the cost per frame
+  at 1080 × 1920 / 1920 × 1080: a bold text 0.74–0.76 ms, with outline and background 1.19–1.20 ms.
+- 2026-10-20 — Step 27.5 (`7fb0d3d`): the Inspector («Анимация» for a text, the style rows, swatches, the 3 × 3 grid),
+  `ITextBoxMeasurer` injected (found: a view model calling the painter fails without a platform in tests), the canvas in
+  `TimelineClipSelection`, resources en + ru. `TextStyleUiTests` (10), `TextStyleViewTests` (3, in the Avalonia controls
+  collection — found running in parallel with the other view tests); the Inspector's numeric fields 21 → 25.
+- 2026-10-20 — Step 27.6 (verification & closeout):
+  - Gates: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` Release and Debug 0 / 0; `dotnet test` Release
+    passed 4164, skipped 2 (the 4K scenes), failed 0 (Core 1201, Timeline 854, Project 507, UI 841, Export 108, Rendering 147,
+    Video 354, ExportEndToEnd 128 + 2, Vision 24); `AIVE_HEAVY_TESTS=1` 4166 / 0 / 0; three `--blame-hang
+    --blame-hang-timeout 5m` runs 4164 / 2 / 0 each, no hang, no dump. Then `ExportTextStyleEndToEndTests` added (real
+    ffmpeg: Preview = export canvas byte for byte on frames of the appearance, rest and disappearance; MP4 vs canvas mean
+    |Δ| max 2.04; the text comes from below) — 1 / 0 / 0. `git diff --check` clean.
+  - v6 against the Phase 26 code (`git archive 41dadf2`, a console tool built against each source): a v6 project with four
+    texts (plain, two lines with fades, rotated / scaled / translucent Times, 16 px) written by the Phase 26 code; 12
+    frames from the export's rasterizer of both builds byte-identical; saved again by this branch only `formatVersion`
+    6 → 7 differs.
+  - Real app (`docs/PHASE27_MANUAL_TEST_PLAN.md`, 13 rows; the Debug build in the scratch folder, UI Automation): "+ Текст"
+    with its defaults, outline and background together, the grid, a kind change, Undo / Redo, Save As → v7 → close → reopen,
+    an export from the app (frames looked at), an export cancelled from the progress window (no file left), closing with
+    unsaved changes, 1024 × 640 and 1440 × 900 in `ru` — PASS; the product owner's gym clip, a video player, `en` in the app,
+    the other cells / kinds / limits in the app — NOT RUN or auto only (named per row). Side effect: an automation step
+    pressed «Справка» in the native save dialog and opened a Windows help search in the user's Edge (left open).
+  - State: Phase 27 implemented and verified by Claude; the product owner's acceptance pending. Local commits only — no
+    push, pull request or merge.
 
 ### Phase 26 — Vertical video and framing (merged 2026-10-20 as `41dadf2`, PR #27)
 
