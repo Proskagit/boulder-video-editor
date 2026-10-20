@@ -2116,7 +2116,7 @@ on a curve, wrapping, font files, animation of other clip kinds, new dependencie
 - The branch; D043 accepted with the answers; Phase 26 recorded as merged; the manual plan's skeleton
   `docs/PHASE27_MANUAL_TEST_PLAN.md`; `docs/README.md`.
 
-### 27.1 — Feasibility of the outline (a separate technical check; a gate)
+### 27.1 — Feasibility of the outline (a separate technical check; a gate) *(done 2026-10-20 — D043's candidate fails off the UI thread; variant B — the geometry prepared on the UI thread and cached, the outlined text filled from it — chosen by the product owner with conditions 1–7: D043 "Refined in Step 27.1")*
 - `FormattedText.BuildGeometry` (or the equivalent) stroked with a pen in `CompositionPainter`, checked for: the quality of
   the glyph contours (small and large sizes, Cyrillic and Latin, bold, the default font and another installed one,
   thicknesses 2–20 %); the export's cost per frame at 1080 × 1920 and 1920 × 1080 with a cache per text and style; correct
@@ -2142,7 +2142,14 @@ on a curve, wrapping, font files, animation of other clip kinds, new dependencie
 ### 27.4 — Rendering: outline, background, bold
 - `TextDraw` carries the outline, the background and the weight; `CompositionPainter` draws the background, then the
   outline, then the fill; the Move tool's frame includes the background's padding.
-- Tests: Preview ↔ export parity per kind, the outline, the background and both; a v6 text byte for byte as before.
+- The outline by variant B (D043 "Refined in Step 27.1", conditions 1–7): a glyph-geometry cache keyed by the text, family,
+  size, Bold, alignment and box, bounded, thread-safe; the geometry created and first drawn on the UI thread, requested by
+  the export with its cancellation token; the closing application ends the wait (a failure or a cancellation, never a hang);
+  the fill of an outlined text from the geometry, a text without an outline by `DrawText` as before.
+- Tests: Preview ↔ export parity per kind, the outline, the background and both; a v6 text byte for byte as before; the
+  cache (a key part changed → a new geometry, the bound, a shared entry drawn by several threads); a cancel while the UI
+  thread is busy; a dispatcher that no longer runs; the guard tests of `TextOutlineFeasibilityTests` kept; 16 px quality,
+  parallel exports, the cost per frame. A failed guard or an export whose end cannot be guaranteed → stop (condition 7).
 
 ### 27.5 — Edits and the Inspector
 - `SetClipProperties` for the new fields (the merges of D017, one step per choice); the «Анимация» block replacing FADES for

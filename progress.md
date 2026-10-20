@@ -34,6 +34,20 @@ owner's command.
   carried onto it); D042's refinement, D043 accepted; ROADMAP (Phase 26 merged, Phase 27 current), DEVELOPMENT_PLAN (the
   list, the planned phases, the Phase 27 steps), this file; the manual plan's skeleton `docs/PHASE27_MANUAL_TEST_PLAN.md`;
   `docs/README.md`. Documentation only; no product code.
+- 2026-10-20 — Step 27.1 (the outline's feasibility; tests only, `Rendering.Tests/TextOutlineFeasibilityTests`, 31 cases):
+  D043's candidate (`FormattedText.BuildGeometry` in the painter) throws «Call from invalid thread» on the export's thread
+  (an `AvaloniaObject`); drawing a UI-thread `Geometry` off it throws too; the thread-free glyph-run route needs private API.
+  Variant B — the geometry built and drawn once on the UI thread, then drawn on any thread — passes: export = Preview byte
+  for byte in 11 styles, parallel exports identical, the geometry within 1 px of the glyphs, +0.1–0.6 ms per frame cached.
+  The fill over an outline from the glyph geometry (ClearType fringes and a hinting offset with `DrawText`). Gallery in the
+  session's scratch folder. **Stopped for the product owner's decision** (D043 "Refined in Step 27.1"): B's dependency on
+  the UI thread and on an undocumented Avalonia caching. `Rendering.Tests` 123 / 0 / 0 (Release, `-warnaserror` 0 / 0).
+- 2026-10-20 — the product owner chose **variant B** (the geometry prepared on the UI thread and cached; the outlined text
+  filled from it; its slight softening accepted), with conditions recorded as D043 "Refined in Step 27.1" 1–7: only
+  outlined text changes (v6 texts byte for byte), cache invalidation and a bound, thread safety (a shared entry), export
+  cancellation and application closing never hanging, the guard tests kept, the quality / parity / parallel / cost checks
+  kept, stop on a failed guard. Step 27.4 in `docs/DEVELOPMENT_PLAN.md` extended accordingly. The Step 27.1 results (the
+  test harness and these records) committed separately; no product code. Next steps only on the owner's confirmation.
 
 ### Phase 26 — Vertical video and framing (merged 2026-10-20 as `41dadf2`, PR #27)
 

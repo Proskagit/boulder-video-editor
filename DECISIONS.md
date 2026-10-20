@@ -5720,6 +5720,63 @@ the painter, the Inspector; new resources (en + ru). No new dependency.
 
 Status: Accepted (2026-10-20, product owner). Phase 27, branch `feat/phase-27-text-animation` from `41dadf2`. Step 27.1 (the
 outline's feasibility) is a gate: the implementation of 27.2 and later only after its result and the owner's go.
+
+### Refined in Step 27.1 — the outline's feasibility (2026-10-20; **variant B chosen by the product owner the same day** — see "Decision" below)
+
+Checked with Avalonia 11.1.3 in `Rendering.Tests/TextOutlineFeasibilityTests` (no product code): the candidate routine
+draws as `CompositionPainter` does; the export's path (a render target on a thread-pool thread) and the Preview's (a
+control rendered on the UI thread) compared pixel for pixel; a gallery on a coloured "wall" looked at; the cost measured.
+- **D043's candidate as written fails off the UI thread.** `FormattedText.BuildGeometry` creates a `DrawingGroup` — an
+  `AvaloniaObject`, whose constructor verifies the UI thread: «Call from invalid thread» in every export-path case. Drawing
+  a `Geometry` made on the UI thread fails the same way later (`DrawGeometry` reads `Geometry.Transform`, a styled
+  property). The thread-free route — the glyph runs turned into platform geometry by the render interface — needs
+  `AvaloniaLocator.Current` and `Geometry.PlatformImpl`, which the public reference assemblies of 11.1.3 do not expose
+  (private API only). `DrawingContext` cannot be subclassed (an internal constructor) to capture the glyph runs.
+- **What works — variant B**: the geometry built on the UI thread (a dispatcher call from the export's thread, once per text
+  and style, cached) and drawn there once, so Avalonia creates and caches its platform geometry; afterwards it is drawn on
+  any thread. Results: the export path equals the Preview path byte for byte in every case (Latin and Cyrillic, 16–160 px,
+  regular and bold, outlines 2–20 %, rotation and scale, Times / Consolas, a missing font); four exports in parallel
+  identical; the geometry lies on the glyphs (ink boxes within 1 px of `DrawText`'s); the cost per frame at 1080 × 1920 /
+  1920 × 1080 with a wall of 1 479 rectangles: the text alone 1.4–1.7 ms, with a cached outline 1.5–2.2 ms (+0.1–0.6 ms;
+  rebuilt every frame, with the dispatcher call, 2.5–2.9 ms).
+- **Quality finding**: the fill drawn by `DrawText` in a render target is ClearType (sub-pixel): coloured fringes between a
+  white fill and a black outline; with grayscale anti-aliasing the fringes go, but at 16 px the hinted fill sits off the
+  unhinted outline (the outline uneven). **The fill drawn from the same glyph geometry** is clean and even at every size —
+  the variant to use for an outlined text. (The same ClearType fringes exist today on every exported text, outline or not —
+  an observation, not changed.)
+- **Why it is not simply taken**: variant B makes the export depend on the UI thread's dispatcher for each new text style
+  (no deadlock today — the UI awaits the export asynchronously — but a cancelled or closing app must not leave the export
+  waiting), and it relies on an undocumented Avalonia behaviour (the platform geometry cached by the first draw) that an
+  Avalonia upgrade could change (a guard test would catch it). D023 says the painter runs on any thread independently.
+- Alternatives put to the product owner: B as above (recommended); a Skia drawing operation (`ICustomDrawOperation` with
+  `ISkiaSharpApiLeaseFeature`) that draws the outlined text itself — thread-free, but a direct SkiaSharp reference and its
+  own text layout to keep equal to Avalonia's; Avalonia's private API (not recommended); an outline of offset copies (lower
+  quality — not taken without a decision); Подложка only in Phase 27, the outline deferred (a scope change of Q3).
+
+**Decision (product owner, 2026-10-20): variant B.** The glyph geometry of an outlined text is prepared on the UI thread and
+cached; the fill of an outlined text is drawn from the same geometry (its slight softening against a text without an
+outline accepted). Conditions, to be met by the implementation (Step 27.4) and shown by its tests before it is accepted:
+1. **Only outlined text changes.** A text without an outline — every v6 text — is drawn by `DrawText` exactly as before,
+   byte for byte (the existing parity suites and expected values unchanged); the geometric fill only with «Обводка» on.
+2. **Cache invalidation.** The key holds everything that shapes the glyphs — the text, the family, the size, Bold, the
+   alignment and the box (origin) — and nothing that does not (the colours, the thickness, the opacity, the transform go
+   to the pen, the brush and the pushed state); a change of any key part never reuses an old geometry; the cache is
+   bounded (old entries dropped), so a long edit or export does not grow it without limit.
+3. **Thread safety.** The geometry is created and first drawn only on the UI thread; afterwards it is only read. The cache
+   is safe for the Preview (UI thread) and an export (its own thread) at once, and one cached geometry drawn by several
+   threads gives identical pixels (a test with a shared entry, not only separate ones).
+4. **Cancellation and closing.** The export's request to the UI thread never blocks without an end: it is awaited with the
+   export's cancellation token; a cancelled export stops while waiting; the application closing (the dispatcher shut down)
+   ends the wait and the export reports a failure or a cancellation — never a hang, never a partial file kept as a good
+   one. Tests: a cancel while the UI thread is busy, a dispatcher that no longer runs.
+5. **A guard against Avalonia's behaviour.** The tests of variant B stay in the suite (`TextOutlineFeasibilityTests`):
+   drawing the prepared geometry off the UI thread, the export equal to the Preview, parallel exports, and D043's candidate
+   still failing off the UI thread (if it starts to work, the dependency can be dropped). An Avalonia upgrade that breaks
+   them stops the work.
+6. **Kept checks**: the quality at small sizes (16 px, 2–20 %, the gallery looked at), Preview ↔ export parity, parallel
+   exports, the cost per frame (cached: +0.1–0.6 ms at 1080 × 1920 measured here).
+7. **Stop rule.** If a guard test fails, or the correct end of an export (cancel, close) cannot be guaranteed, the work
+   stops and the problem goes to the product owner; no automatic switch to a worse variant (offset copies, no outline).
 ---
 
 ## How to add a decision
