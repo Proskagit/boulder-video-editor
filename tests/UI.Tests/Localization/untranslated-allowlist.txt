@@ -9,8 +9,11 @@ src/Timeline/Commands/TimelineCommands.cs	Add Clip
 src/Timeline/Commands/TimelineCommands.cs	Add Dissolve
 src/Timeline/Commands/TimelineCommands.cs	Add Hold
 src/Timeline/Commands/TimelineCommands.cs	Animate Holds
+src/Timeline/Commands/TimelineCommands.cs	Change Appearance
+src/Timeline/Commands/TimelineCommands.cs	Change Bold
 src/Timeline/Commands/TimelineCommands.cs	Change Clip Properties
 src/Timeline/Commands/TimelineCommands.cs	Change Crop
+src/Timeline/Commands/TimelineCommands.cs	Change Disappearance
 src/Timeline/Commands/TimelineCommands.cs	Change Dissolve Duration
 src/Timeline/Commands/TimelineCommands.cs	Change Fade In
 src/Timeline/Commands/TimelineCommands.cs	Change Fade Out
@@ -27,6 +30,7 @@ src/Timeline/Commands/TimelineCommands.cs	Change Position
 src/Timeline/Commands/TimelineCommands.cs	Change Rotation
 src/Timeline/Commands/TimelineCommands.cs	Change Scale
 src/Timeline/Commands/TimelineCommands.cs	Change Text Alignment
+src/Timeline/Commands/TimelineCommands.cs	Change Text Background
 src/Timeline/Commands/TimelineCommands.cs	Change Text Color
 src/Timeline/Commands/TimelineCommands.cs	Change Volume
 src/Timeline/Commands/TimelineCommands.cs	Edit Hold Outline
@@ -116,6 +120,14 @@ src/Project/Persistence/ProjectSerializer.cs	a hold markup has no model id
 src/Project/Persistence/ProjectSerializer.cs	a hold markup has no outline width
 src/Project/Persistence/ProjectSerializer.cs	a hold's contour has an odd number of coordinates
 src/Project/Persistence/ProjectSerializer.cs	a link is invalid: {invalidLink.TrimEnd('.')}
+src/Project/Persistence/ProjectSerializer.cs	a text background has no colour
+src/Project/Persistence/ProjectSerializer.cs	a text background has no opacity
+src/Project/Persistence/ProjectSerializer.cs	a text background has no state
+src/Project/Persistence/ProjectSerializer.cs	a text motion has no kind
+src/Project/Persistence/ProjectSerializer.cs	a text motion has no side
+src/Project/Persistence/ProjectSerializer.cs	a text outline has no colour
+src/Project/Persistence/ProjectSerializer.cs	a text outline has no state
+src/Project/Persistence/ProjectSerializer.cs	a text outline has no thickness
 src/Project/Persistence/ProjectSerializer.cs	a transition on track {track.Name} is invalid: {invalid.TrimEnd('.')}
 src/Project/Persistence/ProjectSerializer.cs	an image clip has a speed
 src/Project/Persistence/ProjectSerializer.cs	audio track list is missing

@@ -90,8 +90,18 @@ public static class ClipPropertyValidator
 
         if (!Enum.IsDefined(t.Alignment)) return Messages.Prop_UnknownAlignment;
 
+        // D043: the outline, the background and the motions — checked whether they are on or off (their values are kept).
+        if (!IsHexColor(t.Outline.ColorHex) || !IsHexColor(t.Background.ColorHex)) return Messages.Prop_ColorFormat;
+        if (!InRange(t.Outline.Thickness, MinOutlineThickness, MaxOutlineThickness))
+            return string.Format(Messages.Prop_OutlineThickness, Pct(MinOutlineThickness), Pct(MaxOutlineThickness));
+        if (!InRange(t.Background.Opacity, MinBackgroundOpacity, MaxBackgroundOpacity))
+            return string.Format(Messages.Prop_BackgroundOpacity, Pct(MinBackgroundOpacity), Pct(MaxBackgroundOpacity));
+        if (!IsMotion(t.MotionIn) || !IsMotion(t.MotionOut)) return Messages.Prop_UnknownMotion;
+
         return null;
     }
+
+    private static bool IsMotion(TextMotion m) => Enum.IsDefined(m.Kind) && Enum.IsDefined(m.Side);
 
     private static bool InRange(double value, double min, double max) =>
         double.IsFinite(value) && value >= min && value <= max;

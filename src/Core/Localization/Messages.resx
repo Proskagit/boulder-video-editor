@@ -616,6 +616,9 @@
   <data name="Prop_AudioNoPicture" xml:space="preserve">
     <value>Audio clips have no picture properties.</value>
   </data>
+  <data name="Prop_BackgroundOpacity" xml:space="preserve">
+    <value>The background's opacity must be from {0} to {1}.</value>
+  </data>
   <data name="Prop_ColorFormat" xml:space="preserve">
     <value>Color must be written as #RRGGBB.</value>
   </data>
@@ -640,6 +643,9 @@
   <data name="Prop_Opacity" xml:space="preserve">
     <value>Opacity must be between {0} and {1}.</value>
   </data>
+  <data name="Prop_OutlineThickness" xml:space="preserve">
+    <value>The outline's thickness must be from {0} to {1} of the font size.</value>
+  </data>
   <data name="Prop_Position" xml:space="preserve">
     <value>Position must be between {0} and {1} pixels.</value>
   </data>
@@ -660,6 +666,9 @@
   </data>
   <data name="Prop_UnknownAlignment" xml:space="preserve">
     <value>Unknown text alignment.</value>
+  </data>
+  <data name="Prop_UnknownMotion" xml:space="preserve">
+    <value>Unknown text animation.</value>
   </data>
   <data name="Prop_Volume" xml:space="preserve">
     <value>Volume must be between {0} and {1}.</value>

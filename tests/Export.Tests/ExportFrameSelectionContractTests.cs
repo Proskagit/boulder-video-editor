@@ -239,7 +239,7 @@ public sealed class ExportFrameSelectionContractTests
         Assert.Contains(bottomId, frames[60]);
         Assert.Equal(2, _exportDecoder.OpenCount(bottom.FilePath));               // closed while culled, reopened at 60
         Assert.Equal(1, _exportDecoder.OpenCount(image.FilePath));                // a still image is decoded once
-        Assert.EndsWith(":T", frames[50]);                                        // text on top
+        Assert.Matches(":T(@[0-9A-F]{16})?$", frames[50]);                        // text on top (at its D043 default fade in)
     }
 
     // --- fades (Phase 10 Step 10.4, D025 §2) ------------------------------------------------------------

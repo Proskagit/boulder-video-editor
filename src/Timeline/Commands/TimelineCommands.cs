@@ -350,6 +350,11 @@ public sealed class SetClipPropertiesCommand(Clip clip, ClipPropertyValues befor
         ClipPropertyFields.FadeIn => "Change Fade In",
         ClipPropertyFields.FadeOut => "Change Fade Out",
         ClipPropertyFields.FadeIn | ClipPropertyFields.FadeOut => "Change Fades",
+        ClipPropertyFields.Bold => "Change Bold",
+        ClipPropertyFields.OutlineEnabled or ClipPropertyFields.OutlineColor or ClipPropertyFields.OutlineThickness => "Change Outline",
+        ClipPropertyFields.BackgroundEnabled or ClipPropertyFields.BackgroundColor or ClipPropertyFields.BackgroundOpacity => "Change Text Background",
+        _ when (fields & ~(ClipPropertyFields.MotionIn | ClipPropertyFields.FadeIn)) == 0 => "Change Appearance",
+        _ when (fields & ~(ClipPropertyFields.MotionOut | ClipPropertyFields.FadeOut)) == 0 => "Change Disappearance",
         _ => "Change Clip Properties"
     };
 }

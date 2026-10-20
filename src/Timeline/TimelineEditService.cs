@@ -169,7 +169,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return null;
     }
 
-    public TimelineEditResult AddTextClip(MediaTime start)
+    public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null)
     {
         // Titles go over the picture: the topmost video track, never a new one.
         var track = Sequence.VideoTracks.OrderByDescending(t => t.Order).FirstOrDefault();
@@ -182,9 +182,23 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var frames = Math.Max(1, DefaultTextDuration.ToNearestFrame(rate));
 
         // Text defaults are the model's (Segoe UI, #FFFFFF, centred); the content is set, and the size from the canvas
-        // height (D030 §9, Q14), so a title reads the same on any canvas.
-        var clip = new TextClip { Text = DefaultText, FontSize = ProjectSettingsRules.NewTextFontSize(Settings.FrameHeight) };
+        // height (D030 §9, Q14), so a title reads the same on any canvas. D043 §4: bold, a black 60 % background, «Выезд»
+        // from below over a 0.4 s fade in, «Проявление» over a 0.3 s fade out (whole frames, D025), at the bottom centre.
+        var clip = new TextClip
+        {
+            Text = DefaultText, FontSize = ProjectSettingsRules.NewTextFontSize(Settings.FrameHeight), Bold = true,
+            Background = TextBackground.Default with { IsEnabled = true },
+            MotionIn = new TextMotion(TextMotionKind.Slide, TextMotionSide.Bottom), MotionOut = TextMotion.None
+        };
         ClipState.FromFrames(startFrame, startFrame + frames, MediaTime.Zero, rate).ApplyTo(clip);
+        clip.FadeIn = MediaTime.FromFrame(Math.Clamp(MediaTime.FromSeconds(TextAnimationLimits.DefaultInSeconds).ToNearestFrame(rate), 1, frames), rate);
+        clip.FadeOut = MediaTime.FromFrame(Math.Clamp(MediaTime.FromSeconds(TextAnimationLimits.DefaultOutSeconds).ToNearestFrame(rate), 1, frames), rate);
+        if (measureBox is not null && TextProperties.Of(clip) is { } text)
+        {
+            var (width, height) = measureBox(text);
+            (clip.PositionX, clip.PositionY) = TextPlacement.Position(new FrameSize(Settings.FrameWidth, Settings.FrameHeight), text,
+                VisualProperties.Of(clip)!.Value, width, height, TextGridRow.Bottom, TextGridColumn.Centre);
+        }
         plan.Insert(track, clip);
 
         if (MakeRoom(plan, new[] { ((Clip)clip, track) }, string.Format(Messages.Verb_AddText, track.Name)) is { } roomError)   // D037 §3
@@ -2035,7 +2049,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
             TextClip t => new TextClip
             {
                 Text = t.Text, FontFamily = t.FontFamily, FontSize = t.FontSize, ColorHex = t.ColorHex, Alignment = t.Alignment,
-                PositionX = t.PositionX, PositionY = t.PositionY, Scale = t.Scale, RotationDegrees = t.RotationDegrees, Opacity = t.Opacity
+                PositionX = t.PositionX, PositionY = t.PositionY, Scale = t.Scale, RotationDegrees = t.RotationDegrees, Opacity = t.Opacity,
+                // D043: the style and both motions go with the copy (a split's parts keep them; their fades follow D025).
+                Bold = t.Bold, Outline = t.Outline, Background = t.Background, MotionIn = t.MotionIn, MotionOut = t.MotionOut
             },
             _ => throw new NotSupportedException($"Unknown clip type {source.GetType().Name}.")
         };

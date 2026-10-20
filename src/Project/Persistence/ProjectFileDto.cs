@@ -309,6 +309,46 @@ internal sealed class TextClipDto : ClipDto
     public double Scale { get; set; }
     public double RotationDegrees { get; set; }
     public double Opacity { get; set; }
+
+    // Format v7 (D043 §5): optional, written only when the text has them (a text like an older version's is saved as
+    // before apart from formatVersion). Every member of an object is required when the object is present.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Bold { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TextOutlineDto? Outline { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TextBackgroundDto? Background { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TextMotionDto? MotionIn { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TextMotionDto? MotionOut { get; set; }
+}
+
+/// <summary>Format v7: «Обводка» — on / off, the colour, the thickness (× the font size).</summary>
+internal sealed class TextOutlineDto
+{
+    public bool? Enabled { get; set; }
+    public string? ColorHex { get; set; }
+    public double? Thickness { get; set; }
+}
+
+/// <summary>Format v7: «Подложка» — on / off, the colour, the opacity.</summary>
+internal sealed class TextBackgroundDto
+{
+    public bool? Enabled { get; set; }
+    public string? ColorHex { get; set; }
+    public double? Opacity { get; set; }
+}
+
+/// <summary>Format v7: an appearance / disappearance motion; its duration is the clip's fade.</summary>
+internal sealed class TextMotionDto
+{
+    public TextMotionKind? Kind { get; set; }
+    public TextMotionSide? Side { get; set; }
 }
 
 internal sealed class CropDto

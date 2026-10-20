@@ -27,6 +27,17 @@ public enum ClipPropertyFields
     FadeIn = 1 << 16,
     FadeOut = 1 << 17,
 
+    // D043: text style and motion.
+    Bold = 1 << 18,
+    OutlineEnabled = 1 << 19,
+    OutlineColor = 1 << 20,
+    OutlineThickness = 1 << 21,
+    BackgroundEnabled = 1 << 22,
+    BackgroundColor = 1 << 23,
+    BackgroundOpacity = 1 << 24,
+    MotionIn = 1 << 25,
+    MotionOut = 1 << 26,
+
     Crop = CropLeft | CropTop | CropRight | CropBottom
 }
 
@@ -79,6 +90,7 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
             if (clip is not TextClip c)
                 throw new InvalidOperationException($"{clip.GetType().Name} has no text properties.");
             (c.Text, c.FontFamily, c.FontSize, c.ColorHex, c.Alignment) = (t.Text, t.FontFamily, t.FontSize, t.ColorHex, t.Alignment);
+            (c.Bold, c.Outline, c.Background, c.MotionIn, c.MotionOut) = (t.Bold, t.Outline, t.Background, t.MotionIn, t.MotionOut);
         }
 
         if (Fade is { } f)
@@ -116,6 +128,15 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
             if (!ta.FontSize.Equals(tb.FontSize)) fields |= ClipPropertyFields.FontSize;
             if (!string.Equals(ta.ColorHex, tb.ColorHex, StringComparison.Ordinal)) fields |= ClipPropertyFields.Color;
             if (ta.Alignment != tb.Alignment) fields |= ClipPropertyFields.Alignment;
+            if (ta.Bold != tb.Bold) fields |= ClipPropertyFields.Bold;
+            if (ta.Outline.IsEnabled != tb.Outline.IsEnabled) fields |= ClipPropertyFields.OutlineEnabled;
+            if (!string.Equals(ta.Outline.ColorHex, tb.Outline.ColorHex, StringComparison.Ordinal)) fields |= ClipPropertyFields.OutlineColor;
+            if (!ta.Outline.Thickness.Equals(tb.Outline.Thickness)) fields |= ClipPropertyFields.OutlineThickness;
+            if (ta.Background.IsEnabled != tb.Background.IsEnabled) fields |= ClipPropertyFields.BackgroundEnabled;
+            if (!string.Equals(ta.Background.ColorHex, tb.Background.ColorHex, StringComparison.Ordinal)) fields |= ClipPropertyFields.BackgroundColor;
+            if (!ta.Background.Opacity.Equals(tb.Background.Opacity)) fields |= ClipPropertyFields.BackgroundOpacity;
+            if (ta.MotionIn != tb.MotionIn) fields |= ClipPropertyFields.MotionIn;
+            if (ta.MotionOut != tb.MotionOut) fields |= ClipPropertyFields.MotionOut;
         }
 
         if (a.Fade is { } fa && b.Fade is { } fb)
