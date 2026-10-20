@@ -590,7 +590,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         {
             _undoRedo.Undo();
             return TimelineEditResult.Ok(new[] { clip.Id },
-                step.Changes.Any(c => c is RemoveTransitionCommand) ? Messages.Edit_DissolveBack : null);
+                step.Changes.OfType<RemoveTransitionCommand>().FirstOrDefault() is { } back
+                    ? Tr(back.Track, back.Transition.TransitionTypeId, Messages.Edit_DissolveBack, Messages.Edit_DissolveBack, Messages.Edit_TransitionBackNamed)
+                    : null);
         }
 
         // The speed never changes the source range: the frame count follows from it.
@@ -667,7 +669,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         foreach (var clip in toSplit)
         {
             if (!PlanSplitClip(plan, plan.TrackOf(clip), clip, ClipState.Capture(clip), atFrame, out var rightClip))
-                return TimelineEditResult.Fail(Tr(plan.TrackOf(clip), Messages.Split_InsideDissolve, Messages.Split_InsideCrossfade));
+                return TimelineEditResult.Fail(Tr(plan.TrackOf(clip),
+                    ZoneAt(plan.TrackOf(clip), clip, ClipState.Capture(clip), atFrame, plan.Rate)?.TransitionTypeId,
+                    Messages.Split_InsideDissolve, Messages.Split_InsideCrossfade, Messages.Split_InsideNamed));
             ids.Add(clip.Id);
             ids.Add(rightClip.Id);
             splits.Add((clip, rightClip));
@@ -689,6 +693,22 @@ public sealed partial class TimelineEditService : ITimelineEditService
     /// Split and Insert / Overwrite (D031 SQ6 / SQ9). False — nothing planned — when the cut is inside a dissolve's zone
     /// (D025 §5).
     /// </summary>
+    /// <summary>The transition of <paramref name="clip"/> whose zone a split at <paramref name="atFrame"/> would fall
+    /// strictly inside (D025 §5), or null.</summary>
+    private static Transition? ZoneAt(Track track, Clip clip, ClipState state, long atFrame, FrameRate rate)
+    {
+        var startFrame = state.Start.ToNearestFrame(rate);
+        var endFrame = state.End.ToNearestFrame(rate);
+        foreach (var transition in track.Transitions)
+        {
+            var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(transition.Duration, rate));
+            if ((transition.LeftClipId == clip.Id && atFrame > endFrame - beforeCut) ||
+                (transition.RightClipId == clip.Id && atFrame < startFrame + afterCut))
+                return transition;
+        }
+        return null;
+    }
+
     private bool PlanSplitClip(EditPlan plan, Track track, Clip clip, ClipState state, long atFrame, out Clip rightClip)
     {
         var rate = plan.Rate;
@@ -699,13 +719,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         rightClip = null!;
 
         // D025 §5: never inside a dissolve's zone.
-        foreach (var transition in track.Transitions)
-        {
-            var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(transition.Duration, rate));
-            if ((transition.LeftClipId == clip.Id && atFrame > endFrame - beforeCut) ||
-                (transition.RightClipId == clip.Id && atFrame < startFrame + afterCut))
-                return false;
-        }
+        if (ZoneAt(track, clip, state, atFrame, rate) is not null) return false;
 
         ClipState left, right;
         if (clip is MediaBackedClip && !state.Speed.IsNormal)
@@ -764,6 +778,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var trimmed = new List<Clip>();
         var keptAtCut = 0;      // plain trims not made: the trimmed edge is a dissolve's cut (Q4)
         var stopped = 0;        // trims stopped where a dissolve needs the clip's frames (Q4 / Q6)
+        string? keptType = null, stoppedType = null;   // the types the notes name (D044)
         long? playheadAfter = null;
         foreach (var clip in eligible)
         {
@@ -782,7 +797,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 // The ripple trim's one planner, shared with the Shift + edge drag (D030 §5 / §6).
                 var (changed, wasStopped, rippleError) = PlanRippleTrim(plan, clip, track, edge, at);
                 if (rippleError is not null) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantTrim, rippleError));
-                if (wasStopped) stopped++;
+                if (wasStopped && stopped++ == 0) stoppedType = EdgeTypeOf(track, clip);
                 if (!changed) continue;
                 if (edge == ClipEdge.Start) playheadAfter = Math.Min(playheadAfter ?? long.MaxValue, start);   // Q5
                 trimmed.Add(clip);
@@ -794,13 +809,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
             if ((edge == ClipEdge.Start ? partAtStart : partAtEnd) > 0)
             {
                 allowed = 0;
-                keptAtCut++;
+                if (keptAtCut++ == 0) keptType = EdgeTypeOf(track, clip, edge);
             }
             else
             {
                 var minFrames = Math.Max(1, edge == ClipEdge.Start ? partAtEnd : partAtStart);
                 allowed = Math.Min(wanted, Math.Max(0, end - start - minFrames));
-                if (allowed < wanted) stopped++;
+                if (allowed < wanted && stopped++ == 0) stoppedType = EdgeTypeOf(track, clip);
             }
             if (allowed == 0) continue;
 
@@ -810,10 +825,12 @@ public sealed partial class TimelineEditService : ITimelineEditService
         }
 
         var notes = Join(
-            keptAtCut == 0 ? null : edge == ClipEdge.Start
+            keptAtCut == 0 ? null : IsNamed(keptType)
+                ? string.Format(edge == ClipEdge.Start ? Messages.Edit_NotTrimmedStartNamed : Messages.Edit_NotTrimmedEndNamed, TypeName(keptType!))
+                : edge == ClipEdge.Start
                 ? Messages.Edit_NotTrimmedStart
                 : Messages.Edit_NotTrimmedEnd,
-            stopped == 0 ? null : DissolveStopNote);
+            stopped == 0 ? null : StopNote(stoppedType));
         if (trimmed.Count == 0) return TimelineEditResult.Fail(notes!);
 
         if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantTrim, error));
@@ -969,11 +986,17 @@ public sealed partial class TimelineEditService : ITimelineEditService
     {
         var (plan, stopped, error) = PlanRippleTrimOf(clipId, edge, edgeTime);
         if (error is not null) return TimelineEditResult.Fail(error);
-        if (plan is null) return stopped ? TimelineEditResult.Fail(DissolveStopNote) : TimelineEditResult.Unchanged();
+        if (plan is null) return stopped ? TimelineEditResult.Fail(StopNoteOf(clipId)) : TimelineEditResult.Unchanged();
 
         Commit(plan, edge == ClipEdge.Start ? "Ripple Trim Start" : "Ripple Trim End");
-        return TimelineEditResult.Ok(new[] { clipId }, Join(stopped ? DissolveStopNote : null, TransitionNote(plan)));
+        return TimelineEditResult.Ok(new[] { clipId }, Join(stopped ? StopNoteOf(clipId) : null, TransitionNote(plan)));
     }
+
+    /// <summary><see cref="StopNote"/> for the transitions of the clip <paramref name="clipId"/>.</summary>
+    private string StopNoteOf(Guid clipId) =>
+        StopNote(Sequence.VideoTracks.Concat(Sequence.AudioTracks)
+            .Select(t => t.Clips.FirstOrDefault(c => c.Id == clipId) is { } clip ? EdgeTypeOf(t, clip) : null)
+            .FirstOrDefault(id => id is not null));
 
     public RippleTrimPreview? PreviewRippleTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime)
     {
@@ -1001,7 +1024,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return (plan, stopped, null);
     }
 
-    private static string DissolveStopNote => Messages.Edit_TrimStoppedDissolve;
+    /// <summary>The note of a trim stopped where a transition of <paramref name="typeId"/> needs the clip's frames.</summary>
+    private static string StopNote(string? typeId) =>
+        IsNamed(typeId) ? string.Format(Messages.Edit_TrimStoppedNamed, TypeName(typeId!)) : Messages.Edit_TrimStoppedDissolve;
 
     // --- Slip (D030 §7) ------------------------------------------------------------------
 
@@ -1082,7 +1107,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (applied != frames)
         {
             var sourceEnd = Reach(frames > 0 ? 1 : -1, SourceOk);
-            note = applied != sourceEnd ? Messages.Edit_SlipStoppedDissolve
+            note = applied != sourceEnd
+                ? IsNamed(track, EdgeTypeOf(track, clip)) ? string.Format(Messages.Edit_SlipStoppedNamed, TypeName(EdgeTypeOf(track, clip)!))
+                : Messages.Edit_SlipStoppedDissolve
                 : frames > 0 ? Messages.Edit_SlipStoppedEnd
                 : Messages.Edit_SlipStoppedStart;
         }
@@ -1696,8 +1723,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (ResolveCut(plan, leftClipId, rightClipId, out var track, out var left, out var right) is { } cutError)
             return TimelineEditResult.Fail(cutError);
         var noun = TransitionNoun(track);
-        if (track.Transitions.Any(t => t.LeftClipId == left.Id))
-            return TimelineEditResult.Fail(Tr(noun, Messages.Transition_CutHasDissolve, Messages.Transition_CutHasCrossfade));
+        if (CutHas(track, left) is { } cutHas) return TimelineEditResult.Fail(cutHas);
 
         // The track's kind decides the type: a dissolve on a video track, a crossfade on an audio track (D032 R9).
         var typeId = TransitionRules.TypeFor(track.Type);
@@ -1714,12 +1740,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
     public TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, string typeId)
     {
         var plan = new EditPlan(Sequence, Settings);
-        if (ResolveCut(plan, leftClipId, rightClipId, out var track, out var left, out var right) is { } cutError)
+        if (ResolveCut(plan, leftClipId, rightClipId, out var track, out var left, out var right, typeId: typeId) is { } cutError)
             return TimelineEditResult.Fail(cutError);
         if (!TransitionRules.Allows(track.Type, typeId)) return TimelineEditResult.Fail(Messages.Transition_WrongType);
         var noun = TransitionNoun(track);
-        if (track.Transitions.Any(t => t.LeftClipId == left.Id))
-            return TimelineEditResult.Fail(Tr(noun, Messages.Transition_CutHasDissolve, Messages.Transition_CutHasCrossfade));
+        if (CutHas(track, left) is { } cutHas) return TimelineEditResult.Fail(cutHas);
 
         // D044 §6: the type's default, or the longest that fits when that is shorter (never below the type's minimum);
         // never another type.
@@ -1740,7 +1765,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         };
         plan.AddTransition(track, transition);
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail(string.Format(Tr(noun, Messages.Transition_CantAddDissolve, Messages.Transition_CantAddCrossfade), error));
+            return TimelineEditResult.Fail(IsNamed(track, typeId)
+                ? string.Format(Messages.Transition_CantAddNamed, TypeName(typeId), error)
+                : string.Format(Tr(noun, Messages.Transition_CantAddDissolve, Messages.Transition_CantAddCrossfade), error));
 
         var description = typeId is TransitionRules.CrossDissolve or TransitionRules.Crossfade ? $"Add {Title(noun)}" : "Add Transition";
         _undoRedo.Execute(new NotifyingCommand(new AddTransitionCommand(track, transition, description), _projectService.NotifyTimelineChanged));
@@ -1771,7 +1798,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var after = before with { TypeId = typeId, Direction = TransitionRules.DefaultDirection(typeId), Duration = stored };
         plan.UpdateTransition(transition, after);
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail(string.Format(Messages.Transition_CantChangeDissolve, error));
+            return TimelineEditResult.Fail(CantChange(track, transition, error));
 
         _undoRedo.Execute(new NotifyingCommand(new UpdateTransitionCommand(transition, before, after, "Change Transition Type"),
             _projectService.NotifyTimelineChanged));
@@ -1830,7 +1857,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var after = before with { Duration = stored };
         plan.UpdateTransition(transition, after);
         if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail(string.Format(Tr(noun, Messages.Transition_CantChangeDissolve, Messages.Transition_CantChangeCrossfade), error));
+            return TimelineEditResult.Fail(CantChange(track, transition, error));
 
         _undoRedo.Execute(new NotifyingCommand(new UpdateTransitionCommand(transition, before, after, $"Change {Title(noun)} Duration"),
             _projectService.NotifyTimelineChanged));
@@ -1886,18 +1913,18 @@ public sealed partial class TimelineEditService : ITimelineEditService
     /// <summary>Two touching clips of one (unlocked) track, A left of B: a dissolve on a video track, a crossfade on an audio
     /// track (D032 R9).</summary>
     private static string? ResolveCut(EditPlan plan, Guid leftClipId, Guid rightClipId, out Track track, out Clip left, out Clip right,
-        bool allowLocked = false)
+        bool allowLocked = false, string? typeId = null)
     {
         track = null!;
         left = right = null!;
         if (Resolve(plan, new[] { leftClipId, rightClipId }, out var clips) is { } resolveError) return resolveError;
-        if (clips.Count != 2) return Messages.Edit_DissolveTwoClips;
+        if (clips.Count != 2) return IsNamed(typeId) ? Messages.TransitionRule_TwoClips : Messages.Edit_DissolveTwoClips;
         (left, right) = (clips[0], clips[1]);
         track = plan.TrackOf(left);
-        if (plan.TrackOf(right) != track) return Messages.Edit_DissolveSameTrack;
+        if (plan.TrackOf(right) != track) return IsNamed(typeId) ? Messages.Edit_TransitionSameTrack : Messages.Edit_DissolveSameTrack;
         if (!allowLocked && track.IsLocked) return string.Format(Messages.Edit_TrackLocked, track.Name);
         if (left.TimelineEnd != right.TimelineStart)
-            return Tr(track, Messages.Transition_NeedsMeetDissolve, Messages.Transition_NeedsMeetCrossfade);
+            return Tr(track, typeId, Messages.Transition_NeedsMeetDissolve, Messages.Transition_NeedsMeetCrossfade, Messages.Transition_NeedsMeetNamed);
         return null;
     }
 
@@ -1936,6 +1963,47 @@ public sealed partial class TimelineEditService : ITimelineEditService
     private static string Tr(string noun, string dissolve, string crossfade) => noun == "crossfade" ? crossfade : dissolve;
 
     private static string Tr(Track track, string dissolve, string crossfade) => Tr(TransitionNoun(track), dissolve, crossfade);
+
+    /// <summary>True when a message about a transition of <paramref name="typeId"/> on <paramref name="track"/> names its
+    /// type (D044): a library type other than the dissolve; a dissolve and a crossfade keep their own words.</summary>
+    private static bool IsNamed(Track track, string? typeId) => track.Type == TrackType.Video && IsNamed(typeId);
+
+    private static bool IsNamed(string? typeId) => typeId is not (null or TransitionRules.CrossDissolve or TransitionRules.Crossfade);
+
+    /// <summary>The message of a dissolve, of a crossfade, or <paramref name="named"/> with the type's name for the other
+    /// types of the library (D044).</summary>
+    private static string Tr(Track track, string? typeId, string dissolve, string crossfade, string named) =>
+        IsNamed(track, typeId) ? string.Format(named, TypeName(typeId!)) : Tr(track, dissolve, crossfade);
+
+    /// <summary>The name of a library type in a message (the Inspector's and the menu's name).</summary>
+    private static string TypeName(string typeId) => typeId switch
+    {
+        TransitionRules.DipToBlack => Messages.TransitionName_DipToBlack,
+        TransitionRules.Flash => Messages.TransitionName_Flash,
+        TransitionRules.Zoom => Messages.TransitionName_Zoom,
+        TransitionRules.Push => Messages.TransitionName_Push,
+        _ => Messages.TransitionName_CrossDissolve
+    };
+
+    /// <summary>The type a message about <paramref name="clip"/>'s transitions names: of the transitions at its
+    /// <paramref name="edge"/> (both edges when null), a library type before a dissolve; null when it has none.</summary>
+    private static string? EdgeTypeOf(Track track, Clip clip, ClipEdge? edge = null) =>
+        track.Transitions
+            .Where(t => (edge != ClipEdge.Start && t.LeftClipId == clip.Id) || (edge != ClipEdge.End && t.RightClipId == clip.Id))
+            .Select(t => t.TransitionTypeId)
+            .OrderBy(id => !IsNamed(id))
+            .FirstOrDefault();
+
+    /// <summary>The refusal when the cut after <paramref name="left"/> already has a transition, naming that one; else null.</summary>
+    private static string? CutHas(Track track, Clip left) =>
+        track.Transitions.FirstOrDefault(t => t.LeftClipId == left.Id) is { } existing
+            ? Tr(track, existing.TransitionTypeId, Messages.Transition_CutHasDissolve, Messages.Transition_CutHasCrossfade, Messages.Transition_CutHasNamed)
+            : null;
+
+    private static string CantChange(Track track, Transition transition, string error) =>
+        IsNamed(track, transition.TransitionTypeId)
+            ? string.Format(Messages.Transition_CantChangeNamed, TypeName(transition.TransitionTypeId), error)
+            : string.Format(Tr(track, Messages.Transition_CantChangeDissolve, Messages.Transition_CantChangeCrossfade), error);
 
     private (Track Track, Transition Transition)? FindTransition(Guid id)
     {
@@ -2110,11 +2178,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     /// <summary>The status note for dissolves an edit removed because their cut is gone (D025 §5), or null.</summary>
     private static string? TransitionNote(EditPlan plan) => Join(
-        (plan.AutoRemovedTransitions - plan.AutoRemovedCrossfades) switch
+        plan.AutoRemovedVideoTypes switch
         {
-            0 => null,
-            1 => Messages.Edit_DissolveRemoved,
-            var n => string.Format(Messages.Edit_DissolvesRemoved, n)
+            [] => null,
+            [var one] => IsNamed(one) ? string.Format(Messages.Edit_TransitionRemovedNamed, TypeName(one)) : Messages.Edit_DissolveRemoved,
+            var many => many.Any(IsNamed)
+                ? string.Format(Messages.Edit_TransitionsRemoved, many.Count)
+                : string.Format(Messages.Edit_DissolvesRemoved, many.Count)
         },
         plan.AutoRemovedCrossfades switch
         {

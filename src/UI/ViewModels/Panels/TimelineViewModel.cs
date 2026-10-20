@@ -724,14 +724,15 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void AddTransition(string? typeId)
     {
         if (DissolvePair() is not var (left, right) || typeId is null) return;
+        var selectVideo = typeId == TransitionRules.CrossDissolve ? Strings.Dissolve_SelectVideo : Strings.Transition_SelectVideo;
         if (left is AudioClip && typeId != TransitionRules.Crossfade)
         {
-            _status.Report(Strings.Dissolve_SelectVideo);
+            _status.Report(selectVideo);
             return;
         }
         if (_edit.MaxTransitionFrames(left.Id, right.Id, typeId) is null)   // the clips don't meet on one track
         {
-            _status.Report(left is AudioClip ? Strings.Dissolve_SelectAudio : Strings.Dissolve_SelectVideo);
+            _status.Report(left is AudioClip ? Strings.Dissolve_SelectAudio : selectVideo);
             return;
         }
 

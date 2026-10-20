@@ -1914,4 +1914,13 @@
   <data name="Transition_TypeChangedClamped" xml:space="preserve">
     <value>Переход изменён: «{0}»; длительность теперь {1}.</value>
   </data>
+  <data name="Transition_SelectVideo" xml:space="preserve">
+    <value>Выберите два соседних клипа на видеодорожке (первый заканчивается там, где начинается второй), чтобы добавить переход.</value>
+  </data>
+  <data name="Transition_NotChangedAny" xml:space="preserve">
+    <value>Не удалось изменить переход.</value>
+  </data>
+  <data name="Transition_NoLonger" xml:space="preserve">
+    <value>Длиннее, чем сейчас, здесь не поместится.</value>
+  </data>
 </root>

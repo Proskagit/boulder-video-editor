@@ -75,7 +75,8 @@ public sealed class FadeViewBindingTests
         Assert.Equal((0.4m, 0.12m, 4m), (field.Value, field.Minimum, field.Maximum));                  // 3 frames … 100 fit
         Assert.Contains(view.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == $"{0.4m.ToString(System.Globalization.CultureInfo.CurrentCulture)} s · 10 frames");
         Assert.Contains(view.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Longest that fits here: 4 s · 100 frames");
-        var remove = view.GetLogicalDescendants().OfType<Button>().Single(x => Equals(x.Content, "Remove transition"));
+        var remove = view.GetLogicalDescendants().OfType<Button>()
+            .Single(x => x.Content is TextBlock { Text: "Remove transition" });                          // a label that wraps (D1)
         Assert.Same(inspector.RemoveDissolveCommand, remove.Command);
 
         field.Value = 0.8m;                                                      // typing in the view edits the dissolve

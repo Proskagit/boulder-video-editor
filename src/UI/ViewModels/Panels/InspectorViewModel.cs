@@ -396,7 +396,10 @@ public sealed partial class InspectorViewModel : ViewModelBase
             MaxDissolveFrames = Math.Max(frames, s.MaxFrames ?? frames);
             DissolveFrames = frames;
             DissolveTimeDisplay = TimeFormat.ToTimecode(MediaTime.FromFrame(frames, s.Rate), s.Rate);
-            DissolveLimitDisplay = s.MaxFrames is { } max ? string.Format(Strings.Transition_Longest, Plural.Format(max, Strings.Plural_Frames)) : "";
+            // A longest shorter than the stored duration (the source unknown or shorter since) is not shown as a limit.
+            DissolveLimitDisplay = s.MaxFrames is not { } max ? ""
+                : max < frames ? Strings.Transition_NoLonger
+                : string.Format(Strings.Transition_Longest, Plural.Format(max, Strings.Plural_Frames));
             DissolveClipsDisplay = $"{s.LeftName} → {s.RightName} ({s.Track.Name})";
             TransitionTitle = s.Track.Type == TrackType.Audio ? Strings.Transition_Crossfade : Strings.Transition_Heading;
             if (s.Track.Type == TrackType.Video) SyncLibrary(s);

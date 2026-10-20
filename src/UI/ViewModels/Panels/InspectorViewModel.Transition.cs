@@ -29,7 +29,8 @@ public sealed partial class TransitionDirectionOption(TransitionDirection direct
 
 // The TRANSITION section of a video transition (D044 §5–§6): the type (five buttons; one that cannot fit is disabled
 // with the reason), a push's direction (four buttons), the duration in seconds — a field and a slider, shown as the
-// seconds of the stored whole frames with their count; the arrows step on the 0.1 s grid — and Remove. A type or a
+// seconds of the stored whole frames with their count; the arrows step on the 0.1 s grid (StepTransitionSeconds), a typed
+// value goes to the nearest frame — and Remove. A type or a
 // direction is one undo step, durations merge; every rule is the edit service's, its message shown when it refuses.
 // The audio crossfade keeps the frames field of the section above (D032).
 public sealed partial class InspectorViewModel
@@ -47,9 +48,6 @@ public sealed partial class InspectorViewModel
     [ObservableProperty] private string _transitionDurationDisplay = "";
     [ObservableProperty] private string _transitionLimitDisplay = "";
     [ObservableProperty] private bool _isPushSelected;
-
-    /// <summary>The seconds the field shows (the stored frames') — an arrow step is recognised against it.</summary>
-    private decimal _shownSeconds;
 
     public bool IsVideoTransitionSelected => IsTransitionSelected && _transition?.Track.Type == TrackType.Video;
     public bool IsAudioTransitionSelected => IsTransitionSelected && _transition?.Track.Type == TrackType.Audio;
@@ -76,28 +74,47 @@ public sealed partial class InspectorViewModel
         // A stored value outside the range is shown as it is and kept (D044 §5): the field's range includes it.
         MinTransitionSeconds = TransitionNames.SecondsOf(Math.Min(frames, TransitionRules.MinFramesOf(typeId, rate)), rate);
         MaxTransitionSeconds = TransitionNames.SecondsOf(Math.Max(frames, longest), rate);
-        _shownSeconds = TransitionNames.SecondsOf(frames, rate);
-        TransitionSeconds = _shownSeconds;
+        TransitionSeconds = TransitionNames.SecondsOf(frames, rate);
         TransitionDurationDisplay = TransitionNames.Duration(frames, rate);
-        TransitionLimitDisplay = string.Format(Strings.Transition_Longest, TransitionNames.Duration(longest, rate));
+        // A longest shorter than the stored duration (the source unknown or shorter since) is not shown as a limit.
+        TransitionLimitDisplay = longest < frames ? Strings.Transition_NoLonger
+            : string.Format(Strings.Transition_Longest, TransitionNames.Duration(longest, rate));
     }
 
-    /// <summary>
-    /// A duration typed or dragged (seconds) becomes the nearest whole frame; an arrow step (±0.1 s from the shown value)
-    /// goes along the 0.1 s grid — the shown value rounded to 0.1 s, ± 0.1 s — so a step never sticks on a frame that
-    /// rounds back (D044 §5).
-    /// </summary>
+    /// <summary>A duration typed or dragged (seconds) becomes the nearest whole frame (D044 §5) — whatever its distance from
+    /// the shown value: only the field's arrows step (<see cref="StepTransitionSecondsCommand"/>).</summary>
     partial void OnTransitionSecondsChanged(decimal? value)
     {
         if (_syncing || value is not { } seconds || _transition is not { } s || RejectWhileLocked()) return;
-        var step = seconds - _shownSeconds;
-        if (step is 0.1m or -0.1m) seconds = Math.Round(_shownSeconds, 1, MidpointRounding.AwayFromZero) + step;
-        var frames = (long)Math.Round(seconds * s.Rate.Numerator / s.Rate.Denominator, MidpointRounding.AwayFromZero);
+        ApplyTransitionFrames(s, TransitionNames.FramesOf(seconds, s.Rate));
+    }
 
+    /// <summary>
+    /// An arrow of the seconds field (+1 up, −1 down) on the 0.1 s grid (D044 §5): the next mark of 0.1 s above (below) the
+    /// stored duration whose nearest whole frame is longer (shorter) than the stored frames — so a step never sticks on a
+    /// mark that rounds back to the same frame (0.3 s at 24 fps is 7 frames, as 0.29 s) — kept within the type's range and
+    /// the longest that fits, as the field's limits; nothing beyond them.
+    /// </summary>
+    [RelayCommand]
+    private void StepTransitionSeconds(int direction)
+    {
+        if (_transition is not { } s || RejectWhileLocked() || direction == 0) return;
+        var rate = s.Rate;
+        var typeId = s.Transition.TransitionTypeId;
+        var frames = TransitionRules.Frames(s.Transition.Duration, rate);
+        var lowest = Math.Min(frames, TransitionRules.MinFramesOf(typeId, rate));
+        var highest = Math.Max(frames, Math.Min(TransitionRules.MaxFramesOf(typeId, rate),
+            _edit.MaxTransitionFrames(s.Transition.LeftClipId, s.Transition.RightClipId, typeId) ?? frames));
+        if (direction > 0 ? frames >= highest : frames <= lowest) return;
+        ApplyTransitionFrames(s, Math.Clamp(TransitionNames.GridStep(frames, direction, rate), lowest, highest));
+    }
+
+    private void ApplyTransitionFrames(TimelineTransitionSelection s, long frames)
+    {
         var result = _edit.SetTransitionDuration(s.Transition.Id, MediaTime.FromFrame(Math.Max(0, frames), s.Rate));
         if (!result.Success && !result.NoChange)
         {
-            _status.Report(result.Message ?? Strings.Transition_NotChanged);
+            _status.Report(result.Message ?? Strings.Transition_NotChangedAny);
             ShowModelAfterRejection();
         }
         else if (result.NoChange)
@@ -115,7 +132,7 @@ public sealed partial class InspectorViewModel
         if (result.NoChange) return;
         if (!result.Success)
         {
-            _status.Report(result.Message ?? Strings.Transition_NotChanged);
+            _status.Report(result.Message ?? Strings.Transition_NotChangedAny);
             return;
         }
         var after = TransitionRules.Frames(s.Transition.Duration, s.Rate);
@@ -129,6 +146,6 @@ public sealed partial class InspectorViewModel
     {
         if (_transition is not { } s || RejectWhileLocked()) return;
         var result = _edit.SetTransitionDirection(s.Transition.Id, direction);
-        if (!result.Success && !result.NoChange) _status.Report(result.Message ?? Strings.Transition_NotChanged);
+        if (!result.Success && !result.NoChange) _status.Report(result.Message ?? Strings.Transition_NotChangedAny);
     }
 }

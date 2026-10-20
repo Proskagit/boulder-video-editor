@@ -6160,6 +6160,31 @@ rates; the 1.0 s rule; render parity; the end-to-end export with real ffmpeg; th
   export, the export succeeds); a decode failure or a vanished source fails the export (DecodeFailed); a cancel inside a zone
   leaves nothing. Refusing such an export would change D025 §4 — not done; a question for the product owner.
 
+### Corrections after the real-app run (2026-10-21)
+
+The product owner's run of the manual plan found D1–D6 and O1, O2 (`docs/PHASE28_MANUAL_TEST_PLAN.md`); the product owner
+allowed the fixes. No rule of §1–§9 changed.
+- D1: the TRANSITION section fits the Inspector's 300 px: the type and direction buttons wrap in the column after the
+  labels (a horizontal row gave them their own 190 px and pushed the section past the panel's edge), and a long Remove
+  label («Удалить перекрёстное затухание») wraps.
+- D2, D5, D6 and the other messages about one transition name its type for the library's types other than the dissolve —
+  «Переход «Сдвиг» удалён: его клипы больше не соседние.», «Нельзя добавить переход «Вспышка»: …», «На этой склейке уже
+  есть переход «Наезд».», a type or duration change refused, a split, insert or overwrite inside a zone, a trim or a slip it
+  stops, making room that would open it, a speed change typed back, two clips that don't meet; several removed at once
+  are «Удалено переходов: N» unless all are dissolves. A dissolve and a crossfade keep their words (D025, D032); en + ru.
+- D3: a disabled type button shows its reason on hover (`ToolTip.ShowOnDisabled`).
+- D4: the zone's mark — the type's glyph at its centre, 14 × 14 px — is a hit target above the clips' trim handles: a press
+  on it selects the transition at any zoom (a 0.2 s zone at 50 px/s is 10 px, all of it trim handles); above and below the
+  mark the handles trim as before; the mark's tooltip is the type's name. The zone itself stays transparent to the
+  pointer. Chosen as the smallest change of the current gestures (no zoom-dependent rule, no new modifier).
+- O1 replaces the arrow rule of the notes of Step 28.4: a typed value is always the nearest frame, whatever its distance
+  from the shown one; only the field's spinner (its arrows, the arrow keys, the wheel) steps — to the next mark of 0.1 s
+  above (below) the stored duration whose nearest frame differs from the stored frames (0,75 → 0,8 / 0,7; at 24 fps
+  0,29 → 0,4, since 0,3 s is 7 frames too), kept within the type's range and the longest that fits. Durations stay whole
+  frames.
+- O2: when the longest that fits is shorter than the stored duration (the source's length unknown or shorter since), the
+  Inspector says «Длиннее, чем сейчас, здесь не поместится.» instead of a limit below the value shown.
+
 Context: the product owner's request of 2026-10-20 after Phase 27 (accepted locally, not yet published); the first draft
 (Dissolve, Dip to black, Dip to white, Wipe, Push) revised after the research of §0.
 

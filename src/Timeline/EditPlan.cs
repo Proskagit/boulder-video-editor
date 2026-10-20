@@ -56,6 +56,11 @@ public sealed class EditPlan
     /// <summary>Of those, the crossfades (audio tracks, D032 R9): the note names them as such.</summary>
     public int AutoRemovedCrossfades { get; private set; }
 
+    /// <summary>The types of the others (video tracks): the note names a library type (D044).</summary>
+    public IReadOnlyList<string> AutoRemovedVideoTypes => _autoRemovedVideoTypes;
+
+    private readonly List<string> _autoRemovedVideoTypes = new();
+
     /// <summary>True when the plan changes a transition.</summary>
     public bool ChangesTransitions => _transitionUpdates.Count > 0 || _transitionAdds.Count > 0 || _transitionRemoves.Count > 0;
 
@@ -257,6 +262,7 @@ public sealed class EditPlan
                 _transitionRemoves.Add(transition);
                 AutoRemovedTransitions++;
                 if (state.Track.Type == TrackType.Audio) AutoRemovedCrossfades++;
+                else _autoRemovedVideoTypes.Add(state.TypeId);
             }
             else if (left.Track != state.Track)
             {

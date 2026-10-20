@@ -1003,4 +1003,67 @@
   <data name="Frame_AlreadyFits" xml:space="preserve">
     <value>The picture already fits in the frame.</value>
   </data>
+  <data name="TransitionName_CrossDissolve" xml:space="preserve">
+    <value>Dissolve</value>
+  </data>
+  <data name="TransitionName_DipToBlack" xml:space="preserve">
+    <value>Dip to black</value>
+  </data>
+  <data name="TransitionName_Flash" xml:space="preserve">
+    <value>Flash</value>
+  </data>
+  <data name="TransitionName_Zoom" xml:space="preserve">
+    <value>Zoom</value>
+  </data>
+  <data name="TransitionName_Push" xml:space="preserve">
+    <value>Push</value>
+  </data>
+  <data name="Transition_CantAddNamed" xml:space="preserve">
+    <value>Can't add the transition "{0}": {1}</value>
+  </data>
+  <data name="Transition_CantChangeNamed" xml:space="preserve">
+    <value>Can't change the transition "{0}": {1}</value>
+  </data>
+  <data name="Transition_CutHasNamed" xml:space="preserve">
+    <value>This cut already has a transition: "{0}".</value>
+  </data>
+  <data name="Transition_NeedsMeetNamed" xml:space="preserve">
+    <value>The transition "{0}" needs two clips that meet: the first must end where the second starts.</value>
+  </data>
+  <data name="Edit_TransitionSameTrack" xml:space="preserve">
+    <value>A transition joins two clips of the same track.</value>
+  </data>
+  <data name="Edit_TransitionRemovedNamed" xml:space="preserve">
+    <value>The transition "{0}" was removed: its clips no longer meet.</value>
+  </data>
+  <data name="Edit_TransitionsRemoved" xml:space="preserve">
+    <value>{0} transitions were removed: their clips no longer meet.</value>
+  </data>
+  <data name="Edit_TransitionBackNamed" xml:space="preserve">
+    <value>The transition "{0}" is back: its clips meet again.</value>
+  </data>
+  <data name="Split_InsideNamed" xml:space="preserve">
+    <value>Can't split inside the transition "{0}".</value>
+  </data>
+  <data name="Insert_InsideNamed" xml:space="preserve">
+    <value>Can't insert inside the transition "{0}".</value>
+  </data>
+  <data name="Overwrite_InsideNamed" xml:space="preserve">
+    <value>Can't overwrite inside the transition "{0}".</value>
+  </data>
+  <data name="MakeRoom_OpensNamed" xml:space="preserve">
+    <value>Can't {0}: making room would open the transition "{1}" between clips that are not moved. Remove it first.</value>
+  </data>
+  <data name="Edit_TrimStoppedNamed" xml:space="preserve">
+    <value>The trim stopped where the transition "{0}" needs the clip's frames.</value>
+  </data>
+  <data name="Edit_SlipStoppedNamed" xml:space="preserve">
+    <value>The slip stopped where the transition "{0}" needs the clip's source.</value>
+  </data>
+  <data name="Edit_NotTrimmedEndNamed" xml:space="preserve">
+    <value>Not trimmed where the transition "{0}" is on the clip's end: Shift+W trims it and keeps the transition.</value>
+  </data>
+  <data name="Edit_NotTrimmedStartNamed" xml:space="preserve">
+    <value>Not trimmed where the transition "{0}" is on the clip's start: Shift+Q trims it and keeps the transition.</value>
+  </data>
 </root>

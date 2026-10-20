@@ -142,6 +142,14 @@ public partial class TimelineView : UserControl
         if (!e.GetCurrentPoint(TrackRows).Properties.IsLeftButtonPressed) return;
         Focus();
 
+        // A zone's mark selects its transition, whatever lies under it (a short zone is all trim handles — D4).
+        if (MarkOf(e.Source) is { } marked)
+        {
+            _viewModel.OnTransitionPressed(marked);
+            e.Handled = true;
+            return;
+        }
+
         var (clip, edge) = HitTestClip(e.Source);
 
         // A dissolve zone is drawn over the clips but never hides their trim handles: only a press on a clip body (no
@@ -321,6 +329,17 @@ public partial class TimelineView : UserControl
                 break;
         }
         return (null, null);
+    }
+
+    /// <summary>The transition whose mark <paramref name="source"/> is (or lies in), else null.</summary>
+    private static TimelineTransitionViewModel? MarkOf(object? source)
+    {
+        for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is Control { Tag: "TransitionMark", DataContext: TimelineTransitionViewModel transition }) return transition;
+            if (visual is ItemsControl { Name: "TrackRows" }) break;
+        }
+        return null;
     }
 
     private TimelineTrackViewModel? TrackAt(double y)

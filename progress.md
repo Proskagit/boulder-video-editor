@@ -98,6 +98,19 @@ Phase 27 (D043): Steps 27.0–27.6 done on `feat/phase-27-text-animation` (up to
   synthesized input was sent and every app row of the manual plan is NOT RUN with what the automated suites cover named.
   ARCHITECTURE: the transition library. Open for the product owner: the real-app run of the manual plan; whether an export
   with missing handles (media changed after the edit) should be refused instead of D025 §4's held frames.
+- 2026-10-20 — the real-app run of the manual plan (the product owner freed the computer): rows 2–4, 8–11 PASS with
+  defects, 5–7 partly, 13 FAIL (D1), 14 NOT RUN; the export of the five types and of a vertical push watched in PotPlayer.
+  Defects D1–D6 and observations O1, O2 with their steps in `docs/PHASE28_MANUAL_TEST_PLAN.md`.
+- 2026-10-21 — the fixes of D1–D6, O1, O2 allowed by the product owner (D044 "Corrections after the real-app run"): the
+  TRANSITION section wraps in the Inspector's width; messages name the type (en + ru); a disabled type shows its reason;
+  the zone's mark selects the transition over the trim handles; the duration field's spinner steps through a command to
+  the next 0.1 s mark, a typed value is the nearest frame; no limit shown below the stored duration. Tests:
+  `TransitionMessageTests` (34), `TransitionLibraryUiTests` (+9). Gates — Release / Debug `--no-incremental -warnaserror`
+  0 / 0; the full suite 4374 / 2 / 0 (Core 1277, Timeline 928, Project 524, UI 866, Export 108, Rendering 147, Video 354,
+  ExportEndToEnd 146 + 2, Vision 24); heavy 4376 / 0 / 0; three blame-hang runs clean. No rendering or format code
+  changed (the parity suites and the v7 tests pass unchanged). The repeated real-app checks: NOT RUN (the product owner
+  was at the computer). Found: D7 (trim and slip keep handles for every type) — not fixed. Open: the export refusal for
+  missing source frames (variant (b)) — the D025 §4 / D044 wording proposed, awaiting the product owner's approval.
 
 ### Phase 27 — Text animation and readability (accepted 2026-10-20, not yet published)
 

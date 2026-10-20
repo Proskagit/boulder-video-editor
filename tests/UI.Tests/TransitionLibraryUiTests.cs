@@ -9,6 +9,7 @@ using AiVideoEditor.Timeline.Playback;
 using AiVideoEditor.Timeline.Tests.Playback;
 using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Controls;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using AiVideoEditor.UI.ViewModels;
 using AiVideoEditor.UI.ViewModels.Panels;
@@ -260,12 +261,14 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
         Assert.Equal(0.29m, Inspector.TransitionSeconds);
         Assert.Equal($"{N(0.29m)} s · 7 frames", Inspector.TransitionDurationDisplay);    // no promise of 0.3 s
 
-        Inspector.TransitionSeconds = 0.39m;                                              // the up arrow from 0.29
-        Assert.Equal(F(10), t.Duration);                                                  // 0.4 s → 10 frames (0.42), not 0.39 → 9
+        Inspector.StepTransitionSecondsCommand.Execute(1);                               // the up arrow from 0.29
+        Assert.Equal(F(10), t.Duration);                                                  // 0.3 s is 7 frames too: 0.4 s → 10 (0.42)
         Assert.Equal(0.42m, Inspector.TransitionSeconds);
-        Inspector.TransitionSeconds = 0.32m;                                              // the down arrow: 0.4 − 0.1 = 0.3 → 7
+        Inspector.StepTransitionSecondsCommand.Execute(-1);                              // the down arrow: 0.4 s is 10 too → 0.3 s → 7
         Assert.Equal(F(7), t.Duration);
 
+        Inspector.TransitionSeconds = 0.39m;                                              // typed 0.1 s above: the nearest frame, no step
+        Assert.Equal(F(9), t.Duration);
         Inspector.TransitionSeconds = 0.75m;                                              // typed: the nearest frame (18)
         Assert.Equal(F(18), t.Duration);
         Assert.Equal("Change Dissolve Duration", (_undo.CurrentPosition as IUndoableCommand)?.Description);
@@ -368,6 +371,180 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
         Assert.Equal(TransitionRules.VideoTypes, items.Select(i => (string?)i.Attribute("CommandParameter")));
         Assert.All(items, i => Assert.Equal("{Binding AddTransitionCommand}", (string?)i.Attribute("Command")));
         Assert.All(items, i => Assert.StartsWith("{x:Static l:Strings.TransitionType_", (string?)i.Attribute("Header")));
+    }
+
+    // --- fixes after the Phase 28 manual run (D1, D3, D4, O1, O2) ------------------------------------------------------
+
+    [Fact]
+    public void The_arrows_step_to_the_next_tenth_of_a_second_from_any_value_and_a_typed_value_is_never_a_step()
+    {
+        _projects.Current.Settings.FrameRate = FrameRate.Fps60;
+        var (a, b) = SplitVideo(at: 600, rate: FrameRate.Fps60);
+        var t = AddSelected(a, b, TransitionRules.CrossDissolve);                       // 60 frames
+
+        Inspector.TransitionSeconds = 0.75m;                                              // typed: 45 frames
+        Assert.Equal(F(45), t.Duration);
+        Inspector.StepTransitionSecondsCommand.Execute(1);                               // up: 0.8 s, not 0.9 s (O1)
+        Assert.Equal(F(48), t.Duration);
+        Assert.Equal(0.8m, Inspector.TransitionSeconds);
+        Inspector.TransitionSeconds = 0.75m;
+        Inspector.StepTransitionSecondsCommand.Execute(-1);                              // down: 0.7 s
+        Assert.Equal(F(42), t.Duration);
+        Inspector.StepTransitionSecondsCommand.Execute(-1);
+        Assert.Equal(F(36), t.Duration);
+
+        Inspector.TransitionSeconds = 0.75m;
+        Inspector.TransitionSeconds = 0.85m;                                              // typed 0.1 s above: 51 frames, not 0.9 s
+        Assert.Equal(F(51), t.Duration);
+        Assert.Equal(0.85m, Inspector.TransitionSeconds);
+    }
+
+    [Fact]
+    public void The_arrows_stop_at_the_types_range_and_at_the_longest_that_fits()
+    {
+        _projects.Current.Settings.FrameRate = FrameRate.Fps60;
+        var (a, b) = SplitVideo(at: 600, rate: FrameRate.Fps60);
+        var t = AddSelected(a, b, TransitionRules.Flash);                               // 0.1–0.5 s: 6–30 frames
+
+        Inspector.TransitionSeconds = 0.5m;
+        Inspector.StepTransitionSecondsCommand.Execute(1);
+        Assert.Equal(F(30), t.Duration);                                                  // nothing beyond the maximum
+        Inspector.TransitionSeconds = 0.1m;
+        Inspector.StepTransitionSecondsCommand.Execute(-1);
+        Assert.Equal(F(6), t.Duration);                                                   // nothing below the minimum
+        Inspector.TransitionSeconds = 0.13m;                                              // 8 frames: the next mark down is 0.1 s
+        Inspector.StepTransitionSecondsCommand.Execute(-1);
+        Assert.Equal(F(6), t.Duration);
+    }
+
+    [Fact]
+    public void An_arrow_step_up_to_the_longest_that_fits_is_clamped_there()
+    {
+        var (a, b) = SplitVideo(seconds: 4, at: 95);                                     // B has 5 frames: a dip of 10 at most
+        var t = AddSelected(a, b, TransitionRules.DipToBlack);
+        Assert.Equal(F(10), t.Duration);
+        Inspector.TransitionSeconds = 0.28m;                                              // 7 frames
+        Inspector.StepTransitionSecondsCommand.Execute(1);                               // 0.3 s → 8 frames
+        Assert.Equal(F(8), t.Duration);
+        Inspector.StepTransitionSecondsCommand.Execute(1);                               // 0.4 s → 10 frames: the longest
+        Assert.Equal(F(10), t.Duration);
+        Inspector.StepTransitionSecondsCommand.Execute(1);
+        Assert.Equal(F(10), t.Duration);
+    }
+
+    [Fact]
+    public void The_seconds_fields_spinner_steps_through_the_command()
+    {
+        var (a, b) = SplitVideo();
+        var t = AddSelected(a, b, TransitionRules.Zoom);                                 // 8 frames at 25 = 0.32 s
+        var view = new InspectorView { DataContext = Inspector };
+        var field = view.GetLogicalDescendants().OfType<CommitNumericUpDown>().Single(n => n.Name == "TransitionSecondsField");
+        Assert.Same(Inspector.StepTransitionSecondsCommand, field.StepCommand);
+
+        Assert.True(field.Step(Avalonia.Controls.SpinDirection.Increase));               // 0.4 s → 10 frames
+        Assert.Equal(F(10), t.Duration);
+        Assert.True(field.Step(Avalonia.Controls.SpinDirection.Decrease));               // 0.3 s → 8 frames (7.5 up)
+        Assert.Equal(F(8), t.Duration);
+
+        var plain = new CommitNumericUpDown();                                            // without a command: the base step
+        Assert.False(plain.Step(Avalonia.Controls.SpinDirection.Increase));
+    }
+
+    [Fact]
+    public void A_longest_shorter_than_the_stored_duration_is_not_shown_as_a_limit()
+    {
+        var (a, b) = SplitVideo();
+        AddSelected(a, b, TransitionRules.CrossDissolve);
+        Assert.Equal(string.Format(Strings.Transition_Longest, TransitionNames.Duration(201, Rate)), Inspector.TransitionLimitDisplay);
+
+        foreach (var asset in _projects.Current.MediaAssets) asset.Metadata = null;     // the source's length unknown (O2)
+        Timeline.OnTransitionPressed(ZoneVm());
+
+        Assert.Equal(Strings.Transition_NoLonger, Inspector.TransitionLimitDisplay);
+        Assert.Equal(1m, Inspector.MaxTransitionSeconds);                                 // the stored 25 frames stay reachable
+    }
+
+    [Fact]
+    public void The_crossfade_shows_no_limit_below_its_length_either()
+    {
+        var music = Asset(20, FrameRate.Fps25, MediaKind.Audio);
+        var a1 = _projects.Current.Timeline.AudioTracks[0];
+        Assert.True(_edit.AddClip(music.Id, a1.Id, F(0)).Success);
+        Assert.True(_edit.Split(F(100), new[] { a1.Clips[0].Id }).Success);
+        SelectBoth(a1.Clips[0], a1.Clips[1]);
+        Timeline.AddDissolveCommand.Execute(null);
+
+        music.Metadata = null;
+        Timeline.OnTransitionPressed(Timeline.Tracks.SelectMany(t => t.Transitions).Single());
+
+        Assert.Equal(Strings.Transition_NoLonger, Inspector.DissolveLimitDisplay);
+    }
+
+    [Fact]
+    public void A_disabled_type_shows_its_reason_on_hover()
+    {
+        var types = InspectorXaml().Descendants(Ui + "ItemsControl").Single(i => (string?)i.Attribute(X + "Name") == "TransitionTypeButtons");
+        var button = types.Descendants(Ui + "ToggleButton").Single();
+
+        Assert.Equal("{Binding IsAvailable}", (string?)button.Attribute("IsEnabled"));
+        Assert.Equal("{Binding Tip}", (string?)button.Attribute("ToolTip.Tip"));
+        Assert.Equal("True", (string?)button.Attribute("ToolTip.ShowOnDisabled"));      // Avalonia hides it otherwise (D3)
+    }
+
+    [Fact]
+    public void The_transition_section_wraps_in_the_inspectors_width()
+    {
+        var section = InspectorXaml().Descendants(Ui + "StackPanel").Single(p => (string?)p.Attribute(X + "Name") == "TransitionLibrarySection");
+
+        // The type and direction buttons wrap in the column after the labels: no row gives them their own width (D1).
+        foreach (var name in new[] { "TransitionTypeButtons", "TransitionDirectionButtons" })
+        {
+            var items = section.Descendants(Ui + "ItemsControl").Single(i => (string?)i.Attribute(X + "Name") == name);
+            Assert.Null(items.Attribute("MaxWidth"));
+            Assert.Equal("1", (string?)items.Attribute("Grid.Column"));
+            Assert.Equal(Ui + "Grid", items.Parent!.Name);
+            Assert.Equal("124,*", (string?)items.Parent.Attribute("ColumnDefinitions"));
+        }
+        Assert.DoesNotContain(section.Descendants(Ui + "StackPanel"),
+            p => (string?)p.Attribute("Orientation") == "Horizontal" && p.Descendants(Ui + "ItemsControl").Any());
+
+        // The Remove button's label («Удалить перекрёстное затухание») wraps.
+        var remove = InspectorXaml().Descendants(Ui + "Button").Single(b => (string?)b.Attribute(X + "Name") == "RemoveTransitionButton");
+        var label = Assert.Single(remove.Elements(Ui + "TextBlock"));
+        Assert.Equal(("{Binding RemoveTransitionLabel}", "Wrap"), ((string?)label.Attribute("Text"), (string?)label.Attribute("TextWrapping")));
+    }
+
+    [Fact]
+    public void A_zones_mark_is_a_hit_target_over_the_trim_handles_and_names_the_type()
+    {
+        var xaml = Xaml("TimelineView.axaml");
+        var zones = xaml.Descendants(Ui + "ItemsControl").Single(i => (string?)i.Attribute("ItemsSource") == "{Binding Transitions}");
+        Assert.Null(zones.Attribute("IsHitTestVisible"));                                 // its children can be hit
+        var zone = zones.Descendants(Ui + "Border").Single(b => ((string?)b.Attribute("Classes"))?.Contains("dissolve") == true);
+        Assert.Equal("False", (string?)zone.Attribute("IsHitTestVisible"));               // the zone keeps the handles reachable
+        var mark = zones.Descendants(Ui + "Border").Single(b => (string?)b.Attribute("Tag") == "TransitionMark");
+        Assert.Null(mark.Attribute("IsHitTestVisible"));
+        Assert.NotNull(mark.Attribute("Background"));                                     // a hit target where it is drawn
+        Assert.Equal(("14", "14"), ((string?)mark.Attribute("Width"), (string?)mark.Attribute("Height")));
+        Assert.Equal("{Binding TypeName}", (string?)mark.Attribute("ToolTip.Tip"));
+
+        var (a, b) = SplitVideo();
+        AddSelected(a, b, TransitionRules.Push);
+        Assert.Equal("Push", ZoneVm().TypeName);
+        Inspector.SetTransitionTypeCommand.Execute(TransitionRules.Flash);
+        Assert.Equal("Flash", ZoneVm().TypeName);
+    }
+
+    private static readonly System.Xml.Linq.XNamespace Ui = "https://github.com/avaloniaui";
+    private static readonly System.Xml.Linq.XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
+
+    private static System.Xml.Linq.XDocument InspectorXaml() => Xaml("InspectorView.axaml");
+
+    private static System.Xml.Linq.XDocument Xaml(string file)
+    {
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "AiVideoEditor.sln"))) root = root.Parent;
+        return System.Xml.Linq.XDocument.Load(Path.Combine(root!.FullName, "src", "UI", "Views", "Panels", file));
     }
 
     private sealed class NoAnalysis : IMediaAnalysisService

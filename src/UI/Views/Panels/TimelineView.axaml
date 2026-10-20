@@ -377,9 +377,12 @@
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <!-- Dissolve zones (D025 §3) drawn over the clips. Not hit-testable: the clips' trim handles stay
-                         reachable; a press on a clip body inside a zone selects the dissolve (see the code-behind). -->
-                    <ItemsControl Classes="canvasItems" ItemsSource="{Binding Transitions}" IsHitTestVisible="False">
+                    <!-- Dissolve zones (D025 §3) drawn over the clips. The zone itself is not hit-testable: the clips' trim
+                         handles stay reachable; a press on a clip body inside a zone selects the dissolve (see the
+                         code-behind). Its mark — the type's glyph at the zone's centre, 14 × 14 px — is: it selects the
+                         transition even where a short zone is all trim handles (the Phase 28 manual run, D4); above and
+                         below the mark the handles trim as before. -->
+                    <ItemsControl Classes="canvasItems" ItemsSource="{Binding Transitions}">
                       <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                           <Canvas/>
@@ -387,11 +390,14 @@
                       </ItemsControl.ItemsPanel>
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                          <Border Classes="dissolve" Classes.selected="{Binding IsSelected}" Width="{Binding Width}" Height="36"
-                                  Margin="0,4,0,0" CornerRadius="2" IsVisible="{Binding IsVisible}">
-                            <TextBlock Text="{Binding Glyph}" Foreground="#FFFFFF" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       IsHitTestVisible="False"/>
-                          </Border>
+                          <Panel Width="{Binding Width}" Height="36" Margin="0,4,0,0" IsVisible="{Binding IsVisible}">
+                            <Border Classes="dissolve" Classes.selected="{Binding IsSelected}" CornerRadius="2" IsHitTestVisible="False"/>
+                            <Border x:Name="TransitionMark" Tag="TransitionMark" Width="14" Height="14" Background="#01000000" Cursor="Hand"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip.Tip="{Binding TypeName}">
+                              <TextBlock Text="{Binding Glyph}" Foreground="#FFFFFF" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         IsHitTestVisible="False"/>
+                            </Border>
+                          </Panel>
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>

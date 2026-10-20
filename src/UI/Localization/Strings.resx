@@ -1910,4 +1910,13 @@ If you don't save, your changes will be lost.</value>
   <data name="Transition_TypeChangedClamped" xml:space="preserve">
     <value>Transition changed to {0}; its duration is now {1}.</value>
   </data>
+  <data name="Transition_SelectVideo" xml:space="preserve">
+    <value>Select two clips that meet on a video track (the first ends where the second starts) to add a transition.</value>
+  </data>
+  <data name="Transition_NotChangedAny" xml:space="preserve">
+    <value>The transition could not be changed.</value>
+  </data>
+  <data name="Transition_NoLonger" xml:space="preserve">
+    <value>Nothing longer than now fits here.</value>
+  </data>
 </root>
