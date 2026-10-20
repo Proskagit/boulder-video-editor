@@ -265,6 +265,14 @@ public interface ITimelineEditService
     /// properties of the same clip are merged into one Undo step.</summary>
     TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change);
 
+    /// <summary>"Fill frame" / "Fit in frame" (D041 §2): writes the Scale at which the video or image clip's picture, centred,
+    /// covers the canvas (<see cref="ClipFraming.Fill"/>) or is wholly visible on it (<see cref="ClipFraming.Fit"/>) —
+    /// <c>CompositionMath.FillScale</c> / <c>FitScale</c> from the asset's display size, the crop and the rotation. Only
+    /// the scale changes (the position, rotation and crop stay); one undo step that never merges with another. The value
+    /// already there is <see cref="TimelineEditResult.NoChange"/> with a message. Refused for a text or audio clip, a clip
+    /// whose source size is unknown, a locked track and a scale outside <see cref="ClipPropertyLimits"/>.</summary>
+    TimelineEditResult FrameClip(Guid clipId, ClipFraming framing);
+
     /// <summary>Adds a confirmed hold to a video clip's markup (D034): one undo step; the Auto colour and the keyline are
     /// recomputed from the stored samples of all holds. Refused for other clips and on a locked track.</summary>
     TimelineEditResult AddHold(Guid clipId, Hold hold);
@@ -382,6 +390,16 @@ public sealed record HoldStyle(double StrokeWidth1080, HoldColorMode ColorMode, 
 {
     public static HoldStyle Of(HoldMarkup markup) =>
         new(markup.StrokeWidth1080, markup.ColorMode, markup.ColorMode == HoldColorMode.Manual ? markup.ColorHex : null, markup.Keyline);
+}
+
+/// <summary>How <see cref="ITimelineEditService.FrameClip"/> fits a picture to the canvas (D041 §2).</summary>
+public enum ClipFraming
+{
+    /// <summary>The picture covers the canvas; what goes past the canvas edges is not seen.</summary>
+    Fill,
+
+    /// <summary>The whole picture is visible; bars may remain.</summary>
+    Fit
 }
 
 /// <summary>New values for <see cref="ITimelineEditService.SetClipProperties"/>. A null group is

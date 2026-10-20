@@ -955,4 +955,19 @@
   <data name="Verb_Paste" xml:space="preserve">
     <value>вставить</value>
   </data>
+  <data name="Frame_NoPicture" xml:space="preserve">
+    <value>Заполнить или вписать в кадр можно только видео или изображение.</value>
+  </data>
+  <data name="Frame_SizeUnknown" xml:space="preserve">
+    <value>Размер изображения «{0}» пока неизвестен — дождитесь окончания анализа файла.</value>
+  </data>
+  <data name="Frame_ScaleOutOfRange" xml:space="preserve">
+    <value>Для этого нужен масштаб {0} %, вне пределов {1} – {2} %.</value>
+  </data>
+  <data name="Frame_AlreadyFills" xml:space="preserve">
+    <value>Изображение уже заполняет кадр.</value>
+  </data>
+  <data name="Frame_AlreadyFits" xml:space="preserve">
+    <value>Изображение уже вписано в кадр.</value>
+  </data>
 </root>

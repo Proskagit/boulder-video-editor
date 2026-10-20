@@ -5281,7 +5281,228 @@ Implementation notes (2026-10-19, Phase 25):
 
 Status: Accepted (2026-10-19, product owner). Implemented in Phase 25 (branch `feat/phase-25-backlog-ux`); verified by Claude
 on 2026-10-19 (the gates, the `project.json` v6 byte comparison with `d3df0ba`, the real-app run of
-`docs/PHASE25_MANUAL_TEST_PLAN.md`); the product owner's acceptance pending.
+`docs/PHASE25_MANUAL_TEST_PLAN.md`); accepted by the product owner on 2026-10-19 — PASS WITH NOTES (with FU-25.1 and FU-25.2);
+**merged**: PR #26 into `main` as `58c48cb` (2026-10-19), its tree identical to `1a1ea76`.
+
+---
+
+## D041 — Vertical video and framing (Phase 26)
+
+Date: 2026-10-20
+
+Decision (product owner, 2026-10-20: the post-Phase 25 audit's variant A, "Vertical video and framing", with the answers
+Q1–Q4). No format change: `project.json` stays **v6**; D018's composition (crop → fit "contain" → scale → rotation →
+position), the mix, the decoders and the export unchanged. Goal: a phone video — portrait, as most climbing clips are —
+gives an export without unwanted black bars in a few clicks.
+
+### 1. The canvas offered by the first video (Q1 — a dialog)
+
+When the first video clip is added to the timeline of an empty project with the default canvas, the editor offers to change
+the canvas to the size and orientation of the source. Never silently.
+- **When.** The add (from the Media Browser — a drop or the add command — or Insert / Overwrite from the Source viewer)
+  succeeded and created a video clip with its picture (a sound-only Insert / Overwrite creates none); the timeline had no
+  clip on any track before it; the canvas is the default 1920 × 1080; no offer was made in this project's session yet and
+  the canvas was not changed in it; the asset's orientation is known — `MediaMetadata.DisplayRotation` is 0, 90, 180 or 270
+  (null — an odd angle, a mirrored matrix, unknown — means no offer) — and so is its display size (`DisplayWidth ×
+  DisplayHeight`, the frames as the decoder delivers them, after the rotation); the offered canvas differs from the current
+  one. Never during an export (no add is possible then).
+- **The offered canvas** (`ProjectSettingsRules.SuggestedCanvas`): the shape of the source at the default canvas's class —
+  the short side 1080 (as the default 1920 × 1080), the long side `1080 × long / short` rounded to the nearest even number
+  (a half up); a square source gives 1080 × 1080. A long side above `MaxCanvasSide` (4096) is set to 4096 and the short side
+  derived the same way. The result passes `ProjectSettingsRules.CanvasError` (even sides for libx264 4:2:0, the side and area
+  limits) — otherwise no offer. Examples: 2160 × 3840 and 1080 × 1920 → 1080 × 1920; 1080 × 2400 → 1080 × 2400; 3840 × 2160
+  → 1920 × 1080, the current canvas → no offer; 1440 × 1080 (4 : 3) → 1440 × 1080. The source's own resolution never raises
+  the canvas above the default class (no 4K canvas offered); Project Settings stay the way to choose another size. Rounding
+  to even may leave the canvas's aspect a fraction of a pixel off the source's (a picture of an odd side).
+- **The dialog** names the file, its size and the current and offered canvas; «Сменить холст» (default) / «Оставить».
+  Accept → `ITimelineEditService.SetCanvasSize`, the existing D028 change: **one Undo step of its own**, after the add's step
+  (Undo first restores the canvas, a second Undo removes the clip); the clip's position follows the canvas by D028's rule
+  (0 stays 0). Decline or close → nothing changes. Either way the offer is not made again in this project's session (New /
+  Open / Recover start a new one); a project opened with clips never gets it (its timeline is not empty).
+- **Limitation**: "the user already changed the canvas" is known only within the session (a canvas other than 1920 × 1080,
+  or any canvas change in the session); a project saved earlier with an explicitly chosen 1920 × 1080 and an empty timeline
+  counts as default — nothing in `project.json` v6 records the difference.
+
+### 2. Fill frame / Fit in frame (Q2 — one-off commands)
+
+Two commands for a video or image clip: **«Заполнить кадр»** (Fill — the picture covers the canvas, the excess cut off by the
+canvas edges) and **«Вписать в кадр»** (Fit — the whole picture visible, bars allowed). Each computes a `Scale` and writes
+it into the clip — no mode, nothing new stored: a later canvas change does not recompute it (D028 leaves `Scale` as it is).
+- **The rule** (Core, `CompositionMath.FillScale` / `FitScale`): on the clip's cropped source rectangle (`w × h`, display
+  pixels of the asset), at its current `RotationDegrees` θ, with D018's fit `f`, for the picture **centred** on the canvas
+  `W × H`: Fit `= min(W / (f·(w·|cos θ| + h·|sin θ|)), H / (f·(w·|sin θ| + h·|cos θ|)))`; Fill
+  `= max((W·|cos θ| + H·|sin θ|) / (f·w), (W·|sin θ| + H·|cos θ|) / (f·h))`. Without rotation Fit is exactly 1 (D018's
+  "contain") and Fill `max(W/w, H/h) / f`. For multiples of 90° the value is computed exactly (rational) and rounded outward
+  to a double — Fill up, Fit down — so the picture provably covers / stays inside the canvas by `CoversCanvas`'s exact test;
+  other angles in double with the margin `CoversCanvas` uses (10⁻⁶ of the picture size).
+- **Unchanged**: `PositionX / Y`, rotation, crop, opacity and every other property. With a zero position Fill leaves no bar
+  and Fit shows the whole picture; with an offset the picture keeps its offset (it is not moved back to the centre), so Fill
+  may leave a strip at the far edge and Fit may push a part past it — the documented behaviour, no surprise shift.
+- **One Undo step** per command (the edit as a gesture of its own — `ClipPropertyGesture`, D038 §4 — never merged with a
+  typed Scale before or after it); the value already there → no step, a status says so. Refused, nothing changed, the status
+  saying why: a text or audio clip, a clip whose source size is unknown, a locked track, a value outside `ClipPropertyLimits`
+  Scale [1 %, 1000 %] (no clamping), during an export (`EditingLock`).
+- **Where**: the Inspector (two buttons under Масштаб, for the selected video / image clip) and a new context menu of a clip
+  on the timeline (right click: the two commands for the clicked clip; no other items in this phase).
+- **Parity**: the Preview and the export draw the stored values through the one D018 path, so they agree by construction.
+
+### 3. No warning before the export (Q3)
+
+The export preflight is unchanged; an orientation mismatch is not reported.
+
+### 4. Not in this decision (Q4 and the agreed exclusions)
+
+A blurred background instead of bars; an automatic reframe or tracking; a persistent Fill / Fit mode; `project.json` v7;
+FU-21.2; AI features; the technical-debt refactoring; new dependencies; unrelated improvements. A need to change the format,
+the architecture or agreed behaviour beyond §1–§3 is reported with variants before the change.
+
+Context: the post-Phase 25 audit of 2026-10-20 — the vertical-video export recorded as a separate future phase (D040 §7);
+portrait canvas presets exist since Phase 13 (D028) and the display orientation is read since Phase 7, but the canvas is
+never taken from a video (D018) and no command fitted a picture to the canvas other than the default "contain".
+
+Consequences: no format change, no new dependency; a few new resources (en + ru); one Core rule set and one service edit;
+the timeline's first context menu.
+
+Implementation notes (2026-10-20, Phase 26):
+- §1: `ProjectSettingsRules.SuggestedCanvas` returns the size as a pair (`DefaultCanvasWidth / Height` are now the
+  constants `ProjectSettings` uses); the offer lives in `TimelineViewModel.Framing` (`AddMediaAt` and the Source viewer's
+  Insert / Overwrite call it with "the timeline was empty"); a closed dialog counts as «Оставить». The sizes in the dialog
+  and the status are joined by non-breaking spaces (found at the real-app run: «1080 / × 1920» broke across lines).
+- §2: `ITimelineEditService.FrameClip(clipId, ClipFraming)`; the timeline had no context menu — `TimelineView` builds
+  it on a right click (which also selects the clicked clip, as a plain click); `CompositionMath.FillScale` keeps twice
+  `Covers`' margin for odd angles (a scale ≈ 4·10⁻⁶ larger than the exact cover).
+
+Status: Accepted (2026-10-20, product owner). Phase 26, branch `feat/phase-26-vertical-video` from `58c48cb`; implemented and
+verified by Claude on 2026-10-20 (the gates, the `project.json` v6 byte comparison with `58c48cb`, the real-app run of
+`docs/PHASE26_MANUAL_TEST_PLAN.md`); **accepted by the product owner on 2026-10-20**; push and a pull request permitted.
+
+## D042 — Product concept, scope boundaries and the order of the remaining phases
+
+Date: 2026-10-20
+
+Decision (product owner, 2026-10-20). A planning decision: it fixes what the product is, what it deliberately is not, and
+the provisional order of the phases after Phase 26. It changes no code, no format and no earlier decision; each planned
+phase still gets its own decision (scope, steps, acceptance criteria) when it is taken up. The plan itself:
+`docs/DEVELOPMENT_PLAN.md`, "Planned phases after Phase 26 (D042)"; the status summary: `ROADMAP.md`.
+
+### 1. The product
+
+A specialised, simplified video editor for finished bouldering videos — not a general replacement of CapCut, Premiere or
+DaVinci Resolve. The main user path (the target of the functional core; not a statement that all of it exists):
+1. Import videos from the climbing gym.
+2. Cut away the excess, split and arrange the clips on the timeline.
+3. Recognise holds, choose the wanted ones and overlay their outlines.
+4. Later: holds proposed automatically, and their outlines following the holds while the camera moves.
+5. Add text with an animated appearance and disappearance.
+6. Add transitions between clips.
+7. Add music, set its volume, apply a small set of ready-made effects.
+8. Set the framing, check the Preview and export the video.
+
+State on 2026-10-20: 1, 2, 3 (D034–D036), the music track with volume and fades (D017, D025, D032), framing (D038, D041 —
+Phase 26), the Preview and the export (D018, D023) exist; text exists without its own animation beyond the clip fades
+(D021, D025); transitions are the cross dissolve and the fades only (D025); no ready-made effect exists (`Clip.Effects` is
+persisted but never rendered, D025); 4 is excluded from the MVP by D034 and D036 and is a future extension.
+
+### 2. Principles
+
+- The AI hold markup and, later, the outlines following the holds are the main specialisation and the product's key
+  difference (since 2026-10-14, D034).
+- Basic editing is complete and reliable, but not overloaded.
+- Text, simple animations, transitions, music and a few ready-made effects belong to the intended core.
+- The reference size of the future libraries: about **five transitions** and about **five ready-made effects**; the exact
+  sets are decided in their phases.
+- The width of the functionality is reduced, never its quality: reliability, a predictable Undo / Redo (one step per user
+  action), the Preview matching the export (D018, D023), `MediaTime` precision (D007) — the standing rules of
+  `docs/DEVELOPMENT_PLAN.md` — hold for every planned phase.
+
+### 3. Boundaries
+
+- No goal of parity with CapCut, Premiere or DaVinci Resolve; a function is not added because a competitor has it.
+- No unlimited library of effects or transitions.
+- Not planned unless a separate justification appears: advanced multi-track editing beyond the current tracks, a complex
+  audio studio (reverb, a mixer, volume automation, ducking), the synchronisation of many sources (multicam), full motion
+  design (keyframes, speed ramps, motion paths).
+- The specialisation on bouldering videos, the AI hold markup and the outline tracking is kept.
+- A new **large** function enters the plan only after a separate justification and the product owner's approval (a new
+  decision). Obvious UX defects found during development are fixed when found (as FU-25.1 / FU-25.2) and do not wait for the
+  Final UX Pass.
+
+### 4. The candidates recorded earlier
+
+The candidates named in the Phase 16–18 pre-flights and D037 §5 (`ROADMAP.md`, "Future phases") are subordinate to §3:
+keyframes, speed ramps, freeze frame / reverse and ducking are **not planned** (§3); the magnetic main track (D037 §5), text
+styling and timeline polish stay backlog candidates that a planned phase or the Final UX Pass may take with a justification;
+dragging objects in the Preview is done (Phase 23, D038). Nothing earlier is superseded: D034's and D036's exclusions of
+automatic proposals and camera motion compensation stay valid for those decisions — the planned AI phases (§5) extend
+them only through new decisions after their research.
+
+### 5. The remaining phases (provisional order)
+
+Phases get their numbers when they are taken up (the next one is Phase 27); the letters below are working labels.
+Research stages (R) change no product code (experiments outside the repository, as E1 / E2 of D034) and end in a go / no-go
+and a specification for the product owner.
+- Phase 26 — vertical video and framing (D041, current): its closeout 26.4.
+- A — text appearance / disappearance animation.
+- B — the transition library (≈ 5, the cross dissolve included).
+- C — ready-made effects (≈ 5) and the music scenario.
+- G — stabilisation of the main path (a release candidate: the eight steps of §1 end to end).
+- R1 → D — research, then (on a go) automatic hold proposals.
+- R2 → E — research, then (on a go) outlines that follow the holds while the camera moves.
+- R3 → F — research, then «COROS Pace 4: пульс и телеметрия в видео» (§6).
+- H — «Final UX Pass: аудит и упрощение интерфейса» (§7), the last large phase.
+Dependencies: B and C after A (they all change the composition; one at a time); F after A (its overlay uses the animated
+overlay path A establishes) and after R3; D after R1, E after R2 (and after D when D is taken); H after the planned core
+including F, with a regression run of the main path. R1, R2 and R3 may run in parallel with A–C. The order of the AI
+phases against B / C may be changed by the product owner once the research results are known.
+
+### 6. COROS Pace 4: heart rate and telemetry in the video (preliminary scope)
+
+The original idea, restored: heart-rate data from a COROS Pace 4 watch, synchronised with the bouldering video and shown in
+the export. Preliminary — not specified and **not technically solved**.
+- **Only COROS Pace 4** in the first version; no general support of Garmin, Apple Watch or other devices. An extension is
+  possible later if the first version proves useful, through its own decision.
+- **The source** is a training file exported from the watch's ecosystem; no direct connection to the watch or a cloud
+  service is assumed.
+- **The format**: FIT as the preliminary direction, TCX as the fallback. Recorded here for the first time (the earlier
+  discussion was not in the repository); to be confirmed on real COROS Pace 4 exports in R3, including how a parser is
+  obtained (an own reader or an SDK — a dependency to be justified under the project's rules).
+- **Synchronisation**: the heart rate placed on the video's timeline preferably from the video's internal timestamps and the
+  training file's timestamps, not only from a manual offset; a correction (an offset the user sets, and whatever R3 shows to
+  be needed, e.g. for drift) when the automatic match is not enough. Whether the phone footage's timestamps exist, their
+  precision, time zone and drift, and the heart-rate sampling rate and gaps are open questions of R3. A design hint, to be
+  confirmed: bound to the video clip's source time, as the holds are (D034, D036), so Trim / Split / Move keep the match.
+- **The overlay** in the Preview and the export: a numeric value, a graphic representation and a simple animation; its look
+  and position adjustable within a small set of options — not a full sports-telemetry editor.
+- **R3 (research)**: real Pace 4 exports and real gym videos; the supported format; timestamps, sampling, gaps; the
+  available video timestamps and their accuracy and drift; a specification. **F (implementation)**: synchronisation;
+  overlay settings and Preview; the export rendering (parity); tests of synchronisation, seeking, Trim / Split, incomplete
+  data; a manual check on a real gym video with a real watch export.
+
+### 7. Final UX Pass (the last large phase)
+
+After the planned core (including F) and the stabilisation of the main scenarios. Goal: not more functionality — the
+existing functions simpler and faster to use. **Research**: CapCut, DaVinci Resolve and Kdenlive (official materials and
+demonstrations, real user scenarios, user reviews and discussions of video-editor UX); concrete scenarios compared, not the
+looks — selection, moving and trimming clips, the timeline, the Inspector, numeric fields and sliders, hotkeys, context
+menus, text and animation, transitions, music, the export and the AI hold markup; the findings matched against this
+product, its architecture and its audience; a prioritised list of about 10–15 justified improvements with benefit,
+complexity and risk. No interface is copied without an assessment. **Implementation**: only the improvements that reduce the
+actions of the typical scenarios, make the behaviour more predictable, make the editor easier to learn, improve the
+handling of holds and their outlines, and do not turn the editor into a professional editing system. **Success
+criterion**: a user without deep video-editing experience goes from importing a source to a finished bouldering video
+without learning a professional editing system. The Final UX Pass is the place for a systematic, agreed interface change;
+until then the rule "no redesign of unrelated UI" (D040 §7, `CLAUDE.md`) stays.
+
+Context: the product owner's planning request of 2026-10-20, during Phase 26: the long-term product strategy and the order
+of the remaining phases were nowhere recorded; the COROS idea of the earliest discussion was not in the repository; the
+"Future phases" of `ROADMAP.md` listed candidates (keyframes, speed ramps) that conflict with the intended simplicity.
+
+Consequences: documentation only — `DECISIONS.md` (this decision), `docs/DEVELOPMENT_PLAN.md` (the planned phases),
+`ROADMAP.md` (the status and the remaining phases), `progress.md`. No code, no format, no dependency, no change of Phase 26's
+scope (D041).
+
+Status: Accepted (2026-10-20, product owner) as the concept and the boundaries; the phase order and the scopes of A–H are
+provisional and are fixed by each phase's own decision.
 ---
 
 ## How to add a decision

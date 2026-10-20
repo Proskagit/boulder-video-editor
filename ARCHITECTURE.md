@@ -434,6 +434,21 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   `TimelineViewModel.SelectClipFromPreview`); `ShortcutRouter` gives a running gesture Esc and swallows every other key; the
   tools and the hold markup mode exclude each other (`MainWindowViewModel`). The frame and handles never reach the export.
 
+## Vertical video and framing (Phase 26, D041)
+
+- Core: `ProjectSettingsRules.SuggestedCanvas(displayWidth, displayHeight)` — the source's shape at the default canvas's
+  class (short side 1080, the long side rounded to even, the 4096 limit, `CanvasError`); `CompositionMath.FillScale` /
+  `FitScale(canvas, source, visual)` — the Scale at which the picture, centred, covers / is wholly inside the canvas (crop
+  and rotation; quarter turns exact through the internal rational and rounded outward, other angles with `Covers`' margin).
+- Timeline: `ITimelineEditService.FrameClip(clipId, ClipFraming)` — writes that Scale through `SetClipProperties` as a
+  `ClipPropertyGesture` of its own (one undo step, never merged); refusals for text / audio, an unknown display size, a
+  locked track, a scale outside the limits; the value already there → NoChange with a message.
+- UI: `TimelineViewModel.Framing` — the canvas offer after an add to an empty timeline (`AddMediaAt`, Insert / Overwrite
+  from the Source viewer): `IDialogService` → `SetCanvasSize` (its own undo step); a session flag reset on
+  `ProjectChanged`, closed by any canvas change; `FillFrame` / `FitFrame` commands for the clip's context menu, which
+  `TimelineView` builds on a right click (`ClipMenu`). The Inspector's two buttons (`InspectorViewModel.FillFrame` /
+  `FitFrame`); the status from `ClipFramingStatus`. No format change (v6).
+
 ## Thumbnails (Phase 9 Step 9.4)
 
 Decision: D024 "Refined in Step 9.4". Media Browser only; playback and export never read the cache.

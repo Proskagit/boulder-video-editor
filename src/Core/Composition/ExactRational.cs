@@ -58,4 +58,35 @@ internal readonly struct ExactRational : IComparable<ExactRational>
     public static bool operator >(ExactRational a, ExactRational b) => a.CompareTo(b) > 0;
 
     public static ExactRational Min(ExactRational a, ExactRational b) => a <= b ? a : b;
+    public static ExactRational Max(ExactRational a, ExactRational b) => a >= b ? a : b;
+
+    /// <summary>The smallest double not below this value.</summary>
+    public double ToDoubleAtLeast()
+    {
+        var d = ApproximateDouble();
+        while (FromDouble(d) < this) d = Math.BitIncrement(d);
+        while (FromDouble(Math.BitDecrement(d)) >= this) d = Math.BitDecrement(d);
+        return d;
+    }
+
+    /// <summary>The largest double not above this value.</summary>
+    public double ToDoubleAtMost()
+    {
+        var d = ApproximateDouble();
+        while (FromDouble(d) > this) d = Math.BitDecrement(d);
+        while (FromDouble(Math.BitIncrement(d)) <= this) d = Math.BitIncrement(d);
+        return d;
+    }
+
+    /// <summary>Within a few units in the last place: the quotient taken to 62 significant bits, then scaled — never through
+    /// a double numerator or denominator, which could overflow.</summary>
+    private double ApproximateDouble()
+    {
+        if (_num.IsZero) return 0;
+        var magnitude = BigInteger.Abs(_num);
+        var shift = 62 - (magnitude.GetBitLength() - _den.GetBitLength());
+        var quotient = shift >= 0 ? (magnitude << (int)shift) / _den : magnitude / (_den << (int)-shift);
+        var value = Math.ScaleB((double)quotient, (int)-shift);
+        return _num.Sign < 0 ? -value : value;
+    }
 }

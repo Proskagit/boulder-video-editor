@@ -245,6 +245,22 @@ public sealed partial class InspectorViewModel : ViewModelBase
         }
     }
 
+    // --- Fill frame / Fit in frame (Phase 26, D041 §2): video and image clips -----------------------------------------
+    // One-off: the service computes the Scale from the canvas and the picture and writes it as one undo step; the Scale
+    // field then shows the new value (the timeline change re-syncs the Inspector).
+
+    [RelayCommand] private void FillFrame() => FrameClip(ClipFraming.Fill);
+
+    [RelayCommand] private void FitFrame() => FrameClip(ClipFraming.Fit);
+
+    private void FrameClip(ClipFraming framing)
+    {
+        if (_clip is not { } clip || RejectWhileLocked()) return;
+        var result = _edit.FrameClip(clip.Id, framing);
+        _status.Report(ClipFramingStatus.Text(result, framing, clip));
+        if (!result.Success) ShowModelAfterRejection();
+    }
+
     // --- Speed (Phase 7 Step 9, D022): video and audio clips ----------------------------------
     // Sent live to SetClipSpeed (a timing edit, not a property); consecutive changes merge into one
     // undo step. The value must be a multiple of 0.05× from 0.25× to 4×; anything else is reported

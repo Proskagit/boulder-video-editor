@@ -193,6 +193,13 @@
                                  FormatString="0.##" Width="104"/>
                   <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
+                <!-- Fill / Fit (Phase 26, D041 §2): a one-off Scale for a video or image clip. -->
+                <WrapPanel x:Name="FramingButtons" Orientation="Horizontal" Margin="124,0,0,0" IsVisible="{Binding HasCrop}">
+                  <Button Content="{x:Static l:Strings.Frame_Fill}" Command="{Binding FillFrameCommand}" IsEnabled="{Binding IsEditingAllowed}"
+                          FontSize="11" Margin="0,0,6,4" ToolTip.Tip="{x:Static l:Strings.Frame_FillTip}"/>
+                  <Button Content="{x:Static l:Strings.Frame_Fit}" Command="{Binding FitFrameCommand}" IsEnabled="{Binding IsEditingAllowed}"
+                          FontSize="11" Margin="0,0,6,4" ToolTip.Tip="{x:Static l:Strings.Frame_FitTip}"/>
+                </WrapPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{x:Static l:Strings.Inspector_Rotation}" Classes="label"/>
                   <controls:CommitNumericUpDown Value="{Binding Rotation, Mode=TwoWay}" Increment="1" Minimum="{Binding MinRotation}" Maximum="{Binding MaxRotation}"

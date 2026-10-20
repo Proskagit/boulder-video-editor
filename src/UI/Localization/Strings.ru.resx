@@ -1707,4 +1707,37 @@
   <data name="Unsaved_Title" xml:space="preserve">
     <value>Несохранённые изменения</value>
   </data>
+  <data name="Canvas_OfferTitle" xml:space="preserve">
+    <value>Холст проекта</value>
+  </data>
+  <data name="Canvas_OfferMessage" xml:space="preserve">
+    <value>Видео «{0}» — {1} × {2}. На холсте {3} × {4} у него останутся чёрные полосы. Сменить холст проекта на {5} × {6}?</value>
+  </data>
+  <data name="Canvas_OfferAccept" xml:space="preserve">
+    <value>Сменить холст</value>
+  </data>
+  <data name="Canvas_OfferKeep" xml:space="preserve">
+    <value>Оставить</value>
+  </data>
+  <data name="Canvas_OfferApplied" xml:space="preserve">
+    <value>Холст проекта: {0} × {1}.</value>
+  </data>
+  <data name="Frame_Fill" xml:space="preserve">
+    <value>Заполнить кадр</value>
+  </data>
+  <data name="Frame_Fit" xml:space="preserve">
+    <value>Вписать в кадр</value>
+  </data>
+  <data name="Frame_FillTip" xml:space="preserve">
+    <value>Увеличить изображение, чтобы оно закрыло весь кадр, — выходящее за края обрезается</value>
+  </data>
+  <data name="Frame_FitTip" xml:space="preserve">
+    <value>Масштабировать изображение так, чтобы оно было видно в кадре целиком</value>
+  </data>
+  <data name="Frame_Filled" xml:space="preserve">
+    <value>Изображение заполняет кадр: масштаб {0} %.</value>
+  </data>
+  <data name="Frame_Fitted" xml:space="preserve">
+    <value>Изображение вписано в кадр: масштаб {0} %.</value>
+  </data>
 </root>

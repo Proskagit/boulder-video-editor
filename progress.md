@@ -2,12 +2,56 @@
 
 ## Current phase
 
-Phase 25 — technical backlog and small UX improvements, branch `feat/phase-25-backlog-ux` (from `origin/main` = `d3df0ba`,
-the merge of PR #25; DECISIONS.md D040, 2026-10-19). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 25 — Technical backlog and
-small UX improvements: steps"; manual plan `docs/PHASE25_MANUAL_TEST_PLAN.md`. Local work only: no push, pull request or
-merge without the product owner's command.
+Phase 26 — vertical video and framing, branch `feat/phase-26-vertical-video` (from `origin/main` = `58c48cb`, the merge of
+PR #26; DECISIONS.md D041, 2026-10-20). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 26 — Vertical video and framing: steps";
+manual plan `docs/PHASE26_MANUAL_TEST_PLAN.md`. Local work only: no push, pull request or merge without the product
+owner's command.
 
-### Phase 25 — Technical backlog and small UX improvements (in progress)
+### Phase 26 — Vertical video and framing (in progress)
+
+- 2026-10-20 — audit (read only) after the merge of PR #26: `origin/main` = `58c48cb` (its tree identical to `1a1ea76`); CI
+  green on the pull request (run 39324613809); the run on `main` (39325624702) still shown as in progress by `gh` — not
+  confirmed green. Worktrees `.claude/worktrees/*` left as they are (`fix/preview-refresh-beyond-end` holds one unmerged
+  commit `7b118a7` of the Phase 15 time). The specification (variant A, Q1–Q4) accepted by the product owner the same day
+  (D041).
+- 2026-10-20 — Step 26.0: local `main` fast-forwarded `d3df0ba` → `58c48cb`; the branch; D041 and D040's merge status; the
+  Phase 26 steps; the manual plan's skeleton; Phase 25 recorded as merged (ROADMAP, DEVELOPMENT_PLAN's list, this file).
+- 2026-10-20 — Step 26.1 (`c01f93d`): `ProjectSettingsRules.SuggestedCanvas` (+ `DefaultCanvasWidth / Height`, used by
+  `ProjectSettings`), `CompositionMath.FillScale / FitScale`, `ExactRational.ToDoubleAtLeast / AtMost / Max`;
+  `Core.Tests/FramingRulesTests` (37).
+- 2026-10-20 — Steps 26.2–26.3 (`4aedaf4`): `ITimelineEditService.FrameClip` + `ClipFraming` (`TimelineEditService.Framing`,
+  a `ClipPropertyGesture` per command; `Messages.Frame_*`); `TimelineViewModel.Framing` (the canvas offer after
+  `AddMediaAt` / Insert / Overwrite from the Source viewer, the session flag; `FillFrame` / `FitFrame` for the menu);
+  `TimelineView` opens the clip's context menu on a right click (the timeline had none: built in code, `ClipMenu`); the
+  Inspector's two buttons under Масштаб; `Strings.Canvas_Offer*` / `Frame_*` (en + ru); the undo descriptions in the
+  localization allowlist. Tests: `FrameClipTests` (11), `VerticalVideoUiTests` (21), `FramingViewTests` (3),
+  `FramingRenderTests` (8 — Preview ↔ export parity of Fill / Fit). Full suite 4020 / 2 / 0.
+- 2026-10-20 — Step 26.4 (verification & closeout):
+  - Found in the real-app run and fixed: the offer's sizes broke across lines («1080 / × 1920») — non-breaking spaces
+    around «×» in `Canvas_OfferMessage` / `Canvas_OfferApplied` (en + ru).
+  - Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4020 / 2 / 0 (Core 1162, Timeline 839, Project 485, UI 828, Export 108, Rendering 92, Video 354, ExportEndToEnd 128 + 2, Vision 24); `AIVE_HEAVY_TESTS=1` 4022 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m` runs 4020 / 2 / 0 each, no hang, no dump; `git diff --check` clean.
+  - `project.json` v6 against `58c48cb`: the base built from `git archive 58c48cb` (Debug); a fresh Phase 10 fixture saved
+    by it (v6); three copies opened and saved without an edit — by the base, by this build with `ru` and with `en` —
+    11 774 bytes each, byte-identical (SHA-256 `79ECB9FBB210…`).
+  - Real app (`docs/PHASE26_MANUAL_TEST_PLAN.md`, 16 rows) with the product owner's Vivo / Huawei clips and two ffmpeg
+    fixtures (45°, mirrored): 1–11 and 16 PASS; 12 auto only; 13–15 PASS in part. NOT RUN: watching the export in a video
+    player (the file checked: 1080 × 1920, `cropdetect` full frame, frames looked at), the dialog and the menu at
+    1024 × 640, closing the dialog without a button, Overwrite from the Source viewer, an audio clip and a running export
+    in the real app (all covered by automated tests).
+  - State: Phase 26 implemented and verified by Claude; the product owner's acceptance pending. Local commits only — no
+    push, pull request or merge.
+- 2026-10-20 — **Phase 26 accepted by the product owner**; push of `feat/phase-26-vertical-video` and a pull request
+  permitted (the NOT RUN rows of the manual plan stay as they are).
+- 2026-10-20 — planning, documentation only (the product owner's request, outside Phase 26's steps): D042 — the product
+  concept (a simplified editor for bouldering videos, the main path of eight steps), its boundaries (no parity goal, ≈ 5
+  transitions and ≈ 5 effects, no audio studio / multicam / motion design, a large function only through a new decision) and
+  the provisional order of the remaining phases A–H with the research stages R1–R3; the COROS Pace 4 phase (R3 → F, FIT
+  recorded as the preliminary format — it was nowhere in the repository before) and the Final UX Pass (H) as the last phase.
+  `docs/DEVELOPMENT_PLAN.md` "Planned phases after Phase 26 (D042)"; `ROADMAP.md` "Product concept" and "Remaining plan";
+  the old "Future phases" candidates put under D042 §3–§4. No code, no format change; Phase 26's scope and its uncommitted
+  work (ARCHITECTURE.md, the manual plan, `Strings*.resx`) untouched; not committed.
+
+### Phase 25 — Technical backlog and small UX improvements (merged 2026-10-19 as `58c48cb`, PR #26)
 
 - 2026-10-19 — audit (read only) after the merge of PR #25: `origin/main` = `d3df0ba` (its tree identical to `e8a67b0`), CI
   green on the pull request (run 39268732382) and on `main` (run 39270377059); locally on `e8a67b0` Release `--no-incremental
@@ -76,6 +120,8 @@ merge without the product owner's command.
 - 2026-10-19 — FU-25.2 accepted by the product owner (PASS WITH NOTES). The last check before publishing: the Inspector at
   1024 × 640 in the real app with the build of `b869c13` (manual plan row G9) — PASS, no defect; no code changed, the suite
   not rerun. The branch holds Phase 25 (`01dbb92` … `62620f9`), FU-25.1 (`1cf6505`) and FU-25.2 (`b869c13`); not pushed.
+- 2026-10-19 — pushed at the product owner's command; PR #26 green (run 39324613809) and merged into `main` as `58c48cb`, its
+  tree identical to `1a1ea76`.
 
 ### Phase 24 — Russian localization and interface polish (merged 2026-10-19 as `d3df0ba`, PR #25)
 
