@@ -62,6 +62,9 @@ public static class CompositionPainter
                         case TextDraw text:
                             DrawStyledText(context, text.Text, glyphs, ct);
                             break;
+                        case SolidDraw solid:          // a fill transition (D044 §2)
+                            context.FillRectangle(new ImmutableSolidColorBrush(Color.Parse(solid.ColorHex)), RenderConversions.ToRect(solid.LocalRect));
+                            break;
                         case PlaceholderDraw placeholder:
                             DrawPlaceholder(context, placeholder);
                             break;

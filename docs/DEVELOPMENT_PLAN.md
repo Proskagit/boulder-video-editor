@@ -2229,7 +2229,7 @@ flashes, user curves, keyframes, "apply to every cut", a change of the audio cro
   rule on add / type change / move / ripple / speed / re-grid / load, D025 §5 for every type, the round trip, v7 → v8
   differing only in `formatVersion`, damaged files refused.
 
-### 28.3 — Snapshot, draw plan, painter
+### 28.3 — Snapshot, draw plan, painter *(done 2026-10-20 — D044 "Implementation notes (Step 28.3)")*
 - The transition zone with the type and the direction; the extended shown range for Dissolve and Push only; in
   `PlaybackSnapshot.LayersAt` the per-type presentation (D044 §2): the fill layer for Dip to black / Flash, the canvas scale
   for Zoom, the canvas offset for Push (offset layers never occlude); `SolidLayer` → `SolidDraw`; the hold outline following

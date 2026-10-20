@@ -59,6 +59,21 @@ Phase 27 (D043): Steps 27.0–27.6 done on `feat/phase-27-text-animation` (up to
   Project 524, UI 841, Export 108, Rendering 147, Video 354, ExportEndToEnd 129 + 2, Vision 24); `AIVE_HEAVY_TESTS=1`
   4266 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m` runs 4264 / 2 / 0 each, no hang, no dump. Known until 28.3 /
   28.4: every video transition drawn as a dissolve; the interface creates dissolves only.
+- 2026-10-20 — Step 28.2 accepted by the product owner; Steps 28.3–28.5 permitted to run on their own (stop on a need to
+  change D044 in substance, the format beyond v8 or D025 / D032 / D043).
+- 2026-10-20 — Step 28.3 (D044 "Implementation notes (Step 28.3)"): `TransitionPresentation` (the curves),
+  `CanvasMotion` on every composition layer, `SolidLayer` / `SolidDraw`, the zone with its type and direction, the shown
+  range only for Dissolve and Push, `LayersAt`'s library branch (the dissolve's code untouched), the painter's fill, the
+  Preview's placeholder moved with its layer, `DiffersOnlyInPresentation` without type / direction. Tests:
+  `Core.Tests/TransitionCompositionTests` (34: §2's curves, the layers of each type and direction, occlusion, the fill
+  under an upper title, PO-8 for every type, presentation-only changes, the motion in the draw plan for the frame and its
+  outline, `None` unchanged); `ExportEndToEnd.Tests/ExportTransitionLibraryEndToEndTests` (17, real ffmpeg: Preview = export
+  canvas byte for byte on the zone frames of every type and direction, and composed with rotation, scale, crop, opacity,
+  Fill, a hold outline, a lower and an upper track on a vertical canvas; independently a fill frame = ffmpeg's frame
+  blended at α (max 1), a push frame = the source shifted by whole pixels (max 0), a zoom frame ≈ ffmpeg's frame scaled
+  by k (mean 2.4–2.9 against 36–47 unscaled); missing handles hold the first frame in both; a vanished source fails with
+  DecodeFailed; a cancel inside a zone leaves nothing; the sound unchanged). D044 §9's "`transitions[].type`" corrected to
+  the actual `transitionTypeId` (documentation only).
 
 ### Phase 27 — Text animation and readability (accepted 2026-10-20, not yet published)
 

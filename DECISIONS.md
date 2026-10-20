@@ -5977,7 +5977,7 @@ the edit that caused it (D025 §5).
 
 ### 9. Project format
 
-`project.json` **v8**: `transitions[].type` ∈ `crossDissolve`, `dipToBlack`, `flash`, `zoom`, `push` on video tracks,
+`project.json` **v8**: `transitions[].transitionTypeId` ∈ `crossDissolve`, `dipToBlack`, `flash`, `zoom`, `push` on video tracks,
 `crossfade` on audio tracks; `direction` (`fromRight` | `fromLeft` | `fromTop` | `fromBottom`) required for `push`, refused for
 the others; §4 validated on load. v7 and older read unchanged (only `crossDissolve` exists there); a v7 project saved again
 differs only in `formatVersion`; a v9 file is refused by the newer-version message. The bump is needed: a v7 build would
@@ -6080,7 +6080,8 @@ rates; the 1.0 s rule; render parity; the end-to-end export with real ffmpeg; th
   `LimitsOf` / `MinFramesOf` (`ToFrameCeiling`) / `MaxFramesOf` (`ToFrameFloor`) / `DefaultFramesOf` (`ToNearestFrame`),
   `ClampFrames` (the nearest allowed value, null when the minimum doesn't fit) and `ValidateFillPeaks`; `Validate` accepts
   the five types on a video track, the crossfade on an audio track, and checks the direction rule.
-- File: the type is the existing `transitionTypeId` member (since v3; §9's "`transitions[].type`" is this member); a push
+- File: the type is the existing `transitionTypeId` member (since v3; §9 first named it "`transitions[].type`", corrected
+  to the actual member in Step 28.3 — documentation only, the schema unchanged); a push
   writes `direction` (`fromRight` … `fromBottom`), nothing else writes it. A v7 or older file with any other type than the
   dissolve / the crossfade is refused; a `direction` member there is ignored. On load §4 is checked over every video track.
 - Edit service: `AddTransition(left, right, typeId)` (§6: the default, else the longest that fits ≥ the minimum, never
@@ -6103,6 +6104,25 @@ rates; the 1.0 s rule; render parity; the end-to-end export with real ffmpeg; th
 - Until Step 28.3 the snapshot draws every video transition as a dissolve (PO-8 already applies to every type), and until
   Step 28.4 the interface creates dissolves only; the add result carries no "longest that fits" note — the UI compares the
   stored duration with the type's default.
+
+### Implementation notes (Step 28.3, 2026-10-20)
+
+- `TransitionPresentation` (Core) holds §2's curves: `FillOpacity`, `ZoomScale` (`ZoomPeak` 1.25), `PushProgress` /
+  `PushMotions` (whole canvas pixels, rounded away from zero), `FillColor` (#000000 / #FFFFFF). The snapshot's zone
+  (`DissolveZone`) carries the type and the direction; only Dissolve and Push extend the clips' shown range.
+- `PlaybackSnapshot.LayersAt`: the dissolve's branch is the unchanged code; the other types go through one routine — Dip
+  to black / Flash: the clip on its own frame and a `SolidLayer` above it (at the track's place, so tracks above stay
+  visible; fully opaque it hides everything below); Zoom: the clip on its own frame with a `CanvasMotion` scale (still
+  occluding — a scale ≥ 1 about the centre keeps the coverage); Push: both clips, B above A, each with a `CanvasMotion`
+  shift, never occluding. A layer's `CanvasMotion` (on `CompositionLayer`) is applied after its own transform by the draw
+  plan for the frame, the text and the hold outline (whose stroke width doesn't change) and by the Preview's placeholder;
+  `CanvasMotion.None` leaves every transform exactly as before. A new operation `SolidDraw` fills the canvas in the
+  painter (the one routine of the Preview and the export); the Preview draws a `SolidLayer` like a text (no frame needed).
+- `DiffersOnlyInPresentation` compares the zones without their type and direction (the spans' shown range says whether
+  the handles are used): Zoom ↔ Dip ↔ Flash, Dissolve ↔ Push and a direction change keep the decoders.
+- Missing handles at render time (media changed since the edit): the D025 §4 rule unchanged — the decoder holds the
+  source's first / last frame, the same in the Preview and the export; a source that vanishes fails the export
+  (DecodeFailed), a cancel inside a zone ends like any cancel.
 
 Context: the product owner's request of 2026-10-20 after Phase 27 (accepted locally, not yet published); the first draft
 (Dissolve, Dip to black, Dip to white, Wipe, Push) revised after the research of §0.

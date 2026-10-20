@@ -63,8 +63,9 @@ public static class PlaybackSnapshotBuilder
                         SourceSize = DisplaySize(asset?.Metadata),
                         FadeInFrames = fadeIn,
                         FadeOutFrames = fadeOut,
-                        ExtendedStart = dissolves.FirstOrDefault(z => z.RightClipId == clip.Id)?.Start,
-                        ExtendedEnd = dissolves.FirstOrDefault(z => z.LeftClipId == clip.Id)?.End,
+                        // Only Dissolve and Push show the clips past the cut, from their handles (D044 §3).
+                        ExtendedStart = dissolves.FirstOrDefault(z => z.RightClipId == clip.Id && z.ExtendsPictures)?.Start,
+                        ExtendedEnd = dissolves.FirstOrDefault(z => z.LeftClipId == clip.Id && z.ExtendsPictures)?.End,
                         Outline = media is VideoClip { HoldMarkup: { } markup }
                             ? HoldOutline.Of(markup, clip.TimelineStart, media.SourceIn, media.Speed, rate)
                             : null
@@ -188,7 +189,10 @@ public static class PlaybackSnapshotBuilder
             var (beforeCut, afterCut) = TransitionRules.Zone(frames);
             var cut = right.TimelineStart.ToFrameFloor(rate);
             zones.Add(new DissolveZone(left.Id, right.Id, MediaTime.FromFrame(cut - beforeCut, rate), right.TimelineStart,
-                MediaTime.FromFrame(cut + afterCut, rate), frames));
+                MediaTime.FromFrame(cut + afterCut, rate), frames)
+            {
+                TypeId = transition.TransitionTypeId, Direction = transition.Direction
+            });
         }
         return zones.OrderBy(z => z.Start).ToImmutableArray();
     }

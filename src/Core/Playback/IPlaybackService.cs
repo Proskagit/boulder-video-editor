@@ -45,8 +45,8 @@ public sealed record LayerPicture(CompositionLayer Layer, LayerPictureState Stat
     /// </summary>
     public (Affine2D Transform, double Width, double Height) PlaceholderArea(FrameSize canvas) =>
         Layer is PictureLayer { Geometry: { } g }
-            ? (g.Transform, g.SourceRect.Width, g.SourceRect.Height)
-            : (Affine2D.Identity, canvas.Width, canvas.Height);
+            ? (Layer.Motion.Apply(canvas, g.Transform), g.SourceRect.Width, g.SourceRect.Height)   // moved by a transition (D044 §2)
+            : (Layer.Motion.Apply(canvas, Affine2D.Identity), canvas.Width, canvas.Height);
 }
 
 /// <summary>
