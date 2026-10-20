@@ -6144,6 +6144,22 @@ rates; the 1.0 s rule; render parity; the end-to-end export with real ffmpeg; th
 - The zone on the timeline shows the type's mark (⨯ Наплыв, ◐ Затемнение, ✦ Вспышка, ⊕ Наезд, ⇢ Сдвиг); Delete of a library
   transition reports «Переход удалён». The unused `Timeline_Dissolve` strings were removed; en + ru resources added.
 
+### Verification (Step 28.5, 2026-10-20)
+
+- Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4331 / 2 / 0 (Core 1277, Timeline 894, Project 524, UI 857, Export 108, Rendering 147, Video 354, ExportEndToEnd 146 + 2, Vision 24); `AIVE_HEAVY_TESTS=1` 4333 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m` runs 4331 / 2 / 0 each, no hang, no dump.
+- Acceptance criteria: 1 (Preview = export byte for byte per type, direction and zone frame, composed with rotation, scale,
+  crop, opacity, Fill, a hold outline, a vertical canvas and lower / upper tracks) — automated, real ffmpeg; 2 (dissolves as
+  with Phase 27, a v7 project saved again differing only in `formatVersion`) — a harness built against `3c45c9d` and this
+  branch: 17 zone frames byte-identical, the 2-frame legacy dissolve included; 3 (the table of §5 on eight rates, the 0.1 s
+  step) — automated; 4 (types without handles, the others unavailable with the reason) — automated; 5 (§4 on add, every
+  edit, load) — automated; 6 (Undo / Redo, save / reopen, D025 §5, PO-8, locked tracks, linked sound, en + ru) — automated;
+  7 (the manual plan on the gym clips) — **NOT RUN**: the run was started and stopped before any input because the product
+  owner was using the computer; the fixtures (`tools/manual/New-Phase28TransitionFixture.ps1`) are ready; 8 (nothing beyond
+  §1) — met.
+- Missing handles at render time keep D025 §4 (the decoder holds the first / last frame, the same in the Preview and the
+  export, the export succeeds); a decode failure or a vanished source fails the export (DecodeFailed); a cancel inside a zone
+  leaves nothing. Refusing such an export would change D025 §4 — not done; a question for the product owner.
+
 Context: the product owner's request of 2026-10-20 after Phase 27 (accepted locally, not yet published); the first draft
 (Dissolve, Dip to black, Dip to white, Wipe, Push) revised after the research of §0.
 

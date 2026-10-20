@@ -5,8 +5,8 @@
 Phase 28 — the transition library (D042 Phase B), branch `feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d`
 (variant B; Phase 27 not yet published); DECISIONS.md D044, approved 2026-10-20. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 28
 — Transition library: steps"; manual plan `docs/PHASE28_MANUAL_TEST_PLAN.md`. Steps 28.0 and 28.1 done (28.1 accepted by the
-product owner: Zoom and Flash as specified); Step 28.2 done, awaiting the product owner's review; **28.3 only on the
-product owner's decision**. Phase 28's pull request
+product owner: Zoom and Flash as specified); Steps 28.2–28.5 done (28.2 accepted); **the phase awaits the product
+owner's acceptance**; the real-app manual run NOT RUN. Phase 28's pull request
 only after Phase 27 is merged; if Phase 27 changes before its merge, no rebase on Claude's own — the difference is reported
 with a safe synchronisation plan first. No push, pull request or merge without the product owner's command.
 
@@ -87,6 +87,17 @@ Phase 27 (D043): Steps 27.0–27.6 done on `feat/phase-27-text-animation` (up to
   tests moved to the seconds field / the new messages (`TimelineDissolveUiTests` ×3, `FadeViewBindingTests`, the Inspector's
   numeric fields 25 → 26). The new test class shares `AvaloniaControlsCollection` (views built in parallel collections
   raced in Avalonia's binding parser).
+- 2026-10-20 — Step 28.5 (D044 "Verification (Step 28.5)"): gates — Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4331 / 2 / 0 (Core 1277, Timeline 894, Project 524, UI 857, Export 108, Rendering 147, Video 354, ExportEndToEnd 146 + 2, Vision 24); `AIVE_HEAVY_TESTS=1` 4333 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m` runs 4331 / 2 / 0 each, no hang, no dump. v7 dissolves against the Phase
+  27 code: a console harness (`git archive 3c45c9d` and this branch, the export's rasterizer, deterministic synthetic frames;
+  a 10-frame dissolve, a legacy 2-frame one, two texts dissolving over a rotated, scaled, translucent clip with a hold
+  outline) — 17 zone frames byte-identical; the v7 project saved again by this branch differs only in `formatVersion`; the
+  v8 file opened by the Phase 27 code refused by the newer-version message. The real-app run: the fixtures
+  `tools/manual/New-Phase28TransitionFixture.ps1` (excerpts of the product owner's session: two attempts on one wall with and
+  without handles, two attempts of one route on a vertical canvas) and the app built to the scratch folder; started and
+  stopped before any input — the product owner was using the computer (another application in the foreground), so no
+  synthesized input was sent and every app row of the manual plan is NOT RUN with what the automated suites cover named.
+  ARCHITECTURE: the transition library. Open for the product owner: the real-app run of the manual plan; whether an export
+  with missing handles (media changed after the edit) should be refused instead of D025 §4's held frames.
 
 ### Phase 27 — Text animation and readability (accepted 2026-10-20, not yet published)
 

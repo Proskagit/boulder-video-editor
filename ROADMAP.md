@@ -82,7 +82,7 @@ product owner; verified by Claude 2026-10-20: Release / Debug `--no-incremental 
 manual plan run in the real app with its NOT RUN parts named); **accepted by the product owner (2026-10-20)**. Local commits
 only; the push, the pull request and the merge on the product owner's command.
 
-Phase 28 — the transition library (D042 Phase B; **in progress**; DECISIONS.md D044, approved 2026-10-20 with the answers
+Phase 28 — the transition library (D042 Phase B; **done, awaiting the product owner's acceptance**; DECISIONS.md D044, approved 2026-10-20 with the answers
 of its §11): Наплыв, Затемнение, Вспышка, Наезд, Сдвиг (no Wipe; Push without motion blur); durations in seconds stored as
 whole frames; a 1.0 s minimum between the peaks of Flash / Dip to black; `project.json` v8. Branch
 `feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d` (variant B): Phase 28's pull request only after Phase 27
@@ -91,8 +91,11 @@ synchronisation plan first. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 28 — Tra
 `docs/PHASE28_MANUAL_TEST_PLAN.md`. Step 28.0 done (documentation only); Step 28.1 — the visual check of Zoom and Flash on
 the product owner's gym clips, a gate — done and accepted (2026-10-20: Zoom `K = 1.25` 0.3 s and Flash 0.2 s as specified;
 D044 "Refined in Step 28.1"). Step 28.2 — the model, `project.json` v8 and the Core rules — done (2026-10-20: Release /
-Debug `--no-incremental -warnaserror` 0 / 0, the full suite 4264 / 2 / 0, heavy 4266 / 0 / 0, three blame-hang runs clean);
-Step 28.3 on the product owner's decision. Local commits only.
+Debug `--no-incremental -warnaserror` 0 / 0, the full suite 4264 / 2 / 0, heavy 4266 / 0 / 0, three blame-hang runs clean).
+Steps 28.3 (rendering), 28.4 (the interface) and 28.5 (verification) done on 2026-10-20: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4331 / 2 / 0 (Core 1277, Timeline 894, Project 524, UI 857, Export 108, Rendering 147, Video 354, ExportEndToEnd 146 + 2, Vision 24); `AIVE_HEAVY_TESTS=1` 4333 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m` runs 4331 / 2 / 0 each, no hang, no dump; Preview = export
+byte for byte for every type and direction (real ffmpeg); v7 dissolves byte-identical with the Phase 27 code and a v7 project
+saved again differing only in `formatVersion`; the real-app manual run NOT RUN (the product owner was at the desktop) — the
+manual plan names what the automated suites cover. Local commits only.
 
 ## Previous
 
