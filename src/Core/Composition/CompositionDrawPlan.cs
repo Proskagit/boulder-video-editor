@@ -219,4 +219,9 @@ public interface ICompositionRasterizer : IDisposable
     /// <summary>Renders <paramref name="plan"/> into <paramref name="target"/> (rows of <paramref name="stride"/>
     /// bytes, at least <c>stride · Canvas.Height</c> bytes).</summary>
     void Render(CompositionDrawPlan plan, Span<byte> target, int stride);
+
+    /// <summary>As <see cref="Render(CompositionDrawPlan, Span{byte}, int)"/>, cancelled with <paramref name="ct"/> where
+    /// the rasterizer may wait (D043: an outlined text's glyphs prepared on the UI thread); a cancelled render throws
+    /// <see cref="OperationCanceledException"/>.</summary>
+    void Render(CompositionDrawPlan plan, Span<byte> target, int stride, CancellationToken ct) => Render(plan, target, stride);
 }

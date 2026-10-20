@@ -178,6 +178,9 @@
   <data name="Export_FailOutput" xml:space="preserve">
     <value>The output file could not be written. Check the folder and that the file is not open elsewhere. ({0})</value>
   </data>
+  <data name="Export_FailRender" xml:space="preserve">
+    <value>A frame could not be drawn, so the export was stopped. ({0})</value>
+  </data>
   <data name="Export_Finished" xml:space="preserve">
     <value>The video was exported to
 {0}</value>

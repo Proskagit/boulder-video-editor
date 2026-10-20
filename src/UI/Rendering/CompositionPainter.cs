@@ -32,8 +32,11 @@ public static class CompositionPainter
     private static readonly ImmutableSolidColorBrush PlaceholderBorder = new ImmutableSolidColorBrush(Color.FromRgb(0x5A, 0x5A, 0x5A));
 
     /// <summary>Draws <paramref name="plan"/>. <paramref name="image"/> supplies the bitmap of a frame
-    /// operation (null: the layer is skipped, e.g. no bitmap yet).</summary>
-    public static void Paint(DrawingContext context, CompositionDrawPlan plan, Func<FrameDraw, IImage?> image)
+    /// operation (null: the layer is skipped, e.g. no bitmap yet). <paramref name="glyphs"/> supplies the glyph geometry of
+    /// an outlined text (D043 variant B) — the caller's own cache, waited for with <paramref name="ct"/> off the UI thread;
+    /// required when the plan has an outlined text.</summary>
+    public static void Paint(DrawingContext context, CompositionDrawPlan plan, Func<FrameDraw, IImage?> image,
+        TextGlyphCache? glyphs = null, CancellationToken ct = default)
     {
         if (!(plan.CanvasBounds.Width > 0) || !(plan.CanvasBounds.Height > 0)) return;
 
@@ -53,8 +56,11 @@ public static class CompositionPainter
                             if (image(frame) is { } bitmap)
                                 context.DrawImage(bitmap, RenderConversions.ToRect(frame.FrameSourceRect), RenderConversions.ToRect(frame.LocalRect));
                             break;
+                        case TextDraw text when text.Text.IsPlain:
+                            DrawText(context, text.Text);       // every text before D043: exactly as before
+                            break;
                         case TextDraw text:
-                            DrawText(context, text.Text);
+                            DrawStyledText(context, text.Text, glyphs, ct);
                             break;
                         case PlaceholderDraw placeholder:
                             DrawPlaceholder(context, placeholder);
@@ -76,8 +82,9 @@ public static class CompositionPainter
     /// default family.</summary>
     public static FormattedText Layout(TextProperties text)
     {
+        var typeface = text.Bold ? new Typeface(text.FontFamily, FontStyle.Normal, FontWeight.Bold) : new Typeface(text.FontFamily);
         var formatted = new FormattedText(text.Text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
-            new Typeface(text.FontFamily), text.FontSize, new ImmutableSolidColorBrush(Color.Parse(text.ColorHex)));
+            typeface, text.FontSize, new ImmutableSolidColorBrush(Color.Parse(text.ColorHex)));
         formatted.MaxTextWidth = Math.Max(formatted.WidthIncludingTrailingWhitespace, 1);
         formatted.TextAlignment = text.Alignment switch
         {
@@ -86,6 +93,49 @@ public static class CompositionPainter
             _ => Avalonia.Media.TextAlignment.Center
         };
         return formatted;
+    }
+
+    /// <summary>The top-left corner of a laid-out text box centred on the local origin.</summary>
+    public static Point BoxOrigin(FormattedText layout) => new(-layout.MaxTextWidth / 2, -layout.Height / 2);
+
+    /// <summary>The text box (<see cref="Layout"/>) with what is drawn around it (D043 §2): the background's padding when
+    /// the background is on — the Move tool's frame and the placement grid's box.</summary>
+    public static Rect DrawnBox(TextProperties text)
+    {
+        var layout = Layout(text);
+        var box = new Rect(BoxOrigin(layout), new Size(layout.MaxTextWidth, layout.Height));
+        return text.Background.IsEnabled ? box.Inflate(TextBackground.PaddingFactor * text.FontSize) : box;
+    }
+
+    /// <summary>D043 §2–§3: the background, then the outline, then the fill. The fill of an outlined text is its glyph
+    /// geometry (the outline's own shape — ClearType fringes and a hinting offset otherwise, Step 27.1); a text without an
+    /// outline is filled by <c>DrawText</c> (bold or with a background only).</summary>
+    private static void DrawStyledText(DrawingContext context, TextProperties text, TextGlyphCache? glyphs, CancellationToken ct)
+    {
+        var layout = Layout(text);
+        var origin = BoxOrigin(layout);
+        if (text.Background.IsEnabled)
+        {
+            var background = text.Background;
+            var box = new Rect(origin, new Size(layout.MaxTextWidth, layout.Height)).Inflate(TextBackground.PaddingFactor * text.FontSize);
+            var radius = TextBackground.CornerFactor * text.FontSize;
+            context.DrawRectangle(new ImmutableSolidColorBrush(Color.Parse(background.ColorHex), background.Opacity), null, box, radius, radius);
+        }
+
+        if (!text.Outline.IsEnabled)
+        {
+            context.DrawText(layout, origin);
+            return;
+        }
+
+        var cache = glyphs ?? throw new InvalidOperationException("An outlined text needs a glyph cache (D043, variant B).");
+        if (cache.Get(text, ct) is not { } geometry) return;
+        var outline = text.Outline;
+        // The visible width outside the glyphs is half the pen; the fill drawn over it covers the inner half.
+        var pen = new ImmutablePen(new ImmutableSolidColorBrush(Color.Parse(outline.ColorHex)), 2 * outline.Thickness * text.FontSize,
+            lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+        context.DrawGeometry(null, pen, geometry);
+        context.DrawGeometry(new ImmutableSolidColorBrush(Color.Parse(text.ColorHex)), null, geometry);
     }
 
     private static void DrawText(DrawingContext context, TextProperties text)

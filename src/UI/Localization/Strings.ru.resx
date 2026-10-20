@@ -178,6 +178,9 @@
   <data name="Export_FailOutput" xml:space="preserve">
     <value>Не удалось записать выходной файл. Проверьте папку и убедитесь, что файл не открыт в другой программе. ({0})</value>
   </data>
+  <data name="Export_FailRender" xml:space="preserve">
+    <value>Не удалось нарисовать кадр, экспорт остановлен. ({0})</value>
+  </data>
   <data name="Export_Finished" xml:space="preserve">
     <value>Видео экспортировано в
 {0}</value>

@@ -199,6 +199,9 @@ src/Export/ExportService.cs	quality {Quality} (CRF {Crf}), preset {Preset}, AAC 
 src/Media/Thumbnails/ThumbnailService.cs	'{asset.FilePath}' produced no frame.
 src/Project/MediaCacheLocation.cs	The {_kind} file is gone.
 src/Timeline/Playback/SpanReader.cs	'{_asset.FilePath}' produced no frame.
+src/UI/Rendering/TextGlyphCache.cs	The application is closing; the text outline could not be prepared.
+src/UI/Rendering/TextGlyphCache.cs	The interface did not prepare the text outline within {UiTimeout.TotalSeconds:0} s.
+src/UI/Rendering/TextGlyphCache.cs	The interface ended before the text outline was prepared.
 src/UI/Services/HoldMarkupFrameSource.cs	'{asset.FilePath}' produced no frame.
 src/Video/DisplayOrientation.cs	, CultureInfo.InvariantCulture)}° is not a right angle
 src/Video/DisplayOrientation.cs	mirrored display matrix

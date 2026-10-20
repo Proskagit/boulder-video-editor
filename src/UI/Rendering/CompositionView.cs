@@ -27,6 +27,9 @@ public sealed class CompositionView : Control
 
     private readonly Dictionary<Guid, LayerBitmaps> _bitmaps = new();
 
+    /// <summary>The Preview's own glyphs of outlined texts (D043 variant B; UI thread).</summary>
+    private readonly TextGlyphCache _glyphs = new();
+
     static CompositionView()
     {
         AffectsRender<CompositionView>(LayersProperty, CanvasProperty);
@@ -66,7 +69,7 @@ public sealed class CompositionView : Control
         var layers = Layers.IsDefault ? ImmutableArray<LayerPicture>.Empty : Layers;
         var plan = PreviewDrawPlan.Build(Canvas, Bounds.Width, Bounds.Height, layers);
         CompositionPainter.Paint(context, plan,
-            frame => _bitmaps.TryGetValue(frame.ClipId, out var bitmaps) ? bitmaps.Current : null);
+            frame => _bitmaps.TryGetValue(frame.ClipId, out var bitmaps) ? bitmaps.Current : null, _glyphs);
     }
 
     private void UpdateBitmaps()

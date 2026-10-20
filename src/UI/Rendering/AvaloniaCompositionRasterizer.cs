@@ -16,10 +16,15 @@ namespace AiVideoEditor.UI.Rendering;
 public sealed class AvaloniaCompositionRasterizer : ICompositionRasterizer
 {
     private readonly Dictionary<Guid, WriteableBitmap> _bitmaps = new();
+
+    /// <summary>This export's own glyphs of outlined texts (D043 variant B): built on the UI thread, drawn only here.</summary>
+    private readonly TextGlyphCache _glyphs = new();
     private RenderTargetBitmap? _target;
     private bool _disposed;
 
-    public void Render(CompositionDrawPlan plan, Span<byte> target, int stride)
+    public void Render(CompositionDrawPlan plan, Span<byte> target, int stride) => Render(plan, target, stride, CancellationToken.None);
+
+    public void Render(CompositionDrawPlan plan, Span<byte> target, int stride, CancellationToken ct)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var canvas = plan.Canvas;
@@ -52,7 +57,7 @@ public sealed class AvaloniaCompositionRasterizer : ICompositionRasterizer
         }
 
         using (var context = _target.CreateDrawingContext())
-            CompositionPainter.Paint(context, plan, frame => _bitmaps[frame.ClipId]);
+            CompositionPainter.Paint(context, plan, frame => _bitmaps[frame.ClipId], _glyphs, ct);
 
         unsafe
         {
