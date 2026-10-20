@@ -84,6 +84,12 @@ src/Timeline/TimelineEditService.cs	Split Clips
 src/Timeline/TimelineEditService.cs	Trim Clip
 src/Timeline/TimelineEditService.cs	Trim End to Playhead
 src/Timeline/TimelineEditService.cs	Trim Start to Playhead
+src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Appearance
+src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Bold
+src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Disappearance
+src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Outline
+src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Text Background
+src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Place Text
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Crop Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Scale Clip

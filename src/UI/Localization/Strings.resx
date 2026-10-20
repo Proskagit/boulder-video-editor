@@ -285,6 +285,33 @@ The file is replaced only when the export succeeds.</value>
   <data name="Gap_Closed" xml:space="preserve">
     <value>Gap closed</value>
   </data>
+  <data name="Grid_BottomCentre" xml:space="preserve">
+    <value>Bottom centre</value>
+  </data>
+  <data name="Grid_BottomLeft" xml:space="preserve">
+    <value>Bottom left</value>
+  </data>
+  <data name="Grid_BottomRight" xml:space="preserve">
+    <value>Bottom right</value>
+  </data>
+  <data name="Grid_MiddleCentre" xml:space="preserve">
+    <value>Centre</value>
+  </data>
+  <data name="Grid_MiddleLeft" xml:space="preserve">
+    <value>Middle left</value>
+  </data>
+  <data name="Grid_MiddleRight" xml:space="preserve">
+    <value>Middle right</value>
+  </data>
+  <data name="Grid_TopCentre" xml:space="preserve">
+    <value>Top centre</value>
+  </data>
+  <data name="Grid_TopLeft" xml:space="preserve">
+    <value>Top left</value>
+  </data>
+  <data name="Grid_TopRight" xml:space="preserve">
+    <value>Top right</value>
+  </data>
   <data name="Holds_Added" xml:space="preserve">
     <value>Hold added ({0} on the clip).</value>
   </data>
@@ -534,8 +561,23 @@ The file is replaced only when the export succeeds.</value>
   <data name="Inspector_Alignment" xml:space="preserve">
     <value>Alignment</value>
   </data>
+  <data name="Inspector_AnimationHeading" xml:space="preserve">
+    <value>ANIMATION</value>
+  </data>
+  <data name="Inspector_Appear" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
   <data name="Inspector_AudioHeading" xml:space="preserve">
     <value>AUDIO</value>
+  </data>
+  <data name="Inspector_Background" xml:space="preserve">
+    <value>Background</value>
+  </data>
+  <data name="Inspector_BackgroundOpacity" xml:space="preserve">
+    <value>Opacity</value>
+  </data>
+  <data name="Inspector_Bold" xml:space="preserve">
+    <value>Bold</value>
   </data>
   <data name="Inspector_Bottom" xml:space="preserve">
     <value>Bottom</value>
@@ -551,6 +593,9 @@ The file is replaced only when the export succeeds.</value>
   </data>
   <data name="Inspector_CropHeading" xml:space="preserve">
     <value>CROP</value>
+  </data>
+  <data name="Inspector_Disappear" xml:space="preserve">
+    <value>Disappearance</value>
   </data>
   <data name="Inspector_Duration" xml:space="preserve">
     <value>Duration</value>
@@ -600,6 +645,15 @@ The file is replaced only when the export succeeds.</value>
   <data name="Inspector_MediaHeading" xml:space="preserve">
     <value>MEDIA</value>
   </data>
+  <data name="Inspector_MotionDuration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Inspector_MotionDurationRange" xml:space="preserve">
+    <value>The duration is set from {0} to {1} s.</value>
+  </data>
+  <data name="Inspector_MotionSide" xml:space="preserve">
+    <value>Direction</value>
+  </data>
   <data name="Inspector_Mute" xml:space="preserve">
     <value>Mute</value>
   </data>
@@ -609,8 +663,20 @@ The file is replaced only when the export succeeds.</value>
   <data name="Inspector_Opacity" xml:space="preserve">
     <value>Opacity</value>
   </data>
+  <data name="Inspector_Outline" xml:space="preserve">
+    <value>Outline</value>
+  </data>
+  <data name="Inspector_OutlineThickness" xml:space="preserve">
+    <value>Thickness</value>
+  </data>
+  <data name="Inspector_OutlineThicknessTip" xml:space="preserve">
+    <value>The outline's width outside the letters, in percent of the font size</value>
+  </data>
   <data name="Inspector_Path" xml:space="preserve">
     <value>Path</value>
+  </data>
+  <data name="Inspector_Placement" xml:space="preserve">
+    <value>Placement</value>
   </data>
   <data name="Inspector_PositionX" xml:space="preserve">
     <value>Position X</value>
@@ -1254,6 +1320,30 @@ Recover them now? Discarded changes can't be restored.</value>
   <data name="Status_Ready" xml:space="preserve">
     <value>Ready.</value>
   </data>
+  <data name="Swatch_Black" xml:space="preserve">
+    <value>Black</value>
+  </data>
+  <data name="Swatch_Green" xml:space="preserve">
+    <value>Green</value>
+  </data>
+  <data name="Swatch_LightBlue" xml:space="preserve">
+    <value>Light blue</value>
+  </data>
+  <data name="Swatch_Orange" xml:space="preserve">
+    <value>Orange</value>
+  </data>
+  <data name="Swatch_Pink" xml:space="preserve">
+    <value>Pink</value>
+  </data>
+  <data name="Swatch_Red" xml:space="preserve">
+    <value>Red</value>
+  </data>
+  <data name="Swatch_White" xml:space="preserve">
+    <value>White</value>
+  </data>
+  <data name="Swatch_Yellow" xml:space="preserve">
+    <value>Yellow</value>
+  </data>
   <data name="Tech_AudioCodec" xml:space="preserve">
     <value>Audio Codec</value>
   </data>
@@ -1292,6 +1382,30 @@ Recover them now? Discarded changes can't be restored.</value>
   </data>
   <data name="Text_Added" xml:space="preserve">
     <value>Text added</value>
+  </data>
+  <data name="TextMotion_Fade" xml:space="preserve">
+    <value>Fade</value>
+  </data>
+  <data name="TextMotion_FromBottom" xml:space="preserve">
+    <value>from below</value>
+  </data>
+  <data name="TextMotion_FromLeft" xml:space="preserve">
+    <value>from the left</value>
+  </data>
+  <data name="TextMotion_FromRight" xml:space="preserve">
+    <value>from the right</value>
+  </data>
+  <data name="TextMotion_FromTop" xml:space="preserve">
+    <value>from above</value>
+  </data>
+  <data name="TextMotion_None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="TextMotion_Slide" xml:space="preserve">
+    <value>Slide</value>
+  </data>
+  <data name="TextMotion_Zoom" xml:space="preserve">
+    <value>Zoom</value>
   </data>
   <data name="Timeline_AddAudioTrack" xml:space="preserve">
     <value>+ Audio Track</value>

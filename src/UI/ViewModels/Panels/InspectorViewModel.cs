@@ -6,6 +6,7 @@ using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Localization;
+using AiVideoEditor.UI.Rendering;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -59,9 +60,11 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// holds only the shown clip's font.</param>
     /// <param name="editingLock">The app's shared lock (while an export runs no clip property is edited);
     /// a private one when not given.</param>
-    public InspectorViewModel(ITimelineEditService edit, StatusService status, IFontCatalog? fonts = null, EditingLock? editingLock = null)
+    public InspectorViewModel(ITimelineEditService edit, StatusService status, IFontCatalog? fonts = null, EditingLock? editingLock = null,
+        ITextBoxMeasurer? textBoxes = null)
     {
         _edit = edit;
+        _textBoxes = textBoxes;
         _status = status;
         _systemFonts = fonts?.FamilyNames ?? Array.Empty<string>();
         _editingLock = editingLock ?? new EditingLock();
@@ -514,7 +517,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
         HasTextProperties = clip is TextClip;
         HasSpeed = clip is VideoClip or AudioClip;
         HasFades = true;
+        ShowsFades = clip is not TextClip;      // a text's fades are its «Анимация» durations (D043 Q2)
         _rate = selection.Rate;
+        _canvas = selection.Canvas;
         IsFadeInInactive = selection.DissolveAtStart;
         IsFadeOutInactive = selection.DissolveAtEnd;
         SyncFromModel();
@@ -633,6 +638,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
                 TextColorHex = text.ColorHex;
                 TextColorSwatch = text.ColorHex;
                 Alignment = text.Alignment;
+                SyncTextStyle((TextClip)_clip);
             }
         }
         finally
@@ -676,6 +682,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
         {
             var values = (VolumePercent, PositionX, PositionY, ScalePercent, Rotation, OpacityPercent, CropLeftPercent, CropTopPercent,
                 CropRightPercent, CropBottomPercent, SpeedValue, FontSize, FadeInFrames, FadeOutFrames, DissolveFrames);
+            var style = (AppearSeconds, DisappearSeconds, OutlineThicknessPercent, BackgroundOpacityPercent);
+            (AppearSeconds, DisappearSeconds, OutlineThicknessPercent, BackgroundOpacityPercent) = (null, null, null, null);
+            (AppearSeconds, DisappearSeconds, OutlineThicknessPercent, BackgroundOpacityPercent) = style;
             (VolumePercent, PositionX, PositionY, ScalePercent, Rotation, OpacityPercent, CropLeftPercent, CropTopPercent) =
                 (null, null, null, null, null, null, null, null);
             (CropRightPercent, CropBottomPercent, SpeedValue, FontSize, FadeInFrames, FadeOutFrames, DissolveFrames) =
@@ -699,6 +708,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         HasTextProperties = false;
         HasSpeed = false;
         HasFades = false;
+        ShowsFades = false;
         IsFadeInInactive = false;
         IsFadeOutInactive = false;
     }

@@ -34,6 +34,26 @@
          exact typing, a drag is one undo step (D017). FU-25.2: Opacity, Volume and the line width take whole values (their
          view models round a typed fraction, step 1); their «0.####» shows a whole value as whole and a fraction saved
          before as it is. -->
+    <!-- Phase 27 (D043 §3): a colour swatch and a cell of the placement grid. -->
+    <Style Selector="Button.swatch">
+      <Setter Property="Width" Value="20"/>
+      <Setter Property="Height" Value="20"/>
+      <Setter Property="MinWidth" Value="0"/>
+      <Setter Property="Padding" Value="2"/>
+      <Setter Property="Margin" Value="0,0,4,4"/>
+    </Style>
+    <Style Selector="Button.swatch > Border">
+      <Setter Property="CornerRadius" Value="2"/>
+      <Setter Property="BorderBrush" Value="#5A5A5A"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+    <Style Selector="Button.cell">
+      <Setter Property="Width" Value="28"/>
+      <Setter Property="Height" Value="18"/>
+      <Setter Property="MinWidth" Value="0"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Margin" Value="1"/>
+    </Style>
     <Style Selector="Slider.under">
       <Setter Property="Width" Value="118"/>
       <Setter Property="Margin" Value="124,-10,0,-6"/>
@@ -151,12 +171,30 @@
                                  FormatString="0.##" Width="104"/>
                   <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
+                <Slider x:Name="FontSizeSlider" Classes="under" Focusable="False"
+                        Minimum="{Binding MinFontSize, Converter={x:Static common:DecimalDouble.Instance}}"
+                        Maximum="{Binding MaxFontSize, Converter={x:Static common:DecimalDouble.Instance}}"
+                        Value="{Binding FontSize, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                        ToolTip.Tip="{x:Static l:Strings.Inspector_Size}"/>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{x:Static l:Strings.Inspector_Color}" Classes="label"/>
                   <TextBox Text="{Binding TextColorHex, Mode=TwoWay}" Width="110" MaxLength="7"/>
                   <Border Width="22" Height="22" CornerRadius="2" BorderBrush="#5A5A5A" BorderThickness="1"
                           Background="{Binding TextColorSwatch}" VerticalAlignment="Center"/>
                 </StackPanel>
+                <!-- Phase 27 (D043 §3): a swatch is one click, one undo step; the field above stays for any colour. -->
+                <ItemsControl x:Name="TextColorSwatches" ItemsSource="{Binding Swatches}" Margin="124,-2,0,0">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Button Classes="swatch" ToolTip.Tip="{Binding Name}" CommandParameter="{Binding Hex}"
+                              Command="{Binding $parent[UserControl].DataContext.SetTextColorCommand}">
+                        <Border Background="{Binding Hex}"/>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <CheckBox Content="{x:Static l:Strings.Inspector_Bold}" IsChecked="{Binding IsBold, Mode=TwoWay}" Margin="124,0,0,0"/>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{x:Static l:Strings.Inspector_Alignment}" Classes="label"/>
                   <ComboBox ItemsSource="{Binding Alignments}" SelectedItem="{Binding Alignment, Mode=TwoWay}" Width="150">
@@ -167,7 +205,117 @@
                     </ComboBox.ItemTemplate>
                   </ComboBox>
                 </StackPanel>
+
+                <!-- Phase 27 (D043 §2, Q3): the outline and the background, each switched and set on its own (values kept
+                     while off); the switch and a swatch one undo step each, the thickness / opacity merge (D017). -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Outline}" Classes="label"/>
+                  <CheckBox x:Name="OutlineToggle" IsChecked="{Binding IsOutlineOn, Mode=TwoWay}" VerticalAlignment="Center" MinWidth="0"/>
+                  <Border Width="22" Height="22" CornerRadius="2" BorderBrush="#5A5A5A" BorderThickness="1"
+                          Background="{Binding OutlineColorSwatch}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <ItemsControl x:Name="OutlineColorSwatches" ItemsSource="{Binding Swatches}" Margin="124,-2,0,0">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Button Classes="swatch" ToolTip.Tip="{Binding Name}" CommandParameter="{Binding Hex}"
+                              Command="{Binding $parent[UserControl].DataContext.SetOutlineColorCommand}">
+                        <Border Background="{Binding Hex}"/>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_OutlineThickness}" Classes="label"/>
+                  <controls:CommitNumericUpDown Value="{Binding OutlineThicknessPercent, Mode=TwoWay}" Increment="1"
+                                 Minimum="{Binding MinOutlineThicknessPercent}" Maximum="{Binding MaxOutlineThicknessPercent}"
+                                 FormatString="0.####" Width="104" ToolTip.Tip="{x:Static l:Strings.Inspector_OutlineThicknessTip}"/>
+                  <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                </StackPanel>
+                <Slider x:Name="OutlineThicknessSlider" Classes="under" Focusable="False"
+                        Minimum="{Binding MinOutlineThicknessPercent, Converter={x:Static common:DecimalDouble.Instance}}"
+                        Maximum="{Binding MaxOutlineThicknessPercent, Converter={x:Static common:DecimalDouble.Instance}}"
+                        Value="{Binding OutlineThicknessPercent, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                        ToolTip.Tip="{x:Static l:Strings.Inspector_OutlineThicknessTip}"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Background}" Classes="label"/>
+                  <CheckBox x:Name="BackgroundToggle" IsChecked="{Binding IsBackgroundOn, Mode=TwoWay}" VerticalAlignment="Center" MinWidth="0"/>
+                  <Border Width="22" Height="22" CornerRadius="2" BorderBrush="#5A5A5A" BorderThickness="1"
+                          Background="{Binding BackgroundColorSwatch}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <ItemsControl x:Name="BackgroundColorSwatches" ItemsSource="{Binding Swatches}" Margin="124,-2,0,0">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Button Classes="swatch" ToolTip.Tip="{Binding Name}" CommandParameter="{Binding Hex}"
+                              Command="{Binding $parent[UserControl].DataContext.SetBackgroundColorCommand}">
+                        <Border Background="{Binding Hex}"/>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_BackgroundOpacity}" Classes="label"/>
+                  <controls:CommitNumericUpDown Value="{Binding BackgroundOpacityPercent, Mode=TwoWay}" Increment="1"
+                                 Minimum="{Binding MinBackgroundOpacityPercent}" Maximum="{Binding MaxBackgroundOpacityPercent}"
+                                 FormatString="0.####" Width="104"/>
+                  <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                </StackPanel>
+                <Slider x:Name="BackgroundOpacitySlider" Classes="under" Focusable="False"
+                        Minimum="{Binding MinBackgroundOpacityPercent, Converter={x:Static common:DecimalDouble.Instance}}"
+                        Maximum="{Binding MaxBackgroundOpacityPercent, Converter={x:Static common:DecimalDouble.Instance}}"
+                        Value="{Binding BackgroundOpacityPercent, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                        ToolTip.Tip="{x:Static l:Strings.Inspector_BackgroundOpacity}"/>
               </StackPanel>
+            </StackPanel>
+
+            <!-- Phase 27 (D043 §1, Q1–Q2): a text's appearance and disappearance — the kind and its duration, which is the
+                 clip's fade (stored in whole frames, D025); a kind or a direction is one undo step, a duration merges. -->
+            <StackPanel x:Name="TextAnimationSection" Spacing="6" IsVisible="{Binding HasTextProperties}">
+              <TextBlock Text="{x:Static l:Strings.Inspector_AnimationHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{x:Static l:Strings.Inspector_Appear}" Classes="label"/>
+                <ComboBox x:Name="AppearKind" ItemsSource="{Binding AppearanceKinds}" SelectedIndex="{Binding AppearKindIndex, Mode=TwoWay}" Width="150"/>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsAppearSlide}">
+                <TextBlock Text="{x:Static l:Strings.Inspector_MotionSide}" Classes="label"/>
+                <ComboBox ItemsSource="{Binding MotionSides}" SelectedIndex="{Binding AppearSideIndex, Mode=TwoWay}" Width="150"/>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsAppearTimed}">
+                <TextBlock Text="{x:Static l:Strings.Inspector_MotionDuration}" Classes="label"/>
+                <controls:CommitNumericUpDown Value="{Binding AppearSeconds, Mode=TwoWay}" Increment="0.1" Minimum="{Binding MinAppearSeconds}"
+                               Maximum="{Binding MaxAppearSeconds}" FormatString="0.##" Width="104"/>
+                <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+              </StackPanel>
+              <Slider x:Name="AppearSlider" Classes="under" Focusable="False" TickFrequency="0.1" IsVisible="{Binding IsAppearTimed}"
+                      Minimum="{Binding MinAppearSeconds, Converter={x:Static common:DecimalDouble.Instance}}"
+                      Maximum="{Binding MaxAppearSeconds, Converter={x:Static common:DecimalDouble.Instance}}"
+                      Value="{Binding AppearSeconds, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                      ToolTip.Tip="{x:Static l:Strings.Inspector_Appear}"/>
+              <TextBlock IsVisible="{Binding IsFadeInInactive}" Text="{x:Static l:Strings.Inspector_FadeInactive}"
+                         Foreground="#C8A060" FontSize="10" Margin="124,0,0,0" TextWrapping="Wrap"/>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{x:Static l:Strings.Inspector_Disappear}" Classes="label"/>
+                <ComboBox x:Name="DisappearKind" ItemsSource="{Binding AppearanceKinds}" SelectedIndex="{Binding DisappearKindIndex, Mode=TwoWay}" Width="150"/>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsDisappearSlide}">
+                <TextBlock Text="{x:Static l:Strings.Inspector_MotionSide}" Classes="label"/>
+                <ComboBox ItemsSource="{Binding MotionSides}" SelectedIndex="{Binding DisappearSideIndex, Mode=TwoWay}" Width="150"/>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsDisappearTimed}">
+                <TextBlock Text="{x:Static l:Strings.Inspector_MotionDuration}" Classes="label"/>
+                <controls:CommitNumericUpDown Value="{Binding DisappearSeconds, Mode=TwoWay}" Increment="0.1" Minimum="{Binding MinDisappearSeconds}"
+                               Maximum="{Binding MaxDisappearSeconds}" FormatString="0.##" Width="104"/>
+                <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+              </StackPanel>
+              <Slider x:Name="DisappearSlider" Classes="under" Focusable="False" TickFrequency="0.1" IsVisible="{Binding IsDisappearTimed}"
+                      Minimum="{Binding MinDisappearSeconds, Converter={x:Static common:DecimalDouble.Instance}}"
+                      Maximum="{Binding MaxDisappearSeconds, Converter={x:Static common:DecimalDouble.Instance}}"
+                      Value="{Binding DisappearSeconds, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                      ToolTip.Tip="{x:Static l:Strings.Inspector_Disappear}"/>
+              <TextBlock IsVisible="{Binding IsFadeOutInactive}" Text="{x:Static l:Strings.Inspector_FadeInactive}"
+                         Foreground="#C8A060" FontSize="10" Margin="124,0,0,0" TextWrapping="Wrap"/>
             </StackPanel>
 
             <!-- Transform and opacity (Phase 7): video, image and text clips. Every change is one edit;
@@ -175,6 +323,22 @@
             <StackPanel Spacing="6" IsVisible="{Binding HasVisualProperties}">
               <TextBlock Text="{x:Static l:Strings.Inspector_TransformHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <StackPanel Spacing="6">
+                <!-- Phase 27 (D043 §3, Q4): the 3 × 3 grid places a text's box at the safe margin, one undo step a cell; the X /
+                     Y fields and the free move in the Preview stay. -->
+                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasTextProperties}">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_Placement}" Classes="label"/>
+                  <UniformGrid x:Name="PlacementGrid" Rows="3" Columns="3">
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Top,Left" ToolTip.Tip="{x:Static l:Strings.Grid_TopLeft}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Top,Centre" ToolTip.Tip="{x:Static l:Strings.Grid_TopCentre}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Top,Right" ToolTip.Tip="{x:Static l:Strings.Grid_TopRight}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Middle,Left" ToolTip.Tip="{x:Static l:Strings.Grid_MiddleLeft}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Middle,Centre" ToolTip.Tip="{x:Static l:Strings.Grid_MiddleCentre}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Middle,Right" ToolTip.Tip="{x:Static l:Strings.Grid_MiddleRight}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Bottom,Left" ToolTip.Tip="{x:Static l:Strings.Grid_BottomLeft}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Bottom,Centre" ToolTip.Tip="{x:Static l:Strings.Grid_BottomCentre}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Bottom,Right" ToolTip.Tip="{x:Static l:Strings.Grid_BottomRight}"/>
+                  </UniformGrid>
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{x:Static l:Strings.Inspector_PositionX}" Classes="label"/>
                   <controls:CommitNumericUpDown Value="{Binding PositionX, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
@@ -361,7 +525,7 @@
 
             <!-- Fades (Phase 10, D025): every clip kind, in whole frames of the project rate; the time is shown next to
                  each. On an edge with a dissolve the fade is kept but not applied (PO-8). -->
-            <StackPanel Spacing="6" IsVisible="{Binding HasFades}">
+            <StackPanel Spacing="6" IsVisible="{Binding ShowsFades}">
               <TextBlock Text="{x:Static l:Strings.Inspector_FadesHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="{x:Static l:Strings.Inspector_FadeIn}" Classes="label"/>
