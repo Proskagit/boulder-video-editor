@@ -6124,6 +6124,26 @@ rates; the 1.0 s rule; render parity; the end-to-end export with real ffmpeg; th
   source's first / last frame, the same in the Preview and the export; a source that vanishes fails the export
   (DecodeFailed), a cancel inside a zone ends like any cancel.
 
+### Implementation notes (Step 28.4, 2026-10-20)
+
+- Timeline header: «Переход» (`OpenTransitionMenuCommand`) — on two clips of a video track the view shows the menu of
+  the five types (`TransitionMenuRequested` → the attached `MenuFlyout`), on an audio track it adds the crossfade at once
+  (D032 unchanged). Each item is `AddTransitionCommand(typeId)`: the type's default or the longest that fits; the status
+  says «Переход «Затемнение» добавлен: 0,6 с · 18 кадров.» or «… — самый длинный, что здесь помещается.»; a refusal shows
+  the service's message (not enough handles names Dip to black and Flash); clips that don't meet keep the earlier «Выберите
+  два соседних клипа…». `AddDissolveCommand` stays the track's default transition (a video dissolve through the typed path).
+- Inspector «ПЕРЕХОД» for a video transition: five type buttons (a type that cannot fit is disabled with the reason as its
+  tooltip — the handles or the clips' length), a push's four direction buttons («Откуда»: справа / слева / сверху / снизу),
+  the duration as a seconds field with a slider (`TransitionSeconds`, `0.##`, the range = the type's minimum … the longest
+  that fits, widened to include a stored value outside it), «0,29 с · 7 кадров» and «Самое длинное, что здесь помещается: …»
+  under it, «Удалить переход». A typed or dragged value becomes the nearest whole frame; a change of exactly ±0.1 s from the
+  shown value is an arrow step and goes along the 0.1 s grid (the shown value rounded to 0.1 s ± 0.1 s), so a step never
+  sticks. A type change reports «Переход изменён: «Вспышка».» or, when the duration was clamped, «…; длительность теперь
+  0,48 с · 12 кадров.». The audio crossfade keeps the frames field of Phase 10 / 17 (D032 unchanged). Numbers follow the
+  system's culture, as the fields do.
+- The zone on the timeline shows the type's mark (⨯ Наплыв, ◐ Затемнение, ✦ Вспышка, ⊕ Наезд, ⇢ Сдвиг); Delete of a library
+  transition reports «Переход удалён». The unused `Timeline_Dissolve` strings were removed; en + ru resources added.
+
 Context: the product owner's request of 2026-10-20 after Phase 27 (accepted locally, not yet published); the first draft
 (Dissolve, Dip to black, Dip to white, Wipe, Push) revised after the research of §0.
 

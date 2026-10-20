@@ -641,6 +641,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         NudgeLeftSecondCommand.NotifyCanExecuteChanged();
         NudgeRightSecondCommand.NotifyCanExecuteChanged();
         AddDissolveCommand.NotifyCanExecuteChanged();
+        AddTransitionCommand.NotifyCanExecuteChanged();
+        OpenTransitionMenuCommand.NotifyCanExecuteChanged();
         AddVideoTrackCommand.NotifyCanExecuteChanged();
         AddAudioTrackCommand.NotifyCanExecuteChanged();
         AddTextCommand.NotifyCanExecuteChanged();
@@ -688,7 +690,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (_selectedTransitionId is { } transitionId && _selection.Count == 0)
         {
-            Report(_edit.RemoveTransition(transitionId), successMessage: Strings.Dissolve_Removed);
+            var library = _transitionViewModels.TryGetValue(transitionId, out var zone) && zone.Track.Type == TrackType.Video &&
+                zone.Transition.TransitionTypeId != TransitionRules.CrossDissolve;
+            Report(_edit.RemoveTransition(transitionId), successMessage: library ? Strings.Transition_Removed : Strings.Dissolve_Removed);
             return;
         }
 
@@ -697,17 +701,70 @@ public sealed partial class TimelineViewModel : ViewModelBase
         Report(result);
     }
 
+    /// <summary>Raised by <see cref="OpenTransitionMenuCommand"/> for two clips of a video track: the view shows the menu
+    /// of the five types (D044 §6).</summary>
+    public event EventHandler? TransitionMenuRequested;
+
+    /// <summary>"Transition" in the header (D044 §6): on a video track the menu of the library's types; on an audio track
+    /// the crossfade, as before (D032), without a menu.</summary>
+    [RelayCommand(CanExecute = nameof(CanAddDissolve))]
+    private void OpenTransitionMenu()
+    {
+        if (DissolvePair() is not var (left, _)) return;
+        if (left is AudioClip) AddDissolve();
+        else TransitionMenuRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>
-    /// "Dissolve": a cross dissolve on the cut between the two selected clips (D025) — <see cref="DefaultDissolveDuration"/>,
-    /// or the longest the edit service says fits there when that is shorter. Every check (the clips meet on one unlocked
-    /// video track, the zone, the handles) is the service's; its message is shown when it refuses. The new dissolve is
-    /// selected.
+    /// A transition of <paramref name="typeId"/> on the cut between the two selected clips (D044 §6): its default
+    /// duration, or the longest that fits when that is shorter (the status says so); never another type. Every check is
+    /// the edit service's and its message is shown when it refuses. The new transition is selected.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanAddDissolve))]
+    private void AddTransition(string? typeId)
+    {
+        if (DissolvePair() is not var (left, right) || typeId is null) return;
+        if (left is AudioClip && typeId != TransitionRules.Crossfade)
+        {
+            _status.Report(Strings.Dissolve_SelectVideo);
+            return;
+        }
+        if (_edit.MaxTransitionFrames(left.Id, right.Id, typeId) is null)   // the clips don't meet on one track
+        {
+            _status.Report(left is AudioClip ? Strings.Dissolve_SelectAudio : Strings.Dissolve_SelectVideo);
+            return;
+        }
+
+        var result = _edit.AddTransition(left.Id, right.Id, typeId);
+        if (!result.Success)
+        {
+            Report(result);
+            return;
+        }
+        if (result.TransitionId is { } id) SelectTransition(id);
+        var frames = Sequence.VideoTracks.Concat(Sequence.AudioTracks).SelectMany(t => t.Transitions)
+            .Where(t => t.Id == result.TransitionId).Select(t => TransitionRules.Frames(t.Duration, FrameRate)).FirstOrDefault();
+        var shortened = frames < TransitionRules.DefaultFramesOf(typeId, FrameRate);
+        Report(result, successMessage: string.Format(shortened ? Strings.Transition_AddedLongest : Strings.Transition_Added,
+            TransitionNames.Name(typeId), TransitionNames.Duration(frames, FrameRate)));
+    }
+
+    /// <summary>
+    /// "Dissolve": the track's default transition on the cut between the two selected clips — on a video track a cross
+    /// dissolve by <see cref="AddTransition(string?)"/> (D044 §6), on an audio track the crossfade as before (D032 R9):
+    /// <see cref="DefaultDissolveDuration"/>, or the longest the edit service says fits there when that is shorter. Every
+    /// check is the service's; its message is shown when it refuses. The new transition is selected.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanAddDissolve))]
     private void AddDissolve()
     {
         if (DissolvePair() is not var (left, right)) return;
         var crossfade = left is AudioClip;
+        if (!crossfade)
+        {
+            AddTransition(TransitionRules.CrossDissolve);
+            return;
+        }
 
         if (_edit.MaxTransitionFrames(left.Id, right.Id) is not { } max)
         {
@@ -1176,6 +1233,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         // Dissolve and Close Gap depend on how many clips are selected, not only on whether any is: 1 → 2 keeps
         // HasSelection true.
         AddDissolveCommand.NotifyCanExecuteChanged();
+        AddTransitionCommand.NotifyCanExecuteChanged();
+        OpenTransitionMenuCommand.NotifyCanExecuteChanged();
         CloseGapCommand.NotifyCanExecuteChanged();
         NotifyLinkCommands();
     }

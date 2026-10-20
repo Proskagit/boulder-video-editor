@@ -6,6 +6,16 @@
              x:Class="AiVideoEditor.UI.Views.Panels.TimelineView"
              Focusable="True">
 
+  <UserControl.Resources>
+    <!-- D044 §6: the menu of the library's five types under "Transition" (shown by the view when the view model asks). -->
+    <MenuFlyout x:Key="TransitionMenu" Placement="BottomEdgeAlignedLeft">
+      <MenuItem Header="{x:Static l:Strings.TransitionType_CrossDissolve}" Command="{Binding AddTransitionCommand}" CommandParameter="crossDissolve"/>
+      <MenuItem Header="{x:Static l:Strings.TransitionType_DipToBlack}" Command="{Binding AddTransitionCommand}" CommandParameter="dipToBlack"/>
+      <MenuItem Header="{x:Static l:Strings.TransitionType_Flash}" Command="{Binding AddTransitionCommand}" CommandParameter="flash"/>
+      <MenuItem Header="{x:Static l:Strings.TransitionType_Zoom}" Command="{Binding AddTransitionCommand}" CommandParameter="zoom"/>
+      <MenuItem Header="{x:Static l:Strings.TransitionType_Push}" Command="{Binding AddTransitionCommand}" CommandParameter="push"/>
+    </MenuFlyout>
+  </UserControl.Resources>
   <UserControl.Styles>
     <!-- Items on a Canvas are positioned through their container (ContentPresenter). -->
     <Style Selector="ItemsControl.canvasItems > ContentPresenter">
@@ -159,10 +169,12 @@
                 <TextBlock Text="{x:Static l:Strings.Timeline_Duplicate}"/>
               </StackPanel>
             </Button>
-            <Button Command="{Binding AddDissolveCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_DissolveTip}" FontSize="11">
+            <!-- D044 §6: "Transition" — on a video track the menu of the library's five types, on an audio track the
+                 crossfade at once (the view model raises TransitionMenuRequested for the menu). -->
+            <Button x:Name="TransitionButton" Command="{Binding OpenTransitionMenuCommand}" FlyoutBase.AttachedFlyout="{StaticResource TransitionMenu}" ToolTip.Tip="{x:Static l:Strings.Timeline_TransitionTip}" FontSize="11">
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <controls:IconPath Glyph="{x:Static controls:Icons.Dissolve}" Width="12" Height="12"/>
-                <TextBlock Text="{x:Static l:Strings.Timeline_Dissolve}"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Transition}"/>
               </StackPanel>
             </Button>
             <Button Command="{Binding UnlinkCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_UnlinkTip}" FontSize="11">
@@ -377,7 +389,7 @@
                         <DataTemplate>
                           <Border Classes="dissolve" Classes.selected="{Binding IsSelected}" Width="{Binding Width}" Height="36"
                                   Margin="0,4,0,0" CornerRadius="2" IsVisible="{Binding IsVisible}">
-                            <TextBlock Text="⨯" Foreground="#FFFFFF" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            <TextBlock Text="{Binding Glyph}" Foreground="#FFFFFF" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
                                        IsHitTestVisible="False"/>
                           </Border>
                         </DataTemplate>

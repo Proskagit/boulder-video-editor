@@ -1446,12 +1446,6 @@ Recover them now? Discarded changes can't be restored.</value>
   <data name="Timeline_DeleteTip" xml:space="preserve">
     <value>Delete the selected clips or dissolve (Delete)</value>
   </data>
-  <data name="Timeline_Dissolve" xml:space="preserve">
-    <value>Dissolve</value>
-  </data>
-  <data name="Timeline_DissolveTip" xml:space="preserve">
-    <value>Add a dissolve between the two selected clips that meet — on an audio track, a crossfade</value>
-  </data>
   <data name="Timeline_Duplicate" xml:space="preserve">
     <value>Duplicate</value>
   </data>
@@ -1852,5 +1846,68 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Frame_Fitted" xml:space="preserve">
     <value>The picture fits in the frame: scale {0} %.</value>
+  </data>
+  <data name="Timeline_Transition" xml:space="preserve">
+    <value>Transition</value>
+  </data>
+  <data name="Timeline_TransitionTip" xml:space="preserve">
+    <value>Add a transition between the two selected adjacent clips (on an audio track, a crossfade)</value>
+  </data>
+  <data name="TransitionType_CrossDissolve" xml:space="preserve">
+    <value>Dissolve</value>
+  </data>
+  <data name="TransitionType_DipToBlack" xml:space="preserve">
+    <value>Dip to black</value>
+  </data>
+  <data name="TransitionType_Flash" xml:space="preserve">
+    <value>Flash</value>
+  </data>
+  <data name="TransitionType_Zoom" xml:space="preserve">
+    <value>Zoom</value>
+  </data>
+  <data name="TransitionType_Push" xml:space="preserve">
+    <value>Push</value>
+  </data>
+  <data name="TransitionDirection_FromRight" xml:space="preserve">
+    <value>From the right</value>
+  </data>
+  <data name="TransitionDirection_FromLeft" xml:space="preserve">
+    <value>From the left</value>
+  </data>
+  <data name="TransitionDirection_FromTop" xml:space="preserve">
+    <value>From the top</value>
+  </data>
+  <data name="TransitionDirection_FromBottom" xml:space="preserve">
+    <value>From the bottom</value>
+  </data>
+  <data name="Transition_Heading" xml:space="preserve">
+    <value>Transition</value>
+  </data>
+  <data name="Transition_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Transition_Direction" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="Transition_Remove" xml:space="preserve">
+    <value>Remove transition</value>
+  </data>
+  <data name="Transition_Removed" xml:space="preserve">
+    <value>Transition removed</value>
+  </data>
+  <data name="Transition_Added" xml:space="preserve">
+    <value>{0} added: {1}.</value>
+  </data>
+  <data name="Transition_AddedLongest" xml:space="preserve">
+    <value>{0} added: {1}, the longest that fits here.</value>
+  </data>
+  <data name="Transition_DurationValue" xml:space="preserve">
+    <value>{0} s · {1}</value>
+  </data>
+  <data name="Transition_TypeChanged" xml:space="preserve">
+    <value>Transition changed to {0}.</value>
+  </data>
+  <data name="Transition_TypeChangedClamped" xml:space="preserve">
+    <value>Transition changed to {0}; its duration is now {1}.</value>
   </data>
 </root>

@@ -45,7 +45,7 @@ public sealed class InspectorFieldStyleTests
     {
         var fields = Inspector().Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown").ToList();
 
-        Assert.Equal(25, fields.Count);                         // Phase 27: + outline thickness, background opacity, two durations
+        Assert.Equal(26, fields.Count);                         // Phase 27: + outline thickness, background opacity, two durations; Phase 28: + a transition's seconds
         Assert.All(fields, f => Assert.Equal("104", (string?)f.Attribute("Width")));
     }
 

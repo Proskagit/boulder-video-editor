@@ -141,14 +141,59 @@
           <StackPanel IsVisible="{Binding IsTransitionSelected}" IsEnabled="{Binding IsEditingAllowed}" Spacing="6">
             <TextBlock Text="{Binding TransitionHeader}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
             <TextBlock Text="{Binding DissolveClipsDisplay}" Foreground="#DDDDDD" TextWrapping="Wrap"/>
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <TextBlock Text="{x:Static l:Strings.Inspector_Duration}" Classes="label"/>
-              <controls:CommitNumericUpDown Value="{Binding DissolveFrames, Mode=TwoWay}" Increment="1" Minimum="{Binding MinDissolveFrames}"
-                             Maximum="{Binding MaxDissolveFrames}" FormatString="0" Width="104"/>
-              <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+            <!-- The audio crossfade (D032 R9): its length in whole frames, as before. -->
+            <StackPanel IsVisible="{Binding IsAudioTransitionSelected}" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{x:Static l:Strings.Inspector_Duration}" Classes="label"/>
+                <controls:CommitNumericUpDown Value="{Binding DissolveFrames, Mode=TwoWay}" Increment="1" Minimum="{Binding MinDissolveFrames}"
+                               Maximum="{Binding MaxDissolveFrames}" FormatString="0" Width="104"/>
+                <TextBlock Text="{x:Static l:Strings.Unit_Frames}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+              </StackPanel>
+              <TextBlock Text="{Binding DissolveTimeDisplay}" Foreground="#7A7A7A" FontSize="10" Margin="124,-4,0,0"/>
+              <TextBlock Text="{Binding DissolveLimitDisplay}" Foreground="#7A7A7A" FontSize="10" Margin="124,0,0,0" TextWrapping="Wrap"/>
             </StackPanel>
-            <TextBlock Text="{Binding DissolveTimeDisplay}" Foreground="#7A7A7A" FontSize="10" Margin="124,-4,0,0"/>
-            <TextBlock Text="{Binding DissolveLimitDisplay}" Foreground="#7A7A7A" FontSize="10" Margin="124,0,0,0" TextWrapping="Wrap"/>
+            <!-- Phase 28 (D044 §5–§6): a video transition — the type (one that cannot fit is disabled with the reason), a
+                 push's direction, the duration in seconds stored as whole frames (the stored seconds and frames under it). -->
+            <StackPanel x:Name="TransitionLibrarySection" IsVisible="{Binding IsVideoTransitionSelected}" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{x:Static l:Strings.Transition_Type}" Classes="label" VerticalAlignment="Top" Margin="0,4,0,0"/>
+                <ItemsControl x:Name="TransitionTypeButtons" ItemsSource="{Binding TransitionTypes}" MaxWidth="190">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <ToggleButton Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=OneWay}" IsEnabled="{Binding IsAvailable}"
+                                    ToolTip.Tip="{Binding Tip}" CommandParameter="{Binding TypeId}" FontSize="11" Margin="0,0,4,4"
+                                    Command="{Binding $parent[UserControl].DataContext.SetTransitionTypeCommand}"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsPushSelected}">
+                <TextBlock Text="{x:Static l:Strings.Transition_Direction}" Classes="label" VerticalAlignment="Top" Margin="0,4,0,0"/>
+                <ItemsControl x:Name="TransitionDirectionButtons" ItemsSource="{Binding TransitionDirections}" MaxWidth="190">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <ToggleButton Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=OneWay}" CommandParameter="{Binding Direction}"
+                                    FontSize="11" Margin="0,0,4,4" Command="{Binding $parent[UserControl].DataContext.SetTransitionDirectionCommand}"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{x:Static l:Strings.Inspector_Duration}" Classes="label"/>
+                <controls:CommitNumericUpDown x:Name="TransitionSecondsField" Value="{Binding TransitionSeconds, Mode=TwoWay}" Increment="0.1"
+                               Minimum="{Binding MinTransitionSeconds}" Maximum="{Binding MaxTransitionSeconds}" FormatString="0.##" Width="104"/>
+                <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+              </StackPanel>
+              <Slider x:Name="TransitionSlider" Classes="under" Focusable="False" TickFrequency="0.1"
+                      Minimum="{Binding MinTransitionSeconds, Converter={x:Static common:DecimalDouble.Instance}}"
+                      Maximum="{Binding MaxTransitionSeconds, Converter={x:Static common:DecimalDouble.Instance}}"
+                      Value="{Binding TransitionSeconds, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
+                      ToolTip.Tip="{x:Static l:Strings.Inspector_Duration}"/>
+              <TextBlock Text="{Binding TransitionDurationDisplay}" Foreground="#7A7A7A" FontSize="10" Margin="124,-4,0,0"/>
+              <TextBlock Text="{Binding TransitionLimitDisplay}" Foreground="#7A7A7A" FontSize="10" Margin="124,0,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
             <Button Content="{Binding RemoveTransitionLabel}" Command="{Binding RemoveDissolveCommand}" Margin="124,4,0,0" FontSize="11"/>
           </StackPanel>
 
@@ -328,14 +373,14 @@
                 <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasTextProperties}">
                   <TextBlock Text="{x:Static l:Strings.Inspector_Placement}" Classes="label"/>
                   <UniformGrid x:Name="PlacementGrid" Rows="3" Columns="3">
-                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Top,Left" ToolTip.Tip="{x:Static l:Strings.Grid_TopLeft}"/>
-                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Top,Centre" ToolTip.Tip="{x:Static l:Strings.Grid_TopCentre}"/>
-                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Top,Right" ToolTip.Tip="{x:Static l:Strings.Grid_TopRight}"/>
-                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Middle,Left" ToolTip.Tip="{x:Static l:Strings.Grid_MiddleLeft}"/>
-                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Middle,Centre" ToolTip.Tip="{x:Static l:Strings.Grid_MiddleCentre}"/>
-                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Middle,Right" ToolTip.Tip="{x:Static l:Strings.Grid_MiddleRight}"/>
-                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Bottom,Left" ToolTip.Tip="{x:Static l:Strings.Grid_BottomLeft}"/>
-                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Bottom,Centre" ToolTip.Tip="{x:Static l:Strings.Grid_BottomCentre}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Top,Left" ToolTip.Tip="{x:Static l:Strings.Grid_TopLeft}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Top,Centre" ToolTip.Tip="{x:Static l:Strings.Grid_TopCentre}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Top,Right" ToolTip.Tip="{x:Static l:Strings.Grid_TopRight}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Middle,Left" ToolTip.Tip="{x:Static l:Strings.Grid_MiddleLeft}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Middle,Centre" ToolTip.Tip="{x:Static l:Strings.Grid_MiddleCentre}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Middle,Right" ToolTip.Tip="{x:Static l:Strings.Grid_MiddleRight}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Bottom,Left" ToolTip.Tip="{x:Static l:Strings.Grid_BottomLeft}"/>
+                    <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Bottom,Centre" ToolTip.Tip="{x:Static l:Strings.Grid_BottomCentre}"/>
                     <Button Classes="cell" Command="{Binding PlaceCommand}" CommandParameter="Bottom,Right" ToolTip.Tip="{x:Static l:Strings.Grid_BottomRight}"/>
                   </UniformGrid>
                 </StackPanel>

@@ -74,6 +74,19 @@ Phase 27 (D043): Steps 27.0–27.6 done on `feat/phase-27-text-animation` (up to
   by k (mean 2.4–2.9 against 36–47 unscaled); missing handles hold the first frame in both; a vanished source fails with
   DecodeFailed; a cancel inside a zone leaves nothing; the sound unchanged). D044 §9's "`transitions[].type`" corrected to
   the actual `transitionTypeId` (documentation only).
+- 2026-10-20 — Step 28.4 (D044 "Implementation notes (Step 28.4)"): «Переход» in the timeline header with the menu of the five
+  types (the crossfade at once on an audio track), `AddTransitionCommand(typeId)` with the status of the default / the longest
+  that fits; the Inspector's TRANSITION section for a video transition (type buttons disabled with the reason, a push's
+  direction, the seconds field and slider on whole frames with the 0.1 s arrow grid, the stored seconds and frames, the
+  longest that fits, Remove), the crossfade's frames field unchanged; the zone's mark per type; en + ru strings (the unused
+  `Timeline_Dissolve` pair removed). Tests: `UI.Tests/TransitionLibraryUiTests` (16: the menu vs. the audio crossfade, each
+  type's default and status, the longest that fits, no handles with the disabled buttons' reasons, type change keep / clamp
+  with its status and Undo / Redo, the direction, the seconds field at 24 fps — 0.29 s for 7 frames, the arrow 0.29 → 0.42
+  (10 frames) and back to 7, typed 0.75 → 18, above Zoom's 1 s refused and the field restored —, a locked track and a
+  running export, Delete, the audio crossfade's frames field, the section's bindings, the menu's five items). Earlier UI
+  tests moved to the seconds field / the new messages (`TimelineDissolveUiTests` ×3, `FadeViewBindingTests`, the Inspector's
+  numeric fields 25 → 26). The new test class shares `AvaloniaControlsCollection` (views built in parallel collections
+  raced in Avalonia's binding parser).
 
 ### Phase 27 — Text animation and readability (accepted 2026-10-20, not yet published)
 

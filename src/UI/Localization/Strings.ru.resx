@@ -1448,12 +1448,6 @@
   <data name="Timeline_DeleteTip" xml:space="preserve">
     <value>Удалить выбранные клипы или наплыв (Delete)</value>
   </data>
-  <data name="Timeline_Dissolve" xml:space="preserve">
-    <value>Наплыв</value>
-  </data>
-  <data name="Timeline_DissolveTip" xml:space="preserve">
-    <value>Добавить наплыв между двумя выбранными соседними клипами (на аудиодорожке — перекрёстное затухание)</value>
-  </data>
   <data name="Timeline_Duplicate" xml:space="preserve">
     <value>Дублировать</value>
   </data>
@@ -1856,5 +1850,68 @@
   </data>
   <data name="Frame_Fitted" xml:space="preserve">
     <value>Изображение вписано в кадр: масштаб {0} %.</value>
+  </data>
+  <data name="Timeline_Transition" xml:space="preserve">
+    <value>Переход</value>
+  </data>
+  <data name="Timeline_TransitionTip" xml:space="preserve">
+    <value>Добавить переход между двумя выбранными соседними клипами (на аудиодорожке — перекрёстное затухание)</value>
+  </data>
+  <data name="TransitionType_CrossDissolve" xml:space="preserve">
+    <value>Наплыв</value>
+  </data>
+  <data name="TransitionType_DipToBlack" xml:space="preserve">
+    <value>Затемнение</value>
+  </data>
+  <data name="TransitionType_Flash" xml:space="preserve">
+    <value>Вспышка</value>
+  </data>
+  <data name="TransitionType_Zoom" xml:space="preserve">
+    <value>Наезд</value>
+  </data>
+  <data name="TransitionType_Push" xml:space="preserve">
+    <value>Сдвиг</value>
+  </data>
+  <data name="TransitionDirection_FromRight" xml:space="preserve">
+    <value>Справа</value>
+  </data>
+  <data name="TransitionDirection_FromLeft" xml:space="preserve">
+    <value>Слева</value>
+  </data>
+  <data name="TransitionDirection_FromTop" xml:space="preserve">
+    <value>Сверху</value>
+  </data>
+  <data name="TransitionDirection_FromBottom" xml:space="preserve">
+    <value>Снизу</value>
+  </data>
+  <data name="Transition_Heading" xml:space="preserve">
+    <value>Переход</value>
+  </data>
+  <data name="Transition_Type" xml:space="preserve">
+    <value>Тип</value>
+  </data>
+  <data name="Transition_Direction" xml:space="preserve">
+    <value>Откуда</value>
+  </data>
+  <data name="Transition_Remove" xml:space="preserve">
+    <value>Удалить переход</value>
+  </data>
+  <data name="Transition_Removed" xml:space="preserve">
+    <value>Переход удалён</value>
+  </data>
+  <data name="Transition_Added" xml:space="preserve">
+    <value>Переход «{0}» добавлен: {1}.</value>
+  </data>
+  <data name="Transition_AddedLongest" xml:space="preserve">
+    <value>Переход «{0}» добавлен: {1} — самый длинный, что здесь помещается.</value>
+  </data>
+  <data name="Transition_DurationValue" xml:space="preserve">
+    <value>{0} с · {1}</value>
+  </data>
+  <data name="Transition_TypeChanged" xml:space="preserve">
+    <value>Переход изменён: «{0}».</value>
+  </data>
+  <data name="Transition_TypeChangedClamped" xml:space="preserve">
+    <value>Переход изменён: «{0}»; длительность теперь {1}.</value>
   </data>
 </root>

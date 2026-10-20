@@ -2238,7 +2238,7 @@ flashes, user curves, keyframes, "apply to every cut", a change of the audio cro
   direction and zone frame (with rotation, scale, crop, opacity, Fit / Fill, outlines, a vertical canvas, lower and upper
   tracks), dissolves bit for bit as with Phase 27, the end-to-end export with real ffmpeg.
 
-### 28.4 — The UI
+### 28.4 — The UI *(done 2026-10-20 — D044 "Implementation notes (Step 28.4)")*
 - «Переход ▾» in the timeline header (the five types; the crossfade on an audio track as before); the Inspector's TRANSITION
   section (the type, the direction for Push, the duration in seconds — field and slider on the 0.1 s grid, the stored
   seconds and frames, «the longest that fits here» — Remove; types that cannot fit disabled with a tooltip); the type's icon

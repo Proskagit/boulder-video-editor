@@ -64,10 +64,22 @@ public partial class TimelineView : UserControl
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        if (_viewModel is not null) _viewModel.ScrollRequested -= OnScrollRequested;
+        if (_viewModel is not null)
+        {
+            _viewModel.ScrollRequested -= OnScrollRequested;
+            _viewModel.TransitionMenuRequested -= OnTransitionMenuRequested;
+        }
         _viewModel = DataContext as TimelineViewModel;
-        if (_viewModel is not null) _viewModel.ScrollRequested += OnScrollRequested;
+        if (_viewModel is not null)
+        {
+            _viewModel.ScrollRequested += OnScrollRequested;
+            _viewModel.TransitionMenuRequested += OnTransitionMenuRequested;
+        }
     }
+
+    /// <summary>D044 §6: the menu of the library's types under "Transition".</summary>
+    private void OnTransitionMenuRequested(object? sender, EventArgs e) =>
+        Avalonia.Controls.Primitives.FlyoutBase.ShowAttachedFlyout(TransitionButton);
 
     private void OnScrollRequested(object? sender, double offsetX)
     {

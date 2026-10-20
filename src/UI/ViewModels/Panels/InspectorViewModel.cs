@@ -87,6 +87,8 @@ public sealed partial class InspectorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsTimelineClipSelected))]
     [NotifyPropertyChangedFor(nameof(IsNothingSelected))]
     [NotifyPropertyChangedFor(nameof(IsTransitionSelected))]
+    [NotifyPropertyChangedFor(nameof(IsVideoTransitionSelected))]
+    [NotifyPropertyChangedFor(nameof(IsAudioTransitionSelected))]
     private InspectorSelectionKind _selectionKind = InspectorSelectionKind.None;
 
     /// <summary>The "Holds" section of a video clip (D034); set by the shell, which tells it the selected clip.</summary>
@@ -369,7 +371,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     private string _transitionTitle = Strings.Transition_Dissolve;
 
     public string TransitionHeader => TransitionTitle.ToUpperInvariant();
-    public string RemoveTransitionLabel => TransitionTitle == Strings.Transition_Crossfade ? Strings.Transition_RemoveCrossfade : Strings.Transition_RemoveDissolve;
+    public string RemoveTransitionLabel => TransitionTitle == Strings.Transition_Crossfade ? Strings.Transition_RemoveCrossfade : Strings.Transition_Remove;
 
     /// <summary>Shows a dissolve selected on the timeline. Called again after every timeline change (undo / redo too).</summary>
     public void ShowTransition(TimelineTransitionSelection selection)
@@ -379,6 +381,8 @@ public sealed partial class InspectorViewModel : ViewModelBase
         SyncTransition();
         TechnicalRows.Clear();
         SelectionKind = InspectorSelectionKind.Transition;
+        OnPropertyChanged(nameof(IsVideoTransitionSelected));
+        OnPropertyChanged(nameof(IsAudioTransitionSelected));
         OnPropertyChanged(nameof(HasTechnicalInfo));
     }
 
@@ -394,7 +398,8 @@ public sealed partial class InspectorViewModel : ViewModelBase
             DissolveTimeDisplay = TimeFormat.ToTimecode(MediaTime.FromFrame(frames, s.Rate), s.Rate);
             DissolveLimitDisplay = s.MaxFrames is { } max ? string.Format(Strings.Transition_Longest, Plural.Format(max, Strings.Plural_Frames)) : "";
             DissolveClipsDisplay = $"{s.LeftName} → {s.RightName} ({s.Track.Name})";
-            TransitionTitle = s.Track.Type == TrackType.Audio ? Strings.Transition_Crossfade : Strings.Transition_Dissolve;
+            TransitionTitle = s.Track.Type == TrackType.Audio ? Strings.Transition_Crossfade : Strings.Transition_Heading;
+            if (s.Track.Type == TrackType.Video) SyncLibrary(s);
         }
         finally
         {
@@ -425,8 +430,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
     private void RemoveDissolve()
     {
         if (_transition is not { } s || RejectWhileLocked()) return;
+        var library = s.Track.Type == TrackType.Video && s.Transition.TransitionTypeId != TransitionRules.CrossDissolve;
         var result = _edit.RemoveTransition(s.Transition.Id);
-        _status.Report(result.Success ? Strings.Dissolve_Removed : result.Message ?? Strings.Transition_NotRemoved);
+        _status.Report(result.Success ? library ? Strings.Transition_Removed : Strings.Dissolve_Removed : result.Message ?? Strings.Transition_NotRemoved);
     }
 
     // --- Text (Phase 7 Step 8): text clips ---------------------------------------------------
@@ -682,9 +688,9 @@ public sealed partial class InspectorViewModel : ViewModelBase
         {
             var values = (VolumePercent, PositionX, PositionY, ScalePercent, Rotation, OpacityPercent, CropLeftPercent, CropTopPercent,
                 CropRightPercent, CropBottomPercent, SpeedValue, FontSize, FadeInFrames, FadeOutFrames, DissolveFrames);
-            var style = (AppearSeconds, DisappearSeconds, OutlineThicknessPercent, BackgroundOpacityPercent);
-            (AppearSeconds, DisappearSeconds, OutlineThicknessPercent, BackgroundOpacityPercent) = (null, null, null, null);
-            (AppearSeconds, DisappearSeconds, OutlineThicknessPercent, BackgroundOpacityPercent) = style;
+            var style = (AppearSeconds, DisappearSeconds, OutlineThicknessPercent, BackgroundOpacityPercent, TransitionSeconds);
+            (AppearSeconds, DisappearSeconds, OutlineThicknessPercent, BackgroundOpacityPercent, TransitionSeconds) = (null, null, null, null, null);
+            (AppearSeconds, DisappearSeconds, OutlineThicknessPercent, BackgroundOpacityPercent, TransitionSeconds) = style;
             (VolumePercent, PositionX, PositionY, ScalePercent, Rotation, OpacityPercent, CropLeftPercent, CropTopPercent) =
                 (null, null, null, null, null, null, null, null);
             (CropRightPercent, CropBottomPercent, SpeedValue, FontSize, FadeInFrames, FadeOutFrames, DissolveFrames) =
