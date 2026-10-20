@@ -2210,7 +2210,7 @@ flashes, user curves, keyframes, "apply to every cut", a change of the audio cro
   readiness check, variant B); these steps; the manual plan's skeleton `docs/PHASE28_MANUAL_TEST_PLAN.md`;
   `docs/README.md`; ROADMAP and `progress.md`. No product code.
 
-### 28.1 — Visual check of Zoom and Flash (a gate; tests and records only)
+### 28.1 — Visual check of Zoom and Flash (a gate; tests and records only) *(done 2026-10-20 — accepted by the product owner: Zoom and Flash as specified, Z2 / Z3 not needed; D044 "Refined in Step 28.1")*
 - Starts only after the product owner agrees the check. Zoom (D044 §2: `K = 1.25`, the change of clip at the peak, 0.3 s)
   and Flash (0.2 s, one white frame at the cut) rendered by the painter's composition rule on the product owner's gym
   clips — horizontal and vertical, 25 / 30 / 60 fps where available — as short MP4s and frame strips for the owner's eye;

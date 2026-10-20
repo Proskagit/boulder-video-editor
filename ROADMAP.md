@@ -88,8 +88,9 @@ whole frames; a 1.0 s minimum between the peaks of Flash / Dip to black; `projec
 `feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d` (variant B): Phase 28's pull request only after Phase 27
 is merged; if Phase 27 changes before its merge, no rebase on Claude's own — the difference is reported with a safe
 synchronisation plan first. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 28 — Transition library: steps"; manual plan
-`docs/PHASE28_MANUAL_TEST_PLAN.md`. Step 28.0 done (documentation only); Step 28.1 — the visual check of Zoom on the product
-owner's gym clips, a gate — starts on the product owner's agreement. Local commits only.
+`docs/PHASE28_MANUAL_TEST_PLAN.md`. Step 28.0 done (documentation only); Step 28.1 — the visual check of Zoom and Flash on
+the product owner's gym clips, a gate — done and accepted (2026-10-20: Zoom `K = 1.25` 0.3 s and Flash 0.2 s as specified;
+D044 "Refined in Step 28.1"). Local commits only.
 
 ## Previous
 

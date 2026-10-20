@@ -6054,6 +6054,24 @@ rates; the 1.0 s rule; render parity; the end-to-end export with real ffmpeg; th
   at 24 fps 0.1 s becomes 2 frames shown as «0,08 с». Not in Phase 28's scope. Left unchanged by the product owner
   (2026-10-20): no follow-up, D043 not changed; reconsidered only if a concrete problem appears in use.
 
+### Refined in Step 28.1 (2026-10-20): the visual check — accepted by the product owner
+
+- Material: the product owner's session of 2026-09-27 (`D:\Времянка для монтажа\Боулдер 27.09.2026`): 16 clips, all
+  3840 × 2160 HEVC ≈ 60 fps SDR BT.709, one vertical (rotation −90°). No 25 or 30 fps source and no second camera on one
+  attempt exist there: the check ran at 60 fps only, and the "change of angle" scenario used a change of episode (another
+  wall, another angle); nothing synthetic was substituted.
+- Four real cuts: two attempts of one route (vertical canvas 1080 × 1920, one climber), the same wall from the same angle
+  (two climbers), a change of episode, preparation → a dynamic move. For each: the hard cut, Zoom 0.3 s, Flash 0.2 s and
+  both at a quarter of the speed, as MP4s and frame strips (local, `VideosForTest/Phase28_Step28.1`, not committed).
+- The renders came from a scratch ffmpeg harness that applies §2's formulas (Zoom from the 4K source, Flash as a white
+  blend), not from the product's painter — the look was judged, the Preview ↔ export parity is Step 28.3's. Verified
+  numerically: Zoom changes exactly the zone's frames (81–98 of 180), Flash's full white frame is the cut frame (B's first).
+  Found on the way: ffmpeg 9.0.1's `perspective` (`in`) and `blend` (`N`) count frames from 1 — the harness was corrected
+  before the owner's review.
+- **The product owner's verdict**: Zoom accepted as specified (`K = 1.25`, 0.3 s, the change of clip at the peak) — Z2 / Z3
+  not needed; Flash accepted (0.2 s, the agreed model), no remarks. A separate visual check on a 30 fps project is not done
+  (judged redundant): the rounding of the durations to whole frames is covered by the automated tests of Step 28.2.
+
 Context: the product owner's request of 2026-10-20 after Phase 27 (accepted locally, not yet published); the first draft
 (Dissolve, Dip to black, Dip to white, Wipe, Push) revised after the research of §0.
 

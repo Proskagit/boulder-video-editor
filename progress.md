@@ -4,8 +4,8 @@
 
 Phase 28 — the transition library (D042 Phase B), branch `feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d`
 (variant B; Phase 27 not yet published); DECISIONS.md D044, approved 2026-10-20. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 28
-— Transition library: steps"; manual plan `docs/PHASE28_MANUAL_TEST_PLAN.md`. Step 28.0 done; **Step 28.1 (the visual check
-of Zoom on the product owner's gym clips, a gate) starts only on the product owner's agreement**. Phase 28's pull request
+— Transition library: steps"; manual plan `docs/PHASE28_MANUAL_TEST_PLAN.md`. Steps 28.0 and 28.1 done (28.1 accepted by the
+product owner: Zoom and Flash as specified). Step 28.2 in progress; **28.3 only on the product owner's decision**. Phase 28's pull request
 only after Phase 27 is merged; if Phase 27 changes before its merge, no rebase on Claude's own — the difference is reported
 with a safe synchronisation plan first. No push, pull request or merge without the product owner's command.
 
@@ -30,6 +30,15 @@ Phase 27 (D043): Steps 27.0–27.6 done on `feat/phase-27-text-animation` (up to
   onto it unchanged (the diff's hash identical before and after the switch); D044 approved with corrections 1–4 and variant
   B (§10); DEVELOPMENT_PLAN — the list, B, the steps 28.0–28.5; the manual plan's skeleton
   `docs/PHASE28_MANUAL_TEST_PLAN.md`; `docs/README.md`; ROADMAP. Documentation only; no product code.
+- 2026-10-20 — Step 28.1 (tests and records only): Zoom 0.3 s and Flash 0.2 s rendered by a scratch ffmpeg harness on four
+  real cuts of the product owner's session of 2026-09-27 (16 clips, 4K HEVC ≈ 60 fps SDR, one vertical; no 25 / 30 fps
+  source, no second camera on one attempt), MP4s and frame strips local in `VideosForTest/Phase28_Step28.1`; zone frames
+  checked numerically (Zoom 81–98, Flash's white frame = the cut frame) after correcting the harness for ffmpeg 9.0.1's
+  1-based `perspective` / `blend` counters. **Accepted by the product owner**: Zoom `K = 1.25` 0.3 s with the change at the
+  peak, Flash 0.2 s; Z2 / Z3 not needed; no 30 fps visual check (rounding covered by 28.2's tests). D044 "Refined in Step
+  28.1"; manual plan row 1. Separately, without commits: the session's FIT read for structure only
+  (`VideosForTest/R3_COROS_preliminary/notes.md` — the watch is a COROS APEX 4, 14 climbing splits, the heart rate at 1 s;
+  the grade and the flash not found in the file); no synchronisation work.
 
 ### Phase 27 — Text animation and readability (accepted 2026-10-20, not yet published)
 
