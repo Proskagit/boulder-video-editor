@@ -35,6 +35,9 @@ This directory contains:
   of portrait and landscape phone clips), completed per step and run at its closeout
 - `PHASE27_MANUAL_TEST_PLAN.md` — manual checks of Phase 27 (text animation, outline and background, the placement grid,
   bold, the defaults of a new text, v6 texts unchanged), completed per step and run at its closeout
+- `PHASE28_MANUAL_TEST_PLAN.md` — manual checks of Phase 28 (the transition library: Наплыв, Затемнение, Вспышка, Наезд,
+  Сдвиг; the visual gate of Step 28.1 on real gym clips; durations, source handles, the 1.0 s rule, v7 dissolves
+  unchanged), completed per step and run at its closeout
 - `AI_MODEL.md` — the AI hold model: files and checksums, installing, messages, licences and notices, the export recipe
 
 Agent-oriented project context lives in the repository root:

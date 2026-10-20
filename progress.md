@@ -2,13 +2,36 @@
 
 ## Current phase
 
-Phase 27 — text animation and readability (D042 Phase A), branch `feat/phase-27-text-animation` (from `origin/main` =
-`41dadf2`, the merge of PR #27; DECISIONS.md D043, accepted 2026-10-20). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 27 — Text
-animation and readability: steps"; manual plan `docs/PHASE27_MANUAL_TEST_PLAN.md`. Steps 27.0–27.6 done (the owner's go for
-the implementation after 27.1); awaiting the product owner's acceptance. No push, pull request or merge without the product
-owner's command.
+Phase 28 — the transition library (D042 Phase B), branch `feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d`
+(variant B; Phase 27 not yet published); DECISIONS.md D044, approved 2026-10-20. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 28
+— Transition library: steps"; manual plan `docs/PHASE28_MANUAL_TEST_PLAN.md`. Step 28.0 done; **Step 28.1 (the visual check
+of Zoom on the product owner's gym clips, a gate) starts only on the product owner's agreement**. Phase 28's pull request
+only after Phase 27 is merged; if Phase 27 changes before its merge, no rebase on Claude's own — the difference is reported
+with a safe synchronisation plan first. No push, pull request or merge without the product owner's command.
 
-### Phase 27 — Text animation and readability (in progress)
+Phase 27 (D043): Steps 27.0–27.6 done on `feat/phase-27-text-animation` (up to `3c45c9d`); **accepted by the product owner
+(2026-10-20)**, not yet published.
+
+### Phase 28 — Transition library (in progress)
+
+- 2026-10-20 — Phase 27 accepted by the product owner (local commits up to `3c45c9d`; publication on command). Phase 28
+  prepared, documentation only: a first draft (Dissolve, Dip to black / white, Wipe, Push) revised after a research of what
+  editors use (Reddit not reachable by the tools; forums and guides: the cut by default, dissolve / dip for calm changes,
+  zoom / push / a short flash for sports material); D044 written with the owner's answers (§11: Наплыв, Затемнение,
+  Вспышка, Наезд, Сдвиг; no Wipe, no motion blur; the defaults and limits; the 1.0 s rule between fill peaks, rejecting; the
+  longest that fits; a type change keeps or clamps the duration; Zoom's gate 28.1) and a consistency check against D025 /
+  D043 (§12: Step 10.8's 2-frame minimum, the rejecting 1.0 s rule against D025's clamped trims, the re-grid; D043's
+  rounding of 0.1 s left unchanged by the owner — no follow-up). D042 "Recorded later": the automatic rough cut as a
+  long-term direction (not a phase; the order Phase 28 → C → G unchanged; D / E / F not authorised; COROS not started).
+- 2026-10-20 — readiness check: no contradiction in the decisions; the branch base blocked by "after Phase 27 is merged"
+  → the owner chose variant B; corrections 1–4 of D044 confirmed (the status, §12's D043 point, §5's wording on what is
+  validated, §11's "shorter duration").
+- 2026-10-20 — Step 28.0: `feat/phase-28-transitions` from `3c45c9d`; the uncommitted preparatory documentation carried
+  onto it unchanged (the diff's hash identical before and after the switch); D044 approved with corrections 1–4 and variant
+  B (§10); DEVELOPMENT_PLAN — the list, B, the steps 28.0–28.5; the manual plan's skeleton
+  `docs/PHASE28_MANUAL_TEST_PLAN.md`; `docs/README.md`; ROADMAP. Documentation only; no product code.
+
+### Phase 27 — Text animation and readability (accepted 2026-10-20, not yet published)
 
 - 2026-10-20 — after the merge of PR #27: `origin/main` = `41dadf2` (its tree identical to `a05236c`); CI green on the pull
   request; the run on `main` (39385604762) still in progress when checked — not confirmed green. Local `main` fast-forwarded

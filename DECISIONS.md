@@ -5524,6 +5524,27 @@ Phase 26 merged (PR #27, `41dadf2`). The owner's decisions on the order and on S
 - **Phase A's scope** (detailed in D043): the appearance / disappearance animation of text; the colour, size and position
   of text; one basic readability aid (an outline or a background); sensible defaults and a simple interface. No full
   title editor, no complex motion design. The UX and the acceptance criteria are specified before the implementation.
+
+### Recorded later: a long-term direction — the automatic rough cut (product owner, 2026-10-20)
+
+A direction, not a phase: no specification, no step, no change of the order (Phase 28 = B, then C, then G). It needs R3, F,
+D and the hold markup first, and its own decision when it is taken up.
+- The user imports the training video and, later, the COROS Pace 4 export. The watch's events give the training's time
+  structure — a route's start and end, its grade, the result and a flash mark — **only where such data really exist**.
+- The video is synchronised with the training's timeline. A route that is not on the video produces no empty clip and no
+  stretch with the heart rate alone.
+- For an available route the target assembly: about 5 s showing the chosen holds, then the attempt / the send, then a cut
+  to the next available fragment.
+- The holds are outlined (D034–D036); doubtful results stay for the user to confirm.
+- The heart rate as an animated heart icon with the numeric BPM, not a graph.
+- The grade, the result and the flash come from the user's reliable data, never guessed from the picture.
+- The result is an editable project the user polishes by hand; a fully autonomous artistic edit is not the goal.
+- AI processing is local.
+- The research of the COROS exports and of the synchronisation does not start now: the product owner provides real files
+  when the corresponding task is taken up.
+- The standing rule restated: the research stages R1, R2 and R3 do not by themselves authorise D, E or F; each of them,
+  and this direction, needs its own agreement.
+
 ---
 
 ## D043 — Text animation and readability (Phase 27, D042 Phase A)
@@ -5810,6 +5831,239 @@ outline accepted). Conditions, to be met by the implementation (Step 27.4) and s
   choices carry a `ClipPropertyGesture` (one step, never merged). `ITextBoxMeasurer` is injected (the app registers the
   painter's `TextBoxMeasure`), so the view models work without a running platform in tests; `TimelineClipSelection`
   carries the canvas.
+---
+
+## D044 — Transition library (Phase 28, D042 Phase B)
+
+Date: 2026-10-20
+
+Decision (product owner, 2026-10-20: the specification approved with the answers of §11, the corrections 1–4 of the
+readiness check and the branch variant B of §10). D042's Phase B. Goal: a compact library of five transitions between two clips that a bouldering video
+actually uses — calm ones for a change of time or episode, short accented ones for a cut on the music — on D025's model,
+with the Preview equal to the export. Not a transition editor and not a catalogue.
+
+### 0. What exists (audit of `3c45c9d`) and the research behind the set
+
+- D025: one cross dissolve per cut of one video track (`A.TimelineEnd == B.TimelineStart`), `F ≥ 2` frames centred on the
+  cut (`⌊F/2⌋` frames in A, `⌈F/2⌉` in B), source handles (`DissolveHandles`), the zone fit, `EditPlan.ReconcileTransitions`
+  (removed when the cut separates, rejected when it would break, trims clamped), PO-8 (no fade on a dissolved edge), the
+  sound a hard cut (PO-5). D032: audio tracks take one `crossfade`. The type is derived from the track
+  (`TransitionRules.TypeFor`); the type is read in three places only.
+- Rendering: `PlaybackSnapshot.LayersAt` → `CompositionDrawPlan` → `CompositionPainter`, shared by the Preview and the export
+  (`AvaloniaCompositionRasterizer`). A dissolve is B's opacity factor plus the shown range of both clips
+  (`PictureSpan.ExtendedStart / ExtendedEnd`); layers have no canvas offset, scale or fill.
+- UI: «Наплыв» in the timeline header on two selected clips (1 s or the longest that fits, Step 10.8); the zone over the
+  cut, selected by a click; the Inspector's section in whole frames.
+- Research (2026-10-20, the product owner's request; Reddit not reachable by the tools — the main gap; no quantitative
+  data found): editor forums and guides agree that the hard cut is the default, the dissolve and the dip to black are the
+  calm transitions (time passing, a change of episode), and overuse of effect transitions reads as amateur; short-form and
+  sports guides repeat zoom / «pull in», whip / push and a short flash, 0.2–0.4 s, peaking on the beat; wipes and shapes
+  are rare in sports material, glitch / strobe date quickly and carry a photosensitivity risk. Whip pans are shot in
+  camera; in an editor users imitate them with a push (and blur).
+
+### 1. The library
+
+Five video transitions on a cut of two clips of one video track:
+
+| id | ru / en | Default | Input range | Source handles |
+|---|---|---|---|---|
+| `crossDissolve` | Наплыв / Dissolve | 1.0 s | 0.1 s … the longest that fits | needed |
+| `dipToBlack` | Затемнение / Dip to black | 0.6 s | 0.1 s … the longest that fits | not needed |
+| `flash` | Вспышка / Flash | 0.2 s | 0.1–0.5 s | not needed |
+| `zoom` | Наезд / Zoom | 0.3 s | 0.2–1.0 s | not needed |
+| `push` | Сдвиг / Push | 0.3 s, B from the right | 0.2 s … the longest that fits; from the right / left / top / bottom | needed |
+
+Audio tracks keep only `crossfade` (D032). The Wipe of the first draft is not in the library (weak evidence for sports
+material).
+
+### 2. Time model
+
+Common: the zone, the zone fit and D025 §3 / §5 hold for every type; `j` is the zone frame (`0 ≤ j < F`), A's part has
+`hB = ⌊F/2⌋` frames, B's `hA = ⌈F/2⌉`; the curves are fixed (no user curves). PO-8 holds for every type; the sound of a video
+cut stays a hard cut (PO-5).
+
+- **Dissolve** — D025 unchanged, bit for bit.
+- **Dip to black, Flash** — A shows its own last `hB` frames, B its own first `hA` frames (no handles, no extended range);
+  a layer of the colour (black, white) is drawn over the track's layers and everything below them — tracks above stay
+  visible (a title stays readable). Exactly one frame fully covered: B's first frame, the frame of the cut, which hides the
+  change of content. A's frame `j`: `α = (j + 1)/(hB + 1)`; B's frame `i` (`0 ≤ i < hA`): `α = 1 − i/hA`. E.g. Flash 0.2 s at
+  30 fps (6 frames): 0.25, 0.5, 0.75, **1**, 0.67, 0.33; at 24 fps (5 frames): 0.33, 0.67, **1**, 0.67, 0.33.
+- **Zoom** — A shows its own last `hB` frames, B its own first `hA` frames (no handles); the change of clip happens exactly at
+  the cut. A scale `k` about the canvas centre on top of the clip's own transform
+  (`canvasToTarget ∘ S(k, canvas centre) ∘ layer`), one continuous bump peaking at the cut: A's frame `j`:
+  `t = (j + ½)/hB`, `k = 1 + (K − 1)·t²`; B's frame `i`: `t = (i + ½)/hA`, `k = 1 + (K − 1)·(1 − t)²`; `K = 1.25`. E.g. 0.3 s
+  at 30 fps (9 frames): 1.004, 1.035, 1.098, 1.191 | 1.203, 1.123, 1.063, 1.023, 1.003 — about 1 % across the cut, the zone's
+  ends at ≈ 1, so no jump of scale. A scale ≥ 1 about the canvas centre never uncovers a lower track that the clip covered
+  (`OccludesBelow` stays valid). The hold outline follows its frame; its stroke width does not change (D034 §4). Risk: no
+  motion blur — the change of content at the peak is visible (≈ 0.15 s); hence the gate of Step 28.1.
+- **Push** — both clips in the zone from their handles (as a dissolve); `e = smoothstep((j + 1)/(F + 1))`; B offset by
+  `(1 − e)·W` (`H` for a vertical direction) from its side, A by `−e·W` towards the other side; offsets in whole canvas pixels,
+  on top of the clip's transform (Scale, position, Fill / Fit kept); an offset layer never occludes the layers below.
+  No motion blur (§11).
+
+### 3. Source handles
+
+Needed only by Dissolve and Push, by D025 §4 unchanged. Dip to black, Flash and Zoom work on any cut whose zone fits;
+the edit service validates handles only for the types that need them (`TransitionRules.RequiresHandles`), and
+`MaxTransitionFrames` for the other types is the zone fit alone.
+
+### 4. Photosensitivity
+
+- One flash per cut (one rise, one fall); no repetition, no strobe, no count parameter; white only.
+- The peaks (the cut frames) of any two fill transitions — Flash or Dip to black — on all video tracks of the project are at
+  least **1.0 s** apart (stricter than WCAG 2.3.1's three flashes per second: at most two in any second; a 0.1 s dip is a
+  dark flash, hence included). An edit that would break it — an add, a type change, a move, a ripple, a speed change, a
+  frame-rate re-grid — is **rejected** with a message saying why; it is not clamped and not only warned about. A file that
+  breaks it is refused (the app cannot write one).
+
+### 5. Durations, frames and rounding
+
+- Stored as whole frames: `MediaTime.FromFrame(F)` (D025 §1); shown as the seconds of the stored frames to two decimals with
+  the frame count (e.g. «0,29 с · 7 кадров»). A typed value `x` becomes `F = round(x · rate)` (ties up, as `ToNearestFrame`),
+  clamped to the range; the field shows what was stored.
+- The slider and the arrows step on the 0.1 s grid: the next value is the current one rounded to 0.1 s ± 0.1 s, converted to
+  frames. On every supported rate (23.976 … 60) 0.1 s ≥ 2.39 frames, so neighbouring grid points never give the same `F`, and
+  `F / rate` rounds back to its grid point (error ≤ 0.5 / rate < 0.05 s): no step sticks or drifts.
+- A range minimum is `ceil(min · rate)` frames, a maximum `floor(max · rate)`, so the interface never shows a duration below
+  the minimum or above the limit; the range in frames is `[max(2, ceil(min · rate)), min(floor(max · rate), the longest
+  that fits)]`. Defaults by `ToNearestFrame`:
+
+| fps | 1.0 s | 0.6 s | 0.3 s | 0.2 s | min 0.1 s | min 0.2 s | max 0.5 s | max 1.0 s |
+|---|---|---|---|---|---|---|---|---|
+| 23.976 | 24 | 14 | 7 | 5 | 3 | 5 | 11 | 23 |
+| 24 | 24 | 14 | 7 | 5 | 3 | 5 | 12 | 24 |
+| 25 | 25 | 15 | 8 | 5 | 3 | 5 | 12 | 25 |
+| 29.97 | 30 | 18 | 9 | 6 | 3 | 6 | 14 | 29 |
+| 30 | 30 | 18 | 9 | 6 | 3 | 6 | 15 | 30 |
+| 50 | 50 | 30 | 15 | 10 | 5 | 10 | 25 | 50 |
+| 59.94 | 60 | 36 | 18 | 12 | 6 | 12 | 29 | 59 |
+| 60 | 60 | 36 | 18 | 12 | 6 | 12 | 30 | 60 |
+
+- The ranges limit the input, not the file (as D043 §1): a stored value outside them (a 2-frame dissolve of an older
+  project, a value re-derived after a frame-rate change) is kept, rendered and shown as it is until the user changes it.
+  D025's model minimum of 2 frames stays the file's rule. Of the rules this decision adds, only §4 is validated on every
+  edit and on load; the ranges of §5 limit the input only.
+
+### 6. UX
+
+- «Переход ▾» in the timeline header (replacing «Наплыв»): the five types, on two selected adjacent clips of an unlocked
+  video track. On an audio track it adds the crossfade as before, without the menu.
+- An added transition gets its type's default duration; when that does not fit, the longest that fits (≥ the type's
+  minimum), and the status bar says so (Step 10.8's rule for every type). When less than the minimum fits, nothing is
+  created and the message explains why — for a type needing handles it names Dip to black (no handles) and a shorter
+  duration as the ways out; the type is never replaced automatically.
+- The Inspector's TRANSITION section: the type (five segments), the direction (four buttons, for Push only), the duration
+  (§5: a seconds field and a slider, the stored seconds and frames, «the longest that fits here»), Remove. A type that cannot
+  fit (needs handles, less than its minimum fits) is disabled with a tooltip saying why.
+- A type change keeps the current duration when it lies in the new type's range; otherwise it is clamped to the nearest
+  allowed value (e.g. Dissolve 1.0 s → Flash 0.5 s; a type needing handles to the longest that fits); never reset to the
+  default without need. The clamp is part of the type change's step; the status bar says when the duration changed.
+- The zone on the timeline carries the type's icon; selecting and Delete as before.
+- Every edit is refused while an export runs (`EditingLock`), as now.
+
+### 7. Timeline rules
+
+D025 §5 for every type: an edit that separates the cut removes the transition in the same step; one that keeps the cut but
+breaks the zone fit or the handles is rejected, trims clamped; a split inside the zone rejected; the move of both clips
+together keeps it. Plus §4 (rejected, never clamped). Locked tracks reject every edit; hidden tracks keep their transitions
+and draw nothing; linked clips (D032): the transition changes only the picture, the linked sound stays a hard cut. No
+transition at the project's start or end (a clip's fade does that) or over a gap.
+
+### 8. Undo / Redo
+
+An add, a removal, a type change (with its clamp) and a direction change are one step each, never merged; consecutive
+duration changes of one transition merge (D017), as `SetTransitionDuration` now. An automatic removal belongs to the step of
+the edit that caused it (D025 §5).
+
+### 9. Project format
+
+`project.json` **v8**: `transitions[].type` ∈ `crossDissolve`, `dipToBlack`, `flash`, `zoom`, `push` on video tracks,
+`crossfade` on audio tracks; `direction` (`fromRight` | `fromLeft` | `fromTop` | `fromBottom`) required for `push`, refused for
+the others; §4 validated on load. v7 and older read unchanged (only `crossDissolve` exists there); a v7 project saved again
+differs only in `formatVersion`; a v9 file is refused by the newer-version message. The bump is needed: a v7 build would
+otherwise refuse a v8 file with a new type as damaged.
+
+### 10. Rendering and steps
+
+- One path for the Preview and the export. `DissolveZone` generalised to a transition zone with the type and the direction;
+  the extended shown range only for Dissolve and Push; a layer gains a canvas scale and offset, and a fill layer
+  (`SolidLayer` → `SolidDraw`) is added; the hold outline follows its frame; the existing operations are drawn by the
+  existing code (Dissolve and projects without new types bit for bit as before). A type or direction change that keeps the
+  shown range is presentation only (no decoder reopen).
+- Steps (`docs/DEVELOPMENT_PLAN.md`, "Phase 28 — Transition library: steps"): **28.0** the branch (below), D044 approved,
+  the manual plan's skeleton; **28.1** the visual check of Zoom and Flash on the product owner's gym clips (tests and records
+  only; a gate — §11); **28.2** model, v8, Core rules (types, direction, handles, the 1.0 s rule), reconciliation; **28.3**
+  snapshot, draw plan, painter, parity and the end-to-end export; **28.4** the UI, en + ru; **28.5** verification and the
+  real-app run.
+- The branch (variant B, product owner 2026-10-20): `feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d`
+  (Phase 28 builds on v7 and on Phase 27's painter), Phase 27 not yet published. Phase 28's pull request is opened only
+  after Phase 27 is merged. If Phase 27 changes before its merge, Phase 28 is **not** rebased on its own: the difference is
+  reported to the product owner with a safe synchronisation plan first.
+
+Acceptance criteria:
+1. For each type, direction and several zone frames the Preview's canvas equals the export's byte for byte, also with
+   rotation, scale, crop, opacity, Fit / Fill, hold outlines, a vertical canvas, a lower and an upper track.
+2. Projects with dissolves render byte for byte as with Phase 27; a v7 project saved again differs only in its version.
+3. Defaults and limits match §5's table on all eight rates; the 0.1 s step is monotonic and never sticks.
+4. Dip to black, Flash and Zoom work without handles; Dissolve and Push without enough handles are unavailable and say why.
+5. §4 holds on add, on every edit and on load.
+6. Undo / Redo, save / reopen, D025 §5, PO-8, locked tracks and linked clips without regressions; en + ru.
+7. The manual plan on the product owner's gym clips: horizontal and vertical, 25 / 30 / 60 fps, a cut to music, the export
+   watched in a player.
+8. Nothing beyond §1.
+
+Tests: the rules and the format; the per-frame curves of each type (§2's examples as references); the rounding on eight
+rates; the 1.0 s rule; render parity; the end-to-end export with real ffmpeg; the UI; the gates (Release / Debug
+`--no-incremental -warnaserror`, the full suite, heavy, three `--blame-hang` runs).
+
+### 11. The product owner's answers (2026-10-20)
+
+- **Set**: Dissolve, Dip to black, Flash, Zoom, Push; no Wipe.
+- **Push**: without motion blur in the first version; blur only with a separate justification and agreement.
+- **Defaults**: Dissolve 1.0 s, Dip to black 0.6 s, Flash 0.2 s, Zoom 0.3 s, Push 0.3 s; Push from the right by default
+  (four directions); Zoom towards the centre, no direction.
+- **Not enough room for a dissolve**: never replaced by another type automatically; the shorter duration is set
+  automatically when it fits (§6); when not even the minimum fits, the message explains why and names Dip to black.
+- **Durations** in seconds with a 0.1 s step, stored as whole frames, without promising a precision the frames lack (§5).
+- **Zoom**: the model with `K = 1.25` and the change at the peak accepted provisionally; the visual check on the product
+  owner's clips in Step 28.1 is mandatory. If the result is not satisfactory, the work stops and Z2 (a one-frame blend of A
+  and B at the peak; needs one frame of handle on each side) or Z3 (no Zoom in the first version) is proposed — the
+  alternative is never chosen without the owner.
+- **Safety**: the 1.0 s minimum between the peaks of Flash / Dip to black kept; a breaking edit rejected with a clear message,
+  not only warned about.
+- **Not enough room for the full duration**: the longest allowed duration set automatically, with a clear status; the type
+  never replaced automatically.
+- **Type change**: the current duration kept when it lies in the new type's range, else clamped to the nearest allowed value;
+  never reset to the default without need.
+- **Limits**: Flash 0.1–0.5 s, Zoom 0.2–1.0 s, Push at least 0.2 s; every value converted to whole frames correctly on the
+  supported rates (§5).
+
+### 12. Consistency with D025 and D043 (checked 2026-10-20)
+
+- Extensions of D025, not contradictions: more video types (§1 of D025 named one), handles only for the types that need them
+  (D025 §4), the type-dependent `MaxTransitionFrames`. D025's dissolve, PO-5 and PO-8 unchanged.
+- **Step 10.8 (D025)**: "1 s, or the longest that fits (at least 2 frames)" becomes "the type's default, or the longest that
+  fits (at least the type's minimum)" — at 30 fps the new minimum is 3 frames, so a cut where only 2 frames fit no longer takes
+  a new dissolve (an existing 2-frame dissolve is kept, §5). The Inspector's frames field becomes the seconds field (§5, the
+  owner's choice). Recorded as a refinement of 10.8, not a silent change.
+- **D025 §5 "trims clamped"**: the 1.0 s rule rejects even a (ripple) trim instead of clamping it — the owner's choice of
+  rejection (§11); only §4 is treated so, the zone fit keeps clamping.
+- **D025 frame-rate re-grid**: a re-grid that would bring two fill peaks below 1.0 s is rejected as a whole (as D025's other
+  re-grid failures); the range limits of §5 are not re-checked (a re-derived 0.52 s flash is shown as it is).
+- **D043**: the text animation's durations (0.1–3 s) round a typed value to the nearest frame without the `ceil` minimum, so
+  at 24 fps 0.1 s becomes 2 frames shown as «0,08 с». Not in Phase 28's scope. Left unchanged by the product owner
+  (2026-10-20): no follow-up, D043 not changed; reconsidered only if a concrete problem appears in use.
+
+Context: the product owner's request of 2026-10-20 after Phase 27 (accepted locally, not yet published); the first draft
+(Dissolve, Dip to black, Dip to white, Wipe, Push) revised after the research of §0.
+
+Consequences: `project.json` v8; the snapshot and the draw plan gain the transition presentation (canvas scale, offset, fill);
+`TransitionRules` gains the types, the handle requirement and the 1.0 s rule; the parity suites grow and are never
+weakened. No new dependency.
+
+Status: **Approved (product owner, 2026-10-20)**. Phase 28, branch `feat/phase-28-transitions` from `3c45c9d` (§10). Steps:
+`docs/DEVELOPMENT_PLAN.md`, "Phase 28 — Transition library: steps"; manual plan `docs/PHASE28_MANUAL_TEST_PLAN.md`.
+
 ---
 
 ## How to add a decision

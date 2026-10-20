@@ -70,7 +70,7 @@ session state (D015).
 
 ## Current
 
-Phase 27 — text animation and readability (D042 Phase A; **in progress**; DECISIONS.md D043, accepted 2026-10-20 with the
+Phase 27 — text animation and readability (D042 Phase A; **accepted by the product owner 2026-10-20, not yet published**; DECISIONS.md D043, accepted 2026-10-20 with the
 answers Q1–Q6; branch `feat/phase-27-text-animation` from `41dadf2`, the merge of PR #27). Appearance / disappearance of a
 text clip (Нет, Проявление, Выезд with four directions, Увеличение 70–100 %, 0.1–3 s — the durations are the clip's fades),
 an outline and a background (each on its own), colour swatches, a 3 × 3 placement grid (the free move in the Preview kept),
@@ -79,8 +79,17 @@ v6 texts look exactly as before; `project.json` v7. Steps: `docs/DEVELOPMENT_PLA
 readability: steps"; manual plan `docs/PHASE27_MANUAL_TEST_PLAN.md`. Steps 27.0–27.6 done (27.1: variant B chosen by the
 product owner; verified by Claude 2026-10-20: Release / Debug `--no-incremental -warnaserror` 0 / 0, the full suite 4164 / 2
 / 0, heavy 4166 / 0 / 0, three blame-hang runs clean, a v6 project's texts byte-identical with the Phase 26 code, the
-manual plan run in the real app with its NOT RUN parts named); **awaiting the product owner's acceptance**. Local commits
-only.
+manual plan run in the real app with its NOT RUN parts named); **accepted by the product owner (2026-10-20)**. Local commits
+only; the push, the pull request and the merge on the product owner's command.
+
+Phase 28 — the transition library (D042 Phase B; **in progress**; DECISIONS.md D044, approved 2026-10-20 with the answers
+of its §11): Наплыв, Затемнение, Вспышка, Наезд, Сдвиг (no Wipe; Push without motion blur); durations in seconds stored as
+whole frames; a 1.0 s minimum between the peaks of Flash / Dip to black; `project.json` v8. Branch
+`feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d` (variant B): Phase 28's pull request only after Phase 27
+is merged; if Phase 27 changes before its merge, no rebase on Claude's own — the difference is reported with a safe
+synchronisation plan first. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 28 — Transition library: steps"; manual plan
+`docs/PHASE28_MANUAL_TEST_PLAN.md`. Step 28.0 done (documentation only); Step 28.1 — the visual check of Zoom on the product
+owner's gym clips, a gate — starts on the product owner's agreement. Local commits only.
 
 ## Previous
 
@@ -394,15 +403,15 @@ task): closing the app after a project with media was open hangs the process —
 Scopes, steps-to-be and dependencies: `docs/DEVELOPMENT_PLAN.md`, "Planned phases after Phase 26 (D042)". The letters are
 working labels — a phase gets its number (27, 28, …) and its own decision when it is taken up. Nothing below is started.
 
-Status on 2026-10-20: Phases 0–26 complete and merged (Phase 26 as `41dadf2`, PR #27); Phase 27 (= A) specified (D043,
-accepted), in progress (Step 27.0 done). The order confirmed by the product owner (D042 "Refined after the merge of Phase 26"): A → B → C →
+Status on 2026-10-20: Phases 0–26 complete and merged (Phase 26 as `41dadf2`, PR #27); Phase 27 (= A) done and accepted
+by the product owner (D043; local commits, not yet published); Phase 28 (= B) in progress (D044, approved; Step 28.0 done). The order confirmed by the product owner (D042 "Refined after the merge of Phase 26"): A → B → C →
 G; R1 and R2 in parallel with A–C without product code, D / E agreed separately after them; R3 a separate research, F only
 after its feasibility is confirmed and a separate agreement; H last.
 
 | Label | Phase | Kind | Rough size | Depends on |
 |---|---|---|---|---|
-| A | Phase 27 — text animation and readability (D043, accepted; in progress) | core | medium | — (current) |
-| B | Transition library (≈ 5, the dissolve included) | core | medium–large | A (one composition change at a time) |
+| A | Phase 27 — text animation and readability (D043; done, accepted, not yet published) | core | medium | — |
+| B | Phase 28 — transition library: Наплыв, Затемнение, Вспышка, Наезд, Сдвиг (D044, approved; in progress) | core | medium | A (branch from `3c45c9d`; its pull request after A's merge; v8 builds on v7) |
 | C | Ready-made effects (≈ 5) and the music scenario | core | medium | B |
 | G | Stabilisation of the main path and S1 (a portable Windows build) | core | medium | A–C |
 | R1 | Automatic hold proposals — research | research | research | — (parallel with A–C) |
@@ -427,13 +436,25 @@ audio device, the product owner's visual check of the S1 HDR export and PQ on re
 FU-21.2, the magnetic main track (D037 §5), a blurred background for vertical video (D041 §4), the technical-debt split of
 `TimelineEditService` / `TimelineViewModel`, an installer (left out by the product owner).
 
+### Long-term direction: the automatic rough cut (D042 "Recorded later", 2026-10-20; not a phase)
+
+Recorded so it is not lost; no specification, no step, the order above unchanged. From the training video and, later, the
+COROS Pace 4 export: the watch's events (a route's start / end, grade, result, flash — only where the data really exist)
+structure the training; the video is synchronised with it, and a route missing from the video gives no empty clip and no
+heart-rate-only stretch; per available route about 5 s of the chosen holds (outlined, doubtful results left for the user to
+confirm), then the attempt / the send, then a cut to the next fragment; the heart rate as an animated heart icon with the
+BPM, not a graph; grade, result and flash from the user's reliable data, never guessed from the picture; the result an
+editable project to polish by hand, not an autonomous artistic edit; local AI. Needs R3 → F, D and the hold markup first,
+and its own decision. The COROS research does not start now (the product owner provides real files when it is taken up).
+R1, R2 and R3 do not by themselves authorise D, E or F — each needs its own agreement.
+
 ## Future phases
 
 The candidates in this section are subordinate to D042 §3–§4 (2026-10-20): keyframes, speed ramps, freeze frame / reverse
 and ducking are not planned; the magnetic main track, text styling and timeline polish stay backlog candidates; dragging
 objects in the Preview is done (Phase 23). The planned phases are in "Remaining plan" above. History:
 
-Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is merged (PR #25, `d3df0ba`); Phase 25 (technical backlog and small UX improvements, D040) is merged (PR #26, `58c48cb`); Phase 26 (vertical video and framing, D041) is merged (PR #27, `41dadf2`); Phase 27 (text animation and readability, D043) is current. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
+Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is merged (PR #25, `d3df0ba`); Phase 25 (technical backlog and small UX improvements, D040) is merged (PR #26, `58c48cb`); Phase 26 (vertical video and framing, D041) is merged (PR #27, `41dadf2`); Phase 27 (text animation and readability, D043) is done and accepted, not yet published; Phase 28 (the transition library, D044) is current. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The
