@@ -151,21 +151,27 @@ and runs cleanly.
       2026-10-19). *(Branch `feat/phase-25-backlog-ux` from `d3df0ba`; Steps 25.0–25.6, FU-25.1 and FU-25.2; accepted by
       the product owner on 2026-10-19 — PASS WITH NOTES; PR #26 merged into `main` as `58c48cb` (2026-10-19), CI green on
       the pull request)*
-- [ ] **Phase 26 — Vertical video and framing.** The first video of an empty project with the default canvas offers a
+- [x] **Phase 26 — Vertical video and framing.** The first video of an empty project with the default canvas offers a
       canvas of its shape (a dialog, one Undo step); «Заполнить кадр» / «Вписать в кадр» compute a clip's Scale (the
       Inspector and the clip's context menu, one Undo step each). `project.json` stays v6. Scope, steps and acceptance
       criteria: section below and DECISIONS.md D041 (accepted 2026-10-20). *(Branch `feat/phase-26-vertical-video` from
       `58c48cb`; Steps 26.0–26.4 done and verified by Claude on 2026-10-20; accepted by the product owner on
-      2026-10-20; push and a pull request permitted)*
-- [ ] **Planned (D042, provisional; numbers given when taken up):** A — text animation · B — transition library · C —
-      ready-made effects and music · G — stabilisation of the main path · R1 → D — automatic hold proposals · R2 → E —
-      outlines following the camera · R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
+      2026-10-20; PR #27 merged into `main` as `41dadf2` (2026-10-20), CI green on the pull request)*
+- [ ] **Phase 27 — Text animation and readability (D042 Phase A).** Appearance / disappearance of a text clip (Нет,
+      Проявление, Выезд, Увеличение) over the clip's fades, an outline and a background (each on its own), colour swatches,
+      a 3 × 3 placement grid, bold, defaults for a caption; `project.json` v7. Scope, steps and acceptance criteria: section
+      below and DECISIONS.md D043 (accepted 2026-10-20). *(Branch `feat/phase-27-text-animation` from `41dadf2`; Step 27.0
+      done; Step 27.1 — the outline's feasibility — a gate before the implementation)*
+- [ ] **Planned (D042; numbers given when taken up):** B — transition library · C — ready-made effects and music · G —
+      stabilisation of the main path and S1 · R1 → D — automatic hold proposals · R2 → E — outlines following the camera ·
+      R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
 
 ## Planned phases after Phase 26 (D042)
 
-The normative text is DECISIONS.md D042 (2026-10-20): the product concept, its boundaries and this provisional order. None
-of these phases is started or approved for implementation; each gets its own decision, steps, acceptance criteria and
-manual plan when it is taken up, and its number then (the next is Phase 27). The scopes below are sketches to be refined —
+The normative text is DECISIONS.md D042 (2026-10-20): the product concept, its boundaries and this order — confirmed by the
+product owner after the merge of Phase 26 (D042 "Refined after the merge of Phase 26"). None of these phases is started
+or approved for implementation; each gets its own decision, steps, acceptance criteria and manual plan when it is taken
+up, and its number then. A is Phase 27 (D043, accepted 2026-10-20; in progress). The scopes below are sketches to be refined —
 not specifications. Every phase keeps the standing rules at the end of this file: one Undo step per user action, the
 Preview identical to the export, `MediaTime` ticks, heavy work off the UI thread, the localization guards (D039), the gates
 of the recent phases (build `-warnaserror`, the full suite, heavy, `--blame-hang`, `project.json` compared byte for byte
@@ -179,7 +185,7 @@ no calendar estimate is fixed here.
 ### Order and dependencies
 
 ```
-26.4 ─► A ─► B ─► C ─► G                          S1 — the minimum useful release
+A (27) ─► B ─► C ─► G                             S1 — the minimum useful release
 R1 ─(go)─► D                                        S2 — with D and / or E
 R2 ─(go)─► E   (after D when D is taken)
 R3 ─(go)─► F   (also after A)                       S3
@@ -188,17 +194,18 @@ G + D / E as taken + F ─► regression run ─► H       S4 — the full plan
 
 - A, B and C each change the composition (`PlaybackSnapshot.LayersAt`, `CompositionDrawPlan`) — one at a time, never in
   parallel sessions.
-- R1, R2 and R3 change no product code and may run in parallel with A–C; R3 needs the product owner's real files.
+- R1, R2 and R3 change no product code and may run in parallel with A–C; R3 needs the product owner's real files (COROS
+  Pace 4 exports and a video of the same session). A research go is not an approval: D, E and F are agreed separately
+  after the results (F only after the technical feasibility is confirmed).
 - F uses the animated overlay path that A establishes; D and E use the hold model of D034–D036.
 - The order of D / E against B / C may be changed by the product owner once R1 / R2 report (D042 §5).
 
-### A — Text appearance / disappearance animation *(core, medium)*
-- Today: text clips (D021) with the clip fades (D025); no other animation.
-- Sketch: a small set of in / out presets per text clip (e.g. fade, slide, scale / pop; the set decided in the phase), a
-  duration each; computed on timeline frames like the hold animation (D036), so the Preview and the export agree; one
-  Undo step per change. Likely `project.json` v7 (to be decided). Possibly basic readability styling (an outline or a
-  background) — only if the phase's decision justifies it.
-- Out: keyframes, motion paths, per-letter animation editors (D042 §3).
+### A — Text animation and readability *(core, medium; Phase 27 — DECISIONS.md D043, accepted 2026-10-20)*
+- Scope decided by the product owner (D042, 2026-10-20): the appearance / disappearance animation of text; its colour,
+  size and position; one basic readability aid (an outline or a background); sensible defaults and a simple interface.
+  No full title editor, no complex motion design.
+- The specification with its UX, Undo / Redo, parity, localization, checks, acceptance criteria and risks: D043; the steps:
+  "Phase 27 — Text animation and readability: steps" below.
 
 ### B — Transition library *(core, medium–large)*
 - Today: the cross dissolve of one video track (D025) and the fades.
@@ -219,8 +226,11 @@ G + D / E as taken + F ─► regression run ─► H       S4 — the full plan
 ### G — Stabilisation of the main path *(core, medium; the release candidate)*
 - The eight steps of D042 §1 (without step 4) run end to end in the real app on the product owner's footage at 1024 × 640
   and 1440 × 900; the defects found fixed; the open manual checks of earlier phases run or recorded; the performance of a
-  typical project (several minutes, a few tracks, holds, text, transitions) measured; a build the product owner can use
-  (a portable folder — an installer stays left out unless decided otherwise).
+  typical project (several minutes, a few tracks, holds, text, transitions) measured.
+- S1 (the product owner, 2026-10-20): a **portable Windows build** is enough, no installer. Criterion: the application
+  starts outside the development environment (no SDK, no repository; its own folder with its dependencies; the AI model
+  installed as `docs/AI_MODEL.md` describes) and the main path (D042 §1 without step 4) is completed in it, import to
+  export.
 
 ### R1 → D — Automatic hold proposals *(research, then AI large)*
 - R1: on the product owner's footage, whether holds can be proposed on a frame without clicks (e.g. the model of D034 on a
@@ -245,7 +255,8 @@ timestamps is not technically solved** — R3 decides whether and how it works.
 
 R3 — research (no product code):
 1. Real COROS Pace 4 exports of climbing sessions: which formats the ecosystem offers; FIT the preliminary direction, TCX the
-   fallback — confirmed or changed on the real files; how a FIT reader is obtained (an own minimal reader or an SDK — a new
+   fallback — **not final until real watch exports and a video of the same session are examined**; confirmed or changed
+   on the real files; how a FIT reader is obtained (an own minimal reader or an SDK — a new
    dependency only with a justification, its licence checked).
 2. The heart-rate data: the timestamps (absolute time, time zone), the sampling interval, gaps and pauses, the start and
    end of the recording.
@@ -2078,6 +2089,73 @@ a warning before the export, FU-21.2, AI features, the technical-debt refactorin
   `git diff --check`; `project.json` v6 byte for byte with `58c48cb` (`ru` and `en`); the manual plan in the real app at
   1024 × 640 and 1440 × 900 with the product owner's Vivo and Huawei clips (portrait and landscape, with and without rotation
   metadata), an export watched in a player; the documentation.
+
+## Phase 27 — Text animation and readability: steps (D043)
+
+Approved on 2026-10-20 by the product owner with the answers Q1–Q6; the normative text is DECISIONS.md D043. Branch
+`feat/phase-27-text-animation` from `origin/main` = `41dadf2` (the merge of PR #27). The permission covers the code, tests,
+documentation and local commits on this branch; **no push, pull request or merge without a separate command**. **Each step
+after 27.0 starts only on the product owner's confirmation**; 27.1 is a gate — when its result is not satisfactory the
+work stops with the results and the alternatives, and no lower-quality fallback is chosen automatically. A need to change
+the format, the architecture or agreed behaviour beyond D043 is reported with variants before the change.
+
+Goal: a text over a bouldering video that appears and disappears nicely and stays readable on a colourful wall, in a few
+clicks, without a title editor.
+
+Gates for every step (QG): `dotnet build -warnaserror` 0 / 0; the affected test projects green, the full suite, the heavy
+scenes and `--blame-hang` at the closeout; the existing Preview ↔ export parity suites and every expected value unchanged
+(v6 text clips look exactly as before — D043 acceptance criterion 3); a v6 project saved again differs only in
+`formatVersion`; every
+new user-visible text in `Strings` / `Messages` with `.ru` (the D039 guards); `docs/PHASE27_MANUAL_TEST_PLAN.md` and
+`progress.md` updated.
+
+Out of scope (D043 §10): a title editor, keyframes, motion paths, per-letter animation, a shadow, gradients, stickers, text
+on a curve, wrapping, font files, animation of other clip kinds, new dependencies, D025's fades of pictures and sound.
+
+### 27.0 — Sync and documentation *(done)*
+- The branch; D043 accepted with the answers; Phase 26 recorded as merged; the manual plan's skeleton
+  `docs/PHASE27_MANUAL_TEST_PLAN.md`; `docs/README.md`.
+
+### 27.1 — Feasibility of the outline (a separate technical check; a gate)
+- `FormattedText.BuildGeometry` (or the equivalent) stroked with a pen in `CompositionPainter`, checked for: the quality of
+  the glyph contours (small and large sizes, Cyrillic and Latin, bold, the default font and another installed one,
+  thicknesses 2–20 %); the export's cost per frame at 1080 × 1920 and 1920 × 1080 with a cache per text and style; correct
+  work off the UI thread, as the export runs the painter; Preview ↔ export parity of the same frame.
+- The result recorded (D043 "Refined in Step 27.1"); no product behaviour changes in this step (experimental code only in
+  tests or a scratch harness, removed or kept as a test).
+- **Unsatisfactory → stop**: the measurements and the alternatives (with their quality and cost) go to the product owner;
+  no fallback is chosen automatically (D043 §9, §12).
+
+### 27.2 — Model, validation and `project.json` v7
+- `TextClip` / `TextProperties`: `MotionIn`, `MotionOut`, `Bold`, `Style`; `ClipPropertyValidator`; the DTOs and the
+  serializer (v7, the members optional; v6 read; a v6 build's refusal by the version check).
+- Tests: the round trip, v6 → v7 differing only in `formatVersion`, damaged values refused.
+
+### 27.3 — Core rules: motion and placement
+- The motion on timeline frames (D043 §1: D025's ramp, the ease-out, Slide `d = 8 %` of the short side, Zoom 70 → 100 %,
+  clamped, none on a dissolve edge) applied to the `TextLayer`'s transform in `PlaybackSnapshot.LayersAt`; the grid
+  placement (D043 §3: nine cells at 8 % of the canvas's short side from the edges, the box from the painter's layout rule
+  with the background's padding and the outline).
+- Tests: every frame of the ramps, short clips, the frame-rate change, the dissolve edge, the nine cells on portrait /
+  landscape canvases; a v6 text's fades unchanged.
+
+### 27.4 — Rendering: outline, background, bold
+- `TextDraw` carries the outline, the background and the weight; `CompositionPainter` draws the background, then the
+  outline, then the fill; the Move tool's frame includes the background's padding.
+- Tests: Preview ↔ export parity per kind, the outline, the background and both; a v6 text byte for byte as before.
+
+### 27.5 — Edits and the Inspector
+- `SetClipProperties` for the new fields (the merges of D017, one step per choice); the «Анимация» block replacing FADES for
+  text clips (D043 Q2), «Обводка» and «Подложка» rows (each on its own), the swatches, the size slider, the 3 × 3 grid,
+  «Жирный»; the defaults of "+ Text" (D043 §4); the `EditingLock`; resources en + ru.
+- Tests: the edits (steps, merges, refusals, split / trim / duplicate / paste, Undo / Redo), the view models and AXAML, the
+  localization guards; the real app at 1024 × 640 and 1440 × 900.
+
+### 27.6 — Verification & closeout
+- Release and Debug `--no-incremental -warnaserror`; the full suite, `AIVE_HEAVY_TESTS=1`, three `--blame-hang` runs; `git
+  diff --check`; a Phase 26 v6 project with text opened and saved (only `formatVersion` differs) and its export compared
+  with the Phase 26 build's; the manual plan in the real app on the product owner's portrait gym clip in `ru` and `en`, an
+  export watched in a player; D043's acceptance criteria 1–9 checked one by one; the documentation.
 
 ## Architectural rules that must hold at every phase
 

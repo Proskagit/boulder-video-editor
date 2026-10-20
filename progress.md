@@ -2,12 +2,40 @@
 
 ## Current phase
 
-Phase 26 — vertical video and framing, branch `feat/phase-26-vertical-video` (from `origin/main` = `58c48cb`, the merge of
-PR #26; DECISIONS.md D041, 2026-10-20). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 26 — Vertical video and framing: steps";
-manual plan `docs/PHASE26_MANUAL_TEST_PLAN.md`. Local work only: no push, pull request or merge without the product
+Phase 27 — text animation and readability (D042 Phase A), branch `feat/phase-27-text-animation` (from `origin/main` =
+`41dadf2`, the merge of PR #27; DECISIONS.md D043, accepted 2026-10-20). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 27 — Text
+animation and readability: steps"; manual plan `docs/PHASE27_MANUAL_TEST_PLAN.md`. Each step after 27.0 only on the product
+owner's confirmation; 27.1 (the outline's feasibility) is a gate. No push, pull request or merge without the product
 owner's command.
 
-### Phase 26 — Vertical video and framing (in progress)
+### Phase 27 — Text animation and readability (in progress)
+
+- 2026-10-20 — after the merge of PR #27: `origin/main` = `41dadf2` (its tree identical to `a05236c`); CI green on the pull
+  request; the run on `main` (39385604762) still in progress when checked — not confirmed green. Local `main` fast-forwarded
+  `58c48cb` → `41dadf2`; the documentation edited on `main`, uncommitted. Worktrees `.claude/worktrees/*` left as they are.
+- 2026-10-20 — the product owner's decisions recorded (D042 "Refined after the merge of Phase 26"): the order A → B → C → G;
+  R1 / R2 in parallel with A–C without product code, D / E agreed separately; R3 a separate research of real files, F only
+  after its feasibility is confirmed and a separate agreement; COROS Pace 4 only, FIT not final and the timestamp
+  synchronisation not confirmed until real exports and a video of the same session are examined; H last; S1 = a portable
+  Windows build (no installer) that starts outside the development environment and completes the main path.
+- 2026-10-20 — audit of the text (read only, `41dadf2`): colour (`#RRGGBB`), size, font, alignment, position, scale,
+  rotation, opacity and the D025 fades exist; the Preview's Move tool moves text; no motion, no outline / background, no
+  bold, no quick placement or colour swatches. D043 written (Proposed): In / Out kinds over the clip's fades (Q2-a), Обводка
+  / Подложка, swatches, top / centre / bottom, bold, defaults of "+ Text", `project.json` v7; questions Q1–Q6; the steps
+  27.0–27.6 (27.1 the outline's feasibility first). ROADMAP: Phase 26 merged, Phase 27 current (proposed); DEVELOPMENT_PLAN's
+  list, planned phases and the Phase 27 steps. No code.
+- 2026-10-20 — D043 **accepted by the product owner**: Q1, Q2, Q5, Q6 as proposed; Q3 changed — the outline and the
+  background both allowed, each on its own; Q4 changed — a 3 × 3 grid, the free move in the Preview kept; 27.1 a separate
+  technical check of the outline (quality, export cost, off the UI thread, parity) that stops for the owner's decision when
+  not satisfactory; acceptance criteria added (v6 texts look as before, one rendering model, Undo / Redo, save / reopen,
+  en / ru, export regressions, nothing beyond the scope). Recorded with it: a stored v6 fade outside 0.1–3 s is kept and
+  shown as it is (the range limits the block's input, not the file).
+- 2026-10-20 — Step 27.0: the branch `feat/phase-27-text-animation` from `41dadf2` (the uncommitted planning documentation
+  carried onto it); D042's refinement, D043 accepted; ROADMAP (Phase 26 merged, Phase 27 current), DEVELOPMENT_PLAN (the
+  list, the planned phases, the Phase 27 steps), this file; the manual plan's skeleton `docs/PHASE27_MANUAL_TEST_PLAN.md`;
+  `docs/README.md`. Documentation only; no product code.
+
+### Phase 26 — Vertical video and framing (merged 2026-10-20 as `41dadf2`, PR #27)
 
 - 2026-10-20 — audit (read only) after the merge of PR #26: `origin/main` = `58c48cb` (its tree identical to `1a1ea76`); CI
   green on the pull request (run 39324613809); the run on `main` (39325624702) still shown as in progress by `gh` — not
@@ -49,7 +77,9 @@ owner's command.
   recorded as the preliminary format — it was nowhere in the repository before) and the Final UX Pass (H) as the last phase.
   `docs/DEVELOPMENT_PLAN.md` "Planned phases after Phase 26 (D042)"; `ROADMAP.md` "Product concept" and "Remaining plan";
   the old "Future phases" candidates put under D042 §3–§4. No code, no format change; Phase 26's scope and its uncommitted
-  work (ARCHITECTURE.md, the manual plan, `Strings*.resx`) untouched; not committed.
+  work (ARCHITECTURE.md, the manual plan, `Strings*.resx`) untouched; committed separately as `c926c04` at the owner's
+  request.
+- 2026-10-20 — PR #27 merged into `main` as `41dadf2` (CI green on the pull request).
 
 ### Phase 25 — Technical backlog and small UX improvements (merged 2026-10-19 as `58c48cb`, PR #26)
 

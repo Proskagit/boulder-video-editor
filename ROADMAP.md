@@ -70,7 +70,18 @@ session state (D015).
 
 ## Current
 
-Phase 26 — vertical video and framing (**in progress**, Steps 26.0–26.3 done, closeout 26.4 left; DECISIONS.md D041, 2026-10-20; branch
+Phase 27 — text animation and readability (D042 Phase A; **in progress**; DECISIONS.md D043, accepted 2026-10-20 with the
+answers Q1–Q6; branch `feat/phase-27-text-animation` from `41dadf2`, the merge of PR #27). Appearance / disappearance of a
+text clip (Нет, Проявление, Выезд with four directions, Увеличение 70–100 %, 0.1–3 s — the durations are the clip's fades),
+an outline and a background (each on its own), colour swatches, a 3 × 3 placement grid (the free move in the Preview kept),
+bold, defaults for a caption (white bold, bottom centre, a black 60 % background, Выезд снизу 0.4 s / Проявление 0.3 s);
+v6 texts look exactly as before; `project.json` v7. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 27 — Text animation and
+readability: steps"; manual plan `docs/PHASE27_MANUAL_TEST_PLAN.md`. Step 27.0 done; Step 27.1 (the outline's feasibility,
+a gate) waits for the product owner's go. Local commits only.
+
+## Previous
+
+Phase 26 — vertical video and framing (**merged**; PR #27 merged into `main` as `41dadf2` on 2026-10-20, CI green on the pull request; DECISIONS.md D041, 2026-10-20; branch
 `feat/phase-26-vertical-video` from `58c48cb`, the merge of PR #26). The first video of an empty project with the default
 canvas offers a canvas of its shape and orientation (a dialog; one Undo step; no offer when the orientation is unknown);
 «Заполнить кадр» / «Вписать в кадр» write a computed Scale into a video or image clip (the Inspector and the clip's context
@@ -78,10 +89,7 @@ menu; one Undo step each; no persistent mode); `project.json` stays v6. Steps: `
 Vertical video and framing: steps"; manual plan `docs/PHASE26_MANUAL_TEST_PLAN.md`. Steps 26.0–26.4 done (verified by Claude
 2026-10-20: Release / Debug `--no-incremental -warnaserror` 0 / 0, the full suite 4020 / 2 / 0, heavy 4022 / 0 / 0, three
 blame-hang runs clean, `project.json` v6 byte for byte with `58c48cb` in `ru` and `en`, the manual plan run in the real app
-with the product owner's Vivo / Huawei clips, its NOT RUN parts named); **accepted by the product owner on 2026-10-20**; push and a pull request
-permitted.
-
-## Previous
+with the product owner's Vivo / Huawei clips, its NOT RUN parts named); **accepted by the product owner on 2026-10-20**.
 
 Phase 25 — technical backlog and small UX improvements (**merged**; PR #26 merged into `main` as `58c48cb` on 2026-10-19,
 CI green on the pull request; DECISIONS.md D040, 2026-10-19; branch
@@ -383,27 +391,30 @@ task): closing the app after a project with media was open hangs the process —
 Scopes, steps-to-be and dependencies: `docs/DEVELOPMENT_PLAN.md`, "Planned phases after Phase 26 (D042)". The letters are
 working labels — a phase gets its number (27, 28, …) and its own decision when it is taken up. Nothing below is started.
 
-Status on 2026-10-20: Phases 0–25 complete and merged; Phase 26 current (Steps 26.0–26.3 done, the closeout 26.4 left).
+Status on 2026-10-20: Phases 0–26 complete and merged (Phase 26 as `41dadf2`, PR #27); Phase 27 (= A) specified (D043,
+accepted), in progress (Step 27.0 done). The order confirmed by the product owner (D042 "Refined after the merge of Phase 26"): A → B → C →
+G; R1 and R2 in parallel with A–C without product code, D / E agreed separately after them; R3 a separate research, F only
+after its feasibility is confirmed and a separate agreement; H last.
 
 | Label | Phase | Kind | Rough size | Depends on |
 |---|---|---|---|---|
-| 26.4 | Phase 26 closeout (vertical video and framing, D041) | core | small | — |
-| A | Text appearance / disappearance animation | core | medium | Phase 26 |
+| A | Phase 27 — text animation and readability (D043, accepted; in progress) | core | medium | — (current) |
 | B | Transition library (≈ 5, the dissolve included) | core | medium–large | A (one composition change at a time) |
 | C | Ready-made effects (≈ 5) and the music scenario | core | medium | B |
-| G | Stabilisation of the main path (release candidate) | core | medium | A–C |
+| G | Stabilisation of the main path and S1 (a portable Windows build) | core | medium | A–C |
 | R1 | Automatic hold proposals — research | research | research | — (parallel with A–C) |
 | D | Automatic hold proposals — implementation, on a go | AI | large | R1 |
 | R2 | Outlines following the holds while the camera moves — research | research | research (highest uncertainty) | — (parallel) |
 | E | Outline tracking — implementation, on a go | AI | large | R2; after D if D is taken |
 | R3 | COROS Pace 4 exports and video timestamps — research | research | research (needs real files) | — (parallel) |
-| F | «COROS Pace 4: пульс и телеметрия в видео» | telemetry | large | R3, A |
+| F | «COROS Pace 4: пульс и телеметрия в видео» — only after R3 confirms feasibility and a separate agreement | telemetry | large | R3, A |
 | H | «Final UX Pass: аудит и упрощение интерфейса» (research, then implementation) | UX | research + medium–large | the core incl. F, G, a regression run |
 
 Stopping points — the product is usable after each:
-- **S0 — now / after 26.4**: a vertical bouldering video with manually chosen AI holds, their animation, static text with
+- **S0 — now (Phase 26 merged)**: a vertical bouldering video with manually chosen AI holds, their animation, static text with
   fades, dissolves, music and export.
-- **S1 — the minimum useful release**: + A, B, C, G — the whole main path of D042 §1 except its step 4.
+- **S1 — the minimum useful release**: + A, B, C, G — the whole main path of D042 §1 except its step 4, as a portable
+  Windows build (no installer) that starts outside the development environment and completes the path import → export.
 - **S2**: + D and / or E, as far as their research allows.
 - **S3**: + F (COROS Pace 4).
 - **S4 — the full plan**: + H.
@@ -419,7 +430,7 @@ The candidates in this section are subordinate to D042 §3–§4 (2026-10-20): k
 and ducking are not planned; the magnetic main track, text styling and timeline polish stay backlog candidates; dragging
 objects in the Preview is done (Phase 23). The planned phases are in "Remaining plan" above. History:
 
-Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is merged (PR #25, `d3df0ba`); Phase 25 (technical backlog and small UX improvements, D040) is merged (PR #26, `58c48cb`); Phase 26 (vertical video and framing, D041) is current. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
+Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is merged (PR #25, `d3df0ba`); Phase 25 (technical backlog and small UX improvements, D040) is merged (PR #26, `58c48cb`); Phase 26 (vertical video and framing, D041) is merged (PR #27, `41dadf2`); Phase 27 (text animation and readability, D043) is current. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The

@@ -33,6 +33,8 @@ This directory contains:
   UX improvements), run at their closeouts
 - `PHASE26_MANUAL_TEST_PLAN.md` — manual checks of Phase 26 (the canvas offered by the first video, Fill / Fit, the export
   of portrait and landscape phone clips), completed per step and run at its closeout
+- `PHASE27_MANUAL_TEST_PLAN.md` — manual checks of Phase 27 (text animation, outline and background, the placement grid,
+  bold, the defaults of a new text, v6 texts unchanged), completed per step and run at its closeout
 - `AI_MODEL.md` — the AI hold model: files and checksums, installing, messages, licences and notices, the export recipe
 
 Agent-oriented project context lives in the repository root:
