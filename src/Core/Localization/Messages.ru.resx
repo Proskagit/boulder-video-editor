@@ -865,6 +865,24 @@
   <data name="Transition_NotEnoughMediaDissolve" xml:space="preserve">
     <value>За краями клипов недостаточно материала для наплыва.</value>
   </data>
+  <data name="Transition_NotEnoughMediaType" xml:space="preserve">
+    <value>За краями клипов недостаточно материала для этого перехода. Затемнению и Вспышке он не нужен.</value>
+  </data>
+  <data name="Transition_DurationRange" xml:space="preserve">
+    <value>Длительность этого перехода здесь — от {0} до {1} кадр.</value>
+  </data>
+  <data name="Transition_TooLongType" xml:space="preserve">
+    <value>Этот переход длиной {0} кадр. здесь не помещается; самое длинное возможное — {1} кадр.</value>
+  </data>
+  <data name="Transition_DurationMin" xml:space="preserve">
+    <value>Этот переход должен длиться не меньше {0} кадр.</value>
+  </data>
+  <data name="Transition_NoDirection" xml:space="preserve">
+    <value>Направление есть только у сдвига.</value>
+  </data>
+  <data name="Transition_WrongType" xml:space="preserve">
+    <value>Этот переход нельзя поставить на такую дорожку.</value>
+  </data>
   <data name="Transition_TooLongCrossfade" xml:space="preserve">
     <value>Перекрёстное затухание длиной {0} кадр. здесь не помещается; самое длинное возможное — {1} кадр.</value>
   </data>
@@ -879,6 +897,12 @@
   </data>
   <data name="TransitionRule_DontTouch" xml:space="preserve">
     <value>Клипы перехода не соприкасаются.</value>
+  </data>
+  <data name="TransitionRule_Direction" xml:space="preserve">
+    <value>Сдвигу нужно направление, у других переходов его нет.</value>
+  </data>
+  <data name="TransitionRule_FillPeaksTooClose" xml:space="preserve">
+    <value>Вспышки и затемнения должны быть не ближе 1 секунды друг к другу.</value>
   </data>
   <data name="TransitionRule_Min" xml:space="preserve">
     <value>Переход должен длиться не меньше {0} кадр.</value>

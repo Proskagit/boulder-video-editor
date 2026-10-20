@@ -90,7 +90,9 @@ is merged; if Phase 27 changes before its merge, no rebase on Claude's own — t
 synchronisation plan first. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 28 — Transition library: steps"; manual plan
 `docs/PHASE28_MANUAL_TEST_PLAN.md`. Step 28.0 done (documentation only); Step 28.1 — the visual check of Zoom and Flash on
 the product owner's gym clips, a gate — done and accepted (2026-10-20: Zoom `K = 1.25` 0.3 s and Flash 0.2 s as specified;
-D044 "Refined in Step 28.1"). Local commits only.
+D044 "Refined in Step 28.1"). Step 28.2 — the model, `project.json` v8 and the Core rules — done (2026-10-20: Release /
+Debug `--no-incremental -warnaserror` 0 / 0, the full suite 4264 / 2 / 0, heavy 4266 / 0 / 0, three blame-hang runs clean);
+Step 28.3 on the product owner's decision. Local commits only.
 
 ## Previous
 

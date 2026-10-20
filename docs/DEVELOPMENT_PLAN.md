@@ -2219,7 +2219,7 @@ flashes, user curves, keyframes, "apply to every cut", a change of the audio cro
   the peak; one frame of handle on each side) and Z3 (no Zoom in the first version) proposed with examples; the owner
   chooses.
 
-### 28.2 — Model, `project.json` v8 and the Core rules
+### 28.2 — Model, `project.json` v8 and the Core rules *(done 2026-10-20 — D044 "Implementation notes (Step 28.2)"; the product owner's review pending)*
 - `Transition.Direction`; the video types and `TransitionRules.RequiresHandles`; the type-dependent `MaxTransitionFrames`;
   the per-type ranges in frames (D044 §5: `ceil` minimum, `floor` maximum); the 1.0 s rule between fill peaks across the
   video tracks (D044 §4) in the edit service's reconciliation and on load; `AddTransition` with a type (the default, else the

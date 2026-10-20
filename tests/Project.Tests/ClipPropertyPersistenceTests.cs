@@ -200,7 +200,7 @@ public class ClipPropertyPersistenceTests
 
         // Saved again, it is the current format (v3 since Phase 10, D025) and now carries the field.
         var resaved = JsonNode.Parse(ProjectSerializer.Serialize(loaded, Folder))!.AsObject();
-        Assert.Equal(7, resaved["formatVersion"]!.GetValue<int>());
+        Assert.Equal(8, resaved["formatVersion"]!.GetValue<int>());
         Assert.False(VideoClip(resaved)["isMuted"]!.GetValue<bool>());
     }
 

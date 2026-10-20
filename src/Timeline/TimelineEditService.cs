@@ -1699,25 +1699,99 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (track.Transitions.Any(t => t.LeftClipId == left.Id))
             return TimelineEditResult.Fail(Tr(noun, Messages.Transition_CutHasDissolve, Messages.Transition_CutHasCrossfade));
 
+        // The track's kind decides the type: a dissolve on a video track, a crossfade on an audio track (D032 R9).
+        var typeId = TransitionRules.TypeFor(track.Type);
         var rate = plan.Rate;
         var frames = TransitionRules.Frames(duration, rate);
-        if (frames < TransitionRules.MinFrames)
-            return TimelineEditResult.Fail(string.Format(Tr(noun, Messages.Transition_MinDissolve, Messages.Transition_MinCrossfade), TransitionRules.MinFrames));
-        if (TooLong(frames, MaxFrames(track, left, right, rate, except: null), noun) is { } tooLong)
+        if (RangeError(typeId, frames, rate, noun) is { } rangeError)
+            return TimelineEditResult.Fail(rangeError);
+        if (TooLong(frames, MaxFrames(track, left, right, rate, except: null, typeId), noun, typeId) is { } tooLong)
             return TimelineEditResult.Fail(tooLong);
 
-        // The track's kind decides the type: a dissolve on a video track, a crossfade on an audio track (D032 R9).
+        return CommitAdd(plan, track, left, right, typeId, frames, noun);
+    }
+
+    public TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, string typeId)
+    {
+        var plan = new EditPlan(Sequence, Settings);
+        if (ResolveCut(plan, leftClipId, rightClipId, out var track, out var left, out var right) is { } cutError)
+            return TimelineEditResult.Fail(cutError);
+        if (!TransitionRules.Allows(track.Type, typeId)) return TimelineEditResult.Fail(Messages.Transition_WrongType);
+        var noun = TransitionNoun(track);
+        if (track.Transitions.Any(t => t.LeftClipId == left.Id))
+            return TimelineEditResult.Fail(Tr(noun, Messages.Transition_CutHasDissolve, Messages.Transition_CutHasCrossfade));
+
+        // D044 §6: the type's default, or the longest that fits when that is shorter (never below the type's minimum);
+        // never another type.
+        var rate = plan.Rate;
+        var fits = MaxFrames(track, left, right, rate, except: null, typeId);
+        if (TransitionRules.ClampFrames(typeId, TransitionRules.DefaultFramesOf(typeId, rate), fits, rate) is not { } frames)
+            return TimelineEditResult.Fail(NothingFits(typeId, noun));
+
+        return CommitAdd(plan, track, left, right, typeId, frames, noun);
+    }
+
+    private TimelineEditResult CommitAdd(EditPlan plan, Track track, Clip left, Clip right, string typeId, long frames, string noun)
+    {
         var transition = new Transition
         {
-            TransitionTypeId = TransitionRules.TypeFor(track.Type), Duration = MediaTime.FromFrame(frames, rate),
-            LeftClipId = left.Id, RightClipId = right.Id
+            TransitionTypeId = typeId, Duration = MediaTime.FromFrame(frames, plan.Rate),
+            LeftClipId = left.Id, RightClipId = right.Id, Direction = TransitionRules.DefaultDirection(typeId)
         };
         plan.AddTransition(track, transition);
         if (Validate(plan) is { } error)
             return TimelineEditResult.Fail(string.Format(Tr(noun, Messages.Transition_CantAddDissolve, Messages.Transition_CantAddCrossfade), error));
 
-        _undoRedo.Execute(new NotifyingCommand(new AddTransitionCommand(track, transition, $"Add {Title(noun)}"), _projectService.NotifyTimelineChanged));
+        var description = typeId is TransitionRules.CrossDissolve or TransitionRules.Crossfade ? $"Add {Title(noun)}" : "Add Transition";
+        _undoRedo.Execute(new NotifyingCommand(new AddTransitionCommand(track, transition, description), _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, ClipIds = new[] { left.Id, right.Id }, TransitionId = transition.Id };
+    }
+
+    public TimelineEditResult SetTransitionType(Guid transitionId, string typeId)
+    {
+        if (FindTransition(transitionId) is not { } found) return TimelineEditResult.Fail(Messages.Edit_DissolveGone);
+        var (track, transition) = found;
+        if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
+        if (!TransitionRules.Allows(track.Type, typeId)) return TimelineEditResult.Fail(Messages.Transition_WrongType);
+        if (typeId == transition.TransitionTypeId) return TimelineEditResult.Unchanged();
+
+        // D044 §6: the duration is kept when it lies in the new type's range, else clamped to the nearest allowed value
+        // (the longest that fits for a type needing handles); one step with the type, never merged.
+        var plan = new EditPlan(Sequence, Settings);
+        var rate = plan.Rate;
+        var noun = TransitionNoun(track);
+        var left = track.Clips.First(c => c.Id == transition.LeftClipId);
+        var right = track.Clips.First(c => c.Id == transition.RightClipId);
+        var fits = MaxFrames(track, left, right, rate, except: transition, typeId);
+        if (TransitionRules.ClampFrames(typeId, TransitionRules.Frames(transition.Duration, rate), fits, rate) is not { } frames)
+            return TimelineEditResult.Fail(NothingFits(typeId, noun));
+
+        var before = TransitionState.Capture(track, transition);
+        var stored = frames == TransitionRules.Frames(transition.Duration, rate) ? transition.Duration : MediaTime.FromFrame(frames, rate);
+        var after = before with { TypeId = typeId, Direction = TransitionRules.DefaultDirection(typeId), Duration = stored };
+        plan.UpdateTransition(transition, after);
+        if (Validate(plan) is { } error)
+            return TimelineEditResult.Fail(string.Format(Messages.Transition_CantChangeDissolve, error));
+
+        _undoRedo.Execute(new NotifyingCommand(new UpdateTransitionCommand(transition, before, after, "Change Transition Type"),
+            _projectService.NotifyTimelineChanged));
+        return new TimelineEditResult { Success = true, ClipIds = new[] { left.Id, right.Id }, TransitionId = transition.Id };
+    }
+
+    public TimelineEditResult SetTransitionDirection(Guid transitionId, TransitionDirection direction)
+    {
+        if (FindTransition(transitionId) is not { } found) return TimelineEditResult.Fail(Messages.Edit_DissolveGone);
+        var (track, transition) = found;
+        if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
+        if (!TransitionRules.HasDirection(transition.TransitionTypeId) || !Enum.IsDefined(direction))
+            return TimelineEditResult.Fail(Messages.Transition_NoDirection);
+        if (transition.Direction == direction) return TimelineEditResult.Unchanged();
+
+        var before = TransitionState.Capture(track, transition);
+        _undoRedo.Execute(new NotifyingCommand(
+            new UpdateTransitionCommand(transition, before, before with { Direction = direction }, "Change Push Direction"),
+            _projectService.NotifyTimelineChanged));
+        return new TimelineEditResult { Success = true, ClipIds = new[] { transition.LeftClipId, transition.RightClipId }, TransitionId = transition.Id };
     }
 
     public TimelineEditResult RemoveTransition(Guid transitionId)
@@ -1740,15 +1814,16 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var plan = new EditPlan(Sequence, Settings);
         var rate = plan.Rate;
         var noun = TransitionNoun(track);
+        var typeId = transition.TransitionTypeId;
         var frames = TransitionRules.Frames(duration, rate);
-        if (frames < TransitionRules.MinFrames)
-            return TimelineEditResult.Fail(string.Format(Tr(noun, Messages.Transition_MinDissolve, Messages.Transition_MinCrossfade), TransitionRules.MinFrames));
         var stored = MediaTime.FromFrame(frames, rate);
         if (stored == transition.Duration) return TimelineEditResult.Unchanged();
+        if (RangeError(typeId, frames, rate, noun) is { } rangeError)
+            return TimelineEditResult.Fail(rangeError);
 
         var left = track.Clips.First(c => c.Id == transition.LeftClipId);
         var right = track.Clips.First(c => c.Id == transition.RightClipId);
-        if (TooLong(frames, MaxFrames(track, left, right, rate, except: transition), noun) is { } tooLong)
+        if (TooLong(frames, MaxFrames(track, left, right, rate, except: transition, typeId), noun, typeId) is { } tooLong)
             return TimelineEditResult.Fail(tooLong);
 
         var before = TransitionState.Capture(track, transition);
@@ -1768,8 +1843,39 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (ResolveCut(plan, leftClipId, rightClipId, out var track, out var left, out var right, allowLocked: true) is not null)
             return null;
         var own = track.Transitions.FirstOrDefault(t => t.LeftClipId == left.Id);
-        return MaxFrames(track, left, right, plan.Rate, except: own);
+        return MaxFrames(track, left, right, plan.Rate, except: own, own?.TransitionTypeId ?? TransitionRules.TypeFor(track.Type));
     }
+
+    public long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId, string typeId)
+    {
+        var plan = new EditPlan(Sequence, Settings);
+        if (ResolveCut(plan, leftClipId, rightClipId, out var track, out var left, out var right, allowLocked: true) is not null)
+            return null;
+        if (!TransitionRules.Allows(track.Type, typeId)) return null;
+        var own = track.Transitions.FirstOrDefault(t => t.LeftClipId == left.Id);
+        return Math.Min(MaxFrames(track, left, right, plan.Rate, except: own, typeId), TransitionRules.MaxFramesOf(typeId, plan.Rate));
+    }
+
+    /// <summary>The reason a duration of <paramref name="frames"/> is outside what the type allows (D044 §5), or null; the
+    /// dissolve and the crossfade keep their minimum messages.</summary>
+    private static string? RangeError(string typeId, long frames, FrameRate rate, string noun)
+    {
+        var min = TransitionRules.MinFramesOf(typeId, rate);
+        var max = TransitionRules.MaxFramesOf(typeId, rate);
+        if (frames >= min && frames <= max) return null;
+        if (typeId is TransitionRules.CrossDissolve or TransitionRules.Crossfade)
+            return string.Format(Tr(noun, Messages.Transition_MinDissolve, Messages.Transition_MinCrossfade), min);
+        return max == long.MaxValue
+            ? string.Format(Messages.Transition_DurationMin, min)
+            : string.Format(Messages.Transition_DurationRange, min, max);
+    }
+
+    /// <summary>Why not even the type's minimum fits the cut: the source handles for a type that needs them (naming the
+    /// types that need none, D044 §6), else the clips' length.</summary>
+    private static string NothingFits(string typeId, string noun) =>
+        !TransitionRules.RequiresHandles(typeId) ? Messages.TransitionRule_ClipTooShort
+        : typeId == TransitionRules.Crossfade ? NotEnoughMediaFor(noun)
+        : Messages.Transition_NotEnoughMediaType;
 
     /// <summary>What a transition of <paramref name="track"/> is called: a dissolve on a video track, a crossfade on an audio
     /// track (D032 R9).</summary>
@@ -1795,10 +1901,12 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return null;
     }
 
-    /// <summary>The longest dissolve the cut A | B can take (D025 §3–§4): the frames of each clip not used by its
-    /// dissolve on the other edge, and the source handles. <paramref name="except"/> is the cut's own dissolve.</summary>
-    private long MaxFrames(Track track, Clip left, Clip right, FrameRate rate, Transition? except)
+    /// <summary>The longest transition of <paramref name="typeId"/> the cut A | B can take (D025 §3–§4, D044 §3): the frames
+    /// of each clip not used by its transition on the other edge, and the source handles for a type that needs them.
+    /// <paramref name="except"/> is the cut's own transition.</summary>
+    private long MaxFrames(Track track, Clip left, Clip right, FrameRate rate, Transition? except, string typeId)
     {
+        var handles = TransitionRules.RequiresHandles(typeId);
         var others = track.Transitions.Where(t => t != except).ToList();
         long PartAtStart(Clip clip) => others.Where(t => t.RightClipId == clip.Id)
             .Select(t => TransitionRules.Zone(TransitionRules.Frames(t.Duration, rate)).AfterCut).DefaultIfEmpty(0).Max();
@@ -1810,12 +1918,14 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return TransitionRules.MaxFrames(
             roomInLeft: DissolveHandles.Frames(leftState, rate) - PartAtStart(left),
             roomInRight: DissolveHandles.Frames(rightState, rate) - PartAtEnd(right),
-            handleAfterLeft: DissolveHandles.After(left, leftState, AssetOf(left), rate),
-            handleBeforeRight: DissolveHandles.Before(right, rightState, AssetOf(right), rate));
+            handleAfterLeft: handles ? DissolveHandles.After(left, leftState, AssetOf(left), rate) : DissolveHandles.Unlimited,
+            handleBeforeRight: handles ? DissolveHandles.Before(right, rightState, AssetOf(right), rate) : DissolveHandles.Unlimited);
     }
 
-    private static string? TooLong(long frames, long max, string noun) =>
+    private static string? TooLong(long frames, long max, string noun, string typeId) =>
         frames <= max ? null
+        : typeId is not (TransitionRules.CrossDissolve or TransitionRules.Crossfade)
+            ? max < TransitionRules.MinFrames ? NothingFits(typeId, noun) : string.Format(Messages.Transition_TooLongType, frames, max)
         : max < TransitionRules.MinFrames ? NotEnoughMediaFor(noun)
         : string.Format(Tr(noun, Messages.Transition_TooLongDissolve, Messages.Transition_TooLongCrossfade), frames, max);
 
@@ -1931,6 +2041,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
             if (ValidateTransitions(plan, track) is { } error)
                 return error;
         }
+        // D044 §4: the fill peaks of every video track as the plan leaves them — rejected, never clamped.
+        if (ValidateFillPeaks(plan) is { } peaksError) return peaksError;
         // A link the edit leaves without its other clip is cleared — never on a locked track (D032 L5, AQ12).
         foreach (var clip in plan.ClearedLinks)
         {
@@ -1949,22 +2061,36 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         var clips = plan.EffectiveClips(track).ToDictionary(c => c.Clip.Id);
         var specs = transitions.Select(t =>
-            new TransitionSpec(t.Transition.Id, t.Transition.TransitionTypeId, t.State.Duration, t.State.LeftClipId, t.State.RightClipId));
+            new TransitionSpec(t.Transition.Id, t.State.TypeId, t.State.Duration, t.State.LeftClipId, t.State.RightClipId, t.State.Direction));
         if (TransitionRules.Validate(track.Type, track.Name, specs,
                 id => clips.TryGetValue(id, out var c) ? (c.State.Start, c.State.End) : null, plan.Rate) is { } error)
             return error;
 
         foreach (var (transition, state) in transitions)
         {
-            if (!plan.IsTouched(transition)) continue;
+            if (!plan.IsTouched(transition) || !TransitionRules.RequiresHandles(state.TypeId)) continue;
             var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(state.Duration, plan.Rate));
             var left = clips[state.LeftClipId];
             var right = clips[state.RightClipId];
             if (afterCut > DissolveHandles.After(left.Clip, left.State, AssetOf(left.Clip), plan.Rate) ||
                 beforeCut > DissolveHandles.Before(right.Clip, right.State, AssetOf(right.Clip), plan.Rate))
-                return NotEnoughMediaFor(TransitionNoun(track));
+                return state.TypeId == TransitionRules.Push ? Messages.Transition_NotEnoughMediaType : NotEnoughMediaFor(TransitionNoun(track));
         }
         return null;
+    }
+
+    /// <summary>D044 §4 on the plan: every video track's transitions with their cut (the left clip's planned end).</summary>
+    private static string? ValidateFillPeaks(EditPlan plan)
+    {
+        var peaks = new List<(string TypeId, MediaTime Cut)>();
+        foreach (var track in plan.AllTracks.Where(t => t.Type == TrackType.Video))
+        {
+            var ends = plan.EffectiveClips(track).ToDictionary(c => c.Clip.Id, c => c.State.End);
+            foreach (var (_, state) in plan.EffectiveTransitions(track))
+                if (TransitionRules.IsFill(state.TypeId) && ends.TryGetValue(state.LeftClipId, out var cut))
+                    peaks.Add((state.TypeId, cut));
+        }
+        return TransitionRules.ValidateFillPeaks(peaks);
     }
 
     private MediaAsset? AssetOf(Clip clip) => clip is MediaBackedClip m ? FindAsset(m.MediaAssetId) : null;

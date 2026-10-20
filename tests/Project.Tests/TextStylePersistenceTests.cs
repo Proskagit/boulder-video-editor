@@ -57,10 +57,10 @@ public class TextStylePersistenceTests
     }
 
     [Fact]
-    public void Every_member_survives_a_save_open_save_exactly_as_version_7()
+    public void Every_member_survives_a_save_open_save_exactly_in_the_current_version()
     {
         var first = Save(Build(Styled));
-        Assert.Equal(7, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(8, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
 
         var loaded = Text(Load(first));
         Assert.True(loaded.Bold);
@@ -94,7 +94,7 @@ public class TextStylePersistenceTests
         Assert.True(TextProperties.Of(text)!.Value.IsPlain);
 
         var resaved = JsonNode.Parse(Save(project))!.AsObject();
-        Assert.Equal(7, resaved["formatVersion"]!.GetValue<int>());
+        Assert.Equal(8, resaved["formatVersion"]!.GetValue<int>());
         resaved["formatVersion"] = 6;
         Assert.Equal(JsonNode.Parse(original)!.ToJsonString(), resaved.ToJsonString());
     }
@@ -113,10 +113,10 @@ public class TextStylePersistenceTests
     }
 
     [Fact]
-    public void A_file_newer_than_version_7_is_refused()
+    public void A_file_newer_than_the_current_version_is_refused()
     {
         var root = Json(Build(Styled));
-        root["formatVersion"] = 8;
+        root["formatVersion"] = ProjectSerializer.CurrentFormatVersion + 1;
         Assert.Contains("newer version", Rejected(root).Message);
     }
 

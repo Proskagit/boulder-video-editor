@@ -70,7 +70,7 @@ public class HoldAnimationPersistenceTests
     public void Every_member_survives_a_save_open_save_exactly_as_version_6()
     {
         var first = Save(Build(Animation));
-        Assert.Equal(7, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(8, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
         var reopened = Load(first);
         Assert.Equal(Animation, LoadedAnimation(reopened));
         Assert.Equal(first, Save(reopened));
@@ -96,7 +96,7 @@ public class HoldAnimationPersistenceTests
         var project = Load(root.ToJsonString());
         Assert.Null(LoadedAnimation(project));
         Assert.Single(((VideoClip)project.Timeline.VideoTracks[0].Clips[0]).HoldMarkup!.Holds);
-        Assert.Equal(7, JsonNode.Parse(Save(project))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(8, JsonNode.Parse(Save(project))!["formatVersion"]!.GetValue<int>());
 
         var stray = Json(Build(Animation));
         stray["formatVersion"] = 5;
@@ -106,7 +106,7 @@ public class HoldAnimationPersistenceTests
     [Fact]
     public void A_file_newer_than_version_6_is_refused_the_check_a_version_5_build_applies_to_a_version_6_file()
     {
-        Assert.Equal(7, ProjectSerializer.CurrentFormatVersion);
+        Assert.Equal(8, ProjectSerializer.CurrentFormatVersion);
         var root = Json(Build(Animation));
         root["formatVersion"] = ProjectSerializer.CurrentFormatVersion + 1;
         Assert.Contains("newer version", Rejected(root).Message);

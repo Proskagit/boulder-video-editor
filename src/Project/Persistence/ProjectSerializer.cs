@@ -26,15 +26,16 @@ namespace AiVideoEditor.Project.Persistence;
 public static class ProjectSerializer
 {
     public const string FormatId = "AiVideoEditor.Project";
-    /// <summary>7 since Phase 27 (D043): bold, the outline, the background and the motions of text clips. 6 since Phase 21 (D036): the animation of the hold outlines. 5 since Phase 19 (D034): the hold markup of video clips. 4 since Phase 17 (D032): links of video and audio
+    /// <summary>8 since Phase 28 (D044): the transition library — Dip to black, Flash, Zoom and Push with its direction.
+    /// 7 since Phase 27 (D043): bold, the outline, the background and the motions of text clips. 6 since Phase 21 (D036): the animation of the hold outlines. 5 since Phase 19 (D034): the hold markup of video clips. 4 since Phase 17 (D032): links of video and audio
     /// clips, a video clip's unlinked sound, audio clips of video files and crossfades on audio tracks. 3 since Phase 10
     /// (D025): clip fades and anchored transitions. 2 since Phase 7 Step 9: the clip speed is an exact fraction (D022).
     /// Version 1 files (speed must be 1) and version 2 files are read as projects without fades and transitions, version 3
     /// files without links, version 4 files without hold markup, version 5 files without the outline animation, version 6
-    /// files without the text style and motion; all are saved as version 7. A newer version is refused, so an older build
-    /// never drops what it doesn't know on a save.
+    /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
+    /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 7;
+    public const int CurrentFormatVersion = 8;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -51,6 +52,18 @@ public static class ProjectSerializer
 
     /// <summary>The first version with the style and motion of text clips (D043).</summary>
     private const int TextStyleVersion = 7;
+
+    /// <summary>The first version with the transition library: types beyond the dissolve and a push's direction (D044).</summary>
+    private const int TransitionLibraryVersion = 8;
+
+    /// <summary>A push's direction in the file (D044 §9).</summary>
+    private static readonly IReadOnlyDictionary<TransitionDirection, string> DirectionNames = new Dictionary<TransitionDirection, string>
+    {
+        [TransitionDirection.FromRight] = "fromRight",
+        [TransitionDirection.FromLeft] = "fromLeft",
+        [TransitionDirection.FromTop] = "fromTop",
+        [TransitionDirection.FromBottom] = "fromBottom"
+    };
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -276,7 +289,8 @@ public static class ProjectSerializer
         Transitions = t.Transitions.Select(x => new TransitionDto
         {
             Id = x.Id, TransitionTypeId = x.TransitionTypeId, DurationTicks = x.Duration.Ticks,
-            LeftClipId = x.LeftClipId, RightClipId = x.RightClipId
+            LeftClipId = x.LeftClipId, RightClipId = x.RightClipId,
+            Direction = x.Direction is { } direction ? DirectionNames[direction] : null
         }).ToList()
     };
 
@@ -547,6 +561,8 @@ public static class ProjectSerializer
         foreach (var track in sequence.VideoTracks.Concat(sequence.AudioTracks))
             if (TransitionRules.ValidateTrack(track, rate) is { } invalid)
                 throw Damaged($"a transition on track {track.Name} is invalid: {invalid.TrimEnd('.')}");
+        if (TransitionRules.ValidateFillPeaks(sequence.VideoTracks) is { } tooClose)   // D044 §4
+            throw Damaged($"the transitions are invalid: {tooClose.TrimEnd('.')}");
 
         if (LinkRules.Validate(sequence) is { } invalidLink)
             throw Damaged($"a link is invalid: {invalidLink.TrimEnd('.')}");
@@ -618,10 +634,20 @@ public static class ProjectSerializer
             if (!ids.Transitions.Add(x.Id)) throw Damaged("duplicate transition id");
             if (formatVersion < AudioEditingVersion && x.TransitionTypeId != TransitionRules.CrossDissolve)
                 throw Damaged("unknown transition type");
+            // Before v8 a track had only its default type (D025, D032); the library's types and the direction are v8's.
+            if (formatVersion < TransitionLibraryVersion && x.TransitionTypeId is not (TransitionRules.CrossDissolve or TransitionRules.Crossfade))
+                throw Damaged("unknown transition type");
+            TransitionDirection? direction = null;
+            if (formatVersion >= TransitionLibraryVersion && x.Direction is not null)
+            {
+                var named = DirectionNames.Where(d => d.Value == x.Direction).ToList();
+                if (named.Count == 0) throw Damaged("unknown transition direction");
+                direction = named[0].Key;
+            }
             track.Transitions.Add(new Transition
             {
                 Id = x.Id, TransitionTypeId = x.TransitionTypeId, Duration = new MediaTime(x.DurationTicks),
-                LeftClipId = x.LeftClipId, RightClipId = x.RightClipId
+                LeftClipId = x.LeftClipId, RightClipId = x.RightClipId, Direction = direction
             });
         }
 

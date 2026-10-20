@@ -865,6 +865,24 @@
   <data name="Transition_NotEnoughMediaDissolve" xml:space="preserve">
     <value>There is not enough media beyond the clips for the dissolve.</value>
   </data>
+  <data name="Transition_NotEnoughMediaType" xml:space="preserve">
+    <value>There is not enough media beyond the clips for this transition. Dip to black and Flash need none.</value>
+  </data>
+  <data name="Transition_DurationRange" xml:space="preserve">
+    <value>This transition takes from {0} to {1} frames here.</value>
+  </data>
+  <data name="Transition_TooLongType" xml:space="preserve">
+    <value>This transition of {0} frames doesn't fit here; the longest that fits is {1} frames.</value>
+  </data>
+  <data name="Transition_DurationMin" xml:space="preserve">
+    <value>This transition must be at least {0} frames long.</value>
+  </data>
+  <data name="Transition_NoDirection" xml:space="preserve">
+    <value>Only a push has a direction.</value>
+  </data>
+  <data name="Transition_WrongType" xml:space="preserve">
+    <value>This transition can't be placed on this kind of track.</value>
+  </data>
   <data name="Transition_TooLongCrossfade" xml:space="preserve">
     <value>A crossfade of {0} frames doesn't fit here; the longest that fits is {1} frames.</value>
   </data>
@@ -879,6 +897,12 @@
   </data>
   <data name="TransitionRule_DontTouch" xml:space="preserve">
     <value>A transition's clips don't touch.</value>
+  </data>
+  <data name="TransitionRule_Direction" xml:space="preserve">
+    <value>A push needs its direction; other transitions have none.</value>
+  </data>
+  <data name="TransitionRule_FillPeaksTooClose" xml:space="preserve">
+    <value>Flashes and dips to black must be at least 1 second apart.</value>
   </data>
   <data name="TransitionRule_Min" xml:space="preserve">
     <value>A transition must be at least {0} frames long.</value>

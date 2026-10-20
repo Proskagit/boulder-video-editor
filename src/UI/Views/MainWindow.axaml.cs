@@ -179,6 +179,10 @@ public partial class MainWindow : Window
         public TimelineEditResult RemoveTransition(Guid transitionId) => Nothing;
         public TimelineEditResult SetTransitionDuration(Guid transitionId, MediaTime duration) => Nothing;
         public long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId) => null;
+        public TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, string typeId) => Nothing;
+        public TimelineEditResult SetTransitionType(Guid transitionId, string typeId) => Nothing;
+        public TimelineEditResult SetTransitionDirection(Guid transitionId, TransitionDirection direction) => Nothing;
+        public long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId, string typeId) => null;
         public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => Nothing;
         public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => "Design time.";
         public MovePreview? PreviewMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => null;

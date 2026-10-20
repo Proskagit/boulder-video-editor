@@ -234,7 +234,7 @@ public class MediaRemovalTests
             var folder = Path.Combine(root, "Project");
             await f.Projects.SaveAsAsync(folder);
             var json = File.ReadAllText(Path.Combine(folder, "project.json"));
-            Assert.Contains("\"formatVersion\": 7", json);
+            Assert.Contains("\"formatVersion\": 8", json);
             Assert.DoesNotContain("removed.png", json);
 
             var reopened = await f.Projects.OpenAsync(folder);

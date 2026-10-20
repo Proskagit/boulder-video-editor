@@ -439,17 +439,21 @@ public sealed class NotifyingCommand(IUndoableCommand inner, Action notify) : IM
     }
 }
 
-/// <summary>Where a transition is and what it joins (D025): its track, the clips left and right of the cut and its
-/// length. Commands store absolute before / after states.</summary>
-public readonly record struct TransitionState(Track Track, Guid LeftClipId, Guid RightClipId, MediaTime Duration)
+/// <summary>Where a transition is and what it joins (D025): its track, the clips left and right of the cut, its length,
+/// its type and direction (D044). Commands store absolute before / after states.</summary>
+public readonly record struct TransitionState(Track Track, Guid LeftClipId, Guid RightClipId, MediaTime Duration, string TypeId,
+    TransitionDirection? Direction)
 {
-    public static TransitionState Capture(Track track, Transition t) => new(track, t.LeftClipId, t.RightClipId, t.Duration);
+    public static TransitionState Capture(Track track, Transition t) =>
+        new(track, t.LeftClipId, t.RightClipId, t.Duration, t.TransitionTypeId, t.Direction);
 
     public void ApplyTo(Transition t)
     {
         t.LeftClipId = LeftClipId;
         t.RightClipId = RightClipId;
         t.Duration = Duration;
+        t.TransitionTypeId = TypeId;
+        t.Direction = Direction;
     }
 }
 

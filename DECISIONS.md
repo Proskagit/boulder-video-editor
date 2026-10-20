@@ -6072,6 +6072,38 @@ rates; the 1.0 s rule; render parity; the end-to-end export with real ffmpeg; th
   not needed; Flash accepted (0.2 s, the agreed model), no remarks. A separate visual check on a 30 fps project is not done
   (judged redundant): the rounding of the durations to whole frames is covered by the automated tests of Step 28.2.
 
+### Implementation notes (Step 28.2, 2026-10-20)
+
+- Model: `Transition.Direction` (`TransitionDirection`: `FromRight`, `FromLeft`, `FromTop`, `FromBottom`; null for every
+  type but a push). `TransitionRules`: the five type ids and `VideoTypes`, `Allows(trackType, type)`, `RequiresHandles`
+  (Dissolve, Push and the audio crossfade), `IsFill` (Dip to black, Flash), `HasDirection` / `DefaultDirection`,
+  `LimitsOf` / `MinFramesOf` (`ToFrameCeiling`) / `MaxFramesOf` (`ToFrameFloor`) / `DefaultFramesOf` (`ToNearestFrame`),
+  `ClampFrames` (the nearest allowed value, null when the minimum doesn't fit) and `ValidateFillPeaks`; `Validate` accepts
+  the five types on a video track, the crossfade on an audio track, and checks the direction rule.
+- File: the type is the existing `transitionTypeId` member (since v3; §9's "`transitions[].type`" is this member); a push
+  writes `direction` (`fromRight` … `fromBottom`), nothing else writes it. A v7 or older file with any other type than the
+  dissolve / the crossfade is refused; a `direction` member there is ignored. On load §4 is checked over every video track.
+- Edit service: `AddTransition(left, right, typeId)` (§6: the default, else the longest that fits ≥ the minimum, never
+  another type; not enough handles → "…Dip to black and Flash need none."; less than the minimum by the clips' length →
+  "A clip is too short for its transitions."), `SetTransitionType` (keeps or clamps the duration; a push gets
+  `FromRight`), `SetTransitionDirection` (a push only), `MaxTransitionFrames(left, right, typeId)`. The existing
+  `AddTransition(left, right, duration)` stays — the track's default type — and, like `SetTransitionDuration`, takes a
+  duration only inside the type's range of §5 (the dissolve and the crossfade keep their "at least N frames" message, N
+  the type's minimum; the others "takes from N to M frames here" or "must be at least N frames long"; one longer than fits
+  "This transition of N frames doesn't fit here; the longest that fits is M frames."). Handles are checked only for the
+  types that need them; a push short of them names Dip to black and Flash, also when an edit of its clips takes them away. Undo descriptions: "Add Transition" for the new types ("Add Dissolve" as before),
+  "Change Transition Type", "Change Push Direction" — never merged; duration changes merge as before.
+- §4 is one check in the service's `Validate` (every edit passes through it): the plan's fill peaks over every video track,
+  rejected with "Flashes and dips to black must be at least 1 second apart." — an add, a type change, a move, a ripple
+  delete or trim, a frame-rate re-grid. A speed change moves only the clip's end, so it can only separate a cut (the
+  transition then goes, D025 §5), never bring two peaks closer.
+- Earlier tests: the 0.1 s minimum of the dissolve (3 frames at 30 fps) replaced D025's 2 frames in two dissolve tests; the
+  re-grid test of a 2-frame dissolve now places it in the model as an older project would; the format-version literals
+  moved to 8.
+- Until Step 28.3 the snapshot draws every video transition as a dissolve (PO-8 already applies to every type), and until
+  Step 28.4 the interface creates dissolves only; the add result carries no "longest that fits" note — the UI compares the
+  stored duration with the type's default.
+
 Context: the product owner's request of 2026-10-20 after Phase 27 (accepted locally, not yet published); the first draft
 (Dissolve, Dip to black, Dip to white, Wipe, Push) revised after the research of §0.
 

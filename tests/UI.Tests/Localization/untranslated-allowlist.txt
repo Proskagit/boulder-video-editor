@@ -55,8 +55,11 @@ src/Timeline/TimelineEditService.Links.cs	Unlink Audio
 src/Timeline/TimelineEditService.Links.cs	Unlink Clips
 src/Timeline/TimelineEditService.cs	Add Clip
 src/Timeline/TimelineEditService.cs	Add Text
+src/Timeline/TimelineEditService.cs	Add Transition
 src/Timeline/TimelineEditService.cs	Change Project Settings
+src/Timeline/TimelineEditService.cs	Change Push Direction
 src/Timeline/TimelineEditService.cs	Change Speed
+src/Timeline/TimelineEditService.cs	Change Transition Type
 src/Timeline/TimelineEditService.cs	Change {Title(noun)} Duration
 src/Timeline/TimelineEditService.cs	Close Gap
 src/Timeline/TimelineEditService.cs	Delete Clip
@@ -171,12 +174,14 @@ src/Project/Persistence/ProjectSerializer.cs	negative playhead position
 src/Project/Persistence/ProjectSerializer.cs	negative transition duration
 src/Project/Persistence/ProjectSerializer.cs	project name is missing
 src/Project/Persistence/ProjectSerializer.cs	project settings are missing
+src/Project/Persistence/ProjectSerializer.cs	the transitions are invalid: {tooClose.TrimEnd('.')}
 src/Project/Persistence/ProjectSerializer.cs	timeline is missing
 src/Project/Persistence/ProjectSerializer.cs	transition type is missing
 src/Project/Persistence/ProjectSerializer.cs	unknown clip type
 src/Project/Persistence/ProjectSerializer.cs	unknown format version
 src/Project/Persistence/ProjectSerializer.cs	unknown media kind
 src/Project/Persistence/ProjectSerializer.cs	unknown text alignment
+src/Project/Persistence/ProjectSerializer.cs	unknown transition direction
 src/Project/Persistence/ProjectSerializer.cs	unknown transition type
 src/Project/Persistence/ProjectSerializer.cs	video track list is missing
 src/Project/Persistence/ProjectSerializer.cs	{what} id is missing

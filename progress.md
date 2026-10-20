@@ -5,7 +5,8 @@
 Phase 28 — the transition library (D042 Phase B), branch `feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d`
 (variant B; Phase 27 not yet published); DECISIONS.md D044, approved 2026-10-20. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 28
 — Transition library: steps"; manual plan `docs/PHASE28_MANUAL_TEST_PLAN.md`. Steps 28.0 and 28.1 done (28.1 accepted by the
-product owner: Zoom and Flash as specified). Step 28.2 in progress; **28.3 only on the product owner's decision**. Phase 28's pull request
+product owner: Zoom and Flash as specified); Step 28.2 done, awaiting the product owner's review; **28.3 only on the
+product owner's decision**. Phase 28's pull request
 only after Phase 27 is merged; if Phase 27 changes before its merge, no rebase on Claude's own — the difference is reported
 with a safe synchronisation plan first. No push, pull request or merge without the product owner's command.
 
@@ -39,6 +40,25 @@ Phase 27 (D043): Steps 27.0–27.6 done on `feat/phase-27-text-animation` (up to
   28.1"; manual plan row 1. Separately, without commits: the session's FIT read for structure only
   (`VideosForTest/R3_COROS_preliminary/notes.md` — the watch is a COROS APEX 4, 14 climbing splits, the heart rate at 1 s;
   the grade and the flash not found in the file); no synchronisation work.
+- 2026-10-20 — Step 28.2 (D044 "Implementation notes (Step 28.2)"): `Transition.Direction`; `TransitionRules` — the five
+  types, `Allows`, `RequiresHandles`, `IsFill`, the defaults and ranges in whole frames (`ceil` minimum, `floor`
+  maximum), `ClampFrames`, `ValidateFillPeaks`, the direction rule; `project.json` v8 (`direction` for a push only, v7 read
+  unchanged, library types refused before v8, §4 checked on load); the edit service — `AddTransition(…, typeId)`,
+  `SetTransitionType`, `SetTransitionDirection`, `MaxTransitionFrames(…, typeId)`, the type ranges on every duration input,
+  handles only where needed, the 1.0 s rule in `Validate` for every edit; `TransitionState` with the type and direction
+  (type / direction changes never merged); Core messages en + ru; the D039 allowlist (three undo descriptions, two file
+  reasons). Tests: `Core.Tests/TransitionLibraryRulesTests` (42: D044 §5's table on eight rates, the limits never promise
+  more than the frames give, the 0.1 s grid strictly increasing and reading back), `Timeline.Tests/TransitionLibraryEditTests`
+  (40: each type's default, no-handle cuts, the longest that fits, ranges, type change keep / clamp and its own step,
+  direction, locked and audio tracks, split, the 1.0 s rule on add / type change / move / ripple delete / ripple trim /
+  frame-rate re-grid — 25 → 29.97 fps rounding two peaks 1.0 s apart to 0.968 s — and a speed change only separating a
+  cut), `Project.Tests/TransitionLibraryPersistenceTests` (17); mutation checks: the 1.0 s rule off → 7 failures, handles
+  for every type → 5. Earlier tests: the format literals 7 → 8, the dissolve minimum 2 → 3 frames at 30 fps in two
+  `DissolveEditTests`, the 2-frame dissolve of `FrameRateEditTests` placed in the model as an older project would.
+  Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4264 / 2 / 0 (Core 1243, Timeline 894,
+  Project 524, UI 841, Export 108, Rendering 147, Video 354, ExportEndToEnd 129 + 2, Vision 24); `AIVE_HEAVY_TESTS=1`
+  4266 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m` runs 4264 / 2 / 0 each, no hang, no dump. Known until 28.3 /
+  28.4: every video transition drawn as a dissolve; the interface creates dissolves only.
 
 ### Phase 27 — Text animation and readability (accepted 2026-10-20, not yet published)
 
