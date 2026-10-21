@@ -18,7 +18,7 @@ namespace AiVideoEditor.Export.Tests;
 /// stage; cancellation and every failure of a part propagate unchanged and end with every part disposed and the
 /// encoding never completed.
 /// </summary>
-public sealed class ExportServiceTests
+public sealed partial class ExportServiceTests
 {
     private static readonly FrameRate Rate = FrameRate.Fps25;
     private static readonly FrameSize Canvas = new(64, 36);

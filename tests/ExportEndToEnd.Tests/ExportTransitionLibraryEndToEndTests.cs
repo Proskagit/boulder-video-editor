@@ -248,7 +248,7 @@ public sealed class ExportTransitionLibraryEndToEndTests
     // --- failures and missing media ----------------------------------------------------------------------------------
 
     [FfmpegFact]
-    public async Task Handles_missing_at_render_time_hold_the_first_frame_in_both_for_a_push()
+    public async Task Handles_missing_at_render_time_refuse_the_export_of_a_push_while_the_Preview_holds_the_first_frame()
     {
         var p = new ProjectBuilder(FrameRate.Fps25);
         var v1 = p.VideoTrack();
@@ -256,14 +256,23 @@ public sealed class ExportTransitionLibraryEndToEndTests
         var a = p.Video(v1, _media.Solid(Red, FrameRate.Fps25), 0, 40);
         var b = p.Video(v1, pattern, 40, 80);                                       // SourceIn 0: no handle before B
         Add(p, v1, a, b, TransitionRules.Push, 10);                                 // B shown from 35 anyway (media changed since)
-        var run = await Export(p, "push-no-handles");
+        var destination = Path.Combine(_media.OutputFolder(), "push-no-handles.mp4");
+        var job = Preflight(p.Project, destination);
 
-        await AssertPreviewEqualsExport(run, "push without handles", 35, 37, 39, 40);
-        // D025 §4: the decoder holds B's first frame before its first source frame — the same in the Preview and the export.
+        // D025 §4 as changed in Phase 28: refused before rendering — no file.
+        var error = await Assert.ThrowsAsync<ExportException>(() =>
+            Service(EncoderHarness.Encoder()).ExportAsync(job, new SyncProgress(_ => { }), CancellationToken.None));
+        Assert.Equal(ExportFailure.TransitionSourceMissing, error.Failure);
+        Assert.Equal(new MissingTransitionSource(TransitionRules.Push, v1.Id, a.Id, b.Id, p.F(40), BeforeRendering: true), error.MissingSource);
+        Assert.False(File.Exists(destination));
+        Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(destination)!));
+        AssertNoFfmpegLeft();
+
+        // The Preview still holds B's first frame before its first source frame (D025 §4).
         var (_, motionB) = TransitionPresentation.PushMotions(2, 10, TransitionDirection.FromRight, new FrameSize(E2EMedia.Width, E2EMedia.Height));
         var dx = (int)motionB.OffsetX;
         var first = SourceFrame(pattern.FilePath, 0);
-        Assert.True(MaxDifference(run.Canvases[37], dx + 10, 90, first, 10, 90, E2EMedia.Width) <= 3);
+        Assert.True(MaxDifference((await Preview(job.Snapshot, 37)).Pixels, dx + 10, 90, first, 10, 90, E2EMedia.Width) <= 3);
     }
 
     [FfmpegFact]

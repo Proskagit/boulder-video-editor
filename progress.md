@@ -6,7 +6,8 @@ Phase 28 — the transition library (D042 Phase B), branch `feat/phase-28-transi
 (variant B; Phase 27 not yet published); DECISIONS.md D044, approved 2026-10-20. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 28
 — Transition library: steps"; manual plan `docs/PHASE28_MANUAL_TEST_PLAN.md`. Steps 28.0 and 28.1 done (28.1 accepted by the
 product owner: Zoom and Flash as specified); Steps 28.2–28.5 done (28.2 accepted); **the phase awaits the product
-owner's acceptance**; the real-app manual run NOT RUN. Phase 28's pull request
+owner's acceptance**; the real-app run and re-run done (`docs/PHASE28_MANUAL_TEST_PLAN.md`; the NOT RUN rows named there);
+D1–D8 fixed; the export refusal for a Dissolve / Push without source frames implemented (D025 §4, D044). Phase 28's pull request
 only after Phase 27 is merged; if Phase 27 changes before its merge, no rebase on Claude's own — the difference is reported
 with a safe synchronisation plan first. No push, pull request or merge without the product owner's command.
 
@@ -120,6 +121,24 @@ Phase 27 (D043): Steps 27.0–27.6 done on `feat/phase-27-text-animation` (up to
   (the real audio device: 15414 played frames against the upper bound 15360, ~1 ms; Video code not touched; the runs went
   at below-normal priority while the product owner used the computer); the test 3 / 3 again alone; a fourth blame-hang run
   4391 / 2 / 0, no hang, no dump.
+- 2026-10-21 — the real-app re-run (the product owner freed the computer; Debug build of `c722a20`, fresh fixtures): D1–D6,
+  O1, O2 and D7 PASS in the app; rows 5 (24 / 25 / 30 fps), 6 (type change, ripple trim), 7 (split inside a zone), 8 (a
+  title over a Dip), 13, 14 PASS; NOT RUN: moving a pair / speed / frame-rate refusals, hold outlines, the v7 export from
+  the app (offline media). New: D8 (a refused type change leaves the clicked type button checked) — not fixed. Results in
+  `docs/PHASE28_MANUAL_TEST_PLAN.md` (not committed yet).
+- 2026-10-21 — Phase 28 finished in the product owner's limits (autonomous): D8 fixed (two-way `IsChecked`, re-sync after a
+  refused or empty type / direction change); the export of a Dissolve / Push without the source frames its zone needs is
+  refused — `ExportTransitionSourceCheck` decodes each zone's farthest extended frames before the encoder starts (no file),
+  `ExportPictureReader` fails on any held extended frame while rendering (the unfinished output deleted, the destination
+  kept); `ExportFailure.TransitionSourceMissing` + `MissingTransitionSource`; the UI message names the type, clips, track
+  and cut (en + ru); the relink warning counts Dissolve / Push only and says the export will be refused. D025 §4, D044,
+  ARCHITECTURE updated. Tests: Core `EndsAfter`; Export 14 (before / while rendering, the exact handle, types without
+  handles, a range, a clip's own hold-last); ExportEndToEnd 4 new (a file replaced by a shorter one whatever its metadata,
+  a decoder running out mid-render with the destination kept, a v7 project exporting exactly as built) and the two
+  held-frame tests turned into refusals with the Preview still holding; Timeline relink (4); UI (D8 × 2, the message).
+  Gates — Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4417 / 2 / 0; `AIVE_HEAVY_TESTS=1` 4419 / 0 / 0; three `--blame-hang` runs 4417 / 2 / 0, no hang, no dump. v7 dissolves against the Phase 27 code re-run: 17 / 17 frames byte-identical. Real app: D8, the
+  relink warning, the refused export (message, destination unchanged, no temporary file) and the Flash export after it —
+  PASS.
 
 ### Phase 27 — Text animation and readability (accepted 2026-10-20, not yet published)
 

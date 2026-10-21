@@ -1,6 +1,7 @@
 using System.Globalization;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Project;
@@ -533,6 +534,74 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
         Assert.Equal("Push", ZoneVm().TypeName);
         Inspector.SetTransitionTypeCommand.Execute(TransitionRules.Flash);
         Assert.Equal("Flash", ZoneVm().TypeName);
+    }
+
+    [Fact]
+    public void A_refused_or_empty_type_change_leaves_only_the_models_type_checked()
+    {
+        // D8 of the Phase 28 run: a toggle button checks itself on a click (two-way IsChecked writes IsSelected); a refused
+        // change must uncheck it again. A flash at 100 and a zoom at 110: 0.4 s apart, the zoom can't become a flash.
+        var (a, b) = SplitVideo();
+        Assert.True(_edit.Split(F(110), new[] { b.Id }).Success);
+        var (b1, b2) = (V1.Clips[1], V1.Clips[2]);
+        AddSelected(a, b1, TransitionRules.Flash);
+        SelectBoth(b1, b2);
+        Timeline.AddTransitionCommand.Execute(TransitionRules.Zoom);
+        Assert.True(Option(TransitionRules.Zoom).IsSelected);
+
+        Option(TransitionRules.Flash).IsSelected = true;                                 // what the click did to the button
+        Inspector.SetTransitionTypeCommand.Execute(TransitionRules.Flash);
+        Assert.Contains(Messages.TransitionRule_FillPeaksTooClose, _status.Message);
+        Assert.Equal(new[] { TransitionRules.Zoom }, Inspector.TransitionTypes.Where(o => o.IsSelected).Select(o => o.TypeId));
+
+        Option(TransitionRules.Zoom).IsSelected = false;                                 // a click on the type it already is
+        Inspector.SetTransitionTypeCommand.Execute(TransitionRules.Zoom);
+        Assert.True(Option(TransitionRules.Zoom).IsSelected);
+
+        var xaml = InspectorXaml();
+        foreach (var name in new[] { "TransitionTypeButtons", "TransitionDirectionButtons" })
+        {
+            var button = xaml.Descendants(Ui + "ItemsControl").Single(i => (string?)i.Attribute(X + "Name") == name).Descendants(Ui + "ToggleButton").Single();
+            Assert.Equal("{Binding IsSelected, Mode=TwoWay}", (string?)button.Attribute("IsChecked"));
+        }
+    }
+
+    [Fact]
+    public void A_refused_direction_change_leaves_only_the_models_direction_checked()
+    {
+        var (a, b) = SplitVideo();
+        AddSelected(a, b, TransitionRules.Push);
+        var left = Inspector.TransitionDirections.Single(d => d.Direction == TransitionDirection.FromLeft);
+        V1.IsLocked = true;
+
+        left.IsSelected = true;
+        Inspector.SetTransitionDirectionCommand.Execute(TransitionDirection.FromLeft);
+
+        Assert.Contains("locked", _status.Message);
+        Assert.Equal(new[] { TransitionDirection.FromRight }, Inspector.TransitionDirections.Where(d => d.IsSelected).Select(d => d.Direction));
+    }
+
+    [Fact]
+    public void An_export_refused_for_missing_source_frames_names_the_transition_its_clips_track_and_cut()
+    {
+        var (a, b) = SplitVideo();
+        var push = AddSelected(a, b, TransitionRules.Push);
+        var name = _projects.Current.MediaAssets.Single().FileName;
+        ExportException Error(bool before) => new(ExportFailure.TransitionSourceMissing, "detail")
+        {
+            MissingSource = new MissingTransitionSource(push.TransitionTypeId, V1.Id, a.Id, b.Id, F(100), before)
+        };
+
+        Assert.Equal($"The export was not started: the transition \"Push\" between \"{name}\" and \"{name}\" on V1 at 00:00:04:00 needs source " +
+            "frames beyond its clips that the media no longer have. Shorten or remove the transition, or relink the full file. " +
+            "No file was written; an existing file was left unchanged.", ExportWorkflow.FailureMessage(Error(true), _projects.Current));
+        Assert.StartsWith("The export was stopped: the source ran out of frames for the transition \"Push\"",
+            ExportWorkflow.FailureMessage(Error(false), _projects.Current));
+
+        using (UiLanguage.Use("ru"))
+            Assert.Equal($"Экспорт не начат: переходу «Сдвиг» между «{name}» и «{name}» на дорожке V1 в 00:00:04:00 нужны исходные кадры за " +
+                "краями клипов, которых в файле нет. Укоротите или удалите переход либо перепривяжите полный файл. Файл не записан; " +
+                "существующий файл не изменён.", ExportWorkflow.FailureMessage(Error(true), _projects.Current));
     }
 
     private static readonly System.Xml.Linq.XNamespace Ui = "https://github.com/avaloniaui";

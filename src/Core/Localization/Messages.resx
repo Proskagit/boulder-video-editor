@@ -727,12 +727,6 @@
   <data name="Relink_DiffVideoCodec" xml:space="preserve">
     <value>Video codec: {0} before, {1} now.</value>
   </data>
-  <data name="Relink_DissolveHoldsMany" xml:space="preserve">
-    <value>The new file has too little media beyond its clips for {0} dissolves; they will hold a frame.</value>
-  </data>
-  <data name="Relink_DissolveHoldsOne" xml:space="preserve">
-    <value>The new file has too little media beyond a clip for its dissolve; the dissolve will hold a frame.</value>
-  </data>
   <data name="Relink_DoesNotExist" xml:space="preserve">
     <value>"{0}" doesn't exist.</value>
   </data>
@@ -1065,5 +1059,11 @@
   </data>
   <data name="Edit_NotTrimmedStartNamed" xml:space="preserve">
     <value>Not trimmed where the transition "{0}" is on the clip's start: Shift+Q trims it and keeps the transition.</value>
+  </data>
+  <data name="Relink_TransitionShortOne" xml:space="preserve">
+    <value>The new file lacks source frames the transition "{0}" needs beyond a clip; an export with it will be refused until it is shortened or removed.</value>
+  </data>
+  <data name="Relink_TransitionShortMany" xml:space="preserve">
+    <value>The new file lacks source frames {0} transitions need beyond their clips; an export with them will be refused until they are shortened or removed.</value>
   </data>
 </root>

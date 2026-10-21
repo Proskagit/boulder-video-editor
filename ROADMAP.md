@@ -94,8 +94,10 @@ D044 "Refined in Step 28.1"). Step 28.2 — the model, `project.json` v8 and the
 Debug `--no-incremental -warnaserror` 0 / 0, the full suite 4264 / 2 / 0, heavy 4266 / 0 / 0, three blame-hang runs clean).
 Steps 28.3 (rendering), 28.4 (the interface) and 28.5 (verification) done on 2026-10-20: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4331 / 2 / 0 (Core 1277, Timeline 894, Project 524, UI 857, Export 108, Rendering 147, Video 354, ExportEndToEnd 146 + 2, Vision 24); `AIVE_HEAVY_TESTS=1` 4333 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m` runs 4331 / 2 / 0 each, no hang, no dump; Preview = export
 byte for byte for every type and direction (real ffmpeg); v7 dissolves byte-identical with the Phase 27 code and a v7 project
-saved again differing only in `formatVersion`; the real-app manual run NOT RUN (the product owner was at the desktop) — the
-manual plan names what the automated suites cover. Local commits only.
+saved again differing only in `formatVersion`. After the product owner's real-app run (2026-10-20 / 21): D1–D8 fixed, and an
+export whose Dissolve or Push lacks source frames is refused (D025 §4 changed by the product owner, D044); gates Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4417 / 2 / 0; `AIVE_HEAVY_TESTS=1` 4419 / 0 / 0; three `--blame-hang` runs 4417 / 2 / 0, no hang, no dump; the
+real-app re-run in the manual plan (what remains NOT RUN is named there). Awaiting the product owner's acceptance; local
+commits only.
 
 ## Previous
 

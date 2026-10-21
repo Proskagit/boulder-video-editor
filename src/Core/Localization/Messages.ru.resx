@@ -727,12 +727,6 @@
   <data name="Relink_DiffVideoCodec" xml:space="preserve">
     <value>Видеокодек: был {0}, стал {1}.</value>
   </data>
-  <data name="Relink_DissolveHoldsMany" xml:space="preserve">
-    <value>В новом файле недостаточно материала за краями клипов для наплывов ({0}); они будут держать кадр.</value>
-  </data>
-  <data name="Relink_DissolveHoldsOne" xml:space="preserve">
-    <value>В новом файле недостаточно материала за краем клипа для его наплыва; наплыв будет держать кадр.</value>
-  </data>
   <data name="Relink_DoesNotExist" xml:space="preserve">
     <value>«{0}» не существует.</value>
   </data>
@@ -1065,5 +1059,11 @@
   </data>
   <data name="Edit_NotTrimmedStartNamed" xml:space="preserve">
     <value>Не обрезано там, где на начале клипа переход «{0}»: Shift+Q обрезает его, сохраняя переход.</value>
+  </data>
+  <data name="Relink_TransitionShortOne" xml:space="preserve">
+    <value>В новом файле не хватает исходных кадров, нужных переходу «{0}» за краем клипа; экспорт с ним будет отклонён, пока переход не укоротят или не удалят.</value>
+  </data>
+  <data name="Relink_TransitionShortMany" xml:space="preserve">
+    <value>В новом файле не хватает исходных кадров, нужных переходам за краями клипов ({0}); экспорт с ними будет отклонён, пока их не укоротят или не удалят.</value>
   </data>
 </root>

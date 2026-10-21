@@ -155,6 +155,8 @@
             <!-- Phase 28 (D044 §5–§6): a video transition — the type (one that cannot fit is disabled with the reason), a
                  push's direction, the duration in seconds stored as whole frames (the stored seconds and frames under it). -->
             <StackPanel x:Name="TransitionLibrarySection" IsVisible="{Binding IsVideoTransitionSelected}" Spacing="6">
+              <!-- A toggle button checks itself on a click: IsChecked is two-way, so the view model's re-sync after a refused or
+                   empty change unchecks it again (D8 of the Phase 28 run) — the buttons always show the model. -->
               <!-- The buttons wrap in the width left after the label column (a horizontal StackPanel gave them their own
                    width and pushed the section past the panel's edge at 300 px — the Phase 28 manual run, D1). -->
               <Grid ColumnDefinitions="124,*">
@@ -163,7 +165,7 @@
                   <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                      <ToggleButton Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=OneWay}" IsEnabled="{Binding IsAvailable}"
+                      <ToggleButton Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}" IsEnabled="{Binding IsAvailable}"
                                     ToolTip.Tip="{Binding Tip}" ToolTip.ShowOnDisabled="True" CommandParameter="{Binding TypeId}" FontSize="11" Margin="0,0,4,4"
                                     Command="{Binding $parent[UserControl].DataContext.SetTransitionTypeCommand}"/>
                     </DataTemplate>
@@ -176,7 +178,7 @@
                   <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                      <ToggleButton Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=OneWay}" CommandParameter="{Binding Direction}"
+                      <ToggleButton Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}" CommandParameter="{Binding Direction}"
                                     FontSize="11" Margin="0,0,4,4" Command="{Binding $parent[UserControl].DataContext.SetTransitionDirectionCommand}"/>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>

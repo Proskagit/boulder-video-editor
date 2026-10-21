@@ -126,13 +126,19 @@ public sealed partial class InspectorViewModel
     [RelayCommand]
     private void SetTransitionType(string? typeId)
     {
-        if (typeId is null || _transition is not { } s || RejectWhileLocked()) return;
+        if (typeId is null || _transition is not { } s) return;
+        if (RejectWhileLocked())
+        {
+            SyncTransition();
+            return;
+        }
         var before = TransitionRules.Frames(s.Transition.Duration, s.Rate);
         var result = _edit.SetTransitionType(s.Transition.Id, typeId);
-        if (result.NoChange) return;
-        if (!result.Success)
+        if (result.NoChange || !result.Success)
         {
-            _status.Report(result.Message ?? Strings.Transition_NotChangedAny);
+            // The button pressed has checked itself (D8 of the Phase 28 run): the buttons show the model's type again.
+            if (!result.NoChange) _status.Report(result.Message ?? Strings.Transition_NotChangedAny);
+            SyncTransition();
             return;
         }
         var after = TransitionRules.Frames(s.Transition.Duration, s.Rate);
@@ -144,8 +150,14 @@ public sealed partial class InspectorViewModel
     [RelayCommand]
     private void SetTransitionDirection(TransitionDirection direction)
     {
-        if (_transition is not { } s || RejectWhileLocked()) return;
+        if (_transition is not { } s) return;
+        if (RejectWhileLocked())
+        {
+            SyncTransition();
+            return;
+        }
         var result = _edit.SetTransitionDirection(s.Transition.Id, direction);
         if (!result.Success && !result.NoChange) _status.Report(result.Message ?? Strings.Transition_NotChangedAny);
+        if (!result.Success || result.NoChange) SyncTransition();   // the buttons show the model's direction again
     }
 }

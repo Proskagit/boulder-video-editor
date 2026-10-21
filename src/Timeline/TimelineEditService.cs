@@ -1988,14 +1988,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         IsNamed(track, typeId) ? string.Format(named, TypeName(typeId!)) : Tr(track, dissolve, crossfade);
 
     /// <summary>The name of a library type in a message (the Inspector's and the menu's name).</summary>
-    private static string TypeName(string typeId) => typeId switch
-    {
-        TransitionRules.DipToBlack => Messages.TransitionName_DipToBlack,
-        TransitionRules.Flash => Messages.TransitionName_Flash,
-        TransitionRules.Zoom => Messages.TransitionName_Zoom,
-        TransitionRules.Push => Messages.TransitionName_Push,
-        _ => Messages.TransitionName_CrossDissolve
-    };
+    private static string TypeName(string typeId) => TransitionTypeNames.Of(typeId);
 
     /// <summary>The type a message about <paramref name="clip"/>'s transitions names: of the transitions at its
     /// <paramref name="edge"/> (both edges when null) — with <paramref name="handlesOnly"/> only those that need source

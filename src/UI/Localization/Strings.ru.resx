@@ -1923,4 +1923,13 @@
   <data name="Transition_NoLonger" xml:space="preserve">
     <value>Длиннее, чем сейчас, здесь не поместится.</value>
   </data>
+  <data name="Export_FailTransitionSourceBefore" xml:space="preserve">
+    <value>Экспорт не начат: переходу «{0}» между «{1}» и «{2}» на дорожке {3} в {4} нужны исходные кадры за краями клипов, которых в файле нет. Укоротите или удалите переход либо перепривяжите полный файл.</value>
+  </data>
+  <data name="Export_FailTransitionSourceDuring" xml:space="preserve">
+    <value>Экспорт остановлен: при декодировании не хватило исходных кадров для перехода «{0}» между «{1}» и «{2}» на дорожке {3} в {4}. Укоротите или удалите переход либо перепривяжите полный файл.</value>
+  </data>
+  <data name="Export_FailTransitionSource" xml:space="preserve">
+    <value>Переходу нужны исходные кадры за краями клипов, которых в файле нет, — экспорт остановлен. ({0})</value>
+  </data>
 </root>

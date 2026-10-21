@@ -2247,7 +2247,7 @@ flashes, user curves, keyframes, "apply to every cut", a change of the audio cro
 - Tests: the view models and AXAML, the edits through the UI (steps, merges, refusals, Undo / Redo), the localization guards;
   the real app at 1024 × 640 and 1440 × 900.
 
-### 28.5 — Verification & closeout *(done by Claude 2026-10-20 — results in `progress.md` and the manual plan; the real-app run NOT RUN, the product owner's acceptance pending)*
+### 28.5 — Verification & closeout *(done by Claude 2026-10-20; the real-app run and its fixes D1–D8 and the export refusal of D025 §4 on 2026-10-21 — results in `progress.md` and the manual plan; the product owner's acceptance pending)*
 - Release and Debug `--no-incremental -warnaserror`; the full suite, `AIVE_HEAVY_TESTS=1`, three `--blame-hang` runs; `git
   diff --check`; a Phase 27 v7 project with dissolves opened, saved (only `formatVersion` differs) and its export compared
   with the Phase 27 build's; the manual plan in the real app on the product owner's gym clips in `ru` and `en`, an export

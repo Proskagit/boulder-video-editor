@@ -1347,7 +1347,7 @@ the same thing (D023) and nothing regresses — not the number of effects.
   `"crossDissolve"`, `F ≥ 2` frames, `LeftClipId ≠ RightClipId`, both clips on its track, `A.TimelineEnd == B.TimelineStart`
   exactly, at most one transition per cut, and its zone (§3) fits both clips, also against a transition on the other
   edge of the same clip. Source handles (§4) are **not** checked on load — media may be offline or changed; rendering
-  never fails for missing handles (§4).
+  never fails for missing handles (§4) — except the export of a Dissolve or a Push, refused since 2026-10-21 (§4).
 
 ### 2. Fades (Steps 10.3–10.5)
 
@@ -1416,9 +1416,27 @@ exactly the limits the trim already uses (so a dissolve needs what a trim of tha
 - A video clip whose metadata (duration) is unknown has no handles: a dissolve cannot be created on it.
 - Extended frames use the unchanged source-frame rule (D009/D022): `t(n) = SourceIn + (FromFrame(n) − S) · s` is exact
   for frames before `S` or after the clip's end too, so no new selection rule is introduced.
-- Rendering never fails for missing handles (media replaced, a file loaded from elsewhere): the decoder holds the first
-  frame before the source's first frame and the last after its last one (D009), identically in the Preview and the
-  export. Handles are validated only when an edit creates or keeps a dissolve.
+- Rendering a clip's own frames never fails for missing source frames: the decoder holds the first frame before the
+  source's first frame and the last after its last one (D009), identically in the Preview and the export. Ordinary clips,
+  fades, Dip to black, Flash, Zoom and the audio crossfade (D032) keep this rule.
+- **Changed by the product owner (2026-10-21, Phase 28):** a video transition that takes frames beyond its clips —
+  **Dissolve and Push** (D044 §3) — is never drawn in the export with held frames. When the source does not have an
+  extended frame its zone needs (A after the cut, B before it, §3) — media replaced or relinked, a video stream shorter
+  than its container, a file cut short — the export fails with `ExportFailure.TransitionSourceMissing`, and the message
+  names the transition's type, its two clips, the track and the cut's time:
+  - **before rendering** the export asks the decoder itself (the metadata are not trusted for it) for the farthest
+    extended frame each such transition exports on each side — A's last one, B's first one; a frame it could only hold
+    stops the export before the encoder starts: no file is created («Экспорт не начат: …»);
+  - **while rendering** the export's reader checks every extended frame again: when its answer would be a held frame —
+    the source's first frame lies after the sample point, the stream ended before it (the point at or after the last
+    frame's start plus one nominal source frame), or no frame at all — the export stops like a decode failure (D023):
+    the unfinished output is deleted, an existing file at the destination stays as it was, nothing is reported as
+    exported («Экспорт остановлен: …»).
+- The Preview keeps holding those frames, as before: it is not a deliverable; the difference is "refused" against
+  "shown", never two different pictures.
+- Handles are still validated when an edit creates or keeps a transition and still not checked on load (§1): a project
+  with such a transition opens and edits as before; only its export is refused. The relink warning (D026) names the
+  Dissolves and Pushes whose new file lacks the frames (by its metadata); it informs only and replaces no export check.
 
 ### 5. Dissolve and timeline edits (one undo / redo step each)
 
@@ -6159,6 +6177,7 @@ rates; the 1.0 s rule; render parity; the end-to-end export with real ffmpeg; th
 - Missing handles at render time keep D025 §4 (the decoder holds the first / last frame, the same in the Preview and the
   export, the export succeeds); a decode failure or a vanished source fails the export (DecodeFailed); a cancel inside a zone
   leaves nothing. Refusing such an export would change D025 §4 — not done; a question for the product owner.
+  (Decided on 2026-10-21: refused for Dissolve and Push — see "Corrections after the real-app run" and D025 §4.)
 
 ### Corrections after the real-app run (2026-10-21)
 
@@ -6189,6 +6208,21 @@ allowed the fixes. No rule of §1–§9 changed.
   Dissolve and Push (§3), the audio crossfade (D032) — as the edits that create or keep a transition already did. Dip to
   black, Flash and Zoom no longer stop a slip or a ripple trim before the source's ends. The frames of every zone inside
   its clips are kept as before (D025 §5); the stop notes name the transition that stopped the edit.
+- Export with missing source frames (D025 §4 as changed on 2026-10-21, the product owner's policy): a Dissolve or a Push
+  whose zone needs source frames the media do not have refuses the export — before rendering, found by the decoder, with
+  no file created; or while rendering when the decoder runs out, with the unfinished output deleted and an existing
+  destination left unchanged. The message names the transition: «Экспорт не начат: переходу «Сдвиг» между «A» и «B» на
+  дорожке V1 в 00:00:12:00 нужны исходные кадры за краями клипов, которых в файле нет. Укоротите или удалите переход либо
+  перепривяжите полный файл.» (while rendering «Экспорт остановлен: при декодировании не хватило исходных кадров для
+  перехода …»), en + ru, followed by «Файл не записан; существующий файл не изменён.». Dip to black, Flash and Zoom take no
+  frames beyond their clips and are not checked; ordinary clips and the crossfade keep D025 §4 / D032. The relink warning
+  counts Dissolve and Push only (before, every type) and says the export will be refused: «В новом файле не хватает
+  исходных кадров, нужных переходу «Наплыв» за краем клипа; экспорт с ним будет отклонён, пока переход не укоротят или не
+  удалят.» Implementation: `ExportTransitionSourceCheck` (the probe, before the encoder starts) and the check in
+  `ExportPictureReader` (every extended frame), one rule (`SourceFrameSelector.IsAtOrBefore` / `EndsAfter`); the
+  failure carries `MissingTransitionSource` (type, track, clips, cut, before / while rendering). No format change.
+- D8 (found in the re-run, fixed): a refused or empty type / direction change re-syncs the buttons from the model (their
+  `IsChecked` is two-way): the pressed button no longer stays checked beside the real type.
 
 Context: the product owner's request of 2026-10-20 after Phase 27 (accepted locally, not yet published); the first draft
 (Dissolve, Dip to black, Dip to white, Wipe, Push) revised after the research of §0.

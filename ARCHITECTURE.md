@@ -100,8 +100,12 @@ Domain types (`src/Core/Entities`):
   whole-pixel shift, applied by the draw plan after the layer's transform to the frame, text and hold outline) and
   `SolidLayer` / `SolidDraw` for the fills; one painter for the Preview and the export. UI: «Переход» in the timeline
   header (`OpenTransitionMenuCommand` → the `MenuFlyout`, `AddTransitionCommand(typeId)`), the Inspector's TRANSITION
-  section (`InspectorViewModel.Transition.cs`: type and direction buttons, `TransitionSeconds` on whole frames); the
-  audio crossfade keeps `DissolveFrames`.
+  section (`InspectorViewModel.Transition.cs`: type and direction buttons, `TransitionSeconds` on whole frames, its spinner
+  through `StepTransitionSecondsCommand` / `CommitNumericUpDown.StepCommand`); the audio crossfade keeps `DissolveFrames`.
+  Export of a Dissolve / Push without the source frames its zone needs (D025 §4 as changed in Phase 28): refused —
+  `ExportTransitionSourceCheck` probes the decoder for each zone's farthest extended frames before the encoder starts,
+  and `ExportPictureReader` fails on any extended frame it could only hold (`SourceFrameSelector.EndsAfter`); the failure
+  is `ExportFailure.TransitionSourceMissing` with `ExportException.MissingSource`, worded by `ExportWorkflow.FailureMessage`.
 - `MediaTime`
 
 New projects get tracks V1 and A1. Clips are created only by `ITimelineEditService`.

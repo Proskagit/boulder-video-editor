@@ -168,7 +168,7 @@ public sealed class ExportWorkflow
             return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_Cancelled));
 
         // 4. The export.
-        var outcome = await ExportAsync(job);
+        var outcome = await ExportAsync(job, project);
         if (outcome.Kind == ExportOutcomeKind.Succeeded)
             project.LastExportSettings.OutputPath = job.OutputPath; // session state: never dirty, never undoable (D023)
         Report(outcome);
@@ -176,7 +176,7 @@ public sealed class ExportWorkflow
         return outcome;
     }
 
-    private async Task<ExportOutcome> ExportAsync(ExportJob job)
+    private async Task<ExportOutcome> ExportAsync(ExportJob job, Core.Entities.Project project)
     {
         using var cts = new CancellationTokenSource();
         using var locked = _editingLock.Acquire();
@@ -196,7 +196,7 @@ public sealed class ExportWorkflow
         catch (ExportException ex)
         {
             _logger.LogWarning(ex, "Export to {Path} failed ({Failure}).", job.OutputPath, ex.Failure);
-            return new ExportOutcome(ExportOutcomeKind.Failed, FailureMessage(ex), job.OutputPath, ex.Failure);
+            return new ExportOutcome(ExportOutcomeKind.Failed, FailureMessage(ex, project), job.OutputPath, ex.Failure);
         }
         catch (Exception ex)
         {
@@ -220,8 +220,33 @@ public sealed class ExportWorkflow
         ExportFailure.EncodeFailed => Strings.Export_FailEncode,
         ExportFailure.OutputFailed => Strings.Export_FailOutput,
         ExportFailure.RenderFailed => Strings.Export_FailRender,
+        ExportFailure.TransitionSourceMissing => Strings.Export_FailTransitionSource,
         _ => Strings.Export_Fail
     }, ex.Message));
+
+    /// <summary>
+    /// <see cref="FailureMessage(ExportException)"/>, and for a transition that lacks source frames (D025 §4, D044) the
+    /// transition by its type, its two clips, its track and its cut — before rendering "not started", while rendering
+    /// "stopped"; either way no file was written and an existing one was left unchanged.
+    /// </summary>
+    public static string FailureMessage(ExportException ex, Core.Entities.Project project)
+    {
+        if (ex.MissingSource is not { } missing) return FailureMessage(ex);
+        var tracks = project.Timeline.VideoTracks;
+        var track = tracks.FirstOrDefault(t => t.Id == missing.TrackId);
+        var clips = tracks.SelectMany(t => t.Clips).ToList();
+        string NameOf(Guid id) => clips.FirstOrDefault(c => c.Id == id) switch
+        {
+            Core.Entities.MediaBackedClip media => project.MediaAssets.FirstOrDefault(a => a.Id == media.MediaAssetId)?.FileName ?? "?",
+            Core.Entities.TextClip text => text.Text.Split('\n')[0].Trim(),
+            { } other => other.GetType().Name,
+            null => "?"
+        };
+        return string.Format(Strings.Export_NoFileWritten, string.Format(
+            missing.BeforeRendering ? Strings.Export_FailTransitionSourceBefore : Strings.Export_FailTransitionSourceDuring,
+            ViewModels.Panels.TransitionNames.Name(missing.TypeId), NameOf(missing.LeftClipId), NameOf(missing.RightClipId),
+            track?.Name ?? "?", TimeFormat.ToTimecode(missing.Cut, project.Settings.FrameRate)));
+    }
 
     private static bool IsAboutOutputFile(ExportIssueKind kind) =>
         kind is ExportIssueKind.InvalidOutputPath or ExportIssueKind.OutputFolderMissing or ExportIssueKind.OutputIsProjectMedia;

@@ -71,29 +71,85 @@ Observations (not defects by D044's text, for the product owner):
 
 ## Fixes (2026-10-21) — status
 
-Allowed by the product owner after the run (D1–D6, O1, O2); D044 "Corrections after the real-app run". The repeated
-real-app checks of the fixes are **NOT RUN**: the product owner was using the computer (another application in the
-foreground) while the fixes were finished, and no synthesized input is sent then. Automated: the full suite 4374 / 2 / 0,
-heavy 4376 / 0 / 0, three blame-hang runs clean, Release / Debug `-warnaserror` 0 / 0.
+Allowed by the product owner after the run (D1–D6, O1, O2); D044 "Corrections after the real-app run". Automated: the full
+suite 4374 / 2 / 0, heavy 4376 / 0 / 0, three blame-hang runs clean, Release / Debug `-warnaserror` 0 / 0. The repeated
+real-app checks were made on 2026-10-21 when the product owner freed the computer — the Debug build of `c722a20` (D7
+included), fresh fixtures of `tools/manual/New-Phase28TransitionFixture.ps1`, Windows at 125 %; the column "Real app" below.
 
 | Defect | Fix | Automated | Real app |
 |---|---|---|---|
-| D1 | the type / direction rows wrap in the column after the labels; the Remove label wraps | `TransitionLibraryUiTests` (the section's layout in the XAML), `FadeViewBindingTests` | NOT RUN (1024 × 640, 1440 × 900) |
-| D2 | the automatic removal names the type («Переход «Сдвиг» удалён…», «Удалено переходов: N…») | `TransitionMessageTests` (en + ru, each type) | NOT RUN |
-| D3 | `ToolTip.ShowOnDisabled` on the type buttons | `TransitionLibraryUiTests` | NOT RUN (hover) |
-| D4 | the zone's mark (14 × 14 px at its centre) selects the transition over the trim handles | `TransitionLibraryUiTests` (the mark in the XAML, its name) | NOT RUN (the 0.2 s Flash at the default zoom) |
-| D5 | «Нельзя добавить переход «Вспышка»: …» | `TransitionMessageTests` | NOT RUN |
-| D6 | «На этой склейке уже есть переход «Наезд».» (en: "This cut already has a transition: "Zoom".") | `TransitionMessageTests` | NOT RUN |
-| O1 | typed = the nearest frame; only the spinner steps to the next 0.1 s mark that changes the frames | `TransitionLibraryUiTests` (60 / 25 / 24 fps, the limits, the spinner through the command) | NOT RUN |
-| O2 | «Длиннее, чем сейчас, здесь не поместится.» instead of a limit below the value | `TransitionLibraryUiTests` (video transition and crossfade) | NOT RUN (the v7 harness project) |
+| D1 | the type / direction rows wrap in the column after the labels; the Remove label wraps | `TransitionLibraryUiTests` (the section's layout in the XAML), `FadeViewBindingTests` | local (Claude): PASS — at 1440 × 900 and 1024 × 640 the buttons wrap in two or three rows, «…4,02 с · 241 кадр» whole; no element of the Inspector passes its right edge (UI Automation bounds); at 1024 × 640 the section scrolls and «Удалить переход» is reachable and enabled |
+| D2 | the automatic removal names the type («Переход «Сдвиг» удалён…», «Удалено переходов: N…») | `TransitionMessageTests` (en + ru, each type) | local (Claude): PASS — Delete of A next to a Сдвиг: «Переход «Сдвиг» удалён: его клипы больше не соседние.»; a plain trim of the cut edge: the same; en: "The transition "Zoom" was removed: its clips no longer meet."; Undo brings the clip and the transition back |
+| D3 | `ToolTip.ShowOnDisabled` on the type buttons | `TransitionLibraryUiTests` | local (Claude): PASS — hovering the disabled «Наплыв» (no handles) shows «За краями клипов недостаточно материала для этого перехода. Затемнению и Вспышке он не нужен.» |
+| D4 | the zone's mark (14 × 14 px at its centre) selects the transition over the trim handles | `TransitionLibraryUiTests` (the mark in the XAML, its name) | local (Claude): PASS — the 0.2 s Flash at 50 px/s: a press on the mark (x 857–872, the clip row's middle) selects it every time; above and below the mark the handles act as before — a press selects the clip, a plain or Shift drag of A's end above the mark of a Сдвиг trims (ripple: B follows, the transition stays) |
+| D5 | «Нельзя добавить переход «Вспышка»: …» | `TransitionMessageTests` | local (Claude): PASS — a Flash at 15 s, a cut at 15.6 s: «Нельзя добавить переход «Вспышка»: Вспышки и затемнения должны быть не ближе 1 секунды друг к другу.»; «…переход «Затемнение»: …» for a Dip |
+| D6 | «На этой склейке уже есть переход «Наезд».» (en: "This cut already has a transition: "Zoom".") | `TransitionMessageTests` | local (Claude): PASS — ru: «На этой склейке уже есть переход «Сдвиг».»; en: "This cut already has a transition: "Zoom"." |
+| O1 | typed = the nearest frame; only the spinner steps to the next 0.1 s mark that changes the frames | `TransitionLibraryUiTests` (60 / 25 / 24 fps, the limits, the spinner through the command) | local (Claude): PASS — 60 fps: typed 0,75 → 45 кадров; the spinner up → 0,8 (48), from 0,75 down → 0,7 (42), again → 0,6 (36); typed 0,85 after 0,75 → 0,85 (51); the Up key from 0,85 → 0,9 (54). A Flash at 24 fps: 0,21 (5) → 0,29 (7) → 0,42 (10) → 0,5 (12, the maximum) and back 0,42 → 0,29; at 25 fps 0,28 (7) → 0,32 (8) → 0,4 (10), down 0,32; at 30 fps 0,33 (10) → 0,4 (12) → 0,5 (15), down 0,4 — never stuck |
+| O2 | «Длиннее, чем сейчас, здесь не поместится.» instead of a limit below the value | `TransitionLibraryUiTests` (video transition and crossfade) | local (Claude): PASS — the v7 harness project (media offline, no metadata): the legacy dissolve shows «0,08 с · 2 кадра» and «Длиннее, чем сейчас, здесь не поместится.» |
 
 Found while fixing (code reading, confirmed by a scratch test); **fixed** on 2026-10-21 with the product owner's
 permission — the ripple trim and the slip keep handles only for Dissolve, Push and the audio crossfade
 (`TransitionHandleReservationTests`, 17: slip both ways, ripple outward on both cut edges, plain and ripple trims inward for
 every type, a dissolve and a flash on one clip, the audio crossfade, Undo / Redo; 7 of them fail without the fix); the
-real-app check of trim and slip beside Dip to black / Flash / Zoom: **NOT RUN** (the product owner was at the computer):
+real-app check (2026-10-21): PASS — the no-handles fixture (A's source ends 1 s after the cut) with a Flash at the cut: an
+Alt-drag slip of A stops at the end of the source («Сдвиг остановлен в конце исходного файла.»), the Flash stays; a Shift drag
+of A's end to the right reaches the source's end (16 s 2 frames — the file's 16.033 s), B and the Flash follow, no stop note.
+Before the fix both stopped 6 frames earlier:
 - **D7 — the trim and the slip keep source handles for every type.** `TimelineEditService` (ripple trim outward, slip)
   reserves the handle of the zone for any transition on the edge, though D044 §3 needs handles only for Dissolve and Push:
   a 20 s video at 25 fps split at 100 / 300 with a Flash at 100 — slipping B by −1000 frames stops at Source In 2 frames
   («Сдвиг остановлен там, где материал клипа нужен переходу «Вспышка».») instead of 0; a ripple trim of A's end to 1000
   stops at 497 instead of 500. Dip to black and Zoom the same.
+
+## Re-run of the remaining rows (2026-10-21)
+
+The rows of the table above that were partly NOT RUN, checked in the app where no specification change is needed:
+- Row 5 — the field at 24, 25 and 30 fps (Project Settings → frame rate): PASS (see O1 above).
+- Row 6 — a Zoom 0.6 s after a Flash, type change to Вспышка / Затемнение: refused, «Нельзя изменить переход «Наезд»: Вспышки
+  и затемнения должны быть не ближе 1 секунды друг к другу.», the type stays; two Flashes 2 s apart, a Shift drag of the clip
+  between them 1.2 s shorter: refused, «Нельзя обрезать: Вспышки и затемнения должны быть не ближе 1 секунды друг к другу.» —
+  PASS. Moving a pair, a speed change and a frame-rate change that would bring peaks closer: NOT RUN (automated).
+- Row 7 — a split strictly inside the Flash's zone: «Нельзя разрезать внутри перехода «Вспышка».» PASS; a split at the zone's
+  edge (15:06 at 60 fps): made, as D025 §5 allows. Trim and slip beside a transition without handles: PASS (D7 above). Move
+  and speed next to a zone: NOT RUN (automated).
+- Row 8 — a title on V2 over a Dip (0,4 s at 30 fps): the picture darkens, the title stays at full brightness — PASS. Hold
+  outlines in a Push / Zoom: NOT RUN (the fixtures have no hold markup; automated).
+- Row 11 — exporting the v7 project from the app: NOT RUN (its media are the harness's synthetic files, offline in the app).
+- Row 13 — after D1: PASS at both sizes; en: the menu, the statuses and the messages in English, PASS.
+- Row 14 — an export running (900 frames): the TRANSITION section is disabled; toggling «Наезд» through UI Automation is
+  refused; after the export the type is unchanged — PASS.
+
+New defect found in the re-run — **fixed** on 2026-10-21 (two-way `IsChecked`, the section re-synced from the model after a
+refused or empty change; `TransitionLibraryUiTests`); real app: PASS — the same steps (a Flash at 12 s, a Zoom at 12.6 s in
+`fixture28c/relink`), «Вспышка» clicked on the Zoom: refused, only «Наезд» stays On (UI Automation), a click on «Наезд» itself
+keeps it On:
+- **D8 — a refused type change leaves the clicked type button checked.** `fixture28c/nohandles`: a Flash at the cut at 15 s,
+  split B at 15.6 s, add «Наезд» on that cut, then click «Вспышка» (or «Затемнение») in the Inspector: the change is refused
+  (the 1.0 s rule) and the status says so, but the clicked button stays highlighted (UI Automation: ToggleState On) next to
+  «Наезд»; it stays so for the transitions selected later (the Flash at 15 s then showed «Затемнение» and «Вспышка» both On).
+  Cause: a `ToggleButton` checks itself on click; `IsChecked="{Binding IsSelected, Mode=OneWay}"` is replaced by that local
+  value, and the option's `IsSelected` did not change, so nothing resets it.
+
+Observation: the frame-rate hint of Project Settings says «…появление, исчезание, наплывы и маркеры сохранят своё время.» —
+"dissolves" for every transition type (a Phase 13 string; not changed).
+
+## The export refusal for missing source frames (2026-10-21)
+
+The product owner's policy (D025 §4 changed, D044): a Dissolve or a Push whose zone needs source frames the media do not
+have refuses the export. Automated: Export.Tests (before / while rendering, the exact handle and one frame too few, Dip to
+black / Flash / Zoom without handles, a range export, a clip's own hold-last), ExportEndToEnd.Tests with real ffmpeg (a
+file replaced by a shorter one with the old metadata — refused before rendering, the destination byte for byte; a decoder
+running out while rendering — the unfinished output deleted, the destination kept, no ffmpeg left; a v7 project with
+dissolves exporting exactly as the same project built in memory; the Preview still holding the frames), the relink warning
+(Timeline), the message (UI). Real app (local, Claude): PASS —
+- `fixture28c/relink` (the handles excerpts), a Наплыв 1 с at 12 s saved; attempt A's file made unavailable, the project
+  reopened (offline), «Перепривязать…» to `attemptA-14s.mp4` (the same excerpt cut at A's end): the dialog says «В новом
+  файле не хватает исходных кадров, нужных переходу «Наплыв» за краем клипа; экспорт с ним будет отклонён, пока переход не
+  укоротят или не удалят.»; relinked anyway.
+- Export to an existing file («previous export», 15 bytes) → «Заменить»: «Ошибка экспорта — Экспорт не начат: переходу
+  «Наплыв» между «attemptA-14s.mp4» и «attemptB.mp4» на дорожке V1 в 00:00:12:00 нужны исходные кадры за краями клипов,
+  которых в файле нет. Укоротите или удалите переход либо перепривяжите полный файл. Файл не записан; существующий файл не
+  изменён.»; the file still 15 bytes «previous export», nothing else in the folder.
+- The type changed to «Вспышка» (0,5 с): the export succeeds, the file replaced (h264 1440 frames + aac, 24.0 s).
+- NOT RUN in the app: the failure while rendering (a decoder running out after the check — covered end to end with real
+  ffmpeg only; it needs a file that changes during the export).

@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\src\Export\Export.csproj" />
     <ProjectReference Include="..\..\src\UI\UI.csproj" />
     <ProjectReference Include="..\..\src\Media\Media.csproj" />
+    <ProjectReference Include="..\..\src\Project\Project.csproj" Aliases="ProjectPersistence" />
   </ItemGroup>
 
   <ItemGroup>

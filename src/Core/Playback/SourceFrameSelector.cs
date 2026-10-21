@@ -109,6 +109,26 @@ public static class SourceFrameSelector
         }
     }
 
+    /// <summary>True when the frame at <paramref name="timestamp"/>, lasting one frame of <paramref name="frameRate"/>,
+    /// still shows at <paramref name="point"/>: the point lies before the frame's end. With
+    /// <see cref="IsAtOrBefore"/> this says whether the source really has a frame for the point or the decoder would only
+    /// hold its last one (D025 §4: a Dissolve's or a Push's extended frames are never held in the export).</summary>
+    public static bool EndsAfter(SourceTimestamp timestamp, MediaTime startTime, SourceSamplePoint point, FrameRate frameRate)
+    {
+        var tb = timestamp.TimeBase;
+        if (!tb.IsValid) throw new ArgumentException("Timestamp has no valid time base.", nameof(timestamp));
+        if (!frameRate.IsValid) throw new ArgumentException("The frame rate is not valid.", nameof(frameRate));
+
+        checked
+        {
+            // (Pts·tbN/tbD + rD/rN)·10⁷ − start > num/den  ⇔  (Pts·tbN·rN + rD·tbD)·10⁷·den > (num + start·den)·tbD·rN
+            var end = ((Int128)timestamp.Pts * tb.Numerator * frameRate.Numerator + (Int128)frameRate.Denominator * tb.Denominator)
+                      * TicksPerSecond * point.TicksDenominator;
+            var at = (point.TicksNumerator + (Int128)startTime.Ticks * point.TicksDenominator) * tb.Denominator * frameRate.Numerator;
+            return end > at;
+        }
+    }
+
     /// <summary>
     /// Index of the frame to show from <paramref name="frames"/>, which must be in
     /// ascending presentation order: the last frame at or before the sample point,

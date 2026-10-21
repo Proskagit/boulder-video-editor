@@ -1919,4 +1919,13 @@ If you don't save, your changes will be lost.</value>
   <data name="Transition_NoLonger" xml:space="preserve">
     <value>Nothing longer than now fits here.</value>
   </data>
+  <data name="Export_FailTransitionSourceBefore" xml:space="preserve">
+    <value>The export was not started: the transition "{0}" between "{1}" and "{2}" on {3} at {4} needs source frames beyond its clips that the media no longer have. Shorten or remove the transition, or relink the full file.</value>
+  </data>
+  <data name="Export_FailTransitionSourceDuring" xml:space="preserve">
+    <value>The export was stopped: the source ran out of frames for the transition "{0}" between "{1}" and "{2}" on {3} at {4}. Shorten or remove the transition, or relink the full file.</value>
+  </data>
+  <data name="Export_FailTransitionSource" xml:space="preserve">
+    <value>A transition needs source frames beyond its clips that the media no longer have, so the export was stopped. ({0})</value>
+  </data>
 </root>

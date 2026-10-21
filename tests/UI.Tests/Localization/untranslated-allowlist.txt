@@ -206,6 +206,10 @@ src/Export/ExportFrameSource.cs	A clip at {span.TimelineStart} can't be exported
 src/Export/ExportPictureReader.cs	'{Path.GetFileName(_asset.FilePath)}' could not be decoded ({error}): {message}
 src/Export/ExportPictureReader.cs	'{_asset.FilePath}' produced no frame.
 src/Export/ExportPictureReader.cs	ffmpeg could not be found.
+src/Export/ExportPictureReader.cs	the decoder has no frame there
+src/Export/ExportPictureReader.cs	the source's first frame comes later
+src/Export/ExportPictureReader.cs	the source ends before it
+src/Export/ExportPictureReader.cs	'{Path.GetFileName(_asset.FilePath)}' has no source frame for timeline frame {timelineFrame} of a {zone?.TypeId ??
 src/Export/ExportService.cs	quality {Quality} (CRF {Crf}), preset {Preset}, AAC {Bitrate} kbps)
 src/Media/Thumbnails/ThumbnailService.cs	'{asset.FilePath}' produced no frame.
 src/Project/MediaCacheLocation.cs	The {_kind} file is gone.
