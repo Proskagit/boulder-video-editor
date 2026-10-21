@@ -111,6 +111,15 @@ Phase 27 (D043): Steps 27.0–27.6 done on `feat/phase-27-text-animation` (up to
   changed (the parity suites and the v7 tests pass unchanged). The repeated real-app checks: NOT RUN (the product owner
   was at the computer). Found: D7 (trim and slip keep handles for every type) — not fixed. Open: the export refusal for
   missing source frames (variant (b)) — the D025 §4 / D044 wording proposed, awaiting the product owner's approval.
+- 2026-10-21 — D7 fixed (the product owner's permission; D044 "Corrections after the real-app run"): ripple trim outward
+  and slip keep source handles only for Dissolve, Push and the audio crossfade. `TransitionHandleReservationTests` (17;
+  7 fail without the fix). Variant (b): the export refusal for Dissolve / Push only (the crossfade stays as D032); the
+  wording of D025 §4 / D044, the message and the relink warning shown to the product owner — not written, not implemented.
+  Gates — Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4391 / 2 / 0 (Timeline 945); heavy
+  4393 / 0 / 0; blame-hang runs 1, 2 clean, run 3 4390 / 2 / 1 — `WasapiAudioOutputDeviceTests.Clock_CountsPlayedFrames…`
+  (the real audio device: 15414 played frames against the upper bound 15360, ~1 ms; Video code not touched; the runs went
+  at below-normal priority while the product owner used the computer); the test 3 / 3 again alone; a fourth blame-hang run
+  4391 / 2 / 0, no hang, no dump.
 
 ### Phase 27 — Text animation and readability (accepted 2026-10-20, not yet published)
 

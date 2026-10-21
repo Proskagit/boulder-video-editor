@@ -6184,6 +6184,11 @@ allowed the fixes. No rule of §1–§9 changed.
   frames.
 - O2: when the longest that fits is shorter than the stored duration (the source's length unknown or shorter since), the
   Inspector says «Длиннее, чем сейчас, здесь не поместится.» instead of a limit below the value shown.
+- D7 (found while fixing, fixed with the product owner's permission of 2026-10-21): the ripple trim outward and the slip
+  kept the zone's source handle for every transition on the clip's edge; they keep it only for the types that need one —
+  Dissolve and Push (§3), the audio crossfade (D032) — as the edits that create or keep a transition already did. Dip to
+  black, Flash and Zoom no longer stop a slip or a ripple trim before the source's ends. The frames of every zone inside
+  its clips are kept as before (D025 §5); the stop notes name the transition that stopped the edit.
 
 Context: the product owner's request of 2026-10-20 after Phase 27 (accepted locally, not yet published); the first draft
 (Dissolve, Dip to black, Dip to white, Wipe, Push) revised after the research of §0.

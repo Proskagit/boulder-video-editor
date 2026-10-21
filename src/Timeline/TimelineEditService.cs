@@ -929,9 +929,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
         }
         else
         {
-            // A dissolve on the dragged edge needs the source beyond it: A after its end, B before its start (D025 §4).
+            // A dissolve on the dragged edge needs the source beyond it: A after its end, B before its start (D025 §4) — only
+            // the types that need handles (D044 §3: Dissolve, Push; D032: the crossfade).
             var needed = 0L;
-            foreach (var t in track.Transitions)
+            foreach (var t in track.Transitions.Where(t => TransitionRules.RequiresHandles(t.TransitionTypeId)))
             {
                 var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(t.Duration, rate));
                 if (edge == ClipEdge.End && t.LeftClipId == clip.Id) needed = afterCut;
@@ -984,19 +985,28 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     public TimelineEditResult RippleTrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime)
     {
+        var note = StopNoteOf(clipId, edge, edgeTime);       // before the trim: which way it goes
         var (plan, stopped, error) = PlanRippleTrimOf(clipId, edge, edgeTime);
         if (error is not null) return TimelineEditResult.Fail(error);
-        if (plan is null) return stopped ? TimelineEditResult.Fail(StopNoteOf(clipId)) : TimelineEditResult.Unchanged();
+        if (plan is null) return stopped ? TimelineEditResult.Fail(note) : TimelineEditResult.Unchanged();
 
         Commit(plan, edge == ClipEdge.Start ? "Ripple Trim Start" : "Ripple Trim End");
-        return TimelineEditResult.Ok(new[] { clipId }, Join(stopped ? StopNoteOf(clipId) : null, TransitionNote(plan)));
+        return TimelineEditResult.Ok(new[] { clipId }, Join(stopped ? note : null, TransitionNote(plan)));
     }
 
-    /// <summary><see cref="StopNote"/> for the transitions of the clip <paramref name="clipId"/>.</summary>
-    private string StopNoteOf(Guid clipId) =>
-        StopNote(Sequence.VideoTracks.Concat(Sequence.AudioTracks)
-            .Select(t => t.Clips.FirstOrDefault(c => c.Id == clipId) is { } clip ? EdgeTypeOf(t, clip) : null)
-            .FirstOrDefault(id => id is not null));
+    /// <summary><see cref="StopNote"/> for a ripple trim of <paramref name="edge"/> of the clip <paramref name="clipId"/> to
+    /// <paramref name="edgeTime"/>: outward it is stopped by the handle of the transition at that edge (a type that needs
+    /// one), inward by the frames the transitions at either edge keep in the clip.</summary>
+    private string StopNoteOf(Guid clipId, ClipEdge edge, MediaTime edgeTime)
+    {
+        foreach (var track in Sequence.VideoTracks.Concat(Sequence.AudioTracks))
+        {
+            if (track.Clips.FirstOrDefault(c => c.Id == clipId) is not { } clip) continue;
+            var outward = edge == ClipEdge.End ? edgeTime > clip.TimelineEnd : edgeTime < clip.TimelineStart;
+            return StopNote(outward ? EdgeTypeOf(track, clip, edge, handlesOnly: true) : EdgeTypeOf(track, clip));
+        }
+        return StopNote(null);
+    }
 
     public RippleTrimPreview? PreviewRippleTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime)
     {
@@ -1064,9 +1074,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var rate = plan.Rate;
         var track = plan.TrackOf(clip);
 
-        // A dissolve keeps the source it needs beyond the clip (D025 §4): before its start (B), after its end (A).
+        // A dissolve keeps the source it needs beyond the clip (D025 §4): before its start (B), after its end (A) — only the
+        // types that need handles (D044 §3: Dissolve, Push; D032: the crossfade).
         long needBefore = 0, needAfter = 0;
-        foreach (var t in track.Transitions)
+        foreach (var t in track.Transitions.Where(t => TransitionRules.RequiresHandles(t.TransitionTypeId)))
         {
             var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(t.Duration, rate));
             if (t.RightClipId == clip.Id) needBefore = beforeCut;
@@ -1108,7 +1119,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
         {
             var sourceEnd = Reach(frames > 0 ? 1 : -1, SourceOk);
             note = applied != sourceEnd
-                ? IsNamed(track, EdgeTypeOf(track, clip)) ? string.Format(Messages.Edit_SlipStoppedNamed, TypeName(EdgeTypeOf(track, clip)!))
+                ? IsNamed(track, EdgeTypeOf(track, clip, handlesOnly: true))
+                    ? string.Format(Messages.Edit_SlipStoppedNamed, TypeName(EdgeTypeOf(track, clip, handlesOnly: true)!))
                 : Messages.Edit_SlipStoppedDissolve
                 : frames > 0 ? Messages.Edit_SlipStoppedEnd
                 : Messages.Edit_SlipStoppedStart;
@@ -1986,10 +1998,12 @@ public sealed partial class TimelineEditService : ITimelineEditService
     };
 
     /// <summary>The type a message about <paramref name="clip"/>'s transitions names: of the transitions at its
-    /// <paramref name="edge"/> (both edges when null), a library type before a dissolve; null when it has none.</summary>
-    private static string? EdgeTypeOf(Track track, Clip clip, ClipEdge? edge = null) =>
+    /// <paramref name="edge"/> (both edges when null) — with <paramref name="handlesOnly"/> only those that need source
+    /// handles — a library type before a dissolve; null when it has none.</summary>
+    private static string? EdgeTypeOf(Track track, Clip clip, ClipEdge? edge = null, bool handlesOnly = false) =>
         track.Transitions
             .Where(t => (edge != ClipEdge.Start && t.LeftClipId == clip.Id) || (edge != ClipEdge.End && t.RightClipId == clip.Id))
+            .Where(t => !handlesOnly || TransitionRules.RequiresHandles(t.TransitionTypeId))
             .Select(t => t.TransitionTypeId)
             .OrderBy(id => !IsNamed(id))
             .FirstOrDefault();

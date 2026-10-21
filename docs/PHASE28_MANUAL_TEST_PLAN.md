@@ -87,7 +87,11 @@ heavy 4376 / 0 / 0, three blame-hang runs clean, Release / Debug `-warnaserror` 
 | O1 | typed = the nearest frame; only the spinner steps to the next 0.1 s mark that changes the frames | `TransitionLibraryUiTests` (60 / 25 / 24 fps, the limits, the spinner through the command) | NOT RUN |
 | O2 | «Длиннее, чем сейчас, здесь не поместится.» instead of a limit below the value | `TransitionLibraryUiTests` (video transition and crossfade) | NOT RUN (the v7 harness project) |
 
-Found while fixing (code reading, confirmed by a scratch test; **not fixed** — for the product owner):
+Found while fixing (code reading, confirmed by a scratch test); **fixed** on 2026-10-21 with the product owner's
+permission — the ripple trim and the slip keep handles only for Dissolve, Push and the audio crossfade
+(`TransitionHandleReservationTests`, 17: slip both ways, ripple outward on both cut edges, plain and ripple trims inward for
+every type, a dissolve and a flash on one clip, the audio crossfade, Undo / Redo; 7 of them fail without the fix); the
+real-app check of trim and slip beside Dip to black / Flash / Zoom: **NOT RUN** (the product owner was at the computer):
 - **D7 — the trim and the slip keep source handles for every type.** `TimelineEditService` (ripple trim outward, slip)
   reserves the handle of the zone for any transition on the edge, though D044 §3 needs handles only for Dissolve and Push:
   a 20 s video at 25 fps split at 100 / 300 with a Flash at 100 — slipping B by −1000 frames stops at Source In 2 frames
