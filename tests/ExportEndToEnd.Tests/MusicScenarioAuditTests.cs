@@ -225,9 +225,9 @@ public sealed class MusicScenarioAuditTests
         Assert.True(before.Pcm.AsSpan().SequenceEqual(after.Pcm), "the reopened project's audio differs");
     }
 
-    /// <summary>B10 (heavy): a 10-minute VBR MP3 at 44.1 kHz, used from 5:00 for 60 s — every burst on time (± 1 ms), no
+    /// <summary>B10: a 10-minute VBR MP3 at 44.1 kHz, used from 5:00 for 60 s — every burst on time (± 1 ms), no
     /// drift over the minute.</summary>
-    [HeavyFfmpegFact]
+    [FfmpegFact]
     public async Task A_long_vbr_mp3_seeks_and_plays_without_drift()
     {
         var p = WithVideo();
