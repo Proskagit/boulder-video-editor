@@ -2,12 +2,92 @@
 
 ## Current phase
 
-Phase 26 — vertical video and framing, branch `feat/phase-26-vertical-video` (from `origin/main` = `58c48cb`, the merge of
-PR #26; DECISIONS.md D041, 2026-10-20). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 26 — Vertical video and framing: steps";
-manual plan `docs/PHASE26_MANUAL_TEST_PLAN.md`. Local work only: no push, pull request or merge without the product
+Phase 27 — text animation and readability (D042 Phase A), branch `feat/phase-27-text-animation` (from `origin/main` =
+`41dadf2`, the merge of PR #27; DECISIONS.md D043, accepted 2026-10-20). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 27 — Text
+animation and readability: steps"; manual plan `docs/PHASE27_MANUAL_TEST_PLAN.md`. Steps 27.0–27.6 done (the owner's go for
+the implementation after 27.1); awaiting the product owner's acceptance. No push, pull request or merge without the product
 owner's command.
 
-### Phase 26 — Vertical video and framing (in progress)
+### Phase 27 — Text animation and readability (in progress)
+
+- 2026-10-20 — after the merge of PR #27: `origin/main` = `41dadf2` (its tree identical to `a05236c`); CI green on the pull
+  request; the run on `main` (39385604762) still in progress when checked — not confirmed green. Local `main` fast-forwarded
+  `58c48cb` → `41dadf2`; the documentation edited on `main`, uncommitted. Worktrees `.claude/worktrees/*` left as they are.
+- 2026-10-20 — the product owner's decisions recorded (D042 "Refined after the merge of Phase 26"): the order A → B → C → G;
+  R1 / R2 in parallel with A–C without product code, D / E agreed separately; R3 a separate research of real files, F only
+  after its feasibility is confirmed and a separate agreement; COROS Pace 4 only, FIT not final and the timestamp
+  synchronisation not confirmed until real exports and a video of the same session are examined; H last; S1 = a portable
+  Windows build (no installer) that starts outside the development environment and completes the main path.
+- 2026-10-20 — audit of the text (read only, `41dadf2`): colour (`#RRGGBB`), size, font, alignment, position, scale,
+  rotation, opacity and the D025 fades exist; the Preview's Move tool moves text; no motion, no outline / background, no
+  bold, no quick placement or colour swatches. D043 written (Proposed): In / Out kinds over the clip's fades (Q2-a), Обводка
+  / Подложка, swatches, top / centre / bottom, bold, defaults of "+ Text", `project.json` v7; questions Q1–Q6; the steps
+  27.0–27.6 (27.1 the outline's feasibility first). ROADMAP: Phase 26 merged, Phase 27 current (proposed); DEVELOPMENT_PLAN's
+  list, planned phases and the Phase 27 steps. No code.
+- 2026-10-20 — D043 **accepted by the product owner**: Q1, Q2, Q5, Q6 as proposed; Q3 changed — the outline and the
+  background both allowed, each on its own; Q4 changed — a 3 × 3 grid, the free move in the Preview kept; 27.1 a separate
+  technical check of the outline (quality, export cost, off the UI thread, parity) that stops for the owner's decision when
+  not satisfactory; acceptance criteria added (v6 texts look as before, one rendering model, Undo / Redo, save / reopen,
+  en / ru, export regressions, nothing beyond the scope). Recorded with it: a stored v6 fade outside 0.1–3 s is kept and
+  shown as it is (the range limits the block's input, not the file).
+- 2026-10-20 — Step 27.0: the branch `feat/phase-27-text-animation` from `41dadf2` (the uncommitted planning documentation
+  carried onto it); D042's refinement, D043 accepted; ROADMAP (Phase 26 merged, Phase 27 current), DEVELOPMENT_PLAN (the
+  list, the planned phases, the Phase 27 steps), this file; the manual plan's skeleton `docs/PHASE27_MANUAL_TEST_PLAN.md`;
+  `docs/README.md`. Documentation only; no product code.
+- 2026-10-20 — Step 27.1 (the outline's feasibility; tests only, `Rendering.Tests/TextOutlineFeasibilityTests`, 31 cases):
+  D043's candidate (`FormattedText.BuildGeometry` in the painter) throws «Call from invalid thread» on the export's thread
+  (an `AvaloniaObject`); drawing a UI-thread `Geometry` off it throws too; the thread-free glyph-run route needs private API.
+  Variant B — the geometry built and drawn once on the UI thread, then drawn on any thread — passes: export = Preview byte
+  for byte in 11 styles, parallel exports identical, the geometry within 1 px of the glyphs, +0.1–0.6 ms per frame cached.
+  The fill over an outline from the glyph geometry (ClearType fringes and a hinting offset with `DrawText`). Gallery in the
+  session's scratch folder. **Stopped for the product owner's decision** (D043 "Refined in Step 27.1"): B's dependency on
+  the UI thread and on an undocumented Avalonia caching. `Rendering.Tests` 123 / 0 / 0 (Release, `-warnaserror` 0 / 0).
+- 2026-10-20 — the product owner chose **variant B** (the geometry prepared on the UI thread and cached; the outlined text
+  filled from it; its slight softening accepted), with conditions recorded as D043 "Refined in Step 27.1" 1–7: only
+  outlined text changes (v6 texts byte for byte), cache invalidation and a bound, thread safety (a shared entry), export
+  cancellation and application closing never hanging, the guard tests kept, the quality / parity / parallel / cost checks
+  kept, stop on a failed guard. Step 27.4 in `docs/DEVELOPMENT_PLAN.md` extended accordingly. The Step 27.1 results (the
+  test harness and these records) committed separately; no product code. Next steps only on the owner's confirmation.
+- 2026-10-20 — the owner's go for the whole implementation. Pre-start check: the branch holds `621c61d` and `b06a966`, the
+  tree clean (`.claude/` aside); D043, the steps and the harness consistent with the text architecture; the 16-thread
+  test shows only that no difference was observed (Avalonia documents no thread safety for drawing one geometry at once)
+  → one glyph cache per drawing consumer, so no geometry is drawn by two threads (condition 3 met without that guarantee;
+  D043 implementation notes). No blocker.
+- 2026-10-20 — Steps 27.2–27.3 (`03168e2`): the model and `project.json` v7, `TextMotionRule`, `TextPlacement`, the D043 §4
+  defaults of "+ Text", `CloneClip` copying the style (a gap found and fixed: split / duplicate / paste would have dropped
+  it); the earlier tests' format-version literals moved to 7. Tests: `TextStylePersistenceTests` (22),
+  `TextMotionRuleTests` + `TextPlacementTests` (39), `TextStyleEditTests` (15).
+- 2026-10-20 — Step 27.4 (`13f48db`): the painter (a plain text by the unchanged path, tested against a replica of the old
+  routine), `TextGlyphCache` (key, bound 64, lock, one per consumer, the UI-thread build with the export's token, shutdown
+  and 60 s timeout → `ExportFailure.RenderFailed`), `ICompositionRasterizer.Render(…, ct)`. `TextStyleRenderTests` (23):
+  Preview = export for every style, 16 px, rotation / scale / opacity and every frame of a motion; a cancel while the UI
+  thread is busy ends in < 5 s (cache and rasterizer); shutdown and timeout fail as render failures; the cost per frame
+  at 1080 × 1920 / 1920 × 1080: a bold text 0.74–0.76 ms, with outline and background 1.19–1.20 ms.
+- 2026-10-20 — Step 27.5 (`7fb0d3d`): the Inspector («Анимация» for a text, the style rows, swatches, the 3 × 3 grid),
+  `ITextBoxMeasurer` injected (found: a view model calling the painter fails without a platform in tests), the canvas in
+  `TimelineClipSelection`, resources en + ru. `TextStyleUiTests` (10), `TextStyleViewTests` (3, in the Avalonia controls
+  collection — found running in parallel with the other view tests); the Inspector's numeric fields 21 → 25.
+- 2026-10-20 — Step 27.6 (verification & closeout):
+  - Gates: `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` Release and Debug 0 / 0; `dotnet test` Release
+    passed 4164, skipped 2 (the 4K scenes), failed 0 (Core 1201, Timeline 854, Project 507, UI 841, Export 108, Rendering 147,
+    Video 354, ExportEndToEnd 128 + 2, Vision 24); `AIVE_HEAVY_TESTS=1` 4166 / 0 / 0; three `--blame-hang
+    --blame-hang-timeout 5m` runs 4164 / 2 / 0 each, no hang, no dump. Then `ExportTextStyleEndToEndTests` added (real
+    ffmpeg: Preview = export canvas byte for byte on frames of the appearance, rest and disappearance; MP4 vs canvas mean
+    |Δ| max 2.04; the text comes from below) — 1 / 0 / 0. `git diff --check` clean.
+  - v6 against the Phase 26 code (`git archive 41dadf2`, a console tool built against each source): a v6 project with four
+    texts (plain, two lines with fades, rotated / scaled / translucent Times, 16 px) written by the Phase 26 code; 12
+    frames from the export's rasterizer of both builds byte-identical; saved again by this branch only `formatVersion`
+    6 → 7 differs.
+  - Real app (`docs/PHASE27_MANUAL_TEST_PLAN.md`, 13 rows; the Debug build in the scratch folder, UI Automation): "+ Текст"
+    with its defaults, outline and background together, the grid, a kind change, Undo / Redo, Save As → v7 → close → reopen,
+    an export from the app (frames looked at), an export cancelled from the progress window (no file left), closing with
+    unsaved changes, 1024 × 640 and 1440 × 900 in `ru` — PASS; the product owner's gym clip, a video player, `en` in the app,
+    the other cells / kinds / limits in the app — NOT RUN or auto only (named per row). Side effect: an automation step
+    pressed «Справка» in the native save dialog and opened a Windows help search in the user's Edge (left open).
+  - State: Phase 27 implemented and verified by Claude; the product owner's acceptance pending. Local commits only — no
+    push, pull request or merge.
+
+### Phase 26 — Vertical video and framing (merged 2026-10-20 as `41dadf2`, PR #27)
 
 - 2026-10-20 — audit (read only) after the merge of PR #26: `origin/main` = `58c48cb` (its tree identical to `1a1ea76`); CI
   green on the pull request (run 39324613809); the run on `main` (39325624702) still shown as in progress by `gh` — not
@@ -49,7 +129,9 @@ owner's command.
   recorded as the preliminary format — it was nowhere in the repository before) and the Final UX Pass (H) as the last phase.
   `docs/DEVELOPMENT_PLAN.md` "Planned phases after Phase 26 (D042)"; `ROADMAP.md` "Product concept" and "Remaining plan";
   the old "Future phases" candidates put under D042 §3–§4. No code, no format change; Phase 26's scope and its uncommitted
-  work (ARCHITECTURE.md, the manual plan, `Strings*.resx`) untouched; not committed.
+  work (ARCHITECTURE.md, the manual plan, `Strings*.resx`) untouched; committed separately as `c926c04` at the owner's
+  request.
+- 2026-10-20 — PR #27 merged into `main` as `41dadf2` (CI green on the pull request).
 
 ### Phase 25 — Technical backlog and small UX improvements (merged 2026-10-19 as `58c48cb`, PR #26)
 

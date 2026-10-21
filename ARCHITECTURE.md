@@ -31,7 +31,7 @@ rasterizer, ffmpeg encoder → MP4 checked with ffprobe — and skips without ff
 | Infrastructure | Serilog setup, `AppPaths` (incl. the recovery folder and the unsaved projects' cache root), `FfprobeLocator` / `FfmpegLocator` + `FfmpegOptions` | Implemented |
 | Video | `FfprobeMediaAnalysisService` (ffprobe process + JSON parsing); `FfmpegVideoDecoder` (ffmpeg CLI → BGRA frames + PTS); `FfmpegAudioDecoder` (ffmpeg CLI → 48 kHz stereo float); `FfmpegExportEncoder`; shared `FfmpegProcess` | Probe, video/audio decode, export encoder |
 | Media | `MediaImportService` (extension validation, file size); `ThumbnailService` / `WaveformService` and their cache files (Phase 9) | Implemented |
-| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022; v3 since Phase 10, D025; v4 since Phase 17, D032; v5 since Phase 19, D034; v6 since Phase 21, D036) |
+| Project | `ProjectService` (current project, duplicate detection, New/Open/Save/Save As, dirty tracking, missing media, recovery restore); `Persistence/` (`ProjectFileDto`, `ProjectSerializer`, `ProjectFileStore`, `RecoveryStore`); `AutosaveService`; `MediaCacheLocation` / `ThumbnailCacheLocation` / `WaveformCacheLocation` (Phase 9) | Implemented (Phase 6; format v2 since Phase 7, D022; v3 since Phase 10, D025; v4 since Phase 17, D032; v5 since Phase 19, D034; v6 since Phase 21, D036; v7 since Phase 27, D043) |
 | Timeline | `TimelineEditService` (add/move/trim/split/delete/add track, snapping; clip properties, text clips, speed), `EditPlan`, `TimelineValidator`, `FrameRateRegrid`, undoable commands; the playback engine (`Playback/`) | Implemented (Phases 4, 5, 7) |
 | Audio | `WasapiAudioOutput` (NAudio.Wasapi 2.2.1, WASAPI shared mode) | Playback output |
 | Vision | The AI hold segmentation (Phase 19, D034): `OnnxHoldSegmentationService` over ONNX Runtime with DirectML (CPU fallback), `HoldModelVerifier` (size + SHA-256 of the pinned files), SAM 2 pre- / postprocessing. References Core only | Implemented |
@@ -449,6 +449,33 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   `TimelineView` builds on a right click (`ClipMenu`). The Inspector's two buttons (`InspectorViewModel.FillFrame` /
   `FitFrame`); the status from `ClipFramingStatus`. No format change (v6).
 
+## Text animation and readability (Phase 27)
+
+Decision: D043 (with "Refined in Step 27.1", variant B and its conditions 1–7).
+- Model: `TextClip` / `TextProperties` gain `Bold`, `Outline` (`TextOutline`: on, colour, thickness × font size),
+  `Background` (`TextBackground`: on, colour, opacity), `MotionIn` / `MotionOut` (`TextMotion`: None / Slide + side / Zoom)
+  — init members defaulting to none, so a text of an older project (and `TextProperties.IsPlain`) is drawn as before. The
+  durations are the clip's fades (D025). Limits in `ClipPropertyLimits`; `TextAnimationLimits` (0.1–3 s) bound the
+  Inspector's input only.
+- Core: `TextMotionRule` — on timeline frames over the effective fades (D025 ramps eased out `1 − (1 − p)³`), Slide by 8 % of
+  the canvas's short side along the canvas axis, Zoom 70 → 100 % around the box centre — applied to the `TextLayer`'s
+  transform in `PlaybackSnapshot.LayersAt` (a text without motion keeps exactly its transform); `TextPlacement` — the 3 × 3
+  grid at 8 % of the short side, the box grown by the background's padding or the outline, scaled and rotated.
+- Edits: through `SetClipProperties`; the Inspector's discrete choices carry a `ClipPropertyGesture` (one step, never
+  merged); `AddTextClip(start, measureBox)` gives a new text the D043 §4 defaults and the bottom-centre position in one
+  step; `CloneClip` copies the style and motions (split, duplicate, paste).
+- Rendering: `CompositionPainter` draws a plain text by its unchanged `DrawText` path; a styled one: the background
+  (rounded rectangle), the outline (a round-join pen of twice the visible width) and the fill from the same glyph
+  geometry when the outline is on, else `DrawText`. The glyph geometry comes from a `TextGlyphCache` (key: text, family,
+  size, bold, alignment; 64 entries, least recently used dropped; thread safe) — built and first drawn on the UI thread
+  (Avalonia's `Geometry` is an `AvaloniaObject`); one cache per consumer (`CompositionView`, each
+  `AvaloniaCompositionRasterizer`), so a geometry is never drawn by two threads at once. Off the UI thread the request
+  waits with the export's token (`ICompositionRasterizer.Render(…, ct)`), ending on the dispatcher's shutdown or after
+  60 s as `ExportFailure.RenderFailed`. Guard: `Rendering.Tests/TextOutlineFeasibilityTests`.
+- UI: `InspectorViewModel.TextStyle` — the «Анимация» block (in place of the fades for a text), bold, the outline and the
+  background rows, the swatches, the placement grid; `ITextBoxMeasurer` (`TextBoxMeasure`, the painter's layout) for the
+  grid and "+ Text"; `TimelineClipSelection.Canvas`. Format v7.
+
 ## Thumbnails (Phase 9 Step 9.4)
 
 Decision: D024 "Refined in Step 9.4". Media Browser only; playback and export never read the cache.
@@ -509,7 +536,9 @@ waveform never changes the audio.
 Decisions: D014 (format, Open/Save, missing media), D015 (save point), D016 (autosave,
 recovery, unsaved changes).
 
-- On disk: a project folder with `project.json` (format v6 since Phase 21: the optional `holdMarkup.animation`, D036; v5
+- On disk: a project folder with `project.json` (format v7 since Phase 27: the optional `bold`, `outline`, `background`,
+  `motionIn`, `motionOut` of a text clip, written only when set, D043; v6 is read without them and saved as v7 differing
+  only in `formatVersion`; format v6 since Phase 21: the optional `holdMarkup.animation`, D036; v5
   is read without animation and saved as v6; format v5 since Phase 19: the optional `holdMarkup` of a video clip —
   style, route colour, keyline and the holds with their contours and colour samples, D034; v4 is read and saved as v5;
   format v4 since Phase 17: `linkId`, `isAudioDetached` — each written

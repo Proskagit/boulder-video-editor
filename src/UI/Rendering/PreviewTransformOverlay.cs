@@ -157,9 +157,8 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
 
     private static TransformFrame TextFrame(TextLayer text)
     {
-        var layout = CompositionPainter.Layout(text.Text);
-        var (w, h) = (layout.MaxTextWidth, layout.Height);
-        return new TransformFrame(text.Transform, new RectD(-w / 2, -h / 2, w, h));
+        var box = CompositionPainter.DrawnBox(text.Text);        // with the background's padding (D043 §2)
+        return new TransformFrame(text.Transform, new RectD(box.X, box.Y, box.Width, box.Height));
     }
 
     // ---- input ------------------------------------------------------------------------------------------------------

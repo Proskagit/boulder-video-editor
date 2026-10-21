@@ -67,7 +67,10 @@ public enum ExportFailure
     /// <summary>The encoder failed.</summary>
     EncodeFailed,
     /// <summary>The output file could not be written.</summary>
-    OutputFailed
+    OutputFailed,
+    /// <summary>A frame could not be drawn (D043: an outlined text's glyphs not prepared — the application closing, the
+    /// interface not responding).</summary>
+    RenderFailed
 }
 
 /// <summary>An export that failed. No output file is left behind; an existing file at the output

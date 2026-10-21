@@ -123,11 +123,11 @@ public class AudioEditingPersistenceTests
     public void A_version_3_file_opens_with_the_same_meaning_and_is_saved_as_version_4_differing_only_in_the_version()
     {
         var v4Text = ProjectSerializer.Serialize(BuildV3Content(), Folder);
-        Assert.Contains("\"formatVersion\": 6", v4Text);   // saved as the current version (v6 since Phase 21)
+        Assert.Contains("\"formatVersion\": 7", v4Text);   // saved as the current version (v6 since Phase 21)
         Assert.DoesNotContain("linkId", v4Text);
         Assert.DoesNotContain("isAudioDetached", v4Text);
 
-        var v3Text = v4Text.Replace("\"formatVersion\": 6", "\"formatVersion\": 3");
+        var v3Text = v4Text.Replace("\"formatVersion\": 7", "\"formatVersion\": 3");
         var loaded = Load(v3Text);
 
         Assert.All(loaded.Timeline.VideoTracks.Concat(loaded.Timeline.AudioTracks).SelectMany(t => t.Clips).OfType<MediaBackedClip>(),

@@ -214,6 +214,7 @@ public sealed class TextClipUiTests : IAsyncLifetime
     {
         var clip = AddText(0);
         var visual = VisualProperties.Of(clip);
+        var style = TextProperties.Of(clip)!.Value;            // a new text's D043 defaults stay as they are
 
         Inspector.TextContent = "Line 1\r\nLine 2";
         Inspector.FontFamilyName = "Arial";
@@ -221,7 +222,8 @@ public sealed class TextClipUiTests : IAsyncLifetime
         Inspector.TextColorHex = "#00Ff7a";
         Inspector.Alignment = TextAlignment.Left;
 
-        Assert.Equal(new TextProperties("Line 1\r\nLine 2", "Arial", 72, "#00Ff7a", TextAlignment.Left), TextProperties.Of(clip));
+        Assert.Equal(style with { Text = "Line 1\r\nLine 2", FontFamily = "Arial", FontSize = 72, ColorHex = "#00Ff7a", Alignment = TextAlignment.Left },
+            TextProperties.Of(clip));
         Assert.Equal(visual, VisualProperties.Of(clip));
         Assert.Equal(F(0), clip.TimelineStart);
         Assert.Equal(F(125), clip.Duration);

@@ -131,7 +131,7 @@ public sealed class ExportService : IExportService
                 ct.ThrowIfCancellationRequested();
                 var frame = await next!;                     // set for every n < total
                 next = n + 1 < total ? frames.GetFrameAsync(n + 1, ahead.Token) : null;
-                rasterizer.Render(frame.DrawPlan(), canvas, stride);
+                rasterizer.Render(frame.DrawPlan(), canvas, stride, ct);
                 await encoding.WriteFrameAsync(canvas, stride, ct);
                 progress?.Report(new ExportProgress(ExportStage.Video, n + 1, total));
             }

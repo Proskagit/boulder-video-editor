@@ -34,7 +34,8 @@ public sealed class FadeViewBindingTests
         var edit = new TimelineEditService(projects, undo, NullLogger<TimelineEditService>.Instance);
         var inspector = new InspectorViewModel(edit, new StatusService());
 
-        var clip = new TextClip { Text = "Title", TimelineStart = F(0), Duration = F(50), FadeIn = F(12), FadeOut = F(7) };
+        // An image (a text's fades are its «Анимация» durations since Phase 27, D043 Q2).
+        var clip = new ImageClip { MediaAssetId = Guid.NewGuid(), TimelineStart = F(0), Duration = F(50), SourceOut = F(50), FadeIn = F(12), FadeOut = F(7) };
         projects.Current.Timeline.VideoTracks[0].Clips.Add(clip);
         inspector.ShowClip(new TimelineClipSelection(clip, "Title", null, Rate, DissolveAtStart: false, DissolveAtEnd: true));
 
@@ -45,7 +46,8 @@ public sealed class FadeViewBindingTests
         Assert.Equal(new decimal?[] { 12m, 7m }, fields.Select(f => f.Value));
 
         var notes = view.GetLogicalDescendants().OfType<TextBlock>().Where(t => t.Text == "Not applied: a dissolve is on this edge.").ToList();
-        Assert.Equal(new[] { false, true }, notes.Select(t => t.IsVisible));   // fade out: a dissolve on the end
+        // The text «Анимация» block's two notes, then the fades section's: each pair bound alike.
+        Assert.Equal(new[] { false, true, false, true }, notes.Select(t => t.IsVisible));   // fade out: a dissolve on the end
 
         fields[0].Value = 20m;                                                   // typing in the view edits the clip
         Assert.Equal(F(20), clip.FadeIn);
@@ -67,7 +69,7 @@ public sealed class FadeViewBindingTests
         inspector.ShowTransition(new TimelineTransitionSelection(dissolve, track, "A", "B", Rate, MaxFrames: 100));
 
         var view = new InspectorView { DataContext = inspector };
-        var field = view.GetLogicalDescendants().OfType<NumericUpDown>().Single(n => n.Minimum == 2m);
+        var field = view.GetLogicalDescendants().OfType<NumericUpDown>().Single(n => n.Minimum == 2m && n.Maximum != 20m);   // not the outline's thickness (2–20 %)
         Assert.Equal((10m, 100m), (field.Value, field.Maximum));
         Assert.Contains(view.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Longest that fits here: 100 frames");
         var remove = view.GetLogicalDescendants().OfType<Button>().Single(x => Equals(x.Content, "Remove Dissolve"));
@@ -95,7 +97,7 @@ public sealed class FadeViewBindingTests
         inspector.ShowTransition(new TimelineTransitionSelection(dissolve, track, "A", "B", Rate, MaxFrames: 51));
 
         var view = new InspectorView { DataContext = inspector };
-        var field = view.GetLogicalDescendants().OfType<CommitNumericUpDown>().Single(n => n.Minimum == 2m);
+        var field = view.GetLogicalDescendants().OfType<CommitNumericUpDown>().Single(n => n.Minimum == 2m && n.Maximum != 20m);   // not the outline's thickness (2–20 %)
         // A control outside a window is never "initialized", and NumericUpDown parses typed text only once it is; in the
         // app every field is. Without this the test would pass with the old control too.
         typeof(Avalonia.StyledElement).GetProperty(nameof(Avalonia.StyledElement.IsInitialized))!.SetValue(field, true);

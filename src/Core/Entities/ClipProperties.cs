@@ -43,12 +43,27 @@ public readonly record struct FadeProperties(MediaTime FadeIn, MediaTime FadeOut
     public static FadeProperties Of(Clip clip) => new(clip.FadeIn, clip.FadeOut);
 }
 
-/// <summary>Content and style of a text clip. <see cref="Text"/> may span several lines.</summary>
+/// <summary>Content and style of a text clip. <see cref="Text"/> may span several lines. The D043 members (bold, the
+/// outline, the background, the motions) default to none, so a text built from the first five values alone — and every
+/// text of an older project — is drawn as before.</summary>
 public readonly record struct TextProperties(string Text, string FontFamily, double FontSize, string ColorHex, TextAlignment Alignment)
 {
+    public bool Bold { get; init; }
+    public TextOutline Outline { get; init; } = TextOutline.Default;
+    public TextBackground Background { get; init; } = TextBackground.Default;
+    public TextMotion MotionIn { get; init; } = TextMotion.None;
+    public TextMotion MotionOut { get; init; } = TextMotion.None;
+
+    /// <summary>True when the text is drawn exactly as before D043: no outline, no background, not bold (the motions
+    /// only move it).</summary>
+    public bool IsPlain => !Bold && !Outline.IsEnabled && !Background.IsEnabled;
+
     /// <summary>The clip's current values, or null for clips that aren't text.</summary>
     public static TextProperties? Of(Clip clip) => clip is TextClip t
         ? new TextProperties(t.Text, t.FontFamily, t.FontSize, t.ColorHex, t.Alignment)
+        {
+            Bold = t.Bold, Outline = t.Outline, Background = t.Background, MotionIn = t.MotionIn, MotionOut = t.MotionOut
+        }
         : null;
 }
 
@@ -82,4 +97,25 @@ public static class ClipPropertyLimits
 
     public const int MaxFontFamilyLength = 256;
     public const int MaxTextLength = 10_000;
+
+    /// <summary>D043 §2: the outline's visible width, × the font size.</summary>
+    public const double MinOutlineThickness = 0.02;
+    public const double MaxOutlineThickness = 0.20;
+
+    /// <summary>D043 §2: the background's opacity.</summary>
+    public const double MinBackgroundOpacity = 0;
+    public const double MaxBackgroundOpacity = 1;
+}
+
+/// <summary>D043 §1: the durations the «Анимация» block sets (seconds). They limit the block's input, not a file: a
+/// stored fade outside them (D025 allows any length up to the clip) is kept and shown as it is.</summary>
+public static class TextAnimationLimits
+{
+    public const double MinSeconds = 0.1;
+    public const double MaxSeconds = 3;
+
+    /// <summary>The duration given when a row goes from «Нет» to a kind (In / Out), seconds — the defaults of a new
+    /// text (D043 §4).</summary>
+    public const double DefaultInSeconds = 0.4;
+    public const double DefaultOutSeconds = 0.3;
 }

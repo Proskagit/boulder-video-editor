@@ -178,6 +178,9 @@
   <data name="Export_FailOutput" xml:space="preserve">
     <value>Не удалось записать выходной файл. Проверьте папку и убедитесь, что файл не открыт в другой программе. ({0})</value>
   </data>
+  <data name="Export_FailRender" xml:space="preserve">
+    <value>Не удалось нарисовать кадр, экспорт остановлен. ({0})</value>
+  </data>
   <data name="Export_Finished" xml:space="preserve">
     <value>Видео экспортировано в
 {0}</value>
@@ -281,6 +284,33 @@
   </data>
   <data name="Gap_Closed" xml:space="preserve">
     <value>Промежуток закрыт</value>
+  </data>
+  <data name="Grid_BottomCentre" xml:space="preserve">
+    <value>Снизу по центру</value>
+  </data>
+  <data name="Grid_BottomLeft" xml:space="preserve">
+    <value>Снизу слева</value>
+  </data>
+  <data name="Grid_BottomRight" xml:space="preserve">
+    <value>Снизу справа</value>
+  </data>
+  <data name="Grid_MiddleCentre" xml:space="preserve">
+    <value>По центру</value>
+  </data>
+  <data name="Grid_MiddleLeft" xml:space="preserve">
+    <value>По центру слева</value>
+  </data>
+  <data name="Grid_MiddleRight" xml:space="preserve">
+    <value>По центру справа</value>
+  </data>
+  <data name="Grid_TopCentre" xml:space="preserve">
+    <value>Сверху по центру</value>
+  </data>
+  <data name="Grid_TopLeft" xml:space="preserve">
+    <value>Сверху слева</value>
+  </data>
+  <data name="Grid_TopRight" xml:space="preserve">
+    <value>Сверху справа</value>
   </data>
   <data name="Holds_Added" xml:space="preserve">
     <value>Зацепка добавлена (на клипе: {0}).</value>
@@ -531,8 +561,23 @@
   <data name="Inspector_Alignment" xml:space="preserve">
     <value>Выравнивание</value>
   </data>
+  <data name="Inspector_AnimationHeading" xml:space="preserve">
+    <value>АНИМАЦИЯ</value>
+  </data>
+  <data name="Inspector_Appear" xml:space="preserve">
+    <value>Появление</value>
+  </data>
   <data name="Inspector_AudioHeading" xml:space="preserve">
     <value>ЗВУК</value>
+  </data>
+  <data name="Inspector_Background" xml:space="preserve">
+    <value>Подложка</value>
+  </data>
+  <data name="Inspector_BackgroundOpacity" xml:space="preserve">
+    <value>Непрозрачность</value>
+  </data>
+  <data name="Inspector_Bold" xml:space="preserve">
+    <value>Жирный</value>
   </data>
   <data name="Inspector_Bottom" xml:space="preserve">
     <value>Снизу</value>
@@ -548,6 +593,9 @@
   </data>
   <data name="Inspector_CropHeading" xml:space="preserve">
     <value>КАДРИРОВАНИЕ</value>
+  </data>
+  <data name="Inspector_Disappear" xml:space="preserve">
+    <value>Исчезновение</value>
   </data>
   <data name="Inspector_Duration" xml:space="preserve">
     <value>Длительность</value>
@@ -597,6 +645,15 @@
   <data name="Inspector_MediaHeading" xml:space="preserve">
     <value>МЕДИА</value>
   </data>
+  <data name="Inspector_MotionDuration" xml:space="preserve">
+    <value>Длительность</value>
+  </data>
+  <data name="Inspector_MotionDurationRange" xml:space="preserve">
+    <value>Длительность задаётся от {0} до {1} с.</value>
+  </data>
+  <data name="Inspector_MotionSide" xml:space="preserve">
+    <value>Направление</value>
+  </data>
   <data name="Inspector_Mute" xml:space="preserve">
     <value>Без звука</value>
   </data>
@@ -606,8 +663,20 @@
   <data name="Inspector_Opacity" xml:space="preserve">
     <value>Непрозрачность</value>
   </data>
+  <data name="Inspector_Outline" xml:space="preserve">
+    <value>Обводка</value>
+  </data>
+  <data name="Inspector_OutlineThickness" xml:space="preserve">
+    <value>Толщина</value>
+  </data>
+  <data name="Inspector_OutlineThicknessTip" xml:space="preserve">
+    <value>Ширина обводки снаружи букв, в процентах от размера шрифта</value>
+  </data>
   <data name="Inspector_Path" xml:space="preserve">
     <value>Путь</value>
+  </data>
+  <data name="Inspector_Placement" xml:space="preserve">
+    <value>Положение</value>
   </data>
   <data name="Inspector_PositionX" xml:space="preserve">
     <value>Позиция X</value>
@@ -1253,6 +1322,30 @@
   <data name="Status_Ready" xml:space="preserve">
     <value>Готово.</value>
   </data>
+  <data name="Swatch_Black" xml:space="preserve">
+    <value>Чёрный</value>
+  </data>
+  <data name="Swatch_Green" xml:space="preserve">
+    <value>Зелёный</value>
+  </data>
+  <data name="Swatch_LightBlue" xml:space="preserve">
+    <value>Голубой</value>
+  </data>
+  <data name="Swatch_Orange" xml:space="preserve">
+    <value>Оранжевый</value>
+  </data>
+  <data name="Swatch_Pink" xml:space="preserve">
+    <value>Розовый</value>
+  </data>
+  <data name="Swatch_Red" xml:space="preserve">
+    <value>Красный</value>
+  </data>
+  <data name="Swatch_White" xml:space="preserve">
+    <value>Белый</value>
+  </data>
+  <data name="Swatch_Yellow" xml:space="preserve">
+    <value>Жёлтый</value>
+  </data>
   <data name="Tech_AudioCodec" xml:space="preserve">
     <value>Аудиокодек</value>
   </data>
@@ -1291,6 +1384,30 @@
   </data>
   <data name="Text_Added" xml:space="preserve">
     <value>Текст добавлен</value>
+  </data>
+  <data name="TextMotion_Fade" xml:space="preserve">
+    <value>Проявление</value>
+  </data>
+  <data name="TextMotion_FromBottom" xml:space="preserve">
+    <value>снизу</value>
+  </data>
+  <data name="TextMotion_FromLeft" xml:space="preserve">
+    <value>слева</value>
+  </data>
+  <data name="TextMotion_FromRight" xml:space="preserve">
+    <value>справа</value>
+  </data>
+  <data name="TextMotion_FromTop" xml:space="preserve">
+    <value>сверху</value>
+  </data>
+  <data name="TextMotion_None" xml:space="preserve">
+    <value>Нет</value>
+  </data>
+  <data name="TextMotion_Slide" xml:space="preserve">
+    <value>Выезд</value>
+  </data>
+  <data name="TextMotion_Zoom" xml:space="preserve">
+    <value>Увеличение</value>
   </data>
   <data name="Timeline_AddAudioTrack" xml:space="preserve">
     <value>+ Аудиодорожка</value>

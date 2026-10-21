@@ -26,14 +26,15 @@ namespace AiVideoEditor.Project.Persistence;
 public static class ProjectSerializer
 {
     public const string FormatId = "AiVideoEditor.Project";
-    /// <summary>6 since Phase 21 (D036): the animation of the hold outlines. 5 since Phase 19 (D034): the hold markup of video clips. 4 since Phase 17 (D032): links of video and audio
+    /// <summary>7 since Phase 27 (D043): bold, the outline, the background and the motions of text clips. 6 since Phase 21 (D036): the animation of the hold outlines. 5 since Phase 19 (D034): the hold markup of video clips. 4 since Phase 17 (D032): links of video and audio
     /// clips, a video clip's unlinked sound, audio clips of video files and crossfades on audio tracks. 3 since Phase 10
     /// (D025): clip fades and anchored transitions. 2 since Phase 7 Step 9: the clip speed is an exact fraction (D022).
     /// Version 1 files (speed must be 1) and version 2 files are read as projects without fades and transitions, version 3
-    /// files without links, version 4 files without hold markup, version 5 files without the outline animation; all are
-    /// saved as version 6. A newer version is refused, so an older build never drops what it doesn't know on a save.
+    /// files without links, version 4 files without hold markup, version 5 files without the outline animation, version 6
+    /// files without the text style and motion; all are saved as version 7. A newer version is refused, so an older build
+    /// never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 6;
+    public const int CurrentFormatVersion = 7;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -47,6 +48,9 @@ public static class ProjectSerializer
 
     /// <summary>The first version with the animation of the hold outlines (D036).</summary>
     private const int HoldAnimationVersion = 6;
+
+    /// <summary>The first version with the style and motion of text clips (D043).</summary>
+    private const int TextStyleVersion = 7;
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -295,7 +299,14 @@ public static class ProjectSerializer
             TextClip t => new TextClipDto
             {
                 Text = t.Text, FontFamily = t.FontFamily, FontSize = t.FontSize, ColorHex = t.ColorHex, Alignment = t.Alignment,
-                PositionX = t.PositionX, PositionY = t.PositionY, Scale = t.Scale, RotationDegrees = t.RotationDegrees, Opacity = t.Opacity
+                PositionX = t.PositionX, PositionY = t.PositionY, Scale = t.Scale, RotationDegrees = t.RotationDegrees, Opacity = t.Opacity,
+                Bold = t.Bold ? true : null,
+                Outline = t.Outline == TextOutline.Default ? null
+                    : new TextOutlineDto { Enabled = t.Outline.IsEnabled, ColorHex = t.Outline.ColorHex, Thickness = t.Outline.Thickness },
+                Background = t.Background == TextBackground.Default ? null
+                    : new TextBackgroundDto { Enabled = t.Background.IsEnabled, ColorHex = t.Background.ColorHex, Opacity = t.Background.Opacity },
+                MotionIn = ToDto(t.MotionIn),
+                MotionOut = ToDto(t.MotionOut)
             },
             _ => throw new NotSupportedException($"Clip type {clip.GetType().Name} can't be saved.")
         };
@@ -657,6 +668,8 @@ public static class ProjectSerializer
         clip.TimelineStart = start;
         clip.Duration = duration;
 
+        if (clip is TextClip textClip && dto is TextClipDto textDto) ReadTextStyle(textClip, textDto, formatVersion);
+
         // v1 / v2 have no fades (D025).
         if (formatVersion >= FadesAndTransitionsVersion)
         {
@@ -811,6 +824,30 @@ public static class ProjectSerializer
         StayUntilClipEnd = dto.StayUntilClipEnd ?? throw Damaged("a hold animation has no stay mode"),
         DisappearFade = new MediaTime(dto.DisappearFadeTicks ?? throw Damaged("a hold animation has no disappear fade"))
     };
+
+    /// <summary>A text's motion: none is not written.</summary>
+    private static TextMotionDto? ToDto(TextMotion motion) => motion == TextMotion.None
+        ? null
+        : new TextMotionDto { Kind = motion.Kind, Side = motion.Side };
+
+    /// <summary>Format v7 (D043 §5): the text's style and motions; absent members are none. Older versions have none.</summary>
+    private static void ReadTextStyle(TextClip clip, TextClipDto dto, int formatVersion)
+    {
+        if (formatVersion < TextStyleVersion) return;
+        clip.Bold = dto.Bold ?? false;
+        if (dto.Outline is { } o)
+            clip.Outline = new TextOutline(o.Enabled ?? throw Damaged("a text outline has no state"),
+                o.ColorHex ?? throw Damaged("a text outline has no colour"), o.Thickness ?? throw Damaged("a text outline has no thickness"));
+        if (dto.Background is { } b)
+            clip.Background = new TextBackground(b.Enabled ?? throw Damaged("a text background has no state"),
+                b.ColorHex ?? throw Damaged("a text background has no colour"), b.Opacity ?? throw Damaged("a text background has no opacity"));
+        clip.MotionIn = FromDto(dto.MotionIn);
+        clip.MotionOut = FromDto(dto.MotionOut);
+    }
+
+    private static TextMotion FromDto(TextMotionDto? dto) => dto is null
+        ? TextMotion.None
+        : new TextMotion(dto.Kind ?? throw Damaged("a text motion has no kind"), dto.Side ?? throw Damaged("a text motion has no side"));
 
     private static ProjectFileException Damaged(string reason, Exception? inner = null) =>
         new(string.Format(Messages.ProjectFile_Damaged, reason), inner);

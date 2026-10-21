@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.UI.Common;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -193,4 +194,4 @@ public sealed class TimelineMarkerViewModel : ViewModelBase
 /// <paramref name="DissolveAtEnd"/>: a dissolve sits on that edge, so the clip's fade there is not applied (D025 PO-8).
 /// <paramref name="SelectedCount"/>: how many clips are selected with it, partners included (D037 §1).</summary>
 public sealed record TimelineClipSelection(Clip Clip, string Name, MediaAsset? Asset, FrameRate Rate,
-    bool DissolveAtStart = false, bool DissolveAtEnd = false, int SelectedCount = 1);
+    bool DissolveAtStart = false, bool DissolveAtEnd = false, int SelectedCount = 1, FrameSize Canvas = default);

@@ -33,12 +33,14 @@ public interface ITimelineEditService
     /// asset's own rate when it is the first video, D007); null when it can't be added now. For a drop's snap (D037 §2).</summary>
     MediaTime? AddedClipDuration(Guid mediaAssetId);
 
-    /// <summary>Adds a text clip with the default text properties ("Text", Segoe UI 48, white,
-    /// centred) and a 5 s duration on the topmost video track, starting at <paramref name="start"/>
-    /// (snapped to the frame grid); clips it overlaps from their start on make room on the right (D037 §3). Rejected —
-    /// nothing changes — when that track is locked, the clip would start inside another clip there, room can't be made,
-    /// or the timeline has no video track. One Undo step.</summary>
-    TimelineEditResult AddTextClip(MediaTime start);
+    /// <summary>Adds a text clip with the default text properties (D043 §4: "Text", Segoe UI bold, the size of D030,
+    /// white, centred alignment, a black 60 % background, «Выезд» from below over a 0.4 s fade in and a 0.3 s fade out)
+    /// and a 5 s duration on the topmost video track, starting at <paramref name="start"/> (snapped to the frame grid),
+    /// placed at the bottom centre of the canvas (<see cref="Composition.TextPlacement"/>) by its text box as
+    /// <paramref name="measureBox"/> measures it — centred when it is not given. Clips it overlaps from their start on make
+    /// room on the right (D037 §3). Rejected — nothing changes — when that track is locked, the clip would start inside
+    /// another clip there, room can't be made, or the timeline has no video track. One Undo step.</summary>
+    TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null);
 
     /// <summary>Moves clips by a whole number of frames. With <paramref name="targetTrackId"/>
     /// all clips must currently be on one track and move to the target track. The clips they then overlap from their start

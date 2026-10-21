@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Localization;
+using AiVideoEditor.UI.Rendering;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Localization;
@@ -61,9 +63,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
         WaveformCoordinator? waveforms = null,
         IDialogService? dialogs = null,
         InOutRangeService? inOut = null,
-        SourceViewerService? source = null)
+        SourceViewerService? source = null,
+        ITextBoxMeasurer? textBoxes = null)
     {
         _source = source;
+        _textBoxes = textBoxes;
         if (source is not null) source.SourceChanged += (_, _) => NotifySourceCommands();
         _inOut = inOut ?? new InOutRangeService(projectService);
         _inOut.RangeChanged += (_, _) => RefreshRange();
@@ -929,11 +933,14 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     [RelayCommand] private void ToggleSnapping() => SnappingEnabled = !SnappingEnabled;
 
+    private readonly ITextBoxMeasurer? _textBoxes;
+
     /// <summary>"+ Text": a text clip at the playhead on the topmost video track, selected.</summary>
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private void AddText()
     {
-        var result = _edit.AddTextClip(Playhead);
+        // D043 §4: placed at the bottom centre by its box (centred when no measurer is given, e.g. without a platform).
+        var result = _edit.AddTextClip(Playhead, _textBoxes is { } boxes ? boxes.Measure : null);
         SelectAdded(result);
         Report(result, successMessage: Strings.Text_Added);
     }
@@ -1179,8 +1186,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
         {
             var asset = primary.Clip is MediaBackedClip m ? FindAsset(m.MediaAssetId) : null;
             var (dissolveAtStart, dissolveAtEnd) = Dissolves(primary.Clip);
+            var settings = _projectService.Current.Settings;
             SelectionChanged?.Invoke(this, new TimelineClipSelection(primary.Clip, primary.Name, asset, FrameRate, dissolveAtStart, dissolveAtEnd,
-                _selection.Count));
+                _selection.Count, new FrameSize(settings.FrameWidth, settings.FrameHeight)));
         }
         else
         {

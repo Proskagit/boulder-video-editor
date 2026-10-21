@@ -5503,6 +5503,313 @@ scope (D041).
 
 Status: Accepted (2026-10-20, product owner) as the concept and the boundaries; the phase order and the scopes of A–H are
 provisional and are fixed by each phase's own decision.
+
+### Refined after the merge of Phase 26 (product owner, 2026-10-20)
+
+Phase 26 merged (PR #27, `41dadf2`). The owner's decisions on the order and on S1:
+- **The order is confirmed**: A (text animation) is the next phase to implement — **Phase 27**, specification D043; then B
+  (transitions), then C (effects and the basic music scenario), then G (stabilisation and the minimum useful release S1)
+  after A–C.
+- **R1 and R2** (hold proposals; outlines following the camera) may run in parallel with A–C, **without any change of the
+  product code**. The implementation of D / E is agreed separately after their results — a research go is not an approval.
+- **R3** (COROS Pace 4) is a separate research of real files and timestamps. **F** is possible only after the technical
+  feasibility is confirmed and a separate agreement. The first version is for COROS Pace 4 only; other devices are not in
+  it. Until real watch exports and a video of the same session are in hand, FIT is **not** the final format and the
+  synchronisation by timestamps is **not** confirmed; R3 checks the real data, the timestamps' accuracy, the gaps and the
+  drift (§6 unchanged in substance).
+- **H** (Final UX Pass) stays the last large phase, after the core, F and the stabilisation.
+- **S1**: a portable Windows build is enough; no installer. The criterion: the application starts outside the
+  development environment (no SDK, no repository, its own folder with its dependencies, the AI model installed as
+  `docs/AI_MODEL.md` describes) and the main path of §1 (without step 4) is completed in it — import to export.
+- **Phase A's scope** (detailed in D043): the appearance / disappearance animation of text; the colour, size and position
+  of text; one basic readability aid (an outline or a background); sensible defaults and a simple interface. No full
+  title editor, no complex motion design. The UX and the acceptance criteria are specified before the implementation.
+---
+
+## D043 — Text animation and readability (Phase 27, D042 Phase A)
+
+Date: 2026-10-20
+
+Decision (product owner, 2026-10-20: the Phase 27 specification approved with the answers Q1–Q6 — Q1, Q2, Q5 as proposed;
+Q3 the outline and the background both allowed, each on its own; Q4 a 3 × 3 grid; Q6 the defaults as given below — and
+the condition that Step 27.1 is a separate technical check of the outline that stops for the owner's decision when its
+result is not satisfactory). D042's Phase A. Goal: a text over a bouldering video (a route name, a grade, a gym, a caption)
+that appears and disappears nicely and stays readable on a colourful wall — in a few clicks, without a title editor.
+
+### 0. What exists (audit of `41dadf2`)
+
+- `TextClip` (D021): `Text`, `FontFamily` (installed families; a missing one falls back), `FontSize` (canvas px; a new clip
+  `48 × canvasHeight / 1080`, D030), `ColorHex` (`#RRGGBB`), `Alignment` (left / centre / right inside the box),
+  `PositionX / Y` (canvas px from the centre), `Scale`, `RotationDegrees`, `Opacity`; `FadeIn / FadeOut` (D025, every clip
+  kind; suppressed on an edge with a dissolve).
+- The Inspector's TEXT section: a multiline box, the font list, the size field, a `#RRGGBB` field with a swatch, the
+  alignment; the TRANSFORM section (position, scale, rotation, opacity) and the FADES section with sliders (D040 §4).
+- The Preview's Move tool moves and scales a text by its box (D038). A new text: "+ Text" at the playhead, 5 s, «Текст».
+- One rendering path: `PlaybackSnapshot.LayersAt` → `TextLayer` (transform, opacity × fade) → `CompositionDrawPlan.TextDraw`
+  → `CompositionPainter` (Avalonia `FormattedText`, no wrapping, the box centred on the local origin) — the Preview and the
+  export (D023) alike.
+- So colour, size and position already exist; missing: any motion, a readability aid, quick placement, a colour choice
+  without typing a hex code, bold, defaults made for a video caption.
+
+### 1. Appearance and disappearance (In / Out) — Q1, Q2
+
+- In the Inspector, for a text clip, a block **«Анимация»** with two rows, **«Появление»** and **«Исчезновение»**: a kind and a
+  duration each.
+- Kinds (Q1): **«Нет»**, **«Проявление»** (opacity only), **«Выезд»** (opacity + a slide; a direction: снизу / сверху / слева /
+  справа), **«Увеличение»** (opacity + a scale from 70 % to 100 % around the text box's centre). The same kinds for the Out,
+  mirrored in time (a slide away toward the chosen direction, a shrink to 70 %). No typewriter.
+- Duration (Q1): **0.1–3 s** for a value set in the block — a field with a slider like the fades; both together never longer
+  than the clip — the effective lengths are clamped as D025's fades are.
+- **The data (Q2)**: the duration of «Появление» **is** the clip's `FadeIn` and of «Исчезновение» its `FadeOut`; a new
+  `TextClip.MotionIn / MotionOut` (`None` / `Slide` + direction / `Zoom`) adds the motion over that same ramp. «Нет» = fade 0;
+  «Проявление» = a fade without motion. For text clips the FADES section is replaced by this block (one place, no two
+  controls of one value).
+- **The existing texts keep their look (Q2, required)**: a v6 text clip has no motion, so it renders exactly as before —
+  its fades are D025's ramps unchanged. Its fades show as «Проявление» with their durations. A stored fade outside 0.1–3 s
+  (D025 allows any length up to the clip) is kept, rendered and shown as it is until the user changes it; the 0.1–3 s range
+  limits what the block sets, not what a file may hold (D025's file validation unchanged).
+- **The rule** (Core, on timeline frames like D025 / D036, so the Preview and the export agree on every frame): for clip
+  frame `i` the fade's progress `p = Ramp(i, Fin)` (D025's linear `(k + 1)/(F + 1)`) is eased `e = 1 − (1 − p)³`
+  (ease-out; the Out with `p` of the out ramp — the motion ease-in by symmetry); the opacity factor stays D025's linear
+  ramp (exactly today's fade); Slide offsets the text by `(1 − e) · d` toward the start side, `d = 8 %` of the canvas's
+  short side, along the canvas axis (not rotated with the text); Zoom multiplies the text's scale by `0.7 + 0.3 · e`,
+  around the box centre. Applied in `PlaybackSnapshot.LayersAt` to the `TextLayer`'s transform — no renderer state. An edge
+  with a dissolve has no fade (D025) and so no motion.
+- Edits: a split keeps In on the left part and Out on the right part, with their motions (D025's rule for the fades); a
+  trim clamps; Duplicate / Paste copy; a speed does not apply to text.
+
+### 2. Readability: an outline and a background — Q3
+
+- In the TEXT section two independent rows (Q3: both may be on together, each switched and set on its own):
+  - **«Обводка»** — on / off, a colour (default black), a thickness in % of the font size, 2–20 %, default 8 %; drawn
+    outside the glyphs under the fill, round joins.
+  - **«Подложка»** — on / off, a colour (default black), an opacity 0–100 %, default 60 %; a rectangle around the text box with
+    a padding of 25 % of the font size and a slightly rounded corner (fixed); it moves, scales, rotates and fades with the
+    text.
+- Drawing order: the background, then the outline, then the fill. A setting switched off keeps its values (switching on
+  again restores them).
+- Part of `TextProperties`, so the Preview, the export and the Move tool's frame (the box with the padding when Подложка is
+  on) use the same data.
+
+### 3. Colour, size, position — made quick — Q4, Q5
+
+- **Colour**: a row of eight swatches (white, black, yellow, orange, red, green, light blue, pink) next to the existing
+  `#RRGGBB` field — a click applies one colour (one Undo step); the hex field stays for any colour. The same swatches for
+  the outline and the background colour. No colour-picker package (D021).
+- **Size**: the existing field gets a slider (as Opacity); the range unchanged.
+- **Position (Q4)**: a **3 × 3 grid** of buttons (top / middle / bottom × left / centre / right) that places the text box at
+  a safe margin of 8 % of the canvas's short side from the canvas edges it is placed against (centred on the other axis
+  for the middle row / centre column); one Undo step; the box size from the painter's own layout rule (the padding of
+  Подложка and the outline included). The grid sets the position only — the text's alignment inside the box is unchanged.
+  The X / Y fields and the free move in the Preview (D038) stay as they are.
+- **Bold (Q5)**: a check box **«Жирный»** — a typeface weight in `TextProperties`; a family without a bold face falls back
+  as Avalonia does, the same in the Preview and the export.
+
+### 4. Defaults of a new text — Q6
+
+«Текст», Segoe UI, **white, bold**, the size of D030 (48 at 1080), centred alignment, placed **bottom centre** (the grid's
+bottom-centre cell), 5 s; **Подложка black 60 %** on, Обводка off (its defaults kept: black, 8 %); Появление **«Выезд» снизу
+0.4 s**, Исчезновение **«Проявление» 0.3 s**. Existing text clips keep what they have (the new properties absent = none: no
+outline, no background, no motion, not bold).
+
+### 5. Data and format
+
+- `TextClip` (and `TextProperties`): `MotionIn`, `MotionOut` (kind + direction), `Bold`, `Outline` (enabled, colour,
+  thickness), `Background` (enabled, colour, opacity). Validation in `ClipPropertyValidator`; values outside the limits
+  refuse the file as for other properties.
+- `project.json` **v7**: the new members optional on a text clip (absent = none). A v6 file opens unchanged in meaning and is
+  saved as v7; a v6 build refuses a v7 file by its newer-version check (D014), as with every earlier version — had they
+  been added to v6, an older build would silently drop them on a save. A project without the new properties, saved again,
+  differs only in `formatVersion` (the Phase 17 check).
+
+### 6. Undo / Redo
+
+- Every change through `ITimelineEditService.SetClipProperties` (D017): consecutive changes of one field (a duration, a
+  thickness, an opacity, typing a hex) merge into one step; choosing a kind, a direction, a swatch, switching the outline
+  or the background, Bold or a grid cell is one step each; an unchanged value is no step. Refused on a locked track,
+  outside the limits and during an export (`EditingLock`). A presentation-only snapshot change (D021): no decoder restarts.
+- "+ Text" with the defaults of §4 stays one step ("Add Text").
+
+### 7. Preview / export parity
+
+- The motion in `LayersAt` (one value per frame), the outline, the background and the weight in `TextDraw` →
+  `CompositionPainter` — the one painter of the Preview and the export; paused or after a seek the Preview shows the frame
+  the export writes.
+- Regression: a project without the new properties renders byte for byte as before (the existing parity suites and every
+  expected value unchanged).
+
+### 8. Localization
+
+Every new text in `Strings` / `Messages` with `.ru` (the D039 guards); the kinds, directions, the grid's tooltips and the
+style rows through resources, never enum names; the layout checked at 1024 × 640 and 1440 × 900 (the Inspector's width is
+the risk: the rows wrap rather than cut).
+
+### 9. Verification and acceptance criteria
+
+Step 27.1 first (the outline's feasibility, §12): the glyph contours' quality at small and large sizes, the export's cost
+per frame, correct work off the UI thread (as the export runs the painter), Preview ↔ export parity. When the result is
+not satisfactory the work **stops** and the results and the alternatives go to the product owner; a lower-quality fallback
+is never chosen automatically.
+
+Automated:
+- Core: the motion rule — offsets and scales on every frame of the ramps, the ease, the clamp to the clip, both edges on a
+  short clip, no motion on an edge with a dissolve, a frame-rate change (durations in time, D025); the grid placement (nine
+  cells, with and without Подложка / Обводка, a portrait and a landscape canvas).
+- Edits: one step per action and the merges, refusals, split / trim / duplicate / paste, Undo / Redo restoring every value.
+- Format: v7 round trip of every new member; v6 opened and saved as v7 differing only in `formatVersion`; damaged values
+  refused; the newer-version refusal; a v6 text with fades outside 0.1–3 s kept.
+- Rendering: Preview ↔ export parity per kind, the outline, the background and both together (pixel comparison as the
+  existing suites); the outline under the fill, the background under both, with the text's transform and fade; a v6 text
+  byte for byte as before; the existing export suites unchanged.
+- UI: the view-model and AXAML tests (the block for text clips only, kinds ↔ the fades, the two style rows, the swatches,
+  the grid, Bold, the defaults of "+ Text", the localization guards).
+- Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite, heavy, three `--blame-hang` runs; `git diff
+  --check`.
+Manual (`docs/PHASE27_MANUAL_TEST_PLAN.md`): a caption on the product owner's portrait gym clip with each kind, the outline,
+the background and both; the defaults of "+ Text"; the grid and the free move in the Preview; Undo / Redo of each action;
+save / reopen; the export watched in a player against the Preview; a Phase 26 v6 project with text opened and its export
+compared with the Phase 26 build's; `ru` and `en`; 1024 × 640 and 1440 × 900.
+
+Acceptance criteria:
+1. A new text appears and disappears with the default animation and is readable on a colourful wall without any setting.
+2. Each kind, direction, style and grid cell is chosen in at most two clicks; every action is one Undo step.
+3. **v6 projects open, and their existing text clips look exactly as before the update** (their fades as «Проявление»,
+   nothing else changed; checked automatically by the rendering suites and manually against the Phase 26 build).
+4. **The Preview and the export use one rendering model and give the same result for the animation, the outline and the
+   background** (automated parity; by eye in the manual run).
+5. **Undo / Redo, save / reopen, the localization en / ru and the export regressions are checked** (the automated suites
+   above and the manual plan).
+6. v7 saves and reopens every new value; a v6 build refuses a v7 file with its existing message.
+7. Nothing cut at 1024 × 640; no untranslated text.
+8. **No function beyond the agreed scope of Phase 27** (§1–§4) is added; a need beyond it is reported with variants first.
+9. The gates green.
+
+### 10. Not in this decision
+
+A title editor (several styles or lines with their own formatting, text templates), keyframes or motion paths, per-letter
+or per-word animation (a typewriter), a shadow, gradients, emoji / image stickers, text along a curve, wrapping to a width,
+a font from a file, animation of other clip kinds, new dependencies, a change of D025's fade for pictures and sound.
+
+### 11. Questions — answered (product owner, 2026-10-20)
+
+- **Q1** — the kinds Нет / Проявление / Выезд (4 directions) / Увеличение 70–100 %, 0.1–3 s; no typewriter. *As proposed.*
+- **Q2** — the In / Out durations are the clip's fades; FADES replaced by «Анимация» for text; the v6 texts' look kept. *As
+  proposed (variant a).*
+- **Q3** — the outline and the background **both allowed together**, each switched and set on its own. *Changed from the
+  proposal (one at a time).*
+- **Q4** — a **3 × 3 grid**; the free move in the Preview kept. *Changed from the proposal (three buttons).*
+- **Q5** — «Жирный» in the phase. *As proposed.*
+- **Q6** — white bold, bottom centre, Подложка black 60 %, Появление «Выезд» снизу 0.4 s, Исчезновение «Проявление» 0.3 s.
+  *As proposed.*
+
+### 12. Risks
+
+- The outline: Avalonia's glyph geometry (`FormattedText.BuildGeometry` or the equivalent) in the painter, which runs off
+  the UI thread in the export — checked first in Step 27.1 (quality, cost, threading, parity); a fallback (e.g. the text
+  drawn several times with offsets) is of lower quality and is never taken without the product owner's decision.
+- The cost per frame of a geometry outline in the export — a cache per text and style, measured.
+- The text box size for the grid and the Move frame must come from the painter's own layout rule (one rule).
+- The Inspector's height grows (two style rows, the grid); the blocks must stay compact (the 1024 × 640 check).
+- Reusing the fades (Q2) makes the text's fade fields look different from a picture's — intended, to be checked in use.
+
+Context: D042 §5, Phase A; the product owner's decisions of 2026-10-20 ("Refined after the merge of Phase 26" in D042); the
+specification proposed and approved the same day.
+
+Consequences: `project.json` v7; Core (the motion and placement rules), the text model and its validation, persistence,
+the painter, the Inspector; new resources (en + ru). No new dependency.
+
+Status: Accepted (2026-10-20, product owner). Phase 27, branch `feat/phase-27-text-animation` from `41dadf2`. Step 27.1 (the
+outline's feasibility) is a gate: the implementation of 27.2 and later only after its result and the owner's go. Implemented
+and verified by Claude on 2026-10-20 (Steps 27.2–27.6, `progress.md`); the product owner's acceptance pending.
+
+### Refined in Step 27.1 — the outline's feasibility (2026-10-20; **variant B chosen by the product owner the same day** — see "Decision" below)
+
+Checked with Avalonia 11.1.3 in `Rendering.Tests/TextOutlineFeasibilityTests` (no product code): the candidate routine
+draws as `CompositionPainter` does; the export's path (a render target on a thread-pool thread) and the Preview's (a
+control rendered on the UI thread) compared pixel for pixel; a gallery on a coloured "wall" looked at; the cost measured.
+- **D043's candidate as written fails off the UI thread.** `FormattedText.BuildGeometry` creates a `DrawingGroup` — an
+  `AvaloniaObject`, whose constructor verifies the UI thread: «Call from invalid thread» in every export-path case. Drawing
+  a `Geometry` made on the UI thread fails the same way later (`DrawGeometry` reads `Geometry.Transform`, a styled
+  property). The thread-free route — the glyph runs turned into platform geometry by the render interface — needs
+  `AvaloniaLocator.Current` and `Geometry.PlatformImpl`, which the public reference assemblies of 11.1.3 do not expose
+  (private API only). `DrawingContext` cannot be subclassed (an internal constructor) to capture the glyph runs.
+- **What works — variant B**: the geometry built on the UI thread (a dispatcher call from the export's thread, once per text
+  and style, cached) and drawn there once, so Avalonia creates and caches its platform geometry; afterwards it is drawn on
+  any thread. Results: the export path equals the Preview path byte for byte in every case (Latin and Cyrillic, 16–160 px,
+  regular and bold, outlines 2–20 %, rotation and scale, Times / Consolas, a missing font); four exports in parallel
+  identical; the geometry lies on the glyphs (ink boxes within 1 px of `DrawText`'s); the cost per frame at 1080 × 1920 /
+  1920 × 1080 with a wall of 1 479 rectangles: the text alone 1.4–1.7 ms, with a cached outline 1.5–2.2 ms (+0.1–0.6 ms;
+  rebuilt every frame, with the dispatcher call, 2.5–2.9 ms).
+- **Quality finding**: the fill drawn by `DrawText` in a render target is ClearType (sub-pixel): coloured fringes between a
+  white fill and a black outline; with grayscale anti-aliasing the fringes go, but at 16 px the hinted fill sits off the
+  unhinted outline (the outline uneven). **The fill drawn from the same glyph geometry** is clean and even at every size —
+  the variant to use for an outlined text. (The same ClearType fringes exist today on every exported text, outline or not —
+  an observation, not changed.)
+- **Why it is not simply taken**: variant B makes the export depend on the UI thread's dispatcher for each new text style
+  (no deadlock today — the UI awaits the export asynchronously — but a cancelled or closing app must not leave the export
+  waiting), and it relies on an undocumented Avalonia behaviour (the platform geometry cached by the first draw) that an
+  Avalonia upgrade could change (a guard test would catch it). D023 says the painter runs on any thread independently.
+- Alternatives put to the product owner: B as above (recommended); a Skia drawing operation (`ICustomDrawOperation` with
+  `ISkiaSharpApiLeaseFeature`) that draws the outlined text itself — thread-free, but a direct SkiaSharp reference and its
+  own text layout to keep equal to Avalonia's; Avalonia's private API (not recommended); an outline of offset copies (lower
+  quality — not taken without a decision); Подложка only in Phase 27, the outline deferred (a scope change of Q3).
+
+**Decision (product owner, 2026-10-20): variant B.** The glyph geometry of an outlined text is prepared on the UI thread and
+cached; the fill of an outlined text is drawn from the same geometry (its slight softening against a text without an
+outline accepted). Conditions, to be met by the implementation (Step 27.4) and shown by its tests before it is accepted:
+1. **Only outlined text changes.** A text without an outline — every v6 text — is drawn by `DrawText` exactly as before,
+   byte for byte (the existing parity suites and expected values unchanged); the geometric fill only with «Обводка» on.
+2. **Cache invalidation.** The key holds everything that shapes the glyphs — the text, the family, the size, Bold, the
+   alignment and the box (origin) — and nothing that does not (the colours, the thickness, the opacity, the transform go
+   to the pen, the brush and the pushed state); a change of any key part never reuses an old geometry; the cache is
+   bounded (old entries dropped), so a long edit or export does not grow it without limit.
+3. **Thread safety.** The geometry is created and first drawn only on the UI thread; afterwards it is only read. The cache
+   is safe for the Preview (UI thread) and an export (its own thread) at once, and one cached geometry drawn by several
+   threads gives identical pixels (a test with a shared entry, not only separate ones).
+4. **Cancellation and closing.** The export's request to the UI thread never blocks without an end: it is awaited with the
+   export's cancellation token; a cancelled export stops while waiting; the application closing (the dispatcher shut down)
+   ends the wait and the export reports a failure or a cancellation — never a hang, never a partial file kept as a good
+   one. Tests: a cancel while the UI thread is busy, a dispatcher that no longer runs.
+5. **A guard against Avalonia's behaviour.** The tests of variant B stay in the suite (`TextOutlineFeasibilityTests`):
+   drawing the prepared geometry off the UI thread, the export equal to the Preview, parallel exports, and D043's candidate
+   still failing off the UI thread (if it starts to work, the dependency can be dropped). An Avalonia upgrade that breaks
+   them stops the work.
+6. **Kept checks**: the quality at small sizes (16 px, 2–20 %, the gallery looked at), Preview ↔ export parity, parallel
+   exports, the cost per frame (cached: +0.1–0.6 ms at 1080 × 1920 measured here).
+7. **Stop rule.** If a guard test fails, or the correct end of an export (cancel, close) cannot be guaranteed, the work
+   stops and the problem goes to the product owner; no automatic switch to a worse variant (offset copies, no outline).
+
+### Implementation notes (Steps 27.2–27.5, 2026-10-20)
+
+- **Condition 3, refined before the implementation (the pre-start check):** the 27.1 test of one geometry drawn by 16
+  threads at once shows that no difference was observed — Avalonia documents no thread safety for drawing one `Geometry`
+  concurrently, so the implementation does not rely on it: one `TextGlyphCache` per drawing consumer (the Preview's
+  `CompositionView` — UI thread; each export's `AvaloniaCompositionRasterizer` — its thread, used sequentially), so a
+  geometry is created and first drawn on the UI thread and afterwards drawn by one thread only. The 16-thread test stays
+  as an observation in the guard suite. Within the approved variant B; no architecture change.
+- Model (27.2): `TextClip` / `TextProperties` — `Bold`, `Outline`, `Background`, `MotionIn`, `MotionOut` as init members
+  defaulting to none (`TextProperties.IsPlain` — a text drawn exactly as before); `project.json` v7 writes them only when
+  set (`bold: true`; `outline` / `background` when they differ from their defaults, off ones included; a motion when not
+  None); a v6 file ignores them; members of an object all required. `CloneClip` copies them (split, duplicate, paste; a
+  split's fades follow D025). The canvas change scales `FontSize` as before — the outline's thickness is relative to it.
+- Core (27.3): `TextMotionRule` and `TextPlacement` as specified; the motion only when a kind is set, so a text without
+  motion keeps its transform bit for bit. `AddTextClip(start, measureBox)` — the §4 defaults (the fades 0.4 s / 0.3 s
+  rounded to whole frames: 10 / 8 at 25 fps, 12 / 9 at 30, 24 / 18 at 60) and the bottom-centre position by the measured
+  box in the same "Add Text" step; centred when no measurer is given.
+- Rendering (27.4): `CompositionPainter` — a plain text by the unchanged `DrawText` path (tested against a replica of the
+  old routine, pixel for pixel); a styled one: the background (a rounded rectangle, padding 25 %, corner 12 % of the size,
+  its own opacity), the outline (a round-join pen of twice the visible width), the fill from the same geometry when the
+  outline is on, else `DrawText` (bold or a background only). An outlined text without a cache is refused (never drawn
+  without its outline). `ExportFailure.RenderFailed` (`Export_FailRender`, en + ru) for a wait that ends by the shutdown or
+  the 60 s timeout; a cancel stays a cancellation. `ICompositionRasterizer.Render(…, CancellationToken)` (a default
+  method; `ExportService` passes its token). The Move tool's frame includes the background's padding.
+- Inspector (27.5): «Анимация» replaces the fades section for a text; switching from «Нет» to a kind gives the §4 default
+  (0.4 s In, 0.3 s Out, clamped to the clip); a Zoom keeps the stored side (not shown); the durations are shown as the
+  seconds of the stored frames (two decimals). Swatches: white, black, yellow #FFD600, orange #FF8C00, red #E53935, green
+  #43A047, light blue #4FC3F7, pink #F06292. The thickness and the opacity take whole percent (as FU-25.2). Discrete
+  choices carry a `ClipPropertyGesture` (one step, never merged). `ITextBoxMeasurer` is injected (the app registers the
+  painter's `TextBoxMeasure`), so the view models work without a running platform in tests; `TimelineClipSelection`
+  carries the canvas.
 ---
 
 ## How to add a decision

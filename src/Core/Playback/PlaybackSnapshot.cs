@@ -240,7 +240,7 @@ public sealed class PlaybackSnapshot
             else if (FindText(layer.Texts, time) is { } text && text.Visual.Opacity > 0 && !string.IsNullOrWhiteSpace(text.Text.Text))
             {
                 var fade = FadeAt(text.TimelineStart, text.TimelineEnd, text.FadeInFrames, text.FadeOutFrames, time, ref frame);
-                topDown.Add(new TextLayer(layer.TrackId, text, CompositionMath.TextTransform(Canvas, text.Visual), fade));
+                topDown.Add(new TextLayer(layer.TrackId, text, TextTransformAt(text, time, ref frame), fade));
             }
         }
 
@@ -263,7 +263,7 @@ public sealed class PlaybackSnapshot
         if (FindText(layer.Texts, at) is { } text && text.Visual.Opacity > 0 && !string.IsNullOrWhiteSpace(text.Text.Text))
         {
             var fade = FadeAt(text.TimelineStart, text.TimelineEnd, text.FadeInFrames, text.FadeOutFrames, time, ref frame);
-            return new TextLayer(layer.TrackId, text, CompositionMath.TextTransform(Canvas, text.Visual), fade * factor);
+            return new TextLayer(layer.TrackId, text, TextTransformAt(text, time, ref frame), fade * factor);
         }
         return null;
     }
@@ -293,6 +293,17 @@ public sealed class PlaybackSnapshot
 
     /// <summary>The fade factor (D025 §2) of a clip at <paramref name="time"/>, the start of a timeline frame: exactly
     /// 1 without a fade. <paramref name="frame"/> caches the frame index of <paramref name="time"/>.</summary>
+    /// <summary>A text's D018 transform with its appearance / disappearance motion on the frame of <paramref name="time"/>
+    /// (D043 §1, <see cref="TextMotionRule"/>); exactly the D018 transform for a text without motion.</summary>
+    private Affine2D TextTransformAt(TextSpan text, MediaTime time, ref long? frame)
+    {
+        var transform = CompositionMath.TextTransform(Canvas, text.Visual);
+        if (text.Text.MotionIn.Kind == TextMotionKind.None && text.Text.MotionOut.Kind == TextMotionKind.None) return transform;
+        frame ??= time.ToFrameFloor(FrameRate);
+        return TextMotionRule.Apply(transform, text.Text, Canvas, frame.Value, text.TimelineStart.ToFrameFloor(FrameRate),
+            text.TimelineEnd.ToFrameFloor(FrameRate), text.FadeInFrames, text.FadeOutFrames);
+    }
+
     private double FadeAt(MediaTime start, MediaTime end, long fadeIn, long fadeOut, MediaTime time, ref long? frame)
     {
         if (fadeIn == 0 && fadeOut == 0) return 1.0;

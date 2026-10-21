@@ -616,6 +616,9 @@
   <data name="Prop_AudioNoPicture" xml:space="preserve">
     <value>У аудиоклипов нет свойств изображения.</value>
   </data>
+  <data name="Prop_BackgroundOpacity" xml:space="preserve">
+    <value>Непрозрачность подложки должна быть от {0} до {1}.</value>
+  </data>
   <data name="Prop_ColorFormat" xml:space="preserve">
     <value>Цвет нужно указать в формате #RRGGBB.</value>
   </data>
@@ -640,6 +643,9 @@
   <data name="Prop_Opacity" xml:space="preserve">
     <value>Непрозрачность должна быть от {0} до {1}.</value>
   </data>
+  <data name="Prop_OutlineThickness" xml:space="preserve">
+    <value>Толщина обводки должна быть от {0} до {1} от размера шрифта.</value>
+  </data>
   <data name="Prop_Position" xml:space="preserve">
     <value>Позиция должна быть от {0} до {1} пикс.</value>
   </data>
@@ -660,6 +666,9 @@
   </data>
   <data name="Prop_UnknownAlignment" xml:space="preserve">
     <value>Неизвестное выравнивание текста.</value>
+  </data>
+  <data name="Prop_UnknownMotion" xml:space="preserve">
+    <value>Неизвестная анимация текста.</value>
   </data>
   <data name="Prop_Volume" xml:space="preserve">
     <value>Громкость должна быть от {0} до {1}.</value>

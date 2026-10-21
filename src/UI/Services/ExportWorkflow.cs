@@ -219,6 +219,7 @@ public sealed class ExportWorkflow
         ExportFailure.DecodeFailed => Strings.Export_FailDecode,
         ExportFailure.EncodeFailed => Strings.Export_FailEncode,
         ExportFailure.OutputFailed => Strings.Export_FailOutput,
+        ExportFailure.RenderFailed => Strings.Export_FailRender,
         _ => Strings.Export_Fail
     }, ex.Message));
 

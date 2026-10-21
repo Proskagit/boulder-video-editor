@@ -84,6 +84,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFilePickerService, AvaloniaFilePickerService>();
         services.AddSingleton<IDialogService, AvaloniaDialogService>();
         services.AddSingleton<IFontCatalog, AvaloniaFontCatalog>();
+        services.AddSingleton<ITextBoxMeasurer, TextBoxMeasure>();     // D043 §3–§4: the text box by the painter's layout
         // AI hold markup (D034): the pinned model from the user's models folder, checked before every first use; the
         // markup frame decoded by the existing decoder.
         services.AddSingleton<IHoldSegmentationService>(sp => new OnnxHoldSegmentationService(

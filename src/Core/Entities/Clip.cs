@@ -110,6 +110,21 @@ public sealed class TextClip : Clip
     public double Scale { get; set; } = 1.0;
     public double RotationDegrees { get; set; }
     public double Opacity { get; set; } = 1.0;
+
+    /// <summary>D043 §3: the bold weight of the font. A text of an older project is not bold.</summary>
+    public bool Bold { get; set; }
+
+    /// <summary>D043 §2: «Обводка» (off by default; its values kept while off).</summary>
+    public TextOutline Outline { get; set; } = TextOutline.Default;
+
+    /// <summary>D043 §2: «Подложка» (off by default; its values kept while off).</summary>
+    public TextBackground Background { get; set; } = TextBackground.Default;
+
+    /// <summary>D043 §1: the motion of the appearance over <see cref="Clip.FadeIn"/> (none by default).</summary>
+    public TextMotion MotionIn { get; set; } = TextMotion.None;
+
+    /// <summary>D043 §1: the motion of the disappearance over <see cref="Clip.FadeOut"/> (none by default).</summary>
+    public TextMotion MotionOut { get; set; } = TextMotion.None;
 }
 
 public enum TextAlignment
