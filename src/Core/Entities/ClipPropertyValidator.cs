@@ -35,6 +35,12 @@ public static class ClipPropertyValidator
             if (ValidateText(text) is { } error) return error;
         }
 
+        if (change.Template is { } template)
+        {
+            if (clip is not TemplateClip) return Messages.Prop_OnlyTemplate;
+            if (TemplateRules.Validate(template) is { } error) return error;
+        }
+
         return null;
     }
 
@@ -43,7 +49,8 @@ public static class ClipPropertyValidator
     {
         Visual = VisualProperties.Of(clip),
         Audio = AudioProperties.Of(clip),
-        Text = TextProperties.Of(clip)
+        Text = TextProperties.Of(clip),
+        Template = TemplateProperties.Of(clip)
     });
 
     /// <summary>Checks picture properties on their own; <paramref name="allowCrop"/> is false for text.</summary>
@@ -120,6 +127,7 @@ public static class ClipPropertyValidator
     {
         ImageClip => Messages.Kind_Image,
         TextClip => Messages.Kind_Text,
+        TemplateClip => Messages.Kind_Template,
         _ => Messages.Kind_Other
     };
 }

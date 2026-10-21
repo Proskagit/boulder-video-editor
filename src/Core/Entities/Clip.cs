@@ -127,6 +127,60 @@ public sealed class TextClip : Clip
     public TextMotion MotionOut { get; set; } = TextMotion.None;
 }
 
+/// <summary>
+/// A ready-made visual template (D045, Phase 29): a generated clip on a video track that draws its look over everything
+/// below its track for its time — REC, VHS, «Боулдер», «Хайлайт». Its appearance and disappearance last
+/// <see cref="Clip.FadeIn"/> / <see cref="Clip.FadeOut"/> (set from <see cref="TemplateRules"/>; a split leaves them on the
+/// outer edges, D025); it has no picture properties, no sound and no speed. The fields a kind doesn't use are kept as they are.
+/// </summary>
+public sealed class TemplateClip : Clip
+{
+    public TemplateKind Kind { get; set; }
+
+    /// <summary>REC / VHS: the counter's value at the clip's start; the right part of a split continues it.</summary>
+    public MediaTime CounterStart { get; set; }
+
+    /// <summary>REC / VHS: the date shown (optional; empty hides it).</summary>
+    public string Date { get; set; } = string.Empty;
+
+    /// <summary>«Боулдер»: the route («7») and the grade («7A»), each optional.</summary>
+    public string Route { get; set; } = string.Empty;
+    public string Grade { get; set; } = string.Empty;
+
+    /// <summary>«Боулдер»: the status the user sets by hand — never detected.</summary>
+    public BoulderStatus Status { get; set; }
+
+    /// <summary>«Боулдер»: the moment the status block appears, on the template's own clock (that of
+    /// <see cref="CounterStart"/>: the time since the template's original start, continued over a split) — set by the user
+    /// from the playhead. Before it only the route block shows; from it the status appears and stays to the template's end.
+    /// Never moved by a trim or a split; beyond the template's end the status doesn't appear.</summary>
+    public MediaTime StatusAt { get; set; }
+
+    /// <summary>«Боулдер»: the accent (the route's colour, chosen by the user).</summary>
+    public string AccentHex { get; set; } = TemplateRules.DefaultAccentHex;
+
+    /// <summary>«Хайлайт»: the title and an optional subtitle.</summary>
+    public string Title { get; set; } = string.Empty;
+    public string Subtitle { get; set; } = string.Empty;
+}
+
+/// <summary>The four templates of Phase 29 (D045 §1; WASTED deferred, §15).</summary>
+public enum TemplateKind
+{
+    Rec,
+    Vhs,
+    Boulder,
+    Highlight
+}
+
+/// <summary>«Боулдер»'s status (D045 §1.3): none, TOP (the route done) or ПОПЫТКА (an attempt's episode).</summary>
+public enum BoulderStatus
+{
+    None,
+    Top,
+    Attempt
+}
+
 public enum TextAlignment
 {
     Left,

@@ -367,7 +367,9 @@ public sealed class TransitionLibraryUiTests : IAsyncLifetime
         var xaml = System.Xml.Linq.XDocument.Load(Path.Combine(root!.FullName, "src", "UI", "Views", "Panels", "TimelineView.axaml"));
         System.Xml.Linq.XNamespace ui = "https://github.com/avaloniaui";
 
-        var items = xaml.Descendants(ui + "MenuFlyout").Single().Elements(ui + "MenuItem").ToList();
+        System.Xml.Linq.XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var items = xaml.Descendants(ui + "MenuFlyout").Single(m => (string?)m.Attribute(x + "Key") == "TransitionMenu")
+            .Elements(ui + "MenuItem").ToList();
 
         Assert.Equal(TransitionRules.VideoTypes, items.Select(i => (string?)i.Attribute("CommandParameter")));
         Assert.All(items, i => Assert.Equal("{Binding AddTransitionCommand}", (string?)i.Attribute("Command")));

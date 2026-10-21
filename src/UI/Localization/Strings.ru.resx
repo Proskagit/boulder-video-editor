@@ -1932,4 +1932,88 @@
   <data name="Export_FailTransitionSource" xml:space="preserve">
     <value>Переходу нужны исходные кадры за краями клипов, которых в файле нет, — экспорт остановлен. ({0})</value>
   </data>
+  <data name="Timeline_Template" xml:space="preserve">
+    <value>Шаблон</value>
+  </data>
+  <data name="Timeline_TemplateTip" xml:space="preserve">
+    <value>Добавить готовый шаблон в позицию указателя на верхнюю видеодорожку</value>
+  </data>
+  <data name="TemplateType_Rec" xml:space="preserve">
+    <value>REC</value>
+  </data>
+  <data name="TemplateType_Vhs" xml:space="preserve">
+    <value>VHS</value>
+  </data>
+  <data name="TemplateType_Boulder" xml:space="preserve">
+    <value>Боулдер</value>
+  </data>
+  <data name="TemplateType_Highlight" xml:space="preserve">
+    <value>Хайлайт</value>
+  </data>
+  <data name="Template_Added" xml:space="preserve">
+    <value>Шаблон добавлен</value>
+  </data>
+  <data name="ClipType_Template" xml:space="preserve">
+    <value>Шаблон «{0}»</value>
+  </data>
+  <data name="Clip_TemplateWith" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="Inspector_TemplateHeading" xml:space="preserve">
+    <value>ШАБЛОН</value>
+  </data>
+  <data name="Inspector_TemplateDate" xml:space="preserve">
+    <value>Дата</value>
+  </data>
+  <data name="Inspector_TemplateRoute" xml:space="preserve">
+    <value>Трасса</value>
+  </data>
+  <data name="Inspector_TemplateGrade" xml:space="preserve">
+    <value>Категория</value>
+  </data>
+  <data name="Inspector_TemplateStatus" xml:space="preserve">
+    <value>Статус</value>
+  </data>
+  <data name="TemplateStatus_None" xml:space="preserve">
+    <value>Нет</value>
+  </data>
+  <data name="TemplateStatus_Top" xml:space="preserve">
+    <value>TOP</value>
+  </data>
+  <data name="TemplateStatus_Attempt" xml:space="preserve">
+    <value>Попытка</value>
+  </data>
+  <data name="TemplateStatusAt_Label" xml:space="preserve">
+    <value>Появление статуса</value>
+  </data>
+  <data name="TemplateStatusAt_Set" xml:space="preserve">
+    <value>На указатель</value>
+  </data>
+  <data name="TemplateStatusAt_Tip" xml:space="preserve">
+    <value>Статус появится в кадре под указателем</value>
+  </data>
+  <data name="TemplateStatusAt_Value" xml:space="preserve">
+    <value>на {0:0.00} с шаблона</value>
+  </data>
+  <data name="TemplateStatusAt_Beyond" xml:space="preserve">
+    <value>на {0:0.00} с — после конца шаблона: статус не появится</value>
+  </data>
+  <data name="TemplateStatusAt_PlayheadOutside" xml:space="preserve">
+    <value>Поставьте указатель на клип шаблона, чтобы задать момент появления статуса.</value>
+  </data>
+  <data name="Inspector_TemplateAccent" xml:space="preserve">
+    <value>Цвет трассы</value>
+  </data>
+  <data name="Inspector_TemplateTitle" xml:space="preserve">
+    <value>Заголовок</value>
+  </data>
+  <data name="Inspector_TemplateSubtitle" xml:space="preserve">
+    <value>Подзаголовок</value>
+  </data>
+  <data name="Swatch_Blue" xml:space="preserve">
+    <value>Синий</value>
+  </data>
+  <data name="Swatch_Violet" xml:space="preserve">
+    <value>Фиолетовый</value>
+  </data>
 </root>

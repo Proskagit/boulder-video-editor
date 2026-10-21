@@ -118,8 +118,8 @@ public sealed class ExportTransitionSourceEndToEndTests
         // The same project as a v7 file (the Phase 27 format: dissolves only), read by this build.
         var folder = _media.OutputFolder();
         var json = ProjectSerializer.Serialize(p.Project, folder);
-        Assert.Contains("\"formatVersion\": 8", json);
-        var v7 = ProjectSerializer.Deserialize(json.Replace("\"formatVersion\": 8", "\"formatVersion\": 7"), folder);
+        Assert.Contains("\"formatVersion\": 9", json);
+        var v7 = ProjectSerializer.Deserialize(json.Replace("\"formatVersion\": 9", "\"formatVersion\": 7"), folder);
 
         var built = await ExportProject(p.Project, Path.Combine(folder, "built.mp4"));
         var loaded = await ExportProject(v7, Path.Combine(_media.OutputFolder(), "v7.mp4"));

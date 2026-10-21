@@ -43,6 +43,17 @@ public sealed record SolidDraw(Guid ClipId, Affine2D Transform, double Opacity, 
     : DrawOperation(ClipId, Transform, Opacity);
 
 /// <summary>
+/// A template (D045): drawn by the renderer from its kind, fields and clock in canvas pixels through
+/// <see cref="DrawOperation.Transform"/> (canvas → target). A kind with a treatment (<see cref="TemplateRules.HasTreatment"/>,
+/// VHS) first treats everything drawn before it (<see cref="TemplateTreatment"/>), then draws its graphics.
+/// </summary>
+public sealed record TemplateDraw(Guid ClipId, Affine2D Transform, double Opacity, FrameSize Canvas, TemplateKind Kind,
+    TemplateProperties Fields, TemplateClock Clock) : DrawOperation(ClipId, Transform, Opacity)
+{
+    public bool HasTreatment => TemplateRules.HasTreatment(Kind);
+}
+
+/// <summary>
 /// The route outline of a picture layer's hold markup (D034 §4–§6), drawn right above the layer's frame with the layer's
 /// opacity. Like <see cref="FrameDraw"/> it lives in the layer's crop-local coordinates (source pixels):
 /// <see cref="Polygons"/> are the contours there, <see cref="LocalRect"/> is the crop (the outline is clipped to it) and
@@ -198,6 +209,9 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
 
             case SolidLayer solid:
                 return new SolidDraw(solid.ClipId, canvasToTarget, solid.Opacity, new RectD(0, 0, canvas.Width, canvas.Height), solid.ColorHex);
+
+            case TemplateLayer template:
+                return new TemplateDraw(template.ClipId, canvasToTarget, 1.0, canvas, template.Kind, template.Span.Fields, template.Clock);
 
             case PictureLayer picture:
             {

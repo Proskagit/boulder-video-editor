@@ -87,6 +87,8 @@ public sealed partial class LocalizationGuardTests
     // Keys whose text is a technical token in both languages.
     private static readonly HashSet<string> SameInBothLanguages = new(StringComparer.Ordinal)
     {
+        "Template_Rec", "Template_Vhs", "TemplateType_Rec", "TemplateType_Vhs",   // D045: the formats' own abbreviations
+        "TemplateStatus_Top"   // D045 §1.3: the climbers' word for a done route, written so in Russian too
     };
 
     [Fact]

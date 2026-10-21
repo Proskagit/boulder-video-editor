@@ -42,6 +42,10 @@ public interface ITimelineEditService
     /// another clip there, room can't be made, or the timeline has no video track. One Undo step.</summary>
     TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null);
 
+    /// <summary>D045: adds a template of <paramref name="kind"/> at <paramref name="start"/> on the topmost video track (as a
+    /// text, making room as D037 §3), with its default length, fields and appearance / disappearance; one Undo step.</summary>
+    TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start);
+
     /// <summary>Moves clips by a whole number of frames. With <paramref name="targetTrackId"/>
     /// all clips must currently be on one track and move to the target track. The clips they then overlap from their start
     /// on make room on the right (D037 §3: on their track only; a partner follows or the move is refused); a moved clip
@@ -438,6 +442,9 @@ public sealed record ClipPropertyChange
 
     /// <summary>Text clips.</summary>
     public TextProperties? Text { get; init; }
+
+    /// <summary>Templates (D045 §6): their fields.</summary>
+    public TemplateProperties? Template { get; init; }
 
     /// <summary>Every clip kind (D025). Each value is a whole number of frames of the project rate, at most the clip's
     /// length; it is stored as exactly that many frames.</summary>

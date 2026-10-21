@@ -1066,4 +1066,52 @@
   <data name="Relink_TransitionShortMany" xml:space="preserve">
     <value>The new file lacks source frames {0} transitions need beyond their clips; an export with them will be refused until they are shortened or removed.</value>
   </data>
+  <data name="Template_DefaultTitle" xml:space="preserve">
+    <value>BEST ATTEMPT</value>
+  </data>
+  <data name="Template_FieldMissing" xml:space="preserve">
+    <value>A template field is missing.</value>
+  </data>
+  <data name="Template_FieldLength" xml:space="preserve">
+    <value>A template field can hold at most {0} characters.</value>
+  </data>
+  <data name="Template_OneLine" xml:space="preserve">
+    <value>A template field holds one line of text.</value>
+  </data>
+  <data name="Template_UnknownStatus" xml:space="preserve">
+    <value>Unknown route status.</value>
+  </data>
+  <data name="Template_StatusAtNegative" xml:space="preserve">
+    <value>The moment the status appears can't be negative.</value>
+  </data>
+  <data name="Template_Rec" xml:space="preserve">
+    <value>REC</value>
+  </data>
+  <data name="Template_Vhs" xml:space="preserve">
+    <value>VHS</value>
+  </data>
+  <data name="Template_Boulder" xml:space="preserve">
+    <value>Boulder</value>
+  </data>
+  <data name="Template_Highlight" xml:space="preserve">
+    <value>Highlight</value>
+  </data>
+  <data name="Kind_Template" xml:space="preserve">
+    <value>Template</value>
+  </data>
+  <data name="Prop_OnlyTemplate" xml:space="preserve">
+    <value>Only templates have template fields.</value>
+  </data>
+  <data name="Edit_CantAddTemplate" xml:space="preserve">
+    <value>Can't add the template on {0}: {1}</value>
+  </data>
+  <data name="Verb_AddTemplate" xml:space="preserve">
+    <value>add a template on {0}</value>
+  </data>
+  <data name="Describe_TemplateClip" xml:space="preserve">
+    <value>the template "{0}"</value>
+  </data>
+  <data name="Transition_NotOnTemplate" xml:space="preserve">
+    <value>A transition can't be placed next to a template.</value>
+  </data>
 </root>

@@ -38,6 +38,8 @@ This directory contains:
 - `PHASE28_MANUAL_TEST_PLAN.md` — manual checks of Phase 28 (the transition library: Наплыв, Затемнение, Вспышка, Наезд,
   Сдвиг; the visual gate of Step 28.1 on real gym clips; durations, source handles, the 1.0 s rule, v7 dissolves
   unchanged), completed per step and run at its closeout
+- `PHASE29_MANUAL_TEST_PLAN.md` — manual checks of Phase 29 (the visual templates REC, VHS, «Боулдер», Highlight — the gate of
+  Step 29.1 on real gym clips, WASTED deferred; the audit of the existing music scenario with its inputs and objective defect criteria), completed per step
 - `AI_MODEL.md` — the AI hold model: files and checksums, installing, messages, licences and notices, the export recipe
 
 Agent-oriented project context lives in the repository root:

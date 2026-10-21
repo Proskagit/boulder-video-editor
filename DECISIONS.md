@@ -6236,6 +6236,493 @@ Status: **Approved (product owner, 2026-10-20)**. Phase 28, branch `feat/phase-2
 
 ---
 
+## D045 — Ready-made visual templates and the music scenario (Phase 29, D042 Phase C)
+
+Date: 2026-10-21
+
+Decision (product owner, 2026-10-21 — the concept; **the specification below is a draft for the gate of Step 29.1**, not
+approved). D042's Phase C, refined by the product owner after the merge of Phase 28: the colour effects of the first draft
+(black and white, vivid, warm, cool, vignette) are **dropped**; Phase C is **five ready-made visual templates made for
+bouldering videos** — not colour correction and not a general effect library — and an **audit of the existing music
+scenario** with no new audio functions. Only Step 29.0 (documentation) and the preparation of the gate 29.1 (research and
+prototypes outside the product code) are allowed; the implementation starts only after the product owner has seen the
+prototypes and approved this specification separately.
+
+### 0. What exists (audit of `4f0e66a`)
+
+- `Clip.Effects` (`List<Effect>`: a type id, a name, an enabled flag, an untyped parameter dictionary) is persisted by
+  every format since v1, copied by Duplicate, and **never rendered** (D025). No effect type exists.
+- Composition: `PlaybackSnapshot.LayersAt` → `CompositionLayer` (picture, text, the fill of a transition, D044) →
+  `CompositionDrawPlan` (`FrameDraw`, `OutlineDraw`, `TextDraw`, `SolidDraw`) → `CompositionPainter` on an Avalonia
+  `DrawingContext`: the Preview's control and the export's `AvaloniaCompositionRasterizer` (an offscreen
+  `RenderTargetBitmap`, BGRA read back) draw the same plan. No operation reads back what was drawn below it; the only
+  pixel transform in the app is the HDR → SDR LUT inside the decoder (D033), per source.
+- `TextClip` is the one generated (non-media) clip: on a video track, its animation over its fades (D043), placement, its
+  own Inspector section. A split gives the left part the fade-in and the right part the fade-out (D025).
+- Sound: `AudioSpan` (a media asset, its timing, gain, fades, the D032 crossfades) mixed by one mixer for the Preview and
+  the export; every audible span comes from a `MediaAsset` of the project.
+
+### 1. The five templates (the product owner's brief, 2026-10-21)
+
+1. **REC / Camcorder** — a camcorder's recording frame: a blinking red REC, a timecode, small corner marks; a clean
+   recording look, not necessarily retro.
+2. **VHS / Analog tape** — an old tape's look: noise, faint lines, tracking bands, a counter or a date; restrained enough
+   that the holds and the climber's moves stay readable.
+3. **«Боулдер»** (revised at the gate, 2026-10-21; first briefed as a Competition overlay) — one compact plate for
+   hobby bouldering: the route and the grade («ТРАССА 7 · 7A», both editable) and a status the user sets by hand —
+   **TOP** (the route done) or **ПОПЫТКА** (an attempt's episode, e.g. after a fall) or none. No name, timer, attempt
+   number, zone or other competition data; nothing computed; **no automatic detection of a result**. The richer
+   broadcast-style layout of the first prototype is kept only as a possible future extension «Соревнование» (§2), not
+   implemented now, and no general system of free fields is built for it.
+4. **Highlight / «Хайлайт»** — a short accent title with an appearance and a disappearance, for an important moment or
+   attempt; editable text, Russian typography; a template, not an animation editor, and no automatic detection of
+   highlights.
+5. **WASTED** — **deferred on 2026-10-21 by the product owner: not part of Phase 29, does not block it (§15)**. As
+   briefed before the deferral: the comic device known from GTA. First briefed as an original stylisation; **revised at the gate
+   (2026-10-21)**: a recognisable **reconstruction of the original device's behaviour** — composition, typography, the
+   picture's transition, the timing of the word, the duration and the sound accent as close to GTA V as possible (§13).
+   No original GTA resource is added to the project at this stage (no font file, sound or image taken from the game); what
+   would need original assets or a licence is listed in §13. The sound can be switched off; **not bound to an automatic
+   detection** of a fall or a failed attempt.
+
+### 2. Research: the Competition overlay (2026-10-21)
+
+Sources — the World Climbing (IFSC) broadcasts themselves, frames taken at several points (local references in
+`VideosForTest/Phase29_Step29.1/research`, not committed):
+- *Boulder men's finals Seoul 2025 (condensed)*, World Championships Seoul 2025 — https://www.youtube.com/watch?v=nBZwpTZTRmY
+- *Men's Boulder Finals Innsbruck 2026 (condensed)*, World Climbing Series 2026 — https://www.youtube.com/watch?v=AtxVHZDd694
+- The scoring the graphics show: the IFSC's 2025 rule changes (https://www.worldclimbing.com/news/new-rule-changes-take-effect-for-ifsc-world-cup-series-2025),
+  Gripped (https://gripped.com/indoor-climbing/this-years-world-cup-will-feature-new-rules/), Inside Climbing
+  (https://www.inside-climbing.com/2025/03/12/deep-dive-looking-new-2025-ifsc-boulder-format/): since 2025 a boulder gives
+  25 points for a top, 10 for a zone, −0.1 per failed attempt; earlier notation "2T3z 9 12" (tops, zones, attempts).
+- No published description of the broadcast graphics package was found (searched; the gap is recorded) — the findings
+  below are read off the broadcasts.
+
+What the broadcasts show (2025–2026):
+- **The athlete's lower third** (bottom left; in a split screen one per half, mirrored on the right): a dark navy panel
+  of two rows with a thin coloured accent edge; row 1 — the first name in a regular weight and the LAST NAME in bold
+  capitals, the country code and flag; row 2 — small grey capitals as labels with bold white values: RANK, (TOP, ZONE in
+  2025), POINTS, and a compact per-boulder progress mark (one bar per boulder: empty, zone, top).
+- **The climbing timer**: a separate small dark box with "m:ss" counting down (4:00 / 5:00 rotations), next to or above
+  the panel.
+- **The leaderboard**: a header bar (the event, the round), rows of rank / flag / name / per-boulder bars / score — a
+  between-attempts graphic, not shown over a climb.
+- **The boulder's preview** (Innsbruck 2026): callouts on the wall — a dark tag «TOP» with a line to a small circle «25» on
+  the top hold, «10» on the zone hold; the boulder's number is the wall's own tag (M1–M4), not a graphic.
+- **A situational tag** beside the panel (white): "FOR BRONZE — 9.3 POINTS NEEDED".
+- The look: flat, a condensed sans-serif, navy / white / one accent, short slide-and-fade motion, no 3D, no sport-agnostic
+  "scorebug".
+
+Conclusions (revised at the gate, 2026-10-21): the product is for hobby bouldering, not for broadcasts, so Phase 29 takes
+from the broadcasts only their **look** — a flat navy plate, a thin accent edge in the route's colour, grey small-capital
+labels with bold white values, a short slide-and-fade — for the compact «Боулдер» plate (§1.3, §6). Points, rank, country,
+the per-boulder bars, the timer, the athlete's name, the attempt number and the zone are **not** in it.
+
+Recorded for later, **not implemented** — a possible extension «Соревнование» (the first prototype, kept in
+`VideosForTest/Phase29_Step29.1/out/archive_rev1/3_comp_*.mp4` and its code in the 29.1 harness): the two-row lower third
+(first name / LAST NAME; ТРАССА, КАТЕГОРИЯ, ПОПЫТКА), an optional countdown box above it, the result as a white tag beside
+it from a chosen moment. If it is ever taken up it gets its own decision; it would reuse the template clip of §3, not a
+general free-field system. Another later idea: the TOP / ZONE callout tied to a marked hold (D034) — a separate decision.
+
+### 3. Architecture (proposal; the prototypes of 29.1 exercise it)
+
+What the templates are: each has **graphics** (shapes and text over the picture, animated in its own time), and two also
+**treat the picture below** (VHS: noise, chroma offset, bands; WASTED: grey and darker). None of them is a property of one
+source clip: REC, VHS, WASTED and «Боулдер» apply to *the composed frame* — the video, the hold outlines and
+the texts below them — and often span several clips. So they are **not image effects of a clip** and are not forced into
+`Clip.Effects`.
+
+Proposed (variant A, recommended):
+- **A template clip** — `TemplateClip : Clip`, a generated clip on a video track like `TextClip`: a template type id
+  (`rec`, `vhs`, `boulder`, `highlight`, `wasted`), its typed fields (texts, the route and grade, the status, the sound
+  switch),
+  its start and duration on the timeline; it covers what is **below its track** for its time. Several templates may exist
+  at once on different tracks (their order is the tracks' order).
+- **Composition**: `LayersAt` gives a `TemplateLayer` (the type, the fields, the time since the template's start — the
+  template's own clock, so the counters and the animations are a pure function of it). The draw plan gains two operations:
+  `TreatmentDraw` — "apply the template's treatment to everything drawn below" — and the template's graphics as ordinary
+  shapes and texts in canvas units (as `TextDraw` / `SolidDraw`). The painter executes `TreatmentDraw` by rendering the
+  layers below into an offscreen bitmap, running the treatment over its pixels and drawing the result back — for the
+  export inside `AvaloniaCompositionRasterizer` (canvas size), for the Preview through the same rasterizer at the viewport's
+  size while a treatment is on screen. The treatment is defined in canvas units and is deterministic (a function of the
+  pixels, the template's clock and the frame number; no shared random state): Preview = export holds at the canvas size
+  byte for byte and is approximated at the Preview's smaller size, as decoded frames already are (≤ 1280 × 720).
+- **Sound (WASTED — deferred, §15; not implemented in Phase 29; kept as the design for a return)**: the template contributes an `AudioSpan` of a **built-in sound** (an asset id reserved for the app's
+  own sounds, resolved by the audio reader to a file shipped with the app — no `MediaAsset` in the project, no path in
+  `project.json`); the switch «Звук» is a field of the template (one Undo step); the track's mute applies as to any span.
+  Revision 3 (the product owner, 2026-10-21): the template has **no speed** (as a text, D022), so its sting always plays at
+  1× at its timeline place, whatever the speed of the clips below; while the sting plays, **the own sound of the clips below
+  the template is attenuated by a fixed local envelope** (to −22 dB over 60 ms ending at the switch, held, back to its level
+  over 0.45 s from 0.35 s before the sting's end) — the template's own rule, not a general ducking or automation: no
+  settings, no other template or track uses it. In the app it is one more multiplicative envelope in the shared
+  `AudioMix.Add` (`AudioPlacement.cs`, already used by the Preview's mixer and the export) on the spans the snapshot marks as
+  under an active WASTED with its sound on; the sound switch off — no sting and no attenuation. Which spans are "below" (the
+  video tracks under the template and their linked sound, D032; the music untouched) is fixed in Step 29.4.
+- **Treatment with motion (WASTED — deferred, §15)**: the slow push-in of the picture below is a scale about the canvas centre applied to
+  the treated layers — the same kind of canvas motion as D044's Zoom (`CanvasMotion`); the template never changes the
+  timing of the clips below (slow motion stays the clip's own speed, D022 — §13).
+- **Edits**: add from a menu (the clip at the playhead, a default duration per type; one Undo step), move / trim / delete /
+  Duplicate as any clip, the fields in the Inspector (one Undo step per change, merged as D017). **Split** follows D025:
+  the left part keeps the appearance, the right part the disappearance, and the template's clock continues (the right
+  part's counters and animation phase go on from the cut; stored as an offset into the template's time).
+- **Format**: `project.json` v9 (a template clip is a new clip kind; an older build refuses the file instead of dropping
+  the templates silently, as v8 did for the transitions). `Clip.Effects` stays untouched (still persisted, still not
+  rendered).
+
+Variant B (considered, not recommended now): the treatments as Skia colour filters / SkSL shaders inside the painter
+(`ICustomDrawOperation`) — no read-back and GPU-fast, but it moves below Avalonia's drawing API into SkiaSharp, the export's
+CPU raster and the Preview's GPU path would have to be proven identical, and SkSL availability in Avalonia 11.1's SkiaSharp
+is a risk. Variant C (rejected): templates as `Clip.Effects` on video clips — wrong scope (a template spans clips and
+covers the outlines and texts), no place for graphics or sound.
+
+### 4. Performance (measured in the prototypes, 2026-10-21; to be confirmed in the app)
+
+The 29.1 harness draws each frame with the app's `CompositionPainter` into a `RenderTargetBitmap` (the export's path),
+runs the treatment as a C# pass (`Parallel.For`) and draws the template's graphics. At 1920 × 1080 / 1080 × 1920, 60 fps
+sources, AMD Ryzen 7 7800X3D (16 threads), per frame: the frame and the animated hold outline 9.1–10.4 ms (the app's
+painter, unchanged work); the VHS treatment 4.8–4.9 ms; the WASTED treatment ≈ 2 ms while it is on screen; the graphics
+with the second offscreen draw and the upload of the treated pixels 2.6–3.3 ms (graphics only) / 4.6–7.4 ms (with a
+treatment). Estimate: where a treatment is on screen the export does ≈ 7–12 ms more per 1080p frame (the encoder's own
+time unchanged); a graphics-only template costs ≈ 3 ms. The Preview at ≈ 1280 × 720 has about half the pixels — ≈ 4–6 ms
+more per frame with a treatment, inside a 60 fps budget (16.7 ms) together with today's work on this machine; to be
+measured in the app on a slower machine too (a criterion of Step 29.6).
+
+Revision 2 (2026-10-21): the «Боулдер» plate 2.6–3.3 ms (graphics only); the WASTED reconstruction — its pass ≈ 4.5 ms
+while on screen (the stronger grading and the oval), its graphics with the push-in redraw 9.4–10 ms in the harness (the
+outlined word's glyph geometry is rebuilt every frame there; in the app it is cached as D043's outlined text, so less).
+
+### 5. UX (sketch, to be refined after the gate)
+
+- A tool-bar / timeline menu «Шаблон ▾» with the four names of Phase 29 (REC, VHS, Боулдер, Хайлайт; WASTED deferred,
+  §15); the template lands on the free video track above the selection (a new track when none is free), at the playhead,
+  with its default duration (REC / VHS: the selected clip's length or 10 s; Боулдер: 8 s; Highlight: 3 s).
+- The Inspector's section of the template: only its own fields; an empty field hides its element in the picture.
+- Russian labels and the D039 guards; no free styling (colours, fonts, positions) beyond a field or two per template.
+
+### 6. Templates' fields and looks (prototype values, to be confirmed)
+
+| Template | Fields | Look (prototype) |
+|---|---|---|
+| REC | the date (optional), the counter's start | corner marks, ● REC blinking 1 Hz, a battery, the timecode bottom left, the date bottom right |
+| VHS | the date (optional); the strength fixed (the product owner, 2026-10-21) | softness, chroma offset, lower saturation, lifted blacks, faint scanlines, luma noise, a tracking band every 4.8 s, the head-switching strip; PLAY for 2.5 s, the counter and the date in the deck's monospaced style |
+| Боулдер (revision 2) | route, grade (each optional), status: none / TOP / ПОПЫТКА; the accent — the route's colour by default | one navy plate 62 px (1080-units) high, bottom left (above the phone zone on a vertical canvas), accent edge, «ТРАССА 7 · 7A»; TOP as a chip in the accent colour, ПОПЫТКА as an outlined chip; slide + fade, the chip pops 0.25 s later |
+| Highlight | title (default «ЛУЧШАЯ ПОПЫТКА»; in the English interface «BEST ATTEMPT»), subtitle (optional); the accent fixed yellow (the product owner, 2026-10-21) | a slanted bar wipes in, the title rises inside it, the subtitle below; wipes out to the right |
+| WASTED (revision 3) — **deferred, §15; not in Phase 29** | the sound on / off (the word fixed, lowercase «wasted») | §13: 1.8 s «death cam» (colour drains, slight vignette, slow push-in), then in one frame black and white with hard contrast and blown highlights, a heavy oval vignette, a dark band across the frame at mid-height and the red lowercase word in it — **plain red letters, no outline, no shadow, no effect** —, the sting at 1× with the clips' own sound attenuated under it (§3); hold; a fade to black over the last 0.6 s. Slow motion is the clip's own speed, never the template's |
+
+Fonts: Bahnschrift, Consolas, Segoe UI — present on every Windows 10 / 11; the portable build (S1) relies on them (a risk,
+§12).
+
+### 7. The music scenario (audit, no new functions)
+
+The existing path — import → the music on an audio track under the video → volume → trimming the start and the end →
+fade-in / fade-out → export — is checked end to end on the product owner's music and on generated reference signals,
+with objective criteria (gaps, doubled audio, offsets, levels, fade envelopes, clicks at edits, the end of the export,
+the mix with the clips' own sound, the Preview by ear): `docs/PHASE29_MANUAL_TEST_PLAN.md`, part B. Only the defects found
+and the material UX gaps the product owner agrees to are fixed. **Not added**: a mixer, ducking, an equaliser, reverb,
+looping, an automatic fitting of the music to the video (D042 §3; the product owner, 2026-10-21).
+
+### 8. Out of scope
+
+Colour correction and grading; an effect library or stacks; keyframes or user curves; free styling of the templates;
+automatic detection of a result, a highlight or a fall; the extension «Соревнование» and any system of free fields (§2);
+a template that changes the clips' timing (slow motion stays the clip's speed, §13); GTA's own assets — its sound, images
+and the game's lettering — and broadcasters' logos and graphics (a licensed font is a separate question, §13); the TOP /
+ZONE hold callout (§2, a later idea); new audio functions (§7); new dependencies (none is needed by the proposal);
+**WASTED** — deferred (§15): no template type, sound, attenuation or push-in of it in Phase 29.
+
+### 9. Steps (draft)
+
+- 29.0 — sync and documentation *(done 2026-10-21)*.
+- 29.1 — the gate: research and prototypes outside the product code *(revisions 1–3, 2026-10-21; REC, VHS, «Боулдер»,
+  Highlight accepted; WASTED deferred, §15)*.
+- 29.2 — the music audit (part B of the manual plan) and its report; fixes only on the product owner's agreement.
+- 29.3 — model, `project.json` v9, the Core rules (the template clip, its fields, Split / Duplicate, the template's
+  clock), tests.
+- 29.4 — rendering: the template layer and the draw operations, the treatment pass in the rasterizer and the Preview (for
+  VHS); parity tests at the canvas size. (No template sound in Phase 29 — the built-in sound span and the attenuation were
+  WASTED's, §15.)
+- 29.5 — the UI: the menu, the Inspector's sections, Russian texts.
+- 29.6 — verification and closeout (the gates of the recent phases; the performance in the app; the manual plan).
+
+### 10. Acceptance criteria (draft)
+
+1. **Approved by the product owner (2026-10-21, §16):** the four templates accepted at the gate
+   — REC, VHS, «Боулдер», Highlight — each added in one action with its defaults and edited in the Inspector; one Undo step
+   per action; the templates persisted in `project.json` v9.
+2. Preview = export at the canvas size, byte for byte, for every template on a horizontal and a vertical canvas, with
+   hold outlines and texts below it and across a transition.
+3. «Боулдер»: a field left empty hides its element; the status only as the user set it; nothing computed is shown.
+4. **Approved (2026-10-21, §16):** no template changes the sound — a project with any of the four templates exports
+   sample-identical audio to the same project without them; WASTED is absent from the product (no menu item, no template
+   type in v9 — a return adds it through its own decision).
+5. Split, Duplicate, trim, move, delete, save / reopen keep the templates as specified (§3); a v8 project opens unchanged
+   and saved again differs only in `formatVersion`; a v9 file is refused by the Phase 28 build with a reason.
+6. The music audit run and its report delivered; the agreed fixes made and verified.
+7. The Preview plays a 1080p project with a treatment on screen without dropping below its present behaviour on this
+   machine (measured); the export's slowdown with a treatment recorded.
+8. The gates: Release / Debug `--no-incremental -warnaserror` 0 / 0, the full suite, heavy, three `--blame-hang` runs; the
+   manual plan.
+
+### 11. Open questions for the product owner (the gate 29.1)
+
+Decided by the product owner at the review of revision 2 (2026-10-21): «Боулдер» accepted (the compact plate
+«ТРАССА · КАТЕГОРИЯ», the manual TOP / ПОПЫТКА); «Соревнование» stays a documented idea only; REC, VHS and Highlight
+accepted as prototyped; WASTED accepted after two corrections — plain letters without an outline, and the sound at 1× with
+the clips' own sound attenuated under it (revision 3); the slow motion is not part of WASTED (the clip's own speed); the
+architecture of the templates as clips on a video track accepted provisionally (persisted, Undo / Redo, Split /
+Duplicate, the shared Preview / export path). Pricedown not downloaded or embedded; its licence stays open and does not
+block the prototype. The transition to the implementation needs the product owner's separate confirmation after the
+revision-3 prototype.
+
+Still open after revision 3: VHS's strength (fixed or a field «Сила»), Highlight's default title and colour. WASTED's
+questions («ПОТРАЧЕНО», which spans are attenuated, the Pricedown licence, the sound) moved to §15 with its deferral.
+
+The questions of revision 2 (kept as asked):
+1. «Боулдер»: the plate, the chips (TOP in the route's colour, ПОПЫТКА outlined), the position — accepted? The status
+   shown for the whole template (as prototyped)?
+2. WASTED: the reconstruction of §13 close enough in behaviour and timing? The word fixed lowercase «wasted» as in GTA V,
+   or «ПОТРАЧЕНО» as an option?
+3. WASTED's lettering: the stand-in face (Impact) accepted, or a licensed Pricedown pursued (§13 — a licence question for
+   the product owner), or own lettering drawn?
+4. WASTED's slow motion: left to the clip's own speed (Split + 0.3×, as in the prototype), or should the template's
+   description tell the user so — no time change inside the template (recommended)?
+5. VHS: the strength fixed, or a field «Сила» (one value)? (open from revision 1)
+6. Highlight: the default title and the accent colour; a free colour or the route's colour? (open from revision 1)
+7. The architecture of §3 (variant A) and the placement on a video track like a text (§5): approved?
+
+### 12. Risks
+
+- The treatment's cost in the Preview at high resolutions (mitigation: the viewport size; measured at 29.6).
+- Fonts on other machines (Bahnschrift / Consolas exist on Windows 10 / 11; otherwise a fallback changes the look) —
+  embedding a font is an alternative (licence to check) if it becomes a problem.
+- (WASTED's risks below apply to a return — §15.) WASTED as a close reconstruction of a well-known game's screen (revision 2): the closer it gets, the more it imitates
+  Rockstar's trade dress; without a lawyer's view this is a product-owner risk decision (§13), recorded, not resolved here.
+- The WASTED lettering: an exact match needs Pricedown (a commercial typeface, §13); with a stand-in the word reads
+  differently.
+- Taste: VHS and WASTED can overpower a climbing video — kept restrained, judged at the gate.
+
+### 13. WASTED — research of the original and what can be reproduced (gate 29.1, revisions 2–3, 2026-10-21; deferred, §15)
+
+Sources: GTA V gameplay recordings examined frame by frame in the built-in browser (cookies declined) — *GTA V – Wasted
+Compilation #33* (https://www.youtube.com/watch?v=IcnnSdIw6uk): story-mode deaths at ≈ 59 s and ≈ 77–80 s, a GTA Online
+death at ≈ 43–47 s for contrast; descriptions: Grand Theft Wiki (https://www.grandtheftwiki.com/Wasted), the GTA wiki
+(https://gta.fandom.com/wiki/Wasted — not readable by the tools, HTTP 402), editors' recreations (Blackmagic forum
+https://forum.blackmagicdesign.com/viewtopic.php?f=21&t=88767, StreamUP https://streamup.tips/product/wasted-effect);
+the typeface: Typodermic's Pricedown page (https://typodermicfonts.com/pricedown/) and licence page
+(https://typodermicfonts.com/license/). Frame references are kept locally only
+(`VideosForTest/Phase29_Step29.1/out/archive_wasted_deferred/research_gta_local_only`, never committed). The sound could not be analysed:
+the recordings' audio is not accessible to the tools and no game file was downloaded — the sound below is described by
+its role only.
+
+What GTA V (story mode) does — observed:
+1. **Death cam** (≈ 1.8–1.9 s from the death: 77.5 → 79.4 s and ≈ 57.2 → 58.9 s): the world goes on in **slow motion**, the
+   camera moves (pans / pushes in), the colour is somewhat muted and cooler, slightly darker; no text.
+2. **The switch — one frame** (79.35 → 79.50 s, 58.8 → 58.9 s, within the 0.10–0.15 s sampling): at once the picture turns
+   **black and white** with hard contrast, blown highlights in the centre (a bloom look) and a **heavy oval vignette**
+   (the corners nearly black); a **translucent dark band** across the whole width at mid-height (≈ 20 % of the frame's
+   height, centred at ≈ 48 %); the word **«wasted» — lowercase, red (≈ #C8353A), Pricedown, a thin dark outline**, centred
+   in the band, ≈ 24 % of the frame's width. No scale or slide of the word was seen.
+3. **Hold**: the slow motion and the camera move continue under the screen; ≥ 4 s observed (the compilations cut before
+   the end; the game then fades out to respawn).
+4. **Sound**: a heavy, low, ominous accent at the switch (not measured here).
+GTA Online differs (a grey lowercase «wasted» in a grey band, a respawn bar) — not the model.
+
+What the prototype reproduces with own means (revision 2, `out/archive_wasted_deferred/rev2/5_wasted_*`): the 1.8 s death cam (−45 % colour, cooler,
+−10 % light, a mild vignette, a 7 % push-in over the template); the one-frame switch (≤ 5 frames of opacity on the band
+and the word); the black-and-white grading, the contrast, the bloom-like lift and the oval vignette; the band and the word's
+size, colour, outline and position; the hold and a 0.6 s fade to black; the sting at the switch (an own synthesis: a sub
+boom with a noise hit and a low dissonant swell, ≈ 3 s in a dark room). Slow motion: shown in the prototype by the clip's
+own speed — split at the drop and its right part at 0.3× (D022; source frames repeated, no interpolation) — exactly what
+the app can already do; the template does not change time.
+
+What own means cannot reproduce exactly — and why:
+- **The lettering.** GTA V sets «wasted» in **Pricedown** (Typodermic, a commercial typeface; the game's version may be
+  modified). It is not installed here and was not downloaded (a download needs the product owner's permission). The
+  prototype uses **Impact** (Windows) as a stand-in: the weight and width are close, the letter shapes are not (Pricedown's
+  flared, rounded "price-tag" forms). Exactness needs Pricedown itself — not a GTA asset, but a font under a licence:
+  Typodermic's licence page says a complete pre-rendered graphic with no font or reusable characters "remains desktop use",
+  while editable templates and software embedding a working font need a separate (custom / app) licence. Shipping one fixed
+  pre-rendered «wasted» graphic may fall under the desktop licence; shipping the font file does not. **Open: the exact
+  terms for Pricedown's own EULA and for this product (a desktop editor, possibly distributed) — to be confirmed with
+  Typodermic or a seller before any use.** Drawing own lettering that copies Pricedown's shapes is not a way around it.
+- **The sound.** The game's sound is Rockstar's asset (copyright): not usable without Rockstar's permission, which is not
+  realistic. Own synthesis can match the role (a heavy low hit at the switch, a dark tail) but not the exact sound; how
+  close it may get without imitating a protected recording is a judgement for the product owner.
+- **The game's camera.** The death cam moves a virtual camera around the body; a video can only scale / pan its frame (the
+  push-in). A real camera move is impossible.
+- **Slow motion quality.** The game renders real slow motion; the app repeats source frames at 0.3× (60 fps sources give
+  18 distinct frames a second — visibly steppy). Smooth slow motion needs frame interpolation — not in the app (D042 §3
+  keeps speed ramps out).
+- **Trade dress.** A close reconstruction of the screen (band + red lowercase word + grading) imitates Rockstar's
+  recognisable presentation; with the plain word and own assets the risk is reduced, not removed. Not a technical
+  limitation — a product-owner decision, ideally with legal advice if the product is distributed.
+
+Compromise options (for the product owner, not chosen): (a) keep the reconstruction with the stand-in face and the own
+sting (no licence needed); (b) a licensed Pricedown as one pre-rendered graphic, after the licence is confirmed; (c) own
+lettering in the same spirit but clearly not Pricedown.
+
+Revision 3 (2026-10-21, the product owner's corrections):
+- **Lettering**: the word is drawn as plain red letters (Impact, the same size, position, colour #C8353A and moment as
+  revision 2) — the outline removed; no shadow or other effect. Pricedown still neither downloaded nor embedded.
+- **Sound**: in revision 2 the clip's own sound, stretched to 0.3× with the picture (the app's own D022 `atempo`, pitch
+  kept — the product does the same), ran on under the sting and sounded eerie. Now: a new short own sting — a kick-like sub
+  thump, a noise slam, a bright minor stab (A / C / E) and a short cymbal-like wash, 1.6 s, no drone — placed at the switch
+  at 1×; the clips' sound attenuated under it by the fixed envelope of §3 and restored after it. Measured in the harness
+  (48 kHz float, before the AAC encode): the sting found at exactly the planned sample (lag 0, normalised correlation
+  0.998) both with the clip at 0.3× and at 1× — the template's sound does not depend on the clip's speed; the clip's sound
+  under the sting −35.0 → −56.9 dBFS (0.3×) and −30.4 → −52.4 dBFS (1×), i.e. −22 dB; after the sting equal to the clip's
+  own level (−34.2 / −29.2 dBFS); the sound off — the clip's sound untouched.
+- No architectural obstacle: the sting is a span without speed, and the attenuation one more envelope in the mixing code
+  the Preview and the export already share (§3).
+
+### 14. Revision history of the gate
+
+- Revision 1 (2026-10-21): five prototypes (REC, VHS, Competition, Highlight, WASTED as a free stylisation) — reviewed by
+  the product owner: REC, VHS, Highlight accepted in principle; Competition too heavy for hobby bouldering; WASTED too free.
+  Its renders kept in `VideosForTest/Phase29_Step29.1/out/archive_rev1`.
+- Revision 2 (2026-10-21): «Боулдер» (horizontal TOP and ПОПЫТКА, vertical TOP and without a status) and the WASTED
+  reconstruction (horizontal and vertical, each with the sound and muted). Accepted by the product owner with two
+  corrections of WASTED (the outline, the sound); its WASTED renders kept in `out/archive_wasted_deferred/rev2`.
+- Revision 3 (2026-10-21): WASTED with plain letters and the sound at 1× over the attenuated clip sound — horizontal (0.3×
+  with the sound and muted, and a 1× control with the sound) and vertical (with the sound and muted).
+- Deferral (2026-10-21): the product owner took WASTED out of Phase 29 (§15); every WASTED material moved into `VideosForTest/Phase29_Step29.1/out/archive_wasted_deferred`
+  (revisions 1–3, the stings, the research frames, the slowed sources, a snapshot of the harness code and scripts; nothing
+  deleted).
+
+### 15. WASTED deferred (the product owner, 2026-10-21)
+
+Decision: WASTED is **taken out of the current implementation of Phase 29** and left for separate future work; it is not
+part of Phase 29's mandatory scope and **does not block the phase**. No further attempts to synthesise its sound.
+
+Reason: the quality of the sound accent is unsatisfactory (three own syntheses: revision 1 a thump with a falling tone,
+revision 2 a long low dissonant swell, revision 3 a short thump, slam, minor stab and wash — none good enough), and a
+suitable separate sound has not been chosen.
+
+Requirements for a return (the product owner's):
+1. The source bouldering video's own sound must not keep playing under WASTED.
+2. The effect has its own separate sound accent.
+3. The sound is of suitable quality — not a home-made imitation that sounds bad.
+4. The accent plays at normal speed whatever the speed of the clip.
+5. With the template's sound switched off: no accent and no attenuation of the source audio.
+6. The effect is not included in the product until a suitable resource is chosen and its rights are checked.
+
+What is kept for a return (nothing deleted): the research and the reconstruction of §13 (timing, composition, typography,
+grading, the deferred lettering and rights questions); the design of §3 for its sound (a span without speed + the fixed
+attenuation envelope in the shared `AudioMix.Add`) and for its push-in (a `CanvasMotion` of the treated layers) — verified
+in the harness; the measurements of §4 and §13; all prototypes, stings, frames and sources in `VideosForTest/Phase29_Step29.1/out/archive_wasted_deferred`
+with a README (its index, the requirements, how to re-run). Requirement 1 with the attenuation of §3 (−22 dB) leaves the
+source faintly audible — a return decides whether "must not keep playing" means a full mute under the accent.
+
+Open for a return: the sound resource (a licensed library sound or a commissioned one) and its rights; the lettering
+(Impact stand-in / a licensed Pricedown as one pre-rendered graphic / own lettering — §13); «ПОТРАЧЕНО» as an option;
+which spans are attenuated or muted; the trade-dress risk (§12). A return gets its own decision (or a revision of this one)
+and its own format change (the template type id `wasted` is not reserved in v9).
+
+Consequences for Phase 29 (minimal changes, **approved by the product owner on 2026-10-21**, §16): four templates (REC, VHS,
+«Боулдер», Highlight); no template has a sound — no built-in sound span, no attenuation envelope, no change of the audio
+path by the templates (the music audit, §7, stays); the treatment pass stays (VHS); no push-in motion; the acceptance
+criteria 1 and 4 of §10 as revised; the manual plan's WASTED rows marked deferred.
+
+### 16. Approval and implementation (the product owner, 2026-10-21)
+
+Decided: the reduced scope without WASTED is approved. WASTED is out of the current implementation and of the acceptance
+criteria; every prototype and research result stays in the archive for a return (§15). VHS: a fixed strength, no user
+slider. Highlight: the default title «ЛУЧШАЯ ПОПЫТКА», a yellow accent, the text editable. Music: an audit of the existing
+scenario and fixes of confirmed defects only; no new audio functions. Implemented: REC, VHS, «Боулдер», «Хайлайт»; the
+architecture of §3 accepted (a template clip on a video track, persisted, Undo / Redo, Split / Duplicate, the shared
+Preview / export path); the templates never change the audio. The implementation was started on the product owner's go
+the same day; the branch checked first (`feat/phase-29-templates` = `origin/main` `4f0e66a`, no synchronisation needed).
+
+Implementation notes:
+- Model: `TemplateClip : Clip` (`TemplateKind`, `CounterStart`, the fields of `TemplateProperties`, `BoulderStatus`);
+  `TemplateRules` — defaults (REC / VHS 10 s, «Боулдер» 8 s, «Хайлайт» 3 s; appearance / disappearance 0.2 / 0.2, 0 / 0,
+  0.35 / 0.3, 0.6 / 0.3 s as the clip's fades in whole frames), limits (date 24, route and grade 12, title 60, subtitle 80
+  characters, one line each), the fixed words of the plate (ТРАССА, TOP, ПОПЫТКА — part of the look, not interface text),
+  `HasTreatment` (VHS). The template goes on the topmost video track at the playhead (as a text), making room (D037 §3);
+  a transition next to a template is refused («Рядом с шаблоном нельзя поставить переход.»); a template moves only between
+  video tracks.
+- Edits: `ITimelineEditService.AddTemplateClip(kind, start)` (one step "Add Template"); `ClipPropertyChange.Template`
+  (validated by `ClipPropertyValidator`, a typed field merging, "Change Template"); `ClipPropertyFields` widened to `long`
+  for the seven template fields; Split: the D025 fades rule plus the right part's `CounterStart` += the left part's
+  frames; Duplicate / copy / paste copy every field and the counter.
+- Format: `project.json` v9 (`TemplateClipDto`: `template`, `counterStartTicks`, `date`, `route`, `grade`, `status`,
+  `accentHex`, `title`, `subtitle` — all required); a template in a v1–v8 file, an unknown kind or status, a negative
+  counter, an invalid field and a transition next to a template refuse the file.
+- Rendering: `TemplateSpan` / `TemplateLayer` / `TemplateClock` / `TemplateDraw`; `TemplatePainter` (the accepted
+  prototypes' look, Bahnschrift / Consolas; immutable brushes, `FormattedText`, rectangles, lines, ellipses — the slanted
+  bar of «Хайлайт» is a rectangle under a skew matrix, the PLAY triangle rows of rectangles: no geometry objects, so the
+  export draws them off the UI thread); `TemplateTreatment.Vhs` (Core, deterministic, rows in parallel);
+  `CompositionPainter.Paint(…, TreatmentSurface?, renderScaling)` — only a plan with a treated template takes the offscreen
+  path; `AvaloniaCompositionRasterizer` and `CompositionView` keep one `TreatmentSurface` each.
+- UI: «Шаблон» in the timeline header (`TemplateMenu`, `Icons.Template`); clips named «Боулдер · 7 · 7A», «Хайлайт · …»,
+  coloured #783A5C; the Inspector's ШАБЛОН section (`InspectorViewModel.Template.cs`); the fades, transform and text sections
+  hidden for a template; Russian and English texts (`Strings`, `Messages`; REC / VHS / TOP listed as the same in both).
+- The music audit (§7): `MusicScenarioAuditTests` (ExportEndToEnd) — no defect found; part B of the manual plan.
+
+Verification (Step 29.6, 2026-10-21): Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4499 / 3 / 0;
+`AIVE_HEAVY_TESTS=1` 4502 / 0 / 0; three `--blame-hang` runs 4499 / 3 / 0, no hang, no dump; the criteria of §10: 1 (the four
+templates, one step each, v9) — `TemplateEditTests`, `TemplateUiTests`, `TemplatePersistenceTests`; 2 (Preview = export at
+the canvas size) — `TemplateRenderingTests`, `ExportTemplateEndToEndTests`; 3 (empty fields hidden, the status only as set)
+— `TemplateRenderingTests`; 4 (no template changes the sound; WASTED absent) — `ExportTemplateEndToEndTests`; 5 (Split,
+Duplicate, save / reopen, v8 unchanged) — `TemplateEditTests`, `TemplatePersistenceTests`; 6 (the music audit) — part B;
+7 (the speed) — the export's rasterizer 18–20 ms per 1080p frame with VHS, ≈ 10 without (measured in the harness; the
+Preview at its smaller size cheaper), not measured on a slower machine; 8 — the gates above and the manual plan (what was
+not run in the real app is named there).
+
+### 17. Corrections after the product owner's manual check (2026-10-21)
+
+1. **Text centring** («Боулдер», «Хайлайт»; REC and VHS unchanged). The text was placed by its layout box, whose descent
+   and line gap below the baseline lifted it by about a fifth of its size. Now `TemplatePainter.InkOf` reads the font's own
+   glyph metrics — the cap height (the typeface's «H», `GlyphMetrics.YBearing`), the first glyph's left and the last glyph's
+   right bearing — and every text is centred on its block by its ink: vertically on the band of the capitals (descenders
+   and the marks of Й / Ё hang out of it, as in typesetting), horizontally on its ink. The «Хайлайт» bar and the subtitle
+   strip are sized from the cap height. Measured on the pixels (`TemplateTextAlignmentTests`): within 0.5 px (one case 1.0).
+2. **Two blocks**: the route block (navy, white text, the route's colour as its left edge) and, after a gap, the status
+   block — TOP yellow with navy text, ПОПЫТКА muted blue (#46648C) with white text (no longer the route's accent or an
+   outline); the status appears with a 0.25 s fade and a small slide, no overshoot.
+3. **The moment of the status (proposed, awaiting the product owner)**: not in the model yet. Without a stored moment the
+   status can only follow the clip's start (now: 0.25 s after it). Minimal proposal: one field `StatusAt` — the moment on
+   the template's own clock (the clock of `CounterStart`, so Split and Duplicate need no rule: a right part continues the
+   clock, the status shows already or appears at its moment); `project.json` v9 gains one required member
+   `statusAtTicks` — v9 is not released (it exists only on this uncommitted branch), so no version change and no
+   migration; set in the Inspector from the playhead when TOP / ПОПЫТКА is chosen (and a «На указатель» button to move it),
+   shown as a tick on the template's clip on the timeline. Alternative without a schema change: the user splits the
+   template at the moment and sets the status on the right part only (the status then pops at that part's start) — more
+   steps and less obvious.
+4. **The moment of the status — approved by the product owner (2026-10-21) and implemented**: `TemplateClip.StatusAt`
+   (`MediaTime`, a member of `TemplateProperties`, so it is edited, validated, merged and undone like the other fields;
+   `ClipPropertyFields.TemplateStatusAt`); `project.json` v9 gains the required member `statusAtTicks` (missing or
+   negative: the file is refused; v9 unreleased — no version change, no migration). The rules:
+   - set by the playhead: the user chooses TOP / ПОПЫТКА, puts the playhead on the frame and presses «На указатель»
+     (the Inspector, shown for «Боулдер» with a status, with the moment in seconds of the template); choosing a status
+     doesn't move the moment; a new template's moment is 0 (its start); the playhead off the clip: refused with a message;
+   - before the moment only the route block; on the moment's frame the status's 0.25 s appearance starts (nothing of it
+     drawn yet on that frame), then it stays to the template's end (the clip's own disappearance takes it with the plate);
+   - one click, one undo step («Set Status Moment»), never merged with the next;
+   - the moment is on the template's own clock (`CounterStart`'s): Split keeps the absolute moment in both parts, so each
+     part shows the status only where it is due by time; Duplicate / copy copies it; a trim never moves it; a moment
+     after the template's end: the status doesn't appear (the Inspector says so);
+   - exact in whole frames: `TemplateClock.SinceStatus` = (the counter's frame − the moment's frame) / rate, so the
+     Preview and the export start the appearance on the same frame;
+   - the timeline marks the moment on the clip (a 2 px line, TOP yellow / ПОПЫТКА blue) when it lies inside the clip.
+
+Context: the product owner's refinement of Phase C on 2026-10-21 after the merge of Phase 28 (PR #29, `4f0e66a`); the
+product owner's review of the gate prototypes on 2026-10-21 (revision 2).
+
+Consequences (if approved, without WASTED — §15): `project.json` v9; a new clip kind and layer; two draw operations and a
+read-back pass in the rasterizer; the parity suites grow. No built-in sound asset, no change of the audio path by the
+templates. No new dependency.
+
+Status: **Approved (product owner, 2026-10-21)** — the reduced scope (§15, §16), implemented in Phase 29; the corrections
+and the status moment of §17 approved and implemented; **Phase 29 accepted by the product owner on 2026-10-22** after the
+manual check (the templates, the centring, the status moment). WASTED stays deferred (§15). Not part of Phase 29 (the
+product owner, 2026-10-22): hold tracking, camera motion compensation, contour smoothing and occlusion are not part of Phase 29 — to be researched and scoped separately after it. Before the
+approval: draft (2026-10-21, after the gate) — REC, VHS, «Боулдер» and Highlight accepted at the gate; WASTED deferred
+(§15); the scope without WASTED (§15 "Consequences", §10 criteria 1 and 4) and the implementation await the product
+owner's approval. Branch `feat/phase-29-templates` from `origin/main` `4f0e66a`.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

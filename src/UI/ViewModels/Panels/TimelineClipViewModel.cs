@@ -44,6 +44,7 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
         VideoClip => "#3A5A78",
         AudioClip => "#3A784F",
         ImageClip => "#78703A",
+        TemplateClip => "#783A5C",
         _ => "#5A3A78"
     };
 
@@ -81,6 +82,22 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
 
     public bool HasFadeIn => FadeInWidth > 0;
     public bool HasFadeOut => FadeOutWidth > 0;
+
+    /// <summary>«Боулдер» with a status (D045 §17): the pixel offset from the clip's left edge of the moment its status
+    /// appears, or null — no status, or the moment outside this clip (before it the status already shows, after it never).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStatusMark))]
+    [NotifyPropertyChangedFor(nameof(StatusMarkLeft))]
+    private double? _statusMarkX;
+
+    public bool HasStatusMark => StatusMarkX is not null;
+    public double StatusMarkLeft => StatusMarkX ?? 0;
+
+    /// <summary>The mark's colour: TOP's yellow or ПОПЫТКА's blue, lightened to show on the clip.</summary>
+    public string StatusMarkColorHex => Clip is TemplateClip { Status: BoulderStatus.Top } ? TemplateRules.TopHex : "#9DB8DC";
+
+    /// <summary>The template's status may have changed: the mark's colour follows it.</summary>
+    public void OnStatusChanged() => OnPropertyChanged(nameof(StatusMarkColorHex));
 
     public void Layout(double pixelsPerSecond) => Layout(pixelsPerSecond, Clip.TimelineStart, Clip.TimelineEnd);
 

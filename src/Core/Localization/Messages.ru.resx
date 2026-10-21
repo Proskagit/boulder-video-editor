@@ -1066,4 +1066,52 @@
   <data name="Relink_TransitionShortMany" xml:space="preserve">
     <value>В новом файле не хватает исходных кадров, нужных переходам за краями клипов ({0}); экспорт с ними будет отклонён, пока их не укоротят или не удалят.</value>
   </data>
+  <data name="Template_DefaultTitle" xml:space="preserve">
+    <value>ЛУЧШАЯ ПОПЫТКА</value>
+  </data>
+  <data name="Template_FieldMissing" xml:space="preserve">
+    <value>Не хватает поля шаблона.</value>
+  </data>
+  <data name="Template_FieldLength" xml:space="preserve">
+    <value>Поле шаблона вмещает не больше {0} символов.</value>
+  </data>
+  <data name="Template_OneLine" xml:space="preserve">
+    <value>Поле шаблона — одна строка текста.</value>
+  </data>
+  <data name="Template_UnknownStatus" xml:space="preserve">
+    <value>Неизвестный статус трассы.</value>
+  </data>
+  <data name="Template_StatusAtNegative" xml:space="preserve">
+    <value>Момент появления статуса не может быть отрицательным.</value>
+  </data>
+  <data name="Template_Rec" xml:space="preserve">
+    <value>REC</value>
+  </data>
+  <data name="Template_Vhs" xml:space="preserve">
+    <value>VHS</value>
+  </data>
+  <data name="Template_Boulder" xml:space="preserve">
+    <value>Боулдер</value>
+  </data>
+  <data name="Template_Highlight" xml:space="preserve">
+    <value>Хайлайт</value>
+  </data>
+  <data name="Kind_Template" xml:space="preserve">
+    <value>Шаблон</value>
+  </data>
+  <data name="Prop_OnlyTemplate" xml:space="preserve">
+    <value>Поля шаблона есть только у шаблонов.</value>
+  </data>
+  <data name="Edit_CantAddTemplate" xml:space="preserve">
+    <value>Нельзя добавить шаблон на {0}: {1}</value>
+  </data>
+  <data name="Verb_AddTemplate" xml:space="preserve">
+    <value>добавить шаблон на {0}</value>
+  </data>
+  <data name="Describe_TemplateClip" xml:space="preserve">
+    <value>шаблон «{0}»</value>
+  </data>
+  <data name="Transition_NotOnTemplate" xml:space="preserve">
+    <value>Рядом с шаблоном нельзя поставить переход.</value>
+  </data>
 </root>

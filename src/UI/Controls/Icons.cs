@@ -29,6 +29,9 @@ public static class Icons
     public const string VideoTrack = "M1.5,4.5 H14.5 V11.5 H1.5 Z M4.5,4.5 V11.5 M11.5,4.5 V11.5";
     public const string AudioTrack = "M2,7.5 V8.5 M4.5,6 V10 M7,3.5 V12.5 M9.5,5.5 V10.5 M12,7 V9 M14,7.5 V8.5";
     public const string Text = "M3,3 H13 M8,3 V13 M6,13 H10";
+
+    /// <summary>D045: a template — a frame's corner marks around a bar.</summary>
+    public const string Template = "M2,5.5 V2 H5.5 M10.5,2 H14 V5.5 M14,10.5 V14 H10.5 M5.5,14 H2 V10.5 M5,8 H11";
     public const string RippleDelete = "M2,5.5 L5.5,10.5 M5.5,5.5 L2,10.5 M14.5,4.5 H10.5 V11.5 H14.5 M9,8 H6.5 M8,6.5 L6.5,8 L8,9.5";
     public const string CloseGap = "M1.5,4.5 H5 V11.5 H1.5 M14.5,4.5 H11 V11.5 H14.5 M9.5,8 H6.5 M8,6.5 L6.5,8 L8,9.5";
     public const string Paste = "M4,3 H12 V14.5 H4 Z M6,1.5 H10 V4.5 H6 Z M6,8 H10 M6,10.5 H10";

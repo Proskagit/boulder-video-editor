@@ -15,6 +15,13 @@
       <MenuItem Header="{x:Static l:Strings.TransitionType_Zoom}" Command="{Binding AddTransitionCommand}" CommandParameter="zoom"/>
       <MenuItem Header="{x:Static l:Strings.TransitionType_Push}" Command="{Binding AddTransitionCommand}" CommandParameter="push"/>
     </MenuFlyout>
+    <!-- D045 §5: the menu of the four templates of Phase 29 under «Шаблон». -->
+    <MenuFlyout x:Key="TemplateMenu" Placement="BottomEdgeAlignedLeft">
+      <MenuItem Header="{x:Static l:Strings.TemplateType_Rec}" Command="{Binding AddTemplateCommand}" CommandParameter="Rec"/>
+      <MenuItem Header="{x:Static l:Strings.TemplateType_Vhs}" Command="{Binding AddTemplateCommand}" CommandParameter="Vhs"/>
+      <MenuItem Header="{x:Static l:Strings.TemplateType_Boulder}" Command="{Binding AddTemplateCommand}" CommandParameter="Boulder"/>
+      <MenuItem Header="{x:Static l:Strings.TemplateType_Highlight}" Command="{Binding AddTemplateCommand}" CommandParameter="Highlight"/>
+    </MenuFlyout>
   </UserControl.Resources>
   <UserControl.Styles>
     <!-- Items on a Canvas are positioned through their container (ContentPresenter). -->
@@ -130,6 +137,13 @@
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <controls:IconPath Glyph="{x:Static controls:Icons.Text}" Width="12" Height="12"/>
                 <TextBlock Text="{x:Static l:Strings.Timeline_AddText}"/>
+              </StackPanel>
+            </Button>
+            <!-- D045 §5: «Шаблон» — the menu of the four templates; each is added at the playhead on the top video track. -->
+            <Button x:Name="TemplateButton" Flyout="{StaticResource TemplateMenu}" ToolTip.Tip="{x:Static l:Strings.Timeline_TemplateTip}" FontSize="11">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Template}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_Template}"/>
               </StackPanel>
             </Button>
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
@@ -361,6 +375,11 @@
                                   </LinearGradientBrush>
                                 </Border.Background>
                               </Border>
+                              <!-- D045 §17: «Боулдер»'s status moment, a line on the clip at the frame its status appears. -->
+                              <Canvas Grid.ColumnSpan="3" IsVisible="{Binding HasStatusMark}" IsHitTestVisible="False" ClipToBounds="True">
+                                <Border Name="StatusMark" Canvas.Left="{Binding StatusMarkLeft}" Width="2" Height="44"
+                                        Background="{Binding StatusMarkColorHex}"/>
+                              </Canvas>
                               <TextBlock Grid.Column="1" Text="{Binding Label}" Foreground="#EEEEEE" FontSize="10"
                                          Margin="2,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                          IsHitTestVisible="False"/>

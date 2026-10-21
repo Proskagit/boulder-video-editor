@@ -30,6 +30,9 @@ public sealed class CompositionView : Control
     /// <summary>The Preview's own glyphs of outlined texts (D043 variant B; UI thread).</summary>
     private readonly TextGlyphCache _glyphs = new();
 
+    /// <summary>The offscreen buffers of a template's treatment (D045 §3), created when one is first shown.</summary>
+    private TreatmentSurface? _treatment;
+
     static CompositionView()
     {
         AffectsRender<CompositionView>(LayersProperty, CanvasProperty);
@@ -62,14 +65,19 @@ public sealed class CompositionView : Control
         base.OnDetachedFromVisualTree(e);
         foreach (var bitmaps in _bitmaps.Values) bitmaps.Dispose();
         _bitmaps.Clear();
+        _treatment?.Dispose();
+        _treatment = null;
     }
 
     public override void Render(DrawingContext context)
     {
         var layers = Layers.IsDefault ? ImmutableArray<LayerPicture>.Empty : Layers;
         var plan = PreviewDrawPlan.Build(Canvas, Bounds.Width, Bounds.Height, layers);
+        if (plan.Operations.Any(op => op is TemplateDraw { HasTreatment: true })) _treatment ??= new TreatmentSurface();
+        // A treatment works on device pixels of the viewport (the export: on the canvas's).
         CompositionPainter.Paint(context, plan,
-            frame => _bitmaps.TryGetValue(frame.ClipId, out var bitmaps) ? bitmaps.Current : null, _glyphs);
+            frame => _bitmaps.TryGetValue(frame.ClipId, out var bitmaps) ? bitmaps.Current : null, _glyphs,
+            treatment: _treatment, renderScaling: VisualRoot?.RenderScaling ?? 1);
     }
 
     private void UpdateBitmaps()

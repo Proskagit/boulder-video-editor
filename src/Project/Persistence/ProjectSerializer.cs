@@ -35,7 +35,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 8;
+    public const int CurrentFormatVersion = 9;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -55,6 +55,9 @@ public static class ProjectSerializer
 
     /// <summary>The first version with the transition library: types beyond the dissolve and a push's direction (D044).</summary>
     private const int TransitionLibraryVersion = 8;
+
+    /// <summary>The first version with templates (D045).</summary>
+    private const int TemplatesVersion = 9;
 
     /// <summary>A push's direction in the file (D044 §9).</summary>
     private static readonly IReadOnlyDictionary<TransitionDirection, string> DirectionNames = new Dictionary<TransitionDirection, string>
@@ -321,6 +324,11 @@ public static class ProjectSerializer
                     : new TextBackgroundDto { Enabled = t.Background.IsEnabled, ColorHex = t.Background.ColorHex, Opacity = t.Background.Opacity },
                 MotionIn = ToDto(t.MotionIn),
                 MotionOut = ToDto(t.MotionOut)
+            },
+            TemplateClip p => new TemplateClipDto
+            {
+                Template = p.Kind, CounterStartTicks = p.CounterStart.Ticks, Date = p.Date, Route = p.Route, Grade = p.Grade,
+                Status = p.Status, AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAtTicks = p.StatusAt.Ticks
             },
             _ => throw new NotSupportedException($"Clip type {clip.GetType().Name} can't be saved.")
         };
@@ -644,6 +652,9 @@ public static class ProjectSerializer
                 if (named.Count == 0) throw Damaged("unknown transition direction");
                 direction = named[0].Key;
             }
+            // D045: a template takes no transition.
+            if (clips.Any(c => c is TemplateClip && (c.Id == x.LeftClipId || c.Id == x.RightClipId)))
+                throw Damaged("a transition next to a template");
             track.Transitions.Add(new Transition
             {
                 Id = x.Id, TransitionTypeId = x.TransitionTypeId, Duration = new MediaTime(x.DurationTicks),
@@ -687,6 +698,22 @@ public static class ProjectSerializer
                 Id = t.Id, Text = t.Text ?? string.Empty, FontFamily = t.FontFamily ?? string.Empty, FontSize = t.FontSize,
                 ColorHex = t.ColorHex ?? string.Empty, Alignment = Enum.IsDefined(t.Alignment) ? t.Alignment : throw Damaged("unknown text alignment"),
                 PositionX = t.PositionX, PositionY = t.PositionY, Scale = t.Scale, RotationDegrees = t.RotationDegrees, Opacity = t.Opacity
+            },
+            // v1–v8 have no templates (D045).
+            TemplateClipDto p when formatVersion >= TemplatesVersion => new TemplateClip
+            {
+                Id = p.Id,
+                Kind = p.Template is { } kind && Enum.IsDefined(kind) ? kind : throw Damaged("unknown template"),
+                CounterStart = p.CounterStartTicks >= 0 ? new MediaTime(p.CounterStartTicks) : throw Damaged("a template's counter is negative"),
+                Date = p.Date ?? throw Damaged("a template field is missing"),
+                Route = p.Route ?? throw Damaged("a template field is missing"),
+                Grade = p.Grade ?? throw Damaged("a template field is missing"),
+                Status = p.Status is { } status && Enum.IsDefined(status) ? status : throw Damaged("unknown template status"),
+                AccentHex = p.AccentHex ?? throw Damaged("a template field is missing"),
+                Title = p.Title ?? throw Damaged("a template field is missing"),
+                Subtitle = p.Subtitle ?? throw Damaged("a template field is missing"),
+                StatusAt = p.StatusAtTicks is not { } statusAt ? throw Damaged("a template field is missing")
+                    : statusAt >= 0 ? new MediaTime(statusAt) : throw Damaged("a template's status moment is negative")
             },
             _ => throw Damaged("unknown clip type")
         };

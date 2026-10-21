@@ -174,6 +174,7 @@ public partial class MainWindow : Window
         public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null) => Nothing;
         public MediaTime? AddedClipDuration(Guid mediaAssetId) => null;
         public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null) => Nothing;
+        public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start) => Nothing;
         public TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed) => Nothing;
         public TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, MediaTime duration) => Nothing;
         public TimelineEditResult RemoveTransition(Guid transitionId) => Nothing;
