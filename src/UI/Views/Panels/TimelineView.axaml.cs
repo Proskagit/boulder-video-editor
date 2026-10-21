@@ -64,10 +64,22 @@ public partial class TimelineView : UserControl
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        if (_viewModel is not null) _viewModel.ScrollRequested -= OnScrollRequested;
+        if (_viewModel is not null)
+        {
+            _viewModel.ScrollRequested -= OnScrollRequested;
+            _viewModel.TransitionMenuRequested -= OnTransitionMenuRequested;
+        }
         _viewModel = DataContext as TimelineViewModel;
-        if (_viewModel is not null) _viewModel.ScrollRequested += OnScrollRequested;
+        if (_viewModel is not null)
+        {
+            _viewModel.ScrollRequested += OnScrollRequested;
+            _viewModel.TransitionMenuRequested += OnTransitionMenuRequested;
+        }
     }
+
+    /// <summary>D044 §6: the menu of the library's types under "Transition".</summary>
+    private void OnTransitionMenuRequested(object? sender, EventArgs e) =>
+        Avalonia.Controls.Primitives.FlyoutBase.ShowAttachedFlyout(TransitionButton);
 
     private void OnScrollRequested(object? sender, double offsetX)
     {
@@ -129,6 +141,14 @@ public partial class TimelineView : UserControl
         }
         if (!e.GetCurrentPoint(TrackRows).Properties.IsLeftButtonPressed) return;
         Focus();
+
+        // A zone's mark selects its transition, whatever lies under it (a short zone is all trim handles — D4).
+        if (MarkOf(e.Source) is { } marked)
+        {
+            _viewModel.OnTransitionPressed(marked);
+            e.Handled = true;
+            return;
+        }
 
         var (clip, edge) = HitTestClip(e.Source);
 
@@ -309,6 +329,17 @@ public partial class TimelineView : UserControl
                 break;
         }
         return (null, null);
+    }
+
+    /// <summary>The transition whose mark <paramref name="source"/> is (or lies in), else null.</summary>
+    private static TimelineTransitionViewModel? MarkOf(object? source)
+    {
+        for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is Control { Tag: "TransitionMark", DataContext: TimelineTransitionViewModel transition }) return transition;
+            if (visual is ItemsControl { Name: "TrackRows" }) break;
+        }
+        return null;
     }
 
     private TimelineTrackViewModel? TrackAt(double y)

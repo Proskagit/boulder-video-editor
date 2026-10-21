@@ -167,6 +167,19 @@ public sealed class Transition
 
     /// <summary>The clip right of the cut (B).</summary>
     public Guid RightClipId { get; set; }
+
+    /// <summary>The side B comes from — set for a <see cref="TransitionRules.Push"/> only, null for every other type
+    /// (D044 §1, §9).</summary>
+    public TransitionDirection? Direction { get; set; }
+}
+
+/// <summary>The side the incoming clip (B) of a <see cref="TransitionRules.Push"/> comes from (D044 §1).</summary>
+public enum TransitionDirection
+{
+    FromRight,
+    FromLeft,
+    FromTop,
+    FromBottom
 }
 
 /// <summary>A named point of interest on the timeline (not tied to a specific track).</summary>

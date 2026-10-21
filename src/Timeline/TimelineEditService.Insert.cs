@@ -145,7 +145,8 @@ public sealed partial class TimelineEditService
             if (start < atFrame && atFrame < end)
             {
                 if (!PlanSplitClip(plan, track, clip, state, atFrame, out var right))
-                    return Tr(track, Messages.Insert_InsideDissolve, Messages.Insert_InsideCrossfade);
+                    return Tr(track, ZoneAt(track, clip, state, atFrame, rate)?.TransitionTypeId,
+                        Messages.Insert_InsideDissolve, Messages.Insert_InsideCrossfade, Messages.Insert_InsideNamed);
                 splits.Add((clip, right));
                 var (moved, error) = ShiftedState(right, frames, rate);
                 if (error is not null) return string.Format(Messages.Edit_CantInsert, error);
@@ -168,7 +169,8 @@ public sealed partial class TimelineEditService
     private string? PlanOverwrite(EditPlan plan, Track track, IReadOnlyList<(Clip Clip, ClipState State)> existing, long from, long to,
         List<(Clip Left, Clip Right)> splits)
     {
-        var insideDissolve = Tr(track, Messages.Overwrite_InsideDissolve, Messages.Overwrite_InsideCrossfade);
+        string Inside(Clip clip) =>
+            Tr(track, EdgeTypeOf(track, clip), Messages.Overwrite_InsideDissolve, Messages.Overwrite_InsideCrossfade, Messages.Overwrite_InsideNamed);
         var rate = plan.Rate;
         var none = Array.Empty<Clip>();
         foreach (var (clip, state) in existing)
@@ -185,22 +187,22 @@ public sealed partial class TimelineEditService
             else if (start < from && to < end)
             {
                 if (!PlanSplitClip(plan, track, clip, state, from, out var right))
-                    return insideDissolve;
+                    return Inside(clip);
                 splits.Add((clip, right));
                 var rightAfter = TrimmedState(right, ClipState.Capture(right), none, ClipEdge.Start, to, Math.Max(1, partAtEnd), rate);
-                if (rightAfter.Start.ToNearestFrame(rate) != to) return insideDissolve;
+                if (rightAfter.Start.ToNearestFrame(rate) != to) return Inside(clip);
                 rightAfter.ApplyTo(right);         // a planned insert, not in the model yet
             }
             else if (start < from)
             {
                 var after = TrimmedState(clip, state, none, ClipEdge.End, from, Math.Max(1, partAtStart), rate);
-                if (after.End.ToNearestFrame(rate) != from) return insideDissolve;
+                if (after.End.ToNearestFrame(rate) != from) return Inside(clip);
                 plan.Update(clip, track, after);
             }
             else
             {
                 var after = TrimmedState(clip, state, none, ClipEdge.Start, to, Math.Max(1, partAtEnd), rate);
-                if (after.Start.ToNearestFrame(rate) != to) return insideDissolve;
+                if (after.Start.ToNearestFrame(rate) != to) return Inside(clip);
                 plan.Update(clip, track, after);
             }
         }

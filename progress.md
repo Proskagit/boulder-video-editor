@@ -2,13 +2,145 @@
 
 ## Current phase
 
-Phase 27 — text animation and readability (D042 Phase A), branch `feat/phase-27-text-animation` (from `origin/main` =
-`41dadf2`, the merge of PR #27; DECISIONS.md D043, accepted 2026-10-20). Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 27 — Text
-animation and readability: steps"; manual plan `docs/PHASE27_MANUAL_TEST_PLAN.md`. Steps 27.0–27.6 done (the owner's go for
-the implementation after 27.1); awaiting the product owner's acceptance. No push, pull request or merge without the product
-owner's command.
+Phase 28 — the transition library (D042 Phase B), branch `feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d`
+(variant B; Phase 27 not yet published); DECISIONS.md D044, approved 2026-10-20. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 28
+— Transition library: steps"; manual plan `docs/PHASE28_MANUAL_TEST_PLAN.md`. Steps 28.0 and 28.1 done (28.1 accepted by the
+product owner: Zoom and Flash as specified); Steps 28.2–28.5 done (28.2 accepted); **the phase was accepted by the
+product owner on 2026-10-21 at `fd2e04b`**; the real-app run and re-run done (`docs/PHASE28_MANUAL_TEST_PLAN.md`; the NOT RUN rows named there);
+D1–D8 fixed; the export refusal for a Dissolve / Push without source frames implemented (D025 §4, D044). Phase 28's pull request
+only after Phase 27 is merged; if Phase 27 changes before its merge, no rebase on Claude's own — the difference is reported
+with a safe synchronisation plan first. No push, pull request or merge without the product owner's command.
 
-### Phase 27 — Text animation and readability (in progress)
+Phase 27 (D043): Steps 27.0–27.6 done on `feat/phase-27-text-animation` (up to `3c45c9d`); **accepted by the product owner
+(2026-10-20)**, not yet published.
+
+### Phase 28 — Transition library (in progress)
+
+- 2026-10-20 — Phase 27 accepted by the product owner (local commits up to `3c45c9d`; publication on command). Phase 28
+  prepared, documentation only: a first draft (Dissolve, Dip to black / white, Wipe, Push) revised after a research of what
+  editors use (Reddit not reachable by the tools; forums and guides: the cut by default, dissolve / dip for calm changes,
+  zoom / push / a short flash for sports material); D044 written with the owner's answers (§11: Наплыв, Затемнение,
+  Вспышка, Наезд, Сдвиг; no Wipe, no motion blur; the defaults and limits; the 1.0 s rule between fill peaks, rejecting; the
+  longest that fits; a type change keeps or clamps the duration; Zoom's gate 28.1) and a consistency check against D025 /
+  D043 (§12: Step 10.8's 2-frame minimum, the rejecting 1.0 s rule against D025's clamped trims, the re-grid; D043's
+  rounding of 0.1 s left unchanged by the owner — no follow-up). D042 "Recorded later": the automatic rough cut as a
+  long-term direction (not a phase; the order Phase 28 → C → G unchanged; D / E / F not authorised; COROS not started).
+- 2026-10-20 — readiness check: no contradiction in the decisions; the branch base blocked by "after Phase 27 is merged"
+  → the owner chose variant B; corrections 1–4 of D044 confirmed (the status, §12's D043 point, §5's wording on what is
+  validated, §11's "shorter duration").
+- 2026-10-20 — Step 28.0: `feat/phase-28-transitions` from `3c45c9d`; the uncommitted preparatory documentation carried
+  onto it unchanged (the diff's hash identical before and after the switch); D044 approved with corrections 1–4 and variant
+  B (§10); DEVELOPMENT_PLAN — the list, B, the steps 28.0–28.5; the manual plan's skeleton
+  `docs/PHASE28_MANUAL_TEST_PLAN.md`; `docs/README.md`; ROADMAP. Documentation only; no product code.
+- 2026-10-20 — Step 28.1 (tests and records only): Zoom 0.3 s and Flash 0.2 s rendered by a scratch ffmpeg harness on four
+  real cuts of the product owner's session of 2026-09-27 (16 clips, 4K HEVC ≈ 60 fps SDR, one vertical; no 25 / 30 fps
+  source, no second camera on one attempt), MP4s and frame strips local in `VideosForTest/Phase28_Step28.1`; zone frames
+  checked numerically (Zoom 81–98, Flash's white frame = the cut frame) after correcting the harness for ffmpeg 9.0.1's
+  1-based `perspective` / `blend` counters. **Accepted by the product owner**: Zoom `K = 1.25` 0.3 s with the change at the
+  peak, Flash 0.2 s; Z2 / Z3 not needed; no 30 fps visual check (rounding covered by 28.2's tests). D044 "Refined in Step
+  28.1"; manual plan row 1. Separately, without commits: the session's FIT read for structure only
+  (`VideosForTest/R3_COROS_preliminary/notes.md` — the watch is a COROS APEX 4, 14 climbing splits, the heart rate at 1 s;
+  the grade and the flash not found in the file); no synchronisation work.
+- 2026-10-20 — Step 28.2 (D044 "Implementation notes (Step 28.2)"): `Transition.Direction`; `TransitionRules` — the five
+  types, `Allows`, `RequiresHandles`, `IsFill`, the defaults and ranges in whole frames (`ceil` minimum, `floor`
+  maximum), `ClampFrames`, `ValidateFillPeaks`, the direction rule; `project.json` v8 (`direction` for a push only, v7 read
+  unchanged, library types refused before v8, §4 checked on load); the edit service — `AddTransition(…, typeId)`,
+  `SetTransitionType`, `SetTransitionDirection`, `MaxTransitionFrames(…, typeId)`, the type ranges on every duration input,
+  handles only where needed, the 1.0 s rule in `Validate` for every edit; `TransitionState` with the type and direction
+  (type / direction changes never merged); Core messages en + ru; the D039 allowlist (three undo descriptions, two file
+  reasons). Tests: `Core.Tests/TransitionLibraryRulesTests` (42: D044 §5's table on eight rates, the limits never promise
+  more than the frames give, the 0.1 s grid strictly increasing and reading back), `Timeline.Tests/TransitionLibraryEditTests`
+  (40: each type's default, no-handle cuts, the longest that fits, ranges, type change keep / clamp and its own step,
+  direction, locked and audio tracks, split, the 1.0 s rule on add / type change / move / ripple delete / ripple trim /
+  frame-rate re-grid — 25 → 29.97 fps rounding two peaks 1.0 s apart to 0.968 s — and a speed change only separating a
+  cut), `Project.Tests/TransitionLibraryPersistenceTests` (17); mutation checks: the 1.0 s rule off → 7 failures, handles
+  for every type → 5. Earlier tests: the format literals 7 → 8, the dissolve minimum 2 → 3 frames at 30 fps in two
+  `DissolveEditTests`, the 2-frame dissolve of `FrameRateEditTests` placed in the model as an older project would.
+  Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4264 / 2 / 0 (Core 1243, Timeline 894,
+  Project 524, UI 841, Export 108, Rendering 147, Video 354, ExportEndToEnd 129 + 2, Vision 24); `AIVE_HEAVY_TESTS=1`
+  4266 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m` runs 4264 / 2 / 0 each, no hang, no dump. Known until 28.3 /
+  28.4: every video transition drawn as a dissolve; the interface creates dissolves only.
+- 2026-10-20 — Step 28.2 accepted by the product owner; Steps 28.3–28.5 permitted to run on their own (stop on a need to
+  change D044 in substance, the format beyond v8 or D025 / D032 / D043).
+- 2026-10-20 — Step 28.3 (D044 "Implementation notes (Step 28.3)"): `TransitionPresentation` (the curves),
+  `CanvasMotion` on every composition layer, `SolidLayer` / `SolidDraw`, the zone with its type and direction, the shown
+  range only for Dissolve and Push, `LayersAt`'s library branch (the dissolve's code untouched), the painter's fill, the
+  Preview's placeholder moved with its layer, `DiffersOnlyInPresentation` without type / direction. Tests:
+  `Core.Tests/TransitionCompositionTests` (34: §2's curves, the layers of each type and direction, occlusion, the fill
+  under an upper title, PO-8 for every type, presentation-only changes, the motion in the draw plan for the frame and its
+  outline, `None` unchanged); `ExportEndToEnd.Tests/ExportTransitionLibraryEndToEndTests` (17, real ffmpeg: Preview = export
+  canvas byte for byte on the zone frames of every type and direction, and composed with rotation, scale, crop, opacity,
+  Fill, a hold outline, a lower and an upper track on a vertical canvas; independently a fill frame = ffmpeg's frame
+  blended at α (max 1), a push frame = the source shifted by whole pixels (max 0), a zoom frame ≈ ffmpeg's frame scaled
+  by k (mean 2.4–2.9 against 36–47 unscaled); missing handles hold the first frame in both; a vanished source fails with
+  DecodeFailed; a cancel inside a zone leaves nothing; the sound unchanged). D044 §9's "`transitions[].type`" corrected to
+  the actual `transitionTypeId` (documentation only).
+- 2026-10-20 — Step 28.4 (D044 "Implementation notes (Step 28.4)"): «Переход» in the timeline header with the menu of the five
+  types (the crossfade at once on an audio track), `AddTransitionCommand(typeId)` with the status of the default / the longest
+  that fits; the Inspector's TRANSITION section for a video transition (type buttons disabled with the reason, a push's
+  direction, the seconds field and slider on whole frames with the 0.1 s arrow grid, the stored seconds and frames, the
+  longest that fits, Remove), the crossfade's frames field unchanged; the zone's mark per type; en + ru strings (the unused
+  `Timeline_Dissolve` pair removed). Tests: `UI.Tests/TransitionLibraryUiTests` (16: the menu vs. the audio crossfade, each
+  type's default and status, the longest that fits, no handles with the disabled buttons' reasons, type change keep / clamp
+  with its status and Undo / Redo, the direction, the seconds field at 24 fps — 0.29 s for 7 frames, the arrow 0.29 → 0.42
+  (10 frames) and back to 7, typed 0.75 → 18, above Zoom's 1 s refused and the field restored —, a locked track and a
+  running export, Delete, the audio crossfade's frames field, the section's bindings, the menu's five items). Earlier UI
+  tests moved to the seconds field / the new messages (`TimelineDissolveUiTests` ×3, `FadeViewBindingTests`, the Inspector's
+  numeric fields 25 → 26). The new test class shares `AvaloniaControlsCollection` (views built in parallel collections
+  raced in Avalonia's binding parser).
+- 2026-10-20 — Step 28.5 (D044 "Verification (Step 28.5)"): gates — Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4331 / 2 / 0 (Core 1277, Timeline 894, Project 524, UI 857, Export 108, Rendering 147, Video 354, ExportEndToEnd 146 + 2, Vision 24); `AIVE_HEAVY_TESTS=1` 4333 / 0 / 0; three `--blame-hang --blame-hang-timeout 5m` runs 4331 / 2 / 0 each, no hang, no dump. v7 dissolves against the Phase
+  27 code: a console harness (`git archive 3c45c9d` and this branch, the export's rasterizer, deterministic synthetic frames;
+  a 10-frame dissolve, a legacy 2-frame one, two texts dissolving over a rotated, scaled, translucent clip with a hold
+  outline) — 17 zone frames byte-identical; the v7 project saved again by this branch differs only in `formatVersion`; the
+  v8 file opened by the Phase 27 code refused by the newer-version message. The real-app run: the fixtures
+  `tools/manual/New-Phase28TransitionFixture.ps1` (excerpts of the product owner's session: two attempts on one wall with and
+  without handles, two attempts of one route on a vertical canvas) and the app built to the scratch folder; started and
+  stopped before any input — the product owner was using the computer (another application in the foreground), so no
+  synthesized input was sent and every app row of the manual plan is NOT RUN with what the automated suites cover named.
+  ARCHITECTURE: the transition library. Open for the product owner: the real-app run of the manual plan; whether an export
+  with missing handles (media changed after the edit) should be refused instead of D025 §4's held frames.
+- 2026-10-20 — the real-app run of the manual plan (the product owner freed the computer): rows 2–4, 8–11 PASS with
+  defects, 5–7 partly, 13 FAIL (D1), 14 NOT RUN; the export of the five types and of a vertical push watched in PotPlayer.
+  Defects D1–D6 and observations O1, O2 with their steps in `docs/PHASE28_MANUAL_TEST_PLAN.md`.
+- 2026-10-21 — the fixes of D1–D6, O1, O2 allowed by the product owner (D044 "Corrections after the real-app run"): the
+  TRANSITION section wraps in the Inspector's width; messages name the type (en + ru); a disabled type shows its reason;
+  the zone's mark selects the transition over the trim handles; the duration field's spinner steps through a command to
+  the next 0.1 s mark, a typed value is the nearest frame; no limit shown below the stored duration. Tests:
+  `TransitionMessageTests` (34), `TransitionLibraryUiTests` (+9). Gates — Release / Debug `--no-incremental -warnaserror`
+  0 / 0; the full suite 4374 / 2 / 0 (Core 1277, Timeline 928, Project 524, UI 866, Export 108, Rendering 147, Video 354,
+  ExportEndToEnd 146 + 2, Vision 24); heavy 4376 / 0 / 0; three blame-hang runs clean. No rendering or format code
+  changed (the parity suites and the v7 tests pass unchanged). The repeated real-app checks: NOT RUN (the product owner
+  was at the computer). Found: D7 (trim and slip keep handles for every type) — not fixed. Open: the export refusal for
+  missing source frames (variant (b)) — the D025 §4 / D044 wording proposed, awaiting the product owner's approval.
+- 2026-10-21 — D7 fixed (the product owner's permission; D044 "Corrections after the real-app run"): ripple trim outward
+  and slip keep source handles only for Dissolve, Push and the audio crossfade. `TransitionHandleReservationTests` (17;
+  7 fail without the fix). Variant (b): the export refusal for Dissolve / Push only (the crossfade stays as D032); the
+  wording of D025 §4 / D044, the message and the relink warning shown to the product owner — not written, not implemented.
+  Gates — Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4391 / 2 / 0 (Timeline 945); heavy
+  4393 / 0 / 0; blame-hang runs 1, 2 clean, run 3 4390 / 2 / 1 — `WasapiAudioOutputDeviceTests.Clock_CountsPlayedFrames…`
+  (the real audio device: 15414 played frames against the upper bound 15360, ~1 ms; Video code not touched; the runs went
+  at below-normal priority while the product owner used the computer); the test 3 / 3 again alone; a fourth blame-hang run
+  4391 / 2 / 0, no hang, no dump.
+- 2026-10-21 — the real-app re-run (the product owner freed the computer; Debug build of `c722a20`, fresh fixtures): D1–D6,
+  O1, O2 and D7 PASS in the app; rows 5 (24 / 25 / 30 fps), 6 (type change, ripple trim), 7 (split inside a zone), 8 (a
+  title over a Dip), 13, 14 PASS; NOT RUN: moving a pair / speed / frame-rate refusals, hold outlines, the v7 export from
+  the app (offline media). New: D8 (a refused type change leaves the clicked type button checked) — not fixed. Results in
+  `docs/PHASE28_MANUAL_TEST_PLAN.md` (not committed yet).
+- 2026-10-21 — Phase 28 finished in the product owner's limits (autonomous): D8 fixed (two-way `IsChecked`, re-sync after a
+  refused or empty type / direction change); the export of a Dissolve / Push without the source frames its zone needs is
+  refused — `ExportTransitionSourceCheck` decodes each zone's farthest extended frames before the encoder starts (no file),
+  `ExportPictureReader` fails on any held extended frame while rendering (the unfinished output deleted, the destination
+  kept); `ExportFailure.TransitionSourceMissing` + `MissingTransitionSource`; the UI message names the type, clips, track
+  and cut (en + ru); the relink warning counts Dissolve / Push only and says the export will be refused. D025 §4, D044,
+  ARCHITECTURE updated. Tests: Core `EndsAfter`; Export 14 (before / while rendering, the exact handle, types without
+  handles, a range, a clip's own hold-last); ExportEndToEnd 4 new (a file replaced by a shorter one whatever its metadata,
+  a decoder running out mid-render with the destination kept, a v7 project exporting exactly as built) and the two
+  held-frame tests turned into refusals with the Preview still holding; Timeline relink (4); UI (D8 × 2, the message).
+  Gates — Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4417 / 2 / 0; `AIVE_HEAVY_TESTS=1` 4419 / 0 / 0; three `--blame-hang` runs 4417 / 2 / 0, no hang, no dump. v7 dissolves against the Phase 27 code re-run: 17 / 17 frames byte-identical. Real app: D8, the
+  relink warning, the refused export (message, destination unchanged, no temporary file) and the Flash export after it —
+  PASS.
+
+### Phase 27 — Text animation and readability (accepted 2026-10-20, not yet published)
 
 - 2026-10-20 — after the merge of PR #27: `origin/main` = `41dadf2` (its tree identical to `a05236c`); CI green on the pull
   request; the run on `main` (39385604762) still in progress when checked — not confirmed green. Local `main` fast-forwarded

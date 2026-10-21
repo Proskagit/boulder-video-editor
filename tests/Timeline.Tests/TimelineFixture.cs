@@ -99,7 +99,7 @@ internal sealed class TimelineFixture
                 sb.Append(';');
             }
             foreach (var t in track.Transitions)
-                sb.Append($"T{t.Id}:{t.TransitionTypeId}:{t.LeftClipId}|{t.RightClipId}:{t.Duration.Ticks};");
+                sb.Append($"T{t.Id}:{t.TransitionTypeId}:{t.LeftClipId}|{t.RightClipId}:{t.Duration.Ticks}:{t.Direction};");
             sb.Append('\n');
         }
         return sb.ToString();

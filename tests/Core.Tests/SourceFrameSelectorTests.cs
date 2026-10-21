@@ -303,4 +303,26 @@ public class SourceFrameSelectorTests
         Assert.Null(SourceFrameSelector.NominalRate(new MediaMetadata()));
         Assert.Null(SourceFrameSelector.NominalRate(null));
     }
+
+    // --- EndsAfter (D025 §4 as changed in Phase 28) ------------------------------------------------------------------
+
+    [Fact]
+    public void A_frame_covers_the_points_before_its_end_and_not_its_end()
+    {
+        var tb = new TimeBase(1, 25);                                   // frame k starts at k / 25 s
+        var last = new SourceTimestamp(99, tb);                         // the last of 100 frames: [3.96, 4.0) s
+        SourceSamplePoint At(double seconds) => new((Int128)Math.Round(seconds * TimeSpan.TicksPerSecond), 1);
+
+        Assert.True(SourceFrameSelector.EndsAfter(last, MediaTime.Zero, At(3.96), FrameRate.Fps25));
+        Assert.True(SourceFrameSelector.EndsAfter(last, MediaTime.Zero, At(3.98), FrameRate.Fps25));   // a sample point inside it
+        Assert.False(SourceFrameSelector.EndsAfter(last, MediaTime.Zero, At(4.0), FrameRate.Fps25));   // the next frame's time
+        Assert.False(SourceFrameSelector.EndsAfter(last, MediaTime.Zero, At(4.02), FrameRate.Fps25));
+        // The file's start time shifts the source clock as for IsAtOrBefore.
+        Assert.True(SourceFrameSelector.EndsAfter(last, MediaTime.FromSeconds(1), At(2.98), FrameRate.Fps25));
+        Assert.False(SourceFrameSelector.EndsAfter(last, MediaTime.FromSeconds(1), At(3.0), FrameRate.Fps25));
+        // 29.97 fps: one frame is 1001 / 30000 s.
+        var ntsc = new SourceTimestamp(0, new TimeBase(1001, 30000));
+        Assert.True(SourceFrameSelector.EndsAfter(ntsc, MediaTime.Zero, new SourceSamplePoint(333_666, 1), FrameRate.Ntsc30));
+        Assert.False(SourceFrameSelector.EndsAfter(ntsc, MediaTime.Zero, new SourceSamplePoint(333_667, 1), FrameRate.Ntsc30));
+    }
 }

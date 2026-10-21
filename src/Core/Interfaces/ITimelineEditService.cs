@@ -353,23 +353,44 @@ public interface ITimelineEditService
     /// speed changes of the same clip merge into one Undo step.</summary>
     TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed);
 
-    /// <summary>Adds a cross dissolve of <paramref name="duration"/> (whole frames, at least 2) on the cut between two
-    /// touching clips of one unlocked video track (D025 §3–§5). Rejected, with nothing created, when the clips don't
-    /// touch, the cut already has one, or the zone or the source handles can't hold it — the message then names the
-    /// longest that fits. <see cref="TimelineEditResult.TransitionId"/> is the new dissolve.</summary>
+    /// <summary>Adds the track's default transition — a cross dissolve on a video track, a crossfade on an audio track —
+    /// of <paramref name="duration"/> (whole frames, within the type's range: D044 §5) on the cut between two touching
+    /// clips of one unlocked track (D025 §3–§5). Rejected, with nothing created, when the clips don't touch, the cut
+    /// already has one, or the zone or the source handles can't hold it — the message then names the longest that fits.
+    /// <see cref="TimelineEditResult.TransitionId"/> is the new transition.</summary>
     TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, MediaTime duration);
+
+    /// <summary>Adds a transition of <paramref name="typeId"/> (<see cref="TransitionRules.VideoTypes"/> on a video track,
+    /// the crossfade on an audio track) on the cut (D044 §6): its default duration, or the longest that fits when that is
+    /// shorter (never below the type's minimum, never another type); a push from the right. Rejected, with nothing
+    /// created, when not even the type's minimum fits — for a type needing source handles the message names the types
+    /// that need none — or the fill transitions would come closer than 1 s (D044 §4).</summary>
+    TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, string typeId);
 
     /// <summary>Removes a dissolve (one Undo step).</summary>
     TimelineEditResult RemoveTransition(Guid transitionId);
 
-    /// <summary>Changes a dissolve's length (whole frames, at least 2), within what the zone and the handles allow.
-    /// Consecutive changes of the same dissolve merge into one Undo step.</summary>
+    /// <summary>Changes a transition's length (whole frames, within its type's range: D044 §5), within what the zone and
+    /// the handles allow. Consecutive changes of the same transition merge into one Undo step.</summary>
     TimelineEditResult SetTransitionDuration(Guid transitionId, MediaTime duration);
+
+    /// <summary>Changes a video transition's type (D044 §6): its duration kept when it lies in the new type's range, else
+    /// clamped to the nearest allowed value; a push gets the default direction. One Undo step, never merged. Rejected when
+    /// nothing of the type fits or D044 §4 would break.</summary>
+    TimelineEditResult SetTransitionType(Guid transitionId, string typeId);
+
+    /// <summary>Changes the direction of a push (one Undo step, never merged); rejected for every other type.</summary>
+    TimelineEditResult SetTransitionDirection(Guid transitionId, TransitionDirection direction);
 
     /// <summary>The longest dissolve, in frames, the cut between <paramref name="leftClipId"/> and
     /// <paramref name="rightClipId"/> can take now (its own dissolve, if any, not counted); null when the two aren't
     /// touching clips of one video track. Below 2 no dissolve fits.</summary>
     long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId);
+
+    /// <summary>The longest transition of <paramref name="typeId"/>, in frames, the cut can take now — the zone, the source
+    /// handles when the type needs them, and the type's maximum (D044 §3, §5); the cut's own transition not counted. Null
+    /// when the two aren't touching clips of one track or the track doesn't take the type.</summary>
+    long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId, string typeId);
 
     /// <summary>Finds the snap target nearest to any of <paramref name="candidates"/>
     /// within <paramref name="tolerance"/>. Targets: time zero, the playhead, every marker (D027 §6) and every

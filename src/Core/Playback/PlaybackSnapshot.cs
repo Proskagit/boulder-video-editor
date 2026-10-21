@@ -107,6 +107,15 @@ public sealed record TextSpan(Guid ClipId, MediaTime TimelineStart, MediaTime Ti
 /// </summary>
 public sealed record DissolveZone(Guid LeftClipId, Guid RightClipId, MediaTime Start, MediaTime Cut, MediaTime End, long Frames)
 {
+    /// <summary>The transition's type (D044 §1): how the zone is drawn (<see cref="TransitionPresentation"/>).</summary>
+    public string TypeId { get; init; } = TransitionRules.CrossDissolve;
+
+    /// <summary>A push's direction; null for every other type.</summary>
+    public TransitionDirection? Direction { get; init; }
+
+    /// <summary>True when both clips are shown past the cut, from their source handles (Dissolve, Push — D044 §3).</summary>
+    public bool ExtendsPictures => TransitionRules.RequiresHandles(TypeId);
+
     public bool Contains(MediaTime time) => time >= Start && time < End;
 }
 
@@ -213,7 +222,14 @@ public sealed class PlaybackSnapshot
         long? frame = null;
         foreach (var layer in VideoLayers) // topmost first
         {
-            if (layer.Dissolves.Length > 0 && FindZone(layer.Dissolves, time) is { } zone)
+            var zoneAt = layer.Dissolves.Length > 0 ? FindZone(layer.Dissolves, time) : null;
+            if (zoneAt is { } library && library.TypeId != TransitionRules.CrossDissolve)
+            {
+                // D044 §2: the library's other types; true when what they drew hides every track below.
+                if (LibraryZoneLayers(layer, library, time, topDown, mayOcclude, ref frame)) break;
+                continue;
+            }
+            if (zoneAt is { } zone)
             {
                 // D025 §3: both clips of the cut, A below B; B at its opacity × (j + 1)/(F + 1). B never occludes (the
                 // factor is below 1), A may occlude the tracks below as usual.
@@ -266,6 +282,48 @@ public sealed class PlaybackSnapshot
             return new TextLayer(layer.TrackId, text, TextTransformAt(text, time, ref frame), fade * factor);
         }
         return null;
+    }
+
+    /// <summary>
+    /// The layers of a library zone (D044 §2), added to <paramref name="topDown"/> (topmost first); true when they hide
+    /// every track below. Dip to black / Flash and Zoom show only the clip on its own frames — A before the cut, B from it
+    /// — Dip to black / Flash with their fill above it; Push shows both clips from their handles, B above A, each shifted
+    /// (shifted layers never hide what is below).
+    /// </summary>
+    private bool LibraryZoneLayers(VideoLayer layer, DissolveZone zone, MediaTime time, List<CompositionLayer> topDown,
+        Func<PictureLayer, bool>? mayOcclude, ref long? frame)
+    {
+        frame ??= time.ToFrameFloor(FrameRate);
+        var j = frame.Value - zone.Start.ToFrameFloor(FrameRate);
+        var own = time < zone.Cut ? new MediaTime(zone.Cut.Ticks - 1) : zone.Cut;   // the clip whose frame this is
+
+        switch (zone.TypeId)
+        {
+            case TransitionRules.Push:
+            {
+                var (motionA, motionB) = TransitionPresentation.PushMotions(j, zone.Frames, zone.Direction ?? TransitionDirection.FromRight, Canvas);
+                if (ClipLayer(layer, zone.Cut, time, 1.0, ref frame) is { } b) topDown.Add(b with { Motion = motionB });
+                if (ClipLayer(layer, new MediaTime(zone.Cut.Ticks - 1), time, 1.0, ref frame) is { } a) topDown.Add(a with { Motion = motionA });
+                return false;
+            }
+            case TransitionRules.Zoom:
+            {
+                if (ClipLayer(layer, own, time, 1.0, ref frame) is not { } clip) return false;
+                var zoomed = clip with { Motion = new CanvasMotion(TransitionPresentation.ZoomScale(j, zone.Frames), 0, 0) };
+                topDown.Add(zoomed);
+                return zoomed is PictureLayer { OccludesBelow: true } occluder && (mayOcclude?.Invoke(occluder) ?? true);
+            }
+            default:   // Dip to black, Flash
+            {
+                var fill = new SolidLayer(layer.TrackId, TransitionPresentation.FillColor(zone.TypeId),
+                    TransitionPresentation.FillOpacity(j, zone.Frames));
+                topDown.Add(fill);
+                if (fill.OccludesBelow) return true;
+                if (ClipLayer(layer, own, time, 1.0, ref frame) is not { } clip) return false;
+                topDown.Add(clip);
+                return clip is PictureLayer { OccludesBelow: true } occluder && (mayOcclude?.Invoke(occluder) ?? true);
+            }
+        }
     }
 
     /// <summary>D036: an animated outline's opacity per hold on the frame of <paramref name="time"/> — the one value the
@@ -368,7 +426,9 @@ public sealed class PlaybackSnapshot
             if (a.TrackId != b.TrackId ||
                 !a.Spans.Select(WithoutPresentation).SequenceEqual(b.Spans.Select(WithoutPresentation)) ||
                 !a.Texts.Select(TextTiming).SequenceEqual(b.Texts.Select(TextTiming)) ||
-                !a.Dissolves.SequenceEqual(b.Dissolves))    // a dissolve changes which frames are decoded
+                // A transition changes which frames are decoded; its type and direction alone don't — the shown range of
+                // the pictures (compared with the spans) says whether the handles are used (D044 §10).
+                !a.Dissolves.Select(Placement).SequenceEqual(b.Dissolves.Select(Placement)))
                 return false;
         }
 
@@ -385,6 +445,7 @@ public sealed class PlaybackSnapshot
         static PictureSpan WithoutPresentation(PictureSpan span) =>
             span with { Visual = VisualProperties.Default, SourceSize = null, FadeInFrames = 0, FadeOutFrames = 0, Outline = null };
         static (Guid, MediaTime, MediaTime) TextTiming(TextSpan span) => (span.ClipId, span.TimelineStart, span.TimelineEnd);
+        static DissolveZone Placement(DissolveZone zone) => zone with { TypeId = TransitionRules.CrossDissolve, Direction = null };
     }
 
     private static TextSpan? FindText(ImmutableArray<TextSpan> spans, MediaTime time)

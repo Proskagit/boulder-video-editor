@@ -29,6 +29,13 @@ public sealed record ExportDecodeSettings
 /// (the next frame is known to lie after the point, or the stream ended) — no late frame, no previous
 /// picture — and any decoder failure is an <see cref="ExportException"/>.
 /// </para>
+/// <para>
+/// The frames of a Dissolve's or a Push's zone outside the clip (D025 §3) are never held (D025 §4 as changed in Phase 28):
+/// when such a frame's answer would be a held one — the stream's first frame lies after its sample point, the stream
+/// ended before it (the point is at or after the last frame's start plus one nominal source frame), or the decoder has no
+/// frame at all there — the reader fails with <see cref="ExportFailure.TransitionSourceMissing"/> naming the transition.
+/// The clip's own frames keep D009's hold-first / hold-last.
+/// </para>
 /// </summary>
 internal sealed class ExportPictureReader : IAsyncDisposable
 {
@@ -38,6 +45,9 @@ internal sealed class ExportPictureReader : IAsyncDisposable
     private readonly ExportDecodeSettings _settings;
     private readonly long _firstFrame;
     private readonly long _endFrame;   // first timeline frame after the span
+    private readonly long _ownFirst;   // the clip's own frames [_ownFirst, _ownEnd): outside them only a zone's
+    private readonly long _ownEnd;
+    private readonly ZonesOf? _zones;
 
     private IVideoFrameStream? _stream;
     private DecodedFrame? _current;    // the frame chosen for the last request (never after its sample point unless it is the first)
@@ -46,7 +56,8 @@ internal sealed class ExportPictureReader : IAsyncDisposable
     private bool _faulted;
     private long _lastRequested = long.MinValue;
 
-    public ExportPictureReader(PictureSpan span, PlaybackAsset asset, FrameRate rate, IVideoDecoder decoder, ExportDecodeSettings settings)
+    public ExportPictureReader(PictureSpan span, PlaybackAsset asset, FrameRate rate, IVideoDecoder decoder, ExportDecodeSettings settings,
+        ZonesOf? zones = null)
     {
         if (span.Status is not (SpanStatus.Video or SpanStatus.StillImage))
             throw new ArgumentException($"A {span.Status} span has no picture to decode.", nameof(span));
@@ -58,6 +69,9 @@ internal sealed class ExportPictureReader : IAsyncDisposable
         // Shown range: the clip, extended into its dissolve zones (D025 §3) — the frames there come from its handles.
         _firstFrame = span.ShownStart.ToFrameCeiling(rate);
         _endFrame = span.ShownEnd.ToFrameCeiling(rate);
+        _ownFirst = span.TimelineStart.ToFrameCeiling(rate);
+        _ownEnd = span.TimelineEnd.ToFrameCeiling(rate);
+        _zones = zones;
     }
 
     public PictureSpan Span { get; }
@@ -80,6 +94,7 @@ internal sealed class ExportPictureReader : IAsyncDisposable
             throw new InvalidOperationException("The reader failed before and can't be used again.");
         _lastRequested = timelineFrame;
 
+        var extended = !IsStill && (timelineFrame < _ownFirst || timelineFrame >= _ownEnd);
         try
         {
             var point = SamplePoint(timelineFrame);
@@ -99,8 +114,12 @@ internal sealed class ExportPictureReader : IAsyncDisposable
                 }, ct);
                 // The decoder's first frame is at or before the point, or the stream's very first frame
                 // (hold-first) — the same contract the Preview's reader relies on.
-                _current = await _stream.ReadFrameAsync(ct)
-                    ?? throw new VideoDecodeException(VideoDecodeError.NoVideo, $"'{_asset.FilePath}' produced no frame.");
+                _current = await _stream.ReadFrameAsync(ct);
+                if (_current is null)
+                {
+                    if (extended) throw Missing(timelineFrame, "the decoder has no frame there");
+                    throw new VideoDecodeException(VideoDecodeError.NoVideo, $"'{_asset.FilePath}' produced no frame.");
+                }
                 if (IsStill) _ended = true;
             }
 
@@ -118,9 +137,23 @@ internal sealed class ExportPictureReader : IAsyncDisposable
                 _current = _next;
                 _next = null;
             }
+            if (extended)
+            {
+                // A held frame is no answer for a zone's frame beyond the clip: the source must really have one there.
+                if (!SourceFrameSelector.IsAtOrBefore(_current!.Timestamp, _asset.StartTime, point))
+                    throw Missing(timelineFrame, "the source's first frame comes later");
+                if (_next is null && _ended &&
+                    !SourceFrameSelector.EndsAfter(_current.Timestamp, _asset.StartTime, point, _asset.NominalFrameRate is { IsValid: true } r ? r : _rate))
+                    throw Missing(timelineFrame, "the source ends before it");
+            }
             return _current!;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            _faulted = true;
+            throw;
+        }
+        catch (ExportException)
         {
             _faulted = true;
             throw;
@@ -137,6 +170,19 @@ internal sealed class ExportPictureReader : IAsyncDisposable
         }
     }
 
+    /// <summary>The failure of a zone's frame <paramref name="timelineFrame"/> the source has no frame for.</summary>
+    private ExportException Missing(long timelineFrame, string why)
+    {
+        var zone = timelineFrame < _ownFirst ? _zones?.Before : _zones?.After;
+        var source = zone is null ? null
+            : new MissingTransitionSource(zone.TypeId, _zones!.TrackId, zone.LeftClipId, zone.RightClipId, zone.Cut, BeforeRendering: false);
+        return new ExportException(ExportFailure.TransitionSourceMissing,
+            $"'{Path.GetFileName(_asset.FilePath)}' has no source frame for timeline frame {timelineFrame} of a {zone?.TypeId ?? "transition"} ({why}).")
+        {
+            MissingSource = source
+        };
+    }
+
     private ExportException Failure(VideoDecodeError error, string message, Exception inner) =>
         error == VideoDecodeError.DecoderUnavailable
             ? new ExportException(ExportFailure.EncoderUnavailable, "ffmpeg could not be found.", inner)
@@ -150,4 +196,14 @@ internal sealed class ExportPictureReader : IAsyncDisposable
         _current = _next = null;
         if (stream is not null) await stream.DisposeAsync();
     }
+}
+
+/// <summary>The zones a picture span is extended into (D025 §3): the one where it is B (<see cref="Before"/>, its frames before
+/// its start) and the one where it is A (<see cref="After"/>), on the track <see cref="TrackId"/>.</summary>
+internal sealed record ZonesOf(Guid TrackId, DissolveZone? Before, DissolveZone? After)
+{
+    /// <summary>The zones of <paramref name="span"/> on <paramref name="layer"/> that extend pictures (Dissolve, Push).</summary>
+    public static ZonesOf For(VideoLayer layer, PictureSpan span) => new(layer.TrackId,
+        layer.Dissolves.FirstOrDefault(z => z.ExtendsPictures && z.RightClipId == span.ClipId),
+        layer.Dissolves.FirstOrDefault(z => z.ExtendsPictures && z.LeftClipId == span.ClipId));
 }

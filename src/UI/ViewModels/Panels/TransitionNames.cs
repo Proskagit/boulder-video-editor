@@ -1,0 +1,71 @@
+using System.Globalization;
+using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Localization;
+using AiVideoEditor.UI.Localization;
+
+namespace AiVideoEditor.UI.ViewModels.Panels;
+
+/// <summary>What the interface calls the library's transitions and their directions (D044 §1, §6), the glyph of a zone on
+/// the timeline, and a duration as the seconds of its whole frames with the frame count (D044 §5).</summary>
+public static class TransitionNames
+{
+    public static string Name(string typeId) => typeId switch
+    {
+        TransitionRules.DipToBlack => Strings.TransitionType_DipToBlack,
+        TransitionRules.Flash => Strings.TransitionType_Flash,
+        TransitionRules.Zoom => Strings.TransitionType_Zoom,
+        TransitionRules.Push => Strings.TransitionType_Push,
+        TransitionRules.Crossfade => Strings.Transition_Crossfade,
+        _ => Strings.TransitionType_CrossDissolve
+    };
+
+    public static string Name(TransitionDirection direction) => direction switch
+    {
+        TransitionDirection.FromLeft => Strings.TransitionDirection_FromLeft,
+        TransitionDirection.FromTop => Strings.TransitionDirection_FromTop,
+        TransitionDirection.FromBottom => Strings.TransitionDirection_FromBottom,
+        _ => Strings.TransitionDirection_FromRight
+    };
+
+    /// <summary>The mark drawn in a zone on the timeline: one per type.</summary>
+    public static string Glyph(string typeId) => typeId switch
+    {
+        TransitionRules.DipToBlack => "◐",
+        TransitionRules.Flash => "✦",
+        TransitionRules.Zoom => "⊕",
+        TransitionRules.Push => "⇢",
+        _ => "⨯"
+    };
+
+    /// <summary>The seconds of <paramref name="frames"/> at <paramref name="rate"/>, to the hundredth (as D043's fields).</summary>
+    public static decimal SecondsOf(long frames, FrameRate rate) => Math.Round((decimal)frames * rate.Denominator / rate.Numerator, 2);
+
+    /// <summary>The nearest whole frame of <paramref name="seconds"/> at <paramref name="rate"/> (ties up, as D025's
+    /// durations): a typed or dragged duration.</summary>
+    public static long FramesOf(decimal seconds, FrameRate rate) =>
+        (long)Math.Round(seconds * rate.Numerator / rate.Denominator, MidpointRounding.AwayFromZero);
+
+    /// <summary>The frames of the next mark of 0.1 s after <paramref name="frames"/> in <paramref name="direction"/>
+    /// (+1 up, −1 down) whose nearest whole frame is longer (shorter) — the duration field's arrows (D044 §5): from 0.75 s
+    /// up to 0.8 s, down to 0.7 s; at 24 fps from 0.29 s (7 frames) up to 0.4 s, since 0.3 s is 7 frames too. 0 when no
+    /// mark lies below.</summary>
+    public static long GridStep(long frames, int direction, FrameRate rate)
+    {
+        var tenths = (decimal)frames * rate.Denominator * 10 / rate.Numerator;
+        var mark = direction > 0 ? Math.Floor(tenths) : Math.Ceiling(tenths);
+        while (true)
+        {
+            mark += direction > 0 ? 1 : -1;
+            if (mark <= 0) return 0;
+            var next = FramesOf(mark / 10, rate);
+            if (direction > 0 ? next > frames : next < frames) return next;
+        }
+    }
+
+    /// <summary>"0,29 с · 7 кадров": the seconds the stored frames really last and their count — never a precision the
+    /// frames lack (D044 §5).</summary>
+    public static string Duration(long frames, FrameRate rate) =>
+        string.Format(Strings.Transition_DurationValue, SecondsOf(frames, rate).ToString("0.##", CultureInfo.CurrentCulture),
+            Plural.Format(frames, Strings.Plural_Frames));
+}

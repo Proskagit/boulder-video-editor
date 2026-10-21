@@ -60,6 +60,7 @@ public sealed class FadeViewBindingTests
         var projects = new ProjectService(undo, NullLogger<ProjectService>.Instance);
         var edit = new TimelineEditService(projects, undo, NullLogger<TimelineEditService>.Instance);
         var inspector = new InspectorViewModel(edit, new StatusService());
+        projects.Current.Settings.FrameRate = Rate;
         var track = projects.Current.Timeline.VideoTracks[0];
         var a = new TextClip { Text = "A", TimelineStart = F(0), Duration = F(50) };
         var b = new TextClip { Text = "B", TimelineStart = F(50), Duration = F(50) };
@@ -69,13 +70,16 @@ public sealed class FadeViewBindingTests
         inspector.ShowTransition(new TimelineTransitionSelection(dissolve, track, "A", "B", Rate, MaxFrames: 100));
 
         var view = new InspectorView { DataContext = inspector };
-        var field = view.GetLogicalDescendants().OfType<NumericUpDown>().Single(n => n.Minimum == 2m && n.Maximum != 20m);   // not the outline's thickness (2–20 %)
-        Assert.Equal((10m, 100m), (field.Value, field.Maximum));
-        Assert.Contains(view.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Longest that fits here: 100 frames");
-        var remove = view.GetLogicalDescendants().OfType<Button>().Single(x => Equals(x.Content, "Remove Dissolve"));
+        // Phase 28 (D044 §5): a video transition's duration in seconds of whole frames — 10 frames at 25 fps = 0.4 s.
+        var field = view.GetLogicalDescendants().OfType<NumericUpDown>().Single(n => n.Name == "TransitionSecondsField");
+        Assert.Equal((0.4m, 0.12m, 4m), (field.Value, field.Minimum, field.Maximum));                  // 3 frames … 100 fit
+        Assert.Contains(view.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == $"{0.4m.ToString(System.Globalization.CultureInfo.CurrentCulture)} s · 10 frames");
+        Assert.Contains(view.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Longest that fits here: 4 s · 100 frames");
+        var remove = view.GetLogicalDescendants().OfType<Button>()
+            .Single(x => x.Content is TextBlock { Text: "Remove transition" });                          // a label that wraps (D1)
         Assert.Same(inspector.RemoveDissolveCommand, remove.Command);
 
-        field.Value = 20m;                                                       // typing in the view edits the dissolve
+        field.Value = 0.8m;                                                      // typing in the view edits the dissolve
         Assert.Equal(F(20), dissolve.Duration);
     }
 

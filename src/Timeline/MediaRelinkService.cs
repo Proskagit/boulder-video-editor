@@ -264,10 +264,11 @@ public sealed class MediaRelinkService : IMediaRelinkService
                 warnings.Add(new(RelinkWarningKind.Channels, string.Format(Messages.Relink_DiffChannels, ca, cb)));
         }
 
-        if (ShortDissolves(project, asset, now) is var count and > 0)
-            warnings.Add(new(RelinkWarningKind.DissolveHandles, count == 1
-                ? Messages.Relink_DissolveHoldsOne
-                : string.Format(Messages.Relink_DissolveHoldsMany, count)));
+        // D025 §4 as changed in Phase 28: it informs only — the export checks the frames itself, with the decoder.
+        if (ShortTransitions(project, asset, now) is { Count: > 0 } types)
+            warnings.Add(new(RelinkWarningKind.DissolveHandles, types.Count == 1
+                ? string.Format(Messages.Relink_TransitionShortOne, TransitionTypeNames.Of(types[0]))
+                : string.Format(Messages.Relink_TransitionShortMany, types.Count)));
         return warnings;
     }
 
@@ -281,10 +282,11 @@ public sealed class MediaRelinkService : IMediaRelinkService
 
     private static bool Differs(string? a, string? b) => a is not null && b is not null && !string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Dissolves of a clip of the asset whose zone needs more source than the new file has (D025 §4).</summary>
-    private static int ShortDissolves(Core.Entities.Project project, MediaAsset asset, MediaMetadata now)
+    /// <summary>The types of the transitions of a clip of the asset whose zone needs more source than the new file has
+    /// (D025 §4): only those that take frames beyond their clips — Dissolve and Push (D044 §3).</summary>
+    private static List<string> ShortTransitions(Core.Entities.Project project, MediaAsset asset, MediaMetadata now)
     {
-        if (asset.Kind != MediaKind.Video) return 0;
+        if (asset.Kind != MediaKind.Video) return new List<string>();
         var rate = project.Settings.FrameRate;
         var relinked = new MediaAsset { Id = asset.Id, FilePath = asset.FilePath, Kind = asset.Kind, Metadata = now };
         var assets = project.MediaAssets.ToDictionary(a => a.Id);
@@ -292,10 +294,10 @@ public sealed class MediaRelinkService : IMediaRelinkService
             ? m.MediaAssetId == asset.Id ? relinked : assets.GetValueOrDefault(m.MediaAssetId)
             : null;
 
-        var count = 0;
+        var types = new List<string>();
         foreach (var track in project.Timeline.VideoTracks)
         {
-            foreach (var transition in track.Transitions)
+            foreach (var transition in track.Transitions.Where(t => TransitionRules.RequiresHandles(t.TransitionTypeId)))
             {
                 var left = track.Clips.FirstOrDefault(c => c.Id == transition.LeftClipId);
                 var right = track.Clips.FirstOrDefault(c => c.Id == transition.RightClipId);
@@ -307,10 +309,10 @@ public sealed class MediaRelinkService : IMediaRelinkService
                 var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(transition.Duration, rate));
                 if (leftUses && afterCut > DissolveHandles.After(left, ClipState.Capture(left), AssetOf(left), rate) ||
                     rightUses && beforeCut > DissolveHandles.Before(right, ClipState.Capture(right), AssetOf(right), rate))
-                    count++;
+                    types.Add(transition.TransitionTypeId);
             }
         }
-        return count;
+        return types;
     }
 
     // ---- Apply ------------------------------------------------------------------------------------------------------

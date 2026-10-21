@@ -378,6 +378,11 @@ internal sealed class TransitionDto
     /// dropped on load.</summary>
     public Guid LeftClipId { get; set; }
     public Guid RightClipId { get; set; }
+
+    /// <summary>Format v8 (D044 §9): the side a push's incoming clip comes from — <c>fromRight</c>, <c>fromLeft</c>,
+    /// <c>fromTop</c> or <c>fromBottom</c>; written for a push only, ignored in a file older than v8.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Direction { get; set; }
 }
 
 internal sealed class MarkerDto

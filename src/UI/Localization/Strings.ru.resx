@@ -1448,12 +1448,6 @@
   <data name="Timeline_DeleteTip" xml:space="preserve">
     <value>Удалить выбранные клипы или наплыв (Delete)</value>
   </data>
-  <data name="Timeline_Dissolve" xml:space="preserve">
-    <value>Наплыв</value>
-  </data>
-  <data name="Timeline_DissolveTip" xml:space="preserve">
-    <value>Добавить наплыв между двумя выбранными соседними клипами (на аудиодорожке — перекрёстное затухание)</value>
-  </data>
   <data name="Timeline_Duplicate" xml:space="preserve">
     <value>Дублировать</value>
   </data>
@@ -1856,5 +1850,86 @@
   </data>
   <data name="Frame_Fitted" xml:space="preserve">
     <value>Изображение вписано в кадр: масштаб {0} %.</value>
+  </data>
+  <data name="Timeline_Transition" xml:space="preserve">
+    <value>Переход</value>
+  </data>
+  <data name="Timeline_TransitionTip" xml:space="preserve">
+    <value>Добавить переход между двумя выбранными соседними клипами (на аудиодорожке — перекрёстное затухание)</value>
+  </data>
+  <data name="TransitionType_CrossDissolve" xml:space="preserve">
+    <value>Наплыв</value>
+  </data>
+  <data name="TransitionType_DipToBlack" xml:space="preserve">
+    <value>Затемнение</value>
+  </data>
+  <data name="TransitionType_Flash" xml:space="preserve">
+    <value>Вспышка</value>
+  </data>
+  <data name="TransitionType_Zoom" xml:space="preserve">
+    <value>Наезд</value>
+  </data>
+  <data name="TransitionType_Push" xml:space="preserve">
+    <value>Сдвиг</value>
+  </data>
+  <data name="TransitionDirection_FromRight" xml:space="preserve">
+    <value>Справа</value>
+  </data>
+  <data name="TransitionDirection_FromLeft" xml:space="preserve">
+    <value>Слева</value>
+  </data>
+  <data name="TransitionDirection_FromTop" xml:space="preserve">
+    <value>Сверху</value>
+  </data>
+  <data name="TransitionDirection_FromBottom" xml:space="preserve">
+    <value>Снизу</value>
+  </data>
+  <data name="Transition_Heading" xml:space="preserve">
+    <value>Переход</value>
+  </data>
+  <data name="Transition_Type" xml:space="preserve">
+    <value>Тип</value>
+  </data>
+  <data name="Transition_Direction" xml:space="preserve">
+    <value>Откуда</value>
+  </data>
+  <data name="Transition_Remove" xml:space="preserve">
+    <value>Удалить переход</value>
+  </data>
+  <data name="Transition_Removed" xml:space="preserve">
+    <value>Переход удалён</value>
+  </data>
+  <data name="Transition_Added" xml:space="preserve">
+    <value>Переход «{0}» добавлен: {1}.</value>
+  </data>
+  <data name="Transition_AddedLongest" xml:space="preserve">
+    <value>Переход «{0}» добавлен: {1} — самый длинный, что здесь помещается.</value>
+  </data>
+  <data name="Transition_DurationValue" xml:space="preserve">
+    <value>{0} с · {1}</value>
+  </data>
+  <data name="Transition_TypeChanged" xml:space="preserve">
+    <value>Переход изменён: «{0}».</value>
+  </data>
+  <data name="Transition_TypeChangedClamped" xml:space="preserve">
+    <value>Переход изменён: «{0}»; длительность теперь {1}.</value>
+  </data>
+  <data name="Transition_SelectVideo" xml:space="preserve">
+    <value>Выберите два соседних клипа на видеодорожке (первый заканчивается там, где начинается второй), чтобы добавить переход.</value>
+  </data>
+  <data name="Transition_NotChangedAny" xml:space="preserve">
+    <value>Не удалось изменить переход.</value>
+  </data>
+  <data name="Transition_NoLonger" xml:space="preserve">
+    <value>Длиннее, чем сейчас, здесь не поместится.</value>
+  </data>
+  <data name="Export_FailTransitionSourceBefore" xml:space="preserve">
+    <value>Экспорт не начат: переходу «{0}» между «{1}» и «{2}» на дорожке {3} в {4} нужны исходные кадры за краями клипов, которых в файле нет. Укоротите или удалите переход либо перепривяжите полный файл.</value>
+  </data>
+  <data name="Export_FailTransitionSourceDuring" xml:space="preserve">
+    <value>Экспорт остановлен: при декодировании не хватило исходных кадров для перехода «{0}» между «{1}» и «{2}» на дорожке {3} в {4}. Укоротите или удалите переход либо перепривяжите полный файл.</value>
+  </data>
+  <data name="Export_FailTransitionSource" xml:space="preserve">
+    <value>Переходу нужны исходные кадры за краями клипов, которых в файле нет, — экспорт остановлен. ({0})</value>
   </data>
 </root>

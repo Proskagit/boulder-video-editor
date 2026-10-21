@@ -426,7 +426,40 @@ public sealed class MediaRelinkServiceTests : IDisposable
 
         Assert.True(check.CanApply);
         Assert.Equal(RelinkWarningKind.DissolveHandles, Assert.Single(check.Warnings).Kind);
+        Assert.Equal("The new file lacks source frames the transition \"Dissolve\" needs beyond a clip; an export with it will be refused " +
+            "until it is shortened or removed.", check.Warnings[0].Message);
         Assert.Empty((await _relink.CheckAsync(a.Id, NewFile("a3.mp4", VideoMeta(3)))).Warnings);
+    }
+
+    /// <summary>D025 §4 as changed in Phase 28: the warning counts the types that take frames beyond their clips — Dissolve
+    /// and Push — and says the export will be refused; Dip to black, Flash and Zoom need nothing from the new file.</summary>
+    [Theory]
+    [InlineData(TransitionRules.Push, "Push")]
+    [InlineData(TransitionRules.DipToBlack, null)]
+    [InlineData(TransitionRules.Flash, null)]
+    [InlineData(TransitionRules.Zoom, null)]
+    public async Task Only_a_dissolve_or_a_push_is_warned_about_and_by_its_name(string type, string? named)
+    {
+        var a = Offline("a.mp4", MediaKind.Video, VideoMeta(10));
+        var b = Offline("b.mp4", MediaKind.Video, VideoMeta(10));
+        var left = AddClip(a);
+        Trim(left, 2);                                                      // A: source 0–2 s
+        var right = AddClip(b, at: 2);
+        Assert.True(_f.Service.TrimClip(right.Id, ClipEdge.Start, MediaTime.FromFrame(65, Rate)).Success);  // B: source from 0.6 s
+        Assert.True(_f.Service.MoveClips(new[] { right.Id }, -15).Success);                                   // back to the cut
+        Assert.True(_f.Service.AddTransition(left.Id, right.Id, type).Success);
+
+        var check = await _relink.CheckAsync(a.Id, NewFile("a2.mp4", VideoMeta(2)));     // nothing beyond the clip
+
+        if (named is null)
+        {
+            Assert.Empty(check.Warnings);
+            return;
+        }
+        var warning = Assert.Single(check.Warnings);
+        Assert.Equal(RelinkWarningKind.DissolveHandles, warning.Kind);
+        Assert.Contains($"\"{named}\"", warning.Message);
+        Assert.Contains("will be refused", warning.Message);
     }
 
     // --- ffprobe unavailable (PO-3) ------------------------------------------------------------------------------------

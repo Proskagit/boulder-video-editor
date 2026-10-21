@@ -145,14 +145,15 @@ public sealed class TimelineDissolveUiTests : IAsyncLifetime
 
         var dissolve = Assert.Single(V1.Transitions);
         Assert.Equal((a.Id, b.Id, F(25)), (dissolve.LeftClipId, dissolve.RightClipId, dissolve.Duration));   // 1 s
-        Assert.Equal("Dissolve added: 25 frames.", _status.Message);
+        Assert.Equal("Dissolve added: 1 s · 25 frames.", _status.Message);              // seconds in the current culture
         Assert.True(Timeline.HasTransitionSelection);
         Assert.False(Timeline.HasSelection);
         Assert.True(ZoneVm().IsSelected);
         Assert.True(Inspector.IsTransitionSelected);
-        Assert.Equal(25m, Inspector.DissolveFrames);
-        Assert.Equal(TimeFormat.ToTimecode(F(25), Rate), Inspector.DissolveTimeDisplay);
-        Assert.Equal("Longest that fits here: 201 frames", Inspector.DissolveLimitDisplay);   // ⌊F/2⌋ ≤ 100 in A
+        Assert.True(Inspector.IsVideoTransitionSelected);                          // Phase 28: seconds of whole frames (D044 §5)
+        Assert.Equal(1m, Inspector.TransitionSeconds);
+        Assert.Equal("1 s · 25 frames", Inspector.TransitionDurationDisplay);
+        Assert.Equal($"Longest that fits here: {8.04m.ToString(System.Globalization.CultureInfo.CurrentCulture)} s · 201 frames", Inspector.TransitionLimitDisplay);   // ⌊F/2⌋ ≤ 100 in A
 
         _undo.Undo();
         Assert.Empty(V1.Transitions);
@@ -174,7 +175,7 @@ public sealed class TimelineDissolveUiTests : IAsyncLifetime
         Timeline.AddDissolveCommand.Execute(null);
 
         Assert.Equal(F(20), Assert.Single(V1.Transitions).Duration);
-        Assert.Equal("Dissolve added: 20 frames, the longest that fits here.", _status.Message);
+        Assert.Equal($"Dissolve added: {0.8m.ToString(System.Globalization.CultureInfo.CurrentCulture)} s · 20 frames, the longest that fits here.", _status.Message);
     }
 
     [Fact]
@@ -188,7 +189,7 @@ public sealed class TimelineDissolveUiTests : IAsyncLifetime
 
         SelectBoth(a, b);
         Timeline.AddDissolveCommand.Execute(null);
-        Assert.Equal(TimelineEditService.NotEnoughMedia, _status.Message);
+        Assert.Equal(AiVideoEditor.Core.Localization.Messages.Transition_NotEnoughMediaType, _status.Message);   // names Dip to black and Flash (D044 §6)
 
         Assert.True(_edit.MoveClips(new[] { b.Id }, 10).Success);                    // now they don't meet
         SelectBoth(a, b);

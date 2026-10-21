@@ -1,3 +1,4 @@
+using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Playback;
 
@@ -70,8 +71,17 @@ public enum ExportFailure
     OutputFailed,
     /// <summary>A frame could not be drawn (D043: an outlined text's glyphs not prepared — the application closing, the
     /// interface not responding).</summary>
-    RenderFailed
+    RenderFailed,
+    /// <summary>A Dissolve or a Push needs source frames beyond its clips that the media do not have (D025 §4 as changed in
+    /// Phase 28): the export is refused rather than drawn with held frames. <see cref="ExportException.MissingSource"/>
+    /// names the transition.</summary>
+    TransitionSourceMissing
 }
+
+/// <summary>The transition whose zone lacks source frames (D025 §4, D044): its type, its clips, the track and the cut;
+/// <see cref="BeforeRendering"/> when the check before the first frame found it (nothing was written), otherwise the
+/// decoder ran out while rendering.</summary>
+public sealed record MissingTransitionSource(string TypeId, Guid TrackId, Guid LeftClipId, Guid RightClipId, MediaTime Cut, bool BeforeRendering);
 
 /// <summary>An export that failed. No output file is left behind; an existing file at the output
 /// path stays as it was. Cancellation is reported as <see cref="OperationCanceledException"/> with
@@ -82,4 +92,7 @@ public sealed class ExportException : Exception
         : base(message, inner) => Failure = failure;
 
     public ExportFailure Failure { get; }
+
+    /// <summary>For <see cref="ExportFailure.TransitionSourceMissing"/>: the transition and where it was found.</summary>
+    public MissingTransitionSource? MissingSource { get; init; }
 }

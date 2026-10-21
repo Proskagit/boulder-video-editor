@@ -11,6 +11,9 @@ namespace AiVideoEditor.Export;
 /// <see cref="IExportService"/> (D023, Phase 8 Step 6): orchestration only. It connects the parts of the export
 /// and owns none of their rules:
 /// <list type="number">
+/// <item>Checking: every Dissolve and Push has the source frames its zone needs beyond its clips — asked of the decoder,
+/// not of the metadata (<see cref="ExportTransitionSourceCheck"/>, D025 §4); one that lacks them ends the export before
+/// anything is written (<see cref="ExportFailure.TransitionSourceMissing"/>).</item>
 /// <item>Preparing: one <see cref="ICompositionRasterizer"/> for the job (from the factory the app registers —
 /// Export never references a rendering backend) and <see cref="IExportEncoder.StartAsync"/>.</item>
 /// <item>Audio: <see cref="ExportAudioSource"/> → <see cref="IExportEncoding.WriteAudioAsync"/> until the source
@@ -69,6 +72,7 @@ public sealed class ExportService : IExportService
         try
         {
             progress?.Report(new ExportProgress(ExportStage.Preparing, 0, 1));
+            await ExportTransitionSourceCheck.RunAsync(job.Snapshot, output, _videoDecoder, new ExportDecodeSettings(), ct);
             using var rasterizer = _rasterizerFactory() ?? throw new InvalidOperationException("The rasterizer factory returned null.");
             await using var encoding = await _encoder.StartAsync(output, job.Encoding, job.OutputPath, ct);
 

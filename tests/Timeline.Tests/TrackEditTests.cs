@@ -313,7 +313,7 @@ public class TrackEditTests
             Ok(f.Service.MoveTrack(v3.Id, -1));                             // V3 below V1
             var folder = Path.Combine(root, "Project");
             await f.Projects.SaveAsAsync(folder);
-            Assert.Contains("\"formatVersion\": 7", File.ReadAllText(Path.Combine(folder, "project.json")));
+            Assert.Contains("\"formatVersion\": 8", File.ReadAllText(Path.Combine(folder, "project.json")));
 
             var v1 = f.V1;
             var expected = new[] { (v1.Id, v1.Order), (v3.Id, v3.Order) };

@@ -33,6 +33,7 @@ public sealed class ExportFrameSource : IAsyncDisposable
     private readonly IVideoDecoder _decoder;
     private readonly ExportDecodeSettings _settings;
     private readonly Dictionary<Guid, ExportPictureReader> _readers = new();
+    private readonly Dictionary<Guid, ZonesOf> _zones;   // the clips a Dissolve or a Push extends (D025 §3–§4)
     private readonly long _firstFrame;
     private long _lastIndex = -1;
     private bool _disposed;
@@ -47,6 +48,18 @@ public sealed class ExportFrameSource : IAsyncDisposable
         output ??= ExportOutput.For(snapshot);
         FrameCount = output.FrameCount;
         _firstFrame = output.FirstFrame;
+        _zones = ZonesByClip(snapshot);
+    }
+
+    /// <summary>For every picture span a Dissolve or a Push extends, its zones (the readers fail on a held zone frame).</summary>
+    internal static Dictionary<Guid, ZonesOf> ZonesByClip(PlaybackSnapshot snapshot)
+    {
+        var zones = new Dictionary<Guid, ZonesOf>();
+        foreach (var layer in snapshot.VideoLayers)
+            foreach (var span in layer.Spans)
+                if (span.ExtendedStart is not null || span.ExtendedEnd is not null)
+                    zones[span.ClipId] = ZonesOf.For(layer, span);
+        return zones;
     }
 
     public long FrameCount { get; }
@@ -100,7 +113,7 @@ public sealed class ExportFrameSource : IAsyncDisposable
         if (span.Status is not (SpanStatus.Video or SpanStatus.StillImage) || !_snapshot.Assets.TryGetValue(span.AssetId, out var asset))
             throw new ExportException(ExportFailure.DecodeFailed,
                 $"A clip at {span.TimelineStart} can't be exported ({span.Status}{(span.Reason is null ? "" : ": " + span.Reason)}).");
-        reader = new ExportPictureReader(span, asset, _snapshot.FrameRate, _decoder, _settings);
+        reader = new ExportPictureReader(span, asset, _snapshot.FrameRate, _decoder, _settings, _zones.GetValueOrDefault(span.ClipId));
         _readers[span.ClipId] = reader;
         return reader;
     }

@@ -64,7 +64,7 @@ public class DissolveEditTests
         var (f, a, b) = Cut();
         var before = f.Snapshot();
 
-        Assert.Contains("at least 2 frames", f.Service.AddTransition(a.Id, b.Id, F(f, 1)).Message);
+        Assert.Contains("at least 3 frames", f.Service.AddTransition(a.Id, b.Id, F(f, 2)).Message);   // 0.1 s at 30 fps (D044 §5)
         Assert.False(f.Service.AddTransition(b.Id, a.Id, F(f, 10)).Success);         // the wrong way round: B doesn't end where A starts
         Assert.False(f.Service.AddTransition(a.Id, a.Id, F(f, 10)).Success);
 
@@ -191,7 +191,7 @@ public class DissolveEditTests
         Assert.Equal(F(f, 30), dissolve.Duration);
         Assert.Equal("Change Dissolve Duration", Top(f));
         Assert.True(f.Service.SetTransitionDuration(dissolve.Id, F(f, 30)).NoChange);
-        Assert.Contains("at least 2", f.Service.SetTransitionDuration(dissolve.Id, F(f, 1)).Message);
+        Assert.Contains("at least 3", f.Service.SetTransitionDuration(dissolve.Id, F(f, 2)).Message);   // 0.1 s at 30 fps (D044 §5)
         Assert.Contains("longest that fits is 201", f.Service.SetTransitionDuration(dissolve.Id, F(f, 250)).Message);   // ⌊F/2⌋ ≤ 100 in A
 
         f.UndoRedo.Undo();                                                        // both resizes at once

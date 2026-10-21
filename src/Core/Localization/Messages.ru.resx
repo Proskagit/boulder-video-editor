@@ -727,12 +727,6 @@
   <data name="Relink_DiffVideoCodec" xml:space="preserve">
     <value>Видеокодек: был {0}, стал {1}.</value>
   </data>
-  <data name="Relink_DissolveHoldsMany" xml:space="preserve">
-    <value>В новом файле недостаточно материала за краями клипов для наплывов ({0}); они будут держать кадр.</value>
-  </data>
-  <data name="Relink_DissolveHoldsOne" xml:space="preserve">
-    <value>В новом файле недостаточно материала за краем клипа для его наплыва; наплыв будет держать кадр.</value>
-  </data>
   <data name="Relink_DoesNotExist" xml:space="preserve">
     <value>«{0}» не существует.</value>
   </data>
@@ -865,6 +859,24 @@
   <data name="Transition_NotEnoughMediaDissolve" xml:space="preserve">
     <value>За краями клипов недостаточно материала для наплыва.</value>
   </data>
+  <data name="Transition_NotEnoughMediaType" xml:space="preserve">
+    <value>За краями клипов недостаточно материала для этого перехода. Затемнению и Вспышке он не нужен.</value>
+  </data>
+  <data name="Transition_DurationRange" xml:space="preserve">
+    <value>Длительность этого перехода здесь — от {0} до {1} кадр.</value>
+  </data>
+  <data name="Transition_TooLongType" xml:space="preserve">
+    <value>Этот переход длиной {0} кадр. здесь не помещается; самое длинное возможное — {1} кадр.</value>
+  </data>
+  <data name="Transition_DurationMin" xml:space="preserve">
+    <value>Этот переход должен длиться не меньше {0} кадр.</value>
+  </data>
+  <data name="Transition_NoDirection" xml:space="preserve">
+    <value>Направление есть только у сдвига.</value>
+  </data>
+  <data name="Transition_WrongType" xml:space="preserve">
+    <value>Этот переход нельзя поставить на такую дорожку.</value>
+  </data>
   <data name="Transition_TooLongCrossfade" xml:space="preserve">
     <value>Перекрёстное затухание длиной {0} кадр. здесь не помещается; самое длинное возможное — {1} кадр.</value>
   </data>
@@ -879,6 +891,12 @@
   </data>
   <data name="TransitionRule_DontTouch" xml:space="preserve">
     <value>Клипы перехода не соприкасаются.</value>
+  </data>
+  <data name="TransitionRule_Direction" xml:space="preserve">
+    <value>Сдвигу нужно направление, у других переходов его нет.</value>
+  </data>
+  <data name="TransitionRule_FillPeaksTooClose" xml:space="preserve">
+    <value>Вспышки и затемнения должны быть не ближе 1 секунды друг к другу.</value>
   </data>
   <data name="TransitionRule_Min" xml:space="preserve">
     <value>Переход должен длиться не меньше {0} кадр.</value>
@@ -978,5 +996,74 @@
   </data>
   <data name="Frame_AlreadyFits" xml:space="preserve">
     <value>Изображение уже вписано в кадр.</value>
+  </data>
+  <data name="TransitionName_CrossDissolve" xml:space="preserve">
+    <value>Наплыв</value>
+  </data>
+  <data name="TransitionName_DipToBlack" xml:space="preserve">
+    <value>Затемнение</value>
+  </data>
+  <data name="TransitionName_Flash" xml:space="preserve">
+    <value>Вспышка</value>
+  </data>
+  <data name="TransitionName_Zoom" xml:space="preserve">
+    <value>Наезд</value>
+  </data>
+  <data name="TransitionName_Push" xml:space="preserve">
+    <value>Сдвиг</value>
+  </data>
+  <data name="Transition_CantAddNamed" xml:space="preserve">
+    <value>Нельзя добавить переход «{0}»: {1}</value>
+  </data>
+  <data name="Transition_CantChangeNamed" xml:space="preserve">
+    <value>Нельзя изменить переход «{0}»: {1}</value>
+  </data>
+  <data name="Transition_CutHasNamed" xml:space="preserve">
+    <value>На этой склейке уже есть переход «{0}».</value>
+  </data>
+  <data name="Transition_NeedsMeetNamed" xml:space="preserve">
+    <value>Для перехода «{0}» нужны два соседних клипа: первый должен заканчиваться там, где начинается второй.</value>
+  </data>
+  <data name="Edit_TransitionSameTrack" xml:space="preserve">
+    <value>Переход соединяет два клипа одной дорожки.</value>
+  </data>
+  <data name="Edit_TransitionRemovedNamed" xml:space="preserve">
+    <value>Переход «{0}» удалён: его клипы больше не соседние.</value>
+  </data>
+  <data name="Edit_TransitionsRemoved" xml:space="preserve">
+    <value>Удалено переходов: {0} — их клипы больше не соседние.</value>
+  </data>
+  <data name="Edit_TransitionBackNamed" xml:space="preserve">
+    <value>Переход «{0}» восстановлен: его клипы снова соседние.</value>
+  </data>
+  <data name="Split_InsideNamed" xml:space="preserve">
+    <value>Нельзя разрезать внутри перехода «{0}».</value>
+  </data>
+  <data name="Insert_InsideNamed" xml:space="preserve">
+    <value>Нельзя вставить внутрь перехода «{0}».</value>
+  </data>
+  <data name="Overwrite_InsideNamed" xml:space="preserve">
+    <value>Нельзя заменить внутри перехода «{0}».</value>
+  </data>
+  <data name="MakeRoom_OpensNamed" xml:space="preserve">
+    <value>Нельзя {0}: освобождение места разорвёт переход «{1}» между клипами, которые не сдвигаются. Сначала удалите его.</value>
+  </data>
+  <data name="Edit_TrimStoppedNamed" xml:space="preserve">
+    <value>Обрезка остановлена там, где кадры клипа нужны переходу «{0}».</value>
+  </data>
+  <data name="Edit_SlipStoppedNamed" xml:space="preserve">
+    <value>Сдвиг остановлен там, где материал клипа нужен переходу «{0}».</value>
+  </data>
+  <data name="Edit_NotTrimmedEndNamed" xml:space="preserve">
+    <value>Не обрезано там, где на конце клипа переход «{0}»: Shift+W обрезает его, сохраняя переход.</value>
+  </data>
+  <data name="Edit_NotTrimmedStartNamed" xml:space="preserve">
+    <value>Не обрезано там, где на начале клипа переход «{0}»: Shift+Q обрезает его, сохраняя переход.</value>
+  </data>
+  <data name="Relink_TransitionShortOne" xml:space="preserve">
+    <value>В новом файле не хватает исходных кадров, нужных переходу «{0}» за краем клипа; экспорт с ним будет отклонён, пока переход не укоротят или не удалят.</value>
+  </data>
+  <data name="Relink_TransitionShortMany" xml:space="preserve">
+    <value>В новом файле не хватает исходных кадров, нужных переходам за краями клипов ({0}); экспорт с ними будет отклонён, пока их не укоротят или не удалят.</value>
   </data>
 </root>

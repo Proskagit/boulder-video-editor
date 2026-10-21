@@ -94,7 +94,9 @@ public sealed partial class TimelineEditService
                 var otherClip = plan.EffectiveClips(track).FirstOrDefault(c => c.Clip.Id == otherId).Clip;
                 if (otherClip is null || placedSet.Contains(otherClip)) continue;   // a moved clip's own dissolves: D025 §5
                 if (!moving.TryGetValue(otherClip, out var otherMove) || otherMove.Delta != delta)
-                    return string.Format(Tr(track, Messages.MakeRoom_OpensDissolve, Messages.MakeRoom_OpensCrossfade), verb);
+                    return IsNamed(track, state.TypeId)
+                        ? string.Format(Messages.MakeRoom_OpensNamed, verb, TypeName(state.TypeId))
+                        : string.Format(Tr(track, Messages.MakeRoom_OpensDissolve, Messages.MakeRoom_OpensCrossfade), verb);
             }
         }
         return null;

@@ -118,7 +118,7 @@ public class HoldMarkupPersistenceTests
     public void The_file_is_the_current_version_and_a_clip_without_markup_writes_nothing()
     {
         var withMarkup = Json(Build(Markup()));
-        Assert.Equal(7, (int)withMarkup["formatVersion"]!);
+        Assert.Equal(8, (int)withMarkup["formatVersion"]!);
         var hold = ClipJson(withMarkup)["holdMarkup"]!["holds"]![0]!;
         Assert.NotNull(hold["surfaceLab"]!["l"]);
         Assert.NotNull(hold["wallLab"]!["b"]);
@@ -134,7 +134,7 @@ public class HoldMarkupPersistenceTests
         root["formatVersion"] = 4;
         var project = Load(root.ToJsonString());
         Assert.Null(((VideoClip)project.Timeline.VideoTracks[0].Clips[0]).HoldMarkup);
-        Assert.Equal(7, (int)JsonNode.Parse(Save(project))!["formatVersion"]!);
+        Assert.Equal(8, (int)JsonNode.Parse(Save(project))!["formatVersion"]!);
 
         // A v4 file can't have markup; anything there is ignored, as every older version ignores newer properties.
         var stray = Json(Build(Markup()));
@@ -239,7 +239,7 @@ public class HoldMarkupPersistenceTests
         var first = Save(project);
         var reopened = Load(first);
         Assert.Equal(first, Save(reopened));
-        Assert.Equal(7, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(8, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
 
         var loaded = LoadedMarkup(reopened).Holds[0];
         Assert.True(corrected.SameAs(loaded));                                 // id, every point, the samples, the time

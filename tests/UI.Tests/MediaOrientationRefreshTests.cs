@@ -200,6 +200,10 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult RemoveTransition(Guid transitionId) => No;
         public TimelineEditResult SetTransitionDuration(Guid transitionId, MediaTime duration) => No;
         public long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId) => null;
+        public TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, string typeId) => No;
+        public TimelineEditResult SetTransitionType(Guid transitionId, string typeId) => No;
+        public TimelineEditResult SetTransitionDirection(Guid transitionId, TransitionDirection direction) => No;
+        public long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId, string typeId) => null;
         public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => No;
         public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => null;
         public MovePreview? PreviewMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => null;

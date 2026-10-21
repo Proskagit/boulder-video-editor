@@ -157,12 +157,17 @@ and runs cleanly.
       criteria: section below and DECISIONS.md D041 (accepted 2026-10-20). *(Branch `feat/phase-26-vertical-video` from
       `58c48cb`; Steps 26.0–26.4 done and verified by Claude on 2026-10-20; accepted by the product owner on
       2026-10-20; PR #27 merged into `main` as `41dadf2` (2026-10-20), CI green on the pull request)*
-- [ ] **Phase 27 — Text animation and readability (D042 Phase A).** Appearance / disappearance of a text clip (Нет,
+- [x] **Phase 27 — Text animation and readability (D042 Phase A).** Appearance / disappearance of a text clip (Нет,
       Проявление, Выезд, Увеличение) over the clip's fades, an outline and a background (each on its own), colour swatches,
       a 3 × 3 placement grid, bold, defaults for a caption; `project.json` v7. Scope, steps and acceptance criteria: section
-      below and DECISIONS.md D043 (accepted 2026-10-20). *(Branch `feat/phase-27-text-animation` from `41dadf2`; Step 27.0
-      done; Step 27.1 — the outline's feasibility — a gate before the implementation)*
-- [ ] **Planned (D042; numbers given when taken up):** B — transition library · C — ready-made effects and music · G —
+      below and DECISIONS.md D043 (accepted 2026-10-20). *(Branch `feat/phase-27-text-animation` from `41dadf2`; Steps
+      27.0–27.6 done, up to `3c45c9d`; accepted by the product owner on 2026-10-20; not yet published)*
+- [ ] **Phase 28 — Transition library (D042 Phase B).** Наплыв, Затемнение, Вспышка, Наезд, Сдвиг on D025's model;
+      durations in seconds stored as whole frames; a 1.0 s minimum between the peaks of Flash / Dip to black;
+      `project.json` v8. Scope, steps and acceptance criteria: section below and DECISIONS.md D044 (approved 2026-10-20).
+      *(Branch `feat/phase-28-transitions` from `3c45c9d`, Phase 27's accepted tip; its pull request only after Phase 27 is
+      merged; Step 28.0 done; Step 28.1 — the visual check of Zoom — a gate, started on the product owner's agreement)*
+- [ ] **Planned (D042; numbers given when taken up):** C — ready-made effects and music · G —
       stabilisation of the main path and S1 · R1 → D — automatic hold proposals · R2 → E — outlines following the camera ·
       R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
 
@@ -171,7 +176,8 @@ and runs cleanly.
 The normative text is DECISIONS.md D042 (2026-10-20): the product concept, its boundaries and this order — confirmed by the
 product owner after the merge of Phase 26 (D042 "Refined after the merge of Phase 26"). None of these phases is started
 or approved for implementation; each gets its own decision, steps, acceptance criteria and manual plan when it is taken
-up, and its number then. A is Phase 27 (D043, accepted 2026-10-20; in progress). The scopes below are sketches to be refined —
+up, and its number then. A is Phase 27 (D043; done and accepted 2026-10-20, not yet published); B is Phase 28 (D044,
+approved 2026-10-20; in progress). The scopes below are sketches to be refined —
 not specifications. Every phase keeps the standing rules at the end of this file: one Undo step per user action, the
 Preview identical to the export, `MediaTime` ticks, heavy work off the UI thread, the localization guards (D039), the gates
 of the recent phases (build `-warnaserror`, the full suite, heavy, `--blame-hang`, `project.json` compared byte for byte
@@ -207,12 +213,16 @@ G + D / E as taken + F ─► regression run ─► H       S4 — the full plan
 - The specification with its UX, Undo / Redo, parity, localization, checks, acceptance criteria and risks: D043; the steps:
   "Phase 27 — Text animation and readability: steps" below.
 
-### B — Transition library *(core, medium–large)*
+### B — Transition library *(core, medium; Phase 28 — DECISIONS.md D044, approved 2026-10-20)*
 - Today: the cross dissolve of one video track (D025) and the fades.
-- Sketch: about five transitions in total, the dissolve included (the set decided in the phase — e.g. dip to black /
-  white, a wipe, a slide / push, a zoom), on D025's model (a cut of one track, centred, source handles, the zone fit); one
-  Undo step; a choice in the existing dissolve UI; parity tests per transition.
-- Out: a transition editor, custom curves, an unlimited library.
+- The set (D044, after a research of what editors use; the owner's answers in D044 §11): Наплыв 1.0 s,
+  Затемнение 0.6 s, Вспышка 0.2 s (0.1–0.5 s), Наезд 0.3 s (0.2–1.0 s, `K = 1.25`, the change of clip at the peak), Сдвиг
+  0.3 s (≥ 0.2 s, four directions, B from the right by default, no motion blur); no Wipe. Only Dissolve and Push need source
+  handles. Durations in seconds stored as whole frames (D044 §5); a 1.0 s minimum between the peaks of Flash / Dip to black,
+  a breaking edit rejected; `project.json` v8; Step 28.1 a visual check of Zoom on the product owner's clips (a gate: Z2 / Z3
+  proposed, never chosen alone).
+- The steps: "Phase 28 — Transition library: steps" below (branch from `3c45c9d`; the pull request after Phase 27's merge).
+- Out: a transition editor, custom curves, motion blur, an unlimited library.
 
 ### C — Ready-made effects and the music scenario *(core, medium)*
 - Today: `Clip.Effects` persisted but never rendered (D025); music as an audio clip with volume, fades and crossfades
@@ -311,6 +321,14 @@ background for vertical video (D041 §4); the technical-debt split of `TimelineE
 manual checks — R10 (a real audio device, Phase 17), the product owner's visual check of the S1 HDR export and PQ on real PQ
 footage (Phase 18), the NOT RUN rows of Phases 23 and 25; an installer (left out by the product owner). Not planned (D042
 §3): keyframes, speed ramps, freeze frame / reverse, ducking, multicam, an audio studio.
+
+### Long-term direction: the automatic rough cut *(not a phase; DECISIONS.md D042 "Recorded later", 2026-10-20)*
+
+An editable rough cut of a training assembled from the video and, later, the COROS Pace 4 export: the watch's events (only
+the data that really exist) structure it, routes missing from the video are left out, about 5 s of outlined holds then the
+attempt per route, the heart rate as an animated heart with the BPM, grade / result / flash from the user's data, local AI,
+the user polishing the result. No specification and no change of the order above; it needs R3 → F, D and its own
+decision. R1, R2 and R3 do not by themselves authorise D, E or F.
 
 ## Future ideas (not phases)
 
@@ -2163,6 +2181,77 @@ on a curve, wrapping, font files, animation of other clip kinds, new dependencie
   diff --check`; a Phase 26 v6 project with text opened and saved (only `formatVersion` differs) and its export compared
   with the Phase 26 build's; the manual plan in the real app on the product owner's portrait gym clip in `ru` and `en`, an
   export watched in a player; D043's acceptance criteria 1–9 checked one by one; the documentation.
+
+## Phase 28 — Transition library: steps (D044)
+
+Approved on 2026-10-20 by the product owner (D044 §11 the answers, the corrections of the readiness check, branch variant
+B); the normative text is DECISIONS.md D044. Branch `feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d`
+(Phase 27 not yet published). The permission covers the code, tests, documentation and local commits on this branch; **no
+push, pull request or merge without a separate command**; Phase 28's pull request only after Phase 27 is merged. **If
+Phase 27 changes before its merge, Phase 28 is not rebased on its own** — the difference is reported to the product owner
+with a safe synchronisation plan first. **Step 28.1 starts only after the product owner agrees its visual check on the
+real gym clips**; it is a gate — an unsatisfactory Zoom stops the work with Z2 and Z3 proposed, never chosen alone. A need
+to change the format, the architecture or agreed behaviour beyond D044 is reported with variants before the change.
+
+Goal: five transitions a bouldering video actually uses — Наплыв, Затемнение, Вспышка, Наезд, Сдвиг — on D025's model, the
+Preview equal to the export.
+
+Gates for every step (QG): `dotnet build -warnaserror` 0 / 0; the affected test projects green, the full suite, the heavy
+scenes and `--blame-hang` at the closeout; the existing Preview ↔ export parity suites and every expected value unchanged
+(a project with dissolves renders bit for bit as with Phase 27 — D044 acceptance criterion 2); a v7 project saved again
+differs only in `formatVersion`; every new user-visible text in `Strings` / `Messages` with `.ru` (the D039 guards);
+`docs/PHASE28_MANUAL_TEST_PLAN.md` and `progress.md` updated.
+
+Out of scope (D044 §1, §11): a Wipe, motion blur and every blur, glitch, light leaks, shapes / masks, Smooth Cut, repeated
+flashes, user curves, keyframes, "apply to every cut", a change of the audio crossfade (D032) or of D043; new dependencies.
+
+### 28.0 — Sync and documentation *(done)*
+- The branch from `3c45c9d` with the preparatory documentation carried onto it; D044 approved (the corrections 1–4 of the
+  readiness check, variant B); these steps; the manual plan's skeleton `docs/PHASE28_MANUAL_TEST_PLAN.md`;
+  `docs/README.md`; ROADMAP and `progress.md`. No product code.
+
+### 28.1 — Visual check of Zoom and Flash (a gate; tests and records only) *(done 2026-10-20 — accepted by the product owner: Zoom and Flash as specified, Z2 / Z3 not needed; D044 "Refined in Step 28.1")*
+- Starts only after the product owner agrees the check. Zoom (D044 §2: `K = 1.25`, the change of clip at the peak, 0.3 s)
+  and Flash (0.2 s, one white frame at the cut) rendered by the painter's composition rule on the product owner's gym
+  clips — horizontal and vertical, 25 / 30 / 60 fps where available — as short MP4s and frame strips for the owner's eye;
+  experimental code only in tests or a scratch harness, no product behaviour.
+- The result recorded (D044 "Refined in Step 28.1"). **Unsatisfactory Zoom → stop**: Z2 (a one-frame blend of A and B at
+  the peak; one frame of handle on each side) and Z3 (no Zoom in the first version) proposed with examples; the owner
+  chooses.
+
+### 28.2 — Model, `project.json` v8 and the Core rules *(done 2026-10-20 — D044 "Implementation notes (Step 28.2)"; the product owner's review pending)*
+- `Transition.Direction`; the video types and `TransitionRules.RequiresHandles`; the type-dependent `MaxTransitionFrames`;
+  the per-type ranges in frames (D044 §5: `ceil` minimum, `floor` maximum); the 1.0 s rule between fill peaks across the
+  video tracks (D044 §4) in the edit service's reconciliation and on load; `AddTransition` with a type (the default, else the
+  longest that fits ≥ the minimum, never another type); a type change keeping the duration in range, else clamped to the
+  nearest allowed value, one step; a direction change one step; the DTOs and the serializer (v8; v7 read; v9 refused).
+- Tests: every rule of D044 §3–§9 on all eight rates (the table of §5), the handles only for Dissolve and Push, the 1.0 s
+  rule on add / type change / move / ripple / speed / re-grid / load, D025 §5 for every type, the round trip, v7 → v8
+  differing only in `formatVersion`, damaged files refused.
+
+### 28.3 — Snapshot, draw plan, painter *(done 2026-10-20 — D044 "Implementation notes (Step 28.3)")*
+- The transition zone with the type and the direction; the extended shown range for Dissolve and Push only; in
+  `PlaybackSnapshot.LayersAt` the per-type presentation (D044 §2): the fill layer for Dip to black / Flash, the canvas scale
+  for Zoom, the canvas offset for Push (offset layers never occlude); `SolidLayer` → `SolidDraw`; the hold outline following
+  its frame; a type or direction change keeping the shown range presentation only.
+- Tests: the per-frame curves of every type (D044 §2's examples as references), occlusion, Preview ↔ export parity per type,
+  direction and zone frame (with rotation, scale, crop, opacity, Fit / Fill, outlines, a vertical canvas, lower and upper
+  tracks), dissolves bit for bit as with Phase 27, the end-to-end export with real ffmpeg.
+
+### 28.4 — The UI *(done 2026-10-20 — D044 "Implementation notes (Step 28.4)")*
+- «Переход ▾» in the timeline header (the five types; the crossfade on an audio track as before); the Inspector's TRANSITION
+  section (the type, the direction for Push, the duration in seconds — field and slider on the 0.1 s grid, the stored
+  seconds and frames, «the longest that fits here» — Remove; types that cannot fit disabled with a tooltip); the type's icon
+  on the zone; the status messages (the longest that fits, a clamp on a type change, the 1.0 s rule, not enough handles
+  naming Dip to black); the `EditingLock`; resources en + ru.
+- Tests: the view models and AXAML, the edits through the UI (steps, merges, refusals, Undo / Redo), the localization guards;
+  the real app at 1024 × 640 and 1440 × 900.
+
+### 28.5 — Verification & closeout *(done by Claude 2026-10-20; the real-app run and its fixes D1–D8 and the export refusal of D025 §4 on 2026-10-21 — results in `progress.md` and the manual plan; accepted by the product owner 2026-10-21)*
+- Release and Debug `--no-incremental -warnaserror`; the full suite, `AIVE_HEAVY_TESTS=1`, three `--blame-hang` runs; `git
+  diff --check`; a Phase 27 v7 project with dissolves opened, saved (only `formatVersion` differs) and its export compared
+  with the Phase 27 build's; the manual plan in the real app on the product owner's gym clips in `ru` and `en`, an export
+  watched in a player; D044's acceptance criteria 1–8 checked one by one; the documentation.
 
 ## Architectural rules that must hold at every phase
 

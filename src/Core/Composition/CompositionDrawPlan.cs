@@ -37,6 +37,11 @@ public sealed record FrameDraw(Guid ClipId, Affine2D Transform, double Opacity, 
 public sealed record TextDraw(Guid ClipId, Affine2D Transform, double Opacity, TextProperties Text)
     : DrawOperation(ClipId, Transform, Opacity);
 
+/// <summary>A fill transition's colour (D044 §2, <see cref="SolidLayer"/>): <see cref="LocalRect"/> — the canvas in canvas
+/// pixels — filled with <see cref="ColorHex"/> through <see cref="DrawOperation.Transform"/> at the opacity.</summary>
+public sealed record SolidDraw(Guid ClipId, Affine2D Transform, double Opacity, RectD LocalRect, string ColorHex)
+    : DrawOperation(ClipId, Transform, Opacity);
+
 /// <summary>
 /// The route outline of a picture layer's hold markup (D034 §4–§6), drawn right above the layer's frame with the layer's
 /// opacity. Like <see cref="FrameDraw"/> it lives in the layer's crop-local coordinates (source pixels):
@@ -146,7 +151,7 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
         var geometry = picture.Geometry ?? CompositionMath.Layout(canvas, decodedSize, picture.Span.Visual);
         var (w, h) = (geometry.Source.Width, geometry.Source.Height);
         var crop = geometry.SourceRect;
-        var m = geometry.Transform;
+        var m = picture.Motion.Apply(canvas, geometry.Transform);   // the outline moves with its frame (D044 §2)
 
         var opacities = picture.OutlineOpacities;
         var animated = !opacities.IsDefault && opacities.Length == outline.Polygons.Length;
@@ -189,7 +194,10 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
         switch (resolved.Layer)
         {
             case TextLayer text:
-                return new TextDraw(text.ClipId, canvasToTarget.Compose(text.Transform), text.Opacity, text.Text);
+                return new TextDraw(text.ClipId, canvasToTarget.Compose(text.Motion.Apply(canvas, text.Transform)), text.Opacity, text.Text);
+
+            case SolidLayer solid:
+                return new SolidDraw(solid.ClipId, canvasToTarget, solid.Opacity, new RectD(0, 0, canvas.Width, canvas.Height), solid.ColorHex);
 
             case PictureLayer picture:
             {
@@ -197,7 +205,7 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
                 var geometry = picture.Geometry
                     ?? CompositionMath.Layout(canvas, new FrameSize(frame.Width, frame.Height), picture.Span.Visual);
                 var n = geometry.NormalizedSourceRect;
-                return new FrameDraw(picture.ClipId, canvasToTarget.Compose(geometry.Transform), picture.Opacity,
+                return new FrameDraw(picture.ClipId, canvasToTarget.Compose(picture.Motion.Apply(canvas, geometry.Transform)), picture.Opacity,
                     new RectD(0, 0, geometry.SourceRect.Width, geometry.SourceRect.Height), frame,
                     new RectD(n.X * frame.Width, n.Y * frame.Height, n.Width * frame.Width, n.Height * frame.Height));
             }

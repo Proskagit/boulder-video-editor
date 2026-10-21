@@ -62,7 +62,7 @@ public class MediaColorPersistenceTests
         foreach (var name in new[] { "pixelFormat", "colorTransfer", "colorPrimaries", "colorMatrix", "colorRange",
                      "masteringMaxLuminance", "maxContentLightLevel", "dolbyVisionProfile", "dolbyVisionCompatibility", "hasHdrVivid", "bitDepth" })
             Assert.DoesNotContain(name, json);
-        Assert.Equal(7, JsonNode.Parse(json)!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(8, JsonNode.Parse(json)!["formatVersion"]!.GetValue<int>());
 
         var sdr = Sample();
         sdr.MediaAssets[0].Metadata!.HasHdrVivid = false;

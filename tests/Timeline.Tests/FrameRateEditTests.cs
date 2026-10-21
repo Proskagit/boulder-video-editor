@@ -251,7 +251,11 @@ public class FrameRateEditTests
         var media = Video(f, FrameRate.Fps60);
         var a = f.Place<VideoClip>(f.V1, media, 0, At(60, FrameRate.Fps60).Ticks, At(10, FrameRate.Fps60).Ticks);
         var b = f.Place<VideoClip>(f.V1, media, At(60, FrameRate.Fps60).Ticks, At(120, FrameRate.Fps60).Ticks, At(100, FrameRate.Fps60).Ticks);
-        Ok(f.Service.AddTransition(a.Id, b.Id, At(2, FrameRate.Fps60)));
+        // A 2-frame dissolve of an older project: below D044 §5's input minimum (6 frames at 60 fps), kept as stored.
+        f.V1.Transitions.Add(new Transition
+        {
+            TransitionTypeId = TransitionRules.CrossDissolve, Duration = At(2, FrameRate.Fps60), LeftClipId = a.Id, RightClipId = b.Id
+        });
         MarkSaved(f);
         var (before, top) = (f.Snapshot(), f.UndoRedo.CurrentPosition);
 

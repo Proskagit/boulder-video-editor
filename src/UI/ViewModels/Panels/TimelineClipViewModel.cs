@@ -148,6 +148,12 @@ public sealed partial class TimelineTransitionViewModel(Transition transition, T
     [ObservableProperty] private double _width;
     [ObservableProperty] private bool _isSelected;
 
+    /// <summary>The type's mark in the zone (D044 §6), kept up to date by <see cref="Layout"/>.</summary>
+    [ObservableProperty] private string _glyph = TransitionNames.Glyph(transition.TransitionTypeId);
+
+    /// <summary>The type's name, the mark's tooltip.</summary>
+    [ObservableProperty] private string _typeName = TransitionNames.Name(transition.TransitionTypeId);
+
     /// <summary>False while a drag or trim preview would open the dissolve's cut (it is removed on release) —
     /// shown again when the gesture ends.</summary>
     [ObservableProperty] private bool _isVisible = true;
@@ -159,6 +165,8 @@ public sealed partial class TimelineTransitionViewModel(Transition transition, T
     /// clips).</summary>
     public void Layout(double pixelsPerSecond, FrameRate rate, long frameDelta = 0)
     {
+        Glyph = TransitionNames.Glyph(Transition.TransitionTypeId);
+        TypeName = TransitionNames.Name(Transition.TransitionTypeId);
         var right = Track.Clips.FirstOrDefault(c => c.Id == Transition.RightClipId);
         if (right is null) return;
         var (beforeCut, afterCut) = TransitionRules.Zone(TransitionRules.Frames(Transition.Duration, rate));

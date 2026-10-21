@@ -90,6 +90,22 @@ Domain types (`src/Core/Entities`):
   that fits, `RemoveDissolveCommand`); Delete removes a selected dissolve; the `EditingLock` disables all of it.
   `SetClipSpeedCommand` carries the dissolves a speed change removes (one step with the speed, merged with the clip's
   next speed changes); `IUndoRedoService.NextUndo` lets a speed typed back to the step's start undo that step.
+  Transition library (Phase 28, D044): `Transition.TransitionTypeId` ∈ `TransitionRules.VideoTypes` (crossDissolve,
+  dipToBlack, flash, zoom, push) on a video track, `crossfade` on an audio track; `Transition.Direction` for a push only;
+  `project.json` v8. `TransitionRules` holds the per-type defaults and input ranges in whole frames, `RequiresHandles`
+  (Dissolve, Push, crossfade), `ClampFrames` and `ValidateFillPeaks` (1.0 s between Flash / Dip to black peaks, checked
+  by `TimelineEditService.Validate` on every edit and on load). Rendering: `TransitionPresentation` (the curves), the
+  zone's type on `DissolveZone`, the shown range extended only for Dissolve and Push, `LayersAt`'s library branch beside
+  the unchanged dissolve code, `CompositionLayer.Motion` (`CanvasMotion`: Zoom's scale about the canvas centre, Push's
+  whole-pixel shift, applied by the draw plan after the layer's transform to the frame, text and hold outline) and
+  `SolidLayer` / `SolidDraw` for the fills; one painter for the Preview and the export. UI: «Переход» in the timeline
+  header (`OpenTransitionMenuCommand` → the `MenuFlyout`, `AddTransitionCommand(typeId)`), the Inspector's TRANSITION
+  section (`InspectorViewModel.Transition.cs`: type and direction buttons, `TransitionSeconds` on whole frames, its spinner
+  through `StepTransitionSecondsCommand` / `CommitNumericUpDown.StepCommand`); the audio crossfade keeps `DissolveFrames`.
+  Export of a Dissolve / Push without the source frames its zone needs (D025 §4 as changed in Phase 28): refused —
+  `ExportTransitionSourceCheck` probes the decoder for each zone's farthest extended frames before the encoder starts,
+  and `ExportPictureReader` fails on any extended frame it could only hold (`SourceFrameSelector.EndsAfter`); the failure
+  is `ExportFailure.TransitionSourceMissing` with `ExportException.MissingSource`, worded by `ExportWorkflow.FailureMessage`.
 - `MediaTime`
 
 New projects get tracks V1 and A1. Clips are created only by `ITimelineEditService`.
