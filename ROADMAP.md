@@ -82,7 +82,7 @@ product owner; verified by Claude 2026-10-20: Release / Debug `--no-incremental 
 manual plan run in the real app with its NOT RUN parts named); **accepted by the product owner (2026-10-20)**. Local commits
 only; the push, the pull request and the merge on the product owner's command.
 
-Phase 28 — the transition library (D042 Phase B; **done, awaiting the product owner's acceptance**; DECISIONS.md D044, approved 2026-10-20 with the answers
+Phase 28 — the transition library (D042 Phase B; **accepted by the product owner 2026-10-21, not yet published**; DECISIONS.md D044, approved 2026-10-20 with the answers
 of its §11): Наплыв, Затемнение, Вспышка, Наезд, Сдвиг (no Wipe; Push without motion blur); durations in seconds stored as
 whole frames; a 1.0 s minimum between the peaks of Flash / Dip to black; `project.json` v8. Branch
 `feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d` (variant B): Phase 28's pull request only after Phase 27
@@ -96,8 +96,8 @@ Steps 28.3 (rendering), 28.4 (the interface) and 28.5 (verification) done on 202
 byte for byte for every type and direction (real ffmpeg); v7 dissolves byte-identical with the Phase 27 code and a v7 project
 saved again differing only in `formatVersion`. After the product owner's real-app run (2026-10-20 / 21): D1–D8 fixed, and an
 export whose Dissolve or Push lacks source frames is refused (D025 §4 changed by the product owner, D044); gates Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4417 / 2 / 0; `AIVE_HEAVY_TESTS=1` 4419 / 0 / 0; three `--blame-hang` runs 4417 / 2 / 0, no hang, no dump; the
-real-app re-run in the manual plan (what remains NOT RUN is named there). Awaiting the product owner's acceptance; local
-commits only.
+real-app re-run in the manual plan (what remains NOT RUN is named there). Accepted by the product owner on 2026-10-21 at
+`fd2e04b` (the NOT RUN rows and the known limits documented); local commits only — published after Phase 27.
 
 ## Previous
 

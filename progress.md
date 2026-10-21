@@ -5,8 +5,8 @@
 Phase 28 — the transition library (D042 Phase B), branch `feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d`
 (variant B; Phase 27 not yet published); DECISIONS.md D044, approved 2026-10-20. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 28
 — Transition library: steps"; manual plan `docs/PHASE28_MANUAL_TEST_PLAN.md`. Steps 28.0 and 28.1 done (28.1 accepted by the
-product owner: Zoom and Flash as specified); Steps 28.2–28.5 done (28.2 accepted); **the phase awaits the product
-owner's acceptance**; the real-app run and re-run done (`docs/PHASE28_MANUAL_TEST_PLAN.md`; the NOT RUN rows named there);
+product owner: Zoom and Flash as specified); Steps 28.2–28.5 done (28.2 accepted); **the phase was accepted by the
+product owner on 2026-10-21 at `fd2e04b`**; the real-app run and re-run done (`docs/PHASE28_MANUAL_TEST_PLAN.md`; the NOT RUN rows named there);
 D1–D8 fixed; the export refusal for a Dissolve / Push without source frames implemented (D025 §4, D044). Phase 28's pull request
 only after Phase 27 is merged; if Phase 27 changes before its merge, no rebase on Claude's own — the difference is reported
 with a safe synchronisation plan first. No push, pull request or merge without the product owner's command.
