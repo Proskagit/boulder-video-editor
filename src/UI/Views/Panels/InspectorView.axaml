@@ -207,6 +207,72 @@
 
           <!-- Timeline clip selection (Phase 4) -->
           <StackPanel IsVisible="{Binding IsTimelineClipSelected}" IsEnabled="{Binding IsEditingAllowed}" Spacing="16">
+            <!-- Template (Phase 29, D045 §6): only the template's own fields. A typed field applies live and merges with the
+                 next change of the same field; a status or a colour is one click, one undo step. -->
+            <StackPanel x:Name="TemplateSection" Spacing="6" IsVisible="{Binding HasTemplate}">
+              <TextBlock Text="{x:Static l:Strings.Inspector_TemplateHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowsTemplateDate}">
+                <TextBlock Text="{x:Static l:Strings.Inspector_TemplateDate}" Classes="label"/>
+                <TextBox x:Name="TemplateDateField" Text="{Binding TemplateDate, Mode=TwoWay}" MaxLength="{Binding MaxTemplateDateLength}" Width="150"/>
+              </StackPanel>
+              <StackPanel Spacing="6" IsVisible="{Binding ShowsTemplateBoulder}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_TemplateRoute}" Classes="label"/>
+                  <TextBox x:Name="TemplateRouteField" Text="{Binding TemplateRoute, Mode=TwoWay}" MaxLength="{Binding MaxTemplateRouteLength}" Width="110"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_TemplateGrade}" Classes="label"/>
+                  <TextBox x:Name="TemplateGradeField" Text="{Binding TemplateGrade, Mode=TwoWay}" MaxLength="{Binding MaxTemplateGradeLength}" Width="110"/>
+                </StackPanel>
+                <Grid ColumnDefinitions="124,*">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_TemplateStatus}" Classes="label" VerticalAlignment="Top" Margin="0,4,0,0"/>
+                  <ItemsControl x:Name="TemplateStatusButtons" Grid.Column="1" ItemsSource="{Binding TemplateStatuses}">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <ToggleButton Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}" CommandParameter="{Binding Status}"
+                                      FontSize="11" Margin="0,0,4,4" Command="{Binding $parent[UserControl].DataContext.SetTemplateStatusCommand}"/>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Grid>
+                <!-- D045 §17: the moment the status appears — set from the playhead. -->
+                <Grid ColumnDefinitions="124,*" RowDefinitions="Auto,Auto" IsVisible="{Binding ShowsTemplateStatusAt}">
+                  <TextBlock Text="{x:Static l:Strings.TemplateStatusAt_Label}" Classes="label" VerticalAlignment="Center"/>
+                  <Button x:Name="TemplateStatusAtButton" Grid.Column="1" HorizontalAlignment="Left" FontSize="11"
+                          Content="{x:Static l:Strings.TemplateStatusAt_Set}" ToolTip.Tip="{x:Static l:Strings.TemplateStatusAt_Tip}"
+                          Command="{Binding SetTemplateStatusAtPlayheadCommand}"/>
+                  <TextBlock x:Name="TemplateStatusAtText" Grid.Row="1" Grid.Column="1" Text="{Binding TemplateStatusAtText}"
+                             FontSize="11" Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </Grid>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_TemplateAccent}" Classes="label"/>
+                  <Border Width="22" Height="22" CornerRadius="2" BorderBrush="#5A5A5A" BorderThickness="1"
+                          Background="{Binding TemplateAccentHex}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <ItemsControl x:Name="TemplateAccentSwatches" ItemsSource="{Binding RouteSwatches}" Margin="124,-2,0,0">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Button Classes="swatch" ToolTip.Tip="{Binding Name}" CommandParameter="{Binding Hex}"
+                              Command="{Binding $parent[UserControl].DataContext.SetTemplateAccentCommand}">
+                        <Border Background="{Binding Hex}"/>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+              <StackPanel Spacing="6" IsVisible="{Binding ShowsTemplateHighlight}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_TemplateTitle}" Classes="label"/>
+                  <TextBox x:Name="TemplateTitleField" Text="{Binding TemplateTitle, Mode=TwoWay}" MaxLength="{Binding MaxTemplateTitleLength}" Width="180"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{x:Static l:Strings.Inspector_TemplateSubtitle}" Classes="label"/>
+                  <TextBox x:Name="TemplateSubtitleField" Text="{Binding TemplateSubtitle, Mode=TwoWay}" MaxLength="{Binding MaxTemplateSubtitleLength}" Width="180"/>
+                </StackPanel>
+              </StackPanel>
+            </StackPanel>
             <!-- Text (Phase 7 Step 8): text clips only. Every field applies live; consecutive changes of one
                  field merge into one undo step. The color applies once it is a complete #RRGGBB. -->
             <StackPanel Spacing="6" IsVisible="{Binding HasTextProperties}">

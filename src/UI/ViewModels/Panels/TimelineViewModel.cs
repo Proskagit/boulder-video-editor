@@ -290,7 +290,30 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         MediaBackedClip m => FindAsset(m.MediaAssetId)?.FileName ?? Strings.Clip_MissingMedia,
         TextClip t => TextLabel(t.Text),
+        TemplateClip p => TemplateLabel(p),
         _ => Strings.Clip_Generic
+    };
+
+    /// <summary>A template's name on the timeline: its kind, with what it shows when that says more — «Боулдер · 7 · 7A»,
+    /// «Хайлайт · ЛУЧШАЯ ПОПЫТКА».</summary>
+    public static string TemplateLabel(TemplateClip clip)
+    {
+        var name = TemplateTypeName(clip.Kind);
+        var detail = clip.Kind switch
+        {
+            TemplateKind.Boulder => string.Join(" · ", new[] { clip.Route, clip.Grade }.Where(s => s.Length > 0)),
+            TemplateKind.Highlight => clip.Title,
+            _ => clip.Date
+        };
+        return detail.Length > 0 ? string.Format(Strings.Clip_TemplateWith, name, detail) : name;
+    }
+
+    public static string TemplateTypeName(TemplateKind kind) => kind switch
+    {
+        TemplateKind.Rec => Strings.TemplateType_Rec,
+        TemplateKind.Vhs => Strings.TemplateType_Vhs,
+        TemplateKind.Boulder => Strings.TemplateType_Boulder,
+        _ => Strings.TemplateType_Highlight
     };
 
     public static string EmptyTextLabel => Strings.Clip_EmptyText;
@@ -334,6 +357,26 @@ public sealed partial class TimelineViewModel : ViewModelBase
         }
     }
 
+    /// <summary>Places the status mark of every «Боулдер» with a status (D045 §17) at the current zoom: the frame of its
+    /// status moment on the template's clock (<see cref="TemplateClip.CounterStart"/> at the clip's start), when inside it.</summary>
+    private void RefreshStatusMarks()
+    {
+        foreach (var vm in _clipViewModels.Values)
+        {
+            if (vm.Clip is not TemplateClip { Kind: TemplateKind.Boulder } template || template.Status == BoulderStatus.None)
+            {
+                vm.StatusMarkX = null;
+                continue;
+            }
+            var offset = template.StatusAt.ToNearestFrame(FrameRate) - template.CounterStart.ToNearestFrame(FrameRate);
+            var frames = template.TimelineEnd.ToFrameFloor(FrameRate) - template.TimelineStart.ToFrameFloor(FrameRate);
+            vm.StatusMarkX = offset >= 0 && offset < frames
+                ? TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(offset, FrameRate), PixelsPerSecond)
+                : null;
+            vm.OnStatusChanged();
+        }
+    }
+
     /// <summary>Recomputes every pixel position from the model at the current zoom.</summary>
     private void Relayout()
     {
@@ -341,6 +384,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             vm.Layout(PixelsPerSecond);
         RefreshWaveforms();
         RefreshFades();
+        RefreshStatusMarks();
         foreach (var vm in _transitionViewModels.Values)
             vm.Layout(PixelsPerSecond, FrameRate);
 
@@ -646,6 +690,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         AddVideoTrackCommand.NotifyCanExecuteChanged();
         AddAudioTrackCommand.NotifyCanExecuteChanged();
         AddTextCommand.NotifyCanExecuteChanged();
+        AddTemplateCommand.NotifyCanExecuteChanged();
         MoveTrackUpCommand.NotifyCanExecuteChanged();
         MoveTrackDownCommand.NotifyCanExecuteChanged();
         DeleteTrackCommand.NotifyCanExecuteChanged();
@@ -1001,6 +1046,17 @@ public sealed partial class TimelineViewModel : ViewModelBase
         var result = _edit.AddTextClip(Playhead, _textBoxes is { } boxes ? boxes.Measure : null);
         SelectAdded(result);
         Report(result, successMessage: Strings.Text_Added);
+    }
+
+    /// <summary>«Шаблон ▾» (D045 §5): a template of the kind named by <paramref name="kind"/> ("Rec", "Vhs", "Boulder",
+    /// "Highlight") at the playhead on the topmost video track, selected.</summary>
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private void AddTemplate(string kind)
+    {
+        if (!Enum.TryParse<TemplateKind>(kind, out var parsed)) return;
+        var result = _edit.AddTemplateClip(parsed, Playhead);
+        SelectAdded(result);
+        Report(result, successMessage: Strings.Template_Added);
     }
 
     /// <summary>"Add to Timeline" from the Media Browser: end of V1 / A1.</summary>

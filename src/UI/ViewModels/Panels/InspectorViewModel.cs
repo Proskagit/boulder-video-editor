@@ -526,7 +526,8 @@ public sealed partial class InspectorViewModel : ViewModelBase
         HasTextProperties = clip is TextClip;
         HasSpeed = clip is VideoClip or AudioClip;
         HasFades = true;
-        ShowsFades = clip is not TextClip;      // a text's fades are its «Анимация» durations (D043 Q2)
+        // A text's fades are its «Анимация» durations (D043 Q2); a template's its fixed appearance / disappearance (D045).
+        ShowsFades = clip is not (TextClip or TemplateClip);
         _rate = selection.Rate;
         _canvas = selection.Canvas;
         IsFadeInInactive = selection.DissolveAtStart;
@@ -541,6 +542,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
             AudioClip => Strings.ClipType_Audio,
             ImageClip => Strings.ClipType_Image,
             TextClip => Strings.ClipType_Text,
+            TemplateClip template => string.Format(Strings.ClipType_Template, TimelineViewModel.TemplateTypeName(template.Kind)),
             _ => Strings.Clip_Generic
         };
         StartTimeDisplay = TimeFormat.ToTimecode(clip.TimelineStart, selection.Rate);
@@ -649,6 +651,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
                 Alignment = text.Alignment;
                 SyncTextStyle((TextClip)_clip);
             }
+            SyncTemplate();
         }
         finally
         {
@@ -715,6 +718,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         HasVisualProperties = false;
         HasCrop = false;
         HasTextProperties = false;
+        TemplateKind = null;
         HasSpeed = false;
         HasFades = false;
         ShowsFades = false;

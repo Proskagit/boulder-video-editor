@@ -116,6 +116,7 @@ public static class TimelineValidator
         AudioClip => Messages.Kind_Audio,
         ImageClip => Messages.Kind_Image,
         TextClip => Messages.Kind_Text,
+        TemplateClip => Messages.Kind_Template,
         _ => Messages.Kind_Other
     };
 }

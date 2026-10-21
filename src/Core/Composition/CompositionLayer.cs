@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Playback;
 
@@ -73,6 +74,45 @@ public sealed record TextLayer(Guid TrackId, TextSpan Span, Affine2D Transform, 
     : CompositionLayer(TrackId, Span.ClipId, Span.Visual.Opacity * FadeFactor)
 {
     public TextProperties Text => Span.Text;
+}
+
+/// <summary>
+/// A template (D045) on its frame: what it draws is a pure function of its kind, its fields and <see cref="Clock"/>, so the
+/// Preview and the export draw the same. Never hides what is below it.
+/// </summary>
+public sealed record TemplateLayer(Guid TrackId, TemplateSpan Span, TemplateClock Clock) : CompositionLayer(TrackId, Span.ClipId, 1.0)
+{
+    public TemplateKind Kind => Span.Kind;
+}
+
+/// <summary>
+/// A template's time on one timeline frame (D045 §3): seconds since its clip's start (<see cref="Elapsed"/>) and to its end
+/// (<see cref="Remaining"/>, one frame on the last frame); the appearance / disappearance lengths (<see cref="Intro"/>,
+/// <see cref="Outro"/>; 0: none — a split's inner edge); the counter (<see cref="Counter"/>, seconds, continuing over a
+/// split) and its frame number (<see cref="CounterFrame"/>, the noise's seed); the seconds since «Боулдер»'s status moment
+/// (<see cref="SinceStatus"/>, on the same clock; negative before it). All exact functions of whole frames.
+/// </summary>
+public readonly record struct TemplateClock(double Elapsed, double Remaining, double Intro, double Outro, double Counter, long CounterFrame,
+    double SinceStatus = double.PositiveInfinity)
+{
+    public static TemplateClock At(TemplateSpan span, long frame, FrameRate rate)
+    {
+        var start = span.TimelineStart.ToFrameFloor(rate);
+        var end = span.TimelineEnd.ToFrameFloor(rate);
+        double Seconds(long frames) => MediaTime.FromFrame(frames, rate).TotalSeconds;
+        var counterFrames = span.CounterStart.ToNearestFrame(rate) + (frame - start);
+        // D045 §17: the status moment on the counter's clock, in whole frames — the frame its appearance starts on is the same
+        // in the Preview and the export, and a split's parts agree on it.
+        var sinceStatus = counterFrames - span.Fields.StatusAt.ToNearestFrame(rate);
+        return new TemplateClock(Seconds(frame - start), Seconds(end - frame), Seconds(span.FadeInFrames), Seconds(span.FadeOutFrames),
+            span.CounterStart.TotalSeconds + Seconds(frame - start), counterFrames, Seconds(sinceStatus));
+    }
+
+    /// <summary>0 → 1 over the appearance (1 without one).</summary>
+    public double In => Intro > 0 ? Math.Clamp(Elapsed / Intro, 0, 1) : 1;
+
+    /// <summary>1 → 0 over the disappearance (1 without one).</summary>
+    public double Out => Outro > 0 ? Math.Clamp(Remaining / Outro, 0, 1) : 1;
 }
 
 /// <summary>

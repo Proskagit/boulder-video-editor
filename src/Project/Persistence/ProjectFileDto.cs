@@ -170,6 +170,7 @@ internal sealed class TrackDto
 [JsonDerivedType(typeof(AudioClipDto), "audio")]
 [JsonDerivedType(typeof(ImageClipDto), "image")]
 [JsonDerivedType(typeof(TextClipDto), "text")]
+[JsonDerivedType(typeof(TemplateClipDto), "template")]
 internal abstract class ClipDto
 {
     public Guid Id { get; set; }
@@ -295,6 +296,24 @@ internal sealed class ImageClipDto : MediaBackedClipDto
     public double RotationDegrees { get; set; }
     public double Opacity { get; set; }
     public CropDto? Crop { get; set; }
+}
+
+/// <summary>Format v9 (D045): a template — its kind, the counter's start and every field (each kind keeps the others).
+/// Every member is required.</summary>
+internal sealed class TemplateClipDto : ClipDto
+{
+    public TemplateKind? Template { get; set; }
+    public long CounterStartTicks { get; set; }
+    public string? Date { get; set; }
+    public string? Route { get; set; }
+    public string? Grade { get; set; }
+    public BoulderStatus? Status { get; set; }
+    public string? AccentHex { get; set; }
+    public string? Title { get; set; }
+    public string? Subtitle { get; set; }
+
+    /// <summary>«Боулдер»'s status moment on the template's clock (D045 §17).</summary>
+    public long? StatusAtTicks { get; set; }
 }
 
 internal sealed class TextClipDto : ClipDto

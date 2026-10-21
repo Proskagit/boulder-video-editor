@@ -106,6 +106,22 @@ Domain types (`src/Core/Entities`):
   `ExportTransitionSourceCheck` probes the decoder for each zone's farthest extended frames before the encoder starts,
   and `ExportPictureReader` fails on any extended frame it could only hold (`SourceFrameSelector.EndsAfter`); the failure
   is `ExportFailure.TransitionSourceMissing` with `ExportException.MissingSource`, worded by `ExportWorkflow.FailureMessage`.
+  Templates (Phase 29, D045): `TemplateClip` — a generated clip on a video track (REC, VHS, «Боулдер», «Хайлайт»;
+  `TemplateKind`) with typed fields (`TemplateProperties`: date, route, grade, `BoulderStatus`, accent, title, subtitle) and
+  `CounterStart`; no picture properties, sound or speed; its appearance / disappearance are the clip's fades (so Split
+  keeps them on the outer edges, D025) and Split continues the counter in the right part; `TemplateRules` (defaults,
+  limits, validation, the words drawn on the plate); a template takes no transition; `project.json` v9 (`"type":
+  "template"`, every field required; a v9-only kind). Rendering: `PlaybackSnapshotBuilder` → `TemplateSpan` on
+  `VideoLayer.Templates` (no `AudioSpan`) → `LayersAt` gives a `TemplateLayer` with its `TemplateClock` (seconds since
+  the start and to the end, the effective fades, the counter, the seconds since «Боулдер»'s status moment `StatusAt` on
+  the counter's clock — whole frames) that never occludes → `TemplateDraw` →
+  `CompositionPainter`: `TemplatePainter` draws the graphics (immutable brushes, text, rectangles under transforms — no
+  geometry objects, so off the UI thread too); a kind with a treatment (`TemplateRules.HasTreatment`: VHS) makes the painter
+  draw everything before it offscreen (`TreatmentSurface`: the canvas bounds at the render scaling — exactly the canvas
+  for the export), read it back, run `TemplateTreatment.Vhs` (deterministic, parallel by rows) and draw the result back
+  before the remaining operations; a plan without such a template is painted exactly as before. UI: «Шаблон» in the
+  timeline header (`TemplateMenu` → `AddTemplateCommand(kind)`), the Inspector's TEMPLATE section
+  (`InspectorViewModel.Template.cs`: the kind's own fields; a status and a route colour one step each).
 - `MediaTime`
 
 New projects get tracks V1 and A1. Clips are created only by `ITimelineEditService`.
@@ -552,7 +568,9 @@ waveform never changes the audio.
 Decisions: D014 (format, Open/Save, missing media), D015 (save point), D016 (autosave,
 recovery, unsaved changes).
 
-- On disk: a project folder with `project.json` (format v7 since Phase 27: the optional `bold`, `outline`, `background`,
+- On disk: a project folder with `project.json` (format v9 since Phase 29: template clips, `"type": "template"` with their
+  kind, counter and fields, D045; v8 is read unchanged and saved as v9 differing only in `formatVersion`, a template in a
+  v8 file refuses it; format v8 since Phase 28: the transition library, D044; format v7 since Phase 27: the optional `bold`, `outline`, `background`,
   `motionIn`, `motionOut` of a text clip, written only when set, D043; v6 is read without them and saved as v7 differing
   only in `formatVersion`; format v6 since Phase 21: the optional `holdMarkup.animation`, D036; v5
   is read without animation and saved as v6; format v5 since Phase 19: the optional `holdMarkup` of a video clip —

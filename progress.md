@@ -2,7 +2,159 @@
 
 ## Current phase
 
-Phase 28 — the transition library (D042 Phase B), branch `feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d`
+Phase 29 — ready-made visual templates and the music scenario (D042 Phase C, refined by the product owner on 2026-10-21),
+branch `feat/phase-29-templates` from `origin/main` `4f0e66a` (the merge of PR #29); DECISIONS.md D045 — **approved
+2026-10-21 (the reduced scope: REC, VHS, «Боулдер», «Хайлайт»; WASTED deferred)**. Steps 29.0–29.6 done by Claude on
+2026-10-21, the corrections of D045 §17 on 2026-10-21/22; **accepted by the product owner on 2026-10-22** after the manual
+check. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 29 — Visual templates and the music scenario: steps"; manual plan
+`docs/PHASE29_MANUAL_TEST_PLAN.md`. Committed on the branch at the product owner's command (2026-10-22); no push, pull
+request or merge without the product owner's separate command. Not part of Phase 29: hold tracking, camera motion compensation, contour smoothing and occlusion are not part of Phase 29 — to be researched and scoped separately after it.
+
+Phases 27 (D043) and 28 (D044) were merged by the product owner on 2026-10-21 after a green CI: PR #28 as `36a1a58`, PR #29
+as `4f0e66a` (parents `36a1a58` and `ebdbad9`; the tree equal to the expected merge — checked 2026-10-21).
+
+### Phase 29 — Visual templates and the music scenario (accepted 2026-10-22, not yet published)
+
+- 2026-10-21 — after the merge: `origin/main` verified (the merge commit, both parents, `ebdbad9` and `3c45c9d` in its
+  history, the tree equal to `git merge-tree` of the parents and to `ebdbad9`'s tree); a first sketch of Phase C (five colour
+  effects) proposed; **the product owner replaced it**: five visual templates made for bouldering videos (REC / Camcorder,
+  VHS, Competition overlay, Highlight, WASTED) and an audit of the existing music path with no new audio functions.
+- 2026-10-21 — Step 29.0 (documentation only): the branch; D045 (draft: the audit of `4f0e66a`, the brief, the research,
+  the architecture proposal — a template clip on a video track, a treatment pass of everything below and graphics in the
+  shared draw plan, a built-in sound span —, the fields, the music audit, the steps, the acceptance criteria, the questions,
+  the risks); DEVELOPMENT_PLAN (C refined, the steps 29.0–29.6); ROADMAP (Phases 27 / 28 merged, Phase 29 current); the
+  manual plan's skeleton with the music audit (part B: inputs, objective defect criteria, B1–B10); `docs/README.md`. No
+  product code.
+- 2026-10-21 — Step 29.1 (research and prototypes; no product code):
+  - Research: two World Climbing broadcasts (Seoul 2025 World Championships boulder final, Innsbruck 2026 boulder final)
+    examined frame by frame in the built-in browser (cookies declined), the 2025 scoring rules read (D045 §2); local frame
+    references in `VideosForTest/Phase29_Step29.1/research`. No published description of the graphics package was found.
+  - A scratch harness (`VideosForTest/Phase29_Step29.1/harness`, a console project referencing Core, UI and Vision; excluded
+    from git with `VideosForTest/`): hold contours from the real SAM 2.1 model on the GPU (five holds of the black route on
+    the horizontal wall, five on the vertical overhang — the markup's own mask choice and contour tracing), each frame drawn
+    by the app's `CompositionPainter` with D036's default appearance of the holds, then the template's pixel pass and its
+    graphics, encoded by ffmpeg with the clip's sound (+ the WASTED sting, synthesised by the harness).
+  - Rendered (`VideosForTest/Phase29_Step29.1/out`, 60 fps, 8.5–9 s each): REC, VHS, Competition (full and minimal
+    fields), Highlight — horizontal and vertical; WASTED horizontal with the sound and muted, vertical with the sound. Two
+    prototype defects found by Claude's review and fixed before handing over: the condensed font stretch broke the letter
+    spacing (Highlight, WASTED — regular stretch used), the name lost its space and an empty name left an empty row
+    (Competition).
+  - Costs (Ryzen 7 7800X3D, 1080p frames): the app's frame + outline 9.1–10.4 ms; VHS pass 4.8–4.9 ms; WASTED pass ≈ 2 ms
+    while on screen; graphics 2.6–3.3 ms (4.6–7.4 ms with a treatment). The sting peaks at −2.6 dBFS in the mix (the clip's
+    sound −16 dBFS).
+  - **Stop at the gate**: the product owner's review of the prototypes and D045 §11 pending.
+- 2026-10-21 — the product owner's review of revision 1: REC, VHS, Highlight accepted in principle (unchanged); the
+  Competition overlay too heavy for hobby bouldering → one compact plate «Боулдер» (route, grade, a manual TOP / ПОПЫТКА);
+  the broadcast-style layout kept as a possible future «Соревнование» (not implemented); WASTED → a close reconstruction of
+  the original device. Revision 2 (no product code):
+  - WASTED research: GTA V story-mode deaths examined frame by frame (a compilation on YouTube, cookies declined): a ≈ 1.8 s
+    slow-motion «death cam» with muted colour, then **in one frame** black and white with hard contrast, blown highlights and
+    a heavy oval vignette, a translucent dark band at mid-height (≈ 20 % of the height) and the red lowercase «wasted»
+    (Pricedown, thin dark outline, ≈ 24 % of the width) in it; held ≥ 4 s, then a fade out. The sound was not analysed
+    (not accessible to the tools). Licences: Pricedown is Typodermic's commercial face (desktop use covers pre-rendered
+    graphics; embedding needs another licence — the exact terms for this product open); the game's sound and images are
+    Rockstar's. Details and sources: D045 §13. Reference frames local only (`research/gta_reference_local_only`).
+  - Harness: `boulder` and `wasted` (revision 2) templates, the revision-1 WASTED kept as `wasted1`; a push-in of the treated
+    picture; a new own sting (sub boom + noise hit + a low dissonant swell, 3.4 s). Slow motion made as the app would: the
+    clip split at the drop, the right part at 0.3× (ffmpeg, source frames repeated) — `render_rev2.sh`.
+  - Rendered: `3_boulder_h_top`, `3_boulder_h_attempt`, `3_boulder_v_top`, `3_boulder_v_plain`, `5_wasted_h_sound`,
+    `5_wasted_h_muted`, `5_wasted_v_sound`, `5_wasted_v_muted`; revision 1's Competition and WASTED renders moved to
+    `out/archive_rev1`. Claude's review: the grading of the first rev-2 render too flat → contrast and the oval vignette
+    strengthened and re-rendered; a side-by-side with a GTA V frame (local only) matches the composition, band, word
+    position, colour and grading — the face differs (Impact stand-in).
+  - Costs: «Боулдер» ≈ 3 ms of graphics; WASTED pass ≈ 4.5 ms while on screen, its graphics 9.4–10 ms in the harness
+    (glyph geometry rebuilt per frame there). The sting peaks at −3.1 dBFS in the mix (the clip's own sound −17 dBFS).
+  - **Stop at the gate** again: the acceptance of revision 2 and D045 §11 (revision 2) pending.
+- 2026-10-21 — revision 2 accepted by the product owner with two corrections of WASTED; «Боулдер», REC, VHS, Highlight
+  accepted; «Соревнование» a documented idea only; slow motion not part of WASTED; the template architecture accepted
+  provisionally. Revision 3 (no product code):
+  - The word as plain red letters (the outline removed; size, position, colour, moment unchanged).
+  - Sound: the app itself stretches a slowed clip's sound (D022 `atempo`, pitch kept) — the eerie part of revision 2 was
+    that stretched sound running on under the sting. Now the template's local logic (harness `WastedAudio`): a new own
+    sting (thump + slam + a bright minor stab + a short wash, 1.6 s, no drone) at the switch at 1×, the clips' sound
+    attenuated to −22 dB under it (60 ms down, hold, 0.45 s back) and restored after; the sound off — nothing changed.
+  - Verified on the 48 kHz mix before encoding: the sting at lag 0 samples (correlation 0.998) with the clip at 0.3× and at
+    1× (`5_wasted_h_sound_speed1.mp4` — the control); the clip's sound under the sting −22 dB, after it at its own level.
+  - Product feasibility checked: the mixer's gain and fades are applied by the shared Core `AudioMix.Add`
+    (`AudioPlacement.cs`, Preview and export) — the attenuation is one more envelope there, the sting a span without speed;
+    no obstacle.
+  - Rendered (`render_rev3.sh`): `5_wasted_h_sound`, `5_wasted_h_muted`, `5_wasted_h_sound_speed1`, `5_wasted_v_sound`,
+    `5_wasted_v_muted`; the sting alone `out/wasted_sting_rev3.wav`; revision 2's WASTED in `out/archive_rev2` (all moved
+    later into `out/archive_wasted_deferred/`).
+  - **Stop**: the product owner's review of revision 3 and the separate confirmation of the implementation pending.
+- 2026-10-21 — **implementation** after the product owner's approval (D045 §16: the reduced scope, VHS strength fixed, the
+  Highlight default «ЛУЧШАЯ ПОПЫТКА» in yellow, the music audit with confirmed defects only). The branch checked first: equal
+  to `origin/main` `4f0e66a`, nothing to synchronise.
+  - 29.2 music audit: `tests/ExportEndToEnd.Tests/MusicScenarioAuditTests.cs` (+ `E2EMedia.Generated`) on generated MP3 /
+    M4A / FLAC 44.1 kHz and WAV 48 kHz through the real export — placement ±0.2 ms in all formats, levels exact (±0.001 dB),
+    a split sample-identical, a removed part exact silence, linear click-free fades, the end on the last frame, save /
+    reopen sample-identical, a 10-min VBR MP3 from 5:00 within 0.05 ms (heavy). **No defect**; observation O1 (200 % of a
+    loud source clips — no limiter, by design). The audio path unchanged.
+  - 29.3–29.5 (D045 §16 implementation notes): `TemplateClip`, `TemplateRules`, `TemplateProperties`; `AddTemplateClip`,
+    template fields in `SetClipProperties` (`ClipPropertyFields : long`), Split / Duplicate / copy; transitions refused next
+    to a template; `project.json` v9; `TemplateSpan` / `TemplateLayer` / `TemplateClock` / `TemplateDraw`;
+    `TemplatePainter`; `TemplateTreatment.Vhs`; `CompositionPainter` offscreen treatment with `TreatmentSurface`; the
+    «Шаблон» menu, the Inspector's ШАБЛОН section, `Icons.Template`, Strings / Messages en + ru. Tests: `TemplateEditTests`
+    (18), `TemplateCompositionTests` (9), `TemplatePersistenceTests` (13), `TemplateRenderingTests` (19, Preview = export
+    byte for byte for every kind, horizontal and vertical), `ExportTemplateEndToEndTests` (3: the audio sample-identical with
+    and without templates, the Preview's pipeline = the export), `TemplateUiTests` (8), `TemplateViewTests` (4), the music
+    audit (9). Existing tests: the format literal 8 → 9 (20 files), the timeline icon count 14 → 15, the transition menu test
+    picks its menu by key, the D039 allowlist (+9 technical literals) and same-in-both keys (REC, VHS, TOP).
+  - Harness check of the product's drawing (`VideosForTest/Phase29_Step29.1/render_app.sh`, `out/app`): the four templates
+    on the gate's scenes match the accepted prototypes; the PLAY triangle found half as wide and corrected. Export
+    rasterizer per 1080p frame: 9.5 ms without a template, REC ≈ 10.5, «Боулдер» / «Хайлайт» ≈ 10, VHS 18–20 ms.
+  - Real app (Debug build in a scratch folder, an isolated profile; window shots only, no input sent): the v9 fixture
+    (`tools/manual/New-Phase29TemplateFixture.ps1`) opens; the Preview shows VHS at 5 s and the «Боулдер» plate on the
+    vertical canvas at 9.5 s; the timeline names the templates.
+  - Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0 (a first attempt failed on NU1900 — nuget.org unreachable
+    for the audit; passed once it was back); the full suite 4499 / 3 / 0 (Core 1287, Timeline 967, Project 537, UI 881,
+    Export 122, Rendering 166, Video 354, ExportEndToEnd 161 + 3, Vision 24); `AIVE_HEAVY_TESTS=1` 4502 / 0 / 0; three
+    `--blame-hang --blame-hang-timeout 5m` runs 4499 / 3 / 0, no hang, no dump; `git diff --check` clean (with the CRLF
+    of `InspectorView.axaml` as stored).
+  - Not done / limits: no commit (none permitted for this phase); the app's gestures (menu, Inspector, Split, playback,
+    export) not driven in the real app — covered by the automated suites; the product owner's music (M1) not provided —
+    listening by ear left to the product owner; fonts Bahnschrift / Consolas assumed present (Windows 10 / 11).
+- 2026-10-21 — **WASTED deferred** by the product owner: not in Phase 29, not blocking it, no more sound synthesis (reason:
+  the sound accent's quality unsatisfactory, no suitable sound chosen). Six requirements for a return recorded (D045 §15:
+  no source sound under it, an own accent of real quality, 1× whatever the clip's speed, sound off = no accent and no
+  attenuation, not in the product before a resource is chosen and its rights checked). Materials **moved, nothing deleted**
+  into `VideosForTest/Phase29_Step29.1/out/archive_wasted_deferred/` (rev1 / rev2 / rev3 renders and stings, review frames,
+  `research_gta_local_only`, `sources_slowmo`, `harness_snapshot` = a copy of the harness code, scripts and logs; a README
+  index): 123 files before, 138 after (15 copies), `out/archive_rev2`, `review/rev3`, `research/gta_reference_local_only`
+  and `work/` left empty and removed. The live harness keeps its WASTED code (shared file with the other templates).
+  D045 (§1, §3, §5, §6, §8–§11, §13–§15, consequences, status), DEVELOPMENT_PLAN, ROADMAP and the manual plan updated;
+  the scope without WASTED (four templates, no template sound) and the revised criteria 1 and 4 **proposed, awaiting the
+  product owner's approval**. No product code, no commit.
+
+- 2026-10-21/22 — **Fixes after the product owner's manual check** (D045 §17): (1) the text of «Боулдер» and «Хайлайт»
+  centred on its block by the font's glyph metrics (`TemplatePainter.InkOf`: the cap height, the ink's bearings) — within
+  0.5 px (one case 1.0) on the pixels, `TemplateTextAlignmentTests` (9); (2) the route block and the status as two blocks
+  (navy route, yellow TOP, muted blue ПОПЫТКА with white text) and (3, approved by the product owner) the status moment
+  `TemplateClip.StatusAt` set by «На указатель» from the playhead, on the template's clock, `statusAtTicks` required in the
+  unreleased v9, one undo step, kept by Split / Duplicate, never moved by a trim, no status beyond the end; a 0.25 s
+  appearance from the moment's frame, the same frame in the Preview and the export; a line on the clip in the timeline.
+  Tests: Timeline +6, Core +2, Project +3, Rendering +3, ExportEndToEnd +3, UI +3. REC and VHS unchanged.
+  - Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4526 / 3 / 0 (a first run had one
+    unnamed Video.Tests failure, not reproduced in the next five runs of that project); `AIVE_HEAVY_TESTS=1` 4528 / 0 / 1 —
+    `FfmpegExportEncoderFailureTests.A_failing_encoder_fails_the_export…(audio, read-then-fail, code 5)`, run while the
+    harness rendered review clips; the heavy Video.Tests then 3 × 354 / 0; three `--blame-hang` runs 4526 / 3 / 0, no hang.
+  - Review material (local): `VideosForTest/Phase29_Step29.1/review/fix` (before / after), `out/app/status_at` and
+    `review/status_at` (TOP / ПОПЫТКА appearing at a set moment, horizontal and vertical).
+- 2026-10-22 — **Phase 29 accepted by the product owner** after the manual check (the templates work correctly; the
+  centring and the status moment satisfactory). Closeout: the diff reviewed (only Phase 29 code, tests and documentation;
+  `.claude/` untracked and not staged, both `.claude/worktrees` clean at `7b118a7` / `a246f9f`, the WASTED archive
+  `VideosForTest/Phase29_Step29.1/out/archive_wasted_deferred` (git-excluded) unchanged since 2026-10-21 18:30); the status
+  in D045, DEVELOPMENT_PLAN, ROADMAP, this file and the manual plan aligned. Final gates: Release / Debug `--no-incremental
+  -warnaserror` 0 / 0; the full suite 4526 / 3 / 0; `AIVE_HEAVY_TESTS=1` 4529 / 0 / 0; three `--blame-hang --blame-hang-timeout
+  5m` runs 4526 / 3 / 0, no hang. Flaky episodes recorded, not hidden: (1) the first full run after §17 — one Video.Tests
+  failure, its name not captured; that project then passed 5 times; (2) the heavy run concurrent with the harness's
+  renders — `FfmpegExportEncoderFailureTests.A_failing_encoder_fails_the_export_and_leaves_the_existing_destination_untouched
+  (audio, read-then-fail, code 5)`; the heavy Video.Tests then 3 × 354 / 0 and the final heavy run green. Neither touches
+  the templates; both look timing-dependent under load — open as a known flake, not fixed in this phase. Committed on
+  `feat/phase-29-templates` at the product owner's command; not pushed. Not part of Phase 29 (the product owner): hold
+  tracking, camera motion compensation, contour smoothing, occlusion — to be researched and scoped separately.
+
+*Before the merge (kept as written):* Phase 28 — the transition library (D042 Phase B), branch `feat/phase-28-transitions` from Phase 27's accepted tip `3c45c9d`
 (variant B; Phase 27 not yet published); DECISIONS.md D044, approved 2026-10-20. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 28
 — Transition library: steps"; manual plan `docs/PHASE28_MANUAL_TEST_PLAN.md`. Steps 28.0 and 28.1 done (28.1 accepted by the
 product owner: Zoom and Flash as specified); Steps 28.2–28.5 done (28.2 accepted); **the phase was accepted by the
@@ -14,7 +166,7 @@ with a safe synchronisation plan first. No push, pull request or merge without t
 Phase 27 (D043): Steps 27.0–27.6 done on `feat/phase-27-text-animation` (up to `3c45c9d`); **accepted by the product owner
 (2026-10-20)**, not yet published.
 
-### Phase 28 — Transition library (in progress)
+### Phase 28 — Transition library (merged 2026-10-21, PR #29, `4f0e66a`)
 
 - 2026-10-20 — Phase 27 accepted by the product owner (local commits up to `3c45c9d`; publication on command). Phase 28
   prepared, documentation only: a first draft (Dissolve, Dip to black / white, Wipe, Push) revised after a research of what

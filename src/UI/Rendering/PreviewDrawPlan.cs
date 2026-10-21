@@ -52,8 +52,8 @@ public static class PreviewDrawPlan
     {
         switch (picture.State)
         {
-            // Generated layers — a text, a fill transition's colour (D044 §2) — need no decoded frame.
-            case LayerPictureState.Text when picture.Layer is TextLayer or SolidLayer:
+            // Generated layers — a text, a fill transition's colour (D044 §2), a template (D045) — need no decoded frame.
+            case LayerPictureState.Text when picture.Layer is TextLayer or SolidLayer or TemplateLayer:
                 return CompositionDrawPlan.Operation(canvas, viewport, new ResolvedLayer(picture.Layer, null));
 
             case LayerPictureState.Frame when picture.Layer is PictureLayer && picture.Frame is { } frame:

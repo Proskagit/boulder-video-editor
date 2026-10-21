@@ -1928,4 +1928,88 @@ If you don't save, your changes will be lost.</value>
   <data name="Export_FailTransitionSource" xml:space="preserve">
     <value>A transition needs source frames beyond its clips that the media no longer have, so the export was stopped. ({0})</value>
   </data>
+  <data name="Timeline_Template" xml:space="preserve">
+    <value>Template</value>
+  </data>
+  <data name="Timeline_TemplateTip" xml:space="preserve">
+    <value>Add a ready-made template at the playhead on the top video track</value>
+  </data>
+  <data name="TemplateType_Rec" xml:space="preserve">
+    <value>REC</value>
+  </data>
+  <data name="TemplateType_Vhs" xml:space="preserve">
+    <value>VHS</value>
+  </data>
+  <data name="TemplateType_Boulder" xml:space="preserve">
+    <value>Boulder</value>
+  </data>
+  <data name="TemplateType_Highlight" xml:space="preserve">
+    <value>Highlight</value>
+  </data>
+  <data name="Template_Added" xml:space="preserve">
+    <value>Template added</value>
+  </data>
+  <data name="ClipType_Template" xml:space="preserve">
+    <value>Template «{0}»</value>
+  </data>
+  <data name="Clip_TemplateWith" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="Inspector_TemplateHeading" xml:space="preserve">
+    <value>TEMPLATE</value>
+  </data>
+  <data name="Inspector_TemplateDate" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Inspector_TemplateRoute" xml:space="preserve">
+    <value>Route</value>
+  </data>
+  <data name="Inspector_TemplateGrade" xml:space="preserve">
+    <value>Grade</value>
+  </data>
+  <data name="Inspector_TemplateStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="TemplateStatus_None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="TemplateStatus_Top" xml:space="preserve">
+    <value>TOP</value>
+  </data>
+  <data name="TemplateStatus_Attempt" xml:space="preserve">
+    <value>Attempt</value>
+  </data>
+  <data name="TemplateStatusAt_Label" xml:space="preserve">
+    <value>Status appears</value>
+  </data>
+  <data name="TemplateStatusAt_Set" xml:space="preserve">
+    <value>At playhead</value>
+  </data>
+  <data name="TemplateStatusAt_Tip" xml:space="preserve">
+    <value>The status appears at the playhead's frame</value>
+  </data>
+  <data name="TemplateStatusAt_Value" xml:space="preserve">
+    <value>at {0:0.00} s of the template</value>
+  </data>
+  <data name="TemplateStatusAt_Beyond" xml:space="preserve">
+    <value>at {0:0.00} s — after the template's end: the status doesn't appear</value>
+  </data>
+  <data name="TemplateStatusAt_PlayheadOutside" xml:space="preserve">
+    <value>Put the playhead on the template's clip to set the moment the status appears.</value>
+  </data>
+  <data name="Inspector_TemplateAccent" xml:space="preserve">
+    <value>Route colour</value>
+  </data>
+  <data name="Inspector_TemplateTitle" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Inspector_TemplateSubtitle" xml:space="preserve">
+    <value>Subtitle</value>
+  </data>
+  <data name="Swatch_Blue" xml:space="preserve">
+    <value>Blue</value>
+  </data>
+  <data name="Swatch_Violet" xml:space="preserve">
+    <value>Violet</value>
+  </data>
 </root>

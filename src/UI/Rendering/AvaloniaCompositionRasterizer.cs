@@ -19,6 +19,9 @@ public sealed class AvaloniaCompositionRasterizer : ICompositionRasterizer
 
     /// <summary>This export's own glyphs of outlined texts (D043 variant B): built on the UI thread, drawn only here.</summary>
     private readonly TextGlyphCache _glyphs = new();
+
+    /// <summary>The offscreen buffers of a template's treatment (D045 §3) at the canvas size.</summary>
+    private readonly TreatmentSurface _treatment = new();
     private RenderTargetBitmap? _target;
     private bool _disposed;
 
@@ -57,7 +60,7 @@ public sealed class AvaloniaCompositionRasterizer : ICompositionRasterizer
         }
 
         using (var context = _target.CreateDrawingContext())
-            CompositionPainter.Paint(context, plan, frame => _bitmaps[frame.ClipId], _glyphs, ct);
+            CompositionPainter.Paint(context, plan, frame => _bitmaps[frame.ClipId], _glyphs, ct, _treatment);
 
         unsafe
         {
@@ -74,5 +77,6 @@ public sealed class AvaloniaCompositionRasterizer : ICompositionRasterizer
         _bitmaps.Clear();
         _target?.Dispose();
         _target = null;
+        _treatment.Dispose();
     }
 }

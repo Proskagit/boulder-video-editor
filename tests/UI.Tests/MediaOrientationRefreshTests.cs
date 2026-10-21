@@ -195,6 +195,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null) => No;
         public MediaTime? AddedClipDuration(Guid mediaAssetId) => null;
         public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null) => No;
+        public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start) => No;
         public TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed) => No;
         public TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, MediaTime duration) => No;
         public TimelineEditResult RemoveTransition(Guid transitionId) => No;

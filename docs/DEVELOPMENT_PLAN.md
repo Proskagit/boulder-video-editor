@@ -176,8 +176,8 @@ and runs cleanly.
 The normative text is DECISIONS.md D042 (2026-10-20): the product concept, its boundaries and this order — confirmed by the
 product owner after the merge of Phase 26 (D042 "Refined after the merge of Phase 26"). None of these phases is started
 or approved for implementation; each gets its own decision, steps, acceptance criteria and manual plan when it is taken
-up, and its number then. A is Phase 27 (D043; done and accepted 2026-10-20, not yet published); B is Phase 28 (D044,
-approved 2026-10-20; in progress). The scopes below are sketches to be refined —
+up, and its number then. A is Phase 27 (D043; merged, PR #28, `36a1a58`); B is Phase 28 (D044; merged, PR #29, `4f0e66a`); C is
+Phase 29 (D045; accepted by the product owner 2026-10-22, not yet published). The scopes below are sketches to be refined —
 not specifications. Every phase keeps the standing rules at the end of this file: one Undo step per user action, the
 Preview identical to the export, `MediaTime` ticks, heavy work off the UI thread, the localization guards (D039), the gates
 of the recent phases (build `-warnaserror`, the full suite, heavy, `--blame-hang`, `project.json` compared byte for byte
@@ -224,14 +224,20 @@ G + D / E as taken + F ─► regression run ─► H       S4 — the full plan
 - The steps: "Phase 28 — Transition library: steps" below (branch from `3c45c9d`; the pull request after Phase 27's merge).
 - Out: a transition editor, custom curves, motion blur, an unlimited library.
 
-### C — Ready-made effects and the music scenario *(core, medium)*
-- Today: `Clip.Effects` persisted but never rendered (D025); music as an audio clip with volume, fades and crossfades
-  (D017, D025, D032).
-- Sketch: about five one-click picture effects (the set decided in the phase — colour looks such as black and white, vivid,
-  warm, and e.g. a vignette), each with at most one strength value; the reuse of the Phase 18 LUT path for the colour looks
-  and the use or replacement of `Clip.Effects` to be decided in the phase; the music path checked end to end (adding a
-  track under the video, its fade-out at the video's end) and only the gaps of that path fixed.
-- Out: grading, effect stacks with many parameters, an audio studio (reverb, a mixer, automation, ducking).
+### C — Visual templates and the music scenario *(core, medium; Phase 29 — DECISIONS.md D045; accepted 2026-10-22)*
+- Refined by the product owner on 2026-10-21: the colour looks of the first sketch (black and white, vivid, warm, cool,
+  vignette) are dropped. Instead five ready-made visual templates made for bouldering videos — REC / Camcorder, VHS /
+  Analog tape, «Боулдер» (a compact plate «ТРАССА 7 · 7A» with a manual TOP / ПОПЫТКА status; revised at the gate from a
+  Competition overlay, whose richer layout is kept only as a future extension «Соревнование»), Highlight («Хайлайт»).
+  WASTED (a reconstruction of GTA V's device) was prototyped at the gate and **deferred on 2026-10-21** — the sound accent
+  unsatisfactory, no suitable sound chosen; not in Phase 29, not blocking it (D045 §15).
+- The music path audited end to end (import, placement under the video, volume, trims, fades, export) — only the defects
+  and material UX gaps the product owner agrees to are fixed; no mixer, ducking, equaliser, reverb, looping or automatic
+  fitting.
+- The specification, the research and the architecture proposal: D045; the steps: "Phase 29 — Visual templates and the
+  music scenario: steps" below.
+- Out: colour correction and grading, an effect library or stacks, keyframes, free styling, any automatic detection, a
+  third party's assets, WASTED (deferred, D045 §15).
 
 ### G — Stabilisation of the main path *(core, medium; the release candidate)*
 - The eight steps of D042 §1 (without step 4) run end to end in the real app on the product owner's footage at 1024 × 640
@@ -2252,6 +2258,74 @@ flashes, user curves, keyframes, "apply to every cut", a change of the audio cro
   diff --check`; a Phase 27 v7 project with dissolves opened, saved (only `formatVersion` differs) and its export compared
   with the Phase 27 build's; the manual plan in the real app on the product owner's gym clips in `ru` and `en`, an export
   watched in a player; D044's acceptance criteria 1–8 checked one by one; the documentation.
+
+## Phase 29 — Visual templates and the music scenario: steps (D045)
+
+The concept agreed by the product owner on 2026-10-21; the normative text is DECISIONS.md D045 — **a draft until the
+gate of Step 29.1 and the product owner's separate approval**. Branch `feat/phase-29-templates` from `origin/main`
+`4f0e66a` (the merge of PR #29). Until the approval only documentation, research and prototypes outside the product code
+are allowed (no final template system, no change of the product's behaviour); **no push, pull request or merge without a
+separate command**. A need to change the format, the architecture or agreed behaviour beyond D045 is reported with
+variants before the change.
+
+Goal: five ready-made visual templates for bouldering videos and a verified music scenario, the Preview equal to the
+export.
+
+Gates for every step (QG): `dotnet build -warnaserror` 0 / 0; the affected test projects green, the full suite, the heavy
+scenes and `--blame-hang` at the closeout; the existing Preview ↔ export parity suites and every expected value unchanged; a
+v8 project saved again differs only in `formatVersion`; every new user-visible text in `Strings` / `Messages` with `.ru`
+(the D039 guards); `docs/PHASE29_MANUAL_TEST_PLAN.md` and `progress.md` updated.
+
+Out of scope (D045 §8): colour correction and grading, an effect library or stacks, keyframes or curves, free styling,
+automatic detection of a result / highlight / fall, third-party assets, the TOP / ZONE hold callout, new audio functions,
+new dependencies.
+
+### 29.0 — Sync and documentation *(done 2026-10-21)*
+- The branch from `origin/main` `4f0e66a`; D045 (draft) with the product owner's concept of 2026-10-21; C refined above;
+  these steps; the manual plan's skeleton with the music audit `docs/PHASE29_MANUAL_TEST_PLAN.md`; `docs/README.md`;
+  ROADMAP and `progress.md` (Phases 27 and 28 recorded as merged). No product code.
+
+### 29.1 — The gate: research and prototypes *(done 2026-10-21: REC, VHS, «Боулдер», Highlight accepted; WASTED deferred — D045 §15)*
+- Research of the Competition overlay on real World Climbing broadcasts (D045 §2). Prototypes of the five templates on the
+  product owner's gym clips (horizontal 1920 × 1080 and vertical 1080 × 1920, 60 fps, with animated hold outlines from the
+  real SAM model; WASTED with its sound on and off) by a scratch harness outside the repository
+  (`VideosForTest/Phase29_Step29.1`, excluded from git): the frame and the outlines drawn by the app's `CompositionPainter`,
+  the treatment as a pixel pass, the graphics on top — the architecture of D045 §3; the costs measured (D045 §4).
+- Revision 2 after the product owner's review (D045 §14): REC, VHS and Highlight unchanged; the Competition overlay reduced
+  to «Боулдер» (horizontal TOP / ПОПЫТКА, vertical TOP / no status); WASTED reconstructed after GTA V's story-mode screen
+  (D045 §13: research, timing, what own means can and cannot reproduce, the open licence questions), horizontal and
+  vertical, with the sound and muted, slow motion by the clip's own speed (0.3×).
+- Revision 3 after the acceptance of revision 2 with corrections (D045 §13, §11): WASTED's word as plain red letters (no
+  outline); the sting at 1× at the switch whatever the clip's speed, the clips' own sound attenuated under it by a fixed
+  local envelope (no general ducking) — verified on the mix with the clip at 0.3× and at 1×.
+- Deferral (2026-10-21): WASTED taken out of Phase 29 (D045 §15: the sound accent unsatisfactory, no suitable sound
+  chosen; six requirements for a return). Its materials archived in
+  `VideosForTest/Phase29_Step29.1/out/archive_wasted_deferred` (README there). Proposed scope without WASTED — four
+  templates, no template sound — awaiting the product owner's approval before 29.2.
+- **Stop**: the product owner reviews the prototypes, the research, the architecture, the performance estimate, the music
+  audit's plan and the open questions (D045 §11); the implementation starts only after D045 is approved.
+
+### 29.2 — The music audit *(done 2026-10-21 — no defect found; observation O1, the manual plan part B)*
+- Part B of the manual plan on the product owner's music and generated reference signals; the report of defects and UX
+  gaps; fixes only those the product owner agrees to, with tests.
+
+### 29.3 — Model, `project.json` v9 and the Core rules *(done 2026-10-21 — D045 §16)*
+- The template clip, its typed fields and defaults, the template's clock (Split / Duplicate / trim), validation, v9 (v8
+  read unchanged), the edit service's commands with one Undo step each; tests.
+
+### 29.4 — Rendering *(done 2026-10-21 — D045 §16; no template sound: WASTED deferred)*
+- The template layer and its draw operations; the treatment pass in the export's rasterizer and the Preview; the
+  graphics; the built-in sound span; parity tests at the canvas size for every template, horizontal and vertical, with
+  outlines and texts below.
+
+### 29.5 — The UI *(done 2026-10-21)*
+- The «Шаблон ▾» menu, the Inspector's sections, Russian texts and the D039 guards.
+
+### 29.6 — Verification & closeout *(done by Claude 2026-10-21; the corrections of D045 §17 on 2026-10-21/22 — results in `progress.md` and the manual plan; accepted by the product owner 2026-10-22)*
+- Release and Debug `--no-incremental -warnaserror`; the full suite, `AIVE_HEAVY_TESTS=1`, three `--blame-hang` runs;
+  `git diff --check`; a v8 project opened and saved (only `formatVersion` differs); the Preview's and the export's
+  performance with a treatment measured in the app; the manual plan in the real app; D045's acceptance criteria one by one;
+  the documentation.
 
 ## Architectural rules that must hold at every phase
 

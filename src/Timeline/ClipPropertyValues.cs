@@ -5,7 +5,7 @@ namespace AiVideoEditor.Timeline;
 /// <summary>Individual clip properties, used to tell which ones an edit changed (for merging
 /// consecutive edits into one Undo step and for the step's description).</summary>
 [Flags]
-public enum ClipPropertyFields
+public enum ClipPropertyFields : long
 {
     None = 0,
     PositionX = 1 << 0,
@@ -38,6 +38,19 @@ public enum ClipPropertyFields
     MotionIn = 1 << 25,
     MotionOut = 1 << 26,
 
+    // D045: template fields.
+    TemplateDate = 1L << 27,
+    TemplateRoute = 1L << 28,
+    TemplateGrade = 1L << 29,
+    TemplateStatus = 1L << 30,
+    TemplateAccent = 1L << 31,
+    TemplateTitle = 1L << 32,
+    TemplateSubtitle = 1L << 33,
+    TemplateStatusAt = 1L << 34,
+
+    Template = TemplateDate | TemplateRoute | TemplateGrade | TemplateStatus | TemplateAccent | TemplateTitle | TemplateSubtitle |
+               TemplateStatusAt,
+
     Crop = CropLeft | CropTop | CropRight | CropBottom
 }
 
@@ -47,10 +60,10 @@ public enum ClipPropertyFields
 /// write back exactly the values that were captured — nothing is recomputed.
 /// </summary>
 public readonly record struct ClipPropertyValues(VisualProperties? Visual, AudioProperties? Audio, TextProperties? Text,
-    FadeProperties? Fade = null)
+    FadeProperties? Fade = null, TemplateProperties? Template = null)
 {
     public static ClipPropertyValues Capture(Clip clip) =>
-        new(VisualProperties.Of(clip), AudioProperties.Of(clip), TextProperties.Of(clip), FadeProperties.Of(clip));
+        new(VisualProperties.Of(clip), AudioProperties.Of(clip), TextProperties.Of(clip), FadeProperties.Of(clip), TemplateProperties.Of(clip));
 
     public void ApplyTo(Clip clip)
     {
@@ -95,6 +108,14 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
 
         if (Fade is { } f)
             (clip.FadeIn, clip.FadeOut) = (f.FadeIn, f.FadeOut);
+
+        if (Template is { } p)
+        {
+            if (clip is not TemplateClip c)
+                throw new InvalidOperationException($"{clip.GetType().Name} has no template fields.");
+            (c.Date, c.Route, c.Grade, c.Status, c.AccentHex, c.Title, c.Subtitle, c.StatusAt) =
+                (p.Date, p.Route, p.Grade, p.Status, p.AccentHex, p.Title, p.Subtitle, p.StatusAt);
+        }
     }
 
     /// <summary>The properties whose values differ between <paramref name="a"/> and <paramref name="b"/>.</summary>
@@ -143,6 +164,18 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
         {
             if (fa.FadeIn != fb.FadeIn) fields |= ClipPropertyFields.FadeIn;
             if (fa.FadeOut != fb.FadeOut) fields |= ClipPropertyFields.FadeOut;
+        }
+
+        if (a.Template is { } pa && b.Template is { } pb)
+        {
+            if (!string.Equals(pa.Date, pb.Date, StringComparison.Ordinal)) fields |= ClipPropertyFields.TemplateDate;
+            if (!string.Equals(pa.Route, pb.Route, StringComparison.Ordinal)) fields |= ClipPropertyFields.TemplateRoute;
+            if (!string.Equals(pa.Grade, pb.Grade, StringComparison.Ordinal)) fields |= ClipPropertyFields.TemplateGrade;
+            if (pa.Status != pb.Status) fields |= ClipPropertyFields.TemplateStatus;
+            if (!string.Equals(pa.AccentHex, pb.AccentHex, StringComparison.Ordinal)) fields |= ClipPropertyFields.TemplateAccent;
+            if (!string.Equals(pa.Title, pb.Title, StringComparison.Ordinal)) fields |= ClipPropertyFields.TemplateTitle;
+            if (!string.Equals(pa.Subtitle, pb.Subtitle, StringComparison.Ordinal)) fields |= ClipPropertyFields.TemplateSubtitle;
+            if (pa.StatusAt != pb.StatusAt) fields |= ClipPropertyFields.TemplateStatusAt;
         }
 
         return fields;

@@ -139,6 +139,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         // Playhead ↔ playback. User moves (SeekRequested) seek playback; playback positions are
         // shown with ShowPlaybackPosition, which never raises SeekRequested — no feedback loop.
         Timeline.PlayheadChanged += (_, _) => UpdatePreviewPosition();
+        // D045 §17: «На указатель» sets a template's status moment from the timeline's playhead.
+        Inspector.Playhead = () => Timeline.Playhead;
         Timeline.SeekRequested += (_, position) => Preview.Seek(position);
         Preview.PlaybackPositionChanged += (_, position) => Timeline.ShowPlaybackPosition(position);
         Preview.FrameStepRequested += (_, frames) => Timeline.StepFrames(frames);

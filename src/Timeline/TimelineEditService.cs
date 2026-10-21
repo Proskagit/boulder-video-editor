@@ -210,6 +210,43 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return TimelineEditResult.Ok(new[] { clip.Id });
     }
 
+    public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start)
+    {
+        if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
+
+        // D045 §5: over the picture as a text — the topmost video track, never a new one.
+        var track = Sequence.VideoTracks.OrderByDescending(t => t.Order).FirstOrDefault();
+        if (track is null) return TimelineEditResult.Fail(Messages.Edit_NoVideoTrackPlain);
+        if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
+
+        var plan = new EditPlan(Sequence, Settings);
+        var rate = plan.Rate;
+        var startFrame = Math.Max(0, start.ToNearestFrame(rate));
+        var frames = Math.Max(1, TemplateRules.DefaultDuration(kind).ToNearestFrame(rate));
+
+        // The fields of the kind; the appearance and the disappearance are the clip's fades (whole frames, D025), so a split
+        // leaves them on the outer edges; the counter starts at 0.
+        var fields = TemplateRules.Defaults(kind);
+        var clip = new TemplateClip
+        {
+            Kind = kind, Date = fields.Date, Route = fields.Route, Grade = fields.Grade, Status = fields.Status,
+            AccentHex = fields.AccentHex, Title = fields.Title, Subtitle = fields.Subtitle
+        };
+        ClipState.FromFrames(startFrame, startFrame + frames, MediaTime.Zero, rate).ApplyTo(clip);
+        var (fadeIn, fadeOut) = TemplateRules.Animation(kind);
+        clip.FadeIn = MediaTime.FromFrame(Math.Clamp(MediaTime.FromSeconds(fadeIn).ToNearestFrame(rate), 0, frames), rate);
+        clip.FadeOut = MediaTime.FromFrame(Math.Clamp(MediaTime.FromSeconds(fadeOut).ToNearestFrame(rate), 0, frames), rate);
+        plan.Insert(track, clip);
+
+        if (MakeRoom(plan, new[] { ((Clip)clip, track) }, string.Format(Messages.Verb_AddTemplate, track.Name)) is { } roomError)   // D037 §3
+            return TimelineEditResult.Fail(roomError);
+        if (Validate(plan) is { } error)
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_CantAddTemplate, track.Name, error));
+
+        Commit(plan, "Add Template");
+        return TimelineEditResult.Ok(new[] { clip.Id });
+    }
+
     // --- Move ------------------------------------------------------------------
 
     public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null)
@@ -739,6 +776,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         rightClip = CloneClip(clip);
         right.ApplyTo(rightClip);
+
+        // D045 §3: a template's counter goes on from the cut in the right part.
+        if (rightClip is TemplateClip template)
+            template.CounterStart += MediaTime.FromFrame(atFrame - startFrame, rate);
 
         // D025 §2: the fades stay with the outer edges — the right part keeps the fade out, the left part the
         // fade in; the new inner edges have none.
@@ -1496,7 +1537,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
             change.Visual ?? before.Visual,
             change.Audio ?? before.Audio,
             change.Text ?? before.Text,
-            fade ?? before.Fade);
+            fade ?? before.Fade,
+            change.Template ?? before.Template);
 
         var fields = ClipPropertyValues.Diff(before, after);
         if (fields == ClipPropertyFields.None) return TimelineEditResult.Unchanged();
@@ -1699,6 +1741,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
             var line = text.Text.Split('\n')[0].Trim();
             return string.Format(Messages.Describe_TextClip, line.Length > 30 ? line[..30] + "…" : line);
         }
+        if (clip is TemplateClip template)
+            return string.Format(Messages.Describe_TemplateClip, TemplateNames.Of(template.Kind));
         var name = clip is MediaBackedClip media ? FindAsset(media.MediaAssetId)?.FileName : null;
         return clip is ImageClip
             ? name is null ? Messages.Describe_ImageClip : string.Format(Messages.Describe_ImageClipOf, name)
@@ -1937,6 +1981,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (!allowLocked && track.IsLocked) return string.Format(Messages.Edit_TrackLocked, track.Name);
         if (left.TimelineEnd != right.TimelineStart)
             return Tr(track, typeId, Messages.Transition_NeedsMeetDissolve, Messages.Transition_NeedsMeetCrossfade, Messages.Transition_NeedsMeetNamed);
+        // D045: a template starts and ends with its own animation; it takes no transition.
+        if (left is TemplateClip || right is TemplateClip) return Messages.Transition_NotOnTemplate;
         return null;
     }
 
@@ -2255,6 +2301,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 PositionX = t.PositionX, PositionY = t.PositionY, Scale = t.Scale, RotationDegrees = t.RotationDegrees, Opacity = t.Opacity,
                 // D043: the style and both motions go with the copy (a split's parts keep them; their fades follow D025).
                 Bold = t.Bold, Outline = t.Outline, Background = t.Background, MotionIn = t.MotionIn, MotionOut = t.MotionOut
+            },
+            TemplateClip p => new TemplateClip
+            {
+                Kind = p.Kind, CounterStart = p.CounterStart, Date = p.Date, Route = p.Route, Grade = p.Grade, Status = p.Status,
+                AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAt = p.StatusAt
             },
             _ => throw new NotSupportedException($"Unknown clip type {source.GetType().Name}.")
         };

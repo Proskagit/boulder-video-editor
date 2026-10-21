@@ -100,6 +100,15 @@ public sealed record TextSpan(Guid ClipId, MediaTime TimelineStart, MediaTime Ti
     public long FadeOutFrames { get; init; }
 }
 
+/// <summary>A template on a visible video track (D045): its kind, fields and the counter's value at its start; the
+/// appearance and disappearance are its effective fades (frames, D025 §2).</summary>
+public sealed record TemplateSpan(Guid ClipId, MediaTime TimelineStart, MediaTime TimelineEnd, TemplateKind Kind,
+    TemplateProperties Fields, MediaTime CounterStart)
+{
+    public long FadeInFrames { get; init; }
+    public long FadeOutFrames { get; init; }
+}
+
 /// <summary>
 /// A cross dissolve on a visible track (D025 §3): the zone <c>[Start, End)</c> of <see cref="Frames"/> frames around
 /// the cut <see cref="Cut"/> — <c>⌊F/2⌋</c> frames of A before it, <c>⌈F/2⌉</c> of B after it. In the zone both clips
@@ -162,6 +171,9 @@ public readonly record struct CrossfadeZone(MediaTime Start, MediaTime End);
 public sealed record VideoLayer(Guid TrackId, ImmutableArray<PictureSpan> Spans)
 {
     public ImmutableArray<TextSpan> Texts { get; init; } = ImmutableArray<TextSpan>.Empty;
+
+    /// <summary>The track's templates (D045) in timeline order.</summary>
+    public ImmutableArray<TemplateSpan> Templates { get; init; } = ImmutableArray<TemplateSpan>.Empty;
 
     /// <summary>The track's dissolves in timeline order (their zones never overlap, D025).</summary>
     public ImmutableArray<DissolveZone> Dissolves { get; init; } = ImmutableArray<DissolveZone>.Empty;
@@ -257,6 +269,12 @@ public sealed class PlaybackSnapshot
             {
                 var fade = FadeAt(text.TimelineStart, text.TimelineEnd, text.FadeInFrames, text.FadeOutFrames, time, ref frame);
                 topDown.Add(new TextLayer(layer.TrackId, text, TextTransformAt(text, time, ref frame), fade));
+            }
+            else if (layer.Templates.Length > 0 && FindTemplate(layer.Templates, time) is { } template)
+            {
+                // D045: a template never hides what is below it — it draws over it (and may treat it, VHS).
+                frame ??= time.ToFrameFloor(FrameRate);
+                topDown.Add(new TemplateLayer(layer.TrackId, template, TemplateClock.At(template, frame.Value, FrameRate)));
             }
         }
 
@@ -426,6 +444,7 @@ public sealed class PlaybackSnapshot
             if (a.TrackId != b.TrackId ||
                 !a.Spans.Select(WithoutPresentation).SequenceEqual(b.Spans.Select(WithoutPresentation)) ||
                 !a.Texts.Select(TextTiming).SequenceEqual(b.Texts.Select(TextTiming)) ||
+                !a.Templates.Select(TemplateTiming).SequenceEqual(b.Templates.Select(TemplateTiming)) ||
                 // A transition changes which frames are decoded; its type and direction alone don't — the shown range of
                 // the pictures (compared with the spans) says whether the handles are used (D044 §10).
                 !a.Dissolves.Select(Placement).SequenceEqual(b.Dissolves.Select(Placement)))
@@ -445,7 +464,22 @@ public sealed class PlaybackSnapshot
         static PictureSpan WithoutPresentation(PictureSpan span) =>
             span with { Visual = VisualProperties.Default, SourceSize = null, FadeInFrames = 0, FadeOutFrames = 0, Outline = null };
         static (Guid, MediaTime, MediaTime) TextTiming(TextSpan span) => (span.ClipId, span.TimelineStart, span.TimelineEnd);
+        static (Guid, MediaTime, MediaTime) TemplateTiming(TemplateSpan span) => (span.ClipId, span.TimelineStart, span.TimelineEnd);
         static DissolveZone Placement(DissolveZone zone) => zone with { TypeId = TransitionRules.CrossDissolve, Direction = null };
+    }
+
+    private static TemplateSpan? FindTemplate(ImmutableArray<TemplateSpan> spans, MediaTime time)
+    {
+        int lo = 0, hi = spans.Length - 1;
+        while (lo <= hi)
+        {
+            var mid = lo + (hi - lo) / 2;
+            var span = spans[mid];
+            if (time < span.TimelineStart) hi = mid - 1;
+            else if (time >= span.TimelineEnd) lo = mid + 1;
+            else return span;
+        }
+        return null;
     }
 
     private static TextSpan? FindText(ImmutableArray<TextSpan> spans, MediaTime time)

@@ -37,6 +37,7 @@ public static class PlaybackSnapshotBuilder
         {
             var spans = ImmutableArray.CreateBuilder<PictureSpan>();
             var texts = ImmutableArray.CreateBuilder<TextSpan>();
+            var templates = ImmutableArray.CreateBuilder<TemplateSpan>();
             var dissolves = track.IsHidden ? ImmutableArray<DissolveZone>.Empty : Dissolves(track, rate);
             foreach (var clip in track.Clips.OrderBy(c => c.TimelineStart))
             {
@@ -45,6 +46,13 @@ public static class PlaybackSnapshotBuilder
                 {
                     texts.Add(new TextSpan(text.Id, text.TimelineStart, text.TimelineEnd,
                         VisualProperties.Of(text)!.Value, TextProperties.Of(text)!.Value) { FadeInFrames = fadeIn, FadeOutFrames = fadeOut });
+                    continue;
+                }
+                if (clip is TemplateClip template)
+                {
+                    // D045: a template draws over what is below its track; it has no sound and decodes nothing.
+                    templates.Add(new TemplateSpan(template.Id, template.TimelineStart, template.TimelineEnd, template.Kind,
+                        TemplateProperties.Of(template)!.Value, template.CounterStart) { FadeInFrames = fadeIn, FadeOutFrames = fadeOut });
                     continue;
                 }
                 if (clip is not MediaBackedClip media)
@@ -80,7 +88,10 @@ public static class PlaybackSnapshotBuilder
                 }
             }
             if (!track.IsHidden)
-                layers.Add(new VideoLayer(track.Id, spans.ToImmutable()) { Texts = texts.ToImmutable(), Dissolves = dissolves });
+                layers.Add(new VideoLayer(track.Id, spans.ToImmutable())
+                {
+                    Texts = texts.ToImmutable(), Templates = templates.ToImmutable(), Dissolves = dissolves
+                });
         }
 
         foreach (var track in sequence.AudioTracks)

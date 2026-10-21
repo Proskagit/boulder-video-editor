@@ -34,46 +34,123 @@ public static class CompositionPainter
     /// <summary>Draws <paramref name="plan"/>. <paramref name="image"/> supplies the bitmap of a frame
     /// operation (null: the layer is skipped, e.g. no bitmap yet). <paramref name="glyphs"/> supplies the glyph geometry of
     /// an outlined text (D043 variant B) — the caller's own cache, waited for with <paramref name="ct"/> off the UI thread;
-    /// required when the plan has an outlined text.</summary>
+    /// required when the plan has an outlined text.
+    /// <para>
+    /// A template with a treatment (D045 §3, VHS) treats everything drawn before it: those operations are drawn into
+    /// <paramref name="treatment"/>'s offscreen target — the canvas bounds at <paramref name="renderScaling"/> device pixels
+    /// per unit (exactly the canvas for the export) —, read back, treated by <see cref="TemplateTreatment"/> and drawn back
+    /// as one bitmap; the operations after it are drawn as usual. Without such a template nothing of this happens (the
+    /// plan is drawn exactly as before). A temporary surface is used when none is given.
+    /// </para></summary>
     public static void Paint(DrawingContext context, CompositionDrawPlan plan, Func<FrameDraw, IImage?> image,
-        TextGlyphCache? glyphs = null, CancellationToken ct = default)
+        TextGlyphCache? glyphs = null, CancellationToken ct = default, TreatmentSurface? treatment = null, double renderScaling = 1)
     {
         if (!(plan.CanvasBounds.Width > 0) || !(plan.CanvasBounds.Height > 0)) return;
 
         var canvasRect = RenderConversions.ToRect(plan.CanvasBounds);
-        context.FillRectangle(Background, canvasRect);
-        using (context.PushClip(canvasRect))
+        var last = LastTreatment(plan.Operations);
+        if (last < 0)
         {
-            foreach (var op in plan.Operations)
+            context.FillRectangle(Background, canvasRect);
+            using (context.PushClip(canvasRect))
+                DrawOperations(context, plan.Operations, 0, plan.Operations.Length, image, glyphs, ct);
+            return;
+        }
+
+        var own = treatment is null ? new TreatmentSurface() : null;
+        try
+        {
+            var below = Treated(plan, image, glyphs, ct, treatment ?? own!, renderScaling, last);
+            context.FillRectangle(Background, canvasRect);
+            using (context.PushClip(canvasRect))
             {
-                using (context.PushTransform(RenderConversions.ToMatrix(op.Transform)))
-                // An outline composites its opacity itself, as a group (D036 §4).
-                using (context.PushOpacity(op is OutlineDraw ? 1.0 : op.Opacity))
+                context.DrawImage(below, new Rect(0, 0, below.PixelSize.Width, below.PixelSize.Height), canvasRect);
+                DrawOperations(context, plan.Operations, last, plan.Operations.Length, image, glyphs, ct);
+            }
+        }
+        finally
+        {
+            own?.Dispose();
+        }
+    }
+
+    private static int LastTreatment(ImmutableArray<DrawOperation> operations)
+    {
+        for (var i = operations.Length - 1; i >= 0; i--)
+            if (operations[i] is TemplateDraw { HasTreatment: true }) return i;
+        return -1;
+    }
+
+    /// <summary>The picture below the treatment at <paramref name="index"/>, treated: the operations before it (the result
+    /// of an earlier treatment first, recursively) drawn offscreen over the background, read back, treated.</summary>
+    private static Avalonia.Media.Imaging.Bitmap Treated(CompositionDrawPlan plan, Func<FrameDraw, IImage?> image, TextGlyphCache? glyphs,
+        CancellationToken ct, TreatmentSurface surface, double renderScaling, int index)
+    {
+        var operations = plan.Operations;
+        var earlier = -1;
+        for (var i = index - 1; i >= 0; i--)
+            if (operations[i] is TemplateDraw { HasTreatment: true }) { earlier = i; break; }
+        var below = earlier >= 0 ? Treated(plan, image, glyphs, ct, surface, renderScaling, earlier) : null;
+
+        var bounds = plan.CanvasBounds;
+        var size = new PixelSize(Math.Max(1, (int)Math.Round(bounds.Width * renderScaling)), Math.Max(1, (int)Math.Round(bounds.Height * renderScaling)));
+        var target = surface.Target(size);
+        var local = new Rect(0, 0, bounds.Width, bounds.Height);
+        using (var offscreen = target.CreateDrawingContext())
+        using (offscreen.PushTransform(Matrix.CreateTranslation(-bounds.X, -bounds.Y) * Matrix.CreateScale(renderScaling, renderScaling)))
+        {
+            var canvasRect = RenderConversions.ToRect(bounds);
+            offscreen.FillRectangle(Background, canvasRect);
+            using (offscreen.PushClip(canvasRect))
+            {
+                if (below is not null)
+                    offscreen.DrawImage(below, new Rect(0, 0, below.PixelSize.Width, below.PixelSize.Height), canvasRect);
+                DrawOperations(offscreen, operations, Math.Max(earlier, 0), index, image, glyphs, ct);
+            }
+        }
+        surface.ReadBack();
+        var template = (TemplateDraw)operations[index];
+        if (template.Kind == TemplateKind.Vhs)
+            TemplateTreatment.Vhs(surface.Pixels, size.Width, size.Height, size.Width * 4, template.Clock);
+        return surface.Upload();
+    }
+
+    private static void DrawOperations(DrawingContext context, ImmutableArray<DrawOperation> operations, int from, int to,
+        Func<FrameDraw, IImage?> image, TextGlyphCache? glyphs, CancellationToken ct)
+    {
+        for (var index = from; index < to; index++)
+        {
+            var op = operations[index];
+            using (context.PushTransform(RenderConversions.ToMatrix(op.Transform)))
+            // An outline composites its opacity itself, as a group (D036 §4).
+            using (context.PushOpacity(op is OutlineDraw ? 1.0 : op.Opacity))
+            {
+                switch (op)
                 {
-                    switch (op)
-                    {
-                        case FrameDraw frame:
-                            if (image(frame) is { } bitmap)
-                                context.DrawImage(bitmap, RenderConversions.ToRect(frame.FrameSourceRect), RenderConversions.ToRect(frame.LocalRect));
-                            break;
-                        case TextDraw text when text.Text.IsPlain:
-                            DrawText(context, text.Text);       // every text before D043: exactly as before
-                            break;
-                        case TextDraw text:
-                            DrawStyledText(context, text.Text, glyphs, ct);
-                            break;
-                        case SolidDraw solid:          // a fill transition (D044 §2)
-                            context.FillRectangle(new ImmutableSolidColorBrush(Color.Parse(solid.ColorHex)), RenderConversions.ToRect(solid.LocalRect));
-                            break;
-                        case PlaceholderDraw placeholder:
-                            DrawPlaceholder(context, placeholder);
-                            break;
-                        case OutlineDraw outline:
-                            DrawOutline(context, outline);
-                            break;
-                        default:
-                            throw new NotSupportedException($"Unknown draw operation {op.GetType().Name}.");
-                    }
+                    case FrameDraw frame:
+                        if (image(frame) is { } bitmap)
+                            context.DrawImage(bitmap, RenderConversions.ToRect(frame.FrameSourceRect), RenderConversions.ToRect(frame.LocalRect));
+                        break;
+                    case TextDraw text when text.Text.IsPlain:
+                        DrawText(context, text.Text);       // every text before D043: exactly as before
+                        break;
+                    case TextDraw text:
+                        DrawStyledText(context, text.Text, glyphs, ct);
+                        break;
+                    case SolidDraw solid:          // a fill transition (D044 §2)
+                        context.FillRectangle(new ImmutableSolidColorBrush(Color.Parse(solid.ColorHex)), RenderConversions.ToRect(solid.LocalRect));
+                        break;
+                    case PlaceholderDraw placeholder:
+                        DrawPlaceholder(context, placeholder);
+                        break;
+                    case OutlineDraw outline:
+                        DrawOutline(context, outline);
+                        break;
+                    case TemplateDraw template:    // D045: its graphics (its treatment, if any, was applied below it)
+                        TemplatePainter.Draw(context, template);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Unknown draw operation {op.GetType().Name}.");
                 }
             }
         }

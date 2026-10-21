@@ -29,6 +29,7 @@ src/Timeline/Commands/TimelineCommands.cs	Change Outline Width
 src/Timeline/Commands/TimelineCommands.cs	Change Position
 src/Timeline/Commands/TimelineCommands.cs	Change Rotation
 src/Timeline/Commands/TimelineCommands.cs	Change Scale
+src/Timeline/Commands/TimelineCommands.cs	Change Template
 src/Timeline/Commands/TimelineCommands.cs	Change Text Alignment
 src/Timeline/Commands/TimelineCommands.cs	Change Text Background
 src/Timeline/Commands/TimelineCommands.cs	Change Text Color
@@ -54,6 +55,7 @@ src/Timeline/TimelineEditService.Links.cs	Link Clips
 src/Timeline/TimelineEditService.Links.cs	Unlink Audio
 src/Timeline/TimelineEditService.Links.cs	Unlink Clips
 src/Timeline/TimelineEditService.cs	Add Clip
+src/Timeline/TimelineEditService.cs	Add Template
 src/Timeline/TimelineEditService.cs	Add Text
 src/Timeline/TimelineEditService.cs	Add Transition
 src/Timeline/TimelineEditService.cs	Change Project Settings
@@ -93,6 +95,9 @@ src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Disappearance
 src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Outline
 src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Text Background
 src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Place Text
+src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Change Route Colour
+src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Change Route Status
+src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Set Status Moment
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Crop Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Scale Clip
@@ -129,6 +134,9 @@ src/Project/Persistence/ProjectSerializer.cs	a hold markup has no model id
 src/Project/Persistence/ProjectSerializer.cs	a hold markup has no outline width
 src/Project/Persistence/ProjectSerializer.cs	a hold's contour has an odd number of coordinates
 src/Project/Persistence/ProjectSerializer.cs	a link is invalid: {invalidLink.TrimEnd('.')}
+src/Project/Persistence/ProjectSerializer.cs	a template field is missing
+src/Project/Persistence/ProjectSerializer.cs	a template's counter is negative
+src/Project/Persistence/ProjectSerializer.cs	a template's status moment is negative
 src/Project/Persistence/ProjectSerializer.cs	a text background has no colour
 src/Project/Persistence/ProjectSerializer.cs	a text background has no opacity
 src/Project/Persistence/ProjectSerializer.cs	a text background has no state
@@ -137,6 +145,7 @@ src/Project/Persistence/ProjectSerializer.cs	a text motion has no side
 src/Project/Persistence/ProjectSerializer.cs	a text outline has no colour
 src/Project/Persistence/ProjectSerializer.cs	a text outline has no state
 src/Project/Persistence/ProjectSerializer.cs	a text outline has no thickness
+src/Project/Persistence/ProjectSerializer.cs	a transition next to a template
 src/Project/Persistence/ProjectSerializer.cs	a transition on track {track.Name} is invalid: {invalid.TrimEnd('.')}
 src/Project/Persistence/ProjectSerializer.cs	an image clip has a speed
 src/Project/Persistence/ProjectSerializer.cs	audio track list is missing
@@ -180,6 +189,8 @@ src/Project/Persistence/ProjectSerializer.cs	transition type is missing
 src/Project/Persistence/ProjectSerializer.cs	unknown clip type
 src/Project/Persistence/ProjectSerializer.cs	unknown format version
 src/Project/Persistence/ProjectSerializer.cs	unknown media kind
+src/Project/Persistence/ProjectSerializer.cs	unknown template
+src/Project/Persistence/ProjectSerializer.cs	unknown template status
 src/Project/Persistence/ProjectSerializer.cs	unknown text alignment
 src/Project/Persistence/ProjectSerializer.cs	unknown transition direction
 src/Project/Persistence/ProjectSerializer.cs	unknown transition type

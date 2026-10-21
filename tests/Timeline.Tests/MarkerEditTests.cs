@@ -157,7 +157,7 @@ public class MarkerEditTests
             var expected = Markers(f).Select(m => (m.Id, m.Position, m.ColorHex)).ToList();
             var folder = Path.Combine(root, "Project");
             await f.Projects.SaveAsAsync(folder);
-            Assert.Contains("\"formatVersion\": 8", File.ReadAllText(Path.Combine(folder, "project.json")));
+            Assert.Contains("\"formatVersion\": 9", File.ReadAllText(Path.Combine(folder, "project.json")));
 
             var reopened = await f.Projects.OpenAsync(folder);
 
