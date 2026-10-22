@@ -13,7 +13,9 @@ namespace AiVideoEditor.Video.Tests;
 /// scripts that stand in for ffmpeg: they run the real ffmpeg for one pass and misbehave in the other (exit with an
 /// error after reading everything, exit at once without reading, never read, finish slowly). After every test the
 /// process counter is back at its baseline, no ffmpeg/ping started by the test is alive, no temporary file is left and
-/// an existing destination is either untouched (failure, cancellation) or replaced (success).
+/// an existing destination is either untouched (failure, cancellation) or replaced (success). The ffmpeg and ping these
+/// tests start run under names of their own (<see cref="ProcessAliases"/>), so the check of the processes left running sees
+/// only theirs — never an ffmpeg another test assembly or program runs at the same time (Phase 30 Step 30.4).
 /// </summary>
 [Collection(MediaCollection.Name)]
 public sealed class FfmpegExportEncoderFailureTests : IDisposable
@@ -39,6 +41,9 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
 
     private string Destination => Path.Combine(_dir, "export.mp4");
 
+    /// <summary>The real encoder under its own name.</summary>
+    private static Locator Own => new(ProcessAliases.Ffmpeg);
+
     private sealed class Locator(string? path) : IFfmpegLocator
     {
         public Task<string?> GetFfmpegPathAsync(CancellationToken ct = default) => Task.FromResult(path);
@@ -48,15 +53,16 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
     /// <paramref name="pass"/> ("audio": the f32le input, "video": the rawvideo input).</summary>
     private Locator Script(string pass, string behaviour)
     {
-        var ffmpeg = FfmpegTools.Ffmpeg!;
+        var ffmpeg = ProcessAliases.Ffmpeg!;
+        var ping = ProcessAliases.Ping;
         var marker = pass == "video" ? "rawvideo" : "f32le";
         var consume = $"\"{ffmpeg}\" -v error -f data -i pipe:0 -map 0 -c copy -f null -";
         var body = behaviour switch
         {
             "read-then-fail" => $"{consume}\r\nexit 5",
             "fail-at-once" => "exit 7",
-            "never-read" => "ping -n 11 127.0.0.1 >nul\r\nexit 0",
-            "read-then-hang" => $"{consume}\r\nping -n 11 127.0.0.1 >nul\r\nexit 0",
+            "never-read" => $"\"{ping}\" -n 11 127.0.0.1 >nul\r\nexit 0",
+            "read-then-hang" => $"{consume}\r\n\"{ping}\" -n 11 127.0.0.1 >nul\r\nexit 0",
             _ => throw new ArgumentException(behaviour)
         };
         var path = Path.Combine(_scripts, $"ffmpeg-{pass}-{behaviour}.cmd");
@@ -74,9 +80,7 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
         var watch = Stopwatch.StartNew();
         while (true)
         {
-            var alive = Process.GetProcessesByName("ffmpeg").Concat(Process.GetProcessesByName("PING"))
-                .Where(p => { try { return !p.HasExited && p.StartTime >= _started.AddSeconds(-1); } catch { return false; } })
-                .Select(p => $"{p.ProcessName}#{p.Id}").ToList();
+            var alive = ProcessAliases.AliveSince(_started);
             if (alive.Count == 0) break;
             if (watch.Elapsed > TimeSpan.FromSeconds(5)) Assert.Fail($"still running: {string.Join(", ", alive)}");
             Thread.Sleep(50);
@@ -91,7 +95,7 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
     }
 
     private static Task EncodeShort(string destination, IFfmpegLocator? locator = null) =>
-        Encode(Short, destination, _ => 0.1f, (n, px, stride) => NumberFrame(n, px, stride, 64, 36), locator: locator);
+        Encode(Short, destination, _ => 0.1f, (n, px, stride) => NumberFrame(n, px, stride, 64, 36), locator: locator ?? Own);
 
     // --- ffmpeg missing / folder missing ------------------------------------------------------------------------
 
@@ -106,7 +110,7 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
     [FfmpegFact]
     public async Task A_missing_destination_folder_is_an_output_failure()
     {
-        var error = await Assert.ThrowsAsync<ExportException>(() => Encoder().StartAsync(Short, ExportEncoding.Default, Path.Combine(_dir, "nowhere", "x.mp4")));
+        var error = await Assert.ThrowsAsync<ExportException>(() => Encoder(Own).StartAsync(Short, ExportEncoding.Default, Path.Combine(_dir, "nowhere", "x.mp4")));
         Assert.Equal(ExportFailure.OutputFailed, error.Failure);
         AssertCleanedUp(null);
     }
@@ -148,7 +152,7 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
     public async Task Cancelling_a_write_is_cancellation_and_disposing_cleans_up()
     {
         File.WriteAllText(Destination, "previous export");
-        var encoding = await Encoder().StartAsync(Short, ExportEncoding.Default, Destination);
+        var encoding = await Encoder(Own).StartAsync(Short, ExportEncoding.Default, Destination);
         await encoding.WriteAudioAsync(new float[2 * 1_000]);
         using var cts = new CancellationTokenSource();
         cts.Cancel();
@@ -200,7 +204,7 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
     [FfmpegFact]
     public async Task Disposing_an_unfinished_encoding_aborts_it()
     {
-        var encoding = await Encoder().StartAsync(Short, ExportEncoding.Default, Destination);
+        var encoding = await Encoder(Own).StartAsync(Short, ExportEncoding.Default, Destination);
         await encoding.WriteAudioAsync(new float[2 * Short.AudioSampleCount]);
         await encoding.WriteFrameAsync(new byte[64 * 36 * 4], 64 * 4);                      // the video pass is running
 
@@ -214,17 +218,17 @@ public sealed class FfmpegExportEncoderFailureTests : IDisposable
     [FfmpegFact]
     public async Task Frames_before_the_whole_audio_too_much_audio_or_missing_frames_are_rejected()
     {
-        await using (var encoding = await Encoder().StartAsync(Short, ExportEncoding.Default, Destination))
+        await using (var encoding = await Encoder(Own).StartAsync(Short, ExportEncoding.Default, Destination))
         {
             await encoding.WriteAudioAsync(new float[2 * 100]);
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await encoding.WriteFrameAsync(new byte[64 * 36 * 4], 64 * 4));
         }
-        await using (var encoding = await Encoder().StartAsync(Short, ExportEncoding.Default, Destination))
+        await using (var encoding = await Encoder(Own).StartAsync(Short, ExportEncoding.Default, Destination))
         {
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await encoding.WriteAudioAsync(new float[2 * (Short.AudioSampleCount + 1)]));
             await Assert.ThrowsAsync<ArgumentException>(async () => await encoding.WriteAudioAsync(new float[3]));
         }
-        await using (var encoding = await Encoder().StartAsync(Short, ExportEncoding.Default, Destination))
+        await using (var encoding = await Encoder(Own).StartAsync(Short, ExportEncoding.Default, Destination))
         {
             await encoding.WriteAudioAsync(new float[2 * Short.AudioSampleCount]);
             await Assert.ThrowsAsync<ArgumentException>(async () => await encoding.WriteFrameAsync(new byte[10], 64 * 4));

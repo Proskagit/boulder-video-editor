@@ -13,6 +13,7 @@ namespace AiVideoEditor.Video.Tests;
 /// Preview (its colours equal the rule), under the rule version 2 and a name that carries the conversion and the colour
 /// rule's version — so the thumbnail made while the colour was unknown, or under another colour rule, is a miss.
 /// </summary>
+[Collection(MediaCollection.Name)]
 public sealed class HdrThumbnailTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "aive-hdr-thumbs", Guid.NewGuid().ToString("N"));

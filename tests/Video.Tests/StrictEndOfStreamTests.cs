@@ -48,14 +48,14 @@ public sealed class StrictEndOfStreamTests : IDisposable
 
     private ScriptedFfmpeg Script(bool video, int exitCode, int waitSeconds = 0)
     {
-        var ffmpeg = FfmpegTools.Ffmpeg!;
+        var ffmpeg = ProcessAliases.Ffmpeg!;
         var run = video
             ? $"\"{ffmpeg}\" -hide_banner -nostdin -nostats -loglevel info -f lavfi -i \"testsrc2=size=64x36:rate=25:duration=0.4\" " +
               "-vf \"format=bgra,showinfo=checksum=0\" -fps_mode passthrough -pix_fmt bgra -f rawvideo pipe:1"
             : $"\"{ffmpeg}\" -hide_banner -nostdin -nostats -loglevel info -f lavfi -i \"sine=frequency=440:sample_rate=48000:duration=0.5\" " +
               "-af \"aresample=48000,aformat=sample_fmts=flt:channel_layouts=stereo,ashowinfo\" -f f32le pipe:1";
         var path = Path.Combine(_dir, $"ffmpeg-{(video ? "video" : "audio")}-{exitCode}-{waitSeconds}-{Guid.NewGuid():N}.cmd");
-        var wait = waitSeconds > 0 ? $"ping -n {waitSeconds + 1} 127.0.0.1 >nul\r\n" : "";
+        var wait = waitSeconds > 0 ? $"\"{ProcessAliases.Ping}\" -n {waitSeconds + 1} 127.0.0.1 >nul\r\n" : "";
         File.WriteAllText(path, $"@echo off\r\n{run}\r\n{wait}exit {exitCode}\r\n");
         return new ScriptedFfmpeg(path);
     }
@@ -74,15 +74,14 @@ public sealed class StrictEndOfStreamTests : IDisposable
         FilePath = path, StartTime = MediaTime.Zero, SourcePosition = MediaTime.Zero, StrictEnd = strict
     };
 
-    /// <summary>No ffmpeg or ping started by the script (i.e. since it was written) is still alive.</summary>
+    /// <summary>No ffmpeg or ping started by the script (i.e. since it was written) is still alive — looked for under the
+    /// names the scripts run them by (<see cref="ProcessAliases"/>), so another program's ffmpeg is never counted.</summary>
     private static void AssertNothingRunning(ScriptedFfmpeg ffmpeg)
     {
         var watch = Stopwatch.StartNew();
         while (true)
         {
-            var alive = Process.GetProcessesByName("ffmpeg").Concat(Process.GetProcessesByName("PING"))
-                .Where(p => { try { return !p.HasExited && p.StartTime >= ffmpeg.Created.AddSeconds(-1); } catch { return false; } })
-                .Select(p => $"{p.ProcessName}#{p.Id}").ToList();
+            var alive = ProcessAliases.AliveSince(ffmpeg.Created);
             if (alive.Count == 0) return;
             if (watch.Elapsed > TimeSpan.FromSeconds(5)) Assert.Fail($"still running after '{Path.GetFileName(ffmpeg.Script)}': {string.Join(", ", alive)}");
             Thread.Sleep(50);

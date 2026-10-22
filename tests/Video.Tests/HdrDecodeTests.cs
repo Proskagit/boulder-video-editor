@@ -15,6 +15,7 @@ namespace AiVideoEditor.Video.Tests;
 /// (<see cref="HdrToSdr.Convert"/>) on the synthetic patches within ΔE76 ≤ 1 (neutral patches neutral); a LUT that can't be
 /// had fails the open — never a silent SDR decode; any LUT folder name works in the graph.
 /// </summary>
+[Collection(MediaCollection.Name)]
 public sealed class HdrDecodeTests : IDisposable
 {
     private readonly ITestOutputHelper _output;

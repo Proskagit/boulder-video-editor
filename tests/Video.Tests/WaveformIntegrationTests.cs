@@ -13,6 +13,7 @@ namespace AiVideoEditor.Video.Tests;
 /// in source time — exactly for PCM, within a few groups for AAC —, the louder channel counts, a container start time
 /// is the origin, video with sound works, video without sound is never decoded, and a cache hit starts no ffmpeg.
 /// </summary>
+[Collection(MediaCollection.Name)]
 public sealed class WaveformIntegrationTests : IDisposable
 {
     private const int PerPeak = WaveformService.DefaultSamplesPerPeak;
