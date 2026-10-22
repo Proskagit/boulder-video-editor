@@ -26,7 +26,9 @@ while IFS=$'\t' read -r name kind version location pin licence files; do
         [[ "$(git -C "$repo" rev-parse --verify "$pin^{commit}")" == "$pin" ]] || { echo "$name: $pin not found" >&2; exit 1; }
         git -C "$repo" branch --force pinned "$pin"
         git -C "$repo" bundle create "$SOURCES/git/$name.bundle" pinned
-        git bundle verify "$SOURCES/git/$name.bundle" >/dev/null
+        git -C "$repo" bundle verify "$SOURCES/git/$name.bundle" >/dev/null   # verify needs a repository
+        [[ "$(git bundle list-heads "$SOURCES/git/$name.bundle" | awk '{ print $1 }')" == "$pin" ]] \
+            || { echo "$name: the bundle's head is not $pin" >&2; exit 1; }
         rm -rf "$repo"
         ;;
     *) echo "unknown kind '$kind' for $name" >&2; exit 1 ;;
