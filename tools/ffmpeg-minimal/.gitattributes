@@ -4,3 +4,5 @@
 Dockerfile text eol=lf
 sources.lock text eol=lf
 components.txt text eol=lf
+# Licence texts are kept byte for byte as published (build.sh checks their SHA-256): no end-of-line conversion.
+licenses/* -text

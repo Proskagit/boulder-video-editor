@@ -180,7 +180,24 @@ for f in "$OUT/licenses/mingw-w64-runtime/COPYING.MinGW-w64-runtime.txt" "$OUT/l
     [[ -s "$f" ]] || { echo "Missing licence text: $f" >&2; exit 1; }
 done
 
-python3 "$RECIPE/make-notices.py" --recipe "$RECIPE" --out "$OUT"
+# AV1 (dav1d): the Alliance for Open Media Patent License 1.0 asks to be reproduced with binary implementations
+# (its §1.2.1 b). The text is the official one — libaom's PATENTS at tag v3.15.2 (commit
+# af3dc9aadc793c1b00edc003e3fc19a44fdeb574), kept in the recipe byte for byte; dav1d's doc/PATENTS has a typo.
+AOM_LICENCE_SHA256=661fb8e504744e95587b556b94a58343448300606a41bea8c7a9b97125696e61
+echo "$AOM_LICENCE_SHA256  $RECIPE/licenses/AOM-PATENT-LICENSE-1.0.txt" | sha256sum --quiet -c -
+cp "$RECIPE/licenses/AOM-PATENT-LICENSE-1.0.txt" "$OUT/licenses/dav1d/AOM-PATENT-LICENSE-1.0.txt"
+
+# The Independent JPEG Group's files compiled into libavcodec (idctdsp: jrevdct.c; fdctdsp: jfdctfst.c, jfdctint.c via
+# jfdctint_template.c): their licence asks executables' documentation to credit the IJG (make-notices.py states it)
+# and its terms are their header comments, copied here verbatim (the first comment block of each file).
+mkdir -p "$OUT/licenses/ffmpeg/ijg"
+for f in jrevdct.c jfdctfst.c jfdctint_template.c; do
+    awk '{ print } /\*\// { exit }' "$WORK/src/ffmpeg-9.0.2/libavcodec/$f" > "$OUT/licenses/ffmpeg/ijg/$f.header.txt"
+    grep -q "Independent JPEG Group" "$OUT/licenses/ffmpeg/ijg/$f.header.txt" \
+        || { echo "No IJG licence header in libavcodec/$f" >&2; exit 1; }
+done
+
+python3 "$RECIPE/make-notices.py" --recipe "$RECIPE" --out "$OUT" --ffmpeg-src "$WORK/src/ffmpeg-9.0.2"
 python3 "$RECIPE/make-manifest.py" --recipe "$RECIPE" --sources "$SOURCES" --out "$OUT"
 echo "Built:"
 sha256sum "$OUT/bin/"*.exe
