@@ -41,14 +41,18 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     env:
-      WORK: ${{ runner.temp }}/rebuild
-      REPORT: ${{ runner.temp }}/rebuild/report.md
-      # A push has no inputs: the defaults above.
+      # A push has no inputs: the defaults above. (The runner context is not available here: WORK / REPORT are set by
+      # the first step.)
       SOURCE_RUN_ID: ${{ inputs.source_run_id || '39770305364' }}
       SOURCES_SHA256: ${{ inputs.sources_sha256 || '4cafbbc6069e0bf07c8a0b447cfd7181ad3d3ea334800aa7735e7d223844d881' }}
       FFMPEG_SHA256: ${{ inputs.ffmpeg_sha256 || '9f51787f8d9d48e8d411d048afa6a59f84bcea0b3a68f0e2c9b1294396563610' }}
       FFPROBE_SHA256: ${{ inputs.ffprobe_sha256 || '2a1bf15f7c473b12739d4e30ae477d32860d7043dd40135d83d173b019705ab3' }}
     steps:
+      - name: Set the working paths
+        run: |
+          echo "WORK=$RUNNER_TEMP/rebuild" >> "$GITHUB_ENV"
+          echo "REPORT=$RUNNER_TEMP/rebuild/report.md" >> "$GITHUB_ENV"
+
       # Only the sources tar of the source run: not its zip, manifest, binaries or image.
       - uses: actions/download-artifact@v7
         with:
