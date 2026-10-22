@@ -1,0 +1,144 @@
+# The minimal FFmpeg for the portable build (DECISIONS.md D046 §13): built in a pinned Debian container on Linux, twice
+# without network from the same fetched sources (the binaries must be identical), then checked on Windows against the
+# application's real use. Separate from ci.yml: the application's tests keep running on the pinned gyan.dev 9.0.1.
+# Produces artifacts only — nothing is released or put into the portable build here.
+name: Minimal FFmpeg
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/ffmpeg-minimal/**'
+      - '.github/workflows/ffmpeg-minimal.yml'
+
+concurrency:
+  group: ffmpeg-minimal-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # The reference for the Windows checks: the same pinned archive ci.yml uses.
+  FFMPEG_REF_VERSION: 9.0.1
+  FFMPEG_REF_SHA256: fec81ae03971d9dd4be3ebe02e263bd2ec1d789483f931bdba5f5715e65da2e9
+
+jobs:
+  build:
+    name: Build (Linux, pinned container)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the toolchain image
+        run: |
+          docker build --pull=false -t aive-ffmpeg-toolchain tools/ffmpeg-minimal
+          docker image inspect aive-ffmpeg-toolchain --format '{{.Id}}' | tee "$RUNNER_TEMP/image-id.txt"
+
+      - name: Fetch and verify the sources (network)
+        run: |
+          mkdir -p "$RUNNER_TEMP/sources"
+          docker run --rm \
+            -v "$PWD/tools/ffmpeg-minimal:/recipe:ro" -v "$RUNNER_TEMP/sources:/sources" \
+            aive-ffmpeg-toolchain bash /recipe/fetch-sources.sh
+
+      - name: Build A (no network)
+        run: |
+          mkdir -p "$RUNNER_TEMP/out-a"
+          docker run --rm --network=none -e TOOLCHAIN_IMAGE="$(cat "$RUNNER_TEMP/image-id.txt")" \
+            -v "$PWD/tools/ffmpeg-minimal:/recipe:ro" -v "$RUNNER_TEMP/sources:/sources:ro" -v "$RUNNER_TEMP/out-a:/out" \
+            aive-ffmpeg-toolchain bash /recipe/build.sh
+
+      - name: Build B (no network, fresh container) and compare
+        run: |
+          mkdir -p "$RUNNER_TEMP/out-b"
+          docker run --rm --network=none -e TOOLCHAIN_IMAGE="$(cat "$RUNNER_TEMP/image-id.txt")" \
+            -v "$PWD/tools/ffmpeg-minimal:/recipe:ro" -v "$RUNNER_TEMP/sources:/sources:ro" -v "$RUNNER_TEMP/out-b:/out" \
+            aive-ffmpeg-toolchain bash /recipe/build.sh
+          (cd "$RUNNER_TEMP/out-a/bin" && sha256sum *.exe) > a.sums
+          (cd "$RUNNER_TEMP/out-b/bin" && sha256sum *.exe) > b.sums
+          cat a.sums
+          diff a.sums b.sums || { echo "::error::The two builds differ: the build is not reproducible"; exit 1; }
+
+      - name: Package the binaries and the corresponding-source bundle
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/out-a"; pkg="$RUNNER_TEMP/package"; mkdir -p "$pkg"
+          # The recipe as built (scripts, Dockerfile, lock, component list) and the image id belong to the sources.
+          mkdir -p "$RUNNER_TEMP/sources-bundle/recipe"
+          cp -r tools/ffmpeg-minimal/. "$RUNNER_TEMP/sources-bundle/recipe/"
+          cp -r "$RUNNER_TEMP/sources/." "$RUNNER_TEMP/sources-bundle/"
+          cp "$RUNNER_TEMP/image-id.txt" "$RUNNER_TEMP/sources-bundle/recipe/"
+          tar --sort=name --owner=0 --group=0 --numeric-owner --mtime=@1789692057 \
+            -C "$RUNNER_TEMP/sources-bundle" -cf "$pkg/aive-ffmpeg-minimal-9.0.2-sources.tar" .
+          (cd "$out" && zip -X -r "$pkg/aive-ffmpeg-minimal-9.0.2-win64.zip" bin licenses manifest.json MANIFEST.md \
+            ffmpeg-configuration.txt enabled-config.txt)
+          (cd "$pkg" && sha256sum * > SHA256SUMS && cat SHA256SUMS && ls -l)
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ffmpeg-minimal
+          path: |
+            ${{ runner.temp }}/package/*.zip
+            ${{ runner.temp }}/package/SHA256SUMS
+            ${{ runner.temp }}/out-a/manifest.json
+            ${{ runner.temp }}/out-a/MANIFEST.md
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ffmpeg-minimal-sources
+          path: ${{ runner.temp }}/package/aive-ffmpeg-minimal-9.0.2-sources.tar
+          retention-days: 30
+
+  verify:
+    name: Verify (Windows)
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: ffmpeg-minimal
+          path: ${{ runner.temp }}/ffmpeg-minimal
+
+      - name: Unpack the candidate
+        run: |
+          $d = Join-Path $env:RUNNER_TEMP 'ffmpeg-minimal'
+          # upload-artifact keeps the paths below runner.temp: package/… and out-a/…
+          Expand-Archive -Path (Join-Path $d 'package\aive-ffmpeg-minimal-9.0.2-win64.zip') -DestinationPath (Join-Path $d 'unpacked') -Force
+          Get-Content (Join-Path $d 'package\SHA256SUMS')
+
+      - name: Install the reference FFmpeg ${{ env.FFMPEG_REF_VERSION }} (not on PATH)
+        run: |
+          $name = "ffmpeg-$env:FFMPEG_REF_VERSION-essentials_build"
+          $zip = Join-Path $env:RUNNER_TEMP "$name.zip"
+          Invoke-WebRequest -Uri "https://github.com/GyanD/codexffmpeg/releases/download/$env:FFMPEG_REF_VERSION/$name.zip" -OutFile $zip
+          $hash = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLowerInvariant()
+          if ($hash -ne $env:FFMPEG_REF_SHA256) { throw "Reference FFmpeg archive SHA256 mismatch: $hash" }
+          Expand-Archive -Path $zip -DestinationPath (Join-Path $env:RUNNER_TEMP 'ffmpeg-ref') -Force
+
+      - name: Check the candidate against the application's use
+        run: |
+          $d = Join-Path $env:RUNNER_TEMP 'ffmpeg-minimal\unpacked'
+          ./tools/ffmpeg-minimal/Test-MinimalFfmpeg.ps1 `
+            -Candidate (Join-Path $d 'bin') `
+            -Reference (Join-Path $env:RUNNER_TEMP "ffmpeg-ref\ffmpeg-$env:FFMPEG_REF_VERSION-essentials_build\bin") `
+            -EnabledConfig (Join-Path $d 'enabled-config.txt') `
+            -Out (Join-Path $env:RUNNER_TEMP 'verify')
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ffmpeg-minimal-verification
+          path: |
+            ${{ runner.temp }}/verify/report.md
+            ${{ runner.temp }}/verify/report.json
+            ${{ runner.temp }}/verify/buildconf.txt
+          retention-days: 30

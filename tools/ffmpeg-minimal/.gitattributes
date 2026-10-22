@@ -1,0 +1,6 @@
+# Run inside the Linux container: keep LF whatever the checkout's settings.
+*.sh text eol=lf
+*.py text eol=lf
+Dockerfile text eol=lf
+sources.lock text eol=lf
+components.txt text eol=lf

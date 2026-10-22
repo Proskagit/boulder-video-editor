@@ -1,0 +1,112 @@
+# The FFmpeg components the minimal build enables after --disable-everything (DECISIONS.md D046 §13). One "kind name"
+# per line. build.sh turns them into --enable-<kind>=<name>; Test-MinimalFfmpeg.ps1 checks the binaries against them.
+# Anything configure selects on its own for these (e.g. h263 for mpeg4, vp8 for webp, vp9_superframe_split, the
+# filter graph's buffers) is allowed in the result; anything else is reported.
+
+# Decoders — the target formats (H.264, HEVC, MPEG-4 Part 2, MJPEG, VP8, VP9, AV1; AAC, MP3, PCM, FLAC, Opus, Vorbis,
+# ALAC; PNG, JPEG, WebP, BMP) and the export encoder's inputs (rawvideo BGRA, f32le).
+decoder h264
+decoder hevc
+decoder mpeg4
+decoder mjpeg
+decoder vp8
+decoder vp9
+decoder av1
+decoder libdav1d
+decoder aac
+decoder mp3float
+decoder flac
+decoder opus
+decoder vorbis
+decoder alac
+decoder pcm_s16le
+decoder pcm_s16be
+decoder pcm_s24le
+decoder pcm_s24be
+decoder pcm_s32le
+decoder pcm_f32le
+decoder pcm_u8
+decoder png
+decoder webp
+decoder bmp
+decoder rawvideo
+
+# Encoders — the export (libx264, aac) and the decoders' outputs to the application (rawvideo BGRA, f32le); nothing else.
+encoder libx264
+encoder aac
+encoder rawvideo
+encoder pcm_f32le
+
+# Demuxers — MP4 / MOV / M4A, MKV / WebM, AVI, WAV, MP3, FLAC, ADTS AAC, the images, the export encoder's pipes.
+demuxer mov
+demuxer matroska
+demuxer avi
+demuxer wav
+demuxer mp3
+demuxer flac
+demuxer aac
+demuxer image2
+demuxer image_png_pipe
+demuxer image_jpeg_pipe
+demuxer image_webp_pipe
+demuxer image_bmp_pipe
+demuxer rawvideo
+demuxer pcm_f32le
+
+# Muxers — the export (mp4 selects mov) and the decoders' pipes.
+muxer mp4
+muxer rawvideo
+muxer pcm_f32le
+
+# Parsers for the decoders above.
+parser h264
+parser hevc
+parser mpeg4video
+parser mjpeg
+parser vp8
+parser vp9
+parser av1
+parser aac
+parser mpegaudio
+parser flac
+parser opus
+parser vorbis
+parser png
+parser webp
+parser bmp
+
+# Filters the application's graphs use (src/Video), and those -autorotate inserts.
+filter scale
+filter format
+filter setparams
+filter showinfo
+filter zscale
+filter lut3d
+filter transpose
+filter hflip
+filter vflip
+filter null
+filter aresample
+filter aformat
+filter ashowinfo
+filter apad
+filter atempo
+filter anull
+
+# Protocols.
+protocol file
+protocol pipe
+
+# Hardware decoding through Windows' own APIs (no third-party code): -hwaccel auto and the native AV1 decoder.
+hwaccel h264_d3d11va
+hwaccel h264_d3d11va2
+hwaccel h264_dxva2
+hwaccel hevc_d3d11va
+hwaccel hevc_d3d11va2
+hwaccel hevc_dxva2
+hwaccel vp9_d3d11va
+hwaccel vp9_d3d11va2
+hwaccel vp9_dxva2
+hwaccel av1_d3d11va
+hwaccel av1_d3d11va2
+hwaccel av1_dxva2
