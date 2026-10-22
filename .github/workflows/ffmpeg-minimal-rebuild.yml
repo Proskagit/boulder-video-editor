@@ -1,0 +1,156 @@
+# Independent rebuild of the minimal FFmpeg (DECISIONS.md D046 §13) from its published corresponding-source tar only:
+# a clean runner of another image than the build job, no checkout of this repository, no image, cache or binary of the
+# earlier run. The tar is checked against its known SHA-256, the toolchain image is built afresh from the Dockerfile in
+# the tar (pinned base image digest and Debian snapshot), build.sh from the tar runs without network, and the SHA-256 of
+# the rebuilt ffmpeg.exe and ffprobe.exe are compared with the values published in the release manifest (the inputs).
+# Runs on a push of this file (workflow_dispatch needs the file on the default branch) or by hand; produces a report
+# artifact, never the binaries, a release or a tag.
+name: Minimal FFmpeg (independent rebuild)
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: The CI run whose artifact ffmpeg-minimal-sources holds aive-ffmpeg-minimal-9.0.2-sources.tar
+        default: '39770305364'
+        required: true
+      sources_sha256:
+        description: Known SHA-256 of aive-ffmpeg-minimal-9.0.2-sources.tar
+        default: 4cafbbc6069e0bf07c8a0b447cfd7181ad3d3ea334800aa7735e7d223844d881
+        required: true
+      ffmpeg_sha256:
+        description: Published SHA-256 of ffmpeg.exe (manifest.json)
+        default: 9f51787f8d9d48e8d411d048afa6a59f84bcea0b3a68f0e2c9b1294396563610
+        required: true
+      ffprobe_sha256:
+        description: Published SHA-256 of ffprobe.exe (manifest.json)
+        default: 2a1bf15f7c473b12739d4e30ae477d32860d7043dd40135d83d173b019705ab3
+        required: true
+  push:
+    paths:
+      - '.github/workflows/ffmpeg-minimal-rebuild.yml'
+
+permissions:
+  contents: read
+  actions: read # to download the artifact of the source run
+
+jobs:
+  rebuild:
+    name: Rebuild from the sources tar (Linux, clean runner)
+    # The build job uses ubuntu-24.04; another runner image here.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    env:
+      WORK: ${{ runner.temp }}/rebuild
+      REPORT: ${{ runner.temp }}/rebuild/report.md
+      # A push has no inputs: the defaults above.
+      SOURCE_RUN_ID: ${{ inputs.source_run_id || '39770305364' }}
+      SOURCES_SHA256: ${{ inputs.sources_sha256 || '4cafbbc6069e0bf07c8a0b447cfd7181ad3d3ea334800aa7735e7d223844d881' }}
+      FFMPEG_SHA256: ${{ inputs.ffmpeg_sha256 || '9f51787f8d9d48e8d411d048afa6a59f84bcea0b3a68f0e2c9b1294396563610' }}
+      FFPROBE_SHA256: ${{ inputs.ffprobe_sha256 || '2a1bf15f7c473b12739d4e30ae477d32860d7043dd40135d83d173b019705ab3' }}
+    steps:
+      # Only the sources tar of the source run: not its zip, manifest, binaries or image.
+      - uses: actions/download-artifact@v7
+        with:
+          name: ffmpeg-minimal-sources
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/rebuild/download
+
+      - name: Check the sources tar
+        run: |
+          set -euo pipefail
+          mkdir -p "$WORK/sources" "$WORK/out"
+          tar_path="$WORK/download/aive-ffmpeg-minimal-9.0.2-sources.tar"
+          actual=$(sha256sum "$tar_path" | cut -d' ' -f1)
+          {
+            echo "# Minimal FFmpeg — independent rebuild"
+            echo
+            echo "- Source run: $SOURCE_RUN_ID (artifact ffmpeg-minimal-sources); this run: $GITHUB_RUN_ID"
+            echo "- Runner image: $ImageOS $ImageVersion"
+            echo "- Sources tar: $(stat -c %s "$tar_path") bytes, SHA-256 \`$actual\` (expected \`$SOURCES_SHA256\`)"
+          } > "$REPORT"
+          if [ "$actual" != "$SOURCES_SHA256" ]; then
+            echo "::error::The sources tar is not the expected one"; echo "- **FAIL**: sources tar SHA-256 differs" >> "$REPORT"; exit 1
+          fi
+          tar -xf "$tar_path" -C "$WORK/sources"
+          # The tar must hold sources and the recipe only — nothing built by the earlier run.
+          built=$(cd "$WORK/sources" && find . -type f \( -iname '*.exe' -o -iname '*.dll' -o -iname '*.a' -o -iname '*.o' \
+            -o -name manifest.json -o -name MANIFEST.md -o -name THIRD-PARTY-NOTICES.txt \) | sort)
+          if [ -n "$built" ]; then
+            echo "::error::The sources tar contains build outputs"; printf -- '- **FAIL**: build outputs in the tar:\n%s\n' "$built" >> "$REPORT"; exit 1
+          fi
+          (cd "$WORK/sources" && sha256sum -c --quiet SHA256SUMS)
+          echo "- Internal SHA256SUMS: $(wc -l < "$WORK/sources/SHA256SUMS") files OK; recipe from the tar (recipe/)" >> "$REPORT"
+
+      - name: Build the toolchain image afresh (no cache)
+        run: |
+          set -euo pipefail
+          docker image ls --format '{{.Repository}}:{{.Tag}} {{.ID}}' | grep -i ffmpeg && { echo "::error::A toolchain image already exists"; exit 1; } || true
+          docker build --no-cache --pull -t aive-ffmpeg-rebuild "$WORK/sources/recipe"
+          image=$(docker image inspect aive-ffmpeg-rebuild --format '{{.Id}}')
+          echo "$image" > "$WORK/image-id.txt"
+          docker run --rm --network=none aive-ffmpeg-rebuild cat /toolchain-snapshot.txt > "$WORK/toolchain-snapshot.txt"
+          docker run --rm --network=none aive-ffmpeg-rebuild cat /toolchain-packages.tsv > "$WORK/toolchain-packages.tsv"
+          {
+            echo "- Toolchain image (this run): \`$image\`; the source run recorded \`$(cat "$WORK/sources/recipe/image-id.txt")\` (an id may differ; only the binaries are compared)"
+            echo "- Debian snapshot: $(cat "$WORK/toolchain-snapshot.txt"); $(wc -l < "$WORK/toolchain-packages.tsv") packages"
+          } >> "$REPORT"
+
+      - name: Build (no network)
+        run: |
+          set -euo pipefail
+          docker run --rm --network=none -e TOOLCHAIN_IMAGE="$(cat "$WORK/image-id.txt")" \
+            -v "$WORK/sources/recipe:/recipe:ro" -v "$WORK/sources:/sources:ro" -v "$WORK/out:/out" \
+            aive-ffmpeg-rebuild bash /recipe/build.sh 2>&1 | tee "$WORK/build.log"
+
+      - name: Compare with the published SHA-256
+        if: always()
+        run: |
+          set -uo pipefail
+          status=0
+          echo >> "$REPORT"; echo "| File | Size | SHA-256 rebuilt | SHA-256 published | Result |" >> "$REPORT"; echo "|---|---|---|---|---|" >> "$REPORT"
+          for pair in "ffmpeg.exe:$FFMPEG_SHA256" "ffprobe.exe:$FFPROBE_SHA256"; do
+            exe=${pair%%:*}; expected=${pair#*:}; f="$WORK/out/bin/$exe"
+            if [ -f "$f" ]; then
+              actual=$(sha256sum "$f" | cut -d' ' -f1); size=$(stat -c %s "$f")
+              [ "$actual" = "$expected" ] && result=MATCH || { result=MISMATCH; status=1; }
+            else
+              actual='(not built)'; size='-'; result=MISSING; status=1
+            fi
+            echo "| $exe | $size | \`$actual\` | \`$expected\` | **$result** |" >> "$REPORT"
+          done
+          echo >> "$REPORT"
+          if [ "$status" -ne 0 ]; then
+            {
+              echo "## Not reproduced — material for the cause"
+              echo
+              echo "- The build log (build.log), the rebuilt manifest.json (component checksums, FFmpeg configuration, toolchain"
+              echo "  packages) and toolchain-packages.tsv are in this artifact: compare them with the published manifest.json."
+              echo "- Usual causes: a different toolchain package (snapshot or base image), a changed recipe or source, a build"
+              echo "  path, timestamp or locale reaching the binaries."
+              echo
+              echo '```'
+              tail -n 60 "$WORK/build.log" 2>/dev/null || echo "(no build log)"
+              echo '```'
+            } >> "$REPORT"
+          else
+            echo "**Result: both binaries reproduced bit for bit from the sources tar.**" >> "$REPORT"
+          fi
+          cat "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+
+      # The report and what explains a mismatch; the rebuilt binaries are not uploaded.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ffmpeg-minimal-rebuild-report
+          path: |
+            ${{ runner.temp }}/rebuild/report.md
+            ${{ runner.temp }}/rebuild/build.log
+            ${{ runner.temp }}/rebuild/image-id.txt
+            ${{ runner.temp }}/rebuild/toolchain-snapshot.txt
+            ${{ runner.temp }}/rebuild/toolchain-packages.tsv
+            ${{ runner.temp }}/rebuild/out/manifest.json
+            ${{ runner.temp }}/rebuild/out/MANIFEST.md
+          retention-days: 30

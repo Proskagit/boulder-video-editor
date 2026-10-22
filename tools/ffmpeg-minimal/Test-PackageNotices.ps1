@@ -78,6 +78,18 @@ try {
                     $failures.Add("Not reproduced in THIRD-PARTY-NOTICES.txt: licenses/$($file.FullName.Substring($licences.Length + 1).Replace('\', '/'))")
                 }
             }
+
+            # The notices list the package's licence files in make-notices.py's order: the relative path with '/'
+            # separators, ordinal (case-sensitive) — the same on every OS. The list must be exactly the files, in it.
+            $actual = [string[]]@(Get-ChildItem -LiteralPath $licences -Recurse -File |
+                ForEach-Object { 'licenses/' + $_.FullName.Substring($licences.Length + 1).Replace('\', '/') })
+            [System.Array]::Sort($actual, [System.StringComparer]::Ordinal)
+            $listed = [regex]::Match($notices, '(?ms)^LICENCE FILES IN THIS PACKAGE\r?\n-+\r?\n(.*?)(?:\r?\n\r?\n|\z)')
+            $listedFiles = if ($listed.Success) { @($listed.Groups[1].Value -split '\r?\n' | ForEach-Object { $_.Trim() } | Where-Object { $_ }) } else { @() }
+            if (-not $listed.Success) { $failures.Add('THIRD-PARTY-NOTICES.txt has no LICENCE FILES IN THIS PACKAGE list') }
+            elseif (($listedFiles -join "`n") -cne ($actual -join "`n")) {
+                $failures.Add("The LICENCE FILES list differs from the package's licence files in ordinal order (listed: $($listedFiles -join ', '); expected: $($actual -join ', '))")
+            }
         }
     }
 

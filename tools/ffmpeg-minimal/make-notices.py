@@ -21,6 +21,13 @@ def text(path):
     return path.read_text(encoding='utf-8').replace('\r\n', '\n').rstrip()
 
 
+def ordered(paths, root):
+    """Every list in the notices is in one order, whatever the OS: by the path relative to `root`, written with '/'
+    separators, compared as a string by Unicode code points (Python's str ordering) — so case-sensitive, 'A'-'Z'
+    before 'a'-'z'. Sorting Path objects instead depends on the OS (case-insensitive on Windows)."""
+    return sorted(paths, key=lambda path: path.relative_to(root).as_posix())
+
+
 def section(title, body):
     return f'\n{RULE}\n{title}\n{RULE}\n\n{body}\n'
 
@@ -57,10 +64,11 @@ def main():
             lock[name] = (version, pin, licence)
 
     binaries = '\n'.join(f'  {exe.name:<12} {exe.stat().st_size:>10} bytes  SHA-256 {sha256(exe)}'
-                         for exe in sorted((out / 'bin').glob('*.exe')))
+                         for exe in ordered((out / 'bin').glob('*.exe'), out / 'bin'))
     rows = '\n'.join(f'  {name:<12} {version:<16} {pin:<64}  {licence}' for name, (version, pin, licence) in lock.items())
-    files = '\n'.join(f'  licenses/{f.relative_to(lic).as_posix()}' for f in sorted(lic.rglob('*')) if f.is_file())
-    ijg = sorted((lic / 'ffmpeg' / 'ijg').glob('*.header.txt'))
+    files = '\n'.join(f'  licenses/{f.relative_to(lic).as_posix()}'
+                      for f in ordered((f for f in lic.rglob('*') if f.is_file()), lic))
+    ijg = ordered((lic / 'ffmpeg' / 'ijg').glob('*.header.txt'), lic / 'ffmpeg' / 'ijg')
     if not ijg:
         raise SystemExit('No IJG licence header in licenses/ffmpeg/ijg')
     ijg_copyrights = []
