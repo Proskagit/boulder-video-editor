@@ -135,10 +135,12 @@ expected="d3d11va dxva2 libdav1d libx264 libzimg zlib "
 }
 # Every agreed component really enabled (configure silently drops one whose dependencies are missing, e.g. a hwaccel
 # whose DXVA structures the mingw-w64 headers lack).
+# The components' switches are in config_components.h (since FFmpeg 5.1), the libraries' in config.h.
+components_h="$WORK/src/ffmpeg-9.0.2/config_components.h"
 missing=""
 while read -r kind name; do
     up="$(tr '[:lower:]' '[:upper:]' <<<"${name}_${kind}")"
-    grep -q "^#define CONFIG_${up} 1$" "$config_h" || missing+=" $kind:$name"
+    grep -q "^#define CONFIG_${up} 1$" "$components_h" || missing+=" $kind:$name"
 done < <(awk '!/^#/ && NF == 2' "$RECIPE/components.txt")
 [[ -z "$missing" ]] || { echo "Components not enabled:$missing" >&2; exit 1; }
 grep -q '^#define CONFIG_GPL 1$' "$config_h"
