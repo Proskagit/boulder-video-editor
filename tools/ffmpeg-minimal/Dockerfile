@@ -1,8 +1,9 @@
 # The toolchain image of the minimal FFmpeg (DECISIONS.md D046 §13).
 # Base: Debian 13 "trixie", the dated tag trixie-20261020 pinned by its digest. Packages: the Debian archive as it was
 # at SNAPSHOT (snapshot.debian.org never changes a published state) with every version pinned, so the same Dockerfile
-# always gives the same toolchain. The image only holds tools: the sources come from fetch-sources.sh and the build runs
-# without network (build.sh).
+# always gives the same toolchain. The archive is read over HTTP: the base image has no CA certificates, and apt
+# checks every index against the Release file's signature by the Debian archive keys the image ships. The image only
+# holds tools: the sources come from fetch-sources.sh and the build runs without network (build.sh).
 FROM debian:trixie-20261020@sha256:4c25275446ca371766b8b093c696782eabce06263fccacb8d5d813b3dc44b308
 
 ARG SNAPSHOT=20261020T000000Z
@@ -10,8 +11,8 @@ ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8 LC_ALL=C.UTF-8 TZ=UTC
 
 RUN rm -f /etc/apt/sources.list.d/* \
  && printf '%s\n' \
-      "deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/${SNAPSHOT} trixie main" \
-      "deb-src [check-valid-until=no] https://snapshot.debian.org/archive/debian/${SNAPSHOT} trixie main" \
+      "deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/${SNAPSHOT} trixie main" \
+      "deb-src [check-valid-until=no] http://snapshot.debian.org/archive/debian/${SNAPSHOT} trixie main" \
       > /etc/apt/sources.list \
  && printf 'Acquire::Retries "5";\nAPT::Install-Recommends "false";\n' > /etc/apt/apt.conf.d/99minimal-ffmpeg \
  && apt-get update \
