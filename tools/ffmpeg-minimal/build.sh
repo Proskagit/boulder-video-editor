@@ -165,6 +165,22 @@ copy_licence graphengine "$WORK/src/zimg/graphengine" COPYING
 copy_licence zlib     "$WORK/src/zlib-1.3.2" LICENSE
 copy_licence dav1d    "$WORK/src/dav1d-1.5.4" COPYING
 
+# The toolchain runtime linked statically: mingw-w64's notices (its licence asks for them with binaries) and GCC's runtime
+# library exception with the GPL version 3 it refers to — read from the Debian source packages in SOURCES, the same ones
+# offered as source, so the texts match the pinned toolchain exactly.
+mkdir -p "$OUT/licenses/mingw-w64-runtime" "$OUT/licenses/gcc-runtime" "$WORK/gcc-licence"
+tar -xjOf "$SOURCES/debian/mingw-w64_12.0.0.orig.tar.bz2" \
+    mingw-w64-v12.0.0/COPYING.MinGW-w64-runtime/COPYING.MinGW-w64-runtime.txt \
+    > "$OUT/licenses/mingw-w64-runtime/COPYING.MinGW-w64-runtime.txt"
+tar -xzOf "$SOURCES/debian/gcc-14_14.2.0.orig.tar.gz" gcc-14-14.2.0/gcc-14.2.0-dfsg.tar.xz \
+    | tar -xJ -C "$WORK/gcc-licence" gcc-14.2.0/COPYING.RUNTIME gcc-14.2.0/COPYING3
+cp "$WORK/gcc-licence/gcc-14.2.0/COPYING.RUNTIME" "$WORK/gcc-licence/gcc-14.2.0/COPYING3" "$OUT/licenses/gcc-runtime/"
+for f in "$OUT/licenses/mingw-w64-runtime/COPYING.MinGW-w64-runtime.txt" "$OUT/licenses/gcc-runtime/COPYING.RUNTIME" \
+         "$OUT/licenses/gcc-runtime/COPYING3"; do
+    [[ -s "$f" ]] || { echo "Missing licence text: $f" >&2; exit 1; }
+done
+
+python3 "$RECIPE/make-notices.py" --recipe "$RECIPE" --out "$OUT"
 python3 "$RECIPE/make-manifest.py" --recipe "$RECIPE" --sources "$SOURCES" --out "$OUT"
 echo "Built:"
 sha256sum "$OUT/bin/"*.exe

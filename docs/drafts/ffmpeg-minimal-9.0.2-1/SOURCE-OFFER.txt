@@ -1,0 +1,56 @@
+*** DRAFT — prepared for review; NOT YET LEGALLY REVIEWED. Placeholders in <angle brackets> must be filled before use. ***
+
+SOURCE CODE OFFER — AiVideoEditor minimal FFmpeg 9.0.2 (aive-minimal), build 1, win64
+=====================================================================================
+
+The programs ffmpeg.exe and ffprobe.exe distributed with AiVideoEditor (or in the release named below) are
+licensed under the GNU General Public License, version 2 or (at your option) any later version. See
+THIRD-PARTY-NOTICES.txt for the licences of every component and of the statically linked toolchain runtime.
+
+  ffmpeg.exe   SHA-256 9f51787f8d9d48e8d411d048afa6a59f84bcea0b3a68f0e2c9b1294396563610
+  ffprobe.exe  SHA-256 2a1bf15f7c473b12739d4e30ae477d32860d7043dd40135d83d173b019705ab3
+
+1. WHERE THE SOURCE IS
+----------------------
+The complete corresponding source code of these binaries is published at the same place as the binaries:
+
+  Release:  https://github.com/Proskagit/boulder-video-editor/releases/tag/<TAG, e.g. ffmpeg-minimal-9.0.2-1>
+  File:     aive-ffmpeg-minimal-9.0.2-sources.tar
+            132 556 800 bytes, SHA-256 b8f6373329a390e671302855fd675dc07286f607dff6972d37ddd19210ce10f0
+
+It contains:
+  - FFmpeg 9.0.2 (the release tarball and its signature), zlib 1.3.2 and dav1d 1.5.4 release tarballs;
+  - x264, zimg and graphengine as git bundles with their history up to the commits used;
+  - the Debian source packages of the statically linked toolchain runtime: mingw-w64 12.0.0-5, gcc-mingw-w64 27 and
+    gcc-14 14.2.0-19;
+  - the complete build recipe (Dockerfile, fetch-sources.sh, build.sh, sources.lock, components.txt,
+    make-manifest.py) and SHA256SUMS of every file.
+
+The build recipe is also kept in the repository at commit 9a3afd6ef681309045ff9928dbbba39088871d10, directory
+tools/ffmpeg-minimal. No patch is applied to any component.
+
+2. HOW TO REBUILD
+-----------------
+On Linux with Docker:
+
+  tar -xf aive-ffmpeg-minimal-9.0.2-sources.tar -C sources
+  docker build -t aive-ffmpeg-toolchain sources/recipe
+  docker run --rm --network=none -v "$PWD/sources/recipe:/recipe:ro" -v "$PWD/sources:/sources:ro" \
+      -v "$PWD/out:/out" aive-ffmpeg-toolchain bash /recipe/build.sh
+
+The toolchain image is pinned by the Debian base image digest and a snapshot.debian.org date (see
+recipe/Dockerfile). The build runs without network and is expected to reproduce the SHA-256 values above.
+
+3. WRITTEN OFFER
+----------------
+<To be confirmed after legal review — needed when the binaries are passed on in a way that does not also give access
+to the release above (e.g. a copy of the portable folder handed over directly).>
+
+For at least three years from the date the binaries were distributed, <NAME OF THE DISTRIBUTOR> will give any third
+party, on request to <CONTACT ADDRESS>, a complete machine-readable copy of the corresponding source code described in
+section 1, for a charge no more than the cost of physically performing the distribution, on a medium customarily used
+for software interchange.
+
+4. CONTACT
+----------
+<CONTACT ADDRESS — to be chosen by the product owner>

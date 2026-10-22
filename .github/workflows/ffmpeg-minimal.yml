@@ -72,7 +72,7 @@ jobs:
           cp "$RUNNER_TEMP/image-id.txt" "$RUNNER_TEMP/sources-bundle/recipe/"
           tar --sort=name --owner=0 --group=0 --numeric-owner --mtime=@1789692057 \
             -C "$RUNNER_TEMP/sources-bundle" -cf "$pkg/aive-ffmpeg-minimal-9.0.2-sources.tar" .
-          (cd "$out" && zip -X -r "$pkg/aive-ffmpeg-minimal-9.0.2-win64.zip" bin licenses manifest.json MANIFEST.md \
+          (cd "$out" && zip -X -r "$pkg/aive-ffmpeg-minimal-9.0.2-win64.zip" bin licenses THIRD-PARTY-NOTICES.txt manifest.json MANIFEST.md \
             ffmpeg-configuration.txt enabled-config.txt)
           (cd "$pkg" && sha256sum * > SHA256SUMS && cat SHA256SUMS && ls -l)
 
@@ -84,6 +84,7 @@ jobs:
             ${{ runner.temp }}/package/SHA256SUMS
             ${{ runner.temp }}/out-a/manifest.json
             ${{ runner.temp }}/out-a/MANIFEST.md
+            ${{ runner.temp }}/out-a/THIRD-PARTY-NOTICES.txt
           retention-days: 30
 
       - uses: actions/upload-artifact@v7
@@ -123,6 +124,29 @@ jobs:
           $hash = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLowerInvariant()
           if ($hash -ne $env:FFMPEG_REF_SHA256) { throw "Reference FFmpeg archive SHA256 mismatch: $hash" }
           Expand-Archive -Path $zip -DestinationPath (Join-Path $env:RUNNER_TEMP 'ffmpeg-ref') -Force
+
+      - name: Check the package's notices and licence texts
+        run: |
+          $d = Join-Path $env:RUNNER_TEMP 'ffmpeg-minimal\unpacked'
+          $required = @('THIRD-PARTY-NOTICES.txt', 'licenses/ffmpeg/COPYING.GPLv2', 'licenses/ffmpeg/COPYING.LGPLv2.1',
+            'licenses/ffmpeg/LICENSE.md', 'licenses/x264/COPYING', 'licenses/zimg/COPYING', 'licenses/graphengine/COPYING',
+            'licenses/zlib/LICENSE', 'licenses/dav1d/COPYING', 'licenses/mingw-w64-runtime/COPYING.MinGW-w64-runtime.txt',
+            'licenses/gcc-runtime/COPYING.RUNTIME', 'licenses/gcc-runtime/COPYING3')
+          $missing = $required | Where-Object { -not (Test-Path (Join-Path $d $_)) -or (Get-Item (Join-Path $d $_)).Length -eq 0 }
+          if ($missing) { throw "Missing in the zip: $($missing -join ', ')" }
+          $notices = (Get-Content -Raw (Join-Path $d 'THIRD-PARTY-NOTICES.txt')) -replace "`r`n", "`n"
+          foreach ($exe in 'ffmpeg.exe', 'ffprobe.exe') {
+            $hash = (Get-FileHash -Algorithm SHA256 (Join-Path $d "bin/$exe")).Hash.ToLowerInvariant()
+            if (-not $notices.Contains($hash)) { throw "THIRD-PARTY-NOTICES.txt does not name the SHA-256 of $exe ($hash)" }
+          }
+          # Every licence file of the zip is reproduced in the notices (whitespace-normalised), except COPYING3, which the
+          # notices name.
+          $norm = { param($t) ($t -replace '\s+', ' ').Trim() }
+          $all = & $norm $notices
+          Get-ChildItem -Recurse -File (Join-Path $d 'licenses') | Where-Object Name -ne 'COPYING3' | ForEach-Object {
+            if (-not $all.Contains((& $norm (Get-Content -Raw $_.FullName)))) { throw "Not reproduced in the notices: $($_.FullName)" }
+          }
+          Get-ChildItem -Recurse -File $d | ForEach-Object { '{0,10}  {1}' -f $_.Length, $_.FullName.Substring($d.Length + 1) }
 
       - name: Check the candidate against the application's use
         run: |
