@@ -161,24 +161,38 @@ and runs cleanly.
       Проявление, Выезд, Увеличение) over the clip's fades, an outline and a background (each on its own), colour swatches,
       a 3 × 3 placement grid, bold, defaults for a caption; `project.json` v7. Scope, steps and acceptance criteria: section
       below and DECISIONS.md D043 (accepted 2026-10-20). *(Branch `feat/phase-27-text-animation` from `41dadf2`; Steps
-      27.0–27.6 done, up to `3c45c9d`; accepted by the product owner on 2026-10-20; not yet published)*
-- [ ] **Phase 28 — Transition library (D042 Phase B).** Наплыв, Затемнение, Вспышка, Наезд, Сдвиг on D025's model;
+      27.0–27.6 done, up to `3c45c9d`; accepted by the product owner on 2026-10-20; PR #28 merged into `main` as
+      `36a1a58` (2026-10-21), CI green on the pull request)*
+- [x] **Phase 28 — Transition library (D042 Phase B).** Наплыв, Затемнение, Вспышка, Наезд, Сдвиг on D025's model;
       durations in seconds stored as whole frames; a 1.0 s minimum between the peaks of Flash / Dip to black;
       `project.json` v8. Scope, steps and acceptance criteria: section below and DECISIONS.md D044 (approved 2026-10-20).
-      *(Branch `feat/phase-28-transitions` from `3c45c9d`, Phase 27's accepted tip; its pull request only after Phase 27 is
-      merged; Step 28.0 done; Step 28.1 — the visual check of Zoom — a gate, started on the product owner's agreement)*
-- [ ] **Planned (D042; numbers given when taken up):** C — ready-made effects and music · G —
-      stabilisation of the main path and S1 · R1 → D — automatic hold proposals · R2 → E — outlines following the camera ·
-      R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
+      *(Branch `feat/phase-28-transitions` from `3c45c9d`, Phase 27's accepted tip; Steps 28.0–28.5 done; accepted by the
+      product owner on 2026-10-21; PR #29 merged into `main` as `4f0e66a` (2026-10-21), CI green on the pull request)*
+- [x] **Phase 29 — Visual templates and the music scenario (D042 Phase C).** Four ready-made templates for bouldering
+      videos — REC, VHS, «Боулдер» (route, grade, a manual TOP / ПОПЫТКА status with its moment), «Хайлайт»; WASTED
+      deferred — and the audit of the existing music path (no defect); `project.json` v9. Scope, steps and acceptance
+      criteria: section below and DECISIONS.md D045 (approved 2026-10-21). *(Branch `feat/phase-29-templates` from
+      `4f0e66a`; Steps 29.0–29.6 and the corrections of D045 §17 done; accepted by the product owner on 2026-10-22;
+      PR #30 merged into `main` as `e28a9d3` (2026-10-22), CI green on the pull request)*
+- [ ] **Phase 30 — Stabilisation of the main path and the portable build S1 (D042 Phase G).** A self-contained portable
+      Windows build with the licence notices and FFmpeg in the delivery (after its licence audit), checked in a clean
+      environment; the main path (D042 §1 without step 4) run in it on real footage, its blocker / major defects fixed;
+      the performance measured; the open manual checks inventoried. No new functionality, no format change. Scope, steps
+      and acceptance criteria: section below and DECISIONS.md D046 (approved 2026-10-22). *(Branch
+      `feat/phase-30-stabilization` from `e28a9d3`; Step 30.0 — documentation — accepted 2026-10-22; Step 30.1 — the portable build —
+      done without FFmpeg, awaiting the product owner's review and the choice of the FFmpeg distribution; Steps 30.2–30.7
+      not started)*
+- [ ] **Planned (D042; numbers given when taken up):** R1 → D — automatic hold proposals · R2 → E — outlines following the
+      camera · R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
 
 ## Planned phases after Phase 26 (D042)
 
 The normative text is DECISIONS.md D042 (2026-10-20): the product concept, its boundaries and this order — confirmed by the
-product owner after the merge of Phase 26 (D042 "Refined after the merge of Phase 26"). None of these phases is started
-or approved for implementation; each gets its own decision, steps, acceptance criteria and manual plan when it is taken
-up, and its number then. A is Phase 27 (D043; merged, PR #28, `36a1a58`); B is Phase 28 (D044; merged, PR #29, `4f0e66a`); C is
-Phase 29 (D045; accepted by the product owner 2026-10-22, not yet published). The scopes below are sketches to be refined —
-not specifications. Every phase keeps the standing rules at the end of this file: one Undo step per user action, the
+product owner after the merge of Phase 26 (D042 "Refined after the merge of Phase 26"). Each phase gets its own decision,
+steps, acceptance criteria and manual plan when it is taken up, and its number then. A is Phase 27 (D043; merged, PR #28,
+`36a1a58`); B is Phase 28 (D044; merged, PR #29, `4f0e66a`); C is Phase 29 (D045; merged, PR #30, `e28a9d3`); G is
+Phase 30 (D046; approved 2026-10-22, in progress — Steps 30.0–30.1). R1–R3, D–F and H are neither started nor approved. The scopes of the
+phases not yet taken up are sketches to be refined — not specifications. Every phase keeps the standing rules at the end of this file: one Undo step per user action, the
 Preview identical to the export, `MediaTime` ticks, heavy work off the UI thread, the localization guards (D039), the gates
 of the recent phases (build `-warnaserror`, the full suite, heavy, `--blame-hang`, `project.json` compared byte for byte
 when the format does not change).
@@ -224,7 +238,7 @@ G + D / E as taken + F ─► regression run ─► H       S4 — the full plan
 - The steps: "Phase 28 — Transition library: steps" below (branch from `3c45c9d`; the pull request after Phase 27's merge).
 - Out: a transition editor, custom curves, motion blur, an unlimited library.
 
-### C — Visual templates and the music scenario *(core, medium; Phase 29 — DECISIONS.md D045; accepted 2026-10-22)*
+### C — Visual templates and the music scenario *(core, medium; Phase 29 — DECISIONS.md D045; accepted 2026-10-22; merged, PR #30, `e28a9d3`)*
 - Refined by the product owner on 2026-10-21: the colour looks of the first sketch (black and white, vivid, warm, cool,
   vignette) are dropped. Instead five ready-made visual templates made for bouldering videos — REC / Camcorder, VHS /
   Analog tape, «Боулдер» (a compact plate «ТРАССА 7 · 7A» with a manual TOP / ПОПЫТКА status; revised at the gate from a
@@ -239,7 +253,11 @@ G + D / E as taken + F ─► regression run ─► H       S4 — the full plan
 - Out: colour correction and grading, an effect library or stacks, keyframes, free styling, any automatic detection, a
   third party's assets, WASTED (deferred, D045 §15).
 
-### G — Stabilisation of the main path *(core, medium; the release candidate)*
+### G — Stabilisation of the main path *(core, medium; the release candidate; Phase 30 — DECISIONS.md D046, approved 2026-10-22)*
+- Specified by D046 (the product owner's refinements of 2026-10-22: FFmpeg in the delivery after a licence audit, the
+  licence notices, performance measured before targets, HDR / PQ and R10 not blocking, Windows Sandbox or a clean VM,
+  .NET 8 kept, blocker / major defects fixed and minor / UX ones brought to the owner); the steps: "Phase 30 —
+  Stabilisation and the portable build S1: steps" below. The sketch as first recorded:
 - The eight steps of D042 §1 (without step 4) run end to end in the real app on the product owner's footage at 1024 × 640
   and 1440 × 900; the defects found fixed; the open manual checks of earlier phases run or recorded; the performance of a
   typical project (several minutes, a few tracks, holds, text, transitions) measured.
@@ -261,6 +279,41 @@ G + D / E as taken + F ─► regression run ─► H       S4 — the full plan
   how the result would be stored (per-frame transforms bound to the source time) and its format impact; a go / no-go.
 - E (on a go): the holds' outlines follow the camera in the Preview and the export identically; a manual correction when
   the tracking is wrong; D036's animation unchanged on top of it.
+- **Concept: tracking and occlusion of the hold outlines** *(product owner, 2026-10-22; a direction for R2 / E — not a
+  specification, not a decision, no step; out of Phase 30, D046 §9)*:
+  - **What exists (checked in the code on 2026-10-22).** The user enters the markup mode on a paused frame, the frame
+    under the playhead is segmented (D034), a click gives a candidate contour, Enter confirms it; the holds of the route
+    are marked one after another (each `Hold`: a normalized outer contour and the `SourceTime` of the frame it was
+    marked on); D035 corrects a confirmed contour's vertices; D036 animates the outlines (the holds appear one by one
+    every *Interval*, default 0.5 s, 0.05–10 s, then stay 3 s). A confirmed contour is drawn at the same normalized
+    place on every frame of the clip: it follows the layer's transform and crop, not the camera — there is no tracking.
+    **Not confirmed:** a processing interval of "about 5 s" set by the user — no such setting is found in the code or
+    the decisions (the nearest: D036's *Interval*, and "about 5 s of the chosen holds" of the automatic rough cut, D042,
+    not a function); to be clarified with the product owner.
+  - **A continuation of that scenario**, not another way of choosing holds: the user keeps choosing and confirming holds
+    as in D034 / D035; tracking adds where each confirmed hold is on the other frames. The contour is not assumed to
+    keep the coordinates of its marking frame.
+  - **Three separate tasks.** *Hold tracking* — the position and the geometry of the hold over time, from its marking
+    frame. *Occlusion estimation* — internally, which parts of the hold the climber, a hand or another object covers on
+    a frame. *Visible contour generation* — from both, the segments of the hold's own contour that are visible on that
+    frame.
+  - **Occlusion hides only the covered segments of the contour**; the visible ones stay drawn and a covered segment
+    reappears when it is uncovered. Never the whole outline hidden because a part is covered, never a line along the
+    occluder's silhouette, never the outline of the visible area instead of the hold's. Example: a climber covers the
+    right half of a hold — the right part of its contour is hidden, the left part stays.
+  - **Internal data are not the result.** Masks of the hold and of the occluders may be intermediate data; they are
+    never shown as a fill, a translucent mask or a separate exported object. The user sees only the hold's contour, on
+    its visible segments, and the Preview and the export draw the same segments through the one outline path of D034 §6.
+    How the visible segments are computed is not fixed.
+  - **To research:** less jitter of the contour between frames; no flicker at the edges of an occlusion; robust
+    following while the camera moves; a manual correction of the position / contour on key frames carried to the
+    neighbouring frames; processing a chosen time range rather than necessarily the whole video.
+  - **To assess before an implementation:** local work with no required cloud; the size of models and new dependencies;
+    performance on the CPU and GPU acceleration; the licences of libraries and models; the Preview / export consistency;
+    the format impact (data per frame bound to the source time).
+  - The technical approach is chosen at a separate research stage (R2) after the stabilisation; no experiment, test
+    footage or comparison of algorithms is started before it. "Occlusion" here is a cover inside the picture — unrelated
+    to the layer occlusion of D018.
 
 ### R3 → F — «COROS Pace 4: пульс и телеметрия в видео» *(research, then telemetry large)*
 
@@ -2326,6 +2379,76 @@ new dependencies.
   `git diff --check`; a v8 project opened and saved (only `formatVersion` differs); the Preview's and the export's
   performance with a treatment measured in the app; the manual plan in the real app; D045's acceptance criteria one by one;
   the documentation.
+- Merged into `main` as `e28a9d3` (PR #30, 2026-10-22; CI green on the pull request).
+
+## Phase 30 — Stabilisation and the portable build S1: steps (D046)
+
+The plan approved by the product owner on 2026-10-22 with the refinements of D046 §2–§9; the normative text is
+DECISIONS.md D046. Branch `feat/phase-30-stabilization` from `origin/main` `e28a9d3` (the merge of PR #30). Each step
+starts on the product owner's command after the previous one is reviewed; **no commit, push, pull request or merge
+without a separate command**. A need to change the format, the architecture or agreed behaviour is reported with variants
+before the change.
+
+Goal: S1 — the main path of D042 §1 (without step 4) completed in a portable Windows build that starts outside the
+development environment (D042 "Refined after the merge of Phase 26", D046 §10).
+
+Gates for every step that changes code (QG): `dotnet build -warnaserror` 0 / 0; the affected test projects green; the
+full suite, the heavy scenes and `--blame-hang` at the closeout; the Preview ↔ export parity suites and every expected
+value unchanged; a v9 project saved again byte for byte (no format change); every new user-visible text in `Strings` /
+`Messages` with `.ru` (the D039 guards); `docs/PHASE30_MANUAL_TEST_PLAN.md` and `progress.md` updated.
+
+Out of scope (D046 §9): hold tracking, contour smoothing, camera motion compensation, occlusion, COROS / FIT, the
+automatic rough cut, WASTED and the other deferred functions, an installer, code signing, automatic updates, shipping
+`DirectML.dll`, a move to .NET 10, the Final UX Pass, new functionality, a format change.
+
+Dependencies: 30.0 → 30.1 → 30.2 → 30.3 → 30.4 → 30.7; 30.5 and 30.6 after 30.2, alongside 30.3; a fix in 30.4 rebuilds
+the portable folder and re-runs the rows it touches.
+
+### 30.0 — Documentation *(done; accepted by the product owner 2026-10-22)*
+- The branch from `origin/main` `e28a9d3`; D046; these steps; the skeleton of `docs/PHASE30_MANUAL_TEST_PLAN.md`;
+  `docs/README.md`; the outdated statuses of Phases 27–29 and of the current phase in this file, ROADMAP, `progress.md`,
+  README and D045 aligned with the merges. No code, tests or build scripts.
+
+### 30.1 — The portable build *(done 2026-10-22 without FFmpeg — D046 §13; awaiting the product owner's review and the choice of the FFmpeg distribution)*
+- A publish script (self-contained `win-x64`, a folder, no single-file, no trimming) run from a clean checkout; a version
+  in the build; the user's instruction in the build's folder (start, FFmpeg, the model per `docs/AI_MODEL.md`, where the
+  logs are).
+- The tools' configured paths resolved relative to the application folder (`ExecutableLocator`; absolute paths and the
+  `PATH` fallback unchanged), with tests.
+- The licence notices of every shipped component read from the restored packages (D046 §3).
+- FFmpeg (D046 §2): the licence, the composition and the obligations of the candidate distribution checked and reported;
+  **the binaries bundled only after the product owner's choice**.
+- The folder's layout and size recorded.
+
+### 30.2 — The clean-environment check *(not started)*
+- Windows Sandbox or a clean VM if available, otherwise a partial check with its limits documented (D046 §4): the start
+  (double click, another current directory, a path with spaces and Cyrillic), the Russian interface, the messages without
+  FFmpeg and without the model, the hold markup with the model installed, the Visual C++ runtime, the fonts of the
+  templates. Manual plan part A.
+
+### 30.3 — The main path in the portable build *(not started)*
+- D042 §1 without step 4 on the product owner's footage at 1024 × 640 and 1440 × 900 (manual plan part B): import; cut,
+  split, arrange; holds chosen and outlined; animated text; transitions; music with its volume and a template; framing,
+  the Preview and the export, watched in an external player.
+- The defects D1…Dn recorded with their severity (D046 §5); the list given to the product owner.
+
+### 30.4 — Fixes and the flakes *(not started)*
+- Blocker / major defects of the main path fixed, each with a test where it can be automated; minor / UX defects only
+  those the product owner approves.
+- The two known flakes (D046 §0) investigated: fixed if the cause is found, otherwise recorded.
+
+### 30.5 — Performance *(not started)*
+- The typical project of D046 §6 measured in the portable build (manual plan part C); the results reported; the targets
+  agreed with the product owner afterwards.
+
+### 30.6 — The open manual checks *(not started)*
+- The NOT RUN rows of the earlier manual plans inventoried (manual plan part D): those on the main path run, the rest
+  recorded with their reason; HDR / PQ (Phase 18) and R10 (Phase 17) not blocking (D046 §7).
+
+### 30.7 — Verification & closeout *(not started)*
+- Release and Debug `--no-incremental -warnaserror`; the full suite, `AIVE_HEAVY_TESTS=1`, three `--blame-hang` runs;
+  `git diff --check`; a v9 project opened and saved byte for byte; the final portable folder rebuilt and checked again
+  through 30.2's rows; D046's acceptance criteria one by one; the documentation; the product owner's acceptance of S1.
 
 ## Architectural rules that must hold at every phase
 

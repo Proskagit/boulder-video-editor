@@ -70,6 +70,24 @@ session state (D015).
 
 ## Current
 
+Phase 30 — stabilisation of the main path and the portable build S1 (D042 Phase G; DECISIONS.md D046 — **approved by the
+product owner 2026-10-22** with the refinements of D046 §2–§9). Branch `feat/phase-30-stabilization` from `origin/main`
+`e28a9d3` (the merge of PR #30). The scope: a self-contained portable Windows build with the licence notices of every
+shipped component and FFmpeg in the delivery — **integrated only after the licence, the composition and the obligations of
+the chosen distribution are checked and the product owner chooses it**; a check in Windows Sandbox or a clean VM (a partial
+check documented with its limits); the main path of D042 §1 (without step 4) run in that build on real footage at
+1024 × 640 and 1440 × 900, its blocker / major defects fixed and the minor / UX ones brought to the product owner; the two
+known flakes investigated; the performance measured first, the targets agreed afterwards; the open manual checks
+inventoried (HDR / PQ of Phase 18 and R10 of Phase 17 not blocking S1). .NET 8 kept. No new functionality, no format
+change (`project.json` v9). Out (D046 §9): hold tracking, contour smoothing, camera motion compensation, occlusion,
+COROS / FIT, the automatic rough cut, WASTED and the other deferred functions, an installer. **Step 30.0 (documentation) accepted
+on 2026-10-22; Step 30.1 (the portable build: `tools/portable/Publish-Portable.ps1`, the tools' relative paths from the
+application folder, the generated notices) done without FFmpeg, awaiting the product owner's review and the choice of
+the FFmpeg distribution (D046 §13)**; Steps 30.2–30.7 not started. Steps: `docs/DEVELOPMENT_PLAN.md`, "Phase 30 — Stabilisation and the portable
+build S1: steps"; manual plan `docs/PHASE30_MANUAL_TEST_PLAN.md`.
+
+## Previous
+
 Phase 29 — ready-made visual templates and the music scenario (D042 Phase C, refined by the product owner on 2026-10-21;
 DECISIONS.md D045 — **approved 2026-10-21**). The colour effects of the first draft are dropped: five
 templates made for bouldering videos — REC / Camcorder, VHS / Analog tape, «Боулдер» (a compact route / grade plate with
@@ -85,7 +103,7 @@ four templates (`project.json` v9, Preview = export, no change of the audio); ga
 -warnaserror` 0 / 0, the full suite 4499 / 3 / 0, heavy 4502 / 0 / 0, three `--blame-hang` runs clean. After the product
 owner's manual check (2026-10-21) the text of «Боулдер» / «Хайлайт» centred by the glyph metrics, the route and the status
 as two blocks, and the status moment `StatusAt` set from the playhead (D045 §17). **Accepted by the product owner on
-2026-10-22; committed on the branch, not yet published.** Not part of Phase 29: hold tracking, camera motion compensation, contour smoothing and occlusion are not part of Phase 29 — to be researched and scoped separately after it. Steps:
+2026-10-22; merged into `main` as `e28a9d3` (PR #30, 2026-10-22), CI green on the pull request.** Not part of Phase 29: hold tracking, camera motion compensation, contour smoothing and occlusion are not part of Phase 29 — to be researched and scoped separately after it. Steps:
 `docs/DEVELOPMENT_PLAN.md`, "Phase 29 — Visual templates and the music scenario: steps"; manual plan
 `docs/PHASE29_MANUAL_TEST_PLAN.md` (part B — the music audit).
 
@@ -98,8 +116,8 @@ v6 texts look exactly as before; `project.json` v7. Steps: `docs/DEVELOPMENT_PLA
 readability: steps"; manual plan `docs/PHASE27_MANUAL_TEST_PLAN.md`. Steps 27.0–27.6 done (27.1: variant B chosen by the
 product owner; verified by Claude 2026-10-20: Release / Debug `--no-incremental -warnaserror` 0 / 0, the full suite 4164 / 2
 / 0, heavy 4166 / 0 / 0, three blame-hang runs clean, a v6 project's texts byte-identical with the Phase 26 code, the
-manual plan run in the real app with its NOT RUN parts named); **accepted by the product owner (2026-10-20)**. Local commits
-only; the push, the pull request and the merge on the product owner's command.
+manual plan run in the real app with its NOT RUN parts named); **accepted by the product owner (2026-10-20)**; merged
+into `main` as `36a1a58` (PR #28, 2026-10-21).
 
 Phase 28 — the transition library (D042 Phase B; **accepted by the product owner 2026-10-21; merged as `4f0e66a`, PR #29, 2026-10-21**; DECISIONS.md D044, approved 2026-10-20 with the answers
 of its §11): Наплыв, Затемнение, Вспышка, Наезд, Сдвиг (no Wipe; Push without motion blur); durations in seconds stored as
@@ -116,9 +134,7 @@ byte for byte for every type and direction (real ffmpeg); v7 dissolves byte-iden
 saved again differing only in `formatVersion`. After the product owner's real-app run (2026-10-20 / 21): D1–D8 fixed, and an
 export whose Dissolve or Push lacks source frames is refused (D025 §4 changed by the product owner, D044); gates Release / Debug `--no-incremental -warnaserror` 0 / 0; the full suite 4417 / 2 / 0; `AIVE_HEAVY_TESTS=1` 4419 / 0 / 0; three `--blame-hang` runs 4417 / 2 / 0, no hang, no dump; the
 real-app re-run in the manual plan (what remains NOT RUN is named there). Accepted by the product owner on 2026-10-21 at
-`fd2e04b` (the NOT RUN rows and the known limits documented); local commits only — published after Phase 27.
-
-## Previous
+`fd2e04b` (the NOT RUN rows and the known limits documented); merged into `main` as `4f0e66a` (PR #29, 2026-10-21).
 
 Phase 26 — vertical video and framing (**merged**; PR #27 merged into `main` as `41dadf2` on 2026-10-20, CI green on the pull request; DECISIONS.md D041, 2026-10-20; branch
 `feat/phase-26-vertical-video` from `58c48cb`, the merge of PR #26). The first video of an empty project with the default
@@ -428,11 +444,12 @@ task): closing the app after a project with media was open hangs the process —
 ## Remaining plan (D042, provisional; 2026-10-20)
 
 Scopes, steps-to-be and dependencies: `docs/DEVELOPMENT_PLAN.md`, "Planned phases after Phase 26 (D042)". The letters are
-working labels — a phase gets its number (27, 28, …) and its own decision when it is taken up. Nothing below is started.
+working labels — a phase gets its number (27, 28, …) and its own decision when it is taken up. A, B and C are merged; G is
+Phase 30, in progress; nothing else below is started.
 
-Status on 2026-10-21: Phases 0–28 complete and merged (Phase 27 = A as `36a1a58`, PR #28; Phase 28 = B as `4f0e66a`,
-PR #29); Phase 29 (= C: four visual templates and the music audit, D045) accepted by the product owner on 2026-10-22,
-not yet published (WASTED deferred). The order confirmed by the product owner (D042 "Refined after the merge of Phase 26"): A → B → C →
+Status on 2026-10-22: Phases 0–29 complete and merged (Phase 27 = A as `36a1a58`, PR #28; Phase 28 = B as `4f0e66a`,
+PR #29; Phase 29 = C — four visual templates and the music audit, D045, WASTED deferred — as `e28a9d3`, PR #30); Phase 30
+(= G, D046) approved on 2026-10-22, Steps 30.0–30.1 done (30.1 awaiting review). The order confirmed by the product owner (D042 "Refined after the merge of Phase 26"): A → B → C →
 G; R1 and R2 in parallel with A–C without product code, D / E agreed separately after them; R3 a separate research, F only
 after its feasibility is confirmed and a separate agreement; H last.
 
@@ -440,18 +457,18 @@ after its feasibility is confirmed and a separate agreement; H last.
 |---|---|---|---|---|
 | A | Phase 27 — text animation and readability (D043; merged, PR #28) | core | medium | — |
 | B | Phase 28 — transition library: Наплыв, Затемнение, Вспышка, Наезд, Сдвиг (D044; merged, PR #29) | core | medium | A (branch from `3c45c9d`; its pull request after A's merge; v8 builds on v7) |
-| C | Phase 29 — four visual templates (REC, VHS, «Боулдер», «Хайлайт»; WASTED deferred) and the music audit (D045; accepted 2026-10-22, not yet published) | core | medium | B |
-| G | Stabilisation of the main path and S1 (a portable Windows build) | core | medium | A–C |
+| C | Phase 29 — four visual templates (REC, VHS, «Боулдер», «Хайлайт»; WASTED deferred) and the music audit (D045; merged, PR #30) | core | medium | B |
+| G | Phase 30 — stabilisation of the main path and S1 (a portable Windows build; D046, approved 2026-10-22, in progress — Steps 30.0–30.1) | core | medium | A–C |
 | R1 | Automatic hold proposals — research | research | research | — (parallel with A–C) |
 | D | Automatic hold proposals — implementation, on a go | AI | large | R1 |
-| R2 | Outlines following the holds while the camera moves — research | research | research (highest uncertainty) | — (parallel) |
+| R2 | Outlines following the holds while the camera moves, with occlusion that hides only the covered segments of a contour — research (concept of 2026-10-22: `docs/DEVELOPMENT_PLAN.md`, "R2 → E") | research | research (highest uncertainty) | — (parallel) |
 | E | Outline tracking — implementation, on a go | AI | large | R2; after D if D is taken |
 | R3 | COROS Pace 4 exports and video timestamps — research | research | research (needs real files) | — (parallel) |
 | F | «COROS Pace 4: пульс и телеметрия в видео» — only after R3 confirms feasibility and a separate agreement | telemetry | large | R3, A |
 | H | «Final UX Pass: аудит и упрощение интерфейса» (research, then implementation) | UX | research + medium–large | the core incl. F, G, a regression run |
 
 Stopping points — the product is usable after each:
-- **S0 — now (Phase 26 merged)**: a vertical bouldering video with manually chosen AI holds, their animation, static text with
+- **S0 — at the merge of Phase 26**: a vertical bouldering video with manually chosen AI holds, their animation, static text with
   fades, dissolves, music and export.
 - **S1 — the minimum useful release**: + A, B, C, G — the whole main path of D042 §1 except its step 4, as a portable
   Windows build (no installer) that starts outside the development environment and completes the path import → export.
@@ -482,7 +499,7 @@ The candidates in this section are subordinate to D042 §3–§4 (2026-10-20): k
 and ducking are not planned; the magnetic main track, text styling and timeline polish stay backlog candidates; dragging
 objects in the Preview is done (Phase 23). The planned phases are in "Remaining plan" above. History:
 
-Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is merged (PR #25, `d3df0ba`); Phase 25 (technical backlog and small UX improvements, D040) is merged (PR #26, `58c48cb`); Phase 26 (vertical video and framing, D041) is merged (PR #27, `41dadf2`); Phase 27 (text animation and readability, D043) is merged (PR #28, `36a1a58`); Phase 28 (the transition library, D044) is merged (PR #29, `4f0e66a`); Phase 29 (visual templates and the music audit, D045) is accepted (2026-10-22), not yet published. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
+Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is merged (PR #25, `d3df0ba`); Phase 25 (technical backlog and small UX improvements, D040) is merged (PR #26, `58c48cb`); Phase 26 (vertical video and framing, D041) is merged (PR #27, `41dadf2`); Phase 27 (text animation and readability, D043) is merged (PR #28, `36a1a58`); Phase 28 (the transition library, D044) is merged (PR #29, `4f0e66a`); Phase 29 (visual templates and the music audit, D045) is merged (PR #30, `e28a9d3`); Phase 30 (stabilisation and the portable build S1, D046) is in progress. A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The

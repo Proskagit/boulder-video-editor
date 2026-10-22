@@ -6719,7 +6719,407 @@ manual check (the templates, the centring, the status moment). WASTED stays defe
 product owner, 2026-10-22): hold tracking, camera motion compensation, contour smoothing and occlusion are not part of Phase 29 — to be researched and scoped separately after it. Before the
 approval: draft (2026-10-21, after the gate) — REC, VHS, «Боулдер» and Highlight accepted at the gate; WASTED deferred
 (§15); the scope without WASTED (§15 "Consequences", §10 criteria 1 and 4) and the implementation await the product
-owner's approval. Branch `feat/phase-29-templates` from `origin/main` `4f0e66a`.
+owner's approval. Branch `feat/phase-29-templates` from `origin/main` `4f0e66a`. **Merged into `main` on 2026-10-22 as
+`e28a9d3`** (PR #30, the branch tip `8e518a3`; CI green on the pull request; the merge's tree equal to `8e518a3`'s —
+checked 2026-10-22).
+
+---
+
+## D046 — Stabilisation of the main path and the portable build S1 (Phase 30, D042 Phase G)
+
+Date: 2026-10-22
+
+Decision (product owner, 2026-10-22). D042's Phase G is **Phase 30**: the stabilisation of the main user path (D042 §1
+without its step 4) and the minimum useful release **S1** as a portable Windows build (D042 "Refined after the merge of
+Phase 26"). The plan proposed after the merge of Phase 29 (PR #30, `e28a9d3`) was approved with the owner's refinements
+listed below (§1–§9). Branch `feat/phase-30-stabilization` from `origin/main` `e28a9d3`. Step 30.0 is documentation only;
+every later step is started by the product owner's command after the previous one is reviewed.
+
+### 0. What exists (audit of `e28a9d3`)
+
+- **No portable build exists.** No publish profile or script; `src/App` (`AiVideoEditor.exe`) is a framework-dependent
+  `net8.0` WinExe, so it needs an installed .NET 8 runtime. The SDK on the development machine is 8.0.424 (pinned in CI).
+- **FFmpeg / FFprobe** (`ExecutableLocator`, `FfmpegLocator`, `FfprobeLocator`): the path from `appsettings.json`
+  (`Ffmpeg:FfmpegPath`, `Ffmpeg:FfprobePath`) if the file exists, else the plain name through `PATH`; nothing is
+  shipped. A **relative** configured path is checked with `File.Exists` against the process's current directory, not the
+  application folder (FU-24.2 fixed this for `appsettings.json` itself — the host's content root is
+  `AppContext.BaseDirectory` — but not for the tools' paths). The tests and the parity values are calibrated on gyan.dev
+  FFmpeg 9.0.1 essentials (CI pins its archive by SHA-256). The export encodes with `libx264` and AAC; the decoder uses
+  `zscale` and `lut3d` for HDR (D033).
+- **Native dependencies**: `onnxruntime.dll` (ONNX Runtime 1.24.4 DirectML, shipped; its `ThirdPartyNotices.txt` must
+  travel with any distribution — `docs/AI_MODEL.md`); `DirectML.dll` not shipped, the Windows copy is used; Avalonia's
+  Skia / HarfBuzz; NAudio.Wasapi. Whether ONNX Runtime needs the Visual C++ runtime on a clean machine is not verified.
+- **User data** in `%LOCALAPPDATA%\AiVideoEditor` (`AppPaths`): logs, recovery, the media and LUT caches, the recent
+  projects, the AI model (`docs/AI_MODEL.md`; the model is never shipped).
+- **Fonts**: Inter is bundled (Avalonia.Fonts.Inter); the templates use Bahnschrift, Consolas and Segoe UI from Windows
+  (D045 §6 — a risk for S1).
+- **Known flakes** left open at Phase 29's closeout (`progress.md`): one Video.Tests failure whose name was not captured,
+  and `FfmpegExportEncoderFailureTests.A_failing_encoder_fails_the_export_and_leaves_the_existing_destination_untouched
+  (audio, read-then-fail, code 5)` under load.
+- **.NET 8** support ends on 2026-11-10.
+
+### 1. Scope
+
+1. **The portable build**: self-contained `win-x64`, an ordinary folder (no single-file, no trimming — native libraries
+   and reflection-based binding are left as they are), produced by one documented script from a clean checkout; a version
+   in the build; a short instruction for the user in the build's folder; the licence notices of every shipped component
+   (§3). The exact layout and the measured size are recorded at Step 30.1.
+2. **FFmpeg in the delivery** (§2): the tools' paths resolved relative to the application folder (with tests), the
+   binaries bundled only after the licence audit and the product owner's choice of a distribution.
+3. **A clean-environment check** of the build (§4).
+4. **The main path** run in the portable build on the product owner's footage at 1024 × 640 and 1440 × 900; the defects
+   triaged (§5) and the agreed ones fixed.
+5. **The two known flakes** investigated: fixed if the cause is found, otherwise recorded with what was learned.
+6. **Performance** of a typical project measured; the targets agreed afterwards (§6).
+7. **The open manual checks** of earlier phases inventoried: those on the main path run, the rest recorded (§7).
+8. **The documentation** aligned with the state after each step.
+
+### 2. FFmpeg in the portable delivery (product owner, 2026-10-22)
+
+FFmpeg / FFprobe are to be **included** in the delivery. Before a concrete binary distribution is chosen and shipped, its
+**licence, its composition and the obligations** are checked and reported to the product owner: which licence the build is
+under (a build with `libx264` — needed by the export — is GPL), which libraries it enables (at least those the app uses:
+`libx264`, AAC, `zscale` / zimg, `lut3d`, the HEVC / H.264 decoders), and what a redistribution requires (the licence
+texts, the corresponding source or a written offer, the notices). The candidate is the build the tests are calibrated on
+(gyan.dev 9.0.1 essentials); another build only with a reason (a different build may shift the calibrated values). **Until
+the audit and the product owner's choice the dependency is not integrated**: no binary in the repository or the build
+script, no change of the locator's behaviour beyond the relative-path fix of §1.2.
+
+### 3. Licence notices (product owner, 2026-10-22)
+
+S1 is meant for personal use on other Windows machines and for possible handing to other users, so the build carries the
+licence notices of everything it ships (.NET runtime, Avalonia and its native libraries, Inter, CommunityToolkit.Mvvm,
+Microsoft.Extensions, Serilog, NAudio, ONNX Runtime with its `ThirdPartyNotices.txt`, FFmpeg per §2) and states what it
+does **not** ship (the AI model — `docs/AI_MODEL.md`; `DirectML.dll`). Each licence is read from the package actually
+restored, not assumed.
+
+### 4. The clean-environment check (product owner, 2026-10-22)
+
+Windows Sandbox or a clean VM, when available: no .NET, no FFmpeg on `PATH`, no repository, no Visual C++ runtime unless
+Windows itself has it. If neither is available, the check is partial (e.g. another folder and user, `PATH` without the
+tools, a different current directory) and **its limits are documented** — what it cannot prove (an installed .NET runtime
+or Visual C++ runtime on the development machine cannot be removed for the check). Checked: the start by a double click
+and from another current directory; a folder path with spaces and Cyrillic; the Russian interface; the messages without
+FFmpeg and without the model (existing texts, no crash); the hold markup with the model installed as `docs/AI_MODEL.md`
+describes (DirectML or the CPU fallback).
+
+### 5. Defect triage (product owner, 2026-10-22)
+
+- **Blocker** — the main path cannot be completed, or data is lost / corrupted, or the export is wrong (Preview ≠ export,
+  a broken file, a crash). **Major** — a step of the main path works only with a workaround, or its result is materially
+  wrong, or the app hangs / freezes noticeably.
+- Blockers and majors of the main path are fixed in Phase 30, each with a test where it can be automated.
+- **Minor and UX defects** are recorded and **brought to the product owner for a decision**; none is fixed without it.
+  A defect outside the main path is recorded, not fixed.
+
+### 6. Performance (product owner, 2026-10-22)
+
+Measured first, on a typical project (several minutes, a few tracks, holds, text, transitions, a template, music): the
+opening of the project, the timeline's response, the Preview's playback (dropped frames), scrubbing, the export's time
+against real time, the memory. The targets are agreed with the product owner **after** the measurement; a performance
+problem becomes a defect of §5 only by that agreement.
+
+### 7. Open manual checks (product owner, 2026-10-22)
+
+The open manual checks of earlier phases (the NOT RUN rows of the manual plans) are inventoried; those on the main path
+are run in the portable build, the rest recorded with their reason. **Not blocking S1**: the HDR / PQ checks of Phase 18
+(the product owner's visual check of the S1 HDR export, PQ on real PQ footage) and R10 (a real audio device, Phase 17).
+
+### 8. .NET (product owner, 2026-10-22)
+
+S1 stays on **.NET 8**. A move to .NET 10 is not part of Phase 30; it needs its own decision.
+
+### 9. Out of scope (product owner, 2026-10-22)
+
+Hold tracking, contour smoothing, camera motion compensation, occlusion; COROS / FIT; the automatic rough cut; WASTED
+(D045 §15) and the other deferred functions (FU-21.2, the magnetic main track, a blurred background, the
+`TimelineEditService` / `TimelineViewModel` split); an installer, code signing, automatic updates; shipping
+`DirectML.dll`; the Final UX Pass (H); a `project.json` format change (v9 stays); new user functionality. The unmerged
+branch `fix/preview-refresh-beyond-end` (`7b118a7`, superseded by the merged `a246f9f`) stays as it is.
+
+### 10. Acceptance criteria of S1
+
+1. One documented command builds the portable folder from a clean checkout; it contains the runtime, the application,
+   `appsettings.json`, the notices (§3), the user's instruction and FFmpeg per §2.
+2. In the clean environment of §4 (or with the documented limits) the application starts from any folder and any current
+   directory, with the Russian interface; without FFmpeg or the model the existing messages appear and nothing crashes;
+   with the model installed the hold markup works.
+3. The main path (D042 §1 without step 4) is completed in the portable build, import to export, at 1024 × 640 and
+   1440 × 900; the export plays in an external player; the Preview equals the export.
+4. No open blocker or major defect of the main path; minor / UX defects recorded with the product owner's decision.
+5. The gates: Release and Debug `--no-incremental -warnaserror` 0 / 0; the full suite, `AIVE_HEAVY_TESTS=1`, three
+   `--blame-hang` runs; `git diff --check`; a v9 project opened and saved byte for byte; CI green.
+6. The performance measured and reported; the targets agreed (§6).
+7. The documentation aligned; the product owner's acceptance.
+
+### 11. Steps
+
+`docs/DEVELOPMENT_PLAN.md`, "Phase 30 — Stabilisation and the portable build S1: steps"; manual plan
+`docs/PHASE30_MANUAL_TEST_PLAN.md`.
+
+### 12. Risks
+
+- FFmpeg's licence (GPL with `libx264`) brings redistribution obligations (§2); a different build may move calibrated
+  values.
+- A clean machine may lack the Visual C++ runtime ONNX Runtime needs, or fonts the templates rely on (D045 §6).
+- The clean-environment check may be only partial (§4).
+- .NET 8 reaches its end of support on 2026-11-10, shortly after S1 (§8).
+- The size of a self-contained build (measured at 30.1).
+- The flakes may not reproduce; then they are recorded, not hidden.
+
+### 13. Step 30.1 — implementation notes (2026-10-22; awaiting the product owner's review)
+
+- **The tools' paths** (§1.2): `ExecutableLocator.ResolveConfiguredPath` — a rooted configured path is kept as it is, a
+  relative one is made absolute against `AppContext.BaseDirectory`; the order (a configured file that exists, then
+  the plain name on `PATH`) and the caching are unchanged. The one change of behaviour: a relative `Ffmpeg:FfmpegPath` /
+  `Ffmpeg:FfprobePath` was checked against the process's current directory and now against the application folder
+  (identical for a start by a double click, whose current directory is the application folder). The defaults (`null`)
+  and absolute paths behave as before.
+- **The build**: `tools/portable/Publish-Portable.ps1` — `dotnet publish src/App` Release, `win-x64`, self-contained, no
+  single-file, no trimming, no ReadyToRun, no PDBs, `ContinuousIntegrationBuild`; the version `0.30.0` with the commit
+  in the informational version (`.dirty` when the tree has changes); `global.json` pins the SDK 8.0.424 (latest patch);
+  the packages are pinned by their exact versions in the projects (no lock files — not needed for the exact versions;
+  the runtime pack is the SDK's: .NET 8.0.30). The folder: the application, the runtime and the dependencies,
+  `appsettings.json` (unchanged — FFmpeg from `PATH`), `README.txt` (Russian, the user's instruction),
+  `THIRD-PARTY-NOTICES.txt` and `licenses\` generated from the deps file and the restored packages (57 components; 18
+  without a licence file in their package; marked **not reviewed**), `docs\AI_MODEL.md`, `BUILD-INFO.txt`. Measured
+  (from a clean clone of `e28a9d3` with the step's changes, 2026-10-22): 349 files, 124 818 036 bytes (119.0 MiB); the
+  zip 51.1 MiB. With gyan.dev 9.0.1 essentials' `ffmpeg.exe` and `ffprobe.exe` (205 508 608 bytes) and its `LICENSE` /
+  `README.txt` the folder would be ≈ 315 MiB (+196.1 MiB); the zip's growth is not measured (the archive was not
+  downloaded).
+- **The FFmpeg audit** (§2; read from the copy installed on the development machine by winget and from gyan.dev's page,
+  nothing downloaded): gyan.dev 9.0.1 essentials is a static GPLv3 build (`--enable-gpl --enable-version3`, its `LICENSE`
+  the GPLv3 text) with about 40 external libraries linked in (among them `libx264` 0.165.3223 — GPL —, `libx265`, zimg,
+  libvo-amrwbenc / opencore-amr — Apache-2.0, hence version 3 —, gnutls, libass, harfbuzz, SDL2, aom, vpx; the full
+  configuration and the libraries' versions are in its `README.txt`); its source link names only FFmpeg's commit
+  (`bf1b838f2a`), not the libraries' sources or the build scripts. Conveying it to other users requires the GPLv3's
+  corresponding source (FFmpeg, every linked library at its version, the scripts that built them) with the binary or by
+  a written offer for three years; gyan.dev's builds page publishes no build scripts and no library sources, so that
+  obligation can't be met in full from what gyan.dev publishes (not asked of gyan.dev). The latest gyan.dev release is
+  9.0.2 (2026-09-19); 9.0.1 is the calibrated one. Nothing is integrated before the product owner's choice.
+- **The BtbN audit** (2026-10-22, the product owner's request; GitHub API and the build repository's scripts read as
+  text, no FFmpeg downloaded): repository `github.com/BtbN/FFmpeg-Builds` (MIT). Candidate — the month-end build, kept two
+  years by the repository's retention policy (dailies: 14 days): release `autobuild-2026-09-30-13-08`, build-scripts
+  commit `6c9aec5fc9a72ec3abedd1fa84db141fa18cf52b`, asset `ffmpeg-n9.0.2-17-g2a571b6068-win64-gpl-9.0.zip`
+  (194 034 585 bytes, SHA-256 `a0e45723c72141975f51d8666302e614711745f3102b704ca3f82c897a58d278`, GitHub's digest; FFmpeg
+  `release/9.0` at `2a571b6068`, i.e. n9.0.2 + 17 commits). The variant: `--enable-gpl --enable-version3`, licence file
+  `COPYING.GPLv3`; 107 of 132 build stages apply to win64 / gpl / 9.0 — about 95 source repositories, each pinned by a
+  commit, a tag or an SVN revision (`libx264` at `0480cb05fa`, zimg at `67e0603271`; the toolchain GCC 16.2.0, binutils
+  2.47, mingw-w64 v14.0.0). Found: the GPLv2-licensed parts say "or later" at their pinned revisions (x265, davs2, xavs2,
+  rubberband, AviSynth+; frei0r and FFTW not confirmed); libdvdcss, openh264 built from source (outside Cisco's patent
+  licence) and LCEVCdec (Clear BSD, no patent grant; its licence names "additional terms" absent from the file) need a
+  legal view. The source downloads are kept only in GitHub Actions caches and expiring artifacts, the Docker base images
+  are `:latest` (Rust and crosstool-ng not pinned), so a corresponding-source set has to be regenerated by the
+  repository's `download.sh` at `6c9aec5` (needs Linux and Docker — not on the development machine) and its completeness
+  checked against the binary; not done.
+- **The BtbN binary checked** (2026-10-22, the product owner's command; downloaded outside the repository into the
+  session's scratch folder, not into the build): SHA-256 equal to GitHub's digest and to the release's `checksums.sha256`;
+  `ffmpeg` / `ffprobe` `n9.0.2-17-g2a571b6068-20260930`, built with GCC 16.2.0 (crosstool-NG 1.29.0.7_b1a94f6), the
+  configuration as the scripts say (`--enable-gpl --enable-version3`, `--enable-libx264`, `--enable-libzimg`, … — no
+  `--enable-libdvdcss`, yet libdvdcss's code is linked in through libdvdread: its strings are in the binary), `-L`
+  "GPL version 3 or later", `LICENSE.txt` the GPLv3 text; present: `libx264`, AAC, `zscale`, `lut3d`, `scale`, `fps`,
+  `setpts`, `atempo`, `rubberband`, the HEVC / H.264 / AAC / MP3 decoders, the MP4 / rawvideo / f32le / s16le muxers, `pipe`;
+  the Rust standard library from rustc commit `48a229ceae` (found in the binary). `libx264` is built from the same
+  commit as gyan.dev 9.0.1's (`0480cb0`, core 165) without its revision string: a test clip encoded by both gives the same
+  H.264 stream without the SEI (SHA-256 equal) and the same decoded frames. With the candidate first on `PATH` for that
+  process only: Video.Tests 363 / 0 / 0 and ExportEndToEnd.Tests 165 passed, 2 skipped (the opt-in 4K scenes), 0 failed,
+  `--blame-hang` clean — no calibrated value moved; heavy scenes and CI not run with it. Size: `ffmpeg.exe` +
+  `ffprobe.exe` 330 110 464 bytes (314.8 MiB; gyan.dev's 196.0), so the folder would be ≈ 434 MiB.
+- **A minimal own build — the study** (2026-10-22, the product owner's direction; nothing built, downloaded or
+  integrated; no code, tests or CI changed):
+  - *What the application uses* (read from `src/Video`): ffmpeg — protocols `file`, `pipe`; the export encoder `libx264`
+    (+ `-preset`, `-crf`, the BT.709 tags, `+faststart`) and `aac` (`aac_low`), muxer `mp4`, inputs `rawvideo` (BGRA) and
+    `f32le` on `pipe:0`, the temporary audio MP4 read back with `-c:a copy`; the decoders' outputs `rawvideo` / `f32le` on
+    `pipe:1`; filters `scale`, `format`, `setparams`, `showinfo`, `zscale`, `lut3d` (HDR), `aresample`, `aformat`,
+    `ashowinfo`, `apad`, `atempo`; `-autorotate` (inserts `transpose` / `hflip` / `vflip`); `-hwaccel auto` with a
+    software fallback; ffprobe `-show_format -show_streams -show_frames` (side data) as JSON. The accepted inputs
+    (`MediaFileTypes`): MP4 / MOV / MKV / WebM / AVI, MP3 / WAV / FLAC / AAC / M4A, PNG / JPEG / WebP / BMP (images also
+    decoded by ffmpeg). **Not used by the application: `fps`, `setpts`, `rubberband`, `tonemap`, `s16le`, any
+    `libdvdcss` / `openh264` / LCEVC path.**
+  - *What the tests use beyond that* (fixtures made with the same `PATH` ffmpeg): `libx265` (HDR fixtures,
+    `HdrMedia`), `libmp3lame`, the `lavfi` device (`testsrc2`, `sine`, `aevalsrc`, `color`, `nullsrc`), `colorspace`,
+    `drawbox`, `setpts`, encoders `pcm_s16le`, `flac`, `png`, MJPEG, muxers WAV / Matroska / MOV / M4A / `framemd5` /
+    `null` / `data`. A strictly minimal build therefore can't run the unchanged suite alone.
+  - *The proposed configuration*: FFmpeg `n9.0.2` (tag object `ce8f11b9fa`, commit `946fcce07b`; `n9.0.1` =
+    `bf1b838f2a`, gyan.dev's source, as the fallback) with `--enable-gpl` (no `--enable-version3`: the result is GPLv2 or
+    later) `--disable-everything --disable-autodetect --enable-static --disable-ffplay --disable-doc --disable-network`,
+    the external libraries `libx264` (`0480cb05fa188d37ae87e8f4fd8f1aea3711f7ee`, core 165 r3223 — the same as gyan.dev's
+    and BtbN's; GPLv2 or later), `libzimg` (`67e0603271c080e22c8429856dd4a8a56587e61e`, BtbN's, 253 commits after
+    `release-3.0.6`; WTFPL) and zlib (`v1.3.2`, commit `da607da739`; zlib licence — PNG and compressed MP4 headers);
+    the internal components only as listed above (decoders for the phone footage — H.264, HEVC, AAC — the images, MP3 /
+    FLAC / PCM / ALAC music; parsers; `d3d11va` / `dxva2` hwaccels, which need no third-party code). Out: libdvdcss,
+    openh264, LCEVCdec, libx265, every other external library; `rubberband` (not used). Open: whether the accepted
+    containers' other codecs (VP8 / VP9 / Opus / Vorbis for WebM / MKV, MPEG-4 Part 2 / MJPEG for AVI; software AV1
+    would need libdav1d) are kept — a product decision. Estimated `ffmpeg.exe` + `ffprobe.exe`: tens of MiB (to be
+    measured).
+  - *Build and sources*: a script and a Dockerfile in the repository (or a separate repository) run on a GitHub-hosted
+    Linux runner: a Debian image pinned by digest with its packages from `snapshot.debian.org` at a fixed date (the
+    mingw-w64 cross GCC, win32 threads — no winpthreads —, nasm, make, pkg-config); the sources fetched by commit / tag
+    and recorded with their SHA-256; `SOURCE_DATE_EPOCH` and `--no-insert-timestamp` for a reproducible PE. The
+    corresponding-source bundle: FFmpeg, x264, zimg, zlib at those revisions, the script, the Dockerfile, any patch, and the
+    Debian source packages of the statically linked toolchain runtime (mingw-w64 CRT, libgcc under the GCC Runtime Library
+    Exception). Its completeness is checked by rebuilding from the bundle alone in a container without network
+    (`--network=none`) and comparing the binaries' SHA-256 (or, if not bit-identical, `-buildconf` and the component lists).
+    Stored as release assets next to the binaries with `SHA256SUMS`, the notices and a written offer.
+  - *Verification* (the development machine runs nothing from the build but the resulting binaries): `-version`,
+    `-buildconf`, `-encoders` / `-decoders` / `-filters` / `-muxers` / `-demuxers` / `-protocols` against the list above;
+    the application's own command lines replayed against the minimal binary on fixtures made by gyan.dev 9.0.1 with the
+    outputs compared byte for byte (raw frames, `f32le`, the H.264 stream without the SEI); the unchanged Video.Tests and
+    ExportEndToEnd.Tests (and `AIVE_HEAVY_TESTS=1`) on a test variant of the same build with the fixtures' encoders added
+    (`libx265`, `libmp3lame`, `lavfi` and the test-only internals) — or, as a separate decision, a test seam for a
+    separate fixture ffmpeg; a manual import of every accepted format in the portable build.
+  - *Remaining*: H.264 encoding / decoding, HEVC decoding and AAC are covered by patent pools in some jurisdictions — not
+    assessed here, the same for every FFmpeg build and needing a legal view; GPL obligations stay (GPLv2+ text, the
+    source bundle or a written offer, notices); the application's own licence is undecided. Estimated work: the build
+    script, the image and the CI job 1–2 days; the component list and the verification 1–2 days; the source bundle and the
+    notices half a day.
+- **The minimal build's formats** (2026-10-22, the product owner's target set: decode H.264, HEVC, MPEG-4 Part 2, MJPEG,
+  VP8, VP9, AV1; AAC, MP3, PCM, FLAC, Opus, Vorbis; MP4 / MOV, MKV, WebM, AVI, WAV, M4A; PNG, JPEG, WebP, BMP; export
+  `libx264` + `aac` only). Read from FFmpeg `n9.0.2`'s `libavcodec/allcodecs.c`, `libavformat/allformats.c` and
+  `libavcodec/av1dec.c` (GitHub API), and tried with the installed gyan.dev 9.0.1; nothing built or downloaded:
+
+  | Format / codec | Component (FFmpeg) | External dependency | Licence | Size added | Decision |
+  |---|---|---|---|---|---|
+  | H.264 | decoder `h264`, parser, hwaccels `d3d11va` / `dxva2` | none | FFmpeg (LGPL-2.1+) | internal, small | in |
+  | HEVC / H.265 (incl. 10 bit) | decoder `hevc`, parser, hwaccels | none — `libx265` is an encoder only, not needed | FFmpeg | internal, ≈ 1 MB est. | in |
+  | MPEG-4 Part 2 (Xvid / DivX 4+) | decoder `mpeg4` (+ `h263` it selects), parser | none | FFmpeg | internal, small | in |
+  | MJPEG / JPEG | decoders `mjpeg`; demuxer `image_jpeg_pipe` | none | FFmpeg | internal, small | in |
+  | VP8 / VP9 | decoders `vp8`, `vp9` (+ the `vp9_superframe_split` filter it selects), hwaccels for VP9 | none | FFmpeg | internal, ≈ 1 MB est. | in |
+  | AV1 | native `av1` decoder: **hardware only** (`av1dec.c`: "Your platform doesn't support hardware accelerated AV1 decoding", `ENOSYS`; tried: software fails, `d3d11va` works on the RTX 4070 SUPER) | software needs `libdav1d` (or `libaom`, larger and slower) | dav1d BSD-2-Clause (`1.5.4`, `54706fc6bc`) | ≈ 1.8 MB per executable (dav1d.dll found on this machine: 1.0–2.9 MB) | **proposed: `libdav1d`** — the product owner's decision |
+  | AAC | decoder `aac`; demuxer `aac` (ADTS) | none | FFmpeg | internal | in |
+  | MP3 | decoder `mp3float`; demuxer `mp3` | none | FFmpeg | internal | in |
+  | PCM | `pcm_s16le/be`, `pcm_s24le/be`, `pcm_s32le`, `pcm_f32le`, `pcm_u8` (WAV, MOV LPCM of cameras) | none | FFmpeg | internal, tiny | in |
+  | FLAC | decoder `flac`; demuxer `flac` | none | FFmpeg | internal | in |
+  | Opus / Vorbis | decoders `opus`, `vorbis` (in WebM / MKV; `.ogg` / `.opus` are not accepted files) | none | FFmpeg | internal | in |
+  | ALAC (M4A) | decoder `alac` | none | FFmpeg | internal, tiny | not in the target set — the product owner's decision |
+  | DivX 3 / MS-MPEG-4 (old AVI) | `msmpeg4v1/2/3` | none | FFmpeg | internal, small | not in the target set — left out unless asked |
+  | MP4 / MOV / M4A | demuxer `mov`; muxer `mp4` (export) | zlib (compressed headers) | zlib licence | ≈ 0.1 MB | in |
+  | MKV / WebM | demuxer `matroska` | zlib (compressed tracks) | zlib licence | shared | in |
+  | AVI / WAV | demuxers `avi`, `wav` | none | FFmpeg | internal | in |
+  | PNG / WebP / BMP | decoders `png`, `webp` (uses `vp8` for lossy), `bmp`; demuxers `image2`, `image_png_pipe`, `image_webp_pipe`, `image_bmp_pipe` | zlib for PNG | zlib licence | shared | in |
+  | Export | encoders `libx264`, `aac`; muxer `mp4`; inputs `rawvideo`, `pcm_f32le` on `pipe` | x264 | GPLv2 or later | ≈ 2–3 MB per executable est. | in |
+  | HDR path | filters `zscale`, `lut3d` | zimg | WTFPL | ≈ 1 MB per executable est. | in |
+
+  The software fallback of `-hwaccel auto` matters for AV1: without `libdav1d` an AV1 file opens only on a GPU with AV1
+  decoding (the relaunch without `-hwaccel` fails); with `libdav1d` FFmpeg prefers it (registered before the native
+  decoder) and decodes AV1 in software everywhere. Estimated size of the final minimal build (to be measured at the
+  build): `ffmpeg.exe` + `ffprobe.exe` ≈ 30–45 MiB with `libdav1d` (both are static and both carry the codecs), against
+  196.0 MiB (gyan.dev essentials) and 314.8 MiB (BtbN gpl). Toolchain addition for dav1d: meson, ninja (Debian packages).
+  Patents, not assessed (a legal view needed, the same for any FFmpeg): H.264 and AAC (Via LA pools), HEVC (several
+  pools: Access Advance, Via LA and others), MPEG-4 Part 2 (Via LA pool; expiry status unknown here), AV1 (AOMedia's
+  royalty-free licence; a third-party pool claims patents), VP8 / VP9 (Google's licences; a third-party pool claims
+  patents for VP9), Opus (royalty-free grants by its contributors); MP3's patents have expired.
+- **Decided by the product owner (2026-10-22)** for the minimal build — recorded only; nothing built or integrated, no
+  code, tests, CI or the pinned gyan.dev build changed:
+  - **AV1: `libdav1d` 1.5.4 in** (tag object `191bdda98e`, commit `54706fc6bc0cdecab7e9593974a4039cc038fca7`;
+    BSD-2-Clause, `COPYING` — "Copyright © 2018-2025, VideoLAN and dav1d authors" — shipped with the notices); its source
+    pinned by the commit and the release tarball's SHA-256 recorded when the build script fetches it; Meson and Ninja
+    pinned with the other Debian snapshot packages of the build image. FFmpeg's native `av1` decoder and the `d3d11va` /
+    `dxva2` hwaccels (H.264, HEVC, VP9, AV1) stay in the build. Note: `libdav1d` is registered before the native decoder
+    (`allcodecs.c`), so with the application's current command lines (no `-c:v`) AV1 always decodes in software through
+    dav1d — `-hwaccel auto` does not apply to it — and the native hardware AV1 decoder is used only when asked for by name
+    (`-c:v av1`), which the application never does; using it would be a code change, not part of this decision. Checks for
+    the build: an AV1 file decoded through the application's own decoder command lines with and without `-hwaccel auto`
+    (the log names `libdav1d`), the same file decoded with `-c:v av1 -hwaccel d3d11va` to show the native decoder present,
+    and the application's decode on a machine without AV1 hardware (Windows Sandbox / a VM: no AV1-capable adapter) — the
+    software path then is the only one and must work; the AV1 fixture made by gyan.dev 9.0.1 (`libaom-av1`), since the
+    minimal build has no AV1 encoder.
+  - **ALAC in** (FFmpeg's internal decoder, no external library).
+  - **DivX 3 / MS-MPEG-4 (`msmpeg4v1/2/3`) out** for now.
+  - The final component list (external): FFmpeg `n9.0.2` `946fcce07b` (GPLv2 or later as configured), `libx264`
+    `0480cb05fa` (GPLv2 or later), zimg `67e0603271` (WTFPL), zlib `v1.3.2` `da607da739` (zlib), `libdav1d` 1.5.4
+    `54706fc6bc` (BSD-2-Clause); the statically linked toolchain runtime (mingw-w64 CRT, libgcc — GCC Runtime Library
+    Exception) from the pinned Debian snapshot. Internal: the decoders, demuxers, parsers, filters, encoders and muxers of
+    the table above with ALAC added and `msmpeg4*` left out.
+- **The build recipe** (2026-10-22, the product owner's permission for this stage; prepared, **not run**: GitHub Actions
+  runs only after a push, which this stage does not allow, and the development machine has no Docker or WSL):
+  `tools/ffmpeg-minimal/` — `sources.lock` (FFmpeg `ffmpeg-9.0.2.tar.xz` SHA-256 `8c3850283e…002e`, its GPG signature
+  checked with the release key `FCF986EA15E6E293A5644F10B4322F04D67658D8` published on ffmpeg.org; dav1d 1.5.4
+  `686616b7c6…a5c5` = VideoLAN's `.sha256`; zlib 1.3.2 `d7a0654783…92f3` = GitHub's digest; x264, zimg and zimg's
+  submodule graphengine `cb5b2ce133` (WTFPL) by full commit), `components.txt` (the whitelist; the decoders' outputs
+  need the internal `rawvideo` and `pcm_f32le` encoders besides `libx264` / `aac` — the application's `pipe:1`
+  path), a `Dockerfile` (`debian:trixie-20261020@sha256:4c25275446…b308`, `snapshot.debian.org` `20261020T000000Z`, every
+  package version pinned: mingw-w64 GCC 14.2.0 with win32 threads, mingw-w64 12.0.0, binutils 2.44, nasm 2.16.03, meson
+  1.7.0, ninja 1.12.1, autotools, git, gnupg), `fetch-sources.sh` (the only networked step: SHA-256, signature and
+  commit checks, git bundles, the Debian sources `mingw-w64` 12.0.0-5, `gcc-mingw-w64` 27, `gcc-14` 14.2.0-19,
+  `SHA256SUMS`), `build.sh` (refuses to run with network; zlib, x264 from its git history so its version string matches
+  the calibrated `r3223 0480cb0`, zimg, dav1d with Meson / Ninja, FFmpeg `--enable-gpl --disable-autodetect
+  --disable-everything` + the whitelist, `SOURCE_DATE_EPOCH`, `--no-insert-timestamp`; fails if configure enables any
+  external library beyond zlib / libx264 / libzimg / libdav1d / d3d11va / dxva2, enables version3 or nonfree, or drops
+  an agreed component), `make-manifest.py` (versions, revisions, licences, source checksums, toolchain packages,
+  configuration, binaries' sizes and SHA-256; tested on sample inputs), `Test-MinimalFfmpeg.ps1` (the Windows check) and
+  `.github/workflows/ffmpeg-minimal.yml` (separate from `ci.yml`: build twice without network and require identical
+  binaries, pack the binaries and the corresponding-source tar with `SHA256SUMS` as 30-day artifacts, then the Windows
+  check with the pinned gyan.dev 9.0.1 as the reference, not on `PATH`). Not done: a release, a durable store,
+  `SOURCE-OFFER.txt`, any use in the portable build.
+- **The check script tried** on what exists (no minimal binary yet): with gyan.dev 9.0.1 as the candidate it reports
+  gyan.dev's extra libraries and the missing libdav1d as FAIL (as it should) and passes every functional check; with the
+  BtbN 9.0.2 build as the candidate every target format's decode (24 fixtures, video and audio), the tempo chain, the HDR
+  graph and the export's H.264 stream without the SEI are **identical** to 9.0.1's, AV1 decodes through libdav1d (also
+  under `-hwaccel auto`) and the native AV1 decoder works with `d3d11va` on this machine; the **AAC stream of the export
+  differs between 9.0.2 and 9.0.1** (the encoder's output changed; the application's tests passed on 9.0.2 — Step 30.1
+  earlier) — to be weighed before the tests move off 9.0.1.
+- **Tests (plan only, no change)**: the unchanged Video.Tests / ExportEndToEnd.Tests can't run on the minimal build
+  alone (their fixtures need `libx265`, `libmp3lame`, `lavfi`, …). Options for a later decision: (a) keep the suites on
+  gyan.dev 9.0.1 and validate the minimal binary with `Test-MinimalFfmpeg.ps1` (now); (b) a test seam — a separate
+  fixture ffmpeg (e.g. an environment variable) so the application's code paths run on the minimal binary while the
+  fixtures come from the full one; (c) a test-only variant of the same build with the fixture encoders added.
+- **The first CI build** (2026-10-22, the product owner's permission: the branch `build/ffmpeg-minimal` from `origin/main`
+  `e28a9d3` with only `tools/ffmpeg-minimal/` and `.github/workflows/ffmpeg-minimal.yml`; pushed, no pull request, no
+  merge). Three runs failed on the recipe and were fixed inside those files: the base image has no CA certificates, so
+  the snapshot is read over HTTP (apt still checks the signed Release files) — `89094c2`; `git bundle verify` needs a
+  repository — `b9f6b4b`; the components' switches are in `config_components.h` — `9a3afd6`. Run `39738528058` at
+  `9a3afd6`: **success**. Both builds without network gave identical binaries — `ffmpeg.exe` 17 416 704 bytes (16.6 MiB),
+  SHA-256 `9f51787f8d9d48e8d411d048afa6a59f84bcea0b3a68f0e2c9b1294396563610`; `ffprobe.exe` 17 206 784 bytes (16.4 MiB),
+  SHA-256 `2a1bf15f7c473b12739d4e30ae477d32860d7043dd40135d83d173b019705ab3` (33.0 MiB together, against 196.0 / 314.8);
+  version `9.0.2-aive-minimal`; external libraries exactly zlib, libx264, libzimg, libdav1d (+ d3d11va, dxva2); GPL, no
+  version3 / nonfree; all 91 agreed components enabled. The Windows check (reference gyan.dev 9.0.1): every target
+  format decoded identically to 9.0.1 except the raw ADTS `.aac` (6 of 98 304 samples of the first frame differ by at
+  most 5.8e-11 — float rounding between the compilers, GCC 14.2 against gyan.dev's 16.1; timing identical); the HDR graph
+  identical; the export's H.264 stream identical (PSNR ∞) with x264's `core 165 r3223 0480cb0`; the export's AAC stream
+  differs (9.0.2's encoder, as with BtbN); AV1 through libdav1d, also under `-hwaccel auto`; the native AV1 decoder with
+  `d3d11va` SKIP (no hardware on the runner); the excluded components absent. Artifacts (30 days): the binaries' zip
+  13 063 878 bytes (SHA-256 `007ef80ea3…b5fc1`), the sources tar 132 556 800 bytes (`b8f6373329…10f0`: the six
+  components' archives / bundles, the Debian sources `gcc-14` 14.2.0-19, `gcc-mingw-w64` 27, `mingw-w64` 12.0.0-5, the
+  FFmpeg key, the recipe, the image id), the manifest. Sufficiency: the second build ran only from that `sources`
+  folder (checked against `SHA256SUMS`, no network) and reproduced the bytes; an independent rebuild from the tar alone on
+  another machine (rebuilding the image too) is not yet done. Warnings, none blocking: 164 compiler warnings in the
+  libraries' and FFmpeg's sources, `git clone` of a bundle "remote HEAD refers to nonexistent ref" (the pinned commit is
+  checked out explicitly), gpg "key not certified" (the fingerprint is checked), Node deprecation notes of the actions.
+  Not done: a durable store, `SOURCE-OFFER.txt`, any use in the portable build or the tests.
+- **Accepted by the product owner (2026-10-22)** as the confirmation that the recipe works; integration not started.
+  Reference: the branch `build/ffmpeg-minimal` at `9a3afd6ef681309045ff9928dbbba39088871d10` (four commits on `origin/main`
+  `e28a9d3`, only `tools/ffmpeg-minimal/` and `.github/workflows/ffmpeg-minimal.yml`; not merged, no pull request), run
+  `39738528058` (attempt 1). Configure also selected, as dependencies of the whitelist, the `h263` decoder (for `mpeg4`),
+  the `mov` muxer (for `mp4`), the `trim` / `atrim` / `crop` / `rotate` filters (required by the ffmpeg tool) and the
+  graph's buffers — no external library. Limits of the verification: the native hardware AV1 decoder was skipped on CI
+  (no GPU; it worked here with the same FFmpeg 9.0.2 in the BtbN build); the sources tar has not been rebuilt
+  independently on another machine (the toolchain image rebuilt from the `Dockerfile` too); the Video / ExportEndToEnd
+  suites have not run on the minimal binary. Known differences against gyan.dev 9.0.1, left as they are at this stage:
+  the export's AAC stream (FFmpeg 9.0.2's encoder) and the raw ADTS decode (6 samples ≤ 5.8e-11). The artifacts
+  (`ffmpeg-minimal`, `ffmpeg-minimal-sources`, `ffmpeg-minimal-verification`) expire on **2026-11-21 07:19 UTC**.
+  Open before any distribution: a durable store (options in the Step 30.1 report, awaiting the product owner's choice),
+  the way the GPL sources are offered and `SOURCE-OFFER.txt`, the application's notices (the 18 missing licence texts,
+  Inter's OFL 1.1, Avalonia's `NOTICE.md`), the minimal FFmpeg's licence set, a legal view of the codecs' patents, the
+  application's own licence (the product owner's decision).
+- **The notices' inventory** (57 components): 39 packages carry their licence files; 18 don't — the ten Avalonia
+  packages (MIT; `licence.md` and `NOTICE.md` — 13 embedded third-party works — at the nuspec's commit `45a2d36e32`),
+  MicroCom.Runtime (MIT; no tag for 0.11.0), NAudio.Core / NAudio.Wasapi (MIT, `license.txt` at `v2.2.1`), the four
+  Serilog packages (Apache-2.0, `LICENSE` at each nuspec commit, no `NOTICE`), Tmds.DBus.Protocol (MIT, `COPYING` at
+  `ee8c7b698b`). **Avalonia.Fonts.Inter**: the package says MIT (the wrapper); the embedded Inter 3.019 fonts say
+  "Copyright 2020 The Inter Project Authors", SIL OFL 1.1 — the OFL text (`LICENSE.txt` at `rsms/inter` `v3.19`) must
+  travel with the build. The review is not complete.
+
+Context: the product owner's request of 2026-10-22 after the merge of Phase 29 (PR #30): the plan of Phase G proposed
+after a study of `e28a9d3` and the documents, approved with the refinements §2–§9.
+
+Consequences: Step 30.0 changes documentation only. Later steps add a publish script, the notices and the user's
+instruction, the relative-path resolution of the tools (Infrastructure, with tests) and the fixes of the agreed defects.
+No format change; no new NuGet dependency expected; FFmpeg as a shipped binary only after §2.
+
+Status: **Approved (product owner, 2026-10-22)** — the plan and the refinements. Step 30.0 (documentation) accepted by
+the product owner on 2026-10-22; Step 30.1 done without FFmpeg (§13), awaiting the product owner's review and the
+choice of the FFmpeg distribution (the BtbN audit and the notices' review not complete); Steps 30.2–30.7 not started.
 
 ---
 

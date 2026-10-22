@@ -2,18 +2,175 @@
 
 ## Current phase
 
-Phase 29 — ready-made visual templates and the music scenario (D042 Phase C, refined by the product owner on 2026-10-21),
-branch `feat/phase-29-templates` from `origin/main` `4f0e66a` (the merge of PR #29); DECISIONS.md D045 — **approved
-2026-10-21 (the reduced scope: REC, VHS, «Боулдер», «Хайлайт»; WASTED deferred)**. Steps 29.0–29.6 done by Claude on
-2026-10-21, the corrections of D045 §17 on 2026-10-21/22; **accepted by the product owner on 2026-10-22** after the manual
-check. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 29 — Visual templates and the music scenario: steps"; manual plan
-`docs/PHASE29_MANUAL_TEST_PLAN.md`. Committed on the branch at the product owner's command (2026-10-22); no push, pull
-request or merge without the product owner's separate command. Not part of Phase 29: hold tracking, camera motion compensation, contour smoothing and occlusion are not part of Phase 29 — to be researched and scoped separately after it.
+Phase 30 — stabilisation of the main path and the portable build S1 (D042 Phase G), branch `feat/phase-30-stabilization`
+from `origin/main` `e28a9d3` (the merge of PR #30); DECISIONS.md D046 — **approved by the product owner on 2026-10-22**
+with the refinements of D046 §2–§9. Steps: `docs/DEVELOPMENT_PLAN.md` "Phase 30 — Stabilisation and the portable build S1:
+steps"; manual plan `docs/PHASE30_MANUAL_TEST_PLAN.md`. Step 30.0 (documentation) accepted by the product owner on
+2026-10-22; Step 30.1 (the portable build) done without FFmpeg, awaiting the product owner's review and the choice of the
+FFmpeg distribution (D046 §13); Steps 30.2–30.7 not started. No commit, push, pull request or merge without the product owner's command.
 
-Phases 27 (D043) and 28 (D044) were merged by the product owner on 2026-10-21 after a green CI: PR #28 as `36a1a58`, PR #29
-as `4f0e66a` (parents `36a1a58` and `ebdbad9`; the tree equal to the expected merge — checked 2026-10-21).
+Phases 27 (D043), 28 (D044) and 29 (D045) are merged: PR #28 as `36a1a58`, PR #29 as `4f0e66a` (2026-10-21), PR #30 as
+`e28a9d3` (2026-10-22; parents `4f0e66a` and `8e518a3`, the tree equal to `8e518a3`'s — checked 2026-10-22; CI green on
+the pull request).
 
-### Phase 29 — Visual templates and the music scenario (accepted 2026-10-22, not yet published)
+### Phase 30 — Stabilisation and the portable build S1 (in progress)
+
+- 2026-10-22 — after the merge of PR #30: `origin/main` verified (`e28a9d3`; its tree equal to the branch tip `8e518a3`;
+  the check «Build and test (Windows)» green); the documents and the code studied for Phase G (the portable build does not
+  exist: no publish profile or script, the app framework-dependent; FFmpeg found through `appsettings.json` or `PATH`, a
+  relative configured path checked against the current directory; `onnxruntime.dll` shipped, `DirectML.dll` from Windows;
+  user data in `%LOCALAPPDATA%\AiVideoEditor`; the system fonts of the templates; two known flakes; .NET 8 support ends
+  2026-11-10); a plan proposed. **The product owner approved it** as Phase 30 / D046 with refinements: FFmpeg in the
+  delivery only after a check of the chosen distribution's licence, composition and obligations (not integrated before);
+  the licence notices mandatory (S1 for personal use on other machines and possibly for other users); performance measured
+  first, targets agreed afterwards; HDR / PQ and R10 not blocking S1; Windows Sandbox or a clean VM if available, a
+  partial check documented with its limits; .NET 8 kept; blocker / major defects of the main path fixed, minor / UX ones
+  brought to the product owner; tracking, contour smoothing, camera motion compensation, occlusion, COROS / FIT, the
+  automatic rough cut, WASTED and the other deferred functions out.
+- 2026-10-22 — Step 30.0 (documentation only): the branch `feat/phase-30-stabilization` from `e28a9d3` (no upstream set);
+  D046; the Phase 30 steps and the G section in DEVELOPMENT_PLAN; the manual plan's skeleton
+  `docs/PHASE30_MANUAL_TEST_PLAN.md` (A — the portable build in a clean environment, B — the main path, C — performance,
+  D — the open manual checks, E — defects); `docs/README.md`; the outdated statuses aligned with the merges — Phases 27–29
+  in DEVELOPMENT_PLAN, ROADMAP, this file, README and D045; this file's "Last known state" and "Completed". No code,
+  tests or build scripts changed; no commit. Local `main`, the worktrees and `.claude/` untouched. **Accepted by the
+  product owner on 2026-10-22.**
+- 2026-10-22 — Step 30.1 (the portable build; FFmpeg not integrated):
+  - The tools' paths: `ExecutableLocator.ResolveConfiguredPath` — a relative `Ffmpeg:FfmpegPath` / `FfprobePath`
+    against `AppContext.BaseDirectory` instead of the current directory; the order (configured file, then `PATH`) and
+    the caching unchanged; `FfmpegOptions` docs. Tests: `ExecutableLocatorTests` +9 (relative under an app folder with
+    spaces and Cyrillic; a file present only under the current directory not used; absolute kept; missing → `PATH`;
+    `ResolveConfiguredPath` ×4; the production constructor uses the application folder).
+  - `global.json` (SDK 8.0.424, latest patch); `tools/portable/Publish-Portable.ps1` (self-contained `win-x64` folder, no
+    single-file / trimming / ReadyToRun, no PDBs, version `0.30.0+<commit>`, the notices generated from the deps file and
+    the restored packages, `README.txt`, `docs\AI_MODEL.md`, `BUILD-INFO.txt`, `-Zip`); `tools/portable/files/` (the
+    Russian user instruction, the notices' header — "not reviewed"); `artifacts/` in `.gitignore` (the first location,
+    `tools/publish/`, is ignored by the `publish/` rule). README and ARCHITECTURE updated.
+  - The build from a fresh clone of `e28a9d3` with the step's changes copied in: 349 files, 124 818 036 bytes (119.0 MiB),
+    zip 51.1 MiB, .NET 8.0.30; 57 components in the notices (18 without a licence file in their package). With gyan.dev
+    9.0.1 essentials' `ffmpeg.exe` + `ffprobe.exe`: +205 508 608 bytes (≈ 315 MiB in all). Smoke start only (not the
+    clean-environment check of 30.2): started from `C:\Windows` as the current directory, the window «Новый проект — AI
+    Video Editor» after 12 s, closed with exit code 0.
+  - The FFmpeg audit (D046 §13): gyan.dev 9.0.1 essentials — static GPLv3, about 40 external libraries incl. `libx264`;
+    gyan.dev publishes FFmpeg's commit only, no library sources or build scripts. Recommendation and questions in the
+    step's report; nothing downloaded or integrated.
+  - Gates: Release and Debug `dotnet build AiVideoEditor.sln --no-incremental -warnaserror` 0 / 0 (20 projects); the full
+    suite with `--blame-hang --blame-hang-timeout 10m` 4536 / 2 / 0 (Core 1289, Timeline 973, UI 884, Project 538,
+    Video 363, Rendering 178, ExportEndToEnd 165 + 2, Export 122, Vision 24), no hang; `git diff --check` clean, the new
+    files without trailing whitespace. Not run: the heavy scenes, three `--blame-hang` repeats (the closeout's gates). No
+    commit.
+- 2026-10-22 — Step 30.1, the audit continued (the product owner's request; documentation only, no code, tests or CI
+  changed, nothing downloaded into the build): BtbN FFmpeg-Builds identified — the month-end release
+  `autobuild-2026-09-30-13-08`, scripts commit `6c9aec5`, `ffmpeg-n9.0.2-17-g2a571b6068-win64-gpl-9.0.zip` (194 034 585
+  bytes, SHA-256 `a0e45723…d278`); its 107 applicable build stages read as text (≈ 95 pinned source repositories,
+  `libx264`, zimg, GPLv3); the corresponding-source gaps (expiring source caches, unpinned images / Rust) and the legal
+  points (libdvdcss, openh264, LCEVCdec) recorded in D046 §13. The 57 notices' components inventoried from the packages:
+  18 without licence files, their authoritative copies located; Inter is SIL OFL 1.1 (its name table), not MIT. The
+  binary not downloaded (185 MiB, awaiting the product owner); the review not complete. Scratch work (scripts, the
+  parsed stage list, the inventory JSON) in the session's scratchpad, not in the repository.
+- 2026-10-22 — Step 30.1, the BtbN binary checked (the product owner's command; nothing integrated, no code, tests or CI
+  changed): the archive downloaded into the scratchpad, SHA-256 `a0e45723…d278` matching; version, configuration,
+  `libx264` (the same commit `0480cb0` as gyan.dev 9.0.1 — the same H.264 stream without the SEI on a test clip), `zscale`,
+  `lut3d` and the decoders / muxers the app uses present; libdvdcss, openh264 and LCEVCdec linked in; rustc `48a229ceae`.
+  With it first on `PATH` for the test process only: Video.Tests 363 / 0 / 0, ExportEndToEnd.Tests 165 / 2 / 0 (the
+  opt-in 4K scenes), no hang. `ffmpeg.exe` + `ffprobe.exe` 314.8 MiB (gyan.dev 196.0). Details: D046 §13.
+- 2026-10-22 — Step 30.1, a minimal own FFmpeg build studied (the product owner's direction; nothing built,
+  downloaded or integrated, no code, tests or CI changed): the application's real use read from `src/Video` (`libx264`,
+  `aac`, `zscale`, `lut3d`, the audio / video filter chains, `-autorotate`, `-hwaccel auto`, ffprobe JSON; not `fps`,
+  `setpts`, `rubberband`, `s16le`); the tests need more for their fixtures (`libx265`, `libmp3lame`, `lavfi`, …); a
+  configuration proposed — FFmpeg `n9.0.2` (`946fcce07b`), `libx264` `0480cb05fa` (as gyan.dev / BtbN), zimg `67e0603271`,
+  zlib `v1.3.2`, `--disable-everything` with a whitelist, GPLv2+; a reproducible build on a GitHub Linux runner with a
+  digest-pinned Debian image and snapshot packages; the source bundle checked by an offline rebuild; the verification plan.
+  Open: the codecs of WebM / MKV / AVI beyond the phone footage (a product decision), patents, the editor's licence.
+  Estimate 3–5 days. Details: D046 §13.
+- 2026-10-22 — Step 30.1, the minimal build's formats (the product owner's target set; study only): every target
+  decoder / demuxer is internal to FFmpeg `n9.0.2` (from `allcodecs.c` / `allformats.c`) except software AV1 — the native
+  `av1` decoder is hardware-only (`ENOSYS` without a hwaccel; tried with gyan.dev 9.0.1: software fails, `d3d11va` works);
+  HEVC needs no `libx265` (an encoder); external libraries: `libx264`, zimg, zlib and, proposed, `libdav1d` 1.5.4
+  (BSD-2-Clause, ≈ 1.8 MB per executable). ALAC and DivX 3 left to the product owner. Estimated size ≈ 30–45 MiB for
+  `ffmpeg.exe` + `ffprobe.exe`. The table and the patent points: D046 §13. Nothing built or integrated; no code, tests or
+  CI changed.
+- 2026-10-22 — the product owner's decisions for the minimal build recorded in D046 §13 (documentation only): `libdav1d`
+  1.5.4 (`54706fc6bc`, BSD-2-Clause, its `COPYING` in the notices, Meson / Ninja pinned in the build image) for software
+  AV1; the native `av1` decoder and `d3d11va` / `dxva2` kept; ALAC in; DivX 3 / `msmpeg4*` out. Found: dav1d is registered
+  before the native decoder, so the application's current command lines always decode AV1 in software (the hardware AV1
+  decoder only by name — a code change, not decided). The AV1 checks for the build listed in D046 §13. Nothing built or
+  integrated; no code, tests, CI or the pinned gyan.dev build changed; no commit.
+- 2026-10-22 — the minimal FFmpeg's build recipe and CI job prepared (the product owner's permission; **not run** —
+  CI needs a push, which this stage doesn't allow; no Docker / WSL here): `tools/ffmpeg-minimal/` (`sources.lock`,
+  `components.txt`, `Dockerfile` with the digest-pinned Debian image and snapshot packages, `fetch-sources.sh`,
+  `build.sh`, `make-manifest.py`, `Test-MinimalFfmpeg.ps1`, README, `.gitattributes`) and
+  `.github/workflows/ffmpeg-minimal.yml` (separate from `ci.yml`). Pinned and checked: the FFmpeg tarball's SHA-256 and
+  GPG signature, dav1d's and zlib's SHA-256, the commits, the image digest, the Debian package versions (from the
+  snapshot's index), every component name and configure option against FFmpeg 9.0.2's own sources. Checked here:
+  `bash -n`, the PowerShell parser, YAML, the manifest generator on sample inputs, the check script against gyan.dev 9.0.1
+  and BtbN 9.0.2 (its bugs fixed: the LUT path's escaping, the hwaccel names, the lists' legends). Found: 9.0.2 decodes
+  every fixture, the HDR graph and the export's H.264 identically to 9.0.1, but its AAC encoder's output differs. Details:
+  D046 §13. No code, tests, `ci.yml` or the pinned gyan.dev build changed; nothing integrated; no commit.
+- 2026-10-22 — the minimal FFmpeg built in CI (the product owner's permission): the branch `build/ffmpeg-minimal` from
+  `origin/main` `e28a9d3` with only the recipe and its workflow, pushed (no PR, no merge); three recipe fixes in those
+  files (`89094c2` snapshot over HTTP, `b9f6b4b` bundle verification, `9a3afd6` `config_components.h`), mirrored in this
+  working tree. Run `39738528058` green: two offline builds byte-identical; `ffmpeg.exe` 16.6 MiB (`9f51787f…3610`),
+  `ffprobe.exe` 16.4 MiB (`2a1bf15f…5ab3`); the Windows check passes — decodes, HDR and the export's H.264 identical to
+  9.0.1, AV1 through libdav1d; DIFFs: the export's AAC stream (9.0.2's encoder) and the raw ADTS decode (≤ 5.8e-11 on 6
+  samples); native AV1 SKIP (no GPU). Sources tar 126 MiB. Details: D046 §13. The temporary worktree removed; the
+  Phase 30 changes still uncommitted.
+- 2026-10-22 — the CI result accepted by the product owner as the recipe's confirmation (integration not started):
+  `build/ffmpeg-minimal` at `9a3afd6ef681309045ff9928dbbba39088871d10`, run `39738528058`; recorded in D046 §13 with the
+  limits (hardware AV1 not checked on CI; no independent rebuild of the sources tar on another machine; the suites not
+  run on the minimal binary), the AAC / ADTS differences from 9.0.1, the artifacts' expiry (2026-11-21 07:19 UTC) and the
+  open licence items. Durable storage options and the licence / notices checklist prepared for the product owner's
+  decision; nothing published. Nothing from `build/ffmpeg-minimal` merged into this branch (its recipe files exist here
+  as uncommitted copies, identical to the branch's).
+- 2026-10-22 — the product owner chose a GitHub Release in this repository (option A) for the minimal FFmpeg; drafts
+  prepared for review, nothing tagged, released or uploaded: `docs/drafts/ffmpeg-minimal-9.0.2-1/` — `RELEASE-PLAN.md`
+  (tag `ffmpeg-minimal-9.0.2-1` on `9a3afd6`, not "Latest", eight assets with sizes and SHA-256, the release notes, the
+  independent rebuild plan, the open points), `THIRD-PARTY-NOTICES.txt` (assembled verbatim from the build's licence
+  files: GPLv2, LGPLv2.1, x264, WTFPL, zlib, dav1d, plus the mingw-w64 runtime notices and the GCC runtime exception),
+  `SOURCE-OFFER.txt` (marked as a draft before legal review). Found: the mingw-w64 runtime's licence asks for its notices
+  with binary distributions and the CI zip lacks them; the binaries import only Windows system libraries, link
+  libstdc++ statically, no winpthreads.
+- 2026-10-22 — the product owner's decision: the mingw-w64 notices go into the zip. Recipe changed in this working
+  copy only (not on `build/ffmpeg-minimal`, not run in CI): `build.sh` reads
+  `COPYING.MinGW-w64-runtime.txt` from the pinned `mingw-w64_12.0.0.orig.tar.bz2` and GCC's `COPYING.RUNTIME` +
+  `COPYING3` from `gcc-14_14.2.0.orig.tar.gz` into `licenses/`, then the new `make-notices.py` writes
+  `THIRD-PARTY-NOTICES.txt` from the zip's real content; the workflow packs it, uploads it and checks on Windows that
+  every licence file is present and reproduced and that the notices name both binaries' SHA-256. Checked locally on run
+  `39738528058`'s output: the repack gives 18 files, the binaries' SHA-256 unchanged, the package check passes and fails
+  on a removed or altered licence text. The build inputs don't change, so a CI run must reproduce the same binaries;
+  the release's zip and its hashes come from that run (needs a push). `RELEASE-PLAN.md` and the draft notices updated.
+- 2026-10-22 — minimal FFmpeg, state at the end of the day: `build/ffmpeg-minimal` at `fb3a252` (the AOMedia patent
+  licence, the IJG statement and the programs' copyright lines in the notices), CI run `39770305364` green, the binaries
+  unchanged. The drafts in `docs/drafts/ffmpeg-minimal-9.0.2-1/` reconciled with that run (the draft notices are now
+  its file, `bbc60d29…`); `SOURCE-OFFER.txt` stays a draft with the legal fields, delivery, charge and start of the
+  obligation as placeholders. Prepared in a separate worktree of `build/ffmpeg-minimal`, not committed: the
+  OS-independent order of the notices' lists (`make-notices.py`) with a check of the list in `Test-PackageNotices.ps1`,
+  and the workflow of the independent rebuild from the sources tar (not run). The recipe files in this working copy are
+  an older uncommitted state, not the branch's; nothing of the branch is merged here.
+- 2026-10-22 — documentation only: the product owner's concept of hold tracking and occlusion (only the covered segments
+  of a contour hidden; internal masks never shown or exported; the Preview and the export alike) recorded under R2 → E
+  in `docs/DEVELOPMENT_PLAN.md`, with pointers in `ROADMAP.md` and `ARCHITECTURE.md`. Not part of Phase 30 (D046 §9); no
+  decision, code, dependency or format change; the approach is chosen at the R2 research after the stabilisation. A
+  user-set processing interval of "about 5 s" was not found in the code or the decisions — to be clarified.
+- 2026-10-22 — minimal FFmpeg, with the product owner's permission: pushed to `build/ffmpeg-minimal` `c31a816` (the
+  OS-independent order of the notices' lists, its check, the independent rebuild workflow) and `0976bb4` (the workflow
+  had used `runner.temp` in a job's `env`, which GitHub rejects). Run `39784008934` (`c31a816`) green: the same binaries
+  and notices (`bbc60d29…`). **Independent rebuild done** — run `39784758393`: from the sources tar of run
+  `39770305364` (no other artifact of that run), on a clean `ubuntu-22.04` runner, the image rebuilt with
+  `--no-cache --pull` from the pinned base image and snapshot (the same 215 toolchain packages), `build.sh` without
+  network — both binaries bit for bit equal to the published SHA-256. Found: the sources tar is not byte-reproducible
+  (the zimg git bundle differs between runs for the same commit), so the release keeps run `39770305364`'s tar.
+  Checked locally: the two zimg bundles hold the same objects and the same sources; only the pack's deltas differ
+  (most likely reused from the server's clone pack); a re-bundle with `git repack -a -d -F` makes them identical — a
+  possible `fetch-sources.sh` change, not applied. Drafts updated; nothing tagged, released or merged; Phase 30 not
+  committed.
+- 2026-10-22 — minimal FFmpeg: the product owner keeps `fetch-sources.sh` as it is (the zimg bundles differ only in Git
+  packing; the upstream server as the cause not confirmed). Step 7 of the release plan's §3 done locally with a stand-in
+  for `dpkg-source -x` (dpkg is not available on this machine; nothing installed): the three Debian source packages of
+  the rebuilt tar match their `.dsc` checksums and unpack completely (mingw-w64: the 7 quilt patches apply; gcc-14:
+  no quilt series, its inner upstream tarballs read to the end); no unsafe path, link or case collision. Not checked:
+  the `.dsc` and upstream signatures (no Debian keyring here). Recipe and binaries unchanged; nothing committed.
+
+### Phase 29 — Visual templates and the music scenario (merged 2026-10-22, PR #30, `e28a9d3`)
 
 - 2026-10-21 — after the merge: `origin/main` verified (the merge commit, both parents, `ebdbad9` and `3c45c9d` in its
   history, the tree equal to `git merge-tree` of the parents and to `ebdbad9`'s tree); a first sketch of Phase C (five colour
@@ -292,7 +449,7 @@ Phase 27 (D043): Steps 27.0–27.6 done on `feat/phase-27-text-animation` (up to
   relink warning, the refused export (message, destination unchanged, no temporary file) and the Flash export after it —
   PASS.
 
-### Phase 27 — Text animation and readability (accepted 2026-10-20, not yet published)
+### Phase 27 — Text animation and readability (merged 2026-10-21, PR #28, `36a1a58`)
 
 - 2026-10-20 — after the merge of PR #27: `origin/main` = `41dadf2` (its tree identical to `a05236c`); CI green on the pull
   request; the run on `main` (39385604762) still in progress when checked — not confirmed green. Local `main` fast-forwarded
@@ -5118,10 +5275,14 @@ Phase 4 — Timeline: implemented, accepted and merged into `main`.
 
 ## Last known state
 
-2026-10-12: Phases 0–16 are complete and merged into `main` (PR #17 → `79e4e78`). Phase 17 (audio editing, D032) complete
-on `feat/phase-17-audio-editing` (closeout Step 17.9 and the Ripple Delete change; 3030 passed, 2 skipped); push and pull request on the product owner's
-command. Open items: see "Known issues" (the real-device audio status check — now R10 of
-the Phase 17 manual plan; the watched `Project.Tests` hang; no timeline virtualization, import not undoable).
+2026-10-22: Phases 0–29 are complete and merged into `main` (PR #30 → `e28a9d3`). Phase 30 (stabilisation and the
+portable build S1, D046) in progress on `feat/phase-30-stabilization` (Step 30.0 done). Open items: see "Known issues" and
+D046 §0 (the two flakes of Phase 29's closeout; R10 of the Phase 17 manual plan and the HDR / PQ checks of Phase 18, not
+blocking S1).
+
+*Before (2026-10-12, kept as written):* Phases 0–16 complete and merged (PR #17 → `79e4e78`); Phase 17 complete on its
+branch. Open items then: the real-device audio status check (R10), the watched `Project.Tests` hang, no timeline
+virtualization, import not undoable.
 
 ### Phase 4 — Timeline (historical notes)
 
@@ -5165,6 +5326,20 @@ Phase 4 implemented (decisions: DECISIONS.md D006–D008):
 - Phase 15 (accepted; PR #15 merged as `a3793a4` on 2026-10-08, CI green on the first attempt; the follow-up Preview fix
   PR #16 merged as `1bdeb95`)
 - Phase 16 (accepted; PR #17 merged as `79e4e78` on 2026-10-08, CI green on the pull request and on `main`)
+- Phase 17 (PR #18 merged as `fa96468` on 2026-10-13)
+- Phase 18 (PR #19 merged as `c29a767` on 2026-10-14; the product owner's visual check of the S1 HDR export and PQ on real
+  PQ footage open, not blocking a release)
+- Phase 19 (PR #20 merged as `2d0a10b` on 2026-10-15)
+- Phase 20 (PR #21 merged as `a657bff` on 2026-10-15)
+- Phase 21 (PR #22 merged as `7318ba8` on 2026-10-15)
+- Phase 22 (PR #23 merged as `1aaedc8` on 2026-10-16)
+- Phase 23 (PR #24 merged as `c652667` on 2026-10-19)
+- Phase 24 (PR #25 merged as `d3df0ba` on 2026-10-19)
+- Phase 25 (PR #26 merged as `58c48cb` on 2026-10-20)
+- Phase 26 (PR #27 merged as `41dadf2` on 2026-10-20)
+- Phase 27 (PR #28 merged as `36a1a58` on 2026-10-21)
+- Phase 28 (PR #29 merged as `4f0e66a` on 2026-10-21)
+- Phase 29 (PR #30 merged as `e28a9d3` on 2026-10-22)
 
 ## Known issues
 

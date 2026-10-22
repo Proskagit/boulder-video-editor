@@ -382,7 +382,9 @@ the same `MediaAsset` → `IProjectService.MediaAssetsChanged`.
 
 Metadata comes from ffprobe via `IMediaAnalysisService`;
 `IFfprobeLocator` resolves it from `Ffmpeg:FfprobePath` or PATH, `IFfmpegLocator` does the
-same for ffmpeg (playback decoding). Both resolve once per app run; a PATH tool must answer `-version` within
+same for ffmpeg (playback decoding). A configured path is absolute or relative to the application folder
+(`AppContext.BaseDirectory`, never the current directory — D046 §1.2, Phase 30) and is used when the file exists; otherwise
+the plain name on PATH. Both resolve once per app run; a PATH tool must answer `-version` within
 `ExecutableLocator.DefaultProbeTimeout` (5 s) or counts as not found for the run (tests whose subject is not that limit
 use a longer one through an internal seam, D029 Step 14.4). After Open only media without saved metadata that is
 present on disk is analysed (`MediaAnalysisCoordinator.QueueWhereNeeded`); missing files are
@@ -428,7 +430,10 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   colour is recomputed only when the set of holds changes, never from a frame; Split / Duplicate / Paste copy the markup.
 - Rendering: the snapshot's `PictureSpan.Outline` → `CompositionDrawPlan.OutlineDraw` (layer-local, clipped to the crop,
   the layer's opacity, stroke `StrokeWidth1080 × short side / 1080`, keyline 25 / 50 / 25) → `CompositionPainter` — the
-  same path for the Preview (1 px minimum) and the export.
+  same path for the Preview (1 px minimum) and the export. A contour keeps its normalized place on every frame of the
+  clip (no tracking). Future, not decided (R2 → E, `docs/DEVELOPMENT_PLAN.md`): tracking and occlusion would give each
+  frame the visible segments of a hold's own contour, drawn through this same path; internal masks never reach the draw
+  plan.
 - UI: `HoldMarkupViewModel` (the Inspector's "Holds" section and the markup mode), `HoldMarkupFrameSource` (the Preview's
   frame under the playhead at full display size through `IVideoDecoder`, the D033 HDR rule), `HoldMarkupOverlay` over
   the Preview's `CompositionView` (clicks mapped through the viewport and `LayerGeometry`, the candidate, the selected

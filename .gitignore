@@ -31,3 +31,6 @@ logs/
 ## OS junk
 .DS_Store
 Thumbs.db
+
+## Portable builds (tools/portable/Publish-Portable.ps1)
+artifacts/
