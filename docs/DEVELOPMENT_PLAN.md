@@ -180,7 +180,9 @@ and runs cleanly.
       the performance measured; the open manual checks inventoried. No new functionality, no format change. Scope, steps
       and acceptance criteria: section below and DECISIONS.md D046 (approved 2026-10-22). *(Branch
       `feat/phase-30-stabilization` from `e28a9d3`; Step 30.0 — documentation — accepted 2026-10-22; Step 30.1 — the portable build —
-      done without FFmpeg, awaiting the product owner's review and the choice of the FFmpeg distribution; Steps 30.2–30.7
+      done without FFmpeg, awaiting the product owner's review and the choice of the FFmpeg distribution; Step 30.4 —
+      the two known flakes fixed (its main-path defect part waits for 30.3); Step 30.6 — the inventory done
+      (`docs/PHASE30_MANUAL_TEST_INVENTORY.md`), its main-path rows to be run in 30.3; Steps 30.2, 30.3, 30.5 and 30.7
       not started)*
 - [ ] **Planned (D042; numbers given when taken up):** R1 → D — automatic hold proposals · R2 → E — outlines following the
       camera · R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
@@ -191,7 +193,7 @@ The normative text is DECISIONS.md D042 (2026-10-20): the product concept, its b
 product owner after the merge of Phase 26 (D042 "Refined after the merge of Phase 26"). Each phase gets its own decision,
 steps, acceptance criteria and manual plan when it is taken up, and its number then. A is Phase 27 (D043; merged, PR #28,
 `36a1a58`); B is Phase 28 (D044; merged, PR #29, `4f0e66a`); C is Phase 29 (D045; merged, PR #30, `e28a9d3`); G is
-Phase 30 (D046; approved 2026-10-22, in progress — Steps 30.0–30.1). R1–R3, D–F and H are neither started nor approved. The scopes of the
+Phase 30 (D046; approved 2026-10-22, in progress — Steps 30.0–30.1, the flakes of 30.4 and the inventory of 30.6). R1–R3, D–F and H are neither started nor approved. The scopes of the
 phases not yet taken up are sketches to be refined — not specifications. Every phase keeps the standing rules at the end of this file: one Undo step per user action, the
 Preview identical to the export, `MediaTime` ticks, heavy work off the UI thread, the localization guards (D039), the gates
 of the recent phases (build `-warnaserror`, the full suite, heavy, `--blame-hang`, `project.json` compared byte for byte
@@ -2432,18 +2434,37 @@ the portable folder and re-runs the rows it touches.
   the Preview and the export, watched in an external player.
 - The defects D1…Dn recorded with their severity (D046 §5); the list given to the product owner.
 
-### 30.4 — Fixes and the flakes *(not started)*
+### 30.4 — Fixes and the flakes *(the flakes done 2026-10-22, `b4edb87`; the defects of the main path wait for 30.3)*
 - Blocker / major defects of the main path fixed, each with a test where it can be automated; minor / UX defects only
-  those the product owner approves.
-- The two known flakes (D046 §0) investigated: fixed if the cause is found, otherwise recorded.
+  those the product owner approves. **Not started** — no defect list before 30.3.
+- The two known flakes (D046 §0) investigated: fixed if the cause is found, otherwise recorded. **Done** — both causes
+  in the tests, reproduced: (1) `FfmpegProcess.LiveProcesses` is process-wide and `HdrDecodeTests`, `HdrThumbnailTests`,
+  `WaveformIntegrationTests` ran ffmpeg in parallel with the tests comparing it with a baseline
+  (`FfmpegExportEncoderFailureTests`; also `FfmpegAudioDecoderIntegrationTests.PlaybackLifecycle_…`) — 10 / 10 parallel
+  runs failed, 5 / 5 serial runs passed; (2) `FfmpegExportEncoderFailureTests` and `StrictEndOfStreamTests` took every
+  ffmpeg / PING on the machine started after the test for their own — every run failed with unrelated ffmpeg running.
+  Fixed in the tests only: the three classes join `MediaCollection` (the rule at its definition); the two classes run
+  ffmpeg and ping through `ProcessAliases` (hard links named for the test run) and look for those names only — a
+  process they leave behind still fails the check (shown). No product code, delay, retry or looser check. After: 50 / 50
+  runs green with the parallel classes and 14–15 unrelated ffmpeg running; the full Video.Tests 2 × 363 / 0; the
+  solution build `-warnaserror` 0 / 0. The unnamed Video.Tests failure of Phase 29 was not captured and is not
+  identified; the tests hit by the two mechanisms are its likely candidates (a hypothesis). Not yet run after the fix:
+  `AIVE_HEAVY_TESTS=1`, the three `--blame-hang` runs, CI (30.7). Left as they are: `FfprobeTerminationTests` and
+  `AnalysisConcurrencyIntegrationTests` look for every PING on the machine (an unrelated ping is rare).
 
 ### 30.5 — Performance *(not started)*
 - The typical project of D046 §6 measured in the portable build (manual plan part C); the results reported; the targets
   agreed with the product owner afterwards.
 
-### 30.6 — The open manual checks *(not started)*
+### 30.6 — The open manual checks *(the inventory done 2026-10-22; the main-path rows run in 30.3)*
 - The NOT RUN rows of the earlier manual plans inventoried (manual plan part D): those on the main path run, the rest
   recorded with their reason; HDR / PQ (Phase 18) and R10 (Phase 17) not blocking (D046 §7).
+- **The inventory:** `docs/PHASE30_MANUAL_TEST_INVENTORY.md` — 623 rows of the earlier plans (523 PASS, 0 FAIL, 27
+  PARTIAL, 37 AUTO ONLY, 29 NOT RUN, 7 other) and Phase 30's own rows, the open ones merged into 28 items with their
+  evidence, needs and relation to the main path. Its main-path items are **not run yet**: they are run with the manual
+  run of B1–B9 in 30.3, which is still required — including the product owner's music file M1 for B6 (not provided so
+  far), watching the exports in an external player and listening to the mix. The rest is recorded with its reason;
+  R10 and the HDR / PQ checks stay non-blocking.
 
 ### 30.7 — Verification & closeout *(not started)*
 - Release and Debug `--no-incremental -warnaserror`; the full suite, `AIVE_HEAVY_TESTS=1`, three `--blame-hang` runs;
