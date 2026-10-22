@@ -12,6 +12,7 @@ tests and `ci.yml` keep using the pinned gyan.dev 9.0.1; nothing here is release
 | `build.sh` | Builds without network (refuses to run with it): zlib, x264, zimg, dav1d, FFmpeg; fails if configure enables an external library beyond zlib / libx264 / libzimg / libdav1d (+ d3d11va / dxva2) or drops an agreed component; writes the binaries, the licence texts, the configuration and the manifest |
 | `make-notices.py` | `THIRD-PARTY-NOTICES.txt` packed with the binaries: their SHA-256, the licence of the binaries (GPLv2 or later), the components, the statically linked toolchain runtime, and every licence text of `licenses/` reproduced — including the mingw-w64 runtime's notices and GCC's runtime library exception, which `build.sh` reads from the pinned Debian source packages |
 | `make-manifest.py` | `manifest.json` / `MANIFEST.md`: components, revisions, licences, source checksums, toolchain, configuration, binaries' sizes and SHA-256 |
+| `Test-PackageNotices.ps1` | Checks the unpacked zip: every licence file present and not empty, both binaries' SHA-256 named in `THIRD-PARTY-NOTICES.txt`, every licence text reproduced in it; exits 0 / 1 (failures listed) / 2 (could not run) whatever the calling shell |
 | `Test-MinimalFfmpeg.ps1` | Windows check of the binaries against the application's real command lines (see below) |
 
 ## Building
