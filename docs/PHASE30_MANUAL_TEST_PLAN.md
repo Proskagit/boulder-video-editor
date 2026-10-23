@@ -42,15 +42,17 @@ severity (D046 §5).
 
 | # | Scenario | Expected | Automated coverage | Status |
 |---|---|---|---|---|
-| B1 | Import the gym clips (horizontal and vertical) and the music | Analysed, thumbnails and waveforms; the canvas offered by the first video (D041) | Timeline / UI tests | NOT RUN (30.3) |
-| B2 | Cut away the excess, split and arrange the clips (trim, split, move, ripple delete, snapping), Undo / Redo | One step per action; the Preview follows | Timeline.Tests | NOT RUN (30.3) |
-| B3 | Recognise holds, choose the wanted ones, correct a contour, outline them with their animation | D034–D036 as specified; the outlines in the Preview | Vision / Rendering tests | NOT RUN (30.3) |
-| B4 | Add text with an animated appearance and disappearance, an outline or background | D043 as specified | Rendering / UI tests | NOT RUN (30.3) |
-| B5 | Add transitions between clips (Наплыв, Затемнение, Вспышка, Наезд, Сдвиг) | D044 as specified | Rendering / Timeline tests | NOT RUN (30.3) |
-| B6 | Add music, set its volume and fades; apply a template (REC / VHS / «Боулдер» / «Хайлайт») | D045 as specified; the mix by ear | Export / Rendering tests | NOT RUN (30.3) |
-| B7 | Set the framing (Fill / Fit, Move / Scale / Crop), check the Preview | D038, D041 as specified | UI / Rendering tests | NOT RUN (30.3) |
-| B8 | Save, close, reopen the project | Everything as before; nothing offline | Project.Tests | NOT RUN (30.3) |
-| B9 | Export the video; watch it in an external player | The file plays; the picture, the text, the outlines, the transitions, the template and the sound as in the Preview | ExportEndToEnd.Tests | NOT RUN (30.3) |
+| B1 | Import the gym clips (horizontal and vertical) and the music | Analysed, thumbnails and waveforms; the canvas offered by the first video (D041) | Timeline / UI tests | PASS (both sizes) — 3 / 4 files imported and analysed, thumbnails, waveforms; 16 : 9 first → no offer (correct, D041 §1); vertical first → «Сменить холст проекта на 1080 × 1920?» → 1080 × 1920 |
+| B2 | Cut away the excess, split and arrange the clips (trim, split, move, ripple delete, snapping), Undo / Redo | One step per action; the Preview follows | Timeline.Tests | PASS (both sizes) — split at the playhead, ripple delete, trim by an edge drag, move with snapping (snapped exactly to the neighbour), trim to the playhead (Q), close gap; each one Undo / Redo step; the Preview followed |
+| B3 | Recognise holds, choose the wanted ones, correct a contour, outline them with their animation | D034–D036 as specified; the outlines in the Preview | Vision / Rendering tests | PASS (both sizes) — markup mode, 3 / 2 holds confirmed (a donut hole needed Tab; a large red hold refused as "wall / too large" — D034 limits), a vertex dragged and undone / redone, animation bottom to top: appear, stay, disappear checked frame by frame |
+| B4 | Add text with an animated appearance and disappearance, an outline or background | D043 as specified | Rendering / UI tests | PASS (both sizes) — text on a new V2 (see U1), appear «Выезд» / disappear «Проявление», background on (outline on at 1440): mid-appear, shown, mid-disappear and gone checked |
+| B5 | Add transitions between clips (Наплыв, Затемнение, Вспышка, Наезд, Сдвиг) | D044 as specified | Rendering / Timeline tests | PASS (both sizes) — all five types on a cut: dissolve blended, dip black and flash white at the cut frame, zoom magnified at its peak, push displaced; Dissolve / Push refused without handles (correct message) |
+| B6 | Add music, set its volume and fades; apply a template (REC / VHS / «Боулдер» / «Хайлайт») | D045 as specified; the mix by ear | Export / Rendering tests | BLOCKED (both sizes) for «the mix by ear» (needs a listener). Done: volume 50 % / 70 %, fades 1 / 2 s and 0.5 / 1 s — one undo step each; «Боулдер» (route 3, 6B+, TOP) and REC templates drawn in the Preview and the export; the export's level per second follows the fades (music end −18.7 dBFS → silence) |
+| B7 | Set the framing (Fill / Fit, Move / Scale / Crop), check the Preview | D038, D041 as specified | UI / Rendering tests | PASS (both sizes) — Fill 316.05 % / Fit 100 %, Move by a drag in the Preview, scale by the field, crop by a handle drag (12 % left / 11.6 % right, the picture kept in place), Undo / Redo |
+| B8 | Save, close, reopen the project | Everything as before; nothing offline | Project.Tests | PASS (both sizes) — saved, the app closed and restarted, opened: 0 missing, everything as before (holds and animation, text, template, transitions zoom / push, music 50 %); a Save As right after the reopen wrote the same `project.json` except its name |
+| B9 | Export the video; watch it in an external player | The file plays; the picture, the text, the outlines, the transitions, the template and the sound as in the Preview | ExportEndToEnd.Tests | BLOCKED (both sizes) for «watch it in an external player» (needs a person). Done: 4:31 at 1920 × 1080 60 fps (21 min) and 0:25 at 1080 × 1920 60 fps (1:31) exported, decoded in full without an error; frames at the checkpoints (holds, text, template, transitions, framing) equal to the Preview |
+
+Run of part B: local (Claude), 2026-10-23, portable build `0.30.0+cf718bc7dd.dirty` with gyan.dev FFmpeg 9.0.1 from its `ffmpeg\` (not on `PATH`), the product owner's clips of 2026-09-27 and the MP3 of the same folder, at 1440 × 900 and 1024 × 640 (two projects). Driven through UI Automation and messages posted to the window (no real cursor or keyboard), checked on window captures and on the exported files. The window was on a 100 % monitor. The driver (`pwsh.exe`) was not per-monitor DPI aware (system aware at DPI 120), so the window sizes, the input coordinates and the captures it saw were scaled by Windows; its input offset of 1.25 compensated for that. The app itself laid out and drew correctly; see the withdrawn observation under §E. The sizes above are the app's layout sizes; the captures' drawn widths confirm them (≈ 1456 and ≈ 1042 physical pixels at 100 %).
 
 ## C. Performance of a typical project (Step 30.5)
 
@@ -82,4 +84,20 @@ Severity per D046 §5: blocker / major fixed in Phase 30; minor / UX brought to 
 
 | Id | Found in | Description | Severity | Decision | Status |
 |---|---|---|---|---|---|
-| — | *(filled from 30.2)* | | | | |
+| U1 | 30.3 B4 (both sizes) | «+ Текст» on a project with one video track refuses: «Нельзя добавить текст на V1: клип начнётся внутри другого клипа…» — by design (titles go on the topmost video track, never a new one), but the message does not say to add a track | minor / UX | the product owner | open |
+
+**Withdrawn observation (former D1) — not a defect of the application.** During the run of part B, after the window
+moved from the 125 % monitor to a 100 % one, the window looked laid out at the old scale (a black fifth at the right and
+bottom of the captures) and posted input landed 1.25 × off. Investigated on 2026-10-23: an artefact of the test driver.
+`pwsh.exe` is system aware (DPI 120) and its call to switch to PerMonitorV2 (`SetProcessDpiAwarenessContext`) returned
+`False`, so Windows scaled the window sizes, the input coordinates and the captures it handled. The app's window is
+PerMonitorV2 (as its manifest declares); inside its process the sizes and the input matched throughout.
+
+- Checked with the driver's thread switched to PerMonitorV2: a bare Avalonia window (11.1.3; the same result with
+  11.1.5, 11.2.8, 11.3.22 under the old driver) and the portable build `0.30.0+cf718bc7dd.dirty`.
+- Covered: programmatic moves 125 % → 100 % → 125 % → 100 % (`SetWindowPos`), resizing the window on each monitor,
+  clicks. The logical size was kept across the move (1440 × 900 → 1438 × 899), the controls reached the client area's
+  edges at every step (no empty areas), a click at (600, 400) arrived at (600, 400), and clicks at the centre and 4 px
+  inside both edges of «Параметры…» on the 100 % monitor opened its dialog while the old 1.25 × point missed it.
+- **NOT RUN:** dragging the window between the monitors with the real mouse, then clicking near the right and bottom
+  edges and resizing it — a person's check.
