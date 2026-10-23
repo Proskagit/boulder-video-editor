@@ -65,7 +65,9 @@ pwsh -File tools/portable/Publish-Portable.ps1 -Zip
 It writes `artifacts/portable/AiVideoEditor-<version>-win-x64` (self-contained `win-x64`, an ordinary folder, no
 single-file and no trimming) with the user's instruction `README.txt`, `THIRD-PARTY-NOTICES.txt` and `licenses\`
 (generated from the published packages, not yet reviewed), `docs\AI_MODEL.md` and `BUILD-INFO.txt`. FFmpeg and the AI
-model are not included.
+model are not included. For a local technical check only, `-FfmpegDir <folder>` copies a local FFmpeg (e.g. the
+gyan.dev 9.0.1 essentials build the tests are calibrated on) into `ffmpeg\`, points `appsettings.json` at it by
+relative paths and names it in the notices as not reviewed — not the distribution decision of D046 §2.
 
 ## Solution layout
 

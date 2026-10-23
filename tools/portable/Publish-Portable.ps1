@@ -9,7 +9,8 @@
       AiVideoEditor.exe, the .NET runtime and every dependency, appsettings.json,
       README.txt (the user's instruction), THIRD-PARTY-NOTICES.txt and licenses\ (generated from the packages actually
       published - not a legal review), docs\AI_MODEL.md, BUILD-INFO.txt (commit, SDK, runtime, the folder's size).
-    FFmpeg is NOT included (D046 par. 2: only after its licence audit and the product owner's choice).
+    FFmpeg is NOT included (D046 par. 2: only after its licence audit and the product owner's choice) unless
+    -FfmpegDir names a local FFmpeg for a local technical check.
     The SDK is pinned by global.json (8.0.424, latest patch); every NuGet package by its exact version in the projects.
 
 .PARAMETER Version
@@ -18,12 +19,18 @@
     Where the folder is created (default: artifacts/portable under the repository).
 .PARAMETER Zip
     Also packs the folder into a .zip next to it.
+.PARAMETER FfmpegDir
+    For a local technical check only: a folder holding ffmpeg.exe and ffprobe.exe (a bin folder, or a distribution
+    folder with bin\). They are copied into ffmpeg\ with the distribution's LICENSE / README into licenses\FFmpeg\,
+    appsettings.json points at them by relative paths, and the notices name them as not reviewed. Not the chosen
+    distribution of D046 par. 2 - nothing is decided by using it.
 #>
 [CmdletBinding()]
 param(
     [string] $Version = '0.30.0',
     [string] $OutputRoot,
-    [switch] $Zip
+    [switch] $Zip,
+    [string] $FfmpegDir
 )
 
 Set-StrictMode -Version Latest
@@ -154,12 +161,61 @@ foreach ($component in $components) {
     $lines.Add('')
 }
 
+# --- FFmpeg for a local technical check (-FfmpegDir) ------------------------------------------------------------------
+$ffmpegLine = 'FFmpeg: not included (DECISIONS.md D046 par. 2).'
+if ($FfmpegDir) {
+    $bin = if (Test-Path (Join-Path $FfmpegDir 'bin\ffmpeg.exe')) { Join-Path $FfmpegDir 'bin' } else { $FfmpegDir }
+    $distribution = if ($bin -ne $FfmpegDir) { $FfmpegDir } else { Split-Path $bin }
+    $ffmpegOut = Join-Path $out 'ffmpeg'
+    New-Item -ItemType Directory -Force $ffmpegOut | Out-Null
+    foreach ($exe in 'ffmpeg.exe', 'ffprobe.exe') {
+        $source = Join-Path $bin $exe
+        if (-not (Test-Path $source)) { throw "-FfmpegDir: $source not found" }
+        Copy-Item $source (Join-Path $ffmpegOut $exe)
+    }
+    $ffmpegVersion = (& (Join-Path $ffmpegOut 'ffmpeg.exe') -hide_banner -version | Select-Object -First 1)
+    $hashes = foreach ($exe in 'ffmpeg.exe', 'ffprobe.exe') {
+        "$exe SHA-256 $((Get-FileHash -Algorithm SHA256 (Join-Path $ffmpegOut $exe)).Hash.ToLowerInvariant())"
+    }
+    $licenceFiles = @(Get-ChildItem -Path $distribution -File | Where-Object { $_.Name -match '^(LICENSE|LICENCE|README|COPYING)' })
+    if ($licenceFiles) {
+        $dest = Join-Path $licenses 'FFmpeg'
+        New-Item -ItemType Directory -Force $dest | Out-Null
+        foreach ($file in $licenceFiles) { Copy-Item $file.FullName (Join-Path $dest $file.Name) }
+    }
+    $lines.Add("FFmpeg / FFprobe - $ffmpegVersion")
+    $lines.Add("  In ffmpeg\ for a LOCAL TECHNICAL CHECK ONLY: not the chosen distribution (DECISIONS.md D046 par. 2), its licence")
+    $lines.Add('  and obligations NOT reviewed; do not distribute this folder.')
+    $lines.Add("  Source: $(Split-Path -Leaf $distribution) (a local folder given by -FfmpegDir)")
+    foreach ($hash in $hashes) { $lines.Add("  $hash") }
+    $lines.Add("  Licence files: $(if ($licenceFiles) { ($licenceFiles | ForEach-Object { "licenses\FFmpeg\$($_.Name)" }) -join ', ' } else { '(none found next to the binaries)' })")
+    $lines.Add('')
+
+    # The editor reads the tools' paths from appsettings.json; relative ones are resolved against its folder (D046 par. 1.2).
+    $settingsPath = Join-Path $out 'appsettings.json'
+    $settings = Get-Content -Raw -Encoding UTF8 $settingsPath | ConvertFrom-Json
+    $settings.Ffmpeg.FfmpegPath = 'ffmpeg\ffmpeg.exe'
+    $settings.Ffmpeg.FfprobePath = 'ffmpeg\ffprobe.exe'
+    Set-Content -Path $settingsPath -Value ($settings | ConvertTo-Json -Depth 10) -Encoding UTF8
+    $ffmpegLine = "FFmpeg: $ffmpegVersion in ffmpeg\ - local technical check only, not reviewed for distribution."
+    Write-Host "FFmpeg: $ffmpegVersion from $bin"
+}
+
 $notices = Get-Content -Raw -Encoding UTF8 (Join-Path $templates 'THIRD-PARTY-NOTICES.header.txt')
+if ($FfmpegDir) {
+    # The "not shipped" bullet of the template no longer holds: FFmpeg is listed with the components above.
+    $notices = [regex]::Replace($notices, '(?m)^- FFmpeg / FFprobe .*\r?\n(?:  .*\r?\n)*', '')
+}
 $notices = $notices.Replace('{{VERSION}}', $informational).Replace('{{COMPONENTS}}', ($lines -join "`r`n"))
 Set-Content -Path (Join-Path $out 'THIRD-PARTY-NOTICES.txt') -Value $notices -Encoding UTF8
 
 # --- The user's instruction and the model's document --------------------------------------------------------------
-Copy-Item (Join-Path $templates 'README.txt') (Join-Path $out 'README.txt')
+$readme = Get-Content -Raw -Encoding UTF8 (Join-Path $templates 'README.txt')
+if ($FfmpegDir) {
+    $bundled = (Get-Content -Raw -Encoding UTF8 (Join-Path $templates 'README.ffmpeg-bundled.txt')).TrimEnd() -replace '\r?\n', "`r`n"
+    $readme = [regex]::Replace($readme, '(?m)^- FFmpeg \(ffmpeg\.exe.*$', { param($m) $bundled })
+}
+Set-Content -Path (Join-Path $out 'README.txt') -Value $readme -Encoding UTF8 -NoNewline
 New-Item -ItemType Directory -Force (Join-Path $out 'docs') | Out-Null
 Copy-Item (Join-Path $repo 'docs\AI_MODEL.md') (Join-Path $out 'docs\AI_MODEL.md')
 
@@ -174,7 +230,7 @@ $info = @(
     ".NET SDK: $sdk",
     ".NET runtime: $(if ($runtime) { $runtime.Version } else { '(unknown)' })",
     "Files: $($files.Count + 1); size before this file: $bytes bytes ($([math]::Round($bytes / 1MB, 1)) MiB)",
-    'FFmpeg: not included (DECISIONS.md D046 par. 2).',
+    $ffmpegLine,
     'AI model: not included (docs\AI_MODEL.md).'
 )
 Set-Content -Path (Join-Path $out 'BUILD-INFO.txt') -Value $info -Encoding UTF8
