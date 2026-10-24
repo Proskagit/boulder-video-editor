@@ -174,16 +174,18 @@ and runs cleanly.
       criteria: section below and DECISIONS.md D045 (approved 2026-10-21). *(Branch `feat/phase-29-templates` from
       `4f0e66a`; Steps 29.0–29.6 and the corrections of D045 §17 done; accepted by the product owner on 2026-10-22;
       PR #30 merged into `main` as `e28a9d3` (2026-10-22), CI green on the pull request)*
-- [ ] **Phase 30 — Stabilisation of the main path and the portable build S1 (D042 Phase G).** A self-contained portable
-      Windows build with the licence notices and FFmpeg in the delivery (after its licence audit), checked in a clean
-      environment; the main path (D042 §1 without step 4) run in it on real footage, its blocker / major defects fixed;
-      the performance measured; the open manual checks inventoried. No new functionality, no format change. Scope, steps
-      and acceptance criteria: section below and DECISIONS.md D046 (approved 2026-10-22). *(Branch
-      `feat/phase-30-stabilization` from `e28a9d3`; Step 30.0 — documentation — accepted 2026-10-22; Step 30.1 — the portable build —
-      done without FFmpeg, awaiting the product owner's review and the choice of the FFmpeg distribution; Step 30.4 —
-      the two known flakes fixed (its main-path defect part waits for 30.3); Step 30.6 — the inventory done
-      (`docs/PHASE30_MANUAL_TEST_INVENTORY.md`), its main-path rows to be run in 30.3; Steps 30.2, 30.3, 30.5 and 30.7
-      not started)*
+- [x] **Phase 30 — Stabilisation of the current base (D042 Phase G; technical closeout).** The technical stabilisation
+      of the main path and the portable build is **complete by the product owner's decision of 2026-10-24**: the local
+      technical verification passed (builds 0/0, full and heavy test suites 0 failed, three `--blame-hang` runs clean,
+      `git diff --check` clean, v9 byte-for-byte round-trip covered by `Project.Tests`, the portable folder rebuilt and the
+      available Step 30.2 rows re-run). The main path (D042 §1 without step 4) was run in the portable build on 2026-10-23
+      and checked by the owner on 2026-10-24 (B1–B9 PASS); the performance of a typical project was measured and the targets
+      C1–C6 agreed on 2026-10-24. **The full acceptance of S1 is not declared**: FFmpeg distribution, licence notices review,
+      a clean-environment check without the current machine's limitations, the C4 live-preview observation, **CI green**
+      (the Phase 30 branch has not been pushed/merged, so no CI run exists; the last green CI was PR #30 `e28a9d3`) and the
+      product owner's final sign-off remain open and are deferred to a separate release-preparation task. Scope, steps and the historical results: section below and
+      DECISIONS.md D046 (approved 2026-10-22). *(Branch `feat/phase-30-stabilization` from `e28a9d3`; Steps 30.0–30.7
+      technically complete 2026-10-24; S1 acceptance pending a later task.)*
 - [ ] **Planned (D042; numbers given when taken up):** R1 → D — automatic hold proposals · R2 → E — outlines following the
       camera · R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
 
@@ -193,7 +195,9 @@ The normative text is DECISIONS.md D042 (2026-10-20): the product concept, its b
 product owner after the merge of Phase 26 (D042 "Refined after the merge of Phase 26"). Each phase gets its own decision,
 steps, acceptance criteria and manual plan when it is taken up, and its number then. A is Phase 27 (D043; merged, PR #28,
 `36a1a58`); B is Phase 28 (D044; merged, PR #29, `4f0e66a`); C is Phase 29 (D045; merged, PR #30, `e28a9d3`); G is
-Phase 30 (D046; approved 2026-10-22, in progress — Steps 30.0–30.1, the flakes of 30.4 and the inventory of 30.6). R1–R3, D–F and H are neither started nor approved. The scopes of the
+Phase 30 (D046; approved 2026-10-22, **technically complete 2026-10-24** — local verification passed; the full S1 acceptance
+is deferred to a separate release-preparation task). R1 → D (automatic hold proposals) is the next planned research phase;
+R2 → E, R3 → F and H are neither started nor approved. The scopes of the
 phases not yet taken up are sketches to be refined — not specifications. Every phase keeps the standing rules at the end of this file: one Undo step per user action, the
 Preview identical to the export, `MediaTime` ticks, heavy work off the UI thread, the localization guards (D039), the gates
 of the recent phases (build `-warnaserror`, the full suite, heavy, `--blame-hang`, `project.json` compared byte for byte
@@ -2404,7 +2408,9 @@ automatic rough cut, WASTED and the other deferred functions, an installer, code
 `DirectML.dll`, a move to .NET 10, the Final UX Pass, new functionality, a format change.
 
 Dependencies: 30.0 → 30.1 → 30.2 → 30.3 → 30.4 → 30.7; 30.5 and 30.6 after 30.2, alongside 30.3; a fix in 30.4 rebuilds
-the portable folder and re-runs the rows it touches.
+the portable folder and re-runs the rows it touches. **As it happened:** 30.3 was run on 2026-10-23 before 30.2; 30.2 was
+completed on 2026-10-24 as a partial clean-environment check (A3–A6, A8 and A10 PASS; A7 and A9 BLOCKED by the environment;
+no defect found).
 
 ### 30.0 — Documentation *(done; accepted by the product owner 2026-10-22)*
 - The branch from `origin/main` `e28a9d3`; D046; these steps; the skeleton of `docs/PHASE30_MANUAL_TEST_PLAN.md`;
@@ -2422,21 +2428,64 @@ the portable folder and re-runs the rows it touches.
   **the binaries bundled only after the product owner's choice**.
 - The folder's layout and size recorded.
 
-### 30.2 — The clean-environment check *(not started)*
+### 30.2 — The clean-environment check *(done 2026-10-24 — a partial check on the development machine; A7 and A9 blocked by the environment)*
 - Windows Sandbox or a clean VM if available, otherwise a partial check with its limits documented (D046 §4): the start
   (double click, another current directory, a path with spaces and Cyrillic), the Russian interface, the messages without
   FFmpeg and without the model, the hold markup with the model installed, the Visual C++ runtime, the fonts of the
   templates. Manual plan part A.
+- **The check of 2026-10-24** (local, Claude) in the portable build `0.30.0+cf718bc7dd.dirty` — the product owner's decision:
+  a full clean environment is not required now; the available scenarios are checked on this machine and the absence of a VM /
+  Windows Sandbox is recorded as a limit of the check (it does not block the development). **PASS:** A3 (the start by a double
+  click — the main window, the Russian interface, no error dialog, the log in `%LOCALAPPDATA%\AiVideoEditor\logs`), A4 (the
+  start from another current directory — `appsettings.json` and the tools' relative paths read from the application folder), A5
+  (a folder with spaces and Cyrillic — the start, the import, the save and the export), A6 (no FFmpeg — the existing messages
+  at the import and at the export, no crash), A8 (the model installed — the check and the loading progress, DirectML, a
+  candidate contour confirmed), A10 (the templates' fonts — installed, the templates drawn as in the development build, no
+  font warning). **BLOCKED by the environment:** A7 (the model cannot be uninstalled here — the app's data root cannot be
+  redirected and the user's model files are not touched) and A9 (the Visual C++ runtime cannot be removed;
+  `onnxruntime.dll` imports MSVCP140 / MSVCP140_1 / VCRUNTIME140 / VCRUNTIME140_1 → the runtime **is** required on a machine
+  without it). **No defect was found.** The evidence in each row: `docs/PHASE30_MANUAL_TEST_PLAN.md` part A.
+- **Open:** a full clean environment (Windows Sandbox / a VM) stays open and is not blocking; the limits of the partial check
+  are listed in the manual plan's part A.
 
-### 30.3 — The main path in the portable build *(not started)*
+### 30.3 — The main path in the portable build *(run 2026-10-23; the owner's manual checks of 2026-10-24 — the step's checks are complete)*
 - D042 §1 without step 4 on the product owner's footage at 1024 × 640 and 1440 × 900 (manual plan part B): import; cut,
   split, arrange; holds chosen and outlined; animated text; transitions; music with its volume and a template; framing,
   the Preview and the export, watched in an external player.
 - The defects D1…Dn recorded with their severity (D046 §5); the list given to the product owner.
+- **The run of 2026-10-23** (local, Claude): the portable build `0.30.0+cf718bc7dd.dirty` with gyan.dev FFmpeg 9.0.1 from
+  its `ffmpeg\` folder (not on `PATH`), the product owner's clips of 2026-09-27 and an MP3, at 1440 × 900 and 1024 × 640
+  (two projects) — **B1–B5, B7 and B8 PASS** at both sizes; **B6 BLOCKED** for the mix by ear and **B9 BLOCKED** for the
+  export in an external player (both need a person); the frames at the checkpoints equal to the Preview. What was checked
+  in each row: `docs/PHASE30_MANUAL_TEST_PLAN.md` part B.
+- **The owner's manual checks of 2026-10-24** (on the artefacts of that run — the same portable build and the same two
+  exported files, no new export): **B6 PASS** (the mix by ear — both exports listened to: the music and the gym's own
+  sound are correct, the fade-out is normal, no critical clicks, level jumps or desynchronisation noticed); **B9 PASS**
+  (both exports in an external player — the captions, the hold outlines, the transitions, the templates and the framing
+  look correct, no critical playback problems noticed); the check that was NOT RUN in the local run — the window dragged
+  between the monitors with the real mouse at 125 % ↔ 100 %, the interface's interaction and the clicks — **PASS** (no
+  problems found, the interface's elements work correctly). The observations are the owner's (by ear and by eye); no new
+  measurements were made. **B1–B9 PASS** — no row of the main path waits for a person. The manual plan's parts B and E
+  keep both runs apart.
+- **The defects:** no blocker and no major defect; one minor / UX defect — **U1** («+ Текст» on a project with one video
+  track refuses without saying to add a track) — **not fixed: the product owner's decision of 2026-10-24**; the remark stays
+  documented, no code change (D046 §5); the list was given to the product owner in the manual plan's part E. The former D1
+  (the window seemingly kept the 125 % layout on a 100 % monitor) is **withdrawn** — an artefact of the test driver
+  (`pwsh.exe` is system aware), not a defect of the application.
+- **Open, not defects:** **M1** — the music of the projects is the owner's MP3 transferred on Claude's request; its
+  measured parameters (MP3, 44 100 Hz, stereo, 199.6 s) meet M1's definition in `docs/PHASE29_MANUAL_TEST_PLAN.md`
+  part B, the optional M4A / AAC counterpart is not provided; the rows of Phase 29 that waited for M1 keep their recorded
+  results. **B1's «3 / 4 files imported and analysed»** — the final project holds all four assets (confirmed by the owner
+  and by `project.json`), but which file was not imported at that step is not established by the existing evidence; the
+  ambiguity stays open and is not a defect.
 
-### 30.4 — Fixes and the flakes *(the flakes done 2026-10-22, `b4edb87`; the defects of the main path wait for 30.3)*
+### 30.4 — Fixes and the flakes *(done — the flakes 2026-10-22, `b4edb87`; the defect part closed 2026-10-24: U1 not fixed by the product owner's decision, no code change)*
 - Blocker / major defects of the main path fixed, each with a test where it can be automated; minor / UX defects only
-  those the product owner approves. **Not started** — no defect list before 30.3.
+  those the product owner approves. **Done 2026-10-24 without a code change** — the defect list of 30.3 holds no blocker and
+  no major defect, only the minor / UX defect U1; the product owner decided **not to fix it**, so the remark stays
+  documented as a minor / UX defect. The reason is the decision, **not** a confirmation that the defect is absent (D046 §5).
+  No other defect of Step 30.4 waits for a decision: the list of 30.3 has one entry, and the withdrawn observation D1 is not
+  a defect of the application.
 - The two known flakes (D046 §0) investigated: fixed if the cause is found, otherwise recorded. **Done** — both causes
   in the tests, reproduced: (1) `FfmpegProcess.LiveProcesses` is process-wide and `HdrDecodeTests`, `HdrThumbnailTests`,
   `WaveformIntegrationTests` ran ffmpeg in parallel with the tests comparing it with a baseline
@@ -2448,28 +2497,56 @@ the portable folder and re-runs the rows it touches.
   process they leave behind still fails the check (shown). No product code, delay, retry or looser check. After: 50 / 50
   runs green with the parallel classes and 14–15 unrelated ffmpeg running; the full Video.Tests 2 × 363 / 0; the
   solution build `-warnaserror` 0 / 0. The unnamed Video.Tests failure of Phase 29 was not captured and is not
-  identified; the tests hit by the two mechanisms are its likely candidates (a hypothesis). Not yet run after the fix:
-  `AIVE_HEAVY_TESTS=1`, the three `--blame-hang` runs, CI (30.7). Left as they are: `FfprobeTerminationTests` and
-  `AnalysisConcurrencyIntegrationTests` look for every PING on the machine (an unrelated ping is rare).
+  identified; the tests hit by the two mechanisms are its likely candidates (a hypothesis). These remaining gates were
+  later run in Step 30.7 (2026-10-24) — see the 30.7 section below; they do not hold Step 30.4.
+  Left as they are: `FfprobeTerminationTests` and `AnalysisConcurrencyIntegrationTests` look for every PING on the machine
+  (an unrelated ping is rare).
 
-### 30.5 — Performance *(not started)*
+### 30.5 — Performance *(measured 2026-10-24 — the targets agreed by the product owner on 2026-10-24; one open observation from C4 remains)*
 - The typical project of D046 §6 measured in the portable build (manual plan part C); the results reported; the targets
   agreed with the product owner afterwards.
+- **The measurement of 2026-10-24** (local, Claude) on the development machine (Windows 11 IoT LTSC 26100, Ryzen 7 7800X3D,
+  31.2 GiB RAM, RTX 4070 SUPER; the load during the measurements 0.7 % of the cores) in the portable build
+  `0.30.0+cf718bc7dd.dirty`, the window 1440 × 900 on the 100 % monitor, the profile `perf-1440` (4:31, 1920 × 1080 @ 60 fps,
+  6 clips on 3 tracks — V1: three video clips with the hold markup, V2: a text clip with an appearance and a template clip,
+  A1: the music at 50 % — and the transitions of D044): **C1** the project opens in 0.21 s (the picture settles in 0.52 s; the first open without the cache
+  in 1.44 s); **C2** the move and the trim answer within 13–22 ms, the split is drawn within ~290 ms; **C3** the whole
+  project plays in **98.6 % of the real time** (the Preview draws 58.7 /s of a 60 fps project); **C4** a jump by the ruler
+  shows the new frame in 109–121 ms, a scrub in 309–499 ms after the release; **C5** the export takes **21:21.52 =
+  4.72 × the real time**; **C6** the app's working set up to 1077 MiB during the export, with the ffmpeg processes
+  ≈ 3.7 GiB. The method, the evidence and the **agreed** targets: `docs/PHASE30_MANUAL_TEST_PLAN.md` part C.
+- **Open observation from C4:** during a continuous scrub by dragging the ruler the Preview does **not** update live; the
+  new frame appears only after the mouse-up. This is recorded as an open observation, not as an agreed defect. No fix or
+  optimisation of Preview/Export was authorised by the product owner.
+- **Closed:** the targets are agreed (D046 §6) — the acceptance criterion 6 of S1 is met as far as the measurement and the
+  agreement go. The observation above does not meet the threshold of §5 by itself.
 
-### 30.6 — The open manual checks *(the inventory done 2026-10-22; the main-path rows run in 30.3)*
+### 30.6 — The open manual checks *(the inventory done 2026-10-22; the main-path rows run in 30.3 — the local run of 2026-10-23 and the owner's checks of 2026-10-24)*
 - The NOT RUN rows of the earlier manual plans inventoried (manual plan part D): those on the main path run, the rest
   recorded with their reason; HDR / PQ (Phase 18) and R10 (Phase 17) not blocking (D046 §7).
 - **The inventory:** `docs/PHASE30_MANUAL_TEST_INVENTORY.md` — 623 rows of the earlier plans (523 PASS, 0 FAIL, 27
   PARTIAL, 37 AUTO ONLY, 29 NOT RUN, 7 other) and Phase 30's own rows, the open ones merged into 28 items with their
-  evidence, needs and relation to the main path. Its main-path items are **not run yet**: they are run with the manual
-  run of B1–B9 in 30.3, which is still required — including the product owner's music file M1 for B6 (not provided so
-  far), watching the exports in an external player and listening to the mix. The rest is recorded with its reason;
-  R10 and the HDR / PQ checks stay non-blocking.
+  evidence, needs and relation to the main path. Its main-path items were run with the manual run of B1–B9 in 30.3
+  (2026-10-23) and the owner's checks (2026-10-24): **all the main-path rows are PASS** — the mix by ear (B6) and the
+  export in an external player (B9) by the owner. The rest is recorded with its reason; R10 and the HDR / PQ checks stay
+  non-blocking. The inventory's rows are summarised in the manual plan's part D.
 
-### 30.7 — Verification & closeout *(not started)*
+### 30.7 — Verification & closeout *(technical verification done 2026-10-24; formal S1 acceptance not declared)*
 - Release and Debug `--no-incremental -warnaserror`; the full suite, `AIVE_HEAVY_TESTS=1`, three `--blame-hang` runs;
   `git diff --check`; a v9 project opened and saved byte for byte; the final portable folder rebuilt and checked again
   through 30.2's rows; D046's acceptance criteria one by one; the documentation; the product owner's acceptance of S1.
+- **Technical verification (2026-10-24):** Release and Debug builds 0/0; the full suite 0 failed (4536 passed, 2 skipped);
+  `AIVE_HEAVY_TESTS=1` 0 failed (4538 passed, 0 skipped); three `--blame-hang` runs 0 failed/hung; `git diff --check` clean;
+  v9 byte-for-byte round-trip covered by the automated `Project.Tests` suite (`TemplatePersistence` and `ProjectService`
+  tests); the portable folder rebuilt (119 MiB, 349 files, FFmpeg not included); the available Step 30.2 rows re-run on the
+  current machine (A3, A4, A5, A6, A10 PASS; A7 and A9 remain BLOCKED by the environment; A8 relies on the still-installed
+  model and the previous PASS of 2026-10-24); the Preview ↔ export parity suites and the D039 localization guards ran as
+  part of the full suite (Phase 30 changed no rendering or localization code).
+- **What is not closed:** the full acceptance of S1 — FFmpeg distribution and licence review, the notices review (A2), a
+  clean-environment check without the current machine's limitations (A7/A9), the C4 live-preview observation, **CI green**
+  (D046 §10.5: the Phase 30 branch has not been pushed/merged, so no CI run exists; the last green CI was PR #30
+  `e28a9d3`), and the product owner's final sign-off. These are deferred to a separate release-preparation task by the product owner's decision
+  of 2026-10-24.
 
 ## Architectural rules that must hold at every phase
 

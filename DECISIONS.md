@@ -7109,6 +7109,86 @@ branch `fix/preview-refresh-beyond-end` (`7b118a7`, superseded by the merged `a2
   `ee8c7b698b`). **Avalonia.Fonts.Inter**: the package says MIT (the wrapper); the embedded Inter 3.019 fonts say
   "Copyright 2020 The Inter Project Authors", SIL OFL 1.1 — the OFL text (`LICENSE.txt` at `rsms/inter` `v3.19`) must
   travel with the build. The review is not complete.
+- **Step 30.3 — the main path in the portable build** (2026-10-23; local run, documentation only, no product code). The
+  run of `docs/PHASE30_MANUAL_TEST_PLAN.md` part B in the portable build `0.30.0+cf718bc7dd.dirty` (built 2026-10-22 from
+  `cf718bc` with the then uncommitted changes) with gyan.dev FFmpeg 9.0.1 from its `ffmpeg\` folder (not on `PATH`), the
+  product owner's clips of 2026-09-27 and an MP3 of the same folder, at 1440 × 900 and 1024 × 640 (two projects), driven
+  through UI Automation and messages posted to the window (no real cursor or keyboard): **B1–B5, B7 and B8 PASS** at both
+  sizes; **B6 BLOCKED** for «the mix by ear» and **B9 BLOCKED** for «watch it in an external player» (both need a person);
+  the frames at the checkpoints equal to the Preview. The defects per §5: **no blocker and no major defect**; one minor /
+  UX defect — **U1**, «+ Текст» on a project with one video track refuses without saying to add a track — **open, the
+  product owner's decision** (none is fixed without it). The former D1 (the window seemingly kept the 125 % layout on a
+  100 % monitor, the input 1.25 × off) is **withdrawn** — an artefact of the test driver (`pwsh.exe` is system aware, its
+  switch to PerMonitorV2 returned `False`, so Windows scaled what it saw), not a defect of the application; rechecked with a
+  per-monitor-aware driver (a bare Avalonia window and the portable build): moves 125 % ↔ 100 %, resizing and clicks
+  correct. **NOT RUN** (a person's check): dragging the window between the monitors with the real mouse. The run's rows and
+  evidence: `docs/PHASE30_MANUAL_TEST_PLAN.md` part B; the inventory of the open rows of the earlier plans and the main-path
+  items it closes: `docs/PHASE30_MANUAL_TEST_INVENTORY.md` and the manual plan's part D. §10 is unchanged — the acceptance
+  criteria of S1 are not met by this run.
+- **Step 30.3 — the owner's manual checks (2026-10-24)**: the three checks of Step 30.3 that needed a person were run by the
+  product owner on the artefacts of the run of 2026-10-23 — the same portable build and the same two exported files (4:31 at
+  1920 × 1080 60 fps and 0:25 at 1080 × 1920 60 fps), no new export: **B6 PASS** (the mix by ear — both exports listened to:
+  the music and the gym's own sound are correct, the fade-out is normal, no critical clicks, level jumps or desynchronisation
+  noticed); **B9 PASS** (both exports in an external player — the captions, the hold outlines, the transitions, the templates
+  and the framing look correct, no critical playback problems noticed); the check that was NOT RUN in the local run — the window
+  dragged between the monitors with the real mouse at 125 % ↔ 100 %, the interface's interaction and the clicks — **PASS** (no
+  problems found). The observations are the owner's, by ear and by eye; no new measurements were made. **B1–B9 PASS** — the
+  step's checks are complete. The defects per §5 stay as they were: no blocker and no major defect, one minor / UX defect (U1)
+  — the product owner's decision on it was taken the same day (see the next note). Two records stay open and block nothing:
+  **M1** — the music of the projects is the
+  owner's MP3 transferred on Claude's request, measured as MP3, 44 100 Hz, stereo, 199.6 s — the parameters M1 requires of
+  `docs/PHASE29_MANUAL_TEST_PLAN.md` part B; the optional M4A / AAC counterpart is not provided, and Phase 29's rows that waited
+  for M1 keep their recorded results (that plan is not rewritten); **B1's «3 / 4 files imported and analysed»** — the final
+  project holds all four assets (confirmed by the owner and by `project.json`), but which file was not imported at that step is
+  not established by the existing evidence. §10 is unchanged — the acceptance criteria of S1 are not met by these checks either.
+- **Step 30.4 — the defect part (2026-10-24; the product owner's decision, documentation only, no product code)**: the product
+  owner decided **not to fix U1** — «+ Текст» on a project with one video track refuses without saying to add a track (a
+  minor / UX defect) — and it stays documented as it is. The reason is **the product owner's decision**, **not** a confirmation
+  that the defect is absent (per §5 a minor / UX defect is fixed only if the product owner approves it). No other defect of Step
+  30.4 waits for a decision: the defect list of Step 30.3 holds exactly one entry (U1) — no blocker and no major defect; the
+  withdrawn observation D1 is not a defect of the application. The flakes half of the step was done on 2026-10-22 (`b4edb87`, in
+  the tests only); the gates not yet run after that fix (`AIVE_HEAVY_TESTS=1`, the three `--blame-hang` runs, CI) belong to Step
+  30.7 and do not hold Step 30.4. **Step 30.4 is done.** §10 is unchanged — the acceptance criteria of S1 are not met by this
+  decision.
+- **Step 30.2 — the clean-environment check (2026-10-24; a partial check on the development machine, documentation only, no
+  product code)**: the product owner decided that a full clean environment is not required now — the available scenarios are
+  checked on the development machine and the absence of a VM / Windows Sandbox is recorded as a **limit** of the check, not a
+  blocker; the question of the FFmpeg distribution and its inclusion in the delivery is **deferred** to the preparation of the
+  release and to be considered again before the publication — it is **not** settled, no work on it is started, and no licence
+  requirement or S1 criterion is treated as met by that decision. The check itself (local, Claude) in the portable build
+  `0.30.0+cf718bc7dd.dirty`: **PASS** — A3 (the start by a double click: the main window, the Russian interface, one top-level
+  window and no error dialog, the log in `%LOCALAPPDATA%\AiVideoEditor\logs`), A4 (the start from another current directory:
+  `appsettings.json` and the tools' relative paths read from the application folder), A5 (a folder with spaces and Cyrillic:
+  the start, the import, the save and the export), A6 (no FFmpeg: the existing messages at the import and at the export, no
+  crash), A8 (the model installed as `docs/AI_MODEL.md` describes it: the check and the loading progress, DirectML, a candidate
+  contour confirmed), A10 (the templates' fonts installed; the templates drawn as in the development build; no font warning);
+  **BLOCKED by the environment** — A7 (the model is installed here and the state cannot be produced without changing the
+  machine: the app's data root is `%LOCALAPPDATA%\AiVideoEditor` and `Environment.GetFolderPath(LocalApplicationData)` ignores
+  the process's `LOCALAPPDATA` / `USERPROFILE` overrides — checked) and A9 (the Visual C++ runtime cannot be removed here; the
+  PE import tables of the shipped binaries were read instead: `onnxruntime.dll` imports MSVCP140 / MSVCP140_1 / VCRUNTIME140 /
+  VCRUNTIME140_1 → the runtime **is** required on a machine without it — §12's risk). **No defect was found.** The evidence in
+  each row and the limits of the check: `docs/PHASE30_MANUAL_TEST_PLAN.md` part A. §10 is unchanged — the acceptance criteria
+  of S1 are not met by this check.
+- **Step 30.5 — the performance measurement (2026-10-24; documentation only, no product code, nothing optimised)**: the
+  typical project of §6 — the profile `perf-1440` (the project of Step 30.3: 4:31, 1920 × 1080 @ 60 fps, 6 clips on 3 tracks
+  — V1: three video clips with the hold markup, V2: a text clip with an appearance and a template clip, A1: the music at 50 % —
+  and the transitions of D044) — measured
+  in the portable build `0.30.0+cf718bc7dd.dirty` on the development machine (Windows 11 IoT LTSC 26100, Ryzen 7 7800X3D
+  8/16, 31.2 GiB, RTX 4070 SUPER; the load during the measurements 0.7 % of the cores), the window 1440 × 900 on the 100 %
+  monitor. The method: UI Automation and posted mouse / key messages, a background sampler hashing the picture of a region of
+  the window about every 13 ms (the resolution of the latency measurements), the app's own log for the times it records.
+  The results: **C1** the project opens in 0.21 s (the picture settles in 0.52 s; the first open without the project's cache
+  1.44 s); **C2** the move is drawn live (14–18 redraws /s, the final position within ≤ 13 ms of the mouse-up), the trim
+  answers in 14–22 ms, the split is drawn 288–295 ms after the key-up (the undo 245–257 ms); **C3** the whole project plays
+  in **98.6 % of the real time**, the Preview drawing 58.7 /s of a 60 fps project (the application has no dropped-frame
+  counter — the known issue — so the effective rate and the redraw rate stand in for it); **C4** a jump by the ruler shows
+  the new frame in 109–121 ms, a continuous scrub shows it 309–499 ms after the release; **C5** the
+  export takes **21:21.52** for the 4:31 project = **4.72 × the real time**, the file byte for byte the same size as the
+  export of Step 30.3; **C6** during the playback the app's working set is 282–466.5 MiB (the ffmpeg processes up to
+  1313.5 MiB more), during the export 1077 MiB and ≈ 3.7 GiB together. The **targets were agreed by the product owner on
+  2026-10-24** (§6): the values are in `docs/PHASE30_MANUAL_TEST_PLAN.md` part C. One open observation remains from C4:
+  during a continuous scrub by dragging the ruler the Preview does **not** update live; no fix or optimisation of
+  Preview/Export was authorised. The evidence in each row is in the manual plan.
 
 Context: the product owner's request of 2026-10-22 after the merge of Phase 29 (PR #30): the plan of Phase G proposed
 after a study of `e28a9d3` and the documents, approved with the refinements §2–§9.
@@ -7118,8 +7198,21 @@ instruction, the relative-path resolution of the tools (Infrastructure, with tes
 No format change; no new NuGet dependency expected; FFmpeg as a shipped binary only after §2.
 
 Status: **Approved (product owner, 2026-10-22)** — the plan and the refinements. Step 30.0 (documentation) accepted by
-the product owner on 2026-10-22; Step 30.1 done without FFmpeg (§13), awaiting the product owner's review and the
-choice of the FFmpeg distribution (the BtbN audit and the notices' review not complete); Steps 30.2–30.7 not started.
+the product owner on 2026-10-22; Step 30.1 done without FFmpeg (§13); the FFmpeg distribution and its inclusion in the
+delivery are deferred to release preparation and are not settled (the BtbN audit and the notices' review are not complete); Step 30.3 run on 2026-10-23 and the
+owner's manual checks of 2026-10-24 — **B1–B9 PASS**, no blocker and no major defect; Step 30.4 **done** — the flakes 2026-10-22,
+the defect part closed 2026-10-24 with U1 (the one minor / UX defect) **not fixed by the product owner's decision**, left as a
+documented remark (§13); the inventory of Step 30.6 done, its main-path rows run in 30.3; Step 30.2 **done 2026-10-24** — a
+partial clean-environment check on the development machine (A3–A6, A8 and A10 PASS; A7 and A9 blocked by the environment; no
+defect found; the FFmpeg distribution deferred to the release preparation, not settled — §13); Step 30.5 **measured 2026-10-24** (C1–C6; the targets **agreed** by the product owner on 2026-10-24; one open observation from C4 remains —
+Preview does not update live during a continuous scrub, no fix or optimisation authorised — §13); Step 30.7 **technically
+complete 2026-10-24** (local verification passed — builds 0/0, full and heavy suites 0 failed, three `--blame-hang` runs clean,
+`git diff --check` clean, v9 byte-for-byte tests PASS, portable folder rebuilt, available 30.2 rows re-run). **The full
+acceptance of S1 is not declared**: FFmpeg distribution, notices review, a clean-environment check without the current
+machine's limitations, the C4 live-preview observation, **CI green** (the Phase 30 branch has not been pushed/merged, so no
+CI run exists; the last green CI was PR #30 `e28a9d3`) and the product owner's final sign-off remain open and are deferred
+to a separate release-preparation task (product owner's decision of 2026-10-24).
+The decisions of §1–§9 are unchanged.
 
 ---
 
