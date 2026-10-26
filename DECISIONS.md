@@ -7216,6 +7216,221 @@ The decisions of §1–§9 are unchanged.
 
 ---
 
+## D047 — Automatic hold proposals (Phase 31, D042 Phase D)
+
+Date: 2026-10-24
+
+Prepared specification for the product owner's approval. R1 (D042 §5) concluded with a **conditional GO** on
+2026-10-24: the idea is feasible, but phase D must be sharply scoped. This decision records the proposed scope,
+acceptance criteria, steps, non-goals and risks. Implementation is not started and does not begin without the product
+owner's explicit approval of this specification.
+
+### 0. What exists (audit of `ad5a514`)
+
+- D034 gives the manual hold-markup flow: the user enters markup mode on a paused video-clip frame, clicks to create a
+candidate, cycles alternatives, refines with Shift+click, confirms with Enter, deletes with Delete. Confirmed holds are
+stored in `VideoClip.HoldMarkup` as `Hold` entities with normalized-source contours, `SurfaceLab` / `WallLab` samples and
+`SourceTime`.
+- D035 adds vertex-level contour correction; D036 adds the outline animation. Both operate on confirmed holds and stay
+unchanged by this phase.
+- `IHoldSegmentationService` (`src/Core/Interfaces/IHoldSegmentationService.cs`) abstracts the model: encode a frame,
+predict masks for prompt points. `OnnxHoldSegmentationService` (`src/Vision/OnnxHoldSegmentationService.cs`) implements it
+with the pinned SAM 2.1 Large ONNX model (`docs/AI_MODEL.md`).
+- `HoldCandidateRules` (`src/Core/Holds/HoldCandidateRules.cs`) filters the model's three masks per prompt by area and
+score.
+- The R1 research harness (`tools/r1-hold-proposals/`) showed that a grid of positive prompts can generate hold proposals
+without user clicks. Best tested configuration: SAM 2.1 Large ONNX, 16×16 grid, frame decoded and evaluated at 1920×1080
+— 247.9 s on the 15-frame E1 set (2.27× faster than full-resolution Large), 85/164 reference holds matched (51.8 %
+recall), 10.1 % precision. The main cost is resolution-dependent mask work (upsample, NMS, reference matching), not the
+ONNX decoder call itself.
+
+### 1. Goal and boundaries
+
+- **Goal:** reduce the number of manual clicks when marking a route by offering automatic hold proposals on the first
+markup frame of a clip. The user reviews, accepts or rejects them; accepted proposals become confirmed holds identical
+to D034 holds.
+- **In scope:**
+  - Proposal generation on one paused frame per clip (the frame under the playhead when markup mode is entered).
+  - A review UI: accept, reject, accept-all, reject-all, plus the existing manual click flow for missed holds.
+  - Full-resolution refinement of accepted proposals (one SAM mask-decoder call per accepted hold at the proposal centroid).
+  - Ranking proposals by the model's score so the most likely holds appear first.
+  - Configuration of how many proposals are shown (default 30; user can raise/lower within 10–100).
+- **Out of scope (non-goals):** see §8.
+
+### 2. User scenario
+
+1. The user selects a video clip, places the playhead on the frame to mark and enters the existing markup mode.
+2. If the clip has no `HoldMarkup`, the Inspector shows a toggle **«Предлагать зацепки автоматически»** (default: on).
+   When the user enters markup mode and the toggle is on, the application starts the proposal pass and shows progress.
+3. The application decodes the frame at the proposal resolution (1080p by default), runs the model encoder once, probes
+a 15×15 grid of positive points, filters masks by `HoldCandidateRules`, suppresses duplicates by mask IoU ≥ 0.70 and
+shows the top-N ranked proposals.
+4. Each proposal is drawn as a translucent candidate contour (dashed, in a neutral colour distinct from the confirmed
+route). The first proposal is selected; Tab / Shift+Tab or click moves the selection.
+5. Actions:
+   - **Enter / double-click / click «Принять»** — accept the selected proposal.
+   - **Delete / click «Отклонить»** — reject the selected proposal.
+   - **Ctrl+A / «Принять все»** — accept all currently shown proposals. In the proposal-review mode this binding takes
+   precedence over the timeline's Select-All; `ShortcutRouter` must route it to the proposal ViewModel when markup is active.
+   - **Ctrl+D / «Отклонить все»** — reject all currently shown proposals. In the proposal-review mode this binding takes
+   precedence over the timeline's Duplicate; `ShortcutRouter` must route it to the proposal ViewModel when markup is active.
+   - **Shift+click on the frame** — switch to the existing manual refinement/add mode (a new candidate at the click
+   location); the proposal review stays available until the user confirms or cancels the manual candidate.
+   - **Esc** — discard any active manual candidate; if none, leave proposal review unchanged.
+   - **«Готово» / Play / Seek** — leave markup mode. Accepted proposals become confirmed holds; rejected and unreviewed
+   proposals are discarded.
+6. Accepting a proposal runs full-resolution refinement: the centroid of the accepted 1080p contour is used as a single
+positive prompt on the full-resolution frame, the best mask is kept, its contour is converted to normalized source
+coordinates, `SurfaceLab` / `WallLab` samples are taken from the full-resolution frame, and a `Hold` is added to the
+clip's markup. Accepting a single proposal is one Undo step; accept-all is one Undo step for the whole batch.
+7. If the user rejects all proposals, the manual D034 flow remains fully available.
+
+### 3. Proposal generation and interaction
+
+- **Prompt grid:** 15×15 by default (configurable in code, not exposed in the UI for the first version). Points span the
+frame in source-pixel space; the grid density is a project decision, not a user setting.
+- **Candidate rule:** the existing `HoldCandidateRules` (`≤2 %` of the frame, or `≤20 %` with score `≥0.9`).
+- **Duplicate suppression:** greedy NMS by mask IoU with threshold 0.70, keeping the highest-score proposal. The
+production implementation must avoid the O(n²) full-resolution mask-IoU cost that dominated R1: use downscaled masks for
+IoU, a spatial index, or both.
+- **Ranking:** by the model's score of the chosen mask, descending.
+- **Shown set:** top 30 by default; the user can choose 10 / 20 / 30 / 50 / 100 in the Inspector. The setting is per
+session, not persisted in the project.
+- **Selection state:** ephemeral; not stored in `project.json`. Only confirmed holds persist.
+
+### 4. Coordinates, contours and refinement
+
+- **Proposal pass resolution:** 1920×1080 by default. The frame is decoded at this resolution via the existing video
+decoder or a temporary ffmpeg scale; the model encoder still receives 1024×1024 via `SamImageProcessing.Preprocess`.
+- **Contour conversion:** a mask produced at 1080p is traced to a polygon and normalized by the 1080p width/height, giving
+`NormalizedPoint` values in the same 0..1 source space as D034 holds.
+- **Refinement at full resolution:** for each accepted proposal:
+  1. Decode the full-resolution frame with the existing video decoder (reused if already decoded for samples; otherwise
+     decoded once for the batch).
+  2. Compute the centroid of the accepted normalized contour.
+  3. Call the SAM mask-decoder with that centroid as a single positive prompt on the full-resolution frame.
+  4. Take the best mask offered by `HoldCandidateRules`.
+  5. Trace its contour, normalize it to the full-resolution frame size.
+  6. Take `SurfaceLab` / `WallLab` samples at the full-resolution frame.
+  7. Create a `Hold` with the refined contour, samples, the current `SourceTime` and a new `Guid`.
+- If refinement fails (no mask passes the candidate rule), the proposal is **not converted into a Hold**. The application
+shows a non-blocking message explaining that refinement failed for that hold; the user may try again or mark the hold
+manually. No incorrect or downsampled Hold is created.
+- **Coordinate preservation:** all contours live in normalized source coordinates, so Trim / Split / Move / Crop /
+transform behave exactly as D034 holds.
+
+### 5. Performance and quality criteria
+
+**Approved requirements** (must be met for phase acceptance):
+
+1. The proposal scenario of §2 works end to end on the product owner's gym clips.
+2. Accepting a proposal and accepting all proposals are each one Undo step; accept-all is one step for the whole batch.
+   Rejecting a proposal and rejecting all proposals are not Undo steps — they discard ephemeral in-memory proposals that
+   were never persisted.
+3. The existing manual D034 flow remains intact and reachable from the proposal review.
+4. Accepted proposals produce `Hold` entities that pass `HoldMarkupRules.ValidateHold` and render identically in Preview
+and export. If full-resolution refinement fails, no incorrect Hold is created and the user is informed.
+5. Project save/open round-trip: a project with accepted proposals saved and reopened shows the same confirmed holds; no
+proposal state is persisted (rejected proposals stay rejected by not being saved).
+6. The model load, error and cancellation paths of D034 §3 are reused; a proposal pass cancellation never mutates the
+project.
+7. The proposal pass on a 4K clip frame completes in **≤8 s wall time** with the default 1080p proposal resolution and
+15×15 grid. A result of **≤5 s** is desired but not required for acceptance.
+
+**Target orientirs** (measured on the development machine, not contractual until the product owner agrees):
+
+- Desired (non-blocking): proposal pass on a 4K clip frame in **≤5 s** with the default 1080p proposal resolution and
+  15×15 grid, achievable mainly by removing the O(n²) resolution-dependent mask work.
+- Recall on the E1 set: **≥45 %** at IoU≥0.50 with the default grid and filtering (R1 baseline: 51.2 %; 1080p: 51.8 %).
+- Precision is expected to remain low (~10 %); the UI must make review practical.
+
+### 6. Tests and manual checks
+
+- **Automated tests:**
+  - Unit tests for the proposal service (with a fake backend): grid generation, candidate filtering, NMS, ranking,
+  contour normalization, centroid calculation.
+  - Tests that accepted proposals produce valid `Hold` entities with correct `SourceTime` and normalized points.
+  - Tests that the manual click flow is still reachable and unchanged.
+  - Undo/redo tests for accept and accept-all; tests that reject and reject-all discard ephemeral proposals and are not
+    persisted or undoable.
+  - `project.json` v9 round-trip unchanged for a project with no proposals; confirmed holds round-trip as in D034.
+  - Preview/export parity for a clip with accepted proposals.
+- **Manual checks:** see `docs/PHASE31_MANUAL_TEST_PLAN.md`.
+- **Error and edge cases:**
+  - Model missing or mismatching SHA-256: the proposal button is disabled with the same message as D034; manual markup
+  still works.
+  - No proposals generated: show «Зацепки не найдены — разметьте вручную» and switch to manual mode.
+  - All proposals rejected: same as above.
+  - Cancel during proposal generation: discard everything, no project mutation.
+  - Clip shorter than one frame / offline media: disable proposals, fall back to manual.
+  - More than `HoldMarkupRules.MaxHolds` proposals accepted: refuse further accepts with the existing max-holds message.
+
+### 7. Non-goals and constraints
+
+- No new AI model; SAM 2.1 Large remains the only model.
+- No camera tracking, occlusion handling or multi-frame proposals (R2 / E territory).
+- No automatic route animation timing from proposals; animation settings stay D036.
+- No per-hold colours, numbers or labels beyond the existing route outline.
+- No batch markup across multiple clips; proposals are generated per clip on entering markup mode.
+- No persistent proposal state; only confirmed holds are saved.
+- No change to `project.json` v9 format for this phase.
+- No change to the hold stroke, colour, keyline or animation rules of D034–D036.
+
+### 8. Implementation steps
+
+1. **Step D.0 — Specification approval** (this decision). Product owner approves §1–§9; phase number assigned (Phase 31).
+2. **Step D.1 — Core proposal types and service interface** (no UI): `IHoldProposalService`, `HoldProposal`, proposal
+pipeline (grid → predict → filter → NMS → rank), contour normalization and centroid. Tests with a fake backend.
+3. **Step D.2 — Proposal generation at downscaled resolution**: integrate with the existing decoder and
+`OnnxHoldSegmentationService`; add an internal proposal-resolution setting (default 1080p, not exposed in the UI for the
+first version); ensure colour samples and refinement can use full resolution.
+4. **Step D.3 — Full-resolution refinement**: for one or many accepted proposals, decode the full-resolution frame,
+re-prompt at centroids, create `Hold` entities. Tests for valid holds and sample accuracy.
+5. **Step D.4 — UI / ViewModel**: proposal review panel, accept/reject/accept-all/reject-all, keyboard shortcuts,
+selection, switch to manual flow. Preserve D034 UI.
+6. **Step D.5 — Undo / redo and project mutation**: one `IUndoableCommand` per user action — accepting a single proposal
+is one Undo step, accept-all is one Undo step for the whole batch. Rejections are not Undo steps because they discard
+ephemeral proposals that were never persisted. Ensure no partial project state on cancellation.
+7. **Step D.6 — Manual test plan and quality check**: run `docs/PHASE31_MANUAL_TEST_PLAN.md` on owner footage; measure
+recall/precision and wall time; compare with R1 baseline.
+8. **Step D.7 — Final verification and closeout**: build `-warnaserror` 0/0; full suite green; heavy tests; affected
+manual plans; `project.json` v9 byte-for-byte; parity; D039 localization for all new user-visible text.
+
+### 9. Acceptance criteria
+
+1. The proposal scenario of §2 is complete and manually verified on owner footage.
+2. Accept and accept-all work; accept-all is one Undo step. Reject and reject-all discard ephemeral proposals and leave
+   no persisted state to undo.
+3. The existing D034 click, refine, confirm and delete flow is unchanged and reachable.
+4. Accepted proposals produce valid, renderable `Hold` entities; Preview and export are identical. If refinement fails,
+   no incorrect Hold is created and the user is informed.
+5. Project open/save round-trip is unchanged for confirmed holds; no proposal state leaks into `project.json`.
+6. The default configuration completes the proposal pass in **≤8 s** on a 4K frame on the development machine, or the
+product owner explicitly accepts a higher documented number. A result of **≤5 s** is desired but not required.
+7. Recall on the E1 set is ≥45 % at IoU≥0.50, or the product owner accepts a documented lower value.
+8. New user-visible strings have Russian translations (D039).
+
+### 10. Risks and open questions
+
+- **Risk:** NMS/matching cost may still make the 2–3 s aspirational target unreachable even at 1080p. Mitigation: spatial
+index or downscaled-mask NMS in D.2/D.3.
+- **Risk:** Low precision means many rejections; the UI must be fast. Mitigation: top-N ranking, keyboard shortcuts,
+reject-all.
+- **Resolved (product owner, 2026-10-25):** refinement runs automatically after Accept; if it fails, no incorrect Hold is
+  created and the user is informed.
+- **Resolved (product owner, 2026-10-25):** proposal pass resolution is the internal default 1920×1080; a 720p/1080p
+  user setting is not added in Phase 31.
+- **Resolved (Step 31.6, 2026-10-26):** the default prompt grid is changed from 16×16 to 15×15. Measurements on the E1 set
+  at 1920×1080 show 15×15 is faster than 16×16 (≈7.4 s vs ≈8.4 s on a 4K frame) and improves recall (53.7 % vs 51.8 %),
+  so it meets both the ≤8 s acceptance criterion and the ≥45 % recall orientir. The 16×16 R1 baseline is kept as
+  historical context in §0.
+
+Status: **Approved by the product owner on 2026-10-25 with the clarifications above**. Steps 31.1–31.7 are
+implemented and verified on 2026-10-26; Phase 31 is technically complete. Full user acceptance is pending the interactive
+A/B/E checks in `docs/PHASE31_MANUAL_TEST_PLAN.md` that require the product owner's own footage and manual UI actions.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

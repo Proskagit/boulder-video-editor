@@ -188,6 +188,15 @@ and runs cleanly.
       technically complete 2026-10-24; S1 acceptance pending a later task.)*
 - [ ] **Planned (D042; numbers given when taken up):** R1 → D — automatic hold proposals · R2 → E — outlines following the
       camera · R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
+- **Phase 31 technically complete (D047 approved 2026-10-25):** Steps 31.1–31.7 are complete: Core proposal types and
+      pipeline, proposal generation at downscaled resolution, full-resolution refinement of accepted proposals, the proposal
+      review UI / ViewModel, integration with the manual D034 flow / project mutation, the manual test plan / performance
+      optimization, and final verification / closeout. The default grid was changed from 16×16 to 15×15 during Step 31.6: it
+      is faster and has higher recall on the E1 set, so the ≤8 s acceptance criterion is met for both 4K and 1080p on the
+      development machine. Full user acceptance is pending the interactive A/B/E checks that require the product owner's own
+      footage and manual UI actions. D047 clarifications: ≤8 s on a 4K frame is the acceptance performance criterion, ≤5 s
+      desired but not a blocker; refinement runs automatically after Accept and reports failure instead of creating an
+      incorrect Hold; proposal pass resolution is the internal default 1920×1080; default prompt grid is 15×15.
 
 ## Planned phases after Phase 26 (D042)
 
@@ -196,8 +205,9 @@ product owner after the merge of Phase 26 (D042 "Refined after the merge of Phas
 steps, acceptance criteria and manual plan when it is taken up, and its number then. A is Phase 27 (D043; merged, PR #28,
 `36a1a58`); B is Phase 28 (D044; merged, PR #29, `4f0e66a`); C is Phase 29 (D045; merged, PR #30, `e28a9d3`); G is
 Phase 30 (D046; approved 2026-10-22, **technically complete 2026-10-24** — local verification passed; the full S1 acceptance
-is deferred to a separate release-preparation task). R1 → D (automatic hold proposals) is the next planned research phase;
-R2 → E, R3 → F and H are neither started nor approved. The scopes of the
+is deferred to a separate release-preparation task). R1 → D (automatic hold proposals) is **complete as a research phase**
+(conditional GO; Step R1.1 and R1.2 done in `tools/r1-hold-proposals/`); phase D is not started and requires its own
+decision. R2 → E, R3 → F and H are neither started nor approved. The scopes of the
 phases not yet taken up are sketches to be refined — not specifications. Every phase keeps the standing rules at the end of this file: one Undo step per user action, the
 Preview identical to the export, `MediaTime` ticks, heavy work off the UI thread, the localization guards (D039), the gates
 of the recent phases (build `-warnaserror`, the full suite, heavy, `--blame-hang`, `project.json` compared byte for byte
@@ -272,12 +282,67 @@ G + D / E as taken + F ─► regression run ─► H       S4 — the full plan
   installed as `docs/AI_MODEL.md` describes) and the main path (D042 §1 without step 4) is completed in it, import to
   export.
 
-### R1 → D — Automatic hold proposals *(research, then AI large)*
-- R1: on the product owner's footage, whether holds can be proposed on a frame without clicks (e.g. the model of D034 on a
-  grid of prompts, or another model — licence, size and local inference as in D034), the quality against the E1 set, the
-  time per frame; a go / no-go and a specification.
-- D (on a go): proposals shown in the markup mode, the user accepts or rejects them; the confirmed holds are the D034
-  holds (nothing else changes downstream).
+### R1 → D — Automatic hold proposals *(research complete, then AI large; Phase 31 — DECISIONS.md D047, approved 2026-10-25)*
+- **R1** (research, no product code): completed 2026-10-24. The harness in `tools/r1-hold-proposals/` evaluated grid-prompt
+  proposals against the E1 reference holds. Best tested configuration: SAM 2.1 Large ONNX, 16×16 grid, frame decoded and
+  evaluated at 1920×1080 — 247.9 s on the 15-frame E1 set (2.27× faster than full-resolution Large), 85/164 reference holds
+  matched (51.8 % recall), 10.1 % precision. R1 concluded with a **conditional GO**. The default grid was later changed
+  to 15×15 in Step 31.6 (53.7 % recall, ~7.4 s on a warm 4K frame).
+- **D / Phase 31** (approved 2026-10-25): automatic hold proposals in the markup mode. The user reviews ranked proposals,
+  accepts or rejects them individually or in batch; accepted proposals are refined at full resolution and become ordinary
+  D034 holds, or the user is informed if refinement fails. The existing manual click flow is preserved. The full
+  specification, acceptance criteria, steps, non-goals and risks: DECISIONS.md D047. The implementation steps: "Phase 31
+  — Automatic hold proposals: steps" below. Steps 31.1–31.7 are complete; full user acceptance is pending the interactive A/B/E checks.
+
+### Phase 31 — Automatic hold proposals: steps
+
+Normative specification: DECISIONS.md D047. The phase changes no product code until approved; the steps below are the
+planned implementation order after approval. Branch from `ad5a514` (Phase 30 technical closeout).
+
+1. **Step 31.0 — Specification approval** (no code). The product owner approves D047; the phase number is assigned
+   (Phase 31). Create the branch and the manual plan reference.
+2. **Step 31.1 — Core proposal types and service interface** (no UI). Add `IHoldProposalService`, `HoldProposal`, the
+   proposal pipeline (grid → predict → filter → NMS → rank), contour normalization and centroid calculation. Implement
+   with a fake backend for unit tests. No changes to `project.json`.
+3. **Step 31.2 — Proposal generation at downscaled resolution**. Integrate with the existing decoder and
+   `OnnxHoldSegmentationService`; decode the markup frame at 1920×1080 for the proposal pass, run the encoder once at
+   1024×1024 via `SamImageProcessing.Preprocess`, probe the 15×15 grid, filter with `HoldCandidateRules`, suppress
+   duplicates efficiently (spatial index or downscaled-mask IoU, not O(n²) full-resolution mask-IoU), rank by score.
+   Add cancellation and progress reporting.
+4. **Step 31.3 — Full-resolution refinement** (complete 2026-10-26). For accepted proposals, decode the full-resolution
+   frame, re-prompt at the normalized centroid, keep the best mask, trace and normalize the refined contour, take
+   `SurfaceLab` / `WallLab` samples at full resolution, create a `Hold`. If refinement fails for a proposal, report it to
+   the user and do not create an incorrect `Hold`. Implemented in `IHoldProposalRefiner`/`HoldProposalRefiner` with unit
+   tests and a single-frame real-model smoke test (~6.75 s on one 4K frame).
+5. **Step 31.4 — Proposal review UI / ViewModel** (complete 2026-10-26). Inspector panel: ranked list of proposals,
+   accept / reject / accept-all / reject-all, default top-30 with 10/20/30/50/100 chooser, keyboard shortcuts (Enter, Delete,
+   Tab, Shift+Tab, Ctrl+A, Ctrl+D, Esc), visual selection distinct from confirmed holds, switch to manual Shift+click flow.
+   Automatic full-resolution refinement on accept; accept and accept-all are one Undo step each; reject / reject-all are
+   not Undo steps. Implemented with tests and D039 localization.
+6. **Step 31.5 — Integration with manual D034 flow and project mutation** (complete 2026-10-26). Entering markup mode on a
+   clip without holds offers proposals; re-entering a clip with holds skips generation. Rejected proposals are not persisted
+   and cancel during generation leaves the project unchanged. `HoldMarkupRules.MaxHolds` is enforced. Covered by integration
+   tests.
+7. **Step 31.6 — Manual test plan and quality check** (complete 2026-10-26). A headless real-model surrogate
+   (`tests/Vision.ModelTests/Phase31ManualSurrogateTests.cs`) ran on an E1 4K clip and a 1080p clip; it measured proposal
+   pass wall time and verified accept-all, Undo, persistence and the default top-30 behaviour. Profiling showed the
+   prediction loop (ONNX decoder + upsample + contour extraction) dominates. Decoder batching is not viable because the
+   exported SAM 2.1 decoder treats a multi-point prompt as one prompt and returns only three masks total. Grid-size
+   experiments on the E1 set at 1920×1080 showed 15×15 is faster than 16×16 and improves recall (53.7 % vs 51.8 %),
+   so the default grid was changed to 15×15. The ≤8 s criterion is met for both 4K and 1080p on the development machine;
+   the ≤5 s aspirational is not met on 4K but was non-blocking. Interactive checks (A/B/E in
+   `docs/PHASE31_MANUAL_TEST_PLAN.md`) need the product owner's own footage and manual UI actions and are recorded as
+   NOT RUN.
+8. **Step 31.7 — Final verification and closeout** (complete 2026-10-26). `dotnet build AiVideoEditor.sln -c Release
+   -warnaserror` 0/0; full test suite green (0 failed, 2 skipped opt-in 4K `ExportParityScaledTests` without
+   `AIVE_HEAVY_TESTS=1`); `project.json` v9 byte-for-byte round-trip covered by the surrogate; Preview/export parity
+   unchanged (accepted proposals become normal D034 holds); D039 localization for all new user-visible text;
+   `docs/PHASE31_MANUAL_TEST_PLAN.md` and `progress.md` updated. Interactive A/B/E checks remain NOT RUN pending the
+   product owner's own footage and manual UI actions.
+
+Gates before the phase is declared complete: build `-warnaserror` 0/0; affected tests green; Preview ↔ Export parity and
+every expected value unchanged; a v9 project saved byte for byte; every new user-visible text in `Strings` / `Messages`
+has a `.ru` entry (D039); `docs/PHASE31_MANUAL_TEST_PLAN.md` and `progress.md` updated.
 
 ### R2 → E — Outlines following the holds while the camera moves *(research — the highest uncertainty, then AI large)*
 - R2: camera motion on real gym videos (hand-held, pans, zoom); approaches (feature tracking and a homography of the wall

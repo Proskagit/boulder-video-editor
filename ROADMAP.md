@@ -83,12 +83,16 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 
 ## Current
 
-**Next planned (not started — awaiting the product owner's command): R1 → D — automatic hold proposals.** The first part
-is a research phase (R1) without product code: on the owner's footage, test whether holds can be proposed on a frame without
-clicks, evaluate quality against the E1 set, measure time per frame, and produce a go / no-go with a specification. The
-implementation phase (D) follows only on a go and needs its own decision. This is the next item in the order confirmed by
-the product owner (D042 "Refined after the merge of Phase 26"): A → B → C → G; R1 and R2 in parallel with A–C without
-product code, D / E agreed separately after them. Nothing of R1–R3, D–F or H is started or approved.
+**Phase 31 — Automatic hold proposals (D047 approved 2026-10-25; technically complete 2026-10-26).** The default
+configuration — SAM 2.1 Large ONNX, 15×15 grid, frames decoded and evaluated at 1920×1080 — runs in ~7.4 s on a warm 4K
+frame and ~6.5 s on a warm 1080p frame on the development machine, meeting the ≤8 s acceptance criterion. The E1 recall at
+IoU≥0.50 is 53.7 % (88/164 reference holds), above the ≥45 % orientir. Clarifications: ≤8 s on a 4K frame is the acceptance
+performance criterion, ≤5 s is desired but not a blocker; refinement runs automatically after Accept and reports failure
+instead of creating an incorrect Hold; proposal pass resolution is the internal default 1920×1080 with no user setting;
+default prompt grid is 15×15. Steps 31.1–31.7 are complete. Full user acceptance is pending the interactive A/B/E checks
+in `docs/PHASE31_MANUAL_TEST_PLAN.md` that require the product owner's own footage and manual UI actions. Phase 31 is
+sharply scoped: reduced-resolution proposal pass, efficient duplicate suppression, ranked accept/reject UI, and
+preservation of the existing D034 click flow.
 
 Steps: `docs/DEVELOPMENT_PLAN.md`, "Planned phases after Phase 26 (D042)"; DECISIONS.md D042.
 
