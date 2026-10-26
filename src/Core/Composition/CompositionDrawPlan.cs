@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
+using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Motion;
 using AiVideoEditor.Core.Playback;
 
 namespace AiVideoEditor.Core.Composition;
@@ -144,7 +146,7 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
     {
         yield return Operation(canvas, canvasToTarget, resolved);
         if (resolved.Layer is PictureLayer { Span.Outline: { } } picture && resolved.Frame is { } frame &&
-            Outline(canvas, canvasToTarget, picture, new FrameSize(frame.Width, frame.Height), minTargetStroke) is { } outline)
+            Outline(canvas, canvasToTarget, picture, new FrameSize(frame.Width, frame.Height), minTargetStroke, frame.Timestamp) is { } outline)
             yield return outline;
     }
 
@@ -156,7 +158,11 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
     /// contour shown on the layer's frame (<see cref="PictureLayer.OutlineOpacities"/>); the hidden ones are left out. Null
     /// without an outline or when no contour is shown.
     /// </summary>
-    public static OutlineDraw? Outline(FrameSize canvas, Affine2D canvasToTarget, PictureLayer picture, FrameSize decodedSize, double minTargetStroke = 0)
+    /// <param name="frameTimestamp">The shown frame's timestamp: with the outline's camera motion (hold tracking) each contour
+    /// is moved from the frame it was marked on to this frame, or left out where that is not reliably known (it is never
+    /// drawn off its hold); null — every contour where it was marked.</param>
+    public static OutlineDraw? Outline(FrameSize canvas, Affine2D canvasToTarget, PictureLayer picture, FrameSize decodedSize, double minTargetStroke = 0,
+        SourceTimestamp? frameTimestamp = null)
     {
         if (picture.Span.Outline is not { } outline) return null;
         var geometry = picture.Geometry ?? CompositionMath.Layout(canvas, decodedSize, picture.Span.Visual);
@@ -168,10 +174,21 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
         var animated = !opacities.IsDefault && opacities.Length == outline.Polygons.Length;
         var polygons = ImmutableArray.CreateBuilder<ImmutableArray<PointD>>(outline.Polygons.Length);
         var shown = ImmutableArray.CreateBuilder<double>(animated ? outline.Polygons.Length : 0);
+        var frameTime = outline.Motion is not null && frameTimestamp is { } timestamp
+            ? CameraMotionMath.SourceTimeOf(timestamp, outline.SourceStartTime)
+            : (MediaTime?)null;
         for (var i = 0; i < outline.Polygons.Length; i++)
         {
             if (animated && !(opacities[i] > 0)) continue;
-            polygons.Add(outline.Polygons[i].Select(p => new PointD(p.X * w - crop.X, p.Y * h - crop.Y)).ToImmutableArray());
+            var points = outline.Polygons[i];
+            if (frameTime is { } time && i < outline.MarkedAt.Length)
+            {
+                var mapped = outline.Motion!.Map(outline.MarkedAt[i], time);
+                if (mapped.Kind == CameraMotionLookupKind.Hidden) continue;
+                if (mapped.Kind == CameraMotionLookupKind.Aligned)
+                    points = points.Select(mapped.Transform.Apply).ToImmutableArray();
+            }
+            polygons.Add(points.Select(p => new PointD(p.X * w - crop.X, p.Y * h - crop.Y)).ToImmutableArray());
             if (animated) shown.Add(opacities[i]);
         }
         if (polygons.Count == 0) return null;

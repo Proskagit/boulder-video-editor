@@ -3,6 +3,7 @@ using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Localization;
+using AiVideoEditor.Core.Motion;
 using AiVideoEditor.Core.Playback;
 
 namespace AiVideoEditor.Core.Export;
@@ -41,7 +42,18 @@ public enum ExportIssueKind
     EmptyRange,
     /// <summary>The media's metadata states HDR in a combination the HDR → SDR rule does not convert (D033 §3, OQ1): its
     /// picture is exported unconverted, as the Preview shows it (warning).</summary>
-    HdrNotConverted
+    HdrNotConverted,
+    /// <summary>The camera motion of a clip with holds (hold tracking) is still being analysed: the export waits for it, so
+    /// its contours follow the wall exactly as in the Preview.</summary>
+    HoldTrackingPending
+}
+
+/// <summary>The camera-motion tracks the export draws the hold contours with (the Preview's own), and the clips whose
+/// analysis has not finished (hold tracking).</summary>
+public sealed record ExportCameraMotion(IReadOnlyDictionary<Guid, CameraMotionTrack> Tracks, IReadOnlySet<Guid> Pending)
+{
+    public static readonly ExportCameraMotion None =
+        new(new Dictionary<Guid, CameraMotionTrack>(), new HashSet<Guid>());
 }
 
 /// <summary>One problem found by <see cref="ExportPreflight"/>. Media and font problems name every
@@ -63,6 +75,9 @@ public sealed record ExportPreflightEnvironment(
     Func<string, bool> FileExists,
     Func<string, bool> DirectoryExists)
 {
+    /// <summary>Hold tracking: the tracks and the clips still analysed; none — contours where they were marked.</summary>
+    public ExportCameraMotion CameraMotion { get; init; } = ExportCameraMotion.None;
+
     public static ExportPreflightEnvironment Default(bool encoderAvailable, Func<string, bool> isFontInstalled) =>
         new(encoderAvailable, isFontInstalled, File.Exists, Directory.Exists);
 }
@@ -100,7 +115,7 @@ public static class ExportPreflight
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(environment);
 
-        var snapshot = PlaybackSnapshotBuilder.Build(project, version: 0);
+        var snapshot = PlaybackSnapshotBuilder.Build(project, version: 0, environment.CameraMotion.Tracks);
         var issues = new List<ExportIssue>();
 
         if (snapshot.Duration <= MediaTime.Zero)
@@ -139,6 +154,7 @@ public static class ExportPreflight
         }
 
         CheckMedia(project, snapshot, environment, issues, window);
+        CheckHoldTracking(project, snapshot, environment, issues, window);
         CheckFonts(snapshot, environment, issues, window);
 
         var ordered = issues.OrderBy(i => i.Severity).ToImmutableArray();
@@ -286,6 +302,33 @@ public static class ExportPreflight
         if (asset.Kind == MediaKind.Video && asset.IsMetadataRefreshing && asset.Metadata.NeedsColorProbe)
             return ExportIssueKind.MediaNotAnalyzed;
         return status is SpanStatus.Video or SpanStatus.StillImage or SpanStatus.Audio ? null : ExportIssueKind.MediaOffline;
+    }
+
+    /// <summary>Hold tracking: a clip whose contours reach the output while its camera motion is still analysed blocks the
+    /// export (one issue per media file), so the export never draws contours the Preview would draw elsewhere.</summary>
+    private static void CheckHoldTracking(Project project, PlaybackSnapshot snapshot, ExportPreflightEnvironment env, List<ExportIssue> issues,
+        Window window)
+    {
+        if (env.CameraMotion.Pending.Count == 0) return;
+        var assets = project.MediaAssets.ToDictionary(a => a.Id);
+        var waiting = snapshot.VideoLayers.SelectMany(l => l.Spans)
+            .Where(s => s.Outline is not null && s.Visual.Opacity > 0 && window.Shows(s.ShownStart, s.ShownEnd) &&
+                        env.CameraMotion.Pending.Contains(s.ClipId))
+            .GroupBy(s => s.AssetId)
+            .OrderBy(g => g.Min(s => s.TimelineStart));
+        foreach (var group in waiting)
+        {
+            var asset = assets.GetValueOrDefault(group.Key);
+            var clips = group.OrderBy(s => s.TimelineStart).Select(s => s.ClipId).Distinct().ToImmutableArray();
+            issues.Add(Error(ExportIssueKind.HoldTrackingPending,
+                string.Format(Messages.Preflight_HoldTrackingPending, asset?.FileName ?? Messages.Preflight_MediaNotInProject,
+                    Plural.Format(clips.Length, Messages.Plural_Clips), group.Min(s => s.TimelineStart))) with
+            {
+                AssetId = group.Key,
+                Subject = asset?.FilePath,
+                ClipIds = clips
+            });
+        }
     }
 
     private static void CheckFonts(PlaybackSnapshot snapshot, ExportPreflightEnvironment env, List<ExportIssue> issues, Window window)

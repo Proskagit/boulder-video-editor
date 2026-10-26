@@ -574,6 +574,9 @@
   <data name="Preflight_NoOutput" xml:space="preserve">
     <value>Выходной файл не выбран.</value>
   </data>
+  <data name="Preflight_HoldTrackingPending" xml:space="preserve">
+    <value>Контуры зацепок «{0}» ещё привязываются к стене ({1}, первый в {2}). Подождите немного и повторите экспорт.</value>
+  </data>
   <data name="Preflight_NotAnalysedYet" xml:space="preserve">
     <value>«{0}» ещё не проанализирован ({1}, первый в {2}).</value>
   </data>

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Motion;
 
 namespace AiVideoEditor.Core.Playback;
 
@@ -76,9 +77,23 @@ public sealed record HoldOutline(ImmutableArray<ImmutableArray<NormalizedPoint>>
 {
     public HoldSchedule? Schedule { get; init; }
 
+    /// <summary>The source time each contour was marked at (<see cref="Hold.SourceTime"/>), by index.</summary>
+    public ImmutableArray<MediaTime> MarkedAt { get; init; } = ImmutableArray<MediaTime>.Empty;
+
+    /// <summary>The camera's motion over the clip's source (hold tracking); null without it — every contour then stays
+    /// where it was marked. Applied per frame by <see cref="CompositionDrawPlan.Outline"/> from the shown frame's own
+    /// timestamp, so the Preview and the export draw the same contours on the same picture.</summary>
+    public CameraMotionTrack? Motion { get; init; }
+
+    /// <summary>The file's start time (<c>MediaMetadata.StartTime</c>): the origin of the frame timestamps' source time.</summary>
+    public MediaTime SourceStartTime { get; init; }
+
     /// <summary>The outline of <paramref name="markup"/> without the animation (it needs the clip's timing).</summary>
     public static HoldOutline? Of(HoldMarkup? markup) => markup is { Holds.Length: > 0 }
         ? new HoldOutline(markup.Holds.Select(h => h.Points).ToImmutableArray(), markup.StrokeWidth1080, markup.ColorHex, markup.KeylineActive)
+        {
+            MarkedAt = markup.Holds.Select(h => h.SourceTime).ToImmutableArray()
+        }
         : null;
 
     /// <summary>The outline of <paramref name="markup"/> on a clip at <paramref name="clipStart"/> / <paramref name="sourceIn"/>

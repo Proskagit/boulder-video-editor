@@ -574,6 +574,9 @@
   <data name="Preflight_NoOutput" xml:space="preserve">
     <value>No output file was chosen.</value>
   </data>
+  <data name="Preflight_HoldTrackingPending" xml:space="preserve">
+    <value>The hold outlines of '{0}' are still being fixed to the wall ({1}, first at {2}). Wait a moment and export again.</value>
+  </data>
   <data name="Preflight_NotAnalysedYet" xml:space="preserve">
     <value>'{0}' has not been analysed yet ({1}, first at {2}).</value>
   </data>

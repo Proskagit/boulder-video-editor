@@ -3,6 +3,7 @@ using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Motion;
 
 namespace AiVideoEditor.Core.Playback;
 
@@ -18,7 +19,9 @@ namespace AiVideoEditor.Core.Playback;
 /// </summary>
 public static class PlaybackSnapshotBuilder
 {
-    public static PlaybackSnapshot Build(Project project, long version)
+    /// <param name="motion">The camera's motion per video clip (hold tracking), by clip id — derived from the video, not part
+    /// of the project; null or a missing clip: its contours stay where they were marked, exactly as before.</param>
+    public static PlaybackSnapshot Build(Project project, long version, IReadOnlyDictionary<Guid, CameraMotionTrack>? motion = null)
     {
         var sequence = project.Timeline;
         var assets = project.MediaAssets.ToDictionary(a => a.Id);
@@ -75,7 +78,7 @@ public static class PlaybackSnapshotBuilder
                         ExtendedStart = dissolves.FirstOrDefault(z => z.RightClipId == clip.Id && z.ExtendsPictures)?.Start,
                         ExtendedEnd = dissolves.FirstOrDefault(z => z.LeftClipId == clip.Id && z.ExtendsPictures)?.End,
                         Outline = media is VideoClip { HoldMarkup: { } markup }
-                            ? HoldOutline.Of(markup, clip.TimelineStart, media.SourceIn, media.Speed, rate)
+                            ? WithMotion(HoldOutline.Of(markup, clip.TimelineStart, media.SourceIn, media.Speed, rate), clip.Id, asset, motion)
                             : null
                     });
 
@@ -217,6 +220,11 @@ public static class PlaybackSnapshotBuilder
         var dissolveOut = track.Transitions.Any(t => t.LeftClipId == clip.Id);
         return FadeRule.EffectiveFrames(clip, rate, dissolveIn, dissolveOut);
     }
+
+    private static HoldOutline? WithMotion(HoldOutline? outline, Guid clipId, MediaAsset? asset, IReadOnlyDictionary<Guid, CameraMotionTrack>? motion) =>
+        outline is not null && motion is not null && motion.TryGetValue(clipId, out var track)
+            ? outline with { Motion = track, SourceStartTime = asset?.Metadata?.StartTime ?? MediaTime.Zero }
+            : outline;
 
     private static (SpanStatus, string?) PictureStatus(MediaBackedClip clip, MediaAsset? asset)
     {
