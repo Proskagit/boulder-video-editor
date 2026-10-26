@@ -2,6 +2,7 @@ using AiVideoEditor.Audio;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Export;
+using AiVideoEditor.Core.Holds;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.Export;
@@ -91,6 +92,10 @@ public static class ServiceCollectionExtensions
             Path.Combine(AppPaths.ModelsFolder, HoldModel.FolderName),
             sp.GetService<Microsoft.Extensions.Logging.ILogger<OnnxHoldSegmentationService>>()));
         services.AddSingleton<IHoldMarkupFrameSource, HoldMarkupFrameSource>();
+        // Phase 31 (D047): automatic hold proposals at 1920×1080 and full-resolution refinement of accepted proposals.
+        services.AddSingleton<IHoldProposalService, HoldProposalService>();
+        services.AddSingleton<IHoldProposalGenerator, HoldProposalGenerator>();
+        services.AddSingleton<IHoldProposalRefiner, HoldProposalRefiner>();
         services.AddSingleton<StatusService>();
         services.AddSingleton<EditingLock>();
         services.AddSingleton<InOutRangeService>();   // the session's In / Out range (D030 §8)

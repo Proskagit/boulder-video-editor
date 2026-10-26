@@ -603,7 +603,12 @@ public sealed class SetHoldMarkupCommand(VideoClip clip, HoldMarkup? before, Hol
 
     public string Description => Fields switch
     {
-        HoldMarkupFields.Holds => (After?.Holds.Length ?? 0) > (Before?.Holds.Length ?? 0) ? "Add Hold" : "Remove Hold",
+        HoldMarkupFields.Holds => ((After?.Holds.Length ?? 0) - (Before?.Holds.Length ?? 0)) switch
+        {
+            > 1 => "Add Holds",
+            > 0 => "Add Hold",
+            _ => "Remove Hold"
+        },
         HoldMarkupFields.StrokeWidth => "Change Outline Width",
         HoldMarkupFields.Color => "Change Outline Colour",
         HoldMarkupFields.Keyline => "Change Keyline",

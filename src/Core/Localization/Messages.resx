@@ -412,6 +412,18 @@
   <data name="Holds_WidthRange" xml:space="preserve">
     <value>The outline width must be between {0} and {1} px.</value>
   </data>
+  <data name="Holds_NoFrameProduced" xml:space="preserve">
+    <value>'{0}' produced no frame.</value>
+  </data>
+  <data name="Holds_RefinementFailed" xml:space="preserve">
+    <value>The accepted hold could not be refined at full resolution.</value>
+  </data>
+  <data name="Holds_RefinementFewPoints" xml:space="preserve">
+    <value>The refined mask produced too few contour points.</value>
+  </data>
+  <data name="Holds_RefinementInvalid" xml:space="preserve">
+    <value>The refined hold is invalid: {0}</value>
+  </data>
   <data name="Insert_InsideCrossfade" xml:space="preserve">
     <value>Can't insert inside a crossfade.</value>
   </data>
