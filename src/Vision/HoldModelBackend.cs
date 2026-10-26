@@ -97,7 +97,15 @@ public sealed class OnnxHoldModelBackend : IHoldModelBackend
         using var results = Run(_decoder, inputs, cancellationToken);
         var masks = results.First(r => r.Name == "masks").AsTensor<float>();
         var scores = results.First(r => r.Name == "iou_predictions").AsTensor<float>();
-        return new HoldLogits(masks.ToArray(), scores.ToArray(), masks.Dimensions[1]);
+
+        // SAM 2 decoder: single point -> [1, 3, H, W]; multiple points -> [1, n, 3, H, W].
+        var count = masks.Dimensions.Length switch
+        {
+            4 => masks.Dimensions[1],                       // n == 1, masks per point in dim 1
+            5 => masks.Dimensions[1] * masks.Dimensions[2], // [1, n, 3, H, W]
+            _ => throw new InvalidOperationException($"Unexpected decoder masks rank {masks.Dimensions.Length}.")
+        };
+        return new HoldLogits(masks.ToArray(), scores.ToArray(), count);
     }
 
     private IDisposableReadOnlyCollection<DisposableNamedOnnxValue> Run(InferenceSession session, IReadOnlyCollection<NamedOnnxValue> inputs, CancellationToken cancellationToken)
