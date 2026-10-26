@@ -24,6 +24,13 @@ The default grid is 15×15 (faster and higher recall than 16×16 on the E1 set);
 1080p on the development machine. Full user acceptance is pending the interactive A/B/E checks that require the product
 owner's own footage and manual UI actions. See the `### Phase 31` section below.
 
+**Hold tracking — camera motion compensation (R2 → E; in progress, no phase number assigned).** Branch
+`feat/hold-tracking` from `8e2ebc6` (Phase 31 closeout), worktree `C:\AiVideoEditor-tracking`. Scope by the product
+owner's decisions after the R2 research (`docs/PHASE_HOLD_TRACKING.md`, R-6 / R-7): the contours stay on the wall while
+the camera moves, over the whole window they are shown in; similarity first, the homography only where the similarity is
+not accurate enough; an unreliable frame never shows a contour off its hold; occlusion, route-colour detection and the
+format change are out. See the `### Hold tracking` section below.
+
 No commit, push, pull request or merge without the product owner's command.
 
 Phases 27 (D043), 28 (D044) and 29 (D045) are merged: PR #28 as `36a1a58`, PR #29 as `4f0e66a` (2026-10-21), PR #30 as
@@ -414,6 +421,42 @@ the pull request).
   - **NO-GO** if the owner requires sub-second proposal time or <10 % false positives without user review on the current
     Large model.
   - Phase D is **not started** and requires its own product-owner decision and specification.
+
+### Hold tracking — camera motion compensation (R2 → E; in progress)
+
+- 2026-10-27 — implementation started on `feat/hold-tracking` (from `8e2ebc6`), by the product owner's instruction; the
+  plan found: `docs/DEVELOPMENT_PLAN.md` "R2 → E" (E: outlines follow the camera in the Preview and the export
+  identically, a manual correction when the tracking is wrong, D036's animation unchanged) and the R2 research with the
+  owner's decisions R-1…R-9 (`docs/PHASE_HOLD_TRACKING.md`, revision 4; copied into this branch). Discrepancy recorded:
+  `DEVELOPMENT_PLAN.md` / `ROADMAP.md` still say "R2 → E not started", and no DECISIONS record exists for E.
+  - Done (steps S5–S6 of the research plan): Core `Motion/` (transform, track, estimator, fits, range), the outline's
+    per-frame mapping by the shown frame's timestamp in the shared draw plan, `CameraMotionCoordinator` (background
+    analysis, derived data, no format change), the Preview and the export preflight wired (`HoldTrackingPending`), the
+    message in en + ru. Architecture: `ARCHITECTURE.md`, "Hold tracking".
+  - Tests: `tests/Core.Tests/CameraMotionTrackTests.cs`, `CameraMotionEstimatorTests.cs` (synthetic wall: ≤ 0.5 px,
+    a climber ignored, similarity vs homography, an unrelated frame unreliable, determinism),
+    `HoldTrackingCompositionTests.cs`, `HoldTrackingPreflightTests.cs`.
+  - Real clips: `tools/hold-tracking-check/` (the product's estimator and the app's ffmpeg decoder, 960 px, a sample every
+    0.1 s) on the owner's 2026-09-27 session (16 clips) and the HDR pilot, two windows each (reference 0.5 s, 0.5–9 s;
+    reference 6 s, 6–14.5 s); numbers in `tools/hold-tracking-check/results/summary-2026-10-27.txt`. 15 of 16 session
+    clips and the pilot: 0 unreliable frames in both windows; the model chosen per clip — similarity 9 + 10, homography
+    6 + 5 (similarity p95 > 6 px), plus the pilot (a lens switch, zoom ≈ 0.55, shift up to 208 px) on the homography; the
+    camera moved up to 125 px (window 0.5–9) and 55 px (6–14.5) at 1920 scale; the chosen model's error on the wall points
+    (median / p95, worst frame): similarity ≤ 1.2 / 4.4 px, homography ≤ 0.7 / 1.4 px (the pilot 1.3 / 2.6). The hand-held portrait clip 104651: 57–62 of 75 frames unreliable — its
+    contours are hidden there, never drawn off the holds. ≈ 20–35 ms per frame (90 ms on 104651), 3–5 s per 8.5 s window
+    including the decode. Visual check: contours of the route on 100405 at 14 s on the holds; the pilot's reference frame
+    warped by the track overlays the frame after the zoom without ghosting.
+  - 2026-10-27 — the remaining E items within the constraints (no format change, no persistence, thresholds 3 / 6 px and
+    hiding unchanged): the Inspector's tracking state (analysing / fixed to the wall, with the share of hidden frames /
+    failed / off) and the minimal manual correction — "Follow the camera" per clip (off: the contours as marked in the
+    Preview and the export alike, the export waits for nothing) and "Retry" after a failed analysis; session state, no Undo
+    step. The coordinator's worker now always hands over when work arrived while it finished (found by the new tests);
+    `PreviewViewModel` unsubscribes on release. Strings en + ru. Tests: `tests/UI.Tests/HoldTrackingUiTests.cs` (5), the
+    coordinator tests on a single UI-thread stand-in (`TestUiThread.cs`) — 10 / 10 stable over 10 runs; UI.Tests 909 / 909,
+    Core.Tests 1359 / 1359; Release build `-warnaserror` 0 / 0.
+  - Open: persistence across sessions and a key-frame correction (both need stored data — D-7, to be agreed with Phase
+    Coros); the agreed thresholds (D-15) and the details on unreliable frames (D-9: now hidden, no fade); the owner's
+    check in the real app and a manual test plan; occlusion stays a separate later stage.
 
 ### Phase 31 — Automatic hold proposals (D047 approved 2026-10-25; technically complete 2026-10-26)
 
