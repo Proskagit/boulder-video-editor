@@ -1,0 +1,3 @@
+# InspectorView.axaml is CRLF in the repository; disable trailing-space checks
+# for it until the file is renormalized to LF.
+src/UI/Views/Panels/InspectorView.axaml whitespace=-trailing-space

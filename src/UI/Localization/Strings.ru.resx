@@ -519,6 +519,54 @@
   <data name="Holds_WidthUnitTip" xml:space="preserve">
     <value>Пиксели при высоте кадра 1080 (линия масштабируется вместе с изображением)</value>
   </data>
+  <data name="Holds_ProposeAutomatically" xml:space="preserve">
+    <value>Предлагать зацепки автоматически</value>
+  </data>
+  <data name="Holds_ProposeAutomaticallyTip" xml:space="preserve">
+    <value>Искать варианты зацепок при входе в режим разметки клипа без зацепок</value>
+  </data>
+  <data name="Holds_ProposalsHeading" xml:space="preserve">
+    <value>Предложения</value>
+  </data>
+  <data name="Holds_ShowTop" xml:space="preserve">
+    <value>Показывать</value>
+  </data>
+  <data name="Holds_Accept" xml:space="preserve">
+    <value>Принять</value>
+  </data>
+  <data name="Holds_Reject" xml:space="preserve">
+    <value>Отклонить</value>
+  </data>
+  <data name="Holds_AcceptAll" xml:space="preserve">
+    <value>Принять все</value>
+  </data>
+  <data name="Holds_RejectAll" xml:space="preserve">
+    <value>Отклонить все</value>
+  </data>
+  <data name="Holds_GeneratingProposals" xml:space="preserve">
+    <value>Поиск зацепок…</value>
+  </data>
+  <data name="Holds_NoProposals" xml:space="preserve">
+    <value>Зацепки не найдены — разметьте вручную.</value>
+  </data>
+  <data name="Holds_ProposalsError" xml:space="preserve">
+    <value>Не удалось найти зацепки: {0}</value>
+  </data>
+  <data name="Holds_RefiningProposals" xml:space="preserve">
+    <value>Уточнение зацепок…</value>
+  </data>
+  <data name="Holds_ReviewProposals" xml:space="preserve">
+    <value>Выберите предложения: примите, отклоните или разметьте вручную.</value>
+  </data>
+  <data name="Holds_ProposalRank" xml:space="preserve">
+    <value>{0}. уверенность {1:0.00}</value>
+  </data>
+  <data name="Holds_AcceptedAll" xml:space="preserve">
+    <value>Добавлено зацепок: {0}.</value>
+  </data>
+  <data name="Holds_RefinementFailedFor" xml:space="preserve">
+    <value>Не удалось уточнить зацепку: {0}</value>
+  </data>
   <data name="Import_DidntFinish" xml:space="preserve">
     <value>Импорт не завершён.</value>
   </data>

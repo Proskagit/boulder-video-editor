@@ -372,10 +372,10 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
         Assert.False(Markup.HasCandidate);
 
         var delete = ShortcutRouter.CommandFor(_vm, Key.Delete, KeyModifiers.None);
-        Assert.Same(Markup.DeleteSelectedCommand, delete);
-        Assert.Same(Markup.ConfirmCommand, ShortcutRouter.CommandFor(_vm, Key.Enter, KeyModifiers.None));
+        Assert.Same(Markup.RejectOrDeleteCommand, delete);
+        Assert.Same(Markup.ConfirmOrAcceptCommand, ShortcutRouter.CommandFor(_vm, Key.Enter, KeyModifiers.None));
         Assert.Same(Markup.EscapeCommand, ShortcutRouter.CommandFor(_vm, Key.Escape, KeyModifiers.None));
-        Assert.Same(Markup.PreviousAlternativeCommand, ShortcutRouter.CommandFor(_vm, Key.Tab, KeyModifiers.Shift));
+        Assert.Same(Markup.PreviousItemCommand, ShortcutRouter.CommandFor(_vm, Key.Tab, KeyModifiers.Shift));
         delete!.Execute(null);
         Assert.Empty(clip.HoldMarkup!.Holds);
         Assert.Single(_projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips));   // the clip stays
@@ -860,7 +860,7 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     }
 
     /// <summary>A red 18 × 18 hold in the middle of a beige wall.</summary>
-    private sealed class FakeFrames : IHoldMarkupFrameSource
+    internal sealed class FakeFrames : IHoldMarkupFrameSource
     {
         public MediaTime? LastPlayhead { get; private set; }
 
@@ -882,7 +882,7 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
 
     /// <summary>For a click: an 18 × 18 square around it (score 0.9), the whole frame (0.95, hidden), a 6 × 6 square (0.5);
     /// for several points one more square; only walls on demand.</summary>
-    private sealed class FakeSegmentation : IHoldSegmentationService
+    internal sealed class FakeSegmentation : IHoldSegmentationService
     {
         public HoldModelStatus Status { get; set; } = new(HoldModelState.Ready, null);
         public InferenceDevice Device { get; set; } = InferenceDevice.Gpu;
@@ -932,13 +932,13 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
         }
     }
 
-    private sealed class NoAnalysis : IMediaAnalysisService
+    internal sealed class NoAnalysis : IMediaAnalysisService
     {
         public Task<MediaAnalysisResult> AnalyzeAsync(string filePath, CancellationToken ct = default) =>
             Task.FromResult(MediaAnalysisResult.Failure(MediaAnalysisOutcome.ProbeToolUnavailable, "test"));
     }
 
-    private sealed class NoImport : IMediaImportService
+    internal sealed class NoImport : IMediaImportService
     {
         public IReadOnlySet<string> SupportedExtensions { get; } = new HashSet<string>();
         public Task<MediaImportBatchResult> ImportManyAsync(IEnumerable<string> filePaths, CancellationToken ct = default) =>

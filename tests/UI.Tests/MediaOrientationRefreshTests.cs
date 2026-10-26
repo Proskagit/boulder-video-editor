@@ -246,6 +246,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult RemoveMedia(Guid mediaAssetId) => No;
         public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change) => No;
         public TimelineEditResult AddHold(Guid clipId, Hold hold) => No;
+        public TimelineEditResult AddHolds(Guid clipId, IEnumerable<Hold> holds) => No;
         public TimelineEditResult RemoveHold(Guid clipId, Guid holdId) => No;
         public TimelineEditResult ReplaceHoldContour(Guid clipId, Guid holdId, ImmutableArray<NormalizedPoint> points) => No;
         public TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style) => No;
