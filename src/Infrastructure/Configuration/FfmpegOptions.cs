@@ -7,12 +7,13 @@ namespace AiVideoEditor.Infrastructure.Configuration;
 /// </summary>
 public sealed class FfmpegOptions
 {
-    /// <summary>Absolute path to ffprobe(.exe). Optional — if unset or the file
-    /// doesn't exist, <see cref="FfprobeLocator"/> falls back to checking whether
-    /// "ffprobe" is runnable via the system PATH.</summary>
+    /// <summary>Path to ffprobe(.exe): absolute, or relative to the application folder
+    /// (never to the current directory). Optional — if unset or the file doesn't exist,
+    /// <see cref="FfprobeLocator"/> falls back to checking whether "ffprobe" is runnable
+    /// via the system PATH.</summary>
     public string? FfprobePath { get; set; }
 
-    /// <summary>Absolute path to ffmpeg(.exe). Optional — same fallback rules as
+    /// <summary>Path to ffmpeg(.exe), absolute or relative to the application folder. Optional — same rules as
     /// <see cref="FfprobePath"/>, see <see cref="FfmpegLocator"/>.</summary>
     public string? FfmpegPath { get; set; }
 }

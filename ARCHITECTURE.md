@@ -382,7 +382,9 @@ the same `MediaAsset` → `IProjectService.MediaAssetsChanged`.
 
 Metadata comes from ffprobe via `IMediaAnalysisService`;
 `IFfprobeLocator` resolves it from `Ffmpeg:FfprobePath` or PATH, `IFfmpegLocator` does the
-same for ffmpeg (playback decoding). Both resolve once per app run; a PATH tool must answer `-version` within
+same for ffmpeg (playback decoding). A configured path is absolute or relative to the application folder
+(`AppContext.BaseDirectory`, never the current directory — D046 §1.2, Phase 30) and is used when the file exists; otherwise
+the plain name on PATH. Both resolve once per app run; a PATH tool must answer `-version` within
 `ExecutableLocator.DefaultProbeTimeout` (5 s) or counts as not found for the run (tests whose subject is not that limit
 use a longer one through an internal seam, D029 Step 14.4). After Open only media without saved metadata that is
 present on disk is analysed (`MediaAnalysisCoordinator.QueueWhereNeeded`); missing files are
@@ -428,7 +430,42 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   colour is recomputed only when the set of holds changes, never from a frame; Split / Duplicate / Paste copy the markup.
 - Rendering: the snapshot's `PictureSpan.Outline` → `CompositionDrawPlan.OutlineDraw` (layer-local, clipped to the crop,
   the layer's opacity, stroke `StrokeWidth1080 × short side / 1080`, keyline 25 / 50 / 25) → `CompositionPainter` — the
-  same path for the Preview (1 px minimum) and the export.
+  same path for the Preview (1 px minimum) and the export. Without hold tracking a contour keeps its normalized place on
+  every frame of the clip.
+- Hold tracking — camera motion compensation (R2 → E, branch `feat/hold-tracking`, in progress; no phase number or
+  decision record yet; research and the owner's decisions: `docs/PHASE_HOLD_TRACKING.md`). Occlusion is not part of it.
+  - Core `Motion/`: `WallTransform` (3 × 3 projective transform of normalized source coordinates); `CameraMotionTrack`
+    (samples by **source time** in ticks: reference frame → frame transform + reliability; `At` blends two reliable
+    samples ≤ 0.25 s apart, `Hidden` next to an unreliable sample or across a longer gap, `NoData` outside the range;
+    `Map(markedAt, frameTime) = T(frame) · T(marked)⁻¹`, so each hold is carried from its own `SourceTime`);
+    `CameraMotionEstimator` (Shi–Tomasi corners of the reference frame, pyramidal Lucas–Kanade started from the previous
+    estimate — the reference window sampled through the guess's local Jacobian, so a known zoom or rotation keeps the match —
+    or, when the track is lost, from a coarse shift and then a coarse zoom-and-shift search (a phone's lens switch); RANSAC
+    similarity and homography — the climber is an outlier; the clip's model is the similarity when
+    its error on the wall points stays ≤ 3 px median / ≤ 6 px p95 (1920-px scale, a working hypothesis) on every frame,
+    otherwise the homography; a frame is reliable only with ≥ 30 consistent points, ≥ 30 % of the tracked ones, and the
+    chosen model within those limits); `CameraMotionMath` (fits, RANSAC with a seeded generator, `SourceTimeOf`);
+    `CameraMotionRange` (the clip's contour window: the D036 animation's span or the clip's source range, widened to the
+    holds' marking times; the reference = the first hold's `SourceTime`). Pure C#, no new dependency.
+  - Data flow: derived from the video only — never in `project.json` (v9 unchanged), never an Undo step.
+    `UI/Services/CameraMotionCoordinator` (singleton) analyses every video clip with holds in the background (software
+    decode at 960 px with the D033 HDR rule, a sample every 0.1 s, one analysis at a time, cached by file / range /
+    reference; `TracksChanged`) → `PlaybackSnapshotBuilder.Build(project, version, motion)` puts the track on
+    `HoldOutline.Motion` (with `MarkedAt`, `SourceStartTime`) → `CompositionDrawPlan.Outline(…, frameTimestamp)` maps each
+    contour by the **shown frame's own PTS** (`LayerOperations` for the export, `PreviewDrawPlan` for the Preview), leaves
+    a contour out where the motion is `Hidden` (never drawn off its hold) and draws it as marked where there is `NoData`.
+    A track is presentation-only (no decoder restart). The export takes the Preview's tracks through
+    `ExportPreflightEnvironment.CameraMotion`; a clip whose contours reach the output while its analysis runs is
+    `ExportIssueKind.HoldTrackingPending` (blocking). A failed analysis is logged and leaves the contours untracked.
+  - Inspector ("Holds", `HoldMarkupViewModel.Tracking.cs`): the clip's state from `CameraMotionCoordinator.StatusOf` —
+    analysing / fixed to the wall (with the share of frames whose contours are hidden) / failed / switched off — and the
+    manual correction when the tracking is wrong: "Follow the camera" off (`SetFollowsCamera`) drops the clip's track from
+    the Preview's snapshot and the export's tracks alike, so its contours stay where they were marked and nothing waits
+    for it; "Retry" (`Retry`) analyses a failed clip again. Session state, like the track: not a project edit, no Undo
+    step, not saved; a new project switches every clip back on. The worker hands over to a new one whenever work arrived
+    while it finished. `PreviewViewModel` unsubscribes from the (singleton) coordinator in `ReleasePlaybackAsync`.
+  - Not yet: persistence across sessions (the analysis reruns after Open; the switch is reset), a correction by key
+    frames (needs stored data — a format decision to be agreed with Phase Coros), occlusion.
 - UI: `HoldMarkupViewModel` (the Inspector's "Holds" section and the markup mode), `HoldMarkupFrameSource` (the Preview's
   frame under the playhead at full display size through `IVideoDecoder`, the D033 HDR rule), `HoldMarkupOverlay` over
   the Preview's `CompositionView` (clicks mapped through the viewport and `LayerGeometry`, the candidate, the selected

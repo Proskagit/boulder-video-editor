@@ -4,6 +4,7 @@ using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Holds;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
@@ -41,12 +42,15 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     private readonly IProjectService _projects;
     private readonly IHoldSegmentationService? _segmentation;
     private readonly IHoldMarkupFrameSource? _frames;
+    private readonly IHoldProposalGenerator? _proposalGenerator;
+    private readonly IHoldProposalRefiner? _proposalRefiner;
     private readonly StatusService _status;
     private readonly EditingLock _lock;
     private readonly SynchronizationContext? _ui;
 
     private VideoClip? _clip;
     private bool _syncing;
+    private readonly List<HoldProposal> _proposalSource = new();
 
     // Markup mode state.
     private CancellationTokenSource? _modeCts;
@@ -64,13 +68,17 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     private bool _confirmPending;
 
     public HoldMarkupViewModel(ITimelineEditService edit, IProjectService projects, StatusService status,
-        IHoldSegmentationService? segmentation = null, IHoldMarkupFrameSource? frames = null, EditingLock? editingLock = null)
+        IHoldSegmentationService? segmentation = null, IHoldMarkupFrameSource? frames = null, EditingLock? editingLock = null,
+        IHoldProposalGenerator? proposalGenerator = null, IHoldProposalRefiner? proposalRefiner = null,
+        CameraMotionCoordinator? cameraMotion = null)
     {
         _edit = edit;
         _projects = projects;
         _status = status;
         _segmentation = segmentation;
         _frames = frames;
+        _proposalGenerator = proposalGenerator;
+        _proposalRefiner = proposalRefiner;
         _lock = editingLock ?? new EditingLock();
         _ui = SynchronizationContext.Current;
 
@@ -79,6 +87,10 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         _lock.PropertyChanged += (_, _) => { if (_lock.IsLocked) Exit(); RefreshCommands(); };
         if (_segmentation is not null)
             _segmentation.DeviceChanged += (_, _) => OnUi(() => _status.Report(CpuMessage));
+
+        MaxProposalsToShow = 30;
+        IsProposalGenerationEnabled = true;
+        InitTracking(cameraMotion);
     }
 
     /// <summary>The playhead (the timeline's), set by the shell.</summary>
@@ -90,6 +102,30 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     public ImmutableArray<PaletteColor> Palette => RouteColor.Palette;
     public IReadOnlyList<string> ColorModes { get; } = new[] { Strings.Holds_ModeAuto, Strings.Holds_ModeManual };
     public IReadOnlyList<string> KeylineModes { get; } = new[] { Strings.Holds_ModeAuto, Strings.Holds_KeylineOnItem, Strings.Holds_KeylineOffItem };
+
+    // ---- proposal review (Phase 31, D047) --------------------------------------------------------------------------
+
+    public IReadOnlyList<int> MaxProposalsOptions { get; } = new[] { 10, 20, 30, 50, 100 };
+
+    [ObservableProperty] private bool _isProposalGenerationEnabled = true;
+    [ObservableProperty] private bool _canShowProposalToggle;
+    [ObservableProperty] private bool _isGeneratingProposals;
+    [ObservableProperty] private bool isRefiningProposals;
+    [ObservableProperty] private bool _hasProposals;
+    [ObservableProperty] private double _proposalProgress;
+    [ObservableProperty] private IReadOnlyList<ProposalItem> _proposals = Array.Empty<ProposalItem>();
+    [ObservableProperty] private int _selectedProposalIndex = -1;
+    [ObservableProperty] private int _maxProposalsToShow = 30;
+    [ObservableProperty] private ImmutableArray<ImmutableArray<NormalizedPoint>> _proposalContours = ImmutableArray<ImmutableArray<NormalizedPoint>>.Empty;
+
+    partial void OnMaxProposalsToShowChanged(int value)
+    {
+        if (value is < 10 or > 100) return;
+        RefreshProposals();
+    }
+
+    /// <summary>The selected proposal in the visible list, or null.</summary>
+    public ProposalItem? SelectedProposal => SelectedProposalIndex >= 0 && SelectedProposalIndex < Proposals.Count ? Proposals[SelectedProposalIndex] : null;
 
     // ---- the Inspector section ------------------------------------------------------------------------------------
 
@@ -115,6 +151,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (!ReferenceEquals(video, _clip)) Exit();
         _clip = video;
         HasClip = video is not null;
+        CanShowProposalToggle = HasClip && (_clip?.HoldMarkup is null || _clip.HoldMarkup.Holds.IsEmpty);
         LoadStyle();
         RefreshCommands();
     }
@@ -126,6 +163,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         {
             var markup = _clip?.HoldMarkup ?? new HoldMarkup();
             HoldCount = markup.Holds.Length;
+            CanShowProposalToggle = _clip is not null && markup.Holds.IsEmpty;
             StrokeWidth = (decimal)markup.StrokeWidth1080;
             ColorModeIndex = markup.ColorMode == HoldColorMode.Manual ? 1 : 0;
             IsManualColor = markup.ColorMode == HoldColorMode.Manual;
@@ -134,6 +172,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             KeylineIndex = (int)markup.Keyline;
             KeylineActive = markup.KeylineActive;
             LoadAnimation(markup);
+            RefreshTracking();
         }
         finally
         {
@@ -446,6 +485,12 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             }
             if (_segmentation.Device == InferenceDevice.Cpu) _status.Report(CpuMessage);
 
+            if (CanGenerateProposals(clip))
+            {
+                await GenerateProposalsAsync(clip, asset, cts);
+                if (_modeCts != cts) return;
+            }
+
             ModeText = Strings.Holds_DecodingFrame;
             PrepareProgress = 0.55;
             var frame = await _frames!.GetAsync(clip, asset, _modePlayhead, _projects.Current.Settings.FrameRate, cts.Token);
@@ -466,7 +511,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             IsPreparing = false;
             LoadStyle();   // the dashed contours of an animated route (D036)
             UpdateOverlay();
-            ModeText = ReadyText;
+            ModeText = HasProposals ? Strings.Holds_ReviewProposals : ReadyText;
         }
         catch (OperationCanceledException) when (cts.IsCancellationRequested)
         {
@@ -485,6 +530,79 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         {
             RefreshCommands();
         }
+    }
+
+    private bool CanGenerateProposals(VideoClip clip) =>
+        IsProposalGenerationEnabled &&
+        _proposalGenerator is not null &&
+        (clip.HoldMarkup is null || clip.HoldMarkup.Holds.IsEmpty);
+
+    private async Task GenerateProposalsAsync(VideoClip clip, MediaAsset asset, CancellationTokenSource cts)
+    {
+        IsGeneratingProposals = true;
+        ProposalProgress = 0;
+        ModeText = Strings.Holds_GeneratingProposals;
+        try
+        {
+            var rate = _projects.Current.Settings.FrameRate;
+            var options = new ProposalPipelineOptions { GridDivisions = 15, NmsIouThreshold = 0.70, MaxProposals = 100 };
+            var result = await _proposalGenerator!.GenerateAsync(clip, asset, _modePlayhead, rate, options,
+                new Progress<double>(p =>
+                {
+                    if (_modeCts == cts) ProposalProgress = p;
+                }), cts.Token);
+            if (_modeCts != cts) return;
+
+            _proposalSource.Clear();
+            _proposalSource.AddRange(result.Proposals);
+            if (_proposalSource.Count == 0)
+            {
+                _status.Report(Strings.Holds_NoProposals);
+            }
+            else
+            {
+                SelectedProposalIndex = 0;
+            }
+
+            RefreshProposals();
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (_modeCts == cts)
+        {
+            _status.Report(string.Format(Strings.Holds_ProposalsError, ex.Message));
+            ClearProposals();
+        }
+        finally
+        {
+            IsGeneratingProposals = false;
+            if (_modeCts == cts)
+                ModeText = HasProposals ? Strings.Holds_ReviewProposals : ReadyText;
+        }
+    }
+
+    private void RefreshProposals()
+    {
+        var visible = _proposalSource.Take(MaxProposalsToShow).Select((p, i) => new ProposalItem(i + 1, p)).ToList();
+        Proposals = visible;
+        HasProposals = visible.Count > 0;
+        ProposalContours = visible.Select(p => p.Contour).ToImmutableArray();
+        if (SelectedProposalIndex >= visible.Count)
+            SelectedProposalIndex = visible.Count > 0 ? visible.Count - 1 : -1;
+        else if (SelectedProposalIndex < 0 && visible.Count > 0)
+            SelectedProposalIndex = 0;
+        RefreshCommands();
+    }
+
+    private void ClearProposals()
+    {
+        _proposalSource.Clear();
+        Proposals = Array.Empty<ProposalItem>();
+        HasProposals = false;
+        ProposalContours = ImmutableArray<ImmutableArray<NormalizedPoint>>.Empty;
+        SelectedProposalIndex = -1;
     }
 
     /// <summary>"Done": leaves the mode; the confirmed markup stays.</summary>
@@ -510,6 +628,177 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     [RelayCommand]
     private void PreviousAlternative() => CycleAlternative(-1);
 
+    // ---- proposal commands (Phase 31, D047) ------------------------------------------------------------------------
+
+    private bool CanAcceptSelectedProposal() =>
+        IsActive && !IsRefiningProposals && SelectedProposal is not null && _proposalRefiner is not null && _clip is not null;
+
+    [RelayCommand(CanExecute = nameof(CanAcceptSelectedProposal))]
+    private async Task AcceptSelectedProposalAsync()
+    {
+        var proposal = SelectedProposal?.Proposal;
+        if (proposal is null || _clip is null || _proposalRefiner is null) return;
+        await AcceptProposalsAsync(new[] { proposal });
+    }
+
+    private bool CanRejectSelectedProposal() =>
+        IsActive && !IsRefiningProposals && SelectedProposal is not null;
+
+    [RelayCommand(CanExecute = nameof(CanRejectSelectedProposal))]
+    private void RejectSelectedProposal()
+    {
+        var proposal = SelectedProposal?.Proposal;
+        if (proposal is null) return;
+        _proposalSource.Remove(proposal);
+        RefreshProposals();
+    }
+
+    private bool CanAcceptAllProposals() =>
+        IsActive && !IsRefiningProposals && Proposals.Count > 0 && _proposalRefiner is not null && _clip is not null;
+
+    [RelayCommand(CanExecute = nameof(CanAcceptAllProposals))]
+    private async Task AcceptAllProposalsAsync()
+    {
+        if (Proposals.Count == 0 || _clip is null || _proposalRefiner is null) return;
+        await AcceptProposalsAsync(Proposals.Select(p => p.Proposal).ToList());
+    }
+
+    private bool CanRejectAllProposals() =>
+        IsActive && !IsRefiningProposals && _proposalSource.Count > 0;
+
+    [RelayCommand(CanExecute = nameof(CanRejectAllProposals))]
+    private void RejectAllProposals()
+    {
+        ClearProposals();
+        RefreshCommands();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanMoveProposalSelection))]
+    private void NextProposal() => MoveProposalSelection(1);
+
+    [RelayCommand(CanExecute = nameof(CanMoveProposalSelection))]
+    private void PreviousProposal() => MoveProposalSelection(-1);
+
+    private bool CanMoveProposalSelection() =>
+        IsActive && !IsRefiningProposals && Proposals.Count > 1;
+
+    private void MoveProposalSelection(int step)
+    {
+        if (Proposals.Count == 0) return;
+        SelectedProposalIndex = (SelectedProposalIndex + step + Proposals.Count) % Proposals.Count;
+    }
+
+    /// <summary>The unified handlers used by <see cref="ShortcutRouter"/>: they choose between proposals and the manual candidate.</summary>
+    public bool CanConfirmOrAccept() =>
+        CanAcceptSelectedProposal() || CanConfirm();
+
+    [RelayCommand(CanExecute = nameof(CanConfirmOrAccept))]
+    private async Task ConfirmOrAcceptAsync()
+    {
+        if (CanAcceptSelectedProposal())
+        {
+            await AcceptSelectedProposalAsync();
+            return;
+        }
+        if (CanConfirm()) await Confirm();
+    }
+
+    public bool CanRejectOrDelete() =>
+        CanRejectSelectedProposal() || CanDeleteSelected();
+
+    [RelayCommand(CanExecute = nameof(CanRejectOrDelete))]
+    private void RejectOrDelete()
+    {
+        if (CanRejectSelectedProposal()) RejectSelectedProposal();
+        else if (CanDeleteSelected()) DeleteSelected();
+    }
+
+    public bool CanNextItem() =>
+        CanMoveProposalSelection() || (IsActive && !IsPreparing && HasCandidate && _visible.Length > 1);
+
+    [RelayCommand(CanExecute = nameof(CanNextItem))]
+    private void NextItem()
+    {
+        if (CanMoveProposalSelection()) NextProposal();
+        else if (HasCandidate) CycleAlternative(1);
+    }
+
+    public bool CanPreviousItem() =>
+        CanMoveProposalSelection() || (IsActive && !IsPreparing && HasCandidate && _visible.Length > 1);
+
+    [RelayCommand(CanExecute = nameof(CanPreviousItem))]
+    private void PreviousItem()
+    {
+        if (CanMoveProposalSelection()) PreviousProposal();
+        else if (HasCandidate) CycleAlternative(-1);
+    }
+
+    private async Task AcceptProposalsAsync(IReadOnlyList<HoldProposal> proposals)
+    {
+        if (_clip is null || _proposalRefiner is null || proposals.Count == 0) return;
+        var clip = _clip;
+        var asset = Asset(clip);
+        if (asset is null) return;
+
+        IsRefiningProposals = true;
+        ProposalProgress = 0;
+        ModeText = Strings.Holds_RefiningProposals;
+        RefreshCommands();
+        try
+        {
+            var rate = _projects.Current.Settings.FrameRate;
+            var results = await _proposalRefiner.RefineBatchAsync(proposals, clip, asset, _modePlayhead, rate,
+                new Progress<double>(p => ProposalProgress = p), _modeCts?.Token ?? CancellationToken.None);
+
+            var currentHolds = clip.HoldMarkup?.Holds.Length ?? 0;
+            var room = Math.Max(0, HoldMarkupRules.MaxHolds - currentHolds);
+            var accepted = proposals.Zip(results)
+                .Where(pair => pair.Second.IsSuccess)
+                .Take(room)
+                .ToList();
+            var holds = accepted.Select(pair => pair.Second.Hold!).ToList();
+            var skipped = proposals.Count - holds.Count;
+
+            if (holds.Count > 0)
+            {
+                var result = _edit.AddHolds(clip.Id, holds);
+                if (!result.Success)
+                {
+                    _status.Report(result.Message ?? Strings.Holds_NotAdded);
+                }
+                else
+                {
+                    foreach (var (p, _) in accepted) _proposalSource.Remove(p);
+                    _status.Report(string.Format(Strings.Holds_AcceptedAll, holds.Count));
+                }
+            }
+            else if (skipped > 0)
+            {
+                _status.Report(Messages.Holds_RefinementFailed);
+            }
+
+            if (room < proposals.Count && holds.Count == room)
+            {
+                _status.Report(string.Format(Messages.Holds_MaxHolds, HoldMarkupRules.MaxHolds));
+            }
+
+            RefreshProposals();
+        }
+        catch (OperationCanceledException) when (_modeCts?.IsCancellationRequested == true)
+        {
+        }
+        catch (Exception ex)
+        {
+            _status.Report(string.Format(Strings.Holds_RefinementFailedFor, ex.Message));
+        }
+        finally
+        {
+            IsRefiningProposals = false;
+            ModeText = HasProposals ? Strings.Holds_ReviewProposals : ReadyText;
+            RefreshCommands();
+        }
+    }
+
     /// <summary>The wheel over the Preview: one step per notch.</summary>
     public void OnWheel(double delta)
     {
@@ -531,6 +820,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             if (!HasCandidate && HitHold(point) is { } hit)
             {
                 Select(hit);
+                return;
+            }
+            if (!HasCandidate && HitProposal(point) is { } proposalHit)
+            {
+                SelectedProposalIndex = proposalHit;
                 return;
             }
             Select(null);
@@ -733,6 +1027,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         IsPreparing = false;
         ModeText = null;
         IsActive = false;
+        IsGeneratingProposals = false;
+        ClearProposals();
         RefreshCommands();
     }
 
@@ -924,6 +1220,15 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         return null;
     }
 
+    /// <summary>The visible proposal whose contour contains <paramref name="p"/> (the topmost: the last in the ranked list).</summary>
+    private int? HitProposal(NormalizedPoint p)
+    {
+        if (Proposals.Count == 0) return null;
+        for (var i = Proposals.Count - 1; i >= 0; i--)
+            if (Contains(Proposals[i].Contour, p)) return i;
+        return null;
+    }
+
     private static bool Contains(ImmutableArray<NormalizedPoint> polygon, NormalizedPoint p)
     {
         var inside = false;
@@ -957,12 +1262,38 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     private MediaAsset? Asset(MediaBackedClip clip) => _projects.Current.MediaAssets.FirstOrDefault(a => a.Id == clip.MediaAssetId);
 
+    /// <summary>One ranked automatic hold proposal shown in the review panel and on the overlay (Phase 31, D047).</summary>
+    public sealed class ProposalItem
+    {
+        public ProposalItem(int rank, HoldProposal proposal)
+        {
+            Rank = rank;
+            Proposal = proposal;
+        }
+
+        public int Rank { get; }
+        public HoldProposal Proposal { get; }
+        public double Score => Proposal.Score;
+        public ImmutableArray<NormalizedPoint> Contour => Proposal.Contour;
+        public string Label => string.Format(Strings.Holds_ProposalRank, Rank, Score);
+    }
+
     private void RefreshCommands()
     {
         StartCommand.NotifyCanExecuteChanged();
         SetStartToPlayheadCommand.NotifyCanExecuteChanged();
         ConfirmCommand.NotifyCanExecuteChanged();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
+        AcceptSelectedProposalCommand.NotifyCanExecuteChanged();
+        RejectSelectedProposalCommand.NotifyCanExecuteChanged();
+        AcceptAllProposalsCommand.NotifyCanExecuteChanged();
+        RejectAllProposalsCommand.NotifyCanExecuteChanged();
+        NextProposalCommand.NotifyCanExecuteChanged();
+        PreviousProposalCommand.NotifyCanExecuteChanged();
+        ConfirmOrAcceptCommand.NotifyCanExecuteChanged();
+        RejectOrDeleteCommand.NotifyCanExecuteChanged();
+        NextItemCommand.NotifyCanExecuteChanged();
+        PreviousItemCommand.NotifyCanExecuteChanged();
     }
 
     private void OnUi(Action action)

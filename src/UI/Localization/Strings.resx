@@ -318,6 +318,30 @@ The file is replaced only when the export succeeds.</value>
   <data name="Holds_AddFailed" xml:space="preserve">
     <value>The hold could not be added: {0}</value>
   </data>
+  <data name="Holds_FollowCamera" xml:space="preserve">
+    <value>Follow the camera</value>
+  </data>
+  <data name="Holds_FollowCameraTip" xml:space="preserve">
+    <value>Keeps the hold outlines on the wall while the camera moves. Switch it off when the tracking is wrong: the outlines then stay where they were marked (the Preview and the export alike). Not saved with the project.</value>
+  </data>
+  <data name="Holds_TrackingAnalysing" xml:space="preserve">
+    <value>Fixing the outlines to the wall…</value>
+  </data>
+  <data name="Holds_TrackingTracked" xml:space="preserve">
+    <value>The outlines follow the wall.</value>
+  </data>
+  <data name="Holds_TrackingTrackedPartly" xml:space="preserve">
+    <value>The outlines follow the wall; on {0} % of the frames the camera's position is uncertain and they are hidden.</value>
+  </data>
+  <data name="Holds_TrackingFailed" xml:space="preserve">
+    <value>The outlines could not be fixed to the wall; they stay where they were marked.</value>
+  </data>
+  <data name="Holds_TrackingOff" xml:space="preserve">
+    <value>Not following the camera: the outlines stay where they were marked.</value>
+  </data>
+  <data name="Holds_TrackingRetry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
   <data name="Holds_Animate" xml:space="preserve">
     <value>Animate</value>
   </data>
@@ -518,6 +542,54 @@ The file is replaced only when the export succeeds.</value>
   </data>
   <data name="Holds_WidthUnitTip" xml:space="preserve">
     <value>Pixels at a frame height of 1080 (the line scales with the picture)</value>
+  </data>
+  <data name="Holds_ProposeAutomatically" xml:space="preserve">
+    <value>Suggest holds automatically</value>
+  </data>
+  <data name="Holds_ProposeAutomaticallyTip" xml:space="preserve">
+    <value>Look for hold proposals when entering markup mode on a clip without holds</value>
+  </data>
+  <data name="Holds_ProposalsHeading" xml:space="preserve">
+    <value>Proposals</value>
+  </data>
+  <data name="Holds_ShowTop" xml:space="preserve">
+    <value>Show top</value>
+  </data>
+  <data name="Holds_Accept" xml:space="preserve">
+    <value>Accept</value>
+  </data>
+  <data name="Holds_Reject" xml:space="preserve">
+    <value>Reject</value>
+  </data>
+  <data name="Holds_AcceptAll" xml:space="preserve">
+    <value>Accept all</value>
+  </data>
+  <data name="Holds_RejectAll" xml:space="preserve">
+    <value>Reject all</value>
+  </data>
+  <data name="Holds_GeneratingProposals" xml:space="preserve">
+    <value>Generating proposals…</value>
+  </data>
+  <data name="Holds_NoProposals" xml:space="preserve">
+    <value>No holds found — mark manually.</value>
+  </data>
+  <data name="Holds_ProposalsError" xml:space="preserve">
+    <value>Could not generate proposals: {0}</value>
+  </data>
+  <data name="Holds_RefiningProposals" xml:space="preserve">
+    <value>Refining proposals…</value>
+  </data>
+  <data name="Holds_ReviewProposals" xml:space="preserve">
+    <value>Review proposals: accept, reject or mark manually.</value>
+  </data>
+  <data name="Holds_ProposalRank" xml:space="preserve">
+    <value>{0}. score {1:0.00}</value>
+  </data>
+  <data name="Holds_AcceptedAll" xml:space="preserve">
+    <value>{0} holds added.</value>
+  </data>
+  <data name="Holds_RefinementFailedFor" xml:space="preserve">
+    <value>Refinement failed for a hold: {0}</value>
   </data>
   <data name="Import_DidntFinish" xml:space="preserve">
     <value>Import didn't finish.</value>

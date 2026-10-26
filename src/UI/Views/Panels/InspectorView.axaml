@@ -545,6 +545,38 @@
                           ToolTip.Tip="{x:Static l:Strings.Holds_DoneTip}"/>
                   <TextBlock Text="{Binding HoldCount, StringFormat={x:Static l:Strings.Holds_MarkedCount}}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
+
+                <!-- Phase 31 (D047): automatic proposals on the first markup frame. -->
+                <CheckBox Content="{x:Static l:Strings.Holds_ProposeAutomatically}" IsChecked="{Binding IsProposalGenerationEnabled, Mode=TwoWay}"
+                          IsVisible="{Binding CanShowProposalToggle}" ToolTip.Tip="{x:Static l:Strings.Holds_ProposeAutomaticallyTip}"/>
+                <ProgressBar Value="{Binding ProposalProgress}" Maximum="1" IsVisible="{Binding IsGeneratingProposals}"/>
+                <ProgressBar Value="{Binding ProposalProgress}" Maximum="1" IsVisible="{Binding IsRefiningProposals}"/>
+
+                <StackPanel Spacing="6" IsVisible="{Binding HasProposals}">
+                  <TextBlock Text="{x:Static l:Strings.Holds_ProposalsHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static l:Strings.Holds_ShowTop}" Classes="label" VerticalAlignment="Center"/>
+                    <ComboBox ItemsSource="{Binding MaxProposalsOptions}" SelectedItem="{Binding MaxProposalsToShow, Mode=TwoWay}" Width="70"/>
+                  </StackPanel>
+                  <ListBox x:Name="ProposalsListBox" ItemsSource="{Binding Proposals}" SelectedIndex="{Binding SelectedProposalIndex, Mode=TwoWay}" Height="160">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate>
+                        <Grid ColumnDefinitions="*,Auto,Auto">
+                          <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                          <Button Grid.Column="1" Content="{x:Static l:Strings.Holds_Accept}" Margin="0,0,4,0"
+                                  Command="{Binding #ProposalsListBox.DataContext.AcceptSelectedProposalCommand}"/>
+                          <Button Grid.Column="2" Content="{x:Static l:Strings.Holds_Reject}"
+                                  Command="{Binding #ProposalsListBox.DataContext.RejectSelectedProposalCommand}"/>
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="{x:Static l:Strings.Holds_AcceptAll}" Command="{Binding AcceptAllProposalsCommand}"/>
+                    <Button Content="{x:Static l:Strings.Holds_RejectAll}" Command="{Binding RejectAllProposalsCommand}"/>
+                  </StackPanel>
+                </StackPanel>
+
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{x:Static l:Strings.Holds_Width}" Classes="label"/>
                   <controls:CommitNumericUpDown Value="{Binding StrokeWidth, Mode=TwoWay}" Increment="1" Minimum="{Binding MinStrokeWidth}" Maximum="{Binding MaxStrokeWidth}"
@@ -638,6 +670,18 @@
                   <TextBlock Text="{Binding AnimationSummary}" Foreground="#AAAAAA" TextWrapping="Wrap"/>
                   <TextBlock Text="{Binding AnimationWarning}" Foreground="#E0A040" TextWrapping="Wrap"
                              IsVisible="{Binding AnimationWarning, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                </StackPanel>
+
+                <!-- Hold tracking (R2 → E): the contours follow the wall while the camera moves; the state of the analysis and
+                     the manual correction (switch it off for this clip, retry a failed analysis). Session state, never saved. -->
+                <StackPanel Spacing="4" IsVisible="{Binding ShowsTracking}">
+                  <CheckBox Content="{x:Static l:Strings.Holds_FollowCamera}" IsChecked="{Binding FollowsCamera, Mode=TwoWay}"
+                            ToolTip.Tip="{x:Static l:Strings.Holds_FollowCameraTip}"/>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{Binding TrackingStatus}" Foreground="#AAAAAA" TextWrapping="Wrap" MaxWidth="230" VerticalAlignment="Center"/>
+                    <Button Content="{x:Static l:Strings.Holds_TrackingRetry}" Command="{Binding RetryTrackingCommand}"
+                            IsVisible="{Binding IsTrackingFailed}"/>
+                  </StackPanel>
                 </StackPanel>
               </StackPanel>
             </StackPanel>

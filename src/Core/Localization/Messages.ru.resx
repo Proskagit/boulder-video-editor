@@ -412,6 +412,18 @@
   <data name="Holds_WidthRange" xml:space="preserve">
     <value>Толщина контура должна быть от {0} до {1} пикс.</value>
   </data>
+  <data name="Holds_NoFrameProduced" xml:space="preserve">
+    <value>Файл «{0}» не вернул ни одного кадра.</value>
+  </data>
+  <data name="Holds_RefinementFailed" xml:space="preserve">
+    <value>Не удалось уточнить выбранную зацепку при полном разрешении.</value>
+  </data>
+  <data name="Holds_RefinementFewPoints" xml:space="preserve">
+    <value>Уточнённая маска дала слишком мало точек контура.</value>
+  </data>
+  <data name="Holds_RefinementInvalid" xml:space="preserve">
+    <value>Уточнённая зацепка некорректна: {0}</value>
+  </data>
   <data name="Insert_InsideCrossfade" xml:space="preserve">
     <value>Нельзя вставить внутрь перекрёстного затухания.</value>
   </data>
@@ -561,6 +573,9 @@
   </data>
   <data name="Preflight_NoOutput" xml:space="preserve">
     <value>Выходной файл не выбран.</value>
+  </data>
+  <data name="Preflight_HoldTrackingPending" xml:space="preserve">
+    <value>Контуры зацепок «{0}» ещё привязываются к стене ({1}, первый в {2}). Подождите немного и повторите экспорт.</value>
   </data>
   <data name="Preflight_NotAnalysedYet" xml:space="preserve">
     <value>«{0}» ещё не проанализирован ({1}, первый в {2}).</value>

@@ -201,6 +201,11 @@ public sealed class TestMedia : IDisposable
     }
 }
 
+/// <summary>
+/// The generated media, and the collection every class joins that starts ffmpeg through <c>FfmpegProcess</c> (decoders,
+/// thumbnails, waveforms, the export encoder): <c>FfmpegProcess.LiveProcesses</c> is process-wide, and the tests that
+/// compare it with a baseline fail when another class's ffmpeg runs in parallel (Phase 30 Step 30.4).
+/// </summary>
 [CollectionDefinition(Name)]
 public sealed class MediaCollection : ICollectionFixture<TestMedia>
 {

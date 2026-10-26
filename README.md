@@ -2,8 +2,8 @@
 
 A simplified, desktop-first video editor (Windows 10/11 x64, Avalonia UI, .NET 8),
 architected so professional-grade features can be layered in over time without a
-rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–18
-are complete** (architecture, UI skeleton, media import, ffprobe metadata
+rewrite. See `docs/DEVELOPMENT_PLAN.md` for the phased roadmap — **Phases 0–29
+are complete and merged** (the summary of Phases 0–22 follows; Phases 23–29 and the current Phase 30: "Status" below) (architecture, UI skeleton, media import, ffprobe metadata
 analysis, timeline editing, preview playback with audio, project persistence with
 autosave/recovery, basic editing: speed, volume, opacity, transform, crop,
 text; MP4 export; quality: stability, thumbnails, waveforms, hotkeys,
@@ -20,8 +20,7 @@ DECISIONS.md D032. Phase 18 (HDR → SDR of phone footage: HLG measured on the p
 DECISIONS.md D033. Phase 19 (the AI hold markup, DECISIONS.md D034) merged 2026-10-15 as `2d0a10b` (PR #20), CI green; the model
 is installed by hand (`docs/AI_MODEL.md`). Phase 20 (the manual correction of hold contours, DECISIONS.md D035) merged as
 `a657bff` (PR #21). Phase 21 (the animation of the hold outlines, DECISIONS.md D036; `project.json` v6) merged as `7318ba8`
-(PR #22). Phase 22 (timeline selection, snapping and making room, DECISIONS.md D037) is in progress on
-`feat/phase-22-timeline-ux`.
+(PR #22). Phase 22 (timeline selection, snapping and making room, DECISIONS.md D037) merged as `1aaedc8` (PR #23).
 
 ## Requirements
 
@@ -31,7 +30,7 @@ is installed by hand (`docs/AI_MODEL.md`). Phase 20 (the manual correction of ho
   packaging/manifest is Windows-specific.
 - **FFmpeg** — not required to build or run. **ffprobe** (media metadata) and
   **ffmpeg** (preview decoding) are looked up at `Ffmpeg:FfprobePath` /
-  `Ffmpeg:FfmpegPath` in `appsettings.json`, then on `PATH`. Without ffprobe, import
+  `Ffmpeg:FfmpegPath` in `appsettings.json` (absolute, or relative to the application folder), then on `PATH`. Without ffprobe, import
   still works and metadata is reported as unavailable; without ffmpeg, the preview
   shows no picture or sound, and thumbnails, waveforms and the export are unavailable.
 
@@ -55,6 +54,20 @@ The tests that need ffmpeg / ffprobe look for them on `PATH` and are skipped wit
 scenes run only with `AIVE_HEAVY_TESTS=1`. CI (`.github/workflows/ci.yml`, GitHub Actions on Windows) runs the full
 suite on every pull request to `main` and push to `main` with FFmpeg 9.0.1 essentials (gyan.dev) and fails on any
 skipped test other than those two 4K scenes.
+
+The SDK is pinned by `global.json` (8.0.424, latest patch). The portable Windows folder (S1, DECISIONS.md D046) is built
+from a clean checkout by:
+
+```bash
+pwsh -File tools/portable/Publish-Portable.ps1 -Zip
+```
+
+It writes `artifacts/portable/AiVideoEditor-<version>-win-x64` (self-contained `win-x64`, an ordinary folder, no
+single-file and no trimming) with the user's instruction `README.txt`, `THIRD-PARTY-NOTICES.txt` and `licenses\`
+(generated from the published packages, not yet reviewed), `docs\AI_MODEL.md` and `BUILD-INFO.txt`. FFmpeg and the AI
+model are not included. For a local technical check only, `-FfmpegDir <folder>` copies a local FFmpeg (e.g. the
+gyan.dev 9.0.1 essentials build the tests are calibrated on) into `ffmpeg\`, points `appsettings.json` at it by
+relative paths and names it in the notices as not reviewed — not the distribution decision of D046 §2.
 
 ## Solution layout
 
@@ -129,7 +142,7 @@ model and undo/redo engine can be unit-tested without Avalonia or FFmpeg.
 
 ## Status
 
-Phases 0–18 complete (Phase 18 — HDR → SDR, D033 with Revision R1 — merged as `c29a767`, PR #19, CI green; the product owner's visual check of the S1 export and PQ on real PQ footage still open). Phase 19 (AI hold markup, D034) merged as `2d0a10b` (PR #20). Phase 20 (hold contour correction, D035) merged as `a657bff` (PR #21). Phase 21 (animation of the hold outlines, D036, `project.json` v6) merged as `7318ba8` (PR #22). Phase 22 (timeline selection, snapping and making room, D037) in progress on `feat/phase-22-timeline-ux`.
+Phases 0–18 complete (Phase 18 — HDR → SDR, D033 with Revision R1 — merged as `c29a767`, PR #19, CI green; the product owner's visual check of the S1 export and PQ on real PQ footage still open). Phase 19 (AI hold markup, D034) merged as `2d0a10b` (PR #20). Phase 20 (hold contour correction, D035) merged as `a657bff` (PR #21). Phase 21 (animation of the hold outlines, D036, `project.json` v6) merged as `7318ba8` (PR #22). Phase 22 (timeline selection, snapping and making room, D037) merged as `1aaedc8` (PR #23). Phase 23 (direct Move, Scale and Crop in the Preview, D038) merged as `c652667` (PR #24). Phase 24 (Russian localization and interface polish, D039) merged as `d3df0ba` (PR #25). Phase 25 (technical backlog and small UX improvements, D040) merged as `58c48cb` (PR #26). Phase 26 (vertical video and framing, D041) merged as `41dadf2` (PR #27). Phase 27 (text animation and readability, D043, `project.json` v7) merged as `36a1a58` (PR #28). Phase 28 (the transition library: Наплыв, Затемнение, Вспышка, Наезд, Сдвиг, D044, v8) merged as `4f0e66a` (PR #29). Phase 29 (visual templates REC, VHS, «Боулдер», «Хайлайт» and the music audit, D045, v9) merged as `e28a9d3` (PR #30). **Phase 30** (stabilisation of the main path and the portable Windows build S1, D046) in progress on `feat/phase-30-stabilization`; the details of Phases 23–30: `ROADMAP.md`.
 Working: media import
 with validation and duplicate detection, background ffprobe metadata analysis, Media Browser and Inspector,
 timeline editing with undo/redo (tracks, clips, move, trim, split, delete, snapping),
@@ -207,7 +220,7 @@ clips that meet adds a linear crossfade (1 s, or the longest that fits). In the 
 overwrites just the sound of a video. Projects are saved as `project.json` v4 (older projects open as before; Phase 16
 can't open a v4 file).
 
-Phase 18 (DECISIONS.md D033 with Revision R1; complete on `feat/phase-18-hdr-sdr`, not yet merged): HDR footage from
+Phase 18 (DECISIONS.md D033 with Revision R1; merged as `c29a767`): HDR footage from
 phones (HLG and PQ, BT.2020, 10 bit — Dolby Vision 8.4 and HDR Vivid by their HLG base layer) is converted to the
 editor's SDR picture by one fixed rule — a scene-light rendering close to the phone's own SDR conversion — the same in the
 Preview, the Media Browser's thumbnails and the export; SDR footage looks and exports exactly as before. HLG is measured

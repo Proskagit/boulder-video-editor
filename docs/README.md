@@ -40,6 +40,9 @@ This directory contains:
   unchanged), completed per step and run at its closeout
 - `PHASE29_MANUAL_TEST_PLAN.md` — manual checks of Phase 29 (the visual templates REC, VHS, «Боулдер», Highlight — the gate of
   Step 29.1 on real gym clips, WASTED deferred; the audit of the existing music scenario with its inputs and objective defect criteria), completed per step
+- `PHASE30_MANUAL_TEST_PLAN.md` — manual checks of Phase 30 (the portable build S1 in a clean environment, the main path
+  in that build, the performance of a typical project, the inventory of the open manual checks, the defects found),
+  completed per step
 - `AI_MODEL.md` — the AI hold model: files and checksums, installing, messages, licences and notices, the export recipe
 
 Agent-oriented project context lives in the repository root:

@@ -41,7 +41,8 @@ public static class PreviewDrawPlan
                 // D034: the route outline right above its frame, never on a placeholder; a line at least one screen
                 // pixel wide here only (the export keeps the exact width).
                 if (operation is FrameDraw && picture is { Layer: PictureLayer layer, Frame: { } frame } &&
-                    CompositionDrawPlan.Outline(canvas, viewport, layer, new FrameSize(frame.Width, frame.Height), MinOutlinePixels) is { } outline)
+                    CompositionDrawPlan.Outline(canvas, viewport, layer, new FrameSize(frame.Width, frame.Height), MinOutlinePixels,
+                        frame.Timestamp) is { } outline)
                     operations.Add(outline);
             }
         }

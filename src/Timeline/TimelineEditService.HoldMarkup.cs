@@ -27,6 +27,28 @@ public sealed partial class TimelineEditService
         return Apply(clip, before, RouteColor.WithResolved(current with { Holds = current.Holds.Add(hold) }), HoldMarkupFields.Holds);
     }
 
+    public TimelineEditResult AddHolds(Guid clipId, IEnumerable<Hold> holds)
+    {
+        ArgumentNullException.ThrowIfNull(holds);
+        if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
+
+        var before = clip.HoldMarkup;
+        var current = before ?? new HoldMarkup();
+        var added = current.Holds.ToBuilder();
+        var ids = new HashSet<Guid>(added.Select(h => h.Id));
+        foreach (var hold in holds)
+        {
+            if (hold is null) continue;
+            if (hold.Id == Guid.Empty || !ids.Add(hold.Id)) continue;            // skip duplicates
+            if (HoldMarkupRules.ValidateHold(hold) is { } holdError) continue;   // skip invalid
+            if (added.Count >= HoldMarkupRules.MaxHolds) break;
+            added.Add(hold);
+        }
+
+        if (added.Count == current.Holds.Length) return TimelineEditResult.Unchanged();
+        return Apply(clip, before, RouteColor.WithResolved(current with { Holds = added.ToImmutable() }), HoldMarkupFields.Holds);
+    }
+
     public TimelineEditResult RemoveHold(Guid clipId, Guid holdId)
     {
         if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);

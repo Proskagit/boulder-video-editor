@@ -412,6 +412,18 @@
   <data name="Holds_WidthRange" xml:space="preserve">
     <value>The outline width must be between {0} and {1} px.</value>
   </data>
+  <data name="Holds_NoFrameProduced" xml:space="preserve">
+    <value>'{0}' produced no frame.</value>
+  </data>
+  <data name="Holds_RefinementFailed" xml:space="preserve">
+    <value>The accepted hold could not be refined at full resolution.</value>
+  </data>
+  <data name="Holds_RefinementFewPoints" xml:space="preserve">
+    <value>The refined mask produced too few contour points.</value>
+  </data>
+  <data name="Holds_RefinementInvalid" xml:space="preserve">
+    <value>The refined hold is invalid: {0}</value>
+  </data>
   <data name="Insert_InsideCrossfade" xml:space="preserve">
     <value>Can't insert inside a crossfade.</value>
   </data>
@@ -561,6 +573,9 @@
   </data>
   <data name="Preflight_NoOutput" xml:space="preserve">
     <value>No output file was chosen.</value>
+  </data>
+  <data name="Preflight_HoldTrackingPending" xml:space="preserve">
+    <value>The hold outlines of '{0}' are still being fixed to the wall ({1}, first at {2}). Wait a moment and export again.</value>
   </data>
   <data name="Preflight_NotAnalysedYet" xml:space="preserve">
     <value>'{0}' has not been analysed yet ({1}, first at {2}).</value>

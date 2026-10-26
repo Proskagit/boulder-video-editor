@@ -8,6 +8,7 @@ src/Timeline/Commands/RelinkMediaCommand.cs	Relink Media
 src/Timeline/Commands/TimelineCommands.cs	Add Clip
 src/Timeline/Commands/TimelineCommands.cs	Add Dissolve
 src/Timeline/Commands/TimelineCommands.cs	Add Hold
+src/Timeline/Commands/TimelineCommands.cs	Add Holds
 src/Timeline/Commands/TimelineCommands.cs	Animate Holds
 src/Timeline/Commands/TimelineCommands.cs	Change Appearance
 src/Timeline/Commands/TimelineCommands.cs	Change Bold
@@ -229,6 +230,8 @@ src/UI/Rendering/TextGlyphCache.cs	The application is closing; the text outline 
 src/UI/Rendering/TextGlyphCache.cs	The interface did not prepare the text outline within {UiTimeout.TotalSeconds:0} s.
 src/UI/Rendering/TextGlyphCache.cs	The interface ended before the text outline was prepared.
 src/UI/Services/HoldMarkupFrameSource.cs	'{asset.FilePath}' produced no frame.
+src/Core/Holds/HoldProposalGenerator.cs	'{filePath}' produced no frame.
+src/UI/Services/CameraMotionCoordinator.cs	'{request.FilePath}' produced no frame.
 src/Video/DisplayOrientation.cs	, CultureInfo.InvariantCulture)}° is not a right angle
 src/Video/DisplayOrientation.cs	mirrored display matrix
 src/Video/DisplayOrientation.cs	rotation of {h.RotationDegrees.ToString(

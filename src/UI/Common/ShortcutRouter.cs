@@ -63,7 +63,7 @@ public static class ShortcutRouter
         // Phase 19 (D034 §1): while the hold markup is on, Enter confirms the candidate, Esc discards it, Delete removes
         // the selected hold (never a clip), Tab / Shift+Tab switch the candidate's outline. Every other key keeps its
         // meaning (a seek or Play leaves the mode).
-        if (vm.HoldMarkup is { IsActive: true } markup && MarkupCommandFor(markup, key, none, shift) is { } markupCommand)
+        if (vm.HoldMarkup is { IsActive: true } markup && MarkupCommandFor(markup, key, none, shift, ctrl) is { } markupCommand)
             return markupCommand;
 
         // Phase 16 (D031 SQ4): while Source is shown the transport and In / Out keys act on the source; every other key
@@ -133,14 +133,16 @@ public static class ShortcutRouter
         };
     }
 
-    /// <summary>The hold markup mode's keys (D034 §1).</summary>
-    private static ICommand? MarkupCommandFor(HoldMarkupViewModel markup, Key key, bool none, bool shift) => key switch
+    /// <summary>The hold markup mode's keys (D034 §1, Phase 31 D047).</summary>
+    private static ICommand? MarkupCommandFor(HoldMarkupViewModel markup, Key key, bool none, bool shift, bool ctrl) => key switch
     {
-        Key.Enter when none => markup.ConfirmCommand,
+        Key.Enter when none => markup.ConfirmOrAcceptCommand,
         Key.Escape when none => markup.EscapeCommand,
-        Key.Delete or Key.Back when none => markup.DeleteSelectedCommand,
-        Key.Tab when none => markup.NextAlternativeCommand,
-        Key.Tab when shift => markup.PreviousAlternativeCommand,
+        Key.Delete or Key.Back when none => markup.RejectOrDeleteCommand,
+        Key.Tab when none => markup.NextItemCommand,
+        Key.Tab when shift => markup.PreviousItemCommand,
+        Key.A when ctrl => markup.AcceptAllProposalsCommand,
+        Key.D when ctrl => markup.RejectAllProposalsCommand,
         _ => null
     };
 

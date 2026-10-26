@@ -283,6 +283,10 @@ public interface ITimelineEditService
     /// recomputed from the stored samples of all holds. Refused for other clips and on a locked track.</summary>
     TimelineEditResult AddHold(Guid clipId, Hold hold);
 
+    /// <summary>Adds several confirmed holds to a video clip in a single undo step (Phase 31 accept-all). Empty or all-invalid
+    /// input is a no-change. Refused for other clips and on a locked track.</summary>
+    TimelineEditResult AddHolds(Guid clipId, IEnumerable<Hold> holds);
+
     /// <summary>Removes a hold from a video clip's markup: one undo step; the colour recomputed as for <see cref="AddHold"/>.</summary>
     TimelineEditResult RemoveHold(Guid clipId, Guid holdId);
 

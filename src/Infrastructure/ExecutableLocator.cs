@@ -7,7 +7,10 @@ namespace AiVideoEditor.Infrastructure;
 /// Resolves an FFmpeg-suite executable once per app run and caches the result (or the
 /// "not found" outcome) — every subsequent call is free, so callers can ask on every
 /// use without repeatedly spawning a "-version" probe process. Order: configured path
-/// (if the file exists), then the plain executable name via PATH.
+/// (if the file exists), then the plain executable name via PATH. A relative configured
+/// path is relative to the application folder (<see cref="AppContext.BaseDirectory"/>),
+/// never to the process's current directory — a portable build's bundled tools are found
+/// however the app was started (D046 §1.2).
 /// A probe cancelled by the caller's token is not an outcome: nothing is cached and the
 /// <see cref="OperationCanceledException"/> propagates, so the next caller probes again.
 /// </summary>
@@ -20,6 +23,7 @@ internal sealed class ExecutableLocator
     private readonly Func<string?> _configuredPath;
     private readonly ILogger _logger;
     private readonly Func<string, CancellationToken, Task<bool>> _probe;
+    private readonly string _baseDirectory;
     private readonly SemaphoreSlim _lock = new(1, 1);
 
     private bool _resolved;
@@ -44,14 +48,23 @@ internal sealed class ExecutableLocator
     {
     }
 
+    /// <summary>Test seam: <paramref name="probe"/> replaces the process probe and <paramref name="baseDirectory"/> the
+    /// application folder a relative configured path is resolved against.</summary>
+    internal ExecutableLocator(string toolName, Func<string?> configuredPath, ILogger logger,
+        Func<string, CancellationToken, Task<bool>> probe, string baseDirectory)
+        : this(toolName, configuredPath, logger, DefaultProbeTimeout, probe, baseDirectory)
+    {
+    }
+
     private ExecutableLocator(string toolName, Func<string?> configuredPath, ILogger logger, TimeSpan probeTimeout,
-        Func<string, CancellationToken, Task<bool>>? probe)
+        Func<string, CancellationToken, Task<bool>>? probe, string? baseDirectory = null)
     {
         _toolName = toolName;
         _configuredPath = configuredPath;
         _logger = logger;
         ProbeTimeout = probeTimeout;
         _probe = probe ?? ((file, ct) => IsExecutableAvailableAsync(file, ProbeTimeout, ct));
+        _baseDirectory = baseDirectory ?? AppContext.BaseDirectory;
     }
 
     /// <summary>The limit of the process probe (<see cref="DefaultProbeTimeout"/> unless a test seam set another).</summary>
@@ -87,13 +100,14 @@ internal sealed class ExecutableLocator
         var configured = _configuredPath();
         if (!string.IsNullOrWhiteSpace(configured))
         {
-            if (File.Exists(configured))
+            var path = ResolveConfiguredPath(configured, _baseDirectory);
+            if (File.Exists(path))
             {
-                _logger.LogInformation("Using configured {Tool} path: {Path}", _toolName, configured);
-                return configured;
+                _logger.LogInformation("Using configured {Tool} path: {Path}", _toolName, path);
+                return path;
             }
 
-            _logger.LogWarning("Configured {Tool} path '{Path}' does not exist; falling back to PATH lookup.", _toolName, configured);
+            _logger.LogWarning("Configured {Tool} path '{Path}' does not exist; falling back to PATH lookup.", _toolName, path);
         }
 
         var candidate = OperatingSystem.IsWindows() ? _toolName + ".exe" : _toolName;
@@ -106,6 +120,13 @@ internal sealed class ExecutableLocator
         _logger.LogWarning("{Tool} could not be located (not configured, not found on PATH). Features that need it are unavailable until FFmpeg is installed or configured.", _toolName);
         return null;
     }
+
+    /// <summary>
+    /// A rooted <paramref name="configured"/> path is kept as it is; a relative one is made absolute against
+    /// <paramref name="baseDirectory"/> (the application folder), so the process's current directory never matters.
+    /// </summary>
+    internal static string ResolveConfiguredPath(string configured, string baseDirectory) =>
+        Path.IsPathRooted(configured) ? configured : Path.GetFullPath(Path.Combine(baseDirectory, configured));
 
     internal static Task<bool> IsExecutableAvailableAsync(string fileName, CancellationToken ct) =>
         IsExecutableAvailableAsync(fileName, DefaultProbeTimeout, ct);

@@ -52,6 +52,10 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
     private static readonly IPen LoupeBorder = new Pen(Brushes.White, 1);
     private static readonly IPen Crosshair = new Pen(new SolidColorBrush(Color.FromArgb(220, 255, 255, 255)), 1);
     private static readonly IPen InvalidPen = new Pen(new SolidColorBrush(Color.Parse("#FF1744")), 2, lineJoin: PenLineJoin.Round);
+    // Phase 31 (D047): proposals are drawn as translucent dashed neutral outlines; the selected one is highlighted.
+    private static readonly IPen ProposalKeyline = new Pen(new SolidColorBrush(Color.FromArgb(180, 0, 0, 0)), 3, lineJoin: PenLineJoin.Round);
+    private static readonly IPen ProposalPen = new Pen(new SolidColorBrush(Color.Parse("#B0B0B0")), 1.5, new DashStyle(new double[] { 4, 3 }, 0), lineJoin: PenLineJoin.Round);
+    private static readonly IPen SelectedProposalPen = new Pen(new SolidColorBrush(Color.Parse("#FFEA00")), 2, new DashStyle(new double[] { 4, 3 }, 0), lineJoin: PenLineJoin.Round);
     private static readonly IPen HandleBorder = new Pen(Brushes.Black, 1);
     private static readonly IBrush HandleFill = Brushes.White;
     private static readonly IBrush HoveredFill = new SolidColorBrush(Color.Parse("#FFEA00"));
@@ -288,6 +292,13 @@ public sealed class HoldMarkupOverlay : Control, ICustomHitTest
     {
         if (_markup is not { IsActive: true, Geometry: { } geometry } markup || !markup.Canvas.IsValid) return;
         var view = Bounds.Size;
+
+        // Phase 31 (D047): ranked automatic proposals, translucent and dashed; the selected one highlighted.
+        for (var i = 0; i < markup.ProposalContours.Length; i++)
+        {
+            var pen = i == markup.SelectedProposalIndex ? SelectedProposalPen : ProposalPen;
+            DrawContour(context, geometry, markup.Canvas, view, markup.ProposalContours[i], ProposalKeyline, pen);
+        }
 
         // An animated route (D036): the composition shows this frame's honest state; every contour — also those hidden on
         // it — is outlined here so it can be selected and corrected.

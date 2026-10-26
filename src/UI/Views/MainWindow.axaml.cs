@@ -225,6 +225,7 @@ public partial class MainWindow : Window
         public TimelineEditResult RemoveMedia(Guid mediaAssetId) => Nothing;
         public TimelineEditResult SetClipProperties(Guid clipId, ClipPropertyChange change) => Nothing;
         public TimelineEditResult AddHold(Guid clipId, Hold hold) => Nothing;
+        public TimelineEditResult AddHolds(Guid clipId, IEnumerable<Hold> holds) => Nothing;
         public TimelineEditResult RemoveHold(Guid clipId, Guid holdId) => Nothing;
         public TimelineEditResult ReplaceHoldContour(Guid clipId, Guid holdId, ImmutableArray<NormalizedPoint> points) => Nothing;
         public TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style) => Nothing;

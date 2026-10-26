@@ -234,6 +234,50 @@ public class HoldMarkupEditTests
     }
 
     [Fact]
+    public void AddHolds_adds_several_holds_in_one_undo_step_and_resolves_the_colour()
+    {
+        var f = WithVideo(out var clip);
+        var holds = new[] { Hold("#E53935", x: 0.2), Hold("#43A047", x: 0.4), Hold("#1E88E5", x: 0.6) };
+        Assert.True(f.Service.AddHolds(clip.Id, holds).Success);
+        Assert.Equal(3, clip.HoldMarkup!.Holds.Length);
+        Assert.Equal("Add Holds", f.UndoRedo.NextUndo!.Description);
+
+        f.UndoRedo.Undo();
+        Assert.Null(clip.HoldMarkup);
+        f.UndoRedo.Redo();
+        Assert.Equal(3, clip.HoldMarkup!.Holds.Length);
+    }
+
+    [Fact]
+    public void AddHolds_is_a_no_change_when_every_hold_is_invalid_or_a_duplicate()
+    {
+        var f = WithVideo(out var clip);
+        var good = Hold("#E53935");
+        var tooFew = new Hold(Guid.NewGuid(), ImmutableArray.Create(new NormalizedPoint(0, 0), new NormalizedPoint(1, 1)), default, default, MediaTime.Zero);
+        var duplicate = good;
+
+        Assert.True(f.Service.AddHolds(clip.Id, new[] { good, tooFew }).Success);
+        Assert.Single(clip.HoldMarkup!.Holds);
+
+        Assert.True(f.Service.AddHolds(clip.Id, new[] { duplicate }).NoChange);
+        Assert.Single(clip.HoldMarkup.Holds);
+    }
+
+    [Fact]
+    public void AddHolds_refuses_other_clips_and_locked_tracks()
+    {
+        var f = WithVideo(out var clip);
+        Assert.True(f.Service.AddTextClip(MediaTime.FromSeconds(20)).Success);
+        var text = f.V1.Clips.OfType<TextClip>().Single();
+        Assert.False(f.Service.AddHolds(text.Id, new[] { Hold("#E53935") }).Success);
+
+        Assert.True(f.Service.SetTrackLocked(f.V1.Id, true).Success);
+        var locked = f.Service.AddHolds(clip.Id, new[] { Hold("#E53935") });
+        Assert.False(locked.Success);
+        Assert.Contains("locked", locked.Message);
+    }
+
+    [Fact]
     public void A_markup_change_raises_one_timeline_notification_per_step()
     {
         var f = WithVideo(out var clip);

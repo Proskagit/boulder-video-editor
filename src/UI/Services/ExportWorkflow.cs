@@ -58,6 +58,7 @@ public sealed class ExportWorkflow
     private readonly StatusService _status;
     private readonly ILogger<ExportWorkflow> _logger;
     private readonly InOutRangeService? _inOut;
+    private readonly CameraMotionCoordinator? _cameraMotion;
     private bool _running;
 
     public ExportWorkflow(
@@ -70,9 +71,11 @@ public sealed class ExportWorkflow
         EditingLock editingLock,
         StatusService status,
         ILogger<ExportWorkflow> logger,
-        InOutRangeService? inOut = null)
+        InOutRangeService? inOut = null,
+        CameraMotionCoordinator? cameraMotion = null)
     {
         _inOut = inOut;
+        _cameraMotion = cameraMotion;
         _projects = projects;
         _export = export;
         _fonts = fonts;
@@ -143,7 +146,11 @@ public sealed class ExportWorkflow
             else if (choice != 1) return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_Cancelled));
         }
 
-        var environment = ExportPreflightEnvironment.Default(await _export.IsAvailableAsync(), IsFontInstalled);
+        // Hold tracking: the Preview's own camera-motion tracks, so the export draws the contours where the Preview does.
+        var environment = ExportPreflightEnvironment.Default(await _export.IsAvailableAsync(), IsFontInstalled) with
+        {
+            CameraMotion = _cameraMotion?.ForExport() ?? ExportCameraMotion.None
+        };
 
         // 1. Everything but the output file, which is chosen next.
         var check = ExportPreflight.Check(project, null, environment, range);
