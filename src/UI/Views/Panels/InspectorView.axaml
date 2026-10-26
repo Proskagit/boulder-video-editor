@@ -671,6 +671,18 @@
                   <TextBlock Text="{Binding AnimationWarning}" Foreground="#E0A040" TextWrapping="Wrap"
                              IsVisible="{Binding AnimationWarning, Converter={x:Static ObjectConverters.IsNotNull}}"/>
                 </StackPanel>
+
+                <!-- Hold tracking (R2 → E): the contours follow the wall while the camera moves; the state of the analysis and
+                     the manual correction (switch it off for this clip, retry a failed analysis). Session state, never saved. -->
+                <StackPanel Spacing="4" IsVisible="{Binding ShowsTracking}">
+                  <CheckBox Content="{x:Static l:Strings.Holds_FollowCamera}" IsChecked="{Binding FollowsCamera, Mode=TwoWay}"
+                            ToolTip.Tip="{x:Static l:Strings.Holds_FollowCameraTip}"/>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{Binding TrackingStatus}" Foreground="#AAAAAA" TextWrapping="Wrap" MaxWidth="230" VerticalAlignment="Center"/>
+                    <Button Content="{x:Static l:Strings.Holds_TrackingRetry}" Command="{Binding RetryTrackingCommand}"
+                            IsVisible="{Binding IsTrackingFailed}"/>
+                  </StackPanel>
+                </StackPanel>
               </StackPanel>
             </StackPanel>
 

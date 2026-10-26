@@ -28,6 +28,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     private readonly IPlaybackService _playback;
     private readonly IProjectService _projectService;
     private readonly ILogger<PreviewViewModel> _logger;
+    private readonly CameraMotionCoordinator? _cameraMotion;
 
     private long _snapshotVersion;
     private ImmutableDictionary<Guid, PlaybackSnapshotBuilder.AssetState> _assetStates =
@@ -81,9 +82,12 @@ public sealed partial class PreviewViewModel : ViewModelBase
     public event EventHandler<MediaTime>? PlaybackPositionChanged;
 
     public PreviewViewModel(StatusService status, IPlaybackService playback, IProjectService projectService,
-        ILogger<PreviewViewModel> logger, InOutRangeService? inOut = null, SourceViewerService? source = null)
+        ILogger<PreviewViewModel> logger, InOutRangeService? inOut = null, SourceViewerService? source = null,
+        CameraMotionCoordinator? cameraMotion = null)
     {
         _inOut = inOut;
+        _cameraMotion = cameraMotion;
+        if (_cameraMotion is not null) _cameraMotion.TracksChanged += OnCameraMotionChanged;
         _source = source;
         _status = status;
         _playback = playback;
@@ -199,7 +203,15 @@ public sealed partial class PreviewViewModel : ViewModelBase
     public async Task ReleasePlaybackAsync()
     {
         _released = true;
+        // The coordinator is a singleton: stop it from reaching this view model (and its released playback).
+        if (_cameraMotion is not null) _cameraMotion.TracksChanged -= OnCameraMotionChanged;
         await _playback.DisposeAsync();
+    }
+
+    /// <summary>Hold tracking: a finished analysis moves the contours — a presentation-only change, no decoder restarts.</summary>
+    private void OnCameraMotionChanged(object? sender, EventArgs e)
+    {
+        if (!_released && !IsSourceMode) RebuildSnapshot();
     }
 
     private void ShowLayers(PlaybackFrame frame)
@@ -224,7 +236,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     private void RebuildSnapshot()
     {
         _assetStates = PlaybackSnapshotBuilder.CaptureAssetStates(_projectService.Current);
-        _playback.UpdateSnapshot(PlaybackSnapshotBuilder.Build(_projectService.Current, ++_snapshotVersion));
+        _playback.UpdateSnapshot(PlaybackSnapshotBuilder.Build(_projectService.Current, ++_snapshotVersion, _cameraMotion?.Tracks));
         _needsTick = true;
     }
 

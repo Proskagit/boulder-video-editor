@@ -69,7 +69,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     public HoldMarkupViewModel(ITimelineEditService edit, IProjectService projects, StatusService status,
         IHoldSegmentationService? segmentation = null, IHoldMarkupFrameSource? frames = null, EditingLock? editingLock = null,
-        IHoldProposalGenerator? proposalGenerator = null, IHoldProposalRefiner? proposalRefiner = null)
+        IHoldProposalGenerator? proposalGenerator = null, IHoldProposalRefiner? proposalRefiner = null,
+        CameraMotionCoordinator? cameraMotion = null)
     {
         _edit = edit;
         _projects = projects;
@@ -89,6 +90,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
         MaxProposalsToShow = 30;
         IsProposalGenerationEnabled = true;
+        InitTracking(cameraMotion);
     }
 
     /// <summary>The playhead (the timeline's), set by the shell.</summary>
@@ -170,6 +172,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             KeylineIndex = (int)markup.Keyline;
             KeylineActive = markup.KeylineActive;
             LoadAnimation(markup);
+            RefreshTracking();
         }
         finally
         {

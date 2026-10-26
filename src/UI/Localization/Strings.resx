@@ -318,6 +318,30 @@ The file is replaced only when the export succeeds.</value>
   <data name="Holds_AddFailed" xml:space="preserve">
     <value>The hold could not be added: {0}</value>
   </data>
+  <data name="Holds_FollowCamera" xml:space="preserve">
+    <value>Follow the camera</value>
+  </data>
+  <data name="Holds_FollowCameraTip" xml:space="preserve">
+    <value>Keeps the hold outlines on the wall while the camera moves. Switch it off when the tracking is wrong: the outlines then stay where they were marked (the Preview and the export alike). Not saved with the project.</value>
+  </data>
+  <data name="Holds_TrackingAnalysing" xml:space="preserve">
+    <value>Fixing the outlines to the wall…</value>
+  </data>
+  <data name="Holds_TrackingTracked" xml:space="preserve">
+    <value>The outlines follow the wall.</value>
+  </data>
+  <data name="Holds_TrackingTrackedPartly" xml:space="preserve">
+    <value>The outlines follow the wall; on {0} % of the frames the camera's position is uncertain and they are hidden.</value>
+  </data>
+  <data name="Holds_TrackingFailed" xml:space="preserve">
+    <value>The outlines could not be fixed to the wall; they stay where they were marked.</value>
+  </data>
+  <data name="Holds_TrackingOff" xml:space="preserve">
+    <value>Not following the camera: the outlines stay where they were marked.</value>
+  </data>
+  <data name="Holds_TrackingRetry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
   <data name="Holds_Animate" xml:space="preserve">
     <value>Animate</value>
   </data>

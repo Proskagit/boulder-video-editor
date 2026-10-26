@@ -318,6 +318,30 @@
   <data name="Holds_AddFailed" xml:space="preserve">
     <value>Не удалось добавить зацепку: {0}</value>
   </data>
+  <data name="Holds_FollowCamera" xml:space="preserve">
+    <value>Следовать за камерой</value>
+  </data>
+  <data name="Holds_FollowCameraTip" xml:space="preserve">
+    <value>Удерживает контуры зацепок на стене, когда камера движется. Выключите, если привязка ошиблась: контуры останутся на месте разметки (одинаково в просмотре и экспорте). С проектом не сохраняется.</value>
+  </data>
+  <data name="Holds_TrackingAnalysing" xml:space="preserve">
+    <value>Контуры привязываются к стене…</value>
+  </data>
+  <data name="Holds_TrackingTracked" xml:space="preserve">
+    <value>Контуры привязаны к стене.</value>
+  </data>
+  <data name="Holds_TrackingTrackedPartly" xml:space="preserve">
+    <value>Контуры привязаны к стене; на {0} % кадров положение камеры ненадёжно, там контуры скрыты.</value>
+  </data>
+  <data name="Holds_TrackingFailed" xml:space="preserve">
+    <value>Привязать контуры к стене не удалось; они остаются на месте разметки.</value>
+  </data>
+  <data name="Holds_TrackingOff" xml:space="preserve">
+    <value>Привязка выключена: контуры остаются на месте разметки.</value>
+  </data>
+  <data name="Holds_TrackingRetry" xml:space="preserve">
+    <value>Повторить</value>
+  </data>
   <data name="Holds_Animate" xml:space="preserve">
     <value>Анимация</value>
   </data>

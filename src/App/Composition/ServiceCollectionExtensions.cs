@@ -104,6 +104,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ExportWorkflow>();
         services.AddSingleton<MediaAnalysisCoordinator>();
         services.AddSingleton<ThumbnailCoordinator>();
+        services.AddSingleton<CameraMotionCoordinator>();   // hold tracking (R2 → E): camera motion of clips with holds
         services.AddSingleton<WaveformCoordinator>();
         services.AddSingleton<MediaAvailabilityMonitor>();
         services.AddSingleton<MediaImportWorkflow>();
