@@ -454,6 +454,18 @@ the pull request).
     `PreviewViewModel` unsubscribes on release. Strings en + ru. Tests: `tests/UI.Tests/HoldTrackingUiTests.cs` (5), the
     coordinator tests on a single UI-thread stand-in (`TestUiThread.cs`) — 10 / 10 stable over 10 runs; UI.Tests 909 / 909,
     Core.Tests 1359 / 1359; Release build `-warnaserror` 0 / 0.
+  - 2026-10-27 — the product owner's manual check in the live Release application built from `C:\AiVideoEditor-tracking`
+    (a fixture project, outside the repository, written by the app's serializer: clip 100405 with the R2 research's route
+    marked on the frame at 6 s and animated (D036) from 6 s; the hand-held clip 104651 with three test contours):
+    - PASS: the test project opens; the tracking states in the Inspector are shown correctly; on clip 100405 the hold
+      outlines are shown and follow the camera; "Follow the camera" off and on again works; on clip 104651 (many
+      unreliable frames) the outlines behave as expected; the export completed; the tracking lines are in the log.
+    - NOT RUN: an export started while a clip's tracking analysis is running (the `HoldTrackingPending` refusal);
+      "Retry" after a real analysis failure. Both are covered by automated tests only.
+    - Quality note (not blocking this stage): on clip 100405 the hold set mixed pink and orange holds of close hues. The
+      set came from the R2 research's variant-B prototype (colour selection; not product code, not part of this stage) —
+      recorded as a separate future task: accuracy of the hold selection and its manual correction. The colour selection
+      was not changed.
   - Open: persistence across sessions and a key-frame correction (both need stored data — D-7, to be agreed with Phase
     Coros); the agreed thresholds (D-15) and the details on unreliable frames (D-9: now hidden, no fade); the owner's
     check in the real app and a manual test plan; occlusion stays a separate later stage.
