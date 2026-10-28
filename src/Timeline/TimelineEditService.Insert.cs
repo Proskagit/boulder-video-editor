@@ -121,6 +121,9 @@ public sealed partial class TimelineEditService
                 return TimelineEditResult.Fail(partnerPlanError);
         }
         LinkSplitParts(splits);
+        // D048: a split clip's anchored templates and markup follow its right part — moved (Insert) or head-trimmed (Overwrite).
+        if (PlanPlacedOverlays(plan, splits, atFrame, overwrite ? 0 : frames, overwrite ? atFrame + frames : null) is { } overlayError)
+            return TimelineEditResult.Fail($"Can't {verb}: {overlayError}");
 
         plan.Insert(track, clip);
         if (Validate(plan) is { } invalid)

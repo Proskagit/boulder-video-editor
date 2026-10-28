@@ -53,15 +53,27 @@ public static class HoldAnimationRule
     public static ImmutableArray<int> Ranks(ImmutableArray<Hold> holds, HoldAnimationOrder order)
     {
         var indices = Enumerable.Range(0, holds.Length).ToList();
-        if (order == HoldAnimationOrder.BottomToTop)
+        if (order != HoldAnimationOrder.MarkingOrder)
         {
             var centres = holds.Select(h => Centre(h.Points)).ToArray();
             indices.Sort((i, j) =>
             {
                 var (ci, cj) = (centres[i], centres[j]);
-                if (Math.Abs(ci.Y - cj.Y) > LevelTolerance) return cj.Y.CompareTo(ci.Y);
-                if (Math.Abs(ci.X - cj.X) > LevelTolerance) return ci.X.CompareTo(cj.X);
-                return i.CompareTo(j);
+                // D048 §3.3: left to right / right to left by the centre's X; ties by the other axis (the lower first, as D036), then
+                // the marking order — as D036's bottom-to-top rule.
+                switch (order)
+                {
+                    case HoldAnimationOrder.LeftToRight:
+                    case HoldAnimationOrder.RightToLeft:
+                        if (Math.Abs(ci.X - cj.X) > LevelTolerance)
+                            return order == HoldAnimationOrder.LeftToRight ? ci.X.CompareTo(cj.X) : cj.X.CompareTo(ci.X);
+                        if (Math.Abs(ci.Y - cj.Y) > LevelTolerance) return cj.Y.CompareTo(ci.Y);
+                        return i.CompareTo(j);
+                    default:
+                        if (Math.Abs(ci.Y - cj.Y) > LevelTolerance) return cj.Y.CompareTo(ci.Y);
+                        if (Math.Abs(ci.X - cj.X) > LevelTolerance) return ci.X.CompareTo(cj.X);
+                        return i.CompareTo(j);
+                }
             });
         }
         var ranks = new int[holds.Length];
@@ -73,6 +85,7 @@ public static class HoldAnimationRule
     /// <paramref name="startFrame"/>.</summary>
     public static HoldSchedule Schedule(HoldAnimation animation, ImmutableArray<Hold> holds, long startFrame, FrameRate rate)
     {
+        if (animation.Mode == HoldAnimationMode.Duration) return DurationSchedule(animation, holds, startFrame, rate);
         var ranks = Ranks(holds, animation.Order);
         var appear = ranks.Select(r => startFrame + TransitionRules.Frames(new MediaTime(r * animation.Interval.Ticks), rate)).ToImmutableArray();
         var appearFade = TransitionRules.Frames(animation.AppearFade, rate);
@@ -83,6 +96,31 @@ public static class HoldAnimationRule
             : lastAppear + appearFade + TransitionRules.Frames(animation.StayAfterLast, rate);
         return new HoldSchedule(startFrame, appear, appearFade, disappearStart, disappearFade);
     }
+
+    /// <summary>The frames of an animation (in <see cref="HoldAnimationMode.Duration"/>; D048 §3.2):
+    /// <c>F = max(1, Frames(Duration))</c>, the end <c>nE = n0 + F</c> (= <c>T</c>, exclusive); the appear phase
+    /// <c>P = ⌊(8F + 5) / 10⌋</c> (80 % rounded half up); hold <c>r</c> of <c>N</c> starts at <c>n0 + ⌊r · P / N⌋</c> and fades
+    /// in over <c>R = min(Frames(AppearFade), P − ⌊(N − 1) · P / N⌋)</c> frames (at least one), so every hold is fully
+    /// visible by <c>n0 + P</c>; from there to <c>nE − 1</c> the whole route shows; at <c>nE</c> every contour is gone (no
+    /// fade after <c>T</c>).</summary>
+    public static HoldSchedule DurationSchedule(HoldAnimation animation, ImmutableArray<Hold> holds, long startFrame, FrameRate rate)
+    {
+        var f = DurationFrames(animation, rate);
+        var p = AppearFrames(f);
+        var n = holds.Length;
+        var ranks = Ranks(holds, animation.Order);
+        var appear = ranks.Select(r => startFrame + (long)((Int128)r * p / n)).ToImmutableArray();
+        var lastStart = n == 0 ? 0 : (long)((Int128)(n - 1) * p / n);
+        var fade = Math.Max(1, Math.Min(TransitionRules.Frames(animation.AppearFade, rate), p - lastStart));
+        return new HoldSchedule(startFrame, appear, fade, startFrame + f, 0);
+    }
+
+    /// <summary>The frame count <c>F</c> of a <see cref="HoldAnimationMode.Duration"/> animation (at least one).</summary>
+    public static long DurationFrames(HoldAnimation animation, FrameRate rate) =>
+        Math.Max(1, animation.Duration.ToNearestFrame(rate));
+
+    /// <summary>The appear phase <c>P = ⌊(8F + 5) / 10⌋</c> of <c>F</c> frames (D048 §3.2).</summary>
+    public static long AppearFrames(long frames) => (8 * frames + 5) / 10;
 
     /// <summary>The centre of a contour: its area centroid (shoelace); the mean of its vertices when it has no area.</summary>
     public static NormalizedPoint Centre(ImmutableArray<NormalizedPoint> points)

@@ -70,7 +70,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     public HoldMarkupViewModel(ITimelineEditService edit, IProjectService projects, StatusService status,
         IHoldSegmentationService? segmentation = null, IHoldMarkupFrameSource? frames = null, EditingLock? editingLock = null,
         IHoldProposalGenerator? proposalGenerator = null, IHoldProposalRefiner? proposalRefiner = null,
-        CameraMotionCoordinator? cameraMotion = null)
+        CameraMotionCoordinator? cameraMotion = null, RouteSelectionService? routeSelection = null)
     {
         _edit = edit;
         _projects = projects;
@@ -91,6 +91,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         MaxProposalsToShow = 30;
         IsProposalGenerationEnabled = true;
         InitTracking(cameraMotion);
+        InitRoute(routeSelection);
     }
 
     /// <summary>The playhead (the timeline's), set by the shell.</summary>
@@ -228,17 +229,46 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     // ---- the animation (D036) ---------------------------------------------------------------------------------------
 
-    public IReadOnlyList<string> AnimationOrders { get; } = new[] { Strings.Holds_OrderBottomToTop, Strings.Holds_OrderMarking };
+    public IReadOnlyList<string> AnimationOrders { get; } = new[]
+    {
+        Strings.Holds_OrderBottomToTop, Strings.Holds_OrderMarking, Strings.Holds_OrderLeftToRight, Strings.Holds_OrderRightToLeft
+    };
+
+    /// <summary>The orders of a Duration-mode animation (D048 §3.3: the marking order stays an Interval-mode one).</summary>
+    private static readonly HoldAnimationOrder[] DurationOrders =
+        { HoldAnimationOrder.BottomToTop, HoldAnimationOrder.LeftToRight, HoldAnimationOrder.RightToLeft };
+
+    public IReadOnlyList<string> DurationAnimationOrders { get; } = new[]
+    {
+        Strings.Holds_OrderBottomToTop, Strings.Holds_OrderLeftToRight, Strings.Holds_OrderRightToLeft
+    };
 
     [ObservableProperty] private bool _isAnimated;
     [ObservableProperty] private int _animationOrderIndex;
+
+    /// <summary>D048 §3.1: the animation has an explicit length (made by the layout); its Interval-mode fields are hidden.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsIntervalMode), nameof(ShowsDisappearFade))]
+    private bool _isDurationMode;
+
+    public bool IsIntervalMode => !IsDurationMode;
+
+    /// <summary>The disappear fade: Interval mode only, and not with "until clip end" (D036).</summary>
+    public bool ShowsDisappearFade => IsIntervalMode && !StayUntilClipEnd;
+
+    [ObservableProperty] private int _durationOrderIndex;
+
+    /// <summary>The Duration-mode length in timeline seconds (stored in whole frames).</summary>
+    [ObservableProperty] private decimal? _animationDuration;
 
     /// <summary>The start as a source time in seconds (D036 §2: a moment of the video, not of the timeline).</summary>
     [ObservableProperty] private decimal? _animationStart;
     [ObservableProperty] private decimal? _animationInterval = Seconds(HoldAnimation.DefaultInterval);
     [ObservableProperty] private decimal? _appearFade = Seconds(HoldAnimation.DefaultAppearFade);
     [ObservableProperty] private decimal? _stayAfterLast = Seconds(HoldAnimation.DefaultStayAfterLast);
-    [ObservableProperty] private bool _stayUntilClipEnd;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsDisappearFade))]
+    private bool _stayUntilClipEnd;
     [ObservableProperty] private decimal? _disappearFade = Seconds(HoldAnimation.DefaultDisappearFade);
 
     /// <summary>The animation's length in words; the warning when it runs past the clip's end (not an error).</summary>
@@ -250,6 +280,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     public decimal MaxAnimationInterval => Seconds(HoldMarkupRules.MaxInterval);
     public decimal MaxAnimationFade => Seconds(HoldMarkupRules.MaxFade);
     public decimal MaxAnimationStay => Seconds(HoldMarkupRules.MaxStay);
+    public decimal MaxAnimationDuration => Seconds(HoldMarkupRules.MaxAnimationDuration);
 
     private static decimal Seconds(MediaTime time) => time.Ticks / (decimal)TimeSpan.TicksPerSecond;
 
@@ -262,6 +293,9 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         IsAnimated = animation is not null;
         var shown = animation ?? new HoldAnimation { StartSourceTime = _clip?.SourceIn ?? MediaTime.Zero };
         AnimationOrderIndex = (int)shown.Order;
+        IsDurationMode = shown.Mode == HoldAnimationMode.Duration;
+        DurationOrderIndex = Array.IndexOf(DurationOrders, shown.Order);
+        AnimationDuration = Seconds(shown.Duration);
         AnimationStart = Seconds(shown.StartSourceTime);
         AnimationInterval = Seconds(shown.Interval);
         AppearFade = Seconds(shown.AppearFade);
@@ -285,6 +319,20 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     partial void OnAnimationOrderIndexChanged(int value)
     {
         if (!_syncing && value >= 0) EditAnimation(a => a with { Order = (HoldAnimationOrder)value });
+    }
+
+    partial void OnDurationOrderIndexChanged(int value)
+    {
+        if (!_syncing && value >= 0 && value < DurationOrders.Length) EditAnimation(a => a with { Order = DurationOrders[value] });
+    }
+
+    /// <summary>A typed length, in whole frames of the project's rate (at least one — D048 §3.1's <c>F</c>).</summary>
+    partial void OnAnimationDurationChanged(decimal? value)
+    {
+        if (_syncing || value is not { } v) return;
+        var rate = _projects.Current.Settings.FrameRate;
+        var frames = Math.Max(1, Ticks(v).ToNearestFrame(rate));
+        EditAnimation(a => a with { Duration = MediaTime.FromFrame(frames, rate) });
     }
 
     partial void OnAnimationStartChanged(decimal? value)
@@ -318,6 +366,31 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     }
 
     private bool CanSetStartToPlayhead() => _clip?.HoldMarkup?.Animation is not null && PlayheadSourceTime() is not null;
+
+    private bool CanLayOutIntroAndFinal()
+    {
+        if (_clip?.HoldMarkup is not { Holds.Length: > 0 }) return false;
+        var playhead = Playhead();
+        return playhead >= _clip.TimelineStart && playhead <= _clip.TimelineEnd;
+    }
+
+    /// <summary>"Lay out intro and final" (D048 §3.4): from the playhead (<c>T</c>, the start of the climb) — the hold
+    /// animation over the 5 s before it, the route plate from 7 s before it, Top / Attempt over the clip's last 5 s. One
+    /// undo step; an explicit action, never run by accepting a route.</summary>
+    [RelayCommand(CanExecute = nameof(CanLayOutIntroAndFinal))]
+    private void LayOutIntroAndFinal()
+    {
+        if (_clip is null) return;
+        if (_lock.IsLocked)
+        {
+            _status.Report(Strings.Holds_AnimationExportRunning);
+            return;
+        }
+        var result = _edit.LayOutIntroAndFinal(_clip.Id, Playhead());
+        if (!result.Success || result.Message is not null) _status.Report(result.Message ?? Strings.Holds_AnimationNotChanged);
+        LoadStyle();
+        RefreshCommands();
+    }
 
     /// <summary>"Set to playhead": the animation starts on the frame under the playhead (its source time, D036 §2).</summary>
     [RelayCommand(CanExecute = nameof(CanSetStartToPlayhead))]
@@ -585,7 +658,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     private void RefreshProposals()
     {
-        var visible = _proposalSource.Take(MaxProposalsToShow).Select((p, i) => new ProposalItem(i + 1, p)).ToList();
+        var visible = (IsRouteSelection ? _proposalSource : _proposalSource.Take(MaxProposalsToShow)).Select((p, i) => new ProposalItem(i + 1, p)).ToList();
         Proposals = visible;
         HasProposals = visible.Count > 0;
         ProposalContours = visible.Select(p => p.Contour).ToImmutableArray();
@@ -614,11 +687,12 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     private void Escape()
     {
         if (!IsActive) return;
-        if (IsPreparing) { Exit(); return; }
+        if (IsPreparing) { if (IsRouteSelection) CancelRoute(); else Exit(); return; }
         if (!_confirming.IsCompleted) return;   // Enter came first: the hold is being added
         if (IsDraggingVertex) { CancelVertexDrag(); return; }
         if (HasCandidate) { ClearCandidate(); return; }
         if (SelectedHoldId is not null) { Select(null); return; }
+        if (IsRouteSelection) { CancelRoute(); return; }   // D048 §2: back to T, nothing changed
         Exit();
     }
 
@@ -631,7 +705,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     // ---- proposal commands (Phase 31, D047) ------------------------------------------------------------------------
 
     private bool CanAcceptSelectedProposal() =>
-        IsActive && !IsRefiningProposals && SelectedProposal is not null && _proposalRefiner is not null && _clip is not null;
+        IsActive && !IsRouteSelection && !IsRefiningProposals && SelectedProposal is not null && _proposalRefiner is not null && _clip is not null;
 
     [RelayCommand(CanExecute = nameof(CanAcceptSelectedProposal))]
     private async Task AcceptSelectedProposalAsync()
@@ -649,12 +723,17 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     {
         var proposal = SelectedProposal?.Proposal;
         if (proposal is null) return;
+        if (IsRouteSelection)
+        {
+            RejectRouteProposal(proposal.Id);
+            return;
+        }
         _proposalSource.Remove(proposal);
         RefreshProposals();
     }
 
     private bool CanAcceptAllProposals() =>
-        IsActive && !IsRefiningProposals && Proposals.Count > 0 && _proposalRefiner is not null && _clip is not null;
+        IsActive && !IsRouteSelection && !IsRefiningProposals && Proposals.Count > 0 && _proposalRefiner is not null && _clip is not null;
 
     [RelayCommand(CanExecute = nameof(CanAcceptAllProposals))]
     private async Task AcceptAllProposalsAsync()
@@ -669,6 +748,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanRejectAllProposals))]
     private void RejectAllProposals()
     {
+        if (IsRouteSelection)
+        {
+            foreach (var p in _proposalSource) _routeRejected.Add(p.Id);
+            _routeManual.Clear();
+        }
         ClearProposals();
         RefreshCommands();
     }
@@ -811,6 +895,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     {
         // A confirm still sampling the colours finishes first: a quick next click never drops it.
         if (!_confirming.IsCompleted) await _confirming;
+        if (_routePhase == RoutePhase.Picking)
+        {
+            if (point.X is >= 0 and <= 1 && point.Y is >= 0 and <= 1) await PickControlAsync(point);
+            return;
+        }
         if (!IsActive || IsPreparing || _encoded is null || MarkupFrame is null) return;
         if (point.X is < 0 or > 1 || point.Y is < 0 or > 1) return;
 
@@ -953,6 +1042,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (!CanConfirm() || !HasCandidate || _clip is null || MarkupFrame is not { } frame || _componentMask is not { } component) return;
         var clip = _clip;
         var contour = CandidateContour;
+        if (IsRouteReview)
+        {
+            await AddRouteCandidate(frame, component, contour);   // D048 §2: into the review, the clip unchanged
+            return;
+        }
         var others = (clip.HoldMarkup?.Holds ?? ImmutableArray<Hold>.Empty).Select(h => (IReadOnlyList<NormalizedPoint>)h.Points).ToList();
         var generation = ++_generation;
         var (surface, wall) = await Task.Run(() => HoldColorSampler.Sample(frame, component, others));
@@ -1029,6 +1123,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         IsActive = false;
         IsGeneratingProposals = false;
         ClearProposals();
+        ResetRoute();
         RefreshCommands();
     }
 
@@ -1246,8 +1341,9 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     {
         var settings = _projects.Current.Settings;
         Canvas = new FrameSize(settings.FrameWidth, settings.FrameHeight);
-        Geometry = _clip is not null && MarkupFrame is { } frame && VisualProperties.Of(_clip) is { } visual
-            ? CompositionMath.Layout(Canvas, new FrameSize(frame.Width, frame.Height), visual)
+        var size = MarkupFrame is { } frame ? new FrameSize(frame.Width, frame.Height) : _pickSize;
+        Geometry = _clip is not null && size is { } frameSize && VisualProperties.Of(_clip) is { } visual
+            ? CompositionMath.Layout(Canvas, frameSize, visual)
             : null;
         if (SelectedHoldId is not { } id) return;
         if (_clip?.HoldMarkup?.Holds.FirstOrDefault(h => h.Id == id) is not { } hold)
@@ -1282,6 +1378,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     {
         StartCommand.NotifyCanExecuteChanged();
         SetStartToPlayheadCommand.NotifyCanExecuteChanged();
+        LayOutIntroAndFinalCommand.NotifyCanExecuteChanged();
         ConfirmCommand.NotifyCanExecuteChanged();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
         AcceptSelectedProposalCommand.NotifyCanExecuteChanged();
@@ -1294,6 +1391,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         RejectOrDeleteCommand.NotifyCanExecuteChanged();
         NextItemCommand.NotifyCanExecuteChanged();
         PreviousItemCommand.NotifyCanExecuteChanged();
+        RefreshRouteCommands();
     }
 
     private void OnUi(Action action)

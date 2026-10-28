@@ -162,6 +162,10 @@ public sealed class TemplateClip : Clip
     /// <summary>«Хайлайт»: the title and an optional subtitle.</summary>
     public string Title { get; set; } = string.Empty;
     public string Subtitle { get; set; } = string.Empty;
+
+    /// <summary>D048 §3.5 (format v10): the video clip this template belongs to — moved, copied and deleted with it, its
+    /// intervals kept inside it; null: a free template (D045). One-directional: a video clip may have several.</summary>
+    public Guid? AnchorClipId { get; set; }
 }
 
 /// <summary>The four templates of Phase 29 (D045 §1; WASTED deferred, §15).</summary>

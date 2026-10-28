@@ -324,6 +324,18 @@ The file is replaced only when the export succeeds.</value>
   <data name="Holds_FollowCameraTip" xml:space="preserve">
     <value>Keeps the hold outlines on the wall while the camera moves. Switch it off when the tracking is wrong: the outlines then stay where they were marked (the Preview and the export alike). Not saved with the project.</value>
   </data>
+  <data name="Holds_LayOut" xml:space="preserve">
+    <value>Lay out intro and final</value>
+  </data>
+  <data name="Holds_LayOutTip" xml:space="preserve">
+    <value>From the playhead — the start of the climb (T): the hold animation over the 5 s before T, the route plate from 7 s before T, Top / Attempt over the clip's last 5 s (never before T). With less than 7 s before T the intro is shortened 2 : 5. One undo step.</value>
+  </data>
+  <data name="Holds_OrderLeftToRight" xml:space="preserve">
+    <value>Left to right</value>
+  </data>
+  <data name="Holds_OrderRightToLeft" xml:space="preserve">
+    <value>Right to left</value>
+  </data>
   <data name="Holds_TrackingAnalysing" xml:space="preserve">
     <value>Fixing the outlines to the wall…</value>
   </data>
@@ -392,6 +404,12 @@ The file is replaced only when the export succeeds.</value>
   </data>
   <data name="Holds_Failed" xml:space="preserve">
     <value>Hold markup failed: {0}</value>
+  </data>
+  <data name="Holds_AnimationDuration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Holds_AnimationDurationTip" xml:space="preserve">
+    <value>The whole animation in timeline seconds (whole frames): 80 % the holds appear one by one, 20 % the route shows whole; the contours vanish at its end</value>
   </data>
   <data name="Holds_Interval" xml:space="preserve">
     <value>Interval</value>
@@ -2083,5 +2101,56 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Swatch_Violet" xml:space="preserve">
     <value>Violet</value>
+  </data>
+  <data name="Holds_PlaceHolds" xml:space="preserve">
+    <value>Auto markup</value>
+  </data>
+  <data name="Holds_PlaceHoldsTip" xml:space="preserve">
+    <value>Pause on the moment just before the climb starts (T), press the button and click one hold of the route: the holds of its colour are found on the clean frame 5 s earlier and proposed for review.</value>
+  </data>
+  <data name="Holds_RoutePickControl" xml:space="preserve">
+    <value>Click one hold of the route on this frame. Esc — cancel.</value>
+  </data>
+  <data name="Holds_RouteFindingCleanFrame" xml:space="preserve">
+    <value>Finding the control hold on the clean frame…</value>
+  </data>
+  <data name="Holds_RouteFindingHolds" xml:space="preserve">
+    <value>Finding the route&apos;s holds…</value>
+  </data>
+  <data name="Holds_RouteReview" xml:space="preserve">
+    <value>The clean frame: remove the wrong holds, click a missed one and press Enter, then Accept.</value>
+  </data>
+  <data name="Holds_RouteCleanAtFileStart" xml:space="preserve">
+    <value>The clip&apos;s file starts less than 5 s before this moment: its first frame is used as the clean frame.</value>
+  </data>
+  <data name="Holds_RouteTolerance" xml:space="preserve">
+    <value>Colour tolerance</value>
+  </data>
+  <data name="Holds_RouteToleranceTip" xml:space="preserve">
+    <value>How far a hold&apos;s colour may be from the control hold&apos;s (OKLab). Larger — more holds, also of similar colours.</value>
+  </data>
+  <data name="Holds_RouteAccept" xml:space="preserve">
+    <value>Accept</value>
+  </data>
+  <data name="Holds_RouteCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Strip_Green" xml:space="preserve">
+    <value>Plate: {0} – {1}</value>
+  </data>
+  <data name="Strip_Orange" xml:space="preserve">
+    <value>Hold animation: {0} – {1}</value>
+  </data>
+  <data name="Strip_Lilac" xml:space="preserve">
+    <value>Top / Attempt: {0} – {1}</value>
+  </data>
+  <data name="Strip_MarkupDeleted" xml:space="preserve">
+    <value>The hold markup of the clip was deleted.</value>
+  </data>
+  <data name="Timeline_SegmentsInTemplate" xml:space="preserve">
+    <value>Segments in Boulder</value>
+  </data>
+  <data name="Timeline_SegmentsInTemplateTip" xml:space="preserve">
+    <value>Debug only. On: the intro, hold animation and Top / Attempt segments inside the Boulder template (the main view). Off: the earlier lane above the clip.</value>
   </data>
 </root>

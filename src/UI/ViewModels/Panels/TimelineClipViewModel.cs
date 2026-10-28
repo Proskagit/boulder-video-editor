@@ -96,6 +96,52 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
     /// <summary>The mark's colour: TOP's yellow or ПОПЫТКА's blue, lightened to show on the clip.</summary>
     public string StatusMarkColorHex => Clip is TemplateClip { Status: BoulderStatus.Top } ? TemplateRules.TopHex : "#9DB8DC";
 
+    /// <summary>D048 §4.1, the overlay strip of a video clip (a view of its anchored «Боулдер» and Duration animation):
+    /// green, orange over it, lilac on top, in pixels from the clip's left edge; empty without one.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStrip), nameof(ShowsStripLane))]
+    private IReadOnlyList<StripSegment> _stripSegments = Array.Empty<StripSegment>();
+
+    public bool HasStrip => StripSegments.Count > 0;
+
+    /// <summary>The strip is drawn on the lane above this video clip (not inside its «Боулдер» — the Debug prototype).</summary>
+    public bool ShowsStripLane => HasStrip && !StripInTemplate;
+
+    /// <summary>Debug prototype (D048 §4, owner's UX question 2026-10-27): the segments are drawn inside the anchored
+    /// «Боулдер» instead of the lane.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsStripLane))]
+    private bool _stripInTemplate;
+
+    /// <summary>On a «Боулдер» in the prototype: its anchored video clip's segments, in pixels from this clip's left edge
+    /// (the same strip, only drawn here); empty otherwise.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTemplateSegments))]
+    private IReadOnlyList<StripSegment> _templateSegments = Array.Empty<StripSegment>();
+
+    public bool HasTemplateSegments => TemplateSegments.Count > 0;
+
+    /// <summary>Variant B: the parts of the anchored clip's segments outside this plate (an orange before <c>Ps</c> or after
+    /// <c>Pe</c>), in pixels from the plate's left edge — drawn beside it, translucent.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTemplateOverflow))]
+    private IReadOnlyList<StripSegment> _templateOverflow = Array.Empty<StripSegment>();
+
+    public bool HasTemplateOverflow => TemplateOverflow.Count > 0;
+
+    /// <summary>The video clip whose strip <see cref="TemplateSegments"/> show (the anchor), or null.</summary>
+    public TimelineClipViewModel? StripOwner { get; set; }
+
+    /// <summary>While a strip handle is dragged: the changed interval (and why the release would be refused); null otherwise.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsStripDragging))]
+    private string? _stripText;
+
+    public bool IsStripDragging => StripText is not null;
+
+    /// <summary>The strip drag's release would be refused (D048 §4.2: an overlap of the lilac).</summary>
+    [ObservableProperty] private bool _isStripInvalid;
+
     /// <summary>The template's status may have changed: the mark's colour follows it.</summary>
     public void OnStatusChanged() => OnPropertyChanged(nameof(StatusMarkColorHex));
 
@@ -107,6 +153,14 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
         Width = Math.Max(MinWidthPixels, TimelineCoordinateMapper.TimeToX(end - start, pixelsPerSecond));
     }
 }
+
+/// <summary>The three segments of the overlay strip (D048 §4.1).</summary>
+public enum StripSegmentKind { Green, Orange, Lilac }
+
+/// <summary>One segment of a clip's overlay strip (D048 §4.1): where it lies on the clip (pixels), its colour and tooltip,
+/// its timeline frames <c>[Start, End)</c>, and whether it is the selected orange (§3.9).</summary>
+public sealed record StripSegment(double Left, double Width, string ColorHex, string Tip, StripSegmentKind Kind, long Start, long End,
+    bool IsSelected = false);
 
 /// <summary>One horizontal track lane.</summary>
 public sealed partial class TimelineTrackViewModel : ViewModelBase

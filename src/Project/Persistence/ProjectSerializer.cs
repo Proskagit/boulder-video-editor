@@ -35,7 +35,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 9;
+    public const int CurrentFormatVersion = 10;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -58,6 +58,10 @@ public static class ProjectSerializer
 
     /// <summary>The first version with templates (D045).</summary>
     private const int TemplatesVersion = 9;
+
+    /// <summary>The first version with the duration mode and the new orders of the hold animation and the template ↔ clip
+    /// anchor (D048). A v9 file is read with every animation in the interval mode and no anchor, and saved as v10.</summary>
+    private const int RouteTimingVersion = 10;
 
     /// <summary>A push's direction in the file (D044 §9).</summary>
     private static readonly IReadOnlyDictionary<TransitionDirection, string> DirectionNames = new Dictionary<TransitionDirection, string>
@@ -328,7 +332,8 @@ public static class ProjectSerializer
             TemplateClip p => new TemplateClipDto
             {
                 Template = p.Kind, CounterStartTicks = p.CounterStart.Ticks, Date = p.Date, Route = p.Route, Grade = p.Grade,
-                Status = p.Status, AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAtTicks = p.StatusAt.Ticks
+                Status = p.Status, AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAtTicks = p.StatusAt.Ticks,
+                AnchorClipId = p.AnchorClipId
             },
             _ => throw new NotSupportedException($"Clip type {clip.GetType().Name} can't be saved.")
         };
@@ -367,7 +372,10 @@ public static class ProjectSerializer
             {
                 Order = a.Order, StartSourceTimeTicks = a.StartSourceTime.Ticks, IntervalTicks = a.Interval.Ticks,
                 AppearFadeTicks = a.AppearFade.Ticks, StayAfterLastTicks = a.StayAfterLast.Ticks,
-                StayUntilClipEnd = a.StayUntilClipEnd, DisappearFadeTicks = a.DisappearFade.Ticks
+                StayUntilClipEnd = a.StayUntilClipEnd, DisappearFadeTicks = a.DisappearFade.Ticks,
+                // D048: written only for the duration mode, so an interval-mode animation is saved as in v9.
+                Mode = a.Mode == HoldAnimationMode.Duration ? a.Mode : null,
+                DurationTicks = a.Mode == HoldAnimationMode.Duration ? a.Duration.Ticks : null
             }
             : null
     };
@@ -575,6 +583,11 @@ public static class ProjectSerializer
         if (LinkRules.Validate(sequence) is { } invalidLink)
             throw Damaged($"a link is invalid: {invalidLink.TrimEnd('.')}");
 
+        // D048 §3.5: an anchor to a missing or non-video clip is cleared (the template stays free), not a damaged file.
+        var videoIds = sequence.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>().Select(c => c.Id).ToHashSet();
+        foreach (var template in sequence.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>())
+            if (template.AnchorClipId is { } anchor && !videoIds.Contains(anchor)) template.AnchorClipId = null;
+
         var markerIds = new HashSet<Guid>();
         foreach (var m in dto.Markers ?? new List<MarkerDto>())
         {
@@ -713,7 +726,9 @@ public static class ProjectSerializer
                 Title = p.Title ?? throw Damaged("a template field is missing"),
                 Subtitle = p.Subtitle ?? throw Damaged("a template field is missing"),
                 StatusAt = p.StatusAtTicks is not { } statusAt ? throw Damaged("a template field is missing")
-                    : statusAt >= 0 ? new MediaTime(statusAt) : throw Damaged("a template's status moment is negative")
+                    : statusAt >= 0 ? new MediaTime(statusAt) : throw Damaged("a template's status moment is negative"),
+                // v9 has no anchor (D048); a dangling one is cleared once every clip is known (FromDto(SequenceDto)).
+                AnchorClipId = formatVersion >= RouteTimingVersion ? p.AnchorClipId : null
             },
             _ => throw Damaged("unknown clip type")
         };
@@ -854,7 +869,7 @@ public static class ProjectSerializer
             KeylineActive = dto.KeylineActive ?? throw Damaged("a hold markup has no keyline state"),
             ModelId = dto.ModelId ?? throw Damaged("a hold markup has no model id"),
             Holds = holds.ToImmutableArray(),
-            Animation = formatVersion >= HoldAnimationVersion && dto.Animation is { } animation ? FromDto(animation) : null
+            Animation = formatVersion >= HoldAnimationVersion && dto.Animation is { } animation ? FromDto(animation, formatVersion) : null
         };
         if (HoldMarkupRules.Validate(markup) is { } error) throw Damaged($"invalid hold markup: {error.TrimEnd('.')}");
         return markup;
@@ -866,10 +881,19 @@ public static class ProjectSerializer
         }
     }
 
-    /// <summary>The outline animation (D036 §2): every member required; the limits are checked with the markup.</summary>
-    private static HoldAnimation FromDto(HoldAnimationDto dto) => new()
+    /// <summary>The outline animation (D036 §2): every member required; the limits are checked with the markup. v10 (D048):
+    /// the optional mode and duration (both or neither) and the orders left to right / right to left.</summary>
+    private static HoldAnimation FromDto(HoldAnimationDto dto, int formatVersion) => new()
     {
-        Order = dto.Order ?? throw Damaged("a hold animation has no order"),
+        Order = dto.Order is { } order
+            ? order is HoldAnimationOrder.LeftToRight or HoldAnimationOrder.RightToLeft && formatVersion < RouteTimingVersion
+                ? throw Damaged("unknown hold animation order") : order
+            : throw Damaged("a hold animation has no order"),
+        Mode = formatVersion < RouteTimingVersion || dto.Mode is null ? HoldAnimationMode.Interval
+            : dto.Mode is { } mode && Enum.IsDefined(mode) ? mode : throw Damaged("unknown hold animation mode"),
+        Duration = formatVersion < RouteTimingVersion || dto.Mode is null
+            ? (dto.DurationTicks is null || formatVersion < RouteTimingVersion ? MediaTime.Zero : throw Damaged("a hold animation has a duration without its mode"))
+            : new MediaTime(dto.DurationTicks ?? throw Damaged("a hold animation has no duration")),
         StartSourceTime = new MediaTime(dto.StartSourceTimeTicks ?? throw Damaged("a hold animation has no start")),
         Interval = new MediaTime(dto.IntervalTicks ?? throw Damaged("a hold animation has no interval")),
         AppearFade = new MediaTime(dto.AppearFadeTicks ?? throw Damaged("a hold animation has no appear fade")),

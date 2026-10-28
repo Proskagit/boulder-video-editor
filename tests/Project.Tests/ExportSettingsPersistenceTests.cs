@@ -66,7 +66,7 @@ public sealed class ExportSettingsPersistenceTests : IDisposable
         var root = JsonNode.Parse(json)!.AsObject();
         Assert.False(root.ContainsKey("lastExportSettings"));
         Assert.DoesNotContain("final.mp4", json);
-        Assert.Equal(9, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(10, root["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]

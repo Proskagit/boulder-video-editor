@@ -381,7 +381,7 @@ public class TrackStateEditTests
             await f.Projects.SaveAsAsync(folder);
             var file = Path.Combine(folder, "project.json");
             var json = File.ReadAllText(file);
-            Assert.Contains("\"formatVersion\": 9", json);
+            Assert.Contains("\"formatVersion\": 10", json);
             var expected = f.Project.Timeline.VideoTracks.Concat(f.Project.Timeline.AudioTracks)
                 .Select(t => (t.Id, t.IsMuted, t.IsHidden, t.IsLocked)).ToList();
             var bytes = File.ReadAllBytes(file);

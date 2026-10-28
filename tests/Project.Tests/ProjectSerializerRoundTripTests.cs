@@ -196,7 +196,7 @@ public class ProjectSerializerRoundTripTests
         var root = JsonNode.Parse(ProjectSerializer.Serialize(Sample(), Folder))!;
 
         Assert.Equal(ProjectSerializer.FormatId, root["format"]!.GetValue<string>());
-        Assert.Equal(9, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(10, root["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]

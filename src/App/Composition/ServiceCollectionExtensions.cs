@@ -96,6 +96,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IHoldProposalService, HoldProposalService>();
         services.AddSingleton<IHoldProposalGenerator, HoldProposalGenerator>();
         services.AddSingleton<IHoldProposalRefiner, HoldProposalRefiner>();
+        // D048 §2: the route selection at T — the frames by source time, the transfer to the clean frame.
+        services.AddSingleton<IRouteSelectionFrameSource, RouteSelectionFrameSource>();
+        services.AddSingleton<RouteSelectionService>();
         services.AddSingleton<StatusService>();
         services.AddSingleton<EditingLock>();
         services.AddSingleton<InOutRangeService>();   // the session's In / Out range (D030 §8)

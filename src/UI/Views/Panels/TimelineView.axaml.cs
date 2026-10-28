@@ -1,3 +1,4 @@
+using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Localization;
@@ -28,6 +29,10 @@ public partial class TimelineView : UserControl
 
     // D037 §4: while a drag is near an edge of the view, a timer scrolls it and replays the pointer at the same view place.
     private readonly DispatcherTimer _autoScroll = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    // D048 §4.2: the strip handle pressed (its gesture runs in the view model like a trim).
+    private (TimelineClipViewModel Clip, OverlayStripHandle Handle)? _pressedStrip;
+    private TimelineClipViewModel? _pressedTemplate;   // variant B: the «Боулдер» the strip press was on
+
     private double _pointerViewportX;
     private double _pointerLanesY;
 
@@ -47,7 +52,7 @@ public partial class TimelineView : UserControl
         TrackRows.PointerReleased += OnTracksReleased;
         TrackRows.PointerCaptureLost += (_, _) =>
         {
-            if (_pressedClip is not null) CancelGesture();
+            if (_pressedClip is not null || _pressedStrip is not null) CancelGesture();
             if (_marqueeStarted) CancelMarquee();
         };
 
@@ -142,6 +147,22 @@ public partial class TimelineView : UserControl
         if (!e.GetCurrentPoint(TrackRows).Properties.IsLeftButtonPressed) return;
         Focus();
 
+        // D048 §4.2: the overlay strip's lane above a video clip — its handles drag, a click selects the orange (§3.9).
+        if (StripOf(e.Source) is { } strip)
+        {
+            var handle = _viewModel.StripHandleAt(strip.Clip, e.GetPosition(strip.Lane).X);
+            e.Handled = true;
+            if (handle is null || !_viewModel.BeginStripDrag(strip.Clip, handle.Value, e.GetPosition(ContentRoot).X))
+            {
+                _viewModel.OnStripClicked(strip.Clip, handle);
+                return;
+            }
+            _pressedStrip = (strip.Clip, handle.Value);
+            _gestureStarted = true;
+            e.Pointer.Capture(TrackRows);
+            return;
+        }
+
         // A zone's mark selects its transition, whatever lies under it (a short zone is all trim handles — D4).
         if (MarkOf(e.Source) is { } marked)
         {
@@ -151,6 +172,36 @@ public partial class TimelineView : UserControl
         }
 
         var (clip, edge) = HitTestClip(e.Source);
+
+        // Variant B: the part of the orange outside the plate (drawn beside it) is the same strip — its edges and body
+        // take the press, measured from the plate's left edge (the overflow's origin).
+        if (OverflowOf(e.Source) is { } overflow &&
+            _viewModel.TemplatePressAt(overflow.Plate, e.GetPosition(overflow.Panel).X) is { } outside &&
+            _viewModel.BeginStripDrag(outside.Owner, outside.Handle, e.GetPosition(ContentRoot).X, pressedOn: overflow.Plate))
+        {
+            _pressedStrip = (outside.Owner, outside.Handle);
+            _pressedTemplate = overflow.Plate;
+            _gestureStarted = true;
+            e.Pointer.Capture(TrackRows);
+            e.Handled = true;
+            return;
+        }
+
+        // Variant B (D048 §4.2 inside the «Боулдер»): before the template's own trim and move — the plate's edges are the
+        // green's start / the lilac's end, the inner boundaries and the orange's body are the strip's (Alt: the lilac's
+        // body); the rest of the plate keeps the template's gestures (TimelineViewModel.TemplatePressAt).
+        if (clip is not null && !e.KeyModifiers.HasFlag(KeyModifiers.Control) &&
+            ClipBorderOf(e.Source) is { } plateBorder &&
+            _viewModel.TemplatePressAt(clip, e.GetPosition(plateBorder).X, TimelineGestureModifiers.IsSlip(e.KeyModifiers)) is { } inner &&
+            _viewModel.BeginStripDrag(inner.Owner, inner.Handle, e.GetPosition(ContentRoot).X, pressedOn: clip))
+        {
+            _pressedStrip = (inner.Owner, inner.Handle);
+            _pressedTemplate = clip;
+            _gestureStarted = true;
+            e.Pointer.Capture(TrackRows);
+            e.Handled = true;
+            return;
+        }
 
         // A dissolve zone is drawn over the clips but never hides their trim handles: only a press on a clip body (no
         // handle, no Ctrl, no Alt — Alt slips the clip) inside a zone selects the dissolve.
@@ -237,6 +288,20 @@ public partial class TimelineView : UserControl
         }
         if (!_gestureStarted) return;
         var wasDrag = _viewModel.IsGestureActive;
+        if (_pressedStrip is { } pressedStrip)
+        {
+            // Released anywhere (the pointer is captured): the drag's one edit, or a click on the strip.
+            var pressedTemplate = _pressedTemplate;
+            _gestureStarted = false;
+            _pressedStrip = null;
+            _pressedTemplate = null;
+            _viewModel.EndGesture();
+            e.Pointer.Capture(null);
+            if (wasDrag) return;
+            if (pressedTemplate is not null) _viewModel.OnTemplateStripClicked(pressedTemplate, pressedStrip.Clip, pressedStrip.Handle);
+            else _viewModel.OnStripClicked(pressedStrip.Clip, pressedStrip.Handle);
+            return;
+        }
         var clip = _pressedClip;
 
         _gestureStarted = false;
@@ -289,6 +354,8 @@ public partial class TimelineView : UserControl
         _autoScroll.Stop();
         _gestureStarted = false;
         _pressedClip = null;
+        _pressedStrip = null;
+        _pressedTemplate = null;
         _viewModel?.CancelGesture();
     }
 
@@ -329,6 +396,40 @@ public partial class TimelineView : UserControl
                 break;
         }
         return (null, null);
+    }
+
+    /// <summary>The clip rectangle (<c>Border.clip</c>) <paramref name="source"/> lies in, else null — the press's position
+    /// is measured on it (the lanes' canvas has its own offset in the content).</summary>
+    private static Border? ClipBorderOf(object? source)
+    {
+        for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is Border { Classes: var classes } border && classes.Contains("clip")) return border;
+            if (visual is ItemsControl { Name: "TrackRows" }) break;
+        }
+        return null;
+    }
+
+    /// <summary>Variant B: the plate's overflow <paramref name="source"/> lies in, with its «Боулдер», else null.</summary>
+    private static (TimelineClipViewModel Plate, Control Panel)? OverflowOf(object? source)
+    {
+        for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is Control { Tag: "PlateOverflow", DataContext: TimelineClipViewModel plate } panel) return (plate, panel);
+            if (visual is ItemsControl { Name: "TrackRows" }) break;
+        }
+        return null;
+    }
+
+    /// <summary>The overlay strip's lane <paramref name="source"/> lies in, with its clip, else null.</summary>
+    private static (TimelineClipViewModel Clip, Control Lane)? StripOf(object? source)
+    {
+        for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is Control { Tag: "StripLane", DataContext: TimelineClipViewModel clip } lane) return (clip, lane);
+            if (visual is ItemsControl { Name: "TrackRows" }) break;
+        }
+        return null;
     }
 
     /// <summary>The transition whose mark <paramref name="source"/> is (or lies in), else null.</summary>

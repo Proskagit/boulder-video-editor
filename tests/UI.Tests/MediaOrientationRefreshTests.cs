@@ -197,6 +197,11 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null) => No;
         public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start) => No;
         public TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed) => No;
+        public TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t) => No;
+        public OverlayStripState? OverlayStripOf(Guid videoClipId) => null;
+        public TimelineEditResult EditOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta) => No;
+        public OverlayStripPreview? PreviewOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta) => null;
+        public TimelineEditResult DeleteHoldMarkup(Guid videoClipId) => No;
         public TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, MediaTime duration) => No;
         public TimelineEditResult RemoveTransition(Guid transitionId) => No;
         public TimelineEditResult SetTransitionDuration(Guid transitionId, MediaTime duration) => No;

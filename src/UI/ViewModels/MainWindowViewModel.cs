@@ -185,6 +185,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         Inspector.HoldMarkup = markup;
         Preview.HoldMarkup = markup;
         markup.Playhead = () => Timeline.Playhead;
+        markup.SeekTo = time => Timeline.SetPlayhead(time);   // D048 §2: back to T
         markup.IsPausedOnTimeline = () => !Preview.IsPlaying && !Preview.IsSourceMode;
         Timeline.SelectionChanged += (_, selection) => markup.SetClip(selection?.Clip);
         Timeline.TransitionSelectionChanged += (_, selection) => { if (selection is not null) markup.SetClip(null); };

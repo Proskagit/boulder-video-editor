@@ -307,6 +307,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         // D037 §3: the moved clips and the partners that follow them are placed; the clips on their right make room.
         if (PlanPartnerShifts(plan) is { } partnerError)
             return (null, clips, string.Format(Messages.Edit_CantMove, partnerError));
+        // D048 §3.5: the anchored templates move with their clip and are placed with it (they make room as moved clips).
+        if (ReconcileOverlays(plan) is { } overlayError)
+            return (null, clips, string.Format(Messages.Edit_CantMove, overlayError));
         if (MakeRoom(plan, PlacedByUpdates(plan), Messages.Verb_Move) is { } roomError)
             return (null, clips, roomError);
         if (Validate(plan) is { } error)
@@ -373,8 +376,15 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (clipIds.Count == 0) return null;
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, clipIds, out var clips) is not null) return null;
+        // D048 §3.10: a video clip's anchored templates are copied with it (independent copies anchored to the copy).
+        foreach (var video in clips.OfType<VideoClip>().ToList())
+            clips.AddRange(AnchoredTemplates(plan, video).Where(p => !clips.Contains(p)));
+        var copies = clips.ToDictionary(c => c, CopyWithLink);
+        foreach (var copy in copies.Values.OfType<TemplateClip>())
+            copy.AnchorClipId = copy.AnchorClipId is { } anchor && copies.FirstOrDefault(p => p.Key.Id == anchor).Value is { } copiedVideo
+                ? copiedVideo.Id : null;
         var entries = clips.OrderBy(c => c.TimelineStart)
-            .Select(c => new TimelineClipboardEntry(CopyWithLink(c), plan.TrackOf(c).Id))
+            .Select(c => new TimelineClipboardEntry(copies[c], plan.TrackOf(c).Id))
             .ToList();
         return new TimelineClipboard(plan.Rate, CurrentCanvas, entries);
     }
@@ -434,6 +444,12 @@ public sealed partial class TimelineEditService : ITimelineEditService
             ids.Add(copy.Id);
             placed.Add((copy, track));
         }
+
+        // D048 §3.10: a pasted template is anchored to the pasted copy of its clip; one pasted alone is free.
+        var pastedOf = clipboard.Entries.Zip(placed).ToDictionary(p => p.First.Clip.Id, p => p.Second.Clip.Id);
+        foreach (var (pasted, _) in placed)
+            if (pasted is TemplateClip template)
+                template.AnchorClipId = template.AnchorClipId is { } anchor && pastedOf.TryGetValue(anchor, out var video) ? video : null;
 
         // D037 §3 (Q10): the clips on the right make room; a copy starting inside a clip is refused.
         if (MakeRoom(plan, placed, verb) is { } roomError) return TimelineEditResult.Fail(roomError);
@@ -632,6 +648,38 @@ public sealed partial class TimelineEditService : ITimelineEditService
                     : null);
         }
 
+        // D048 §3.8: speed changes merged into one Undo step scale the linked overlays from the step's first state, not from
+        // the rounded state in between — the open step is taken back and the change planned again from its start; the new
+        // step then holds the whole change. Only for a clip with overlays (D022's own merge is kept for the others).
+        if (_undoRedo.NextUndo is NotifyingCommand { Inner: SetClipSpeedCommand open } && open.Clip == clip &&
+            open.After == ClipState.Capture(clip) && HasLinkedOverlays(plan, clip))
+        {
+            _undoRedo.Undo();
+            var replanned = ApplySpeed(clipId, speed);
+            if (!replanned.Success) _undoRedo.Redo();
+            return replanned;
+        }
+        return ApplySpeed(clipId, speed);
+    }
+
+    /// <summary>Whether <paramref name="clip"/> or its linked partner carries D048 overlays: an anchored template or a
+    /// Duration-mode hold animation.</summary>
+    private static bool HasLinkedOverlays(EditPlan plan, Clip clip)
+    {
+        foreach (var c in new[] { clip, PartnerOf(plan, clip) })
+            if (c is VideoClip video && (video.HoldMarkup?.Animation is { Mode: HoldAnimationMode.Duration } || AnchoredTemplates(plan, video).Count > 0))
+                return true;
+        return false;
+    }
+
+    /// <summary>The speed change itself, planned from the model's current state.</summary>
+    private TimelineEditResult ApplySpeed(Guid clipId, ClipSpeed speed)
+    {
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+        var clip = (MediaBackedClip)clips[0];
+        if (clip.Speed == speed) return TimelineEditResult.Unchanged();
+
         // The speed never changes the source range: the frame count follows from it.
         var rate = plan.Rate;
         var frames = SpeedTiming.FramesFor(clip.SourceOut - clip.SourceIn, speed, rate);
@@ -665,6 +713,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var changes = plan.BuildPropertyCommands();
         changes.AddRange(plan.BuildTransitionCommands());
         if (partnerChange is not null) changes.Insert(0, new UpdateClipsCommand("Change Speed", new[] { partnerChange }));
+        // D048 §3.8: the anchored templates and the Duration animation scale in the same step.
+        var carried = plan.Updates.Where(u => plan.Carried.Contains(u.Clip))
+            .Select(u => new ClipChange(u.Clip, plan.TrackOf(u.Clip), ClipState.Capture(u.Clip), u.To, u.After)).ToList();
+        if (carried.Count > 0) changes.Add(new UpdateClipsCommand("Change Speed", carried));
+        changes.AddRange(plan.BuildOverlayCommands());
         var command = new SetClipSpeedCommand(clip, before, after, changes.Count > 0 ? changes : null);
         _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id }, TransitionNote(plan));
@@ -698,6 +751,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             return TimelineEditResult.Fail(explicitSelection
                 ? Messages.Edit_PlayheadNotInside
                 : Messages.Edit_NoClipToSplit);
+        toSplit.AddRange(AnchoredSpanning(plan, toSplit, atFrame).ToList());   // D048 §3.6: their templates are split too
 
         if (CheckEditable(plan, toSplit) is { } editError) return TimelineEditResult.Fail(editError);
 
@@ -714,6 +768,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             splits.Add((clip, rightClip));
         }
         LinkSplitParts(splits);
+        AnchorSplitParts(plan, splits, atFrame);
 
         if (Validate(plan) is { } error)
             return TimelineEditResult.Fail(string.Format(Messages.Edit_CantSplit, error));
@@ -776,6 +831,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         rightClip = CloneClip(clip);
         right.ApplyTo(rightClip);
+        PlanSplitOverlays(plan, clip, state, rightClip, atFrame);   // D048 §3.6
 
         // D045 §3: a template's counter goes on from the cut in the right part.
         if (rightClip is TemplateClip template)
@@ -1228,6 +1284,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
             return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, locked.Name));
 
         foreach (var clip in clips) plan.Remove(clip);
+        if (ReconcileOverlays(plan) is { } overlayError) return TimelineEditResult.Fail(overlayError);   // D048 §3.10
+        if (plan.AllTracks.FirstOrDefault(t => t.IsLocked && t.Clips.Any(plan.Removes)) is { } lockedTemplateTrack)
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, lockedTemplateTrack.Name));
         plan.ReconcileTransitions();   // a deleted clip's dissolves go with it (D025 §5)
 
         Commit(plan, clips.Count == 1 ? "Delete Clip" : "Delete Clips");
@@ -1542,6 +1601,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         var fields = ClipPropertyValues.Diff(before, after);
         if (fields == ClipPropertyFields.None) return TimelineEditResult.Unchanged();
+        // D048 §3.4 / §4.2: an anchored template's status never overlaps its clip's plate or hold animation, and is never
+        // set where no frame is left to show it.
+        if (clip is TemplateClip template && after.Template is { } templateFields && AnchoredFieldsConflict(template, templateFields, fields) is { } overlap)
+            return TimelineEditResult.Fail(overlap);
 
         var command = new SetClipPropertiesCommand(clip, before, after, fields, change.Gesture);
         _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
@@ -2148,6 +2211,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     /// handles of every dissolve the edit creates or keeps (§4) — and the links.</summary>
     private string? Validate(EditPlan plan)
     {
+        if (ReconcileOverlays(plan) is { } overlayError) return overlayError;   // D048: the overlays follow their clip
         if (PlanPartnerShifts(plan) is { } partnerError) return partnerError;
         plan.ReconcileTransitions();
         plan.ClampFades();
@@ -2305,7 +2369,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
             TemplateClip p => new TemplateClip
             {
                 Kind = p.Kind, CounterStart = p.CounterStart, Date = p.Date, Route = p.Route, Grade = p.Grade, Status = p.Status,
-                AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAt = p.StatusAt
+                AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAt = p.StatusAt,
+                // D048 §3.5: kept by a split's right part (re-anchored by the split); remapped or cleared by a paste.
+                AnchorClipId = p.AnchorClipId
             },
             _ => throw new NotSupportedException($"Unknown clip type {source.GetType().Name}.")
         };

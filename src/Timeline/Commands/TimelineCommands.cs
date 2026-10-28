@@ -584,8 +584,20 @@ public enum HoldMarkupFields
     AnimationStay = 1024,
     AnimationDisappearFade = 2048,
 
+    /// <summary>The mode or the length of a <c>Duration</c>-mode animation (D048 §3.1).</summary>
+    AnimationDuration = 4096,
+
     /// <summary>Any animation setting.</summary>
-    Animation = AnimationOn | AnimationOrder | AnimationStart | AnimationInterval | AnimationAppearFade | AnimationStay | AnimationDisappearFade
+    Animation = AnimationOn | AnimationOrder | AnimationStart | AnimationInterval | AnimationAppearFade | AnimationStay | AnimationDisappearFade |
+                AnimationDuration
+}
+
+/// <summary>Sets the video clip a template is anchored to (D048 §3.5): absolute before / after values.</summary>
+public sealed class SetTemplateAnchorCommand(TemplateClip clip, Guid? before, Guid? after) : IUndoableCommand
+{
+    public string Description => "Anchor Template";
+    public void Execute() => clip.AnchorClipId = after;
+    public void Undo() => clip.AnchorClipId = before;
 }
 
 /// <summary>

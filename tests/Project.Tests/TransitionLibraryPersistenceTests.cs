@@ -56,7 +56,7 @@ public class TransitionLibraryPersistenceTests
     public void Every_type_and_the_push_direction_survive_a_save_open_save_exactly()
     {
         var first = Save(Library());
-        Assert.Equal(9, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(10, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
 
         var loaded = Load(first).Timeline.VideoTracks[0].Transitions;
         Assert.Equal(new[] { "crossDissolve", "dipToBlack", "flash", "zoom", "push" }, loaded.Select(t => t.TransitionTypeId));
@@ -90,7 +90,7 @@ public class TransitionLibraryPersistenceTests
         Assert.All(project.Timeline.VideoTracks[0].Transitions, t => Assert.Null(t.Direction));
 
         var resaved = JsonNode.Parse(Save(project))!.AsObject();
-        Assert.Equal(9, resaved["formatVersion"]!.GetValue<int>());
+        Assert.Equal(10, resaved["formatVersion"]!.GetValue<int>());
         resaved["formatVersion"] = 7;
         Assert.Equal(JsonNode.Parse(original)!.ToJsonString(), resaved.ToJsonString());
     }

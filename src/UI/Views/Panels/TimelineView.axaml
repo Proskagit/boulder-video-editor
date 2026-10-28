@@ -25,6 +25,28 @@
   </UserControl.Resources>
   <UserControl.Styles>
     <!-- Items on a Canvas are positioned through their container (ContentPresenter). -->
+    <!-- Variant B: the clip's label stays readable over the plate's segments. -->
+    <Style Selector="TextBlock.clipLabel.onSegments">
+      <Setter Property="Background" Value="#A0202020"/>
+      <Setter Property="Padding" Value="3,0"/>
+    </Style>
+    <!-- Variant B: a segment inside the plate — translucent, a dark line at its start marks the boundary. -->
+    <Style Selector="Border.templateSegment">
+      <Setter Property="Opacity" Value="0.7"/>
+      <Setter Property="BorderBrush" Value="#C0000000"/>
+      <Setter Property="BorderThickness" Value="1,0,0,0"/>
+    </Style>
+    <!-- Variant B: the selected orange inside the plate (§3.9). -->
+    <Style Selector="Border.templateSegment.selected">
+      <Setter Property="BorderBrush" Value="#FFFFFF"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="Opacity" Value="0.9"/>
+    </Style>
+    <!-- D048 §3.9: the selected orange segment of the overlay strip. -->
+    <Style Selector="Border.stripSegment.selected">
+      <Setter Property="BorderBrush" Value="#FFFFFF"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
     <Style Selector="ItemsControl.canvasItems > ContentPresenter">
       <Setter Property="Canvas.Left" Value="{Binding Left}"/>
     </Style>
@@ -209,6 +231,14 @@
                 <TextBlock Text="{x:Static l:Strings.Timeline_Snap}"/>
               </StackPanel>
             </ToggleButton>
+            <!-- D048 variant B is the default (segments inside the «Боулдер»); this Debug-only switch turns back to the lane. -->
+            <ToggleButton IsChecked="{Binding SegmentsInTemplate}" IsVisible="{Binding IsDebugBuild}" FontSize="11"
+                          ToolTip.Tip="{x:Static l:Strings.Timeline_SegmentsInTemplateTip}">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <controls:IconPath Glyph="{x:Static controls:Icons.Eye}" Width="12" Height="12"/>
+                <TextBlock Text="{x:Static l:Strings.Timeline_SegmentsInTemplate}"/>
+              </StackPanel>
+            </ToggleButton>
             <Rectangle Width="1" Fill="#444444" Margin="4,2"/>
             <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_ZoomOutTip}" FontSize="11"/>
             <Button Content="+" Command="{Binding ZoomInCommand}" ToolTip.Tip="{x:Static l:Strings.Timeline_ZoomInTip}" FontSize="11"/>
@@ -350,12 +380,29 @@
                       </ItemsControl.ItemsPanel>
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
+                          <Panel>
                           <Border Classes="clip" Classes.selected="{Binding IsSelected}" Classes.invalid="{Binding IsInvalid}"
                                   Width="{Binding Width}" Height="36" Margin="0,4,0,0"
                                   CornerRadius="2" Background="{Binding ColorHex}" ClipToBounds="True">
                             <Grid ColumnDefinitions="6,*,6">
                               <!-- Waveform of the clip's sound (D024 Step 9.5): the whole clip for audio, the lower half for video. -->
                               <rendering:WaveformView Grid.ColumnSpan="3" Waveform="{Binding Waveform}" IsVisible="{Binding HasWaveform}"/>
+                              <!-- Debug prototype: the anchored clip's strip inside the «Боулдер» — green, orange over it, lilac; a dark
+                                   line at each segment's start marks the boundaries; the template's own colour stays at its edges. -->
+                              <ItemsControl Classes="canvasItems" Grid.ColumnSpan="3" ItemsSource="{Binding TemplateSegments}"
+                                            IsVisible="{Binding HasTemplateSegments}" IsHitTestVisible="False" ClipToBounds="True">
+                                <ItemsControl.ItemsPanel>
+                                  <ItemsPanelTemplate>
+                                    <Canvas/>
+                                  </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate>
+                                    <Border Classes="templateSegment" Classes.selected="{Binding IsSelected}" Width="{Binding Width}" Height="36"
+                                            Background="{Binding ColorHex}"/>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
                               <!-- Fade ramps (D025 §2): the effective fade in / out, darkening toward the clip's edge. -->
                               <Border Grid.ColumnSpan="3" HorizontalAlignment="Left" Width="{Binding FadeInWidth}" IsVisible="{Binding HasFadeIn}"
                                       IsHitTestVisible="False">
@@ -380,19 +427,61 @@
                                 <Border Name="StatusMark" Canvas.Left="{Binding StatusMarkLeft}" Width="2" Height="44"
                                         Background="{Binding StatusMarkColorHex}"/>
                               </Canvas>
-                              <TextBlock Grid.Column="1" Text="{Binding Label}" Foreground="#EEEEEE" FontSize="10"
-                                         Margin="2,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                         IsHitTestVisible="False"/>
+                              <TextBlock Grid.Column="1" Classes="clipLabel" Classes.onSegments="{Binding HasTemplateSegments}" Text="{Binding Label}"
+                                         Foreground="#EEEEEE" FontSize="10" Margin="2,0" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                         TextTrimming="CharacterEllipsis" IsHitTestVisible="False"/>
                               <!-- D030 §7 (Q12): while the clip is slipped, its planned Source In / Out over the clip -->
                               <Border Grid.ColumnSpan="3" IsVisible="{Binding IsSlipping}" IsHitTestVisible="False"
                                       Background="#D0141414" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
                                 <TextBlock Text="{Binding SlipText}" Foreground="#FFD54F" FontSize="10" Margin="4,0"
                                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                               </Border>
+                              <!-- D048 §4.2: while a strip handle is dragged, the planned interval (and a refusal) in a compact label
+                                   at the clip's bottom — the segments, the name and the status mark stay visible. -->
+                              <Border Grid.ColumnSpan="3" IsVisible="{Binding IsStripDragging}" IsHitTestVisible="False" Classes.invalid="{Binding IsStripInvalid}"
+                                      Background="#D0141414" VerticalAlignment="Bottom" HorizontalAlignment="Left" CornerRadius="2" Padding="0,1">
+                                <TextBlock Text="{Binding StripText}" Foreground="#FFD54F" FontSize="10" Margin="4,0"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                              </Border>
                               <Border Grid.Column="0" Classes="trimHandle" Tag="TrimStart"/>
                               <Border Grid.Column="2" Classes="trimHandle" Tag="TrimEnd"/>
                             </Grid>
                           </Border>
+                          <!-- Variant B: the parts of the anchored clip's segments outside the plate (an orange before its start or after
+                               its end), beside it, translucent and dashed — nothing of the animation is hidden by the plate's bounds. -->
+                          <ItemsControl x:Name="PlateOverflow" Tag="PlateOverflow" Classes="canvasItems" ItemsSource="{Binding TemplateOverflow}"
+                                        IsVisible="{Binding HasTemplateOverflow}" Height="36" Margin="0,4,0,0" VerticalAlignment="Top" ClipToBounds="False">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <Canvas ClipToBounds="False"/>
+                              </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate>
+                                <Border Width="{Binding Width}" Height="36" Background="{Binding ColorHex}" Opacity="0.45" CornerRadius="2"
+                                        BorderBrush="{Binding ColorHex}" BorderThickness="1" ToolTip.Tip="{Binding Tip}"/>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          <!-- D048 §4.1: the overlay strip on its own thin lane directly above the clip (the row's top 4 px):
+                               green, orange over it, lilac on top; its edges and the orange / lilac bodies drag (§4.2), a click
+                               selects the orange (§3.9). -->
+                          <ItemsControl x:Name="StripLane" Tag="StripLane" Classes="canvasItems" ItemsSource="{Binding StripSegments}"
+                                        IsVisible="{Binding ShowsStripLane}" Width="{Binding Width}" Height="4" VerticalAlignment="Top"
+                                        HorizontalAlignment="Left" Background="#01000000" Cursor="SizeWestEast" ClipToBounds="True">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <Canvas/>
+                              </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate>
+                                <Border Classes="stripSegment" Classes.selected="{Binding IsSelected}" Width="{Binding Width}" Height="4"
+                                        Background="{Binding ColorHex}" ToolTip.Tip="{Binding Tip}"/>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          </Panel>
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>

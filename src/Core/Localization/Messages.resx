@@ -370,6 +370,9 @@
   <data name="Holds_DisappearRange" xml:space="preserve">
     <value>The disappear fade must be between 0 and {0} s.</value>
   </data>
+  <data name="Holds_DurationRange" xml:space="preserve">
+    <value>A hold animation lasts more than 0 s and at most {0} s.</value>
+  </data>
   <data name="Holds_IntervalRange" xml:space="preserve">
     <value>The animation interval must be between {0} and {1} s.</value>
   </data>
@@ -399,6 +402,9 @@
   </data>
   <data name="Holds_StayRange" xml:space="preserve">
     <value>The time after the last hold must be between 0 and {0} s.</value>
+  </data>
+  <data name="Holds_UnknownAnimationMode" xml:space="preserve">
+    <value>Unknown animation mode.</value>
   </data>
   <data name="Holds_UnknownColourMode" xml:space="preserve">
     <value>Unknown colour mode.</value>
@@ -444,6 +450,15 @@
   </data>
   <data name="Kind_Video" xml:space="preserve">
     <value>Video</value>
+  </data>
+  <data name="Layout_NoAnimationTime" xml:space="preserve">
+    <value>There is no time before the playhead for the hold animation: only the plate was laid out.</value>
+  </data>
+  <data name="Layout_NoHolds" xml:space="preserve">
+    <value>Mark the route's holds on this clip first.</value>
+  </data>
+  <data name="Layout_OutsideClip" xml:space="preserve">
+    <value>Put the playhead at the start of the climb, inside the clip.</value>
   </data>
   <data name="Link_AlreadyLinked" xml:space="preserve">
     <value>A selected clip is already linked: Unlink it first.</value>
@@ -523,11 +538,44 @@
   <data name="Model_RunFailed" xml:space="preserve">
     <value>The hold model failed on the {0}: {1}</value>
   </data>
+  <data name="Overlay_LilacOverlap" xml:space="preserve">
+    <value>Top / Attempt can't overlap the route plate or the hold animation. Move the boundaries first.</value>
+  </data>
+  <data name="Overlay_OrangeOutsideClip" xml:space="preserve">
+    <value>The hold animation must stay inside its clip: change its start or duration.</value>
+  </data>
+  <data name="Overlay_StatusTooShort" xml:space="preserve">
+    <value>Top / Attempt can't be set: at least two frames of the plate must remain after the status moment. Move the boundaries first.</value>
+  </data>
+  <data name="Overlay_OutsideClip" xml:space="preserve">
+    <value>A template anchored to a clip stays inside that clip.</value>
+  </data>
   <data name="Overwrite_InsideCrossfade" xml:space="preserve">
     <value>Can't overwrite inside a crossfade.</value>
   </data>
   <data name="Overwrite_InsideDissolve" xml:space="preserve">
     <value>Can't overwrite inside a dissolve.</value>
+  </data>
+  <data name="RouteSelectionTransferFailed" xml:space="preserve">
+    <value>The control hold couldn't be found on the clean frame 5 s earlier: the camera moved too much. Choose another moment.</value>
+  </data>
+  <data name="RouteSelectionNoControlHold" xml:space="preserve">
+    <value>No hold was found at the control point on the clean frame 5 s earlier. Click the hold itself or choose another moment.</value>
+  </data>
+  <data name="RouteSelectionMediaUnavailable" xml:space="preserve">
+    <value>The clip's media file is missing or hasn't been analysed yet: the route can't be selected.</value>
+  </data>
+  <data name="RouteSelectionOutsideClip" xml:space="preserve">
+    <value>The playhead isn't on a frame of the selected clip.</value>
+  </data>
+  <data name="RouteSelectionFrameUnavailable" xml:space="preserve">
+    <value>A frame for the route selection couldn't be decoded: {0}</value>
+  </data>
+  <data name="RouteSelectionNothingNew" xml:space="preserve">
+    <value>No new holds of the route's colour were found: the clip already has them, or try a larger tolerance or another control hold.</value>
+  </data>
+  <data name="Strip_NoSegment" xml:space="preserve">
+    <value>Nothing to change: the clip's overlay strip has no such segment.</value>
   </data>
   <data name="Plural_Clips" xml:space="preserve">
     <value>{0} clip|{0} clips</value>

@@ -48,7 +48,25 @@ public enum HoldAnimationOrder
     BottomToTop,
 
     /// <summary>In the order the holds were marked.</summary>
-    MarkingOrder
+    MarkingOrder,
+
+    /// <summary>From the leftmost hold to the rightmost, by the centre of each contour (D048 §3.3, format v10).</summary>
+    LeftToRight,
+
+    /// <summary>From the rightmost hold to the leftmost (D048 §3.3, format v10).</summary>
+    RightToLeft
+}
+
+/// <summary>How the length of a hold animation is defined (D048 §3.1).</summary>
+public enum HoldAnimationMode
+{
+    /// <summary>D036: an interval per hold, a stay after the last one and a disappear fade — the length follows the number
+    /// of holds.</summary>
+    Interval,
+
+    /// <summary>D048: one explicit duration (timeline time) ending at <c>T</c> — 80 % the holds appear one after another, 20 %
+    /// the whole route stays; every contour is gone at the end, no fade (format v10).</summary>
+    Duration
 }
 
 /// <summary>
@@ -74,6 +92,14 @@ public sealed record HoldAnimation
     public MediaTime StayAfterLast { get; init; } = DefaultStayAfterLast;
     public bool StayUntilClipEnd { get; init; }
     public MediaTime DisappearFade { get; init; } = DefaultDisappearFade;
+
+    /// <summary>D048 §3.1: <see cref="HoldAnimationMode.Interval"/> (D036, the members above) or
+    /// <see cref="HoldAnimationMode.Duration"/> (<see cref="Duration"/>; <see cref="AppearFade"/> is the per-hold fade,
+    /// the stay and disappear members are unused).</summary>
+    public HoldAnimationMode Mode { get; init; } = HoldAnimationMode.Interval;
+
+    /// <summary>D048 §3.1: the whole animation's length in timeline time (<see cref="HoldAnimationMode.Duration"/> only).</summary>
+    public MediaTime Duration { get; init; }
 }
 
 /// <summary>
@@ -162,6 +188,9 @@ public static class HoldMarkupRules
     public static readonly MediaTime MaxFade = MediaTime.FromSeconds(5);
     public static readonly MediaTime MaxStay = MediaTime.FromSeconds(60);
 
+    /// <summary>The longest <see cref="HoldAnimationMode.Duration"/> animation (D048 §3.1): an hour of the timeline.</summary>
+    public static readonly MediaTime MaxAnimationDuration = MediaTime.FromSeconds(3600);
+
     /// <summary>The latest animation start: 24 hours into the source.</summary>
     public static readonly MediaTime MaxStartSourceTime = MediaTime.FromSeconds(24 * 3600);
 
@@ -213,6 +242,10 @@ public static class HoldMarkupRules
             return string.Format(Messages.Holds_DisappearRange, Seconds(MaxFade));
         if (animation.StayAfterLast < MediaTime.Zero || animation.StayAfterLast > MaxStay)
             return string.Format(Messages.Holds_StayRange, Seconds(MaxStay));
+        if (!Enum.IsDefined(animation.Mode)) return Messages.Holds_UnknownAnimationMode;
+        if (animation.Mode == HoldAnimationMode.Duration &&
+            (animation.Duration <= MediaTime.Zero || animation.Duration > MaxAnimationDuration))
+            return string.Format(Messages.Holds_DurationRange, Seconds(MaxAnimationDuration));
         return null;
     }
 
