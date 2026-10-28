@@ -2153,4 +2153,90 @@ If you don't save, your changes will be lost.</value>
   <data name="Timeline_SegmentsInTemplateTip" xml:space="preserve">
     <value>Debug only. On: the intro, hold animation and Top / Attempt segments inside the Boulder template (the main view). Off: the earlier lane above the clip.</value>
   </data>
+  <data name="Toolbar_Training" xml:space="preserve">
+    <value>COROS Training…</value>
+  </data>
+  <data name="Toolbar_TrainingTip" xml:space="preserve">
+    <value>Import a COROS training (.fit). It is kept in this session only and is not saved in the project.</value>
+  </data>
+  <data name="Toolbar_TrainingLoadedTip" xml:space="preserve">
+    <value>Training in this session: {0}
+{1}
+Not saved in the project. Click to import another one.</value>
+  </data>
+  <data name="Training_PickerTitle" xml:space="preserve">
+    <value>Import a COROS Training</value>
+  </data>
+  <data name="Training_FileFilter" xml:space="preserve">
+    <value>FIT trainings</value>
+  </data>
+  <data name="Training_Importing" xml:space="preserve">
+    <value>Importing the training…</value>
+  </data>
+  <data name="Training_Imported" xml:space="preserve">
+    <value>Training imported: {0}</value>
+  </data>
+  <data name="Training_Summary" xml:space="preserve">
+    <value>{0}, {1} {2}–{3} ({4}), {5}</value>
+  </data>
+  <data name="Training_Climbs" xml:space="preserve">
+    <value>{0} climb|{0} climbs</value>
+  </data>
+  <data name="Training_Refused" xml:space="preserve">
+    <value>Training not imported: {0}</value>
+  </data>
+  <data name="Training_DidntFinish" xml:space="preserve">
+    <value>Training import didn't finish.</value>
+  </data>
+  <data name="Training_ProjectChanged" xml:space="preserve">
+    <value>Training import stopped: another project was opened, so nothing was kept.</value>
+  </data>
+  <data name="TrainingError_NotAFitFile" xml:space="preserve">
+    <value>this is not a FIT file.</value>
+  </data>
+  <data name="TrainingError_Truncated" xml:space="preserve">
+    <value>the file is cut short: it ends before the data its header promises.</value>
+  </data>
+  <data name="TrainingError_Corrupted" xml:space="preserve">
+    <value>the file is damaged: a checksum does not match.</value>
+  </data>
+  <data name="TrainingError_Malformed" xml:space="preserve">
+    <value>the structure of the FIT file is invalid.</value>
+  </data>
+  <data name="TrainingError_NotAnActivity" xml:space="preserve">
+    <value>the file is not a recorded activity (it is a route, a plan or settings).</value>
+  </data>
+  <data name="TrainingError_NotCoros" xml:space="preserve">
+    <value>the activity was not recorded by a COROS watch.</value>
+  </data>
+  <data name="TrainingError_NoSession" xml:space="preserve">
+    <value>the activity has no session summary, so its start and end are unknown.</value>
+  </data>
+  <data name="TrainingError_NoHeartRate" xml:space="preserve">
+    <value>the activity has no heart-rate data.</value>
+  </data>
+  <data name="TrainingError_ClockNotSet" xml:space="preserve">
+    <value>the watch's clock was not set: the times in the file are relative, so they cannot be matched with a video.</value>
+  </data>
+  <data name="TrainingError_FileNotFound" xml:space="preserve">
+    <value>the file was not found.</value>
+  </data>
+  <data name="TrainingError_Unreadable" xml:space="preserve">
+    <value>the file could not be read (it is in use by another program, or there is no access).</value>
+  </data>
+  <data name="TrainingError_TooLarge" xml:space="preserve">
+    <value>the file is too large for a training export; probably another file was chosen.</value>
+  </data>
+  <data name="TrainingWarning_NonMonotonicSamples" xml:space="preserve">
+    <value>{0} repeated or out-of-order sample left out|{0} repeated or out-of-order samples left out</value>
+  </data>
+  <data name="TrainingWarning_ImplausibleHeartRate" xml:space="preserve">
+    <value>{0} implausible heart-rate value left out|{0} implausible heart-rate values left out</value>
+  </data>
+  <data name="TrainingWarning_InvalidSegments" xml:space="preserve">
+    <value>{0} invalid split left out|{0} invalid splits left out</value>
+  </data>
+  <data name="TrainingWarning_UnusableUtcOffset" xml:space="preserve">
+    <value>the watch's time zone is not usable; times are shown in UTC</value>
+  </data>
 </root>

@@ -13,7 +13,9 @@ namespace AiVideoEditor.UI.ViewModels.Panels;
 /// The project commands are async commands: while one runs it can't be started again. While an export
 /// runs (<see cref="EditingLock"/>) every command here is disabled. <see cref="Recent"/> is the <c>Recent ▾</c> drop-down
 /// next to Open (D026 §6), absent when not given. "Project Settings…" (D028, Step 13.6) opens the canvas / frame-rate dialog
-/// through <see cref="ProjectSettingsWorkflow"/>; its tooltip shows the current settings.
+/// through <see cref="ProjectSettingsWorkflow"/>; its tooltip shows the current settings. «Тренировка COROS…» (Phase Coros
+/// C1) imports a FIT training into the session through <see cref="TrainingImportWorkflow"/>; its tooltip shows the
+/// training held, if any.
 /// </summary>
 public sealed partial class ToolbarViewModel : ViewModelBase
 {
@@ -24,11 +26,15 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     private readonly ExportWorkflow? _exportWorkflow;
     private readonly EditingLock _editingLock;
     private readonly ProjectSettingsWorkflow? _projectSettings;
+    private readonly TrainingImportWorkflow? _trainingImport;
+    private readonly TrainingSessionService? _trainingSession;
 
     /// <param name="exportWorkflow">Without it Export reports that exporting is unavailable.</param>
     /// <param name="editingLock">The app's shared lock; a private one when not given.</param>
     /// <param name="recentProjects">The <c>Recent ▾</c> drop-down; without it the button is hidden.</param>
     /// <param name="projectSettings">Project Settings…; without it the command reports that it is unavailable.</param>
+    /// <param name="trainingImport">«Тренировка COROS…»; without it the command is disabled.</param>
+    /// <param name="trainingSession">The training held in the session, for the tooltip.</param>
     public ToolbarViewModel(
         IUndoRedoService undoRedoService,
         ProjectFileWorkflow projectFiles,
@@ -37,8 +43,14 @@ public sealed partial class ToolbarViewModel : ViewModelBase
         ExportWorkflow? exportWorkflow = null,
         EditingLock? editingLock = null,
         RecentProjectsViewModel? recentProjects = null,
-        ProjectSettingsWorkflow? projectSettings = null)
+        ProjectSettingsWorkflow? projectSettings = null,
+        TrainingImportWorkflow? trainingImport = null,
+        TrainingSessionService? trainingSession = null)
     {
+        _trainingImport = trainingImport;
+        _trainingSession = trainingSession;
+        if (_trainingSession is not null)
+            _trainingSession.Changed += (_, _) => OnPropertyChanged(nameof(TrainingToolTip));
         _projectSettings = projectSettings;
         if (_projectSettings is not null)
             _projectSettings.SummaryChanged += (_, _) => OnPropertyChanged(nameof(ProjectSettingsToolTip));
@@ -65,6 +77,11 @@ public sealed partial class ToolbarViewModel : ViewModelBase
         ? Strings.Settings_Title
         : string.Format(Strings.Toolbar_SettingsTip, _projectSettings.Summary);
 
+    /// <summary>What «Тренировка COROS…» does, or — once a training is held — its summary and file.</summary>
+    public string TrainingToolTip => _trainingSession is { Workout: { } workout, FilePath: { } path }
+        ? string.Format(Strings.Toolbar_TrainingLoadedTip, TrainingText.Summary(workout), Path.GetFileName(path))
+        : Strings.Toolbar_TrainingTip;
+
     private void NotifyAllCommands()
     {
         NewProjectCommand.NotifyCanExecuteChanged();
@@ -74,6 +91,7 @@ public sealed partial class ToolbarViewModel : ViewModelBase
         UndoCommand.NotifyCanExecuteChanged();
         RedoCommand.NotifyCanExecuteChanged();
         ImportMediaCommand.NotifyCanExecuteChanged();
+        ImportTrainingCommand.NotifyCanExecuteChanged();
         ProjectSettingsCommand.NotifyCanExecuteChanged();
         ExportCommand.NotifyCanExecuteChanged();
     }
@@ -108,6 +126,12 @@ public sealed partial class ToolbarViewModel : ViewModelBase
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task ImportMedia() => _importWorkflow.RunAsync();
+
+    /// <summary>«Тренировка COROS…» (Phase Coros C1): a FIT training into the session, not into the project.</summary>
+    [RelayCommand(CanExecute = nameof(CanImportTraining))]
+    private Task ImportTraining() => _trainingImport!.RunAsync();
+
+    private bool CanImportTraining() => CanEdit() && _trainingImport is not null;
 
     /// <summary>Project Settings… (D028, Step 13.6): the canvas size and the frame rate; disabled during an export.</summary>
     [RelayCommand(CanExecute = nameof(CanEdit))]

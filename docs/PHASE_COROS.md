@@ -1,6 +1,6 @@
 # Phase Coros — import of COROS climbing trainings and their synchronisation with the video
 
-Branch `feat/phase-coros-c0`, from `origin/main` `1e58885` (Phases 30 / 31, hold tracking and D048 with its stages 2–3 merged;
+Branches `feat/phase-coros-c0` (C0) and `feat/phase-coros-c1` (C1, on top of C0), from `origin/main` `1e58885` (Phases 30 / 31, hold tracking and D048 with its stages 2–3 merged;
 `project.json` v10 in the code). C0 was written on `feat/phase-coros` from `e28a9d3` (`32662ee`) and
 carried over unchanged (2026-10-28); the old branch is kept. This document is the phase's record until its merge.
 `DECISIONS.md`, `ROADMAP.md` and `progress.md` are not edited on this branch; their entries are written when the phase is
@@ -59,7 +59,7 @@ difference between the phone and the watch.
 | Step | Content | Acceptance | State |
 |---|---|---|---|
 | **C0** | Core: `Telemetry/FitFile` (FIT reader: header / file CRC, both byte orders, compressed timestamps, developer fields skipped), `CorosWorkoutParser`, `ClimbingWorkout` model, `WorkoutTimeline` (HR at an instant, splits in a range), `WorkoutVideoAlignment`. Tests in `Core.Tests/Telemetry` on synthetic FIT files; `tests/Telemetry.LocalTests` (outside the solution) on the real export | the real export parses to the facts of §1 (14 climbs, 5 766 HR samples, the pause, +3 h); every refusal reason covered; no change of `project.json`, UI or existing code | **done**: build and tests run on Windows (see §7) |
-| C1 | Import entry: `ITrainingImportService` (Core) + file implementation (Media; size limit, I/O errors); «Импорт тренировки COROS…» with a `.fit` picker; localized refusal texts and warnings; the workout held in the session (not saved) | importing the real file shows device, date, local time, 14 climbs; each refusal reason has a Russian / English text; nothing persisted | planned |
+| **C1** | Import entry: `ITrainingImportService` (Core) + `TrainingImportService` (Media; 16 MiB limit, missing / unreadable file); «Тренировка COROS…» on the toolbar with a `.fit` picker (`TrainingImportWorkflow`); localized refusal texts and warnings (`TrainingText`); the workout held in `TrainingSessionService` (not saved) | importing the real file shows device, date, local time, 14 climbs; each refusal reason has a Russian / English text; nothing persisted | **done**, awaiting the product owner's acceptance (see §7, §8) |
 | C2 | Video timestamps: ffprobe `creation_time` (format and stream tags) read at analysis; its meaning per device (end of recording on this phone) → the automatic source zero; the file-name time as a cross-check; measuring the phone ↔ watch clock difference on the real session (a climb's visible start against its split) | for ≥ 12 of the 14 climbs on video the automatic match is within a stated tolerance, or the measured difference is documented and the correction made mandatory | planned; session-only in the first version (§6.2) |
 | C3 | Alignment per clip + the correction in the Inspector (whole frames, one Undo step); Trim / Split / Move keep the match; persistence | tests: Trim / Split / Move, Undo / Redo, save / load | planned; first version session-only (§6.2) — persistence later, in one version sequence with D048 (v10 is D048's) |
 | C4 | Overlay: heart icon + BPM, a few looks / positions; Preview and export through the one composition path | parity test Preview = export; seeking; data gaps and pauses show nothing | planned |
@@ -101,3 +101,51 @@ difference between the phone and the watch.
   suite was not run (C0 adds new files only).
 - C0 carried onto `1e58885` (2026-10-28, `git cherry-pick --no-commit 32662ee`, no conflict, code unchanged): build 0 / 0;
   Core Telemetry 40 / 0 / 0; Telemetry.LocalTests on the real export 6 / 0 / 0.
+- C0 follow-up (`f12c5e6`): the full UI.Tests run showed `LocalizationGuardTests` failing on the English details of
+  `TrainingFileException` (C0 had run the Telemetry tests only). The guard's internal-exception rule now names
+  `TrainingFile`; `FitFile` throws the exception directly. No behaviour change.
+- C1 (2026-10-28, branch `feat/phase-coros-c1`): `dotnet build AiVideoEditor.sln` 0 / 0; `dotnet test AiVideoEditor.sln` —
+  Core 1 444, Project 543, Timeline 1 015, UI 964 (18 new in `TrainingImportTests`), Rendering 178, Export 122, Vision 24,
+  ExportEndToEnd 165 + 2 skipped (as on `main`), Video 362 + 1 failed in the parallel run:
+  `WasapiAudioOutputDeviceTests.Clock_CountsPlayedFrames_…` (the real audio device under the load of the full run; passes
+  alone, 2 / 0; untouched by C1). One existing test updated for the new button: `ProjectSettingsViewBindingTests` (the
+  import group is now «Импорт медиа», «Тренировка COROS…»). `Telemetry.LocalTests` on the real export 7 / 0 / 0 (new:
+  the import from disk and the Russian summary «COROS APEX 4 42mm, 27.09.2026 10:02–11:39 (UTC+03:00), 14 подходов»).
+  The manual acceptance (§9) is the product owner's — not run.
+
+## 8. C1 — the import into the session (as implemented)
+
+- **Entry**: the toolbar button «Тренировка COROS…» right after «Импорт медиа»; one `.fit` file per import. Disabled during
+  an export (the editing lock), as the other commands.
+- **Reading** (`Media/TrainingImportService`): the file is checked (exists, ≤ 16 MiB), read whole and parsed off the UI
+  thread by `CorosWorkoutParser`. A missing file, an I/O error (locked, no access) and an oversized file are refusals of
+  their own (`TrainingFileError.FileNotFound`, `Unreadable`, `TooLarge`), next to the parser's reasons.
+- **Result in the status bar**: «Тренировка импортирована: COROS APEX 4 42mm, 27.09.2026 10:02–11:39 (UTC+03:00), 14
+  подходов», then what was left out («; пропущено 2 недостоверных значения пульса»). Times are the watch's local time from
+  the file's offset; without a usable offset they are UTC and say so. A refusal: «Тренировка не импортирована: <reason>»;
+  the training already held stays.
+- **Session only** (§6.2): `UI/Services/TrainingSessionService` holds the workout and its file path in memory. Nothing is
+  added to `Project` or `project.json` (tested: a project saved after an import has no trace of it). The training belongs to
+  the project it was imported into, like a media import (D027 §7): opening / creating / recovering another project drops it,
+  and a training read while another project became current is not kept. A new import replaces it.
+- **Tooltip** of the button: what it does, or — once a training is held — its summary, the file name and «Не сохраняется в
+  проект».
+- Not in C1: any use of the workout (alignment, overlay), a «remove training» command, a shortcut.
+
+## 9. C1 — manual acceptance (product owner)
+
+Build of `feat/phase-coros-c1`; the real export of 2026-09-27 and any other file at hand. Russian interface.
+
+| # | Action | Expected |
+|---|---|---|
+| A1 | Toolbar: hover «Тренировка COROS…» | tooltip: import a COROS training (.fit), kept in this session only, not saved in the project |
+| A2 | Click it, cancel the dialog | nothing changes, no status message |
+| A3 | Click it, pick `Болдеринг20260927100239.fit` | dialog filter «Тренировки FIT» (`*.fit`), one file only; status «Тренировка импортирована: COROS APEX 4 42mm, 27.09.2026 10:02–11:39 (UTC+03:00), 14 подходов» |
+| A4 | Hover the button again | the same summary, the file name, «Не сохраняется в проект…» |
+| A5 | Pick a non-FIT file renamed to `.fit` (e.g. a `.txt`) | «Тренировка не импортирована: это не FIT-файл.»; the tooltip still shows the 27.09 training |
+| A6 | Pick a copy of the real FIT with a few bytes changed in the middle (any hex editor) | «… файл повреждён: не сходится контрольная сумма.» |
+| A7 | Open the real FIT in another program that locks it (or pick it, then delete / move it before confirming, if possible) | a refusal with its reason (не удалось прочитать / не найден), no crash |
+| A8 | Save the project, then open `project.json` | no trace of the training (no device, heart rate, file path) |
+| A9 | New project (or Open another) | the tooltip is back to «Импортировать тренировку…»: the training was dropped with the project |
+| A10 | Start an export and look at the toolbar while it runs | «Тренировка COROS…» disabled like the other commands |
+| A11 | Switch the interface to English (`appsettings.json`: `App.Language` = `en`) and repeat A3 | «Training imported: COROS APEX 4 42mm, … 14 climbs» (dates in the system's format) |

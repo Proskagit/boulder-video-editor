@@ -2157,4 +2157,90 @@
   <data name="Timeline_SegmentsInTemplateTip" xml:space="preserve">
     <value>Только в Debug. Включено: сегменты вступления, анимации зацепок и Топ / Попытки внутри плашки «Боулдер» (основной вид). Выключено: прежняя дорожка над клипом.</value>
   </data>
+  <data name="Toolbar_Training" xml:space="preserve">
+    <value>Тренировка COROS…</value>
+  </data>
+  <data name="Toolbar_TrainingTip" xml:space="preserve">
+    <value>Импортировать тренировку COROS (.fit). Она хранится только в этой сессии и не сохраняется в проект.</value>
+  </data>
+  <data name="Toolbar_TrainingLoadedTip" xml:space="preserve">
+    <value>Тренировка в этой сессии: {0}
+{1}
+Не сохраняется в проект. Нажмите, чтобы импортировать другую.</value>
+  </data>
+  <data name="Training_PickerTitle" xml:space="preserve">
+    <value>Импорт тренировки COROS</value>
+  </data>
+  <data name="Training_FileFilter" xml:space="preserve">
+    <value>Тренировки FIT</value>
+  </data>
+  <data name="Training_Importing" xml:space="preserve">
+    <value>Импорт тренировки…</value>
+  </data>
+  <data name="Training_Imported" xml:space="preserve">
+    <value>Тренировка импортирована: {0}</value>
+  </data>
+  <data name="Training_Summary" xml:space="preserve">
+    <value>{0}, {1} {2}–{3} ({4}), {5}</value>
+  </data>
+  <data name="Training_Climbs" xml:space="preserve">
+    <value>{0} подход|{0} подхода|{0} подходов</value>
+  </data>
+  <data name="Training_Refused" xml:space="preserve">
+    <value>Тренировка не импортирована: {0}</value>
+  </data>
+  <data name="Training_DidntFinish" xml:space="preserve">
+    <value>Импорт тренировки не завершён.</value>
+  </data>
+  <data name="Training_ProjectChanged" xml:space="preserve">
+    <value>Импорт тренировки остановлен: открыт другой проект, поэтому тренировка не сохранена в сессии.</value>
+  </data>
+  <data name="TrainingError_NotAFitFile" xml:space="preserve">
+    <value>это не FIT-файл.</value>
+  </data>
+  <data name="TrainingError_Truncated" xml:space="preserve">
+    <value>файл обрезан: он заканчивается раньше, чем указано в его заголовке.</value>
+  </data>
+  <data name="TrainingError_Corrupted" xml:space="preserve">
+    <value>файл повреждён: не сходится контрольная сумма.</value>
+  </data>
+  <data name="TrainingError_Malformed" xml:space="preserve">
+    <value>нарушена структура FIT-файла.</value>
+  </data>
+  <data name="TrainingError_NotAnActivity" xml:space="preserve">
+    <value>в файле не записанная тренировка (маршрут, план или настройки).</value>
+  </data>
+  <data name="TrainingError_NotCoros" xml:space="preserve">
+    <value>тренировка записана не часами COROS.</value>
+  </data>
+  <data name="TrainingError_NoSession" xml:space="preserve">
+    <value>в тренировке нет итогов сессии, поэтому неизвестны её начало и конец.</value>
+  </data>
+  <data name="TrainingError_NoHeartRate" xml:space="preserve">
+    <value>в тренировке нет данных пульса.</value>
+  </data>
+  <data name="TrainingError_ClockNotSet" xml:space="preserve">
+    <value>часы не были настроены: время в файле относительное, поэтому его нельзя сопоставить с видео.</value>
+  </data>
+  <data name="TrainingError_FileNotFound" xml:space="preserve">
+    <value>файл не найден.</value>
+  </data>
+  <data name="TrainingError_Unreadable" xml:space="preserve">
+    <value>файл не удалось прочитать (он занят другой программой или нет доступа).</value>
+  </data>
+  <data name="TrainingError_TooLarge" xml:space="preserve">
+    <value>файл слишком большой для экспорта тренировки; возможно, выбран не тот файл.</value>
+  </data>
+  <data name="TrainingWarning_NonMonotonicSamples" xml:space="preserve">
+    <value>пропущен {0} повторный или идущий назад по времени замер|пропущено {0} повторных или идущих назад по времени замера|пропущено {0} повторных или идущих назад по времени замеров</value>
+  </data>
+  <data name="TrainingWarning_ImplausibleHeartRate" xml:space="preserve">
+    <value>пропущено {0} недостоверное значение пульса|пропущено {0} недостоверных значения пульса|пропущено {0} недостоверных значений пульса</value>
+  </data>
+  <data name="TrainingWarning_InvalidSegments" xml:space="preserve">
+    <value>пропущен {0} некорректный отрезок|пропущено {0} некорректных отрезка|пропущено {0} некорректных отрезков</value>
+  </data>
+  <data name="TrainingWarning_UnusableUtcOffset" xml:space="preserve">
+    <value>часовой пояс часов не распознан; время показано в UTC</value>
+  </data>
 </root>

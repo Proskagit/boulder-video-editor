@@ -48,7 +48,9 @@ public sealed class ProjectSettingsViewBindingTests
         var row = view.GetLogicalDescendants().OfType<WrapPanel>().First();   // the tool bar wraps (D039 §6)
         var buttons = row.Children.OfType<Button>().Select(b => b.Content as string).ToList();
         var settings = row.Children.OfType<Button>().Single(b => Equals(b.Content, "Project Settings…"));
-        Assert.Equal(buttons.IndexOf("Import Media") + 1, buttons.IndexOf("Project Settings…"));
+        // The import group: Import Media, then the COROS training (Phase Coros C1).
+        Assert.Equal(buttons.IndexOf("Import Media") + 1, buttons.IndexOf("COROS Training…"));
+        Assert.Equal(buttons.IndexOf("COROS Training…") + 1, buttons.IndexOf("Project Settings…"));
         Assert.Equal(buttons.IndexOf("Project Settings…") + 1, buttons.IndexOf("Export"));
         var index = row.Children.IndexOf(settings);
         Assert.IsType<Avalonia.Controls.Shapes.Rectangle>(row.Children[index - 1]);      // separators on both sides

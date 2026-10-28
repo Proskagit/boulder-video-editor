@@ -79,6 +79,8 @@
       <Rectangle/>
 
       <Button Content="{x:Static l:Strings.Toolbar_Import}" Command="{Binding ImportMediaCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_ImportTip}"/>
+      <!-- Phase Coros C1: the training is held in the session only; the tooltip shows the one held. -->
+      <Button Content="{x:Static l:Strings.Toolbar_Training}" Command="{Binding ImportTrainingCommand}" ToolTip.Tip="{Binding TrainingToolTip}"/>
 
       <Rectangle/>
 

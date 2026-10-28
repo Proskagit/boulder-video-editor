@@ -41,6 +41,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IUndoRedoService, UndoRedoService>();
         services.AddSingleton<IProjectService, ProjectService>();
         services.AddSingleton<IMediaImportService, MediaImportService>();
+        services.AddSingleton<ITrainingImportService, TrainingImportService>();   // Phase Coros C1: the FIT training
         services.AddSingleton<IFfprobeLocator, FfprobeLocator>();
         services.AddSingleton<IMediaAnalysisService, FfprobeMediaAnalysisService>();
         services.AddSingleton<IFfmpegLocator, FfmpegLocator>();
@@ -111,6 +112,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<WaveformCoordinator>();
         services.AddSingleton<MediaAvailabilityMonitor>();
         services.AddSingleton<MediaImportWorkflow>();
+        services.AddSingleton<TrainingSessionService>();   // Phase Coros C1: the training held in the session, not saved
+        services.AddSingleton<TrainingImportWorkflow>();
         services.AddSingleton<MediaRelinkWorkflow>();
         services.AddSingleton<ProjectFileWorkflow>();
         services.AddSingleton<IProjectSettingsDialog, AvaloniaProjectSettingsDialog>();

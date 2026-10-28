@@ -27,6 +27,9 @@
     <!-- Shared fake decoder / fake reference clock (no ffmpeg processes in UI tests). -->
     <Compile Include="..\Timeline.Tests\Playback\PlaybackFakes.cs" Link="Playback\PlaybackFakes.cs" />
     <Compile Include="..\Timeline.Tests\Playback\AudioFakes.cs" Link="Playback\AudioFakes.cs" />
+    <!-- Phase Coros C1: the synthetic COROS FIT files of Core.Tests, for the import from disk. -->
+    <Compile Include="..\Core.Tests\Telemetry\FitTestWriter.cs" Link="Telemetry\FitTestWriter.cs" />
+    <Compile Include="..\Core.Tests\Telemetry\CorosFixture.cs" Link="Telemetry\CorosFixture.cs" />
   </ItemGroup>
 
 </Project>

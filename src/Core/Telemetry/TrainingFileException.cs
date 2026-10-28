@@ -30,6 +30,15 @@ public enum TrainingFileError
 
     /// <summary>The watch's clock was not set: its times are relative, not absolute, so no video can be matched.</summary>
     ClockNotSet,
+
+    /// <summary>The file does not exist (moved or deleted after it was picked).</summary>
+    FileNotFound,
+
+    /// <summary>The file could not be read: locked by another program, no access, or a disk error.</summary>
+    Unreadable,
+
+    /// <summary>The file is larger than any training export can be: most likely another file was picked.</summary>
+    TooLarge,
 }
 
 /// <summary>A training file could not be imported. <see cref="Error"/> is the reason the UI shows.</summary>
