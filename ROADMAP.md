@@ -83,6 +83,14 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 
 ## Current
 
+**State on 2026-10-28 (numbering confirmed by the product owner, `docs/DEVELOPMENT_PLAN.md` "Phase and step numbering").**
+The last official phase is **Phase 34**: D048's stages are Phases 32 (route selection, paused / deferred), 33 (timing model,
+anchors, `project.json` v10) and 34 (the overlay strip, variant B), approved as implemented and merged in PR #32
+(`1e58885`). Phases 30 and 31 are technically complete with the owner's acceptance open (below). **Next: Phase 35** — the
+import of COROS trainings (formerly "Phase Coros"; Steps 35.1–35.2 in local branches, not merged, 35.2's manual acceptance
+open), then **Phase 36** — the session summary and the YouTube chapters (specification draft). `project.json` v11 is decided
+once, in D049, before either phase changes the format.
+
 **Phase 31 — Automatic hold proposals (D047 approved 2026-10-25; technically complete 2026-10-26).** The default
 configuration — SAM 2.1 Large ONNX, 15×15 grid, frames decoded and evaluated at 1920×1080 — runs in ~7.4 s on a warm 4K
 frame and ~6.5 s on a warm 1080p frame on the development machine, meeting the ≤8 s acceptance criterion. The E1 recall at
@@ -474,11 +482,13 @@ research, F only after its feasibility is confirmed and a separate agreement; H 
 | D | Automatic hold proposals — implementation, on a go | AI | large | R1 |
 | R2 | Outlines following the holds while the camera moves, with occlusion that hides only the covered segments of a contour — research (concept of 2026-10-22: `docs/DEVELOPMENT_PLAN.md`, "R2 → E") | research | research (highest uncertainty) | — (parallel) |
 | E | Outline tracking — implementation, on a go (camera-motion part merged in PR #31 `024f3fb`; accepted by the owner for continued development, not marked complete; richer correction, adding / removing holds and two NOT RUN checks deferred — `docs/DEVELOPMENT_PLAN.md` "R2 → E" status) | AI | large | R2; after D if D is taken |
-| D048-1 | Route selection at `T` and review — proposed Phase 32 (D048 **approved 2026-10-28**; implemented, then **paused / deferred**: «Авторазметка» hidden, code and research kept — `docs/HOLD_AUTO_DETECTION_RESEARCH.md`) | AI | medium | D (Phase 31), E's tracking |
-| D048-2 | Timing model (animation duration, orders, standard / short-intro layout), template ↔ clip anchor, speed / trim / copy rules, `project.json` v10 (v9 converted on save, no backward compatibility) — proposed Phase 33 (**done**, D048 approved 2026-10-28) | core | medium–large | D048 approval; schema check with F done (COROS takes the next version) |
-| D048-3 | The overlay strip — proposed Phase 34 (**done**, variant B: the segments inside the «Боулдер»; the lane above the clip Debug-only) | UX | medium | D048-2 |
-| R3 | COROS Pace 4 exports and video timestamps — research | research | research (needs real files) | — (parallel) |
-| F | «COROS Pace 4: пульс и телеметрия в видео» — only after R3 confirms feasibility and a separate agreement | telemetry | large | R3, A |
+| D048-1 | Route selection at `T` and review — **Phase 32** (D048 **approved 2026-10-28**; implemented, then **paused / deferred**: «Авторазметка» hidden, code and research kept — `docs/HOLD_AUTO_DETECTION_RESEARCH.md`) | AI | medium | D (Phase 31), E's tracking |
+| D048-2 | Timing model (animation duration, orders, standard / short-intro layout), template ↔ clip anchor, speed / trim / copy rules, `project.json` v10 (v9 converted on save, no backward compatibility) — **Phase 33** (**done**, D048 approved 2026-10-28; merged, PR #32) | core | medium–large | D048 approval; schema check with F done (COROS takes the next version) |
+| D048-3 | The overlay strip — **Phase 34** (**done**, merged, PR #32, variant B: the segments inside the «Боулдер»; the lane above the clip Debug-only) | UX | medium | D048-2 |
+| R3 | COROS exports and video timestamps — research (done on the owner's real APEX 4 export, `docs/PHASE_COROS.md` §1) | research | research (needs real files) | — (parallel) |
+| F | **Phase 35** — import of COROS trainings and the heart rate in the video (formerly "Phase Coros", «COROS Pace 4: пульс и телеметрия в видео»; any COROS model; Steps 35.1–35.2 in local branches, not merged) | telemetry | large | R3, A; D049 for persistence |
+| — | **Phase 36** — session summary and YouTube chapters (specification draft, not approved) | core | medium–large | Phases 32–34; D049 for `PassId` / «Итоги»; Phase 35 for the heart rate |
+| — | **D049** — `project.json` v11, one version sequence for Phases 35 and 36 (planned decision, not a phase) | format | small | — |
 | H | «Final UX Pass: аудит и упрощение интерфейса» (research, then implementation) | UX | research + medium–large | the core incl. F, G, a regression run |
 | — | **Phase 37** — preliminary route starts from a COROS FIT and the global start calibration (D051, approved 2026-11-03; documentation only, not implemented — `docs/PHASE37.md`) | telemetry | medium–large | Phase 35's pull requests 1 and 2 (not opened on 2026-11-03), D048; not Phase 36 (separate, deferred) |
 
@@ -488,7 +498,7 @@ Stopping points — the product is usable after each:
 - **S1 — the minimum useful release**: + A, B, C, G — the whole main path of D042 §1 except its step 4, as a portable
   Windows build (no installer) that starts outside the development environment and completes the path import → export.
 - **S2**: + D and / or E, as far as their research allows.
-- **S3**: + F (COROS Pace 4).
+- **S3**: + F (Phase 35, COROS).
 - **S4 — the full plan**: + H.
 
 Deferred, not blocking a release: see "Follow-ups and backlog" and the open checks of Phases 17, 18, 23 and 25 (the R10
