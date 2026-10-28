@@ -324,6 +324,18 @@
   <data name="Holds_FollowCameraTip" xml:space="preserve">
     <value>Удерживает контуры зацепок на стене, когда камера движется. Выключите, если привязка ошиблась: контуры останутся на месте разметки (одинаково в просмотре и экспорте). С проектом не сохраняется.</value>
   </data>
+  <data name="Holds_LayOut" xml:space="preserve">
+    <value>Разложить вступление и финал</value>
+  </data>
+  <data name="Holds_LayOutTip" xml:space="preserve">
+    <value>От плейхеда — начала пролаза (T): анимация зацепок за 5 с до T, плашка трассы с 7 с до T, Top / Attempt на последние 5 с клипа (не раньше T). Если до T меньше 7 с, вступление сокращается в отношении 2 : 5. Один шаг отмены.</value>
+  </data>
+  <data name="Holds_OrderLeftToRight" xml:space="preserve">
+    <value>Слева направо</value>
+  </data>
+  <data name="Holds_OrderRightToLeft" xml:space="preserve">
+    <value>Справа налево</value>
+  </data>
   <data name="Holds_TrackingAnalysing" xml:space="preserve">
     <value>Контуры привязываются к стене…</value>
   </data>
@@ -392,6 +404,12 @@
   </data>
   <data name="Holds_Failed" xml:space="preserve">
     <value>Ошибка разметки зацепок: {0}</value>
+  </data>
+  <data name="Holds_AnimationDuration" xml:space="preserve">
+    <value>Длительность</value>
+  </data>
+  <data name="Holds_AnimationDurationTip" xml:space="preserve">
+    <value>Вся анимация в секундах таймлайна (целые кадры): 80 % — зацепки появляются по одной, 20 % — трасса видна целиком; в конце контуры исчезают</value>
   </data>
   <data name="Holds_Interval" xml:space="preserve">
     <value>Интервал</value>
@@ -2087,5 +2105,56 @@
   </data>
   <data name="Swatch_Violet" xml:space="preserve">
     <value>Фиолетовый</value>
+  </data>
+  <data name="Holds_PlaceHolds" xml:space="preserve">
+    <value>Авторазметка</value>
+  </data>
+  <data name="Holds_PlaceHoldsTip" xml:space="preserve">
+    <value>Остановитесь на моменте перед началом пролаза (T), нажмите кнопку и щёлкните по одной зацепке трассы: зацепки её цвета будут найдены на чистом кадре за 5 с до этого и предложены для проверки.</value>
+  </data>
+  <data name="Holds_RoutePickControl" xml:space="preserve">
+    <value>Щёлкните по одной зацепке трассы на этом кадре. Esc — отмена.</value>
+  </data>
+  <data name="Holds_RouteFindingCleanFrame" xml:space="preserve">
+    <value>Поиск контрольной зацепки на чистом кадре…</value>
+  </data>
+  <data name="Holds_RouteFindingHolds" xml:space="preserve">
+    <value>Поиск зацепок трассы…</value>
+  </data>
+  <data name="Holds_RouteReview" xml:space="preserve">
+    <value>Чистый кадр: удалите лишние зацепки, щёлкните по пропущенной и нажмите Enter, затем «Принять».</value>
+  </data>
+  <data name="Holds_RouteCleanAtFileStart" xml:space="preserve">
+    <value>Файл клипа начинается меньше чем за 5 с до этого момента: чистым кадром взят его первый кадр.</value>
+  </data>
+  <data name="Holds_RouteTolerance" xml:space="preserve">
+    <value>Допуск цвета</value>
+  </data>
+  <data name="Holds_RouteToleranceTip" xml:space="preserve">
+    <value>Насколько цвет зацепки может отличаться от цвета контрольной (OKLab). Больше — больше зацепок, в том числе похожих цветов.</value>
+  </data>
+  <data name="Holds_RouteAccept" xml:space="preserve">
+    <value>Принять</value>
+  </data>
+  <data name="Holds_RouteCancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="Strip_Green" xml:space="preserve">
+    <value>Плашка: {0} – {1}</value>
+  </data>
+  <data name="Strip_Orange" xml:space="preserve">
+    <value>Анимация зацепок: {0} – {1}</value>
+  </data>
+  <data name="Strip_Lilac" xml:space="preserve">
+    <value>Топ / Попытка: {0} – {1}</value>
+  </data>
+  <data name="Strip_MarkupDeleted" xml:space="preserve">
+    <value>Разметка зацепок клипа удалена.</value>
+  </data>
+  <data name="Timeline_SegmentsInTemplate" xml:space="preserve">
+    <value>Сегменты в плашке</value>
+  </data>
+  <data name="Timeline_SegmentsInTemplateTip" xml:space="preserve">
+    <value>Только в Debug. Включено: сегменты вступления, анимации зацепок и Топ / Попытки внутри плашки «Боулдер» (основной вид). Выключено: прежняя дорожка над клипом.</value>
   </data>
 </root>

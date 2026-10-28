@@ -12,8 +12,8 @@ namespace AiVideoEditor.Core.Tests;
 /// </summary>
 public class CameraMotionEstimatorTests
 {
-    private const int W = 480, H = 270;
-    private static readonly GrayImage Wall = SyntheticWall(W, H, seed: 11);
+    internal const int W = 480, H = 270;
+    internal static readonly GrayImage Wall = SyntheticWall(W, H, seed: 11);
     private static MediaTime S(double seconds) => MediaTime.FromSeconds(seconds);
 
     [Fact]
@@ -94,7 +94,7 @@ public class CameraMotionEstimatorTests
         Assert.Equal(WallTransform.Identity, a.At(S(1)).Transform);
     }
 
-    private static WallTransform Similarity(double scale, double angle, double tx, double ty)
+    internal static WallTransform Similarity(double scale, double angle, double tx, double ty)
     {
         // About the frame's centre, then shifted (pixels).
         double c = scale * Math.Cos(angle), s = scale * Math.Sin(angle), cx = W / 2.0, cy = H / 2.0;
@@ -102,7 +102,7 @@ public class CameraMotionEstimatorTests
     }
 
     /// <summary>The frame the camera sees after <paramref name="pixelTransform"/>: frame(x) = wall(T⁻¹ x).</summary>
-    private static GrayImage Warp(GrayImage source, WallTransform pixelTransform)
+    internal static GrayImage Warp(GrayImage source, WallTransform pixelTransform)
     {
         var inverse = pixelTransform.Inverse();
         var pixels = new float[W * H];
@@ -115,7 +115,7 @@ public class CameraMotionEstimatorTests
         return new GrayImage(W, H, pixels);
     }
 
-    private static GrayImage SyntheticWall(int w, int h, int seed)
+    internal static GrayImage SyntheticWall(int w, int h, int seed)
     {
         var random = new Random(seed);
         var pixels = new float[w * h];

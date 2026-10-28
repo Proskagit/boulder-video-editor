@@ -175,7 +175,7 @@ public sealed class Phase31ManualSurrogateTests(ITestOutputHelper output)
         Directory.CreateDirectory(projectDir);
         var json = ProjectSerializer.Serialize(projects.Current, projectDir);
         File.WriteAllText(Path.Combine(projectDir, "project.json"), json);
-        Assert.Contains("\"formatVersion\": 9", json);
+        Assert.Contains("\"formatVersion\": 10", json);
         Assert.DoesNotContain("proposal", json, StringComparison.OrdinalIgnoreCase);
 
         var reloaded = ProjectSerializer.Deserialize(json, projectDir);

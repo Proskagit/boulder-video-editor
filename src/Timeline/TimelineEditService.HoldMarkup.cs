@@ -115,6 +115,9 @@ public sealed partial class TimelineEditService
         var current = before ?? new HoldMarkup();
         var fields = AnimationFields(current.Animation, animation);
         if (fields == HoldMarkupFields.None) return TimelineEditResult.Unchanged();
+        // D048 §3.4 / §4.2: a Duration animation (the orange) stays inside its clip; no anchored lilac over it.
+        if (OrangeOutsideClip(clip, current with { Animation = animation }) is { } outside) return TimelineEditResult.Fail(outside);
+        if (AnchoredAnimationConflict(clip, current with { Animation = animation }) is { } overlap) return TimelineEditResult.Fail(overlap);
         // Only the timing of the outlines changes (D036): the colour and the keyline stay as resolved.
         return Apply(clip, before, current with { Animation = animation }, fields);
     }
@@ -130,6 +133,7 @@ public sealed partial class TimelineEditService
         if (a.AppearFade != b.AppearFade) fields |= HoldMarkupFields.AnimationAppearFade;
         if (a.StayAfterLast != b.StayAfterLast || a.StayUntilClipEnd != b.StayUntilClipEnd) fields |= HoldMarkupFields.AnimationStay;
         if (a.DisappearFade != b.DisappearFade) fields |= HoldMarkupFields.AnimationDisappearFade;
+        if (a.Mode != b.Mode || a.Duration != b.Duration) fields |= HoldMarkupFields.AnimationDuration;
         return fields;
     }
 

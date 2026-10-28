@@ -24,6 +24,13 @@ The default grid is 15×15 (faster and higher recall than 16×16 on the E1 set);
 1080p on the development machine. Full user acceptance is pending the interactive A/B/E checks that require the product
 owner's own footage and manual UI actions. See the `### Phase 31` section below.
 
+**Next — proposed, not approved (2026-10-27): DECISIONS.md D048** — route selection at `T`, the intro / final timing, the
+overlay strip and `project.json` v10, in three stages (proposed Phases 32–34). The target scenario moved into the
+repository: `docs/TARGET_WORKFLOW.md`. Branch `docs/d048-route-timing` from `main` `024f3fb`, not committed. Implemented on the
+owner's instructions while still Proposed: stage 2 (timing, anchors, v10), stage 1 (route selection at `T`; real-clip
+acceptance pending the owner), stage 3 implemented (the strip's edits, dragging, §3.9 Delete, the thin lane, snap). See the
+`### D048` sections below.
+
 **Hold tracking — camera motion compensation (R2 → E; in progress, no phase number assigned).** Branch
 `feat/hold-tracking` from `8e2ebc6` (Phase 31 closeout), worktree `C:\AiVideoEditor-tracking`. Scope by the product
 owner's decisions after the R2 research (`docs/PHASE_HOLD_TRACKING.md`, R-6 / R-7): the contours stay on the wall while
@@ -422,6 +429,787 @@ the pull request).
     Large model.
   - Phase D is **not started** and requires its own product-owner decision and specification.
 
+### D048 — proposal: route selection at T, intro / final timing, the overlay strip (2026-10-27)
+
+- The owner's new product requirements (2026-10-27) recorded: `docs/TARGET_WORKFLOW.md` (the scenario in the repository,
+  from `target_climbing_video_workflow.md` plus the `T` rule, the timeline-time rule, the proportional short intro, the
+  split rules, the single overlay strip); DECISIONS.md D048 *(proposed)* — what exists in the code, the owner's decisions,
+  the three stages with their specifications and acceptance criteria, the template ↔ clip relation options (A recommended:
+  `TemplateClip.AnchorClipId`), the v9 → v10 migration plan, the strip's segments, drags, limits and overlaps, risks and
+  open questions; `docs/DEVELOPMENT_PLAN.md` (the proposed stages; an R2 → E status note — completion not marked, open for
+  the owner); `ROADMAP.md` (rows D048-1…3); `docs/PHASE_HOLD_TRACKING.md` (§5.5 superseded on approval).
+- Facts checked in the code for it: «Боулдер» is one template clip (plate + status from `StatusAt`) with no relation to a
+  video clip and placed on the topmost video track; the D036 animation's length is derived from per-hold intervals; D032
+  links are one video + one audio; the format enums refuse unknown values.
+- Revision 2 after the owner's review (2026-10-27): "Place holds" at `T`; the layout a separate explicit action with the
+  2 : 5 short-intro rule and frame-exact edge cases (D048 §3.4); the animation's 80 % appear / 20 % whole-route split with
+  the exact per-hold formula (§3.2); the strip on a thin lane above the clip, lilac over orange, the green not movable
+  (§4); delete removes the linked decorations, move carries them (§3.5); the split contradiction with D034 §6 described
+  and resolved minimally without a new state (§3.6); the preliminary phase numbers 32–34 checked as unused (also in
+  `feat/phase-coros`, "Phase Coros", unnumbered); the R2 → E status written out in `docs/DEVELOPMENT_PLAN.md` (not marked
+  complete).
+- Revision 3 after the owner's review (2026-10-27): a speed change scales every linked overlay with the clip's duration
+  (exact frame formula, D048 §3.8); extension changes nothing; head / tail trim rules per side; the orange segment
+  selectable and deleted by Delete (§3.9); copy / delete / Undo of a clip with its overlays (§3.10); v9 converted to v10 on
+  save, no backward compatibility (§3.7); the R2 → E decision recorded — accepted for continued development, not
+  complete, richer correction / hold add-remove / two NOT RUN checks deferred (`docs/DEVELOPMENT_PLAN.md`). New open
+  questions §7.6–7.12 (the holds after their animation is removed, which clip state turns off, trim conflicts, the tail
+  extension and Top / Attempt, speed limits, a range copy).
+- Revision 4 — the owner's final clarifications (2026-10-27): option A and the split rule confirmed; no fade at `T`,
+  `A = 0` and the `StatusAt` clamp decided; Delete of the orange deletes the whole hold markup (§3.9); the head-trim rules
+  (green from the new boundary, no 2 : 5 rebuild) and the green's priority on a shared left edge (§4.2); the tail-trim
+  protective rules and the speed rules for too short segments (§3.8); the cascade to the right for a slowed or stretched
+  clip (§3.11); no range copy (§3.10). §7 now lists the conflicts with the existing model (no magnetic track exists; the
+  speed change and the plain trim refuse / stop at the neighbour today; which cascade; other tracks, links, dissolves; the
+  re-derived tracking after Undo) and four questions still open. D048 stays Proposed.
+- Revision 5 — the owner's clarifications (2026-10-27): the magnetic track and the cascade deferred (no change of the
+  existing conflict rules; a future compatibility requirement recorded, D048 §3.11; Snap is not a magnetic track); Undo
+  of a deleted markup may re-analyse the derived tracking (no exact restore required); a split inside the orange deletes
+  the whole markup (no shortened animation), Undo of the split restores it; an extension never stretches or moves the
+  orange and carries neither the lilac nor the green; a tail trim shifts the lilac with its length kept and deletes it
+  when it then intersects the orange; «Анимировать» off ≠ Delete. Residual wordings fixed (§1.9 fragment copy, §1.10,
+  §4.1 orange interval, "Top / Attempt on the right", "option A preliminary"). Five questions remain (D048 §7).
+- Revision 6 — the owner's clarifications (2026-10-27): a boundary change (extension or trim, split fragments
+  included) never changes an overlay by itself — the protective rules apply only to segments a trim cuts into; a head
+  trim reaching the lilac deletes only the lilac, the green kept down to one frame; a tail trim shifts the lilac with its
+  length kept and deletes only the lilac on a conflict with the green or the orange — never the whole overlay because of
+  the lilac or the green's minimal length; no lilac overlap — a manual one refused with a message (replaces "lilac over
+  orange with a warning"); the template-track refusal on a slower speed recorded as a temporary limitation. Removed the
+  "green extended if required" wording and the "whole overlay deleted when the green is below one frame" rule. Four
+  questions remain (D048 §7.1–7.4).
+- Revision 7 — the owner closed D048 §7.1–7.4 (2026-10-27): the layout's lilac never starts before `T`
+  (`S = max(Ve − 5 s, T, Ps + 1 frame)`; shorter than 5 s when `T` lies in the last 5 s, none without a frame after `T`;
+  the layout not refused, `T` not moved — §3.4); the trim rules confirmed as exceptions to the boundary rule; a template
+  with no frame left in the clip deleted for it, the markup only by its own rule (§3.8, edge-case table); a manual orange
+  edit overlapping the lilac refused like a lilac one (`Ae ≤ S`, §4.2). D048 §7 has no open question; D048 stays
+  Proposed.
+- Narrow-review fixes of revision 7 (2026-10-27): §3.4 — `T ∈ [Vs, Ve]` for the layout, `T = Ve` gives no lilac, only
+  the lower bound of the `StatusAt` clamp is used (`S` never forced back to `Ve − 1`); §3.5 / §3.8 — a template with no
+  frame left is deleted, every anchored template handled separately, a template's own edits limited to its clip; §4.2 —
+  the no-overlap rule an invariant of the edit service for every manual path (strip, template clip, Inspector), the
+  orange's limits checked on the resulting frame values (`ToNearestFrame`). D048 stays Proposed.
+- COROS compatibility check (2026-10-27, read-only): `feat/phase-coros` has one commit (C0, `32662ee`) with new files
+  only (`src/Core/Telemetry/*`, its tests, `docs/PHASE_COROS.md`); `project.json` stays v9 there, no clip ids, no
+  serialization of telemetry. Its plans C2 / C3 want `project.json` v10 "only with approval" for a media timestamp and a
+  per-clip alignment by source time — disjoint members; one ordered version sequence needed (the later one becomes v11).
+  No conflict found; recorded for the merge of whichever comes second.
+- Not done for D048: commits. Waiting for the owner's review and approval of D048.
+
+### D048 stage 2 — implementation (2026-10-27; on the owner's instruction; D048 still Proposed; not committed)
+
+- Done (code + tests): `HoldAnimationMode` (`Interval` / `Duration`) and `HoldAnimation.Duration`; the orders
+  `LeftToRight` / `RightToLeft`; the 80 / 20 schedule of §3.2 (`HoldAnimationRule.DurationSchedule`, no fade at `T`) —
+  Preview and export share it through `HoldAnimationRule.Schedule`; `TemplateClip.AnchorClipId`; `project.json` v10
+  (`mode`, `durationTicks`, the new orders, `anchorClipId`; v9 read in the interval mode without anchors and saved as
+  v10; a dangling anchor cleared on open); `ITimelineEditService.LayOutIntroAndFinal` (§3.4, `S = max(Ve − 5 s, T,
+  Ps + 1)`, `T ∈ [Vs, Ve]`, a track above the clip) and the Inspector button «Разложить вступление и финал»; the overlay
+  rules in the edit service (`TimelineEditService.RouteTiming.cs`, run from `Validate`): move carries the anchored
+  templates, delete removes them, split by §3.6 (a cut inside the orange deletes the markup; templates spanning the cut
+  split and re-anchored), speed scaling (§3.8 formula, one-frame green, too short orange / lilac deleted), head / tail
+  trims (§3.8 protective rules, the template deleted when no frame is left), copy / duplicate / paste copy the anchored
+  templates anchored to the copy; the no-overlap invariant for direct edits (template move / trim, the Inspector's
+  status fields, `SetHoldAnimation`).
+- Verified: `dotnet build AiVideoEditor.sln` 0 warnings / 0 errors; `dotnet test AiVideoEditor.sln` 4670 passed / 2
+  skipped / 0 failed (new: `Core.Tests/HoldDurationScheduleTests` 18, `Project.Tests/RouteTimingPersistenceTests` 5,
+  `Timeline.Tests/RouteTimingEditTests` 13; the existing format-version assertions moved from 9 to 10; the localization
+  allowlist got the new undo name and four damaged-file messages). Not checked in the running app.
+- Not done / known limits: consecutive speed changes merged into one Undo step scale from the current state, not from
+  the state before the first (§3.8 asks for the first — rounding may differ by a frame); the Inspector has no Duration
+  field and still shows the interval-mode fields for a Duration animation; Insert / Overwrite splits (D031) apply the
+  markup rule but do not re-anchor templates; ripple moves of later clips carry their templates through the generic rule
+  without dedicated tests; stage 1 (route selection at `T`) and stage 3 (the overlay strip, Delete of the orange §3.9,
+  the strip handles §4.2) not started.
+- 2026-10-27 — manual UI smoke test in the running Debug build (`src\App\bin\Debug\net8.0\AiVideoEditor.exe`, driven by
+  Computer Use) on a fixture outside the repository (`%TEMP%\aive-d048-smoke`: a 20 s 30 fps testsrc2 clip on V1 with
+  three square holds, written as v9). D048 stays Proposed.
+  - PASS: the button enabled at `T = Vs`, `T = 10 s` and `T = Ve`, disabled with the playhead outside the clip (25 s);
+    `T = 10 s` → animation start 5 s, «Боулдер» 3–20 s on a new V2, status moment 12 s of the template (15 s timeline),
+    the status mark drawn on the template clip; `T = Ve` → template 13–20 s, status «Нет»; `T = Vs` → the message
+    «До плейхеда нет времени для анимации зацепок…», no animation, template 0–20 s, status moment 15 s; one Undo removes
+    the layout with its new track; Preview frame by frame matches §3.2 (holds start at 5:00 / 6:10 / 7:20, all shown
+    9:00–9:29, gone at 10:00, no fade); the export (600 frames) matches the Preview on frames 149–465; save → v10 with
+    `mode: Duration`, `durationTicks`, `anchorClipId`; reopened from «Недавние» unchanged, a move of the clip carries the
+    template.
+  - NOT CHECKED: the orange / lilac segments — not drawn in stage 2 (the overlay strip is stage 3).
+  - Notes: with `T = Ve` the Inspector accepts status TOP (shown as "after the template's end: the status won't appear")
+    instead of refusing it as §3.4 says — no overlap results; the layout's plate has empty texts and is invisible in the
+    Preview until the route is typed; the Inspector shows the interval-mode fields for the Duration animation (known);
+    the status bar keeps the previous action's message after a successful layout.
+- 2026-10-27 — fix of the smoke test's note 1 (§3.4: a status set later with no frame after `T` is refused). Cause:
+  `OverlayConflict` treated `S ≥ Pe` as "no lilac, no conflict", so Top / Attempt chosen in the Inspector at `T = Ve` was
+  accepted silently. Now `AnchoredFieldsConflict` (the edit service's check for `SetClipProperties`, the path of the
+  status buttons and «На указатель») refuses, with `Messages.Overlay_NoStatusFrame` (en + ru), choosing Top / Attempt or
+  moving its moment on an anchored «Боулдер» that has no frame satisfying §4.2's limits `max(Ps + 1, Ae) ≤ S ≤ Pe − 1`;
+  no data change, no Undo step. With a frame left the earlier behaviour stays (a moment after the end is still accepted,
+  D045 §17); other fields, «Нет», unanchored templates and the layout itself are unchanged (the layout still makes no
+  lilac at `T = Ve`). Files: `TimelineEditService.RouteTiming.cs`, `TimelineEditService.cs`, `Messages(.ru).resx`,
+  `RouteTimingEditTests.cs` (+4: `T = Ve` refused / no step, `T = Ve − 1` accepted on frame 499, the layout at `T = Ve`
+  over an earlier Top, an unanchored template's moment after its end). Verified: build 0 warnings / 0 errors;
+  `RouteTimingEditTests` 17 / 17; `dotnet test AiVideoEditor.sln` 4674 passed / 2 skipped / 0 failed;
+  `git diff --check` clean. Not re-checked in the running app.
+- 2026-10-27 — manual re-check of that fix in the running Debug build (built 12:15, after the fix), driven by Computer
+  Use, on a new fixture outside the repository (`%TEMP%\aive-d048-fix1`, same 20 s 30 fps clip with three holds). No
+  code change during the check. D048 stays Proposed.
+  - PASS — `T = Ve`, TOP: refused with «Top / Attempt не установлен: после начала подъёма на плашке не остаётся ни одного
+    кадра для статуса…»; status stays «Нет», no status mark, the route «Fix1» typed before is kept.
+  - PASS — `T = Ve`, «Попытка»: refused the same way.
+  - PASS — the Inspector after a refusal: «Нет» selected, no status-moment row; the same after deselecting and
+    reselecting the template.
+  - PASS — Undo: after two refusals one Ctrl+Z removed the whole layout (V2 and the template) and left Undo disabled —
+    the refusals added no step; Redo restored it. Save after the refusals: `project.json` v10 has `status: None`.
+  - PASS — the layout at `T = Ve`: template 13:00–20:00, status «Нет», no lilac; run again over the existing template it
+    updated it (one template, «Fix1» kept), no duplicate.
+  - PARTLY — `T = Ve − 1` (19:29): the layout gives template 12:29–20:00 and TOP is accepted with the moment
+    «на 7,00 с шаблона» (= 19:29), but the status is **not visible** on that frame, neither in the Preview nor in the
+    export (frames 597–599 checked; the contours end correctly at 599). Cause, not a code defect of the fix: D045 §17 draws
+    nothing of the status on its moment's frame (the 0.25 s appearance starts there), so a one-frame lilac
+    (`S = Ve − 1`, D048 §3.4) never shows Top / Attempt. Repro: a clip with holds → playhead on the clip's last frame →
+    «Разложить вступление и финал» → select the «Боулдер» → TOP → step to the last frame: no TOP in the Preview / export.
+    Needs the owner's decision (D045 §17 vs D048 §3.4 — e.g. require more frames or draw the status from its first
+    frame); the spec was not changed.
+- 2026-10-27 — the owner decided: a manual Top / Attempt needs a lilac of at least **two frames** (D048 revision 8).
+  - Spec (DECISIONS.md D048): new §1.25; §3.4's boundary conditions (`S ≤ Ve − 2` keeps a status, `S = Ve − 1` → «Нет»,
+    `S ≥ Ve` → no lilac, the layout allowed, `T` never moved; a later manual status refused below two frames); §4.2's
+    lilac limits `S ≤ Pe − 2` / `S + 2 ≤ Pe` and the invariant's paragraph; the stage 2 test plan; §7 — one new open
+    question: whether the automatic rules (a speed-up, a trim of the template clip itself) must also drop a one-frame
+    lilac (until decided they keep revision 7's one-frame bound).
+  - Code: `TimelineEditService.RouteTiming.cs` — `MinStatusFrames = 2` (timeline frames of the sequence's rate,
+    `ToNearestFrame`); `AnchoredFieldsConflict` refuses Top / Attempt or a moved moment on an anchored «Боулдер» when
+    `Pe − S < 2` (`Messages.Overlay_StatusTooShort`, en + ru; replaces `Overlay_NoStatusFrame` and `HasStatusFrame`),
+    then the no-overlap check; the layout sets «Нет» when `Ve − S < 2`. The path is `SetClipProperties` (the status
+    buttons and «На указатель»); unanchored templates untouched.
+  - Tests: `RouteTimingEditTests` — one frame refused / two frames accepted (`T = Ve − 1` / `Ve − 2`), the moment moved
+    to one / two frames before the end, `T = Ve` refused, the layout at `T = Ve` and `T = Ve − 1` over an earlier Top,
+    an unanchored template's moment after its end and one frame before it; `Core.Tests/LocalizationTests` — the message
+    in en and ru.
+- 2026-10-27 — the next unfinished stage 2 item: **the Inspector's fields of a Duration-mode animation** (§1.24, §4.2:
+  "the animation start / duration fields of the Inspector (stage 2)"). Before, a laid-out animation showed the
+  Interval-mode fields, and `AnimationFields` ignored `Mode` / `Duration` (a duration change would have been
+  "unchanged").
+  - Code: `HoldMarkupFields.AnimationDuration` (a mode or length change is its own Undo step, merged like the other
+    settings); `SetHoldAnimation` refuses a Duration animation whose orange leaves the clip (`Vs ≤ As`, `Ae ≤ Ve` on the
+    resulting frames; `Messages.Overlay_OrangeOutsideClip`, en + ru) before the existing lilac-overlap check; Interval
+    animations unchanged (may still run past the clip, D036). `HoldMarkupViewModel`: `IsDurationMode`,
+    `AnimationDuration` (timeline seconds, stored in whole frames of the project rate, at least one), the three Duration
+    orders (§3.3, no marking order), `ShowsDisappearFade`; `InspectorView.axaml`: for a Duration animation the order
+    (3), the start + «По указателю», «Длительность», «Появление» (the per-hold fade) and the summary; the interval, the
+    stay, «до конца клипа» and the disappear fade hidden. Strings `Holds_AnimationDuration(Tip)` en + ru. The duration
+    keeps the start (a source time), so it moves `Ae`; there is no mode switch in the Inspector (a Duration animation
+    comes from the layout) — not specified by D048.
+  - Tests: `RouteTimingEditTests` (+2: a duration change one Undo step, past the clip refused, `Ae = Ve` allowed; a
+    longer one over the lilac refused, a touch allowed; an Interval animation past the clip still allowed);
+    `HoldMarkupUiTests` (+1: the fields, the orders, whole frames, a refusal restores the field, Undo);
+    `InspectorFieldStyleTests` count 26 → 27 (the new field keeps the 104 px width).
+  - Checked in the running Debug app (Computer Use, `%TEMP%\aive-d048-fix1`): the Duration block shows «Порядок» (three
+    orders), «Начало», «По указателю», «Длительность 5 с», «Появление 0,25 с», the summary; the Interval fields hidden.
+- Verified (both items): `dotnet build AiVideoEditor.sln --no-incremental` 0 warnings / 0 errors; `dotnet test
+  AiVideoEditor.sln` 4679 passed / 2 skipped / 0 failed (one interim failure — `InspectorFieldStyleTests` counting the
+  new field — fixed by updating its count); `git diff --check` clean. No commit, no push; D048 stays Proposed.
+- 2026-10-27 — the owner closed §7's question: the automatic and indirect edits follow the two-frame minimum too.
+  - Spec (D048): §1.25 extended (a speed-up deletes a lilac under two frames; a move / trim of the template clip that
+    would shorten it below two frames or cut it away is refused — a manual edit never deletes a segment; the rules
+    that never shorten it unchanged: tail-trim shift, head trim reaching it, a split continuing it in the right part);
+    §1.20, §3.8's "lilac shorter than two frames → deleted", §3.5's row of the template's own edits, the stage 2 test
+    plan; §7 — none open in revision 8.
+  - Code (`TimelineEditService.RouteTiming.cs`): `PlanScaledOverlays` deletes the lilac when `Pe' − S' < MinStatusFrames`
+    (its tail at `S'`); `CheckAnchoredEdits` refuses (`Overlay_StatusTooShort`) a move / trim of an anchored «Боулдер»
+    with Top / Attempt whose lilac (`LilacFrames`) ends under two frames and shorter than before — a move keeps the
+    length, a split's left part (`IsSplitLeft`) is skipped (its lilac continues on the right).
+  - Tests (`RouteTimingEditTests`, +2): a speed-up 2× keeps a two-frame lilac, 4× deletes a one-frame one (Undo
+    restores); a tail trim of the template to one / zero frames of lilac or before `S` and a head trim moving `S` to the
+    last frame refused with no Undo step, two frames accepted, a move accepted. The split tests guard the left-part
+    exception.
+  - Verified: build 0 warnings / 0 errors; `dotnet test AiVideoEditor.sln` 4679 → **4681 passed / 2 skipped / 0 failed**;
+    `git diff --check` clean. No commit, no push; D048 stays Proposed.
+- 2026-10-27 — the three remaining stage 2 items, then stage 1's Core parts (owner's instruction; D048 stays Proposed).
+  - **Merged speed changes** (§3.8: "consecutive changes from the first state"): before, each `SetClipSpeed` planned the
+    overlays from the rounded state in between while `SetClipSpeedCommand.TryMerge` only joined the commands — a status
+    frame could end one frame off (found by the new test: 122 vs 123). Now, when the next speed change would merge with
+    the open speed step of the same clip and the clip (or its partner) carries D048 overlays, the open step is undone and
+    the change planned again from its first state (`ApplySpeed`; on failure the step is redone) — one step from the first
+    state. Clips without overlays keep D022's merge exactly. Tests: three merged sequences equal one direct change, one
+    Undo, Redo; back to 1× leaves no step. Checked that the test fails with the fix disabled.
+  - **Insert / Overwrite (D031)**: they split a clip through `PlanSplitClip` (the markup's §3.6 rule applied) but never
+    split, re-anchored, moved or trimmed its templates. `PlanPlacedOverlays` (called in `PlaceSourceRange`): Insert = a
+    split at the point (§3.6) whose right part is moved (§3.5 move row) — templates spanning the point split, the right
+    part moved and anchored to the right clip, templates wholly after it re-anchored and moved; Overwrite = a split at `a`
+    whose right part's head is trimmed to `b` (§3.8 head-trim rules: green cut, orange shortened / markup deleted
+    (`TrimPlacedMarkup`), reaching the lilac deletes it, no frame left deletes that part, templates inside `[a, b)`
+    deleted, a left lilac under two frames without continuation loses its status, §1.25); a template on the placement's
+    own track keeps D031's rule and only gets its anchor. Spec: two rows added to §3.5's table (revision 8: the least-risk
+    reading of the split / move / trim rows, no new rule). Tests (+4): Insert in the green, inside the orange, before the
+    template; Overwrite keeping and reaching the lilac, into the right part's orange; each with Undo / Redo, no duplicate
+    or dangling anchor (`AssertAnchorsValid`); the D031 suites unchanged.
+  - **Ripple shifts** (+3 tests, no defect found): ripple delete, ripple trim and Close Gap move the next clip's template,
+    status and orange by the same delta (lengths and the two-frame lilac kept), anchors valid, Undo / Redo; an unanchored
+    template on the template track is not moved; a ripple that would carry the template over another clip of its track is
+    refused with nothing changed.
+  - **Stage 1 started — Core parts** (§2, acceptance 1–2): `src/Core/Holds/RouteSelection.cs` — `RouteSelectionLocator`
+    (`T` and `T − 5 s` through `HoldAnimationRule.SourceTimeAt`, exact ticks; the handle before `SourceIn`; the file's first
+    frame before its start, flagged; `T` must be a frame of the clip) and `RouteSelectionTransfer` (`CameraMotionEstimator`
+    with the clean frame as reference; the click mapped by the inverse; unreliable / singular / off the frame →
+    `Messages.RouteSelectionTransferFailed`, en + ru). Tests `Core.Tests/RouteSelectionTests` (8): 0.5× / 1× / 2×, a
+    trimmed head, the handle, before the file, NTSC exact ticks, the clip's bounds, a known motion recovered within 0.5 px,
+    an unreliable pair. `CameraMotionEstimatorTests`' synthetic-wall helpers made `internal` for reuse.
+  - Verified: `dotnet build AiVideoEditor.sln --no-incremental` 0 / 0; `dotnet test AiVideoEditor.sln` **4700 passed / 2
+    skipped / 0 failed**; `git diff --check` clean. No commit, no push.
+- Still open: stage 1 — the colour classification (S1–S2: the control hold's mask on the clean frame, the reference
+  colour, colour-map prompts + the D047 grid, the tolerance), the decoding of the two frames at the analysis size (D033
+  HDR rule) and the UI («Разместить зацепки», the D047 review on the clean frame, accept = one `AddHolds` step, back to
+  `T`); the transfer on the owner's real clips (acceptance 2). Stage 3 (the strip) not started.
+
+### D048 stage 1 — completion, and stage 3 started (2026-10-27; on the owner's instruction; D048 still Proposed; not committed)
+
+- **Colour classification (§2, S1–S2)** on the D034 / D047 pieces, no parallel mechanism: `src/Core/Holds/RouteHoldClassification.cs`
+  — `RouteHoldColor` (OKLab distance with L weighted ½, τ 0.08 by default, 0.02–0.20, score ≥ 0.5 — T1's numbers),
+  `ColorPromptPlanner` (block-averaged map ≈ 480 px, regions within 0.10 of the reference, one prompt at each region's
+  innermost block, largest first, ≤ 300), `MaskCrop`, `RouteHoldCandidate`, `RouteHoldSelector` (the control hold always,
+  others by tolerance and score, rejections sticky, a fragment ≥ 80 % inside a larger selected mask dropped);
+  `src/Core/Holds/RouteHoldFinder.cs` — the control hold's mask by `HoldCandidateRules` (largest component) → reference =
+  `HoldColorSampler`'s surface → prompts from the colour map + the D047 grid (`HoldProposalService.GridPoints`, 15×15) →
+  one mask per prompt, its surface colour → duplicates merged at the D047 NMS IoU; candidates whose centre lies in a hold
+  the clip already has are left out (a second run adds no duplicate); `ToHolds` (the D034 samples, the wall ring without
+  the other holds, the time `t_C`).
+- **Decoding (§2, D033)**: `IRouteSelectionFrameSource` / `RouteSelectionFrameSource` (`RouteSelection.cs`) — the existing
+  decoder by source time (software, the last frame at or before, `HdrColor.Classify` → the tone mapping for HLG / PQ, SDR
+  unchanged); `RouteSelectionService.PrepareAsync` — locate, decode `t_T` and `t_C` at the tracking's 960 px, transfer,
+  decode the clean frame inside the D047 box 1920×1080 (a 4K frame would cost megabytes per candidate mask). Every failure
+  is a message (`RouteSelectionMediaUnavailable`, `RouteSelectionOutsideClip`, `RouteSelectionFrameUnavailable`,
+  `RouteSelectionTransferFailed`, `RouteSelectionNoControlHold`, `RouteSelectionNothingNew`; en + ru); nothing changes.
+- **UI** (`HoldMarkupViewModel.Route.cs`, Inspector, `HoldMarkupOverlay`): «Разместить зацепки» (paused on the clip,
+  `T < Ve`) → click the control hold at `T` → the clean frame drawn by the overlay over the clip's picture (the playhead
+  never leaves `T`; the clean frame may lie in the handle) with the D047 review: the list and dashed contours, «Отклонить»
+  (sticky over tolerance changes), a missed hold added by click + Enter (into the review, not the clip), «Допуск цвета»
+  (re-selects without the model) → «Принять» = one `AddHolds` step at `t_C`, then the playhead back to `T`; «Отмена» / Esc /
+  any failure → nothing changed, back to `T`. The D047 accept buttons are hidden in this mode. Registered in DI.
+- **Defects found and fixed during the checks**: the search's `Progress<double>` was created inside `Task.Run`, so its
+  reports reached the overlay off the UI thread — the app terminated in the real UI (`Call from invalid thread`); now made
+  on the UI thread (found only by the real-app run: the unit tests have no Avalonia dispatcher).
+- **Tests** (+34): `Core.Tests/RouteHoldClassificationTests` (11: distance, prompts, selection of the control's colour,
+  highlight robustness, monotone tolerance without model calls, rejections, fragments / score, the grid, existing holds,
+  a click on the wall, cancellation, `ToHolds`), `RouteSelectionTests` (+7: SDR / PQ / HLG requests, no frame, the
+  service's transfer and sizes, the 4K box, failures), `UI.Tests/RouteSelectionUiTests` (9: accept in one step at `t_C`
+  and back at `T`, Undo / Redo / second run without duplicates, review edits, unreliable transfer, undecodable frames, a
+  click on the wall, Cancel, the button's guards, the strip on the timeline); `InspectorFieldStyleTests` 27 → 28.
+- **Real clips (owner's session 2026-09-27, `D:\Времянка для монтажа\Боулдер 27.09.2026`)**: local
+  `tests/Vision.ModelTests/RouteSelectionRealClipTests` (outside the solution; real model, FFmpeg, the view model) on
+  100405 (coral) and 103744 (blue), `T` = 11 s: transfer succeeded on both (103744: the control lands on the same blue
+  sloper, (1138, 919) at the 1920 scale); click → review 22 / 25–28 s on the RTX 4070 SUPER; τ 0.06 / 0.08 / 0.10 →
+  19 / 20 / 24 (100405) and 28 / 50 / 74 (103744) proposals; Accept = 1 step at ≈ 6.0 s, back to `T`, Undo restores.
+  Visually: 100405 proposes the coral holds; 103744 at 0.08 also takes black / purple holds (the reference drifts to dark,
+  as §10.2 of `PHASE_HOLD_TRACKING.md` warned). **Not an acceptance**: precision / recall need the owner's reference set
+  and agreed thresholds (D048 §5 stage 1, 2 and 7).
+- **UI check (Computer Use, Debug build, temp project `%TEMP%\aive-d048-route` with a 15 s copy of 100405)**: the button,
+  the picking prompt, the clean frame without the climber in the Preview with the coral proposals, the tolerance field,
+  «Принять» → «Добавлено зацепок: 21», the playhead at 00:00:11:00, the contours on the holds at `T` through the tracking,
+  Undo → 0 / Redo → 21, «Разместить зацепки» + Esc → nothing changed. First run: the crash above; after the fix: pass.
+- **Stage 3 (§4) started**: `OverlayStripState` / `FrameSpan` / `OverlayStripHandle` (`src/Core/Entities/OverlayStrip.cs`);
+  `ITimelineEditService.OverlayStripOf` and `EditOverlayStrip` (`TimelineEditService.OverlayStrip.cs`) — every handle of
+  §4.2 (green start, status boundary, lilac end, lilac body, orange start / end / body): the limits stop the value, an
+  overlap of the lilac with the orange is refused with `Overlay_LilacOverlap`, no change → no step, each gesture its own
+  step (a lone property command used to merge with an earlier Inspector edit of the template — wrapped). The timeline
+  shows the strip along the top edge of the video clip (green, orange over it, lilac; tooltips with timecodes, en + ru).
+  Tests: `Timeline.Tests/OverlayStripEditTests` (6), the strip in `RouteSelectionUiTests`.
+- **Not done in stage 3**: dragging the strip's handles on the timeline (hit areas, preview, one gesture = one call of
+  `EditOverlayStrip`), the orange's selection + Delete (§3.9), the separate thin lane above the row (now drawn inside the
+  clip's top edge), snapping. The strip is only displayed; its edits exist in the service.
+- Verified: `dotnet build AiVideoEditor.sln --no-incremental` 0 / 0; `dotnet test AiVideoEditor.sln` **4733 passed / 2
+  skipped / 0 failed**; `git diff --check` clean; the local real-clip harness 2 / 2. HEAD `024f3fb`, no commit, no push.
+### D048 stage 3 — the strip's gestures, §3.9 Delete, the thin lane, snap (2026-10-27; on the owner's instruction; D048 still Proposed; not committed)
+
+- **Service**: `EditOverlayStrip` and the new `PreviewOverlayStrip` share one planner (`PlanOverlayStrip`): the §4.2
+  limits stop the value, the lilac / orange overlap and the plan's validation refuse; the preview returns the planned
+  segments also for a refusal (with its message) and applies nothing. `DeleteHoldMarkup` (§3.9): the clip's whole markup
+  (holds, animation) in one step — templates and the clip stay; no markup → no step. Each strip edit and the delete are
+  their own Undo step (a composite: never merged with an earlier Inspector edit of the template).
+- **Timeline** (`TimelineViewModel.Strip.cs`, `TimelineView`): the strip is drawn on its own thin lane — the row's top
+  4 px directly above the video clip (the row height and `TrackAt` unchanged); `StripHandleAt` takes the nearest edge
+  within 6 px (the green's start first on a shared boundary with the orange, §4.2; the side of the press where the
+  orange's end meets the lilac's start), else the orange / lilac body; the green's body has no handle. The drag runs in
+  the timeline's gesture pipeline like a trim: past the drag threshold, whole frames, snapped as the timeline's edges
+  (D037; the template's own edges excluded), each move previewed by the service — the strip, the template's rectangle and
+  status mark and the interval text over the clip (with the refusal's message, the strip marked invalid); the release is
+  one `EditOverlayStrip` (none when the frames are back at the start); Esc / a lost capture cancel; the pointer is
+  captured, so a release outside the segment or the row still ends the gesture. A click on the orange selects it (white
+  outline; not the clip's selection); Delete then deletes the markup instead of the selected clips. Magnetic track /
+  cascade not touched.
+- **Tests** (+16): `UI.Tests/OverlayStripGestureUiTests` — handle hit-testing incl. the shared boundary, every handle's
+  drag (preview applies nothing, one step, Undo / Redo), whole frames, limits and a release far outside, the refused
+  overlap shown and released with nothing changed, back-to-start / Esc / under-threshold with no step, no merge after an
+  Inspector status edit, snap to the clip's start, orange selection + Delete + Undo, the ordinary move (carrying the
+  strip) and trim unchanged.
+- **UI check (Computer Use, Debug, `%TEMP%\aive-d048-route`)**: Place holds → layout → Top; the strip on the lane
+  (green 4 s, orange 6–11 s, lilac 11–15 s); the status handle dragged by the mouse — preview «Топ / Попытка:
+  00:00:12:00 – 00:00:15:00», the green, the template's status mark following, applied on release; Undo back to 11 s; the
+  orange's end dragged into the lilac — the preview showed the refusal, the release changed nothing with the message; the
+  orange's start dragged left; a click on the orange + Delete → «Разметка зацепок клипа удалена», the green, lilac and
+  template kept; two Undo → the markup and then the orange's start restored. Found: a 3 px miss of an edge grabbed the
+  lilac's body (which, at the clip's end, cannot move — no step, correct); the edge reach widened from 4 to 6 px.
+- Not done: a hover cursor per handle (the lane has one ↔ cursor); the green body ignores a press (no handle) rather
+  than explaining it.
+### D048 stage 3 — Debug prototype: the segments inside «Боулдер»; clean frames for the stage 1 reference (2026-10-27; not committed; D048 still Proposed)
+
+- **Assessment**: no model or edit-service change is needed — the segments inside the template are the same
+  `OverlayStripState` drawn from the template's start `Ps` (the green's start) to its end `Pe`, and their inner boundaries
+  map to the anchored clip's strip handles, so the drag is the existing gesture (`BeginStripDrag` → `PreviewOverlayStrip`
+  → one `EditOverlayStrip`): limits, refusals, snap, Undo / Redo unchanged. Trade-offs of the variant: `Ps` and `Pe` are
+  the template's own edges (its trim handles stay there, so the green's start and the lilac's end are trimmed as a clip,
+  by the template's trim rules, not by the strip's); the template's body keeps its move, so the orange / lilac bodies don't
+  drag and the orange can't be clicked for §3.9 Delete in this variant; an orange started before `Ps` shows clipped at
+  `Ps`; the status mark line is covered by the segments (the lilac's start shows the moment); the drag's interval text
+  shows over the video clip.
+- **Prototype** (Debug only, off by default; the lane stays the default): «Сегменты в плашке (прототип)» in the timeline's
+  bar (`TimelineViewModel.SegmentsInTemplate`, `IsDebugBuild`); `TemplateSegments` / `StripOwner` on the template's view
+  model, drawn under its label (70 % opacity, a dark line at each segment's start); `TemplateHandleAt` (the orange's start
+  / end and the status boundary within 6 px; the template's edges and body keep their gestures); the view routes such a
+  press to the anchored clip's strip gesture. Test: `OverlayStripGestureUiTests` +1 (geometry from `Ps`, the handle
+  mapping, a drag's preview and one step, Undo, switching back).
+- **UI check (Computer Use, Debug, `%TEMP%\aive-d048-route` restored from its autosave)**: the switch shows the green,
+  the orange over it and the lilac inside «Боулдер», the label readable; the status boundary dragged inside the plate —
+  preview 00:00:12:00 – 00:00:15:00, applied on release, Undo back; a click on the plate's body still selects the template
+  (yellow outline); switching off brings the lane back.
+- **Clean frames for the owner's reference marking** (no algorithm run, no labels): 7 frames from 7 clips of the
+  2026-09-27 session, 3840×2160, lossless PNG, bt709 → RGB without colour changes, in
+  `artifacts/d048-stage1-clean-frames/` (ignored by git) with `index.md` (clip, time, short description).
+### D048 stage 3 — variant B: the segments inside «Боулдер» as a working interface (2026-10-27; Debug switch kept; not committed; D048 still Proposed)
+
+- **Decisions (no D048 rule changed)**: the plate's left edge is §4.2's green left edge (`Ps`, a head trim of the
+  template with `S` and `Pe` kept, limits `Vs ≤ Ps ≤ S − 1`); its right edge is the lilac's end (`Pe`, `S + 2 ≤ Pe ≤
+  Ve`) — both through `EditOverlayStrip`, so one gesture is one edit and never a template trim plus a segment edit; without
+  a status the right edge stays the template's ordinary trim (`TrimClip`, §3.5's own-edit rules). Inside: the orange's
+  start / end and the status boundary drag their segment; the orange's body is the orange's (a drag moves the animation, a
+  click selects it alone — the clips' selection cleared — and Delete removes the markup, §3.9); the green's and the
+  lilac's bodies move the template (§3.5); Alt on the lilac's body drags the lilac (§4.2's lilac body). Hit priority: the
+  nearest edge within 8 px (on a tie the plate's edge first — §4.2's shared boundary), then the orange's body, then the
+  template. An orange outside the plate (its start limited by the clip, not the template) is drawn beside the plate,
+  translucent, and its edge / body take the press too. The drag's interval is a compact label at the plate's bottom (the
+  name — on a dark tab over the segments — and the segments stay visible); a refusal marks it and the release changes
+  nothing.
+- **Code**: `TimelineViewModel.Strip.cs` (`TemplatePressAt`, `OnTemplateStripClicked`, the overflow, the label on the
+  plate, the reach 8 px), `TimelineClipViewModel.cs` (`TemplateOverflow`, `ShowsStripLane` only for clips without an
+  anchored template in variant B), `TimelineViewModel.cs` (the gesture visuals cleared on every clip),
+  `TimelineView.axaml(.cs)` (the press measured on the plate itself — the lanes' canvas has its own offset; the overflow
+  routed; styles for the segments, the selected orange and the label). Model and edit service unchanged.
+- **Tests**: `OverlayStripGestureUiTests` — 7 variant-B tests (drawing and switching, hit-testing incl. Alt and no
+  status, the plate's edges by the strip's rules in one step each, the orange's selection and Delete, the orange's drag
+  never moving the template and its overflow with its handle, the plate's body move and the no-status trim, a refused
+  overlap shown on the plate).
+- **UI check (Computer Use, Debug, `%TEMP%\aive-d048-route`)**: orange click → selected alone (white outline, Inspector
+  empty), Delete → «Разметка зацепок клипа удалена», Ctrl+Z back; orange body drag → «Анимация зацепок 00:00:05:04 –
+  00:00:10:04» on the plate, applied; the left edge → «Плашка 00:00:03:02 – 00:00:12:00» (S, Pe kept); the right edge →
+  «Топ / Попытка 00:00:12:00 – 00:00:14:02»; the green body moved the template (selected); the orange's start dragged
+  before the plate → drawn beside it, then grabbed there and moved to 00:00:01:12; the orange's end into the lilac →
+  refused with the message, nothing changed; snap of the orange's end to the playhead (11:00) in the preview, released
+  unchanged → no step; Undo / Redo; the video clip's move carries the plate and its segments, Undo back. Found and fixed
+  during the run: the press was measured from the content root (an offset of the lanes' canvas → the left edge became a
+  move); the full-size drag label hid the segments; local XAML values overrode the selected-orange style; 6 px reach too
+  tight on a wide screen (8 px now).
+- **Recommendation**: variant B as the main view (owner's decision pending); the lane stays behind the Debug switch.
+### D048 stage 1 — evaluation against the owner's arrows (2026-10-27; algorithm and defaults unchanged; D048 still Proposed)
+
+- 7 pairs (clean frame / the owner's marked copy) checked identical outside the arrows (max pixel difference 0). The
+  unchanged `RouteHoldFinder` run through the local `tests/Vision.ModelTests/RouteAcceptanceRunTests.cs` (frame at 1920×1080,
+  τ 0.08, score ≥ 0.5, colour map 0.10, D047 grid 15×15 — and without the grid; the control hold: the owner's median-area
+  hold-sized target not touching the edge, plus the smallest / largest as a sensitivity run). Arrows read by
+  `scratchpad` scripts (heads by width), grouped by the model's masks (IoU ≥ 0.5); frame 04 excluded (the owner's doubt,
+  converging arrows). Output in `artifacts/d048-stage1-acceptance/` (ignored by git): `README.md`, `tables.md`,
+  overlays per frame and configuration, `results.json`, `run.json`, `arrows.json`.
+- Result (6 frames, 83 holds): default 48 found / 31 missed / 4 to review / 187 false — precision 0.20, recall 0.58,
+  17–29 s per frame; colour only 43 / 38 / 2 / 167 — 0.20 / 0.52, 8–19 s. The control hold's choice moves recall on one
+  frame from 0.13 to 0.87; main misses — small holds on a panel of a close hue; main false — dark low-chroma objects,
+  other shades of the hue, panels / volumes allowed by D034's ≤ 20 % rule.
+### D048 stage 1 — reference project: the persistence check (2026-10-27; the six-case project not built yet; D048 still Proposed)
+
+- Local `tests/Vision.ModelTests/ReferenceProjectPersistenceTests.cs` (outside the solution): a test project in
+  `%TEMP%\aive-d048-reference-persistence` with an 8 s range of 100405 (source 5–13 s), a labelled marker at `T` (source
+  11 s); "Place holds" with the real model (20 holds at the clean frame ≈ 5.989 s); the owner's kinds of edits through
+  the UI's service calls (a contour corrected, a hold removed, a hold added); `SaveAsAsync`, a new `ProjectService`,
+  `OpenAsync`: every hold identical (id, order, contour, Lab samples, source time), the clip's range, the media path and
+  size, the marker; the project opens in the Debug app with its 20 holds. Format v10; a hold is `id`, `points` (the outer
+  contour, normalized, simplified), `sourceTimeTicks`, `surfaceLab`, `wallLab`.
+- **Gap reported to the owner before the six cases are prepared**: the control hold has no field of its own — it is only
+  the first hold of a route accepted on an empty markup (verified: the control proposal's id = holds[0]), lost if deleted
+  or if the route is accepted twice; `T` and the tolerance used are not stored (`T` can be a marker, the clean frame's
+  time is each hold's `sourceTimeTicks`); a silhouette is a simplified outer polygon, not a pixel mask (the algorithm's
+  candidates are made the same way). Also: the project's frame rate follows the first clip (240 fps for these files) —
+  the reference project should fix 30 fps first.
+### D048 stage 1 — the reference project and the original control clicks (2026-10-27; no marking; D048 still Proposed)
+
+- Project `%TEMP%\aive-d048-reference-project` (`C:\Users\Vlad\AppData\Local\Temp\aive-d048-reference-project`), built by
+  the local `tests/Vision.ModelTests/ReferenceProjectBuildTests.cs`: 60 fps locked first, cases 01, 02, 03, 05, 06, 07 as
+  8 s clips one after another on V1 with the owner's source ranges, two labelled markers each (clean frame, `T`); saved,
+  reopened and checked — ranges, positions, `T` / `T − 5 s` through `RouteSelectionLocator` exact in ticks, the decoded
+  frames (01 / 02: the source has no frame at exactly 6 s — the app takes 5.989111 / 5.999500 s, one frame before the
+  research PNG made by `ffmpeg -ss`; 03–07: exactly 1.000000 s).
+- The six control clicks made in the Debug app (Computer Use): `T` marker, «Разместить зацепки», one click per case on a
+  hold of the route (one the owner's arrows marked), the review's first (control) proposal checked on the clicked hold,
+  cancelled. The click in the tool's coordinates from the screenshot position and the Preview picture's measured edges
+  (≈ ±3 px of the 3840 source). Replayed by `ReferenceControlClicksTests.cs` through `RouteSelectionService`,
+  `RouteHoldFinder` (defaults) and the markup view model (the same control) into `control-clicks.json` beside the
+  project: clicks, clean-frame points, control masks, reference OKLab, every parameter, source and model hashes; the
+  project file never written (hash checked); README with the marking instructions and the 02 / 06 ambiguity notes.
+### D048 stage 1 — baseline against the owner's reference marking (2026-10-28; production unchanged; D048 still Proposed)
+
+- Inputs: the owner's project `%TEMP%\aive-d048-reference-project\project.json` (saved 2026-10-28 0:03; 12/13/18/16/10/19
+  holds), snapshot `artifacts/d048-stage1-baseline/reference-snapshot/` (SHA-256 checked before / after); the clicks'
+  manifest; algorithm sources and model files equal to the manifest's hashes; the click replay gives the manifest's clean
+  frame and control point. Local `tests/Vision.ModelTests/ReferenceBaselineTests.cs`, matching by
+  `scratchpad/baseline/evaluate.py` (one-to-one by IoU ≥ 0.5 at 1920×1080; merges, poor contours 0.2–0.5 and false < 0.2
+  apart; the control hold excluded).
+- **01, 03, 07 not compared**: their reference holds are on another source frame (+2 / +1 / +1 frames; camera motion between
+  the frames ≤ 0.09 px) — the app has two frame rules (route selection: the last frame ≤ t; Preview / markup mode: ≤ t + ½
+  frame). Reported to the owner with options.
+- Baseline on 02, 05, 06: 36 reference holds, 18 found, 18 missed, 76 false — precision 0.19, recall 0.50; found contours
+  IoU ≈ 0.95; no merges, no poor contours; per frame decode + transfer 1.2–1.3 s, encoder 0.4–0.5 s, search 16–20 s.
+- Control-hold sensitivity (05, 02; the owner's holds as controls): 05 recall 0.20–0.87, precision 0.12–0.86; 02 recall
+  0.17–0.92 — the route's own colour spread is of the order of τ 0.08. Report: `artifacts/d048-stage1-baseline/README.md`.
+
+### D048 stage 1 — six-clip baseline and the new requirements (2026-10-28; production unchanged; D048 still Proposed)
+
+- Six clips run on the exact source frames of the reference holds (01 6.022400 s, 03 / 07 1.016667 s; 02 / 05 / 06 on the
+  clean frame). Decoded by the app's frame source; time equal to the holds' time in ticks. The click is transferred from
+  `T` by the app's `RouteSelectionTransfer`. Camera motion clean → reference ≤ 0.09 px; control point moved ≤ 0.06 px.
+  02 / 05 / 06 reproduce the previous run exactly. Local harness `tests/Vision.ModelTests/ReferenceBaselineSixClipsTests.cs`;
+  results in `artifacts/d048-stage1-baseline-6clips/` (the previous artifacts untouched).
+- Reference counts: 88 in total (12/13/18/16/10/19), 82 evaluated (the control's hold excluded) — this explains "12/15/9".
+- Baseline (defaults): 43 / 82 found, 129 false. Recall micro 0.52 / macro 0.55; precision micro 0.25 / macro 0.27.
+  Found contours IoU median 0.95. Full time 17.6–28.2 s (mean 22.2). Recall ≥ 0.8 and ≤ 20 s only on 01 and 02.
+- Cause of misses: 33 / 39 holds merged into a large colour-map region of the wall or panel colour, which gets one prompt.
+  The prompt cap and the colour tolerance are not the cause. When a prompt lands in a hold, it is found (43 / 45).
+  τ sweep 0.06–0.14 is not a lever. The decoder is ≈ 50 ms per prompt; the encoder is ≈ 2 % of the time.
+- Proposals (not implemented):
+  - split regions > 4× the control hold at 0.06 and drop the grid — offline prompt coverage 0.58 → 0.87 with 45 % fewer
+    prompts;
+  - a relative chroma gate (≥ 0.4× the reference) — offline false 129 → 77 on the current proposals.
+- Next: a one-point experiment (the split in a research copy of the search). Report:
+  `artifacts/d048-stage1-baseline-6clips/README.md`.
+
+### D048 stage 1 — split / chroma experiment (2026-10-28; research copy only; production unchanged; D048 still Proposed)
+
+- Research copy of `RouteHoldFinder.FindAsync` in the local `tests/Vision.ModelTests/ReferenceSplitExperimentTests.cs`.
+  Checked against production: the unsplit planner equals `ColorPromptPlanner.Plan` on all six frames; on 01 the copy
+  reproduces `FindAsync` (117 candidates, 20 proposals).
+- Variants:
+  - split: regions > 4× the control mask re-split at 0.06, one prompt per part, no grid;
+  - chroma gate: candidate chroma ≥ 0.4× the control's;
+  - each on the same six reference frames, clicks and matching. The baseline re-run equals the saved one.
+- Results (micro over 82 evaluated holds):
+
+  | Variant | Recall | Precision | False | Full time, mean (max) |
+  |---|---|---|---|---|
+  | Baseline | 0.52 | 0.25 | 129 | 22.1 s (27.2) |
+  | Chroma only | 0.52 | 0.36 | 77 | 22.1 s (27.2) |
+  | Split only | 0.79 | 0.33 | 132 | 12.0 s (16.5) |
+  | Split + chroma | 0.78 | 0.45 | 78 | 12.0 s (16.5) |
+
+- Per-clip recall (split + chroma) 0.56–0.93; ≥ 0.8 on 02 / 05 / 07, not on 01 (0.73), 03 (0.65), 06 (0.56).
+  All clips ≤ 20 s. 03 / 05 / 07: 4→11, 3→14, 12→15 found.
+- Losses:
+  - the gate loses one found pale hold (03, chroma ratio 0.37);
+  - dropping the grid loses 2 grid-only finds (01, 05).
+- Gap: 2 holds short of 0.80 micro; same-colour false proposals remain (≈ 13 per clip).
+- Proposed next: a second split level at 0.04. Report: `artifacts/d048-stage1-split-experiment/README.md`.
+
+### D048 stage 1 — second split level (2026-10-28; research copy only; production unchanged; D048 still Proposed)
+
+- Parts still > 4× the control after the 0.06 split are split again at 0.04; no grid; chroma gate 0.4. The one-level code
+  reproduces the saved split prompts exactly, and the split + chroma re-run equals the saved run.
+- Offline coverage: 71 → 72 of 82 holds get a prompt (the 300 cap is not limiting).
+- Full run: 64 / 82 found (recall 0.78), 77 false (was 78), precision 0.45, full time 4.5–16.2 s (mean 11.7) — no gain.
+- Remaining 18 misses:
+  - 10 — no prompt reaches the hold;
+  - 3 — the prompt lies inside an already-found large wall or panel mask and is skipped by the finder;
+  - 4 — exact mask, colour distance > τ;
+  - 1 — exact mask, cut by the chroma gate (03, ratio 0.37).
+- A size limit relative to the control does not separate false proposals from found ones.
+- Proposed next: do not skip prompts inside found masks larger than 4× the control (targets 3 holds); separately, an
+  offline chroma-gate check at 0.3. Report: `artifacts/d048-stage1-split2-experiment/README.md`.
+
+### D048 stage 1 — prompts inside large masks, chroma gate 0.3 (2026-10-28; research copy only; production unchanged; D048 still Proposed)
+
+- One-level split (0.06, > 4× control), no grid. "No-skip": a prompt inside a found mask is skipped only when that mask is
+  ≤ 4× the control's. Chroma gate 0.3 vs 0.4 — selection only on the same candidates. The split + 0.4 re-run equals the
+  saved run.
+- Results (micro over 82):
+
+  | Variant | Found | Recall | Precision | False | Full time, mean (max) |
+  |---|---|---|---|---|---|
+  | Split + 0.4 | 64 | 0.780 | 0.45 | 78 | 12.1 s (17.2) |
+  | Split + 0.3 | 65 | 0.793 | 0.44 | 83 | 12.1 s |
+  | No-skip + 0.4 | 65 | 0.793 | 0.45 | 79 | 16.8 s (19.4) |
+  | No-skip + 0.3 | 66 | 0.805 | 0.44 | 84 | 16.8 s (19.4); macro recall 0.794 |
+
+- No-skip recovers 1 hold (01), not the expected 3: the 05 hold has no prompt at one level, and in 06 the covering mask is
+  ≤ 4× the control. It costs +4.7 s per route.
+- Gate 0.3 recovers the 03 pale hold for +5 false.
+- 03 (0.71) and 06 (0.56) stay below target. Remaining 16 misses: 11 without a prompt (colour not separable from the wall),
+  4 with exact masks beyond τ, 1 skipped prompt.
+- Recommendation: split + gate 0.3 as the main variant; validate on new marked clips rather than tuning further on these
+  six. Report: `artifacts/d048-stage1-noskip-experiment/README.md`.
+
+### D048 stage 1 — held-out check: preparation (2026-10-28; nothing run on the new clips; production unchanged; D048 still Proposed)
+
+- The owner chose split (one level, 0.06) + chroma gate 0.3. It is frozen, with file hashes, in
+  `artifacts/d048-stage1-heldout/PROTOCOL.md` before any preparation.
+- Candidates checked by the app's own means (local `tests/Vision.ModelTests/ReferenceHeldoutTests.cs`): frame source with
+  the D033 LUT, click transfer, camera motion clean → `T` ≤ 3 px, plus a visual check.
+- Chosen:
+  - H1–H4 — 27.09 `100628`, `101229`, `101712`, `103026`;
+  - H5–H7 — 17.05 (another gym, HDR HLG) `134900`, `140610`, `133830` (replaces `140207`, where a seated person hides
+    half the frame).
+- Project `%TEMP%\aive-d048-heldout-project` (60 fps, 8 s clips, clean / `T` markers) built, reopened and checked; the
+  manifest skeleton is in it (routes and clicks empty).
+- The 17.05 clips are portrait: the app processes them at 608 × 1080. Subgroups are pre-registered in the protocol.
+- Waiting for the owner's route choice (`artifacts/d048-stage1-heldout/route-choice/`).
+- 2026-10-28: routes chosen by the owner:
+  - H1 red; H2 yellow; H3 blue; H4 yellow; H5 purple; H6 pink; H7 green.
+  - None coincides with a tuning route. SIFT / RANSAC: H2 shares the wall of tuning 03 (green route); H4 that of 02
+    (blue) and 05 (muted green); different routes.
+- Control clicks chosen on the frames at `T` (first named cell, centre of a hold of the route's colour). Each replayed
+  through `RouteSelectionService`, `RouteHoldFinder` and the markup view model; the UI path gives the same control hold.
+  All 7 masks sit on the intended single hold.
+- Written to the project's `control-clicks.json` (copy in `artifacts/d048-stage1-heldout/`); `project.json` unchanged
+  (`d92524f5…e2f1`).
+- Debug app rebuilt from the current sources. Marking instructions are in the project folder's `README.md`.
+- Waiting for the owner's reference marking.
+- 2026-10-28, reference check after the owner reported the marking saved (nothing run):
+  - `project.json` saved 11:34, SHA-256 `01f26f0b8edd6d28948667f2d43af6161bee516bbcaf853e1f2b7ffeb63d2103`; app closed,
+    recovery folder empty.
+  - Marked: H1 6, H2 13, H3 12, H4 12, H7 8 holds. Each clip on one source time, equal in ticks to the decoded clean
+    frame; the control hold present (IoU ≥ 0.98); no overlapping holds.
+  - **H5 and H6 have no markup.** The protocol's run is held until the owner decides (mark them, or run on five clips).
+    Details: `artifacts/d048-stage1-heldout/reference-check.md`.
+- 2026-10-28, the owner marked H5 and H6 (reported: H5 did not persist on the first attempt and had to be redone —
+  cause unknown, possibly Ctrl+Z; a possible save gap, not investigated, production untouched).
+- Reference fixed before the run: `project.json` 11:53, SHA-256 `8d270344…99ec` (copy in
+  `artifacts/d048-stage1-heldout/reference-at-run/`). All 7 clips usable (6/13/12/12/7/9/8 holds), one source time each,
+  equal in ticks to the clean frame.
+- **The protocol's single run, done.** New test `ReferenceHeldoutTests.Run_the_protocol_on_the_heldout_reference`
+  (frozen `ResearchFindAsync` via reflection; protocol hashes matched). Matching by the frozen `evaluate_split.py`
+  definitions (`scripts/evaluate_heldout.py`). GPU.
+
+  | Group | Variant (split 0.06 + gate 0.3) | Baseline |
+  |---|---|---|
+  | H1–H4 (27.09) | R 0.56 (22/39), P 0.24, false 68, 12.9 s mean (15.3 max) | R 0.54, P 0.20, false 85, 22.0 s (26.4) |
+  | H5–H7 (17.05 HDR) | R 1.00 (21/21), P 0.62, false 13, 4.6 s | R 1.00, P 0.58, false 15, 8.0 s |
+  | All 7 | R 0.72 (43/60; CI 0.59–0.81), macro 0.77, P 0.35, false 81, 9.3 s (all ≤ 20 s) | R 0.70, P 0.30, false 100, 16.0 s |
+
+- Caveat: the reference is built from baseline proposals. The 18 holds the owner added (baseline never proposed them)
+  are found 0 by baseline and 2 by the variant. H5–H7 contain no added holds, so their recall is 1.00 by construction.
+- Misses (17, all H1–H4): 12 without a candidate (H3 darker-blue holds vs a light-blue control; H4 dull small yellows),
+  5 beyond τ.
+- 2026-10-28, colour audit (read-only; no model call, no code / test / config change):
+  `artifacts/d048-colour-audit/README.md`.
+  - Confirmed: the reference is the trimmed per-channel OKLab median of the eroded SAM mask; the control mask is never
+    checked.
+  - Confirmed: the Euclidean τ in (½L, a, b) admits a hue rotation that grows as the reference chroma falls (≈ 57° at
+    C 0.084 — H2's greens at +45°; ≈ 120° at C 0.046).
+  - Confirmed: one control hold can sit 0.06–0.08 from its route's median (H2, H3).
+  - Confirmed: B and D falses are colour-identical.
+  - Confirmed: ranking by colour distance gives precision only 0.61–0.67 at top 4–8.
+  - Not supported: chalk shifting the reference (the median is robust at 15–19 % chalk pixels).
+  - Proposed next: an offline hue-aware tolerance study on the saved candidate pools, compared at equal proposals
+    shown, leave-one-clip-out. Awaiting the owner's approval.
+- 2026-10-28, offline hue-tolerance experiment (approved; saved pools only, no model call, nothing in the app changed):
+  - Variants pre-registered in `artifacts/d048-colour-audit/hue-PREREGISTRATION.md` (SHA `8119fb93…`): V0 current;
+    |Δh| ≤ 45 / 30 / 20 / 15° (15 = tuning-only p95) on top of τ; hue off below C 0.025.
+  - The offline selector reproduces the saved proposals exactly (order too) on 5 pools.
+  - Tuning (decision set): V2 30° cuts false 83 → 66, 0 holds lost, top-6 / top-8 unchanged → promising (V1 too).
+    20° / 15° lose dull holds (C ≈ 0.03) and lower top-6 → fail the rule.
+  - Held-out (diagnostic): V2 81 → 59 false, 0 lost; 19 of 28 category-A falses removed. B, C, D stay. No effect in the
+    17.05 hall.
+  - Top-k unchanged: the removed falses were already past rank 10. Hue tolerance shortens the tail, not the head.
+  - Recommendation: keep V2 as a candidate (needs new held-out data); next study is ranking. Report:
+    `artifacts/d048-colour-audit/hue-experiment/README.md`. Awaiting the owner.
+- 2026-10-28, offline ranking study (approved; saved pools only, no model call, nothing in the app changed):
+  - Pre-registered in `artifacts/d048-colour-audit/ranking/PREREGISTRATION.md` (SHA `299defa1…`).
+  - Top-8 falses are mostly category B (other routes of the same colour): 15 / 23 tuning (manual, done before the
+    strategies), 14 / 21 held-out. Category A sits in the tail.
+  - Features: distance to the control separates best and holds across sets (AUC 0.20 / 0.28). Score is unstable
+    (0.55 / 0.69); shape features flip sign between sets.
+  - 12 configs (R0 colour, R1 score, R2 colour+score, R3 proximity, R4 all three, R5 edge-last; × hue 30° off / on).
+    No config passes the rule on tuning.
+  - R3: top-8 found 25 → 34 (P 0.52 → 0.71) but 06 loses 2 (stretched route, control at the bottom). Held-out effect
+    ±2 only; there it lifts A / D / C near the route while B drops 14 → 5. R1 (score) is worse.
+  - Recommended next: connectivity-based (nearest-neighbour chain from the control) soft ranking, offline, pre-registered;
+    any result needs new held-out clips. Report: `artifacts/d048-colour-audit/ranking/README.md`. Awaiting the owner.
+- 2026-10-28, offline neighbour-graph ranking (approved; saved pools only; nothing in the app changed):
+  - Pre-registered: `artifacts/d048-colour-audit/ranking/graph/PREREGISTRATION.md` (SHA `cba79ee2…`, verified after).
+  - Graph: nodes = current proposals; edges by mask gap — G1 3-NN, G2 ≤ 2× median NN gap, G3 ≤ 3 (r_i + r_j);
+    shortest path from the control; unreachable nodes in colour order.
+  - Only G2 passes the rule. Tuning top-6 / top-8 +5 / +6 (P@8 0.52 → 0.65), worst clip −1, 06 unchanged; held-out
+    +3 / +2, worst −1.
+  - The gain comes from 02 and 03. G2 links few nodes (21 of 65 found reachable), so 06 is unchanged because it falls
+    back to colour order. The "chain follows a stretched route" hypothesis is not confirmed.
+  - G1 and G3 fail on 06 and 01. Chains leak through false nodes into other routes (G1 held-out: 8 of 20 top-8 falses;
+    H1 example).
+  - Recommendation: stop tuning on these 13 clips. Keep G2 and hue 30° as frozen candidates; next step is a new
+    held-out set with a reference not drawn from the baseline's proposals. Report:
+    `artifacts/d048-colour-audit/ranking/graph/README.md`. Awaiting the owner.
+- 2026-10-28, independent validation plan (nothing run or cut; nothing in the app changed):
+  - Plan: `artifacts/d048-colour-audit/independent-validation/PLAN.md`. Compares V0 (current), V1 (hue 30°),
+    V2 (G2 ranking), V3 (both), all offline on one saved pool per clip.
+  - Owner-made reference marked before any proposal (manual D034 mode; ambiguous holds on a V2 copy of the clip);
+    success / regression criteria and the decision table fixed in advance.
+  - Inventory of `D:\Времянка для монтажа\Куча сырья` (53 files, 7 dates):
+    `independent-validation/inventory/README.md`.
+    - Used by name: six 17.05 clips and `VID_20251223_193501`.
+    - Used under other names (E1 c7–c11, matched by SIFT): `video_20260808_093838`, `094316`, `094833`, `095204`,
+      `102449`, `103954`.
+    - Doubtful: `video_20260517_125049`.
+  - Pilot candidates N1–N8 come from 5 dates / about 6 halls; no wall overlap with the 13 used clips. No HDR is
+    available outside the used 17.05 hall. Awaiting the owner's approval.
+- 2026-10-28, the owner approved the plan with 7 clips: `VID_20251217_195949`, `video_20260626_135453`,
+  `video_20260808_100241`, `video_20260808_100519`, `VID_20251018_174046`, `VID_20251211_191204`, `VID_20251223_195009`.
+  - The two new clips are unused: no name match, no E1 match, no wall overlap.
+  - Window check by app code (new local test `IndependentValidationWindowTests`; no hold search; videos untouched):
+    `artifacts/d048-colour-audit/independent-validation/windows/README.md`; previews in `previews/`.
+    - The three vivo clips are steady (105–922 usable T).
+    - All four Huawei clips are hand-held: 0 T pass the plan's ≤ 3 px rule, 6–56 pass the app's own rule (transfer ok,
+      motion reliable). `195009` is also short (13 s), with the climber covering the route all the time.
+  - Awaiting the owner's decision on the hand-held clips (relax §1.2 to the app's rule or replace); the project is not
+    built yet.
+- 2026-10-28, the owner amended the pilot: one frame per clip, no click transfer.
+  - Frames chosen by sharpness, motion and occlusion: I1 `195949` 52.50 s, I2 `135453` 60 s, I3 `100241` 115 s,
+    I4 `100519` 540 s, I5 `174046` 1.75 s, I6 `191204` 49.75 s, I7 `195009` 11.75 s. All 7 usable; the reserve
+    `202440` was not needed.
+  - Marking project `%TEMP%\aive-d048-iv-reference` built by the new local test `IndependentValidationProjectTests`
+    (app services, reopened and checked, marker = frame in ticks). SHA `11d86e26…0df1`.
+  - Screenshots with grids and route suggestions: `artifacts/d048-colour-audit/independent-validation/marking/`.
+  - Two failed build attempts (`%TEMP%\aive-d048-iv-project`, `aive-d048-iv-marking`; bad input paths) are left
+    untouched.
+  - No search run. Waiting for the owner's manual reference (manual mode only).
+  - Correction: «Разметить зацепки» shows D047 automatic proposals (all holds, any colour) unless the checkbox
+    «Предлагать зацепки автоматически» (on by default, not persisted) is cleared first. The instructions were fixed.
+  - The owner marked all 7 manually.
+  - Check: 24 / 20 / 18 / 13 / 9 / 8 / 12 holds, one source time per clip. In I3–I7 that time is 1–3 frames later
+    than the build-time decode; the run will decode at the holds' time and check it in ticks.
+  - Ambiguous: I4 #12, I6 #4 (partial contour), I7 #2, #3, #10; plus I4 F5, a hold missing from the reference.
+    Open questions: I4 #1 and #13.
+  - Candidate snapshot `reference-check/project-at-check.json` SHA `3d594785…936a`. Waiting for the owner's
+    confirmation before fixing the reference and running; no search run.
+- 2026-10-28, the owner confirmed the reference. Rules frozen in `independent-validation/run/FROZEN.md`:
+  - control point = innermost point of the largest non-ambiguous reference hold;
+  - ambiguity / F5 neutral rule.
+- One search per frame by the new local test `IndependentValidationRunTests`: frozen split search, frame = reference
+  time in ticks (requested at +1 tick). Observation: `RouteSelectionFrameSource` can return an earlier frame for a
+  time stored by the markup window (tick rounding). Not fixed.
+- V0–V3 offline on the one pool (`run/scripts/compare.py`), primary count:
+
+  | | Found | False | Top 8 |
+  |---|---|---|---|
+  | V0 | 56 / 93 | 73 | 31 / 20 |
+  | V1 | 56 | 57 (−22 %) | unchanged |
+  | V2 | 56 | 73 | 30 / 21 |
+  | V3 | 56 | 57 | 30 / 21 |
+
+  - Verdict per PLAN: V1 success; V2 and V3 not.
+  - I3 (orange on orange plywood) is the main failure: 2 / 17, no prompts reach the small holds.
+  - I6: the control rule hit a bolt-on hold on the volume.
+  - Times 2.3–13.4 s.
+  - Report: `independent-validation/run/README.md`.
+- 2026-10-28, research on alternatives (no download, install or run; app and Git untouched; I1–I7 not used):
+  `artifacts/d048-alternatives/README.md`.
+  - Verified: Climbnet (Mask R-CNN, Apache-2.0, abandoned since 2020-05).
+  - Verified: ClimbInst is a dataset only (SAM 3 masks, CC BY-NC-SA per a third party, no weights).
+  - Verified: YOLO hold detectors are AGPL; `yolov8n-freeclimbs` ships ONNX.
+  - Verified: SAM 3 is gated, 0.9 B params, Python 3.12 / PyTorch / CUDA 12.6, SAM License.
+  - AoP-SAM and UOIS-SAM have no code or weights. "BoulderNet" and "YOLOv11 climbing-holds-detector" have no primary
+    source.
+  - Recommendation: keep the architecture and replace only the prompt source. First experiment: YOLO ONNX boxes as
+    prompts for our SAM 2.1 vs the colour map, on 5–6 new owner-marked frames (pool recall, small holds, V1 after).
+    SAM 3 is a second phase after approval. Awaiting the owner.
+- 2026-10-28, YOLO-prompt experiment approved.
+  - Model `yolov8n-freeclimbs-detect-2-fp32.onnx` (13.7 MB, SHA `259d1776…0ed1`, AGPL) downloaded to the session
+    scratchpad. Loads in the existing r1-venv (onnxruntime-directml 1.24.4): in 1×3×2560×2560, out 1×5×134400, no new
+    dependencies; checked on a dummy input only.
+  - Protocol frozen before marking: `artifacts/d048-alternatives/yolo-prompts/PROTOCOL.md` (SHA `e24990fc…457f`).
+    - G0 colour map vs G1 YOLO box centres vs G2 2×2 tiles (G0 prompts); one shared control / reference colour.
+    - Metrics: pool recall, pool recall for small holds (< 0.05 % of frame), after-V1 recall / false, Δ pp, Δ false %.
+    - go / no-go: +15 pp pool or small ×2, false ≤ 1.2×, ≤ 20 s per frame.
+  - New frames J1–J6 from unused clips (5 halls). Marking project `%TEMP%\aive-d048-yolo-reference` (SHA in
+    `marking/project-at-build`). No recognition run on them. Waiting for the owner's manual reference.
+  - Owner marked J1–J6: 17 / 24 / 9 / 7 / 10 / 14 holds, one time per clip; 13 small holds in total.
+  - Candidate snapshot `yolo-prompts/reference-check/project-at-check.json` SHA `d1d55f2e…7529`.
+  - Open questions to the owner: J2 #17 (A2, contour at the frame edge); the ambiguous list (none given).
+  - Risk reported: the frozen control rule picks a volume with bolt-ons in J2 and J4.
+  - Waiting for confirmation before fixing the reference and running.
+  - Owner confirmed (no ambiguous holds). Reference fixed (`run/FROZEN-REFERENCE.md`).
+  - Technical fix to the control rule before the run: the frame edge counts as outside. Pilot points unchanged.
+  - Run with the new local test `YoloPromptExperimentTests`. The loop copy reproduced G0 on all frames; the detector
+    saw byte-identical pixels.
+
+    | | Pool | Small | After V1 found / false | Time max |
+    |---|---|---|---|---|
+    | G0 | 47 / 75 | 4 / 12 | 36 / 96 | 9.7 s |
+    | G1 YOLO | 69 / 75 (+29.3 pp) | 10 / 12 | 36 / 98 | 20.3 s (J1) |
+    | G2 tiles | 47 / 75 | 4 / 12 | 35 / 98 | — |
+
+  - Verdict per protocol: G1 uncertain (time > 20 s on J1); G2 no-go.
+  - The G1 gain comes almost entirely from J2, where the control mask hit a red bolt-on on a blue volume (control IoU
+    0.07; J4 too). With correct controls the pools are equal (42 / 46; small 6 vs 4).
+  - After-V1 recall is unchanged everywhere: the colour selection (colour ≥ τ) is now the bottleneck.
+  - Recommended next: the control-mask choice on volumes, and the route colour from more than one hold. Report:
+    `artifacts/d048-alternatives/yolo-prompts/run/README.md`.
+- 2026-10-28, analysis of route colour (A) and control mask (B). No model run, no tuning, app untouched:
+  `artifacts/d048-control-colour/README.md`.
+  - Route mode picks the highest-score offered SAM mask silently; there is no alternative cycling (that exists only in
+    manual markup). The route colour = one mask's trimmed median, never updated in the review.
+  - Diagnostics on saved pools:
+    - type B (mask on a bolt-on): J2, J4, I6. The volume mask exists in the pool in I6 and J4 (score 0.97–0.98).
+    - type A (atypical, lighter control): J5, I7, J3.
+  - Oracle-colour bound: J G0 36 → 44 found, false 96 → 25; G1 pool 36 → 53; I 56 → 67.
+  - Proposed, awaiting approval:
+    - colour variants A1 (5 nearest accepted), A2 (2τ window), A3 (user-added holds update the colour, UX);
+    - mask options B1 (flag nested + contrasting mask, user chooses) vs B2 (auto larger);
+    - experiments: B diagnostic (dump the 3 masks at the control points — needs a model run on used frames); A
+      diagnostic offline; then one new owner-clicked frame set for both.
+- 2026-10-28, product decision (owner): manual markup stays the main scenario; «Разметить зацепки» stays;
+  «Разместить зацепки» is hidden; nothing removed.
+  - UI change: `src/UI/Views/Panels/InspectorView.axaml`, the button's `IsVisible="False"` (was `"{Binding !IsActive}"`)
+    with a comment. Command, services, review panel and tests untouched.
+  - App build: 0 errors, 0 warnings. `UI.Tests` 942 / 942 passed.
+  - Offline A1 / A2 (pre-registered `artifacts/d048-control-colour/a-offline/PREREGISTRATION.md`, SHA `227425c5…`):
+    J-G0 + I, 167 holds.
+
+    | | Found | False | Manual work |
+    |---|---|---|---|
+    | A0 | 92 | 152 | 227 |
+    | A1 | 103 | 160 | 224 |
+    | A2 | 104 | 206 | 269 |
+
+    Neither passes the rule (needed +17 and less work): do not continue in this form. Type B frames are not fixed by A,
+    as expected.
+  - Research summary: `docs/HOLD_AUTO_DETECTION_RESEARCH.md`.
+  - Stage B (dump the 3 SAM masks at the control points) is planned there, not run. Awaiting the owner.
+- 2026-10-28, stage B run (approved).
+  - Pre-registered `artifacts/d048-control-colour/b-masks/PREREGISTRATION.md` (SHA `949c7b3c…`); new local test
+    `ControlMaskAlternativesTests`; 20 points, 13 s, GPU.
+  - Type B = I6, J2, J4. The volume mask is among the three SAM masks (IoU 0.88–0.98) but scores 0.04–0.20 and is not
+    offered by D034. The B1 flag hit 0 / 3, with 0 false alarms.
+  - Criterion failed: do not continue B1 in this form. Only a user choice of the contour remains (product decision).
+  - Report: `b-masks/README.md`; research doc §8 updated.
+- 2026-10-28, owner decision: automatic hold detection research is **paused / deferred**.
+  - Manual markup stays the main scenario. A1 / A2 and B1 did not meet their criteria; no more threshold tuning on the
+    used frame sets.
+  - A user choice of the alternative mask remains a separate product decision, not implemented.
+  - All code, services, tests and artifacts are kept.
+  - The second command's caption was renamed «Разместить зацепки» → «Авторазметка» (en «Place holds» → «Auto
+    markup»): values of `Holds_PlaceHolds` in `Strings.ru.resx` / `Strings.resx` only. The button stays hidden; the
+    command name is unchanged.
+  - Research doc §1, §9, §11 updated.
+- 2026-10-28 — **D048 approved by the owner, as implemented.**
+  - Stage 1: paused / deferred; «Авторазметка» hidden.
+  - Stage 2: done.
+  - Stage 3: done, strip variant B.
+  - Implementation aligned with the decision: `TimelineViewModel.SegmentsInTemplate` now **on by default** (variant B);
+    the Debug switch («Сегменты в плашке», en «Segments in Boulder», «(прототип)» dropped) turns back to the lane.
+  - `OverlayStripGestureUiTests`: the lane tests set the lane explicitly; a check that variant B is the default.
+  - Docs: DECISIONS.md D048 status, `docs/DEVELOPMENT_PLAN.md`, `ROADMAP.md` rows D048-1…3,
+    `docs/HOLD_AUTO_DETECTION_RESEARCH.md`.
+- False proposals, by eye: A colour 28, B same colour / other route 24, C non-holds 14 (floor, lights, fan, people),
+  D markers 10 (H7 triangles), unclear 5.
+- Report: `artifacts/d048-stage1-heldout/run/README.md`. Further research awaits the owner's go-ahead.
 ### Hold tracking — camera motion compensation (R2 → E; in progress)
 
 - 2026-10-27 — implementation started on `feat/hold-tracking` (from `8e2ebc6`), by the product owner's instruction; the

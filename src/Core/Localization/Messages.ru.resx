@@ -370,6 +370,9 @@
   <data name="Holds_DisappearRange" xml:space="preserve">
     <value>Исчезание должно длиться от 0 до {0} с.</value>
   </data>
+  <data name="Holds_DurationRange" xml:space="preserve">
+    <value>Анимация зацепок длится больше 0 и не больше {0} с.</value>
+  </data>
   <data name="Holds_IntervalRange" xml:space="preserve">
     <value>Интервал анимации должен быть от {0} до {1} с.</value>
   </data>
@@ -399,6 +402,9 @@
   </data>
   <data name="Holds_StayRange" xml:space="preserve">
     <value>Пауза после последней зацепки должна быть от 0 до {0} с.</value>
+  </data>
+  <data name="Holds_UnknownAnimationMode" xml:space="preserve">
+    <value>Неизвестный режим анимации.</value>
   </data>
   <data name="Holds_UnknownColourMode" xml:space="preserve">
     <value>Неизвестный режим цвета.</value>
@@ -444,6 +450,15 @@
   </data>
   <data name="Kind_Video" xml:space="preserve">
     <value>Видео</value>
+  </data>
+  <data name="Layout_NoAnimationTime" xml:space="preserve">
+    <value>До плейхеда нет времени для анимации зацепок: размещена только плашка.</value>
+  </data>
+  <data name="Layout_NoHolds" xml:space="preserve">
+    <value>Сначала отметьте зацепки трассы на этом клипе.</value>
+  </data>
+  <data name="Layout_OutsideClip" xml:space="preserve">
+    <value>Поставьте плейхед на начало пролаза внутри клипа.</value>
   </data>
   <data name="Link_AlreadyLinked" xml:space="preserve">
     <value>Выбранный клип уже связан: сначала разъедините его.</value>
@@ -523,11 +538,44 @@
   <data name="Model_RunFailed" xml:space="preserve">
     <value>Ошибка модели зацепок на {0}: {1}</value>
   </data>
+  <data name="Overlay_LilacOverlap" xml:space="preserve">
+    <value>Top / Attempt не может перекрывать плашку трассы или анимацию зацепок. Сначала сдвиньте границы.</value>
+  </data>
+  <data name="Overlay_OrangeOutsideClip" xml:space="preserve">
+    <value>Анимация зацепок должна оставаться внутри клипа: измените её начало или длительность.</value>
+  </data>
+  <data name="Overlay_StatusTooShort" xml:space="preserve">
+    <value>Top / Attempt не установлен: после момента статуса на плашке должно оставаться не меньше двух кадров. Сначала сдвиньте границы.</value>
+  </data>
+  <data name="Overlay_OutsideClip" xml:space="preserve">
+    <value>Привязанный к клипу шаблон не выходит за границы клипа.</value>
+  </data>
   <data name="Overwrite_InsideCrossfade" xml:space="preserve">
     <value>Нельзя заменить внутри перекрёстного затухания.</value>
   </data>
   <data name="Overwrite_InsideDissolve" xml:space="preserve">
     <value>Нельзя заменить внутри наплыва.</value>
+  </data>
+  <data name="RouteSelectionTransferFailed" xml:space="preserve">
+    <value>Не удалось найти контрольную зацепку на чистом кадре за 5 с до этого момента: камера сместилась слишком сильно. Выберите другой момент.</value>
+  </data>
+  <data name="RouteSelectionNoControlHold" xml:space="preserve">
+    <value>На чистом кадре за 5 с до этого момента в контрольной точке не найдена зацепка. Щёлкните по самой зацепке или выберите другой момент.</value>
+  </data>
+  <data name="RouteSelectionMediaUnavailable" xml:space="preserve">
+    <value>Медиафайл клипа отсутствует или ещё не проанализирован: трассу выбрать нельзя.</value>
+  </data>
+  <data name="RouteSelectionOutsideClip" xml:space="preserve">
+    <value>Плейхед не стоит на кадре выбранного клипа.</value>
+  </data>
+  <data name="RouteSelectionFrameUnavailable" xml:space="preserve">
+    <value>Не удалось декодировать кадр для выбора трассы: {0}</value>
+  </data>
+  <data name="RouteSelectionNothingNew" xml:space="preserve">
+    <value>Новых зацепок цвета трассы не найдено: у клипа они уже есть — или увеличьте допуск, или выберите другую контрольную зацепку.</value>
+  </data>
+  <data name="Strip_NoSegment" xml:space="preserve">
+    <value>Нечего менять: на полосе наложений клипа нет такого сегмента.</value>
   </data>
   <data name="Plural_Clips" xml:space="preserve">
     <value>{0} клип|{0} клипа|{0} клипов</value>

@@ -50,7 +50,7 @@ public sealed class IconViewTests
 
         var withIcons = buttons.Where(b => b.Attribute("Content") is null).ToList();
         Assert.Equal(new[] { "−", "+" }, buttons.Except(withIcons).Select(b => (string)b.Attribute("Content")!));
-        Assert.Equal(15, withIcons.Count);                     // + V / A / Text, Template (D045), Split … Link, Snap, Fit
+        Assert.Equal(16, withIcons.Count);                     // + V / A / Text, Template (D045), Split … Link, Snap, D048's Debug prototype, Fit
         foreach (var button in withIcons)
         {
             var panel = Assert.Single(button.Elements());

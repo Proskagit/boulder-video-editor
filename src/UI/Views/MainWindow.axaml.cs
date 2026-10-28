@@ -176,6 +176,11 @@ public partial class MainWindow : Window
         public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null) => Nothing;
         public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start) => Nothing;
         public TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed) => Nothing;
+        public TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t) => Nothing;
+        public OverlayStripState? OverlayStripOf(Guid videoClipId) => null;
+        public TimelineEditResult EditOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta) => Nothing;
+        public OverlayStripPreview? PreviewOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta) => null;
+        public TimelineEditResult DeleteHoldMarkup(Guid videoClipId) => Nothing;
         public TimelineEditResult AddTransition(Guid leftClipId, Guid rightClipId, MediaTime duration) => Nothing;
         public TimelineEditResult RemoveTransition(Guid transitionId) => Nothing;
         public TimelineEditResult SetTransitionDuration(Guid transitionId, MediaTime duration) => Nothing;

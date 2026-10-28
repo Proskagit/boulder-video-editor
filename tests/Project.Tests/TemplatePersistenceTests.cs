@@ -63,7 +63,7 @@ public class TemplatePersistenceTests
     {
         var first = Save(Build());
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(9, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(10, root["formatVersion"]!.GetValue<int>());
         var boulder = Clip(root, 2);
         Assert.Equal(("template", "Boulder", "Attempt", "7A"), ((string?)boulder["type"], (string?)boulder["template"], (string?)boulder["status"], (string?)boulder["grade"]));
 
@@ -83,7 +83,7 @@ public class TemplatePersistenceTests
     public void A_version_8_project_opens_unchanged_and_is_saved_again_differing_only_in_the_version()
     {
         var v9 = Save(Build(templates: false));
-        var v8 = v9.Replace("\"formatVersion\": 9", "\"formatVersion\": 8");
+        var v8 = v9.Replace("\"formatVersion\": 10", "\"formatVersion\": 8");
         Assert.NotEqual(v9, v8);
 
         Assert.Equal(v9, Save(Load(v8)));

@@ -188,6 +188,14 @@ and runs cleanly.
       technically complete 2026-10-24; S1 acceptance pending a later task.)*
 - [ ] **Planned (D042; numbers given when taken up):** R1 → D — automatic hold proposals · R2 → E — outlines following the
       camera · R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
+- [x] **D048 approved 2026-10-28, as implemented** (DECISIONS.md D048; numbers 32–34 still proposals):
+      - stage 1 — the route selection at `T`: implemented, then **paused / deferred**; «Авторазметка» hidden, the code
+        and the research kept (`docs/HOLD_AUTO_DETECTION_RESEARCH.md`);
+      - stage 2 — the timing model, the template ↔ clip anchor and `project.json` v10: done;
+      - stage 3 — the overlay strip: done, **variant B** (the segments inside the «Боулдер»), the lane Debug-only.
+
+      Manual markup stays the main scenario. Section "D048: route selection, intro / final timing and the overlay strip"
+      below (written before the approval).
 - **Phase 31 technically complete (D047 approved 2026-10-25):** Steps 31.1–31.7 are complete: Core proposal types and
       pipeline, proposal generation at downscaled resolution, full-resolution refinement of accepted proposals, the proposal
       review UI / ViewModel, integration with the manual D034 flow / project mutation, the manual test plan / performance
@@ -350,6 +358,24 @@ has a `.ru` entry (D039); `docs/PHASE31_MANUAL_TEST_PLAN.md` and `progress.md` u
   how the result would be stored (per-frame transforms bound to the source time) and its format impact; a go / no-go.
 - E (on a go): the holds' outlines follow the camera in the Preview and the export identically; a manual correction when
   the tracking is wrong; D036's animation unchanged on top of it.
+- **Status (recorded 2026-10-27, not a completion mark).** What E means in this plan: the implementation, "on a go", of
+  the three points of the E bullet above — (1) the outlines follow the camera identically in the Preview and the export,
+  (2) a manual correction when the tracking is wrong, (3) D036's animation unchanged on top. R2 itself was done as research
+  (`docs/PHASE_HOLD_TRACKING.md`; the owner's decisions R-1…R-9 there, including "occlusion a separate later stage").
+  - **Confirmed**: (1) — merged into `main` in PR #31 (`024f3fb`), covered by tests (the shared draw plan by the shown frame's
+    PTS, the export preflight waits for a running analysis) and by the owner's check in the live Release app on
+    2026-10-27 (outlines follow the camera on a real clip, the export completed); (3) — the animated route of the owner's
+    check was tracked, D036 unchanged.
+  - **Partly**: (2) — the minimal correction only: "Follow the camera" off / on per clip and "Retry" after a failure, as
+    session state; no correction by key frames, nothing persisted across sessions (both need stored data — a format
+    decision).
+  - **The owner's decision (2026-10-27): the current implementation is accepted for continued development; E is not
+    marked complete.** (1) confirmed by the tests and the manual check; (2) the current manual correction is enough to
+    continue — a richer correction (key frames, persisted state) and adding / removing holds on the tracking are
+    **deferred until needed**, not implemented; (3) the animation over the tracking accepted; (4) the two manual checks
+    NOT RUN (an export during a running analysis, "Retry" after a real failure) do not block and are **deferred** — taken
+    up again when a slow machine or a real blocking-message scenario appears. Recorded in D048 §1.17 (proposed). Occlusion
+    was part of the R2 concept, not of E's three points, and stays a separate stage.
 - **Concept: tracking and occlusion of the hold outlines** *(product owner, 2026-10-22; a direction for R2 / E — not a
   specification, not a decision, no step; out of Phase 30, D046 §9)*:
   - **What exists (checked in the code on 2026-10-22).** The user enters the markup mode on a paused frame, the frame
@@ -385,6 +411,53 @@ has a `.ru` entry (D039); `docs/PHASE31_MANUAL_TEST_PLAN.md` and `progress.md` u
   - The technical approach is chosen at a separate research stage (R2) after the stabilisation; no experiment, test
     footage or comparison of algorithms is started before it. "Occlusion" here is a cover inside the picture — unrelated
     to the layer occlusion of D018.
+
+### D048: route selection, intro / final timing and the overlay strip *(approved 2026-10-28 as implemented; stage 1 paused / deferred; strip variant B; the text below written before the approval)*
+
+The target scenario: `docs/TARGET_WORKFLOW.md`; the decision draft with the specification, the acceptance criteria, the
+risks and the open questions: DECISIONS.md D048. Nothing here starts before the owner approves D048.
+
+- **Stage 1 — route selection at `T` and review** *(proposed Phase 32; AI medium; no format change; needs D047 and the hold
+  tracking, both in `main`)*: the user on frame `T` (the clean frame just before the climb) marks a control hold and
+  presses "Place holds" → the clean frame at `T − 5 s` (timeline time, mapped through speed and trim to the source) → the
+  control point carried by the camera-motion estimator (an unreliable transfer is an error, no markup) → colour
+  classification on the clean frame → the D047 review with a tolerance → accept (one Undo step) → back to `T`. Three
+  separately tested parts (locator, transfer, classification). No overlay interval change, no timer, no layout.
+- **Stage 2 — the timing model, the template ↔ clip relation and `project.json` v10** *(proposed Phase 33; core
+  medium–large)*: an explicit animation duration (`Duration` mode beside D036's `Interval` mode) with the 80 % appear /
+  20 % whole-route split and its exact per-hold formula (D048 §3.2), the orders left to right / right to left, the standard
+  layout as a **separate explicit action** (plate `T − 7 s`, animation `T − 5 s … T`, Top / Attempt the last 5 s) with the
+  2 : 5 short-intro rule and its frame-exact edge cases (the lilac never before `T` — shorter than 5 s when `T` lies in the
+  clip's last 5 s, none with no frame after `T`), the template ↔ clip relation (option A:
+  `TemplateClip.AnchorClipId` — confirmed by the owner with its operation table: move and ripple carry the template,
+  delete removes it, split per D048 §3.6), the speed / extension / trim rules (D048 §3.8: a speed change scales every
+  linked boundary with the clip's duration, a too short green kept at one frame, a too short orange or lilac deleted, a
+  conflict on the template's track refused as a temporary limitation; a boundary change of a clip or a split fragment
+  changes no overlay by itself — the protective rules apply only to segments a trim cuts into, as exceptions to that
+  rule; a template with no frame left in the clip is deleted for it (the markup only by its own rule): a head trim into
+  the green clamps its start (one frame may remain), into the orange shortens the rest proportionally (no 2 : 5
+  rebuild), reaching the lilac deletes only the lilac; a tail trim into the orange deletes the whole markup, the lilac shifts with its length
+  kept and only the lilac is deleted on a conflict with the green or the orange, the green kept even at one frame), Delete
+  of the orange = the whole markup, «Анимировать» off ≠ Delete (§3.9), the copy / delete / Undo rules
+  (§3.10: a whole clip or a split fragment, independent copies anchored to the new clip, no range copy; one Undo restores
+  a clip with its overlays; the derived tracking may be analysed again), the split rule for `Duration` animations (the
+  markup goes with the animation's start; a cut inside the orange deletes it), **no** magnetic track or cascade and no
+  change of the existing conflict rules (§3.11 — a future compatibility requirement only), the v9 → v10 migration (v9
+  renders unchanged and is converted on save; no compatibility with older builds, no v10 → v9) and a compatibility check
+  with Phase Coros' schema before the implementation.
+- **Stage 3 — the overlay strip** *(proposed Phase 34; UX medium; needs stage 2)*: one strip per video clip on a thin
+  lane directly above its row (the prototype's direction) — green (plate) → orange (animation, over the green) → green →
+  lilac (Top / Attempt) — as a view of the existing entities; edge and body drags mapped to the owning entity's edits with
+  the limits and overlap rules of D048 §4.2 (the green segment not movable as a whole; a lilac edit that would overlap the
+  green or the orange, and an orange edit that would overlap the lilac, refused with a message — an invariant checked
+  in the edit service for every manual path: the strip, the template clip's own move / trim, the Inspector's status and
+  animation fields; an anchored template kept inside its clip); the
+  orange segment selectable and deleted by Delete (D048 §3.9: the whole hold markup deleted, «Анимировать» off, one Undo
+  restores both); a shared left boundary of green and orange taken by the green first; one drag = one Undo step, none
+  when back at the start; Preview = export; v10 persistence.
+- Order: stage 1 is independent of the format and may start first; stage 2 may run in parallel with stage 1 but before
+  stage 3; stage 3 after stage 2's model and anchor are approved and merged. Every stage keeps the standing rules (one Undo
+  step per action, Preview = export, `MediaTime` ticks, the D039 localization, the gates).
 
 ### R3 → F — «COROS Pace 4: пульс и телеметрия в видео» *(research, then telemetry large)*
 

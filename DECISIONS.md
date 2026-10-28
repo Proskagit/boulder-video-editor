@@ -7431,6 +7431,657 @@ A/B/E checks in `docs/PHASE31_MANUAL_TEST_PLAN.md` that require the product owne
 
 ---
 
+## D048 — Route selection at T, the intro / final timing, the overlay strip and `project.json` v10 *(approved 2026-10-28)*
+
+Date: 2026-10-27 (draft revision 8 — revision 7 with the narrow-review fixes, after the product owner's reviews and
+clarifications of the same day; revision 8 adds the owner's two-frame minimum for Top / Attempt — manual, automatic and
+the template clip's own edits, §1.25)
+
+**Status: Approved by the product owner on 2026-10-28, as implemented** (revision 8 with the decisions below). Approved
+together with:
+- **Stage 1 — the automatic route selection is paused / deferred.**
+  - Its implementation, services, tests and research are kept. The command «Авторазметка» (formerly «Разместить
+    зацепки», en «Auto markup») is **hidden** in the Inspector (`IsVisible="False"`).
+  - No further experiments. Manual markup («Разметить зацепки») stays the main scenario.
+  - The research, its results, why it is paused and when to resume: `docs/HOLD_AUTO_DETECTION_RESEARCH.md`.
+- **Stage 3 — the strip's view is variant B**: the segments drawn inside the anchored «Боулдер», on by default.
+  - The thin lane above the clip stays as the Debug-only alternative («Сегменты в плашке» switch). A clip without an
+    anchored template shows the lane.
+  - The model and the edit service are the same for both views.
+- Stage 2 and stage 3 as implemented (`progress.md`, 2026-10-27).
+
+Phase numbers 32–34 stay proposals (§6). The text below is the revision 8 draft as reviewed; where it says «proposed» or
+describes the lane as the strip's place, the status above prevails.
+
+*History of the status (before 2026-10-28):* Proposed — draft for the product owner's review. Stage 2 was being
+implemented on the owner's instruction of 2026-10-27 in the branch `docs/d048-route-timing` (not committed; state in
+`progress.md`) — not a sign of approval; so are stage 1 (its real-clip acceptance open, `docs/D048_STAGE1_ACCEPTANCE.md`)
+and stage 3 (the strip on a thin lane above the clip, its handles dragged through the edit service, §3.9 Delete, snap). The target scenario: `docs/TARGET_WORKFLOW.md`. The research behind it: `docs/PHASE_HOLD_TRACKING.md`
+(revision 4: variant B, the owner's decisions R-1…R-9, the plan S1–S8). Supersedes, when approved, the UX of
+`PHASE_HOLD_TRACKING.md` §5.5 (the user standing on the clean frame) by the selection at `T` below, and — for animations in
+the new `Duration` mode only — the split rule of D034 §6 / D036 §3 (§3.6 below).
+
+### 0. What exists (`main` `024f3fb`, checked in the code)
+
+- **«Боулдер» (D045) is one template clip** (`TemplateClip`, kind `Boulder`) on a video track: the route / grade plate
+  shows from the template's start to its end; the status (TOP / ПОПЫТКА, set by hand) appears at `StatusAt` — on the
+  template's own clock (`CounterStart`: continued over a split, never moved by a trim or a split) — and stays to the
+  template's end. `AddTemplateClip` puts it on the topmost video track (making room there, D037), 8 s by default. It has
+  **no relation to any video clip**. The timeline already draws the status moment as a mark on the template clip.
+- **The hold animation (D036)** is `VideoClip.HoldMarkup.Animation`: the start a **source** time (`StartSourceTime`, so a
+  trim, slip, speed change or split never move it against the picture), the durations timeline time; the length is
+  *derived* — `Interval` per hold, `AppearFade`, `StayAfterLast` / "until clip end", `DisappearFade` — so the number of
+  holds changes it. Orders: `BottomToTop`, `MarkingOrder`. Before its start and after its end no contour shows; a markup
+  **without** an animation shows its contours for the whole clip.
+- **Split / Duplicate / Paste copy the markup with its animation to both parts** (`TimelineEditService.CloneClip`, D034 §6).
+  Copy / Duplicate / Paste take **whole clips** (`CopyClips`, `DuplicateClips`, `PasteClips`); no operation copies a part of
+  a clip's time range — a "fragment" in today's model is a clip made by a split.
+- **Speed (D022)**: `SetClipSpeed` keeps the clip's start and its source range (`SourceIn` / `SourceOut`); the duration
+  becomes the frames the range allows at the new speed; consecutive changes merge into one Undo step. A trim changes the
+  source range at a fixed speed — two different operations.
+- **The hold state in the Inspector**: «Анимировать» (persisted — the markup has an animation) and «Следовать за камерой»
+  (the tracking, session-only since PR #31). No persisted "holds shown / hidden" state exists.
+- **Hold tracking (R2 → E, PR #31)**: `CameraMotionEstimator` relates two frames of a clip with a reliability flag;
+  `CameraMotionCoordinator` tracks every clip with holds.
+- **Proposals (D047)**: proposals on the markup frame, the review UI, accept-all as one Undo step (`AddHolds`).
+- **Links (D032)**: `MediaBackedClip.LinkId` joins exactly one `VideoClip` and one `AudioClip`.
+- **Format**: `project.json` v9; enums are written as strings and an unknown value refuses the file.
+- **Phase numbers**: `main` uses none above 31; the local branch `feat/phase-coros` names its phase "Phase Coros"
+  (`docs/PHASE_COROS.md`) without a number (checked 2026-10-27 by `git grep`, its worktree untouched).
+
+### 1. Decided by the product owner (2026-10-27, three reviews and the final clarifications)
+
+1. `T` = the clean frame just before the climb starts = **the end of the hold animation**.
+2. **All overlay durations and intervals are stored and measured in timeline seconds** (a 2× clip: 5 timeline s = 10
+   source s).
+3. **Route selection** ("Place holds", §2): `T` → control hold on frame `T` → the clean frame at `T − 5 s` (timeline, mapped
+   through speed, trim and the clip's timing) → the control point carried by the tracking (unreliable → an error, no
+   markup) → the holds found on the clean frame → the D047 review → accept = one Undo step → the playhead back to `T`. No
+   overlay interval changes, no timer.
+4. **The standard layout is a separate explicit action**, never applied by accepting a route. Standard: plate from
+   `T − 7 s`; animation `T − 5 s … T` exactly; the first 2 s plate only; after `T` the plate stays until the Top / Attempt
+   card starts; the card covers the clip's last 5 s, but **never starts before `T`** — with `T` inside the last 5 s it runs
+   from `T` to the clip's end (shorter than 5 s), and with no frame after `T` it is not created; the layout is not refused
+   for that and `T` is never moved (§3.4).
+5. **Short intro**: fewer than 7 s before `T` is not an error; the intro is shortened proportionally **2 : 5** (3 s →
+   ≈ 0.86 s plate only, ≈ 2.14 s animation). Computed when the layout is created; later manual edits never recompute the
+   others. Edge cases (0, one frame, very short, exactly 7 s, plenty) defined and tested before the implementation; no
+   negative, zero-length or out-of-bounds interval.
+6. **The animation's time split**: 80 % — the holds appear one after another (bottom to top by default); 20 % — the whole
+   route stays visible together. 5 s → 4 s + 1 s; 2 s → 1.6 s + 0.4 s. No per-hold durations: the orange segment alone
+   defines the duration. Preview = export.
+7. Orders: bottom to top (default), left to right, right to left.
+8. **One overlay strip** on a **thin separate lane directly above the video clip's row** (the direction for the prototype,
+   not a validated UX): green (plate) → orange (animation, over the green) → green (plate during the climb) → lilac
+   (Top / Attempt). A view of existing entities, not new overlays; no animation → no orange; no text inside, tooltips.
+   Drag a segment = move within limits; drag an edge = that boundary; one drag = one Undo step; back to the start = none;
+   one segment never moves another's boundaries; orange over green is expected; **the lilac never overlaps the green or
+   the orange** — a manual edit creating such an overlap is refused with a clear message, an automatic shift by a tail trim
+   that would create it deletes the lilac (superseding "lilac drawn over orange", §4.2); **the green segment cannot be moved
+   as a whole** — only its specified boundaries.
+9. **Delete**: deleting a clip fragment deletes its linked decorations with it (never left without their video). **Move**:
+   linked decorations follow the clip. Both consistent with Undo / Redo. **Copy**: copying a clip creates a new clip with
+   new, independent copies of all its linked overlays; copying an existing split fragment copies the overlays it carries;
+   one Undo restores a deleted clip together with its overlays (§3.10).
+10. **Split** — superseded by 18 (2026-10-27): a cut inside the orange deletes the whole markup; no continuation on the
+    right, no automatic re-creation; the plate continues without a visible seam where the model allows.
+11. **`project.json` v10 may be planned**: v9 opens and renders as before with correct defaults and is converted to v10
+    when saved; v10 (de)serialization tested. **Compatibility with older app versions is not required**: an older build
+    may refuse v10, there is no v10 → v9 conversion. A compatibility check of migrations and schema with Phase Coros before
+    the implementation (not a blocker of this review). No format change in this documentation task.
+12. An explicit template ↔ clip relation: **option A (`TemplateClip.AnchorClipId`, v10) confirmed with its operation
+    table** (§3.5): the overlay belongs to one clip — moved with it, deleted with it, copied as independent copies with new
+    ids anchored to the new clip; speed, extension and trim by their own rules (§3.8).
+13. Three stages, numbers preliminary: **Phase 32** — route selection and review, no format change; **Phase 33** — the
+    timing model, the template ↔ clip relation, v9 → v10; **Phase 34** — the overlay strip after stage 2's model is agreed.
+14. **Speed change scales the linked overlays** proportionally to the clip's duration change (2× faster → the green, orange
+    and lilac lengths halve; 2× slower → they double), keeping their relative positions and proportions; afterwards the
+    user may edit them by hand. Not to be confused with a trim or an extension (§3.8).
+15. **A boundary change of the clip does not change the overlays by itself** (every video clip, split fragments
+    included): the green is not lengthened or moved after it, the orange not stretched, moved or recomputed, the lilac not
+    moved after an extension; the user edits a segment's boundaries by hand on the strip. Only a trim that **cuts into** a
+    segment applies the protective rules — they are **exceptions** to this rule, not a contradiction of it: the segments a
+    trim does not touch stay unchanged (confirmed 2026-10-27, §3.8); a template with no frame left inside the clip is
+    deleted for this clip. **Head trim**: into the green → its start at the new
+    boundary, one frame may remain; into the orange → the rest shortened proportionally, never referring to the cut part,
+    no 2 : 5 rebuild; the orange wholly cut → the whole markup deleted (§3.9); reaching the lilac → the lilac deleted, the
+    green kept (one frame is enough), never the whole overlay because of the green's minimal length. A later shared left
+    boundary of green and orange is taken by the **green first** (§4.2). **Tail trim**: the orange kept unless the trim
+    cuts into it (then the whole markup deleted); the lilac keeps its own length (never scaled) and shifts left with the new
+    end — only the lilac deleted when it would then intersect the green or the orange or cannot be placed, kept otherwise;
+    the new end before its start → the lilac deleted; the green kept even at one frame; a lilac conflict never deletes the
+    green, the orange or the whole overlay. No negative, zero-length or invalid interval; no animation, tracking or
+    coordinates of a removed orange remain (§3.8).
+16. **The orange segment can be selected on the lane and deleted with Delete**, which deletes the **whole hold markup**:
+    the orange segment, the sequential appearance and progress data, the tracking data, the contours and every other
+    markup datum the animation needs. «Анимировать» is off; nothing is kept hidden (the user marks again if needed); the
+    other segments are not deleted by it; saved in the project; one Undo restores the markup, the orange segment and the
+    clip's state of the operation — the derived tracking may be analysed again and «Следовать за камерой» may return to its
+    default (an exact restore of the tracking is not required). Not an ordinary hiding of an overlay, and not «Анимировать»
+    off: that checkbox switches the contours between a static display and the sequential appearance and never deletes the
+    markup (§3.9).
+17. **R2 → E**: the current implementation is **accepted for continued development**; E is **not** marked complete. (1) The
+    Preview / export following is confirmed by the tests and the manual check; (2) the current manual correction is enough
+    to continue — a richer correction and adding / removing holds on the tracking are deferred until needed (not
+    implemented); (3) the animation over the tracking is accepted; (4) the two NOT RUN checks do not block and are
+    deferred — taken up again when a slow machine or a real blocking-message scenario appears
+    (`docs/DEVELOPMENT_PLAN.md` "R2 → E").
+18. **Split** (final, 2026-10-27): the markup and the orange animation belong to the fragment that contains the
+    animation's start — a split in the green before it → the right fragment; after it → the left fragment; **inside it → the
+    whole markup deleted** (the animation, progress, tracking, contours, coordinates; no shortened animation on the left;
+    the user creates it anew if needed; a later extension does not restore it). Top / Attempt stays with the fragment that
+    contains `StatusAt`. Undo of the split restores the state before it in one step, the deleted markup included (the
+    tracking possibly analysed again, «Следовать за камерой» possibly back to its default) (§3.6).
+19. **The end of the animation and short clips**: the contours vanish exactly at `T`, no fade; `A = 0` → no animation, a
+    message; a `StatusAt` outside a very short clip is clamped to the clip's valid bounds, no interval outside it; in the
+    layout the status never starts before `T` (§3.2, §3.4).
+23. **A slower speed and the template's track — a temporary limitation**: until a magnetic track and a cascade exist, a
+    speed change whose scaled anchored template would overlap a clip on the template's track is refused; no neighbour is
+    moved, no cascade in D048. Not the final behaviour for a future magnetic track (§3.8, §3.11).
+24. **Manual edits never create an overlap of the lilac — an invariant of the model**, symmetric for the lilac and the
+    orange: any manual edit after which the lilac would overlap the green or the orange is refused with a clear message —
+    on the strip, by moving or resizing the template clip itself, by setting the status or its moment in the Inspector,
+    by the future animation start / duration fields of the Inspector. Checked in the edit service, not only in the strip's
+    UI; a refused edit changes no data, deletes no segment and leaves no Undo step. Edits of an anchored template also
+    keep it inside its clip. The automatic rules stay: a tail trim into the orange deletes the markup, an automatic lilac
+    shift with a conflict deletes the lilac (§3.8, §4.2). It concerns templates anchored to a clip; an unanchored template
+    keeps D045's behaviour.
+25. **Top / Attempt needs a lilac of at least two frames** (owner, 2026-10-27, after the manual check of stage 2): D045
+    draws nothing of the status on its moment's frame (the 0.25 s appearance starts there), so a one-frame lilac would
+    never show Top / Attempt. On a «Боулдер» anchored to a clip, choosing Top / Attempt in the Inspector or moving its
+    moment is accepted only when the resulting lilac `[S, Pe)` is at least **two frames** long (`Pe − S ≥ 2`, timeline
+    frames of the sequence's rate, after `ToNearestFrame`) — besides the no-overlap invariant (§1.24). Otherwise refused
+    with a clear message; no data changed, no Undo step. Hence with `T = Ve` (no frame after `T`) and with `T = Ve − 1`
+    (one frame) a manual Top / Attempt is refused. The layout at `T = Ve` stays allowed (the template without a lilac,
+    status «Нет»); `T` is never moved to make room. «Нет» and the template's other fields are never refused; an unanchored
+    template keeps D045's behaviour (a moment after its end allowed, the status then doesn't appear). §3.4, §4.2.
+    **The automatic and indirect edits follow the same minimum** (owner, 2026-10-27, closing §7's question of revision
+    8): a speed-up that leaves the lilac shorter than two frames deletes the lilac (§3.8); a move or trim of the template
+    clip itself on its track that would shorten its lilac below two frames — or cut it away — is refused with the same
+    message, no data changed, no Undo step (§3.5; a manual edit never deletes a segment, §4.2). The rules that never
+    shorten the lilac stay as they are (a tail trim shifts it with its length kept; a head trim reaching it deletes it;
+    a split continues it in the right part, §3.6).
+20. **Speed and too short segments**: the linked segments scale with the clip's duration; a green shorter than one frame is
+    kept at one frame; an orange too short → deleted with the whole markup; a lilac shorter than two frames → deleted
+    (§1.25); no zero or negative interval; consistent Undo / Redo (§3.8).
+21. **The magnetic track and the cascade are deferred** (supersedes the cascade rule of the previous revision): D048
+    implements neither and does not change the existing conflict rules; Snap is not a magnetic track. Recorded as a future
+    compatibility requirement: on a magnetic video track a clip tends to the left (no gaps), a longer clip shifts the
+    following clips right, a shorter one shifts them left; the overlays must keep their binding and move with their clips,
+    and the binding must not assume that clips are never moved by a cascade (§3.11).
+22. **No copy of an arbitrary time range** in D048: a whole clip and an existing split fragment only (§3.10).
+
+### 2. Stage 1 — route selection at `T` and review *(proposed Phase 32; no format change)*
+
+Three separately testable parts (Core, no UI):
+
+- **Clean-frame locator.** In: the video clip, `T` (a timeline frame inside the clip). `t_T` = the source time of `T`;
+  `t_C` = the source time of `T − 5 s` (timeline) through the clip's timing (D009 / D022: `TimelineStart`, `SourceIn`,
+  the exact speed), exact in ticks. When `T − 5 s` precedes the clip's start, the same mapping continues into the file's
+  frames before `SourceIn`; when that precedes the file's start, the file's first frame. The locator never substitutes
+  another frame silently: whatever it returns is checked by the transfer.
+- **Control-point transfer.** Frames `t_C` and `t_T` decoded at the analysis size with the D033 HDR rule;
+  `CameraMotionEstimator` with the clean frame as reference; the click at `T` mapped by the inverse transform. Unreliable
+  (D-15 working threshold 3 / 6 px at 1920 scale) → error `RouteSelectionTransferFailed` ("choose another moment"),
+  nothing created.
+- **Colour classification** (`PHASE_HOLD_TRACKING.md` S1–S2): the control hold's mask on the clean frame (D034 candidate
+  rule) → reference colour by its area (`HoldColorSampler`) → colour-map prompts (+ the D047 grid) → masks → selection by
+  the mask's colour, score and size; a tolerance the user can change without re-encoding the frame.
+- **UI** ("Holds" section): the user pauses on `T`, clicks the control hold, presses **"Place holds"** → the Preview shows
+  the clean frame with the D047 review (remove, add by click, accept, tolerance) → accept = one Undo step (`AddHolds`), the
+  holds marked at `t_C` → the playhead back to `T`. Cancel → back to `T`, nothing changed.
+- Not in stage 1: any overlay interval, a timer, the template, the layout, v10.
+
+### 3. Stage 2 — the timing model, the template ↔ clip relation and `project.json` v10 *(proposed Phase 33)*
+
+**3.1 `Duration` mode.** `HoldAnimation` gains `Mode` (`Interval` — D036 exactly as today; `Duration` — new) and
+`Duration` (timeline). In `Duration` mode the start stays a source time (`StartSourceTime`); everything below is in
+**timeline frames** of the project rate: `n0` = the start frame (D036 §2), `F = max(1, Frames(Duration))`, the end
+`nE = n0 + F` (`= T`, exclusive).
+
+**3.2 The 80 / 20 distribution — exact formula.**
+
+- Appear phase `P = ⌊(8F + 5) / 10⌋` frames (0.8·F rounded half up, integers only), hold phase `H = F − P`.
+  Examples at 30 fps: 5 s → F 150, P 120, H 30; 2 s → F 60, P 48, H 12; F 3 → P 2, H 1; F 2 → P 2, H 0; F 1 → P 1, H 0.
+- `N` holds ranked by the order (§3.3); hold `r` (0-based) starts appearing at `a_r = n0 + ⌊r · P / N⌋` — the first at
+  `n0`, the others evenly spaced by `P / N` (the floor keeps them on frames; spacing differs by at most one frame).
+- Each hold fades in over `R = min(Frames(AppearFade), P − ⌊(N − 1) · P / N⌋)` frames with the D025 ramp `(k + 1)/(R + 1)`
+  (`AppearFade` = D036's 0.25 s default); `R ≥ 1` whenever `P ≥ 1`. Hence the last hold is fully visible by `n0 + P` —
+  **every hold has finished appearing before the final 20 % begins**.
+- From `n0 + P` to `nE − 1` all contours show at full opacity (the route held); at `nE` every contour is gone — exactly at
+  `T`, no fade after it (decided).
+- `N = 1`: the hold appears at `n0` over `min(Frames(AppearFade), P)` frames, then stays to `nE`.
+- Very short (`F ≤ 2`): `H = 0`; all ramps still end by `nE`; the minimum `F = 1` shows the holds on one frame at the
+  ramp's first value. `F = 0` is never stored (the layout and the strip keep at least one frame).
+- No per-hold durations; the orange segment's length is the only duration. Preview = export (one snapshot rule, as D036).
+
+**3.3 Orders.** `BottomToTop` (default; the contour's area centroid, larger Y first — D036), `LeftToRight` (centroid X
+ascending), `RightToLeft` (descending); ties as D036 (level within 1e-9, then the other axis, then the marking order);
+`MarkingOrder` kept for `Interval`-mode animations.
+
+**3.4 The standard layout — an explicit action** (proposed name "Lay out intro and final"; never run by accepting a route,
+never re-run by later edits). From the playhead `T` on a video clip `V` with holds, one Undo step:
+
+- `A` = timeline frames from `V`'s start (its trimmed start, `TimelineStart`) to `T`; `S7 = Frames(7 s)`.
+- `I = min(S7, A)`; animation frames `Fa = ⌊(10 · I + 7) / 14⌋` (5/7·I rounded half up); plate-only frames `Fp = I − Fa`.
+  Examples at 30 fps: `A ≥ 210` → I 210, Fa 150 (5 s), Fp 60 (2 s); A 90 (3 s) → Fa 64 (2.13 s), Fp 26 (0.87 s);
+  A 1 → Fa 1, Fp 0; A 0 → Fa 0.
+- The animation (`Duration` mode, order `BottomToTop`) = `[T − Fa, T)`, created when `Fa ≥ 1`; with `Fa = 0` (`T` at the
+  clip's start) no animation is created and the action reports it with a message (decided; not an error of the route
+  selection).
+- **The range of `T` for the layout: `T ∈ [Vs, Ve]`** (timeline frames). `T = Ve` is allowed and means that no frame of
+  the clip follows `T` (the orange then ends exactly at the clip's end). The route selection (§2) keeps its own rule — `T`
+  a frame inside the clip.
+- The anchored «Боулдер» from `Ps = T − I` (= `V`'s start when `A < S7`) to `Pe = Ve`; the status moment (decided
+  2026-10-27):
+  `S = max(Ve − Frames(5 s), T, Ps + 1 frame)`, on the template's clock. All intervals half-open: the orange `[T − Fa, T)`,
+  the lilac `[S, Ve)`. Hence the lilac covers the last 5 s but **never starts before `T`** — the orange and the lilac never
+  overlap (`S ≥ T`; `S = T` is a touch, not an overlap); with `T` inside the last 5 s the lilac is shorter than 5 s (not a
+  reason to refuse the layout; `T` is never moved). Boundary conditions:
+  - `S ≤ Ve − 2 frames` → room for the lilac (at least two frames, §1.25): the status moment is put at `S` and an existing
+    template's Top / Attempt is kept; this holds whenever `T ≤ Ve − 2` and `A ≥ 1`;
+  - `S = Ve − 1 frame` (`T = Ve − 1`) → the moment is put at `S`, but a one-frame lilac would show nothing (§1.25): the
+    status is «Нет» (an existing Top / Attempt removed), and a manual Top / Attempt there is refused;
+  - `S ≥ Ve` → **no lilac** (no status set); the template is `[Ps, Ve)`, green only. This is the case `T = Ve` (no frame
+    after `T`) and, with `A = 0`, a clip of one frame. `S` is **not** moved back into the clip to make a lilac — the
+    layout itself is allowed;
+  - the layout applies only the **lower** bound of the `StatusAt` clamp (`Ps + 1 frame`, the term in the formula); the
+    clamp's upper bound (`template end − 1 frame` = `Ve − 1`) is **not** used to force `S` back — when the lilac would
+    have no frame, there is none. Outside the layout the existing `StatusAt` clamp of D045 is unchanged;
+  - the green `[Ps, S)` is at least one frame: with `A ≥ 1`, `Ps = T − I ≤ T − 1 < S`; with `A = 0` (no animation,
+    `Ps = T = Vs`) the term `Ps + 1 frame` keeps one green frame; no interval leaves `[Vs, Ve]`;
+  - the short intro (2 : 5) is unaffected — it shapes only `[Ps, T)`; the lilac's start depends on `T` and `Ve` only.
+  - A status set later by the user (Inspector) obeys the no-overlap invariant (§4.2) and the two-frame minimum
+    (§1.25): with fewer than two frames after `T` (`T = Ve` or `T = Ve − 1`) Top / Attempt is refused with a message — no
+    data change, no Undo step — rather than overlapping the orange or showing nothing.
+  Status and texts as the user sets them.
+  Placed on a track **above** `V` — a new track when `V` is on the topmost one (`AddTemplateClip`'s make-room on `V`'s own
+  track is not used).
+- An existing `Duration` animation / anchored template of `V` is updated, never duplicated.
+- Every interval is within `[V start, V end]`, at least one frame long, never negative.
+
+**3.5 The template ↔ clip relation — option A (confirmed by the owner 2026-10-27): `TemplateClip.AnchorClipId`** (v10, optional,
+one-directional; a template belongs to one video clip; a video clip may have several — every rule of §3.5 / §3.8
+applies to **each** anchored template separately: deleting one never deletes another template of the same clip).
+Rejected: generalising D032's
+`LinkId` (breaks its one-video-one-audio invariants), time overlap only (ambiguous; rejected by the owner).
+
+| Operation on the video clip `V` | Effect on its anchored templates |
+|---|---|
+| Move (drag, to another track, nudge) | **Moved** by the same timeline delta on their own tracks; their conflicts resolved as for any moved clip (D037 make-room) or the move refused |
+| Ripple shift of `V` (delete / close gap / insert on its track) | **Moved** with `V` |
+| Make room (D037) trims / splits / removes `V` | The trim / split / delete rows below apply |
+| Extension of `V` (head or tail outward) | **Not touched** (§3.8) |
+| Trim of `V`'s head / tail inward | Not touched unless the trim cuts into its plate or status — then the per-side rules of §3.8 (the template's head / tail trimmed, its status moved or removed); **deleted** when no frame of it remains in the clip (§3.8) |
+| Speed change of `V` | **Scaled** with `V`'s duration (§3.8); an overlap is refused as today, no cascade (§3.8, §3.11) |
+| Slip of `V` | **Not touched** (the source-anchored animation follows the picture, the template does not) |
+| Split of `V` at `c` | See §3.6 |
+| Insert (D031 SQ6) with its point `c` inside `V` | A split of `V` at `c` (§3.6) whose right part is then **moved** by the inserted length: the markup by the split rule (a cut inside the orange deletes it), templates spanning `c` split with the left part anchored to the left clip and the right part — moved — to the right one; templates wholly after `c` re-anchored to the right part and moved. Revision 8 (2026-10-27): not named before; the least-risk reading of the split and move rows, no new rule |
+| Overwrite (D031 SQ9) of `[a, b)` strictly inside `V` | A split at `a` (§3.6) whose right part's head is then **trimmed** to `b` — the head-trim rules of §3.8 for that part (the green's cut part goes; the orange shortened from `b` or, wholly cut, the markup deleted; reaching the lilac deletes it; no frame left deletes that part of the template); templates wholly inside `[a, b)` deleted; a left part whose lilac ends under two frames without a continuation loses its status (§1.25). An Overwrite covering only `V`'s head or tail is the trim row; covering `V` wholly, the delete row. Revision 8, as for Insert |
+| Delete of `V` | **Deleted** with `V` (one Undo step restores both) |
+| Duplicate / Copy + Paste of `V` | **Copied** with it as new, independent templates anchored to the copy, the same offsets (§3.10) |
+| Template's own edits (move / trim / delete on its track) | `V` not touched; the anchor kept; a move or trim is limited to `V`'s bounds — no interval of the template outside `[V start, V end]` — to the no-overlap invariant (§4.2) and, with Top / Attempt set, to a lilac of at least two frames (§1.25: a trim that shortens it below that or cuts it away is refused); otherwise refused with a message |
+| Undo / Redo | Every carried change is part of the same `EditPlan` → one command with absolute before / after states |
+| Save / open | `anchorClipId` written in v10; an anchor to a missing or non-video clip is cleared on load (logged), not a damaged file |
+
+**3.6 Split of `V` at `c` — and the contradiction with the current model.** Today the markup **and its animation** are
+copied to both parts. A part outside the animation's window shows nothing (no contour before its start or after its end),
+but a cut **inside** the window would continue the animation's progress on the right part — which the owner forbids — and
+a part given the holds *without* an animation would show them for its whole length. **Resolution (owner, 2026-10-27), no
+new state**: for a `Duration`-mode animation the markup (holds + animation) goes **only to the part that contains the
+animation's start** `As`; a cut **inside** the orange deletes the whole markup (§3.9) — neither part gets it.
+
+| Cut `c` | Left part | Right part |
+|---|---|---|
+| `c ≤ As` (in the green before the orange) | no markup | markup + animation (the whole animation lies there) |
+| `As < c < Ae` (inside the orange) | **no markup** — the whole markup is deleted (§3.9): the animation, its progress and appearance data, the tracking, the contours and coordinates; no shortened animation is kept | no markup — no continuation |
+| `c ≥ Ae` (after the orange) | markup + animation | no markup (after `T` no contour shows anyway) |
+
+If the animation is needed again after a cut inside, the user creates it anew; extending a fragment later never restores
+it (an extension creates no animation). **Undo of the split** restores the state before the cut in one step, the deleted
+markup included; the derived tracking may need a new analysis and «Следовать за камерой» may return to its default
+(§3.9). `Interval`-mode animations and markups without animation keep D034 §6's copy (v9 behaviour unchanged).
+
+Anchored templates: a template that spans `c` is split at `c` as well (the existing template split: `CounterStart`
+continues, `StatusAt` keeps its moment), its left part anchored to the left fragment, its right part to the right one — the
+plate continues without a seam, Top / Attempt shows in the part that contains the status moment `S` (with `c = S` exactly:
+the left part ends at the status, the right part shows it from its start); a template wholly on one side stays anchored
+to that fragment. The template's other boundaries follow the rules agreed before (§3.5, §3.8).
+
+**3.7 `project.json` v10.** New optional members: `holdMarkup.animation.mode`, `.durationTicks`, the new `order` values;
+`template.anchorClipId` (Delete of the orange needs no member: the markup is simply absent). Migration: v9 opens
+unchanged — animations in `Interval` mode (render byte for byte as today), templates without an anchor (no strip until the layout action anchors
+one); **converted to v10 when saved**. Backward compatibility is not required: older builds refuse v10 by the existing
+newer-version check; no v10 → v9 conversion or export. Tests: v9 → v10 open / save, v10 round-trip byte for byte,
+validation (unknown mode / order, non-positive duration, dangling anchor cleared), v9 render byte for byte. Before the
+implementation: one ordered version sequence with Phase Coros and a check that both branches' migrations and schema
+changes compose (not a blocker of the D048 review).
+
+**3.8 Speed, extension and trim of `V`.** Different operations, never confused: a **speed change** (`SetClipSpeed`:
+start and source range kept, the duration changes) scales the overlays; a **boundary change** (an extension or a trim)
+changes no overlay by itself; an **inward trim that cuts into a segment** follows the per-side protective rules. The protective rules of a trim
+never apply to a speed change and the reverse. The existing editing limits stay (no cascade in D048, §3.11). Notation
+(timeline frames): `V` = `[Vs, Ve)`; green `[Ps, S)`, orange `[As, Ae)` (`Ae = T`), lilac `[S, Pe)` (§4.1). "The markup
+is deleted" always means §3.9 — all of it, never a part. With several templates anchored to `V`, every rule below is
+applied to each of them separately; "the template is deleted" deletes only that template.
+
+- **Speed change.** `D` = `V`'s duration before, `D'` after (the frames of `SpeedTiming.FramesFor`; for consecutive changes
+  merged into one Undo step, `D` is the duration before the first, so rounding never accumulates). Every linked boundary
+  `x ∈ {Ps, As, Ae, S, Pe}` becomes `x' = Vs + ⌊(2 · (x − Vs) · D' + D) / (2 · D)⌋` — the offset from the clip's start
+  scaled by `D' / D`, rounded half up, integers only. Hence `Vs` stays, a boundary at `Ve` lands exactly on `Ve'`, the
+  boundaries keep their order, positions relative to the clip and proportions (2× faster: every length halves; 2× slower:
+  doubles). The animation's start stays a source time (it follows the picture by itself); its stored `Duration` becomes
+  `Ae' − n0'` (`n0'` its start frame after the change), so `T = Ae'` exactly; §3.2 re-applied to the new `F` (the 80 / 20
+  split and the per-hold steps scale with it). The template: head to `Ps'`, tail to `Pe'`, `StatusAt` so that the status
+  shows at `S'`. Afterwards the user edits by hand (§4.2); nothing is re-scaled later. A scaled segment that is no longer
+  valid (owner, 2026-10-27):
+  - **green** shorter than one frame → kept at **one frame**: `Ps' = S' − 1 frame`; when that would precede `Vs`, `Ps' = Vs`
+    and `S' = Vs + 1 frame` (the lilac then takes its own rule) — a brief show of the route's name is acceptable;
+  - **orange** shorter than one frame (`Ae' − n0' < 1`) → the **markup is deleted** (§3.9);
+  - **lilac** shorter than two frames (`Pe' − S' < 2`, §1.25 — a one-frame lilac would show no status) → the **lilac is
+    deleted** (the template's status removed, its tail at `S'`, the green kept);
+  - no zero-length or negative interval; the speed change, the scaling and every removal are one Undo step; Undo / Redo
+    restore the speed, the duration and the overlay timings together.
+  - A slower speed that would make `V` overlap the next clip is refused as today (D022); the same refusal applies when the
+    scaled anchored template would overlap a clip on the template's track — no neighbour moved, no make-room, no cascade.
+    A **temporary limitation of the current architecture** (owner, 2026-10-27), not the final rule for a future magnetic
+    track (§3.11).
+- **Boundary change without a cut — no automatic change** (owner, 2026-10-27, one rule for every video clip, split
+  fragments included): extending or shortening `V`'s bounds does **not** by itself change any overlay interval. The green
+  is not lengthened or moved after the clip's boundary, the orange is not stretched, moved or recomputed, the lilac is not
+  moved after an extension (a tail extension does not carry Top / Attempt to the new end). An extension (it stops at the
+  neighbour as today, D030) never creates an animation — one deleted by a split or a trim is not restored by it. To
+  lengthen or shorten a segment the user edits its boundary by hand on the strip (§4.2); the strip's segment edits and
+  the clip's boundary edits are different operations. Only when an inward trim **cuts into** a segment do the
+  protective rules below apply — they keep every interval inside the clip and never lengthen or move a segment the trim
+  does not reach. After a head extension the green and the orange may share their left boundary — the green is taken
+  first (§4.2). The speed rules above are separate and unchanged.
+- **Head trim inward** to `Vs' > Vs` (the picture stays in place):
+  - the new boundary not inside the overlay (`Vs' ≤ Ps` and `Vs' ≤ As`) → nothing changes;
+  - inside the green (`Ps < Vs' < S`, the orange not reached) → the green's cut part is removed — its start is the new
+    clip boundary, `Ps' = Vs'` (the template's head trimmed); the green may remain one frame long;
+  - inside the orange (`As < Vs' < Ae`) → the remaining animation is `[Vs', Ae)`: start at `Vs'` (its source time stored),
+    `T = Ae` kept, `F' = Ae − Vs' ≥ 1` frame; §3.2 re-applied to `F'` — the sequential appearance and the final 20 % shrink
+    proportionally, the animation never refers to the cut part; the green's start at `Vs'`; the intro is **not** rebuilt
+    by the 2 : 5 rule — the green and the orange then start at the same frame `Vs'`;
+  - the orange wholly cut (`Vs' ≥ Ae`) → the **markup is deleted** (§3.9); the green's start at `Vs'`;
+  - reaching the lilac (`S ≤ Vs' < Pe`) → the **lilac is deleted** (the template's status removed), the **green is kept**:
+    the template's head at `Vs'`, the plate `[Vs', Pe)` — one frame is enough; the whole overlay is **never** deleted
+    because of the green's minimal length (an orange cut by the trim follows its own rule above);
+  - past the template's end (`Vs' ≥ Pe` — no frame of the template remains in the clip) → the **template is deleted** for
+    this clip (green and lilac); the markup only by its own rule: deleted when the trim cut the orange wholly (`Vs' ≥ Ae`),
+    shortened when partly; data not linked to the deleted template are not touched.
+- **Tail trim inward** to `Ve' < Ve` — evaluated in this order, one Undo step:
+  1. **Orange**: `Ve' < Ae` — the trim cuts into it, partly or wholly → the **markup is deleted** (§3.9): no animation,
+     tracking or coordinates of the cut orange remain. `Ve' ≥ Ae` → the orange is **kept** unchanged. (A tail trim never
+     shortens or re-times the orange.)
+  2. **Lilac** — keeps its own length, never scaled: `Ve' ≥ Pe` → unchanged. `S ≤ Ve' < Pe` → **shifted left** with the
+     clip's new end: `Pe' = Ve'`, `S' = S − (Pe − Ve')` (the template's tail trimmed and its `StatusAt` moved). A
+     **conflict** after the shift — it would intersect the orange (`S' < Ae`, an orange kept by step 1), or leave less than
+     one frame of green (`S' < Ps + 1`, i.e. it would intersect the green), or it cannot be placed inside the clip — → **only
+     the lilac is deleted**; no conflict → kept with its previous length. `Ve' < S` (the new end before the lilac's start)
+     → the **lilac is deleted**. A deleted lilac: the template's status removed, its tail at `Ve'`.
+  3. **Green**: kept, also when one frame long; it ends at `S'` (lilac kept) or at `Ve'` (lilac deleted). Deleting the lilac
+     never deletes the green or the orange, and the whole overlay is never deleted because of a lilac conflict.
+  4. **No frame of the template left** (`Ve' ≤ Ps`) → the **template is deleted** for this clip (green and lilac); the
+     markup only by step 1 (deleted when the trim cut into the orange, kept when `Ve' ≥ Ae`); data not linked to the
+     deleted template are not touched.
+- **Edge cases side by side** (each one Undo step):
+
+  | New boundary | Head trim (`Vs'`) | Tail trim (`Ve'`) |
+  |---|---|---|
+  | Outside every segment | nothing changes | nothing changes |
+  | Inside the green | green from `Vs'` (≥ 1 frame) | — (the green ends at `S`; the lilac rules apply first) |
+  | Inside the orange | rest shortened proportionally, green from `Vs'` | **markup deleted**; green / lilac by their rules |
+  | Orange wholly cut | **markup deleted** | **markup deleted** |
+  | Inside the lilac | **lilac deleted**, green `[Vs', Pe)` kept (≥ 1 frame) | lilac shifted left, length kept; conflict → **only the lilac deleted**, green `[Ps, Ve')` kept |
+  | Before the lilac's start | — | **lilac deleted**, green `[Ps, Ve')` kept (≥ 1 frame) |
+  | No frame of the template left | **template deleted** (`Vs' ≥ Pe`) | **template deleted** (`Ve' ≤ Ps`) |
+
+  The template is deleted only when no frame of it can remain; while one green frame fits, the green stays and only a
+  conflicting lilac goes. The lilac's conflict rule and the template deletion never apply to the same trim.
+- Every result is a valid interval (at least one frame, inside `[Vs, Ve)`); a case these rules do not cover is an open
+  question (§7), not an implicit behaviour.
+
+**3.9 Deleting the orange segment = deleting the hold markup.** The orange segment is selectable on the lane (a click; a
+strip selection, not the clip's). **Delete** removes `V`'s **whole hold markup** — not a hiding:
+
+- the orange segment and the animation (start, duration, order, the sequential appearance and its progress);
+- the holds — contours, coordinates, colours, all data needed to play the animation;
+- the clip's tracking data: it is derived (`CameraMotionCoordinator`, not in `project.json`) and kept only for clips with
+  holds, so it is dropped with them.
+
+Nothing is kept hidden; the user marks the holds again if needed. In the Inspector the clip has no holds and
+«Анимировать» is off. The green, the lilac and the template are not removed by it; the clip and other segments are never
+deleted by it. The change is saved in the project (the markup absent). **One Undo** restores the deleted markup, the
+animation, the orange segment and the clip's state of the operation («Анимировать» on). The derived tracking data are
+**not** restored exactly: the clip may be analysed again (a "pending" state, the export preflight waits for it as today),
+and «Следовать за камерой» may return to its default — an exact restore of the derived tracking is not a requirement of
+D048. Preview = export. The trims, the split and the speed change of §3.6 / §3.8 use the same deletion.
+
+**Not the same as «Анимировать» off or a hiding.** The «Анимировать» checkbox controls how the holds' contours are shown —
+statically (the whole clip, D036) or appearing one after another during the animation; unchecking it does **not** delete
+the markup. A hidden track (`SetTrackHidden`) keeps the markup too. Only Delete on the orange (and the rules of §3.6 /
+§3.8 that refer to §3.9) deletes it.
+
+**3.10 Copy, delete and Undo.**
+
+- **Copy / Duplicate / Paste of `V`** — a whole clip, or an existing fragment made by a split (itself a clip) → a new clip
+  with new copies of its markup and animation (the D034 copy) and of its anchored templates (new ids, anchored to the new
+  clip, the same offsets); the copies are edited and deleted independently of the originals. A split fragment carries the
+  overlays §3.6 gave it.
+- **No copy of an arbitrary time range** in D048 (owner, 2026-10-27): not part of this decision.
+- **Delete of `V`** → its markup (part of the clip) and its anchored templates are deleted with it; **one Undo** restores
+  the clip and all its overlays.
+- **Split** by §3.6: the markup and the animation belong to the fragment that contains the animation's start; a cut inside
+  the orange deletes the whole markup; Top / Attempt stays with the fragment that contains `StatusAt`.
+
+**3.11 The magnetic track and the cascade — deferred; a future compatibility requirement** (owner, 2026-10-27). D048
+implements **no** magnetic track, **no** cascade of clips and **no** change of the existing conflict rules: a speed
+change that would overlap the next clip is refused (D022), a plain trim stops at its neighbour (D030), D037 §3's make-room
+keeps its scope, the Shift ripple trim (D030 §6) keeps its rule. **Snap** (D037 §2) is a snapping toggle, **not** a
+magnetic track. A future magnetic video track (D037 §5) is expected to behave so:
+
+- a clip added to the magnetic video track tends to the left, so that no gaps remain between the video clips;
+- when a clip's duration grows, the following clips shift right by that amount; when it shrinks, they shift left.
+
+What D048 must already guarantee for it: the overlays keep their binding to their clip (`AnchorClipId`, the markup inside
+the clip) and move with it correctly — a cascaded clip is a moved clip, so §3.5's move row applies to its anchored
+templates and its source-anchored markup; nothing in the binding may assume that video clips are never moved by a cascade
+(no absolute timeline positions stored for linked overlays except through their own template clip, which the move rule
+carries). The cascade's algorithm, its switch, its interaction with links, dissolves, locked tracks and the templates'
+own tracks belong to that future specification, not to D048.
+
+### 4. Stage 3 — the overlay strip *(proposed Phase 34; needs stage 2)*
+
+**4.1 Segments** of a video clip `V` with its `Duration`-mode animation `A` (`[As, Ae)`, `Ae = T`) and its anchored
+«Боулдер» `P` (`[Ps, Pe)`, status moment `S` in timeline time), drawn on a thin lane directly above `V`'s row (the lane is
+a view, not a model track):
+
+| Segment | Interval | Shown when | Drawing order |
+|---|---|---|---|
+| Green | `[Ps, S)` — `[Ps, Pe)` without a status | `V` has an anchored «Боулдер» | bottom |
+| Orange | `[As, Ae)` — always inside `[Vs, Ve)` (a split or a trim that would cut it deletes the markup, §3.6 / §3.8) | `V` has a `Duration`-mode animation | over green |
+| Lilac | `[S, Pe)` | the template has a status (TOP / ПОПЫТКА) | top (it never overlaps the green or the orange, §4.2) |
+
+No anchored template and no animation → no strip. No text inside; tooltips name the segment and its times (en + ru).
+
+**4.2 Handles** (each maps to the owning entity's existing edit; one gesture = one Undo step via D038's
+`ClipPropertyGesture`; a gesture back at its start leaves no step — D017):
+
+| Handle | Changes | Kept | Limits |
+|---|---|---|---|
+| Green left edge | `Ps` (template head trim) | `S`, `Pe` | `Vs ≤ Ps ≤ S − 1 frame` |
+| Green ↔ lilac boundary | `S` (`StatusAt`) | `Ps`, `Pe` | `Ps + 1 frame ≤ S ≤ Pe − 2 frames` (§1.25), `S ≥ Ae` (no overlap with the orange) |
+| Lilac right edge | `Pe` (template tail trim) | `Ps`, `S` | `S + 2 frames ≤ Pe ≤ Ve` (§1.25) |
+| Lilac body | `S` and `Pe` by δ | `Ps` | `S ≥ Ps + 1 frame`, `S ≥ Ae` (no overlap with the orange), `Pe ≤ Ve` |
+| Green body | **not movable** | | |
+| Orange left edge | `As` (duration grows / shrinks) | `Ae` (`T`) | `Vs ≤ As ≤ Ae − 1 frame` |
+| Orange right edge | `Ae` (`T`) | `As` | `As + 1 frame ≤ Ae ≤ Ve`; with a lilac `Ae ≤ S` (no overlap with the lilac) |
+| Orange body | `As`, `Ae` by δ (duration kept) | | `Vs ≤ As`, `Ae ≤ Ve`; with a lilac `Ae ≤ S` (no overlap with the lilac) |
+
+The orange segment is also selectable: Delete deletes the whole hold markup (§3.9).
+
+**A shared left boundary** (the green's `Ps` and the orange's `As` on the same frame, e.g. after a head trim into the
+orange): a press on it takes the **green left edge** first — dragging it to the left (after an extension of the clip)
+opens the plate-only gap before the animation again; the orange's start never captures that gesture. The orange's start is
+reachable by its own edge once the two boundaries differ (or by the orange body drag).
+
+**No overlap of the lilac — an invariant of the model** (owner, 2026-10-27). Any manual edit after which the lilac would
+overlap the green or the orange is **refused with a clear message**, whatever its path: the strip's handles, a move or
+resize of the template clip itself on its track, setting the status or its moment in the Inspector
+(`SetTemplateStatusAtPlayhead` and the status choice exist today), the future animation start / duration fields of the
+Inspector (stage 2). The check is done **in the edit service** (`ITimelineEditService`), not only in the strip's UI; a
+refused edit changes no data, deletes no segment and leaves no Undo step (the user adjusts the boundaries by hand
+first). **A manually set Top / Attempt keeps a lilac of at least two frames** (§1.25): the Inspector's status choice and
+its moment are refused below that, with their own message, by the same check in the edit service; the strip's lilac
+handles stop at it (the limits above). Edits of an anchored template are also limited to its clip's bounds (§3.5). The invariant concerns templates
+anchored to a clip (the only ones with a strip); an unanchored template keeps D045's behaviour. For the strip's gestures:
+a manual move or length change of the lilac that would make it overlap the green or the orange is refused; no green or
+orange is deleted to keep the lilac. The automatic shift by a tail trim deletes the lilac on a
+conflict instead (§3.8). **Symmetrically, a manual move or length change of the orange that would overlap the lilac is
+refused with a clear message** (the right edge and the body: `Ae ≤ S`; the left edge needs no extra limit — it moves
+`As` only, away from the lilac); no lilac or green is deleted to keep it. The orange's limits are checked on the
+**resulting frame values** after the conversion of times to frame numbers — `n0` from the stored `StartSourceTime` by
+`ToNearestFrame`, `Ae = n0 + F` — so that a tick rounding of the frame → source → frame round trip can never create a
+one-frame overlap. For these no-overlap limits the gesture is
+**refused** with the message (the drag's preview marks it invalid), not stopped silently; the other limits stop the value
+as below. The automatic rules are unchanged: a tail trim that cuts into the orange deletes the markup, an automatic lilac
+shift with a conflict deletes the lilac (§3.8). The strip is not implemented — this is the specification for stage 3,
+replacing the earlier "lilac over orange with a tooltip warning".
+
+Snapping as the timeline's (D037). No handle ever moves another entity's boundary; values stop at their limits (no
+push), except the no-overlap limits above, which refuse the gesture.
+Orange over green is the design. A changed
+duration re-applies §3.2 to the new `F` (the 80 / 20 split is a rule of the duration, not a stored layout).
+
+**4.3** Preview / export: unchanged by construction (the strip edits the model; both render one snapshot). Persistence:
+v10 (stage 2).
+
+### 5. Acceptance criteria
+
+**Stage 1 (Phase 32).**
+1. Locator unit tests: speeds 0.5× / 1× / 2×, a trimmed head, `T − 5 s` before the clip (handle), before the file's start;
+   exact ticks.
+2. Transfer unit tests: known synthetic motion recovered; an unreliable pair → `RouteSelectionTransferFailed`, nothing
+   created. On the owner's clips: the transfer within 3 / 6 px (1920 scale) or the error.
+3. Classification unit tests: neighbouring colours, tolerance monotone, fragments inside a large mask not duplicated;
+   changing the tolerance does not re-encode the frame.
+4. Accept = one Undo step (`AddHolds`), holds marked at `t_C`, the tracking picks them up; cancel changes nothing; the
+   playhead returns to `T` in both cases.
+5. No overlay interval changes, no timer, no template, no layout.
+6. D034 / D035 / D036 / D047 flows unchanged; `project.json` v9 byte for byte; Preview = export; strings en + ru; without
+   the model only the markup is unavailable.
+7. Precision / recall on the owner's reference set at thresholds agreed then (baseline only: 0.82–0.91 / 0.83–0.93 on two
+   clips, Claude's labels).
+
+**Stage 2 (Phase 33).**
+1. v9 projects open and render byte for byte as before (`Interval` mode, no anchors); saved as v10; v10 round-trip byte for
+   byte; an older build refuses v10; invalid v10 members refused, a dangling anchor cleared.
+2. §3.2 frame-exact tests: F = 1, 2, 3, 4, 60, 150 frames; N = 1, 2, 3, 20, 100 holds — first hold at `n0`, spacing within
+   one frame, every ramp ends by `n0 + P`, all at full opacity on `[n0 + P, nE)`, none at `nE`; the duration unchanged when
+   holds are added or removed.
+3. §3.3 orders: bottom to top, left to right, right to left, ties.
+4. §3.4 layout frame-exact for `A` = 0, 1 frame, 1 s, 3 s (64 / 26 frames at 30 fps), 6.99 s, exactly 7 s, 30 s; `T` in
+   the clip's last 5 s (the lilac from `T`, shorter than 5 s, no overlap with the orange), `T = Ve − 2` (a two-frame
+   lilac, Top / Attempt allowed), `T` on the clip's last frame (`S = Ve − 1`, status «Нет», a manual Top / Attempt
+   refused — §1.25), `T = Ve` (no lilac, `S` not moved back, the layout allowed, a manual Top / Attempt refused), `A = 0`
+   with a short clip (one green frame); an unanchored template's status moment after its end still allowed (D045); no negative /
+   zero-length / out-of-clip interval; `T` never moved; never re-run by later edits; never run by accepting a route; one
+   Undo step; no duplicates on a second run.
+5. §3.5 / §3.6 — one test per table row (move, ripple, make room, extension, head / tail trim, speed, slip, split before /
+   inside (the whole markup deleted, no shortened animation) / after the orange and at `S`, delete, duplicate, paste,
+   template's own edits (limited to `V`'s bounds), load with a dangling anchor; several templates anchored to one clip —
+   each by its own rules, deleting one keeps the others), each one Undo step that restores the model (the tracking
+   possibly analysed again). The no-overlap invariant in the edit service: an Inspector status or `StatusAt`, a move or
+   trim of the template clip, an animation start / duration change that would overlap — refused, no data changed, no
+   Undo step; an Inspector Top / Attempt or `StatusAt` leaving a lilac of 0 or 1 frame refused the same way, 2 frames
+   accepted; a tail / head trim of the template clip leaving its lilac at 1 frame or cutting it away refused, at 2 frames
+   accepted, a move never refused for it (§1.25).
+6. §3.8 frame-exact: speed 2× faster / 2× slower / 0.5× / an odd ratio — every boundary by the formula, a boundary at `Ve`
+   stays at the end, `T = Ae'`, the 80 / 20 split on the new `F`, consecutive changes from the first state; a strong
+   speed-up — the green kept at one frame, a too short orange deletes the markup, a lilac left at one frame is deleted and
+   one left at two frames kept (§1.25); extension
+   left and right — the orange never stretched, moved or recomputed, the lilac and the green not carried to a new end,
+   no animation created; head trim not into the overlay, into the green, into the orange (proportional rest, never the
+   cut part, green from `Vs'`, no 2 : 5 rebuild), past the orange (markup deleted); tail trim outside, into the orange
+   (markup deleted, partly and wholly), into the lilac (shifted, length kept; intersecting the orange → deleted), before
+   the lilac (deleted, green kept), a lilac conflict with the green or the orange (only the lilac deleted), the green left
+   one frame (kept); head trim reaching the lilac (lilac deleted, green kept at one frame); no frame of the template left
+   on either side (the template deleted, the markup only by its own rule); the segments a trim does not touch unchanged;
+   a boundary change of a split fragment (no overlay change); a slower speed overlapping the next clip or a clip on the template's track refused; no
+   negative / zero-length / out-of-clip interval; each one Undo step.
+7. §3.9 / §3.10: Delete of the orange deletes the whole markup (no holds, no animation, no tracking of the clip,
+   «Анимировать» off), the template untouched, save / open, one Undo restores the markup and the state (the tracking
+   analysed again, not compared bit for bit); «Анимировать» off keeps the markup (static contours); copy / duplicate /
+   paste of a clip and of a split fragment give independent copies anchored to the new clip; delete of the clip and one
+   Undo restore the clip with all its overlays.
+8. §3.11: no cascade and no change of the existing conflict rules (D022, D030, D037 §3 tests unchanged); every carried
+   overlay change goes through the move / trim / speed rules of the clip it is anchored to.
+9. Preview = export for the three orders, the 80 / 20 split, the layout, a speed change and a trim.
+10. The schema compatibility check with Phase Coros recorded before the implementation.
+
+**Stage 3 (Phase 34).**
+1. The strip shows exactly §4.1's segments and order (none for a missing entity; the lilac never overlapping the green
+   or the orange).
+2. Every handle of §4.2 changes only its values within its limits; the green body cannot be moved; no handle moves
+   another entity; a lilac edit that would overlap the green or the orange, and an orange edit (right edge, body) that
+   would overlap the lilac, are refused with a message and leave no Undo step; no segment is deleted by a manual edit;
+   the limits hold on the resulting frame values (`ToNearestFrame`) at speeds 0.5× / 1× / 2× and a fractional rate.
+3. One drag = one Undo step; back to the start = none; Redo restores.
+4. Save / open restores the strip; Preview = export after strip edits; the 80 / 20 split follows a changed duration.
+   The orange segment selected and deleted by Delete (§3.9), one Undo restores it. A shared left boundary is taken by the
+   green edge first (§4.2).
+5. Tooltips en + ru; the lane does not change the timeline's existing hit-testing of clips, trims and dissolves.
+
+### 6. Phase numbers
+
+Proposed **Phase 32 / 33 / 34** for stages 1 / 2 / 3. Checked 2026-10-27: unused in `main` and in `feat/phase-coros` (its
+phase is "Phase Coros", unnumbered). To be fixed by the owner when D048 is approved — Phase Coros may need a number too.
+
+### 7. Open questions for the owner
+
+**None open in revision 8.** Closed on 2026-10-27 (revision 8): a manual Top / Attempt needs a lilac of at least two
+frames; `T = Ve` keeps the layout allowed and the manual status refused (§1.25, §3.4, §4.2); the automatic rules follow
+the same minimum — a speed-up deletes a lilac shorter than two frames, a move / trim of the template clip that would
+shorten it below two frames is refused (§1.25, §3.5, §3.8).
+
+**None open in revision 7.** Closed on 2026-10-27, in the order they were raised: option A with its table (§3.5); the split
+rule — a cut inside the orange deletes the whole markup, a cut in the green keeps it with the animation's start (§3.6); the
+contours vanish at `T` with no fade (§3.2); `A = 0` — no animation, a message (§3.4); `StatusAt` clamped inside the clip
+(§3.4); Delete of the orange deletes the whole markup, «Анимировать» off ≠ Delete, Undo with a possible re-analysis of the
+tracking (§3.9); a boundary change never changes the segments a trim does not touch, the trim rules being its exceptions
+(§3.8); the head- and tail-trim rules, the green kept down to one frame, only the lilac deleted on its conflicts (§3.8);
+the template deleted when no frame of it remains in the clip (§3.8); the layout with `T` in the clip's last 5 s — the
+lilac from `T` (§3.4); no overlap of the lilac with the green or the orange — a manual lilac or orange edit creating one
+refused (§4.2); the speed rules and the template-track refusal as a temporary limitation (§3.8); the magnetic track and
+the cascade deferred (§3.11); no copy of an arbitrary range, Duplicate / Paste copies the anchored templates (§3.10); the
+R2 → E status (§1.17).
+
+Not questions but steps before the implementation: the phase numbers (§6) and the schema check with Phase Coros (§3.7);
+the owner's approval of D048 itself.
+
+### 8. Risks
+
+- Carrying anchored templates through every timeline edit (move, ripple, make room, split, slip, speed, extension, trim,
+  delete, paste) — the widest change; each needs a test. Scaling on a speed change rounds every boundary to frames —
+  frame-exact tests, the first state of a merged gesture as the reference.
+- A future magnetic track (§3.11): the binding of D048 must stay valid when clips are moved by a cascade — no linked
+  overlay may depend on a clip never being moved.
+- The template's track: single-track projects need a new track above the clip.
+- Two animation modes to keep consistent in the Inspector and the serializer.
+- The split rule (§3.6) differs between `Duration` and `Interval` animations.
+- The schema overlap with Phase Coros (one version number).
+- The thin lane must not steal the timeline's existing pointer gestures.
+
+Consequences (if approved): `project.json` v10 (v9 converted on save, no way back); `HoldAnimation` and `TemplateClip`
+extended; the timeline edit service carries anchored templates, scales them and the animation on a speed change, applies
+the trim rules of §3.8 (including the deletion of the whole markup) and splits `Duration` animations by §3.6 (a cut
+inside deletes the markup); no cascade (§3.11); a lane in the timeline view with a selectable orange segment and the
+green's priority on a shared left edge; the route-selection services in Core.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

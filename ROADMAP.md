@@ -473,7 +473,10 @@ research, F only after its feasibility is confirmed and a separate agreement; H 
 | R1 | Automatic hold proposals — research | research | research | — (parallel with A–C) |
 | D | Automatic hold proposals — implementation, on a go | AI | large | R1 |
 | R2 | Outlines following the holds while the camera moves, with occlusion that hides only the covered segments of a contour — research (concept of 2026-10-22: `docs/DEVELOPMENT_PLAN.md`, "R2 → E") | research | research (highest uncertainty) | — (parallel) |
-| E | Outline tracking — implementation, on a go | AI | large | R2; after D if D is taken |
+| E | Outline tracking — implementation, on a go (camera-motion part merged in PR #31 `024f3fb`; accepted by the owner for continued development, not marked complete; richer correction, adding / removing holds and two NOT RUN checks deferred — `docs/DEVELOPMENT_PLAN.md` "R2 → E" status) | AI | large | R2; after D if D is taken |
+| D048-1 | Route selection at `T` and review — proposed Phase 32 (D048 **approved 2026-10-28**; implemented, then **paused / deferred**: «Авторазметка» hidden, code and research kept — `docs/HOLD_AUTO_DETECTION_RESEARCH.md`) | AI | medium | D (Phase 31), E's tracking |
+| D048-2 | Timing model (animation duration, orders, standard / short-intro layout), template ↔ clip anchor, speed / trim / copy rules, `project.json` v10 (v9 converted on save, no backward compatibility) — proposed Phase 33 (**done**, D048 approved 2026-10-28) | core | medium–large | D048 approval; schema check with F done (COROS takes the next version) |
+| D048-3 | The overlay strip — proposed Phase 34 (**done**, variant B: the segments inside the «Боулдер»; the lane above the clip Debug-only) | UX | medium | D048-2 |
 | R3 | COROS Pace 4 exports and video timestamps — research | research | research (needs real files) | — (parallel) |
 | F | «COROS Pace 4: пульс и телеметрия в видео» — only after R3 confirms feasibility and a separate agreement | telemetry | large | R3, A |
 | H | «Final UX Pass: аудит и упрощение интерфейса» (research, then implementation) | UX | research + medium–large | the core incl. F, G, a regression run |

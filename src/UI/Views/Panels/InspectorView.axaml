@@ -546,6 +546,24 @@
                   <TextBlock Text="{Binding HoldCount, StringFormat={x:Static l:Strings.Holds_MarkedCount}}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
 
+                <!-- D048 §2: the route selection at T — the control hold, the clean frame 5 s earlier, the review.
+                     Hidden for now by the product owner's decision (2026-10-28, docs/HOLD_AUTO_DETECTION_RESEARCH.md §9):
+                     the automatic route scan is not yet practical. The command, the services and the review stay; to
+                     restore the button, set IsVisible back to "{Binding !IsActive}". -->
+                <Button Content="{x:Static l:Strings.Holds_PlaceHolds}" Command="{Binding PlaceHoldsCommand}" IsVisible="False"
+                        ToolTip.Tip="{x:Static l:Strings.Holds_PlaceHoldsTip}"/>
+                <StackPanel Spacing="6" IsVisible="{Binding IsRouteSelection}">
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsRouteReview}">
+                    <TextBlock Text="{x:Static l:Strings.Holds_RouteTolerance}" Classes="label" ToolTip.Tip="{x:Static l:Strings.Holds_RouteToleranceTip}"/>
+                    <controls:CommitNumericUpDown Value="{Binding RouteTolerance, Mode=TwoWay}" Increment="0.01" Minimum="{Binding MinRouteTolerance}"
+                                   Maximum="{Binding MaxRouteTolerance}" FormatString="0.00" Width="104" ToolTip.Tip="{x:Static l:Strings.Holds_RouteToleranceTip}"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="{x:Static l:Strings.Holds_RouteAccept}" Command="{Binding AcceptRouteCommand}" IsVisible="{Binding IsRouteReview}"/>
+                    <Button Content="{x:Static l:Strings.Holds_RouteCancel}" Command="{Binding CancelRouteCommand}"/>
+                  </StackPanel>
+                </StackPanel>
+
                 <!-- Phase 31 (D047): automatic proposals on the first markup frame. -->
                 <CheckBox Content="{x:Static l:Strings.Holds_ProposeAutomatically}" IsChecked="{Binding IsProposalGenerationEnabled, Mode=TwoWay}"
                           IsVisible="{Binding CanShowProposalToggle}" ToolTip.Tip="{x:Static l:Strings.Holds_ProposeAutomaticallyTip}"/>
@@ -554,7 +572,7 @@
 
                 <StackPanel Spacing="6" IsVisible="{Binding HasProposals}">
                   <TextBlock Text="{x:Static l:Strings.Holds_ProposalsHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
-                  <StackPanel Orientation="Horizontal" Spacing="8">
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsRouteSelection}">
                     <TextBlock Text="{x:Static l:Strings.Holds_ShowTop}" Classes="label" VerticalAlignment="Center"/>
                     <ComboBox ItemsSource="{Binding MaxProposalsOptions}" SelectedItem="{Binding MaxProposalsToShow, Mode=TwoWay}" Width="70"/>
                   </StackPanel>
@@ -564,14 +582,15 @@
                         <Grid ColumnDefinitions="*,Auto,Auto">
                           <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                           <Button Grid.Column="1" Content="{x:Static l:Strings.Holds_Accept}" Margin="0,0,4,0"
-                                  Command="{Binding #ProposalsListBox.DataContext.AcceptSelectedProposalCommand}"/>
+                                  Command="{Binding #ProposalsListBox.DataContext.AcceptSelectedProposalCommand}"
+                                  IsVisible="{Binding !#ProposalsListBox.DataContext.IsRouteSelection}"/>
                           <Button Grid.Column="2" Content="{x:Static l:Strings.Holds_Reject}"
                                   Command="{Binding #ProposalsListBox.DataContext.RejectSelectedProposalCommand}"/>
                         </Grid>
                       </DataTemplate>
                     </ListBox.ItemTemplate>
                   </ListBox>
-                  <StackPanel Orientation="Horizontal" Spacing="8">
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsRouteSelection}">
                     <Button Content="{x:Static l:Strings.Holds_AcceptAll}" Command="{Binding AcceptAllProposalsCommand}"/>
                     <Button Content="{x:Static l:Strings.Holds_RejectAll}" Command="{Binding RejectAllProposalsCommand}"/>
                   </StackPanel>
@@ -617,14 +636,24 @@
                              ToolTip.Tip="{x:Static l:Strings.Holds_KeylineTip}"/>
                 </StackPanel>
 
+                <!-- D048 §3.4: the standard layout from the playhead (T) — an explicit action, one undo step. -->
+                <Button Content="{x:Static l:Strings.Holds_LayOut}" Command="{Binding LayOutIntroAndFinalCommand}"
+                        ToolTip.Tip="{x:Static l:Strings.Holds_LayOutTip}"/>
+
                 <!-- Animation (Phase 21, D036): the holds appear one by one from a moment of the video, stay, and vanish
                      together. Every change is one undo step (consecutive changes of one setting merge). -->
                 <CheckBox Content="{x:Static l:Strings.Holds_Animate}" IsChecked="{Binding IsAnimated, Mode=TwoWay}"
                           ToolTip.Tip="{x:Static l:Strings.Holds_AnimateTip}"/>
                 <StackPanel Spacing="6" IsVisible="{Binding IsAnimated}">
-                  <StackPanel Orientation="Horizontal" Spacing="8">
+                  <!-- D048 §3.1 / §3.3: a Duration-mode animation (made by the layout) has its length and three orders;
+                       the Interval-mode fields below are hidden for it. -->
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsIntervalMode}">
                     <TextBlock Text="{x:Static l:Strings.Holds_Order}" Classes="label"/>
                     <ComboBox ItemsSource="{Binding AnimationOrders}" SelectedIndex="{Binding AnimationOrderIndex, Mode=TwoWay}" Width="140"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsDurationMode}">
+                    <TextBlock Text="{x:Static l:Strings.Holds_Order}" Classes="label"/>
+                    <ComboBox ItemsSource="{Binding DurationAnimationOrders}" SelectedIndex="{Binding DurationOrderIndex, Mode=TwoWay}" Width="140"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Holds_Start}" Classes="label"/>
@@ -638,7 +667,14 @@
                     <Button Content="{x:Static l:Strings.Holds_SetToPlayhead}" Command="{Binding SetStartToPlayheadCommand}"
                             ToolTip.Tip="{x:Static l:Strings.Holds_SetToPlayheadTip}"/>
                   </StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="8">
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsDurationMode}">
+                    <TextBlock Text="{x:Static l:Strings.Holds_AnimationDuration}" Classes="label"/>
+                    <controls:CommitNumericUpDown Value="{Binding AnimationDuration, Mode=TwoWay}" Increment="0.1" Minimum="0" Maximum="{Binding MaxAnimationDuration}"
+                                   FormatString="0.###" Width="104"
+                                   ToolTip.Tip="{x:Static l:Strings.Holds_AnimationDurationTip}"/>
+                    <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsIntervalMode}">
                     <TextBlock Text="{x:Static l:Strings.Holds_Interval}" Classes="label"/>
                     <controls:CommitNumericUpDown Value="{Binding AnimationInterval, Mode=TwoWay}" Increment="0.05" Minimum="{Binding MinAnimationInterval}" Maximum="{Binding MaxAnimationInterval}"
                                    FormatString="0.###" Width="104"/>
@@ -650,18 +686,18 @@
                                    FormatString="0.###" Width="104" ToolTip.Tip="{x:Static l:Strings.Holds_FadeTip}"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="8">
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsIntervalMode}">
                     <TextBlock Text="{x:Static l:Strings.Holds_StayAfterLast}" Classes="label"/>
                     <controls:CommitNumericUpDown Value="{Binding StayAfterLast, Mode=TwoWay}" Increment="0.5" Minimum="0" Maximum="{Binding MaxAnimationStay}"
                                    FormatString="0.###" Width="104" IsEnabled="{Binding !StayUntilClipEnd}"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Seconds}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="8">
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsIntervalMode}">
                     <TextBlock Text="" Width="116"/>
                     <CheckBox Content="{x:Static l:Strings.Holds_UntilClipEnd}" IsChecked="{Binding StayUntilClipEnd, Mode=TwoWay}"
                               ToolTip.Tip="{x:Static l:Strings.Holds_UntilClipEndTip}"/>
                   </StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !StayUntilClipEnd}">
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowsDisappearFade}">
                     <TextBlock Text="{x:Static l:Strings.Holds_DisappearFade}" Classes="label"/>
                     <controls:CommitNumericUpDown Value="{Binding DisappearFade, Mode=TwoWay}" Increment="0.05" Minimum="0" Maximum="{Binding MaxAnimationFade}"
                                    FormatString="0.###" Width="104" ToolTip.Tip="{x:Static l:Strings.Holds_FadeTip}"/>

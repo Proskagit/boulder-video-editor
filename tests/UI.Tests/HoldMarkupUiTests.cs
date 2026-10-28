@@ -808,6 +808,40 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     }
 
     [Fact]
+    public void A_laid_out_animation_shows_its_duration_and_three_orders_and_hides_the_interval_fields()
+    {
+        var clip = AddVideo();                                                          // 10 s, 250 frames
+        foreach (var x in new[] { 0.2, 0.4, 0.6 })
+            Assert.True(_edit.AddHold(clip.Id, new Hold(Guid.NewGuid(), ImmutableArray.Create(new NormalizedPoint(x, 0.5),
+                new NormalizedPoint(x + 0.05, 0.5), new NormalizedPoint(x, 0.55)), default, default, MediaTime.Zero)).Success);
+        Assert.True(Markup.IsIntervalMode);
+        _vm.Timeline.SetPlayhead(clip.TimelineStart + MediaTime.FromSeconds(5));
+        Markup.LayOutIntroAndFinalCommand.Execute(null);                                // A = 125 → Fa = 89 frames
+
+        Assert.True(Markup.IsAnimated);
+        Assert.True(Markup.IsDurationMode);
+        Assert.False(Markup.IsIntervalMode);
+        Assert.False(Markup.ShowsDisappearFade);
+        Assert.Equal(3.56m, Markup.AnimationDuration);
+        Assert.Equal(0, Markup.DurationOrderIndex);
+        Assert.Equal(3, Markup.DurationAnimationOrders.Count);
+
+        Markup.DurationOrderIndex = 2;
+        Assert.Equal(HoldAnimationOrder.RightToLeft, clip.HoldMarkup!.Animation!.Order);
+        Markup.AnimationDuration = 2.01m;                                               // whole frames: 50
+        Assert.Equal(MediaTime.FromFrame(50, Rate), clip.HoldMarkup!.Animation!.Duration);
+        Assert.Equal(2m, Markup.AnimationDuration);
+
+        Markup.AnimationDuration = 9m;                                                  // past the clip's end: refused
+        Assert.Equal(MediaTime.FromFrame(50, Rate), clip.HoldMarkup!.Animation!.Duration);
+        Assert.Equal(2m, Markup.AnimationDuration);
+        Assert.Equal(AiVideoEditor.Core.Localization.Messages.Overlay_OrangeOutsideClip, _status.Message);
+
+        _undo.Undo();
+        Assert.Equal(3.56m, Markup.AnimationDuration);                                  // the Inspector follows the undo
+    }
+
+    [Fact]
     public void During_an_export_the_animation_cannot_change()
     {
         var clip = AddVideo();

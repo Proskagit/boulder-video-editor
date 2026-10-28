@@ -375,6 +375,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
                 : null;
             vm.OnStatusChanged();
         }
+        RefreshStrips();
     }
 
     /// <summary>Recomputes every pixel position from the model at the current zoom.</summary>
@@ -647,7 +648,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private bool CanEdit() => !_editingLock.IsLocked;
 
-    private bool CanDeleteSelected() => CanEdit() && (HasSelection || HasTransitionSelection);
+    private bool CanDeleteSelected() => CanEdit() && (HasSelection || HasTransitionSelection || SelectedOrangeClipId is not null);
 
     /// <summary>The Dissolve command needs two selected clips on one track (a linked clip brings its partner into the
     /// selection, AQ1: the clips of the primary's track count); whether they meet and how long a dissolve — a crossfade on
@@ -733,6 +734,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanDeleteSelected))]
     private void DeleteSelected()
     {
+        if (SelectedOrangeClipId is { } markupClip)
+        {
+            DeleteSelectedOrange(markupClip);   // D048 §3.9: the strip's selection, not the clip's
+            return;
+        }
         if (_selectedTransitionId is { } transitionId && _selection.Count == 0)
         {
             var library = _transitionViewModels.TryGetValue(transitionId, out var zone) && zone.Track.Type == TrackType.Video &&
@@ -1152,6 +1158,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     public bool OnClipPressed(TimelineClipViewModel clip, bool toggle)
     {
         DropTransitionSelection();
+        SelectOrange(null);
         if (toggle)
         {
             // D032 AQ1: Ctrl toggles a linked clip together with its partner.
@@ -1336,6 +1343,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
         /// <summary>The slip's frames so far (positive: later source content).</summary>
         public long SlipFrames { get; set; }
+
+        /// <summary>A strip handle's drag (D048 §4.2): which handle; the frames so far (snapped).</summary>
+        public OverlayStripHandle? StripHandle { get; init; }
+
+        public long StripFrames { get; set; }
     }
 
     public void BeginMove(double contentX)
@@ -1389,7 +1401,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         g.Active = true;
 
         var rawDelta = TimelineCoordinateMapper.XToTime(contentX - g.StartX, PixelsPerSecond);
-        if (g.Slip) UpdateSlip(g, rawDelta);
+        if (g.StripHandle is { } handle) UpdateStrip(g, handle, rawDelta);
+        else if (g.Slip) UpdateSlip(g, rawDelta);
         else if (g.Edge is { } edge) UpdateTrim(g, edge, rawDelta);
         else UpdateMove(g, rawDelta, trackUnderPointer);
     }
@@ -1564,6 +1577,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
         _gesture = null;
         ResetGestureVisuals(g);
+        if (g.StripHandle is { } stripHandle)
+        {
+            EndStrip(g, stripHandle);
+            return;
+        }
 
         var result = g.Slip
             ? _edit.SlipClip(g.Clips[0].Id, g.SlipFrames)
@@ -1594,6 +1612,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
         {
             clip.IsInvalid = false;
             clip.SlipText = null;
+        }
+        foreach (var vm in _clipViewModels.Values)   // a strip drag may show its interval on the template (variant B)
+        {
+            vm.StripText = null;
+            vm.IsStripInvalid = false;
         }
         foreach (var zone in _transitionViewModels.Values) zone.IsVisible = true;
     }

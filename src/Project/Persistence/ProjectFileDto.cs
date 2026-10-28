@@ -262,6 +262,14 @@ internal sealed class HoldAnimationDto
     public long? StayAfterLastTicks { get; set; }
     public bool? StayUntilClipEnd { get; set; }
     public long? DisappearFadeTicks { get; set; }
+
+    /// <summary>Format v10 (D048 §3.7): the duration mode and its length; written only for <c>Duration</c> (absent:
+    /// the interval mode, as every older file).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public HoldAnimationMode? Mode { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? DurationTicks { get; set; }
 }
 
 /// <summary>One hold: the contour as a flat list <c>[x0, y0, x1, y1, …]</c> of normalized source coordinates, the colour
@@ -314,6 +322,10 @@ internal sealed class TemplateClipDto : ClipDto
 
     /// <summary>«Боулдер»'s status moment on the template's clock (D045 §17).</summary>
     public long? StatusAtTicks { get; set; }
+
+    /// <summary>Format v10 (D048 §3.5): the video clip the template is anchored to; written only when set.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? AnchorClipId { get; set; }
 }
 
 internal sealed class TextClipDto : ClipDto

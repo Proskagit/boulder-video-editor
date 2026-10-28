@@ -45,6 +45,14 @@ public sealed class LocalizationTests
         Assert.Equal("{0} clip|{0} clips", Messages.Plural_Clips);
     }
 
+    [Fact]
+    public void The_two_frame_status_refusal_is_translated()
+    {
+        Assert.Contains("two frames", Messages.Overlay_StatusTooShort);
+        using (UiLanguage.Use("ru"))
+            Assert.Contains("двух кадров", Messages.Overlay_StatusTooShort);
+    }
+
     [Theory]
     [InlineData("ru", "ru")]
     [InlineData("RU", "ru")]

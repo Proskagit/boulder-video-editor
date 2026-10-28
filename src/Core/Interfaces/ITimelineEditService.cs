@@ -361,6 +361,28 @@ public interface ITimelineEditService
     /// speed changes of the same clip merge into one Undo step.</summary>
     TimelineEditResult SetClipSpeed(Guid clipId, ClipSpeed speed);
 
+    /// <summary>"Lay out intro and final" (D048 §3.4): from <paramref name="t"/> (<c>T</c>, inside the clip or at its end) on a
+    /// video clip with holds — the hold animation in the Duration mode ending exactly at <c>T</c> (5 s, shortened 2 : 5 with
+    /// less than 7 s before <c>T</c>) and a «Боулдер» anchored to the clip from the plate's start to the clip's end, its status
+    /// from the last 5 s but never before <c>T</c>. One Undo step; an explicit action — accepting a route never runs it.</summary>
+    TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t);
+
+    /// <summary>The overlay strip of a video clip (D048 §4.1) in timeline frames, or null when it has neither an anchored
+    /// «Боулдер» nor a Duration-mode animation.</summary>
+    OverlayStripState? OverlayStripOf(Guid videoClipId);
+
+    /// <summary>A strip handle dragged by <paramref name="frameDelta"/> frames (D048 §4.2): one Undo step; the limits stop
+    /// the value, an overlap of the lilac with the green or the orange is refused with a message; no change → no step.</summary>
+    TimelineEditResult EditOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta);
+
+    /// <summary>What <see cref="EditOverlayStrip"/> would do now, for the drag's preview: the planned segments and, when
+    /// the release would be refused, why. Null when there is nothing to drag (no such segment, not a video clip).</summary>
+    OverlayStripPreview? PreviewOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta);
+
+    /// <summary>D048 §3.9, Delete on the selected orange segment: the clip's whole hold markup removed (the holds, the
+    /// animation) — one Undo step that restores it; the templates and the clip stay. No markup → no change.</summary>
+    TimelineEditResult DeleteHoldMarkup(Guid videoClipId);
+
     /// <summary>Adds the track's default transition — a cross dissolve on a video track, a crossfade on an audio track —
     /// of <paramref name="duration"/> (whole frames, within the type's range: D044 §5) on the cut between two touching
     /// clips of one unlocked track (D025 §3–§5). Rejected, with nothing created, when the clips don't touch, the cut

@@ -25,6 +25,10 @@ public sealed class EditPlan
     private readonly HashSet<Transition> _transitionRemoves = new();
     private readonly Dictionary<MediaBackedClip, ClipLinkState> _links = new();
     private readonly List<MediaBackedClip> _clearedLinks = new();
+    private readonly Dictionary<VideoClip, HoldMarkup?> _markups = new();
+    private readonly Dictionary<TemplateClip, TemplateProperties> _templateFields = new();
+    private readonly Dictionary<TemplateClip, Guid?> _anchors = new();
+    private readonly HashSet<Clip> _splitLefts = new();
 
     public EditPlan(Sequence sequence, ProjectSettings settings)
     {
@@ -48,6 +52,7 @@ public sealed class EditPlan
     public IEnumerable<Track> AllTracks => _sequence.VideoTracks.Concat(_sequence.AudioTracks);
 
     public bool IsEmpty => NewFrameRate is null && _updates.Count == 0 && _inserts.Count == 0 && _removes.Count == 0 && _properties.Count == 0
+        && _markups.Count == 0 && _templateFields.Count == 0 && _anchors.Count == 0
         && _transitionUpdates.Count == 0 && _transitionAdds.Count == 0 && _transitionRemoves.Count == 0 && _links.Count == 0;
 
     /// <summary>Dissolves <see cref="ReconcileTransitions"/> removed because their cut no longer exists.</summary>
@@ -73,6 +78,62 @@ public sealed class EditPlan
     }
 
     public void Update(Clip clip, Track toTrack, ClipState after) => _updates[clip] = (toTrack, after);
+
+    /// <summary>The timing the plan gives an existing clip, or null when it doesn't change it.</summary>
+    public ClipState? PlannedState(Clip clip) => _updates.TryGetValue(clip, out var u) ? u.After : null;
+
+    // --- Overlays (D048) ---------------------------------------------------------------------------------------------
+
+    /// <summary>The templates whose timing the overlay rules planned (carried with their clip, trimmed, scaled) — told
+    /// apart from a template the user edits itself.</summary>
+    public HashSet<Clip> Carried { get; } = new();
+
+    /// <summary>Replaces a video clip's hold markup as part of the edit (D048: a speed change, a trim, a split); null
+    /// deletes it.</summary>
+    public void SetMarkup(VideoClip clip, HoldMarkup? after) => _markups[clip] = after;
+
+    /// <summary>The markup the plan leaves on <paramref name="clip"/>.</summary>
+    public HoldMarkup? MarkupOf(VideoClip clip) => _markups.TryGetValue(clip, out var m) ? m : clip.HoldMarkup;
+
+    /// <summary>Sets a template's fields (the status, its moment) as part of the edit; replaces an earlier value.</summary>
+    public void SetTemplateFields(TemplateClip clip, TemplateProperties after) => _templateFields[clip] = after;
+
+    /// <summary>The fields the plan leaves on <paramref name="clip"/>.</summary>
+    public TemplateProperties TemplateFieldsOf(TemplateClip clip) =>
+        _templateFields.TryGetValue(clip, out var p) ? p : TemplateProperties.Of(clip)!.Value;
+
+    /// <summary>Sets the clip an existing template is anchored to (D048 §3.5).</summary>
+    public void SetAnchor(TemplateClip clip, Guid? anchor) => _anchors[clip] = anchor;
+
+    /// <summary>The anchor the plan leaves on <paramref name="clip"/>.</summary>
+    public Guid? AnchorOf(TemplateClip clip) => _anchors.TryGetValue(clip, out var a) ? a : clip.AnchorClipId;
+
+    /// <summary>Marks the left part of a split: the split's own overlay rule applies to it, not the trim's.</summary>
+    public void MarkSplitLeft(Clip clip) => _splitLefts.Add(clip);
+
+    public bool IsSplitLeft(Clip clip) => _splitLefts.Contains(clip);
+
+    /// <summary>The commands of the overlay changes (markups, template fields, anchors).</summary>
+    public List<IUndoableCommand> BuildOverlayCommands()
+    {
+        var commands = new List<IUndoableCommand>();
+        foreach (var (clip, after) in _markups)
+        {
+            var before = clip.HoldMarkup;
+            if ((before is null && after is null) || (before is not null && after is not null && after.SameAs(before))) continue;
+            commands.Add(new SetHoldMarkupCommand(clip, before, after, HoldMarkupFields.Holds | HoldMarkupFields.Animation));
+        }
+        foreach (var (clip, after) in _templateFields)
+        {
+            var before = ClipPropertyValues.Capture(clip);
+            var full = before with { Template = after };
+            var fields = ClipPropertyValues.Diff(before, full);
+            if (fields != ClipPropertyFields.None) commands.Add(new SetClipPropertiesCommand(clip, before, full, fields));
+        }
+        foreach (var (clip, after) in _anchors)
+            if (clip.AnchorClipId != after) commands.Add(new SetTemplateAnchorCommand(clip, clip.AnchorClipId, after));
+        return commands;
+    }
 
     public void Insert(Track track, Clip clip) => _inserts.Add((track, clip));
 
@@ -143,7 +204,7 @@ public sealed class EditPlan
         {
             var before = ClipPropertyValues.Capture(clip);
             var full = new ClipPropertyValues(after.Visual ?? before.Visual, after.Audio ?? before.Audio, after.Text ?? before.Text,
-                after.Fade ?? before.Fade);
+                after.Fade ?? before.Fade, after.Template ?? before.Template);
             var fields = ClipPropertyValues.Diff(before, full);
             if (fields != ClipPropertyFields.None)
                 commands.Add(new SetClipPropertiesCommand(clip, before, full, fields));
@@ -364,6 +425,7 @@ public sealed class EditPlan
         commands.AddRange(BuildPropertyCommands());
         commands.AddRange(BuildTransitionCommands());
         commands.AddRange(BuildLinkCommands(description));
+        commands.AddRange(BuildOverlayCommands());
 
         if (commands.Count == 0)
             throw new InvalidOperationException("Cannot build a command from an empty plan.");
