@@ -10,13 +10,16 @@ and are not restated here. Phase 36 stays separate and deferred.
 
 ## Current phase
 
-**State on 2026-10-28 — numbering confirmed by the product owner (variant A).** Official phases: 0–29 complete; 30 and 31
-technically complete (the owner's acceptance open, below); **32 / 33 / 34 = D048's stages 1 / 2 / 3**, approved as implemented
-and merged in PR #32 (`1e58885`; 32 paused / deferred). The last official phase is **34**; the next is **Phase 35** — the
+**State on 2026-10-28 — numbering confirmed by the product owner (variant A).** Phases 0–29 complete (merged and accepted —
+the **last complete phase is 29**); 30 and 31 technically complete, their full acceptance open (below); **32 / 33 / 34 =
+D048's stages 1 / 2 / 3**, all merged in PR #32 (`1e58885`) — 32 implemented and paused / deferred, 33 and 34 implemented;
+D048 approved as implemented 2026-10-28, a separate formal acceptance of 33 and 34 not recorded. The **highest phase number
+in use is 34**; the next is **Phase 35** — the
 import of COROS trainings (formerly "Phase Coros": Step 35.1 = C0 in the local branch `feat/phase-coros-c0`, Step 35.2 = C1 in
 `feat/phase-coros-c1`; not merged, not pushed; 35.2 awaits the owner's manual acceptance; the phase's decision 35.0 not yet
 written), then **Phase 36** — the session summary and the YouTube chapters (specification draft in the local branch
-`docs/session-summary-youtube-chapters`). `project.json` v11: one decision, D049, before either phase changes the format.
+`docs/session-summary-youtube-chapters`). `project.json` v11 — a planned format, not implemented — is to be decided once, in **D049** (number reserved; a planned decision, not approved and not yet in `DECISIONS.md`), before either phase
+changes the format.
 Rules and the table of old and new labels: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering". The paragraphs below
 keep their dates; where they call D048 proposed or the hold tracking in progress, this paragraph prevails (D048 approved and
 merged; the hold tracking merged in PR #31, accepted for continued development, unnumbered).

@@ -8041,9 +8041,11 @@ Proposed **Phase 32 / 33 / 34** for stages 1 / 2 / 3. Checked 2026-10-27: unused
 phase is "Phase Coros", unnumbered). To be fixed by the owner when D048 is approved — Phase Coros may need a number too.
 
 **Confirmed (product owner, 2026-10-28, "variant A")**: **Phase 32** — stage 1 (implemented, paused / deferred), **Phase 33**
-— stage 2, **Phase 34** — stage 3 (both done; all three merged in PR #32 as `1e58885`). Stages 2 and 3 were developed and
-merged together, so Phases 33 and 34 share one pull request. The import of COROS trainings ("Phase Coros") is **Phase 35**,
-the session summary and the YouTube chapters **Phase 36**; `project.json` v11 is a separate decision **D049** (planned).
+— stage 2, **Phase 34** — stage 3 (both implemented). **PR #32 (`1e58885`) included Phases 32–34**: the three phases share one
+pull request — a historical exception to the rule of a pull request per phase. The approval of this decision «as
+implemented» (2026-10-28) is not a separate formal acceptance of Phases 33 and 34 under the numbering rules; none is
+recorded. The import of COROS trainings ("Phase Coros") is **Phase 35**, the session summary and the YouTube chapters
+**Phase 36**; `project.json` v11 — a planned format, not implemented — is a separate decision **D049** (number reserved; a planned decision, not approved and not yet in `DECISIONS.md`).
 The numbering rules and the table of old and new labels: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering".
 
 ### 7. Open questions for the owner

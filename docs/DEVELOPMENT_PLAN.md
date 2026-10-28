@@ -174,7 +174,8 @@ and runs cleanly.
       criteria: section below and DECISIONS.md D045 (approved 2026-10-21). *(Branch `feat/phase-29-templates` from
       `4f0e66a`; Steps 29.0–29.6 and the corrections of D045 §17 done; accepted by the product owner on 2026-10-22;
       PR #30 merged into `main` as `e28a9d3` (2026-10-22), CI green on the pull request)*
-- [x] **Phase 30 — Stabilisation of the current base (D042 Phase G; technical closeout).** The technical stabilisation
+- [ ] **Phase 30 — Stabilisation of the current base (D042 Phase G; technical closeout).** *Technically complete; the full
+      acceptance (S1) open — not a complete phase ("Phase and step numbering").* The technical stabilisation
       of the main path and the portable build is **complete by the product owner's decision of 2026-10-24**: the local
       technical verification passed (builds 0/0, full and heavy test suites 0 failed, three `--blame-hang` runs clean,
       `git diff --check` clean, v9 byte-for-byte round-trip covered by `Project.Tests`, the portable folder rebuilt and the
@@ -189,6 +190,13 @@ and runs cleanly.
 - [ ] **Planned (D042; numbers given when taken up):** R1 → D — automatic hold proposals (now Phase 31) · R2 → E — outlines
       following the camera (unnumbered; camera-motion part merged in PR #31) · R3 → F — COROS heart rate and telemetry (now
       Phase 35) · H — Final UX Pass. Section below; numbering: "Phase and step numbering".
+- [ ] **Phase 32 — the route selection at `T` (D048 stage 1): implemented, paused / deferred.** «Авторазметка» hidden,
+      the code and the research kept (`docs/HOLD_AUTO_DETECTION_RESEARCH.md`). Merged in PR #32 (`1e58885`); not complete.
+- [ ] **Phases 33–34 — D048 stages 2 and 3: implemented and merged in PR #32 (`1e58885`); a separate formal acceptance of
+      each phase not recorded.** D048 approved as implemented on 2026-10-28 (DECISIONS.md D048; numbers confirmed by the
+      product owner 2026-10-28):
+      - Phase 33 — the timing model, the template ↔ clip anchor and `project.json` v10;
+      - Phase 34 — the overlay strip, **variant B** (the segments inside the «Боулдер»), the lane Debug-only.
 - [ ] **Phase 37 — Preliminary route starts from a COROS FIT and the global start calibration.** DECISIONS.md D051
       (approved 2026-11-03); **documentation only (Step 37.0), not implemented**. Steps 37.0–37.7, the decisions of
       2026-11-03, the tests and the dependencies: `docs/PHASE37.md`; manual plan: `docs/PHASE37_MANUAL_TEST_PLAN.md`.
@@ -196,16 +204,10 @@ and runs cleanly.
       2026-11-03; the implementation branch is cut from `main` after pull request 2. Phase 36 (the session summary and
       the YouTube chapters) is separate, deferred work, not part of Phase 37. *(Documentation branch `docs/phase-37`
       from `feat/phase-coros-c1` `4070ffc`; the state lines of Phases 35 and 36 are on `docs/phase-numbering`.)*
-- [x] **Phases 32–34 — D048, approved 2026-10-28, as implemented** (DECISIONS.md D048; numbers confirmed by the product owner
-      2026-10-28 — Phase 32 = stage 1, 33 = stage 2, 34 = stage 3; merged in PR #32 as `1e58885`):
-      - stage 1 — the route selection at `T`: implemented, then **paused / deferred**; «Авторазметка» hidden, the code
-        and the research kept (`docs/HOLD_AUTO_DETECTION_RESEARCH.md`);
-      - stage 2 — the timing model, the template ↔ clip anchor and `project.json` v10: done;
-      - stage 3 — the overlay strip: done, **variant B** (the segments inside the «Боулдер»), the lane Debug-only.
 
       Manual markup stays the main scenario. Section "D048: route selection, intro / final timing and the overlay strip"
       below (written before the approval).
-- **Phase 31 technically complete (D047 approved 2026-10-25):** Steps 31.1–31.7 are complete: Core proposal types and
+- [ ] **Phase 31 — technically complete; the full manual acceptance open (D047 approved 2026-10-25):** Steps 31.1–31.7 are complete: Core proposal types and
       pipeline, proposal generation at downscaled resolution, full-resolution refinement of accepted proposals, the proposal
       review UI / ViewModel, integration with the manual D034 flow / project mutation, the manual test plan / performance
       optimization, and final verification / closeout. The default grid was changed from 16×16 to 15×15 during Step 31.6: it
@@ -230,7 +232,12 @@ The labels of the plan had mixed three things — phases, the steps inside them 
 - **Phase N** — an official phase: its own decision (a D-number, approved by the product owner), its plan, its acceptance
   criteria, its manual test plan and its own pull request (or several, named in the plan). A phase is **complete** only when
   it is merged into `main` and accepted by the product owner; "technically complete" means the local verification passed
-  and the owner's acceptance is still open. A local commit completes nothing.
+  and the owner's acceptance is still open. A merge alone is not an acceptance, and a local commit completes nothing. In
+  the checklist above `[x]` marks a complete phase only; a phase merged or technically complete but not accepted keeps
+  `[ ]` with its state.
+- **Historical exception — Phases 30–34**: Phases 30 and 31 reached `main` through PR #31, Phases 32–34 through PR #32,
+  without pull requests of their own, and Phases 32–34 without manual test plans of their own. From **Phase 35** on, every
+  phase follows these rules.
 - **Step N.k** — a step inside Phase N: N.0 the documentation and the plan, then N.1, N.2, …, the last one the
   verification and closeout. The step labels used before a phase got its number (C0, S1, MVP-1, stage 2, …) are kept only in
   the history (commit messages, old records) and in the table below.
@@ -241,23 +248,24 @@ The labels of the plan had mixed three things — phases, the steps inside them 
   `ROADMAP.md` are the release stopping points (S1 the minimum useful release) — not steps; C1–C6 of Phase 30 are its
   performance targets. To avoid clashes, no new step is labelled with a bare S- or C-number.
 - **Format versions** that two phases need are decided once, in their own decision, before either phase's step that
-  changes the format: `project.json` v11 — **D049** (planned).
+  changes the format: `project.json` v11 (a planned format, not implemented) — **D049** (number reserved; a planned decision, not approved and not yet in `DECISIONS.md`).
 
 ### Official phases on 2026-10-28
 
 | Phase | Decision | State | Merged |
 |---|---|---|---|
 | 0–29 | … D045 | complete: merged and accepted | Phase 29 — PR #30, `e28a9d3` |
-| 30 — stabilisation (D042 G) | D046 | technically complete 2026-10-24; full S1 acceptance deferred | in PR #31 (`024f3fb`), no PR of its own |
-| 31 — automatic hold proposals (D042 D) | D047 | technically complete 2026-10-26; the owner's manual A / B / E checks open | in PR #31 (`024f3fb`), no PR of its own |
+| 30 — stabilisation (D042 G) | D046 | technically complete 2026-10-24; full acceptance (S1) open | in PR #31 (`024f3fb`), no PR of its own |
+| 31 — automatic hold proposals (D042 D) | D047 | technically complete 2026-10-26; full manual acceptance (A / B / E checks) open | in PR #31 (`024f3fb`), no PR of its own |
 | — R2 → E, hold tracking | none (no number) | accepted for continued development, not complete (D048 §1.17) | PR #31, `024f3fb` |
-| 32 — route selection at `T` (D048 stage 1) | D048 | implemented, paused / deferred («Авторазметка» hidden) | PR #32, `1e58885` |
-| 33 — timing model, anchors, `project.json` v10 (D048 stage 2) | D048 | done, approved as implemented 2026-10-28 | PR #32, `1e58885` |
-| 34 — the overlay strip (D048 stage 3) | D048 | done, variant B, approved as implemented 2026-10-28 | PR #32, `1e58885` |
+| 32 — route selection at `T` (D048 stage 1) | D048 | implemented, paused / deferred («Авторазметка» hidden); not complete | PR #32, `1e58885` |
+| 33 — timing model, anchors, `project.json` v10 (D048 stage 2) | D048 | implemented and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
+| 34 — the overlay strip (D048 stage 3) | D048 | implemented (variant B) and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
 | 35 — COROS trainings | to be approved | planned; Steps 35.1–35.2 in local branches | — |
 | 36 — summary and chapters | to be approved | planned; specification draft | — |
 
-The last official phase is 34; the next new phase is **35**.
+The **highest phase number in use is 34**; the **last complete phase** (merged and accepted) **is 29**; the next new
+phase is **35**.
 
 ### Old and new labels
 
@@ -269,10 +277,11 @@ The last official phase is 34; the next new phase is **35**.
 | D048 stage 2, D048-2, "proposed Phase 33" | Phase 33 |
 | D048 stage 3, D048-3, "proposed Phase 34" | Phase 34 |
 | R2 → E, "Hold tracking" | unchanged — unnumbered until it is taken up again |
-| R3 → F, F, "Phase Coros" (`docs/PHASE_COROS.md`) | R3 (the research, done on a real export) + Phase 35 |
+| R3 → F, F, "Phase Coros" (`docs/PHASE_COROS.md`, branch `feat/phase-coros-c1`) | R3 (the research, carried out on the owner's real APEX 4 FIT export; described in `docs/PHASE_COROS.md` §1 on the branch `feat/phase-coros-c1`, not in `main`) + Phase 35 |
 | Phase Coros C0 / C1 / C2 / C3 / C4 / C5 | Steps 35.1 / 35.2 / 35.3 / 35.4 / 35.5 / 35.6 |
 | Summary / chapters S0 / S0.5 / S2 + S3 / S1 + S4 / S5 / S6 | Steps 36.0 / 36.1 / 36.2 / 36.3 / 36.4 / 36.5 |
-| Summary / chapters MVP-1 / MVP-2 / MVP-3 | Steps 36.2 / 36.3 / 36.4 |
+| Summary / chapters MVP-1 | Steps 36.1–36.2 + the `PassId` of 36.3 (MVP-1 included S1) |
+| Summary / chapters MVP-2 / MVP-3 | Step 36.3 (the «Итоги» template) / Step 36.4 |
 | S0–S4 (`ROADMAP.md`, stopping points) | unchanged — releases, not steps |
 
 ### Phase 35 — Import of COROS trainings and the heart rate in the video *(planned)*
@@ -304,11 +313,11 @@ rate only from the FIT of the final video's sources (В6); no data → `0` on th
 | Step | Content | Format | Depends on |
 |---|---|---|---|
 | 36.0 | Revision of the specification on current `main` (D048 anchors, v10 taken, COROS session-only), the remaining questions, the decision and the plan | — | — |
-| 36.1 | The pass heuristic checked on the current edit service (formerly S0.5) | none | 36.0 |
-| 36.2 | Passes and YouTube chapters: the window, copy to the clipboard (formerly S2–S3, MVP-1) | none | 36.1 |
-| 36.3 | `PassId` and the «Итоги» template without heart rate (formerly S1 + S4, MVP-2) | v11 | D049 |
-| 36.4 | Heart rate in the summary (formerly S5, MVP-3) | none | Steps 35.4–35.5 |
-| 36.5 | Verification and closeout (formerly S6) | — | — |
+| 36.1 | The pass heuristic checked on the current edit service (formerly S0.5) | none | — (a check of the current code; may run before 36.0) |
+| 36.2 | Passes by the heuristic H of 36.1 (the grouping by `PassId` comes with 36.3) and YouTube chapters: the window, copy to the clipboard (formerly S2–S3) | none | 36.1 |
+| 36.3 | `PassId` (passes grouped by it) and the «Итоги» template without heart rate (formerly S1 + S4; MVP-2, and the `PassId` part of MVP-1) | v11 (planned) | 36.2, D049 |
+| 36.4 | Heart rate in the summary (formerly S5, MVP-3) | none | Steps 35.2–35.4 (formerly C1–C3) |
+| 36.5 | Verification and closeout (formerly S6) | — | 36.2–36.4 |
 
 36.2 may be merged in a pull request of its own before 36.3 if D049 is not decided yet.
 
