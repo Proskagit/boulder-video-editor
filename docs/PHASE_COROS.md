@@ -1,4 +1,10 @@
-# Phase Coros — import of COROS climbing trainings and their synchronisation with the video
+# Phase 35 — import of COROS climbing trainings and their synchronisation with the video
+
+*Formerly «Phase Coros». Numbering confirmed by the product owner on 2026-10-28 (`docs/DEVELOPMENT_PLAN.md` on
+`docs/phase-numbering`, "Phase and step numbering"): this is **Phase 35**; its steps are **35.0–35.6** — the old labels C0–C5
+are kept below in brackets and in the commit messages. The phase is not approved yet (Step 35.0: its decision, plan and
+acceptance criteria) and complete only when merged into `main` and accepted by the product owner — the local commits of
+35.1 and 35.2 complete nothing.*
 
 Branches `feat/phase-coros-c0` (C0) and `feat/phase-coros-c1` (C1, on top of C0), from `origin/main` `1e58885` (Phases 30 / 31, hold tracking and D048 with its stages 2–3 merged;
 `project.json` v10 in the code). C0 was written on `feat/phase-coros` from `e28a9d3` (`32662ee`) and
@@ -39,7 +45,7 @@ difference between the phone and the watch.
   videos (the later automatic rough cut) and for numbering routes.
 - Not available from the file: the grade, flash, a confirmed result — they must come from the user (D042: never guessed).
 
-## 3. Specification (Phase Coros)
+## 3. Specification (Phase 35)
 
 1. **Import**: a COROS FIT activity export; a foreign manufacturer, a non-activity FIT file, a damaged, cut or empty file
    and a file without heart rate are refused with a reason (`TrainingFileError`). Implausible or repeated samples are
@@ -58,12 +64,13 @@ difference between the phone and the watch.
 
 | Step | Content | Acceptance | State |
 |---|---|---|---|
-| **C0** | Core: `Telemetry/FitFile` (FIT reader: header / file CRC, both byte orders, compressed timestamps, developer fields skipped), `CorosWorkoutParser`, `ClimbingWorkout` model, `WorkoutTimeline` (HR at an instant, splits in a range), `WorkoutVideoAlignment`. Tests in `Core.Tests/Telemetry` on synthetic FIT files; `tests/Telemetry.LocalTests` (outside the solution) on the real export | the real export parses to the facts of §1 (14 climbs, 5 766 HR samples, the pause, +3 h); every refusal reason covered; no change of `project.json`, UI or existing code | **done**: build and tests run on Windows (see §7) |
-| **C1** | Import entry: `ITrainingImportService` (Core) + `TrainingImportService` (Media; 16 MiB limit, missing / unreadable file); «Тренировка COROS…» on the toolbar with a `.fit` picker (`TrainingImportWorkflow`); localized refusal texts and warnings (`TrainingText`); the workout held in `TrainingSessionService` (not saved) | importing the real file shows device, date, local time, 14 climbs; each refusal reason has a Russian / English text; nothing persisted | **done**, awaiting the product owner's acceptance (see §7, §8) |
-| C2 | Video timestamps: ffprobe `creation_time` (format and stream tags) read at analysis; its meaning per device (end of recording on this phone) → the automatic source zero; the file-name time as a cross-check; measuring the phone ↔ watch clock difference on the real session (a climb's visible start against its split) | for ≥ 12 of the 14 climbs on video the automatic match is within a stated tolerance, or the measured difference is documented and the correction made mandatory | planned; session-only in the first version (§6.2) |
-| C3 | Alignment per clip + the correction in the Inspector (whole frames, one Undo step); Trim / Split / Move keep the match; persistence | tests: Trim / Split / Move, Undo / Redo, save / load | planned; first version session-only (§6.2) — persistence later, in one version sequence with D048 (v10 is D048's) |
-| C4 | Overlay: heart icon + BPM, a few looks / positions; Preview and export through the one composition path | parity test Preview = export; seeking; data gaps and pauses show nothing | planned |
-| C5 | Manual check on the real session (video + export) | product owner's acceptance | planned |
+| 35.0 | The phase's decision (its D-number when approved), this plan as the acceptance criteria, the manual test plan | approved by the product owner | to do |
+| **35.1** (C0) | Core: `Telemetry/FitFile` (FIT reader: header / file CRC, both byte orders, compressed timestamps, developer fields skipped), `CorosWorkoutParser`, `ClimbingWorkout` model, `WorkoutTimeline` (HR at an instant, splits in a range), `WorkoutVideoAlignment`. Tests in `Core.Tests/Telemetry` on synthetic FIT files; `tests/Telemetry.LocalTests` (outside the solution) on the real export | the real export parses to the facts of §1 (14 climbs, 5 766 HR samples, the pause, +3 h); every refusal reason covered; no change of `project.json`, UI or existing code | **implemented** (`4636dd5`, `f12c5e6`, local branch `feat/phase-coros-c0`); build and tests run on Windows (see §7); not merged |
+| **35.2** (C1) | Import entry: `ITrainingImportService` (Core) + `TrainingImportService` (Media; 16 MiB limit, missing / unreadable file); «Тренировка COROS…» on the toolbar with a `.fit` picker (`TrainingImportWorkflow`); localized refusal texts and warnings (`TrainingText`); the workout held in `TrainingSessionService` (not saved) | importing the real file shows device, date, local time, 14 climbs; each refusal reason has a Russian / English text; nothing persisted | **implemented** (`934bbf6`, local branch `feat/phase-coros-c1`); **the product owner's manual acceptance (§9) open**; not merged |
+| 35.3 (C2) | Video timestamps: ffprobe `creation_time` (format and stream tags) read at analysis; its meaning per device (end of recording on this phone) → the automatic source zero; the file-name time as a cross-check; measuring the phone ↔ watch clock difference on the real session (a climb's visible start against its split) | for ≥ 12 of the 14 climbs on video the automatic match is within a stated tolerance, or the measured difference is documented and the correction made mandatory | planned; session-only in the first version (§6.2) |
+| 35.4 (C3) | Alignment per clip + the correction in the Inspector (whole frames, one Undo step); Trim / Split / Move keep the match; persistence | tests: Trim / Split / Move, Undo / Redo, save / load | planned; first version session-only (§6.2) — persistence later, `project.json` v11 by decision D049 (v10 is D048's) |
+| 35.5 (C4) | Overlay: heart icon + BPM, a few looks / positions; Preview and export through the one composition path | parity test Preview = export; seeking; data gaps and pauses show nothing | planned |
+| 35.6 (C5) | Verification, the manual check on the real session (video + export), closeout | product owner's acceptance | planned |
 
 ## 5. Dependencies and possible conflicts
 
@@ -113,7 +120,7 @@ difference between the phone and the watch.
   the import from disk and the Russian summary «COROS APEX 4 42mm, 27.09.2026 10:02–11:39 (UTC+03:00), 14 подходов»).
   The manual acceptance (§9) is the product owner's — not run.
 
-## 8. C1 — the import into the session (as implemented)
+## 8. Step 35.2 (C1) — the import into the session (as implemented)
 
 - **Entry**: the toolbar button «Тренировка COROS…» right after «Импорт медиа»; one `.fit` file per import. Disabled during
   an export (the editing lock), as the other commands.
@@ -132,7 +139,7 @@ difference between the phone and the watch.
   проект».
 - Not in C1: any use of the workout (alignment, overlay), a «remove training» command, a shortcut.
 
-## 9. C1 — manual acceptance (product owner)
+## 9. Step 35.2 (C1) — manual acceptance (product owner)
 
 Build of `feat/phase-coros-c1`; the real export of 2026-09-27 and any other file at hand. Russian interface.
 
