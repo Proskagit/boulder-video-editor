@@ -163,6 +163,6 @@ public sealed partial class LocalizationGuardTests
     // Interpolation holes and format items are not text.
     [GeneratedRegex(@"\{[^}]*\}")] private static partial Regex Holes();
     // Comments, attributes, logging, internal exceptions, undo descriptions and debug checks are not shown to the user.
-    [GeneratedRegex(@"^\s*(//|\*|\[)|\b(_?[lL]ogger|Log)\.\w+\(|\bLog(Information|Warning|Error|Debug|Trace|Critical)\(|throw new (InvalidOperation|Argument|ArgumentOutOfRange|ArgumentNull|NotSupported|NotImplemented|ObjectDisposed|Format|InvalidData|Unreachable)Exception|Description\s*=>|Debug\.(Assert|Fail)")]
+    [GeneratedRegex(@"^\s*(//|\*|\[)|\b(_?[lL]ogger|Log)\.\w+\(|\bLog(Information|Warning|Error|Debug|Trace|Critical)\(|throw new (InvalidOperation|Argument|ArgumentOutOfRange|ArgumentNull|NotSupported|NotImplemented|ObjectDisposed|Format|InvalidData|Unreachable|TrainingFile)Exception|Description\s*=>|Debug\.(Assert|Fail)")]
     private static partial Regex SkippedLine();
 }

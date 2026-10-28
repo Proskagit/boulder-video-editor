@@ -73,11 +73,11 @@ public static class FitFile
     public static (FitFileInfo Info, IReadOnlyList<FitMessage> Messages) Read(ReadOnlySpan<byte> file)
     {
         if (file.Length < MinimumHeaderSize)
-            throw Fail(TrainingFileError.NotAFitFile, "The file is shorter than a FIT header.");
+            throw new TrainingFileException(TrainingFileError.NotAFitFile, "The file is shorter than a FIT header.");
 
         int headerSize = file[0];
         if (headerSize < MinimumHeaderSize || file.Length < headerSize || !file.Slice(8, 4).SequenceEqual(".FIT"u8))
-            throw Fail(TrainingFileError.NotAFitFile, "The file has no FIT signature.");
+            throw new TrainingFileException(TrainingFileError.NotAFitFile, "The file has no FIT signature.");
 
         var protocol = file[1];
         var profile = BinaryPrimitives.ReadUInt16LittleEndian(file.Slice(2, 2));
@@ -87,16 +87,16 @@ public static class FitFile
         {
             var headerCrc = BinaryPrimitives.ReadUInt16LittleEndian(file.Slice(12, 2));
             if (headerCrc != 0 && headerCrc != Crc16(file[..12]))
-                throw Fail(TrainingFileError.Corrupted, "The FIT header checksum does not match.");
+                throw new TrainingFileException(TrainingFileError.Corrupted, "The FIT header checksum does not match.");
         }
 
         if ((long)headerSize + dataSize + CrcSize > file.Length)
-            throw Fail(TrainingFileError.Truncated, "The FIT file is shorter than its header states.");
+            throw new TrainingFileException(TrainingFileError.Truncated, "The FIT file is shorter than its header states.");
 
         var end = headerSize + (int)dataSize;
         var fileCrc = BinaryPrimitives.ReadUInt16LittleEndian(file.Slice(end, CrcSize));
         if (fileCrc != Crc16(file[..end]))
-            throw Fail(TrainingFileError.Corrupted, "The FIT file checksum does not match.");
+            throw new TrainingFileException(TrainingFileError.Corrupted, "The FIT file checksum does not match.");
 
         var info = new FitFileInfo(headerSize, protocol, profile, (int)dataSize);
         return (info, ReadMessages(file[headerSize..end]));
@@ -123,7 +123,7 @@ public static class FitFile
                 localType = (header >> 5) & 0x03;
                 var offset = header & 0x1F;
                 if (lastTimestamp is not { } last)
-                    throw Fail(TrainingFileError.Malformed, "A compressed timestamp precedes every full timestamp.");
+                    throw new TrainingFileException(TrainingFileError.Malformed, "A compressed timestamp precedes every full timestamp.");
                 var time = (last & ~0x1FL) + offset;
                 if (offset < (last & 0x1F)) time += 0x20;
                 compressedTime = time;
@@ -140,7 +140,7 @@ public static class FitFile
             }
 
             var definition = definitions[localType]
-                ?? throw Fail(TrainingFileError.Malformed, $"Data message of undefined local type {localType}.");
+                ?? throw new TrainingFileException(TrainingFileError.Malformed, $"Data message of undefined local type {localType}.");
 
             var fields = new Dictionary<byte, FitField>(definition.Fields.Length + 1);
             foreach (var (number, size, baseType) in definition.Fields)
@@ -191,7 +191,7 @@ public static class FitFile
     private static ReadOnlySpan<byte> Take(ReadOnlySpan<byte> data, ref int pos, int count)
     {
         if (count > data.Length - pos)
-            throw Fail(TrainingFileError.Truncated, "A FIT message runs past the end of the data.");
+            throw new TrainingFileException(TrainingFileError.Truncated, "A FIT message runs past the end of the data.");
         var slice = data.Slice(pos, count);
         pos += count;
         return slice;
@@ -282,6 +282,4 @@ public static class FitFile
 
         return crc;
     }
-
-    private static TrainingFileException Fail(TrainingFileError error, string message) => new(error, message);
 }
