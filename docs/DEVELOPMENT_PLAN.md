@@ -217,10 +217,11 @@ and runs cleanly.
       desired but not a blocker; refinement runs automatically after Accept and reports failure instead of creating an
       incorrect Hold; proposal pass resolution is the internal default 1920×1080; default prompt grid is 15×15.
 
-- [ ] **Phase 35 — Import of COROS trainings and the heart rate in the video (formerly "Phase Coros", R3 → F).** Planned;
-      its decision and plan (Step 35.0) not yet approved. Steps 35.1 (the FIT reader, formerly C0) and 35.2 (the import into
-      the session, formerly C1) implemented in local branches, not merged; 35.2 awaits the product owner's manual acceptance.
-      See "Phase and step numbering".
+- [ ] **Phase 35 — Import of COROS trainings and the heart rate in the video (formerly "Phase Coros", R3 → F).** Its
+      decisions D049 (the training in the project, the time model, the format) and D050 (the phase) were approved by the
+      product owner on 2026-10-29; their text is on the branch `feat/phase-coros-c1` (Step 35.0, `6fba445`), not yet in `main`. Steps 35.1 (the FIT reader, formerly C0) and 35.2 (the import
+      into the session, formerly C1) done, in local branches, not merged; 35.2's manual acceptance passed (A1–A11 PASS,
+      2026-10-29). Steps 35.3–35.6 not started. See "Phase and step numbering".
 - [ ] **Phase 36 — Session summary and YouTube chapters.** Planned; the specification is a draft
       (`docs/FEATURE_SESSION_SUMMARY_AND_YOUTUBE_CHAPTERS.md`, local branch), no decision, no implementation.
 
@@ -247,8 +248,10 @@ The labels of the plan had mixed three things — phases, the steps inside them 
 - **Letters and other labels keep their own meaning**: A–H and R1–R3 are D042's working labels of directions; S0–S4 in
   `ROADMAP.md` are the release stopping points (S1 the minimum useful release) — not steps; C1–C6 of Phase 30 are its
   performance targets. To avoid clashes, no new step is labelled with a bare S- or C-number.
-- **Format versions** that two phases need are decided once, in their own decision, before either phase's step that
-  changes the format: `project.json` v11 (a planned format, not implemented) — **D049** (number reserved; a planned decision, not approved and not yet in `DECISIONS.md`).
+- **Format versions**: the version sequence is decided before any phase's step that changes the format. D049 (approved
+  2026-10-29; its text is on the branch `feat/phase-coros-c1`, Step 35.0, `6fba445`, not yet in `main`) fixes rule V1: the phase that first merges a format change takes the next free
+  version — expected v11 for Phase 35, whose change reaches `main` only with its second pull request; the number is fixed
+  at merge. A later phase (Phase 36, hold tracking) takes the following free version in its own format decision.
 
 ### Official phases on 2026-10-28
 
@@ -261,7 +264,7 @@ The labels of the plan had mixed three things — phases, the steps inside them 
 | 32 — route selection at `T` (D048 stage 1) | D048 | implemented, paused / deferred («Авторазметка» hidden); not complete | PR #32, `1e58885` |
 | 33 — timing model, anchors, `project.json` v10 (D048 stage 2) | D048 | implemented and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
 | 34 — the overlay strip (D048 stage 3) | D048 | implemented (variant B) and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
-| 35 — COROS trainings | to be approved | planned; Steps 35.1–35.2 in local branches | — |
+| 35 — COROS trainings | D050, D049 (approved 2026-10-29; text on `feat/phase-coros-c1`) | Steps 35.1–35.2 done (35.2 accepted, A1–A11 PASS) in local branches; 35.3–35.6 not started | — |
 | 36 — summary and chapters | to be approved | planned; specification draft | — |
 
 The **highest phase number in use is 34**; the **last complete phase** (merged and accepted) **is 29**; the next new
@@ -286,23 +289,25 @@ phase is **35**.
 
 ### Phase 35 — Import of COROS trainings and the heart rate in the video *(planned)*
 
-Record until merge: `docs/PHASE_COROS.md` (branch `feat/phase-coros-c1`). Owner's decisions already given there: any COROS
-model whose FIT export meets the parser's requirements (the real device is an APEX 4, not a Pace 4); the first version
-keeps the training in the session only, nothing in `project.json`; the route's grade and the attempt's result are set by
-hand (not read from the FIT, not available through COROS MCP).
+Record until merge: `docs/PHASE_COROS.md` (branch `feat/phase-coros-c1`). Decisions: D050 (the phase) and D049 (the
+training in the project, the video ↔ training time model, the format), approved 2026-10-29; their text is on the branch `feat/phase-coros-c1` (Step 35.0, `6fba445`), not yet in `main`. Owner's
+decisions recorded there: any COROS model whose FIT export meets the parser's requirements (the real device is an APEX 4,
+not a Pace 4); the import of Step 35.2 keeps the training in the session only, and from Step 35.4 the training is saved in
+the project (a FIT reference, D049); the route's grade and the attempt's result are set by hand (not read from the FIT,
+not available through COROS MCP).
 
 | Step | Content | Format | State |
 |---|---|---|---|
-| 35.0 | The decision (its D-number when approved), the plan, the acceptance criteria, the manual test plan | — | to do |
-| 35.1 | FIT reader, COROS parser, workout model and timeline (formerly C0) | none | implemented, local branch `feat/phase-coros-c0` |
-| 35.2 | Import into the session: toolbar command, refusals, summary (formerly C1) | none | implemented, local branch `feat/phase-coros-c1`; the owner's manual acceptance open |
-| 35.3 | Video timestamps and the phone ↔ watch clock difference (formerly C2) | none | planned |
-| 35.4 | Alignment per clip and its correction (formerly C3): in the session first; persisted only after D049 | v11 (persistence only) | planned |
-| 35.5 | Heart-rate overlay, Preview = export (formerly C4) | none | planned |
-| 35.6 | Verification, the manual check on the real session, closeout (formerly C5) | — | planned |
+| 35.0 | D049, D050, the plan, the acceptance criteria, the manual test plan | — | done: D049 / D050 approved 2026-10-29; documents on `feat/phase-coros-c1` (`6fba445`), not merged |
+| 35.1 | FIT reader, COROS parser, workout model and timeline (formerly C0) | none | done, local branches `feat/phase-coros-c0` / `feat/phase-coros-c1`; not merged |
+| 35.2 | Import into the session: toolbar command, refusals, summary (formerly C1) | none | done, local branch `feat/phase-coros-c1`; manual acceptance passed (A1–A11 PASS, 2026-10-29); not merged |
+| 35.3 | Recording time: the raw `creation_time` tag and its probe marker; research on the real session — what the tag marks, the phone ↔ watch clock difference, the automatic-zero rule (formerly C2) | new-version members, branch only | not started |
+| 35.4 | Alignment by media file, including its persistence: the training saved in the project (a FIT reference), the clock correction and a per-file zero override, the mapping (formerly C3) | the format change, branch only | not started |
+| 35.5 | Heart-rate overlay, Preview = export; a confirmed export warning when its data is missing (formerly C4) | its members in the same version | not started |
+| 35.6 | Verification, the manual check on the real session, closeout (formerly C5) | — | not started |
 
-Its pull request after 35.0 is approved and the steps taken into it are accepted; if an earlier merge of the import alone
-is wanted, Steps 35.0–35.2 may go in a pull request of their own (named in 35.0).
+Pull requests (D050): **PR 1** — Steps 35.0–35.2, `project.json` stays v10 in `main`; **PR 2** — Steps 35.3–35.6, the
+only pull request that changes the format in `main`; the format number is fixed at merge (V1).
 
 ### Phase 36 — Session summary and YouTube chapters *(planned)*
 
@@ -315,11 +320,11 @@ rate only from the FIT of the final video's sources (В6); no data → `0` on th
 | 36.0 | Revision of the specification on current `main` (D048 anchors, v10 taken, COROS session-only), the remaining questions, the decision and the plan | — | — |
 | 36.1 | The pass heuristic checked on the current edit service (formerly S0.5) | none | — (a check of the current code; may run before 36.0) |
 | 36.2 | Passes by the heuristic H of 36.1 (the grouping by `PassId` comes with 36.3) and YouTube chapters: the window, copy to the clipboard (formerly S2–S3) | none | 36.1 |
-| 36.3 | `PassId` (passes grouped by it) and the «Итоги» template without heart rate (formerly S1 + S4; MVP-2, and the `PassId` part of MVP-1) | v11 (planned) | 36.2, D049 |
+| 36.3 | `PassId` (passes grouped by it) and the «Итоги» template without heart rate (formerly S1 + S4; MVP-2, and the `PassId` part of MVP-1) | a format change (version fixed at merge, V1) | 36.2, Phase 36's own format decision |
 | 36.4 | Heart rate in the summary (formerly S5, MVP-3) | none | Steps 35.2–35.4 (formerly C1–C3) |
 | 36.5 | Verification and closeout (formerly S6) | — | 36.2–36.4 |
 
-36.2 may be merged in a pull request of its own before 36.3 if D049 is not decided yet.
+36.2 may be merged in a pull request of its own before 36.3 if Phase 36's own format decision is not taken yet.
 
 ## Planned phases after Phase 26 (D042)
 

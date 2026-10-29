@@ -10,16 +10,17 @@ and are not restated here. Phase 36 stays separate and deferred.
 
 ## Current phase
 
-**State on 2026-10-28 — numbering confirmed by the product owner (variant A).** Phases 0–29 complete (merged and accepted —
+**State on 2026-10-29 — numbering confirmed by the product owner (variant A).** Phases 0–29 complete (merged and accepted —
 the **last complete phase is 29**); 30 and 31 technically complete, their full acceptance open (below); **32 / 33 / 34 =
 D048's stages 1 / 2 / 3**, all merged in PR #32 (`1e58885`) — 32 implemented and paused / deferred, 33 and 34 implemented;
 D048 approved as implemented 2026-10-28, a separate formal acceptance of 33 and 34 not recorded. The **highest phase number
 in use is 34**; the next is **Phase 35** — the
 import of COROS trainings (formerly "Phase Coros": Step 35.1 = C0 in the local branch `feat/phase-coros-c0`, Step 35.2 = C1 in
-`feat/phase-coros-c1`; not merged, not pushed; 35.2 awaits the owner's manual acceptance; the phase's decision 35.0 not yet
-written), then **Phase 36** — the session summary and the YouTube chapters (specification draft in the local branch
-`docs/session-summary-youtube-chapters`). `project.json` v11 — a planned format, not implemented — is to be decided once, in **D049** (number reserved; a planned decision, not approved and not yet in `DECISIONS.md`), before either phase
-changes the format.
+`feat/phase-coros-c1`; not merged, not pushed; 35.2's manual acceptance passed, A1–A11 PASS, 2026-10-29; Step 35.0 done —
+D049 and D050 approved 2026-10-29, their text is on the branch `feat/phase-coros-c1` (Step 35.0, `6fba445`), not yet in `main`; Steps 35.3–35.6 not started, the next is 35.3), then
+**Phase 36** — the session summary and the YouTube chapters (specification draft in the local branch
+`docs/session-summary-youtube-chapters`). PR 1 of Phase 35 (Steps 35.0–35.2) leaves `project.json` v10; Phase 35's format
+change (expected v11) reaches `main` only with PR 2 (Steps 35.3–35.6), the number fixed at merge (V1).
 Rules and the table of old and new labels: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering". The paragraphs below
 keep their dates; where they call D048 proposed or the hold tracking in progress, this paragraph prevails (D048 approved and
 merged; the hold tracking merged in PR #31, accepted for continued development, unnumbered).

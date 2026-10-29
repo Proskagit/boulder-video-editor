@@ -83,15 +83,16 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 
 ## Current
 
-**State on 2026-10-28 (numbering confirmed by the product owner, `docs/DEVELOPMENT_PLAN.md` "Phase and step numbering").**
+**State on 2026-10-29 (numbering confirmed by the product owner, `docs/DEVELOPMENT_PLAN.md` "Phase and step numbering").**
 The **highest phase number in use is 34**; the **last complete phase** (merged and accepted) **is 29**. D048's stages are
 Phases 32 (route selection; implemented, paused / deferred), 33 (timing model, anchors, `project.json` v10) and 34 (the
 overlay strip, variant B), all three merged in PR #32 (`1e58885`); D048 was approved as implemented on 2026-10-28, a
 separate formal acceptance of Phases 33 and 34 is not recorded. Phases 30 and 31 are technically complete, their full
-acceptance open (below). **Next: Phase 35** — the import of COROS trainings (formerly "Phase Coros"; Steps 35.1–35.2 in
-local branches, not merged, 35.2's manual acceptance open), then **Phase 36** — the session summary and the YouTube chapters
-(specification draft). `project.json` v11 — a planned format, not implemented — is to be decided once, in **D049** (number reserved; a planned decision, not approved and not yet in `DECISIONS.md`),
-before either phase changes the format.
+acceptance open (below). **Next: Phase 35** — the import of COROS trainings (formerly "Phase Coros"): D049 and D050
+approved 2026-10-29 (their text is on the branch `feat/phase-coros-c1` (Step 35.0, `6fba445`), not yet in `main`); Steps 35.1–35.2 done in local branches, not merged, 35.2's manual
+acceptance passed (A1–A11 PASS); Steps 35.3–35.6 not started. PR 1 (Steps 35.0–35.2) leaves `project.json` v10; Phase 35's
+format change (expected v11) reaches `main` only with PR 2 (Steps 35.3–35.6), the number fixed at merge (V1). Then **Phase
+36** — the session summary and the YouTube chapters (specification draft).
 
 **Phase 31 — Automatic hold proposals (D047 approved 2026-10-25; technically complete 2026-10-26).** The default
 configuration — SAM 2.1 Large ONNX, 15×15 grid, frames decoded and evaluated at 1920×1080 — runs in ~7.4 s on a warm 4K
@@ -468,8 +469,9 @@ working labels — a phase gets its number (27, 28, …) and its own decision wh
 (numbering: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering"): A, B and C are merged and accepted (Phases 27–29); G is
 Phase 30 and D is Phase 31 — both technically complete, their full acceptance open, both merged through PR #31; E's
 camera-motion part is merged in PR #31, unnumbered and not complete; D048's stages are Phases 32–34, merged in PR #32 (32
-paused / deferred; 33 and 34 without a recorded formal acceptance); F is Phase 35 (Steps 35.1–35.2 in local branches, not
-merged); H is not started.
+paused / deferred; 33 and 34 without a recorded formal acceptance); F is Phase 35 (D049 / D050 approved 2026-10-29, text on
+`feat/phase-coros-c1`; Steps 35.1–35.2 done in local branches, not merged, 35.2 accepted; 35.3–35.6 not started); H is not
+started.
 
 Status on 2026-10-24: Phases 0–29 complete and merged (Phase 27 = A as `36a1a58`, PR #28; Phase 28 = B as `4f0e66a`,
 PR #29; Phase 29 = C — four visual templates and the music audit, D045, WASTED deferred — as `e28a9d3`, PR #30); Phase 30
@@ -492,9 +494,9 @@ research, F only after its feasibility is confirmed and a separate agreement; H 
 | D048-2 | Timing model (animation duration, orders, standard / short-intro layout), template ↔ clip anchor, speed / trim / copy rules, `project.json` v10 (v9 converted on save, no backward compatibility) — **Phase 33** (implemented and merged, PR #32; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded) | core | medium–large | D048 approval; schema check with F done (COROS takes the next version) |
 | D048-3 | The overlay strip — **Phase 34** (implemented and merged, PR #32; separate formal acceptance not recorded; variant B: the segments inside the «Боулдер»; the lane above the clip Debug-only) | UX | medium | D048-2 |
 | R3 | COROS exports and video timestamps — research, carried out on the owner's real APEX 4 FIT export (described in `docs/PHASE_COROS.md` §1 on the branch `feat/phase-coros-c1`; not in `main` yet) | research | research (needs real files) | — (parallel) |
-| F | **Phase 35** — import of COROS trainings and the heart rate in the video (formerly "Phase Coros", «COROS Pace 4: пульс и телеметрия в видео»; any COROS model; Steps 35.1–35.2 in local branches, not merged) | telemetry | large | R3, A; D049 for persistence |
-| — | **Phase 36** — session summary and YouTube chapters (specification draft, not approved) | core | medium–large | Phases 32–34; D049 for `PassId` / «Итоги»; Phase 35 for the heart rate |
-| — | **D049** — `project.json` v11 (a planned format, not implemented), one version sequence for Phases 35 and 36 (number reserved; a planned decision, not approved, not yet in `DECISIONS.md`; not a phase) | format | small | — |
+| F | **Phase 35** — import of COROS trainings and the heart rate in the video (formerly "Phase Coros", «COROS Pace 4: пульс и телеметрия в видео»; any COROS model; D049 / D050 approved 2026-10-29, text on `feat/phase-coros-c1`; Steps 35.1–35.2 done, not merged, 35.2 accepted; 35.3–35.6 not started) | telemetry | large | R3, A |
+| — | **Phase 36** — session summary and YouTube chapters (specification draft, not approved) | core | medium–large | Phases 32–34; Phase 36's own format decision for `PassId` / «Итоги»; Phase 35 for the heart rate |
+| — | **D049** — the training in the project, the time model and Phase 35's format change (expected v11, not implemented; the number fixed at merge, V1); approved 2026-10-29, text on `feat/phase-coros-c1`, not yet in `main`; not a phase | format | small | — |
 | H | «Final UX Pass: аудит и упрощение интерфейса» (research, then implementation) | UX | research + medium–large | the core incl. F, G, a regression run |
 | — | **Phase 37** — preliminary route starts from a COROS FIT and the global start calibration (D051, approved 2026-11-03; documentation only, not implemented — `docs/PHASE37.md`) | telemetry | medium–large | Phase 35's pull requests 1 and 2 (not opened on 2026-11-03), D048; not Phase 36 (separate, deferred) |
 
