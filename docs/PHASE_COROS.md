@@ -66,7 +66,7 @@ difference between the phone and the watch.
 |---|---|---|---|
 | 35.0 | The phase's decision (its D-number when approved), this plan as the acceptance criteria, the manual test plan | approved by the product owner | to do |
 | **35.1** (C0) | Core: `Telemetry/FitFile` (FIT reader: header / file CRC, both byte orders, compressed timestamps, developer fields skipped), `CorosWorkoutParser`, `ClimbingWorkout` model, `WorkoutTimeline` (HR at an instant, splits in a range), `WorkoutVideoAlignment`. Tests in `Core.Tests/Telemetry` on synthetic FIT files; `tests/Telemetry.LocalTests` (outside the solution) on the real export | the real export parses to the facts of §1 (14 climbs, 5 766 HR samples, the pause, +3 h); every refusal reason covered; no change of `project.json`, UI or existing code — except the rule of `LocalizationGuardTests` and the related localization fix of `FitFile` (§7, `f12c5e6`) | **implemented** (`4636dd5`, `f12c5e6`, local branch `feat/phase-coros-c0`); build and tests run on Windows (see §7); not merged |
-| **35.2** (C1) | Import entry: `ITrainingImportService` (Core) + `TrainingImportService` (Media; 16 MiB limit, missing / unreadable file); «Тренировка COROS…» on the toolbar with a `.fit` picker (`TrainingImportWorkflow`); localized refusal texts and warnings (`TrainingText`); the workout held in `TrainingSessionService` (not saved) | importing the real file shows device, date, local time, 14 climbs; each refusal reason has a Russian / English text; nothing persisted | **implemented** (`934bbf6`, local branch `feat/phase-coros-c1`); **the product owner's manual acceptance (§9) open**; not merged |
+| **35.2** (C1) | Import entry: `ITrainingImportService` (Core) + `TrainingImportService` (Media; 16 MiB limit, missing / unreadable file); «Тренировка COROS…» on the toolbar with a `.fit` picker (`TrainingImportWorkflow`); localized refusal texts and warnings (`TrainingText`); the workout held in `TrainingSessionService` (not saved) | importing the real file shows device, date, local time, 14 climbs; each refusal reason has a Russian / English text; nothing persisted | **implemented** (`934bbf6`, local branch `feat/phase-coros-c1`); **manual acceptance A1–A11 PASS (2026-10-29, §9)**, no defect found; not merged |
 | 35.3 (C2) | Video timestamps: ffprobe `creation_time` (format and stream tags) read at analysis; its meaning per device (end of recording on this phone) → the automatic source zero; the file-name time as a cross-check; measuring the phone ↔ watch clock difference on the real session (a climb's visible start against its split) | for ≥ 12 of the 14 climbs on video the automatic match is within a stated tolerance, or the measured difference is documented and the correction made mandatory | planned; session-only in the first version (§6.2) |
 | 35.4 (C3) | Alignment per clip + the correction in the Inspector (whole frames, one Undo step); Trim / Split / Move keep the match; persistence | tests: Trim / Split / Move, Undo / Redo, save / load | planned; first version session-only (§6.2) — persistence later, in `project.json` v11 — a planned format, not implemented — by decision D049 (number reserved; planned, not approved, not yet in `DECISIONS.md`; v10 is D048's) |
 | 35.5 (C4) | Overlay: heart icon + BPM, a few looks / positions; Preview and export through the one composition path | parity test Preview = export; seeking; data gaps and pauses show nothing | planned |
@@ -118,7 +118,9 @@ difference between the phone and the watch.
   alone, 2 / 0; untouched by C1). One existing test updated for the new button: `ProjectSettingsViewBindingTests` (the
   import group is now «Импорт медиа», «Тренировка COROS…»). `Telemetry.LocalTests` on the real export 7 / 0 / 0 (new:
   the import from disk and the Russian summary «COROS APEX 4 42mm, 27.09.2026 10:02–11:39 (UTC+03:00), 14 подходов»).
-  The manual acceptance (§9) is the product owner's — not run.
+  The manual acceptance (§9) was not part of this run.
+- Step 35.2 manual acceptance (2026-10-29, build of `feat/phase-coros-c1` at `d855c3a`, the real export of 2026-09-27):
+  **A1–A11 PASS, no defect found** — the record in §9.
 
 ## 8. Step 35.2 (C1) — the import into the session (as implemented)
 
@@ -156,3 +158,20 @@ Build of `feat/phase-coros-c1`; the real export of 2026-09-27 and any other file
 | A9 | New project (or Open another) | the tooltip is back to «Импортировать тренировку…»: the training was dropped with the project |
 | A10 | Start an export and look at the toolbar while it runs | «Тренировка COROS…» disabled like the other commands |
 | A11 | Switch the interface to English (`appsettings.json`: `App.Language` = `en`) and repeat A3 | «Training imported: COROS APEX 4 42mm, … 14 climbs» (dates in the system's format) |
+
+**Result (2026-10-29): A1–A11 PASS; no defect found.** Build of `feat/phase-coros-c1` at `d855c3a` (Debug, 0 / 0),
+the real export `Болдеринг20260927100239.fit`.
+
+| # | Result | Checked by / evidence |
+|---|---|---|
+| A1 | PASS | Claude, through the app's interface: the tooltip as expected |
+| A2 | PASS | Claude, through the interface: after Cancel the status stays «Готово.»; the log has only «file picker was cancelled» |
+| A3 | PASS | Claude, through the interface: dialog «Импорт тренировки COROS», filter «Тренировки FIT (*.fit)» (only the `.fit` shown among 16 videos), a Ctrl+click replaces the selection (one file only); status exactly «Тренировка импортирована: COROS APEX 4 42mm, 27.09.2026 10:02–11:39 (UTC+03:00), 14 подходов» |
+| A4 | PASS | Claude, through the interface: the summary, the file name and «Не сохраняется в проект. Нажмите, чтобы импортировать другую.» |
+| A5 | PASS | Claude, through the interface: «Тренировка не импортирована: это не FIT-файл.»; the tooltip still shows the 27.09 training |
+| A6 | PASS | Claude, through the interface (4 bytes changed in the middle of a copy): «…файл повреждён: не сходится контрольная сумма.» |
+| A7 | PASS | Claude, through the interface (the file held open exclusively by another process): «…файл не удалось прочитать (он занят другой программой или нет доступа).», no crash. A file deleted after it was picked is refused by the Windows dialog itself («Файл не найден») before the app gets it; the app's own «файл не найден» is covered by the automated tests |
+| A8 | PASS | Product owner: the saved project's `project.json` checked — no data of the COROS training found by the checked signs |
+| A9 | PASS | Claude, through the interface («Создать»): status «Создан новый проект.», the tooltip back to «Импортировать тренировку COROS (.fit)…» |
+| A10 | PASS | Claude, through the interface: during an export «Тренировка COROS…» dimmed with the other commands, a click opens nothing; enabled again after the export is cancelled |
+| A11 | PASS | Product owner (screenshot): English interface, status «Training imported: COROS APEX 4 42mm, 27.09.2026 10:02–11:39 (UTC+03:00), 14 climbs» |
