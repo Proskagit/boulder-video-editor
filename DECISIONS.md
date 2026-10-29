@@ -8082,6 +8082,278 @@ green's priority on a shared left edge; the route-selection services in Core.
 
 ---
 
+## D049 — The training in the project and the video ↔ training time model; the next `project.json` version *(approved 2026-10-29)*
+
+Date: 2026-10-29. **Status: Approved by the product owner on 2026-10-29** (revision 4, with M2) — not implemented. Phase 35 (D050);
+implemented in Steps 35.3–35.6; the format change reaches `main` only with Phase 35's second pull request.
+
+### Decisions recorded (product owner, 2026-10-29)
+
+- **P2** — the training is saved in the project before the heart-rate overlay exists. **S1** — the project stores a
+  reference to the source FIT file, never a copy of the parsed telemetry. **A1** — alignment by the media file's source
+  time; one clock correction per training; an optional recording-zero override per media file. **One training** per
+  project.
+- **V1** — the phase that first merges a format change takes the next free version, expected **v11** for Phase 35. Every
+  format change of Phase 35 reaches `main` only with its second pull request (Steps 35.3–35.6); until then `main` keeps
+  v10.
+- **Export** — an HR overlay without data gives a warning that must be confirmed; an export without an HR overlay never
+  depends on the training.
+- **Training edits** — import, replace and remove are not Undo steps (as a media import); a replace asks for
+  confirmation; removing the training removes its clock correction and keeps the media files' overrides. A clock-correction
+  change and an override set / clear are one Undo step each.
+- **Q-OV** — the override is the instant of source time 0 of the video in camera time C; it is a property of the video.
+- **Q-TZ** — the watch's UTC offset may serve only as a hypothesis for the file-name check of Step 35.3; the watch's and
+  the phone's time zones are never assumed equal; an automatic zero is never accepted while the time bases'
+  correspondence is unconfirmed.
+- **Q-RT (RT1)** — the `creation_time` tag is stored verbatim with its origin (container format or video stream); never
+  replaced by a normalised instant.
+- **Q-RP (RP1)** — the new format version carries an explicit marker that the recording time was probed; an older project
+  is probed with ffprobe on opening; in a project of the new version, a set marker without a tag means «probed, no tag»;
+  no endless re-probing; a probe error is handled (§4).
+- **M2** — the probe and its marker never make the project dirty by themselves (the Phase 7 / 18 contract of background
+  metadata refreshes is kept); a project closed without a save may be probed again on its next Open — an accepted
+  compromise; no cache outside the project, no extension of D026 for this.
+- **Q-ID (ID1)** — on a video relink the override is carried over automatically only when size, duration and recording-time
+  tag all match — a heuristic, not a proof of physical identity; otherwise the user is asked, default «do not keep»;
+  Undo of the relink restores the previous override.
+
+### 0. What exists (checked at `feat/phase-coros-c1` `2136fa3`, `main` `1e58885`)
+
+- `project.json` v10. Older versions are read and saved as the current one; a newer version is refused; unknown members
+  are ignored. Recovery files carry the same project DTO.
+- Source time = PTS − `MediaMetadata.StartTime` (D009); a clip shows at timeline frame `n`
+  `s(n) = SourceIn + ⌊(a / b) · (FromFrame(n) − ClipStart)⌋` ticks, speed `a / b` (`HoldAnimationRule.SourceTimeAt`).
+- `MediaMetadata` has no recording time; `FfprobeOutput` keeps stream tags (only `rotate` is read), not the format's tags;
+  no date string from ffprobe is parsed anywhere.
+- Background metadata refresh (`MediaAnalysisCoordinator.RefreshDisplaySize`, Phases 7 / 18): triggered for saved
+  metadata lacking a later field, on Open and when a file is available again; one in flight per asset; never for a
+  missing file; a success replaces the metadata **without making the project dirty**; a failure keeps the saved metadata
+  and is only logged.
+- Telemetry never reads the system time zone (FIT times are UTC; the watch's `UtcOffset` only for display).
+- D014 / D026: absolute + relative path; missing = runtime state; re-check on window activation and before the export;
+  relink only for a missing asset, keeps id and clips, hard rejects (absent, wrong type, too short, another asset's path),
+  warnings with confirmation for technical differences, ffprobe unavailable → relinked without metadata; relink is an
+  Undo step restoring path, size, metadata, analysis state. **No identity check exists**; a file changed in place is not
+  detected.
+- Media import makes the project dirty and is not an Undo step. Export warnings require explicit confirmation.
+- 27.09.2026: all 16 videos have `creation_time` (format and both streams, equal) as ISO-8601 with `Z`, whole seconds;
+  +0.1…+2.2 s after file-name time (read as UTC+3) + duration for 14 files, +181.7 s and +65.0 s for two. Neither its UTC
+  semantics nor the moment it marks is established **[Step 35.3]**.
+
+### 1. Time bases and the only allowed conversions
+
+| Base | Meaning | Representation |
+|---|---|---|
+| **W** watch time | an instant as the COROS watch states it, in UTC | `DateTimeOffset`, offset 0 |
+| **C** camera time | an instant as the phone states it, in UTC | `DateTimeOffset`, offset 0 |
+| **L** camera local wall time | the phone's local date-time without a zone (file name) | never stored |
+| **S** source time | PTS − `StartTime` (D009) | `MediaTime` ticks |
+
+| From → to | Formula | Use |
+|---|---|---|
+| S → C | `c = Z(M) + s` | mapping, when `Z(M)` is known |
+| C → W | `w = c + ClockCorrection` | mapping |
+| L → C | `c = l − h`, `h` an offset hypothesis | Step 35.3's file-name check only; never a zero by itself |
+| W → watch local | `w + UtcOffset` | display only |
+
+W and C are different clocks (their difference is a clock error, not a zone). Forbidden in Telemetry, the alignment and
+the tag parser: `TimeZoneInfo.Local`, `DateTime.Now`, `DateTimeOffset.Now`, `DateTime.Today`, `ToLocalTime`,
+`.LocalDateTime` (guard test).
+
+### 2. Fields
+
+| Field | Base | Saved | Meaning |
+|---|---|---|---|
+| `ClimbingWorkout` times | W | no (parsed) | as recorded |
+| `ClimbingWorkout.UtcOffset` | W → watch local | no | display; hypothesis `h` in 35.3 only |
+| `TrainingReference.Activity.StartUtc / EndUtc`, `Manufacturer`, `Product` | W | yes | identity of the activity |
+| `TrainingReference.ClockCorrection` | **W − C** | yes (ticks) | `w = c + ClockCorrection` |
+| `MediaMetadata.RecordingTimeProbe` | — | yes (derived) | absent = not probed; present = probed: `found` with the raw tag text and its origin (`format` / `video`), or `absent` |
+| `RecordingTime` (runtime) | C, **claimed** | no | the raw tag parsed by §3; trusted only per §5 |
+| `MediaAsset.RecordingZeroOverrideUtc` | C | yes | instant of source time 0 of this video |
+| file-name time | L | no | 35.3 check only |
+| `Zauto(M)` | C | no | Step 35.3 rule's result and its state |
+
+Saved instants are written with offset `+00:00`; an explicit offset on read is converted to the same instant
+(`10:05:18+03:00` ≡ `07:05:18Z`). The raw tag is never normalised.
+
+**Sign** (one example everywhere): the watch shows 10:00:02 when the phone shows 10:00:00 → `ClockCorrection = W − C =
++2 s` → a frame filmed at C 10:00:00 maps to W 10:00:02.
+
+### 3. Parsing the raw tag
+
+Invariant culture, no assumed zone: only ISO-8601 date-time **with** `Z` or a numeric offset is accepted and converted to
+an instant; no designator, another layout, or a value before 2000-01-01 (container default epochs 1904 / 1970) →
+«unrecognised», never read as UTC. A designator is a **claim** that the value is in C: some devices write local time with
+`Z`; whether a source's tag is a true C instant is a Step 35.3 finding.
+
+### 4. Probing the recording time (RP1, M2)
+
+- **Session** = one project generation (from New / Open / Recover until the next one), as the existing
+  `MediaAnalysisCoordinator` counts it.
+- **Trigger** — an online video asset whose metadata has no `RecordingTimeProbe`, through the existing background refresh
+  path (one in flight per asset): (a) on Open / Recover, for every such asset; (b) when a file that was missing becomes
+  available again (D026 re-check), for that asset only if it has not been attempted in this session. Never for a missing
+  file; never while ffprobe is unavailable (nothing is attempted, nothing is recorded as attempted).
+- **At most once per asset per session.** After a success (`found` or `absent`) the asset carries the marker and is not
+  probed again. After a failure (unreadable file, ffprobe error, timeout) no marker is written, the error is logged and
+  the asset is remembered as attempted for this session (runtime only): no second attempt in the session, also not when
+  the file later disappears and returns. A file that was missing when the session began counts as not attempted and is
+  probed once when it returns. The next attempt for a failed asset is at the next Open.
+- **No project change.** The probe sets the marker as a runtime refresh of the metadata: it does not set the dirty state,
+  does not open a save prompt, does not create an Undo step (the Phase 7 / 18 contract).
+- **Persistence.** The marker and the tag are written with the rest of the metadata at the next ordinary save (or Save
+  As). A project closed without a save has not stored them; its next Open probes the unmarked assets again — the
+  accepted compromise of M2. Autosave writes them to the recovery file as part of the project, without changing the
+  dirty state.
+- **New import / relink.** The regular analysis reads the tag with the rest of the metadata, so a freshly analysed asset
+  is always marked (an import already makes the project dirty; a relink is D026's Undo step).
+- The marker is per asset, independent of the file's version number (a new-version file may hold an unprobed asset after
+  a failed probe).
+
+### 5. Recording zero `Z(M)` ∈ C — states
+
+- **Override** — `RecordingZeroOverrideUtc` set.
+- **Automatic** — only when Step 35.3's rule is approved and its conditions hold for `M` (the tag's semantics confirmed
+  for its source; the L ↔ C correspondence confirmed when the file name is used; within the rule's tolerance `τ`). The
+  rule, `τ`, the outliers and the device scope are 35.3's outputs.
+- **Unknown** — otherwise; no heart rate on its clips; the Inspector names the reason and offers the override.
+
+### 6. Mapping
+
+`s(n)` (S) → `c(n) = Z(M) + s(n)` (C) → `w(n) = c(n) + ClockCorrection` (W) → `HeartRateAt(workout, w(n))` (W vs W).
+Invariant under move, ripple, trim, split, slip (follows the picture), speed (`a / b` in `s`), duplicate / paste (same
+asset). A correction change moves every file of the training, overridden ones included.
+
+### 7. Format (expected v11) — `main` only with PR 2
+
+```json
+"training": {
+  "id": "…", "filePath": "…", "relativePath": "…", "fileSizeBytes": 54003, "sha256": "…",
+  "activity": { "startUtc": "2026-09-27T07:02:39+00:00", "endUtc": "2026-09-27T08:39:14+00:00", "manufacturer": 294, "product": 814 },
+  "clockCorrectionTicks": 0
+},
+"mediaAssets": [ { "…": "…",
+  "recordingZeroOverrideUtc": "2026-09-27T07:30:26+00:00",
+  "metadata": { "…": "…",
+    "recordingTimeProbe": { "status": "found", "tag": "2026-09-27T07:35:07.000000Z", "origin": "format" } } } ]
+```
+
+- New-version members: `training`, `recordingZeroOverrideUtc`, `metadata.recordingTimeProbe` (`status` ∈ `found` /
+  `absent`; `tag` and `origin` required with `found`, forbidden with `absent`).
+- Validation on load: as listed (id, path, size ≥ 0, sha256 64 hex, `endUtc ≥ startUtc`; override only on a video asset;
+  probe object well-formed) — otherwise damaged.
+- Migration: older versions open with no training, no overrides, no probe markers (→ probed per §4); saved as the new
+  version; newer refused; no down-conversion. Recovery follows.
+- Number fixed at merge (V1); renumbered at the rebase onto `main` if another phase merged a format change first.
+
+### 8. Video relink and the override (ID1)
+
+D026's checks unchanged; the relink additionally decides the override:
+- **match** — the old asset and the new file both have `FileSizeBytes`, a duration and a `found` probe, and all three are
+  equal (tag text and origin) → the override is kept;
+- **otherwise** (a difference, a missing value, ffprobe unavailable, `absent` on either side) → the relink confirmation
+  asks «Сохранить поправку начала записи для нового файла?», default **no**; «no» clears the override;
+- no override on the asset → nothing to ask;
+- the relink stays one Undo step; Undo / Redo restore the override with path, size, metadata (incl. the probe marker)
+  and analysis state; batch relink (D026 §4) asks per asset with an override.
+
+### 9. FIT life cycle (S1)
+
+| Event | Behaviour |
+|---|---|
+| Import | `Project.Training` set; dirty; not Undo |
+| Replace | confirmation; new reference; `ClockCorrection` = 0; overrides kept; dirty; not Undo |
+| Remove | reference and `ClockCorrection` removed; overrides kept; dirty; not Undo |
+| Save / Save As | absolute + relative path (D014) |
+| Open / Recover / re-check | absolute, else relative, else **Missing**; present → size + SHA-256 equal → **Available**; different bytes, same activity → **Changed** (used, reported, new size / hash saved on the next save); another activity → **OtherActivity** (not used); parse refused → **Unreadable**; never blocks opening |
+| FIT relink | only when not Available; parse refused → reject; same activity → relinked; another → confirmation; keeps id and correction; dirty; not Undo |
+
+No state of the training affects editing or an export without an HR overlay.
+
+### 10. Export
+
+HR overlay + missing data (training not Available, or a covered clip with `Z(M)` unknown) → `ExportPreflight` warning
+`HeartRateUnavailable` with the reason, confirmed in the existing dialog. No HR overlay → no check. Preview = export
+(nothing drawn where no value); hints in the Inspector / status bar are outside the composition.
+
+### 11. Undo summary
+
+| Operation | Undo |
+|---|---|
+| Training import / replace / remove / FIT relink | no (dirty) |
+| `ClockCorrection` change | one step |
+| Override set / clear | one step |
+| Video relink (incl. override decision) | D026's one step, override restored |
+| Background probe of the recording time | none — not dirty, no save prompt (runtime refresh, M2) |
+
+### 12. Effect on accepted and planned work
+
+35.1–35.2 code unchanged; in 35.4 the import's «не сохраняется в проект» tooltip and acceptance item A8 are superseded
+(35.2's acceptance valid for its version). PR 1 changes no format. Phase 36 maps through §6 and takes the next free
+version; hold tracking likewise.
+
+### 13. Tests
+
+- **Format**: older → new open / save; round-trip byte for byte; members absent / present; each validation failure;
+  recovery round-trip with a training.
+- **Probe marker (M2)**: older project → each online video probed once, marker set, project **not dirty**, no save prompt,
+  no Undo step; new-version project with `absent` or `found` → no probe; an unprobed asset in a new-version file → probed;
+  the same session never probes a successfully probed asset again (a probe counter over repeated re-checks and window
+  activations stays at one); closed without a save and reopened → probed again (the compromise); saved and reopened → not
+  probed; autosave stores the marker without changing the dirty state.
+- **Probe failure and returning files**: ffprobe error on an existing file → no marker, logged, the counter stays at one
+  for the whole session even after the file disappears and returns, attempted again after the next Open; ffprobe
+  unavailable → no attempt and not counted; a file missing at Open → not probed, probed exactly once when it returns; a
+  file that returns twice in one session → still one probe.
+- **Tag parser**: `Z`, `+03:00`, `−05:30` → instants; no designator, a space for `T`, 1904 / 1970, garbage →
+  unrecognised; the raw text is saved unchanged.
+- **Bases**: no double zone (`…07:05:18Z` with `UtcOffset +3 h` stays 07:05:18Z; the file-name hypothesis applies `h`
+  once); sign (+2 s / −2 s; skipping or subtracting the correction fails a test); normalisation; guard test on forbidden
+  APIs; explicit offsets −10 h / 0 / +3 h / +5:45 / +14 h give identical results.
+- **Mapping invariance** at speeds 1, 2, 1/2 on 25 and 30000/1001 timelines: move, ripple, trim, split, slip, duplicate.
+- **Zero states**: override / automatic (after 35.3) / unknown; the two atypical files stay unknown unless the rule
+  explains them.
+- **Relink (ID1)**: all equal → kept silently; size differs / duration differs / tag differs / tag absent / no metadata →
+  asked, default no; «no» clears; Undo restores; Redo re-applies; batch relink.
+- **FIT life cycle**: import, replace (confirmation, correction reset), remove (overrides kept), Missing / Changed /
+  OtherActivity / Unreadable / back after re-check.
+- **Export**: warning exactly with an HR overlay lacking data; confirmation required; none without an HR overlay.
+- **Preview = export** for the overlay (35.5).
+
+### 14. Alternatives considered
+
+P1, P3; S2, S3; A2, A3; V2; override in W; the file name as a zero source; RT2 (normalised instant only); RP2 / RP3
+(version-tied marker / re-probe every Open); M1 (probe makes the project dirty), M3 (a probe cache outside the
+project); ID2 (always clear), ID3 (content fingerprint per asset).
+
+---
+
+## D050 — Phase 35: import of COROS trainings and the heart rate in the video *(approved 2026-10-29)*
+
+Date: 2026-10-29. **Status: Approved by the product owner on 2026-10-29** (revision 4) — Steps 35.1–35.2 done, 35.3–35.6 not started. Format and time model: D049. Record until merge: `docs/PHASE_COROS.md`; manual
+plan: `docs/PHASE35_MANUAL_TEST_PLAN.md`. Any COROS model meeting the parser's requirements (owner, 2026-10-26); grade,
+result and style never from COROS (owner, 2026-10-28).
+
+| Step | Goal and limits | Depends on | Result | Acceptance | Code / tests / format | Stop and ask when |
+|---|---|---|---|---|---|---|
+| 35.0 | D049, D050, the plan, the manual plan, ARCHITECTURE | — | Documents | Owner approves D049 / D050 | Documents only | an open point of D049 |
+| 35.1 | FIT reader, parser, model (formerly C0) | — | Done (`4636dd5`, `f12c5e6`) | Automated tests | — | — |
+| 35.2 | Import into the session (formerly C1) | 35.1 | Done (`934bbf6`); accepted 2026-10-29, A1–A11 PASS | — | — | — |
+| 35.3 | Recording time: the probe and its marker (D049 §4), the raw tag (§2–§3); research on the real session — what the tag marks, whether it is a true C instant, the C ↔ W difference per climb, the outliers; a proposed automatic-zero rule with `τ` and device scope | 35.0 | Probe in the metadata; a measurement report; a rule for approval | The rule explains ≥ 12 of the 14 typical files within `τ` and rejects or explains the two outliers; owner's approval; until then every zero «unknown» | Code + tests; new-version members in the branch only | the tag is inconsistent; the clock difference drifts; UTC semantics unconfirmable |
+| 35.4 | Persistence and alignment: the format change, `Project.Training`, FIT life cycle (§9), clock correction and override (Inspector, Undo), video relink (§8), zero states, mapping (§6); 35.2's texts revised | 35.3; D049 approved | Training survives Save / Open / Recover; every frame mapped or explicitly unknown | D049 §13; manual plan part C | Code + tests; branch only | a change beyond D049 needed |
+| 35.5 | HR overlay through the one composition path; the export warning | 35.4 | Overlay in Preview and export | Preview = export at sampled frames; nothing where no value; warning exactly when data missing, confirmed | Code + tests; its members in the same version | a model decision outside D049 |
+| 35.6 | Verification and closeout: full, heavy, `--blame-hang`, manual plan on the real session, documents | 35.3–35.5 | Ready for PR 2 | Owner's acceptance | Tests | — |
+
+**Pull requests.** PR 1 = Steps 35.0–35.2 — `project.json` stays v10 in `main`. PR 2 = Steps 35.3–35.6 — the only pull
+request that changes the format in `main`. A step is never split across pull requests; a pull-request number is not a
+step or a format version. **Non-goals**: several trainings; other manufacturers; COROS MCP / Partner API; the automatic
+rough cut; the summary and chapters (Phase 36). **Risks**: the tag's semantics established on one phone and one session;
+one-second resolution; two unexplained outliers; the version number fixed at merge (V1); re-probe cost on large
+libraries.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

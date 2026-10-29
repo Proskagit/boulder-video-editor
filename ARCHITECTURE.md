@@ -484,6 +484,31 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   `ITimelineEditService.SetHoldAnimation` (`HoldMarkupFields.Animation*`, one setting merges); the Inspector's "Animation"
   block in `HoldMarkupViewModel`; the markup overlay outlines every contour dashed while the route is animated. Format v6.
 
+## Telemetry — COROS trainings (Phase 35, D050, D049)
+
+- **Core `Telemetry/`**: `FitFile` (FIT reader), `CorosWorkoutParser` → `ClimbingWorkout` (UTC samples, pauses, splits,
+  warnings; refusals as `TrainingFileException` + `TrainingFileError`), `WorkoutTimeline.HeartRateAt` (the latest sample
+  at most 2 s old, inside the recording, outside the timer's pauses), `WorkoutVideoAlignment`. Pure, no I/O.
+- **Media**: `TrainingImportService` (`ITrainingImportService`, Core) — size limit, I/O refusals, parsing off the UI
+  thread.
+- **UI**: «Тренировка COROS…» → `TrainingImportWorkflow`; texts in `TrainingText`. Until Step 35.4 the training lives
+  only in `TrainingSessionService` (session state); from Step 35.4 in `Project.Training` (D049), the parsed workout being
+  a runtime cache of the referenced FIT.
+- **Time bases** (D049 §1): **W** watch time and **C** camera time (both UTC, different clocks), **L** the phone's local
+  wall time (file names; never stored), **S** source time (D009). The only conversions: S → C by the recording zero of
+  the media file, C → W by the training's `ClockCorrection` (W − C), L → C only as a hypothesis in Step 35.3's check, W →
+  watch local for display. The system time zone is never used (`TimeZoneInfo.Local`, `DateTime.Now`,
+  `DateTimeOffset.Now`, `DateTime.Today`, `ToLocalTime`, `.LocalDateTime` are forbidden there; a guard test).
+- **Mapping** (D049 §6): timeline frame → `s(n)` (the clip's exact source-time rule) → `c = Z(M) + s` → `w = c +
+  ClockCorrection` → heart rate. Per media file, so move, ripple, trim, split, slip, speed and duplicate never change what
+  a picture maps to. `Z(M)` is a manual override (C), an automatic zero once Step 35.3's rule is approved, or unknown (no
+  heart rate, nothing guessed).
+- **Persistence** (D049 §7; the next format version, in `main` with Phase 35's second pull request): a FIT reference
+  (paths, size, SHA-256, activity identity) and its clock correction; a per-video zero override; in the metadata the raw
+  `creation_time` tag with its origin and a probe marker. The telemetry itself is never stored. The background probe of
+  the recording time follows the Phase 7 / 18 refresh contract: at most once per asset per session, never dirty, no save
+  prompt, no Undo step.
+
 ## Preview tools: Move, Scale, Crop (Phase 23, D038)
 
 - Core: `Composition/PreviewTransformMath` — pure gesture math on `VisualProperties`: `TransformFrame` (a layer's local

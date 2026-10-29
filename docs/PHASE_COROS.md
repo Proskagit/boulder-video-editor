@@ -2,15 +2,17 @@
 
 *Formerly «Phase Coros». Numbering confirmed by the product owner on 2026-10-28 (`docs/DEVELOPMENT_PLAN.md` on
 `docs/phase-numbering`, "Phase and step numbering"): this is **Phase 35**; its steps are **35.0–35.6** — the old labels C0–C5
-are kept below in brackets and in the commit messages. The phase is not approved yet (Step 35.0: its decision, plan and
-acceptance criteria) and complete only when merged into `main` and accepted by the product owner — the local commits of
-35.1 and 35.2 complete nothing.*
+are kept below in brackets and in the commit messages. The phase's decision **D050** and its format / time model **D049**
+were approved by the product owner on 2026-10-29 (`DECISIONS.md`, Step 35.0). The phase is complete only when merged into
+`main` and accepted by the product owner — the local commits of 35.1 and 35.2 complete nothing. Where this record says
+«session-only», D049 prevails from Step 35.4 on. Manual test plan: `docs/PHASE35_MANUAL_TEST_PLAN.md`.*
 
 Branches `feat/phase-coros-c0` (C0) and `feat/phase-coros-c1` (C1, on top of C0), from `origin/main` `1e58885` (Phases 30 / 31, hold tracking and D048 with its stages 2–3 merged;
 `project.json` v10 in the code). C0 was written on `feat/phase-coros` from `e28a9d3` (`32662ee`) and
 carried over unchanged (2026-10-28); the old branch is kept. This document is the phase's record until its merge.
-`DECISIONS.md`, `ROADMAP.md` and `progress.md` are not edited on this branch; their entries are written when the phase is
-merged. Continues D042 §6 (R3 → F) with real files.
+`DECISIONS.md` carries the phase's decisions D049 / D050 on this branch (Step 35.0, 2026-10-29); `ROADMAP.md` and
+`progress.md` are not edited on this branch (their state lines are on `docs/phase-numbering`). Continues D042 §6 (R3 → F)
+with real files.
 
 ## 1. What the real export contains (R3 on real data)
 
@@ -33,10 +35,13 @@ Earlier notes: `VideosForTest/R3_COROS_preliminary/notes.md` (local, not committ
 | Grade (6C / 7A), flash | not found in any standard field; no developer field descriptions in the file |
 | Result (onsight / attempt) | split field 71 (3 or 2 or empty) — **not confirmed**: six 3s and three 2s against five onsights and four attempts in the app |
 
-Video side (from the preliminary notes, not re-measured): 3840 × 2160 HEVC ≈ 60 fps SDR, one vertical; the file name
-is the local start time of the recording; the container `creation_time` (UTC) is ≈ the **end** of the recording for
-14 files (name + duration − 0.1…2.2 s) and not for 2 (−181.7 s, −65.0 s, unexplained). Not established: the clock
-difference between the phone and the watch.
+Video side: 3840 × 2160 HEVC ≈ 60 fps SDR, one vertical (preliminary notes). **Recording time, measured 2026-10-29**
+(ffprobe on all 16 videos): `creation_time` is present in the container format, the video and the audio stream (equal),
+written as ISO-8601 with `Z`, whole seconds. Compared with the file-name time (read as UTC+3 local time) plus the
+duration, it is +0.1…+2.2 s for 14 files, +181.7 s for `video_20260927_103026.mp4` and +65.0 s for
+`video_20260927_104651.mp4` (unexplained). This agrees with «a UTC instant near the end of the recording» on this
+phone, but **neither its UTC semantics nor the moment it marks is established**; the tag's presence does not confirm any
+alignment (Step 35.3). Not established either: the clock difference between the phone and the watch.
 
 ## 2. What the data is good for in the editor
 
@@ -51,26 +56,39 @@ difference between the phone and the watch.
    and a file without heart rate are refused with a reason (`TrainingFileError`). Implausible or repeated samples are
    left out with a warning. Device model is not restricted (APEX 4 and Pace 4 write the same FIT messages) —
    confirmed by the product owner (2026-10-26), see §6.
-2. **Time model**: the training is absolute UTC time (`DateTimeOffset`, 100 ns ticks — the same unit as `MediaTime`);
-   millisecond durations converted exactly; the local offset only for display.
-3. **Synchronisation**: per video clip, bound to its **source time** (as the holds, D034 / D036): `WorkoutVideoAlignment` =
-   UTC of the clip's source time zero + a user correction. The automatic zero comes from the video's timestamps (§C2); the
-   correction is a signed offset in whole frames; one Undo step per change.
+2. **Time model** (D049 §1–§2): four bases — **W** watch time (UTC by the watch), **C** camera time (UTC by the phone),
+   **L** the phone's local wall time (file name, never stored), **S** source time (D009); 100 ns ticks, no floating
+   point; the watch's local offset only for display (and as a hypothesis in Step 35.3's file-name check); the system
+   time zone is never used.
+3. **Synchronisation** (A1, D049 §5–§6): per **media file**, by its source time. Watch time of timeline frame `n`:
+   `w(n) = Z(M) + s(n) + ClockCorrection`, where `s(n)` is the clip's source time, `Z(M)` the recording zero of the file
+   in C (a manual override, or an automatic zero only once Step 35.3's rule is approved, otherwise **unknown** — no heart
+   rate, nothing guessed) and `ClockCorrection = W − C`, one per training. Move, ripple, trim, split, slip, speed and
+   duplicate never change what a picture maps to. The correction and the override are one Undo step each.
 4. **Heart rate at an instant**: the latest sample at or before it, at most 2 s old, inside the recording and outside the
    timer's pauses; otherwise nothing is shown (no interpolation, no stale value).
-5. **Overlay** (later step): heart icon + BPM through the one composition path, Preview = export.
+5. **Overlay** (Step 35.5): heart icon + BPM through the one composition path, Preview = export. An HR overlay without
+   data gives an export warning that must be confirmed; an export without an HR overlay never depends on the training.
+6. **Persistence** (P2 / S1, D049 §7–§9): the project stores a reference to the FIT (paths, size, SHA-256, activity
+   identity) and its clock correction; a video may store its recording-zero override (C); the metadata stores the raw
+   `creation_time` tag with its origin and a probe marker. The parsed telemetry is never stored. A missing, changed or
+   unreadable FIT never blocks opening, editing or an export without an HR overlay. The format change (expected v11)
+   reaches `main` only with Phase 35's second pull request.
+7. **Probing the recording time** (RP1 / M2, D049 §4): online videos without the probe marker are probed in the
+   background at most once per session; a failure is not retried in the session; the probe never makes the project
+   dirty, never asks to save, never creates an Undo step; the marker is saved with the next ordinary save.
 
 ## 4. Steps and acceptance
 
 | Step | Content | Acceptance | State |
 |---|---|---|---|
-| 35.0 | The phase's decision (its D-number when approved), this plan as the acceptance criteria, the manual test plan | approved by the product owner | to do |
+| **35.0** | D049 (format and time model), D050 (phase), this plan, the manual test plan, the ARCHITECTURE section | approved by the product owner | **D049 / D050 approved 2026-10-29**; documents written on this branch; not merged |
 | **35.1** (C0) | Core: `Telemetry/FitFile` (FIT reader: header / file CRC, both byte orders, compressed timestamps, developer fields skipped), `CorosWorkoutParser`, `ClimbingWorkout` model, `WorkoutTimeline` (HR at an instant, splits in a range), `WorkoutVideoAlignment`. Tests in `Core.Tests/Telemetry` on synthetic FIT files; `tests/Telemetry.LocalTests` (outside the solution) on the real export | the real export parses to the facts of §1 (14 climbs, 5 766 HR samples, the pause, +3 h); every refusal reason covered; no change of `project.json`, UI or existing code — except the rule of `LocalizationGuardTests` and the related localization fix of `FitFile` (§7, `f12c5e6`) | **implemented** (`4636dd5`, `f12c5e6`, local branch `feat/phase-coros-c0`); build and tests run on Windows (see §7); not merged |
 | **35.2** (C1) | Import entry: `ITrainingImportService` (Core) + `TrainingImportService` (Media; 16 MiB limit, missing / unreadable file); «Тренировка COROS…» on the toolbar with a `.fit` picker (`TrainingImportWorkflow`); localized refusal texts and warnings (`TrainingText`); the workout held in `TrainingSessionService` (not saved) | importing the real file shows device, date, local time, 14 climbs; each refusal reason has a Russian / English text; nothing persisted | **implemented** (`934bbf6`, local branch `feat/phase-coros-c1`); **manual acceptance A1–A11 PASS (2026-10-29, §9)**, no defect found; not merged |
-| 35.3 (C2) | Video timestamps: ffprobe `creation_time` (format and stream tags) read at analysis; its meaning per device (end of recording on this phone) → the automatic source zero; the file-name time as a cross-check; measuring the phone ↔ watch clock difference on the real session (a climb's visible start against its split) | for ≥ 12 of the 14 climbs on video the automatic match is within a stated tolerance, or the measured difference is documented and the correction made mandatory | planned; session-only in the first version (§6.2) |
-| 35.4 (C3) | Alignment per clip + the correction in the Inspector (whole frames, one Undo step); Trim / Split / Move keep the match; persistence | tests: Trim / Split / Move, Undo / Redo, save / load | planned; first version session-only (§6.2) — persistence later, in `project.json` v11 — a planned format, not implemented — by decision D049 (number reserved; planned, not approved, not yet in `DECISIONS.md`; v10 is D048's) |
-| 35.5 (C4) | Overlay: heart icon + BPM, a few looks / positions; Preview and export through the one composition path | parity test Preview = export; seeking; data gaps and pauses show nothing | planned |
-| 35.6 (C5) | Verification, the manual check on the real session (video + export), closeout | product owner's acceptance | planned |
+| 35.3 (C2) | Recording time: the probe and its marker (D049 §4), the raw tag with its origin (§2–§3); research on the real session — what the tag marks, whether it is a true C instant, the C ↔ W difference per climb (visible start vs split), the outliers; a proposed automatic-zero rule with its tolerance `τ` and device scope | the rule explains ≥ 12 of the 14 typical files within `τ` and rejects or explains the two outliers; approved by the owner; until then every zero «unknown» (manual plan part B) | planned; new-version members in the branch only |
+| 35.4 (C3) | Persistence and alignment: the format change (expected v11), `Project.Training`, the FIT life cycle (D049 §9), the clock correction and the per-file override in the Inspector (one Undo step each), video relink with the override (ID1, §8), the zero states, the mapping (§6); 35.2's «not saved» texts revised | D049 §13 tests; manual plan part C | planned; format change in the branch only, in `main` with the second pull request |
+| 35.5 (C4) | Heart-rate overlay: heart icon + BPM, a few looks / positions, through the one composition path; the export warning `HeartRateUnavailable` | Preview = export at sampled frames; pauses, gaps and an unknown zero show nothing; the warning exactly when data is missing, confirmation required (manual plan part D) | planned |
+| 35.6 (C5) | Verification and closeout: full and heavy suites, `--blame-hang`, the manual plan on the real session (video + export), documents | product owner's acceptance (manual plan part E) | planned |
 
 ## 5. Dependencies and possible conflicts
 
@@ -80,8 +98,11 @@ difference between the phone and the watch.
   (`Assert-TestResults.ps1`) and the expected TRX count are unaffected; the personal FIT file is never committed.
 - C1 touches the localization resources, the import entry of the toolbar and the DI registrations — Phase 31 is merged
   into `1e58885`, so C1 starts from its state; any D048 implementation branch editing the same files is a later merge.
-- Persistence of the alignment (later than the first version) changes `project.json`: v10 is D048's (merged); a
-  later v11 needs its own approval — decision D049 (number reserved; planned, not approved) — and a schema check against v10.
+- Format (D049 §7, V1): v10 is D048's (merged). Phase 35's change takes the next free version — expected v11 — and
+  reaches `main` only with the second pull request (Steps 35.3–35.6); the first pull request (35.0–35.2) leaves v10.
+  The number is fixed at merge: Phase 36 or hold tracking take later versions, or this one is renumbered at the rebase
+  if one of them merges a format change first.
+- Pull requests (D050): PR 1 = Steps 35.0–35.2 (after or with `docs/phase-numbering`); PR 2 = Steps 35.3–35.6.
 - C4 uses the overlay / animation path of Phase 27 (D043) and the composition painter.
 
 ## 6. Questions for the product owner
@@ -91,10 +112,17 @@ difference between the phone and the watch.
    restriction — any valid COROS activity FIT whose content meets the parser's requirements is accepted.
 2. Persistence (C2 / C3): saving the video's `creation_time` and the per-clip alignment needs `project.json` v10. Approve,
    or keep the training session-only for the first version? — **Answered (2026-10-28)**: the FIT import of the first
-   version lives in the current session only; nothing is written to `project.json`.
+   version lives in the current session only; nothing is written to `project.json`. — **Superseded (2026-10-29, D049)**:
+   the training is saved in the project from Step 35.4 (P2); the import stays session-only until then.
 3. The route result: confirm whether field 71 is wanted at all (it is not reliable on the one export); grade / result
    then come from the user. — **Answered (2026-10-28)**: the route's grade and the attempt's result are set by hand in
    the overlay; COROS support did not confirm a way to get them from the FIT or through MCP. Field 71 stays unread.
+4. The persistence, time model and life cycle (2026-10-29) — **Answered, D049 approved**: P2, S1, A1, V1, one training per
+   project; override in camera time C (Q-OV); the watch's offset only as a hypothesis for the file-name check (Q-TZ);
+   the override kept on a relink of the same file (Q-RL / ID1: size, duration and tag equal; otherwise asked, default
+   «no»); the raw tag with its origin (Q-RT, RT1); a probe marker, at most one probe per asset per session, never dirty
+   (Q-RP, RP1, M2); a confirmed export warning; replace asks and resets the correction, remove keeps the overrides.
+   Open until Step 35.3's measurement: what the tag marks, its UTC semantics, the automatic-zero rule, `τ`, the outliers.
 
 ## 7. Verification state
 
@@ -133,7 +161,7 @@ difference between the phone and the watch.
   подходов», then what was left out («; пропущено 2 недостоверных значения пульса»). Times are the watch's local time from
   the file's offset; without a usable offset they are UTC and say so. A refusal: «Тренировка не импортирована: <reason>»;
   the training already held stays.
-- **Session only** (§6.2): `UI/Services/TrainingSessionService` holds the workout and its file path in memory. Nothing is
+- **Session only** (§6.2; superseded from Step 35.4 by D049): `UI/Services/TrainingSessionService` holds the workout and its file path in memory. Nothing is
   added to `Project` or `project.json` (tested: a project saved after an import has no trace of it). The training belongs to
   the project it was imported into, like a media import (D027 §7): opening / creating / recovering another project drops it,
   and a training read while another project became current is not kept. A new import replaces it.
@@ -142,6 +170,9 @@ difference between the phone and the watch.
 - Not in C1: any use of the workout (alignment, overlay), a «remove training» command, a shortcut.
 
 ## 9. Step 35.2 (C1) — manual acceptance (product owner)
+
+*The record of 2026-10-29; part A of `docs/PHASE35_MANUAL_TEST_PLAN.md` refers to it. A8's expectation («no trace in
+`project.json`») holds for Step 35.2's version only: from Step 35.4 the training is saved (D049).*
 
 Build of `feat/phase-coros-c1`; the real export of 2026-09-27 and any other file at hand. Russian interface.
 
