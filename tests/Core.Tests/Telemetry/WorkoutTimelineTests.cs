@@ -35,25 +35,23 @@ public class WorkoutTimelineTests
     }
 
     [Fact]
-    public void The_alignment_maps_source_time_to_training_time_and_back_exactly()
+    public void A_split_ends_at_its_start_plus_its_elapsed_time_not_at_the_stated_whole_second()
     {
-        var zero = CorosFixture.Start.AddSeconds(-90);
-        var alignment = new WorkoutVideoAlignment(zero, MediaTime.FromFrame(3, new FrameRate(60000, 1001)));
-        var source = MediaTime.FromFrame(5_400, new FrameRate(60000, 1001));   // ≈ 90.09 s into the video
+        var first = Workout.Segments[0];                                    // stated end T0 + 12, elapsed 12.34 s
+        Assert.Equal(At(12), first.EndUtc);                                 // the file's value, kept as stated
+        Assert.Equal(At(0).AddTicks(12_340 * TimeSpan.TicksPerMillisecond), first.End);
+        Assert.Equal(new WorkoutInterval(At(0), first.End), first.Interval);
 
-        var workoutTime = alignment.ToWorkoutTime(source);
-
-        Assert.Equal(zero.UtcTicks + source.Ticks + alignment.Correction.Ticks, workoutTime.UtcTicks);
-        Assert.Equal(TimeSpan.Zero, workoutTime.Offset);
-        Assert.Equal(source, alignment.ToSourceTime(workoutTime));
+        var last = Workout.Segments[2];                                     // no stated end: start + elapsed either way
+        Assert.Equal(last.EndUtc, last.End);
     }
 
     [Fact]
-    public void A_negative_correction_moves_the_training_earlier()
+    public void A_split_without_an_elapsed_time_ends_at_its_stated_end()
     {
-        var alignment = new WorkoutVideoAlignment(CorosFixture.Start, MediaTime.FromSeconds(-2));
-        Assert.Equal(CorosFixture.Start.AddSeconds(8), alignment.ToWorkoutTime(MediaTime.FromSeconds(10)));
-        Assert.Equal(MediaTime.FromSeconds(2), alignment.ToSourceTime(CorosFixture.Start));
+        var split = new WorkoutSegment(0, WorkoutSegmentKind.Climb, 1, At(0), At(5), MediaTime.Zero, null, null);
+        Assert.Equal(At(5), split.End);
+        Assert.Equal(new WorkoutInterval(At(0), At(5)), split.Interval);
     }
 
     [Fact]

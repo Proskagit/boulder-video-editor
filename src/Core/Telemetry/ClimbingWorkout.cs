@@ -42,7 +42,17 @@ public sealed record WorkoutSegment(
     int? AverageHeartRate,
     int? MaxHeartRate)
 {
-    public WorkoutInterval Interval => new(StartUtc, EndUtc);
+    /// <summary>
+    /// The end of the split by the one rule for its boundaries (D050 amendment B8): <see cref="StartUtc"/> plus the
+    /// millisecond <see cref="Elapsed"/>, so the interval keeps the watch's exact duration; <see cref="EndUtc"/> only when no
+    /// elapsed time was recorded. The file's start and stated end (<see cref="EndUtc"/>, FIT field 27) are both whole
+    /// seconds of the watch's instants — on the export of 27.09.2026 the stated end lies within a second of this sum — so
+    /// the stated end stays a check, and the true split may begin up to a second after <see cref="StartUtc"/>.
+    /// </summary>
+    public DateTimeOffset End => Elapsed > MediaTime.Zero ? StartUtc.AddTicks(Elapsed.Ticks) : EndUtc;
+
+    /// <summary>The split's interval <c>[StartUtc, End)</c> — what every user of a split's boundaries reads.</summary>
+    public WorkoutInterval Interval => new(StartUtc, End);
 }
 
 /// <summary>A non-fatal finding of the import: data that was left out, with how many items it concerned.</summary>

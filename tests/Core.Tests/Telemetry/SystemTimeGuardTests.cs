@@ -18,6 +18,7 @@ public sealed partial class SystemTimeGuardTests
         "src/UI/Services/TrainingImportWorkflow.cs",
         "src/UI/Services/TrainingSessionService.cs",
         "src/UI/Localization/TrainingText.cs",
+        "src/UI/ViewModels/Panels/InspectorViewModel.Training.cs",
     };
 
     [GeneratedRegex(@"TimeZoneInfo\.Local\b|DateTime\.Now\b|DateTimeOffset\.Now\b|DateTime\.Today\b|\.ToLocalTime\(|\.LocalDateTime\b")]

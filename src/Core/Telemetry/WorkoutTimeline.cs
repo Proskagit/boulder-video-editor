@@ -1,23 +1,4 @@
-using AiVideoEditor.Core.Common;
-
 namespace AiVideoEditor.Core.Telemetry;
-
-/// <summary>
-/// How a video's source time maps onto a training's absolute time: the UTC instant of the video's source time zero
-/// (from the video's own timestamps, or set by the user) plus the user's correction. Exact tick arithmetic; no
-/// floating point. Bound to a clip's <em>source</em> time, so Trim / Split / Move of the clip keep the match.
-/// </summary>
-public readonly record struct WorkoutVideoAlignment(DateTimeOffset SourceZeroUtc, MediaTime Correction)
-{
-    /// <summary>The training instant shown at <paramref name="sourceTime"/> of the video.</summary>
-    public DateTimeOffset ToWorkoutTime(MediaTime sourceTime) =>
-        new DateTimeOffset(checked(SourceZeroUtc.UtcTicks + sourceTime.Ticks + Correction.Ticks), TimeSpan.Zero);
-
-    /// <summary>The video's source time that shows the training instant <paramref name="utc"/> (may be negative or past
-    /// the video's end).</summary>
-    public MediaTime ToSourceTime(DateTimeOffset utc) =>
-        new(checked(utc.UtcTicks - SourceZeroUtc.UtcTicks - Correction.Ticks));
-}
 
 /// <summary>Queries on a <see cref="ClimbingWorkout"/> at absolute instants.</summary>
 public static class WorkoutTimeline

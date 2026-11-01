@@ -81,7 +81,7 @@ public sealed partial class InspectorViewModel
                 TrainingClimbs.Add(string.Format(Strings.Inspector_ClimbItem, climb.ClimbNumber, WatchClock(climb.StartUtc, workout!)));
             SelectedClimbIndex = selected < climbs.Count ? selected : -1;
         }
-        RecordingStartText = _trainingAsset?.RecordingZeroOverrideUtc is not null
+        RecordingStartText = _trainingAsset is not null && RecordingZeroEstimator.Resolve(_trainingAsset).State == RecordingZeroState.Override
             ? Strings.Inspector_RecordingStartSet
             : Strings.Inspector_RecordingStartUnknown;
         AlignToClimbCommand.NotifyCanExecuteChanged();

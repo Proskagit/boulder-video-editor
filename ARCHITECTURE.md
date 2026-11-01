@@ -488,7 +488,12 @@ The product's main AI function: the route's holds outlined on a video clip, one 
 
 - **Core `Telemetry/`**: `FitFile` (FIT reader), `CorosWorkoutParser` → `ClimbingWorkout` (UTC samples, pauses, splits,
   warnings; refusals as `TrainingFileException` + `TrainingFileError`), `WorkoutTimeline.HeartRateAt` (the latest sample
-  at most 2 s old, inside the recording, outside the timer's pauses), `WorkoutVideoAlignment`. Pure, no I/O.
+  at most 2 s old, inside the recording, outside the timer's pauses); a split's interval is `[start, start + elapsed)`
+  (`WorkoutSegment.Interval`, the one boundary rule; the file's whole-second end only a check). `TrainingAlignment` is the
+  only implementation of the mapping (D049 §6) — forward, inverse `SourceTimeOf`, `ZeroForSplit`, `ClimbsInSource` (the
+  climbs a source range shows); `RecordingTimeTag` the one tag parser (D049 §3); `RecordingZeroEstimator` the one
+  estimator of a file's zero (override / automatic / unknown with its reason; the tag and file-name hypotheses only as
+  research values until Step 35.3's rule is approved). Pure, no I/O.
 - **Media**: `TrainingImportService` (`ITrainingImportService`, Core) — size limit, I/O refusals, parsing off the UI
   thread.
 - **UI**: «Тренировка COROS…» → `TrainingImportWorkflow`; texts in `TrainingText`. Until Step 35.4 the training lives

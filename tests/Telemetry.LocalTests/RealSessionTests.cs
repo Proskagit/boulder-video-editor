@@ -88,6 +88,23 @@ public class RealSessionTests
     }
 
     [Fact]
+    public void A_split_ends_at_start_plus_elapsed_and_its_stated_end_is_the_same_instant_to_the_second()
+    {
+        // The one boundary rule (D050 amendment B8): a split ends at start + elapsed (ms). The file's start (field 9) and
+        // end (field 27) are both whole seconds of the watch's instants: on this export the stated end lies within
+        // −0.6…+0.83 s of start + elapsed, never a second or more away, and 30 of 32 splits start at the previous one's
+        // stated end. So the true interval may begin up to 1 s after StartUtc — a quantisation Step 35.3 must allow for.
+        var workout = Load();
+        foreach (var s in workout.Segments)
+        {
+            Assert.Equal(s.StartUtc.AddTicks(s.Elapsed.Ticks), s.End);
+            Assert.True((s.EndUtc - s.End).Duration() < TimeSpan.FromSeconds(1), $"split {s.Index}: {s.EndUtc:O} vs {s.End:O}");
+        }
+        Assert.Equal(new DateTimeOffset(2026, 9, 27, 7, 2, 59, 170, TimeSpan.Zero), workout.Climbs.First().End);
+        Assert.Equal(30, workout.Segments.Zip(workout.Segments.Skip(1)).Count(p => p.First.EndUtc == p.Second.StartUtc));
+    }
+
+    [Fact]
     public void The_watch_split_heart_rates_agree_with_the_samples_except_at_the_edges()
     {
         // Fields 15 / 16 of the split are its average / maximum heart rate: equal to the samples' (end inclusive, average
