@@ -766,6 +766,22 @@
               </StackPanel>
             </StackPanel>
 
+            <!-- COROS training (Phase 35, D050 amendment B2 / B4): this video's recording start Z, set by matching the playhead's
+                 frame to the start of a climb (one Undo step), and the read-only mapping at the playhead. The training's
+                 clock correction is a setting of the toolbar's COROS menu, never here. -->
+            <StackPanel Spacing="6" IsVisible="{Binding ShowsTraining}">
+              <TextBlock Text="{x:Static l:Strings.Inspector_TrainingHeader}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <TextBlock Text="{Binding RecordingStartText}" Foreground="#DDDDDD" TextWrapping="Wrap"/>
+              <ComboBox ItemsSource="{Binding TrainingClimbs}" SelectedIndex="{Binding SelectedClimbIndex, Mode=TwoWay}"
+                        HorizontalAlignment="Stretch" ToolTip.Tip="{x:Static l:Strings.Inspector_AlignToClimbTip}"/>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Button Content="{x:Static l:Strings.Inspector_AlignToClimb}" Command="{Binding AlignToClimbCommand}"
+                        ToolTip.Tip="{x:Static l:Strings.Inspector_AlignToClimbTip}"/>
+                <Button Content="{x:Static l:Strings.Inspector_ClearRecordingStart}" Command="{Binding ClearRecordingStartCommand}"/>
+              </StackPanel>
+              <TextBlock Text="{Binding TrainingReadout}" Foreground="#AAAAAA" FontSize="11" TextWrapping="Wrap"/>
+            </StackPanel>
+
             <!-- Audio (Phase 7): volume and mute are independent; every change is one edit. -->
             <StackPanel Spacing="6" IsVisible="{Binding HasAudioProperties}">
               <TextBlock Text="{x:Static l:Strings.Inspector_AudioHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>

@@ -47,9 +47,10 @@ for Step 35.2's version only; from Step 35.4 the training is saved (part C).
 | C5 | Replace the FIT with a new export of the same activity from the COROS app | «файл изменён»; the data is used; the new size / hash saved on the next save | |
 | C6 | Import another training while one is attached | a confirmation; after it the new training is attached and the clock correction is 0; overrides unchanged; no Undo step | |
 | C6a | Point the training to another activity's FIT (relink) | the relink asks for confirmation (the correction may not fit) | |
-| C7 | Change the clock correction by ±1 frame | the mapping of every aligned video moves by one frame (the overridden ones too); one Undo step; Redo | |
+| C7 | Change the training's clock correction (COROS training drop-down) by ±1 frame | the readout «Тренировка в позиции плейхеда» of every aligned video moves by one frame (the overridden ones too); one Undo step; Redo | |
 | C7a | Sign: set the correction to +2 s | a frame filmed at C 10:00:00 shows the watch's sample of W 10:00:02 | |
-| C8 | Set the zero override of `video_20260927_103026.mp4` | that video aligned; one Undo step; Redo | |
+| C8 | In the Inspector of `video_20260927_103026.mp4`: playhead on the visible start of climb 5, «Совместить кадр с началом подъёма N» with climb 5 | that video aligned: the readout shows the split's watch time at that frame; one Undo step; Redo; the training's clock correction unchanged | |
+| C8a | Move the playhead over an aligned and an unaligned clip | the readout follows the playhead: watch time · BPM, or the reason (no training / FIT not available / recording start unknown / outside the recording / no sample) | |
 | C9 | Split, trim, move, slip and speed 2× a clip; duplicate it | the watch time of a given picture frame is unchanged; the duplicate shows the same heart rate for the same picture | |
 | C10 | Open a v10 project | opens; Save writes the new version; an older build refuses the saved file | |
 | C11 | Remove the training | the training and its clock correction are gone; the videos' overrides are kept; no Undo step | |

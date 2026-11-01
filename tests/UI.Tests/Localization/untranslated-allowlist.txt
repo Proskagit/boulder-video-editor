@@ -206,6 +206,13 @@ src/Project/Persistence/ProjectSerializer.cs	unknown hold animation order
 src/Project/Persistence/ProjectSerializer.cs	unknown hold animation mode
 src/Project/Persistence/ProjectSerializer.cs	a hold animation has a duration without its mode
 src/Project/Persistence/ProjectSerializer.cs	a hold animation has no duration
+src/Project/Persistence/ProjectSerializer.cs	invalid recording-time probe
+src/Project/Persistence/ProjectSerializer.cs	invalid training file hash
+src/Project/Persistence/ProjectSerializer.cs	invalid training file size
+src/Project/Persistence/ProjectSerializer.cs	recording-zero override on a non-video media
+src/Project/Persistence/ProjectSerializer.cs	training activity ends before it starts
+src/Project/Persistence/ProjectSerializer.cs	training activity is missing
+src/Project/Persistence/ProjectSerializer.cs	training file path is missing
 src/Project/Persistence/RecentProjectsStore.cs	a newer format version
 src/Project/Persistence/RecentProjectsStore.cs	no list of projects
 src/Project/Persistence/RecentProjectsStore.cs	no valid format version

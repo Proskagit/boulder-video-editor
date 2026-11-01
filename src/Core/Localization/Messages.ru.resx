@@ -1177,4 +1177,10 @@
   <data name="Transition_NotOnTemplate" xml:space="preserve">
     <value>Рядом с шаблоном нельзя поставить переход.</value>
   </data>
+  <data name="Training_None" xml:space="preserve">
+    <value>В проекте нет тренировки COROS.</value>
+  </data>
+  <data name="Training_NotAVideo" xml:space="preserve">
+    <value>Это работает только для видео проекта.</value>
+  </data>
 </root>

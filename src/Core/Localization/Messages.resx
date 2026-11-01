@@ -1177,4 +1177,10 @@
   <data name="Transition_NotOnTemplate" xml:space="preserve">
     <value>A transition can't be placed next to a template.</value>
   </data>
+  <data name="Training_None" xml:space="preserve">
+    <value>The project has no COROS training.</value>
+  </data>
+  <data name="Training_NotAVideo" xml:space="preserve">
+    <value>This works on a video of the project only.</value>
+  </data>
 </root>

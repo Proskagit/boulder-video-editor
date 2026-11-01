@@ -112,7 +112,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<WaveformCoordinator>();
         services.AddSingleton<MediaAvailabilityMonitor>();
         services.AddSingleton<MediaImportWorkflow>();
-        services.AddSingleton<TrainingSessionService>();   // Phase Coros C1: the training held in the session, not saved
+        services.AddSingleton<TrainingSessionService>();   // Phase 35: the project's training, its FIT resolved at runtime (D049)
         services.AddSingleton<TrainingImportWorkflow>();
         services.AddSingleton<MediaRelinkWorkflow>();
         services.AddSingleton<ProjectFileWorkflow>();

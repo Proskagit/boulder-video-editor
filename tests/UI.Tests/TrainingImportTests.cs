@@ -193,7 +193,7 @@ public sealed class TrainingImportTests : IDisposable
         await Workflow(showStatus: () => { _projects.CreateNew("Other"); return Task.CompletedTask; }).RunAsync();
 
         Assert.Null(_session.Workout);
-        Assert.Equal("Training import stopped: another project was opened, so nothing was kept.", _status.Message);
+        Assert.Equal("Training command stopped: another project was opened, so nothing was changed.", _status.Message);
     }
 
     [Fact]
@@ -212,19 +212,28 @@ public sealed class TrainingImportTests : IDisposable
     }
 
     [Fact]
-    public async Task The_training_is_not_written_to_project_json()
+    public async Task The_training_is_saved_as_a_reference_to_its_file_never_its_telemetry()
     {
-        _picker.Files.Enqueue(CorosFile());
+        // Step 35.2 kept the training in the session only; since Step 35.4 (D049, P2 / S1) the project stores a reference
+        // to the FIT file — paths, size, SHA-256, activity, clock correction — and never the parsed telemetry.
+        var path = CorosFile();
+        _picker.Files.Enqueue(path);
         await Workflow().RunAsync();
         Assert.NotNull(_session.Workout);
+        Assert.True(_projects.Current.IsDirty);                          // a project change, not an Undo step
 
         var projectFolder = Path.Combine(_folder, "project");
         await _projects.SaveAsAsync(projectFolder);
 
-        var json = await File.ReadAllTextAsync(Path.Combine(projectFolder, "project.json"));
-        foreach (var word in new[] { "training", "workout", "COROS", "heart", ".fit" })
-            Assert.DoesNotContain(word, json, StringComparison.OrdinalIgnoreCase);
-        Assert.NotNull(_session.Workout);   // saving does not drop it either
+        var json = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(projectFolder, "project.json")))!;
+        var training = json["training"]!;
+        Assert.Equal(Path.GetFullPath(path), training["filePath"]!.GetValue<string>());
+        Assert.Equal(new FileInfo(path).Length, training["fileSizeBytes"]!.GetValue<long>());
+        Assert.Equal(64, training["sha256"]!.GetValue<string>().Length);
+        Assert.Equal(0, training["clockCorrectionTicks"]!.GetValue<long>());
+        foreach (var word in new[] { "heartRate", "samples", "bpm", "segments" })
+            Assert.DoesNotContain(word, training.ToJsonString(), StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(_session.Workout);   // saving does not drop it
     }
 
     // --- the toolbar --------------------------------------------------------------------------------------------------
@@ -236,7 +245,10 @@ public sealed class TrainingImportTests : IDisposable
         var notified = new List<string?>();
         toolbar.PropertyChanged += (_, e) => notified.Add(e.PropertyName);
 
-        Assert.Equal("Import a COROS training (.fit). It is kept in this session only and is not saved in the project.", toolbar.TrainingToolTip);
+        Assert.Equal("COROS training: import a .fit file, point to its file, the training's clock correction. The project keeps a reference to the file.",
+            toolbar.TrainingToolTip);
+        Assert.False(toolbar.HasTraining);
+        Assert.False(toolbar.RemoveTrainingCommand.CanExecute(null));
         Assert.True(toolbar.ImportTrainingCommand.CanExecute(null));
 
         _picker.Files.Enqueue(CorosFile("Болдеринг.fit"));
@@ -244,8 +256,11 @@ public sealed class TrainingImportTests : IDisposable
 
         Assert.Contains(nameof(ToolbarViewModel.TrainingToolTip), notified);
         Assert.Equal(
-            $"Training in this session: {TrainingText.Summary(_session.Workout!)}\nБолдеринг.fit\nNot saved in the project. Click to import another one.",
+            $"Project training: {TrainingText.Summary(_session.Workout!)}\nБолдеринг.fit\nFile available.",
             toolbar.TrainingToolTip);
+        Assert.True(toolbar.HasTraining);
+        Assert.True(toolbar.RemoveTrainingCommand.CanExecute(null));
+        Assert.False(toolbar.RelinkTrainingCommand.CanExecute(null));    // only while the file is not available
 
         using var held = editingLock.Acquire();
         Assert.False(toolbar.ImportTrainingCommand.CanExecute(null));   // not during an export
@@ -310,6 +325,8 @@ public sealed class TrainingImportTests : IDisposable
     private sealed class FailingService(Exception failure) : Core.Interfaces.ITrainingImportService
     {
         public Task<ClimbingWorkout> ImportAsync(string filePath, CancellationToken ct = default) => Task.FromException<ClimbingWorkout>(failure);
+        public Task<Core.Interfaces.TrainingFile> LoadAsync(string filePath, CancellationToken ct = default) =>
+            Task.FromException<Core.Interfaces.TrainingFile>(failure);
     }
 
     private sealed class NoAnalysis : Core.Interfaces.IMediaAnalysisService

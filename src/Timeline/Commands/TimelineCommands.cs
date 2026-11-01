@@ -118,6 +118,27 @@ public sealed class SetExportEncodingCommand(ProjectSettings settings, ExportEnc
     public void Undo() => settings.Export = oldEncoding;
 }
 
+/// <summary>The training's clock correction W − C (Phase 35, D049 §2).</summary>
+public sealed class SetTrainingClockCorrectionCommand(Core.Telemetry.TrainingReference training, MediaTime before, MediaTime after)
+    : IUndoableCommand
+{
+    public string Description => "Change Training Clock Correction";
+
+    public void Execute() => training.ClockCorrection = after;
+
+    public void Undo() => training.ClockCorrection = before;
+}
+
+/// <summary>A video's recording-zero override Z in camera time C (Phase 35, D049 §2).</summary>
+public sealed class SetRecordingZeroOverrideCommand(MediaAsset asset, DateTimeOffset? before, DateTimeOffset? after) : IUndoableCommand
+{
+    public string Description => "Set Recording Start";
+
+    public void Execute() => asset.RecordingZeroOverrideUtc = after;
+
+    public void Undo() => asset.RecordingZeroOverrideUtc = before;
+}
+
 public sealed class AddTrackCommand(Sequence sequence, Track track) : IUndoableCommand
 {
     public string Description => "Add Track";

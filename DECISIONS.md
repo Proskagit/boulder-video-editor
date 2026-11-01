@@ -8352,6 +8352,23 @@ rough cut; the summary and chapters (Phase 36). **Risks**: the tag's semantics e
 one-second resolution; two unexplained outliers; the version number fixed at merge (V1); re-probe cost on large
 libraries.
 
+**Amendment (product owner, 2026-11-01) — Step 35.4 before the zero rule; its interface.** D049 unchanged.
+- **Order (B1)**: Step 35.4 may start before Step 35.3's research ends and its zero rule is approved (the part of 35.3
+  independent of the rule is done, `02ded40`). Until then the zero states are «override» and «unknown»; the «automatic»
+  state is added together with the approved rule.
+- **Setting a video's recording-zero override (B2)**: the main way is «Совместить кадр с началом подъёма N» in the
+  Inspector of the video clip: the user puts the playhead on the frame where climb N starts and picks the climb from the
+  training's splits; the override is `Z = W_split − ClockCorrection − s(n)` (`s(n)` the clip's source time at the playhead
+  frame, D049 §6), so that `w(n) = W_split`. No manual entry of a C time, no time-zone choice. Z is the override of that
+  video only (D049 §2, camera time C) — never the clock correction.
+- **Commands and settings (B3)**: «Тренировка COROS…» becomes a drop-down — «Импортировать…», «Указать файл…» (only while
+  the FIT is not available), «Удалить тренировку». The training's `ClockCorrection` (W − C, the whole training) is a
+  separate setting in the context of the COROS training (the drop-down), not in the clip's Inspector; the per-video Z
+  is in the clip's Inspector. The two are never named alike (no common «сдвиг часов»).
+- **Result readout (B4)**: the Inspector of a video clip shows a read-only line with the mapping at the playhead —
+  «Тренировка в позиции плейхеда: 10:31:54 (часы) · 142 уд/мин» — or the reason there is none; it follows the playhead.
+  No overlay and no composition change before Step 35.5.
+
 ---
 
 ## How to add a decision

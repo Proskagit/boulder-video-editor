@@ -25,15 +25,19 @@ public sealed class TrainingImportService : ITrainingImportService
         _maxFileBytes = maxFileBytes;
     }
 
-    public async Task<ClimbingWorkout> ImportAsync(string filePath, CancellationToken ct = default)
+    public async Task<ClimbingWorkout> ImportAsync(string filePath, CancellationToken ct = default) =>
+        (await LoadAsync(filePath, ct)).Workout;
+
+    public async Task<TrainingFile> LoadAsync(string filePath, CancellationToken ct = default)
     {
         var bytes = await ReadAsync(filePath, ct);
-        var workout = await Task.Run(() => CorosWorkoutParser.Parse(bytes), ct);
+        var (workout, sha256) = await Task.Run(() =>
+            (CorosWorkoutParser.Parse(bytes), Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant()), ct);
 
-        _logger.LogInformation("Training imported from '{Path}': {Device}, {Start:u} – {End:u}, {Samples} heart-rate samples, {Climbs} climbs, {Warnings} warnings.",
+        _logger.LogInformation("Training read from '{Path}': {Device}, {Start:u} – {End:u}, {Samples} heart-rate samples, {Climbs} climbs, {Warnings} warnings.",
             filePath, workout.DeviceName, workout.StartUtc, workout.EndUtc, workout.HeartRate.Count, workout.Climbs.Count(),
             workout.Warnings.Count);
-        return workout;
+        return new TrainingFile(workout, bytes.LongLength, sha256);
     }
 
     private async Task<byte[]> ReadAsync(string filePath, CancellationToken ct)

@@ -1723,6 +1723,26 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     // --- Project settings: canvas and rate together (D028, Step 13.6) -------------------------------------------------
 
+    public TimelineEditResult SetTrainingClockCorrection(MediaTime correction)
+    {
+        if (_projectService.Current.Training is not { } training) return TimelineEditResult.Fail(Messages.Training_None);
+        if (training.ClockCorrection == correction) return TimelineEditResult.Unchanged();
+        _undoRedo.Execute(new NotifyingCommand(
+            new SetTrainingClockCorrectionCommand(training, training.ClockCorrection, correction), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok();
+    }
+
+    public TimelineEditResult SetRecordingZeroOverride(Guid mediaAssetId, DateTimeOffset? zero)
+    {
+        var asset = _projectService.Current.MediaAssets.FirstOrDefault(a => a.Id == mediaAssetId);
+        if (asset is not { Kind: MediaKind.Video }) return TimelineEditResult.Fail(Messages.Training_NotAVideo);
+        var utc = zero?.ToUniversalTime();
+        if (asset.RecordingZeroOverrideUtc == utc) return TimelineEditResult.Unchanged();
+        _undoRedo.Execute(new NotifyingCommand(
+            new SetRecordingZeroOverrideCommand(asset, asset.RecordingZeroOverrideUtc, utc), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok();
+    }
+
     public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null)
     {
         // Every part is checked before anything else, so a refused part never lets another one through alone.

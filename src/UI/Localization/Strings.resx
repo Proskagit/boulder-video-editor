@@ -2157,12 +2157,12 @@ If you don't save, your changes will be lost.</value>
     <value>COROS Training…</value>
   </data>
   <data name="Toolbar_TrainingTip" xml:space="preserve">
-    <value>Import a COROS training (.fit). It is kept in this session only and is not saved in the project.</value>
+    <value>COROS training: import a .fit file, point to its file, the training's clock correction. The project keeps a reference to the file.</value>
   </data>
   <data name="Toolbar_TrainingLoadedTip" xml:space="preserve">
-    <value>Training in this session: {0}
+    <value>Project training: {0}
 {1}
-Not saved in the project. Click to import another one.</value>
+{2}</value>
   </data>
   <data name="Training_PickerTitle" xml:space="preserve">
     <value>Import a COROS Training</value>
@@ -2189,7 +2189,7 @@ Not saved in the project. Click to import another one.</value>
     <value>Training import didn't finish.</value>
   </data>
   <data name="Training_ProjectChanged" xml:space="preserve">
-    <value>Training import stopped: another project was opened, so nothing was kept.</value>
+    <value>Training command stopped: another project was opened, so nothing was changed.</value>
   </data>
   <data name="TrainingError_NotAFitFile" xml:space="preserve">
     <value>this is not a FIT file.</value>
@@ -2238,5 +2238,131 @@ Not saved in the project. Click to import another one.</value>
   </data>
   <data name="TrainingWarning_UnusableUtcOffset" xml:space="preserve">
     <value>the watch's time zone is not usable; times are shown in UTC</value>
+  </data>
+  <data name="Toolbar_TrainingImport" xml:space="preserve">
+    <value>Import…</value>
+  </data>
+  <data name="Toolbar_TrainingRelink" xml:space="preserve">
+    <value>Point to the file…</value>
+  </data>
+  <data name="Toolbar_TrainingRemove" xml:space="preserve">
+    <value>Remove the training</value>
+  </data>
+  <data name="Toolbar_TrainingClockCorrection" xml:space="preserve">
+    <value>Training clock correction, frames</value>
+  </data>
+  <data name="Toolbar_TrainingClockCorrectionTip" xml:space="preserve">
+    <value>Watch time minus phone time for the whole training, in frames of the project. Not the recording start of a video (that is set in the clip's Inspector).</value>
+  </data>
+  <data name="TrainingState_Available" xml:space="preserve">
+    <value>File available.</value>
+  </data>
+  <data name="TrainingState_Unresolved" xml:space="preserve">
+    <value>Reading the file…</value>
+  </data>
+  <data name="TrainingState_Changed" xml:space="preserve">
+    <value>The file has changed (same activity): its data is used.</value>
+  </data>
+  <data name="TrainingState_Missing" xml:space="preserve">
+    <value>The training file was not found.</value>
+  </data>
+  <data name="TrainingState_OtherActivity" xml:space="preserve">
+    <value>The file holds another training: not used.</value>
+  </data>
+  <data name="TrainingState_Unreadable" xml:space="preserve">
+    <value>The training file could not be read.</value>
+  </data>
+  <data name="Training_ReplaceTitle" xml:space="preserve">
+    <value>Replace the training</value>
+  </data>
+  <data name="Training_ReplaceMessage" xml:space="preserve">
+    <value>The project already has a COROS training. Replace it? The training's clock correction starts again at 0; the videos' recording starts are kept.</value>
+  </data>
+  <data name="Training_ReplaceButton" xml:space="preserve">
+    <value>Replace</value>
+  </data>
+  <data name="Training_ReplaceCancelled" xml:space="preserve">
+    <value>The training was not replaced.</value>
+  </data>
+  <data name="Training_OtherActivityTitle" xml:space="preserve">
+    <value>Another training</value>
+  </data>
+  <data name="Training_OtherActivityMessage" xml:space="preserve">
+    <value>The chosen file holds another training than the one in the project. Use it anyway? The clock correction and the videos' recording starts may no longer fit.</value>
+  </data>
+  <data name="Training_OtherActivityButton" xml:space="preserve">
+    <value>Use this file</value>
+  </data>
+  <data name="Training_RelinkCancelled" xml:space="preserve">
+    <value>The training file was not changed.</value>
+  </data>
+  <data name="Training_Relinked" xml:space="preserve">
+    <value>Training file set: {0}</value>
+  </data>
+  <data name="Training_Removed" xml:space="preserve">
+    <value>The training was removed from the project.</value>
+  </data>
+  <data name="Inspector_TrainingHeader" xml:space="preserve">
+    <value>COROS TRAINING</value>
+  </data>
+  <data name="Inspector_RecordingStartSet" xml:space="preserve">
+    <value>Recording start of this video: set by a climb</value>
+  </data>
+  <data name="Inspector_RecordingStartUnknown" xml:space="preserve">
+    <value>Recording start of this video: unknown</value>
+  </data>
+  <data name="Inspector_AlignToClimb" xml:space="preserve">
+    <value>Match the frame to the start of the climb</value>
+  </data>
+  <data name="Inspector_AlignToClimbTip" xml:space="preserve">
+    <value>Put the playhead on the frame where the chosen climb starts: the recording start of this video is set so that this frame shows the climb's start. The training's clock correction is not changed.</value>
+  </data>
+  <data name="Inspector_ClearRecordingStart" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Inspector_ClimbItem" xml:space="preserve">
+    <value>Climb {0} · {1}</value>
+  </data>
+  <data name="Inspector_AlignedToClimb" xml:space="preserve">
+    <value>Recording start set by climb {0}.</value>
+  </data>
+  <data name="Inspector_AlignPlayheadOutside" xml:space="preserve">
+    <value>Put the playhead on a frame of this clip.</value>
+  </data>
+  <data name="Readout_Value" xml:space="preserve">
+    <value>Training at the playhead: {0} (watch) · {1} bpm</value>
+  </data>
+  <data name="Readout_NoValue" xml:space="preserve">
+    <value>Training at the playhead: {0}</value>
+  </data>
+  <data name="Readout_NoTraining" xml:space="preserve">
+    <value>no training</value>
+  </data>
+  <data name="Readout_TrainingNotAvailable" xml:space="preserve">
+    <value>the training file is not available</value>
+  </data>
+  <data name="Readout_RecordingStartUnknown" xml:space="preserve">
+    <value>the recording start of this video is unknown</value>
+  </data>
+  <data name="Readout_OutsideClip" xml:space="preserve">
+    <value>the playhead is outside this clip</value>
+  </data>
+  <data name="Readout_OutsideRecording" xml:space="preserve">
+    <value>{0} (watch), outside the training's recording</value>
+  </data>
+  <data name="Readout_NoSample" xml:space="preserve">
+    <value>{0} (watch), no heart-rate sample</value>
+  </data>
+  <data name="Relink_RecordingStartTitle" xml:space="preserve">
+    <value>Recording start of the video</value>
+  </data>
+  <data name="Relink_RecordingStartMessage" xml:space="preserve">
+    <value>The recording start of this video was set by a climb, and {0} is not recognised as the same recording (size, duration or recording time differ, or could not be checked). Keep the recording start for the new file?</value>
+  </data>
+  <data name="Relink_RecordingStartDrop" xml:space="preserve">
+    <value>Do not keep</value>
+  </data>
+  <data name="Relink_RecordingStartKeep" xml:space="preserve">
+    <value>Keep</value>
   </data>
 </root>

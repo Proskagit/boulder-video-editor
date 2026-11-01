@@ -26,6 +26,17 @@ public static class TrainingText
         _ => Strings.TrainingError_Malformed
     };
 
+    /// <summary>The training file's state for the tooltip (D049 §9).</summary>
+    public static string State(TrainingAvailability availability) => availability switch
+    {
+        TrainingAvailability.Available => Strings.TrainingState_Available,
+        TrainingAvailability.Changed => Strings.TrainingState_Changed,
+        TrainingAvailability.Missing => Strings.TrainingState_Missing,
+        TrainingAvailability.OtherActivity => Strings.TrainingState_OtherActivity,
+        TrainingAvailability.Unreadable => Strings.TrainingState_Unreadable,
+        _ => Strings.TrainingState_Unresolved
+    };
+
     /// <summary>What was left out ("2 implausible heart-rate values left out").</summary>
     public static string Warning(TrainingFileWarning warning) => warning.Kind switch
     {

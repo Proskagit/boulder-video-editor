@@ -177,6 +177,7 @@ public sealed class MediaRelinkWorkflow
             }
         }
 
+        await AskRecordingZeroAsync(check);
         if (ExportRunning()) return false;                           // right before applying
         var result = await _relink.ApplyAsync(check);
         if (!result.Applied)
@@ -227,6 +228,20 @@ public sealed class MediaRelinkWorkflow
         return await SearchAndApplyAsync(folder);
     }
 
+    /// <summary>Phase 35 (D049 §8, ID1): an overridden video relinked to a file not recognised as the same recording —
+    /// keep its recording start? Default (and closing the dialog): no.</summary>
+    private async Task AskRecordingZeroAsync(RelinkCheck check)
+    {
+        if (check.RecordingZero != RecordingZeroOnRelink.Ask) return;
+        var choice = await _dialogs.AskAsync(new DialogRequest
+        {
+            Title = Strings.Relink_RecordingStartTitle,
+            Message = string.Format(Strings.Relink_RecordingStartMessage, Path.GetFileName(check.FilePath)),
+            Buttons = new[] { Strings.Relink_RecordingStartDrop, Strings.Relink_RecordingStartKeep }
+        });
+        check.KeepRecordingZero = choice == 1;
+    }
+
     private async Task<bool> SearchAndApplyAsync(string folder)
     {
         if (ExportRunning()) return false;
@@ -257,6 +272,7 @@ public sealed class MediaRelinkWorkflow
             return false;
         }
 
+        foreach (var check in applicable) await AskRecordingZeroAsync(check);
         if (ExportRunning()) return false;                           // right before applying
         var result = await _relink.ApplyAllAsync(applicable);
         var refused = result.Results.Where(r => !r.Applied).ToList();

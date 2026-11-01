@@ -79,8 +79,25 @@
       <Rectangle/>
 
       <Button Content="{x:Static l:Strings.Toolbar_Import}" Command="{Binding ImportMediaCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_ImportTip}"/>
-      <!-- Phase Coros C1: the training is held in the session only; the tooltip shows the one held. -->
-      <Button Content="{x:Static l:Strings.Toolbar_Training}" Command="{Binding ImportTrainingCommand}" ToolTip.Tip="{Binding TrainingToolTip}"/>
+      <!-- Phase 35 (D049, D050 amendment B3): the project's COROS training — import, point to its file, remove; the
+           training's clock correction (W − C, the whole training) lives here, never with a video's recording start. -->
+      <DropDownButton x:Name="TrainingButton" Content="{x:Static l:Strings.Toolbar_Training}" ToolTip.Tip="{Binding TrainingToolTip}">
+        <DropDownButton.Flyout>
+          <Flyout Placement="BottomEdgeAlignedLeft">
+            <StackPanel Width="320" Spacing="4">
+              <Button Content="{x:Static l:Strings.Toolbar_TrainingImport}" Command="{Binding ImportTrainingCommand}" HorizontalAlignment="Stretch"/>
+              <Button Content="{x:Static l:Strings.Toolbar_TrainingRelink}" Command="{Binding RelinkTrainingCommand}" HorizontalAlignment="Stretch"
+                      IsVisible="{Binding $self.IsEnabled}"/>
+              <Button Content="{x:Static l:Strings.Toolbar_TrainingRemove}" Command="{Binding RemoveTrainingCommand}" HorizontalAlignment="Stretch"/>
+              <StackPanel Spacing="2" Margin="0,6,0,0" IsVisible="{Binding HasTraining}">
+                <TextBlock Text="{x:Static l:Strings.Toolbar_TrainingClockCorrection}" FontSize="11"/>
+                <controls:CommitNumericUpDown Value="{Binding TrainingClockCorrectionFrames, Mode=TwoWay}" Increment="1" FormatString="0"
+                                              ToolTip.Tip="{x:Static l:Strings.Toolbar_TrainingClockCorrectionTip}"/>
+              </StackPanel>
+            </StackPanel>
+          </Flyout>
+        </DropDownButton.Flyout>
+      </DropDownButton>
 
       <Rectangle/>
 

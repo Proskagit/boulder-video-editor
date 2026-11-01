@@ -555,6 +555,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         TechnicalRows.Clear();
         SelectionKind = InspectorSelectionKind.TimelineClip;
         OnPropertyChanged(nameof(HasTechnicalInfo));
+        ShowTraining(clip is VideoClip ? selection.Asset : null);
     }
 
     /// <summary>Shows a Media Browser item's real properties, including whatever
@@ -713,6 +714,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     private void ForgetClip()
     {
         _clip = null;
+        HideTraining();
         _transition = null;
         HasAudioProperties = false;
         HasVisualProperties = false;

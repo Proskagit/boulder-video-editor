@@ -59,7 +59,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         MediaAvailabilityMonitor? mediaAvailability = null,
         IMediaRelinkService? relink = null,
         HoldMarkupViewModel? holdMarkup = null,
-        PreviewTransformViewModel? previewTransform = null)
+        PreviewTransformViewModel? previewTransform = null,
+        TrainingSessionService? training = null)
     {
         // A file found not to fit its clips after a later analysis (D026 §3, Step 11.4): said, never undone by itself.
         if (relink is not null)
@@ -141,6 +142,9 @@ public sealed class MainWindowViewModel : ViewModelBase
         Timeline.PlayheadChanged += (_, _) => UpdatePreviewPosition();
         // D045 §17: «На указатель» sets a template's status moment from the timeline's playhead.
         Inspector.Playhead = () => Timeline.Playhead;
+        // Phase 35 (D050 amendment B4): the clip's training readout follows the playhead.
+        Inspector.Training = training;
+        Timeline.PlayheadChanged += (_, _) => Inspector.OnPlayheadMoved();
         Timeline.SeekRequested += (_, position) => Preview.Seek(position);
         Preview.PlaybackPositionChanged += (_, position) => Timeline.ShowPlaybackPosition(position);
         Preview.FrameStepRequested += (_, frames) => Timeline.StepFrames(frames);

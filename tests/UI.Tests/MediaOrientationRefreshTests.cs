@@ -283,6 +283,8 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult SetCanvasSize(int width, int height) => No;
         public TimelineEditResult SetFrameRate(FrameRate rate) => No;
         public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null) => No;
+        public TimelineEditResult SetTrainingClockCorrection(MediaTime correction) => No;
+        public TimelineEditResult SetRecordingZeroOverride(Guid mediaAssetId, DateTimeOffset? zero) => No;
         public TimelineEditResult SetExportSettings(ExportEncoding export) => No;
         public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds,
             Func<SnapResult, bool>? accept = null) => SnapResult.None;

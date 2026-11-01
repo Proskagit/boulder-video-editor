@@ -51,6 +51,10 @@ public sealed class MediaAsset
     /// <summary>Null until metadata analysis has completed successfully.</summary>
     public MediaMetadata? Metadata { get; set; }
 
+    /// <summary>The recording-zero override of a video (Phase 35, D049 §2, Z): the instant of source time 0 in camera time C
+    /// (UTC as the phone states it). A property of the video — kept when the training is removed; null when none.</summary>
+    public DateTimeOffset? RecordingZeroOverrideUtc { get; set; }
+
     public MediaAnalysisStatus AnalysisStatus { get; set; } = MediaAnalysisStatus.Pending;
 
     /// <summary>Human-readable reason analysis failed, set only when

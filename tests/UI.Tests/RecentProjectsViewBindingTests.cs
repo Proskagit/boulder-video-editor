@@ -73,7 +73,7 @@ public sealed class RecentProjectsViewBindingTests : IDisposable
         var (toolbar, _, _) = Toolbar(withRecent: false);
         var view = new ToolbarView { DataContext = toolbar };
 
-        Assert.False(view.GetLogicalDescendants().OfType<DropDownButton>().Single().IsVisible);
+        Assert.False(view.GetLogicalDescendants().OfType<DropDownButton>().Single(b => b.Name == "RecentButton").IsVisible);
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public sealed class RecentProjectsViewBindingTests : IDisposable
     {
         var (toolbar, recent, _) = Toolbar();
         var view = new ToolbarView { DataContext = toolbar };
-        var flyout = (Flyout)view.GetLogicalDescendants().OfType<DropDownButton>().Single().Flyout!;
+        var flyout = (Flyout)view.GetLogicalDescendants().OfType<DropDownButton>().Single(b => b.Name == "RecentButton").Flyout!;
         var content = Assert.IsType<StackPanel>(flyout.Content);
         Assert.Equal(400, content.Width);                                           // a fixed width: long text can't widen it
         var list = content.Children.OfType<ItemsControl>().Single();

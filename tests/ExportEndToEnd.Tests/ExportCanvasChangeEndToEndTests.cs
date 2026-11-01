@@ -93,6 +93,7 @@ public sealed class ExportCanvasChangeEndToEndTests
         public Core.Entities.Project CreateNew(string name, ProjectSettings? settings = null) => throw new NotSupportedException();
         public Task<Core.Entities.Project> OpenAsync(string projectFolderPath, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<Core.Entities.Project> RestoreRecoveryAsync(string recoveryFilePath, CancellationToken ct = default) => throw new NotSupportedException();
+        public void SetTraining(Core.Telemetry.TrainingReference? training) => throw new NotSupportedException();
         public Task SaveAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task SaveAsAsync(string projectFolderPath, CancellationToken ct = default) => throw new NotSupportedException();
         public Task RecheckMediaAsync(CancellationToken ct = default) => Task.CompletedTask;

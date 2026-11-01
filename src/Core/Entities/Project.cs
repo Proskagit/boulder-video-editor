@@ -20,6 +20,10 @@ public sealed class Project
 
     public ExportSettings LastExportSettings { get; set; } = new();
 
+    /// <summary>The project's COROS training (Phase 35, D049): a reference to its FIT file and its clock correction; null
+    /// when none. One training per project.</summary>
+    public Telemetry.TrainingReference? Training { get; set; }
+
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
     public DateTimeOffset ModifiedAt { get; set; } = DateTimeOffset.UtcNow;
 

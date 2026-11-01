@@ -6,6 +6,7 @@ using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Localization;
+using AiVideoEditor.Core.Telemetry;
 
 namespace AiVideoEditor.Project.Persistence;
 
@@ -35,7 +36,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 10;
+    public const int CurrentFormatVersion = 11;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -62,6 +63,10 @@ public static class ProjectSerializer
     /// <summary>The first version with the duration mode and the new orders of the hold animation and the template ↔ clip
     /// anchor (D048). A v9 file is read with every animation in the interval mode and no anchor, and saved as v10.</summary>
     private const int RouteTimingVersion = 10;
+
+    /// <summary>The first version with the COROS training (D049 §7): the FIT reference and its clock correction, a video's
+    /// recording-zero override, the recording-time probe of the metadata. A v10 file is read without them and saved as v11.</summary>
+    private const int TrainingVersion = 11;
 
     /// <summary>A push's direction in the file (D044 §9).</summary>
     private static readonly IReadOnlyDictionary<TransitionDirection, string> DirectionNames = new Dictionary<TransitionDirection, string>
@@ -214,9 +219,32 @@ public static class ProjectSerializer
             Export = ToDto(p.Settings.Export)
         },
         MediaAssets = p.MediaAssets.Select(a => ToDto(a, folder)).ToList(),
-        Timeline = ToDto(p.Timeline)
+        Timeline = ToDto(p.Timeline),
         // LastExportSettings is session state (D023): never written.
+        Training = p.Training is { } t ? ToDto(t, folder) : null
     };
+
+    private static TrainingDto ToDto(TrainingReference t, string? folder)
+    {
+        var absolute = Path.GetFullPath(t.FilePath);
+        var relative = folder is null ? null : Path.GetRelativePath(folder, absolute);
+        return new TrainingDto
+        {
+            Id = t.Id,
+            FilePath = absolute,
+            RelativePath = relative is null || Path.IsPathRooted(relative) ? null : relative,
+            FileSizeBytes = t.FileSizeBytes,
+            Sha256 = t.Sha256,
+            Activity = new TrainingActivityDto
+            {
+                StartUtc = t.Activity.StartUtc.ToUniversalTime(),
+                EndUtc = t.Activity.EndUtc.ToUniversalTime(),
+                Manufacturer = t.Activity.Manufacturer,
+                Product = t.Activity.Product
+            },
+            ClockCorrectionTicks = t.ClockCorrection.Ticks
+        };
+    }
 
     private static FrameRateDto ToDto(FrameRate r) => new() { Numerator = r.Numerator, Denominator = r.Denominator };
 
@@ -240,7 +268,8 @@ public static class ProjectSerializer
             ImportedAt = a.ImportedAt,
             ThumbnailPath = a.ThumbnailPath,
             // Only a completed analysis is worth keeping; anything else is redone after Open.
-            Metadata = a.AnalysisStatus == MediaAnalysisStatus.Completed && a.Metadata is { } m ? ToDto(m) : null
+            Metadata = a.AnalysisStatus == MediaAnalysisStatus.Completed && a.Metadata is { } m ? ToDto(m) : null,
+            RecordingZeroOverrideUtc = a.RecordingZeroOverrideUtc?.ToUniversalTime()
         };
     }
 
@@ -269,8 +298,13 @@ public static class ProjectSerializer
         MaxContentLightLevel = m.MaxContentLightLevel,
         DolbyVisionProfile = m.DolbyVisionProfile,
         DolbyVisionCompatibility = m.DolbyVisionCompatibility,
-        HasHdrVivid = m.HasHdrVivid ? true : null
+        HasHdrVivid = m.HasHdrVivid ? true : null,
+        RecordingTimeProbe = m.RecordingTimeProbe is { } probe ? ToDto(probe) : null
     };
+
+    private static RecordingTimeProbeDto ToDto(RecordingTimeProbe probe) => probe.IsFound
+        ? new() { Status = "found", Tag = probe.Tag, Origin = probe.Origin == RecordingTimeTagOrigin.Format ? "format" : "videoStream" }
+        : new() { Status = "absent" };
 
     private static SequenceDto ToDto(Sequence s) => new()
     {
@@ -428,22 +462,52 @@ public static class ProjectSerializer
         var assets = new Dictionary<Guid, MediaAsset>();
         foreach (var assetDto in dto.MediaAssets ?? throw Damaged("media list is missing"))
         {
-            var asset = FromDto(assetDto ?? throw Damaged("empty media entry"), folder, fileExists);
+            var asset = FromDto(assetDto ?? throw Damaged("empty media entry"), folder, fileExists, dto.FormatVersion);
             if (!assets.TryAdd(asset.Id, asset)) throw Damaged("duplicate media id");
             project.MediaAssets.Add(asset);
         }
 
         project.Timeline = FromDto(dto.Timeline ?? throw Damaged("timeline is missing"), frameRate, assets, dto.FormatVersion);
+        if (dto.FormatVersion >= TrainingVersion && dto.Training is { } training)
+            project.Training = ReadTraining(training, folder, fileExists);
         return project;
     }
 
-    private static MediaAsset FromDto(MediaAssetDto dto, string? folder, Func<string, bool> fileExists)
+    /// <summary>The training reference (D049 §7): every member required; the path resolved as a media path (D014). The file
+    /// itself is read after Open (its availability is runtime state).</summary>
+    private static TrainingReference ReadTraining(TrainingDto dto, string? folder, Func<string, bool> fileExists)
+    {
+        RequireId(dto.Id, "training");
+        if (string.IsNullOrWhiteSpace(dto.FilePath)) throw Damaged("training file path is missing");
+        if (dto.FileSizeBytes < 0) throw Damaged("invalid training file size");
+        if (dto.Sha256 is not { Length: 64 } sha || !sha.All(Uri.IsHexDigit)) throw Damaged("invalid training file hash");
+        var activity = dto.Activity ?? throw Damaged("training activity is missing");
+        if (activity.EndUtc < activity.StartUtc) throw Damaged("training activity ends before it starts");
+
+        return new TrainingReference
+        {
+            Id = dto.Id,
+            FilePath = ResolveMediaPath(dto.FilePath, dto.RelativePath, folder, fileExists),
+            FileSizeBytes = dto.FileSizeBytes,
+            Sha256 = sha.ToLowerInvariant(),
+            Activity = new TrainingActivity(activity.StartUtc.ToUniversalTime(), activity.EndUtc.ToUniversalTime(),
+                activity.Manufacturer, activity.Product),
+            ClockCorrection = new MediaTime(dto.ClockCorrectionTicks)
+        };
+    }
+
+    private static MediaAsset FromDto(MediaAssetDto dto, string? folder, Func<string, bool> fileExists, int formatVersion)
     {
         RequireId(dto.Id, "media");
         if (string.IsNullOrWhiteSpace(dto.FilePath)) throw Damaged("media file path is missing");
         if (!Enum.IsDefined(dto.Kind)) throw Damaged("unknown media kind");
 
+        var hasTraining = formatVersion >= TrainingVersion;
         var metadata = ReadMetadata(dto.Metadata);
+        if (metadata is not null && hasTraining && dto.Metadata!.RecordingTimeProbe is { } probe)
+            metadata.RecordingTimeProbe = ReadRecordingTimeProbe(probe);
+        var zeroOverride = hasTraining ? dto.RecordingZeroOverrideUtc : null;
+        if (zeroOverride is not null && dto.Kind != MediaKind.Video) throw Damaged("recording-zero override on a non-video media");
         return new MediaAsset
         {
             Id = dto.Id,
@@ -453,9 +517,19 @@ public static class ProjectSerializer
             ImportedAt = dto.ImportedAt,
             ThumbnailPath = dto.ThumbnailPath,
             Metadata = metadata,
-            AnalysisStatus = metadata is null ? MediaAnalysisStatus.Pending : MediaAnalysisStatus.Completed
+            AnalysisStatus = metadata is null ? MediaAnalysisStatus.Pending : MediaAnalysisStatus.Completed,
+            RecordingZeroOverrideUtc = zeroOverride?.ToUniversalTime()
         };
     }
+
+    /// <summary>A well-formed probe (D049 §7): "found" with a tag and an origin, or "absent" with neither.</summary>
+    private static RecordingTimeProbe ReadRecordingTimeProbe(RecordingTimeProbeDto dto) => dto.Status switch
+    {
+        "found" when !string.IsNullOrEmpty(dto.Tag) && dto.Origin is "format" or "videoStream" =>
+            RecordingTimeProbe.Found(dto.Tag!, dto.Origin == "format" ? RecordingTimeTagOrigin.Format : RecordingTimeTagOrigin.VideoStream),
+        "absent" when dto.Tag is null && dto.Origin is null => RecordingTimeProbe.Absent,
+        _ => throw Damaged("invalid recording-time probe")
+    };
 
     /// <summary>The saved absolute path wins if the file is there; otherwise the path
     /// relative to the project folder if that file exists (project moved together with its

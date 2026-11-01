@@ -347,6 +347,14 @@ public interface ITimelineEditService
     /// </summary>
     TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null);
 
+    /// <summary>Sets the training's clock correction W − C (Phase 35, D049 §2; one value for the whole training) — one
+    /// Undo step. Refused without a training.</summary>
+    TimelineEditResult SetTrainingClockCorrection(MediaTime correction);
+
+    /// <summary>Sets (or, null, clears) a video's recording-zero override Z in camera time C (Phase 35, D049 §2, D050
+    /// amendment B2) — one Undo step. Refused for a media item that is not a video of the project.</summary>
+    TimelineEditResult SetRecordingZeroOverride(Guid mediaAssetId, DateTimeOffset? zero);
+
     /// <summary>
     /// Sets the project's export settings (D028, Step 13.9; EX-1): one Undo step, the project dirty; the same settings are
     /// <see cref="TimelineEditResult.NoChange"/>; settings that are not offered are refused. Exports made afterwards use them
