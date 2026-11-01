@@ -130,4 +130,8 @@ internal sealed class FfprobeFormat
     /// <summary>Bits per second, as a string.</summary>
     [JsonPropertyName("bit_rate")]
     public string? BitRate { get; set; }
+
+    /// <summary>Container tags; only <c>creation_time</c> is read (Phase 35, D049 §2).</summary>
+    [JsonPropertyName("tags")]
+    public Dictionary<string, string>? Tags { get; set; }
 }

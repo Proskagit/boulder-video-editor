@@ -159,4 +159,29 @@ public sealed class MediaMetadata
     /// <summary>True for picture metadata saved before Phase 18 — a coded size but no pixel format. Such video is probed
     /// again in the background when it is available (D033 T3).</summary>
     public bool NeedsColorProbe => Width is not null && Height is not null && PixelFormat is null;
+
+    /// <summary>The recording-time tag as the file states it (Phase 35, D049 §2–§4); null when it has not been probed in
+    /// this session. Runtime only until Step 35.4: not saved, so saved metadata is probed again in the background. What
+    /// the tag marks (start, end) is not established; nothing derives a time from it yet.</summary>
+    public RecordingTimeProbe? RecordingTimeProbe { get; set; }
+}
+
+/// <summary>Where a recording-time tag was found (D049 §2): the container's tags, else the first video stream's.</summary>
+public enum RecordingTimeTagOrigin
+{
+    Format,
+    VideoStream
+}
+
+/// <summary>
+/// The result of probing a file's <c>creation_time</c> tag (D049 §2–§4): <see cref="Tag"/> is the text exactly as
+/// ffprobe returned it, never normalised; a null <see cref="Tag"/> means the probe completed and the file has no such tag.
+/// </summary>
+public sealed record RecordingTimeProbe(string? Tag, RecordingTimeTagOrigin? Origin)
+{
+    public static RecordingTimeProbe Absent { get; } = new(null, null);
+
+    public static RecordingTimeProbe Found(string tag, RecordingTimeTagOrigin origin) => new(tag, origin);
+
+    public bool IsFound => Tag is not null;
 }

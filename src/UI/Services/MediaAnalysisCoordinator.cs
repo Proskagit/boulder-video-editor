@@ -39,6 +39,13 @@ namespace AiVideoEditor.UI.Services;
 /// another path (a relink) — writes nothing: a missing asset gets back the status it had before (so it is analysed
 /// once it returns), an asset with another path is left to whoever changed it.
 /// </para>
+/// <para>
+/// Recording time (Phase 35, D049 §4, M2): a video whose metadata has no <see cref="MediaMetadata.RecordingTimeProbe"/>
+/// gets the same background refresh, at most once per asset per generation — a failed probe is not retried until the
+/// next generation, also when the file goes and comes back; a probe that could not run because ffprobe is unavailable
+/// does not count. The refresh never makes the project dirty and adds no Undo step. The colour / orientation refresh is
+/// unchanged by this limit.
+/// </para>
 /// </summary>
 public sealed class MediaAnalysisCoordinator
 {
@@ -54,6 +61,10 @@ public sealed class MediaAnalysisCoordinator
     private readonly ConcurrentDictionary<MediaAsset, byte> _inFlight = new(ReferenceEqualityComparer.Instance);
     private readonly ConcurrentDictionary<Task, byte> _running = new();
     private CancellationTokenSource _generation = new();
+
+    /// <summary>Videos whose recording time was probed (or is being probed) in this generation (D049 §4); replaced with
+    /// the generation.</summary>
+    private ConcurrentDictionary<MediaAsset, byte> _recordingTimeAttempts = new(ReferenceEqualityComparer.Instance);
 
     public MediaAnalysisCoordinator(
         IMediaAnalysisService analysisService,
@@ -82,7 +93,13 @@ public sealed class MediaAnalysisCoordinator
             }
             else if (asset.AnalysisStatus == MediaAnalysisStatus.Completed && NeedsRefresh(asset))
             {
-                RefreshDisplaySize(asset);
+                RefreshDisplaySize(asset, ClaimRecordingTimeProbe(asset));
+                queued++;
+            }
+            else if (asset.AnalysisStatus == MediaAnalysisStatus.Completed && ClaimRecordingTimeProbe(asset) is { } claim)
+            {
+                _logger.LogDebug("Probing the recording time of '{Path}' in the background.", asset.FilePath);
+                RefreshDisplaySize(asset, claim);
                 queued++;
             }
         }
@@ -94,6 +111,18 @@ public sealed class MediaAnalysisCoordinator
     /// the colour (before Phase 18, D033 T3).</summary>
     private static bool NeedsRefresh(MediaAsset asset) =>
         asset.Metadata is { } m && (m.NeedsDisplaySizeProbe || (asset.Kind == MediaKind.Video && m.NeedsColorProbe));
+
+    /// <summary>A video whose metadata has not been probed for its recording time (D049 §4).</summary>
+    private static bool NeedsRecordingTimeProbe(MediaAsset asset) =>
+        asset.Kind == MediaKind.Video && asset.Metadata is { RecordingTimeProbe: null };
+
+    /// <summary>Claims the asset's one recording-time probe of this generation: the generation's attempt set when the
+    /// asset needs a probe and has not had one, otherwise null.</summary>
+    private ConcurrentDictionary<MediaAsset, byte>? ClaimRecordingTimeProbe(MediaAsset asset)
+    {
+        var attempts = _recordingTimeAttempts;
+        return NeedsRecordingTimeProbe(asset) && attempts.TryAdd(asset, 0) ? attempts : null;
+    }
 
     /// <summary>The asset is no longer what an analysis started for: its file is missing now, or it has another path.</summary>
     private static bool ChangedSince(MediaAsset asset, string path) =>
@@ -109,6 +138,7 @@ public sealed class MediaAnalysisCoordinator
     {
         var previous = _generation;
         _generation = new CancellationTokenSource();
+        _recordingTimeAttempts = new ConcurrentDictionary<MediaAsset, byte>(ReferenceEqualityComparer.Instance);
         // Not disposed: its token is still held by the analyses it cancels (they end on their own).
         previous.Cancel();
     }
@@ -138,7 +168,13 @@ public sealed class MediaAnalysisCoordinator
             }
             else if (asset.AnalysisStatus == MediaAnalysisStatus.Completed && NeedsRefresh(asset))
             {
-                RefreshDisplaySize(asset);
+                RefreshDisplaySize(asset, ClaimRecordingTimeProbe(asset));
+                queued++;
+            }
+            else if (asset.AnalysisStatus == MediaAnalysisStatus.Completed && ClaimRecordingTimeProbe(asset) is { } claim)
+            {
+                _logger.LogDebug("Probing the recording time of '{Path}' in the background.", asset.FilePath);
+                RefreshDisplaySize(asset, claim);
                 queued++;
             }
         }
@@ -151,15 +187,21 @@ public sealed class MediaAnalysisCoordinator
     /// asset's state: the asset stays Completed and usable, a successful probe replaces its metadata (a runtime refresh — the project
     /// does not become dirty), a failed one keeps the saved metadata and is only logged.
     /// </summary>
-    private void RefreshDisplaySize(MediaAsset asset)
+    /// <param name="recordingTimeClaim">The generation's recording-time attempt set when this refresh is the asset's
+    /// recording-time probe: released again when the probe does not run.</param>
+    private void RefreshDisplaySize(MediaAsset asset, ConcurrentDictionary<MediaAsset, byte>? recordingTimeClaim = null)
     {
         if (!_inFlight.TryAdd(asset, 0))
+        {
+            recordingTimeClaim?.TryRemove(asset, out _);
             return;
+        }
         asset.IsMetadataRefreshing = true;   // the export preflight waits while a video's colour is unknown (D033 T3)
-        Track(RefreshDisplaySizeAsync(asset, asset.FilePath, _generation.Token));
+        Track(RefreshDisplaySizeAsync(asset, asset.FilePath, _generation.Token, recordingTimeClaim));
     }
 
-    private async Task RefreshDisplaySizeAsync(MediaAsset asset, string path, CancellationToken generation)
+    private async Task RefreshDisplaySizeAsync(MediaAsset asset, string path, CancellationToken generation,
+        ConcurrentDictionary<MediaAsset, byte>? recordingTimeClaim)
     {
         var slot = false;
         try
@@ -168,6 +210,8 @@ public sealed class MediaAnalysisCoordinator
             slot = true;
             generation.ThrowIfCancellationRequested(); // see AnalyzeAndApplyAsync
             var result = await _analysisService.AnalyzeAsync(path, generation);
+            if (result.Outcome == MediaAnalysisOutcome.ProbeToolUnavailable)
+                recordingTimeClaim?.TryRemove(asset, out _); // nothing was probed: not an attempt (D049 §4)
             if (generation.IsCancellationRequested)
                 return; // another project is current now: this asset is no longer shown anywhere
             if (ChangedSince(asset, path))
