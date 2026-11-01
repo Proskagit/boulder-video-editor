@@ -24,8 +24,8 @@ for Step 35.2's version only; from Step 35.4 the training is saved (part C).
 | # | Check | Expected result | Evidence |
 |---|---|---|---|
 | B1 | Import the 16 videos of 27.09 into a new project | every online video is probed once per session; its metadata holds the raw `creation_time` tag and its origin (container format or video stream) | |
-| B2 | Inspect the zero state of the 16 videos before Step 35.3's rule is approved | every zero is «unknown»; no heart rate anywhere; the Inspector names the reason and offers the manual override | |
-| B3 | For each of the 14 climbs on video: the visible start of the climb against its split start | a table of C ↔ W differences; the measurement report proposes the rule, its tolerance `τ` and its device scope | |
+| B2 | Inspect the zero state of the 16 videos before Step 35.3's rule is approved | every zero not set by hand is «unknown»; no heart rate there; the Inspector names the reason and offers the manual override | |
+| B3 | For each of the 13 filmed climbs C2–C14 (C1 is not filmed): the visible start of the climb (the feet leave the floor) against its split start | a table of C ↔ W differences; the measurement report proposes the rule, its tolerance `τ` and its device scope (B12) | |
 | B4 | A video without `creation_time` (e.g. a re-encoded copy) | the probe records «no tag»; the zero stays «unknown»; no error | |
 | B4a | A video whose tag has no zone designator or another layout (prepared copy) | the tag is kept verbatim; it is «unrecognised», never read as UTC; the zero stays «unknown» | |
 | B5 | Open an older project (no `recordingTimeProbe`) with online videos; wait until the background probe ends | every online video probed (log); the title shows no unsaved changes; closing asks nothing; no Undo step | |
@@ -35,6 +35,21 @@ for Step 35.2's version only; from Step 35.4 the training is saved (part C).
 | B6 | Make one video unreadable for FFprobe (e.g. a truncated copy), open the project | one failed attempt in the log, no marker, no retry on re-check or window activation, the project not dirty; attempted again after the next Open | |
 | B6a | A video missing at Open; bring the file back; activate the window | exactly one probe of that video; bringing it back a second time in the session → no further probe | |
 | B6b | FFprobe unavailable; open a project with unprobed videos | no attempt, no marker; nothing recorded as attempted | |
+
+### B′. Step 35.3 — the research window and the measurement (D050 amendment B5–B9; sub-steps 35.3c–e)
+
+The fixed set: the folder `Боулдер 27.09.2026` (16 videos, the FIT with 14 climbs), frozen before the evaluation; the
+groups of `docs/PHASE_COROS.md` §10. `τ = 2 s` (working value). The study file is never committed.
+
+| # | Check | Expected result | Evidence |
+|---|---|---|---|
+| B7 | Debug build: open «Проверка синхронизации COROS»; Release build: look for it | Debug — the window opens on the W axis with the whole training (14 numbered climb intervals, the rests, the pause) and one lane per video; Release — no such command | |
+| B8 | Use the window (place, mark, match, export), then close it and look at the title bar, Undo and `project.json` | no unsaved changes, no Undo step, `project.json` unchanged; the marks and matches are in the study file only | |
+| B9 | A video with an unknown zero; a video placed by the evaluated zero | the first listed apart, not on the axis; the second placed by `w = Z + s + ClockCorrection`, never moved by hand | |
+| B10 | Check flow on one climb: pick it, open its video at the predicted frame, step to the frame where the feet leave the floor, mark it, confirm | Δ shown in ms and frames; the match «confirmed»; a rejection leaves the case «rejected»; a case without a climb stays «not matched», unshifted, in «Несопоставленные попытки» | |
+| B11 | The statistics panel and the CSV / JSON export | the clock-correction estimate (median, MAD, count), each match's leave-one-out residual, the drift and the outliers shown separately; only confirmed matches counted; the 7 videos without a climb only in the tag check; the export carries the algorithm version, the parameters and the input hashes | |
+| B12 | The measurement report on the fixed set | ≥ 11 of the 13 climbs C2–C14 within `τ`; every one of the 13 explained (no case dropped without a reason recorded beforehand); no drift beyond `τ / 2`; the tag check on the 7 videos without a climb reported per file; `103026` and `104651` analysed; the product owner's decision recorded | |
+| B13 | After the rule's approval (35.3e): the zero state of the 16 videos | «automatic» exactly where the rule's conditions hold, else «override» / «unknown»; the window and the Inspector give the same zero for each video (one estimator) | |
 
 ## C. Step 35.4 — the training in the project and the alignment
 

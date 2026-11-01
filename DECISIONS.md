@@ -8331,7 +8331,9 @@ project); ID2 (always clear), ID3 (content fingerprint per asset).
 
 ## D050 — Phase 35: import of COROS trainings and the heart rate in the video *(approved 2026-10-29)*
 
-Date: 2026-10-29. **Status: Approved by the product owner on 2026-10-29** (revision 4) — Steps 35.1–35.2 done, 35.3–35.6 not started. Format and time model: D049. Record until merge: `docs/PHASE_COROS.md`; manual
+Date: 2026-10-29. **Status: Approved by the product owner on 2026-10-29** (revision 4; amended 2026-11-01, B1–B9) — Steps
+35.1–35.2 done; 35.3 partly (the probe, `02ded40`; its research per B5–B9 not started); 35.4 implemented (`e15d7af`, its
+manual rows open); 35.5–35.6 not started. Format and time model: D049. Record until merge: `docs/PHASE_COROS.md`; manual
 plan: `docs/PHASE35_MANUAL_TEST_PLAN.md`. Any COROS model meeting the parser's requirements (owner, 2026-10-26); grade,
 result and style never from COROS (owner, 2026-10-28).
 
@@ -8368,6 +8370,74 @@ libraries.
 - **Result readout (B4)**: the Inspector of a video clip shows a read-only line with the mapping at the playhead —
   «Тренировка в позиции плейхеда: 10:31:54 (часы) · 142 уд/мин» — or the reason there is none; it follows the playhead.
   No overlay and no composition change before Step 35.5.
+
+**Amendment (product owner, 2026-11-01) — Step 35.3's research: tool, data, measures, acceptance; the FIT track out of
+the phase.** D049 unchanged: the research file is not part of `project.json`; the automatic zero is computed and never
+saved (D049 §2, `Zauto`); the time bases, the mapping (§6) and the forbidden system-time-zone APIs (§1) apply to the
+research code as to the product. Supersedes the «Acceptance» of row 35.3 above; the rest of the row stands.
+
+- **Research tool and data (B5)**:
+  - A separate window «Проверка синхронизации COROS», **in Debug builds only** — an internal research tool, not a
+    feature of the ordinary interface. It reads the project and its training; it never changes `project.json`, never
+    makes the project dirty, creates no Undo step.
+  - Its axis is the watch time W: the whole training (14 climbs as numbered intervals, the rests, the pause) and one lane
+    per video placed by the evaluated zero and the clock correction (`w = Z + s + ClockCorrection`) — never moved by hand
+    to fit a marker; a video whose zero is unknown is listed apart, not placed.
+  - The research data (the marks on the videos, the matches, the frozen set) lives in a separate study file
+    (`*.syncstudy.json`), never in the project; it is exported to JSON (the whole study and the computed results with the
+    algorithm version, its parameters and the input hashes) and to CSV (one row per mark / climb, invariant culture).
+    The research data never becomes project data without a separate decision.
+  - **Fixed verification set**: the folder `Боулдер 27.09.2026` — all 16 videos and the whole FIT with its 14 climbs.
+    The set is frozen (with a hash) before the evaluation; any later change is a new version of the set and the earlier
+    results are kept. The personal files and the study file are never committed; automated tests use synthetic data.
+- **Measures and acceptance (B6)**:
+  - *Data partition.* The 13 filmed climbs C2–C14 form the matching statistics; C1 is not filmed — reported, not
+    counted. The 7 videos without a climb (`100405`, `101229`, `102533`, `104110`, `104651`, `105713`, `112854`) are **not**
+    in the matching statistics: they are the independent check of the `creation_time` semantics and of the consistency of
+    the file's time with its name (L ↔ C, the hypothesis `h` once, D049 §1). The two atypical files are analysed
+    separately: `103026` (holds C5) and `104651` (no climb).
+  - Four separate quantities, never merged into one number:
+    1. *Clock-correction estimate* — for each confirmed match `i`: `k_i = W_split_i − (Z(M_i) + s_i)`, `s_i` the marked
+       start on the video; the estimate `K̂ = median(k_i)`, reported with its MAD and the number of matches.
+    2. *Residual of one match* — leave-one-out: `r_i = k_i − median(k_j, j ≠ i)`, in milliseconds and frames.
+    3. *Systematic drift* — a robust slope of `k_i` against `W_split_i` (median of the pairwise slopes) times the session's
+       span; a drift beyond `τ / 2` is D050's stop condition «the clock difference drifts».
+    4. *Outliers* — `|r_i| > τ`; each one gets an explanation backed by evidence: a matching error (the attempt), a
+       marking error, an anomaly of the file's recording time (the zero), an anomaly of the watch's split (e.g. C8 of
+       3.6 s, C10 / C11), or «unexplained».
+  - *Acceptance of the rule*: `|r_i| ≤ τ` for **at least 11 of the 13** climbs C2–C14; **every one of the 13** has an
+    explained result (within `τ`, or an outlier with its explanation); a case is excluded only with a reason recorded
+    before the evaluation — never because it is inconvenient; no drift beyond `τ / 2`; the check on the 7 videos without a
+    climb reported per file (its threshold fixed with the rule, before the evaluation). The product owner approves the
+    rule; until then every zero stays «override» or «unknown».
+- **Tolerance and marking (B7)**: `τ = 2 s` — a preliminary working value, revised only by the product owner's decision
+  recorded before a re-evaluation. The start of a climb on a video is the frame where the feet leave the floor and the
+  physical climb begins — one definition for every video, marked to the frame; the end of a climb is marked only as an
+  aid and is not part of the criterion.
+- **Two tasks, one estimator, one mapping (B8)**:
+  - *Recording synchronisation* (the zero Z of a file in C and the clock correction W − C) and *attempt matching* (which
+    climb of the FIT a climb marked on a video is) are separate in the model and in the window. Match states: not checked /
+    confirmed / rejected / not matched; residual classes: within `τ` / outlier / not computed. A confirmed match may be an
+    outlier; an unmatched case is never forced onto a climb or shifted, and stays open to analysis.
+  - The matching proposals do not use the tag-derived zero (the order, the durations, a coarse window by the file name
+    only); every proposal needs a human confirmation; only confirmed matches enter the statistics.
+  - **One estimator**: the automatic-zero candidates are computed by one Core estimator, used by the research window and
+    — once the rule is approved — by the «automatic» zero state of the product (Step 35.3e). No second implementation of
+    the algorithm.
+  - **One mapping**: `TrainingAlignment` is the only implementation of D049 §6, with the inverse `s = w − ClockCorrection −
+    Z` added; `WorkoutVideoAlignment` (Step 35.1) is removed or made internal and its tests moved; no user-visible change.
+  - **Climb markers** show the climb's number and interval — one rule for a climb's boundaries, shared by the window, the
+    Inspector, Step 35.5 and later users — and no attempt result (split field 71 stays unread, §6 of `PHASE_COROS.md`).
+- **The FIT track on the editing timeline is not part of Phase 35 (B9)**: no FIT / COROS track, no climb markers and no
+  visibility toggle on the editing timeline in this phase; no new track type, no format change for it. The editing
+  timeline has no axis of watch time (the mapping goes clip → source time → W, D049 §6), so such a track is a later,
+  separate feature with its own decision, built as a projection of the FIT's events onto the clips' source time (as the
+  D048 strip is drawn per clip), reusing the Core mapping and climb rule — not the research window.
+- **Order of Step 35.3's work**: 35.3a the shared Core (one mapping with its inverse, the climb rule, the tag parser of
+  D049 §3, the estimator — no behaviour change); 35.3b the study model, file, proposals, statistics and export; 35.3c the
+  Debug window; 35.3d the marking of the fixed set, the measurement report and the proposed rule → the owner's decision;
+  35.3e the «automatic» zero state, only after the approval. Step 35.5 depends on 35.4 only and may run alongside
+  35.3d. Each sub-step's implementation is agreed separately.
 
 ---
 

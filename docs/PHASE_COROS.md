@@ -85,8 +85,8 @@ alignment (Step 35.3). Not established either: the clock difference between the 
 | **35.0** | D049 (format and time model), D050 (phase), this plan, the manual test plan, the ARCHITECTURE section | approved by the product owner | **D049 / D050 approved 2026-10-29**; documents written on this branch; not merged |
 | **35.1** (C0) | Core: `Telemetry/FitFile` (FIT reader: header / file CRC, both byte orders, compressed timestamps, developer fields skipped), `CorosWorkoutParser`, `ClimbingWorkout` model, `WorkoutTimeline` (HR at an instant, splits in a range), `WorkoutVideoAlignment`. Tests in `Core.Tests/Telemetry` on synthetic FIT files; `tests/Telemetry.LocalTests` (outside the solution) on the real export | the real export parses to the facts of §1 (14 climbs, 5 766 HR samples, the pause, +3 h); every refusal reason covered; no change of `project.json`, UI or existing code — except the rule of `LocalizationGuardTests` and the related localization fix of `FitFile` (§7, `f12c5e6`) | **implemented** (`4636dd5`, `f12c5e6`, local branch `feat/phase-coros-c0`); build and tests run on Windows (see §7); not merged |
 | **35.2** (C1) | Import entry: `ITrainingImportService` (Core) + `TrainingImportService` (Media; 16 MiB limit, missing / unreadable file); «Тренировка COROS…» on the toolbar with a `.fit` picker (`TrainingImportWorkflow`); localized refusal texts and warnings (`TrainingText`); the workout held in `TrainingSessionService` (not saved) | importing the real file shows device, date, local time, 14 climbs; each refusal reason has a Russian / English text; nothing persisted | **implemented** (`934bbf6`, local branch `feat/phase-coros-c1`); **manual acceptance A1–A11 PASS (2026-10-29, §9)**, no defect found; not merged |
-| 35.3 (C2) | Recording time: the probe and its marker (D049 §4), the raw tag with its origin (§2–§3); research on the real session — what the tag marks, whether it is a true C instant, the C ↔ W difference per climb (visible start vs split), the outliers; a proposed automatic-zero rule with its tolerance `τ` and device scope | the rule explains ≥ 12 of the 14 typical files within `τ` and rejects or explains the two outliers; approved by the owner; until then every zero «unknown» (manual plan part B) | planned; new-version members in the branch only |
-| 35.4 (C3) | Persistence and alignment: the format change (expected v11), `Project.Training`, the FIT life cycle (D049 §9), the training's clock correction (a setting of the COROS training drop-down) and the per-video zero override Z («Совместить кадр с началом подъёма N» in the clip's Inspector) — one Undo step each, video relink with the override (ID1, §8), the zero states «override» / «unknown» (the «automatic» state after 35.3's rule), the mapping (§6) and its read-only readout at the playhead in the Inspector; 35.2's «not saved» texts revised (D050 amendment of 2026-11-01) | D049 §13 tests; manual plan part C | planned; format change in the branch only, in `main` with the second pull request |
+| 35.3 (C2) | Recording time: the probe and its marker (D049 §4), the raw tag with its origin (§2–§3); research on the real session — what the tag marks, whether it is a true C instant, the C ↔ W difference per climb (visible start vs split), the outliers; a proposed automatic-zero rule with its tolerance `τ` and device scope. Sub-steps 35.3a–e, the Debug research window and the study file: D050 amendment B5–B9, §10 below | (D050 B6) `|r_i| ≤ τ` (leave-one-out, `τ = 2 s` working value) for ≥ 11 of the 13 filmed climbs C2–C14, every one of the 13 explained, no drift beyond `τ / 2`, the 7 videos without a climb as the independent check of the tag; approved by the owner; until then every zero «override» or «unknown» (manual plan part B) | the probe **implemented** (`02ded40`); the research (35.3a–e) not started; new-version members in the branch only |
+| 35.4 (C3) | Persistence and alignment: the format change (expected v11), `Project.Training`, the FIT life cycle (D049 §9), the training's clock correction (a setting of the COROS training drop-down) and the per-video zero override Z («Совместить кадр с началом подъёма N» in the clip's Inspector) — one Undo step each, video relink with the override (ID1, §8), the zero states «override» / «unknown» (the «automatic» state after 35.3's rule), the mapping (§6) and its read-only readout at the playhead in the Inspector; 35.2's «not saved» texts revised (D050 amendment of 2026-11-01) | D049 §13 tests; manual plan part C | **implemented** (`e15d7af`): automated tests pass; manual rows C1–C14 not run; format change in the branch only, in `main` with the second pull request |
 | 35.5 (C4) | Heart-rate overlay: heart icon + BPM, a few looks / positions, through the one composition path; the export warning `HeartRateUnavailable` | Preview = export at sampled frames; pauses, gaps and an unknown zero show nothing; the warning exactly when data is missing, confirmation required (manual plan part D) | planned |
 | 35.6 (C5) | Verification and closeout: full and heavy suites, `--blame-hang`, the manual plan on the real session (video + export), documents | product owner's acceptance (manual plan part E) | planned |
 
@@ -123,6 +123,12 @@ alignment (Step 35.3). Not established either: the clock difference between the 
    «no»); the raw tag with its origin (Q-RT, RT1); a probe marker, at most one probe per asset per session, never dirty
    (Q-RP, RP1, M2); a confirmed export warning; replace asks and resets the correction, remove keeps the overrides.
    Open until Step 35.3's measurement: what the tag marks, its UTC semantics, the automatic-zero rule, `τ`, the outliers.
+5. Step 35.3's research (2026-11-01) — **Answered, D050 amendment B5–B9**: the fixed set is the whole folder (16 videos,
+   the FIT with 14 climbs); a Debug-only research window that never changes `project.json`, the study in a separate file;
+   `τ = 2 s` as a working value; a climb starts when the feet leave the floor; ≥ 11 of the 13 filmed climbs within `τ`,
+   all 13 explained; the 7 videos without a climb only as the check of the tag; one estimator and one mapping
+   (`TrainingAlignment` with its inverse); markers with number and interval, no result; **the FIT track on the editing
+   timeline is not part of Phase 35** (a later feature: a projection onto the clips' source time).
 
 ## 7. Verification state
 
@@ -206,3 +212,50 @@ the real export `Болдеринг20260927100239.fit`.
 | A9 | PASS | Claude, through the interface («Создать»): status «Создан новый проект.», the tooltip back to «Импортировать тренировку COROS (.fit)…» |
 | A10 | PASS | Claude, through the interface: during an export «Тренировка COROS…» dimmed with the other commands, a click opens nothing; enabled again after the export is cancelled |
 | A11 | PASS | Product owner (screenshot): English interface, status «Training imported: COROS APEX 4 42mm, 27.09.2026 10:02–11:39 (UTC+03:00), 14 climbs» |
+
+## 10. Step 35.3 — the research plan (D050 amendment B5–B9, 2026-11-01)
+
+*Agreed with the product owner on 2026-11-01; not implemented. Each sub-step's implementation is agreed separately. D049
+is unchanged: nothing of the research enters `project.json`; the automatic zero is computed, never saved.*
+
+**Fixed verification set** — the folder `D:\Времянка для монтажа\Боулдер 27.09.2026`: the FIT (14 climbs) and all 16
+videos; frozen with a hash before the evaluation; never committed. The climbs and the videos as placed by the file names
+at a zero clock correction (`docs/FEATURE_SESSION_SUMMARY_AND_YOUTUBE_CHAPTERS.md` §11.3, branch
+`docs/session-summary-youtube-chapters`; a starting point, not a measurement):
+
+| Group | Members | Role in the research |
+|---|---|---|
+| Filmed climbs | C2 `100628`, C3 `101034`, C4 `101712`, C5 `103026`, C6 `103744`, C7 `105438`, C8–C11 `110133`, C12–C13 `111424`, C14 `112606` | the 13 cases of the matching statistics and the acceptance (≥ 11 of 13 within `τ`, all 13 explained) |
+| Not filmed | C1 (10:02:39, before the first video at 10:04:05) | reported, not counted |
+| Videos without a climb | `100405`, `101229`, `102533`, `104110`, `104651`, `105713`, `112854` | not in the matching statistics; the independent check of the `creation_time` semantics and of the file time ↔ name consistency |
+| Atypical tag | `103026` (+181.7 s, holds C5), `104651` (+65.0 s, no climb) | analysed separately; never dropped without an explanation |
+
+Known watch-side doubts to be explained, not hidden: C8 lasts 3.6 s; C10 and C11 are 11 s apart (one attempt or two);
+two «rest» splits with 1 m of ascent; C14 ends 0.2 s before its video's end.
+
+**Two separate tasks** (B8): *recording synchronisation* — the zero `Z` of each file (C) and the clock correction
+`W − C`; *attempt matching* — which FIT climb a climb marked on a video is. Match states: not checked / confirmed /
+rejected / not matched; residual classes: within `τ` / outlier / not computed.
+
+**Measures** (B6), each reported on its own: the clock-correction estimate `K̂ = median(k_i)`,
+`k_i = W_split_i − (Z(M_i) + s_i)`, with MAD and count; the leave-one-out residual `r_i = k_i − median(k_j, j ≠ i)` in ms
+and frames; the drift (median pairwise slope of `k_i` over `W_split_i` × the span; beyond `τ / 2` → stop and ask);
+the outliers (`|r_i| > τ`), each with its explanation. `τ = 2 s` (working value, B7). The start of a climb on a video:
+the frame where the feet leave the floor and the physical climb begins.
+
+**Sub-steps** (none started):
+
+| Sub-step | Content | Depends on |
+|---|---|---|
+| 35.3a | Shared Core: `TrainingAlignment` as the one mapping with its inverse (`WorkoutVideoAlignment` removed or internal, tests moved); one rule for a climb's boundaries; the tag parser (D049 §3); the zero estimator (candidates from the tag and the duration, the file-name hypothesis as a check only) — no user-visible change | — |
+| 35.3b | The study model and file (`*.syncstudy.json`), the matching proposals without the tag-derived zero (order, durations, a coarse file-name window), the statistics, the JSON / CSV export | 35.3a |
+| 35.3c | The Debug window «Проверка синхронизации COROS»: the W axis, the training lane with the numbered climb intervals, one lane per video, the panels «Несопоставленные попытки», outliers, statistics, the check flow (pick a climb → the video at the predicted frame → mark the start → Δ in ms / frames → confirm / reject) | 35.3a–b |
+| 35.3d | Marking of the fixed set, the measurement report, the proposed rule with `τ` and its device scope → the owner's decision | 35.3c |
+| 35.3e | The «automatic» zero state in the product (D049 §5), computed by the same estimator | the approved rule |
+
+Step 35.5 depends on Step 35.4 only and may run alongside 35.3d.
+
+**Out of Phase 35** (B9): a FIT / COROS track on the editing timeline, climb markers on it and their visibility toggle.
+The editing timeline has no watch-time axis; such a track is a later feature with its own decision, built as a
+projection of the FIT's events onto the clips' source time (as the D048 strip is drawn per clip), reusing the Core
+mapping and the climb rule — not the research window.
