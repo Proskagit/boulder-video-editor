@@ -167,6 +167,42 @@ public sealed class SyncStudyService
         return problems;
     }
 
+    /// <summary>
+    /// Why the study may not be evaluated now (empty when it may; Step 35.3b2): only the latest frozen revision is
+    /// evaluated; the draft's set — the FIT and the videos not retired, by SHA-256 and size — must equal that revision's;
+    /// every file verified in full and re-checked by size and time right now; no climb confirmed by two active marks.
+    /// After any change of the data a new freeze is needed.
+    /// </summary>
+    public IReadOnlyList<string> EvaluationProblems()
+    {
+        if (Study is null) return new[] { "no study is open" };
+        if (Study.Revisions.Count == 0) return new[] { "no frozen revision" };
+        var revision = Study.Revisions[^1].Content;
+        var problems = new List<string>();
+        if (SetIdentity(revision) != SetIdentity(Study.Draft))
+            problems.Add($"the set differs from revision {Study.Revisions[^1].Number}: freeze again");
+        problems.AddRange(ReadinessProblems());
+        foreach (var climb in Conflicts(revision))
+            problems.Add($"climb {climb.ClimbNumber} is confirmed by more than one active mark");
+        return problems;
+    }
+
+    private static string SetIdentity(StudyContent content) => string.Join("|",
+        content.Videos.Where(v => v.Retired is null).Select(v => $"{v.VideoKey:D}:{v.Sha256}:{v.SizeBytes}")
+            .OrderBy(x => x, StringComparer.Ordinal)
+            .Prepend($"{content.Fit.FitKey:D}:{content.Fit.Sha256}:{content.Fit.SizeBytes}"));
+
+    /// <summary>The climbs confirmed by two or more active marks (a conflict a human resolves; no camera is chosen).</summary>
+    public static IReadOnlyList<ClimbIdentity> Conflicts(StudyContent content) =>
+        content.Decisions
+            .Where(d => d.State == MatchState.Confirmed && d.Climb is not null && content.Mark(d.MarkId) is { IsActive: true } m
+                        && content.Video(m.VideoKey)?.Retired is null)
+            .GroupBy(d => d.Climb!.Value)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .OrderBy(c => c.ClimbKey)
+            .ToList();
+
     /// <summary>Freezes the draft into the next revision when the set is ready (I8).</summary>
     public StudyResult Freeze(string note)
     {
@@ -295,14 +331,22 @@ public sealed class SyncStudyService
     {
         var print = await HashOrThrowAsync(fitPath, progress, ct).ConfigureAwait(false);
         var climbs = workout.Climbs.Select(c => new StudyClimb(c.Index, c.ClimbNumber!.Value, c.StartUtc, c.Elapsed.Ticks, c.EndUtc)).ToList();
-        return (print, new StudyFit(fitKey, print.Sha256, print.Before.SizeBytes, TrainingActivity.Of(workout), climbs));
+        // The watch's offset only as the parser found it usable (null otherwise) — an observation, never the hypothesis h.
+        var offset = workout.UtcOffset is { } o ? (int?)checked((int)(o.Ticks / TimeSpan.TicksPerMinute)) : null;
+        return (print, new StudyFit(fitKey, print.Sha256, print.Before.SizeBytes, TrainingActivity.Of(workout), climbs, offset));
     }
 
     private async Task<(FileFingerprint, StudyVideo)> VideoSnapshotAsync(MediaAsset asset, IProgress<StudyHashProgress>? progress, CancellationToken ct)
     {
         var print = await HashOrThrowAsync(asset.FilePath, progress, ct).ConfigureAwait(false);
         var probe = asset.Metadata?.RecordingTimeProbe;
+        // Frame rates as ffprobe stated them; the constant-rate state stays unknown (no reliable confirmation in 35.3b2).
+        // The project stores no failed probe (M2), so an unprobed video is «not probed» here — either blocks a freeze (I8).
         return (print, new StudyVideo(Guid.Empty, Path.GetFileName(asset.FilePath), print.Before.SizeBytes, print.Sha256,
-            asset.Metadata?.Duration.Ticks ?? 0, probe is not null, probe?.Tag, probe?.Origin, 0, null));
+            asset.Metadata?.Duration.Ticks ?? 0, probe is not null, probe?.Tag, probe?.Origin, 0, null,
+            FrameRate: Rate(asset.Metadata?.FrameRate), AvgFrameRate: Rate(asset.Metadata?.AvgFrameRate)));
     }
+
+    private static StudyRate? Rate(Core.Common.FrameRate? rate) =>
+        rate is { } r && r.Numerator > 0 && r.Denominator > 0 ? new StudyRate(r.Numerator, r.Denominator) : null;
 }

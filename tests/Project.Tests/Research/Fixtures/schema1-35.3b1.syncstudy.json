@@ -1,0 +1,366 @@
+{
+  "schemaVersion": 1,
+  "studyId": "aee7a418-9e74-4f86-8f4d-b97dcbd30cd0",
+  "draft": {
+    "decisions": [
+      {
+        "basis": "manual",
+        "madeInRevision": 1,
+        "markId": "947af97b-17d5-4dcc-b64c-9f1eba459eb0",
+        "note": "",
+        "reason": "notaclimb",
+        "state": "notmatched"
+      },
+      {
+        "basis": "manual",
+        "climb": {
+          "climbKey": 2,
+          "climbNumber": 2,
+          "climbStartUtc": "2026-09-27T07:06:57.0000000Z"
+        },
+        "madeInRevision": 1,
+        "markId": "f27899fc-a3d8-48ef-85bc-d3aa051f1127",
+        "note": "",
+        "state": "confirmed"
+      }
+    ],
+    "exclusions": [
+      {
+        "category": "other",
+        "climb": {
+          "climbKey": 0,
+          "climbNumber": 1,
+          "climbStartUtc": "2026-09-27T07:02:39.0000000Z"
+        },
+        "exclusionId": "e93cbe33-e8ea-4f1c-a872-b1c1e25b57c5",
+        "reason": "C1 not filmed",
+        "recordedInRevision": 1
+      }
+    ],
+    "fit": {
+      "activity": {
+        "endUtc": "2026-09-27T08:02:39.0000000Z",
+        "manufacturer": 294,
+        "product": 814,
+        "startUtc": "2026-09-27T07:02:39.0000000Z"
+      },
+      "climbs": [
+        {
+          "climbNumber": 1,
+          "elapsedTicks": 201700000,
+          "endUtc": "2026-09-27T07:03:00.0000000Z",
+          "segmentIndex": 0,
+          "startUtc": "2026-09-27T07:02:39.0000000Z"
+        },
+        {
+          "climbNumber": 2,
+          "elapsedTicks": 273000000,
+          "endUtc": "2026-09-27T07:07:25.0000000Z",
+          "segmentIndex": 2,
+          "startUtc": "2026-09-27T07:06:57.0000000Z"
+        },
+        {
+          "climbNumber": 3,
+          "elapsedTicks": 224000000,
+          "endUtc": "2026-09-27T07:12:04.0000000Z",
+          "segmentIndex": 4,
+          "startUtc": "2026-09-27T07:11:41.0000000Z"
+        }
+      ],
+      "fitKey": "a7b16058-91ea-4c35-add5-b39c8a88e059",
+      "sha256": "da4270e3735a3418c9d462af2e17d045132dede43df058e85b1f0399fcf96f1b",
+      "sizeBytes": 3
+    },
+    "marks": [
+      {
+        "addedInRevision": 1,
+        "markId": "947af97b-17d5-4dcc-b64c-9f1eba459eb0",
+        "note": "",
+        "startSourceTicks": 900000000,
+        "videoKey": "f3021d8c-5af4-4941-9ad9-64dc0bb70e22",
+        "withdrawn": {
+          "revision": 2,
+          "seq": 10
+        }
+      },
+      {
+        "addedInRevision": 1,
+        "endSourceTicks": 570000000,
+        "markId": "f27899fc-a3d8-48ef-85bc-d3aa051f1127",
+        "note": "feet off the floor",
+        "startSourceTicks": 300000000,
+        "videoKey": "f3021d8c-5af4-4941-9ad9-64dc0bb70e22"
+      }
+    ],
+    "videos": [
+      {
+        "addedInRevision": 1,
+        "durationTicks": 6000000000,
+        "originalFileName": "b.mp4",
+        "retired": {
+          "reason": "out of the session",
+          "revision": 2,
+          "seq": 11
+        },
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d",
+        "sizeBytes": 1,
+        "tagOrigin": "format",
+        "tagProbed": true,
+        "tagRaw": "2026-09-27T07:07:00.000000Z",
+        "videoKey": "bdd417ab-ce40-4db2-9cdb-1e87c8a37992"
+      },
+      {
+        "addedInRevision": 1,
+        "durationTicks": 6000000000,
+        "originalFileName": "a.mp4",
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+        "sizeBytes": 1,
+        "tagOrigin": "format",
+        "tagProbed": true,
+        "tagRaw": "2026-09-27T07:07:00.000000Z",
+        "videoKey": "f3021d8c-5af4-4941-9ad9-64dc0bb70e22"
+      }
+    ]
+  },
+  "locations": [
+    {
+      "currentPath": "D:\\set\\a.fit",
+      "lastWriteUtcTicks": 1000,
+      "subjectKey": "a7b16058-91ea-4c35-add5-b39c8a88e059"
+    },
+    {
+      "currentPath": "D:\\set\\b.mp4",
+      "lastWriteUtcTicks": 1000,
+      "subjectKey": "bdd417ab-ce40-4db2-9cdb-1e87c8a37992"
+    },
+    {
+      "currentPath": "D:\\set\\a.mp4",
+      "lastWriteUtcTicks": 1000,
+      "subjectKey": "f3021d8c-5af4-4941-9ad9-64dc0bb70e22"
+    }
+  ],
+  "revisions": [
+    {
+      "content": {
+        "decisions": [
+          {
+            "basis": "manual",
+            "madeInRevision": 1,
+            "markId": "947af97b-17d5-4dcc-b64c-9f1eba459eb0",
+            "note": "",
+            "reason": "notaclimb",
+            "state": "notmatched"
+          },
+          {
+            "basis": "manual",
+            "climb": {
+              "climbKey": 2,
+              "climbNumber": 2,
+              "climbStartUtc": "2026-09-27T07:06:57.0000000Z"
+            },
+            "madeInRevision": 1,
+            "markId": "f27899fc-a3d8-48ef-85bc-d3aa051f1127",
+            "note": "",
+            "state": "confirmed"
+          }
+        ],
+        "exclusions": [
+          {
+            "category": "other",
+            "climb": {
+              "climbKey": 0,
+              "climbNumber": 1,
+              "climbStartUtc": "2026-09-27T07:02:39.0000000Z"
+            },
+            "exclusionId": "e93cbe33-e8ea-4f1c-a872-b1c1e25b57c5",
+            "reason": "C1 not filmed",
+            "recordedInRevision": 1
+          }
+        ],
+        "fit": {
+          "activity": {
+            "endUtc": "2026-09-27T08:02:39.0000000Z",
+            "manufacturer": 294,
+            "product": 814,
+            "startUtc": "2026-09-27T07:02:39.0000000Z"
+          },
+          "climbs": [
+            {
+              "climbNumber": 1,
+              "elapsedTicks": 201700000,
+              "endUtc": "2026-09-27T07:03:00.0000000Z",
+              "segmentIndex": 0,
+              "startUtc": "2026-09-27T07:02:39.0000000Z"
+            },
+            {
+              "climbNumber": 2,
+              "elapsedTicks": 273000000,
+              "endUtc": "2026-09-27T07:07:25.0000000Z",
+              "segmentIndex": 2,
+              "startUtc": "2026-09-27T07:06:57.0000000Z"
+            },
+            {
+              "climbNumber": 3,
+              "elapsedTicks": 224000000,
+              "endUtc": "2026-09-27T07:12:04.0000000Z",
+              "segmentIndex": 4,
+              "startUtc": "2026-09-27T07:11:41.0000000Z"
+            }
+          ],
+          "fitKey": "a7b16058-91ea-4c35-add5-b39c8a88e059",
+          "sha256": "da4270e3735a3418c9d462af2e17d045132dede43df058e85b1f0399fcf96f1b",
+          "sizeBytes": 3
+        },
+        "marks": [
+          {
+            "addedInRevision": 1,
+            "markId": "947af97b-17d5-4dcc-b64c-9f1eba459eb0",
+            "note": "",
+            "startSourceTicks": 900000000,
+            "videoKey": "f3021d8c-5af4-4941-9ad9-64dc0bb70e22"
+          },
+          {
+            "addedInRevision": 1,
+            "endSourceTicks": 570000000,
+            "markId": "f27899fc-a3d8-48ef-85bc-d3aa051f1127",
+            "note": "feet off the floor",
+            "startSourceTicks": 300000000,
+            "videoKey": "f3021d8c-5af4-4941-9ad9-64dc0bb70e22"
+          }
+        ],
+        "videos": [
+          {
+            "addedInRevision": 1,
+            "durationTicks": 6000000000,
+            "originalFileName": "b.mp4",
+            "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d",
+            "sizeBytes": 1,
+            "tagOrigin": "format",
+            "tagProbed": true,
+            "tagRaw": "2026-09-27T07:07:00.000000Z",
+            "videoKey": "bdd417ab-ce40-4db2-9cdb-1e87c8a37992"
+          },
+          {
+            "addedInRevision": 1,
+            "durationTicks": 6000000000,
+            "originalFileName": "a.mp4",
+            "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+            "sizeBytes": 1,
+            "tagOrigin": "format",
+            "tagProbed": true,
+            "tagRaw": "2026-09-27T07:07:00.000000Z",
+            "videoKey": "f3021d8c-5af4-4941-9ad9-64dc0bb70e22"
+          }
+        ]
+      },
+      "contentHash": "e3b3ed23b64862ba78f252feff5b95b5f91b02b5e00949eea91c61012849fc47",
+      "frozenAtUtc": "2026-11-02T09:00:09.0000000Z",
+      "note": "rev 1",
+      "number": 1
+    }
+  ],
+  "history": [
+    {
+      "atUtc": "2026-11-02T09:00:01.0000000Z",
+      "kind": "studycreated",
+      "new": "{\"activity\":{\"endUtc\":\"2026-09-27T08:02:39.0000000Z\",\"manufacturer\":294,\"product\":814,\"startUtc\":\"2026-09-27T07:02:39.0000000Z\"},\"climbs\":[{\"climbNumber\":1,\"elapsedTicks\":201700000,\"endUtc\":\"2026-09-27T07:03:00.0000000Z\",\"segmentIndex\":0,\"startUtc\":\"2026-09-27T07:02:39.0000000Z\"},{\"climbNumber\":2,\"elapsedTicks\":273000000,\"endUtc\":\"2026-09-27T07:07:25.0000000Z\",\"segmentIndex\":2,\"startUtc\":\"2026-09-27T07:06:57.0000000Z\"},{\"climbNumber\":3,\"elapsedTicks\":224000000,\"endUtc\":\"2026-09-27T07:12:04.0000000Z\",\"segmentIndex\":4,\"startUtc\":\"2026-09-27T07:11:41.0000000Z\"}],\"fitKey\":\"a7b16058-91ea-4c35-add5-b39c8a88e059\",\"sha256\":\"da4270e3735a3418c9d462af2e17d045132dede43df058e85b1f0399fcf96f1b\",\"sizeBytes\":3}",
+      "note": "",
+      "revision": 1,
+      "seq": 1,
+      "subjectId": "aee7a418-9e74-4f86-8f4d-b97dcbd30cd0"
+    },
+    {
+      "atUtc": "2026-11-02T09:00:02.0000000Z",
+      "kind": "videoadded",
+      "new": "{\"addedInRevision\":1,\"durationTicks\":6000000000,\"originalFileName\":\"a.mp4\",\"sha256\":\"ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb\",\"sizeBytes\":1,\"tagOrigin\":\"format\",\"tagProbed\":true,\"tagRaw\":\"2026-09-27T07:07:00.000000Z\",\"videoKey\":\"f3021d8c-5af4-4941-9ad9-64dc0bb70e22\"}",
+      "note": "",
+      "revision": 1,
+      "seq": 2,
+      "subjectId": "f3021d8c-5af4-4941-9ad9-64dc0bb70e22"
+    },
+    {
+      "atUtc": "2026-11-02T09:00:03.0000000Z",
+      "kind": "videoadded",
+      "new": "{\"addedInRevision\":1,\"durationTicks\":6000000000,\"originalFileName\":\"b.mp4\",\"sha256\":\"3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d\",\"sizeBytes\":1,\"tagOrigin\":\"format\",\"tagProbed\":true,\"tagRaw\":\"2026-09-27T07:07:00.000000Z\",\"videoKey\":\"bdd417ab-ce40-4db2-9cdb-1e87c8a37992\"}",
+      "note": "",
+      "revision": 1,
+      "seq": 3,
+      "subjectId": "bdd417ab-ce40-4db2-9cdb-1e87c8a37992"
+    },
+    {
+      "atUtc": "2026-11-02T09:00:04.0000000Z",
+      "kind": "markadded",
+      "new": "{\"addedInRevision\":1,\"endSourceTicks\":570000000,\"markId\":\"f27899fc-a3d8-48ef-85bc-d3aa051f1127\",\"note\":\"feet off the floor\",\"startSourceTicks\":300000000,\"videoKey\":\"f3021d8c-5af4-4941-9ad9-64dc0bb70e22\"}",
+      "note": "feet off the floor",
+      "revision": 1,
+      "seq": 4,
+      "subjectId": "f27899fc-a3d8-48ef-85bc-d3aa051f1127"
+    },
+    {
+      "atUtc": "2026-11-02T09:00:05.0000000Z",
+      "kind": "markadded",
+      "new": "{\"addedInRevision\":1,\"markId\":\"947af97b-17d5-4dcc-b64c-9f1eba459eb0\",\"note\":\"\",\"startSourceTicks\":900000000,\"videoKey\":\"f3021d8c-5af4-4941-9ad9-64dc0bb70e22\"}",
+      "note": "",
+      "revision": 1,
+      "seq": 5,
+      "subjectId": "947af97b-17d5-4dcc-b64c-9f1eba459eb0"
+    },
+    {
+      "atUtc": "2026-11-02T09:00:06.0000000Z",
+      "kind": "decisionset",
+      "new": "{\"basis\":\"manual\",\"climb\":{\"climbKey\":2,\"climbNumber\":2,\"climbStartUtc\":\"2026-09-27T07:06:57.0000000Z\"},\"madeInRevision\":1,\"markId\":\"f27899fc-a3d8-48ef-85bc-d3aa051f1127\",\"note\":\"\",\"state\":\"confirmed\"}",
+      "note": "",
+      "revision": 1,
+      "seq": 6,
+      "subjectId": "f27899fc-a3d8-48ef-85bc-d3aa051f1127"
+    },
+    {
+      "atUtc": "2026-11-02T09:00:07.0000000Z",
+      "kind": "decisionset",
+      "new": "{\"basis\":\"manual\",\"madeInRevision\":1,\"markId\":\"947af97b-17d5-4dcc-b64c-9f1eba459eb0\",\"note\":\"\",\"reason\":\"notaclimb\",\"state\":\"notmatched\"}",
+      "note": "",
+      "revision": 1,
+      "seq": 7,
+      "subjectId": "947af97b-17d5-4dcc-b64c-9f1eba459eb0"
+    },
+    {
+      "atUtc": "2026-11-02T09:00:08.0000000Z",
+      "kind": "exclusionadded",
+      "new": "{\"category\":\"other\",\"climb\":{\"climbKey\":0,\"climbNumber\":1,\"climbStartUtc\":\"2026-09-27T07:02:39.0000000Z\"},\"exclusionId\":\"e93cbe33-e8ea-4f1c-a872-b1c1e25b57c5\",\"reason\":\"C1 not filmed\",\"recordedInRevision\":1}",
+      "note": "C1 not filmed",
+      "revision": 1,
+      "seq": 8,
+      "subjectId": "e93cbe33-e8ea-4f1c-a872-b1c1e25b57c5"
+    },
+    {
+      "atUtc": "2026-11-02T09:00:10.0000000Z",
+      "kind": "revisionfrozen",
+      "new": "e3b3ed23b64862ba78f252feff5b95b5f91b02b5e00949eea91c61012849fc47",
+      "note": "rev 1",
+      "revision": 1,
+      "seq": 9,
+      "subjectId": "aee7a418-9e74-4f86-8f4d-b97dcbd30cd0"
+    },
+    {
+      "atUtc": "2026-11-02T09:00:11.0000000Z",
+      "kind": "markwithdrawn",
+      "new": "{\"addedInRevision\":1,\"markId\":\"947af97b-17d5-4dcc-b64c-9f1eba459eb0\",\"note\":\"\",\"startSourceTicks\":900000000,\"videoKey\":\"f3021d8c-5af4-4941-9ad9-64dc0bb70e22\",\"withdrawn\":{\"revision\":2,\"seq\":10}}",
+      "note": "duplicate",
+      "old": "{\"addedInRevision\":1,\"markId\":\"947af97b-17d5-4dcc-b64c-9f1eba459eb0\",\"note\":\"\",\"startSourceTicks\":900000000,\"videoKey\":\"f3021d8c-5af4-4941-9ad9-64dc0bb70e22\"}",
+      "revision": 2,
+      "seq": 10,
+      "subjectId": "947af97b-17d5-4dcc-b64c-9f1eba459eb0"
+    },
+    {
+      "atUtc": "2026-11-02T09:00:12.0000000Z",
+      "kind": "videoretired",
+      "new": "{\"addedInRevision\":1,\"durationTicks\":6000000000,\"originalFileName\":\"b.mp4\",\"retired\":{\"reason\":\"out of the session\",\"revision\":2,\"seq\":11},\"sha256\":\"3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d\",\"sizeBytes\":1,\"tagOrigin\":\"format\",\"tagProbed\":true,\"tagRaw\":\"2026-09-27T07:07:00.000000Z\",\"videoKey\":\"bdd417ab-ce40-4db2-9cdb-1e87c8a37992\"}",
+      "note": "out of the session",
+      "old": "{\"addedInRevision\":1,\"durationTicks\":6000000000,\"originalFileName\":\"b.mp4\",\"sha256\":\"3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d\",\"sizeBytes\":1,\"tagOrigin\":\"format\",\"tagProbed\":true,\"tagRaw\":\"2026-09-27T07:07:00.000000Z\",\"videoKey\":\"bdd417ab-ce40-4db2-9cdb-1e87c8a37992\"}",
+      "revision": 2,
+      "seq": 11,
+      "subjectId": "bdd417ab-ce40-4db2-9cdb-1e87c8a37992"
+    }
+  ],
+  "evaluations": []
+}

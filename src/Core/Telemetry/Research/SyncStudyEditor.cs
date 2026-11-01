@@ -25,6 +25,13 @@ public enum StudyRefusal
     ExclusionWithdrawn,
     ExclusionNotStale,
     ExclusionClimbMismatch,
+    CoverageConflict,
+    ProposalRequired,
+    ProposalNotAllowed,
+    UnknownEvaluation,
+    EvidenceRequired,
+    UnknownExplanation,
+    ExplanationWithdrawn,
 }
 
 /// <summary>The outcome of an edit: done (with the id of a created entity, if any) or refused with the reason.</summary>
@@ -66,7 +73,7 @@ public sealed class SyncStudyEditor
     {
         if (videos.Select(v => v.Video.Sha256).Distinct(StringComparer.Ordinal).Count() != videos.Count)
             throw new ArgumentException("Two videos of the study have the same SHA-256.", nameof(videos));
-        var content = new StudyContent(fit, videos.Select(v => v.Video with { AddedInRevision = 1, Retired = null }).ToList(),
+        var content = new StudyContent(fit, videos.Select(v => v.Video with { AddedInRevision = 1, Retired = null, Coverage = null }).ToList(),
             Array.Empty<ClimbMark>(), Array.Empty<MatchDecision>(), Array.Empty<Exclusion>());
         var study = new SyncStudy(studyId, content, videos.Select(v => v.Location).Prepend(fitLocation),
             Array.Empty<StudyRevision>(), Array.Empty<HistoryEntry>(), Array.Empty<EvaluationRecord>());
@@ -83,7 +90,7 @@ public sealed class SyncStudyEditor
     public StudyEdit AddVideo(StudyVideo snapshot, string path, long? lastWriteUtcTicks, string note = "")
     {
         if (Draft.Videos.Any(v => string.Equals(v.Sha256, snapshot.Sha256, StringComparison.Ordinal))) return StudyRefusal.DuplicateVideo;
-        var video = snapshot with { VideoKey = Guid.NewGuid(), AddedInRevision = Revision, Retired = null };
+        var video = snapshot with { VideoKey = Guid.NewGuid(), AddedInRevision = Revision, Retired = null, Coverage = null };
         SetDraft(Draft with { Videos = Draft.Videos.Append(video).ToList() });
         _study.LocationList.Add(new StudyLocation(video.VideoKey, path, lastWriteUtcTicks));
         Log(HistoryKind.VideoAdded, video.VideoKey, null, StudyCanonicalJson.Value(video), note);
@@ -111,16 +118,19 @@ public sealed class SyncStudyEditor
         if (index >= 0) _study.LocationList[index] = _study.LocationList[index] with { LastWriteUtcTicks = lastWriteUtcTicks };
     }
 
-    /// <summary>Accepts other content of a video (explicitly): a new snapshot under the same key; its marks become stale.</summary>
+    /// <summary>Accepts other content of a video (explicitly): a new snapshot under the same key, its coverage decision
+    /// reset to unknown in the same replacement (atomic), its marks stale.</summary>
     public StudyEdit AcceptChangedVideo(Guid videoKey, StudyVideo snapshot, string path, long? lastWriteUtcTicks, string note)
     {
         if (Draft.Video(videoKey) is not { } old) return StudyRefusal.UnknownVideo;
         if (Draft.Videos.Any(v => v.VideoKey != videoKey && string.Equals(v.Sha256, snapshot.Sha256, StringComparison.Ordinal)))
             return StudyRefusal.DuplicateVideo;
-        var changed = snapshot with { VideoKey = videoKey, AddedInRevision = old.AddedInRevision, Retired = old.Retired };
+        var changed = snapshot with { VideoKey = videoKey, AddedInRevision = old.AddedInRevision, Retired = old.Retired, Coverage = null };
         SetDraft(Draft with { Videos = Replace(Draft.Videos, v => v.VideoKey == videoKey, changed) });
         SetLocation(videoKey, path, lastWriteUtcTicks);
         var seq = Log(HistoryKind.VideoChangeAccepted, videoKey, StudyCanonicalJson.Value(old), StudyCanonicalJson.Value(changed), note);
+        if (old.Coverage is { } coverage)
+            Log(HistoryKind.VideoCoverageReset, videoKey, CoverageValue(coverage), null, "the video changed");
         StaleMarks(m => m.VideoKey == videoKey, StaleCause.VideoChanged, seq);
         return StudyEdit.Done();
     }
@@ -131,9 +141,19 @@ public sealed class SyncStudyEditor
     {
         var old = Draft.Fit;
         var changed = snapshot with { FitKey = old.FitKey };
-        SetDraft(Draft with { Fit = changed });
+        // A video reviewed as holding no climb keeps only active «not a climb» marks; those become stale now, so its
+        // coverage decision is reset in the same replacement as the FIT.
+        var reset = Draft.Videos.Where(v => v.CoverageStatus == CoverageState.ReviewedNoClimbs
+                                            && Draft.Marks.Any(m => m.VideoKey == v.VideoKey && m.Withdrawn is null)).ToList();
+        SetDraft(Draft with
+        {
+            Fit = changed,
+            Videos = Draft.Videos.Select(v => reset.Contains(v) ? v with { Coverage = null } : v).ToList(),
+        });
         SetLocation(old.FitKey, path, lastWriteUtcTicks);
         var seq = Log(HistoryKind.FitChangeAccepted, old.FitKey, StudyCanonicalJson.Value(old), StudyCanonicalJson.Value(changed), note);
+        foreach (var video in reset)
+            Log(HistoryKind.VideoCoverageReset, video.VideoKey, CoverageValue(video.Coverage!), null, "the FIT changed: its marks are stale");
         StaleMarks(_ => true, StaleCause.FitChanged, seq);
         foreach (var exclusion in Draft.Exclusions.Where(e => e.Withdrawn is null && e.Stale is null).ToList())
         {
@@ -168,11 +188,36 @@ public sealed class SyncStudyEditor
         return StudyEdit.Done();
     }
 
+    /// <summary>
+    /// Records what a human found about the climbs in a video. «Reviewed, no climbs» is refused while the video has a mark
+    /// that is neither withdrawn nor resolved — resolved means not stale and decided «not matched: not a climb»; while it
+    /// holds, no mark can be added and no such mark decided otherwise. «Has climbs» may be set before any match is confirmed.
+    /// </summary>
+    public StudyEdit SetCoverage(Guid videoKey, CoverageState state, string note)
+    {
+        if (Draft.Video(videoKey) is not { } video) return StudyRefusal.UnknownVideo;
+        if (video.Retired is not null) return StudyRefusal.VideoRetired;
+        if (state == CoverageState.ReviewedNoClimbs && Draft.Marks.Any(m => m.VideoKey == videoKey && m.Withdrawn is null && !IsResolved(m)))
+            return StudyRefusal.CoverageConflict;
+        var coverage = state == CoverageState.Unknown ? null : new VideoCoverage(state, note, Revision);
+        SetDraft(Draft with { Videos = Replace(Draft.Videos, v => v.VideoKey == videoKey, video with { Coverage = coverage }) });
+        Log(HistoryKind.VideoCoverageSet, videoKey, video.Coverage is { } old ? CoverageValue(old) : null,
+            coverage is null ? null : CoverageValue(coverage), note);
+        return StudyEdit.Done();
+    }
+
+    private bool IsResolved(ClimbMark mark) => mark.Stale is null && Draft.Decision(mark.MarkId) is { IsNotAClimb: true };
+
+    private bool ReviewedNoClimbs(Guid videoKey) => Draft.Video(videoKey)?.CoverageStatus == CoverageState.ReviewedNoClimbs;
+
+    private static string CoverageValue(VideoCoverage coverage) => StudyCanonicalJson.Value(coverage);
+
     // ---- marks ---------------------------------------------------------------------------------------------------
 
     public StudyEdit AddMark(Guid videoKey, long startSourceTicks, long? endSourceTicks, string note = "")
     {
         if (CheckMarkPlace(videoKey, startSourceTicks, endSourceTicks) is { } refusal) return refusal;
+        if (ReviewedNoClimbs(videoKey)) return StudyRefusal.CoverageConflict;
         var mark = new ClimbMark(Guid.NewGuid(), videoKey, startSourceTicks, endSourceTicks, note, Revision, null, null, null);
         SetDraft(Draft with { Marks = Draft.Marks.Append(mark).ToList() });
         Log(HistoryKind.MarkAdded, mark.MarkId, null, StudyCanonicalJson.Value(mark), note);
@@ -237,10 +282,15 @@ public sealed class SyncStudyEditor
     /// name a climb of the current FIT by its full identity; NotMatched names none. Rejected / NotMatched need a reason,
     /// «other» needs a note. Never set automatically: a proposal becomes a decision only through this call.</summary>
     public StudyEdit DecideMatch(Guid markId, MatchState state, ClimbIdentity? climb, MatchReason? reason, string note,
-        MatchBasis basis = MatchBasis.Manual, string? proposalRef = null)
+        MatchBasis basis = MatchBasis.Manual, ProposalRef? proposal = null)
     {
         if (Draft.Mark(markId) is not { } mark) return StudyRefusal.UnknownMark;
         if (mark.Withdrawn is not null) return StudyRefusal.MarkWithdrawn;
+        if (basis == MatchBasis.ProposalAccepted && proposal is null) return StudyRefusal.ProposalRequired;
+        if (basis != MatchBasis.ProposalAccepted && proposal is not null) return StudyRefusal.ProposalNotAllowed;
+        if (proposal is { } p && _study.Evaluation(p.EvaluationSeq) is null) return StudyRefusal.UnknownEvaluation;
+        if (ReviewedNoClimbs(mark.VideoKey) && !(state == MatchState.NotMatched && reason == MatchReason.NotAClimb))
+            return StudyRefusal.CoverageConflict;
         if (state == MatchState.NotMatched && climb is not null) return StudyRefusal.ClimbNotAllowed;
         if (state != MatchState.NotMatched && climb is null) return StudyRefusal.ClimbRequired;
         if (climb is { } c && Draft.Fit.Find(c) is null) return StudyRefusal.UnknownClimb;
@@ -248,7 +298,7 @@ public sealed class SyncStudyEditor
         if (reason == MatchReason.Other && string.IsNullOrWhiteSpace(note)) return StudyRefusal.NoteRequired;
 
         var old = Draft.Decision(markId);
-        var decision = new MatchDecision(markId, state, climb, reason, note, basis, proposalRef, Revision);
+        var decision = new MatchDecision(markId, state, climb, reason, note, basis, proposal, Revision);
         SetDraft(Draft with { Decisions = Draft.Decisions.Where(d => d.MarkId != markId).Append(decision).ToList() });
         Log(HistoryKind.DecisionSet, markId, old is null ? null : StudyCanonicalJson.Value(old), StudyCanonicalJson.Value(decision), note);
         return StudyEdit.Done();
@@ -258,6 +308,7 @@ public sealed class SyncStudyEditor
     public StudyEdit ClearDecision(Guid markId, string note)
     {
         if (Draft.Decision(markId) is not { } old) return StudyRefusal.NoDecision;
+        if (Draft.Mark(markId) is { Withdrawn: null } mark && ReviewedNoClimbs(mark.VideoKey)) return StudyRefusal.CoverageConflict;
         SetDraft(Draft with { Decisions = Draft.Decisions.Where(d => d.MarkId != markId).ToList() });
         Log(HistoryKind.DecisionCleared, markId, StudyCanonicalJson.Value(old), null, note);
         return StudyEdit.Done();
@@ -299,6 +350,38 @@ public sealed class SyncStudyEditor
         var reconfirmed = old with { Stale = null, ReconfirmedInRevision = Revision };
         SetDraft(Draft with { Exclusions = Replace(Draft.Exclusions, e => e.ExclusionId == exclusionId, reconfirmed) });
         Log(HistoryKind.ExclusionReconfirmed, exclusionId, StudyCanonicalJson.Value(old), StudyCanonicalJson.Value(reconfirmed), note);
+        return StudyEdit.Done();
+    }
+
+    // ---- explanations (append-only, outside the content) ----------------------------------------------------------
+
+    /// <summary>
+    /// Explains one climb's result in a recorded evaluation (B6) — an append-only record with its own sequence number and
+    /// a journal entry; it never changes the content, a revision or the stored report. The climb must be a climb of the
+    /// evaluated revision's FIT by its full identity and the evidence is required (also for «unexplained», which is never
+    /// an explanation). Whether the category fits the climb's status in the report is checked with the report (Step 35.3b2c).
+    /// </summary>
+    public StudyEdit AddExplanation(long evaluationSeq, ClimbIdentity climb, ExplanationCategory category, string evidence)
+    {
+        if (_study.Evaluation(evaluationSeq) is not { } evaluation) return StudyRefusal.UnknownEvaluation;
+        var revision = _study.Revisions.FirstOrDefault(r => r.Number == evaluation.Revision);
+        if (revision?.Content.Fit.Find(climb) is null) return StudyRefusal.UnknownClimb;
+        if (string.IsNullOrWhiteSpace(evidence)) return StudyRefusal.EvidenceRequired;
+        var explanation = new CaseExplanation(_study.NextSeq, Guid.NewGuid(), evaluationSeq, evaluation.ReportHash, climb, category,
+            evidence, _clock().ToUniversalTime());
+        _study.ExplanationList.Add(explanation);
+        Log(HistoryKind.ExplanationAdded, explanation.ExplanationId, null, StudyCanonicalJson.Value(explanation), evidence);
+        return StudyEdit.Done(explanation.ExplanationId);
+    }
+
+    /// <summary>Withdraws an explanation by a record of its own; the explanation itself is never changed.</summary>
+    public StudyEdit WithdrawExplanation(Guid explanationId, string note)
+    {
+        if (_study.Explanations.All(e => e.ExplanationId != explanationId)) return StudyRefusal.UnknownExplanation;
+        if (_study.Withdrawals.Any(w => w.ExplanationId == explanationId)) return StudyRefusal.ExplanationWithdrawn;
+        var withdrawal = new ExplanationWithdrawal(_study.NextSeq, explanationId, note, _clock().ToUniversalTime());
+        _study.WithdrawalList.Add(withdrawal);
+        Log(HistoryKind.ExplanationWithdrawn, explanationId, null, StudyCanonicalJson.Value(withdrawal), note);
         return StudyEdit.Done();
     }
 

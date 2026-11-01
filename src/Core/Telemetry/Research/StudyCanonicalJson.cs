@@ -69,6 +69,10 @@ public static class StudyCanonicalJson
     private static Member Num(long value) => w => w.WriteNumberValue(value);
     private static Member? Num(long? value) => value is { } v ? (Member)(w => w.WriteNumberValue(v)) : null;
     private static Member Bool(bool value) => w => w.WriteBooleanValue(value);
+    private static Member? Bool(bool? value) => value is { } v ? (Member)(w => w.WriteBooleanValue(v)) : null;
+    private static Member? Rate(StudyRate? value) => value is { } r
+        ? (Member)(w => Object(w, ("denominator", Num(r.Denominator)), ("numerator", Num(r.Numerator))))
+        : null;
     private static Member At(DateTimeOffset value) => w => w.WriteStringValue(Instant(value));
     private static Member Id(Guid value) => w => w.WriteStringValue(Key(value));
     private static Member? Id(Guid? value) => value is { } v ? (Member)(w => w.WriteStringValue(Key(v))) : null;
@@ -98,7 +102,8 @@ public static class StudyCanonicalJson
         ("climbs", Array(f.Climbs.OrderBy(c => c.SegmentIndex), WriteClimb)),
         ("fitKey", Id(f.FitKey)),
         ("sha256", Str(f.Sha256)),
-        ("sizeBytes", Num(f.SizeBytes)));
+        ("sizeBytes", Num(f.SizeBytes)),
+        ("utcOffsetMinutes", Num(f.UtcOffsetMinutes)));
 
     public static void WriteClimb(Utf8JsonWriter w, StudyClimb c) => Object(w,
         ("climbNumber", Num(c.ClimbNumber)),
@@ -114,12 +119,17 @@ public static class StudyCanonicalJson
 
     public static void WriteVideo(Utf8JsonWriter w, StudyVideo v) => Object(w,
         ("addedInRevision", Num(v.AddedInRevision)),
+        ("avgFrameRate", Rate(v.AvgFrameRate)),
+        ("coverage", v.Coverage is { } cov ? (Member)(w2 => WriteCoverage(w2, cov)) : null),
         ("durationTicks", Num(v.DurationTicks)),
+        ("frameRate", Rate(v.FrameRate)),
         ("originalFileName", Str(v.OriginalFileName)),
+        ("rateState", En(v.RateState)),
         ("retired", v.Retired is { } r ? (Member)(w2 => Object(w2, ("reason", Str(r.Reason)), ("revision", Num(r.Revision)), ("seq", Num(r.Seq)))) : null),
         ("sha256", Str(v.Sha256)),
         ("sizeBytes", Num(v.SizeBytes)),
         ("tagOrigin", En(v.TagOrigin)),
+        ("tagProbeFailed", Bool(v.TagProbeFailed)),
         ("tagProbed", Bool(v.TagProbed)),
         ("tagRaw", Str(v.TagRaw, true)),
         ("videoKey", Id(v.VideoKey)));
@@ -147,7 +157,9 @@ public static class StudyCanonicalJson
         ("madeInRevision", Num(d.MadeInRevision)),
         ("markId", Id(d.MarkId)),
         ("note", Str(d.Note)),
-        ("proposalRef", Str(d.ProposalRef, true)),
+        ("proposal", d.Proposal is { } p
+            ? (Member)(w2 => Object(w2, ("evaluationSeq", Num(p.EvaluationSeq)), ("proposalId", Str(p.ProposalId))))
+            : null),
         ("reason", En(d.Reason)),
         ("state", En(d.State)));
 
@@ -187,6 +199,39 @@ public static class StudyCanonicalJson
         ("algorithmVersion", Str(e.AlgorithmVersion)),
         ("atUtc", At(e.AtUtc)),
         ("inputsHash", Str(e.InputsHash)),
+        ("parameters", Str(e.Parameters)),
+        ("report", Str(e.Report)),
+        ("reportHash", Str(e.ReportHash)),
         ("revision", Num(e.Revision)),
+        ("revisionContentHash", Str(e.RevisionContentHash)),
         ("seq", Num(e.Seq)));
+
+    public static void WriteExplanation(Utf8JsonWriter w, CaseExplanation e) => Object(w,
+        ("atUtc", At(e.AtUtc)),
+        ("category", En(e.Category)),
+        ("climb", w2 => WriteIdentity(w2, e.Climb)),
+        ("evaluationSeq", Num(e.EvaluationSeq)),
+        ("evidence", Str(e.Evidence)),
+        ("explanationId", Id(e.ExplanationId)),
+        ("reportHash", Str(e.ReportHash)),
+        ("seq", Num(e.Seq)));
+
+    public static void WriteWithdrawal(Utf8JsonWriter w, ExplanationWithdrawal x) => Object(w,
+        ("atUtc", At(x.AtUtc)),
+        ("explanationId", Id(x.ExplanationId)),
+        ("note", Str(x.Note)),
+        ("seq", Num(x.Seq)));
+
+    public static void WriteCoverage(Utf8JsonWriter w, VideoCoverage c) => Object(w,
+        ("note", Str(c.Note)),
+        ("setInRevision", Num(c.SetInRevision)),
+        ("state", En(c.State)));
+
+    public static string Value(VideoCoverage coverage) => Value(w => WriteCoverage(w, coverage));
+    public static string Value(CaseExplanation explanation) => Value(w => WriteExplanation(w, explanation));
+    public static string Value(ExplanationWithdrawal withdrawal) => Value(w => WriteWithdrawal(w, withdrawal));
+
+    /// <summary>The SHA-256 (lower-case hex) of a text's UTF-8 bytes — the hash of a stored report.</summary>
+    public static string TextHash(string text) =>
+        Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text))).ToLowerInvariant();
 }

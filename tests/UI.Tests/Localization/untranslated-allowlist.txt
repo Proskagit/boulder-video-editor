@@ -305,8 +305,7 @@ src/UI/Views/MainWindow.axaml.cs	Design Time
 src/UI/Views/MainWindow.axaml.cs	Design time — not analyzed.
 src/UI/Views/MainWindow.axaml.cs	Design time.
 
-# Step 35.3b1 — the COROS synchronisation study (D050 B5), an internal Debug research tool: the reasons a study file is damaged, a path refused or a set not ready, kept English as diagnostics like the project's damaged-file reasons; the Debug window of Step 35.3c shows them as technical detail.
-src/Core/Telemetry/Research/StudyValidator.cs	a journal entry and an evaluation record share a sequence number
+# Steps 35.3b1–35.3b2a — the COROS synchronisation study (D050 B5), an internal Debug research tool (with its journal notes): the reasons a study file is damaged, a path refused or a set not ready, kept English as diagnostics like the project's damaged-file reasons; the Debug window of Step 35.3c shows them as technical detail.
 src/Core/Telemetry/Research/StudyValidator.cs	evaluation records
 src/Core/Telemetry/Research/StudyValidator.cs	location {group.Key}: more than one current location
 src/Core/Telemetry/Research/StudyValidator.cs	location {location.SubjectKey}: no path
@@ -370,3 +369,35 @@ src/Project/Research/SyncStudyService.cs	{Path.GetFileName(path)}: not found
 src/Project/Research/SyncStudyService.cs	{name}: changed since it was verified
 src/Project/Research/SyncStudyService.cs	{name}: {StateOf(key)}, not verified
 src/Project/Research/SyncStudyService.cs	{video.OriginalFileName}: duration or recording-time probe missing
+src/Core/Telemetry/Research/StudyValidator.cs	evaluation {e.Seq}: no algorithm version or inputs hash
+src/Core/Telemetry/Research/StudyValidator.cs	evaluation {e.Seq}: no revision {e.Revision}
+src/Core/Telemetry/Research/StudyValidator.cs	evaluation {e.Seq}: the report hash does not match its report
+src/Core/Telemetry/Research/StudyValidator.cs	evaluation {e.Seq}: the revision's content hash does not match
+src/Core/Telemetry/Research/StudyValidator.cs	explanation id
+src/Core/Telemetry/Research/StudyValidator.cs	explanation withdrawals
+src/Core/Telemetry/Research/StudyValidator.cs	explanation {x.ExplanationId}: another report
+src/Core/Telemetry/Research/StudyValidator.cs	explanation {x.ExplanationId}: no evaluation {x.EvaluationSeq}
+src/Core/Telemetry/Research/StudyValidator.cs	explanation {x.ExplanationId}: no evidence
+src/Core/Telemetry/Research/StudyValidator.cs	explanation {x.ExplanationId}: recorded before its evaluation
+src/Core/Telemetry/Research/StudyValidator.cs	explanation {x.ExplanationId}: the climb is not a climb of the evaluated FIT
+src/Core/Telemetry/Research/StudyValidator.cs	two append-only records share a sequence number
+src/Core/Telemetry/Research/StudyValidator.cs	withdrawal of an explanation
+src/Core/Telemetry/Research/StudyValidator.cs	withdrawal {w.Seq}: before its explanation
+src/Core/Telemetry/Research/StudyValidator.cs	withdrawal {w.Seq}: no such explanation
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision {d.MarkId}: proposal reference against its basis
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision {d.MarkId}: the proposal's evaluation is missing
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: a failed probe beside a probe result
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: an unknown frame-rate state is written out
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: invalid average frame rate
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: invalid coverage
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: invalid frame rate
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: reviewed as holding no climb but a mark is unresolved
+src/Core/Telemetry/Research/SyncStudyEditor.cs	the FIT changed: its marks are stale
+src/Core/Telemetry/Research/SyncStudyEditor.cs	the video changed
+src/Project/Research/SyncStudySerializer.cs	a proposal reference in the form of Step 35.3b1
+src/Project/Research/SyncStudyService.cs	climb {climb.ClimbNumber} is confirmed by more than one active mark
+src/Project/Research/SyncStudyService.cs	no frozen revision
+src/Project/Research/SyncStudyService.cs	the set differs from revision {Study.Revisions[^1].Number}: freeze again
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: coverage set in a later revision
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: added in a later revision
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: added in a later revision

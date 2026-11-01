@@ -51,6 +51,8 @@ public static class SyncStudySerializer
             Array(w, "revisions", study.Revisions.OrderBy(r => r.Number), StudyCanonicalJson.WriteRevision);
             Array(w, "history", study.History.OrderBy(h => h.Seq), StudyCanonicalJson.WriteHistory);
             Array(w, "evaluations", study.Evaluations.OrderBy(e => e.Seq), StudyCanonicalJson.WriteEvaluation);
+            Array(w, "explanations", study.Explanations.OrderBy(e => e.Seq), StudyCanonicalJson.WriteExplanation);
+            Array(w, "explanationWithdrawals", study.Withdrawals.OrderBy(x => x.Seq), StudyCanonicalJson.WriteWithdrawal);
             w.WriteEndObject();
         }
         // One line ending on every system (a JSON string holds no raw line break, so this touches only the layout).
@@ -92,7 +94,10 @@ public static class SyncStudySerializer
                 Items(root, "locations").Select(ReadLocation),
                 Items(root, "revisions").Select(ReadRevision),
                 Items(root, "history").Select(ReadHistory),
-                Items(root, "evaluations").Select(ReadEvaluation));
+                Items(root, "evaluations").Select(ReadEvaluation),
+                // Step 35.3b2a: absent from a file of Step 35.3b1 — no record then.
+                OptItems(root, "explanations").Select(ReadExplanation),
+                OptItems(root, "explanationWithdrawals").Select(ReadExplanationWithdrawal));
             var problems = StudyValidator.Problems(study);
             if (problems.Count > 0) throw Damaged(string.Join("; ", problems));
             return study;
@@ -119,7 +124,8 @@ public static class SyncStudySerializer
             Guid(e, "fitKey"), Str(e, "sha256"), Long(e, "sizeBytes"),
             new TrainingActivity(Instant(a, "startUtc"), Instant(a, "endUtc"), Int(a, "manufacturer"), product is { } p ? checked((int)p) : null),
             Items(e, "climbs").Select(c => new StudyClimb(Int(c, "segmentIndex"), Int(c, "climbNumber"), Instant(c, "startUtc"),
-                Long(c, "elapsedTicks"), Instant(c, "endUtc"))).ToList());
+                Long(c, "elapsedTicks"), Instant(c, "endUtc"))).ToList(),
+            OptInt(e, "utcOffsetMinutes"));
     }
 
     private static ClimbIdentity ReadIdentity(JsonElement e) =>
@@ -128,7 +134,12 @@ public static class SyncStudySerializer
     private static StudyVideo ReadVideo(JsonElement e) => new(
         Guid(e, "videoKey"), Str(e, "originalFileName"), Long(e, "sizeBytes"), Str(e, "sha256"), Long(e, "durationTicks"),
         Bool(e, "tagProbed"), OptStr(e, "tagRaw"), OptEnum<RecordingTimeTagOrigin>(e, "tagOrigin"), Int(e, "addedInRevision"),
-        OptObj(e, "retired") is { } r ? new VideoRetirement(Int(r, "revision"), Long(r, "seq"), Str(r, "reason")) : null);
+        OptObj(e, "retired") is { } r ? new VideoRetirement(Int(r, "revision"), Long(r, "seq"), Str(r, "reason")) : null,
+        OptBool(e, "tagProbeFailed"), ReadRate(e, "frameRate"), ReadRate(e, "avgFrameRate"), OptEnum<FrameRateState>(e, "rateState"),
+        OptObj(e, "coverage") is { } c ? new VideoCoverage(Enum<CoverageState>(c, "state"), Str(c, "note"), Int(c, "setInRevision")) : null);
+
+    private static StudyRate? ReadRate(JsonElement e, string name) =>
+        OptObj(e, name) is { } r ? new StudyRate(Int(r, "numerator"), Int(r, "denominator")) : null;
 
     private static Withdrawal? ReadWithdrawal(JsonElement e) =>
         OptObj(e, "withdrawn") is { } w ? new Withdrawal(Int(w, "revision"), Long(w, "seq")) : null;
@@ -140,10 +151,16 @@ public static class SyncStudySerializer
         Guid(e, "markId"), Guid(e, "videoKey"), Long(e, "startSourceTicks"), OptLong(e, "endSourceTicks"), Str(e, "note"),
         Int(e, "addedInRevision"), ReadWithdrawal(e), ReadStaleness(e), OptInt(e, "reconfirmedInRevision"));
 
-    private static MatchDecision ReadDecision(JsonElement e) => new(
-        Guid(e, "markId"), Enum<MatchState>(e, "state"), OptObj(e, "climb") is { } c ? ReadIdentity(c) : null,
-        OptEnum<MatchReason>(e, "reason"), Str(e, "note"), Enum<MatchBasis>(e, "basis"), OptStr(e, "proposalRef"),
-        Int(e, "madeInRevision"));
+    private static MatchDecision ReadDecision(JsonElement e)
+    {
+        // Step 35.3b1 never wrote a proposal reference (no proposal existed); a string one is not trusted.
+        if (Member(e, "proposalRef") is not null) throw Damaged("a proposal reference in the form of Step 35.3b1");
+        return new(
+            Guid(e, "markId"), Enum<MatchState>(e, "state"), OptObj(e, "climb") is { } c ? ReadIdentity(c) : null,
+            OptEnum<MatchReason>(e, "reason"), Str(e, "note"), Enum<MatchBasis>(e, "basis"),
+            OptObj(e, "proposal") is { } p ? new ProposalRef(Long(p, "evaluationSeq"), Str(p, "proposalId")) : null,
+            Int(e, "madeInRevision"));
+    }
 
     private static Exclusion ReadExclusion(JsonElement e) => new(
         Guid(e, "exclusionId"), ReadIdentity(Obj(e, "climb")), Enum<ExclusionCategory>(e, "category"), Str(e, "reason"),
@@ -160,7 +177,15 @@ public static class SyncStudySerializer
         OptStr(e, "old"), OptStr(e, "new"), Str(e, "note"));
 
     private static EvaluationRecord ReadEvaluation(JsonElement e) =>
-        new(Long(e, "seq"), Int(e, "revision"), Str(e, "algorithmVersion"), Str(e, "inputsHash"), Instant(e, "atUtc"));
+        new(Long(e, "seq"), Int(e, "revision"), Str(e, "algorithmVersion"), Str(e, "inputsHash"), Instant(e, "atUtc"),
+            Str(e, "revisionContentHash"), Str(e, "parameters"), Str(e, "reportHash"), Str(e, "report"));
+
+    private static CaseExplanation ReadExplanation(JsonElement e) =>
+        new(Long(e, "seq"), Guid(e, "explanationId"), Long(e, "evaluationSeq"), Str(e, "reportHash"), ReadIdentity(Obj(e, "climb")),
+            Enum<ExplanationCategory>(e, "category"), Str(e, "evidence"), Instant(e, "atUtc"));
+
+    private static ExplanationWithdrawal ReadExplanationWithdrawal(JsonElement e) =>
+        new(Long(e, "seq"), Guid(e, "explanationId"), Str(e, "note"), Instant(e, "atUtc"));
 
     // ---- primitives ------------------------------------------------------------------------------------------------
 
@@ -180,6 +205,11 @@ public static class SyncStudySerializer
 
     private static IEnumerable<JsonElement> Items(JsonElement e, string name) =>
         Required(e, name) is { ValueKind: JsonValueKind.Array } a ? a.EnumerateArray().ToList() : throw Damaged($"«{name}» is not an array");
+
+    private static IEnumerable<JsonElement> OptItems(JsonElement e, string name) =>
+        Member(e, name) is null ? Enumerable.Empty<JsonElement>() : Items(e, name);
+
+    private static bool? OptBool(JsonElement e, string name) => Member(e, name) is null ? null : Bool(e, name);
 
     private static string Str(JsonElement e, string name) =>
         Required(e, name) is { ValueKind: JsonValueKind.String } s ? s.GetString()! : throw Damaged($"«{name}» is not a string");

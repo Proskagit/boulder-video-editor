@@ -82,20 +82,24 @@ public static partial class RecordingZeroEstimator
 
     /// <summary>The hypotheses for the file's recording zero; <paramref name="fileNameOffset"/> is the offset hypothesis
     /// <c>h</c> of its file-name time (e.g. the watch's UTC offset, D049 Q-TZ), applied once; null skips that check.</summary>
-    public static RecordingZeroCandidates Candidates(MediaAsset asset, TimeSpan? fileNameOffset = null)
+    public static RecordingZeroCandidates Candidates(MediaAsset asset, TimeSpan? fileNameOffset = null) =>
+        Candidates(asset.FilePath, asset.Metadata?.Duration, asset.Metadata?.RecordingTimeProbe, fileNameOffset);
+
+    /// <summary>The same hypotheses from a snapshot (Step 35.3b2): the file name (the study passes the video's original
+    /// name), the duration and the probe as recorded; <paramref name="fileNameOffset"/> is the explicit hypothesis <c>h</c>.</summary>
+    public static RecordingZeroCandidates Candidates(string fileName, MediaTime? duration, RecordingTimeProbe? probe, TimeSpan? fileNameOffset)
     {
-        var probe = asset.Metadata?.RecordingTimeProbe;
         var tag = RecordingTimeTag.Parse(probe?.Tag);
         var status = probe is null ? RecordingTimeTagStatus.NotProbed
             : !probe.IsFound ? RecordingTimeTagStatus.Absent
             : tag is null ? RecordingTimeTagStatus.Unrecognised
             : RecordingTimeTagStatus.Recognised;
-        var duration = asset.Metadata?.Duration is { } d && d > MediaTime.Zero ? d : (MediaTime?)null;
-        var local = FileNameLocalTime(asset.FilePath);
+        var length = duration is { } d && d > MediaTime.Zero ? d : (MediaTime?)null;
+        var local = FileNameLocalTime(fileName);
         return new RecordingZeroCandidates(
             status,
             tag,
-            tag is { } end && duration is { } length ? end.AddTicks(-length.Ticks) : null,
+            tag is { } end && length is { } l2 ? end.AddTicks(-l2.Ticks) : null,
             tag,
             local,
             local is { } l && fileNameOffset is { } h ? new DateTimeOffset(l, h).ToUniversalTime() : null);
