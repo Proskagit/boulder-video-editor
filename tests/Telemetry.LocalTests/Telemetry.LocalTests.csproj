@@ -24,6 +24,10 @@
     <!-- C1: the import from disk and the summary the user sees. -->
     <ProjectReference Include="..\..\src\Media\Media.csproj" />
     <ProjectReference Include="..\..\src\UI\UI.csproj" />
+    <!-- Step 35.3b1: the synchronisation study of the whole set (16 videos probed with ffprobe, every file hashed). -->
+    <ProjectReference Include="..\..\src\Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Video\Video.csproj" />
+    <ProjectReference Include="..\..\src\Project\Project.csproj" />
   </ItemGroup>
 
 </Project>

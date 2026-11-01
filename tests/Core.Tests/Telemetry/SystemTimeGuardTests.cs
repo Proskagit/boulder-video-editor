@@ -13,6 +13,8 @@ public sealed partial class SystemTimeGuardTests
     {
         "src/Core/Telemetry",                                  // every file of the folder
         "src/Media/TrainingImportService.cs",
+        "src/Media/FileFingerprintService.cs",
+        "src/Project/Research",                                // the COROS synchronisation study
         "src/Video/FfprobeMediaAnalysisService.cs",            // reads the creation_time tag
         "src/Video/FfprobeOutput.cs",
         "src/UI/Services/TrainingImportWorkflow.cs",

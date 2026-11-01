@@ -304,3 +304,69 @@ src/UI/ViewModels/ProjectSettingsViewModel.cs	Full HD
 src/UI/Views/MainWindow.axaml.cs	Design Time
 src/UI/Views/MainWindow.axaml.cs	Design time — not analyzed.
 src/UI/Views/MainWindow.axaml.cs	Design time.
+
+# Step 35.3b1 — the COROS synchronisation study (D050 B5), an internal Debug research tool: the reasons a study file is damaged, a path refused or a set not ready, kept English as diagnostics like the project's damaged-file reasons; the Debug window of Step 35.3c shows them as technical detail.
+src/Core/Telemetry/Research/StudyValidator.cs	a journal entry and an evaluation record share a sequence number
+src/Core/Telemetry/Research/StudyValidator.cs	evaluation records
+src/Core/Telemetry/Research/StudyValidator.cs	location {group.Key}: more than one current location
+src/Core/Telemetry/Research/StudyValidator.cs	location {location.SubjectKey}: no path
+src/Core/Telemetry/Research/StudyValidator.cs	location {location.SubjectKey}: no such FIT or video
+src/Core/Telemetry/Research/StudyValidator.cs	revision {revision.Number}: numbers are not 1, 2, 3, …
+src/Core/Telemetry/Research/StudyValidator.cs	revision {revision.Number}: the content hash does not match its content
+src/Core/Telemetry/Research/StudyValidator.cs	subject {subject}: no location
+src/Core/Telemetry/Research/StudyValidator.cs	{what} is not unique
+src/Core/Telemetry/Research/StudyValidator.cs	{what}: sequence numbers do not increase
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: a climb has a negative duration
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: climb number
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: climb split index
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision of a mark
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision {d.MarkId}: climb present or missing against its state
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision {d.MarkId}: no reason
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision {d.MarkId}: the climb is not a climb of this FIT (index, number and start)
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision {d.MarkId}: unknown mark
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: exclusion id
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: exclusion {e.ExclusionId}: no reason
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: exclusion {e.ExclusionId}: the climb is not a climb of this FIT (index, number and start)
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark id
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: negative start
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: outside its video
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: the end is not after the start
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: unknown video
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: the FIT's SHA-256 is malformed
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: the FIT's size is negative
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: the activity ends before it starts
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video SHA-256
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video key
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: SHA-256 is malformed
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: a tag without a probe
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: a tag without its origin or the reverse
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: negative size or duration
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: no file name
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: retired without a reason
+src/Project/Research/SyncStudyFileStore.cs	a study file cannot be inside the project folder
+src/Project/Research/SyncStudyFileStore.cs	a study file cannot be the project file
+src/Project/Research/SyncStudyFileStore.cs	a study file must end with {Extension}
+src/Project/Research/SyncStudySerializer.cs	an object was expected for «{name}»
+src/Project/Research/SyncStudySerializer.cs	not valid JSON
+src/Project/Research/SyncStudySerializer.cs	schema {schema} is newer than {SyncStudy.CurrentSchemaVersion}
+src/Project/Research/SyncStudySerializer.cs	the root is not an object
+src/Project/Research/SyncStudySerializer.cs	unknown schema {schema}
+src/Project/Research/SyncStudySerializer.cs	«{name}» has an unknown value
+src/Project/Research/SyncStudySerializer.cs	«{name}» is missing
+src/Project/Research/SyncStudySerializer.cs	«{name}» is not a UTC instant
+src/Project/Research/SyncStudySerializer.cs	«{name}» is not a boolean
+src/Project/Research/SyncStudySerializer.cs	«{name}» is not a key
+src/Project/Research/SyncStudySerializer.cs	«{name}» is not a string
+src/Project/Research/SyncStudySerializer.cs	«{name}» is not an array
+src/Project/Research/SyncStudySerializer.cs	«{name}» is not an integer
+src/Project/Research/SyncStudySerializer.cs	«{name}» is not an object
+src/Project/Research/SyncStudyService.cs	no study is open
+src/Project/Research/SyncStudyService.cs	no such FIT or video
+src/Project/Research/SyncStudyService.cs	no such video
+src/Project/Research/SyncStudyService.cs	the file has other content (SHA-256 or size differ)
+src/Project/Research/SyncStudyService.cs	{Path.GetFileName(path)}: cannot be read ({ex.Message})
+src/Project/Research/SyncStudyService.cs	{Path.GetFileName(path)}: changed while it was read
+src/Project/Research/SyncStudyService.cs	{Path.GetFileName(path)}: not found
+src/Project/Research/SyncStudyService.cs	{name}: changed since it was verified
+src/Project/Research/SyncStudyService.cs	{name}: {StateOf(key)}, not verified
+src/Project/Research/SyncStudyService.cs	{video.OriginalFileName}: duration or recording-time probe missing
