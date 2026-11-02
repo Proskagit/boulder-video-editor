@@ -265,7 +265,17 @@ Step 35.5 depends on Step 35.4 only and may run alongside 35.3d.
 **Steps of 35.3b as agreed** (they keep their numbers): 35.3b1 the study model, file, revisions and set identity
 (`adb9600`); 35.3b2a the model extensions and the evaluation admission (`be9e0f6`); 35.3b2b the matching proposals and
 their ranking; 35.3b2c the statistics, B6's statuses, the tag check and the per-video sensitivity; 35.3b2d the report, the
-stored evaluation records and the JSON / CSV export. Done: 35.3b1, 35.3b2a; not started: 35.3b2b–d.
+stored evaluation records and the JSON / CSV export. Done: 35.3b1, 35.3b2a, 35.3b2c (the evaluation in Core,
+`StudyEvaluator` with `EvaluationProtocol.B6`, synthetic tests); not started: 35.3b2d. **35.3b2b is deferred** — not
+cancelled — to the later work on the FIT events (D050 amendment of 2026-11-02 «the protocol of Step 35.3d»): the
+reference marking is manual and frozen, only human-confirmed matches are evaluated.
+
+**The protocol of 35.3d** (fixed before the evaluation, D050 amendment of 2026-11-02): the hypothesis `Z = tag −
+duration` (the tag as the start for reference only); the 13 climbs C2–C14 always the denominator, each excluded / within
+`τ` / outlier / not computed with its reason; (1) ≥ 11 of 13 within `τ`, (2) every one of the 13 explained by its family,
+(3) the Theil–Sen drift ≤ `τ / 2` («not established» is not met); the tag check on B6's 7 videos at 2 s — fixed after the
+descriptive analysis, before the evaluation, not registered in advance — reported per file, outside the verdict; no new
+exclusion before 35.3d; a negative result is recorded as it is.
 
 **Reference marking — 35.3R** (D050 amendment of 2026-11-02): the marking of 35.3d as a preparatory task of its own.
 

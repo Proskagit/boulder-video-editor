@@ -409,3 +409,24 @@ src/Core/Telemetry/Research/StudyValidator.cs	{where}: the marking rule has no i
 src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: an empty marking rule id
 src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: an invalid frame time base
 src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: an end PTS without an end
+# Step 35.3b2c — the formal evaluation of the COROS synchronisation study (D050 B6, amendment of 2026-11-02): the protocol's rules, the notes and the per-file and per-climb problems written into the evaluation report — canonical data covered by the report's hash, read by the research tools and the owner as the record, never interface text; English like the study's diagnostics above.
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	only for a video whose constant frame rate is confirmed; 3 decimals, half away from zero
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	even count: the midpoint of the two middle values rounded towards -infinity to a tick
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	tagMarksStart: Z = tag (descriptive only)
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	leave-one-out: r_i = k_i - median(k_j, j != i); within tau when |r_i| <= tau
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	the mark's start (the end is not part of the criterion)
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	descriptive tables (tagNameDifferences, sensitivity, reference) never change the verdict
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	the marks carry the error of a manual visual choice by the marking rule
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	the tag check is reported per file and is not part of the B6 verdict
+src/Core/Telemetry/Research/StudyEvaluation.cs	fixed 2026-11-02 after the descriptive analysis of these files, before the formal evaluation; not registered in advance
+src/Core/Telemetry/Research/StudyEvaluation.cs	no explanation
+src/Core/Telemetry/Research/StudyEvaluation.cs	recorded as unexplained
+src/Core/Telemetry/Research/StudyEvaluation.cs	the explanation's category does not fit the status
+src/Core/Telemetry/Research/StudyEvaluation.cs	not in the revision
+src/Core/Telemetry/Research/StudyEvaluation.cs	not probed
+src/Core/Telemetry/Research/StudyEvaluation.cs	no tag
+src/Core/Telemetry/Research/StudyEvaluation.cs	tag not recognised
+src/Core/Telemetry/Research/StudyEvaluation.cs	no duration
+src/Core/Telemetry/Research/StudyEvaluation.cs	no time in the file name
+src/Core/Telemetry/Research/StudyEvaluation.cs	no confirmed or rejected mark
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	no frames: the video's constant frame rate is not confirmed

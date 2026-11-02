@@ -8490,6 +8490,42 @@ recording-zero override.
 - **No other correction**: no further automatic offset, heuristic or detection of the climber's movement; the start
   match stays without a lag.
 
+**Amendment (product owner, 2026-11-02) — the protocol of Step 35.3d; 35.3b2b deferred.** B6, `τ = 2 s`, the marking
+rule, B2 and its end lag are unchanged; this fixes, before the formal evaluation is run, what B6 leaves open and how it is
+counted (implemented by Step 35.3b2c, `StudyEvaluator` with `EvaluationProtocol.B6`).
+- **Order of work**: 35.3b2b (the matching proposals) is **deferred** — not cancelled — to the later work on the FIT
+  events: the reference marking is manual and frozen, and only human-confirmed matches enter the evaluation. 35.3b2c and
+  35.3b2d come first.
+- **Hypothesis under test**: the tag marks the end of the recording, `Z = tag − duration` (the study's `TagRaw` and
+  `DurationTicks`); the tag as the start (`Z = tag`) is reported for reference only. `k_i = W_split_i − (Z(M_i) + s_i)`,
+  `W_split_i` the climb's start in the FIT, `s_i` the mark's start (its end is not part of the criterion).
+- **Tag check** (B6's independent check): the 7 videos named in B6 (`100405`, `101229`, `102533`, `104110`, `104651`,
+  `105713`, `112854`), each `|Z_tag − Z_name| ≤ 2 s`, `Z_tag = tag − duration`, `Z_name` the file-name time less the
+  offset hypothesis `h` = +03:00 (D049 §1). The threshold **2 s was fixed on 2026-11-02 after the descriptive analysis
+  had shown these files, before the formal evaluation — it is not a criterion registered in advance**. The check is
+  reported per file and is **not part of B6's verdict**; a file outside the threshold is a finding of its own. The
+  difference of the raw tag from the file-name time is reported apart, descriptively.
+- **The 13 climbs C2–C14 are the denominator, always**. Each has exactly one status: *excluded* (an active exclusion in
+  the evaluated revision — so recorded before the evaluation; none is added before 35.3d), *within τ* or *outlier* (one
+  confirmed match in force with its leave-one-out residual), or *not computed* with its reason (no confirmed match —
+  ambiguous, not matched or no mark, as C7, C10 and C13; conflicting confirmations; the tag absent or unreadable; fewer
+  than two computed matches). Excluded, not computed and outliers count as «not within τ»; C1 is reported apart.
+- **Conditions**: (1) at least 11 of the 13 within `τ` (`|r_i| ≤ τ`, inclusive); (2) every one of the 13 explained —
+  within `τ` by itself, excluded by its prior reason, an outlier by an active explanation of the deviation family, a climb
+  not computed by one of the absence family, each for the evaluation's report hash; «unexplained» or the other family
+  never explains; (3) the Theil–Sen drift `|median((k_j − k_i) · span / (W_j − W_i))| ≤ τ / 2`, compared exactly; when it
+  cannot be computed (fewer than two matches with different starts) it is **not established**, which is not met. B6 is
+  **met** only with all three; **not met** when (1) or (3) is not; otherwise it **waits for the explanations** of (2). A
+  negative result is recorded as it is.
+- **Arithmetic**: ticks only; `K̂ = median(k_i)` with its MAD and count; the median of an even count is the midpoint of
+  the two middle values rounded towards −∞ to a tick; a residual in milliseconds exactly (1 tick = 0.0001 ms) and in
+  frames only for a video whose constant frame rate is confirmed (Step 35.3b2a: none is — so milliseconds only, each
+  residual without frames carrying that reason), 3 decimals, half away from zero; the drift in the report rounded to ticks, half away from zero. The per-video sensitivity
+  and the reference hypothesis are descriptive and never change the verdict.
+- **Record**: the report is canonical JSON (the study's rules) with its SHA-256; Step 35.3b2d stores it as a new
+  evaluation record (algorithm version `coros-b6-1`, the parameters, the inputs hash over the revision's content hash and
+  the parameters) and never changes or recomputes an earlier one; explanations are added to a record afterwards.
+
 ---
 
 ## How to add a decision

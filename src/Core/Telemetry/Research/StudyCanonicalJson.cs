@@ -14,7 +14,7 @@ namespace AiVideoEditor.Core.Telemetry.Research;
 /// they are (no Unicode normalisation); enums as their lower-case names; a null member is left out, a non-nullable one is
 /// always written (also <c>false</c> and <c>0</c>); an empty collection is <c>[]</c>. No floating point anywhere.
 /// </summary>
-public static class StudyCanonicalJson
+public static partial class StudyCanonicalJson
 {
     /// <summary>The writer options of the canonical bytes: compact, a fixed encoder.</summary>
     public static readonly JsonWriterOptions CanonicalOptions = new() { Indented = false, Encoder = JavaScriptEncoder.Default };
