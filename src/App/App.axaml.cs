@@ -25,6 +25,7 @@ public partial class App : Avalonia.Application
             desktop.MainWindow = Services.GetRequiredService<MainWindow>();
 #if DEBUG
             DevStartup.OpenProjectFromArguments(desktop);   // development only: --open-project <folder>
+            DevStartup.OpenCorosReferenceFromArguments(desktop);   // development only: --coros-reference <study file>
 #endif
         }
 

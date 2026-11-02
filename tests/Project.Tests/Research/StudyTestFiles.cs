@@ -76,6 +76,13 @@ internal sealed class StudyTestFiles : IFileFingerprintService
         }
     };
 
+    /// <summary>Gives the service's study a marking rule — marking needs one (Step 35.3R1).</summary>
+    public static Core.Telemetry.Research.SyncStudy WithRule(Core.Telemetry.Research.SyncStudy study, AiVideoEditor.Project.Research.SyncStudyService service)
+    {
+        service.Editor.SetMarkingRule("test-rule-1", "start: the last foot leaves the floor; end: the last contact with the wall");
+        return study;
+    }
+
     /// <summary>A clock that advances one second per reading.</summary>
     public static Func<DateTimeOffset> Clock()
     {

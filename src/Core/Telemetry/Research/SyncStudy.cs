@@ -114,6 +114,13 @@ public enum StaleCause
 /// <summary>Staleness after an accepted change of the set; lifted only by an explicit reconfirmation.</summary>
 public sealed record Staleness(int SinceRevision, StaleCause Cause, long Seq);
 
+/// <summary>The PTS of the frame the Source viewer showed when a boundary was marked (Step 35.3R1) — kept for audit only,
+/// never used in a computation; the mark's time is the Source position.</summary>
+public readonly record struct StudyFramePts(long Pts, long TimeBaseNumerator, long TimeBaseDenominator);
+
+/// <summary>The rule the reference marks follow (Step 35.3R1): an identifier and its text, frozen with the revision.</summary>
+public sealed record MarkingRule(string Id, string Text);
+
 /// <summary>The independent lifecycle facts of a mark (both may hold at once).</summary>
 [Flags]
 public enum MarkState
@@ -123,8 +130,10 @@ public enum MarkState
     Stale = 2,
 }
 
-/// <summary>A human mark of a climb on a video: its start (the frame where the feet leave the floor, B7) and, as an
-/// aid only, its end — in the video's source time (ticks).</summary>
+/// <summary>A human mark of a climb on a video: its start (required — the last foot leaves the floor and the climber moves
+/// onto the wall) and its end (optional — the last contact with the wall when jumping off), in the video's source time
+/// (ticks; the Source viewer's position when marked). <see cref="MarkingRuleId"/> is the marking rule in force when the
+/// mark was made or either boundary last moved — one id for the whole mark; the frame PTS are audit data only.</summary>
 public sealed record ClimbMark(
     Guid MarkId,
     Guid VideoKey,
@@ -134,7 +143,10 @@ public sealed record ClimbMark(
     int AddedInRevision,
     Withdrawal? Withdrawn,
     Staleness? Stale,
-    int? ReconfirmedInRevision)
+    int? ReconfirmedInRevision,
+    string? MarkingRuleId = null,
+    StudyFramePts? StartFramePts = null,
+    StudyFramePts? EndFramePts = null)
 {
     public MarkState State => (Withdrawn is null ? MarkState.Active : MarkState.Withdrawn) | (Stale is null ? 0 : MarkState.Stale);
 
@@ -216,8 +228,26 @@ public sealed record StudyContent(
     IReadOnlyList<StudyVideo> Videos,
     IReadOnlyList<ClimbMark> Marks,
     IReadOnlyList<MatchDecision> Decisions,
-    IReadOnlyList<Exclusion> Exclusions)
+    IReadOnlyList<Exclusion> Exclusions,
+    MarkingRule? MarkingRule = null)
 {
+    /// <summary>The mark holding a confirmation of <paramref name="climb"/> that is in force — a confirmed decision of a mark
+    /// neither withdrawn nor stale, on a video not retired — other than <paramref name="except"/>; null when none. One
+    /// camera: a climb has at most one (D050 amendment of 2026-11-02).</summary>
+    public ClimbMark? ConfirmedHolder(ClimbIdentity climb, Guid? except = null) =>
+        ConfirmationsInForce().FirstOrDefault(x => x.Climb == climb && x.Mark.MarkId != except).Mark;
+
+    /// <summary>Every confirmation in force: the climb and the mark that confirms it.</summary>
+    public IEnumerable<(ClimbIdentity Climb, ClimbMark Mark)> ConfirmationsInForce() =>
+        Decisions.Where(d => d.State == MatchState.Confirmed && d.Climb is not null)
+            .Select(d => (Climb: d.Climb!.Value, Mark: Mark(d.MarkId)))
+            .Where(x => x.Mark is { IsActive: true } && Video(x.Mark.VideoKey)?.Retired is null)
+            .Select(x => (x.Climb, x.Mark!));
+
+    /// <summary>The climbs confirmed by more than one mark in force — a broken one-camera rule (the study is damaged).</summary>
+    public IReadOnlyList<ClimbIdentity> DoubleConfirmations() =>
+        ConfirmationsInForce().GroupBy(x => x.Climb).Where(g => g.Count() > 1).Select(g => g.Key).OrderBy(c => c.ClimbKey).ToList();
+
     public StudyVideo? Video(Guid key) => Videos.FirstOrDefault(v => v.VideoKey == key);
 
     public ClimbMark? Mark(Guid id) => Marks.FirstOrDefault(m => m.MarkId == id);
@@ -258,6 +288,7 @@ public enum HistoryKind
     VideoCoverageReset,
     ExplanationAdded,
     ExplanationWithdrawn,
+    MarkingRuleSet,
 }
 
 /// <summary>One append-only journal entry; <see cref="Old"/> / <see cref="New"/> hold the canonical JSON of the value.</summary>

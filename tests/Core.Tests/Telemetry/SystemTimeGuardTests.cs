@@ -15,6 +15,8 @@ public sealed partial class SystemTimeGuardTests
         "src/Media/TrainingImportService.cs",
         "src/Media/FileFingerprintService.cs",
         "src/Project/Research",                                // the COROS synchronisation study
+        "src/UI/Research",                                     // Step 35.3R1: the reference marking
+        "src/UI/ViewModels/Research",
         "src/Video/FfprobeMediaAnalysisService.cs",            // reads the creation_time tag
         "src/Video/FfprobeOutput.cs",
         "src/UI/Services/TrainingImportWorkflow.cs",

@@ -345,20 +345,20 @@ src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: retir
 src/Project/Research/SyncStudyFileStore.cs	a study file cannot be inside the project folder
 src/Project/Research/SyncStudyFileStore.cs	a study file cannot be the project file
 src/Project/Research/SyncStudyFileStore.cs	a study file must end with {Extension}
-src/Project/Research/SyncStudySerializer.cs	an object was expected for «{name}»
+src/Core/Telemetry/Research/StudyJsonReader.cs	an object was expected for «{name}»
 src/Project/Research/SyncStudySerializer.cs	not valid JSON
 src/Project/Research/SyncStudySerializer.cs	schema {schema} is newer than {SyncStudy.CurrentSchemaVersion}
 src/Project/Research/SyncStudySerializer.cs	the root is not an object
 src/Project/Research/SyncStudySerializer.cs	unknown schema {schema}
-src/Project/Research/SyncStudySerializer.cs	«{name}» has an unknown value
-src/Project/Research/SyncStudySerializer.cs	«{name}» is missing
-src/Project/Research/SyncStudySerializer.cs	«{name}» is not a UTC instant
-src/Project/Research/SyncStudySerializer.cs	«{name}» is not a boolean
-src/Project/Research/SyncStudySerializer.cs	«{name}» is not a key
-src/Project/Research/SyncStudySerializer.cs	«{name}» is not a string
-src/Project/Research/SyncStudySerializer.cs	«{name}» is not an array
-src/Project/Research/SyncStudySerializer.cs	«{name}» is not an integer
-src/Project/Research/SyncStudySerializer.cs	«{name}» is not an object
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» has an unknown value
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is missing
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not a UTC instant
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not a boolean
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not a key
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not a string
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not an array
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not an integer
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not an object
 src/Project/Research/SyncStudyService.cs	no study is open
 src/Project/Research/SyncStudyService.cs	no such FIT or video
 src/Project/Research/SyncStudyService.cs	no such video
@@ -394,10 +394,18 @@ src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: inval
 src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: reviewed as holding no climb but a mark is unresolved
 src/Core/Telemetry/Research/SyncStudyEditor.cs	the FIT changed: its marks are stale
 src/Core/Telemetry/Research/SyncStudyEditor.cs	the video changed
-src/Project/Research/SyncStudySerializer.cs	a proposal reference in the form of Step 35.3b1
+src/Core/Telemetry/Research/StudyJsonReader.cs	a proposal reference in the form of Step 35.3b1
 src/Project/Research/SyncStudyService.cs	climb {climb.ClimbNumber} is confirmed by more than one active mark
 src/Project/Research/SyncStudyService.cs	no frozen revision
 src/Project/Research/SyncStudyService.cs	the set differs from revision {Study.Revisions[^1].Number}: freeze again
 src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: coverage set in a later revision
 src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: added in a later revision
 src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: added in a later revision
+src/Core/Telemetry/Research/MarkHistory.cs	journal entry {entry.Seq}: no mark
+src/Core/Telemetry/Research/MarkHistory.cs	journal entry {entry.Seq}: no decision
+src/Core/Telemetry/Research/StudyJsonReader.cs	not valid JSON ({ex.Message})
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: climb {climb.ClimbNumber} is confirmed by more than one mark (one camera)
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: the marking rule has no id or no text
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: an empty marking rule id
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: an invalid frame time base
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: an end PTS without an end

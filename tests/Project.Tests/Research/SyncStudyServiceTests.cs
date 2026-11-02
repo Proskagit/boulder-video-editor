@@ -32,7 +32,7 @@ public sealed class SyncStudyServiceTests : IDisposable
         try { Directory.Delete(_folder, recursive: true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
     }
 
-    private async Task<SyncStudy> CreateAsync() => await _service.CreateAsync(Fit, Workout(), new[] { Video(A), Video(B) });
+    private async Task<SyncStudy> CreateAsync() => WithRule(await _service.CreateAsync(Fit, Workout(), new[] { Video(A), Video(B) }), _service);
 
     private Guid KeyOf(string fileName) => _service.Study!.Draft.Videos.Single(v => v.OriginalFileName == fileName).VideoKey;
 

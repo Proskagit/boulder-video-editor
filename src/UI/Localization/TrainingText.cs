@@ -65,6 +65,11 @@ public static class TrainingText
     }
 
     /// <summary>"UTC", "UTC+03:00", "UTC−05:30".</summary>
+    /// <summary>A watch instant in the watch's local time — D049 §1: W → watch local, display only; UTC when the offset is
+    /// unknown.</summary>
+    public static string WatchClock(DateTimeOffset w, TimeSpan? offset) =>
+        w.ToOffset(offset ?? TimeSpan.Zero).ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+
     public static string ZoneName(TimeSpan? offset) => offset is not { } o || o == TimeSpan.Zero
         ? "UTC"
         : $"UTC{(o < TimeSpan.Zero ? "−" : "+")}{o.Duration():hh\\:mm}";

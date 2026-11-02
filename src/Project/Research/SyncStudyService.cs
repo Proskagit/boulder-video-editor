@@ -5,17 +5,6 @@ using AiVideoEditor.Core.Telemetry.Research;
 
 namespace AiVideoEditor.Project.Research;
 
-/// <summary>Hashing progress: the file being read and the bytes read of it.</summary>
-public readonly record struct StudyHashProgress(string Path, long BytesRead, long SizeBytes);
-
-/// <summary>The outcome of a service operation: done, or refused with the reason (the study is unchanged).</summary>
-public readonly record struct StudyResult(bool Ok, string? Problem, StudyRevision? Revision = null)
-{
-    public static StudyResult Done(StudyRevision? revision = null) => new(true, null, revision);
-
-    public static StudyResult Refused(string problem) => new(false, problem);
-}
-
 /// <summary>
 /// The COROS synchronisation study around its file (Step 35.3b1, D050 B5): creates a study from the project's training and
 /// videos, opens and saves it, identifies the set by SHA-256 and size, and freezes revisions. It reads the project's data
@@ -25,7 +14,7 @@ public readonly record struct StudyResult(bool Ok, string? Problem, StudyRevisio
 /// change after that last check is not detected. Nothing is ever moved or deleted silently: a changed file is accepted
 /// only explicitly, which makes the dependent marks (and, for the FIT, the exclusions) stale.
 /// </summary>
-public sealed class SyncStudyService
+public sealed class SyncStudyService : ISyncStudyService
 {
     private readonly IFileFingerprintService _fingerprints;
     private readonly Func<DateTimeOffset> _clock;
@@ -94,6 +83,33 @@ public sealed class SyncStudyService
         StudyPath = Path.GetFullPath(path);
     }
 
+    public async Task<StudyResult> OpenStudyAsync(string path, CancellationToken ct = default)
+    {
+        try
+        {
+            await OpenAsync(path, ct).ConfigureAwait(false);
+            return StudyResult.Done();
+        }
+        catch (SyncStudyFileException ex)
+        {
+            return StudyResult.Refused($"{ex.Error}: {ex.Message}");
+        }
+    }
+
+    public async Task<StudyResult> SaveStudyAsync(string? projectFolder, CancellationToken ct = default)
+    {
+        if (Study is null || StudyPath is null) return StudyResult.Refused("no study is open");
+        try
+        {
+            await SaveAsync(StudyPath, projectFolder, ct).ConfigureAwait(false);
+            return StudyResult.Done();
+        }
+        catch (SyncStudyFileException ex)
+        {
+            return StudyResult.Refused($"{ex.Error}: {ex.Message}");
+        }
+    }
+
     // ---- checks ----------------------------------------------------------------------------------------------------
 
     /// <summary>The quick check of the set: a stamp equal to the snapshot's size and the location's time is
@@ -115,31 +131,52 @@ public sealed class SyncStudyService
     /// stamp unchanged across the read.</summary>
     public async Task<IReadOnlyDictionary<Guid, StudyFileState>> VerifyAsync(IProgress<StudyHashProgress>? progress = null, CancellationToken ct = default)
     {
-        var editor = Editor;
-        foreach (var key in SetSubjects())
-        {
-            var (size, path, _) = Expected(key);
-            var sha = key == Study!.Draft.Fit.FitKey ? Study.Draft.Fit.Sha256 : Study.Draft.Video(key)!.Sha256;
-            FileFingerprint? print;
-            try
-            {
-                print = await _fingerprints.HashAsync(path, Progress(path, progress), ct).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                _checks[key] = (StudyFileState.Unreadable, null);
-                continue;
-            }
-            if (print is null) _checks[key] = (StudyFileState.Missing, null);
-            else if (print.ChangedDuringRead) _checks[key] = (StudyFileState.ChangedDuringRead, print.After);
-            else if (print.Sha256 == sha && print.Before.SizeBytes == size)
-            {
-                _checks[key] = (StudyFileState.Verified, print.After);
-                editor.Touch(key, print.After.LastWriteUtcTicks);
-            }
-            else _checks[key] = (StudyFileState.Changed, print.After);
-        }
+        foreach (var key in SetSubjects()) await VerifyAsync(key, progress, ct).ConfigureAwait(false);
         return SetSubjects().ToDictionary(k => k, StateOf);
+    }
+
+    /// <summary>
+    /// The full check of one subject (Step 35.3R1 — a video before it is marked): its SHA-256 and size compared with the
+    /// snapshot, its stamp unchanged across the read; the whole set is not read. Returns the new state.
+    /// </summary>
+    public async Task<StudyFileState> VerifyAsync(Guid subjectKey, IProgress<StudyHashProgress>? progress = null, CancellationToken ct = default)
+    {
+        if (Study is null || !SubjectExists(subjectKey)) throw new InvalidOperationException("No such FIT or video in the open study.");
+        var (size, path, _) = Expected(subjectKey);
+        var sha = subjectKey == Study.Draft.Fit.FitKey ? Study.Draft.Fit.Sha256 : Study.Draft.Video(subjectKey)!.Sha256;
+        FileFingerprint? print;
+        try
+        {
+            print = await _fingerprints.HashAsync(path, Progress(path, progress), ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _checks[subjectKey] = (StudyFileState.Unreadable, null);
+            return StudyFileState.Unreadable;
+        }
+        if (print is null) _checks[subjectKey] = (StudyFileState.Missing, null);
+        else if (print.ChangedDuringRead) _checks[subjectKey] = (StudyFileState.ChangedDuringRead, print.After);
+        else if (print.Sha256 == sha && print.Before.SizeBytes == size)
+        {
+            _checks[subjectKey] = (StudyFileState.Verified, print.After);
+            Editor.Touch(subjectKey, print.After.LastWriteUtcTicks);
+        }
+        else _checks[subjectKey] = (StudyFileState.Changed, print.After);
+        return StateOf(subjectKey);
+    }
+
+    /// <summary>
+    /// Whether the subject is verified and unchanged since — its size and time re-read right now equal those of its check
+    /// (Step 35.3R1: before every marking action). A difference drops <see cref="StudyFileState.Verified"/>, so a new full
+    /// check is needed; a change after this re-check is not detected.
+    /// </summary>
+    public bool IsFresh(Guid subjectKey)
+    {
+        if (StateOf(subjectKey) != StudyFileState.Verified || Study is null || !SubjectExists(subjectKey)) return false;
+        var stamp = _fingerprints.Stamp(Expected(subjectKey).Path);
+        if (stamp == _checks[subjectKey].Stamp) return true;
+        _checks[subjectKey] = (stamp is null ? StudyFileState.Missing : StudyFileState.Changed, stamp);
+        return false;
     }
 
     /// <summary>Why the set may not be frozen or evaluated now (empty when it may): every subject verified, its size and

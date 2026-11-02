@@ -2365,4 +2365,214 @@ If you don't save, your changes will be lost.</value>
   <data name="Relink_RecordingStartKeep" xml:space="preserve">
     <value>Keep</value>
   </data>
+  <data name="Reference_Title" xml:space="preserve">
+    <value>COROS sync check</value>
+  </data>
+  <data name="Reference_RuleHeader" xml:space="preserve">
+    <value>Marking rule</value>
+  </data>
+  <data name="Reference_SetRule" xml:space="preserve">
+    <value>Set the marking rule</value>
+  </data>
+  <data name="Reference_Videos" xml:space="preserve">
+    <value>Study videos</value>
+  </data>
+  <data name="Reference_Climbs" xml:space="preserve">
+    <value>FIT climbs</value>
+  </data>
+  <data name="Reference_Marks" xml:space="preserve">
+    <value>Marks of the video</value>
+  </data>
+  <data name="Reference_OpenVideo" xml:space="preserve">
+    <value>Open in Source</value>
+  </data>
+  <data name="Reference_MarkStart" xml:space="preserve">
+    <value>Climb start here</value>
+  </data>
+  <data name="Reference_MarkEnd" xml:space="preserve">
+    <value>Climb end here</value>
+  </data>
+  <data name="Reference_MoveStart" xml:space="preserve">
+    <value>Move start here</value>
+  </data>
+  <data name="Reference_ClearEnd" xml:space="preserve">
+    <value>Remove end</value>
+  </data>
+  <data name="Reference_GoToStart" xml:space="preserve">
+    <value>Go to start</value>
+  </data>
+  <data name="Reference_GoToEnd" xml:space="preserve">
+    <value>Go to end</value>
+  </data>
+  <data name="Reference_Confirm" xml:space="preserve">
+    <value>Confirm the climb</value>
+  </data>
+  <data name="Reference_NotMatchedNotAClimb" xml:space="preserve">
+    <value>Not a climb</value>
+  </data>
+  <data name="Reference_NotMatchedNoFitClimb" xml:space="preserve">
+    <value>No FIT climb</value>
+  </data>
+  <data name="Reference_NotMatchedAmbiguous" xml:space="preserve">
+    <value>Ambiguous</value>
+  </data>
+  <data name="Reference_Withdraw" xml:space="preserve">
+    <value>Withdraw the mark</value>
+  </data>
+  <data name="Reference_Reconfirm" xml:space="preserve">
+    <value>Reconfirm</value>
+  </data>
+  <data name="Reference_CoverageHeader" xml:space="preserve">
+    <value>Coverage of the video</value>
+  </data>
+  <data name="Reference_SetHasClimbs" xml:space="preserve">
+    <value>Has climbs</value>
+  </data>
+  <data name="Reference_SetNoClimbs" xml:space="preserve">
+    <value>Reviewed: no climbs</value>
+  </data>
+  <data name="Reference_SetUnknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Reference_Save" xml:space="preserve">
+    <value>Save the study</value>
+  </data>
+  <data name="Reference_VerifyAll" xml:space="preserve">
+    <value>Check all files</value>
+  </data>
+  <data name="Reference_Freeze" xml:space="preserve">
+    <value>Freeze a revision</value>
+  </data>
+  <data name="Reference_Position" xml:space="preserve">
+    <value>Source position: {0}</value>
+  </data>
+  <data name="Reference_VideoRow" xml:space="preserve">
+    <value>{0} · {1} · marks: {2}</value>
+  </data>
+  <data name="Reference_ClimbRow" xml:space="preserve">
+    <value>C{0} · {1} · {2} s</value>
+  </data>
+  <data name="Reference_ClimbNotFilmed" xml:space="preserve">
+    <value> — not on the videos, outside B6</value>
+  </data>
+  <data name="Reference_ClimbConfirmedBy" xml:space="preserve">
+    <value> — confirmed: {0} at {1}</value>
+  </data>
+  <data name="Reference_NoEnd" xml:space="preserve">
+    <value>no end</value>
+  </data>
+  <data name="Reference_DecisionConfirmed" xml:space="preserve">
+    <value>climb C{0}</value>
+  </data>
+  <data name="Reference_DecisionNotMatched" xml:space="preserve">
+    <value>not matched: {0}</value>
+  </data>
+  <data name="Reference_DecisionRejected" xml:space="preserve">
+    <value>rejected</value>
+  </data>
+  <data name="Reference_DecisionNone" xml:space="preserve">
+    <value>no decision</value>
+  </data>
+  <data name="Reference_MarkStale" xml:space="preserve">
+    <value> (stale)</value>
+  </data>
+  <data name="Reference_MarkWithdrawn" xml:space="preserve">
+    <value> (withdrawn)</value>
+  </data>
+  <data name="Reference_MarkRow" xml:space="preserve">
+    <value>{0} → {1} · {2}</value>
+  </data>
+  <data name="Reference_Opened" xml:space="preserve">
+    <value>Study {0} opened.</value>
+  </data>
+  <data name="Reference_Refused" xml:space="preserve">
+    <value>Not done: {0}</value>
+  </data>
+  <data name="Reference_Saved" xml:space="preserve">
+    <value>The study was saved.</value>
+  </data>
+  <data name="Reference_CheckingAll" xml:space="preserve">
+    <value>Checking all files of the set…</value>
+  </data>
+  <data name="Reference_AllVerified" xml:space="preserve">
+    <value>All files of the set are verified.</value>
+  </data>
+  <data name="Reference_NotAllVerified" xml:space="preserve">
+    <value>{0} files did not pass the check.</value>
+  </data>
+  <data name="Reference_FreezeNote" xml:space="preserve">
+    <value>Reference marking</value>
+  </data>
+  <data name="Reference_Frozen" xml:space="preserve">
+    <value>Revision {0} was frozen.</value>
+  </data>
+  <data name="Reference_Checking" xml:space="preserve">
+    <value>Checking {0} (SHA-256)…</value>
+  </data>
+  <data name="Reference_NotVerified" xml:space="preserve">
+    <value>the file did not pass its SHA-256 check ({0})</value>
+  </data>
+  <data name="Reference_Shown" xml:space="preserve">
+    <value>{0} is shown in Source.</value>
+  </data>
+  <data name="Reference_NoStudy" xml:space="preserve">
+    <value>no study is open</value>
+  </data>
+  <data name="Reference_NoRule" xml:space="preserve">
+    <value>no marking rule yet — set it before marking</value>
+  </data>
+  <data name="Reference_NoVideo" xml:space="preserve">
+    <value>no video is selected</value>
+  </data>
+  <data name="Reference_NotFresh" xml:space="preserve">
+    <value>the file changed or was not checked — open the video again to check it</value>
+  </data>
+  <data name="Reference_NotShown" xml:space="preserve">
+    <value>the selected video is not shown in Source — open it first</value>
+  </data>
+  <data name="Reference_NoMark" xml:space="preserve">
+    <value>no mark is selected</value>
+  </data>
+  <data name="Reference_NoClimb" xml:space="preserve">
+    <value>no FIT climb is selected</value>
+  </data>
+  <data name="Reference_Done" xml:space="preserve">
+    <value>Done.</value>
+  </data>
+  <data name="Reference_ClimbTaken" xml:space="preserve">
+    <value>Not done: the climb is already confirmed by the mark of {0} at {1} — clear that decision first.</value>
+  </data>
+  <data name="Reference_Blocked" xml:space="preserve">
+    <value>Marking blocked: {0}.</value>
+  </data>
+  <data name="Reference_NotInProject" xml:space="preserve">
+    <value>the video is not in the open project at the study's path</value>
+  </data>
+  <data name="Reference_SizeDiffers" xml:space="preserve">
+    <value>the project's file has another size than the study's</value>
+  </data>
+  <data name="Reference_Ambiguous" xml:space="preserve">
+    <value>more than one project video is at the study's path</value>
+  </data>
+  <data name="Reference_NoLocation" xml:space="preserve">
+    <value>the study has no location of the video</value>
+  </data>
+  <data name="Reference_CoverageHasClimbs" xml:space="preserve">
+    <value>has climbs</value>
+  </data>
+  <data name="Reference_CoverageNoClimbs" xml:space="preserve">
+    <value>reviewed: no climbs</value>
+  </data>
+  <data name="Reference_CoverageUnknown" xml:space="preserve">
+    <value>coverage unknown</value>
+  </data>
+  <data name="Reference_ReasonNotAClimb" xml:space="preserve">
+    <value>not a climb</value>
+  </data>
+  <data name="Reference_ReasonNoFitClimb" xml:space="preserve">
+    <value>no FIT climb</value>
+  </data>
+  <data name="Reference_ReasonAmbiguous" xml:space="preserve">
+    <value>ambiguous</value>
+  </data>
 </root>

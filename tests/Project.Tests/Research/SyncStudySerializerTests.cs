@@ -19,7 +19,7 @@ public sealed class SyncStudySerializerTests
         files.Put(@"D:\set\a.mp4", "a");
         files.Put(@"D:\set\b.mp4", "b");
         var service = new SyncStudyService(files, Clock());
-        var study = await service.CreateAsync(@"D:\set\a.fit", Workout(), new[] { Video(@"D:\set\a.mp4"), Video(@"D:\set\b.mp4") });
+        var study = WithRule(await service.CreateAsync(@"D:\set\a.fit", Workout(), new[] { Video(@"D:\set\a.mp4"), Video(@"D:\set\b.mp4") }), service);
         var editor = service.Editor;
         var video = study.Draft.Videos[0].VideoKey;
         var climb = study.Draft.Fit.Climbs[1].Identity;
@@ -116,7 +116,7 @@ public sealed class SyncStudySerializerTests
         files.Put(@"D:\set\a.mp4", "a");
         files.Put(@"D:\set\b.fit", "fit 2");
         var service = new SyncStudyService(files, Clock());
-        var study = await service.CreateAsync(@"D:\set\a.fit", Workout(), new[] { Video(@"D:\set\a.mp4") });
+        var study = WithRule(await service.CreateAsync(@"D:\set\a.fit", Workout(), new[] { Video(@"D:\set\a.mp4") }), service);
         var mark = service.Editor.AddMark(study.Draft.Videos[0].VideoKey, TimeSpan.TicksPerSecond, null).CreatedId!.Value;
         service.Editor.DecideMatch(mark, MatchState.Confirmed, study.Draft.Fit.Climbs[1].Identity, null, "");
         await service.AcceptChangedFitAsync(@"D:\set\b.fit", Workout(secondClimbNumber: 5), "new export");

@@ -90,6 +90,7 @@ public static class StudyCanonicalJson
         ("decisions", Array(c.Decisions.OrderBy(d => Key(d.MarkId), StringComparer.Ordinal), WriteDecision)),
         ("exclusions", Array(c.Exclusions.OrderBy(e => Key(e.ExclusionId), StringComparer.Ordinal), WriteExclusion)),
         ("fit", w2 => WriteFit(w2, c.Fit)),
+        ("markingRule", c.MarkingRule is { } rule ? (Member)(w2 => WriteMarkingRule(w2, rule)) : null),
         ("marks", Array(c.Marks.OrderBy(m => Key(m.MarkId), StringComparer.Ordinal), WriteMark)),
         ("videos", Array(c.Videos.OrderBy(v => Key(v.VideoKey), StringComparer.Ordinal), WriteVideo)));
 
@@ -140,13 +141,26 @@ public static class StudyCanonicalJson
     private static Member? Stale(Staleness? x) =>
         x is null ? null : (Member)(w => Object(w, ("cause", En(x.Cause)), ("seq", Num(x.Seq)), ("sinceRevision", Num(x.SinceRevision))));
 
+    public static void WriteMarkingRule(Utf8JsonWriter w, MarkingRule r) => Object(w,
+        ("id", Str(r.Id)),
+        ("text", Str(r.Text)));
+
+    public static string Value(MarkingRule rule) => Value(w => WriteMarkingRule(w, rule));
+
+    private static Member? Pts(StudyFramePts? pts) => pts is { } p
+        ? (Member)(w => Object(w, ("pts", Num(p.Pts)), ("timeBaseDenominator", Num(p.TimeBaseDenominator)), ("timeBaseNumerator", Num(p.TimeBaseNumerator))))
+        : null;
+
     public static void WriteMark(Utf8JsonWriter w, ClimbMark m) => Object(w,
         ("addedInRevision", Num(m.AddedInRevision)),
+        ("endFramePts", Pts(m.EndFramePts)),
         ("endSourceTicks", Num(m.EndSourceTicks)),
         ("markId", Id(m.MarkId)),
+        ("markingRuleId", Str(m.MarkingRuleId, true)),
         ("note", Str(m.Note)),
         ("reconfirmedInRevision", Num(m.ReconfirmedInRevision)),
         ("stale", Stale(m.Stale)),
+        ("startFramePts", Pts(m.StartFramePts)),
         ("startSourceTicks", Num(m.StartSourceTicks)),
         ("videoKey", Id(m.VideoKey)),
         ("withdrawn", Withdrawn(m.Withdrawn)));

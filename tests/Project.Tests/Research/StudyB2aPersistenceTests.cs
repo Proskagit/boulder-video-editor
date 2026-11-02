@@ -73,7 +73,7 @@ public sealed class StudyB2aPersistenceTests
         var a = Video(@"D:\set\a.mp4");
         a.Metadata!.FrameRate = new FrameRate(60, 1);
         a.Metadata.AvgFrameRate = new FrameRate(5994, 100);
-        await service.CreateAsync(@"D:\set\a.fit", workout, new[] { a, Video(@"D:\set\b.mp4") });
+        WithRule(await service.CreateAsync(@"D:\set\a.fit", workout, new[] { a, Video(@"D:\set\b.mp4") }), service);
         return (service, files);
     }
 
@@ -156,13 +156,10 @@ public sealed class StudyB2aPersistenceTests
         var m2 = service.Editor.AddMark(b, 30 * TimeSpan.TicksPerSecond, null).CreatedId!.Value;
         var climb = study.Draft.Fit.Climbs[1].Identity;
         service.Editor.DecideMatch(m1, MatchState.Confirmed, climb, null, "");
-        service.Editor.DecideMatch(m2, MatchState.Confirmed, climb, null, "");
+        // One camera: the editor refuses a second confirmation, so no frozen revision holds one (Conflicts stays a guard).
+        Assert.Equal(StudyRefusal.ClimbAlreadyConfirmed, service.Editor.DecideMatch(m2, MatchState.Confirmed, climb, null, "").Refusal);
         service.Freeze("rev 2");
-        Assert.Contains(service.EvaluationProblems(), p => p.Contains("confirmed by more than one active mark"));
-        Assert.Equal(new[] { climb }, SyncStudyService.Conflicts(study.Revisions[^1].Content));
-
-        service.Editor.ClearDecision(m2, "the other camera");
-        service.Freeze("rev 3");
+        Assert.Empty(SyncStudyService.Conflicts(study.Revisions[^1].Content));
         Assert.Empty(service.EvaluationProblems());
     }
 }

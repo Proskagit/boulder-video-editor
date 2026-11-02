@@ -21,8 +21,9 @@ public class SyncStudyEditorTests
     public void A_new_study_is_journalled_and_valid()
     {
         var (study, _) = Study('a', 'b');
-        Assert.Equal(new[] { HistoryKind.StudyCreated, HistoryKind.VideoAdded, HistoryKind.VideoAdded }, study.History.Select(h => h.Kind));
-        Assert.Equal(new long[] { 1, 2, 3 }, study.History.Select(h => h.Seq));
+        Assert.Equal(new[] { HistoryKind.StudyCreated, HistoryKind.VideoAdded, HistoryKind.VideoAdded, HistoryKind.MarkingRuleSet },
+            study.History.Select(h => h.Kind));                                // the fixture sets the marking rule (Step 35.3R1)
+        Assert.Equal(new long[] { 1, 2, 3, 4 }, study.History.Select(h => h.Seq));
         Assert.All(study.History, h => Assert.Equal(TimeSpan.Zero, h.AtUtc.Offset));
         Assert.Equal(1, study.DraftRevision);
         Assert.Empty(StudyValidator.Problems(study));
@@ -144,13 +145,22 @@ public class SyncStudyEditorTests
     }
 
     [Fact]
-    public void Several_marks_may_name_one_climb()
+    public void A_climb_takes_one_confirmed_mark_only()
     {
+        // One camera (D050 amendment of 2026-11-02): replaces the allowance of Step 35.3b1 that several marks may confirm a climb.
         var (study, editor) = Study('a', 'b');
         var m1 = AddMark(editor, study.Draft.Videos[0].VideoKey);
         var m2 = AddMark(editor, study.Draft.Videos[1].VideoKey);
         Assert.True(editor.DecideMatch(m1, MatchState.Confirmed, study.Identity(2), null, "").Ok);
-        Assert.True(editor.DecideMatch(m2, MatchState.Confirmed, study.Identity(2), null, "").Ok);   // a conflict for 35.3b2
+
+        var refused = editor.DecideMatch(m2, MatchState.Confirmed, study.Identity(2), null, "");
+        Assert.Equal((StudyRefusal.ClimbAlreadyConfirmed, m1), (refused.Refusal, refused.RelatedId!.Value));
+        Assert.Null(study.Draft.Decision(m2));
+        Assert.True(editor.DecideMatch(m1, MatchState.Confirmed, study.Identity(2), null, "again").Ok);   // the same mark: no conflict
+        Assert.True(editor.DecideMatch(m2, MatchState.Rejected, study.Identity(2), MatchReason.WrongClimb, "").Ok);   // not a confirmation
+
+        editor.WithdrawMark(m1, "wrong video");
+        Assert.True(editor.DecideMatch(m2, MatchState.Confirmed, study.Identity(2), null, "").Ok);   // free again
         Assert.Empty(StudyValidator.Problems(study));
     }
 

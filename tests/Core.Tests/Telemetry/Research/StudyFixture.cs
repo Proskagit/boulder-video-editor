@@ -30,6 +30,8 @@ internal static class StudyFixture
         return () => t = t.AddSeconds(1);
     }
 
+    public static readonly MarkingRule Rule = new("test-rule-1", "start: the last foot leaves the floor; end: the last contact with the wall");
+
     public static (SyncStudy Study, SyncStudyEditor Editor) Study(params char[] videoHashes)
     {
         var fit = Fit();
@@ -39,7 +41,9 @@ internal static class StudyFixture
             .ToList();
         var clock = Clock();
         var study = SyncStudyEditor.Create(Guid.NewGuid(), fit, videos, new StudyLocation(fit.FitKey, @"D:\set\a.fit", 100L), clock);
-        return (study, new SyncStudyEditor(study, clock));
+        var editor = new SyncStudyEditor(study, clock);
+        editor.SetMarkingRule(Rule.Id, Rule.Text);                         // marking needs a rule (Step 35.3R1)
+        return (study, editor);
     }
 
     public static Guid FirstVideo(this SyncStudy study) => study.Draft.Videos[0].VideoKey;

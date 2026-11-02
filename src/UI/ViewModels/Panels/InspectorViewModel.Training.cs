@@ -113,9 +113,7 @@ public sealed partial class InspectorViewModel
         };
     }
 
-    /// <summary>A watch instant in the watch's local time (D049 §1: W → watch local, display only).</summary>
-    private static string WatchClock(DateTimeOffset w, ClimbingWorkout workout) =>
-        w.ToOffset(workout.UtcOffset ?? TimeSpan.Zero).ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+    private static string WatchClock(DateTimeOffset w, ClimbingWorkout workout) => TrainingText.WatchClock(w, workout.UtcOffset);
 
     [RelayCommand(CanExecute = nameof(CanAlignToClimb))]
     private void AlignToClimb()

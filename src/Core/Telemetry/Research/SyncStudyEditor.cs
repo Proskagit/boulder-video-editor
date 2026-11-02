@@ -32,11 +32,17 @@ public enum StudyRefusal
     EvidenceRequired,
     UnknownExplanation,
     ExplanationWithdrawn,
+    NoMarkingRule,
+    MarkingRuleIncomplete,
+    ClimbAlreadyConfirmed,
 }
 
 /// <summary>The outcome of an edit: done (with the id of a created entity, if any) or refused with the reason.</summary>
-public readonly record struct StudyEdit(StudyRefusal? Refusal, Guid? CreatedId = null)
+public readonly record struct StudyEdit(StudyRefusal? Refusal, Guid? CreatedId = null, Guid? RelatedId = null)
 {
+    /// <summary>A refusal naming the entity it conflicts with (e.g. the mark that already confirms a climb).</summary>
+    public static StudyEdit Conflict(StudyRefusal refusal, Guid relatedId) => new(refusal, null, relatedId);
+
     public bool Ok => Refusal is null;
 
     public static StudyEdit Done(Guid? id = null) => new(null, id);
@@ -183,7 +189,11 @@ public sealed class SyncStudyEditor
         if (Draft.Video(videoKey) is not { } old) return StudyRefusal.UnknownVideo;
         if (old.Retired is null) return StudyRefusal.VideoNotRetired;
         var restored = old with { Retired = null };
-        SetDraft(Draft with { Videos = Replace(Draft.Videos, v => v.VideoKey == videoKey, restored) });
+        var after = Draft with { Videos = Replace(Draft.Videos, v => v.VideoKey == videoKey, restored) };
+        // One camera: bringing the video back must not give a climb a second confirmation in force.
+        if (after.DoubleConfirmations() is [var doubled, ..])
+            return StudyEdit.Conflict(StudyRefusal.ClimbAlreadyConfirmed, (Draft.ConfirmedHolder(doubled) ?? after.ConfirmedHolder(doubled)!).MarkId);
+        SetDraft(after);
         Log(HistoryKind.VideoRestored, videoKey, StudyCanonicalJson.Value(old), StudyCanonicalJson.Value(restored), note);
         return StudyEdit.Done();
     }
@@ -214,23 +224,59 @@ public sealed class SyncStudyEditor
 
     // ---- marks ---------------------------------------------------------------------------------------------------
 
-    public StudyEdit AddMark(Guid videoKey, long startSourceTicks, long? endSourceTicks, string note = "")
+    /// <summary>
+    /// Sets the marking rule of the draft (Step 35.3R1) — frozen with the revision, journalled with the previous one. Marks
+    /// keep the rule id they were made under: a new rule rewrites none of them.
+    /// </summary>
+    public StudyEdit SetMarkingRule(string id, string text)
     {
+        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(text)) return StudyRefusal.MarkingRuleIncomplete;
+        var old = Draft.MarkingRule;
+        var rule = new MarkingRule(id, text);
+        if (old == rule) return StudyEdit.Done();
+        SetDraft(Draft with { MarkingRule = rule });
+        Log(HistoryKind.MarkingRuleSet, _study.StudyId, old is null ? null : StudyCanonicalJson.Value(old), StudyCanonicalJson.Value(rule), "");
+        return StudyEdit.Done();
+    }
+
+    /// <summary>A new mark with its start (and, optionally, its end) — refused without a marking rule; it records the rule's
+    /// id. The frame PTS are audit data only.</summary>
+    public StudyEdit AddMark(Guid videoKey, long startSourceTicks, long? endSourceTicks, string note = "",
+        StudyFramePts? startFramePts = null, StudyFramePts? endFramePts = null)
+    {
+        if (Draft.MarkingRule is not { } rule) return StudyRefusal.NoMarkingRule;
         if (CheckMarkPlace(videoKey, startSourceTicks, endSourceTicks) is { } refusal) return refusal;
         if (ReviewedNoClimbs(videoKey)) return StudyRefusal.CoverageConflict;
-        var mark = new ClimbMark(Guid.NewGuid(), videoKey, startSourceTicks, endSourceTicks, note, Revision, null, null, null);
+        var mark = new ClimbMark(Guid.NewGuid(), videoKey, startSourceTicks, endSourceTicks, note, Revision, null, null, null,
+            rule.Id, startFramePts, endSourceTicks is null ? null : endFramePts);
         SetDraft(Draft with { Marks = Draft.Marks.Append(mark).ToList() });
         Log(HistoryKind.MarkAdded, mark.MarkId, null, StudyCanonicalJson.Value(mark), note);
         return StudyEdit.Done(mark.MarkId);
     }
 
-    /// <summary>Moves a mark or changes its end or note. A stale mark stays stale: editing is not a reconfirmation.</summary>
-    public StudyEdit UpdateMark(Guid markId, long startSourceTicks, long? endSourceTicks, string note)
+    /// <summary>
+    /// Moves a mark's start and / or end, or changes its note — refused without a marking rule. Moving either boundary
+    /// records the current rule's id (one id for the whole mark); a boundary that does not move keeps its frame PTS. The
+    /// decision stays (a confirmation is about the climb, not the time); a stale mark stays stale.
+    /// </summary>
+    public StudyEdit UpdateMark(Guid markId, long startSourceTicks, long? endSourceTicks, string note,
+        StudyFramePts? startFramePts = null, StudyFramePts? endFramePts = null)
     {
         if (Draft.Mark(markId) is not { } old) return StudyRefusal.UnknownMark;
         if (old.Withdrawn is not null) return StudyRefusal.MarkWithdrawn;
+        if (Draft.MarkingRule is not { } rule) return StudyRefusal.NoMarkingRule;
         if (CheckMarkPlace(old.VideoKey, startSourceTicks, endSourceTicks) is { } refusal) return refusal;
-        var updated = old with { StartSourceTicks = startSourceTicks, EndSourceTicks = endSourceTicks, Note = note };
+        var startMoved = startSourceTicks != old.StartSourceTicks;
+        var endMoved = endSourceTicks != old.EndSourceTicks;
+        var updated = old with
+        {
+            StartSourceTicks = startSourceTicks,
+            EndSourceTicks = endSourceTicks,
+            Note = note,
+            MarkingRuleId = startMoved || endMoved ? rule.Id : old.MarkingRuleId,
+            StartFramePts = startMoved ? startFramePts : startFramePts ?? old.StartFramePts,
+            EndFramePts = endSourceTicks is null ? null : endMoved ? endFramePts : endFramePts ?? old.EndFramePts,
+        };
         ReplaceMark(updated);
         Log(HistoryKind.MarkUpdated, markId, StudyCanonicalJson.Value(old), StudyCanonicalJson.Value(updated), note);
         return StudyEdit.Done();
@@ -258,7 +304,12 @@ public sealed class SyncStudyEditor
         if (old.Withdrawn is not null) return StudyRefusal.MarkWithdrawn;
         if (old.Stale is null) return StudyRefusal.MarkNotStale;
         if (CheckMarkPlace(old.VideoKey, old.StartSourceTicks, old.EndSourceTicks) is { } refusal) return refusal;
-        if (Draft.Decision(markId) is { Climb: { } climb } && Draft.Fit.Find(climb) is null) return StudyRefusal.DecisionClimbMismatch;
+        if (Draft.Decision(markId) is { Climb: { } climb } decision)
+        {
+            if (Draft.Fit.Find(climb) is null) return StudyRefusal.DecisionClimbMismatch;
+            if (decision.State == MatchState.Confirmed && Draft.ConfirmedHolder(climb, markId) is { } holder)
+                return StudyEdit.Conflict(StudyRefusal.ClimbAlreadyConfirmed, holder.MarkId);
+        }
         var reconfirmed = old with { Stale = null, ReconfirmedInRevision = Revision };
         ReplaceMark(reconfirmed);
         Log(HistoryKind.MarkReconfirmed, markId, StudyCanonicalJson.Value(old), StudyCanonicalJson.Value(reconfirmed), note);
@@ -294,6 +345,9 @@ public sealed class SyncStudyEditor
         if (state == MatchState.NotMatched && climb is not null) return StudyRefusal.ClimbNotAllowed;
         if (state != MatchState.NotMatched && climb is null) return StudyRefusal.ClimbRequired;
         if (climb is { } c && Draft.Fit.Find(c) is null) return StudyRefusal.UnknownClimb;
+        // One camera: a climb has at most one confirmed mark in force (D050 amendment of 2026-11-02).
+        if (state == MatchState.Confirmed && climb is { } taken && Draft.ConfirmedHolder(taken, markId) is { } holder)
+            return StudyEdit.Conflict(StudyRefusal.ClimbAlreadyConfirmed, holder.MarkId);
         if (state != MatchState.Confirmed && reason is null) return StudyRefusal.ReasonRequired;
         if (reason == MatchReason.Other && string.IsNullOrWhiteSpace(note)) return StudyRefusal.NoteRequired;
 

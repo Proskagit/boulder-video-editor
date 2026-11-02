@@ -128,6 +128,19 @@ public static class StudyValidator
                 problems.Add($"{where}: decision {d.MarkId}: the climb is not a climb of this FIT (index, number and start)");
         }
 
+        foreach (var climb in c.DoubleConfirmations())
+            problems.Add($"{where}: climb {climb.ClimbNumber} is confirmed by more than one mark (one camera)");
+        if (c.MarkingRule is { } rule && (string.IsNullOrWhiteSpace(rule.Id) || string.IsNullOrWhiteSpace(rule.Text)))
+            problems.Add($"{where}: the marking rule has no id or no text");
+        foreach (var m in c.Marks)
+        {
+            if (m.MarkingRuleId is { } ruleId && string.IsNullOrWhiteSpace(ruleId)) problems.Add($"{where}: mark {m.MarkId}: an empty marking rule id");
+            if (m.StartFramePts is { } sp && (sp.TimeBaseNumerator <= 0 || sp.TimeBaseDenominator <= 0)
+                || m.EndFramePts is { } ep && (ep.TimeBaseNumerator <= 0 || ep.TimeBaseDenominator <= 0))
+                problems.Add($"{where}: mark {m.MarkId}: an invalid frame time base");
+            if (m.EndFramePts is not null && m.EndSourceTicks is null) problems.Add($"{where}: mark {m.MarkId}: an end PTS without an end");
+        }
+
         Unique(c.Exclusions.Select(e => e.ExclusionId), $"{where}: exclusion id", problems);
         foreach (var e in c.Exclusions)
         {
