@@ -22,6 +22,14 @@ public readonly record struct TrainingReadout(DateTimeOffset? WatchTime, int? Bp
 /// video's source time — not clipped to the range that was asked for (may begin before 0 or end past the video).</summary>
 public readonly record struct SourceClimb(WorkoutSegment Climb, MediaTime SourceStart, MediaTime SourceEnd);
 
+/// <summary>The point of a climb that a video frame is matched to (D050 amendment of 2026-11-02 to B2): its end — the
+/// default, the watch records it more steadily than the start — or its start.</summary>
+public enum ClimbAnchor
+{
+    End,
+    Start,
+}
+
 /// <summary>
 /// The video ↔ training mapping of D049 §6, in ticks — the only implementation of it (D050 amendment B8): timeline frame
 /// → source time <c>s(n)</c> (the clip's exact rule, D009) → camera time <c>c = Z + s</c> → watch time
@@ -48,6 +56,26 @@ public static class TrainingAlignment
     /// <paramref name="splitStart"/>: <c>Z = W_split − ClockCorrection − s(n)</c> (D050 amendment B2).</summary>
     public static DateTimeOffset ZeroForSplit(DateTimeOffset splitStart, MediaTime clockCorrection, MediaTime sourceTime) =>
         Utc(checked(splitStart.UtcTicks - clockCorrection.Ticks - sourceTime.Ticks));
+
+    /// <summary>
+    /// How much later than the end seen on a video the watch records a climb's end: 4.6 s, exactly 46 000 000 ticks (D050
+    /// amendment of 2026-11-02 to B2) — the mean of the median end lags of the owner's two trainings (4.4 s on 2026-08-08,
+    /// 4.8 s on 2026-09-27, measured with no clock correction). Used only when a frame is matched to a climb's end; never in
+    /// the clock correction, a climb's boundaries (<see cref="WorkoutSegment.Interval"/>) or the readout.
+    /// </summary>
+    public static readonly MediaTime ClimbEndLag = new(46_000_000);
+
+    /// <summary>The watch instant of the frame that shows <paramref name="anchor"/> of the climb: its start
+    /// <c>W_start</c>, or its end by the one rule for a climb's boundaries less the lag, <c>W_end − ClimbEndLag</c>.</summary>
+    public static DateTimeOffset AnchorTime(WorkoutSegment climb, ClimbAnchor anchor) => anchor == ClimbAnchor.Start
+        ? Utc(climb.StartUtc.UtcTicks)
+        : Utc(checked(climb.End.UtcTicks - ClimbEndLag.Ticks));
+
+    /// <summary>The override that puts the frame showing <paramref name="sourceTime"/> on the climb's anchor:
+    /// <c>Z = W_end − ClimbEndLag − ClockCorrection − s(n)</c> for the end, <c>Z = W_start − ClockCorrection − s(n)</c> for
+    /// the start. The lag enters only here, once; the zero it gives is an ordinary override.</summary>
+    public static DateTimeOffset ZeroForClimb(WorkoutSegment climb, ClimbAnchor anchor, MediaTime clockCorrection, MediaTime sourceTime) =>
+        ZeroForSplit(AnchorTime(climb, anchor), clockCorrection, sourceTime);
 
     /// <summary>Whether the timeline frame lies inside the clip.</summary>
     public static bool Covers(VideoClip clip, long frame, FrameRate rate)

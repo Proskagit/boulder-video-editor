@@ -490,7 +490,8 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   warnings; refusals as `TrainingFileException` + `TrainingFileError`), `WorkoutTimeline.HeartRateAt` (the latest sample
   at most 2 s old, inside the recording, outside the timer's pauses); a split's interval is `[start, start + elapsed)`
   (`WorkoutSegment.Interval`, the one boundary rule; the file's whole-second end only a check). `TrainingAlignment` is the
-  only implementation of the mapping (D049 §6) — forward, inverse `SourceTimeOf`, `ZeroForSplit`, `ClimbsInSource` (the
+  only implementation of the mapping (D049 §6) — forward, inverse `SourceTimeOf`, `ZeroForSplit` / `ZeroForClimb` (the
+  match to a climb's end less `ClimbEndLag` = 4.6 s, or to its start; D050 amendment of 2026-11-02), `ClimbsInSource` (the
   climbs a source range shows); `RecordingTimeTag` the one tag parser (D049 §3); `RecordingZeroEstimator` the one
   estimator of a file's zero (override / automatic / unknown with its reason; the tag and file-name hypotheses only as
   research values until Step 35.3's rule is approved). Pure, no I/O.
@@ -507,9 +508,11 @@ The product's main AI function: the route's holds outlined on a video clip, one 
 - **Mapping** (D049 §6): timeline frame → `s(n)` (the clip's exact source-time rule) → `c = Z(M) + s` → `w = c +
   ClockCorrection` → heart rate. Per media file, so move, ripple, trim, split, slip, speed and duplicate never change what
   a picture maps to. `Z(M)` is a manual override (C), an automatic zero once Step 35.3's rule is approved, or unknown (no
-  heart rate, nothing guessed). Z is set by «Совместить кадр с началом подъёма N» in the clip's Inspector
-  (`Z = W_split − ClockCorrection − s(n)`); the training's `ClockCorrection` is a setting of the COROS training drop-down;
-  the Inspector shows the mapping at the playhead read-only (D050 amendment of 2026-11-01).
+  heart rate, nothing guessed). Z is set in the clip's Inspector by matching the playhead's frame to the end of climb N —
+  the default, `Z = W_end − ClimbEndLag − ClockCorrection − s(n)` with `ClimbEndLag` = 4.6 s — or to its start,
+  `Z = W_start − ClockCorrection − s(n)` (D050 amendments of 2026-11-01 and 2026-11-02); the lag enters only there, never
+  the clock correction, a climb's interval or the readout. The training's `ClockCorrection` is a setting of the COROS
+  training drop-down; the Inspector shows the mapping at the playhead read-only.
 - **Persistence** (D049 §7; the next format version, in `main` with Phase 35's second pull request): a FIT reference
   (paths, size, SHA-256, activity identity) and its clock correction; a per-video zero override; in the metadata the raw
   `creation_time` tag with its origin and a probe marker. The telemetry itself is never stored. The background probe of

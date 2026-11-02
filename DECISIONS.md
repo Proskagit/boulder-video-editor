@@ -8331,9 +8331,11 @@ project); ID2 (always clear), ID3 (content fingerprint per asset).
 
 ## D050 — Phase 35: import of COROS trainings and the heart rate in the video *(approved 2026-10-29)*
 
-Date: 2026-10-29. **Status: Approved by the product owner on 2026-10-29** (revision 4; amended 2026-11-01, B1–B9) — Steps
-35.1–35.2 done; 35.3 partly (the probe, `02ded40`; its research per B5–B9 not started); 35.4 implemented (`e15d7af`, its
-manual rows open); 35.5–35.6 not started. Format and time model: D049. Record until merge: `docs/PHASE_COROS.md`; manual
+Date: 2026-10-29. **Status: Approved by the product owner on 2026-10-29** (revision 4; amended 2026-11-01, B1–B9;
+2026-11-02, 35.3R and B2's match point) — Steps 35.1–35.2 done; 35.3 partly: the probe (`02ded40`), 35.3a, 35.3b1,
+35.3b2a and the reference-marking tool 35.3R1 done, the reference marking 35.3R2 done and frozen by the product owner,
+35.3b2b–d, 35.3c (beyond 35.3R1), 35.3d and 35.3e not started; 35.4 implemented (`e15d7af`; its match point amended
+2026-11-02; its manual rows open); 35.5–35.6 not started. Format and time model: D049. Record until merge: `docs/PHASE_COROS.md`; manual
 plan: `docs/PHASE35_MANUAL_TEST_PLAN.md`. Any COROS model meeting the parser's requirements (owner, 2026-10-26); grade,
 result and style never from COROS (owner, 2026-10-28).
 
@@ -8457,6 +8459,36 @@ its stop condition, every match confirmed by a human, no automatic zero from the
   confirmed mark in force and a mark names at most one climb; a second confirmation of a climb is refused, and a study
   holding one is damaged. This replaces the allowance of Step 35.3b1 that a climb may be confirmed by several marks; a
   multi-camera set would need its own decision.
+
+**Amendment (product owner, 2026-11-02) — B2's match point: the end of the climb by default, a constant end lag of
+4.6 s.** D049, B6, `τ = 2 s` and the method of B5–B9 are unchanged; this amends only the way B2 sets a video's
+recording-zero override.
+- **Reason**: the owner's two trainings, marked by hand against their FIT (2026-08-08: 18 climbs; 2026-09-27: 10 confirmed
+  matches C2–C6, C8, C9, C11, C12, C14 — C1, C7 and C13 ambiguous), show the watch recording a climb's **start** later than
+  the start seen on the video by widely varying amounts (+5.7…+22.0 s and +3.6…+39.1 s) and its **end** later by a far
+  steadier amount (+3.7…+7.7 s, median 4.4 s; +2.7…+8.1 s, median 4.8 s; no clock correction). A zero set from the start
+  can be tens of seconds off; from the end it is off by about the end lag, which is taken as a constant. These are
+  descriptive results of the owner's research (the reports `Итоги исследования 08.08.2026.md` and `Итоги исследования
+  27.09.2026.md`, kept with the personal data, never committed) — not the evaluation of B6, which 35.3d still makes.
+- **Match point**: «Точка привязки» in the clip's Inspector — «Конец подъёма» (the default) or «Начало подъёма»; the
+  choice lives while the app runs, is not saved and changes nothing by itself.
+- **Formulas** (D049 §6 unchanged, `w = Z + s + ClockCorrection`), with `s(n)` the clip's source time at the playhead
+  frame:
+  - the end: `Z = W_end(N) − ClimbEndLag − ClockCorrection − s(n)`, so the frame reads `w(n) = W_end(N) − 4.6 s`;
+    `W_end` is the climb's end by the one boundary rule (B8: the start plus the millisecond elapsed time);
+  - the start (B2 as before): `Z = W_start(N) − ClockCorrection − s(n)`.
+- **The lag**: `ClimbEndLag` = 4.6 s = 46 000 000 ticks, one Core constant — the mean of the two median end lags (4.4 and
+  4.8 s). **Subtracted**: the watch records the end about 4.6 s after the end seen on the video, so the frame of that end
+  is put 4.6 s before the FIT's end. It enters only the end match, once, when the button is pressed; the zero it gives is
+  an ordinary override — the readout, the clock correction, a climb's interval (`WorkoutSegment.Interval`),
+  `ClimbsInSource` and the research (its `k_i`, B6) never add it. A new match replaces the video's zero, so it never
+  accumulates. The lag was measured with no clock correction: the training's `ClockCorrection` stays the difference of
+  the phone's and the watch's clocks only and must not be set to absorb the lag.
+- **Interface**: the button reads «Совместить кадр с концом подъёма» / «… с началом подъёма» by the chosen point; the
+  climb list shows each climb's start and end («Подъём N · чч:мм:сс–чч:мм:сс», watch local time); the status says which
+  point was used. One match is one Undo step, as before. No format change: only `Z` is stored.
+- **No other correction**: no further automatic offset, heuristic or detection of the climber's movement; the start
+  match stays without a lag.
 
 ---
 

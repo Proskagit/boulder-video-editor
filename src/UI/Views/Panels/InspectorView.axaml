@@ -766,17 +766,23 @@
               </StackPanel>
             </StackPanel>
 
-            <!-- COROS training (Phase 35, D050 amendment B2 / B4): this video's recording start Z, set by matching the playhead's
-                 frame to the start of a climb (one Undo step), and the read-only mapping at the playhead. The training's
-                 clock correction is a setting of the toolbar's COROS menu, never here. -->
+            <!-- COROS training (Phase 35, D050 amendment B2 / B4 and its amendment of 2026-11-02): this video's recording
+                 start Z, set by matching the playhead's frame to the end (default) or the start of a climb (one Undo step;
+                 choosing the point changes nothing), and the read-only mapping at the playhead. The training's clock
+                 correction is a setting of the toolbar's COROS menu, never here. -->
             <StackPanel Spacing="6" IsVisible="{Binding ShowsTraining}">
               <TextBlock Text="{x:Static l:Strings.Inspector_TrainingHeader}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <TextBlock Text="{Binding RecordingStartText}" Foreground="#DDDDDD" TextWrapping="Wrap"/>
               <ComboBox ItemsSource="{Binding TrainingClimbs}" SelectedIndex="{Binding SelectedClimbIndex, Mode=TwoWay}"
-                        HorizontalAlignment="Stretch" ToolTip.Tip="{x:Static l:Strings.Inspector_AlignToClimbTip}"/>
+                        HorizontalAlignment="Stretch" ToolTip.Tip="{Binding AlignToClimbTip}"/>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{x:Static l:Strings.Inspector_AlignAnchor}" Classes="label"/>
+                <ComboBox ItemsSource="{Binding AlignAnchors}" SelectedIndex="{Binding AlignAnchorIndex, Mode=TwoWay}"
+                          ToolTip.Tip="{Binding AlignToClimbTip}"/>
+              </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="6">
-                <Button Content="{x:Static l:Strings.Inspector_AlignToClimb}" Command="{Binding AlignToClimbCommand}"
-                        ToolTip.Tip="{x:Static l:Strings.Inspector_AlignToClimbTip}"/>
+                <Button Content="{Binding AlignToClimbText}" Command="{Binding AlignToClimbCommand}"
+                        ToolTip.Tip="{Binding AlignToClimbTip}"/>
                 <Button Content="{x:Static l:Strings.Inspector_ClearRecordingStart}" Command="{Binding ClearRecordingStartCommand}"/>
               </StackPanel>
               <TextBlock Text="{Binding TrainingReadout}" Foreground="#AAAAAA" FontSize="11" TextWrapping="Wrap"/>

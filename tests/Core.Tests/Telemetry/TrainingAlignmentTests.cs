@@ -62,6 +62,69 @@ public class TrainingAlignmentTests
         Assert.Equal(TimeSpan.Zero, zero.Offset);
     }
 
+    // D050 amendment of 2026-11-02 to B2: climb 5 of 2026-09-27 — start 07:31:21Z, 32.5 s; the end by the boundary rule is
+    // the start plus the millisecond elapsed time, 07:31:53.5Z, not the whole-second end of the file (07:31:54Z).
+    private static readonly WorkoutSegment Climb5 = new(8, WorkoutSegmentKind.Climb, 5,
+        new DateTimeOffset(2026, 9, 27, 7, 31, 21, TimeSpan.Zero), new DateTimeOffset(2026, 9, 27, 7, 31, 54, TimeSpan.Zero),
+        MediaTime.FromSeconds(32.5), 140, 160);
+
+    [Fact]
+    public void The_end_lag_is_exactly_four_point_six_seconds_in_ticks()
+    {
+        Assert.Equal(46_000_000L, TrainingAlignment.ClimbEndLag.Ticks);
+        Assert.Equal(TimeSpan.FromMilliseconds(4600).Ticks, TrainingAlignment.ClimbEndLag.Ticks);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2 * TimeSpan.TicksPerSecond)]
+    [InlineData(-37 * TimeSpan.TicksPerSecond)]
+    public void Matching_a_frame_to_a_climbs_end_puts_that_frame_four_point_six_seconds_before_the_end(long correctionTicks)
+    {
+        var correction = new MediaTime(correctionTicks);
+        var clip = Clip(speed: ClipSpeed.FromSteps(40));
+        var s = TrainingAlignment.SourceTimeAt(clip, 180, Rate);
+        var end = new DateTimeOffset(2026, 9, 27, 7, 31, 53, 500, TimeSpan.Zero);
+
+        var zero = TrainingAlignment.ZeroForClimb(Climb5, ClimbAnchor.End, correction, s);
+
+        // Z = W_end − 4.6 s − ClockCorrection − s(n): subtracted once, whatever the correction.
+        Assert.Equal(end.UtcTicks - 46_000_000L - correctionTicks - s.Ticks, zero.UtcTicks);
+        Assert.Equal(end.AddTicks(-46_000_000L), TrainingAlignment.WatchTime(zero, s, correction));
+        Assert.Equal(TimeSpan.Zero, zero.Offset);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2 * TimeSpan.TicksPerSecond)]
+    public void Matching_a_frame_to_a_climbs_start_takes_no_lag(long correctionTicks)
+    {
+        var correction = new MediaTime(correctionTicks);
+        var s = TrainingAlignment.SourceTimeAt(Clip(), 180, Rate);
+
+        var zero = TrainingAlignment.ZeroForClimb(Climb5, ClimbAnchor.Start, correction, s);
+
+        Assert.Equal(TrainingAlignment.ZeroForSplit(Climb5.StartUtc, correction, s), zero);   // the formula of B2 as before
+        Assert.Equal(Climb5.StartUtc, TrainingAlignment.WatchTime(zero, s, correction));
+    }
+
+    [Fact]
+    public void The_lag_changes_neither_the_climbs_boundaries_nor_the_mapping()
+    {
+        // The anchor of the end is W_end − 4.6 s; the climb itself keeps its interval; the mapping of a set zero adds nothing.
+        Assert.Equal(Climb5.End.AddTicks(-46_000_000L), TrainingAlignment.AnchorTime(Climb5, ClimbAnchor.End));
+        Assert.Equal(new DateTimeOffset(2026, 9, 27, 7, 31, 53, 500, TimeSpan.Zero), Climb5.Interval.End);
+        Assert.Equal(Climb5.StartUtc, Climb5.Interval.Start);
+
+        var s = MediaTime.FromSeconds(83.25);
+        var zero = TrainingAlignment.ZeroForClimb(Climb5, ClimbAnchor.End, MediaTime.Zero, s);
+        Assert.Equal(zero.UtcTicks + s.Ticks, TrainingAlignment.WatchTime(zero, s, MediaTime.Zero).UtcTicks);
+
+        // The end and the start of one climb on the same frame: zeros 32.5 − 4.6 = 27.9 s apart.
+        var byStart = TrainingAlignment.ZeroForClimb(Climb5, ClimbAnchor.Start, MediaTime.Zero, s);
+        Assert.Equal(MediaTime.FromSeconds(27.9).Ticks, zero.UtcTicks - byStart.UtcTicks);
+    }
+
     [Fact]
     public void A_picture_keeps_its_watch_time_through_move_trim_split_and_slip()
     {

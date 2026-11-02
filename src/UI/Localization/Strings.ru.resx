@@ -2324,11 +2324,29 @@
   <data name="Inspector_ClearRecordingStart" xml:space="preserve">
     <value>Сбросить</value>
   </data>
+  <data name="Inspector_AlignAnchor" xml:space="preserve">
+    <value>Точка привязки</value>
+  </data>
+  <data name="Inspector_AnchorEnd" xml:space="preserve">
+    <value>Конец подъёма</value>
+  </data>
+  <data name="Inspector_AnchorStart" xml:space="preserve">
+    <value>Начало подъёма</value>
+  </data>
+  <data name="Inspector_AlignToClimbEnd" xml:space="preserve">
+    <value>Совместить кадр с концом подъёма</value>
+  </data>
+  <data name="Inspector_AlignToClimbEndTip" xml:space="preserve">
+    <value>Поставьте плейхед на кадр последнего касания стены при соскоке с выбранного подъёма: начало записи этого видео задаётся так, чтобы время часов на этом кадре было на {0:0.0} с раньше конца подъёма в FIT — часы фиксируют окончание позже. Поправка часов тренировки не меняется; не вносите в неё это запаздывание.</value>
+  </data>
   <data name="Inspector_ClimbItem" xml:space="preserve">
-    <value>Подъём {0} · {1}</value>
+    <value>Подъём {0} · {1}–{2}</value>
   </data>
   <data name="Inspector_AlignedToClimb" xml:space="preserve">
-    <value>Начало записи задано по подъёму {0}.</value>
+    <value>Начало записи задано по началу подъёма {0}.</value>
+  </data>
+  <data name="Inspector_AlignedToClimbEnd" xml:space="preserve">
+    <value>Начало записи задано по концу подъёма {0}.</value>
   </data>
   <data name="Inspector_AlignPlayheadOutside" xml:space="preserve">
     <value>Поставьте плейхед на кадр этого клипа.</value>

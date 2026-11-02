@@ -10,10 +10,11 @@ using CommunityToolkit.Mvvm.Input;
 namespace AiVideoEditor.UI.ViewModels.Panels;
 
 /// <summary>
-/// The COROS training of a video clip (Phase 35, D049 §5–§6, D050 amendment B2 / B4): the state of this video's recording
-/// start Z (set / unknown — the automatic state comes with Step 35.3's rule), «Совместить кадр с началом подъёма N» —
-/// the playhead on the frame where climb N starts sets <c>Z = W_split − ClockCorrection − s(n)</c> for this video only,
-/// one Undo step — and a read-only readout of the mapping at the playhead. The training's clock correction is not here.
+/// The COROS training of a video clip (Phase 35, D049 §5–§6, D050 amendment B2 / B4 and its amendment of 2026-11-02): the
+/// state of this video's recording start Z (set / unknown — the automatic state comes with Step 35.3's rule), the match of
+/// the playhead's frame to the end (the default) or the start of climb N — <c>Z = W_end − ClimbEndLag − ClockCorrection −
+/// s(n)</c> or <c>Z = W_start − ClockCorrection − s(n)</c> for this video only, one Undo step; choosing the point changes
+/// nothing — and a read-only readout of the mapping at the playhead. The training's clock correction is not here.
 /// </summary>
 public sealed partial class InspectorViewModel
 {
@@ -50,6 +51,22 @@ public sealed partial class InspectorViewModel
 
     partial void OnSelectedClimbIndexChanged(int value) => AlignToClimbCommand.NotifyCanExecuteChanged();
 
+    /// <summary>The points a frame can be matched to, in <see cref="AlignAnchorIndex"/> order: the end, the start.</summary>
+    public IReadOnlyList<string> AlignAnchors { get; } = new[] { Strings.Inspector_AnchorEnd, Strings.Inspector_AnchorStart };
+
+    /// <summary>0: the end of the climb (the default), 1: its start. Kept while the app runs; choosing changes nothing.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AlignAnchor), nameof(AlignToClimbText), nameof(AlignToClimbTip))]
+    private int _alignAnchorIndex;
+
+    public ClimbAnchor AlignAnchor => AlignAnchorIndex == 1 ? ClimbAnchor.Start : ClimbAnchor.End;
+
+    public string AlignToClimbText => AlignAnchor == ClimbAnchor.End ? Strings.Inspector_AlignToClimbEnd : Strings.Inspector_AlignToClimb;
+
+    public string AlignToClimbTip => AlignAnchor == ClimbAnchor.End
+        ? string.Format(Strings.Inspector_AlignToClimbEndTip, TrainingAlignment.ClimbEndLag.Ticks / (double)TimeSpan.TicksPerSecond)
+        : Strings.Inspector_AlignToClimbTip;
+
     /// <summary>The playhead moved: the readout follows it.</summary>
     public void OnPlayheadMoved() => UpdateTrainingReadout();
 
@@ -78,7 +95,8 @@ public sealed partial class InspectorViewModel
             _climbs = climbs;
             TrainingClimbs.Clear();
             foreach (var climb in climbs)
-                TrainingClimbs.Add(string.Format(Strings.Inspector_ClimbItem, climb.ClimbNumber, WatchClock(climb.StartUtc, workout!)));
+                TrainingClimbs.Add(string.Format(Strings.Inspector_ClimbItem, climb.ClimbNumber,
+                    WatchClock(climb.StartUtc, workout!), WatchClock(climb.End, workout!)));
             SelectedClimbIndex = selected < climbs.Count ? selected : -1;
         }
         RecordingStartText = _trainingAsset is not null && RecordingZeroEstimator.Resolve(_trainingAsset).State == RecordingZeroState.Override
@@ -128,9 +146,11 @@ public sealed partial class InspectorViewModel
             return;
         }
         var climb = _climbs[SelectedClimbIndex];
-        var zero = TrainingAlignment.ZeroForSplit(climb.StartUtc, training.ClockCorrection, TrainingAlignment.SourceTimeAt(clip, frame, _rate));
+        var anchor = AlignAnchor;
+        var zero = TrainingAlignment.ZeroForClimb(climb, anchor, training.ClockCorrection, TrainingAlignment.SourceTimeAt(clip, frame, _rate));
         var result = _edit.SetRecordingZeroOverride(_trainingAsset!.Id, zero);
-        _status.Report(result.Success ? string.Format(Strings.Inspector_AlignedToClimb, climb.ClimbNumber) : result.Message ?? "");
+        var done = anchor == ClimbAnchor.End ? Strings.Inspector_AlignedToClimbEnd : Strings.Inspector_AlignedToClimb;
+        _status.Report(result.Success ? string.Format(done, climb.ClimbNumber) : result.Message ?? "");
     }
 
     private bool CanAlignToClimb() =>

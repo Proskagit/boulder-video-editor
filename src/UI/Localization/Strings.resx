@@ -2320,11 +2320,29 @@ If you don't save, your changes will be lost.</value>
   <data name="Inspector_ClearRecordingStart" xml:space="preserve">
     <value>Reset</value>
   </data>
+  <data name="Inspector_AlignAnchor" xml:space="preserve">
+    <value>Match point</value>
+  </data>
+  <data name="Inspector_AnchorEnd" xml:space="preserve">
+    <value>End of the climb</value>
+  </data>
+  <data name="Inspector_AnchorStart" xml:space="preserve">
+    <value>Start of the climb</value>
+  </data>
+  <data name="Inspector_AlignToClimbEnd" xml:space="preserve">
+    <value>Match the frame to the end of the climb</value>
+  </data>
+  <data name="Inspector_AlignToClimbEndTip" xml:space="preserve">
+    <value>Put the playhead on the frame of the last touch of the wall when jumping off the chosen climb: the recording start of this video is set so that the watch time at this frame is {0:0.0} s before the climb's end in the FIT — the watch records the end later. The training's clock correction is not changed; do not put this lag into it.</value>
+  </data>
   <data name="Inspector_ClimbItem" xml:space="preserve">
-    <value>Climb {0} · {1}</value>
+    <value>Climb {0} · {1}–{2}</value>
   </data>
   <data name="Inspector_AlignedToClimb" xml:space="preserve">
-    <value>Recording start set by climb {0}.</value>
+    <value>Recording start set by the start of climb {0}.</value>
+  </data>
+  <data name="Inspector_AlignedToClimbEnd" xml:space="preserve">
+    <value>Recording start set by the end of climb {0}.</value>
   </data>
   <data name="Inspector_AlignPlayheadOutside" xml:space="preserve">
     <value>Put the playhead on a frame of this clip.</value>
