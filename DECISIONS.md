@@ -8525,6 +8525,14 @@ counted (implemented by Step 35.3b2c, `StudyEvaluator` with `EvaluationProtocol.
 - **Record**: the report is canonical JSON (the study's rules) with its SHA-256; Step 35.3b2d stores it as a new
   evaluation record (algorithm version `coros-b6-1`, the parameters, the inputs hash over the revision's content hash and
   the parameters) and never changes or recomputes an earlier one; explanations are added to a record afterwards.
+- **Run and explanations** (Step 35.3b2d): the evaluation hashes the whole set first and records nothing while
+  `EvaluationProblems` has a problem or an export file exists; it saves the study atomically (a failed save records
+  nothing), then writes `<study>.eval-<seq>.json` (the stored report) and `.csv`, never over an existing file — an export
+  failing after the save leaves the record in the study. An explanation belongs to one record and its report hash and
+  must fit the climb's status there, or it is refused (never stored and ignored): an outlier takes the deviation family
+  or «unexplained», a climb not computed the absence family or «unexplained», a climb within `τ` or excluded none;
+  «unexplained» is recorded honestly and never counts. The verdict with the explanations is shown, never stored apart:
+  it is restored from the record and the explanations in force.
 
 ---
 

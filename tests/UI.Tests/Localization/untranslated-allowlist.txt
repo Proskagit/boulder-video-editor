@@ -430,3 +430,10 @@ src/Core/Telemetry/Research/StudyEvaluation.cs	no duration
 src/Core/Telemetry/Research/StudyEvaluation.cs	no time in the file name
 src/Core/Telemetry/Research/StudyEvaluation.cs	no confirmed or rejected mark
 src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	no frames: the video's constant frame rate is not confirmed
+# Step 35.3b2d — the evaluation run and the explanations of the COROS synchronisation study (D050 B6): the reasons a run or an explanation is refused, the export problem and the journal note of a recorded evaluation — diagnostics of the internal research tools (shown by the Telemetry.LocalTests tools), English like the study's diagnostics above.
+src/Core/Telemetry/Research/SyncStudyEditor.cs	evaluation {record.Seq} of revision {record.Revision}
+src/Project/Research/SyncStudyService.cs	{Path.GetFileName(p)}: already exists, never overwritten
+src/Project/Research/SyncStudyService.cs	{Path.GetFileName(path)} not written ({ex.Message}); evaluation {record.Seq} is saved in the study
+src/Project/Research/SyncStudyService.cs	no evaluation {evaluationSeq}
+src/Project/Research/SyncStudyService.cs	no explanation given
+src/Project/Research/SyncStudyService.cs	the study was not saved ({ex.Error}: {ex.Message}); nothing was recorded

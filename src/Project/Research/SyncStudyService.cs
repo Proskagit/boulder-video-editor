@@ -317,6 +317,121 @@ public sealed class SyncStudyService : ISyncStudyService
         return Task.FromResult(StudyResult.Done());
     }
 
+    // ---- evaluation and explanations (Step 35.3b2d) ---------------------------------------------------------------
+
+    /// <summary>The export files of evaluation <paramref name="seq"/>: <c>&lt;study&gt;.eval-&lt;seq&gt;.json</c> and <c>.csv</c>.</summary>
+    public static (string Json, string Csv) ExportPaths(string studyPath, long seq)
+    {
+        var full = Path.GetFullPath(studyPath);
+        var stem = full.EndsWith(SyncStudyFileStore.Extension, StringComparison.OrdinalIgnoreCase)
+            ? full[..^SyncStudyFileStore.Extension.Length]
+            : Path.Combine(Path.GetDirectoryName(full) ?? "", Path.GetFileNameWithoutExtension(full));
+        return ($"{stem}.eval-{seq}.json", $"{stem}.eval-{seq}.csv");
+    }
+
+    /// <summary>
+    /// Evaluates the latest frozen revision under <paramref name="protocol"/> (D050 B6): every file of the set hashed in
+    /// full, then <see cref="EvaluationProblems"/> — any problem refuses and nothing is written; the export files must not
+    /// exist (never overwritten). Then the report is recorded as a new evaluation record and the study saved atomically
+    /// (a failed save drops the record by reloading the file); then the exports are written, each only if it does not exist.
+    /// An export that fails after the save leaves the record in the study. An earlier record is never changed.
+    /// </summary>
+    public async Task<StudyEvaluationRun> EvaluateAsync(EvaluationProtocol protocol, IProgress<StudyHashProgress>? progress = null,
+        Action? beforeExport = null, CancellationToken ct = default)
+    {
+        if (Study is null || StudyPath is null) return StudyEvaluationRun.Refused("no study is open");
+        await VerifyAsync(progress, ct).ConfigureAwait(false);
+        if (EvaluationProblems() is { Count: > 0 } problems) return StudyEvaluationRun.Refused(problems);
+
+        var (json, csv) = ExportPaths(StudyPath, Study.NextSeq);
+        var taken = new[] { json, csv }.Where(p => File.Exists(p) || Directory.Exists(p)).ToList();
+        if (taken.Count > 0) return StudyEvaluationRun.Refused(taken.Select(p => $"{Path.GetFileName(p)}: already exists, never overwritten").ToList());
+
+        var report = StudyEvaluator.Evaluate(Study.Revisions[^1], protocol);
+        var edit = Editor.RecordEvaluation(report);
+        if (!edit.Ok) return StudyEvaluationRun.Refused(edit.Refusal!.Value.ToString());
+        var record = Study.Evaluations[^1];
+        if (await SaveOrReloadAsync(ct).ConfigureAwait(false) is { } saveProblem) return StudyEvaluationRun.Refused(saveProblem);
+
+        beforeExport?.Invoke();
+        string? exportProblem = null;
+        foreach (var (path, text) in new[] { (json, record.Report), (csv, StudyCanonicalJson.EvaluationCsv(report)) })
+        {
+            try
+            {
+                await WriteNewAsync(path, text, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                exportProblem = (exportProblem is null ? "" : exportProblem + "; ")
+                    + $"{Path.GetFileName(path)} not written ({ex.Message}); evaluation {record.Seq} is saved in the study";
+            }
+        }
+        return new StudyEvaluationRun(Array.Empty<string>(), record, report, json, csv, exportProblem);
+    }
+
+    /// <summary>
+    /// Records explanations of evaluation <paramref name="evaluationSeq"/> (D050 B6, condition 2) — all or none: each climb
+    /// by its number in that record's report, its category fitting the climb's status there (the editor refuses a misfit),
+    /// the evidence required; then the study is saved atomically. Returns the verdict of that record with the explanations
+    /// in force — read from the stored report, never recomputed. Nothing else is written.
+    /// </summary>
+    public async Task<StudyExplanationRun> ExplainAsync(long evaluationSeq, IReadOnlyList<ExplanationInput> explanations, CancellationToken ct = default)
+    {
+        if (Study is null || StudyPath is null) return new(new[] { "no study is open" }, null);
+        if (Study.Evaluation(evaluationSeq) is not { } record) return new(new[] { $"no evaluation {evaluationSeq}" }, null);
+        if (explanations.Count == 0) return new(new[] { "no explanation given" }, null);
+
+        var reported = StudyEvaluator.ReportedClimbs(record.Report);
+        var problems = new List<string>();
+        var resolved = new List<(ClimbIdentity Climb, ExplanationInput Input)>();
+        foreach (var input in explanations)
+        {
+            if (reported.FirstOrDefault(c => c.ClimbNumber == input.ClimbNumber)?.Climb is not { } climb)
+                problems.Add($"climb {input.ClimbNumber}: {StudyRefusal.ClimbNotEvaluated}");
+            else if (string.IsNullOrWhiteSpace(input.Evidence))
+                problems.Add($"climb {input.ClimbNumber}: {StudyRefusal.EvidenceRequired}");
+            else if (StudyEvaluator.ExplanationProblem(record.Report, climb, input.Category) is { } misfit)
+                problems.Add($"climb {input.ClimbNumber}: {misfit} ({StudyCanonicalJson.Name(input.Category)})");
+            else resolved.Add((climb, input));
+        }
+        if (problems.Count > 0) return new(problems, null);
+
+        foreach (var (climb, input) in resolved)
+        {
+            var edit = Editor.AddExplanation(evaluationSeq, climb, input.Category, input.Evidence);
+            if (edit.Ok) continue;
+            await OpenAsync(StudyPath, ct).ConfigureAwait(false);             // drop what was added in memory
+            return new(new[] { $"climb {input.ClimbNumber}: {edit.Refusal}" }, null);
+        }
+        if (await SaveOrReloadAsync(ct).ConfigureAwait(false) is { } saveProblem) return new(new[] { saveProblem }, null);
+        return new(Array.Empty<string>(), StudyEvaluator.FinalVerdict(record.Report, record.ReportHash, evaluationSeq,
+            Study.ActiveExplanations(long.MaxValue)));
+    }
+
+    /// <summary>Saves the study at its path; on failure reloads it from the file (dropping the unsaved records) and says why.</summary>
+    private async Task<string?> SaveOrReloadAsync(CancellationToken ct)
+    {
+        try
+        {
+            await SaveAsync(StudyPath!, null, ct).ConfigureAwait(false);
+            return null;
+        }
+        catch (SyncStudyFileException ex)
+        {
+            await OpenAsync(StudyPath!, ct).ConfigureAwait(false);
+            return $"the study was not saved ({ex.Error}: {ex.Message}); nothing was recorded";
+        }
+    }
+
+    /// <summary>Writes a new UTF-8 file (no BOM); an existing file is never overwritten.</summary>
+    private static async Task WriteNewAsync(string path, string text, CancellationToken ct)
+    {
+        await using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        var bytes = new System.Text.UTF8Encoding(false).GetBytes(text);
+        await stream.WriteAsync(bytes, ct).ConfigureAwait(false);
+    }
+
     // ---- helpers ---------------------------------------------------------------------------------------------------
 
     private bool SubjectExists(Guid key) => key == Study!.Draft.Fit.FitKey || Study.Draft.Video(key) is not null;

@@ -35,6 +35,10 @@ public enum StudyRefusal
     NoMarkingRule,
     MarkingRuleIncomplete,
     ClimbAlreadyConfirmed,
+    NotLatestRevision,
+    ClimbNotEvaluated,
+    ExplanationNotAccepted,
+    ExplanationDoesNotFit,
 }
 
 /// <summary>The outcome of an edit: done (with the id of a created entity, if any) or refused with the reason.</summary>
@@ -407,13 +411,37 @@ public sealed class SyncStudyEditor
         return StudyEdit.Done();
     }
 
+    // ---- evaluations (append-only, outside the content) -----------------------------------------------------------
+
+    /// <summary>
+    /// Records an evaluation (Step 35.3b2d): a new <see cref="EvaluationRecord"/> holding the report's canonical JSON, its
+    /// hash, the protocol's parameters, the inputs hash and the evaluated revision with its content hash, and a journal
+    /// entry. Only a report of the latest frozen revision (its number and content hash) is recorded; an earlier record is
+    /// never changed or recomputed. The created record is the study's last evaluation.
+    /// </summary>
+    public StudyEdit RecordEvaluation(StudyEvaluationReport report)
+    {
+        if (_study.Revisions.Count == 0 || _study.Revisions[^1] is not { } latest
+            || latest.Number != report.Revision || latest.ContentHash != report.RevisionContentHash)
+            return StudyRefusal.NotLatestRevision;
+        var text = StudyCanonicalJson.Report(report);
+        var record = new EvaluationRecord(_study.NextSeq, report.Revision, report.Protocol.AlgorithmVersion, report.InputsHash,
+            _clock().ToUniversalTime(), report.RevisionContentHash,
+            StudyCanonicalJson.Value(w => StudyCanonicalJson.WriteProtocol(w, report.Protocol)), StudyCanonicalJson.TextHash(text), text);
+        _study.EvaluationList.Add(record);
+        Log(HistoryKind.EvaluationRecorded, _study.StudyId, null, record.ReportHash, $"evaluation {record.Seq} of revision {record.Revision}");
+        return StudyEdit.Done();
+    }
+
     // ---- explanations (append-only, outside the content) ----------------------------------------------------------
 
     /// <summary>
     /// Explains one climb's result in a recorded evaluation (B6) — an append-only record with its own sequence number and
     /// a journal entry; it never changes the content, a revision or the stored report. The climb must be a climb of the
     /// evaluated revision's FIT by its full identity and the evidence is required (also for «unexplained», which is never
-    /// an explanation). Whether the category fits the climb's status in the report is checked with the report (Step 35.3b2c).
+    /// an explanation). For a report of the B6 protocol (Step 35.3b2d) the category must fit the climb's status in that
+    /// report: an outlier takes the deviation family or «unexplained», a climb not computed the absence family or
+    /// «unexplained», a climb within τ or excluded nothing — a misfit is refused, never stored and ignored.
     /// </summary>
     public StudyEdit AddExplanation(long evaluationSeq, ClimbIdentity climb, ExplanationCategory category, string evidence)
     {
@@ -421,6 +449,9 @@ public sealed class SyncStudyEditor
         var revision = _study.Revisions.FirstOrDefault(r => r.Number == evaluation.Revision);
         if (revision?.Content.Fit.Find(climb) is null) return StudyRefusal.UnknownClimb;
         if (string.IsNullOrWhiteSpace(evidence)) return StudyRefusal.EvidenceRequired;
+        if (evaluation.AlgorithmVersion == EvaluationProtocol.B6.AlgorithmVersion
+            && StudyEvaluator.ExplanationProblem(evaluation.Report, climb, category) is { } misfit)
+            return misfit;
         var explanation = new CaseExplanation(_study.NextSeq, Guid.NewGuid(), evaluationSeq, evaluation.ReportHash, climb, category,
             evidence, _clock().ToUniversalTime());
         _study.ExplanationList.Add(explanation);

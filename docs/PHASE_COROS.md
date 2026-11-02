@@ -266,7 +266,10 @@ Step 35.5 depends on Step 35.4 only and may run alongside 35.3d.
 (`adb9600`); 35.3b2a the model extensions and the evaluation admission (`be9e0f6`); 35.3b2b the matching proposals and
 their ranking; 35.3b2c the statistics, B6's statuses, the tag check and the per-video sensitivity; 35.3b2d the report, the
 stored evaluation records and the JSON / CSV export. Done: 35.3b1, 35.3b2a, 35.3b2c (the evaluation in Core,
-`StudyEvaluator` with `EvaluationProtocol.B6`, synthetic tests); not started: 35.3b2d. **35.3b2b is deferred** — not
+`StudyEvaluator` with `EvaluationProtocol.B6`, synthetic tests), 35.3b2d (`SyncStudyService.EvaluateAsync` /
+`ExplainAsync`, the record and the exports, the tools `EvaluateReferenceStudy` / `ExplainReferenceStudy` in
+`tests/Telemetry.LocalTests`, run only when `AIVE_COROS_EVALUATE_STUDY`, or `AIVE_COROS_EXPLAIN_STUDY` with
+`AIVE_COROS_EXPLANATIONS`, names the study — no Debug window panel). **35.3b2b is deferred** — not
 cancelled — to the later work on the FIT events (D050 amendment of 2026-11-02 «the protocol of Step 35.3d»): the
 reference marking is manual and frozen, only human-confirmed matches are evaluated.
 

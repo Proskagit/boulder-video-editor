@@ -280,6 +280,38 @@ public static class StudyEvaluator
         return new FinalVerdict(Verdict(atLeast, explained, noDrift), explained, climbs);
     }
 
+    /// <summary>A climb as a stored report states it: number, identity (absent when not in the FIT), status, needs.</summary>
+    public sealed record ReportedClimb(int ClimbNumber, ClimbIdentity? Climb, ClimbStatus Status, ExplanationFamily Needs);
+
+    /// <summary>The evaluated climbs of a stored report, read — never recomputed.</summary>
+    public static IReadOnlyList<ReportedClimb> ReportedClimbs(string report)
+    {
+        using var doc = JsonDocument.Parse(report);
+        return doc.RootElement.GetProperty("climbs").EnumerateArray().Select(c => new ReportedClimb(
+            c.GetProperty("climbNumber").GetInt32(),
+            c.TryGetProperty("climb", out var id)
+                ? new ClimbIdentity(id.GetProperty("climbKey").GetInt32(), id.GetProperty("climbNumber").GetInt32(),
+                    DateTimeOffset.ParseExact(id.GetProperty("climbStartUtc").GetString()!, "yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'",
+                        CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal))
+                : null,
+            Parse<ClimbStatus>(c.GetProperty("status").GetString()!),
+            Parse<ExplanationFamily>(c.GetProperty("needs").GetString()!))).ToList();
+    }
+
+    /// <summary>
+    /// Why an explanation does not fit the climb's status in a B6 report (Step 35.3b2d), or null when it fits: the climb
+    /// must be one of the evaluated climbs; a climb within τ or excluded takes none; an outlier takes the deviation family,
+    /// a climb not computed the absence family — either may take «unexplained», recorded honestly but never counted.
+    /// </summary>
+    public static StudyRefusal? ExplanationProblem(string report, ClimbIdentity climb, ExplanationCategory category)
+    {
+        if (ReportedClimbs(report).FirstOrDefault(c => c.Climb == climb) is not { } reported) return StudyRefusal.ClimbNotEvaluated;
+        if (reported.Needs == ExplanationFamily.None) return StudyRefusal.ExplanationNotAccepted;
+        return category == ExplanationCategory.Unexplained || CaseExplanation.FamilyOf(category) == reported.Needs
+            ? null
+            : StudyRefusal.ExplanationDoesNotFit;
+    }
+
     private static bool Same(ClimbIdentity climb, JsonElement id) =>
         id.GetProperty("climbKey").GetInt32() == climb.ClimbKey
         && id.GetProperty("climbNumber").GetInt32() == climb.ClimbNumber
