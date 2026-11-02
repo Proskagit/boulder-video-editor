@@ -51,6 +51,26 @@ groups of `docs/PHASE_COROS.md` §10. `τ = 2 s` (working value). The study file
 | B12 | The measurement report on the fixed set | ≥ 11 of the 13 climbs C2–C14 within `τ`; every one of the 13 explained (no case dropped without a reason recorded beforehand); no drift beyond `τ / 2`; the tag check on the 7 videos without a climb reported per file; `103026` and `104651` analysed; the product owner's decision recorded | |
 | B13 | After the rule's approval (35.3e): the zero state of the 16 videos | «automatic» exactly where the rule's conditions hold, else «override» / «unknown»; the window and the Inspector give the same zero for each video (one estimator) | |
 
+### B″. Step 35.3R1 — the reference-marking tool (D050 amendment of 2026-11-02)
+
+A Debug build; the project of the set of 27.09 and a study file of it outside the repository (never committed). The
+marking rule of `docs/PHASE_COROS.md` §10. The rows check the tool, not the marking itself (that is 35.3R2).
+
+| # | Check | Expected result | Evidence |
+|---|---|---|---|
+| R1 | Start the Debug build with `--open-project <set folder> --coros-reference <study file>`; then once without a path, once with a missing file, once with a damaged file; start a Release build with the same arguments | the window «Проверка синхронизации COROS» opens beside the main window with the study; without a path or with a bad file a clear refusal, no study created; Release — no such window | |
+| R2 | Look at the window | the 16 videos with their coverage and marks; all climbs C1–C14 with no hint from file names or times; C1 marked «нет на видео, вне B6»; the marking rule (start and end) shown | |
+| R3 | A study without a marking rule | marking blocked until the rule is set; setting it is journalled | |
+| R4 | Open a video from the window | it opens in the ordinary Source viewer (after its SHA-256 check the first time, with progress); a video whose path or size does not match the project, or that fails the check, is blocked with the reason | |
+| R5 | Step through the video with the Source viewer's own keys; press «Начало подъёма здесь», later «Конец подъёма здесь» | the mark keeps the Source position of each press; an end earlier than the start or without a mark is refused | |
+| R6 | Move the start, then the end, separately; «Убрать конец» | each boundary changes alone; the journal holds every move | |
+| R7 | «Перейти к началу» / «Перейти к концу» of a stored mark | the Source viewer shows that position | |
+| R8 | Confirm a climb for the mark (manual); then try to confirm the same climb for another mark | the first is confirmed and highlighted in the list; the second is refused, naming the mark that holds the climb | |
+| R9 | Move the start of a confirmed mark | the confirmation stays; the move is journalled; the mark's history shows the old and the new time and the climb | |
+| R10 | Change the video file on disk (e.g. touch it), then try to mark | marking blocked until the video is checked again | |
+| R11 | Mark, save, close, reopen with the same arguments | marks, decisions and coverage are there; the project shows no unsaved changes; In / Out and the timeline unchanged | |
+| R12 | Freeze | the whole set is checked first; the frozen revision holds the marking rule | |
+
 ## C. Step 35.4 — the training in the project and the alignment
 
 | # | Check | Expected result | Evidence |

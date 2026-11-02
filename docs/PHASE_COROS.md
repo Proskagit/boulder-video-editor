@@ -255,6 +255,33 @@ the frame where the feet leave the floor and the physical climb begins.
 
 Step 35.5 depends on Step 35.4 only and may run alongside 35.3d.
 
+**Steps of 35.3b as agreed** (they keep their numbers): 35.3b1 the study model, file, revisions and set identity
+(`adb9600`); 35.3b2a the model extensions and the evaluation admission (`be9e0f6`); 35.3b2b the matching proposals and
+their ranking; 35.3b2c the statistics, B6's statuses, the tag check and the per-video sensitivity; 35.3b2d the report, the
+stored evaluation records and the JSON / CSV export.
+
+**Reference marking — 35.3R** (D050 amendment of 2026-11-02): the marking of 35.3d as a preparatory task of its own.
+
+| Sub-step | Content | Depends on |
+|---|---|---|
+| 35.3R1 | The tool: a Debug-only mode of the window «Проверка синхронизации COROS» (opened with `--open-project <set project folder> --coros-reference <study file>`; the study file is required and never created by the window) over the existing Source viewer — the 16 videos with their coverage and marks, all climbs C1–C14 without any hint from file names or times (C1 shown as «нет на видео, вне B6»), start / end at the Source position, moves, «go to», manual confirmation or «not matched», coverage, save and freeze. A video is marked only when it maps to the project's video by full path and size and is verified by SHA-256 (checked when it is first opened; size and time re-checked before every marking action) | — |
+| 35.3R2 | The manual marking of the 16 videos and the 13 climbs C2–C14 by the rule below, the freeze of the study (the full check of the set first) — the frozen reference data set | 35.3R1 |
+
+**The marking rule** (stored in the study as its marking rule, shown in the window; one rule for every video):
+- **start** (required) — the moment the last foot leaves the floor and the climber moves from the start onto the wall;
+  not the first movement of a hand, not the moment the watch registered the start;
+- **end** (optional, only on a mark with a start) — the last contact with the wall when jumping off; not the landing,
+  not the moment the watch registered the end.
+Both are chosen by eye on the video; a small human error is accepted — no objectively exact frame is sought. A mark's
+time is the Source viewer's position when the button is pressed; the shown frame's PTS may be kept for audit only. The
+report (35.3b2d) states that the reference marks carry the error of a manual visual choice and names the rule version.
+
+**One camera** — a FIT climb has at most one confirmed mark in force, a mark names at most one climb (D050 amendment of
+2026-11-02).
+
+**Order**: 35.3b2b–d are developed and tested on synthetic data alongside 35.3R1 / 35.3R2; the real set is evaluated
+only after 35.3R2 is done and frozen (the freeze is recorded before the first evaluation record).
+
 **Out of Phase 35** (B9): a FIT / COROS track on the editing timeline, climb markers on it and their visibility toggle.
 The editing timeline has no watch-time axis; such a track is a later feature with its own decision, built as a
 projection of the FIT's events onto the clips' source time (as the D048 strip is drawn per clip), reusing the Core

@@ -8439,6 +8439,25 @@ research code as to the product. Supersedes the «Acceptance» of row 35.3 above
   35.3e the «automatic» zero state, only after the approval. Step 35.5 depends on 35.4 only and may run alongside
   35.3d. Each sub-step's implementation is agreed separately.
 
+**Amendment (product owner, 2026-11-02) — the reference marking 35.3R; one camera.** D049 and the method of B5–B9 are
+unchanged: the fixed set (16 videos and the FIT), the 13 filmed climbs C2–C14 of B6 (C1 is not filmed and is not part of
+B6), the 7 videos without a climb, `τ = 2 s`, B6's count and its explanation of every result, the Theil–Sen drift and
+its stop condition, every match confirmed by a human, no automatic zero from the tag.
+- **Reference marking (35.3R)** — the marking of 35.3d is done as a preparatory task of its own, before the evaluation:
+  **35.3R1** — the tool: a Debug-only mode of the window «Проверка синхронизации COROS» over the existing Source viewer
+  (the same window that 35.3c later extends); **35.3R2** — the manual marking of the 16 videos and the 13 climbs C2–C14,
+  its freeze and the frozen data set. A mark's time is the Source viewer's position when the button is pressed (a
+  manual visual choice with an unquantified error, stated in the report); the start of a climb is the moment the last
+  foot leaves the floor and the climber moves from the start onto the wall, its end — optional — the last contact with
+  the wall when jumping off (not the landing); the marking rule is stored in the study and frozen with it.
+- **Order**: 35.3b2b, 35.3b2c and 35.3b2d (proposals; statistics; report and export — the parts of 35.3b) are developed
+  and tested on synthetic data alongside 35.3R1 and 35.3R2; an evaluation of the real set is made only after 35.3R2 is
+  done and its data frozen. 35.3d keeps the measurement report and the proposed rule.
+- **One camera — one climb, one mark**: an attempt of the FIT is filmed by one camera, so a climb has at most one
+  confirmed mark in force and a mark names at most one climb; a second confirmation of a climb is refused, and a study
+  holding one is damaged. This replaces the allowance of Step 35.3b1 that a climb may be confirmed by several marks; a
+  multi-camera set would need its own decision.
+
 ---
 
 ## How to add a decision
