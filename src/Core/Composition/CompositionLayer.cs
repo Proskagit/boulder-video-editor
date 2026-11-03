@@ -83,6 +83,10 @@ public sealed record TextLayer(Guid TrackId, TextSpan Span, Affine2D Transform, 
 public sealed record TemplateLayer(Guid TrackId, TemplateSpan Span, TemplateClock Clock) : CompositionLayer(TrackId, Span.ClipId, 1.0)
 {
     public TemplateKind Kind => Span.Kind;
+
+    /// <summary>The heart-rate overlay's BPM on this frame (Phase 35.5, <c>PlaybackSnapshot.LayersAt</c>); null — no value
+    /// there, the overlay draws nothing. Always null for the other kinds.</summary>
+    public int? HeartRate { get; init; }
 }
 
 /// <summary>

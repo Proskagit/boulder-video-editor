@@ -30,7 +30,8 @@ public class TemplateEditTests
         { TemplateKind.Rec, 10, 0.2, 0.2 },
         { TemplateKind.Vhs, 10, 0, 0 },
         { TemplateKind.Boulder, 8, 0.35, 0.3 },
-        { TemplateKind.Highlight, 3, 0.6, 0.3 }
+        { TemplateKind.Highlight, 3, 0.6, 0.3 },
+        { TemplateKind.HeartRate, 10, 0.3, 0.3 }
     };
 
     [Theory]

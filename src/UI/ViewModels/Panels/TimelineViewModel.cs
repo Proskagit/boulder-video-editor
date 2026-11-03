@@ -303,6 +303,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         {
             TemplateKind.Boulder => string.Join(" · ", new[] { clip.Route, clip.Grade }.Where(s => s.Length > 0)),
             TemplateKind.Highlight => clip.Title,
+            TemplateKind.HeartRate => string.Empty,
             _ => clip.Date
         };
         return detail.Length > 0 ? string.Format(Strings.Clip_TemplateWith, name, detail) : name;
@@ -313,6 +314,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         TemplateKind.Rec => Strings.TemplateType_Rec,
         TemplateKind.Vhs => Strings.TemplateType_Vhs,
         TemplateKind.Boulder => Strings.TemplateType_Boulder,
+        TemplateKind.HeartRate => Strings.TemplateType_HeartRate,
         _ => Strings.TemplateType_Highlight
     };
 
@@ -1062,7 +1064,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     }
 
     /// <summary>«Шаблон ▾» (D045 §5): a template of the kind named by <paramref name="kind"/> ("Rec", "Vhs", "Boulder",
-    /// "Highlight") at the playhead on the topmost video track, selected.</summary>
+    /// "Highlight", "HeartRate") at the playhead on the topmost video track, selected.</summary>
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private void AddTemplate(string kind)
     {

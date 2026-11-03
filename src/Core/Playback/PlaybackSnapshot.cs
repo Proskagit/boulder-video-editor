@@ -3,6 +3,7 @@ using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Motion;
+using AiVideoEditor.Core.Telemetry;
 
 namespace AiVideoEditor.Core.Playback;
 
@@ -65,6 +66,25 @@ public sealed record PictureSpan(
 
     /// <summary>The route outline of the clip's hold markup (D034 §6); null without holds. Presentation only.</summary>
     public HoldOutline? Outline { get; init; }
+
+    /// <summary>The heart rate of the clip's picture (Phase 35.5): set for a video clip when the project's training is
+    /// usable and the video's recording zero is known; null otherwise — a heart-rate overlay above it then shows nothing.
+    /// Presentation only.</summary>
+    public HeartRateBinding? HeartRate { get; init; }
+}
+
+/// <summary>
+/// What maps a video clip's frames to the training's heart rate (D049 §6, Phase 35.5): the parsed training (immutable), the
+/// video's recording zero <see cref="Zero"/> in camera time and the training's <see cref="ClockCorrection"/>. Resolved
+/// once when the snapshot is built; per frame only the source time and a binary search of the samples remain.
+/// </summary>
+public sealed record HeartRateBinding(ClimbingWorkout Workout, DateTimeOffset Zero, MediaTime ClockCorrection)
+{
+    /// <summary>The BPM <paramref name="span"/> shows on timeline <paramref name="frame"/> (the clip's exact source-time
+    /// rule, D009 / D022), or null — <see cref="TrainingAlignment.HeartRateAtSource"/>.</summary>
+    public int? At(PictureSpan span, long frame, FrameRate rate) =>
+        TrainingAlignment.HeartRateAtSource(Workout, Zero, ClockCorrection,
+            HoldAnimationRule.SourceTimeAt(span.TimelineStart, span.SourceIn, span.Speed, frame, rate));
 }
 
 /// <summary>
@@ -247,8 +267,9 @@ public sealed class PlaybackSnapshot
     {
         var topDown = new List<CompositionLayer>();
         long? frame = null;
-        foreach (var layer in VideoLayers) // topmost first
+        for (var index = 0; index < VideoLayers.Length; index++) // topmost first
         {
+            var layer = VideoLayers[index];
             var zoneAt = layer.Dissolves.Length > 0 ? FindZone(layer.Dissolves, time) : null;
             if (zoneAt is { } library && library.TypeId != TransitionRules.CrossDissolve)
             {
@@ -289,7 +310,10 @@ public sealed class PlaybackSnapshot
             {
                 // D045: a template never hides what is below it — it draws over it (and may treat it, VHS).
                 frame ??= time.ToFrameFloor(FrameRate);
-                topDown.Add(new TemplateLayer(layer.TrackId, template, TemplateClock.At(template, frame.Value, FrameRate)));
+                topDown.Add(new TemplateLayer(layer.TrackId, template, TemplateClock.At(template, frame.Value, FrameRate))
+                {
+                    HeartRate = template.Kind == TemplateKind.HeartRate ? HeartRateBelow(index, time, frame.Value) : null
+                });
             }
         }
 
@@ -357,6 +381,29 @@ public sealed class PlaybackSnapshot
                 return clip is PictureLayer { OccludesBelow: true } occluder && (mayOcclude?.Invoke(occluder) ?? true);
             }
         }
+    }
+
+    /// <summary>
+    /// Phase 35.5: the BPM a heart-rate overlay on the track at <paramref name="index"/> shows — that of the picture right
+    /// below it: the clip covering <paramref name="time"/> on the nearest visible track below (a clip at opacity 0 shows
+    /// nothing, so the search goes on below it; inside a transition the clip the frame belongs to). Null when that picture
+    /// is not a video with a known recording zero and a usable training, or the training has no value there.
+    /// </summary>
+    private int? HeartRateBelow(int index, MediaTime time, long frame) =>
+        PictureBelow(index, time) is { Status: SpanStatus.Video, HeartRate: { } heartRate } picture
+            ? heartRate.At(picture, frame, FrameRate)
+            : null;
+
+    /// <summary>The picture right below the track at <paramref name="index"/> of <see cref="VideoLayers"/> at
+    /// <paramref name="time"/>: the clip covering it on the nearest track below whose clip there is not at opacity 0; null —
+    /// none (a gap down to the bottom). What a heart-rate overlay reads (Phase 35.5).</summary>
+    public PictureSpan? PictureBelow(int index, MediaTime time)
+    {
+        for (var i = index + 1; i < VideoLayers.Length; i++)
+        {
+            if (Find(VideoLayers[i].Spans, time) is { } picture && picture.Visual.Opacity > 0) return picture;
+        }
+        return null;
     }
 
     /// <summary>D036: an animated outline's opacity per hold on the frame of <paramref name="time"/> — the one value the
@@ -477,7 +524,7 @@ public sealed class PlaybackSnapshot
 
         static AudioSpan WithoutMix(AudioSpan span) => span with { Gain = 0, IsMuted = false, FadeInFrames = 0, FadeOutFrames = 0 };
         static PictureSpan WithoutPresentation(PictureSpan span) =>
-            span with { Visual = VisualProperties.Default, SourceSize = null, FadeInFrames = 0, FadeOutFrames = 0, Outline = null };
+            span with { Visual = VisualProperties.Default, SourceSize = null, FadeInFrames = 0, FadeOutFrames = 0, Outline = null, HeartRate = null };
         static (Guid, MediaTime, MediaTime) TextTiming(TextSpan span) => (span.ClipId, span.TimelineStart, span.TimelineEnd);
         static (Guid, MediaTime, MediaTime) TemplateTiming(TemplateSpan span) => (span.ClipId, span.TimelineStart, span.TimelineEnd);
         static DissolveZone Placement(DissolveZone zone) => zone with { TypeId = TransitionRules.CrossDissolve, Direction = null };

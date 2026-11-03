@@ -48,8 +48,12 @@ public enum ClipPropertyFields : long
     TemplateSubtitle = 1L << 33,
     TemplateStatusAt = 1L << 34,
 
+    // Phase 35.5: the heart-rate overlay's look and corner.
+    TemplateLook = 1L << 35,
+    TemplateCorner = 1L << 36,
+
     Template = TemplateDate | TemplateRoute | TemplateGrade | TemplateStatus | TemplateAccent | TemplateTitle | TemplateSubtitle |
-               TemplateStatusAt,
+               TemplateStatusAt | TemplateLook | TemplateCorner,
 
     Crop = CropLeft | CropTop | CropRight | CropBottom
 }
@@ -113,8 +117,8 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
         {
             if (clip is not TemplateClip c)
                 throw new InvalidOperationException($"{clip.GetType().Name} has no template fields.");
-            (c.Date, c.Route, c.Grade, c.Status, c.AccentHex, c.Title, c.Subtitle, c.StatusAt) =
-                (p.Date, p.Route, p.Grade, p.Status, p.AccentHex, p.Title, p.Subtitle, p.StatusAt);
+            (c.Date, c.Route, c.Grade, c.Status, c.AccentHex, c.Title, c.Subtitle, c.StatusAt, c.Look, c.Corner) =
+                (p.Date, p.Route, p.Grade, p.Status, p.AccentHex, p.Title, p.Subtitle, p.StatusAt, p.Look, p.Corner);
         }
     }
 
@@ -176,6 +180,8 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
             if (!string.Equals(pa.Title, pb.Title, StringComparison.Ordinal)) fields |= ClipPropertyFields.TemplateTitle;
             if (!string.Equals(pa.Subtitle, pb.Subtitle, StringComparison.Ordinal)) fields |= ClipPropertyFields.TemplateSubtitle;
             if (pa.StatusAt != pb.StatusAt) fields |= ClipPropertyFields.TemplateStatusAt;
+            if (pa.Look != pb.Look) fields |= ClipPropertyFields.TemplateLook;
+            if (pa.Corner != pb.Corner) fields |= ClipPropertyFields.TemplateCorner;
         }
 
         return fields;

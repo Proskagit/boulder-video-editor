@@ -163,18 +163,42 @@ public sealed class TemplateClip : Clip
     public string Title { get; set; } = string.Empty;
     public string Subtitle { get; set; } = string.Empty;
 
+    /// <summary>The heart-rate overlay (Phase 35.5, format v13): its look.</summary>
+    public HeartRateLook Look { get; set; } = HeartRateLook.Plate;
+
+    /// <summary>The heart-rate overlay: the corner of the canvas it stands in.</summary>
+    public OverlayCorner Corner { get; set; } = OverlayCorner.BottomRight;
+
     /// <summary>D048 §3.5 (format v10): the video clip this template belongs to — moved, copied and deleted with it, its
     /// intervals kept inside it; null: a free template (D045). One-directional: a video clip may have several.</summary>
     public Guid? AnchorClipId { get; set; }
 }
 
-/// <summary>The four templates of Phase 29 (D045 §1; WASTED deferred, §15).</summary>
+/// <summary>The four templates of Phase 29 (D045 §1; WASTED deferred, §15) and the heart-rate overlay of Phase 35.5 (D050:
+/// a heart icon with the BPM of the picture below it, from the project's training).</summary>
 public enum TemplateKind
 {
     Rec,
     Vhs,
     Boulder,
-    Highlight
+    Highlight,
+    HeartRate
+}
+
+/// <summary>The heart-rate overlay's look: on a dark plate, or the icon and the digits alone with a soft shadow.</summary>
+public enum HeartRateLook
+{
+    Plate,
+    Plain
+}
+
+/// <summary>A corner of the canvas, at the safe margin of the placement grid (D043 §3).</summary>
+public enum OverlayCorner
+{
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight
 }
 
 /// <summary>«Боулдер»'s status (D045 §1.3): none, TOP (the route done) or ПОПЫТКА (an attempt's episode).</summary>

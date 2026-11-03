@@ -4,6 +4,7 @@ using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Motion;
+using AiVideoEditor.Core.Telemetry;
 
 namespace AiVideoEditor.Core.Playback;
 
@@ -36,6 +37,8 @@ public static class PlaybackSnapshotBuilder
             .Select(t => t.track);
 
         var rate = project.Settings.FrameRate;
+        // Phase 35.5: the training a heart-rate overlay reads (D049 §6) — only a usable one; resolved per video below.
+        var training = project.Training is { IsUsable: true } usable ? usable : null;
         foreach (var track in videoTracks)
         {
             var spans = ImmutableArray.CreateBuilder<PictureSpan>();
@@ -79,7 +82,8 @@ public static class PlaybackSnapshotBuilder
                         ExtendedEnd = dissolves.FirstOrDefault(z => z.LeftClipId == clip.Id && z.ExtendsPictures)?.End,
                         Outline = media is VideoClip { HoldMarkup: { } markup }
                             ? WithMotion(HoldOutline.Of(markup, clip.TimelineStart, media.SourceIn, media.Speed, rate), clip.Id, asset, motion)
-                            : null
+                            : null,
+                        HeartRate = media is VideoClip && status == SpanStatus.Video ? HeartRateOf(training, asset!) : null
                     });
 
                 // An unlinked video clip's sound is its audio clip's (D032 R10).
@@ -220,6 +224,13 @@ public static class PlaybackSnapshotBuilder
         var dissolveOut = track.Transitions.Any(t => t.LeftClipId == clip.Id);
         return FadeRule.EffectiveFrames(clip, rate, dissolveIn, dissolveOut);
     }
+
+    /// <summary>The heart rate of a video's pictures (Phase 35.5): the usable training and the video's recording zero
+    /// (<see cref="RecordingZeroEstimator.Resolve"/>, the one estimator); null without either.</summary>
+    private static HeartRateBinding? HeartRateOf(TrainingReference? training, MediaAsset asset) =>
+        training?.Workout is { } workout && RecordingZeroEstimator.Resolve(asset).Utc is { } zero
+            ? new HeartRateBinding(workout, zero, training.ClockCorrection)
+            : null;
 
     private static HoldOutline? WithMotion(HoldOutline? outline, Guid clipId, MediaAsset? asset, IReadOnlyDictionary<Guid, CameraMotionTrack>? motion) =>
         outline is not null && motion is not null && motion.TryGetValue(clipId, out var track)

@@ -518,6 +518,13 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   `creation_time` tag with its origin and a probe marker. The telemetry itself is never stored. The background probe of
   the recording time follows the Phase 7 / 18 refresh contract: at most once per asset per session, never dirty, no save
   prompt, no Undo step.
+- **Heart-rate overlay** (Step 35.5; format v13): the template kind `TemplateKind.HeartRate` (`TemplateClip.Look`,
+  `Corner`, `AccentHex`). `PlaybackSnapshotBuilder` binds every video span to the usable training once per snapshot
+  (`PictureSpan.HeartRate` → `HeartRateBinding`: the parsed workout, the zero, the clock correction — presentation only);
+  `PlaybackSnapshot.LayersAt` sets `TemplateLayer.HeartRate` from the picture right below the overlay (`PictureBelow`)
+  through `TrainingAlignment.HeartRateAtSource` (the readout's rule; null — nothing drawn); `TemplateDraw.HeartRate` →
+  `TemplatePainter.HeartRate`, the one painter of the Preview and the export. `ExportPreflight` warns
+  `HeartRateUnavailable` (D049 §10). The Preview rebuilds its snapshot on `TrainingSessionService.Changed`.
 
 ## FIT route starts and the global start calibration (Phase 37, D051)
 

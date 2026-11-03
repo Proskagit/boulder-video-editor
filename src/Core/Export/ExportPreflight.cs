@@ -45,7 +45,10 @@ public enum ExportIssueKind
     HdrNotConverted,
     /// <summary>The camera motion of a clip with holds (hold tracking) is still being analysed: the export waits for it, so
     /// its contours follow the wall exactly as in the Preview.</summary>
-    HoldTrackingPending
+    HoldTrackingPending,
+    /// <summary>A heart-rate overlay (Phase 35.5) has no data where it is exported — no usable training, or a video below it
+    /// without a recording zero: it shows nothing there (warning, D049 §10).</summary>
+    HeartRateUnavailable
 }
 
 /// <summary>The camera-motion tracks the export draws the hold contours with (the Preview's own), and the clips whose
@@ -156,6 +159,7 @@ public static class ExportPreflight
         CheckMedia(project, snapshot, environment, issues, window);
         CheckHoldTracking(project, snapshot, environment, issues, window);
         CheckFonts(snapshot, environment, issues, window);
+        CheckHeartRate(project, snapshot, issues, window);
 
         var ordered = issues.OrderBy(i => i.Severity).ToImmutableArray();
         var job = ordered.Any(i => i.Severity == ExportIssueSeverity.Error)
@@ -290,6 +294,72 @@ public static class ExportPreflight
                 ClipIds = clips
             });
         }
+    }
+
+    /// <summary>
+    /// D049 §10 (Phase 35.5): a heart-rate overlay that reaches the output without data is a warning to confirm — no training
+    /// or a training not usable (one issue naming the overlays), or a video right below an overlay whose recording zero is
+    /// unknown (one issue per file, naming its clips). The picture below an overlay is resolved exactly as the composition
+    /// does (<see cref="PlaybackSnapshot.PictureBelow"/>) on every stretch between the clip edges below it. A project without
+    /// a heart-rate overlay is never checked: the training never affects its export.
+    /// </summary>
+    private static void CheckHeartRate(Project project, PlaybackSnapshot snapshot, List<ExportIssue> issues, Window window)
+    {
+        var overlays = snapshot.VideoLayers
+            .SelectMany((layer, index) => layer.Templates.Select(t => (Template: t, Index: index)))
+            .Where(o => o.Template.Kind == TemplateKind.HeartRate && window.Shows(o.Template.TimelineStart, o.Template.TimelineEnd))
+            .ToList();
+        if (overlays.Count == 0) return;
+
+        var overlayIds = overlays.OrderBy(o => o.Template.TimelineStart).Select(o => o.Template.ClipId).ToImmutableArray();
+        if (project.Training is null)
+        {
+            issues.Add(new ExportIssue(ExportIssueSeverity.Warning, ExportIssueKind.HeartRateUnavailable, Messages.Preflight_HeartRateNoTraining)
+                { ClipIds = overlayIds });
+            return;
+        }
+        if (!project.Training.IsUsable)
+        {
+            issues.Add(new ExportIssue(ExportIssueSeverity.Warning, ExportIssueKind.HeartRateUnavailable,
+                Messages.Preflight_HeartRateTrainingUnavailable) { Subject = project.Training.FilePath, ClipIds = overlayIds });
+            return;
+        }
+
+        var unknown = new Dictionary<Guid, List<PictureSpan>>();
+        foreach (var (template, index) in overlays)
+        {
+            var start = Max(template.TimelineStart, window.Start);
+            var end = Min(template.TimelineEnd, window.End);
+            // The picture below is constant between two clip edges of the tracks below.
+            var edges = snapshot.VideoLayers.Skip(index + 1).SelectMany(l => l.Spans)
+                .SelectMany(s => new[] { s.TimelineStart, s.TimelineEnd })
+                .Where(t => t > start && t < end)
+                .Append(start).Distinct().OrderBy(t => t);
+            foreach (var at in edges)
+            {
+                if (snapshot.PictureBelow(index, at) is not { Status: SpanStatus.Video, HeartRate: null } picture) continue;
+                if (!unknown.TryGetValue(picture.AssetId, out var spans)) unknown[picture.AssetId] = spans = new();
+                if (!spans.Contains(picture)) spans.Add(picture);
+            }
+        }
+
+        var assets = project.MediaAssets.ToDictionary(a => a.Id);
+        foreach (var (assetId, spans) in unknown.OrderBy(p => p.Value.Min(s => s.TimelineStart)))
+        {
+            var asset = assets.GetValueOrDefault(assetId);
+            var clips = spans.OrderBy(s => s.TimelineStart).Select(s => s.ClipId).Distinct().ToImmutableArray();
+            issues.Add(new ExportIssue(ExportIssueSeverity.Warning, ExportIssueKind.HeartRateUnavailable,
+                string.Format(Messages.Preflight_HeartRateUnknownZero, asset?.FileName ?? Messages.Preflight_MediaNotInProject,
+                    Plural.Format(clips.Length, Messages.Plural_Clips), spans.Min(s => s.TimelineStart)))
+            {
+                AssetId = assetId,
+                Subject = asset?.FilePath,
+                ClipIds = clips
+            });
+        }
+
+        static MediaTime Max(MediaTime a, MediaTime b) => a > b ? a : b;
+        static MediaTime Min(MediaTime a, MediaTime b) => a < b ? a : b;
     }
 
     private static ExportIssueKind? Classify(MediaAsset? asset, SpanStatus status, ExportPreflightEnvironment env)

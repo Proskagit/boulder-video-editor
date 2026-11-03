@@ -15,12 +15,13 @@
       <MenuItem Header="{x:Static l:Strings.TransitionType_Zoom}" Command="{Binding AddTransitionCommand}" CommandParameter="zoom"/>
       <MenuItem Header="{x:Static l:Strings.TransitionType_Push}" Command="{Binding AddTransitionCommand}" CommandParameter="push"/>
     </MenuFlyout>
-    <!-- D045 §5: the menu of the four templates of Phase 29 under «Шаблон». -->
+    <!-- D045 §5: the menu of the four templates of Phase 29 under «Шаблон», and the heart-rate overlay (Phase 35.5). -->
     <MenuFlyout x:Key="TemplateMenu" Placement="BottomEdgeAlignedLeft">
       <MenuItem Header="{x:Static l:Strings.TemplateType_Rec}" Command="{Binding AddTemplateCommand}" CommandParameter="Rec"/>
       <MenuItem Header="{x:Static l:Strings.TemplateType_Vhs}" Command="{Binding AddTemplateCommand}" CommandParameter="Vhs"/>
       <MenuItem Header="{x:Static l:Strings.TemplateType_Boulder}" Command="{Binding AddTemplateCommand}" CommandParameter="Boulder"/>
       <MenuItem Header="{x:Static l:Strings.TemplateType_Highlight}" Command="{Binding AddTemplateCommand}" CommandParameter="Highlight"/>
+      <MenuItem Header="{x:Static l:Strings.TemplateType_HeartRate}" Command="{Binding AddTemplateCommand}" CommandParameter="HeartRate"/>
     </MenuFlyout>
   </UserControl.Resources>
   <UserControl.Styles>

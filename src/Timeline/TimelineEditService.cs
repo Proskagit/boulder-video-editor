@@ -231,6 +231,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var rate = plan.Rate;
         var startFrame = Math.Max(0, start.ToNearestFrame(rate));
         var frames = Math.Max(1, TemplateRules.DefaultDuration(kind).ToNearestFrame(rate));
+        // Phase 35.5: the heart-rate overlay covers the rest of the video clip below the playhead — what it reads its BPM
+        // from — or the default length when there is none.
+        if (kind == TemplateKind.HeartRate && VideoClipBelow(track, startFrame, rate) is { } below)
+            frames = Math.Max(1, below.TimelineEnd.ToFrameFloor(rate) - startFrame);
 
         // The fields of the kind; the appearance and the disappearance are the clip's fades (whole frames, D025), so a split
         // leaves them on the outer edges; the counter starts at 0.
@@ -238,7 +242,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var clip = new TemplateClip
         {
             Kind = kind, Date = fields.Date, Route = fields.Route, Grade = fields.Grade, Status = fields.Status,
-            AccentHex = fields.AccentHex, Title = fields.Title, Subtitle = fields.Subtitle
+            AccentHex = fields.AccentHex, Title = fields.Title, Subtitle = fields.Subtitle, Look = fields.Look, Corner = fields.Corner
         };
         ClipState.FromFrames(startFrame, startFrame + frames, MediaTime.Zero, rate).ApplyTo(clip);
         var (fadeIn, fadeOut) = TemplateRules.Animation(kind);
@@ -253,6 +257,20 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         Commit(plan, "Add Template");
         return TimelineEditResult.Ok(new[] { clip.Id });
+    }
+
+    /// <summary>The video clip whose picture is right below <paramref name="track"/> at <paramref name="frame"/>: on the
+    /// nearest visible track below holding a clip there (the composition's rule, <c>PlaybackSnapshot.PictureBelow</c>).</summary>
+    private VideoClip? VideoClipBelow(Track track, long frame, FrameRate rate)
+    {
+        var time = MediaTime.FromFrame(frame, rate);
+        foreach (var below in Sequence.VideoTracks.Where(t => t.Order < track.Order && !t.IsHidden).OrderByDescending(t => t.Order))
+        {
+            var clip = below.Clips.FirstOrDefault(c => c.TimelineStart <= time && time < c.TimelineEnd);
+            if (clip is null) continue;
+            return clip as VideoClip;
+        }
+        return null;
     }
 
     // --- Move ------------------------------------------------------------------
@@ -2403,7 +2421,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             TemplateClip p => new TemplateClip
             {
                 Kind = p.Kind, CounterStart = p.CounterStart, Date = p.Date, Route = p.Route, Grade = p.Grade, Status = p.Status,
-                AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAt = p.StatusAt,
+                AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAt = p.StatusAt, Look = p.Look, Corner = p.Corner,
                 // D048 §3.5: kept by a split's right part (re-anchored by the split); remapped or cleared by a paste.
                 AnchorClipId = p.AnchorClipId
             },

@@ -29,6 +29,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
     private readonly IProjectService _projectService;
     private readonly ILogger<PreviewViewModel> _logger;
     private readonly CameraMotionCoordinator? _cameraMotion;
+    private readonly TrainingSessionService? _training;
 
     private long _snapshotVersion;
     private ImmutableDictionary<Guid, PlaybackSnapshotBuilder.AssetState> _assetStates =
@@ -83,11 +84,13 @@ public sealed partial class PreviewViewModel : ViewModelBase
 
     public PreviewViewModel(StatusService status, IPlaybackService playback, IProjectService projectService,
         ILogger<PreviewViewModel> logger, InOutRangeService? inOut = null, SourceViewerService? source = null,
-        CameraMotionCoordinator? cameraMotion = null)
+        CameraMotionCoordinator? cameraMotion = null, TrainingSessionService? training = null)
     {
         _inOut = inOut;
         _cameraMotion = cameraMotion;
         if (_cameraMotion is not null) _cameraMotion.TracksChanged += OnCameraMotionChanged;
+        _training = training;
+        if (_training is not null) _training.Changed += OnTrainingChanged;
         _source = source;
         _status = status;
         _playback = playback;
@@ -205,11 +208,20 @@ public sealed partial class PreviewViewModel : ViewModelBase
         _released = true;
         // The coordinator is a singleton: stop it from reaching this view model (and its released playback).
         if (_cameraMotion is not null) _cameraMotion.TracksChanged -= OnCameraMotionChanged;
+        if (_training is not null) _training.Changed -= OnTrainingChanged;
         await _playback.DisposeAsync();
     }
 
     /// <summary>Hold tracking: a finished analysis moves the contours — a presentation-only change, no decoder restarts.</summary>
     private void OnCameraMotionChanged(object? sender, EventArgs e)
+    {
+        if (!_released && !IsSourceMode) RebuildSnapshot();
+    }
+
+    /// <summary>Phase 35.5: the training's FIT read, relinked, replaced or removed changes the heart-rate overlay's values —
+    /// a presentation-only change (<see cref="HeartRateBinding"/>), no decoder restarts. A clock-correction or a recording-zero
+    /// edit arrives as a timeline change.</summary>
+    private void OnTrainingChanged(object? sender, EventArgs e)
     {
         if (!_released && !IsSourceMode) RebuildSnapshot();
     }

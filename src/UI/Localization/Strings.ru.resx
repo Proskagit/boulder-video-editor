@@ -2720,4 +2720,43 @@
   <data name="Reference_ReasonAmbiguous" xml:space="preserve">
     <value>неоднозначно</value>
   </data>
+  <data name="TemplateType_HeartRate" xml:space="preserve">
+    <value>Пульс</value>
+  </data>
+  <data name="Inspector_HeartRateLook" xml:space="preserve">
+    <value>Вид</value>
+  </data>
+  <data name="HeartRateLook_Plate" xml:space="preserve">
+    <value>На подложке</value>
+  </data>
+  <data name="HeartRateLook_Plain" xml:space="preserve">
+    <value>Без подложки</value>
+  </data>
+  <data name="Inspector_HeartRateCorner" xml:space="preserve">
+    <value>Положение</value>
+  </data>
+  <data name="OverlayCorner_TopLeft" xml:space="preserve">
+    <value>Слева вверху</value>
+  </data>
+  <data name="OverlayCorner_TopRight" xml:space="preserve">
+    <value>Справа вверху</value>
+  </data>
+  <data name="OverlayCorner_BottomLeft" xml:space="preserve">
+    <value>Слева внизу</value>
+  </data>
+  <data name="OverlayCorner_BottomRight" xml:space="preserve">
+    <value>Справа внизу</value>
+  </data>
+  <data name="Inspector_HeartRateColour" xml:space="preserve">
+    <value>Цвет сердца</value>
+  </data>
+  <data name="HeartRate_Hint" xml:space="preserve">
+    <value>Пульс видео прямо под накладкой — из тренировки COROS проекта. Где значения нет, ничего не показывается: пауза, пропуск в данных, время вне тренировки или видео без заданного начала записи.</value>
+  </data>
+  <data name="HeartRate_NoTraining" xml:space="preserve">
+    <value>В проекте нет тренировки COROS: накладка ничего не покажет. Импортируйте её кнопкой «Тренировка COROS…».</value>
+  </data>
+  <data name="HeartRate_TrainingUnavailable" xml:space="preserve">
+    <value>FIT-файл тренировки недоступен: пока его нет, накладка ничего не покажет.</value>
+  </data>
 </root>

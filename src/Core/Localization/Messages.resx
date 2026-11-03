@@ -1222,4 +1222,19 @@
   <data name="Training_NotAVideo" xml:space="preserve">
     <value>This works on a video of the project only.</value>
   </data>
+  <data name="Template_HeartRate" xml:space="preserve">
+    <value>Heart rate</value>
+  </data>
+  <data name="Template_UnknownLook" xml:space="preserve">
+    <value>Unknown look or position of the heart-rate overlay.</value>
+  </data>
+  <data name="Preflight_HeartRateNoTraining" xml:space="preserve">
+    <value>The heart-rate overlay has no data: the project has no COROS training. It shows nothing in the export.</value>
+  </data>
+  <data name="Preflight_HeartRateTrainingUnavailable" xml:space="preserve">
+    <value>The heart-rate overlay has no data: the training's FIT file is not available (missing, unreadable, of another activity or not read yet). It shows nothing in the export.</value>
+  </data>
+  <data name="Preflight_HeartRateUnknownZero" xml:space="preserve">
+    <value>The heart-rate overlay shows nothing over '{0}': the video's recording start is not set ({1}, first at {2}).</value>
+  </data>
 </root>

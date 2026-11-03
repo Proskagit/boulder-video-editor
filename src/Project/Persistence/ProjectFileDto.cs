@@ -429,6 +429,13 @@ internal sealed class TemplateClipDto : ClipDto
     /// <summary>Format v10 (D048 §3.5): the video clip the template is anchored to; written only when set.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Guid? AnchorClipId { get; set; }
+
+    /// <summary>Format v13 (Phase 35.5): the heart-rate overlay's look and corner; written (and required) only on it.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public HeartRateLook? Look { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public OverlayCorner? Corner { get; set; }
 }
 
 internal sealed class TextClipDto : ClipDto

@@ -210,8 +210,10 @@ phase's record prevail.
 - [ ] **Phase 35 — Import of COROS trainings and the heart rate in the video (formerly "Phase Coros", R3 → F) — in
       `main` in part, not complete.** D049 / D050 approved 2026-10-29. Steps 35.0–35.2 done (35.2 accepted, A1–A11 PASS);
       35.3 in part — its formal evaluation 35.3d gave «B6 not met» (an experimental result), 35.3e awaits the product
-      owner's decision; 35.4 implemented (`project.json` v11), its manual rows open; **35.5 (the heart-rate overlay) — the
-      next priority — and 35.6 not started.** Merged into `main` with PR #33 (`1640996`, 2026-11-03) together with Phase 37.
+      owner's decision; 35.4 implemented (`project.json` v11), its manual rows open; **35.5 (the heart-rate overlay)
+      implemented on `feat/phase-35-5-heart-rate` and accepted by the product owner on 2026-11-03** (О1–О15 PASS on
+      `593b6a2`; v13; PR #35 open, not merged); 35.6 not started.
+      Steps 35.0–35.4 merged into `main` with PR #33 (`1640996`, 2026-11-03) together with Phase 37.
       Record: `docs/PHASE_COROS.md`; section "Phase 35" below.
 - [ ] **Phase 36 — Session summary and YouTube chapters.** Planned; a specification draft outside `main` (local branch
       `docs/session-summary-youtube-chapters`), no decision, no implementation. Its export of time codes stays a separate
@@ -254,8 +256,8 @@ The labels of the plan had mixed three things — phases, the steps inside them 
 - **Format versions**: the version sequence is decided before any phase's step that changes the format. D049 (approved
   2026-10-29) fixes rule V1: the phase that first merges a format change takes the next free version, the number fixed at
   merge. As merged: v10 — Phase 33 (D048, PR #32); **v11 — Phase 35** (Step 35.4) and **v12 — Phase 37** (D051), both with
-  PR #33. The current version is **12**; a later phase (Phase 35's Step 35.5 if it needs one, Phase 36, hold tracking)
-  takes the next free version in its own format decision.
+  PR #33; **v13 — Phase 35's Step 35.5** (the heart-rate overlay; on its branch, the number fixed at its merge). A later
+  phase (Phase 36, hold tracking) takes the next free version in its own format decision.
 
 ### Official phases on 2026-11-03
 
@@ -270,14 +272,14 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 32 — route selection at `T` (D048 stage 1) | D048 | implemented, paused / deferred («Авторазметка» hidden); not complete | PR #32, `1e58885` |
 | 33 — timing model, anchors, `project.json` v10 (D048 stage 2) | D048 | implemented and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
 | 34 — the overlay strip (D048 stage 3) | D048 | implemented (variant B) and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
-| 35 — COROS trainings and the heart rate | D050, D049 | in part: 35.0–35.2 done (35.2 accepted); 35.3 in part (35.3d: B6 not met; 35.3e awaiting the owner's decision); 35.4 implemented (v11), manual rows open; **35.5, 35.6 not started**; not complete | in PR #33 (`1640996`), with Phase 37 |
+| 35 — COROS trainings and the heart rate | D050, D049 | in part: 35.0–35.2 done (35.2 accepted); 35.3 in part (35.3d: B6 not met; 35.3e awaiting the owner's decision); 35.4 implemented (v11), manual rows open; **35.5 implemented and accepted 2026-11-03 (v13; PR #35 open, not merged)**; 35.6 not started; not complete | 35.0–35.4 in PR #33 (`1640996`), with Phase 37 |
 | 36 — summary and chapters | to be approved | planned; specification draft outside `main`; its time-code export a separate item until clarified | — |
 | 37 — FIT route starts and the start calibration | D051 | implemented (37.1–37.6, v12) and merged; 37.7 in part (automated gates passed, manual plan not run); acceptance open | PR #33, `1640996` |
 | H — Final UX Pass | — | not started | — |
 
 The **highest phase number in use is 37**; the **last complete phase** (merged and accepted) **is 29**. **Next — by the
-product owner's direction of 2026-11-03 (D050, «The product owner's direction»): Step 35.5, the heart-rate overlay**, then
-35.6, Phase 35's closeout. Not in the near plan: Step 35.3e (needs a separate product decision) and Phase 36's export of
+product owner's direction of 2026-11-03 (D050, «The product owner's direction»): Step 35.5, the heart-rate overlay** —
+implemented and accepted on 2026-11-03, PR #35 open — then 35.6, Phase 35's closeout. Not in the near plan: Step 35.3e (needs a separate product decision) and Phase 36's export of
 time codes (a separate item until clarified). Open alongside, not new phases: the manual acceptance of Phases 31 and 37 and
 of Step 35.4, the S1 release preparation (Phase 30).
 
@@ -314,12 +316,12 @@ COROS MCP).
 | 35.2 | Import into the session: toolbar command, refusals, summary (formerly C1) | none | done, manual acceptance passed (A1–A11 PASS, 2026-10-29); in `main` (PR #33) |
 | 35.3 | Recording time: the raw `creation_time` tag and its probe marker; research on the real session — what the tag marks, the phone ↔ watch clock difference, the automatic-zero rule (formerly C2) | its members in v11 | **in part**: the probe, 35.3a, 35.3b1, 35.3b2a, 35.3b2c, 35.3b2d, the tool 35.3R1 and the frozen marking 35.3R2 done; 35.3b2b deferred; **35.3d run 2026-11-02 — B6 not met** (0 of 13 climbs within `τ`, drift −22.4 s; an experimental result, not a confirmation of the method — `docs/PHASE_COROS.md` §12); **35.3e not implemented — awaiting the product owner's decision**, not in the near plan |
 | 35.4 | Alignment by media file, including its persistence: the training saved in the project (a FIT reference), the clock correction and a per-file zero override, the mapping (formerly C3) | v11 | implemented (`e15d7af`), automated tests pass; manual rows C1–C14 not run; in `main` (PR #33) |
-| 35.5 | Heart-rate overlay, Preview = export; a confirmed export warning when its data is missing (formerly C4) | its members in the next free version, if any | **not started — the next priority** (product owner, 2026-11-03); not combined with an export of time codes |
+| 35.5 | Heart-rate overlay, Preview = export; a confirmed export warning when its data is missing (formerly C4) | v13 | **implemented on the branch `feat/phase-35-5-heart-rate`; accepted by the product owner on 2026-11-03 (manual О1–О15 PASS on `593b6a2`, `docs/PHASE35_5_MANUAL_ACCEPTANCE.md`)**; PR #35 open, not merged; not combined with an export of time codes (`docs/PHASE_COROS.md` §13) |
 | 35.6 | Verification, the manual check on the real session, closeout (formerly C5) | — | not started |
 
 Pull requests: the plan of D050 (PR 1 — Steps 35.0–35.2; PR 2 — Steps 35.3–35.6, the only one changing the format) was
 overtaken on 2026-11-03 — Steps 35.0–35.4 reached `main` with PR #33 together with Phase 37. Steps 35.5–35.6 come in a pull
-request of their own from `main`.
+request of their own from `main` (35.5: `feat/phase-35-5-heart-rate`).
 
 Not part of the near plan (product owner, 2026-11-03): Step 35.3e; it is not replaced by the recognition of an attempt
 from the climber's movement in the video, and no such function is planned without a separate decision of the product

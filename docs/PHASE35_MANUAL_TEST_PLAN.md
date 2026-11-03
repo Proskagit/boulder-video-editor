@@ -99,11 +99,13 @@ marking rule of `docs/PHASE_COROS.md` §10. The rows check the tool, not the mar
 
 | # | Check | Expected result | Evidence |
 |---|---|---|---|
-| D1 | HR overlay over an aligned clip; play | the BPM changes once per second; during the timer's pause nothing is shown | |
-| D2 | Compare the Preview with the export at 5 chosen frames | equal | |
-| D3 | FIT missing + HR overlay; Export | a warning naming the reason; the export starts only after confirmation; Cancel exports nothing | |
-| D4 | HR overlay over a clip with an unknown zero; Export | nothing shown there in the Preview and the export; the warning names the clips | |
-| D5 | A project without an HR overlay, FIT missing; Export | no warning about the heart rate | |
+| D1 | HR overlay over an aligned clip; play | the BPM changes once per second; during the timer's pause nothing is shown | PASS — owner, 2026-11-03 (`593b6a2`; acceptance О3, О6) |
+| D2 | Compare the Preview with the export at 5 chosen frames | equal | PASS — owner, 2026-11-03 (acceptance О13: the shown values, corner, look and colour; byte equality by `ExportHeartRateEndToEndTests`) |
+| D3 | FIT missing + HR overlay; Export | a warning naming the reason; the export starts only after confirmation; Cancel exports nothing | PASS — owner, 2026-11-03 (acceptance О14, О15) |
+| D4 | HR overlay over a clip with an unknown zero; Export | nothing shown there in the Preview and the export; the warning names the clips | PARTIAL — owner, 2026-11-03: nothing in the Preview after «Сбросить», restored by Undo (acceptance О11); the export warning naming the clips not run manually (optional Д1) — covered by `HeartRatePreflightTests` |
+| D5 | A project without an HR overlay, FIT missing; Export | no warning about the heart rate | NOT RUN (optional Д5) — covered by `HeartRatePreflightTests` |
+| D6 | «Шаблон ▾ → Пульс» with the playhead on an aligned clip on V1 (the overlay goes on V2) | the overlay covers the rest of that clip; the Inspector shows «Вид», «Положение», «Цвет сердца» and the hint; each click is one Undo step and shows in the Preview at once | PASS — owner, 2026-11-03 (acceptance О1, О2, О7–О10) |
+| D7 | Change the video's zero (Inspector «Совместить кадр…»), then Undo; remove the training, then import it again | the BPM in the Preview follows each change at the same frame; without the training nothing is drawn | PARTIAL — owner, 2026-11-03: the zero's change and its Undo followed at once (О11); removing and importing the training again not run (optional Д4) |
 
 ## E. Step 35.6 — the real session end to end
 
