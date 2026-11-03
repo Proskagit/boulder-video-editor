@@ -19,14 +19,20 @@ public sealed class TrainingSessionService
     private readonly IProjectService _projects;
     private readonly ITrainingImportService? _import;
     private readonly ILogger _logger;
+    private readonly IStartCorrectionSource? _startCorrection;
+    private readonly TimeProvider _time;
 
     /// <param name="import">Reads the FIT files; without it a saved training stays <see cref="TrainingAvailability.Unresolved"/>.</param>
+    /// <param name="startCorrection">The estimate frozen into the FIT marks proposed on an import (D051 §5.5); <c>I</c>
+    /// without one.</param>
     public TrainingSessionService(IProjectService projects, ITrainingImportService? import = null,
-        ILogger<TrainingSessionService>? logger = null)
+        ILogger<TrainingSessionService>? logger = null, IStartCorrectionSource? startCorrection = null, TimeProvider? time = null)
     {
         _projects = projects;
         _import = import;
         _logger = logger ?? (ILogger)NullLogger.Instance;
+        _startCorrection = startCorrection;
+        _time = time ?? TimeProvider.System;
         projects.ProjectChanged += (_, _) =>
         {
             Changed?.Invoke(this, EventArgs.Empty);
@@ -36,6 +42,9 @@ public sealed class TrainingSessionService
 
     /// <summary>The project's training reference, or null.</summary>
     public TrainingReference? Training => _projects.Current.Training;
+
+    /// <summary>The current project (the FIT marks are read against its media and timeline — D051 §4.5).</summary>
+    public Core.Entities.Project Project => _projects.Current;
 
     /// <summary>The parsed training when its file is usable, or null.</summary>
     public ClimbingWorkout? Workout => Training is { IsUsable: true } t ? t.Workout : null;
@@ -65,7 +74,21 @@ public sealed class TrainingSessionService
             Workout = file.Workout,
             Availability = TrainingAvailability.Available
         };
+        // D051 §5.5: the import proposes a mark for every climb whose start a video with Z films — part of the import, which
+        // is no Undo step (D049 §11). A training replaced by another activity takes its marks and declined climbs with it
+        // (§5.11); a new import of the same activity keeps them — no duplicate mark, a declined climb never recreated (§5.2,
+        // §5.3) — and proposes only the climbs still free.
+        var project = _projects.Current;
+        if (project.Training is { } previous && previous.Activity == reference.Activity)
+        {
+            reference.Marks.AddRange(previous.Marks);
+            reference.DeclinedClimbs.AddRange(previous.DeclinedClimbs);
+        }
+        var estimate = _startCorrection?.Current ?? FitCalibrationSnapshot.Initial;
+        reference.Marks.AddRange(FitMarkRules.Proposals(reference, FitMarkRules.Videos(project.MediaAssets, project.Settings.FrameRate),
+            estimate.EstimateTicks, estimate.EstimateVersion, _time.GetUtcNow()));
         _projects.SetTraining(reference);
+        _projects.NotifyTimelineChanged();       // the marks on the clips
         NotifyChanged();
     }
 
@@ -89,6 +112,7 @@ public sealed class TrainingSessionService
     {
         if (Training is null) return;
         _projects.SetTraining(null);
+        _projects.NotifyTimelineChanged();
         NotifyChanged();
     }
 

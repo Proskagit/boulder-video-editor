@@ -376,6 +376,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             vm.OnStatusChanged();
         }
         RefreshStrips();
+        RefreshFitMarks();
     }
 
     /// <summary>Recomputes every pixel position from the model at the current zoom.</summary>
@@ -648,7 +649,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private bool CanEdit() => !_editingLock.IsLocked;
 
-    private bool CanDeleteSelected() => CanEdit() && (HasSelection || HasTransitionSelection || SelectedOrangeClipId is not null);
+    private bool CanDeleteSelected() => CanEdit() && (HasSelection || HasTransitionSelection || SelectedOrangeClipId is not null ||
+        SelectedFitMark is not null);
 
     /// <summary>The Dissolve command needs two selected clips on one track (a linked clip brings its partner into the
     /// selection, AQ1: the clips of the primary's track count); whether they meet and how long a dissolve — a crossfade on
@@ -734,6 +736,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanDeleteSelected))]
     private void DeleteSelected()
     {
+        if (SelectedFitMark is { } fitMark && _selection.Count == 0)
+        {
+            DeclineSelectedFitMark(fitMark);    // D051 §5.7: Delete on a mark hides it (declines its climb)
+            return;
+        }
         if (SelectedOrangeClipId is { } markupClip)
         {
             DeleteSelectedOrange(markupClip);   // D048 §3.9: the strip's selection, not the clip's
@@ -1305,6 +1312,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private void RaiseSelectionChanged()
     {
+        if (_selection.Count > 0 && _selectedFitMark is not null) SelectedFitMark = null;   // a clip selection takes over
         if (_selection.Count > 0 && _clipViewModels.TryGetValue(_selection[^1], out var primary))
         {
             var asset = primary.Clip is MediaBackedClip m ? FindAsset(m.MediaAssetId) : null;

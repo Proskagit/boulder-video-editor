@@ -53,6 +53,14 @@ internal sealed class TrainingDto
 
     /// <summary>W − C in 100 ns ticks (D049 §2).</summary>
     public long ClockCorrectionTicks { get; set; }
+
+    /// <summary>Format v12 (D051 §5.3): the active FIT marks; written only when there are any. Ignored in older files.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<FitMarkDto>? FitMarks { get; set; }
+
+    /// <summary>Format v12 (D051 §5.3): the declined climbs; written only when there are any.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<DeclinedClimbDto>? DeclinedClimbs { get; set; }
 }
 
 /// <summary>The activity's identity in watch time (UTC, written with offset +00:00).</summary>
@@ -62,6 +70,43 @@ internal sealed class TrainingActivityDto
     public DateTimeOffset EndUtc { get; set; }
     public int Manufacturer { get; set; }
     public int? Product { get; set; }
+}
+
+/// <summary>A FIT climb's full identity (D050 B8): split index, number and start (UTC).</summary>
+internal sealed class ClimbIdentityDto
+{
+    public int Key { get; set; }
+    public int Number { get; set; }
+    public DateTimeOffset StartUtc { get; set; }
+}
+
+/// <summary>Format v12 (D051 §5.3): one FIT mark. <c>position</c> is "proposed", "clamped" or "moved"; the source time
+/// in ticks is written exactly for the last two; the link only when there is one.</summary>
+internal sealed class FitMarkDto
+{
+    public ClimbIdentityDto? Climb { get; set; }
+    public DateTimeOffset AutoStartUtc { get; set; }
+    public long StartCorrectionTicks { get; set; }
+    public int CalibrationVersion { get; set; }
+    public Guid MediaAssetId { get; set; }
+    public string? Position { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? SourceTimeTicks { get; set; }
+
+    public DateTimeOffset PositionChangedAt { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? LinkedClipId { get; set; }
+}
+
+/// <summary>Format v12 (D051 §5.3): a declined climb and, if a mark existed, the mark as it was (never linked).</summary>
+internal sealed class DeclinedClimbDto
+{
+    public ClimbIdentityDto? Climb { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public FitMarkDto? FormerMark { get; set; }
 }
 
 internal sealed class FrameRateDto

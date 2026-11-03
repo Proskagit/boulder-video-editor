@@ -2135,6 +2135,24 @@ If you don't save, your changes will be lost.</value>
   <data name="Holds_RouteCancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
+  <data name="FitMark_Proposed" xml:space="preserve">
+    <value>proposed</value>
+  </data>
+  <data name="FitMark_Clamped" xml:space="preserve">
+    <value>on the edge of the recording</value>
+  </data>
+  <data name="FitMark_Moved" xml:space="preserve">
+    <value>moved</value>
+  </data>
+  <data name="FitMark_Tip" xml:space="preserve">
+    <value>FIT climb {0}: route start {1}</value>
+  </data>
+  <data name="FitMark_TipLinked" xml:space="preserve">
+    <value>; linked to an animation</value>
+  </data>
+  <data name="FitMark_Declined" xml:space="preserve">
+    <value>The FIT climb is declined.</value>
+  </data>
   <data name="Strip_Green" xml:space="preserve">
     <value>Plate: {0} – {1}</value>
   </data>
@@ -2301,6 +2319,111 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Training_Removed" xml:space="preserve">
     <value>The training was removed from the project.</value>
+  </data>
+  <data name="Inspector_FitHeader" xml:space="preserve">
+    <value>FIT MARKS OF THIS VIDEO</value>
+  </data>
+  <data name="Inspector_FitMarkItem" xml:space="preserve">
+    <value>Climb {0} · {1} · {2}</value>
+  </data>
+  <data name="Inspector_FitLayOut" xml:space="preserve">
+    <value>Lay out the route from the mark</value>
+  </data>
+  <data name="Inspector_FitLayOutTip" xml:space="preserve">
+    <value>The route selection of D048 with T on the mark's frame on this clip; the animation is linked to the climb.</value>
+  </data>
+  <data name="Inspector_FitMoveToPlayhead" xml:space="preserve">
+    <value>Move the mark to the playhead</value>
+  </data>
+  <data name="Inspector_FitDecline" xml:space="preserve">
+    <value>Hide the mark / decline the climb</value>
+  </data>
+  <data name="Inspector_FitLinkHeader" xml:space="preserve">
+    <value>FIT CLIMB OF THE ANIMATION</value>
+  </data>
+  <data name="Inspector_FitLinked" xml:space="preserve">
+    <value>Linked to FIT climb {0}.</value>
+  </data>
+  <data name="Inspector_FitNotLinked" xml:space="preserve">
+    <value>Not linked to a FIT climb.</value>
+  </data>
+  <data name="Inspector_FitLink" xml:space="preserve">
+    <value>Link to the FIT climb</value>
+  </data>
+  <data name="Inspector_FitUnlink" xml:space="preserve">
+    <value>Remove the FIT link</value>
+  </data>
+  <data name="Inspector_FitLaidOut" xml:space="preserve">
+    <value>The route is laid out from the FIT mark.</value>
+  </data>
+  <data name="Inspector_FitMoved" xml:space="preserve">
+    <value>The FIT mark is moved.</value>
+  </data>
+  <data name="Inspector_FitLinkDone" xml:space="preserve">
+    <value>The animation is linked to the FIT climb.</value>
+  </data>
+  <data name="Inspector_FitUnlinkDone" xml:space="preserve">
+    <value>The FIT link is removed.</value>
+  </data>
+  <data name="FitSettings_Title" xml:space="preserve">
+    <value>FIT settings</value>
+  </data>
+  <data name="FitSettings_Section" xml:space="preserve">
+    <value>FIT CALIBRATION</value>
+  </data>
+  <data name="FitSettings_Beta" xml:space="preserve">
+    <value>Collect the start calibration (Beta)</value>
+  </data>
+  <data name="FitSettings_BetaTip" xml:space="preserve">
+    <value>On: every save adds the route starts of the FIT marks to your calibration. Off: nothing is collected, nothing is removed, the last value is still used.</value>
+  </data>
+  <data name="FitSettings_Estimate" xml:space="preserve">
+    <value>Current start correction: {0:0.0} s</value>
+  </data>
+  <data name="FitSettings_UsedCount" xml:space="preserve">
+    <value>Observations used: {0}</value>
+  </data>
+  <data name="FitSettings_NewerFile" xml:space="preserve">
+    <value>The calibration file is from a newer version of the application: it is not used or changed.</value>
+  </data>
+  <data name="FitSettings_UnreadableFile" xml:space="preserve">
+    <value>The calibration file can't be read now: it is left as it is.</value>
+  </data>
+  <data name="FitSettings_Reset" xml:space="preserve">
+    <value>Reset the calibration…</value>
+  </data>
+  <data name="FitSettings_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="FitSettings_ResetTitle" xml:space="preserve">
+    <value>Reset the calibration</value>
+  </data>
+  <data name="FitSettings_ResetQuestion" xml:space="preserve">
+    <value>Remove every collected observation? The start correction goes back to 12 s. The marks already in your projects stay where they are.</value>
+  </data>
+  <data name="FitSettings_ResetConfirm" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="FitSettings_ResetDone" xml:space="preserve">
+    <value>The calibration is reset to 12 s.</value>
+  </data>
+  <data name="FitSettings_NotWritten" xml:space="preserve">
+    <value>The calibration file couldn't be written; nothing changed.</value>
+  </data>
+  <data name="Toolbar_FitSettings" xml:space="preserve">
+    <value>FIT settings…</value>
+  </data>
+  <data name="Toolbar_DeclinedClimbs" xml:space="preserve">
+    <value>Declined climbs</value>
+  </data>
+  <data name="Toolbar_DeclinedClimb" xml:space="preserve">
+    <value>Climb {0} · {1}</value>
+  </data>
+  <data name="Toolbar_Restore" xml:space="preserve">
+    <value>Bring back</value>
+  </data>
+  <data name="Toolbar_Restored" xml:space="preserve">
+    <value>The FIT climb is back.</value>
   </data>
   <data name="Inspector_TrainingHeader" xml:space="preserve">
     <value>COROS TRAINING</value>

@@ -1,5 +1,7 @@
+using System.Collections.ObjectModel;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Telemetry;
 using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using CommunityToolkit.Mvvm.Input;
@@ -30,6 +32,8 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     private readonly TrainingImportWorkflow? _trainingImport;
     private readonly TrainingSessionService? _trainingSession;
     private readonly ITimelineEditService? _edit;
+    private readonly IFitMarkEditService? _fitMarks;
+    private readonly FitSettingsWorkflow? _fitSettings;
 
     /// <param name="exportWorkflow">Without it Export reports that exporting is unavailable.</param>
     /// <param name="editingLock">The app's shared lock; a private one when not given.</param>
@@ -38,6 +42,8 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     /// <param name="trainingImport">«Тренировка COROS…»; without it the command is disabled.</param>
     /// <param name="trainingSession">The project's training, for the tooltip, the menu and the clock correction.</param>
     /// <param name="edit">Edits the training's clock correction (one Undo step); without it the field is read-only.</param>
+    /// <param name="fitMarks">«Вернуть» of the declined FIT climbs (D051 §5.7); without it the list is not shown.</param>
+    /// <param name="fitSettings">«Настройки FIT…» (D051 §8.3); without it the item is hidden.</param>
     public ToolbarViewModel(
         IUndoRedoService undoRedoService,
         ProjectFileWorkflow projectFiles,
@@ -49,8 +55,12 @@ public sealed partial class ToolbarViewModel : ViewModelBase
         ProjectSettingsWorkflow? projectSettings = null,
         TrainingImportWorkflow? trainingImport = null,
         TrainingSessionService? trainingSession = null,
-        ITimelineEditService? edit = null)
+        ITimelineEditService? edit = null,
+        IFitMarkEditService? fitMarks = null,
+        FitSettingsWorkflow? fitSettings = null)
     {
+        _fitMarks = fitMarks;
+        _fitSettings = fitSettings;
         _trainingImport = trainingImport;
         _trainingSession = trainingSession;
         _edit = edit;
@@ -120,10 +130,49 @@ public sealed partial class ToolbarViewModel : ViewModelBase
         RemoveTrainingCommand.NotifyCanExecuteChanged();
         ProjectSettingsCommand.NotifyCanExecuteChanged();
         ExportCommand.NotifyCanExecuteChanged();
+        FitSettingsCommand.NotifyCanExecuteChanged();
+        foreach (var item in DeclinedClimbs) ((RelayCommand)item.Restore).NotifyCanExecuteChanged();
+    }
+
+    /// <summary>«Отклонённые подъёмы» (D051 §5.7): each with «Вернуть», one Undo step.</summary>
+    public ObservableCollection<DeclinedClimbItem> DeclinedClimbs { get; } = new();
+
+    public bool HasDeclinedClimbs => DeclinedClimbs.Count > 0;
+
+    /// <summary>«Настройки FIT…» is offered (with or without a training — D051 §8.3).</summary>
+    public bool HasFitSettings => _fitSettings is not null;
+
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private Task FitSettings() => _fitSettings?.RunAsync() ?? Task.CompletedTask;
+
+    private void RefreshDeclinedClimbs()
+    {
+        var training = _trainingSession?.Training;
+        var declined = _fitMarks is null ? [] : training?.DeclinedClimbs.ToList() ?? [];
+        if (declined.Select(d => d.Climb).SequenceEqual(DeclinedClimbs.Select(i => i.Climb))) return;
+        DeclinedClimbs.Clear();
+        var workout = training?.Workout;
+        foreach (var entry in declined)
+        {
+            var start = FitMarkRules.ClimbOf(workout, entry.Climb)?.StartUtc ?? entry.Climb.ClimbStartUtc;
+            var climb = entry.Climb;
+            DeclinedClimbs.Add(new DeclinedClimbItem(climb,
+                string.Format(Strings.Toolbar_DeclinedClimb, climb.ClimbNumber, TrainingText.WatchClock(start, workout?.UtcOffset)),
+                new RelayCommand(() => Restore(climb), CanEdit)));
+        }
+        OnPropertyChanged(nameof(HasDeclinedClimbs));
+    }
+
+    private void Restore(ClimbIdentity climb)
+    {
+        if (_fitMarks is null || !CanEdit()) return;
+        var result = _fitMarks.RestoreClimb(climb);
+        _status.Report(result.Success ? Strings.Toolbar_Restored : result.Message ?? "");
     }
 
     private void OnTrainingChanged()
     {
+        RefreshDeclinedClimbs();
         OnPropertyChanged(nameof(TrainingToolTip));
         OnPropertyChanged(nameof(HasTraining));
         OnPropertyChanged(nameof(TrainingClockCorrectionFrames));
@@ -134,6 +183,7 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     private void OnUndoRedoStateChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(TrainingClockCorrectionFrames));   // an Undo / Redo of the clock correction
+        RefreshDeclinedClimbs();                                    // a decline, «Вернуть» or their Undo
         UndoCommand.NotifyCanExecuteChanged();
         RedoCommand.NotifyCanExecuteChanged();
     }
@@ -208,3 +258,6 @@ public sealed partial class ToolbarViewModel : ViewModelBase
 
     private bool CanExport() => CanEdit() && _exportWorkflow is not { IsRunning: true };
 }
+
+/// <summary>A declined FIT climb in the COROS menu with its «Вернуть».</summary>
+public sealed record DeclinedClimbItem(ClimbIdentity Climb, string Label, IRelayCommand Restore);

@@ -36,7 +36,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 11;
+    public const int CurrentFormatVersion = 12;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -67,6 +67,10 @@ public static class ProjectSerializer
     /// <summary>The first version with the COROS training (D049 §7): the FIT reference and its clock correction, a video's
     /// recording-zero override, the recording-time probe of the metadata. A v10 file is read without them and saved as v11.</summary>
     private const int TrainingVersion = 11;
+
+    /// <summary>The first version with the FIT marks and the declined climbs of the training (D051 §5.3). A v11 file is read
+    /// without them and saved as v12.</summary>
+    private const int FitStartsVersion = 12;
 
     /// <summary>A push's direction in the file (D044 §9).</summary>
     private static readonly IReadOnlyDictionary<TransitionDirection, string> DirectionNames = new Dictionary<TransitionDirection, string>
@@ -242,9 +246,37 @@ public static class ProjectSerializer
                 Manufacturer = t.Activity.Manufacturer,
                 Product = t.Activity.Product
             },
-            ClockCorrectionTicks = t.ClockCorrection.Ticks
+            ClockCorrectionTicks = t.ClockCorrection.Ticks,
+            FitMarks = t.Marks.Count == 0 ? null : t.Marks.Select(ToDto).ToList(),
+            DeclinedClimbs = t.DeclinedClimbs.Count == 0
+                ? null
+                : t.DeclinedClimbs.Select(d => new DeclinedClimbDto
+                {
+                    Climb = ToDto(d.Climb), FormerMark = d.FormerMark is { } m ? ToDto(m) : null
+                }).ToList()
         };
     }
+
+    private static ClimbIdentityDto ToDto(ClimbIdentity c) =>
+        new() { Key = c.ClimbKey, Number = c.ClimbNumber, StartUtc = c.ClimbStartUtc.ToUniversalTime() };
+
+    private static FitMarkDto ToDto(FitMark m) => new()
+    {
+        Climb = ToDto(m.Climb),
+        AutoStartUtc = m.AutoStartUtc.ToUniversalTime(),
+        StartCorrectionTicks = m.StartCorrectionTicks,
+        CalibrationVersion = m.CalibrationVersion,
+        MediaAssetId = m.MediaAssetId,
+        Position = m.Position.Kind switch
+        {
+            FitMarkPositionKind.Proposed => "proposed",
+            FitMarkPositionKind.Clamped => "clamped",
+            _ => "moved"
+        },
+        SourceTimeTicks = m.Position.SourceTime?.Ticks,
+        PositionChangedAt = m.PositionChangedAt.ToUniversalTime(),
+        LinkedClipId = m.LinkedClipId
+    };
 
     private static FrameRateDto ToDto(FrameRate r) => new() { Numerator = r.Numerator, Denominator = r.Denominator };
 
@@ -469,8 +501,74 @@ public static class ProjectSerializer
 
         project.Timeline = FromDto(dto.Timeline ?? throw Damaged("timeline is missing"), frameRate, assets, dto.FormatVersion);
         if (dto.FormatVersion >= TrainingVersion && dto.Training is { } training)
+        {
             project.Training = ReadTraining(training, folder, fileExists);
+            if (dto.FormatVersion >= FitStartsVersion)
+                ReadFitMarks(training, project.Training, assets, project.Timeline);
+        }
         return project;
+    }
+
+    /// <summary>The FIT marks and declined climbs (D051 §5.2–§5.4): one active mark per climb, the declined climbs disjoint
+    /// from them, each link to an existing video clip with a <c>Duration</c> hold animation, no clip linked twice, no link
+    /// on a declined climb; every mark on a video of the project with a position of a valid kind. A climb missing from the
+    /// FIT is not a damage — the file may be unavailable.</summary>
+    private static void ReadFitMarks(TrainingDto dto, TrainingReference training, IReadOnlyDictionary<Guid, MediaAsset> assets,
+        Sequence timeline)
+    {
+        var videoClips = timeline.VideoTracks.Concat(timeline.AudioTracks).SelectMany(t => t.Clips).OfType<VideoClip>()
+            .ToDictionary(c => c.Id);
+        var climbs = new HashSet<ClimbIdentity>();
+        var linkedClips = new HashSet<Guid>();
+        foreach (var markDto in dto.FitMarks ?? [])
+        {
+            var mark = ReadFitMark(markDto ?? throw Damaged("empty FIT mark entry"), assets);
+            if (!climbs.Add(mark.Climb)) throw Damaged("two active FIT marks for one climb");
+            if (mark.LinkedClipId is { } clipId)
+            {
+                if (!videoClips.TryGetValue(clipId, out var clip)) throw Damaged("a FIT mark is linked to a missing clip");
+                if (clip.HoldMarkup?.Animation is not { Mode: HoldAnimationMode.Duration })
+                    throw Damaged("a FIT mark is linked to a clip without a duration hold animation");
+                if (!linkedClips.Add(clipId)) throw Damaged("one animation is linked to two FIT climbs");
+            }
+            training.Marks.Add(mark);
+        }
+        foreach (var declinedDto in dto.DeclinedClimbs ?? [])
+        {
+            if (declinedDto?.Climb is not { } climbDto) throw Damaged("a declined climb has no identity");
+            var climb = ReadClimb(climbDto);
+            if (!climbs.Add(climb)) throw Damaged("a declined climb is also active or declined twice");
+            FitMark? former = null;
+            if (declinedDto.FormerMark is { } formerDto)
+            {
+                former = ReadFitMark(formerDto, assets);
+                if (former.Climb != climb) throw Damaged("a declined climb keeps the mark of another climb");
+                if (former.LinkedClipId is not null) throw Damaged("a declined climb keeps a link");
+            }
+            training.DeclinedClimbs.Add(new DeclinedClimb(climb, former));
+        }
+    }
+
+    private static ClimbIdentity ReadClimb(ClimbIdentityDto dto) => new(dto.Key, dto.Number, dto.StartUtc.ToUniversalTime());
+
+    private static FitMark ReadFitMark(FitMarkDto dto, IReadOnlyDictionary<Guid, MediaAsset> assets)
+    {
+        var climb = ReadClimb(dto.Climb ?? throw Damaged("a FIT mark has no climb"));
+        if (!assets.TryGetValue(dto.MediaAssetId, out var asset) || asset.Kind != MediaKind.Video)
+            throw Damaged("a FIT mark is not on a video of the project");
+        if (dto.CalibrationVersion < 0) throw Damaged("invalid FIT mark calibration version");
+        var source = dto.SourceTimeTicks is { } ticks ? new MediaTime(ticks) : (MediaTime?)null;
+        var position = dto.Position switch
+        {
+            "proposed" => new FitMarkPosition(FitMarkPositionKind.Proposed, source),
+            "clamped" => new FitMarkPosition(FitMarkPositionKind.Clamped, source),
+            "moved" => new FitMarkPosition(FitMarkPositionKind.Moved, source),
+            _ => throw Damaged("unknown FIT mark position")
+        };
+        if (!position.IsValid) throw Damaged("a FIT mark's position does not match its kind");
+        if (source is { } s && s < MediaTime.Zero) throw Damaged("negative FIT mark position");
+        return new FitMark(climb, dto.AutoStartUtc.ToUniversalTime(), dto.StartCorrectionTicks, dto.CalibrationVersion,
+            dto.MediaAssetId, position, dto.PositionChangedAt.ToUniversalTime(), dto.LinkedClipId);
     }
 
     /// <summary>The training reference (D049 §7): every member required; the path resolved as a media path (D014). The file

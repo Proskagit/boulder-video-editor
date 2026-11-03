@@ -50,6 +50,11 @@
     <Style Selector="ItemsControl.canvasItems > ContentPresenter">
       <Setter Property="Canvas.Left" Value="{Binding Left}"/>
     </Style>
+    <!-- D051 §8.1: a selected FIT mark's cap is outlined. -->
+    <Style Selector="Border.fitCap.selected">
+      <Setter Property="BorderBrush" Value="#FFFFFF"/>
+      <Setter Property="BorderThickness" Value="1.5"/>
+    </Style>
 
     <Style Selector="Border.clip">
       <Setter Property="BorderBrush" Value="#000000"/>
@@ -460,6 +465,26 @@
                               <DataTemplate>
                                 <Border Width="{Binding Width}" Height="36" Background="{Binding ColorHex}" Opacity="0.45" CornerRadius="2"
                                         BorderBrush="{Binding ColorHex}" BorderThickness="1" ToolTip.Tip="{Binding Tip}"/>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          <!-- D051 §8.1: the FIT marks of the clip's video, a 3 px bar each with a cap at the bottom; a click
+                               selects one (Delete hides it). Editor only. -->
+                          <ItemsControl Classes="canvasItems" ItemsSource="{Binding FitMarks}" Width="{Binding Width}" Height="36"
+                                        VerticalAlignment="Top" HorizontalAlignment="Left" ClipToBounds="True">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <Canvas/>
+                              </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate>
+                                <Panel Tag="FitMark" Width="9" Height="36" Margin="-4,0,0,0" Background="#01000000" Cursor="Hand"
+                                       ToolTip.Tip="{Binding Tip}">
+                                  <Border Width="3" Background="{Binding ColorHex}" HorizontalAlignment="Center"/>
+                                  <Border Classes="fitCap" Classes.selected="{Binding IsSelected}" Width="9" Height="6"
+                                          Background="{Binding ColorHex}" VerticalAlignment="Bottom"/>
+                                </Panel>
                               </DataTemplate>
                             </ItemsControl.ItemTemplate>
                           </ItemsControl>

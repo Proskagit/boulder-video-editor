@@ -105,6 +105,7 @@ public sealed partial class InspectorViewModel
         AlignToClimbCommand.NotifyCanExecuteChanged();
         ClearRecordingStartCommand.NotifyCanExecuteChanged();
         UpdateTrainingReadout();
+        RefreshFitMarks();
     }
 
     private void UpdateTrainingReadout()

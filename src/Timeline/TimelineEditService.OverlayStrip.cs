@@ -39,7 +39,7 @@ public sealed partial class TimelineEditService
         var description = orangeHandle ? "Edit Hold Animation" : "Edit Route Overlay";
         // Its own step: a lone property command would merge with an earlier Inspector edit of the template (D017).
         var command = new CompositeCommand(description, new[] { plan.BuildCommand(description) });
-        _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(planned.TemplateId is { } t && !orangeHandle ? new[] { videoClipId, t } : new[] { videoClipId });
     }
 
@@ -57,7 +57,7 @@ public sealed partial class TimelineEditService
         plan.SetMarkup(video, null);
         if (Validate(plan) is { } error) return TimelineEditResult.Fail(error);
         var command = new CompositeCommand("Delete Hold Markup", new[] { plan.BuildCommand("Delete Hold Markup") });
-        _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { videoClipId });
     }
 

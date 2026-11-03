@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:l="using:AiVideoEditor.UI.Localization"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AiVideoEditor.UI.Views.FitSettingsView">
+
+  <!-- «Настройки FIT…» (D051 §8.3, Step 37.6): the section FIT only — Beta, the current StartCorrection, the number of
+       used records, the reset (asks first). FitSettingsViewModel writes each change to the per-user store at once. -->
+  <UserControl.Styles>
+    <Style Selector="TextBlock.heading">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Foreground" Value="#9A9A9A"/>
+    </Style>
+    <Style Selector="TextBlock.note">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="Foreground" Value="#AAAAAA"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel Margin="20" Spacing="10">
+    <TextBlock Classes="heading" Text="{x:Static l:Strings.FitSettings_Section}"/>
+    <CheckBox x:Name="BetaBox" Content="{x:Static l:Strings.FitSettings_Beta}" IsChecked="{Binding BetaEnabled, Mode=TwoWay}"
+              IsEnabled="{Binding CanChange}" ToolTip.Tip="{x:Static l:Strings.FitSettings_BetaTip}"/>
+    <TextBlock Text="{Binding EstimateText}"/>
+    <TextBlock Classes="note" Text="{Binding UsedCountText}"/>
+    <TextBlock Classes="note" Text="{Binding FileNote}" IsVisible="{Binding FileNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+               Foreground="#F08A6C"/>
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,6,0,0">
+      <Button x:Name="ResetButton" Content="{x:Static l:Strings.FitSettings_Reset}" Command="{Binding ResetCommand}"/>
+      <Button Content="{x:Static l:Strings.FitSettings_Close}" Command="{Binding CloseCommand}" IsDefault="True" IsCancel="True"/>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

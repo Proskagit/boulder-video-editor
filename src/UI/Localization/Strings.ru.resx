@@ -2139,6 +2139,24 @@
   <data name="Holds_RouteCancel" xml:space="preserve">
     <value>Отмена</value>
   </data>
+  <data name="FitMark_Proposed" xml:space="preserve">
+    <value>предложена</value>
+  </data>
+  <data name="FitMark_Clamped" xml:space="preserve">
+    <value>прижата к краю записи</value>
+  </data>
+  <data name="FitMark_Moved" xml:space="preserve">
+    <value>перемещена</value>
+  </data>
+  <data name="FitMark_Tip" xml:space="preserve">
+    <value>FIT-подъём {0}: начало трассы, {1}</value>
+  </data>
+  <data name="FitMark_TipLinked" xml:space="preserve">
+    <value>; связана с анимацией</value>
+  </data>
+  <data name="FitMark_Declined" xml:space="preserve">
+    <value>FIT-подъём отклонён.</value>
+  </data>
   <data name="Strip_Green" xml:space="preserve">
     <value>Плашка: {0} – {1}</value>
   </data>
@@ -2305,6 +2323,111 @@
   </data>
   <data name="Training_Removed" xml:space="preserve">
     <value>Тренировка удалена из проекта.</value>
+  </data>
+  <data name="Inspector_FitHeader" xml:space="preserve">
+    <value>FIT-МЕТКИ ЭТОГО ВИДЕО</value>
+  </data>
+  <data name="Inspector_FitMarkItem" xml:space="preserve">
+    <value>Подъём {0} · {1} · {2}</value>
+  </data>
+  <data name="Inspector_FitLayOut" xml:space="preserve">
+    <value>Разметить трассу от метки</value>
+  </data>
+  <data name="Inspector_FitLayOutTip" xml:space="preserve">
+    <value>Выбор трассы D048 с T на кадре метки в этом клипе; анимация связывается с подъёмом.</value>
+  </data>
+  <data name="Inspector_FitMoveToPlayhead" xml:space="preserve">
+    <value>Переместить метку к плейхеду</value>
+  </data>
+  <data name="Inspector_FitDecline" xml:space="preserve">
+    <value>Скрыть метку / отклонить подъём</value>
+  </data>
+  <data name="Inspector_FitLinkHeader" xml:space="preserve">
+    <value>FIT-ПОДЪЁМ АНИМАЦИИ</value>
+  </data>
+  <data name="Inspector_FitLinked" xml:space="preserve">
+    <value>Связана с FIT-подъёмом {0}.</value>
+  </data>
+  <data name="Inspector_FitNotLinked" xml:space="preserve">
+    <value>Не связана с FIT-подъёмом.</value>
+  </data>
+  <data name="Inspector_FitLink" xml:space="preserve">
+    <value>Связать с FIT-подъёмом</value>
+  </data>
+  <data name="Inspector_FitUnlink" xml:space="preserve">
+    <value>Снять FIT-связь</value>
+  </data>
+  <data name="Inspector_FitLaidOut" xml:space="preserve">
+    <value>Трасса размечена от FIT-метки.</value>
+  </data>
+  <data name="Inspector_FitMoved" xml:space="preserve">
+    <value>FIT-метка перемещена.</value>
+  </data>
+  <data name="Inspector_FitLinkDone" xml:space="preserve">
+    <value>Анимация связана с FIT-подъёмом.</value>
+  </data>
+  <data name="Inspector_FitUnlinkDone" xml:space="preserve">
+    <value>FIT-связь снята.</value>
+  </data>
+  <data name="FitSettings_Title" xml:space="preserve">
+    <value>Настройки FIT</value>
+  </data>
+  <data name="FitSettings_Section" xml:space="preserve">
+    <value>КАЛИБРОВКА FIT</value>
+  </data>
+  <data name="FitSettings_Beta" xml:space="preserve">
+    <value>Накапливать калибровку старта (Beta)</value>
+  </data>
+  <data name="FitSettings_BetaTip" xml:space="preserve">
+    <value>Включено: каждое сохранение добавляет старты трасс FIT-меток в вашу калибровку. Выключено: ничего не собирается и не удаляется, последнее значение продолжает применяться.</value>
+  </data>
+  <data name="FitSettings_Estimate" xml:space="preserve">
+    <value>Текущая поправка старта: {0:0.0} с</value>
+  </data>
+  <data name="FitSettings_UsedCount" xml:space="preserve">
+    <value>Использовано наблюдений: {0}</value>
+  </data>
+  <data name="FitSettings_NewerFile" xml:space="preserve">
+    <value>Файл калибровки создан более новой версией приложения: он не используется и не изменяется.</value>
+  </data>
+  <data name="FitSettings_UnreadableFile" xml:space="preserve">
+    <value>Файл калибровки сейчас не удаётся прочитать: он оставлен как есть.</value>
+  </data>
+  <data name="FitSettings_Reset" xml:space="preserve">
+    <value>Сбросить калибровку…</value>
+  </data>
+  <data name="FitSettings_Close" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
+  <data name="FitSettings_ResetTitle" xml:space="preserve">
+    <value>Сброс калибровки</value>
+  </data>
+  <data name="FitSettings_ResetQuestion" xml:space="preserve">
+    <value>Удалить все накопленные наблюдения? Поправка старта вернётся к 12 с. Метки, уже стоящие в проектах, не сдвинутся.</value>
+  </data>
+  <data name="FitSettings_ResetConfirm" xml:space="preserve">
+    <value>Сбросить</value>
+  </data>
+  <data name="FitSettings_ResetDone" xml:space="preserve">
+    <value>Калибровка сброшена к 12 с.</value>
+  </data>
+  <data name="FitSettings_NotWritten" xml:space="preserve">
+    <value>Не удалось записать файл калибровки; ничего не изменилось.</value>
+  </data>
+  <data name="Toolbar_FitSettings" xml:space="preserve">
+    <value>Настройки FIT…</value>
+  </data>
+  <data name="Toolbar_DeclinedClimbs" xml:space="preserve">
+    <value>Отклонённые подъёмы</value>
+  </data>
+  <data name="Toolbar_DeclinedClimb" xml:space="preserve">
+    <value>Подъём {0} · {1}</value>
+  </data>
+  <data name="Toolbar_Restore" xml:space="preserve">
+    <value>Вернуть</value>
+  </data>
+  <data name="Toolbar_Restored" xml:space="preserve">
+    <value>FIT-подъём возвращён.</value>
   </data>
   <data name="Inspector_TrainingHeader" xml:space="preserve">
     <value>ТРЕНИРОВКА COROS</value>

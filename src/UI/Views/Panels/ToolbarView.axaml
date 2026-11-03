@@ -94,6 +94,23 @@
                 <controls:CommitNumericUpDown Value="{Binding TrainingClockCorrectionFrames, Mode=TwoWay}" Increment="1" FormatString="0"
                                               ToolTip.Tip="{x:Static l:Strings.Toolbar_TrainingClockCorrectionTip}"/>
               </StackPanel>
+              <!-- D051 §5.7: the declined FIT climbs, each with «Вернуть»; D051 §8.3: «Настройки FIT…», also without a training. -->
+              <StackPanel Spacing="2" Margin="0,6,0,0" IsVisible="{Binding HasDeclinedClimbs}">
+                <TextBlock Text="{x:Static l:Strings.Toolbar_DeclinedClimbs}" FontSize="11"/>
+                <ItemsControl ItemsSource="{Binding DeclinedClimbs}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Grid ColumnDefinitions="*,Auto" Margin="0,1">
+                        <TextBlock Grid.Column="0" Text="{Binding Label}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <Button Grid.Column="1" Content="{x:Static l:Strings.Toolbar_Restore}" Command="{Binding Restore}"/>
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+              <StackPanel Margin="0,6,0,0" IsVisible="{Binding HasFitSettings}">
+                <Button Content="{x:Static l:Strings.Toolbar_FitSettings}" Command="{Binding FitSettingsCommand}" HorizontalAlignment="Stretch"/>
+              </StackPanel>
             </StackPanel>
           </Flyout>
         </DropDownButton.Flyout>

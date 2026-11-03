@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Telemetry;
 using AiVideoEditor.Core.Telemetry.Research;
 using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Research;

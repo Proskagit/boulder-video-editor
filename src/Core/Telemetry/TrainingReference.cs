@@ -61,6 +61,13 @@ public sealed class TrainingReference
 
     public TrainingAvailability Availability { get; set; } = TrainingAvailability.Unresolved;
 
+    /// <summary>The active FIT marks (Phase 37, D051 §5.3): at most one per climb, each linked to at most one clip and no
+    /// clip linked twice (§5.2). Changed only by the mark commands (one Undo step each).</summary>
+    public List<FitMark> Marks { get; } = new();
+
+    /// <summary>The climbs the user declined (D051 §5.3); disjoint from <see cref="Marks"/>.</summary>
+    public List<DeclinedClimb> DeclinedClimbs { get; } = new();
+
     public bool IsUsable => Workout is not null &&
         Availability is TrainingAvailability.Available or TrainingAvailability.Changed;
 }

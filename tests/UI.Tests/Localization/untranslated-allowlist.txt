@@ -106,8 +106,14 @@ src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Set Status Moment
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Crop Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Scale Clip
+src/Timeline/TimelineEditService.FitMarks.cs	Propose FIT Marks
+src/Timeline/TimelineEditService.FitMarks.cs	Move FIT Mark
+src/Timeline/TimelineEditService.FitMarks.cs	Decline FIT Climb
+src/Timeline/TimelineEditService.FitMarks.cs	Restore FIT Climb
+src/Timeline/TimelineEditService.FitMarks.cs	Link FIT Climb
+src/Timeline/TimelineEditService.FitMarks.cs	Unlink FIT Climb
 
-# Reasons of a damaged file — for project.json the diagnostic detail in parentheses after the translated sentence (D039 §2); for the recent-projects list written to the log only.
+# Reasons of a damaged file — for project.json the diagnostic detail in parentheses after the translated sentence (D039 §2); for the recent-projects list and the FIT calibration file (with the change named in its log lines, D051 §6.1) written to the log only.
 src/Project/Persistence/ProjectSerializer.cs	a clip doesn't match the kind of {asset.FileName}
 src/Project/Persistence/ProjectSerializer.cs	a clip has a negative fade
 src/Project/Persistence/ProjectSerializer.cs	a clip has an empty link id
@@ -213,12 +219,37 @@ src/Project/Persistence/ProjectSerializer.cs	recording-zero override on a non-vi
 src/Project/Persistence/ProjectSerializer.cs	training activity ends before it starts
 src/Project/Persistence/ProjectSerializer.cs	training activity is missing
 src/Project/Persistence/ProjectSerializer.cs	training file path is missing
+src/Project/Persistence/ProjectSerializer.cs	a FIT mark has no climb
+src/Project/Persistence/ProjectSerializer.cs	a FIT mark is linked to a clip without a duration hold animation
+src/Project/Persistence/ProjectSerializer.cs	a FIT mark is linked to a missing clip
+src/Project/Persistence/ProjectSerializer.cs	a FIT mark is not on a video of the project
+src/Project/Persistence/ProjectSerializer.cs	a FIT mark's position does not match its kind
+src/Project/Persistence/ProjectSerializer.cs	a declined climb has no identity
+src/Project/Persistence/ProjectSerializer.cs	a declined climb is also active or declined twice
+src/Project/Persistence/ProjectSerializer.cs	a declined climb keeps a link
+src/Project/Persistence/ProjectSerializer.cs	a declined climb keeps the mark of another climb
+src/Project/Persistence/ProjectSerializer.cs	empty FIT mark entry
+src/Project/Persistence/ProjectSerializer.cs	invalid FIT mark calibration version
+src/Project/Persistence/ProjectSerializer.cs	negative FIT mark position
+src/Project/Persistence/ProjectSerializer.cs	one animation is linked to two FIT climbs
+src/Project/Persistence/ProjectSerializer.cs	two active FIT marks for one climb
+src/Project/Persistence/ProjectSerializer.cs	unknown FIT mark position
 src/Project/Persistence/RecentProjectsStore.cs	a newer format version
 src/Project/Persistence/RecentProjectsStore.cs	no list of projects
 src/Project/Persistence/RecentProjectsStore.cs	no valid format version
 src/Project/Persistence/RecentProjectsStore.cs	not JSON
 src/Project/Persistence/RecentProjectsStore.cs	not a recent-projects list
 src/Project/Persistence/RecentProjectsStore.cs	not an object
+src/Project/Persistence/FitCalibrationStore.cs	a newer format version
+src/Project/Persistence/FitCalibrationStore.cs	no list of records
+src/Project/Persistence/FitCalibrationStore.cs	no valid format version
+src/Project/Persistence/FitCalibrationStore.cs	not JSON
+src/Project/Persistence/FitCalibrationStore.cs	not a FIT calibration
+src/Project/Persistence/FitCalibrationStore.cs	not an object
+src/Project/Persistence/FitCalibrationStore.cs	reset the calibration
+src/Project/Persistence/FitCalibrationStore.cs	synchronise the observations
+src/Project/Persistence/FitCalibrationStore.cs	turn the collection off
+src/Project/Persistence/FitCalibrationStore.cs	turn the collection on
 
 # FFmpeg / FFprobe / decoder / model runtime detail — technical, in parentheses after a translated sentence where shown (D039 §2).
 src/Core/Playback/PlaybackSnapshotBuilder.cs	A {clip.GetType().Name} cannot play {asset.Kind} media.

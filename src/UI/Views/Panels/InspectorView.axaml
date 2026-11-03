@@ -788,6 +788,28 @@
               <TextBlock Text="{Binding TrainingReadout}" Foreground="#AAAAAA" FontSize="11" TextWrapping="Wrap"/>
             </StackPanel>
 
+            <!-- Phase 37 (D051 §8.2): the FIT marks of this clip's video and the link of its Duration animation; every
+                 action one Undo step of the edit service. -->
+            <StackPanel Spacing="6" IsVisible="{Binding ShowsFitMarks}">
+              <TextBlock Text="{x:Static l:Strings.Inspector_FitHeader}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <ComboBox ItemsSource="{Binding FitMarkItems}" SelectedIndex="{Binding SelectedFitMarkIndex, Mode=TwoWay}" HorizontalAlignment="Stretch"/>
+              <Button Content="{x:Static l:Strings.Inspector_FitLayOut}" Command="{Binding LayOutFromFitMarkCommand}"
+                      ToolTip.Tip="{x:Static l:Strings.Inspector_FitLayOutTip}" HorizontalAlignment="Stretch"/>
+              <WrapPanel>
+                <Button Content="{x:Static l:Strings.Inspector_FitMoveToPlayhead}" Command="{Binding MoveFitMarkToPlayheadCommand}" Margin="0,0,6,6"/>
+                <Button Content="{x:Static l:Strings.Inspector_FitDecline}" Command="{Binding DeclineFitMarkCommand}" Margin="0,0,6,6"/>
+              </WrapPanel>
+            </StackPanel>
+            <StackPanel Spacing="6" IsVisible="{Binding ShowsFitLink}">
+              <TextBlock Text="{x:Static l:Strings.Inspector_FitLinkHeader}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
+              <TextBlock Text="{Binding FitLinkText}" Foreground="#DDDDDD" TextWrapping="Wrap"/>
+              <ComboBox ItemsSource="{Binding LinkableClimbs}" SelectedIndex="{Binding SelectedLinkableIndex, Mode=TwoWay}" HorizontalAlignment="Stretch"/>
+              <WrapPanel>
+                <Button Content="{x:Static l:Strings.Inspector_FitLink}" Command="{Binding LinkFitClimbCommand}" Margin="0,0,6,6"/>
+                <Button Content="{x:Static l:Strings.Inspector_FitUnlink}" Command="{Binding UnlinkFitClimbCommand}" Margin="0,0,6,6"/>
+              </WrapPanel>
+            </StackPanel>
+
             <!-- Audio (Phase 7): volume and mute are independent; every change is one edit. -->
             <StackPanel Spacing="6" IsVisible="{Binding HasAudioProperties}">
               <TextBlock Text="{x:Static l:Strings.Inspector_AudioHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>

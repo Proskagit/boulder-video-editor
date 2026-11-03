@@ -20,6 +20,10 @@ public static class AppPaths
     /// list is written, so a configuration folder that can't be created never prevents startup.</summary>
     public static string RecentProjectsFile => Path.Combine(ConfigFolderPath, "recent-projects.json");
 
+    /// <summary>The global start calibration (D051 §6.1, Step 37.2) — the second per-user file. Not created here: it is
+    /// created on its first write.</summary>
+    public static string FitCalibrationFile => Path.Combine(ConfigFolderPath, "fit-calibration.json");
+
     /// <summary>Per-project cache. Thumbnails live in its <c>thumbnails</c> subfolder — the one place for them in a
     /// project folder (D024 Step 9.4) —, waveforms in <c>waveforms</c> (Step 9.5); see <c>ThumbnailCacheLocation</c> /
     /// <c>WaveformCacheLocation</c>.</summary>

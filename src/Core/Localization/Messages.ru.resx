@@ -1177,6 +1177,45 @@
   <data name="Transition_NotOnTemplate" xml:space="preserve">
     <value>Рядом с шаблоном нельзя поставить переход.</value>
   </data>
+  <data name="FitMark_None" xml:space="preserve">
+    <value>У этого подъёма нет FIT-метки.</value>
+  </data>
+  <data name="FitMark_ClimbLinked" xml:space="preserve">
+    <value>Этот FIT-подъём уже связан с анимацией.</value>
+  </data>
+  <data name="FitMark_AnimationLinked" xml:space="preserve">
+    <value>Эта анимация уже связана с другим FIT-подъёмом.</value>
+  </data>
+  <data name="FitMark_NotDurationAnimation" xml:space="preserve">
+    <value>С FIT-подъёмом можно связать только анимацию зацепок в режиме длительности.</value>
+  </data>
+  <data name="FitMark_Declined" xml:space="preserve">
+    <value>Этот подъём отклонён: сначала верните его.</value>
+  </data>
+  <data name="FitMark_NotDeclined" xml:space="preserve">
+    <value>Этот подъём не отклонён.</value>
+  </data>
+  <data name="FitMark_NotLinked" xml:space="preserve">
+    <value>Этот FIT-подъём не связан с анимацией.</value>
+  </data>
+  <data name="FitMark_OutsideVideo" xml:space="preserve">
+    <value>FIT-метка должна оставаться внутри своего видео.</value>
+  </data>
+  <data name="FitMark_ClipNotOnMarkVideo" xml:space="preserve">
+    <value>Клип не показывает видео этой метки.</value>
+  </data>
+  <data name="FitMark_MarkNotInClip" xml:space="preserve">
+    <value>Кадр метки не попадает в клип.</value>
+  </data>
+  <data name="FitMark_ClimbUnknown" xml:space="preserve">
+    <value>Этого подъёма нет в FIT тренировки.</value>
+  </data>
+  <data name="Edit_PasteDuplicateFitMarkup" xml:space="preserve">
+    <value>Нельзя {0}: разметка клипа, связанного с FIT-подъёмом, уже есть на таймлайне.</value>
+  </data>
+  <data name="FitMark_NoRecordingStart" xml:space="preserve">
+    <value>У видео метки не задано начало записи (Z): кадр метки неизвестен.</value>
+  </data>
   <data name="Training_None" xml:space="preserve">
     <value>В проекте нет тренировки COROS.</value>
   </data>

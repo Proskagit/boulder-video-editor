@@ -10,10 +10,6 @@ namespace AiVideoEditor.Core.Telemetry.Research;
 // rates, a failed probe, a proposal reference), so the canonical JSON — and the content hash — of a study written by
 // Step 35.3b1 stays the same and its frozen revisions stay valid.
 
-/// <summary>The full identity of a FIT climb (D050 B8): the split index alone is stable only within one FIT, so a
-/// decision or an exclusion stays bound to the climb's index, number and start, all three.</summary>
-public readonly record struct ClimbIdentity(int ClimbKey, int ClimbNumber, DateTimeOffset ClimbStartUtc);
-
 /// <summary>A climb split of the FIT as the study saw it; <see cref="Identity"/> is what decisions refer to.</summary>
 public sealed record StudyClimb(int SegmentIndex, int ClimbNumber, DateTimeOffset StartUtc, long ElapsedTicks, DateTimeOffset EndUtc)
 {

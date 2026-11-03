@@ -1177,6 +1177,45 @@
   <data name="Transition_NotOnTemplate" xml:space="preserve">
     <value>A transition can't be placed next to a template.</value>
   </data>
+  <data name="FitMark_None" xml:space="preserve">
+    <value>This climb has no FIT mark.</value>
+  </data>
+  <data name="FitMark_ClimbLinked" xml:space="preserve">
+    <value>This FIT climb is already linked to an animation.</value>
+  </data>
+  <data name="FitMark_AnimationLinked" xml:space="preserve">
+    <value>This animation is already linked to another FIT climb.</value>
+  </data>
+  <data name="FitMark_NotDurationAnimation" xml:space="preserve">
+    <value>Only a hold animation in the Duration mode can be linked to a FIT climb.</value>
+  </data>
+  <data name="FitMark_Declined" xml:space="preserve">
+    <value>This climb is declined: bring it back first.</value>
+  </data>
+  <data name="FitMark_NotDeclined" xml:space="preserve">
+    <value>This climb is not declined.</value>
+  </data>
+  <data name="FitMark_NotLinked" xml:space="preserve">
+    <value>This FIT climb is not linked to an animation.</value>
+  </data>
+  <data name="FitMark_OutsideVideo" xml:space="preserve">
+    <value>A FIT mark stays inside its video.</value>
+  </data>
+  <data name="FitMark_ClipNotOnMarkVideo" xml:space="preserve">
+    <value>The clip does not show the mark's video.</value>
+  </data>
+  <data name="FitMark_MarkNotInClip" xml:space="preserve">
+    <value>The mark's frame is not inside the clip.</value>
+  </data>
+  <data name="FitMark_ClimbUnknown" xml:space="preserve">
+    <value>This climb is not in the training's FIT.</value>
+  </data>
+  <data name="Edit_PasteDuplicateFitMarkup" xml:space="preserve">
+    <value>Can't {0}: the markup of a clip linked to a FIT climb is already on the timeline.</value>
+  </data>
+  <data name="FitMark_NoRecordingStart" xml:space="preserve">
+    <value>The mark's video has no recording start (Z): its frame is not known.</value>
+  </data>
   <data name="Training_None" xml:space="preserve">
     <value>The project has no COROS training.</value>
   </data>
