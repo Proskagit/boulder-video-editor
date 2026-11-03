@@ -104,6 +104,8 @@ marking rule of `docs/PHASE_COROS.md` §10. The rows check the tool, not the mar
 | D3 | FIT missing + HR overlay; Export | a warning naming the reason; the export starts only after confirmation; Cancel exports nothing | |
 | D4 | HR overlay over a clip with an unknown zero; Export | nothing shown there in the Preview and the export; the warning names the clips | |
 | D5 | A project without an HR overlay, FIT missing; Export | no warning about the heart rate | |
+| D6 | «Шаблон ▾ → Пульс» with the playhead on an aligned clip on V1 (the overlay goes on V2) | the overlay covers the rest of that clip; the Inspector shows «Вид», «Положение», «Цвет сердца» and the hint; each click is one Undo step and shows in the Preview at once | |
+| D7 | Change the video's zero (Inspector «Совместить кадр…»), then Undo; remove the training, then import it again | the BPM in the Preview follows each change at the same frame; without the training nothing is drawn | |
 
 ## E. Step 35.6 — the real session end to end
 

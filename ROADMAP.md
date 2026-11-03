@@ -95,7 +95,8 @@ phase number in use is 37**.
   complete.** Steps 35.0–35.2 done (35.2 accepted), 35.4 implemented (v11; its manual rows open); 35.3 in part — the formal
   evaluation 35.3d gave «B6 not met» (0 of 13 climbs within `τ`, drift −22.4 s), an experimental result, not a confirmation
   of the method; **35.3e awaits the product owner's decision** and is not in the near plan; **35.5 (the heart-rate overlay)
-  and 35.6 not started**. Its commits reached `main` with PR #33, together with Phase 37. Record: `docs/PHASE_COROS.md`.
+  implemented on `feat/phase-35-5-heart-rate`** (v13; pull request open; manual rows not run); 35.6 not started. Steps
+  35.0–35.4 reached `main` with PR #33, together with Phase 37. Record: `docs/PHASE_COROS.md`.
 - **Phases 32–34** — D048 (approved 2026-10-28, merged in PR #32): 32 (the route selection at `T`) paused / deferred; 33
   (the timing model, v10) and 34 (the overlay strip, variant B) implemented, a separate formal acceptance not recorded.
 - **Phases 30 and 31** — technically complete (PR #31); the full S1 acceptance (Phase 30) and the manual A / B / E checks
@@ -103,8 +104,8 @@ phase number in use is 37**.
   complete.
 - **Phase 36** — the session summary and the YouTube chapters: a specification draft outside `main`, no decision.
 
-**Next (the product owner's direction of 2026-11-03, DECISIONS.md D050): Step 35.5 — the heart-rate overlay**, then 35.6,
-Phase 35's closeout. It is not combined with an export of time codes: the time-code export (Phase 36's YouTube chapters)
+**Next (the product owner's direction of 2026-11-03, DECISIONS.md D050): Step 35.5 — the heart-rate overlay** (implemented,
+its pull request open), then 35.6, Phase 35's closeout. It is not combined with an export of time codes: the time-code export (Phase 36's YouTube chapters)
 stays a separate item until its original intent and its relations to the other phases are clarified. Step 35.3e is not
 taken up without a separate product decision, and it is not replaced by recognising attempts from the climber's movement
 in the video.
@@ -472,7 +473,7 @@ working labels — a phase gets its number (27, 28, …) and its own decision wh
 Phase 30 and D is Phase 31 — both technically complete, their full acceptance open, both merged through PR #31; E's
 camera-motion part is merged in PR #31, unnumbered and not complete; D048's stages are Phases 32–34, merged in PR #32 (32
 paused / deferred; 33 and 34 without a recorded formal acceptance); F is Phase 35 — in `main` in part since PR #33
-(2026-11-03; 35.5 and 35.6 not started, 35.3e awaiting a decision); Phase 37 merged with it, not accepted; H is not
+(2026-11-03; 35.5 implemented on its branch, 35.6 not started, 35.3e awaiting a decision); Phase 37 merged with it, not accepted; H is not
 started. *(The first sentence's date was 2026-10-28; this list is the state on 2026-11-03.)*
 
 Status on 2026-10-24: Phases 0–29 complete and merged (Phase 27 = A as `36a1a58`, PR #28; Phase 28 = B as `4f0e66a`,

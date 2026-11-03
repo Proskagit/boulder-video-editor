@@ -8576,6 +8576,12 @@ exports (`<study>.eval-135.json` / `.csv`) are kept with the personal data and n
 - **The export of time codes** (in the current plan the YouTube chapters of Phase 36) stays a separate item until its
   original intent and its relations to the other phases are clarified.
 
+**Implementation notes of Step 35.5 (2026-11-03; the decisions above unchanged).** The heart-rate overlay is a template kind
+(`HeartRate`, «Пульс») with a look, a corner and the heart's colour; its BPM is that of the picture right below it, through
+D049 §6 and the readout's rule (`TrainingAlignment.HeartRateAtSource`); nothing is drawn where there is no value; Preview =
+export through the one painter; the warning of D049 §10 as `HeartRateUnavailable`; `project.json` v13 by V1. Record:
+`docs/PHASE_COROS.md` §13.
+
 ---
 
 ## D051 — Preliminary route starts from a COROS FIT and the global start calibration (Phase 37) *(approved 2026-11-03)*

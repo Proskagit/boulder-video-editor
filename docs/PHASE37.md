@@ -262,7 +262,7 @@ the Phase 37 branch from `main`. What happened the same day:
    synchronisation after PR #33 (`docs/PHASE_COROS.md` §4, §10, §12).
 2. D050, the table of steps: the acceptance of 35.3 «≥ 12 of the 14 typical files» is the earlier wording, superseded by
    the amendment B6 (≥ 11 of 13) — marked as superseded in `docs/PHASE_COROS.md` §4; D050's own text is not rewritten.
-3. `ProjectSerializer.CurrentFormatVersion`: the doc comment lists the versions up to 8, the constant is 12 — a code
-   comment, open (not changed by a documentation task).
+3. `ProjectSerializer.CurrentFormatVersion`: the doc comment listed the versions up to 8 — completed with Step 35.5
+   (versions 9–13).
 4. `ROADMAP.md`, `docs/DEVELOPMENT_PLAN.md`, `progress.md` without Phase 35's state — resolved by the synchronisation.
 5. `ClimbIdentity` moved from `Core/Telemetry/Research` to `Core/Telemetry` in Step 37.1 — done.

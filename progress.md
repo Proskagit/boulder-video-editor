@@ -15,9 +15,14 @@ numbering" → "Official phases"; this file is the dated working log.
 - **Phase 35:** 35.0–35.2 done (35.2 accepted); 35.3 in part; **35.3d run 2026-11-02 — B6 not met** (0 of 13 climbs
   within `τ`, drift −22.4 s; an experimental result, not a confirmation of the method — `docs/PHASE_COROS.md` §12);
   **35.3e not implemented, awaiting the product owner's decision**, not in the near plan; 35.4 implemented, manual rows
-  C1–C14 not run; **35.5 and 35.6 not started**.
-- **Next (product owner, 2026-11-03; DECISIONS.md D050): Step 35.5 — the heart-rate overlay**, not combined with an export
-  of time codes; the time-code export (Phase 36's YouTube chapters) stays a separate item until its original intent and
+  C1–C14 not run; **35.5 implemented** (below); 35.6 not started.
+- **Step 35.5 — the heart-rate overlay (2026-11-03, branch `feat/phase-35-5-heart-rate` from `e2a1617`):** the template
+  kind «Пульс» (look, corner, heart's colour), the BPM of the picture right below it through the one mapping and the
+  readout's rule, nothing drawn without a value, Preview = export, the export warning `HeartRateUnavailable`,
+  `project.json` v13 — `docs/PHASE_COROS.md` §13. Gates (2026-11-03): Release / Debug `--no-incremental -warnaserror`
+  0 / 0; the full suite with `AIVE_HEAVY_TESTS=1` 5 333 passed, 0 failed, 0 skipped. Manual rows D1–D7 not run.
+- **Next (product owner, 2026-11-03; DECISIONS.md D050): Step 35.5 — the heart-rate overlay** (done above, pull request
+  open), then 35.6; not combined with an export of time codes; the time-code export (Phase 36's YouTube chapters) stays a separate item until its original intent and
   relations are clarified; 35.3e is not replaced by recognising attempts from the climber's movement in the video.
 - **Documentation synchronised after PR #33** (branch `docs/sync-after-phase-37`): D051, `docs/PHASE37.md` and
   `docs/PHASE37_MANUAL_TEST_PLAN.md` brought into `main` from `docs/phase-37` (`20326dc`), the numbering of
@@ -26,7 +31,7 @@ numbering" → "Official phases"; this file is the dated working log.
 - **Open, not phases:** the S1 release preparation (Phase 30: FFmpeg distribution — branch `build/ffmpeg-minimal`, not
   merged —, the licence notices, a clean environment, C4, the owner's sign-off); the manual checks of Phases 31 and 37 and
   of Step 35.4; the known flaky tests `WasapiAudioOutputDeviceTests` and `TrainingLifecycleTests.Other_bytes…` under the
-  full parallel run; the doc comment of `ProjectSerializer.CurrentFormatVersion` lists the versions up to 8 only.
+  full parallel run.
 
 **The dated paragraphs below are history.** Where they call D048 proposed, the hold tracking in progress, or Phase 35 not
 merged, the state above prevails.

@@ -9,9 +9,10 @@ test plan: `docs/PHASE35_MANUAL_TEST_PLAN.md`.*
 
 **State (2026-11-03): in `main` in part; not complete.** Steps 35.0–35.2 done (35.2 accepted); 35.3 in part, its formal
 evaluation 35.3d run with the result «B6 not met» (§12), 35.3e awaiting the product owner's decision; 35.4 implemented, its
-manual rows open; **35.5 (the heart-rate overlay) — the next priority — and 35.6 not started** (§4). Phase 35's commits
+manual rows open; **35.5 (the heart-rate overlay) implemented on the branch `feat/phase-35-5-heart-rate`** (§13; its pull
+request open, `project.json` v13; the manual rows D1–D7 not run); 35.6 not started (§4). Phase 35's commits up to 35.4
 reached `main` with PR #33 (`1640996`, 2026-11-03) together with Phase 37 — not through the two pull requests of §5;
-`project.json` v11 is Phase 35's format. Further work branches from `main`.
+`project.json` v11 is Phase 35's format, v13 its overlay's. Further work branches from `main`.
 
 History: branches `feat/phase-coros-c0` (C0) and `feat/phase-coros-c1` (C1, on top of C0), from `origin/main` `1e58885`
 (Phases 30 / 31, hold tracking and D048 with its stages 2–3 merged; `project.json` v10 in the code). C0 was written on
@@ -91,7 +92,7 @@ alignment (Step 35.3). Not established either: the clock difference between the 
 | **35.2** (C1) | Import entry: `ITrainingImportService` (Core) + `TrainingImportService` (Media; 16 MiB limit, missing / unreadable file); «Тренировка COROS…» on the toolbar with a `.fit` picker (`TrainingImportWorkflow`); localized refusal texts and warnings (`TrainingText`); the workout held in `TrainingSessionService` (not saved) | importing the real file shows device, date, local time, 14 climbs; each refusal reason has a Russian / English text; nothing persisted | **implemented** (`934bbf6`, local branch `feat/phase-coros-c1`); **manual acceptance A1–A11 PASS (2026-10-29, §9)**, no defect found; in `main` (PR #33) |
 | 35.3 (C2) | Recording time: the probe and its marker (D049 §4), the raw tag with its origin (§2–§3); research on the real session — what the tag marks, whether it is a true C instant, the C ↔ W difference per climb (visible start vs split), the outliers; a proposed automatic-zero rule with its tolerance `τ` and device scope. Sub-steps 35.3a–e, the Debug research window and the study file: D050 amendment B5–B9, §10 below | (D050 B6) `|r_i| ≤ τ` (leave-one-out, `τ = 2 s` working value) for ≥ 11 of the 13 filmed climbs C2–C14, every one of the 13 explained, no drift beyond `τ / 2`, the 7 videos without a climb as the independent check of the tag; approved by the owner; until then every zero «override» or «unknown» (manual plan part B) | the probe **implemented** (`02ded40`); 35.3a, 35.3b1, 35.3b2a and the tool 35.3R1 **implemented** (R1–R12 PASS); 35.3b2c and 35.3b2d **implemented**; the reference marking 35.3R2 **done and frozen** by the owner; **35.3d run (2026-11-02): B6 not met** (§12); 35.3b2b deferred; 35.3c only as the marking mode of 35.3R1; **35.3e not implemented — awaiting the product owner's decision** (§12); the owner's descriptive research of two trainings in §11; its format members in v11, in `main` (PR #33) |
 | 35.4 (C3) | Persistence and alignment: the format change (v11), `Project.Training`, the FIT life cycle (D049 §9), the training's clock correction (a setting of the COROS training drop-down) and the per-video zero override Z (in the clip's Inspector: the playhead's frame matched to the end of climb N — the default, less the end lag of 4.6 s — or to its start; D050 amendment of 2026-11-02) — one Undo step each, video relink with the override (ID1, §8), the zero states «override» / «unknown» (the «automatic» state after 35.3's rule), the mapping (§6) and its read-only readout at the playhead in the Inspector; 35.2's «not saved» texts revised (D050 amendment of 2026-11-01) | D049 §13 tests; manual plan part C | **implemented** (`e15d7af`; the match point by the D050 amendment of 2026-11-02): automated tests pass; manual rows C1–C14 not run; `project.json` v11, in `main` (PR #33) |
-| 35.5 (C4) | Heart-rate overlay: heart icon + BPM, a few looks / positions, through the one composition path; the export warning `HeartRateUnavailable` | Preview = export at sampled frames; pauses, gaps and an unknown zero show nothing; the warning exactly when data is missing, confirmation required (manual plan part D) | **not started — the next priority** (product owner, 2026-11-03; not combined with an export of time codes) |
+| 35.5 (C4) | Heart-rate overlay: heart icon + BPM, a few looks / positions, through the one composition path; the export warning `HeartRateUnavailable` | Preview = export at sampled frames; pauses, gaps and an unknown zero show nothing; the warning exactly when data is missing, confirmation required (manual plan part D) | **implemented on the branch `feat/phase-35-5-heart-rate`** (2026-11-03; its pull request open, not merged); the owner's manual rows D1–D7 not run; not combined with an export of time codes (§13) |
 | 35.6 (C5) | Verification and closeout: full and heavy suites, `--blame-hang`, the manual plan on the real session (video + export), documents | product owner's acceptance (manual plan part E) | not started |
 
 Note: D050's table of steps still gives the acceptance of 35.3 in its earlier wording («≥ 12 of the 14 typical files»);
@@ -380,3 +381,63 @@ it is cancelled, replaced, re-specified or closed is not decided; it is not in t
 2026-11-03). It is not to be replaced by the recognition of an attempt from the climber's movement in the video, and no
 conclusion about the need for such a function is drawn without a separate decision of the product owner. 35.3b2b (the
 matching proposals) stays deferred.
+
+## 13. Step 35.5 — the heart-rate overlay (as implemented, 2026-11-03)
+
+Branch `feat/phase-35-5-heart-rate` from `main` `e2a1617`; no change of D048–D051. What the user gets: «Шаблон ▾ → Пульс»
+puts a heart with the BPM over the video, in the Preview and in the exported file alike.
+
+**Model.** The overlay is a template kind (`TemplateKind.HeartRate`, «Пульс»): a generated clip on a video track, added like
+every template (D045 §5) at the playhead on the topmost video track, in one undo step — moved, trimmed, split, copied and
+deleted by the template rules, with no format of its own beyond its two fields. Its default length is the rest of the video
+clip right below the playhead (the default 10 s without one); its appearance and disappearance 0.3 s each (the clip's
+fades). Fields, each one click and one undo step in the Inspector's own section: the **look** («На подложке» — a dark
+plate; «Без подложки» — the heart and the digits with a soft shadow), the **corner** (four, at the placement grid's safe
+margin, D043 §3), the **heart's colour** (the route-colour swatches; red by default). A hint under them says where the value
+comes from, or the project's reason for none (no training; the FIT not available).
+
+**Value.** The BPM of the picture right below the overlay: the clip covering the frame on the nearest visible track below
+(a clip at opacity 0 is skipped; inside a transition the clip the frame belongs to) — a video with a usable training and a
+known recording zero. Its source time by the clip's exact rule (speed, trim, slip), then the one mapping
+`w = Z + s + ClockCorrection` and the readout's rule (D049 §6, this record §3.4): the latest sample at most 2 s old, inside
+the recording, outside the timer's pauses — `TrainingAlignment.HeartRateAtSource`, the same value as the Inspector's
+readout. Nothing is ever interpolated or held longer. **Where there is no value the overlay draws nothing at all**: no or
+an unusable training, a gap or an image or a video without a recording zero below, the timer's pause, a gap in the data,
+outside the recording. The heart beats once per beat of the value shown, from the overlay's own clock (a pure function of
+the frame); the digits' place is as wide as «000», so the block never moves.
+
+**Pipeline (one composition path, Preview = export).** `PlaybackSnapshotBuilder` binds each video span to the training once
+per snapshot (`PictureSpan.HeartRate`: the parsed workout, `Z`, `ClockCorrection`); `PlaybackSnapshot.LayersAt` gives the
+overlay's `TemplateLayer.HeartRate` from `PictureBelow`; `CompositionDrawPlan` carries it to `TemplateDraw`;
+`TemplatePainter` draws it for the Preview's control and the export's rasterizer alike. The binding is presentation only:
+a new zero, clock correction or training rebuilds the snapshot without restarting a decoder. The Preview follows the
+training's own events (read, relinked, replaced, removed) besides the timeline's (a zero or clock-correction edit).
+
+**Export (D049 §10).** With an overlay in the exported range and no data there, the preflight warns — confirmation in the
+existing dialog, the export may start: no training; a training not usable (its file named); a video right below an overlay
+without a recording zero (one warning per file, its clips named; the picture below resolved as the composition does). No
+overlay, or one outside the range: no check, whatever the training.
+
+**Format.** `project.json` v13 (D049 V1: the next free version): the kind `"HeartRate"` with `"look"` and `"corner"`,
+written and required on it only; a v12 file opens unchanged and is saved as v13; an overlay in a v12 file, or without its
+look or corner, is refused as damaged.
+
+**Performance** (Release, the development machine): `LayersAt` 4.2 µs per frame with the overlay against 3.6 µs with a REC
+template over 54 000 frames of a 60-clip project with a two-hour training (7 200 samples, 40 pauses); the snapshot's build
+0.1–0.2 ms; rasterizing a 1920 × 1080 frame with the overlay within the noise of the frame without it (≈ 8.8 ms both).
+
+**Verification.** Automated: `Core.Tests` (`HeartRateOverlayTests` — the mapping frame by frame, speed 0.5× / 2×, trim and
+move, the clock correction, pauses, the 2 s gap rule, the recording's edges, no training / not usable / unknown zero, the
+picture below over three tracks, an image below, two overlays, equality with the Inspector's readout on every 7th frame of
+a 1.25× clip, presentation-only rebuilds, the draw operation; `HeartRatePreflightTests`), `Project.Tests`
+(`HeartRateOverlayPersistenceTests`), `Timeline.Tests` (`HeartRateOverlayEditTests`, the template kinds' theory),
+`UI.Tests` (`HeartRateOverlayUiTests` — the menu, the Inspector, the hint, the Preview following the training and the
+zero), `Rendering.Tests` (`HeartRateRenderTests` — the Preview and the export byte for byte in both looks, every corner,
+horizontal and vertical, in and between beats; nothing without a value; a steady block), `ExportEndToEnd.Tests`
+(`ExportHeartRateEndToEndTests` — the overlay in the encoded file, nothing in the pause, the Preview = the export at
+sampled frames, nothing without a training). Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full
+suite with `AIVE_HEAVY_TESTS=1` 5 333 passed, 0 failed, 0 skipped. Manual: `docs/PHASE35_MANUAL_TEST_PLAN.md` part D —
+not run.
+
+**Out of 35.5** (product owner, 2026-11-03): the export of time codes / YouTube chapters (Phase 36), a FIT lane on the
+timeline, editing FIT events or adding attempts, Step 35.3e, recognising attempts from the climber's movement.
