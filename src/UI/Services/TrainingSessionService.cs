@@ -118,8 +118,21 @@ public sealed class TrainingSessionService
 
     /// <summary>Reads the current project's FIT file again and sets its availability (D049 §9): equal bytes →
     /// Available; other bytes of the same activity → Changed (used); another activity → OtherActivity; refused →
-    /// Unreadable; no file → Missing. A result for a project that is no longer current is dropped.</summary>
-    public async Task ResolveAsync()
+    /// Unreadable; no file → Missing. A result for a project that is no longer current is dropped. A call while the same
+    /// training's file is being read joins that read: two reads would race — the first updating the identity of other
+    /// bytes of the same activity, the second then comparing with it and calling the file Available, not Changed.</summary>
+    public Task ResolveAsync()
+    {
+        var training = _projects.Current.Training;
+        if (_resolving is { IsCompleted: false } running && ReferenceEquals(_resolvingFor, training)) return running;
+        _resolvingFor = training;
+        return _resolving = ResolveCoreAsync();
+    }
+
+    private Task? _resolving;
+    private TrainingReference? _resolvingFor;
+
+    private async Task ResolveCoreAsync()
     {
         var project = _projects.Current;
         if (project.Training is not { } training || _import is null) return;

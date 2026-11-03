@@ -255,9 +255,10 @@ public sealed class TrainingImportTests : IDisposable
         await toolbar.ImportTrainingCommand.ExecuteAsync(null);
 
         Assert.Contains(nameof(ToolbarViewModel.TrainingToolTip), notified);
+        // The tooltip's resource spans lines: its line ends are the checkout's (CRLF on a Windows CI checkout).
         Assert.Equal(
             $"Project training: {TrainingText.Summary(_session.Workout!)}\nБолдеринг.fit\nFile available.",
-            toolbar.TrainingToolTip);
+            toolbar.TrainingToolTip.ReplaceLineEndings("\n"));
         Assert.True(toolbar.HasTraining);
         Assert.True(toolbar.RemoveTrainingCommand.CanExecute(null));
         Assert.False(toolbar.RelinkTrainingCommand.CanExecute(null));    // only while the file is not available
