@@ -3,6 +3,12 @@
 Iterative phases, in order. Do not start a phase before the previous one builds
 and runs cleanly.
 
+**This file is the canonical roadmap**: the phase list below, the per-phase scope and steps, and — in "Phase and step
+numbering" → "Official phases" — the one table of the phases' state and of what comes next. `ROADMAP.md` summarises it
+with the product concept and the release stopping points; `progress.md` is the dated working log; a phase's own record
+(`docs/PHASE_COROS.md` for Phase 35, `docs/PHASE37.md` for Phase 37) holds its detail. Where they differ, this file and the
+phase's record prevail.
+
 - [x] **Phase 0 — Architecture.** Solution, projects, DI, logging, base MVVM,
       basic window, Git-ready structure. *(`0ccc9be`)*
 - [x] **Phase 1 — Basic UI.** Toolbar, Media Browser, Preview, Timeline, Inspector
@@ -174,37 +180,187 @@ and runs cleanly.
       criteria: section below and DECISIONS.md D045 (approved 2026-10-21). *(Branch `feat/phase-29-templates` from
       `4f0e66a`; Steps 29.0–29.6 and the corrections of D045 §17 done; accepted by the product owner on 2026-10-22;
       PR #30 merged into `main` as `e28a9d3` (2026-10-22), CI green on the pull request)*
-- [x] **Phase 30 — Stabilisation of the current base (D042 Phase G; technical closeout).** The technical stabilisation
+- [ ] **Phase 30 — Stabilisation of the current base (D042 Phase G; technical closeout).** *Technically complete; the full
+      acceptance (S1) open — not a complete phase ("Phase and step numbering").* The technical stabilisation
       of the main path and the portable build is **complete by the product owner's decision of 2026-10-24**: the local
       technical verification passed (builds 0/0, full and heavy test suites 0 failed, three `--blame-hang` runs clean,
       `git diff --check` clean, v9 byte-for-byte round-trip covered by `Project.Tests`, the portable folder rebuilt and the
       available Step 30.2 rows re-run). The main path (D042 §1 without step 4) was run in the portable build on 2026-10-23
       and checked by the owner on 2026-10-24 (B1–B9 PASS); the performance of a typical project was measured and the targets
       C1–C6 agreed on 2026-10-24. **The full acceptance of S1 is not declared**: FFmpeg distribution, licence notices review,
-      a clean-environment check without the current machine's limitations, the C4 live-preview observation, **CI green**
-      (the Phase 30 branch has not been pushed/merged, so no CI run exists; the last green CI was PR #30 `e28a9d3`) and the
-      product owner's final sign-off remain open and are deferred to a separate release-preparation task. Scope, steps and the historical results: section below and
+      a clean-environment check without the current machine's limitations, the C4 live-preview observation and the
+      product owner's final sign-off remain open (CI, listed here before, is green since Phase 30 reached `main` with
+      PR #31 — the pull request and `main`, 2026-10-26) and are deferred to a separate release-preparation task. Scope, steps and the historical results: section below and
       DECISIONS.md D046 (approved 2026-10-22). *(Branch `feat/phase-30-stabilization` from `e28a9d3`; Steps 30.0–30.7
       technically complete 2026-10-24; S1 acceptance pending a later task.)*
-- [ ] **Planned (D042; numbers given when taken up):** R1 → D — automatic hold proposals · R2 → E — outlines following the
-      camera · R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
-- [x] **D048 approved 2026-10-28, as implemented** (DECISIONS.md D048; numbers 32–34 still proposals):
-      - stage 1 — the route selection at `T`: implemented, then **paused / deferred**; «Авторазметка» hidden, the code
-        and the research kept (`docs/HOLD_AUTO_DETECTION_RESEARCH.md`);
-      - stage 2 — the timing model, the template ↔ clip anchor and `project.json` v10: done;
-      - stage 3 — the overlay strip: done, **variant B** (the segments inside the «Боулдер»), the lane Debug-only.
-
+- [ ] **Phase 31 — Automatic hold proposals — technically complete; the full manual acceptance open (D047 approved
+      2026-10-25).** Steps 31.1–31.7 complete: Core proposal types and pipeline, proposals at a downscaled resolution,
+      full-resolution refinement of accepted proposals, the review UI, the integration with the manual D034 flow, the
+      performance (15×15 grid; ≤ 8 s on a 4K frame met) and the closeout. Open: the interactive A / B / E checks of
+      `docs/PHASE31_MANUAL_TEST_PLAN.md` with the product owner's footage. *(Merged with PR #31, `024f3fb`, no PR of its own.)*
+- [ ] **Phase 32 — the route selection at `T` (D048 stage 1): implemented, paused / deferred.** «Авторазметка» hidden,
+      the code and the research kept (`docs/HOLD_AUTO_DETECTION_RESEARCH.md`). Merged in PR #32 (`1e58885`); not complete.
+- [ ] **Phases 33–34 — D048 stages 2 and 3: implemented and merged in PR #32 (`1e58885`); a separate formal acceptance of
+      each phase not recorded.** D048 approved as implemented on 2026-10-28 (DECISIONS.md D048; numbers confirmed by the
+      product owner 2026-10-28):
+      - Phase 33 — the timing model, the template ↔ clip anchor and `project.json` v10;
+      - Phase 34 — the overlay strip, **variant B** (the segments inside the «Боулдер»), the lane Debug-only.
       Manual markup stays the main scenario. Section "D048: route selection, intro / final timing and the overlay strip"
       below (written before the approval).
-- **Phase 31 technically complete (D047 approved 2026-10-25):** Steps 31.1–31.7 are complete: Core proposal types and
-      pipeline, proposal generation at downscaled resolution, full-resolution refinement of accepted proposals, the proposal
-      review UI / ViewModel, integration with the manual D034 flow / project mutation, the manual test plan / performance
-      optimization, and final verification / closeout. The default grid was changed from 16×16 to 15×15 during Step 31.6: it
-      is faster and has higher recall on the E1 set, so the ≤8 s acceptance criterion is met for both 4K and 1080p on the
-      development machine. Full user acceptance is pending the interactive A/B/E checks that require the product owner's own
-      footage and manual UI actions. D047 clarifications: ≤8 s on a 4K frame is the acceptance performance criterion, ≤5 s
-      desired but not a blocker; refinement runs automatically after Accept and reports failure instead of creating an
-      incorrect Hold; proposal pass resolution is the internal default 1920×1080; default prompt grid is 15×15.
+- [ ] **Phase 35 — Import of COROS trainings and the heart rate in the video (formerly "Phase Coros", R3 → F) — in
+      `main` in part, not complete.** D049 / D050 approved 2026-10-29. Steps 35.0–35.2 done (35.2 accepted, A1–A11 PASS);
+      35.3 in part — its formal evaluation 35.3d gave «B6 not met» (an experimental result), 35.3e awaits the product
+      owner's decision; 35.4 implemented (`project.json` v11), its manual rows open; **35.5 (the heart-rate overlay) — the
+      next priority — and 35.6 not started.** Merged into `main` with PR #33 (`1640996`, 2026-11-03) together with Phase 37.
+      Record: `docs/PHASE_COROS.md`; section "Phase 35" below.
+- [ ] **Phase 36 — Session summary and YouTube chapters.** Planned; a specification draft outside `main` (local branch
+      `docs/session-summary-youtube-chapters`), no decision, no implementation. Its export of time codes stays a separate
+      item until its original intent and its relations to the other phases are clarified (product owner, 2026-11-03).
+      Section "Phase 36" below.
+- [ ] **Phase 37 — Preliminary route starts from a COROS FIT and the global start calibration — implemented and merged,
+      not accepted.** DECISIONS.md D051 (approved 2026-11-03). Steps 37.1–37.6 in `90950cc`, merged with PR #33
+      (`1640996`, 2026-11-03; CI green); `project.json` v12; Step 37.7 in part — the automated gates passed, the manual plan
+      `docs/PHASE37_MANUAL_TEST_PLAN.md` not run. Record: `docs/PHASE37.md`; section "Phase 37" below.
+- [ ] **Not numbered, in part in `main`:** R2 → E — the outlines following the camera (camera-motion part merged in PR #31,
+      accepted for continued development, not complete). **Not started:** H — Final UX Pass (the last large phase). Section
+      "Planned phases after Phase 26 (D042)" below.
+
+## Phase and step numbering (product owner, 2026-10-28)
+
+The labels of the plan had mixed three things — phases, the steps inside them and the Git branches / pull requests. From
+2026-10-28 (the product owner's choice, "variant A"):
+
+- **Phase N** — an official phase: its own decision (a D-number, approved by the product owner), its plan, its acceptance
+  criteria, its manual test plan and its own pull request (or several, named in the plan). A phase is **complete** only when
+  it is merged into `main` and accepted by the product owner; "technically complete" means the local verification passed
+  and the owner's acceptance is still open. A merge alone is not an acceptance, and a local commit completes nothing. In
+  the checklist above `[x]` marks a complete phase only; a phase merged or technically complete but not accepted keeps
+  `[ ]` with its state.
+- **Historical exceptions — Phases 30–34, 35 and 37**: Phases 30 and 31 reached `main` through PR #31, Phases 32–34 through
+  PR #32, without pull requests of their own, and Phases 32–34 without manual test plans of their own. Phase 35 (Steps
+  35.0–35.4) and Phase 37 reached `main` together through PR #33 (`feat/phase-37-fit-starts`, the product owner's decision
+  of 2026-11-03), not through Phase 35's two planned pull requests and a Phase 37 pull request of its own. Phase 35's
+  remaining steps and every later phase follow these rules.
+- **Step N.k** — a step inside Phase N: N.0 the documentation and the plan, then N.1, N.2, …, the last one the
+  verification and closeout. The step labels used before a phase got its number (C0, S1, MVP-1, stage 2, …) are kept only in
+  the history (commit messages, old records) and in the table below.
+- **Branches and pull requests are not phase numbers.** A branch is named `feat/phase-N-<topic>` (`docs/…` for a
+  documentation-only branch), but a branch name does not make a phase: Phases 30 and 31 reached `main` through PR #31
+  (`feat/hold-tracking`), Phases 32–34 through PR #32 (`docs/d048-route-timing`), Phases 35 and 37 through PR #33
+  (`feat/phase-37-fit-starts`).
+- **Letters and other labels keep their own meaning**: A–H and R1–R3 are D042's working labels of directions; S0–S4 in
+  `ROADMAP.md` are the release stopping points (S1 the minimum useful release) — not steps; C1–C6 of Phase 30 are its
+  performance targets. To avoid clashes, no new step is labelled with a bare S- or C-number.
+- **Format versions**: the version sequence is decided before any phase's step that changes the format. D049 (approved
+  2026-10-29) fixes rule V1: the phase that first merges a format change takes the next free version, the number fixed at
+  merge. As merged: v10 — Phase 33 (D048, PR #32); **v11 — Phase 35** (Step 35.4) and **v12 — Phase 37** (D051), both with
+  PR #33. The current version is **12**; a later phase (Phase 35's Step 35.5 if it needs one, Phase 36, hold tracking)
+  takes the next free version in its own format decision.
+
+### Official phases on 2026-11-03
+
+The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
+
+| Phase | Decision | State | Merged |
+|---|---|---|---|
+| 0–29 | … D045 | complete: merged and accepted | Phase 29 — PR #30, `e28a9d3` |
+| 30 — stabilisation (D042 G) | D046 | technically complete 2026-10-24; full acceptance (S1) open | in PR #31 (`024f3fb`), no PR of its own |
+| 31 — automatic hold proposals (D042 D) | D047 | technically complete 2026-10-26; full manual acceptance (A / B / E checks) open | in PR #31 (`024f3fb`), no PR of its own |
+| — R2 → E, hold tracking | none (no number) | accepted for continued development, not complete (D048 §1.17) | PR #31, `024f3fb` |
+| 32 — route selection at `T` (D048 stage 1) | D048 | implemented, paused / deferred («Авторазметка» hidden); not complete | PR #32, `1e58885` |
+| 33 — timing model, anchors, `project.json` v10 (D048 stage 2) | D048 | implemented and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
+| 34 — the overlay strip (D048 stage 3) | D048 | implemented (variant B) and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
+| 35 — COROS trainings and the heart rate | D050, D049 | in part: 35.0–35.2 done (35.2 accepted); 35.3 in part (35.3d: B6 not met; 35.3e awaiting the owner's decision); 35.4 implemented (v11), manual rows open; **35.5, 35.6 not started**; not complete | in PR #33 (`1640996`), with Phase 37 |
+| 36 — summary and chapters | to be approved | planned; specification draft outside `main`; its time-code export a separate item until clarified | — |
+| 37 — FIT route starts and the start calibration | D051 | implemented (37.1–37.6, v12) and merged; 37.7 in part (automated gates passed, manual plan not run); acceptance open | PR #33, `1640996` |
+| H — Final UX Pass | — | not started | — |
+
+The **highest phase number in use is 37**; the **last complete phase** (merged and accepted) **is 29**. **Next — by the
+product owner's direction of 2026-11-03 (D050, «The product owner's direction»): Step 35.5, the heart-rate overlay**, then
+35.6, Phase 35's closeout. Not in the near plan: Step 35.3e (needs a separate product decision) and Phase 36's export of
+time codes (a separate item until clarified). Open alongside, not new phases: the manual acceptance of Phases 31 and 37 and
+of Step 35.4, the S1 release preparation (Phase 30).
+
+### Old and new labels
+
+| Old label (where) | New label |
+|---|---|
+| G (D042) | Phase 30 |
+| R1 → D, D (D042) | Phase 31 |
+| D048 stage 1, D048-1, "proposed Phase 32" | Phase 32 |
+| D048 stage 2, D048-2, "proposed Phase 33" | Phase 33 |
+| D048 stage 3, D048-3, "proposed Phase 34" | Phase 34 |
+| R2 → E, "Hold tracking" | unchanged — unnumbered until it is taken up again |
+| R3 → F, F, "Phase Coros" (`docs/PHASE_COROS.md`) | R3 (the research, carried out on the owner's real APEX 4 FIT export; `docs/PHASE_COROS.md` §1) + Phase 35 |
+| Phase Coros C0 / C1 / C2 / C3 / C4 / C5 | Steps 35.1 / 35.2 / 35.3 / 35.4 / 35.5 / 35.6 |
+| Summary / chapters S0 / S0.5 / S2 + S3 / S1 + S4 / S5 / S6 | Steps 36.0 / 36.1 / 36.2 / 36.3 / 36.4 / 36.5 |
+| Summary / chapters MVP-1 | Steps 36.1–36.2 + the `PassId` of 36.3 (MVP-1 included S1) |
+| Summary / chapters MVP-2 / MVP-3 | Step 36.3 (the «Итоги» template) / Step 36.4 |
+| S0–S4 (`ROADMAP.md`, stopping points) | unchanged — releases, not steps |
+
+### Phase 35 — Import of COROS trainings and the heart rate in the video *(in `main` in part; not complete)*
+
+Record: `docs/PHASE_COROS.md`; manual plan: `docs/PHASE35_MANUAL_TEST_PLAN.md`. Decisions: D050 (the phase) and D049 (the
+training in the project, the video ↔ training time model, the format), approved 2026-10-29. Owner's decisions recorded
+there: any COROS model whose FIT export meets the parser's requirements (the real device is an APEX 4, not a Pace 4); the
+import of Step 35.2 kept the training in the session only, and from Step 35.4 the training is saved in the project (a FIT
+reference, D049); the route's grade and the attempt's result are set by hand (not read from the FIT, not available through
+COROS MCP).
+
+| Step | Content | Format | State (2026-11-03) |
+|---|---|---|---|
+| 35.0 | D049, D050, the plan, the acceptance criteria, the manual test plan | — | done; in `main` (PR #33) |
+| 35.1 | FIT reader, COROS parser, workout model and timeline (formerly C0) | none | done; in `main` (PR #33) |
+| 35.2 | Import into the session: toolbar command, refusals, summary (formerly C1) | none | done, manual acceptance passed (A1–A11 PASS, 2026-10-29); in `main` (PR #33) |
+| 35.3 | Recording time: the raw `creation_time` tag and its probe marker; research on the real session — what the tag marks, the phone ↔ watch clock difference, the automatic-zero rule (formerly C2) | its members in v11 | **in part**: the probe, 35.3a, 35.3b1, 35.3b2a, 35.3b2c, 35.3b2d, the tool 35.3R1 and the frozen marking 35.3R2 done; 35.3b2b deferred; **35.3d run 2026-11-02 — B6 not met** (0 of 13 climbs within `τ`, drift −22.4 s; an experimental result, not a confirmation of the method — `docs/PHASE_COROS.md` §12); **35.3e not implemented — awaiting the product owner's decision**, not in the near plan |
+| 35.4 | Alignment by media file, including its persistence: the training saved in the project (a FIT reference), the clock correction and a per-file zero override, the mapping (formerly C3) | v11 | implemented (`e15d7af`), automated tests pass; manual rows C1–C14 not run; in `main` (PR #33) |
+| 35.5 | Heart-rate overlay, Preview = export; a confirmed export warning when its data is missing (formerly C4) | its members in the next free version, if any | **not started — the next priority** (product owner, 2026-11-03); not combined with an export of time codes |
+| 35.6 | Verification, the manual check on the real session, closeout (formerly C5) | — | not started |
+
+Pull requests: the plan of D050 (PR 1 — Steps 35.0–35.2; PR 2 — Steps 35.3–35.6, the only one changing the format) was
+overtaken on 2026-11-03 — Steps 35.0–35.4 reached `main` with PR #33 together with Phase 37. Steps 35.5–35.6 come in a pull
+request of their own from `main`.
+
+Not part of the near plan (product owner, 2026-11-03): Step 35.3e; it is not replaced by the recognition of an attempt
+from the climber's movement in the video, and no such function is planned without a separate decision of the product
+owner.
+
+### Phase 36 — Session summary and YouTube chapters *(planned)*
+
+**The export of time codes (the YouTube chapters of Steps 36.1–36.2) stays a separate item until its original intent and
+its relations to the other phases are clarified (product owner, 2026-11-03); it is not combined with Step 35.5.** The steps
+below are the draft of 2026-10-28, not a plan in force.
+
+Specification draft: `FEATURE_SESSION_SUMMARY_AND_YOUTUBE_CHAPTERS.md` — on the local branch
+`docs/session-summary-youtube-chapters` only, not in `main`; based before D048, to be revised in 36.0. Owner's decisions already given there: one chapter = one pass (В1 / В2); the heart
+rate only from the FIT of the final video's sources (В6); no data → `0` on the overlay, «no data» in the model (В7).
+
+| Step | Content | Format | Depends on |
+|---|---|---|---|
+| 36.0 | Revision of the specification on current `main` (D048 anchors, the formats up to v12 taken, the training saved in the project since Step 35.4), the remaining questions, the decision and the plan | — | — |
+| 36.1 | The pass heuristic checked on the current edit service (formerly S0.5) | none | — (a check of the current code; may run before 36.0) |
+| 36.2 | Passes by the heuristic H of 36.1 (the grouping by `PassId` comes with 36.3) and YouTube chapters: the window, copy to the clipboard (formerly S2–S3) | none | 36.1 |
+| 36.3 | `PassId` (passes grouped by it) and the «Итоги» template without heart rate (formerly S1 + S4; MVP-2, and the `PassId` part of MVP-1) | a format change (version fixed at merge, V1) | 36.2, Phase 36's own format decision |
+| 36.4 | Heart rate in the summary (formerly S5, MVP-3) | none | Steps 35.2–35.4 (formerly C1–C3) |
+| 36.5 | Verification and closeout (formerly S6) | — | 36.2–36.4 |
+
+36.2 may be merged in a pull request of its own before 36.3 if Phase 36's own format decision is not taken yet.
+
+### Phase 37 — Preliminary route starts from a COROS FIT and the global start calibration *(implemented and merged; not accepted)*
+
+Decision: D051 (approved 2026-11-03). Record: `docs/PHASE37.md`; manual plan: `docs/PHASE37_MANUAL_TEST_PLAN.md`.
+
+| Step | Content | State (2026-11-03) |
+|---|---|---|
+| 37.0 | D051, the record, the manual plan | done (`20326dc`); in `main` with the documentation synchronisation after PR #33 |
+| 37.1 | Core: the K3 calibration | done (`90950cc`) |
+| 37.2 | The per-user store `fit-calibration.json` | done |
+| 37.3 | The project model and format | done: `project.json` v12 |
+| 37.4 | Proposals, mark edits and Undo; the marks' interface | done; a mark moves by «Переместить метку к плейхеду» (no drag — accepted by the product owner) |
+| 37.5 | Observations on save | done |
+| 37.6 | «Настройки FIT…» | done |
+| 37.7 | Verification and closeout | in part: automated gates passed, CI green on PR #33 and on `main`; the manual plan not run; the product owner's acceptance open |
+
 
 ## Planned phases after Phase 26 (D042)
 
@@ -213,9 +369,10 @@ product owner after the merge of Phase 26 (D042 "Refined after the merge of Phas
 steps, acceptance criteria and manual plan when it is taken up, and its number then. A is Phase 27 (D043; merged, PR #28,
 `36a1a58`); B is Phase 28 (D044; merged, PR #29, `4f0e66a`); C is Phase 29 (D045; merged, PR #30, `e28a9d3`); G is
 Phase 30 (D046; approved 2026-10-22, **technically complete 2026-10-24** — local verification passed; the full S1 acceptance
-is deferred to a separate release-preparation task). R1 → D (automatic hold proposals) is **complete as a research phase**
-(conditional GO; Step R1.1 and R1.2 done in `tools/r1-hold-proposals/`); phase D is not started and requires its own
-decision. R2 → E, R3 → F and H are neither started nor approved. The scopes of the
+is deferred to a separate release-preparation task). R1 → D: the research is complete (conditional GO) and D is Phase 31
+(D047, technically complete). R2 → E: researched, its camera-motion part merged (PR #31), unnumbered, not complete. R3 → F:
+the research done on real files and F is Phase 35 (D049 / D050, in part in `main`). H is not started. State of every phase:
+"Phase and step numbering" → "Official phases". The scopes of the
 phases not yet taken up are sketches to be refined — not specifications. Every phase keeps the standing rules at the end of this file: one Undo step per user action, the
 Preview identical to the export, `MediaTime` ticks, heavy work off the UI thread, the localization guards (D039), the gates
 of the recent phases (build `-warnaserror`, the full suite, heavy, `--blame-hang`, `project.json` compared byte for byte
@@ -459,7 +616,13 @@ risks and the open questions: DECISIONS.md D048. Nothing here starts before the 
   stage 3; stage 3 after stage 2's model and anchor are approved and merged. Every stage keeps the standing rules (one Undo
   step per action, Preview = export, `MediaTime` ticks, the D039 localization, the gates).
 
-### R3 → F — «COROS Pace 4: пульс и телеметрия в видео» *(research, then telemetry large)*
+### R3 → F — «COROS Pace 4: пульс и телеметрия в видео» *(research, then telemetry large)* — now Phase 35
+
+*2026-10-28: F is Phase 35 ("Phase and step numbering" above). The text below is the sketch of 2026-10-20; the owner's
+later decisions (any COROS model — the real device is an APEX 4; the training saved in the project from Step 35.4, D049;
+manual grade and result) and Phase 35's record `docs/PHASE_COROS.md` prevail. R3 is done (`docs/PHASE_COROS.md` §1); the
+automatic synchronisation by the video's tag was not confirmed (Step 35.3d, B6 not met) — the zero is set manually per
+video (Step 35.4) and the routes' starts are proposed by Phase 37 (D051).*
 
 The original idea of the project (D042 §6): heart-rate data from a COROS Pace 4 watch, synchronised with a bouldering video
 and shown in the export. Only COROS Pace 4 in the first version; no Garmin, Apple Watch or other devices in this scope; the

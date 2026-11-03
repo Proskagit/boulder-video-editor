@@ -1,5 +1,9 @@
 # D048 stage 1 — acceptance on the owner's clips (prepared 2026-10-27)
 
+*State on 2026-11-03: D048 was approved as implemented on 2026-10-28 and merged in PR #32; stage 1 (Phase 32) is paused /
+deferred («Авторазметка» hidden), and the product owner's acceptance by this procedure has not been made. The text below is
+as prepared on 2026-10-27.*
+
 D048 stays **Proposed**. This is the procedure for the stage 1 criteria that need real footage and the owner's judgement
 (D048 §5, stage 1: 2 — the transfer on the owner's clips; 4 — accept / cancel / back to `T` in the app; 7 — precision /
 recall at agreed thresholds). The automatic tests cover the rest on synthetic frames; they are not a substitute for this.
