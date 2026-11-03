@@ -23,8 +23,11 @@ public partial class App : Avalonia.Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = Services.GetRequiredService<MainWindow>();
+            // Phase 37 (D051 §6): the calibration is read at start and every save sends its observations.
+            Services.GetRequiredService<AiVideoEditor.Project.FitCalibrationSaveSync>();
 #if DEBUG
             DevStartup.OpenProjectFromArguments(desktop);   // development only: --open-project <folder>
+            DevStartup.OpenCorosReferenceFromArguments(desktop);   // development only: --coros-reference <study file>
 #endif
         }
 

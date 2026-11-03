@@ -28,12 +28,13 @@ public sealed class MediaOrientationRefreshTests : IDisposable
     private readonly StatusService _status = new();
     private readonly ProjectFileWorkflow _workflow;
     private readonly List<MediaAnalysisStatus> _statusesSeen = new();
+    private readonly MediaAnalysisCoordinator _coordinator;
 
     public MediaOrientationRefreshTests()
     {
         Directory.CreateDirectory(_root);
         _projects = new ProjectService(_undo, NullLogger<ProjectService>.Instance);
-        var coordinator = new MediaAnalysisCoordinator(_analysis, _projects, NullLogger<MediaAnalysisCoordinator>.Instance);
+        var coordinator = _coordinator = new MediaAnalysisCoordinator(_analysis, _projects, NullLogger<MediaAnalysisCoordinator>.Instance);
         _workflow = new ProjectFileWorkflow(_projects, coordinator, new NullAutosave(), new ScriptedDialogs(), new ScriptedPicker(), _status,
             NullLogger<ProjectFileWorkflow>.Instance);
         _projects.MediaAssetsChanged += (_, _) => _statusesSeen.AddRange(_projects.Current.MediaAssets.Select(a => a.AnalysisStatus));
@@ -147,14 +148,36 @@ public sealed class MediaOrientationRefreshTests : IDisposable
     [Fact]
     public async Task Current_metadata_is_not_probed_again()
     {
+        // Current metadata needs no orientation (or colour) refresh. Since Phase 35 Step 35.3 a video is probed once per
+        // session for its recording time (D049 §4) — runtime only until Step 35.4, so an opened project's videos get that
+        // one probe; it leaves the orientation as it was, keeps the project clean and is not repeated in the session.
         var path = File_("new.mp4");
         var asset = SavedBeforeOrientation(path);
         asset.Metadata = Portrait();
         var folder = WriteProject(asset);
+        _analysis.Result = _ => MediaAnalysisResult.Success(WithRecordingTime(Portrait()));
 
         Assert.True(await _workflow.OpenAsync(folder));
+        var opened = Assert.Single(_projects.Current.MediaAssets);
+        Assert.False(opened.Metadata!.NeedsDisplaySizeProbe);            // no orientation refresh is due
+        Assert.False(opened.Metadata.NeedsColorProbe);                   // no colour refresh either
+        await _coordinator.IdleAsync();
 
-        Assert.Empty(_analysis.Calls);
+        Assert.Equal(new[] { path }, _analysis.Calls);                   // exactly one probe: the recording time
+        Assert.Same(RecordingTimeProbe.Absent, opened.Metadata!.RecordingTimeProbe);
+        Assert.Equal((90, 1080, 1920), (opened.Metadata.DisplayRotation, opened.Metadata.DisplayWidth, opened.Metadata.DisplayHeight));
+        Assert.Equal(MediaAnalysisStatus.Completed, opened.AnalysisStatus);
+        Assert.False(_projects.Current.IsDirty);
+
+        await _projects.RecheckMediaAsync();                             // same session: not probed again
+        await _coordinator.IdleAsync();
+        Assert.Single(_analysis.Calls);
+    }
+
+    private static MediaMetadata WithRecordingTime(MediaMetadata metadata)
+    {
+        metadata.RecordingTimeProbe = RecordingTimeProbe.Absent;
+        return metadata;
     }
 
     // --- What the user sees -------------------------------------------------------------------
@@ -260,6 +283,8 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult SetCanvasSize(int width, int height) => No;
         public TimelineEditResult SetFrameRate(FrameRate rate) => No;
         public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null) => No;
+        public TimelineEditResult SetTrainingClockCorrection(MediaTime correction) => No;
+        public TimelineEditResult SetRecordingZeroOverride(Guid mediaAssetId, DateTimeOffset? zero) => No;
         public TimelineEditResult SetExportSettings(ExportEncoding export) => No;
         public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds,
             Func<SnapResult, bool>? accept = null) => SnapResult.None;

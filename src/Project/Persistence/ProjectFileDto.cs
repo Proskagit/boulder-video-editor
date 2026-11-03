@@ -27,6 +27,86 @@ internal sealed class ProjectFileDto
     public ProjectSettingsDto? Settings { get; set; }
     public List<MediaAssetDto>? MediaAssets { get; set; }
     public SequenceDto? Timeline { get; set; }
+
+    /// <summary>Format v11 (D049 §7): the project's COROS training; written only when set. Ignored in older files.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TrainingDto? Training { get; set; }
+}
+
+/// <summary>Format v11 (D049 §7): a reference to the training's FIT file — never its telemetry. Every member is required.</summary>
+internal sealed class TrainingDto
+{
+    public Guid Id { get; set; }
+
+    /// <summary>Absolute path at the time of saving.</summary>
+    public string? FilePath { get; set; }
+
+    /// <summary>Path relative to the project folder, or null when the file is on another volume (as for media).</summary>
+    public string? RelativePath { get; set; }
+
+    public long FileSizeBytes { get; set; }
+
+    /// <summary>SHA-256 of the file, 64 lower-case hex digits.</summary>
+    public string? Sha256 { get; set; }
+
+    public TrainingActivityDto? Activity { get; set; }
+
+    /// <summary>W − C in 100 ns ticks (D049 §2).</summary>
+    public long ClockCorrectionTicks { get; set; }
+
+    /// <summary>Format v12 (D051 §5.3): the active FIT marks; written only when there are any. Ignored in older files.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<FitMarkDto>? FitMarks { get; set; }
+
+    /// <summary>Format v12 (D051 §5.3): the declined climbs; written only when there are any.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<DeclinedClimbDto>? DeclinedClimbs { get; set; }
+}
+
+/// <summary>The activity's identity in watch time (UTC, written with offset +00:00).</summary>
+internal sealed class TrainingActivityDto
+{
+    public DateTimeOffset StartUtc { get; set; }
+    public DateTimeOffset EndUtc { get; set; }
+    public int Manufacturer { get; set; }
+    public int? Product { get; set; }
+}
+
+/// <summary>A FIT climb's full identity (D050 B8): split index, number and start (UTC).</summary>
+internal sealed class ClimbIdentityDto
+{
+    public int Key { get; set; }
+    public int Number { get; set; }
+    public DateTimeOffset StartUtc { get; set; }
+}
+
+/// <summary>Format v12 (D051 §5.3): one FIT mark. <c>position</c> is "proposed", "clamped" or "moved"; the source time
+/// in ticks is written exactly for the last two; the link only when there is one.</summary>
+internal sealed class FitMarkDto
+{
+    public ClimbIdentityDto? Climb { get; set; }
+    public DateTimeOffset AutoStartUtc { get; set; }
+    public long StartCorrectionTicks { get; set; }
+    public int CalibrationVersion { get; set; }
+    public Guid MediaAssetId { get; set; }
+    public string? Position { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? SourceTimeTicks { get; set; }
+
+    public DateTimeOffset PositionChangedAt { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? LinkedClipId { get; set; }
+}
+
+/// <summary>Format v12 (D051 §5.3): a declined climb and, if a mark existed, the mark as it was (never linked).</summary>
+internal sealed class DeclinedClimbDto
+{
+    public ClimbIdentityDto? Climb { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public FitMarkDto? FormerMark { get; set; }
 }
 
 internal sealed class FrameRateDto
@@ -79,6 +159,11 @@ internal sealed class MediaAssetDto
 
     /// <summary>ffprobe result; null if analysis hadn't completed successfully.</summary>
     public MediaMetadataDto? Metadata { get; set; }
+
+    /// <summary>Format v11 (D049 §2): a video's recording-zero override in camera time C (UTC, offset +00:00); written only
+    /// when set. Ignored in older files.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTimeOffset? RecordingZeroOverrideUtc { get; set; }
 }
 
 internal sealed class MediaMetadataDto
@@ -139,6 +224,24 @@ internal sealed class MediaMetadataDto
     /// <summary>Written only when true.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? HasHdrVivid { get; set; }
+
+    /// <summary>Format v11 (D049 §4, §7): the recording-time probe of a video — absent = not probed (probed again in the
+    /// background, M2); present = probed. Ignored in older files.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RecordingTimeProbeDto? RecordingTimeProbe { get; set; }
+}
+
+/// <summary>Format v11: <see cref="Status"/> is "found" (with the raw <see cref="Tag"/> and its <see cref="Origin"/>,
+/// "format" or "videoStream") or "absent" (neither).</summary>
+internal sealed class RecordingTimeProbeDto
+{
+    public string? Status { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Tag { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Origin { get; set; }
 }
 
 internal sealed class SequenceDto

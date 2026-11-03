@@ -63,6 +63,10 @@ public interface IProjectService
     /// nothing changed.</exception>
     Task<Project> RestoreRecoveryAsync(string recoveryFilePath, CancellationToken ct = default);
 
+    /// <summary>Attaches, replaces or (null) removes the current project's COROS training (Phase 35, D049 §9): a project
+    /// change — the project becomes dirty — but not an Undo step (as a media import).</summary>
+    void SetTraining(Telemetry.TrainingReference? training);
+
     /// <summary>
     /// Checks again whether the file of every media asset of the current project is there (D026 §2) and updates
     /// <see cref="MediaAsset.IsMissing"/>. The file system is read off the caller's thread — a slow or disconnected

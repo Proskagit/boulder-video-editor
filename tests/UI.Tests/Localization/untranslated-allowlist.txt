@@ -106,8 +106,14 @@ src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Set Status Moment
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Crop Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Scale Clip
+src/Timeline/TimelineEditService.FitMarks.cs	Propose FIT Marks
+src/Timeline/TimelineEditService.FitMarks.cs	Move FIT Mark
+src/Timeline/TimelineEditService.FitMarks.cs	Decline FIT Climb
+src/Timeline/TimelineEditService.FitMarks.cs	Restore FIT Climb
+src/Timeline/TimelineEditService.FitMarks.cs	Link FIT Climb
+src/Timeline/TimelineEditService.FitMarks.cs	Unlink FIT Climb
 
-# Reasons of a damaged file — for project.json the diagnostic detail in parentheses after the translated sentence (D039 §2); for the recent-projects list written to the log only.
+# Reasons of a damaged file — for project.json the diagnostic detail in parentheses after the translated sentence (D039 §2); for the recent-projects list and the FIT calibration file (with the change named in its log lines, D051 §6.1) written to the log only.
 src/Project/Persistence/ProjectSerializer.cs	a clip doesn't match the kind of {asset.FileName}
 src/Project/Persistence/ProjectSerializer.cs	a clip has a negative fade
 src/Project/Persistence/ProjectSerializer.cs	a clip has an empty link id
@@ -206,12 +212,44 @@ src/Project/Persistence/ProjectSerializer.cs	unknown hold animation order
 src/Project/Persistence/ProjectSerializer.cs	unknown hold animation mode
 src/Project/Persistence/ProjectSerializer.cs	a hold animation has a duration without its mode
 src/Project/Persistence/ProjectSerializer.cs	a hold animation has no duration
+src/Project/Persistence/ProjectSerializer.cs	invalid recording-time probe
+src/Project/Persistence/ProjectSerializer.cs	invalid training file hash
+src/Project/Persistence/ProjectSerializer.cs	invalid training file size
+src/Project/Persistence/ProjectSerializer.cs	recording-zero override on a non-video media
+src/Project/Persistence/ProjectSerializer.cs	training activity ends before it starts
+src/Project/Persistence/ProjectSerializer.cs	training activity is missing
+src/Project/Persistence/ProjectSerializer.cs	training file path is missing
+src/Project/Persistence/ProjectSerializer.cs	a FIT mark has no climb
+src/Project/Persistence/ProjectSerializer.cs	a FIT mark is linked to a clip without a duration hold animation
+src/Project/Persistence/ProjectSerializer.cs	a FIT mark is linked to a missing clip
+src/Project/Persistence/ProjectSerializer.cs	a FIT mark is not on a video of the project
+src/Project/Persistence/ProjectSerializer.cs	a FIT mark's position does not match its kind
+src/Project/Persistence/ProjectSerializer.cs	a declined climb has no identity
+src/Project/Persistence/ProjectSerializer.cs	a declined climb is also active or declined twice
+src/Project/Persistence/ProjectSerializer.cs	a declined climb keeps a link
+src/Project/Persistence/ProjectSerializer.cs	a declined climb keeps the mark of another climb
+src/Project/Persistence/ProjectSerializer.cs	empty FIT mark entry
+src/Project/Persistence/ProjectSerializer.cs	invalid FIT mark calibration version
+src/Project/Persistence/ProjectSerializer.cs	negative FIT mark position
+src/Project/Persistence/ProjectSerializer.cs	one animation is linked to two FIT climbs
+src/Project/Persistence/ProjectSerializer.cs	two active FIT marks for one climb
+src/Project/Persistence/ProjectSerializer.cs	unknown FIT mark position
 src/Project/Persistence/RecentProjectsStore.cs	a newer format version
 src/Project/Persistence/RecentProjectsStore.cs	no list of projects
 src/Project/Persistence/RecentProjectsStore.cs	no valid format version
 src/Project/Persistence/RecentProjectsStore.cs	not JSON
 src/Project/Persistence/RecentProjectsStore.cs	not a recent-projects list
 src/Project/Persistence/RecentProjectsStore.cs	not an object
+src/Project/Persistence/FitCalibrationStore.cs	a newer format version
+src/Project/Persistence/FitCalibrationStore.cs	no list of records
+src/Project/Persistence/FitCalibrationStore.cs	no valid format version
+src/Project/Persistence/FitCalibrationStore.cs	not JSON
+src/Project/Persistence/FitCalibrationStore.cs	not a FIT calibration
+src/Project/Persistence/FitCalibrationStore.cs	not an object
+src/Project/Persistence/FitCalibrationStore.cs	reset the calibration
+src/Project/Persistence/FitCalibrationStore.cs	synchronise the observations
+src/Project/Persistence/FitCalibrationStore.cs	turn the collection off
+src/Project/Persistence/FitCalibrationStore.cs	turn the collection on
 
 # FFmpeg / FFprobe / decoder / model runtime detail — technical, in parentheses after a translated sentence where shown (D039 §2).
 src/Core/Playback/PlaybackSnapshotBuilder.cs	A {clip.GetType().Name} cannot play {asset.Kind} media.
@@ -297,3 +335,136 @@ src/UI/ViewModels/ProjectSettingsViewModel.cs	Full HD
 src/UI/Views/MainWindow.axaml.cs	Design Time
 src/UI/Views/MainWindow.axaml.cs	Design time — not analyzed.
 src/UI/Views/MainWindow.axaml.cs	Design time.
+
+# Steps 35.3b1–35.3b2a — the COROS synchronisation study (D050 B5), an internal Debug research tool (with its journal notes): the reasons a study file is damaged, a path refused or a set not ready, kept English as diagnostics like the project's damaged-file reasons; the Debug window of Step 35.3c shows them as technical detail.
+src/Core/Telemetry/Research/StudyValidator.cs	evaluation records
+src/Core/Telemetry/Research/StudyValidator.cs	location {group.Key}: more than one current location
+src/Core/Telemetry/Research/StudyValidator.cs	location {location.SubjectKey}: no path
+src/Core/Telemetry/Research/StudyValidator.cs	location {location.SubjectKey}: no such FIT or video
+src/Core/Telemetry/Research/StudyValidator.cs	revision {revision.Number}: numbers are not 1, 2, 3, …
+src/Core/Telemetry/Research/StudyValidator.cs	revision {revision.Number}: the content hash does not match its content
+src/Core/Telemetry/Research/StudyValidator.cs	subject {subject}: no location
+src/Core/Telemetry/Research/StudyValidator.cs	{what} is not unique
+src/Core/Telemetry/Research/StudyValidator.cs	{what}: sequence numbers do not increase
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: a climb has a negative duration
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: climb number
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: climb split index
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision of a mark
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision {d.MarkId}: climb present or missing against its state
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision {d.MarkId}: no reason
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision {d.MarkId}: the climb is not a climb of this FIT (index, number and start)
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision {d.MarkId}: unknown mark
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: exclusion id
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: exclusion {e.ExclusionId}: no reason
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: exclusion {e.ExclusionId}: the climb is not a climb of this FIT (index, number and start)
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark id
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: negative start
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: outside its video
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: the end is not after the start
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: unknown video
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: the FIT's SHA-256 is malformed
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: the FIT's size is negative
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: the activity ends before it starts
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video SHA-256
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video key
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: SHA-256 is malformed
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: a tag without a probe
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: a tag without its origin or the reverse
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: negative size or duration
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: no file name
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: retired without a reason
+src/Project/Research/SyncStudyFileStore.cs	a study file cannot be inside the project folder
+src/Project/Research/SyncStudyFileStore.cs	a study file cannot be the project file
+src/Project/Research/SyncStudyFileStore.cs	a study file must end with {Extension}
+src/Core/Telemetry/Research/StudyJsonReader.cs	an object was expected for «{name}»
+src/Project/Research/SyncStudySerializer.cs	not valid JSON
+src/Project/Research/SyncStudySerializer.cs	schema {schema} is newer than {SyncStudy.CurrentSchemaVersion}
+src/Project/Research/SyncStudySerializer.cs	the root is not an object
+src/Project/Research/SyncStudySerializer.cs	unknown schema {schema}
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» has an unknown value
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is missing
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not a UTC instant
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not a boolean
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not a key
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not a string
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not an array
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not an integer
+src/Core/Telemetry/Research/StudyJsonReader.cs	«{name}» is not an object
+src/Project/Research/SyncStudyService.cs	no study is open
+src/Project/Research/SyncStudyService.cs	no such FIT or video
+src/Project/Research/SyncStudyService.cs	no such video
+src/Project/Research/SyncStudyService.cs	the file has other content (SHA-256 or size differ)
+src/Project/Research/SyncStudyService.cs	{Path.GetFileName(path)}: cannot be read ({ex.Message})
+src/Project/Research/SyncStudyService.cs	{Path.GetFileName(path)}: changed while it was read
+src/Project/Research/SyncStudyService.cs	{Path.GetFileName(path)}: not found
+src/Project/Research/SyncStudyService.cs	{name}: changed since it was verified
+src/Project/Research/SyncStudyService.cs	{name}: {StateOf(key)}, not verified
+src/Project/Research/SyncStudyService.cs	{video.OriginalFileName}: duration or recording-time probe missing
+src/Core/Telemetry/Research/StudyValidator.cs	evaluation {e.Seq}: no algorithm version or inputs hash
+src/Core/Telemetry/Research/StudyValidator.cs	evaluation {e.Seq}: no revision {e.Revision}
+src/Core/Telemetry/Research/StudyValidator.cs	evaluation {e.Seq}: the report hash does not match its report
+src/Core/Telemetry/Research/StudyValidator.cs	evaluation {e.Seq}: the revision's content hash does not match
+src/Core/Telemetry/Research/StudyValidator.cs	explanation id
+src/Core/Telemetry/Research/StudyValidator.cs	explanation withdrawals
+src/Core/Telemetry/Research/StudyValidator.cs	explanation {x.ExplanationId}: another report
+src/Core/Telemetry/Research/StudyValidator.cs	explanation {x.ExplanationId}: no evaluation {x.EvaluationSeq}
+src/Core/Telemetry/Research/StudyValidator.cs	explanation {x.ExplanationId}: no evidence
+src/Core/Telemetry/Research/StudyValidator.cs	explanation {x.ExplanationId}: recorded before its evaluation
+src/Core/Telemetry/Research/StudyValidator.cs	explanation {x.ExplanationId}: the climb is not a climb of the evaluated FIT
+src/Core/Telemetry/Research/StudyValidator.cs	two append-only records share a sequence number
+src/Core/Telemetry/Research/StudyValidator.cs	withdrawal of an explanation
+src/Core/Telemetry/Research/StudyValidator.cs	withdrawal {w.Seq}: before its explanation
+src/Core/Telemetry/Research/StudyValidator.cs	withdrawal {w.Seq}: no such explanation
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision {d.MarkId}: proposal reference against its basis
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: decision {d.MarkId}: the proposal's evaluation is missing
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: a failed probe beside a probe result
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: an unknown frame-rate state is written out
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: invalid average frame rate
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: invalid coverage
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: invalid frame rate
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: reviewed as holding no climb but a mark is unresolved
+src/Core/Telemetry/Research/SyncStudyEditor.cs	the FIT changed: its marks are stale
+src/Core/Telemetry/Research/SyncStudyEditor.cs	the video changed
+src/Core/Telemetry/Research/StudyJsonReader.cs	a proposal reference in the form of Step 35.3b1
+src/Project/Research/SyncStudyService.cs	climb {climb.ClimbNumber} is confirmed by more than one active mark
+src/Project/Research/SyncStudyService.cs	no frozen revision
+src/Project/Research/SyncStudyService.cs	the set differs from revision {Study.Revisions[^1].Number}: freeze again
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: coverage set in a later revision
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: video {v.VideoKey}: added in a later revision
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: added in a later revision
+src/Core/Telemetry/Research/MarkHistory.cs	journal entry {entry.Seq}: no mark
+src/Core/Telemetry/Research/MarkHistory.cs	journal entry {entry.Seq}: no decision
+src/Core/Telemetry/Research/StudyJsonReader.cs	not valid JSON ({ex.Message})
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: climb {climb.ClimbNumber} is confirmed by more than one mark (one camera)
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: the marking rule has no id or no text
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: an empty marking rule id
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: an invalid frame time base
+src/Core/Telemetry/Research/StudyValidator.cs	{where}: mark {m.MarkId}: an end PTS without an end
+# Step 35.3b2c — the formal evaluation of the COROS synchronisation study (D050 B6, amendment of 2026-11-02): the protocol's rules, the notes and the per-file and per-climb problems written into the evaluation report — canonical data covered by the report's hash, read by the research tools and the owner as the record, never interface text; English like the study's diagnostics above.
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	only for a video whose constant frame rate is confirmed; 3 decimals, half away from zero
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	even count: the midpoint of the two middle values rounded towards -infinity to a tick
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	tagMarksStart: Z = tag (descriptive only)
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	leave-one-out: r_i = k_i - median(k_j, j != i); within tau when |r_i| <= tau
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	the mark's start (the end is not part of the criterion)
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	descriptive tables (tagNameDifferences, sensitivity, reference) never change the verdict
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	the marks carry the error of a manual visual choice by the marking rule
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	the tag check is reported per file and is not part of the B6 verdict
+src/Core/Telemetry/Research/StudyEvaluation.cs	fixed 2026-11-02 after the descriptive analysis of these files, before the formal evaluation; not registered in advance
+src/Core/Telemetry/Research/StudyEvaluation.cs	no explanation
+src/Core/Telemetry/Research/StudyEvaluation.cs	recorded as unexplained
+src/Core/Telemetry/Research/StudyEvaluation.cs	the explanation's category does not fit the status
+src/Core/Telemetry/Research/StudyEvaluation.cs	not in the revision
+src/Core/Telemetry/Research/StudyEvaluation.cs	not probed
+src/Core/Telemetry/Research/StudyEvaluation.cs	no tag
+src/Core/Telemetry/Research/StudyEvaluation.cs	tag not recognised
+src/Core/Telemetry/Research/StudyEvaluation.cs	no duration
+src/Core/Telemetry/Research/StudyEvaluation.cs	no time in the file name
+src/Core/Telemetry/Research/StudyEvaluation.cs	no confirmed or rejected mark
+src/Core/Telemetry/Research/StudyCanonicalJson.Evaluation.cs	no frames: the video's constant frame rate is not confirmed
+# Step 35.3b2d — the evaluation run and the explanations of the COROS synchronisation study (D050 B6): the reasons a run or an explanation is refused, the export problem and the journal note of a recorded evaluation — diagnostics of the internal research tools (shown by the Telemetry.LocalTests tools), English like the study's diagnostics above.
+src/Core/Telemetry/Research/SyncStudyEditor.cs	evaluation {record.Seq} of revision {record.Revision}
+src/Project/Research/SyncStudyService.cs	{Path.GetFileName(p)}: already exists, never overwritten
+src/Project/Research/SyncStudyService.cs	{Path.GetFileName(path)} not written ({ex.Message}); evaluation {record.Seq} is saved in the study
+src/Project/Research/SyncStudyService.cs	no evaluation {evaluationSeq}
+src/Project/Research/SyncStudyService.cs	no explanation given
+src/Project/Research/SyncStudyService.cs	the study was not saved ({ex.Error}: {ex.Message}); nothing was recorded

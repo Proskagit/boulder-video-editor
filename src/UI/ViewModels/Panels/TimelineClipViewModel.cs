@@ -104,6 +104,9 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
 
     public bool HasStrip => StripSegments.Count > 0;
 
+    /// <summary>D051 §8.1: the FIT marks on this video clip, in pixels from its left edge; empty otherwise.</summary>
+    [ObservableProperty] private IReadOnlyList<FitMarkGlyph> _fitMarks = Array.Empty<FitMarkGlyph>();
+
     /// <summary>The strip is drawn on the lane above this video clip (not inside its «Боулдер» — the Debug prototype).</summary>
     public bool ShowsStripLane => HasStrip && !StripInTemplate;
 

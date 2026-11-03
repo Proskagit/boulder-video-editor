@@ -2139,6 +2139,24 @@
   <data name="Holds_RouteCancel" xml:space="preserve">
     <value>Отмена</value>
   </data>
+  <data name="FitMark_Proposed" xml:space="preserve">
+    <value>предложена</value>
+  </data>
+  <data name="FitMark_Clamped" xml:space="preserve">
+    <value>прижата к краю записи</value>
+  </data>
+  <data name="FitMark_Moved" xml:space="preserve">
+    <value>перемещена</value>
+  </data>
+  <data name="FitMark_Tip" xml:space="preserve">
+    <value>FIT-подъём {0}: начало трассы, {1}</value>
+  </data>
+  <data name="FitMark_TipLinked" xml:space="preserve">
+    <value>; связана с анимацией</value>
+  </data>
+  <data name="FitMark_Declined" xml:space="preserve">
+    <value>FIT-подъём отклонён.</value>
+  </data>
   <data name="Strip_Green" xml:space="preserve">
     <value>Плашка: {0} – {1}</value>
   </data>
@@ -2156,5 +2174,550 @@
   </data>
   <data name="Timeline_SegmentsInTemplateTip" xml:space="preserve">
     <value>Только в Debug. Включено: сегменты вступления, анимации зацепок и Топ / Попытки внутри плашки «Боулдер» (основной вид). Выключено: прежняя дорожка над клипом.</value>
+  </data>
+  <data name="Toolbar_Training" xml:space="preserve">
+    <value>Тренировка COROS…</value>
+  </data>
+  <data name="Toolbar_TrainingTip" xml:space="preserve">
+    <value>Тренировка COROS: импорт файла .fit, указание файла, поправка часов тренировки. Проект хранит ссылку на файл.</value>
+  </data>
+  <data name="Toolbar_TrainingLoadedTip" xml:space="preserve">
+    <value>Тренировка проекта: {0}
+{1}
+{2}</value>
+  </data>
+  <data name="Training_PickerTitle" xml:space="preserve">
+    <value>Импорт тренировки COROS</value>
+  </data>
+  <data name="Training_FileFilter" xml:space="preserve">
+    <value>Тренировки FIT</value>
+  </data>
+  <data name="Training_Importing" xml:space="preserve">
+    <value>Импорт тренировки…</value>
+  </data>
+  <data name="Training_Imported" xml:space="preserve">
+    <value>Тренировка импортирована: {0}</value>
+  </data>
+  <data name="Training_Summary" xml:space="preserve">
+    <value>{0}, {1} {2}–{3} ({4}), {5}</value>
+  </data>
+  <data name="Training_Climbs" xml:space="preserve">
+    <value>{0} подход|{0} подхода|{0} подходов</value>
+  </data>
+  <data name="Training_Refused" xml:space="preserve">
+    <value>Тренировка не импортирована: {0}</value>
+  </data>
+  <data name="Training_DidntFinish" xml:space="preserve">
+    <value>Импорт тренировки не завершён.</value>
+  </data>
+  <data name="Training_ProjectChanged" xml:space="preserve">
+    <value>Команда тренировки остановлена: открыт другой проект, поэтому ничего не изменено.</value>
+  </data>
+  <data name="TrainingError_NotAFitFile" xml:space="preserve">
+    <value>это не FIT-файл.</value>
+  </data>
+  <data name="TrainingError_Truncated" xml:space="preserve">
+    <value>файл обрезан: он заканчивается раньше, чем указано в его заголовке.</value>
+  </data>
+  <data name="TrainingError_Corrupted" xml:space="preserve">
+    <value>файл повреждён: не сходится контрольная сумма.</value>
+  </data>
+  <data name="TrainingError_Malformed" xml:space="preserve">
+    <value>нарушена структура FIT-файла.</value>
+  </data>
+  <data name="TrainingError_NotAnActivity" xml:space="preserve">
+    <value>в файле не записанная тренировка (маршрут, план или настройки).</value>
+  </data>
+  <data name="TrainingError_NotCoros" xml:space="preserve">
+    <value>тренировка записана не часами COROS.</value>
+  </data>
+  <data name="TrainingError_NoSession" xml:space="preserve">
+    <value>в тренировке нет итогов сессии, поэтому неизвестны её начало и конец.</value>
+  </data>
+  <data name="TrainingError_NoHeartRate" xml:space="preserve">
+    <value>в тренировке нет данных пульса.</value>
+  </data>
+  <data name="TrainingError_ClockNotSet" xml:space="preserve">
+    <value>часы не были настроены: время в файле относительное, поэтому его нельзя сопоставить с видео.</value>
+  </data>
+  <data name="TrainingError_FileNotFound" xml:space="preserve">
+    <value>файл не найден.</value>
+  </data>
+  <data name="TrainingError_Unreadable" xml:space="preserve">
+    <value>файл не удалось прочитать (он занят другой программой или нет доступа).</value>
+  </data>
+  <data name="TrainingError_TooLarge" xml:space="preserve">
+    <value>файл слишком большой для экспорта тренировки; возможно, выбран не тот файл.</value>
+  </data>
+  <data name="TrainingWarning_NonMonotonicSamples" xml:space="preserve">
+    <value>пропущен {0} повторный или идущий назад по времени замер|пропущено {0} повторных или идущих назад по времени замера|пропущено {0} повторных или идущих назад по времени замеров</value>
+  </data>
+  <data name="TrainingWarning_ImplausibleHeartRate" xml:space="preserve">
+    <value>пропущено {0} недостоверное значение пульса|пропущено {0} недостоверных значения пульса|пропущено {0} недостоверных значений пульса</value>
+  </data>
+  <data name="TrainingWarning_InvalidSegments" xml:space="preserve">
+    <value>пропущен {0} некорректный отрезок|пропущено {0} некорректных отрезка|пропущено {0} некорректных отрезков</value>
+  </data>
+  <data name="TrainingWarning_UnusableUtcOffset" xml:space="preserve">
+    <value>часовой пояс часов не распознан; время показано в UTC</value>
+  </data>
+  <data name="Toolbar_TrainingImport" xml:space="preserve">
+    <value>Импортировать…</value>
+  </data>
+  <data name="Toolbar_TrainingRelink" xml:space="preserve">
+    <value>Указать файл…</value>
+  </data>
+  <data name="Toolbar_TrainingRemove" xml:space="preserve">
+    <value>Удалить тренировку</value>
+  </data>
+  <data name="Toolbar_TrainingClockCorrection" xml:space="preserve">
+    <value>Поправка часов тренировки, кадры</value>
+  </data>
+  <data name="Toolbar_TrainingClockCorrectionTip" xml:space="preserve">
+    <value>Время часов минус время телефона для всей тренировки, в кадрах проекта. Это не начало записи видео (оно задаётся в Inspector клипа).</value>
+  </data>
+  <data name="TrainingState_Available" xml:space="preserve">
+    <value>Файл доступен.</value>
+  </data>
+  <data name="TrainingState_Unresolved" xml:space="preserve">
+    <value>Файл читается…</value>
+  </data>
+  <data name="TrainingState_Changed" xml:space="preserve">
+    <value>Файл изменён (та же тренировка): данные используются.</value>
+  </data>
+  <data name="TrainingState_Missing" xml:space="preserve">
+    <value>Файл тренировки не найден.</value>
+  </data>
+  <data name="TrainingState_OtherActivity" xml:space="preserve">
+    <value>В файле другая тренировка: не используется.</value>
+  </data>
+  <data name="TrainingState_Unreadable" xml:space="preserve">
+    <value>Файл тренировки не удалось прочитать.</value>
+  </data>
+  <data name="Training_ReplaceTitle" xml:space="preserve">
+    <value>Заменить тренировку</value>
+  </data>
+  <data name="Training_ReplaceMessage" xml:space="preserve">
+    <value>В проекте уже есть тренировка COROS. Заменить её? Поправка часов тренировки начнётся с 0; начало записи видео сохранится.</value>
+  </data>
+  <data name="Training_ReplaceButton" xml:space="preserve">
+    <value>Заменить</value>
+  </data>
+  <data name="Training_ReplaceCancelled" xml:space="preserve">
+    <value>Тренировка не заменена.</value>
+  </data>
+  <data name="Training_OtherActivityTitle" xml:space="preserve">
+    <value>Другая тренировка</value>
+  </data>
+  <data name="Training_OtherActivityMessage" xml:space="preserve">
+    <value>В выбранном файле другая тренировка, чем в проекте. Всё равно использовать? Поправка часов и начало записи видео могут больше не подходить.</value>
+  </data>
+  <data name="Training_OtherActivityButton" xml:space="preserve">
+    <value>Использовать файл</value>
+  </data>
+  <data name="Training_RelinkCancelled" xml:space="preserve">
+    <value>Файл тренировки не изменён.</value>
+  </data>
+  <data name="Training_Relinked" xml:space="preserve">
+    <value>Файл тренировки указан: {0}</value>
+  </data>
+  <data name="Training_Removed" xml:space="preserve">
+    <value>Тренировка удалена из проекта.</value>
+  </data>
+  <data name="Inspector_FitHeader" xml:space="preserve">
+    <value>FIT-МЕТКИ ЭТОГО ВИДЕО</value>
+  </data>
+  <data name="Inspector_FitMarkItem" xml:space="preserve">
+    <value>Подъём {0} · {1} · {2}</value>
+  </data>
+  <data name="Inspector_FitLayOut" xml:space="preserve">
+    <value>Разметить трассу от метки</value>
+  </data>
+  <data name="Inspector_FitLayOutTip" xml:space="preserve">
+    <value>Выбор трассы D048 с T на кадре метки в этом клипе; анимация связывается с подъёмом.</value>
+  </data>
+  <data name="Inspector_FitMoveToPlayhead" xml:space="preserve">
+    <value>Переместить метку к плейхеду</value>
+  </data>
+  <data name="Inspector_FitDecline" xml:space="preserve">
+    <value>Скрыть метку / отклонить подъём</value>
+  </data>
+  <data name="Inspector_FitLinkHeader" xml:space="preserve">
+    <value>FIT-ПОДЪЁМ АНИМАЦИИ</value>
+  </data>
+  <data name="Inspector_FitLinked" xml:space="preserve">
+    <value>Связана с FIT-подъёмом {0}.</value>
+  </data>
+  <data name="Inspector_FitNotLinked" xml:space="preserve">
+    <value>Не связана с FIT-подъёмом.</value>
+  </data>
+  <data name="Inspector_FitLink" xml:space="preserve">
+    <value>Связать с FIT-подъёмом</value>
+  </data>
+  <data name="Inspector_FitUnlink" xml:space="preserve">
+    <value>Снять FIT-связь</value>
+  </data>
+  <data name="Inspector_FitLaidOut" xml:space="preserve">
+    <value>Трасса размечена от FIT-метки.</value>
+  </data>
+  <data name="Inspector_FitMoved" xml:space="preserve">
+    <value>FIT-метка перемещена.</value>
+  </data>
+  <data name="Inspector_FitLinkDone" xml:space="preserve">
+    <value>Анимация связана с FIT-подъёмом.</value>
+  </data>
+  <data name="Inspector_FitUnlinkDone" xml:space="preserve">
+    <value>FIT-связь снята.</value>
+  </data>
+  <data name="FitSettings_Title" xml:space="preserve">
+    <value>Настройки FIT</value>
+  </data>
+  <data name="FitSettings_Section" xml:space="preserve">
+    <value>КАЛИБРОВКА FIT</value>
+  </data>
+  <data name="FitSettings_Beta" xml:space="preserve">
+    <value>Накапливать калибровку старта (Beta)</value>
+  </data>
+  <data name="FitSettings_BetaTip" xml:space="preserve">
+    <value>Включено: каждое сохранение добавляет старты трасс FIT-меток в вашу калибровку. Выключено: ничего не собирается и не удаляется, последнее значение продолжает применяться.</value>
+  </data>
+  <data name="FitSettings_Estimate" xml:space="preserve">
+    <value>Текущая поправка старта: {0:0.0} с</value>
+  </data>
+  <data name="FitSettings_UsedCount" xml:space="preserve">
+    <value>Использовано наблюдений: {0}</value>
+  </data>
+  <data name="FitSettings_NewerFile" xml:space="preserve">
+    <value>Файл калибровки создан более новой версией приложения: он не используется и не изменяется.</value>
+  </data>
+  <data name="FitSettings_UnreadableFile" xml:space="preserve">
+    <value>Файл калибровки сейчас не удаётся прочитать: он оставлен как есть.</value>
+  </data>
+  <data name="FitSettings_Reset" xml:space="preserve">
+    <value>Сбросить калибровку…</value>
+  </data>
+  <data name="FitSettings_Close" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
+  <data name="FitSettings_ResetTitle" xml:space="preserve">
+    <value>Сброс калибровки</value>
+  </data>
+  <data name="FitSettings_ResetQuestion" xml:space="preserve">
+    <value>Удалить все накопленные наблюдения? Поправка старта вернётся к 12 с. Метки, уже стоящие в проектах, не сдвинутся.</value>
+  </data>
+  <data name="FitSettings_ResetConfirm" xml:space="preserve">
+    <value>Сбросить</value>
+  </data>
+  <data name="FitSettings_ResetDone" xml:space="preserve">
+    <value>Калибровка сброшена к 12 с.</value>
+  </data>
+  <data name="FitSettings_NotWritten" xml:space="preserve">
+    <value>Не удалось записать файл калибровки; ничего не изменилось.</value>
+  </data>
+  <data name="Toolbar_FitSettings" xml:space="preserve">
+    <value>Настройки FIT…</value>
+  </data>
+  <data name="Toolbar_DeclinedClimbs" xml:space="preserve">
+    <value>Отклонённые подъёмы</value>
+  </data>
+  <data name="Toolbar_DeclinedClimb" xml:space="preserve">
+    <value>Подъём {0} · {1}</value>
+  </data>
+  <data name="Toolbar_Restore" xml:space="preserve">
+    <value>Вернуть</value>
+  </data>
+  <data name="Toolbar_Restored" xml:space="preserve">
+    <value>FIT-подъём возвращён.</value>
+  </data>
+  <data name="Inspector_TrainingHeader" xml:space="preserve">
+    <value>ТРЕНИРОВКА COROS</value>
+  </data>
+  <data name="Inspector_RecordingStartSet" xml:space="preserve">
+    <value>Начало записи этого видео: задано по подъёму</value>
+  </data>
+  <data name="Inspector_RecordingStartUnknown" xml:space="preserve">
+    <value>Начало записи этого видео: неизвестно</value>
+  </data>
+  <data name="Inspector_AlignToClimb" xml:space="preserve">
+    <value>Совместить кадр с началом подъёма</value>
+  </data>
+  <data name="Inspector_AlignToClimbTip" xml:space="preserve">
+    <value>Поставьте плейхед на кадр, где начинается выбранный подъём: начало записи этого видео задаётся так, чтобы этот кадр пришёлся на начало подъёма. Поправка часов тренировки не меняется.</value>
+  </data>
+  <data name="Inspector_ClearRecordingStart" xml:space="preserve">
+    <value>Сбросить</value>
+  </data>
+  <data name="Inspector_AlignAnchor" xml:space="preserve">
+    <value>Точка привязки</value>
+  </data>
+  <data name="Inspector_AnchorEnd" xml:space="preserve">
+    <value>Конец подъёма</value>
+  </data>
+  <data name="Inspector_AnchorStart" xml:space="preserve">
+    <value>Начало подъёма</value>
+  </data>
+  <data name="Inspector_AlignToClimbEnd" xml:space="preserve">
+    <value>Совместить кадр с концом подъёма</value>
+  </data>
+  <data name="Inspector_AlignToClimbEndTip" xml:space="preserve">
+    <value>Поставьте плейхед на кадр последнего касания стены при соскоке с выбранного подъёма: начало записи этого видео задаётся так, чтобы время часов на этом кадре было на {0:0.0} с раньше конца подъёма в FIT — часы фиксируют окончание позже. Поправка часов тренировки не меняется; не вносите в неё это запаздывание.</value>
+  </data>
+  <data name="Inspector_ClimbItem" xml:space="preserve">
+    <value>Подъём {0} · {1}–{2}</value>
+  </data>
+  <data name="Inspector_AlignedToClimb" xml:space="preserve">
+    <value>Начало записи задано по началу подъёма {0}.</value>
+  </data>
+  <data name="Inspector_AlignedToClimbEnd" xml:space="preserve">
+    <value>Начало записи задано по концу подъёма {0}.</value>
+  </data>
+  <data name="Inspector_AlignPlayheadOutside" xml:space="preserve">
+    <value>Поставьте плейхед на кадр этого клипа.</value>
+  </data>
+  <data name="Readout_Value" xml:space="preserve">
+    <value>Тренировка в позиции плейхеда: {0} (часы) · {1} уд/мин</value>
+  </data>
+  <data name="Readout_NoValue" xml:space="preserve">
+    <value>Тренировка в позиции плейхеда: {0}</value>
+  </data>
+  <data name="Readout_NoTraining" xml:space="preserve">
+    <value>нет тренировки</value>
+  </data>
+  <data name="Readout_TrainingNotAvailable" xml:space="preserve">
+    <value>файл тренировки недоступен</value>
+  </data>
+  <data name="Readout_RecordingStartUnknown" xml:space="preserve">
+    <value>начало записи этого видео неизвестно</value>
+  </data>
+  <data name="Readout_OutsideClip" xml:space="preserve">
+    <value>плейхед вне этого клипа</value>
+  </data>
+  <data name="Readout_OutsideRecording" xml:space="preserve">
+    <value>{0} (часы), вне записи тренировки</value>
+  </data>
+  <data name="Readout_NoSample" xml:space="preserve">
+    <value>{0} (часы), нет данных пульса</value>
+  </data>
+  <data name="Relink_RecordingStartTitle" xml:space="preserve">
+    <value>Начало записи видео</value>
+  </data>
+  <data name="Relink_RecordingStartMessage" xml:space="preserve">
+    <value>Начало записи этого видео было задано по подъёму, а {0} не распознан как та же запись (отличаются размер, длительность или время записи, либо это не удалось проверить). Сохранить начало записи для нового файла?</value>
+  </data>
+  <data name="Relink_RecordingStartDrop" xml:space="preserve">
+    <value>Не сохранять</value>
+  </data>
+  <data name="Relink_RecordingStartKeep" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="Reference_Title" xml:space="preserve">
+    <value>Проверка синхронизации COROS</value>
+  </data>
+  <data name="Reference_RuleHeader" xml:space="preserve">
+    <value>Правило разметки</value>
+  </data>
+  <data name="Reference_SetRule" xml:space="preserve">
+    <value>Задать правило разметки</value>
+  </data>
+  <data name="Reference_Videos" xml:space="preserve">
+    <value>Видео исследования</value>
+  </data>
+  <data name="Reference_Climbs" xml:space="preserve">
+    <value>Подъёмы FIT</value>
+  </data>
+  <data name="Reference_Marks" xml:space="preserve">
+    <value>Отметки видео</value>
+  </data>
+  <data name="Reference_OpenVideo" xml:space="preserve">
+    <value>Открыть в Source</value>
+  </data>
+  <data name="Reference_MarkStart" xml:space="preserve">
+    <value>Начало подъёма здесь</value>
+  </data>
+  <data name="Reference_MarkEnd" xml:space="preserve">
+    <value>Конец подъёма здесь</value>
+  </data>
+  <data name="Reference_MoveStart" xml:space="preserve">
+    <value>Перенести начало сюда</value>
+  </data>
+  <data name="Reference_ClearEnd" xml:space="preserve">
+    <value>Убрать конец</value>
+  </data>
+  <data name="Reference_GoToStart" xml:space="preserve">
+    <value>Перейти к началу</value>
+  </data>
+  <data name="Reference_GoToEnd" xml:space="preserve">
+    <value>Перейти к концу</value>
+  </data>
+  <data name="Reference_Confirm" xml:space="preserve">
+    <value>Подтвердить подъём</value>
+  </data>
+  <data name="Reference_NotMatchedNotAClimb" xml:space="preserve">
+    <value>Не подъём</value>
+  </data>
+  <data name="Reference_NotMatchedNoFitClimb" xml:space="preserve">
+    <value>Нет подъёма в FIT</value>
+  </data>
+  <data name="Reference_NotMatchedAmbiguous" xml:space="preserve">
+    <value>Неоднозначно</value>
+  </data>
+  <data name="Reference_Withdraw" xml:space="preserve">
+    <value>Отозвать отметку</value>
+  </data>
+  <data name="Reference_Reconfirm" xml:space="preserve">
+    <value>Переподтвердить</value>
+  </data>
+  <data name="Reference_CoverageHeader" xml:space="preserve">
+    <value>Покрытие видео</value>
+  </data>
+  <data name="Reference_SetHasClimbs" xml:space="preserve">
+    <value>Есть подъёмы</value>
+  </data>
+  <data name="Reference_SetNoClimbs" xml:space="preserve">
+    <value>Просмотрено: подъёмов нет</value>
+  </data>
+  <data name="Reference_SetUnknown" xml:space="preserve">
+    <value>Не проверено</value>
+  </data>
+  <data name="Reference_Save" xml:space="preserve">
+    <value>Сохранить исследование</value>
+  </data>
+  <data name="Reference_VerifyAll" xml:space="preserve">
+    <value>Проверить все файлы</value>
+  </data>
+  <data name="Reference_Freeze" xml:space="preserve">
+    <value>Зафиксировать версию</value>
+  </data>
+  <data name="Reference_Position" xml:space="preserve">
+    <value>Положение Source: {0}</value>
+  </data>
+  <data name="Reference_VideoRow" xml:space="preserve">
+    <value>{0} · {1} · отметок: {2}</value>
+  </data>
+  <data name="Reference_ClimbRow" xml:space="preserve">
+    <value>C{0} · {1} · {2} с</value>
+  </data>
+  <data name="Reference_ClimbNotFilmed" xml:space="preserve">
+    <value> — нет на видео, вне B6</value>
+  </data>
+  <data name="Reference_ClimbConfirmedBy" xml:space="preserve">
+    <value> — подтверждён: {0} в {1}</value>
+  </data>
+  <data name="Reference_NoEnd" xml:space="preserve">
+    <value>без конца</value>
+  </data>
+  <data name="Reference_DecisionConfirmed" xml:space="preserve">
+    <value>подъём C{0}</value>
+  </data>
+  <data name="Reference_DecisionNotMatched" xml:space="preserve">
+    <value>не сопоставлено: {0}</value>
+  </data>
+  <data name="Reference_DecisionRejected" xml:space="preserve">
+    <value>отклонено</value>
+  </data>
+  <data name="Reference_DecisionNone" xml:space="preserve">
+    <value>без решения</value>
+  </data>
+  <data name="Reference_MarkStale" xml:space="preserve">
+    <value> (устарела)</value>
+  </data>
+  <data name="Reference_MarkWithdrawn" xml:space="preserve">
+    <value> (отозвана)</value>
+  </data>
+  <data name="Reference_MarkRow" xml:space="preserve">
+    <value>{0} → {1} · {2}</value>
+  </data>
+  <data name="Reference_Opened" xml:space="preserve">
+    <value>Исследование {0} открыто.</value>
+  </data>
+  <data name="Reference_Refused" xml:space="preserve">
+    <value>Не выполнено: {0}</value>
+  </data>
+  <data name="Reference_Saved" xml:space="preserve">
+    <value>Исследование сохранено.</value>
+  </data>
+  <data name="Reference_CheckingAll" xml:space="preserve">
+    <value>Проверка всех файлов набора…</value>
+  </data>
+  <data name="Reference_AllVerified" xml:space="preserve">
+    <value>Все файлы набора проверены.</value>
+  </data>
+  <data name="Reference_NotAllVerified" xml:space="preserve">
+    <value>Не прошли проверку файлов: {0}.</value>
+  </data>
+  <data name="Reference_FreezeNote" xml:space="preserve">
+    <value>Эталонная разметка</value>
+  </data>
+  <data name="Reference_Frozen" xml:space="preserve">
+    <value>Версия {0} зафиксирована.</value>
+  </data>
+  <data name="Reference_Checking" xml:space="preserve">
+    <value>Проверка {0} (SHA-256)…</value>
+  </data>
+  <data name="Reference_NotVerified" xml:space="preserve">
+    <value>файл не прошёл проверку SHA-256 ({0})</value>
+  </data>
+  <data name="Reference_Shown" xml:space="preserve">
+    <value>{0} открыто в Source.</value>
+  </data>
+  <data name="Reference_NoStudy" xml:space="preserve">
+    <value>исследование не открыто</value>
+  </data>
+  <data name="Reference_NoRule" xml:space="preserve">
+    <value>правило разметки не задано — задайте его перед разметкой</value>
+  </data>
+  <data name="Reference_NoVideo" xml:space="preserve">
+    <value>видео не выбрано</value>
+  </data>
+  <data name="Reference_NotFresh" xml:space="preserve">
+    <value>файл изменился или не проверен — откройте видео снова, чтобы проверить его</value>
+  </data>
+  <data name="Reference_NotShown" xml:space="preserve">
+    <value>выбранное видео не открыто в Source — сначала откройте его</value>
+  </data>
+  <data name="Reference_NoMark" xml:space="preserve">
+    <value>отметка не выбрана</value>
+  </data>
+  <data name="Reference_NoClimb" xml:space="preserve">
+    <value>подъём FIT не выбран</value>
+  </data>
+  <data name="Reference_Done" xml:space="preserve">
+    <value>Готово.</value>
+  </data>
+  <data name="Reference_ClimbTaken" xml:space="preserve">
+    <value>Не выполнено: подъём уже подтверждён отметкой {0} в {1} — сначала снимите то решение.</value>
+  </data>
+  <data name="Reference_Blocked" xml:space="preserve">
+    <value>Разметка заблокирована: {0}.</value>
+  </data>
+  <data name="Reference_NotInProject" xml:space="preserve">
+    <value>видео нет в открытом проекте по пути исследования</value>
+  </data>
+  <data name="Reference_SizeDiffers" xml:space="preserve">
+    <value>размер файла в проекте отличается от исследования</value>
+  </data>
+  <data name="Reference_Ambiguous" xml:space="preserve">
+    <value>по пути исследования в проекте больше одного видео</value>
+  </data>
+  <data name="Reference_NoLocation" xml:space="preserve">
+    <value>в исследовании нет расположения видео</value>
+  </data>
+  <data name="Reference_CoverageHasClimbs" xml:space="preserve">
+    <value>есть подъёмы</value>
+  </data>
+  <data name="Reference_CoverageNoClimbs" xml:space="preserve">
+    <value>просмотрено: подъёмов нет</value>
+  </data>
+  <data name="Reference_CoverageUnknown" xml:space="preserve">
+    <value>покрытие не проверено</value>
+  </data>
+  <data name="Reference_ReasonNotAClimb" xml:space="preserve">
+    <value>не подъём</value>
+  </data>
+  <data name="Reference_ReasonNoFitClimb" xml:space="preserve">
+    <value>нет подъёма в FIT</value>
+  </data>
+  <data name="Reference_ReasonAmbiguous" xml:space="preserve">
+    <value>неоднозначно</value>
   </data>
 </root>

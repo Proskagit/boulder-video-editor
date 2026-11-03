@@ -379,6 +379,7 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
             metadata.ColorPrimaries = Stated(videoStream.ColorPrimaries);
             metadata.ColorMatrix = Stated(videoStream.ColorSpace);
             metadata.ColorRange = Stated(videoStream.ColorRange);
+            metadata.RecordingTimeProbe = RecordingTimeOf(output.Format, videoStream);
             if (metadata.ColorTransfer is HdrColor.HlgTransfer or HdrColor.PqTransfer)
                 ApplyHdrSideData(metadata, videoStream.SideDataList);
         }
@@ -397,6 +398,20 @@ public sealed class FfprobeMediaAnalysisService : IMediaAnalysisService
 
         return metadata;
     }
+
+    /// <summary>The <c>creation_time</c> tag of a file with a picture stream (Phase 35, D049 §2): the container's, else the
+    /// first video stream's — an audio stream's tag alone is not used. The text is kept exactly as ffprobe printed it.</summary>
+    internal static RecordingTimeProbe RecordingTimeOf(FfprobeFormat? format, FfprobeStream videoStream)
+    {
+        if (CreationTime(format?.Tags) is { } container)
+            return RecordingTimeProbe.Found(container, RecordingTimeTagOrigin.Format);
+        if (CreationTime(videoStream.Tags) is { } stream)
+            return RecordingTimeProbe.Found(stream, RecordingTimeTagOrigin.VideoStream);
+        return RecordingTimeProbe.Absent;
+    }
+
+    private static string? CreationTime(Dictionary<string, string>? tags) =>
+        tags is not null && tags.TryGetValue("creation_time", out var value) && !string.IsNullOrWhiteSpace(value) ? value : null;
 
     private static string? Stated(string? value) =>
         string.IsNullOrWhiteSpace(value) || value is "unknown" or "unspecified" or "reserved" ? null : value;

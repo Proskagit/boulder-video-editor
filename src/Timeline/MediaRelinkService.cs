@@ -68,6 +68,18 @@ public sealed class MediaRelinkService : IMediaRelinkService
 
     public event EventHandler<RelinkedMediaIncompatibleEventArgs>? RelinkedMediaFoundIncompatible;
 
+    /// <summary>D049 §8 (ID1): keep the override only when the new file looks like the same recording — equal size,
+    /// duration and recording-time tag (found on both, same text and origin); otherwise ask. A heuristic, not a proof.</summary>
+    private static RecordingZeroOnRelink RecordingZeroDecision(MediaAsset asset, long newSize, MediaMetadata? newMetadata)
+    {
+        if (asset.RecordingZeroOverrideUtc is null) return RecordingZeroOnRelink.None;
+        return asset.Metadata is { RecordingTimeProbe: { IsFound: true } oldTag } old
+               && newMetadata is { RecordingTimeProbe: { IsFound: true } newTag } fresh
+               && asset.FileSizeBytes == newSize && old.Duration == fresh.Duration && oldTag == newTag
+            ? RecordingZeroOnRelink.Keep
+            : RecordingZeroOnRelink.Ask;
+    }
+
     private static long? SizeOf(string path)
     {
         var file = new FileInfo(path);
@@ -122,10 +134,12 @@ public sealed class MediaRelinkService : IMediaRelinkService
                     return Reject(assetId, path, project.Id, RelinkRejection.WrongMediaType, streams);
                 if (TooShort(project, asset, metadata, Path.GetFileName(path)) is { } shortBy)
                     return Reject(assetId, path, project.Id, RelinkRejection.TooShort, shortBy);
+                var recordingZero = RecordingZeroDecision(asset, bytes, metadata);
                 return new RelinkCheck
                 {
                     AssetId = assetId, FilePath = path, ProjectId = project.Id, FileSizeBytes = bytes, Metadata = metadata,
-                    Warnings = Warnings(project, asset, metadata)
+                    Warnings = Warnings(project, asset, metadata),
+                    RecordingZero = recordingZero, KeepRecordingZero = recordingZero == RecordingZeroOnRelink.Keep
                 };
             }
             case MediaAnalysisOutcome.ProbeToolUnavailable:
@@ -133,6 +147,7 @@ public sealed class MediaRelinkService : IMediaRelinkService
                 return new RelinkCheck
                 {
                     AssetId = assetId, FilePath = path, ProjectId = project.Id, FileSizeBytes = bytes,
+                    RecordingZero = RecordingZeroDecision(asset, bytes, null),
                     Warnings = new[]
                     {
                         new RelinkWarning(RelinkWarningKind.NotChecked,
@@ -360,7 +375,8 @@ public sealed class MediaRelinkService : IMediaRelinkService
 
             var asset = project.MediaAssets.First(a => a.Id == check.AssetId);
             var after = new MediaFileState(check.FilePath, sizes[i]!.Value, check.Metadata,
-                check.Metadata is null ? MediaAnalysisStatus.Pending : MediaAnalysisStatus.Completed, null, IsMissing: false);
+                check.Metadata is null ? MediaAnalysisStatus.Pending : MediaAnalysisStatus.Completed, null, IsMissing: false,
+                check.KeepRecordingZero ? asset.RecordingZeroOverrideUtc : null);
             relinks.Add(new MediaRelink(asset, MediaFileState.Capture(asset), after));
             results[i] = new RelinkResult(true, null, string.Format(Messages.Relink_LinkedTo, asset.FileName, check.FilePath), asset.Id);
         }

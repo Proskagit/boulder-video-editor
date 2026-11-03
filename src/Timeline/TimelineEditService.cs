@@ -34,12 +34,20 @@ public sealed partial class TimelineEditService : ITimelineEditService
     private readonly IUndoRedoService _undoRedo;
     private readonly ILogger<TimelineEditService> _logger;
 
-    public TimelineEditService(IProjectService projectService, IUndoRedoService undoRedo, ILogger<TimelineEditService> logger)
+    /// <param name="startCorrection">The current estimate frozen into new FIT marks (D051 §5.5); <c>I</c> without one.</param>
+    /// <param name="time">The clock of the marks' <c>positionChangedAt</c> (D051 §5.6).</param>
+    public TimelineEditService(IProjectService projectService, IUndoRedoService undoRedo, ILogger<TimelineEditService> logger,
+        IStartCorrectionSource? startCorrection = null, TimeProvider? time = null)
     {
         _projectService = projectService;
         _undoRedo = undoRedo;
         _logger = logger;
+        _startCorrection = startCorrection;
+        _time = time ?? TimeProvider.System;
     }
+
+    private readonly IStartCorrectionSource? _startCorrection;
+    private readonly TimeProvider _time;
 
     private Core.Entities.Project Project => _projectService.Current;
     private Sequence Sequence => Project.Timeline;
@@ -451,6 +459,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
             if (pasted is TemplateClip template)
                 template.AnchorClipId = template.AnchorClipId is { } anchor && pastedOf.TryGetValue(anchor, out var video) ? video : null;
 
+        // D051 §5.4 (B1): never a second copy of a markup linked to a FIT climb.
+        if (DuplicatesFitMarkup(clipboard)) return TimelineEditResult.Fail(string.Format(Messages.Edit_PasteDuplicateFitMarkup, verb));
+
         // D037 §3 (Q10): the clips on the right make room; a copy starting inside a clip is refused.
         if (MakeRoom(plan, placed, verb) is { } roomError) return TimelineEditResult.Fail(roomError);
 
@@ -719,7 +730,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (carried.Count > 0) changes.Add(new UpdateClipsCommand("Change Speed", carried));
         changes.AddRange(plan.BuildOverlayCommands());
         var command = new SetClipSpeedCommand(clip, before, after, changes.Count > 0 ? changes : null);
-        _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id }, TransitionNote(plan));
     }
 
@@ -1296,7 +1307,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     public TimelineEditResult AddTrack(TrackType type)
     {
         var track = NewTrack(type);
-        _undoRedo.Execute(new NotifyingCommand(new AddTrackCommand(Sequence, track), _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(new AddTrackCommand(Sequence, track), _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok();
     }
 
@@ -1333,7 +1344,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 .Select(p => (IUndoableCommand)new SetClipLinkCommand(p.Clip, ClipLinkState.Capture(p.Clip),
                     ClipLinkState.Capture(p.Clip) with { LinkId = null }, command.Description))
                 .Prepend(command));
-        _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok();
     }
 
@@ -1367,7 +1378,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             changes = ordered.Select((t, i) => new TrackOrderChange(t, t.Order, i)).Where(c => c.Before != c.After).ToList();
         }
 
-        _undoRedo.Execute(new NotifyingCommand(new SetTrackOrderCommand(changes), _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(new SetTrackOrderCommand(changes), _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok();
     }
 
@@ -1391,7 +1402,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (FindTrack(trackId) is not { } track) return TimelineEditResult.Fail(Messages.Edit_TrackGone);
         if (SetTrackStateCommand.Get(track, flag) == value) return TimelineEditResult.Unchanged();
 
-        _undoRedo.Execute(new NotifyingCommand(new SetTrackStateCommand(track, flag, value), _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(new SetTrackStateCommand(track, flag, value), _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok();
     }
 
@@ -1499,7 +1510,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (MarkerOnFrame(frame) is not null) return TimelineEditResult.Fail(Messages.Edit_MarkerExists);
 
         var marker = new Marker { Position = MediaTime.FromFrame(frame, FrameRate) };
-        _undoRedo.Execute(new NotifyingCommand(new AddMarkerCommand(Sequence, marker), _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(new AddMarkerCommand(Sequence, marker), _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, MarkerId = marker.Id };
     }
 
@@ -1508,7 +1519,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (MarkerOnFrame(at.ToNearestFrame(FrameRate)) is not { } marker)
             return TimelineEditResult.Fail(Messages.Edit_NoMarkerAtPlayhead);
 
-        _undoRedo.Execute(new NotifyingCommand(new RemoveMarkerCommand(Sequence, marker), _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(new RemoveMarkerCommand(Sequence, marker), _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, MarkerId = marker.Id };
     }
 
@@ -1561,7 +1572,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             ? removeAsset
             : new NotifyingCommand(new CompositeCommand("Remove Media", new[] { plan.BuildCommand("Remove Media"), removeAsset }),
                 _projectService.NotifyTimelineChanged);
-        _undoRedo.Execute(command);
+        ExecuteTracked(command);
         return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), TransitionNote(plan));
     }
 
@@ -1607,7 +1618,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             return TimelineEditResult.Fail(overlap);
 
         var command = new SetClipPropertiesCommand(clip, before, after, fields, change.Gesture);
-        _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id });
     }
 
@@ -1619,7 +1630,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (!ChangesRate(rate)) return TimelineEditResult.Unchanged();
         if (PlanFrameRate(rate, out var plan, out var command) is { } error) return TimelineEditResult.Fail(error);
 
-        _undoRedo.Execute(new NotifyingCommand(command, NotifyRateChanged));
+        ExecuteTracked(new NotifyingCommand(command, NotifyRateChanged));
         return TimelineEditResult.Ok(null, RateMessage(rate, plan));
     }
 
@@ -1677,7 +1688,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (width == Settings.FrameWidth && height == Settings.FrameHeight) return TimelineEditResult.Unchanged();
         if (PlanCanvas(width, height, out var commands) is { } error) return TimelineEditResult.Fail(error);
 
-        _undoRedo.Execute(new NotifyingCommand(new CompositeCommand("Set Frame Size", commands), _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(new CompositeCommand("Set Frame Size", commands), _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(ScaledClips(commands));
     }
 
@@ -1722,6 +1733,29 @@ public sealed partial class TimelineEditService : ITimelineEditService
         commands.OfType<SetClipPropertiesCommand>().Select(c => c.Clip.Id).ToList();
 
     // --- Project settings: canvas and rate together (D028, Step 13.6) -------------------------------------------------
+
+    public TimelineEditResult SetTrainingClockCorrection(MediaTime correction)
+    {
+        if (_projectService.Current.Training is not { } training) return TimelineEditResult.Fail(Messages.Training_None);
+        if (training.ClockCorrection == correction) return TimelineEditResult.Unchanged();
+        ExecuteTracked(new NotifyingCommand(
+            new SetTrainingClockCorrectionCommand(training, training.ClockCorrection, correction), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok();
+    }
+
+    public TimelineEditResult SetRecordingZeroOverride(Guid mediaAssetId, DateTimeOffset? zero)
+    {
+        var asset = _projectService.Current.MediaAssets.FirstOrDefault(a => a.Id == mediaAssetId);
+        if (asset is not { Kind: MediaKind.Video }) return TimelineEditResult.Fail(Messages.Training_NotAVideo);
+        var utc = zero?.ToUniversalTime();
+        if (asset.RecordingZeroOverrideUtc == utc) return TimelineEditResult.Unchanged();
+        IUndoableCommand command = new SetRecordingZeroOverrideCommand(asset, asset.RecordingZeroOverrideUtc, utc);
+        // D051 §5.5 (B3): the proposals of the new Z are part of the same step.
+        if (ProposalsForZero(asset, utc) is { } proposals)
+            command = new CompositeCommand(command.Description, new[] { command, proposals });
+        ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok();
+    }
 
     public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null)
     {
@@ -1768,7 +1802,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             messages.Add(ExportMessage(export!));
         }
 
-        _undoRedo.Execute(new NotifyingCommand(new CompositeCommand("Change Project Settings", commands),
+        ExecuteTracked(new NotifyingCommand(new CompositeCommand("Change Project Settings", commands),
             rateChanges ? NotifyRateChanged : _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(ScaledClips(canvasCommands), string.Join(" ", messages.Where(m => m is not null)));
     }
@@ -1782,7 +1816,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (export == Settings.Export) return TimelineEditResult.Unchanged();
 
         // A project change (EX-1): undoable and dirty; nothing on the timeline changes, so no notification is needed.
-        _undoRedo.Execute(new SetExportEncodingCommand(Settings, Settings.Export, export));
+        ExecuteTracked(new SetExportEncodingCommand(Settings, Settings.Export, export));
         return TimelineEditResult.Ok(null, ExportMessage(export));
     }
 
@@ -1889,7 +1923,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 : string.Format(Tr(noun, Messages.Transition_CantAddDissolve, Messages.Transition_CantAddCrossfade), error));
 
         var description = typeId is TransitionRules.CrossDissolve or TransitionRules.Crossfade ? $"Add {Title(noun)}" : "Add Transition";
-        _undoRedo.Execute(new NotifyingCommand(new AddTransitionCommand(track, transition, description), _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(new AddTransitionCommand(track, transition, description), _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, ClipIds = new[] { left.Id, right.Id }, TransitionId = transition.Id };
     }
 
@@ -1919,7 +1953,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (Validate(plan) is { } error)
             return TimelineEditResult.Fail(CantChange(track, transition, error));
 
-        _undoRedo.Execute(new NotifyingCommand(new UpdateTransitionCommand(transition, before, after, "Change Transition Type"),
+        ExecuteTracked(new NotifyingCommand(new UpdateTransitionCommand(transition, before, after, "Change Transition Type"),
             _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, ClipIds = new[] { left.Id, right.Id }, TransitionId = transition.Id };
     }
@@ -1934,7 +1968,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (transition.Direction == direction) return TimelineEditResult.Unchanged();
 
         var before = TransitionState.Capture(track, transition);
-        _undoRedo.Execute(new NotifyingCommand(
+        ExecuteTracked(new NotifyingCommand(
             new UpdateTransitionCommand(transition, before, before with { Direction = direction }, "Change Push Direction"),
             _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, ClipIds = new[] { transition.LeftClipId, transition.RightClipId }, TransitionId = transition.Id };
@@ -1946,7 +1980,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var (track, transition) = found;
         if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
 
-        _undoRedo.Execute(new NotifyingCommand(new RemoveTransitionCommand(track, transition, $"Remove {Title(TransitionNoun(track))}"),
+        ExecuteTracked(new NotifyingCommand(new RemoveTransitionCommand(track, transition, $"Remove {Title(TransitionNoun(track))}"),
             _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, ClipIds = new[] { transition.LeftClipId, transition.RightClipId } };
     }
@@ -1978,7 +2012,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (Validate(plan) is { } error)
             return TimelineEditResult.Fail(CantChange(track, transition, error));
 
-        _undoRedo.Execute(new NotifyingCommand(new UpdateTransitionCommand(transition, before, after, $"Change {Title(noun)} Duration"),
+        ExecuteTracked(new NotifyingCommand(new UpdateTransitionCommand(transition, before, after, $"Change {Title(noun)} Duration"),
             _projectService.NotifyTimelineChanged));
         return new TimelineEditResult { Success = true, ClipIds = new[] { left.Id, right.Id }, TransitionId = transition.Id };
     }
@@ -2315,7 +2349,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     private void Commit(EditPlan plan, string description)
     {
         var command = new NotifyingCommand(plan.BuildCommand(description), _projectService.NotifyTimelineChanged);
-        _undoRedo.Execute(command);
+        ExecuteTracked(command);
     }
 
     private static Clip CreateClip(MediaAsset asset, ClipState state)

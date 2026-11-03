@@ -123,6 +123,7 @@ public partial class MainWindow : Window
         public event EventHandler? SaveStateChanged { add { } remove { } }
         public event EventHandler? ProjectSaved { add { } remove { } }
         public Task<Core.Entities.Project> RestoreRecoveryAsync(string recoveryFilePath, CancellationToken ct = default) => Task.FromResult(Current);
+        public void SetTraining(Core.Telemetry.TrainingReference? training) { }
         public Core.Entities.Project CreateNew(string name, ProjectSettings? settings = null) => Current;
         public Task<Core.Entities.Project> OpenAsync(string projectFolderPath, CancellationToken ct = default) => Task.FromResult(Current);
         public Task SaveAsync(CancellationToken ct = default) => Task.CompletedTask;
@@ -239,6 +240,8 @@ public partial class MainWindow : Window
         public TimelineEditResult SetCanvasSize(int width, int height) => Nothing;
         public TimelineEditResult SetFrameRate(FrameRate rate) => Nothing;
         public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null) => Nothing;
+        public TimelineEditResult SetTrainingClockCorrection(MediaTime correction) => Nothing;
+        public TimelineEditResult SetRecordingZeroOverride(Guid mediaAssetId, DateTimeOffset? zero) => Nothing;
         public TimelineEditResult SetExportSettings(ExportEncoding export) => Nothing;
         public SnapResult Snap(IReadOnlyList<MediaTime> candidates, MediaTime tolerance, IReadOnlyCollection<Guid> excludedClipIds,
             Func<SnapResult, bool>? accept = null) => SnapResult.None;

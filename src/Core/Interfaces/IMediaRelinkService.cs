@@ -61,6 +61,20 @@ public enum RelinkRejection
 }
 
 /// <summary>A difference the user confirms before the relink (PO-2), or that it could not be checked (PO-3).</summary>
+/// <summary>What a relink does to the video's recording-zero override (Phase 35, D049 §8, ID1).</summary>
+public enum RecordingZeroOnRelink
+{
+    /// <summary>The asset has no override.</summary>
+    None,
+
+    /// <summary>Size, duration and recording-time tag all match: the override is kept without a question (a heuristic of
+    /// «the same recording», not a proof).</summary>
+    Keep,
+
+    /// <summary>Anything else (a difference, a missing value, no probe): the user is asked, default «do not keep».</summary>
+    Ask,
+}
+
 public enum RelinkWarningKind
 {
     /// <summary>ffprobe is unavailable: nothing beyond existence and file type was checked.</summary>
@@ -104,6 +118,13 @@ public sealed class RelinkCheck
 
     /// <summary>The project the check was made for (a check is applied only to it).</summary>
     public Guid ProjectId { get; init; }
+
+    /// <summary>What the relink does to the asset's recording-zero override (D049 §8).</summary>
+    public RecordingZeroOnRelink RecordingZero { get; init; }
+
+    /// <summary>Whether the override is kept for the new file: true for <see cref="RecordingZeroOnRelink.Keep"/>; for
+    /// <see cref="RecordingZeroOnRelink.Ask"/> the user's answer (default false).</summary>
+    public bool KeepRecordingZero { get; set; }
 
     public bool CanApply => Rejection is null;
 }

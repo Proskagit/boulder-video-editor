@@ -64,7 +64,7 @@ public sealed partial class TimelineEditService
         var command = plan.BuildCommand(UnlinkAudioDescription);
         if (newTrack is not null)
             command = new CompositeCommand(UnlinkAudioDescription, new[] { new AddTrackCommand(Sequence, newTrack), command });
-        _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { video.Id, sound.Id },
             string.Format(Messages.Link_SoundUnlinkedTo, (target ?? newTrack)!.Name));
     }

@@ -41,6 +41,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IUndoRedoService, UndoRedoService>();
         services.AddSingleton<IProjectService, ProjectService>();
         services.AddSingleton<IMediaImportService, MediaImportService>();
+        services.AddSingleton<ITrainingImportService, TrainingImportService>();   // Phase Coros C1: the FIT training
         services.AddSingleton<IFfprobeLocator, FfprobeLocator>();
         services.AddSingleton<IMediaAnalysisService, FfprobeMediaAnalysisService>();
         services.AddSingleton<IFfmpegLocator, FfmpegLocator>();
@@ -53,12 +54,22 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IReferenceClock, StopwatchReferenceClock>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<ITimelineEditService, TimelineEditService>();
+        // Phase 37 (D051 §5): the FIT mark actions are the edit service's, one instance.
+        services.AddSingleton<IFitMarkEditService>(sp => (TimelineEditService)sp.GetRequiredService<ITimelineEditService>());
         services.AddSingleton<IMediaRelinkService, MediaRelinkService>();
         services.AddSingleton(_ => new RecoveryStore(AppPaths.RecoveryFolder));
         services.AddSingleton<IAutosaveService, AutosaveService>();
         // Recent projects (D026 §6): a per-user list in the configuration folder, created only when written.
         services.AddSingleton<IRecentProjectsStore>(sp => new RecentProjectsStore(AppPaths.RecentProjectsFile,
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RecentProjectsStore>>()));
+        // The global start calibration (D051 §6, Step 37.2): the second per-user file, created on its first write; one
+        // instance serves the store and the estimate the mark commands read.
+        services.AddSingleton<IFitCalibrationStore>(sp => new FitCalibrationStore(AppPaths.FitCalibrationFile,
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<FitCalibrationStore>>()));
+        services.AddSingleton<IStartCorrectionSource>(sp => sp.GetRequiredService<IFitCalibrationStore>());
+        services.AddSingleton<FitCalibrationSaveSync>();     // Step 37.5: the saves' observations
+        services.AddSingleton<IFitSettingsDialog, AvaloniaFitSettingsDialog>();
+        services.AddSingleton<FitSettingsWorkflow>();        // Step 37.6: «Настройки FIT…»
 
         // Export (D023): the service knows only the Core abstractions; the app picks the ffmpeg encoder and
         // the Avalonia offscreen rasterizer (one new instance per export job).
@@ -111,6 +122,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<WaveformCoordinator>();
         services.AddSingleton<MediaAvailabilityMonitor>();
         services.AddSingleton<MediaImportWorkflow>();
+        services.AddSingleton<TrainingSessionService>();   // Phase 35: the project's training, its FIT resolved at runtime (D049)
+        services.AddSingleton<TrainingImportWorkflow>();
         services.AddSingleton<MediaRelinkWorkflow>();
         services.AddSingleton<ProjectFileWorkflow>();
         services.AddSingleton<IProjectSettingsDialog, AvaloniaProjectSettingsDialog>();

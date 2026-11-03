@@ -29,7 +29,12 @@ public sealed partial class TimelineEditService
     /// <c>I = min(7 s, A)</c>, <c>Fa = ⌊(10·I + 7) / 14⌋</c>. One Undo step; an existing Duration animation and anchored
     /// «Боулдер» are updated, never duplicated. With no time before <c>T</c> no animation is made and the result says so.
     /// </summary>
-    public TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t)
+    public TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t) => LayOutIntroAndFinal(videoClipId, t, null, null);
+
+    /// <summary>As <see cref="LayOutIntroAndFinal(Guid, MediaTime)"/>, with <paramref name="also"/> — told whether an
+    /// animation is made — adding a command to the same step (D051 §8.2: «Разметить трассу от метки» links the clip).</summary>
+    private TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t, IReadOnlySet<Core.Telemetry.ClimbIdentity>? keep,
+        Func<bool, IUndoableCommand?>? also)
     {
         if (MarkupClip(videoClipId, out var video) is { } clipError) return TimelineEditResult.Fail(clipError);
         if (video.HoldMarkup is not { Holds.Length: > 0 } markup) return TimelineEditResult.Fail(Messages.Layout_NoHolds);
@@ -108,7 +113,8 @@ public sealed partial class TimelineEditService
 
         IUndoableCommand command = plan.BuildCommand("Lay Out Intro and Final");
         if (addTrack is not null) command = new CompositeCommand("Lay Out Intro and Final", new[] { addTrack, command });
-        _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        if (also?.Invoke(animationFrames >= 1) is { } extra) command = new CompositeCommand("Lay Out Intro and Final", new[] { command, extra });
+        ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged), keep);
         return TimelineEditResult.Ok(new[] { video.Id, template.Id }, animationFrames >= 1 ? null : Messages.Layout_NoAnimationTime);
     }
 

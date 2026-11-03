@@ -144,7 +144,7 @@ public sealed partial class TimelineEditService
         if (before is not null && after.SameAs(before)) return TimelineEditResult.Unchanged();
 
         var command = new SetHoldMarkupCommand(clip, before, after, fields);
-        _undoRedo.Execute(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id });
     }
 

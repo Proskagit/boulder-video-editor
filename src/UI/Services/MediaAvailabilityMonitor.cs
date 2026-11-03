@@ -35,10 +35,15 @@ public sealed class MediaAvailabilityMonitor
     private DateTimeOffset? _lastCheck;
     private bool _trailingCheckScheduled;
 
-    public MediaAvailabilityMonitor(IProjectService projects, StatusService status, ILogger<MediaAvailabilityMonitor> logger)
+    /// <param name="training">Its FIT file is resolved again with every check (Phase 35, D049 §9); optional.</param>
+    public MediaAvailabilityMonitor(IProjectService projects, StatusService status, ILogger<MediaAvailabilityMonitor> logger,
+        TrainingSessionService? training = null)
         : this(projects, status, logger, () => DateTimeOffset.UtcNow, (wait, ct) => Task.Delay(wait, ct))
     {
+        _training = training;
     }
+
+    private readonly TrainingSessionService? _training;
 
     /// <param name="now">The clock of the throttle.</param>
     /// <param name="delay">Waits until the trailing check (tests complete it by hand).</param>
@@ -101,6 +106,8 @@ public sealed class MediaAvailabilityMonitor
         try
         {
             await _projects.RecheckMediaAsync();
+            if (_training is not null)
+                await _training.ResolveAsync();
         }
         catch (Exception ex)
         {

@@ -9,10 +9,11 @@ namespace AiVideoEditor.Timeline.Commands;
 /// otherwise.</summary>
 public readonly record struct MediaFileState(
     string FilePath, long FileSizeBytes, MediaMetadata? Metadata, MediaAnalysisStatus AnalysisStatus, string? AnalysisError,
-    bool IsMissing)
+    bool IsMissing, DateTimeOffset? RecordingZeroOverrideUtc = null)
 {
     public static MediaFileState Capture(MediaAsset asset) =>
-        new(asset.FilePath, asset.FileSizeBytes, asset.Metadata, asset.AnalysisStatus, asset.AnalysisError, asset.IsMissing);
+        new(asset.FilePath, asset.FileSizeBytes, asset.Metadata, asset.AnalysisStatus, asset.AnalysisError, asset.IsMissing,
+            asset.RecordingZeroOverrideUtc);
 
     public void ApplyTo(MediaAsset asset)
     {
@@ -22,6 +23,7 @@ public readonly record struct MediaFileState(
         asset.AnalysisStatus = AnalysisStatus;
         asset.AnalysisError = AnalysisError;
         asset.IsMissing = IsMissing;
+        asset.RecordingZeroOverrideUtc = RecordingZeroOverrideUtc;   // Phase 35 (D049 §8): Undo restores the override
     }
 }
 

@@ -328,6 +328,14 @@ public sealed class ProjectService : IProjectService
         NotifyMediaAssetsChanged();
     }
 
+    public void SetTraining(Core.Telemetry.TrainingReference? training)
+    {
+        Current.Training = training;
+        Current.ModifiedAt = DateTimeOffset.UtcNow;
+        _changeVersion++;
+        UpdateDirty();
+    }
+
     public MediaAddResult AddMediaAssets(IEnumerable<MediaAsset> assets)
     {
         var existingPaths = new HashSet<string>(

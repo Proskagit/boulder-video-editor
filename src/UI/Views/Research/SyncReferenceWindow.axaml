@@ -1,0 +1,98 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="using:AiVideoEditor.UI.Localization"
+        xmlns:vm="using:AiVideoEditor.UI.ViewModels.Research"
+        xmlns:r="using:AiVideoEditor.Core.Telemetry.Research"
+        x:Class="AiVideoEditor.UI.Views.Research.SyncReferenceWindow"
+        x:DataType="vm:SyncReferenceViewModel"
+        Title="{x:Static l:Strings.Reference_Title}"
+        Width="1180" Height="720">
+
+  <!-- Step 35.3R1 (Debug only): the reference marking over the ordinary Source viewer of the main window. The window reads
+       the Source position and calls what a user can call; it never changes the project, the timeline or the Source viewer. -->
+  <Window.Styles>
+    <Style Selector="TextBlock.confirmed">
+      <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
+  </Window.Styles>
+
+  <DockPanel Margin="8">
+    <Border DockPanel.Dock="Top" BorderBrush="Gray" BorderThickness="1" Padding="6" Margin="0,0,0,6">
+      <StackPanel Spacing="4">
+        <TextBlock FontWeight="SemiBold" Text="{x:Static l:Strings.Reference_RuleHeader}"/>
+        <TextBlock Text="{Binding RuleText}" TextWrapping="Wrap"/>
+        <Button Content="{x:Static l:Strings.Reference_SetRule}" Command="{Binding SetRuleCommand}" IsVisible="{Binding !HasRule}"/>
+      </StackPanel>
+    </Border>
+
+    <StackPanel DockPanel.Dock="Bottom" Spacing="4" Margin="0,6,0,0">
+      <TextBlock Text="{Binding PositionText}"/>
+      <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <Button Content="{x:Static l:Strings.Reference_Save}" Command="{Binding SaveCommand}"/>
+        <Button Content="{x:Static l:Strings.Reference_VerifyAll}" Command="{Binding VerifyAllCommand}"/>
+        <Button Content="{x:Static l:Strings.Reference_Freeze}" Command="{Binding FreezeCommand}"/>
+      </StackPanel>
+    </StackPanel>
+
+    <Grid ColumnDefinitions="*,8,*,8,*">
+      <DockPanel Grid.Column="0">
+        <TextBlock DockPanel.Dock="Top" FontWeight="SemiBold" Text="{x:Static l:Strings.Reference_Videos}"/>
+        <StackPanel DockPanel.Dock="Bottom" Spacing="4" Margin="0,4,0,0">
+          <Button Content="{x:Static l:Strings.Reference_OpenVideo}" Command="{Binding OpenVideoCommand}"/>
+          <TextBlock Text="{x:Static l:Strings.Reference_CoverageHeader}"/>
+          <WrapPanel>
+            <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_SetHasClimbs}" Command="{Binding SetCoverageCommand}" CommandParameter="{x:Static r:CoverageState.HasClimbs}"/>
+            <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_SetNoClimbs}" Command="{Binding SetCoverageCommand}" CommandParameter="{x:Static r:CoverageState.ReviewedNoClimbs}"/>
+            <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_SetUnknown}" Command="{Binding SetCoverageCommand}" CommandParameter="{x:Static r:CoverageState.Unknown}"/>
+          </WrapPanel>
+        </StackPanel>
+        <ListBox ItemsSource="{Binding Videos}" SelectedItem="{Binding SelectedVideo}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ReferenceVideoRow">
+              <TextBlock Text="{Binding Display}" TextWrapping="Wrap"/>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+
+      <DockPanel Grid.Column="2">
+        <TextBlock DockPanel.Dock="Top" FontWeight="SemiBold" Text="{x:Static l:Strings.Reference_Marks}"/>
+        <WrapPanel DockPanel.Dock="Bottom" Margin="0,4,0,0">
+          <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_MarkStart}" Command="{Binding MarkStartCommand}"/>
+          <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_MarkEnd}" Command="{Binding MarkEndCommand}"/>
+          <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_MoveStart}" Command="{Binding MoveStartCommand}"/>
+          <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_ClearEnd}" Command="{Binding ClearEndCommand}"/>
+          <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_GoToStart}" Command="{Binding GoToStartCommand}"/>
+          <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_GoToEnd}" Command="{Binding GoToEndCommand}"/>
+          <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_Withdraw}" Command="{Binding WithdrawCommand}"/>
+          <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_Reconfirm}" Command="{Binding ReconfirmCommand}"/>
+        </WrapPanel>
+        <ListBox ItemsSource="{Binding Marks}" SelectedItem="{Binding SelectedMark}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ReferenceMarkRow">
+              <TextBlock Text="{Binding Display}" TextWrapping="Wrap"/>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+
+      <DockPanel Grid.Column="4">
+        <TextBlock DockPanel.Dock="Top" FontWeight="SemiBold" Text="{x:Static l:Strings.Reference_Climbs}"/>
+        <WrapPanel DockPanel.Dock="Bottom" Margin="0,4,0,0">
+          <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_Confirm}" Command="{Binding ConfirmCommand}"/>
+          <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_NotMatchedNotAClimb}" Command="{Binding NotMatchedCommand}" CommandParameter="{x:Static r:MatchReason.NotAClimb}"/>
+          <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_NotMatchedNoFitClimb}" Command="{Binding NotMatchedCommand}" CommandParameter="{x:Static r:MatchReason.NoFitClimb}"/>
+          <Button Margin="0,0,4,4" Content="{x:Static l:Strings.Reference_NotMatchedAmbiguous}" Command="{Binding NotMatchedCommand}" CommandParameter="{x:Static r:MatchReason.Ambiguous}"/>
+        </WrapPanel>
+        <ListBox ItemsSource="{Binding Climbs}" SelectedItem="{Binding SelectedClimb}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ReferenceClimbRow">
+              <TextBlock Text="{Binding Display}" TextWrapping="Wrap" Classes.confirmed="{Binding IsConfirmed}"/>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Grid>
+  </DockPanel>
+</Window>

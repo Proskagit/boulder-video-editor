@@ -2135,6 +2135,24 @@ If you don't save, your changes will be lost.</value>
   <data name="Holds_RouteCancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
+  <data name="FitMark_Proposed" xml:space="preserve">
+    <value>proposed</value>
+  </data>
+  <data name="FitMark_Clamped" xml:space="preserve">
+    <value>on the edge of the recording</value>
+  </data>
+  <data name="FitMark_Moved" xml:space="preserve">
+    <value>moved</value>
+  </data>
+  <data name="FitMark_Tip" xml:space="preserve">
+    <value>FIT climb {0}: route start {1}</value>
+  </data>
+  <data name="FitMark_TipLinked" xml:space="preserve">
+    <value>; linked to an animation</value>
+  </data>
+  <data name="FitMark_Declined" xml:space="preserve">
+    <value>The FIT climb is declined.</value>
+  </data>
   <data name="Strip_Green" xml:space="preserve">
     <value>Plate: {0} – {1}</value>
   </data>
@@ -2152,5 +2170,550 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Timeline_SegmentsInTemplateTip" xml:space="preserve">
     <value>Debug only. On: the intro, hold animation and Top / Attempt segments inside the Boulder template (the main view). Off: the earlier lane above the clip.</value>
+  </data>
+  <data name="Toolbar_Training" xml:space="preserve">
+    <value>COROS Training…</value>
+  </data>
+  <data name="Toolbar_TrainingTip" xml:space="preserve">
+    <value>COROS training: import a .fit file, point to its file, the training's clock correction. The project keeps a reference to the file.</value>
+  </data>
+  <data name="Toolbar_TrainingLoadedTip" xml:space="preserve">
+    <value>Project training: {0}
+{1}
+{2}</value>
+  </data>
+  <data name="Training_PickerTitle" xml:space="preserve">
+    <value>Import a COROS Training</value>
+  </data>
+  <data name="Training_FileFilter" xml:space="preserve">
+    <value>FIT trainings</value>
+  </data>
+  <data name="Training_Importing" xml:space="preserve">
+    <value>Importing the training…</value>
+  </data>
+  <data name="Training_Imported" xml:space="preserve">
+    <value>Training imported: {0}</value>
+  </data>
+  <data name="Training_Summary" xml:space="preserve">
+    <value>{0}, {1} {2}–{3} ({4}), {5}</value>
+  </data>
+  <data name="Training_Climbs" xml:space="preserve">
+    <value>{0} climb|{0} climbs</value>
+  </data>
+  <data name="Training_Refused" xml:space="preserve">
+    <value>Training not imported: {0}</value>
+  </data>
+  <data name="Training_DidntFinish" xml:space="preserve">
+    <value>Training import didn't finish.</value>
+  </data>
+  <data name="Training_ProjectChanged" xml:space="preserve">
+    <value>Training command stopped: another project was opened, so nothing was changed.</value>
+  </data>
+  <data name="TrainingError_NotAFitFile" xml:space="preserve">
+    <value>this is not a FIT file.</value>
+  </data>
+  <data name="TrainingError_Truncated" xml:space="preserve">
+    <value>the file is cut short: it ends before the data its header promises.</value>
+  </data>
+  <data name="TrainingError_Corrupted" xml:space="preserve">
+    <value>the file is damaged: a checksum does not match.</value>
+  </data>
+  <data name="TrainingError_Malformed" xml:space="preserve">
+    <value>the structure of the FIT file is invalid.</value>
+  </data>
+  <data name="TrainingError_NotAnActivity" xml:space="preserve">
+    <value>the file is not a recorded activity (it is a route, a plan or settings).</value>
+  </data>
+  <data name="TrainingError_NotCoros" xml:space="preserve">
+    <value>the activity was not recorded by a COROS watch.</value>
+  </data>
+  <data name="TrainingError_NoSession" xml:space="preserve">
+    <value>the activity has no session summary, so its start and end are unknown.</value>
+  </data>
+  <data name="TrainingError_NoHeartRate" xml:space="preserve">
+    <value>the activity has no heart-rate data.</value>
+  </data>
+  <data name="TrainingError_ClockNotSet" xml:space="preserve">
+    <value>the watch's clock was not set: the times in the file are relative, so they cannot be matched with a video.</value>
+  </data>
+  <data name="TrainingError_FileNotFound" xml:space="preserve">
+    <value>the file was not found.</value>
+  </data>
+  <data name="TrainingError_Unreadable" xml:space="preserve">
+    <value>the file could not be read (it is in use by another program, or there is no access).</value>
+  </data>
+  <data name="TrainingError_TooLarge" xml:space="preserve">
+    <value>the file is too large for a training export; probably another file was chosen.</value>
+  </data>
+  <data name="TrainingWarning_NonMonotonicSamples" xml:space="preserve">
+    <value>{0} repeated or out-of-order sample left out|{0} repeated or out-of-order samples left out</value>
+  </data>
+  <data name="TrainingWarning_ImplausibleHeartRate" xml:space="preserve">
+    <value>{0} implausible heart-rate value left out|{0} implausible heart-rate values left out</value>
+  </data>
+  <data name="TrainingWarning_InvalidSegments" xml:space="preserve">
+    <value>{0} invalid split left out|{0} invalid splits left out</value>
+  </data>
+  <data name="TrainingWarning_UnusableUtcOffset" xml:space="preserve">
+    <value>the watch's time zone is not usable; times are shown in UTC</value>
+  </data>
+  <data name="Toolbar_TrainingImport" xml:space="preserve">
+    <value>Import…</value>
+  </data>
+  <data name="Toolbar_TrainingRelink" xml:space="preserve">
+    <value>Point to the file…</value>
+  </data>
+  <data name="Toolbar_TrainingRemove" xml:space="preserve">
+    <value>Remove the training</value>
+  </data>
+  <data name="Toolbar_TrainingClockCorrection" xml:space="preserve">
+    <value>Training clock correction, frames</value>
+  </data>
+  <data name="Toolbar_TrainingClockCorrectionTip" xml:space="preserve">
+    <value>Watch time minus phone time for the whole training, in frames of the project. Not the recording start of a video (that is set in the clip's Inspector).</value>
+  </data>
+  <data name="TrainingState_Available" xml:space="preserve">
+    <value>File available.</value>
+  </data>
+  <data name="TrainingState_Unresolved" xml:space="preserve">
+    <value>Reading the file…</value>
+  </data>
+  <data name="TrainingState_Changed" xml:space="preserve">
+    <value>The file has changed (same activity): its data is used.</value>
+  </data>
+  <data name="TrainingState_Missing" xml:space="preserve">
+    <value>The training file was not found.</value>
+  </data>
+  <data name="TrainingState_OtherActivity" xml:space="preserve">
+    <value>The file holds another training: not used.</value>
+  </data>
+  <data name="TrainingState_Unreadable" xml:space="preserve">
+    <value>The training file could not be read.</value>
+  </data>
+  <data name="Training_ReplaceTitle" xml:space="preserve">
+    <value>Replace the training</value>
+  </data>
+  <data name="Training_ReplaceMessage" xml:space="preserve">
+    <value>The project already has a COROS training. Replace it? The training's clock correction starts again at 0; the videos' recording starts are kept.</value>
+  </data>
+  <data name="Training_ReplaceButton" xml:space="preserve">
+    <value>Replace</value>
+  </data>
+  <data name="Training_ReplaceCancelled" xml:space="preserve">
+    <value>The training was not replaced.</value>
+  </data>
+  <data name="Training_OtherActivityTitle" xml:space="preserve">
+    <value>Another training</value>
+  </data>
+  <data name="Training_OtherActivityMessage" xml:space="preserve">
+    <value>The chosen file holds another training than the one in the project. Use it anyway? The clock correction and the videos' recording starts may no longer fit.</value>
+  </data>
+  <data name="Training_OtherActivityButton" xml:space="preserve">
+    <value>Use this file</value>
+  </data>
+  <data name="Training_RelinkCancelled" xml:space="preserve">
+    <value>The training file was not changed.</value>
+  </data>
+  <data name="Training_Relinked" xml:space="preserve">
+    <value>Training file set: {0}</value>
+  </data>
+  <data name="Training_Removed" xml:space="preserve">
+    <value>The training was removed from the project.</value>
+  </data>
+  <data name="Inspector_FitHeader" xml:space="preserve">
+    <value>FIT MARKS OF THIS VIDEO</value>
+  </data>
+  <data name="Inspector_FitMarkItem" xml:space="preserve">
+    <value>Climb {0} · {1} · {2}</value>
+  </data>
+  <data name="Inspector_FitLayOut" xml:space="preserve">
+    <value>Lay out the route from the mark</value>
+  </data>
+  <data name="Inspector_FitLayOutTip" xml:space="preserve">
+    <value>The route selection of D048 with T on the mark's frame on this clip; the animation is linked to the climb.</value>
+  </data>
+  <data name="Inspector_FitMoveToPlayhead" xml:space="preserve">
+    <value>Move the mark to the playhead</value>
+  </data>
+  <data name="Inspector_FitDecline" xml:space="preserve">
+    <value>Hide the mark / decline the climb</value>
+  </data>
+  <data name="Inspector_FitLinkHeader" xml:space="preserve">
+    <value>FIT CLIMB OF THE ANIMATION</value>
+  </data>
+  <data name="Inspector_FitLinked" xml:space="preserve">
+    <value>Linked to FIT climb {0}.</value>
+  </data>
+  <data name="Inspector_FitNotLinked" xml:space="preserve">
+    <value>Not linked to a FIT climb.</value>
+  </data>
+  <data name="Inspector_FitLink" xml:space="preserve">
+    <value>Link to the FIT climb</value>
+  </data>
+  <data name="Inspector_FitUnlink" xml:space="preserve">
+    <value>Remove the FIT link</value>
+  </data>
+  <data name="Inspector_FitLaidOut" xml:space="preserve">
+    <value>The route is laid out from the FIT mark.</value>
+  </data>
+  <data name="Inspector_FitMoved" xml:space="preserve">
+    <value>The FIT mark is moved.</value>
+  </data>
+  <data name="Inspector_FitLinkDone" xml:space="preserve">
+    <value>The animation is linked to the FIT climb.</value>
+  </data>
+  <data name="Inspector_FitUnlinkDone" xml:space="preserve">
+    <value>The FIT link is removed.</value>
+  </data>
+  <data name="FitSettings_Title" xml:space="preserve">
+    <value>FIT settings</value>
+  </data>
+  <data name="FitSettings_Section" xml:space="preserve">
+    <value>FIT CALIBRATION</value>
+  </data>
+  <data name="FitSettings_Beta" xml:space="preserve">
+    <value>Collect the start calibration (Beta)</value>
+  </data>
+  <data name="FitSettings_BetaTip" xml:space="preserve">
+    <value>On: every save adds the route starts of the FIT marks to your calibration. Off: nothing is collected, nothing is removed, the last value is still used.</value>
+  </data>
+  <data name="FitSettings_Estimate" xml:space="preserve">
+    <value>Current start correction: {0:0.0} s</value>
+  </data>
+  <data name="FitSettings_UsedCount" xml:space="preserve">
+    <value>Observations used: {0}</value>
+  </data>
+  <data name="FitSettings_NewerFile" xml:space="preserve">
+    <value>The calibration file is from a newer version of the application: it is not used or changed.</value>
+  </data>
+  <data name="FitSettings_UnreadableFile" xml:space="preserve">
+    <value>The calibration file can't be read now: it is left as it is.</value>
+  </data>
+  <data name="FitSettings_Reset" xml:space="preserve">
+    <value>Reset the calibration…</value>
+  </data>
+  <data name="FitSettings_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="FitSettings_ResetTitle" xml:space="preserve">
+    <value>Reset the calibration</value>
+  </data>
+  <data name="FitSettings_ResetQuestion" xml:space="preserve">
+    <value>Remove every collected observation? The start correction goes back to 12 s. The marks already in your projects stay where they are.</value>
+  </data>
+  <data name="FitSettings_ResetConfirm" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="FitSettings_ResetDone" xml:space="preserve">
+    <value>The calibration is reset to 12 s.</value>
+  </data>
+  <data name="FitSettings_NotWritten" xml:space="preserve">
+    <value>The calibration file couldn't be written; nothing changed.</value>
+  </data>
+  <data name="Toolbar_FitSettings" xml:space="preserve">
+    <value>FIT settings…</value>
+  </data>
+  <data name="Toolbar_DeclinedClimbs" xml:space="preserve">
+    <value>Declined climbs</value>
+  </data>
+  <data name="Toolbar_DeclinedClimb" xml:space="preserve">
+    <value>Climb {0} · {1}</value>
+  </data>
+  <data name="Toolbar_Restore" xml:space="preserve">
+    <value>Bring back</value>
+  </data>
+  <data name="Toolbar_Restored" xml:space="preserve">
+    <value>The FIT climb is back.</value>
+  </data>
+  <data name="Inspector_TrainingHeader" xml:space="preserve">
+    <value>COROS TRAINING</value>
+  </data>
+  <data name="Inspector_RecordingStartSet" xml:space="preserve">
+    <value>Recording start of this video: set by a climb</value>
+  </data>
+  <data name="Inspector_RecordingStartUnknown" xml:space="preserve">
+    <value>Recording start of this video: unknown</value>
+  </data>
+  <data name="Inspector_AlignToClimb" xml:space="preserve">
+    <value>Match the frame to the start of the climb</value>
+  </data>
+  <data name="Inspector_AlignToClimbTip" xml:space="preserve">
+    <value>Put the playhead on the frame where the chosen climb starts: the recording start of this video is set so that this frame shows the climb's start. The training's clock correction is not changed.</value>
+  </data>
+  <data name="Inspector_ClearRecordingStart" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Inspector_AlignAnchor" xml:space="preserve">
+    <value>Match point</value>
+  </data>
+  <data name="Inspector_AnchorEnd" xml:space="preserve">
+    <value>End of the climb</value>
+  </data>
+  <data name="Inspector_AnchorStart" xml:space="preserve">
+    <value>Start of the climb</value>
+  </data>
+  <data name="Inspector_AlignToClimbEnd" xml:space="preserve">
+    <value>Match the frame to the end of the climb</value>
+  </data>
+  <data name="Inspector_AlignToClimbEndTip" xml:space="preserve">
+    <value>Put the playhead on the frame of the last touch of the wall when jumping off the chosen climb: the recording start of this video is set so that the watch time at this frame is {0:0.0} s before the climb's end in the FIT — the watch records the end later. The training's clock correction is not changed; do not put this lag into it.</value>
+  </data>
+  <data name="Inspector_ClimbItem" xml:space="preserve">
+    <value>Climb {0} · {1}–{2}</value>
+  </data>
+  <data name="Inspector_AlignedToClimb" xml:space="preserve">
+    <value>Recording start set by the start of climb {0}.</value>
+  </data>
+  <data name="Inspector_AlignedToClimbEnd" xml:space="preserve">
+    <value>Recording start set by the end of climb {0}.</value>
+  </data>
+  <data name="Inspector_AlignPlayheadOutside" xml:space="preserve">
+    <value>Put the playhead on a frame of this clip.</value>
+  </data>
+  <data name="Readout_Value" xml:space="preserve">
+    <value>Training at the playhead: {0} (watch) · {1} bpm</value>
+  </data>
+  <data name="Readout_NoValue" xml:space="preserve">
+    <value>Training at the playhead: {0}</value>
+  </data>
+  <data name="Readout_NoTraining" xml:space="preserve">
+    <value>no training</value>
+  </data>
+  <data name="Readout_TrainingNotAvailable" xml:space="preserve">
+    <value>the training file is not available</value>
+  </data>
+  <data name="Readout_RecordingStartUnknown" xml:space="preserve">
+    <value>the recording start of this video is unknown</value>
+  </data>
+  <data name="Readout_OutsideClip" xml:space="preserve">
+    <value>the playhead is outside this clip</value>
+  </data>
+  <data name="Readout_OutsideRecording" xml:space="preserve">
+    <value>{0} (watch), outside the training's recording</value>
+  </data>
+  <data name="Readout_NoSample" xml:space="preserve">
+    <value>{0} (watch), no heart-rate sample</value>
+  </data>
+  <data name="Relink_RecordingStartTitle" xml:space="preserve">
+    <value>Recording start of the video</value>
+  </data>
+  <data name="Relink_RecordingStartMessage" xml:space="preserve">
+    <value>The recording start of this video was set by a climb, and {0} is not recognised as the same recording (size, duration or recording time differ, or could not be checked). Keep the recording start for the new file?</value>
+  </data>
+  <data name="Relink_RecordingStartDrop" xml:space="preserve">
+    <value>Do not keep</value>
+  </data>
+  <data name="Relink_RecordingStartKeep" xml:space="preserve">
+    <value>Keep</value>
+  </data>
+  <data name="Reference_Title" xml:space="preserve">
+    <value>COROS sync check</value>
+  </data>
+  <data name="Reference_RuleHeader" xml:space="preserve">
+    <value>Marking rule</value>
+  </data>
+  <data name="Reference_SetRule" xml:space="preserve">
+    <value>Set the marking rule</value>
+  </data>
+  <data name="Reference_Videos" xml:space="preserve">
+    <value>Study videos</value>
+  </data>
+  <data name="Reference_Climbs" xml:space="preserve">
+    <value>FIT climbs</value>
+  </data>
+  <data name="Reference_Marks" xml:space="preserve">
+    <value>Marks of the video</value>
+  </data>
+  <data name="Reference_OpenVideo" xml:space="preserve">
+    <value>Open in Source</value>
+  </data>
+  <data name="Reference_MarkStart" xml:space="preserve">
+    <value>Climb start here</value>
+  </data>
+  <data name="Reference_MarkEnd" xml:space="preserve">
+    <value>Climb end here</value>
+  </data>
+  <data name="Reference_MoveStart" xml:space="preserve">
+    <value>Move start here</value>
+  </data>
+  <data name="Reference_ClearEnd" xml:space="preserve">
+    <value>Remove end</value>
+  </data>
+  <data name="Reference_GoToStart" xml:space="preserve">
+    <value>Go to start</value>
+  </data>
+  <data name="Reference_GoToEnd" xml:space="preserve">
+    <value>Go to end</value>
+  </data>
+  <data name="Reference_Confirm" xml:space="preserve">
+    <value>Confirm the climb</value>
+  </data>
+  <data name="Reference_NotMatchedNotAClimb" xml:space="preserve">
+    <value>Not a climb</value>
+  </data>
+  <data name="Reference_NotMatchedNoFitClimb" xml:space="preserve">
+    <value>No FIT climb</value>
+  </data>
+  <data name="Reference_NotMatchedAmbiguous" xml:space="preserve">
+    <value>Ambiguous</value>
+  </data>
+  <data name="Reference_Withdraw" xml:space="preserve">
+    <value>Withdraw the mark</value>
+  </data>
+  <data name="Reference_Reconfirm" xml:space="preserve">
+    <value>Reconfirm</value>
+  </data>
+  <data name="Reference_CoverageHeader" xml:space="preserve">
+    <value>Coverage of the video</value>
+  </data>
+  <data name="Reference_SetHasClimbs" xml:space="preserve">
+    <value>Has climbs</value>
+  </data>
+  <data name="Reference_SetNoClimbs" xml:space="preserve">
+    <value>Reviewed: no climbs</value>
+  </data>
+  <data name="Reference_SetUnknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Reference_Save" xml:space="preserve">
+    <value>Save the study</value>
+  </data>
+  <data name="Reference_VerifyAll" xml:space="preserve">
+    <value>Check all files</value>
+  </data>
+  <data name="Reference_Freeze" xml:space="preserve">
+    <value>Freeze a revision</value>
+  </data>
+  <data name="Reference_Position" xml:space="preserve">
+    <value>Source position: {0}</value>
+  </data>
+  <data name="Reference_VideoRow" xml:space="preserve">
+    <value>{0} · {1} · marks: {2}</value>
+  </data>
+  <data name="Reference_ClimbRow" xml:space="preserve">
+    <value>C{0} · {1} · {2} s</value>
+  </data>
+  <data name="Reference_ClimbNotFilmed" xml:space="preserve">
+    <value> — not on the videos, outside B6</value>
+  </data>
+  <data name="Reference_ClimbConfirmedBy" xml:space="preserve">
+    <value> — confirmed: {0} at {1}</value>
+  </data>
+  <data name="Reference_NoEnd" xml:space="preserve">
+    <value>no end</value>
+  </data>
+  <data name="Reference_DecisionConfirmed" xml:space="preserve">
+    <value>climb C{0}</value>
+  </data>
+  <data name="Reference_DecisionNotMatched" xml:space="preserve">
+    <value>not matched: {0}</value>
+  </data>
+  <data name="Reference_DecisionRejected" xml:space="preserve">
+    <value>rejected</value>
+  </data>
+  <data name="Reference_DecisionNone" xml:space="preserve">
+    <value>no decision</value>
+  </data>
+  <data name="Reference_MarkStale" xml:space="preserve">
+    <value> (stale)</value>
+  </data>
+  <data name="Reference_MarkWithdrawn" xml:space="preserve">
+    <value> (withdrawn)</value>
+  </data>
+  <data name="Reference_MarkRow" xml:space="preserve">
+    <value>{0} → {1} · {2}</value>
+  </data>
+  <data name="Reference_Opened" xml:space="preserve">
+    <value>Study {0} opened.</value>
+  </data>
+  <data name="Reference_Refused" xml:space="preserve">
+    <value>Not done: {0}</value>
+  </data>
+  <data name="Reference_Saved" xml:space="preserve">
+    <value>The study was saved.</value>
+  </data>
+  <data name="Reference_CheckingAll" xml:space="preserve">
+    <value>Checking all files of the set…</value>
+  </data>
+  <data name="Reference_AllVerified" xml:space="preserve">
+    <value>All files of the set are verified.</value>
+  </data>
+  <data name="Reference_NotAllVerified" xml:space="preserve">
+    <value>{0} files did not pass the check.</value>
+  </data>
+  <data name="Reference_FreezeNote" xml:space="preserve">
+    <value>Reference marking</value>
+  </data>
+  <data name="Reference_Frozen" xml:space="preserve">
+    <value>Revision {0} was frozen.</value>
+  </data>
+  <data name="Reference_Checking" xml:space="preserve">
+    <value>Checking {0} (SHA-256)…</value>
+  </data>
+  <data name="Reference_NotVerified" xml:space="preserve">
+    <value>the file did not pass its SHA-256 check ({0})</value>
+  </data>
+  <data name="Reference_Shown" xml:space="preserve">
+    <value>{0} is shown in Source.</value>
+  </data>
+  <data name="Reference_NoStudy" xml:space="preserve">
+    <value>no study is open</value>
+  </data>
+  <data name="Reference_NoRule" xml:space="preserve">
+    <value>no marking rule yet — set it before marking</value>
+  </data>
+  <data name="Reference_NoVideo" xml:space="preserve">
+    <value>no video is selected</value>
+  </data>
+  <data name="Reference_NotFresh" xml:space="preserve">
+    <value>the file changed or was not checked — open the video again to check it</value>
+  </data>
+  <data name="Reference_NotShown" xml:space="preserve">
+    <value>the selected video is not shown in Source — open it first</value>
+  </data>
+  <data name="Reference_NoMark" xml:space="preserve">
+    <value>no mark is selected</value>
+  </data>
+  <data name="Reference_NoClimb" xml:space="preserve">
+    <value>no FIT climb is selected</value>
+  </data>
+  <data name="Reference_Done" xml:space="preserve">
+    <value>Done.</value>
+  </data>
+  <data name="Reference_ClimbTaken" xml:space="preserve">
+    <value>Not done: the climb is already confirmed by the mark of {0} at {1} — clear that decision first.</value>
+  </data>
+  <data name="Reference_Blocked" xml:space="preserve">
+    <value>Marking blocked: {0}.</value>
+  </data>
+  <data name="Reference_NotInProject" xml:space="preserve">
+    <value>the video is not in the open project at the study's path</value>
+  </data>
+  <data name="Reference_SizeDiffers" xml:space="preserve">
+    <value>the project's file has another size than the study's</value>
+  </data>
+  <data name="Reference_Ambiguous" xml:space="preserve">
+    <value>more than one project video is at the study's path</value>
+  </data>
+  <data name="Reference_NoLocation" xml:space="preserve">
+    <value>the study has no location of the video</value>
+  </data>
+  <data name="Reference_CoverageHasClimbs" xml:space="preserve">
+    <value>has climbs</value>
+  </data>
+  <data name="Reference_CoverageNoClimbs" xml:space="preserve">
+    <value>reviewed: no climbs</value>
+  </data>
+  <data name="Reference_CoverageUnknown" xml:space="preserve">
+    <value>coverage unknown</value>
+  </data>
+  <data name="Reference_ReasonNotAClimb" xml:space="preserve">
+    <value>not a climb</value>
+  </data>
+  <data name="Reference_ReasonNoFitClimb" xml:space="preserve">
+    <value>no FIT climb</value>
+  </data>
+  <data name="Reference_ReasonAmbiguous" xml:space="preserve">
+    <value>ambiguous</value>
   </data>
 </root>
