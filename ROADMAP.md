@@ -1,7 +1,8 @@
 # Roadmap
 
-The canonical phase list, with per-phase scope, is `docs/DEVELOPMENT_PLAN.md`.
-This file summarizes status only.
+The canonical roadmap is `docs/DEVELOPMENT_PLAN.md`: the phase list with per-phase scope and steps, and the one table of
+the phases' state and of what comes next ("Phase and step numbering" → "Official phases"). This file summarizes it with
+the product concept and the release stopping points; where they differ, `docs/DEVELOPMENT_PLAN.md` prevails.
 
 ## Product concept (DECISIONS.md D042, 2026-10-20)
 
@@ -76,36 +77,37 @@ verification passed (Release/Debug builds 0/0, full suite 4536 passed/2 skipped,
 rebuilt to 119 MiB / 349 files, available Step 30.2 rows re-run). The main path was run in the portable build on
 2026-10-23 and checked by the owner on 2026-10-24 (B1–B9 PASS); performance targets C1–C6 agreed on 2026-10-24. **The full
 acceptance of S1 is not declared**: FFmpeg distribution, licence notices review, a clean-environment check without the
-current machine's limitations, the C4 live-preview observation, **CI green** (the Phase 30 branch has not been pushed/merged,
-so no CI run exists; the last green CI was PR #30 `e28a9d3`) and the product owner's final sign-off remain open and are
+current machine's limitations, the C4 live-preview observation and the product owner's final sign-off remain open (CI,
+listed here before, is green since Phase 30 reached `main` with PR #31, 2026-10-26) and are
 deferred to a separate release-preparation task. Details: `progress.md`, `docs/PHASE30_MANUAL_TEST_PLAN.md`,
 `docs/PHASE30_MANUAL_TEST_INVENTORY.md`, DECISIONS.md D046 §13.
 
 ## Current
 
-**State on 2026-10-29 (numbering confirmed by the product owner, `docs/DEVELOPMENT_PLAN.md` "Phase and step numbering").**
-The **highest phase number in use is 34**; the **last complete phase** (merged and accepted) **is 29**. D048's stages are
-Phases 32 (route selection; implemented, paused / deferred), 33 (timing model, anchors, `project.json` v10) and 34 (the
-overlay strip, variant B), all three merged in PR #32 (`1e58885`); D048 was approved as implemented on 2026-10-28, a
-separate formal acceptance of Phases 33 and 34 is not recorded. Phases 30 and 31 are technically complete, their full
-acceptance open (below). **Next: Phase 35** — the import of COROS trainings (formerly "Phase Coros"): D049 and D050
-approved 2026-10-29 (their text is on the branch `feat/phase-coros-c1` (Step 35.0, `6fba445`), not yet in `main`); Steps 35.1–35.2 done in local branches, not merged, 35.2's manual
-acceptance passed (A1–A11 PASS); Steps 35.3–35.6 not started. PR 1 (Steps 35.0–35.2) leaves `project.json` v10; Phase 35's
-format change (expected v11) reaches `main` only with PR 2 (Steps 35.3–35.6), the number fixed at merge (V1). Then **Phase
-36** — the session summary and the YouTube chapters (specification draft).
+**State on 2026-11-03** (`main` at `1640996`, the merge of PR #33; `project.json` v12; the table of every phase:
+`docs/DEVELOPMENT_PLAN.md`, "Official phases"). The **last complete phase** (merged and accepted) **is 29**; the **highest
+phase number in use is 37**.
 
-**Phase 31 — Automatic hold proposals (D047 approved 2026-10-25; technically complete 2026-10-26).** The default
-configuration — SAM 2.1 Large ONNX, 15×15 grid, frames decoded and evaluated at 1920×1080 — runs in ~7.4 s on a warm 4K
-frame and ~6.5 s on a warm 1080p frame on the development machine, meeting the ≤8 s acceptance criterion. The E1 recall at
-IoU≥0.50 is 53.7 % (88/164 reference holds), above the ≥45 % orientir. Clarifications: ≤8 s on a 4K frame is the acceptance
-performance criterion, ≤5 s is desired but not a blocker; refinement runs automatically after Accept and reports failure
-instead of creating an incorrect Hold; proposal pass resolution is the internal default 1920×1080 with no user setting;
-default prompt grid is 15×15. Steps 31.1–31.7 are complete. Full user acceptance is pending the interactive A/B/E checks
-in `docs/PHASE31_MANUAL_TEST_PLAN.md` that require the product owner's own footage and manual UI actions. Phase 31 is
-sharply scoped: reduced-resolution proposal pass, efficient duplicate suppression, ranked accept/reject UI, and
-preservation of the existing D034 click flow.
+- **Phase 37** — preliminary route starts from a COROS FIT and the global start calibration (D051, approved 2026-11-03):
+  **implemented and merged** with PR #33 (`1640996`; CI green on the pull request and on `main`), `project.json` v12; the
+  manual plan not run, the product owner's acceptance open. Record: `docs/PHASE37.md`.
+- **Phase 35** — the import of COROS trainings and the heart rate in the video (D049 / D050): **in `main` in part, not
+  complete.** Steps 35.0–35.2 done (35.2 accepted), 35.4 implemented (v11; its manual rows open); 35.3 in part — the formal
+  evaluation 35.3d gave «B6 not met» (0 of 13 climbs within `τ`, drift −22.4 s), an experimental result, not a confirmation
+  of the method; **35.3e awaits the product owner's decision** and is not in the near plan; **35.5 (the heart-rate overlay)
+  and 35.6 not started**. Its commits reached `main` with PR #33, together with Phase 37. Record: `docs/PHASE_COROS.md`.
+- **Phases 32–34** — D048 (approved 2026-10-28, merged in PR #32): 32 (the route selection at `T`) paused / deferred; 33
+  (the timing model, v10) and 34 (the overlay strip, variant B) implemented, a separate formal acceptance not recorded.
+- **Phases 30 and 31** — technically complete (PR #31); the full S1 acceptance (Phase 30) and the manual A / B / E checks
+  (Phase 31) open. **R2 → E** (the outlines following the camera) — its camera-motion part merged in PR #31, unnumbered, not
+  complete.
+- **Phase 36** — the session summary and the YouTube chapters: a specification draft outside `main`, no decision.
 
-Steps: `docs/DEVELOPMENT_PLAN.md`, "Planned phases after Phase 26 (D042)"; DECISIONS.md D042.
+**Next (the product owner's direction of 2026-11-03, DECISIONS.md D050): Step 35.5 — the heart-rate overlay**, then 35.6,
+Phase 35's closeout. It is not combined with an export of time codes: the time-code export (Phase 36's YouTube chapters)
+stays a separate item until its original intent and its relations to the other phases are clarified. Step 35.3e is not
+taken up without a separate product decision, and it is not replaced by recognising attempts from the climber's movement
+in the video.
 
 ## Previous
 
@@ -465,13 +467,13 @@ task): closing the app after a project with media was open hangs the process —
 ## Remaining plan (D042, provisional; 2026-10-20)
 
 Scopes, steps-to-be and dependencies: `docs/DEVELOPMENT_PLAN.md`, "Planned phases after Phase 26 (D042)". The letters are
-working labels — a phase gets its number (27, 28, …) and its own decision when it is taken up. State on 2026-10-28
+working labels — a phase gets its number (27, 28, …) and its own decision when it is taken up. State
 (numbering: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering"): A, B and C are merged and accepted (Phases 27–29); G is
 Phase 30 and D is Phase 31 — both technically complete, their full acceptance open, both merged through PR #31; E's
 camera-motion part is merged in PR #31, unnumbered and not complete; D048's stages are Phases 32–34, merged in PR #32 (32
-paused / deferred; 33 and 34 without a recorded formal acceptance); F is Phase 35 (D049 / D050 approved 2026-10-29, text on
-`feat/phase-coros-c1`; Steps 35.1–35.2 done in local branches, not merged, 35.2 accepted; 35.3–35.6 not started); H is not
-started.
+paused / deferred; 33 and 34 without a recorded formal acceptance); F is Phase 35 — in `main` in part since PR #33
+(2026-11-03; 35.5 and 35.6 not started, 35.3e awaiting a decision); Phase 37 merged with it, not accepted; H is not
+started. *(The first sentence's date was 2026-10-28; this list is the state on 2026-11-03.)*
 
 Status on 2026-10-24: Phases 0–29 complete and merged (Phase 27 = A as `36a1a58`, PR #28; Phase 28 = B as `4f0e66a`,
 PR #29; Phase 29 = C — four visual templates and the music audit, D045, WASTED deferred — as `e28a9d3`, PR #30); Phase 30
@@ -493,12 +495,12 @@ research, F only after its feasibility is confirmed and a separate agreement; H 
 | D048-1 | Route selection at `T` and review — **Phase 32** (D048 **approved 2026-10-28**; implemented, then **paused / deferred**: «Авторазметка» hidden, code and research kept — `docs/HOLD_AUTO_DETECTION_RESEARCH.md`) | AI | medium | D (Phase 31), E's tracking |
 | D048-2 | Timing model (animation duration, orders, standard / short-intro layout), template ↔ clip anchor, speed / trim / copy rules, `project.json` v10 (v9 converted on save, no backward compatibility) — **Phase 33** (implemented and merged, PR #32; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded) | core | medium–large | D048 approval; schema check with F done (COROS takes the next version) |
 | D048-3 | The overlay strip — **Phase 34** (implemented and merged, PR #32; separate formal acceptance not recorded; variant B: the segments inside the «Боулдер»; the lane above the clip Debug-only) | UX | medium | D048-2 |
-| R3 | COROS exports and video timestamps — research, carried out on the owner's real APEX 4 FIT export (described in `docs/PHASE_COROS.md` §1 on the branch `feat/phase-coros-c1`; not in `main` yet) | research | research (needs real files) | — (parallel) |
-| F | **Phase 35** — import of COROS trainings and the heart rate in the video (formerly "Phase Coros", «COROS Pace 4: пульс и телеметрия в видео»; any COROS model; D049 / D050 approved 2026-10-29, text on `feat/phase-coros-c1`; Steps 35.1–35.2 done, not merged, 35.2 accepted; 35.3–35.6 not started) | telemetry | large | R3, A |
-| — | **Phase 36** — session summary and YouTube chapters (specification draft, not approved) | core | medium–large | Phases 32–34; Phase 36's own format decision for `PassId` / «Итоги»; Phase 35 for the heart rate |
-| — | **D049** — the training in the project, the time model and Phase 35's format change (expected v11, not implemented; the number fixed at merge, V1); approved 2026-10-29, text on `feat/phase-coros-c1`, not yet in `main`; not a phase | format | small | — |
+| R3 | COROS exports and video timestamps — research, carried out on the owner's real APEX 4 FIT export (done; `docs/PHASE_COROS.md` §1) | research | research (needs real files) | — (parallel) |
+| F | **Phase 35** — import of COROS trainings and the heart rate in the video (formerly "Phase Coros", «COROS Pace 4: пульс и телеметрия в видео»; any COROS model; D049 / D050 approved 2026-10-29; in `main` in part since PR #33 — 35.0–35.2 done, 35.3 in part (35.3d: B6 not met; 35.3e awaiting a decision), 35.4 implemented; **35.5 the heart-rate overlay — next — and 35.6 not started**) | telemetry | large | R3, A |
+| — | **Phase 36** — session summary and YouTube chapters (specification draft outside `main`, not approved; its time-code export a separate item until clarified, not combined with 35.5) | core | medium–large | Phases 32–34; Phase 36's own format decision for `PassId` / «Итоги»; Phase 35 for the heart rate |
+| — | **D049** — the training in the project, the time model and Phase 35's format change (v11, implemented in Step 35.4, in `main` since PR #33; the automatic zero not implemented); approved 2026-10-29; not a phase | format | small | — |
 | H | «Final UX Pass: аудит и упрощение интерфейса» (research, then implementation) | UX | research + medium–large | the core incl. F, G, a regression run |
-| — | **Phase 37** — preliminary route starts from a COROS FIT and the global start calibration (D051, approved 2026-11-03; documentation only, not implemented — `docs/PHASE37.md`) | telemetry | medium–large | Phase 35's pull requests 1 and 2 (not opened on 2026-11-03), D048; not Phase 36 (separate, deferred) |
+| — | **Phase 37** — preliminary route starts from a COROS FIT and the global start calibration (D051, approved 2026-11-03; implemented and merged with PR #33, v12; manual plan not run, acceptance open — `docs/PHASE37.md`) | telemetry | medium–large | Phase 35 (Steps 35.2–35.4), D048; not Phase 36 |
 
 Stopping points — the product is usable after each:
 - **S0 — at the merge of Phase 26**: a vertical bouldering video with manually chosen AI holds, their animation, static text with

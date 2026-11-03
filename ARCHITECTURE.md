@@ -513,32 +513,34 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   `Z = W_start − ClockCorrection − s(n)` (D050 amendments of 2026-11-01 and 2026-11-02); the lag enters only there, never
   the clock correction, a climb's interval or the readout. The training's `ClockCorrection` is a setting of the COROS
   training drop-down; the Inspector shows the mapping at the playhead read-only.
-- **Persistence** (D049 §7; the next format version, in `main` with Phase 35's second pull request): a FIT reference
+- **Persistence** (D049 §7; `project.json` v11, in `main` since PR #33): a FIT reference
   (paths, size, SHA-256, activity identity) and its clock correction; a per-video zero override; in the metadata the raw
   `creation_time` tag with its origin and a probe marker. The telemetry itself is never stored. The background probe of
   the recording time follows the Phase 7 / 18 refresh contract: at most once per asset per session, never dirty, no save
   prompt, no Undo step.
 
-## FIT route starts and the global start calibration (Phase 37, D051 — planned, not implemented)
+## FIT route starts and the global start calibration (Phase 37, D051)
 
-*Approved 2026-11-03; documentation only. The implementation starts after Phase 35's second pull request. Record:
-`docs/PHASE37.md`.*
+*Approved 2026-11-03; implemented and merged with PR #33 (`1640996`); `project.json` v12. Record: `docs/PHASE37.md`.*
 
-- **Core `Telemetry/Calibration/`** (planned): the K3 estimate of `StartCorrection` — pure integer functions in ticks
+- **Core `Telemetry/Calibration/`**: `StartCalibration` and `CalibrationSync` — the K3 estimate of `StartCorrection` — pure integer functions in ticks
   (window `N` = 100 by `positionChangedAt`, `MIN_N` = 20, bounds [−30 s, +90 s], Huber target by the `L` / `U` bisection,
   floor division), the key `TrainingActivity` + `ClimbIdentity` (moved out of `Research`), the records and their statuses;
-  `FitMarkProposals` (the choice of the video and position, D051 §5.5.1); `EffectiveStart` and its watch time
-  (D051 §4.5). `ClimbEndLag` never enters this path; `TrainingAlignment` stays the only mapping.
+  `Telemetry/FitMarks` (`FitMark`, `FitMarkPosition`, `DeclinedClimb`) and `Telemetry/FitMarkRules` — the proposals and
+  the choice of the video and position (D051 §5.5.1), `EffectiveStart` and its watch time (D051 §4.5), the observations,
+  the marks following an edit (`Follow`). `ClimbEndLag` never enters this path; `TrainingAlignment` stays the only mapping.
 - **Project**: `FitCalibrationStore` — the second per-user file `%LOCALAPPDATA%\AiVideoEditor\config\fit-calibration.json`,
   on the pattern of `RecentProjectsStore` (lock, re-read, atomic write, `*.damaged`, newer format untouched); Beta on by
-  default. The project format (the version after v11) adds the active marks (video, kind `proposed` / `clamped` / `moved`,
+  default. The project format v12 adds the active marks (video, kind `proposed` / `clamped` / `moved`,
   `positionChangedAt`, the link as `LinkedClipId`) and the declined climbs per training. The observations are synchronised
-  after a successful Save / Save As, never on autosave or recovery.
-- **Timeline**: the mark commands (`IUndoableCommand`; composites with `SetRecordingZeroOverrideCommand` and with
-  `LayOutIntroAndFinal`); the paste refusal of a duplicate FIT markup in `PasteInto` (shared `Hold.Id`); the link following
-  its markup in `EditPlan.Commit` (Split, Insert / Overwrite). The D048 markup value and its commands are unchanged.
-- **UI**: an editor-only layer of marks on the clips (like the D048 strip; never in Preview or export); the link actions in
-  the Inspector; «Отклонённые подъёмы» and «Настройки FIT…» in the COROS training drop-down.
+  after a successful Save / Save As, never on autosave or recovery (`FitCalibrationSaveSync`).
+- **Timeline**: `IFitMarkEditService` on `TimelineEditService` (`TimelineEditService.FitMarks.cs`): `SetFitMarksCommand`
+  (composites with `SetRecordingZeroOverrideCommand` and with `LayOutIntroAndFinal`); `FitMarksFollowingCommand` wraps
+  every edit while marks exist, so the marks and the links follow it (Split, Insert / Overwrite, a removed video or clip)
+  in the same Undo step; the paste refusal of a duplicate FIT markup in `PasteInto` (shared `Hold.Id`). The D048 markup value and its commands are unchanged.
+- **UI**: an editor-only layer of marks on the clips (like the D048 strip; never in Preview or export; a click selects, Delete
+  declines); the Inspector's FIT section (lay out from the mark, «Переместить метку к плейхеду» — no drag, accepted by the
+  product owner — decline, link / unlink); «Отклонённые подъёмы» and «Настройки FIT…» in the COROS training drop-down.
 - **Limitation**: videos whose source time is not real time (slow / fast motion, time-lapse) are not supported.
 
 ## Preview tools: Move, Scale, Crop (Phase 23, D038)

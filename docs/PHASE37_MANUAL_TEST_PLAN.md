@@ -1,10 +1,11 @@
 # Phase 37 — Preliminary route starts from a COROS FIT and the global start calibration: manual test plan
 
-Decision: DECISIONS.md D051 (approved 2026-11-03). Record of the phase: `docs/PHASE37.md`. **Not run — the phase is not
-implemented.** The acceptance items of D051 §10 are cited as «D051 A1»…«D051 A15»; the rows of this plan have their own
+Decision: DECISIONS.md D051 (approved 2026-11-03). Record of the phase: `docs/PHASE37.md`. **State (2026-11-03): not run.**
+The phase is implemented and merged into `main` with PR #33 (`1640996`); no row of this plan has been run yet, so the
+product owner's acceptance of Phase 37 is open (Step 37.7). The acceptance items of D051 §10 are cited as «D051 A1»…«D051 A15»; the rows of this plan have their own
 numbers.
 
-Environment: the build of the Phase 37 branch; the projects of 08.08.2026 and 27.09.2026 with their FIT and videos (personal
+Environment: a build of `main` at `1640996` (the merge of PR #33) or later; the projects of 08.08.2026 and 27.09.2026 with their FIT and videos (personal
 data, never committed); Russian interface unless a row says otherwise, an English pass for the new texts. Before part F:
 a copy of `%LOCALAPPDATA%\AiVideoEditor\config\fit-calibration.json`, if it exists, to restore it afterwards. **Beta (the
 collection of observations) is on** for every row — the default (D051 §6.2); check it in «Настройки FIT…» before the run.
@@ -31,7 +32,7 @@ clock correction; mark kinds `proposed` / `clamped` / `moved` (D051 §5.3).
 ## B. Moving, laying out, the choice of the video
 | # | Check | Expected result | Evidence |
 |---|---|---|---|
-| B1 | Drag a mark by 2 s | the mark on the new frame; Undo returns it | |
+| B1 | Put the playhead 2 s after a mark, «Переместить метку к плейхеду» in the Inspector (the implemented way; no drag on the timeline — accepted by the product owner on 2026-11-03, `docs/PHASE37.md` §2) | the mark on the playhead's frame, kind `moved`; Undo returns it | |
 | B2 | «Разметить трассу от метки» | the D048 route selection with `T` on the mark's frame; after the layout the route starts at `T` (D051 A2) | |
 | B3 | Move `T` of the animation | the mark does not move; the effective start is the new `T` | |
 | B4 | Delete the animation | the link is removed; the effective start is the mark's own position | |
@@ -75,11 +76,12 @@ clock correction; mark kinds `proposed` / `clamped` / `moved` (D051 §5.3).
 | # | Check | Expected result | Evidence |
 |---|---|---|---|
 | E1 | Save, close, open | marks (video, kind), declined climbs and links as they were | |
-| E2 | Open a v11 project (Phase 35) | opens without marks; saved as the new version | |
+| E2 | Open a v11 project (Phase 35) | opens without marks; saved as v12 | |
 | E3 | Open a new project in an older build | refused as a newer version | |
 | E4 | Damage `project.json` (two links on one climb) | the open is refused with a reason, no crash | |
 | E5 | A crash → recovery | marks in the recovered project; the calibration file not changed by the recovery | |
 | E6 | The FIT renamed (not available) | the project opens; marks kept; visible again after the FIT is relinked | |
+| E7 | «Удалить медиа» of a video with marks (one of them declined) → save → close → open; then Undo | the project opens (no damage); the video's marks and the declined climbs' former marks on it are gone; Undo returns them (found and fixed in the final audit, `docs/PHASE37.md` §2) | |
 
 ## F. Calibration
 | # | Check | Expected result | Evidence |

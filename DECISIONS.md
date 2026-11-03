@@ -8046,6 +8046,7 @@ pull request — a historical exception to the rule of a pull request per phase.
 implemented» (2026-10-28) is not a separate formal acceptance of Phases 33 and 34 under the numbering rules; none is
 recorded. The import of COROS trainings ("Phase Coros") is **Phase 35**, the session summary and the YouTube chapters
 **Phase 36**; `project.json` v11 — a planned format, not implemented — is a separate decision **D049** (number reserved; a planned decision, not approved and not yet in `DECISIONS.md`).
+*(State on 2026-11-03: D049 approved 2026-10-29; v11 implemented in Step 35.4 and merged with PR #33; Phase 37 took v12.)*
 The numbering rules and the table of old and new labels: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering".
 
 ### 7. Open questions for the owner
@@ -8093,8 +8094,12 @@ green's priority on a shared left edge; the route-selection services in Core.
 
 ## D049 — The training in the project and the video ↔ training time model; the next `project.json` version *(approved 2026-10-29)*
 
-Date: 2026-10-29. **Status: Approved by the product owner on 2026-10-29** (revision 4, with M2) — not implemented. Phase 35 (D050);
-implemented in Steps 35.3–35.6; the format change reaches `main` only with Phase 35's second pull request.
+Date: 2026-10-29. **Status: Approved by the product owner on 2026-10-29** (revision 4, with M2). Phase 35 (D050). **Implementation state (2026-11-03):** the training in the project,
+the time model, the recording-time probe and the per-video zero override are implemented (Steps 35.3a and 35.4, `e15d7af`)
+as `project.json` v11, in `main` since PR #33 (`1640996`, 2026-11-03) — Phase 35's commits reached `main` in that pull
+request together with Phase 37 (v12), not through Phase 35's two planned pull requests (D050). The «automatic» zero state
+(§5, Step 35.3e) is not implemented; whether it is taken up is an open decision of the product owner (D050, «Recorded
+result of Step 35.3d»).
 
 ### Decisions recorded (product owner, 2026-10-29)
 
@@ -8341,10 +8346,14 @@ project); ID2 (always clear), ID3 (content fingerprint per asset).
 ## D050 — Phase 35: import of COROS trainings and the heart rate in the video *(approved 2026-10-29)*
 
 Date: 2026-10-29. **Status: Approved by the product owner on 2026-10-29** (revision 4; amended 2026-11-01, B1–B9;
-2026-11-02, 35.3R and B2's match point) — Steps 35.1–35.2 done; 35.3 partly: the probe (`02ded40`), 35.3a, 35.3b1,
-35.3b2a and the reference-marking tool 35.3R1 done, the reference marking 35.3R2 done and frozen by the product owner,
-35.3b2b–d, 35.3c (beyond 35.3R1), 35.3d and 35.3e not started; 35.4 implemented (`e15d7af`; its match point amended
-2026-11-02; its manual rows open); 35.5–35.6 not started. Format and time model: D049. Record until merge: `docs/PHASE_COROS.md`; manual
+2026-11-02, 35.3R and B2's match point). **Implementation state (2026-11-03):** Steps 35.1–35.2 done (35.2 accepted,
+A1–A11 PASS); 35.3 partly — the probe (`02ded40`), 35.3a, 35.3b1, 35.3b2a, 35.3b2c, 35.3b2d, the reference-marking tool
+35.3R1 and the frozen reference marking 35.3R2 done, 35.3b2b deferred, 35.3c only as the marking mode of 35.3R1, **35.3d
+run on 2026-11-02 with the result «B6 not met»** (below, «Recorded result of Step 35.3d»), 35.3e not implemented and
+awaiting the product owner's decision; 35.4 implemented (`e15d7af`; its match point amended 2026-11-02; its manual rows
+C1–C14 not run); **35.5 (the heart-rate overlay) and 35.6 (closeout) not started**. In `main` since PR #33 (`1640996`,
+2026-11-03) — Phase 35's commits arrived there together with Phase 37 instead of through the two pull requests planned
+below. Format and time model: D049. Record: `docs/PHASE_COROS.md`; manual
 plan: `docs/PHASE35_MANUAL_TEST_PLAN.md`. Any COROS model meeting the parser's requirements (owner, 2026-10-26); grade,
 result and style never from COROS (owner, 2026-10-28).
 
@@ -8543,13 +8552,41 @@ counted (implemented by Step 35.3b2c, `StudyEvaluator` with `EvaluationProtocol.
   «unexplained» is recorded honestly and never counts. The verdict with the explanations is shown, never stored apart:
   it is restored from the record and the explanations in force.
 
+**Recorded result of Step 35.3d (2026-11-02; recorded 2026-11-03).** The formal evaluation was run once by the protocol
+above, with the product owner's permission, on the frozen study of 35.3R2 (revision 1, content hash `78851023…d5ae`): the
+evaluation record 135, algorithm `coros-b6-1`, hypothesis `Z = tag − duration`, `τ = 2 s`. **Verdict: B6 not met.**
+- (1) **0 of the 13** climbs C2–C14 within `τ`: 10 outliers, 3 not computed (C7, C10, C13 — no confirmed match), none
+  excluded; at least 11 were required.
+- (3) the Theil–Sen drift **−22.4 s** (−223 801 075 ticks, 45 pairs) — beyond `τ / 2` = 1 s.
+- (2) the explanations: none added; the verdict does not depend on them, since (1) and (3) are not met.
+- Descriptive, outside the verdict: `K̂` = 12.13 s with MAD 7.86 s over the 10 matches; the tag check — 6 of the 7 videos
+  of B6 within 2 s, `104651` outside by about 65 s.
+
+This is the result of the experiment, recorded as it is (an admissible negative result): on this set the hypothesis
+`Z = tag − duration` does not give the climbs' starts within `τ`. It confirms no automatic-zero rule, does not change B6,
+`τ`, the marking rule, B2 or its end lag, and by itself neither cancels, replaces nor closes Step 35.3e. The report and its
+exports (`<study>.eval-135.json` / `.csv`) are kept with the personal data and never committed (`docs/PHASE_COROS.md` §12).
+
+**The product owner's direction (2026-11-03) — the order after the merge of PR #33.**
+- **Step 35.3e** (the «automatic» zero state, D049 §5) is not implemented and needs a separate product decision; it is not
+  put into the near plan automatically. It is not to be replaced by the recognition of a route's attempt from the
+  climber's movement in the video, and no conclusion about the need for such a function is drawn without a separate
+  decision of the product owner.
+- **Step 35.5 — the heart-rate overlay — is the next priority.** It is not combined with an export of time codes.
+- **The export of time codes** (in the current plan the YouTube chapters of Phase 36) stays a separate item until its
+  original intent and its relations to the other phases are clarified.
+
 ---
 
 ## D051 — Preliminary route starts from a COROS FIT and the global start calibration (Phase 37) *(approved 2026-11-03)*
 
 Date: 2026-11-03. **Status: Approved by the product owner on 2026-11-03** (with the refinements B1–B7, О1–О5, Q1 and
-Q2 of the same day) — not implemented; recorded at Step 37.0 on the Phase 37 documentation branch, not in Phase 35's
-second pull request. Record of the phase: `docs/PHASE37.md`; manual plan: `docs/PHASE37_MANUAL_TEST_PLAN.md`. Phase 37 runs after Phase 35's second pull request. Phase 35 (D050 B9, the owner's answer
+Q2 of the same day); recorded at Step 37.0 on the Phase 37 documentation branch, not in Phase 35's second pull request.
+**Implementation state (2026-11-03):** implemented (Steps 37.1–37.6, `90950cc`) and merged into `main` with PR #33
+(`1640996`), `project.json` v12; the manual plan not run, the product owner's acceptance open — «Implementation notes»
+at the end of this decision. Record of the phase: `docs/PHASE37.md`; manual plan: `docs/PHASE37_MANUAL_TEST_PLAN.md`.
+Phase 37 was planned to run after Phase 35's second pull request — superseded by the product owner's decision of
+2026-11-03 (Implementation notes). Phase 35 (D050 B9, the owner's answer
 O3) and Phase 36 (D050) are not extended. D048, D049 and D050 (B2, B6, B8, B9, `τ`, `ClimbEndLag`) are unchanged and not
 reinterpreted.
 
@@ -9004,6 +9041,23 @@ repository).
 | Editor-only layer; not in Preview / export | 8.1 | T4, A1 |
 | «Настройки FIT…» in the COROS drop-down, with or without a training; section FIT only | 8.3 | T6 |
 | Separate Phase 37 after Phase 35's second PR; D051 on the Phase 37 branch; no further research | header, 9, 10 | plan review |
+
+### Implementation notes (2026-11-03; the normative content above unchanged)
+- **Order**: the product owner decided on 2026-11-03 to implement Phase 37 at once from `feat/phase-coros-c1` `4070ffc`
+  (branch `feat/phase-37-fit-starts`), not after Phase 35's second pull request; PR #33 carried Phase 35's commits and
+  Phase 37 into `main` (`1640996`). The rows «37.0» and «Separate Phase 37 after Phase 35's second PR» above describe the
+  plan as approved, not the order that happened.
+- **Format**: «the version after v11» (§5.3, §9) is **v12**.
+- **Accepted differences from the plan** (product owner, 2026-11-03): a mark is moved by «Переместить метку к плейхеду» in
+  the Inspector, not by a drag (§8.2 does not fix the way; the drag a later improvement); a mark `clamped` to the first
+  frame of its video stays unlinked by «Разметить трассу от метки», because D048 makes no animation with no time before
+  `T` — D048 not changed.
+- **Audit fixes** (in `90950cc`): removing a video takes its marks (and the declined climbs' former marks on it) in the
+  same Undo step — the saved project had been refused as damaged; a new import of the same activity keeps the marks and
+  never recreates a declined climb (§5.2, §5.3 prevail over the general §5.11 for the same FIT; another activity still
+  replaces them).
+- **Verification**: `docs/PHASE37.md` §2, Step 37.7 — automated gates passed, CI green on PR #33 and on `main`; the manual
+  plan not run; the product owner's acceptance open.
 
 ---
 

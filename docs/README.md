@@ -2,7 +2,8 @@
 
 This directory contains:
 
-- `DEVELOPMENT_PLAN.md` — canonical phase list, per-phase steps and acceptance criteria, standing architectural rules
+- `DEVELOPMENT_PLAN.md` — **the canonical roadmap**: the phase list, per-phase steps and acceptance criteria, the one table
+  of the phases' state and of what comes next ("Phase and step numbering" → "Official phases"), standing architectural rules
 - `EXPORT_MANUAL_TEST_PLAN.md` — manual export checks (Phase 8), re-run as a regression at later closeouts
 - `PHASE9_MANUAL_TEST_PLAN.md` — manual checks of Phase 9 (quality), run at its closeout
 - `PHASE10_MANUAL_TEST_PLAN.md` — manual checks of Phase 10 (fades, cross dissolve), run at its closeout
@@ -43,14 +44,31 @@ This directory contains:
 - `PHASE30_MANUAL_TEST_PLAN.md` — manual checks of Phase 30 (the portable build S1 in a clean environment, the main path
   in that build, the performance of a typical project, the inventory of the open manual checks, the defects found),
   completed per step
+- `PHASE30_MANUAL_TEST_INVENTORY.md` — Step 30.6: the inventory of the open manual checks of the earlier phases
+- `PHASE31_MANUAL_TEST_PLAN.md` — manual checks of Phase 31 (automatic hold proposals; the A / B / E checks open)
+- `PHASE_HOLD_TRACKING.md` — R2 → E: the research and the plan of the outlines following the camera (in Russian; its
+  camera-motion part merged in PR #31, unnumbered)
+- `TARGET_WORKFLOW.md` — the target user scenario agreed with the product owner (in Russian; the basis of D048)
+- `HOLD_AUTO_DETECTION_RESEARCH.md` — D048 stage 1 (Phase 32, paused): the results of the automatic route detection
+  research (in Russian)
+- `D048_STAGE1_ACCEPTANCE.md` — D048 stage 1: the acceptance procedure on the owner's clips (not run; the stage paused)
+- `PHASE_COROS.md` — the record of Phase 35 (COROS trainings and the heart rate): the real export, the specification, the
+  steps and their state, the research of Step 35.3 and the result of its evaluation 35.3d
+- `PHASE35_MANUAL_TEST_PLAN.md` — manual checks of Phase 35 (the import, the time model, the zero override, the heart-rate
+  overlay, the closeout)
+- `PHASE37.md` — the record of Phase 37 (preliminary route starts from a COROS FIT and the global start calibration,
+  D051): the steps as implemented, the decisions of 2026-11-03, the verification
+- `PHASE37_MANUAL_TEST_PLAN.md` — manual checks of Phase 37 (not run yet)
+- `drafts/ffmpeg-minimal-9.0.2-1/` — drafts of the minimal FFmpeg build's release plan and notices (S1 release
+  preparation, not published)
 - `AI_MODEL.md` — the AI hold model: files and checksums, installing, messages, licences and notices, the export recipe
 
 Agent-oriented project context lives in the repository root:
 
 - `CLAUDE.md` — instructions for AI coding agents
 - `ARCHITECTURE.md` — verified architecture and domain structure
-- `ROADMAP.md` — phase status
+- `ROADMAP.md` — the product concept, a summary of the phases' state and the release stopping points (S0–S4)
 - `DECISIONS.md` — durable architectural decisions
-- `progress.md` — current working state
+- `progress.md` — the current state in brief and the dated working log
 
 The repository source code remains the ultimate implementation source of truth.

@@ -1,21 +1,24 @@
 # Phase 37 — preliminary route starts from a COROS FIT and the global start calibration
 
 *Decision: DECISIONS.md **D051** (approved by the product owner on 2026-11-03, with the refinements B1–B7, О1–О5, Q1 and
-Q2 of the same day). Manual test plan: `docs/PHASE37_MANUAL_TEST_PLAN.md`. This document is the phase's record until its
-merge. **State: documentation only (Step 37.0) — the implementation has not started** and starts only after Phase 35's
-second pull request is merged into `main` (§5).*
+Q2 of the same day). Manual test plan: `docs/PHASE37_MANUAL_TEST_PLAN.md`. This document is the phase's record.*
 
-Documentation branch `docs/phase-37`, cut on 2026-11-03 from `feat/phase-coros-c1` `4070ffc` (local, not pushed), because
-D051 builds on D049 / D050, which are on that branch only. The implementation branch is cut from `main` after Phase 35's
-second pull request; this record and D051 move onto it then and are reconciled with `docs/phase-numbering` (the phase and
-step numbering and the state lines of Phases 35 and 36 live there). **Phase 36** (the session summary and the YouTube
-chapters) is separate, deferred work and no part of Phase 37.
+**State (2026-11-03): implemented and merged, not accepted.** Steps 37.1–37.6 implemented in `90950cc` on the branch
+`feat/phase-37-fit-starts` and merged into `main` with PR #33 (`1640996`, 2026-11-03; CI green on the pull request and on
+`main`); `project.json` v12. Step 37.7: the automated gates passed locally (§2); the manual plan has not been run, so the
+product owner's acceptance is open. Not a complete phase («Phase and step numbering», `docs/DEVELOPMENT_PLAN.md`).
 
-## 0. What Phase 37 builds on (checked in the code of `feat/phase-coros-c1` `4070ffc`)
+How it reached `main` (§5): the product owner decided on 2026-11-03 to start the implementation at once from
+`feat/phase-coros-c1` `4070ffc`, not after Phase 35's second pull request as D051 and this record first said; PR #33
+therefore carried Phase 35's commits (Steps 35.0–35.4) and Phase 37 together. The documents of Step 37.0 (`20326dc`,
+branch `docs/phase-37`) reached `main` with the documentation synchronisation after PR #33. **Phase 36** (the session
+summary and the YouTube chapters) is separate work and no part of Phase 37.
+
+## 0. What Phase 37 builds on (checked at Step 37.0 in the code of `feat/phase-coros-c1` `4070ffc`; all of it in `main` since PR #33)
 
 | D051 needs | In the code | For Phase 37 |
 |---|---|---|
-| The training in the project, `ClockCorrection`, `Z` | `Project.Training : TrainingReference` (FIT, SHA-256, `TrainingActivity`, `ClockCorrection`); `MediaAsset.RecordingZeroOverrideUtc`; `SetRecordingZeroOverrideCommand` (one Undo step); format v11 (`ProjectSerializer.TrainingVersion`) | used as is; v11 is on the Phase 35 branch only |
+| The training in the project, `ClockCorrection`, `Z` | `Project.Training : TrainingReference` (FIT, SHA-256, `TrainingActivity`, `ClockCorrection`); `MediaAsset.RecordingZeroOverrideUtc`; `SetRecordingZeroOverrideCommand` (one Undo step); format v11 (`ProjectSerializer.TrainingVersion`) | used as is (v11, Phase 35) |
 | `w = Z + s + ClockCorrection` and its inverse | `Core/Telemetry/TrainingAlignment` (`WatchTime`, `SourceTimeOf`, `ClimbsInSource`, `ClimbEndLag`) | the only mapping; `ClimbEndLag` untouched (D051 §2.1) |
 | A climb's start by the one rule (D050 B8) | `WorkoutSegment.StartUtc` / `Interval` | `W_FITStart = segment.StartUtc` |
 | The climb's identity | `ClimbIdentity(ClimbKey, ClimbNumber, ClimbStartUtc)` — in `Core/Telemetry/Research` | moved to `Core/Telemetry` (the research code refers to it) |
@@ -35,17 +38,18 @@ chapters) is separate, deferred work and no part of Phase 37.
                   37.3 model / format ─► 37.4a edits + Undo ─► 37.4b UI ─► 37.5 observations ─► 37.6 settings ─► 37.7 verification
 ```
 
-37.1 and 37.3 are independent; 37.5 needs 37.2 and 37.4a; 37.6 needs 37.2. Each step is its own commit(s), the diff shown
-to the product owner first, as in Phase 35.
+37.1 and 37.3 are independent; 37.5 needs 37.2 and 37.4a; 37.6 needs 37.2. As implemented, each step's diff was shown to
+the product owner, and Steps 37.1–37.6 were committed together as `90950cc` (the product owner allowed the work through
+37.7 without a stop per step).
 
 ## 2. Steps
 
-### 37.0 — Documents *(this record; done on `docs/phase-37`, not committed)*
+### 37.0 — Documents *(done: `20326dc` on `docs/phase-37`; in `main` with the documentation synchronisation after PR #33)*
 - D051 in `DECISIONS.md`; this record; `docs/PHASE37_MANUAL_TEST_PLAN.md`; the ARCHITECTURE section; the state lines in
   `ROADMAP.md`, `docs/DEVELOPMENT_PLAN.md`, `progress.md`.
 - **Acceptance:** the product owner approves the documents; no code changes.
 
-### 37.1 — Core: the K3 calibration (pure functions)
+### 37.1 — Core: the K3 calibration (pure functions) *(done, `90950cc`; 34 tests)*
 - `Core/Telemetry/Calibration/`: `StartCalibration` with the constants of D051 §6.5 (`I` = 120 000 000, `N` = 100,
   `MIN_N` = 20, bounds [−300 000 000, +900 000 000], `C` = 50 000 000 ticks); `CalibrationKey(TrainingActivity,
   ClimbIdentity)` with an ordinal order; `CalibrationRecord` and `RecordStatus { Used, Excluded, Removed }`;
@@ -57,7 +61,7 @@ to the product owner first, as in Phase 35.
   records).
 - **Acceptance:** `dotnet build` 0 / 0; Core.Tests green; equal to the reference to the tick.
 
-### 37.2 — The store `fit-calibration.json`
+### 37.2 — The store `fit-calibration.json` *(done, `90950cc`)*
 - `Project/Persistence/FitCalibrationStore` beside `RecentProjectsStore`: format `AiVideoEditor.FitCalibration` v1; Beta,
   the initial value, the records, the derived estimate with its version; lock file `fit-calibration.lock`; re-read before
   every change; atomic write; damaged → `*.<time>.damaged`; a newer format neither read nor overwritten (the estimate `I`,
@@ -69,7 +73,7 @@ to the product owner first, as in Phase 35.
 - **Tests (T2)**; every test that saves a project with a training gets a store in a temporary folder or a fake; a guard
   test checks that the real user file is neither created nor changed by a test run.
 
-### 37.3 — The project model and format (the version after v11, fixed at merge)
+### 37.3 — The project model and format *(done, `90950cc`: `project.json` v12)*
 - `FitMark`: `ClimbIdentity`, `W_auto`, the `StartCorrection` and the calibration version at creation, `MediaAssetId` (the
   video chosen by D051 §5.5.1, never reassigned), `FitMarkPosition { Kind: Proposed | Clamped | Moved, SourceTicks? }`,
   `PositionChangedAt`, `LinkedClipId?`; `DeclinedClimb` with the former mark's data (no link). In the file
@@ -78,9 +82,10 @@ to the product owner first, as in Phase 35.
   unchanged; «a climb → at most one animation» holds by structure, «an animation → at most one climb» by validation. The
   linked clip may show any video.
 - Load validation (damaged): D051 T3's list.
-- **Tests (T3)**; v10 / v11 tests unchanged.
+- **Tests (T3)**; v10 / v11 tests unchanged. As implemented: `fitMarks` / `declinedClimbs` are written only when present; the
+  persistence and edit tests that assert the current version expect 12 instead of 11.
 
-### 37.4a — Edits, proposals, Undo
+### 37.4a — Edits, proposals, Undo *(done, `90950cc`)*
 - The mark service (Timeline, beside `TimelineEditService`; the interface in Core):
   - `FitMarkProposals.For(...)` (pure, Core) — the choice of D051 §5.5.1; on the FIT import (no Undo step, D049 §11) and
     in `SetRecordingZeroOverride`: `CompositeCommand("Set Recording Start", [SetRecordingZeroOverrideCommand,
@@ -96,17 +101,27 @@ to the product owner first, as in Phase 35.
 - A change of a linked `T` (D048 commands) and the removal of a clip or an animation update the mark in the same
   composite step.
 - **Tests (T4, T7).**
+- As implemented: the rules live in `Core/Telemetry/FitMarkRules` (proposals, `ChooseVideo`, `EffectiveStart`, the
+  observations, `Follow`), the commands in `Timeline/Commands/FitMarkCommands.cs` (`SetFitMarksCommand`; the following of
+  every edit by `FitMarksFollowingCommand`, which wraps an edit while marks exist, instead of a change of `EditPlan.Commit`).
+  Found and settled: a new `Z` no longer sets `positionChangedAt` of an unmoved mark; at a clip speed ≠ 1 «Разметить
+  трассу от метки» keeps the position time explicitly (D051 §5.6); a mark `clamped` to the first frame stays unlinked by
+  «Разметить трассу от метки», because D048 makes no animation with no time before `T` (the layout's own note is shown;
+  D048 unchanged; accepted by the product owner).
 
-### 37.4b — The interface of the marks
-- The layer on the clips (like the D048 strip), editor only; a `clamped` mark shown as such; the context menu of a mark;
-  dragging moves it; Delete hides it.
+### 37.4b — The interface of the marks *(done, `90950cc`; one accepted difference)*
+- The layer on the clips (like the D048 strip), editor only; a `clamped` mark shown as such; a click selects a mark; Delete
+  hides it.
+- **Accepted difference (product owner, 2026-11-03):** a mark is moved by «Переместить метку к плейхеду» in the Inspector,
+  not by a drag on the timeline as planned here. D051 §8.2 does not fix the way; the drag is a separate later improvement,
+  not blocking Phase 37.
 - The Inspector of a `Duration` animation: «Связать с FIT-подъёмом» (active climbs without a link), «Снять FIT-связь», the
   linked climb.
 - «Отклонённые подъёмы» with «Вернуть» in the COROS training drop-down.
 - Localization RU / EN, `LocalizationGuardTests`, the editing lock during an export.
 - **Tests (UI.Tests)**; marks absent from Preview and export (Rendering / ExportEndToEnd).
 
-### 37.5 — Observations on save
+### 37.5 — Observations on save *(done, `90950cc`: `FitCalibrationSaveSync`)*
 - After a successful `SaveToAsync` (Save and Save As; not autosave or recovery): the usable marks of D051 §5.8 with `Z`
   on the video of their effective start → `c` by §4.5 → `Synchronize` off the UI thread; a failure logged.
 - A `proposed` mark whose `W_auto` lies outside its video's recording after a new `Z` is still usable: it gives
@@ -114,15 +129,29 @@ to the product owner first, as in Phase 35.
   recording, only whether the effective-start video has `Z`.
 - **Tests (T5).**
 
-### 37.6 — «Настройки FIT…»
+### 37.6 — «Настройки FIT…» *(done, `90950cc`)*
 - An item of the COROS training drop-down, available with or without a training (О4); a small window after
   `AvaloniaProjectSettingsDialog`: Beta (on by default), the current `StartCorrection`, the number of `used` records, reset
   (asks first). If the drop-down does not open without a training today, the item is added to its «no training» form.
 - **Tests (T6).**
 
-### 37.7 — Verification and closeout
+### 37.7 — Verification and closeout *(in part: automated gates done, the manual plan not run)*
 - Full and heavy suites, `--blame-hang`; the manual plan on the projects of 08.08 and 27.09 (A1–A15); the measurement
   A10 (no threshold); documents; the Phase 37 pull request.
+- **Done (2026-11-03, on `feat/phase-37-fit-starts`):** Release / Debug `-warnaserror` 0 / 0; heavy (`AIVE_HEAVY_TESTS=1`)
+  5229 passed, 0 failed, 0 skipped; three `--blame-hang` runs: the first with one UI.Tests hang
+  (`PreviewTransformUiTests.Esc_during_a_crop_restores_crop_scale_and_position_exactly`, no Phase 37 code on its path; not
+  reproduced in 10 further runs on this branch and 10 on `feat/phase-coros-c1`) and the known flaky tests
+  `WasapiAudioOutputDeviceTests` and `TrainingLifecycleTests.Other_bytes…`, the second with the latter only, the third
+  green. CI green on PR #33 and on `main` after the merge.
+- **Final audit, two defects fixed with regression tests:** «Удалить медиа» of a video with marks left them on the removed
+  video and the saved project was refused as damaged — the marks now follow the removal in the same Undo step; a new import
+  of the same activity replaced the training, losing the marks and recreating declined climbs — it now keeps them
+  (D051 §5.2, §5.3; another activity still replaces them by §5.11).
+- `e8d7960` (in the same pull request) fixed two Phase 35 test issues seen on a CI checkout: the FIT resolve joins a
+  running read (the race behind `TrainingLifecycleTests.Other_bytes…`), and the toolbar tooltip test ignores line ends.
+- **Open:** the manual plan `docs/PHASE37_MANUAL_TEST_PLAN.md` (not run), the measurement A10, the product owner's
+  acceptance.
 
 ## 3. The decisions of 2026-11-03 and their technical basis
 
@@ -215,24 +244,25 @@ no test writes the real `%LOCALAPPDATA%` file (a temporary or fake store everywh
 aside → a new file with Beta on; a newer file → no collection, the window says so; the proposal tests set the estimate
 explicitly (a fake `IStartCorrectionSource`).
 
-## 5. Dependencies and blockers before the implementation
-Facts as of 2026-11-03 (`gh pr list`, the branches); nothing here changes Phase 35's state or results:
-1. **Phase 35 pull request 1** (Steps 35.0–35.2) — not opened; the Phase 35 branches have no upstream;
-   `docs/phase-numbering` is not in `main`.
-2. **Phase 35 pull request 2** (Steps 35.3–35.6) — not opened; its steps' state is recorded in `docs/PHASE_COROS.md` and
-   D050 and is not restated here.
-3. The format v11 reaches `main` only with pull request 2; Phase 37 takes the next version (fixed at merge; Phase 36 or
-   another phase may take a version first).
-4. The implementation branch from `main` after pull request 2, with D051 and this record moved onto it and reconciled
-   with `docs/phase-numbering`.
-5. Phase 36 stays separate and deferred.
+## 5. Dependencies and how they were resolved
+At Step 37.0 (2026-11-03) the plan was: Phase 35's pull requests 1 (Steps 35.0–35.2) and 2 (Steps 35.3–35.6) first, then
+the Phase 37 branch from `main`. What happened the same day:
+1. The product owner chose to start the implementation from `feat/phase-coros-c1` `4070ffc` at once (a deliberate
+   deviation; D051's normative content unchanged).
+2. PR #33 (`feat/phase-37-fit-starts`) carried Phase 35's commits — Steps 35.0–35.4 with the 35.3 research — and Phase 37;
+   it was merged as `1640996`. Phase 35's two planned pull requests were never opened; its Steps 35.5 and 35.6 are not
+   done (`docs/PHASE_COROS.md`).
+3. The format: v11 is Phase 35's (Step 35.4), v12 Phase 37's — both reached `main` with PR #33 (D049 V1).
+4. D051, this record and the manual plan reached `main` with the documentation synchronisation after PR #33, together with
+   the numbering of `docs/phase-numbering`.
+5. Phase 36 stays separate.
 
-## 6. Discrepancies found while preparing the phase (not fixed here)
-1. `docs/PHASE_COROS.md`: the 35.3 row of §4 and the line «Sub-steps (state on 2026-11-02)» of §10 say «35.3b2b–d, 35.3d
-   not started», while §10 below marks 35.3b2c and 35.3b2d done; the result of 35.3d is not in the phase's documents.
-2. D050, the table of steps: the acceptance of 35.3 «≥ 12 of the 14 typical files» — the earlier wording; the amendment
-   B6 (≥ 11 of 13) supersedes it, the row is not marked.
-3. `ProjectSerializer.CurrentFormatVersion`: the doc comment lists the versions up to 8, the constant is 11.
-4. `ROADMAP.md`, `docs/DEVELOPMENT_PLAN.md`, `progress.md` on the Phase 35 branch carry no Phase 35 state (by design on
-   `docs/phase-numbering`).
-5. `ClimbIdentity` lives in `Core/Telemetry/Research` (moved in Step 37.1).
+## 6. Discrepancies found while preparing the phase, and their state
+1. `docs/PHASE_COROS.md` (the 35.3 state lines; the result of 35.3d missing) — resolved by the documentation
+   synchronisation after PR #33 (`docs/PHASE_COROS.md` §4, §10, §12).
+2. D050, the table of steps: the acceptance of 35.3 «≥ 12 of the 14 typical files» is the earlier wording, superseded by
+   the amendment B6 (≥ 11 of 13) — marked as superseded in `docs/PHASE_COROS.md` §4; D050's own text is not rewritten.
+3. `ProjectSerializer.CurrentFormatVersion`: the doc comment lists the versions up to 8, the constant is 12 — a code
+   comment, open (not changed by a documentation task).
+4. `ROADMAP.md`, `docs/DEVELOPMENT_PLAN.md`, `progress.md` without Phase 35's state — resolved by the synchronisation.
+5. `ClimbIdentity` moved from `Core/Telemetry/Research` to `Core/Telemetry` in Step 37.1 — done.

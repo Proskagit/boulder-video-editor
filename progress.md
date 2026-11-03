@@ -1,29 +1,35 @@
 # Project Progress
 
-**Phase 37 — Preliminary route starts from a COROS FIT and the global start calibration (2026-11-03): documentation
-only.** DECISIONS.md D051 approved by the product owner on 2026-11-03 (with the refinements B1–B7, О1–О5, Q1, Q2); the
-record `docs/PHASE37.md` and the manual plan `docs/PHASE37_MANUAL_TEST_PLAN.md` written at Step 37.0 on the local
-documentation branch `docs/phase-37` (from `feat/phase-coros-c1` `4070ffc`; not committed, not pushed). **Not
-implemented**; the implementation starts only after Phase 35's pull request 2 is merged (pull requests 1 and 2 not opened
-on 2026-11-03). Phase 35's state and results are recorded in `docs/PHASE_COROS.md` / D050 and on `docs/phase-numbering`
-and are not restated here. Phase 36 stays separate and deferred.
-
 ## Current phase
 
-**State on 2026-10-29 — numbering confirmed by the product owner (variant A).** Phases 0–29 complete (merged and accepted —
-the **last complete phase is 29**); 30 and 31 technically complete, their full acceptance open (below); **32 / 33 / 34 =
-D048's stages 1 / 2 / 3**, all merged in PR #32 (`1e58885`) — 32 implemented and paused / deferred, 33 and 34 implemented;
-D048 approved as implemented 2026-10-28, a separate formal acceptance of 33 and 34 not recorded. The **highest phase number
-in use is 34**; the next is **Phase 35** — the
-import of COROS trainings (formerly "Phase Coros": Step 35.1 = C0 in the local branch `feat/phase-coros-c0`, Step 35.2 = C1 in
-`feat/phase-coros-c1`; not merged, not pushed; 35.2's manual acceptance passed, A1–A11 PASS, 2026-10-29; Step 35.0 done —
-D049 and D050 approved 2026-10-29, their text is on the branch `feat/phase-coros-c1` (Step 35.0, `6fba445`), not yet in `main`; Steps 35.3–35.6 not started, the next is 35.3), then
-**Phase 36** — the session summary and the YouTube chapters (specification draft in the local branch
-`docs/session-summary-youtube-chapters`). PR 1 of Phase 35 (Steps 35.0–35.2) leaves `project.json` v10; Phase 35's format
-change (expected v11) reaches `main` only with PR 2 (Steps 35.3–35.6), the number fixed at merge (V1).
-Rules and the table of old and new labels: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering". The paragraphs below
-keep their dates; where they call D048 proposed or the hold tracking in progress, this paragraph prevails (D048 approved and
-merged; the hold tracking merged in PR #31, accepted for continued development, unnumbered).
+**State on 2026-11-03** — `main` at `1640996` (the merge of PR #33, CI green on the pull request and on `main`),
+`project.json` v12. The phases' state and what comes next have one source: `docs/DEVELOPMENT_PLAN.md`, "Phase and step
+numbering" → "Official phases"; this file is the dated working log.
+
+- **Merged with PR #33 (2026-11-03):** Phase 35's Steps 35.0–35.4 with the 35.3 research (`docs/PHASE_COROS.md`) and
+  Phase 37 (D051, `docs/PHASE37.md`) — together, by the product owner's decision of 2026-11-03, not through Phase 35's two
+  planned pull requests. Formats: v11 Phase 35, v12 Phase 37.
+- **Phase 37:** Steps 37.1–37.6 implemented (`90950cc`); Step 37.7 in part — Release / Debug 0 / 0, heavy 5229 / 0 / 0,
+  three `--blame-hang` runs (one non-recurring UI.Tests hang outside Phase 37's code, the known flaky tests), CI green; the
+  manual plan not run; the product owner's acceptance open.
+- **Phase 35:** 35.0–35.2 done (35.2 accepted); 35.3 in part; **35.3d run 2026-11-02 — B6 not met** (0 of 13 climbs
+  within `τ`, drift −22.4 s; an experimental result, not a confirmation of the method — `docs/PHASE_COROS.md` §12);
+  **35.3e not implemented, awaiting the product owner's decision**, not in the near plan; 35.4 implemented, manual rows
+  C1–C14 not run; **35.5 and 35.6 not started**.
+- **Next (product owner, 2026-11-03; DECISIONS.md D050): Step 35.5 — the heart-rate overlay**, not combined with an export
+  of time codes; the time-code export (Phase 36's YouTube chapters) stays a separate item until its original intent and
+  relations are clarified; 35.3e is not replaced by recognising attempts from the climber's movement in the video.
+- **Documentation synchronised after PR #33** (branch `docs/sync-after-phase-37`): D051, `docs/PHASE37.md` and
+  `docs/PHASE37_MANUAL_TEST_PLAN.md` brought into `main` from `docs/phase-37` (`20326dc`), the numbering of
+  `docs/phase-numbering` integrated, the state lines of `ROADMAP.md`, `docs/DEVELOPMENT_PLAN.md`, `docs/README.md`,
+  `ARCHITECTURE.md`, `DECISIONS.md` (D049–D051) and `docs/PHASE_COROS.md` brought to the merged code.
+- **Open, not phases:** the S1 release preparation (Phase 30: FFmpeg distribution — branch `build/ffmpeg-minimal`, not
+  merged —, the licence notices, a clean environment, C4, the owner's sign-off); the manual checks of Phases 31 and 37 and
+  of Step 35.4; the known flaky tests `WasapiAudioOutputDeviceTests` and `TrainingLifecycleTests.Other_bytes…` under the
+  full parallel run; the doc comment of `ProjectSerializer.CurrentFormatVersion` lists the versions up to 8 only.
+
+**The dated paragraphs below are history.** Where they call D048 proposed, the hold tracking in progress, or Phase 35 not
+merged, the state above prevails.
 
 **Phase 30 — Stabilisation of the current base (D042 Phase G; technical closeout).** Branch
 `feat/phase-30-stabilization` from `origin/main` `e28a9d3` (the merge of PR #30), local tip `ad5a514`; DECISIONS.md D046
@@ -33,7 +39,7 @@ skipped, three `--blame-hang` runs clean, `git diff --check` clean, v9 byte-for-
 portable folder rebuilt to 119 MiB / 349 files, available Step 30.2 rows re-run. The main path (B1–B9) was run on 2026-10-23 and checked by
 the owner on 2026-10-24; performance targets C1–C6 were agreed on 2026-10-24. **The full acceptance of S1 is not declared**:
 FFmpeg distribution, licence notices review, a clean-environment check without the current machine's limitations, the C4
-live-preview observation, **CI green** (the Phase 30 branch has not been pushed/merged, so no CI run exists; the last green CI was PR #30 `e28a9d3`) and the product owner's final sign-off remain open and are deferred to a separate
+live-preview observation and the product owner's final sign-off remain open (CI, listed here before, is green since Phase 30 reached `main` with PR #31, 2026-10-26) and are deferred to a separate
 release-preparation task. Historical details: `docs/DEVELOPMENT_PLAN.md` "Phase 30 — Stabilisation and the portable build
 S1: steps"; `docs/PHASE30_MANUAL_TEST_PLAN.md`; `docs/PHASE30_MANUAL_TEST_INVENTORY.md`; DECISIONS.md D046 §13.
 
@@ -47,14 +53,14 @@ The default grid is 15×15 (faster and higher recall than 16×16 on the E1 set);
 1080p on the development machine. Full user acceptance is pending the interactive A/B/E checks that require the product
 owner's own footage and manual UI actions. See the `### Phase 31` section below.
 
-**Next — proposed, not approved (2026-10-27): DECISIONS.md D048** — route selection at `T`, the intro / final timing, the
+**(History, 2026-10-27; D048 approved 2026-10-28 and merged in PR #32.) Next — proposed, not approved (2026-10-27): DECISIONS.md D048** — route selection at `T`, the intro / final timing, the
 overlay strip and `project.json` v10, in three stages (proposed Phases 32–34). The target scenario moved into the
 repository: `docs/TARGET_WORKFLOW.md`. Branch `docs/d048-route-timing` from `main` `024f3fb`, not committed. Implemented on the
 owner's instructions while still Proposed: stage 2 (timing, anchors, v10), stage 1 (route selection at `T`; real-clip
 acceptance pending the owner), stage 3 implemented (the strip's edits, dragging, §3.9 Delete, the thin lane, snap). See the
 `### D048` sections below.
 
-**Hold tracking — camera motion compensation (R2 → E; in progress, no phase number assigned).** Branch
+**Hold tracking — camera motion compensation (R2 → E; no phase number assigned; history — merged in PR #31, accepted for continued development, not complete).** Branch
 `feat/hold-tracking` from `8e2ebc6` (Phase 31 closeout), worktree `C:\AiVideoEditor-tracking`. Scope by the product
 owner's decisions after the R2 research (`docs/PHASE_HOLD_TRACKING.md`, R-6 / R-7): the contours stay on the wall while
 the camera moves, over the whole window they are shown in; similarity first, the homography only where the similarity is
