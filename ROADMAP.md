@@ -95,7 +95,8 @@ phase number in use is 37**.
   complete.** Steps 35.0–35.2 done (35.2 accepted), 35.4 implemented (v11; its manual rows open); 35.3 in part — the formal
   evaluation 35.3d gave «B6 not met» (0 of 13 climbs within `τ`, drift −22.4 s), an experimental result, not a confirmation
   of the method; **35.3e awaits the product owner's decision** and is not in the near plan; **35.5 (the heart-rate overlay)
-  implemented on `feat/phase-35-5-heart-rate`** (v13; pull request open; manual rows not run); 35.6 not started. Steps
+  implemented and accepted by the product owner on 2026-11-03** (О1–О15 PASS on `593b6a2`; v13; PR #35 open, not merged);
+  35.6 not started. Steps
   35.0–35.4 reached `main` with PR #33, together with Phase 37. Record: `docs/PHASE_COROS.md`.
 - **Phases 32–34** — D048 (approved 2026-10-28, merged in PR #32): 32 (the route selection at `T`) paused / deferred; 33
   (the timing model, v10) and 34 (the overlay strip, variant B) implemented, a separate formal acceptance not recorded.
@@ -104,8 +105,8 @@ phase number in use is 37**.
   complete.
 - **Phase 36** — the session summary and the YouTube chapters: a specification draft outside `main`, no decision.
 
-**Next (the product owner's direction of 2026-11-03, DECISIONS.md D050): Step 35.5 — the heart-rate overlay** (implemented,
-its pull request open), then 35.6, Phase 35's closeout. It is not combined with an export of time codes: the time-code export (Phase 36's YouTube chapters)
+**Next (the product owner's direction of 2026-11-03, DECISIONS.md D050): Step 35.5 — the heart-rate overlay** (implemented
+and accepted on 2026-11-03, PR #35 open), then 35.6, Phase 35's closeout. It is not combined with an export of time codes: the time-code export (Phase 36's YouTube chapters)
 stays a separate item until its original intent and its relations to the other phases are clarified. Step 35.3e is not
 taken up without a separate product decision, and it is not replaced by recognising attempts from the climber's movement
 in the video.
@@ -473,7 +474,7 @@ working labels — a phase gets its number (27, 28, …) and its own decision wh
 Phase 30 and D is Phase 31 — both technically complete, their full acceptance open, both merged through PR #31; E's
 camera-motion part is merged in PR #31, unnumbered and not complete; D048's stages are Phases 32–34, merged in PR #32 (32
 paused / deferred; 33 and 34 without a recorded formal acceptance); F is Phase 35 — in `main` in part since PR #33
-(2026-11-03; 35.5 implemented on its branch, 35.6 not started, 35.3e awaiting a decision); Phase 37 merged with it, not accepted; H is not
+(2026-11-03; 35.5 implemented and accepted, PR #35 open; 35.6 not started; 35.3e awaiting a decision); Phase 37 merged with it, not accepted; H is not
 started. *(The first sentence's date was 2026-10-28; this list is the state on 2026-11-03.)*
 
 Status on 2026-10-24: Phases 0–29 complete and merged (Phase 27 = A as `36a1a58`, PR #28; Phase 28 = B as `4f0e66a`,
@@ -497,7 +498,7 @@ research, F only after its feasibility is confirmed and a separate agreement; H 
 | D048-2 | Timing model (animation duration, orders, standard / short-intro layout), template ↔ clip anchor, speed / trim / copy rules, `project.json` v10 (v9 converted on save, no backward compatibility) — **Phase 33** (implemented and merged, PR #32; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded) | core | medium–large | D048 approval; schema check with F done (COROS takes the next version) |
 | D048-3 | The overlay strip — **Phase 34** (implemented and merged, PR #32; separate formal acceptance not recorded; variant B: the segments inside the «Боулдер»; the lane above the clip Debug-only) | UX | medium | D048-2 |
 | R3 | COROS exports and video timestamps — research, carried out on the owner's real APEX 4 FIT export (done; `docs/PHASE_COROS.md` §1) | research | research (needs real files) | — (parallel) |
-| F | **Phase 35** — import of COROS trainings and the heart rate in the video (formerly "Phase Coros", «COROS Pace 4: пульс и телеметрия в видео»; any COROS model; D049 / D050 approved 2026-10-29; in `main` in part since PR #33 — 35.0–35.2 done, 35.3 in part (35.3d: B6 not met; 35.3e awaiting a decision), 35.4 implemented; **35.5 the heart-rate overlay — next — and 35.6 not started**) | telemetry | large | R3, A |
+| F | **Phase 35** — import of COROS trainings and the heart rate in the video (formerly "Phase Coros", «COROS Pace 4: пульс и телеметрия в видео»; any COROS model; D049 / D050 approved 2026-10-29; in `main` in part since PR #33 — 35.0–35.2 done, 35.3 in part (35.3d: B6 not met; 35.3e awaiting a decision), 35.4 implemented; **35.5 the heart-rate overlay implemented and accepted 2026-11-03, PR #35 open; 35.6 not started**) | telemetry | large | R3, A |
 | — | **Phase 36** — session summary and YouTube chapters (specification draft outside `main`, not approved; its time-code export a separate item until clarified, not combined with 35.5) | core | medium–large | Phases 32–34; Phase 36's own format decision for `PassId` / «Итоги»; Phase 35 for the heart rate |
 | — | **D049** — the training in the project, the time model and Phase 35's format change (v11, implemented in Step 35.4, in `main` since PR #33; the automatic zero not implemented); approved 2026-10-29; not a phase | format | small | — |
 | H | «Final UX Pass: аудит и упрощение интерфейса» (research, then implementation) | UX | research + medium–large | the core incl. F, G, a regression run |
@@ -558,6 +559,11 @@ Separate tasks recorded at the Phase 21 acceptance (2026-10-15) and later; none 
 (D040) takes FU-21.1, FU-22.1, FU-24.2 and FU-24.1 in part; FU-21.2 and the vertical-video export stay out. Phase 26 (D041)
 takes the vertical-video export.
 
+- **FU-35.5.1 — The heart rate of one climb only (the product owner at the acceptance of Step 35.5, 2026-11-03)** — *not
+  decided, not planned.* Show the heart-rate overlay only within one climb — the time of its route overlay, from the start
+  to the top or the end of the attempt — instead of over the whole active training (the current behaviour, kept). Needs a
+  decision of its own. The difference between a climb's actual end and the COROS timer's pause is not a defect: the visual
+  bounds of the route overlays are corrected separately (`docs/PHASE_COROS.md` §13).
 - **FU-21.1 — "Previous marker" status message (marker issue)** — *Phase 25 (D040 §2).* Going to a marker outside the clip sometimes first shows
   "There is no marker before the playhead", although a second press moves the playhead; after returning, the warning
   stays in the status bar. Cause to be found (Previous / Next compare with the playhead's nearest frame; a successful jump

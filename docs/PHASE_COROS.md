@@ -9,8 +9,8 @@ test plan: `docs/PHASE35_MANUAL_TEST_PLAN.md`.*
 
 **State (2026-11-03): in `main` in part; not complete.** Steps 35.0–35.2 done (35.2 accepted); 35.3 in part, its formal
 evaluation 35.3d run with the result «B6 not met» (§12), 35.3e awaiting the product owner's decision; 35.4 implemented, its
-manual rows open; **35.5 (the heart-rate overlay) implemented on the branch `feat/phase-35-5-heart-rate`** (§13; its pull
-request open, `project.json` v13; the manual rows D1–D7 not run); 35.6 not started (§4). Phase 35's commits up to 35.4
+manual rows open; **35.5 (the heart-rate overlay) implemented on the branch `feat/phase-35-5-heart-rate` and accepted by the product owner on 2026-11-03 (manual О1–О15 PASS on `593b6a2`, `docs/PHASE35_5_MANUAL_ACCEPTANCE.md`)**
+(§13; PR #35 open, not merged; `project.json` v13); 35.6 not started (§4). Phase 35's commits up to 35.4
 reached `main` with PR #33 (`1640996`, 2026-11-03) together with Phase 37 — not through the two pull requests of §5;
 `project.json` v11 is Phase 35's format, v13 its overlay's. Further work branches from `main`.
 
@@ -92,7 +92,7 @@ alignment (Step 35.3). Not established either: the clock difference between the 
 | **35.2** (C1) | Import entry: `ITrainingImportService` (Core) + `TrainingImportService` (Media; 16 MiB limit, missing / unreadable file); «Тренировка COROS…» on the toolbar with a `.fit` picker (`TrainingImportWorkflow`); localized refusal texts and warnings (`TrainingText`); the workout held in `TrainingSessionService` (not saved) | importing the real file shows device, date, local time, 14 climbs; each refusal reason has a Russian / English text; nothing persisted | **implemented** (`934bbf6`, local branch `feat/phase-coros-c1`); **manual acceptance A1–A11 PASS (2026-10-29, §9)**, no defect found; in `main` (PR #33) |
 | 35.3 (C2) | Recording time: the probe and its marker (D049 §4), the raw tag with its origin (§2–§3); research on the real session — what the tag marks, whether it is a true C instant, the C ↔ W difference per climb (visible start vs split), the outliers; a proposed automatic-zero rule with its tolerance `τ` and device scope. Sub-steps 35.3a–e, the Debug research window and the study file: D050 amendment B5–B9, §10 below | (D050 B6) `|r_i| ≤ τ` (leave-one-out, `τ = 2 s` working value) for ≥ 11 of the 13 filmed climbs C2–C14, every one of the 13 explained, no drift beyond `τ / 2`, the 7 videos without a climb as the independent check of the tag; approved by the owner; until then every zero «override» or «unknown» (manual plan part B) | the probe **implemented** (`02ded40`); 35.3a, 35.3b1, 35.3b2a and the tool 35.3R1 **implemented** (R1–R12 PASS); 35.3b2c and 35.3b2d **implemented**; the reference marking 35.3R2 **done and frozen** by the owner; **35.3d run (2026-11-02): B6 not met** (§12); 35.3b2b deferred; 35.3c only as the marking mode of 35.3R1; **35.3e not implemented — awaiting the product owner's decision** (§12); the owner's descriptive research of two trainings in §11; its format members in v11, in `main` (PR #33) |
 | 35.4 (C3) | Persistence and alignment: the format change (v11), `Project.Training`, the FIT life cycle (D049 §9), the training's clock correction (a setting of the COROS training drop-down) and the per-video zero override Z (in the clip's Inspector: the playhead's frame matched to the end of climb N — the default, less the end lag of 4.6 s — or to its start; D050 amendment of 2026-11-02) — one Undo step each, video relink with the override (ID1, §8), the zero states «override» / «unknown» (the «automatic» state after 35.3's rule), the mapping (§6) and its read-only readout at the playhead in the Inspector; 35.2's «not saved» texts revised (D050 amendment of 2026-11-01) | D049 §13 tests; manual plan part C | **implemented** (`e15d7af`; the match point by the D050 amendment of 2026-11-02): automated tests pass; manual rows C1–C14 not run; `project.json` v11, in `main` (PR #33) |
-| 35.5 (C4) | Heart-rate overlay: heart icon + BPM, a few looks / positions, through the one composition path; the export warning `HeartRateUnavailable` | Preview = export at sampled frames; pauses, gaps and an unknown zero show nothing; the warning exactly when data is missing, confirmation required (manual plan part D) | **implemented on the branch `feat/phase-35-5-heart-rate`** (2026-11-03; its pull request open, not merged); the owner's manual rows D1–D7 not run; not combined with an export of time codes (§13) |
+| 35.5 (C4) | Heart-rate overlay: heart icon + BPM, a few looks / positions, through the one composition path; the export warning `HeartRateUnavailable` | Preview = export at sampled frames; pauses, gaps and an unknown zero show nothing; the warning exactly when data is missing, confirmation required (manual plan part D) | **implemented on the branch `feat/phase-35-5-heart-rate`; accepted by the product owner on 2026-11-03 (manual О1–О15 PASS on `593b6a2`, `docs/PHASE35_5_MANUAL_ACCEPTANCE.md`)**; PR #35 open, not merged; not combined with an export of time codes (§13) |
 | 35.6 (C5) | Verification and closeout: full and heavy suites, `--blame-hang`, the manual plan on the real session (video + export), documents | product owner's acceptance (manual plan part E) | not started |
 
 Note: D050's table of steps still gives the acceptance of 35.3 in its earlier wording («≥ 12 of the 14 typical files»);
@@ -436,8 +436,22 @@ zero), `Rendering.Tests` (`HeartRateRenderTests` — the Preview and the export 
 horizontal and vertical, in and between beats; nothing without a value; a steady block), `ExportEndToEnd.Tests`
 (`ExportHeartRateEndToEndTests` — the overlay in the encoded file, nothing in the pause, the Preview = the export at
 sampled frames, nothing without a training). Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; the full
-suite with `AIVE_HEAVY_TESTS=1` 5 333 passed, 0 failed, 0 skipped. Manual: `docs/PHASE35_MANUAL_TEST_PLAN.md` part D —
-not run.
+suite with `AIVE_HEAVY_TESTS=1` 5 333 passed, 0 failed, 0 skipped; CI green on PR #35. Manual: the acceptance scenario
+`docs/PHASE35_5_MANUAL_ACCEPTANCE.md` (it details `docs/PHASE35_MANUAL_TEST_PLAN.md` part D).
+
+**Manual acceptance (product owner, 2026-11-03, build of `593b6a2`): PASS** — the mandatory checks О1–О15 all PASS, no
+blocking defect; the optional checks Д1–Д7 not run. Confirmed: the synchronisation through `Z`; the overlay on V2 in the
+Preview; the BPM equal to the Inspector's readout at the checked points; playback and seeking; the corner, the look and
+the colour; Undo / Redo; resetting `Z` hides the overlay, Undo restores it; the overlay disappears entirely in the COROS
+timer's pause and comes back after it; the export matches the Preview; with the FIT not available the warning is shown and
+the export can be cancelled, and the overlay works again once the file is back.
+
+**The owner's notes at the acceptance — not defects, no change to PR #35:**
+- For the future: limit the heart rate to one climb — the time of its route overlay, from the start to the top or the end
+  of the attempt. For now the current behaviour stays: the heart rate is shown over the whole active training. A task of its
+  own with its own decision (backlog FU-35.5.1, `ROADMAP.md`).
+- The difference between the actual end of a climb and the COROS timer's pause is not a defect: the visual bounds of the
+  route overlays are corrected separately.
 
 **Out of 35.5** (product owner, 2026-11-03): the export of time codes / YouTube chapters (Phase 36), a FIT lane on the
 timeline, editing FIT events or adding attempts, Step 35.3e, recognising attempts from the climber's movement.

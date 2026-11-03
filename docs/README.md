@@ -58,6 +58,8 @@ This directory contains:
   overlay, the closeout)
 - `PHASE37.md` — the record of Phase 37 (preliminary route starts from a COROS FIT and the global start calibration,
   D051): the steps as implemented, the decisions of 2026-11-03, the verification
+- `PHASE35_5_MANUAL_ACCEPTANCE.md` — the owner's step-by-step acceptance of Step 35.5 (the heart-rate overlay) in the
+  running app, in Russian; run 2026-11-03 — PASS
 - `PHASE37_MANUAL_TEST_PLAN.md` — manual checks of Phase 37 (not run yet)
 - `drafts/ffmpeg-minimal-9.0.2-1/` — drafts of the minimal FFmpeg build's release plan and notices (S1 release
   preparation, not published)
