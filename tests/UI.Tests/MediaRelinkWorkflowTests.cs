@@ -5,6 +5,7 @@ using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Project;
 using AiVideoEditor.Project.Persistence;
 using AiVideoEditor.Timeline;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using AiVideoEditor.UI.ViewModels.Panels;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -625,5 +626,87 @@ public sealed class MediaRelinkWorkflowTests
         Assert.False(a.IsMissing || b.IsMissing);
         Assert.True(Row(a).HasThumbnail && Row(b).HasThumbnail);
         Assert.False(browser.HasOfflineMedia);
+    }
+
+    // --- Step 35.4, C13 / C14 (D049 §8, ID1): a video's recording start on a relink -------------------------------------------
+
+    private static readonly DateTimeOffset RecordingStart = new(2026, 9, 27, 7, 30, 26, TimeSpan.Zero);
+
+    /// <summary>An offline video whose recording start was set by hand, its file of <paramref name="size"/> bytes probed with
+    /// the recording-time tag.</summary>
+    private static MediaMetadata Tagged(string tag)
+    {
+        var metadata = Meta(10);
+        metadata.RecordingTimeProbe = RecordingTimeProbe.Found(tag, RecordingTimeTagOrigin.Format);
+        return metadata;
+    }
+
+    private const string Tag = "2026-09-27T07:31:43.000000Z";
+
+    private async Task<MediaAsset> OverriddenOffline(long size)
+    {
+        var asset = await Offline("climb.mp4");
+        asset.FileSizeBytes = size;
+        asset.Metadata = Tagged(Tag);
+        Assert.True(_edit.SetRecordingZeroOverride(asset.Id, RecordingStart).Success);
+        return asset;
+    }
+
+    [Fact]
+    public async Task C13_the_same_recording_found_elsewhere_keeps_the_recording_start_without_a_question_and_undo_restores()
+    {
+        var asset = await OverriddenOffline(size: 300);
+        var oldPath = asset.FilePath;
+        var moved = NewFile("climb.mp4", Tagged(Tag), folder: "moved", size: 300);   // equal size, duration and tag
+
+        _picker.Files.Enqueue(moved);
+        Assert.True(await _workflow.RelinkAsync(asset.Id));
+
+        Assert.DoesNotContain(_dialogs.Asked, d => d.Title == Strings.Relink_RecordingStartTitle);
+        Assert.Equal(moved, asset.FilePath);
+        Assert.Equal(RecordingStart, asset.RecordingZeroOverrideUtc);
+        Assert.True(AnyRelinkStep);
+
+        _undo.Undo();
+        Assert.Equal(oldPath, asset.FilePath);
+        Assert.Equal(RecordingStart, asset.RecordingZeroOverrideUtc);
+        Assert.True(asset.IsMissing);
+    }
+
+    [Theory]
+    [InlineData(null)]   // the dialog closed: the default
+    [InlineData(0)]      // «Не сохранять»
+    public async Task C14_another_video_asks_and_by_default_drops_the_recording_start_which_undo_restores(int? answer)
+    {
+        var asset = await OverriddenOffline(size: 300);
+        var other = NewFile("other.mp4", Tagged("2026-09-27T07:40:00.000000Z"), size: 450);
+        _dialogs.Answer = d => d.Title == Strings.Relink_RecordingStartTitle ? answer : 0;
+
+        _picker.Files.Enqueue(other);
+        Assert.True(await _workflow.RelinkAsync(asset.Id));
+
+        var question = Assert.Single(_dialogs.Asked, d => d.Title == Strings.Relink_RecordingStartTitle);
+        Assert.Equal(string.Format(Strings.Relink_RecordingStartMessage, "other.mp4"), question.Message);
+        Assert.Equal(new[] { Strings.Relink_RecordingStartDrop, Strings.Relink_RecordingStartKeep }, question.Buttons);
+        Assert.Equal(other, asset.FilePath);
+        Assert.Null(asset.RecordingZeroOverrideUtc);
+
+        _undo.Undo();
+        Assert.Equal(RecordingStart, asset.RecordingZeroOverrideUtc);
+        Assert.True(asset.IsMissing);
+    }
+
+    [Fact]
+    public async Task C14_keeping_on_the_users_answer_keeps_the_recording_start()
+    {
+        var asset = await OverriddenOffline(size: 300);
+        var other = NewFile("other.mp4", Meta(10), size: 450);
+        _dialogs.Answer = d => d.Title == Strings.Relink_RecordingStartTitle ? 1 : 0;   // «Сохранить»
+
+        _picker.Files.Enqueue(other);
+        Assert.True(await _workflow.RelinkAsync(asset.Id));
+
+        Assert.Equal(other, asset.FilePath);
+        Assert.Equal(RecordingStart, asset.RecordingZeroOverrideUtc);
     }
 }

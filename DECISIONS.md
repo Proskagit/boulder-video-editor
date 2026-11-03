@@ -8350,9 +8350,9 @@ Date: 2026-10-29. **Status: Approved by the product owner on 2026-10-29** (revis
 A1–A11 PASS); 35.3 partly — the probe (`02ded40`), 35.3a, 35.3b1, 35.3b2a, 35.3b2c, 35.3b2d, the reference-marking tool
 35.3R1 and the frozen reference marking 35.3R2 done, 35.3b2b deferred, 35.3c only as the marking mode of 35.3R1, **35.3d
 run on 2026-11-02 with the result «B6 not met»** (below, «Recorded result of Step 35.3d»), 35.3e not implemented and
-awaiting the product owner's decision; 35.4 implemented (`e15d7af`; its match point amended 2026-11-02; its manual rows
-C1–C14 not run); **35.5 (the heart-rate overlay) implemented and accepted by the product owner on 2026-11-03** (PR #35,
-not merged; «Implementation notes of Step 35.5» below); 35.6 (closeout) not started. Steps up to 35.4 in `main` since PR #33
+awaiting the product owner's decision; 35.4 implemented (`e15d7af`; its match point amended 2026-11-02; its acceptance
+rows C1–C14 automated on 2026-11-04 — all PASS, C5's real COROS re-export manual, `docs/PHASE_COROS.md` §14); **35.5 (the
+heart-rate overlay) implemented and accepted by the product owner on 2026-11-03** (PR #35, `5c5cb7f`; «Implementation notes of Step 35.5» below); 35.6 (closeout) not started. Steps up to 35.4 in `main` since PR #33
 (`1640996`, 2026-11-03) — Phase 35's commits arrived there together with Phase 37 instead of through the two pull requests
 planned below. Format and time model: D049. Record: `docs/PHASE_COROS.md`; manual
 plan: `docs/PHASE35_MANUAL_TEST_PLAN.md`. Any COROS model meeting the parser's requirements (owner, 2026-10-26); grade,

@@ -14,18 +14,18 @@ numbering" → "Official phases"; this file is the dated working log.
   manual plan not run; the product owner's acceptance open.
 - **Phase 35:** 35.0–35.2 done (35.2 accepted); 35.3 in part; **35.3d run 2026-11-02 — B6 not met** (0 of 13 climbs
   within `τ`, drift −22.4 s; an experimental result, not a confirmation of the method — `docs/PHASE_COROS.md` §12);
-  **35.3e not implemented, awaiting the product owner's decision**, not in the near plan; 35.4 implemented, manual rows
-  C1–C14 not run; **35.5 implemented and accepted** (below); 35.6 not started.
+  **35.3e not implemented, awaiting the product owner's decision**, not in the near plan; 35.4 implemented, its rows
+  C1–C14 automated on 2026-11-04 — all PASS, C5's real COROS re-export left to the owner (`docs/PHASE_COROS.md` §14);
+  **35.5 implemented and accepted** (below); 35.6 not started.
 - **Step 35.5 — the heart-rate overlay (2026-11-03, branch `feat/phase-35-5-heart-rate` from `e2a1617`):** the template
   kind «Пульс» (look, corner, heart's colour), the BPM of the picture right below it through the one mapping and the
   readout's rule, nothing drawn without a value, Preview = export, the export warning `HeartRateUnavailable`,
   `project.json` v13 — `docs/PHASE_COROS.md` §13. Gates (2026-11-03): Release / Debug `--no-incremental -warnaserror`
   0 / 0; the full suite with `AIVE_HEAVY_TESTS=1` 5 333 passed, 0 failed, 0 skipped; CI green on PR #35. **Manual
   acceptance by the product owner, 2026-11-03, on `593b6a2`: PASS** — О1–О15 of `docs/PHASE35_5_MANUAL_ACCEPTANCE.md`, no
-  blocking defect (Д1–Д7 not run). The owner's note for the future: FU-35.5.1 (`ROADMAP.md`). PR #35 open, the merge is the
-  owner's.
+  blocking defect (Д1–Д7 not run). The owner's note for the future: FU-35.5.1 (`ROADMAP.md`). Merged with PR #35 as `5c5cb7f`.
 - **Next (product owner, 2026-11-03; DECISIONS.md D050): Step 35.5 — the heart-rate overlay** (done and accepted above,
-  PR #35 open), then 35.6; not combined with an export of time codes; the time-code export (Phase 36's YouTube chapters) stays a separate item until its original intent and
+  merged with PR #35), then 35.6; not combined with an export of time codes; the time-code export (Phase 36's YouTube chapters) stays a separate item until its original intent and
   relations are clarified; 35.3e is not replaced by recognising attempts from the climber's movement in the video.
 - **Documentation synchronised after PR #33** (branch `docs/sync-after-phase-37`): D051, `docs/PHASE37.md` and
   `docs/PHASE37_MANUAL_TEST_PLAN.md` brought into `main` from `docs/phase-37` (`20326dc`), the numbering of

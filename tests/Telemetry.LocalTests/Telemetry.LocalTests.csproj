@@ -28,6 +28,8 @@
     <ProjectReference Include="..\..\src\Infrastructure\Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Video\Video.csproj" />
     <ProjectReference Include="..\..\src\Project\Project.csproj" />
+    <!-- Step 35.4's real-session rows (C1, C8, C12): the edit service behind the Inspector's alignment. -->
+    <ProjectReference Include="..\..\src\Timeline\Timeline.csproj" />
   </ItemGroup>
 
 </Project>
