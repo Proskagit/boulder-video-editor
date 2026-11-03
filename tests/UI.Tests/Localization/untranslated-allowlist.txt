@@ -100,8 +100,11 @@ src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Disappearance
 src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Outline
 src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Change Text Background
 src/UI/ViewModels/Panels/InspectorViewModel.TextStyle.cs	Place Text
+src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Change Heart Colour
+src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Change Heart Rate Look
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Change Route Colour
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Change Route Status
+src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Move Heart Rate
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Set Status Moment
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Crop Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Clip
@@ -142,6 +145,8 @@ src/Project/Persistence/ProjectSerializer.cs	a hold markup has no hold list
 src/Project/Persistence/ProjectSerializer.cs	a hold markup has no keyline mode
 src/Project/Persistence/ProjectSerializer.cs	a hold markup has no keyline state
 src/Project/Persistence/ProjectSerializer.cs	a hold markup has no model id
+src/Project/Persistence/ProjectSerializer.cs	a heart-rate overlay's corner is missing
+src/Project/Persistence/ProjectSerializer.cs	a heart-rate overlay's look is missing
 src/Project/Persistence/ProjectSerializer.cs	a hold markup has no outline width
 src/Project/Persistence/ProjectSerializer.cs	a hold's contour has an odd number of coordinates
 src/Project/Persistence/ProjectSerializer.cs	a link is invalid: {invalidLink.TrimEnd('.')}

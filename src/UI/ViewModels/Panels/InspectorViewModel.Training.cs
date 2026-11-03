@@ -70,7 +70,11 @@ public sealed partial class InspectorViewModel
     /// <summary>The playhead moved: the readout follows it.</summary>
     public void OnPlayheadMoved() => UpdateTrainingReadout();
 
-    private void OnTrainingChanged(object? sender, EventArgs e) => RefreshTraining();
+    private void OnTrainingChanged(object? sender, EventArgs e)
+    {
+        RefreshTraining();
+        if (ShowsTemplateHeartRate) RefreshHeartRateHint();
+    }
 
     private void ShowTraining(MediaAsset? asset)
     {

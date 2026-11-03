@@ -113,10 +113,22 @@ public static class TrainingAlignment
         var w = WatchTime(zero, SourceTimeAt(clip, frame, rate), training.ClockCorrection);
         var workout = training.Workout!;
         if (!workout.Recording.Contains(w)) return new(w, null, TrainingReadoutReason.OutsideRecording);
-        return WorkoutTimeline.HeartRateAt(workout, w) is { } bpm
+        return HeartRateAtWatch(workout, w) is { } bpm
             ? new(w, bpm, null)
             : new(w, null, TrainingReadoutReason.NoSample);
     }
+
+    /// <summary>
+    /// The heart rate a video with the recording zero <paramref name="zero"/> shows at <paramref name="sourceTime"/>: the
+    /// watch instant <c>w = Z + s + ClockCorrection</c>, then the readout's rule — inside the recording, the latest sample at
+    /// most 2 s old, outside the timer's pauses (<see cref="WorkoutTimeline.HeartRateAt"/>). Null otherwise — never an
+    /// interpolated value. The heart-rate overlay (Phase 35.5) and <see cref="ReadoutAt"/> read the same value.
+    /// </summary>
+    public static int? HeartRateAtSource(ClimbingWorkout workout, DateTimeOffset zero, MediaTime clockCorrection, MediaTime sourceTime) =>
+        HeartRateAtWatch(workout, WatchTime(zero, sourceTime, clockCorrection));
+
+    private static int? HeartRateAtWatch(ClimbingWorkout workout, DateTimeOffset w) =>
+        workout.Recording.Contains(w) ? WorkoutTimeline.HeartRateAt(workout, w) : null;
 
     private static DateTimeOffset Utc(long ticks) => new(ticks, TimeSpan.Zero);
 }

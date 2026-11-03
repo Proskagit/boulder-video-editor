@@ -25,7 +25,8 @@ public sealed class TemplateRenderingTests
             Date = "27.09.2026", Route = "7", Grade = "7A", Status = BoulderStatus.Top, Subtitle = "Трасса 7 · 7A"
         };
         var span = new TemplateSpan(Guid.NewGuid(), MediaTime.Zero, MediaTime.FromSeconds(8), kind, fields, MediaTime.Zero);
-        return new TemplateLayer(Guid.NewGuid(), span, clock);
+        // Phase 35.5: the heart-rate overlay draws only with a value (the composition resolves it from the picture below).
+        return new TemplateLayer(Guid.NewGuid(), span, clock) { HeartRate = kind == TemplateKind.HeartRate ? 128 : null };
     }
 
     private static ImmutableArray<LayerPicture> Preview(params ResolvedLayer[] layers) => layers.Select(l => l.Layer switch

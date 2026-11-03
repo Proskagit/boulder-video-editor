@@ -27,6 +27,7 @@ public static class TemplatePainter
             case TemplateKind.Vhs: Vhs(context, op); break;
             case TemplateKind.Boulder: Boulder(context, op); break;
             case TemplateKind.Highlight: Highlight(context, op); break;
+            case TemplateKind.HeartRate: HeartRate(context, op); break;
         }
     }
 
@@ -344,5 +345,80 @@ public static class TemplatePainter
         using (context.PushTransform(new Matrix(1, 0, -skew, 1, skew * sy, 0)))
             context.DrawRectangle(Brush("#101010", 0.85), null, new Rect(sx, sy, sw, sh));
         Centred(context, sub.Text, sub.Ink, new Point(sx + sw / 2 - sh / 2 * skew, sy + sh / 2));
+    }
+
+    // --- Heart rate (Phase 35.5) ---------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// The heart-rate overlay: a heart in the overlay's colour, the BPM of the picture below and «BPM», in a corner at the
+    /// placement grid's safe margin (D043 §3) — on a dark plate, or alone with a soft shadow. Nothing at all where there is no
+    /// value (<see cref="TemplateDraw.HeartRate"/> null: a pause, a gap, outside the training, an unknown recording zero). The
+    /// digits' place is as wide as «000», so the block never moves as the value changes. The heart beats once per beat of
+    /// the value shown, from the overlay's own clock — a pure function of the frame, so the Preview and the export draw the
+    /// same; fades in and out over the clip's fades.
+    /// </summary>
+    private static void HeartRate(DrawingContext context, TemplateDraw op)
+    {
+        if (op.HeartRate is not { } bpm) return;
+        var (w, h, u) = (op.Canvas.Width, op.Canvas.Height, Unit(op));
+        var clock = op.Clock;
+        var plate = op.Fields.Look == HeartRateLook.Plate;
+        using var fade = context.PushOpacity(Math.Min(clock.In, clock.Out));
+        IImmutableBrush white = Brushes.White;
+        var shadow = Brush("#000000", 0.5);
+
+        var value = bpm.ToString(CultureInfo.InvariantCulture);
+        var digits = Lay(value, FontWeight.SemiBold, 76 * u, white);
+        var room = Lay("000", FontWeight.SemiBold, 76 * u, white).InkWidth;
+        var word = Lay(TemplateRules.BpmWord, FontWeight.SemiBold, 26 * u, Brush("#FFFFFF", 0.85));
+        var heart = 58 * u;
+        var (gap, wordGap) = (20 * u, 10 * u);
+        var capHeight = digits.Ink.Baseline - digits.Ink.CapTop;
+        var contentWidth = heart + gap + room + wordGap + word.InkWidth;
+        var (padX, padY) = plate ? (24 * u, 20 * u) : (0.0, 0.0);
+        var blockWidth = contentWidth + 2 * padX;
+        var blockHeight = Math.Max(capHeight, heart) + 2 * padY;
+
+        var margin = TextPlacement.MarginFactor * Math.Min(w, h);
+        var left = op.Fields.Corner is OverlayCorner.TopLeft or OverlayCorner.BottomLeft ? margin : w - margin - blockWidth;
+        var top = op.Fields.Corner is OverlayCorner.TopLeft or OverlayCorner.TopRight ? margin : h - margin - blockHeight;
+        if (plate)
+            context.DrawRectangle(Brush(TemplateRules.PlateHex, 0.78), null, new Rect(left, top, blockWidth, blockHeight), 14 * u, 14 * u);
+
+        var centreY = top + blockHeight / 2;
+        var heartX = left + padX + heart / 2;
+        var baseline = centreY + capHeight / 2;
+        var digitsRight = left + padX + heart + gap + room;
+        var digitsAt = new Point(digitsRight - digits.Ink.Right, baseline - digits.Ink.Baseline);
+        var wordAt = new Point(digitsRight + wordGap - word.Ink.Left, baseline - word.Ink.Baseline);
+
+        // One beat of the value shown: a quick swell over the first fifth of the beat.
+        var phase = clock.Elapsed * bpm / 60.0 % 1.0;
+        var beat = 1 + 0.14 * (phase < 0.2 ? Math.Sin(Math.PI * phase / 0.2) : 0);
+        if (!plate)
+        {
+            var o = 3 * u;
+            Heart(context, shadow, new Point(heartX + o, centreY + o), heart * beat);
+            context.DrawText(Text(value, Sport, FontWeight.SemiBold, 76 * u, shadow), new Point(digitsAt.X + o, digitsAt.Y + o));
+            context.DrawText(Text(TemplateRules.BpmWord, Sport, FontWeight.SemiBold, 26 * u, shadow), new Point(wordAt.X + o, wordAt.Y + o));
+        }
+        Heart(context, Brush(op.Fields.AccentHex), new Point(heartX, centreY), heart * beat);
+        context.DrawText(digits.Text, digitsAt);
+        context.DrawText(word.Text, wordAt);
+    }
+
+    /// <summary>A heart <paramref name="width"/> wide centred on <paramref name="centre"/>: a square turned by 45° with two
+    /// discs on its upper sides — rectangles and ellipses only, like the rest of the painter.</summary>
+    private static void Heart(DrawingContext context, IImmutableBrush brush, Point centre, double width)
+    {
+        var a = width / (1 + Math.Sqrt(0.5));          // the square's side: the heart is d + a wide, d = a / √2
+        var d = a * Math.Sqrt(0.5);
+        var cy = centre.Y + (0.5 * d + 0.5 * a - d) / 2;   // the shape's vertical middle on the centre
+        var (lx, ly) = (centre.X - d / 2, cy - d / 2);
+        var (rx, ry) = (centre.X + d / 2, cy - d / 2);
+        context.DrawEllipse(brush, null, new Point(lx, ly), a / 2, a / 2);
+        context.DrawEllipse(brush, null, new Point(rx, ry), a / 2, a / 2);
+        using (context.PushTransform(Matrix.CreateRotation(Math.PI / 4) * Matrix.CreateTranslation(centre.X, cy)))
+            context.DrawRectangle(brush, null, new Rect(-a / 2, -a / 2, a, a));
     }
 }

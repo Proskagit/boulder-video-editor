@@ -53,6 +53,9 @@ public sealed record TemplateDraw(Guid ClipId, Affine2D Transform, double Opacit
     TemplateProperties Fields, TemplateClock Clock) : DrawOperation(ClipId, Transform, Opacity)
 {
     public bool HasTreatment => TemplateRules.HasTreatment(Kind);
+
+    /// <summary>The heart-rate overlay's BPM (Phase 35.5); null — nothing drawn.</summary>
+    public int? HeartRate { get; init; }
 }
 
 /// <summary>
@@ -228,7 +231,10 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
                 return new SolidDraw(solid.ClipId, canvasToTarget, solid.Opacity, new RectD(0, 0, canvas.Width, canvas.Height), solid.ColorHex);
 
             case TemplateLayer template:
-                return new TemplateDraw(template.ClipId, canvasToTarget, 1.0, canvas, template.Kind, template.Span.Fields, template.Clock);
+                return new TemplateDraw(template.ClipId, canvasToTarget, 1.0, canvas, template.Kind, template.Span.Fields, template.Clock)
+                {
+                    HeartRate = template.HeartRate
+                };
 
             case PictureLayer picture:
             {

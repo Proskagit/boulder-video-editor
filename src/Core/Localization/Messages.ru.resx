@@ -1222,4 +1222,19 @@
   <data name="Training_NotAVideo" xml:space="preserve">
     <value>Это работает только для видео проекта.</value>
   </data>
+  <data name="Template_HeartRate" xml:space="preserve">
+    <value>Пульс</value>
+  </data>
+  <data name="Template_UnknownLook" xml:space="preserve">
+    <value>Неизвестный вид или положение накладки пульса.</value>
+  </data>
+  <data name="Preflight_HeartRateNoTraining" xml:space="preserve">
+    <value>У накладки пульса нет данных: в проекте нет тренировки COROS. В экспорте она ничего не покажет.</value>
+  </data>
+  <data name="Preflight_HeartRateTrainingUnavailable" xml:space="preserve">
+    <value>У накладки пульса нет данных: FIT-файл тренировки недоступен (нет файла, он не читается, это другая тренировка или он ещё не прочитан). В экспорте она ничего не покажет.</value>
+  </data>
+  <data name="Preflight_HeartRateUnknownZero" xml:space="preserve">
+    <value>Накладка пульса ничего не покажет над «{0}»: начало записи видео не задано ({1}, первый в {2}).</value>
+  </data>
 </root>

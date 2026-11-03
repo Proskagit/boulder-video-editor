@@ -2716,4 +2716,43 @@ If you don't save, your changes will be lost.</value>
   <data name="Reference_ReasonAmbiguous" xml:space="preserve">
     <value>ambiguous</value>
   </data>
+  <data name="TemplateType_HeartRate" xml:space="preserve">
+    <value>Heart rate</value>
+  </data>
+  <data name="Inspector_HeartRateLook" xml:space="preserve">
+    <value>Look</value>
+  </data>
+  <data name="HeartRateLook_Plate" xml:space="preserve">
+    <value>On a plate</value>
+  </data>
+  <data name="HeartRateLook_Plain" xml:space="preserve">
+    <value>No plate</value>
+  </data>
+  <data name="Inspector_HeartRateCorner" xml:space="preserve">
+    <value>Position</value>
+  </data>
+  <data name="OverlayCorner_TopLeft" xml:space="preserve">
+    <value>Top left</value>
+  </data>
+  <data name="OverlayCorner_TopRight" xml:space="preserve">
+    <value>Top right</value>
+  </data>
+  <data name="OverlayCorner_BottomLeft" xml:space="preserve">
+    <value>Bottom left</value>
+  </data>
+  <data name="OverlayCorner_BottomRight" xml:space="preserve">
+    <value>Bottom right</value>
+  </data>
+  <data name="Inspector_HeartRateColour" xml:space="preserve">
+    <value>Heart colour</value>
+  </data>
+  <data name="HeartRate_Hint" xml:space="preserve">
+    <value>The BPM of the video right below the overlay, from the project's COROS training. Nothing is shown where there is no value: a pause, a gap in the data, outside the training, or a video whose recording start is not set.</value>
+  </data>
+  <data name="HeartRate_NoTraining" xml:space="preserve">
+    <value>The project has no COROS training: the overlay shows nothing. Import one with «Тренировка COROS…».</value>
+  </data>
+  <data name="HeartRate_TrainingUnavailable" xml:space="preserve">
+    <value>The training's FIT file is not available: the overlay shows nothing until it is.</value>
+  </data>
 </root>

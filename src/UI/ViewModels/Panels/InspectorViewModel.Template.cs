@@ -15,12 +15,23 @@ public sealed partial class TemplateStatusOption(BoulderStatus status, string na
     [ObservableProperty] private bool _isSelected;
 }
 
+/// <summary>A choice button of the heart-rate overlay (Phase 35.5): its look or its corner, its name and whether it is the
+/// overlay's.</summary>
+public sealed partial class TemplateChoiceOption<T>(T value, string name) : ObservableObject
+{
+    public T Value { get; } = value;
+    public string Name { get; } = name;
+    [ObservableProperty] private bool _isSelected;
+}
+
 /// <summary>
 /// Phase 29 (D045 §6): a template's own fields — REC / VHS: the date; «Боулдер»: the route, the grade, the status and the
 /// route's colour; «Хайлайт»: the title and the subtitle. A typed field applies live and merges with the next change of the
 /// same field (D017); a status or a colour swatch is one click, one undo step of its own. «На указатель» sets the moment the
 /// status appears to the playhead's frame (D045 §17) — one click, one undo step. Nothing else of a template is edited here
-/// (its look and timing are fixed, VHS's strength too — the product owner, 2026-10-21).
+/// (its look and timing are fixed, VHS's strength too — the product owner, 2026-10-21). The heart-rate overlay (Phase 35.5):
+/// its look, its corner and its heart's colour, each one click, one undo step; a hint says where its BPM comes from, or why
+/// the project gives it none.
 /// </summary>
 public sealed partial class InspectorViewModel
 {
@@ -28,12 +39,28 @@ public sealed partial class InspectorViewModel
     [NotifyPropertyChangedFor(nameof(ShowsTemplateDate))]
     [NotifyPropertyChangedFor(nameof(ShowsTemplateBoulder))]
     [NotifyPropertyChangedFor(nameof(ShowsTemplateHighlight))]
+    [NotifyPropertyChangedFor(nameof(ShowsTemplateHeartRate))]
     private TemplateKind? _templateKind;
 
     public bool HasTemplate => TemplateKind is not null;
     public bool ShowsTemplateDate => TemplateKind is Core.Entities.TemplateKind.Rec or Core.Entities.TemplateKind.Vhs;
     public bool ShowsTemplateBoulder => TemplateKind == Core.Entities.TemplateKind.Boulder;
     public bool ShowsTemplateHighlight => TemplateKind == Core.Entities.TemplateKind.Highlight;
+    public bool ShowsTemplateHeartRate => TemplateKind == Core.Entities.TemplateKind.HeartRate;
+
+    /// <summary>The heart-rate overlay: where its BPM comes from, or why the project gives it none.</summary>
+    [ObservableProperty] private string _heartRateHint = string.Empty;
+
+    public IReadOnlyList<TemplateChoiceOption<HeartRateLook>> HeartRateLooks { get; } = new TemplateChoiceOption<HeartRateLook>[]
+    {
+        new(HeartRateLook.Plate, Strings.HeartRateLook_Plate), new(HeartRateLook.Plain, Strings.HeartRateLook_Plain)
+    };
+
+    public IReadOnlyList<TemplateChoiceOption<OverlayCorner>> HeartRateCorners { get; } = new TemplateChoiceOption<OverlayCorner>[]
+    {
+        new(OverlayCorner.TopLeft, Strings.OverlayCorner_TopLeft), new(OverlayCorner.TopRight, Strings.OverlayCorner_TopRight),
+        new(OverlayCorner.BottomLeft, Strings.OverlayCorner_BottomLeft), new(OverlayCorner.BottomRight, Strings.OverlayCorner_BottomRight)
+    };
 
     [ObservableProperty] private string _templateDate = string.Empty;
     [ObservableProperty] private string _templateRoute = string.Empty;
@@ -84,7 +111,23 @@ public sealed partial class InspectorViewModel
     private void SetTemplateStatus(BoulderStatus status) => EditTemplate(p => p with { Status = status }, "Change Route Status");
 
     [RelayCommand]
-    private void SetTemplateAccent(string hex) => EditTemplate(p => p with { AccentHex = hex }, "Change Route Colour");
+    private void SetTemplateAccent(string hex) => EditTemplate(p => p with { AccentHex = hex },
+        TemplateKind == Core.Entities.TemplateKind.HeartRate ? "Change Heart Colour" : "Change Route Colour");
+
+    [RelayCommand]
+    private void SetHeartRateLook(HeartRateLook look) => EditTemplate(p => p with { Look = look }, "Change Heart Rate Look");
+
+    [RelayCommand]
+    private void SetHeartRateCorner(OverlayCorner corner) => EditTemplate(p => p with { Corner = corner }, "Move Heart Rate");
+
+    /// <summary>The heart-rate overlay's hint: no training, a training whose FIT is not available, or where the value comes
+    /// from (the reasons it may still show nothing).</summary>
+    private void RefreshHeartRateHint() => HeartRateHint = _training?.Training switch
+    {
+        null => Strings.HeartRate_NoTraining,
+        { IsUsable: false } => Strings.HeartRate_TrainingUnavailable,
+        _ => Strings.HeartRate_Hint
+    };
 
     /// <summary>D045 §17: the status appears at the playhead's frame — on the template's clock (the counter's: the time since
     /// its original start, continued over a split). The playhead must be on the template's clip.</summary>
@@ -146,6 +189,9 @@ public sealed partial class InspectorViewModel
             TemplateAccentHex = template.AccentHex;
             TemplateStatusAtText = StatusAtText(template);
             foreach (var option in TemplateStatuses) option.IsSelected = option.Status == template.Status;
+            foreach (var option in HeartRateLooks) option.IsSelected = option.Value == template.Look;
+            foreach (var option in HeartRateCorners) option.IsSelected = option.Value == template.Corner;
+            if (template.Kind == Core.Entities.TemplateKind.HeartRate) RefreshHeartRateHint();
         }
         finally
         {

@@ -27,7 +27,10 @@ namespace AiVideoEditor.Project.Persistence;
 public static class ProjectSerializer
 {
     public const string FormatId = "AiVideoEditor.Project";
-    /// <summary>8 since Phase 28 (D044): the transition library — Dip to black, Flash, Zoom and Push with its direction.
+    /// <summary>13 since Phase 35.5: the heart-rate overlay (a template kind with its look and corner). 12 since Phase 37
+    /// (D051): the FIT marks and the declined climbs. 11 since Phase 35 (D049): the COROS training. 10 since D048: the route
+    /// timing and the template anchor. 9 since Phase 29 (D045): templates.
+    /// 8 since Phase 28 (D044): the transition library — Dip to black, Flash, Zoom and Push with its direction.
     /// 7 since Phase 27 (D043): bold, the outline, the background and the motions of text clips. 6 since Phase 21 (D036): the animation of the hold outlines. 5 since Phase 19 (D034): the hold markup of video clips. 4 since Phase 17 (D032): links of video and audio
     /// clips, a video clip's unlinked sound, audio clips of video files and crossfades on audio tracks. 3 since Phase 10
     /// (D025): clip fades and anchored transitions. 2 since Phase 7 Step 9: the clip speed is an exact fraction (D022).
@@ -36,7 +39,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 12;
+    public const int CurrentFormatVersion = 13;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -71,6 +74,10 @@ public static class ProjectSerializer
     /// <summary>The first version with the FIT marks and the declined climbs of the training (D051 §5.3). A v11 file is read
     /// without them and saved as v12.</summary>
     private const int FitStartsVersion = 12;
+
+    /// <summary>The first version with the heart-rate overlay (Phase 35.5): the template kind and its look and corner. A v12
+    /// file has none and is saved as v13.</summary>
+    private const int HeartRateOverlayVersion = 13;
 
     /// <summary>A push's direction in the file (D044 §9).</summary>
     private static readonly IReadOnlyDictionary<TransitionDirection, string> DirectionNames = new Dictionary<TransitionDirection, string>
@@ -399,7 +406,9 @@ public static class ProjectSerializer
             {
                 Template = p.Kind, CounterStartTicks = p.CounterStart.Ticks, Date = p.Date, Route = p.Route, Grade = p.Grade,
                 Status = p.Status, AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAtTicks = p.StatusAt.Ticks,
-                AnchorClipId = p.AnchorClipId
+                AnchorClipId = p.AnchorClipId,
+                Look = p.Kind == TemplateKind.HeartRate ? p.Look : null,
+                Corner = p.Kind == TemplateKind.HeartRate ? p.Corner : null
             },
             _ => throw new NotSupportedException($"Clip type {clip.GetType().Name} can't be saved.")
         };
@@ -888,7 +897,8 @@ public static class ProjectSerializer
             TemplateClipDto p when formatVersion >= TemplatesVersion => new TemplateClip
             {
                 Id = p.Id,
-                Kind = p.Template is { } kind && Enum.IsDefined(kind) ? kind : throw Damaged("unknown template"),
+                Kind = p.Template is { } kind && Enum.IsDefined(kind) && (kind != TemplateKind.HeartRate || formatVersion >= HeartRateOverlayVersion)
+                    ? kind : throw Damaged("unknown template"),
                 CounterStart = p.CounterStartTicks >= 0 ? new MediaTime(p.CounterStartTicks) : throw Damaged("a template's counter is negative"),
                 Date = p.Date ?? throw Damaged("a template field is missing"),
                 Route = p.Route ?? throw Damaged("a template field is missing"),
@@ -900,7 +910,12 @@ public static class ProjectSerializer
                 StatusAt = p.StatusAtTicks is not { } statusAt ? throw Damaged("a template field is missing")
                     : statusAt >= 0 ? new MediaTime(statusAt) : throw Damaged("a template's status moment is negative"),
                 // v9 has no anchor (D048); a dangling one is cleared once every clip is known (FromDto(SequenceDto)).
-                AnchorClipId = formatVersion >= RouteTimingVersion ? p.AnchorClipId : null
+                AnchorClipId = formatVersion >= RouteTimingVersion ? p.AnchorClipId : null,
+                // Phase 35.5: the heart-rate overlay's look and corner are required on it, absent on the other kinds.
+                Look = p.Template != TemplateKind.HeartRate ? HeartRateLook.Plate
+                    : p.Look is { } look && Enum.IsDefined(look) ? look : throw Damaged("a heart-rate overlay's look is missing"),
+                Corner = p.Template != TemplateKind.HeartRate ? OverlayCorner.BottomRight
+                    : p.Corner is { } corner && Enum.IsDefined(corner) ? corner : throw Damaged("a heart-rate overlay's corner is missing")
             },
             _ => throw Damaged("unknown clip type")
         };
