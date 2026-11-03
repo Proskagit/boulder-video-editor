@@ -480,6 +480,7 @@ research, F only after its feasibility is confirmed and a separate agreement; H 
 | R3 | COROS Pace 4 exports and video timestamps — research | research | research (needs real files) | — (parallel) |
 | F | «COROS Pace 4: пульс и телеметрия в видео» — only after R3 confirms feasibility and a separate agreement | telemetry | large | R3, A |
 | H | «Final UX Pass: аудит и упрощение интерфейса» (research, then implementation) | UX | research + medium–large | the core incl. F, G, a regression run |
+| — | **Phase 37** — preliminary route starts from a COROS FIT and the global start calibration (D051, approved 2026-11-03; documentation only, not implemented — `docs/PHASE37.md`) | telemetry | medium–large | Phase 35's pull requests 1 and 2 (not opened on 2026-11-03), D048; not Phase 36 (separate, deferred) |
 
 Stopping points — the product is usable after each:
 - **S0 — at the merge of Phase 26**: a vertical bouldering video with manually chosen AI holds, their animation, static text with

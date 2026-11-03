@@ -519,6 +519,28 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   the recording time follows the Phase 7 / 18 refresh contract: at most once per asset per session, never dirty, no save
   prompt, no Undo step.
 
+## FIT route starts and the global start calibration (Phase 37, D051 — planned, not implemented)
+
+*Approved 2026-11-03; documentation only. The implementation starts after Phase 35's second pull request. Record:
+`docs/PHASE37.md`.*
+
+- **Core `Telemetry/Calibration/`** (planned): the K3 estimate of `StartCorrection` — pure integer functions in ticks
+  (window `N` = 100 by `positionChangedAt`, `MIN_N` = 20, bounds [−30 s, +90 s], Huber target by the `L` / `U` bisection,
+  floor division), the key `TrainingActivity` + `ClimbIdentity` (moved out of `Research`), the records and their statuses;
+  `FitMarkProposals` (the choice of the video and position, D051 §5.5.1); `EffectiveStart` and its watch time
+  (D051 §4.5). `ClimbEndLag` never enters this path; `TrainingAlignment` stays the only mapping.
+- **Project**: `FitCalibrationStore` — the second per-user file `%LOCALAPPDATA%\AiVideoEditor\config\fit-calibration.json`,
+  on the pattern of `RecentProjectsStore` (lock, re-read, atomic write, `*.damaged`, newer format untouched); Beta on by
+  default. The project format (the version after v11) adds the active marks (video, kind `proposed` / `clamped` / `moved`,
+  `positionChangedAt`, the link as `LinkedClipId`) and the declined climbs per training. The observations are synchronised
+  after a successful Save / Save As, never on autosave or recovery.
+- **Timeline**: the mark commands (`IUndoableCommand`; composites with `SetRecordingZeroOverrideCommand` and with
+  `LayOutIntroAndFinal`); the paste refusal of a duplicate FIT markup in `PasteInto` (shared `Hold.Id`); the link following
+  its markup in `EditPlan.Commit` (Split, Insert / Overwrite). The D048 markup value and its commands are unchanged.
+- **UI**: an editor-only layer of marks on the clips (like the D048 strip; never in Preview or export); the link actions in
+  the Inspector; «Отклонённые подъёмы» and «Настройки FIT…» in the COROS training drop-down.
+- **Limitation**: videos whose source time is not real time (slow / fast motion, time-lapse) are not supported.
+
 ## Preview tools: Move, Scale, Crop (Phase 23, D038)
 
 - Core: `Composition/PreviewTransformMath` — pure gesture math on `VisualProperties`: `TransformFrame` (a layer's local

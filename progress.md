@@ -1,5 +1,13 @@
 # Project Progress
 
+**Phase 37 — Preliminary route starts from a COROS FIT and the global start calibration (2026-11-03): documentation
+only.** DECISIONS.md D051 approved by the product owner on 2026-11-03 (with the refinements B1–B7, О1–О5, Q1, Q2); the
+record `docs/PHASE37.md` and the manual plan `docs/PHASE37_MANUAL_TEST_PLAN.md` written at Step 37.0 on the local
+documentation branch `docs/phase-37` (from `feat/phase-coros-c1` `4070ffc`; not committed, not pushed). **Not
+implemented**; the implementation starts only after Phase 35's pull request 2 is merged (pull requests 1 and 2 not opened
+on 2026-11-03). Phase 35's state and results are recorded in `docs/PHASE_COROS.md` / D050 and on `docs/phase-numbering`
+and are not restated here. Phase 36 stays separate and deferred.
+
 ## Current phase
 
 **Phase 30 — Stabilisation of the current base (D042 Phase G; technical closeout).** Branch

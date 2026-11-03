@@ -8536,6 +8536,468 @@ counted (implemented by Step 35.3b2c, `StudyEvaluator` with `EvaluationProtocol.
 
 ---
 
+## D051 — Preliminary route starts from a COROS FIT and the global start calibration (Phase 37) *(approved 2026-11-03)*
+
+Date: 2026-11-03. **Status: Approved by the product owner on 2026-11-03** (with the refinements B1–B7, О1–О5, Q1 and
+Q2 of the same day) — not implemented; recorded at Step 37.0 on the Phase 37 documentation branch, not in Phase 35's
+second pull request. Record of the phase: `docs/PHASE37.md`; manual plan: `docs/PHASE37_MANUAL_TEST_PLAN.md`. Phase 37 runs after Phase 35's second pull request. Phase 35 (D050 B9, the owner's answer
+O3) and Phase 36 (D050) are not extended. D048, D049 and D050 (B2, B6, B8, B9, `τ`, `ClimbEndLag`) are unchanged and not
+reinterpreted.
+
+### 1. Purpose and scope
+1.1 Speed up the montage of bouldering videos: route starts are proposed from the COROS FIT and corrected by the user in
+the usual D048 workflow. The goal is not the recognition of every attempt and not sub-second accuracy.
+1.2 Accepted: attempts missing from the FIT; inaccurate proposals; manual correction of single routes; attempts added by
+hand.
+1.3 Measure of quality: how fast the user gets a usable markup and how much manual work remains.
+1.4 Out of scope: any detection of movement or body position; the end of a route (§7); an automatic recording zero; any
+change of B6, `τ`, B2 or `ClimbEndLag`; a calibration per project, per training or per watch model; splitting one FIT
+climb into several marks.
+1.5 **Limitation (Q1).** Videos whose source time is not real time — slow motion, fast motion, time-lapse — are not
+supported: the mapping `w = Z + s + ClockCorrection` (D049 §6) assumes real source time, and the project's metadata carries
+no reliable capture rate. Phase 37 does not detect or convert them; the user gives such a video no `Z`, so it gets no mark
+and gives no observation. Detecting a capture rate is a later task of its own.
+
+### 2. Two corrections, never mixed
+2.1 `ClimbEndLag` = 4.6 s (D050 amendment of 2026-11-02 to B2) — only for matching a frame to a climb's end. Unchanged,
+never used for a route start.
+2.2 `StartCorrection` — the proposed route start in watch time: **`OverlayStart = W_FITStart − StartCorrection`**, with
+`W_FITStart` the climb's start by the one boundary rule (D050 B8). The form `FITEnd − FITDuration − Correction` is not used
+(it equals `FITStart − Correction`).
+2.3 The initial value **`I` = 12 s** — a working value (the middle of the research range 11–13 s), not a physical constant;
+it is refined by the calibration (§6).
+2.4 The two are never named alike (in the spirit of D050 B3).
+
+### 3. The recording zero is required
+3.1 A FIT time maps to a video only through its recording zero `Z` and the training's clock correction (D049 §6:
+`w = Z + s + ClockCorrection`). B6 is not met and there is no automatic zero: `Z` is an override (D050 B2) or unknown.
+3.2 A video without `Z` gets no proposal (§5.5); a mark whose effective-start video (§5.8) has no `Z` gives no
+observation (§5.9).
+
+### 4. The reference of the actual start
+4.1 The route start of the final markup is the frame `T` of D048: the hold animation (mode `Duration`) covers
+`[T − Fa, T)` and its contours vanish exactly at `T` — `T` is the first frame after the animation.
+4.2 A mark's **effective start**: the `T` of the `Duration` animation linked to the mark's FIT climb, if there is one —
+on its clip, whichever video that clip shows (§5.4); otherwise the mark's own position on the mark's video.
+4.3 The mark's own position is independent of `T`: moving `T` never moves the mark; when the linked animation is removed
+or the link is removed (§5.4), the mark's own position becomes the effective start again.
+4.4 The user may move a mark before any animation exists.
+4.5 **The watch time of the effective start** — every time conversion is made once:
+- **linked**: `W = Z_u + s_T + ClockCorrection`, where `u` is the video of the linked clip, `Z_u` its zero, and `s_T` the
+  source time of `u` at the frame `T` (one conversion timeline → source by the clip's rule — start, source in, speed — with
+  `T` taken by the same rule that draws the D048 strip); the mark's video, its zero and its own position are not used;
+- **unlinked**, by the kind of the own position (§5.3): `proposed` → `W = W_auto` exactly; `clamped` or `moved` →
+  `W = Z_v + s + ClockCorrection` with the mark's video `v` and the stored source time `s`.
+`StartCorrection`, `W_auto` and `ClimbEndLag` never enter the conversion of a linked start; `ClockCorrection` enters once.
+
+### 5. Project data, proposals and observations
+5.1 **Identity.** A FIT climb is identified by the key **training identity + the climb's full identity** (split index,
+number, start — D050 B8). The same key identifies the climb's mark, its declined entry, its animation link and its
+calibration record; the key does not depend on any video.
+5.2 **One complex: one FIT climb → one active mark → one linked animation → one ascent.** Within a training:
+- a FIT climb has **at most one active mark** — creating a second one is refused (the existing mark is edited instead);
+- a FIT climb has **at most one linked animation** — linking a second animation to a linked climb is refused;
+- an animation is **linked to at most one FIT climb** — linking a linked animation to another climb is refused;
+- a new import of the same FIT, a new `Z` or a restore never creates a duplicate mark or link;
+- a climb is never split into several marks, animations or tracks; a climb gives at most one observation.
+These uniqueness rules concern only the explicit links between FIT climbs and animations (§5.4).
+5.3 **Project** (`project.json`, the version after Phase 35's v11, fixed at merge — D049 §7), per training:
+- the **active marks** (one per climb, §5.2): the climb's identity; `W_auto`; the `StartCorrection` and the calibration
+  version used when the mark was created; the **mark's video** (chosen by §5.5.1 when the mark is created, never
+  reassigned); the **own position** with its kind:
+  - **`proposed`** — as proposed: follows `W_auto` (no source time stored);
+  - **`clamped`** — put on the edge of the recording by §5.5.1 step 3 (source time stored);
+  - **`moved`** — moved by the user (source time stored);
+  `positionChangedAt` (§5.6); the link (§5.4);
+- the **declined climbs**: the climbs the user declined, each with its identity and — if a mark existed — the mark's data
+  as it was (`W_auto`, the correction and version, the video, the own position with its kind, `positionChangedAt`; no
+  link); never recreated by a new import of the same FIT or a new `Z`; not active, never observed.
+5.4 **Links.** A hold animation (`Duration`) may carry an optional **explicit link** to one FIT climb (its identity);
+the link is unique in both directions (§5.2). No nearest-event rule.
+- **An animation without a link is valid and normal** — the climb was not found in the FIT, or there is no FIT at all. It
+  works by D048 unchanged, needs no FIT and no mark, takes no part in the calibration and is never a damage of the project.
+- D048's behaviour is not changed: a link only adds the animation's `T` as the effective start of its climb's mark (§4.2).
+- A link is created and removed only by explicit user actions (§8.2): «Связать с FIT-подъёмом» links an unlinked animation
+  to an active climb without a link; «Снять FIT-связь» removes the link. Each is one action, one Undo step; the animation
+  itself is never changed by them. Only an active climb can be linked; a declined climb has no link (§5.7).
+- The linked animation may be on a clip of **any video** of the project — not only the mark's video; its start is
+  converted by §4.5 with the zero of its own video.
+- **The link follows its markup.** When D048 itself moves a `Duration` markup to another part of a clip — Split (D048 §3.6:
+  the markup goes only to the part holding the animation's start), Insert / Overwrite (D048 §3.5, §3.8) — the link moves with
+  it in the same Undo step: to the one clip of that edit that received a markup with the same holds. When D048 deletes the
+  markup (a cut inside the animation, a segment cut wholly), the link is removed with it (§5.6 for `positionChangedAt`).
+  Moving a link this way is not a new link; `T` is unchanged by it.
+- **No pasted duplicate of a FIT markup (B1).** «Вставить» and «Дублировать» are refused when a pasted clip's markup shares
+  at least one hold identity (`Hold.Id`) with the markup of a clip **linked** to a FIT climb on the timeline (the pasted
+  clips themselves included). Ordinary D034 / D048 markups are not checked and never block a paste; a FIT markup never
+  blocks pasting an independent one. A hold's identity is created once when the hold is confirmed and is copied only by
+  copying the same markup, so an independently marked route never matches. A paste never creates a link: a cut and
+  pasted linked clip comes back unlinked (the cut removed the link); Split, move and trim are not checked.
+5.5 **Proposals** — created, each with the current global estimate (or `I` while there is none) frozen into the mark, for
+every climb of the training that is neither active nor declined and gets a video by §5.5.1:
+- when a FIT is imported — part of the import, without an Undo step (D049 §11);
+- when a video's `Z` is set or changed — **in the same Undo step as the `Z`**: Undo removes the `Z` and these marks,
+  Redo brings back the same marks (the same `positionChangedAt`, estimate and version, nothing recomputed); only the marks
+  whose chosen video is that video are created.
+A change of the clock correction creates no mark and moves none. A later change of the calibration never moves an existing
+mark; new marks use the estimate of their creation time. On a new `Z` or clock correction the existing marks keep their
+kind: `clamped` and `moved` stay on their source times; `proposed` keeps following `W_auto` — when `W_auto` falls outside
+the mark's video, the mark is not drawn, stays active and usable and keeps its observation (§5.8).
+5.5.1 **Choice of the video and the position** (one rule; `R(v) = [Z_v + CC, Z_v + CC + D_v)` — the recording of video
+`v` in watch time, `D_v` the length of its frames; `W_s = W_FITStart`, `W_e` the climb's end, `W_auto = W_s −
+StartCorrection`):
+1. Candidates: the project's videos with a known `Z` and at least one frame.
+2. `A = {v : W_auto ∈ R(v)}` not empty → a video of `A` (step 5); the mark is **`proposed`** at `s = W_auto − CC − Z_v`.
+3. Otherwise `B = {v : W_s ∈ R(v)}` not empty → a video of `B` (step 5); the mark is **`clamped`**: on the first frame
+   (`s = 0`) if `W_auto` lies before the recording, on the start of the last frame if it lies after it (a negative
+   estimate); the side is decided by comparing `W_auto` with the bounds of `R(v)`.
+4. Otherwise **no mark** is created (the climb's start is not filmed).
+5. Several candidates, in this order: the recording holds the whole `[min(W_auto, W_s), W_e)`; it holds `W_s`; it starts
+   earlier; it is longer; the smaller media identity (ordinal). The result does not depend on the order of the videos.
+6. The mark is shown on the source frame holding `s`, on every clip of its video that shows that frame; a clip's speed,
+   trim or slip never changes `s`.
+5.6 **`positionChangedAt`** — per active mark, part of the project model, restored by Undo / Redo. Set (to the current UTC
+time) **only** when:
+- the mark is created (a new proposal);
+- the mark's own position actually changes (a move; a `clamped` mark moved becomes `moved`);
+- the linked animation's `T` actually changes;
+- the effective start actually changes because a link appears or disappears (e.g. the linked animation is removed and the
+  mark's own position differs from its `T`) — including the link removed by declining a linked climb (§5.7) and a link to
+  a clip of another video (always a change).
+
+**«Changes» is decided by the pair (video, source frame)** of the effective start — the frame of that video holding the
+start — not by ticks; without a frame grid of the video, by ticks. Not set by: a link or a link removal that leaves the
+effective start on the same video and frame; a link following its markup (§5.4); a new `Z`; a new clock correction; a
+save; the decline itself (moving the mark to the declined climbs); a restore by «Вернуть» (§5.7). «Разметить трассу от
+метки» puts `T` on the mark's frame, so that link alone keeps it — at any speed of the clip.
+5.7 **Decline and restore.**
+- Hiding a mark or declining a climb (with or without a mark) moves the climb to the declined climbs — one action, one
+  Undo step; the mark leaves the active marks. **Deleting a mark is hiding it**: there is no separate removal (the Delete
+  key on a selected mark hides it).
+- **Declining a linked climb removes its link** in the same action. The animation stays in the project unchanged and works
+  as an ordinary D048 animation without a FIT link (§5.4): no mark, no calibration. The declined entry does not keep the
+  link. The link is removed first, by the rule of §5.6: if the mark's effective start changes (another video or frame),
+  its `positionChangedAt` is set to the time of the decline; otherwise it is kept. The declined entry keeps the mark with
+  that `positionChangedAt`. Undo of the decline restores the climb, the mark, the link and the former `positionChangedAt`
+  together (Undo / Redo, §5.6).
+- The list «Отклонённые подъёмы» (in the training's context) offers «Вернуть»: one action, one Undo step. The climb becomes
+  active again: a former mark comes back as it was (its data kept in the declined entry — video, kind, `positionChangedAt`
+  unchanged); a climb declined before any mark existed gets a new proposal (`I` or the current estimate) if §5.5.1 gives it
+  a video.
+- **«Вернуть» never restores a link**: the restored mark's effective start is its own position — the same as in the
+  declined entry, so `positionChangedAt` is not changed by «Вернуть». The user may link an animation again by an explicit
+  action (§5.4); that link sets `positionChangedAt` if it changes the effective start (§5.6).
+- A restored climb takes part in the calibration from the next save (§6.4).
+5.8 **Observation** — on every save of the project while Beta is on, for each active **usable** mark whose
+**effective-start video** has `Z` — the linked clip's video when linked, otherwise the mark's own video, whether or not
+the start falls inside that video's recording: **`c = W_FITStart − W(effective start)`**, `W` by §4.5. A moved mark
+gives its moved start, an unmoved `proposed` one its proposed start (`c` = its frozen `StartCorrection`); all usable
+marks have the same weight; there is no minimum share of moved marks.
+- **A `clamped` mark without a link is not usable** (Q2 / О2): its edge is not a route start. It becomes usable when the
+  user moves it (it becomes `moved`) or links it to an animation; it is not usable again after an Undo of that move or
+  after the link is removed.
+- **A `clamped` mark linked without a change of its effective start** (e.g. by «Разметить трассу от метки», `T` on the
+  edge frame) is a full observation from that save: `c` by §4.5 for the linked start; its `positionChangedAt` stays as it
+  was (§5.6) and gives its place in the window (§6.5.1) like any other record.
+- **A `proposed` mark outside its video.** When after a new `Z` (or clock correction) `W_auto` falls outside the
+  recording of the mark's video (§5.5), the mark stays active and **usable**; it is not drawn on the clips, and it keeps
+  giving **`c = W_FITStart − W_auto`** = its frozen `StartCorrection` (§4.5) while its video has `Z`; it is drawn again
+  when `W_auto` returns inside. Its record changes only by the rules of §6.4.
+5.9 A usable mark whose effective-start video (§5.8) has no `Z` at the save (`proposed` included): its record (if any)
+is left unchanged; when that `Z` appears or changes, the next save recomputes the value.
+5.10 **Copies and files.** Copies of a project share the keys; the last save of any project holding the training decides
+the record; there is no synchronisation between copies. Deleting a project file changes nothing in the store.
+5.11 **Removing or replacing the training** (D049 §9: «Удалить тренировку», a new import replacing it): its marks and
+declined climbs leave the project; its calibration records stay as they are — never removed or marked `removed` by that
+action (as for a deleted project file).
+
+### 6. The global calibration (K3)
+6.1 **Store**: `%LOCALAPPDATA%\AiVideoEditor\config\fit-calibration.json` — the second per-user file after the recent
+projects (D026 §6). It holds the Beta flag, the initial value, the records (§6.3) and the derived estimate with its version.
+Written like the recent projects: a lock shared by running instances, re-read before every change, atomic write; a damaged
+file set aside as `*.damaged`, a newer format never overwritten. One calibration per Windows user; no split by watch model.
+The records are the source of truth: the estimate is recomputed from them on every read and write. The file is created on
+its first write.
+6.2 **Beta** (the collection of observations) — **on by default**: no file, or a file without the flag, means on.
+On — saves update the records; off (the user's explicit choice, kept) — saves leave the store untouched, and new proposals
+still use the last estimate (or `I`). Turning Beta off removes nothing. **Reset** (with Beta on or off, a separate explicit
+action): removes every record; the estimate becomes `I`.
+6.3 **Records** — one per key (§5.1), never trimmed to the window:
+- the value `c` (ticks);
+- the status: **`used`** (an active, usable observation), **`excluded`** (an active observation outside the bounds, with
+  its reason *below −30 s* / *above +90 s*), **`removed`** (no active usable mark at the last save — hidden / declined, or
+  `clamped` without a link (§5.8); a tombstone, never in the window);
+- `firstSeenAt` — when the key first got a record; never changes, also across a removal and a return;
+- `positionChangedAt` — copied from the project (§5.6); orders the window;
+- `valueChangedAt` — when the stored value last changed (a move, a new `Z`, a new clock correction); diagnostics only.
+6.4 **A save with Beta on**, for the trainings in the project (a «usable mark with `Z`» — §5.8 and §5.9):
+- a usable mark with `Z` and no record → added (`firstSeenAt` = `valueChangedAt` = now);
+- a usable mark with `Z` and a `removed` record → active again (`used` or `excluded` by its value); `firstSeenAt` kept,
+  `positionChangedAt` from the project, `valueChangedAt` only if the value differs;
+- a usable mark with `Z`, a `used` / `excluded` record, the same value and the same `positionChangedAt` → nothing written;
+- otherwise → the value (and `valueChangedAt` if it differs), `positionChangedAt` from the project, the status by the bounds
+  (`excluded` ↔ `used`);
+- a usable mark without `Z` (§5.9) → its record unchanged;
+- a `used` / `excluded` record of these trainings without an active usable mark (hidden / declined, or `clamped` without a
+  link) → `removed`.
+
+A `removed` record becomes active again only through an active usable mark at a save (an Undo, a «Вернуть», a move or a
+link of a `clamped` mark, §5.7–§5.8); a value returning inside the bounds never revives it. Records of a training no longer
+in the project are not touched (§5.11). The file is written only when something changed. A failed write of the store never
+fails the project's save: it is logged, and the next save repeats the synchronisation.
+6.5 **The estimate** (variant R; constants fixed):
+- `I` = 12 s; **`N` = 100** (the window); `MIN_N` = 20; bounds **[−30 s, +90 s]** inclusive; clip **`C` = 5 s**.
+- All quantities are integers in ticks (1 s = 10 000 000). **Every division rounds towards −∞** for both signs (in C# a
+  floor-division helper: `/` truncates towards zero). No floating point.
+1. **Window**: the `used` records ordered by `positionChangedAt`, then by key (ordinal); the window is the last `N`. It
+   is computed afresh from all records each time: when records leave (`removed`, `excluded`), older `used` ones re-enter;
+   a record that becomes `used` with an older `positionChangedAt` takes its place by that time (it may lie outside the
+   window at once).
+2. `n` = the window's size; if `n < MIN_N`: **Estimate = `I`**.
+3. **Target** — the Huber location of the window: `S(μ) = Σ clip(cᵢ − μ, −C, +C)` (integer, non-increasing in `μ`,
+   independent of order); `L = min{μ ∈ ℤ : S(μ) ≤ 0}`, `U = max{μ ∈ ℤ : S(μ) ≥ 0}`, both by bisection in
+   `[min cᵢ, max cᵢ]` (`S(min c) ≥ 0`, `S(max c) ≤ 0`, so both exist); **Target = ⌊(L + U) / 2⌋**.
+   - Invariants: `S(μ) ≤ 0` is false…true and `S(μ) ≥ 0` true…false along ℤ; for `L` keep `lo ≤ L ≤ hi` with
+     `S(hi) ≤ 0`, for `U` keep `lo ≤ U ≤ hi` with `S(lo) ≥ 0`, stop at `lo = hi` (≈ 31 steps each); always
+     `L ≤ U + 1`.
+   - Integer zeros: `L ≤ U`, `S = 0` on `[L, U]` (one zero `L = U`; a plateau `L < U`) → the middle, rounded down.
+   - No integer zero: `S(U) > 0 > S(L)`, **`L = U + 1` is allowed**; the real root `r ∈ (U, U + 1)` and
+     `⌊(L + U) / 2⌋ = ⌊(2U + 1) / 2⌋ = U = ⌊r⌋` for any sign of `U`.
+4. **Estimate = I + ⌊min(n, N) · (Target − I) / N⌋**.
+- A function of the records only: any arrival order, any grouping of saves, a save without a change → the same value.
+  **No step limit** between saves.
+- Rounding: Target ∈ (r − 1, r], Estimate ∈ (exact − 2, exact] ticks — a bias below 200 ns.
+- Range: `|S|` ≤ `N · C` = 5·10⁹; `min(n, N) · (Target − I)` ≤ 100 · 1.2·10⁹ — within 64-bit integers.
+- The estimate's version increases whenever its value changes; a mark keeps the version it was created with.
+- The parameters and the algorithm are fixed by this decision; they change only for a concrete technical problem found in
+  the implementation, by an amendment.
+
+### 7. The end of a route
+Excluded from the calibration. The user sets the end by hand; the bounce off the wall, both hands on the top hold, the TOP
+mark and other end events are not mixed. No markers are added for the calibration; no confirmation per observation.
+
+### 8. Interface
+8.1 The marks: an editor-only layer on the clips (like the D048 strip); never in Preview or export. The calibration never
+affects Preview or export. A `clamped` mark is shown as such.
+8.2 Actions: move a mark; «Разметить трассу от метки» (the D048 route selection with `T` at the mark, the animation linked
+to the climb); «Связать с FIT-подъёмом» and «Снять FIT-связь» on a hold animation of any video (§5.4); hide a mark /
+decline a climb (removes its link, §5.7; the Delete key on a mark is the same action); the list «Отклонённые подъёмы» with
+«Вернуть» (no link restored) — each one Undo step. A second mark for a climb, a second animation for a linked climb, a
+second climb for a linked animation and a paste of a duplicate FIT markup (§5.4) are refused with a message. The D048
+commands keep working on animations without a link.
+8.3 **«Настройки FIT…»** — an item of the COROS training drop-down on the toolbar (there is no application settings
+screen), available with or without a training in the project; it opens a small window, section «FIT» only: Beta (on by
+default, §6.2); the current `StartCorrection`; the number of `used` records; reset (asks first). Not a general settings
+screen.
+
+### 9. Consequences
+- A project format change (the version after v11); an older build refuses the new file; an older project opens without
+  marks, declined climbs and links.
+- A second per-user file, created without an explicit action of the user (Beta on by default) on the first save of a
+  project with usable marks; losing it loses the calibration only, never project data. Tests never write the real file.
+- Phase 37 depends on Phase 35 (the training in the project, `ClockCorrection`, `Z`, B2) and D048 (`T`, the layout, the
+  strip, the Split / Insert / Overwrite rules of the markup). No further research belongs to Phase 37: the K3 results
+  below are sufficient; a real discrepancy found in the implementation is investigated on its own.
+- The limitation of §1.5 is recorded in the phase's documents.
+
+### 10. Phase 37 — order, tests, acceptance
+| Step | Content | Acceptance |
+|---|---|---|
+| 37.0 | D051 in `DECISIONS.md` on the Phase 37 branch (not in Phase 35's second pull request); the Phase 37 record and its manual test plan | owner's approval |
+| 37.1 | Core: `StartCorrection`, the key, records, bounds, statuses, window, minimum, Huber target, estimate, ticks | T1, T1a |
+| 37.2 | The user store `fit-calibration.json`: lock, atomic write, Beta (on by default), reset, the derived estimate | T2 |
+| 37.3 | The project format: active marks with their video, the kind of the own position and `positionChangedAt`, declined climbs with the former mark, the animation's link; one active mark per climb, one link per climb and per animation; unlinked animations valid; migration | T3 |
+| 37.4 | Proposals on import and on `Z` (one Undo step with the `Z`; the choice of §5.5.1); the editor layer; move, hide / decline (removes the link; Delete), «Вернуть» (no link), «Разметить трассу от метки», «Связать с FIT-подъёмом», «Снять FIT-связь»; the link following its markup; the paste refusal; refusals of a second mark or link (both directions); `positionChangedAt` rules | T4, T7 |
+| 37.5 | Observations on save (§5.8, §6.4); training removed or replaced (§5.11) | T5 |
+| 37.6 | «Настройки FIT…», section FIT | T6 |
+| 37.7 | Full and heavy suites; the manual plan on the projects of 08.08 and 27.09 | A1–A15 |
+
+**Tests**
+- **T1** bounds inclusive (−30 / +90 s; outside → `excluded` with the reason); `excluded` → `used` when the value returns;
+  `removed` never revived by a value; the window = the last 100 `used` by `positionChangedAt`, ties by key; a removal or
+  exclusion lets older records re-enter (equal to a fresh computation); a record becoming `used` with an older
+  `positionChangedAt` takes its place by that time (with 100 newer `used` records outside the window, the estimate
+  unchanged; with 99 inside; any order → the same value); below 20 → 12 s; the weight `min(n, 100) / 100`; `S`, `L`, `U`,
+  Target on hand-computed sets (a crossing with `L = U + 1`, one zero, a plateau, negative values); floor division for
+  negative numerators; any order and any grouping of saves → the same estimate; a save without a change → the same
+  estimate; reset → 12 s; deterministic synthetic tests (10 % moved / truth 16 s; 16 → 10 → 16 s) reach within 1 s with no
+  lasting bias; ticks only.
+- **T1a** records: one record per key; same value and position time → no write; a moved mark → value, `valueChangedAt`,
+  `positionChangedAt`; a new `Z` or clock correction → value and `valueChangedAt` only; hidden / declined → `removed`; Undo
+  or «Вернуть» → the same record back with `firstSeenAt` unchanged, `positionChangedAt` from the project (unchanged unless
+  the decline removed a link that changed the effective start, §5.7) and (same value) `valueChangedAt` unchanged; never
+  trimmed.
+- **T2** lock, re-read, atomic write, damaged → set aside, newer format → not overwritten, missing → 12 s; **Beta on by
+  default** (no file; a file without the flag; a damaged file set aside); Beta off kept across a restart; Beta off → the
+  store untouched by saves, no record removed, the last estimate still served; reset with Beta on and off; a failed store
+  write never fails a save; the file created on the first write only; no test writes the real user file.
+- **T3** byte-exact round trip of marks (video, kind `proposed` / `clamped` / `moved`, source time), `positionChangedAt`,
+  declined climbs (with and without a former mark) and links; older project → none; an older build refuses the new file;
+  refused as damaged: two active marks for one climb, two animations linked to one climb, one animation linked to two
+  climbs, a link to a declined climb, a link to a missing clip or to a clip without a `Duration` animation, a `clamped` /
+  `moved` position without a source time, a `proposed` one with one; animations without a link round-trip unchanged and
+  are valid; a declined climb never becomes active on re-import or a new `Z`.
+- **T4** `W_auto = W_FITStart − StartCorrection`; no `Z` → no mark; a new estimate → existing marks unmoved, new marks use
+  it; **the choice of §5.5.1**: one video; two overlapping recordings (each step of the order, equal starts, different
+  lengths); `W_auto` in one video and `W_s` in the next (the first, `proposed`); `W_auto` in a gap or before the recording
+  and `W_s` inside (`clamped` on the first frame); a negative estimate with `W_auto` after the recording (`clamped` on the
+  last frame); `W_auto` and `W_s` outside every recording (no mark; C1 of 27.09); a video without `Z` or frames (no
+  candidate); the order of the videos irrelevant; **Undo / Redo of `Z`**: one step removes the `Z` and its marks, Redo
+  returns the same marks (time, estimate, version), a second change of `Z` keeps `clamped` / `moved` and moves `proposed`;
+  a clock correction creates and moves no mark; a `proposed` mark outside its video after a new `Z` not drawn, active;
+  move, trim, split, slip and speed never change a mark's watch time; `positionChangedAt` set on creation, own move, `T`
+  move, a link change of the effective start (also the link removed by a decline; a link to another video) — not on a
+  link on the same video and frame (also at clip speeds 0.5 and 2), a link following its markup, a new `Z`, a new clock
+  correction, the decline of an unlinked climb or «Вернуть»; Undo restores it; moving `T` never moves the mark; removing
+  the animation → the mark's own position effective; hide / decline / «Вернуть» one Undo step each; «Разметить трассу от
+  метки» puts `T` on the mark's frame and links; **the 1 : 1 model (§1.5)**: a mark's position and an observation equal
+  `w = Z + s + ClockCorrection` exactly (the test fails on purpose if a conversion is ever added); marks absent from
+  Preview and export.
+- **T5** one record per training + climb; moved → its start, unmoved `proposed` → its proposal, a linked `T` wins over the
+  mark; **a `clamped` mark without a link** → no record; moved or linked → a record; after an Undo of the move or of
+  «Разметить трассу от метки» → `removed`, after the Redo → `used` with `firstSeenAt` kept and the same
+  `positionChangedAt`; **a link to another video**: the value by `Z` of the animation's video (a change of the mark
+  video's `Z` changes nothing, a change of the animation video's `Z` changes the value only), no `Z` there → unchanged, the
+  clock correction counted once, speeds 0.5 / 2, trim and slip of the linked clip give the hand-computed value to the tick,
+  after the link is removed each kind of position as §4.5; hidden / declined → `removed` at the next save; restored →
+  active again at the next save; save twice → nothing written; no `Z` → unchanged; Beta off → nothing; the end of a route
+  never used; a copy of the project → the same keys, the last save decides; the training removed or replaced → its records
+  untouched; an animation without a link gives no record and never changes the effective start of any mark; **a
+  `proposed` mark outside its video** after a new `Z` → its record stays `used` with the value = its frozen
+  `StartCorrection`, nothing written at the save (the value unchanged), not drawn; its video's `Z` removed → unchanged.
+- **T6** «Настройки FIT…» in the COROS drop-down, with and without a training; the window shows Beta (on on a fresh
+  user), the value, the count; reset asks; no other settings; disabled during an export only.
+- **T7** one active mark per climb: a second mark for the same climb refused, the first unchanged; a re-import of the same
+  FIT (twice) → no new mark, no duplicate record; a new `Z` on a video with an active or declined climb → nothing new;
+  «Вернуть» of a climb that already has an active mark cannot occur (the declined and active sets are disjoint); a second
+  animation linked to a linked climb refused, the first link unchanged; a linked animation linked to another climb refused,
+  its link unchanged; after the link is removed the climb and the animation can each be linked again; an animation without a
+  link is created, edited, laid out and exported by D048 with no FIT, no mark and no record, and stays unlinked (no
+  automatic link) after a FIT is imported and `Z` set. «Связать с FIT-подъёмом» links an unlinked animation (of any video)
+  to an active unlinked climb, refused for a declined climb; «Снять FIT-связь» removes the link, the animation unchanged,
+  the mark's own position effective again — one Undo step each. **The link follows its markup**: Split before, after and
+  inside the animation (the link on the part with the markup, or removed with it), Insert / Overwrite cutting a linked
+  clip; Undo restores the link on the former clip. **The paste refusal**: Paste and Duplicate of a linked clip while it
+  (or the part holding its markup) is on the timeline → refused, nothing pasted; two copies in one paste → refused; the
+  original deleted or unlinked → pasted, unlinked; a copy edited (holds added / removed) → still refused; an ordinary
+  D048 markup pasted next to a FIT markup → pasted, and the other way round; an independently marked same route → pasted;
+  Split, move and trim never checked. **Delete** on a mark = hide / decline. Declining a linked climb: the link is removed
+  in the same Undo step, the animation stays unchanged (same `T`, layout, Preview and export), no mark and no record come
+  from it, the record of the climb becomes `removed` at the next save. `positionChangedAt` on each step, with the own
+  position on another frame than `T`: Decline → set to the time of the decline; Undo of the decline → the former value
+  back with the link, Redo → the decline's value again; «Вернуть» → the value of the declined entry, unchanged (the mark
+  back without the link, effective start = its own position); Link again → set only if the effective start changes. With
+  the own position on the frame of `T` (after «Разметить трассу от метки»): Decline, «Вернуть» and Link again to an
+  animation with that `T` leave it unchanged.
+
+**Acceptance (manual, projects of 08.08 and 27.09)**
+- **A1** After the import and the videos' `Z`, one mark for every FIT climb whose start is filmed, 12 s before the climb's
+  start (or on the edge of the recording, shown as such); none on a video without `Z`; none in Preview or export.
+- **A2** «Разметить трассу от метки» opens the D048 route selection at the mark; after the layout the route starts at `T`;
+  moving `T` leaves the mark where it was; deleting the animation makes the mark the start again.
+- **A3** A declined climb does not come back on a new import or a new `Z`; «Вернуть» brings it back (with its former mark);
+  Undo of the decline brings the mark back. Declining a climb with a linked animation keeps the animation working and
+  exporting as before, without the link; «Вернуть» does not relink it; «Связать с FIT-подъёмом» relinks it. Undo of a `Z`
+  removes the `Z` and its marks in one step; Redo returns the same marks.
+- **A4** Beta on without turning it on (a fresh user): a save fills the calibration (count shown); a save without a change
+  adds nothing; moving a mark and saving changes one record.
+- **A5** Below 20 records the value stays 12 s; above, it follows §6.5; reset returns 12 s.
+- **A6** Beta off: the count does not change, no record is removed; new imports still use the last value; off is kept
+  after a restart.
+- **A7** A new import after a calibration change proposes with the new value; the marks of the earlier project do not move.
+- **A8** Hide a mark (also with Delete) → save → Undo → save: the count returns to its previous value; no duplicate.
+- **A9** Import the same FIT again: no second mark for any climb; trying to add a second mark for a climb is refused.
+- **A10** Measured: the share of routes usable without a correction and the corrections per training, before and after
+  calibration — reported, no accuracy threshold.
+- **A11** A project without a FIT and a project with animations made before the import: every animation works and exports
+  by D048 as before, no FIT required, no message of damage; linking one animation to a second climb, or a second animation
+  to a linked climb, is refused.
+- **A12** Copy / Duplicate a linked clip while it is on the timeline → refused with a message; an ordinary markup pasted
+  next to it → pasted; Split of a linked clip → the link stays with the part holding the markup.
+- **A13** The choice of the video: a climb at the joint of two videos and two overlapping recordings get their mark on the
+  video of §5.5.1; a climb begun before the recording gets no mark.
+- **A14** A `clamped` mark: saving does not raise the count; moving it, or «Разметить трассу от метки» on it, raises it by
+  one; Undo lowers it again.
+- **A15** A climb linked to an animation on another video (with another `Z`): after a save one record; changing the
+  mark video's `Z` does not change it, changing the animation video's `Z` does.
+
+### 11. Open points
+None. Decided: restoring a declined climb (§5.7, «Вернуть»), removing or replacing the training (§5.11), the mark's own
+position against `T` (§4.3); and on 2026-11-03 the paste of a duplicate FIT markup (B1, О1), «Настройки FIT…» (B2, О4),
+the proposals with a `Z` in one Undo step and no marks from the clock correction (B3, О3), the choice of the video and the
+`clamped` mark (B4, О2, Q2), deleting = hiding (B5), Beta on by default (B6), the place of D051 (B7), the frame comparison
+(О5), the link to another video (§4.5) and the limitation of §1.5 (Q1).
+
+### Appendix — synthetic checks of K3 (done; no further research)
+Exact integer implementation; 30 seeds; 20 climbs per training; true lags N(·, 4 s); marking noise 0.5 s; N = 100.
+
+| Scenario | median after 50 / 100 / 200 / 1000 trainings, s | within 1 s from training | bias | noise sd | largest step |
+|---|---|---|---|---|---|
+| 10 % moved, truth 16 s | 14.89 / 15.67 / 15.78 / 15.95 | 52 | −0.003 | 0.27 | 0.37 |
+| 10 % moved + 5 % gross, truth 16 s | 14.76 / 15.66 / 15.85 / 15.95 | 57 | +0.008 | 0.29 | 0.37 |
+| 50 % moved, truth 16 s | 15.93 / 16.01 / 15.88 / 15.97 | 9 | −0.010 | 0.35 | 0.87 |
+| 100 % moved, truth 16 s | 16.02 / 16.12 / 15.97 / 16.03 | 4 | −0.008 | 0.41 | 1.26 |
+| 10 % moved, truth 12 s | 11.96 / 11.92 / 11.80 / 11.95 | 0 | −0.003 | 0.27 | 0.32 |
+
+The true lag 16 → 10 → 16 s (300 trainings each, 10 % moved): within 1 s 67 trainings after the drop and 74 after the rise;
+the mean error in the last 100 trainings of each segment −0.03 / −0.02 / −0.04 s. Order: 200 permutations and groupings of
+1 / 5 / 20 / 182 records per save → one value; a deletion → equal to a fresh computation. Bisection: a crossing without an
+integer zero (`L = U + 1`, also negative), one zero, plateaus — Target = ⌊(L + U) / 2⌋ in every case. Store reference
+model: delete → save → Undo → save gives one record with `firstSeenAt`, `positionChangedAt` and `valueChangedAt`
+unchanged. Scripts: `k3r.py`, `k3r_checks.py`, `k3r_spec_checks.py` (kept with the research materials, not in the
+repository).
+
+### Traceability
+| Rule | Section | Check / test |
+|---|---|---|
+| `OverlayStart = W_FITStart − StartCorrection`, `I` = 12 s | 2.2–2.3 | T4, A1 |
+| `ClimbEndLag` separate, unchanged | 2.1, 2.4, 4.5 | review (no shared code path); T4 |
+| Slow / fast motion not supported; the 1 : 1 model | 1.5 | T4 (1 : 1 model); manual plan |
+| `Z` required for proposals and observations | 3, 5.5, 5.9 | T4, T5, A1 |
+| Effective start = linked `T` (any video), else the mark's own position | 4.2, 4.4, 5.4 | T4, T5, A2, A15 |
+| Watch time of the effective start, one conversion each; linked → the animation video's `Z` | 4.5 | T5, A15 |
+| The mark's own position independent of `T`; animation or link removed → own position | 4.3 | T4, T7, A2 |
+| Key = training identity + full climb identity, independent of the video | 5.1, 6.3 | T1a, T5, T7 |
+| One active mark and one observation per climb; no duplicate on re-import, `Z`, restore | 5.2 | T3, T7, A9 |
+| At most one linked animation per climb | 5.2, 5.4 | T3, T7, A11 |
+| At most one linked climb per animation | 5.2, 5.4 | T3, T7, A11 |
+| Animation without a link valid: D048 unchanged, no FIT / mark required, no calibration, not a damage | 5.4, 8.2 | T3, T5, T7, A11 |
+| Explicit link, no nearest rule | 5.4 | T3, T4 |
+| Link and unlink only by explicit actions, one Undo step each; only an active climb can be linked | 5.4, 8.2 | T3, T7 |
+| The link follows its markup on Split / Insert / Overwrite; removed with it | 5.4 | T7, A12 |
+| Paste / Duplicate of a duplicate FIT markup refused (shared `Hold.Id`); ordinary markups unchecked | 5.4, 8.2 | T7, A12 |
+| Decline of a linked climb removes the link; the animation stays as an ordinary D048 animation, no mark, no calibration | 5.7, 5.4 | T7, A3 |
+| «Вернуть» never restores a link; relinking only by the explicit action; Undo of the decline restores the link | 5.7, 5.6 | T7, A3 |
+| Deleting a mark = hiding / declining | 5.7, 8.2 | T7, A8 |
+| Kinds of the own position `proposed` / `clamped` / `moved`; the mark's video fixed | 5.3, 5.5.1 | T3, T4 |
+| Proposals on import (no Undo) and on a `Z` set / change (one Undo step); none from the clock correction | 5.5 | T4, A3 |
+| The choice of the video and the position; no mark without a filmed start | 5.5.1 | T4, A1, A13 |
+| New estimate only for new marks; existing marks unmoved | 5.5 | T4, A7 |
+| `positionChangedAt` set / not set; «changes» by (video, source frame) | 5.6 | T4, T1a; store reference model |
+| `positionChangedAt` on Decline (set if the link removal changes the effective start), Undo Decline (former value), «Вернуть» (unchanged), Link (set only on a change) | 5.6, 5.7 | T1a, T4, T7 |
+| Decline / hide and «Вернуть», one Undo step each; never recreated | 5.3, 5.7, 8.2 | T3, T4, T5, A3 |
+| All usable marks equal; no minimum share | 5.8 | T5; synthetic checks |
+| A `clamped` mark without a link not usable; moved or linked → usable; linked without a change → full observation, `positionChangedAt` kept | 5.8, 6.3, 6.4 | T1, T5, A14 |
+| No `Z` on the video of the effective start → record unchanged; new `Z` → value only | 5.9, 6.4 | T1a, T5 |
+| A `proposed` mark outside its video stays active and usable, not drawn, `c` = its frozen `StartCorrection` | 5.5, 5.8 | T4, T5; manual plan |
+| Copies share keys; last save decides; deleted file → nothing | 5.10 | T5 |
+| Training removed or replaced → records untouched | 5.11, 6.4 | T5 |
+| Global per-user store; no per-project / per-model calibration | 6.1, 1.4 | T2 |
+| Beta on by default; off: no collection, nothing removed, last estimate used; reset separate | 6.2 | T2, A4, A5, A6 |
+| Statuses used / excluded / removed; tombstones | 6.3–6.4 | T1, T1a, A8; store reference model |
+| `excluded` ↔ `used` by the bounds; `removed` never revived by a value | 6.3–6.4 | T1, T1a |
+| Window N = 100 by `positionChangedAt`, recomputed after removals; an older record takes its place by its time | 6.5.1 | T1; order checks |
+| Minimum 20 → `I` | 6.5.2 | T1, A5 |
+| Huber target by L / U bisection, `L = U + 1` allowed | 6.5.3 | T1; bisection checks |
+| Floor division, ticks, no step limit, order-independent | 6.5 | T1; order and rounding checks |
+| Measure of quality: the manual work remaining, reported without a threshold | 1.3 | A10 |
+| End of a route excluded | 7 | T5 (no end used) |
+| Editor-only layer; not in Preview / export | 8.1 | T4, A1 |
+| «Настройки FIT…» in the COROS drop-down, with or without a training; section FIT only | 8.3 | T6 |
+| Separate Phase 37 after Phase 35's second PR; D051 on the Phase 37 branch; no further research | header, 9, 10 | plan review |
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

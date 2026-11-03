@@ -188,6 +188,13 @@ and runs cleanly.
       technically complete 2026-10-24; S1 acceptance pending a later task.)*
 - [ ] **Planned (D042; numbers given when taken up):** R1 → D — automatic hold proposals · R2 → E — outlines following the
       camera · R3 → F — COROS Pace 4 heart rate and telemetry · H — Final UX Pass. Section below.
+- [ ] **Phase 37 — Preliminary route starts from a COROS FIT and the global start calibration.** DECISIONS.md D051
+      (approved 2026-11-03); **documentation only (Step 37.0), not implemented**. Steps 37.0–37.7, the decisions of
+      2026-11-03, the tests and the dependencies: `docs/PHASE37.md`; manual plan: `docs/PHASE37_MANUAL_TEST_PLAN.md`.
+      Depends on Phase 35's pull request 1 (Steps 35.0–35.2) and pull request 2 (Steps 35.3–35.6) — neither opened on
+      2026-11-03; the implementation branch is cut from `main` after pull request 2. Phase 36 (the session summary and
+      the YouTube chapters) is separate, deferred work, not part of Phase 37. *(Documentation branch `docs/phase-37`
+      from `feat/phase-coros-c1` `4070ffc`; the state lines of Phases 35 and 36 are on `docs/phase-numbering`.)*
 - [x] **D048 approved 2026-10-28, as implemented** (DECISIONS.md D048; numbers 32–34 still proposals):
       - stage 1 — the route selection at `T`: implemented, then **paused / deferred**; «Авторазметка» hidden, the code
         and the research kept (`docs/HOLD_AUTO_DETECTION_RESEARCH.md`);
