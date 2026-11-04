@@ -15,7 +15,7 @@ numbering" → "Official phases"; this file is the dated working log.
   owner on 2026-11-04** on that evidence (no manual scenario remained; the plan rows A1–G7 not run by hand).
 - **Phase 31:** A / B / E automated on 2026-11-04 (`docs/PHASE31_MANUAL_TEST_PLAN.md`, «Automated acceptance of A, B and E»): three D047 §2 defects (B1–B3) fixed (real SAM 2.1 model on the E1 4K clip, local); merged with PR #38 (`4717fca`).
   **The product owner by hand on 2026-11-04** (`docs/PHASE31_REMAINING_CHECKS.md`): the look of A2, C4, D1a, D4, D5 PASS.
-  D3 not run (impractical by hand), C5 without a recorded run — the full acceptance of Phase 31 open on these two rows.
+  D3 and C5 **DEFERRED** by the owner's decision of 2026-11-04 (not PASS, not blockers) — **Phase 31 accepted by the product owner on 2026-11-04 with two deferred checks (D3 — 500 holds, impractical by hand; C5 — 1080p, the owner works on 4K)**.
 - **Phase 35:** 35.0–35.2 done (35.2 accepted); 35.3 in part; **35.3d run 2026-11-02 — B6 not met** (0 of 13 climbs
   within `τ`, drift −22.4 s; an experimental result, not a confirmation of the method — `docs/PHASE_COROS.md` §12);
   **35.3e not implemented, awaiting the product owner's decision**, not in the near plan; 35.4 implemented, its rows

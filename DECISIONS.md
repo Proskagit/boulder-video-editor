@@ -7433,8 +7433,9 @@ A/B/E checks in `docs/PHASE31_MANUAL_TEST_PLAN.md` that require the product owne
 found three places where `HoldMarkupViewModel` did not follow §2, fixed with tests: Shift+click over a proposal now
 starts the manual candidate (B1); Esc without a candidate keeps the proposal review (B2); Enter with a manual candidate
 confirms it rather than accepting the selected proposal (B3). All of A / B / E PASS except the look of A2 (manual).
-The product owner checked by hand on 2026-11-04: the look of A2, C4, D1a, D4, D5 PASS; D3 not run (impractical by hand),
-C5 without a recorded run — the full acceptance open on these two rows.
+The product owner checked by hand on 2026-11-04: the look of A2, C4, D1a, D4, D5 PASS; D3 (500 holds, impractical by hand)
+and C5 (1080p; the owner works on 4K) DEFERRED by the owner's decision — **Phase 31 accepted by the product owner on
+2026-11-04 with these two deferred checks.**
 
 ---
 
