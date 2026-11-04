@@ -682,7 +682,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     [RelayCommand]
     private void Done() => Exit();
 
-    /// <summary>Esc: discards the candidate; without one deselects; otherwise leaves the mode.</summary>
+    /// <summary>Esc: discards the candidate; without one deselects; during the proposal review (D047 §2) leaves the review
+    /// unchanged — «Готово», Play or a seek leave it; otherwise leaves the mode.</summary>
     [RelayCommand]
     private void Escape()
     {
@@ -693,6 +694,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (HasCandidate) { ClearCandidate(); return; }
         if (SelectedHoldId is not null) { Select(null); return; }
         if (IsRouteSelection) { CancelRoute(); return; }   // D048 §2: back to T, nothing changed
+        if (HasProposals) return;                           // D047 §2: the proposal review stays as it is
         Exit();
     }
 
@@ -779,6 +781,13 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanConfirmOrAccept))]
     private async Task ConfirmOrAcceptAsync()
     {
+        // D047 §2: a manual candidate (started by a click or Shift+click during the review) is confirmed by Enter as in D034;
+        // the proposals stay for review. Without one Enter accepts the selected proposal.
+        if (HasCandidate && CanConfirm())
+        {
+            await Confirm();
+            return;
+        }
         if (CanAcceptSelectedProposal())
         {
             await AcceptSelectedProposalAsync();
@@ -911,7 +920,9 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
                 Select(hit);
                 return;
             }
-            if (!HasCandidate && HitProposal(point) is { } proposalHit)
+            // D047 §2: a click on a proposal selects it; Shift+click always starts a manual candidate at the point, also
+            // over a proposal, while the review stays available.
+            if (!HasCandidate && !additive && HitProposal(point) is { } proposalHit)
             {
                 SelectedProposalIndex = proposalHit;
                 return;

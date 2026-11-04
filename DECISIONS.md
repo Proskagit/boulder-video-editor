@@ -7429,6 +7429,11 @@ Status: **Approved by the product owner on 2026-10-25 with the clarifications ab
 implemented and verified on 2026-10-26; Phase 31 is technically complete. Full user acceptance is pending the interactive
 A/B/E checks in `docs/PHASE31_MANUAL_TEST_PLAN.md` that require the product owner's own footage and manual UI actions.
 
+**Implementation note (2026-11-04; §2 unchanged):** the automated run of A / B / E (`docs/PHASE31_MANUAL_TEST_PLAN.md`)
+found three places where `HoldMarkupViewModel` did not follow §2, fixed with tests: Shift+click over a proposal now
+starts the manual candidate (B1); Esc without a candidate keeps the proposal review (B2); Enter with a manual candidate
+confirms it rather than accepting the selected proposal (B3). All of A / B / E PASS except the look of A2 (manual).
+
 ---
 
 ## D048 — Route selection at T, the intro / final timing, the overlay strip and `project.json` v10 *(approved 2026-10-28)*
@@ -8591,7 +8596,8 @@ export through the one painter; the warning of D049 §10 as `HeartRateUnavailabl
 Date: 2026-11-03. **Status: Approved by the product owner on 2026-11-03** (with the refinements B1–B7, О1–О5, Q1 and
 Q2 of the same day); recorded at Step 37.0 on the Phase 37 documentation branch, not in Phase 35's second pull request.
 **Implementation state (2026-11-03):** implemented (Steps 37.1–37.6, `90950cc`) and merged into `main` with PR #33
-(`1640996`), `project.json` v12; the manual plan not run, the product owner's acceptance open — «Implementation notes»
+(`1640996`), `project.json` v12; A1–A15 automated on 2026-11-04 (all PASS, A10 measured), the product owner's
+acceptance open — «Implementation notes»
 at the end of this decision. Record of the phase: `docs/PHASE37.md`; manual plan: `docs/PHASE37_MANUAL_TEST_PLAN.md`.
 Phase 37 was planned to run after Phase 35's second pull request — superseded by the product owner's decision of
 2026-11-03 (Implementation notes). Phase 35 (D050 B9, the owner's answer
@@ -9064,8 +9070,9 @@ repository).
   same Undo step — the saved project had been refused as damaged; a new import of the same activity keeps the marks and
   never recreates a declined climb (§5.2, §5.3 prevail over the general §5.11 for the same FIT; another activity still
   replaces them).
-- **Verification**: `docs/PHASE37.md` §2, Step 37.7 — automated gates passed, CI green on PR #33 and on `main`; the manual
-  plan not run; the product owner's acceptance open.
+- **Verification**: `docs/PHASE37.md` §2, Step 37.7 — automated gates passed, CI green on PR #33 and on `main`; the
+  acceptance items A1–A15 automated on 2026-11-04 with their evidence in `docs/PHASE37_MANUAL_TEST_PLAN.md` (all PASS;
+  A10 measured, no threshold); the product owner's acceptance open.
 
 ---
 

@@ -89,8 +89,8 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 phase number in use is 37**.
 
 - **Phase 37** — preliminary route starts from a COROS FIT and the global start calibration (D051, approved 2026-11-03):
-  **implemented and merged** with PR #33 (`1640996`; CI green on the pull request and on `main`), `project.json` v12; the
-  manual plan not run, the product owner's acceptance open. Record: `docs/PHASE37.md`.
+  **implemented and merged** with PR #33 (`1640996`; CI green on the pull request and on `main`), `project.json` v12;
+  D051 A1–A15 checked automatically on 2026-11-04 (`docs/PHASE37_MANUAL_TEST_PLAN.md`, «Automated acceptance»): all PASS, A10 measured; the product owner's acceptance open. Record: `docs/PHASE37.md`.
 - **Phase 35** — the import of COROS trainings and the heart rate in the video (D049 / D050): **in `main` in part, not
   complete.** Steps 35.0–35.2 done (35.2 accepted), 35.4 implemented (v11; C1–C14 automated 2026-11-04 — PASS, C5's real re-export manual); 35.3 in part — the formal
   evaluation 35.3d gave «B6 not met» (0 of 13 climbs within `τ`, drift −22.4 s), an experimental result, not a confirmation
@@ -502,7 +502,7 @@ research, F only after its feasibility is confirmed and a separate agreement; H 
 | — | **Phase 36** — session summary and YouTube chapters (specification draft outside `main`, not approved; its time-code export a separate item until clarified, not combined with 35.5) | core | medium–large | Phases 32–34; Phase 36's own format decision for `PassId` / «Итоги»; Phase 35 for the heart rate |
 | — | **D049** — the training in the project, the time model and Phase 35's format change (v11, implemented in Step 35.4, in `main` since PR #33; the automatic zero not implemented); approved 2026-10-29; not a phase | format | small | — |
 | H | «Final UX Pass: аудит и упрощение интерфейса» (research, then implementation) | UX | research + medium–large | the core incl. F, G, a regression run |
-| — | **Phase 37** — preliminary route starts from a COROS FIT and the global start calibration (D051, approved 2026-11-03; implemented and merged with PR #33, v12; manual plan not run, acceptance open — `docs/PHASE37.md`) | telemetry | medium–large | Phase 35 (Steps 35.2–35.4), D048; not Phase 36 |
+| — | **Phase 37** — preliminary route starts from a COROS FIT and the global start calibration (D051, approved 2026-11-03; implemented and merged with PR #33, v12; D051 A1–A15 automated 2026-11-04, acceptance open — `docs/PHASE37.md`) | telemetry | medium–large | Phase 35 (Steps 35.2–35.4), D048; not Phase 36 |
 
 Stopping points — the product is usable after each:
 - **S0 — at the merge of Phase 26**: a vertical bouldering video with manually chosen AI holds, their animation, static text with

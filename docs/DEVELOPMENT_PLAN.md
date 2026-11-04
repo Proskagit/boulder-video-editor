@@ -196,8 +196,8 @@ phase's record prevail.
 - [ ] **Phase 31 — Automatic hold proposals — technically complete; the full manual acceptance open (D047 approved
       2026-10-25).** Steps 31.1–31.7 complete: Core proposal types and pipeline, proposals at a downscaled resolution,
       full-resolution refinement of accepted proposals, the review UI, the integration with the manual D034 flow, the
-      performance (15×15 grid; ≤ 8 s on a 4K frame met) and the closeout. Open: the interactive A / B / E checks of
-      `docs/PHASE31_MANUAL_TEST_PLAN.md` with the product owner's footage. *(Merged with PR #31, `024f3fb`, no PR of its own.)*
+      performance (15×15 grid; ≤ 8 s on a 4K frame met) and the closeout. A / B / E automated on 2026-11-04 (`docs/PHASE31_MANUAL_TEST_PLAN.md`, «Automated acceptance of A, B and E»): all PASS except the look of A2 (manual); three D047 §2 defects (B1–B3) fixed. Open: the look of A2, C4,
+      D1a, D3–D5 of `docs/PHASE31_MANUAL_TEST_PLAN.md` and the product owner's acceptance. *(Merged with PR #31, `024f3fb`, no PR of its own.)*
 - [ ] **Phase 32 — the route selection at `T` (D048 stage 1): implemented, paused / deferred.** «Авторазметка» hidden,
       the code and the research kept (`docs/HOLD_AUTO_DETECTION_RESEARCH.md`). Merged in PR #32 (`1e58885`); not complete.
 - [ ] **Phases 33–34 — D048 stages 2 and 3: implemented and merged in PR #32 (`1e58885`); a separate formal acceptance of
@@ -222,8 +222,8 @@ phase's record prevail.
       Section "Phase 36" below.
 - [ ] **Phase 37 — Preliminary route starts from a COROS FIT and the global start calibration — implemented and merged,
       not accepted.** DECISIONS.md D051 (approved 2026-11-03). Steps 37.1–37.6 in `90950cc`, merged with PR #33
-      (`1640996`, 2026-11-03; CI green); `project.json` v12; Step 37.7 in part — the automated gates passed, the manual plan
-      `docs/PHASE37_MANUAL_TEST_PLAN.md` not run. Record: `docs/PHASE37.md`; section "Phase 37" below.
+      (`1640996`, 2026-11-03; CI green); `project.json` v12; Step 37.7 in part — the automated gates passed; D051 A1–A15 checked automatically on 2026-11-04 (`docs/PHASE37_MANUAL_TEST_PLAN.md`, «Automated acceptance»): all PASS, A10 measured;
+      the product owner's acceptance open. Record: `docs/PHASE37.md`; section "Phase 37" below.
 - [ ] **Not numbered, in part in `main`:** R2 → E — the outlines following the camera (camera-motion part merged in PR #31,
       accepted for continued development, not complete). **Not started:** H — Final UX Pass (the last large phase). Section
       "Planned phases after Phase 26 (D042)" below.
@@ -275,7 +275,7 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 34 — the overlay strip (D048 stage 3) | D048 | implemented (variant B) and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
 | 35 — COROS trainings and the heart rate | D050, D049 | in part: 35.0–35.2 done (35.2 accepted); 35.3 in part (35.3d: B6 not met; 35.3e awaiting the owner's decision); 35.4 implemented (v11), C1–C14 automated 2026-11-04: PASS except C5's real re-export (manual); **35.5 implemented and accepted 2026-11-03 (v13; PR #35, `5c5cb7f`)**; 35.6 not started; not complete | 35.0–35.4 in PR #33 (`1640996`), with Phase 37 |
 | 36 — summary and chapters | to be approved | planned; specification draft outside `main`; its time-code export a separate item until clarified | — |
-| 37 — FIT route starts and the start calibration | D051 | implemented (37.1–37.6, v12) and merged; 37.7 in part (automated gates passed, manual plan not run); acceptance open | PR #33, `1640996` |
+| 37 — FIT route starts and the start calibration | D051 | implemented (37.1–37.6, v12) and merged; 37.7 in part (automated gates passed; D051 A1–A15 automated 2026-11-04, all PASS, A10 measured); acceptance open | PR #33, `1640996` |
 | H — Final UX Pass | — | not started | — |
 
 The **highest phase number in use is 37**; the **last complete phase** (merged and accepted) **is 29**. **Next — by the
@@ -362,7 +362,7 @@ Decision: D051 (approved 2026-11-03). Record: `docs/PHASE37.md`; manual plan: `d
 | 37.4 | Proposals, mark edits and Undo; the marks' interface | done; a mark moves by «Переместить метку к плейхеду» (no drag — accepted by the product owner) |
 | 37.5 | Observations on save | done |
 | 37.6 | «Настройки FIT…» | done |
-| 37.7 | Verification and closeout | in part: automated gates passed, CI green on PR #33 and on `main`; the manual plan not run; the product owner's acceptance open |
+| 37.7 | Verification and closeout | in part: automated gates passed, CI green on PR #33 and on `main`; D051 A1–A15 automated on 2026-11-04 (all PASS, A10 measured); the product owner's acceptance open |
 
 
 ## Planned phases after Phase 26 (D042)

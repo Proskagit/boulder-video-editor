@@ -10,8 +10,10 @@ numbering" → "Official phases"; this file is the dated working log.
   Phase 37 (D051, `docs/PHASE37.md`) — together, by the product owner's decision of 2026-11-03, not through Phase 35's two
   planned pull requests. Formats: v11 Phase 35, v12 Phase 37.
 - **Phase 37:** Steps 37.1–37.6 implemented (`90950cc`); Step 37.7 in part — Release / Debug 0 / 0, heavy 5229 / 0 / 0,
-  three `--blame-hang` runs (one non-recurring UI.Tests hang outside Phase 37's code, the known flaky tests), CI green; the
-  manual plan not run; the product owner's acceptance open.
+  three `--blame-hang` runs (one non-recurring UI.Tests hang outside Phase 37's code, the known flaky tests), CI green;
+  D051 A1–A15 checked automatically on 2026-11-04 (`docs/PHASE37_MANUAL_TEST_PLAN.md`, «Automated acceptance»): all PASS, A10 measured (A1 / A13 on the real 27.09 session); the product owner's acceptance open.
+- **Phase 31:** A / B / E automated on 2026-11-04 (`docs/PHASE31_MANUAL_TEST_PLAN.md`, «Automated acceptance of A, B and E»): all PASS except the look of A2 (manual); three D047 §2 defects (B1–B3) fixed (real SAM 2.1 model on the E1 4K clip, local); C4, D1a, D3–D5 and the owner's acceptance
+  open. Branch `test/phase-37-31-acceptance`.
 - **Phase 35:** 35.0–35.2 done (35.2 accepted); 35.3 in part; **35.3d run 2026-11-02 — B6 not met** (0 of 13 climbs
   within `τ`, drift −22.4 s; an experimental result, not a confirmation of the method — `docs/PHASE_COROS.md` §12);
   **35.3e not implemented, awaiting the product owner's decision**, not in the near plan; 35.4 implemented, its rows

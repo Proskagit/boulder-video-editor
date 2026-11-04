@@ -28,7 +28,7 @@ public sealed class Phase31ManualSurrogateTests(ITestOutputHelper output)
 {
     private static readonly string ReportDir = Path.Combine(Path.GetTempPath(), "AiVideoEditor_Phase31_Reports", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
 
-    private static (UndoRedoService Undo, ProjectService Projects, TimelineEditService Edit, HoldMarkupViewModel Markup, VideoClip Clip, MediaAsset Asset, OnnxHoldSegmentationService Segmentation, HoldProposalGenerator Generator, FfmpegVideoDecoder Decoder, string AssetPath) Setup(
+    internal static (UndoRedoService Undo, ProjectService Projects, TimelineEditService Edit, HoldMarkupViewModel Markup, VideoClip Clip, MediaAsset Asset, OnnxHoldSegmentationService Segmentation, HoldProposalGenerator Generator, FfmpegVideoDecoder Decoder, string AssetPath) Setup(
         string clipPath, FrameRate? rateOverride = null)
     {
         var undo = new UndoRedoService();
@@ -175,7 +175,7 @@ public sealed class Phase31ManualSurrogateTests(ITestOutputHelper output)
         Directory.CreateDirectory(projectDir);
         var json = ProjectSerializer.Serialize(projects.Current, projectDir);
         File.WriteAllText(Path.Combine(projectDir, "project.json"), json);
-        Assert.Contains("\"formatVersion\": 10", json);
+        Assert.Contains($"\"formatVersion\": {ProjectSerializer.CurrentFormatVersion}", json);
         Assert.DoesNotContain("proposal", json, StringComparison.OrdinalIgnoreCase);
 
         var reloaded = ProjectSerializer.Deserialize(json, projectDir);
