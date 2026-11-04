@@ -8,7 +8,11 @@ Environment: the development build or the portable build; the pinned SAM 2.1 Lar
 `docs/AI_MODEL.md` describes; owner gym footage (4K and 1080p clips).
 
 Legend: **PASS** — the criterion is met; **FAIL** — a defect; **PARTIAL** — part met, the rest recorded; **NOT RUN** —
-not run, with a reason.
+not run, with a reason; **DEFERRED** — not run by the product owner's decision, with its reason; not a PASS and not a
+blocker.
+
+**State (2026-11-04): accepted by the product owner with two deferred checks, D3 and C5** — «Manual acceptance by the
+product owner» below. Every other row has a PASS.
 
 ## A. Proposal generation and basic review
 
@@ -44,7 +48,7 @@ not run, with a reason.
 | C2 | Recall on a representative 4K frame | Most obvious holds (visually, to the owner) appear in the top-30 proposals | |
 | C3 | Precision | Fewer than ~30 % of the shown proposals are clearly not holds; reject-all is usable when precision is low | |
 | C4 | Accepted proposal contour | The refined full-resolution contour follows the hold edge at least as well as a single manual click | **PASS — the product owner, 2026-11-04 (by hand, `docs/PHASE31_REMAINING_CHECKS.md`)** |
-| C5 | 1080p source clip | Proposals are generated at source resolution (no upscaling) or at 1080p; quality is comparable | |
+| C5 | 1080p source clip | Proposals are generated at source resolution (no upscaling) or at 1080p; quality is comparable | **DEFERRED — the product owner's decision of 2026-11-04: the owner's working material is 4K; the visual check on a 1080p clip (no stretching, proposals roughly as good as on 4K) waits until it is needed in practice; not a PASS** |
 
 ## D. Edits, persistence and edge cases
 
@@ -53,7 +57,7 @@ not run, with a reason.
 | D1 | Undo after accept-all | One Undo removes the whole batch of accepted holds; Redo restores them | |
 | D1a | Undo after accepting three proposals individually | Three Undo steps remove the holds in reverse order; Redo restores them | **PASS — the product owner, 2026-11-04 (by hand, `docs/PHASE31_REMAINING_CHECKS.md`)** |
 | D2 | Save and reopen | Accepted holds are present; rejected proposals are not present; the project opens as v9 | |
-| D3 | Max holds | Accepting proposals up to the max-holds limit works; further accepts are refused with the existing message | **NOT RUN — impractical by hand: proposals are offered only on a clip without holds, at most 30 per pass, so 500 holds cannot be reached through them; no automated test either** |
+| D3 | Max holds | Accepting proposals up to the max-holds limit works; further accepts are refused with the existing message | **DEFERRED — the product owner's decision of 2026-11-04: 500 holds by hand are impractical (proposals only on a clip without holds, ≤ 30 per pass); not a PASS; an automated or other technical check may be considered later** |
 | D4 | Model missing | The proposal button is disabled; manual markup still works with the same message as D034 | **PASS — the product owner, 2026-11-04 (by hand, `docs/PHASE31_REMAINING_CHECKS.md`)**: the model hidden by `Set-HoldModelHidden.ps1`, then restored |
 | D5 | Offline media | Proposals are disabled; manual markup is unavailable as in D034 | **PASS — the product owner, 2026-11-04 (by hand, `docs/PHASE31_REMAINING_CHECKS.md`)**: «Разметить зацепки» greyed out on the offline clip, no markup possible |
 
@@ -178,8 +182,10 @@ a temporary copy of the E1 4K clip. Recorded as reported by the owner; no automa
 | D1a | three accepts one by one; three Undo in reverse order; Redo restores them | **PASS** |
 | D4 | model missing (hidden, then restored): no proposal pass, no crash, the D034 message | **PASS** |
 | D5 | offline media: «Разметить зацепки» greyed out, no markup | **PASS** |
-| D3 | max holds (500) | **NOT RUN** — impractical by hand (proposals only on a clip without holds, ≤ 30 per pass); no automated test |
+| D3 | max holds (500) | **DEFERRED** — impractical by hand (proposals only on a clip without holds, ≤ 30 per pass); no automated test |
+| C5 | 1080p source clip | **DEFERRED** — the owner works on 4K; the 1080p visual check waits until it is needed |
 
-With this run every row of A, B, C1–C4, D1, D1a, D2, D4, D5 and E has a PASS. Still without a result: **D3** (above) and
-**C5** (1080p source clip — not run in any recorded run). The product owner's full acceptance of Phase 31 stays open on
-these two rows.
+With this run every row of A, B, C1–C4, D1, D1a, D2, D4, D5 and E has a PASS. **D3** and **C5** are **DEFERRED** by the
+product owner's decision of 2026-11-04 (not PASS, not blockers of later work; D3 may get an automated or other technical
+check later, C5 is run when 1080p footage matters in practice). **Phase 31 is accepted by the product owner on
+2026-11-04 with these two deferred checks.**

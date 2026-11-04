@@ -3,7 +3,8 @@
 Everything else in A / B / E passed in automated tests (`docs/PHASE31_MANUAL_TEST_PLAN.md`, «Automated acceptance of
 A, B and E»). Left for the product owner: **A2 (look)**, **C4**, **D1a**, **D3**, **D4**, **D5**. About 15 minutes.
 
-**Run by the product owner on 2026-11-04:** A2, C4, D1a, D4, D5 — PASS; D3 — NOT RUN (see its note). The record: `docs/PHASE31_MANUAL_TEST_PLAN.md`, «Manual acceptance by the product owner».
+**Run by the product owner on 2026-11-04:** A2, C4, D1a, D4, D5 — PASS; D3 — DEFERRED by the owner's decision (see its note); C5 (not in this instruction) — DEFERRED.
+Phase 31 accepted by the product owner on 2026-11-04 with these two deferred checks. The record: `docs/PHASE31_MANUAL_TEST_PLAN.md`, «Manual acceptance by the product owner».
 
 Both scripts are in `tools/manual/`; run the commands below from the repository root, on `main` with PR #38
 (`4717fca`) or later — that build has the B1–B3 fixes.
@@ -33,12 +34,13 @@ Before each check:
 | **A2** | Wait for the proposals; Tab twice; Enter on the selected one | Proposals: thin grey dashed contours. The selected one: yellow dashed. The accepted hold: a solid outline, clearly different from both | PASS |
 | **C4** | Accept 3–4 proposals on clearly visible holds (Enter); zoom the Preview; compare with a hold you add by hand (Shift+click → Enter) | The accepted contour follows the hold's edge no worse than the hand-made one | PASS |
 | **D1a** | Fresh project (rerun the script). Accept three proposals one by one with Enter; then Ctrl+Z three times; then Ctrl+Y three times | Each Ctrl+Z removes one hold, latest first; after three, none left. Ctrl+Y brings them back one by one | PASS |
-| **D3** | See the note below | Accepting stops at 500 holds with «На клипе может быть не больше 500 зацепок.» | NOT RUN |
+| **D3** | See the note below | Accepting stops at 500 holds with «На клипе может быть не больше 500 зацепок.» | DEFERRED |
 | **D4** | Close the app. `Set-HoldModelHidden.ps1 -Hide`, then `Start-Phase31Check.ps1 -NoBuild`; select the clip, try «Разметить зацепки». Close the app, **`Set-HoldModelHidden.ps1 -Restore`** | No proposals start, no crash. The same model message as in ordinary manual markup (D034); the mode doesn't open. After `-Restore` everything works again | PASS |
 | **D5** | `Start-Phase31Check.ps1 -NoBuild -Offline` (the project's copy of the clip is renamed, so the media is offline); select the clip | «Разметить зацепки» and the proposals are unavailable, exactly as for manual markup on offline media | PASS |
 
 **D3 note:** you can't reach 500 holds by hand, because proposals appear only on a clip with no holds, at most 30 per pass.
-It would need an automated test; none exists, so D3 is recorded as «NOT RUN — impractical by hand».
+D3 is DEFERRED by the product owner's decision of 2026-11-04 — not a PASS, not a blocker; an automated or other
+technical check may be considered later.
 
 Commands for D4:
 

@@ -193,12 +193,12 @@ phase's record prevail.
       PR #31 — the pull request and `main`, 2026-10-26) and are deferred to a separate release-preparation task. Scope, steps and the historical results: section below and
       DECISIONS.md D046 (approved 2026-10-22). *(Branch `feat/phase-30-stabilization` from `e28a9d3`; Steps 30.0–30.7
       technically complete 2026-10-24; S1 acceptance pending a later task.)*
-- [ ] **Phase 31 — Automatic hold proposals — technically complete; the full manual acceptance open (D047 approved
-      2026-10-25).** Steps 31.1–31.7 complete: Core proposal types and pipeline, proposals at a downscaled resolution,
+- [x] **Phase 31 — Automatic hold proposals — accepted by the product owner on 2026-11-04 with two deferred checks
+      (D047 approved 2026-10-25).** Steps 31.1–31.7 complete: Core proposal types and pipeline, proposals at a downscaled resolution,
       full-resolution refinement of accepted proposals, the review UI, the integration with the manual D034 flow, the
       performance (15×15 grid; ≤ 8 s on a 4K frame met) and the closeout. A / B / E automated on 2026-11-04 (`docs/PHASE31_MANUAL_TEST_PLAN.md`, «Automated acceptance of A, B and E», PR #38);
       three D047 §2 defects (B1–B3) fixed; the look of A2, C4, D1a, D4, D5 PASS by the product owner by hand on 2026-11-04.
-      Open: D3 (not run — impractical by hand) and C5 (no recorded run); the full acceptance open on these two rows. *(Merged with PR #31, `024f3fb`, no PR of its own.)*
+      D3 (500 holds, impractical by hand) and C5 (1080p; the owner works on 4K) DEFERRED by the owner's decision — not PASS, not blockers. *(Merged with PR #31, `024f3fb`, no PR of its own.)*
 - [ ] **Phase 32 — the route selection at `T` (D048 stage 1): implemented, paused / deferred.** «Авторазметка» hidden,
       the code and the research kept (`docs/HOLD_AUTO_DETECTION_RESEARCH.md`). Merged in PR #32 (`1e58885`); not complete.
 - [ ] **Phases 33–34 — D048 stages 2 and 3: implemented and merged in PR #32 (`1e58885`); a separate formal acceptance of
@@ -269,7 +269,7 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 |---|---|---|---|
 | 0–29 | … D045 | complete: merged and accepted | Phase 29 — PR #30, `e28a9d3` |
 | 30 — stabilisation (D042 G) | D046 | technically complete 2026-10-24; full acceptance (S1) open | in PR #31 (`024f3fb`), no PR of its own |
-| 31 — automatic hold proposals (D042 D) | D047 | technically complete 2026-10-26; A / B / E, C1–C4, D1, D1a, D2, D4, D5 PASS (2026-11-04: automated + the owner by hand); D3 and C5 without a result — full acceptance open | in PR #31 (`024f3fb`), no PR of its own |
+| 31 — automatic hold proposals (D042 D) | D047 | technically complete 2026-10-26; A / B / E, C1–C4, D1, D1a, D2, D4, D5 PASS (2026-11-04: automated + the owner by hand); D3 and C5 DEFERRED by the owner; **accepted by the product owner 2026-11-04 with these two deferred checks** | in PR #31 (`024f3fb`), no PR of its own |
 | — R2 → E, hold tracking | none (no number) | accepted for continued development, not complete (D048 §1.17) | PR #31, `024f3fb` |
 | 32 — route selection at `T` (D048 stage 1) | D048 | implemented, paused / deferred («Авторазметка» hidden); not complete | PR #32, `1e58885` |
 | 33 — timing model, anchors, `project.json` v10 (D048 stage 2) | D048 | implemented and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
@@ -279,12 +279,11 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 37 — FIT route starts and the start calibration | D051 | implemented (37.1–37.6, v12) and merged; 37.7 done (D051 A1–A15 automated 2026-11-04, all PASS, A10 measured); **accepted by the product owner 2026-11-04** | PR #33, `1640996` |
 | H — Final UX Pass | — | not started | — |
 
-The **highest phase number in use is 37**; the **complete phases** (merged and accepted) are **1–29 and 37** (Phase 37
-accepted on 2026-11-04; Phases 30–36 not complete). **Next — by the
+The **highest phase number in use is 37**; the **complete phases** (merged and accepted) are **1–29, 31 and 37** (Phases 31
+and 37 accepted on 2026-11-04 — Phase 31 with D3 and C5 deferred; Phases 30 and 32–36 not complete). **Next — by the
 product owner's direction of 2026-11-03 (D050, «The product owner's direction»): Step 35.5, the heart-rate overlay** —
 implemented and accepted on 2026-11-03, merged with PR #35 — then 35.6, Phase 35's closeout. Not in the near plan: Step 35.3e (needs a separate product decision) and Phase 36's export of
-time codes (a separate item until clarified). Open alongside, not new phases: the remaining acceptance of Phase 31 (D3, C5) and
-of Step 35.4, the S1 release preparation (Phase 30).
+time codes (a separate item until clarified). Open alongside, not new phases: the acceptance of Step 35.4, the S1 release preparation (Phase 30).
 
 ### Old and new labels
 

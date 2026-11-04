@@ -85,8 +85,8 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 ## Current
 
 **State on 2026-11-03** (`main` at `1640996`, the merge of PR #33; `project.json` v12; the table of every phase:
-`docs/DEVELOPMENT_PLAN.md`, "Official phases"). The **complete phases** (merged and accepted) are **1–29 and 37** (Phase 37
-accepted on 2026-11-04); the **highest phase number in use is 37**.
+`docs/DEVELOPMENT_PLAN.md`, "Official phases"). The **complete phases** (merged and accepted) are **1–29, 31 and 37** (Phases 31
+and 37 accepted on 2026-11-04, Phase 31 with D3 and C5 deferred); the **highest phase number in use is 37**.
 
 - **Phase 37** — preliminary route starts from a COROS FIT and the global start calibration (D051, approved 2026-11-03):
   **implemented and merged** with PR #33 (`1640996`; CI green on the pull request and on `main`), `project.json` v12;
@@ -100,9 +100,8 @@ accepted on 2026-11-04); the **highest phase number in use is 37**.
   35.0–35.4 reached `main` with PR #33, together with Phase 37. Record: `docs/PHASE_COROS.md`.
 - **Phases 32–34** — D048 (approved 2026-10-28, merged in PR #32): 32 (the route selection at `T`) paused / deferred; 33
   (the timing model, v10) and 34 (the overlay strip, variant B) implemented, a separate formal acceptance not recorded.
-- **Phases 30 and 31** — technically complete (PR #31); the full S1 acceptance (Phase 30) open; Phase 31: A / B / E, C4,
-  D1a, D4, D5 PASS on 2026-11-04 (automated, PR #38, and the product owner by hand), D3 and C5 without a result — its full
-  acceptance open on these two rows. **R2 → E** (the outlines following the camera) — its camera-motion part merged in PR #31, unnumbered, not
+- **Phases 30 and 31** — both merged through PR #31. Phase 30 technically complete, its full S1 acceptance open.
+  **Phase 31 accepted by the product owner on 2026-11-04 with two deferred checks (D3 — 500 holds, impractical by hand; C5 — 1080p, the owner works on 4K)**; every other check PASS (automated, PR #38, and the owner by hand). **R2 → E** (the outlines following the camera) — its camera-motion part merged in PR #31, unnumbered, not
   complete.
 - **Phase 36** — the session summary and the YouTube chapters: a specification draft outside `main`, no decision.
 
@@ -472,7 +471,8 @@ task): closing the app after a project with media was open hangs the process —
 Scopes, steps-to-be and dependencies: `docs/DEVELOPMENT_PLAN.md`, "Planned phases after Phase 26 (D042)". The letters are
 working labels — a phase gets its number (27, 28, …) and its own decision when it is taken up. State
 (numbering: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering"): A, B and C are merged and accepted (Phases 27–29); G is
-Phase 30 and D is Phase 31 — both technically complete, their full acceptance open, both merged through PR #31; E's
+Phase 30 and D is Phase 31 — both merged through PR #31; Phase 30 technically complete, its full acceptance open; Phase 31
+accepted on 2026-11-04 (D3, C5 deferred); E's
 camera-motion part is merged in PR #31, unnumbered and not complete; D048's stages are Phases 32–34, merged in PR #32 (32
 paused / deferred; 33 and 34 without a recorded formal acceptance); F is Phase 35 — in `main` in part since PR #33
 (2026-11-03; 35.5 implemented and accepted, merged with PR #35; 35.6 not started; 35.3e awaiting a decision); Phase 37 merged with it, accepted 2026-11-04; H is not
@@ -537,7 +537,7 @@ The candidates in this section are subordinate to D042 §3–§4 (2026-10-20): k
 and ducking are not planned; the magnetic main track, text styling and timeline polish stay backlog candidates; dragging
 objects in the Preview is done (Phase 23). The planned phases are in "Remaining plan" above. History:
 
-Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is merged (PR #25, `d3df0ba`); Phase 25 (technical backlog and small UX improvements, D040) is merged (PR #26, `58c48cb`); Phase 26 (vertical video and framing, D041) is merged (PR #27, `41dadf2`); Phase 27 (text animation and readability, D043) is merged (PR #28, `36a1a58`); Phase 28 (the transition library, D044) is merged (PR #29, `4f0e66a`); Phase 29 (visual templates and the music audit, D045) is merged (PR #30, `e28a9d3`); Phase 30 (stabilisation and the portable build S1, D046) is technically complete by the product owner's decision of 2026-10-24 (full S1 acceptance deferred); Phase 31 (automatic hold proposals, D047) is technically complete (full manual acceptance open); both reached `main` through PR #31 (`024f3fb`) together with the hold tracking (R2 → E, unnumbered); Phases 32–34 (D048's stages; 32 paused / deferred, 33 and 34 without a recorded formal acceptance) are merged in PR #32 (`1e58885`). A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
+Phase 19 (AI hold markup, D034) and Phase 20 (contour correction, D035) are merged; Phase 21 (the outline animation, D036) is merged (PR #22, `7318ba8`); Phase 22 (timeline selection, snapping and making room, D037) is merged (PR #23, `1aaedc8`); Phase 23 (direct Move, Scale and Crop in the Preview, D038) is merged (PR #24, `c652667`); Phase 24 (Russian localization and interface polish, D039) is merged (PR #25, `d3df0ba`); Phase 25 (technical backlog and small UX improvements, D040) is merged (PR #26, `58c48cb`); Phase 26 (vertical video and framing, D041) is merged (PR #27, `41dadf2`); Phase 27 (text animation and readability, D043) is merged (PR #28, `36a1a58`); Phase 28 (the transition library, D044) is merged (PR #29, `4f0e66a`); Phase 29 (visual templates and the music audit, D045) is merged (PR #30, `e28a9d3`); Phase 30 (stabilisation and the portable build S1, D046) is technically complete by the product owner's decision of 2026-10-24 (full S1 acceptance deferred); Phase 31 (automatic hold proposals, D047) is accepted (2026-11-04, D3 and C5 deferred); both reached `main` through PR #31 (`024f3fb`) together with the hold tracking (R2 → E, unnumbered); Phases 32–34 (D048's stages; 32 paused / deferred, 33 and 34 without a recorded formal acceptance) are merged in PR #32 (`1e58885`). A magnetic main track that closes gaps automatically (CapCut-like) is a candidate, not decided (D037 §5). Candidates named in the
 Phase 16–18 pre-flights, not decided: ducking (after keyframes); a
 stabilization pass (splitting `TimelineEditService` / `TimelineViewModel`); text styling and dragging objects in the
 Preview; keyframes; timeline polish (marker labels, marquee, filmstrips); freeze frame / reverse / speed ramps. ("The
