@@ -16,7 +16,7 @@ not run, with a reason.
 |---|---|---|---|
 | A1 | Enter markup mode on a clip with no holds (toggle «Предлагать зацепки автоматически» on) | The progress indicator appears and proposals are drawn | |
 | A1a | Enter markup mode with the toggle off | No proposal pass runs; the manual D034 flow is available immediately | |
-| A2 | Proposal drawing | Each proposal is a dashed/translucent contour, distinct from confirmed holds; the selected proposal is highlighted | |
+| A2 | Proposal drawing | Each proposal is a dashed/translucent contour, distinct from confirmed holds; the selected proposal is highlighted | **PASS** — the logic automated (2026-11-04), the look checked by the product owner (2026-11-04) |
 | A3 | Top-N default | No more than 30 proposals shown by default; the Inspector shows the count and the rank/score | |
 | A4 | Tab / Shift+Tab | Moves selection forward/backward through proposals; click also selects | |
 | A5 | Enter / «Принять» | The selected proposal is accepted; its contour becomes a confirmed hold (solid outline, takes part in route colour and animation) | |
@@ -43,7 +43,7 @@ not run, with a reason.
 | C1 | 4K clip, default 1080p proposal resolution | The proposal pass completes in ≤8 s on the development machine (target orientir); ≤5 s is aspirational | |
 | C2 | Recall on a representative 4K frame | Most obvious holds (visually, to the owner) appear in the top-30 proposals | |
 | C3 | Precision | Fewer than ~30 % of the shown proposals are clearly not holds; reject-all is usable when precision is low | |
-| C4 | Accepted proposal contour | The refined full-resolution contour follows the hold edge at least as well as a single manual click | |
+| C4 | Accepted proposal contour | The refined full-resolution contour follows the hold edge at least as well as a single manual click | **PASS — the product owner, 2026-11-04 (by hand, `docs/PHASE31_REMAINING_CHECKS.md`)** |
 | C5 | 1080p source clip | Proposals are generated at source resolution (no upscaling) or at 1080p; quality is comparable | |
 
 ## D. Edits, persistence and edge cases
@@ -51,11 +51,11 @@ not run, with a reason.
 | # | Check | Expected result | Evidence |
 |---|---|---|---|
 | D1 | Undo after accept-all | One Undo removes the whole batch of accepted holds; Redo restores them | |
-| D1a | Undo after accepting three proposals individually | Three Undo steps remove the holds in reverse order; Redo restores them | |
+| D1a | Undo after accepting three proposals individually | Three Undo steps remove the holds in reverse order; Redo restores them | **PASS — the product owner, 2026-11-04 (by hand, `docs/PHASE31_REMAINING_CHECKS.md`)** |
 | D2 | Save and reopen | Accepted holds are present; rejected proposals are not present; the project opens as v9 | |
-| D3 | Max holds | Accepting proposals up to the max-holds limit works; further accepts are refused with the existing message | |
-| D4 | Model missing | The proposal button is disabled; manual markup still works with the same message as D034 | |
-| D5 | Offline media | Proposals are disabled; manual markup is unavailable as in D034 | |
+| D3 | Max holds | Accepting proposals up to the max-holds limit works; further accepts are refused with the existing message | **NOT RUN — impractical by hand: proposals are offered only on a clip without holds, at most 30 per pass, so 500 holds cannot be reached through them; no automated test either** |
+| D4 | Model missing | The proposal button is disabled; manual markup still works with the same message as D034 | **PASS — the product owner, 2026-11-04 (by hand, `docs/PHASE31_REMAINING_CHECKS.md`)**: the model hidden by `Set-HoldModelHidden.ps1`, then restored |
+| D5 | Offline media | Proposals are disabled; manual markup is unavailable as in D034 | **PASS — the product owner, 2026-11-04 (by hand, `docs/PHASE31_REMAINING_CHECKS.md`)**: «Разметить зацепки» greyed out on the offline clip, no markup possible |
 
 ## E. Preview / export parity and localization
 
@@ -139,7 +139,7 @@ only; no project is saved outside a temporary folder.
 |---|---|---|---|---|
 | A1 | toggle on: progress, then proposals | unit + real model | `Starting_markup_generates_ranked_proposals_…`; real: `A1_A3_A5_A6_A7_A8_…` — `IsGeneratingProposals` and `ProposalProgress` observed during the real pass, then ranked proposals and their contours | **PASS** |
 | A1a | toggle off: no pass, manual flow at once | unit | `A1a_with_the_toggle_off_…` (new): no generator call, no progress, a click makes a candidate | **PASS** |
-| A2 | proposals apart from confirmed holds, the selected one highlighted; dashed / translucent look | unit + manual look | `A2_proposals_are_their_own_layer_…` (new): `ProposalContours` apart from the holds, the selected index follows Tab and click; the look itself (grey dashed pen, the selected one yellow dashed, `HoldMarkupOverlay`) is not compared by pixels | **MANUAL** (the look only) |
+| A2 | proposals apart from confirmed holds, the selected one highlighted; dashed / translucent look | unit + manual look | `A2_proposals_are_their_own_layer_…` (new): `ProposalContours` apart from the holds, the selected index follows Tab and click; the look itself (grey dashed pen, the selected one yellow dashed, `HoldMarkupOverlay`) is not compared by pixels — checked by the product owner by hand on 2026-11-04 | **PASS** (logic automated; the look by the owner) |
 | A3 | ≤ 30 by default; the count, rank and score shown | unit + real model | `A3_at_most_thirty_…` (new): 40 generated → 30 shown, labels with rank and score; real: ≤ 30 ranked by score | **PASS** |
 | A4 | Tab / Shift+Tab, click selects | unit | `Tab_with_proposals_cycles_the_selection`, `Shortcuts_route_proposal_review_commands`, `Clicking_inside_a_proposal_contour_selects_it` | **PASS** |
 | A5 | Enter / «Принять» → a confirmed hold | unit + real model | `Accepting_a_single_proposal_…`; real: the accepted proposal refined at full resolution into a `Hold` with its surface colour, one Undo step | **PASS** |
@@ -156,11 +156,30 @@ only; no project is saved outside a temporary folder.
 | E1 | a frame with accepted proposals the same in Preview and export | real model + render tests | real: `E1_the_accepted_real_holds_are_exactly_the_outlines_…` — the `PlaybackSnapshot` outline polygons and colour equal the accepted holds; Preview and export draw that snapshot outline by the same renderer: `HoldOutlineRenderTests`, `ExportHoldAnimationEndToEndTests` | **PASS** |
 | E2 | the new texts in Russian (and English) | unit | `E2_the_review_texts_follow_the_interface_language` (new): ru and en | **PASS** |
 
-**A2 — the look (MANUAL).** Why: the pen style is code in `HoldMarkupOverlay`; no test compares the drawn pixels, and
+**A2 — the look (manual; PASS by the product owner on 2026-11-04).** Why it was manual: the pen style is code in `HoldMarkupOverlay`; no test compares the drawn pixels, and
 whether proposals are «distinct» from confirmed holds is the owner's visual judgement. Steps: open any project with a
 video clip without holds; turn «Предлагать зацепки автоматически» on; enter the hold markup; wait for the proposals;
 accept one with Enter; press Tab twice. Expected: proposals are thin grey dashed contours; the selected one is yellow
 dashed; the accepted hold is a solid outline unlike both. On a failure send: a screenshot of the frame with proposals
 and the accepted hold, and the row's number.
 
-Out of the scope of this run and still as recorded above: C4 (contour quality, the owner's visual judgement), D1a, D3–D5.
+Out of the scope of this run: C4, D1a, D3–D5 — see «Manual acceptance by the product owner» below.
+
+## Manual acceptance by the product owner (2026-11-04)
+
+Run by the product owner by hand on a build of `main` with PR #38 (the B1–B3 fixes), with the instruction and the scripts
+of `docs/PHASE31_REMAINING_CHECKS.md` (`tools/manual/Start-Phase31Check.ps1`, `tools/manual/Set-HoldModelHidden.ps1`) on
+a temporary copy of the E1 4K clip. Recorded as reported by the owner; no automated result is used in its place.
+
+| # | Check | Result |
+|---|---|---|
+| A2 | the look: proposals grey dashed, the selected one yellow dashed, the accepted hold a solid outline | **PASS** |
+| C4 | the accepted contour follows the hold edge at least as well as a manual click | **PASS** |
+| D1a | three accepts one by one; three Undo in reverse order; Redo restores them | **PASS** |
+| D4 | model missing (hidden, then restored): no proposal pass, no crash, the D034 message | **PASS** |
+| D5 | offline media: «Разметить зацепки» greyed out, no markup | **PASS** |
+| D3 | max holds (500) | **NOT RUN** — impractical by hand (proposals only on a clip without holds, ≤ 30 per pass); no automated test |
+
+With this run every row of A, B, C1–C4, D1, D1a, D2, D4, D5 and E has a PASS. Still without a result: **D3** (above) and
+**C5** (1080p source clip — not run in any recorded run). The product owner's full acceptance of Phase 31 stays open on
+these two rows.

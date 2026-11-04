@@ -2,7 +2,8 @@
 
 Decision: DECISIONS.md D051 (approved 2026-11-03). Record of the phase: `docs/PHASE37.md`. **State (2026-11-04): the
 acceptance items D051 A1–A15 are checked automatically — see «Automated acceptance of D051 A1–A15» below; the rows A1–G7
-of this plan were not run one by one by hand.** The phase is implemented and merged into `main` with PR #33 (`1640996`). The acceptance items of D051 §10 are cited as «D051 A1»…«D051 A15»; the rows of this plan have their own
+of this plan were not run one by one by hand. Phase 37 accepted by the product owner on 2026-11-04 on that evidence
+(«Product owner's acceptance» below).** The phase is implemented and merged into `main` with PR #33 (`1640996`). The acceptance items of D051 §10 are cited as «D051 A1»…«D051 A15»; the rows of this plan have their own
 numbers.
 
 Environment: a build of `main` at `1640996` (the merge of PR #33) or later; the projects of 08.08.2026 and 27.09.2026 with their FIT and videos (personal
@@ -63,6 +64,13 @@ usable routes does not change: on these two trainings the error is the spread of
 
 The rows A1–G7 below keep their empty evidence column: they were not run one by one by hand; the table above is the
 acceptance evidence of D051 A1–A15.
+
+## Product owner's acceptance (2026-11-04)
+
+After the automated run above no manual scenario of Phase 37 was left (A1–A15 each with its evidence; A10 is a
+measurement without a threshold). The product owner closed the acceptance of Phase 37 on 2026-11-04. Recorded: D051
+A1–A15 **PASS** (A10 measured); the rows A1–G7 of this plan **not run by hand** — their empty evidence column is not a
+PASS of its own.
 
 ## A. Proposals
 | # | Check | Expected result | Evidence |

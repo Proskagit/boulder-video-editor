@@ -7433,6 +7433,8 @@ A/B/E checks in `docs/PHASE31_MANUAL_TEST_PLAN.md` that require the product owne
 found three places where `HoldMarkupViewModel` did not follow §2, fixed with tests: Shift+click over a proposal now
 starts the manual candidate (B1); Esc without a candidate keeps the proposal review (B2); Enter with a manual candidate
 confirms it rather than accepting the selected proposal (B3). All of A / B / E PASS except the look of A2 (manual).
+The product owner checked by hand on 2026-11-04: the look of A2, C4, D1a, D4, D5 PASS; D3 not run (impractical by hand),
+C5 without a recorded run — the full acceptance open on these two rows.
 
 ---
 
@@ -8596,8 +8598,8 @@ export through the one painter; the warning of D049 §10 as `HeartRateUnavailabl
 Date: 2026-11-03. **Status: Approved by the product owner on 2026-11-03** (with the refinements B1–B7, О1–О5, Q1 and
 Q2 of the same day); recorded at Step 37.0 on the Phase 37 documentation branch, not in Phase 35's second pull request.
 **Implementation state (2026-11-03):** implemented (Steps 37.1–37.6, `90950cc`) and merged into `main` with PR #33
-(`1640996`), `project.json` v12; A1–A15 automated on 2026-11-04 (all PASS, A10 measured), the product owner's
-acceptance open — «Implementation notes»
+(`1640996`), `project.json` v12; A1–A15 automated on 2026-11-04 (all PASS, A10 measured; PR #38), accepted by the
+product owner on 2026-11-04 — «Implementation notes»
 at the end of this decision. Record of the phase: `docs/PHASE37.md`; manual plan: `docs/PHASE37_MANUAL_TEST_PLAN.md`.
 Phase 37 was planned to run after Phase 35's second pull request — superseded by the product owner's decision of
 2026-11-03 (Implementation notes). Phase 35 (D050 B9, the owner's answer
@@ -9072,7 +9074,8 @@ repository).
   replaces them).
 - **Verification**: `docs/PHASE37.md` §2, Step 37.7 — automated gates passed, CI green on PR #33 and on `main`; the
   acceptance items A1–A15 automated on 2026-11-04 with their evidence in `docs/PHASE37_MANUAL_TEST_PLAN.md` (all PASS;
-  A10 measured, no threshold); the product owner's acceptance open.
+  A10 measured, no threshold; PR #38, `4717fca`); accepted by the product owner on 2026-11-04 on that evidence — no
+  manual scenario remained, the manual plan's rows A1–G7 not run one by one by hand.
 
 ---
 
