@@ -3,10 +3,10 @@
 *Decision: DECISIONS.md **D051** (approved by the product owner on 2026-11-03, with the refinements B1–B7, О1–О5, Q1 and
 Q2 of the same day). Manual test plan: `docs/PHASE37_MANUAL_TEST_PLAN.md`. This document is the phase's record.*
 
-**State (2026-11-03): implemented and merged, not accepted.** Steps 37.1–37.6 implemented in `90950cc` on the branch
+**State (2026-11-04): implemented, merged and accepted.** Steps 37.1–37.6 implemented in `90950cc` on the branch
 `feat/phase-37-fit-starts` and merged into `main` with PR #33 (`1640996`, 2026-11-03; CI green on the pull request and on
-`main`); `project.json` v12. Step 37.7: the automated gates passed locally (§2); the manual plan has not been run, so the
-product owner's acceptance is open. Not a complete phase («Phase and step numbering», `docs/DEVELOPMENT_PLAN.md`).
+`main`); `project.json` v12. Step 37.7: the automated gates passed (§2); D051 A1–A15 automated on 2026-11-04 (PR #38,
+`4717fca`) — all PASS, A10 measured; **accepted by the product owner on 2026-11-04** on that evidence; no manual scenario of Phase 37 remained, and none of the plan rows A1–G7 was run one by one by hand (`docs/PHASE37_MANUAL_TEST_PLAN.md`).
 
 How it reached `main` (§5): the product owner decided on 2026-11-03 to start the implementation at once from
 `feat/phase-coros-c1` `4070ffc`, not after Phase 35's second pull request as D051 and this record first said; PR #33
@@ -135,7 +135,7 @@ the product owner, and Steps 37.1–37.6 were committed together as `90950cc` (t
   (asks first). If the drop-down does not open without a training today, the item is added to its «no training» form.
 - **Tests (T6).**
 
-### 37.7 — Verification and closeout *(in part: automated gates done; D051 A1–A15 automated 2026-11-04; acceptance open)*
+### 37.7 — Verification and closeout *(done: D051 A1–A15 automated 2026-11-04; accepted by the product owner 2026-11-04)*
 - Full and heavy suites, `--blame-hang`; the manual plan on the projects of 08.08 and 27.09 (A1–A15); the measurement
   A10 (no threshold); documents; the Phase 37 pull request.
 - **Done (2026-11-03, on `feat/phase-37-fit-starts`):** Release / Debug `-warnaserror` 0 / 0; heavy (`AIVE_HEAVY_TESTS=1`)
@@ -157,7 +157,8 @@ the product owner, and Steps 37.1–37.6 were committed together as `90950cc` (t
   temporary file (`FitCalibrationAcceptanceTests`); A10 measured on 27.09 and 08.08 (28 climbs: the estimate 12.0 → 11.98 s,
   routes within 2 s 9 of 28 before and after — no bias for a global correction to remove). New tests for A1 (no marks in
   the snapshot of Preview and export; a `clamped` mark named so) and A2 (deleting the linked animation). No defect found.
-- **Open:** the product owner's acceptance; the rows A1–G7 of the manual plan were not run one by one by hand.
+- **Accepted by the product owner on 2026-11-04** on the evidence of the automated run (merged with PR #38, `4717fca`);
+  no manual scenario remained. The rows A1–G7 of the manual plan were not run one by one by hand.
 
 ## 3. The decisions of 2026-11-03 and their technical basis
 

@@ -85,12 +85,12 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 ## Current
 
 **State on 2026-11-03** (`main` at `1640996`, the merge of PR #33; `project.json` v12; the table of every phase:
-`docs/DEVELOPMENT_PLAN.md`, "Official phases"). The **last complete phase** (merged and accepted) **is 29**; the **highest
-phase number in use is 37**.
+`docs/DEVELOPMENT_PLAN.md`, "Official phases"). The **complete phases** (merged and accepted) are **1–29 and 37** (Phase 37
+accepted on 2026-11-04); the **highest phase number in use is 37**.
 
 - **Phase 37** — preliminary route starts from a COROS FIT and the global start calibration (D051, approved 2026-11-03):
   **implemented and merged** with PR #33 (`1640996`; CI green on the pull request and on `main`), `project.json` v12;
-  D051 A1–A15 checked automatically on 2026-11-04 (`docs/PHASE37_MANUAL_TEST_PLAN.md`, «Automated acceptance»): all PASS, A10 measured; the product owner's acceptance open. Record: `docs/PHASE37.md`.
+  D051 A1–A15 checked automatically on 2026-11-04 (`docs/PHASE37_MANUAL_TEST_PLAN.md`, «Automated acceptance»): all PASS, A10 measured; **accepted by the product owner on 2026-11-04** on that evidence. Record: `docs/PHASE37.md`.
 - **Phase 35** — the import of COROS trainings and the heart rate in the video (D049 / D050): **in `main` in part, not
   complete.** Steps 35.0–35.2 done (35.2 accepted), 35.4 implemented (v11; C1–C14 automated 2026-11-04 — PASS, C5's real re-export manual); 35.3 in part — the formal
   evaluation 35.3d gave «B6 not met» (0 of 13 climbs within `τ`, drift −22.4 s), an experimental result, not a confirmation
@@ -100,8 +100,9 @@ phase number in use is 37**.
   35.0–35.4 reached `main` with PR #33, together with Phase 37. Record: `docs/PHASE_COROS.md`.
 - **Phases 32–34** — D048 (approved 2026-10-28, merged in PR #32): 32 (the route selection at `T`) paused / deferred; 33
   (the timing model, v10) and 34 (the overlay strip, variant B) implemented, a separate formal acceptance not recorded.
-- **Phases 30 and 31** — technically complete (PR #31); the full S1 acceptance (Phase 30) and the manual A / B / E checks
-  (Phase 31) open. **R2 → E** (the outlines following the camera) — its camera-motion part merged in PR #31, unnumbered, not
+- **Phases 30 and 31** — technically complete (PR #31); the full S1 acceptance (Phase 30) open; Phase 31: A / B / E, C4,
+  D1a, D4, D5 PASS on 2026-11-04 (automated, PR #38, and the product owner by hand), D3 and C5 without a result — its full
+  acceptance open on these two rows. **R2 → E** (the outlines following the camera) — its camera-motion part merged in PR #31, unnumbered, not
   complete.
 - **Phase 36** — the session summary and the YouTube chapters: a specification draft outside `main`, no decision.
 
@@ -474,7 +475,7 @@ working labels — a phase gets its number (27, 28, …) and its own decision wh
 Phase 30 and D is Phase 31 — both technically complete, their full acceptance open, both merged through PR #31; E's
 camera-motion part is merged in PR #31, unnumbered and not complete; D048's stages are Phases 32–34, merged in PR #32 (32
 paused / deferred; 33 and 34 without a recorded formal acceptance); F is Phase 35 — in `main` in part since PR #33
-(2026-11-03; 35.5 implemented and accepted, merged with PR #35; 35.6 not started; 35.3e awaiting a decision); Phase 37 merged with it, not accepted; H is not
+(2026-11-03; 35.5 implemented and accepted, merged with PR #35; 35.6 not started; 35.3e awaiting a decision); Phase 37 merged with it, accepted 2026-11-04; H is not
 started. *(The first sentence's date was 2026-10-28; this list is the state on 2026-11-03.)*
 
 Status on 2026-10-24: Phases 0–29 complete and merged (Phase 27 = A as `36a1a58`, PR #28; Phase 28 = B as `4f0e66a`,
@@ -502,7 +503,7 @@ research, F only after its feasibility is confirmed and a separate agreement; H 
 | — | **Phase 36** — session summary and YouTube chapters (specification draft outside `main`, not approved; its time-code export a separate item until clarified, not combined with 35.5) | core | medium–large | Phases 32–34; Phase 36's own format decision for `PassId` / «Итоги»; Phase 35 for the heart rate |
 | — | **D049** — the training in the project, the time model and Phase 35's format change (v11, implemented in Step 35.4, in `main` since PR #33; the automatic zero not implemented); approved 2026-10-29; not a phase | format | small | — |
 | H | «Final UX Pass: аудит и упрощение интерфейса» (research, then implementation) | UX | research + medium–large | the core incl. F, G, a regression run |
-| — | **Phase 37** — preliminary route starts from a COROS FIT and the global start calibration (D051, approved 2026-11-03; implemented and merged with PR #33, v12; D051 A1–A15 automated 2026-11-04, acceptance open — `docs/PHASE37.md`) | telemetry | medium–large | Phase 35 (Steps 35.2–35.4), D048; not Phase 36 |
+| — | **Phase 37** — preliminary route starts from a COROS FIT and the global start calibration (D051, approved 2026-11-03; implemented and merged with PR #33, v12; D051 A1–A15 automated 2026-11-04, accepted by the product owner 2026-11-04 — `docs/PHASE37.md`) | telemetry | medium–large | Phase 35 (Steps 35.2–35.4), D048; not Phase 36 |
 
 Stopping points — the product is usable after each:
 - **S0 — at the merge of Phase 26**: a vertical bouldering video with manually chosen AI holds, their animation, static text with
