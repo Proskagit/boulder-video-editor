@@ -1,8 +1,8 @@
 # Phase 37 — Preliminary route starts from a COROS FIT and the global start calibration: manual test plan
 
-Decision: DECISIONS.md D051 (approved 2026-11-03). Record of the phase: `docs/PHASE37.md`. **State (2026-11-03): not run.**
-The phase is implemented and merged into `main` with PR #33 (`1640996`); no row of this plan has been run yet, so the
-product owner's acceptance of Phase 37 is open (Step 37.7). The acceptance items of D051 §10 are cited as «D051 A1»…«D051 A15»; the rows of this plan have their own
+Decision: DECISIONS.md D051 (approved 2026-11-03). Record of the phase: `docs/PHASE37.md`. **State (2026-11-04): the
+acceptance items D051 A1–A15 are checked automatically — see «Automated acceptance of D051 A1–A15» below; the rows A1–G7
+of this plan were not run one by one by hand.** The phase is implemented and merged into `main` with PR #33 (`1640996`). The acceptance items of D051 §10 are cited as «D051 A1»…«D051 A15»; the rows of this plan have their own
 numbers.
 
 Environment: a build of `main` at `1640996` (the merge of PR #33) or later; the projects of 08.08.2026 and 27.09.2026 with their FIT and videos (personal
@@ -16,6 +16,53 @@ not run, with a reason.
 
 Notation: `W_s` the climb's FIT start, `W_auto = W_s − StartCorrection`, `Z` a video's recording zero, `CC` the training's
 clock correction; mark kinds `proposed` / `clamped` / `moved` (D051 §5.3).
+
+## Automated acceptance of D051 A1–A15 (2026-11-04)
+
+Run on `main` `3bb5fa1` plus the branch `test/phase-37-31-acceptance`. «Real data» means the product owner's 27.09 session
+(the FIT and its 16 videos, probed in place, read only) with each video's `Z` set as the owner sets it — «Совместить кадр
+с концом подъёма» at the owner's frozen end mark of a confirmed climb (35.3R2) — and, for A10, also the owner's accepted
+research table of 08.08. Nothing of the real material is written, copied into the repository or quoted here. The
+calibration tests use a real `FitCalibrationStore` on a file in a temporary folder, never the user's file.
+
+| D051 | What it checks | How | Evidence | Result |
+|---|---|---|---|---|
+| A1 | one mark per filmed climb, `W_auto = W_s − 12 s`; on the edge `clamped` and shown as such; none without `Z`; none in Preview / export | real data + unit / UI | `Phase37RealSessionTests.A1_A13_…` (local): 8 of 16 videos with `Z`, 12 marks (C2–C6, C8–C14), exactly the climbs whose start or `W_auto` lies in a video with `Z`, all `proposed`, `StartCorrection` 12 s, none on the 8 videos without `Z`; `FitMarkUiTests.A_mark_clamped_to_the_edge_…` (new): `clamped` on frame 0 and named so in the Inspector; `FitMarkEditTests.Marks_are_an_editor_layer_only_…` (new): the `PlaybackSnapshot` that Preview and export render is the same with and without marks | **PASS** |
+| A2 | «Разметить трассу от метки» opens D048 at the mark, the route starts at `T`; moving `T` leaves the mark; deleting the animation makes the mark the start again | unit / UI | `FitMarkEditTests.Laying_the_route_out_from_a_mark_…`, `Moving_T_of_the_linked_animation_…`, `Deleting_the_linked_animation_makes_the_mark_the_start_again_…` (new: the markup deleted, or only its animation), `Deleting_the_linked_clip_…`; `FitMarkUiTests.The_Inspector_lays_out_from_the_mark_…` | **PASS** |
+| A3 | a declined climb never returns on import / `Z`; «Вернуть» and Undo; a linked animation keeps working without the link; Undo / Redo of `Z` | unit / UI | `FitMarkEditTests.Declining_a_linked_climb_…`, `A_new_Z_never_brings_a_declined_climb_back_…`, `Setting_Z_proposes_the_marks_in_the_same_undo_step_and_Redo_…`; `FitMarkUiTests.A_new_import_of_the_same_activity_…` | **PASS** |
+| A4 | Beta on for a fresh user; a save fills the calibration; an unchanged save adds nothing; a moved mark changes one record | integration (real store, temp file) | `FitCalibrationAcceptanceTests.A4_…` (new): no file → Beta on, 0; the first save creates the file with 5 records; an unchanged save leaves the bytes; a move changes one record | **PASS** |
+| A5 | below 20 the value stays 12 s; above it follows §6.5; reset → 12 s | integration | `FitCalibrationAcceptanceTests.A4_…` (5 records → 12 s), `A5_A6_A7_…` (new): 24 records, 19 moved by −6 s → the estimate of `StartCalibration` and the window's text; reset → 0 records, 12 s; `StartCalibrationTests` (T1) | **PASS** |
+| A6 | Beta off: count unchanged, nothing removed, imports use the last value, off kept after a restart | integration | `FitCalibrationAcceptanceTests.A5_A6_A7_…`: the file's bytes unchanged by a save, Beta still off in a new store | **PASS** |
+| A7 | a new import after a change proposes with the new value; earlier marks do not move | integration | `FitCalibrationAcceptanceTests.A5_A6_A7_…`: a second project's marks carry the new estimate, the first project's marks keep 12 s | **PASS** |
+| A8 | hide → save → Undo → save: the count back, no duplicate | integration | `FitCalibrationAcceptanceTests.A8_…` (new): 5 → 4 → 5 used, 5 records in the file; `FitCalibrationSaveSyncTests.A_hidden_mark_leaves_a_tombstone_…` | **PASS** |
+| A9 | the same FIT again: no second mark; a second mark refused | unit / UI | `FitMarkUiTests.A_new_import_of_the_same_activity_…`, `FitMarkRulesTests.Proposals_skip_active_and_declined_climbs_…`, `FitMarkPersistenceTests` (two active marks → damaged) | **PASS** |
+| A10 | measured, before / after the calibration, no threshold | real data | `Phase37RealSessionTests.A10_…` (local), see «A10 measurement» below | **PASS** (measured) |
+| A11 | a project without a FIT and animations made before the import work and export by D048; a second link refused both ways | unit | `FitMarkEditTests.Without_a_training_the_D048_edits_work_as_before`, `A_link_is_unique_both_ways_…`; `FitMarkPersistenceTests.An_animation_without_a_link_…` | **PASS** |
+| A12 | Copy / Duplicate of a linked clip refused; an ordinary markup pasted next to it; Split keeps the link with the markup | unit | `FitMarkEditTests.Paste_and_Duplicate_of_a_linked_clip_are_refused_…` (an ordinary markup pasted in the same test), `A_split_before_the_animation_…` | **PASS** |
+| A13 | the joint, overlapping recordings by §5.5.1; a climb begun before the recording gets no mark | unit + real data | `FitMarkRulesTests.At_a_joint_…`, `Of_two_overlapping_recordings_…`, `With_equal_starts_…`, `A_climb_whose_start_is_not_filmed_…`; real 27.09: C1 (begun before every recording) has no mark | **PASS** |
+| A14 | a `clamped` mark gives no observation; a move or a layout raises the count by one; Undo lowers it | integration | `FitCalibrationAcceptanceTests.A14_…` (new); `FitMarkEditTests.A_mark_clamped_to_the_last_frame_laid_out_from_…`, `Moving_a_clamped_mark_makes_it_usable` | **PASS** |
+| A15 | a link to an animation on another video: one record by that video's `Z` | unit | `FitMarkRulesTests.A_link_to_an_animation_on_another_video_uses_that_videos_zero_once` (the mark video's `Z` has no influence, the animation video's `Z` moves the value, no `Z` → none); `FitCalibrationSaveSyncTests.A_save_writes_one_record_per_usable_mark` | **PASS** |
+
+**A10 measurement** (`Phase37RealSessionTests.A10_…`, 28 observations: 10 confirmed climbs of 27.09, 18 of 08.08). An
+observation is what a mark moved to the visible start would record, `c = W_s − W_visible start`, with each video's `Z`
+matched by the end of its first climb. The estimate is computed by the application's own `StartCalibration.Estimate`
+from all 28. A route is counted «usable without a correction» when the proposal is within 2 s of the visible start.
+
+| Training | `StartCorrection` | median error | within 1 s | within 2 s | within 3 s | corrections (> 2 s) |
+|---|---|---|---|---|---|---|
+| 27.09 | before 12.0 s | 8.3 s | 1/10 | 1/10 | 2/10 | 9 |
+| 27.09 | after 11.98 s | 8.2 s | 1/10 | 1/10 | 2/10 | 9 |
+| 08.08 | before 12.0 s | 3.1 s | 6/18 | 8/18 | 9/18 | 10 |
+| 08.08 | after 11.98 s | 3.2 s | 6/18 | 8/18 | 8/18 | 10 |
+| both | before 12.0 s | 3.8 s | 7/28 | 9/28 | 11/28 | 19 |
+| both | after 11.98 s | 3.8 s | 7/28 | 9/28 | 10/28 | 19 |
+
+The median lag of both trainings is 11.8 s, so the calibration hardly moves the value (12.0 → 11.98 s) and the share of
+usable routes does not change: on these two trainings the error is the spread of the lag from climb to climb (wide on
+27.09), not a bias that one global correction removes. D051 sets no threshold; this is the report A10 asks for.
+
+The rows A1–G7 below keep their empty evidence column: they were not run one by one by hand; the table above is the
+acceptance evidence of D051 A1–A15.
 
 ## A. Proposals
 | # | Check | Expected result | Evidence |

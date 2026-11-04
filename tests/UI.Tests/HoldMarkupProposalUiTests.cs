@@ -10,6 +10,7 @@ using AiVideoEditor.Timeline;
 using AiVideoEditor.Timeline.Playback;
 using AiVideoEditor.Timeline.Tests.Playback;
 using AiVideoEditor.UI.Common;
+using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
 using AiVideoEditor.UI.ViewModels;
 using AiVideoEditor.UI.ViewModels.Panels;
@@ -334,6 +335,222 @@ public sealed class HoldMarkupProposalUiTests : IAsyncLifetime
 
         Assert.Null(clip.HoldMarkup);
         Assert.False(Markup.HasProposals);
+    }
+
+    // --- Phase 31 manual plan A / B / E as automated acceptance (2026-11-04) ----------------------------------------------
+
+    [Fact]
+    public async Task A1a_with_the_toggle_off_no_proposal_pass_runs_and_the_manual_flow_is_there_at_once()
+    {
+        var clip = AddVideo();
+        _vm.Timeline.SetPlayhead(clip.TimelineStart + MediaTime.FromSeconds(1));
+        _generator.Proposals = Proposals(3);
+        Markup.IsProposalGenerationEnabled = false;
+
+        await Markup.StartCommand.ExecuteAsync(null);
+
+        Assert.True(Markup.IsActive);
+        Assert.Equal(0, _generator.GenerateCalls);
+        Assert.False(Markup.HasProposals);
+        Assert.Equal(HoldMarkupViewModel.ReadyText, Markup.ModeText);
+        await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), false);
+        Assert.True(Markup.HasCandidate);
+    }
+
+    [Fact]
+    public async Task A2_proposals_are_their_own_layer_apart_from_confirmed_holds_and_the_selected_one_is_marked()
+    {
+        var clip = await StartWithProposals(3);
+        Assert.Equal(Markup.Proposals.Select(p => p.Contour), Markup.ProposalContours);
+        Assert.Null(clip.HoldMarkup);                                         // nothing confirmed yet
+        Markup.NextItemCommand.Execute(null);
+        Assert.Equal(1, Markup.SelectedProposalIndex);                        // the highlighted one
+
+        await Markup.AcceptSelectedProposalCommand.ExecuteAsync(null);
+        var hold = Assert.Single(clip.HoldMarkup!.Holds);
+        Assert.Equal(2, Markup.ProposalContours.Length);
+        Assert.DoesNotContain(hold.Points, Markup.ProposalContours);          // the accepted contour left the proposal layer
+    }
+
+    [Fact]
+    public async Task A3_at_most_thirty_proposals_are_shown_by_default_each_with_its_rank_and_score()
+    {
+        await StartWithProposals(40);
+        Assert.Equal(30, Markup.MaxProposalsToShow);
+        Assert.Equal(30, Markup.Proposals.Count);
+        for (var i = 0; i < Markup.Proposals.Count; i++)
+        {
+            var item = Markup.Proposals[i];
+            Assert.Equal(i + 1, item.Rank);
+            Assert.Equal(string.Format(Strings.Holds_ProposalRank, i + 1, item.Score), item.Label);
+        }
+        Assert.True(Markup.Proposals.Zip(Markup.Proposals.Skip(1)).All(p => p.First.Score >= p.Second.Score));   // ranked
+    }
+
+    [Fact]
+    public async Task A6_rejecting_selects_the_next_proposal()
+    {
+        await StartWithProposals(3);
+        var next = Markup.Proposals[1].Proposal.Id;
+        Markup.RejectOrDeleteCommand.Execute(null);                            // Delete
+        Assert.Equal(2, Markup.Proposals.Count);
+        Assert.Equal(next, Markup.SelectedProposal!.Proposal.Id);
+    }
+
+    [Fact]
+    public async Task A9_no_proposals_say_so_and_leave_the_manual_flow()
+    {
+        var clip = AddVideo();
+        _vm.Timeline.SetPlayhead(clip.TimelineStart + MediaTime.FromSeconds(1));
+        _generator.Proposals = Array.Empty<HoldProposal>();
+
+        await Markup.StartCommand.ExecuteAsync(null);
+
+        Assert.Equal(Strings.Holds_NoProposals, _status.Message);
+        Assert.True(Markup.IsActive);
+        Assert.False(Markup.HasProposals);
+        Assert.Equal(HoldMarkupViewModel.ReadyText, Markup.ModeText);
+        await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), false);
+        await Markup.ConfirmCommand.ExecuteAsync(null);
+        Assert.Single(clip.HoldMarkup!.Holds);
+    }
+
+    [Fact]
+    public async Task A10_cancelling_the_generation_stops_the_progress_and_changes_nothing()
+    {
+        var clip = AddVideo();
+        _vm.Timeline.SetPlayhead(clip.TimelineStart + MediaTime.FromSeconds(1));
+        _generator.Proposals = Proposals(3);
+        _generator.Gate = new TaskCompletionSource();
+        var before = UndoSteps();
+
+        var start = Markup.StartCommand.ExecuteAsync(null);
+        Assert.True(Markup.IsGeneratingProposals);
+        Assert.Equal(0.5, Markup.ProposalProgress);
+        Markup.EscapeCommand.Execute(null);                                    // Esc while it runs: cancel and leave
+        _generator.Gate.SetResult();
+        await start;
+
+        Assert.False(Markup.IsGeneratingProposals);
+        Assert.False(Markup.IsActive);
+        Assert.False(Markup.HasProposals);
+        Assert.Null(clip.HoldMarkup);
+        Assert.Equal(before, UndoSteps());
+    }
+
+    [Fact]
+    public async Task B1_shift_click_starts_a_manual_candidate_even_over_a_proposal_and_the_review_stays()
+    {
+        await StartWithProposals(3);
+        var inside = Markup.Proposals[1].Contour[0];
+
+        await Markup.OnClickAsync(inside, additive: true);                    // Shift+click over the second proposal
+
+        Assert.True(Markup.HasCandidate);
+        Assert.Equal(0, Markup.SelectedProposalIndex);                         // the selection is not moved
+        Assert.Equal(3, Markup.Proposals.Count);                               // the proposals stay visible
+        Assert.Equal(3, Markup.ProposalContours.Length);
+    }
+
+    [Fact]
+    public async Task B2_Esc_discards_the_manual_candidate_and_returns_to_the_review_which_a_second_Esc_leaves_unchanged()
+    {
+        await StartWithProposals(3);
+        await Markup.OnClickAsync(new NormalizedPoint(0.95, 0.95), additive: true);
+        Assert.True(Markup.HasCandidate);
+
+        Assert.Same(Markup.EscapeCommand, ShortcutRouter.CommandFor(_vm, Key.Escape, KeyModifiers.None));
+        Markup.EscapeCommand.Execute(null);
+        Assert.False(Markup.HasCandidate);
+        Assert.True(Markup.IsActive);
+        Assert.Equal(3, Markup.Proposals.Count);
+
+        Markup.EscapeCommand.Execute(null);                                    // no candidate: the review unchanged (D047 §2)
+        Assert.True(Markup.IsActive);
+        Assert.Equal(3, Markup.Proposals.Count);
+    }
+
+    [Fact]
+    public async Task B3_a_manual_hold_confirmed_with_Enter_during_the_review_keeps_the_unreviewed_proposals()
+    {
+        var clip = await StartWithProposals(3);
+        await Markup.OnClickAsync(new NormalizedPoint(0.95, 0.95), additive: true);
+        var before = UndoSteps();
+
+        Assert.Same(Markup.ConfirmOrAcceptCommand, ShortcutRouter.CommandFor(_vm, Key.Enter, KeyModifiers.None));
+        await Markup.ConfirmOrAcceptCommand.ExecuteAsync(null);                 // Enter with the manual candidate
+
+        var hold = Assert.Single(clip.HoldMarkup!.Holds);
+        Assert.DoesNotContain(hold.Points, Markup.Proposals.Select(p => p.Contour));   // the manual hold, not a proposal
+        Assert.Equal(3, Markup.Proposals.Count);                               // all three still to review
+        Assert.False(Markup.HasCandidate);
+        Assert.True(UndoSteps() > before);
+    }
+
+    public static TheoryData<string> Leaves => new() { "Done", "Play", "Seek" };
+
+    [Theory]
+    [MemberData(nameof(Leaves))]
+    public async Task B4_Done_Play_or_Seek_leaves_the_mode_keeping_the_accepted_and_manual_holds_only(string how)
+    {
+        var clip = await StartWithProposals(4);
+        await Markup.AcceptSelectedProposalCommand.ExecuteAsync(null);         // one accepted
+        Markup.RejectSelectedProposalCommand.Execute(null);                    // one rejected
+        await Markup.OnClickAsync(new NormalizedPoint(0.95, 0.95), additive: true);
+        await Markup.ConfirmCommand.ExecuteAsync(null);                         // one manual; two unreviewed remain
+        Assert.Equal(2, Markup.Proposals.Count);
+
+        switch (how)
+        {
+            case "Done": Markup.DoneCommand.Execute(null); break;
+            case "Play": _vm.Preview.IsPlaying = true; break;
+            default: _vm.Timeline.SetPlayhead(clip.TimelineStart + MediaTime.FromSeconds(2)); break;
+        }
+
+        Assert.False(Markup.IsActive);
+        Assert.False(Markup.HasProposals);
+        Assert.Empty(Markup.ProposalContours);
+        Assert.Equal(2, clip.HoldMarkup!.Holds.Length);                         // the accepted and the manual
+    }
+
+    [Fact]
+    public async Task B5_re_entering_a_clip_with_holds_offers_no_proposals_and_shows_its_holds()
+    {
+        var clip = await StartWithProposals(2);
+        await Markup.AcceptAllProposalsCommand.ExecuteAsync(null);
+        Markup.DoneCommand.Execute(null);
+        var calls = _generator.GenerateCalls;
+
+        await Markup.StartCommand.ExecuteAsync(null);
+
+        Assert.True(Markup.IsActive);
+        Assert.False(Markup.HasProposals);
+        Assert.Equal(calls, _generator.GenerateCalls);
+        Assert.Equal(2, Markup.HoldCount);
+    }
+
+    [Theory]
+    [InlineData("ru")]
+    [InlineData("en")]
+    public void E2_the_review_texts_follow_the_interface_language(string culture)
+    {
+        // Read per culture without touching the shared Strings.Culture: the UI tests run in parallel.
+        var info = System.Globalization.CultureInfo.GetCultureInfo(culture);
+        string Text(string name) => Strings.ResourceManager.GetString(name, info)!;
+        var texts = new[] { Text(nameof(Strings.Holds_ProposeAutomatically)), Text(nameof(Strings.Holds_Accept)), Text(nameof(Strings.Holds_Reject)),
+            Text(nameof(Strings.Holds_AcceptAll)), Text(nameof(Strings.Holds_RejectAll)), Text(nameof(Strings.Holds_NoProposals)),
+            Text(nameof(Strings.Holds_GeneratingProposals)), Text(nameof(Strings.Holds_ReviewProposals)), Text(nameof(Strings.Holds_ProposalsHeading)),
+            string.Format(info, Text(nameof(Strings.Holds_ProposalRank)), 1, 0.9) };
+        if (culture == "ru")
+        {
+            Assert.Equal(new[] { "Предлагать зацепки автоматически", "Принять", "Отклонить", "Принять все", "Отклонить все",
+                "Зацепки не найдены — разметьте вручную." }, texts.Take(6));
+            Assert.All(texts, t => Assert.Matches("[А-Яа-яЁё]", t));          // every review text in Russian
+        }
+        else
+        {
+            Assert.All(texts, t => Assert.DoesNotMatch("[А-Яа-яЁё]", t));     // and in English in the English interface
+        }
     }
 
     private sealed class FakeProposalGenerator : IHoldProposalGenerator

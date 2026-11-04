@@ -135,7 +135,7 @@ the product owner, and Steps 37.1–37.6 were committed together as `90950cc` (t
   (asks first). If the drop-down does not open without a training today, the item is added to its «no training» form.
 - **Tests (T6).**
 
-### 37.7 — Verification and closeout *(in part: automated gates done, the manual plan not run)*
+### 37.7 — Verification and closeout *(in part: automated gates done; D051 A1–A15 automated 2026-11-04; acceptance open)*
 - Full and heavy suites, `--blame-hang`; the manual plan on the projects of 08.08 and 27.09 (A1–A15); the measurement
   A10 (no threshold); documents; the Phase 37 pull request.
 - **Done (2026-11-03, on `feat/phase-37-fit-starts`):** Release / Debug `-warnaserror` 0 / 0; heavy (`AIVE_HEAVY_TESTS=1`)
@@ -150,8 +150,14 @@ the product owner, and Steps 37.1–37.6 were committed together as `90950cc` (t
   (D051 §5.2, §5.3; another activity still replaces them by §5.11).
 - `e8d7960` (in the same pull request) fixed two Phase 35 test issues seen on a CI checkout: the FIT resolve joins a
   running read (the race behind `TrainingLifecycleTests.Other_bytes…`), and the toolbar tooltip test ignores line ends.
-- **Open:** the manual plan `docs/PHASE37_MANUAL_TEST_PLAN.md` (not run), the measurement A10, the product owner's
-  acceptance.
+- **Automated acceptance (2026-11-04, branch `test/phase-37-31-acceptance`):** D051 A1–A15 each with its evidence in
+  `docs/PHASE37_MANUAL_TEST_PLAN.md`, «Automated acceptance of D051 A1–A15» — all PASS; A1 and A13 on the owner's real
+  27.09 session (the local `Phase37RealSessionTests`: 8 of 16 videos with the owner's `Z`, 12 marks exactly on the
+  climbs with a filmed start, none without `Z`, C1 none); the calibration items A4–A8, A14 through the real store on a
+  temporary file (`FitCalibrationAcceptanceTests`); A10 measured on 27.09 and 08.08 (28 climbs: the estimate 12.0 → 11.98 s,
+  routes within 2 s 9 of 28 before and after — no bias for a global correction to remove). New tests for A1 (no marks in
+  the snapshot of Preview and export; a `clamped` mark named so) and A2 (deleting the linked animation). No defect found.
+- **Open:** the product owner's acceptance; the rows A1–G7 of the manual plan were not run one by one by hand.
 
 ## 3. The decisions of 2026-11-03 and their technical basis
 

@@ -333,6 +333,28 @@ public sealed class FitMarkEditTests
         Assert.Equal((clip.Id, linked), (Mark(_a).LinkedClipId!.Value, Mark(_a).PositionChangedAt));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Deleting_the_linked_animation_makes_the_mark_the_start_again_in_one_step(bool wholeMarkup)
+    {
+        // D051 A2 «deleting the animation makes the mark the start again»: the markup deleted, or only its animation.
+        Propose();
+        var clip = MarkedClip(0);
+        var own = Mark(_a).Position;
+        var ownStart = FitMarkRules.EffectiveStart(Mark(_a), _f.Projects.Current);
+        Assert.True(_svc.LinkFitClimb(_a, clip.Id).Success);
+        Assert.NotEqual(ownStart, FitMarkRules.EffectiveStart(Mark(_a), _f.Projects.Current));   // T is the start while linked
+
+        Assert.True((wholeMarkup ? _svc.DeleteHoldMarkup(clip.Id) : _svc.SetHoldAnimation(clip.Id, null)).Success);
+        Assert.Null(Mark(_a).LinkedClipId);
+        Assert.Equal(own, Mark(_a).Position);
+        Assert.Equal(ownStart, FitMarkRules.EffectiveStart(Mark(_a), _f.Projects.Current));
+        _f.UndoRedo.Undo();
+        Assert.Equal(clip.Id, Mark(_a).LinkedClipId);
+        Assert.NotNull(clip.HoldMarkup?.Animation);
+    }
+
     [Fact]
     public void A_split_before_the_animation_moves_the_link_to_the_right_part_inside_it_removes_it_after_it_keeps_it()
     {
@@ -442,6 +464,37 @@ public sealed class FitMarkEditTests
         var pasted = _svc.PasteClips(copied, MediaTime.FromFrame(3000, Rate));
         Assert.True(pasted.Success);
         Assert.DoesNotContain(_training.Marks, m => m.LinkedClipId is { } id && pasted.ClipIds.Contains(id));
+    }
+
+    [Fact]
+    public void Marks_are_an_editor_layer_only_the_snapshot_of_Preview_and_export_is_the_same_with_and_without_them()
+    {
+        // D051 A1 «none in Preview or export»: Preview and export render the same PlaybackSnapshot.
+        Propose();
+        Assert.True(_svc.AddClip(_video.Id, _f.V1.Id, MediaTime.Zero).Success);
+        Assert.NotEmpty(_training.Marks);
+        var with = PlaybackSnapshotBuilder.Build(_f.Projects.Current, 1);
+        var marks = _training.Marks.ToList();
+        _training.Marks.Clear();
+        var without = PlaybackSnapshotBuilder.Build(_f.Projects.Current, 1);
+        _training.Marks.AddRange(marks);
+
+        Assert.Equal(without.Duration, with.Duration);
+        Assert.Equal(without.VideoLayers.Length, with.VideoLayers.Length);
+        for (var i = 0; i < with.VideoLayers.Length; i++)
+        {
+            // The heart-rate binding holds the training's workout by reference: compared by its values.
+            static string Hr(HeartRateBinding? b) => b is null ? "none" : $"{b.Zero:O} {b.ClockCorrection.Ticks} {b.Workout.Climbs.Count()}";
+            Assert.Equal(without.VideoLayers[i].Spans.Select(s => s with { HeartRate = null }), with.VideoLayers[i].Spans.Select(s => s with { HeartRate = null }));
+            Assert.Equal(without.VideoLayers[i].Spans.Select(s => Hr(s.HeartRate)), with.VideoLayers[i].Spans.Select(s => Hr(s.HeartRate)));
+            Assert.Equal(without.VideoLayers[i].Texts, with.VideoLayers[i].Texts);
+            Assert.Equal(without.VideoLayers[i].Templates, with.VideoLayers[i].Templates);
+        }
+        foreach (var m in marks)
+        {
+            var at = m.Position.SourceTime ?? MediaTime.Zero;
+            Assert.Equal(without.LayersAt(at).Length, with.LayersAt(at).Length);
+        }
     }
 
     [Fact]

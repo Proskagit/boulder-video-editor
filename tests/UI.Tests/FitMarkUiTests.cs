@@ -57,14 +57,14 @@ public sealed class FitMarkUiTests
     }
 
     /// <summary>Climb 1 at W0 + 15 s (proposed at 3 s of the video), climb 2 at W0 + 40 s (not filmed).</summary>
-    private static ClimbingWorkout Workout(DateTimeOffset? start = null) => new()
+    private static ClimbingWorkout Workout(DateTimeOffset? start = null, double firstClimb = 15) => new()
     {
         DeviceName = "COROS APEX 4 42mm", Manufacturer = 294, Product = 814, StartUtc = start ?? W0.AddMinutes(-5), EndUtc = W0.AddHours(1),
         UtcOffset = TimeSpan.FromHours(3), ElapsedTime = MediaTime.FromSeconds(3900), TimerTime = MediaTime.FromSeconds(3900),
         Sport = 31, SubSport = 69, AverageHeartRate = null, MaxHeartRate = null, HeartRate = [], Pauses = [], Warnings = [],
         Segments = new[]
         {
-            new WorkoutSegment(0, WorkoutSegmentKind.Climb, 1, W0.AddSeconds(15), W0.AddSeconds(35), MediaTime.FromSeconds(20), null, null),
+            new WorkoutSegment(0, WorkoutSegmentKind.Climb, 1, W0.AddSeconds(firstClimb), W0.AddSeconds(35), MediaTime.FromSeconds(20), null, null),
             new WorkoutSegment(2, WorkoutSegmentKind.Climb, 2, W0.AddSeconds(40), W0.AddSeconds(60), MediaTime.FromSeconds(20), null, null),
         }
     };
@@ -90,6 +90,17 @@ public sealed class FitMarkUiTests
         Import();
         Assert.Equal((FitMarkPosition.Proposed, W0.AddSeconds(3), 120_000_000L), (Mark.Position, Mark.AutoStartUtc, Mark.StartCorrectionTicks));
         Assert.False(_undo.CanUndo && _undo.NextUndo?.Description == "Propose FIT Marks");
+    }
+
+    [Fact]
+    public void A_mark_clamped_to_the_edge_of_the_recording_is_shown_as_such_in_the_Inspector_and_on_the_timeline()
+    {
+        // D051 A1 «on the edge of the recording, shown as such»: climb 1 at W0 + 5 s → W_auto = W0 − 7 s, before the video.
+        _session.Attach(new TrainingFile(Workout(firstClimb: 5), 10, new string('b', 64)), @"C:\fit\b.fit");
+        Assert.Equal(FitMarkPositionKind.Clamped, Mark.Position.Kind);
+        Assert.Equal(MediaTime.Zero, Mark.Position.SourceTime);
+        Assert.Equal(string.Format(Strings.Inspector_FitMarkItem, 1, "13:00:05", Strings.FitMark_Clamped), Assert.Single(Inspector().FitMarkItems));
+        Assert.NotEqual(Strings.FitMark_Proposed, Strings.FitMark_Clamped);
     }
 
     [Fact]
