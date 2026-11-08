@@ -84,7 +84,10 @@ animal; ordinary editing — a virtual camera move inside a wide source.
 None exist; every clip property is constant over the clip. D042 §3 puts "full motion design (keyframes, speed ramps, motion
 paths)" outside the plan unless a separate justification appears. The virtual camera is an **automatically computed**
 time-varying framing, not user keyframes, but it is a motion path of the picture: taking it up needs that separate
-justification and the product owner's decision (D042 §3, "a new large function").
+justification and the product owner's decision (D042 §3, "a new large function"). D052 K1 (2026-11-08) also deferred
+manual key frames for the hold tracking; the first version of the concept asks for no manual camera path, so it needs no
+key frames either — but its "manual editing of the camera path" (later, §1) would, and the two should then share one
+design.
 
 ### Time-varying values already in the pipeline
 
@@ -119,6 +122,18 @@ per-frame value in `LayersAt`, and Preview = export (D018 / D023) holds by const
 DirectML with a CPU fallback. No detection or tracking model exists. Whether SAM 2's video propagation (its memory
 mechanism, not part of the current image-only export) or another tracker is suitable is for the research.
 
+### Measured costs that bound the design (development machine; `docs/PHASE_HOLD_TRACKING.md` §7.2, §19.5)
+
+- SAM 2.1 Large: encoder ≈ 0.35 s per frame on the GPU, ≈ 7.4 s on the CPU; 852 MB encoder. A per-frame SAM pass over a
+  3-minute 30 fps clip (5400 frames) would be ≈ 30 min on the GPU even before any memory / propagation step — a SAM-based
+  tracker is practical only on a sparse sampling or with a lighter model.
+- The R2 → E camera analysis (grey frames at 960 px, one every 0.1 s, denser on jolts): 47–617 s clips took 861 s in all,
+  a 617 s clip 179 s — about 0.3 × the clip's duration; its track ≈ 80 bytes per sample. A comparable object analysis
+  has to be of the same order to be usable in an editing session.
+- Rendering a per-frame framing is cheap (one more affine per layer); the cost is all in the analysis.
+
+These are facts about the existing code, not estimates of an object tracker's cost.
+
 ### Persistence
 
 `project.json` v14 (`ProjectSerializer.CurrentFormatVersion`); clip properties through `ClipDto` / `VideoClipDto` / `CropDto`
@@ -139,10 +154,38 @@ mechanism, not part of the current image-only export) or another tracker is suit
 5. **Time:** the range and the track in source time, `MediaTime` ticks (D007); transition durations as ticks, rounded to
    whole frames like the other per-frame rules; the clip's Speed maps timeline → source time as today.
 
+### Limits that follow from the concept itself (audit 2026-11-08)
+
+- **Headroom.** "Never outside the source" means the camera can move only where the source is larger than the visible
+  area. A clip fitted exactly to the canvas (Scale 1, no crop — e.g. 4K on a 4K or 1080p landscape canvas) leaves **no room
+  for Follow** at all; movement appears only with a zoom > 1 or a canvas of another shape (a vertical canvas over
+  landscape footage, D041). Follow without zoom is therefore useful mainly on vertical canvases.
+- **Resolution.** A zoom of K on a 4K source exported at 4K shows 3840 / K source pixels across: 2× is effectively
+  1080p. Dynamic Zoom's upper limit is a quality limit, not only a framing one.
+- **The object leaving the source** (the climber at the top of a tall wall, outside a tripod's frame) cannot be followed
+  — only held at the clamp.
+- **Climbing-specific difficulty for a tracker:** a large, deforming body with limbs far from its centre; chalk, motion
+  blur on dynamic moves; the camera often static (object motion = image motion), sometimes hand-held (both mixed);
+  the climber's colours close to holds or walls. What "the centre of the object" is (a box centre, the body's centre of
+  mass, the torso) is a product question with a visible effect.
+
 ## 4. Open questions for the technical research
 
-- The tracking algorithm (classical — correlation filters, optical flow; a model — SAM 2 video propagation or a dedicated
-  tracker) — accuracy on the real footage (climbing first), speed on 4K, licence, model size, DirectML / CPU.
+- The tracking algorithm — candidate families to compare, **none chosen**: (a) classical single-object trackers
+  (correlation filters such as KCF / CSRT / MOSSE; point tracking with the existing pyramidal Lucas–Kanade code of
+  `FeatureTracker` on the object, not the wall); (b) a person detector plus association (the object a climber — licences
+  vary widely between model families and have to be checked); (c) a dedicated learned single-object tracker exported to
+  ONNX; (d) SAM 2 video propagation (needs an export of its memory modules, not in `src/Vision` today; cost above). Measured
+  for each: accuracy on the real footage (climbing first), speed on 4K, licence, model size, DirectML / CPU, determinism.
+- The evaluation: a set of the owner's climbing clips (tripod, hand-held, vertical / landscape, a fall, a climber leaving
+  the frame) with hand-annotated boxes on sampled frames, an offline harness in `tools/` like
+  `tools/hold-tracking-check/`; tracking metrics (centre error, overlap, frames lost, re-detections, wrong switches) and
+  camera metrics computed from a track (object inside a central zone, clamp events, jerk / acceleration). Thresholds are
+  an owner decision after the measurement, as E-4 was.
+- Storage and determinism: the object track as derived data in the application cache (keyed like `CameraMotionCacheStore`:
+  the file's fingerprint, the request incl. the object prompt, an `AnalysisVersion`), never in `project.json`; Preview and
+  export read the same cached track, so they agree by construction on one machine; a GPU / CPU or model change re-analyses
+  and may change the result — to be measured and stated, not hidden.
 - How the object is chosen (a click, a box, a SAM mask) and how a wrong switch to another object is detected / prevented.
 - The loss policy: hold the last framing, drift back, or ease to the base framing; the re-detection rule.
 - Rotation ≠ 0 and the source-bound clamp; interaction with the user's crop (the camera inside it or replacing it).
@@ -155,5 +198,8 @@ mechanism, not part of the current image-only export) or another tracker is suit
 ## 5. Rules of this record
 
 - No phase is created (the product owner, 2026-11-08); no implementation is started; no algorithm is chosen.
+- The roadmap audit of 2026-11-08 (`docs/ROADMAP_AUDIT_2026-11-08.md`) keeps the concept in Future / Backlog: it is not
+  ready for a phase (no tracker, no evaluation data, no D042 §3 justification). Its proposed first step, when the owner
+  takes it up, is a research **R4** without product code (§4), which may run in parallel with other work as R1–R3 did.
 - Taking it up needs: the research above → a technical specification → a decision in `DECISIONS.md` with the product
   owner's approval → a phase number.

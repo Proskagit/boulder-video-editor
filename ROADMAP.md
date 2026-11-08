@@ -102,9 +102,14 @@ and 37 accepted on 2026-11-04, Phase 31 with D3 and C5 deferred); the **highest 
   (the timing model, v10) and 34 (the overlay strip, variant B) implemented, a separate formal acceptance not recorded.
 - **Phases 30 and 31** — both merged through PR #31. Phase 30 technically complete, its full S1 acceptance open.
   **Phase 31 accepted by the product owner on 2026-11-04 with two deferred checks (D3 — 500 holds, impractical by hand; C5 — 1080p, the owner works on 4K)**; every other check PASS (automated, PR #38, and the owner by hand). **R2 → E** (the outlines following the camera) — its camera-motion part merged in PR #31; its completion (D052: K1 deferred,
-  K2 WARN, K3 PERSIST, D4 cache, E-1…E-7) implemented 2026-11-08, the accuracy bound (3 px at 1920) approved 2026-11-08; PR #42 awaiting the owner's review and merge —
+  K2 WARN, K3 PERSIST, D4 cache, E-1…E-7) implemented 2026-11-08, the accuracy bound (3 px at 1920) approved 2026-11-08; merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`) and **technically accepted by the product owner on 2026-11-08**; the manual plan `docs/R2E_MANUAL_TEST_PLAN.md` stays outstanding — to be run during practical application testing, not blocking the next phase —
   unnumbered.
 - **Phase 36** — the session summary and the YouTube chapters: a specification draft outside `main`, no decision.
+
+**Priorities (the product owner, 2026-11-08, on `docs/ROADMAP_AUDIT_2026-11-08.md`):** 1) Step 35.6 — next (its scope
+and acceptance criteria in a separate task first); 2) Phase 30 / S1 — the next major milestone, incl. the clean-environment
+validation and the remaining release requirements; 3) H after S1; 4) R4 (Motion Tracking Camera research) deferred until
+then. Human occlusion stays deferred; Motion Tracking Camera stays Future / Backlog.
 
 **Next (the product owner's direction of 2026-11-03, DECISIONS.md D050): Step 35.5 — the heart-rate overlay** (implemented
 and accepted on 2026-11-03, merged with PR #35), then 35.6, Phase 35's closeout. It is not combined with an export of time codes: the time-code export (Phase 36's YouTube chapters)
@@ -495,12 +500,12 @@ research, F only after its feasibility is confirmed and a separate agreement; H 
 | R1 | Automatic hold proposals — research | research | research | — (parallel with A–C) |
 | D | Automatic hold proposals — implementation, on a go | AI | large | R1 |
 | R2 | Outlines following the holds while the camera moves, with occlusion that hides only the covered segments of a contour — research (concept of 2026-10-22: `docs/DEVELOPMENT_PLAN.md`, "R2 → E") | research | research (highest uncertainty) | — (parallel) |
-| E | Outline tracking — implementation, on a go (camera-motion part merged in PR #31 `024f3fb`; accepted by the owner for continued development, not marked complete; completion D052 implemented 2026-11-08 — accuracy bound 3 px approved, PR #42 awaiting the owner's review and merge; key frames deferred (K1), occlusion a separate stage — `docs/DEVELOPMENT_PLAN.md` "R2 → E" status) | AI | large | R2; after D if D is taken |
+| E | Outline tracking — implementation, on a go (camera-motion part merged in PR #31 `024f3fb`; accepted by the owner for continued development, not marked complete; completion D052 implemented 2026-11-08 — accuracy bound 3 px approved, merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`) and **technically accepted by the product owner on 2026-11-08**; the manual plan `docs/R2E_MANUAL_TEST_PLAN.md` stays outstanding — to be run during practical application testing, not blocking the next phase; key frames deferred (K1), occlusion a separate stage — `docs/DEVELOPMENT_PLAN.md` "R2 → E" status) | AI | large | R2; after D if D is taken |
 | D048-1 | Route selection at `T` and review — **Phase 32** (D048 **approved 2026-10-28**; implemented, then **paused / deferred**: «Авторазметка» hidden, code and research kept — `docs/HOLD_AUTO_DETECTION_RESEARCH.md`) | AI | medium | D (Phase 31), E's tracking |
 | D048-2 | Timing model (animation duration, orders, standard / short-intro layout), template ↔ clip anchor, speed / trim / copy rules, `project.json` v10 (v9 converted on save, no backward compatibility) — **Phase 33** (implemented and merged, PR #32; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded) | core | medium–large | D048 approval; schema check with F done (COROS takes the next version) |
 | D048-3 | The overlay strip — **Phase 34** (implemented and merged, PR #32; separate formal acceptance not recorded; variant B: the segments inside the «Боулдер»; the lane above the clip Debug-only) | UX | medium | D048-2 |
 | R3 | COROS exports and video timestamps — research, carried out on the owner's real APEX 4 FIT export (done; `docs/PHASE_COROS.md` §1) | research | research (needs real files) | — (parallel) |
-| F | **Phase 35** — import of COROS trainings and the heart rate in the video (formerly "Phase Coros", «COROS Pace 4: пульс и телеметрия в видео»; any COROS model; D049 / D050 approved 2026-10-29; in `main` in part since PR #33 — 35.0–35.2 done, 35.3 in part (35.3d: B6 not met; 35.3e awaiting a decision), 35.4 implemented; **35.5 the heart-rate overlay implemented and accepted 2026-11-03, PR #35 open; 35.6 not started**) | telemetry | large | R3, A |
+| F | **Phase 35** — import of COROS trainings and the heart rate in the video (formerly "Phase Coros", «COROS Pace 4: пульс и телеметрия в видео»; any COROS model; D049 / D050 approved 2026-10-29; in `main` in part since PR #33 — 35.0–35.2 done, 35.3 in part (35.3d: B6 not met; 35.3e awaiting a decision), 35.4 implemented; **35.5 the heart-rate overlay implemented and accepted 2026-11-03, merged with PR #35 (`5c5cb7f`); 35.6 not started**) | telemetry | large | R3, A |
 | — | **Phase 36** — session summary and YouTube chapters (specification draft outside `main`, not approved; its time-code export a separate item until clarified, not combined with 35.5) | core | medium–large | Phases 32–34; Phase 36's own format decision for `PassId` / «Итоги»; Phase 35 for the heart rate |
 | — | **D049** — the training in the project, the time model and Phase 35's format change (v11, implemented in Step 35.4, in `main` since PR #33; the automatic zero not implemented); approved 2026-10-29; not a phase | format | small | — |
 | H | «Final UX Pass: аудит и упрощение интерфейса» (research, then implementation) | UX | research + medium–large | the core incl. F, G, a regression run |
@@ -566,7 +571,8 @@ takes the vertical-video export.
   Preview; the editor tracks it and animates the picture's visible area (Follow / Fixed Zoom / Dynamic Zoom, start / end
   transitions, never outside the source). Two components: Object Tracking and Virtual Camera. Concept, fit with the current
   architecture and open questions: `docs/MOTION_TRACKING_CAMERA.md`. Next, when taken up: a technical research → a
-  specification → a decision (D042 §3: a motion path, a large function).
+  specification → a decision (D042 §3: a motion path, a large function). The roadmap audit of 2026-11-08
+  (`docs/ROADMAP_AUDIT_2026-11-08.md`, not a decision) keeps it in the backlog and proposes a research R4 as its first step.
 - **FU-35.5.1 — The heart rate of one climb only (the product owner at the acceptance of Step 35.5, 2026-11-03)** — *not
   decided, not planned.* Show the heart-rate overlay only within one climb — the time of its route overlay, from the start
   to the top or the end of the attempt — instead of over the whole active training (the current behaviour, kept). Needs a
