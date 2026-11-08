@@ -442,4 +442,79 @@ public sealed class OverlayStripGestureUiTests
         t.EndGesture();
         Assert.Equal(540, clip.TimelineEnd.ToNearestFrame(Rate));
     }
+
+    // ---- variant B hover feedback (D048 §4.1 tooltips, §4.2 handles; the owner's decision of 2026-11-08) ----------------
+
+    [Fact]
+    public void Variant_B_hover_shows_a_resize_cursor_on_every_edge_and_boundary_a_move_cursor_on_the_bodies_and_nothing_elsewhere()
+    {
+        var (t, _, template) = VariantB();
+        var plate = Vm(t, template);
+        StripCursor At(double frames, bool alt = false) => t.TemplateHoverAt(plate, X(t, frames), alt).Cursor;
+
+        Assert.Equal(StripCursor.Resize, At(0));                                        // the plate's left edge: Ps
+        Assert.Equal(StripCursor.Resize, At(50));                                       // the orange's start
+        Assert.Equal(StripCursor.Resize, At(174.5));                                    // the orange's end
+        Assert.Equal(StripCursor.Resize, At(300));                                      // the status boundary
+        Assert.Equal(StripCursor.Resize, At(425));                                      // the plate's right edge: Pe
+        Assert.Equal(StripCursor.Move, At(110));                                        // the orange's body
+        Assert.Equal(StripCursor.Default, At(20));                                      // the green's body: the template's own
+        Assert.Equal(StripCursor.Default, At(360));                                     // the lilac's body…
+        Assert.Equal(StripCursor.Move, At(360, alt: true));                             // …with Alt it drags (§4.2)
+
+        // The feedback is the press's: at every position across the plate the cursor matches the handle a press takes.
+        for (var frames = -2.0; frames <= 427; frames += 0.5)
+        {
+            var handle = t.TemplatePressAt(plate, X(t, frames))?.Handle;
+            var expected = handle switch
+            {
+                null => StripCursor.Default,
+                OverlayStripHandle.OrangeBody or OverlayStripHandle.LilacBody => StripCursor.Move,
+                _ => StripCursor.Resize
+            };
+            Assert.Equal(expected, At(frames));
+        }
+
+        var (u, _, other) = VariantB(BoulderStatus.None);                               // no status: the right edge is the template's trim
+        Assert.Equal(StripCursor.Default, u.TemplateHoverAt(Vm(u, other), X(u, 425)).Cursor);
+    }
+
+    [Fact]
+    public void Variant_B_hover_names_the_segment_under_the_pointer_and_its_times_as_the_lane_does()
+    {
+        var (t, clip, template) = VariantB();
+        var plate = Vm(t, template);
+        string Lane(StripSegmentKind kind) => Vm(t, clip).StripSegments.Single(s => s.Kind == kind).Tip;
+        string? Tip(double frames) => t.TemplateHoverAt(plate, X(t, frames)).Tip;
+
+        Assert.Equal(Lane(StripSegmentKind.Green), Tip(20));                            // [Ps, As): the green
+        Assert.Equal(Lane(StripSegmentKind.Orange), Tip(110));                          // the orange drawn over the green
+        Assert.Equal(Lane(StripSegmentKind.Green), Tip(250));                           // [Ae, S): the green again
+        Assert.Equal(Lane(StripSegmentKind.Lilac), Tip(360));
+        Assert.Null(Tip(430));                                                          // past the plate: no segment
+        Assert.Contains("00:00:05:00", Lane(StripSegmentKind.Orange));                  // the segment's own times
+        Assert.Contains("00:00:10:00", Lane(StripSegmentKind.Orange));
+
+        // A strip edit renames the tooltip with the new times.
+        Assert.True(_edit.EditOverlayStrip(clip.Id, OverlayStripHandle.OrangeEnd, 25).Success);
+        Assert.Equal(Lane(StripSegmentKind.Orange), Tip(110));
+        Assert.Contains("00:00:11:00", Tip(110));
+    }
+
+    [Fact]
+    public void Variant_B_hover_on_the_overflow_beside_the_plate_and_outside_variant_B_gives_its_own_feedback_or_none()
+    {
+        var (t, clip, template) = VariantB();
+        Assert.True(_edit.EditOverlayStrip(clip.Id, OverlayStripHandle.OrangeStart, -100).Success);   // As = 25 < Ps = 75
+        var plate = Vm(t, template);
+        Assert.NotEmpty(plate.TemplateOverflow);
+        var hover = t.TemplateHoverAt(plate, X(t, -30), overflow: true);                // the orange's part before the plate
+        Assert.Equal(StripCursor.Move, hover.Cursor);
+        Assert.Equal(Vm(t, clip).StripSegments.Single(s => s.Kind == StripSegmentKind.Orange).Tip, hover.Tip);
+        Assert.Equal(StripCursor.Resize, t.TemplateHoverAt(plate, X(t, -50), overflow: true).Cursor);   // its start
+
+        Assert.Equal(StripHover.None, t.TemplateHoverAt(Vm(t, clip), X(t, 100)));      // the video clip itself: not a plate
+        t.SegmentsInTemplate = false;                                                   // the lane (Debug): no plate feedback
+        Assert.Equal(StripHover.None, t.TemplateHoverAt(Vm(t, template), X(t, 110)));
+    }
 }

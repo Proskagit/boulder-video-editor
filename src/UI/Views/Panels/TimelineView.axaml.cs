@@ -32,6 +32,10 @@ public partial class TimelineView : UserControl
     // D048 §4.2: the strip handle pressed (its gesture runs in the view model like a trim).
     private (TimelineClipViewModel Clip, OverlayStripHandle Handle)? _pressedStrip;
     private TimelineClipViewModel? _pressedTemplate;   // variant B: the «Боулдер» the strip press was on
+    // Variant B (D048 §4.1 / §4.2): the plate (or its overflow) whose cursor and tooltip the pointer currently sets.
+    private Control? _stripHoverTarget;
+    private static readonly Cursor ResizeCursor = new(StandardCursorType.SizeWestEast);
+    private static readonly Cursor MoveCursor = new(StandardCursorType.SizeAll);
 
     private double _pointerViewportX;
     private double _pointerLanesY;
@@ -50,6 +54,7 @@ public partial class TimelineView : UserControl
         TrackRows.PointerPressed += OnTracksPressed;
         TrackRows.PointerMoved += OnTracksMoved;
         TrackRows.PointerReleased += OnTracksReleased;
+        TrackRows.PointerExited += (_, _) => ClearStripHover();
         TrackRows.PointerCaptureLost += (_, _) =>
         {
             if (_pressedClip is not null || _pressedStrip is not null) CancelGesture();
@@ -279,8 +284,54 @@ public partial class TimelineView : UserControl
             _viewModel.UpdateMarquee(e.GetPosition(ContentRoot).X, e.GetPosition(TrackRows).Y);
             return;
         }
-        if (!_gestureStarted) return;
+        if (!_gestureStarted)
+        {
+            UpdateStripHover(e);
+            return;
+        }
         _viewModel.UpdateGesture(e.GetPosition(ContentRoot).X, TrackAt(e.GetPosition(TrackRows).Y));
+    }
+
+    /// <summary>
+    /// Variant B: the pointer over a «Боулдер» (or its overflow) shows the cursor of the strip handle a press there would
+    /// take and the tooltip of the segment under it (<see cref="TimelineViewModel.TemplateHoverAt"/>); leaving the plate
+    /// restores its own (none). Only feedback — the press and the drag are decided in <c>OnTracksPressed</c> as before.
+    /// </summary>
+    private void UpdateStripHover(PointerEventArgs e)
+    {
+        if (_viewModel is null) return;
+        var alt = TimelineGestureModifiers.IsSlip(e.KeyModifiers);
+        Control? target = null;
+        var hover = StripHover.None;
+        if (OverflowOf(e.Source) is { } overflow)
+        {
+            target = overflow.Panel;
+            hover = _viewModel.TemplateHoverAt(overflow.Plate, e.GetPosition(overflow.Panel).X, alt, overflow: true);
+        }
+        else if (ClipBorderOf(e.Source) is { DataContext: TimelineClipViewModel clip } border)
+        {
+            target = border;
+            hover = _viewModel.TemplateHoverAt(clip, e.GetPosition(border).X, alt);
+        }
+        if (hover == StripHover.None) target = null;   // not a plate with segments: nothing of ours to show
+        if (!ReferenceEquals(target, _stripHoverTarget)) ClearStripHover();
+        if (target is null) return;
+        _stripHoverTarget = target;
+        target.Cursor = hover.Cursor switch
+        {
+            StripCursor.Resize => ResizeCursor,
+            StripCursor.Move => MoveCursor,
+            _ => null
+        };
+        if (!Equals(ToolTip.GetTip(target), hover.Tip)) ToolTip.SetTip(target, hover.Tip);
+    }
+
+    private void ClearStripHover()
+    {
+        if (_stripHoverTarget is not { } target) return;
+        _stripHoverTarget = null;
+        target.Cursor = null;
+        ToolTip.SetTip(target, null);
     }
 
     private void OnTracksReleased(object? sender, PointerReleasedEventArgs e)

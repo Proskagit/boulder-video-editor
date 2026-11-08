@@ -136,6 +136,27 @@ public sealed partial class TimelineViewModel
         };
     }
 
+    /// <summary>
+    /// Variant B: what the pointer over a «Боулдер» at <paramref name="templateX"/> pixels from its left edge shows — the
+    /// cursor of the strip handle a press there would take (<see cref="TemplatePressAt"/>, so the feedback never differs from
+    /// the gesture: an edge or a boundary — resize, the orange's body or, with <paramref name="alt"/>, the lilac's — move,
+    /// anything else — the template's own cursor) and the tooltip of the segment under it (D048 §4.1: its name and times).
+    /// With <paramref name="overflow"/> the position lies on the plate's overflow (the same origin, its own segments).
+    /// </summary>
+    public StripHover TemplateHoverAt(TimelineClipViewModel template, double templateX, bool alt = false, bool overflow = false)
+    {
+        if (!SegmentsInTemplate || template.StripOwner is null || template.TemplateSegments.Count == 0) return StripHover.None;
+        var cursor = TemplatePressAt(template, templateX, alt)?.Handle switch
+        {
+            null => StripCursor.Default,
+            OverlayStripHandle.OrangeBody or OverlayStripHandle.LilacBody => StripCursor.Move,
+            _ => StripCursor.Resize
+        };
+        var segments = overflow ? template.TemplateOverflow : template.TemplateSegments;
+        var under = segments.LastOrDefault(s => templateX >= s.Left && templateX < s.Left + s.Width);
+        return new StripHover(cursor, under?.Tip);
+    }
+
     /// <summary>Variant B: a press inside a «Боулдер» released without a drag. On the orange it selects the orange alone (the
     /// clips' selection cleared, so Delete means the markup, §3.9); elsewhere it selects the template, as a click on a clip.</summary>
     public void OnTemplateStripClicked(TimelineClipViewModel template, TimelineClipViewModel owner, OverlayStripHandle handle)
@@ -286,4 +307,14 @@ public sealed partial class TimelineViewModel
         OverlayStripHandle.Status or OverlayStripHandle.LilacEnd or OverlayStripHandle.LilacBody => Strings.Strip_Lilac,
         _ => Strings.Strip_Orange
     };
+}
+
+/// <summary>The cursor over a «Боулдер» in variant B: the template's own (<see cref="Default"/>), a strip edge or boundary
+/// (<see cref="Resize"/>), a strip body that drags as a whole (<see cref="Move"/>).</summary>
+public enum StripCursor { Default, Resize, Move }
+
+/// <summary>The hover feedback over a «Боулдер» in variant B (D048 §4.1 / §4.2): the cursor and the segment's tooltip.</summary>
+public readonly record struct StripHover(StripCursor Cursor, string? Tip)
+{
+    public static StripHover None => new(StripCursor.Default, null);
 }
