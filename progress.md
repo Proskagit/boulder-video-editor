@@ -9,6 +9,10 @@ numbering" → "Official phases"; this file is the dated working log.
 - **Merged with PR #33 (2026-11-03):** Phase 35's Steps 35.0–35.4 with the 35.3 research (`docs/PHASE_COROS.md`) and
   Phase 37 (D051, `docs/PHASE37.md`) — together, by the product owner's decision of 2026-11-03, not through Phase 35's two
   planned pull requests. Formats: v11 Phase 35, v12 Phase 37.
+- **Roadmap audit after R2 → E (2026-11-08, docs only, branch `docs/roadmap-audit-2026-11-08`):**
+  `docs/ROADMAP_AUDIT_2026-11-08.md` — the remaining work, human occlusion (stays deferred), Motion Tracking Camera (stays
+  Future / Backlog; a research R4 proposed), the recommended order (35.6 → S1 release preparation; R4 optionally in
+  parallel; H after S1). Recommendations only, no decision; the stale PR #42 / PR #35 state lines corrected.
 - **Motion Tracking Camera recorded (2026-11-08, docs only, branch `docs/motion-tracking-camera-concept` from `main`
   `2a8a2f9`):** the product owner's concept of an automatic virtual camera following a chosen object registered as
   Future / Backlog — `docs/MOTION_TRACKING_CAMERA.md` (concept, the fit with transform / crop / `PlaybackSnapshot` /
@@ -22,8 +26,8 @@ numbering" → "Official phases"; this file is the dated working log.
   clip). Real data (17 clips, 34 windows every frame + whole clips, independent SIFT check): no shown frame > 3 px
   (max 3.00; before 1813 px, 67 frames > 3 px). Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; full suite
   with `AIVE_HEAVY_TESTS=1` 5409 / 0 / 0. **The accuracy bound (E-4) approved by the owner on 2026-11-08: 3 px at 1920** — made final in code
-  (`CameraMotionReliability.ErrorBound1920`, `AnalysisVersion` 4); PR #42 awaits the owner's review and merge; manual plan
-  `docs/R2E_MANUAL_TEST_PLAN.md` not run.
+  (`CameraMotionReliability.ErrorBound1920`, `AnalysisVersion` 4); merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`); the plan ties E's completion to the owner's merge, but `docs/R2E_MANUAL_TEST_PLAN.md` has no recorded results — the manual plan not run, the owner's
+  acceptance record open (`docs/ROADMAP_AUDIT_2026-11-08.md`).
 - **Phase 37:** Steps 37.1–37.6 implemented (`90950cc`); Step 37.7 in part — Release / Debug 0 / 0, heavy 5229 / 0 / 0,
   three `--blame-hang` runs (one non-recurring UI.Tests hang outside Phase 37's code, the known flaky tests), CI green;
   D051 A1–A15 checked automatically on 2026-11-04 (`docs/PHASE37_MANUAL_TEST_PLAN.md`, «Automated acceptance»): all PASS, A10 measured (A1 / A13 on the real 27.09 session); merged with PR #38 (`4717fca`); **accepted by the product

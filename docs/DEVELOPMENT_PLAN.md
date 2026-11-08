@@ -228,7 +228,7 @@ phase's record prevail.
 - [ ] **Not numbered, in part in `main`:** R2 → E — the outlines following the camera (camera-motion part merged in PR #31,
       accepted for continued development; **completion implemented 2026-11-08** on `feat/r2e-tracking-completion` — DECISIONS.md
       D052: K1 deferred, K2 WARN, K3 PERSIST, D4 cache, E-1…E-7; the accuracy bound (E-4) — 3 px at 1920 — approved 2026-11-08;
-      PR #42 awaits the owner's review and merge; record `docs/PHASE_HOLD_TRACKING.md` §19). **Not started:** H — Final UX Pass (the last large phase). Section
+      merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`); the plan ties E's completion to the owner's merge, but `docs/R2E_MANUAL_TEST_PLAN.md` has no recorded results — the owner's acceptance record is open (`docs/ROADMAP_AUDIT_2026-11-08.md`); record `docs/PHASE_HOLD_TRACKING.md` §19). **Not started:** H — Final UX Pass (the last large phase). Section
       "Planned phases after Phase 26 (D042)" below.
 
 ## Phase and step numbering (product owner, 2026-10-28)
@@ -272,7 +272,7 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 0–29 | … D045 | complete: merged and accepted | Phase 29 — PR #30, `e28a9d3` |
 | 30 — stabilisation (D042 G) | D046 | technically complete 2026-10-24; full acceptance (S1) open | in PR #31 (`024f3fb`), no PR of its own |
 | 31 — automatic hold proposals (D042 D) | D047 | technically complete 2026-10-26; A / B / E, C1–C4, D1, D1a, D2, D4, D5 PASS (2026-11-04: automated + the owner by hand); D3 and C5 DEFERRED by the owner; **accepted by the product owner 2026-11-04 with these two deferred checks** | in PR #31 (`024f3fb`), no PR of its own |
-| — R2 → E, hold tracking | D048 §1.17, D052 | accepted for continued development (D048 §1.17); completion E-1…E-7 implemented 2026-11-08 (D052: K1 deferred, K2 WARN, K3 PERSIST, D4 cache); accuracy bound 3 px approved 2026-11-08; PR #42 awaits the owner's review and merge | PR #31, `024f3fb`; completion — PR #42 (`feat/r2e-tracking-completion`) |
+| — R2 → E, hold tracking | D048 §1.17, D052 | accepted for continued development (D048 §1.17); completion E-1…E-7 implemented 2026-11-08 (D052: K1 deferred, K2 WARN, K3 PERSIST, D4 cache); accuracy bound 3 px approved 2026-11-08; merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`); the plan ties E's completion to the owner's merge, but `docs/R2E_MANUAL_TEST_PLAN.md` has no recorded results — the owner's acceptance record is open (`docs/ROADMAP_AUDIT_2026-11-08.md`) | PR #31, `024f3fb`; completion — PR #42, `2a8a2f9` |
 | 32 — route selection at `T` (D048 stage 1) | D048 | implemented, paused / deferred («Авторазметка» hidden); not complete | PR #32, `1e58885` |
 | 33 — timing model, anchors, `project.json` v10 (D048 stage 2) | D048 | implemented and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
 | 34 — the overlay strip (D048 stage 3) | D048 | implemented (variant B) and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
@@ -320,7 +320,7 @@ COROS MCP).
 | 35.2 | Import into the session: toolbar command, refusals, summary (formerly C1) | none | done, manual acceptance passed (A1–A11 PASS, 2026-10-29); in `main` (PR #33) |
 | 35.3 | Recording time: the raw `creation_time` tag and its probe marker; research on the real session — what the tag marks, the phone ↔ watch clock difference, the automatic-zero rule (formerly C2) | its members in v11 | **in part**: the probe, 35.3a, 35.3b1, 35.3b2a, 35.3b2c, 35.3b2d, the tool 35.3R1 and the frozen marking 35.3R2 done; 35.3b2b deferred; **35.3d run 2026-11-02 — B6 not met** (0 of 13 climbs within `τ`, drift −22.4 s; an experimental result, not a confirmation of the method — `docs/PHASE_COROS.md` §12); **35.3e not implemented — awaiting the product owner's decision**, not in the near plan |
 | 35.4 | Alignment by media file, including its persistence: the training saved in the project (a FIT reference), the clock correction and a per-file zero override, the mapping (formerly C3) | v11 | implemented (`e15d7af`); its acceptance rows C1–C14 automated on 2026-11-04 — all PASS, C5's real COROS re-export manual (`docs/PHASE_COROS.md` §14); in `main` (PR #33) |
-| 35.5 | Heart-rate overlay, Preview = export; a confirmed export warning when its data is missing (formerly C4) | v13 | **implemented on the branch `feat/phase-35-5-heart-rate`; accepted by the product owner on 2026-11-03 (manual О1–О15 PASS on `593b6a2`, `docs/PHASE35_5_MANUAL_ACCEPTANCE.md`)**; PR #35 open, not merged; not combined with an export of time codes (`docs/PHASE_COROS.md` §13) |
+| 35.5 | Heart-rate overlay, Preview = export; a confirmed export warning when its data is missing (formerly C4) | v13 | **implemented on the branch `feat/phase-35-5-heart-rate`; accepted by the product owner on 2026-11-03 (manual О1–О15 PASS on `593b6a2`, `docs/PHASE35_5_MANUAL_ACCEPTANCE.md`)**; merged with PR #35 (`5c5cb7f`, 2026-11-03); not combined with an export of time codes (`docs/PHASE_COROS.md` §13) |
 | 35.6 | Verification, the manual check on the real session, closeout (formerly C5) | — | not started |
 
 Pull requests: the plan of D050 (PR 1 — Steps 35.0–35.2; PR 2 — Steps 35.3–35.6, the only one changing the format) was
@@ -376,7 +376,7 @@ steps, acceptance criteria and manual plan when it is taken up, and its number t
 `36a1a58`); B is Phase 28 (D044; merged, PR #29, `4f0e66a`); C is Phase 29 (D045; merged, PR #30, `e28a9d3`); G is
 Phase 30 (D046; approved 2026-10-22, **technically complete 2026-10-24** — local verification passed; the full S1 acceptance
 is deferred to a separate release-preparation task). R1 → D: the research is complete (conditional GO) and D is Phase 31
-(D047, technically complete). R2 → E: researched, its camera-motion part merged (PR #31), its completion implemented (D052, 2026-11-08), the accuracy bound (3 px) approved 2026-11-08, PR #42 awaiting the owner's merge — unnumbered. R3 → F:
+(D047, technically complete). R2 → E: researched, its camera-motion part merged (PR #31), its completion implemented (D052, 2026-11-08), the accuracy bound (3 px) approved 2026-11-08, merged with PR #42 (`2a8a2f9`, 2026-11-08) — unnumbered. R3 → F:
 the research done on real files and F is Phase 35 (D049 / D050, in part in `main`). H is not started. State of every phase:
 "Phase and step numbering" → "Official phases". The scopes of the
 phases not yet taken up are sketches to be refined — not specifications. Every phase keeps the standing rules at the end of this file: one Undo step per user action, the
