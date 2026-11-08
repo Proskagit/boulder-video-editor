@@ -433,7 +433,7 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   same path for the Preview (1 px minimum) and the export. Without hold tracking a contour keeps its normalized place on
   every frame of the clip.
 - Hold tracking — camera motion compensation (R2 → E; merged in PR #31, completed by DECISIONS.md D052 — K1–K3, D4
-  approved 2026-11-08, the accuracy bound pending; research and decisions: `docs/PHASE_HOLD_TRACKING.md` §19). Occlusion
+  and the accuracy bound of 3 px at 1920 approved 2026-11-08; research and decisions: `docs/PHASE_HOLD_TRACKING.md` §19). Occlusion
   is not part of it (R-7, a separate future stage).
   - Core `Motion/`: `WallTransform` (3 × 3 projective transform of normalized source coordinates); `CameraMotionTrack`
     (samples by **source time** in ticks: reference frame → frame transform + reliability; `At` blends two reliable
@@ -446,8 +446,8 @@ The product's main AI function: the route's holds outlined on a video clip, one 
     wall points stays ≤ 3 px median / ≤ 6 px p95 (1920-px scale) on every frame, otherwise the homography; an estimate is
     made (`Estimate`) and then committed (`Commit`), with its diagnostics — inliers, residuals, the coverage of the textured
     grid cells, the wall's speed); `CameraMotionReliability` (E-2: ≥ 30 consistent points, ≥ 30 % of the tracked ones,
-    the model within its limits, coverage ≥ 0.75, speed ≤ 2000 px/s at 1920 — the last two provisional until the bound is
-    approved); `CameraMotionSampler` (E-1: a frame every 0.1 s; the frames in between analysed too when the wall moved
+    the model's median residual ≤ the approved bound `ErrorBound1920` = 3 px and p95 ≤ 6 px, coverage ≥ 0.75, speed
+    ≤ 2000 px/s — all at 1920, scaled by analysis width / 1920); `CameraMotionSampler` (E-1: a frame every 0.1 s; the frames in between analysed too when the wall moved
     more than 2 px (1920) or the track was lost there (a long lost stretch is searched frame by frame only where it began) —
     so a short jolt never puts a blended contour off its hold;
     `AnalysisVersion` names the whole analysis for the cache); `CameraMotionMath`; `CameraMotionRange` (the clip's contour

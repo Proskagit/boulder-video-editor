@@ -22,7 +22,7 @@ public sealed class CameraMotionEstimator
     /// <summary>The working thresholds on the model's error at the wall points, in pixels of a 1920-wide frame (the
     /// research's hypothesis, about one default stroke on a 1080p canvas — docs/PHASE_HOLD_TRACKING.md 6.4; not yet a
     /// threshold agreed with the product owner). They choose the model of the clip.</summary>
-    public const double MedianLimit1920 = 3.0;
+    public const double MedianLimit1920 = CameraMotionReliability.ErrorBound1920;
     public const double P95Limit1920 = 6.0;
 
     /// <summary>The inlier distance of RANSAC, pixels of a 1920-wide frame.</summary>

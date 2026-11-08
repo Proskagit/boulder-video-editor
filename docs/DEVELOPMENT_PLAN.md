@@ -227,8 +227,8 @@ phase's record prevail.
       accepted by the product owner on that evidence (no manual scenario remained; the plan rows A1–G7 not run by hand). Record: `docs/PHASE37.md`; section "Phase 37" below.
 - [ ] **Not numbered, in part in `main`:** R2 → E — the outlines following the camera (camera-motion part merged in PR #31,
       accepted for continued development; **completion implemented 2026-11-08** on `feat/r2e-tracking-completion` — DECISIONS.md
-      D052: K1 deferred, K2 WARN, K3 PERSIST, D4 cache, E-1…E-7; **the accuracy bound (E-4) awaits the owner's approval**, so
-      E is not complete; record `docs/PHASE_HOLD_TRACKING.md` §19). **Not started:** H — Final UX Pass (the last large phase). Section
+      D052: K1 deferred, K2 WARN, K3 PERSIST, D4 cache, E-1…E-7; the accuracy bound (E-4) — 3 px at 1920 — approved 2026-11-08;
+      PR #42 awaits the owner's review and merge; record `docs/PHASE_HOLD_TRACKING.md` §19). **Not started:** H — Final UX Pass (the last large phase). Section
       "Planned phases after Phase 26 (D042)" below.
 
 ## Phase and step numbering (product owner, 2026-10-28)
@@ -272,7 +272,7 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 0–29 | … D045 | complete: merged and accepted | Phase 29 — PR #30, `e28a9d3` |
 | 30 — stabilisation (D042 G) | D046 | technically complete 2026-10-24; full acceptance (S1) open | in PR #31 (`024f3fb`), no PR of its own |
 | 31 — automatic hold proposals (D042 D) | D047 | technically complete 2026-10-26; A / B / E, C1–C4, D1, D1a, D2, D4, D5 PASS (2026-11-04: automated + the owner by hand); D3 and C5 DEFERRED by the owner; **accepted by the product owner 2026-11-04 with these two deferred checks** | in PR #31 (`024f3fb`), no PR of its own |
-| — R2 → E, hold tracking | D048 §1.17, D052 | accepted for continued development (D048 §1.17); completion E-1…E-7 implemented 2026-11-08 (D052: K1 deferred, K2 WARN, K3 PERSIST, D4 cache); **accuracy bound pending the owner** — not complete | PR #31, `024f3fb`; completion — branch `feat/r2e-tracking-completion` |
+| — R2 → E, hold tracking | D048 §1.17, D052 | accepted for continued development (D048 §1.17); completion E-1…E-7 implemented 2026-11-08 (D052: K1 deferred, K2 WARN, K3 PERSIST, D4 cache); accuracy bound 3 px approved 2026-11-08; PR #42 awaits the owner's review and merge | PR #31, `024f3fb`; completion — PR #42 (`feat/r2e-tracking-completion`) |
 | 32 — route selection at `T` (D048 stage 1) | D048 | implemented, paused / deferred («Авторазметка» hidden); not complete | PR #32, `1e58885` |
 | 33 — timing model, anchors, `project.json` v10 (D048 stage 2) | D048 | implemented and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
 | 34 — the overlay strip (D048 stage 3) | D048 | implemented (variant B) and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
@@ -376,7 +376,7 @@ steps, acceptance criteria and manual plan when it is taken up, and its number t
 `36a1a58`); B is Phase 28 (D044; merged, PR #29, `4f0e66a`); C is Phase 29 (D045; merged, PR #30, `e28a9d3`); G is
 Phase 30 (D046; approved 2026-10-22, **technically complete 2026-10-24** — local verification passed; the full S1 acceptance
 is deferred to a separate release-preparation task). R1 → D: the research is complete (conditional GO) and D is Phase 31
-(D047, technically complete). R2 → E: researched, its camera-motion part merged (PR #31), its completion implemented (D052, 2026-11-08), the accuracy bound pending the owner — unnumbered, not complete. R3 → F:
+(D047, technically complete). R2 → E: researched, its camera-motion part merged (PR #31), its completion implemented (D052, 2026-11-08), the accuracy bound (3 px) approved 2026-11-08, PR #42 awaiting the owner's merge — unnumbered. R3 → F:
 the research done on real files and F is Phase 35 (D049 / D050, in part in `main`). H is not started. State of every phase:
 "Phase and step numbering" → "Official phases". The scopes of the
 phases not yet taken up are sketches to be refined — not specifications. Every phase keeps the standing rules at the end of this file: one Undo step per user action, the
@@ -542,11 +542,11 @@ has a `.ru` entry (D039); `docs/PHASE31_MANUAL_TEST_PLAN.md` and `progress.md` u
   - **Completion (2026-11-08, DECISIONS.md D052; on the audit `docs/R2E_CAMERA_TRACKING_AUDIT.md`).** The owner decided K1
     key frames DEFERRED, K2 failure WARN, K3 "Follow the camera" PERSIST, D4 the track cache INCLUDE. Implemented: E-1
     adaptive density on jolts, E-2 reliability (coverage, speed), E-3 the states, the Preview notice and the export warnings,
-    E-5 pixel parity end to end, E-6 the cache, E-7 `project.json` v14; E-4 the accuracy bound researched — **recommended
-    3 px per frame (1920-px frame), not approved**. On the reference set (16 clips of 27.09 and the HDR pilot, every frame of
+    E-5 pixel parity end to end, E-6 the cache, E-7 `project.json` v14; E-4 the accuracy bound researched and **approved by the
+    owner on 2026-11-08: 3 px per frame (1920-px frame)**. On the reference set (16 clips of 27.09 and the HDR pilot, every frame of
     34 windows, independently checked) no shown frame is more than 3.00 px off (before: up to 1813 px, 67 frames > 3 px).
-    E stays **not complete** until the owner approves the bound and accepts the stage (manual plan
-    `docs/R2E_MANUAL_TEST_PLAN.md`). Occlusion (R-7) remains a separate future stage. Record: `docs/PHASE_HOLD_TRACKING.md` §19.
+    E is marked complete when the owner, after review, merges PR #42 (manual plan `docs/R2E_MANUAL_TEST_PLAN.md`,
+    not replaced by the automated evidence).
 - **Concept: tracking and occlusion of the hold outlines** *(product owner, 2026-10-22; a direction for R2 / E — not a
   specification, not a decision, no step; out of Phase 30, D046 §9)*:
   - **What exists (checked in the code on 2026-10-22).** The user enters the markup mode on a paused frame, the frame

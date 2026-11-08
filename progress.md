@@ -16,8 +16,9 @@ numbering" → "Official phases"; this file is the dated working log.
   a performance defect of the first E-1 fixed (a long lost stretch analysed frame by frame: 969 s → 169 s on the hand-held
   clip). Real data (17 clips, 34 windows every frame + whole clips, independent SIFT check): no shown frame > 3 px
   (max 3.00; before 1813 px, 67 frames > 3 px). Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; full suite
-  with `AIVE_HEAVY_TESTS=1` 5404 / 0 / 0. **The accuracy bound (E-4) awaits the owner** — recommended 3 px per frame
-  (`docs/PHASE_HOLD_TRACKING.md` §19.4); E not complete; manual plan `docs/R2E_MANUAL_TEST_PLAN.md` not run.
+  with `AIVE_HEAVY_TESTS=1` 5409 / 0 / 0. **The accuracy bound (E-4) approved by the owner on 2026-11-08: 3 px at 1920** — made final in code
+  (`CameraMotionReliability.ErrorBound1920`, `AnalysisVersion` 4); PR #42 awaits the owner's review and merge; manual plan
+  `docs/R2E_MANUAL_TEST_PLAN.md` not run.
 - **Phase 37:** Steps 37.1–37.6 implemented (`90950cc`); Step 37.7 in part — Release / Debug 0 / 0, heavy 5229 / 0 / 0,
   three `--blame-hang` runs (one non-recurring UI.Tests hang outside Phase 37's code, the known flaky tests), CI green;
   D051 A1–A15 checked automatically on 2026-11-04 (`docs/PHASE37_MANUAL_TEST_PLAN.md`, «Automated acceptance»): all PASS, A10 measured (A1 / A13 on the real 27.09 session); merged with PR #38 (`4717fca`); **accepted by the product

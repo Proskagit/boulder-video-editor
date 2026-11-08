@@ -126,4 +126,68 @@ public class CameraMotionSamplerTests
         Assert.True(CameraMotionReliability.BeforeE2.IsReliable(f with { Speed1920 = 2100, Coverage = 0.5 }, CameraMotionModel.Similarity, 0.25));
         Assert.False(rule.IsReliable(f with { Inliers = 20 }, CameraMotionModel.Similarity, 0.25));      // the limits before E-2 stay
     }
+
+    [Theory]
+    [InlineData(480)]
+    [InlineData(960)]
+    [InlineData(1920)]
+    [InlineData(3840)]
+    public void A_frame_whose_measured_error_exceeds_the_approved_3_px_bound_is_unreliable_at_any_analysis_width(int width)
+    {
+        // The bound is 3 px of a 1920-wide frame (D052): the residuals are in the analysis frame's pixels, so the same share
+        // of the width is the limit at every analysis size.
+        Assert.Equal(3.0, CameraMotionReliability.ErrorBound1920);
+        var scale = width / 1920.0;
+        CameraMotionEstimator.FrameEstimate Error(double px1920) =>
+            new(F(1), true, 200, 180, WallTransform.Identity, WallTransform.Identity,
+                px1920 * scale, 1.5 * px1920 * scale, px1920 * scale, 1.5 * px1920 * scale) { Coverage = 1, Speed1920 = 100 };
+        var rule = CameraMotionReliability.Default;
+        foreach (var model in new[] { CameraMotionModel.Similarity, CameraMotionModel.Homography })
+        {
+            Assert.True(rule.IsReliable(Error(2.9), model, scale));
+            Assert.True(rule.IsReliable(Error(3.0), model, scale));
+            Assert.False(rule.IsReliable(Error(3.1), model, scale));
+            Assert.False(rule.IsReliable(Error(6.0), model, scale));
+        }
+    }
+
+    [Fact]
+    public void The_walls_speed_and_the_tracks_reliability_are_the_same_at_any_analysis_width()
+    {
+        // The jolt analysed at the test size and at twice it: the wall's speed (pixels of a 1920-wide frame) and what is
+        // shown or hidden are the same.
+        CameraMotionEstimator Run(int factor)
+        {
+            var estimator = new CameraMotionEstimator(Scale(Wall, factor), F(0));
+            var sampler = new CameraMotionSampler(estimator);
+            for (var i = 0; i <= 24; i++) sampler.Offer(Scale(Warp(Wall, Camera(i)), factor), F(i));
+            return estimator;
+        }
+        var small = Run(1);
+        var large = Run(2);
+        Assert.Equal(2 * small.Width, large.Width);
+        var jolt = small.Frames.First(f => f.Speed1920 > 2000).SourceTime;
+        var ratio = large.Frames.First(f => f.SourceTime == jolt).Speed1920 / small.Frames.First(f => f.SourceTime == jolt).Speed1920;
+        Assert.InRange(ratio, 0.9, 1.1);
+        var (a, b) = (small.Build(), large.Build());
+        for (var i = 0; i <= 24; i++) Assert.Equal(a.At(F(i)).Kind, b.At(F(i)).Kind);
+    }
+
+    /// <summary>The image enlarged <paramref name="factor"/> times (bilinear); 1 — the image itself.</summary>
+    private static GrayImage Scale(GrayImage image, int factor)
+    {
+        if (factor == 1) return image;
+        int w = image.Width * factor, h = image.Height * factor;
+        var pixels = new float[w * h];
+        for (var y = 0; y < h; y++)
+        for (var x = 0; x < w; x++)
+        {
+            double sx = Math.Min(image.Width - 1.001, x / (double)factor), sy = Math.Min(image.Height - 1.001, y / (double)factor);
+            int x0 = (int)sx, y0 = (int)sy;
+            double fx = sx - x0, fy = sy - y0;
+            pixels[y * w + x] = (float)((1 - fx) * (1 - fy) * image[x0, y0] + fx * (1 - fy) * image[x0 + 1, y0] +
+                                        (1 - fx) * fy * image[x0, y0 + 1] + fx * fy * image[x0 + 1, y0 + 1]);
+        }
+        return new GrayImage(w, h, pixels);
+    }
 }

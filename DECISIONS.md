@@ -9080,12 +9080,13 @@ repository).
 
 ---
 
-## D052 — Completion of R2 → E: camera-motion compensation of the hold contours *(product decisions approved 2026-11-08; the accuracy bound pending)*
+## D052 — Completion of R2 → E: camera-motion compensation of the hold contours *(approved 2026-11-08: K1–K3, D4 and the accuracy bound of 3 px)*
 
 Date: 2026-11-08. **Status: the product decisions K1–K3 and D4 approved by the product owner on 2026-11-08** (the task
 «R2 → E — завершение Camera Motion Tracking», on the audit `docs/R2E_CAMERA_TRACKING_AUDIT.md`); **the accuracy bound
-(E-4) NOT approved yet** — recommended with its evidence, the final reliability values and the acceptance by it wait for
-the owner. Record: `docs/PHASE_HOLD_TRACKING.md` §19; manual plan: `docs/R2E_MANUAL_TEST_PLAN.md`.
+(E-4) approved by the product owner on 2026-11-08: 3 px at a 1920-px frame width**, on the research of
+`docs/PHASE_HOLD_TRACKING.md` §19.4. Implemented in PR #42; the owner reviews and merges it. Record:
+`docs/PHASE_HOLD_TRACKING.md` §19; manual plan: `docs/R2E_MANUAL_TEST_PLAN.md`.
 
 **Goal and scope (unchanged from E).** The contours of the holds already marked stay on their physical places on the
 wall while the camera moves, pans, tilts or shakes, in the Preview and the export alike. Only the holds and the image
@@ -9117,16 +9118,34 @@ no climber segmentation, no masking, no drawing of contours under the body.
 - **E-2 — reliability.** Besides the earlier limits (≥ 30 inliers, ≥ 30 % of the tracked points, the model's error on
   them), a frame is reliable only when its inliers cover ≥ 75 % of the textured grid cells of the reference frame (a fit on
   one part of the wall — the false locks of the hand-held clip) and the wall moves at most 2000 px/s (1920-px frame; above
-  it the picture is blurred). **These two values are provisional**: chosen so that, on the reference set, no shown frame is
-  further than the recommended bound from its holds; final once the bound is approved. Any change of them raises
+  it the picture is blurred). The two values are calibrated to the approved bound: the loosest rule under which, on the
+  reference set, no shown frame is further than 3 px from its holds. Any change of them raises
   `CameraMotionSampler.AnalysisVersion` (the cache is keyed by it).
 - **E-5** — the Preview / export parity with a track is proven end to end on pixels (`ExportHoldTrackingEndToEndTests`).
 
-**Pending — the accuracy bound (E-4, the owner's).** Measured in pixels of a 1920-wide frame (the contour's own
-displacement on a 1080p canvas; on a 4K canvas twice the pixels and twice the stroke, so the same share of the stroke).
-Recommended: **3 px per frame** (the median distance of the frame's wall points from where the track puts them; below one
-default stroke, 4 px at 1080). Evidence and alternatives: `docs/PHASE_HOLD_TRACKING.md` §19.4. Until approved, 3 / 6 px
-and 3 px are working values, not a specification.
+**Approved — the accuracy bound (E-4; product owner, 2026-11-08): 3 px at a 1920-px frame width.** The error of a frame
+is the median distance of its wall points from where the track puts them, in pixels of a 1920-wide frame — the contour's
+own displacement on a 1080p canvas; at any other analysis or canvas size the same share of the frame width (every pixel
+limit is scaled by analysis width / 1920; on a 4K canvas twice the pixels and twice the stroke). Below one default stroke
+(4 px at 1080). Evidence and the alternatives weighed (2 px unreachable, 4 / 6 px): `docs/PHASE_HOLD_TRACKING.md` §19.4.
+
+**Final reliability criteria** (`CameraMotionReliability`, `ErrorBound1920` = 3). The true error is not observable while
+editing; an analysed frame is reliable — its contours are drawn — only when all hold:
+1. the chosen model's median residual on the consistent wall points (the frame's measured error) ≤ 3 px (1920), its p95
+   ≤ 6 px;
+2. ≥ 30 consistent points and ≥ 30 % of the tracked ones;
+3. the consistent points cover ≥ 75 % of the textured grid cells of the reference frame;
+4. the wall moved at most 2000 px/s (1920) since the previous analysed frame.
+
+Otherwise the frame is unreliable and the contours are hidden on it and next to it (no blend across it). A frame between
+two analysed frames is shown only when both are reliable and ≤ 0.25 s apart (E-1 makes the frames in between analysed
+whenever the wall moved more than 2 px).
+
+**Acceptance criterion (E-4):** on the reference set (16 clips of 27.09 and the HDR pilot; every frame of the 34 windows
+and every 15th frame of the whole clips; independent SIFT check, `tools/hold-tracking-check/validate_frames.py`) no shown
+frame is more than 3 px off — **met**: max 3.00 px in the windows, 2.59 px on whole clips; 0 frames above. A clip whose
+frames are hidden for ≥ 50 % is "unreliable" and the export warns (K2). `AnalysisVersion` 4 marks the approved rule: a
+track cached by any earlier analysis is analysed again.
 
 ---
 

@@ -20,8 +20,9 @@ public sealed class CameraMotionSampler
 
     /// <summary>The version of the whole analysis — the estimator, this sampler and the reliability rule. A cached track
     /// (<see cref="Interfaces.ICameraMotionCache"/>) of another version is never used: raise it with any change that can
-    /// change a track. 1 — the analysis merged in PR #31; 2 — R2 → E completion (E-1 densify, E-2 reliability); 3 — a lost stretch densified only where it began.</summary>
-    public const int AnalysisVersion = 3;
+    /// change a track. 1 — the analysis merged in PR #31; 2 — R2 → E completion (E-1 densify, E-2 reliability); 3 — a lost stretch densified only where it began; 4 — the approved accuracy bound (D052, 3 px) and its reliability
+    /// rule made final: a track of any earlier analysis is analysed again.</summary>
+    public const int AnalysisVersion = 4;
 
     /// <summary>Below the smallest error a contour is judged by (docs/R2E_CAMERA_TRACKING_AUDIT.md, E-1).</summary>
     public const double DefaultDensifyPixels1920 = 2.0;

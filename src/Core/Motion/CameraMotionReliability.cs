@@ -6,24 +6,38 @@ namespace AiVideoEditor.Core.Motion;
 /// chosen model's error on them within <see cref="MedianLimit1920"/> / <see cref="P95Limit1920"/>, the inliers spread over
 /// at least <see cref="MinCoverage"/> of the frame, and the wall's speed since the previous analysed frame at most
 /// <see cref="MaxSpeed1920"/> (a fast motion blurs the picture: the tracked points then sit where the blur puts them).
-/// <para>The defaults are PROVISIONAL (R2 → E, E-2 / E-4, 2026-11-08): chosen on the real-video measurement of the
-/// completion (docs/PHASE_HOLD_TRACKING.md §19.4) so that no shown frame of the reference set is more than 3 px (1920-px
-/// frame) off its holds — the error bound recommended to the product owner and NOT YET APPROVED (DECISIONS.md D052). They are
-/// final only once the owner approves the bound; a change of any value raises <see cref="CameraMotionSampler.AnalysisVersion"/>.</para>
+/// <para><b>The accuracy bound — approved by the product owner on 2026-11-08 (DECISIONS.md D052): a shown contour is at
+/// most <see cref="ErrorBound1920"/> = 3 px off its hold, in pixels of a 1920-wide frame</b> (on a 1080p canvas the contour's
+/// own displacement; at any other analysis or canvas size the same share of the frame width — every pixel limit here is
+/// scaled by <c>pixelScale</c> = analysis width / 1920, and the speed is measured at 1920). The true error of a frame is not
+/// observable while editing, so a frame is unreliable when its own measured error — the chosen model's median residual on
+/// the wall points — exceeds the bound, or when a sign that the measured error cannot be trusted shows: too few consistent
+/// points, a fit on one part of the wall (<see cref="MinCoverage"/>) or a blurred, fast-moving picture
+/// (<see cref="MaxSpeed1920"/>). The last two values are calibrated on the reference set (16 clips of 27.09 and the HDR
+/// pilot, every frame of 34 windows, independent SIFT check; docs/PHASE_HOLD_TRACKING.md §19.4) as the loosest rule under
+/// which no shown frame is more than the bound off (max 3.00 px). A change of any value raises
+/// <see cref="CameraMotionSampler.AnalysisVersion"/>.</para>
 /// </summary>
 public sealed record CameraMotionReliability
 {
+    /// <summary>The approved accuracy bound: the largest offset of a shown contour from its hold, pixels of a 1920-wide
+    /// frame (D052, 2026-11-08).</summary>
+    public const double ErrorBound1920 = 3.0;
+
     public int MinInliers { get; init; } = CameraMotionEstimator.MinInliers;
     public double MinInlierShare { get; init; } = CameraMotionEstimator.MinInlierShare;
-    public double MedianLimit1920 { get; init; } = CameraMotionEstimator.MedianLimit1920;
+    /// <summary>The largest median residual of the chosen model on the wall points — the frame's measured error: the bound.</summary>
+    public double MedianLimit1920 { get; init; } = ErrorBound1920;
     public double P95Limit1920 { get; init; } = CameraMotionEstimator.P95Limit1920;
 
     /// <summary>The least share of the textured grid cells with an inlier (<see cref="CameraMotionEstimator.FrameEstimate.Coverage"/>);
-    /// 0 — not checked. Provisional 0.75: it removes the false locks of the hand-held clip (a fit on one part of the wall).</summary>
+    /// 0 — not checked. 0.75, calibrated to the bound: it removes the false locks of the hand-held clip (a fit on one part
+    /// of the wall).</summary>
     public double MinCoverage { get; init; } = 0.75;
 
-    /// <summary>The largest speed of the wall (pixels of a 1920-wide frame per second); infinity — not checked. Provisional
-    /// 2000 (≈ 67 px per frame at 30 fps): above it the picture is too blurred for the tracked points to be trusted.</summary>
+    /// <summary>The largest speed of the wall (pixels of a 1920-wide frame per second); infinity — not checked. 2000,
+    /// calibrated to the bound (≈ 67 px per frame at 30 fps): above it the picture is too blurred for the tracked points to
+    /// be trusted.</summary>
     public double MaxSpeed1920 { get; init; } = 2000;
 
     public static readonly CameraMotionReliability Default = new();
