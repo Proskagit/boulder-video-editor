@@ -561,6 +561,12 @@ Separate tasks recorded at the Phase 21 acceptance (2026-10-15) and later; none 
 (D040) takes FU-21.1, FU-22.1, FU-24.2 and FU-24.1 in part; FU-21.2 and the vertical-video export stay out. Phase 26 (D041)
 takes the vertical-video export.
 
+- **Motion Tracking Camera — an automatic virtual camera following a chosen object (the product owner's concept,
+  2026-11-08)** — *Future / Backlog: not a phase, not planned, no algorithm chosen.* The user picks an object in the
+  Preview; the editor tracks it and animates the picture's visible area (Follow / Fixed Zoom / Dynamic Zoom, start / end
+  transitions, never outside the source). Two components: Object Tracking and Virtual Camera. Concept, fit with the current
+  architecture and open questions: `docs/MOTION_TRACKING_CAMERA.md`. Next, when taken up: a technical research → a
+  specification → a decision (D042 §3: a motion path, a large function).
 - **FU-35.5.1 — The heart rate of one climb only (the product owner at the acceptance of Step 35.5, 2026-11-03)** — *not
   decided, not planned.* Show the heart-rate overlay only within one climb — the time of its route overlay, from the start
   to the top or the end of the attempt — instead of over the whole active training (the current behaviour, kept). Needs a
