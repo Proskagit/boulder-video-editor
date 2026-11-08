@@ -9,6 +9,16 @@ numbering" → "Official phases"; this file is the dated working log.
 - **Merged with PR #33 (2026-11-03):** Phase 35's Steps 35.0–35.4 with the 35.3 research (`docs/PHASE_COROS.md`) and
   Phase 37 (D051, `docs/PHASE37.md`) — together, by the product owner's decision of 2026-11-03, not through Phase 35's two
   planned pull requests. Formats: v11 Phase 35, v12 Phase 37.
+- **Phases 33 / 34 — acceptance evidence (2026-11-08, tests and docs only, branch `test/phase-33-34-acceptance-evidence`):**
+  every D048 §5 criterion mapped to its evidence in `docs/PHASE33_34_ACCEPTANCE_EVIDENCE.md`; new tests —
+  `ExportRouteTimingEndToEndTests` (4: Duration mode Preview = export, three orders, after layout + 0.5× + head trim +
+  strip edit), `OverlayStripSpeedRateTests` (21: strip limits at 0.5× / 1× / 2×, 25 / 29.97 / 23.976 fps),
+  `RouteTimingAcceptanceTests` (15: §3.4 for every listed `A`; §3.5 make room, extension, slip, copy + paste, split at `S`,
+  several templates, a slower speed refused, «Анимировать» off vs Delete). No defect found. Older build vs v10 checked
+  once (v9 build refuses; with a new enum value it says «damaged», not «newer» — a note, not changed). Variant B: no
+  hover cursor per handle, no segment tooltips (§4.1) — owner's decision. **Not accepted**: the owner's check on real
+  footage and decision remain. Gates: Release `--no-incremental -warnaserror` 0 / 0; full suite with
+  `AIVE_HEAVY_TESTS=1` 5449 / 0 / 0.
 - **Roadmap audit after R2 → E (2026-11-08, docs only, branch `docs/roadmap-audit-2026-11-08`):**
   `docs/ROADMAP_AUDIT_2026-11-08.md` — the remaining work, human occlusion (stays deferred), Motion Tracking Camera (stays
   Future / Backlog; a research R4 proposed), the recommended order. Stale PR #42 / PR #35 state lines corrected.
