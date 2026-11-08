@@ -714,6 +714,16 @@ decision. R1, R2 and R3 do not by themselves authorise D, E or F.
 
 Recorded so they are not lost. None of them is a phase, has acceptance criteria or is approved for implementation.
 
+### Motion Tracking Camera — an automatic virtual camera following a chosen object *(concept of the product owner, 2026-11-08; Future / Backlog)*
+
+The user picks a moving object in the Preview; the editor tracks it and animates the visible part of the source (position
+and zoom) so the object stays centred — modes Follow / Fixed Zoom / Dynamic Zoom, independent start / end transitions
+(Transformation Duration, 0 = no smoothing), never outside the source (no black areas), loss and re-detection handled, no
+jumps, no silent switch to another object. Two independent components: Object Tracking and Virtual Camera;
+non-destructive. Full concept, the fit with the current transform / crop / rendering / R2 → E code and the open research
+questions: `docs/MOTION_TRACKING_CAMERA.md`. No phase, no implementation, no tracking algorithm chosen; it is a motion path
+of the picture, so taking it up needs a justification and a decision under D042 §3.
+
 ### Hold contour correction — the next product stage *(proposal, 2026-10-15; taken up as Phase 20, DECISIONS.md D035 — the sketch below kept as history; D035 differs: dense contours keep every vertex, the handles are only a display subset)*
 
 The product owner's priority: as few actions as possible — show the model's best mask at once and, when its boundary is

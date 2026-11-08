@@ -9,6 +9,11 @@ numbering" → "Official phases"; this file is the dated working log.
 - **Merged with PR #33 (2026-11-03):** Phase 35's Steps 35.0–35.4 with the 35.3 research (`docs/PHASE_COROS.md`) and
   Phase 37 (D051, `docs/PHASE37.md`) — together, by the product owner's decision of 2026-11-03, not through Phase 35's two
   planned pull requests. Formats: v11 Phase 35, v12 Phase 37.
+- **Motion Tracking Camera recorded (2026-11-08, docs only, branch `docs/motion-tracking-camera-concept` from `main`
+  `2a8a2f9`):** the product owner's concept of an automatic virtual camera following a chosen object registered as
+  Future / Backlog — `docs/MOTION_TRACKING_CAMERA.md` (concept, the fit with transform / crop / `PlaybackSnapshot` /
+  `CompositionDrawPlan` / export pipe / R2 → E camera motion, open research questions), pointers in `ROADMAP.md`
+  ("Follow-ups and backlog") and `docs/DEVELOPMENT_PLAN.md` ("Future ideas"). No phase, no code, no algorithm chosen.
 - **R2 → E completion (2026-11-08, branch `feat/r2e-tracking-completion` from `main` `fb5b8de`; DECISIONS.md D052):**
   the owner's decisions K1 DEFERRED, K2 WARN, K3 PERSIST, D4 INCLUDE; E-1…E-7 implemented (adaptive density, reliability
   by coverage and speed, the states / Preview notice / export warnings, pixel parity end to end, the track cache,
