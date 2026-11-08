@@ -228,7 +228,7 @@ phase's record prevail.
 - [ ] **Not numbered, in part in `main`:** R2 → E — the outlines following the camera (camera-motion part merged in PR #31,
       accepted for continued development; **completion implemented 2026-11-08** on `feat/r2e-tracking-completion` — DECISIONS.md
       D052: K1 deferred, K2 WARN, K3 PERSIST, D4 cache, E-1…E-7; the accuracy bound (E-4) — 3 px at 1920 — approved 2026-11-08;
-      merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`); the plan ties E's completion to the owner's merge, but `docs/R2E_MANUAL_TEST_PLAN.md` has no recorded results — the owner's acceptance record is open (`docs/ROADMAP_AUDIT_2026-11-08.md`); record `docs/PHASE_HOLD_TRACKING.md` §19). **Not started:** H — Final UX Pass (the last large phase). Section
+      merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`) and **technically accepted by the product owner on 2026-11-08**; the manual plan `docs/R2E_MANUAL_TEST_PLAN.md` stays outstanding — to be run during practical application testing, not blocking the next phase; record `docs/PHASE_HOLD_TRACKING.md` §19). **Not started:** H — Final UX Pass (the last large phase). Section
       "Planned phases after Phase 26 (D042)" below.
 
 ## Phase and step numbering (product owner, 2026-10-28)
@@ -272,7 +272,7 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 0–29 | … D045 | complete: merged and accepted | Phase 29 — PR #30, `e28a9d3` |
 | 30 — stabilisation (D042 G) | D046 | technically complete 2026-10-24; full acceptance (S1) open | in PR #31 (`024f3fb`), no PR of its own |
 | 31 — automatic hold proposals (D042 D) | D047 | technically complete 2026-10-26; A / B / E, C1–C4, D1, D1a, D2, D4, D5 PASS (2026-11-04: automated + the owner by hand); D3 and C5 DEFERRED by the owner; **accepted by the product owner 2026-11-04 with these two deferred checks** | in PR #31 (`024f3fb`), no PR of its own |
-| — R2 → E, hold tracking | D048 §1.17, D052 | accepted for continued development (D048 §1.17); completion E-1…E-7 implemented 2026-11-08 (D052: K1 deferred, K2 WARN, K3 PERSIST, D4 cache); accuracy bound 3 px approved 2026-11-08; merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`); the plan ties E's completion to the owner's merge, but `docs/R2E_MANUAL_TEST_PLAN.md` has no recorded results — the owner's acceptance record is open (`docs/ROADMAP_AUDIT_2026-11-08.md`) | PR #31, `024f3fb`; completion — PR #42, `2a8a2f9` |
+| — R2 → E, hold tracking | D048 §1.17, D052 | accepted for continued development (D048 §1.17); completion E-1…E-7 implemented 2026-11-08 (D052: K1 deferred, K2 WARN, K3 PERSIST, D4 cache); accuracy bound 3 px approved 2026-11-08; merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`) and **technically accepted by the product owner on 2026-11-08**; the manual plan `docs/R2E_MANUAL_TEST_PLAN.md` stays outstanding — to be run during practical application testing, not blocking the next phase | PR #31, `024f3fb`; completion — PR #42, `2a8a2f9` |
 | 32 — route selection at `T` (D048 stage 1) | D048 | implemented, paused / deferred («Авторазметка» hidden); not complete | PR #32, `1e58885` |
 | 33 — timing model, anchors, `project.json` v10 (D048 stage 2) | D048 | implemented and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
 | 34 — the overlay strip (D048 stage 3) | D048 | implemented (variant B) and merged; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded | PR #32, `1e58885` |
@@ -286,6 +286,10 @@ and 37 accepted on 2026-11-04 — Phase 31 with D3 and C5 deferred; Phases 30 an
 product owner's direction of 2026-11-03 (D050, «The product owner's direction»): Step 35.5, the heart-rate overlay** —
 implemented and accepted on 2026-11-03, merged with PR #35 — then 35.6, Phase 35's closeout. Not in the near plan: Step 35.3e (needs a separate product decision) and Phase 36's export of
 time codes (a separate item until clarified). Open alongside, not new phases: the acceptance of Step 35.4, the S1 release preparation (Phase 30).
+**The product owner's priorities of 2026-11-08** (on `docs/ROADMAP_AUDIT_2026-11-08.md`): 1) Step 35.6 (its scope and
+acceptance criteria in a separate task first); 2) Phase 30 / S1 — the release milestone, incl. the clean-environment
+validation; 3) H after S1; 4) R4, the Motion Tracking Camera research, deferred until then. Human occlusion stays deferred;
+Motion Tracking Camera stays Future / Backlog. Phases 33 / 34 stay not accepted until the evidence of the audit's §8.
 
 ### Old and new labels
 
