@@ -279,6 +279,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult ReplaceHoldContour(Guid clipId, Guid holdId, ImmutableArray<NormalizedPoint> points) => No;
         public TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style) => No;
         public TimelineEditResult SetHoldAnimation(Guid clipId, HoldAnimation? animation) => No;
+        public TimelineEditResult SetHoldFollowsCamera(Guid clipId, bool follows) => No;
         public TimelineEditResult FrameClip(Guid clipId, ClipFraming framing) => No;
         public TimelineEditResult SetCanvasSize(int width, int height) => No;
         public TimelineEditResult SetFrameRate(FrameRate rate) => No;

@@ -49,7 +49,7 @@ public class HeartRateOverlayPersistenceTests
     {
         var first = Save(Build());
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(13, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(14, root["formatVersion"]!.GetValue<int>());
         var overlay = Clip(root, 1);
         Assert.Equal(("HeartRate", "Plain", "TopLeft"), ((string?)overlay["template"], (string?)overlay["look"], (string?)overlay["corner"]));
         Assert.False(Clip(root, 0).ContainsKey("look"));             // the other kinds carry neither field
@@ -65,7 +65,7 @@ public class HeartRateOverlayPersistenceTests
     public void A_v12_file_opens_unchanged_and_is_saved_as_v13()
     {
         var v13 = Save(Build(overlay: false));
-        var v12 = v13.Replace("\"formatVersion\": 13", "\"formatVersion\": 12");
+        var v12 = v13.Replace("\"formatVersion\": 14", "\"formatVersion\": 12");
         Assert.Equal(v13, Save(Load(v12)));
     }
 

@@ -305,6 +305,10 @@ public interface ITimelineEditService
     /// limits of <see cref="HoldMarkupRules.ValidateAnimation"/>, for other clips and on a locked track.</summary>
     TimelineEditResult SetHoldAnimation(Guid clipId, HoldAnimation? animation);
 
+    /// <summary>Hold tracking (R2 → E, K3): whether the clip's contours follow the camera (saved with the project); one undo
+    /// step. Fails without a hold markup.</summary>
+    TimelineEditResult SetHoldFollowsCamera(Guid clipId, bool follows);
+
     /// <summary>
     /// Changes the project canvas (D028, Step 13.4) to <paramref name="width"/> × <paramref name="height"/> as one Undo
     /// step. Refused, changing nothing, when the size breaks <see cref="ProjectSettingsRules.CanvasError"/>; the same

@@ -105,7 +105,7 @@ public class FitMarkPersistenceTests
         var project = Build(true);
         var first = Save(project);
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(13, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(14, root["formatVersion"]!.GetValue<int>());
         var training = TrainingJson(root);
         Assert.Equal("proposed", Mark(training, 0)["position"]!.GetValue<string>());
         Assert.Null(Mark(training, 0)["sourceTimeTicks"]);
@@ -133,7 +133,7 @@ public class FitMarkPersistenceTests
     public void A_version_11_file_opens_without_marks_and_is_saved_as_version_12_differing_only_in_the_version()
     {
         var v12 = Save(Build(false));
-        var v11 = v12.Replace("\"formatVersion\": 13", "\"formatVersion\": 11");
+        var v11 = v12.Replace("\"formatVersion\": 14", "\"formatVersion\": 11");
         Assert.NotEqual(v12, v11);
         var loaded = Load(v11);
         Assert.Empty(loaded.Training!.Marks);
@@ -143,7 +143,7 @@ public class FitMarkPersistenceTests
     [Fact]
     public void Marks_in_a_version_11_file_are_ignored()
     {
-        var v11 = Save(Build(true)).Replace("\"formatVersion\": 13", "\"formatVersion\": 11");
+        var v11 = Save(Build(true)).Replace("\"formatVersion\": 14", "\"formatVersion\": 11");
         var loaded = Load(v11);
         Assert.Empty(loaded.Training!.Marks);
         Assert.Empty(loaded.Training.DeclinedClimbs);

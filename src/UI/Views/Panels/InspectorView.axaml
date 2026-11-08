@@ -752,13 +752,17 @@
                              IsVisible="{Binding AnimationWarning, Converter={x:Static ObjectConverters.IsNotNull}}"/>
                 </StackPanel>
 
-                <!-- Hold tracking (R2 → E): the contours follow the wall while the camera moves; the state of the analysis and
-                     the manual correction (switch it off for this clip, retry a failed analysis). Session state, never saved. -->
+                <!-- Hold tracking (R2 → E): the contours follow the wall while the camera moves; the state of the analysis (a
+                     problem in the warning colour, K2) and the manual correction: "Follow the camera" is the clip's choice, saved
+                     with the project (K3, one Undo step); "Retry" analyses a failed clip again. -->
                 <StackPanel Spacing="4" IsVisible="{Binding ShowsTracking}">
                   <CheckBox Content="{x:Static l:Strings.Holds_FollowCamera}" IsChecked="{Binding FollowsCamera, Mode=TwoWay}"
                             ToolTip.Tip="{x:Static l:Strings.Holds_FollowCameraTip}"/>
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="{Binding TrackingStatus}" Foreground="#AAAAAA" TextWrapping="Wrap" MaxWidth="230" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding TrackingStatus}" Foreground="#AAAAAA" TextWrapping="Wrap" MaxWidth="230" VerticalAlignment="Center"
+                               IsVisible="{Binding !HasTrackingProblem}"/>
+                    <TextBlock Text="{Binding TrackingStatus}" Foreground="#E0A040" TextWrapping="Wrap" MaxWidth="230" VerticalAlignment="Center"
+                               IsVisible="{Binding HasTrackingProblem}"/>
                     <Button Content="{x:Static l:Strings.Holds_TrackingRetry}" Command="{Binding RetryTrackingCommand}"
                             IsVisible="{Binding IsTrackingFailed}"/>
                   </StackPanel>

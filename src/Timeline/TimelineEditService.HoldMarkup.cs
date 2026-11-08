@@ -106,6 +106,14 @@ public sealed partial class TimelineEditService
         return Apply(clip, before, after, fields);
     }
 
+    public TimelineEditResult SetHoldFollowsCamera(Guid clipId, bool follows)
+    {
+        if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
+        if (clip.HoldMarkup is not { } before) return TimelineEditResult.Fail(Messages.Holds_NotMarked);
+        if (before.FollowsCamera == follows) return TimelineEditResult.Unchanged();
+        return Apply(clip, before, before with { FollowsCamera = follows }, HoldMarkupFields.FollowsCamera);
+    }
+
     public TimelineEditResult SetHoldAnimation(Guid clipId, HoldAnimation? animation)
     {
         if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);

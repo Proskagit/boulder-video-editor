@@ -9,6 +9,16 @@ numbering" → "Official phases"; this file is the dated working log.
 - **Merged with PR #33 (2026-11-03):** Phase 35's Steps 35.0–35.4 with the 35.3 research (`docs/PHASE_COROS.md`) and
   Phase 37 (D051, `docs/PHASE37.md`) — together, by the product owner's decision of 2026-11-03, not through Phase 35's two
   planned pull requests. Formats: v11 Phase 35, v12 Phase 37.
+- **R2 → E completion (2026-11-08, branch `feat/r2e-tracking-completion` from `main` `fb5b8de`; DECISIONS.md D052):**
+  the owner's decisions K1 DEFERRED, K2 WARN, K3 PERSIST, D4 INCLUDE; E-1…E-7 implemented (adaptive density, reliability
+  by coverage and speed, the states / Preview notice / export warnings, pixel parity end to end, the track cache,
+  `project.json` v14 "Follow the camera"); a defect fixed (a window starting before the marking frame failed the analysis);
+  a performance defect of the first E-1 fixed (a long lost stretch analysed frame by frame: 969 s → 169 s on the hand-held
+  clip). Real data (17 clips, 34 windows every frame + whole clips, independent SIFT check): no shown frame > 3 px
+  (max 3.00; before 1813 px, 67 frames > 3 px). Gates: Release / Debug `--no-incremental -warnaserror` 0 / 0; full suite
+  with `AIVE_HEAVY_TESTS=1` 5409 / 0 / 0. **The accuracy bound (E-4) approved by the owner on 2026-11-08: 3 px at 1920** — made final in code
+  (`CameraMotionReliability.ErrorBound1920`, `AnalysisVersion` 4); PR #42 awaits the owner's review and merge; manual plan
+  `docs/R2E_MANUAL_TEST_PLAN.md` not run.
 - **Phase 37:** Steps 37.1–37.6 implemented (`90950cc`); Step 37.7 in part — Release / Debug 0 / 0, heavy 5229 / 0 / 0,
   three `--blame-hang` runs (one non-recurring UI.Tests hang outside Phase 37's code, the known flaky tests), CI green;
   D051 A1–A15 checked automatically on 2026-11-04 (`docs/PHASE37_MANUAL_TEST_PLAN.md`, «Automated acceptance»): all PASS, A10 measured (A1 / A13 on the real 27.09 session); merged with PR #38 (`4717fca`); **accepted by the product

@@ -346,10 +346,25 @@ The file is replaced only when the export succeeds.</value>
     <value>The outlines follow the wall; on {0} % of the frames the camera's position is uncertain and they are hidden.</value>
   </data>
   <data name="Holds_TrackingFailed" xml:space="preserve">
-    <value>The outlines could not be fixed to the wall; they stay where they were marked.</value>
+    <value>Fixing the outlines to the wall failed: they stay where they were marked and do not follow the camera.</value>
   </data>
   <data name="Holds_TrackingOff" xml:space="preserve">
     <value>Not following the camera: the outlines stay where they were marked.</value>
+  </data>
+  <data name="Holds_TrackingUnreliable" xml:space="preserve">
+    <value>The camera's position is uncertain on {0} % of the frames: the outlines are hidden there — the tracking is not good enough for this clip.</value>
+  </data>
+  <data name="Preview_TrackingAnalysing" xml:space="preserve">
+    <value>Hold outlines: fixing to the wall… (shown where they were marked)</value>
+  </data>
+  <data name="Preview_TrackingFailed" xml:space="preserve">
+    <value>Hold outlines do not follow the camera: fixing them to the wall failed</value>
+  </data>
+  <data name="Preview_TrackingUnreliable" xml:space="preserve">
+    <value>Hold outlines: camera position uncertain on {0} % of the frames — hidden there</value>
+  </data>
+  <data name="Preview_TrackingHiddenHere" xml:space="preserve">
+    <value>Hold outlines hidden on this frame: the camera's position is uncertain</value>
   </data>
   <data name="Holds_TrackingRetry" xml:space="preserve">
     <value>Retry</value>

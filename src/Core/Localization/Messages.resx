@@ -622,6 +622,12 @@
   <data name="Preflight_NoOutput" xml:space="preserve">
     <value>No output file was chosen.</value>
   </data>
+  <data name="Preflight_HoldTrackingFailed" xml:space="preserve">
+    <value>Fixing the hold outlines of '{0}' to the wall failed ({1}, first at {2}): they will be exported where they were marked, without the camera's motion.</value>
+  </data>
+  <data name="Preflight_HoldTrackingUnreliable" xml:space="preserve">
+    <value>On {3} % of the analysed frames of '{0}' ({1}, first at {2}) the camera's position is not reliably known: the hold outlines are left out there.</value>
+  </data>
   <data name="Preflight_HoldTrackingPending" xml:space="preserve">
     <value>The hold outlines of '{0}' are still being fixed to the wall ({1}, first at {2}). Wait a moment and export again.</value>
   </data>

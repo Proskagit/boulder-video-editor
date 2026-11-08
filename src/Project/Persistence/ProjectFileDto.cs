@@ -352,6 +352,11 @@ internal sealed class HoldMarkupDto
     /// <summary>Format v6 (D036): the outline animation; written only when on. Ignored in older files, which have none.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public HoldAnimationDto? Animation { get; set; }
+
+    /// <summary>Format v14 (R2 → E, K3): <c>false</c> when the contours stay where they were marked; written only then
+    /// (absent: they follow the camera, as in every older file).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? FollowsCamera { get; set; }
 }
 
 /// <summary>Format v6 (D036 §2): the appear / disappear animation; times in ticks — the start a source time, the rest

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Interfaces;
+using AiVideoEditor.Core.Motion;
 using AiVideoEditor.Core.Playback;
 using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Localization;
@@ -49,6 +50,11 @@ public sealed partial class PreviewViewModel : ViewModelBase
 
     [ObservableProperty] private bool _isBuffering;
 
+    /// <summary>Hold tracking (R2 → E, K2): what the Preview says when the hold outlines shown now do not get a correct
+    /// camera-motion compensation — the clip's analysis failed, is mostly unreliable or still runs, or the outlines are
+    /// hidden on this frame; null when nothing is to say.</summary>
+    [ObservableProperty] private string? _trackingNotice;
+
     /// <summary>The AI hold markup (D034) drawn and clicked over the composition; set by the shell.</summary>
     [ObservableProperty] private HoldMarkupViewModel? _holdMarkup;
 
@@ -88,7 +94,11 @@ public sealed partial class PreviewViewModel : ViewModelBase
     {
         _inOut = inOut;
         _cameraMotion = cameraMotion;
-        if (_cameraMotion is not null) _cameraMotion.TracksChanged += OnCameraMotionChanged;
+        if (_cameraMotion is not null)
+        {
+            _cameraMotion.TracksChanged += OnCameraMotionChanged;
+            _cameraMotion.StatusChanged += OnCameraMotionStatusChanged;
+        }
         _training = training;
         if (_training is not null) _training.Changed += OnTrainingChanged;
         _source = source;
@@ -207,7 +217,11 @@ public sealed partial class PreviewViewModel : ViewModelBase
     {
         _released = true;
         // The coordinator is a singleton: stop it from reaching this view model (and its released playback).
-        if (_cameraMotion is not null) _cameraMotion.TracksChanged -= OnCameraMotionChanged;
+        if (_cameraMotion is not null)
+        {
+            _cameraMotion.TracksChanged -= OnCameraMotionChanged;
+            _cameraMotion.StatusChanged -= OnCameraMotionStatusChanged;
+        }
         if (_training is not null) _training.Changed -= OnTrainingChanged;
         await _playback.DisposeAsync();
     }
@@ -216,6 +230,44 @@ public sealed partial class PreviewViewModel : ViewModelBase
     private void OnCameraMotionChanged(object? sender, EventArgs e)
     {
         if (!_released && !IsSourceMode) RebuildSnapshot();
+    }
+
+    private void OnCameraMotionStatusChanged(object? sender, EventArgs e)
+    {
+        if (!_released) UpdateTrackingNotice();
+    }
+
+    /// <summary>
+    /// The notice over the picture (K2): for every shown layer with hold outlines, its clip's tracking state and whether
+    /// the outlines are hidden on the shown frame; the most serious one is said — a failed analysis (the outlines do not
+    /// follow the camera), a mostly unreliable one, hidden on this frame, then a running analysis (shown as marked).
+    /// </summary>
+    private void UpdateTrackingNotice()
+    {
+        string? notice = null;
+        var rank = 0;
+        if (_cameraMotion is not null && !IsSourceMode)
+        {
+            foreach (var picture in Layers)
+            {
+                if (picture.Layer is not PictureLayer { Span.Outline: { } outline } layer) continue;
+                if (!layer.OutlineOpacities.IsDefault && !layer.OutlineOpacities.Any(o => o > 0)) continue;
+                var status = _cameraMotion.StatusOf(layer.ClipId);
+                var (r, text) = status.State switch
+                {
+                    CameraMotionState.Failed => (4, Strings.Preview_TrackingFailed),
+                    CameraMotionState.Unreliable => (3, string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                        Strings.Preview_TrackingUnreliable, Math.Max(1, (int)Math.Round(status.HiddenFraction * 100)))),
+                    CameraMotionState.Analysing => (1, Strings.Preview_TrackingAnalysing),
+                    _ => (0, (string?)null)
+                };
+                if (r < 2 && outline.Motion is { } track && picture.Frame is { } frame &&
+                    track.At(CameraMotionMath.SourceTimeOf(frame.Timestamp, outline.SourceStartTime)).Kind == CameraMotionLookupKind.Hidden)
+                    (r, text) = (2, Strings.Preview_TrackingHiddenHere);
+                if (r > rank) (rank, notice) = (r, text);
+            }
+        }
+        TrackingNotice = notice;
     }
 
     /// <summary>Phase 35.5: the training's FIT read, relinked, replaced or removed changes the heart-rate overlay's values —
@@ -237,6 +289,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
         }
         Layers = frame.Layers;
         AreLayersCurrent = frame.Layers.All(l => l.IsCurrent && l.State != LayerPictureState.Pending);
+        UpdateTrackingNotice();
     }
 
     private FrameSize ProjectCanvas()

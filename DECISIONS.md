@@ -9080,6 +9080,75 @@ repository).
 
 ---
 
+## D052 — Completion of R2 → E: camera-motion compensation of the hold contours *(approved 2026-11-08: K1–K3, D4 and the accuracy bound of 3 px)*
+
+Date: 2026-11-08. **Status: the product decisions K1–K3 and D4 approved by the product owner on 2026-11-08** (the task
+«R2 → E — завершение Camera Motion Tracking», on the audit `docs/R2E_CAMERA_TRACKING_AUDIT.md`); **the accuracy bound
+(E-4) approved by the product owner on 2026-11-08: 3 px at a 1920-px frame width**, on the research of
+`docs/PHASE_HOLD_TRACKING.md` §19.4. Implemented in PR #42; the owner reviews and merges it. Record:
+`docs/PHASE_HOLD_TRACKING.md` §19; manual plan: `docs/R2E_MANUAL_TEST_PLAN.md`.
+
+**Goal and scope (unchanged from E).** The contours of the holds already marked stay on their physical places on the
+wall while the camera moves, pans, tilts or shakes, in the Preview and the export alike. Only the holds and the image
+motion needed to compensate the camera. Not in scope: a general object tracking, tracking the climber, binding texts or
+labels to objects, spatial anchors, route recognition. **Occlusion by the climber stays a separate future stage** (R-7):
+no climber segmentation, no masking, no drawing of contours under the body.
+
+**Approved (owner, 2026-11-08):**
+- **K1 — key frames: DEFERRED.** No manual key frames now; the architecture is not changed for them. The way back stays
+  open: a correction transform per source time could be composed over the track in the one draw function, with its keys
+  stored in the project (a later format version) and edited as Undo steps.
+- **K2 — failure behaviour: WARN.** A failure or an insufficient reliability is shown in the Preview and warned about on
+  export; the user cancels or explicitly continues without compensation; never a silent export of contours at their marked
+  coordinates as if tracked; no unconditional block. The states are told apart: tracked, partly unreliable, unreliable
+  (≥ 50 % of the analysed frames), failed; "Follow the camera" off is the user's choice, not a problem.
+- **K3 — persistence: PERSIST.** "Follow the camera" is saved with the project (`HoldMarkup.FollowsCamera`, `project.json`
+  v14, written only when off; a v13 file follows the camera and is saved as v14); switching it is one Undo step.
+- **D4 — track cache: INCLUDE.** The analysed tracks are kept between sessions in the application's cache
+  (`%LOCALAPPDATA%\AiVideoEditor\cache\camera-motion`, like the HDR LUTs — derived data, never in the project), keyed by the
+  video's content (size, last write time, SHA-256 of its first and last megabyte), the analysis request (start time, HDR
+  rule, rate, range, reference frame, width, interval) and the analysis version; a damaged, foreign or stale entry is never
+  used — it is analysed again; written atomically; at most 512 MB, least recently used first.
+
+**Engineering decisions (within the approved scope, 2026-11-08):**
+- **E-1 — adaptive density.** One frame every 0.1 s as before; when the wall moved more than 2 px (1920-px frame) between
+  two analysed frames, or the track was lost there, the frames in between are analysed too (`CameraMotionSampler`). A
+  still or slowly moving camera costs as before; a contour between two analysed frames is then never further than about
+  2 px from where a frame-by-frame analysis puts it.
+- **E-2 — reliability.** Besides the earlier limits (≥ 30 inliers, ≥ 30 % of the tracked points, the model's error on
+  them), a frame is reliable only when its inliers cover ≥ 75 % of the textured grid cells of the reference frame (a fit on
+  one part of the wall — the false locks of the hand-held clip) and the wall moves at most 2000 px/s (1920-px frame; above
+  it the picture is blurred). The two values are calibrated to the approved bound: the loosest rule under which, on the
+  reference set, no shown frame is further than 3 px from its holds. Any change of them raises
+  `CameraMotionSampler.AnalysisVersion` (the cache is keyed by it).
+- **E-5** — the Preview / export parity with a track is proven end to end on pixels (`ExportHoldTrackingEndToEndTests`).
+
+**Approved — the accuracy bound (E-4; product owner, 2026-11-08): 3 px at a 1920-px frame width.** The error of a frame
+is the median distance of its wall points from where the track puts them, in pixels of a 1920-wide frame — the contour's
+own displacement on a 1080p canvas; at any other analysis or canvas size the same share of the frame width (every pixel
+limit is scaled by analysis width / 1920; on a 4K canvas twice the pixels and twice the stroke). Below one default stroke
+(4 px at 1080). Evidence and the alternatives weighed (2 px unreachable, 4 / 6 px): `docs/PHASE_HOLD_TRACKING.md` §19.4.
+
+**Final reliability criteria** (`CameraMotionReliability`, `ErrorBound1920` = 3). The true error is not observable while
+editing; an analysed frame is reliable — its contours are drawn — only when all hold:
+1. the chosen model's median residual on the consistent wall points (the frame's measured error) ≤ 3 px (1920), its p95
+   ≤ 6 px;
+2. ≥ 30 consistent points and ≥ 30 % of the tracked ones;
+3. the consistent points cover ≥ 75 % of the textured grid cells of the reference frame;
+4. the wall moved at most 2000 px/s (1920) since the previous analysed frame.
+
+Otherwise the frame is unreliable and the contours are hidden on it and next to it (no blend across it). A frame between
+two analysed frames is shown only when both are reliable and ≤ 0.25 s apart (E-1 makes the frames in between analysed
+whenever the wall moved more than 2 px).
+
+**Acceptance criterion (E-4):** on the reference set (16 clips of 27.09 and the HDR pilot; every frame of the 34 windows
+and every 15th frame of the whole clips; independent SIFT check, `tools/hold-tracking-check/validate_frames.py`) no shown
+frame is more than 3 px off — **met**: max 3.00 px in the windows, 2.59 px on whole clips; 0 frames above. A clip whose
+frames are hidden for ≥ 50 % is "unreliable" and the export warns (K2). `AnalysisVersion` 4 marks the approved rule: a
+track cached by any earlier analysis is analysed again.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

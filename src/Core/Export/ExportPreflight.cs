@@ -46,6 +46,12 @@ public enum ExportIssueKind
     /// <summary>The camera motion of a clip with holds (hold tracking) is still being analysed: the export waits for it, so
     /// its contours follow the wall exactly as in the Preview.</summary>
     HoldTrackingPending,
+    /// <summary>The camera-motion analysis of a clip with holds failed (R2 → E, K2): its contours would be exported where
+    /// they were marked, without the camera's motion — a warning, so the user cancels or exports knowingly.</summary>
+    HoldTrackingFailed,
+    /// <summary>On some or most frames of a clip with holds the camera's position is not reliably known (R2 → E, K2): its
+    /// contours are left out there — a warning with the share of such frames.</summary>
+    HoldTrackingUnreliable,
     /// <summary>A heart-rate overlay (Phase 35.5) has no data where it is exported — no usable training, or a video below it
     /// without a recording zero: it shows nothing there (warning, D049 §10).</summary>
     HeartRateUnavailable
@@ -55,6 +61,12 @@ public enum ExportIssueKind
 /// analysis has not finished (hold tracking).</summary>
 public sealed record ExportCameraMotion(IReadOnlyDictionary<Guid, CameraMotionTrack> Tracks, IReadOnlySet<Guid> Pending)
 {
+    /// <summary>The clips whose analysis failed (their contours are drawn as marked).</summary>
+    public IReadOnlySet<Guid> Failed { get; init; } = new HashSet<Guid>();
+
+    /// <summary>The clips with unreliable frames, with the share of such frames (their contours are hidden there).</summary>
+    public IReadOnlyDictionary<Guid, double> Unreliable { get; init; } = new Dictionary<Guid, double>();
+
     public static readonly ExportCameraMotion None =
         new(new Dictionary<Guid, CameraMotionTrack>(), new HashSet<Guid>());
 }
@@ -376,28 +388,41 @@ public static class ExportPreflight
 
     /// <summary>Hold tracking: a clip whose contours reach the output while its camera motion is still analysed blocks the
     /// export (one issue per media file), so the export never draws contours the Preview would draw elsewhere.</summary>
+    /// <para>R2 → E, K2: a clip whose analysis failed, or whose camera position is unreliable on some frames, is a warning
+    /// (one per media file) — never a silent export of contours off their holds, never a block: the user decides.</para>
     private static void CheckHoldTracking(Project project, PlaybackSnapshot snapshot, ExportPreflightEnvironment env, List<ExportIssue> issues,
         Window window)
     {
-        if (env.CameraMotion.Pending.Count == 0) return;
+        var motion = env.CameraMotion;
+        if (motion.Pending.Count == 0 && motion.Failed.Count == 0 && motion.Unreliable.Count == 0) return;
         var assets = project.MediaAssets.ToDictionary(a => a.Id);
-        var waiting = snapshot.VideoLayers.SelectMany(l => l.Spans)
-            .Where(s => s.Outline is not null && s.Visual.Opacity > 0 && window.Shows(s.ShownStart, s.ShownEnd) &&
-                        env.CameraMotion.Pending.Contains(s.ClipId))
-            .GroupBy(s => s.AssetId)
-            .OrderBy(g => g.Min(s => s.TimelineStart));
-        foreach (var group in waiting)
+        var shown = snapshot.VideoLayers.SelectMany(l => l.Spans)
+            .Where(s => s.Outline is not null && s.Visual.Opacity > 0 && window.Shows(s.ShownStart, s.ShownEnd))
+            .ToList();
+
+        IEnumerable<IGrouping<Guid, PictureSpan>> Of(Func<Guid, bool> which) =>
+            shown.Where(s => which(s.ClipId)).GroupBy(s => s.AssetId).OrderBy(g => g.Min(s => s.TimelineStart));
+        ExportIssue With(ExportIssue issue, IGrouping<Guid, PictureSpan> group) => issue with
         {
-            var asset = assets.GetValueOrDefault(group.Key);
-            var clips = group.OrderBy(s => s.TimelineStart).Select(s => s.ClipId).Distinct().ToImmutableArray();
-            issues.Add(Error(ExportIssueKind.HoldTrackingPending,
-                string.Format(Messages.Preflight_HoldTrackingPending, asset?.FileName ?? Messages.Preflight_MediaNotInProject,
-                    Plural.Format(clips.Length, Messages.Plural_Clips), group.Min(s => s.TimelineStart))) with
-            {
-                AssetId = group.Key,
-                Subject = asset?.FilePath,
-                ClipIds = clips
-            });
+            AssetId = group.Key,
+            Subject = assets.GetValueOrDefault(group.Key)?.FilePath,
+            ClipIds = group.OrderBy(s => s.TimelineStart).Select(s => s.ClipId).Distinct().ToImmutableArray()
+        };
+        string Name(Guid assetId) => assets.GetValueOrDefault(assetId)?.FileName ?? Messages.Preflight_MediaNotInProject;
+        string Clips(IGrouping<Guid, PictureSpan> group) => Plural.Format(group.Select(s => s.ClipId).Distinct().Count(), Messages.Plural_Clips);
+
+        foreach (var group in Of(motion.Pending.Contains))
+            issues.Add(With(Error(ExportIssueKind.HoldTrackingPending,
+                string.Format(Messages.Preflight_HoldTrackingPending, Name(group.Key), Clips(group), group.Min(s => s.TimelineStart))), group));
+        foreach (var group in Of(motion.Failed.Contains))
+            issues.Add(With(Warning(ExportIssueKind.HoldTrackingFailed,
+                string.Format(Messages.Preflight_HoldTrackingFailed, Name(group.Key), Clips(group), group.Min(s => s.TimelineStart))), group));
+        foreach (var group in Of(motion.Unreliable.ContainsKey))
+        {
+            var share = group.Select(s => s.ClipId).Distinct().Max(id => motion.Unreliable[id]);
+            issues.Add(With(Warning(ExportIssueKind.HoldTrackingUnreliable,
+                string.Format(Messages.Preflight_HoldTrackingUnreliable, Name(group.Key), Clips(group), group.Min(s => s.TimelineStart),
+                    Math.Max(1, (int)Math.Round(share * 100)))), group));
         }
     }
 
@@ -435,4 +460,6 @@ public static class ExportPreflight
     }
 
     private static ExportIssue Error(ExportIssueKind kind, string message) => new(ExportIssueSeverity.Error, kind, message);
+
+    private static ExportIssue Warning(ExportIssueKind kind, string message) => new(ExportIssueSeverity.Warning, kind, message);
 }

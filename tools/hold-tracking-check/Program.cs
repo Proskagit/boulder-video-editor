@@ -2,7 +2,10 @@
 // CameraMotionCoordinator does — the app's ffmpeg decoder, software, 960 px, a sample every 0.1 s — and writes the track
 // and the per-frame diagnostics as JSON for the report and for the overlay check (overlay_track.py).
 //
-// Usage: dotnet run -c Release -- <clip.mp4> <reference_s> <start_s> <end_s> <out.json>
+// Usage: dotnet run -c Release -- <clip.mp4> <reference_s> <start_s> <end_s> <out.json> [interval_s] [densify_px]
+//   interval_s — the regular spacing of the analysed frames (default the app's 0.1 s; 0 — every frame);
+//   densify_px — CameraMotionSampler's densify threshold (default the app's; "inf" — never densify, the behaviour before E-1);
+//   rule — "before" for the reliability rule before E-2 (no coverage / speed limit), otherwise the app's.
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
@@ -17,7 +20,7 @@ using Microsoft.Extensions.Options;
 
 if (args.Length < 5)
 {
-    Console.Error.WriteLine("Usage: <clip.mp4> <reference_s> <start_s> <end_s> <out.json>");
+    Console.Error.WriteLine("Usage: <clip.mp4> <reference_s> <start_s> <end_s> <out.json> [interval_s] [densify_px]");
     return 2;
 }
 var path = args[0];
@@ -26,7 +29,9 @@ var reference = MediaTime.FromSeconds(D(args[1]));
 var start = MediaTime.FromSeconds(D(args[2]));
 var end = MediaTime.FromSeconds(D(args[3]));
 const int analysisWidth = 960;
-var interval = MediaTime.FromSeconds(0.1);
+var interval = args.Length > 5 ? MediaTime.FromSeconds(D(args[5])) : CameraMotionSampler.DefaultInterval;
+var densify = args.Length > 6 ? (args[6] == "inf" ? double.PositiveInfinity : D(args[6])) : CameraMotionSampler.DefaultDensifyPixels1920;
+var rule = args.Length > 7 && args[7] == "before" ? CameraMotionReliability.BeforeE2 : CameraMotionReliability.Default;
 
 var locator = new FfmpegLocator(Options.Create(new FfmpegOptions()), NullLogger<FfmpegLocator>.Instance);
 var decoder = new FfmpegVideoDecoder(locator, NullLogger<FfmpegVideoDecoder>.Instance);
@@ -52,27 +57,25 @@ await using (var stream = await decoder.OpenAsync(Request(reference)))
     referenceImage = gray ?? throw new InvalidOperationException("no reference frame");
 }
 
-var estimator = new CameraMotionEstimator(referenceImage, reference);
+var estimator = new CameraMotionEstimator(referenceImage, reference, rule);
+var sampler = new CameraMotionSampler(estimator, interval, densify);
 var estimateTime = Stopwatch.StartNew();
 estimateTime.Stop();
-var frames = 0;
 await using (var stream = await decoder.OpenAsync(Request(start)))
 {
-    var next = start;
     while (await stream.ReadFrameAsync() is { } frame)
     {
         var time = CameraMotionMath.SourceTimeOf(frame.Timestamp, MediaTime.Zero);
         if (time > end + interval) break;
-        if (time < next) continue;
+        if (time < start) continue;
         var gray = GrayImage.FromBgra(frame);
         estimateTime.Start();
-        estimator.Add(gray, time);
+        sampler.Offer(gray, time);
         estimateTime.Stop();
-        frames++;
-        next = time + interval;
     }
 }
-var track = estimator.Build();
+var track = sampler.Build();
+var frames = sampler.AnalysedFrames;
 total.Stop();
 
 var scale = 1920.0 / estimator.Width;
@@ -86,6 +89,10 @@ var result = new
     samples = track.Samples.Length,
     unreliable = track.Samples.Count(s => !s.IsReliable),
     frames,
+    densified = sampler.DensifiedFrames,
+    interval_s = interval.TotalSeconds,
+    densify_px = double.IsPositiveInfinity(densify) ? -1 : densify,
+    rule = ReferenceEquals(rule, CameraMotionReliability.BeforeE2) ? "before E-2" : "app",
     total_s = Math.Round(total.Elapsed.TotalSeconds, 2),
     estimate_ms_per_frame = Math.Round(estimateTime.Elapsed.TotalMilliseconds / Math.Max(1, frames), 1),
     worst_similarity_median_1920 = Math.Round(estimator.Frames.Where(f => f.Fits).Select(f => f.SimilarityMedian * scale).DefaultIfEmpty(0).Max(), 2),
@@ -108,12 +115,14 @@ var result = new
     {
         t = f.SourceTime.TotalSeconds, f.Fits, f.Tracked, f.Inliers,
         sim = new[] { Math.Round(f.SimilarityMedian * scale, 2), Math.Round(f.SimilarityP95 * scale, 2) },
-        hom = new[] { Math.Round(f.HomographyMedian * scale, 2), Math.Round(f.HomographyP95 * scale, 2) }
+        hom = new[] { Math.Round(f.HomographyMedian * scale, 2), Math.Round(f.HomographyP95 * scale, 2) },
+        coverage = Math.Round(f.Coverage, 3), restarted = f.Restarted, speed = Math.Round(f.Speed1920, 1)
     })
 };
 File.WriteAllText(args[4], JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true,
     NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals }));
 Console.WriteLine($"{result.clip}: {result.model}, {result.samples} samples, {result.unreliable} unreliable, " +
                   $"sim {result.worst_similarity_median_1920}/{result.worst_similarity_p95_1920}, hom {result.worst_homography_median_1920}/{result.worst_homography_p95_1920}, " +
-                  $"shift ≤ {result.max_centre_shift_1920} px, {result.estimate_ms_per_frame} ms/frame, {result.total_s} s");
+                  $"shift ≤ {result.max_centre_shift_1920} px, {result.frames} analysed ({result.densified} densified), " +
+                  $"{result.estimate_ms_per_frame} ms/frame, {result.total_s} s");
 return 0;

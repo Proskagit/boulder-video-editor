@@ -11,7 +11,8 @@ namespace AiVideoEditor.Core.Tests;
 /// <summary>
 /// Hold tracking (R2 → E) in the export preflight: the job's snapshot carries the same camera-motion tracks as the
 /// Preview; a clip whose contours reach the output while its motion is still analysed blocks the export (so the export
-/// never draws the contours elsewhere than the Preview); clips without contours, or outside the range, never wait.
+/// never draws the contours elsewhere than the Preview); clips without contours, or outside the range, never wait. K2: a
+/// failed analysis and unreliable frames are warnings — never a silent export, never a block.
 /// </summary>
 public class HoldTrackingPreflightTests
 {
@@ -89,6 +90,45 @@ public class HoldTrackingPreflightTests
         var pending = new HashSet<Guid> { plain.Id, later.Id };
         Assert.True(Check(new ExportCameraMotion(new Dictionary<Guid, CameraMotionTrack>(), pending), new ExportRange(0, 50)).CanExport);
         Assert.False(Check(new ExportCameraMotion(new Dictionary<Guid, CameraMotionTrack>(), pending)).CanExport);
+    }
+
+    [Fact]
+    public void A_failed_analysis_warns_that_the_outlines_go_out_without_the_cameras_motion_and_does_not_block()
+    {
+        var clip = Clip(0, 100, withHolds: true);
+        var result = Check(new ExportCameraMotion(new Dictionary<Guid, CameraMotionTrack>(), new HashSet<Guid>()) { Failed = new HashSet<Guid> { clip.Id } });
+        Assert.True(result.CanExport);                                      // K2: the user decides after the warning
+        var issue = Assert.Single(result.Issues, i => i.Kind == ExportIssueKind.HoldTrackingFailed);
+        Assert.Equal(ExportIssueSeverity.Warning, issue.Severity);
+        Assert.Equal(new[] { clip.Id }, issue.ClipIds.ToArray());
+        Assert.Null(result.Job!.Snapshot.VideoLayers.Single().Spans.Single().Outline!.Motion);   // the outlines as marked
+    }
+
+    [Fact]
+    public void Unreliable_frames_warn_with_their_share()
+    {
+        var clip = Clip(0, 100, withHolds: true);
+        var result = Check(new ExportCameraMotion(new Dictionary<Guid, CameraMotionTrack> { [clip.Id] = Track() }, new HashSet<Guid>())
+        {
+            Unreliable = new Dictionary<Guid, double> { [clip.Id] = 0.234 }
+        });
+        Assert.True(result.CanExport);
+        var issue = Assert.Single(result.Issues, i => i.Kind == ExportIssueKind.HoldTrackingUnreliable);
+        Assert.Equal(ExportIssueSeverity.Warning, issue.Severity);
+        Assert.Contains("23", issue.Message);
+    }
+
+    [Fact]
+    public void Tracking_problems_outside_the_exported_range_or_without_outlines_say_nothing()
+    {
+        var plain = Clip(0, 100, withHolds: false);
+        var later = Clip(100, 200, withHolds: true);
+        var motion = new ExportCameraMotion(new Dictionary<Guid, CameraMotionTrack>(), new HashSet<Guid>())
+        {
+            Failed = new HashSet<Guid> { plain.Id, later.Id }, Unreliable = new Dictionary<Guid, double> { [plain.Id] = 0.9 }
+        };
+        Assert.Empty(Check(motion, new ExportRange(0, 50)).Issues);
+        Assert.Single(Check(motion).Issues, i => i.Kind == ExportIssueKind.HoldTrackingFailed);
     }
 
     [Fact]
