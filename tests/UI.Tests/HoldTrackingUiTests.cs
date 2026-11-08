@@ -16,8 +16,9 @@ namespace AiVideoEditor.UI.Tests;
 /// <summary>
 /// Hold tracking (R2 → E) in the Inspector and the Preview: the clip's state (analysing → fixed to the wall / failed),
 /// the manual correction "Follow the camera" off — the Preview's snapshot and the export's tracks both drop the clip, so
-/// its contours stay where they were marked in both, and nothing waits for it — on again, "Retry" after a failure; none
-/// of it is a project edit; the Preview stops listening to the coordinator when it is released.
+/// its contours stay where they were marked in both, and nothing waits for it — on again, "Retry" after a failure. The
+/// switch is the clip's, saved with the project (K3): one Undo step, the track reused when it comes back on; "Retry" is no
+/// edit; the Preview stops listening to the coordinator when it is released.
 /// </summary>
 public sealed class HoldTrackingUiTests : IDisposable
 {
@@ -96,9 +97,11 @@ public sealed class HoldTrackingUiTests : IDisposable
         Assert.Null(OutlineOf(playback.Last!).Motion);                    // the Preview draws them as marked …
         Assert.False(coordinator.ForExport().Tracks.ContainsKey(clip.Id)); // … and so does the export,
         Assert.DoesNotContain(clip.Id, coordinator.ForExport().Pending);   // which waits for nothing
-        Assert.False(_undo.CanUndo);                                       // not a project edit
+        Assert.False(clip.HoldMarkup!.FollowsCamera);                     // the clip's choice, saved with the project (K3)
+        Assert.Equal("Stop Following the Camera", _undo.NextUndo?.Description);
 
-        vm.FollowsCamera = true;
+        _undo.Undo();                                                      // one Undo step brings the tracking back …
+        Assert.True(clip.HoldMarkup!.FollowsCamera);
         Assert.True(vm.FollowsCamera, "vm");
         Assert.Equal(CameraMotionState.Tracked, coordinator.StatusOf(clip.Id).State);
         Assert.Equal(Strings.Holds_TrackingTracked, vm.TrackingStatus);
@@ -143,13 +146,17 @@ public sealed class HoldTrackingUiTests : IDisposable
     public Task A_released_preview_no_longer_listens_to_the_coordinator() => _ui.Run(async () =>
     {
         var clip = AddClip();
-        using var coordinator = new CameraMotionCoordinator(_projects, new CameraMotionCoordinatorTests.PanningDecoder());
+        var decoder = new FlakyDecoder();
+        using var coordinator = new CameraMotionCoordinator(_projects, decoder);
         var playback = new RecordingPlayback();
         var preview = new PreviewViewModel(_status, playback, _projects, NullLogger<PreviewViewModel>.Instance, cameraMotion: coordinator);
         await coordinator.IdleAsync();
         await preview.ReleasePlaybackAsync();
         var before = playback.Updates;
-        coordinator.SetFollowsCamera(clip.Id, false);   // a track goes away: TracksChanged
+        decoder.Fail = false;
+        coordinator.Retry(clip.Id);                                        // a track appears: TracksChanged, no project edit
+        await coordinator.IdleAsync();
+        Assert.True(coordinator.Tracks.ContainsKey(clip.Id));
         Assert.Equal(before, playback.Updates);
     });
 

@@ -608,6 +608,9 @@ public enum HoldMarkupFields
     /// <summary>The mode or the length of a <c>Duration</c>-mode animation (D048 §3.1).</summary>
     AnimationDuration = 4096,
 
+    /// <summary>Hold tracking switched on or off for the clip ("Follow the camera", R2 → E).</summary>
+    FollowsCamera = 8192,
+
     /// <summary>Any animation setting.</summary>
     Animation = AnimationOn | AnimationOrder | AnimationStart | AnimationInterval | AnimationAppearFade | AnimationStay | AnimationDisappearFade |
                 AnimationDuration
@@ -647,6 +650,7 @@ public sealed class SetHoldMarkupCommand(VideoClip clip, HoldMarkup? before, Hol
         HoldMarkupFields.Keyline => "Change Keyline",
         HoldMarkupFields.Contour => "Edit Hold Outline",
         HoldMarkupFields.AnimationOn => After?.Animation is null ? "Turn Off Hold Animation" : "Animate Holds",
+        HoldMarkupFields.FollowsCamera => After?.FollowsCamera == false ? "Stop Following the Camera" : "Follow the Camera",
         _ when (Fields & HoldMarkupFields.Animation) != 0 => "Change Hold Animation",
         _ => "Change Outline"
     };
@@ -657,9 +661,10 @@ public sealed class SetHoldMarkupCommand(VideoClip clip, HoldMarkup? before, Hol
     public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
     {
         merged = null;
-        // Adding or removing a hold, a contour correction (one gesture each, D035) and switching the animation on or off
-        // (D036) are always their own steps.
-        if ((Fields & (HoldMarkupFields.Holds | HoldMarkupFields.Contour | HoldMarkupFields.AnimationOn)) != 0 || next is not SetHoldMarkupCommand n || n.Clip != Clip || n.Fields != Fields
+        // Adding or removing a hold, a contour correction (one gesture each, D035), switching the animation on or off
+        // (D036) and switching the hold tracking on or off are always their own steps.
+        if ((Fields & (HoldMarkupFields.Holds | HoldMarkupFields.Contour | HoldMarkupFields.AnimationOn | HoldMarkupFields.FollowsCamera)) != 0 ||
+            next is not SetHoldMarkupCommand n || n.Clip != Clip || n.Fields != Fields
             || !ReferenceEquals(n.Before, After))
             return false;
 

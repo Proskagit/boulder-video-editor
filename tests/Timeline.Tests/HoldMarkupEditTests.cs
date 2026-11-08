@@ -174,6 +174,25 @@ public class HoldMarkupEditTests
     }
 
     [Fact]
+    public void Follow_the_camera_is_one_undo_step_and_split_and_duplicate_keep_it()
+    {
+        var f = WithVideo(out var clip);
+        Assert.False(f.Service.SetHoldFollowsCamera(clip.Id, false).Success);           // no markup yet
+        Assert.True(f.Service.AddHold(clip.Id, Hold("#E53935")).Success);
+        Assert.True(f.Service.SetHoldFollowsCamera(clip.Id, false).Success);
+        Assert.False(clip.HoldMarkup!.FollowsCamera);
+        Assert.True(f.Service.SetHoldFollowsCamera(clip.Id, true).Success);              // its own step, not merged
+        f.UndoRedo.Undo();
+        Assert.False(clip.HoldMarkup!.FollowsCamera);
+
+        Assert.True(f.Service.Split(MediaTime.FromSeconds(4)).Success);
+        var halves = f.V1.Clips.OfType<VideoClip>().OrderBy(c => c.TimelineStart).ToList();
+        Assert.All(halves, h => Assert.False(h.HoldMarkup!.FollowsCamera));
+        Assert.True(f.Service.DuplicateClips(new[] { halves[1].Id }).Success);
+        Assert.All(f.Project.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>(), c => Assert.False(c.HoldMarkup!.FollowsCamera));
+    }
+
+    [Fact]
     public void Split_duplicate_and_paste_give_independent_copies_of_the_markup()
     {
         var f = WithVideo(out var clip);

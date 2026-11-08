@@ -38,6 +38,10 @@ public static class AppPaths
     /// use).</summary>
     public static string ColorLutFolder => Path.Combine(AppDataRoot, "cache", "color-luts");
 
+    /// <summary>The analysed camera-motion tracks of the hold tracking (R2 → E, D4), shared by every project, keyed by the
+    /// video's content. Not created here (the store creates it on its first write).</summary>
+    public static string CameraMotionCacheFolder => Path.Combine(AppDataRoot, "cache", "camera-motion");
+
     public static string ProjectMediaFolder(string projectFolderPath) =>
         EnsureExists(Path.Combine(projectFolderPath, "media"));
 

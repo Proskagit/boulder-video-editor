@@ -27,7 +27,7 @@ namespace AiVideoEditor.Project.Persistence;
 public static class ProjectSerializer
 {
     public const string FormatId = "AiVideoEditor.Project";
-    /// <summary>13 since Phase 35.5: the heart-rate overlay (a template kind with its look and corner). 12 since Phase 37
+    /// <summary>14 since R2 → E (K3): a hold markup's "Follow the camera" off. 13 since Phase 35.5: the heart-rate overlay (a template kind with its look and corner). 12 since Phase 37
     /// (D051): the FIT marks and the declined climbs. 11 since Phase 35 (D049): the COROS training. 10 since D048: the route
     /// timing and the template anchor. 9 since Phase 29 (D045): templates.
     /// 8 since Phase 28 (D044): the transition library — Dip to black, Flash, Zoom and Push with its direction.
@@ -39,7 +39,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 13;
+    public const int CurrentFormatVersion = 14;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -78,6 +78,10 @@ public static class ProjectSerializer
     /// <summary>The first version with the heart-rate overlay (Phase 35.5): the template kind and its look and corner. A v12
     /// file has none and is saved as v13.</summary>
     private const int HeartRateOverlayVersion = 13;
+
+    /// <summary>The first version with a hold markup's "Follow the camera" (R2 → E, K3): written only when off. A v13 file
+    /// has every markup following the camera and is saved as v14.</summary>
+    private const int FollowsCameraVersion = 14;
 
     /// <summary>A push's direction in the file (D044 §9).</summary>
     private static readonly IReadOnlyDictionary<TransitionDirection, string> DirectionNames = new Dictionary<TransitionDirection, string>
@@ -436,6 +440,7 @@ public static class ProjectSerializer
     {
         StrokeWidth1080 = m.StrokeWidth1080, ColorMode = m.ColorMode, ColorHex = m.ColorHex, Keyline = m.Keyline,
         KeylineActive = m.KeylineActive, ModelId = m.ModelId,
+        FollowsCamera = m.FollowsCamera ? null : false,
         Holds = m.Holds.Select(h => (HoldDto?)new HoldDto
         {
             Id = h.Id,
@@ -1056,7 +1061,8 @@ public static class ProjectSerializer
             KeylineActive = dto.KeylineActive ?? throw Damaged("a hold markup has no keyline state"),
             ModelId = dto.ModelId ?? throw Damaged("a hold markup has no model id"),
             Holds = holds.ToImmutableArray(),
-            Animation = formatVersion >= HoldAnimationVersion && dto.Animation is { } animation ? FromDto(animation, formatVersion) : null
+            Animation = formatVersion >= HoldAnimationVersion && dto.Animation is { } animation ? FromDto(animation, formatVersion) : null,
+            FollowsCamera = formatVersion < FollowsCameraVersion || (dto.FollowsCamera ?? true)
         };
         if (HoldMarkupRules.Validate(markup) is { } error) throw Damaged($"invalid hold markup: {error.TrimEnd('.')}");
         return markup;

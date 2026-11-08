@@ -622,6 +622,12 @@
   <data name="Preflight_NoOutput" xml:space="preserve">
     <value>Выходной файл не выбран.</value>
   </data>
+  <data name="Preflight_HoldTrackingFailed" xml:space="preserve">
+    <value>Привязать контуры зацепок «{0}» к стене не удалось ({1}, первый в {2}): они будут экспортированы на месте разметки, без компенсации движения камеры.</value>
+  </data>
+  <data name="Preflight_HoldTrackingUnreliable" xml:space="preserve">
+    <value>На {3} % проанализированных кадров «{0}» ({1}, первый в {2}) положение камеры ненадёжно: там контуры зацепок не будут показаны.</value>
+  </data>
   <data name="Preflight_HoldTrackingPending" xml:space="preserve">
     <value>Контуры зацепок «{0}» ещё привязываются к стене ({1}, первый в {2}). Подождите немного и повторите экспорт.</value>
   </data>

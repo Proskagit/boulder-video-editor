@@ -140,7 +140,7 @@ public class NewTextFontSizeTests
             var folder = Path.Combine(root, "Project");
             await f.Projects.SaveAsAsync(folder);
             var file = Path.Combine(folder, "project.json");
-            Assert.Contains("\"formatVersion\": 13", File.ReadAllText(file));
+            Assert.Contains("\"formatVersion\": 14", File.ReadAllText(file));
             var bytes = File.ReadAllBytes(file);
 
             var reopened = await f.Projects.OpenAsync(folder);
@@ -178,8 +178,8 @@ public class NewTextFontSizeTests
             await f.Projects.SaveAsync();
             var after = JsonNode.Parse(File.ReadAllText(file))!;
 
-            Assert.Equal(13, (int)before["formatVersion"]!);
-            Assert.Equal(13, (int)after["formatVersion"]!);
+            Assert.Equal(14, (int)before["formatVersion"]!);
+            Assert.Equal(14, (int)after["formatVersion"]!);
             var clips = after["timeline"]!["videoTracks"]![0]!["clips"]!.AsArray();
             var node = clips.Single(c => (string)c!["id"]! == added.Id.ToString());
             Assert.Equal("text", (string)node!["type"]!);

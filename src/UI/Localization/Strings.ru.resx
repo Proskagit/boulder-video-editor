@@ -346,10 +346,25 @@
     <value>Контуры привязаны к стене; на {0} % кадров положение камеры ненадёжно, там контуры скрыты.</value>
   </data>
   <data name="Holds_TrackingFailed" xml:space="preserve">
-    <value>Привязать контуры к стене не удалось; они остаются на месте разметки.</value>
+    <value>Привязать контуры к стене не удалось: они остаются на месте разметки и не следуют за камерой.</value>
   </data>
   <data name="Holds_TrackingOff" xml:space="preserve">
     <value>Привязка выключена: контуры остаются на месте разметки.</value>
+  </data>
+  <data name="Holds_TrackingUnreliable" xml:space="preserve">
+    <value>На {0} % кадров положение камеры ненадёжно: там контуры скрыты — привязка для этого клипа недостаточно надёжна.</value>
+  </data>
+  <data name="Preview_TrackingAnalysing" xml:space="preserve">
+    <value>Контуры зацепок привязываются к стене… (пока на месте разметки)</value>
+  </data>
+  <data name="Preview_TrackingFailed" xml:space="preserve">
+    <value>Контуры зацепок не следуют за камерой: привязать их к стене не удалось</value>
+  </data>
+  <data name="Preview_TrackingUnreliable" xml:space="preserve">
+    <value>Контуры зацепок: на {0} % кадров положение камеры ненадёжно — там они скрыты</value>
+  </data>
+  <data name="Preview_TrackingHiddenHere" xml:space="preserve">
+    <value>Контуры зацепок скрыты на этом кадре: положение камеры ненадёжно</value>
   </data>
   <data name="Holds_TrackingRetry" xml:space="preserve">
     <value>Повторить</value>

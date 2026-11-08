@@ -236,6 +236,7 @@ public partial class MainWindow : Window
         public TimelineEditResult ReplaceHoldContour(Guid clipId, Guid holdId, ImmutableArray<NormalizedPoint> points) => Nothing;
         public TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style) => Nothing;
         public TimelineEditResult SetHoldAnimation(Guid clipId, HoldAnimation? animation) => Nothing;
+        public TimelineEditResult SetHoldFollowsCamera(Guid clipId, bool follows) => Nothing;
         public TimelineEditResult FrameClip(Guid clipId, ClipFraming framing) => Nothing;
         public TimelineEditResult SetCanvasSize(int width, int height) => Nothing;
         public TimelineEditResult SetFrameRate(FrameRate rate) => Nothing;

@@ -46,6 +46,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMediaAnalysisService, FfprobeMediaAnalysisService>();
         services.AddSingleton<IFfmpegLocator, FfmpegLocator>();
         // HDR → SDR (D033): one LUT store for every decoder (the Preview, the thumbnails, the export).
+        // Hold tracking (R2 → E, D4): the analysed camera-motion tracks kept between sessions, keyed by the video's content.
+        services.AddSingleton<ICameraMotionCache>(sp => new CameraMotionCacheStore(AppPaths.CameraMotionCacheFolder,
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<CameraMotionCacheStore>>()));
         services.AddSingleton<IHdrLutStore>(sp => new HdrLutStore(AppPaths.ColorLutFolder,
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<HdrLutStore>>()));
         services.AddSingleton<IVideoDecoder, FfmpegVideoDecoder>();

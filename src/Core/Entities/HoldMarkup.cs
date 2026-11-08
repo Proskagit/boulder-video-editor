@@ -164,11 +164,16 @@ public sealed record HoldMarkup
     /// <summary>The appear / disappear animation (D036); null: off — every contour shown for the whole clip.</summary>
     public HoldAnimation? Animation { get; init; }
 
+    /// <summary>Hold tracking (R2 → E): the contours follow the camera (true, the default) or stay where they were marked —
+    /// the user's correction when the tracking is wrong. Saved with the project since format v14 (K3).</summary>
+    public bool FollowsCamera { get; init; } = true;
+
     /// <summary>Same style, the same animation and the same holds (value comparison of every hold).</summary>
     public bool SameAs(HoldMarkup other) =>
         StrokeWidth1080.Equals(other.StrokeWidth1080) && ColorMode == other.ColorMode &&
         string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase) && Keyline == other.Keyline &&
         KeylineActive == other.KeylineActive && ModelId == other.ModelId && Equals(Animation, other.Animation) &&
+        FollowsCamera == other.FollowsCamera &&
         Holds.Length == other.Holds.Length && Holds.Zip(other.Holds).All(p => p.First.SameAs(p.Second));
 }
 

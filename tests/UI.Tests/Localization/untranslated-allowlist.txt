@@ -45,6 +45,8 @@ src/Timeline/Commands/TimelineCommands.cs	Remove Dissolve
 src/Timeline/Commands/TimelineCommands.cs	Remove Hold
 src/Timeline/Commands/TimelineCommands.cs	Show Track
 src/Timeline/Commands/TimelineCommands.cs	Turn Off Hold Animation
+src/Timeline/Commands/TimelineCommands.cs	Stop Following the Camera
+src/Timeline/Commands/TimelineCommands.cs	Follow the Camera
 src/Timeline/Commands/TimelineCommands.cs	Unlock Track
 src/Timeline/Commands/TimelineCommands.cs	Unmute Track
 src/Timeline/EditPlan.cs	Update Dissolve
