@@ -573,6 +573,14 @@ takes the vertical-video export.
   architecture and open questions: `docs/MOTION_TRACKING_CAMERA.md`. Next, when taken up: a technical research → a
   specification → a decision (D042 §3: a motion path, a large function). The roadmap audit of 2026-11-08
   (`docs/ROADMAP_AUDIT_2026-11-08.md`, not a decision) keeps it in the backlog and proposes a research R4 as its first step.
+- **FU-PF.1 — A newer project file with an unknown value is reported as «damaged», not «newer» (found 2026-11-08,
+  `docs/PHASE33_34_ACCEPTANCE_EVIDENCE.md` §3)** — *backlog, not planned; the product owner, 2026-11-08: recorded
+  separately, the serializer not changed in the Phase 33 / 34 evidence task.* `ProjectSerializer.Deserialize` parses the
+  whole file before it checks `formatVersion`, so a file of a later version that contains an enum value this build does
+  not know is refused with «The project file is damaged…» instead of «saved by a newer version…» (seen with a v9 build
+  on a v10 file with the order `LeftToRight`; the current build would do the same with a future version). The file is
+  still refused and never changed — only the message is wrong. A possible fix: read the header first. Old builds cannot
+  be fixed.
 - **FU-35.5.1 — The heart rate of one climb only (the product owner at the acceptance of Step 35.5, 2026-11-03)** — *not
   decided, not planned.* Show the heart-rate overlay only within one climb — the time of its route overlay, from the start
   to the top or the end of the attempt — instead of over the whole active training (the current behaviour, kept). Needs a

@@ -15,8 +15,11 @@ numbering" → "Official phases"; this file is the dated working log.
   strip edit), `OverlayStripSpeedRateTests` (21: strip limits at 0.5× / 1× / 2×, 25 / 29.97 / 23.976 fps),
   `RouteTimingAcceptanceTests` (15: §3.4 for every listed `A`; §3.5 make room, extension, slip, copy + paste, split at `S`,
   several templates, a slower speed refused, «Анимировать» off vs Delete). No defect found. Older build vs v10 checked
-  once (v9 build refuses; with a new enum value it says «damaged», not «newer» — a note, not changed). Variant B: no
-  hover cursor per handle, no segment tooltips (§4.1) — owner's decision. **Not accepted**: the owner's check on real
+  once (v9 build refuses; with a new enum value it says «damaged», not «newer» — a note, not changed). Variant B (the owner's
+  decisions of 2026-11-08): a cursor per handle and the segment tooltips of §4.1 added (`TemplateHoverAt`, chosen by the
+  press's own `TemplatePressAt`; +3 UI tests; tooltips checked in the running Debug app); a press on the green body kept
+  as is; the v10 message recorded as FU-PF.1; gates after it: Release `-warnaserror` 0 / 0, full
+  heavy suite 5452 / 0 / 0. **Not accepted**: the owner's check on real
   footage and decision remain. Gates: Release `--no-incremental -warnaserror` 0 / 0; full suite with
   `AIVE_HEAVY_TESTS=1` 5449 / 0 / 0.
 - **Roadmap audit after R2 → E (2026-11-08, docs only, branch `docs/roadmap-audit-2026-11-08`):**
