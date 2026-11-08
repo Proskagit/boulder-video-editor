@@ -9080,6 +9080,56 @@ repository).
 
 ---
 
+## D052 — Completion of R2 → E: camera-motion compensation of the hold contours *(product decisions approved 2026-11-08; the accuracy bound pending)*
+
+Date: 2026-11-08. **Status: the product decisions K1–K3 and D4 approved by the product owner on 2026-11-08** (the task
+«R2 → E — завершение Camera Motion Tracking», on the audit `docs/R2E_CAMERA_TRACKING_AUDIT.md`); **the accuracy bound
+(E-4) NOT approved yet** — recommended with its evidence, the final reliability values and the acceptance by it wait for
+the owner. Record: `docs/PHASE_HOLD_TRACKING.md` §19; manual plan: `docs/R2E_MANUAL_TEST_PLAN.md`.
+
+**Goal and scope (unchanged from E).** The contours of the holds already marked stay on their physical places on the
+wall while the camera moves, pans, tilts or shakes, in the Preview and the export alike. Only the holds and the image
+motion needed to compensate the camera. Not in scope: a general object tracking, tracking the climber, binding texts or
+labels to objects, spatial anchors, route recognition. **Occlusion by the climber stays a separate future stage** (R-7):
+no climber segmentation, no masking, no drawing of contours under the body.
+
+**Approved (owner, 2026-11-08):**
+- **K1 — key frames: DEFERRED.** No manual key frames now; the architecture is not changed for them. The way back stays
+  open: a correction transform per source time could be composed over the track in the one draw function, with its keys
+  stored in the project (a later format version) and edited as Undo steps.
+- **K2 — failure behaviour: WARN.** A failure or an insufficient reliability is shown in the Preview and warned about on
+  export; the user cancels or explicitly continues without compensation; never a silent export of contours at their marked
+  coordinates as if tracked; no unconditional block. The states are told apart: tracked, partly unreliable, unreliable
+  (≥ 50 % of the analysed frames), failed; "Follow the camera" off is the user's choice, not a problem.
+- **K3 — persistence: PERSIST.** "Follow the camera" is saved with the project (`HoldMarkup.FollowsCamera`, `project.json`
+  v14, written only when off; a v13 file follows the camera and is saved as v14); switching it is one Undo step.
+- **D4 — track cache: INCLUDE.** The analysed tracks are kept between sessions in the application's cache
+  (`%LOCALAPPDATA%\AiVideoEditor\cache\camera-motion`, like the HDR LUTs — derived data, never in the project), keyed by the
+  video's content (size, last write time, SHA-256 of its first and last megabyte), the analysis request (start time, HDR
+  rule, rate, range, reference frame, width, interval) and the analysis version; a damaged, foreign or stale entry is never
+  used — it is analysed again; written atomically; at most 512 MB, least recently used first.
+
+**Engineering decisions (within the approved scope, 2026-11-08):**
+- **E-1 — adaptive density.** One frame every 0.1 s as before; when the wall moved more than 2 px (1920-px frame) between
+  two analysed frames, or the track was lost there, the frames in between are analysed too (`CameraMotionSampler`). A
+  still or slowly moving camera costs as before; a contour between two analysed frames is then never further than about
+  2 px from where a frame-by-frame analysis puts it.
+- **E-2 — reliability.** Besides the earlier limits (≥ 30 inliers, ≥ 30 % of the tracked points, the model's error on
+  them), a frame is reliable only when its inliers cover ≥ 75 % of the textured grid cells of the reference frame (a fit on
+  one part of the wall — the false locks of the hand-held clip) and the wall moves at most 2000 px/s (1920-px frame; above
+  it the picture is blurred). **These two values are provisional**: chosen so that, on the reference set, no shown frame is
+  further than the recommended bound from its holds; final once the bound is approved. Any change of them raises
+  `CameraMotionSampler.AnalysisVersion` (the cache is keyed by it).
+- **E-5** — the Preview / export parity with a track is proven end to end on pixels (`ExportHoldTrackingEndToEndTests`).
+
+**Pending — the accuracy bound (E-4, the owner's).** Measured in pixels of a 1920-wide frame (the contour's own
+displacement on a 1080p canvas; on a 4K canvas twice the pixels and twice the stroke, so the same share of the stroke).
+Recommended: **3 px per frame** (the median distance of the frame's wall points from where the track puts them; below one
+default stroke, 4 px at 1080). Evidence and alternatives: `docs/PHASE_HOLD_TRACKING.md` §19.4. Until approved, 3 / 6 px
+and 3 px are working values, not a specification.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:
