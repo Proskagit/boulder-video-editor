@@ -39,7 +39,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 18;
+    public const int CurrentFormatVersion = 19;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -100,6 +100,10 @@ public static class ProjectSerializer
     /// <summary>The first version with a route area's computed start <c>T</c> (D056 §4). A v17 file's areas have none (an
     /// area with a Duration animation shows its end as <c>T</c>) and are saved as v18.</summary>
     private const int RouteStartVersion = 18;
+
+    /// <summary>The first version with a video clip's blurred background (D057 §3.7). A v18 file's clips have black ones and
+    /// are saved as v19; an older build refuses a v19 file as newer (FU-PF.1 reads the version first).</summary>
+    private const int BackgroundVersion = 19;
 
     /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
     /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
@@ -434,6 +438,7 @@ public static class ProjectSerializer
                 PositionX = v.PositionX, PositionY = v.PositionY, Scale = v.Scale, RotationDegrees = v.RotationDegrees,
                 Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted, Crop = ToDto(v.Crop),
                 IsAudioDetached = v.IsAudioDetached,
+                Background = v.Background == ClipBackground.Blur ? "blur" : null,
                 Routes = v.Routes.IsDefaultOrEmpty ? null : v.Routes.Select(r => (HoldMarkupDto?)ToDto(r)).ToList()
             },
             AudioClip a => new AudioClipDto { Volume = a.Volume, IsMuted = a.IsMuted },
@@ -959,7 +964,10 @@ public static class ProjectSerializer
                 // v1–v3 have no unlinked sound (D032).
                 IsAudioDetached = formatVersion >= AudioEditingVersion && v.IsAudioDetached,
                 // v1–v4 have no hold markup (D034); v5–v14 one markup — the clip's one route; v15 the routes (D053).
-                Routes = ReadRoutes(v, formatVersion)
+                Routes = ReadRoutes(v, formatVersion),
+                // v1–v18: black (D057 §3.7).
+                Background = formatVersion < BackgroundVersion || v.Background is null ? ClipBackground.Black
+                    : v.Background == "blur" ? ClipBackground.Blur : throw Damaged("unknown clip background")
             },
             AudioClipDto a => new AudioClip { Id = a.Id, MediaAssetId = a.MediaAssetId, Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClipDto i => new ImageClip

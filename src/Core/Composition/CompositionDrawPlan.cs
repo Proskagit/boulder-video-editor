@@ -148,6 +148,7 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
     /// D053 — in the clip's route order).</summary>
     public static IEnumerable<DrawOperation> LayerOperations(FrameSize canvas, Affine2D canvasToTarget, ResolvedLayer resolved, double minTargetStroke = 0)
     {
+        if (BlurredBackground(canvas, canvasToTarget, resolved) is { } background) yield return background;
         yield return Operation(canvas, canvasToTarget, resolved);
         if (resolved.Layer is not PictureLayer picture || resolved.Frame is not { } frame) yield break;
         for (var i = 0; i < picture.Span.Outlines.Length; i++)
@@ -209,6 +210,20 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
             // Every contour at 1 draws exactly as an outline without animation.
             PolygonOpacities = animated && shown.Any(o => o < 1) ? shown.ToImmutable() : ImmutableArray<double>.Empty
         };
+    }
+
+    /// <summary>
+    /// D057 §3.7: the blurred background of a picture whose clip asks for it — its own frame, cropped to the canvas's aspect
+    /// (centred, «fill»), reduced and blurred (<see cref="BackgroundBlur"/>), drawn over the whole canvas under the picture at
+    /// the layer's opacity. The same operation for the Preview and the export (one painter), so they look the same; null
+    /// for a black background or no frame.
+    /// </summary>
+    public static FrameDraw? BlurredBackground(FrameSize canvas, Affine2D canvasToTarget, ResolvedLayer resolved)
+    {
+        if (resolved.Layer is not PictureLayer { Span.Background: Entities.ClipBackground.Blur } picture || resolved.Frame is not { } frame) return null;
+        var blurred = BackgroundBlur.Of(frame, canvas);
+        return new FrameDraw(picture.ClipId, canvasToTarget, picture.Opacity, new RectD(0, 0, canvas.Width, canvas.Height), blurred,
+            new RectD(0, 0, blurred.Width, blurred.Height));
     }
 
     /// <summary>D034 §4: the stroke in canvas (= output) pixels — <c>StrokeWidth1080 × short side / 1080</c>.</summary>

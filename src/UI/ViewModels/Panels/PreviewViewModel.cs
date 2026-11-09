@@ -90,11 +90,16 @@ public sealed partial class PreviewViewModel : ViewModelBase
     /// <summary>Playback moved to the frame starting at this time (UI thread, from <see cref="Tick"/>).</summary>
     public event EventHandler<MediaTime>? PlaybackPositionChanged;
 
+    private readonly IUserSettingsService? _settings;
+
     public PreviewViewModel(StatusService status, IPlaybackService playback, IProjectService projectService,
         ILogger<PreviewViewModel> logger, InOutRangeService? inOut = null, SourceViewerService? source = null,
-        CameraMotionCoordinator? cameraMotion = null, TrainingSessionService? training = null)
+        CameraMotionCoordinator? cameraMotion = null, TrainingSessionService? training = null, IUserSettingsService? settings = null)
     {
         _inOut = inOut;
+        // D057 §3.8: the heart rate's display offset; a change shows at once (the export takes the same value).
+        _settings = settings;
+        if (_settings is not null) _settings.Changed += (_, _) => { if (!IsSourceMode && !_released) RebuildSnapshot(); };
         _cameraMotion = cameraMotion;
         if (_cameraMotion is not null)
         {
@@ -316,7 +321,8 @@ public sealed partial class PreviewViewModel : ViewModelBase
     private void RebuildSnapshot()
     {
         _assetStates = PlaybackSnapshotBuilder.CaptureAssetStates(_projectService.Current);
-        _playback.UpdateSnapshot(PlaybackSnapshotBuilder.Build(_projectService.Current, ++_snapshotVersion, _cameraMotion?.Tracks));
+        _playback.UpdateSnapshot(PlaybackSnapshotBuilder.Build(_projectService.Current, ++_snapshotVersion, _cameraMotion?.Tracks,
+            _settings?.Current.HeartRateDisplayOffset ?? MediaTime.Zero));
         _needsTick = true;
     }
 

@@ -103,7 +103,7 @@ public class FadeTransitionPersistenceTests
         var project = Build();
         var root = Json(project);
 
-        Assert.Equal(18, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(19, root["formatVersion"]!.GetValue<int>());
         Assert.Equal(F(5).Ticks, Clips(root)[0]!["fadeInTicks"]!.GetValue<long>());
         Assert.Equal(0, Clips(root)[0]!["fadeOutTicks"]!.GetValue<long>());
         var transition = Transitions(root)[0]!;
@@ -146,7 +146,7 @@ public class FadeTransitionPersistenceTests
         Assert.Equal(5, loaded.Timeline.VideoTracks.Concat(loaded.Timeline.AudioTracks).SelectMany(t => t.Clips).Count());
 
         var resaved = Json(loaded);
-        Assert.Equal(18, resaved["formatVersion"]!.GetValue<int>());
+        Assert.Equal(19, resaved["formatVersion"]!.GetValue<int>());
         Assert.Empty(Transitions(resaved));
         Assert.Equal(0, Clips(resaved)[0]!["fadeInTicks"]!.GetValue<long>());
     }

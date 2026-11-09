@@ -72,6 +72,10 @@ public sealed class VideoClip : MediaBackedClip
     /// <summary>Crop expressed as normalized (0..1) insets from each edge.</summary>
     public CropRect Crop { get; set; } = CropRect.None;
 
+    /// <summary>D057 §3.7: what fills the canvas around the picture — black (D018, the default) or the clip's own picture,
+    /// filled to the canvas and blurred (`project.json` v19).</summary>
+    public ClipBackground Background { get; set; }
+
     /// <summary>The clip's own sound was unlinked into an <see cref="AudioClip"/> (D032 R1, R3): the clip produces no
     /// sound; <see cref="Volume"/> and <see cref="IsMuted"/> are kept but unused.</summary>
     public bool IsAudioDetached { get; set; }
@@ -317,4 +321,11 @@ public sealed class Marker
     public MediaTime Position { get; set; }
     public string Label { get; set; } = string.Empty;
     public string ColorHex { get; set; } = "#4FC3F7";
+}
+
+/// <summary>D057 §3.7: a video clip's background on the canvas.</summary>
+public enum ClipBackground
+{
+    Black,
+    Blur
 }

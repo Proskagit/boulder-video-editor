@@ -77,7 +77,16 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<UiStateService>>()));
         services.AddSingleton<FitCalibrationSaveSync>();     // Step 37.5: the saves' observations
         services.AddSingleton<IFitSettingsDialog, AvaloniaFitSettingsDialog>();
+        services.AddSingleton<IAppSettingsDialog, AvaloniaAppSettingsDialog>();   // D057 §3.8: «Настройки…»
+        services.AddSingleton<IYouTubeTimestampsDialog, AvaloniaYouTubeTimestampsDialog>();   // D057 §3.9
+        services.AddSingleton<YouTubeTimestampsWorkflow>();
         services.AddSingleton<FitSettingsWorkflow>();        // Step 37.6: «Настройки FIT…»
+        // D057 §3.8: the user's FFmpeg paths (settings.json) win over the application's (appsettings.json); applied at start.
+        services.AddOptions<AiVideoEditor.Infrastructure.Configuration.FfmpegOptions>().PostConfigure<IUserSettingsService>((options, settings) =>
+        {
+            if (settings.Current.FfmpegPath is { } ffmpeg) options.FfmpegPath = ffmpeg;
+            if (settings.Current.FfprobePath is { } ffprobe) options.FfprobePath = ffprobe;
+        });
 
         // Export (D023): the service knows only the Core abstractions; the app picks the ffmpeg encoder and
         // the Avalonia offscreen rasterizer (one new instance per export job).

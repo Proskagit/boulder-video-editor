@@ -599,6 +599,16 @@ on the project grid (D006).
   it starts on the next `Update` once the picture is there (or on the caller's context when that comes first; a lock guards
   the restarts); meanwhile the picture is the waiting pipeline's own start frame and `IsBuffering` stays true; any other
   restart (a snapshot, Play) supersedes it. Playback, its sound and the synchronisation are unchanged.
+- **Block F.** «Настройки…» (`AppSettingsViewModel` / `AppSettingsView`, opened by `FitSettingsWorkflow` — the COROS menu's
+  «Настройки FIT…» at its section «COROS / FIT»): the language and the FFmpeg paths (applied at the next start —
+  `Program` and a `PostConfigure<FfmpegOptions>`), the hold proposals, the heart rate's display offset and the D051
+  calibration. `HeartRateBinding.DisplayOffset` (from `PlaybackSnapshotBuilder.Build(…, heartRateDisplayOffset)`, the
+  Preview's and the export's `ExportPreflightEnvironment.HeartRateDisplayOffset`) reads the sample at `w − offset`; the
+  readout, the binding and the areas never use it. `VideoClip.Background` (`project.json` v19, `"background": "blur"`) →
+  `PictureSpan.Background` (presentation only) → `CompositionDrawPlan.BlurredBackground`: a `FrameDraw` of `BackgroundBlur`'s
+  reduced, three-pass box-blurred copy of the frame (cropped to the canvas's aspect, cached per frame) over the whole canvas
+  under the picture — the export's plan and `PreviewDrawPlan` alike, one painter. `YouTubeTimestamps` (Core) and
+  `YouTubeTimestampsWorkflow` / `YouTubeTimestampsView` («Таймкоды YouTube…» next to «Экспорт»).
 
 ## FIT route starts and the global start calibration (Phase 37, D051)
 

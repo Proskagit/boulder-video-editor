@@ -217,6 +217,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public string? GetAddBlockReason(MediaAsset asset) => null;
         public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null, bool insertOnDrop = false) => No;
         public TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds) => No;
+        public TimelineEditResult SetClipBackground(Guid clipId, ClipBackground background) => No;
         public MediaTime? AddedClipDuration(Guid mediaAssetId) => null;
         public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null) => No;
         public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start) => No;

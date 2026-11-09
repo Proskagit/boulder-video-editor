@@ -333,6 +333,11 @@ internal sealed class VideoClipDto : MediaBackedClipDto
 
     public CropDto? Crop { get; set; }
 
+    /// <summary>Format v19 (D057 §3.7): «blur» — the canvas around the picture is the picture blurred; written only then
+    /// (absent: black).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Background { get; set; }
+
     /// <summary>Format v4 (D032 R2): the clip's sound was unlinked into an audio clip; written only when true.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool IsAudioDetached { get; set; }

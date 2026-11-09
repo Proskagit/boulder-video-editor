@@ -13,6 +13,18 @@ namespace AiVideoEditor.Timeline;
 // it is one undo step that never merges with a typed Scale before or after it.
 public sealed partial class TimelineEditService
 {
+    public TimelineEditResult SetClipBackground(Guid clipId, ClipBackground background)
+    {
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+        if (clips[0] is not VideoClip clip) return TimelineEditResult.Fail(Messages.Frame_NoPicture);
+        var track = plan.TrackOf(clip);
+        if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
+        if (clip.Background == background) return TimelineEditResult.Unchanged();
+        ExecuteTracked(new Commands.NotifyingCommand(new Commands.SetClipBackgroundCommand(clip, clip.Background, background), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok(new[] { clip.Id });
+    }
+
     public TimelineEditResult FrameClip(Guid clipId, ClipFraming framing)
     {
         var plan = new EditPlan(Sequence, Settings);

@@ -73,7 +73,7 @@ public class FitLayoutPersistenceTests
         var hand = new TemplateClip { Kind = TemplateKind.Boulder, AccentHex = TemplateRules.DefaultAccentHex, AnchorRouteId = Guid.NewGuid() };
         var first = Save(Build(FitArea(Layout), hand));
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(18, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(19, root["formatVersion"]!.GetValue<int>());
         var layout = AreaJson(root, 0)["fitLayout"]!;
         Assert.Equal(MediaTime.FromFrame(275, Rate).Ticks, layout["sourceStartTicks"]!.GetValue<long>());
         Assert.Equal(MediaTime.FromFrame(1260, Rate).Ticks, layout["sourceEndTicks"]!.GetValue<long>());
@@ -100,7 +100,7 @@ public class FitLayoutPersistenceTests
         var area = loaded.Timeline.VideoTracks[1].Clips.OfType<TemplateClip>().Single();
         Assert.Equal(Climb, area.FitClimb);
         Assert.Null(area.FitLayout);
-        Assert.Equal(18, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(19, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class FitLayoutPersistenceTests
 
         var first = Save(project);
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(18, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(19, root["formatVersion"]!.GetValue<int>());
         Assert.Equal(MediaTime.FromFrame(450, Rate).Ticks, AreaJson(root, 0)["routeStartTicks"]!.GetValue<long>());
         Assert.Null(AreaJson(root, 1)["routeStartTicks"]);                             // a free template: never
         var loaded = Load(first);

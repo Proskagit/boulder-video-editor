@@ -726,3 +726,13 @@ public sealed class SetHoldMarkupCommand(VideoClip clip, Guid routeId, HoldMarku
         return true; // merged stays null when the second edit restored the first one's "before"
     }
 }
+
+/// <summary>D057 §3.7: a video clip's background.</summary>
+public sealed class SetClipBackgroundCommand(VideoClip clip, ClipBackground before, ClipBackground after) : IUndoableCommand
+{
+    public string Description => "Set Background";
+
+    public void Execute() => clip.Background = after;
+
+    public void Undo() => clip.Background = before;
+}

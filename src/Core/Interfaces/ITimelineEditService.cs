@@ -287,6 +287,10 @@ public interface ITimelineEditService
     /// whose source size is unknown, a locked track and a scale outside <see cref="ClipPropertyLimits"/>.</summary>
     TimelineEditResult FrameClip(Guid clipId, ClipFraming framing);
 
+    /// <summary>D057 §3.7: a video clip's background — black or its own picture blurred; one undo step; the value already
+    /// there is <see cref="TimelineEditResult.NoChange"/>; refused for another kind of clip or a locked track.</summary>
+    TimelineEditResult SetClipBackground(Guid clipId, ClipBackground background);
+
     /// <summary>Adds a confirmed hold to a video clip's markup (D034): one undo step; the Auto colour and the keyline are
     /// recomputed from the stored samples of all holds. Refused for other clips and on a locked track.</summary>
     TimelineEditResult AddHold(Guid clipId, Hold hold, Guid? routeId = null);

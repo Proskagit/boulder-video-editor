@@ -275,6 +275,26 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
     [RelayCommand] private void FitFrame() => FrameClip(ClipFraming.Fit);
 
+    // --- Background (D057 §3.7): video clips — black or the picture blurred; one undo step -------------------------------
+
+    [ObservableProperty] private bool _hasBackground;
+
+    /// <summary>0 black, 1 blurred.</summary>
+    [ObservableProperty] private int _backgroundIndex;
+
+    public IReadOnlyList<string> Backgrounds { get; } = new[] { Strings.Background_Black, Strings.Background_Blur };
+
+    partial void OnBackgroundIndexChanged(int value)
+    {
+        if (_syncing || _clip is not VideoClip clip || RejectWhileLocked()) return;
+        var result = _edit.SetClipBackground(clip.Id, value == 1 ? ClipBackground.Blur : ClipBackground.Black);
+        if (!result.Success)
+        {
+            _status.Report(result.Message ?? "");
+            ShowModelAfterRejection();
+        }
+    }
+
     private void FrameClip(ClipFraming framing)
     {
         if (_clip is not { } clip || RejectWhileLocked()) return;
@@ -541,6 +561,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
             || (clip is VideoClip { IsAudioDetached: false } && selection.Asset?.Metadata is not { AudioCodec: null });
         HasVisualProperties = VisualProperties.Of(clip) is not null;
         HasCrop = clip is VideoClip or ImageClip;
+        HasBackground = clip is VideoClip;
         HasTextProperties = clip is TextClip;
         HasSpeed = clip is VideoClip or AudioClip;
         HasFades = true;
@@ -631,6 +652,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         _syncing = true;
         try
         {
+            BackgroundIndex = _clip is VideoClip { Background: ClipBackground.Blur } ? 1 : 0;
             if (AudioProperties.Of(_clip) is { } audio)
             {
                 VolumePercent = (decimal)audio.Volume * 100m;

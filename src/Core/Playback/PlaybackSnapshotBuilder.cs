@@ -22,7 +22,9 @@ public static class PlaybackSnapshotBuilder
 {
     /// <param name="motion">The camera's motion per video clip (hold tracking), by clip id — derived from the video, not part
     /// of the project; null or a missing clip: its contours stay where they were marked, exactly as before.</param>
-    public static PlaybackSnapshot Build(Project project, long version, IReadOnlyDictionary<RouteKey, CameraMotionTrack>? motion = null)
+    /// <param name="heartRateDisplayOffset">D057 §3.8: the user's display offset of the heart rate (zero: none).</param>
+    public static PlaybackSnapshot Build(Project project, long version, IReadOnlyDictionary<RouteKey, CameraMotionTrack>? motion = null,
+        MediaTime heartRateDisplayOffset = default)
     {
         var sequence = project.Timeline;
         var assets = project.MediaAssets.ToDictionary(a => a.Id);
@@ -67,7 +69,7 @@ public static class PlaybackSnapshotBuilder
                         HeartRate = template is { Kind: TemplateKind.Boulder, ShowHeartRate: true, AnchorClipId: { } anchorId } &&
                                     project.Training is not null && videoClips.TryGetValue(anchorId, out var anchor)
                             ? new TemplateHeartRate(anchor.Id, anchor.MediaAssetId, anchor.TimelineStart, anchor.SourceIn, anchor.Speed,
-                                assets.TryGetValue(anchor.MediaAssetId, out var anchorAsset) ? HeartRateOf(training, anchorAsset) : null)
+                                assets.TryGetValue(anchor.MediaAssetId, out var anchorAsset) ? HeartRateOf(training, anchorAsset, heartRateDisplayOffset) : null)
                             : null
                     });
                     continue;
@@ -82,6 +84,7 @@ public static class PlaybackSnapshotBuilder
                     spans.Add(new PictureSpan(clip.Id, media.MediaAssetId, status, clip.TimelineStart, clip.TimelineEnd, media.SourceIn, reason)
                     {
                         Visual = VisualProperties.Of(media) ?? VisualProperties.Default,
+                        Background = media is VideoClip { Background: var background } ? background : ClipBackground.Black,
                         Speed = media.Speed,
                         // The decoder delivers display-oriented frames (automatic rotation), so the
                         // composition works with the display size, never the coded one.
@@ -97,7 +100,7 @@ public static class PlaybackSnapshotBuilder
                                     new RouteKey(clip.Id, route.Id), asset, motion))
                                 .OfType<HoldOutline>().ToImmutableArray()
                             : ImmutableArray<HoldOutline>.Empty,
-                        HeartRate = media is VideoClip && status == SpanStatus.Video ? HeartRateOf(training, asset!) : null
+                        HeartRate = media is VideoClip && status == SpanStatus.Video ? HeartRateOf(training, asset!, heartRateDisplayOffset) : null
                     });
 
                 // An unlinked video clip's sound is its audio clip's (D032 R10).
@@ -242,9 +245,9 @@ public static class PlaybackSnapshotBuilder
     /// <summary>The heart rate of a video's pictures (D055 §1): the usable training and the time of the video file
     /// (<see cref="FitRouteBinding.FileTimeOf"/> — its tag, else its name; never the recording zero <c>Z</c>); null without
     /// either.</summary>
-    private static HeartRateBinding? HeartRateOf(TrainingReference? training, MediaAsset asset) =>
+    private static HeartRateBinding? HeartRateOf(TrainingReference? training, MediaAsset asset, MediaTime displayOffset) =>
         training?.Workout is { } workout && FitRouteBinding.FileTimeOf(asset, workout) is { Zero: var start }
-            ? new HeartRateBinding(workout, start, training.ClockCorrection)
+            ? new HeartRateBinding(workout, start, training.ClockCorrection) { DisplayOffset = displayOffset }
             : null;
 
     private static HoldOutline? WithMotion(HoldOutline? outline, RouteKey key, MediaAsset? asset, IReadOnlyDictionary<RouteKey, CameraMotionTrack>? motion) =>
