@@ -61,6 +61,7 @@ This directory contains:
 - `PHASE35_5_MANUAL_ACCEPTANCE.md` — the owner's step-by-step acceptance of Step 35.5 (the heart-rate overlay) in the
   running app, in Russian; run 2026-11-03 — PASS
 - `PHASE37_MANUAL_TEST_PLAN.md` — manual checks of Phase 37 (not run yet)
+- `PHASE38_MANUAL_TEST_PLAN.md` — manual checks of Phase 38, UX Improvements before the MVP (D057)
 - `drafts/ffmpeg-minimal-9.0.2-1/` — drafts of the minimal FFmpeg build's release plan and notices (S1 release
   preparation, not published)
 - `AI_MODEL.md` — the AI hold model: files and checksums, installing, messages, licences and notices, the export recipe
