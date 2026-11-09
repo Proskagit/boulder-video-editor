@@ -70,7 +70,8 @@ public sealed class TextStyleViewTests
     public void The_animation_block_shows_the_model_and_edits_it()
     {
         var (view, clip, _) = Setup();
-        Assert.True(Named<StackPanel>(view, "TextAnimationSection").IsVisible);
+        Assert.True(Avalonia.LogicalTree.LogicalExtensions.GetLogicalAncestors(Named<StackPanel>(view, "TextAnimationSection"))
+            .OfType<Control>().Prepend(Named<StackPanel>(view, "TextAnimationSection")).All(c => c.IsVisible));   // D057 §3.1: shown by its section
         var appear = Named<ComboBox>(view, "AppearKind");
         Assert.Equal((int)TextAppearanceKind.Slide, appear.SelectedIndex);
         Assert.Equal(4, appear.ItemCount);

@@ -51,11 +51,11 @@ public sealed class TemplateViewTests
     {
         var (view, clip) = Setup(TemplateKind.Boulder);
 
-        Assert.True(Named<StackPanel>(view, "TemplateSection").IsVisible);
+        Assert.True(Shown(Named<StackPanel>(view, "TemplateSection")));         // D057 §3.1: shown by its section
         Assert.True(Shown(Named<TextBox>(view, "TemplateRouteField")));
         Assert.False(Shown(Named<TextBox>(view, "TemplateDateField")));
         Assert.False(Shown(Named<TextBox>(view, "TemplateTitleField")));
-        Assert.False(Named<StackPanel>(view, "TextAnimationSection").IsVisible);
+        Assert.False(Shown(Named<StackPanel>(view, "TextAnimationSection")));
 
         Named<TextBox>(view, "TemplateRouteField").Text = "7";
         Named<TextBox>(view, "TemplateGradeField").Text = "7A";

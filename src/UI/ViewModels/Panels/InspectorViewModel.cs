@@ -94,6 +94,20 @@ public sealed partial class InspectorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsAudioTransitionSelected))]
     private InspectorSelectionKind _selectionKind = InspectorSelectionKind.None;
 
+    /// <summary>D057 §3.1: raised whenever the Inspector shows a selection (also the same kind again), so the view keeps the
+    /// scroll position of that kind of item.</summary>
+    public event EventHandler? Shown;
+
+    /// <summary>D057 §3.1: the kind of item shown, as the key of its scroll position — «media», «transition», «none» or the
+    /// clip's kind («VideoClip», «AudioClip», «TextClip», «TemplateClip», …).</summary>
+    public string ScrollKey => SelectionKind switch
+    {
+        InspectorSelectionKind.Media => "media",
+        InspectorSelectionKind.Transition => "transition",
+        InspectorSelectionKind.TimelineClip => _clip?.GetType().Name ?? "clip",
+        _ => "none"
+    };
+
     /// <summary>The "Holds" section of a video clip (D034); set by the shell, which tells it the selected clip.</summary>
     [ObservableProperty] private HoldMarkupViewModel? _holdMarkup;
 
@@ -384,6 +398,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         SyncTransition();
         TechnicalRows.Clear();
         SelectionKind = InspectorSelectionKind.Transition;
+        Shown?.Invoke(this, EventArgs.Empty);
         OnPropertyChanged(nameof(IsVideoTransitionSelected));
         OnPropertyChanged(nameof(IsAudioTransitionSelected));
         OnPropertyChanged(nameof(HasTechnicalInfo));
@@ -557,6 +572,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
         TechnicalRows.Clear();
         SelectionKind = InspectorSelectionKind.TimelineClip;
+        Shown?.Invoke(this, EventArgs.Empty);
         OnPropertyChanged(nameof(HasTechnicalInfo));
         ShowTraining(clip is VideoClip ? selection.Asset : null);
     }
@@ -592,6 +608,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
             BuildTechnicalRows(asset.Kind, metadata);
 
         SelectionKind = InspectorSelectionKind.Media;
+        Shown?.Invoke(this, EventArgs.Empty);
         OnPropertyChanged(nameof(HasTechnicalInfo));
     }
 
@@ -599,6 +616,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     {
         ForgetClip();
         SelectionKind = InspectorSelectionKind.None;
+        Shown?.Invoke(this, EventArgs.Empty);
         TechnicalRows.Clear();
         IsAnalyzing = false;
         AnalysisStatusText = null;

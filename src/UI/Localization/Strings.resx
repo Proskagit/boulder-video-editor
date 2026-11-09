@@ -2380,6 +2380,9 @@ If you don't save, your changes will be lost.</value>
   <data name="Inspector_FitLinkHeader" xml:space="preserve">
     <value>FIT CLIMB OF THE ANIMATION</value>
   </data>
+  <data name="Inspector_FitServiceHeader" xml:space="preserve">
+    <value>FIT (SERVICE)</value>
+  </data>
   <data name="Inspector_FitLinked" xml:space="preserve">
     <value>Linked to FIT climb {0}.</value>
   </data>
