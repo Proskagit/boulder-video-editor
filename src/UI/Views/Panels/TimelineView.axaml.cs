@@ -503,11 +503,26 @@ public partial class TimelineView : UserControl
 
     // --- Zoom ---------------------------------------------------------------------
 
+    /// <summary>The distance one notch of the wheel scrolls (D057 §3.11).</summary>
+    internal const double WheelStep = 80;
+
     private void OnWheel(object? sender, PointerWheelEventArgs e)
     {
-        if (_viewModel is null || !e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
-        var factor = e.Delta.Y > 0 ? 1.25 : 1 / 1.25;
-        _viewModel.ZoomAtPointer(factor, e.GetPosition(ContentRoot).X);
+        if (_viewModel is null) return;
+        switch (TimelineWheel.ActionFor(e.KeyModifiers, e.Delta))
+        {
+            case TimelineWheelAction.Zoom:
+                _viewModel.ZoomAtPointer(e.Delta.Y > 0 ? 1.25 : 1 / 1.25, e.GetPosition(ContentRoot).X);
+                break;
+            case TimelineWheelAction.Horizontal:
+                ContentScroll.Offset = ContentScroll.Offset.WithX(Math.Max(0, ContentScroll.Offset.X - TimelineWheel.HorizontalDelta(e.Delta) * WheelStep));
+                break;
+            case TimelineWheelAction.Vertical:
+                ContentScroll.Offset = ContentScroll.Offset.WithY(Math.Max(0, ContentScroll.Offset.Y - TimelineWheel.VerticalDelta(e.Delta) * WheelStep));
+                break;
+            default:
+                return;
+        }
         e.Handled = true;
     }
 

@@ -565,6 +565,16 @@ files under `%LOCALAPPDATA%\AiVideoEditor\config\`, never in `project.json`; the
 clip's background). The playhead may lie between the project's frames (D057 §3.14); clip edges and grid-bound edits stay
 on the project grid (D006).
 
+- **Block A.** Core `IUserSettingsService` / `UserSettings` (the heart-rate display offset, the hold proposals' default, the
+  language and the FFmpeg overrides) and `IUiStateService` / `UiState` (the window, the panels, the Inspector's sections and
+  scroll); in-memory versions for tests. Project `UserJsonFile<T>` — one JSON document `{ format, formatVersion, value }`,
+  written whole through a temporary file, a damaged file set aside as `*.damaged`, a newer or unreadable one never
+  overwritten; `UserSettingsService` (`settings.json`) and `UiStateService` (`ui-state.json`, a burst of changes written once
+  a second later and on `Flush`). `ProjectSerializer.PeekNewerVersion` reads a file's top-level version before the full
+  parse (FU-PF.1). `TimelineWheel` maps the wheel over the tracks (horizontal; Ctrl zoom; Shift vertical); the content
+  `ScrollViewer` never hides its bars. `HoldMarkupViewModel` takes the proposals' default from the settings and writes the
+  user's choice back.
+
 ## FIT route starts and the global start calibration (Phase 37, D051)
 
 *Approved 2026-11-03; implemented and merged with PR #33 (`1640996`); `project.json` v12. Record: `docs/PHASE37.md`.*

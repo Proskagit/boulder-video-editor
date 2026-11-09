@@ -485,3 +485,8 @@ src/Project/Persistence/ProjectSerializer.cs	a route area's heart colour is miss
 src/Project/Persistence/ProjectSerializer.cs	a FIT area's layout is invalid
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Show Heart Rate
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Hide Heart Rate
+src/Project/Persistence/UserJsonFile.cs	not an object
+src/Project/Persistence/UserJsonFile.cs	another format
+src/Project/Persistence/UserJsonFile.cs	no format version
+src/Project/Persistence/UserJsonFile.cs	an unknown format version
+src/Project/Persistence/UserJsonFile.cs	no value

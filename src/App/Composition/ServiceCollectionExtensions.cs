@@ -70,6 +70,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFitCalibrationStore>(sp => new FitCalibrationStore(AppPaths.FitCalibrationFile,
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<FitCalibrationStore>>()));
         services.AddSingleton<IStartCorrectionSource>(sp => sp.GetRequiredService<IFitCalibrationStore>());
+        // Phase 38 (D057 §2): the global settings and the working layout — per-user files, created on their first write.
+        services.AddSingleton<IUserSettingsService>(sp => new UserSettingsService(AppPaths.UserSettingsFile,
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<UserSettingsService>>()));
+        services.AddSingleton<IUiStateService>(sp => new UiStateService(AppPaths.UiStateFile,
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<UiStateService>>()));
         services.AddSingleton<FitCalibrationSaveSync>();     // Step 37.5: the saves' observations
         services.AddSingleton<IFitSettingsDialog, AvaloniaFitSettingsDialog>();
         services.AddSingleton<FitSettingsWorkflow>();        // Step 37.6: «Настройки FIT…»
