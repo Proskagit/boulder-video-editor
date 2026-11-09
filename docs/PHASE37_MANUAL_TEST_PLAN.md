@@ -6,6 +6,9 @@ of this plan were not run one by one by hand. Phase 37 accepted by the product o
 («Product owner's acceptance» below).** The phase is implemented and merged into `main` with PR #33 (`1640996`). The acceptance items of D051 §10 are cited as «D051 A1»…«D051 A15»; the rows of this plan have their own
 numbers.
 
+*Since D056 (2026-11-09, PR #54) the marks are not drawn on the clips; the rows that look at a mark on a clip describe the
+state of 2026-11-04 — the marks and their actions are in the Inspector («FIT-метки»).*
+
 Environment: a build of `main` at `1640996` (the merge of PR #33) or later; the projects of 08.08.2026 and 27.09.2026 with their FIT and videos (personal
 data, never committed); Russian interface unless a row says otherwise, an English pass for the new texts. Before part F:
 a copy of `%LOCALAPPDATA%\AiVideoEditor\config\fit-calibration.json`, if it exists, to restore it afterwards. **Beta (the

@@ -2,9 +2,18 @@
 
 ## Current phase
 
-**State on 2026-11-03** — `main` at `1640996` (the merge of PR #33, CI green on the pull request and on `main`),
-`project.json` v12. The phases' state and what comes next have one source: `docs/DEVELOPMENT_PLAN.md`, "Phase and step
-numbering" → "Official phases"; this file is the dated working log.
+**State on 2026-11-09** — `main` at `1a087ae` (the merge of PR #54), `project.json` v18. The phases' state and what comes
+next have one source: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering" → "Official phases"; this file is the dated
+working log.
+
+- **Accepted on 2026-11-09 (the product owner, manual checks in the application, all positive):** **D056** in full — R1–R9
+  and the checks after PR #54 (the blue `T` mark on the video clip for every route area, gone with its area and back with
+  Undo; the D051 FIT marks are the calibration's service marks in the Inspector, untouched by deleting a route area; the
+  free «Боулдер» in the route area's green) — and **Step 35.6b** (H1–H11 with the checks of D055 / D056). Step 35.6 is
+  done. Merged: D053 PR #47, D054 PR #48, 35.6a / D055 PR #50, D056 PRs #51–#54. Record: `docs/PHASE_COROS.md` §16.
+- **Phase 35 is not complete:** Step 35.4 — C1–C14 automated (PASS but C5's real COROS re-export, manual), **not accepted
+  yet**; Step 35.3 — 35.3b2b deferred, 35.3e awaiting the owner's decision (B6 not met). Deferred research: FU-HR.1.
+- **Next (the owner's priorities of 2026-11-08):** Phase 30 / S1 — the release preparation; then H; R4 deferred.
 
 - **Merged with PR #33 (2026-11-03):** Phase 35's Steps 35.0–35.4 with the 35.3 research (`docs/PHASE_COROS.md`) and
   Phase 37 (D051, `docs/PHASE37.md`) — together, by the product owner's decision of 2026-11-03, not through Phase 35's two
@@ -21,7 +30,8 @@ numbering" → "Official phases"; this file is the dated working log.
   a thin dashed mark on the timeline (FIT areas without holds too); the free «Боулдер» drawn green. **After the manual
   check (branch `fix/d056-t-mark-on-clip`):** `T` is a blue mark on the video clip that comes and goes with its area; the
   D051 FIT marks are no longer drawn on the clips (the owner's choice); the free «Боулдер» has the area's actual green
-  `#53814D`. FU-HR.1 (a display shift of the heart rate) is a future experiment.
+  `#53814D`. Merged with PRs #51–#54; **accepted by the product owner on 2026-11-09**. FU-HR.1 (a display shift of the
+  heart rate) is a future experiment.
 - **Step 35.6a / D055 — the heart rate by the video file's time, independent of `Z` (2026-11-09, branch
   `feat/phase-35-6a-heart-rate-sync`; approved by the owner 2026-11-09):** the heart-rate overlay and every green route area
   read `w = T_file + s + CC` — the file's tag as the end, else its name (D054's rule; disagreeing by > 5 s: none); `Z` is
@@ -69,7 +79,7 @@ numbering" → "Official phases"; this file is the dated working log.
   `docs/ROADMAP_AUDIT_2026-11-08.md` — the remaining work, human occlusion (stays deferred), Motion Tracking Camera (stays
   Future / Backlog; a research R4 proposed), the recommended order. Stale PR #42 / PR #35 state lines corrected.
 - **The product owner's priorities (2026-11-08, on that audit):** 1) Step 35.6 — the next implementation priority
-  (not started; its scope and acceptance criteria come in a separate task); 2) Phase 30 / S1 — the next major milestone,
+  (*done and accepted 2026-11-09*; then not started; its scope and acceptance criteria come in a separate task); 2) Phase 30 / S1 — the next major milestone,
   incl. the clean-environment validation and the remaining release requirements; 3) H — after S1; 4) R4 (Motion
   Tracking Camera research) — deferred until 1–3 are done. Human occlusion stays deferred (no phase, no implementation).
   Motion Tracking Camera stays Future / Backlog, Object Tracking and Virtual Camera kept apart. R2 → E technically
@@ -100,7 +110,7 @@ numbering" → "Official phases"; this file is the dated working log.
   within `τ`, drift −22.4 s; an experimental result, not a confirmation of the method — `docs/PHASE_COROS.md` §12);
   **35.3e not implemented, awaiting the product owner's decision**, not in the near plan; 35.4 implemented, its rows
   C1–C14 automated on 2026-11-04 — all PASS, C5's real COROS re-export left to the owner (`docs/PHASE_COROS.md` §14);
-  **35.5 implemented and accepted** (below); 35.6 not started.
+  **35.5 implemented and accepted** (below); 35.6 *(2026-11-09: done and accepted — the state at the top)*.
 - **Step 35.5 — the heart-rate overlay (2026-11-03, branch `feat/phase-35-5-heart-rate` from `e2a1617`):** the template
   kind «Пульс» (look, corner, heart's colour), the BPM of the picture right below it through the one mapping and the
   readout's rule, nothing drawn without a value, Preview = export, the export warning `HeartRateUnavailable`,

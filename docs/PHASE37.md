@@ -8,6 +8,11 @@ Q2 of the same day). Manual test plan: `docs/PHASE37_MANUAL_TEST_PLAN.md`. This 
 `main`); `project.json` v12. Step 37.7: the automated gates passed (§2); D051 A1–A15 automated on 2026-11-04 (PR #38,
 `4717fca`) — all PASS, A10 measured; **accepted by the product owner on 2026-11-04** on that evidence; no manual scenario of Phase 37 remained, and none of the plan rows A1–G7 was run one by one by hand (`docs/PHASE37_MANUAL_TEST_PLAN.md`).
 
+*Later (D056, 2026-11-09, PR #54; accepted by the owner): the marks are no longer drawn on the clips — the video clip shows
+the route areas' start `T` instead. The marks, their calibration and their actions (lay out from the mark, move to the
+playhead, decline — Delete —, link / unlink) stay in the Inspector's «FIT-метки» and the COROS menu; deleting a route area
+never changes a mark. Where this record speaks of «the layer on the clips», that is the state of 2026-11-04.*
+
 How it reached `main` (§5): the product owner decided on 2026-11-03 to start the implementation at once from
 `feat/phase-coros-c1` `4070ffc`, not after Phase 35's second pull request as D051 and this record first said; PR #33
 therefore carried Phase 35's commits (Steps 35.0–35.4) and Phase 37 together. The documents of Step 37.0 (`20326dc`,

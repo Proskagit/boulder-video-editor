@@ -73,6 +73,10 @@ marking rule of `docs/PHASE_COROS.md` §10. The rows check the tool, not the mar
 
 ## C. Step 35.4 — the training in the project and the alignment
 
+**State (2026-11-09):** C1–C14 automated on 2026-11-04 — all PASS but C5 (PARTIAL: the real re-export from the COROS app
+is manual). **Step 35.4 is not accepted yet**: C5's manual check and the owner's acceptance of the step remain open; the
+acceptance of Steps 35.6b and D056 does not cover them.
+
 | # | Check | Expected result | Evidence |
 |---|---|---|---|
 | C1 | Import the training, Save, close, Open | the training is there (tooltip / Inspector); the heart rate is available for aligned clips | PASS (automated, 2026-11-04): `TrainingProjectAcceptanceTests`.C1 — the workflow's import, Save As, Open, the FIT resolved: Available, the clock correction and both overrides kept, the BPM at two aligned clips, the tooltip with the summary and «Файл доступен.»; `Phase354RealProjectTests` (local, the real session).C1 — the real FIT (a copy) and `video_20260927_103026.mp4`: the readouts at four frames identical after Save As / Open |
@@ -107,38 +111,44 @@ marking rule of `docs/PHASE_COROS.md` §10. The rows check the tool, not the mar
 | D6 | «Шаблон ▾ → Пульс» with the playhead on an aligned clip on V1 (the overlay goes on V2) | the overlay covers the rest of that clip; the Inspector shows «Вид», «Положение», «Цвет сердца» and the hint; each click is one Undo step and shows in the Preview at once | PASS — owner, 2026-11-03 (acceptance О1, О2, О7–О10) |
 | D7 | Change the video's zero (Inspector «Совместить кадр…»), then Undo; remove the training, then import it again | the BPM in the Preview follows each change at the same frame; without the training nothing is drawn | PARTIAL — owner, 2026-11-03: «Сбросить» of the zero and its Undo followed at once with the overlay present (О11); a new zero by «Совместить кадр…» with the overlay present, and removing and importing the training again, not run (optional Д1, Д4) |
 
-## E. Step 35.6 — the real session end to end (D055)
+## E. Step 35.6 — the real session end to end (D055) — **Step 35.6b accepted by the product owner 2026-11-09: H1–H11 PASS**
 
 The scope of 2026-11-09 (the product owner): what D053, D054 and Step 35.5 already confirmed is not run again. The real
 videos `100628`, `101034`, `101712`, `103744` and the edited `103026` of `Боулдер 27.09.2026` with the session's FIT, in a
 **copy** of a project. E1 (all 16 videos) is replaced by these rows: the code path is the same for every video.
 
+**Result (2026-11-09):** the product owner ran these rows in the application, together with part F and the checks after
+PR #54 — all positive, no defect left open; Step 35.6b accepted. The automated evidence of each row stays as recorded.
+
 | # | Check | Expected result | Evidence |
 |---|---|---|---|
-| H1 | Import the FIT with the four clips on the timeline; set no `Z` | the green areas of climbs 2, 3, 4, 6 appear and show the heart rate over their whole span | automated (2026-11-09, the real files, a scratch project): 4 areas, no `Z`, the heart rate in each; `HeartRateAreaUiTests` |
-| H2 | At three frames of each area compare the BPM with the Inspector's readout | equal — the FIT's sample at `w = T_file + s + CC` | automated on the real files: 12 of 12 frames equal to the FIT's own sample; `HeartRateOverlayTests` (D055) |
-| H3 | On `101034` set `Z` by «Совместить кадр с концом подъёма» (climb 3), clear it, Undo | the area may move; the BPM at a chosen frame never changes | automated on the real files: unchanged after the `Z` and its Undo |
-| H4 | Stretch an area by hand, then narrow it | the heart rate shows in the new part and stops at the new edge; the value of a frame stays | `HeartRateOverlayTests`, `HeartRateAreaUiTests` |
-| H5 | An area over the timer's pause (11:18:17–11:18:45) or beyond the training (the clock correction moved) | no heart rate there; the area stays | `HeartRateOverlayTests`, `ExportHeartRateEndToEndTests` |
-| H6 | Export the timeline | the areas' heart rate in the file as in the Preview at 5 frames | `ExportHeartRateEndToEndTests` (byte-equal frames) |
-| H7 | Delete an area, run «Распознать прохождения из FIT» on its clip | the area and its heart rate are back with no other step | |
-| H8 | A green made by hand on `103026` | no heart rate; the Inspector's hint and the export warning name «тег и имя файла расходятся» | automated on the real files: none, the warning names the file |
-| H9 | A green made by hand on a timed video | the heart rate as in a FIT-made one | automated on the real files |
-| H10 | The heart-rate overlay («Пульс») over a clip whose `Z` changes | it never moves | `HeartRateOverlayUiTests`, `HeartRateOverlayTests` |
-| H11 | The training's clock correction +10 s | every video's heart rate moves by 10 s alike | `HeartRateOverlayUiTests`, `TrainingProjectAcceptanceTests` C7 / C7a |
+| H1 | Import the FIT with the four clips on the timeline; set no `Z` | the green areas of climbs 2, 3, 4, 6 appear and show the heart rate over their whole span | PASS — owner, 2026-11-09; automated (2026-11-09, the real files, a scratch project): 4 areas, no `Z`, the heart rate in each; `HeartRateAreaUiTests` |
+| H2 | At three frames of each area compare the BPM with the Inspector's readout | equal — the FIT's sample at `w = T_file + s + CC` | PASS — owner, 2026-11-09; automated on the real files: 12 of 12 frames equal to the FIT's own sample; `HeartRateOverlayTests` (D055) |
+| H3 | On `101034` set `Z` by «Совместить кадр с концом подъёма» (climb 3), clear it, Undo | the area may move; the BPM at a chosen frame never changes | PASS — owner, 2026-11-09; automated on the real files: unchanged after the `Z` and its Undo |
+| H4 | Stretch an area by hand, then narrow it | the heart rate shows in the new part and stops at the new edge; the value of a frame stays | PASS — owner, 2026-11-09; `HeartRateOverlayTests`, `HeartRateAreaUiTests` |
+| H5 | An area over the timer's pause (11:18:17–11:18:45) or beyond the training (the clock correction moved) | no heart rate there; the area stays | PASS — owner, 2026-11-09; `HeartRateOverlayTests`, `ExportHeartRateEndToEndTests` |
+| H6 | Export the timeline | the areas' heart rate in the file as in the Preview at 5 frames | PASS — owner, 2026-11-09; `ExportHeartRateEndToEndTests` (byte-equal frames) |
+| H7 | Delete an area, run «Распознать прохождения из FIT» on its clip | the area and its heart rate are back with no other step | PASS — owner, 2026-11-09 |
+| H8 | A green made by hand on `103026` | no heart rate; the Inspector's hint and the export warning name «тег и имя файла расходятся» | PASS — owner, 2026-11-09; automated on the real files: none, the warning names the file |
+| H9 | A green made by hand on a timed video | the heart rate as in a FIT-made one | PASS — owner, 2026-11-09; automated on the real files |
+| H10 | The heart-rate overlay («Пульс») over a clip whose `Z` changes | it never moves | PASS — owner, 2026-11-09; `HeartRateOverlayUiTests`, `HeartRateOverlayTests` |
+| H11 | The training's clock correction +10 s | every video's heart rate moves by 10 s alike | PASS — owner, 2026-11-09; `HeartRateOverlayUiTests`, `TrainingProjectAcceptanceTests` C7 / C7a |
 
-## F. D056 — the FIT's route areas after the check of 2026-11-09
+## F. D056 — the FIT's route areas after the check of 2026-11-09 — **accepted by the product owner 2026-11-09: R1–R9 PASS**
 
 In a **copy** of the project; the original never saved.
 
+**Result (2026-11-09):** the product owner ran R1–R9 and the checks after PR #54 (R7 / R8 on the blue `T` marks and the
+green of the free «Боулдер») in the application — all positive; D056 accepted.
+
 | # | Check | Expected result | Evidence |
 |---|---|---|---|
-| R1 | Select `101034`, the playhead in climb 3's green area | «Подъём» shows climb 3; «Совместить кадр с концом подъёма» enabled | `InspectorClimbPreselectTests` |
-| R2 | There choose climb 2 and press «Совместить…» | «Другой подъём» asks; «Отмена» changes nothing (no `Z`, no new area) | `InspectorClimbPreselectTests` |
-| R3 | Match climb 3 at its visible end | its green moves to the new time, no second area; one Undo restores both | `FitAreaRelayoutTests` |
-| R4 | Trim a FIT green by hand, then set the video's `Z` | that green stays; the status bar says it was kept | `FitAreaRelayoutTests` |
-| R5 | On `101712` put the playhead 8 s before climb 4's green, «Разметить зацепки» | «Трасса» offers «Подъём 4 из FIT»; the holds go to that route, no new green | `HoldRouteChoiceUiTests` |
-| R6 | The same with «Новая трасса» chosen | a new route; climb 4's green untouched | `HoldRouteChoiceUiTests` |
-| R7 | Look at the video clip under a FIT green without holds and under a green laid out by hand; delete one area, Undo | a blue mark on the video clip at each area's `T`, tooltip «Начало трассы (T) · …»; it goes with a deleted area and comes back with Undo; no other blue marks on the clips | `RouteStartMarkUiTests`, `RouteStartTests` |
-| R8 | «Шаблон → Боулдер» on an empty place | the same green as a route's area, no strip, no `T` mark; the Inspector shows no heart rate | `RouteStartMarkUiTests` |
-| R9 | Save, close, open the copy | `T` marks and the laid-out bounds as before | `FitLayoutPersistenceTests` |
+| R1 | Select `101034`, the playhead in climb 3's green area | «Подъём» shows climb 3; «Совместить кадр с концом подъёма» enabled | PASS — owner, 2026-11-09; `InspectorClimbPreselectTests` |
+| R2 | There choose climb 2 and press «Совместить…» | «Другой подъём» asks; «Отмена» changes nothing (no `Z`, no new area) | PASS — owner, 2026-11-09; `InspectorClimbPreselectTests` |
+| R3 | Match climb 3 at its visible end | its green moves to the new time, no second area; one Undo restores both | PASS — owner, 2026-11-09; `FitAreaRelayoutTests` |
+| R4 | Trim a FIT green by hand, then set the video's `Z` | that green stays; the status bar says it was kept | PASS — owner, 2026-11-09; `FitAreaRelayoutTests` |
+| R5 | On `101712` put the playhead 8 s before climb 4's green, «Разметить зацепки» | «Трасса» offers «Подъём 4 из FIT»; the holds go to that route, no new green | PASS — owner, 2026-11-09; `HoldRouteChoiceUiTests` |
+| R6 | The same with «Новая трасса» chosen | a new route; climb 4's green untouched | PASS — owner, 2026-11-09; `HoldRouteChoiceUiTests` |
+| R7 | Look at the video clip under a FIT green without holds and under a green laid out by hand; delete one area, Undo | a blue mark on the video clip at each area's `T`, tooltip «Начало трассы (T) · …»; it goes with a deleted area and comes back with Undo; no other blue marks on the clips | PASS — owner, 2026-11-09; `RouteStartMarkUiTests`, `RouteStartTests` |
+| R8 | «Шаблон → Боулдер» on an empty place | the same green as a route's area, no strip, no `T` mark; the Inspector shows no heart rate | PASS — owner, 2026-11-09; `RouteStartMarkUiTests` |
+| R9 | Save, close, open the copy | `T` marks and the laid-out bounds as before | PASS — owner, 2026-11-09; `FitLayoutPersistenceTests` |
