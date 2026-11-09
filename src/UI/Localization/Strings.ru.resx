@@ -2384,6 +2384,9 @@
   <data name="Inspector_FitLinkHeader" xml:space="preserve">
     <value>FIT-ПОДЪЁМ АНИМАЦИИ</value>
   </data>
+  <data name="Inspector_FitServiceHeader" xml:space="preserve">
+    <value>FIT (СЛУЖЕБНОЕ)</value>
+  </data>
   <data name="Inspector_FitLinked" xml:space="preserve">
     <value>Связана с FIT-подъёмом {0}.</value>
   </data>

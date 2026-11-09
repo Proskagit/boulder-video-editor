@@ -574,6 +574,11 @@ on the project grid (D006).
   parse (FU-PF.1). `TimelineWheel` maps the wheel over the tracks (horizontal; Ctrl zoom; Shift vertical); the content
   `ScrollViewer` never hides its bars. `HoldMarkupViewModel` takes the proposals' default from the settings and writes the
   user's choice back.
+- **Block B.** `UI/Controls/InspectorSection` — an `Expander` with a stable `SectionId`, a title and a summary shown while
+  collapsed; its state is the Inspector's (`InspectorSectionStates` over `IUiStateService`, set by the app at start), the
+  FIT marks and link one service section `fit`, collapsed by default. `InspectorViewModel.Shown` / `ScrollKey` and
+  `InspectorScrollMemory` keep the scroll position per kind of item. `MainWindow` restores and saves the window
+  (`WindowLayout`: only where a screen shows its title bar) and the panels' sizes; the layout is flushed on close.
 
 ## FIT route starts and the global start calibration (Phase 37, D051)
 

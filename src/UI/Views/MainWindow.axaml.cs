@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using AiVideoEditor.Core.Common;
@@ -32,13 +33,74 @@ public partial class MainWindow : Window
     private bool _closeApproved;
     private bool _closePending;
 
-    public MainWindow(MainWindowViewModel viewModel)
+    public MainWindow(MainWindowViewModel viewModel) : this(viewModel, new InMemoryUiState())
     {
+    }
+
+    public MainWindow(MainWindowViewModel viewModel, IUiStateService layout)
+    {
+        _layout = layout;
         DataContext = viewModel;
         InitializeComponent();
+        RestoreLayout();
         Opened += async (_, _) => await viewModel.OnWindowOpenedAsync();
         Activated += (_, _) => viewModel.OnWindowActivated();
+        PositionChanged += (_, _) => SaveWindow();
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property == ClientSizeProperty || e.Property == WindowStateProperty) SaveWindow();
+        };
+        foreach (var splitter in new[] { PanelsGrid.Children.OfType<GridSplitter>(), RootGrid.Children.OfType<GridSplitter>() }.SelectMany(s => s))
+            splitter.DragCompleted += (_, _) => SavePanels();
     }
+
+    private readonly IUiStateService _layout;
+
+    /// <summary>D057 §3.4: the user's window and panels as they were — the window only where a screen shows it.</summary>
+    private void RestoreLayout()
+    {
+        var state = _layout.Current;
+        PanelsGrid.ColumnDefinitions[0].Width = new GridLength(WindowLayout.SidePanel(state.MediaBrowserWidth, 260));
+        PanelsGrid.ColumnDefinitions[4].Width = new GridLength(WindowLayout.SidePanel(state.InspectorWidth, 300));
+        RootGrid.RowDefinitions[3].Height = new GridLength(WindowLayout.Timeline(state.TimelineHeight, 240));
+        if (state.Window is not { } placement) return;
+        var screens = Screens.All.Select(s => s.WorkingArea).ToList();
+        var scaling = Screens.Primary?.Scaling ?? 1;
+        if (screens.Count > 0 && !WindowLayout.IsOnScreen(placement, screens, scaling))
+        {
+            if (placement.Maximized) WindowState = WindowState.Maximized;
+            return;
+        }
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        Position = new PixelPoint(placement.X, placement.Y);
+        Width = WindowLayout.Window(placement.Width, WindowLayout.MinWindowWidth);
+        Height = WindowLayout.Window(placement.Height, WindowLayout.MinWindowHeight);
+        if (placement.Maximized) WindowState = WindowState.Maximized;
+    }
+
+    /// <summary>The window's normal bounds are kept while it is maximised, so restoring it later gives them back.</summary>
+    private void SaveWindow()
+    {
+        if (!IsVisible || WindowState == WindowState.Minimized) return;
+        var maximized = WindowState == WindowState.Maximized;
+        _layout.Update(s =>
+        {
+            var old = s.Window;
+            var placement = maximized && old is not null
+                ? old with { Maximized = true }
+                : maximized
+                    ? new WindowPlacement(Position.X, Position.Y, Width, Height, true)
+                    : new WindowPlacement(Position.X, Position.Y, ClientSize.Width, ClientSize.Height, false);
+            return s with { Window = placement };
+        });
+    }
+
+    private void SavePanels() => _layout.Update(s => s with
+    {
+        MediaBrowserWidth = PanelsGrid.ColumnDefinitions[0].ActualWidth,
+        InspectorWidth = PanelsGrid.ColumnDefinitions[4].ActualWidth,
+        TimelineHeight = RootGrid.RowDefinitions[3].ActualHeight
+    });
 
     /// <summary>
     /// Closing is asynchronous work (the unsaved-changes prompt, then flushing autosave), but
@@ -61,6 +123,8 @@ public partial class MainWindow : Window
         try
         {
             if (!await vm.PrepareToCloseAsync()) return;
+            SavePanels();
+            _layout.Flush();               // D057 §3.4: the layout written before the process ends
             _closeApproved = true;
             Close();
         }

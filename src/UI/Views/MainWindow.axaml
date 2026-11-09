@@ -10,13 +10,13 @@
         MinWidth="1024" MinHeight="640"
         Background="#1E1E1E">
 
-  <Grid RowDefinitions="Auto,*,Auto,240,Auto">
+  <Grid x:Name="RootGrid" RowDefinitions="Auto,*,Auto,240,Auto">
 
     <!-- Toolbar -->
     <panels:ToolbarView Grid.Row="0" DataContext="{Binding Toolbar}"/>
 
     <!-- Media Browser | Preview | Inspector -->
-    <Grid Grid.Row="1" ColumnDefinitions="260,4,*,4,300">
+    <Grid x:Name="PanelsGrid" Grid.Row="1" ColumnDefinitions="260,4,*,4,300">
       <panels:MediaBrowserView Grid.Column="0" DataContext="{Binding MediaBrowser}"/>
       <GridSplitter Grid.Column="1" Background="#1A1A1A" ResizeDirection="Columns"/>
       <panels:PreviewView Grid.Column="2" DataContext="{Binding Preview}"/>
