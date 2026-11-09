@@ -9,6 +9,17 @@ numbering" → "Official phases"; this file is the dated working log.
 - **Merged with PR #33 (2026-11-03):** Phase 35's Steps 35.0–35.4 with the 35.3 research (`docs/PHASE_COROS.md`) and
   Phase 37 (D051, `docs/PHASE37.md`) — together, by the product owner's decision of 2026-11-03, not through Phase 35's two
   planned pull requests. Formats: v11 Phase 35, v12 Phase 37.
+- **Step 35.6a / D055 — the heart rate by the video file's time, independent of `Z` (2026-11-09, branch
+  `feat/phase-35-6a-heart-rate-sync`; approved by the owner 2026-11-09):** the heart-rate overlay and every green route area
+  read `w = T_file + s + CC` — the file's tag as the end, else its name (D054's rule; disagreeing by > 5 s: none); `Z` is
+  never read and now refines the route bounds only. `CC` researched: the watch − camera clock difference (D049 §1), not a
+  zone, not the lag; on 2026-09-27 the files and the FIT agree within a few seconds (end offsets median 4.0 s ≈ the end
+  lag; `K̂` 12 s is the watch's late start), so 0 is right. A «Боулдер» anchored to a clip shows that clip's heart rate on
+  its span with its own settings (shown by default, look, corner, heart colour — the overlay's controls); the Inspector
+  names why an area shows none; the export warning names files without a reliable time. `project.json` v16. Checked on the
+  real files of 2026-09-27 (a scratch project, the originals read only): four areas with the heart rate after the import
+  and no `Z`, 12 of 12 frames equal to the FIT's own samples, unchanged by a `Z` and its Undo, `103026` none with its
+  warning. Record: DECISIONS.md D055; plan of 35.6b: `docs/PHASE35_MANUAL_TEST_PLAN.md` part E.
 - **D054 — the FIT's climbs bound to the video clips automatically (2026-11-09, branch `feat/fit-auto-binding`; approved
   by the owner 2026-11-09):** after D053 an area needed a FIT mark, a mark the video's `Z`, and `Z` only the manual
   «Подъём N» match. Now the FIT import binds every clip by its video's time — its `Z`, else the file's tag as the end, else

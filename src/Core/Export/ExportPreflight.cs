@@ -315,19 +315,28 @@ public static class ExportPreflight
     /// does (<see cref="PlaybackSnapshot.PictureBelow"/>) on every stretch between the clip edges below it. A project without
     /// a heart-rate overlay is never checked: the training never affects its export.
     /// </summary>
+    /// <summary>
+    /// D049 §10, D055 §8: a heart-rate overlay, or a green route area showing its heart rate while the project has a
+    /// training, with no data — no training (the overlay only: an area shows the heart rate only with one), the FIT not
+    /// available, or a covered video whose file gives no reliable time (no time; its tag and name disagree). Never the
+    /// recording zero <c>Z</c>.
+    /// </summary>
     private static void CheckHeartRate(Project project, PlaybackSnapshot snapshot, List<ExportIssue> issues, Window window)
     {
-        var overlays = snapshot.VideoLayers
+        var shown = snapshot.VideoLayers
             .SelectMany((layer, index) => layer.Templates.Select(t => (Template: t, Index: index)))
-            .Where(o => o.Template.Kind == TemplateKind.HeartRate && window.Shows(o.Template.TimelineStart, o.Template.TimelineEnd))
+            .Where(o => window.Shows(o.Template.TimelineStart, o.Template.TimelineEnd))
             .ToList();
-        if (overlays.Count == 0) return;
+        var overlays = shown.Where(o => o.Template.Kind == TemplateKind.HeartRate).ToList();
+        var areas = shown.Where(o => o.Template.HeartRate is not null).ToList();
+        if (overlays.Count == 0 && areas.Count == 0) return;
 
-        var overlayIds = overlays.OrderBy(o => o.Template.TimelineStart).Select(o => o.Template.ClipId).ToImmutableArray();
+        var overlayIds = overlays.Concat(areas).OrderBy(o => o.Template.TimelineStart).Select(o => o.Template.ClipId).ToImmutableArray();
         if (project.Training is null)
         {
-            issues.Add(new ExportIssue(ExportIssueSeverity.Warning, ExportIssueKind.HeartRateUnavailable, Messages.Preflight_HeartRateNoTraining)
-                { ClipIds = overlayIds });
+            if (overlays.Count > 0)
+                issues.Add(new ExportIssue(ExportIssueSeverity.Warning, ExportIssueKind.HeartRateUnavailable, Messages.Preflight_HeartRateNoTraining)
+                    { ClipIds = overlays.OrderBy(o => o.Template.TimelineStart).Select(o => o.Template.ClipId).ToImmutableArray() });
             return;
         }
         if (!project.Training.IsUsable)
@@ -337,7 +346,13 @@ public static class ExportPreflight
             return;
         }
 
-        var unknown = new Dictionary<Guid, List<PictureSpan>>();
+        // The clips without a reliable file time, by video: those below an overlay and those an area is anchored to.
+        var unknown = new Dictionary<Guid, List<(Guid ClipId, MediaTime Start)>>();
+        void Add(Guid assetId, Guid clipId, MediaTime start)
+        {
+            if (!unknown.TryGetValue(assetId, out var clips)) unknown[assetId] = clips = new();
+            if (!clips.Any(c => c.ClipId == clipId)) clips.Add((clipId, start));
+        }
         foreach (var (template, index) in overlays)
         {
             var start = Max(template.TimelineStart, window.Start);
@@ -350,23 +365,28 @@ public static class ExportPreflight
             foreach (var at in edges)
             {
                 if (snapshot.PictureBelow(index, at) is not { Status: SpanStatus.Video, HeartRate: null } picture) continue;
-                if (!unknown.TryGetValue(picture.AssetId, out var spans)) unknown[picture.AssetId] = spans = new();
-                if (!spans.Contains(picture)) spans.Add(picture);
+                Add(picture.AssetId, picture.ClipId, picture.TimelineStart);
             }
         }
+        foreach (var (template, _) in areas)
+            if (template.HeartRate is { Binding: null } area)
+                Add(area.AssetId, area.ClipId, area.ClipStart);
 
         var assets = project.MediaAssets.ToDictionary(a => a.Id);
-        foreach (var (assetId, spans) in unknown.OrderBy(p => p.Value.Min(s => s.TimelineStart)))
+        var workout = project.Training.Workout!;
+        foreach (var (assetId, clips) in unknown.OrderBy(p => p.Value.Min(c => c.Start)))
         {
             var asset = assets.GetValueOrDefault(assetId);
-            var clips = spans.OrderBy(s => s.TimelineStart).Select(s => s.ClipId).Distinct().ToImmutableArray();
+            var ids = clips.OrderBy(c => c.Start).Select(c => c.ClipId).ToImmutableArray();
+            var text = asset is not null && Telemetry.FitRouteBinding.FileTimesDisagree(asset, workout)
+                ? Messages.Preflight_HeartRateFileTimesDisagree : Messages.Preflight_HeartRateNoFileTime;
             issues.Add(new ExportIssue(ExportIssueSeverity.Warning, ExportIssueKind.HeartRateUnavailable,
-                string.Format(Messages.Preflight_HeartRateUnknownZero, asset?.FileName ?? Messages.Preflight_MediaNotInProject,
-                    Plural.Format(clips.Length, Messages.Plural_Clips), spans.Min(s => s.TimelineStart)))
+                string.Format(text, asset?.FileName ?? Messages.Preflight_MediaNotInProject,
+                    Plural.Format(ids.Length, Messages.Plural_Clips), clips.Min(c => c.Start)))
             {
                 AssetId = assetId,
                 Subject = asset?.FilePath,
-                ClipIds = clips
+                ClipIds = ids
             });
         }
 

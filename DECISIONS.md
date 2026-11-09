@@ -8240,12 +8240,14 @@ an instant; no designator, another layout, or a value before 2000-01-01 (contain
   for its source; the L ↔ C correspondence confirmed when the file name is used; within the rule's tolerance `τ`). The
   rule, `τ`, the outliers and the device scope are 35.3's outputs.
 - **Unknown** — otherwise; no heart rate on its clips; the Inspector names the reason and offers the override.
+  *(Amended by D055, 2026-11-09: the heart rate no longer depends on `Z` — it follows the file's time, D055 §1.)*
 
 ### 6. Mapping
 
 `s(n)` (S) → `c(n) = Z(M) + s(n)` (C) → `w(n) = c(n) + ClockCorrection` (W) → `HeartRateAt(workout, w(n))` (W vs W).
 Invariant under move, ripple, trim, split, slip (follows the picture), speed (`a / b` in `s`), duplicate / paste (same
-asset). A correction change moves every file of the training, overridden ones included.
+asset). A correction change moves every file of the training, overridden ones included. *(Amended by D055: for the
+heart rate `c(n) = T_file + s(n)` — the file's time, never `Z`; `Z` keeps this mapping for the route bounds.)*
 
 ### 7. Format (expected v11) — `main` only with PR 2
 
@@ -9234,7 +9236,7 @@ So the user still had to match each video to «Подъём N» in the Inspector
    recording-time tag read as the end of the recording (`tag − duration`, Step 35.3's hypothesis; the 2026-09-27 files
    agree with their names within 2 s); else the file-name time under the watch's UTC offset; else none. When the tag and
    the name both give a time and disagree by more than 5 s the file was edited after the recording — no time. **The
-   approximate time is used by the binding only:** the video's `Z` stays unknown, no FIT mark is proposed, the calibration
+   approximate time is used by the binding only** *(amended by D055, 2026-11-09: and by the heart rate)***:** the video's `Z` stays unknown, no FIT mark is proposed, the calibration
    sees nothing; D050 B1 is unchanged. Its accuracy is the study's (about ±10 s) — the areas are a base to check.
 3. **A clip shows a climb** when at least half of the estimated climb lies in the clip's source range — from
    `W_auto = W_FITStart − StartCorrection` (D051 §5.5) to the actual end `W_end − ClimbEndLag` (D050), the interval the area
@@ -9259,6 +9261,68 @@ orange inside its green, Split / speed / trim, Preview / export.
 
 **Known limits.** An area the user deleted comes back with the next import of the FIT or a run of the command on its clip
 (nothing records a deletion). Areas made by an approximate time are not moved when the user later sets the video's `Z`.
+
+---
+
+## D055 — The heart rate synchronised with the video by its file's time, independent of Z; the heart rate in every green route area *(approved 2026-11-09)*
+
+Date: 2026-11-09. **Status: approved by the product owner on 2026-11-09** (the model of the heart-rate overlay before
+Step 35.6; the answers Q1–Q6). Amends D049 §5, §6 and §10, D050 B4 and the implementation notes of Step 35.5, D054 §2;
+closes the backlog item FU-35.5.1. Keeps D050 B1 (no automatic recording zero), D051, D053, `ClimbEndLag` and
+`StartCorrection`.
+
+**Why.** Until now the heart rate of a picture went through the video's recording zero `Z` (D049 §6), and `Z` is set only
+by hand by matching a frame to a climb (D050 B2). After D054 the green route areas come from the FIT without any manual
+step, but their heart rate did not: every video still needed its `Z`. The product owner separates the two mechanisms:
+`Z` is a refinement of the route bounds; the heart rate follows the video's own time and the FIT's own samples.
+
+**The clock correction `CC`** (researched 2026-11-09 on the code and the session of 2026-09-27): `TrainingReference.ClockCorrection`
+= W − C — the difference of the watch's and the camera's clocks, one value per training, set by hand in «Тренировка
+COROS…» (frames), saved, 0 by default and on a new import. Not a time zone (D049 §1: «a clock error, not a zone»), not the
+watch's reaction (D050 amendment of 2026-11-02: never set to absorb the lag). The FIT's times are absolute (seconds since
+1989-12-31 UTC), the tag is read only as an instant with its offset, the file-name time is converted by the watch's UTC
+offset (D054) — no second zone correction anywhere. On 2026-09-27, against the owner's frozen marks of 35.3R2, the file
+time (tag − duration) and the FIT differ by a median 4.0 s at the climbs' ends (2.5…7.8 s, ≈ the end lag 4.6 s) and 12.1 s
+at their starts (35.3d's `K̂`: the watch's late start, not a clock difference): the clocks agree within a few seconds and
+`CC = 0` is right there. `CC` stays the one control for a camera whose clock is off — for every video of the training at
+once.
+
+**Decided.**
+1. **The video's time for the heart rate**: `w(n) = T_file + s(n) + CC`, `s(n)` the clip's source time of the frame (D049
+   §6's rule for speed and every edit). `T_file` — the time of the file's first frame: the recording-time tag read as the
+   end of the recording (`tag − duration`) when usable; without a tag the file-name time under the watch's UTC offset
+   (D054 §2); when the tag and the name both give a time and disagree by more than 5 s — no time (an edited file). `Z` is
+   **never** read for the heart rate, not even as a fallback (Q1): without a reliable file time there is no heart rate,
+   and the reason is named in the Inspector and in the export warning. `T_file` is an approximate binding, never a
+   confirmed `Z`, never the «automatic» state (D050 B1 kept).
+2. **`Z` refines the route bounds only**: the FIT marks and their `T` (D051), the binding of D054, the calibration of
+   D051. Setting, changing or clearing `Z` never moves, shows or hides a heart rate.
+3. **`CC`** applies to the heart rate as before (and to every other mapping); it is not changed by this decision.
+4. **The heart rate in every green route area** (Q4: made by hand or from the FIT alike): a «Боулдер» anchored to a video
+   clip (D048 §3.5) shows the heart rate of its anchored clip's picture on its own span `[Ps, Pe)` while the project's
+   training is usable — no choice of a climb, no `Z`. Its bounds limit where the heart rate is shown and never move the
+   samples; where the FIT has no sample (the timer's pause, outside the recording) nothing is drawn and the area stays.
+   An area deleted and made again shows it again with no further step.
+5. **Its settings** (Q6): each area has its own — «Пульс» shown or not (shown by default, also for the areas of an older
+   project), the look, the corner and the heart's colour — the heart-rate overlay's own fields and controls (Phase 35.5),
+   with the heart's colour as a field of its own (a «Боулдер»'s accent is its route colour). The display is the overlay's:
+   the heart and the BPM (Q3); no chart.
+6. **The heart-rate overlay of Step 35.5** («Пульс», Q2) stays as it is, with its time by §1.
+7. **The Inspector**: «Тренировка в позиции плейхеда» reads by §1; its reasons — no training, the FIT not available, no
+   reliable file time (none / the tag and the name disagree), outside the clip, outside the recording, no sample. The
+   recording start `Z` stays in the training section, named as the refinement of the route bounds.
+8. **The export warning** `HeartRateUnavailable` (D049 §10): a heart-rate overlay — or a green area showing its heart rate
+   while a training is attached — over a clip without a reliable file time, or with the FIT not available; no training:
+   only for the heart-rate overlay (an area shows its heart rate only with a training).
+9. **Format v16**: a «Боулдер» stores `showHeartRate`, `heartColorHex` and its `look` / `corner` (until v15 kept for the
+   overlay only). An older file opens with the defaults (shown, plate, bottom right, red); a v15 build refuses a v16 file.
+
+**Superseded.** D049 §5's «no heart rate on its clips» for an unknown `Z`, §6 for the heart rate (`c = Z + s`), §10's
+«a covered clip with `Z(M)` unknown»; D050 B4 and the notes of Step 35.5 «through D049 §6»; D054 §2's «used by the binding
+only» (now: the binding and the heart rate); the behaviour accepted in 35.5 О11 / D4 («resetting `Z` hides the overlay»).
+
+**Unchanged.** D049's time bases, `CC`'s meaning, the tag parser, the probe; D050 B1, B2 (the match sets `Z`), the end lag;
+D051; D053; D054 §§1, 3–7.
 
 ---
 

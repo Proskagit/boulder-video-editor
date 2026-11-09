@@ -5,15 +5,22 @@ namespace AiVideoEditor.Core.Entities;
 
 /// <summary>The editable fields of a <see cref="TemplateClip"/> (D045 §6). Every kind holds all of them; each kind shows and
 /// draws only its own. The kind and the counter's start are not editable fields. <see cref="Look"/> and
-/// <see cref="Corner"/> are the heart-rate overlay's (Phase 35.5); its heart takes <see cref="AccentHex"/>.</summary>
+/// <see cref="Corner"/> are the heart-rate overlay's (Phase 35.5); its heart takes <see cref="AccentHex"/>. A «Боулдер» shows
+/// its anchored clip's heart rate (D055 §5) when <see cref="ShowHeartRate"/>, with <see cref="Look"/>, <see cref="Corner"/>
+/// and its heart in <see cref="HeartHex"/>.</summary>
 public readonly record struct TemplateProperties(
     string Date, string Route, string Grade, BoulderStatus Status, string AccentHex, string Title, string Subtitle, MediaTime StatusAt,
-    HeartRateLook Look = HeartRateLook.Plate, OverlayCorner Corner = OverlayCorner.BottomRight)
+    HeartRateLook Look = HeartRateLook.Plate, OverlayCorner Corner = OverlayCorner.BottomRight, bool ShowHeartRate = true,
+    string HeartHex = TemplateRules.HeartRateAccentHex)
 {
     /// <summary>The clip's current values, or null for clips that aren't templates.</summary>
     public static TemplateProperties? Of(Clip clip) => clip is TemplateClip t
-        ? new TemplateProperties(t.Date, t.Route, t.Grade, t.Status, t.AccentHex, t.Title, t.Subtitle, t.StatusAt, t.Look, t.Corner)
+        ? new TemplateProperties(t.Date, t.Route, t.Grade, t.Status, t.AccentHex, t.Title, t.Subtitle, t.StatusAt, t.Look, t.Corner,
+            t.ShowHeartRate, t.HeartHex)
         : null;
+
+    /// <summary>The heart's colour as drawn: the overlay's accent, a «Боулдер»'s own heart colour (D055 §5).</summary>
+    public string HeartColorFor(TemplateKind kind) => kind == TemplateKind.HeartRate ? AccentHex : HeartHex;
 }
 
 /// <summary>
@@ -97,6 +104,7 @@ public static class TemplateRules
         if (!Enum.IsDefined(p.Look) || !Enum.IsDefined(p.Corner)) return Messages.Template_UnknownLook;
         if (p.StatusAt < MediaTime.Zero) return Messages.Template_StatusAtNegative;
         if (!ClipPropertyValidator.IsHexColor(p.AccentHex)) return Messages.Prop_ColorFormat;
+        if (p.HeartHex is null || !ClipPropertyValidator.IsHexColor(p.HeartHex)) return Messages.Prop_ColorFormat;
         return null;
 
         static string? Too(string value, int max) => value.Length > max ? string.Format(Messages.Template_FieldLength, max) : null;

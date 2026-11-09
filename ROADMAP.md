@@ -587,7 +587,12 @@ takes the vertical-video export.
   on a v10 file with the order `LeftToRight`; the current build would do the same with a future version). The file is
   still refused and never changed — only the message is wrong. A possible fix: read the header first. Old builds cannot
   be fixed.
-- **FU-35.5.1 — The heart rate of one climb only (the product owner at the acceptance of Step 35.5, 2026-11-03)** — *not
+- **D055 (2026-11-09, approved)** — the heart rate synchronised with the video by its file's time, never by `Z`; `Z`
+  refines the route bounds only; every green route area (by hand or from the FIT) shows its clip's heart rate with its own
+  settings; `CC` stays the watch − camera clock difference (0 by default). `project.json` v16. Step 35.6a; branch
+  `feat/phase-35-6a-heart-rate-sync`; record DECISIONS.md D055. Closes FU-35.5.1.
+- **FU-35.5.1 — The heart rate of one climb only (the product owner at the acceptance of Step 35.5, 2026-11-03)** — *closed
+  by D055 §4 (2026-11-09): the heart rate in each green route area;* *originally not
   decided, not planned.* Show the heart-rate overlay only within one climb — the time of its route overlay, from the start
   to the top or the end of the attempt — instead of over the whole active training (the current behaviour, kept). Needs a
   decision of its own. The difference between a climb's actual end and the COROS timer's pause is not a defect: the visual

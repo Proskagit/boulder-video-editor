@@ -40,6 +40,7 @@ public sealed partial class InspectorViewModel
     [NotifyPropertyChangedFor(nameof(ShowsTemplateBoulder))]
     [NotifyPropertyChangedFor(nameof(ShowsTemplateHighlight))]
     [NotifyPropertyChangedFor(nameof(ShowsTemplateHeartRate))]
+    [NotifyPropertyChangedFor(nameof(ShowsHeartRateSettings))]
     private TemplateKind? _templateKind;
 
     public bool HasTemplate => TemplateKind is not null;
@@ -47,6 +48,18 @@ public sealed partial class InspectorViewModel
     public bool ShowsTemplateBoulder => TemplateKind == Core.Entities.TemplateKind.Boulder;
     public bool ShowsTemplateHighlight => TemplateKind == Core.Entities.TemplateKind.Highlight;
     public bool ShowsTemplateHeartRate => TemplateKind == Core.Entities.TemplateKind.HeartRate;
+
+    /// <summary>D055 §5: the heart-rate settings (look, corner, heart's colour, hint) — the overlay's, and a green route area's
+    /// while it shows the heart rate.</summary>
+    public bool ShowsHeartRateSettings => ShowsTemplateHeartRate || (ShowsTemplateBoulder && TemplateShowHeartRate);
+
+    /// <summary>D055 §5: «Показывать пульс» of a «Боулдер» (one click, one undo step).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsHeartRateSettings))]
+    private bool _templateShowHeartRate = true;
+
+    /// <summary>The heart's colour shown: the overlay's accent, a «Боулдер»'s own heart colour (D055 §5).</summary>
+    [ObservableProperty] private string _templateHeartHex = TemplateRules.HeartRateAccentHex;
 
     /// <summary>The heart-rate overlay: where its BPM comes from, or why the project gives it none.</summary>
     [ObservableProperty] private string _heartRateHint = string.Empty;
@@ -106,6 +119,11 @@ public sealed partial class InspectorViewModel
     partial void OnTemplateGradeChanged(string value) => EditTemplate(p => p with { Grade = value }, null);
     partial void OnTemplateTitleChanged(string value) => EditTemplate(p => p with { Title = value }, null);
     partial void OnTemplateSubtitleChanged(string value) => EditTemplate(p => p with { Subtitle = value }, null);
+    partial void OnTemplateShowHeartRateChanged(bool value)
+    {
+        EditTemplate(p => p with { ShowHeartRate = value }, value ? "Show Heart Rate" : "Hide Heart Rate");
+        if (!_syncing) RefreshHeartRateHint();
+    }
 
     [RelayCommand]
     private void SetTemplateStatus(BoulderStatus status) => EditTemplate(p => p with { Status = status }, "Change Route Status");
@@ -114,20 +132,42 @@ public sealed partial class InspectorViewModel
     private void SetTemplateAccent(string hex) => EditTemplate(p => p with { AccentHex = hex },
         TemplateKind == Core.Entities.TemplateKind.HeartRate ? "Change Heart Colour" : "Change Route Colour");
 
+    /// <summary>The heart's colour (one click, one undo step): the overlay's accent, a «Боулдер»'s heart colour (D055 §5).</summary>
+    [RelayCommand]
+    private void SetHeartColour(string hex) => EditTemplate(
+        p => TemplateKind == Core.Entities.TemplateKind.HeartRate ? p with { AccentHex = hex } : p with { HeartHex = hex }, "Change Heart Colour");
+
     [RelayCommand]
     private void SetHeartRateLook(HeartRateLook look) => EditTemplate(p => p with { Look = look }, "Change Heart Rate Look");
 
     [RelayCommand]
     private void SetHeartRateCorner(OverlayCorner corner) => EditTemplate(p => p with { Corner = corner }, "Move Heart Rate");
 
-    /// <summary>The heart-rate overlay's hint: no training, a training whose FIT is not available, or where the value comes
-    /// from (the reasons it may still show nothing).</summary>
-    private void RefreshHeartRateHint() => HeartRateHint = _training?.Training switch
+    /// <summary>The heart-rate hint: no training, a training whose FIT is not available, or where the value comes from (the
+    /// reasons it may still show nothing) — for a green route area (D055 §4) its clip's video and, without a reliable file
+    /// time, why.</summary>
+    private void RefreshHeartRateHint()
     {
-        null => Strings.HeartRate_NoTraining,
-        { IsUsable: false } => Strings.HeartRate_TrainingUnavailable,
-        _ => Strings.HeartRate_Hint
-    };
+        var area = _clip is TemplateClip { Kind: Core.Entities.TemplateKind.Boulder };
+        HeartRateHint = _training?.Training switch
+        {
+            null => area ? Strings.HeartRate_AreaNoTraining : Strings.HeartRate_NoTraining,
+            { IsUsable: false } => Strings.HeartRate_TrainingUnavailable,
+            { Workout: { } workout } when area => AreaHint(workout),
+            _ => Strings.HeartRate_Hint
+        };
+
+        string AreaHint(Core.Telemetry.ClimbingWorkout workout)
+        {
+            if (_clip is not TemplateClip { AnchorClipId: { } anchorId } || _training!.Project.Timeline.VideoTracks.SelectMany(t => t.Clips)
+                    .OfType<VideoClip>().FirstOrDefault(c => c.Id == anchorId) is not { } anchor)
+                return Strings.HeartRate_AreaNotAnchored;
+            var asset = _training!.Project.MediaAssets.FirstOrDefault(a => a.Id == anchor.MediaAssetId);
+            if (asset is not null && Core.Telemetry.FitRouteBinding.FileTimeOf(asset, workout) is not null) return Strings.HeartRate_AreaHint;
+            return asset is not null && Core.Telemetry.FitRouteBinding.FileTimesDisagree(asset, workout)
+                ? Strings.HeartRate_AreaFileTimesDisagree : Strings.HeartRate_AreaNoFileTime;
+        }
+    }
 
     /// <summary>D045 §17: the status appears at the playhead's frame — on the template's clock (the counter's: the time since
     /// its original start, continued over a split). The playhead must be on the template's clip.</summary>
@@ -187,11 +227,13 @@ public sealed partial class InspectorViewModel
             TemplateTitle = template.Title;
             TemplateSubtitle = template.Subtitle;
             TemplateAccentHex = template.AccentHex;
+            TemplateShowHeartRate = template.ShowHeartRate;
+            TemplateHeartHex = template.Kind == Core.Entities.TemplateKind.HeartRate ? template.AccentHex : template.HeartHex;
             TemplateStatusAtText = StatusAtText(template);
             foreach (var option in TemplateStatuses) option.IsSelected = option.Status == template.Status;
             foreach (var option in HeartRateLooks) option.IsSelected = option.Value == template.Look;
             foreach (var option in HeartRateCorners) option.IsSelected = option.Value == template.Corner;
-            if (template.Kind == Core.Entities.TemplateKind.HeartRate) RefreshHeartRateHint();
+            if (template.Kind is Core.Entities.TemplateKind.HeartRate or Core.Entities.TemplateKind.Boulder) RefreshHeartRateHint();
         }
         finally
         {

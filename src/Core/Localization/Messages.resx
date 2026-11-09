@@ -1238,10 +1238,13 @@
     <value>The heart-rate overlay has no data: the project has no COROS training. It shows nothing in the export.</value>
   </data>
   <data name="Preflight_HeartRateTrainingUnavailable" xml:space="preserve">
-    <value>The heart-rate overlay has no data: the training's FIT file is not available (missing, unreadable, of another activity or not read yet). It shows nothing in the export.</value>
+    <value>The heart rate has no data: the training's FIT file is not available (missing, unreadable, of another activity or not read yet). The heart-rate overlays and the route areas show nothing in the export.</value>
   </data>
-  <data name="Preflight_HeartRateUnknownZero" xml:space="preserve">
-    <value>The heart-rate overlay shows nothing over '{0}': the video's recording start is not set ({1}, first at {2}).</value>
+  <data name="Preflight_HeartRateNoFileTime" xml:space="preserve">
+    <value>The heart rate shows nothing over '{0}': the file gives no recording time (no time tag, no time in its name) ({1}, first at {2}).</value>
+  </data>
+  <data name="Preflight_HeartRateFileTimesDisagree" xml:space="preserve">
+    <value>The heart rate shows nothing over '{0}': the file's time tag and the time in its name disagree (the file was edited?) ({1}, first at {2}).</value>
   </data>
   <data name="Route_Ambiguous" xml:space="preserve">
     <value>This clip has several routes: choose one — put the playhead inside its green area.</value>

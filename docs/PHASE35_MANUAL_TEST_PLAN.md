@@ -107,8 +107,22 @@ marking rule of `docs/PHASE_COROS.md` §10. The rows check the tool, not the mar
 | D6 | «Шаблон ▾ → Пульс» with the playhead on an aligned clip on V1 (the overlay goes on V2) | the overlay covers the rest of that clip; the Inspector shows «Вид», «Положение», «Цвет сердца» and the hint; each click is one Undo step and shows in the Preview at once | PASS — owner, 2026-11-03 (acceptance О1, О2, О7–О10) |
 | D7 | Change the video's zero (Inspector «Совместить кадр…»), then Undo; remove the training, then import it again | the BPM in the Preview follows each change at the same frame; without the training nothing is drawn | PARTIAL — owner, 2026-11-03: «Сбросить» of the zero and its Undo followed at once with the overlay present (О11); a new zero by «Совместить кадр…» with the overlay present, and removing and importing the training again, not run (optional Д1, Д4) |
 
-## E. Step 35.6 — the real session end to end
+## E. Step 35.6 — the real session end to end (D055)
+
+The scope of 2026-11-09 (the product owner): what D053, D054 and Step 35.5 already confirmed is not run again. The real
+videos `100628`, `101034`, `101712`, `103744` and the edited `103026` of `Боулдер 27.09.2026` with the session's FIT, in a
+**copy** of a project. E1 (all 16 videos) is replaced by these rows: the code path is the same for every video.
 
 | # | Check | Expected result | Evidence |
 |---|---|---|---|
-| E1 | The 27.09 session: 16 videos, the training, the alignment, the HR overlay, export | the heart rate matches the climbs; the product owner's acceptance | |
+| H1 | Import the FIT with the four clips on the timeline; set no `Z` | the green areas of climbs 2, 3, 4, 6 appear and show the heart rate over their whole span | automated (2026-11-09, the real files, a scratch project): 4 areas, no `Z`, the heart rate in each; `HeartRateAreaUiTests` |
+| H2 | At three frames of each area compare the BPM with the Inspector's readout | equal — the FIT's sample at `w = T_file + s + CC` | automated on the real files: 12 of 12 frames equal to the FIT's own sample; `HeartRateOverlayTests` (D055) |
+| H3 | On `101034` set `Z` by «Совместить кадр с концом подъёма» (climb 3), clear it, Undo | the area may move; the BPM at a chosen frame never changes | automated on the real files: unchanged after the `Z` and its Undo |
+| H4 | Stretch an area by hand, then narrow it | the heart rate shows in the new part and stops at the new edge; the value of a frame stays | `HeartRateOverlayTests`, `HeartRateAreaUiTests` |
+| H5 | An area over the timer's pause (11:18:17–11:18:45) or beyond the training (the clock correction moved) | no heart rate there; the area stays | `HeartRateOverlayTests`, `ExportHeartRateEndToEndTests` |
+| H6 | Export the timeline | the areas' heart rate in the file as in the Preview at 5 frames | `ExportHeartRateEndToEndTests` (byte-equal frames) |
+| H7 | Delete an area, run «Распознать прохождения из FIT» on its clip | the area and its heart rate are back with no other step | |
+| H8 | A green made by hand on `103026` | no heart rate; the Inspector's hint and the export warning name «тег и имя файла расходятся» | automated on the real files: none, the warning names the file |
+| H9 | A green made by hand on a timed video | the heart rate as in a FIT-made one | automated on the real files |
+| H10 | The heart-rate overlay («Пульс») over a clip whose `Z` changes | it never moves | `HeartRateOverlayUiTests`, `HeartRateOverlayTests` |
+| H11 | The training's clock correction +10 s | every video's heart rate moves by 10 s alike | `HeartRateOverlayUiTests`, `TrainingProjectAcceptanceTests` C7 / C7a |

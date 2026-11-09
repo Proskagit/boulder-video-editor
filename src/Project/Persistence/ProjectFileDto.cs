@@ -462,6 +462,14 @@ internal sealed class TemplateClipDto : ClipDto
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OverlayCorner? Corner { get; set; }
+
+    /// <summary>Format v16 (D055 §5): a «Боулдер»'s heart rate shown or not and its heart's colour (with its look and
+    /// corner above); written (and required) only on it.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? ShowHeartRate { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? HeartColorHex { get; set; }
 }
 
 internal sealed class TextClipDto : ClipDto

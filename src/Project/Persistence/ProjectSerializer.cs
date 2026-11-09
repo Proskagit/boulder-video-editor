@@ -39,7 +39,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 15;
+    public const int CurrentFormatVersion = 16;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -88,6 +88,15 @@ public static class ProjectSerializer
     /// route (its templates anchored to it; an anchored template of a clip without markup gets a route of its own, its green
     /// only) and is saved as v15.</summary>
     private const int RoutesVersion = 15;
+
+    /// <summary>The first version with a green route area's heart rate (D055 §5): a «Боулдер» stores whether it shows the
+    /// heart rate, its look, corner and heart colour. A v15 file's areas show it with the defaults and are saved as v16.</summary>
+    private const int HeartRateAreaVersion = 16;
+
+    /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
+    /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
+    private static bool HasHeartRateFields(TemplateKind? kind, int formatVersion) =>
+        kind == TemplateKind.HeartRate || (kind == TemplateKind.Boulder && formatVersion >= HeartRateAreaVersion);
 
     /// <summary>A push's direction in the file (D044 §9).</summary>
     private static readonly IReadOnlyDictionary<TransitionDirection, string> DirectionNames = new Dictionary<TransitionDirection, string>
@@ -421,8 +430,10 @@ public static class ProjectSerializer
                 AnchorClipId = p.AnchorClipId,
                 AnchorRouteId = p.AnchorClipId is null ? null : p.AnchorRouteId,
                 FitClimb = p.AnchorClipId is not null && p.FitClimb is { } fitClimb ? ToDto(fitClimb) : null,
-                Look = p.Kind == TemplateKind.HeartRate ? p.Look : null,
-                Corner = p.Kind == TemplateKind.HeartRate ? p.Corner : null
+                Look = p.Kind is TemplateKind.HeartRate or TemplateKind.Boulder ? p.Look : null,
+                Corner = p.Kind is TemplateKind.HeartRate or TemplateKind.Boulder ? p.Corner : null,
+                ShowHeartRate = p.Kind == TemplateKind.Boulder ? p.ShowHeartRate : null,
+                HeartColorHex = p.Kind == TemplateKind.Boulder ? p.HeartHex : null
             },
             _ => throw new NotSupportedException($"Clip type {clip.GetType().Name} can't be saved.")
         };
@@ -943,10 +954,15 @@ public static class ProjectSerializer
                 AnchorRouteId = formatVersion >= RoutesVersion ? p.AnchorRouteId : null,
                 FitClimb = formatVersion >= RoutesVersion && p.FitClimb is { } fitClimb ? ReadClimb(fitClimb) : null,
                 // Phase 35.5: the heart-rate overlay's look and corner are required on it, absent on the other kinds.
-                Look = p.Template != TemplateKind.HeartRate ? HeartRateLook.Plate
+                // D055 §5: from v16 a «Боулдер» has them too (required); an older one gets the defaults.
+                Look = !HasHeartRateFields(p.Template, formatVersion) ? HeartRateLook.Plate
                     : p.Look is { } look && Enum.IsDefined(look) ? look : throw Damaged("a heart-rate overlay's look is missing"),
-                Corner = p.Template != TemplateKind.HeartRate ? OverlayCorner.BottomRight
-                    : p.Corner is { } corner && Enum.IsDefined(corner) ? corner : throw Damaged("a heart-rate overlay's corner is missing")
+                Corner = !HasHeartRateFields(p.Template, formatVersion) ? OverlayCorner.BottomRight
+                    : p.Corner is { } corner && Enum.IsDefined(corner) ? corner : throw Damaged("a heart-rate overlay's corner is missing"),
+                ShowHeartRate = p.Template != TemplateKind.Boulder || formatVersion < HeartRateAreaVersion ||
+                    (p.ShowHeartRate ?? throw Damaged("a route area's heart rate is missing")),
+                HeartHex = p.Template != TemplateKind.Boulder || formatVersion < HeartRateAreaVersion ? TemplateRules.HeartRateAccentHex
+                    : p.HeartColorHex ?? throw Damaged("a route area's heart colour is missing")
             },
             _ => throw Damaged("unknown clip type")
         };

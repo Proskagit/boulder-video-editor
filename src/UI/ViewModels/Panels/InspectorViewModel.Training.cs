@@ -73,7 +73,7 @@ public sealed partial class InspectorViewModel
     private void OnTrainingChanged(object? sender, EventArgs e)
     {
         RefreshTraining();
-        if (ShowsTemplateHeartRate) RefreshHeartRateHint();
+        if (ShowsTemplateHeartRate || ShowsTemplateBoulder) RefreshHeartRateHint();
     }
 
     private void ShowTraining(MediaAsset? asset)
@@ -131,7 +131,8 @@ public sealed partial class InspectorViewModel
             { Reason: TrainingReadoutReason.NoSample, WatchTime: { } w } =>
                 string.Format(Strings.Readout_NoValue, string.Format(Strings.Readout_NoSample, WatchClock(w, workout!))),
             { Reason: TrainingReadoutReason.TrainingNotAvailable } => string.Format(Strings.Readout_NoValue, Strings.Readout_TrainingNotAvailable),
-            { Reason: TrainingReadoutReason.RecordingStartUnknown } => string.Format(Strings.Readout_NoValue, Strings.Readout_RecordingStartUnknown),
+            { Reason: TrainingReadoutReason.NoFileTime } => string.Format(Strings.Readout_NoValue, Strings.Readout_NoFileTime),
+            { Reason: TrainingReadoutReason.FileTimesDisagree } => string.Format(Strings.Readout_NoValue, Strings.Readout_FileTimesDisagree),
             { Reason: TrainingReadoutReason.OutsideClip } => string.Format(Strings.Readout_NoValue, Strings.Readout_OutsideClip),
             _ => string.Format(Strings.Readout_NoValue, Strings.Readout_NoTraining)
         };

@@ -58,16 +58,22 @@ public class HeartRateOverlayTests
         return training;
     }
 
+    private static RecordingTimeProbe Tag(DateTimeOffset end) =>
+        RecordingTimeProbe.Found(end.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ"), RecordingTimeTagOrigin.Format);
+
+    /// <param name="zero">D055 §1: the time of the file's first frame, by its recording-time tag (read as the end of its
+    /// 900 s); null — the file gives none. Never the recording zero <c>Z</c>, which the heart rate never reads.</param>
     private (VideoClip Clip, MediaAsset Asset) Video(Track track, long start, long frames, DateTimeOffset? zero, long sourceIn = 0,
         ClipSpeed? speed = null, double opacity = 1)
     {
         var asset = new MediaAsset
         {
-            FilePath = $@"C:\media\{Guid.NewGuid():N}.mp4", Kind = MediaKind.Video, RecordingZeroOverrideUtc = zero,
+            FilePath = $@"C:\media\{Guid.NewGuid():N}.mp4", Kind = MediaKind.Video,
             Metadata = new MediaMetadata
             {
                 Duration = MediaTime.FromSeconds(900), FrameRate = Rate, Width = 1920, Height = 1080, DisplayRotation = 0,
-                DisplayWidth = 1920, DisplayHeight = 1080
+                DisplayWidth = 1920, DisplayHeight = 1080,
+                RecordingTimeProbe = zero is { } first ? Tag(first.AddSeconds(900)) : null
             }
         };
         _project.MediaAssets.Add(asset);
@@ -266,17 +272,19 @@ public class HeartRateOverlayTests
     }
 
     [Fact]
-    public void A_new_recording_zero_or_training_changes_only_the_presentation()
+    public void A_new_recording_zero_never_moves_the_value_and_a_new_training_changes_only_the_presentation()
     {
         Train();
         var (_, asset) = Video(_v1, 0, 25 * 60, Start.AddSeconds(10));
         Overlay(_v2, 0, 25 * 60);
         var before = Snapshot();
 
-        asset.RecordingZeroOverrideUtc = Start.AddSeconds(40);
+        asset.RecordingZeroOverrideUtc = Start.AddSeconds(40);    // D055 §2: Z refines the route bounds only
         var after = Snapshot();
         Assert.True(before.DiffersOnlyInPresentation(after));     // no decoder restarts
-        Assert.Equal(Bpm(40), ValueAt(after, 0));
+        Assert.Equal(Bpm(10), ValueAt(after, 0));
+        asset.Metadata!.RecordingTimeProbe = Tag(Start.AddSeconds(940));   // another file time moves it
+        Assert.Equal(Bpm(40), ValueAt(Snapshot(), 0));
 
         _project.Training = null;
         Assert.True(after.DiffersOnlyInPresentation(Snapshot()));
@@ -311,5 +319,106 @@ public class HeartRateOverlayTests
         Assert.NotNull(TemplateRules.Validate(defaults with { Corner = (OverlayCorner)7 }));
         Assert.Equal((0.3, 0.3), TemplateRules.Animation(TemplateKind.HeartRate));
         Assert.Equal(MediaTime.FromSeconds(10), TemplateRules.DefaultDuration(TemplateKind.HeartRate));
+    }
+
+    // --- D055 §4: the heart rate of a green route area ---------------------------------------------------------------------
+
+    private static int? AreaValueAt(PlaybackSnapshot snapshot, long frame) =>
+        snapshot.LayersAt(F(frame)).OfType<TemplateLayer>().Single(l => l.Kind == TemplateKind.Boulder).HeartRate;
+
+    /// <summary>A green route area — a «Боулдер» anchored to <paramref name="clip"/> — on V2 over [start, start + frames).</summary>
+    private TemplateClip Area(VideoClip clip, long start, long frames, bool fromFit = false)
+    {
+        var area = new TemplateClip
+        {
+            Kind = TemplateKind.Boulder, TimelineStart = F(start), Duration = F(frames), AccentHex = TemplateRules.DefaultAccentHex,
+            AnchorClipId = clip.Id, AnchorRouteId = Guid.NewGuid(),
+            FitClimb = fromFit ? new ClimbIdentity(0, 1, Start) : null
+        };
+        _v2.Clips.Add(area);
+        _v2.Clips.Sort((a, b) => a.TimelineStart.CompareTo(b.TimelineStart));
+        return area;
+    }
+
+    [Fact]
+    public void A_green_area_shows_its_clips_heart_rate_on_its_span_by_the_files_time_made_by_hand_or_from_the_fit()
+    {
+        Train();
+        var (clip, _) = Video(_v1, 0, 25 * 60, Start.AddSeconds(10));
+        Area(clip, 25 * 5, 25 * 10);                                  // by hand
+        Area(clip, 25 * 30, 25 * 10, fromFit: true);                  // from the FIT
+        var snapshot = Snapshot();
+
+        Assert.Equal(Bpm(10 + 6), AreaValueAt(snapshot, 25 * 6));       // the clip's picture at 6 s: w = file + 6 s
+        Assert.Equal(Bpm(10 + 35), AreaValueAt(snapshot, 25 * 35));
+        Assert.Empty(snapshot.LayersAt(F(25 * 20)).OfType<TemplateLayer>());   // outside both areas: nothing
+    }
+
+    [Fact]
+    public void Its_bounds_limit_where_the_heart_rate_is_shown_and_never_move_the_samples()
+    {
+        Train();
+        var (clip, _) = Video(_v1, 0, 25 * 60, Start.AddSeconds(10));
+        var area = Area(clip, 25 * 10, 25 * 10);
+        var at15 = AreaValueAt(Snapshot(), 25 * 15);
+
+        area.TimelineStart = F(25 * 2);                               // stretched to the left and to the right
+        area.Duration = F(25 * 30);
+        Assert.Equal(at15, AreaValueAt(Snapshot(), 25 * 15));             // the same picture, the same sample
+        Assert.Equal(Bpm(10 + 3), AreaValueAt(Snapshot(), 25 * 3));       // shown where the area now is
+
+        area.TimelineStart = F(25 * 14);                              // narrowed
+        area.Duration = F(25 * 2);
+        Assert.Equal(at15, AreaValueAt(Snapshot(), 25 * 15));
+        Assert.Empty(Snapshot().LayersAt(F(25 * 3)).OfType<TemplateLayer>());
+    }
+
+    [Fact]
+    public void An_area_never_reads_the_recording_zero_and_shows_nothing_where_the_fit_has_no_value()
+    {
+        Train();
+        var (clip, asset) = Video(_v1, 0, 25 * 400, Start.AddSeconds(10));
+        Area(clip, 0, 25 * 400);
+        Assert.Equal(Bpm(10 + 5), AreaValueAt(Snapshot(), 25 * 5));
+
+        asset.RecordingZeroOverrideUtc = Start.AddSeconds(100);       // D055 §2: Z refines the route bounds only
+        Assert.Equal(Bpm(10 + 5), AreaValueAt(Snapshot(), 25 * 5));
+
+        Assert.Null(AreaValueAt(Snapshot(), 25 * 200));                   // w = 210 s: the timer's pause — the area stays
+        Assert.Single(Snapshot().LayersAt(F(25 * 200)).OfType<TemplateLayer>());
+        Assert.Null(AreaValueAt(Snapshot(), 25 * 295));                   // w = 305 s: a gap in the data
+
+        asset.Metadata!.RecordingTimeProbe = null;                    // no file time: nothing, even with Z
+        Assert.Null(AreaValueAt(Snapshot(), 25 * 5));
+    }
+
+    [Fact]
+    public void An_area_hidden_switched_off_unanchored_or_without_a_training_shows_no_heart_rate()
+    {
+        var (clip, _) = Video(_v1, 0, 25 * 60, Start.AddSeconds(10));
+        var area = Area(clip, 0, 25 * 60);
+        Assert.Null(Snapshot().VideoLayers.SelectMany(l => l.Templates).Single().HeartRate);   // no training
+
+        Train();
+        Assert.Equal(Bpm(15), AreaValueAt(Snapshot(), 25 * 5));
+        area.ShowHeartRate = false;
+        Assert.Null(AreaValueAt(Snapshot(), 25 * 5));
+        area.ShowHeartRate = true;
+        area.AnchorClipId = null;                                     // a free «Боулдер»
+        Assert.Null(AreaValueAt(Snapshot(), 25 * 5));
+    }
+
+    [Fact]
+    public void An_areas_draw_operation_carries_the_value_and_its_own_heart_colour()
+    {
+        Train();
+        var (clip, _) = Video(_v1, 0, 25 * 60, Start.AddSeconds(10));
+        var area = Area(clip, 0, 25 * 60);
+        area.HeartHex = "#00E676";
+        var layers = Snapshot().LayersAt(F(25 * 5));
+        var template = layers.OfType<TemplateLayer>().Single();
+        Assert.Equal(Bpm(15), template.HeartRate);
+        Assert.Equal("#00E676", template.Span.Fields.HeartColorFor(TemplateKind.Boulder));
+        Assert.Equal(TemplateRules.DefaultAccentHex, template.Span.Fields.AccentHex);   // the route's colour untouched
     }
 }

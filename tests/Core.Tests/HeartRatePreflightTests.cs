@@ -1,5 +1,6 @@
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
+using AiVideoEditor.Core.Localization;
 using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Telemetry;
 using Xunit;
@@ -27,16 +28,19 @@ public class HeartRatePreflightTests
 
     private static MediaTime F(long frame) => MediaTime.FromFrame(frame, Rate);
 
+    /// <param name="zero">D055 §1: the time of the file's first frame by its tag (the end of its 600 s); null — none.</param>
     private VideoClip Video(long start, long frames, DateTimeOffset? zero, string name)
     {
         var asset = new MediaAsset
         {
             FilePath = $@"C:\media\{name}", Kind = MediaKind.Video, AnalysisStatus = MediaAnalysisStatus.Completed,
-            RecordingZeroOverrideUtc = zero,
             Metadata = new MediaMetadata
             {
                 Duration = MediaTime.FromSeconds(600), Width = 1920, Height = 1080, DisplayWidth = 1920, DisplayHeight = 1080,
-                FrameRate = Rate, StartTime = MediaTime.Zero
+                FrameRate = Rate, StartTime = MediaTime.Zero,
+                RecordingTimeProbe = zero is { } first
+                    ? RecordingTimeProbe.Found(first.AddSeconds(600).UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ"), RecordingTimeTagOrigin.Format)
+                    : null
             }
         };
         _project.MediaAssets.Add(asset);
@@ -58,7 +62,7 @@ public class HeartRatePreflightTests
     {
         var workout = new ClimbingWorkout
         {
-            DeviceName = "COROS", Manufacturer = 294, Product = null, StartUtc = Start, EndUtc = Start.AddSeconds(600), UtcOffset = null,
+            DeviceName = "COROS", Manufacturer = 294, Product = null, StartUtc = Start, EndUtc = Start.AddSeconds(600), UtcOffset = TimeSpan.FromHours(3),
             ElapsedTime = MediaTime.FromSeconds(600), TimerTime = MediaTime.FromSeconds(600), Sport = 31, SubSport = 69,
             AverageHeartRate = null, MaxHeartRate = null,
             HeartRate = Enumerable.Range(0, 600).Select(i => new HeartRateSample(Start.AddSeconds(i), 120)).ToList(),
@@ -145,8 +149,11 @@ public class HeartRatePreflightTests
         var asset = new MediaAsset
         {
             FilePath = @"C:\media\top.mp4", Kind = MediaKind.Video, AnalysisStatus = MediaAnalysisStatus.Completed,
-            RecordingZeroOverrideUtc = Start.AddSeconds(10),
-            Metadata = new MediaMetadata { Duration = MediaTime.FromSeconds(60), Width = 1920, Height = 1080, DisplayWidth = 1920, DisplayHeight = 1080, FrameRate = Rate }
+            Metadata = new MediaMetadata
+            {
+                Duration = MediaTime.FromSeconds(60), Width = 1920, Height = 1080, DisplayWidth = 1920, DisplayHeight = 1080, FrameRate = Rate,
+                RecordingTimeProbe = RecordingTimeProbe.Found(Start.AddSeconds(70).UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ"), RecordingTimeTagOrigin.Format)
+            }
         };
         _project.MediaAssets.Add(asset);
         _v2.Clips.Add(new VideoClip { MediaAssetId = asset.Id, TimelineStart = F(0), Duration = F(100), SourceOut = F(100) });
@@ -165,5 +172,52 @@ public class HeartRatePreflightTests
         Overlay(200, 100);
         Assert.Empty(HeartRateIssues(Check(new ExportRange(0, 150)))); // the overlay is outside the range
         Assert.Single(HeartRateIssues(Check(new ExportRange(0, 250))));
+    }
+
+    // --- D055 §8: a green route area's heart rate ---------------------------------------------------------------------------
+
+    private TemplateClip Area(VideoClip clip)
+    {
+        var area = new TemplateClip
+        {
+            Kind = TemplateKind.Boulder, TimelineStart = clip.TimelineStart, Duration = clip.Duration, AnchorClipId = clip.Id,
+            AccentHex = TemplateRules.DefaultAccentHex
+        };
+        _v2.Clips.Add(area);
+        return area;
+    }
+
+    [Fact]
+    public void An_area_over_a_clip_without_a_reliable_file_time_is_named_and_one_without_a_training_never_warns()
+    {
+        var timed = Video(0, 100, Start, "timed.mp4");
+        var unknown = Video(100, 100, null, "unknown.mp4");
+        Area(timed);
+        Area(unknown);
+        Assert.Empty(HeartRateIssues(Check()));                       // no training: an area shows no heart rate, no warning
+
+        Train();
+        var issue = Assert.Single(HeartRateIssues(Check()));
+        Assert.Contains("unknown.mp4", issue.Message);
+        Assert.Equal(string.Format(Messages.Preflight_HeartRateNoFileTime, "unknown.mp4",
+            Plural.Format(1, Messages.Plural_Clips), unknown.TimelineStart), issue.Message);
+        Assert.Equal(new[] { unknown.Id }, issue.ClipIds);
+
+        foreach (var area in _v2.Clips.OfType<TemplateClip>()) area.ShowHeartRate = false;
+        Assert.Empty(HeartRateIssues(Check()));                       // switched off: nothing to check
+    }
+
+    [Fact]
+    public void An_area_over_an_edited_file_names_the_disagreeing_times_and_an_unavailable_fit_is_said()
+    {
+        // Tagged at 07:02:39 + 600 s, named 10:00:00 (UTC+3 → 07:00:00): the times disagree.
+        var edited = Video(0, 100, Start, "video_20260927_100000.mp4");
+        Area(edited);
+        Train();
+        var issue = Assert.Single(HeartRateIssues(Check()));
+        Assert.StartsWith(Messages.Preflight_HeartRateFileTimesDisagree.Split('{')[0], issue.Message);
+
+        Train(TrainingAvailability.Missing);
+        Assert.Equal(Messages.Preflight_HeartRateTrainingUnavailable, Assert.Single(HeartRateIssues(Check())).Message);
     }
 }

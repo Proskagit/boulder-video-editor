@@ -52,8 +52,12 @@ public enum ClipPropertyFields : long
     TemplateLook = 1L << 35,
     TemplateCorner = 1L << 36,
 
+    // D055 §5: a «Боулдер»'s heart rate shown or not and its heart's colour.
+    TemplateShowHeartRate = 1L << 37,
+    TemplateHeart = 1L << 38,
+
     Template = TemplateDate | TemplateRoute | TemplateGrade | TemplateStatus | TemplateAccent | TemplateTitle | TemplateSubtitle |
-               TemplateStatusAt | TemplateLook | TemplateCorner,
+               TemplateStatusAt | TemplateLook | TemplateCorner | TemplateShowHeartRate | TemplateHeart,
 
     Crop = CropLeft | CropTop | CropRight | CropBottom
 }
@@ -119,6 +123,7 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
                 throw new InvalidOperationException($"{clip.GetType().Name} has no template fields.");
             (c.Date, c.Route, c.Grade, c.Status, c.AccentHex, c.Title, c.Subtitle, c.StatusAt, c.Look, c.Corner) =
                 (p.Date, p.Route, p.Grade, p.Status, p.AccentHex, p.Title, p.Subtitle, p.StatusAt, p.Look, p.Corner);
+            (c.ShowHeartRate, c.HeartHex) = (p.ShowHeartRate, p.HeartHex);
         }
     }
 
@@ -182,6 +187,8 @@ public readonly record struct ClipPropertyValues(VisualProperties? Visual, Audio
             if (pa.StatusAt != pb.StatusAt) fields |= ClipPropertyFields.TemplateStatusAt;
             if (pa.Look != pb.Look) fields |= ClipPropertyFields.TemplateLook;
             if (pa.Corner != pb.Corner) fields |= ClipPropertyFields.TemplateCorner;
+            if (pa.ShowHeartRate != pb.ShowHeartRate) fields |= ClipPropertyFields.TemplateShowHeartRate;
+            if (!string.Equals(pa.HeartHex, pb.HeartHex, StringComparison.Ordinal)) fields |= ClipPropertyFields.TemplateHeart;
         }
 
         return fields;
