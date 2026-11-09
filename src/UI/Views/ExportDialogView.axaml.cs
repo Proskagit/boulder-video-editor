@@ -3,12 +3,12 @@ using Avalonia.Controls;
 
 namespace AiVideoEditor.UI.Views;
 
-/// <summary>D057 §3.9: «Копировать» puts the timestamps on the system clipboard.</summary>
-public partial class YouTubeTimestampsView : UserControl
+/// <summary>The export dialog: «Копировать» puts the YouTube timestamps on the system clipboard.</summary>
+public partial class ExportDialogView : UserControl
 {
-    private YouTubeTimestampsViewModel? _viewModel;
+    private ExportDialogViewModel? _viewModel;
 
-    public YouTubeTimestampsView()
+    public ExportDialogView()
     {
         InitializeComponent();
     }
@@ -17,7 +17,7 @@ public partial class YouTubeTimestampsView : UserControl
     {
         base.OnDataContextChanged(e);
         if (_viewModel is not null) _viewModel.CopyRequested -= OnCopy;
-        _viewModel = DataContext as YouTubeTimestampsViewModel;
+        _viewModel = DataContext as ExportDialogViewModel;
         if (_viewModel is not null) _viewModel.CopyRequested += OnCopy;
     }
 

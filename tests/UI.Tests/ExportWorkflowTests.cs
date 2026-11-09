@@ -53,8 +53,11 @@ public sealed class ExportWorkflowTests : IDisposable
     private ExportWorkflow Workflow(InOutRangeService? inOut, params int?[] answers)
     {
         _dialogs = new ScriptedDialogs(answers);
-        return new ExportWorkflow(_projects, _export, new Fonts("Segoe UI"), _picker, _dialogs, _progressDialog, _lock, _status, _log, inOut);
+        return new ExportWorkflow(_projects, _export, new Fonts("Segoe UI"), _picker, _dialogs, _progressDialog, _lock, _status, _log, inOut,
+            exportDialog: _exportDialog);
     }
+
+    private ScriptedExportDialog? _exportDialog;
 
     private string Output(string name = "out.mp4") => Path.Combine(_root, name);
 
@@ -306,6 +309,93 @@ public sealed class ExportWorkflowTests : IDisposable
         Assert.Equal(ExportOutcomeKind.PreflightFailed, outcome.Kind);
         Assert.Contains("ffmpeg could not be found", Assert.Single(_dialogs.Asked).Message);
         Assert.Empty(_export.Jobs);
+    }
+
+    // --- The export dialog (the owner's acceptance of 2026-11-10) -------------------------------------------------------
+
+    private void Boulder(double startSeconds, string route)
+    {
+        Assert.True(_edit.AddTrack(TrackType.Video).Success);
+        _projects.Current.Timeline.VideoTracks[^1].Clips.Add(new TemplateClip
+        {
+            Kind = TemplateKind.Boulder, TimelineStart = MediaTime.FromSeconds(startSeconds), Duration = MediaTime.FromSeconds(2), Route = route
+        });
+    }
+
+    [Fact]
+    public async Task The_export_dialog_offers_the_path_the_output_and_the_timestamps_and_exports_to_its_path()
+    {
+        ExportableProject();
+        Boulder(3, "1");
+        _projects.Current.LastExportSettings.OutputPath = Output("last.mp4");
+        _exportDialog = new ScriptedExportDialog(async d =>
+        {
+            Assert.Equal(_root, d.Folder);
+            Assert.Equal("last.mp4", d.FileName);
+            Assert.Equal("00:00 Intro\n00:03 Трасса 1", d.Timestamps);
+            Assert.Contains("1920 × 1080", d.Info);
+            Assert.False(d.IsRange);
+
+            _picker.SaveFiles.Enqueue(Output("picked.mp4"));                       // «Обзор…»: the picker fills the folder and name
+            await d.BrowseCommand.ExecuteAsync(null);
+            Assert.Equal("picked.mp4", d.FileName);
+            d.FileName = "final";                                                  // the extension is added
+            string? copied = null;
+            d.CopyRequested += (_, text) => copied = text;
+            d.CopyCommand.Execute(null);
+            Assert.Equal(d.Timestamps, copied);
+            Assert.True(d.ExportCommand.CanExecute(null));
+            return new ExportDialogResult(d.OutputPath!);
+        });
+
+        var outcome = await Workflow(Ok).RunAsync();
+
+        Assert.Equal(ExportOutcomeKind.Succeeded, outcome.Kind);
+        Assert.Equal(Output("final.mp4"), Assert.Single(_export.Jobs).OutputPath);
+        var browse = Assert.Single(_picker.SaveRequests);                          // only through «Обзор…»
+        Assert.Equal(_root, browse.StartFolder);
+        Assert.Equal("last.mp4", browse.SuggestedFileName);
+    }
+
+    [Fact]
+    public async Task Cancelling_the_export_dialog_ends_the_flow_and_an_empty_name_cannot_be_exported()
+    {
+        ExportableProject();
+        _exportDialog = new ScriptedExportDialog(d =>
+        {
+            d.FileName = "  ";
+            Assert.Null(d.OutputPath);
+            Assert.False(d.ExportCommand.CanExecute(null));
+            return Task.FromResult<ExportDialogResult?>(null);
+        });
+
+        var outcome = await Workflow().RunAsync();
+
+        Assert.Equal(ExportOutcomeKind.NotStarted, outcome.Kind);
+        Assert.Empty(_export.Jobs);
+        Assert.Empty(_picker.SaveRequests);
+        Assert.Equal(1, _exportDialog.Shown);
+    }
+
+    [Fact]
+    public async Task With_a_range_export_the_dialog_counts_the_timestamps_from_in()
+    {
+        ExportableProject();
+        Boulder(3, "1");
+        var inOut = new InOutRangeService(_projects);
+        inOut.SetIn(MediaTime.FromSeconds(1));
+        inOut.SetOut(MediaTime.FromSeconds(4));
+        _exportDialog = new ScriptedExportDialog(d =>
+        {
+            Assert.True(d.IsRange);
+            Assert.Equal("00:00 Intro\n00:02 Трасса 1", d.Timestamps);
+            return Task.FromResult<ExportDialogResult?>(new ExportDialogResult(Output()));
+        });
+
+        var outcome = await Workflow(inOut, 0, Ok).RunAsync();
+
+        Assert.Equal(ExportOutcomeKind.Succeeded, outcome.Kind);
+        Assert.NotNull(Assert.Single(_export.Jobs).Range);
     }
 
     // --- Output file ------------------------------------------------------------------------------
@@ -633,6 +723,17 @@ public sealed class ExportWorkflowTests : IDisposable
     }
 
     // --- Fakes --------------------------------------------------------------------------------------
+
+    private sealed class ScriptedExportDialog(Func<ExportDialogViewModel, Task<ExportDialogResult?>> answer) : IExportDialog
+    {
+        public int Shown { get; private set; }
+
+        public Task<ExportDialogResult?> ShowAsync(ExportDialogViewModel dialog)
+        {
+            Shown++;
+            return answer(dialog);
+        }
+    }
 
     private sealed class Fonts(params string[] names) : IFontCatalog
     {

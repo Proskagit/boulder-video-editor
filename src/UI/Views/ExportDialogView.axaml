@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:l="using:AiVideoEditor.UI.Localization"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AiVideoEditor.UI.Views.ExportDialogView">
+
+  <!-- Phase 38 acceptance (2026-11-10): the export's output file, a line about the output and the YouTube timestamps of what
+       is exported, to copy. The export's own settings (quality, speed, encoder) are not offered yet. -->
+  <DockPanel Margin="16">
+    <StackPanel DockPanel.Dock="Top" Spacing="6">
+      <TextBlock Text="{x:Static l:Strings.ExportDialog_Folder}" FontSize="11" Foreground="#AAAAAA"/>
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBox x:Name="FolderBox" Text="{Binding Folder, Mode=TwoWay}"/>
+        <Button Grid.Column="1" x:Name="BrowseButton" Content="{x:Static l:Strings.ExportDialog_Browse}" Command="{Binding BrowseCommand}"
+                IsVisible="{Binding CanBrowse}" Margin="6,0,0,0"/>
+      </Grid>
+      <TextBlock Text="{x:Static l:Strings.ExportDialog_FileName}" FontSize="11" Foreground="#AAAAAA" Margin="0,4,0,0"/>
+      <TextBox x:Name="FileNameBox" Text="{Binding FileName, Mode=TwoWay}"/>
+      <TextBlock x:Name="InfoText" Text="{Binding Info}" FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap" Margin="0,4,0,8"/>
+    </StackPanel>
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,12,0,0">
+      <Button x:Name="ExportButton" Content="{x:Static l:Strings.ExportDialog_Export}" Command="{Binding ExportCommand}" IsDefault="True"/>
+      <Button Content="{x:Static l:Strings.Common_Cancel}" Command="{Binding CancelCommand}" IsCancel="True"/>
+    </StackPanel>
+    <DockPanel>
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+        <TextBlock Text="{x:Static l:Strings.ExportDialog_Timestamps}" FontSize="11" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+        <Button Grid.Column="1" x:Name="CopyButton" Content="{x:Static l:Strings.YouTube_Copy}" Command="{Binding CopyCommand}"
+                Padding="8,2" FontSize="11"/>
+      </Grid>
+      <TextBox x:Name="TimestampsBox" Text="{Binding Timestamps, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+               FontFamily="Consolas, Cascadia Mono, monospace" FontSize="12" MinHeight="90"
+               ToolTip.Tip="{x:Static l:Strings.YouTube_Hint}"/>
+    </DockPanel>
+  </DockPanel>
+</UserControl>

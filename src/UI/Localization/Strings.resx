@@ -1979,23 +1979,35 @@ If you don't save, your changes will be lost.</value>
   <data name="AppSettings_NavCorosFit" xml:space="preserve">
     <value>COROS / FIT</value>
   </data>
-  <data name="YouTube_Title" xml:space="preserve">
-    <value>YouTube timestamps</value>
-  </data>
   <data name="YouTube_Hint" xml:space="preserve">
     <value>Each route at the left edge of its green area; copy the text into the video description.</value>
-  </data>
-  <data name="YouTube_FromIn" xml:space="preserve">
-    <value>The In / Out range (times from In)</value>
   </data>
   <data name="YouTube_Copy" xml:space="preserve">
     <value>Copy</value>
   </data>
-  <data name="Toolbar_YouTube" xml:space="preserve">
-    <value>YouTube Timestamps…</value>
+  <data name="ExportDialog_Title" xml:space="preserve">
+    <value>Export</value>
   </data>
-  <data name="Toolbar_YouTubeTip" xml:space="preserve">
-    <value>The routes' timestamps for a YouTube description</value>
+  <data name="ExportDialog_Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="ExportDialog_FileName" xml:space="preserve">
+    <value>File name</value>
+  </data>
+  <data name="ExportDialog_Browse" xml:space="preserve">
+    <value>Browse…</value>
+  </data>
+  <data name="ExportDialog_Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="ExportDialog_Info" xml:space="preserve">
+    <value>{0} × {1}, {2} fps, {3}, MP4 (H.264 / AAC)</value>
+  </data>
+  <data name="ExportDialog_InfoRange" xml:space="preserve">
+    <value>In / Out range</value>
+  </data>
+  <data name="ExportDialog_Timestamps" xml:space="preserve">
+    <value>YouTube timestamps</value>
   </data>
   <data name="Background_Black" xml:space="preserve">
     <value>Black</value>

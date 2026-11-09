@@ -110,26 +110,4 @@ public sealed class SettingsWindowTests
         Assert.Contains("BetaBox", names);
         Assert.DoesNotContain(names, n => n!.Contains("ClockCorrection"));
     }
-
-    [Fact]
-    public void The_youtube_window_offers_the_range_and_copies_the_text()
-    {
-        var sequence = new Core.Entities.Sequence();
-        var track = new Core.Entities.Track { Type = Core.Entities.TrackType.Video, Name = "V1" };
-        sequence.VideoTracks.Add(track);
-        track.Clips.Add(new Core.Entities.TemplateClip
-        {
-            Kind = Core.Entities.TemplateKind.Boulder, TimelineStart = MediaTime.FromSeconds(70), Duration = MediaTime.FromSeconds(10),
-            Route = "3", Grade = "6B", Status = Core.Entities.BoulderStatus.Top
-        });
-        var vm = new YouTubeTimestampsViewModel(sequence, FrameRate.Fps30, (MediaTime.FromSeconds(60), MediaTime.FromSeconds(120)));
-        Assert.True(vm.HasRange && vm.UseRange);
-        Assert.Equal("00:00 Intro\n00:10 Трасса 3 · 6B 🟢", vm.Text);
-        vm.UseRange = false;
-        Assert.Equal("00:00 Intro\n01:10 Трасса 3 · 6B 🟢", vm.Text);
-        string? copied = null;
-        vm.CopyRequested += (_, text) => copied = text;
-        vm.CopyCommand.Execute(null);
-        Assert.Equal(vm.Text, copied);
-    }
 }

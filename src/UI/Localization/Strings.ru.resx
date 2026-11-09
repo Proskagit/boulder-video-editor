@@ -1983,23 +1983,35 @@
   <data name="AppSettings_NavCorosFit" xml:space="preserve">
     <value>Тренировки COROS / FIT</value>
   </data>
-  <data name="YouTube_Title" xml:space="preserve">
-    <value>Таймкоды для YouTube</value>
-  </data>
   <data name="YouTube_Hint" xml:space="preserve">
     <value>Каждая трасса — по левой границе её зелёной области; скопируйте текст в описание видео.</value>
-  </data>
-  <data name="YouTube_FromIn" xml:space="preserve">
-    <value>Диапазон In / Out (время от In)</value>
   </data>
   <data name="YouTube_Copy" xml:space="preserve">
     <value>Копировать</value>
   </data>
-  <data name="Toolbar_YouTube" xml:space="preserve">
-    <value>Таймкоды YouTube…</value>
+  <data name="ExportDialog_Title" xml:space="preserve">
+    <value>Экспорт</value>
   </data>
-  <data name="Toolbar_YouTubeTip" xml:space="preserve">
-    <value>Таймкоды трасс для описания видео на YouTube</value>
+  <data name="ExportDialog_Folder" xml:space="preserve">
+    <value>Папка</value>
+  </data>
+  <data name="ExportDialog_FileName" xml:space="preserve">
+    <value>Имя файла</value>
+  </data>
+  <data name="ExportDialog_Browse" xml:space="preserve">
+    <value>Обзор…</value>
+  </data>
+  <data name="ExportDialog_Export" xml:space="preserve">
+    <value>Экспортировать</value>
+  </data>
+  <data name="ExportDialog_Info" xml:space="preserve">
+    <value>{0} × {1}, {2} кадр/с, длительность {3}, MP4 (H.264 / AAC)</value>
+  </data>
+  <data name="ExportDialog_InfoRange" xml:space="preserve">
+    <value>диапазон In / Out</value>
+  </data>
+  <data name="ExportDialog_Timestamps" xml:space="preserve">
+    <value>Таймкоды для YouTube</value>
   </data>
   <data name="Background_Black" xml:space="preserve">
     <value>Чёрный</value>
