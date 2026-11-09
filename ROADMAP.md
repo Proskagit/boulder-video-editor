@@ -597,6 +597,19 @@ takes the vertical-video export.
   to the top or the end of the attempt — instead of over the whole active training (the current behaviour, kept). Needs a
   decision of its own. The difference between a climb's actual end and the COROS timer's pause is not a defect: the visual
   bounds of the route overlays are corrected separately (`docs/PHASE_COROS.md` §13).
+- **D056 (2026-11-09, approved)** — after the manual check of D055: the Inspector chooses the climb at the playhead and
+  asks before a frame is matched to another (PR 1); a new `Z` lays out again the FIT's area its user has not changed, and
+  marking holds offers the nearby FIT route (PR 2); the start mark `T` on every route area and the free «Боулдер» drawn
+  green (PR 3). Record: DECISIONS.md D056.
+- **FU-HR.1 — An experimental display shift of the heart rate (the product owner, 2026-11-09)** — *Future / Backlog: an
+  experiment, not decided, not implemented.* On 2026-09-27 the heart rate falls during most climbs and peaks 45–75 s after
+  their end (climb 2 +75 s, 3 +60 s, 4 +47 s, 6 +49 s) — the FIT's own content, the synchronisation confirmed (D055, D056
+  §6). Hypothesis: the heart rate shown about 60 s earlier puts the peak near the end of the climb and suits the video
+  better. Never a change of the FIT's samples, `T_file`, `CC` or `Z`, never a correction of D055's formula. Plan: on the
+  trainings of 2026-08-08 and 2026-09-27 pick several typical climbs of each; render their clips with the current heart
+  rate and with the heart rate shifted by about −60 s; compare them; judge how close the peak comes to the end of the climb
+  and whether the dynamics elsewhere and between climbs look wrong. If it works, decide separately: a fixed or adjustable
+  shift, where it applies, Preview and export, and how it is marked as a display correction, not the FIT's time.
 - **FU-UI.1 — The Inspector in collapsible sections, their state kept across clips (the product owner, 2026-11-09)** —
   *Future / Backlog: a UX optimisation, not planned, not implemented.* Today the Inspector is one long list and its scroll
   position resets with every newly selected video clip, so the user scrolls to the same section again each time. Target:

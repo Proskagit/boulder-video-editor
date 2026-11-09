@@ -2485,6 +2485,18 @@ If you don't save, your changes will be lost.</value>
   <data name="Inspector_AlignPlayheadOutside" xml:space="preserve">
     <value>Put the playhead on a frame of this clip.</value>
   </data>
+  <data name="Inspector_AlignMismatchTitle" xml:space="preserve">
+    <value>Another climb</value>
+  </data>
+  <data name="Inspector_AlignMismatchArea" xml:space="preserve">
+    <value>The playhead is in the area of climb {0}, and climb {1} is chosen. Matching the frame to climb {1} moves this video's recording start, and climb {1} may get one more area on it. Match the frame to climb {1}?</value>
+  </data>
+  <data name="Inspector_AlignMismatchTime" xml:space="preserve">
+    <value>By the video's time the frame shows climb {0}, and climb {1} is chosen. Matching the frame to climb {1} moves this video's recording start, and climb {1} may get one more area on it. Match the frame to climb {1}?</value>
+  </data>
+  <data name="Inspector_AlignMismatchConfirm" xml:space="preserve">
+    <value>Match to climb {0}</value>
+  </data>
   <data name="Readout_Value" xml:space="preserve">
     <value>Training at the playhead: {0} (watch) · {1} bpm</value>
   </data>
