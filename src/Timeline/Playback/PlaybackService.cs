@@ -69,7 +69,8 @@ public sealed class PlaybackService : IPlaybackService
 
     public PlaybackState State { get; private set; } = PlaybackState.Paused;
 
-    public bool IsBuffering => _pipeline is { } pipeline && (!pipeline.IsReady || !_settled);
+    // D057 §3.13: a waiting seek is buffering too — the Preview keeps calling Update, which starts it.
+    public bool IsBuffering => _pendingSeek is not null || (_pipeline is { } pipeline && (!pipeline.IsReady || !_settled));
 
     public bool IsAvailable => !_decoderUnavailable;
 
@@ -187,15 +188,74 @@ public sealed class PlaybackService : IPlaybackService
             return true;
         }
 
-        var pipeline = Restart(Clamp(position));
+        var target = Clamp(position);
+
+        // D057 §3.13: while paused, a seek made while the previous one has no picture yet is not started at once — only the
+        // newest waits, and it starts once that picture is there (on the next Update, or on the caller's context when that
+        // comes first); a seek it supersedes is dropped (false), never queued. The position is the newest at once, so the
+        // playhead never steps back.
+        TaskCompletionSource<bool>? waiting = null;
+        lock (_seekGate)
+        {
+            if (State != PlaybackState.Playing && _pipeline is { IsReady: false } busy)
+            {
+                _clock.Seek(target);
+                _pendingSeekDone?.TrySetResult(false);
+                waiting = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                _pendingSeek = target;
+                _pendingSeekDone = waiting;
+                var context = SynchronizationContext.Current;
+                var mine = waiting;
+                _ = busy.Ready.ContinueWith(_ =>
+                {
+                    if (context is null) TryStartPendingSeek(mine);
+                    else context.Post(_ => TryStartPendingSeek(mine), null);
+                }, TaskScheduler.Default);
+            }
+        }
+        if (waiting is not null)
+        {
+            using var registration = ct.Register(() => waiting.TrySetCanceled(ct));
+            return await waiting.Task.ConfigureAwait(false);
+        }
+
+        var pipeline = Restart(target);
         var ready = await pipeline.Ready.WaitAsync(ct).ConfigureAwait(false);
         return ready && IsCurrent(pipeline);
+    }
+
+    /// <summary>D057 §3.13: the position of the newest seek waiting for the previous one's picture, or null.</summary>
+    private MediaTime? _pendingSeek;
+
+    private TaskCompletionSource<bool>? _pendingSeekDone;
+
+    /// <summary>Guards the waiting seek and the restarts (D057 §3.13) — its start may come from a continuation.</summary>
+    private readonly object _seekGate = new();
+
+    /// <summary>Whether a seek waits for the previous one's picture (tests, diagnostics).</summary>
+    internal bool HasPendingSeek => _pendingSeek is not null;
+
+    private void TryStartPendingSeek(TaskCompletionSource<bool> mine)
+    {
+        lock (_seekGate)
+        {
+            if (_released || !ReferenceEquals(_pendingSeekDone, mine) || _pendingSeek is not { } target) return;
+            _pendingSeek = null;
+            _pendingSeekDone = null;
+            var pipeline = RestartLocked(target, reanchor: true);
+            _ = pipeline.Ready.ContinueWith(t => mine.TrySetResult(t.Result && IsCurrent(pipeline)), TaskScheduler.Default);
+        }
     }
 
     public PlaybackFrame Update()
     {
         if (_snapshot is not { } snapshot || _pipeline is not { } pipeline)
             return new PlaybackFrame(Position, 0, State, false);
+        if (_pendingSeekDone is { } pending && pipeline.IsReady)
+        {
+            TryStartPendingSeek(pending);
+            pipeline = _pipeline!;
+        }
 
         if (_audioRunning && _audioOutput!.HasFailed)
         {
@@ -223,6 +283,9 @@ public sealed class PlaybackService : IPlaybackService
         var lastFrame = FrameMath.CeilingFrame(snapshot.Duration, rate) - 1;
         var pictureFrame = lastFrame >= 0 ? Math.Min(frame, lastFrame) : 0;
 
+        // D057 §3.13: while the newest seek waits, the picture is the waiting pipeline's own (its start), never a frame it
+        // would have to decode forward to reach.
+        if (_pendingSeek is not null) pictureFrame = Math.Min(pipeline.StartFrame, Math.Max(0, lastFrame));
         var result = pipeline.GetFrame(pictureFrame);
         if (pipeline.DecoderUnavailable) _decoderUnavailable = true;
         if (result.IsTopSettled && IsCurrent(pipeline))
@@ -254,6 +317,21 @@ public sealed class PlaybackService : IPlaybackService
     }
 
     private VideoPipeline Restart(MediaTime position, bool reanchor = true)
+    {
+        lock (_seekGate)
+        {
+            // Any other restart (a new snapshot, Play, Stop) starts at the clock's position — the waiting seek's: it is done.
+            if (_pendingSeekDone is { } superseded)
+            {
+                _pendingSeek = null;
+                _pendingSeekDone = null;
+                superseded.TrySetResult(false);
+            }
+            return RestartLocked(position, reanchor);
+        }
+    }
+
+    private VideoPipeline RestartLocked(MediaTime position, bool reanchor)
     {
         var snapshot = _snapshot!;
         var resumeAudio = reanchor && _audioRunning;
@@ -362,6 +440,9 @@ public sealed class PlaybackService : IPlaybackService
     public ValueTask DisposeAsync()
     {
         _released = true;
+        _pendingSeekDone?.TrySetResult(false);
+        _pendingSeekDone = null;
+        _pendingSeek = null;
         return new ValueTask(_release ??= ReleaseAsync());
     }
 

@@ -594,6 +594,11 @@ on the project grid (D006).
   (`GridFor`, `VideoPipeline.Rate`, `PlaybackFrame.Rate`) and plays on the project's grid; the Preview reports the
   playhead as a time. `TimelineViewModel.EditPlayhead` is the playhead rounded for every grid-bound edit; the playhead is
   snapped only when the project's rate changes. «Совместить кадр…» and the markup frame use the exact source frame.
+- **Block E.** `PlaybackService.SeekAsync`, paused, while the current pipeline has no picture yet: the clock moves to the
+  newest position at once, that seek waits (`_pendingSeek`), an older waiting one completes false (dropped, never queued);
+  it starts on the next `Update` once the picture is there (or on the caller's context when that comes first; a lock guards
+  the restarts); meanwhile the picture is the waiting pipeline's own start frame and `IsBuffering` stays true; any other
+  restart (a snapshot, Play) supersedes it. Playback, its sound and the synchronisation are unchanged.
 
 ## FIT route starts and the global start calibration (Phase 37, D051)
 
