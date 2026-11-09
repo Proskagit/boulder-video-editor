@@ -121,8 +121,8 @@ public sealed class RouteStartMarkUiTests
         // The green a route's area shows: the strip's green at the segment's opacity over the template's own colour.
         static int Blend(string hex, int at) => (int)Math.Round(Convert.ToInt32(TimelineViewModel.GreenHex.Substring(at, 2), 16) * TimelineViewModel.TemplateSegmentOpacity
             + Convert.ToInt32(hex.Substring(at, 2), 16) * (1 - TimelineViewModel.TemplateSegmentOpacity));
-        Assert.Equal($"#{Blend(TimelineViewModel.TemplateHex, 1):X2}{Blend(TimelineViewModel.TemplateHex, 3):X2}{Blend(TimelineViewModel.TemplateHex, 5):X2}",
-            TimelineViewModel.RouteAreaHex);
+        var blended = $"#{Blend(TimelineViewModel.TemplateHex, 1):X2}{Blend(TimelineViewModel.TemplateHex, 3):X2}{Blend(TimelineViewModel.TemplateHex, 5):X2}";
+        Assert.Equal(TimelineViewModel.RouteAreaHex, blended);
 
         Assert.True(_edit.AddTemplateClip(TemplateKind.Boulder, MediaTime.FromSeconds(200)).Success);
         Assert.True(_edit.AddTemplateClip(TemplateKind.Rec, MediaTime.FromSeconds(220)).Success);
