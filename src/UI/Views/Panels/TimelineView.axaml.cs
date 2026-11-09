@@ -573,8 +573,9 @@ public partial class TimelineView : UserControl
         }
         e.DragEffects = DragDropEffects.Copy;
         var track = TrackAt(e.GetPosition(TrackRows).Y);
-        if (e.Data.Get(DragFormats.MediaAssetId) is string text && Guid.TryParse(text, out var assetId))
-            _viewModel.ShowDropPreview(assetId, track, e.GetPosition(ContentRoot).X);   // D037 §2: the snap indicator
+        // D037 §2: the snap indicator; the owner's acceptance of 2026-11-10: the ghost of the dropped file(s).
+        if (DraggedIds(e) is { Count: > 0 } ids)
+            _viewModel.ShowDropPreview(ids, track, e.GetPosition(ContentRoot).X);
         else
             _viewModel.ShowDropTarget(track);
     }
@@ -582,9 +583,19 @@ public partial class TimelineView : UserControl
     private void OnDrop(object? sender, DragEventArgs e)
     {
         if (_viewModel is null) return;
-        if (e.Data.Get(DragFormats.MediaAssetId) is string text && Guid.TryParse(text, out var assetId))
-            _viewModel.DropMedia(assetId, TrackAt(e.GetPosition(TrackRows).Y), e.GetPosition(ContentRoot).X);
+        var ids = DraggedIds(e);
+        if (ids.Count > 1)
+            _viewModel.DropMediaMany(ids, TrackAt(e.GetPosition(TrackRows).Y), e.GetPosition(ContentRoot).X);
+        else if (ids.Count == 1)
+            _viewModel.DropMedia(ids[0], TrackAt(e.GetPosition(TrackRows).Y), e.GetPosition(ContentRoot).X);
         else
             _viewModel.ClearDropTargets();
+    }
+
+    /// <summary>The dragged files: the group (several selected), else the one.</summary>
+    private static IReadOnlyList<Guid> DraggedIds(DragEventArgs e)
+    {
+        if (e.Data.Get(DragFormats.MediaAssetIds) is string many && DragFormats.ParseIds(many) is { Count: > 0 } ids) return ids;
+        return e.Data.Get(DragFormats.MediaAssetId) is string text && Guid.TryParse(text, out var id) ? new[] { id } : Array.Empty<Guid>();
     }
 }

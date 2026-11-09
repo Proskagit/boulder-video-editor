@@ -8,8 +8,8 @@ namespace AiVideoEditor.Core.Interfaces;
 /// </summary>
 public sealed record UserSettings
 {
-    /// <summary>The heart rate's display offset by default: −60 s (D057 §3.8).</summary>
-    public static readonly MediaTime DefaultHeartRateDisplayOffset = MediaTime.FromSeconds(-60);
+    /// <summary>The heart rate's display offset by default: −70 s (D057 §3.8; −60 s until the owner's acceptance of 2026-11-10).</summary>
+    public static readonly MediaTime DefaultHeartRateDisplayOffset = MediaTime.FromSeconds(-70);
 
     /// <summary>The largest offset either way the settings accept.</summary>
     public static readonly MediaTime MaxHeartRateDisplayOffset = MediaTime.FromSeconds(600);

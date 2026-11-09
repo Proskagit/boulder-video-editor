@@ -23,9 +23,10 @@ public sealed class InspectorSection : Expander
     public static readonly StyledProperty<object?> SummaryProperty =
         AvaloniaProperty.Register<InspectorSection, object?>(nameof(Summary));
 
-    /// <summary>Whether the section starts collapsed while the user has not chosen (the FIT's service section).</summary>
+    /// <summary>Whether the section starts collapsed while the user has not chosen — every section by default (the owner's
+    /// acceptance of 2026-11-10; the user's choice of each section is kept as before).</summary>
     public static readonly StyledProperty<bool> CollapsedByDefaultProperty =
-        AvaloniaProperty.Register<InspectorSection, bool>(nameof(CollapsedByDefault));
+        AvaloniaProperty.Register<InspectorSection, bool>(nameof(CollapsedByDefault), true);
 
     private readonly TextBlock _title = new() { FontSize = 11, FontWeight = FontWeight.SemiBold, Foreground = new SolidColorBrush(Color.Parse("#C8C8C8")) };
     private readonly TextBlock _summary = new()
@@ -39,13 +40,14 @@ public sealed class InspectorSection : Expander
     {
         HorizontalAlignment = HorizontalAlignment.Stretch;
         HorizontalContentAlignment = HorizontalAlignment.Stretch;
-        Padding = new Thickness(10, 6, 10, 8);
+        Padding = new Thickness(10, 4, 8, 6);
+        MinHeight = 0;
         var header = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(_title, Dock.Left);
         header.Children.Add(_title);
         header.Children.Add(_summary);
         Header = header;
-        IsExpanded = true;
+        IsExpanded = false;
     }
 
     protected override Type StyleKeyOverride => typeof(Expander);

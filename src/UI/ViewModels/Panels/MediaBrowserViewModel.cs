@@ -168,6 +168,13 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
             AddToTimelineRequested?.Invoke(this, selected[0]);
     }
 
+    /// <summary>The owner's acceptance of 2026-11-10: what a drag started on <paramref name="item"/> carries — the selected
+    /// files in the list's order when it is one of them (several selected), else the item alone.</summary>
+    public IReadOnlyList<MediaAsset> DraggedGroup(MediaBrowserItemViewModel item) =>
+        SelectedItems.Count > 1 && SelectedItems.Contains(item)
+            ? Items.Where(SelectedItems.Contains).Select(i => i.Asset).ToList()
+            : new[] { item.Asset };
+
     private bool CanAddToTimeline() => CanEdit() && (SelectedItem is not null || SelectedItems.Count > 0);
 
     /// <summary>Whether Ctrl+A in the list is the Media Browser's now — not in the hold markup mode, where it accepts every

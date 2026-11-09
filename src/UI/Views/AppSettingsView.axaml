@@ -32,7 +32,7 @@
     <ScrollViewer x:Name="SettingsScroll">
       <StackPanel Margin="16" Spacing="14">
 
-        <StackPanel x:Name="GeneralSection" Spacing="8">
+        <StackPanel x:Name="GeneralSection" Spacing="8" IsVisible="{Binding ShowsGeneral}">
           <TextBlock Classes="heading" Text="{x:Static l:Strings.AppSettings_General}"/>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_Language}"/>
@@ -41,7 +41,7 @@
           <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_RestartNote}"/>
         </StackPanel>
 
-        <StackPanel x:Name="FfmpegSection" Spacing="8">
+        <StackPanel x:Name="FfmpegSection" Spacing="8" IsVisible="{Binding ShowsFfmpeg}">
           <TextBlock Classes="heading" Text="{x:Static l:Strings.AppSettings_Ffmpeg}"/>
           <TextBlock Classes="note" Text="{Binding FfmpegFound, StringFormat={x:Static l:Strings.AppSettings_FfmpegNow}}"/>
           <TextBlock Classes="note" Text="{Binding FfprobeFound, StringFormat={x:Static l:Strings.AppSettings_FfprobeNow}}"/>
@@ -56,13 +56,13 @@
           <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_FfmpegNote}"/>
         </StackPanel>
 
-        <StackPanel x:Name="TimelineSection" Spacing="8">
+        <StackPanel x:Name="TimelineSection" Spacing="8" IsVisible="{Binding ShowsTimelineAndMarkup}">
           <TextBlock Classes="heading" Text="{x:Static l:Strings.AppSettings_TimelineAndMarkup}"/>
           <CheckBox x:Name="ProposalsBox" Content="{x:Static l:Strings.Holds_ProposeAutomatically}" IsChecked="{Binding HoldProposalsEnabled, Mode=TwoWay}"/>
           <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_ProposalsNote}"/>
         </StackPanel>
 
-        <StackPanel x:Name="CorosFitSection" Spacing="8">
+        <StackPanel x:Name="CorosFitSection" Spacing="8" IsVisible="{Binding ShowsCorosFit}">
           <TextBlock Classes="heading" Text="{x:Static l:Strings.AppSettings_CorosFit}"/>
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_HeartRateOffset}"/>

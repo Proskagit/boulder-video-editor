@@ -95,4 +95,31 @@ public sealed class MediaBrowserMultiAddTests
         _browser.CanSelectAllNow = () => false;
         Assert.False(_browser.AllowsSelectAll);
     }
+
+    [Fact]
+    public void Dragging_a_file_of_the_group_drags_the_group_and_the_drop_adds_them_in_recording_order_in_one_undo_step()
+    {
+        var late = Video("late.mp4", W0.AddMinutes(30));
+        var early = Video("early.mp4", W0.AddMinutes(5));
+        var alone = Video("alone.mp4", W0.AddMinutes(60));
+        _browser.SelectedItems.Add(_browser.Items.First(i => i.Asset.Id == late.Id));
+        _browser.SelectedItems.Add(_browser.Items.First(i => i.Asset.Id == early.Id));
+
+        var group = _browser.DraggedGroup(_browser.Items.First(i => i.Asset.Id == early.Id));
+        Assert.Equal(new[] { late.Id, early.Id }, group.Select(a => a.Id));                  // the list's order
+        Assert.Equal(new[] { alone.Id }, _browser.DraggedGroup(_browser.Items.First(i => i.Asset.Id == alone.Id)).Select(a => a.Id));
+
+        var lane = _timeline.Tracks.First(t => t.Track.Type == Core.Entities.TrackType.Video);
+        _timeline.ShowDropPreview(group.Select(a => a.Id).ToList(), lane, 0);
+        Assert.True(lane.HasDropGhost);                                                     // the ghost of both files
+        Assert.False(lane.DropGhostMovesOthers);
+        Assert.True(lane.DropGhostWidth > 0);
+
+        _timeline.DropMediaMany(group.Select(a => a.Id).ToList(), lane, 0);
+        Assert.False(lane.HasDropGhost);
+        var clips = _projects.Current.Timeline.VideoTracks[0].Clips.OfType<VideoClip>().OrderBy(c => c.TimelineStart).ToList();
+        Assert.Equal(new[] { early.Id, late.Id }, clips.Select(c => c.MediaAssetId));       // by recording time
+        _undo.Undo();
+        Assert.Empty(_projects.Current.Timeline.VideoTracks[0].Clips);
+    }
 }

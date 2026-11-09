@@ -1961,6 +1961,24 @@ If you don't save, your changes will be lost.</value>
   <data name="Frame_Fill" xml:space="preserve">
     <value>Fill Frame</value>
   </data>
+  <data name="Inspector_TimingHeading" xml:space="preserve">
+    <value>APPEARANCE, DISAPPEARANCE AND SPEED</value>
+  </data>
+  <data name="Inspector_FrameHeading" xml:space="preserve">
+    <value>TRANSFORM AND CROP</value>
+  </data>
+  <data name="AppSettings_NavGeneral" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="AppSettings_NavFfmpeg" xml:space="preserve">
+    <value>FFmpeg</value>
+  </data>
+  <data name="AppSettings_NavTimelineAndMarkup" xml:space="preserve">
+    <value>Timeline and markup</value>
+  </data>
+  <data name="AppSettings_NavCorosFit" xml:space="preserve">
+    <value>COROS / FIT</value>
+  </data>
   <data name="YouTube_Title" xml:space="preserve">
     <value>YouTube timestamps</value>
   </data>
@@ -2043,10 +2061,10 @@ If you don't save, your changes will be lost.</value>
     <value>s</value>
   </data>
   <data name="AppSettings_ResetDefault" xml:space="preserve">
-    <value>Default (−60 s)</value>
+    <value>Default (−70 s)</value>
   </data>
   <data name="AppSettings_HeartRateOffsetNote" xml:space="preserve">
-    <value>Display only: a negative value shows the heart rate earlier (−60 s: the value of a minute later on the watch). The FIT samples, the synchronisation, the recording start Z, the clock correction, the calibration and the route areas are not changed.</value>
+    <value>Display only: a negative value shows the heart rate earlier (−70 s: the value of 70 s later on the watch). The FIT samples, the synchronisation, the recording start Z, the clock correction, the calibration and the route areas are not changed.</value>
   </data>
   <data name="Toolbar_AppSettings" xml:space="preserve">
     <value>Settings…</value>

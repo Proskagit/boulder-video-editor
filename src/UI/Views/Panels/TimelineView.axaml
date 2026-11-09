@@ -57,6 +57,14 @@
       <Setter Property="BorderThickness" Value="1.5"/>
     </Style>
 
+    <Style Selector="Border.dropGhost">
+      <Setter Property="Background" Value="#3381D4FA"/>
+      <Setter Property="BorderBrush" Value="#B381D4FA"/>
+    </Style>
+    <Style Selector="Border.dropGhost.movesOthers">
+      <Setter Property="Background" Value="#33FFB300"/>
+      <Setter Property="BorderBrush" Value="#CCFFB300"/>
+    </Style>
     <Style Selector="Border.clip">
       <Setter Property="BorderBrush" Value="#000000"/>
       <Setter Property="BorderThickness" Value="1"/>
@@ -516,6 +524,12 @@
                          code-behind). Its mark — the type's glyph at the zone's centre, 14 × 14 px — is: it selects the
                          transition even where a short zone is all trim handles (the Phase 28 manual run, D4); above and
                          below the mark the handles trim as before. -->
+                    <!-- The owner's acceptance of 2026-11-10: the ghost of a drag from the Media Browser — the dropped files' span;
+                         amber when the drop would move other clips. Information only, never hit-tested. -->
+                    <Canvas IsHitTestVisible="False" IsVisible="{Binding HasDropGhost}">
+                      <Border Canvas.Left="{Binding DropGhostLeft}" Width="{Binding DropGhostWidth}" Height="36" Margin="0,4,0,0"
+                              CornerRadius="3" BorderThickness="1" Classes="dropGhost" Classes.movesOthers="{Binding DropGhostMovesOthers}"/>
+                    </Canvas>
                     <ItemsControl Classes="canvasItems" ItemsSource="{Binding Transitions}">
                       <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>

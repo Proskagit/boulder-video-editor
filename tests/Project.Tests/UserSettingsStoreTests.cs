@@ -29,7 +29,7 @@ public sealed class UserSettingsStoreTests : IDisposable
     public void Without_a_file_the_defaults_are_used_and_nothing_is_written()
     {
         var settings = Settings();
-        Assert.Equal(MediaTime.FromSeconds(-60), settings.Current.HeartRateDisplayOffset);
+        Assert.Equal(MediaTime.FromSeconds(-70), settings.Current.HeartRateDisplayOffset);
         Assert.False(settings.Current.HoldProposalsEnabled);
         Assert.Null(settings.Current.Language);
         Assert.False(Directory.Exists(_folder));

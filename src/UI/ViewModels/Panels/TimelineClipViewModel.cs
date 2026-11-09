@@ -199,6 +199,14 @@ public sealed partial class TimelineTrackViewModel : ViewModelBase
     [ObservableProperty] private bool _isHidden;
     [ObservableProperty] private bool _isLocked;
 
+    /// <summary>The owner's acceptance of 2026-11-10: the ghost of a drag from the Media Browser over this track — where the
+    /// dropped files would lie (their width at the timeline's scale), marked when the drop would move other clips.
+    /// Information only: it never refuses or changes the drop.</summary>
+    [ObservableProperty] private bool _hasDropGhost;
+    [ObservableProperty] private double _dropGhostLeft;
+    [ObservableProperty] private double _dropGhostWidth;
+    [ObservableProperty] private bool _dropGhostMovesOthers;
+
     public void SyncState()
     {
         IsMuted = Track.IsMuted;

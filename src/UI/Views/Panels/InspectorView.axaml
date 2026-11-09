@@ -5,6 +5,14 @@
              xmlns:controls="using:AiVideoEditor.UI.Controls"
              x:Class="AiVideoEditor.UI.Views.Panels.InspectorView">
 
+  <!-- The owner's acceptance of 2026-11-10: compact sections — a low header (Fluent's Expander is 48 px high) and little
+       padding, so a collapsed Inspector takes little room. -->
+  <UserControl.Resources>
+    <x:Double x:Key="ExpanderMinHeight">28</x:Double>
+    <Thickness x:Key="ExpanderHeaderPadding">10,0,8,0</Thickness>
+    <Thickness x:Key="ExpanderContentPadding">10,4,8,6</Thickness>
+  </UserControl.Resources>
+
   <UserControl.Styles>
     <!-- Every numeric field: sign, digits and the decimal separator only (NumericInput). -->
     <Style Selector="NumericUpDown">
@@ -71,7 +79,7 @@
       </Border>
 
       <ScrollViewer x:Name="InspectorScroll">
-        <StackPanel Margin="10" Spacing="10">
+        <StackPanel Margin="6" Spacing="3">
 
           <!-- Nothing selected -->
           <TextBlock IsVisible="{Binding IsNothingSelected}"
@@ -491,7 +499,15 @@
 
             <!-- Transform and opacity (Phase 7): video, image and text clips. Every change is one edit;
                  consecutive changes of one field merge into one undo step. -->
-            <controls:InspectorSection SectionId="transform" Title="{x:Static l:Strings.Inspector_TransformHeading}" IsVisible="{Binding HasVisualProperties}">
+
+            <!-- Crop (Phase 7): pictures only, fractions of the source per edge. -->
+            <controls:InspectorSection SectionId="frame" Title="{x:Static l:Strings.Inspector_FrameHeading}">
+              <controls:InspectorSection.IsVisible>
+                <Binding Path="HasVisualProperties"/>
+              </controls:InspectorSection.IsVisible>
+              <StackPanel Spacing="10">
+              <StackPanel Spacing="6" IsVisible="{Binding HasVisualProperties}">
+                <TextBlock Text="{x:Static l:Strings.Inspector_TransformHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <StackPanel Spacing="6">
                 <StackPanel Spacing="6">
                   <!-- Phase 27 (D043 §3, Q4): the 3 × 3 grid places a text's box at the safe margin, one undo step a cell; the X /
@@ -559,10 +575,9 @@
                           ToolTip.Tip="{x:Static l:Strings.Inspector_Opacity}"/>
                 </StackPanel>
               </StackPanel>
-            </controls:InspectorSection>
-
-            <!-- Crop (Phase 7): pictures only, fractions of the source per edge. -->
-            <controls:InspectorSection SectionId="crop" Title="{x:Static l:Strings.Inspector_CropHeading}" IsVisible="{Binding HasCrop}">
+              </StackPanel>
+              <StackPanel Spacing="6" IsVisible="{Binding HasCrop}">
+                <TextBlock Text="{x:Static l:Strings.Inspector_CropHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <StackPanel Spacing="6">
                 <StackPanel Spacing="6">
                   <StackPanel Orientation="Horizontal" Spacing="8">
@@ -590,6 +605,8 @@
                     <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
                 </StackPanel>
+              </StackPanel>
+              </StackPanel>
               </StackPanel>
             </controls:InspectorSection>
 
@@ -799,7 +816,19 @@
 
             <!-- Fades (Phase 10, D025): every clip kind, in whole frames of the project rate; the time is shown next to
                  each. On an edge with a dissolve the fade is kept but not applied (PO-8). -->
-            <controls:InspectorSection SectionId="fades" Title="{x:Static l:Strings.Inspector_FadesHeading}" IsVisible="{Binding ShowsFades}">
+
+            <!-- Speed (Phase 7 Step 9, D022): video and audio clips; 0.25×–4× in steps of 0.05×. The start and
+                 the source range stay, the duration follows. Consecutive changes merge into one undo step. -->
+            <controls:InspectorSection SectionId="timing" Title="{x:Static l:Strings.Inspector_TimingHeading}" Summary="{Binding SpeedValue, StringFormat={}{0:0.##}×}">
+              <controls:InspectorSection.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                  <Binding Path="ShowsFades"/>
+                  <Binding Path="HasSpeed"/>
+                </MultiBinding>
+              </controls:InspectorSection.IsVisible>
+              <StackPanel Spacing="10">
+              <StackPanel Spacing="6" IsVisible="{Binding ShowsFades}">
+                <TextBlock Text="{x:Static l:Strings.Inspector_FadesHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <StackPanel Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{x:Static l:Strings.Inspector_FadeIn}" Classes="label"/>
@@ -828,11 +857,9 @@
                 <TextBlock IsVisible="{Binding IsFadeOutInactive}" Text="{x:Static l:Strings.Inspector_FadeInactive}"
                            Foreground="#C8A060" FontSize="10" Margin="124,0,0,0" TextWrapping="Wrap"/>
               </StackPanel>
-            </controls:InspectorSection>
-
-            <!-- Speed (Phase 7 Step 9, D022): video and audio clips; 0.25×–4× in steps of 0.05×. The start and
-                 the source range stay, the duration follows. Consecutive changes merge into one undo step. -->
-            <controls:InspectorSection SectionId="speed" Title="{x:Static l:Strings.Inspector_SpeedHeading}" Summary="{Binding SpeedValue, StringFormat={}{0:0.##}×}" IsVisible="{Binding HasSpeed}">
+              </StackPanel>
+              <StackPanel Spacing="6" IsVisible="{Binding HasSpeed}">
+                <TextBlock Text="{x:Static l:Strings.Inspector_SpeedHeading}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <StackPanel Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{x:Static l:Strings.Inspector_Speed}" Classes="label"/>
@@ -840,6 +867,8 @@
                                  Minimum="{Binding MinSpeed}" Maximum="{Binding MaxSpeed}" FormatString="0.00" Width="104"/>
                   <TextBlock Text="×" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
+              </StackPanel>
+              </StackPanel>
               </StackPanel>
             </controls:InspectorSection>
 

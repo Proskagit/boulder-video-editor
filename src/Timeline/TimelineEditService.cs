@@ -95,26 +95,71 @@ public sealed partial class TimelineEditService : ITimelineEditService
     /// (the caller orders them by their recording time), one plan, one Undo step; any file that cannot be added refuses the
     /// whole operation (nothing is added). The first video fixes the frame rate as a single add does (D007).
     /// </summary>
-    public TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds)
+    public TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds) => AddClips(mediaAssetIds, null, null, false);
+
+    /// <summary>
+    /// D057 §3.2 with a drop (the owner's acceptance of 2026-11-10): the files of <paramref name="trackId"/>'s kind go one
+    /// after another from <paramref name="start"/> (the first by the drop's rule of D057 §3.12 with
+    /// <paramref name="insertOnDrop"/>, D037 §3 pushing what is in the way); the files of the other kind at the end of their
+    /// kind's first track. One plan, one Undo step, all or nothing. Without a track and a start: <see cref="AddClips(IReadOnlyList{Guid})"/>.
+    /// </summary>
+    public TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds, Guid? trackId, MediaTime? start, bool insertOnDrop)
     {
         ArgumentNullException.ThrowIfNull(mediaAssetIds);
         if (mediaAssetIds.Count == 0) return TimelineEditResult.Fail(Messages.Edit_MediaNotInProject);
-        if (mediaAssetIds.Count == 1) return AddClip(mediaAssetIds[0]);
+        if (mediaAssetIds.Count == 1) return AddClip(mediaAssetIds[0], trackId, start, insertOnDrop);
+        var (plan, ids, note, error) = PlanAddMany(mediaAssetIds, trackId, start, insertOnDrop);
+        if (error is not null) return TimelineEditResult.Fail(error);
 
+        Commit(plan!, "Add Clips");
+        if (note is not null) _logger.LogInformation("{Message}", note);
+        return TimelineEditResult.Ok(ids, Join(note, TransitionNote(plan!)));
+    }
+
+    /// <summary>The owner's acceptance of 2026-11-10: a dry run of a drop of <paramref name="mediaAssetIds"/> for the drag's
+    /// ghost — where the files of the track's kind would lie and whether the drop would move other clips; null when it would
+    /// be refused. Information only: it never refuses or changes the drop.</summary>
+    public DropPreview? PreviewAddClips(IReadOnlyList<Guid> mediaAssetIds, Guid trackId, MediaTime start, bool insertOnDrop)
+    {
+        if (mediaAssetIds.Count == 0) return null;
+        var (plan, ids, _, error) = PlanAddMany(mediaAssetIds, trackId, start, insertOnDrop);
+        if (error is not null || plan is null) return null;
+        var added = ids.ToHashSet();
+        var track = FindTrack(trackId);
+        var placed = plan.EffectiveClips(track!).Where(c => added.Contains(c.Clip.Id)).Select(c => c.State).ToList();
+        if (placed.Count == 0) return null;
+        var moves = plan.Updates.Any(u => !added.Contains(u.Clip.Id));
+        return new DropPreview(placed.Min(s => s.Start), placed.Max(s => s.End), moves);
+    }
+
+    private (EditPlan? Plan, List<Guid> Ids, string? Note, string? Error) PlanAddMany(IReadOnlyList<Guid> mediaAssetIds, Guid? trackId,
+        MediaTime? start, bool insertOnDrop)
+    {
         var plan = new EditPlan(Sequence, Settings);
         var ids = new List<Guid>();
         string? note = null;
+        var track = trackId is { } tid ? FindTrack(tid) : null;
+        if (trackId is not null && track is null) return (null, ids, null, Messages.Edit_TrackGone);
+        MediaTime? next = start;
+        var first = true;
         foreach (var id in mediaAssetIds)
         {
-            if (PlanAdd(plan, id, null, null, out var clip, out var info) is { } failed) return TimelineEditResult.Fail(failed);
+            var onTrack = track is not null && FindAsset(id) is { } asset &&
+                          (asset.Kind == MediaKind.Audio ? TrackType.Audio : TrackType.Video) == track.Type;
+            var failed = onTrack
+                ? PlanAdd(plan, id, track!.Id, next, out var clip, out var info, insertOnDrop && first)
+                : PlanAdd(plan, id, null, null, out clip, out info);
+            if (failed is not null) return (null, ids, null, failed);
             ids.Add(clip!.Id);
             note ??= info;
+            if (onTrack)
+            {
+                first = false;
+                next = clip.TimelineEnd;
+            }
         }
-        if (Validate(plan) is { } error) return TimelineEditResult.Fail(error);
-
-        Commit(plan, "Add Clips");
-        if (note is not null) _logger.LogInformation("{Message}", note);
-        return TimelineEditResult.Ok(ids, Join(note, TransitionNote(plan)));
+        if (Validate(plan) is { } error) return (null, ids, null, error);
+        return (plan, ids, note, null);
     }
 
     /// <summary>Plans the add of one file on <paramref name="plan"/> (D007, D037 §3): null when planned, else why not.</summary>

@@ -11,7 +11,7 @@ namespace AiVideoEditor.UI.Tests;
 
 /// <summary>
 /// D057 §3.8: the application's settings window — General, FFmpeg, Timeline and markup, COROS / FIT; every change written
-/// to the user's settings; the heart rate's display offset −60 s by default, whole seconds, reset to the default; the FIT's
+/// to the user's settings; the heart rate's display offset −70 s by default, whole seconds, reset to the default; the FIT's
 /// calibration in its section and the COROS menu opening it; project settings never here.
 /// </summary>
 [Collection(AvaloniaControlsCollection.Name)]
@@ -54,7 +54,7 @@ public sealed class SettingsWindowTests
     {
         var settings = new InMemoryUserSettings();
         var vm = new AppSettingsViewModel(settings, null);
-        Assert.Equal(-60m, vm.HeartRateOffsetSeconds);
+        Assert.Equal(-70m, vm.HeartRateOffsetSeconds);
 
         vm.HeartRateOffsetSeconds = -45.4m;
         Assert.Equal(MediaTime.FromSeconds(-45), settings.Current.HeartRateDisplayOffset);    // whole seconds

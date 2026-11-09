@@ -1965,6 +1965,24 @@
   <data name="Frame_Fill" xml:space="preserve">
     <value>Заполнить кадр</value>
   </data>
+  <data name="Inspector_TimingHeading" xml:space="preserve">
+    <value>ПОЯВЛЕНИЕ, ИСЧЕЗАНИЕ И СКОРОСТЬ</value>
+  </data>
+  <data name="Inspector_FrameHeading" xml:space="preserve">
+    <value>ТРАНСФОРМАЦИЯ И КАДРИРОВАНИЕ</value>
+  </data>
+  <data name="AppSettings_NavGeneral" xml:space="preserve">
+    <value>Общие</value>
+  </data>
+  <data name="AppSettings_NavFfmpeg" xml:space="preserve">
+    <value>Программа FFmpeg</value>
+  </data>
+  <data name="AppSettings_NavTimelineAndMarkup" xml:space="preserve">
+    <value>Таймлайн и разметка</value>
+  </data>
+  <data name="AppSettings_NavCorosFit" xml:space="preserve">
+    <value>Тренировки COROS / FIT</value>
+  </data>
   <data name="YouTube_Title" xml:space="preserve">
     <value>Таймкоды для YouTube</value>
   </data>
@@ -2047,10 +2065,10 @@
     <value>с</value>
   </data>
   <data name="AppSettings_ResetDefault" xml:space="preserve">
-    <value>По умолчанию (−60 с)</value>
+    <value>По умолчанию (−70 с)</value>
   </data>
   <data name="AppSettings_HeartRateOffsetNote" xml:space="preserve">
-    <value>Только отображение: отрицательное значение показывает пульс раньше (−60 с — значение на минуту позже по часам). Отсчёты FIT, синхронизация, начало записи Z, поправка часов, калибровка и области трасс не меняются.</value>
+    <value>Только отображение: отрицательное значение показывает пульс раньше (−70 с — значение на 70 с позже по часам). Отсчёты FIT, синхронизация, начало записи Z, поправка часов, калибровка и области трасс не меняются.</value>
   </data>
   <data name="Toolbar_AppSettings" xml:space="preserve">
     <value>Настройки…</value>

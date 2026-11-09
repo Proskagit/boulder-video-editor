@@ -35,6 +35,15 @@ public interface ITimelineEditService
     /// nothing is added when one of them cannot be.</summary>
     TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds);
 
+    /// <summary>The owner's acceptance of 2026-11-10: several files dropped on <paramref name="trackId"/> at
+    /// <paramref name="start"/> — those of the track's kind one after another from there, the others at the end of their
+    /// kind's track; one Undo step.</summary>
+    TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds, Guid? trackId, MediaTime? start, bool insertOnDrop);
+
+    /// <summary>A dry run of that drop for the drag's ghost: the span of the files on the track and whether other clips would
+    /// move; null when the drop would be refused. Information only.</summary>
+    DropPreview? PreviewAddClips(IReadOnlyList<Guid> mediaAssetIds, Guid trackId, MediaTime start, bool insertOnDrop);
+
     /// <summary>How long a clip <see cref="AddClip"/> would make for the asset is (on the grid the add would use — the
     /// asset's own rate when it is the first video, D007); null when it can't be added now. For a drop's snap (D037 §2).</summary>
     MediaTime? AddedClipDuration(Guid mediaAssetId);
@@ -600,3 +609,7 @@ public readonly record struct SnapResult(bool Snapped, MediaTime Offset, MediaTi
 {
     public static SnapResult None => new(false, MediaTime.Zero, MediaTime.Zero);
 }
+
+/// <summary>A planned drop from the Media Browser (<see cref="ITimelineEditService.PreviewAddClips"/>): the span the dropped
+/// files take on the track and whether the drop moves other clips (D037 §3).</summary>
+public sealed record DropPreview(MediaTime Start, MediaTime End, bool MovesOthers);
