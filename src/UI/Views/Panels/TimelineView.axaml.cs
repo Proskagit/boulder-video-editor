@@ -152,14 +152,6 @@ public partial class TimelineView : UserControl
         if (!e.GetCurrentPoint(TrackRows).Properties.IsLeftButtonPressed) return;
         Focus();
 
-        // D051 §8.2: a FIT mark — a click selects it.
-        if (FitMarkOf(e.Source) is { } fitMark)
-        {
-            e.Handled = true;
-            _viewModel.OnFitMarkClicked(fitMark.Climb);
-            return;
-        }
-
         // D048 §4.2: the overlay strip's lane above a video clip — its handles drag, a click selects the orange (§3.9).
         if (StripOf(e.Source) is { } strip)
         {
@@ -475,17 +467,6 @@ public partial class TimelineView : UserControl
         for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
         {
             if (visual is Control { Tag: "PlateOverflow", DataContext: TimelineClipViewModel plate } panel) return (plate, panel);
-            if (visual is ItemsControl { Name: "TrackRows" }) break;
-        }
-        return null;
-    }
-
-    /// <summary>The FIT mark <paramref name="source"/> is (or lies in), else null.</summary>
-    private static FitMarkGlyph? FitMarkOf(object? source)
-    {
-        for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
-        {
-            if (visual is Control { Tag: "FitMark", DataContext: FitMarkGlyph glyph }) return glyph;
             if (visual is ItemsControl { Name: "TrackRows" }) break;
         }
         return null;

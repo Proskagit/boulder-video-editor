@@ -8843,7 +8843,8 @@ mark and other end events are not mixed. No markers are added for the calibratio
 
 ### 8. Interface
 8.1 The marks: an editor-only layer on the clips (like the D048 strip); never in Preview or export. The calibration never
-affects Preview or export. A `clamped` mark is shown as such.
+affects Preview or export. A `clamped` mark is shown as such. *(Amended by D056, 2026-11-09: the marks are no longer
+drawn on the clips — the clip shows the route areas' start `T`; the marks stay in the Inspector.)*
 8.2 Actions: move a mark; «Разметить трассу от метки» (the D048 route selection with `T` at the mark, the animation linked
 to the climb); «Связать с FIT-подъёмом» and «Снять FIT-связь» on a hold animation of any video (§5.4); hide a mark /
 decline a climb (removes its link, §5.7; the Delete key on a mark is the same action); the list «Отклонённые подъёмы» with
@@ -9399,6 +9400,15 @@ light line (1 px, no hit-testing, so the area's edges and strip handles stay as 
 free «Боулдер» is drawn in the route green `#43A047`; the other templates keep `#783A5C`. What still tells a free one from a
 route's area: no strip (no orange or lilac, no strip handles), no `T` mark, and the Inspector's free template fields
 (no heart rate, no training); its type, anchor and semantics are unchanged.
+
+**Amended after the manual check (the owner, 2026-11-09).** §4's mark is the blue mark on the **video clip** (the look the
+FIT marks of D051 had: a 3 px bar with a cap), one per route area anchored to the clip, at its `T` — for an area laid out
+by hand and for one made from the FIT alike; it comes with the area and goes with it (a deleted area takes its mark, Undo
+brings it back). The dashed line in the plate is gone. **The FIT marks of D051 are no longer drawn on the clips** (amends
+D051 §8.1; the owner's choice): their data, the calibration, Delete as «decline» and their actions stay in the Inspector's
+«FIT-метки» and the COROS menu; a click on the clip no longer selects a mark. §5's colour is the green a route area
+actually shows — `#43A047` at the strip's opacity 0.7 over the template's `#783A5C`, i.e. `#53814D` — so a free «Боулдер»
+and a route's area look the same.
 
 **Unchanged.** D055 (`w = T_file + s + CC`, `Z` never read for the heart rate); D054's binding time, the rule of a shown
 climb, «never twice» (a `Z` that lays out an area again never adds one for its climb); D053's several independent routes on

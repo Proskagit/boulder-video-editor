@@ -428,11 +428,6 @@
                                   </LinearGradientBrush>
                                 </Border.Background>
                               </Border>
-                              <!-- D056 §4: a route area's computed start T, a thin dashed line (not the orange, not the status). -->
-                              <Canvas Grid.ColumnSpan="3" IsVisible="{Binding HasRouteStartMark}" IsHitTestVisible="False" ClipToBounds="True">
-                                <Line Name="RouteStartMark" Canvas.Left="{Binding RouteStartMarkLeft}" StartPoint="0.5,0" EndPoint="0.5,36"
-                                      Stroke="#F5F5F5" StrokeThickness="1" StrokeDashArray="2,2" ToolTip.Tip="{Binding RouteStartMarkTip}"/>
-                              </Canvas>
                               <!-- D045 §17: «Боулдер»'s status moment, a line on the clip at the frame its status appears. -->
                               <Canvas Grid.ColumnSpan="3" IsVisible="{Binding HasStatusMark}" IsHitTestVisible="False" ClipToBounds="True">
                                 <Border Name="StatusMark" Canvas.Left="{Binding StatusMarkLeft}" Width="2" Height="44"
@@ -474,9 +469,9 @@
                               </DataTemplate>
                             </ItemsControl.ItemTemplate>
                           </ItemsControl>
-                          <!-- D051 §8.1: the FIT marks of the clip's video, a 3 px bar each with a cap at the bottom; a click
-                               selects one (Delete hides it). Editor only. -->
-                          <ItemsControl Classes="canvasItems" ItemsSource="{Binding FitMarks}" Width="{Binding Width}" Height="36"
+                          <!-- D056 §4: the start T of each route area anchored to this clip, a 3 px blue bar with a cap at
+                               the bottom (the look the FIT marks of D051 had); it comes and goes with its area. Editor only. -->
+                          <ItemsControl Classes="canvasItems" ItemsSource="{Binding RouteStartMarks}" Width="{Binding Width}" Height="36"
                                         VerticalAlignment="Top" HorizontalAlignment="Left" ClipToBounds="True">
                             <ItemsControl.ItemsPanel>
                               <ItemsPanelTemplate>
@@ -485,11 +480,10 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                               <DataTemplate>
-                                <Panel Tag="FitMark" Width="9" Height="36" Margin="-4,0,0,0" Background="#01000000" Cursor="Hand"
+                                <Panel Tag="RouteStartMark" Width="9" Height="36" Margin="-4,0,0,0" Background="#01000000"
                                        ToolTip.Tip="{Binding Tip}">
-                                  <Border Width="3" Background="{Binding ColorHex}" HorizontalAlignment="Center"/>
-                                  <Border Classes="fitCap" Classes.selected="{Binding IsSelected}" Width="9" Height="6"
-                                          Background="{Binding ColorHex}" VerticalAlignment="Bottom"/>
+                                  <Border Width="3" Background="#29B6F6" HorizontalAlignment="Center"/>
+                                  <Border Classes="fitCap" Width="9" Height="6" Background="#29B6F6" VerticalAlignment="Bottom"/>
                                 </Panel>
                               </DataTemplate>
                             </ItemsControl.ItemTemplate>

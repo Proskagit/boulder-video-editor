@@ -18,7 +18,10 @@ numbering" → "Official phases"; this file is the dated working log.
   are still the laid-out ones (`fitLayout`; a v16 area when at the rule's bounds); the «Зацепки» section offers «Трасса»
   near the FIT's routes (the nearest within 30 s by default, another or «Новая трасса»). **PR 3** (branch
   `feat/d056-timeline-t-mark`, stacked on PR 2, `project.json` v18): the route's start `T` stored on its green and drawn as
-  a thin dashed mark on the timeline (FIT areas without holds too); the free «Боулдер» drawn green. FU-HR.1 (a display shift of the heart rate) is a future experiment.
+  a thin dashed mark on the timeline (FIT areas without holds too); the free «Боулдер» drawn green. **After the manual
+  check (branch `fix/d056-t-mark-on-clip`):** `T` is a blue mark on the video clip that comes and goes with its area; the
+  D051 FIT marks are no longer drawn on the clips (the owner's choice); the free «Боулдер» has the area's actual green
+  `#53814D`. FU-HR.1 (a display shift of the heart rate) is a future experiment.
 - **Step 35.6a / D055 — the heart rate by the video file's time, independent of `Z` (2026-11-09, branch
   `feat/phase-35-6a-heart-rate-sync`; approved by the owner 2026-11-09):** the heart-rate overlay and every green route area
   read `w = T_file + s + CC` — the file's tag as the end, else its name (D054's rule; disagreeing by > 5 s: none); `Z` is

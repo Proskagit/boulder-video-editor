@@ -24,6 +24,17 @@ public sealed partial class TimelineViewModel
     public const string OrangeHex = "#FB8C00";
     public const string LilacHex = "#B39DDB";
 
+    /// <summary>The template rectangle's own colour (D045).</summary>
+    public const string TemplateHex = "#783A5C";
+
+    /// <summary>The opacity a strip segment is drawn with inside its «Боулдер» (<c>Border.templateSegment</c>).</summary>
+    public const double TemplateSegmentOpacity = 0.7;
+
+    /// <summary>D056 §5: the green a route's area shows on the timeline — <see cref="GreenHex"/> at
+    /// <see cref="TemplateSegmentOpacity"/> over <see cref="TemplateHex"/>; a free «Боулдер» is drawn in it, so the two
+    /// look the same.</summary>
+    public const string RouteAreaHex = "#53814D";
+
     /// <summary>D053 §5: the width of the green's edge drawn on top of an orange that starts with it.</summary>
     private const double GreenEdgePixels = 3;
 
