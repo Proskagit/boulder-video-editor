@@ -216,7 +216,10 @@ phase's record prevail.
       owner's decision; 35.4 implemented (`project.json` v11), its rows C1–C14 automated on 2026-11-04 — all PASS, C5's real
       re-export manual; **35.5 (the heart-rate overlay)
       implemented on `feat/phase-35-5-heart-rate` and accepted by the product owner on 2026-11-03** (О1–О15 PASS on
-      `593b6a2`; v13; merged with PR #35 as `5c5cb7f`); 35.6 not started.
+      `593b6a2`; v13; merged with PR #35 as `5c5cb7f`); **35.6 done and accepted** — 35.6a (D055, v16, PR #50) and
+      **35.6b accepted by the product owner on 2026-11-09** with D056 (PRs #51–#54, v17 / v18; R1–R9 and the checks after
+      PR #54 positive). **Open:** 35.4's acceptance (C5's real re-export manual) and 35.3 (35.3b2b deferred, 35.3e awaiting a
+      decision).
       Steps 35.0–35.4 merged into `main` with PR #33 (`1640996`, 2026-11-03) together with Phase 37.
       Record: `docs/PHASE_COROS.md`; section "Phase 35" below.
 - [ ] **Phase 36 — Session summary and YouTube chapters.** Planned; a specification draft outside `main` (local branch
@@ -262,8 +265,9 @@ The labels of the plan had mixed three things — phases, the steps inside them 
 - **Format versions**: the version sequence is decided before any phase's step that changes the format. D049 (approved
   2026-10-29) fixes rule V1: the phase that first merges a format change takes the next free version, the number fixed at
   merge. As merged: v10 — Phase 33 (D048, PR #32); **v11 — Phase 35** (Step 35.4) and **v12 — Phase 37** (D051), both with
-  PR #33; **v13 — Phase 35's Step 35.5** (the heart-rate overlay; on its branch, the number fixed at its merge). A later
-  phase (Phase 36, hold tracking) takes the next free version in its own format decision.
+  PR #33; **v13 — Phase 35's Step 35.5** (the heart-rate overlay, PR #35); **v14** — R2 → E's «Follow the camera» (D052,
+  PR #42); **v15** — D053 (PR #47); **v16** — D055 / Step 35.6a (PR #50); **v17 / v18** — D056 (PRs #52, #53). `main` is at
+  v18. A later phase (Phase 36, …) takes the next free version in its own format decision.
 
 ### Official phases on 2026-11-03
 
@@ -278,7 +282,7 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 32 — route selection at `T` (D048 stage 1) | D048 | implemented, paused / deferred («Авторазметка» hidden); not complete | PR #32, `1e58885` |
 | 33 — timing model, anchors, `project.json` v10 (D048 stage 2) | D048 | implemented and merged; D048 approved as implemented 2026-10-28; **acceptance evidence per D048 §5 completed 2026-11-08** (`docs/PHASE33_34_ACCEPTANCE_EVIDENCE.md`); not accepted — the owner's check on real footage and decision open | PR #32, `1e58885` |
 | 34 — the overlay strip (D048 stage 3) | D048 | implemented (variant B) and merged; D048 approved as implemented 2026-10-28; **acceptance evidence per D048 §5 completed 2026-11-08**; variant B's handle cursors and segment tooltips added on the owner's decision of 2026-11-08 (§6 there); not accepted — the owner's check on real footage open | PR #32, `1e58885` |
-| 35 — COROS trainings and the heart rate | D050, D049 | in part: 35.0–35.2 done (35.2 accepted); 35.3 in part (35.3d: B6 not met; 35.3e awaiting the owner's decision); 35.4 implemented (v11), C1–C14 automated 2026-11-04: PASS except C5's real re-export (manual); **35.5 implemented and accepted 2026-11-03 (v13; PR #35, `5c5cb7f`)**; 35.6 not started; not complete | 35.0–35.4 in PR #33 (`1640996`), with Phase 37 |
+| 35 — COROS trainings and the heart rate | D050, D049, D053–D056 | in part: 35.0–35.2 done (35.2 accepted); 35.3 in part (35.3d: B6 not met; 35.3e awaiting the owner's decision; 35.3b2b deferred); 35.4 implemented (v11), C1–C14 automated 2026-11-04: PASS except C5's real re-export (manual) — **not accepted yet**; **35.5 implemented and accepted 2026-11-03 (v13; PR #35, `5c5cb7f`)**; **35.6 accepted 2026-11-09** (35.6a D055 v16; 35.6b with D056 v17 / v18, the owner's manual checks positive); not complete | 35.0–35.4 in PR #33 (`1640996`), with Phase 37; 35.5 PR #35; D053 PR #47, D054 PR #48, 35.6a PR #50, D056 PRs #51–#54 (`1a087ae`) |
 | 36 — summary and chapters | to be approved | planned; specification draft outside `main`; its time-code export a separate item until clarified | — |
 | 37 — FIT route starts and the start calibration | D051 | implemented (37.1–37.6, v12) and merged; 37.7 done (D051 A1–A15 automated 2026-11-04, all PASS, A10 measured); **accepted by the product owner 2026-11-04** | PR #33, `1640996` |
 | H — Final UX Pass | — | not started | — |
@@ -288,6 +292,10 @@ and 37 accepted on 2026-11-04 — Phase 31 with D3 and C5 deferred; Phases 30 an
 product owner's direction of 2026-11-03 (D050, «The product owner's direction»): Step 35.5, the heart-rate overlay** —
 implemented and accepted on 2026-11-03, merged with PR #35 — then 35.6, Phase 35's closeout. Not in the near plan: Step 35.3e (needs a separate product decision) and Phase 36's export of
 time codes (a separate item until clarified). Open alongside, not new phases: the acceptance of Step 35.4, the S1 release preparation (Phase 30).
+**State on 2026-11-09:** Step 35.6 — the owner's first priority of 2026-11-08 — is done and accepted (35.6b and D056 on
+2026-11-09). Phase 35 stays not complete: Step 35.4's acceptance (C5) and Step 35.3's open sub-steps remain. **Next by the
+owner's priorities: Phase 30 / S1** (the release preparation, incl. the clean-environment validation); then H; R4 deferred
+until then. FU-HR.1 (the heart rate shifted by about −60 s for display) is a deferred experiment, not a task of Phase 35.
 **The product owner's priorities of 2026-11-08** (on `docs/ROADMAP_AUDIT_2026-11-08.md`): 1) Step 35.6 (its scope and
 acceptance criteria in a separate task first); 2) Phase 30 / S1 — the release milestone, incl. the clean-environment
 validation; 3) H after S1; 4) R4, the Motion Tracking Camera research, deferred until then. Human occlusion stays deferred;
@@ -319,15 +327,15 @@ import of Step 35.2 kept the training in the session only, and from Step 35.4 th
 reference, D049); the route's grade and the attempt's result are set by hand (not read from the FIT, not available through
 COROS MCP).
 
-| Step | Content | Format | State (2026-11-03) |
+| Step | Content | Format | State (2026-11-09) |
 |---|---|---|---|
 | 35.0 | D049, D050, the plan, the acceptance criteria, the manual test plan | — | done; in `main` (PR #33) |
 | 35.1 | FIT reader, COROS parser, workout model and timeline (formerly C0) | none | done; in `main` (PR #33) |
 | 35.2 | Import into the session: toolbar command, refusals, summary (formerly C1) | none | done, manual acceptance passed (A1–A11 PASS, 2026-10-29); in `main` (PR #33) |
 | 35.3 | Recording time: the raw `creation_time` tag and its probe marker; research on the real session — what the tag marks, the phone ↔ watch clock difference, the automatic-zero rule (formerly C2) | its members in v11 | **in part**: the probe, 35.3a, 35.3b1, 35.3b2a, 35.3b2c, 35.3b2d, the tool 35.3R1 and the frozen marking 35.3R2 done; 35.3b2b deferred; **35.3d run 2026-11-02 — B6 not met** (0 of 13 climbs within `τ`, drift −22.4 s; an experimental result, not a confirmation of the method — `docs/PHASE_COROS.md` §12); **35.3e not implemented — awaiting the product owner's decision**, not in the near plan |
-| 35.4 | Alignment by media file, including its persistence: the training saved in the project (a FIT reference), the clock correction and a per-file zero override, the mapping (formerly C3) | v11 | implemented (`e15d7af`); its acceptance rows C1–C14 automated on 2026-11-04 — all PASS, C5's real COROS re-export manual (`docs/PHASE_COROS.md` §14); in `main` (PR #33) |
+| 35.4 | Alignment by media file, including its persistence: the training saved in the project (a FIT reference), the clock correction and a per-file zero override, the mapping (formerly C3) | v11 | implemented (`e15d7af`); its acceptance rows C1–C14 automated on 2026-11-04 — all PASS, C5's real COROS re-export manual (`docs/PHASE_COROS.md` §14); in `main` (PR #33); **not accepted yet** (C5 and the owner's acceptance open) |
 | 35.5 | Heart-rate overlay, Preview = export; a confirmed export warning when its data is missing (formerly C4) | v13 | **implemented on the branch `feat/phase-35-5-heart-rate`; accepted by the product owner on 2026-11-03 (manual О1–О15 PASS on `593b6a2`, `docs/PHASE35_5_MANUAL_ACCEPTANCE.md`)**; merged with PR #35 (`5c5cb7f`, 2026-11-03); not combined with an export of time codes (`docs/PHASE_COROS.md` §13) |
-| 35.6 | 35.6a: D055 — the heart rate by the file's time, independent of `Z`, in every green route area; 35.6b: verification, the manual rows H1–H11 on the real session, closeout (formerly C5) | v16 | **35.6a implemented 2026-11-09** (branch `feat/phase-35-6a-heart-rate-sync`); 35.6b not started |
+| 35.6 | 35.6a: D055 — the heart rate by the file's time, independent of `Z`, in every green route area; 35.6b: verification, the manual rows H1–H11 on the real session, closeout (formerly C5) | v16 (D056: v17 / v18) | **done and accepted**: 35.6a implemented and merged (PR #50, `3ebab21`); **35.6b accepted by the product owner on 2026-11-09** — H1–H11 and D056's R1–R9 with the checks after PR #54, all positive (`docs/PHASE_COROS.md` §16) |
 
 Pull requests: the plan of D050 (PR 1 — Steps 35.0–35.2; PR 2 — Steps 35.3–35.6, the only one changing the format) was
 overtaken on 2026-11-03 — Steps 35.0–35.4 reached `main` with PR #33 together with Phase 37. Steps 35.5–35.6 come in a pull

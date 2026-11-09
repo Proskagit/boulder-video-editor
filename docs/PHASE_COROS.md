@@ -7,10 +7,14 @@ were approved by the product owner on 2026-10-29 (`DECISIONS.md`, Step 35.0). Th
 `main` and accepted by the product owner. Where this record says «session-only», D049 prevails from Step 35.4 on. Manual
 test plan: `docs/PHASE35_MANUAL_TEST_PLAN.md`.*
 
-**State (2026-11-03): in `main` in part; not complete.** Steps 35.0–35.2 done (35.2 accepted); 35.3 in part, its formal
-evaluation 35.3d run with the result «B6 not met» (§12), 35.3e awaiting the product owner's decision; 35.4 implemented; its acceptance rows C1–C14 checked automatically on 2026-11-04 — all PASS, only C5's real new export from the COROS app left to the owner (§14);
+**State (2026-11-09): in `main` in part; not complete.** Steps 35.0–35.2 done (35.2 accepted); 35.3 in part, its formal
+evaluation 35.3d run with the result «B6 not met» (§12), 35.3e awaiting the product owner's decision, 35.3b2b deferred;
+35.4 implemented; its acceptance rows C1–C14 checked automatically on 2026-11-04 — all PASS, only C5's real new export from
+the COROS app left to the owner (§14) — **35.4 not accepted yet**;
 **35.5 (the heart-rate overlay) implemented on the branch `feat/phase-35-5-heart-rate` and accepted by the product owner on 2026-11-03 (manual О1–О15 PASS on `593b6a2`, `docs/PHASE35_5_MANUAL_ACCEPTANCE.md`)**
-(§13; merged with PR #35 as `5c5cb7f`; `project.json` v13); 35.6 not started (§4). Phase 35's commits up to 35.4
+(§13; merged with PR #35 as `5c5cb7f`; `project.json` v13); **35.6 done and accepted**: 35.6a (D055, v16) merged with
+PR #50 (`3ebab21`), 35.6b accepted by the product owner on 2026-11-09 (H1–H11 with the checks of D056, §16); D053, D054
+and D056 (formats v15, v17, v18) merged on the way (PRs #47, #48, #51–#54). Phase 35's commits up to 35.4
 reached `main` with PR #33 (`1640996`, 2026-11-03) together with Phase 37 — not through the two pull requests of §5;
 `project.json` v11 is Phase 35's format, v13 its overlay's. Further work branches from `main`.
 
@@ -93,7 +97,7 @@ alignment (Step 35.3). Not established either: the clock difference between the 
 | 35.3 (C2) | Recording time: the probe and its marker (D049 §4), the raw tag with its origin (§2–§3); research on the real session — what the tag marks, whether it is a true C instant, the C ↔ W difference per climb (visible start vs split), the outliers; a proposed automatic-zero rule with its tolerance `τ` and device scope. Sub-steps 35.3a–e, the Debug research window and the study file: D050 amendment B5–B9, §10 below | (D050 B6) `|r_i| ≤ τ` (leave-one-out, `τ = 2 s` working value) for ≥ 11 of the 13 filmed climbs C2–C14, every one of the 13 explained, no drift beyond `τ / 2`, the 7 videos without a climb as the independent check of the tag; approved by the owner; until then every zero «override» or «unknown» (manual plan part B) | the probe **implemented** (`02ded40`); 35.3a, 35.3b1, 35.3b2a and the tool 35.3R1 **implemented** (R1–R12 PASS); 35.3b2c and 35.3b2d **implemented**; the reference marking 35.3R2 **done and frozen** by the owner; **35.3d run (2026-11-02): B6 not met** (§12); 35.3b2b deferred; 35.3c only as the marking mode of 35.3R1; **35.3e not implemented — awaiting the product owner's decision** (§12); the owner's descriptive research of two trainings in §11; its format members in v11, in `main` (PR #33) |
 | 35.4 (C3) | Persistence and alignment: the format change (v11), `Project.Training`, the FIT life cycle (D049 §9), the training's clock correction (a setting of the COROS training drop-down) and the per-video zero override Z (in the clip's Inspector: the playhead's frame matched to the end of climb N — the default, less the end lag of 4.6 s — or to its start; D050 amendment of 2026-11-02) — one Undo step each, video relink with the override (ID1, §8), the zero states «override» / «unknown» (the «automatic» state after 35.3's rule), the mapping (§6) and its read-only readout at the playhead in the Inspector; 35.2's «not saved» texts revised (D050 amendment of 2026-11-01) | D049 §13 tests; manual plan part C | **implemented** (`e15d7af`; the match point by the D050 amendment of 2026-11-02): automated tests pass; **acceptance rows C1–C14 automated on 2026-11-04: all PASS, C5's real COROS re-export manual** (§14); `project.json` v11, in `main` (PR #33) |
 | 35.5 (C4) | Heart-rate overlay: heart icon + BPM, a few looks / positions, through the one composition path; the export warning `HeartRateUnavailable` | Preview = export at sampled frames; pauses, gaps and an unknown zero show nothing; the warning exactly when data is missing, confirmation required (manual plan part D) | **accepted by the product owner on 2026-11-03 (manual О1–О15 PASS on `593b6a2`, `docs/PHASE35_5_MANUAL_ACCEPTANCE.md`)**; merged with PR #35 (`5c5cb7f`); its synchronisation changed by D055 (the file's time, never `Z`); not combined with an export of time codes (§13) |
-| 35.6 (C5) | **35.6a** — D055: the heart rate by the video file's time, independent of `Z`; the heart rate in every green route area (v16). **35.6b** — verification and closeout: full and heavy suites, three `--blame-hang` runs, the manual rows H1–H11 on the real session of 2026-09-27 (manual plan part E), documents | product owner's acceptance (manual plan part E) | **35.6a implemented** (2026-11-09, branch `feat/phase-35-6a-heart-rate-sync`, `project.json` v16); 35.6b not started |
+| 35.6 (C5) | **35.6a** — D055: the heart rate by the video file's time, independent of `Z`; the heart rate in every green route area (v16). **35.6b** — verification and closeout: full and heavy suites, three `--blame-hang` runs, the manual rows H1–H11 on the real session of 2026-09-27 (manual plan part E), documents | product owner's acceptance (manual plan part E) | **done and accepted**: 35.6a implemented (2026-11-09, `project.json` v16, PR #50 `3ebab21`); **35.6b accepted by the product owner on 2026-11-09** (manual plan parts E and F, §16) |
 
 Note: D050's table of steps still gives the acceptance of 35.3 in its earlier wording («≥ 12 of the 14 typical files»);
 the amendment B6 (≥ 11 of the 13 filmed climbs C2–C14), quoted in the 35.3 row above, supersedes it.
@@ -506,3 +510,18 @@ app's tooltip «29:59 — 116» is the FIT's sample (10:32:38 → 116). Putting 
 a minute, against the ends seen on the videos. The decline is the FIT's own content — the heart's lag, the optical wrist
 sensor's inertia and a tense forearm in a grip, not told apart without a reference (a chest strap). Nothing is changed;
 a display shift is the future experiment FU-HR.1 (`ROADMAP.md`).
+
+## 16. Step 35.6b — the closeout and the acceptance (2026-11-09)
+
+- **Merged into `main`:** D053 (PR #47, v15), D054 (PR #48), Step 35.6a / D055 (PR #50, v16), D056 PR 1–3 (PRs #51–#53,
+  v17 / v18) and the fixes of its manual check (PR #54); CI green on each; `project.json` v18 in `main` (`1a087ae`).
+- **The product owner's manual acceptance (2026-11-09, in the application, all positive):** part E (H1–H11) and part F
+  (R1–R9) of `docs/PHASE35_MANUAL_TEST_PLAN.md`, and the checks after PR #54 — the blue `T` mark on the video clip for an
+  area laid out by hand and one made from the FIT, gone with a deleted area and back with Undo; the D051 marks untouched by
+  deleting a route area (service marks of the calibration, in the Inspector only); the free «Боулдер» in the route area's
+  green. **Step 35.6b and D056 accepted.**
+- **Automated evidence:** the tests named in parts E and F and each pull request's CI. The three `--blame-hang` runs of the
+  step's plan were not recorded as a separate run; the owner's acceptance does not depend on them.
+- **Not covered by this acceptance:** Step 35.4's C5 (the real COROS re-export) and the step's acceptance; Step 35.3's
+  open sub-steps (35.3b2b deferred, 35.3e awaiting a decision). Phase 35 therefore stays not complete.
+- **Deferred research, not a task of this phase:** FU-HR.1 — the heart rate shown about 60 s earlier (`ROADMAP.md`).

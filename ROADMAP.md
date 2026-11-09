@@ -96,7 +96,8 @@ and 37 accepted on 2026-11-04, Phase 31 with D3 and C5 deferred); the **highest 
   evaluation 35.3d gave «B6 not met» (0 of 13 climbs within `τ`, drift −22.4 s), an experimental result, not a confirmation
   of the method; **35.3e awaits the product owner's decision** and is not in the near plan; **35.5 (the heart-rate overlay)
   implemented and accepted by the product owner on 2026-11-03** (О1–О15 PASS on `593b6a2`; v13; merged with PR #35 as `5c5cb7f`);
-  35.6 not started. Steps
+  **35.6 done and accepted** — 35.6a (D055, v16, PR #50) and **35.6b accepted by the product owner on 2026-11-09** together
+  with D056 (PRs #51–#54, v17 / v18); **open: 35.4's acceptance** (C5's real re-export manual) and 35.3's sub-steps. Steps
   35.0–35.4 reached `main` with PR #33, together with Phase 37. Record: `docs/PHASE_COROS.md`.
 - **Phases 32–34** — D048 (approved 2026-10-28, merged in PR #32): 32 (the route selection at `T`) paused / deferred; 33
   (the timing model, v10) and 34 (the overlay strip, variant B) implemented, a separate formal acceptance not recorded.
@@ -106,10 +107,11 @@ and 37 accepted on 2026-11-04, Phase 31 with D3 and C5 deferred); the **highest 
   unnumbered.
 - **Phase 36** — the session summary and the YouTube chapters: a specification draft outside `main`, no decision.
 
-**Priorities (the product owner, 2026-11-08, on `docs/ROADMAP_AUDIT_2026-11-08.md`):** 1) Step 35.6 — next (its scope
-and acceptance criteria in a separate task first); 2) Phase 30 / S1 — the next major milestone, incl. the clean-environment
+**Priorities (the product owner, 2026-11-08, on `docs/ROADMAP_AUDIT_2026-11-08.md`):** 1) Step 35.6 — *done and accepted
+on 2026-11-09 (35.6b with D056)*; 2) Phase 30 / S1 — the next major milestone, incl. the clean-environment
 validation and the remaining release requirements; 3) H after S1; 4) R4 (Motion Tracking Camera research) deferred until
-then. Human occlusion stays deferred; Motion Tracking Camera stays Future / Backlog.
+then. Human occlusion stays deferred; Motion Tracking Camera stays Future / Backlog. **Next (2026-11-09): Phase 30 / S1.**
+Open alongside: Step 35.4's acceptance (C5), the owner's check of Phases 33 / 34, the R2 → E manual plan.
 
 **Next (the product owner's direction of 2026-11-03, DECISIONS.md D050): Step 35.5 — the heart-rate overlay** (implemented
 and accepted on 2026-11-03, merged with PR #35), then 35.6, Phase 35's closeout. It is not combined with an export of time codes: the time-code export (Phase 36's YouTube chapters)
@@ -482,7 +484,8 @@ accepted on 2026-11-04 (D3, C5 deferred); E's
 camera-motion part is merged in PR #31, unnumbered and not complete; D048's stages are Phases 32–34, merged in PR #32 (32
 paused / deferred; 33 and 34 without a recorded formal acceptance); F is Phase 35 — in `main` in part since PR #33
 (2026-11-03; 35.5 implemented and accepted, merged with PR #35; 35.6 not started; 35.3e awaiting a decision); Phase 37 merged with it, accepted 2026-11-04; H is not
-started. *(The first sentence's date was 2026-10-28; this list is the state on 2026-11-03.)*
+started. *(The first sentence's date was 2026-10-28; this list is the state on 2026-11-03. Since 2026-11-09 Step 35.6 is
+accepted — the current state is at the top of this file.)*
 
 Status on 2026-10-24: Phases 0–29 complete and merged (Phase 27 = A as `36a1a58`, PR #28; Phase 28 = B as `4f0e66a`,
 PR #29; Phase 29 = C — four visual templates and the music audit, D045, WASTED deferred — as `e28a9d3`, PR #30); Phase 30
@@ -505,7 +508,7 @@ research, F only after its feasibility is confirmed and a separate agreement; H 
 | D048-2 | Timing model (animation duration, orders, standard / short-intro layout), template ↔ clip anchor, speed / trim / copy rules, `project.json` v10 (v9 converted on save, no backward compatibility) — **Phase 33** (implemented and merged, PR #32; D048 approved as implemented 2026-10-28; separate formal acceptance not recorded) | core | medium–large | D048 approval; schema check with F done (COROS takes the next version) |
 | D048-3 | The overlay strip — **Phase 34** (implemented and merged, PR #32; separate formal acceptance not recorded; variant B: the segments inside the «Боулдер»; the lane above the clip Debug-only) | UX | medium | D048-2 |
 | R3 | COROS exports and video timestamps — research, carried out on the owner's real APEX 4 FIT export (done; `docs/PHASE_COROS.md` §1) | research | research (needs real files) | — (parallel) |
-| F | **Phase 35** — import of COROS trainings and the heart rate in the video (formerly "Phase Coros", «COROS Pace 4: пульс и телеметрия в видео»; any COROS model; D049 / D050 approved 2026-10-29; in `main` in part since PR #33 — 35.0–35.2 done, 35.3 in part (35.3d: B6 not met; 35.3e awaiting a decision), 35.4 implemented; **35.5 the heart-rate overlay implemented and accepted 2026-11-03, merged with PR #35 (`5c5cb7f`); 35.6 not started**) | telemetry | large | R3, A |
+| F | **Phase 35** — import of COROS trainings and the heart rate in the video (formerly "Phase Coros", «COROS Pace 4: пульс и телеметрия в видео»; any COROS model; D049 / D050 approved 2026-10-29; in `main` in part since PR #33 — 35.0–35.2 done, 35.3 in part (35.3d: B6 not met; 35.3e awaiting a decision), 35.4 implemented, not accepted (C5); **35.5 the heart-rate overlay implemented and accepted 2026-11-03, merged with PR #35 (`5c5cb7f`); 35.6 accepted 2026-11-09** (D055, D056; PRs #50–#54)) | telemetry | large | R3, A |
 | — | **Phase 36** — session summary and YouTube chapters (specification draft outside `main`, not approved; its time-code export a separate item until clarified, not combined with 35.5) | core | medium–large | Phases 32–34; Phase 36's own format decision for `PassId` / «Итоги»; Phase 35 for the heart rate |
 | — | **D049** — the training in the project, the time model and Phase 35's format change (v11, implemented in Step 35.4, in `main` since PR #33; the automatic zero not implemented); approved 2026-10-29; not a phase | format | small | — |
 | H | «Final UX Pass: аудит и упрощение интерфейса» (research, then implementation) | UX | research + medium–large | the core incl. F, G, a regression run |
@@ -574,11 +577,11 @@ takes the vertical-video export.
   specification → a decision (D042 §3: a motion path, a large function). The roadmap audit of 2026-11-08
   (`docs/ROADMAP_AUDIT_2026-11-08.md`, not a decision) keeps it in the backlog and proposes a research R4 as its first step.
 - **D053 (2026-11-09, approved)** — several independent routes on one clip, the orange always inside its green, a 35 s
-  default green without a FIT and a green per climb from a FIT import; `project.json` v15. Branch `feat/route-overlays-fit`;
+  default green without a FIT and a green per climb from a FIT import; `project.json` v15. Merged with PR #47;
   record DECISIONS.md D053. Not a phase: the fixes of the manual check of Phases 33 / 34.
 - **D054 (2026-11-09, approved)** — the FIT's climbs bound to the video clips automatically: on the FIT import for every
   clip, by «Распознать прохождения из FIT» for one clip added later; by the video's `Z`, else its file's time (approximate,
-  the binding only — no automatic `Z`, D050 B1 kept). Branch `feat/fit-auto-binding`; record DECISIONS.md D054.
+  the binding only — no automatic `Z`, D050 B1 kept). Merged with PR #48; record DECISIONS.md D054.
 - **FU-PF.1 — A newer project file with an unknown value is reported as «damaged», not «newer» (found 2026-11-08,
   `docs/PHASE33_34_ACCEPTANCE_EVIDENCE.md` §3)** — *backlog, not planned; the product owner, 2026-11-08: recorded
   separately, the serializer not changed in the Phase 33 / 34 evidence task.* `ProjectSerializer.Deserialize` parses the
@@ -589,8 +592,8 @@ takes the vertical-video export.
   be fixed.
 - **D055 (2026-11-09, approved)** — the heart rate synchronised with the video by its file's time, never by `Z`; `Z`
   refines the route bounds only; every green route area (by hand or from the FIT) shows its clip's heart rate with its own
-  settings; `CC` stays the watch − camera clock difference (0 by default). `project.json` v16. Step 35.6a; branch
-  `feat/phase-35-6a-heart-rate-sync`; record DECISIONS.md D055. Closes FU-35.5.1.
+  settings; `CC` stays the watch − camera clock difference (0 by default). `project.json` v16. Step 35.6a; merged with
+  PR #50; Step 35.6b accepted 2026-11-09; record DECISIONS.md D055. Closes FU-35.5.1.
 - **FU-35.5.1 — The heart rate of one climb only (the product owner at the acceptance of Step 35.5, 2026-11-03)** — *closed
   by D055 §4 (2026-11-09): the heart rate in each green route area;* *originally not
   decided, not planned.* Show the heart-rate overlay only within one climb — the time of its route overlay, from the start
@@ -600,9 +603,11 @@ takes the vertical-video export.
 - **D056 (2026-11-09, approved)** — after the manual check of D055: the Inspector chooses the climb at the playhead and
   asks before a frame is matched to another (PR 1); a new `Z` lays out again the FIT's area its user has not changed, and
   marking holds offers the nearby FIT route (PR 2); the start mark `T` on every route area and the free «Боулдер» drawn
-  green (PR 3). Record: DECISIONS.md D056.
-- **FU-HR.1 — An experimental display shift of the heart rate (the product owner, 2026-11-09)** — *Future / Backlog: an
-  experiment, not decided, not implemented.* On 2026-09-27 the heart rate falls during most climbs and peaks 45–75 s after
+  green (PR 3); after the manual check (PR #54) `T` is the blue mark on the video clip, the D051 marks stay in the Inspector
+  only, the free «Боулдер» has the route area's green. Merged with PRs #51–#54 (v17 / v18); **implemented in full and
+  accepted by the product owner on 2026-11-09** (R1–R9 and the checks after PR #54). Record: DECISIONS.md D056.
+- **FU-HR.1 — An experimental display shift of the heart rate (the product owner, 2026-11-09)** — *Future / Backlog: a
+  deferred research experiment, not decided, not implemented; not a task of Phase 35 or of the next phase.* On 2026-09-27 the heart rate falls during most climbs and peaks 45–75 s after
   their end (climb 2 +75 s, 3 +60 s, 4 +47 s, 6 +49 s) — the FIT's own content, the synchronisation confirmed (D055, D056
   §6). Hypothesis: the heart rate shown about 60 s earlier puts the peak near the end of the climb and suits the video
   better. Never a change of the FIT's samples, `T_file`, `CC` or `Z`, never a correction of D055's formula. Plan: on the

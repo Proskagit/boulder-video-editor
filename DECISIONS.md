@@ -9158,6 +9158,9 @@ Date: 2026-11-09. **Status: approved by the product owner on 2026-11-09** (the m
 green from `T − 7 s` to the climb's end + 5 s), on the defects found in the manual check of Phases 33 / 34 in the owner's
 project `D:\Времянка для монтажа` (three clips of one source video). Changes D034 / D048's «one markup per video clip»;
 keeps every other rule of D048 / D051 / D052.
+**Implementation state (2026-11-09):** merged into `main` with PR #47 (`696bc92`), `project.json` v15; later formats
+v16–v18 by D055 / D056. Exercised again in the owner's manual checks of D055 and D056 (accepted 2026-11-09, D056); the
+acceptance of Phases 33 / 34 stays open (`docs/PHASE33_34_ACCEPTANCE_EVIDENCE.md`).
 
 **Defects found and their causes (reproduced on a copy of the project).**
 1. A second route on the same clip went into the first: the model had exactly one markup, one animation and one anchored
@@ -9189,7 +9192,8 @@ keeps every other rule of D048 / D051 / D052.
   D048 §3.4) to the climb's actual end (`W_end − ClimbEndLag`, D050) + 5 s, cut to the clip; `T` is the climb's effective
   start (D051 §4 — the mark's position by the video's recording zero and the clock correction; no second synchronisation).
   No holds, no orange, no status — added by hand. One Undo step of its own; a new import never adds a second area for a
-  climb (`TemplateClip.FitClimb`). A climb whose start no clip shows gets none.
+  climb (`TemplateClip.FitClimb`). A climb whose start no clip shows gets none. *(Amended by D056 §2, 2026-11-09: a new
+  `Z` lays out again, in its own Undo step, the FIT area whose bounds the user has not changed; its `T` is stored, D056 §4.)*
 
 **Engineering decisions (within the approved scope).**
 - **The orange inside its green (§4).** For a route with a green, `Ps ≤ As < Ae ≤ Pe` on the frames: the orange's handles
@@ -9224,6 +9228,8 @@ tooltips, the animation's 80 / 20 algorithm.
 Date: 2026-11-09. **Status: approved by the product owner on 2026-11-09** (the target UX of the task «автоматическая
 привязка FIT-прохождений к видеоклипам»; the time source chosen by the owner: «Тег файла, только для привязки»). Amends
 D053 §7 (mode B); keeps D049 §5 / D050 B1 (no automatic recording zero), D051 and every rule of D053.
+**Implementation state (2026-11-09):** merged into `main` with PR #48 (`f7f0bad`); exercised in the owner's manual checks
+of D055 and D056 (Step 35.6b, accepted 2026-11-09).
 
 **Why.** After D053 a green route area came only for a climb that had a FIT mark, and a mark needs the video's recording
 zero `Z`, which only the user sets (D050 B1: no automatic rule until Step 35.3's is approved; 35.3d's verdict B6 NotMet).
@@ -9249,7 +9255,8 @@ So the user still had to match each video to «Подъём N» in the Inspector
 5. **Never twice, never over the user's work.** A climb gets no second area on a video that has one made from the FIT
    (`TemplateClip.FitClimb`, any clip of that video — a split plate is one) or a FIT link of its mark; nor on a clip where a
    green the user made covers at least half of the climb (marked by hand — its bounds may differ from the estimate by
-   seconds). An existing area is never moved or resized; a declined climb, a locked track get none.
+   seconds). An existing area is never moved or resized; a declined climb, a locked track get none. *(Amended by D056 §2,
+   2026-11-09: a new `Z` of the video lays out again the area its user has not changed — never adding a second one.)*
 6. **Saying what happened.** The import's status adds: areas made; that some times came from the files (approximate);
    clips skipped without a time; clips whose file times disagree; climbs on locked tracks. The command says the same for its
    clip, or «no climbs found» / «every climb already has an area». A clip without a time is never bound by a guess; the
@@ -9261,7 +9268,9 @@ So the user still had to match each video to «Подъём N» in the Inspector
 orange inside its green, Split / speed / trim, Preview / export.
 
 **Known limits.** An area the user deleted comes back with the next import of the FIT or a run of the command on its clip
-(nothing records a deletion). Areas made by an approximate time are not moved when the user later sets the video's `Z`.
+(nothing records a deletion). Areas made by an approximate time are not moved when the user later sets the video's `Z`
+*(superseded by D056 §2, 2026-11-09: such an area, while its bounds are the laid-out ones, is laid out again by the new
+`Z`; one changed by hand stays)*.
 
 ---
 
@@ -9271,6 +9280,10 @@ Date: 2026-11-09. **Status: approved by the product owner on 2026-11-09** (the m
 Step 35.6; the answers Q1–Q6). Amends D049 §5, §6 and §10, D050 B4 and the implementation notes of Step 35.5, D054 §2;
 closes the backlog item FU-35.5.1. Keeps D050 B1 (no automatic recording zero), D051, D053, `ClimbEndLag` and
 `StartCorrection`.
+**Implementation and acceptance state (2026-11-09):** implemented as Step 35.6a (`project.json` v16), merged into `main`
+with PR #50 (`3ebab21`); **Step 35.6b accepted by the product owner on 2026-11-09** — the manual rows H1–H11
+(`docs/PHASE35_MANUAL_TEST_PLAN.md` part E) together with the checks of D056 (part F) run by the owner in the application,
+all positive.
 
 **Why.** Until now the heart rate of a picture went through the video's recording zero `Z` (D049 §6), and `Z` is set only
 by hand by matching a frame to a climb (D050 B2). After D054 the green route areas come from the FIT without any manual
@@ -9337,6 +9350,13 @@ Date: 2026-11-09. **Status: approved by the product owner on 2026-11-09** (the r
 answers Q-A–Q-D, all option A, Q-D with the colour change). Amends D053 §7 / D054 §5 (an area made from the FIT may now be
 laid out again) and D045's colour of the free «Боулдер»; keeps D055 (the heart rate's time), D053's several independent
 routes on a clip, D054 §§1–4, 6–7, and the semantics of the lilac Top / Attempt.
+**Implementation and acceptance state (2026-11-09): implemented in full and accepted.** Merged into `main` with PR #51
+(`a317fcb`, PR 1), PR #52 (`eebe253`, PR 2, v17), PR #53 (`322525d`, PR 3, v18) and the fixes of the manual check PR #54
+(`1a087ae`: `T` as the blue mark on the video clip, the D051 marks off the clips, the free «Боулдер» in `#53814D`); CI
+green on each. **The product owner ran the manual rows R1–R9 (`docs/PHASE35_MANUAL_TEST_PLAN.md` part F) and the checks
+after PR #54 in the application on 2026-11-09 — all positive; D056 accepted, with the fixes of PR #54.** The current
+behaviour is the paragraph «Amended after the manual check» below; where «As implemented (PR 3)» says otherwise (the
+dashed line, `#43A047`), that paragraph prevails. FU-HR.1 (§7) stays a deferred experiment.
 
 **Why (the check of 2026-11-09 on the real session of 2026-09-27).** On `101034` the Inspector's list «Подъём» was empty,
 so «Совместить кадр с концом подъёма» was disabled; the user then chose climb 2 while the playhead was at the end of climb 3
@@ -9408,7 +9428,10 @@ brings it back). The dashed line in the plate is gone. **The FIT marks of D051 a
 D051 §8.1; the owner's choice): their data, the calibration, Delete as «decline» and their actions stay in the Inspector's
 «FIT-метки» and the COROS menu; a click on the clip no longer selects a mark. §5's colour is the green a route area
 actually shows — `#43A047` at the strip's opacity 0.7 over the template's `#783A5C`, i.e. `#53814D` — so a free «Боулдер»
-and a route's area look the same.
+and a route's area look the same. Checked by the owner in the application on 2026-11-09 (positive): one blue mark per
+route area, by hand and from the FIT, gone with a deleted area and back with Undo; the D051 marks untouched by deleting a
+route area (they are the calibration's service marks, kept in the Inspector); the free «Боулдер» and a route's area of one
+green.
 
 **Unchanged.** D055 (`w = T_file + s + CC`, `Z` never read for the heart rate); D054's binding time, the rule of a shown
 climb, «never twice» (a `Z` that lays out an area again never adds one for its climb); D053's several independent routes on

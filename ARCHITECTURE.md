@@ -533,6 +533,30 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   through `TrainingAlignment.HeartRateAtSource` (the readout's rule; null — nothing drawn); `TemplateDraw.HeartRate` →
   `TemplatePainter.HeartRate`, the one painter of the Preview and the export. `ExportPreflight` warns
   `HeartRateUnavailable` (D049 §10). The Preview rebuilds its snapshot on `TrainingSessionService.Changed`.
+- **The heart rate by the file's time** (D055, Step 35.6a; format v16): the overlay, every green route area and the
+  Inspector's readout (`TrainingAlignment.ReadoutAt`) read `w = T_file + s + CC` — `T_file` the file's tag as the end of the recording, else its name
+  (`FitRouteBinding.FileTimeOf`; tag and name disagreeing by more than 5 s: none) — and never `Z`; `Z` refines the route
+  bounds only (and the FIT binding and marks, D051 / D054). Where the Mapping item above maps the heart rate through
+  `Z(M)`, D055 prevails.
+
+## Route areas from the FIT (D053, D054, D056)
+
+*Merged 2026-11-09 (PRs #47, #48, #51–#54); `project.json` v15, v17, v18; D056 accepted by the product owner 2026-11-09.*
+
+- **Several routes on a clip** (D053, v15): `VideoClip.Routes` (each `HoldMarkup.Id`), a route's green and lilac the
+  «Боулдер» anchored to it (`TemplateClip.AnchorClipId` / `AnchorRouteId`); `RouteOverlays` addresses them. A FIT import
+  makes a green per climb (`TemplateClip.FitClimb`); a FIT mark names a route (`FitMark.LinkedRouteId`).
+- **Binding** (D054): `FitRouteBinding` — the time a video is bound by (`Z`, else the file's tag, else its name;
+  approximate times for the binding only, `Z` stays unknown); `TimelineEditService.CreateRoutesFromFit` on the import and
+  by «Распознать прохождения из FIT».
+- **Re-layout and `T`** (D056, v17 / v18): `TemplateClip.FitLayout` (the laid-out bounds as source ticks and the status
+  moment) — a new `Z` lays out again, in its own Undo step, the areas still at those bounds (`RelayoutFitAreas`);
+  `TemplateClip.RouteStart` — the route's start `T`, set by «Разложить вступление и финал» and by the FIT areas
+  (`RouteOverlays.RouteStartOf`: the stored `T`, else the end of the route's Duration animation).
+- **Timeline**: every route area shows `T` as a blue mark on its **video clip** (`TimelineViewModel.RefreshRouteStartMarks`
+  → `TimelineClipViewModel.RouteStartMarks`), derived from the areas on every refresh — no state of its own, so it comes and
+  goes with its area, Undo / Redo and a reopened project included; editor only. The free «Боулдер» is drawn in the route
+  area's green (`RouteAreaHex`). The D051 marks are not drawn on the clips (below).
 
 ## FIT route starts and the global start calibration (Phase 37, D051)
 
@@ -553,8 +577,9 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   (composites with `SetRecordingZeroOverrideCommand` and with `LayOutIntroAndFinal`); `FitMarksFollowingCommand` wraps
   every edit while marks exist, so the marks and the links follow it (Split, Insert / Overwrite, a removed video or clip)
   in the same Undo step; the paste refusal of a duplicate FIT markup in `PasteInto` (shared `Hold.Id`). The D048 markup value and its commands are unchanged.
-- **UI**: an editor-only layer of marks on the clips (like the D048 strip; never in Preview or export; a click selects, Delete
-  declines); the Inspector's FIT section (lay out from the mark, «Переместить метку к плейхеду» — no drag, accepted by the
+- **UI**: *(since D056, 2026-11-09: the marks are no longer drawn on the clips — the route areas' `T` is; deleting a route
+  area never changes a mark)* — before that an editor-only layer of marks on the clips (like the D048 strip; never in
+  Preview or export; a click selected, Delete declined); the Inspector's FIT section (lay out from the mark, «Переместить метку к плейхеду» — no drag, accepted by the
   product owner — decline, link / unlink); «Отклонённые подъёмы» and «Настройки FIT…» in the COROS training drop-down.
 - **Limitation**: videos whose source time is not real time (slow / fast motion, time-lapse) are not supported.
 
