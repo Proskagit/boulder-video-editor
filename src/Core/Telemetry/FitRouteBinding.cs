@@ -48,12 +48,28 @@ public static class FitRouteBinding
     {
         if (asset.Kind != MediaKind.Video) return null;
         if (RecordingZeroEstimator.Resolve(asset).Utc is { } zero) return new FitBindingTime(zero, FitBindingTimeSource.RecordingZero);
+        return FileTimeOf(asset, workout);
+    }
+
+    /// <summary>
+    /// The file's own time <c>T_file</c> (D055 §1) — what the heart rate is synchronised by: the recording-time tag read as
+    /// the end of the recording (<c>tag − duration</c>); without a tag the file-name time under the watch's UTC offset; null
+    /// when neither gives a time or they disagree by more than <see cref="FileTimesTolerance"/>. The video's recording zero
+    /// <c>Z</c> is never read — not even as a fallback.
+    /// </summary>
+    public static FitBindingTime? FileTimeOf(MediaAsset asset, ClimbingWorkout workout)
+    {
+        if (asset.Kind != MediaKind.Video) return null;
         var candidates = RecordingZeroEstimator.Candidates(asset, workout.UtcOffset);
         if (Conflict(candidates)) return null;
         if (candidates.TagMarksEnd is { } tag) return new FitBindingTime(tag, FitBindingTimeSource.RecordingTag);
         if (candidates.FromFileName is { } name) return new FitBindingTime(name, FitBindingTimeSource.FileName);
         return null;
     }
+
+    /// <summary>Whether a video's file times disagree (D055 §1, D054 §2) — whatever its <c>Z</c>.</summary>
+    public static bool FileTimesDisagree(MediaAsset asset, ClimbingWorkout workout) =>
+        asset.Kind == MediaKind.Video && Conflict(RecordingZeroEstimator.Candidates(asset, workout.UtcOffset));
 
     /// <summary>Whether a video without a <c>Z</c> is unbound because its tag and its file name disagree (D054 §2).</summary>
     public static bool FileTimesConflict(MediaAsset asset, ClimbingWorkout workout) =>

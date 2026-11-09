@@ -25,7 +25,10 @@ public static class TemplatePainter
         {
             case TemplateKind.Rec: Rec(context, op); break;
             case TemplateKind.Vhs: Vhs(context, op); break;
-            case TemplateKind.Boulder: Boulder(context, op); break;
+            case TemplateKind.Boulder:
+                Boulder(context, op);
+                if (op.Fields.ShowHeartRate) HeartRate(context, op);   // D055 §4: the area's heart rate, by its own settings
+                break;
             case TemplateKind.Highlight: Highlight(context, op); break;
             case TemplateKind.HeartRate: HeartRate(context, op); break;
         }
@@ -402,7 +405,7 @@ public static class TemplatePainter
             context.DrawText(Text(value, Sport, FontWeight.SemiBold, 76 * u, shadow), new Point(digitsAt.X + o, digitsAt.Y + o));
             context.DrawText(Text(TemplateRules.BpmWord, Sport, FontWeight.SemiBold, 26 * u, shadow), new Point(wordAt.X + o, wordAt.Y + o));
         }
-        Heart(context, Brush(op.Fields.AccentHex), new Point(heartX, centreY), heart * beat);
+        Heart(context, Brush(op.Fields.HeartColorFor(op.Kind)), new Point(heartX, centreY), heart * beat);
         context.DrawText(digits.Text, digitsAt);
         context.DrawText(word.Text, wordAt);
     }

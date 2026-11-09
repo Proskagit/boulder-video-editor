@@ -2501,8 +2501,11 @@
   <data name="Readout_TrainingNotAvailable" xml:space="preserve">
     <value>файл тренировки недоступен</value>
   </data>
-  <data name="Readout_RecordingStartUnknown" xml:space="preserve">
-    <value>начало записи этого видео неизвестно</value>
+  <data name="Readout_NoFileTime" xml:space="preserve">
+    <value>у файла видео нет времени записи (ни тега времени, ни времени в имени)</value>
+  </data>
+  <data name="Readout_FileTimesDisagree" xml:space="preserve">
+    <value>тег времени файла и время в его имени расходятся (файл редактировали?)</value>
   </data>
   <data name="Readout_OutsideClip" xml:space="preserve">
     <value>плейхед вне этого клипа</value>
@@ -2766,7 +2769,7 @@
     <value>Цвет сердца</value>
   </data>
   <data name="HeartRate_Hint" xml:space="preserve">
-    <value>Пульс видео прямо под накладкой — из тренировки COROS проекта. Где значения нет, ничего не показывается: пауза, пропуск в данных, время вне тренировки или видео без заданного начала записи.</value>
+    <value>Пульс видео прямо под накладкой — из тренировки COROS проекта, по времени файла видео. Где значения нет, ничего не показывается: пауза, пропуск в данных, время вне тренировки или видео без надёжного времени файла.</value>
   </data>
   <data name="HeartRate_NoTraining" xml:space="preserve">
     <value>В проекте нет тренировки COROS: накладка ничего не покажет. Импортируйте её кнопкой «Тренировка COROS…».</value>
@@ -2782,5 +2785,29 @@
   </data>
   <data name="Inspector_RefineRecordingStart" xml:space="preserve">
     <value>Уточнить начало записи по подъёму (необязательно):</value>
+  </data>
+  <data name="HeartRate_AreaHint" xml:space="preserve">
+    <value>Пульс клипа этой области — из тренировки COROS проекта, по времени файла видео — на всём протяжении области. Где в FIT значения нет (пауза, вне тренировки), ничего не показывается; начало записи на него не влияет.</value>
+  </data>
+  <data name="HeartRate_AreaNoTraining" xml:space="preserve">
+    <value>В проекте нет тренировки COROS: пульса в области не будет, пока её не импортировать («Тренировка COROS…»).</value>
+  </data>
+  <data name="HeartRate_AreaNotAnchored" xml:space="preserve">
+    <value>Область не привязана к видеоклипу: пульса в ней нет.</value>
+  </data>
+  <data name="HeartRate_AreaNoFileTime" xml:space="preserve">
+    <value>У видео клипа этой области нет времени записи (ни тега времени, ни времени в имени): пульс не показывается.</value>
+  </data>
+  <data name="HeartRate_AreaFileTimesDisagree" xml:space="preserve">
+    <value>Тег времени и время в имени видео этой области расходятся (файл редактировали?): пульс не показывается.</value>
+  </data>
+  <data name="Inspector_AreaShowHeartRate" xml:space="preserve">
+    <value>Показывать пульс</value>
+  </data>
+  <data name="Inspector_AreaShowHeartRateTip" xml:space="preserve">
+    <value>Пульс клипа, к которому относится область, на всём её протяжении — по времени файла видео.</value>
+  </data>
+  <data name="Inspector_RecordingStartRoutesOnly" xml:space="preserve">
+    <value>Начало записи уточняет только границы трасс; пульс идёт по времени файла видео.</value>
   </data>
 </root>

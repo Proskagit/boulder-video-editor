@@ -118,7 +118,11 @@ public sealed class InspectorTrainingAlignTests
         Assert.Equal(ByEnd(MediaTime.Zero), _asset.RecordingZeroOverrideUtc);
         var frame = _playhead.ToFrameFloor(Rate);
         var clip = (VideoClip)_projects.Current.Timeline.VideoTracks[0].Clips[0];
-        Assert.Equal(T0.AddSeconds(92.5).AddTicks(-Lag), TrainingAlignment.ReadoutAt(_training, clip, _asset, frame, Rate).WatchTime);
+        // The zero puts the frame at the end less the lag — for the route bounds (D055 §2); the heart-rate readout never
+        // reads Z: this file gives no time of its own.
+        Assert.Equal(T0.AddSeconds(92.5).AddTicks(-Lag),
+            TrainingAlignment.WatchTime(_asset.RecordingZeroOverrideUtc!.Value, TrainingAlignment.SourceTimeAt(clip, frame, Rate), MediaTime.Zero));
+        Assert.Equal(TrainingReadoutReason.NoFileTime, TrainingAlignment.ReadoutAt(_training, clip, _asset, frame, Rate).Reason);
         Assert.Equal(string.Format(Strings.Inspector_AlignedToClimbEnd, 2), _status.Message);
     }
 

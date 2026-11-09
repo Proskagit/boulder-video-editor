@@ -44,17 +44,49 @@ public sealed class ExportHeartRateEndToEndTests
         };
     }
 
-    /// <summary>The pattern on V1 (frames 0–100, its recording zero at the training's start), the overlay over all of it on V2.</summary>
+    /// <summary>The pattern on V1 (frames 0–100; its file's time — the tag read as the end — at the training's start, D055 §1;
+    /// a recording zero 30 s off, which the heart rate never reads), the overlay over all of it on V2 — or, with
+    /// <paramref name="area"/>, a green route area («Боулдер» anchored to the clip, D055 §4) instead.</summary>
     private ProjectBuilder Build(bool overlay, bool training, int width = E2EMedia.Width, int height = E2EMedia.Height,
-        HeartRateLook look = HeartRateLook.Plate)
+        HeartRateLook look = HeartRateLook.Plate, bool area = false, bool areaHeartRate = true)
     {
         var p = new ProjectBuilder(FrameRate.Fps25, width, height);
         var clip = p.Video(p.VideoTrack(), _media.PatternWithTone(), 0, 100);
-        p.Project.MediaAssets.Single(a => a.Id == clip.MediaAssetId).RecordingZeroOverrideUtc = T0;
+        var asset = p.Project.MediaAssets.Single(a => a.Id == clip.MediaAssetId);
+        asset.Metadata!.RecordingTimeProbe = RecordingTimeProbe.Found(
+            T0.AddTicks(asset.Metadata.Duration.Ticks).UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ"), RecordingTimeTagOrigin.Format);
+        asset.RecordingZeroOverrideUtc = T0.AddSeconds(30);
         var v2 = p.VideoTrack();
         if (overlay) p.Template(v2, TemplateKind.HeartRate, 0, 100).Look = look;
+        if (area)
+        {
+            var green = p.Template(v2, TemplateKind.Boulder, 0, 100);
+            (green.AnchorClipId, green.Route, green.ShowHeartRate, green.Look) = (clip.Id, "7", areaHeartRate, look);
+        }
         if (training) p.Project.Training = Training();
         return p;
+    }
+
+    [FfmpegFact]
+    public async Task A_green_route_area_draws_its_clips_heart_rate_like_the_preview_and_nothing_in_the_pause()
+    {
+        var p = Build(overlay: false, training: true, area: true);
+        var with = await Export(p, "heart-rate-area");
+        var without = await Export(Build(overlay: false, training: true, area: true, areaHeartRate: false), "heart-rate-area-off");
+        AssertValidMp4(with);
+        for (var n = 1; n < 100; n++)
+        {
+            // 50–74: the timer's pause — the area's card stays, its heart rate is not drawn.
+            var nothing = n is >= 50 and < 75;
+            Assert.True(nothing == with.Canvases[n].AsSpan().SequenceEqual(without.Canvases[n]), $"frame {n}");
+        }
+
+        var snapshot = PlaybackSnapshotBuilder.Build(p.Project, 1);
+        foreach (var n in new long[] { 12, 30, 55, 80 })
+        {
+            var preview = await Preview(snapshot, n);
+            Assert.True(preview.Pixels.AsSpan().SequenceEqual(with.Canvases[(int)n]), $"frame {n} differs from the export");
+        }
     }
 
     [FfmpegFact]

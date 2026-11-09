@@ -39,6 +39,8 @@ public static class PlaybackSnapshotBuilder
         var rate = project.Settings.FrameRate;
         // Phase 35.5: the training a heart-rate overlay reads (D049 §6) — only a usable one; resolved per video below.
         var training = project.Training is { IsUsable: true } usable ? usable : null;
+        // D055 §4: the video clips a green route area may be anchored to (on any track).
+        var videoClips = sequence.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>().ToDictionary(c => c.Id);
         foreach (var track in videoTracks)
         {
             var spans = ImmutableArray.CreateBuilder<PictureSpan>();
@@ -58,7 +60,16 @@ public static class PlaybackSnapshotBuilder
                 {
                     // D045: a template draws over what is below its track; it has no sound and decodes nothing.
                     templates.Add(new TemplateSpan(template.Id, template.TimelineStart, template.TimelineEnd, template.Kind,
-                        TemplateProperties.Of(template)!.Value, template.CounterStart) { FadeInFrames = fadeIn, FadeOutFrames = fadeOut });
+                        TemplateProperties.Of(template)!.Value, template.CounterStart)
+                    {
+                        FadeInFrames = fadeIn, FadeOutFrames = fadeOut,
+                        // D055 §4: a green route area shows its anchored clip's heart rate while there is a training.
+                        HeartRate = template is { Kind: TemplateKind.Boulder, ShowHeartRate: true, AnchorClipId: { } anchorId } &&
+                                    project.Training is not null && videoClips.TryGetValue(anchorId, out var anchor)
+                            ? new TemplateHeartRate(anchor.Id, anchor.MediaAssetId, anchor.TimelineStart, anchor.SourceIn, anchor.Speed,
+                                assets.TryGetValue(anchor.MediaAssetId, out var anchorAsset) ? HeartRateOf(training, anchorAsset) : null)
+                            : null
+                    });
                     continue;
                 }
                 if (clip is not MediaBackedClip media)
@@ -228,11 +239,12 @@ public static class PlaybackSnapshotBuilder
         return FadeRule.EffectiveFrames(clip, rate, dissolveIn, dissolveOut);
     }
 
-    /// <summary>The heart rate of a video's pictures (Phase 35.5): the usable training and the video's recording zero
-    /// (<see cref="RecordingZeroEstimator.Resolve"/>, the one estimator); null without either.</summary>
+    /// <summary>The heart rate of a video's pictures (D055 §1): the usable training and the time of the video file
+    /// (<see cref="FitRouteBinding.FileTimeOf"/> — its tag, else its name; never the recording zero <c>Z</c>); null without
+    /// either.</summary>
     private static HeartRateBinding? HeartRateOf(TrainingReference? training, MediaAsset asset) =>
-        training?.Workout is { } workout && RecordingZeroEstimator.Resolve(asset).Utc is { } zero
-            ? new HeartRateBinding(workout, zero, training.ClockCorrection)
+        training?.Workout is { } workout && FitRouteBinding.FileTimeOf(asset, workout) is { Zero: var start }
+            ? new HeartRateBinding(workout, start, training.ClockCorrection)
             : null;
 
     private static HoldOutline? WithMotion(HoldOutline? outline, RouteKey key, MediaAsset? asset, IReadOnlyDictionary<RouteKey, CameraMotionTrack>? motion) =>

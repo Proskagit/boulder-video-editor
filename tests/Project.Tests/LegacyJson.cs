@@ -5,8 +5,9 @@ namespace AiVideoEditor.Project.Tests;
 
 /// <summary>
 /// D053: a file of the current version rewritten as an older version wrote it — before v15 a video clip's single markup
-/// was <c>holdMarkup</c> (no id), a template had no route and no FIT climb, a FIT mark no route. And the other way: what
-/// the current version writes for an older file read back — its one route takes its clip's id.
+/// was <c>holdMarkup</c> (no id), a template had no route and no FIT climb, a FIT mark no route; before v16 (D055) a
+/// «Боулдер» had no heart-rate settings. And the other way: what the current version writes for an older file read back —
+/// its one route takes its clip's id.
 /// </summary>
 internal static class LegacyJson
 {
@@ -17,6 +18,17 @@ internal static class LegacyJson
     public static JsonNode As(JsonNode root, int version)
     {
         root["formatVersion"] = version;
+        if (version >= 16) return root;
+        foreach (var clip in Clips(root))
+        {
+            // D055 §5: only a «Боулдер» writes showHeartRate; the overlay keeps its look and corner (v13).
+            if (clip.Remove("showHeartRate"))
+            {
+                clip.Remove("heartColorHex");
+                clip.Remove("look");
+                clip.Remove("corner");
+            }
+        }
         if (version >= 15) return root;
         foreach (var clip in Clips(root))
         {

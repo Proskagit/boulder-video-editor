@@ -24,6 +24,17 @@ public class TrainingAlignmentTests
 
     private static MediaAsset Asset(DateTimeOffset? zero) => new() { FilePath = "climb.mp4", Kind = MediaKind.Video, RecordingZeroOverrideUtc = zero };
 
+    /// <summary>D055 §1: a 600 s video whose file's time (its tag read as the end) puts its first frame at <paramref name="start"/>.</summary>
+    private static MediaAsset FileTimed(DateTimeOffset start, string name = "climb.mp4") => new()
+    {
+        FilePath = name, Kind = MediaKind.Video,
+        Metadata = new MediaMetadata
+        {
+            Duration = MediaTime.FromSeconds(600),
+            RecordingTimeProbe = RecordingTimeProbe.Found(start.AddSeconds(600).UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ"), RecordingTimeTagOrigin.Format)
+        }
+    };
+
     [Fact]
     public void The_watch_time_is_zero_plus_source_time_plus_the_clock_correction()
     {
@@ -257,21 +268,26 @@ public class TrainingAlignmentTests
         var clip = Clip(startFrame: 0, sourceInFrame: 0, durationFrames: 1500);    // 60 s
         var zero = CorosFixture.Start;                                              // source 0 = the training's start
 
-        Assert.Equal(TrainingReadoutReason.NoTraining, TrainingAlignment.ReadoutAt(null, clip, Asset(zero), 0, Rate).Reason);
-        Assert.Equal(TrainingReadoutReason.RecordingStartUnknown, TrainingAlignment.ReadoutAt(training, clip, Asset(null), 0, Rate).Reason);
-        var tagged = Asset(null);                                                   // a recognised tag is a hypothesis, not a zero
+        Assert.Equal(TrainingReadoutReason.NoTraining, TrainingAlignment.ReadoutAt(null, clip, FileTimed(zero), 0, Rate).Reason);
+        Assert.Equal(TrainingReadoutReason.NoFileTime, TrainingAlignment.ReadoutAt(training, clip, Asset(null), 0, Rate).Reason);
+        // D055 §1: the recording zero is never read — a video with Z and no file time has no heart rate.
+        Assert.Equal(TrainingReadoutReason.NoFileTime, TrainingAlignment.ReadoutAt(training, clip, Asset(zero), 250, Rate).Reason);
+        var tagged = Asset(null);                                                   // a tag without the duration: not the first frame's time
         tagged.Metadata = new MediaMetadata { RecordingTimeProbe = RecordingTimeProbe.Found("2026-09-27T07:03:39Z", RecordingTimeTagOrigin.Format) };
-        Assert.Equal(TrainingReadoutReason.RecordingStartUnknown, TrainingAlignment.ReadoutAt(training, clip, tagged, 250, Rate).Reason);
-        Assert.Equal(TrainingReadoutReason.OutsideClip, TrainingAlignment.ReadoutAt(training, clip, Asset(zero), 9999, Rate).Reason);
+        Assert.Equal(TrainingReadoutReason.NoFileTime, TrainingAlignment.ReadoutAt(training, clip, tagged, 250, Rate).Reason);
+        // The tag gives 07:02:39, the name (UTC+3) 07:00:00: an edited file.
+        var edited = FileTimed(zero, "video_20260927_100000.mp4");
+        Assert.Equal(TrainingReadoutReason.FileTimesDisagree, TrainingAlignment.ReadoutAt(training, clip, edited, 250, Rate).Reason);
+        Assert.Equal(TrainingReadoutReason.OutsideClip, TrainingAlignment.ReadoutAt(training, clip, FileTimed(zero), 9999, Rate).Reason);
 
-        var at10s = TrainingAlignment.ReadoutAt(training, clip, Asset(zero), 250, Rate);  // 10 s in
+        var at10s = TrainingAlignment.ReadoutAt(training, clip, FileTimed(zero), 250, Rate);  // 10 s in
         Assert.Equal((CorosFixture.Start.AddSeconds(10), 110), (at10s.WatchTime!.Value, at10s.Bpm!.Value));
 
-        var inPause = TrainingAlignment.ReadoutAt(training, clip, Asset(zero), 625, Rate); // 25 s in: the timer paused 20 → 30
+        var inPause = TrainingAlignment.ReadoutAt(training, clip, FileTimed(zero), 625, Rate); // 25 s in: the timer paused 20 → 30
         Assert.Equal(TrainingReadoutReason.NoSample, inPause.Reason);
 
         training.Availability = TrainingAvailability.Missing;
         training.Workout = null;
-        Assert.Equal(TrainingReadoutReason.TrainingNotAvailable, TrainingAlignment.ReadoutAt(training, clip, Asset(zero), 250, Rate).Reason);
+        Assert.Equal(TrainingReadoutReason.TrainingNotAvailable, TrainingAlignment.ReadoutAt(training, clip, FileTimed(zero), 250, Rate).Reason);
     }
 }

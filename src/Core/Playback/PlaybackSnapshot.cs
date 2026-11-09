@@ -75,24 +75,27 @@ public sealed record PictureSpan(
         init => Outlines = value is null ? ImmutableArray<HoldOutline>.Empty : ImmutableArray.Create(value);
     }
 
-    /// <summary>The heart rate of the clip's picture (Phase 35.5): set for a video clip when the project's training is
-    /// usable and the video's recording zero is known; null otherwise — a heart-rate overlay above it then shows nothing.
-    /// Presentation only.</summary>
+    /// <summary>The heart rate of the clip's picture (Phase 35.5, D055 §1): set for a video clip when the project's training
+    /// is usable and the video's file gives a reliable time; null otherwise — a heart-rate overlay above it then shows
+    /// nothing. Never depends on the recording zero <c>Z</c>. Presentation only.</summary>
     public HeartRateBinding? HeartRate { get; init; }
 }
 
 /// <summary>
-/// What maps a video clip's frames to the training's heart rate (D049 §6, Phase 35.5): the parsed training (immutable), the
-/// video's recording zero <see cref="Zero"/> in camera time and the training's <see cref="ClockCorrection"/>. Resolved
-/// once when the snapshot is built; per frame only the source time and a binary search of the samples remain.
+/// What maps a video clip's frames to the training's heart rate (D055 §1): the parsed training (immutable), the time of
+/// the video file's first frame <see cref="Zero"/> (<c>T_file</c>, by the file's tag or name — never the recording zero
+/// <c>Z</c>) and the training's <see cref="ClockCorrection"/>. Resolved once when the snapshot is built; per frame only the
+/// source time and a binary search of the samples remain.
 /// </summary>
 public sealed record HeartRateBinding(ClimbingWorkout Workout, DateTimeOffset Zero, MediaTime ClockCorrection)
 {
     /// <summary>The BPM <paramref name="span"/> shows on timeline <paramref name="frame"/> (the clip's exact source-time
     /// rule, D009 / D022), or null — <see cref="TrainingAlignment.HeartRateAtSource"/>.</summary>
     public int? At(PictureSpan span, long frame, FrameRate rate) =>
-        TrainingAlignment.HeartRateAtSource(Workout, Zero, ClockCorrection,
-            HoldAnimationRule.SourceTimeAt(span.TimelineStart, span.SourceIn, span.Speed, frame, rate));
+        AtSource(HoldAnimationRule.SourceTimeAt(span.TimelineStart, span.SourceIn, span.Speed, frame, rate));
+
+    /// <summary>The BPM at the video's source time <paramref name="sourceTime"/>, or null.</summary>
+    public int? AtSource(MediaTime sourceTime) => TrainingAlignment.HeartRateAtSource(Workout, Zero, ClockCorrection, sourceTime);
 }
 
 /// <summary>
@@ -154,6 +157,23 @@ public sealed record TemplateSpan(Guid ClipId, MediaTime TimelineStart, MediaTim
 {
     public long FadeInFrames { get; init; }
     public long FadeOutFrames { get; init; }
+
+    /// <summary>D055 §4: a green route area's heart-rate source — set for a «Боулдер» anchored to a video clip that shows
+    /// the heart rate while the project has a training; null otherwise.</summary>
+    public TemplateHeartRate? HeartRate { get; init; }
+}
+
+/// <summary>
+/// What a green route area (a «Боулдер» anchored to a video clip, D055 §4) reads its heart rate from: its anchored clip —
+/// the clip's timing and its video's heart-rate binding by the file's time (null: no usable training, or no reliable file
+/// time; nothing is drawn). The area's span only limits where it is shown: the value of a frame is that of the anchored
+/// clip's picture at that frame, wherever the area's bounds are.
+/// </summary>
+public sealed record TemplateHeartRate(Guid ClipId, Guid AssetId, MediaTime ClipStart, MediaTime SourceIn, ClipSpeed Speed, HeartRateBinding? Binding)
+{
+    /// <summary>The BPM on timeline <paramref name="frame"/>, or null.</summary>
+    public int? At(long frame, FrameRate rate) =>
+        Binding?.AtSource(HoldAnimationRule.SourceTimeAt(ClipStart, SourceIn, Speed, frame, rate));
 }
 
 /// <summary>
@@ -324,7 +344,9 @@ public sealed class PlaybackSnapshot
                 frame ??= time.ToFrameFloor(FrameRate);
                 topDown.Add(new TemplateLayer(layer.TrackId, template, TemplateClock.At(template, frame.Value, FrameRate))
                 {
-                    HeartRate = template.Kind == TemplateKind.HeartRate ? HeartRateBelow(index, time, frame.Value) : null
+                    // D055 §4: a green route area shows its anchored clip's heart rate on its span.
+                    HeartRate = template.Kind == TemplateKind.HeartRate ? HeartRateBelow(index, time, frame.Value)
+                        : template.HeartRate?.At(frame.Value, FrameRate)
                 });
             }
         }

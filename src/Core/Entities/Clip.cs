@@ -181,6 +181,15 @@ public sealed class TemplateClip : Clip
     /// <summary>The heart-rate overlay: the corner of the canvas it stands in.</summary>
     public OverlayCorner Corner { get; set; } = OverlayCorner.BottomRight;
 
+    /// <summary>D055 §5 (format v16): whether a «Боулдер» shows the heart rate of its anchored clip on its span — on by
+    /// default, also for an older project's areas. With <see cref="Look"/>, <see cref="Corner"/> and
+    /// <see cref="HeartHex"/> the area's own heart-rate settings (those of the heart-rate overlay).</summary>
+    public bool ShowHeartRate { get; set; } = true;
+
+    /// <summary>D055 §5 (format v16): a «Боулдер»'s heart colour (its <see cref="AccentHex"/> is the route's colour). The
+    /// heart-rate overlay keeps its heart in <see cref="AccentHex"/> (Phase 35.5).</summary>
+    public string HeartHex { get; set; } = TemplateRules.HeartRateAccentHex;
+
     /// <summary>D048 §3.5 (format v10): the video clip this template belongs to — moved, copied and deleted with it, its
     /// intervals kept inside it; null: a free template (D045). One-directional: a video clip may have several.</summary>
     public Guid? AnchorClipId { get; set; }

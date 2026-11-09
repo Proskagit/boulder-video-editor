@@ -9,7 +9,10 @@ public enum TrainingReadoutReason
 {
     NoTraining,
     TrainingNotAvailable,
-    RecordingStartUnknown,
+    /// <summary>D055 §1: the video's file gives no time (no tag, no time in its name).</summary>
+    NoFileTime,
+    /// <summary>D055 §1: the file's tag and its name disagree by more than 5 s (an edited file).</summary>
+    FileTimesDisagree,
     OutsideClip,
     OutsideRecording,
     NoSample,
@@ -102,13 +105,16 @@ public static class TrainingAlignment
             .ToList();
     }
 
-    /// <summary>The watch time and heart rate shown by the clip at the timeline frame, or why there is none.</summary>
+    /// <summary>The watch time and heart rate shown by the clip at the timeline frame, or why there is none — by the file's
+    /// time (D055 §1, <see cref="FitRouteBinding.FileTimeOf"/>), never by the video's recording zero.</summary>
     public static TrainingReadout ReadoutAt(TrainingReference? training, VideoClip clip, MediaAsset asset, long frame, FrameRate rate)
     {
         if (training is null) return new(null, null, TrainingReadoutReason.NoTraining);
         if (!training.IsUsable) return new(null, null, TrainingReadoutReason.TrainingNotAvailable);
         if (!Covers(clip, frame, rate)) return new(null, null, TrainingReadoutReason.OutsideClip);
-        if (RecordingZeroEstimator.Resolve(asset).Utc is not { } zero) return new(null, null, TrainingReadoutReason.RecordingStartUnknown);
+        if (FitRouteBinding.FileTimeOf(asset, training.Workout!) is not { Zero: var zero })
+            return new(null, null, FitRouteBinding.FileTimesDisagree(asset, training.Workout!)
+                ? TrainingReadoutReason.FileTimesDisagree : TrainingReadoutReason.NoFileTime);
 
         var w = WatchTime(zero, SourceTimeAt(clip, frame, rate), training.ClockCorrection);
         var workout = training.Workout!;

@@ -47,11 +47,14 @@ public sealed class HeartRateOverlayUiTests : IAsyncLifetime
         _asset = new MediaAsset
         {
             FilePath = Path.Combine(Path.GetTempPath(), "aive-hr", Guid.NewGuid().ToString("N"), "climb.mp4"),
-            Kind = MediaKind.Video, AnalysisStatus = MediaAnalysisStatus.Completed, RecordingZeroOverrideUtc = T0.AddSeconds(10),
+            Kind = MediaKind.Video, AnalysisStatus = MediaAnalysisStatus.Completed,
             Metadata = new MediaMetadata
             {
                 Duration = MediaTime.FromSeconds(120), FrameRate = Rate, AvgFrameRate = Rate, Width = 1920, Height = 1080,
-                DisplayWidth = 1920, DisplayHeight = 1080
+                DisplayWidth = 1920, DisplayHeight = 1080,
+                // D055 §1: the file's time — its tag read as the end — puts its first frame 10 s into the training.
+                RecordingTimeProbe = RecordingTimeProbe.Found(T0.AddSeconds(130).UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ"),
+                    RecordingTimeTagOrigin.Format)
             }
         };
         _projects.Current.MediaAssets.Add(_asset);
@@ -156,7 +159,7 @@ public sealed class HeartRateOverlayUiTests : IAsyncLifetime
     }
 
     [Fact]
-    public void The_preview_follows_the_training_and_the_recording_zero()
+    public void The_preview_follows_the_training_and_never_the_recording_zero()
     {
         AddOverlay();
         Assert.Equal(115, PreviewValue(5));
@@ -171,7 +174,12 @@ public sealed class HeartRateOverlayUiTests : IAsyncLifetime
         _trainingService.NotifyChanged();
         Assert.Equal(115, PreviewValue(5));
 
-        Assert.True(_edit.SetRecordingZeroOverride(_asset.Id, T0.AddSeconds(40)).Success);   // a new zero: one undo step
+        // D055 §2: a new recording zero refines the route bounds only — the overlay's value stays on the file's time.
+        Assert.True(_edit.SetRecordingZeroOverride(_asset.Id, T0.AddSeconds(40)).Success);
+        Assert.Equal(115, PreviewValue(5));
+        _undo.Undo();
+        Assert.Equal(115, PreviewValue(5));
+        Assert.True(_edit.SetTrainingClockCorrection(MediaTime.FromSeconds(30)).Success);   // the clock correction moves it
         Assert.Equal(145, PreviewValue(5));
         _undo.Undo();
         Assert.Equal(115, PreviewValue(5));

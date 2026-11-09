@@ -2439,6 +2439,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             {
                 Kind = p.Kind, CounterStart = p.CounterStart, Date = p.Date, Route = p.Route, Grade = p.Grade, Status = p.Status,
                 AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAt = p.StatusAt, Look = p.Look, Corner = p.Corner,
+                ShowHeartRate = p.ShowHeartRate, HeartHex = p.HeartHex,
                 // D048 §3.5: kept by a split's right part (re-anchored by the split); remapped or cleared by a paste. D053: the
                 // route and the FIT climb go with it (cleared on a copy).
                 AnchorClipId = p.AnchorClipId, AnchorRouteId = p.AnchorRouteId, FitClimb = p.FitClimb

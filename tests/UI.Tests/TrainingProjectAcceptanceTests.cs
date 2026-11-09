@@ -89,7 +89,9 @@ public sealed class TrainingProjectAcceptanceTests : IAsyncLifetime
     private static int Bpm(double secondsSinceStart) => 100 + (int)Math.Floor(secondsSinceStart);
 
     /// <summary>A probed video file (a real, tiny file so the project sees it online) and its clip on V1.</summary>
-    private (MediaAsset Asset, VideoClip Clip) Video(string name, double startSeconds, double seconds)
+    /// <param name="fileStart">D055 §1: the time of the file's first frame by its recording-time tag (read as the end of
+    /// its 120 s); null — the file gives none.</param>
+    private (MediaAsset Asset, VideoClip Clip) Video(string name, double startSeconds, double seconds, DateTimeOffset? fileStart = null)
     {
         var path = Path.Combine(_folder, name);
         File.WriteAllBytes(path, new byte[] { 0, 0, 0, 24 });
@@ -99,7 +101,10 @@ public sealed class TrainingProjectAcceptanceTests : IAsyncLifetime
             Metadata = new MediaMetadata
             {
                 Duration = MediaTime.FromSeconds(120), FrameRate = Rate, AvgFrameRate = Rate, Width = 64, Height = 36,
-                DisplayWidth = 64, DisplayHeight = 36, DisplayRotation = 0, VideoCodec = "h264", StartTime = MediaTime.Zero
+                DisplayWidth = 64, DisplayHeight = 36, DisplayRotation = 0, VideoCodec = "h264", StartTime = MediaTime.Zero,
+                RecordingTimeProbe = fileStart is { } first
+                    ? RecordingTimeProbe.Found(first.AddSeconds(120).UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ"), RecordingTimeTagOrigin.Format)
+                    : null
             }
         };
         _projects.Current.MediaAssets.Add(asset);
@@ -113,12 +118,13 @@ public sealed class TrainingProjectAcceptanceTests : IAsyncLifetime
         return (asset, clip);
     }
 
-    /// <summary>Video A (timeline 0–40 s, its zero at <see cref="Start"/> + 5 s) and B (40–60 s, zero + 32 s), both
-    /// overridden through the edit service, and the training imported through the workflow.</summary>
+    /// <summary>Video A (timeline 0–40 s, its file's time and its zero at <see cref="Start"/> + 5 s) and B (40–60 s, + 32 s),
+    /// both overridden through the edit service (the overrides are part of the rows; since D055 the heart rate follows the
+    /// files' time, never the overrides), and the training imported through the workflow.</summary>
     private async Task<(MediaAsset A, MediaAsset B)> SessionAsync(string fit = "a.fit")
     {
-        var (a, _) = Video("a.mp4", 0, 40);
-        var (b, _) = Video("b.mp4", 40, 20);
+        var (a, _) = Video("a.mp4", 0, 40, Start.AddSeconds(5));
+        var (b, _) = Video("b.mp4", 40, 20, Start.AddSeconds(32));
         Assert.True(_edit.SetRecordingZeroOverride(a.Id, Start.AddSeconds(5)).Success);
         Assert.True(_edit.SetRecordingZeroOverride(b.Id, Start.AddSeconds(32)).Success);
         _picker.Files.Enqueue(Fit(fit));
@@ -381,14 +387,21 @@ public sealed class TrainingProjectAcceptanceTests : IAsyncLifetime
             vm.Timeline.SelectClipFromPreview(ClipOf(b).Id);
             At(59);                                                               // w = start + 51 s
             Assert.Equal(Value(51), vm.Inspector.TrainingReadout);
+            At(59.5);                                                             // w = start + 51.5 s
+            var byFileTime = vm.Inspector.TrainingReadout;
+            // D055 §2: a new recording zero refines the route bounds only — the readout stays on the file's time.
             Assert.True(_edit.SetRecordingZeroOverride(b.Id, Start.AddSeconds(50)).Success);
+            At(59.5);
+            Assert.Equal(byFileTime, vm.Inspector.TrainingReadout);
+            Assert.True(_edit.SetTrainingClockCorrection(MediaTime.FromSeconds(18)).Success);
             At(59.5);                                                             // w = start + 69.5 s: after the recording
             Assert.Equal(Reason(string.Format(Strings.Readout_OutsideRecording, TrainingText.WatchClock(Start.AddSeconds(69.5), workout.UtcOffset))),
                 vm.Inspector.TrainingReadout);
+            Assert.True(_edit.SetTrainingClockCorrection(MediaTime.Zero).Success);
 
             vm.Timeline.SelectClipFromPreview(ClipOf(c).Id);                     // the unaligned clip
             At(65);
-            Assert.Equal(Reason(Strings.Readout_RecordingStartUnknown), vm.Inspector.TrainingReadout);
+            Assert.Equal(Reason(Strings.Readout_NoFileTime), vm.Inspector.TrainingReadout);
 
             vm.Timeline.SelectClipFromPreview(ClipOf(a).Id);
             _projects.Current.Training!.Availability = TrainingAvailability.Missing;
