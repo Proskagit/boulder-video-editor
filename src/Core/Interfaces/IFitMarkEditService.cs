@@ -23,12 +23,17 @@ public interface IFitMarkEditService
 
     /// <summary>«Связать с FIT-подъёмом»: links an unlinked Duration hold animation (of any video) to an active climb
     /// without a link.</summary>
-    TimelineEditResult LinkFitClimb(ClimbIdentity climb, Guid clipId);
+    TimelineEditResult LinkFitClimb(ClimbIdentity climb, Guid clipId, Guid? routeId = null);
 
     /// <summary>«Снять FIT-связь»: removes the climb's link; the animation is unchanged.</summary>
     TimelineEditResult UnlinkFitClimb(ClimbIdentity climb);
 
     /// <summary>«Разметить трассу от метки»: the D048 layout of the clip with <c>T</c> on the mark's frame and the clip
     /// linked to the climb, in one step.</summary>
-    TimelineEditResult LayOutRouteFromMark(ClimbIdentity climb, Guid clipId);
+    TimelineEditResult LayOutRouteFromMark(ClimbIdentity climb, Guid clipId, Guid? routeId = null);
+
+    /// <summary>D053 §7 (mode B): one route with its green only for every active FIT climb without one, on the clip that
+    /// shows its start — from the layout's start before it to its end plus 5 s; no holds, no animation, no status. One
+    /// Undo step; with nothing new no step and a message.</summary>
+    TimelineEditResult CreateRoutesFromFit();
 }

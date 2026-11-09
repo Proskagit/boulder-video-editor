@@ -407,8 +407,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
             clips.AddRange(AnchoredTemplates(plan, video).Where(p => !clips.Contains(p)));
         var copies = clips.ToDictionary(c => c, CopyWithLink);
         foreach (var copy in copies.Values.OfType<TemplateClip>())
+        {
             copy.AnchorClipId = copy.AnchorClipId is { } anchor && copies.FirstOrDefault(p => p.Key.Id == anchor).Value is { } copiedVideo
                 ? copiedVideo.Id : null;
+            // D053: the copy's route is the copied route (its id kept on the copied clip); a copy is never the FIT's route.
+            if (copy.AnchorClipId is null) copy.AnchorRouteId = null;
+            copy.FitClimb = null;
+        }
         var entries = clips.OrderBy(c => c.TimelineStart)
             .Select(c => new TimelineClipboardEntry(copies[c], plan.TrackOf(c).Id))
             .ToList();
@@ -475,7 +480,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
         var pastedOf = clipboard.Entries.Zip(placed).ToDictionary(p => p.First.Clip.Id, p => p.Second.Clip.Id);
         foreach (var (pasted, _) in placed)
             if (pasted is TemplateClip template)
+            {
                 template.AnchorClipId = template.AnchorClipId is { } anchor && pastedOf.TryGetValue(anchor, out var video) ? video : null;
+                if (template.AnchorClipId is null) template.AnchorRouteId = null;
+                template.FitClimb = null;
+            }
 
         // D051 §5.4 (B1): never a second copy of a markup linked to a FIT climb.
         if (DuplicatesFitMarkup(clipboard)) return TimelineEditResult.Fail(string.Format(Messages.Edit_PasteDuplicateFitMarkup, verb));
@@ -696,7 +705,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
     private static bool HasLinkedOverlays(EditPlan plan, Clip clip)
     {
         foreach (var c in new[] { clip, PartnerOf(plan, clip) })
-            if (c is VideoClip video && (video.HoldMarkup?.Animation is { Mode: HoldAnimationMode.Duration } || AnchoredTemplates(plan, video).Count > 0))
+            if (c is VideoClip video && (video.Routes.Any(r => r.Animation is { Mode: HoldAnimationMode.Duration }) || AnchoredTemplates(plan, video).Count > 0))
                 return true;
         return false;
     }
@@ -1628,6 +1637,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
             fade ?? before.Fade,
             change.Template ?? before.Template);
 
+        // D053: Top / Attempt chosen where the status moment gives no lilac is put where the layout puts it.
+        if (clip is TemplateClip placed && after.Template is { } wanted && before.Template is { } had)
+            after = after with { Template = PlaceStatusMoment(placed, had, wanted) };
         var fields = ClipPropertyValues.Diff(before, after);
         if (fields == ClipPropertyFields.None) return TimelineEditResult.Unchanged();
         // D048 §3.4 / §4.2: an anchored template's status never overlaps its clip's plate or hold animation, and is never
@@ -1769,9 +1781,13 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (asset.RecordingZeroOverrideUtc == utc) return TimelineEditResult.Unchanged();
         IUndoableCommand command = new SetRecordingZeroOverrideCommand(asset, asset.RecordingZeroOverrideUtc, utc);
         // D051 §5.5 (B3): the proposals of the new Z are part of the same step.
-        if (ProposalsForZero(asset, utc) is { } proposals)
+        var proposals = ProposalsForZero(asset, utc);
+        if (proposals is not null)
             command = new CompositeCommand(command.Description, new[] { command, proposals });
         ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
+        // D053 §7 (mode B): the climbs the new Z puts on the timeline get their green route areas — a step of its own.
+        if (proposals is not null && CreateRoutesFromFit() is { Success: true, NoChange: false } created)
+            return TimelineEditResult.Ok(created.ClipIds, created.Message);
         return TimelineEditResult.Ok();
     }
 
@@ -2402,8 +2418,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 MediaAssetId = v.MediaAssetId, Speed = v.Speed, PositionX = v.PositionX, PositionY = v.PositionY,
                 Scale = v.Scale, RotationDegrees = v.RotationDegrees, Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted,
                 Crop = v.Crop, IsAudioDetached = v.IsAudioDetached,
-                // D034 §6: the markup goes with the copy; it is immutable, so the two clips stay independent.
-                HoldMarkup = v.HoldMarkup
+                // D034 §6 / D053: the routes go with the copy; they are immutable, so the two clips stay independent.
+                Routes = v.Routes
             },
             AudioClip a => new AudioClip { MediaAssetId = a.MediaAssetId, Speed = a.Speed, Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClip i => new ImageClip
@@ -2422,8 +2438,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
             {
                 Kind = p.Kind, CounterStart = p.CounterStart, Date = p.Date, Route = p.Route, Grade = p.Grade, Status = p.Status,
                 AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAt = p.StatusAt, Look = p.Look, Corner = p.Corner,
-                // D048 §3.5: kept by a split's right part (re-anchored by the split); remapped or cleared by a paste.
-                AnchorClipId = p.AnchorClipId
+                // D048 §3.5: kept by a split's right part (re-anchored by the split); remapped or cleared by a paste. D053: the
+                // route and the FIT climb go with it (cleared on a copy).
+                AnchorClipId = p.AnchorClipId, AnchorRouteId = p.AnchorRouteId, FitClimb = p.FitClimb
             },
             _ => throw new NotSupportedException($"Unknown clip type {source.GetType().Name}.")
         };

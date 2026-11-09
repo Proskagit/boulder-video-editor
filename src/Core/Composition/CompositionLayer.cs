@@ -61,7 +61,15 @@ public sealed record PictureLayer(Guid TrackId, PictureSpan Span, LayerGeometry?
     /// <summary>The opacity of each contour of <see cref="PictureSpan.Outline"/> on this frame (D036), by hold index, on
     /// top of the layer's <see cref="CompositionLayer.Opacity"/>; default (not set): every contour fully shown — an outline
     /// without animation.</summary>
-    public ImmutableArray<double> OutlineOpacities { get; init; }
+    public ImmutableArray<double> OutlineOpacities
+    {
+        get => RouteOpacities.IsDefaultOrEmpty ? default : RouteOpacities[0];
+        init => RouteOpacities = value.IsDefault ? default : ImmutableArray.Create(value);
+    }
+
+    /// <summary>D053: <see cref="OutlineOpacities"/> for each outline of <see cref="PictureSpan.Outlines"/>, by its index (a
+    /// default entry: that outline is not animated); default: none is.</summary>
+    public ImmutableArray<ImmutableArray<double>> RouteOpacities { get; init; }
 }
 
 /// <summary>

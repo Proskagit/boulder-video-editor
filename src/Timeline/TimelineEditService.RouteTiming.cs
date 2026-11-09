@@ -7,37 +7,45 @@ using AiVideoEditor.Timeline.Commands;
 
 namespace AiVideoEditor.Timeline;
 
-// --- Route timing (D048 stage 2) --------------------------------------------------------------------------------------
+// --- Route timing (D048 stage 2; D053 — per route) --------------------------------------------------------------------
 // The standard layout (§3.4) and the overlay rules that follow a video clip's edits (§3.5, §3.6, §3.8): a «Боулдер»
-// anchored to the clip (TemplateClip.AnchorClipId) and the clip's own Duration-mode hold animation. Everything is planned
-// in the same EditPlan as the edit itself, so one Undo restores the clip with its overlays. In timeline frames: the clip
-// [Vs, Ve), the green [Ps, S), the orange [As, Ae) (Ae = T), the lilac [S, Pe).
+// anchored to a route of the clip (TemplateClip.AnchorClipId + AnchorRouteId) and that route's Duration-mode hold animation.
+// Everything is planned in the same EditPlan as the edit itself, so one Undo restores the clip with its overlays. In
+// timeline frames: the clip [Vs, Ve), a route's green [Ps, Pe) (its plate; the lilac [S, Pe) at its end), its orange
+// [As, Ae) (Ae = T). D053 §4: the orange lives inside its route's green — Ps ≤ As < Ae ≤ Pe.
 public sealed partial class TimelineEditService
 {
     private static readonly MediaTime LayoutIntro = MediaTime.FromSeconds(7);
     private static readonly MediaTime LayoutFinal = MediaTime.FromSeconds(5);
+
+    /// <summary>D053 §7 (no FIT): the default length of a new route's green, from its start — the typical climb of 30–40 s;
+    /// the user moves its end.</summary>
+    public static readonly MediaTime DefaultGreenLength = MediaTime.FromSeconds(35);
 
     /// <summary>The shortest lilac that shows Top / Attempt (§1.25): the status draws nothing on its moment's frame (D045
     /// §17), so a manual status needs this many timeline frames from <c>S</c> to the template's end.</summary>
     private const long MinStatusFrames = 2;
 
     /// <summary>
-    /// "Lay out intro and final" (D048 §3.4): from <paramref name="t"/> (<c>T ∈ [Vs, Ve]</c>) on a video clip with holds —
-    /// the hold animation in the Duration mode on <c>[T − Fa, T)</c> and an anchored «Боулдер» from <c>T − I</c> to the clip's
-    /// end with its status moment <c>S = max(Ve − 5 s, T, Ps + 1 frame)</c> (no status when <c>Ve − S</c> is under two
-    /// frames, §1.25), where
-    /// <c>I = min(7 s, A)</c>, <c>Fa = ⌊(10·I + 7) / 14⌋</c>. One Undo step; an existing Duration animation and anchored
-    /// «Боулдер» are updated, never duplicated. With no time before <c>T</c> no animation is made and the result says so.
+    /// "Lay out intro and final" (D048 §3.4, D053 §7): from <paramref name="t"/> (<c>T ∈ [Vs, Ve]</c>) on a route with holds —
+    /// the hold animation in the Duration mode on <c>[T − Fa, T)</c> and the route's «Боулдер» from <c>T − I</c> to
+    /// <c>Pe</c> with its status moment <c>S = max(Pe − 5 s, T, Ps + 1 frame)</c> (no status when <c>Pe − S</c> is under two
+    /// frames, §1.25), where <c>I = min(7 s, A)</c>, <c>Fa = ⌊(10·I + 7) / 14⌋</c>. <c>Pe</c>: the route's existing green
+    /// end when it lies after <c>T</c> (a green set by hand or by the FIT import), otherwise
+    /// <c>min(Ve, max(Ps + 35 s, T + 5 s))</c>. One Undo step; an existing Duration animation and the route's «Боулдер» are
+    /// updated, never duplicated. With no time before <c>T</c> no animation is made and the result says so.
     /// </summary>
-    public TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t) => LayOutIntroAndFinal(videoClipId, t, null, null);
+    public TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t, Guid? routeId = null) =>
+        LayOutIntroAndFinal(videoClipId, t, routeId, null, null);
 
-    /// <summary>As <see cref="LayOutIntroAndFinal(Guid, MediaTime)"/>, with <paramref name="also"/> — told whether an
+    /// <summary>As <see cref="LayOutIntroAndFinal(Guid, MediaTime, Guid?)"/>, with <paramref name="also"/> — told whether an
     /// animation is made — adding a command to the same step (D051 §8.2: «Разметить трассу от метки» links the clip).</summary>
-    private TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t, IReadOnlySet<Core.Telemetry.ClimbIdentity>? keep,
-        Func<bool, IUndoableCommand?>? also)
+    private TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t, Guid? routeId, IReadOnlySet<Core.Telemetry.ClimbIdentity>? keep,
+        Func<bool, Guid, IUndoableCommand?>? also)
     {
         if (MarkupClip(videoClipId, out var video) is { } clipError) return TimelineEditResult.Fail(clipError);
-        if (video.HoldMarkup is not { Holds.Length: > 0 } markup) return TimelineEditResult.Fail(Messages.Layout_NoHolds);
+        if (MarkupRoute(video, routeId, create: true, out var rid, out var markup) is { } routeError) return TimelineEditResult.Fail(routeError);
+        if (markup is not { Holds.Length: > 0 }) return TimelineEditResult.Fail(Messages.Layout_NoHolds);
 
         var plan = new EditPlan(Sequence, Settings);
         var rate = plan.Rate;
@@ -49,7 +57,12 @@ public sealed partial class TimelineEditService
         var intro = Math.Min(LayoutIntro.ToNearestFrame(rate), available);
         var animationFrames = (10 * intro + 7) / 14;
         var ps = tf - intro;
-        var s = Math.Max(Math.Max(ve - LayoutFinal.ToNearestFrame(rate), tf), ps + 1);
+        var template = RouteTemplates(plan, video, rid).Where(p => p.Kind == TemplateKind.Boulder).OrderBy(p => p.TimelineStart).FirstOrDefault();
+        var existingEnd = template?.TimelineEnd.ToNearestFrame(rate);
+        var pe = existingEnd is { } end && end > tf
+            ? Math.Min(end, ve)
+            : Math.Min(ve, Math.Max(ps + DefaultGreenLength.ToNearestFrame(rate), tf + LayoutFinal.ToNearestFrame(rate)));
+        var s = Math.Max(Math.Max(pe - LayoutFinal.ToNearestFrame(rate), tf), ps + 1);
 
         // The animation: [T − Fa, T) in the Duration mode (its order kept when it already was one).
         if (animationFrames >= 1)
@@ -62,13 +75,12 @@ public sealed partial class TimelineEditService
                 StartSourceTime = HoldAnimationRule.SourceTimeAt(state.Start, state.SourceIn, state.Speed, tf - animationFrames, rate)
             };
             if (HoldMarkupRules.ValidateAnimation(animation) is { } invalid) return TimelineEditResult.Fail(invalid);
-            plan.SetMarkup(video, markup with { Animation = animation });
+            plan.SetRoute(video, rid, markup with { Animation = animation });
         }
 
-        // The anchored «Боулдер»: updated when there is one, otherwise new on a track above the clip.
+        // The route's «Боулдер»: updated when there is one, otherwise new on a track above the clip.
         IUndoableCommand? addTrack = null;
-        var template = AnchoredTemplates(plan, video).FirstOrDefault(p => p.Kind == TemplateKind.Boulder);
-        var timing = ClipState.FromFrames(ps, ve, MediaTime.Zero, rate);
+        var timing = ClipState.FromFrames(ps, pe, MediaTime.Zero, rate);
         if (template is not null)
         {
             var track = plan.TrackOf(template);
@@ -79,43 +91,61 @@ public sealed partial class TimelineEditService
             plan.SetTemplateFields(template, fields with
             {
                 StatusAt = StatusAtFor(template, s - ps, rate),
-                Status = ve - s < MinStatusFrames ? BoulderStatus.None : fields.Status
+                Status = pe - s < MinStatusFrames ? BoulderStatus.None : fields.Status
             });
         }
         else
         {
-            var defaults = TemplateRules.Defaults(TemplateKind.Boulder);
-            template = new TemplateClip
-            {
-                Kind = TemplateKind.Boulder, Date = defaults.Date, Route = defaults.Route, Grade = defaults.Grade,
-                Status = ve - s < MinStatusFrames ? BoulderStatus.None : defaults.Status, AccentHex = defaults.AccentHex, Title = defaults.Title,
-                Subtitle = defaults.Subtitle, StatusAt = MediaTime.FromFrame(s - ps, rate), AnchorClipId = video.Id
-            };
-            timing.ApplyTo(template);
-            var (fadeIn, fadeOut) = TemplateRules.Animation(TemplateKind.Boulder);
-            var frames = ve - ps;
-            template.FadeIn = MediaTime.FromFrame(Math.Clamp(MediaTime.FromSeconds(fadeIn).ToNearestFrame(rate), 0, frames), rate);
-            template.FadeOut = MediaTime.FromFrame(Math.Clamp(MediaTime.FromSeconds(fadeOut).ToNearestFrame(rate), 0, frames), rate);
-
-            var videoTrack = plan.TrackOf(video);
-            var above = Sequence.VideoTracks.Where(tr => tr.Order > videoTrack.Order && !tr.IsLocked)
-                .OrderBy(tr => tr.Order)
-                .FirstOrDefault(tr => tr.Clips.All(c => c.TimelineEnd.ToNearestFrame(rate) <= ps || c.TimelineStart.ToNearestFrame(rate) >= ve));
-            if (above is null)
-            {
-                above = NewTrack(TrackType.Video);
-                addTrack = new AddTrackCommand(Sequence, above);
-            }
-            plan.Insert(above, template);
+            template = NewRouteTemplate(video.Id, rid, ps, pe, s, rate);
+            if (PlaceRouteTemplate(plan, video, template, ps, pe, out addTrack) is { } placeError) return TimelineEditResult.Fail(placeError);
         }
 
         if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantAddTemplate, plan.TrackOf(video).Name, error));
 
         IUndoableCommand command = plan.BuildCommand("Lay Out Intro and Final");
         if (addTrack is not null) command = new CompositeCommand("Lay Out Intro and Final", new[] { addTrack, command });
-        if (also?.Invoke(animationFrames >= 1) is { } extra) command = new CompositeCommand("Lay Out Intro and Final", new[] { command, extra });
+        if (also?.Invoke(animationFrames >= 1, rid) is { } extra) command = new CompositeCommand("Lay Out Intro and Final", new[] { command, extra });
         ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged), keep);
         return TimelineEditResult.Ok(new[] { video.Id, template.Id }, animationFrames >= 1 ? null : Messages.Layout_NoAnimationTime);
+    }
+
+    /// <summary>A new «Боулдер» for route <paramref name="routeId"/> of clip <paramref name="clipId"/> on <c>[ps, pe)</c> with
+    /// its status moment on frame <paramref name="s"/> (no status when fewer than two frames follow it, §1.25).</summary>
+    private static TemplateClip NewRouteTemplate(Guid clipId, Guid routeId, long ps, long pe, long s, FrameRate rate)
+    {
+        var defaults = TemplateRules.Defaults(TemplateKind.Boulder);
+        var template = new TemplateClip
+        {
+            Kind = TemplateKind.Boulder, Date = defaults.Date, Route = defaults.Route, Grade = defaults.Grade,
+            Status = pe - s < MinStatusFrames ? BoulderStatus.None : defaults.Status, AccentHex = defaults.AccentHex, Title = defaults.Title,
+            Subtitle = defaults.Subtitle, StatusAt = MediaTime.FromFrame(s - ps, rate), AnchorClipId = clipId, AnchorRouteId = routeId
+        };
+        ClipState.FromFrames(ps, pe, MediaTime.Zero, rate).ApplyTo(template);
+        var (fadeIn, fadeOut) = TemplateRules.Animation(TemplateKind.Boulder);
+        var frames = pe - ps;
+        template.FadeIn = MediaTime.FromFrame(Math.Clamp(MediaTime.FromSeconds(fadeIn).ToNearestFrame(rate), 0, frames), rate);
+        template.FadeOut = MediaTime.FromFrame(Math.Clamp(MediaTime.FromSeconds(fadeOut).ToNearestFrame(rate), 0, frames), rate);
+        return template;
+    }
+
+    /// <summary>Inserts a route's new «Боулдер» on the first unlocked track above its clip that is free on
+    /// <c>[ps, pe)</c> (also of templates the same plan places there), or on a new track (<paramref name="addTrack"/>).</summary>
+    private string? PlaceRouteTemplate(EditPlan plan, VideoClip video, TemplateClip template, long ps, long pe, out IUndoableCommand? addTrack)
+    {
+        addTrack = null;
+        var rate = plan.Rate;
+        var videoTrack = plan.TrackOf(video);
+        var above = Sequence.VideoTracks.Where(tr => tr.Order > videoTrack.Order && !tr.IsLocked)
+            .OrderBy(tr => tr.Order)
+            .FirstOrDefault(tr => plan.EffectiveClips(tr).All(c =>
+                c.State.End.ToNearestFrame(rate) <= ps || c.State.Start.ToNearestFrame(rate) >= pe));
+        if (above is null)
+        {
+            above = NewTrack(TrackType.Video);
+            addTrack = new AddTrackCommand(Sequence, above);
+        }
+        plan.Insert(above, template);
+        return null;
     }
 
     // --- The overlay rules of an edit ----------------------------------------------------------------------------------
@@ -123,6 +153,13 @@ public sealed partial class TimelineEditService
     /// <summary>The templates anchored to <paramref name="video"/> (D048 §3.5 — each one handled separately).</summary>
     private static List<TemplateClip> AnchoredTemplates(EditPlan plan, VideoClip video) =>
         plan.AllTracks.SelectMany(t => t.Clips).OfType<TemplateClip>().Where(p => plan.AnchorOf(p) == video.Id).ToList();
+
+    /// <summary>D053: the templates anchored to route <paramref name="routeId"/> of <paramref name="video"/>.</summary>
+    private static List<TemplateClip> RouteTemplates(EditPlan plan, VideoClip video, Guid routeId) =>
+        AnchoredTemplates(plan, video).Where(p => RouteIdOf(p, video) == routeId).ToList();
+
+    /// <summary>D053: the route a template anchored to <paramref name="video"/> belongs to (null: none it can be told to).</summary>
+    private static Guid? RouteIdOf(TemplateClip template, VideoClip video) => RouteOverlays.RouteIdOf(template.AnchorRouteId, video.Routes);
 
     /// <summary>The frames <c>[As, Ae)</c> of a Duration-mode animation of a clip at <paramref name="state"/>, or null.</summary>
     private static (long Start, long End)? OrangeOf(HoldMarkup? markup, ClipState state, FrameRate rate)
@@ -132,13 +169,24 @@ public sealed partial class TimelineEditService
         return (start, start + HoldAnimationRule.DurationFrames(animation, rate));
     }
 
+    /// <summary>The route's markup with its Duration animation moved to <c>[start, end)</c> on a clip at <paramref name="state"/>.</summary>
+    private static HoldMarkup WithOrange(HoldMarkup markup, ClipState state, long start, long end, FrameRate rate) => markup with
+    {
+        Animation = markup.Animation! with
+        {
+            StartSourceTime = HoldAnimationRule.SourceTimeAt(state.Start, state.SourceIn, state.Speed, start, rate),
+            Duration = MediaTime.FromFrame(end - start, rate)
+        }
+    };
+
     /// <summary>
     /// Plans what an edit does to the overlays of every video clip it changes (D048): a moved clip carries its anchored
-    /// templates (§3.5); a removed one takes them along; a speed change scales them and the Duration animation (§3.8); a
-    /// trim that cuts into a segment applies the protective rules (§3.8) — the segments it doesn't touch stay. A split is
-    /// planned by its own rule (<see cref="PlanSplitOverlays"/>); a slip touches nothing. Idempotent (computed from the
-    /// model's state), so it may run more than once for one plan. Then checks the templates the user edits directly
-    /// (§4.2): inside their clip, no overlap of the lilac.
+    /// templates (§3.5); a removed one takes them along; a speed change scales them and each route's Duration animation
+    /// (§3.8); a trim that cuts into a segment applies the protective rules (§3.8) — the segments it doesn't touch stay. A
+    /// split is planned by its own rule (<see cref="PlanSplitOverlays"/>); a slip touches nothing. Then the templates the
+    /// user edits directly (§4.2, D053 §4): the orange of their route follows its green, inside their clip, no overlap of
+    /// the lilac; finally every route's orange of a clip the plan touches is kept inside its green (D053 §4). Idempotent
+    /// (computed from the model's state), so it may run more than once for one plan.
     /// </summary>
     private string? ReconcileOverlays(EditPlan plan)
     {
@@ -148,7 +196,7 @@ public sealed partial class TimelineEditService
         {
             if (plan.IsSplitLeft(video)) continue;
             var templates = AnchoredTemplates(plan, video);
-            if (templates.Count == 0 && OrangeOf(video.HoldMarkup, ClipState.Capture(video), rate) is null) continue;
+            if (templates.Count == 0 && video.Routes.All(r => OrangeOf(r, ClipState.Capture(video), rate) is null)) continue;
 
             if (plan.Removes(video))
             {
@@ -161,7 +209,10 @@ public sealed partial class TimelineEditService
             if (after.Speed != before.Speed) PlanScaledOverlays(plan, video, templates, before, after);
             else PlanBoundsOverlays(plan, video, templates, before, after);
         }
-        return CheckAnchoredEdits(plan);
+        if (PlanGreenFollowers(plan) is { } followError) return followError;
+        if (CheckAnchoredEdits(plan) is { } error) return error;
+        KeepOrangesInGreens(plan);
+        return null;
     }
 
     /// <summary>§3.8, a boundary change at the same speed: the picture's shift moves the overlays (a move, a ripple), then
@@ -177,28 +228,28 @@ public sealed partial class TimelineEditService
         var shift = HoldAnimationRule.StartFrame(after.Start, after.SourceIn, after.Speed, before.SourceIn, rate) - vs;
         if (ve2 - vs2 == ve - vs && after.SourceIn == before.SourceIn) shift = vs2 - vs;   // a move
 
-        // The Duration animation: source-anchored, so the shift is its own; only the cuts change it.
-        var markup = video.HoldMarkup;
-        var orange = OrangeOf(markup, after, rate);
-        if (orange is { } o && markup is not null)
+        // Each route's Duration animation: source-anchored, so the shift is its own; only the cuts change it.
+        var oranges = new Dictionary<Guid, (long Start, long End)?>();
+        foreach (var markup in video.Routes)
         {
-            if (ve2 < o.End || vs2 >= o.End) { plan.SetMarkup(video, null); orange = null; }   // §3.9: the whole markup
-            else if (vs2 > o.Start)
+            var orange = OrangeOf(markup, after, rate);
+            if (orange is { } o)
             {
-                // Head trim into the orange: the rest [Vs', Ae), its 80 / 20 re-timed on F' (proportional), T kept.
-                var animation = markup.Animation! with
+                if (ve2 < o.End || vs2 >= o.End) { plan.SetRoute(video, markup.Id, null); orange = null; }   // §3.9: the whole markup
+                else if (vs2 > o.Start)
                 {
-                    StartSourceTime = HoldAnimationRule.SourceTimeAt(after.Start, after.SourceIn, after.Speed, vs2, rate),
-                    Duration = MediaTime.FromFrame(o.End - vs2, rate)
-                };
-                plan.SetMarkup(video, markup with { Animation = animation });
-                orange = (vs2, o.End);
+                    // Head trim into the orange: the rest [Vs', Ae), its 80 / 20 re-timed on F' (proportional), T kept.
+                    plan.SetRoute(video, markup.Id, WithOrange(markup, after, vs2, o.End, rate));
+                    orange = (vs2, o.End);
+                }
             }
+            oranges[markup.Id] = orange;
         }
 
         foreach (var template in templates)
         {
             if (plan.Changes(template) && !plan.Carried.Contains(template)) continue;   // edited by the user itself
+            var orange = RouteIdOf(template, video) is { } routeId && oranges.TryGetValue(routeId, out var own) ? own : null;
             var state = ClipState.Capture(template);
             var fields = TemplateProperties.Of(template)!.Value;
             long ps = state.Start.ToNearestFrame(rate) + shift, pe = state.End.ToNearestFrame(rate) + shift;
@@ -243,7 +294,7 @@ public sealed partial class TimelineEditService
     }
 
     /// <summary>§3.8, a speed change: every linked boundary <c>x' = Vs + ⌊(2·(x − Vs)·D' + D) / (2·D)⌋</c>; a green below one
-    /// frame kept at one frame, a too short orange deletes the markup, a lilac under two frames is deleted (§1.25).</summary>
+    /// frame kept at one frame, a too short orange deletes the route's markup, a lilac under two frames is deleted (§1.25).</summary>
     private void PlanScaledOverlays(EditPlan plan, VideoClip video, List<TemplateClip> templates, ClipState before, ClipState after)
     {
         var rate = plan.Rate;
@@ -252,12 +303,12 @@ public sealed partial class TimelineEditService
         if (d <= 0) return;
         long Scale(long x) => vs + (long)(((Int128)2 * (x - vs) * d2 + d) / (2 * d));
 
-        var markup = video.HoldMarkup;
-        if (OrangeOf(markup, before, rate) is { } o && markup is not null)
+        foreach (var markup in video.Routes)
         {
+            if (OrangeOf(markup, before, rate) is not { } o) continue;
             var end = Scale(o.End);
             var start = HoldAnimationRule.StartFrame(after.Start, after.SourceIn, after.Speed, markup.Animation!.StartSourceTime, rate);
-            plan.SetMarkup(video, end - start < 1 ? null : markup with { Animation = markup.Animation with { Duration = MediaTime.FromFrame(end - start, rate) } });
+            plan.SetRoute(video, markup.Id, end - start < 1 ? null : markup with { Animation = markup.Animation with { Duration = MediaTime.FromFrame(end - start, rate) } });
         }
 
         foreach (var template in templates)
@@ -290,16 +341,23 @@ public sealed partial class TimelineEditService
         }
     }
 
-    /// <summary>D048 §3.6 for one split clip: a Duration animation's markup goes only to the part that contains its start —
-    /// a cut inside it deletes the whole markup. Interval-mode markups keep D034 §6's copy.</summary>
+    /// <summary>D048 §3.6 for one split clip, for each route: a Duration animation's markup goes only to the part that
+    /// contains its start — a cut inside it deletes the whole markup. Interval-mode markups keep D034 §6's copy.</summary>
     private static void PlanSplitOverlays(EditPlan plan, Clip clip, ClipState state, Clip rightClip, long atFrame)
     {
         plan.MarkSplitLeft(clip);
         if (clip is not VideoClip video || rightClip is not VideoClip right) return;
-        if (OrangeOf(video.HoldMarkup, state, plan.Rate) is not { } orange) return;
-        if (atFrame <= orange.Start) plan.SetMarkup(video, null);                                   // all of it on the right
-        else if (atFrame < orange.End) { plan.SetMarkup(video, null); right.HoldMarkup = null; }    // inside: deleted
-        else right.HoldMarkup = null;                                                               // all of it on the left
+        foreach (var markup in video.Routes)
+        {
+            if (OrangeOf(markup, state, plan.Rate) is not { } orange) continue;
+            if (atFrame <= orange.Start) plan.SetRoute(video, markup.Id, null);                                   // all of it on the right
+            else if (atFrame < orange.End)                                                                         // inside: deleted
+            {
+                plan.SetRoute(video, markup.Id, null);
+                right.Routes = RouteOverlays.Replace(right.Routes, markup.Id, null);
+            }
+            else right.Routes = RouteOverlays.Replace(right.Routes, markup.Id, null);                             // all of it on the left
+        }
     }
 
     /// <summary>
@@ -390,23 +448,19 @@ public sealed partial class TimelineEditService
         return null;
     }
 
-    /// <summary>§3.8's head-trim rule for the markup of an Overwrite's right part (a planned clip, already at its place): the
-    /// orange wholly cut deletes the markup; cut into, the rest is kept from the new start (its 80 / 20 re-timed), T kept.</summary>
+    /// <summary>§3.8's head-trim rule for each route of an Overwrite's right part (a planned clip, already at its place):
+    /// the orange wholly cut deletes the route's markup; cut into, the rest is kept from the new start (its 80 / 20
+    /// re-timed), T kept.</summary>
     private static void TrimPlacedMarkup(VideoClip right, FrameRate rate)
     {
         var state = ClipState.Capture(right);
-        if (OrangeOf(right.HoldMarkup, state, rate) is not { } orange) return;
         var start = state.Start.ToNearestFrame(rate);
-        if (start >= orange.End) { right.HoldMarkup = null; return; }
-        if (start <= orange.Start) return;
-        right.HoldMarkup = right.HoldMarkup! with
+        foreach (var markup in right.Routes)
         {
-            Animation = right.HoldMarkup.Animation! with
-            {
-                StartSourceTime = HoldAnimationRule.SourceTimeAt(state.Start, state.SourceIn, state.Speed, start, rate),
-                Duration = MediaTime.FromFrame(orange.End - start, rate)
-            }
-        };
+            if (OrangeOf(markup, state, rate) is not { } orange) continue;
+            if (start >= orange.End) right.Routes = RouteOverlays.Replace(right.Routes, markup.Id, null);
+            else if (start > orange.Start) right.Routes = RouteOverlays.Replace(right.Routes, markup.Id, WithOrange(markup, state, start, orange.End, rate));
+        }
     }
 
     /// <summary>§3.6: the templates anchored to the split clips — spanning the cut (split with them) or wholly on its right
@@ -422,7 +476,8 @@ public sealed partial class TimelineEditService
                     yield return template;
     }
 
-    /// <summary>§3.6 after the split: each template's parts anchored to the video part they lie over.</summary>
+    /// <summary>§3.6 after the split: each template's parts anchored to the video part they lie over (their route kept —
+    /// the right part carries the same routes, D053).</summary>
     private static void AnchorSplitParts(EditPlan plan, IReadOnlyList<(Clip Left, Clip Right)> splits, long atFrame)
     {
         var rate = plan.Rate;
@@ -436,9 +491,98 @@ public sealed partial class TimelineEditService
                 plan.SetAnchor(template, rightVideo);
     }
 
+    /// <summary>
+    /// D053 §4: the green moved or resized by the user (a «Боулдер» it moves, trims or edits on the strip) leads its route's
+    /// orange — moved as a whole (the same length, shifted) the orange goes along by the same frames; resized, the orange is
+    /// cut to the new green (from the left when its start crosses, from the right when its end does); left with no frame in
+    /// the green, the route's markup is deleted (§3.9). An orange moved along that would leave its clip refuses the edit.
+    /// </summary>
+    private string? PlanGreenFollowers(EditPlan plan)
+    {
+        var rate = plan.Rate;
+        foreach (var video in plan.AllTracks.SelectMany(t => t.Clips).OfType<VideoClip>().ToList())
+        {
+            if (plan.Removes(video) || plan.IsSplitLeft(video)) continue;
+            var videoState = plan.PlannedState(video) ?? ClipState.Capture(video);
+            foreach (var markup in plan.RoutesOf(video).ToList())
+            {
+                if (OrangeOf(markup, videoState, rate) is not { } orange) continue;
+                // The route's green: the span of its «Боулдер» templates, as the model has it and as the plan leaves it.
+                if (Green(plan, video, markup.Id) is not { } after) continue;
+                var before = GreenNow(video, markup.Id, rate);
+                if (before == after || (orange.Start >= after.Start && orange.End <= after.End)) continue;   // inside: nothing
+
+                long start, end;
+                var moved = before is { } was && was.End - was.Start == after.End - after.Start && orange.Start >= was.Start && orange.End <= was.End;
+                if (moved)
+                {
+                    var shift = after.Start - before!.Value.Start;
+                    (start, end) = (orange.Start + shift, orange.End + shift);
+                    if (start < videoState.Start.ToNearestFrame(rate) || end > videoState.End.ToNearestFrame(rate))
+                        return Messages.Overlay_OrangeOutsideClip;
+                }
+                else (start, end) = (Math.Max(orange.Start, after.Start), Math.Min(orange.End, after.End));
+
+                plan.SetRoute(video, markup.Id, end <= start ? null : WithOrange(markup, videoState, start, end, rate));
+            }
+        }
+        return null;
+    }
+
+    /// <summary>D053: a route's green as the model has it now (the span of its «Боулдер» templates), or null.</summary>
+    private (long Start, long End)? GreenNow(VideoClip video, Guid routeId, FrameRate rate)
+    {
+        (long Start, long End)? green = null;
+        foreach (var template in Sequence.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>()
+                     .Where(t => t.Kind == TemplateKind.Boulder && t.AnchorClipId == video.Id && RouteIdOf(t, video) == routeId))
+        {
+            long ps = template.TimelineStart.ToNearestFrame(rate), pe = template.TimelineEnd.ToNearestFrame(rate);
+            green = green is { } g ? (Math.Min(g.Start, ps), Math.Max(g.End, pe)) : (ps, pe);
+        }
+        return green;
+    }
+
+    /// <summary>D053 §4 after the rules of an edit: the orange of every route of a clip the plan touches stays inside the
+    /// route's green (rounding of a scaled boundary, an older project): cut to it, the markup deleted when nothing is left.</summary>
+    private void KeepOrangesInGreens(EditPlan plan)
+    {
+        var rate = plan.Rate;
+        var touched = plan.AllTracks.SelectMany(t => t.Clips).OfType<VideoClip>()
+            .Where(v => !plan.Removes(v) && (plan.PlannedState(v) is not null || AnchoredTemplates(plan, v).Any(plan.Changes)))
+            .ToList();
+        foreach (var video in touched)
+        {
+            var state = plan.PlannedState(video) ?? ClipState.Capture(video);
+            foreach (var markup in plan.RoutesOf(video).ToList())
+            {
+                if (OrangeOf(markup, state, rate) is not { } orange) continue;
+                if (Green(plan, video, markup.Id) is not { } green) continue;
+                if (orange.Start >= green.Start && orange.End <= green.End) continue;
+                long start = Math.Max(orange.Start, green.Start), end = Math.Min(orange.End, green.End);
+                plan.SetRoute(video, markup.Id, end <= start ? null : WithOrange(markup, state, start, end, rate));
+            }
+        }
+    }
+
+    /// <summary>D053: the green <c>[Ps, Pe)</c> of a route as the plan leaves it — the span of its «Боулдер» templates — or
+    /// null when it has none (a route marked without a layout: its orange is bounded by the clip only).</summary>
+    private static (long Start, long End)? Green(EditPlan plan, VideoClip video, Guid routeId)
+    {
+        var rate = plan.Rate;
+        (long Start, long End)? green = null;
+        foreach (var (clip, state) in plan.AllEffectiveClips())
+        {
+            if (clip is not TemplateClip { Kind: TemplateKind.Boulder } template || plan.AnchorOf(template) != video.Id ||
+                RouteIdOf(template, video) != routeId) continue;
+            long ps = state.Start.ToNearestFrame(rate), pe = state.End.ToNearestFrame(rate);
+            green = green is { } g ? (Math.Min(g.Start, ps), Math.Max(g.End, pe)) : (ps, pe);
+        }
+        return green;
+    }
+
     /// <summary>§4.2 / §1.24, the invariant of the model for the templates the user edits directly (moved, trimmed, their
-    /// fields): an anchored template stays inside its clip, its lilac overlaps neither the green nor the orange, and a move
-    /// or trim never shortens a lilac with Top / Attempt below two frames nor cuts it away (§1.25).</summary>
+    /// fields): an anchored template stays inside its clip, its lilac overlaps neither the green nor its route's orange, and
+    /// a move or trim never shortens a lilac with Top / Attempt below two frames nor cuts it away (§1.25).</summary>
     private string? CheckAnchoredEdits(EditPlan plan)
     {
         var rate = plan.Rate;
@@ -454,8 +598,8 @@ public sealed partial class TimelineEditService
                 if (length < MinStatusFrames && length < LilacFrames(template, ClipState.Capture(template), fields, rate))
                     return Messages.Overlay_StatusTooShort;
             }
-            if (OverlayConflict(template, after, fields, plan.PlannedState(video) ?? ClipState.Capture(video),
-                    plan.MarkupOf(video), rate) is { } error)
+            var markup = RouteIdOf(template, video) is { } routeId ? plan.RouteOf(video, routeId) : null;
+            if (OverlayConflict(template, after, fields, plan.PlannedState(video) ?? ClipState.Capture(video), markup, rate) is { } error)
                 return error;
         }
         return null;
@@ -479,7 +623,7 @@ public sealed partial class TimelineEditService
         plan.AllTracks.SelectMany(t => t.Clips).OfType<VideoClip>().FirstOrDefault(v => v.Id == id);
 
     /// <summary>Why an anchored template at <paramref name="state"/> with <paramref name="fields"/> breaks the invariant
-    /// over its clip, or null: outside the clip; a lilac before one green frame or over the orange.</summary>
+    /// over its clip, or null: outside the clip; a lilac before one green frame or over its route's orange.</summary>
     private static string? OverlayConflict(TemplateClip template, ClipState state, TemplateProperties fields, ClipState video,
         HoldMarkup? markup, FrameRate rate)
     {
@@ -491,6 +635,29 @@ public sealed partial class TimelineEditService
         if (s < ps + 1) return Messages.Overlay_LilacOverlap;
         if (OrangeOf(markup, video, rate) is { } orange && s < orange.End && orange.Start < pe) return Messages.Overlay_LilacOverlap;
         return null;
+    }
+
+    /// <summary>
+    /// D053 (problem 2 of the 2026-11-09 audit): Top / Attempt chosen on a route's «Боулдер» whose status moment gives no lilac
+    /// — the moment left outside the plate (a split keeps it absolute, D045 §17), on its last frame or over the orange — is
+    /// put where the layout puts it, <c>S = max(Pe − 5 s, Ae, Ps + 1 frame)</c>, when at least two frames follow it (§1.25);
+    /// otherwise the fields stay as asked (and are refused by <see cref="AnchoredFieldsConflict"/>). A moment the user
+    /// changes in the same edit is never replaced.
+    /// </summary>
+    private TemplateProperties PlaceStatusMoment(TemplateClip template, TemplateProperties before, TemplateProperties after)
+    {
+        if (template.Kind != TemplateKind.Boulder || template.AnchorClipId is not { } anchor) return after;
+        if (before.Status != BoulderStatus.None || after.Status == BoulderStatus.None || after.StatusAt != before.StatusAt) return after;
+        var plan = new EditPlan(Sequence, Settings);
+        if (FindVideo(plan, anchor) is not { } video) return after;
+        var rate = plan.Rate;
+        var state = ClipState.Capture(template);
+        long ps = state.Start.ToNearestFrame(rate), pe = state.End.ToNearestFrame(rate);
+        var orange = RouteIdOf(template, video) is { } routeId ? OrangeOf(RouteOverlays.Find(video, routeId), ClipState.Capture(video), rate) : null;
+        var s = ps + StatusFrames(template, after, rate);
+        if (pe - s >= MinStatusFrames && s >= ps + 1 && (orange is not { } o || s >= o.End || o.Start >= pe)) return after;   // a lilac already
+        var placed = Math.Max(Math.Max(pe - LayoutFinal.ToNearestFrame(rate), orange?.End ?? ps + 1), ps + 1);
+        return pe - placed >= MinStatusFrames ? after with { StatusAt = StatusAtFor(template, placed - ps, rate) } : after;
     }
 
     /// <summary>The invariant for a template's fields changed directly (the Inspector's status or its moment). Choosing Top /
@@ -510,28 +677,32 @@ public sealed partial class TimelineEditService
             long ps = state.Start.ToNearestFrame(rate), pe = state.End.ToNearestFrame(rate);
             if (pe - (ps + StatusFrames(template, fields, rate)) < MinStatusFrames) return Messages.Overlay_StatusTooShort;
         }
-        return OverlayConflict(template, state, fields, ClipState.Capture(video), video.HoldMarkup, rate);
+        var markup = RouteIdOf(template, video) is { } routeId ? RouteOverlays.Find(video, routeId) : null;
+        return OverlayConflict(template, state, fields, ClipState.Capture(video), markup, rate);
     }
 
     /// <summary>A Duration animation changed directly (the Inspector's start / duration): its orange <c>[As, Ae)</c> must
-    /// stay inside the clip — <c>Vs ≤ As</c>, <c>Ae ≤ Ve</c> on the resulting frame values (§3.4, §4.2). Null when it does
-    /// or the animation is in the Interval mode (D036 may run past the clip's end).</summary>
-    private string? OrangeOutsideClip(VideoClip video, HoldMarkup markup)
+    /// stay inside the clip — <c>Vs ≤ As</c>, <c>Ae ≤ Ve</c> on the resulting frame values (§3.4, §4.2) — and, D053 §4,
+    /// inside its route's green when the route has one. Null when it does or the animation is in the Interval mode (D036 may
+    /// run past the clip's end).</summary>
+    private string? OrangeOutsideClip(VideoClip video, Guid routeId, HoldMarkup markup)
     {
-        var rate = new EditPlan(Sequence, Settings).Rate;
+        var plan = new EditPlan(Sequence, Settings);
+        var rate = plan.Rate;
         var state = ClipState.Capture(video);
         if (OrangeOf(markup, state, rate) is not { } orange) return null;
-        return orange.Start < state.Start.ToNearestFrame(rate) || orange.End > state.End.ToNearestFrame(rate)
-            ? Messages.Overlay_OrangeOutsideClip
+        if (orange.Start < state.Start.ToNearestFrame(rate) || orange.End > state.End.ToNearestFrame(rate)) return Messages.Overlay_OrangeOutsideClip;
+        return Green(plan, video, routeId) is { } green && (orange.Start < green.Start || orange.End > green.End)
+            ? Messages.Overlay_OrangeOutsideGreen
             : null;
     }
 
-    /// <summary>The invariant for a clip's animation changed directly (the Inspector's fields): no anchored lilac
-    /// over the new orange.</summary>
-    private string? AnchoredAnimationConflict(VideoClip video, HoldMarkup markup)
+    /// <summary>The invariant for a route's animation changed directly (the Inspector's fields): no lilac of the route over
+    /// the new orange.</summary>
+    private string? AnchoredAnimationConflict(VideoClip video, Guid routeId, HoldMarkup markup)
     {
         var plan = new EditPlan(Sequence, Settings);
-        foreach (var template in AnchoredTemplates(plan, video))
+        foreach (var template in RouteTemplates(plan, video, routeId))
             if (OverlayConflict(template, ClipState.Capture(template), TemplateProperties.Of(template)!.Value, ClipState.Capture(video),
                     markup, plan.Rate) is { } error)
                 return error;

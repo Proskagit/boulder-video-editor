@@ -68,14 +68,14 @@ public sealed class CameraMotionCoordinatorTests : IDisposable
         await coordinator.IdleAsync();
 
         Assert.Empty(coordinator.Pending);
-        var track = coordinator.Tracks[clip.Id];
-        Assert.False(coordinator.Tracks.ContainsKey(plain.Id));
+        var track = coordinator.Tracks[RouteKeys.Of(clip)];
+        Assert.DoesNotContain(coordinator.Tracks.Keys, k => k.ClipId == plain.Id);
         var at = track.At(MediaTime.FromSeconds(1));
         Assert.Equal(CameraMotionLookupKind.Aligned, at.Kind);
         var (x, y) = at.Transform.Apply(0.5, 0.5);
         Assert.Equal(0.5 + PanPixelsPerSecond / W, x, 3);     // the wall moved right by 12 px in one second
         Assert.Equal(0.5, y, 3);
-        Assert.Same(track, coordinator.ForExport().Tracks[clip.Id]);
+        Assert.Same(track, coordinator.ForExport().Tracks[RouteKeys.Of(clip)]);
         Assert.False(_undo.CanUndo);
     });
 
@@ -86,7 +86,7 @@ public sealed class CameraMotionCoordinatorTests : IDisposable
         using var coordinator = new CameraMotionCoordinator(_projects, new FailingDecoder());
         await coordinator.IdleAsync();
         Assert.Empty(coordinator.Pending);
-        Assert.False(coordinator.Tracks.ContainsKey(clip.Id));
+        Assert.DoesNotContain(coordinator.Tracks.Keys, k => k.ClipId == clip.Id);
     });
 
     [Fact]

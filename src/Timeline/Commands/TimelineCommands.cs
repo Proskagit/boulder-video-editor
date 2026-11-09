@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
@@ -616,6 +617,15 @@ public enum HoldMarkupFields
                 AnimationDuration
 }
 
+/// <summary>D053: replaces every route markup of a video clip — the overlay rules of an edit (a split, a trim, a speed
+/// change); absolute before / after values.</summary>
+public sealed class SetRoutesCommand(VideoClip clip, ImmutableArray<HoldMarkup> before, ImmutableArray<HoldMarkup> after) : IUndoableCommand
+{
+    public string Description => "Change Routes";
+    public void Execute() => clip.Routes = after;
+    public void Undo() => clip.Routes = before;
+}
+
 /// <summary>Sets the video clip a template is anchored to (D048 §3.5): absolute before / after values.</summary>
 public sealed class SetTemplateAnchorCommand(TemplateClip clip, Guid? before, Guid? after) : IUndoableCommand
 {
@@ -625,17 +635,28 @@ public sealed class SetTemplateAnchorCommand(TemplateClip clip, Guid? before, Gu
 }
 
 /// <summary>
-/// Replaces a video clip's hold markup (D034 §6): absolute before / after values (immutable), written back verbatim on
-/// Execute / Undo / Redo. Consecutive changes of the same style or animation setting (D036) of the same clip merge into one
-/// step (D017); a change back to where the step started removes it. Adding or removing a hold, correcting a contour and
-/// switching the animation on or off are always their own steps.
+/// Replaces the markup of one route of a video clip (D034 §6, D053): absolute before / after values (immutable), written
+/// back verbatim on Execute / Undo / Redo — a route not there yet is added, one undone back to nothing removed, each at its
+/// own place in the clip's route order. Consecutive changes of the same style or animation setting (D036) of the same route
+/// merge into one step (D017); a change back to where the step started removes it. Adding or removing a hold, correcting a
+/// contour and switching the animation on or off are always their own steps.
 /// </summary>
-public sealed class SetHoldMarkupCommand(VideoClip clip, HoldMarkup? before, HoldMarkup? after, HoldMarkupFields fields) : IMergeableCommand
+public sealed class SetHoldMarkupCommand(VideoClip clip, Guid routeId, HoldMarkup? before, HoldMarkup? after, HoldMarkupFields fields) : IMergeableCommand
 {
+    private readonly int _index = IndexOf(clip, routeId);
+
     public VideoClip Clip { get; } = clip;
+    public Guid RouteId { get; } = routeId;
     public HoldMarkup? Before { get; } = before;
     public HoldMarkup? After { get; } = after;
     public HoldMarkupFields Fields { get; } = fields;
+
+    private static int IndexOf(VideoClip clip, Guid routeId)
+    {
+        for (var i = 0; i < clip.Routes.Length; i++)
+            if (clip.Routes[i].Id == routeId) return i;
+        return clip.Routes.Length;
+    }
 
     public string Description => Fields switch
     {
@@ -655,8 +676,8 @@ public sealed class SetHoldMarkupCommand(VideoClip clip, HoldMarkup? before, Hol
         _ => "Change Outline"
     };
 
-    public void Execute() => Clip.HoldMarkup = After;
-    public void Undo() => Clip.HoldMarkup = Before;
+    public void Execute() => Clip.Routes = RouteOverlays.Replace(Clip.Routes, RouteId, After, _index);
+    public void Undo() => Clip.Routes = RouteOverlays.Replace(Clip.Routes, RouteId, Before, _index);
 
     public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
     {
@@ -664,12 +685,12 @@ public sealed class SetHoldMarkupCommand(VideoClip clip, HoldMarkup? before, Hol
         // Adding or removing a hold, a contour correction (one gesture each, D035), switching the animation on or off
         // (D036) and switching the hold tracking on or off are always their own steps.
         if ((Fields & (HoldMarkupFields.Holds | HoldMarkupFields.Contour | HoldMarkupFields.AnimationOn | HoldMarkupFields.FollowsCamera)) != 0 ||
-            next is not SetHoldMarkupCommand n || n.Clip != Clip || n.Fields != Fields
+            next is not SetHoldMarkupCommand n || n.Clip != Clip || n.RouteId != RouteId || n.Fields != Fields
             || !ReferenceEquals(n.Before, After))
             return false;
 
         if (n.After is null || Before is null || !n.After.SameAs(Before))
-            merged = new SetHoldMarkupCommand(Clip, Before, n.After, Fields);
+            merged = new SetHoldMarkupCommand(Clip, RouteId, Before, n.After, Fields);
         return true; // merged stays null when the second edit restored the first one's "before"
     }
 }

@@ -39,14 +39,15 @@ public class OverlayStripEditTests
 
     private static OverlayStripState Strip(TimelineFixture f, VideoClip clip) => f.Service.OverlayStripOf(clip.Id)!;
 
-    /// <summary>The segments as the composition reads them: the template's bounds and status frame, the animation's frames.</summary>
+    /// <summary>The segments as the composition reads them: the template's bounds and status frame, the animation's frames
+    /// (−1, −1: the route's markup deleted).</summary>
     private static (long Ps, long S, long Pe, long As, long Ae) Model(VideoClip clip, TemplateClip t)
     {
         long ps = t.TimelineStart.ToNearestFrame(Rate);
-        var a = clip.HoldMarkup!.Animation!;
+        var s = ps + t.StatusAt.ToNearestFrame(Rate) - t.CounterStart.ToNearestFrame(Rate);
+        if (clip.HoldMarkup?.Animation is not { } a) return (ps, s, t.TimelineEnd.ToNearestFrame(Rate), -1, -1);
         var start = HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, a.StartSourceTime, Rate);
-        return (ps, ps + t.StatusAt.ToNearestFrame(Rate) - t.CounterStart.ToNearestFrame(Rate), t.TimelineEnd.ToNearestFrame(Rate),
-            start, start + HoldAnimationRule.DurationFrames(a, Rate));
+        return (ps, s, t.TimelineEnd.ToNearestFrame(Rate), start, start + HoldAnimationRule.DurationFrames(a, Rate));
     }
 
     /// <summary>One gesture: applied, then undone to exactly the state before, then redone.</summary>
@@ -98,7 +99,12 @@ public class OverlayStripEditTests
     {
         var (f, clip, template) = LaidOut();
         OneStep(f, clip, template, OverlayStripHandle.GreenStart, -100, (0, 375, 500, 125, 250));      // stops at Vs
-        OneStep(f, clip, template, OverlayStripHandle.GreenStart, 1000, (374, 375, 500, 125, 250));    // stops at S − 1
+        // D053 §4: past the orange's start the green cuts it from the left (T kept); past its end nothing is left — the
+        // route's markup deleted (§3.9), one Undo restores it.
+        OneStep(f, clip, template, OverlayStripHandle.GreenStart, 125, (125, 375, 500, 125, 250));      // touching: nothing cut
+        OneStep(f, clip, template, OverlayStripHandle.GreenStart, 75, (200, 375, 500, 200, 250));
+        OneStep(f, clip, template, OverlayStripHandle.GreenStart, 1000, (374, 375, 500, -1, -1));      // stops at S − 1
+        Assert.Null(clip.HoldMarkup);
     }
 
     [Fact]
@@ -130,13 +136,13 @@ public class OverlayStripEditTests
     public void The_orange_edges_and_body_change_the_animation_inside_the_clip_and_refuse_an_overlap_of_the_lilac()
     {
         var (f, clip, template) = LaidOut();
-        OneStep(f, clip, template, OverlayStripHandle.OrangeStart, -200, (75, 375, 500, 0, 250));      // stops at Vs; T kept
+        OneStep(f, clip, template, OverlayStripHandle.OrangeStart, -200, (75, 375, 500, 75, 250));     // D053 §4: stops at Ps; T kept
         OneStep(f, clip, template, OverlayStripHandle.OrangeStart, 1000, (75, 375, 500, 249, 250));    // one frame at least
         OneStep(f, clip, template, OverlayStripHandle.OrangeEnd, 100, (75, 375, 500, 249, 350));
         Refused(f, clip, template, OverlayStripHandle.OrangeEnd, 100, Messages.Overlay_LilacOverlap);  // Ae 450 > S
         OneStep(f, clip, template, OverlayStripHandle.OrangeEnd, 25, (75, 375, 500, 249, 375));        // Ae = S: touching
         Refused(f, clip, template, OverlayStripHandle.OrangeBody, 10, Messages.Overlay_LilacOverlap);
-        OneStep(f, clip, template, OverlayStripHandle.OrangeBody, -1000, (75, 375, 500, 0, 126));      // duration kept
+        OneStep(f, clip, template, OverlayStripHandle.OrangeBody, -1000, (75, 375, 500, 75, 201));     // at Ps; duration kept
 
         Assert.Equal(HoldAnimationMode.Duration, clip.HoldMarkup!.Animation!.Mode);
         Assert.Equal(3, clip.HoldMarkup.Holds.Length);

@@ -49,7 +49,7 @@ public class HoldTrackingPreviewPlanTests
         var motion = new CameraMotionTrack(MediaTime.Zero, CameraMotionModel.Similarity, ImmutableArray.Create(
             new CameraMotionSample(MediaTime.Zero, WallTransform.Identity, true),
             new CameraMotionSample(MediaTime.FromSeconds(1), new WallTransform(1, 0, 0.05, 0, 1, 0.02, 0, 0, 1), reliable)));
-        return (PlaybackSnapshotBuilder.Build(project, 1, new Dictionary<Guid, CameraMotionTrack> { [clip.Id] = motion }), clip.Id);
+        return (PlaybackSnapshotBuilder.Build(project, 1, new Dictionary<RouteKey, CameraMotionTrack> { [RouteKeys.Of(clip)] = motion }), clip.Id);
     }
 
     private static DecodedFrame FrameAt(double seconds) =>

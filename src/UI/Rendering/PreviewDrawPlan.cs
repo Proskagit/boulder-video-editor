@@ -38,12 +38,14 @@ public static class PreviewDrawPlan
             if (Operation(canvas, viewport, picture) is { } operation)
             {
                 operations.Add(operation);
-                // D034: the route outline right above its frame, never on a placeholder; a line at least one screen
-                // pixel wide here only (the export keeps the exact width).
-                if (operation is FrameDraw && picture is { Layer: PictureLayer layer, Frame: { } frame } &&
-                    CompositionDrawPlan.Outline(canvas, viewport, layer, new FrameSize(frame.Width, frame.Height), MinOutlinePixels,
-                        frame.Timestamp) is { } outline)
-                    operations.Add(outline);
+                // D034: the route outlines right above their frame (D053: one per route, in the clip's route order, as the
+                // export draws them), never on a placeholder; a line at least one screen pixel wide here only (the export
+                // keeps the exact width).
+                if (operation is FrameDraw && picture is { Layer: PictureLayer layer, Frame: { } frame })
+                    for (var index = 0; index < layer.Span.Outlines.Length; index++)
+                        if (CompositionDrawPlan.Outline(canvas, viewport, layer, new FrameSize(frame.Width, frame.Height), MinOutlinePixels,
+                                frame.Timestamp, index) is { } outline)
+                            operations.Add(outline);
             }
         }
         return new CompositionDrawPlan(canvas, viewport, CompositionDrawPlan.Bounds(canvas, viewport), operations.ToImmutable());

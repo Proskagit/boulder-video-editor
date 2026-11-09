@@ -58,8 +58,8 @@ public enum ExportIssueKind
 }
 
 /// <summary>The camera-motion tracks the export draws the hold contours with (the Preview's own), and the clips whose
-/// analysis has not finished (hold tracking).</summary>
-public sealed record ExportCameraMotion(IReadOnlyDictionary<Guid, CameraMotionTrack> Tracks, IReadOnlySet<Guid> Pending)
+/// analysis has not finished (hold tracking). D053: the tracks by route; the clip states hold for a clip any of whose routes is in them.</summary>
+public sealed record ExportCameraMotion(IReadOnlyDictionary<RouteKey, CameraMotionTrack> Tracks, IReadOnlySet<Guid> Pending)
 {
     /// <summary>The clips whose analysis failed (their contours are drawn as marked).</summary>
     public IReadOnlySet<Guid> Failed { get; init; } = new HashSet<Guid>();
@@ -68,7 +68,7 @@ public sealed record ExportCameraMotion(IReadOnlyDictionary<Guid, CameraMotionTr
     public IReadOnlyDictionary<Guid, double> Unreliable { get; init; } = new Dictionary<Guid, double>();
 
     public static readonly ExportCameraMotion None =
-        new(new Dictionary<Guid, CameraMotionTrack>(), new HashSet<Guid>());
+        new(new Dictionary<RouteKey, CameraMotionTrack>(), new HashSet<Guid>());
 }
 
 /// <summary>One problem found by <see cref="ExportPreflight"/>. Media and font problems name every

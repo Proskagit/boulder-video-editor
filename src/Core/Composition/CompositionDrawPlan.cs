@@ -144,13 +144,15 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
             layers.SelectMany(layer => LayerOperations(canvas, canvasToTarget, layer)).ToImmutableArray());
     }
 
-    /// <summary>The operations of one layer: <see cref="Operation"/>, then the layer's route outline, if any (D034).</summary>
+    /// <summary>The operations of one layer: <see cref="Operation"/>, then the outline of each of its routes, if any (D034,
+    /// D053 — in the clip's route order).</summary>
     public static IEnumerable<DrawOperation> LayerOperations(FrameSize canvas, Affine2D canvasToTarget, ResolvedLayer resolved, double minTargetStroke = 0)
     {
         yield return Operation(canvas, canvasToTarget, resolved);
-        if (resolved.Layer is PictureLayer { Span.Outline: { } } picture && resolved.Frame is { } frame &&
-            Outline(canvas, canvasToTarget, picture, new FrameSize(frame.Width, frame.Height), minTargetStroke, frame.Timestamp) is { } outline)
-            yield return outline;
+        if (resolved.Layer is not PictureLayer picture || resolved.Frame is not { } frame) yield break;
+        for (var i = 0; i < picture.Span.Outlines.Length; i++)
+            if (Outline(canvas, canvasToTarget, picture, new FrameSize(frame.Width, frame.Height), minTargetStroke, frame.Timestamp, i) is { } outline)
+                yield return outline;
     }
 
     /// <summary>
@@ -164,16 +166,19 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
     /// <param name="frameTimestamp">The shown frame's timestamp: with the outline's camera motion (hold tracking) each contour
     /// is moved from the frame it was marked on to this frame, or left out where that is not reliably known (it is never
     /// drawn off its hold); null — every contour where it was marked.</param>
+    /// <param name="index">D053: which of <see cref="PictureSpan.Outlines"/> (the clip's routes) — the first by default.</param>
     public static OutlineDraw? Outline(FrameSize canvas, Affine2D canvasToTarget, PictureLayer picture, FrameSize decodedSize, double minTargetStroke = 0,
-        SourceTimestamp? frameTimestamp = null)
+        SourceTimestamp? frameTimestamp = null, int index = 0)
     {
-        if (picture.Span.Outline is not { } outline) return null;
+        var outlines = picture.Span.Outlines;
+        if (outlines.IsDefaultOrEmpty || index < 0 || index >= outlines.Length) return null;
+        var outline = outlines[index];
         var geometry = picture.Geometry ?? CompositionMath.Layout(canvas, decodedSize, picture.Span.Visual);
         var (w, h) = (geometry.Source.Width, geometry.Source.Height);
         var crop = geometry.SourceRect;
         var m = picture.Motion.Apply(canvas, geometry.Transform);   // the outline moves with its frame (D044 §2)
 
-        var opacities = picture.OutlineOpacities;
+        var opacities = !picture.RouteOpacities.IsDefault && index < picture.RouteOpacities.Length ? picture.RouteOpacities[index] : default;
         var animated = !opacities.IsDefault && opacities.Length == outline.Polygons.Length;
         var polygons = ImmutableArray.CreateBuilder<ImmutableArray<PointD>>(outline.Polygons.Length);
         var shown = ImmutableArray.CreateBuilder<double>(animated ? outline.Polygons.Length : 0);

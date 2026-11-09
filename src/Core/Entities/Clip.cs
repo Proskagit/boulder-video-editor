@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
 
 namespace AiVideoEditor.Core.Entities;
@@ -75,9 +76,20 @@ public sealed class VideoClip : MediaBackedClip
     /// sound; <see cref="Volume"/> and <see cref="IsMuted"/> are kept but unused.</summary>
     public bool IsAudioDetached { get; set; }
 
-    /// <summary>The clip's hold markup (D034): its confirmed holds and the route outline's style; null = none. An
-    /// immutable value, replaced as a whole by every edit; Split, Duplicate and Paste copy it.</summary>
-    public HoldMarkup? HoldMarkup { get; set; }
+    /// <summary>D053 (format v15): the clip's routes — each an independent hold markup (D034: its confirmed holds, the
+    /// outline's style, its animation) with its own identity; empty = none. Immutable values, each replaced as a whole by
+    /// every edit of its route; Split, Duplicate and Paste copy them.</summary>
+    public ImmutableArray<HoldMarkup> Routes { get; set; } = ImmutableArray<HoldMarkup>.Empty;
+
+    /// <summary>The single route of a clip (the model before D053): its first route, or null. Setting it replaces every
+    /// route by that one. Kept for single-route code and tests only — the editor's code addresses routes by
+    /// <see cref="HoldMarkup.Id"/> (<see cref="RouteOverlays"/>).</summary>
+    [Obsolete("D053: a clip has a list of routes — use Routes / RouteOverlays.")]
+    public HoldMarkup? HoldMarkup
+    {
+        get => Routes.IsDefaultOrEmpty ? null : Routes[0];
+        set => Routes = value is null ? ImmutableArray<HoldMarkup>.Empty : ImmutableArray.Create(value);
+    }
 }
 
 /// <summary>A clip on an audio track: the sound of an audio file, or (D032 R1) the sound of a video file.</summary>
@@ -172,6 +184,16 @@ public sealed class TemplateClip : Clip
     /// <summary>D048 §3.5 (format v10): the video clip this template belongs to — moved, copied and deleted with it, its
     /// intervals kept inside it; null: a free template (D045). One-directional: a video clip may have several.</summary>
     public Guid? AnchorClipId { get; set; }
+
+    /// <summary>D053 (format v15): the route of <see cref="AnchorClipId"/> this template belongs to — the template is the
+    /// route's green (and lilac); the route's holds and animation, when it has them, are the clip's markup with this id
+    /// (<see cref="VideoClip.Routes"/>). Null: the clip's single markup, when it has exactly one (see
+    /// <see cref="RouteOverlays.RouteIdOf(TemplateClip, VideoClip)"/>).</summary>
+    public Guid? AnchorRouteId { get; set; }
+
+    /// <summary>D053 §6 (format v15): the FIT climb this route's green was created for by the FIT import; null for a route
+    /// made by hand. A new import of the same FIT never creates a second route for the same climb.</summary>
+    public Core.Telemetry.ClimbIdentity? FitClimb { get; set; }
 }
 
 /// <summary>The four templates of Phase 29 (D045 §1; WASTED deferred, §15) and the heart-rate overlay of Phase 35.5 (D050:

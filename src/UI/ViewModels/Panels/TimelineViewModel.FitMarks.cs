@@ -47,7 +47,7 @@ public sealed partial class TimelineViewModel
     public void OnFitMarkClicked(ClimbIdentity climb)
     {
         ClearSelection();
-        SelectOrange(null);
+        SelectOrange(null, null);
         SelectedFitMark = climb;
     }
 

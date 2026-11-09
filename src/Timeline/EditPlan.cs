@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Timeline.Commands;
@@ -25,7 +26,7 @@ public sealed class EditPlan
     private readonly HashSet<Transition> _transitionRemoves = new();
     private readonly Dictionary<MediaBackedClip, ClipLinkState> _links = new();
     private readonly List<MediaBackedClip> _clearedLinks = new();
-    private readonly Dictionary<VideoClip, HoldMarkup?> _markups = new();
+    private readonly Dictionary<VideoClip, ImmutableArray<HoldMarkup>> _routes = new();
     private readonly Dictionary<TemplateClip, TemplateProperties> _templateFields = new();
     private readonly Dictionary<TemplateClip, Guid?> _anchors = new();
     private readonly HashSet<Clip> _splitLefts = new();
@@ -52,7 +53,7 @@ public sealed class EditPlan
     public IEnumerable<Track> AllTracks => _sequence.VideoTracks.Concat(_sequence.AudioTracks);
 
     public bool IsEmpty => NewFrameRate is null && _updates.Count == 0 && _inserts.Count == 0 && _removes.Count == 0 && _properties.Count == 0
-        && _markups.Count == 0 && _templateFields.Count == 0 && _anchors.Count == 0
+        && _routes.Count == 0 && _templateFields.Count == 0 && _anchors.Count == 0
         && _transitionUpdates.Count == 0 && _transitionAdds.Count == 0 && _transitionRemoves.Count == 0 && _links.Count == 0;
 
     /// <summary>Dissolves <see cref="ReconcileTransitions"/> removed because their cut no longer exists.</summary>
@@ -88,12 +89,16 @@ public sealed class EditPlan
     /// apart from a template the user edits itself.</summary>
     public HashSet<Clip> Carried { get; } = new();
 
-    /// <summary>Replaces a video clip's hold markup as part of the edit (D048: a speed change, a trim, a split); null
-    /// deletes it.</summary>
-    public void SetMarkup(VideoClip clip, HoldMarkup? after) => _markups[clip] = after;
+    /// <summary>Replaces the markup of one route of a video clip as part of the edit (D048: a speed change, a trim, a split;
+    /// D053: per route); null deletes it (the route keeps its green, if any).</summary>
+    public void SetRoute(VideoClip clip, Guid routeId, HoldMarkup? after) =>
+        _routes[clip] = RouteOverlays.Replace(RoutesOf(clip), routeId, after);
 
-    /// <summary>The markup the plan leaves on <paramref name="clip"/>.</summary>
-    public HoldMarkup? MarkupOf(VideoClip clip) => _markups.TryGetValue(clip, out var m) ? m : clip.HoldMarkup;
+    /// <summary>The route markups the plan leaves on <paramref name="clip"/>.</summary>
+    public ImmutableArray<HoldMarkup> RoutesOf(VideoClip clip) => _routes.TryGetValue(clip, out var r) ? r : clip.Routes;
+
+    /// <summary>The markup the plan leaves for route <paramref name="routeId"/> of <paramref name="clip"/>, or null.</summary>
+    public HoldMarkup? RouteOf(VideoClip clip, Guid routeId) => RouteOverlays.Find(RoutesOf(clip), routeId);
 
     /// <summary>Sets a template's fields (the status, its moment) as part of the edit; replaces an earlier value.</summary>
     public void SetTemplateFields(TemplateClip clip, TemplateProperties after) => _templateFields[clip] = after;
@@ -117,11 +122,11 @@ public sealed class EditPlan
     public List<IUndoableCommand> BuildOverlayCommands()
     {
         var commands = new List<IUndoableCommand>();
-        foreach (var (clip, after) in _markups)
+        foreach (var (clip, after) in _routes)
         {
-            var before = clip.HoldMarkup;
-            if ((before is null && after is null) || (before is not null && after is not null && after.SameAs(before))) continue;
-            commands.Add(new SetHoldMarkupCommand(clip, before, after, HoldMarkupFields.Holds | HoldMarkupFields.Animation));
+            var before = clip.Routes;
+            if (before.Length == after.Length && before.Zip(after).All(p => p.First.Id == p.Second.Id && p.First.SameAs(p.Second))) continue;
+            commands.Add(new SetRoutesCommand(clip, before, after));
         }
         foreach (var (clip, after) in _templateFields)
         {
@@ -400,6 +405,17 @@ public sealed class EditPlan
         foreach (var (insertTrack, clip) in _inserts)
             if (insertTrack == track)
                 yield return (clip, ClipState.Capture(clip));
+    }
+
+    /// <summary>Every clip the plan leaves, on any track (also on a track the same step adds), with its planned state.</summary>
+    public IEnumerable<(Clip Clip, ClipState State)> AllEffectiveClips()
+    {
+        foreach (var (clip, _) in _currentTrack)
+        {
+            if (_removes.ContainsKey(clip)) continue;
+            yield return (clip, _updates.TryGetValue(clip, out var update) ? update.After : ClipState.Capture(clip));
+        }
+        foreach (var (_, clip) in _inserts) yield return (clip, ClipState.Capture(clip));
     }
 
     /// <summary>Builds the single undoable command that applies this plan.</summary>

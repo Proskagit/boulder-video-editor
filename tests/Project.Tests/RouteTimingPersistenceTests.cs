@@ -21,7 +21,7 @@ public class RouteTimingPersistenceTests
 
     private static Core.Entities.Project Load(string json) => ProjectSerializer.Deserialize(json, Folder, _ => true);
     private static string Save(Core.Entities.Project project) => ProjectSerializer.Serialize(project, Folder);
-    private static JsonObject AnimationJson(JsonNode root) => root["timeline"]!["videoTracks"]![0]!["clips"]![0]!["holdMarkup"]!["animation"]!.AsObject();
+    private static JsonObject AnimationJson(JsonNode root) => root["timeline"]!["videoTracks"]![0]!["clips"]![0]!["routes"]![0]!["animation"]!.AsObject();
     private static JsonObject TemplateJson(JsonNode root) => root["timeline"]!["videoTracks"]![1]!["clips"]![0]!.AsObject();
 
     private static readonly HoldAnimation Duration = new()
@@ -77,7 +77,7 @@ public class RouteTimingPersistenceTests
         var project = Build(Duration, anchored: true);
         var first = Save(project);
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(14, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(15, root["formatVersion"]!.GetValue<int>());
         Assert.Equal("Duration", AnimationJson(root)["mode"]!.GetValue<string>());
         Assert.Equal(50_000_001, AnimationJson(root)["durationTicks"]!.GetValue<long>());
         Assert.Equal(Video(project).Id, TemplateJson(root)["anchorClipId"]!.GetValue<Guid>());
@@ -101,19 +101,19 @@ public class RouteTimingPersistenceTests
     public void A_version_9_file_opens_in_the_interval_mode_without_anchors_and_is_saved_as_version_10()
     {
         var root = JsonNode.Parse(Save(Build(new HoldAnimation(), anchored: false)))!;
-        root["formatVersion"] = 9;
+        LegacyJson.As(root, 9);
         TemplateJson(root)["anchorClipId"] = Guid.NewGuid().ToString();   // a stray member of a newer version is ignored by v9
         var loaded = Load(root.ToJsonString());
         Assert.Equal(HoldAnimationMode.Interval, Video(loaded).HoldMarkup!.Animation!.Mode);
         Assert.Null(Template(loaded).AnchorClipId);
-        Assert.Equal(14, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(15, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]
     public void A_v10_value_in_a_v9_file_and_a_half_written_duration_mode_are_refused()
     {
         var newOrder = JsonNode.Parse(Save(Build(Duration with { Mode = HoldAnimationMode.Interval, Duration = MediaTime.Zero }, anchored: false)))!;
-        newOrder["formatVersion"] = 9;
+        LegacyJson.As(newOrder, 9);
         Assert.Throws<ProjectFileException>(() => Load(newOrder.ToJsonString()));            // right to left is v10's
 
         var noDuration = JsonNode.Parse(Save(Build(Duration, anchored: false)))!;

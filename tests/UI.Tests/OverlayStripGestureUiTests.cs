@@ -233,8 +233,8 @@ public sealed class OverlayStripGestureUiTests
     {
         var (t, clip, template) = LaidOut();
         t.SnappingEnabled = true;
-        Drag(t, clip, OverlayStripHandle.OrangeStart, 125, -123);                      // to frame 2: snaps to the clip's start
-        Assert.Equal(0, Model(clip, template).As);
+        Drag(t, clip, OverlayStripHandle.OrangeStart, 125, -123);                      // to frame 2: snaps to the clip's start…
+        Assert.Equal(75, Model(clip, template).As);                                    // …and stops at the green's (D053 §4)
     }
 
     [Fact]
@@ -376,14 +376,17 @@ public sealed class OverlayStripGestureUiTests
         Assert.True(t.BeginStripDrag(Vm(t, clip), OverlayStripHandle.OrangeBody, X(t, 185), pressedOn: plate));
         t.UpdateGesture(X(t, 125), RowOf(t, plate));
         t.EndGesture();
-        Assert.Equal((75L, 375L, 500L, 65L, 190L), Model(clip, template));               // the template where it was
+        // D053 §4: the orange stops at the green's start — [75, 200), its length kept; the template where it was.
+        Assert.Equal((75L, 375L, 500L, 75L, 200L), Model(clip, template));
         Assert.Equal(1, _steps);
 
-        var overflow = Assert.Single(Vm(t, template).TemplateOverflow);                 // [65, 75) beside the plate
-        Assert.Equal(StripSegmentKind.Orange, overflow.Kind);
-        Assert.Equal((X(t, -10), X(t, 10)), (overflow.Left, overflow.Width));
+        Assert.Empty(Vm(t, template).TemplateOverflow);                                 // nothing beside the plate
         Assert.Equal(0, Vm(t, template).TemplateSegments.Single(s => s.Kind == StripSegmentKind.Orange).Left);
-        Assert.Equal(OverlayStripHandle.OrangeStart, t.TemplatePressAt(Vm(t, template), X(t, -10))?.Handle);   // its start, beside the plate
+        // D053 §5: where the orange starts with the green, the green's start takes the press (and is drawn on top).
+        Assert.Equal(OverlayStripHandle.GreenStart, t.TemplatePressAt(Vm(t, template), X(t, 0))?.Handle);
+        Assert.Equal(OverlayStripHandle.GreenStart, t.TemplatePressAt(Vm(t, template), X(t, 0) + 3)?.Handle);
+        Assert.Equal(StripSegmentKind.Green, Vm(t, template).TemplateSegments.Last().Kind);
+        Assert.Equal(Vm(t, clip).StripSegments.Single(s => s.Kind == StripSegmentKind.Green).Tip, t.TemplateHoverAt(Vm(t, template), 1).Tip);
         Assert.Equal(OverlayStripHandle.OrangeBody, t.TemplatePressAt(Vm(t, template), X(t, 40))?.Handle);
     }
 
@@ -401,10 +404,12 @@ public sealed class OverlayStripGestureUiTests
 
         var (u, other, boulder) = VariantB(BoulderStatus.None);
         var otherPlate = Vm(u, boulder);
-        u.BeginTrim(otherPlate, ClipEdge.End, X(u, 500));
-        u.UpdateGesture(X(u, 450), RowOf(u, otherPlate));
+        // (The same clip laid out again: D053 §7 keeps the green's end the user set — 490 after the move above.)
+        var end = boulder.TimelineEnd.ToNearestFrame(Rate);
+        u.BeginTrim(otherPlate, ClipEdge.End, X(u, end));
+        u.UpdateGesture(X(u, end - 50), RowOf(u, otherPlate));
         u.EndGesture();
-        Assert.Equal(450, boulder.TimelineEnd.ToNearestFrame(Rate));
+        Assert.Equal(end - 50, boulder.TimelineEnd.ToNearestFrame(Rate));
         Assert.Equal(250, other.HoldMarkup!.Animation is { } a
             ? HoldAnimationRule.StartFrame(other.TimelineStart, other.SourceIn, other.Speed, a.StartSourceTime, Rate) + HoldAnimationRule.DurationFrames(a, Rate)
             : -1);
@@ -505,7 +510,11 @@ public sealed class OverlayStripGestureUiTests
     public void Variant_B_hover_on_the_overflow_beside_the_plate_and_outside_variant_B_gives_its_own_feedback_or_none()
     {
         var (t, clip, template) = VariantB();
-        Assert.True(_edit.EditOverlayStrip(clip.Id, OverlayStripHandle.OrangeStart, -100).Success);   // As = 25 < Ps = 75
+        // An older project's orange started before its green (D053 §4 keeps it inside on any edit; opened, it is drawn
+        // beside the plate): As = 25 < Ps = 75.
+        var markup = clip.HoldMarkup!;
+        clip.HoldMarkup = markup with { Animation = markup.Animation! with { StartSourceTime = F(25), Duration = F(225) } };
+        _projects.NotifyTimelineChanged();
         var plate = Vm(t, template);
         Assert.NotEmpty(plate.TemplateOverflow);
         var hover = t.TemplateHoverAt(plate, X(t, -30), overflow: true);                // the orange's part before the plate

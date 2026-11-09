@@ -49,6 +49,46 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     private readonly SynchronizationContext? _ui;
 
     private VideoClip? _clip;
+
+    /// <summary>
+    /// D053: the route of the selected clip the section and the markup mode work on — the route whose green (its anchored
+    /// «Боулдер») holds the playhead, else one marked without a green yet, else a new route (null until its first edit
+    /// gives it an id). Fixed while the markup mode is active (a playhead move leaves the mode).
+    /// </summary>
+    private Guid? _routeId;
+
+    /// <summary>The markup of <see cref="_routeId"/> on the selected clip, or null (a new route, or one with its green only).</summary>
+    private HoldMarkup? Markup => _clip is not null && _routeId is { } id ? RouteOverlays.Find(_clip, id) : null;
+
+    /// <summary>The markup of the current route when <paramref name="clip"/> is the selected clip.</summary>
+    private HoldMarkup? MarkupOf(VideoClip clip) => ReferenceEquals(clip, _clip) ? Markup : null;
+
+    /// <summary>The current route's id for an edit; a new route gets its id here.</summary>
+    private Guid RouteForEdit() => _routeId ??= Guid.NewGuid();
+
+    /// <summary>D053: the route the section shows (for the tests and the shell).</summary>
+    public Guid? CurrentRouteId => _routeId;
+
+    /// <summary>Resolves <see cref="_routeId"/> from the playhead (not while the mode is active); true when it changed.</summary>
+    private bool ResolveRoute()
+    {
+        var before = _routeId;
+        if (_clip is null)
+        {
+            _routeId = null;
+            return before is not null;
+        }
+        if (IsActive) return false;
+        var project = _projects.Current;
+        var rate = project.Settings.FrameRate;
+        long first = _clip.TimelineStart.ToNearestFrame(rate), last = Math.Max(first, _clip.TimelineEnd.ToNearestFrame(rate) - 1);
+        var frame = Math.Clamp(Playhead().ToFrameFloor(rate), first, last);
+        var anchored = RouteOverlays.AnchoredTo(_clip, project.Timeline.VideoTracks.SelectMany(t => t.Clips)).ToList();
+        if (RouteOverlays.RouteAt(_clip, anchored, frame, rate) is { } found) _routeId = found;
+        else if (_routeId is { } kept && (RouteOverlays.Find(_clip, kept) is not null || anchored.Any(t => RouteOverlays.RouteIdOf(t, _clip) == kept)))
+            _routeId = null;   // an existing route elsewhere: here a new one
+        return before != _routeId;
+    }
     private bool _syncing;
     private readonly List<HoldProposal> _proposalSource = new();
 
@@ -150,9 +190,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     {
         var video = clip as VideoClip;
         if (!ReferenceEquals(video, _clip)) Exit();
+        if (!ReferenceEquals(video, _clip)) _routeId = null;
         _clip = video;
+        ResolveRoute();
         HasClip = video is not null;
-        CanShowProposalToggle = HasClip && (_clip?.HoldMarkup is null || _clip.HoldMarkup.Holds.IsEmpty);
+        CanShowProposalToggle = HasClip && (Markup is null || Markup.Holds.IsEmpty);
         LoadStyle();
         RefreshCommands();
     }
@@ -162,7 +204,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         _syncing = true;
         try
         {
-            var markup = _clip?.HoldMarkup ?? new HoldMarkup();
+            ResolveRoute();
+            var markup = Markup ?? new HoldMarkup();
             HoldCount = markup.Holds.Length;
             CanShowProposalToggle = _clip is not null && markup.Holds.IsEmpty;
             StrokeWidth = (decimal)markup.StrokeWidth1080;
@@ -221,8 +264,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             LoadStyle();
             return;
         }
-        var current = HoldStyle.Of(_clip.HoldMarkup ?? new HoldMarkup());
-        var result = _edit.SetHoldStyle(_clip.Id, change(current));
+        var current = HoldStyle.Of(Markup ?? new HoldMarkup());
+        var result = _edit.SetHoldStyle(_clip.Id, change(current), RouteForEdit());
         if (!result.Success) _status.Report(result.Message ?? Strings.Holds_OutlineNotChanged);
         LoadStyle();
     }
@@ -365,11 +408,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (!_syncing && value is { } v) EditAnimation(a => a with { DisappearFade = Ticks(v) });
     }
 
-    private bool CanSetStartToPlayhead() => _clip?.HoldMarkup?.Animation is not null && PlayheadSourceTime() is not null;
+    private bool CanSetStartToPlayhead() => Markup?.Animation is not null && PlayheadSourceTime() is not null;
 
     private bool CanLayOutIntroAndFinal()
     {
-        if (_clip?.HoldMarkup is not { Holds.Length: > 0 }) return false;
+        if (_clip is null || Markup is not { Holds.Length: > 0 }) return false;
         var playhead = Playhead();
         return playhead >= _clip.TimelineStart && playhead <= _clip.TimelineEnd;
     }
@@ -386,7 +429,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             _status.Report(Strings.Holds_AnimationExportRunning);
             return;
         }
-        var result = _edit.LayOutIntroAndFinal(_clip.Id, Playhead());
+        var result = _edit.LayOutIntroAndFinal(_clip.Id, Playhead(), _routeId);
         if (!result.Success || result.Message is not null) _status.Report(result.Message ?? Strings.Holds_AnimationNotChanged);
         LoadStyle();
         RefreshCommands();
@@ -420,13 +463,13 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             LoadStyle();
             return;
         }
-        var current = _clip.HoldMarkup?.Animation;
+        var current = Markup?.Animation;
         if (current is null && !IsAnimated)
         {
             LoadStyle();
             return;
         }
-        var result = _edit.SetHoldAnimation(_clip.Id, change(current ?? new HoldAnimation()));
+        var result = _edit.SetHoldAnimation(_clip.Id, change(current ?? new HoldAnimation()), RouteForEdit());
         if (!result.Success) _status.Report(result.Message ?? Strings.Holds_AnimationNotChanged);
         LoadStyle();
         RefreshCommands();
@@ -534,6 +577,9 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         var cts = new CancellationTokenSource();
         _modeCts = cts;
         _modePlayhead = Playhead();
+        // D053: the route the markup works on — the one whose green holds the playhead, else a new one; fixed for the mode.
+        ResolveRoute();
+        LoadStyle();
         IsActive = true;
         IsPreparing = true;
         PrepareProgress = 0;
@@ -608,7 +654,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     private bool CanGenerateProposals(VideoClip clip) =>
         IsProposalGenerationEnabled &&
         _proposalGenerator is not null &&
-        (clip.HoldMarkup is null || clip.HoldMarkup.Holds.IsEmpty);
+        (MarkupOf(clip) is null || MarkupOf(clip)!.Holds.IsEmpty);
 
     private async Task GenerateProposalsAsync(VideoClip clip, MediaAsset asset, CancellationTokenSource cts)
     {
@@ -843,7 +889,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             var results = await _proposalRefiner.RefineBatchAsync(proposals, clip, asset, _modePlayhead, rate,
                 new Progress<double>(p => ProposalProgress = p), _modeCts?.Token ?? CancellationToken.None);
 
-            var currentHolds = clip.HoldMarkup?.Holds.Length ?? 0;
+            var currentHolds = MarkupOf(clip)?.Holds.Length ?? 0;
             var room = Math.Max(0, HoldMarkupRules.MaxHolds - currentHolds);
             var accepted = proposals.Zip(results)
                 .Where(pair => pair.Second.IsSuccess)
@@ -854,7 +900,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
             if (holds.Count > 0)
             {
-                var result = _edit.AddHolds(clip.Id, holds);
+                var result = _edit.AddHolds(clip.Id, holds, RouteForEdit());
                 if (!result.Success)
                 {
                     _status.Report(result.Message ?? Strings.Holds_NotAdded);
@@ -1058,19 +1104,19 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             await AddRouteCandidate(frame, component, contour);   // D048 §2: into the review, the clip unchanged
             return;
         }
-        var others = (clip.HoldMarkup?.Holds ?? ImmutableArray<Hold>.Empty).Select(h => (IReadOnlyList<NormalizedPoint>)h.Points).ToList();
+        var others = (MarkupOf(clip)?.Holds ?? ImmutableArray<Hold>.Empty).Select(h => (IReadOnlyList<NormalizedPoint>)h.Points).ToList();
         var generation = ++_generation;
         var (surface, wall) = await Task.Run(() => HoldColorSampler.Sample(frame, component, others));
         if (generation != _generation || !IsActive) return;
 
-        var result = _edit.AddHold(clip.Id, new Hold(Guid.NewGuid(), contour, surface, wall, _sourceTime));
+        var result = _edit.AddHold(clip.Id, new Hold(Guid.NewGuid(), contour, surface, wall, _sourceTime), RouteForEdit());
         if (!result.Success)
         {
             _status.Report(result.Message ?? Strings.Holds_NotAdded);
             return;
         }
         ClearCandidate();
-        _status.Report(string.Format(Strings.Holds_Added, clip.HoldMarkup?.Holds.Length ?? 0));
+        _status.Report(string.Format(Strings.Holds_Added, MarkupOf(clip)?.Holds.Length ?? 0));
     }
 
     private bool CanDeleteSelected() => IsActive && SelectedHoldId is not null;
@@ -1085,7 +1131,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             DeleteVertex(handle);   // Delete over a handle removes that vertex, not the hold (D035)
             return;
         }
-        var result = _edit.RemoveHold(_clip.Id, id);
+        var result = _edit.RemoveHold(_clip.Id, id, _routeId);
         if (!result.Success) _status.Report(result.Message ?? Strings.Holds_NotRemoved);
         Select(null);
     }
@@ -1094,6 +1140,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     public void OnPlayheadMoved()
     {
         if (IsActive && Playhead() != _modePlayhead) Exit();
+        // D053: another route under the playhead — the section shows it.
+        if (!IsActive && ResolveRoute()) LoadStyle();
         RefreshCommands();
     }
 
@@ -1159,7 +1207,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         IsContourInvalid = false;
         HoveredHandle = null;
         SelectedHoldId = id;
-        SelectedContour = id is { } h && _clip?.HoldMarkup?.Holds.FirstOrDefault(x => x.Id == h) is { } hold
+        SelectedContour = id is { } h && Markup?.Holds.FirstOrDefault(x => x.Id == h) is { } hold
             ? hold.Points
             : ImmutableArray<NormalizedPoint>.Empty;
         SelectedHandles = SelectedContour.Length >= 3 && MarkupFrame is { } frame
@@ -1298,13 +1346,13 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         SelectedContour = edited.Points;
         SelectedHandles = edited.Handles;
         IsContourInvalid = false;
-        var result = _edit.ReplaceHoldContour(_clip.Id, id, edited.Points);
+        var result = _edit.ReplaceHoldContour(_clip.Id, id, edited.Points, _routeId);
         if (!result.Success)
         {
             Restore(before);
             _status.Report(result.Message ?? Strings.Holds_OutlineNotChanged);
         }
-        else if (_clip.HoldMarkup?.Holds.FirstOrDefault(h => h.Id == id)?.Points != edited.Points)
+        else if (Markup?.Holds.FirstOrDefault(h => h.Id == id)?.Points != edited.Points)
         {
             Restore(before);   // unchanged: no step
         }
@@ -1320,7 +1368,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     /// <summary>The confirmed hold whose contour contains <paramref name="p"/> (the topmost: the last confirmed).</summary>
     private Guid? HitHold(NormalizedPoint p)
     {
-        var holds = _clip?.HoldMarkup?.Holds ?? ImmutableArray<Hold>.Empty;
+        var holds = Markup?.Holds ?? ImmutableArray<Hold>.Empty;
         for (var i = holds.Length - 1; i >= 0; i--)
             if (Contains(holds[i].Points, p)) return holds[i].Id;
         return null;
@@ -1357,7 +1405,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             ? CompositionMath.Layout(Canvas, frameSize, visual)
             : null;
         if (SelectedHoldId is not { } id) return;
-        if (_clip?.HoldMarkup?.Holds.FirstOrDefault(h => h.Id == id) is not { } hold)
+        if (Markup?.Holds.FirstOrDefault(h => h.Id == id) is not { } hold)
         {
             Select(null);
             return;

@@ -59,10 +59,10 @@ public class OverlayStripSpeedRateTests
     {
         var (clip, t, rate) = (s.Clip, s.Template, s.Rate);
         long ps = t.TimelineStart.ToNearestFrame(rate);
-        var a = clip.HoldMarkup!.Animation!;
+        var status = ps + t.StatusAt.ToNearestFrame(rate) - t.CounterStart.ToNearestFrame(rate);
+        if (clip.HoldMarkup?.Animation is not { } a) return (ps, status, t.TimelineEnd.ToNearestFrame(rate), -1, -1);   // markup deleted
         var start = HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, a.StartSourceTime, rate);
-        return (ps, ps + t.StatusAt.ToNearestFrame(rate) - t.CounterStart.ToNearestFrame(rate), t.TimelineEnd.ToNearestFrame(rate),
-            start, start + HoldAnimationRule.DurationFrames(a, rate));
+        return (ps, status, t.TimelineEnd.ToNearestFrame(rate), start, start + HoldAnimationRule.DurationFrames(a, rate));
     }
 
     /// <summary>The drawn strip equals the model, and the §4.2 limits hold on the frame values.</summary>
@@ -72,11 +72,12 @@ public class OverlayStripSpeedRateTests
         var strip = s.F.Service.OverlayStripOf(s.Clip.Id)!;
         Assert.Equal(new FrameSpan(s.Vs, s.Ve), strip.Clip);
         Assert.Equal(new FrameSpan(m.Ps, m.S), strip.Green);
-        Assert.Equal(new FrameSpan(m.As, m.Ae), strip.Orange);
+        Assert.Equal(m.As < 0 ? null : new FrameSpan(m.As, m.Ae), strip.Orange);
         Assert.Equal(new FrameSpan(m.S, m.Pe), strip.Lilac);
         Assert.InRange(m.Ps, s.Vs, m.S - 1);
         Assert.InRange(m.Pe, m.S + 2, s.Ve);
-        Assert.InRange(m.As, s.Vs, m.Ae - 1);
+        if (m.As < 0) return;
+        Assert.InRange(m.As, m.Ps, m.Ae - 1);                                                     // D053 §4: inside the green
         Assert.True(m.Ae <= m.S, $"the orange ({m.Ae}) overlaps the lilac ({m.S})");
     }
 
@@ -111,7 +112,9 @@ public class OverlayStripSpeedRateTests
 
         s = LaidOut(num, den, steps);
         m = Model(s);
-        Assert.Equal(m.S - 1, Applied(s, OverlayStripHandle.GreenStart, Far).Ps);
+        var cut = Applied(s, OverlayStripHandle.GreenStart, Far);                                 // D053 §4: past the orange
+        Assert.Equal(m.S - 1, cut.Ps);
+        Assert.Equal(m.S - 1 >= m.Ae ? (-1L, -1L) : (m.S - 1, m.Ae), (cut.As, cut.Ae));            // cut from the left, or deleted
 
         s = LaidOut(num, den, steps);
         m = Model(s);
@@ -129,7 +132,7 @@ public class OverlayStripSpeedRateTests
         s = LaidOut(num, den, steps);
         m = Model(s);
         var orange = Applied(s, OverlayStripHandle.OrangeStart, -Far);
-        Assert.Equal((s.Vs, m.Ae), (orange.As, orange.Ae));                                       // T kept
+        Assert.Equal((m.Ps, m.Ae), (orange.As, orange.Ae));                                       // stops at Ps; T kept
 
         s = LaidOut(num, den, steps);
         m = Model(s);
@@ -139,7 +142,7 @@ public class OverlayStripSpeedRateTests
         s = LaidOut(num, den, steps);
         m = Model(s);
         orange = Applied(s, OverlayStripHandle.OrangeBody, -Far);
-        Assert.Equal(s.Vs, orange.As);
+        Assert.Equal(m.Ps, orange.As);                                                            // stops at Ps
         Assert.Equal(m.Ae - m.As, orange.Ae - orange.As);                                         // the duration kept
     }
 

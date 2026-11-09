@@ -118,13 +118,13 @@ public class HoldMarkupPersistenceTests
     public void The_file_is_the_current_version_and_a_clip_without_markup_writes_nothing()
     {
         var withMarkup = Json(Build(Markup()));
-        Assert.Equal(14, (int)withMarkup["formatVersion"]!);
-        var hold = ClipJson(withMarkup)["holdMarkup"]!["holds"]![0]!;
+        Assert.Equal(15, (int)withMarkup["formatVersion"]!);
+        var hold = ClipJson(withMarkup)["routes"]![0]!["holds"]![0]!;
         Assert.NotNull(hold["surfaceLab"]!["l"]);
         Assert.NotNull(hold["wallLab"]!["b"]);
         Assert.NotNull(hold["sourceTimeTicks"]);
 
-        Assert.Null(ClipJson(Json(Build(null)))["holdMarkup"]);
+        Assert.Null(ClipJson(Json(Build(null)))["routes"]);
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public class HoldMarkupPersistenceTests
         root["formatVersion"] = 4;
         var project = Load(root.ToJsonString());
         Assert.Null(((VideoClip)project.Timeline.VideoTracks[0].Clips[0]).HoldMarkup);
-        Assert.Equal(14, (int)JsonNode.Parse(Save(project))!["formatVersion"]!);
+        Assert.Equal(15, (int)JsonNode.Parse(Save(project))!["formatVersion"]!);
 
         // A v4 file can't have markup; anything there is ignored, as every older version ignores newer properties.
         var stray = Json(Build(Markup()));
@@ -158,7 +158,7 @@ public class HoldMarkupPersistenceTests
     public void A_hold_without_its_samples_refuses_the_file(string member)
     {
         var root = Json(Build(Markup()));
-        ClipJson(root)["holdMarkup"]!["holds"]![1]!.AsObject().Remove(member);
+        ClipJson(root)["routes"]![0]!["holds"]![1]!.AsObject().Remove(member);
         Assert.Contains("damaged", Rejected(root).Message);
     }
 
@@ -168,7 +168,7 @@ public class HoldMarkupPersistenceTests
     public void A_hold_with_a_missing_sample_component_refuses_the_file(string sample, string component)
     {
         var root = Json(Build(Markup()));
-        ClipJson(root)["holdMarkup"]!["holds"]![0]![sample]!.AsObject().Remove(component);
+        ClipJson(root)["routes"]![0]!["holds"]![0]![sample]!.AsObject().Remove(component);
         Assert.Contains("damaged", Rejected(root).Message);
     }
 
@@ -176,20 +176,20 @@ public class HoldMarkupPersistenceTests
     public void Non_finite_or_out_of_range_values_refuse_the_file()
     {
         var huge = Json(Build(Markup()));
-        ClipJson(huge)["holdMarkup"]!["holds"]![0]!["surfaceLab"]!["l"] = JsonValue.Create(1e308);
+        ClipJson(huge)["routes"]![0]!["holds"]![0]!["surfaceLab"]!["l"] = JsonValue.Create(1e308);
         var text = huge.ToJsonString().Replace("1E+308", "1e999");   // overflows to infinity when read
         Assert.Throws<ProjectFileException>(() => Load(text));
 
         var outside = Json(Build(Markup()));
-        ClipJson(outside)["holdMarkup"]!["holds"]![0]!["points"]![0] = 1.5;
+        ClipJson(outside)["routes"]![0]!["holds"]![0]!["points"]![0] = 1.5;
         Assert.Contains("damaged", Rejected(outside).Message);
 
         var negative = Json(Build(Markup()));
-        ClipJson(negative)["holdMarkup"]!["holds"]![0]!["sourceTimeTicks"] = -1;
+        ClipJson(negative)["routes"]![0]!["holds"]![0]!["sourceTimeTicks"] = -1;
         Assert.Contains("damaged", Rejected(negative).Message);
 
         var odd = Json(Build(Markup()));
-        ClipJson(odd)["holdMarkup"]!["holds"]![0]!["points"]!.AsArray().RemoveAt(0);
+        ClipJson(odd)["routes"]![0]!["holds"]![0]!["points"]!.AsArray().RemoveAt(0);
         Assert.Contains("damaged", Rejected(odd).Message);
     }
 
@@ -204,7 +204,7 @@ public class HoldMarkupPersistenceTests
     public void A_markup_missing_a_member_refuses_the_file(string member)
     {
         var root = Json(Build(Markup()));
-        ClipJson(root)["holdMarkup"]!.AsObject().Remove(member);
+        ClipJson(root)["routes"]![0]!.AsObject().Remove(member);
         Assert.Contains("damaged", Rejected(root).Message);
     }
 
@@ -212,16 +212,16 @@ public class HoldMarkupPersistenceTests
     public void Duplicate_hold_ids_and_an_invalid_style_refuse_the_file()
     {
         var dup = Json(Build(Markup()));
-        var holds = ClipJson(dup)["holdMarkup"]!["holds"]!.AsArray();
+        var holds = ClipJson(dup)["routes"]![0]!["holds"]!.AsArray();
         holds[1]!["id"] = holds[0]!["id"]!.GetValue<Guid>();
         Assert.Contains("damaged", Rejected(dup).Message);
 
         var width = Json(Build(Markup()));
-        ClipJson(width)["holdMarkup"]!["strokeWidth1080"] = 0;
+        ClipJson(width)["routes"]![0]!["strokeWidth1080"] = 0;
         Assert.Contains("damaged", Rejected(width).Message);
 
         var color = Json(Build(Markup()));
-        ClipJson(color)["holdMarkup"]!["colorHex"] = "magenta";
+        ClipJson(color)["routes"]![0]!["colorHex"] = "magenta";
         Assert.Contains("damaged", Rejected(color).Message);
     }
     [Fact]
@@ -239,7 +239,7 @@ public class HoldMarkupPersistenceTests
         var first = Save(project);
         var reopened = Load(first);
         Assert.Equal(first, Save(reopened));
-        Assert.Equal(14, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(15, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
 
         var loaded = LoadedMarkup(reopened).Holds[0];
         Assert.True(corrected.SameAs(loaded));                                 // id, every point, the samples, the time

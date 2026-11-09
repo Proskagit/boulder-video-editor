@@ -96,8 +96,8 @@ public class RouteTimingAcceptanceTests
         var template = TemplateOf(f, clip);
         var (ps, s, pe) = Plate(template, rate);
         Assert.Equal(t - i, ps);                                           // Ps = T − I
-        Assert.Equal(ve, pe);                                              // Pe = Ve
-        Assert.Equal(Math.Max(Math.Max(ve - 150, t), ps + 1), s);          // S = max(Ve − 5 s, T, Ps + 1)
+        Assert.Equal(Math.Min(ve, Math.Max(ps + 1050, t + 150)), pe);      // D053 §7: Pe = min(Ve, max(Ps + 35 s, T + 5 s))
+        Assert.Equal(Math.Max(Math.Max(pe - 150, t), ps + 1), s);          // S = max(Pe − 5 s, T, Ps + 1)
         Assert.True(ps >= 0 && ps < s && s <= pe, $"Ps {ps}, S {s}, Pe {pe}");
         if (Orange(clip, rate) is { } o) Assert.True(o.Start >= 0 && o.End <= s, $"orange {o}, S {s}");
 

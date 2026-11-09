@@ -28,6 +28,7 @@ public sealed class TrainingImportWorkflow
     private readonly ILogger<TrainingImportWorkflow> _logger;
     private readonly IDialogService? _dialogs;
     private readonly Func<Task> _showStatus;
+    private readonly IFitMarkEditService? _fitMarks;
 
     /// <param name="dialogs">Asks before a replace or a relink to another activity; without it those are refused.</param>
     public TrainingImportWorkflow(
@@ -38,8 +39,10 @@ public sealed class TrainingImportWorkflow
         StatusService status,
         ILogger<TrainingImportWorkflow> logger,
         Func<Task>? showStatus = null,
-        IDialogService? dialogs = null)
+        IDialogService? dialogs = null,
+        IFitMarkEditService? fitMarks = null)
     {
+        _fitMarks = fitMarks;
         _filePicker = filePicker;
         _importService = importService;
         _projectService = projectService;
@@ -67,6 +70,10 @@ public sealed class TrainingImportWorkflow
 
         _session.Attach(read.File, read.Path);
         _status.Report(TrainingText.Imported(read.File.Workout));
+        // D053 §7 (mode B): the import makes a green route area for every climb found on a video of the timeline — its own
+        // Undo step after the import (which is none, D049 §11). Its count joins the import's message.
+        if (_fitMarks?.CreateRoutesFromFit() is { Success: true, NoChange: false, Message: { } created })
+            _status.Report(TrainingText.Imported(read.File.Workout) + " " + created);
     }
 
     /// <summary>«Указать файл…»: only while the training's file is not available (D026 PO-6 analogue).</summary>

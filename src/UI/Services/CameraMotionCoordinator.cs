@@ -79,8 +79,8 @@ public sealed class CameraMotionCoordinator : IDisposable
     private readonly ICameraMotionCache? _cache;
     private readonly ILogger _logger;
     private readonly Dictionary<Request, CameraMotionTrack?> _results = new();
-    private Dictionary<Guid, Request> _wanted = new();
-    private HashSet<Guid> _off = new();
+    private Dictionary<RouteKey, Request> _wanted = new();
+    private HashSet<RouteKey> _off = new();
     private CancellationTokenSource _cancel = new();
     private Task? _worker;
     private bool _disposed;
@@ -104,11 +104,11 @@ public sealed class CameraMotionCoordinator : IDisposable
     /// <summary>Raised on the caller's context whenever the clips' states may have changed (<see cref="StatusOf"/>).</summary>
     public event EventHandler? StatusChanged;
 
-    /// <summary>The tracking of <paramref name="clipId"/>.</summary>
-    public CameraMotionStatus StatusOf(Guid clipId)
+    /// <summary>The tracking of one route of a clip (D053: each route has its own marking frame and window).</summary>
+    public CameraMotionStatus StatusOf(RouteKey route)
     {
-        if (_off.Contains(clipId)) return new CameraMotionStatus(CameraMotionState.Off);
-        if (!_wanted.TryGetValue(clipId, out var request)) return new CameraMotionStatus(CameraMotionState.None);
+        if (_off.Contains(route)) return new CameraMotionStatus(CameraMotionState.Off);
+        if (!_wanted.TryGetValue(route, out var request)) return new CameraMotionStatus(CameraMotionState.None);
         if (!_results.TryGetValue(request, out var track)) return new CameraMotionStatus(CameraMotionState.Analysing);
         if (track is null) return new CameraMotionStatus(CameraMotionState.Failed);
         var hidden = track.UnreliableFraction;
@@ -120,33 +120,36 @@ public sealed class CameraMotionCoordinator : IDisposable
         }, hidden);
     }
 
-    /// <summary>Analyses the clip again after a failure (a file that was busy, a decoder error).</summary>
-    public void Retry(Guid clipId)
+    /// <summary>Analyses the route again after a failure (a file that was busy, a decoder error).</summary>
+    public void Retry(RouteKey route)
     {
-        if (!_wanted.TryGetValue(clipId, out var request) || !_results.TryGetValue(request, out var track) || track is not null) return;
+        if (!_wanted.TryGetValue(route, out var request) || !_results.TryGetValue(request, out var track) || track is not null) return;
         _results.Remove(request);
         Publish();
         StartWorker();
     }
 
-    /// <summary>The tracks of the current project's clips, by clip id.</summary>
-    public ImmutableDictionary<Guid, CameraMotionTrack> Tracks { get; private set; } = ImmutableDictionary<Guid, CameraMotionTrack>.Empty;
+    /// <summary>The tracks of the current project's routes, by clip and route (D053).</summary>
+    public ImmutableDictionary<RouteKey, CameraMotionTrack> Tracks { get; private set; } = ImmutableDictionary<RouteKey, CameraMotionTrack>.Empty;
 
-    /// <summary>The clips whose analysis has not finished yet.</summary>
+    /// <summary>The clips with a route whose analysis has not finished yet.</summary>
     public ImmutableHashSet<Guid> Pending { get; private set; } = ImmutableHashSet<Guid>.Empty;
 
     /// <summary>What the export's preflight uses: the same tracks the Preview draws with, the clips still analysed, the
     /// clips whose analysis failed and the share of hidden frames of the partly or mostly unreliable ones.</summary>
     public ExportCameraMotion ForExport()
     {
+        // D053: a clip is failed / unreliable when one of its routes is (the larger hidden share of its routes).
         var failed = new HashSet<Guid>();
         var unreliable = new Dictionary<Guid, double>();
-        foreach (var clipId in _wanted.Keys)
+        foreach (var route in _wanted.Keys)
         {
-            var status = StatusOf(clipId);
-            if (status.State == CameraMotionState.Failed) failed.Add(clipId);
-            else if (status.State is CameraMotionState.PartlyUnreliable or CameraMotionState.Unreliable) unreliable[clipId] = status.HiddenFraction;
+            var status = StatusOf(route);
+            if (status.State == CameraMotionState.Failed) failed.Add(route.ClipId);
+            else if (status.State is CameraMotionState.PartlyUnreliable or CameraMotionState.Unreliable)
+                unreliable[route.ClipId] = Math.Max(unreliable.GetValueOrDefault(route.ClipId), status.HiddenFraction);
         }
+        foreach (var clipId in failed) unreliable.Remove(clipId);
         return new ExportCameraMotion(Tracks, Pending) { Failed = failed, Unreliable = unreliable };
     }
 
@@ -168,21 +171,27 @@ public sealed class CameraMotionCoordinator : IDisposable
         if (_disposed) return;
         var project = _projects.Current;
         var assets = project.MediaAssets.ToDictionary(a => a.Id);
-        var wanted = new Dictionary<Guid, Request>();
-        var off = new HashSet<Guid>();
+        var wanted = new Dictionary<RouteKey, Request>();
+        var off = new HashSet<RouteKey>();
         foreach (var clip in project.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>())
         {
             if (!assets.TryGetValue(clip.MediaAssetId, out var asset) || asset.IsMissing || asset.Kind != MediaKind.Video ||
-                asset.Metadata is not { } metadata || CameraMotionRange.For(clip, project.Settings.FrameRate) is not { } range)
+                asset.Metadata is not { } metadata)
                 continue;
-            if (clip.HoldMarkup is { FollowsCamera: false })
+            // D053: one analysis per route — its own marking frame and window.
+            foreach (var route in clip.Routes)
             {
-                off.Add(clip.Id);
-                continue;
+                if (CameraMotionRange.For(clip, route, project.Settings.FrameRate) is not { } range) continue;
+                var key = new RouteKey(clip.Id, route.Id);
+                if (!route.FollowsCamera)
+                {
+                    off.Add(key);
+                    continue;
+                }
+                var (length, written) = Stat(asset.FilePath);
+                wanted[key] = new Request(asset.FilePath, length, written, metadata.StartTime ?? MediaTime.Zero,
+                    HdrColor.Classify(asset.Kind, metadata).Conversion, SourceFrameSelector.NominalRate(metadata), range);
             }
-            var (length, written) = Stat(asset.FilePath);
-            wanted[clip.Id] = new Request(asset.FilePath, length, written, metadata.StartTime ?? MediaTime.Zero,
-                HdrColor.Classify(asset.Kind, metadata).Conversion, SourceFrameSelector.NominalRate(metadata), range);
         }
         _wanted = wanted;
         _off = off;
@@ -211,12 +220,12 @@ public sealed class CameraMotionCoordinator : IDisposable
 
     private void Publish()
     {
-        var tracks = ImmutableDictionary.CreateBuilder<Guid, CameraMotionTrack>();
+        var tracks = ImmutableDictionary.CreateBuilder<RouteKey, CameraMotionTrack>();
         var pending = ImmutableHashSet.CreateBuilder<Guid>();
-        foreach (var (clipId, request) in _wanted)
+        foreach (var (route, request) in _wanted)
         {
-            if (!_results.TryGetValue(request, out var track)) pending.Add(clipId);
-            else if (track is not null) tracks[clipId] = track;
+            if (!_results.TryGetValue(request, out var track)) pending.Add(route.ClipId);
+            else if (track is not null) tracks[route] = track;
         }
         var newTracks = tracks.ToImmutable();
         var newPending = pending.ToImmutable();
@@ -230,7 +239,7 @@ public sealed class CameraMotionCoordinator : IDisposable
     /// <summary>A request some clip still needs.</summary>
     private Request? NextRequest() => _wanted.Values.FirstOrDefault(r => !_results.ContainsKey(r));
 
-    private static bool SameTracks(ImmutableDictionary<Guid, CameraMotionTrack> a, ImmutableDictionary<Guid, CameraMotionTrack> b) =>
+    private static bool SameTracks(ImmutableDictionary<RouteKey, CameraMotionTrack> a, ImmutableDictionary<RouteKey, CameraMotionTrack> b) =>
         a.Count == b.Count && a.All(pair => b.TryGetValue(pair.Key, out var other) && ReferenceEquals(other, pair.Value));
 
     /// <summary>Analyses the wanted requests without a result, one at a time, until none is left. When it ends it hands

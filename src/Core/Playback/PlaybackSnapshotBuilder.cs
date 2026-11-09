@@ -22,7 +22,7 @@ public static class PlaybackSnapshotBuilder
 {
     /// <param name="motion">The camera's motion per video clip (hold tracking), by clip id — derived from the video, not part
     /// of the project; null or a missing clip: its contours stay where they were marked, exactly as before.</param>
-    public static PlaybackSnapshot Build(Project project, long version, IReadOnlyDictionary<Guid, CameraMotionTrack>? motion = null)
+    public static PlaybackSnapshot Build(Project project, long version, IReadOnlyDictionary<RouteKey, CameraMotionTrack>? motion = null)
     {
         var sequence = project.Timeline;
         var assets = project.MediaAssets.ToDictionary(a => a.Id);
@@ -80,9 +80,12 @@ public static class PlaybackSnapshotBuilder
                         // Only Dissolve and Push show the clips past the cut, from their handles (D044 §3).
                         ExtendedStart = dissolves.FirstOrDefault(z => z.RightClipId == clip.Id && z.ExtendsPictures)?.Start,
                         ExtendedEnd = dissolves.FirstOrDefault(z => z.LeftClipId == clip.Id && z.ExtendsPictures)?.End,
-                        Outline = media is VideoClip { HoldMarkup: { } markup }
-                            ? WithMotion(HoldOutline.Of(markup, clip.TimelineStart, media.SourceIn, media.Speed, rate), clip.Id, asset, motion)
-                            : null,
+                        // D053: one outline per route with holds, each with its own animation and camera-motion track.
+                        Outlines = media is VideoClip routed
+                            ? routed.Routes.Select(route => WithMotion(HoldOutline.Of(route, clip.TimelineStart, media.SourceIn, media.Speed, rate),
+                                    new RouteKey(clip.Id, route.Id), asset, motion))
+                                .OfType<HoldOutline>().ToImmutableArray()
+                            : ImmutableArray<HoldOutline>.Empty,
                         HeartRate = media is VideoClip && status == SpanStatus.Video ? HeartRateOf(training, asset!) : null
                     });
 
@@ -232,8 +235,8 @@ public static class PlaybackSnapshotBuilder
             ? new HeartRateBinding(workout, zero, training.ClockCorrection)
             : null;
 
-    private static HoldOutline? WithMotion(HoldOutline? outline, Guid clipId, MediaAsset? asset, IReadOnlyDictionary<Guid, CameraMotionTrack>? motion) =>
-        outline is not null && motion is not null && motion.TryGetValue(clipId, out var track)
+    private static HoldOutline? WithMotion(HoldOutline? outline, RouteKey key, MediaAsset? asset, IReadOnlyDictionary<RouteKey, CameraMotionTrack>? motion) =>
+        outline is not null && motion is not null && motion.TryGetValue(key, out var track)
             ? outline with { Motion = track, SourceStartTime = asset?.Metadata?.StartTime ?? MediaTime.Zero }
             : outline;
 

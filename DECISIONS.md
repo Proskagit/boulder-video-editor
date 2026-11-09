@@ -9149,6 +9149,73 @@ track cached by any earlier analysis is analysed again.
 
 ---
 
+## D053 — Several routes on one clip, the orange inside its green, route areas from a FIT *(approved 2026-11-09)*
+
+Date: 2026-11-09. **Status: approved by the product owner on 2026-11-09** (the model change, «D053 как описано»; the FIT
+green from `T − 7 s` to the climb's end + 5 s), on the defects found in the manual check of Phases 33 / 34 in the owner's
+project `D:\Времянка для монтажа` (three clips of one source video). Changes D034 / D048's «one markup per video clip»;
+keeps every other rule of D048 / D051 / D052.
+
+**Defects found and their causes (reproduced on a copy of the project).**
+1. A second route on the same clip went into the first: the model had exactly one markup, one animation and one anchored
+   «Боулдер» per video clip (`VideoClip.HoldMarkup`); «Разметить зацепки» always added holds to it.
+2. No lilac could be made on clip 1: after the original clip was split its template's status moment stayed 90.9 s on a
+   21.1 s plate (D045 §17 keeps it absolute); Top was refused («at least two frames…») and the strip had no status handle.
+3. The orange outside the green on clip 2: D048 §4.2 bounded the orange by the clip, not by the plate; moving the green's
+   start into the orange left the orange beside the plate.
+4. The green's edge «caught» by the orange: the orange was drawn over the green's start and the edge took a press only
+   within 8 px (the hit-testing itself gave the green first — checked with the mouse in the app).
+
+**Decided (product owner, 2026-11-09).**
+- **Routes.** A video clip has a list of independent routes. A route is an id on the clip: its holds, outline style and
+  animation (the orange), when it has them, are the clip's markup with that id (`VideoClip.Routes`, each `HoldMarkup.Id`);
+  its green and lilac, its name and grade are the «Боулдер» anchored to it (`TemplateClip.AnchorClipId` +
+  `AnchorRouteId`). Either may exist alone (a FIT-made route has only its green; a route marked before its layout only its
+  holds). Every edit addresses its route; Split / Duplicate / Paste copy the routes with their ids (the anchor is the pair
+  clip + route); every D048 rule (§3.5–§3.10) applies per route; the camera-motion track, its state and the export's
+  warnings are per route (`RouteKey`); a FIT link names a route (`FitMark.LinkedRouteId`).
+- **Which route a markup works on.** «Разметить зацепки» (and the «Зацепки» section) works on the route whose green holds
+  the playhead (the latest started on an overlap); outside every green on a route marked without a green yet, else on a
+  new route — never on another route.
+- **`project.json` v15.** `routes` (each with its `id`) instead of `holdMarkup`; a template's `anchorRouteId` and
+  `fitClimb`; a mark's `linkedRouteId`. A v14 file's markup is the clip's one route (its id the clip's, so the file opened
+  twice gives the same route; its templates anchored to it); the templates of a clip without markup get one route of their
+  own. A route without an id or two routes with one id refuse the file.
+- **FIT (mode B).** After a FIT import (and after a recording zero that brings new marks) one route with its green only is
+  made for every active climb that has none, on the clip that shows the climb's start: from `T − I` (`I = min(7 s, A)`,
+  D048 §3.4) to the climb's actual end (`W_end − ClimbEndLag`, D050) + 5 s, cut to the clip; `T` is the climb's effective
+  start (D051 §4 — the mark's position by the video's recording zero and the clock correction; no second synchronisation).
+  No holds, no orange, no status — added by hand. One Undo step of its own; a new import never adds a second area for a
+  climb (`TemplateClip.FitClimb`). A climb whose start no clip shows gets none.
+
+**Engineering decisions (within the approved scope).**
+- **The orange inside its green (§4).** For a route with a green, `Ps ≤ As < Ae ≤ Pe` on the frames: the orange's handles
+  and the Inspector's start / length stop at the green; the green's start moved past the orange's start cuts it from the
+  left, its end (no lilac) moved before the orange's end cuts it from the right (T moves with it); a green that leaves no
+  frame of the orange deletes the route's markup (holds and animation, as D048 §3.9 / §3.8 do — one Undo restores it); a
+  plate moved as a whole carries an orange it would leave (refused when the orange would leave its clip). The green of a
+  route is the span of its «Боулдер» templates (a split plate is one green). After the rules of an edit every orange of a
+  clip the edit touches is kept inside its green (a scaled boundary's rounding; an older project's orange is fixed by its
+  first edit).
+- **No FIT (mode A).** «Разложить вступление и финал» ends a new green at `min(Ve, max(Ps + 35 s, T + 5 s))` (was `Ve`);
+  laid out again, a green whose end lies after `T` keeps that end (set by hand or by the FIT). The status moment
+  `S = max(Pe − 5 s, T, Ps + 1)`.
+- **Problem 2.** Top / Attempt chosen where the status moment gives no lilac (outside the plate, on its last frame, over
+  the orange) is put where the layout puts it, `S = max(Pe − 5 s, Ae, Ps + 1)`, when two frames follow it (§1.25); a moment
+  the user moves in the same edit is never replaced.
+- **Problem 4 (§5).** Where the orange starts with the green, the green's edge is drawn on top (3 px) and named by the
+  tooltip; a press there takes the green's start (it did); the orange keeps all its handles elsewhere.
+- **Code.** `VideoClip.HoldMarkup` stays as the single-route view, `[Obsolete]` for the editor's own code (the tests use
+  it; `tests/Directory.Build.props` silences CS0618 there). `PictureSpan.Outlines`, `PictureLayer.RouteOpacities`: one
+  outline per route in the Preview and the export.
+
+**Consequences.** Format v15; the Preview, the export, the tracking and the FIT links per route; the manual acceptance of
+Phases 33 / 34 is checked again with these rules (`docs/PHASE33_34_ACCEPTANCE_EVIDENCE.md`). Not changed: Split / speed /
+trim / Insert / Overwrite rules of D048 (per route), Undo, the magnetic snap to the playhead, Variant B's cursors and
+tooltips, the animation's 80 / 20 algorithm.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

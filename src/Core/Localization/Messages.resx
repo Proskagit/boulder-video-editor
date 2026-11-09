@@ -1243,4 +1243,16 @@
   <data name="Preflight_HeartRateUnknownZero" xml:space="preserve">
     <value>The heart-rate overlay shows nothing over '{0}': the video's recording start is not set ({1}, first at {2}).</value>
   </data>
+  <data name="Route_Ambiguous" xml:space="preserve">
+    <value>This clip has several routes: choose one — put the playhead inside its green area.</value>
+  </data>
+  <data name="Overlay_OrangeOutsideGreen" xml:space="preserve">
+    <value>The hold animation must stay inside its route's green area: change its start or duration.</value>
+  </data>
+  <data name="FitRoutes_Created" xml:space="preserve">
+    <value>Route areas created from the FIT: {0}.</value>
+  </data>
+  <data name="FitRoutes_None" xml:space="preserve">
+    <value>No new route areas: every climb found in the FIT already has one, or its video is not on the timeline.</value>
+  </data>
 </root>

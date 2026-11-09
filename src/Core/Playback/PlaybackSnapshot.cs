@@ -64,8 +64,16 @@ public sealed record PictureSpan(
 
     public bool Contains(MediaTime time) => time >= TimelineStart && time < TimelineEnd;
 
-    /// <summary>The route outline of the clip's hold markup (D034 §6); null without holds. Presentation only.</summary>
-    public HoldOutline? Outline { get; init; }
+    /// <summary>D053: the outline of each of the clip's routes that has holds (D034 §6), in the clip's route order; empty
+    /// without holds. Presentation only.</summary>
+    public ImmutableArray<HoldOutline> Outlines { get; init; } = ImmutableArray<HoldOutline>.Empty;
+
+    /// <summary>The first route's outline (the single-route view of <see cref="Outlines"/>); setting it replaces them all.</summary>
+    public HoldOutline? Outline
+    {
+        get => Outlines.IsDefaultOrEmpty ? null : Outlines[0];
+        init => Outlines = value is null ? ImmutableArray<HoldOutline>.Empty : ImmutableArray.Create(value);
+    }
 
     /// <summary>The heart rate of the clip's picture (Phase 35.5): set for a video clip when the project's training is
     /// usable and the video's recording zero is known; null otherwise — a heart-rate overlay above it then shows nothing.
@@ -108,11 +116,15 @@ public sealed record HoldOutline(ImmutableArray<ImmutableArray<NormalizedPoint>>
     /// <summary>The file's start time (<c>MediaMetadata.StartTime</c>): the origin of the frame timestamps' source time.</summary>
     public MediaTime SourceStartTime { get; init; }
 
+    /// <summary>D053: the route of the clip this outline draws (its tracking state is the route's).</summary>
+    public Guid RouteId { get; init; }
+
     /// <summary>The outline of <paramref name="markup"/> without the animation (it needs the clip's timing).</summary>
     public static HoldOutline? Of(HoldMarkup? markup) => markup is { Holds.Length: > 0 }
         ? new HoldOutline(markup.Holds.Select(h => h.Points).ToImmutableArray(), markup.StrokeWidth1080, markup.ColorHex, markup.KeylineActive)
         {
-            MarkedAt = markup.Holds.Select(h => h.SourceTime).ToImmutableArray()
+            MarkedAt = markup.Holds.Select(h => h.SourceTime).ToImmutableArray(),
+            RouteId = markup.Id
         }
         : null;
 
@@ -410,9 +422,11 @@ public sealed class PlaybackSnapshot
     /// Preview and the export draw (inside a dissolve zone the frame index simply runs on past the clip).</summary>
     private PictureLayer WithOutlineOpacities(PictureLayer picture, MediaTime time, ref long? frame)
     {
-        if (picture.Span.Outline?.Schedule is not { } schedule) return picture;
+        var outlines = picture.Span.Outlines;
+        if (outlines.IsDefaultOrEmpty || outlines.All(o => o.Schedule is null)) return picture;
         frame ??= time.ToFrameFloor(FrameRate);
-        return picture with { OutlineOpacities = schedule.OpacitiesAt(frame.Value) };
+        var at = frame.Value;
+        return picture with { RouteOpacities = outlines.Select(o => o.Schedule is { } s ? s.OpacitiesAt(at) : default).ToImmutableArray() };
     }
 
     private static DissolveZone? FindZone(ImmutableArray<DissolveZone> zones, MediaTime time)

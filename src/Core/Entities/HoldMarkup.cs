@@ -139,6 +139,12 @@ public sealed class Hold
 /// </summary>
 public sealed record HoldMarkup
 {
+    /// <summary>D053 (format v15): the identity of the route this markup is on its clip — one clip may carry several
+    /// independent routes, each with its own holds, animation (the orange) and anchored «Боулдер» (its green and lilac,
+    /// <see cref="TemplateClip.AnchorRouteId"/>). Kept by every edit of the route and copied with it by Split, Duplicate and
+    /// Paste (the anchor is the pair clip + route). A route may exist without markup — a «Боулдер» anchored to it alone.</summary>
+    public Guid Id { get; init; } = Guid.NewGuid();
+
     /// <summary>The model the contours came from (D034 §2).</summary>
     public const string CurrentModelId = "sam2.1-large-v1";
 
