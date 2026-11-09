@@ -592,6 +592,13 @@ takes the vertical-video export.
   to the top or the end of the attempt — instead of over the whole active training (the current behaviour, kept). Needs a
   decision of its own. The difference between a climb's actual end and the COROS timer's pause is not a defect: the visual
   bounds of the route overlays are corrected separately (`docs/PHASE_COROS.md` §13).
+- **FU-UI.1 — The Inspector in collapsible sections, their state kept across clips (the product owner, 2026-11-09)** —
+  *Future / Backlog: a UX optimisation, not planned, not implemented.* Today the Inspector is one long list and its scroll
+  position resets with every newly selected video clip, so the user scrolls to the same section again each time. Target:
+  the settings in logical collapsible sections (accordions) the user opens as needed; the open / closed state kept when
+  switching between clips — one state for the Inspector, never per clip and never reset by a selection; collapsed, the
+  list takes minimal room; a new section added without reworking the panel (a reusable section element, the state keyed
+  by the section's id). Needs a short specification of the sections and whether the state survives a restart.
 - **FU-21.1 — "Previous marker" status message (marker issue)** — *Phase 25 (D040 §2).* Going to a marker outside the clip sometimes first shows
   "There is no marker before the playhead", although a second press moves the playhead; after returning, the warning
   stays in the status bar. Cause to be found (Previous / Next compare with the playhead's nearest frame; a successful jump
