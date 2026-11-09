@@ -42,6 +42,9 @@ public sealed record PictureSpan(
 {
     public VisualProperties Visual { get; init; } = VisualProperties.Default;
 
+    /// <summary>D057 §3.7: the canvas around the picture — black or the picture blurred (presentation only).</summary>
+    public Entities.ClipBackground Background { get; init; }
+
     /// <summary>The clip's speed (D022): part of the timing, so a change is never presentation-only.</summary>
     public ClipSpeed Speed { get; init; }
 
@@ -89,13 +92,19 @@ public sealed record PictureSpan(
 /// </summary>
 public sealed record HeartRateBinding(ClimbingWorkout Workout, DateTimeOffset Zero, MediaTime ClockCorrection)
 {
+    /// <summary>D057 §3.8: the heart rate's display offset (the user's setting; negative: shown earlier) — at the picture
+    /// of watch time <c>w</c> the value shown is the FIT's sample at <c>w − offset</c>. A display correction only: the
+    /// mapping <c>w = T_file + s + CC</c> (D055 §1), the samples and the route areas never use it.</summary>
+    public MediaTime DisplayOffset { get; init; }
+
     /// <summary>The BPM <paramref name="span"/> shows on timeline <paramref name="frame"/> (the clip's exact source-time
     /// rule, D009 / D022), or null — <see cref="TrainingAlignment.HeartRateAtSource"/>.</summary>
     public int? At(PictureSpan span, long frame, FrameRate rate) =>
         AtSource(HoldAnimationRule.SourceTimeAt(span.TimelineStart, span.SourceIn, span.Speed, frame, rate));
 
     /// <summary>The BPM at the video's source time <paramref name="sourceTime"/>, or null.</summary>
-    public int? AtSource(MediaTime sourceTime) => TrainingAlignment.HeartRateAtSource(Workout, Zero, ClockCorrection, sourceTime);
+    public int? AtSource(MediaTime sourceTime) =>
+        TrainingAlignment.HeartRateAtSource(Workout, Zero, ClockCorrection, new MediaTime(sourceTime.Ticks - DisplayOffset.Ticks));
 }
 
 /// <summary>
@@ -560,7 +569,8 @@ public sealed class PlaybackSnapshot
 
         static AudioSpan WithoutMix(AudioSpan span) => span with { Gain = 0, IsMuted = false, FadeInFrames = 0, FadeOutFrames = 0 };
         static PictureSpan WithoutPresentation(PictureSpan span) =>
-            span with { Visual = VisualProperties.Default, SourceSize = null, FadeInFrames = 0, FadeOutFrames = 0, Outline = null, HeartRate = null };
+            span with { Visual = VisualProperties.Default, SourceSize = null, FadeInFrames = 0, FadeOutFrames = 0, Outline = null, HeartRate = null,
+                Background = Entities.ClipBackground.Black };
         static (Guid, MediaTime, MediaTime) TextTiming(TextSpan span) => (span.ClipId, span.TimelineStart, span.TimelineEnd);
         static (Guid, MediaTime, MediaTime) TemplateTiming(TemplateSpan span) => (span.ClipId, span.TimelineStart, span.TimelineEnd);
         static DissolveZone Placement(DissolveZone zone) => zone with { TypeId = TransitionRules.CrossDissolve, Direction = null };

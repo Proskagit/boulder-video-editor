@@ -1,0 +1,91 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:l="using:AiVideoEditor.UI.Localization"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:AiVideoEditor.UI.Controls"
+             x:Class="AiVideoEditor.UI.Views.AppSettingsView">
+
+  <!-- D057 §3.8: the application's settings — the user's, never the project's. Every change is written at once; the language
+       and the FFmpeg paths apply at the next start. The COROS / FIT section holds the heart rate's display offset and the
+       start calibration of D051 §6 (moved here from «Настройки FIT…», whose menu item opens this section). -->
+  <UserControl.Styles>
+    <Style Selector="TextBlock.heading">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Foreground" Value="#9A9A9A"/>
+    </Style>
+    <Style Selector="TextBlock.note">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="Foreground" Value="#AAAAAA"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="Width" Value="150"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="16,8,16,16">
+      <Button Content="{x:Static l:Strings.FitSettings_Close}" Command="{Binding CloseCommand}" IsDefault="True" IsCancel="True"/>
+    </StackPanel>
+
+    <ScrollViewer x:Name="SettingsScroll">
+      <StackPanel Margin="16" Spacing="14">
+
+        <StackPanel x:Name="GeneralSection" Spacing="8">
+          <TextBlock Classes="heading" Text="{x:Static l:Strings.AppSettings_General}"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_Language}"/>
+            <ComboBox x:Name="LanguageBox" ItemsSource="{Binding Languages}" SelectedIndex="{Binding LanguageIndex, Mode=TwoWay}" Width="200"/>
+          </StackPanel>
+          <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_RestartNote}"/>
+        </StackPanel>
+
+        <StackPanel x:Name="FfmpegSection" Spacing="8">
+          <TextBlock Classes="heading" Text="{x:Static l:Strings.AppSettings_Ffmpeg}"/>
+          <TextBlock Classes="note" Text="{Binding FfmpegFound, StringFormat={x:Static l:Strings.AppSettings_FfmpegNow}}"/>
+          <TextBlock Classes="note" Text="{Binding FfprobeFound, StringFormat={x:Static l:Strings.AppSettings_FfprobeNow}}"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_FfmpegPath}"/>
+            <TextBox x:Name="FfmpegPathBox" Text="{Binding FfmpegPath, Mode=TwoWay}" Width="300"/>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_FfprobePath}"/>
+            <TextBox x:Name="FfprobePathBox" Text="{Binding FfprobePath, Mode=TwoWay}" Width="300"/>
+          </StackPanel>
+          <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_FfmpegNote}"/>
+        </StackPanel>
+
+        <StackPanel x:Name="TimelineSection" Spacing="8">
+          <TextBlock Classes="heading" Text="{x:Static l:Strings.AppSettings_TimelineAndMarkup}"/>
+          <CheckBox x:Name="ProposalsBox" Content="{x:Static l:Strings.Holds_ProposeAutomatically}" IsChecked="{Binding HoldProposalsEnabled, Mode=TwoWay}"/>
+          <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_ProposalsNote}"/>
+        </StackPanel>
+
+        <StackPanel x:Name="CorosFitSection" Spacing="8">
+          <TextBlock Classes="heading" Text="{x:Static l:Strings.AppSettings_CorosFit}"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="label" Text="{x:Static l:Strings.AppSettings_HeartRateOffset}"/>
+            <controls:CommitNumericUpDown x:Name="HeartRateOffsetBox" Value="{Binding HeartRateOffsetSeconds, Mode=TwoWay}" Increment="1"
+                                          Minimum="{Binding MinHeartRateOffset}" Maximum="{Binding MaxHeartRateOffset}" FormatString="0" Width="104"/>
+            <TextBlock Text="{x:Static l:Strings.AppSettings_Seconds}" VerticalAlignment="Center" Foreground="#AAAAAA"/>
+            <Button Content="{x:Static l:Strings.AppSettings_ResetDefault}" Command="{Binding ResetHeartRateOffsetCommand}"/>
+          </StackPanel>
+          <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_HeartRateOffsetNote}"/>
+
+          <StackPanel Spacing="8" DataContext="{Binding Fit}" IsVisible="{Binding $parent[UserControl].DataContext.HasFit}" Margin="0,6,0,0">
+            <TextBlock Classes="heading" Text="{x:Static l:Strings.FitSettings_Section}"/>
+            <CheckBox x:Name="BetaBox" Content="{x:Static l:Strings.FitSettings_Beta}" IsChecked="{Binding BetaEnabled, Mode=TwoWay}"
+                      IsEnabled="{Binding CanChange}" ToolTip.Tip="{x:Static l:Strings.FitSettings_BetaTip}"/>
+            <TextBlock Text="{Binding EstimateText}"/>
+            <TextBlock Classes="note" Text="{Binding UsedCountText}"/>
+            <TextBlock Classes="note" Text="{Binding FileNote}" IsVisible="{Binding FileNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                       Foreground="#F08A6C"/>
+            <Button x:Name="ResetButton" Content="{x:Static l:Strings.FitSettings_Reset}" Command="{Binding ResetCommand}" HorizontalAlignment="Left"/>
+          </StackPanel>
+        </StackPanel>
+
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

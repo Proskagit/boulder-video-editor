@@ -73,7 +73,7 @@ public class HeartRateAreaPersistenceTests
 
         var first = Save(project);
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(18, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(19, root["formatVersion"]!.GetValue<int>());
         Assert.False(TemplateJson(root, 0)["showHeartRate"]!.GetValue<bool>());
         Assert.Equal("#00E676", TemplateJson(root, 0)["heartColorHex"]!.GetValue<string>());
         Assert.Null(TemplateJson(root, 2)["showHeartRate"]);                 // the overlay: its v13 members only
@@ -96,7 +96,7 @@ public class HeartRateAreaPersistenceTests
         var area = Load(v15).Timeline.VideoTracks[1].Clips.OfType<TemplateClip>().Single();
         Assert.Equal((true, HeartRateLook.Plate, OverlayCorner.BottomRight, TemplateRules.HeartRateAccentHex),
             (area.ShowHeartRate, area.Look, area.Corner, area.HeartHex));
-        Assert.Equal(18, JsonNode.Parse(Save(Load(v15)))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(19, JsonNode.Parse(Save(Load(v15)))!["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]

@@ -77,7 +77,7 @@ public class RouteTimingPersistenceTests
         var project = Build(Duration, anchored: true);
         var first = Save(project);
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(18, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(19, root["formatVersion"]!.GetValue<int>());
         Assert.Equal("Duration", AnimationJson(root)["mode"]!.GetValue<string>());
         Assert.Equal(50_000_001, AnimationJson(root)["durationTicks"]!.GetValue<long>());
         Assert.Equal(Video(project).Id, TemplateJson(root)["anchorClipId"]!.GetValue<Guid>());
@@ -106,7 +106,7 @@ public class RouteTimingPersistenceTests
         var loaded = Load(root.ToJsonString());
         Assert.Equal(HoldAnimationMode.Interval, Video(loaded).HoldMarkup!.Animation!.Mode);
         Assert.Null(Template(loaded).AnchorClipId);
-        Assert.Equal(18, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(19, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]

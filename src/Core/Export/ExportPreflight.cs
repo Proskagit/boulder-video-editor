@@ -93,6 +93,9 @@ public sealed record ExportPreflightEnvironment(
     /// <summary>Hold tracking: the tracks and the clips still analysed; none — contours where they were marked.</summary>
     public ExportCameraMotion CameraMotion { get; init; } = ExportCameraMotion.None;
 
+    /// <summary>D057 §3.8: the heart rate's display offset — the Preview's, so the export shows what the Preview shows.</summary>
+    public MediaTime HeartRateDisplayOffset { get; init; }
+
     public static ExportPreflightEnvironment Default(bool encoderAvailable, Func<string, bool> isFontInstalled) =>
         new(encoderAvailable, isFontInstalled, File.Exists, Directory.Exists);
 }
@@ -130,7 +133,7 @@ public static class ExportPreflight
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(environment);
 
-        var snapshot = PlaybackSnapshotBuilder.Build(project, version: 0, environment.CameraMotion.Tracks);
+        var snapshot = PlaybackSnapshotBuilder.Build(project, version: 0, environment.CameraMotion.Tracks, environment.HeartRateDisplayOffset);
         var issues = new List<ExportIssue>();
 
         if (snapshot.Duration <= MediaTime.Zero)

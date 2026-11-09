@@ -1961,6 +1961,99 @@ If you don't save, your changes will be lost.</value>
   <data name="Frame_Fill" xml:space="preserve">
     <value>Fill Frame</value>
   </data>
+  <data name="YouTube_Title" xml:space="preserve">
+    <value>YouTube timestamps</value>
+  </data>
+  <data name="YouTube_Hint" xml:space="preserve">
+    <value>Each route at the left edge of its green area; copy the text into the video description.</value>
+  </data>
+  <data name="YouTube_FromIn" xml:space="preserve">
+    <value>The In / Out range (times from In)</value>
+  </data>
+  <data name="YouTube_Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Toolbar_YouTube" xml:space="preserve">
+    <value>YouTube Timestamps…</value>
+  </data>
+  <data name="Toolbar_YouTubeTip" xml:space="preserve">
+    <value>The routes' timestamps for a YouTube description</value>
+  </data>
+  <data name="Background_Black" xml:space="preserve">
+    <value>Black</value>
+  </data>
+  <data name="Background_Blur" xml:space="preserve">
+    <value>Blurred picture</value>
+  </data>
+  <data name="Inspector_ClipBackground" xml:space="preserve">
+    <value>Background</value>
+  </data>
+  <data name="Inspector_ClipBackgroundTip" xml:space="preserve">
+    <value>What fills the canvas around the picture: black, or the clip's own picture blurred — the same in the export</value>
+  </data>
+  <data name="AppSettings_Title" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="AppSettings_General" xml:space="preserve">
+    <value>GENERAL</value>
+  </data>
+  <data name="AppSettings_Language" xml:space="preserve">
+    <value>Interface language</value>
+  </data>
+  <data name="AppSettings_LanguageDefault" xml:space="preserve">
+    <value>As configured</value>
+  </data>
+  <data name="AppSettings_RestartNote" xml:space="preserve">
+    <value>Applies after a restart.</value>
+  </data>
+  <data name="AppSettings_Ffmpeg" xml:space="preserve">
+    <value>FFMPEG</value>
+  </data>
+  <data name="AppSettings_FfmpegNow" xml:space="preserve">
+    <value>FFmpeg in use: {0}</value>
+  </data>
+  <data name="AppSettings_FfprobeNow" xml:space="preserve">
+    <value>FFprobe in use: {0}</value>
+  </data>
+  <data name="AppSettings_FfmpegPath" xml:space="preserve">
+    <value>FFmpeg (ffmpeg.exe)</value>
+  </data>
+  <data name="AppSettings_FfprobePath" xml:space="preserve">
+    <value>FFprobe (ffprobe.exe)</value>
+  </data>
+  <data name="AppSettings_FfmpegNote" xml:space="preserve">
+    <value>Empty: the application's own. Applies after a restart.</value>
+  </data>
+  <data name="AppSettings_NotFound" xml:space="preserve">
+    <value>not found</value>
+  </data>
+  <data name="AppSettings_TimelineAndMarkup" xml:space="preserve">
+    <value>TIMELINE AND MARKUP</value>
+  </data>
+  <data name="AppSettings_ProposalsNote" xml:space="preserve">
+    <value>Off by default: proposals take time on every entry into the markup mode.</value>
+  </data>
+  <data name="AppSettings_CorosFit" xml:space="preserve">
+    <value>COROS / FIT</value>
+  </data>
+  <data name="AppSettings_HeartRateOffset" xml:space="preserve">
+    <value>Heart rate display offset</value>
+  </data>
+  <data name="AppSettings_Seconds" xml:space="preserve">
+    <value>s</value>
+  </data>
+  <data name="AppSettings_ResetDefault" xml:space="preserve">
+    <value>Default (−60 s)</value>
+  </data>
+  <data name="AppSettings_HeartRateOffsetNote" xml:space="preserve">
+    <value>Display only: a negative value shows the heart rate earlier (−60 s: the value of a minute later on the watch). The FIT samples, the synchronisation, the recording start Z, the clock correction, the calibration and the route areas are not changed.</value>
+  </data>
+  <data name="Toolbar_AppSettings" xml:space="preserve">
+    <value>Settings…</value>
+  </data>
+  <data name="Toolbar_AppSettingsTip" xml:space="preserve">
+    <value>The application's settings: language, FFmpeg, markup, COROS / FIT</value>
+  </data>
   <data name="Menu_Copy" xml:space="preserve">
     <value>Copy</value>
   </data>

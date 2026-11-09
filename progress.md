@@ -6,6 +6,16 @@
 amendments of D006, D037, D041, D042, D045, D047, D048, D051, D055, D056; `docs/PHASE38_MANUAL_TEST_PLAN.md`), then blocks
 A–F (`docs/DEVELOPMENT_PLAN.md`, "Phase 38"). Then a target build for the owner's practical check; S1 / Phase 30 only after
 the MVP. Phase H's goal is covered by Phase 38; Phase 32 a distant idea; WASTED removed.
+- **Implemented 2026-11-10 (blocks A–F, stacked PRs #56–#62):** A — per-user `settings.json` / `ui-state.json`, FU-PF.1,
+  the timeline's scroll bar and wheel, hold proposals off by default (#57); B — the Inspector's collapsible sections and
+  scroll per kind, the window layout (#58); C — the Media Browser's multiple selection and Ctrl+A, «Добавить на таймлайн»
+  in the order of recording (one Undo), Shift+click ranges, the clip's context menu (#59); D — a drop on an occupied place
+  with its preview, frame stepping by the active clip's source frames with the navigation grid in the Preview (#60);
+  E — live scrubbing, the newest seek only (#61); F — «Настройки…» with the heart rate's display offset (−60 s), the
+  blurred background per clip (`project.json` v19), «Таймкоды YouTube…» (#62). Gates: Release and Debug
+  `--no-incremental -warnaserror` 0 / 0; the heavy suite (`AIVE_HEAVY_TESTS=1`) 5641 / 0 / 0; CI green per PR. A target
+  build for the owner's practical check: `tools/portable/Publish-Portable.ps1 -Version 0.38.0`. **Not accepted** — the
+  owner's practical check (`docs/PHASE38_MANUAL_TEST_PLAN.md`) follows.
 
 **State on 2026-11-09** — `main` at `1a087ae` (the merge of PR #54), `project.json` v18. The phases' state and what comes
 next have one source: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering" → "Official phases"; this file is the dated

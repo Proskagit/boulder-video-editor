@@ -249,6 +249,12 @@ public sealed class PlaybackService : IPlaybackService
 
     public PlaybackFrame Update()
     {
+        // D057 §3.13: a waiting seek may start from a continuation; the frame is read under the same lock.
+        lock (_seekGate) return UpdateLocked();
+    }
+
+    private PlaybackFrame UpdateLocked()
+    {
         if (_snapshot is not { } snapshot || _pipeline is not { } pipeline)
             return new PlaybackFrame(Position, 0, State, false);
         if (_pendingSeekDone is { } pending && pipeline.IsReady)

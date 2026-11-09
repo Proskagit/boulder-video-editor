@@ -30,7 +30,9 @@ internal static class Program
             App.Services = host.Services;
 
             // D039 §1: the interface language comes from App:Language ("ru" by default), never from the OS.
-            var language = host.Services.GetRequiredService<IConfiguration>()["App:Language"] ?? "ru";
+            // D057 §3.8: the user's choice in «Настройки…» wins over App:Language.
+            var language = host.Services.GetRequiredService<AiVideoEditor.Core.Interfaces.IUserSettingsService>().Current.Language
+                ?? host.Services.GetRequiredService<IConfiguration>()["App:Language"] ?? "ru";
             if (!UiLanguage.Apply(language))
                 Log.Warning("Unknown App:Language {Language}; the interface is in English.", language);
 

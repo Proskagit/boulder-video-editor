@@ -38,7 +38,7 @@ names the tests that cover the row; «Evidence» is filled at the run.
 | # | Check | Expected result | Automated | Evidence |
 |---|---|---|---|---|
 | C1 | Import the videos of 27.09 in a mixed order; Ctrl+A in the Media Browser; «Добавить на таймлайн» | every file on the timeline in the order of recording, one after another; one Ctrl+Z removes them all; the list's order unchanged | `MediaBrowserMultiAddTests` | |
-| C2 | Ctrl+A on the timeline; Ctrl+A in the hold markup mode with proposals | every clip selected; all proposals accepted — both as before | `ShortcutRoutingTests` | |
+| C2 | Ctrl+A on the timeline; Ctrl+A in the hold markup mode with proposals | every clip selected; all proposals accepted — both as before | `ShortcutRoutingTests`, `MediaBrowserMultiAddTests` | |
 | C3 | Ctrl+A while typing in a text field | selects the text | `ShortcutRoutingTests` | |
 | C4 | Select one clip, Shift+click a clip three clips later on the same track | the four clips selected | `ShiftRangeSelectionTests` | |
 | C5 | Shift+click a clip on another track | the clips of the tracks between in that time interval selected; partners included | `ShiftRangeSelectionTests` | |
@@ -53,7 +53,7 @@ names the tests that cover the row; «Evidence» is filled at the run.
 | D2 | Drag an existing clip so that it starts inside X | it goes to X's start; X and the later clips move right only as far as needed; X not split; one Undo step | `DropOnOccupiedTests` | |
 | D3 | The same with a linked clip (video + audio), with an anchored «Боулдер», with a dissolve at X's left edge, onto a locked track | the partner moves with it; the template with its clip; the dissolve case refused, shown before the release with the reason; the locked track refused | `DropOnOccupiedTests` | |
 | D4 | Nudge (Alt+→), Paste and Duplicate onto an occupied place | refused as before (Q11) | `DropOnOccupiedTests` | |
-| D5 | A project of 30 fps with clips of 30, 60 and 240 fps: Left / Right on each | steps of 1/30, 1/60, 1/240 s; the Preview shows each source frame | `FrameSteppingTests` | |
+| D5 | A project of 30 fps with clips of 30, 60 and 240 fps: Left / Right on each | steps of 1/30, 1/60, 1/240 s; the Preview shows each source frame | `FrameSteppingTests`, `FrameNavigationTests`, `NavigationGridPlaybackTests` | |
 | D6 | A 240 fps clip at speed 0.25 | each step a new source frame (1/60 s on the timeline) | `FrameSteppingTests` | |
 | D7 | Between two such steps: Split, Q, W, I, O, a marker, Insert | each at the nearest project frame | `FrameSteppingTests` | |
 | D8 | A gap; Shift+arrows; J; the Source mode | a project frame; one second; one second back; the source's own steps — as before | `FrameSteppingTests` | |
@@ -73,11 +73,11 @@ names the tests that cover the row; «Evidence» is filled at the run.
 | # | Check | Expected result | Automated | Evidence |
 |---|---|---|---|---|
 | F1 | «Настройки…» | sections «Общие», «FFmpeg», «Таймлайн и разметка», «COROS / FIT»; the FIT calibration there; «Настройки FIT…» of the COROS menu opens that section | `SettingsWindowTests` | |
-| F2 | The heart-rate offset on a fresh user | −60 с | `HeartRateOffsetTests` | |
-| F3 | In a green area: the BPM at a frame with −60 and with 0 | with −60 the value of 60 s later in the FIT; the area, its bounds, `T`, `Z`, `CC`, the calibration and the Inspector's readout unchanged | `HeartRateOffsetTests` | |
-| F4 | Change the offset, restart | kept | `HeartRateOffsetTests` | |
+| F2 | The heart-rate offset on a fresh user | −60 с | `HeartRateOverlayTests` (D057 §3.8) | |
+| F3 | In a green area: the BPM at a frame with −60 and with 0 | with −60 the value of 60 s later in the FIT; the area, its bounds, `T`, `Z`, `CC`, the calibration and the Inspector's readout unchanged | `HeartRateOverlayTests` (D057 §3.8) | |
+| F4 | Change the offset, restart | kept | `HeartRateOverlayTests` (D057 §3.8) | |
 | F5 | Export a part with the heart rate | the export as the Preview | `ExportHeartRateEndToEndTests` | |
-| F6 | A landscape clip in a vertical project, «Фон: Размытый» | the bars filled by the blurred picture in the Preview; the export the same (5 frames compared) | `BlurredBackgroundTests`, export parity | |
+| F6 | A landscape clip in a vertical project, «Фон: Размытый» | the bars filled by the blurred picture in the Preview; the export the same (5 frames compared) | `BlurredBackgroundRenderTests` (Preview = export) | |
 | F7 | Undo; Save; open in this build; open the v19 file in a build of `main` before Phase 38 | the choice back to black; kept after a reopen; the older build refuses with «новее» | `BackgroundPersistenceTests` | |
 | F8 | Open a v18 project | opens, every background black; Save writes v19 | `BackgroundPersistenceTests` | |
 | F9 | Scrub and play a blurred 4K clip | no noticeable slowdown | — | |

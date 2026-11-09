@@ -421,4 +421,56 @@ public class HeartRateOverlayTests
         Assert.Equal("#00E676", template.Span.Fields.HeartColorFor(TemplateKind.Boulder));
         Assert.Equal(TemplateRules.DefaultAccentHex, template.Span.Fields.AccentHex);   // the route's colour untouched
     }
+
+    // --- D057 §3.8: the heart rate's display offset ------------------------------------------------------------------------
+
+    private PlaybackSnapshot Snapshot(MediaTime offset) => PlaybackSnapshotBuilder.Build(_project, 1, null, offset);
+
+    [Fact]
+    public void A_display_offset_of_minus_sixty_seconds_shows_the_value_of_a_minute_later_on_the_watch()
+    {
+        Train();
+        Video(_v1, 0, 25 * 120, Start.AddSeconds(10));
+        Overlay(_v2, 0, 25 * 120);
+        var shifted = Snapshot(MediaTime.FromSeconds(-60));
+        foreach (var frame in new long[] { 0, 25, 25 * 37 + 12 })
+            Assert.Equal(Bpm(10 + frame / 25 + 60), ValueAt(shifted, frame));
+        Assert.Equal(Bpm(10), ValueAt(Snapshot(MediaTime.Zero), 0));           // zero: as before
+        Assert.Equal(Bpm(10 - 5 + 30), ValueAt(Snapshot(MediaTime.FromSeconds(5)), 25 * 30));   // a positive one: later
+    }
+
+    [Fact]
+    public void The_offset_shifts_only_the_values_shown_in_a_green_area_never_the_area_or_the_synchronisation()
+    {
+        var training = Train(clockCorrection: MediaTime.FromSeconds(2));
+        var (clip, asset) = Video(_v1, 0, 25 * 60, Start.AddSeconds(10));
+        var area = Area(clip, 25 * 5, 25 * 10);
+        var (start, duration, zero) = (area.TimelineStart, area.Duration, FitRouteBinding.FileTimeOf(asset, training.Workout!)!.Value.Zero);
+
+        var shifted = Snapshot(MediaTime.FromSeconds(-60));
+        Assert.Equal(Bpm(10 + 2 + 5 + 60), AreaValueAt(shifted, 25 * 5));
+        Assert.Null(shifted.LayersAt(F(25 * 4)).OfType<TemplateLayer>().SingleOrDefault(l => l.Kind == TemplateKind.Boulder));   // still only in the area
+
+        Assert.Equal((start, duration), (area.TimelineStart, area.Duration));                 // the area unchanged
+        Assert.Equal(MediaTime.FromSeconds(2), training.ClockCorrection);                     // CC unchanged
+        Assert.Equal(zero, FitRouteBinding.FileTimeOf(asset, training.Workout!)!.Value.Zero);  // T_file unchanged
+        var readout = TrainingAlignment.ReadoutAt(training, clip, asset, 25 * 5, Rate);
+        Assert.Equal(Bpm(10 + 2 + 5), readout.Bpm);                                          // the readout: the synchronised value
+    }
+
+    [Fact]
+    public void The_export_takes_the_offset_it_is_given()
+    {
+        Train();
+        Video(_v1, 0, 25 * 60, Start.AddSeconds(10));
+        Overlay(_v2, 0, 25 * 60);
+        foreach (var asset in _project.MediaAssets) asset.AnalysisStatus = MediaAnalysisStatus.Completed;
+        var environment = new AiVideoEditor.Core.Export.ExportPreflightEnvironment(true, _ => true, _ => true, path => string.Equals(path, @"C:\out", StringComparison.OrdinalIgnoreCase))
+        {
+            HeartRateDisplayOffset = MediaTime.FromSeconds(-60)
+        };
+        var check = AiVideoEditor.Core.Export.ExportPreflight.Check(_project, @"C:\out\clip.mp4", environment);
+        var job = check.Job ?? throw new Xunit.Sdk.XunitException(string.Join("; ", check.Issues.Select(i => i.Kind + ": " + i.Message)));
+        Assert.Equal(Bpm(10 + 60), ValueAt(job.Snapshot, 0));
+    }
 }
