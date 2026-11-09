@@ -76,6 +76,9 @@ internal sealed class VideoPipeline : IAsyncDisposable
 
     public long SeekGeneration { get; }
 
+    /// <summary>The frame the pipeline was started at (D057 §3.13: shown while a newer seek waits).</summary>
+    public long StartFrame => _startFrame;
+
     /// <summary>Completes with true when every layer visible at the start frame is known, false if
     /// the pipeline was disposed first.</summary>
     public Task<bool> Ready => _ready.Task;
