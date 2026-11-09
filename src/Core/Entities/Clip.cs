@@ -208,6 +208,12 @@ public sealed class TemplateClip : Clip
     /// still these is laid out again when its video's <c>Z</c> changes. Null: not made from the FIT, or made before v17 (an
     /// older file's area is laid out again only when its bounds are the ones the FIT's rule gives now).</summary>
     public FitAreaLayout? FitLayout { get; set; }
+
+    /// <summary>D056 §4 (format v18): the route's computed start <c>T</c> as a source time of the anchored clip — set by
+    /// «Разложить вступление и финал» and by the FIT's areas; never moved by a trim or a drag of the area. Null: not known (an
+    /// older file's area — its route's Duration animation's end is <c>T</c> when it has one, see
+    /// <see cref="RouteOverlays.RouteStartOf"/>).</summary>
+    public MediaTime? RouteStart { get; set; }
 }
 
 /// <summary>D056 §2: how a route area made from the FIT was laid out — its first frame and its end as source times of its

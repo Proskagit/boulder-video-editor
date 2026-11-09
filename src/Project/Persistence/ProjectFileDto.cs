@@ -468,6 +468,11 @@ internal sealed class TemplateClipDto : ClipDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public FitAreaLayoutDto? FitLayout { get; set; }
 
+    /// <summary>Format v18 (D056 §4): the route's computed start <c>T</c>, source ticks of the anchored clip; written only
+    /// on an anchored template that has one.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? RouteStartTicks { get; set; }
+
     /// <summary>Format v13 (Phase 35.5): the heart-rate overlay's look and corner; written (and required) only on it.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public HeartRateLook? Look { get; set; }

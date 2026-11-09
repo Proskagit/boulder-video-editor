@@ -9390,6 +9390,16 @@ FIT routes — the FIT routes nearest first («Подъём N из FIT · … с
 трасса»; the default is the nearest FIT route within 30 s, else D053's; a choice stays while the default does; a hint says
 when no FIT route is within 30 s. Inside a green and on a clip without FIT routes D053 is unchanged.
 
+**As implemented (PR 3, 2026-11-09).** §4: a route's green stores `routeStartTicks` (`project.json` **v18**) — `T` as a
+source time of its anchored clip — set by «Разложить вступление и финал» (its `T`, also on a FIT route) and by the FIT's
+areas (made and laid out again by a `Z`, in the same Undo step); a trim or a drag of the area never moves it; a v17 area
+without it shows its route's Duration animation's end, else no mark. The timeline draws `T` inside the area as a thin dashed
+light line (1 px, no hit-testing, so the area's edges and strip handles stay as they are) with the tooltip «Начало трассы
+(T) · timecode»; it is apart from the orange (the strip) and the status mark (a solid 2 px line in the status colour). §5: a
+free «Боулдер» is drawn in the route green `#43A047`; the other templates keep `#783A5C`. What still tells a free one from a
+route's area: no strip (no orange or lilac, no strip handles), no `T` mark, and the Inspector's free template fields
+(no heart rate, no training); its type, anchor and semantics are unchanged.
+
 **Unchanged.** D055 (`w = T_file + s + CC`, `Z` never read for the heart rate); D054's binding time, the rule of a shown
 climb, «never twice» (a `Z` that lays out an area again never adds one for its climb); D053's several independent routes on
 a clip; the lilac Top / Attempt; the free «Боулдер»'s semantics.

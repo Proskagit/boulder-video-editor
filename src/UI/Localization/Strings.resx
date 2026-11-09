@@ -2198,6 +2198,9 @@ If you don't save, your changes will be lost.</value>
   <data name="Strip_Lilac" xml:space="preserve">
     <value>Top / Attempt: {0} – {1}</value>
   </data>
+  <data name="Timeline_RouteStartMark" xml:space="preserve">
+    <value>Route start (T) · {0}</value>
+  </data>
   <data name="Strip_MarkupDeleted" xml:space="preserve">
     <value>The hold markup of the clip was deleted.</value>
   </data>

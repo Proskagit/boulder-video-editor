@@ -2202,6 +2202,9 @@
   <data name="Strip_Lilac" xml:space="preserve">
     <value>Топ / Попытка: {0} – {1}</value>
   </data>
+  <data name="Timeline_RouteStartMark" xml:space="preserve">
+    <value>Начало трассы (T) · {0}</value>
+  </data>
   <data name="Strip_MarkupDeleted" xml:space="preserve">
     <value>Разметка зацепок клипа удалена.</value>
   </data>

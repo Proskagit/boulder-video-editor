@@ -73,7 +73,7 @@ public class FitLayoutPersistenceTests
         var hand = new TemplateClip { Kind = TemplateKind.Boulder, AccentHex = TemplateRules.DefaultAccentHex, AnchorRouteId = Guid.NewGuid() };
         var first = Save(Build(FitArea(Layout), hand));
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(17, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(18, root["formatVersion"]!.GetValue<int>());
         var layout = AreaJson(root, 0)["fitLayout"]!;
         Assert.Equal(MediaTime.FromFrame(275, Rate).Ticks, layout["sourceStartTicks"]!.GetValue<long>());
         Assert.Equal(MediaTime.FromFrame(1260, Rate).Ticks, layout["sourceEndTicks"]!.GetValue<long>());
@@ -100,7 +100,7 @@ public class FitLayoutPersistenceTests
         var area = loaded.Timeline.VideoTracks[1].Clips.OfType<TemplateClip>().Single();
         Assert.Equal(Climb, area.FitClimb);
         Assert.Null(area.FitLayout);
-        Assert.Equal(17, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(18, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]
@@ -119,6 +119,31 @@ public class FitLayoutPersistenceTests
         AreaJson(json, 0)["fitLayout"]!["sourceEndTicks"] = MediaTime.FromFrame(275, Rate).Ticks;
 
         Assert.ThrowsAny<Exception>(() => Load(json.ToJsonString()));
+    }
+
+    [Fact]
+    public void A_route_areas_T_survives_a_save_open_save_as_version_18_and_a_v17_file_has_none()
+    {
+        var area = FitArea(Layout);
+        area.RouteStart = MediaTime.FromFrame(450, Rate);
+        var free = new TemplateClip { Kind = TemplateKind.Boulder, AccentHex = TemplateRules.DefaultAccentHex, RouteStart = MediaTime.FromFrame(9, Rate) };
+        var project = Build(area);
+        project.Timeline.VideoTracks[1].Clips.Add(free);
+        free.TimelineStart = MediaTime.FromFrame(600, Rate);
+        free.Duration = MediaTime.FromFrame(100, Rate);
+        free.AnchorClipId = null;
+
+        var first = Save(project);
+        var root = JsonNode.Parse(first)!;
+        Assert.Equal(18, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(MediaTime.FromFrame(450, Rate).Ticks, AreaJson(root, 0)["routeStartTicks"]!.GetValue<long>());
+        Assert.Null(AreaJson(root, 1)["routeStartTicks"]);                             // a free template: never
+        var loaded = Load(first);
+        Assert.Equal(MediaTime.FromFrame(450, Rate), loaded.Timeline.VideoTracks[1].Clips.OfType<TemplateClip>().First().RouteStart);
+        Assert.Equal(first, Save(loaded));
+
+        root["formatVersion"] = 17;
+        Assert.Null(Load(root.ToJsonString()).Timeline.VideoTracks[1].Clips.OfType<TemplateClip>().First().RouteStart);
     }
 
     [Fact]

@@ -139,3 +139,6 @@ In a **copy** of the project; the original never saved.
 | R4 | Trim a FIT green by hand, then set the video's `Z` | that green stays; the status bar says it was kept | `FitAreaRelayoutTests` |
 | R5 | On `101712` put the playhead 8 s before climb 4's green, «Разметить зацепки» | «Трасса» offers «Подъём 4 из FIT»; the holds go to that route, no new green | `HoldRouteChoiceUiTests` |
 | R6 | The same with «Новая трасса» chosen | a new route; climb 4's green untouched | `HoldRouteChoiceUiTests` |
+| R7 | Look at a FIT green without holds and at a green laid out by hand | a thin dashed line at `T` in each, its tooltip «Начало трассы (T) · …»; the edges and the strip handles drag as before | `RouteStartMarkUiTests`, `RouteStartTests` |
+| R8 | «Шаблон → Боулдер» on an empty place | a green clip with no strip and no `T` line; the Inspector shows no heart rate | `RouteStartMarkUiTests` |
+| R9 | Save, close, open the copy | `T` marks and the laid-out bounds as before | `FitLayoutPersistenceTests` |
