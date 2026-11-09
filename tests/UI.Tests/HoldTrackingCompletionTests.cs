@@ -106,7 +106,7 @@ public sealed class HoldTrackingCompletionTests : IDisposable
     {
         using var coordinator = new CameraMotionCoordinator(_projects, decoder, cache: _cache);
         await coordinator.IdleAsync();
-        return coordinator.Tracks[clipId];
+        return coordinator.Tracks.Single(t => t.Key.ClipId == clipId).Value;
     }
 
     // --- D4: the cache --------------------------------------------------------------------------------------------------
@@ -184,7 +184,7 @@ public sealed class HoldTrackingCompletionTests : IDisposable
         _undo.Undo();
         await coordinator.IdleAsync();
         Assert.Equal(opens, decoder.Opens);
-        Assert.Equal(CameraMotionState.Tracked, coordinator.StatusOf(clip.Id).State);
+        Assert.Equal(CameraMotionState.Tracked, coordinator.StatusOf(RouteKeys.Of(clip)).State);
     });
 
     [Fact]
@@ -233,7 +233,7 @@ public sealed class HoldTrackingCompletionTests : IDisposable
         var clip = AddClip(VideoFile());
         using var coordinator = new CameraMotionCoordinator(_projects, new LosingDecoder(lostFrom));
         await coordinator.IdleAsync();
-        var status = coordinator.StatusOf(clip.Id);
+        var status = coordinator.StatusOf(RouteKeys.Of(clip));
         Assert.Equal(expected, status.State);
         var export = coordinator.ForExport();
         Assert.Equal(expected != CameraMotionState.Tracked, export.Unreliable.ContainsKey(clip.Id));
@@ -247,10 +247,10 @@ public sealed class HoldTrackingCompletionTests : IDisposable
         var clip = AddClip(VideoFile());
         using var coordinator = new CameraMotionCoordinator(_projects, new CameraMotionCoordinatorTests.FailingDecoder());
         await coordinator.IdleAsync();
-        Assert.Equal(CameraMotionState.Failed, coordinator.StatusOf(clip.Id).State);
-        Assert.True(coordinator.StatusOf(clip.Id).IsProblem);
+        Assert.Equal(CameraMotionState.Failed, coordinator.StatusOf(RouteKeys.Of(clip)).State);
+        Assert.True(coordinator.StatusOf(RouteKeys.Of(clip)).IsProblem);
         Assert.Contains(clip.Id, coordinator.ForExport().Failed);
-        Assert.False(coordinator.ForExport().Tracks.ContainsKey(clip.Id));   // the outlines as marked — said, not silent
+        Assert.DoesNotContain(coordinator.ForExport().Tracks.Keys, k => k.ClipId == clip.Id);   // the outlines as marked — said, not silent
 
         var vm = new HoldMarkupViewModel(_edit, _projects, _status, cameraMotion: coordinator);
         vm.SetClip(clip);
@@ -267,8 +267,8 @@ public sealed class HoldTrackingCompletionTests : IDisposable
         using var coordinator = new CameraMotionCoordinator(_projects, decoder);
         await coordinator.IdleAsync();
         Assert.Equal(0, decoder.Opens);
-        Assert.Equal(CameraMotionState.Off, coordinator.StatusOf(clip.Id).State);
-        Assert.False(coordinator.StatusOf(clip.Id).IsProblem);
+        Assert.Equal(CameraMotionState.Off, coordinator.StatusOf(RouteKeys.Of(clip)).State);
+        Assert.False(coordinator.StatusOf(RouteKeys.Of(clip)).IsProblem);
         var export = coordinator.ForExport();
         Assert.Empty(export.Failed);
         Assert.Empty(export.Unreliable);

@@ -66,7 +66,7 @@ public class HoldTrackingPreflightTests
     {
         var clip = Clip(0, 100, withHolds: true);
         var track = Track();
-        var result = Check(new ExportCameraMotion(new Dictionary<Guid, CameraMotionTrack> { [clip.Id] = track }, new HashSet<Guid>()));
+        var result = Check(new ExportCameraMotion(new Dictionary<RouteKey, CameraMotionTrack> { [new RouteKey(clip.Id, clip.HoldMarkup!.Id)] = track }, new HashSet<Guid>()));
         Assert.True(result.CanExport);
         Assert.Same(track, result.Job!.Snapshot.VideoLayers.Single().Spans.Single().Outline!.Motion);
     }
@@ -75,7 +75,7 @@ public class HoldTrackingPreflightTests
     public void A_clip_still_analysed_blocks_the_export()
     {
         var clip = Clip(0, 100, withHolds: true);
-        var result = Check(new ExportCameraMotion(new Dictionary<Guid, CameraMotionTrack>(), new HashSet<Guid> { clip.Id }));
+        var result = Check(new ExportCameraMotion(new Dictionary<RouteKey, CameraMotionTrack>(), new HashSet<Guid> { clip.Id }));
         Assert.False(result.CanExport);
         var issue = Assert.Single(result.Issues, i => i.Kind == ExportIssueKind.HoldTrackingPending);
         Assert.Equal(ExportIssueSeverity.Error, issue.Severity);
@@ -88,15 +88,15 @@ public class HoldTrackingPreflightTests
         var plain = Clip(0, 100, withHolds: false);
         var later = Clip(100, 200, withHolds: true);
         var pending = new HashSet<Guid> { plain.Id, later.Id };
-        Assert.True(Check(new ExportCameraMotion(new Dictionary<Guid, CameraMotionTrack>(), pending), new ExportRange(0, 50)).CanExport);
-        Assert.False(Check(new ExportCameraMotion(new Dictionary<Guid, CameraMotionTrack>(), pending)).CanExport);
+        Assert.True(Check(new ExportCameraMotion(new Dictionary<RouteKey, CameraMotionTrack>(), pending), new ExportRange(0, 50)).CanExport);
+        Assert.False(Check(new ExportCameraMotion(new Dictionary<RouteKey, CameraMotionTrack>(), pending)).CanExport);
     }
 
     [Fact]
     public void A_failed_analysis_warns_that_the_outlines_go_out_without_the_cameras_motion_and_does_not_block()
     {
         var clip = Clip(0, 100, withHolds: true);
-        var result = Check(new ExportCameraMotion(new Dictionary<Guid, CameraMotionTrack>(), new HashSet<Guid>()) { Failed = new HashSet<Guid> { clip.Id } });
+        var result = Check(new ExportCameraMotion(new Dictionary<RouteKey, CameraMotionTrack>(), new HashSet<Guid>()) { Failed = new HashSet<Guid> { clip.Id } });
         Assert.True(result.CanExport);                                      // K2: the user decides after the warning
         var issue = Assert.Single(result.Issues, i => i.Kind == ExportIssueKind.HoldTrackingFailed);
         Assert.Equal(ExportIssueSeverity.Warning, issue.Severity);
@@ -108,7 +108,7 @@ public class HoldTrackingPreflightTests
     public void Unreliable_frames_warn_with_their_share()
     {
         var clip = Clip(0, 100, withHolds: true);
-        var result = Check(new ExportCameraMotion(new Dictionary<Guid, CameraMotionTrack> { [clip.Id] = Track() }, new HashSet<Guid>())
+        var result = Check(new ExportCameraMotion(new Dictionary<RouteKey, CameraMotionTrack> { [new RouteKey(clip.Id, clip.HoldMarkup!.Id)] = Track() }, new HashSet<Guid>())
         {
             Unreliable = new Dictionary<Guid, double> { [clip.Id] = 0.234 }
         });
@@ -123,7 +123,7 @@ public class HoldTrackingPreflightTests
     {
         var plain = Clip(0, 100, withHolds: false);
         var later = Clip(100, 200, withHolds: true);
-        var motion = new ExportCameraMotion(new Dictionary<Guid, CameraMotionTrack>(), new HashSet<Guid>())
+        var motion = new ExportCameraMotion(new Dictionary<RouteKey, CameraMotionTrack>(), new HashSet<Guid>())
         {
             Failed = new HashSet<Guid> { plain.Id, later.Id }, Unreliable = new Dictionary<Guid, double> { [plain.Id] = 0.9 }
         };

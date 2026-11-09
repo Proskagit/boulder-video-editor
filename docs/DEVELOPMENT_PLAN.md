@@ -207,7 +207,9 @@ phase's record prevail.
       - Phase 33 — the timing model, the template ↔ clip anchor and `project.json` v10;
       - Phase 34 — the overlay strip, **variant B** (the segments inside the «Боулдер»), the lane Debug-only.
       Manual markup stays the main scenario. Section "D048: route selection, intro / final timing and the overlay strip"
-      below (written before the approval).
+      below (written before the approval). **D053 (2026-11-09, approved):** the owner's manual check found four defects —
+      fixed with several routes per clip, the orange inside its green, a 35 s default green and green route areas from a
+      FIT import (`project.json` v15; branch `feat/route-overlays-fit`). The manual check is repeated on these rules.
 - [ ] **Phase 35 — Import of COROS trainings and the heart rate in the video (formerly "Phase Coros", R3 → F) — in
       `main` in part, not complete.** D049 / D050 approved 2026-10-29. Steps 35.0–35.2 done (35.2 accepted, A1–A11 PASS);
       35.3 in part — its formal evaluation 35.3d gave «B6 not met» (an experimental result), 35.3e awaits the product

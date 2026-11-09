@@ -24,6 +24,9 @@ public sealed partial class TimelineViewModel
     public const string OrangeHex = "#FB8C00";
     public const string LilacHex = "#B39DDB";
 
+    /// <summary>D053 §5: the width of the green's edge drawn on top of an orange that starts with it.</summary>
+    private const double GreenEdgePixels = 3;
+
     /// <summary>Whether this is a Debug build: the switch back to the lane is shown only there.</summary>
 #if DEBUG
     public bool IsDebugBuild => true;
@@ -41,6 +44,9 @@ public sealed partial class TimelineViewModel
     /// <summary>The video clip whose orange segment is selected (§3.9), or null.</summary>
     [ObservableProperty] private Guid? _selectedOrangeClipId;
 
+    /// <summary>D053: the route of <see cref="SelectedOrangeClipId"/> whose orange is selected.</summary>
+    private Guid? _selectedOrangeRouteId;
+
     partial void OnSelectedOrangeClipIdChanged(Guid? value) => DeleteSelectedCommand.NotifyCanExecuteChanged();
 
     /// <summary>The overlay strip of every video clip at the current zoom, from the edit service's reading of the model.</summary>
@@ -50,22 +56,56 @@ public sealed partial class TimelineViewModel
         {
             vm.TemplateSegments = Array.Empty<StripSegment>();
             vm.TemplateOverflow = Array.Empty<StripSegment>();
+            vm.RouteSegments = Array.Empty<StripSegment>();
             vm.StripOwner = null;
+            if (vm.Clip is not TemplateClip) vm.StripRouteId = null;
         }
         foreach (var vm in _clipViewModels.Values)
-            ShowStrip(vm, vm.Clip is VideoClip clip ? _edit.OverlayStripOf(clip.Id) : null);
-        if (SelectedOrangeClipId is { } id && !(_clipViewModels.TryGetValue(id, out var selected) &&
-                                                selected.StripSegments.Any(s => s.Kind == StripSegmentKind.Orange)))
-            SelectedOrangeClipId = null;
+        {
+            if (vm.Clip is VideoClip clip) ShowRoutes(vm, clip);
+            else vm.StripSegments = Array.Empty<StripSegment>();
+        }
+        if (SelectedOrangeClipId is { } id && !(_clipViewModels.TryGetValue(id, out var selected) && selected.Clip is VideoClip video &&
+                                                _edit.OverlayStripOf(video.Id, _selectedOrangeRouteId)?.Orange is not null))
+            SelectOrange(null, null);
     }
 
-    private void ShowStrip(TimelineClipViewModel vm, OverlayStripState? strip)
+    /// <summary>D053: the strips of every route of a video clip — each route with a «Боулдер» inside its plate (variant B);
+    /// the lane above the clip shows a route without one (its orange only), else the first route.</summary>
+    private void ShowRoutes(TimelineClipViewModel vm, VideoClip clip)
+    {
+        var anchored = RouteOverlays.AnchoredTo(clip, _projectService.Current.Timeline.VideoTracks.SelectMany(t => t.Clips)).ToList();
+        var strips = RouteOverlays.RouteIds(clip, anchored)
+            .Select(route => (Route: route, Strip: _edit.OverlayStripOf(clip.Id, route)))
+            .Where(x => x.Strip is not null)
+            .ToList();
+        var lane = strips.FirstOrDefault(x => x.Strip!.TemplateId is not { } t || !_clipViewModels.ContainsKey(t));
+        if (lane.Strip is null && strips.Count > 0) lane = strips[0];
+        vm.StripRouteId = lane.Strip is null ? null : lane.Route;
+        ShowStrip(vm, lane.Strip, lane.Route);
+        foreach (var (route, strip) in strips)
+            if (route != lane.Route) ShowInTemplate(vm, strip!, Segments(vm, strip!, route), route);
+    }
+
+    /// <summary>The lane's strip of a video clip (route <paramref name="route"/>), and its plate in variant B.</summary>
+    private void ShowStrip(TimelineClipViewModel vm, OverlayStripState? strip, Guid route)
     {
         if (strip is null)
         {
             vm.StripSegments = Array.Empty<StripSegment>();
+            vm.StripInTemplate = false;
             return;
         }
+        var segments = Segments(vm, strip, route);
+        vm.StripSegments = segments;
+        // Variant B draws the strip in the plate; a clip without an anchored «Боулдер» keeps the lane (its orange only).
+        vm.StripInTemplate = SegmentsInTemplate && strip.TemplateId is { } t && _clipViewModels.ContainsKey(t);
+        ShowInTemplate(vm, strip, segments, route);
+    }
+
+    /// <summary>The segments of one route's strip, in pixels from the video clip's left edge.</summary>
+    private List<StripSegment> Segments(TimelineClipViewModel vm, OverlayStripState strip, Guid route)
+    {
         var segments = new List<StripSegment>(3);
         void Add(FrameSpan? span, StripSegmentKind kind, string color, string tip)
         {
@@ -73,15 +113,12 @@ public sealed partial class TimelineViewModel
             var left = TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(s.Start, FrameRate) - vm.Clip.TimelineStart, PixelsPerSecond);
             var width = Math.Max(1, TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(s.Length, FrameRate), PixelsPerSecond));
             segments.Add(new StripSegment(left, width, color, string.Format(tip, Timecode(s.Start), Timecode(s.End)), kind, s.Start, s.End,
-                kind == StripSegmentKind.Orange && SelectedOrangeClipId == vm.Id));
+                kind == StripSegmentKind.Orange && SelectedOrangeClipId == vm.Id && _selectedOrangeRouteId == route));
         }
         Add(strip.Green, StripSegmentKind.Green, GreenHex, Strings.Strip_Green);
         Add(strip.Orange, StripSegmentKind.Orange, OrangeHex, Strings.Strip_Orange);
         Add(strip.Lilac, StripSegmentKind.Lilac, LilacHex, Strings.Strip_Lilac);
-        vm.StripSegments = segments;
-        // Variant B draws the strip in the plate; a clip without an anchored «Боулдер» keeps the lane (its orange only).
-        vm.StripInTemplate = SegmentsInTemplate && strip.TemplateId is { } t && _clipViewModels.ContainsKey(t);
-        ShowInTemplate(vm, strip, segments);
+        return segments;
     }
 
     /// <summary>
@@ -90,17 +127,25 @@ public sealed partial class TimelineViewModel
     /// clip, not by the template, §4.2) or ended after <c>Pe</c> without a lilac — are drawn as an overflow beside the plate,
     /// translucent, so nothing of the animation disappears.
     /// </summary>
-    private void ShowInTemplate(TimelineClipViewModel owner, OverlayStripState strip, IReadOnlyList<StripSegment> segments)
+    private void ShowInTemplate(TimelineClipViewModel owner, OverlayStripState strip, IReadOnlyList<StripSegment> segments, Guid route)
     {
         if (!SegmentsInTemplate || strip.TemplateId is not { } id || !_clipViewModels.TryGetValue(id, out var template) ||
             strip.Green is not { } green)
             return;
         long ps = green.Start, pe = strip.Lilac?.End ?? green.End;
         double Px(long frames) => TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(frames, FrameRate), PixelsPerSecond);
-        template.TemplateSegments = segments
+        var inPlate = segments
             .Where(s => s.End > ps && s.Start < pe)
             .Select(s => s with { Left = Px(Math.Max(s.Start, ps) - ps), Width = Math.Max(1, Px(Math.Min(s.End, pe) - Math.Max(s.Start, ps))) })
             .ToList();
+        // D053 §5: where the orange starts at the green's start, the green's edge stays visible (and named by the tooltip) on
+        // top of it — that edge is the green's (its press takes the green's start first).
+        if (segments.FirstOrDefault(s => s.Kind == StripSegmentKind.Green) is { } greenSegment &&
+            segments.FirstOrDefault(s => s.Kind == StripSegmentKind.Orange) is { } orangeSegment && orangeSegment.Start <= ps)
+            inPlate.Add(greenSegment with { Left = 0, Width = Math.Min(GreenEdgePixels, Px(Math.Max(1, greenSegment.End - ps))) });
+        template.TemplateSegments = inPlate;
+        template.RouteSegments = segments;
+        template.StripRouteId = route;
         var overflow = new List<StripSegment>();
         foreach (var s in segments)
         {
@@ -127,7 +172,7 @@ public sealed partial class TimelineViewModel
     public (TimelineClipViewModel Owner, OverlayStripHandle Handle)? TemplatePressAt(TimelineClipViewModel template, double templateX, bool alt = false)
     {
         if (!SegmentsInTemplate || template.StripOwner is not { } owner || template.TemplateSegments.Count == 0) return null;
-        var handle = StripHandleAt(owner, templateX + template.Left - owner.Left);
+        var handle = StripHandleAt(template.RouteSegments, templateX + template.Left - owner.Left);
         return handle switch
         {
             OverlayStripHandle.LilacBody when !alt => null,
@@ -146,14 +191,26 @@ public sealed partial class TimelineViewModel
     public StripHover TemplateHoverAt(TimelineClipViewModel template, double templateX, bool alt = false, bool overflow = false)
     {
         if (!SegmentsInTemplate || template.StripOwner is null || template.TemplateSegments.Count == 0) return StripHover.None;
-        var cursor = TemplatePressAt(template, templateX, alt)?.Handle switch
+        var handle = TemplatePressAt(template, templateX, alt)?.Handle;
+        var cursor = handle switch
         {
             null => StripCursor.Default,
             OverlayStripHandle.OrangeBody or OverlayStripHandle.LilacBody => StripCursor.Move,
             _ => StripCursor.Resize
         };
+        // The tooltip names what a press there takes (D053 §5: the green's edge where the orange starts with it), else the
+        // segment under the pointer.
+        var owned = handle switch
+        {
+            OverlayStripHandle.GreenStart => StripSegmentKind.Green,
+            OverlayStripHandle.Status or OverlayStripHandle.LilacEnd or OverlayStripHandle.LilacBody => StripSegmentKind.Lilac,
+            OverlayStripHandle.OrangeStart or OverlayStripHandle.OrangeEnd or OverlayStripHandle.OrangeBody => StripSegmentKind.Orange,
+            _ => (StripSegmentKind?)null
+        };
         var segments = overflow ? template.TemplateOverflow : template.TemplateSegments;
-        var under = segments.LastOrDefault(s => templateX >= s.Left && templateX < s.Left + s.Width);
+        var under = owned is { } kind && template.RouteSegments.FirstOrDefault(s => s.Kind == kind) is { } named
+            ? named
+            : segments.LastOrDefault(s => templateX >= s.Left && templateX < s.Left + s.Width);
         return new StripHover(cursor, under?.Tip);
     }
 
@@ -164,10 +221,10 @@ public sealed partial class TimelineViewModel
         if (handle is OverlayStripHandle.OrangeBody or OverlayStripHandle.OrangeStart or OverlayStripHandle.OrangeEnd)
         {
             ClearSelection();
-            SelectOrange(owner.Id);
+            SelectOrange(owner.Id, template.StripRouteId);
             return;
         }
-        SelectOrange(null);
+        SelectOrange(null, null);
         SelectOnly(template.Id);
     }
     private string Timecode(long frame) => TimeFormat.ToTimecode(MediaTime.FromFrame(frame, FrameRate), FrameRate);
@@ -178,9 +235,12 @@ public sealed partial class TimelineViewModel
     /// green and the orange the green's start is taken first (§4.2); where the orange's end meets the lilac's start the
     /// side of the press decides.
     /// </summary>
-    public OverlayStripHandle? StripHandleAt(TimelineClipViewModel clip, double clipX)
+    public OverlayStripHandle? StripHandleAt(TimelineClipViewModel clip, double clipX) => StripHandleAt(clip.StripSegments, clipX);
+
+    /// <summary>The handle of a route's strip <paramref name="segments"/> under a press at <paramref name="clipX"/> (pixels from
+    /// the clip's left edge).</summary>
+    private static OverlayStripHandle? StripHandleAt(IReadOnlyList<StripSegment> segments, double clipX)
     {
-        var segments = clip.StripSegments;
         StripSegment? Of(StripSegmentKind kind) => segments.FirstOrDefault(s => s.Kind == kind);
         var (green, orange, lilac) = (Of(StripSegmentKind.Green), Of(StripSegmentKind.Orange), Of(StripSegmentKind.Lilac));
 
@@ -213,30 +273,34 @@ public sealed partial class TimelineViewModel
         _gesture = new Gesture
         {
             Edge = null, StartX = contentX, Clips = new List<TimelineClipViewModel> { clip }, SourceTrack = TrackOf(pressedOn ?? clip),
-            StripHandle = handle
+            StripHandle = handle, StripRouteId = pressedOn?.StripRouteId ?? clip.StripRouteId
         };
         return true;
     }
 
     /// <summary>A press on the strip released without a drag: a click on the orange selects it (§3.9); elsewhere it clears
     /// that selection.</summary>
-    public void OnStripClicked(TimelineClipViewModel clip, OverlayStripHandle? handle) =>
-        SelectOrange(handle is OverlayStripHandle.OrangeBody or OverlayStripHandle.OrangeStart or OverlayStripHandle.OrangeEnd ? clip.Id : null);
-
-    private void SelectOrange(Guid? clipId)
+    public void OnStripClicked(TimelineClipViewModel clip, OverlayStripHandle? handle)
     {
-        if (SelectedOrangeClipId == clipId) return;
+        var orange = handle is OverlayStripHandle.OrangeBody or OverlayStripHandle.OrangeStart or OverlayStripHandle.OrangeEnd;
+        SelectOrange(orange ? clip.Id : null, orange ? clip.StripRouteId : null);
+    }
+
+    private void SelectOrange(Guid? clipId, Guid? routeId)
+    {
+        if (SelectedOrangeClipId == clipId && _selectedOrangeRouteId == routeId) return;
         var previous = SelectedOrangeClipId;
+        _selectedOrangeRouteId = routeId;
         SelectedOrangeClipId = clipId;
         foreach (var id in new[] { previous, clipId })
             if (id is { } changed && _clipViewModels.TryGetValue(changed, out var vm) && vm.Clip is VideoClip video)
-                ShowStrip(vm, _edit.OverlayStripOf(video.Id));
+                ShowRoutes(vm, video);
     }
 
     private void DeleteSelectedOrange(Guid clipId)
     {
-        var result = _edit.DeleteHoldMarkup(clipId);
-        if (result.Success) SelectOrange(null);
+        var result = _edit.DeleteHoldMarkup(clipId, _selectedOrangeRouteId);
+        if (result.Success) SelectOrange(null, null);
         Report(result, successMessage: Strings.Strip_MarkupDeleted);
     }
 
@@ -246,7 +310,7 @@ public sealed partial class TimelineViewModel
     private void UpdateStrip(Gesture g, OverlayStripHandle handle, MediaTime rawDelta)
     {
         var clip = g.Clips[0];
-        if (_edit.OverlayStripOf(clip.Id) is not { } strip) return;
+        if (_edit.OverlayStripOf(clip.Id, g.StripRouteId) is not { } strip) return;
         var moved = MovedFrames(strip, handle).Select(f => MediaTime.FromFrame(f, FrameRate)).ToList();
         if (moved.Count == 0) return;
         var excluded = strip.TemplateId is { } templateId && _clipViewModels.TryGetValue(templateId, out var template)
@@ -255,8 +319,9 @@ public sealed partial class TimelineViewModel
         var delta = ApplySnap(moved.Select(m => m + rawDelta).ToList(), excluded, rawDelta);
         g.StripFrames = (moved[0] + delta).ToNearestFrame(FrameRate) - moved[0].ToNearestFrame(FrameRate);
 
-        if (_edit.PreviewOverlayStrip(clip.Id, handle, g.StripFrames) is not { } preview) return;
-        ShowStrip(clip, preview.Strip);
+        if (_edit.PreviewOverlayStrip(clip.Id, handle, g.StripFrames, g.StripRouteId) is not { } preview) return;
+        if (g.StripRouteId is { } route && route != clip.StripRouteId) ShowInTemplate(clip, preview.Strip, Segments(clip, preview.Strip, route), route);
+        else ShowStrip(clip, preview.Strip, g.StripRouteId ?? Guid.Empty);
         var text = (IntervalOf(preview.Strip, handle) is { } span ? string.Format(TipOf(handle), Timecode(span.Start), Timecode(span.End)) : "") +
                    (preview.Error is { } error ? "  " + error : "");
         // The interval is shown where the segments are: on the plate in variant B, else over the clip.
@@ -277,7 +342,7 @@ public sealed partial class TimelineViewModel
     /// <summary>The release: one edit (no step when the boundaries are where they were); a refusal reported, the strip back.</summary>
     private void EndStrip(Gesture g, OverlayStripHandle handle)
     {
-        if (g.StripFrames != 0) Report(_edit.EditOverlayStrip(g.Clips[0].Id, handle, g.StripFrames));
+        if (g.StripFrames != 0) Report(_edit.EditOverlayStrip(g.Clips[0].Id, handle, g.StripFrames, g.StripRouteId));
         Relayout();
     }
 

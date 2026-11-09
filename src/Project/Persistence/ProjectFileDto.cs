@@ -98,6 +98,10 @@ internal sealed class FitMarkDto
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Guid? LinkedClipId { get; set; }
+
+    /// <summary>Format v15 (D053): the route of <see cref="LinkedClipId"/> the link names; written only when set.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? LinkedRouteId { get; set; }
 }
 
 /// <summary>Format v12 (D051 §5.3): a declined climb and, if a mark existed, the mark as it was (never linked).</summary>
@@ -333,9 +337,14 @@ internal sealed class VideoClipDto : MediaBackedClipDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool IsAudioDetached { get; set; }
 
-    /// <summary>Format v5 (D034): the clip's hold markup; written only when set. Ignored in older files, which have none.</summary>
+    /// <summary>Format v5–v14 (D034): the clip's single hold markup. Read from those files as the clip's one route; never
+    /// written since v15 (<see cref="Routes"/>).</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public HoldMarkupDto? HoldMarkup { get; set; }
+
+    /// <summary>Format v15 (D053): the clip's routes, each a hold markup with its id; written only when there is one.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<HoldMarkupDto?>? Routes { get; set; }
 }
 
 /// <summary>Format v5 (D034 §6): a video clip's hold markup. Every member is required when the markup is present.</summary>
@@ -357,6 +366,10 @@ internal sealed class HoldMarkupDto
     /// (absent: they follow the camera, as in every older file).</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? FollowsCamera { get; set; }
+
+    /// <summary>Format v15 (D053): the route's id on its clip; required in <see cref="VideoClipDto.Routes"/>.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? Id { get; set; }
 }
 
 /// <summary>Format v6 (D036 §2): the appear / disappear animation; times in ticks — the start a source time, the rest
@@ -434,6 +447,14 @@ internal sealed class TemplateClipDto : ClipDto
     /// <summary>Format v10 (D048 §3.5): the video clip the template is anchored to; written only when set.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Guid? AnchorClipId { get; set; }
+
+    /// <summary>Format v15 (D053): the route of <see cref="AnchorClipId"/> the template belongs to; written only when set.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? AnchorRouteId { get; set; }
+
+    /// <summary>Format v15 (D053 §6): the FIT climb the route's green was created for; written only when set.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ClimbIdentityDto? FitClimb { get; set; }
 
     /// <summary>Format v13 (Phase 35.5): the heart-rate overlay's look and corner; written (and required) only on it.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

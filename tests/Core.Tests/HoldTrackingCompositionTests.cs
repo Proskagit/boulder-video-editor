@@ -58,7 +58,7 @@ public class HoldTrackingCompositionTests
             samples.Select(s => new CameraMotionSample(S(s.Seconds), new WallTransform(1, 0, s.Dx, 0, 1, 0, 0, 0, 1), s.Reliable)).ToImmutableArray());
 
     /// <summary>The outline drawn on the frame whose timestamp is <paramref name="frameSeconds"/> (25 fps time base).</summary>
-    private OutlineDraw? OutlineOn(double frameSeconds, IReadOnlyDictionary<Guid, CameraMotionTrack>? motion)
+    private OutlineDraw? OutlineOn(double frameSeconds, IReadOnlyDictionary<RouteKey, CameraMotionTrack>? motion)
     {
         var snapshot = PlaybackSnapshotBuilder.Build(_project, 1, motion);
         var frame = new DecodedFrame(1920, 1080, 1920 * 4, new byte[1920 * 1080 * 4],
@@ -71,7 +71,7 @@ public class HoldTrackingCompositionTests
     public void The_contours_follow_the_wall_on_the_shown_frame()
     {
         var clip = Video(HoldAt(S(0)));
-        var motion = new Dictionary<Guid, CameraMotionTrack> { [clip.Id] = ShiftTrack((0, 0, true), (1, 0.1, true)) };
+        var motion = new Dictionary<RouteKey, CameraMotionTrack> { [new RouteKey(clip.Id, clip.HoldMarkup!.Id)] = ShiftTrack((0, 0, true), (1, 0.1, true)) };
         var outline = OutlineOn(1, motion)!;
         Assert.Equal((0.4 + 0.1) * 1920, outline.Polygons[0][0].X, 6);
         Assert.Equal(0.4 * 1080, outline.Polygons[0][0].Y, 6);
@@ -81,7 +81,7 @@ public class HoldTrackingCompositionTests
     public void A_contour_marked_on_another_frame_is_carried_from_there()
     {
         var clip = Video(HoldAt(S(0)), HoldAt(S(1)));
-        var motion = new Dictionary<Guid, CameraMotionTrack> { [clip.Id] = ShiftTrack((0, 0, true), (1, 0.1, true), (2, 0.15, true)) };
+        var motion = new Dictionary<RouteKey, CameraMotionTrack> { [new RouteKey(clip.Id, clip.HoldMarkup!.Id)] = ShiftTrack((0, 0, true), (1, 0.1, true), (2, 0.15, true)) };
         var outline = OutlineOn(2, motion)!;
         Assert.Equal((0.4 + 0.15) * 1920, outline.Polygons[0][0].X, 6);   // marked at the reference
         Assert.Equal((0.4 + 0.05) * 1920, outline.Polygons[1][0].X, 6);   // marked where the wall had moved by 0.1
@@ -91,7 +91,7 @@ public class HoldTrackingCompositionTests
     public void On_an_unreliable_frame_the_contours_are_left_out()
     {
         var clip = Video(HoldAt(S(0)));
-        var motion = new Dictionary<Guid, CameraMotionTrack> { [clip.Id] = ShiftTrack((0, 0, true), (1, 0.1, false)) };
+        var motion = new Dictionary<RouteKey, CameraMotionTrack> { [new RouteKey(clip.Id, clip.HoldMarkup!.Id)] = ShiftTrack((0, 0, true), (1, 0.1, false)) };
         Assert.Null(OutlineOn(1, motion));
     }
 
@@ -100,7 +100,7 @@ public class HoldTrackingCompositionTests
     {
         var clip = Video(HoldAt(S(0)));
         var before = OutlineOn(5, null)!;
-        var motion = new Dictionary<Guid, CameraMotionTrack> { [clip.Id] = ShiftTrack((0, 0, true), (1, 0.1, true)) };
+        var motion = new Dictionary<RouteKey, CameraMotionTrack> { [new RouteKey(clip.Id, clip.HoldMarkup!.Id)] = ShiftTrack((0, 0, true), (1, 0.1, true)) };
         var outside = OutlineOn(5, motion)!;
         Assert.Equal(before.Polygons[0].ToArray(), outside.Polygons[0].ToArray());
         Assert.Equal(0.4 * 1920, before.Polygons[0][0].X, 9);
@@ -113,7 +113,7 @@ public class HoldTrackingCompositionTests
         var clip = Video(HoldAt(S(0)));
         var before = PlaybackSnapshotBuilder.Build(_project, 1);
         var after = PlaybackSnapshotBuilder.Build(_project, 2,
-            new Dictionary<Guid, CameraMotionTrack> { [clip.Id] = ShiftTrack((0, 0, true), (1, 0.1, true)) });
+            new Dictionary<RouteKey, CameraMotionTrack> { [new RouteKey(clip.Id, clip.HoldMarkup!.Id)] = ShiftTrack((0, 0, true), (1, 0.1, true)) });
         Assert.True(after.DiffersOnlyInPresentation(before));
     }
 
@@ -123,11 +123,11 @@ public class HoldTrackingCompositionTests
         var clip = Video(HoldAt(S(12)), HoldAt(S(4)));
         clip.SourceIn = S(5);
         clip.SourceOut = S(15);
-        var range = CameraMotionRange.For(clip, Rate)!.Value;
+        var range = CameraMotionRange.For(clip, clip.HoldMarkup, Rate)!.Value;
         Assert.Equal(S(12), range.ReferenceTime);
         Assert.Equal(S(4), range.Start);
         Assert.Equal(S(15), range.End);
-        Assert.Null(CameraMotionRange.For(new VideoClip { MediaAssetId = Guid.NewGuid() }, Rate));
+        Assert.Null(CameraMotionRange.For(new VideoClip { MediaAssetId = Guid.NewGuid() }, null, Rate));
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public class HoldTrackingCompositionTests
                 StartSourceTime = S(2), Interval = S(1), AppearFade = MediaTime.Zero, StayAfterLast = S(3), DisappearFade = S(0.4)
             }
         };
-        var range = CameraMotionRange.For(clip, Rate)!.Value;
+        var range = CameraMotionRange.For(clip, clip.HoldMarkup, Rate)!.Value;
         Assert.Equal(S(2), range.Start);
         Assert.Equal(S(2 + 1 + 3 + 0.4), range.End);   // the last hold at +1 s, stays 3 s, fades 0.4 s (10 frames)
     }

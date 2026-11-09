@@ -1,0 +1,7 @@
+<Project>
+  <!-- D053: a video clip has a list of routes; the tests of single-route behaviour keep using the single-route view
+       VideoClip.HoldMarkup (Obsolete for the editor's own code, so every production use addresses its route). -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS0618</NoWarn>
+  </PropertyGroup>
+</Project>

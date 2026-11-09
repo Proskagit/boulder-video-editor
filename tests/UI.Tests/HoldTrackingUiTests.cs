@@ -95,7 +95,7 @@ public sealed class HoldTrackingUiTests : IDisposable
         vm.FollowsCamera = false;
         Assert.Equal(Strings.Holds_TrackingOff, vm.TrackingStatus);
         Assert.Null(OutlineOf(playback.Last!).Motion);                    // the Preview draws them as marked …
-        Assert.False(coordinator.ForExport().Tracks.ContainsKey(clip.Id)); // … and so does the export,
+        Assert.DoesNotContain(coordinator.ForExport().Tracks.Keys, k => k.ClipId == clip.Id); // … and so does the export,
         Assert.DoesNotContain(clip.Id, coordinator.ForExport().Pending);   // which waits for nothing
         Assert.False(clip.HoldMarkup!.FollowsCamera);                     // the clip's choice, saved with the project (K3)
         Assert.Equal("Stop Following the Camera", _undo.NextUndo?.Description);
@@ -103,10 +103,10 @@ public sealed class HoldTrackingUiTests : IDisposable
         _undo.Undo();                                                      // one Undo step brings the tracking back …
         Assert.True(clip.HoldMarkup!.FollowsCamera);
         Assert.True(vm.FollowsCamera, "vm");
-        Assert.Equal(CameraMotionState.Tracked, coordinator.StatusOf(clip.Id).State);
+        Assert.Equal(CameraMotionState.Tracked, coordinator.StatusOf(RouteKeys.Of(clip)).State);
         Assert.Equal(Strings.Holds_TrackingTracked, vm.TrackingStatus);
         Assert.NotNull(OutlineOf(playback.Last!).Motion);
-        Assert.Same(coordinator.Tracks[clip.Id], OutlineOf(playback.Last!).Motion);
+        Assert.Same(coordinator.Tracks[RouteKeys.Of(clip)], OutlineOf(playback.Last!).Motion);
         GC.KeepAlive(preview);
     });
 
@@ -154,9 +154,9 @@ public sealed class HoldTrackingUiTests : IDisposable
         await preview.ReleasePlaybackAsync();
         var before = playback.Updates;
         decoder.Fail = false;
-        coordinator.Retry(clip.Id);                                        // a track appears: TracksChanged, no project edit
+        coordinator.Retry(RouteKeys.Of(clip));                                        // a track appears: TracksChanged, no project edit
         await coordinator.IdleAsync();
-        Assert.True(coordinator.Tracks.ContainsKey(clip.Id));
+        Assert.Contains(coordinator.Tracks.Keys, k => k.ClipId == clip.Id);
         Assert.Equal(before, playback.Updates);
     });
 

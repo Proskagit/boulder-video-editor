@@ -105,6 +105,33 @@ public sealed class ExportRouteTimingEndToEndTests(E2EMedia media, ITestOutputHe
     }
 
     [FfmpegFact]
+    public async Task Two_routes_on_one_clip_draw_each_by_its_own_schedule_and_the_preview_matches_the_export()
+    {
+        // D053: route A (box 0) animated on [10, 35) and gone at 35; route B (box 2) on [50, 75) — one clip, two outlines.
+        var p = new ProjectBuilder(FrameRate.Fps25);
+        var clip = p.Video(p.VideoTrack(), media.Solid(Red, FrameRate.Fps25), 0, 100);
+        HoldMarkup Route(int box, double start) => Markup(new HoldAnimation
+        {
+            Mode = HoldAnimationMode.Duration, StartSourceTime = MediaTime.FromSeconds(start), Duration = MediaTime.FromSeconds(1),
+            AppearFade = MediaTime.FromSeconds(0.04)
+        }) with { Holds = Markup(null).Holds.Where((_, i) => i == box).ToImmutableArray() };
+        clip.Routes = ImmutableArray.Create(Route(0, 0.4), Route(2, 2.0));
+
+        var run = await ExportProject(p.Project, Path.Combine(media.OutputFolder(), "two-routes.mp4"));
+        var (w, h) = (run.Output.Size.Width, run.Output.Size.Height);
+        await AssertPreviewMatchesExport(run, [9, 10, 20, 34, 35, 49, 50, 60, 74, 75]);
+
+        Assert.InRange(White(run.Canvases[9], w, h, 0), -0.01, 0.01);     // A not yet
+        Assert.InRange(White(run.Canvases[30], w, h, 0), 0.99, 1.0);      // A shown
+        Assert.InRange(White(run.Canvases[30], w, h, 2), -0.01, 0.01);    // B not yet
+        Assert.InRange(White(run.Canvases[35], w, h, 0), -0.01, 0.01);    // A gone at its T
+        Assert.InRange(White(run.Canvases[70], w, h, 2), 0.99, 1.0);      // B shown
+        Assert.InRange(White(run.Canvases[70], w, h, 0), -0.01, 0.01);    // A stays gone
+        Assert.InRange(White(run.Canvases[75], w, h, 2), -0.01, 0.01);    // B gone at its T
+        AssertMp4MatchesCanvases(run);
+    }
+
+    [FfmpegFact]
     public async Task After_the_layout_a_speed_change_a_head_trim_and_a_strip_edit_the_preview_matches_the_export()
     {
         var p = new ProjectBuilder(FrameRate.Fps25);

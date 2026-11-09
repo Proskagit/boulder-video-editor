@@ -63,9 +63,11 @@ public sealed partial class InspectorViewModel
         }
         ShowsFitMarks = ShowsTraining && FitEdit is not null && videoMarks.Count > 0;
 
-        var animated = clip?.HoldMarkup?.Animation is { Mode: HoldAnimationMode.Duration };
+        // D053: the link of the route the «Зацепки» section shows (the one under the playhead).
+        var route = CurrentRoute(clip);
+        var animated = route?.Animation is { Mode: HoldAnimationMode.Duration };
         ShowsFitLink = ShowsTraining && FitEdit is not null && animated && marks.Count > 0;
-        var linked = clip is null ? null : marks.FirstOrDefault(m => m.LinkedClipId == clip.Id);
+        var linked = LinkedMark(clip, route);
         FitLinkText = linked is null ? Strings.Inspector_FitNotLinked : string.Format(Strings.Inspector_FitLinked, linked.Climb.ClimbNumber);
 
         var linkable = linked is null ? marks.Where(m => m.LinkedClipId is null).ToList() : [];
@@ -78,6 +80,19 @@ public sealed partial class InspectorViewModel
         }
         NotifyFitCommands();
     }
+
+    /// <summary>D053: the markup of the route the «Зацепки» section shows on <paramref name="clip"/>, or null.</summary>
+    private HoldMarkup? CurrentRoute(VideoClip? clip)
+    {
+        if (clip is null) return null;
+        if (HoldMarkup is not null) return HoldMarkup.CurrentRouteId is { } id ? RouteOverlays.Find(clip, id) : null;
+        // Without the section (a shell without the hold markup): the clip's only marked route (a link needs its animation).
+        return clip.Routes.Length == 1 ? clip.Routes[0] : null;
+    }
+
+    /// <summary>The mark linked to <paramref name="route"/> of <paramref name="clip"/>, or null.</summary>
+    private FitMark? LinkedMark(VideoClip? clip, HoldMarkup? route) => clip is null || route is null ? null
+        : _training?.Training?.Marks.FirstOrDefault(m => m.LinkedClipId == clip.Id && FitMarkRules.LinkedRoute(clip, m.LinkedRouteId)?.Id == route.Id);
 
     private static string MarkItem(FitMark mark, ClimbingWorkout? workout)
     {
@@ -138,17 +153,15 @@ public sealed partial class InspectorViewModel
     private void LinkFitClimb()
     {
         if (!CanLinkFitClimb() || _clip is not VideoClip clip || RejectWhileLocked()) return;
-        Report(FitEdit!.LinkFitClimb(_linkableMarks[SelectedLinkableIndex].Climb, clip.Id), Strings.Inspector_FitLinkDone);
+        Report(FitEdit!.LinkFitClimb(_linkableMarks[SelectedLinkableIndex].Climb, clip.Id, CurrentRoute(clip)?.Id), Strings.Inspector_FitLinkDone);
     }
 
-    private bool CanUnlinkFitClimb() => IsEditingAllowed && ShowsFitLink && _clip is VideoClip clip &&
-        _training?.Training?.Marks.Any(m => m.LinkedClipId == clip.Id) == true;
+    private bool CanUnlinkFitClimb() => IsEditingAllowed && ShowsFitLink && _clip is VideoClip clip && LinkedMark(clip, CurrentRoute(clip)) is not null;
 
     [RelayCommand(CanExecute = nameof(CanUnlinkFitClimb))]
     private void UnlinkFitClimb()
     {
-        if (_clip is not VideoClip clip || _training?.Training?.Marks.FirstOrDefault(m => m.LinkedClipId == clip.Id) is not { } mark ||
-            RejectWhileLocked()) return;
+        if (_clip is not VideoClip clip || LinkedMark(clip, CurrentRoute(clip)) is not { } mark || RejectWhileLocked()) return;
         Report(FitEdit!.UnlinkFitClimb(mark.Climb), Strings.Inspector_FitUnlinkDone);
     }
 

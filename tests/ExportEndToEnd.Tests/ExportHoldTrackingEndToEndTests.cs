@@ -66,7 +66,7 @@ public sealed class ExportHoldTrackingEndToEndTests(E2EMedia media, ITestOutputH
     {
         var (p, clip) = Build();
         var track = Pan();
-        var tracks = new Dictionary<Guid, CameraMotionTrack> { [clip.Id] = track };
+        var tracks = new Dictionary<RouteKey, CameraMotionTrack> { [new RouteKey(clip.Id, clip.HoldMarkup!.Id)] = track };
         var run = await Export(p, "tracked.mp4", new ExportCameraMotion(tracks, new HashSet<Guid>()));
         var w = run.Output.Size.Width;
         var previewSnapshot = PlaybackSnapshotBuilder.Build(p.Project, 1, tracks.ToImmutableDictionary());
@@ -100,13 +100,13 @@ public sealed class ExportHoldTrackingEndToEndTests(E2EMedia media, ITestOutputH
     public async Task Export_without_compensation_after_a_failed_analysis_draws_the_contour_as_marked_like_the_preview()
     {
         var (p, clip) = Build();
-        var motion = new ExportCameraMotion(new Dictionary<Guid, CameraMotionTrack>(), new HashSet<Guid>()) { Failed = new HashSet<Guid> { clip.Id } };
+        var motion = new ExportCameraMotion(new Dictionary<RouteKey, CameraMotionTrack>(), new HashSet<Guid>()) { Failed = new HashSet<Guid> { clip.Id } };
         var check = ExportPreflight.Check(p.Project, Path.Combine(media.OutputFolder(), "x.mp4"), EndToEnd.Environment with { CameraMotion = motion });
         Assert.Single(check.Warnings, i => i.Kind == ExportIssueKind.HoldTrackingFailed);   // the user is told, then goes on
 
         var run = await Export(p, "untracked.mp4", motion);
         var w = run.Output.Size.Width;
-        var previewSnapshot = PlaybackSnapshotBuilder.Build(p.Project, 1, ImmutableDictionary<Guid, CameraMotionTrack>.Empty);
+        var previewSnapshot = PlaybackSnapshotBuilder.Build(p.Project, 1, ImmutableDictionary<RouteKey, CameraMotionTrack>.Empty);
         foreach (var n in new long[] { 0, 25, 49 })
         {
             var preview = await Preview(previewSnapshot, n);

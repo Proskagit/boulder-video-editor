@@ -56,7 +56,7 @@ public class TrainingPersistenceTests
     {
         var first = Save(Full());
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(14, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(15, root["formatVersion"]!.GetValue<int>());
 
         var training = root["training"]!.AsObject();
         Assert.Equal(@"fit\Болдеринг.fit", training["relativePath"]!.GetValue<string>());
@@ -107,7 +107,7 @@ public class TrainingPersistenceTests
     public void A_version_10_file_opens_without_the_new_members_and_is_saved_as_version_11_differing_only_in_the_version()
     {
         var v11 = Save(Build(false, null, null));
-        var v10 = v11.Replace("\"formatVersion\": 14", "\"formatVersion\": 10");
+        var v10 = v11.Replace("\"formatVersion\": 15", "\"formatVersion\": 10");
         Assert.NotEqual(v11, v10);
 
         var loaded = Load(v10);
@@ -118,7 +118,7 @@ public class TrainingPersistenceTests
     [Fact]
     public void New_members_in_a_version_10_file_are_ignored()
     {
-        var v10 = Save(Full()).Replace("\"formatVersion\": 14", "\"formatVersion\": 10");
+        var v10 = Save(Full()).Replace("\"formatVersion\": 15", "\"formatVersion\": 10");
 
         var loaded = Load(v10);
         Assert.Null(loaded.Training);

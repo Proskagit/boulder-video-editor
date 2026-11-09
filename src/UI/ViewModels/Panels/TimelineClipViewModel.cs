@@ -104,6 +104,13 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
 
     public bool HasStrip => StripSegments.Count > 0;
 
+    /// <summary>D053: on a video clip, the route its lane shows; on a «Боулдер», the route it is the green of.</summary>
+    public Guid? StripRouteId { get; set; }
+
+    /// <summary>D053, on a «Боулдер» in variant B: its route's strip in pixels from the anchored clip's left edge — what its
+    /// handles are measured on (<see cref="TemplateSegments"/> is the same strip drawn from the plate's edge).</summary>
+    public IReadOnlyList<StripSegment> RouteSegments { get; set; } = Array.Empty<StripSegment>();
+
     /// <summary>D051 §8.1: the FIT marks on this video clip, in pixels from its left edge; empty otherwise.</summary>
     [ObservableProperty] private IReadOnlyList<FitMarkGlyph> _fitMarks = Array.Empty<FitMarkGlyph>();
 

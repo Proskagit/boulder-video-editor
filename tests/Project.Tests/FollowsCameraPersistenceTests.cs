@@ -48,7 +48,9 @@ public class FollowsCameraPersistenceTests
         return project;
     }
 
-    private static JsonObject Markup(JsonNode root) => root["timeline"]!["videoTracks"]![0]!["clips"]![0]!["holdMarkup"]!.AsObject();
+    private static JsonObject Markup(JsonNode root) => root["timeline"]!["videoTracks"]![0]!["clips"]![0] is JsonObject clip && clip["routes"] is JsonArray routes
+        ? routes[0]!.AsObject()
+        : root["timeline"]!["videoTracks"]![0]!["clips"]![0]!["holdMarkup"]!.AsObject();   // an older file (LegacyJson)
     private static HoldMarkup MarkupOf(Core.Entities.Project p) => p.Timeline.VideoTracks[0].Clips.OfType<VideoClip>().Single().HoldMarkup!;
 
     [Fact]
@@ -56,7 +58,7 @@ public class FollowsCameraPersistenceTests
     {
         var off = Save(Build(follows: false));
         var root = JsonNode.Parse(off)!;
-        Assert.Equal(14, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(15, root["formatVersion"]!.GetValue<int>());
         Assert.False((bool)Markup(root)["followsCamera"]!);
         Assert.False(MarkupOf(Load(off)).FollowsCamera);
         Assert.Equal(off, Save(Load(off)));
@@ -70,10 +72,10 @@ public class FollowsCameraPersistenceTests
     [Fact]
     public void A_v13_file_follows_the_camera_and_is_saved_as_v14()
     {
-        var v13 = Save(Build(follows: true)).Replace("\"formatVersion\": 14", "\"formatVersion\": 13");
+        var v13 = LegacyJson.As(Save(Build(follows: true)), 13);
         var loaded = Load(v13);
         Assert.True(MarkupOf(loaded).FollowsCamera);
-        Assert.Equal(14, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(15, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
 
         // A v13 file never carries the field: if one does, it is not read (the older format had no such setting).
         var forged = JsonNode.Parse(v13)!;

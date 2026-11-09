@@ -34,7 +34,8 @@ public readonly record struct FitMarkPosition(FitMarkPositionKind Kind, MediaTim
 /// The active mark of one FIT climb (D051 §5.3): the climb's identity; <c>W_auto</c> and the <c>StartCorrection</c> and
 /// calibration version it was created with (frozen, §5.5); the video it was proposed on (chosen by §5.5.1, never
 /// reassigned); its own position; <see cref="PositionChangedAt"/> (§5.6); and the optional explicit link to the video clip
-/// whose <c>Duration</c> hold animation gives its effective start (§5.4). Immutable: every edit replaces the mark.
+/// whose <c>Duration</c> hold animation gives its effective start (§5.4) — since D053 the route of that clip
+/// (<see cref="LinkedRouteId"/>; null: the clip's single route, a project before v15). Immutable: every edit replaces the mark.
 /// </summary>
 public sealed record FitMark(
     ClimbIdentity Climb,
@@ -44,7 +45,8 @@ public sealed record FitMark(
     Guid MediaAssetId,
     FitMarkPosition Position,
     DateTimeOffset PositionChangedAt,
-    Guid? LinkedClipId = null);
+    Guid? LinkedClipId = null,
+    Guid? LinkedRouteId = null);
 
 /// <summary>A climb the user declined (D051 §5.3, §5.7): its identity and, if a mark existed, the mark as it was — never
 /// with a link (declining removes it). Never recreated by a new import or a new <c>Z</c>; not active, never observed.</summary>

@@ -281,33 +281,33 @@ public interface ITimelineEditService
 
     /// <summary>Adds a confirmed hold to a video clip's markup (D034): one undo step; the Auto colour and the keyline are
     /// recomputed from the stored samples of all holds. Refused for other clips and on a locked track.</summary>
-    TimelineEditResult AddHold(Guid clipId, Hold hold);
+    TimelineEditResult AddHold(Guid clipId, Hold hold, Guid? routeId = null);
 
     /// <summary>Adds several confirmed holds to a video clip in a single undo step (Phase 31 accept-all). Empty or all-invalid
     /// input is a no-change. Refused for other clips and on a locked track.</summary>
-    TimelineEditResult AddHolds(Guid clipId, IEnumerable<Hold> holds);
+    TimelineEditResult AddHolds(Guid clipId, IEnumerable<Hold> holds, Guid? routeId = null);
 
     /// <summary>Removes a hold from a video clip's markup: one undo step; the colour recomputed as for <see cref="AddHold"/>.</summary>
-    TimelineEditResult RemoveHold(Guid clipId, Guid holdId);
+    TimelineEditResult RemoveHold(Guid clipId, Guid holdId, Guid? routeId = null);
 
     /// <summary>Replaces the contour of a confirmed hold with a corrected one (D035): the same hold (id, colour samples,
     /// frame time), one undo step, never merged with another; the route colour and the keyline stay as they are. Refused
     /// for an invalid polygon, for a correction that makes the contour cross itself, for other clips and on a locked
     /// track.</summary>
-    TimelineEditResult ReplaceHoldContour(Guid clipId, Guid holdId, ImmutableArray<NormalizedPoint> points);
+    TimelineEditResult ReplaceHoldContour(Guid clipId, Guid holdId, ImmutableArray<NormalizedPoint> points, Guid? routeId = null);
 
     /// <summary>Changes the route outline's style of a video clip (D034 §4, §5): one undo step; consecutive changes of
     /// the same setting merge (D017).</summary>
-    TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style);
+    TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style, Guid? routeId = null);
 
     /// <summary>Sets the appear / disappear animation of a video clip's hold outlines (D036); null switches it off. One undo
     /// step; consecutive changes of the same setting merge (D017), switching on or off is its own step. Refused outside the
     /// limits of <see cref="HoldMarkupRules.ValidateAnimation"/>, for other clips and on a locked track.</summary>
-    TimelineEditResult SetHoldAnimation(Guid clipId, HoldAnimation? animation);
+    TimelineEditResult SetHoldAnimation(Guid clipId, HoldAnimation? animation, Guid? routeId = null);
 
     /// <summary>Hold tracking (R2 → E, K3): whether the clip's contours follow the camera (saved with the project); one undo
     /// step. Fails without a hold markup.</summary>
-    TimelineEditResult SetHoldFollowsCamera(Guid clipId, bool follows);
+    TimelineEditResult SetHoldFollowsCamera(Guid clipId, bool follows, Guid? routeId = null);
 
     /// <summary>
     /// Changes the project canvas (D028, Step 13.4) to <paramref name="width"/> × <paramref name="height"/> as one Undo
@@ -377,23 +377,23 @@ public interface ITimelineEditService
     /// video clip with holds — the hold animation in the Duration mode ending exactly at <c>T</c> (5 s, shortened 2 : 5 with
     /// less than 7 s before <c>T</c>) and a «Боулдер» anchored to the clip from the plate's start to the clip's end, its status
     /// from the last 5 s but never before <c>T</c>. One Undo step; an explicit action — accepting a route never runs it.</summary>
-    TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t);
+    TimelineEditResult LayOutIntroAndFinal(Guid videoClipId, MediaTime t, Guid? routeId = null);
 
     /// <summary>The overlay strip of a video clip (D048 §4.1) in timeline frames, or null when it has neither an anchored
     /// «Боулдер» nor a Duration-mode animation.</summary>
-    OverlayStripState? OverlayStripOf(Guid videoClipId);
+    OverlayStripState? OverlayStripOf(Guid videoClipId, Guid? routeId = null);
 
     /// <summary>A strip handle dragged by <paramref name="frameDelta"/> frames (D048 §4.2): one Undo step; the limits stop
     /// the value, an overlap of the lilac with the green or the orange is refused with a message; no change → no step.</summary>
-    TimelineEditResult EditOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta);
+    TimelineEditResult EditOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta, Guid? routeId = null);
 
     /// <summary>What <see cref="EditOverlayStrip"/> would do now, for the drag's preview: the planned segments and, when
     /// the release would be refused, why. Null when there is nothing to drag (no such segment, not a video clip).</summary>
-    OverlayStripPreview? PreviewOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta);
+    OverlayStripPreview? PreviewOverlayStrip(Guid videoClipId, OverlayStripHandle handle, long frameDelta, Guid? routeId = null);
 
     /// <summary>D048 §3.9, Delete on the selected orange segment: the clip's whole hold markup removed (the holds, the
     /// animation) — one Undo step that restores it; the templates and the clip stay. No markup → no change.</summary>
-    TimelineEditResult DeleteHoldMarkup(Guid videoClipId);
+    TimelineEditResult DeleteHoldMarkup(Guid videoClipId, Guid? routeId = null);
 
     /// <summary>Adds the track's default transition — a cross dissolve on a video track, a crossfade on an audio track —
     /// of <paramref name="duration"/> (whole frames, within the type's range: D044 §5) on the cut between two touching

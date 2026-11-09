@@ -254,7 +254,7 @@ public sealed partial class HoldMarkupViewModel
             var sourceTime = _sourceTime;
             var holds = await Task.Run(() => RouteHoldFinder.ToHolds(frame, accepted, existing, sourceTime));
             if (!IsRouteReview || !ReferenceEquals(_clip, clip)) return;   // left meanwhile: nothing added
-            var result = _edit.AddHolds(clip.Id, holds);
+            var result = _edit.AddHolds(clip.Id, holds, RouteForEdit());
             if (!result.Success)
             {
                 _status.Report(result.Message ?? Strings.Holds_NotAdded);
@@ -309,6 +309,6 @@ public sealed partial class HoldMarkupViewModel
         CancelRouteCommand.NotifyCanExecuteChanged();
     }
 
-    private static IReadOnlyList<ImmutableArray<NormalizedPoint>> ExistingContours(VideoClip clip) =>
-        (clip.HoldMarkup?.Holds ?? ImmutableArray<Hold>.Empty).Select(h => h.Points).ToList();
+    private IReadOnlyList<ImmutableArray<NormalizedPoint>> ExistingContours(VideoClip clip) =>
+        (MarkupOf(clip)?.Holds ?? ImmutableArray<Hold>.Empty).Select(h => h.Points).ToList();
 }

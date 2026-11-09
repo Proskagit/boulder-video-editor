@@ -9,13 +9,14 @@ namespace AiVideoEditor.Core.Motion;
 /// with the outline animation (D036) from its start to the last contour gone (or the clip's end with "until clip end"),
 /// otherwise the clip's whole source range — widened to every hold's marking time, so each contour can be carried from
 /// the frame it was marked on. The reference frame is the first hold's marking frame. Null without holds or when the
-/// range is empty (an animation entirely outside the clip).
+/// range is empty (an animation entirely outside the clip). D053: computed per route — each route has its own marking frame
+/// and its own animation, so its own track (<see cref="RouteKey"/>).
 /// </summary>
 public readonly record struct CameraMotionRange(MediaTime ReferenceTime, MediaTime Start, MediaTime End)
 {
-    public static CameraMotionRange? For(VideoClip clip, FrameRate rate)
+    public static CameraMotionRange? For(VideoClip clip, HoldMarkup? route, FrameRate rate)
     {
-        if (clip.HoldMarkup is not { Holds.Length: > 0 } markup) return null;
+        if (route is not { Holds.Length: > 0 } markup) return null;
         MediaTime start = clip.SourceIn, end = clip.SourceOut;
         if (markup.Animation is { } animation)
         {

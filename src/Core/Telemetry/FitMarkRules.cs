@@ -124,9 +124,9 @@ public static class FitMarkRules
 
     /// <summary>The source time on the clip's video of the frame <c>T</c> of its Duration animation — one conversion
     /// timeline → source by the clip's rule, <c>T</c> taken as the D048 strip takes it; null without one.</summary>
-    public static MediaTime? AnimationEnd(VideoClip clip, FrameRate projectRate)
+    public static MediaTime? AnimationEnd(VideoClip clip, HoldMarkup? route, FrameRate projectRate)
     {
-        if (clip.HoldMarkup?.Animation is not { Mode: HoldAnimationMode.Duration } animation) return null;
+        if (route?.Animation is not { Mode: HoldAnimationMode.Duration } animation) return null;
         var start = HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, animation.StartSourceTime, projectRate);
         var t = start + HoldAnimationRule.DurationFrames(animation, projectRate);
         return HoldAnimationRule.SourceTimeAt(clip.TimelineStart, clip.SourceIn, clip.Speed, t, projectRate);
@@ -139,7 +139,8 @@ public static class FitMarkRules
     {
         if (mark.LinkedClipId is { } clipId)
         {
-            if (FindVideoClip(project.Timeline, clipId) is not { } clip || AnimationEnd(clip, project.Settings.FrameRate) is not { } t)
+            if (FindVideoClip(project.Timeline, clipId) is not { } clip ||
+                AnimationEnd(clip, LinkedRoute(clip, mark.LinkedRouteId), project.Settings.FrameRate) is not { } t)
                 return null;
             return new FitEffectiveStart(clip.MediaAssetId, t, null);
         }
@@ -217,7 +218,8 @@ public static class FitMarkRules
         var marks = project.Training?.Marks ?? [];
         var linkedHolds = new Dictionary<Guid, IReadOnlySet<Guid>>();
         foreach (var mark in marks)
-            if (mark.LinkedClipId is { } id && FindVideoClip(project.Timeline, id)?.HoldMarkup is { } markup)
+            if (mark.LinkedClipId is { } id && FindVideoClip(project.Timeline, id) is { } linked &&
+                LinkedRoute(linked, mark.LinkedRouteId) is { } markup)
                 linkedHolds[id] = markup.Holds.Select(h => h.Id).ToHashSet();
         return new Before(marks.ToDictionary(m => m.Climb, m => EffectiveStart(m, project)), linkedHolds,
             AllClips(project.Timeline).Select(c => c.Id).ToHashSet(),
@@ -249,11 +251,15 @@ public static class FitMarkRules
                 continue;
             }
             var next = mark;
-            if (mark.LinkedClipId is { } id && (FindVideoClip(project.Timeline, id) is not { } clip || !HasDuration(clip)))
+            if (mark.LinkedClipId is { } id &&
+                (FindVideoClip(project.Timeline, id) is not { } clip || !HasDuration(LinkedRoute(clip, mark.LinkedRouteId))))
             {
                 var holds = before.LinkedHolds.TryGetValue(id, out var h) ? h : new HashSet<Guid>();
-                var heirs = created.Where(c => HasDuration(c) && c.HoldMarkup!.Holds.Any(x => holds.Contains(x.Id))).ToList();
-                next = mark with { LinkedClipId = heirs.Count == 1 ? heirs[0].Id : null };
+                var heirs = created.SelectMany(c => c.Routes.Where(r => HasDuration(r) && r.Holds.Any(x => holds.Contains(x.Id)))
+                    .Select(r => (Clip: c, Route: r))).ToList();
+                next = heirs.Count == 1
+                    ? mark with { LinkedClipId = heirs[0].Clip.Id, LinkedRouteId = heirs[0].Route.Id }
+                    : mark with { LinkedClipId = null, LinkedRouteId = null };
             }
             // A mark unlinked before and after keeps its time: its own moves set it themselves, a new Z or clock
             // correction never does (D051 §5.6).
@@ -271,7 +277,12 @@ public static class FitMarkRules
         return changed ? (result, declined) : null;
     }
 
-    private static bool HasDuration(VideoClip clip) => clip.HoldMarkup?.Animation is { Mode: HoldAnimationMode.Duration };
+    private static bool HasDuration(HoldMarkup? route) => route?.Animation is { Mode: HoldAnimationMode.Duration };
+
+    /// <summary>D053: the route of <paramref name="clip"/> a mark is linked to — <paramref name="routeId"/>, or (a project
+    /// before v15) the clip's single route.</summary>
+    public static HoldMarkup? LinkedRoute(VideoClip clip, Guid? routeId) =>
+        RouteOverlays.RouteIdOf(routeId, clip.Routes) is { } id ? RouteOverlays.Find(clip, id) : null;
 
     public static IEnumerable<Clip> AllClips(Sequence timeline) => timeline.VideoTracks.Concat(timeline.AudioTracks).SelectMany(t => t.Clips);
 

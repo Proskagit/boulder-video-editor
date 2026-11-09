@@ -39,7 +39,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 14;
+    public const int CurrentFormatVersion = 15;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -82,6 +82,12 @@ public static class ProjectSerializer
     /// <summary>The first version with a hold markup's "Follow the camera" (R2 → E, K3): written only when off. A v13 file
     /// has every markup following the camera and is saved as v14.</summary>
     private const int FollowsCameraVersion = 14;
+
+    /// <summary>The first version with several routes on a video clip (D053): each markup with its route id, the route of an
+    /// anchored template and of a FIT link, the FIT climb of a route's green. A v14 file's markup is read as the clip's one
+    /// route (its templates anchored to it; an anchored template of a clip without markup gets a route of its own, its green
+    /// only) and is saved as v15.</summary>
+    private const int RoutesVersion = 15;
 
     /// <summary>A push's direction in the file (D044 §9).</summary>
     private static readonly IReadOnlyDictionary<TransitionDirection, string> DirectionNames = new Dictionary<TransitionDirection, string>
@@ -286,7 +292,8 @@ public static class ProjectSerializer
         },
         SourceTimeTicks = m.Position.SourceTime?.Ticks,
         PositionChangedAt = m.PositionChangedAt.ToUniversalTime(),
-        LinkedClipId = m.LinkedClipId
+        LinkedClipId = m.LinkedClipId,
+        LinkedRouteId = m.LinkedClipId is null ? null : m.LinkedRouteId
     };
 
     private static FrameRateDto ToDto(FrameRate r) => new() { Numerator = r.Numerator, Denominator = r.Denominator };
@@ -386,7 +393,8 @@ public static class ProjectSerializer
             {
                 PositionX = v.PositionX, PositionY = v.PositionY, Scale = v.Scale, RotationDegrees = v.RotationDegrees,
                 Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted, Crop = ToDto(v.Crop),
-                IsAudioDetached = v.IsAudioDetached, HoldMarkup = v.HoldMarkup is { } markup ? ToDto(markup) : null
+                IsAudioDetached = v.IsAudioDetached,
+                Routes = v.Routes.IsDefaultOrEmpty ? null : v.Routes.Select(r => (HoldMarkupDto?)ToDto(r)).ToList()
             },
             AudioClip a => new AudioClipDto { Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClip i => new ImageClipDto
@@ -411,6 +419,8 @@ public static class ProjectSerializer
                 Template = p.Kind, CounterStartTicks = p.CounterStart.Ticks, Date = p.Date, Route = p.Route, Grade = p.Grade,
                 Status = p.Status, AccentHex = p.AccentHex, Title = p.Title, Subtitle = p.Subtitle, StatusAtTicks = p.StatusAt.Ticks,
                 AnchorClipId = p.AnchorClipId,
+                AnchorRouteId = p.AnchorClipId is null ? null : p.AnchorRouteId,
+                FitClimb = p.AnchorClipId is not null && p.FitClimb is { } fitClimb ? ToDto(fitClimb) : null,
                 Look = p.Kind == TemplateKind.HeartRate ? p.Look : null,
                 Corner = p.Kind == TemplateKind.HeartRate ? p.Corner : null
             },
@@ -438,6 +448,7 @@ public static class ProjectSerializer
 
     private static HoldMarkupDto ToDto(HoldMarkup m) => new()
     {
+        Id = m.Id,
         StrokeWidth1080 = m.StrokeWidth1080, ColorMode = m.ColorMode, ColorHex = m.ColorHex, Keyline = m.Keyline,
         KeylineActive = m.KeylineActive, ModelId = m.ModelId,
         FollowsCamera = m.FollowsCamera ? null : false,
@@ -533,7 +544,7 @@ public static class ProjectSerializer
         var videoClips = timeline.VideoTracks.Concat(timeline.AudioTracks).SelectMany(t => t.Clips).OfType<VideoClip>()
             .ToDictionary(c => c.Id);
         var climbs = new HashSet<ClimbIdentity>();
-        var linkedClips = new HashSet<Guid>();
+        var linkedClips = new HashSet<(Guid Clip, Guid Route)>();
         foreach (var markDto in dto.FitMarks ?? [])
         {
             var mark = ReadFitMark(markDto ?? throw Damaged("empty FIT mark entry"), assets);
@@ -541,9 +552,10 @@ public static class ProjectSerializer
             if (mark.LinkedClipId is { } clipId)
             {
                 if (!videoClips.TryGetValue(clipId, out var clip)) throw Damaged("a FIT mark is linked to a missing clip");
-                if (clip.HoldMarkup?.Animation is not { Mode: HoldAnimationMode.Duration })
+                // D053: the link names a route of the clip (none named: the clip's single route).
+                if (FitMarkRules.LinkedRoute(clip, mark.LinkedRouteId) is not { Animation.Mode: HoldAnimationMode.Duration } linkedRoute)
                     throw Damaged("a FIT mark is linked to a clip without a duration hold animation");
-                if (!linkedClips.Add(clipId)) throw Damaged("one animation is linked to two FIT climbs");
+                if (!linkedClips.Add((clipId, linkedRoute.Id))) throw Damaged("one animation is linked to two FIT climbs");
             }
             training.Marks.Add(mark);
         }
@@ -582,7 +594,8 @@ public static class ProjectSerializer
         if (!position.IsValid) throw Damaged("a FIT mark's position does not match its kind");
         if (source is { } s && s < MediaTime.Zero) throw Damaged("negative FIT mark position");
         return new FitMark(climb, dto.AutoStartUtc.ToUniversalTime(), dto.StartCorrectionTicks, dto.CalibrationVersion,
-            dto.MediaAssetId, position, dto.PositionChangedAt.ToUniversalTime(), dto.LinkedClipId);
+            dto.MediaAssetId, position, dto.PositionChangedAt.ToUniversalTime(), dto.LinkedClipId,
+            dto.LinkedClipId is null ? null : dto.LinkedRouteId);
     }
 
     /// <summary>The training reference (D049 §7): every member required; the path resolved as a media path (D014). The file
@@ -770,9 +783,20 @@ public static class ProjectSerializer
             throw Damaged($"a link is invalid: {invalidLink.TrimEnd('.')}");
 
         // D048 §3.5: an anchor to a missing or non-video clip is cleared (the template stays free), not a damaged file.
-        var videoIds = sequence.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>().Select(c => c.Id).ToHashSet();
+        var videos = sequence.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>().ToDictionary(c => c.Id);
+        var greenOnly = new Dictionary<Guid, Guid>();   // a clip without markup: its templates' route (a new id)
         foreach (var template in sequence.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>())
-            if (template.AnchorClipId is { } anchor && !videoIds.Contains(anchor)) template.AnchorClipId = null;
+        {
+            if (template.AnchorClipId is { } anchor && !videos.ContainsKey(anchor)) template.AnchorClipId = null;
+            if (template.AnchorClipId is not { } clipId) { template.AnchorRouteId = null; template.FitClimb = null; continue; }
+            if (formatVersion >= RoutesVersion) continue;   // a route without markup is a route with its green only (D053)
+            // D053: a file before v15 had one markup per clip — its templates belong to it; the templates of a clip without
+            // markup (its markup deleted, D048 §3.9) belong to one route of their own, its green only.
+            var video = videos[clipId];
+            template.AnchorRouteId = video.Routes.IsDefaultOrEmpty
+                ? (greenOnly.TryGetValue(clipId, out var own) ? own : greenOnly[clipId] = Guid.NewGuid())
+                : video.Routes[0].Id;
+        }
 
         var markerIds = new HashSet<Guid>();
         foreach (var m in dto.Markers ?? new List<MarkerDto>())
@@ -883,8 +907,8 @@ public static class ProjectSerializer
                 Crop = FromDto(v.Crop),
                 // v1–v3 have no unlinked sound (D032).
                 IsAudioDetached = formatVersion >= AudioEditingVersion && v.IsAudioDetached,
-                // v1–v4 have no hold markup (D034).
-                HoldMarkup = formatVersion >= HoldMarkupVersion && v.HoldMarkup is { } markup ? FromDto(markup, formatVersion) : null
+                // v1–v4 have no hold markup (D034); v5–v14 one markup — the clip's one route; v15 the routes (D053).
+                Routes = ReadRoutes(v, formatVersion)
             },
             AudioClipDto a => new AudioClip { Id = a.Id, MediaAssetId = a.MediaAssetId, Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClipDto i => new ImageClip
@@ -916,6 +940,8 @@ public static class ProjectSerializer
                     : statusAt >= 0 ? new MediaTime(statusAt) : throw Damaged("a template's status moment is negative"),
                 // v9 has no anchor (D048); a dangling one is cleared once every clip is known (FromDto(SequenceDto)).
                 AnchorClipId = formatVersion >= RouteTimingVersion ? p.AnchorClipId : null,
+                AnchorRouteId = formatVersion >= RoutesVersion ? p.AnchorRouteId : null,
+                FitClimb = formatVersion >= RoutesVersion && p.FitClimb is { } fitClimb ? ReadClimb(fitClimb) : null,
                 // Phase 35.5: the heart-rate overlay's look and corner are required on it, absent on the other kinds.
                 Look = p.Template != TemplateKind.HeartRate ? HeartRateLook.Plate
                     : p.Look is { } look && Enum.IsDefined(look) ? look : throw Damaged("a heart-rate overlay's look is missing"),
@@ -1035,6 +1061,26 @@ public static class ProjectSerializer
         if (id == Guid.Empty) throw Damaged($"{what} id is missing");
     }
 
+    /// <summary>D053: the routes of a video clip — v15 its route list (every id present and distinct), v5–v14 its one markup
+    /// with a new id, older none.</summary>
+    private static ImmutableArray<HoldMarkup> ReadRoutes(VideoClipDto v, int formatVersion)
+    {
+        if (formatVersion < HoldMarkupVersion) return ImmutableArray<HoldMarkup>.Empty;
+        if (formatVersion < RoutesVersion)
+            // The one route of an older file takes its clip's id: the same file opened twice gives the same route.
+            return v.HoldMarkup is { } single ? ImmutableArray.Create(FromDto(single, formatVersion) with { Id = v.Id }) : ImmutableArray<HoldMarkup>.Empty;
+        if (v.Routes is null) return ImmutableArray<HoldMarkup>.Empty;
+        var routes = ImmutableArray.CreateBuilder<HoldMarkup>(v.Routes.Count);
+        var ids = new HashSet<Guid>();
+        foreach (var dto in v.Routes)
+        {
+            var route = FromDto(dto ?? throw Damaged("empty route entry"), formatVersion);
+            if (!ids.Add(route.Id)) throw Damaged("two routes of one clip have the same id");
+            routes.Add(route);
+        }
+        return routes.MoveToImmutable();
+    }
+
     /// <summary>A hold markup (D034 §6): every member required, the samples finite, the rules of
     /// <see cref="HoldMarkupRules"/>; anything else is a damaged file.</summary>
     private static HoldMarkup FromDto(HoldMarkupDto dto, int formatVersion)
@@ -1062,7 +1108,9 @@ public static class ProjectSerializer
             ModelId = dto.ModelId ?? throw Damaged("a hold markup has no model id"),
             Holds = holds.ToImmutableArray(),
             Animation = formatVersion >= HoldAnimationVersion && dto.Animation is { } animation ? FromDto(animation, formatVersion) : null,
-            FollowsCamera = formatVersion < FollowsCameraVersion || (dto.FollowsCamera ?? true)
+            FollowsCamera = formatVersion < FollowsCameraVersion || (dto.FollowsCamera ?? true),
+            // D053: a route's id is required since v15; an older file's markup gets a new one.
+            Id = formatVersion < RoutesVersion ? Guid.NewGuid() : dto.Id ?? throw Damaged("a route has no id")
         };
         if (HoldMarkupRules.Validate(markup) is { } error) throw Damaged($"invalid hold markup: {error.TrimEnd('.')}");
         return markup;

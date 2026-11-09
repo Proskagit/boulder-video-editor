@@ -1243,4 +1243,16 @@
   <data name="Preflight_HeartRateUnknownZero" xml:space="preserve">
     <value>Накладка пульса ничего не покажет над «{0}»: начало записи видео не задано ({1}, первый в {2}).</value>
   </data>
+  <data name="Route_Ambiguous" xml:space="preserve">
+    <value>На клипе несколько трасс: выберите одну — поставьте плейхед в её зелёную область.</value>
+  </data>
+  <data name="Overlay_OrangeOutsideGreen" xml:space="preserve">
+    <value>Анимация зацепок должна оставаться внутри зелёной области трассы: измените её начало или длительность.</value>
+  </data>
+  <data name="FitRoutes_Created" xml:space="preserve">
+    <value>Созданы области трасс по FIT: {0}.</value>
+  </data>
+  <data name="FitRoutes_None" xml:space="preserve">
+    <value>Новых областей трасс нет: у каждого подъёма из FIT она уже есть или его видео нет на таймлайне.</value>
+  </data>
 </root>

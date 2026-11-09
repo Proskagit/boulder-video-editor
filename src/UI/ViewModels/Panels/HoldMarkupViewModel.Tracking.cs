@@ -37,8 +37,8 @@ public sealed partial class HoldMarkupViewModel
     /// <summary>Reads the selected clip's state from the coordinator (called with the rest of the section).</summary>
     private void RefreshTracking()
     {
-        var status = _clip is not null && _cameraMotion is not null
-            ? _cameraMotion.StatusOf(_clip.Id)
+        var status = _clip is not null && _routeId is { } route && _cameraMotion is not null
+            ? _cameraMotion.StatusOf(new Core.Motion.RouteKey(_clip.Id, route))
             : new CameraMotionStatus(CameraMotionState.None);
         var wasSyncing = _syncing;
         _syncing = true;
@@ -70,16 +70,16 @@ public sealed partial class HoldMarkupViewModel
     partial void OnFollowsCameraChanged(bool value)
     {
         if (_syncing || _clip is null) return;
-        var result = _edit.SetHoldFollowsCamera(_clip.Id, value);
+        var result = _edit.SetHoldFollowsCamera(_clip.Id, value, _routeId);
         if (!result.Success) _status.Report(result.Message ?? Strings.Holds_OutlineNotChanged);
         RefreshTracking();
     }
 
-    private bool CanRetryTracking() => IsTrackingFailed && _clip is not null && _cameraMotion is not null;
+    private bool CanRetryTracking() => IsTrackingFailed && _clip is not null && _routeId is not null && _cameraMotion is not null;
 
     [RelayCommand(CanExecute = nameof(CanRetryTracking))]
     private void RetryTracking()
     {
-        if (_clip is not null) _cameraMotion?.Retry(_clip.Id);
+        if (_clip is not null && _routeId is { } route) _cameraMotion?.Retry(new Core.Motion.RouteKey(_clip.Id, route));
     }
 }

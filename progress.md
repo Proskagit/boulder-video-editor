@@ -9,6 +9,15 @@ numbering" → "Official phases"; this file is the dated working log.
 - **Merged with PR #33 (2026-11-03):** Phase 35's Steps 35.0–35.4 with the 35.3 research (`docs/PHASE_COROS.md`) and
   Phase 37 (D051, `docs/PHASE37.md`) — together, by the product owner's decision of 2026-11-03, not through Phase 35's two
   planned pull requests. Formats: v11 Phase 35, v12 Phase 37.
+- **D053 — several routes on one clip, the orange inside its green, route areas from a FIT (2026-11-09, branch
+  `feat/route-overlays-fit`; approved by the owner 2026-11-09):** the defects of the owner's manual check on
+  `D:\Времянка для монтажа` reproduced on a copy and fixed — a second route went into the first (one markup per clip in the
+  model), no lilac on clip 1 (a split left the status moment far past the plate), the orange outside the green on clip 2
+  (D048 §4.2 bounded it by the clip), the green's edge covered by the orange. `project.json` v15 (`routes`,
+  `anchorRouteId`, `fitClimb`, `linkedRouteId`); a no-FIT green of 35 s; a FIT import makes a green per climb
+  (`T − 7 s` … end + 5 s). Re-run on a copy of the project: a second route on clip 1 independent, Top on clip 1 gives a
+  lilac, clip 2's orange kept inside its green, the green's edge pressed and dragged back, saved v15 and reopened with both
+  routes. The preview drew only the first route — found by the new end-to-end test, fixed. Record: DECISIONS.md D053.
 - **Phases 33 / 34 — acceptance evidence (2026-11-08, tests and docs only, branch `test/phase-33-34-acceptance-evidence`):**
   every D048 §5 criterion mapped to its evidence in `docs/PHASE33_34_ACCEPTANCE_EVIDENCE.md`; new tests —
   `ExportRouteTimingEndToEndTests` (4: Duration mode Preview = export, three orders, after layout + 0.5× + head trim +

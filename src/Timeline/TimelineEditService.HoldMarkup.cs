@@ -7,33 +7,35 @@ using AiVideoEditor.Timeline.Commands;
 
 namespace AiVideoEditor.Timeline;
 
-// --- Hold markup (D034 §5, §6) ----------------------------------------------------------------------------------------
-// The markup is an immutable value on a video clip; every edit replaces it as a whole (one undo step with absolute
+// --- Hold markup (D034 §5, §6; D053 — per route) -----------------------------------------------------------------------
+// A route's markup is an immutable value on a video clip; every edit replaces it as a whole (one undo step with absolute
 // before / after values). The route colour and the keyline are resolved here from the samples stored with the holds
 // (RouteColor) — this service never decodes a frame. Timing is untouched, so no timeline validation is needed.
+// D053: every edit names its route (routeId); without one it works on the clip's only route — refused when the clip has
+// several. Adding holds to a route that has no markup yet (a new route, or one with its green only) creates it.
 public sealed partial class TimelineEditService
 {
-    public TimelineEditResult AddHold(Guid clipId, Hold hold)
+    public TimelineEditResult AddHold(Guid clipId, Hold hold, Guid? routeId = null)
     {
         ArgumentNullException.ThrowIfNull(hold);
         if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
         if (HoldMarkupRules.ValidateHold(hold) is { } holdError) return TimelineEditResult.Fail(holdError);
+        if (MarkupRoute(clip, routeId, create: true, out var id, out var before) is { } routeError) return TimelineEditResult.Fail(routeError);
 
-        var before = clip.HoldMarkup;
-        var current = before ?? new HoldMarkup();
+        var current = before ?? new HoldMarkup { Id = id };
         if (current.Holds.Any(h => h.Id == hold.Id)) return TimelineEditResult.Fail(Messages.Holds_AlreadyMarked);
         if (current.Holds.Length >= HoldMarkupRules.MaxHolds) return TimelineEditResult.Fail(string.Format(Messages.Holds_MaxHolds, HoldMarkupRules.MaxHolds));
 
-        return Apply(clip, before, RouteColor.WithResolved(current with { Holds = current.Holds.Add(hold) }), HoldMarkupFields.Holds);
+        return Apply(clip, id, before, RouteColor.WithResolved(current with { Holds = current.Holds.Add(hold) }), HoldMarkupFields.Holds);
     }
 
-    public TimelineEditResult AddHolds(Guid clipId, IEnumerable<Hold> holds)
+    public TimelineEditResult AddHolds(Guid clipId, IEnumerable<Hold> holds, Guid? routeId = null)
     {
         ArgumentNullException.ThrowIfNull(holds);
         if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
+        if (MarkupRoute(clip, routeId, create: true, out var id, out var before) is { } routeError) return TimelineEditResult.Fail(routeError);
 
-        var before = clip.HoldMarkup;
-        var current = before ?? new HoldMarkup();
+        var current = before ?? new HoldMarkup { Id = id };
         var added = current.Holds.ToBuilder();
         var ids = new HashSet<Guid>(added.Select(h => h.Id));
         foreach (var hold in holds)
@@ -46,23 +48,26 @@ public sealed partial class TimelineEditService
         }
 
         if (added.Count == current.Holds.Length) return TimelineEditResult.Unchanged();
-        return Apply(clip, before, RouteColor.WithResolved(current with { Holds = added.ToImmutable() }), HoldMarkupFields.Holds);
+        return Apply(clip, id, before, RouteColor.WithResolved(current with { Holds = added.ToImmutable() }), HoldMarkupFields.Holds);
     }
 
-    public TimelineEditResult RemoveHold(Guid clipId, Guid holdId)
+    public TimelineEditResult RemoveHold(Guid clipId, Guid holdId, Guid? routeId = null)
     {
         if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
-        var before = clip.HoldMarkup;
+        // Without a route the hold's own route (its identity is unique on the clip).
+        routeId ??= clip.Routes.FirstOrDefault(r => r.Holds.Any(h => h.Id == holdId))?.Id;
+        if (MarkupRoute(clip, routeId, create: false, out var id, out var before) is { } routeError) return TimelineEditResult.Fail(routeError);
         var index = before is null ? -1 : before.Holds.IndexOf(before.Holds.FirstOrDefault(h => h.Id == holdId)!);
         if (before is null || index < 0) return TimelineEditResult.Fail(Messages.Holds_NotMarked);
 
-        return Apply(clip, before, RouteColor.WithResolved(before with { Holds = before.Holds.RemoveAt(index) }), HoldMarkupFields.Holds);
+        return Apply(clip, id, before, RouteColor.WithResolved(before with { Holds = before.Holds.RemoveAt(index) }), HoldMarkupFields.Holds);
     }
 
-    public TimelineEditResult ReplaceHoldContour(Guid clipId, Guid holdId, ImmutableArray<NormalizedPoint> points)
+    public TimelineEditResult ReplaceHoldContour(Guid clipId, Guid holdId, ImmutableArray<NormalizedPoint> points, Guid? routeId = null)
     {
         if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
-        var before = clip.HoldMarkup;
+        routeId ??= clip.Routes.FirstOrDefault(r => r.Holds.Any(h => h.Id == holdId))?.Id;
+        if (MarkupRoute(clip, routeId, create: false, out var id, out var before) is { } routeError) return TimelineEditResult.Fail(routeError);
         var index = before is null ? -1 : before.Holds.IndexOf(before.Holds.FirstOrDefault(h => h.Id == holdId)!);
         if (before is null || index < 0) return TimelineEditResult.Fail(Messages.Holds_NotMarked);
 
@@ -73,18 +78,18 @@ public sealed partial class TimelineEditService
         if (ContourEditing.IntroducesCrossing(old.Points, corrected.Points)) return TimelineEditResult.Fail(ContourEditing.CrossingMessage);
 
         // The samples stay as taken at the confirm (D034 §5), so the colour and the keyline are not resolved again.
-        return Apply(clip, before, before with { Holds = before.Holds.SetItem(index, corrected) }, HoldMarkupFields.Contour);
+        return Apply(clip, id, before, before with { Holds = before.Holds.SetItem(index, corrected) }, HoldMarkupFields.Contour);
     }
 
-    public TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style)
+    public TimelineEditResult SetHoldStyle(Guid clipId, HoldStyle style, Guid? routeId = null)
     {
         ArgumentNullException.ThrowIfNull(style);
         if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
         if (style.ManualColorHex is { } manual && !HoldMarkupRules.IsColorHex(manual))
             return TimelineEditResult.Fail(Messages.Holds_ColourFormat);
+        if (MarkupRoute(clip, routeId, create: true, out var id, out var before) is { } routeError) return TimelineEditResult.Fail(routeError);
 
-        var before = clip.HoldMarkup;
-        var current = before ?? new HoldMarkup();
+        var current = before ?? new HoldMarkup { Id = id };
         var colorHex = style.ColorMode == HoldColorMode.Manual ? (style.ManualColorHex ?? current.ColorHex).ToUpperInvariant() : current.ColorHex;
         var restyled = current with
         {
@@ -103,31 +108,33 @@ public sealed partial class TimelineEditService
         if (after.Keyline != current.Keyline) fields |= HoldMarkupFields.Keyline;
         if (fields == HoldMarkupFields.None) return TimelineEditResult.Unchanged();
 
-        return Apply(clip, before, after, fields);
+        return Apply(clip, id, before, after, fields);
     }
 
-    public TimelineEditResult SetHoldFollowsCamera(Guid clipId, bool follows)
+    public TimelineEditResult SetHoldFollowsCamera(Guid clipId, bool follows, Guid? routeId = null)
     {
         if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
-        if (clip.HoldMarkup is not { } before) return TimelineEditResult.Fail(Messages.Holds_NotMarked);
+        if (MarkupRoute(clip, routeId, create: false, out var id, out var before) is { } routeError) return TimelineEditResult.Fail(routeError);
+        if (before is null) return TimelineEditResult.Fail(Messages.Holds_NotMarked);
         if (before.FollowsCamera == follows) return TimelineEditResult.Unchanged();
-        return Apply(clip, before, before with { FollowsCamera = follows }, HoldMarkupFields.FollowsCamera);
+        return Apply(clip, id, before, before with { FollowsCamera = follows }, HoldMarkupFields.FollowsCamera);
     }
 
-    public TimelineEditResult SetHoldAnimation(Guid clipId, HoldAnimation? animation)
+    public TimelineEditResult SetHoldAnimation(Guid clipId, HoldAnimation? animation, Guid? routeId = null)
     {
         if (MarkupClip(clipId, out var clip) is { } error) return TimelineEditResult.Fail(error);
         if (animation is not null && HoldMarkupRules.ValidateAnimation(animation) is { } invalid) return TimelineEditResult.Fail(invalid);
+        if (MarkupRoute(clip, routeId, create: true, out var id, out var before) is { } routeError) return TimelineEditResult.Fail(routeError);
 
-        var before = clip.HoldMarkup;
-        var current = before ?? new HoldMarkup();
+        var current = before ?? new HoldMarkup { Id = id };
         var fields = AnimationFields(current.Animation, animation);
         if (fields == HoldMarkupFields.None) return TimelineEditResult.Unchanged();
-        // D048 §3.4 / §4.2: a Duration animation (the orange) stays inside its clip; no anchored lilac over it.
-        if (OrangeOutsideClip(clip, current with { Animation = animation }) is { } outside) return TimelineEditResult.Fail(outside);
-        if (AnchoredAnimationConflict(clip, current with { Animation = animation }) is { } overlap) return TimelineEditResult.Fail(overlap);
+        // D048 §3.4 / §4.2: a Duration animation (the orange) stays inside its clip — D053 §4: inside its route's green when
+        // it has one; no anchored lilac over it.
+        if (OrangeOutsideClip(clip, id, current with { Animation = animation }) is { } outside) return TimelineEditResult.Fail(outside);
+        if (AnchoredAnimationConflict(clip, id, current with { Animation = animation }) is { } overlap) return TimelineEditResult.Fail(overlap);
         // Only the timing of the outlines changes (D036): the colour and the keyline stay as resolved.
-        return Apply(clip, before, current with { Animation = animation }, fields);
+        return Apply(clip, id, before, current with { Animation = animation }, fields);
     }
 
     /// <summary>Which animation settings differ (D036 §3 — the unit of undo merging).</summary>
@@ -145,15 +152,45 @@ public sealed partial class TimelineEditService
         return fields;
     }
 
-    /// <summary>Validates the new markup and executes it as one command; unchanged values are no step.</summary>
-    private TimelineEditResult Apply(VideoClip clip, HoldMarkup? before, HoldMarkup after, HoldMarkupFields fields)
+    /// <summary>Validates the route's new markup and executes it as one command; unchanged values are no step.</summary>
+    private TimelineEditResult Apply(VideoClip clip, Guid routeId, HoldMarkup? before, HoldMarkup after, HoldMarkupFields fields)
     {
+        after = after with { Id = routeId };
         if (HoldMarkupRules.Validate(after) is { } invalid) return TimelineEditResult.Fail(invalid);
         if (before is not null && after.SameAs(before)) return TimelineEditResult.Unchanged();
 
-        var command = new SetHoldMarkupCommand(clip, before, after, fields);
+        var command = new SetHoldMarkupCommand(clip, routeId, before, after, fields);
         ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id });
+    }
+
+    /// <summary>
+    /// D053: the route an edit of <paramref name="clip"/> works on — <paramref name="routeId"/> when given (with
+    /// <paramref name="create"/> a route without markup yet is allowed: a new route, or one with its green only); otherwise
+    /// the clip's only route (its markup or its anchored green), a new one when it has none and <paramref name="create"/>.
+    /// Null when found, otherwise why not: several routes and none named.
+    /// </summary>
+    private string? MarkupRoute(VideoClip clip, Guid? routeId, bool create, out Guid id, out HoldMarkup? markup)
+    {
+        id = Guid.Empty;
+        markup = null;
+        if (routeId is { } named)
+        {
+            id = named;
+            markup = RouteOverlays.Find(clip, named);
+            return markup is null && !create ? Messages.Holds_NotMarked : null;
+        }
+        var known = RouteOverlays.RouteIds(clip, RouteOverlays.AnchoredTo(clip, Sequence.VideoTracks.SelectMany(t => t.Clips)));
+        if (known.Count > 1) return Messages.Route_Ambiguous;
+        if (known.Count == 1)
+        {
+            id = known[0];
+            markup = RouteOverlays.Find(clip, id);
+            return markup is null && !create ? Messages.Holds_NotMarked : null;
+        }
+        if (!create) return Messages.Holds_NotMarked;
+        id = Guid.NewGuid();
+        return null;
     }
 
     /// <summary>Null when <paramref name="clipId"/> is a video clip on an unlocked track, otherwise why not.</summary>

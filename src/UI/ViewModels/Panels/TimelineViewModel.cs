@@ -1167,7 +1167,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     public bool OnClipPressed(TimelineClipViewModel clip, bool toggle)
     {
         DropTransitionSelection();
-        SelectOrange(null);
+        SelectOrange(null, null);
         if (toggle)
         {
             // D032 AQ1: Ctrl toggles a linked clip together with its partner.
@@ -1356,6 +1356,9 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
         /// <summary>A strip handle's drag (D048 §4.2): which handle; the frames so far (snapped).</summary>
         public OverlayStripHandle? StripHandle { get; init; }
+
+        /// <summary>D053: the route whose strip is dragged (the plate's, or the lane's).</summary>
+        public Guid? StripRouteId { get; init; }
 
         public long StripFrames { get; set; }
     }

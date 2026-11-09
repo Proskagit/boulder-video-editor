@@ -22,7 +22,7 @@ public class HoldAnimationPersistenceTests
     private static Core.Entities.Project Load(string json) => ProjectSerializer.Deserialize(json, Folder, _ => true);
     private static string Save(Core.Entities.Project project) => ProjectSerializer.Serialize(project, Folder);
     private static JsonObject Json(Core.Entities.Project project) => JsonNode.Parse(Save(project))!.AsObject();
-    private static JsonObject MarkupJson(JsonObject root) => root["timeline"]!["videoTracks"]![0]!["clips"]![0]!["holdMarkup"]!.AsObject();
+    private static JsonObject MarkupJson(JsonObject root) => root["timeline"]!["videoTracks"]![0]!["clips"]![0]!["routes"]![0]!.AsObject();
     private static ProjectFileException Rejected(JsonNode root) => Assert.Throws<ProjectFileException>(() => Load(root.ToJsonString()));
 
     private static readonly HoldAnimation Animation = new()
@@ -70,7 +70,7 @@ public class HoldAnimationPersistenceTests
     public void Every_member_survives_a_save_open_save_exactly_as_version_6()
     {
         var first = Save(Build(Animation));
-        Assert.Equal(14, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(15, JsonNode.Parse(first)!["formatVersion"]!.GetValue<int>());
         var reopened = Load(first);
         Assert.Equal(Animation, LoadedAnimation(reopened));
         Assert.Equal(first, Save(reopened));
@@ -92,21 +92,21 @@ public class HoldAnimationPersistenceTests
     public void A_version_5_file_opens_without_animation_and_is_saved_as_version_6()
     {
         var root = Json(Build(null));
-        root["formatVersion"] = 5;
+        LegacyJson.As(root, 5);
         var project = Load(root.ToJsonString());
         Assert.Null(LoadedAnimation(project));
         Assert.Single(((VideoClip)project.Timeline.VideoTracks[0].Clips[0]).HoldMarkup!.Holds);
-        Assert.Equal(14, JsonNode.Parse(Save(project))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(15, JsonNode.Parse(Save(project))!["formatVersion"]!.GetValue<int>());
 
         var stray = Json(Build(Animation));
-        stray["formatVersion"] = 5;
+        LegacyJson.As(stray, 5);
         Assert.Null(LoadedAnimation(Load(stray.ToJsonString())));
     }
 
     [Fact]
     public void A_file_newer_than_version_6_is_refused_the_check_a_version_5_build_applies_to_a_version_6_file()
     {
-        Assert.Equal(14, ProjectSerializer.CurrentFormatVersion);
+        Assert.Equal(15, ProjectSerializer.CurrentFormatVersion);
         var root = Json(Build(Animation));
         root["formatVersion"] = ProjectSerializer.CurrentFormatVersion + 1;
         Assert.Contains("newer version", Rejected(root).Message);

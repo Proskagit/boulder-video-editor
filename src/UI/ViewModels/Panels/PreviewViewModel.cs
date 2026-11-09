@@ -250,9 +250,14 @@ public sealed partial class PreviewViewModel : ViewModelBase
         {
             foreach (var picture in Layers)
             {
-                if (picture.Layer is not PictureLayer { Span.Outline: { } outline } layer) continue;
-                if (!layer.OutlineOpacities.IsDefault && !layer.OutlineOpacities.Any(o => o > 0)) continue;
-                var status = _cameraMotion.StatusOf(layer.ClipId);
+                if (picture.Layer is not PictureLayer layer) continue;
+                // D053: each shown route of the clip has its own tracking.
+                for (var index = 0; index < layer.Span.Outlines.Length; index++)
+                {
+                    var outline = layer.Span.Outlines[index];
+                    var opacities = !layer.RouteOpacities.IsDefault && index < layer.RouteOpacities.Length ? layer.RouteOpacities[index] : default;
+                    if (!opacities.IsDefault && !opacities.Any(o => o > 0)) continue;
+                    var status = _cameraMotion.StatusOf(new Core.Motion.RouteKey(layer.ClipId, outline.RouteId));
                 var (r, text) = status.State switch
                 {
                     CameraMotionState.Failed => (4, Strings.Preview_TrackingFailed),
@@ -265,6 +270,7 @@ public sealed partial class PreviewViewModel : ViewModelBase
                     track.At(CameraMotionMath.SourceTimeOf(frame.Timestamp, outline.SourceStartTime)).Kind == CameraMotionLookupKind.Hidden)
                     (r, text) = (2, Strings.Preview_TrackingHiddenHere);
                 if (r > rank) (rank, notice) = (r, text);
+                }
             }
         }
         TrackingNotice = notice;
