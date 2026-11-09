@@ -363,7 +363,6 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// status moment on the template's clock (<see cref="TemplateClip.CounterStart"/> at the clip's start), when inside it.</summary>
     private void RefreshStatusMarks()
     {
-        RefreshRouteStartMarks();
         foreach (var vm in _clipViewModels.Values)
         {
             if (vm.Clip is not TemplateClip { Kind: TemplateKind.Boulder } template || template.Status == BoulderStatus.None)
@@ -379,26 +378,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             vm.OnStatusChanged();
         }
         RefreshStrips();
-        RefreshFitMarks();
-    }
-
-    /// <summary>D056 §4: the start mark <c>T</c> of every route area (a «Боулдер» anchored to a video clip) at the current
-    /// zoom, when <c>T</c> is known and inside the area.</summary>
-    private void RefreshRouteStartMarks()
-    {
-        var videos = _projectService.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>().ToDictionary(c => c.Id);
-        foreach (var vm in _clipViewModels.Values)
-        {
-            vm.RouteStartMarkX = null;
-            if (vm.Clip is not TemplateClip { Kind: TemplateKind.Boulder, AnchorClipId: { } anchor } template ||
-                !videos.TryGetValue(anchor, out var video) || RouteOverlays.RouteStartOf(template, video, FrameRate) is not { } t)
-                continue;
-            var frame = HoldAnimationRule.StartFrame(video.TimelineStart, video.SourceIn, video.Speed, t, FrameRate);
-            long start = template.TimelineStart.ToNearestFrame(FrameRate), end = template.TimelineEnd.ToNearestFrame(FrameRate);
-            if (frame < start || frame >= end) continue;
-            vm.RouteStartMarkX = TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(frame - start, FrameRate), PixelsPerSecond);
-            vm.RouteStartMarkTip = string.Format(Strings.Timeline_RouteStartMark, Timecode(frame));
-        }
+        RefreshRouteStartMarks();
     }
 
     /// <summary>Recomputes every pixel position from the model at the current zoom.</summary>
@@ -671,8 +651,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private bool CanEdit() => !_editingLock.IsLocked;
 
-    private bool CanDeleteSelected() => CanEdit() && (HasSelection || HasTransitionSelection || SelectedOrangeClipId is not null ||
-        SelectedFitMark is not null);
+    private bool CanDeleteSelected() => CanEdit() && (HasSelection || HasTransitionSelection || SelectedOrangeClipId is not null);
 
     /// <summary>The Dissolve command needs two selected clips on one track (a linked clip brings its partner into the
     /// selection, AQ1: the clips of the primary's track count); whether they meet and how long a dissolve — a crossfade on
@@ -758,11 +737,6 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanDeleteSelected))]
     private void DeleteSelected()
     {
-        if (SelectedFitMark is { } fitMark && _selection.Count == 0)
-        {
-            DeclineSelectedFitMark(fitMark);    // D051 §5.7: Delete on a mark hides it (declines its climb)
-            return;
-        }
         if (SelectedOrangeClipId is { } markupClip)
         {
             DeleteSelectedOrange(markupClip);   // D048 §3.9: the strip's selection, not the clip's
@@ -1334,7 +1308,6 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private void RaiseSelectionChanged()
     {
-        if (_selection.Count > 0 && _selectedFitMark is not null) SelectedFitMark = null;   // a clip selection takes over
         if (_selection.Count > 0 && _clipViewModels.TryGetValue(_selection[^1], out var primary))
         {
             var asset = primary.Clip is MediaBackedClip m ? FindAsset(m.MediaAssetId) : null;

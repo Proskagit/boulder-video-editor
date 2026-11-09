@@ -46,8 +46,8 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
         VideoClip => "#3A5A78",
         AudioClip => "#3A784F",
         ImageClip => "#78703A",
-        TemplateClip { Kind: TemplateKind.Boulder, AnchorClipId: null } => TimelineViewModel.GreenHex,
-        TemplateClip => "#783A5C",
+        TemplateClip { Kind: TemplateKind.Boulder, AnchorClipId: null } => TimelineViewModel.RouteAreaHex,
+        TemplateClip => TimelineViewModel.TemplateHex,
         _ => "#5A3A78"
     };
 
@@ -96,18 +96,6 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
     public bool HasStatusMark => StatusMarkX is not null;
     public double StatusMarkLeft => StatusMarkX ?? 0;
 
-    /// <summary>D056 §4: a route area's computed start <c>T</c>, the pixel offset from the clip's left edge, or null — not a
-    /// route area, <c>T</c> unknown, or outside this clip. A thin dashed line, apart from the orange and the status mark.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasRouteStartMark))]
-    [NotifyPropertyChangedFor(nameof(RouteStartMarkLeft))]
-    private double? _routeStartMarkX;
-
-    public bool HasRouteStartMark => RouteStartMarkX is not null;
-    public double RouteStartMarkLeft => RouteStartMarkX ?? 0;
-
-    /// <summary>The start mark's tooltip: «Начало трассы (T) · timecode».</summary>
-    [ObservableProperty] private string _routeStartMarkTip = "";
 
     /// <summary>The mark's colour: TOP's yellow or ПОПЫТКА's blue, lightened to show on the clip.</summary>
     public string StatusMarkColorHex => Clip is TemplateClip { Status: BoulderStatus.Top } ? TemplateRules.TopHex : "#9DB8DC";
@@ -126,9 +114,8 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
     /// <summary>D053, on a «Боулдер» in variant B: its route's strip in pixels from the anchored clip's left edge — what its
     /// handles are measured on (<see cref="TemplateSegments"/> is the same strip drawn from the plate's edge).</summary>
     public IReadOnlyList<StripSegment> RouteSegments { get; set; } = Array.Empty<StripSegment>();
-
-    /// <summary>D051 §8.1: the FIT marks on this video clip, in pixels from its left edge; empty otherwise.</summary>
-    [ObservableProperty] private IReadOnlyList<FitMarkGlyph> _fitMarks = Array.Empty<FitMarkGlyph>();
+    /// <summary>D056 §4: the start marks <c>T</c> of the route areas anchored to this video clip.</summary>
+    [ObservableProperty] private IReadOnlyList<RouteStartGlyph> _routeStartMarks = Array.Empty<RouteStartGlyph>();
 
     /// <summary>The strip is drawn on the lane above this video clip (not inside its «Боулдер» — the Debug prototype).</summary>
     public bool ShowsStripLane => HasStrip && !StripInTemplate;

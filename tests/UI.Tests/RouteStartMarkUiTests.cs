@@ -72,47 +72,68 @@ public sealed class RouteStartMarkUiTests
 
     private TemplateClip FitArea => _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>().Single(t => t.FitClimb is not null);
 
+    private VideoClip Video => _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>().Single();
+
+    private static double X(TimelineViewModel timeline, long frame) => TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(frame, Rate), timeline.PixelsPerSecond);
+
+    private static Hold NewHold() => new(Guid.NewGuid(), System.Collections.Immutable.ImmutableArray.Create(new NormalizedPoint(0.3, 0.3),
+        new NormalizedPoint(0.35, 0.3), new NormalizedPoint(0.32, 0.35)), RouteColor.HexToOkLab("#E53935"), RouteColor.HexToOkLab("#E8DCC8"), MediaTime.Zero);
+
     [Fact]
-    public void A_fit_area_without_holds_shows_its_T_mark()
+    public void A_fit_area_without_holds_shows_its_T_as_a_blue_mark_on_its_video_clip()
     {
         var timeline = Timeline();
-        var area = Vm(timeline, FitArea);
+        var mark = Assert.Single(Vm(timeline, Video).RouteStartMarks);
 
-        Assert.True(area.HasRouteStartMark);
-        Assert.Equal(TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(450 - 275, Rate), timeline.PixelsPerSecond), area.RouteStartMarkLeft, 6);
-        Assert.Contains(Strings.Timeline_RouteStartMark.Split('{')[0], area.RouteStartMarkTip);
-        Assert.False(area.HasStatusMark);                              // not the status mark
-        Assert.DoesNotContain(area.TemplateSegments, s => s.Kind == StripSegmentKind.Orange);   // not the orange
+        Assert.Equal(X(timeline, 450), mark.Left, 6);                  // T = frame 450; the clip starts at 0
+        Assert.Contains(Strings.Timeline_RouteStartMark.Split('{')[0], mark.Tip);
+        Assert.Empty(Vm(timeline, FitArea).RouteStartMarks);           // on the video clip, not in the plate
     }
 
     [Fact]
-    public void The_mark_follows_a_new_Z_and_hides_when_T_is_outside_the_area()
+    public void The_mark_goes_with_its_area_and_comes_back_with_Undo()
     {
         var timeline = Timeline();
-        var area = Vm(timeline, FitArea);
+        var video = Vm(timeline, Video);
+        Assert.True(_edit.DeleteClips(new[] { FitArea.Id }).Success);
+        Assert.Empty(video.RouteStartMarks);
+        _undo.Undo();
+        Assert.Single(video.RouteStartMarks);
+    }
+
+    [Fact]
+    public void A_layout_by_hand_shows_its_T_and_a_new_Z_moves_the_fit_areas_mark()
+    {
+        var timeline = Timeline();
+        var video = Vm(timeline, Video);
+        var route = Guid.NewGuid();
+        Assert.True(_edit.AddHolds(Video.Id, new[] { NewHold() }, route).Success);
+        Assert.True(_edit.LayOutIntroAndFinal(Video.Id, MediaTime.FromFrame(2000, Rate), route).Success);
+        Assert.Equal(new[] { X(timeline, 450), X(timeline, 2000) }, video.RouteStartMarks.Select(m => m.Left).OrderBy(x => x));
+
         Assert.True(_edit.SetRecordingZeroOverride(_projects.Current.MediaAssets[0].Id, W0.AddSeconds(-10)).Success);
-        Assert.Equal(TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(700 - 525, Rate), timeline.PixelsPerSecond), area.RouteStartMarkLeft, 6);
-
-        Assert.True(_edit.TrimClip(FitArea.Id, ClipEdge.Start, MediaTime.FromFrame(800, Rate)).Success);   // T before the area now
-        Assert.False(area.HasRouteStartMark);
+        Assert.Equal(new[] { X(timeline, 700), X(timeline, 2000) }, video.RouteStartMarks.Select(m => m.Left).OrderBy(x => x));
     }
 
     [Fact]
-    public void A_free_boulder_is_green_without_a_strip_or_a_mark_and_other_templates_keep_their_colour()
+    public void A_free_boulder_has_the_route_areas_green_without_a_strip_or_a_mark_and_other_templates_keep_their_colour()
     {
+        // The green a route's area shows: the strip's green at the segment's opacity over the template's own colour.
+        static int Blend(string hex, int at) => (int)Math.Round(Convert.ToInt32(TimelineViewModel.GreenHex.Substring(at, 2), 16) * TimelineViewModel.TemplateSegmentOpacity
+            + Convert.ToInt32(hex.Substring(at, 2), 16) * (1 - TimelineViewModel.TemplateSegmentOpacity));
+        Assert.Equal($"#{Blend(TimelineViewModel.TemplateHex, 1):X2}{Blend(TimelineViewModel.TemplateHex, 3):X2}{Blend(TimelineViewModel.TemplateHex, 5):X2}",
+            TimelineViewModel.RouteAreaHex);
+
         Assert.True(_edit.AddTemplateClip(TemplateKind.Boulder, MediaTime.FromSeconds(200)).Success);
         Assert.True(_edit.AddTemplateClip(TemplateKind.Rec, MediaTime.FromSeconds(220)).Success);
         var templates = _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>().ToList();
         var timeline = Timeline();
 
         var free = Vm(timeline, templates.Single(t => t.Kind == TemplateKind.Boulder && t.AnchorClipId is null));
-        Assert.Equal(TimelineViewModel.GreenHex, free.ColorHex);
-        Assert.False(free.HasRouteStartMark);
+        Assert.Equal(TimelineViewModel.RouteAreaHex, free.ColorHex);
         Assert.False(free.HasTemplateSegments);
-        Assert.Equal("#783A5C", Vm(timeline, templates.Single(t => t.Kind == TemplateKind.Rec)).ColorHex);
-
-        var anchored = Vm(timeline, FitArea);                          // the route area: its strip and its mark
-        Assert.True(anchored.HasTemplateSegments);
-        Assert.True(anchored.HasRouteStartMark);
+        Assert.Equal(TimelineViewModel.TemplateHex, Vm(timeline, templates.Single(t => t.Kind == TemplateKind.Rec)).ColorHex);
+        Assert.Single(Vm(timeline, Video).RouteStartMarks);            // only the route area's T, none for the free one
+        Assert.True(Vm(timeline, FitArea).HasTemplateSegments);
     }
 }

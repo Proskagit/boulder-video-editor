@@ -92,7 +92,7 @@ public sealed class TemplateUiTests : IAsyncLifetime
         var vm = _vm.Timeline.Tracks.SelectMany(t => t.Clips).Single(c => c.Id == clip.Id);
         Assert.True(vm.IsSelected);
         // D056 §5: a free «Боулдер» is drawn in the route green; the other templates keep their colour.
-        Assert.Equal(kind == TemplateKind.Boulder ? TimelineViewModel.GreenHex : "#783A5C", vm.ColorHex);
+        Assert.Equal(kind == TemplateKind.Boulder ? TimelineViewModel.RouteAreaHex : TimelineViewModel.TemplateHex, vm.ColorHex);
 
         Assert.True(Inspector.HasTemplate);
         Assert.Equal((date, boulder, highlight), (Inspector.ShowsTemplateDate, Inspector.ShowsTemplateBoulder, Inspector.ShowsTemplateHighlight));

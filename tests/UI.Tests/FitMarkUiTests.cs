@@ -170,31 +170,17 @@ public sealed class FitMarkUiTests
     }
 
     [Fact]
-    public void The_marks_are_drawn_on_the_clip_a_click_selects_one_and_Delete_declines_it()
+    public void The_marks_are_not_drawn_on_the_clip_and_stay_in_the_training()
     {
+        // D056 §4 (the owner, 2026-11-09): the clip shows the route areas' start T only; the FIT marks stay data of the
+        // training and the Inspector's.
         Import();
         var timeline = new TimelineViewModel(_projects, _edit, _status, NullLogger<TimelineViewModel>.Instance);
         _projects.NotifyTimelineChanged();
         var clipVm = timeline.Tracks.SelectMany(t => t.Clips).Single(c => c.Id == _clip.Id);
-        var glyph = Assert.Single(clipVm.FitMarks);
-        Assert.Equal(TimelineViewModel.FitProposedHex, glyph.ColorHex);
-        Assert.Equal(string.Format(Strings.FitMark_Tip, 1, Strings.FitMark_Proposed), glyph.Tip);
-        var frame = HoldAnimationRule.StartFrame(_clip.TimelineStart, _clip.SourceIn, _clip.Speed, MediaTime.FromSeconds(3), Rate);
-        Assert.Equal(TimelineCoordinateMapperX(timeline, MediaTime.FromFrame(frame, Rate)), glyph.Left, 6);
-
-        timeline.OnFitMarkClicked(glyph.Climb);
-        Assert.True(Assert.Single(clipVm.FitMarks).IsSelected);
-        Assert.True(timeline.DeleteSelectedCommand.CanExecute(null));
-        timeline.DeleteSelectedCommand.Execute(null);
-        Assert.Empty(Training.Marks);
-        Assert.Empty(clipVm.FitMarks);
-        Assert.Equal(_clip, _projects.Current.Timeline.VideoTracks[0].Clips.Single());   // the clip stays
-        _undo.Undo();
-        Assert.Single(clipVm.FitMarks);
+        Assert.Single(Training.Marks);
+        Assert.Empty(clipVm.RouteStartMarks);
     }
-
-    private static double TimelineCoordinateMapperX(TimelineViewModel timeline, MediaTime t) =>
-        AiVideoEditor.UI.Common.TimelineCoordinateMapper.TimeToX(t, timeline.PixelsPerSecond);
 
     [Fact]
     public void The_COROS_menu_lists_the_declined_climbs_with_Вернуть_and_offers_the_FIT_settings_without_a_training()
