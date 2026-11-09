@@ -289,7 +289,7 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 35 — COROS trainings and the heart rate | D050, D049, D053–D056 | in part: 35.0–35.2 done (35.2 accepted); 35.3 in part (35.3d: B6 not met; 35.3e awaiting the owner's decision; 35.3b2b deferred); 35.4 implemented (v11), C1–C14 automated 2026-11-04: PASS except C5's real re-export (manual) — **not accepted yet**; **35.5 implemented and accepted 2026-11-03 (v13; PR #35, `5c5cb7f`)**; **35.6 accepted 2026-11-09** (35.6a D055 v16; 35.6b with D056 v17 / v18, the owner's manual checks positive); not complete | 35.0–35.4 in PR #33 (`1640996`), with Phase 37; 35.5 PR #35; D053 PR #47, D054 PR #48, 35.6a PR #50, D056 PRs #51–#54 (`1a087ae`) |
 | 36 — summary and chapters | to be approved | planned; specification draft outside `main`; its time-code export a separate item until clarified | — |
 | 37 — FIT route starts and the start calibration | D051 | implemented (37.1–37.6, v12) and merged; 37.7 done (D051 A1–A15 automated 2026-11-04, all PASS, A10 measured); **accepted by the product owner 2026-11-04** | PR #33, `1640996` |
-| 38 — UX Improvements before the MVP | D057 | in progress (2026-11-09); blocks A–F, then a target build and the owner's practical check | — |
+| 38 — UX Improvements before the MVP | D057 | blocks A–F implemented 2026-11-10 (`project.json` v19), gates passed, a target build prepared; the owner's practical check open; not accepted | PRs #56–#62 (stacked), not merged |
 | H — Final UX Pass | D042 §7, D057 | its goal covered by Phase 38 (D057); the former scope not restored | — |
 
 The **highest phase number in use is 37**; the **complete phases** (merged and accepted) are **1–29, 31 and 37** (Phases 31
