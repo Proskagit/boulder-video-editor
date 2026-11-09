@@ -29,6 +29,10 @@ public interface ITimelineEditService
     /// <see cref="ProjectSettings.IsFrameRateLocked"/>) in the same undo step.</summary>
     TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null);
 
+    /// <summary>D057 §3.2: several files at the end of their tracks, one after another in the given order — one Undo step;
+    /// nothing is added when one of them cannot be.</summary>
+    TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds);
+
     /// <summary>How long a clip <see cref="AddClip"/> would make for the asset is (on the grid the add would use — the
     /// asset's own rate when it is the first video, D007); null when it can't be added now. For a drop's snap (D037 §2).</summary>
     MediaTime? AddedClipDuration(Guid mediaAssetId);

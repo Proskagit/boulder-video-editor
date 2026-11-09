@@ -79,15 +79,58 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null)
     {
-        if (FindAsset(mediaAssetId) is not { } asset)
-            return TimelineEditResult.Fail(Messages.Edit_MediaNotInProject);
+        var plan = new EditPlan(Sequence, Settings);
+        if (PlanAdd(plan, mediaAssetId, trackId, start, out var clip, out var info) is { } failed) return TimelineEditResult.Fail(failed);
+        var asset = FindAsset(mediaAssetId)!;
+        if (Validate(plan) is { } error)
+            return TimelineEditResult.Fail(string.Format(Messages.Edit_CantAddFile, asset.FileName, error));
 
-        if (GetAddBlockReason(asset) is { } blocked)
-            return TimelineEditResult.Fail(blocked);
+        Commit(plan, "Add Clip");
+        if (info is not null) _logger.LogInformation("{Message}", info);
+        return TimelineEditResult.Ok(new[] { clip!.Id }, Join(info, TransitionNote(plan)));
+    }
+
+    /// <summary>
+    /// D057 §3.2: several files at once — each at the end of its kind's first track, one after another in the given order
+    /// (the caller orders them by their recording time), one plan, one Undo step; any file that cannot be added refuses the
+    /// whole operation (nothing is added). The first video fixes the frame rate as a single add does (D007).
+    /// </summary>
+    public TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds)
+    {
+        ArgumentNullException.ThrowIfNull(mediaAssetIds);
+        if (mediaAssetIds.Count == 0) return TimelineEditResult.Fail(Messages.Edit_MediaNotInProject);
+        if (mediaAssetIds.Count == 1) return AddClip(mediaAssetIds[0]);
 
         var plan = new EditPlan(Sequence, Settings);
-        if (PlanFirstVideoRate(plan, asset, out var info) is { } regridError)
-            return TimelineEditResult.Fail(string.Format(Messages.Edit_CantAddFile, asset.FileName, regridError));
+        var ids = new List<Guid>();
+        string? note = null;
+        foreach (var id in mediaAssetIds)
+        {
+            if (PlanAdd(plan, id, null, null, out var clip, out var info) is { } failed) return TimelineEditResult.Fail(failed);
+            ids.Add(clip!.Id);
+            note ??= info;
+        }
+        if (Validate(plan) is { } error) return TimelineEditResult.Fail(error);
+
+        Commit(plan, "Add Clips");
+        if (note is not null) _logger.LogInformation("{Message}", note);
+        return TimelineEditResult.Ok(ids, Join(note, TransitionNote(plan)));
+    }
+
+    /// <summary>Plans the add of one file on <paramref name="plan"/> (D007, D037 §3): null when planned, else why not.</summary>
+    private string? PlanAdd(EditPlan plan, Guid mediaAssetId, Guid? trackId, MediaTime? start, out Clip? added, out string? info)
+    {
+        added = null;
+        info = null;
+        static string Failed(string message) => message;
+        if (FindAsset(mediaAssetId) is not { } asset)
+            return Failed(Messages.Edit_MediaNotInProject);
+
+        if (GetAddBlockReason(asset) is { } blocked)
+            return Failed(blocked);
+
+        if (PlanFirstVideoRate(plan, asset, out info) is { } regridError)
+            return Failed(string.Format(Messages.Edit_CantAddFile, asset.FileName, regridError));
 
         var rateForAdd = plan.Rate;
         var kind = asset.Kind == MediaKind.Audio ? TrackType.Audio : TrackType.Video;
@@ -96,18 +139,18 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (trackId is { } id)
         {
             track = FindTrack(id);
-            if (track is null) return TimelineEditResult.Fail(Messages.Edit_TrackGone);
+            if (track is null) return Failed(Messages.Edit_TrackGone);
             if (track.Type != kind)
-                return TimelineEditResult.Fail(kind == TrackType.Audio ? Messages.Edit_AudioOnAudioTrack : Messages.Edit_VideoOnVideoTrack);
+                return Failed(kind == TrackType.Audio ? Messages.Edit_AudioOnAudioTrack : Messages.Edit_VideoOnVideoTrack);
         }
         else
         {
             track = (kind == TrackType.Video ? Sequence.VideoTracks : Sequence.AudioTracks).FirstOrDefault();
-            if (track is null) return TimelineEditResult.Fail(kind == TrackType.Video ? Messages.Edit_NoVideoTrack : Messages.Edit_NoAudioTrack);
+            if (track is null) return Failed(kind == TrackType.Video ? Messages.Edit_NoVideoTrack : Messages.Edit_NoAudioTrack);
         }
 
         if (track.IsLocked)
-            return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
+            return Failed(string.Format(Messages.Edit_TrackLocked, track.Name));
 
         long frames;
         if (asset.Kind == MediaKind.Image)
@@ -118,7 +161,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
         {
             frames = FrameMath.MaxWholeFrames(asset.Metadata!.Duration, rateForAdd);
             if (frames < 1)
-                return TimelineEditResult.Fail(string.Format(Messages.Edit_FileShorterThanFrame, asset.FileName));
+                return Failed(string.Format(Messages.Edit_FileShorterThanFrame, asset.FileName));
         }
 
         long startFrame;
@@ -137,14 +180,11 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
         // D037 §3: a drop onto clips makes room on the right (a drop that starts inside a clip is refused).
         if (MakeRoom(plan, new[] { ((Clip)clip, track) }, string.Format(Messages.Verb_AddFile, asset.FileName)) is { } roomError)
-            return TimelineEditResult.Fail(roomError);
-        if (Validate(plan) is { } error)
-            return TimelineEditResult.Fail(string.Format(Messages.Edit_CantAddFile, asset.FileName, error));
-
-        Commit(plan, "Add Clip");
-        if (info is not null) _logger.LogInformation("{Message}", info);
-        return TimelineEditResult.Ok(new[] { clip.Id }, Join(info, TransitionNote(plan)));
+            return Failed(roomError);
+        added = clip;
+        return null;
     }
+
 
     public MediaTime? AddedClipDuration(Guid mediaAssetId)
     {
@@ -163,7 +203,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
     private string? PlanFirstVideoRate(EditPlan plan, MediaAsset asset, out string? info)
     {
         info = null;
-        if (asset.Kind != MediaKind.Video || Settings.IsFrameRateLocked) return null;
+        // D057 §3.2: in a plan of several adds only the first video fixes the rate.
+        if (asset.Kind != MediaKind.Video || Settings.IsFrameRateLocked || plan.NewFrameRateLocked) return null;
 
         var (rate, fromSource) = ResolveSourceFrameRate(asset);
         plan.SetFrameRate(rate, locked: true);

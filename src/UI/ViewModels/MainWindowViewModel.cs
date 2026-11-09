@@ -122,8 +122,15 @@ public sealed class MainWindowViewModel : ViewModelBase
         };
 
         MediaBrowser.AddToTimelineRequested += (_, asset) => Timeline.AddMedia(asset);
+        // D057 §3.2: several files go in their recording order (the training's offset reads the file names' times).
+        MediaBrowser.AddManyToTimelineRequested += (_, assets) => Timeline.AddMediaMany(
+            Core.Telemetry.MediaRecordingOrder.Order(assets, _projectService.Current.Training?.Workout?.UtcOffset));
 
         HoldMarkup = holdMarkup;
+        MediaBrowser.CanSelectAllNow = () => HoldMarkup is not { IsActive: true };
+        // D057 §3.3: the clip menu reaches the hold markup and the Inspector's FIT command.
+        Timeline.MarkHoldsCommand = holdMarkup?.StartCommand;
+        Timeline.RecognizeFitClimbsCommand = Inspector.RecognizeFitClimbsCommand;
         if (holdMarkup is not null) WireHoldMarkup(holdMarkup);
         PreviewTransform = previewTransform;
         if (previewTransform is not null) WirePreviewTransform(previewTransform);

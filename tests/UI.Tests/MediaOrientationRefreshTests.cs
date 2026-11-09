@@ -216,6 +216,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public FrameRate FrameRate => FrameRate.Default;
         public string? GetAddBlockReason(MediaAsset asset) => null;
         public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null) => No;
+        public TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds) => No;
         public MediaTime? AddedClipDuration(Guid mediaAssetId) => null;
         public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null) => No;
         public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start) => No;

@@ -73,7 +73,8 @@ public sealed class FramingViewTests
         var vm = timeline.Tracks.SelectMany(t => t.Clips).Single();
 
         var menu = TimelineView.ClipMenu(timeline, vm);
-        var items = menu.ItemsSource!.Cast<MenuItem>().ToList();
+        // D057 §3.3: the menu has more items now; Fill / Fit are still bound to the clicked clip.
+        var items = menu.ItemsSource!.OfType<MenuItem>().Where(i => i.Name is "FillFrameItem" or "FitFrameItem").ToList();
 
         Assert.Equal(new[] { Strings.Frame_Fill, Strings.Frame_Fit }, items.Select(i => (string)i.Header!));
         Assert.Same(timeline.FillFrameCommand, items[0].Command);

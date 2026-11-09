@@ -93,6 +93,7 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
             NotifyRelinkCommands();
         };
 
+        SelectedItems.CollectionChanged += (_, _) => AddToTimelineCommand.NotifyCanExecuteChanged();
         _projectService.ProjectChanged += (_, _) => ReloadFromProject();
         _projectService.MediaAssetsChanged += (_, _) => ReloadFromProject();
 
@@ -108,6 +109,8 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
     {
         // By id: a relink changes the asset's path, not which item it is (Phase 11 Step 11.6).
         var previouslySelectedId = SelectedItem?.Asset.Id;
+        var previouslySelected = SelectedItems.Select(i => i.Asset.Id).ToHashSet();
+        SelectedItems.Clear();
 
         Items.Clear();
         foreach (var asset in _projectService.Current.MediaAssets)
@@ -119,6 +122,8 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         SelectedItem = previouslySelectedId is null
             ? null
             : Items.FirstOrDefault(i => i.Asset.Id == previouslySelectedId);
+        foreach (var item in Items.Where(i => previouslySelected.Contains(i.Asset.Id)))
+            SelectedItems.Add(item);
 
         OnPropertyChanged(nameof(HasNoMedia));
         OnPropertyChanged(nameof(HasOfflineMedia));
@@ -143,14 +148,42 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task Import() => _importWorkflow.RunAsync();
 
+    /// <summary>D057 §3.2: the selected rows (several with Ctrl / Shift and Ctrl+A); <see cref="SelectedItem"/> stays the
+    /// primary one the Inspector shows.</summary>
+    public ObservableCollection<MediaBrowserItemViewModel> SelectedItems { get; } = new();
+
+    /// <summary>Raised by "Add to Timeline" with several rows selected — the assets in the list's order (the shell puts
+    /// them in their recording order).</summary>
+    public event EventHandler<IReadOnlyList<MediaAsset>>? AddManyToTimelineRequested;
+
     [RelayCommand(CanExecute = nameof(CanAddToTimeline))]
     private void AddToTimeline()
     {
-        if (SelectedItem is { } item)
+        var selected = Items.Where(i => SelectedItems.Contains(i)).Select(i => i.Asset).ToList();
+        if (selected.Count > 1)
+            AddManyToTimelineRequested?.Invoke(this, selected);
+        else if (SelectedItem is { } item)
             AddToTimelineRequested?.Invoke(this, item.Asset);
+        else if (selected.Count == 1)
+            AddToTimelineRequested?.Invoke(this, selected[0]);
     }
 
-    private bool CanAddToTimeline() => CanEdit() && SelectedItem is not null;
+    private bool CanAddToTimeline() => CanEdit() && (SelectedItem is not null || SelectedItems.Count > 0);
+
+    /// <summary>Whether Ctrl+A in the list is the Media Browser's now — not in the hold markup mode, where it accepts every
+    /// proposal (D047), set by the shell.</summary>
+    public Func<bool> CanSelectAllNow { get; set; } = () => true;
+
+    public bool AllowsSelectAll => CanSelectAllNow();
+
+    /// <summary>D057 §3.2: Ctrl+A in the Media Browser — every file of the list.</summary>
+    [RelayCommand]
+    private void SelectAll()
+    {
+        foreach (var item in Items)
+            if (!SelectedItems.Contains(item)) SelectedItems.Add(item);
+        SelectedItem ??= Items.FirstOrDefault();
+    }
 
     // Relink (D026 §5, Phase 11 Step 11.6): only offline media, never during an export, one at a time. All the relink
     // rules are the relink service's (through MediaRelinkWorkflow); the list follows the project's events.

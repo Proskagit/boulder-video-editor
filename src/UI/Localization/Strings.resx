@@ -1542,6 +1542,9 @@ Recover them now? Discarded changes can't be restored.</value>
   <data name="Timeline_Added" xml:space="preserve">
     <value>Added to timeline</value>
   </data>
+  <data name="Timeline_AddedMany" xml:space="preserve">
+    <value>Added to timeline: {0} files in the order of recording</value>
+  </data>
   <data name="Timeline_AddMarkerTip" xml:space="preserve">
     <value>Add a marker at the playhead</value>
   </data>
@@ -1957,6 +1960,18 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Frame_Fill" xml:space="preserve">
     <value>Fill Frame</value>
+  </data>
+  <data name="Menu_Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Menu_SplitAtPlayhead" xml:space="preserve">
+    <value>Split at Playhead</value>
+  </data>
+  <data name="Menu_TrimStartToPlayhead" xml:space="preserve">
+    <value>Trim Start to Playhead</value>
+  </data>
+  <data name="Menu_TrimEndToPlayhead" xml:space="preserve">
+    <value>Trim End to Playhead</value>
   </data>
   <data name="Frame_Fit" xml:space="preserve">
     <value>Fit in Frame</value>

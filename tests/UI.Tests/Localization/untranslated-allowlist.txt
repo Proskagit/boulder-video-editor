@@ -490,3 +490,4 @@ src/Project/Persistence/UserJsonFile.cs	another format
 src/Project/Persistence/UserJsonFile.cs	no format version
 src/Project/Persistence/UserJsonFile.cs	an unknown format version
 src/Project/Persistence/UserJsonFile.cs	no value
+src/Timeline/TimelineEditService.cs	Add Clips
