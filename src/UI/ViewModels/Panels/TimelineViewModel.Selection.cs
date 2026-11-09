@@ -44,6 +44,43 @@ public sealed partial class TimelineViewModel
         ReportSelectionCount();
     }
 
+    private Guid? _rangeAnchor;
+
+    /// <summary>
+    /// D057 §3.5: Shift+click on a clip's body — the range from the anchor (the clip last pressed without Shift, else the
+    /// primary) to <paramref name="clip"/>: the clips of the unlocked tracks from the anchor's track to the clicked one's whose
+    /// span meets [the earlier start, the later end] — on one track the clips between them — with their link partners. The
+    /// anchor stays, so a second Shift+click changes the range. Without an anchor it selects the clip alone.
+    /// </summary>
+    public void SelectRangeTo(TimelineClipViewModel clip)
+    {
+        var anchorId = _rangeAnchor is { } a && _clipViewModels.ContainsKey(a) ? a : _selection.Count > 0 ? _selection[^1] : (Guid?)null;
+        if (anchorId is not { } id || !_clipViewModels.TryGetValue(id, out var anchor) || anchor == clip)
+        {
+            OnClipPressed(clip, toggle: false);
+            SelectOnly(clip.Id);
+            return;
+        }
+        DropTransitionSelection();
+        SelectOrange(null, null);
+        SetSelection(ClipsInRange(anchor, clip));
+        _rangeAnchor = anchor.Id;
+        ReportSelectionCount();
+    }
+
+    /// <summary>The clips a range from <paramref name="from"/> to <paramref name="to"/> covers (D057 §3.5).</summary>
+    internal IReadOnlyList<TimelineClipViewModel> ClipsInRange(TimelineClipViewModel from, TimelineClipViewModel to)
+    {
+        int a = LaneIndex(from), b = LaneIndex(to);
+        int low = Math.Min(a, b), high = Math.Max(a, b);
+        var start = from.Clip.TimelineStart < to.Clip.TimelineStart ? from.Clip.TimelineStart : to.Clip.TimelineStart;
+        var end = from.Clip.TimelineEnd > to.Clip.TimelineEnd ? from.Clip.TimelineEnd : to.Clip.TimelineEnd;
+        return Tracks.Where((t, i) => i >= low && i <= high && !t.Track.IsLocked)
+            .SelectMany(t => t.Clips)
+            .Where(c => c.Clip.TimelineStart < end && c.Clip.TimelineEnd > start)
+            .ToList();
+    }
+
     /// <summary>Esc: a marquee is cancelled (the selection from before it comes back), a drag is cancelled, otherwise the
     /// selection is cleared.</summary>
     [RelayCommand]

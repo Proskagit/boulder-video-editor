@@ -237,6 +237,7 @@ public partial class MainWindow : Window
         public FrameRate FrameRate => FrameRate.Default;
         public string? GetAddBlockReason(MediaAsset asset) => "Design time.";
         public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null) => Nothing;
+        public TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds) => Nothing;
         public MediaTime? AddedClipDuration(Guid mediaAssetId) => null;
         public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null) => Nothing;
         public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start) => Nothing;

@@ -1122,6 +1122,24 @@ public sealed partial class TimelineViewModel : ViewModelBase
         OfferCanvasAfterAdd(wasEmpty, result);
     }
 
+    /// <summary>D057 §3.3: the clip menu's «Разметить зацепки» and «Распознать прохождения из FIT» — the hold markup's and the
+    /// Inspector's commands, set by the shell (the timeline owns neither).</summary>
+    public System.Windows.Input.ICommand? MarkHoldsCommand { get; set; }
+
+    public System.Windows.Input.ICommand? RecognizeFitClimbsCommand { get; set; }
+
+    /// <summary>D057 §3.2: several files of the Media Browser, already in the order they go (their recording order) —
+    /// one edit, one Undo step.</summary>
+    public void AddMediaMany(IReadOnlyList<MediaAsset> assets)
+    {
+        if (!CanEdit() || assets.Count == 0) return;
+        var wasEmpty = IsTimelineEmpty;
+        var result = _edit.AddClips(assets.Select(a => a.Id).ToList());
+        SelectAdded(result);
+        Report(result, successMessage: string.Format(Strings.Timeline_AddedMany, result.ClipIds.Count));
+        OfferCanvasAfterAdd(wasEmpty, result);
+    }
+
     private void SelectAdded(TimelineEditResult result)
     {
         if (!result.Success || result.ClipIds.Count == 0) return;
@@ -1160,6 +1178,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// must not start a drag (Ctrl-toggle).</summary>
     public bool OnClipPressed(TimelineClipViewModel clip, bool toggle)
     {
+        _rangeAnchor = clip.Id;                // D057 §3.5: a Shift+click selects the range from here
         DropTransitionSelection();
         SelectOrange(null, null);
         if (toggle)

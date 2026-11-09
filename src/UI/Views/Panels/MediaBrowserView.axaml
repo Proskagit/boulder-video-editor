@@ -48,6 +48,8 @@
         <ListBox x:Name="MediaList"
                  IsVisible="{Binding !HasNoMedia}"
                  ItemsSource="{Binding Items}"
+                 SelectionMode="Multiple"
+                 SelectedItems="{Binding SelectedItems}"
                  SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                  Background="Transparent"
                  BorderThickness="0">

@@ -579,6 +579,12 @@ on the project grid (D006).
   FIT marks and link one service section `fit`, collapsed by default. `InspectorViewModel.Shown` / `ScrollKey` and
   `InspectorScrollMemory` keep the scroll position per kind of item. `MainWindow` restores and saves the window
   (`WindowLayout`: only where a screen shows its title bar) and the panels' sizes; the layout is flushed on close.
+- **Block C.** `ITimelineEditService.AddClips` — several files at the end of their tracks in one plan (one Undo step; one
+  failure refuses all; only the first video fixes the rate); Core `MediaRecordingOrder` orders them by the file's own time
+  (D054 / D055), the untimed after; the Media Browser's `ListBox` is multi-select (`SelectedItems`, Ctrl+A in the list —
+  not in the markup mode). `TimelineViewModel.SelectRangeTo` / `ClipsInRange` and `TimelineGestureModifiers.IsRange`:
+  Shift on a body selects a range, on an edge it stays the ripple trim. `TimelineView.ClipMenu` builds the clip's menu from
+  the existing commands; the shell lends it the markup's and the Inspector's.
 
 ## FIT route starts and the global start calibration (Phase 37, D051)
 

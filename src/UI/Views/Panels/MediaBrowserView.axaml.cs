@@ -34,6 +34,17 @@ public partial class MediaBrowserView : UserControl
         MediaList.AddHandler(PointerPressedEvent, OnPressed, RoutingStrategies.Tunnel);
         MediaList.AddHandler(PointerMovedEvent, OnMoved, RoutingStrategies.Tunnel);
         MediaList.AddHandler(PointerReleasedEvent, (_, _) => Reset(), RoutingStrategies.Tunnel);
+
+        // D057 §3.2: Ctrl+A with the list focused selects every file — handled here, so the timeline's Ctrl+A (the window's
+        // shortcut, D037 §1) and the markup mode's «accept all» never see it.
+        MediaList.AddHandler(KeyDownEvent, (_, e) =>
+        {
+            if (e.Key == Key.A && e.KeyModifiers == KeyModifiers.Control && DataContext is MediaBrowserViewModel { AllowsSelectAll: true } vm)
+            {
+                vm.SelectAllCommand.Execute(null);
+                e.Handled = true;
+            }
+        }, RoutingStrategies.Tunnel);
     }
 
     private void OnPressed(object? sender, PointerPressedEventArgs e)

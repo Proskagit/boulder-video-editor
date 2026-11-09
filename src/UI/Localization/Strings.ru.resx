@@ -1544,6 +1544,9 @@
   <data name="Timeline_Added" xml:space="preserve">
     <value>Добавлено на таймлайн</value>
   </data>
+  <data name="Timeline_AddedMany" xml:space="preserve">
+    <value>Добавлено на таймлайн: {0} файлов в порядке съёмки</value>
+  </data>
   <data name="Timeline_AddMarkerTip" xml:space="preserve">
     <value>Добавить маркер в позиции указателя</value>
   </data>
@@ -1961,6 +1964,18 @@
   </data>
   <data name="Frame_Fill" xml:space="preserve">
     <value>Заполнить кадр</value>
+  </data>
+  <data name="Menu_Copy" xml:space="preserve">
+    <value>Копировать</value>
+  </data>
+  <data name="Menu_SplitAtPlayhead" xml:space="preserve">
+    <value>Разрезать по плейхеду</value>
+  </data>
+  <data name="Menu_TrimStartToPlayhead" xml:space="preserve">
+    <value>Обрезать начало по плейхеду</value>
+  </data>
+  <data name="Menu_TrimEndToPlayhead" xml:space="preserve">
+    <value>Обрезать конец по плейхеду</value>
   </data>
   <data name="Frame_Fit" xml:space="preserve">
     <value>Вписать в кадр</value>

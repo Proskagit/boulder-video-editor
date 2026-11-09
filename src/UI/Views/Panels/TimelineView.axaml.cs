@@ -211,6 +211,7 @@ public partial class TimelineView : UserControl
         // A dissolve zone is drawn over the clips but never hides their trim handles: only a press on a clip body (no
         // handle, no Ctrl, no Alt — Alt slips the clip) inside a zone selects the dissolve.
         if (edge is null && !e.KeyModifiers.HasFlag(KeyModifiers.Control) && !TimelineGestureModifiers.IsSlip(e.KeyModifiers) &&
+            !(clip is not null && TimelineGestureModifiers.IsRange(e.KeyModifiers)) &&
             _viewModel.TransitionAt(TrackAt(e.GetPosition(TrackRows).Y), e.GetPosition(ContentRoot).X) is { } transition)
         {
             _viewModel.OnTransitionPressed(transition);
@@ -245,6 +246,12 @@ public partial class TimelineView : UserControl
                 e.Handled = true;
                 return; // not a clip that slips (the status says so): no drag
             }
+        }
+        else if (edge is null && TimelineGestureModifiers.IsRange(e.KeyModifiers))
+        {
+            _viewModel.SelectRangeTo(clip);       // D057 §3.5: a range, no drag
+            e.Handled = true;
+            return;
         }
         else if (!_viewModel.OnClipPressed(clip, _pressedWithToggle))
         {
@@ -421,16 +428,45 @@ public partial class TimelineView : UserControl
         e.Handled = true;
     }
 
-    /// <summary>The clip's context menu, built for the clicked clip each time it opens.</summary>
-    internal static ContextMenu ClipMenu(TimelineViewModel viewModel, TimelineClipViewModel clip) => new()
+    /// <summary>
+    /// The clip's context menu, built for the clicked clip each time it opens (D057 §3.3): the operations of that clip that
+    /// have no button or belong to it — Copy, Paste, Split at the playhead (the playhead inside the clip), Trim start / end to
+    /// the playhead, Link / Unlink, for a picture Fill / Fit the frame, for a video clip «Разметить зацепки» and «Распознать
+    /// прохождения из FIT» (with a training), Delete. Each item runs the command its button or key runs.
+    /// </summary>
+    internal static ContextMenu ClipMenu(TimelineViewModel viewModel, TimelineClipViewModel clip)
     {
-        Name = "ClipContextMenu",
-        ItemsSource = new[]
+        static MenuItem Item(string name, string header, System.Windows.Input.ICommand command, object? parameter = null, string? gesture = null) => new()
         {
-            new MenuItem { Header = Strings.Frame_Fill, Command = viewModel.FillFrameCommand, CommandParameter = clip, Name = "FillFrameItem" },
-            new MenuItem { Header = Strings.Frame_Fit, Command = viewModel.FitFrameCommand, CommandParameter = clip, Name = "FitFrameItem" }
+            Name = name, Header = header, Command = command, CommandParameter = parameter,
+            InputGesture = gesture is null ? null : KeyGesture.Parse(gesture)
+        };
+
+        var items = new List<Control>
+        {
+            Item("CopyItem", Strings.Menu_Copy, viewModel.CopyCommand, gesture: "Ctrl+C"),
+            Item("PasteItem", Strings.Timeline_Paste, viewModel.PasteCommand, gesture: "Ctrl+V")
+        };
+        var playhead = viewModel.Playhead;
+        if (clip.Clip.TimelineStart < playhead && playhead < clip.Clip.TimelineEnd)
+            items.Add(Item("SplitItem", Strings.Menu_SplitAtPlayhead, viewModel.SplitAtPlayheadCommand, gesture: "S"));
+        items.Add(Item("TrimStartItem", Strings.Menu_TrimStartToPlayhead, viewModel.TrimStartToPlayheadCommand, gesture: "Q"));
+        items.Add(Item("TrimEndItem", Strings.Menu_TrimEndToPlayhead, viewModel.TrimEndToPlayheadCommand, gesture: "W"));
+        if (viewModel.LinkCommand.CanExecute(null)) items.Add(Item("LinkItem", Strings.Timeline_Link, viewModel.LinkCommand));
+        if (viewModel.UnlinkCommand.CanExecute(null)) items.Add(Item("UnlinkItem", Strings.Timeline_Unlink, viewModel.UnlinkCommand));
+        items.Add(new Separator());
+        items.Add(Item("FillFrameItem", Strings.Frame_Fill, viewModel.FillFrameCommand, clip));
+        items.Add(Item("FitFrameItem", Strings.Frame_Fit, viewModel.FitFrameCommand, clip));
+        if (clip.Clip is VideoClip)
+        {
+            if (viewModel.MarkHoldsCommand is { } mark) items.Add(Item("MarkHoldsItem", Strings.Holds_MarkHolds, mark));
+            if (viewModel.RecognizeFitClimbsCommand is { } fit && fit.CanExecute(null))
+                items.Add(Item("RecognizeFitItem", Strings.Inspector_RecognizeFitClimbs, fit));
         }
-    };
+        items.Add(new Separator());
+        items.Add(Item("DeleteItem", Strings.Timeline_Delete, viewModel.DeleteSelectedCommand, gesture: "Delete"));
+        return new ContextMenu { Name = "ClipContextMenu", ItemsSource = items };
+    }
 
     /// <summary>Finds the clip under the pointer and whether a trim handle was hit.</summary>
     private static (TimelineClipViewModel? Clip, ClipEdge? Edge) HitTestClip(object? source)

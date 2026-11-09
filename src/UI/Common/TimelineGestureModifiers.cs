@@ -16,6 +16,10 @@ public static class TimelineGestureModifiers
     public static bool IsRippleTrim(KeyModifiers modifiers) =>
         modifiers.HasFlag(KeyModifiers.Shift) && !modifiers.HasFlag(KeyModifiers.Control);
 
+    /// <summary>D057 §3.5: Shift alone on a clip's body selects a range (on an edge it is the ripple trim).</summary>
+    public static bool IsRange(KeyModifiers modifiers) =>
+        modifiers.HasFlag(KeyModifiers.Shift) && !modifiers.HasFlag(KeyModifiers.Control) && !modifiers.HasFlag(KeyModifiers.Alt);
+
     /// <summary>Alt without Ctrl (Ctrl + Alt stays a toggle-select).</summary>
     public static bool IsSlip(KeyModifiers modifiers) =>
         modifiers.HasFlag(KeyModifiers.Alt) && !modifiers.HasFlag(KeyModifiers.Control);
