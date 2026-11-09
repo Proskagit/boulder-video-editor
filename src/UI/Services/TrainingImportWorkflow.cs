@@ -70,9 +70,11 @@ public sealed class TrainingImportWorkflow
 
         _session.Attach(read.File, read.Path);
         _status.Report(TrainingText.Imported(read.File.Workout));
-        // D053 §7 (mode B): the import makes a green route area for every climb found on a video of the timeline — its own
-        // Undo step after the import (which is none, D049 §11). Its count joins the import's message.
-        if (_fitMarks?.CreateRoutesFromFit() is { Success: true, NoChange: false, Message: { } created })
+        // D054 (D053 §7, mode B): the import binds the climbs to the video clips of the timeline — a green route area for
+        // every climb a clip shows, its own Undo step after the import (which is none, D049 §11). What it found (or why a
+        // clip was skipped) joins the import's message.
+        if (_fitMarks?.CreateRoutesFromFit() is { Success: true, Message: { } created } result &&
+            (!result.NoChange || created != Core.Localization.Messages.FitRoutes_None))
             _status.Report(TrainingText.Imported(read.File.Workout) + " " + created);
     }
 

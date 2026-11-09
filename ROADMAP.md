@@ -576,6 +576,9 @@ takes the vertical-video export.
 - **D053 (2026-11-09, approved)** — several independent routes on one clip, the orange always inside its green, a 35 s
   default green without a FIT and a green per climb from a FIT import; `project.json` v15. Branch `feat/route-overlays-fit`;
   record DECISIONS.md D053. Not a phase: the fixes of the manual check of Phases 33 / 34.
+- **D054 (2026-11-09, approved)** — the FIT's climbs bound to the video clips automatically: on the FIT import for every
+  clip, by «Распознать прохождения из FIT» for one clip added later; by the video's `Z`, else its file's time (approximate,
+  the binding only — no automatic `Z`, D050 B1 kept). Branch `feat/fit-auto-binding`; record DECISIONS.md D054.
 - **FU-PF.1 — A newer project file with an unknown value is reported as «damaged», not «newer» (found 2026-11-08,
   `docs/PHASE33_34_ACCEPTANCE_EVIDENCE.md` §3)** — *backlog, not planned; the product owner, 2026-11-08: recorded
   separately, the serializer not changed in the Phase 33 / 34 evidence task.* `ProjectSerializer.Deserialize` parses the

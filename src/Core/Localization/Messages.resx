@@ -1255,4 +1255,28 @@
   <data name="FitRoutes_None" xml:space="preserve">
     <value>No new route areas: every climb found in the FIT already has one, or its video is not on the timeline.</value>
   </data>
+  <data name="FitRoutes_Approximate" xml:space="preserve">
+    <value>The recording time of some videos was taken from the file (approximate): check the areas' bounds.</value>
+  </data>
+  <data name="FitRoutes_NoTime" xml:space="preserve">
+    <value>Clips skipped without a recording time: {0}.</value>
+  </data>
+  <data name="FitRoutes_Locked" xml:space="preserve">
+    <value>Climbs skipped on locked tracks: {0}.</value>
+  </data>
+  <data name="FitRoutes_ClipNoTime" xml:space="preserve">
+    <value>This clip's video has no recording time (no recording start, no time tag, no time in the file name): its climbs cannot be found.</value>
+  </data>
+  <data name="FitRoutes_ClipNone" xml:space="preserve">
+    <value>No FIT climbs found in this clip.</value>
+  </data>
+  <data name="FitRoutes_ClipAllMade" xml:space="preserve">
+    <value>Every climb of this clip already has an area.</value>
+  </data>
+  <data name="FitRoutes_TimesConflict" xml:space="preserve">
+    <value>Clips skipped because their file's time tag and file name disagree (the file was edited?): {0}. Set their recording start by a climb.</value>
+  </data>
+  <data name="FitRoutes_ClipTimesConflict" xml:space="preserve">
+    <value>This clip's file has a time tag and a file-name time that disagree (the file was edited?): its recording start is unknown. Set it by a climb below.</value>
+  </data>
 </root>

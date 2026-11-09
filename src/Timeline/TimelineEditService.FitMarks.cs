@@ -155,57 +155,111 @@ public sealed partial class TimelineEditService : IFitMarkEditService
     public static readonly MediaTime FitGreenTail = MediaTime.FromSeconds(5);
 
     /// <summary>
-    /// D053 §7 (mode B): one route — its green only, a «Боулдер» with no status, no holds, no animation — for every active
-    /// FIT climb that has none yet, on the clip of the timeline that shows the climb's start: from <c>T − I</c>
-    /// (<c>I = min(7 s, A)</c>, the layout's rule, D048 §3.4) to the climb's actual end (<c>W_end − ClimbEndLag</c>, D050)
-    /// plus <see cref="FitGreenTail"/>, cut to the clip; <c>T</c> is the climb's effective start (D051 §4 — the mark's
-    /// position converted by the video's recording zero and the training's clock correction, never a second
-    /// synchronisation). A climb whose start no clip of its video shows gets no route. One Undo step; nothing new → no step.
+    /// D054 (amends D053 §7): the automatic binding of the FIT's climbs to the video clips — one route with its green only
+    /// (a «Боулдер» with no status, no holds, no animation) for every active climb a clip shows, on all the clips of the
+    /// timeline (<paramref name="clipId"/> null: the FIT import, a new <c>Z</c>) or on one clip («Распознать прохождения из
+    /// FIT»). A clip shows a climb when at least half of its FIT interval lies in the clip's source range by the video's
+    /// binding time (<see cref="FitRouteBinding.TimeOf"/>: its <c>Z</c>, else the file's recording time — approximate); of
+    /// the clips of one video showing a climb the one showing most of it gets the area (the earlier on a tie). The green
+    /// runs from <c>T − I</c> (<c>I = min(7 s, A)</c>, D048 §3.4) to the climb's actual end (<c>W_end − ClimbEndLag</c>,
+    /// D050) plus <see cref="FitGreenTail"/>, cut to the clip; <c>T</c> is the effective start of the climb's mark on this
+    /// video (D051 §4), else <c>W_auto</c> by the binding time. Never twice for a climb on one video (an area made from the
+    /// FIT, or a link of its mark), never over a green the user made that covers half of the climb, never on a declined
+    /// climb or a locked track; an area already there is never changed. One Undo step; nothing new → no step and a message.
     /// </summary>
-    public TimelineEditResult CreateRoutesFromFit()
+    public TimelineEditResult CreateRoutesFromFit(Guid? clipId = null) => BindFitClimbs(clipId, null);
+
+    /// <summary><see cref="CreateRoutesFromFit"/> on one clip, on the clips of one video (<paramref name="assetId"/>: a
+    /// <c>Z</c> set on it) or on all.</summary>
+    private TimelineEditResult BindFitClimbs(Guid? clipId, Guid? assetId)
     {
         if (Project.Training is not { Workout: { } workout } training || !training.IsUsable) return TimelineEditResult.Fail(Messages.Training_None);
         var rate = Settings.FrameRate;
         var allClips = Sequence.VideoTracks.SelectMany(t => t.Clips).ToList();
-        var made = allClips.OfType<TemplateClip>().Where(t => t.FitClimb is not null).Select(t => t.FitClimb!.Value).ToHashSet();
+        var videoClips = allClips.OfType<VideoClip>().ToList();
+        VideoClip? only = null;
+        if (clipId is { } id && (only = videoClips.FirstOrDefault(c => c.Id == id)) is null) return TimelineEditResult.Fail(Messages.Holds_OnlyVideo);
+
+        // Already bound — a climb on a video: an area made from the FIT on a clip of that video, or the link of its mark.
+        Guid? AssetOfClip(Guid? clip) => clip is { } c ? videoClips.FirstOrDefault(v => v.Id == c)?.MediaAssetId : null;
+        var made = new HashSet<(Guid Asset, ClimbIdentity Climb)>();
+        foreach (var template in allClips.OfType<TemplateClip>())
+            if (template.FitClimb is { } climb && AssetOfClip(template.AnchorClipId) is { } asset) made.Add((asset, climb));
+        foreach (var mark in training.Marks)
+            if (AssetOfClip(mark.LinkedClipId) is { } asset) made.Add((asset, mark.Climb));
+        var declined = training.DeclinedClimbs.Select(d => d.Climb).ToHashSet();
+
+        // Per climb and video the clip that shows most of it.
+        var best = new Dictionary<(Guid Asset, ClimbIdentity Climb), (VideoClip Clip, WorkoutSegment Climb, FitBindingTime Time, MediaTime Shown)>();
+        var times = new Dictionary<Guid, FitBindingTime?>();
+        var estimate = (_startCorrection?.Current ?? FitCalibrationSnapshot.Initial).EstimateTicks;
+        int noTime = 0, conflicts = 0, shownCount = 0;
+        var scope = only is not null ? new List<VideoClip> { only }
+            : videoClips.Where(c => assetId is null || c.MediaAssetId == assetId).OrderBy(c => c.TimelineStart).ToList();
+        foreach (var clip in scope)
+        {
+            if (FindAsset(clip.MediaAssetId) is not { } asset) continue;
+            if (!times.TryGetValue(asset.Id, out var time)) times[asset.Id] = time = FitRouteBinding.TimeOf(asset, workout);
+            if (time is not { } bound)
+            {
+                if (FitRouteBinding.FileTimesConflict(asset, workout)) conflicts++;
+                else noTime++;
+                continue;
+            }
+            foreach (var shown in FitRouteBinding.ClimbsShown(workout, bound, training.ClockCorrection, estimate, clip))
+            {
+                var identity = FitMarkRules.IdentityOf(shown.Climb);
+                if (declined.Contains(identity)) continue;
+                shownCount++;
+                var key = (asset.Id, identity);
+                if (made.Contains(key)) continue;
+                if (!best.TryGetValue(key, out var previous) || shown.Shown > previous.Shown) best[key] = (clip, shown.Climb, bound, shown.Shown);
+            }
+        }
+
+        if (only is not null && conflicts > 0) return TimelineEditResult.Fail(Messages.FitRoutes_ClipTimesConflict);
+        if (only is not null && noTime > 0) return TimelineEditResult.Fail(Messages.FitRoutes_ClipNoTime);
+
         var plan = new EditPlan(Sequence, Settings);
         var newTracks = new List<Track>();
         var created = new List<Guid>();
-
-        foreach (var mark in training.Marks.OrderBy(m => m.Climb.ClimbStartUtc))
+        int locked = 0;
+        var approximate = false;
+        foreach (var (clip, segment, time, _) in best.Values.OrderBy(b => b.Climb.StartUtc).ThenBy(b => b.Clip.TimelineStart))
         {
-            if (made.Contains(mark.Climb)) continue;
-            if (FitMarkRules.EffectiveStart(mark, Project) is not { SourceTime: { } start } effective) continue;
-            if (FitMarkRules.ClimbOf(workout, mark.Climb) is not { } segment) continue;
-            if (Project.MediaAssets.FirstOrDefault(a => a.Id == effective.AssetId) is not { } asset ||
-                RecordingZeroEstimator.Resolve(asset).Utc is not { } zero) continue;
-            var end = TrainingAlignment.SourceTimeOf(zero, TrainingAlignment.AnchorTime(segment, ClimbAnchor.End), training.ClockCorrection) + FitGreenTail;
-
-            // The clip of the timeline that shows the climb's start (the earliest such clip).
-            VideoClip? clip = null;
-            long tf = 0;
-            foreach (var candidate in allClips.OfType<VideoClip>().Where(c => c.MediaAssetId == asset.Id).OrderBy(c => c.TimelineStart))
-            {
-                var frame = HoldAnimationRule.StartFrame(candidate.TimelineStart, candidate.SourceIn, candidate.Speed, start, rate);
-                if (frame >= candidate.TimelineStart.ToNearestFrame(rate) && frame < candidate.TimelineEnd.ToNearestFrame(rate))
-                {
-                    (clip, tf) = (candidate, frame);
-                    break;
-                }
-            }
-            if (clip is null || plan.TrackOf(clip).IsLocked) continue;
+            var identity = FitMarkRules.IdentityOf(segment);
+            // T: the effective start of the climb's mark when it lies on this video, else W_auto by the binding time.
+            var mark = training.Marks.FirstOrDefault(m => m.Climb == identity);
+            var start = mark is not null && FitMarkRules.EffectiveStart(mark, Project) is { SourceTime: { } own } effective &&
+                        effective.AssetId == clip.MediaAssetId
+                ? own
+                : TrainingAlignment.SourceTimeOf(time.Zero, segment.StartUtc.AddTicks(-estimate), training.ClockCorrection);
+            var actualEnd = TrainingAlignment.SourceTimeOf(time.Zero, TrainingAlignment.AnchorTime(segment, ClimbAnchor.End), training.ClockCorrection);
+            var end = actualEnd + FitGreenTail;
 
             long vs = clip.TimelineStart.ToNearestFrame(rate), ve = clip.TimelineEnd.ToNearestFrame(rate);
+            if (ve - vs < 2) continue;
+            var tf = Math.Clamp(HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, start, rate), vs, ve - 1);
+            // A green the user made on this clip that covers at least half of the climb [T, actual end) on the clip: the
+            // climb is marked by hand (its bounds may differ from the estimate by seconds).
+            var climbEnd = Math.Clamp(HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, actualEnd, rate), tf + 1, ve);
+            if (RouteOverlays.AnchoredTo(clip, allClips).Any(t => t.FitClimb is null &&
+                    2 * (Math.Min(t.TimelineEnd.ToNearestFrame(rate), climbEnd) - Math.Max(t.TimelineStart.ToNearestFrame(rate), tf)) >= climbEnd - tf))
+                continue;
+            if (plan.TrackOf(clip).IsLocked)
+            {
+                locked++;
+                continue;
+            }
+
             var ps = tf - Math.Min(LayoutIntro.ToNearestFrame(rate), tf - vs);
             var endFrame = HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, end, rate);
             var pe = Math.Min(ve, Math.Max(endFrame, tf + 1));
             if (pe <= ps) continue;
             var s = Math.Max(Math.Max(pe - LayoutFinal.ToNearestFrame(rate), tf), ps + 1);
-            // The route: the one the climb is linked to on this clip, else a new one (its green only).
-            var routeId = mark.LinkedClipId == clip.Id && FitMarkRules.LinkedRoute(clip, mark.LinkedRouteId) is { } linked ? linked.Id : Guid.NewGuid();
-            var template = NewRouteTemplate(clip.Id, routeId, ps, pe, s, rate);
+            var template = NewRouteTemplate(clip.Id, Guid.NewGuid(), ps, pe, s, rate);
             template.Status = BoulderStatus.None;   // the lilac is added by hand
-            template.FitClimb = mark.Climb;
+            template.FitClimb = identity;
 
             // A track above the clip free on [Ps, Pe) — also of the templates placed before — or a new one.
             var videoTrack = plan.TrackOf(clip);
@@ -220,11 +274,21 @@ public sealed partial class TimelineEditService : IFitMarkEditService
             }
             if (newTracks.Contains(track)) track.Clips.Add(template);
             else plan.Insert(track, template);
-            made.Add(mark.Climb);
             created.Add(template.Id);
+            approximate |= time.IsApproximate;
         }
 
-        if (created.Count == 0) return new TimelineEditResult { Success = true, NoChange = true, Message = Messages.FitRoutes_None };
+        var parts = new List<string>();
+        if (created.Count > 0) parts.Add(string.Format(Messages.FitRoutes_Created, created.Count));
+        if (approximate) parts.Add(Messages.FitRoutes_Approximate);
+        if (noTime > 0) parts.Add(string.Format(Messages.FitRoutes_NoTime, noTime));
+        if (conflicts > 0) parts.Add(string.Format(Messages.FitRoutes_TimesConflict, conflicts));
+        if (locked > 0) parts.Add(string.Format(Messages.FitRoutes_Locked, locked));
+        if (parts.Count == 0)
+            parts.Add(only is null ? Messages.FitRoutes_None : shownCount == 0 ? Messages.FitRoutes_ClipNone : Messages.FitRoutes_ClipAllMade);
+        var message = string.Join(" ", parts);
+        if (created.Count == 0) return new TimelineEditResult { Success = true, NoChange = true, Message = message };
+
         // The new tracks are added with their templates first; the rest is one plan.
         foreach (var track in newTracks)
         {
@@ -236,7 +300,7 @@ public sealed partial class TimelineEditService : IFitMarkEditService
         var commands = newTracks.Select(t => (IUndoableCommand)new AddTrackCommand(Sequence, t)).ToList();
         commands.Add(plan.BuildCommand("Create Route Areas from FIT"));
         ExecuteTracked(new NotifyingCommand(new CompositeCommand("Create Route Areas from FIT", commands), _projectService.NotifyTimelineChanged));
-        return TimelineEditResult.Ok(created, string.Format(Messages.FitRoutes_Created, created.Count));
+        return TimelineEditResult.Ok(created, message);
     }
 
     // ---- The paste of a duplicate FIT markup (D051 §5.4, B1) -------------------------------------------------------------

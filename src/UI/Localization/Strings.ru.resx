@@ -2774,4 +2774,13 @@
   <data name="HeartRate_TrainingUnavailable" xml:space="preserve">
     <value>FIT-файл тренировки недоступен: пока его нет, накладка ничего не покажет.</value>
   </data>
+  <data name="Inspector_RecognizeFitClimbs" xml:space="preserve">
+    <value>Распознать прохождения из FIT</value>
+  </data>
+  <data name="Inspector_RecognizeFitClimbsTip" xml:space="preserve">
+    <value>Находит подъёмы из FIT, которые показывает этот клип, по времени записи его видео и создаёт для каждого зелёную область трассы. Уже созданные области не меняются.</value>
+  </data>
+  <data name="Inspector_RefineRecordingStart" xml:space="preserve">
+    <value>Уточнить начало записи по подъёму (необязательно):</value>
+  </data>
 </root>
