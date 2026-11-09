@@ -1255,4 +1255,28 @@
   <data name="FitRoutes_None" xml:space="preserve">
     <value>Новых областей трасс нет: у каждого подъёма из FIT она уже есть или его видео нет на таймлайне.</value>
   </data>
+  <data name="FitRoutes_Approximate" xml:space="preserve">
+    <value>Время записи части видео взято из файла (приблизительно): проверьте границы областей.</value>
+  </data>
+  <data name="FitRoutes_NoTime" xml:space="preserve">
+    <value>Пропущено клипов без времени записи: {0}.</value>
+  </data>
+  <data name="FitRoutes_Locked" xml:space="preserve">
+    <value>Пропущено подъёмов на заблокированных дорожках: {0}.</value>
+  </data>
+  <data name="FitRoutes_ClipNoTime" xml:space="preserve">
+    <value>У видео этого клипа нет времени записи (ни начала записи, ни тега времени, ни времени в имени файла): прохождения не определить.</value>
+  </data>
+  <data name="FitRoutes_ClipNone" xml:space="preserve">
+    <value>В этом клипе не найдено прохождений из FIT.</value>
+  </data>
+  <data name="FitRoutes_ClipAllMade" xml:space="preserve">
+    <value>Для всех прохождений этого клипа области уже есть.</value>
+  </data>
+  <data name="FitRoutes_TimesConflict" xml:space="preserve">
+    <value>Пропущено клипов, у файлов которых тег времени и имя расходятся (файл редактировали?): {0}. Задайте им начало записи по подъёму.</value>
+  </data>
+  <data name="FitRoutes_ClipTimesConflict" xml:space="preserve">
+    <value>У файла этого клипа тег времени и время в имени расходятся (файл редактировали?): начало записи неизвестно. Задайте его по подъёму ниже.</value>
+  </data>
 </root>

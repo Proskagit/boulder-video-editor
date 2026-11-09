@@ -1785,8 +1785,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (proposals is not null)
             command = new CompositeCommand(command.Description, new[] { command, proposals });
         ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
-        // D053 §7 (mode B): the climbs the new Z puts on the timeline get their green route areas — a step of its own.
-        if (proposals is not null && CreateRoutesFromFit() is { Success: true, NoChange: false } created)
+        // D054 (D053 §7, mode B): the clips of this video are bound to the FIT by the new Z — a step of its own; the areas
+        // already there (made by the file's time, say) are kept.
+        if (utc is not null && Project.Training is { IsUsable: true } && BindFitClimbs(null, asset.Id) is { Success: true, NoChange: false } created)
             return TimelineEditResult.Ok(created.ClipIds, created.Message);
         return TimelineEditResult.Ok();
     }

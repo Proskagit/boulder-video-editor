@@ -2770,4 +2770,13 @@ If you don't save, your changes will be lost.</value>
   <data name="HeartRate_TrainingUnavailable" xml:space="preserve">
     <value>The training's FIT file is not available: the overlay shows nothing until it is.</value>
   </data>
+  <data name="Inspector_RecognizeFitClimbs" xml:space="preserve">
+    <value>Recognise climbs from the FIT</value>
+  </data>
+  <data name="Inspector_RecognizeFitClimbsTip" xml:space="preserve">
+    <value>Finds the FIT climbs this clip shows by its video's recording time and makes a green route area for each. Areas already there are kept.</value>
+  </data>
+  <data name="Inspector_RefineRecordingStart" xml:space="preserve">
+    <value>Refine the recording start by a climb (optional):</value>
+  </data>
 </root>

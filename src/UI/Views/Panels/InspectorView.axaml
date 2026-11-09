@@ -821,6 +821,10 @@
             <StackPanel Spacing="6" IsVisible="{Binding ShowsTraining}">
               <TextBlock Text="{x:Static l:Strings.Inspector_TrainingHeader}" FontSize="10" FontWeight="Bold" Foreground="#7A7A7A"/>
               <TextBlock Text="{Binding RecordingStartText}" Foreground="#DDDDDD" TextWrapping="Wrap"/>
+              <!-- D054 §1: the climbs of this clip found by its video's time, no choice of a climb. -->
+              <Button Content="{x:Static l:Strings.Inspector_RecognizeFitClimbs}" Command="{Binding RecognizeFitClimbsCommand}"
+                      ToolTip.Tip="{x:Static l:Strings.Inspector_RecognizeFitClimbsTip}" HorizontalAlignment="Stretch"/>
+              <TextBlock Text="{x:Static l:Strings.Inspector_RefineRecordingStart}" Foreground="#AAAAAA" FontSize="11" TextWrapping="Wrap"/>
               <ComboBox ItemsSource="{Binding TrainingClimbs}" SelectedIndex="{Binding SelectedClimbIndex, Mode=TwoWay}"
                         HorizontalAlignment="Stretch" ToolTip.Tip="{Binding AlignToClimbTip}"/>
               <StackPanel Orientation="Horizontal" Spacing="8">

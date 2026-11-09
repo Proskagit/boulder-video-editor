@@ -32,8 +32,10 @@ public interface IFitMarkEditService
     /// linked to the climb, in one step.</summary>
     TimelineEditResult LayOutRouteFromMark(ClimbIdentity climb, Guid clipId, Guid? routeId = null);
 
-    /// <summary>D053 §7 (mode B): one route with its green only for every active FIT climb without one, on the clip that
-    /// shows its start — from the layout's start before it to its end plus 5 s; no holds, no animation, no status. One
-    /// Undo step; with nothing new no step and a message.</summary>
-    TimelineEditResult CreateRoutesFromFit();
+    /// <summary>D054: the automatic binding of the FIT's climbs to the video clips — one route with its green only for
+    /// every active climb a clip shows by its video's time (its <c>Z</c>, else the file's recording time), on all clips
+    /// (<paramref name="clipId"/> null: the FIT import, a new <c>Z</c>) or on one («Распознать прохождения из FIT»): from
+    /// the layout's start before it to its end plus 5 s; no holds, no animation, no status; never twice for a climb on
+    /// one video, existing areas never changed. One Undo step; with nothing new no step and a message.</summary>
+    TimelineEditResult CreateRoutesFromFit(Guid? clipId = null);
 }

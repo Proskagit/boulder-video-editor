@@ -9,6 +9,16 @@ numbering" → "Official phases"; this file is the dated working log.
 - **Merged with PR #33 (2026-11-03):** Phase 35's Steps 35.0–35.4 with the 35.3 research (`docs/PHASE_COROS.md`) and
   Phase 37 (D051, `docs/PHASE37.md`) — together, by the product owner's decision of 2026-11-03, not through Phase 35's two
   planned pull requests. Formats: v11 Phase 35, v12 Phase 37.
+- **D054 — the FIT's climbs bound to the video clips automatically (2026-11-09, branch `feat/fit-auto-binding`; approved
+  by the owner 2026-11-09):** after D053 an area needed a FIT mark, a mark the video's `Z`, and `Z` only the manual
+  «Подъём N» match. Now the FIT import binds every clip by its video's time — its `Z`, else the file's tag as the end, else
+  the file name (approximate, used by the binding only; `Z` stays unknown, D050 B1 unchanged) — and «Распознать
+  прохождения из FIT» binds one clip added later. A clip shows a climb when half of the estimated climb is in it; never
+  twice per video, never over a green made by hand, never moving an area; a file whose tag and name disagree (> 5 s) is
+  skipped and said. Checked on the real files of 2026-09-27 (a fresh project in the scratchpad, the originals untouched):
+  8 videos + the FIT → climbs 2, 3, 4, 6 on their videos, the edited `103026` skipped, `101712` added later bound by the
+  command, nothing doubled, saved and reopened; on a copy of `D:\Времянка для монтажа — проверка D053` nothing new (its
+  climbs marked by hand). Record: DECISIONS.md D054.
 - **D053 — several routes on one clip, the orange inside its green, route areas from a FIT (2026-11-09, branch
   `feat/route-overlays-fit`; approved by the owner 2026-11-09):** the defects of the owner's manual check on
   `D:\Времянка для монтажа` reproduced on a copy and fixed — a second route went into the first (one markup per clip in the

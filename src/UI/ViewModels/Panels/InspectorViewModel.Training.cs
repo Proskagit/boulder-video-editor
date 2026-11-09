@@ -108,6 +108,7 @@ public sealed partial class InspectorViewModel
             : Strings.Inspector_RecordingStartUnknown;
         AlignToClimbCommand.NotifyCanExecuteChanged();
         ClearRecordingStartCommand.NotifyCanExecuteChanged();
+        RecognizeFitClimbsCommand.NotifyCanExecuteChanged();
         UpdateTrainingReadout();
         RefreshFitMarks();
     }
@@ -171,4 +172,17 @@ public sealed partial class InspectorViewModel
     }
 
     private bool CanClearRecordingStart() => IsEditingAllowed && ShowsTraining && _trainingAsset?.RecordingZeroOverrideUtc is not null;
+
+    /// <summary>«Распознать прохождения из FIT» (D054 §1): the climbs this clip shows get their green route areas — by its
+    /// video's time, no choice of a climb or a route; one Undo step, the status bar says what was found.</summary>
+    [RelayCommand(CanExecute = nameof(CanRecognizeFitClimbs))]
+    private void RecognizeFitClimbs()
+    {
+        if (!CanRecognizeFitClimbs() || RejectWhileLocked()) return;
+        var result = FitEdit!.CreateRoutesFromFit(_clip!.Id);
+        if (result.Message is { } message) _status.Report(message);
+    }
+
+    private bool CanRecognizeFitClimbs() =>
+        IsEditingAllowed && ShowsTraining && FitEdit is not null && _training?.Training is { IsUsable: true };
 }

@@ -174,18 +174,27 @@ public sealed class InspectorTrainingAlignTests
         _inspector.AlignAnchorIndex = 0;
         Match();                                                               // end
 
+        // D054: the match by the start puts all of climb 2 into the clip (by the end only its last 14.6 s of 32.5 s), so that
+        // Z also binds the clip — the climb's green route area, a step of its own; the third match adds none (it is there).
+        int Areas() => _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>().Count(t => t.FitClimb is not null);
+        Assert.Equal(1, Areas());
         _undo.Undo();
         Assert.Equal(ByStart(MediaTime.Zero), _asset.RecordingZeroOverrideUtc);
+        _undo.Undo();
+        Assert.Equal(ByStart(MediaTime.Zero), _asset.RecordingZeroOverrideUtc);
+        Assert.Equal(0, Areas());
         _undo.Undo();
         Assert.Equal(ByEnd(MediaTime.Zero), _asset.RecordingZeroOverrideUtc);
         _undo.Undo();
         Assert.Null(_asset.RecordingZeroOverrideUtc);
-        Assert.False(_undo.CanUndo);                                           // three matches, three steps, nothing else
+        Assert.False(_undo.CanUndo);                                           // three matches, three steps and the area's
 
         _undo.Redo();
         Assert.Equal(ByEnd(MediaTime.Zero), _asset.RecordingZeroOverrideUtc);
         _undo.Redo();
         Assert.Equal(ByStart(MediaTime.Zero), _asset.RecordingZeroOverrideUtc);
+        _undo.Redo();
+        Assert.Equal(1, Areas());
         _undo.Redo();
         Assert.Equal(ByEnd(MediaTime.Zero), _asset.RecordingZeroOverrideUtc);
         Assert.False(_undo.CanRedo);

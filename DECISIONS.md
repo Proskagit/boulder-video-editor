@@ -9216,6 +9216,52 @@ tooltips, the animation's 80 / 20 algorithm.
 
 ---
 
+## D054 — The FIT's climbs bound to the video clips automatically *(approved 2026-11-09)*
+
+Date: 2026-11-09. **Status: approved by the product owner on 2026-11-09** (the target UX of the task «автоматическая
+привязка FIT-прохождений к видеоклипам»; the time source chosen by the owner: «Тег файла, только для привязки»). Amends
+D053 §7 (mode B); keeps D049 §5 / D050 B1 (no automatic recording zero), D051 and every rule of D053.
+
+**Why.** After D053 a green route area came only for a climb that had a FIT mark, and a mark needs the video's recording
+zero `Z`, which only the user sets (D050 B1: no automatic rule until Step 35.3's is approved; 35.3d's verdict B6 NotMet).
+So the user still had to match each video to «Подъём N» in the Inspector — the manual matching the target UX removes.
+
+**Decided.**
+1. **No manual matching.** The FIT import binds the climbs to every video clip of the timeline; a clip added later is bound
+   by «Распознать прохождения из FIT» in the Inspector's training section, on that clip only. No choice of a climb, a route
+   or a clip; the system never names the route (its number or grade). Wrong or extra areas are deleted or corrected by hand.
+2. **The time a video is bound by** (`FitRouteBinding.TimeOf`): its `Z` when the user set one (exact); else the file's
+   recording-time tag read as the end of the recording (`tag − duration`, Step 35.3's hypothesis; the 2026-09-27 files
+   agree with their names within 2 s); else the file-name time under the watch's UTC offset; else none. When the tag and
+   the name both give a time and disagree by more than 5 s the file was edited after the recording — no time. **The
+   approximate time is used by the binding only:** the video's `Z` stays unknown, no FIT mark is proposed, the calibration
+   sees nothing; D050 B1 is unchanged. Its accuracy is the study's (about ±10 s) — the areas are a base to check.
+3. **A clip shows a climb** when at least half of the estimated climb lies in the clip's source range — from
+   `W_auto = W_FITStart − StartCorrection` (D051 §5.5) to the actual end `W_end − ClimbEndLag` (D050), the interval the area
+   is laid out by. A climb cut by a clip's edge goes to the clip that shows more of it (the earlier on a tie); several
+   climbs in one clip get one route each (D053); a climb filmed by two videos gets an area on each.
+4. **The area** is D053 §7's: from `T − min(7 s, A)` to the actual end + 5 s, cut to the clip, a «Боулдер» with no status,
+   no holds, no orange. `T` is the effective start of the climb's mark when it lies on this video (D051 §4), else `W_auto`
+   by the binding time; a `T` before the clip is its first frame.
+5. **Never twice, never over the user's work.** A climb gets no second area on a video that has one made from the FIT
+   (`TemplateClip.FitClimb`, any clip of that video — a split plate is one) or a FIT link of its mark; nor on a clip where a
+   green the user made covers at least half of the climb (marked by hand — its bounds may differ from the estimate by
+   seconds). An existing area is never moved or resized; a declined climb, a locked track get none.
+6. **Saying what happened.** The import's status adds: areas made; that some times came from the files (approximate);
+   clips skipped without a time; clips whose file times disagree; climbs on locked tracks. The command says the same for its
+   clip, or «no climbs found» / «every climb already has an area». A clip without a time is never bound by a guess; the
+   user can still set its `Z` by a climb («Уточнить начало записи по подъёму», optional) — a `Z` binds the clips of that
+   video at once (its own Undo step, as in D053).
+7. **Undo.** Each binding (the import's, the command's, a `Z`'s) is one Undo step; nothing new — no step.
+
+**Not changed.** `project.json` stays v15 (nothing new is stored: `FitClimb` already marks the areas); D053's routes, the
+orange inside its green, Split / speed / trim, Preview / export.
+
+**Known limits.** An area the user deleted comes back with the next import of the FIT or a run of the command on its clip
+(nothing records a deletion). Areas made by an approximate time are not moved when the user later sets the video's `Z`.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:
