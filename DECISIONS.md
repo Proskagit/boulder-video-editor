@@ -9324,6 +9324,64 @@ only» (now: the binding and the heart rate); the behaviour accepted in 35.5 О1
 **Unchanged.** D049's time bases, `CC`'s meaning, the tag parser, the probe; D050 B1, B2 (the match sets `Z`), the end lag;
 D051; D053; D054 §§1, 3–7.
 
+**Observed (2026-11-09, D056 §6).** The heart rate falls during most climbs of 2026-09-27 and peaks 45–75 s after their
+end; that is the FIT's content, not an error of §1 — the synchronisation is confirmed and nothing is shifted. A display
+shift is a future experiment (D056 §7, FU-HR.1), never a change of §1.
+
+---
+
+## D056 — The FIT's route areas after the manual check of D055: the climb at the playhead, a new `Z` lays the area out again, a route to mark the holds on, the start mark `T`, the free «Боулдер» green *(approved 2026-11-09)*
+
+Date: 2026-11-09. **Status: approved by the product owner on 2026-11-09** (the research of the manual check of Step 35.6a,
+answers Q-A–Q-D, all option A, Q-D with the colour change). Amends D053 §7 / D054 §5 (an area made from the FIT may now be
+laid out again) and D045's colour of the free «Боулдер»; keeps D055 (the heart rate's time), D053's several independent
+routes on a clip, D054 §§1–4, 6–7, and the semantics of the lilac Top / Attempt.
+
+**Why (the check of 2026-11-09 on the real session of 2026-09-27).** On `101034` the Inspector's list «Подъём» was empty,
+so «Совместить кадр с концом подъёма» was disabled; the user then chose climb 2 while the playhead was at the end of climb 3
+(the frame's file time 10:11:55). The `Z` so set made climb 2 «shown» by that video, D054 §6 bound it — a second green
+area (and a FIT mark of climb 2 that feeds the calibration). Choosing climb 3 would have made no duplicate, but D054 §5 kept
+the existing area where it was. The «start of the route» the owner missed on the FIT's areas is the orange of the hold
+animation ending at `T` (D048 §3.4) — an area without holds has none. A «Боулдер» from «Шаблон» is a free template: purple
+like every template, no heart rate (D055 §4) — expected, but it looks unlike the green of a marked route.
+
+**Decided.**
+1. **The climb at the playhead** (PR 1). The Inspector's list «Подъём» shows the climb of the green area made from the FIT
+   under the playhead on the clip (of two, the one the video's time shows there, else the latest begun); without one, the
+   climb whose FIT interval is nearest to the frame's watch time by the video's binding time (D054 §2), within 30 s; else
+   nothing is chosen. It follows the playhead whenever that climb changes; a climb chosen by hand stays until then. Matching
+   the frame to another climb than that one asks first («Другой подъём»: the area's or the time's climb, the chosen one, and
+   that the video may get one more area); cancelling changes nothing.
+2. **A new `Z` lays the FIT's area out again** (Q-A, PR 2). An area made from the FIT keeps the bounds it was laid out with;
+   when the video's `Z` changes (set, cleared, Undo / Redo), the area of the same climb on that video whose bounds the user
+   has not changed is laid out again by the new time — D053 §7's rule, as when it was made — in the same Undo step as the
+   `Z`. An area whose bounds the user changed is never moved. Other routes of the clip are never touched.
+3. **A route to mark the holds on** (Q-B, PR 2). Marking holds near a green made from the FIT that has no holds yet offers
+   that route: by default the nearest such route within ±30 s of the playhead, shown in the Inspector, another one or
+   «Новая трасса» chosen there. Nothing is merged without that choice; with no such route the behaviour is D053's (outside
+   every green — a new route), said in the Inspector.
+4. **The start mark `T`** (Q-C, PR 3). Every route area shows a thin vertical mark at its computed start `T` — with or
+   without holds or their animation, never mixed with the orange; for an area made from the FIT the `T` it was laid out
+   with. `T` is stored where it cannot be derived.
+5. **The free «Боулдер» is green** (Q-D, PR 3). A «Боулдер» from «Шаблон» stays a free template — no anchor, no route, no
+   FIT time, no heart rate — and is drawn in the green of a route area; only its look changes. What still tells it from an
+   anchored area (no strip, no `T` mark) is checked so the two are not confused.
+6. **The heart rate's dynamics on a climb are the FIT's** (the research of 2026-11-09). On the session of 2026-09-27 the
+   heart rate falls during most climbs (climb 2: 127 → 117, climb 3: 136 → 121, climb 4: 118 → 111; climb 6: 120 → 125)
+   and peaks 45–75 s after the end (150 at +75 s, 160 at +60 s, 158 at +47 s, 155 at +49 s; the other climbs +28…+51 s).
+   The mapping is right: the files' tags agree with their names within 2 s, the ends seen on the videos lie 3–6.5 s before
+   the FIT's (the watch's end lag), the app's values equal the FIT's samples (12 of 12 frames), the COROS app's tooltip
+   («29:59 — 116») is the FIT's sample. The likely causes — the heart's lag, the optical wrist sensor's inertia, the
+   forearm tense in a grip — cannot be told apart without a reference (a chest strap). D055's synchronisation is confirmed;
+   nothing is shifted.
+7. **Future, not decided: a display shift of the heart rate** (FU-HR.1 in `ROADMAP.md`). Showing the heart rate about 60 s
+   earlier, so its peak meets the end of the climb, is an experiment of its own — never a change of the FIT's samples,
+   `T_file`, `CC` or `Z`, never a correction of the synchronisation; nothing is implemented without the owner's decision.
+
+**Unchanged.** D055 (`w = T_file + s + CC`, `Z` never read for the heart rate); D054's binding time, the rule of a shown
+climb, «never twice» (a `Z` that lays out an area again never adds one for its climb); D053's several independent routes on
+a clip; the lilac Top / Attempt; the free «Боулдер»'s semantics.
+
 ---
 
 ## How to add a decision

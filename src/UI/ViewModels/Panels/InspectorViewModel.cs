@@ -60,10 +60,13 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// holds only the shown clip's font.</param>
     /// <param name="editingLock">The app's shared lock (while an export runs no clip property is edited);
     /// a private one when not given.</param>
+    /// <param name="dialogs">Asks before a frame is matched to a climb other than the one at the playhead (D056 §1);
+    /// without it the match is done without asking.</param>
     public InspectorViewModel(ITimelineEditService edit, StatusService status, IFontCatalog? fonts = null, EditingLock? editingLock = null,
-        ITextBoxMeasurer? textBoxes = null)
+        ITextBoxMeasurer? textBoxes = null, IDialogService? dialogs = null)
     {
         _edit = edit;
+        _dialogs = dialogs;
         _textBoxes = textBoxes;
         _status = status;
         _systemFonts = fonts?.FamilyNames ?? Array.Empty<string>();

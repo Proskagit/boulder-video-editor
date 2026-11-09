@@ -485,3 +485,24 @@ saved, export the same activity again from the COROS app; put the new file at th
 FIT (never the original); open the copy. Expected: the tooltip of «Тренировка COROS…» says «Файл изменён (та же
 тренировка): данные используются.», the readout and the heart rate are there; after «Сохранить» the project keeps working.
 On FAIL send: the tooltip's text, the new FIT's size, and whether the COROS app's export was of the same session.
+
+## 15. The heart rate's dynamics on a climb (the research of 2026-11-09, D056 §6)
+
+The manual check of Step 35.6a showed the heart rate falling while the owner climbs. The research of the FIT of
+2026-09-27 (5766 samples at 1 s, one gap of 28 s in the timer's pause 11:18:17–11:18:45, no step above 7 bpm between
+neighbours) by the owner's visible marks of 35.3R2 (the file time):
+
+| Climb | Visible | Start | Middle | End | Peak after the end |
+|---|---|---|---|---|---|
+| 2 (`100628`) | 10:06:39–10:07:17 | 127 | 123 | 117 | 150 at +75 s |
+| 3 (`101034`) | 10:11:02–10:12:00 | 136 | 128 | 121 | 160 at +60 s |
+| 4 (`101712`) | 10:17:55–10:18:33 | 118 | 117 | 111 | 158 at +47 s |
+| 6 (`103744`) | 10:38:29–10:39:04 | 120 | 123 | 125 | 155 at +49 s |
+
+Climbs 8, 9, 11, 12 peak 28–51 s after the end. **The synchronisation is confirmed:** the files' tags agree with their
+names within 2 s; the ends seen on the videos lie 3–6.5 s before the FIT's (the watch's end lag 4.6 s); `CC` = 0; a wrong
+`Z` (`101034`, 4.6 min off) does not move the heart rate; the app's values equal the FIT's samples (12 of 12); the COROS
+app's tooltip «29:59 — 116» is the FIT's sample (10:32:38 → 116). Putting the peak on the climb would need a shift of about
+a minute, against the ends seen on the videos. The decline is the FIT's own content — the heart's lag, the optical wrist
+sensor's inertia and a tense forearm in a grip, not told apart without a reference (a chest strap). Nothing is changed;
+a display shift is the future experiment FU-HR.1 (`ROADMAP.md`).

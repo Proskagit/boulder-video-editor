@@ -2489,6 +2489,18 @@
   <data name="Inspector_AlignPlayheadOutside" xml:space="preserve">
     <value>Поставьте плейхед на кадр этого клипа.</value>
   </data>
+  <data name="Inspector_AlignMismatchTitle" xml:space="preserve">
+    <value>Другой подъём</value>
+  </data>
+  <data name="Inspector_AlignMismatchArea" xml:space="preserve">
+    <value>Плейхед стоит в области подъёма {0}, а выбран подъём {1}. Если совместить кадр с подъёмом {1}, начало записи этого видео сдвинется, и для подъёма {1} на нём может появиться ещё одна область. Совместить кадр с подъёмом {1}?</value>
+  </data>
+  <data name="Inspector_AlignMismatchTime" xml:space="preserve">
+    <value>По времени видео в кадре подъём {0}, а выбран подъём {1}. Если совместить кадр с подъёмом {1}, начало записи этого видео сдвинется, и для подъёма {1} на нём может появиться ещё одна область. Совместить кадр с подъёмом {1}?</value>
+  </data>
+  <data name="Inspector_AlignMismatchConfirm" xml:space="preserve">
+    <value>Совместить с подъёмом {0}</value>
+  </data>
   <data name="Readout_Value" xml:space="preserve">
     <value>Тренировка в позиции плейхеда: {0} (часы) · {1} уд/мин</value>
   </data>
