@@ -585,6 +585,15 @@ on the project grid (D006).
   not in the markup mode). `TimelineViewModel.SelectRangeTo` / `ClipsInRange` and `TimelineGestureModifiers.IsRange`:
   Shift on a body selects a range, on an edge it stays the ripple trim. `TimelineView.ClipMenu` builds the clip's menu from
   the existing commands; the shell lends it the markup's and the Inspector's.
+- **Block D.** `insertOnDrop` on `AddClip` / `MoveClips` / `CanMoveClips` / `PreviewMove`: a drop from the Media Browser
+  on a clip starts at its end (`DropOnClipEnd`); a drag whose leading clip would start inside a clip that stays gets the
+  delta to that clip's start (`DropDelta`); then D037 §3 (`MakeRoom`) unchanged; the nudge and Paste keep Q11. The drag
+  previews it and names a refusal in the status bar. Core `FrameNavigation`: the navigation grid (the highest of the
+  project's and the video clips' nominal rates), the active clip (topmost visible), `Step` by the source frame playback
+  shows (D009's sample point, `Shown`). `PlaybackService` counts a paused pipeline between the project's frames on that grid
+  (`GridFor`, `VideoPipeline.Rate`, `PlaybackFrame.Rate`) and plays on the project's grid; the Preview reports the
+  playhead as a time. `TimelineViewModel.EditPlayhead` is the playhead rounded for every grid-bound edit; the playhead is
+  snapped only when the project's rate changes. «Совместить кадр…» and the markup frame use the exact source frame.
 
 ## FIT route starts and the global start calibration (Phase 37, D051)
 

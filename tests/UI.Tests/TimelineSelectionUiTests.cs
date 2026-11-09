@@ -301,18 +301,43 @@ public sealed class TimelineSelectionUiTests
     }
 
     [Fact]
-    public void A_refused_drag_is_marked_invalid_and_the_release_changes_nothing()
+    public void A_drag_into_a_clip_takes_its_start_and_pushes_it_as_the_preview_shows()
     {
-        Text(V1, 0, 10);
+        // D057 §3.12 (amends D037 Q11 for drags): b dropped to start inside a goes to a's start; a makes room.
+        var a = Text(V1, 0, 10);
         var b = Text(V1, 20, 30);
         var timeline = Timeline();
         timeline.SnappingEnabled = false;
         timeline.OnClipPressed(Vm(timeline, b), toggle: false);
         timeline.BeginMove(X(timeline, 25));
 
-        timeline.UpdateGesture(X(timeline, 10), timeline.Tracks[Lane(timeline, V1)]);      // b would start at 5, inside
+        timeline.UpdateGesture(X(timeline, 10), timeline.Tracks[Lane(timeline, V1)]);      // b would start at 5, inside a
+
+        Assert.False(Vm(timeline, b).IsInvalid);
+        Assert.Equal(X(timeline, 0), Vm(timeline, b).Left, 6);                              // previewed at a's start
+        Assert.Equal(X(timeline, 10), Vm(timeline, a).Left, 6);                             // a previewed pushed
+        timeline.EndGesture();
+        Assert.Equal(0, Start(b));
+        Assert.Equal(10, Start(a));
+    }
+
+    [Fact]
+    public void A_refused_drag_is_marked_invalid_says_why_and_the_release_changes_nothing()
+    {
+        var v2 = AddVideoTrack();
+        Text(v2, 0, 10);
+        v2.IsLocked = true;
+        var b = Text(V1, 20, 30);
+        _undo.Clear();
+        var timeline = Timeline();
+        timeline.SnappingEnabled = false;
+        timeline.OnClipPressed(Vm(timeline, b), toggle: false);
+        timeline.BeginMove(X(timeline, 25));
+
+        timeline.UpdateGesture(X(timeline, 25), timeline.Tracks[Lane(timeline, v2)]);      // onto the locked track
 
         Assert.True(Vm(timeline, b).IsInvalid);
+        Assert.Contains(v2.Name, _status.Message);                                         // the reason before the release
         timeline.EndGesture();
         Assert.Equal(20, Start(b));
         Assert.False(_undo.CanUndo);
@@ -399,10 +424,12 @@ public sealed class TimelineSelectionUiTests
         Assert.Equal(100, Start(added));
         Assert.False(timeline.IsSnapIndicatorVisible);
 
-        timeline.DropMedia(image.Id, lane, X(timeline, 200));                               // inside the image: refused
-        Assert.Contains("start inside another clip", _status.Message);
-        timeline.DropMedia(image.Id, lane, X(timeline, 280));                               // onto b: b makes room
-        Assert.Equal(430, Start(b));
+        // D057 §3.12: a drop inside the image goes right after it (250); b, overlapped, makes room.
+        timeline.ShowDropPreview(image.Id, lane, X(timeline, 200));
+        Assert.Equal(X(timeline, 250), timeline.SnapIndicatorX, 6);                        // the preview shows where
+        timeline.DropMedia(image.Id, lane, X(timeline, 200));
+        Assert.Contains(V1.Clips, c => c != a && c != b && c != added && Start(c) == 250);
+        Assert.Equal(400, Start(b));
     }
 
     // --- Auto-scroll -----------------------------------------------------------------------------------------------------

@@ -100,6 +100,12 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private Sequence Sequence => _projectService.Current.Timeline;
     public FrameRate FrameRate => _edit.FrameRate;
     public MediaTime Playhead => Sequence.PlayheadPosition;
+
+    /// <summary>D057 §3.14: the playhead for an edit bound to the project's grid — Split, Q / W, In / Out, markers, Insert /
+    /// Overwrite, Paste, + Text, a template: the nearest project frame (the playhead itself may lie between them).</summary>
+    public MediaTime EditPlayhead => Playhead.SnapToFrame(FrameRate);
+
+    private FrameRate? _gridRate;
     public MediaTime SequenceDuration => Sequence.Duration();
 
     public ObservableCollection<TimelineTrackViewModel> Tracks { get; } = new();
@@ -254,8 +260,13 @@ public sealed partial class TimelineViewModel : ViewModelBase
         TracksHeight = Tracks.Count * TimelineTrackViewModel.Height;
         PixelsPerSecond = TimelineCoordinateMapper.ClampZoom(PixelsPerSecond, FrameRate);
 
-        // The frame rate may have just changed (first video): keep the playhead on the grid.
-        Sequence.PlayheadPosition = Playhead.SnapToFrame(FrameRate);
+        // The frame rate may have just changed (first video): keep the playhead on the grid — only then (D057 §3.14: the
+        // playhead may lie between the project's frames on a source frame, and an edit must not move it).
+        if (_gridRate != FrameRate)
+        {
+            _gridRate = FrameRate;
+            Sequence.PlayheadPosition = Playhead.SnapToFrame(FrameRate);
+        }
 
         Relayout();
         UpdateSelectionVisuals();
@@ -453,7 +464,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand]
     private void SetIn()
     {
-        _inOut.SetIn(Playhead);
+        _inOut.SetIn(EditPlayhead);
         _status.Report(string.Format(Strings.InOut_InSet, TimeFormat.ToTimecode(_inOut.Range.In!.Value, FrameRate)));
     }
 
@@ -461,7 +472,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand]
     private void SetOut()
     {
-        _inOut.SetOut(Playhead);
+        _inOut.SetOut(EditPlayhead);
         _status.Report(string.Format(Strings.InOut_OutSet, TimeFormat.ToTimecode(Playhead.SnapToFrame(FrameRate), FrameRate)));
     }
 
@@ -596,8 +607,26 @@ public sealed partial class TimelineViewModel : ViewModelBase
         SetPlayhead(MediaTime.FromFrame(frame, FrameRate));
     }
 
-    [RelayCommand] private void StepForward() => StepFrames(1);
-    [RelayCommand] private void StepBackward() => StepFrames(-1);
+    /// <summary>D057 §3.14: Left / Right — one frame of the active video clip's source (never finer than the timeline's
+    /// highest frame rate; one project frame where no video is). The playhead may then lie between the project's frames.</summary>
+    [RelayCommand] private void StepForward() => StepSourceFrame(1);
+    [RelayCommand] private void StepBackward() => StepSourceFrame(-1);
+
+    private void StepSourceFrame(int direction)
+    {
+        var project = _projectService.Current;
+        var target = FrameNavigation.Step(project.Timeline, id => project.MediaAssets.FirstOrDefault(a => a.Id == id), Playhead, direction, FrameRate);
+        SetPlayheadExact(target);
+    }
+
+    /// <summary>Moves the playhead to exactly <paramref name="time"/> (a source frame between the project's frames, D057
+    /// §3.14) and seeks there.</summary>
+    public void SetPlayheadExact(MediaTime time)
+    {
+        var at = time < MediaTime.Zero ? MediaTime.Zero : time;
+        MovePlayhead(at);
+        SeekRequested?.Invoke(this, at);
+    }
     [RelayCommand] private void StepForwardSecond() => StepFrames(TimeFormat.NominalFps(FrameRate));
     [RelayCommand] private void StepBackwardSecond() => StepFrames(-TimeFormat.NominalFps(FrameRate));
     [RelayCommand] public void GoToStart() => SetPlayhead(MediaTime.Zero);
@@ -708,7 +737,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private void SplitAtPlayhead() =>
-        Report(_edit.Split(Playhead, _selection.Count > 0 ? _selection.ToList() : null));
+        Report(_edit.Split(EditPlayhead, _selection.Count > 0 ? _selection.ToList() : null));
 
     // --- Trim to the playhead (D030 §5): Q / W plain, Shift+Q / Shift+W ripple ----------------------------
     // Only the selected clips with the playhead inside them (Q1); every rule is the edit service's. After a ripple trim
@@ -721,7 +750,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private void TrimToPlayhead(ClipEdge edge, bool ripple)
     {
-        var result = _edit.TrimToPlayhead(_selection.ToList(), edge, Playhead, ripple);
+        var result = _edit.TrimToPlayhead(_selection.ToList(), edge, EditPlayhead, ripple);
         if (result is { Success: true, Playhead: { } playhead }) SetPlayhead(playhead);
         var count = result.ClipIds.Count;
         var (one, many) = (ripple, edge == ClipEdge.Start) switch
@@ -910,7 +939,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void Paste()
     {
         if (Clipboard is not { } clipboard) return;
-        var result = _edit.PasteClips(clipboard, Playhead);
+        var result = _edit.PasteClips(clipboard, EditPlayhead);
         SelectAdded(result);
         Report(result, successMessage: Plural.Format(result.ClipIds.Count, Strings.Copy_Pasted));
     }
@@ -930,11 +959,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     /// <summary>"Add Marker": a marker at the playhead.</summary>
     [RelayCommand(CanExecute = nameof(CanEdit))]
-    private void AddMarker() => Report(_edit.AddMarker(Playhead), successMessage: string.Format(Strings.Marker_Added, TimeFormat.ToTimecode(Playhead, FrameRate)));
+    private void AddMarker() => Report(_edit.AddMarker(EditPlayhead), successMessage: string.Format(Strings.Marker_Added, TimeFormat.ToTimecode(EditPlayhead, FrameRate)));
 
     /// <summary>"Remove Marker": the marker at the playhead (go to it first).</summary>
     [RelayCommand(CanExecute = nameof(CanEdit))]
-    private void RemoveMarker() => Report(_edit.RemoveMarkerAt(Playhead), successMessage: Strings.Marker_Removed);
+    private void RemoveMarker() => Report(_edit.RemoveMarkerAt(EditPlayhead), successMessage: Strings.Marker_Removed);
 
     [RelayCommand]
     private void PreviousMarker() => GoToMarker(_edit.PreviousMarker(Playhead), Strings.Marker_NoneBefore);
@@ -1052,7 +1081,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void AddText()
     {
         // D043 §4: placed at the bottom centre by its box (centred when no measurer is given, e.g. without a platform).
-        var result = _edit.AddTextClip(Playhead, _textBoxes is { } boxes ? boxes.Measure : null);
+        var result = _edit.AddTextClip(EditPlayhead, _textBoxes is { } boxes ? boxes.Measure : null);
         SelectAdded(result);
         Report(result, successMessage: Strings.Text_Added);
     }
@@ -1063,7 +1092,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void AddTemplate(string kind)
     {
         if (!Enum.TryParse<TemplateKind>(kind, out var parsed)) return;
-        var result = _edit.AddTemplateClip(parsed, Playhead);
+        var result = _edit.AddTemplateClip(parsed, EditPlayhead);
         SelectAdded(result);
         Report(result, successMessage: Strings.Template_Added);
     }
@@ -1076,14 +1105,30 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         var start = DropStart(assetId, track, contentX);
         ClearDropTargets();
-        AddMediaAt(assetId, track?.Track.Id, start);
+        AddMediaAt(assetId, track?.Track.Id, start, insertOnDrop: true);
     }
 
-    /// <summary>While media is dragged over the lanes: the target track and the snap indicator where it would land.</summary>
+    /// <summary>While media is dragged over the lanes: the target track and the snap indicator where it would land — on a
+    /// clip, right after it (D057 §3.12).</summary>
     public void ShowDropPreview(Guid assetId, TimelineTrackViewModel? track, double contentX)
     {
         ShowDropTarget(track);
-        DropStart(assetId, track, contentX);
+        var start = DropStart(assetId, track, contentX);
+        if (track?.Clips.FirstOrDefault(c => c.Clip.TimelineStart < start && start < c.Clip.TimelineEnd) is { } under)
+        {
+            SnapIndicatorX = TimelineCoordinateMapper.TimeToX(under.Clip.TimelineEnd, PixelsPerSecond);
+            IsSnapIndicatorVisible = true;
+        }
+    }
+
+    private string? _lastDragRefusal;
+
+    /// <summary>D057 §3.12: a drag the release would refuse says why while it is shown, once per reason.</summary>
+    private void ReportDragRefusal(string? reason)
+    {
+        if (reason == _lastDragRefusal) return;
+        _lastDragRefusal = reason;
+        if (reason is not null) _status.Report(reason);
     }
 
     /// <summary>Where a drop at <paramref name="contentX"/> puts the new clip (D037 §2): with Snap on, onto a track with no
@@ -1112,11 +1157,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
             accept: rawOverlaps ? null : s => !Overlaps(raw + s.Offset));
     }
 
-    private void AddMediaAt(Guid assetId, Guid? trackId, MediaTime? start)
+    private void AddMediaAt(Guid assetId, Guid? trackId, MediaTime? start, bool insertOnDrop = false)
     {
         if (!CanEdit()) return;
         var wasEmpty = IsTimelineEmpty;
-        var result = _edit.AddClip(assetId, trackId, start);
+        var result = _edit.AddClip(assetId, trackId, start, insertOnDrop);
         SelectAdded(result);
         Report(result, successMessage: Strings.Timeline_Added);
         OfferCanvasAfterAdd(wasEmpty, result);
@@ -1378,6 +1423,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     public void BeginMove(double contentX)
     {
         if (!CanEdit()) return;
+        _lastDragRefusal = null;
         var clips = _selection.Where(_clipViewModels.ContainsKey).Select(id => _clipViewModels[id]).ToList();
         if (clips.Count == 0) return;
         var tracks = clips.Select(TrackOf).Distinct().ToList();
@@ -1456,7 +1502,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
         // D037 §3: the preview shows every clip the release would change — the dragged ones, the partners that follow and
         // the clips that make room — at its planned place; a refused move shows the dragged clips where the pointer has
         // them, marked invalid.
-        var preview = _edit.PreviewMove(ids, g.FrameDelta, target);
+        var preview = _edit.PreviewMove(ids, g.FrameDelta, target, insertOnDrop: true);
+        ReportDragRefusal(preview is null ? _edit.CanMoveClips(ids, g.FrameDelta, target, insertOnDrop: true) : null);
         var planned = preview?.Clips ?? g.Clips.ToDictionary(c => c.Id, c => (
             MediaTime.FromFrame(c.Clip.TimelineStart.ToNearestFrame(FrameRate) + g.FrameDelta, FrameRate),
             MediaTime.FromFrame(c.Clip.TimelineEnd.ToNearestFrame(FrameRate) + g.FrameDelta, FrameRate)));
@@ -1486,7 +1533,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// them (D037 §3) or be refused — what a snap must not cause on its own (D037 §2).</summary>
     private bool MoveOverlaps(IReadOnlyCollection<Guid> ids, long frames, Guid? targetTrackId)
     {
-        if (_edit.PreviewMove(ids, frames, targetTrackId) is not { } preview) return true;
+        if (_edit.PreviewMove(ids, frames, targetTrackId, insertOnDrop: true) is not { } preview) return true;
         var moving = ids.ToHashSet();
         foreach (var id in ids)
             if (_clipViewModels.TryGetValue(id, out var vm) && PartnerViewModel(vm) is { } partner)
@@ -1614,7 +1661,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             ? g.Ripple
                 ? _edit.RippleTrimClip(g.Clips[0].Id, edge, g.TrimTime)
                 : _edit.TrimClip(g.Clips[0].Id, edge, g.TrimTime, g.Alone)
-            : _edit.MoveClips(g.Clips.Select(c => c.Id).ToList(), g.FrameDelta, g.TargetTrack?.Track.Id);
+            : _edit.MoveClips(g.Clips.Select(c => c.Id).ToList(), g.FrameDelta, g.TargetTrack?.Track.Id, insertOnDrop: true);
         Report(result);
         if (!result.Success) Relayout(); // restore the pre-drag positions
     }

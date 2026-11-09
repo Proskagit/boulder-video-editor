@@ -236,7 +236,7 @@ public partial class MainWindow : Window
         private static readonly TimelineEditResult Nothing = TimelineEditResult.Fail("Design time.");
         public FrameRate FrameRate => FrameRate.Default;
         public string? GetAddBlockReason(MediaAsset asset) => "Design time.";
-        public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null) => Nothing;
+        public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null, bool insertOnDrop = false) => Nothing;
         public TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds) => Nothing;
         public MediaTime? AddedClipDuration(Guid mediaAssetId) => null;
         public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null) => Nothing;
@@ -255,9 +255,9 @@ public partial class MainWindow : Window
         public TimelineEditResult SetTransitionType(Guid transitionId, string typeId) => Nothing;
         public TimelineEditResult SetTransitionDirection(Guid transitionId, TransitionDirection direction) => Nothing;
         public long? MaxTransitionFrames(Guid leftClipId, Guid rightClipId, string typeId) => null;
-        public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => Nothing;
-        public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => "Design time.";
-        public MovePreview? PreviewMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) => null;
+        public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null, bool insertOnDrop = false) => Nothing;
+        public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null, bool insertOnDrop = false) => "Design time.";
+        public MovePreview? PreviewMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null, bool insertOnDrop = false) => null;
         public TimelineEditResult TrimClip(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false) => Nothing;
         public (MediaTime Start, MediaTime End)? PreviewTrim(Guid clipId, ClipEdge edge, MediaTime edgeTime, bool alone = false) => null;
         public TimelineEditResult Split(MediaTime at, IReadOnlyCollection<Guid>? clipIds = null) => Nothing;

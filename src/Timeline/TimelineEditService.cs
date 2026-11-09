@@ -77,10 +77,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
         };
     }
 
-    public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null)
+    public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null, bool insertOnDrop = false)
     {
         var plan = new EditPlan(Sequence, Settings);
-        if (PlanAdd(plan, mediaAssetId, trackId, start, out var clip, out var info) is { } failed) return TimelineEditResult.Fail(failed);
+        if (PlanAdd(plan, mediaAssetId, trackId, start, out var clip, out var info, insertOnDrop) is { } failed) return TimelineEditResult.Fail(failed);
         var asset = FindAsset(mediaAssetId)!;
         if (Validate(plan) is { } error)
             return TimelineEditResult.Fail(string.Format(Messages.Edit_CantAddFile, asset.FileName, error));
@@ -118,7 +118,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
     }
 
     /// <summary>Plans the add of one file on <paramref name="plan"/> (D007, D037 §3): null when planned, else why not.</summary>
-    private string? PlanAdd(EditPlan plan, Guid mediaAssetId, Guid? trackId, MediaTime? start, out Clip? added, out string? info)
+    private string? PlanAdd(EditPlan plan, Guid mediaAssetId, Guid? trackId, MediaTime? start, out Clip? added, out string? info,
+        bool insertOnDrop = false)
     {
         added = null;
         info = null;
@@ -168,6 +169,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
         if (start is { } requested)
         {
             startFrame = Math.Max(0, requested.ToNearestFrame(rateForAdd));
+            // D057 §3.12: a new file dropped on a clip goes right after it (D037 §3 pushes the later clips).
+            if (insertOnDrop && DropOnClipEnd(plan, track, startFrame, rateForAdd) is { } after) startFrame = after;
         }
         else
         {
@@ -185,6 +188,18 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return null;
     }
 
+
+    /// <summary>D057 §3.12: the end frame of the clip of <paramref name="track"/> that <paramref name="frame"/> lies strictly
+    /// inside, or null.</summary>
+    private static long? DropOnClipEnd(EditPlan plan, Track track, long frame, FrameRate rate)
+    {
+        foreach (var clip in plan.EffectiveClips(track))
+        {
+            long start = clip.State.Start.ToNearestFrame(rate), end = clip.State.End.ToNearestFrame(rate);
+            if (start < frame && frame < end) return end;
+        }
+        return null;
+    }
 
     public MediaTime? AddedClipDuration(Guid mediaAssetId)
     {
@@ -316,9 +331,9 @@ public sealed partial class TimelineEditService : ITimelineEditService
 
     // --- Move ------------------------------------------------------------------
 
-    public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null)
+    public TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null, bool insertOnDrop = false)
     {
-        var (plan, clips, error) = PlanMove(clipIds, frameDelta, targetTrackId);
+        var (plan, clips, error) = PlanMove(clipIds, frameDelta, targetTrackId, insertOnDrop);
         if (error is not null) return TimelineEditResult.Fail(error);
         if (plan is null) return TimelineEditResult.Unchanged();
 
@@ -326,12 +341,12 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return TimelineEditResult.Ok(clips.Select(c => c.Id).ToList(), TransitionNote(plan));
     }
 
-    public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null) =>
-        PlanMove(clipIds, frameDelta, targetTrackId).Error;
+    public string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null, bool insertOnDrop = false) =>
+        PlanMove(clipIds, frameDelta, targetTrackId, insertOnDrop).Error;
 
-    public MovePreview? PreviewMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null)
+    public MovePreview? PreviewMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null, bool insertOnDrop = false)
     {
-        var (plan, _, error) = PlanMove(clipIds, frameDelta, targetTrackId);
+        var (plan, _, error) = PlanMove(clipIds, frameDelta, targetTrackId, insertOnDrop);
         if (error is not null) return null;
         var clips = plan?.Updates.ToDictionary(u => u.Clip.Id, u => (u.After.Start, u.After.End))
             ?? new Dictionary<Guid, (MediaTime Start, MediaTime End)>();
@@ -339,7 +354,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
     }
 
     /// <summary>Plan + validation for a move. Plan is null (and Error null) when nothing would change.</summary>
-    private (EditPlan? Plan, List<Clip> Clips, string? Error) PlanMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId)
+    private (EditPlan? Plan, List<Clip> Clips, string? Error) PlanMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId,
+        bool insertOnDrop = false)
     {
         if (clipIds.Count == 0) return (null, new List<Clip>(), null);
 
@@ -363,6 +379,10 @@ public sealed partial class TimelineEditService : ITimelineEditService
             if (target == plan.TrackOf(clips[0])) target = null;
         }
 
+        // D057 §3.12: a drag whose leading clip would start inside a clip that stays puts it at that clip's start; the rest
+        // is D037 §3's push (that clip and the later ones move right only as far as needed).
+        if (insertOnDrop) frameDelta = DropDelta(plan, clips, target, frameDelta);
+
         if (frameDelta == 0 && target is null) return (null, clips, null);
 
         foreach (var clip in clips)
@@ -383,6 +403,29 @@ public sealed partial class TimelineEditService : ITimelineEditService
             return (null, clips, string.Format(Messages.Edit_CantMove, error));
 
         return (plan, clips, null);
+    }
+
+    /// <summary>
+    /// D057 §3.12: the delta that puts the leading clip of a dragged group at the start of the clip <c>X</c> of its
+    /// destination track it would otherwise start inside (<c>X.start &lt; start &lt; X.end</c>, <c>X</c> not moved with the
+    /// group nor a partner of a moved clip); <paramref name="frameDelta"/> unchanged when it starts on no clip.
+    /// </summary>
+    private long DropDelta(EditPlan plan, List<Clip> clips, Track? target, long frameDelta)
+    {
+        var rate = plan.Rate;
+        var leader = clips.OrderBy(c => c.TimelineStart.ToNearestFrame(rate)).First();
+        var track = target ?? plan.TrackOf(leader);
+        var moving = clips.ToHashSet();
+        foreach (var clip in clips)
+            if (PartnerOf(plan, clip) is { } partner) moving.Add(partner);
+        var start = leader.TimelineStart.ToNearestFrame(rate) + frameDelta;
+        foreach (var other in plan.EffectiveClips(track))
+        {
+            if (moving.Contains(other.Clip)) continue;
+            long otherStart = other.State.Start.ToNearestFrame(rate), otherEnd = other.State.End.ToNearestFrame(rate);
+            if (otherStart < start && start < otherEnd) return frameDelta + (otherStart - start);
+        }
+        return frameDelta;
     }
 
     /// <summary>Plans one clip moved by <paramref name="frameDelta"/> whole frames onto <paramref name="toTrack"/> — the

@@ -750,7 +750,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
             ModeText = Strings.Holds_DecodingFrame;
             PrepareProgress = 0.55;
-            var frame = await _frames!.GetAsync(clip, asset, _modePlayhead, _projects.Current.Settings.FrameRate, cts.Token);
+            var frame = await _frames!.GetAsync(clip, asset, _modePlayhead, FrameGridAt(_modePlayhead), cts.Token);
             if (_modeCts != cts) return;
             ModeText = Strings.Holds_PreparingFrame;
             PrepareProgress = 0.7;
@@ -787,6 +787,16 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         {
             RefreshCommands();
         }
+    }
+
+    /// <summary>D057 §3.14: the grid the markup frame is chosen on — the project's, or the navigation grid when the playhead
+    /// lies between the project's frames (the exact source frame the Preview shows there).</summary>
+    private FrameRate FrameGridAt(MediaTime playhead)
+    {
+        var project = _projects.Current;
+        var rate = project.Settings.FrameRate;
+        if (MediaTime.FromFrame(playhead.ToFrameFloor(rate), rate) == playhead) return rate;
+        return FrameNavigation.NavigationRate(project.Timeline, id => project.MediaAssets.FirstOrDefault(a => a.Id == id), rate);
     }
 
     private bool CanGenerateProposals(VideoClip clip) =>

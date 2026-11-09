@@ -47,9 +47,10 @@ internal sealed class VideoPipeline : IAsyncDisposable
     private bool _disposed;
 
     public VideoPipeline(PlaybackSnapshot snapshot, long seekGeneration, long startFrame,
-        IVideoDecoder decoder, PlaybackSettings settings, ILogger logger)
+        IVideoDecoder decoder, PlaybackSettings settings, ILogger logger, FrameRate? rate = null)
     {
         _snapshot = snapshot;
+        Rate = rate ?? snapshot.FrameRate;
         SeekGeneration = seekGeneration;
         _decoder = decoder;
         _settings = settings;
@@ -64,6 +65,10 @@ internal sealed class VideoPipeline : IAsyncDisposable
             reader.Updated += CheckReady;
         CheckReady();
     }
+
+    /// <summary>The grid its frames are counted on: the project's, or (paused between the project's frames, D057 §3.14) the
+    /// navigation grid of the timeline's highest source rate.</summary>
+    public FrameRate Rate { get; }
 
     /// <summary>Version of the snapshot the pipeline currently works with (changes with
     /// <see cref="UpdatePresentation"/>, never the decoding).</summary>
@@ -176,7 +181,7 @@ internal sealed class VideoPipeline : IAsyncDisposable
 
     private bool MayOcclude(PictureLayer layer) => !_failed.ContainsKey(layer.Span.ClipId);
 
-    private MediaTime Time(long frame) => MediaTime.FromFrame(frame, _snapshot.FrameRate);
+    private MediaTime Time(long frame) => MediaTime.FromFrame(frame, Rate);
 
     private IEnumerable<PictureLayer> DecodableLayers(MediaTime time) =>
         _snapshot.LayersAt(time, MayOcclude).OfType<PictureLayer>().Where(IsDecodable);
@@ -187,7 +192,7 @@ internal sealed class VideoPipeline : IAsyncDisposable
         var change = _snapshot.NextPictureChange(time);
         if (change >= _snapshot.Duration || (change - time).Ticks > _settings.PrefetchWindow.Ticks)
             return new List<(PictureSpan, long)>();
-        var frame = FrameMath.CeilingFrame(change, _snapshot.FrameRate);
+        var frame = FrameMath.CeilingFrame(change, Rate);
         return DecodableLayers(Time(frame)).Select(l => (l.Span, frame)).ToList();
     }
 
@@ -207,7 +212,7 @@ internal sealed class VideoPipeline : IAsyncDisposable
     private SpanReader Open(PictureSpan span, long firstFrame)
     {
         var asset = _snapshot.Assets[span.AssetId];
-        var reader = new SpanReader(span, asset, _snapshot.FrameRate, firstFrame, _decoder, _settings, _logger);
+        var reader = new SpanReader(span, asset, Rate, firstFrame, _decoder, _settings, _logger);
         _readers[span.ClipId] = reader;
         return reader;
     }

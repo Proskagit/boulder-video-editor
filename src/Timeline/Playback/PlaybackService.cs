@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Playback;
 using Microsoft.Extensions.Logging;
 
@@ -155,6 +156,8 @@ public sealed class PlaybackService : IPlaybackService
             Restart(range.Start);                     // Loop with an In / Out range (D030 §8, Q9)
         else if (Position >= Duration)
             Restart(MediaTime.Zero);
+        else if (_pipeline is { } current && current.Rate != _snapshot.FrameRate)
+            Restart(MediaTime.FromFrame(Position.ToFrameFloor(_snapshot.FrameRate), _snapshot.FrameRate));   // D057 §3.14: play on the project's grid
         StartAudio();
         _clock.Start();
         SetState(PlaybackState.Playing);
@@ -214,9 +217,10 @@ public sealed class PlaybackService : IPlaybackService
         position = Clamp(_clock.Position);
         _audio?.Maintain(_audioRunning ? _mixer.WritePosition : AudioTiming.NearestSample(position));
 
-        var frame = position.ToFrameFloor(snapshot.FrameRate);
+        var rate = pipeline.Rate;
+        var frame = position.ToFrameFloor(rate);
         // At Duration no clip covers the time (half-open spans): show the last frame instead.
-        var lastFrame = FrameMath.CeilingFrame(snapshot.Duration, snapshot.FrameRate) - 1;
+        var lastFrame = FrameMath.CeilingFrame(snapshot.Duration, rate) - 1;
         var pictureFrame = lastFrame >= 0 ? Math.Min(frame, lastFrame) : 0;
 
         var result = pipeline.GetFrame(pictureFrame);
@@ -227,8 +231,26 @@ public sealed class PlaybackService : IPlaybackService
         return new PlaybackFrame(position, frame, State, IsBuffering)
         {
             Layers = IsCurrent(pipeline) ? result.Layers : ImmutableArray<LayerPicture>.Empty,
-            Canvas = snapshot.Canvas
+            Canvas = snapshot.Canvas,
+            Rate = rate
         };
+    }
+
+    /// <summary>
+    /// D057 §3.14: the grid a pipeline starting at <paramref name="position"/> counts its frames on — the project's, or, while
+    /// paused at a position between the project's frames, the navigation grid of the highest source rate of the video
+    /// clips (so the exact source frame there is shown). Playback always runs on the project's grid.
+    /// </summary>
+    private FrameRate GridFor(PlaybackSnapshot snapshot, MediaTime position)
+    {
+        var project = snapshot.FrameRate;
+        if (State == PlaybackState.Playing || MediaTime.FromFrame(position.ToFrameFloor(project), project) == position) return project;
+        var best = project;
+        foreach (var asset in snapshot.Assets.Values)
+            if (asset.Kind == MediaKind.Video && asset.NominalFrameRate is { } rate &&
+                (Int128)rate.Numerator * best.Denominator > (Int128)best.Numerator * rate.Denominator)
+                best = rate;
+        return best;
     }
 
     private VideoPipeline Restart(MediaTime position, bool reanchor = true)
@@ -244,9 +266,10 @@ public sealed class PlaybackService : IPlaybackService
 
         var old = _pipeline;
         Volatile.Write(ref _pictureSnapshotVersion, snapshot.SnapshotVersion);
-        var startFrame = Math.Max(0, Math.Min(position.ToFrameFloor(snapshot.FrameRate),
-            FrameMath.CeilingFrame(snapshot.Duration, snapshot.FrameRate) - 1));
-        _pipeline = new VideoPipeline(snapshot, generation, startFrame, _decoder, _settings, _logger);
+        var rate = GridFor(snapshot, position);
+        var startFrame = Math.Max(0, Math.Min(position.ToFrameFloor(rate),
+            FrameMath.CeilingFrame(snapshot.Duration, rate) - 1));
+        _pipeline = new VideoPipeline(snapshot, generation, startFrame, _decoder, _settings, _logger, rate);
         _settled = false;
         if (old is not null) Retire(old);
 
