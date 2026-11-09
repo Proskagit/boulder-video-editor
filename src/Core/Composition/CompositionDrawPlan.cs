@@ -24,9 +24,12 @@ public abstract record DrawOperation(Guid ClipId, Affine2D Transform, double Opa
 /// Part of a decoded frame: <see cref="FrameSourceRect"/> (in the frame's own pixels — the layer's
 /// <c>NormalizedSourceRect</c>, i.e. the crop) drawn into <see cref="LocalRect"/> = the crop-local rectangle
 /// <c>[0, cropW] × [0, cropH]</c> in source pixels. The frame's pixels are BGRA with straight (not
-/// premultiplied) alpha — video is opaque, images may carry alpha.
+/// premultiplied) alpha — video is opaque, images may carry alpha. <see cref="IsBackground"/>: the clip's blurred
+/// background (<see cref="CompositionDrawPlan.BlurredBackground"/>) — another picture of the same clip, so a painter keeps
+/// its own bitmap for it apart from the clip's frame.
 /// </summary>
-public sealed record FrameDraw(Guid ClipId, Affine2D Transform, double Opacity, RectD LocalRect, DecodedFrame Frame, RectD FrameSourceRect)
+public sealed record FrameDraw(Guid ClipId, Affine2D Transform, double Opacity, RectD LocalRect, DecodedFrame Frame, RectD FrameSourceRect,
+    bool IsBackground = false)
     : DrawOperation(ClipId, Transform, Opacity);
 
 /// <summary>
@@ -213,17 +216,18 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
     }
 
     /// <summary>
-    /// D057 §3.7: the blurred background of a picture whose clip asks for it — its own frame, cropped to the canvas's aspect
-    /// (centred, «fill»), reduced and blurred (<see cref="BackgroundBlur"/>), drawn over the whole canvas under the picture at
-    /// the layer's opacity. The same operation for the Preview and the export (one painter), so they look the same; null
-    /// for a black background or no frame.
+    /// D057 §3.7: the blurred background of a picture whose clip asks for it — the picture's edges carried out into the
+    /// canvas from where it is drawn (its placement at the canvas size), blurred and darkened (<see cref="BackgroundBlur"/>),
+    /// drawn over the whole canvas under the picture at the layer's opacity. The same operation for the Preview and the
+    /// export (one painter), so they look the same; null for a black background or no frame.
     /// </summary>
     public static FrameDraw? BlurredBackground(FrameSize canvas, Affine2D canvasToTarget, ResolvedLayer resolved)
     {
         if (resolved.Layer is not PictureLayer { Span.Background: Entities.ClipBackground.Blur } picture || resolved.Frame is not { } frame) return null;
-        var blurred = BackgroundBlur.Of(frame, canvas);
+        if (Operation(canvas, Affine2D.Identity, resolved) is not FrameDraw placed) return null;
+        var blurred = BackgroundBlur.Of(frame, canvas, placed.Transform, placed.LocalRect, placed.FrameSourceRect);
         return new FrameDraw(picture.ClipId, canvasToTarget, picture.Opacity, new RectD(0, 0, canvas.Width, canvas.Height), blurred,
-            new RectD(0, 0, blurred.Width, blurred.Height));
+            new RectD(0, 0, blurred.Width, blurred.Height), IsBackground: true);
     }
 
     /// <summary>D034 §4: the stroke in canvas (= output) pixels — <c>StrokeWidth1080 × short side / 1080</c>.</summary>

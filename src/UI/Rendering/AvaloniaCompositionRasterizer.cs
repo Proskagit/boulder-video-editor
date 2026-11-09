@@ -15,7 +15,8 @@ namespace AiVideoEditor.UI.Rendering;
 /// </summary>
 public sealed class AvaloniaCompositionRasterizer : ICompositionRasterizer
 {
-    private readonly Dictionary<Guid, WriteableBitmap> _bitmaps = new();
+    /// <summary>Per clip: its frame and, apart, its blurred background (the same clip id).</summary>
+    private readonly Dictionary<(Guid Clip, bool Background), WriteableBitmap> _bitmaps = new();
 
     /// <summary>This export's own glyphs of outlined texts (D043 variant B): built on the UI thread, drawn only here.</summary>
     private readonly TextGlyphCache _glyphs = new();
@@ -46,11 +47,12 @@ public sealed class AvaloniaCompositionRasterizer : ICompositionRasterizer
         }
 
         // One bitmap per clip of this frame, reused while the clip stays visible.
-        var visible = new HashSet<Guid>();
+        var visible = new HashSet<(Guid, bool)>();
         foreach (var frame in plan.Operations.OfType<FrameDraw>())
         {
-            visible.Add(frame.ClipId);
-            var bitmap = _bitmaps[frame.ClipId] = FrameBitmap.Ensure(_bitmaps.GetValueOrDefault(frame.ClipId), frame.Frame);
+            var key = (frame.ClipId, frame.IsBackground);
+            visible.Add(key);
+            var bitmap = _bitmaps[key] = FrameBitmap.Ensure(_bitmaps.GetValueOrDefault(key), frame.Frame);
             FrameBitmap.Copy(frame.Frame, bitmap);
         }
         foreach (var gone in _bitmaps.Keys.Where(id => !visible.Contains(id)).ToList())
@@ -60,7 +62,7 @@ public sealed class AvaloniaCompositionRasterizer : ICompositionRasterizer
         }
 
         using (var context = _target.CreateDrawingContext())
-            CompositionPainter.Paint(context, plan, frame => _bitmaps[frame.ClipId], _glyphs, ct, _treatment);
+            CompositionPainter.Paint(context, plan, frame => _bitmaps[(frame.ClipId, frame.IsBackground)], _glyphs, ct, _treatment);
 
         unsafe
         {
