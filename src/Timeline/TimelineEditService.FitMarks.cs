@@ -230,19 +230,12 @@ public sealed partial class TimelineEditService : IFitMarkEditService
             var identity = FitMarkRules.IdentityOf(segment);
             // T: the effective start of the climb's mark when it lies on this video, else W_auto by the binding time.
             var mark = training.Marks.FirstOrDefault(m => m.Climb == identity);
-            var start = mark is not null && FitMarkRules.EffectiveStart(mark, Project) is { SourceTime: { } own } effective &&
-                        effective.AssetId == clip.MediaAssetId
-                ? own
-                : TrainingAlignment.SourceTimeOf(time.Zero, segment.StartUtc.AddTicks(-estimate), training.ClockCorrection);
-            var actualEnd = TrainingAlignment.SourceTimeOf(time.Zero, TrainingAlignment.AnchorTime(segment, ClimbAnchor.End), training.ClockCorrection);
-            var end = actualEnd + FitGreenTail;
-
-            long vs = clip.TimelineStart.ToNearestFrame(rate), ve = clip.TimelineEnd.ToNearestFrame(rate);
-            if (ve - vs < 2) continue;
-            var tf = Math.Clamp(HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, start, rate), vs, ve - 1);
+            var own = mark is not null && FitMarkRules.EffectiveStart(mark, Project) is { SourceTime: { } markStart } effective &&
+                      effective.AssetId == clip.MediaAssetId ? markStart : (MediaTime?)null;
+            if (FitAreaFrames(clip, segment, time, own, training.ClockCorrection, estimate, rate) is not { } frames) continue;
+            var (tf, climbEnd, ps, pe, s) = frames;
             // A green the user made on this clip that covers at least half of the climb [T, actual end) on the clip: the
             // climb is marked by hand (its bounds may differ from the estimate by seconds).
-            var climbEnd = Math.Clamp(HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, actualEnd, rate), tf + 1, ve);
             if (RouteOverlays.AnchoredTo(clip, allClips).Any(t => t.FitClimb is null &&
                     2 * (Math.Min(t.TimelineEnd.ToNearestFrame(rate), climbEnd) - Math.Max(t.TimelineStart.ToNearestFrame(rate), tf)) >= climbEnd - tf))
                 continue;
@@ -252,14 +245,10 @@ public sealed partial class TimelineEditService : IFitMarkEditService
                 continue;
             }
 
-            var ps = tf - Math.Min(LayoutIntro.ToNearestFrame(rate), tf - vs);
-            var endFrame = HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, end, rate);
-            var pe = Math.Min(ve, Math.Max(endFrame, tf + 1));
-            if (pe <= ps) continue;
-            var s = Math.Max(Math.Max(pe - LayoutFinal.ToNearestFrame(rate), tf), ps + 1);
             var template = NewRouteTemplate(clip.Id, Guid.NewGuid(), ps, pe, s, rate);
             template.Status = BoulderStatus.None;   // the lilac is added by hand
             template.FitClimb = identity;
+            template.FitLayout = FitLayoutOf(clip, ps, pe, template.StatusAt, rate);
 
             // A track above the clip free on [Ps, Pe) — also of the templates placed before — or a new one.
             var videoTrack = plan.TrackOf(clip);
@@ -301,6 +290,115 @@ public sealed partial class TimelineEditService : IFitMarkEditService
         commands.Add(plan.BuildCommand("Create Route Areas from FIT"));
         ExecuteTracked(new NotifyingCommand(new CompositeCommand("Create Route Areas from FIT", commands), _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(created, message);
+    }
+
+    /// <summary>
+    /// D053 §7 / D054 §4: the frames of a FIT climb's area on <paramref name="clip"/> by <paramref name="time"/> — <c>T</c>
+    /// (<paramref name="ownStart"/>: the climb's mark's own start on this video, else <c>W_auto</c>), the climb's actual end
+    /// (<c>W_end − ClimbEndLag</c>), the green <c>[Ps, Pe)</c> from <c>T − min(7 s, A)</c> to the actual end +
+    /// <see cref="FitGreenTail"/> cut to the clip, and the status moment <c>S</c>; null when the clip is too short or the green
+    /// empty.
+    /// </summary>
+    private static (long Tf, long ClimbEnd, long Ps, long Pe, long S)? FitAreaFrames(VideoClip clip, WorkoutSegment segment,
+        FitBindingTime time, MediaTime? ownStart, MediaTime clockCorrection, long estimate, FrameRate rate)
+    {
+        var start = ownStart ?? TrainingAlignment.SourceTimeOf(time.Zero, segment.StartUtc.AddTicks(-estimate), clockCorrection);
+        var actualEnd = TrainingAlignment.SourceTimeOf(time.Zero, TrainingAlignment.AnchorTime(segment, ClimbAnchor.End), clockCorrection);
+        var end = actualEnd + FitGreenTail;
+
+        long vs = clip.TimelineStart.ToNearestFrame(rate), ve = clip.TimelineEnd.ToNearestFrame(rate);
+        if (ve - vs < 2) return null;
+        var tf = Math.Clamp(HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, start, rate), vs, ve - 1);
+        var climbEnd = Math.Clamp(HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, actualEnd, rate), tf + 1, ve);
+        var ps = tf - Math.Min(LayoutIntro.ToNearestFrame(rate), tf - vs);
+        var endFrame = HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, end, rate);
+        var pe = Math.Min(ve, Math.Max(endFrame, tf + 1));
+        if (pe <= ps) return null;
+        var s = Math.Max(Math.Max(pe - LayoutFinal.ToNearestFrame(rate), tf), ps + 1);
+        return (tf, climbEnd, ps, pe, s);
+    }
+
+    /// <summary>The layout of an area on timeline frames <c>[ps, pe)</c> of <paramref name="clip"/> (D056 §2).</summary>
+    private static FitAreaLayout FitLayoutOf(VideoClip clip, long ps, long pe, MediaTime statusAt, FrameRate rate) =>
+        new(TrainingAlignment.SourceTimeAt(clip, ps, rate), TrainingAlignment.SourceTimeAt(clip, pe, rate), statusAt);
+
+    /// <summary>The layout <paramref name="template"/> has now on its anchored <paramref name="clip"/>.</summary>
+    private static FitAreaLayout CurrentFitLayout(TemplateClip template, VideoClip clip, FrameRate rate) =>
+        FitLayoutOf(clip, template.TimelineStart.ToNearestFrame(rate), template.TimelineEnd.ToNearestFrame(rate), template.StatusAt, rate);
+
+    /// <summary>
+    /// D056 §2 (Q-A): the FIT's areas of <paramref name="asset"/>'s clips whose bounds the user has not changed, laid out
+    /// again by the video's new time — <paramref name="zero"/>, else (a <c>Z</c> cleared) the file's time — part of the
+    /// <c>Z</c>'s Undo step. An area is untouched when its bounds are the ones it was laid out with
+    /// (<see cref="TemplateClip.FitLayout"/>), or — an area of a file before v17 — the ones the rule gives by the current
+    /// time. Its status moment is laid out again only when it is the laid-out one. An area whose climb the clip no longer
+    /// shows by the new time, on a locked track, or whose new bounds would cover another clip stays as it is; nothing else
+    /// is touched. <paramref name="moved"/>: the areas laid out again; <paramref name="kept"/>: the areas changed by hand.
+    /// </summary>
+    private IUndoableCommand? RelayoutFitAreas(MediaAsset asset, DateTimeOffset? zero, out int moved, out int kept)
+    {
+        moved = kept = 0;
+        if (Project.Training is not { Workout: { } workout } training || !training.IsUsable) return null;
+        var rate = Settings.FrameRate;
+        var allClips = Sequence.VideoTracks.SelectMany(t => t.Clips).ToList();
+        var videos = allClips.OfType<VideoClip>().Where(c => c.MediaAssetId == asset.Id).ToDictionary(c => c.Id);
+        var areas = allClips.OfType<TemplateClip>()
+            .Where(t => t.Kind == TemplateKind.Boulder && t.FitClimb is not null && t.AnchorClipId is { } a && videos.ContainsKey(a))
+            .ToList();
+        if (areas.Count == 0) return null;
+
+        var newTime = zero is { } z ? new FitBindingTime(z, FitBindingTimeSource.RecordingZero) : FitRouteBinding.FileTimeOf(asset, workout);
+        var oldTime = FitRouteBinding.TimeOf(asset, workout);
+        var estimate = (_startCorrection?.Current ?? FitCalibrationSnapshot.Initial).EstimateTicks;
+        // T by a new time: the mark's own start only when it does not hang on Z (moved, clamped, linked); else W_auto.
+        MediaTime? OwnStart(ClimbIdentity climb, VideoClip clip) =>
+            training.Marks.FirstOrDefault(m => m.Climb == climb) is { } mark && (mark.LinkedClipId is not null || mark.Position.SourceTime is not null) &&
+            FitMarkRules.EffectiveStart(mark, Project) is { SourceTime: { } own } effective && effective.AssetId == clip.MediaAssetId ? own : null;
+
+        var plan = new EditPlan(Sequence, Settings);
+        var layouts = new List<(TemplateClip Template, FitAreaLayout? Before, FitAreaLayout After)>();
+        foreach (var template in areas)
+        {
+            var clip = videos[template.AnchorClipId!.Value];
+            var climb = template.FitClimb!.Value;
+            if (workout.Climbs.FirstOrDefault(c => FitMarkRules.IdentityOf(c) == climb) is not { } segment) continue;
+            var current = CurrentFitLayout(template, clip, rate);
+            var laidOut = template.FitLayout;
+            if (laidOut is null && oldTime is { } before &&
+                FitAreaFrames(clip, segment, before, OwnStart(climb, clip), training.ClockCorrection, estimate, rate) is { } old)
+                laidOut = FitLayoutOf(clip, old.Ps, old.Pe, MediaTime.FromFrame(old.S - old.Ps, rate), rate);
+            if (laidOut is null || laidOut.SourceStart != current.SourceStart || laidOut.SourceEnd != current.SourceEnd)
+            {
+                kept++;
+                continue;
+            }
+            if (newTime is not { } time ||
+                !FitRouteBinding.ClimbsShown(workout, time, training.ClockCorrection, estimate, clip).Any(c => FitMarkRules.IdentityOf(c.Climb) == climb) ||
+                FitAreaFrames(clip, segment, time, OwnStart(climb, clip), training.ClockCorrection, estimate, rate) is not { } frames)
+                continue;
+            var track = plan.TrackOf(template);
+            if (track.IsLocked) continue;
+            var fields = plan.TemplateFieldsOf(template);
+            var statusAt = template.StatusAt == laidOut.StatusAt ? StatusAtFor(template, frames.S - frames.Ps, rate) : fields.StatusAt;
+            var after = FitLayoutOf(clip, frames.Ps, frames.Pe, statusAt, rate);
+            if (after == current && template.FitLayout == after) continue;
+
+            // Alone first: an area whose new bounds would cover another clip of its track stays where it is.
+            var timing = ClipState.FromFrames(frames.Ps, frames.Pe, MediaTime.Zero, rate);
+            var newFields = fields with { StatusAt = statusAt, Status = frames.Pe - frames.S < MinStatusFrames ? BoulderStatus.None : fields.Status };
+            var trial = new EditPlan(Sequence, Settings);
+            trial.Update(template, track, timing);
+            trial.Carried.Add(template);
+            trial.SetTemplateFields(template, newFields);
+            if (Validate(trial) is not null) continue;
+            plan.Update(template, track, timing);
+            plan.Carried.Add(template);
+            plan.SetTemplateFields(template, newFields);
+            layouts.Add((template, template.FitLayout, after));
+        }
+        if (layouts.Count == 0 || Validate(plan) is not null) return null;
+        moved = layouts.Count;
+        return new CompositeCommand("Lay Out FIT Areas Again", new IUndoableCommand[] { plan.BuildCommand("Lay Out FIT Areas Again"), new SetFitLayoutsCommand(layouts) });
     }
 
     // ---- The paste of a duplicate FIT markup (D051 §5.4, B1) -------------------------------------------------------------

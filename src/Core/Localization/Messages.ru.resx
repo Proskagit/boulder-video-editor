@@ -1276,6 +1276,12 @@
   <data name="FitRoutes_ClipAllMade" xml:space="preserve">
     <value>Для всех прохождений этого клипа области уже есть.</value>
   </data>
+  <data name="FitRoutes_LaidOutAgain" xml:space="preserve">
+    <value>Области из FIT пересчитаны по новому началу записи: {0}.</value>
+  </data>
+  <data name="FitRoutes_KeptByHand" xml:space="preserve">
+    <value>Области, изменённые вручную, оставлены на месте: {0}.</value>
+  </data>
   <data name="FitRoutes_TimesConflict" xml:space="preserve">
     <value>Пропущено клипов, у файлов которых тег времени и имя расходятся (файл редактировали?): {0}. Задайте им начало записи по подъёму.</value>
   </data>

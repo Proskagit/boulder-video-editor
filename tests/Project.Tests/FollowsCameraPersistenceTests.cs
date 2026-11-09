@@ -58,7 +58,7 @@ public class FollowsCameraPersistenceTests
     {
         var off = Save(Build(follows: false));
         var root = JsonNode.Parse(off)!;
-        Assert.Equal(16, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(17, root["formatVersion"]!.GetValue<int>());
         Assert.False((bool)Markup(root)["followsCamera"]!);
         Assert.False(MarkupOf(Load(off)).FollowsCamera);
         Assert.Equal(off, Save(Load(off)));
@@ -75,7 +75,7 @@ public class FollowsCameraPersistenceTests
         var v13 = LegacyJson.As(Save(Build(follows: true)), 13);
         var loaded = Load(v13);
         Assert.True(MarkupOf(loaded).FollowsCamera);
-        Assert.Equal(16, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(17, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
 
         // A v13 file never carries the field: if one does, it is not read (the older format had no such setting).
         var forged = JsonNode.Parse(v13)!;

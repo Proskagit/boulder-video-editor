@@ -73,13 +73,42 @@ public static class RouteOverlays
     public static Guid? RouteAt(VideoClip clip, IEnumerable<TemplateClip> anchored, long frame, FrameRate rate)
     {
         var templates = anchored.Where(t => t.Kind == TemplateKind.Boulder).ToList();
-        var containing = templates
+        return GreenAt(clip, templates, frame, rate) ?? MarkedWithoutGreen(clip, templates);
+    }
+
+    /// <summary>The route whose green contains timeline frame <paramref name="frame"/> (the latest started on an overlap),
+    /// or null.</summary>
+    public static Guid? GreenAt(VideoClip clip, IEnumerable<TemplateClip> anchored, long frame, FrameRate rate) =>
+        anchored.Where(t => t.Kind == TemplateKind.Boulder)
             .Where(t => t.TimelineStart.ToNearestFrame(rate) <= frame && frame < t.TimelineEnd.ToNearestFrame(rate))
             .OrderByDescending(t => t.TimelineStart)
             .Select(t => RouteIdOf(t, clip))
             .FirstOrDefault(id => id is not null);
-        if (containing is { } inside) return inside;
-        var withGreen = templates.Select(t => RouteIdOf(t, clip)).OfType<Guid>().ToHashSet();
+
+    /// <summary>The last route of <paramref name="clip"/> that has holds but no green yet (marked before its layout), or null.</summary>
+    public static Guid? MarkedWithoutGreen(VideoClip clip, IEnumerable<TemplateClip> anchored)
+    {
+        var withGreen = anchored.Where(t => t.Kind == TemplateKind.Boulder).Select(t => RouteIdOf(t, clip)).OfType<Guid>().ToHashSet();
         return clip.Routes.IsDefaultOrEmpty ? null : clip.Routes.LastOrDefault(r => !withGreen.Contains(r.Id))?.Id;
     }
+
+    /// <summary>
+    /// D056 §3: the routes of <paramref name="clip"/> made from the FIT (their green a «Боулдер» with a FIT climb), nearest
+    /// to timeline frame <paramref name="frame"/> first — each with its climb's number and its distance in frames (0 inside
+    /// its green; of a split green the nearest part).
+    /// </summary>
+    public static IReadOnlyList<(Guid RouteId, int ClimbNumber, long Distance)> FitRoutesNear(VideoClip clip, IEnumerable<TemplateClip> anchored,
+        long frame, FrameRate rate) =>
+        anchored.Where(t => t.Kind == TemplateKind.Boulder && t.FitClimb is not null)
+            .Select(t =>
+            {
+                long start = t.TimelineStart.ToNearestFrame(rate), end = t.TimelineEnd.ToNearestFrame(rate);
+                var distance = frame < start ? start - frame : frame >= end ? frame - end + 1 : 0;
+                return (Id: RouteIdOf(t, clip), Number: t.FitClimb!.Value.ClimbNumber, Distance: distance);
+            })
+            .Where(r => r.Id is not null)
+            .GroupBy(r => r.Id!.Value)
+            .Select(g => (g.Key, g.First().Number, g.Min(r => r.Distance)))
+            .OrderBy(r => r.Item3).ThenBy(r => r.Number)
+            .ToList();
 }

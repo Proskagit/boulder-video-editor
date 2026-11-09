@@ -1276,6 +1276,12 @@
   <data name="FitRoutes_ClipAllMade" xml:space="preserve">
     <value>Every climb of this clip already has an area.</value>
   </data>
+  <data name="FitRoutes_LaidOutAgain" xml:space="preserve">
+    <value>FIT areas laid out again by the new recording start: {0}.</value>
+  </data>
+  <data name="FitRoutes_KeptByHand" xml:space="preserve">
+    <value>Areas changed by hand kept where they are: {0}.</value>
+  </data>
   <data name="FitRoutes_TimesConflict" xml:space="preserve">
     <value>Clips skipped because their file's time tag and file name disagree (the file was edited?): {0}. Set their recording start by a climb.</value>
   </data>

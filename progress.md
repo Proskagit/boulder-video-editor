@@ -13,8 +13,11 @@ numbering" → "Official phases"; this file is the dated working log.
   (`101034`: a `Z` by the wrong climb added a second area; the free «Боулдер» purple and without heart rate as decided;
   the heart rate's fall on a climb is the FIT's — `docs/PHASE_COROS.md` §15) and three pull requests. **PR 1** (branch
   `feat/d056-inspector-climb`): the Inspector's «Подъём» follows the climb at the playhead (the FIT area's, else the
-  video's time's), matching another climb asks first. PR 2 (re-layout by a new `Z`, the route to mark holds on) and PR 3
-  (the `T` mark, the green free «Боулдер») follow. FU-HR.1 (a display shift of the heart rate) is a future experiment.
+  video's time's), matching another climb asks first. **PR 2** (branch `feat/d056-fit-relayout`, stacked on PR 1,
+  `project.json` v17): a new or cleared `Z` lays out again, in its own Undo step, the FIT areas of that video whose bounds
+  are still the laid-out ones (`fitLayout`; a v16 area when at the rule's bounds); the «Зацепки» section offers «Трасса»
+  near the FIT's routes (the nearest within 30 s by default, another or «Новая трасса»). PR 3 (the `T` mark, the green free
+  «Боулдер») follows. FU-HR.1 (a display shift of the heart rate) is a future experiment.
 - **Step 35.6a / D055 — the heart rate by the video file's time, independent of `Z` (2026-11-09, branch
   `feat/phase-35-6a-heart-rate-sync`; approved by the owner 2026-11-09):** the heart-rate overlay and every green route area
   read `w = T_file + s + CC` — the file's tag as the end, else its name (D054's rule; disagreeing by > 5 s: none); `Z` is

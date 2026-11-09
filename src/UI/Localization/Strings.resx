@@ -330,6 +330,27 @@ The file is replaced only when the export succeeds.</value>
   <data name="Holds_LayOutTip" xml:space="preserve">
     <value>From the playhead — the start of the climb (T): the hold animation over the 5 s before T, the route plate from 7 s before T, Top / Attempt over the clip's last 5 s (never before T). With less than 7 s before T the intro is shortened 2 : 5. One undo step.</value>
   </data>
+  <data name="Holds_Route" xml:space="preserve">
+    <value>Route</value>
+  </data>
+  <data name="Holds_RouteTip" xml:space="preserve">
+    <value>The route the holds are marked on. Near a route made from the FIT the nearest one within 30 s is chosen; choose another one or «New route».</value>
+  </data>
+  <data name="Holds_RouteFit" xml:space="preserve">
+    <value>Climb {0} from the FIT · {1} s from the playhead</value>
+  </data>
+  <data name="Holds_RouteFitWithHolds" xml:space="preserve">
+    <value>Climb {0} from the FIT · {1} s from the playhead · holds: {2}</value>
+  </data>
+  <data name="Holds_RouteMarkedOnly" xml:space="preserve">
+    <value>Route without an area · holds: {0}</value>
+  </data>
+  <data name="Holds_RouteNew" xml:space="preserve">
+    <value>New route</value>
+  </data>
+  <data name="Holds_RouteNoFitNear" xml:space="preserve">
+    <value>No route from the FIT within {0} s of the playhead: the holds start the chosen route.</value>
+  </data>
   <data name="Holds_OrderLeftToRight" xml:space="preserve">
     <value>Left to right</value>
   </data>
