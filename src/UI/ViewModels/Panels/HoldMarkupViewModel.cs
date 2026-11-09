@@ -872,9 +872,26 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         SelectedProposalIndex = -1;
     }
 
-    /// <summary>"Done": leaves the mode; the confirmed markup stays.</summary>
+    /// <summary>
+    /// "Done": leaves the mode; the confirmed markup stays. The owner's acceptance of 2026-11-10: when the route has holds and
+    /// no animation yet, its intro and final are laid out at once from the markup's frame (<c>T</c>, as «Разложить вступление
+    /// и финал» does from the playhead — the animation, the route plate, Top / Attempt; following the camera as it is), its own
+    /// undo step. A route already laid out is never laid out again, so «Готово» twice or after reopening adds nothing.
+    /// </summary>
     [RelayCommand]
-    private void Done() => Exit();
+    private void Done()
+    {
+        var clip = _clip;
+        var route = _routeId;
+        var at = _modePlayhead;
+        var layOut = clip is not null && route is not null && Markup is { Holds.Length: > 0, Animation: null } && !_lock.IsLocked;
+        Exit();
+        if (!layOut) return;
+        var result = _edit.LayOutIntroAndFinal(clip!.Id, at, route);
+        if (!result.Success) _status.Report(result.Message ?? Strings.Holds_AnimationNotChanged);
+        LoadStyle();
+        RefreshCommands();
+    }
 
     /// <summary>Esc: discards the candidate; without one deselects; during the proposal review (D047 §2) leaves the review
     /// unchanged — «Готово», Play or a seek leave it; otherwise leaves the mode.</summary>
