@@ -24,6 +24,13 @@ public static class AppPaths
     /// created on its first write.</summary>
     public static string FitCalibrationFile => Path.Combine(ConfigFolderPath, "fit-calibration.json");
 
+    /// <summary>The application's global settings (D057 §3.8). Created on its first write.</summary>
+    public static string UserSettingsFile => Path.Combine(ConfigFolderPath, "settings.json");
+
+    /// <summary>The user's working layout — the window, the panels, the Inspector's sections (D057 §3.1, §3.4). Created on
+    /// its first write.</summary>
+    public static string UiStateFile => Path.Combine(ConfigFolderPath, "ui-state.json");
+
     /// <summary>Per-project cache. Thumbnails live in its <c>thumbnails</c> subfolder — the one place for them in a
     /// project folder (D024 Step 9.4) —, waveforms in <c>waveforms</c> (Step 9.5); see <c>ThumbnailCacheLocation</c> /
     /// <c>WaveformCacheLocation</c>.</summary>

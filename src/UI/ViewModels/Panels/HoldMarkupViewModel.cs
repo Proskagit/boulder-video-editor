@@ -236,9 +236,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     public HoldMarkupViewModel(ITimelineEditService edit, IProjectService projects, StatusService status,
         IHoldSegmentationService? segmentation = null, IHoldMarkupFrameSource? frames = null, EditingLock? editingLock = null,
         IHoldProposalGenerator? proposalGenerator = null, IHoldProposalRefiner? proposalRefiner = null,
-        CameraMotionCoordinator? cameraMotion = null, RouteSelectionService? routeSelection = null)
+        CameraMotionCoordinator? cameraMotion = null, RouteSelectionService? routeSelection = null,
+        IUserSettingsService? settings = null)
     {
         _edit = edit;
+        _settings = settings ?? new InMemoryUserSettings();
         _projects = projects;
         _status = status;
         _segmentation = segmentation;
@@ -255,7 +257,8 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             _segmentation.DeviceChanged += (_, _) => OnUi(() => _status.Report(CpuMessage));
 
         MaxProposalsToShow = 30;
-        IsProposalGenerationEnabled = true;
+        // D057 §3.15: off by default; the user's choice is kept across restarts.
+        IsProposalGenerationEnabled = _settings.Current.HoldProposalsEnabled;
         InitTracking(cameraMotion);
         InitRoute(routeSelection);
     }
@@ -274,7 +277,12 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     public IReadOnlyList<int> MaxProposalsOptions { get; } = new[] { 10, 20, 30, 50, 100 };
 
-    [ObservableProperty] private bool _isProposalGenerationEnabled = true;
+    [ObservableProperty] private bool _isProposalGenerationEnabled;
+
+    private readonly IUserSettingsService _settings;
+
+    partial void OnIsProposalGenerationEnabledChanged(bool value) =>
+        _settings?.Update(s => s with { HoldProposalsEnabled = value });
     [ObservableProperty] private bool _canShowProposalToggle;
     [ObservableProperty] private bool _isGeneratingProposals;
     [ObservableProperty] private bool isRefiningProposals;

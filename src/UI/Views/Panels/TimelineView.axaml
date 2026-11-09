@@ -329,7 +329,8 @@
           </StackPanel>
         </ScrollViewer>
 
-        <ScrollViewer x:Name="ContentScroll" Grid.Column="1"
+        <!-- D057 §3.10: the scroll bars always shown at their full width, not only on hover. -->
+        <ScrollViewer x:Name="ContentScroll" Grid.Column="1" AllowAutoHide="False"
                       HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
           <Grid x:Name="ContentRoot" RowDefinitions="24,Auto" Width="{Binding ContentWidth}"
                 HorizontalAlignment="Left" VerticalAlignment="Top">

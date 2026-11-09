@@ -155,6 +155,8 @@ public static class ProjectSerializer
         ArgumentException.ThrowIfNullOrEmpty(projectFolderPath);
         var folder = Path.GetFullPath(projectFolderPath);
 
+        // D057 §3.6 (FU-PF.1): a later version's file may hold values this build cannot parse — its version is read first.
+        if (PeekNewerVersion(json, FormatId)) throw new ProjectFileException(Messages.ProjectFile_Newer);
         var dto = Parse<ProjectFileDto>(json, Messages.ProjectFile_DamagedPlain);
         CheckHeader(dto);
         return FromDto(dto!, folder, fileExists ?? File.Exists);
@@ -192,6 +194,7 @@ public static class ProjectSerializer
         ArgumentNullException.ThrowIfNull(json);
         var damaged = Messages.ProjectFile_RecoveryDamaged;
 
+        if (PeekNewerVersion(json, RecoveryFormatId)) throw new ProjectFileException(Messages.ProjectFile_RecoveryNewer);
         var dto = Parse<RecoveryFileDto>(json, damaged);
         if (dto is null || dto.Format != RecoveryFormatId)
             throw new ProjectFileException(Messages.ProjectFile_NotRecovery);
@@ -213,6 +216,26 @@ public static class ProjectSerializer
         CheckHeader(dto.Project);
         var project = FromDto(dto.Project, folder, fileExists ?? File.Exists);
         return (project, new RecoveryInfo(folder, dto.AutosavedAt, dto.ProcessId, dto.ProcessStartTime));
+    }
+
+    /// <summary>D057 §3.6: whether <paramref name="json"/> is a file of <paramref name="format"/> whose version is later than
+    /// this build's — read from its top level only, before the rest is parsed (whatever the rest holds). False for anything
+    /// else (another format, no version, not JSON): the full parse decides then.</summary>
+    internal static bool PeekNewerVersion(string json, string format)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            var root = document.RootElement;
+            return root.ValueKind == JsonValueKind.Object &&
+                   root.TryGetProperty("format", out var f) && f.ValueKind == JsonValueKind.String && f.GetString() == format &&
+                   root.TryGetProperty("formatVersion", out var v) && v.ValueKind == JsonValueKind.Number &&
+                   v.TryGetInt64(out var version) && version > CurrentFormatVersion;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     private static T? Parse<T>(string json, string damagedMessage) where T : class

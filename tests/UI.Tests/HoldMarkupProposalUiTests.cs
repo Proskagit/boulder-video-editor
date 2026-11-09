@@ -65,7 +65,9 @@ public sealed class HoldMarkupProposalUiTests : IAsyncLifetime
             new InspectorViewModel(_edit, _status),
             new TimelineViewModel(_projects, _edit, _status, NullLogger<TimelineViewModel>.Instance),
             _status, files, _projects, NullLogger<MainWindowViewModel>.Instance,
-            holdMarkup: new HoldMarkupViewModel(_edit, _projects, _status, _model, _frames, _lock, _generator, _refiner),
+            // D057 §3.15: proposals are off by default — these tests are of the proposals, so the user turned them on.
+            holdMarkup: new HoldMarkupViewModel(_edit, _projects, _status, _model, _frames, _lock, _generator, _refiner,
+                settings: new InMemoryUserSettings(new UserSettings { HoldProposalsEnabled = true })),
             previewTransform: new PreviewTransformViewModel(_edit, _projects, _status, _lock, _ => (10, 10)));
         _undo.StateChanged += (_, _) => _history++;
     }
