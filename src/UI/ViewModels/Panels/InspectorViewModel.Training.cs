@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Playback;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Telemetry;
 using AiVideoEditor.UI.Localization;
@@ -218,7 +219,8 @@ public sealed partial class InspectorViewModel
     {
         if (!CanAlignToClimb() || RejectWhileLocked()) return;
         var clip = (VideoClip)_clip!;
-        var frame = Playhead!().ToFrameFloor(_rate);
+        var exact = Playhead!();                    // D057 §3.14: the exact source frame, even between the project's frames
+        var frame = exact.ToFrameFloor(_rate);
         if (!TrainingAlignment.Covers(clip, frame, _rate))
         {
             _status.Report(Strings.Inspector_AlignPlayheadOutside);
@@ -237,12 +239,12 @@ public sealed partial class InspectorViewModel
             });
             if (answer != 0) return;
             // The clip, the playhead or the training may have changed while asking: match only what was asked about.
-            if (!ReferenceEquals(_clip, clip) || !CanAlignToClimb() || Playhead!().ToFrameFloor(_rate) != frame ||
+            if (!ReferenceEquals(_clip, clip) || !CanAlignToClimb() || Playhead!() != exact ||
                 chosen >= _climbs.Count || _climbs[chosen] != climb) return;
         }
         var training = _training!.Training!;
         var anchor = AlignAnchor;
-        var zero = TrainingAlignment.ZeroForClimb(climb, anchor, training.ClockCorrection, TrainingAlignment.SourceTimeAt(clip, frame, _rate));
+        var zero = TrainingAlignment.ZeroForClimb(climb, anchor, training.ClockCorrection, FrameNavigation.SourceAt(clip, exact));
         var result = _edit.SetRecordingZeroOverride(_trainingAsset!.Id, zero);
         var done = anchor == ClimbAnchor.End ? Strings.Inspector_AlignedToClimbEnd : Strings.Inspector_AlignedToClimb;
         _status.Report(result.Success ? string.Format(done, climb.ClimbNumber) : result.Message ?? "");

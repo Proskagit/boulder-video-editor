@@ -27,7 +27,9 @@ public interface ITimelineEditService
     /// start on make room on the right (D037 §3), one that it would start inside refuses the add.
     /// Adding the first video fixes the project frame rate (see
     /// <see cref="ProjectSettings.IsFrameRateLocked"/>) in the same undo step.</summary>
-    TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null);
+    /// <remarks>D057 §3.12: with <paramref name="insertOnDrop"/> (a drop from the Media Browser) a start strictly inside a
+    /// clip puts the new clip right after that clip; D037 §3 pushes the later ones.</remarks>
+    TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null, bool insertOnDrop = false);
 
     /// <summary>D057 §3.2: several files at the end of their tracks, one after another in the given order — one Undo step;
     /// nothing is added when one of them cannot be.</summary>
@@ -54,16 +56,18 @@ public interface ITimelineEditService
     /// all clips must currently be on one track and move to the target track. The clips they then overlap from their start
     /// on make room on the right (D037 §3: on their track only; a partner follows or the move is refused); a moved clip
     /// starting inside another clip refuses the move.</summary>
-    TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null);
+    /// <remarks>D057 §3.12: with <paramref name="insertOnDrop"/> (a drag) a leading clip that would start inside a clip that
+    /// stays goes to that clip's start, which D037 §3 pushes right as far as needed; the nudge keeps Q11.</remarks>
+    TimelineEditResult MoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null, bool insertOnDrop = false);
 
     /// <summary>Dry run of <see cref="MoveClips"/> for drag previews: null when the move
     /// would succeed (or change nothing), otherwise the reason it would be rejected.</summary>
-    string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null);
+    string? CanMoveClips(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null, bool insertOnDrop = false);
 
     /// <summary>Dry run of <see cref="MoveClips"/> for the drag's preview (D037 §3): every clip the move would change — the
     /// moved clips, the partners that follow and the clips that make room — at its planned place; nothing applied. Null
     /// when the move would be refused; an empty map when it changes nothing.</summary>
-    MovePreview? PreviewMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null);
+    MovePreview? PreviewMove(IReadOnlyCollection<Guid> clipIds, long frameDelta, Guid? targetTrackId = null, bool insertOnDrop = false);
 
     /// <summary>Moves one edge of a clip to <paramref name="edgeTime"/> (snapped to the
     /// frame grid), clamped to neighbours, the source media and a one-frame minimum.</summary>

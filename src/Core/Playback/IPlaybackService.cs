@@ -71,6 +71,10 @@ public readonly record struct PlaybackFrame(MediaTime Position, long TimelineFra
 
     /// <summary>The project canvas the layers are laid out on.</summary>
     public FrameSize Canvas { get; init; }
+
+    /// <summary>The grid <see cref="TimelineFrame"/> counts on — the project's, or the navigation grid while paused between
+    /// the project's frames (D057 §3.14); null: the project's.</summary>
+    public FrameRate? Rate { get; init; }
 }
 
 /// <summary>

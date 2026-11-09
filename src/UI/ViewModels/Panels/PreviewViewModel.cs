@@ -36,6 +36,8 @@ public sealed partial class PreviewViewModel : ViewModelBase
     private ImmutableDictionary<Guid, PlaybackSnapshotBuilder.AssetState> _assetStates =
         ImmutableDictionary<Guid, PlaybackSnapshotBuilder.AssetState>.Empty;
     private bool _needsTick = true;
+    /// <summary>The ticks of the timeline position last reported to the playhead (−1: none) — D057 §3.14: a time, since
+    /// the pipeline's grid may change.</summary>
     private long _lastReportedFrame = -1;
     private bool _reportedUnavailable;
     private bool _reportedNoAudio;
@@ -140,7 +142,8 @@ public sealed partial class PreviewViewModel : ViewModelBase
         // the next ones, which found the end already reported. Only for the user's seek: the resync after an edit
         // (OnTimelineChanged) reports the new end, which clamps the playhead there.
         if (position > _playback.Duration)
-            _lastReportedFrame = _playback.Duration.ToFrameFloor(_projectService.Current.Settings.FrameRate);
+            _lastReportedFrame = MediaTime.FromFrame(_playback.Duration.ToFrameFloor(_projectService.Current.Settings.FrameRate),
+                _projectService.Current.Settings.FrameRate).Ticks;
         SeekPlayback(position);
     }
 
@@ -178,10 +181,16 @@ public sealed partial class PreviewViewModel : ViewModelBase
         {
             ShowSourcePosition(frame.TimelineFrame);   // never the timeline playhead (D031 SQ2)
         }
-        else if (frame.TimelineFrame != _lastReportedFrame)
+        else
         {
-            _lastReportedFrame = frame.TimelineFrame;
-            PlaybackPositionChanged?.Invoke(this, MediaTime.FromFrame(frame.TimelineFrame, _projectService.Current.Settings.FrameRate));
+            // D057 §3.14: the frame is counted on the pipeline's grid — the project's, or the navigation grid while paused
+            // between the project's frames; the playhead is reported as that frame's time.
+            var reported = MediaTime.FromFrame(frame.TimelineFrame, frame.Rate ?? _projectService.Current.Settings.FrameRate);
+            if (reported.Ticks != _lastReportedFrame)
+            {
+                _lastReportedFrame = reported.Ticks;
+                PlaybackPositionChanged?.Invoke(this, reported);
+            }
         }
 
         if (!_playback.IsAvailable && !_reportedUnavailable)

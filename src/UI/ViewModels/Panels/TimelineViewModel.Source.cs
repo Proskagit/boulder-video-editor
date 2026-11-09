@@ -28,8 +28,8 @@ public sealed partial class TimelineViewModel
         var target = SourceTargetTrack(asset, soundOnly);
         var wasEmpty = IsTimelineEmpty;
         var result = overwrite
-            ? _edit.OverwriteClip(asset.Id, range.In, range.Out, Playhead, target?.Id, soundOnly)
-            : _edit.InsertClip(asset.Id, range.In, range.Out, Playhead, target?.Id, soundOnly);
+            ? _edit.OverwriteClip(asset.Id, range.In, range.Out, EditPlayhead, target?.Id, soundOnly)
+            : _edit.InsertClip(asset.Id, range.In, range.Out, EditPlayhead, target?.Id, soundOnly);
         if (result.Success)
         {
             // SQ10: the new clip is the selection and the playhead goes to its end, ready for the next one.
