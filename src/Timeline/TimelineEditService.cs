@@ -413,6 +413,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
             // D053: the copy's route is the copied route (its id kept on the copied clip); a copy is never the FIT's route.
             if (copy.AnchorClipId is null) copy.AnchorRouteId = null;
             copy.FitClimb = null;
+            copy.FitLayout = null;
         }
         var entries = clips.OrderBy(c => c.TimelineStart)
             .Select(c => new TimelineClipboardEntry(copies[c], plan.TrackOf(c).Id))
@@ -484,6 +485,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 template.AnchorClipId = template.AnchorClipId is { } anchor && pastedOf.TryGetValue(anchor, out var video) ? video : null;
                 if (template.AnchorClipId is null) template.AnchorRouteId = null;
                 template.FitClimb = null;
+                template.FitLayout = null;
             }
 
         // D051 §5.4 (B1): never a second copy of a markup linked to a FIT climb.
@@ -1782,14 +1784,21 @@ public sealed partial class TimelineEditService : ITimelineEditService
         IUndoableCommand command = new SetRecordingZeroOverrideCommand(asset, asset.RecordingZeroOverrideUtc, utc);
         // D051 §5.5 (B3): the proposals of the new Z are part of the same step.
         var proposals = ProposalsForZero(asset, utc);
-        if (proposals is not null)
-            command = new CompositeCommand(command.Description, new[] { command, proposals });
+        // D056 §2: the FIT's areas of this video the user has not changed are laid out again by the new time, same step.
+        var relayout = RelayoutFitAreas(asset, utc, out var moved, out var kept);
+        var parts = new List<IUndoableCommand> { command };
+        if (proposals is not null) parts.Add(proposals);
+        if (relayout is not null) parts.Add(relayout);
+        if (parts.Count > 1) command = new CompositeCommand(command.Description, parts);
         ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged));
-        // D054 (D053 §7, mode B): the clips of this video are bound to the FIT by the new Z — a step of its own; the areas
-        // already there (made by the file's time, say) are kept.
+        var notes = new List<string>();
+        if (moved > 0) notes.Add(string.Format(Messages.FitRoutes_LaidOutAgain, moved));
+        if (kept > 0) notes.Add(string.Format(Messages.FitRoutes_KeptByHand, kept));
+        // D054 (D053 §7, mode B): the clips of this video are bound to the FIT by the new Z — a step of its own; a climb that
+        // has an area already (laid out again above, or changed by hand) never gets a second one.
         if (utc is not null && Project.Training is { IsUsable: true } && BindFitClimbs(null, asset.Id) is { Success: true, NoChange: false } created)
-            return TimelineEditResult.Ok(created.ClipIds, created.Message);
-        return TimelineEditResult.Ok();
+            return TimelineEditResult.Ok(created.ClipIds, string.Join(" ", notes.Append(created.Message ?? "").Where(n => n.Length > 0)));
+        return notes.Count > 0 ? TimelineEditResult.Ok(Array.Empty<Guid>(), string.Join(" ", notes)) : TimelineEditResult.Ok();
     }
 
     public TimelineEditResult SetProjectSettings(int width, int height, FrameRate? rate, ExportEncoding? export = null)
@@ -2442,7 +2451,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 ShowHeartRate = p.ShowHeartRate, HeartHex = p.HeartHex,
                 // D048 §3.5: kept by a split's right part (re-anchored by the split); remapped or cleared by a paste. D053: the
                 // route and the FIT climb go with it (cleared on a copy).
-                AnchorClipId = p.AnchorClipId, AnchorRouteId = p.AnchorRouteId, FitClimb = p.FitClimb
+                AnchorClipId = p.AnchorClipId, AnchorRouteId = p.AnchorRouteId, FitClimb = p.FitClimb, FitLayout = p.FitLayout
             },
             _ => throw new NotSupportedException($"Unknown clip type {source.GetType().Name}.")
         };

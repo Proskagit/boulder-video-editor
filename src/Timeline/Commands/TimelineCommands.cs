@@ -140,6 +140,22 @@ public sealed class SetRecordingZeroOverrideCommand(MediaAsset asset, DateTimeOf
     public void Undo() => asset.RecordingZeroOverrideUtc = before;
 }
 
+/// <summary>D056 §2: the layouts of FIT areas laid out again (their bounds are the plan's command).</summary>
+public sealed class SetFitLayoutsCommand(IReadOnlyList<(TemplateClip Template, FitAreaLayout? Before, FitAreaLayout After)> layouts) : IUndoableCommand
+{
+    public string Description => "Lay Out FIT Areas Again";
+
+    public void Execute()
+    {
+        foreach (var (template, _, after) in layouts) template.FitLayout = after;
+    }
+
+    public void Undo()
+    {
+        foreach (var (template, before, _) in layouts) template.FitLayout = before;
+    }
+}
+
 public sealed class AddTrackCommand(Sequence sequence, Track track) : IUndoableCommand
 {
     public string Description => "Add Track";

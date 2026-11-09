@@ -84,7 +84,7 @@ public class RoutesPersistenceTests
 
         var first = Save(project);
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(16, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(17, root["formatVersion"]!.GetValue<int>());
         Assert.Null(ClipJson(root)["holdMarkup"]);
         Assert.Equal(new[] { a.Id.ToString(), b.Id.ToString() }, ClipJson(root)["routes"]!.AsArray().Select(r => r!["id"]!.GetValue<string>()));
 
@@ -112,7 +112,7 @@ public class RoutesPersistenceTests
         Assert.Equal(video.Id, route.Id);                                         // the same file opened twice: the same route
         Assert.All(loaded.Timeline.VideoTracks[1].Clips.OfType<TemplateClip>(), t => Assert.Equal(route.Id, t.AnchorRouteId));
         Assert.Equal(route.Id, ((VideoClip)Load(v14).Timeline.VideoTracks[0].Clips[0]).Routes[0].Id);
-        Assert.Equal(16, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(17, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]

@@ -9378,6 +9378,18 @@ like every template, no heart rate (D055 §4) — expected, but it looks unlike 
    earlier, so its peak meets the end of the climb, is an experiment of its own — never a change of the FIT's samples,
    `T_file`, `CC` or `Z`, never a correction of the synchronisation; nothing is implemented without the owner's decision.
 
+**As implemented (PR 2, 2026-11-09).** §2: a FIT area stores `fitLayout` (`project.json` **v17**) — its first and end
+frame as source ticks of its anchored clip and its status moment; an area is untouched while its bounds are those (a move,
+trim or split of its clip elsewhere keeps them; a trim, a drag or «Разложить» of the area changes them). A v16 file's FIT
+area has none and counts as untouched only when its bounds are the ones the rule gives by the current time. The re-layout
+is part of the `Z`'s own step (the `Z`, its FIT marks, the areas — one Undo); `T` by the new time is the mark's own start
+when it does not hang on `Z` (moved, clamped, linked), else `W_auto`. An area stays when the clip no longer shows its climb
+by the new time, on a locked track, or when its new bounds would cover another clip. The status bar names the areas laid
+out again and those kept as changed by hand. §3: the «Зацепки» section shows «Трасса» outside every green of a clip that has
+FIT routes — the FIT routes nearest first («Подъём N из FIT · … с от плейхеда»), a route marked without a green, «Новая
+трасса»; the default is the nearest FIT route within 30 s, else D053's; a choice stays while the default does; a hint says
+when no FIT route is within 30 s. Inside a green and on a clip without FIT routes D053 is unchanged.
+
 **Unchanged.** D055 (`w = T_file + s + CC`, `Z` never read for the heart rate); D054's binding time, the rule of a shown
 climb, «never twice» (a `Z` that lays out an area again never adds one for its climb); D053's several independent routes on
 a clip; the lilac Top / Attempt; the free «Боулдер»'s semantics.

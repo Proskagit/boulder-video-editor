@@ -94,7 +94,10 @@ public sealed class HeartRateAreaUiTests
 
         Assert.Equal(100 + 25, ValueAt(25));                         // the clip's picture at 25 s: w = W0 + 25 s
         Assert.True(_edit.SetRecordingZeroOverride(clip.MediaAssetId, W0.AddSeconds(-40)).Success);   // the user's Z
-        Assert.Equal(100 + 25, ValueAt(25));                         // D055 §2: never moved by Z
+        // D056 §2: the untouched area is laid out again by the Z (40 s later on the clip); its heart rate stays the file
+        // time's — D055 §2: never moved by Z.
+        Assert.True(area.TimelineStart > MediaTime.FromSeconds(25));
+        Assert.Equal(100 + 65, ValueAt(65));
 
         Assert.True(_edit.TrimClip(area.Id, ClipEdge.Start, MediaTime.FromSeconds(10)).Success);      // stretched by hand
         Assert.Equal(100 + 12, ValueAt(12));

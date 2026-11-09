@@ -39,7 +39,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 16;
+    public const int CurrentFormatVersion = 17;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -92,6 +92,10 @@ public static class ProjectSerializer
     /// <summary>The first version with a green route area's heart rate (D055 §5): a «Боулдер» stores whether it shows the
     /// heart rate, its look, corner and heart colour. A v15 file's areas show it with the defaults and are saved as v16.</summary>
     private const int HeartRateAreaVersion = 16;
+
+    /// <summary>The first version with the laid-out bounds of a FIT area (D056 §2). A v16 file's FIT areas have none (they
+    /// are laid out again by a new <c>Z</c> only when their bounds are the rule's by the current time) and are saved as v17.</summary>
+    private const int FitLayoutVersion = 17;
 
     /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
     /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
@@ -430,6 +434,9 @@ public static class ProjectSerializer
                 AnchorClipId = p.AnchorClipId,
                 AnchorRouteId = p.AnchorClipId is null ? null : p.AnchorRouteId,
                 FitClimb = p.AnchorClipId is not null && p.FitClimb is { } fitClimb ? ToDto(fitClimb) : null,
+                FitLayout = p.AnchorClipId is not null && p.FitClimb is not null && p.FitLayout is { } layout
+                    ? new FitAreaLayoutDto { SourceStartTicks = layout.SourceStart.Ticks, SourceEndTicks = layout.SourceEnd.Ticks, StatusAtTicks = layout.StatusAt.Ticks }
+                    : null,
                 Look = p.Kind is TemplateKind.HeartRate or TemplateKind.Boulder ? p.Look : null,
                 Corner = p.Kind is TemplateKind.HeartRate or TemplateKind.Boulder ? p.Corner : null,
                 ShowHeartRate = p.Kind == TemplateKind.Boulder ? p.ShowHeartRate : null,
@@ -585,6 +592,11 @@ public static class ProjectSerializer
             training.DeclinedClimbs.Add(new DeclinedClimb(climb, former));
         }
     }
+
+    private static FitAreaLayout ReadFitLayout(FitAreaLayoutDto dto) =>
+        dto.SourceEndTicks > dto.SourceStartTicks && dto.StatusAtTicks >= 0
+            ? new FitAreaLayout(new MediaTime(dto.SourceStartTicks), new MediaTime(dto.SourceEndTicks), new MediaTime(dto.StatusAtTicks))
+            : throw Damaged("a FIT area's layout is invalid");
 
     private static ClimbIdentity ReadClimb(ClimbIdentityDto dto) => new(dto.Key, dto.Number, dto.StartUtc.ToUniversalTime());
 
@@ -799,7 +811,7 @@ public static class ProjectSerializer
         foreach (var template in sequence.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>())
         {
             if (template.AnchorClipId is { } anchor && !videos.ContainsKey(anchor)) template.AnchorClipId = null;
-            if (template.AnchorClipId is not { } clipId) { template.AnchorRouteId = null; template.FitClimb = null; continue; }
+            if (template.AnchorClipId is not { } clipId) { template.AnchorRouteId = null; template.FitClimb = null; template.FitLayout = null; continue; }
             if (formatVersion >= RoutesVersion) continue;   // a route without markup is a route with its green only (D053)
             // D053: a file before v15 had one markup per clip — its templates belong to it; the templates of a clip without
             // markup (its markup deleted, D048 §3.9) belong to one route of their own, its green only.
@@ -953,6 +965,7 @@ public static class ProjectSerializer
                 AnchorClipId = formatVersion >= RouteTimingVersion ? p.AnchorClipId : null,
                 AnchorRouteId = formatVersion >= RoutesVersion ? p.AnchorRouteId : null,
                 FitClimb = formatVersion >= RoutesVersion && p.FitClimb is { } fitClimb ? ReadClimb(fitClimb) : null,
+                FitLayout = formatVersion >= FitLayoutVersion && p.FitClimb is not null && p.FitLayout is { } layout ? ReadFitLayout(layout) : null,
                 // Phase 35.5: the heart-rate overlay's look and corner are required on it, absent on the other kinds.
                 // D055 §5: from v16 a «Боулдер» has them too (required); an older one gets the defaults.
                 Look = !HasHeartRateFields(p.Template, formatVersion) ? HeartRateLook.Plate

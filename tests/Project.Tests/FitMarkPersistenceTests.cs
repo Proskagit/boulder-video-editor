@@ -105,7 +105,7 @@ public class FitMarkPersistenceTests
         var project = Build(true);
         var first = Save(project);
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(16, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(17, root["formatVersion"]!.GetValue<int>());
         var training = TrainingJson(root);
         Assert.Equal("proposed", Mark(training, 0)["position"]!.GetValue<string>());
         Assert.Null(Mark(training, 0)["sourceTimeTicks"]);

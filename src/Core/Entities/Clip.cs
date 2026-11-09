@@ -203,7 +203,16 @@ public sealed class TemplateClip : Clip
     /// <summary>D053 §6 (format v15): the FIT climb this route's green was created for by the FIT import; null for a route
     /// made by hand. A new import of the same FIT never creates a second route for the same climb.</summary>
     public Core.Telemetry.ClimbIdentity? FitClimb { get; set; }
+
+    /// <summary>D056 §2 (format v17): the bounds a route area made from the FIT was laid out with; an area whose bounds are
+    /// still these is laid out again when its video's <c>Z</c> changes. Null: not made from the FIT, or made before v17 (an
+    /// older file's area is laid out again only when its bounds are the ones the FIT's rule gives now).</summary>
+    public FitAreaLayout? FitLayout { get; set; }
 }
+
+/// <summary>D056 §2: how a route area made from the FIT was laid out — its first frame and its end as source times of its
+/// anchored clip (kept when the clip moves, trims or splits elsewhere) and its status moment on its own clock.</summary>
+public sealed record FitAreaLayout(MediaTime SourceStart, MediaTime SourceEnd, MediaTime StatusAt);
 
 /// <summary>The four templates of Phase 29 (D045 §1; WASTED deferred, §15) and the heart-rate overlay of Phase 35.5 (D050:
 /// a heart icon with the BPM of the picture below it, from the project's training).</summary>

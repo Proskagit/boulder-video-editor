@@ -126,3 +126,16 @@ videos `100628`, `101034`, `101712`, `103744` and the edited `103026` of `Боу
 | H9 | A green made by hand on a timed video | the heart rate as in a FIT-made one | automated on the real files |
 | H10 | The heart-rate overlay («Пульс») over a clip whose `Z` changes | it never moves | `HeartRateOverlayUiTests`, `HeartRateOverlayTests` |
 | H11 | The training's clock correction +10 s | every video's heart rate moves by 10 s alike | `HeartRateOverlayUiTests`, `TrainingProjectAcceptanceTests` C7 / C7a |
+
+## F. D056 — the FIT's route areas after the check of 2026-11-09
+
+In a **copy** of the project; the original never saved.
+
+| # | Check | Expected result | Evidence |
+|---|---|---|---|
+| R1 | Select `101034`, the playhead in climb 3's green area | «Подъём» shows climb 3; «Совместить кадр с концом подъёма» enabled | `InspectorClimbPreselectTests` |
+| R2 | There choose climb 2 and press «Совместить…» | «Другой подъём» asks; «Отмена» changes nothing (no `Z`, no new area) | `InspectorClimbPreselectTests` |
+| R3 | Match climb 3 at its visible end | its green moves to the new time, no second area; one Undo restores both | `FitAreaRelayoutTests` |
+| R4 | Trim a FIT green by hand, then set the video's `Z` | that green stays; the status bar says it was kept | `FitAreaRelayoutTests` |
+| R5 | On `101712` put the playhead 8 s before climb 4's green, «Разметить зацепки» | «Трасса» offers «Подъём 4 из FIT»; the holds go to that route, no new green | `HoldRouteChoiceUiTests` |
+| R6 | The same with «Новая трасса» chosen | a new route; climb 4's green untouched | `HoldRouteChoiceUiTests` |

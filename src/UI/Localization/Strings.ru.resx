@@ -330,6 +330,27 @@
   <data name="Holds_LayOutTip" xml:space="preserve">
     <value>От плейхеда — начала пролаза (T): анимация зацепок за 5 с до T, плашка трассы с 7 с до T, Top / Attempt на последние 5 с клипа (не раньше T). Если до T меньше 7 с, вступление сокращается в отношении 2 : 5. Один шаг отмены.</value>
   </data>
+  <data name="Holds_Route" xml:space="preserve">
+    <value>Трасса</value>
+  </data>
+  <data name="Holds_RouteTip" xml:space="preserve">
+    <value>Трасса, на которой размечаются зацепки. Рядом с трассой из FIT выбирается ближайшая в пределах 30 с; можно выбрать другую или «Новая трасса».</value>
+  </data>
+  <data name="Holds_RouteFit" xml:space="preserve">
+    <value>Подъём {0} из FIT · {1} с от плейхеда</value>
+  </data>
+  <data name="Holds_RouteFitWithHolds" xml:space="preserve">
+    <value>Подъём {0} из FIT · {1} с от плейхеда · зацепок: {2}</value>
+  </data>
+  <data name="Holds_RouteMarkedOnly" xml:space="preserve">
+    <value>Трасса без области · зацепок: {0}</value>
+  </data>
+  <data name="Holds_RouteNew" xml:space="preserve">
+    <value>Новая трасса</value>
+  </data>
+  <data name="Holds_RouteNoFitNear" xml:space="preserve">
+    <value>Рядом с плейхедом (±{0} с) нет трассы из FIT: зацепки попадут в выбранную трассу.</value>
+  </data>
   <data name="Holds_OrderLeftToRight" xml:space="preserve">
     <value>Слева направо</value>
   </data>

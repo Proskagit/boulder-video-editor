@@ -593,6 +593,16 @@
                   <TextBlock Text="{Binding HoldCount, StringFormat={x:Static l:Strings.Holds_MarkedCount}}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
 
+                <!-- D056 §3: outside every green near the FIT's routes — the route the holds are marked on. -->
+                <StackPanel Spacing="4" IsVisible="{Binding ShowsRouteChoice}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static l:Strings.Holds_Route}" Classes="label" VerticalAlignment="Center"/>
+                    <ComboBox ItemsSource="{Binding RouteChoices}" SelectedIndex="{Binding SelectedRouteChoiceIndex, Mode=TwoWay}" MinWidth="200"
+                              IsEnabled="{Binding !IsActive}" ToolTip.Tip="{x:Static l:Strings.Holds_RouteTip}"/>
+                  </StackPanel>
+                  <TextBlock Text="{Binding RouteChoiceHint}" Foreground="#AAAAAA" TextWrapping="Wrap" IsVisible="{Binding RouteChoiceHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                </StackPanel>
+
                 <!-- D048 §2: the route selection at T — the control hold, the clean frame 5 s earlier, the review.
                      Hidden for now by the product owner's decision (2026-10-28, docs/HOLD_AUTO_DETECTION_RESEARCH.md §9):
                      the automatic route scan is not yet practical. The command, the services and the review stay; to

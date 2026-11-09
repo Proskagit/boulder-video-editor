@@ -479,7 +479,9 @@ src/Project/Persistence/ProjectSerializer.cs	empty route entry
 src/Project/Persistence/ProjectSerializer.cs	two routes of one clip have the same id
 src/Project/Persistence/ProjectSerializer.cs	a route has no id
 src/Timeline/TimelineEditService.FitMarks.cs	Create Route Areas from FIT
+src/Timeline/TimelineEditService.FitMarks.cs	Lay Out FIT Areas Again
 src/Project/Persistence/ProjectSerializer.cs	a route area's heart rate is missing
 src/Project/Persistence/ProjectSerializer.cs	a route area's heart colour is missing
+src/Project/Persistence/ProjectSerializer.cs	a FIT area's layout is invalid
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Show Heart Rate
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Hide Heart Rate

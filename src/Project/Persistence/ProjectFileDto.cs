@@ -427,6 +427,14 @@ internal sealed class ImageClipDto : MediaBackedClipDto
     public CropDto? Crop { get; set; }
 }
 
+/// <summary>Format v17 (D056 §2): a FIT area's laid-out bounds — source ticks of its anchored clip — and status moment.</summary>
+internal sealed class FitAreaLayoutDto
+{
+    public long SourceStartTicks { get; set; }
+    public long SourceEndTicks { get; set; }
+    public long StatusAtTicks { get; set; }
+}
+
 /// <summary>Format v9 (D045): a template — its kind, the counter's start and every field (each kind keeps the others).
 /// Every member is required.</summary>
 internal sealed class TemplateClipDto : ClipDto
@@ -455,6 +463,10 @@ internal sealed class TemplateClipDto : ClipDto
     /// <summary>Format v15 (D053 §6): the FIT climb the route's green was created for; written only when set.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ClimbIdentityDto? FitClimb { get; set; }
+
+    /// <summary>Format v17 (D056 §2): the bounds the FIT's area was laid out with; written only with <see cref="FitClimb"/>.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public FitAreaLayoutDto? FitLayout { get; set; }
 
     /// <summary>Format v13 (Phase 35.5): the heart-rate overlay's look and corner; written (and required) only on it.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
@@ -69,6 +70,38 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     /// <summary>D053: the route the section shows (for the tests and the shell).</summary>
     public Guid? CurrentRouteId => _routeId;
 
+    /// <summary>D056 §3: how far from the playhead a FIT route is offered for the holds by default.</summary>
+    public static readonly MediaTime FitRouteReach = MediaTime.FromSeconds(30);
+
+    /// <summary>D056 §3: the routes the «Трасса» list offers, in its order (null: «Новая трасса»).</summary>
+    private readonly List<Guid?> _routeChoices = new();
+
+    /// <summary>D056 §3: the route the list offered by default when the user chose another; the choice stays while it does.</summary>
+    private Guid? _choiceDefault;
+
+    /// <summary>D056 §3: the user chose the route in the list (kept while the default stays the same).</summary>
+    private bool _routeChosen;
+
+    /// <summary>D056 §3: outside every green of a clip that has routes made from the FIT, the «Трасса» list is shown.</summary>
+    [ObservableProperty] private bool _showsRouteChoice;
+
+    /// <summary>«Подъём N из FIT · … с от плейхеда», «Трасса без области · зацепок: N», «Новая трасса».</summary>
+    public ObservableCollection<string> RouteChoices { get; } = new();
+
+    [ObservableProperty] private int _selectedRouteChoiceIndex = -1;
+
+    /// <summary>Why no FIT route is offered by default (none within <see cref="FitRouteReach"/>); empty otherwise.</summary>
+    [ObservableProperty] private string _routeChoiceHint = "";
+
+    partial void OnSelectedRouteChoiceIndexChanged(int value)
+    {
+        if (_syncing || IsActive || value < 0 || value >= _routeChoices.Count) return;
+        _routeId = _routeChoices[value];
+        _routeChosen = true;
+        LoadStyle();
+        RefreshCommands();
+    }
+
     /// <summary>Resolves <see cref="_routeId"/> from the playhead (not while the mode is active); true when it changed.</summary>
     private bool ResolveRoute()
     {
@@ -76,6 +109,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (_clip is null)
         {
             _routeId = null;
+            HideRouteChoice();
             return before is not null;
         }
         if (IsActive) return false;
@@ -84,10 +118,102 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         long first = _clip.TimelineStart.ToNearestFrame(rate), last = Math.Max(first, _clip.TimelineEnd.ToNearestFrame(rate) - 1);
         var frame = Math.Clamp(Playhead().ToFrameFloor(rate), first, last);
         var anchored = RouteOverlays.AnchoredTo(_clip, project.Timeline.VideoTracks.SelectMany(t => t.Clips)).ToList();
-        if (RouteOverlays.RouteAt(_clip, anchored, frame, rate) is { } found) _routeId = found;
-        else if (_routeId is { } kept && (RouteOverlays.Find(_clip, kept) is not null || anchored.Any(t => RouteOverlays.RouteIdOf(t, _clip) == kept)))
-            _routeId = null;   // an existing route elsewhere: here a new one
+        if (RouteOverlays.GreenAt(_clip, anchored, frame, rate) is { } inside)
+        {
+            _routeId = inside;
+            HideRouteChoice();
+            return before != _routeId;
+        }
+        var fit = RouteOverlays.FitRoutesNear(_clip, anchored, frame, rate);
+        var marked = RouteOverlays.MarkedWithoutGreen(_clip, anchored);
+        if (fit.Count == 0)
+        {
+            // D053: a route marked before its layout, else a new one.
+            HideRouteChoice();
+            if (marked is { } found) _routeId = found;
+            else if (_routeId is { } kept && RouteExists(_clip, anchored, kept)) _routeId = null;   // an existing route elsewhere: here a new one
+            return before != _routeId;
+        }
+
+        // D056 §3: outside every green near the FIT's routes — the nearest within reach by default, another one, the route
+        // marked before its layout or a new one by the user's choice; nothing is merged without it.
+        var reach = FitRouteReach.ToNearestFrame(rate);
+        Guid? byDefault = fit[0].Distance <= reach ? fit[0].RouteId : marked;
+        var choices = new List<Guid?>();
+        var labels = new List<string>();
+        foreach (var (id, number, distance) in fit)
+        {
+            choices.Add(id);
+            var markup = RouteOverlays.Find(_clip, id);
+            labels.Add(string.Format(markup is { Holds.Length: > 0 } ? Strings.Holds_RouteFitWithHolds : Strings.Holds_RouteFit, number,
+                MediaTime.FromFrame(distance, rate).TotalSeconds.ToString("0", System.Globalization.CultureInfo.CurrentCulture),
+                markup?.Holds.Length ?? 0));
+        }
+        if (marked is { } withoutGreen && !choices.Contains(withoutGreen))
+        {
+            choices.Add(withoutGreen);
+            labels.Add(string.Format(Strings.Holds_RouteMarkedOnly, RouteOverlays.Find(_clip, withoutGreen)?.Holds.Length ?? 0));
+        }
+        choices.Add(null);
+        labels.Add(Strings.Holds_RouteNew);
+
+        var keep = _routeChosen && _choiceDefault == byDefault && (_routeId is null ? true : choices.Contains(_routeId) || !RouteExists(_clip, anchored, _routeId.Value));
+        if (!keep)
+        {
+            _routeChosen = false;
+            _routeId = byDefault;
+        }
+        _choiceDefault = byDefault;
+        // A new route the user's first hold gave an id (not yet in the list as a marked route): it is the user's choice.
+        if (_routeId is { } current && !choices.Contains(current))
+        {
+            choices.Insert(choices.Count - 1, current);
+            labels.Insert(labels.Count - 1, string.Format(Strings.Holds_RouteMarkedOnly, RouteOverlays.Find(_clip, current)?.Holds.Length ?? 0));
+        }
+
+        var wasSyncing = _syncing;
+        _syncing = true;
+        try
+        {
+            if (!RouteChoices.SequenceEqual(labels))
+            {
+                RouteChoices.Clear();
+                foreach (var label in labels) RouteChoices.Add(label);
+            }
+            _routeChoices.Clear();
+            _routeChoices.AddRange(choices);
+            SelectedRouteChoiceIndex = _routeChoices.IndexOf(_routeId);
+            ShowsRouteChoice = true;
+            RouteChoiceHint = fit[0].Distance <= reach ? "" : string.Format(Strings.Holds_RouteNoFitNear, FitRouteReach.TotalSeconds);
+        }
+        finally
+        {
+            _syncing = wasSyncing;
+        }
         return before != _routeId;
+    }
+
+    private static bool RouteExists(VideoClip clip, IEnumerable<TemplateClip> anchored, Guid id) =>
+        RouteOverlays.Find(clip, id) is not null || anchored.Any(t => RouteOverlays.RouteIdOf(t, clip) == id);
+
+    private void HideRouteChoice()
+    {
+        _routeChosen = false;
+        _choiceDefault = null;
+        _routeChoices.Clear();
+        var wasSyncing = _syncing;
+        _syncing = true;
+        try
+        {
+            ShowsRouteChoice = false;
+            RouteChoiceHint = "";
+            if (RouteChoices.Count > 0) RouteChoices.Clear();
+            SelectedRouteChoiceIndex = -1;
+        }
+        finally
+        {
+            _syncing = wasSyncing;
+        }
     }
     private bool _syncing;
     private readonly List<HoldProposal> _proposalSource = new();
@@ -190,7 +316,11 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     {
         var video = clip as VideoClip;
         if (!ReferenceEquals(video, _clip)) Exit();
-        if (!ReferenceEquals(video, _clip)) _routeId = null;
+        if (!ReferenceEquals(video, _clip))
+        {
+            _routeId = null;
+            _routeChosen = false;
+        }
         _clip = video;
         ResolveRoute();
         HasClip = video is not null;
