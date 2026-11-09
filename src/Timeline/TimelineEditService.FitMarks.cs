@@ -249,6 +249,7 @@ public sealed partial class TimelineEditService : IFitMarkEditService
             template.Status = BoulderStatus.None;   // the lilac is added by hand
             template.FitClimb = identity;
             template.FitLayout = FitLayoutOf(clip, ps, pe, template.StatusAt, rate);
+            template.RouteStart = TrainingAlignment.SourceTimeAt(clip, tf, rate);   // D056 §4
 
             // A track above the clip free on [Ps, Pe) — also of the templates placed before — or a new one.
             var videoTrack = plan.TrackOf(clip);
@@ -357,6 +358,7 @@ public sealed partial class TimelineEditService : IFitMarkEditService
 
         var plan = new EditPlan(Sequence, Settings);
         var layouts = new List<(TemplateClip Template, FitAreaLayout? Before, FitAreaLayout After)>();
+        var starts = new List<(TemplateClip Template, MediaTime? Before, MediaTime? After)>();
         foreach (var template in areas)
         {
             var clip = videos[template.AnchorClipId!.Value];
@@ -395,10 +397,12 @@ public sealed partial class TimelineEditService : IFitMarkEditService
             plan.Carried.Add(template);
             plan.SetTemplateFields(template, newFields);
             layouts.Add((template, template.FitLayout, after));
+            starts.Add((template, template.RouteStart, TrainingAlignment.SourceTimeAt(clip, frames.Tf, rate)));
         }
         if (layouts.Count == 0 || Validate(plan) is not null) return null;
         moved = layouts.Count;
-        return new CompositeCommand("Lay Out FIT Areas Again", new IUndoableCommand[] { plan.BuildCommand("Lay Out FIT Areas Again"), new SetFitLayoutsCommand(layouts) });
+        return new CompositeCommand("Lay Out FIT Areas Again", new IUndoableCommand[]
+            { plan.BuildCommand("Lay Out FIT Areas Again"), new SetFitLayoutsCommand(layouts), new SetRouteStartsCommand(starts) });
     }
 
     // ---- The paste of a duplicate FIT markup (D051 §5.4, B1) -------------------------------------------------------------

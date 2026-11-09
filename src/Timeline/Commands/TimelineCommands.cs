@@ -156,6 +156,22 @@ public sealed class SetFitLayoutsCommand(IReadOnlyList<(TemplateClip Template, F
     }
 }
 
+/// <summary>D056 §4: the computed route starts <c>T</c> of route areas laid out (again).</summary>
+public sealed class SetRouteStartsCommand(IReadOnlyList<(TemplateClip Template, MediaTime? Before, MediaTime? After)> starts) : IUndoableCommand
+{
+    public string Description => "Set Route Start";
+
+    public void Execute()
+    {
+        foreach (var (template, _, after) in starts) template.RouteStart = after;
+    }
+
+    public void Undo()
+    {
+        foreach (var (template, before, _) in starts) template.RouteStart = before;
+    }
+}
+
 public sealed class AddTrackCommand(Sequence sequence, Track track) : IUndoableCommand
 {
     public string Description => "Add Track";

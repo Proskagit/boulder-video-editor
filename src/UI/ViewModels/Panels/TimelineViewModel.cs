@@ -363,6 +363,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// status moment on the template's clock (<see cref="TemplateClip.CounterStart"/> at the clip's start), when inside it.</summary>
     private void RefreshStatusMarks()
     {
+        RefreshRouteStartMarks();
         foreach (var vm in _clipViewModels.Values)
         {
             if (vm.Clip is not TemplateClip { Kind: TemplateKind.Boulder } template || template.Status == BoulderStatus.None)
@@ -379,6 +380,25 @@ public sealed partial class TimelineViewModel : ViewModelBase
         }
         RefreshStrips();
         RefreshFitMarks();
+    }
+
+    /// <summary>D056 §4: the start mark <c>T</c> of every route area (a «Боулдер» anchored to a video clip) at the current
+    /// zoom, when <c>T</c> is known and inside the area.</summary>
+    private void RefreshRouteStartMarks()
+    {
+        var videos = _projectService.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>().ToDictionary(c => c.Id);
+        foreach (var vm in _clipViewModels.Values)
+        {
+            vm.RouteStartMarkX = null;
+            if (vm.Clip is not TemplateClip { Kind: TemplateKind.Boulder, AnchorClipId: { } anchor } template ||
+                !videos.TryGetValue(anchor, out var video) || RouteOverlays.RouteStartOf(template, video, FrameRate) is not { } t)
+                continue;
+            var frame = HoldAnimationRule.StartFrame(video.TimelineStart, video.SourceIn, video.Speed, t, FrameRate);
+            long start = template.TimelineStart.ToNearestFrame(FrameRate), end = template.TimelineEnd.ToNearestFrame(FrameRate);
+            if (frame < start || frame >= end) continue;
+            vm.RouteStartMarkX = TimelineCoordinateMapper.TimeToX(MediaTime.FromFrame(frame - start, FrameRate), PixelsPerSecond);
+            vm.RouteStartMarkTip = string.Format(Strings.Timeline_RouteStartMark, Timecode(frame));
+        }
     }
 
     /// <summary>Recomputes every pixel position from the model at the current zoom.</summary>

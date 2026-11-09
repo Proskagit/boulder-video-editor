@@ -2451,7 +2451,7 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 ShowHeartRate = p.ShowHeartRate, HeartHex = p.HeartHex,
                 // D048 §3.5: kept by a split's right part (re-anchored by the split); remapped or cleared by a paste. D053: the
                 // route and the FIT climb go with it (cleared on a copy).
-                AnchorClipId = p.AnchorClipId, AnchorRouteId = p.AnchorRouteId, FitClimb = p.FitClimb, FitLayout = p.FitLayout
+                AnchorClipId = p.AnchorClipId, AnchorRouteId = p.AnchorRouteId, FitClimb = p.FitClimb, FitLayout = p.FitLayout, RouteStart = p.RouteStart
             },
             _ => throw new NotSupportedException($"Unknown clip type {source.GetType().Name}.")
         };

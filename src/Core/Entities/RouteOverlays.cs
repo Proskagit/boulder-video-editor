@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Playback;
 
 namespace AiVideoEditor.Core.Entities;
 
@@ -50,6 +51,19 @@ public static class RouteOverlays
     /// <summary>The markup of the route <paramref name="template"/> belongs to on <paramref name="clip"/>, or null.</summary>
     public static HoldMarkup? RouteOf(TemplateClip template, VideoClip clip) =>
         RouteIdOf(template, clip) is { } id ? Find(clip, id) : null;
+
+    /// <summary>
+    /// D056 §4: the computed start <c>T</c> of the route <paramref name="template"/> is the green of, as a source time of its
+    /// anchored <paramref name="clip"/> — the stored one, else (an older file) the end of its route's Duration animation
+    /// (D048 §3.4: the orange ends at <c>T</c>); null when neither is known.
+    /// </summary>
+    public static MediaTime? RouteStartOf(TemplateClip template, VideoClip clip, FrameRate rate)
+    {
+        if (template.RouteStart is { } stored) return stored;
+        if (RouteOf(template, clip)?.Animation is not { Mode: HoldAnimationMode.Duration } animation) return null;
+        var start = HoldAnimationRule.StartFrame(clip.TimelineStart, clip.SourceIn, clip.Speed, animation.StartSourceTime, rate);
+        return HoldAnimationRule.SourceTimeAt(clip.TimelineStart, clip.SourceIn, clip.Speed, start + HoldAnimationRule.DurationFrames(animation, rate), rate);
+    }
 
     /// <summary>The templates anchored to <paramref name="clip"/> among <paramref name="clips"/>.</summary>
     public static IEnumerable<TemplateClip> AnchoredTo(VideoClip clip, IEnumerable<Clip> clips) =>

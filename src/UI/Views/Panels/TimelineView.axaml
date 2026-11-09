@@ -428,6 +428,11 @@
                                   </LinearGradientBrush>
                                 </Border.Background>
                               </Border>
+                              <!-- D056 §4: a route area's computed start T, a thin dashed line (not the orange, not the status). -->
+                              <Canvas Grid.ColumnSpan="3" IsVisible="{Binding HasRouteStartMark}" IsHitTestVisible="False" ClipToBounds="True">
+                                <Line Name="RouteStartMark" Canvas.Left="{Binding RouteStartMarkLeft}" StartPoint="0.5,0" EndPoint="0.5,36"
+                                      Stroke="#F5F5F5" StrokeThickness="1" StrokeDashArray="2,2" ToolTip.Tip="{Binding RouteStartMarkTip}"/>
+                              </Canvas>
                               <!-- D045 §17: «Боулдер»'s status moment, a line on the clip at the frame its status appears. -->
                               <Canvas Grid.ColumnSpan="3" IsVisible="{Binding HasStatusMark}" IsHitTestVisible="False" ClipToBounds="True">
                                 <Border Name="StatusMark" Canvas.Left="{Binding StatusMarkLeft}" Width="2" Height="44"

@@ -103,6 +103,10 @@ public sealed partial class TimelineEditService
         if (Validate(plan) is { } error) return TimelineEditResult.Fail(string.Format(Messages.Edit_CantAddTemplate, plan.TrackOf(video).Name, error));
 
         IUndoableCommand command = plan.BuildCommand("Lay Out Intro and Final");
+        // D056 §4: the layout's T is the route's start, kept on its green.
+        var routeStart = HoldAnimationRule.SourceTimeAt(video.TimelineStart, video.SourceIn, video.Speed, tf, rate);
+        if (template.RouteStart != routeStart)
+            command = new CompositeCommand("Lay Out Intro and Final", new[] { command, new SetRouteStartsCommand(new[] { (template, template.RouteStart, (MediaTime?)routeStart) }) });
         if (addTrack is not null) command = new CompositeCommand("Lay Out Intro and Final", new[] { addTrack, command });
         if (also?.Invoke(animationFrames >= 1, rid) is { } extra) command = new CompositeCommand("Lay Out Intro and Final", new[] { command, extra });
         ExecuteTracked(new NotifyingCommand(command, _projectService.NotifyTimelineChanged), keep);

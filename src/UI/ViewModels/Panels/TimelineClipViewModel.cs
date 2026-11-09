@@ -39,11 +39,14 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
     /// <summary>What the rectangle shows: the name, with the link mark when linked.</summary>
     public string Label => IsLinked ? "🔗 " + Name : Name;
 
+    /// <summary>D056 §5: a free «Боулдер» (no anchor — not a route area) is drawn in the route's green, like the green of a
+    /// marked route; it still has no strip, no handles and no start mark <c>T</c>.</summary>
     public string ColorHex => Clip switch
     {
         VideoClip => "#3A5A78",
         AudioClip => "#3A784F",
         ImageClip => "#78703A",
+        TemplateClip { Kind: TemplateKind.Boulder, AnchorClipId: null } => TimelineViewModel.GreenHex,
         TemplateClip => "#783A5C",
         _ => "#5A3A78"
     };
@@ -92,6 +95,19 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
 
     public bool HasStatusMark => StatusMarkX is not null;
     public double StatusMarkLeft => StatusMarkX ?? 0;
+
+    /// <summary>D056 §4: a route area's computed start <c>T</c>, the pixel offset from the clip's left edge, or null — not a
+    /// route area, <c>T</c> unknown, or outside this clip. A thin dashed line, apart from the orange and the status mark.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasRouteStartMark))]
+    [NotifyPropertyChangedFor(nameof(RouteStartMarkLeft))]
+    private double? _routeStartMarkX;
+
+    public bool HasRouteStartMark => RouteStartMarkX is not null;
+    public double RouteStartMarkLeft => RouteStartMarkX ?? 0;
+
+    /// <summary>The start mark's tooltip: «Начало трассы (T) · timecode».</summary>
+    [ObservableProperty] private string _routeStartMarkTip = "";
 
     /// <summary>The mark's colour: TOP's yellow or ПОПЫТКА's blue, lightened to show on the clip.</summary>
     public string StatusMarkColorHex => Clip is TemplateClip { Status: BoulderStatus.Top } ? TemplateRules.TopHex : "#9DB8DC";
