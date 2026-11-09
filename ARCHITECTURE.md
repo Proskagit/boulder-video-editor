@@ -558,6 +558,13 @@ The product's main AI function: the route's holds outlined on a video clip, one 
   goes with its area, Undo / Redo and a reopened project included; editor only. The free «Боулдер» is drawn in the route
   area's green (`RouteAreaHex`). The D051 marks are not drawn on the clips (below).
 
+## Phase 38 — UX Improvements (D057)
+
+*Approved 2026-11-09; in progress — this section is completed block by block.* Global settings and UI state are per-user
+files under `%LOCALAPPDATA%\AiVideoEditor\config\`, never in `project.json`; the only format change is v19 (a video
+clip's background). The playhead may lie between the project's frames (D057 §3.14); clip edges and grid-bound edits stay
+on the project grid (D006).
+
 ## FIT route starts and the global start calibration (Phase 37, D051)
 
 *Approved 2026-11-03; implemented and merged with PR #33 (`1640996`); `project.json` v12. Record: `docs/PHASE37.md`.*

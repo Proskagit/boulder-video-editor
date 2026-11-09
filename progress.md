@@ -2,6 +2,11 @@
 
 ## Current phase
 
+**Phase 38 — UX Improvements before the MVP (D057, approved 2026-11-09) — in progress.** Documentation first (D057, the
+amendments of D006, D037, D041, D042, D045, D047, D048, D051, D055, D056; `docs/PHASE38_MANUAL_TEST_PLAN.md`), then blocks
+A–F (`docs/DEVELOPMENT_PLAN.md`, "Phase 38"). Then a target build for the owner's practical check; S1 / Phase 30 only after
+the MVP. Phase H's goal is covered by Phase 38; Phase 32 a distant idea; WASTED removed.
+
 **State on 2026-11-09** — `main` at `1a087ae` (the merge of PR #54), `project.json` v18. The phases' state and what comes
 next have one source: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering" → "Official phases"; this file is the dated
 working log.

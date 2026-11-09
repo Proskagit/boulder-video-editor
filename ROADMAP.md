@@ -84,6 +84,19 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 
 ## Current
 
+**Phase 38 — UX Improvements before the MVP (DECISIONS.md D057, approved 2026-11-09) — in progress.** The order: Phase 38
+→ a target build → the owner's practical check and its fixes → a decision on the items checked on the build and on the UX
+backlog → a decision on the large functions → **S1 / Phase 30** (the technical preparation of the distribution). The MVP
+(the product's readiness for use) and S1 (the distribution's technical readiness) are different stages. The scope 2.1–2.15:
+the Inspector in collapsible sections, several files from the Media Browser (Ctrl+A there, by recording time, one Undo), the
+clip's context menu, the window layout kept, Shift+click ranges, FU-PF.1, a blurred background per clip (`project.json` v19),
+a settings window with the heart-rate display offset (−60 s), YouTube timestamps, the timeline's scroll bar and wheel, a drop
+on an occupied place, live Preview scrubbing, frame stepping by the source's frame rate, hold proposals off by default.
+Record: D057; manual plan `docs/PHASE38_MANUAL_TEST_PLAN.md`. **Phase H:** its goal is covered by Phase 38; its former scope
+is not restored. **Phase 32** leaves the active plan (a distant idea); **WASTED** is removed from the plan and the backlog.
+Kept apart: Phases 33 / 34 on real footage, Step 35.4's C5, Phase 31's D3 / C5, R10, the HDR visual check, the NOT RUN rows
+of Phases 23 / 25, the remaining S1 checks.
+
 **State on 2026-11-03** (`main` at `1640996`, the merge of PR #33; `project.json` v12; the table of every phase:
 `docs/DEVELOPMENT_PLAN.md`, "Official phases"). The **complete phases** (merged and accepted) are **1–29, 31 and 37** (Phases 31
 and 37 accepted on 2026-11-04, Phase 31 with D3 and C5 deferred); the **highest phase number in use is 37**.
@@ -110,7 +123,8 @@ and 37 accepted on 2026-11-04, Phase 31 with D3 and C5 deferred); the **highest 
 **Priorities (the product owner, 2026-11-08, on `docs/ROADMAP_AUDIT_2026-11-08.md`):** 1) Step 35.6 — *done and accepted
 on 2026-11-09 (35.6b with D056)*; 2) Phase 30 / S1 — the next major milestone, incl. the clean-environment
 validation and the remaining release requirements; 3) H after S1; 4) R4 (Motion Tracking Camera research) deferred until
-then. Human occlusion stays deferred; Motion Tracking Camera stays Future / Backlog. **Next (2026-11-09): Phase 30 / S1.**
+then. Human occlusion stays deferred; Motion Tracking Camera stays Future / Backlog. *(Superseded on 2026-11-09 by D057 §1:
+Phase 38 first, S1 after the MVP.)*
 Open alongside: Step 35.4's acceptance (C5), the owner's check of Phases 33 / 34, the R2 → E manual plan.
 
 **Next (the product owner's direction of 2026-11-03, DECISIONS.md D050): Step 35.5 — the heart-rate overlay** (implemented
@@ -565,6 +579,13 @@ tracking task. Sketch: `docs/DEVELOPMENT_PLAN.md`, "Future ideas (not phases)".
 
 ## Follow-ups and backlog
 
+**After D057 (2026-11-09).** Checked on Phase 38's target build, decided separately (D057 §4.1): the duplicated «Импорт» /
+«Готово», the timeline following the playhead, thumbnails on the clips, editing several clips, further text improvements.
+The UX backlog, not in Phase 38 without a decision (§4.2): custom shortcuts, clip-bound markers (FU-21.2), marker labels,
+reverse / fast playback / shuttle, dragging Scale / Rotation / Position by their labels, moving a selection between tracks,
+the magnetic main track, slider steps. After the MVP (§4.3): Motion Tracking Camera, occlusion, advanced object tracking,
+K1 key frames, advanced tracking correction. Removed: WASTED. Phase 32: a distant idea only.
+
 Separate tasks recorded at the Phase 21 acceptance (2026-10-15) and later; none is part of Phase 21 or 22 (D037 §5). Phase 25
 (D040) takes FU-21.1, FU-22.1, FU-24.2 and FU-24.1 in part; FU-21.2 and the vertical-video export stay out. Phase 26 (D041)
 takes the vertical-video export.
@@ -582,7 +603,7 @@ takes the vertical-video export.
 - **D054 (2026-11-09, approved)** — the FIT's climbs bound to the video clips automatically: on the FIT import for every
   clip, by «Распознать прохождения из FIT» for one clip added later; by the video's `Z`, else its file's time (approximate,
   the binding only — no automatic `Z`, D050 B1 kept). Merged with PR #48; record DECISIONS.md D054.
-- **FU-PF.1 — A newer project file with an unknown value is reported as «damaged», not «newer» (found 2026-11-08,
+- *(Taken by Phase 38, D057 §3.6.)* **FU-PF.1 — A newer project file with an unknown value is reported as «damaged», not «newer» (found 2026-11-08,
   `docs/PHASE33_34_ACCEPTANCE_EVIDENCE.md` §3)** — *backlog, not planned; the product owner, 2026-11-08: recorded
   separately, the serializer not changed in the Phase 33 / 34 evidence task.* `ProjectSerializer.Deserialize` parses the
   whole file before it checks `formatVersion`, so a file of a later version that contains an enum value this build does
@@ -606,7 +627,8 @@ takes the vertical-video export.
   green (PR 3); after the manual check (PR #54) `T` is the blue mark on the video clip, the D051 marks stay in the Inspector
   only, the free «Боулдер» has the route area's green. Merged with PRs #51–#54 (v17 / v18); **implemented in full and
   accepted by the product owner on 2026-11-09** (R1–R9 and the checks after PR #54). Record: DECISIONS.md D056.
-- **FU-HR.1 — An experimental display shift of the heart rate (the product owner, 2026-11-09)** — *Future / Backlog: a
+- **FU-HR.1 — An experimental display shift of the heart rate (the product owner, 2026-11-09)** — *decided by D057 §3.8:
+  the heart-rate display offset in the settings (default −60 s, adjustable), Phase 38.* *Future / Backlog: a
   deferred research experiment, not decided, not implemented; not a task of Phase 35 or of the next phase.* On 2026-09-27 the heart rate falls during most climbs and peaks 45–75 s after
   their end (climb 2 +75 s, 3 +60 s, 4 +47 s, 6 +49 s) — the FIT's own content, the synchronisation confirmed (D055, D056
   §6). Hypothesis: the heart rate shown about 60 s earlier puts the peak near the end of the climb and suits the video
@@ -615,7 +637,8 @@ takes the vertical-video export.
   rate and with the heart rate shifted by about −60 s; compare them; judge how close the peak comes to the end of the climb
   and whether the dynamics elsewhere and between climbs look wrong. If it works, decide separately: a fixed or adjustable
   shift, where it applies, Preview and export, and how it is marked as a display correction, not the FIT's time.
-- **FU-UI.1 — The Inspector in collapsible sections, their state kept across clips (the product owner, 2026-11-09)** —
+- **FU-UI.1 — The Inspector in collapsible sections, their state kept across clips (the product owner, 2026-11-09)** — *taken
+  by Phase 38 (D057 §3.1).*
   *Future / Backlog: a UX optimisation, not planned, not implemented.* Today the Inspector is one long list and its scroll
   position resets with every newly selected video clip, so the user scrolls to the same section again each time. Target:
   the settings in logical collapsible sections (accordions) the user opens as needed; the open / closed state kept when

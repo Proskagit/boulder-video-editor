@@ -57,7 +57,9 @@ at `round_half_up(n · 10⁷ · den / num)` ticks, computed in integer arithmeti
 (`Int128`); `MediaTime.FromFrame` / `ToFrameFloor` / `ToNearestFrame` /
 `SnapToFrame` round-trip exactly. The former `double`-based frame conversions were
 removed. Every clip edge on the timeline is exactly on the project frame grid;
-edits compute both edges from frame indices.
+edits compute both edges from frame indices. *(Amended by D057, 2026-11-09: the playhead may lie between the project's frames — Left / Right
+step by the active clip's source frames, the Preview shows the exact source frame; every clip edge and every edit bound
+to the grid stay on the project's frames, D057 §3.14.)*
 
 Context: most rates (24, 30, 29.97, …) don't divide 10⁷ ticks, so a frame boundary
 is not an integer tick; double-based conversion wasn't guaranteed to round-trip.
@@ -4836,7 +4838,8 @@ property.
   an empty place: it leaves the markup mode (D034, unchanged); only Ctrl+A is off there.
 - **Inspector:** with more than one clip selected the clip's name reads "<name> (1 of N selected)" (Q7); N counts the
   selected clips, partners included. Properties are still edited for the primary only (Phase 7).
-- Not in Phase 22: Shift+click range selection (Q6), editing several clips' properties at once.
+- Not in Phase 22: Shift+click range selection (Q6), editing several clips' properties at once. *(Amended by D057, 2026-11-09: Shift+click
+  on a clip's body selects a range, D057 §3.5; Shift on an edge stays the ripple trim.)*
 
 ### 2. Magnetic snapping
 
@@ -4866,6 +4869,9 @@ property.
   that track that is not placed and that a placed clip **X** overlaps:
   - with `S.start ≥ X.start` (it starts at or after X): S moves right by exactly the overlap — to X's end;
   - with `S.start < X.start` (X starts inside S): a **collision on the left** — the whole edit is refused (Q11), as before.
+    *(Amended by D057, 2026-11-09: for a drag — a new clip from the Media Browser dropped on S goes right after S; an
+    existing clip starting inside S goes to S's start and S is pushed by this rule — D057 §3.12. The nudge, Paste, Duplicate
+    and + Text keep Q11.)*
   The track's later clips move only when the moved clip now overlaps them, each by its own overlap: a gap absorbs the push,
   the rest of the track stays. A clip pushed into a placed clip (one that would itself have to move) refuses the edit.
 - **Linked clips (variant B):** a pushed clip's partner moves by the same frames on its own track by the move rule
@@ -5370,7 +5376,7 @@ The export preflight is unchanged; an orientation mismatch is not reported.
 
 ### 4. Not in this decision (Q4 and the agreed exclusions)
 
-A blurred background instead of bars; an automatic reframe or tracking; a persistent Fill / Fit mode; `project.json` v7;
+*(Amended by D057, 2026-11-09: a blurred background per clip is taken by Phase 38, D057 §3.7, `project.json` v19.)* A blurred background instead of bars; an automatic reframe or tracking; a persistent Fill / Fit mode; `project.json` v7;
 FU-21.2; AI features; the technical-debt refactoring; new dependencies; unrelated improvements. A need to change the format,
 the architecture or agreed behaviour beyond §1–§3 is reported with variants before the change.
 
@@ -5509,7 +5515,9 @@ actions of the typical scenarios, make the behaviour more predictable, make the 
 handling of holds and their outlines, and do not turn the editor into a professional editing system. **Success
 criterion**: a user without deep video-editing experience goes from importing a source to a finished bouldering video
 without learning a professional editing system. The Final UX Pass is the place for a systematic, agreed interface change;
-until then the rule "no redesign of unrelated UI" (D040 §7, `CLAUDE.md`) stays.
+until then the rule "no redesign of unrelated UI" (D040 §7, `CLAUDE.md`) stays. *(Amended by D057, 2026-11-09: «The goal of Phase H is
+covered by Phase 38 (D057). The former scope of Phase H is not restored separately. Further UX improvements are determined
+by the results of the practical testing of the target build and are taken by separate decisions.»)*
 
 Context: the product owner's planning request of 2026-10-20, during Phase 26: the long-term product strategy and the order
 of the remaining phases were nowhere recorded; the COROS idea of the earliest discussion was not in the repository; the
@@ -6591,6 +6599,9 @@ Revision 3 (2026-10-21, the product owner's corrections):
 
 ### 15. WASTED deferred (the product owner, 2026-10-21)
 
+*(Amended by D057, 2026-11-09: WASTED is removed from the plan and the backlog — no return is planned, D057 §4.4. This
+section and §13 stay as the history of the gate.)*
+
 Decision: WASTED is **taken out of the current implementation of Phase 29** and left for separate future work; it is not
 part of Phase 29's mandatory scope and **does not block the phase**. No further attempts to synthesise its sound.
 
@@ -7371,7 +7382,8 @@ project.
 - No camera tracking, occlusion handling or multi-frame proposals (R2 / E territory).
 - No automatic route animation timing from proposals; animation settings stay D036.
 - No per-hold colours, numbers or labels beyond the existing route outline.
-- No batch markup across multiple clips; proposals are generated per clip on entering markup mode.
+- No batch markup across multiple clips; proposals are generated per clip on entering markup mode. *(Amended by D057, 2026-11-09: only when
+  the user has turned them on — off by default, the choice kept across restarts, D057 §3.15.)*
 - No persistent proposal state; only confirmed holds are saved.
 - No change to `project.json` v9 format for this phase.
 - No change to the hold stroke, colour, keyline or animation rules of D034–D036.
@@ -7447,7 +7459,8 @@ the template clip's own edits, §1.25)
 
 **Status: Approved by the product owner on 2026-10-28, as implemented** (revision 8 with the decisions below). Approved
 together with:
-- **Stage 1 — the automatic route selection is paused / deferred.**
+- **Stage 1 — the automatic route selection is paused / deferred.** *(Amended by D057, 2026-11-09: Phase 32 leaves the active plan — the
+  current behaviour covers the owner's needs; a distant idea only, no commitment, D057 §4.4.)*
   - Its implementation, services, tests and research are kept. The command «Авторазметка» (formerly «Разместить
     зацепки», en «Auto markup») is **hidden** in the Inspector (`IsVisible="False"`).
   - No further experiments. Manual markup («Разметить зацепки») stays the main scenario.
@@ -8854,7 +8867,8 @@ commands keep working on animations without a link.
 8.3 **«Настройки FIT…»** — an item of the COROS training drop-down on the toolbar (there is no application settings
 screen), available with or without a training in the project; it opens a small window, section «FIT» only: Beta (on by
 default, §6.2); the current `StartCorrection`; the number of `used` records; reset (asks first). Not a general settings
-screen.
+screen. *(Amended by D057, 2026-11-09: the application has a settings window; these settings are its section «COROS / FIT», which the
+menu item opens; their semantics unchanged, D057 §3.8.)*
 
 ### 9. Consequences
 - A project format change (the version after v11); an older build refuses the new file; an older project opens without
@@ -9340,7 +9354,8 @@ D051; D053; D054 §§1, 3–7.
 
 **Observed (2026-11-09, D056 §6).** The heart rate falls during most climbs of 2026-09-27 and peaks 45–75 s after their
 end; that is the FIT's content, not an error of §1 — the synchronisation is confirmed and nothing is shifted. A display
-shift is a future experiment (D056 §7, FU-HR.1), never a change of §1.
+shift is a future experiment (D056 §7, FU-HR.1), never a change of §1. *(Amended by D057, 2026-11-09: the heart-rate display offset of the
+settings, default −60 s — only the value shown is read 60 s later; §1 unchanged, D057 §3.8.)*
 
 ---
 
@@ -9398,6 +9413,7 @@ like every template, no heart rate (D055 §4) — expected, but it looks unlike 
 7. **Future, not decided: a display shift of the heart rate** (FU-HR.1 in `ROADMAP.md`). Showing the heart rate about 60 s
    earlier, so its peak meets the end of the climb, is an experiment of its own — never a change of the FIT's samples,
    `T_file`, `CC` or `Z`, never a correction of the synchronisation; nothing is implemented without the owner's decision.
+   *(Amended by D057, 2026-11-09: decided — the display offset of D057 §3.8, default −60 s, adjustable.)*
 
 **As implemented (PR 2, 2026-11-09).** §2: a FIT area stores `fitLayout` (`project.json` **v17**) — its first and end
 frame as source ticks of its anchored clip and its status moment; an area is untouched while its bounds are those (a move,
@@ -9436,6 +9452,171 @@ green.
 **Unchanged.** D055 (`w = T_file + s + CC`, `Z` never read for the heart rate); D054's binding time, the rule of a shown
 climb, «never twice» (a `Z` that lays out an area again never adds one for its climb); D053's several independent routes on
 a clip; the lilac Top / Attempt; the free «Боулдер»'s semantics.
+
+---
+
+## D057 — Phase 38: UX Improvements before the MVP *(approved 2026-11-09)*
+
+Date: 2026-11-09. **Status: approved by the product owner on 2026-11-09** (the UX audit, the owner's research of CapCut's
+UX, the final plan of Phase 38 and the answers to its four questions). Amends D006, D037 Q6 / Q11, D041 §4, D042 §7, D045
+§15, D047, D048 (stage 1), D051 §8.3, D055 and D056 §7 as stated in §5; keeps every other rule of D006–D056.
+
+### 1. The order of the work
+
+1. **Phase 38** — the mandatory UX improvements of §3.
+2. A **target build** for the product owner.
+3. The owner's **practical check** of the real editing workflow; its problems fixed.
+4. A decision on the items of §4.1 (checked on the build) and §4.2 (the UX backlog) — each separately; nothing is moved
+   into a phase automatically.
+5. A decision on the large functions of §4.3.
+6. Only then **S1 / Phase 30** — the technical preparation of the distributable build (the portable FFmpeg, the licences,
+   the clean-environment check, the remaining release items of D046).
+
+The **MVP** is the product's readiness for use (steps 1–4); **S1** is the technical readiness of the distribution (step 6).
+They are different stages. This order replaces the owner's priorities of 2026-11-08 («S1 → H → R4»).
+
+**Phase H** (D042 §7): «The goal of Phase H is covered by Phase 38 (D057). The former scope of Phase H is not restored
+separately. Further UX improvements are determined by the results of the practical testing of the target build and are
+taken by separate decisions.»
+
+### 2. Principles
+
+- Phase 38 improves the existing functions; it adds no large function. The owner's audit and CapCut research replace the
+  research step of the former H; they do not restore its scope.
+- Global application settings and per-user UI state live in per-user files, never in `project.json`; project settings
+  stay in the project. The only project-format change is §3.7 (**v19**).
+- Preview = export everywhere it applied before (D018, D045, D055): a new picture layer is drawn by the one painter.
+
+### 3. The mandatory scope (2.1–2.15 of the plan)
+
+3.1 **Inspector in collapsible sections.** The long Inspector becomes collapsible sections (accordions) with stable ids;
+the open / closed state is one state for the Inspector (never per clip, never reset by a selection), kept across clips and
+restarts. A collapsed section may show a short summary in its header (e.g. «Зацепки · 12»). The scroll position is kept when
+switching between items of the same kind. The FIT marks and the FIT link are one service section, collapsed by default. No
+tabs.
+
+3.2 **Media Browser: several files.** Multiple selection; **Ctrl+A in the Media Browser** selects all its files (only while
+the list has the focus); Ctrl+A on the timeline (D037 §1) and Ctrl+A «accept all proposals» in the hold markup mode
+(D047) are unchanged. «Добавить на таймлайн» adds every selected file in the **chronological order of recording** — the
+file's time by D054 / D055's rule (the tag as the end, else the name); files without a time follow in the list's order —
+one after another at the end of the track, **one Undo step** for the whole operation. The list's own order is not changed.
+
+3.3 **The clip's context menu** — the useful operations of the clicked clip that have no button or belong to that clip:
+Copy, Paste, Split at the playhead (when it is inside the clip), Trim start / end to the playhead, Link / Unlink audio, for
+a video clip Fill / Fit the frame, «Разметить зацепки» and «Распознать прохождения из FIT» (with a training), Delete. The
+tool bar's Duplicate, Ripple delete and Close gap are not repeated.
+
+3.4 **The window and its panels** — the window's size, position and maximised state, the panels' widths and the timeline's
+height are kept across restarts (per user); a window outside every screen opens at the default place.
+
+3.5 **Shift+Click range selection** (amends D037 Q6). Shift+click on a clip's **body** selects the range from the primary
+selected clip to the clicked one: on one track the clips between them, on several tracks the clips of the unlocked tracks
+between the two whose span meets the time interval [the earlier start, the later end]; the link partners come along (D037
+§1). Shift on a clip's **edge** stays the ripple trim (D030 §6); Ctrl+click and the marquee are unchanged.
+
+3.6 **FU-PF.1.** A project file of a later format version is reported as «saved by a newer version», never as «damaged»:
+the version is read from the file before the rest of it is parsed.
+
+3.7 **A blurred background per clip** (amends D041 §4). A video clip's background is **black** (default) or **blurred** —
+the clip's own picture filled to the canvas and blurred (from a reduced copy, one default strength). Chosen in the
+Inspector beside Fill / Fit; stored on the clip (`project.json` **v19**: written only when blurred; a v18 file opens with
+black backgrounds; an older build refuses a v19 file). One composition path: the background is a layer of
+`CompositionDrawPlan` drawn by `CompositionPainter`, so the Preview and the export are the same. A strength control and «apply
+to all clips» are out of scope.
+
+3.8 **The application's settings window** (amends D051 §8.3). One window «Настройки…» for the global settings, in
+sections: **General** (the interface language — the existing `App:Language`, applied after a restart), **FFmpeg** (the
+paths found and their versions; an override of the existing `Ffmpeg:*` paths, applied after a restart), **Timeline and
+markup** (§3.15), **COROS / FIT** (the heart-rate display offset; the start calibration of D051 §6 moved here from
+«Настройки FIT…», whose menu item opens this section). Project settings stay in the project: the training's clock
+correction `CC` (D049) stays a setting of the training; `ClimbEndLag` (D050 B2) and `StartCorrection`'s rules (D051) are
+unchanged.
+- **The heart-rate display offset** — default **−60 s**, changed by the user, kept across restarts. The heart rate is
+  shifted 60 s **earlier** on the timeline: at the picture of watch time `w` the value shown is the FIT's sample at
+  `w + 60 s` (in general `w − offset`). It applies only where the heart rate is shown — the «Пульс» overlay and the green
+  route areas, in the Preview and the export — and nowhere else: the FIT's samples, `T_file`, `CC`, `Z`, the binding
+  (D054), the marks and the calibration (D051), the synchronisation (D055 §1: `w = T_file + s + CC` unchanged), the route
+  bounds, the green areas, `T`, and the intro buffer are not changed. The heart rate is still shown only inside its green
+  area (D055 §4). The Inspector's readout «Тренировка в позиции плейхеда» stays the synchronised value (a tool of the
+  synchronisation). It is not merged with `CC` or the calibration — different mechanisms.
+
+3.9 **YouTube timestamps.** A plain text to copy into a YouTube description:
+1. The first line is always at `00:00`; when no route starts at 00:00 it is `00:00 Intro`.
+2. Every route has a line of its own with its own time — never two routes on one line, even with the same time or name.
+3. The time is the **left edge of the route's green area** (a «Боулдер», anchored or free) in the exported video
+   (from In when a range is exported; areas outside it are left out); never `T` or the orange's start; no end times.
+4. The name: `Трасса {номер} · {категория}` — «Трасса» with a capital letter, the number and the grade as typed (no forced
+   case); a missing part drops with its « · » (`Трасса 7`, `Трасса · 7A`, `Трасса`).
+5. The status: Top → ` 🟢`, Attempt → ` 🔴`, none → nothing; never the words.
+6. Format `mm:ss`, from an hour `h:mm:ss`; the lines by time. The parts of a split area are one route (its earliest
+   start). Free «Боулдер» templates are included (the user renames or deletes them).
+
+3.10 **The timeline's horizontal scroll bar** — always shown at a width easy to grab, not only on hover.
+
+3.11 **The mouse wheel on the timeline:** the wheel scrolls horizontally, **Ctrl+wheel** zooms (unchanged), **Shift+wheel**
+scrolls the tracks vertically; a touchpad's horizontal scroll scrolls horizontally. Over the track headers (no horizontal
+extent) the wheel scrolls vertically. The middle button is not the way to scroll vertically.
+
+3.12 **A drop on an occupied place** (amends D037 §3 Q11, for drags only).
+- A **new clip from the Media Browser** dropped on a clip X is placed **right after X** (it starts at X's end).
+- An **existing clip** dragged so that it starts inside a clip X is placed **at X's start**; X and the later clips move
+  right **only as far as needed** (D037 §3's push: a gap may absorb it); X is never split.
+- Then D037 §3 applies unchanged: the partners of a link move by the same frames, the anchored templates (D048, D053)
+  move with their clips, a dissolve between clips the edit separates refuses the edit (Q9), a locked track refuses it.
+- While dragging, the result is previewed (the clips that would move, where), and a refusal is shown before the release.
+- The keyboard nudge, Paste, Duplicate and + Text keep Q11 (a collision on the left is refused).
+
+3.13 **Live Preview scrubbing.** Moving the playhead shows the frames while it moves: only the latest requested position
+is decoded — a request made stale by a newer one is dropped, never queued; when the drag ends the Preview shows exactly the
+frame at the playhead's final position; the playhead and the picture never stay on different positions. Playback, its sound
+and the synchronisation are unchanged.
+
+3.14 **Frame stepping with Left / Right** (amends D006 for the playhead only). The highest frame rate among the timeline's
+video clips bounds the precision of the playhead; Left / Right move to the previous / next **frame of the source of the
+active video clip** (the topmost visible one at the playhead, at its speed): 30 fps → 1/30 s, 60 fps → 1/60 s, 240 fps →
+1/240 s; where no video clip is, one frame of the project. The playhead may lie between the project's frames; the Preview
+shows the exact source frame there. Every edit bound to the project's grid — Split, Q / W, In / Out, markers, Insert /
+Overwrite and the rest — rounds the position to the nearest project frame; the clips' edges stay on the project grid (D006),
+the project's and the export's frame rate are unchanged (D007). Shift+arrows (one second), J and the Source mode are
+unchanged.
+
+3.15 **Automatic hold proposals off by default** (amends D047). The proposals are not generated on entering the markup
+mode unless the user turns them on; the choice is kept across restarts (per user). The mechanism of D047 is unchanged.
+
+### 4. Outside Phase 38
+
+4.1 **Checked on the target build, decided separately:** removing the duplicated «Импорт» / «Готово»; the timeline
+following the playhead during playback; thumbnails on the clips; editing the properties of several clips; further text
+improvements.
+
+4.2 **UX backlog, not in Phase 38 without a separate decision:** custom shortcuts; clip-bound markers (FU-21.2); marker
+labels; reverse / fast playback / shuttle; dragging Scale / Rotation / Position by their labels; moving a selection between
+tracks; the magnetic main track (with D048 §3.11's compatibility); the slider steps (e.g. Scale by 10 % in 0–100 %); other
+optional improvements.
+
+4.3 **After the MVP:** Motion Tracking Camera, occlusion, advanced object tracking, K1 key frames, advanced tracking
+correction and other large algorithmic functions.
+
+4.4 **Closed:** Phase 32 (the automatic route selection) leaves the active plan — the current behaviour covers the owner's
+needs; a distant idea only, no commitment. **WASTED** (D045 §15) is removed from the plan and the backlog. The audit's
+closed items (Ctrl+A on the timeline; FU-21.1, FU-22.1, FU-24.2, FU-25.1, FU-25.2, FU-35.5.1; the vertical export; D029 §3;
+the marquee and the Preview gestures; the items D042 §3 excludes) are not reopened without a confirmed defect.
+
+4.5 **Kept apart, tracked in their own phases:** Phases 33 / 34 (the check on real footage), Step 35.4's C5, Phase 31's D3 /
+C5, R10 (a real audio device), the HDR visual check, the NOT RUN rows of Phases 23 / 25, the remaining S1 checks.
+
+### 5. Amendments of earlier decisions
+
+D006 (§3.14: the playhead may lie between the project's frames; the edges stay on the grid); D037 Q6 (§3.5) and §3 Q11
+(§3.12); D041 §4 (§3.7); D042 §7 (§1: Phase H); D045 §15 (§4.4: WASTED removed); D047 (§3.15); D048 stage 1 (§4.4: Phase 32);
+D051 §8.3 (§3.8: the calibration's settings in the settings window); D055 and D056 §7 (§3.8: FU-HR.1 becomes the display
+offset; D055 §1 unchanged).
+
+### 6. Acceptance
+
+Technically complete when 2.1–2.15 are implemented with their tests; Release / Debug `--no-incremental -warnaserror` 0 / 0;
+the full and heavy suites green; CI green on every pull request; `docs/PHASE38_MANUAL_TEST_PLAN.md` prepared with its
+automatable part confirmed; a target build prepared. Accepted by the product owner after the practical check (§1).
 
 ---
 
