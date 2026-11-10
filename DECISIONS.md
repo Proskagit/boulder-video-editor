@@ -9686,11 +9686,18 @@ D053 provides; no defect, the algorithm unchanged (one unconfirmed observation).
 7.11 **After the owner's check of 0.38.1 (2026-11-10).** H1–H7 and the regression rows passed, with three remarks:
 - **The Inspector:** the template section (the most used) and a media file's «Технические данные» start **open**; every
   other section stays collapsed at first (§7.2); the user's own choice per section still wins.
-- **The blurred background** was too soft («a grey blanket»): the box radius is now the reduced copy's long side / 17
-  instead of / 12 — about 30 % less blur (§7.5 otherwise unchanged).
+- **The blurred background** was too soft («a grey blanket») — superseded by §7.12.
 - **The Media Browser's context menu** on a file: «Добавить на таймлайн» (the selection — a group stays a group when the
   menu is opened on one of its files; a file outside it becomes the selection), «Показать в проводнике», «Перепривязать…»
   (an offline file only), «Удалить из проекта» (the file the menu was opened on, by Remove's rules — D027 §4).
+
+7.12 **The blurred background by the owner's reference** (2026-11-10; supersedes §7.5's edge extension). The owner showed
+the wanted look: the scene itself enlarged behind the picture, softly blurred and recognisable. (The «zoomed copy» rejected
+after 0.38.0 was in fact the painters' shared-bitmap defect of §7.5 — a stretched corner of the frame, not a blurred copy.)
+The background is the visible picture (its crop) enlarged to fill the canvas, centred, from a reduced copy (a canvas side
+/ 8, at most 240 px, 4 × 4 fixed sample points per pixel — the same for the Preview's reduced frames and the export's full
+ones), blurred by three box passes of 1.5 % of the copy's long side (σ ≈ 1.5 % of the canvas) and darkened to 90 %. One
+`FrameDraw` of `CompositionDrawPlan`, so the Preview equals the export; the background keeps its own bitmap in the painters.
 
 ---
 

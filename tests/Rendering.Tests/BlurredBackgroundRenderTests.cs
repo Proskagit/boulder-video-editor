@@ -6,11 +6,10 @@ using Xunit;
 namespace AiVideoEditor.Rendering.Tests;
 
 /// <summary>
-/// D057 §3.7 (the edge extension of 2026-11-10): the pixels of a blurred background — a landscape picture fitted on a
-/// portrait canvas: with a black background the bars stay black; with a blurred one no bar pixel is black, the bars carry
-/// the colours at the picture's own edges (the top bar the top edge's, the bottom bar the bottom edge's) and never the
-/// subject in its middle (no zoomed copy), the picture itself is drawn unchanged over it, and the Preview draws the same
-/// pixels as the export.
+/// D057 §3.7, §7.12 (the owner's reference of 2026-11-10): the pixels of a blurred background — a landscape picture fitted
+/// on a portrait canvas: with a black background the bars stay black; with a blurred one no bar pixel is black, the bars
+/// show the picture itself enlarged to fill the canvas and softly blurred, the picture is drawn unchanged over it, and the
+/// Preview draws the same pixels as the export.
 /// </summary>
 [Collection(AvaloniaCollection.Name)]
 public sealed class BlurredBackgroundRenderTests
@@ -74,28 +73,23 @@ public sealed class BlurredBackgroundRenderTests
     }
 
     [Fact]
-    public void The_bars_continue_the_pictures_own_edges_and_never_repeat_its_subject()
+    public void The_bars_show_the_picture_enlarged_to_fill_the_canvas_and_blurred()
     {
+        // The owner's reference (D057 §7.12): the scene itself, enlarged and softly blurred — the top bar shows the picture's
+        // top (green), the bottom bar its bottom (magenta), and near the picture its centre (the white subject) enlarged.
         var (export, preview) = Draw(ClipBackground.Blur, Subject());
-        for (var x = 10; x < Portrait.Width; x += 20)
-        {
-            var top = export.At(x, 12);
-            Assert.True(top.G > top.R + 40 && top.G > top.B + 40, $"top ({x}): {top}");             // the green top edge
-            var bottom = export.At(x, Portrait.Height - 12);
-            Assert.True(bottom.R > bottom.G + 40 && bottom.B > bottom.G + 40, $"bottom ({x}): {bottom}");   // the magenta bottom edge
-        }
-        // The fitted picture spans y ≈ 109 … 211; nowhere in the bars is the white subject (a zoomed copy would put it there).
+        var top = export.At(90, 6);
+        Assert.True(top.G > top.R + 40 && top.G > top.B + 40, $"top: {top}");
+        var bottom = export.At(90, Portrait.Height - 6);
+        Assert.True(bottom.R > bottom.G + 40 && bottom.B > bottom.G + 40, $"bottom: {bottom}");
+        var subject = export.At(90, 96);                                   // above the fitted picture (y ≈ 109 … 211)
+        Assert.True(subject.R > 150 && subject.G > 150 && subject.B > 150, $"the enlarged subject: {subject}");
         for (var y = 0; y < Portrait.Height; y += 4)
-        {
-            if (y is > 100 and < 220) continue;
             for (var x = 0; x < Portrait.Width; x += 4)
             {
-                var p = export.At(x, y);
-                Assert.False(p.R > 170 && p.G > 170 && p.B > 170, $"white at ({x},{y}): {p}");
-                var q = preview.At(x, y);
+                var (p, q) = (export.At(x, y), preview.At(x, y));
                 Assert.True(Math.Abs(p.R - q.R) <= 2 && Math.Abs(p.G - q.G) <= 2 && Math.Abs(p.B - q.B) <= 2, $"({x},{y}): {p} vs {q}");
             }
-        }
     }
 
     [Fact]
@@ -121,6 +115,16 @@ public sealed class BlurredBackgroundRenderTests
         Assert.Equal((a.Width, a.Height), (c.Width, c.Height));
         var pa = a.Pixels.Span;
         var pc = c.Pixels.Span;
-        for (var i = 0; i < pa.Length; i++) Assert.True(Math.Abs(pa[i] - pc[i]) <= 6, $"byte {i}: {pa[i]} vs {pc[i]}");
+        // A hard synthetic edge moves by one source pixel at half the size: on average the same, nowhere far apart.
+        long total = 0;
+        var worst = 0;
+        for (var i = 0; i < pa.Length; i++)
+        {
+            var d = Math.Abs(pa[i] - pc[i]);
+            total += d;
+            worst = Math.Max(worst, d);
+        }
+        Assert.True(total / (double)pa.Length <= 2, $"mean {total / (double)pa.Length:0.##}");
+        Assert.True(worst <= 16, $"worst {worst}");
     }
 }

@@ -606,8 +606,8 @@ on the project grid (D006).
   Preview's and the export's `ExportPreflightEnvironment.HeartRateDisplayOffset`) reads the sample at `w − offset`; the
   readout, the binding and the areas never use it. `VideoClip.Background` (`project.json` v19, `"background": "blur"`) →
   `PictureSpan.Background` (presentation only) → `CompositionDrawPlan.BlurredBackground`: a `FrameDraw` (`IsBackground`) of
-  `BackgroundBlur`'s edge extension — each canvas point taken back into the picture as drawn and clamped into it, from a
-  48-cell grid of the visible source, blurred, desaturated and darkened (D057 §7.5; cached per frame and placement) — over
+  `BackgroundBlur`'s copy — the visible picture (its crop) enlarged to fill the canvas, centred, reduced, blurred moderately
+  and slightly darkened (D057 §7.12; cached per frame and crop) — over
   the whole canvas under the picture, the export's plan and `PreviewDrawPlan` alike; both painters keep the background's
   bitmap apart from the clip's. `YouTubeTimestamps` (Core) is shown by the export dialog (`ExportDialogViewModel`,
   `IExportDialog`, D057 §7.9), which `ExportWorkflow` opens for the output file.

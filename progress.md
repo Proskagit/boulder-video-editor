@@ -27,7 +27,8 @@ the MVP. Phase H's goal is covered by Phase 38; Phase 32 a distant idea; WASTED 
   H1–H7 and the amended B1, E1, F2, F6, F10. **Not accepted** — the owner's check of the new build follows.
 - **The owner's check of 0.38.1 (2026-11-10, PR #63 merged):** H1–H7 and the regression rows passed; three remarks fixed
   (D057 §7.11, branch `fix/phase-38-acceptance-2`): the template and the media file's technical data open by default, the
-  blurred background about 30 % less blurred, the Media Browser's context menu. Manual rows H8–H10.
+  blurred background by the owner's reference (the scene enlarged and softly blurred, D057 §7.12), the Media Browser's
+  context menu. Manual rows H8–H10.
 
 **State on 2026-11-09** — `main` at `1a087ae` (the merge of PR #54), `project.json` v18. The phases' state and what comes
 next have one source: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering" → "Official phases"; this file is the dated

@@ -96,7 +96,7 @@ names the tests that cover the row; «Evidence» is filled at the run.
 | H6 | «Экспорт» | one dialog: folder, «Обзор…», name, the output's line, the YouTube timestamps with «Копировать»; no «Таймкоды YouTube…» on the tool bar | `ExportWorkflowTests` | |
 | H7 | Step → through a 4K / 240 fps clip | each step at once; ← about a third of a second | `ScrubbingTests`, local `ScrubBenchmarkTests` | |
 | H8 | The Inspector of a template; of a file selected in the Media Browser | the template section open; «Технические данные» open; the rest collapsed (D057 §7.11) | `InspectorSectionsTests` | |
-| H9 | A blurred background | the bars less blurred than in 0.38.1 (≈ 30 %), still no copy of the subject | `BlurredBackgroundRenderTests` | |
+| H9 | A blurred background (a vertical clip in a horizontal project, and the reverse) | the scene itself enlarged behind the picture, softly blurred and recognisable, slightly darker — as the owner's reference (D057 §7.12); the export the same | `BlurredBackgroundRenderTests` | |
 | H10 | Right-click a file in the Media Browser; then a file of a group selection; then an offline file | «Добавить на таймлайн», «Показать в проводнике», «Удалить из проекта» (+ «Перепривязать…» when offline); on a group file «Добавить» adds the group, «Удалить» removes only that file | `MediaRemovalUiTests` | |
 
 ## G. Regression and the practical check
