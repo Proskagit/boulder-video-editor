@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The export benchmark harness (D059 E0): a console program outside the solution (like tests/Vision.ModelTests), built
+       and run by hand on the target machine. It drives the real ExportService (ffmpeg decoders, the Avalonia rasterizer, the
+       ffmpeg encoder) on generated projects over the owner's test videos, every run in its own process. See README.md. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>AiVideoEditor.ExportBench</RootNamespace>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="11.1.3" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.1.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Core\Core.csproj" />
+    <ProjectReference Include="..\..\src\Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Video\Video.csproj" />
+    <ProjectReference Include="..\..\src\Export\Export.csproj" />
+    <ProjectReference Include="..\..\src\UI\UI.csproj" />
+    <ProjectReference Include="..\..\src\Media\Media.csproj" />
+  </ItemGroup>
+
+</Project>
