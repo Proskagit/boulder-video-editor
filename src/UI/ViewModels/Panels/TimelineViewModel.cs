@@ -1439,7 +1439,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
             var (dissolveAtStart, dissolveAtEnd) = Dissolves(primary.Clip);
             var settings = _projectService.Current.Settings;
             SelectionChanged?.Invoke(this, new TimelineClipSelection(primary.Clip, primary.Name, asset, FrameRate, dissolveAtStart, dissolveAtEnd,
-                _selection.Count, new FrameSize(settings.FrameWidth, settings.FrameHeight)));
+                _selection.Count, new FrameSize(settings.FrameWidth, settings.FrameHeight))
+            {
+                Selected = _selection.Where(_clipViewModels.ContainsKey).Select(id => _clipViewModels[id].Clip).ToList(),
+                FindAsset = FindAsset
+            });
         }
         else
         {

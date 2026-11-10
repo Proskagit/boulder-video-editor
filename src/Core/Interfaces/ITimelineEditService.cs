@@ -300,6 +300,14 @@ public interface ITimelineEditService
     /// there is <see cref="TimelineEditResult.NoChange"/>; refused for another kind of clip or a locked track.</summary>
     TimelineEditResult SetClipBackground(Guid clipId, ClipBackground background);
 
+    /// <summary>
+    /// D058 §3: the edits <paramref name="edits"/> makes through this service (each by its own rules) as <b>one</b> Undo
+    /// step. A refused edit undoes the ones made before it and its result is returned; when none changed anything the result
+    /// is <see cref="TimelineEditResult.NoChange"/>. Two steps in a row with the same <paramref name="mergeKey"/> merge (a
+    /// slider dragged over a group); null never merges. Not nested.
+    /// </summary>
+    TimelineEditResult EditAsOneStep(string description, string? mergeKey, Func<IReadOnlyList<TimelineEditResult>> edits);
+
     /// <summary>Adds a confirmed hold to a video clip's markup (D034): one undo step; the Auto colour and the keyline are
     /// recomputed from the stored samples of all holds. Refused for other clips and on a locked track.</summary>
     TimelineEditResult AddHold(Guid clipId, Hold hold, Guid? routeId = null);

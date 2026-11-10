@@ -2018,6 +2018,21 @@ If you don't save, your changes will be lost.</value>
   <data name="Inspector_ClipBackground" xml:space="preserve">
     <value>Background</value>
   </data>
+  <data name="Inspector_GroupHeading" xml:space="preserve">
+    <value>{0} CLIPS SELECTED</value>
+  </data>
+  <data name="Inspector_GroupHint" xml:space="preserve">
+    <value>A change applies to every selected clip it fits, as one undo step; «—» — the clips differ.</value>
+  </data>
+  <data name="Inspector_GroupNothing" xml:space="preserve">
+    <value>The selected clips have no property in common to edit together.</value>
+  </data>
+  <data name="Inspector_GroupFrame" xml:space="preserve">
+    <value>Frame</value>
+  </data>
+  <data name="Inspector_GroupOutline" xml:space="preserve">
+    <value>HOLD OUTLINE</value>
+  </data>
   <data name="Inspector_ClipBackgroundTip" xml:space="preserve">
     <value>What fills the canvas around the picture: black, or the clip's own picture blurred — the same in the export</value>
   </data>

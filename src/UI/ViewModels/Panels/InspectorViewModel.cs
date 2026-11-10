@@ -65,6 +65,11 @@ public sealed partial class InspectorViewModel : ViewModelBase
     public InspectorViewModel(ITimelineEditService edit, StatusService status, IFontCatalog? fonts = null, EditingLock? editingLock = null,
         ITextBoxMeasurer? textBoxes = null, IDialogService? dialogs = null)
     {
+        Group = new ClipGroupViewModel(edit, status, () => editingLock?.IsLocked == true, id => _findAsset?.Invoke(id));
+        Group.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ClipGroupViewModel.IsActive)) OnPropertyChanged(nameof(IsSingleClipSelected));
+        };
         _edit = edit;
         _dialogs = dialogs;
         _textBoxes = textBoxes;
@@ -78,6 +83,14 @@ public sealed partial class InspectorViewModel : ViewModelBase
     public bool IsEditingAllowed => !_editingLock.IsLocked;
 
     /// <summary>A field changed while editing is locked: nothing is edited, the field shows the model again.</summary>
+    /// <summary>D058 §3: the Inspector of several selected clips (five groups of properties); active with two items or more.</summary>
+    public ClipGroupViewModel Group { get; }
+
+    private Func<Guid, MediaAsset?>? _findAsset;
+
+    /// <summary>A single clip's (or a linked pair's) Inspector: a timeline clip selected and no group.</summary>
+    public bool IsSingleClipSelected => IsTimelineClipSelected && !Group.IsActive;
+
     private bool RejectWhileLocked()
     {
         if (!_editingLock.IsLocked) return false;
@@ -88,6 +101,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsMediaSelected))]
     [NotifyPropertyChangedFor(nameof(IsTimelineClipSelected))]
+    [NotifyPropertyChangedFor(nameof(IsSingleClipSelected))]
     [NotifyPropertyChangedFor(nameof(IsNothingSelected))]
     [NotifyPropertyChangedFor(nameof(IsTransitionSelected))]
     [NotifyPropertyChangedFor(nameof(IsVideoTransitionSelected))]
@@ -413,6 +427,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// <summary>Shows a dissolve selected on the timeline. Called again after every timeline change (undo / redo too).</summary>
     public void ShowTransition(TimelineTransitionSelection selection)
     {
+        Group.Show(Array.Empty<Clip>());
         ForgetClip();
         _transition = selection;
         SyncTransition();
@@ -552,6 +567,8 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// change, so the timing shown here follows moves/trims/undo.</summary>
     public void ShowClip(TimelineClipSelection selection)
     {
+        _findAsset = selection.FindAsset;
+        Group.Show(selection.Selected ?? new[] { selection.Clip });
         var clip = selection.Clip;
         _clip = clip;
         _transition = null;
@@ -605,6 +622,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// reload re-fires selection for the still-selected item).</summary>
     public void ShowMedia(MediaAsset asset)
     {
+        Group.Show(Array.Empty<Clip>());
         ForgetClip();
         MediaFileName = asset.FileName;
         MediaTypeLabel = asset.Kind is MediaKind.Video or MediaKind.Audio or MediaKind.Image
@@ -635,6 +653,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
 
     public void ClearSelection()
     {
+        Group.Show(Array.Empty<Clip>());
         ForgetClip();
         SelectionKind = InspectorSelectionKind.None;
         Shown?.Invoke(this, EventArgs.Empty);

@@ -2022,6 +2022,21 @@
   <data name="Inspector_ClipBackground" xml:space="preserve">
     <value>Фон</value>
   </data>
+  <data name="Inspector_GroupHeading" xml:space="preserve">
+    <value>ВЫБРАНО КЛИПОВ: {0}</value>
+  </data>
+  <data name="Inspector_GroupHint" xml:space="preserve">
+    <value>Изменение применяется ко всем подходящим выбранным клипам одним шагом отмены; «—» — значения различаются.</value>
+  </data>
+  <data name="Inspector_GroupNothing" xml:space="preserve">
+    <value>У выбранных клипов нет общих свойств для групповой правки.</value>
+  </data>
+  <data name="Inspector_GroupFrame" xml:space="preserve">
+    <value>Кадр</value>
+  </data>
+  <data name="Inspector_GroupOutline" xml:space="preserve">
+    <value>ОБВОДКА ЗАЦЕПОК</value>
+  </data>
   <data name="Inspector_ClipBackgroundTip" xml:space="preserve">
     <value>Чем заполнен кадр вокруг изображения: чёрным или размытым изображением самого клипа — так же и в экспорте</value>
   </data>

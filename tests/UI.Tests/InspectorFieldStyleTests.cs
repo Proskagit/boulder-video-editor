@@ -45,7 +45,7 @@ public sealed class InspectorFieldStyleTests
     {
         var fields = Inspector().Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown").ToList();
 
-        Assert.Equal(28, fields.Count);                         // Phase 27: + outline thickness, background opacity, two durations; Phase 28: + a transition's seconds; D048: + the hold animation's duration, the route's colour tolerance
+        Assert.Equal(31, fields.Count);                         // Phase 27: + outline thickness, background opacity, two durations; Phase 28: + a transition's seconds; D048: + the hold animation's duration, the route's colour tolerance; D058: + the group's opacity, volume and outline width
         Assert.All(fields, f => Assert.Equal("104", (string?)f.Attribute("Width")));
     }
 
@@ -56,7 +56,14 @@ public sealed class InspectorFieldStyleTests
     public void The_whole_value_fields_and_the_slider_steps()
     {
         var xaml = Inspector();
-        var fields = xaml.Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown")
+        var all = xaml.Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown").ToList();
+        // D058 §3: the group's fields (named Group…) step and show alike.
+        foreach (var group in all.Where(IsGroupField))
+        {
+            Assert.Equal("1", (string?)group.Attribute("Increment"));
+            Assert.Equal("0.####", (string?)group.Attribute("FormatString"));
+        }
+        var fields = all.Where(e => !IsGroupField(e))
             .ToDictionary(e => ((string)e.Attribute("Value")!).Split(',')[0].Replace("{Binding ", ""));
         foreach (var name in new[] { "OpacityPercent", "VolumePercent", "StrokeWidth" })
         {
@@ -71,4 +78,7 @@ public sealed class InspectorFieldStyleTests
         Assert.Equal("True", Setter(slider, "IsSnapToTickEnabled"));
         Assert.Equal("1", Setter(slider, "TickFrequency"));
     }
+
+    private static bool IsGroupField(System.Xml.Linq.XElement e) =>
+        e.Attributes().FirstOrDefault(a => a.Name.LocalName == "Name")?.Value.StartsWith("Group", StringComparison.Ordinal) == true;
 }
