@@ -78,7 +78,8 @@
 
       <Rectangle/>
 
-      <Button Content="{x:Static l:Strings.Toolbar_Import}" Command="{Binding ImportMediaCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_ImportTip}"/>
+      <!-- The owner's acceptance of Phase 38 (2026-11-10, D057 §7.13): no «Импорт медиа» here — the Media Browser's «+ Импорт»
+           and Ctrl+I import. -->
       <!-- Phase 35 (D049, D050 amendment B3): the project's COROS training — import, point to its file, remove; the
            training's clock correction (W − C, the whole training) lives here, never with a video's recording start. -->
       <DropDownButton x:Name="TrainingButton" Content="{x:Static l:Strings.Toolbar_Training}" ToolTip.Tip="{Binding TrainingToolTip}">

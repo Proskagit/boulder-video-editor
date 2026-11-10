@@ -1668,12 +1668,6 @@ Recover them now? Discarded changes can't be restored.</value>
   <data name="Toolbar_ExportUnavailable" xml:space="preserve">
     <value>Exporting is not available.</value>
   </data>
-  <data name="Toolbar_Import" xml:space="preserve">
-    <value>Import Media</value>
-  </data>
-  <data name="Toolbar_ImportTip" xml:space="preserve">
-    <value>Import media into the project (Ctrl+I)</value>
-  </data>
   <data name="Toolbar_New" xml:space="preserve">
     <value>New</value>
   </data>

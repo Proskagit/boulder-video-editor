@@ -1670,12 +1670,6 @@
   <data name="Toolbar_ExportUnavailable" xml:space="preserve">
     <value>Экспорт недоступен.</value>
   </data>
-  <data name="Toolbar_Import" xml:space="preserve">
-    <value>Импорт медиа</value>
-  </data>
-  <data name="Toolbar_ImportTip" xml:space="preserve">
-    <value>Импортировать медиафайлы в проект (Ctrl+I)</value>
-  </data>
   <data name="Toolbar_New" xml:space="preserve">
     <value>Создать</value>
   </data>
