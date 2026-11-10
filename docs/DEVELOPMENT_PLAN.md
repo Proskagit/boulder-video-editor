@@ -297,7 +297,7 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 36 — summary and chapters | to be approved | planned; specification draft outside `main`; its time-code export a separate item until clarified | — |
 | 37 — FIT route starts and the start calibration | D051 | implemented (37.1–37.6, v12) and merged; 37.7 done (D051 A1–A15 automated 2026-11-04, all PASS, A10 measured); **accepted by the product owner 2026-11-04** | PR #33, `1640996` |
 | 38 — UX Improvements before the MVP | D057 | blocks A–F implemented 2026-11-10 (`project.json` v19); the owner's practical check of the builds 0.38.1 / 0.38.2 and its fixes (D057 §7); **accepted by the product owner 2026-11-10** | PRs #56–#62 (`d6d2b06`), PR #63 (`ef2f079`), PR #64 |
-| 39 — Timeline UX & Multi-Clip Editing | D058 | implemented 2026-11-10 (`project.json` v19 unchanged); the owner's check open; not accepted | branch `feat/phase-39`, PR pending |
+| 39 — Timeline UX & Multi-Clip Editing | D058 | implemented 2026-11-10 (`project.json` v19 unchanged); the owner's check open; not accepted | branch `feat/phase-39`, PR #65 |
 | H — Final UX Pass | D042 §7, D057 | its goal covered by Phase 38 (D057); the former scope not restored | — |
 
 The **highest phase number in use is 37**; the **complete phases** (merged and accepted) are **1–29, 31 and 37** (Phases 31
