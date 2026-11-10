@@ -16,6 +16,15 @@ the MVP. Phase H's goal is covered by Phase 38; Phase 32 a distant idea; WASTED 
   `--no-incremental -warnaserror` 0 / 0; the heavy suite (`AIVE_HEAVY_TESTS=1`) 5641 / 0 / 0; CI green per PR. A target
   build for the owner's practical check: `tools/portable/Publish-Portable.ps1 -Version 0.38.0`. **Not accepted** — the
   owner's practical check (`docs/PHASE38_MANUAL_TEST_PLAN.md`) follows.
+- **Fixes after the owner's practical check (2026-11-10, D057 §7, branch `fix/phase-38-acceptance`):** the Media Browser's
+  group drag (the order of recording, one Undo) and the drop ghost (information only); the Inspector compact (all sections
+  collapsed at first, two pairs merged); the settings window's section list; the heart-rate offset's default −70 s (saved
+  values kept); «Готово» lays out the intro and final once; the export dialog with the YouTube timestamps (the tool bar's
+  button and window removed); the blurred background as the picture's edges extended (and its own bitmap in both painters —
+  it had been drawn from the clip's frame); scrubbing — every finished picture shown, short steps forward read on (measured
+  on 4K HEVC 60 / 240 fps: a drag forward 0 → 15–34 pictures / s, back 0 → 2.3 / s, a step → 341 → 13 ms; a step ← and a
+  single seek ~0.35 s unchanged). The clip `112606`: no defect (D057 §7.10). Manual rows: `docs/PHASE38_MANUAL_TEST_PLAN.md`
+  H1–H7 and the amended B1, E1, F2, F6, F10. **Not accepted** — the owner's check of the new build follows.
 
 **State on 2026-11-09** — `main` at `1a087ae` (the merge of PR #54), `project.json` v18. The phases' state and what comes
 next have one source: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering" → "Official phases"; this file is the dated
