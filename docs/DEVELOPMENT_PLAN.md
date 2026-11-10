@@ -246,6 +246,13 @@ phase's record prevail.
       five groups of properties edited on several clips in one undo step; marker labels; draggable Position / Scale /
       Rotation labels and 5 % percent sliders; «Готово» only on the Preview bar. Deferred items: D058 §7. Manual plan:
       `docs/PHASE39_MANUAL_TEST_PLAN.md`.
+- [ ] **Phase 40 — Export Performance (DECISIONS.md D059, 2026-11-10) — implemented, awaiting the owner's check.** E0 the
+      benchmark harness `tools/export-bench`; E1 the export's frames over a named pipe (64 MB) instead of stdout; E2 a
+      bounded pipeline with K parallel rasterizers and ordered writing; E3 one encoder plan for libx264 and NVIDIA NVENC H.264
+      (detected by a trial encoding, libx264 the fallback, a failed NVENC export restarted with libx264); E4 the profiles
+      «Быстрый» / «Сбалансированный» (default, the old output) / «Высокое качество» / «Пользовательский», the encoder chooser,
+      the expected file size, speed and encoder in the progress window. HEVC / AV1 (E5) not done; NVENC in the minimal
+      FFmpeg build S1 left to S1. Results: `docs/EXPORT_PERFORMANCE.md`. Manual plan: `docs/PHASE40_MANUAL_TEST_PLAN.md`.
 
 ## Phase and step numbering (product owner, 2026-10-28)
 
@@ -697,6 +704,24 @@ F — implementation (after R3's go and A):
 6. A manual check on a real gym video with a real Pace 4 export.
 - Out: other devices; a sports-telemetry editor; maps, GPS, pace and other fields unless R3 justifies one; a direct
   device or cloud connection.
+
+### Phase 40 — Export Performance *(D059, 2026-11-10; implemented, the owner's check open)*
+
+The owner's task of 2026-11-10 on the basis of the research «Export Performance Optimization» (base `07252bf`). Steps, one
+pull request (branch `feat/export-performance`):
+
+| Step | Content (D059) | Done |
+|---|---|---|
+| E0 | `tools/export-bench`: scenarios over `VideosForTest`, ≥ 3 runs and the median, CPU / GPU / VRAM / RAM / size / SHA-256, the calibration; the baseline on `07252bf` | yes |
+| E1 | `DecodeTransport.HighThroughput` → `FramePipe` (named pipe, 64 MB); the Preview keeps stdout; the MP4 byte for byte the same | yes |
+| E2 | `ExportVideoPipeline`: bounded queue → K rasterizer threads → ordered writer; `ExportPipelineSettings` (K by processors / encoder / memory); canvases pooled; E6: decoded buffers not zeroed | yes |
+| E3 | `ExportVideoPlan`, `IExportEncoderCapabilities` / `FfmpegEncoderCapabilities`, `h264_nvenc`, the fallback (before the start and by restarting a failed export with libx264); the NVENC CQ values calibrated by VMAF | yes |
+| E4 | `ExportProfile`, the encoder, rate control and bitrate; `ExportEncodingEditorView` in the export dialog and the project settings; `ExportSizeEstimate`; speed / time left / encoder in the progress window; `settings.export` optional fields | yes |
+| E5 | HEVC / AV1 NVENC | not in scope |
+| — | NVENC in the minimal FFmpeg build (S1) | left to S1 (D059 §3) |
+
+The owner checks `docs/PHASE40_MANUAL_TEST_PLAN.md` (the dialog, the speed, the picture of NVENC against libx264, cancel,
+compatibility, a machine without NVENC) on a target build.
 
 ### Phase 39 — Timeline UX & Multi-Clip Editing *(D058, 2026-11-10; implemented, the owner's check open)*
 

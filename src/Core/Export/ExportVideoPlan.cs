@@ -84,8 +84,10 @@ public sealed record ExportVideoPlan(ExportVideoEncoder Encoder, string Preset, 
     public const string X264HighQualityPreset = "slow";
     public const int X264HighQualityCrf = 16;
 
+    // Calibrated 2026-11-11 (D059 §5, docs/EXPORT_PERFORMANCE.md §5): the largest CQ whose VMAF is not below the libx264
+    // counterpart's on all five references — Fast ↔ veryfast CRF 18, Balanced ↔ medium CRF 18, High quality ↔ slow CRF 16.
     public const string NvencFastPreset = "p2";
-    public const int NvencFastCq = 22;
+    public const int NvencFastCq = 25;
     public const string NvencBalancedPreset = "p5";
     public const int NvencBalancedCq = 22;
     public const string NvencHighQualityPreset = "p7";
@@ -104,10 +106,10 @@ public sealed record ExportVideoPlan(ExportVideoEncoder Encoder, string Preset, 
     /// CRF by VMAF (D059 §5) — not the CRF number itself.</summary>
     public static int NvencCqOf(ExportQuality quality) => quality switch
     {
-        ExportQuality.Maximum => 18,
-        ExportQuality.High => 22,
-        ExportQuality.Standard => 27,
-        ExportQuality.Compact => 31,
+        ExportQuality.Maximum => 19,    // ↔ CRF 14
+        ExportQuality.High => 22,       // ↔ CRF 18
+        ExportQuality.Standard => 27,   // ↔ CRF 23
+        ExportQuality.Compact => 32,    // ↔ CRF 28
         _ => throw new ArgumentOutOfRangeException(nameof(quality), quality, "Unknown export quality.")
     };
 

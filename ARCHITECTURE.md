@@ -910,20 +910,37 @@ Routine refactoring needed to implement a feature does not.
   the same samples as the Preview's `AudioPipeline` + `AudioMixer`.
 - Encoder (Step 5): Core `IExportEncoder` / `IExportEncoding` (audio first, then frames, then complete; temporary
   files moved into place on success) → Video `FfmpegExportEncoder`: pass 1 PCM → AAC-LC 192k in a temporary m4a,
-  pass 2 BGRA → BT.709 limited 4:2:0 libx264 CRF 18 medium + the audio copied → MP4 `+faststart`.
-- Orchestration (Step 6): `ExportService` (Export) = `IExportService`. Preparing: one rasterizer from the
-  `Func<ICompositionRasterizer>` the app registers (`AvaloniaCompositionRasterizer`; Export has no rendering backend)
-  and `IExportEncoder.StartAsync`; Audio: `ExportAudioSource` → `WriteAudioAsync` in 0.5 s chunks until the source
-  ends; Video: per frame `ExportFrameSource.GetFrameAsync` → `ExportFrame.DrawPlan()` → `Render` into one reused
-  canvas (stride = width · 4) → `WriteFrameAsync`, frame n + 1 fetched while frame n is rasterized and written (one
-  frame ahead, never more; cancelled and awaited on an early end — D024 Step 9.7; memory: ≤ 3 decoded frames alive per
-  picture layer); Finalizing: `CompleteAsync`. Runs on the thread pool
+  pass 2 BGRA → BT.709 limited 4:2:0 (the conversion on the CPU, `scale` + `setparams`) → the video encoder + the audio
+  copied → MP4 `+faststart`. D059 §3: the video encoder is the job's `ExportVideoPlan` (Core, pure): libx264 (preset +
+  CRF, or an average bitrate) or `h264_nvenc` (p1–p7, `-tune hq`, VBR towards a calibrated CQ, spatial AQ, look-ahead,
+  3 B-frames, `-g 250`; NVENC receives yuv420p, never BGRA). `IExportEncoderCapabilities` (Core) → `FfmpegEncoderCapabilities`
+  (Video): `ffmpeg -encoders` has `h264_nvenc` **and** a 10-frame trial encoding with the real options succeeds — checked
+  once in the background at app start, cached; NVENC is never used unconfirmed, and never above 4096 px a side.
+  `IExportEncoding.EncoderDescription` / `IsHardware` / `FallbackReason` say what was used.
+- Orchestration (Step 6): `ExportService` (Export) = `IExportService`. Preparing: K rasterizers from the
+  `Func<ICompositionRasterizer>` the app registers (`AvaloniaCompositionRasterizer`; Export has no rendering backend;
+  K from `ExportPipelineSettings`, D059 §2) and `IExportEncoder.StartAsync`; Audio: `ExportAudioSource` →
+  `WriteAudioAsync` in 0.5 s chunks until the source ends; Video (D059 E2, `ExportVideoPipeline`; replaces Step 9.7's
+  one frame ahead): one producer task calls `ExportFrameSource.GetFrameAsync` in ascending order into a bounded queue
+  (Q frames) → K rasterizer threads (`export-rasterizer-N`), each with its own rasterizer, take a canvas from a pool of
+  K + 2 **before** a frame, render `ExportFrame.DrawPlan()` → an ordered hand-over → one writer `WriteFrameAsync` in frame
+  order (the canvas back to the pool after the call). Bounded: ≤ Q + K + 1 decoded output frames and K + 2 canvases. The
+  first failure of any stage stops all (a linked token), the producer is awaited and the threads joined before the frame
+  source and the rasterizers are disposed; cancellation wins over a failure. A hardware encoder's `EncodeFailed` /
+  `EncoderUnavailable` restarts the whole export once with `ExportEncoding.WithLibx264()` (D059 §3; never a partial
+  file). Finalizing: `CompleteAsync`. Runs on the thread pool
   (`Task.Run`). Progress: `ExportProgress` Preparing 0/1, Audio samples/`AudioSampleCount`, Video frames/`FrameCount`,
   Finalizing 0/1 → 1/1 only after `CompleteAsync`. The job is taken as the preflight made it (no repeated checks; the
   encoder rejects outputs it can't encode). Failures and cancellation propagate unchanged; every part is disposed
   (`await using`), so an unfinished encoding ends ffmpeg and deletes its temporary files — the service never
   touches the destination. DI (App): `IExportEncoder` → `FfmpegExportEncoder`, `Func<ICompositionRasterizer>` →
   `new AvaloniaCompositionRasterizer()`, `IExportService` → `ExportService`.
+- Frame transport (D059 E1): the export's decode requests ask for `DecodeTransport.HighThroughput` — `FfmpegVideoDecoder`
+  creates a `FramePipe` (Windows named pipe `\\.\pipe\aive-frames-<guid>`, 64 MB input buffer, waiting for the connection
+  before ffmpeg starts) and gives ffmpeg its path as the output (`-y`, everything else of the command line unchanged);
+  the stream reads the frames from the pipe, pairs them with showinfo exactly as before and keeps every end / failure
+  rule; a decoder that ends without opening the pipe is a `DecoderFailed` at once. The Preview keeps stdout
+  (`DecodeTransport.Standard`). stdout carries ~410 MB/s of 4K BGRA, the pipe 3.4+ GB/s (the research §3.2).
 - Layers: Core (composition model, geometry, draw plan, the contract below) → a backend-specific
   rasterizer (chosen in Step 3; Core never references Avalonia) → Export (orchestration) → Video (FFmpeg
   encoder: arguments, pipes, stderr).
@@ -940,7 +957,11 @@ Routine refactoring needed to implement a feature does not.
 - UI (Step 7): Toolbar Export → `ExportWorkflow` (UI/Services): preflight (without the output file) → errors stop,
   warnings may be accepted → save-file picker → preflight with the file (the job) → replace confirmation → `EditingLock`
   + modal `AvaloniaExportProgressDialog` (`ExportProgressViewModel`, pulled by a timer; Cancel = the token) →
-  `IExportService.ExportAsync` → outcome message per `ExportFailure` / cancelled / unexpected. `EditingLock` is shared
+  `IExportService.ExportAsync` → outcome message per `ExportFailure` / cancelled / unexpected. D059 §4: the export dialog
+  (and «Параметры проекта») holds `ExportEncodingEditorViewModel` / `ExportEncodingEditorView` — profile, encoder (NVENC
+  only when confirmed), the «Пользовательский» fields, the expected size (`ExportSizeEstimate`, a range); a changed choice
+  becomes the project's (`SetExportSettings`, one undo step) and the job's. The progress window adds the speed (fps over
+  the last 5 s), the time elapsed / left and the encoder actually used (with a fallback's reason). `EditingLock` is shared
   by Toolbar, Timeline, Inspector and Media Browser (`CanExecute` / edit guards). `LastExportSettings` is session-only
   state (not dirty, not undoable, not serialized), updated after a successful export. Manual plan: `docs/EXPORT_MANUAL_TEST_PLAN.md`.
 - Codec leg (Phase 13 Step 13.8, L1-c, tests only): `ExportCodecLegTests` / `CodecLegMetrics` measure the MP4 against

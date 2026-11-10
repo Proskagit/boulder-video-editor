@@ -1244,6 +1244,9 @@ Preview measurement C and the memory diagnosis of A; details, method, tables and
 - Not now (each would need its own decision): B (overlapping rasterizing with encoding — encoding is 2–3 %), a decoded
   frame buffer pool, GC tuning, a smaller look-ahead for many layers; hardware decode / encode and every other semantic
   change for speed stay out of scope.
+- **Amended by D059 (2026-11-10):** "one frame ahead, never more" is replaced by D059 §2's bounded pipeline (a queue of
+  decoded frames, K parallel rasterizers, ordered writing, bounded canvases); hardware **encoding** (NVIDIA NVENC H.264) is
+  in scope by D059 §3. Hardware decoding in the export stays out (the research measured no gain).
 
 Refined in Step 9.8 (2026-09-28), polish & cleanup (the polish list proposed after the 9.8 audit and confirmed by the
 product owner as a whole; details and verification in `progress.md`):
@@ -2253,7 +2256,8 @@ Context (Step 13.1 audit, the code at `c0cb600`, `main` after the merge of PR #1
 ### 3. Out of scope
 
 AI features; HDR / 10-bit / colour management (incl. tone mapping and colour tags other than BT.709); other containers or
-codecs (HEVC, VP9 / AV1, ProRes, …); hardware encoding; bitrate targets or two-pass encoding; an audio sample rate or
+codecs (HEVC, VP9 / AV1, ProRes, …); hardware encoding *(amended by D059: NVENC H.264 in scope)*; bitrate targets or
+two-pass encoding *(amended by D059: an average bitrate in «Пользовательский»; two-pass still out)*; an audio sample rate or
 channel layout other than 48 kHz stereo; exporting a time range; an export size or rate different from the project's
 (unless the D028 acceptance decides otherwise — question 2 below); fit policies other than D018's "contain"; an
 installer; timeline virtualization; an undoable import; fixing the known flaky CI tests (§8); the `F(end − start)`
@@ -9778,6 +9782,162 @@ between tracks; the magnetic main track; Motion Tracking Camera / a virtual came
 tracking; key frames (K1) and advanced tracking correction. **Transitions** stay a task of their own: about five popular
 transitions, a review of the existing fades and cross dissolve, Preview / export parity required. The Export Performance
 Optimization research is planned separately.
+
+## D059 — Phase 40: Export Performance — a faster frame transport, a parallel pipeline, NVENC H.264 and export profiles *(set by the owner's task of 2026-11-10; implemented 2026-11-10)*
+
+Date: 2026-11-10. **Status: the scope set by the product owner on 2026-11-10** on the basis of the research
+«Export Performance Optimization» (2026-11-10, base `07252bf`; its findings summarised in `docs/EXPORT_PERFORMANCE.md`);
+implemented in Phase 40 (branch `feat/export-performance`). **Amends D024** (Step 9.7: "one frame ahead, never more" and
+"hardware decode / encode … out of scope") and **D028** (§3 "hardware encoding; bitrate targets … out of scope"; §1 / §7
+the export settings become profiles); keeps D023's architecture (the C# compositor, the Avalonia rasterizer, FFmpeg for
+decoding, encoding and muxing), its fixed format (MP4 · **H.264** · AAC-LC 48 kHz stereo, 8-bit 4:2:0 BT.709 limited) and
+every other decision. `project.json` unchanged (v19): the new export fields are optional within `settings.export`.
+
+Target machine of the optimisation (the owner's): AMD Ryzen 7 7800X3D (8 C / 16 T), NVIDIA RTX 4070 SUPER, 32 GB RAM, NVMe,
+Windows 11. Nothing is limited for the sake of the old sequential design or of a weaker CPU; every other machine must
+still export correctly (the numbers of K follow the processors and the memory; NVENC only where confirmed).
+
+### 1. E1 — the frame transport
+
+The export's decoders hand their full-resolution BGRA frames to the app through a **Windows named pipe with a 64 MB input
+buffer** instead of ffmpeg's stdout (`DecodeTransport.HighThroughput` on the export's `VideoDecodeRequest`s, `FramePipe` in
+Video): ffmpeg's command line is unchanged except its output (`-y \\.\pipe\aive-frames-<guid>`), so the frames, their order,
+their timestamps and therefore the MP4 are byte for byte the same. stdout carried ~410 MB/s of 4K BGRA (77 ms a frame —
+the cap of ~12.5 fps of every 4K export); the pipe carries 3.4–3.7 GB/s. The server waits for the connection before ffmpeg
+starts (a short clip that writes and closes at once is never missed); a decoder that ends without opening the pipe is
+`DecoderFailed` at once (not after the 20 s frame timeout); StrictEnd, the showinfo pairing and the hardware-decode retry
+are unchanged; disposing ends ffmpeg first, then the pipe. **The Preview keeps stdout** (`DecodeTransport.Standard`, its
+reduced frames are not transport-bound) — no Preview behaviour changes. Where a named pipe can't be created (not Windows)
+the decoder uses stdout. The minimal FFmpeg build (S1) opens the pipe with its `file` protocol — nothing to add for E1.
+
+### 2. E2 — the bounded pipeline and the rasterizer pool
+
+The video stage becomes (`ExportVideoPipeline`; replaces D024 Step 9.7 "A", one frame ahead):
+`ExportFrameSource` (one producer, ascending requests, the D009 / D022 selection unchanged) → a **bounded queue** of Q
+decoded output frames → **K rasterizers**, each on its own thread (`export-rasterizer-N`) with its own
+`AvaloniaCompositionRasterizer` (its render target, bitmaps, `TextGlyphCache`, `TreatmentSurface`) → an ordered hand-over →
+**one writer** to the encoder in frame order.
+- Bounded memory: a rasterizer takes a canvas from a pool of K + 2 **before** it takes a frame (so the frame the writer needs
+  next always has one — no deadlock); at most Q + K + 1 decoded output frames exist. Canvases are reused; a canvas is
+  valid for the encoder only during `WriteFrameAsync` (the contract of `IExportEncoding`).
+- K (`ExportPipelineSettings.Resolve`): a third of the logical processors beside libx264 (it encodes on the same cores), half
+  beside NVENC; at most 8; at most what a quarter of the memory available to the process holds (per rasterizer about
+  `(3 + 2 · video layers)` canvases); at least 1. Q = K. `AIVE_EXPORT_RASTERIZERS` overrides K (the benchmark). The target
+  machine: K = 5 with libx264, 8 with NVENC (measured in §8).
+- Failures and cancellation: the first failure of any stage (a decoder, a rasterizer, the encoder) stops every stage through
+  one linked token; the producer is awaited and the threads joined before the frame source, the rasterizers and the
+  encoding are disposed (no decoder is disposed under a read); the frames before the failure that are ready are written
+  (as by the sequential export); the first failure propagates unchanged, a cancellation by the caller wins. Cancel ends
+  within a frame's rendering.
+- Thread safety, checked for this phase: a rasterizer is used by one thread only; shared and read-only: the snapshot, the
+  decoded frames (several output frames may show one), the draw plans; `BackgroundBlur`'s cache is a
+  `ConditionalWeakTable` (thread safe; two threads may compute the same deterministic copy); `TextGlyphCache` stays one per
+  rasterizer (each builds its glyphs once on the UI thread, D043 B: one geometry never drawn by two threads); the painter
+  creates no `AvaloniaObject`s off the UI thread (immutable brushes / pens, `FormattedText`). **Verified, not assumed:** the
+  end-to-end suite compares the canvases of K = 1 over stdout with K = 3 / 6 over the pipe byte for byte, and the MP4s by
+  SHA-256, on scenes with every component (outlined bold text, «Боулдер», «Хайлайт», the heart rate, animated hold outlines,
+  VHS, a blurred background on a vertical canvas, Dissolve and Push, a picture in picture, several tracks) — and the whole
+  existing parity suite (Preview ↔ export, byte-exact) runs on the new pipeline.
+- Found by the benchmark and fixed: (1) a failing stage's stop ran the waiting writer inline on a rasterizer thread whose
+  end then joined itself — the stop now runs on the thread pool and nothing joins its own thread (a regression test
+  reproduces the hang on the old code); (2) the failure behind it: two threads drawing their first text at once made
+  Avalonia 11.1.3's `GlyphRun` type initializer throw — permanently for the process — so the first
+  `AvaloniaCompositionRasterizer` draws text, a pen, an opacity mask and a bitmap once on its creator's thread before any
+  parallel use (0 failures in 20 repeated runs after, 1 in 18 before).
+- E6 (by measurement): decoded frame buffers are allocated uninitialised (filled completely by the read: no 32 MB zeroing
+  per 4K frame). Not done (measured not to limit, or a semantic change): a decoded-frame buffer pool, audio in parallel
+  with video, skipping unused frames of high-rate sources in the decoder, a faster HDR graph, cheaper blur / VHS.
+
+### 3. E3 — the encoder abstraction and NVENC H.264
+
+- One plan for both encoders: `ExportVideoPlan` (Core, pure) — the encoder actually used, its preset, CRF or CQ, the rate
+  control, multipass, and whether NVENC fell back — resolved from the job's `ExportEncoding` and the machine's
+  `ExportEncoderAvailability`; `FfmpegExportEncoder` turns it into the ffmpeg options; the size estimate reads the same plan.
+  The input, the BGRA → yuv420p BT.709 conversion **on the CPU** (NVENC receives yuv420p, never BGRA: the GPU's conversion
+  rounds differently and was not faster), the tags, the audio copy and the container are the same for both encoders.
+- **libx264** (software, always available, the guaranteed fallback): «Сбалансированный» with libx264 is **exactly** the
+  D028 default (CRF 18, medium, 192 kbps) — the golden command line of Phase 12 character for character, byte-identical MP4s.
+- **NVIDIA NVENC H.264** (`h264_nvenc`): High profile, `-tune hq`, VBR towards a CQ target with no cap (`-cq N -b:v 0`),
+  spatial AQ, a 20-frame look-ahead, 3 B-frames, a key frame at least every 250 frames, `-multipass qres` for «Высокое
+  качество». CQ is **not** CRF: every CQ comes from the calibration (§5), never from the CRF number. Frames above 4096 px a
+  side (NVENC H.264's limit) fall back to libx264.
+- Detection (`IExportEncoderCapabilities` → `FfmpegEncoderCapabilities`): NVENC counts only when the ffmpeg found has
+  `h264_nvenc` **and** a 10-frame trial encoding with the real options succeeds (no GPU, an old driver or no free session
+  fail it); checked once in the background at app start, cached. The UI offers NVENC only then.
+- Fallback: NVENC chosen but unavailable → libx264 of the same profile, the reason shown in the dialog and the progress
+  window. NVENC failing during an export (its start or any frame: `EncodeFailed` / `EncoderUnavailable`) → the encoding is
+  abandoned like any failure (no partial file; the temporary files deleted) and the **whole export starts again with
+  libx264** of the same profile, once; the result message says so. The project and its settings are never changed by a
+  fallback. A libx264 failure is not retried. Cancellation is never a fallback.
+- **HEVC and AV1 stay out** (E5 not done): H.264 is the only export codec; the research's HEVC / AV1 NVENC numbers are not
+  used.
+- The minimal FFmpeg build (S1, D046 §13, branch `build/ffmpeg-minimal`, not merged): it has **no NVENC** — the app then
+  offers libx264 only (the check fails cleanly). Adding NVENC to S1 needs `nv-codec-headers` (MIT, headers only; the
+  driver's `nvEncodeAPI64.dll` is loaded at run time — no nonfree, no CUDA SDK), `--enable-ffnvcodec --enable-nvenc`,
+  `encoder h264_nvenc` in `components.txt`, the headers in `sources.lock` / the notices, and the build's expected external
+  library list extended by `ffnvcodec`. Left to the S1 work (a decision of the owner there); this phase does not change S1.
+
+### 4. E4 — export profiles and settings
+
+- Four profiles (`ExportProfile`): **«Быстрый»** (speed first: NVENC when chosen and available — choosing the profile in the
+  dialog selects NVENC where it exists; otherwise libx264 `veryfast` CRF 18), **«Сбалансированный»** (the default; libx264
+  exactly as before, or NVENC at the CQ calibrated to libx264 CRF 18 medium's VMAF), **«Высокое качество»** (libx264 slow
+  CRF 16; NVENC p7 multipass at the CQ calibrated to it), **«Пользовательский»** (the encoder, the quality level of D028 —
+  CRF 14 / 18 / 23 / 28, NVENC's calibrated CQ for each —, the speed — fast / medium / slow, NVENC p3 / p5 / p7 —, the rate
+  control: constant quality or an average bitrate of 8–100 Mbit/s — and the AAC bitrate). Not a list of ffmpeg options.
+- The encoder chooser: «NVIDIA NVENC» (shown only when confirmed) — «аппаратное кодирование на видеокарте NVIDIA — обычно
+  быстрее»; «libx264» — «программное кодирование на процессоре — обычно медленнее, со своим профилем качества»; both through
+  FFmpeg (said in the dialog). A saved NVENC choice on a computer without NVENC is kept in the project and shown with the
+  reason libx264 will encode.
+- **The expected size** before the export (`ExportSizeEstimate`): average bitrate → the bitrate × the length ± 7 %;
+  constant quality → a **range** from the calibrated bits per pixel and frame of the plan's encoder / preset / quality,
+  scaled by the canvas and the frame rate, spread from a calm to a busy scene — always marked «оценка»; plus the audio and
+  the container. Updated on every change of profile, encoder or field.
+- Where: the export dialog (with the estimate) and «Параметры проекта» share one editor (`ExportEncodingEditorView`); a
+  choice changed in the export dialog becomes the project's (`SetExportSettings`, one undo step) and the job's. The size and
+  the frame rate stay the project's (D028); no project parameter changes for a profile.
+- The progress window: the speed (fps over the last 5 s), the elapsed time and the time left at that speed, the encoder
+  actually used («Кодировщик: NVENC p5 CQ …») and a fallback's reason. CPU / GPU load is not shown (the log and the
+  benchmark have it).
+- Compatibility: `settings.export` gains optional `profile`, `encoder`, `rateControl`, `videoBitrateMbps` — each written
+  only when it differs from the D028 meaning (Custom, libx264, constant quality, 40), so a D028 project saves byte for byte as
+  before; a file without them reads as «Пользовательский» with libx264 and exactly its quality, preset and bitrate (its old
+  output); a D028 file that wrote the default values reads as the default; an unknown name or bitrate is a damaged file
+  (D014, as D028). An older version reads a D059 file's D028 fields and ignores the rest.
+
+### 5. Calibration of NVENC against libx264
+
+By VMAF (the 4K model above 1080p, every frame; mean, minimum, worst 1 %) and bitrate against lossless references of the
+export's canvases (yuv420p after its own conversion) of the owner's footage: two 4K60 routes (12×10), the vivo HEVC HLG
+clip through the HDR graph on a vertical 1080×1920 canvas, a 1080p60 one and a 4K30 one. The rule: each NVENC profile's CQ
+is the largest CQ whose VMAF is **not below** its libx264 counterpart's (Balanced ↔ medium CRF 18, High quality ↔ slow CRF
+16, Custom levels ↔ their CRF) on every reference; «Быстрый» NVENC at least libx264 `veryfast` CRF 18. The values and the
+bits-per-pixel table of the estimate: `docs/EXPORT_PERFORMANCE.md` (`ExportVideoPlan`, `ExportSizeEstimate` hold them).
+The visual check of wall texture, chalk, fine detail, fast motion and dark parts is the owner's (the manual plan).
+
+### 6. The benchmark harness (E0)
+
+`tools/export-bench` (outside the solution, run by hand on the target machine; never in CI): the real `ExportService` on
+generated projects over `VideosForTest` (4K60, 4K → 1080p, vertical with and without blur, 4K120 → 60, overlays and outlines,
+VHS, two tracks, transitions, HEVC HLG, a long export, a 12×10 training), every run its own process, ≥ 3 runs and the
+median; fps, the stages, CPU / GPU / NVENC / VRAM, RAM, size, SHA-256 of the MP4 and of the canvases, and the calibration
+(`calibrate`). It also builds against the commit before D059 (`-p:DefineConstants=BASELINE`) for a baseline. Results:
+`docs/EXPORT_PERFORMANCE.md`.
+
+### 7. Acceptance criteria (the research's §11, kept)
+
+Speed — the medians on the target machine against the baseline of `07252bf`: 4K60 ≥ 2× after E1, ≥ 3× after E2, ≥ 5× after
+E3; 4K → 1080p and vertical ≥ 3× after E1–E2; 120 fps sources ≥ 3× after E1; no scenario slower. Never at the cost of
+correctness: the parity suites unchanged; libx264 byte-identical MP4s where the research expects it; frames, duration, the
+audio samples and A/V sync unchanged; bounded memory with no growth between runs; cancel without a left ffmpeg or a
+temporary file; an NVENC failure ends in a correct libx264 file or a clear error. A target missed is reported with the
+measured numbers and the reason, never adjusted.
+
+### 8. Out of scope
+
+HEVC / AV1 (E5); GPU or CUDA composition, a second renderer, libav in-process, NVDEC in the export, CUDA filters, BGRA into
+NVENC, Tensor / RT cores (all rejected by the research); changing S1's FFmpeg; a different export size or rate; any
+Preview change.
 
 ---
 
