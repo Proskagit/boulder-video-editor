@@ -2,7 +2,9 @@
 
 ## Current phase
 
-**Phase 38 — UX Improvements before the MVP (D057, approved 2026-11-09) — in progress.** Documentation first (D057, the
+**Phase 38 — UX Improvements before the MVP (D057, approved 2026-11-09) — accepted by the product owner on 2026-11-10.**
+Next (D057 §1): the decisions on D057 §4.1 / §4.2, then §4.3, then S1 / Phase 30 — each set by the owner separately.
+Documentation first (D057, the
 amendments of D006, D037, D041, D042, D045, D047, D048, D051, D055, D056; `docs/PHASE38_MANUAL_TEST_PLAN.md`), then blocks
 A–F (`docs/DEVELOPMENT_PLAN.md`, "Phase 38"). Then a target build for the owner's practical check; S1 / Phase 30 only after
 the MVP. Phase H's goal is covered by Phase 38; Phase 32 a distant idea; WASTED removed.
@@ -29,6 +31,10 @@ the MVP. Phase H's goal is covered by Phase 38; Phase 32 a distant idea; WASTED 
   (D057 §7.11, branch `fix/phase-38-acceptance-2`): the template and the media file's technical data open by default, the
   blurred background by the owner's reference (the scene enlarged and softly blurred, D057 §7.12), the Media Browser's
   context menu. Manual rows H8–H10.
+- **Phase 38 accepted (2026-11-10).** The owner checked 0.38.2 (H8–H10, the blurred background by the owner's reference)
+  and accepted the phase; the last correction — the tool bar's duplicated «Импорт медиа» removed (D057 §7.13; «+ Импорт»,
+  Ctrl+I, «На таймлайн» and the file menu unchanged) — in PR #64 with the fixes of D057 §7.11–§7.12. Docs synchronised
+  (D057, `docs/DEVELOPMENT_PLAN.md`, `ROADMAP.md`, `docs/PHASE38_MANUAL_TEST_PLAN.md`).
 
 **State on 2026-11-09** — `main` at `1a087ae` (the merge of PR #54), `project.json` v18. The phases' state and what comes
 next have one source: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering" → "Official phases"; this file is the dated

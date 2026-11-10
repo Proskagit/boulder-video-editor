@@ -235,9 +235,11 @@ phase's record prevail.
       D052: K1 deferred, K2 WARN, K3 PERSIST, D4 cache, E-1…E-7; the accuracy bound (E-4) — 3 px at 1920 — approved 2026-11-08;
       merged into `main` on 2026-11-08 (PR #42, `2a8a2f9`) and **technically accepted by the product owner on 2026-11-08**; the manual plan `docs/R2E_MANUAL_TEST_PLAN.md` stays outstanding — to be run during practical application testing, not blocking the next phase; record `docs/PHASE_HOLD_TRACKING.md` §19). **Not started:** H — Final UX Pass (the last large phase). Section
       "Planned phases after Phase 26 (D042)" below.
-- [ ] **Phase 38 — UX Improvements before the MVP (DECISIONS.md D057, approved 2026-11-09) — in progress.** The scope
-      2.1–2.15 (D057 §3); then a target build, the owner's practical check and its fixes, the decisions of D057 §4, and only
-      then S1 / Phase 30. `project.json` v19 (the blurred background). Manual plan: `docs/PHASE38_MANUAL_TEST_PLAN.md`.
+- [x] **Phase 38 — UX Improvements before the MVP (DECISIONS.md D057, approved 2026-11-09) — accepted by the product
+      owner on 2026-11-10.** The scope 2.1–2.15 (D057 §3, blocks A–F, PRs #56–#62); the fixes after the owner's practical
+      check (D057 §7: PR #63 and PR #64); the builds 0.38.1 and 0.38.2 checked by the owner by hand. Next (D057 §1): the
+      decisions on D057 §4.1 / §4.2, then §4.3, and only then S1 / Phase 30. `project.json` v19 (the blurred background).
+      Manual plan: `docs/PHASE38_MANUAL_TEST_PLAN.md`.
       Section "Phase 38" below. **H's goal is covered by Phase 38; its former scope is not restored.**
 
 ## Phase and step numbering (product owner, 2026-10-28)
@@ -289,7 +291,7 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 35 — COROS trainings and the heart rate | D050, D049, D053–D056 | in part: 35.0–35.2 done (35.2 accepted); 35.3 in part (35.3d: B6 not met; 35.3e awaiting the owner's decision; 35.3b2b deferred); 35.4 implemented (v11), C1–C14 automated 2026-11-04: PASS except C5's real re-export (manual) — **not accepted yet**; **35.5 implemented and accepted 2026-11-03 (v13; PR #35, `5c5cb7f`)**; **35.6 accepted 2026-11-09** (35.6a D055 v16; 35.6b with D056 v17 / v18, the owner's manual checks positive); not complete | 35.0–35.4 in PR #33 (`1640996`), with Phase 37; 35.5 PR #35; D053 PR #47, D054 PR #48, 35.6a PR #50, D056 PRs #51–#54 (`1a087ae`) |
 | 36 — summary and chapters | to be approved | planned; specification draft outside `main`; its time-code export a separate item until clarified | — |
 | 37 — FIT route starts and the start calibration | D051 | implemented (37.1–37.6, v12) and merged; 37.7 done (D051 A1–A15 automated 2026-11-04, all PASS, A10 measured); **accepted by the product owner 2026-11-04** | PR #33, `1640996` |
-| 38 — UX Improvements before the MVP | D057 | blocks A–F implemented 2026-11-10 (`project.json` v19), gates passed, a target build prepared; the owner's practical check open; not accepted | PRs #56–#62 (stacked), not merged |
+| 38 — UX Improvements before the MVP | D057 | blocks A–F implemented 2026-11-10 (`project.json` v19); the owner's practical check of the builds 0.38.1 / 0.38.2 and its fixes (D057 §7); **accepted by the product owner 2026-11-10** | PRs #56–#62 (`d6d2b06`), PR #63 (`ef2f079`), PR #64 |
 | H — Final UX Pass | D042 §7, D057 | its goal covered by Phase 38 (D057); the former scope not restored | — |
 
 The **highest phase number in use is 37**; the **complete phases** (merged and accepted) are **1–29, 31 and 37** (Phases 31
@@ -690,7 +692,7 @@ F — implementation (after R3's go and A):
 - Out: other devices; a sports-telemetry editor; maps, GPS, pace and other fields unless R3 justifies one; a direct
   device or cloud connection.
 
-### Phase 38 — UX Improvements before the MVP *(D057, approved 2026-11-09; in progress)*
+### Phase 38 — UX Improvements before the MVP *(D057, approved 2026-11-09; accepted 2026-11-10)*
 
 The order (D057 §1): Phase 38 → a target build → the owner's practical check and its fixes → the decisions on D057 §4.1 /
 §4.2 → the decision on the large functions (§4.3) → S1 / Phase 30. Blocks, each its own pull request:
@@ -718,7 +720,9 @@ wait for H.
 
 Research:
 1. CapCut, DaVinci Resolve and Kdenlive: official materials and demonstrations, real user scenarios, user reviews and
-   discussions of video-editor UX problems.
+   discussions of video-editor UX problems. The CapCut part (Inspector, timeline, scrubbing, Media Browser, settings, the
+   blurred background of vertical video): `docs/UX_CAPCUT_RESEARCH.md` (2026-11-09; research only, nothing approved; it
+   does not widen the approved task list — extra functions are marked for the product owner's separate decision).
 2. Concrete scenarios compared, not the looks: selection, moving and trimming clips; the timeline; the Inspector; numeric
    fields and sliders; hotkeys; context menus; text and animation; transitions; music; the export; the AI hold markup.
 3. The findings matched against this product, its architecture and its audience; no interface copied without an

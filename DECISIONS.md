@@ -9455,7 +9455,7 @@ a clip; the lilac Top / Attempt; the free «Боулдер»'s semantics.
 
 ---
 
-## D057 — Phase 38: UX Improvements before the MVP *(approved 2026-11-09)*
+## D057 — Phase 38: UX Improvements before the MVP *(approved 2026-11-09; Phase 38 accepted 2026-11-10)*
 
 Date: 2026-11-09. **Status: approved by the product owner on 2026-11-09** (the UX audit, the owner's research of CapCut's
 UX, the final plan of Phase 38 and the answers to its four questions). Amends D006, D037 Q6 / Q11, D041 §4, D042 §7, D045
@@ -9589,7 +9589,7 @@ mode unless the user turns them on; the choice is kept across restarts (per user
 
 4.1 **Checked on the target build, decided separately:** removing the duplicated «Импорт» / «Готово»; the timeline
 following the playhead during playback; thumbnails on the clips; editing the properties of several clips; further text
-improvements.
+improvements. *(2026-11-10: the duplicated «Импорт» decided — the tool bar's «Импорт медиа» removed, §7.13; the rest open.)*
 
 4.2 **UX backlog, not in Phase 38 without a separate decision:** custom shortcuts; clip-bound markers (FU-21.2); marker
 labels; reverse / fast playback / shuttle; dragging Scale / Rotation / Position by their labels; moving a selection between
@@ -9698,6 +9698,13 @@ The background is the visible picture (its crop) enlarged to fill the canvas, ce
 / 8, at most 240 px, 4 × 4 fixed sample points per pixel — the same for the Preview's reduced frames and the export's full
 ones), blurred by three box passes of 1.5 % of the copy's long side (σ ≈ 1.5 % of the canvas) and darkened to 90 %. One
 `FrameDraw` of `CompositionDrawPlan`, so the Preview equals the export; the background keeps its own bitmap in the painters.
+
+7.13 **The tool bar's «Импорт медиа» removed; Phase 38 accepted** (the owner, 2026-11-10). The tool bar's import button
+duplicated the Media Browser's «+ Импорт» (§4.1); it is removed. Importing stays with «+ Импорт» and Ctrl+I (the same
+command); adding to the timeline stays with the Media Browser's «На таймлайн» and its file menu (§7.11), unchanged. The
+owner checked the build 0.38.1 (H1–H7 and the regression rows) and 0.38.2 (H8–H10, the blurred background of §7.12) by
+hand and **accepted Phase 38**; the fixes after the practical check are PR #63 (§7.1–§7.10) and PR #64 (§7.11–§7.13). Next
+by §1: the decisions on §4.1 / §4.2, then §4.3, then S1 / Phase 30 — each by its own decision.
 
 ---
 

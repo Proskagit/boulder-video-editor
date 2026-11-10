@@ -84,7 +84,9 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 
 ## Current
 
-**Phase 38 — UX Improvements before the MVP (DECISIONS.md D057, approved 2026-11-09) — in progress.** The order: Phase 38
+**Phase 38 — UX Improvements before the MVP (DECISIONS.md D057, approved 2026-11-09) — accepted by the product owner on
+2026-11-10** (the builds 0.38.1 / 0.38.2 checked by hand; the fixes of D057 §7 in PRs #63 / #64). Next: the decisions on
+D057 §4.1 / §4.2, then §4.3, then S1. The order: Phase 38
 → a target build → the owner's practical check and its fixes → a decision on the items checked on the build and on the UX
 backlog → a decision on the large functions → **S1 / Phase 30** (the technical preparation of the distribution). The MVP
 (the product's readiness for use) and S1 (the distribution's technical readiness) are different stages. The scope 2.1–2.15:
@@ -580,7 +582,7 @@ tracking task. Sketch: `docs/DEVELOPMENT_PLAN.md`, "Future ideas (not phases)".
 ## Follow-ups and backlog
 
 **After D057 (2026-11-09).** Checked on Phase 38's target build, decided separately (D057 §4.1): the duplicated «Импорт» /
-«Готово», the timeline following the playhead, thumbnails on the clips, editing several clips, further text improvements.
+«Готово» (2026-11-10: the tool bar's «Импорт медиа» removed, D057 §7.13; «Готово» open), the timeline following the playhead, thumbnails on the clips, editing several clips, further text improvements.
 The UX backlog, not in Phase 38 without a decision (§4.2): custom shortcuts, clip-bound markers (FU-21.2), marker labels,
 reverse / fast playback / shuttle, dragging Scale / Rotation / Position by their labels, moving a selection between tracks,
 the magnetic main track, slider steps. After the MVP (§4.3): Motion Tracking Camera, occlusion, advanced object tracking,
