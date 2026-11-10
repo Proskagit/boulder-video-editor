@@ -678,8 +678,9 @@
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <Button Content="{x:Static l:Strings.Holds_MarkHolds}" Command="{Binding StartCommand}" IsVisible="{Binding !IsActive}"
                             ToolTip.Tip="{x:Static l:Strings.Holds_MarkHoldsTip}"/>
-                    <Button Content="{x:Static l:Strings.Holds_Done}" Command="{Binding DoneCommand}" IsVisible="{Binding IsActive}"
-                            ToolTip.Tip="{x:Static l:Strings.Holds_DoneTip}"/>
+                    <!-- D058 §6: the markup is finished on the Preview's bar («Готово» there); here only its state -->
+                    <TextBlock x:Name="MarkupActiveText" Text="{x:Static l:Strings.Holds_MarkingInPreview}" IsVisible="{Binding IsActive}"
+                               Foreground="#00E5FF" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="220"/>
                     <TextBlock Text="{Binding HoldCount, StringFormat={x:Static l:Strings.Holds_MarkedCount}}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
 

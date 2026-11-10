@@ -2022,6 +2022,9 @@
   <data name="Inspector_ClipBackground" xml:space="preserve">
     <value>Фон</value>
   </data>
+  <data name="Holds_MarkingInPreview" xml:space="preserve">
+    <value>Идёт разметка — завершите на панели Preview</value>
+  </data>
   <data name="Timeline_MarkerLabelWatermark" xml:space="preserve">
     <value>Подпись маркера</value>
   </data>
