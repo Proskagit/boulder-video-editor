@@ -51,12 +51,15 @@ public sealed class StrictEndOfStreamTests : IDisposable
         var ffmpeg = ProcessAliases.Ffmpeg!;
         var run = video
             ? $"\"{ffmpeg}\" -hide_banner -nostdin -nostats -loglevel info -f lavfi -i \"testsrc2=size=64x36:rate=25:duration=0.4\" " +
-              "-vf \"format=bgra,showinfo=checksum=0\" -fps_mode passthrough -pix_fmt bgra -f rawvideo pipe:1"
+              "-vf \"format=bgra,showinfo=checksum=0\" -fps_mode passthrough -pix_fmt bgra -f rawvideo -y \"%LAST%\""
             : $"\"{ffmpeg}\" -hide_banner -nostdin -nostats -loglevel info -f lavfi -i \"sine=frequency=440:sample_rate=48000:duration=0.5\" " +
               "-af \"aresample=48000,aformat=sample_fmts=flt:channel_layouts=stereo,ashowinfo\" -f f32le pipe:1";
         var path = Path.Combine(_dir, $"ffmpeg-{(video ? "video" : "audio")}-{exitCode}-{waitSeconds}-{Guid.NewGuid():N}.cmd");
         var wait = waitSeconds > 0 ? $"\"{ProcessAliases.Ping}\" -n {waitSeconds + 1} 127.0.0.1 >nul\r\n" : "";
-        File.WriteAllText(path, $"@echo off\r\n{run}\r\n{wait}exit {exitCode}\r\n");
+        // The video script writes where the decoder asked — its last argument: stdout (pipe:1) or, for the export, the frame
+        // pipe of D059 E1 (\\.\pipe\…); so the strict end is judged on the export's own transport.
+        const string last = ":next\r\nif \"%~1\"==\"\" goto run\r\nset \"LAST=%~1\"\r\nshift\r\ngoto next\r\n:run\r\n";
+        File.WriteAllText(path, $"@echo off\r\n{(video ? last : "")}{run}\r\n{wait}exit {exitCode}\r\n");
         return new ScriptedFfmpeg(path);
     }
 

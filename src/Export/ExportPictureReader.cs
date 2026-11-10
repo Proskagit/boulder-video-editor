@@ -15,6 +15,10 @@ public sealed record ExportDecodeSettings
     /// middle of a stream can't happen (the Preview's mid-stream fallback, D012, is realtime behaviour).
     /// Frame selection doesn't depend on it (D009: identical PTS either way).</summary>
     public HardwareDecoding Hardware { get; init; } = HardwareDecoding.Disabled;
+
+    /// <summary>D059 E1: full-resolution frames travel by the decoder's high-throughput transport — the same frames and the
+    /// same decoder command line apart from its output, so the MP4 is byte for byte the same.</summary>
+    public DecodeTransport Transport { get; init; } = DecodeTransport.HighThroughput;
 }
 
 /// <summary>
@@ -110,7 +114,8 @@ internal sealed class ExportPictureReader : IAsyncDisposable
                     MaxHeight = ExportDecodeSettings.FullResolutionBound,
                     Hardware = _settings.Hardware,
                     Hdr = _asset.Hdr,   // D033: the same conversion as the Preview
-                    StrictEnd = true   // a decoder failing after some frames is an export error, never a held frame
+                    StrictEnd = true,  // a decoder failing after some frames is an export error, never a held frame
+                    Transport = _settings.Transport
                 }, ct);
                 // The decoder's first frame is at or before the point, or the stream's very first frame
                 // (hold-first) — the same contract the Preview's reader relies on.

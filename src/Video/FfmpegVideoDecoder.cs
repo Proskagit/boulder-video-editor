@@ -99,11 +99,13 @@ public sealed class FfmpegVideoDecoder : IVideoDecoder
         {
             var seekTicks = pointTicks - preroll;
             var fromStart = seekTicks <= 0;
+            // D059 E1: one new pipe per attempt (each ffmpeg process connects once); the stream owns it.
+            var pipe = request.Transport == DecodeTransport.HighThroughput ? FramePipe.TryCreate(_logger) : null;
             var arguments = BuildArguments(request, fromStart ? null : seekTicks,
-                hardware == HardwareDecoding.Auto ? _settings.HardwareAccelerator : null, lut);
+                hardware == HardwareDecoding.Auto ? _settings.HardwareAccelerator : null, lut, pipe?.ClientPath ?? StdoutOutput);
             _logger.LogDebug("Decode attempt {Attempt} for '{Path}' at {Point}.", attempt, request.FilePath, point); // command line: FfmpegProcess
 
-            var stream = FfmpegVideoFrameStream.Start(ffmpeg, arguments, _settings.FrameTimeout, _logger, request.StrictEnd);
+            var stream = FfmpegVideoFrameStream.Start(ffmpeg, arguments, _settings.FrameTimeout, _logger, request.StrictEnd, pipe);
             DecodedFrame? first;
             try
             {
@@ -184,8 +186,11 @@ public sealed class FfmpegVideoDecoder : IVideoDecoder
         }
     }
 
+    /// <param name="output">Where ffmpeg writes the frames: its standard output (<c>pipe:1</c>) or, for
+    /// <see cref="DecodeTransport.HighThroughput"/>, the client path of a <see cref="FramePipe"/> (D059 E1) — then also
+    /// <c>-y</c>, since the pipe exists. Nothing else of the command line differs.</param>
     internal static List<string> BuildArguments(VideoDecodeRequest request, long? seekTicks, string? hardwareAccelerator,
-        string? lutPath = null)
+        string? lutPath = null, string output = StdoutOutput)
     {
         var args = new List<string> { "-hide_banner", "-nostdin", "-nostats", "-loglevel", "info" };
         if (hardwareAccelerator is not null)
@@ -208,11 +213,15 @@ public sealed class FfmpegVideoDecoder : IVideoDecoder
             "-vf", filters,
             "-fps_mode", "passthrough",
             "-pix_fmt", "bgra",
-            "-f", "rawvideo",
-            "pipe:1"
+            "-f", "rawvideo"
         });
+        if (output != StdoutOutput) args.Add("-y");
+        args.Add(output);
         return args;
     }
+
+    /// <summary>ffmpeg's standard output as an output URL.</summary>
+    internal const string StdoutOutput = "pipe:1";
 
     /// <summary>
     /// The HDR graph (D033 §3 "Graph"): scale to the bound first, both sizes even (zscale refuses odd sizes of 4:2:0
