@@ -288,6 +288,11 @@ public sealed class TimelineMarkerViewModel : ViewModelBase
     public required Guid Id { get; init; }
     public required double Left { get; init; }
     public required string Color { get; init; }
+
+    /// <summary>D058 §4: the label shown beside the flag (empty: none).</summary>
+    public string Label { get; init; } = "";
+
+    public bool HasLabel => Label.Length > 0;
 }
 
 /// <summary>The primary selected timeline clip, as passed to the Inspector. <paramref name="DissolveAtStart"/> /

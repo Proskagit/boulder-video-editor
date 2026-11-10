@@ -224,6 +224,13 @@ public interface ITimelineEditService
     /// step.</summary>
     TimelineEditResult RemoveMarkerAt(MediaTime at);
 
+    /// <summary>D058 §4: a marker's label (<see cref="Marker.Label"/>) — trimmed, at most <see cref="MaxMarkerLabelLength"/>
+    /// characters, empty for none; one undo step; the same label is <see cref="TimelineEditResult.NoChange"/>.</summary>
+    TimelineEditResult SetMarkerLabel(Guid markerId, string label);
+
+    /// <summary>The longest marker label (D058 §4).</summary>
+    const int MaxMarkerLabelLength = 80;
+
     /// <summary>The position of the first marker on a frame after the frame of <paramref name="from"/>, or null.</summary>
     MediaTime? NextMarker(MediaTime from);
 

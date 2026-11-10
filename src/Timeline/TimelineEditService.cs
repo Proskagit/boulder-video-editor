@@ -1681,6 +1681,16 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return new TimelineEditResult { Success = true, MarkerId = marker.Id };
     }
 
+    public TimelineEditResult SetMarkerLabel(Guid markerId, string label)
+    {
+        if (Sequence.Markers.FirstOrDefault(m => m.Id == markerId) is not { } marker) return TimelineEditResult.Fail(Messages.Edit_NoMarkerAtPlayhead);
+        var text = (label ?? string.Empty).Trim().ReplaceLineEndings(" ");
+        if (text.Length > ITimelineEditService.MaxMarkerLabelLength) text = text[..ITimelineEditService.MaxMarkerLabelLength];
+        if (text == marker.Label) return TimelineEditResult.Unchanged();
+        ExecuteTracked(new NotifyingCommand(new SetMarkerLabelCommand(marker, marker.Label, text), _projectService.NotifyTimelineChanged));
+        return new TimelineEditResult { Success = true, MarkerId = marker.Id };
+    }
+
     public MediaTime? NextMarker(MediaTime from)
     {
         var frame = from.ToNearestFrame(FrameRate);

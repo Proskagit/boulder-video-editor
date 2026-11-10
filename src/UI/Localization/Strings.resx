@@ -2018,6 +2018,9 @@ If you don't save, your changes will be lost.</value>
   <data name="Inspector_ClipBackground" xml:space="preserve">
     <value>Background</value>
   </data>
+  <data name="Timeline_MarkerLabelWatermark" xml:space="preserve">
+    <value>Marker label</value>
+  </data>
   <data name="AppSettings_FollowPlayhead" xml:space="preserve">
     <value>The timeline follows the playhead while playing</value>
   </data>

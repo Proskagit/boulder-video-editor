@@ -498,7 +498,8 @@ public sealed partial class TimelineViewModel : ViewModelBase
             {
                 Id = marker.Id,
                 Left = TimelineCoordinateMapper.TimeToX(marker.Position, PixelsPerSecond),
-                Color = string.IsNullOrWhiteSpace(marker.ColorHex) ? "#4FC3F7" : marker.ColorHex
+                Color = string.IsNullOrWhiteSpace(marker.ColorHex) ? "#4FC3F7" : marker.ColorHex,
+                Label = marker.Label
             });
         }
     }

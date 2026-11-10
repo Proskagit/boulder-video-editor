@@ -2022,6 +2022,9 @@
   <data name="Inspector_ClipBackground" xml:space="preserve">
     <value>Фон</value>
   </data>
+  <data name="Timeline_MarkerLabelWatermark" xml:space="preserve">
+    <value>Подпись маркера</value>
+  </data>
   <data name="AppSettings_FollowPlayhead" xml:space="preserve">
     <value>Таймлайн следует за плейхедом при воспроизведении</value>
   </data>

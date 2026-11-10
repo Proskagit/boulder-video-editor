@@ -242,6 +242,7 @@ public partial class MainWindow : Window
         public DropPreview? PreviewAddClips(IReadOnlyList<Guid> mediaAssetIds, Guid trackId, MediaTime start, bool insertOnDrop) => null;
         public TimelineEditResult SetClipBackground(Guid clipId, ClipBackground background) => Nothing;
         public TimelineEditResult EditAsOneStep(string description, string? mergeKey, Func<IReadOnlyList<TimelineEditResult>> edits) => Nothing;
+        public TimelineEditResult SetMarkerLabel(Guid markerId, string label) => Nothing;
         public MediaTime? AddedClipDuration(Guid mediaAssetId) => null;
         public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null) => Nothing;
         public TimelineEditResult AddTemplateClip(TemplateKind kind, MediaTime start) => Nothing;
