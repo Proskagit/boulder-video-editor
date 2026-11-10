@@ -26,6 +26,46 @@ public sealed class AvaloniaCompositionRasterizer : ICompositionRasterizer
     private RenderTargetBitmap? _target;
     private bool _disposed;
 
+    private static readonly object WarmGate = new();
+    private static bool _warm;
+
+    /// <summary>D059 §2: several rasterizers draw at once on their own threads. Avalonia's static initialisation is not safe
+    /// against that: measured on 11.1.3, two threads drawing their first text at the same moment made
+    /// <c>Avalonia.Media.GlyphRun</c>'s type initializer throw — and a type initializer that threw stays broken for the whole
+    /// process. So the first rasterizer, before any parallel use, draws everything the painter uses once (text, a pen, an
+    /// opacity mask, a bitmap) on its creator's thread, under a lock.</summary>
+    public AvaloniaCompositionRasterizer()
+    {
+        lock (WarmGate)
+        {
+            if (_warm) return;
+            Warm();
+            _warm = true;
+        }
+    }
+
+    private static void Warm()
+    {
+        using var target = new RenderTargetBitmap(new PixelSize(8, 8), new Vector(96, 96));
+        using var bitmap = new WriteableBitmap(new PixelSize(2, 2), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Unpremul);
+        using (var context = target.CreateDrawingContext())
+        {
+            var brush = new Avalonia.Media.Immutable.ImmutableSolidColorBrush(Avalonia.Media.Colors.White);
+            var text = new Avalonia.Media.FormattedText("Ag", System.Globalization.CultureInfo.InvariantCulture,
+                Avalonia.Media.FlowDirection.LeftToRight, Avalonia.Media.Typeface.Default, 4, brush);
+            var bold = new Avalonia.Media.FormattedText("Ag", System.Globalization.CultureInfo.InvariantCulture,
+                Avalonia.Media.FlowDirection.LeftToRight, new Avalonia.Media.Typeface(Avalonia.Media.FontFamily.Default,
+                    Avalonia.Media.FontStyle.Normal, Avalonia.Media.FontWeight.Bold), 4, brush);
+            using (context.PushOpacityMask(brush, new Rect(0, 0, 8, 8)))
+            {
+                context.DrawText(text, new Point(0, 0));
+                context.DrawText(bold, new Point(0, 4));
+            }
+            context.DrawLine(new Avalonia.Media.Immutable.ImmutablePen(brush, 1), new Point(0, 0), new Point(8, 8));
+            context.DrawImage(bitmap, new Rect(0, 0, 2, 2), new Rect(0, 0, 4, 4));
+        }
+    }
+
     public void Render(CompositionDrawPlan plan, Span<byte> target, int stride) => Render(plan, target, stride, CancellationToken.None);
 
     public void Render(CompositionDrawPlan plan, Span<byte> target, int stride, CancellationToken ct)

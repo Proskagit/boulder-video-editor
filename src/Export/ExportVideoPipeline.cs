@@ -163,7 +163,9 @@ internal sealed class ExportVideoPipeline
             stop.Cancel();
             queue.Writer.TryComplete();
             try { await producer; } catch (Exception) { /* recorded by the producer itself */ }
-            foreach (var thread in workers) thread.Join();
+            // Never on a rasterizer thread (Fail hands the stop to the pool), but never join oneself either.
+            foreach (var thread in workers)
+                if (thread != Thread.CurrentThread) thread.Join();
         }
 
         if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
@@ -199,13 +201,19 @@ internal sealed class ExportVideoPipeline
         }
     }
 
-    /// <summary>Records the first failure and stops every stage. A cancellation caused by that stop is not a failure.</summary>
+    /// <summary>Records the first failure and stops every stage. A cancellation caused by that stop is not a failure.
+    /// The stop runs on the thread pool, never on the failing stage's own thread: its callbacks continue the writer, whose
+    /// end joins the rasterizer threads — run inline on a rasterizer thread that would wait for itself (found by the
+    /// benchmark, D059 §2).</summary>
     private void Fail(Exception ex, CancellationTokenSource stop)
     {
         if (ex is OperationCanceledException && stop.IsCancellationRequested) return;
         if (Interlocked.CompareExchange(ref _failure, ex, null) is null && ex is not OperationCanceledException)
-            _logger.LogDebug(ex, "The export pipeline stops: {Message}", ex.Message);
-        try { stop.Cancel(); } catch (ObjectDisposedException) { }
+            _logger.LogWarning(ex, "The export pipeline stops: {Message}", ex.Message);
+        ThreadPool.UnsafeQueueUserWorkItem(static s =>
+        {
+            try { ((CancellationTokenSource)s!).Cancel(); } catch (ObjectDisposedException) { }
+        }, stop);
     }
 
     /// <summary>At most <c>capacity</c> canvases, created on first need and reused.</summary>

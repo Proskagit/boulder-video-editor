@@ -484,6 +484,33 @@ public sealed partial class ExportServiceTests
     }
 
     [Fact]
+    public async Task A_rasterizer_failure_while_the_writer_waits_never_deadlocks()
+    {
+        // Found by the benchmark (D059 §2): the stop's callbacks continued the waiting writer on the failing rasterizer's own
+        // thread, and the writer's end joined that thread. Repeated, with the writer always waiting for the slow frame 0.
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            _rasterizers.Clear();
+            var thrown = new InvalidOperationException("render failed");
+            var made = 0;
+            var service = Service(rasterizers: 3, queued: 64, factory: () =>   // the producer done before the failure
+            {
+                var r = NewRasterizer();
+                var n = Interlocked.Increment(ref made);
+                if (n == 1) r.Delay = TimeSpan.FromMilliseconds(30);     // frame 0 is slow: the writer waits
+                if (n == 2) r.FailAt = (0, thrown);                       // another one fails at once
+                return r;
+            });
+
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.ExportAsync(new ExportJob(Snapshot(), Destination), _progress).WaitAsync(TimeSpan.FromSeconds(10)));
+
+            Assert.Same(thrown, error);
+            AssertAbandoned();
+        }
+    }
+
+    [Fact]
     public async Task Cancelling_while_several_rasterizers_work_ends_promptly_and_releases_everything()
     {
         using var cts = new CancellationTokenSource();
