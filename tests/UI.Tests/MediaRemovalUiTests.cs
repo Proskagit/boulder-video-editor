@@ -304,4 +304,55 @@ public sealed class MediaRemovalUiTests
         public Task<MediaImportBatchResult> ImportManyAsync(IEnumerable<string> filePaths, CancellationToken ct = default) =>
             Task.FromResult(new MediaImportBatchResult());
     }
+
+    // --- The file's context menu (the owner's check of 0.38.1, 2026-11-10) ---------------------------------------------
+
+    [Fact]
+    public void The_context_menu_on_a_file_outside_the_selection_selects_it_and_inside_a_group_keeps_the_group()
+    {
+        var a = Import("a.mp4");
+        var b = Import("b.mp4");
+        var c = Import("c.mp4");
+        var browser = Browser();
+        MediaBrowserItemViewModel Row(MediaAsset asset) => browser.Items.Single(i => i.Asset.Id == asset.Id);
+        browser.SelectedItems.Add(Row(a));
+        browser.SelectedItems.Add(Row(b));
+        browser.SelectedItem = Row(a);
+
+        browser.PrepareContextMenu(Row(b));                                 // a file of the group: the group stays
+        Assert.Equal(2, browser.SelectedItems.Count);
+        Assert.Same(Row(b), browser.ContextItem);
+        Assert.True(browser.AddToTimelineCommand.CanExecute(null));
+
+        browser.PrepareContextMenu(Row(c));                                 // another file: it alone
+        Assert.Equal(new[] { Row(c) }, browser.SelectedItems);
+        Assert.Same(Row(c), browser.SelectedItem);
+
+        string? revealed = null;
+        browser.RevealRequested += (_, path) => revealed = path;
+        browser.ShowInExplorerCommand.Execute(null);
+        Assert.Equal(c.FilePath, revealed);
+
+        browser.PrepareContextMenu(null);                                   // the list's empty part
+        Assert.False(browser.ShowInExplorerCommand.CanExecute(null));
+        Assert.False(browser.RemoveContextItemCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task The_context_menus_remove_takes_the_file_it_was_opened_on_even_inside_a_group()
+    {
+        var a = Import("a.mp4");
+        var b = Import("b.mp4");
+        var browser = Browser();
+        MediaBrowserItemViewModel Row(MediaAsset asset) => browser.Items.Single(i => i.Asset.Id == asset.Id);
+        browser.SelectedItems.Add(Row(a));
+        browser.SelectedItems.Add(Row(b));
+        browser.SelectedItem = Row(a);
+
+        browser.PrepareContextMenu(Row(b));
+        await browser.RemoveContextItemCommand.ExecuteAsync(null);          // unused: removed without asking
+
+        Assert.DoesNotContain(_projects.Current.MediaAssets, m => m.Id == b.Id);
+        Assert.Contains(_projects.Current.MediaAssets, m => m.Id == a.Id);
+    }
 }

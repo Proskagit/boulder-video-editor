@@ -944,6 +944,12 @@
   <data name="Media_RemoveTip" xml:space="preserve">
     <value>Удалить из проекта (если файл используют клипы, сначала будет вопрос; файл на диске останется)</value>
   </data>
+  <data name="Media_ShowInExplorer" xml:space="preserve">
+    <value>Показать в проводнике</value>
+  </data>
+  <data name="Media_RemoveFromProject" xml:space="preserve">
+    <value>Удалить из проекта</value>
+  </data>
   <data name="Media_RemoveTitle" xml:space="preserve">
     <value>Удаление медиафайла</value>
   </data>
@@ -1663,12 +1669,6 @@
   </data>
   <data name="Toolbar_ExportUnavailable" xml:space="preserve">
     <value>Экспорт недоступен.</value>
-  </data>
-  <data name="Toolbar_Import" xml:space="preserve">
-    <value>Импорт медиа</value>
-  </data>
-  <data name="Toolbar_ImportTip" xml:space="preserve">
-    <value>Импортировать медиафайлы в проект (Ctrl+I)</value>
   </data>
   <data name="Toolbar_New" xml:space="preserve">
     <value>Создать</value>

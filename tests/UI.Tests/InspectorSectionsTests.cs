@@ -68,10 +68,14 @@ public sealed class InspectorSectionsTests : IDisposable
     }
 
     [Fact]
-    public void Every_section_starts_collapsed()
+    public void Every_section_starts_collapsed_but_the_template_and_the_media_files_technical_data()
     {
+        // The owner's check of 0.38.1 (2026-11-10): the template (the most used) and a media file's technical data open.
         var view = new InspectorView { DataContext = _inspector };
-        Assert.All(view.GetLogicalDescendants().OfType<InspectorSection>(), s => Assert.False(s.IsExpanded, s.SectionId));
+        foreach (var section in view.GetLogicalDescendants().OfType<InspectorSection>())
+            Assert.Equal(section.SectionId is "template" or "media.tech", section.IsExpanded);
+        Section(view, "template").IsExpanded = false;                     // the user's own choice still wins
+        Assert.False(Section(new InspectorView { DataContext = _inspector }, "template").IsExpanded);
     }
 
     [Fact]

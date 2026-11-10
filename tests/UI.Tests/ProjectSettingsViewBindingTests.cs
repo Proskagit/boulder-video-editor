@@ -16,8 +16,9 @@ using Xunit;
 
 namespace AiVideoEditor.UI.Tests;
 
-/// <summary>Phase 13 Step 13.6: the real views — "Project Settings…" between Import Media and Export with the current
-/// settings as its tooltip, following the editing lock; the dialog's controls bound to the draft.</summary>
+/// <summary>Phase 13 Step 13.6: the real views — "Project Settings…" between the COROS training and Export with the current
+/// settings as its tooltip, following the editing lock; the dialog's controls bound to the draft. The owner's acceptance of
+/// Phase 38 (D057 §7.13): no «Импорт медиа» on the tool bar — the Media Browser's «+ Импорт» and Ctrl+I import.</summary>
 [Collection(AvaloniaControlsCollection.Name)]
 public sealed class ProjectSettingsViewBindingTests
 {
@@ -48,8 +49,11 @@ public sealed class ProjectSettingsViewBindingTests
         var row = view.GetLogicalDescendants().OfType<WrapPanel>().First();   // the tool bar wraps (D039 §6)
         var buttons = row.Children.OfType<Button>().Select(b => b.Content as string).ToList();
         var settings = row.Children.OfType<Button>().Single(b => Equals(b.Content, "Project Settings…"));
-        // The import group: Import Media, then the COROS training (Phase Coros C1).
-        Assert.Equal(buttons.IndexOf("Import Media") + 1, buttons.IndexOf("COROS Training…"));
+        // D057 §7.13: no Import Media button (the command stays for Ctrl+I); the COROS training opens its group.
+        Assert.DoesNotContain("Import Media", buttons);
+        Assert.DoesNotContain(row.Children.OfType<Button>(), b => ReferenceEquals(b.Command, toolbar.ImportMediaCommand));
+        var training = row.Children.OfType<Button>().Single(b => Equals(b.Content, "COROS Training…"));
+        Assert.IsType<Avalonia.Controls.Shapes.Rectangle>(row.Children[row.Children.IndexOf(training) - 1]);
         Assert.Equal(buttons.IndexOf("COROS Training…") + 1, buttons.IndexOf("Project Settings…"));
         Assert.Equal(buttons.IndexOf("Project Settings…") + 1, buttons.IndexOf("Export"));
         var index = row.Children.IndexOf(settings);
@@ -67,6 +71,23 @@ public sealed class ProjectSettingsViewBindingTests
         using (_lock.Acquire())
             Assert.False(settings.Command.CanExecute(null));
         Assert.True(settings.Command.CanExecute(null));
+    }
+
+    [Fact]
+    public void The_media_browser_keeps_import_and_both_ways_of_adding_to_the_timeline()
+    {
+        // D057 §7.13: with the tool bar's button gone, the Media Browser's «+ Импорт», «На таймлайн» and its file menu stay.
+        var import = new MediaImportWorkflow(new ScriptedPicker(), new HoldMarkupUiTests.NoImport(), _projects,
+            new MediaAnalysisCoordinator(new HoldMarkupUiTests.NoAnalysis(), _projects, NullLogger<MediaAnalysisCoordinator>.Instance), _status,
+            NullLogger<MediaImportWorkflow>.Instance);
+        var media = new MediaBrowserViewModel(_projects, import, NullLogger<MediaBrowserViewModel>.Instance);
+        var view = new MediaBrowserView { DataContext = media };
+        var buttons = view.GetLogicalDescendants().OfType<Button>().ToList();
+        Assert.Contains(buttons, b => ReferenceEquals(b.Command, media.ImportCommand));
+        Assert.Contains(buttons, b => ReferenceEquals(b.Command, media.AddToTimelineCommand));
+        var menu = view.GetLogicalDescendants().OfType<ListBox>().Single(l => l.Name == "MediaList").ContextMenu!;
+        menu.DataContext = media;                                           // as opening the menu over the list does
+        Assert.Contains(menu.Items.OfType<MenuItem>(), i => ReferenceEquals(i.Command, media.AddToTimelineCommand));
     }
 
     [Fact]

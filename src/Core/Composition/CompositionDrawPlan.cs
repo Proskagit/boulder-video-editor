@@ -216,8 +216,8 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
     }
 
     /// <summary>
-    /// D057 §3.7: the blurred background of a picture whose clip asks for it — the picture's edges carried out into the
-    /// canvas from where it is drawn (its placement at the canvas size), blurred and darkened (<see cref="BackgroundBlur"/>),
+    /// D057 §3.7: the blurred background of a picture whose clip asks for it — the visible picture (its crop) enlarged to fill
+    /// the canvas, centred, blurred moderately and slightly darkened (<see cref="BackgroundBlur"/>, §7.12),
     /// drawn over the whole canvas under the picture at the layer's opacity. The same operation for the Preview and the
     /// export (one painter), so they look the same; null for a black background or no frame.
     /// </summary>
@@ -225,7 +225,7 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
     {
         if (resolved.Layer is not PictureLayer { Span.Background: Entities.ClipBackground.Blur } picture || resolved.Frame is not { } frame) return null;
         if (Operation(canvas, Affine2D.Identity, resolved) is not FrameDraw placed) return null;
-        var blurred = BackgroundBlur.Of(frame, canvas, placed.Transform, placed.LocalRect, placed.FrameSourceRect);
+        var blurred = BackgroundBlur.Of(frame, canvas, placed.LocalRect, placed.FrameSourceRect);
         return new FrameDraw(picture.ClipId, canvasToTarget, picture.Opacity, new RectD(0, 0, canvas.Width, canvas.Height), blurred,
             new RectD(0, 0, blurred.Width, blurred.Height), IsBackground: true);
     }

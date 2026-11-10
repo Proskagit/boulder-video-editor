@@ -1,6 +1,11 @@
 # Phase 38 — UX Improvements before the MVP: manual test plan
 
 Decision: DECISIONS.md **D057** (approved 2026-11-09). Plan of the phase: `docs/DEVELOPMENT_PLAN.md`, "Phase 38".
+
+**Result (2026-11-10): Phase 38 accepted by the product owner.** The owner checked the build 0.38.1 (H1–H7 and the
+regression rows of the checklist: passed, three remarks) and 0.38.2 (H8–H10 after the fixes, the blurred background by the
+owner's reference: passed) by hand; the remarks are fixed in PR #63 / PR #64 (D057 §7). The rows below were the plan of
+that check; per-row evidence was not recorded separately.
 Environment: the target build of Phase 38; a **copy** of a real project (e.g. the training of 27.09.2026 with its FIT and
 videos — the originals are never saved); Russian interface unless a row says otherwise, an English pass for the new texts;
 1024 × 640 and 1440 × 900. Legend: **PASS**, **FAIL**, **PARTIAL**, **NOT RUN** (with a reason). The column «Automated»
@@ -95,6 +100,10 @@ names the tests that cover the row; «Evidence» is filled at the run.
 | H5 | Mark the holds of a route, «Готово» | the intro and the final laid out with the animation; «Готово» again or reopen + «Готово»: nothing added; one Ctrl+Z removes the layout | `HoldMarkupUiTests` | |
 | H6 | «Экспорт» | one dialog: folder, «Обзор…», name, the output's line, the YouTube timestamps with «Копировать»; no «Таймкоды YouTube…» on the tool bar | `ExportWorkflowTests` | |
 | H7 | Step → through a 4K / 240 fps clip | each step at once; ← about a third of a second | `ScrubbingTests`, local `ScrubBenchmarkTests` | |
+| H8 | The Inspector of a template; of a file selected in the Media Browser | the template section open; «Технические данные» open; the rest collapsed (D057 §7.11) | `InspectorSectionsTests` | |
+| H9 | A blurred background (a vertical clip in a horizontal project, and the reverse) | the scene itself enlarged behind the picture, softly blurred and recognisable, slightly darker — as the owner's reference (D057 §7.12); the export the same | `BlurredBackgroundRenderTests` | |
+| H10 | Right-click a file in the Media Browser; then a file of a group selection; then an offline file | «Добавить на таймлайн», «Показать в проводнике», «Удалить из проекта» (+ «Перепривязать…» when offline); on a group file «Добавить» adds the group, «Удалить» removes only that file | `MediaRemovalUiTests` | |
+| H11 | The tool bar | no «Импорт медиа»; the other buttons in place and working; «+ Импорт» in the Media Browser and Ctrl+I import; «На таймлайн» and the file menu add (D057 §7.13) | `ProjectSettingsViewBindingTests`, `ShortcutRoutingTests` | |
 
 ## G. Regression and the practical check
 
