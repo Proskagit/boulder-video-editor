@@ -26,7 +26,7 @@ public sealed class ScrubBenchmarkTests(ITestOutputHelper output)
     public sealed class ScrubBenchFactAttribute : FactAttribute
     {
         public ScrubBenchFactAttribute() =>
-            Skip = FfmpegTools.SkipReason ?? (Environment.GetEnvironmentVariable(Variable) is { Length: > 0 } ? null : $"Set {Variable} to a video file to measure.");
+            Skip = FfmpegTools.SkipReason ?? (Environment.GetEnvironmentVariable(Variable) is { Length: > 0 } ? null : $"Heavy scenario: set {Variable} to a video file to measure.");
     }
 
     [ScrubBenchFact]

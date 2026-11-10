@@ -6,7 +6,8 @@
   Fails when
   - fewer TRX files than test projects were written (a project did not run),
   - any test did not pass and was not skipped (failed, error, timeout, aborted, ...),
-  - any test was skipped other than the two known 4K scenes of ExportEndToEnd with the reason "Heavy scenario"
+  - any test was skipped other than the two known 4K scenes of ExportEndToEnd and the local scrubbing benchmark of
+    Video.Tests (Phase 38, it needs a real file) with the reason "Heavy scenario"
     (a skip because ffmpeg / ffprobe was not found is always an error).
   Prints passed / skipped / failed and every skip with its reason.
 #>
@@ -19,7 +20,8 @@ $ErrorActionPreference = 'Stop'
 
 $allowedSkips = @(
     'AiVideoEditor.ExportEndToEnd.Tests.ExportParityScaledTests.Source_4K_full_canvas',
-    'AiVideoEditor.ExportEndToEnd.Tests.ExportParityScaledTests.Source_4K_scaled_rotated_and_cropped'
+    'AiVideoEditor.ExportEndToEnd.Tests.ExportParityScaledTests.Source_4K_scaled_rotated_and_cropped',
+    'AiVideoEditor.Video.Tests.ScrubBenchmarkTests.Scrub_a_real_file'
 )
 $allowedReasonPrefix = 'Heavy scenario:'
 
