@@ -88,7 +88,8 @@ public sealed partial class LocalizationGuardTests
     private static readonly HashSet<string> SameInBothLanguages = new(StringComparer.Ordinal)
     {
         "Template_Rec", "Template_Vhs", "TemplateType_Rec", "TemplateType_Vhs",   // D045: the formats' own abbreviations
-        "TemplateStatus_Top"   // D045 §1.3: the climbers' word for a done route, written so in Russian too
+        "TemplateStatus_Top",  // D045 §1.3: the climbers' word for a done route, written so in Russian too
+        "ExportEncoder_Nvenc", "ExportEncoder_X264"   // D059: the encoders' own names
     };
 
     [Fact]

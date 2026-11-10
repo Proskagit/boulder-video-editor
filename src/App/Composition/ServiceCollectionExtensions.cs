@@ -89,6 +89,9 @@ public static class ServiceCollectionExtensions
 
         // Export (D023): the service knows only the Core abstractions; the app picks the ffmpeg encoder and
         // the Avalonia offscreen rasterizer (one new instance per export job).
+        // D059 §3: which encoders work here (NVENC confirmed by a trial encoding, once); the encoder uses NVENC only then.
+        services.AddSingleton<FfmpegEncoderCapabilities>();
+        services.AddSingleton<AiVideoEditor.Core.Export.IExportEncoderCapabilities>(sp => sp.GetRequiredService<FfmpegEncoderCapabilities>());
         services.AddSingleton<IExportEncoder, FfmpegExportEncoder>();
         services.AddSingleton<Func<ICompositionRasterizer>>(_ => () => new AvaloniaCompositionRasterizer());
         services.AddSingleton<IExportService, ExportService>();

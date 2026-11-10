@@ -5,6 +5,7 @@ using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
+using AiVideoEditor.Core.Localization;
 using Microsoft.Extensions.Logging;
 
 namespace AiVideoEditor.Video;
@@ -28,11 +29,14 @@ public sealed class FfmpegExportEncoder : IExportEncoder
 {
     private readonly IFfmpegLocator _locator;
     private readonly ILogger<FfmpegExportEncoder> _logger;
+    private readonly IExportEncoderCapabilities? _capabilities;
 
-    public FfmpegExportEncoder(IFfmpegLocator locator, ILogger<FfmpegExportEncoder> logger)
+    /// <param name="capabilities">Which encoders work here (D059 §3); null = libx264 only (NVENC is then never used).</param>
+    public FfmpegExportEncoder(IFfmpegLocator locator, ILogger<FfmpegExportEncoder> logger, IExportEncoderCapabilities? capabilities = null)
     {
         _locator = locator;
         _logger = logger;
+        _capabilities = capabilities;
     }
 
     public async Task<IExportEncoding> StartAsync(ExportOutput output, ExportEncoding encoding, string destinationPath, CancellationToken ct = default)
@@ -53,10 +57,26 @@ public sealed class FfmpegExportEncoder : IExportEncoder
         if (!Directory.Exists(folder))
             throw new ExportException(ExportFailure.OutputFailed, $"The folder '{folder}' does not exist.");
 
+        // D059 §3: the encoder actually used — NVENC only where it was confirmed; otherwise libx264 of the same profile.
+        var available = encoding.Encoder == ExportVideoEncoder.Nvenc && _capabilities is not null
+            ? await _capabilities.GetAsync(ct) : ExportEncoderAvailability.SoftwareOnly;
+        var plan = ExportVideoPlan.For(encoding, output.Size, available);
+        string? fallback = null;
+        if (plan.FellBack)
+        {
+            fallback = available.Nvenc
+                ? string.Format(Messages.Nvenc_TooLarge, ExportEncoderAvailability.NvencMaxSide, output.Size.Width, output.Size.Height)
+                : available.NvencUnavailableReason ?? Messages.Nvenc_NotAvailable;
+            _logger.LogWarning("NVENC was chosen but can't be used here ({Reason}); encoding with {Plan}.", fallback, plan.Description);
+        }
+
         var baseName = $".{Path.GetFileNameWithoutExtension(destinationPath)}.{Guid.NewGuid():N}";
         var audioTemp = Path.Combine(folder, baseName + ".audio.m4a");
         var videoTemp = Path.Combine(folder, baseName + ".partial.mp4");
-        var running = new FfmpegExportEncoding(ffmpeg, output, encoding, destinationPath, audioTemp, videoTemp, _logger);
+        var running = new FfmpegExportEncoding(ffmpeg, output, encoding, plan, destinationPath, audioTemp, videoTemp, _logger)
+        {
+            FallbackReason = fallback
+        };
         try
         {
             running.StartAudio();
@@ -81,23 +101,69 @@ public sealed class FfmpegExportEncoder : IExportEncoder
         "-f", "mp4", audioPath
     };
 
-    /// <summary>Pass 2: BGRA canvases on stdin (exact rational rate) + the encoded audio → the MP4, libx264 at
-    /// <paramref name="encoding"/>'s preset and CRF.</summary>
-    internal static List<string> VideoArguments(ExportOutput output, ExportEncoding encoding, string audioPath, string videoPath) => new(Common)
+    /// <summary>Pass 2 for <paramref name="encoding"/> with libx264 (no NVENC): see the plan overload.</summary>
+    internal static List<string> VideoArguments(ExportOutput output, ExportEncoding encoding, string audioPath, string videoPath) =>
+        VideoArguments(output, ExportVideoPlan.For(encoding, output.Size, ExportEncoderAvailability.SoftwareOnly), audioPath, videoPath);
+
+    /// <summary>Pass 2: BGRA canvases on stdin (exact rational rate) + the encoded audio → the MP4, encoded by
+    /// <paramref name="plan"/> (D059 §3). The input, the colour conversion (on the CPU and the same for both encoders: NVENC
+    /// receives the converted yuv420p frames, never BGRA — the research §4), the tags, the audio copy and the container are
+    /// the same for every plan; libx264 at constant quality is exactly the D028 command line.</summary>
+    internal static List<string> VideoArguments(ExportOutput output, ExportVideoPlan plan, string audioPath, string videoPath)
     {
-        "-f", "rawvideo", "-pix_fmt", "bgra", "-s", $"{Invariant(output.Size.Width)}x{Invariant(output.Size.Height)}",
-        "-framerate", $"{Invariant(output.FrameRate.Numerator)}/{Invariant(output.FrameRate.Denominator)}", "-i", "pipe:0",
-        "-i", audioPath,
-        "-map", "0:v:0", "-map", "1:a:0",
-        // BGRA → YUV with the BT.709 matrix, limited range, 4:2:0; the frames are tagged so the encoder writes every tag.
-        "-vf", "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p," +
-               "setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709",
-        "-fps_mode", "passthrough",
-        "-c:v", "libx264", "-preset", encoding.PresetName, "-crf", Invariant(encoding.Crf), "-pix_fmt", "yuv420p",
-        "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv",
-        "-c:a", "copy",
-        "-movflags", "+faststart",
-        "-f", "mp4", videoPath
+        var args = new List<string>(Common)
+        {
+            "-f", "rawvideo", "-pix_fmt", "bgra", "-s", $"{Invariant(output.Size.Width)}x{Invariant(output.Size.Height)}",
+            "-framerate", $"{Invariant(output.FrameRate.Numerator)}/{Invariant(output.FrameRate.Denominator)}", "-i", "pipe:0",
+            "-i", audioPath,
+            "-map", "0:v:0", "-map", "1:a:0",
+            // BGRA → YUV with the BT.709 matrix, limited range, 4:2:0; the frames are tagged so the encoder writes every tag.
+            "-vf", "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p," +
+                   "setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709",
+            "-fps_mode", "passthrough"
+        };
+        args.AddRange(CodecArguments(plan));
+        args.AddRange(new[]
+        {
+            "-pix_fmt", "yuv420p",
+            "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv",
+            "-c:a", "copy",
+            "-movflags", "+faststart",
+            "-f", "mp4", videoPath
+        });
+        return args;
+    }
+
+    /// <summary>The encoder's own options of <paramref name="plan"/> (also those of the NVENC trial encoding).</summary>
+    internal static List<string> CodecArguments(ExportVideoPlan plan)
+    {
+        if (plan.Encoder == ExportVideoEncoder.Libx264)
+        {
+            var x264 = new List<string> { "-c:v", "libx264", "-preset", plan.Preset };
+            if (plan.RateControl == ExportRateControl.ConstantQuality) x264.AddRange(new[] { "-crf", Invariant(plan.Quality) });
+            else x264.AddRange(BitrateArguments(plan.VideoBitrateKbps));
+            return x264;
+        }
+
+        // NVENC H.264 (D059 §3, §5): High profile, the "hq" tuning, spatial adaptive quantization, a look-ahead, three
+        // B-frames, a key frame at least every 250 frames like x264's default; VBR towards the calibrated CQ with no bitrate
+        // cap (-b:v 0), or an average bitrate.
+        var nvenc = new List<string> { "-c:v", "h264_nvenc", "-preset", plan.Preset, "-tune", "hq", "-profile:v", "high", "-rc", "vbr" };
+        if (plan.RateControl == ExportRateControl.ConstantQuality) nvenc.AddRange(new[] { "-cq", Invariant(plan.Quality), "-b:v", "0" });
+        else nvenc.AddRange(BitrateArguments(plan.VideoBitrateKbps));
+        if (plan.SpatialAq) nvenc.AddRange(new[] { "-spatial-aq", "1" });
+        nvenc.AddRange(new[] { "-rc-lookahead", "20", "-bf", "3", "-g", "250" });
+        if (plan.Multipass) nvenc.AddRange(new[] { "-multipass", "qres" });
+        return nvenc;
+    }
+
+    /// <summary>The encoder options of <paramref name="plan"/> exactly as an export passes them (the benchmark's calibration).</summary>
+    public static IReadOnlyList<string> CodecArgumentsFor(ExportVideoPlan plan) => CodecArguments(plan);
+
+    /// <summary>An average bitrate with a peak of 1.5× and a 2× buffer (both encoders).</summary>
+    private static IEnumerable<string> BitrateArguments(int kbps) => new[]
+    {
+        "-b:v", Invariant(kbps) + "k", "-maxrate", Invariant(kbps * 3 / 2) + "k", "-bufsize", Invariant(kbps * 2) + "k"
     };
 
     private static string Invariant(int value) => value.ToString(CultureInfo.InvariantCulture);
@@ -109,6 +175,7 @@ internal sealed class FfmpegExportEncoding : IExportEncoding
     private readonly string _ffmpeg;
     private readonly ExportOutput _output;
     private readonly ExportEncoding _encoding;
+    private readonly ExportVideoPlan _plan;
     private readonly string _destination;
     private readonly ILogger _logger;
     private readonly int _frameBytes;
@@ -122,18 +189,28 @@ internal sealed class FfmpegExportEncoding : IExportEncoding
     private bool _faulted;
     private bool _disposed;
 
-    public FfmpegExportEncoding(string ffmpeg, ExportOutput output, ExportEncoding encoding, string destination, string audioTemp,
-        string videoTemp, ILogger logger)
+    public FfmpegExportEncoding(string ffmpeg, ExportOutput output, ExportEncoding encoding, ExportVideoPlan plan, string destination,
+        string audioTemp, string videoTemp, ILogger logger)
     {
         _ffmpeg = ffmpeg;
         _output = output;
         _encoding = encoding;
+        _plan = plan;
         _destination = destination;
         AudioTemp = audioTemp;
         VideoTemp = videoTemp;
         _logger = logger;
         _frameBytes = checked(output.Size.Width * output.Size.Height * 4);
     }
+
+    /// <summary>The encoding actually used (D059 §3).</summary>
+    public ExportVideoPlan Plan => _plan;
+
+    public string EncoderDescription => _plan.Description;
+
+    public bool IsHardware => _plan.Encoder == ExportVideoEncoder.Nvenc;
+
+    public string? FallbackReason { get; init; }
 
     internal string AudioTemp { get; }
     internal string VideoTemp { get; }
@@ -174,7 +251,7 @@ internal sealed class FfmpegExportEncoding : IExportEncoding
             throw new InvalidOperationException($"More frames than the export's {_output.FrameCount}.");
 
         if (!_audioDone) await FinishAudioAsync(ct);
-        _video ??= Start(FfmpegExportEncoder.VideoArguments(_output, _encoding, AudioTemp, VideoTemp), "video");
+        _video ??= Start(FfmpegExportEncoder.VideoArguments(_output, _plan, AudioTemp, VideoTemp), "video");
 
         if (stride == rowBytes)
         {

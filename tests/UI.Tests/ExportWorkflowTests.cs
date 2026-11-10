@@ -358,6 +358,28 @@ public sealed class ExportWorkflowTests : IDisposable
     }
 
     [Fact]
+    public async Task The_export_dialog_offers_the_projects_settings_and_its_choice_reaches_the_job()
+    {
+        // D059 §4: the dialog shows the project's profile; the job takes what was chosen there.
+        ExportableProject();
+        _projects.Current.LastExportSettings.OutputPath = Output("profile.mp4");
+        _exportDialog = new ScriptedExportDialog(d =>
+        {
+            Assert.Equal(ExportProfile.Balanced, d.Settings.SelectedProfile.Value);
+            Assert.Equal(new[] { ExportVideoEncoder.Libx264 }, d.Settings.Encoders.Select(e => e.Value));   // no NVENC confirmed here
+            Assert.NotNull(d.Settings.EstimateText);
+            d.Settings.SelectedProfile = d.Settings.Profiles.Single(o => o.Value == ExportProfile.HighQuality);
+            d.ExportCommand.Execute(null);
+            return Task.FromResult<ExportDialogResult?>(new ExportDialogResult(d.OutputPath!) { Encoding = d.Settings.Value });
+        });
+
+        var outcome = await Workflow(Ok).RunAsync();
+
+        Assert.Equal(ExportOutcomeKind.Succeeded, outcome.Kind);
+        Assert.Equal(ExportProfile.HighQuality, Assert.Single(_export.Jobs).Encoding.Profile);
+    }
+
+    [Fact]
     public async Task Cancelling_the_export_dialog_ends_the_flow_and_an_empty_name_cannot_be_exported()
     {
         ExportableProject();

@@ -74,7 +74,7 @@ public sealed class FfmpegExportEncoderTests : IDisposable
     [MemberData(nameof(Levels))]
     public void A_quality_level_changes_only_the_crf(ExportQuality quality, string crf)
     {
-        var settings = ExportEncoding.Default with { Quality = quality };
+        var settings = ExportEncoding.Default with { Profile = ExportProfile.Custom, Quality = quality };
 
         Assert.Equal(GoldenVideoArguments.Replace("-crf 18", $"-crf {crf}"), VideoLine(settings));
         Assert.Equal(GoldenAudioArguments, AudioLine(settings));
@@ -86,7 +86,7 @@ public sealed class FfmpegExportEncoderTests : IDisposable
     [InlineData(ExportSpeedPreset.Slow, "slow")]
     public void A_speed_preset_changes_only_the_preset(ExportSpeedPreset preset, string name)
     {
-        var settings = ExportEncoding.Default with { Preset = preset };
+        var settings = ExportEncoding.Default with { Profile = ExportProfile.Custom, Preset = preset };
 
         Assert.Equal(GoldenVideoArguments.Replace("-preset medium", $"-preset {name}"), VideoLine(settings));
         Assert.Equal(GoldenAudioArguments, AudioLine(settings));
@@ -159,7 +159,7 @@ public sealed class FfmpegExportEncoderTests : IDisposable
     public async Task Every_quality_level_and_preset_encodes_a_valid_mp4_with_those_x264_settings(
         ExportQuality quality, ExportSpeedPreset preset, string crf, int subme)
     {
-        var settings = ExportEncoding.Default with { Quality = quality, Preset = preset };
+        var settings = ExportEncoding.Default with { Profile = ExportProfile.Custom, Quality = quality, Preset = preset };
         var output = Output(160, 90, FrameRate.Fps25, 50);                                  // 2 s
         await Encode(output, Out(), k => 0.3f * MathF.Sin(2 * MathF.PI * 440 * k / 48_000f), (n, px, stride) => NumberFrame(n, px, stride, 160, 90),
             settings: settings);

@@ -2003,8 +2003,14 @@ public sealed partial class TimelineEditService : ITimelineEditService
         return TimelineEditResult.Ok(null, ExportMessage(export));
     }
 
-    private static string ExportMessage(ExportEncoding e) =>
-        string.Format(Messages.Settings_ExportSet, e.Quality switch
+    private static string ExportMessage(ExportEncoding e) => e.Profile != ExportProfile.Custom
+        ? string.Format(Messages.Settings_ExportProfileSet, e.Profile switch
+        {
+            ExportProfile.Fast => Messages.ExportProfile_Fast,
+            ExportProfile.Balanced => Messages.ExportProfile_Balanced,
+            _ => Messages.ExportProfile_HighQuality
+        }, e.Encoder == ExportVideoEncoder.Nvenc ? "NVENC" : "libx264", e.AudioBitrateKbps)
+        : string.Format(Messages.Settings_ExportSet, e.Quality switch
         {
             ExportQuality.Maximum => Messages.ExportQuality_Maximum,
             ExportQuality.High => Messages.ExportQuality_High,

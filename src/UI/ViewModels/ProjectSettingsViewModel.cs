@@ -56,7 +56,9 @@ public sealed partial class ProjectSettingsViewModel : ObservableObject
     private readonly Func<bool> _isLocked;
     private bool _syncing;
 
-    public ProjectSettingsViewModel(ProjectSettings current, ITimelineEditService edit, StatusService status, Func<bool> isLocked)
+    /// <param name="encoders">Which encoders work here (D059 §3; NVENC offered only when confirmed); null = libx264 only.</param>
+    public ProjectSettingsViewModel(ProjectSettings current, ITimelineEditService edit, StatusService status, Func<bool> isLocked,
+        Core.Export.ExportEncoderAvailability? encoders = null)
     {
         _edit = edit;
         _status = status;
@@ -72,9 +74,8 @@ public sealed partial class ProjectSettingsViewModel : ObservableObject
         _height = current.FrameHeight;
         _selectedPreset = PresetFor(current.FrameWidth, current.FrameHeight);
         CurrentExport = current.Export;
-        _selectedQuality = QualityOptions.Single(o => o.Value == current.Export.Quality);
-        _selectedSpeed = SpeedOptions.Single(o => o.Value == current.Export.Preset);
-        _selectedBitrate = BitrateOptions.Single(o => o.Value == current.Export.AudioBitrateKbps);
+        Export = new ExportEncodingEditorViewModel(current.Export, encoders);
+        Export.Changed += (_, _) => Error = null;
         Refresh();
     }
 
@@ -103,16 +104,17 @@ public sealed partial class ProjectSettingsViewModel : ObservableObject
     public IReadOnlyList<ExportChoice<ExportSpeedPreset>> Speeds => SpeedOptions;
     public IReadOnlyList<ExportChoice<int>> Bitrates => BitrateOptions;
 
-    [ObservableProperty] private ExportChoice<ExportQuality> _selectedQuality;
-    [ObservableProperty] private ExportChoice<ExportSpeedPreset> _selectedSpeed;
-    [ObservableProperty] private ExportChoice<int> _selectedBitrate;
+    /// <summary>The export settings editor (D059 §4: profile, encoder, «Пользовательский» fields) — the same as the export
+    /// dialog's, without the size estimate (the canvas and the rate are a draft here).</summary>
+    public ExportEncodingEditorViewModel Export { get; }
 
-    partial void OnSelectedQualityChanged(ExportChoice<ExportQuality> value) => Error = null;
-    partial void OnSelectedSpeedChanged(ExportChoice<ExportSpeedPreset> value) => Error = null;
-    partial void OnSelectedBitrateChanged(ExportChoice<int> value) => Error = null;
+    // The D028 fields, kept on the dialog for its callers: they are the editor's.
+    public ExportChoice<ExportQuality> SelectedQuality { get => Export.SelectedQuality; set => Export.SelectedQuality = value; }
+    public ExportChoice<ExportSpeedPreset> SelectedSpeed { get => Export.SelectedSpeed; set => Export.SelectedSpeed = value; }
+    public ExportChoice<int> SelectedBitrate { get => Export.SelectedBitrate; set => Export.SelectedBitrate = value; }
 
     /// <summary>The draft export settings (applied only by Apply).</summary>
-    public ExportEncoding DraftExport => new(SelectedQuality.Value, SelectedSpeed.Value, SelectedBitrate.Value);
+    public ExportEncoding DraftExport => Export.Value;
 
     public int CurrentWidth { get; }
     public int CurrentHeight { get; }

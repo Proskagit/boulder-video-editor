@@ -64,6 +64,8 @@ public sealed class ExportWorkflow
 
     private readonly IUserSettingsService? _settings;
     private readonly IExportDialog? _exportDialog;
+    private readonly IExportEncoderCapabilities? _encoders;
+    private readonly ITimelineEditService? _edit;
 
     public ExportWorkflow(
         IProjectService projects,
@@ -78,9 +80,13 @@ public sealed class ExportWorkflow
         InOutRangeService? inOut = null,
         CameraMotionCoordinator? cameraMotion = null,
         IUserSettingsService? settings = null,
-        IExportDialog? exportDialog = null)
+        IExportDialog? exportDialog = null,
+        IExportEncoderCapabilities? encoders = null,
+        ITimelineEditService? edit = null)
     {
         _exportDialog = exportDialog;
+        _encoders = encoders;
+        _edit = edit;
         _settings = settings;
         _inOut = inOut;
         _cameraMotion = cameraMotion;
@@ -172,14 +178,21 @@ public sealed class ExportWorkflow
 
         // 2. The output file: the export dialog (folder, name, the output's line, the YouTube timestamps), or without one the
         //    save-file picker alone.
-        var outputPath = await ChooseOutputAsync(project, range);
-        if (outputPath is null)
+        var chosen = await ChooseOutputAsync(project, range);
+        if (chosen is null)
             return new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_NoOutputFile);
+        var outputPath = chosen.OutputPath;
+
+        // D059 §4: export settings changed in the dialog are the project's from now on (one undoable step, as in the project
+        // settings dialog); the job takes them either way.
+        var encoding = chosen.Encoding ?? project.Settings.Export;
+        if (encoding != project.Settings.Export && _edit is not null) _edit.SetExportSettings(encoding);
 
         // 3. The job: the preflight again, now with the file (it takes the snapshot the export uses).
         check = ExportPreflight.Check(project, outputPath, environment, range);
-        if (check.Job is not { } job)
+        if (check.Job is not { } checkedJob)
             return await PreflightFailedAsync(check.Errors.ToList(), check.Warnings.ToList());
+        var job = checkedJob.Encoding == encoding ? checkedJob : new ExportJob(checkedJob.Snapshot, checkedJob.OutputPath, encoding, checkedJob.Range);
 
         if (File.Exists(job.OutputPath) && !await ConfirmReplaceAsync(job.OutputPath))
             return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_Cancelled));
@@ -203,7 +216,10 @@ public sealed class ExportWorkflow
         try
         {
             await _export.ExportAsync(job, progress, cts.Token);
-            return new ExportOutcome(ExportOutcomeKind.Succeeded, string.Format(Strings.Export_Succeeded, job.OutputPath), job.OutputPath);
+            var message = progress.Fallback is { } fallback
+                ? string.Format(Strings.Export_SucceededFallback, job.OutputPath, fallback)
+                : string.Format(Strings.Export_Succeeded, job.OutputPath);
+            return new ExportOutcome(ExportOutcomeKind.Succeeded, message, job.OutputPath);
         }
         catch (OperationCanceledException)
         {
@@ -271,10 +287,11 @@ public sealed class ExportWorkflow
     private bool IsFontInstalled(string family) =>
         _fonts.FamilyNames.Contains(family, StringComparer.OrdinalIgnoreCase);
 
-    private async Task<string?> ChooseOutputAsync(Core.Entities.Project project, ExportRange? range)
+    private async Task<ExportDialogResult?> ChooseOutputAsync(Core.Entities.Project project, ExportRange? range)
     {
         var request = OutputRequest(project);
-        if (_exportDialog is null) return await _picker.PickSaveFileAsync(request);
+        if (_exportDialog is null)
+            return await _picker.PickSaveFileAsync(request) is { } picked ? new ExportDialogResult(picked) : null;
 
         var output = ExportOutput.For(Core.Playback.PlaybackSnapshotBuilder.Build(project, 0), range);
         var suggested = Path.Combine(request.StartFolder ?? "", request.SuggestedFileName ?? project.Name + ExportFormat.FileExtension);
@@ -284,8 +301,8 @@ public sealed class ExportWorkflow
                 Title = request.Title, DefaultExtension = request.DefaultExtension, FileTypeFilters = request.FileTypeFilters,
                 StartFolder = string.IsNullOrWhiteSpace(folder) ? request.StartFolder : folder,
                 SuggestedFileName = string.IsNullOrWhiteSpace(name) ? request.SuggestedFileName : name
-            }));
-        return (await _exportDialog.ShowAsync(dialog))?.OutputPath;
+            }), project.Settings.Export, await EncoderAvailability.GetAsync(_encoders));
+        return await _exportDialog.ShowAsync(dialog);
     }
 
     private static SaveFilePickerRequest OutputRequest(Core.Entities.Project project)

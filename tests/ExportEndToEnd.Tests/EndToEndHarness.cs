@@ -463,5 +463,8 @@ public sealed class RecordingEncoder(IExportEncoder inner) : IExportEncoder
 
         public Task CompleteAsync(CancellationToken ct = default) => inner.CompleteAsync(ct);
         public ValueTask DisposeAsync() => inner.DisposeAsync();
+        public string EncoderDescription => inner.EncoderDescription;
+        public bool IsHardware => inner.IsHardware;
+        public string? FallbackReason => inner.FallbackReason;
     }
 }

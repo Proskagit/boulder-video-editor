@@ -58,8 +58,12 @@ public sealed partial class ExportServiceTests
             Canvas);
     }
 
-    private ExportService Service(IFfmpegLocator? locator = null, Func<ICompositionRasterizer>? factory = null) =>
-        new(locator ?? new Locator(@"C:\ffmpeg.exe"), _video, _audio, _encoder, factory ?? NewRasterizer, NullLogger<ExportService>.Instance);
+    /// <summary>One rasterizer unless asked (the sequential case keeps the call numbers of <see cref="FakeRasterizer.FailAt"/>
+    /// exact); the D059 E2 pool is tested with <paramref name="rasterizers"/> &gt; 1.</summary>
+    private ExportService Service(IFfmpegLocator? locator = null, Func<ICompositionRasterizer>? factory = null, int rasterizers = 1,
+        int? queued = null, IVideoDecoder? video = null) =>
+        new(locator ?? new Locator(@"C:\ffmpeg.exe"), video ?? _video, _audio, _encoder, factory ?? NewRasterizer, NullLogger<ExportService>.Instance,
+            new ExportPipelineSettings { Rasterizers = rasterizers, QueuedFrames = queued });
 
     private FakeRasterizer NewRasterizer()
     {
@@ -80,7 +84,7 @@ public sealed partial class ExportServiceTests
     {
         AssertEverythingReleased();
         Assert.False(_encoder.Encoding?.Completed ?? false);
-        Assert.DoesNotContain(new ExportProgress(ExportStage.Finalizing, 1, 1), _progress.Reports);
+        Assert.DoesNotContain(_progress.Reports, r => r is { Stage: ExportStage.Finalizing, Done: 1 });
     }
 
     [Fact]
@@ -114,7 +118,7 @@ public sealed partial class ExportServiceTests
         Assert.Equal(Enumerable.Range(1, 50), encoding.FrameMarkers);                 // the canvas the rasterizer just filled
         Assert.All(encoding.Strides, s => Assert.Equal((Canvas.Width * 4, Canvas.Width * 4 * Canvas.Height), s));
         Assert.All(rasterizer.Strides, s => Assert.Equal(Canvas.Width * 4, s));
-        Assert.True(rasterizer.OnlyPoolThreads);
+        Assert.True(rasterizer.OnlyRasterizerThreads);   // D059 E2: the pipeline's own threads, never the caller's
         AssertEverythingReleased();
     }
 
@@ -150,9 +154,11 @@ public sealed partial class ExportServiceTests
         }
         Assert.Equal(new ExportProgress(ExportStage.Audio, 0, 96_000), reports.First(r => r.Stage == ExportStage.Audio));
         Assert.Equal(new ExportProgress(ExportStage.Audio, 96_000, 96_000), reports.Last(r => r.Stage == ExportStage.Audio));
-        Assert.Equal(new ExportProgress(ExportStage.Video, 0, 50), reports.First(r => r.Stage == ExportStage.Video));
+        Assert.Equal(new ExportProgress(ExportStage.Video, 0, 50), reports.First(r => r.Stage == ExportStage.Video) with { Encoder = null });
+        Assert.All(reports.Where(r => r.Stage >= ExportStage.Video), r => Assert.Equal("libx264 medium CRF 18", r.Encoder));   // D059 §3
+        Assert.All(reports.Where(r => r.Stage < ExportStage.Video), r => Assert.Null(r.Encoder));
         Assert.Equal(51, reports.Count(r => r.Stage == ExportStage.Video));                    // 0 and after every frame
-        Assert.Equal(new ExportProgress(ExportStage.Finalizing, 1, 1), reports[^1]);
+        Assert.Equal(new ExportProgress(ExportStage.Finalizing, 1, 1), reports[^1] with { Encoder = null });
         Assert.Equal(new[] { 0L, 1L }, reports.Where(r => r.Stage == ExportStage.Finalizing).Select(r => r.Done));
         Assert.Equal(1, _progress.ReportsAfterComplete);                                       // only the final 1/1
     }
@@ -221,7 +227,7 @@ public sealed partial class ExportServiceTests
         _encoder.CompleteWaitsForCancellation = true;
         using var cts = new CancellationTokenSource();
         var export = Service().ExportAsync(new ExportJob(Snapshot(), Destination), _progress, cts.Token);
-        await WaitUntil(() => _progress.Reports.Contains(new ExportProgress(ExportStage.Finalizing, 0, 1)));
+        await WaitUntil(() => _progress.Reports.Any(r => r is { Stage: ExportStage.Finalizing, Done: 0 }));
 
         cts.Cancel();
 
@@ -377,22 +383,28 @@ public sealed partial class ExportServiceTests
         }
     }
 
-    [Fact]
-    public async Task While_a_frame_is_written_the_next_one_is_already_fetched_and_never_more()
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(4, 4)]
+    public async Task While_the_encoder_is_stuck_the_frames_fetched_ahead_are_bounded(int rasterizers, int queued)
     {
-        // The encoder stops at frame 3. Frame n needs the source frames up to n + 1 (the reader's look-ahead that makes
-        // the choice certain): frames 0..3 → 5 reads; fetching frame 4 ahead → 6; never a frame further.
+        // D059 E2 (replaces Step 9.7's "one frame ahead"): the encoder stops at frame 3. Ahead of the writer at most
+        // K + 2 canvases (rendered or rendering, the one being written included), the queue and the frame the producer
+        // holds — and the decoder reads one source frame beyond the last output frame fetched (the reader's look-ahead).
         _encoder.BlockAt = "frame";
         var counting = new CountingDecoder(_video);
-        var service = new ExportService(new Locator(@"C:\ffmpeg.exe"), counting, _audio, _encoder, NewRasterizer, NullLogger<ExportService>.Instance);
+        var service = Service(video: counting, rasterizers: rasterizers, queued: queued);
         using var cts = new CancellationTokenSource();
         var export = service.ExportAsync(new ExportJob(Snapshot(), Destination), _progress, cts.Token);
         await WaitUntil(() => _encoder.Encoding?.Blocked == true);
 
-        await WaitUntil(() => counting.Reads == 6);
-        await Task.Delay(200);
-        Assert.Equal(6, counting.Reads);                                                    // one frame ahead, not more
+        await Task.Delay(300);
+        var reads = counting.Reads;
+        await Task.Delay(300);
+        Assert.Equal(reads, counting.Reads);                                                  // it stopped: bounded
         Assert.Equal(3, _encoder.Encoding!.FrameMarkers.Count);
+        var bound = 3 + (rasterizers + 2) + queued + 1 + 1;
+        Assert.InRange(reads, 5, bound);
 
         cts.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => export.WaitAsync(TimeSpan.FromSeconds(10)));
@@ -407,8 +419,7 @@ public sealed partial class ExportServiceTests
         var release = _video.HoldAfter(VideoFile, frames: 6);
         var thrown = new InvalidOperationException("render failed");
         var counting = new CountingDecoder(_video);
-        var service = new ExportService(new Locator(@"C:\ffmpeg.exe"), counting, _audio, _encoder,
-            () => { var r = NewRasterizer(); r.FailAt = (4, thrown); return r; }, NullLogger<ExportService>.Instance);
+        var service = Service(video: counting, factory: () => { var r = NewRasterizer(); r.FailAt = (4, thrown); return r; });
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.ExportAsync(new ExportJob(Snapshot(), Destination), _progress).WaitAsync(TimeSpan.FromSeconds(10)));
@@ -418,6 +429,149 @@ public sealed partial class ExportServiceTests
         Assert.False(counting.DisposedWhileReading);                                          // the fetch ended first
         AssertAbandoned();
         release.TrySetResult();
+    }
+
+    // --- D059 E2: several rasterizers -------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task With_several_rasterizers_every_frame_is_drawn_once_and_reaches_the_encoder_in_order()
+    {
+        var made = 0;
+        // Different speeds, so frames finish out of order and the ordering is what puts them back.
+        var service = Service(rasterizers: 4, factory: () =>
+        {
+            var r = NewRasterizer();
+            r.Delay = TimeSpan.FromMilliseconds(1 + 4 * (Interlocked.Increment(ref made) % 4));
+            return r;
+        });
+
+        await service.ExportAsync(new ExportJob(Snapshot(), Destination), _progress);
+
+        Assert.Equal(4, _rasterizers.Count);
+        Assert.Equal(50, _rasterizers.Sum(r => r.Plans.Count));                                  // each frame once
+        Assert.True(_rasterizers.Count(r => r.Plans.Count > 0) > 1);                               // really in parallel
+        Assert.Equal(Enumerable.Range(0, 50), _encoder.Encoding!.SourceNumbers);                    // in frame order
+        Assert.Equal(50, _rasterizers.SelectMany(r => r.Plans).Select(p => FakeVideoDecoder.Number(
+            Assert.IsType<FrameDraw>(Assert.Single(p.Operations)).Frame)).Distinct().Count());
+        Assert.All(_rasterizers, r => Assert.True(r.OnlyRasterizerThreads));
+        Assert.Equal(4, _rasterizers.SelectMany(r => r.Threads).Distinct().Count());              // a thread each
+        Assert.Equal(51, _progress.Reports.Count(r => r.Stage == ExportStage.Video));
+        Assert.Equal(Enumerable.Range(0, 51).Select(n => (long)n), _progress.Reports.Where(r => r.Stage == ExportStage.Video).Select(r => r.Done));
+        Assert.True(_encoder.Encoding!.Completed);
+        AssertEverythingReleased();
+    }
+
+    [Fact]
+    public async Task A_failure_in_one_of_several_rasterizers_propagates_and_abandons_everything()
+    {
+        var thrown = new InvalidOperationException("render failed");
+        var made = 0;
+        var service = Service(rasterizers: 4, factory: () =>
+        {
+            var r = NewRasterizer();
+            r.Delay = TimeSpan.FromMilliseconds(2);
+            if (Interlocked.Increment(ref made) == 3) r.FailAt = (2, thrown);
+            return r;
+        });
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.ExportAsync(new ExportJob(Snapshot(), Destination), _progress).WaitAsync(TimeSpan.FromSeconds(10)));
+
+        Assert.Same(thrown, error);
+        Assert.True(_encoder.Encoding!.FrameMarkers.Count < 50);
+        Assert.Equal(Enumerable.Range(0, _encoder.Encoding.SourceNumbers.Count), _encoder.Encoding.SourceNumbers);   // no gap, no swap
+        AssertAbandoned();
+    }
+
+    [Fact]
+    public async Task Cancelling_while_several_rasterizers_work_ends_promptly_and_releases_everything()
+    {
+        using var cts = new CancellationTokenSource();
+        var service = Service(rasterizers: 4, factory: () => { var r = NewRasterizer(); r.Delay = TimeSpan.FromMilliseconds(20); return r; });
+        var export = service.ExportAsync(new ExportJob(Snapshot(), Destination), _progress, cts.Token);
+        await WaitUntil(() => _encoder.Encoding?.FrameMarkers.Count >= 5);
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        cts.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => export.WaitAsync(TimeSpan.FromSeconds(10)));
+
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"cancelling took {watch.Elapsed}");
+        AssertAbandoned();
+    }
+
+    [Theory]
+    [InlineData(16, false, 3840, 2160, 1, 5)]     // the target machine (16 threads) with libx264: a third
+    [InlineData(16, true, 3840, 2160, 1, 8)]      // with NVENC: half
+    [InlineData(8, false, 1920, 1080, 1, 2)]
+    [InlineData(4, true, 1920, 1080, 1, 2)]
+    [InlineData(2, false, 1920, 1080, 1, 1)]      // never fewer than one
+    [InlineData(64, true, 1920, 1080, 1, 8)]      // never more than eight
+    public void The_rasterizers_follow_the_processors_and_the_encoder(int processors, bool hardware, int w, int h, int layers, int expected)
+    {
+        var output = new ExportOutput(new FrameSize(w, h), Rate, 100, MediaTime.FromSeconds(4), 192_000);
+        var (k, queue) = new ExportPipelineSettings().Resolve(output, layers, hardware, processors, availableMemoryBytes: 32L << 30);
+        Assert.Equal(expected, k);
+        Assert.Equal(k, queue);
+    }
+
+    [Fact]
+    public void The_memory_bounds_the_rasterizers_and_set_values_win()
+    {
+        var output = new ExportOutput(new FrameSize(3840, 2160), Rate, 100, MediaTime.FromSeconds(4), 192_000);
+        // 2 GB available: a quarter is 512 MB; a 4K rasterizer with two layers holds ~7 canvases (~232 MB) → 2.
+        Assert.Equal(2, new ExportPipelineSettings().Resolve(output, 2, true, 16, 2L << 30).Rasterizers);
+        Assert.Equal(1, new ExportPipelineSettings().Resolve(output, 4, true, 16, 256L << 20).Rasterizers);
+        Assert.Equal((3, 7), new ExportPipelineSettings { Rasterizers = 3, QueuedFrames = 7 }.Resolve(output, 1, false, 16, 32L << 30));
+        Assert.Equal(ExportPipelineSettings.MaxRasterizers, new ExportPipelineSettings { Rasterizers = 99 }.Resolve(output, 1, false).Rasterizers);
+    }
+
+    // --- D059 §3: a hardware encoder that fails --------------------------------------------------------------------------
+
+    [Fact]
+    public async Task A_failing_hardware_encoder_is_replaced_by_libx264_of_the_same_profile_and_the_export_succeeds()
+    {
+        _encoder.HardwareFails = true;
+        var nvenc = ExportEncoding.Default with { Profile = ExportProfile.Fast, Encoder = ExportVideoEncoder.Nvenc };
+
+        await Service(rasterizers: 2).ExportAsync(new ExportJob(Snapshot(), Destination, nvenc), _progress);
+
+        Assert.Equal(new[] { nvenc, nvenc.WithLibx264() }, _encoder.Started);
+        Assert.True(_encoder.Encoding!.Completed);
+        Assert.Equal(Enumerable.Range(0, 50), _encoder.Encoding.SourceNumbers);                    // the whole video again
+        var last = _progress.Reports[^1];
+        Assert.Equal("libx264 medium CRF 18", last.Encoder);
+        Assert.Contains("session could not be opened", last.Fallback);
+        Assert.Contains(_progress.Reports, r => r.Encoder == "NVENC p5 CQ 22");
+        AssertEverythingReleased();
+    }
+
+    [Fact]
+    public async Task A_software_encoder_failure_is_not_retried()
+    {
+        var thrown = new ExportException(ExportFailure.EncodeFailed, "x264 failed");
+        _encoder.FailAt = ("frame", thrown);
+
+        var error = await Assert.ThrowsAsync<ExportException>(() => Service().ExportAsync(new ExportJob(Snapshot(), Destination), _progress));
+
+        Assert.Same(thrown, error);
+        Assert.Single(_encoder.Started);
+        AssertAbandoned();
+    }
+
+    [Fact]
+    public async Task Cancelling_a_hardware_export_is_not_a_fallback()
+    {
+        _encoder.BlockAt = "frame";
+        using var cts = new CancellationTokenSource();
+        var nvenc = ExportEncoding.Default with { Encoder = ExportVideoEncoder.Nvenc };
+        var export = Service().ExportAsync(new ExportJob(Snapshot(), Destination, nvenc), _progress, cts.Token);
+        await WaitUntil(() => _encoder.Encoding?.Blocked == true);
+
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => export.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Single(_encoder.Started);
+        AssertAbandoned();
     }
 
     [Fact]
@@ -465,7 +619,9 @@ public sealed partial class ExportServiceTests
         private int _calls;
         public List<CompositionDrawPlan> Plans { get; } = new();
         public List<int> Strides { get; } = new();
-        public bool OnlyPoolThreads { get; private set; } = true;
+        public bool OnlyRasterizerThreads { get; private set; } = true;
+        public HashSet<int> Threads { get; } = new();
+        public TimeSpan Delay { get; set; }
         public bool Disposed { get; private set; }
         public (int Call, Exception Error)? FailAt { get; set; }
 
@@ -473,11 +629,16 @@ public sealed partial class ExportServiceTests
         {
             ObjectDisposedException.ThrowIf(Disposed, this);
             if (FailAt is { } f && _calls == f.Call) throw f.Error;
-            OnlyPoolThreads &= Thread.CurrentThread.IsThreadPoolThread;
+            OnlyRasterizerThreads &= Thread.CurrentThread.Name?.StartsWith("export-rasterizer-", StringComparison.Ordinal) == true;
+            Threads.Add(Environment.CurrentManagedThreadId);
+            if (Delay > TimeSpan.Zero) Thread.Sleep(Delay);
             Plans.Add(plan);
             Strides.Add(stride);
             target.Clear();
+            // The source frame number in bytes 4..7 (the parallel tests check the order through it), the call in 0..3.
             BitConverter.TryWriteBytes(target, ++_calls);
+            if (plan.Operations.OfType<FrameDraw>().FirstOrDefault() is { } frame)
+                BitConverter.TryWriteBytes(target[4..], FakeVideoDecoder.Number(frame.Frame));
         }
 
         public void Dispose() => Disposed = true;
@@ -493,6 +654,12 @@ public sealed partial class ExportServiceTests
         public bool CompleteWaitsForCancellation { get; set; }
         public string? BlockAt { get; set; }
 
+        /// <summary>D059 §3: an NVENC request is a hardware encoding; with this set, it fails at its fourth frame.</summary>
+        public bool HardwareFails { get; set; }
+
+        /// <summary>Every encoding started, in order (a fallback starts a second one).</summary>
+        public List<ExportEncoding> Started { get; } = new();
+
         public Task<IExportEncoding> StartAsync(ExportOutput output, ExportEncoding encoding, string destinationPath, CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
@@ -500,7 +667,8 @@ public sealed partial class ExportServiceTests
             Output = output;
             Settings = encoding;
             Destination = destinationPath;
-            Encoding = new FakeEncoding(this, output);
+            Started.Add(encoding);
+            Encoding = new FakeEncoding(this, output) { IsHardware = encoding.Encoder == ExportVideoEncoder.Nvenc };
             return Task.FromResult<IExportEncoding>(Encoding);
         }
 
@@ -509,10 +677,13 @@ public sealed partial class ExportServiceTests
             private readonly List<string> _phases = new();
             public List<float> Audio { get; } = new();
             public List<int> FrameMarkers { get; } = new();
+            public List<int> SourceNumbers { get; } = new();
             public List<(int Stride, int Length)> Strides { get; } = new();
             public bool Completed { get; private set; }
             public bool Disposed { get; private set; }
             public volatile bool Blocked;
+            public bool IsHardware { get; init; }
+            public string EncoderDescription => IsHardware ? "NVENC p5 CQ 22" : "libx264 medium CRF 18";
             public IReadOnlyList<string> Phases => _phases.Distinct().ToList();
 
             public async ValueTask WriteAudioAsync(ReadOnlyMemory<float> interleaved, CancellationToken ct = default)
@@ -529,9 +700,12 @@ public sealed partial class ExportServiceTests
                 ct.ThrowIfCancellationRequested();
                 if (Audio.Count != output.AudioSampleCount * 2) throw new InvalidOperationException("audio incomplete");
                 if (owner.FailAt is ("frame", var error) && FrameMarkers.Count == 3) throw error;
+                if (owner.HardwareFails && IsHardware && FrameMarkers.Count == 3)
+                    throw new ExportException(ExportFailure.EncodeFailed, "NVENC: the session could not be opened.");
                 if (owner.BlockAt == "frame" && FrameMarkers.Count == 3) await BlockAsync(ct);
                 _phases.Add("video");
                 FrameMarkers.Add(BitConverter.ToInt32(bgra.Span));
+                SourceNumbers.Add(BitConverter.ToInt32(bgra.Span[4..]));
                 Strides.Add((stride, bgra.Length));
             }
 

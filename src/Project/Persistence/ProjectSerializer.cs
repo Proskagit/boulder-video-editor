@@ -345,7 +345,16 @@ public static class ProjectSerializer
     /// <summary>Null (not written) for the default settings (D028, Step 13.3).</summary>
     private static ExportEncodingDto? ToDto(ExportEncoding e) => e == ExportEncoding.Default
         ? null
-        : new() { Quality = e.Quality.ToString(), Preset = e.Preset.ToString(), AudioBitrateKbps = e.AudioBitrateKbps };
+        : new()
+        {
+            Quality = e.Quality.ToString(), Preset = e.Preset.ToString(), AudioBitrateKbps = e.AudioBitrateKbps,
+            // D059: each new field only when it differs from the D028 meaning (Custom, libx264, constant quality), so a
+            // D028 project is saved exactly as before.
+            Profile = e.Profile == ExportProfile.Custom ? null : e.Profile.ToString(),
+            Encoder = e.Encoder == ExportVideoEncoder.Libx264 ? null : e.Encoder.ToString(),
+            RateControl = e.RateControl == ExportRateControl.ConstantQuality ? null : e.RateControl.ToString(),
+            VideoBitrateMbps = e.VideoBitrateMbps == ExportEncoding.DefaultVideoBitrateMbps ? null : e.VideoBitrateMbps
+        };
 
     private static MediaAssetDto ToDto(MediaAsset a, string? folder)
     {
@@ -793,9 +802,18 @@ public static class ProjectSerializer
         var encoding = new ExportEncoding(
             ReadName<ExportQuality>(dto.Quality, "export quality"),
             ReadName<ExportSpeedPreset>(dto.Preset, "export speed preset"),
-            dto.AudioBitrateKbps ?? throw Damaged("export audio bitrate is missing"));
+            dto.AudioBitrateKbps ?? throw Damaged("export audio bitrate is missing"))
+        {
+            // D059: a D028 file has none of these — «Пользовательский» with libx264 at constant quality, its old output.
+            Profile = dto.Profile is null ? ExportProfile.Custom : ReadName<ExportProfile>(dto.Profile, "export profile"),
+            Encoder = dto.Encoder is null ? ExportVideoEncoder.Libx264 : ReadName<ExportVideoEncoder>(dto.Encoder, "export encoder"),
+            RateControl = dto.RateControl is null ? ExportRateControl.ConstantQuality : ReadName<ExportRateControl>(dto.RateControl, "export rate control"),
+            VideoBitrateMbps = dto.VideoBitrateMbps ?? ExportEncoding.DefaultVideoBitrateMbps
+        };
         if (encoding.Validate() is not null) throw Damaged("invalid export settings");
-        return encoding;
+        // A D028 file that wrote the default values out (High, Medium, 192) is the default — as it always read.
+        return dto.Profile is null && encoding == new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192)
+            ? ExportEncoding.Default : encoding;
     }
 
     /// <summary>The <typeparamref name="T"/> value whose name is exactly <paramref name="name"/>.</summary>

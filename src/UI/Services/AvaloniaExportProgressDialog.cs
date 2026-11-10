@@ -50,6 +50,14 @@ public sealed class AvaloniaExportProgressDialog : IExportProgressDialog
         bar.Bind(RangeBase.ValueProperty, new Binding(nameof(ExportProgressViewModel.Percent)));
         var detail = new TextBlock();
         detail.Bind(TextBlock.TextProperty, new Binding(nameof(ExportProgressViewModel.DetailText)));
+        // D059 §4: the speed and the time left; the encoder actually used and a fallback's reason.
+        var speed = new TextBlock { Opacity = 0.8, FontSize = 12 };
+        speed.Bind(TextBlock.TextProperty, new Binding(nameof(ExportProgressViewModel.SpeedText)));
+        var encoder = new TextBlock { Opacity = 0.8, FontSize = 12 };
+        encoder.Bind(TextBlock.TextProperty, new Binding(nameof(ExportProgressViewModel.EncoderText)));
+        var fallback = new TextBlock { FontSize = 12, TextWrapping = TextWrapping.Wrap, Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#E0A040")) };
+        fallback.Bind(TextBlock.TextProperty, new Binding(nameof(ExportProgressViewModel.Fallback)) { StringFormat = Strings.Export_FallbackLine });
+        fallback.Bind(Visual.IsVisibleProperty, new Binding(nameof(ExportProgressViewModel.Fallback)) { Converter = Avalonia.Data.Converters.ObjectConverters.IsNotNull });
         var cancel = new Button { Content = Strings.Common_Cancel, MinWidth = 90, IsCancel = true, HorizontalAlignment = HorizontalAlignment.Right };
         cancel.Bind(Button.CommandProperty, new Binding(nameof(ExportProgressViewModel.CancelCommand)));
 
@@ -63,6 +71,9 @@ public sealed class AvaloniaExportProgressDialog : IExportProgressDialog
                 stage,
                 bar,
                 detail,
+                speed,
+                encoder,
+                fallback,
                 cancel
             }
         };

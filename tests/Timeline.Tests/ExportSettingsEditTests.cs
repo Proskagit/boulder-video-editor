@@ -63,7 +63,7 @@ public class ExportSettingsEditTests
         var (f, _) = Scene();
         var top = f.UndoRedo.CurrentPosition;
 
-        var result = f.Service.SetExportSettings(new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192));
+        var result = f.Service.SetExportSettings(new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192) { Profile = ExportProfile.Balanced });
 
         Assert.True(result.Success && result.NoChange);
         Assert.Same(top, f.UndoRedo.CurrentPosition);

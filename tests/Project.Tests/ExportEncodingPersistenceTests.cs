@@ -286,4 +286,75 @@ public class ExportEncodingPersistenceTests
         Assert.False(ProjectSettingsRules.IsSelectableFrameRate(loaded.Settings.FrameRate));
         Assert.Equal(new Core.Common.FrameRate(numerator, denominator), loaded.Settings.FrameRate);
     }
+
+    // --- D059: profiles, the encoder, the rate control ------------------------------------------------------------------
+
+    public static TheoryData<ExportEncoding> D059Values => new()
+    {
+        ExportEncoding.Default with { Profile = ExportProfile.Fast },
+        ExportEncoding.Default with { Profile = ExportProfile.Fast, Encoder = ExportVideoEncoder.Nvenc },
+        ExportEncoding.Default with { Profile = ExportProfile.HighQuality, AudioBitrateKbps = 256 },
+        ExportEncoding.Default with { Encoder = ExportVideoEncoder.Nvenc },
+        new ExportEncoding(ExportQuality.Standard, ExportSpeedPreset.Slow, 192) { Encoder = ExportVideoEncoder.Nvenc },
+        new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192) { RateControl = ExportRateControl.Bitrate, VideoBitrateMbps = 25 },
+    };
+
+    [Theory]
+    [MemberData(nameof(D059Values))]
+    public void Profiles_and_the_encoder_survive_save_and_reopen(ExportEncoding export)
+    {
+        var json = ProjectSerializer.Serialize(Sample(export), Folder);
+
+        var loaded = Load(json);
+
+        Assert.Equal(export, loaded.Settings.Export);
+        Assert.Equal(json, ProjectSerializer.Serialize(loaded, Folder));
+        Assert.Equal(19, Json(loaded)["formatVersion"]!.GetValue<int>());   // no format version change
+    }
+
+    [Fact]
+    public void A_profile_is_written_by_name_and_only_the_fields_that_differ_from_D028()
+    {
+        var export = Settings(Json(Sample(ExportEncoding.Default with { Profile = ExportProfile.Fast, Encoder = ExportVideoEncoder.Nvenc })))["export"]!.AsObject();
+
+        Assert.Equal("Fast", export["profile"]!.GetValue<string>());
+        Assert.Equal("Nvenc", export["encoder"]!.GetValue<string>());
+        Assert.False(export.ContainsKey("rateControl"));
+        Assert.False(export.ContainsKey("videoBitrateMbps"));
+        Assert.Equal(("High", "Medium", 192), (export["quality"]!.GetValue<string>(), export["preset"]!.GetValue<string>(), export["audioBitrateKbps"]!.GetValue<int>()));
+    }
+
+    [Fact]
+    public void A_D028_file_reads_as_custom_with_exactly_its_values_and_saves_unchanged()
+    {
+        var json = ProjectSerializer.Serialize(Sample(Custom), Folder);   // what D028 wrote: quality, preset, bitrate only
+
+        var loaded = Load(json);
+
+        Assert.Equal(Custom, loaded.Settings.Export);
+        Assert.Equal((ExportProfile.Custom, ExportVideoEncoder.Libx264, ExportRateControl.ConstantQuality),
+            (loaded.Settings.Export.Profile, loaded.Settings.Export.Encoder, loaded.Settings.Export.RateControl));
+        Assert.Equal(json, ProjectSerializer.Serialize(loaded, Folder));
+    }
+
+    [Theory]
+    [InlineData("profile", "Turbo")]
+    [InlineData("encoder", "Quicksync")]
+    [InlineData("rateControl", "Crf")]
+    public void An_unknown_D059_name_makes_the_project_damaged(string field, string value)
+    {
+        var root = Json(Sample(Custom));
+        Settings(root)["export"]!.AsObject()[field] = value;
+
+        Assert.Throws<ProjectFileException>(() => Load(root.ToJsonString()));
+    }
+
+    [Fact]
+    public void A_video_bitrate_not_offered_makes_the_project_damaged()
+    {
+        var root = Json(Sample(Custom));
+        Settings(root)["export"]!.AsObject()["videoBitrateMbps"] = 33;
+
+        Assert.Throws<ProjectFileException>(() => Load(root.ToJsonString()));
+    }
 }

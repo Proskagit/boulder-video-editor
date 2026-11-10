@@ -1288,4 +1288,49 @@
   <data name="FitRoutes_ClipTimesConflict" xml:space="preserve">
     <value>This clip's file has a time tag and a file-name time that disagree (the file was edited?): its recording start is unknown. Set it by a climb below.</value>
   </data>
+  <data name="Encoding_Profile" xml:space="preserve">
+    <value>The export profile is unknown.</value>
+  </data>
+  <data name="Encoding_Encoder" xml:space="preserve">
+    <value>The export encoder is unknown.</value>
+  </data>
+  <data name="Encoding_RateControl" xml:space="preserve">
+    <value>The export rate control is unknown.</value>
+  </data>
+  <data name="Encoding_VideoBitrate" xml:space="preserve">
+    <value>The video bitrate {0} Mbit/s is not supported.</value>
+  </data>
+  <data name="Settings_ExportProfileSet" xml:space="preserve">
+    <value>Export settings: the «{0}» profile, {1}, AAC {2} kbps.</value>
+  </data>
+  <data name="ExportProfile_Fast" xml:space="preserve">
+    <value>Fast</value>
+  </data>
+  <data name="ExportProfile_Balanced" xml:space="preserve">
+    <value>Balanced</value>
+  </data>
+  <data name="ExportProfile_HighQuality" xml:space="preserve">
+    <value>High quality</value>
+  </data>
+  <data name="ExportProfile_Custom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="Nvenc_NoFfmpeg" xml:space="preserve">
+    <value>FFmpeg was not found.</value>
+  </data>
+  <data name="Nvenc_NotInBuild" xml:space="preserve">
+    <value>this FFmpeg has no NVENC encoder (h264_nvenc)</value>
+  </data>
+  <data name="Nvenc_TrialFailed" xml:space="preserve">
+    <value>the NVIDIA encoder did not start ({0})</value>
+  </data>
+  <data name="Nvenc_CheckFailed" xml:space="preserve">
+    <value>the NVIDIA encoder could not be checked ({0})</value>
+  </data>
+  <data name="Nvenc_TooLarge" xml:space="preserve">
+    <value>NVENC encodes frames up to {0} px; this canvas is {1} × {2}</value>
+  </data>
+  <data name="Nvenc_NotAvailable" xml:space="preserve">
+    <value>NVENC is not available on this computer</value>
+  </data>
 </root>

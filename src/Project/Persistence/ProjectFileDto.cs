@@ -143,6 +143,21 @@ internal sealed class ExportEncodingDto
     public string? Quality { get; set; }
     public string? Preset { get; set; }
     public int? AudioBitrateKbps { get; set; }
+
+    /// <summary>D059 (optional, no format version change): the profile, the encoder, the rate control and the video bitrate
+    /// of «Пользовательский». Absent = a D028 file: «Пользовательский», libx264, constant quality — exactly its old output.
+    /// Exact enum names like <see cref="Quality"/>. A version before D059 ignores them and reads the D028 fields.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Profile { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Encoder { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? RateControl { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? VideoBitrateMbps { get; set; }
 }
 
 internal sealed class MediaAssetDto
