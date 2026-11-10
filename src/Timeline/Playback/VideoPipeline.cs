@@ -56,6 +56,7 @@ internal sealed class VideoPipeline : IAsyncDisposable
         _settings = settings;
         _logger = logger;
         _startFrame = startFrame;
+        LastFrame = startFrame;
 
         // Ready once every layer visible at the start frame has its picture (or its error).
         _startReaders = DecodableLayers(Time(startFrame))
@@ -78,6 +79,9 @@ internal sealed class VideoPipeline : IAsyncDisposable
 
     /// <summary>The frame the pipeline was started at (D057 §3.13: shown while a newer seek waits).</summary>
     public long StartFrame => _startFrame;
+
+    /// <summary>The frame last asked for by <see cref="GetFrame"/> (the start frame before that): where its readers are.</summary>
+    public long LastFrame { get; private set; }
 
     /// <summary>Completes with true when every layer visible at the start frame is known, false if
     /// the pipeline was disposed first.</summary>
@@ -109,6 +113,7 @@ internal sealed class VideoPipeline : IAsyncDisposable
     public VideoFrameResult GetFrame(long timelineFrame)
     {
         if (_disposed) return new VideoFrameResult(ImmutableArray<LayerPicture>.Empty, false);
+        LastFrame = timelineFrame;
 
         var time = Time(timelineFrame);
         // A layer found failing while the pictures are collected stops occluding; collect again so

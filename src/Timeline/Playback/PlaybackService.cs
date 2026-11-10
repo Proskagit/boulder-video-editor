@@ -195,9 +195,23 @@ public sealed class PlaybackService : IPlaybackService
         // comes first); a seek it supersedes is dropped (false), never queued. The position is the newest at once, so the
         // playhead never steps back.
         TaskCompletionSource<bool>? waiting = null;
+        VideoPipeline? continued = null;
         lock (_seekGate)
         {
-            if (State != PlaybackState.Playing && _pipeline is { IsReady: false } busy)
+            // A short step forward while paused (the next frames, a slow drag forward): the running decoders go on reading —
+            // their next frames are often buffered already — instead of a new ffmpeg process at the target (~0.2–0.4 s at 4K).
+            if (State != PlaybackState.Playing && _pendingSeek is null && _pipeline is { } current && current.IsReady &&
+                ReferenceEquals(_shown, current) && IsCurrent(current) && _snapshot is { } snapshot && ContinuesTo(snapshot, current, target))
+            {
+                _clock.Seek(target);
+                _settled = false;
+                RestartAudio(target, reuse: false);
+                continued = current;
+            }
+            else
+            // Busy: still decoding, or finished with a picture no Update has returned yet (the owner's acceptance of
+            // 2026-11-10 — every finished picture is shown, so a drag shows a picture per decode, not only the last).
+            if (State != PlaybackState.Playing && _pipeline is { } busy && (!busy.IsReady || !ReferenceEquals(_shown, busy)))
             {
                 _clock.Seek(target);
                 _pendingSeekDone?.TrySetResult(false);
@@ -206,13 +220,16 @@ public sealed class PlaybackService : IPlaybackService
                 _pendingSeekDone = waiting;
                 var context = SynchronizationContext.Current;
                 var mine = waiting;
-                _ = busy.Ready.ContinueWith(_ =>
+                // Normally the Preview's next Update starts it, right after it has shown the busy pipeline's picture; this
+                // is the fallback when no Update comes — a moment later, so that picture can still be shown first.
+                _ = busy.Ready.ContinueWith(_ => Task.Delay(InterimPictureGrace), TaskScheduler.Default).Unwrap().ContinueWith(_ =>
                 {
                     if (context is null) TryStartPendingSeek(mine);
                     else context.Post(_ => TryStartPendingSeek(mine), null);
                 }, TaskScheduler.Default);
             }
         }
+        if (continued is not null) return await ReachAsync(continued, target, ct).ConfigureAwait(false);
         if (waiting is not null)
         {
             using var registration = ct.Register(() => waiting.TrySetCanceled(ct));
@@ -224,6 +241,40 @@ public sealed class PlaybackService : IPlaybackService
         return ready && IsCurrent(pipeline);
     }
 
+    /// <summary>How far ahead a paused seek may be reached by reading on instead of restarting the decoders.</summary>
+    internal static readonly MediaTime MaxContinueAhead = MediaTime.FromSeconds(0.5);
+
+    /// <summary>Whether a paused seek to <paramref name="target"/> can be reached by <paramref name="pipeline"/> reading on: on
+    /// its grid, at or after the frame it was last asked for and at most <see cref="MaxContinueAhead"/> later.</summary>
+    private bool ContinuesTo(PlaybackSnapshot snapshot, VideoPipeline pipeline, MediaTime target)
+    {
+        var rate = GridFor(snapshot, target);
+        if (rate != pipeline.Rate) return false;
+        var frame = Math.Min(target.ToFrameFloor(rate), FrameMath.CeilingFrame(snapshot.Duration, rate) - 1);
+        var from = pipeline.LastFrame;
+        return frame >= from && MediaTime.FromFrame(frame, rate) - MediaTime.FromFrame(from, rate) <= MaxContinueAhead;
+    }
+
+    /// <summary>Completes when <paramref name="pipeline"/> has the target's picture (true), or false once another seek or
+    /// snapshot replaced it. It asks for the frame itself as an Update would, so the readers move on without one.</summary>
+    private async Task<bool> ReachAsync(VideoPipeline pipeline, MediaTime target, CancellationToken ct)
+    {
+        while (true)
+        {
+            lock (_seekGate)
+            {
+                if (_released || !ReferenceEquals(_pipeline, pipeline) || !IsCurrent(pipeline) || _clock.Position != target) return false;
+                var frame = Math.Min(target.ToFrameFloor(pipeline.Rate), FrameMath.CeilingFrame(_snapshot!.Duration, pipeline.Rate) - 1);
+                if (pipeline.GetFrame(frame).IsTopSettled)
+                {
+                    _settled = true;
+                    return true;
+                }
+            }
+            await Task.Delay(2, ct).ConfigureAwait(false);
+        }
+    }
+
     /// <summary>D057 §3.13: the position of the newest seek waiting for the previous one's picture, or null.</summary>
     private MediaTime? _pendingSeek;
 
@@ -231,6 +282,13 @@ public sealed class PlaybackService : IPlaybackService
 
     /// <summary>Guards the waiting seek and the restarts (D057 §3.13) — its start may come from a continuation.</summary>
     private readonly object _seekGate = new();
+
+    /// <summary>How long a waiting seek leaves the busy pipeline's finished picture to be shown when no Update starts it.</summary>
+    internal static readonly TimeSpan InterimPictureGrace = TimeSpan.FromMilliseconds(40);
+
+    /// <summary>The pipeline whose finished picture an Update has returned (the owner's acceptance of 2026-11-10: that
+    /// picture is shown before a waiting seek replaces the pipeline).</summary>
+    private VideoPipeline? _shown;
 
     /// <summary>Whether a seek waits for the previous one's picture (tests, diagnostics).</summary>
     internal bool HasPendingSeek => _pendingSeek is not null;
@@ -257,7 +315,8 @@ public sealed class PlaybackService : IPlaybackService
     {
         if (_snapshot is not { } snapshot || _pipeline is not { } pipeline)
             return new PlaybackFrame(Position, 0, State, false);
-        if (_pendingSeekDone is { } pending && pipeline.IsReady)
+        // The waiting seek starts once the busy pipeline's picture was returned by an Update (shown), never before.
+        if (_pendingSeekDone is { } pending && pipeline.IsReady && ReferenceEquals(_shown, pipeline))
         {
             TryStartPendingSeek(pending);
             pipeline = _pipeline!;
@@ -296,12 +355,16 @@ public sealed class PlaybackService : IPlaybackService
         if (pipeline.DecoderUnavailable) _decoderUnavailable = true;
         if (result.IsTopSettled && IsCurrent(pipeline))
             _settled = true;
+        var finished = pipeline.IsReady && result.IsTopSettled && IsCurrent(pipeline);
+        if (finished) _shown = pipeline;
+        var interim = finished && _pendingSeek is not null;
 
         return new PlaybackFrame(position, frame, State, IsBuffering)
         {
             Layers = IsCurrent(pipeline) ? result.Layers : ImmutableArray<LayerPicture>.Empty,
             Canvas = snapshot.Canvas,
-            Rate = rate
+            Rate = rate,
+            IsInterimPicture = interim
         };
     }
 

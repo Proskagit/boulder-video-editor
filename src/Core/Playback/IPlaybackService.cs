@@ -75,6 +75,12 @@ public readonly record struct PlaybackFrame(MediaTime Position, long TimelineFra
     /// <summary>The grid <see cref="TimelineFrame"/> counts on — the project's, or the navigation grid while paused between
     /// the project's frames (D057 §3.14); null: the project's.</summary>
     public FrameRate? Rate { get; init; }
+
+    /// <summary>
+    /// While a newer seek waits (<see cref="IsBuffering"/> true, D057 §3.13): <see cref="Layers"/> are the previous seek's
+    /// finished picture, to show now — scrubbing shows each picture that is ready, not only the last one after the release.
+    /// </summary>
+    public bool IsInterimPicture { get; init; }
 }
 
 /// <summary>

@@ -302,6 +302,13 @@ public sealed partial class PreviewViewModel : ViewModelBase
     {
         if (frame.Canvas.IsValid && frame.Canvas != Canvas)
             Canvas = frame.Canvas;
+        if (frame.IsInterimPicture)
+        {
+            // Scrubbing: the previous seek's finished picture while the newest seek waits (it is not the playhead's yet).
+            Layers = frame.Layers;
+            AreLayersCurrent = false;
+            return;
+        }
         if (frame.IsBuffering)
         {
             AreLayersCurrent = false;
