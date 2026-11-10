@@ -62,6 +62,9 @@ public sealed class SettingsWindowTests
         Assert.Equal(UserSettings.DefaultHeartRateDisplayOffset, settings.Current.HeartRateDisplayOffset);
 
         vm.HoldProposalsEnabled = true;
+        Assert.True(vm.TimelineFollowsPlayhead);                                              // D058 §1: on by default
+        vm.TimelineFollowsPlayhead = false;
+        Assert.False(settings.Current.TimelineFollowsPlayhead);
         vm.LanguageIndex = 2;
         vm.FfmpegPath = @"D:\ffmpeg\ffmpeg.exe";
         Assert.True(settings.Current.HoldProposalsEnabled);
@@ -103,6 +106,7 @@ public sealed class SettingsWindowTests
         var view = new AppSettingsView { DataContext = vm };
         var names = view.GetLogicalDescendants().OfType<Control>().Select(c => c.Name).Where(n => n is not null).ToList();
         Assert.Contains("GeneralSection", names);
+        Assert.Contains("FollowPlayheadBox", names);
         Assert.Contains("FfmpegSection", names);
         Assert.Contains("TimelineSection", names);
         Assert.Contains("CorosFitSection", names);
