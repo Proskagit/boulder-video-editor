@@ -1145,6 +1145,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// <summary>The ghost of a drag of <paramref name="assetIds"/> over <paramref name="track"/> (one file or several).</summary>
     public void ShowDropPreview(IReadOnlyList<Guid> assetIds, TimelineTrackViewModel? track, double contentX)
     {
+        SuspendFollowing();   // D058 §1: a drop being placed while playing
         var ordered = OrderedForDrop(assetIds);
         if (ordered.Count == 0)
         {
@@ -1182,6 +1183,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// clip, right after it (D057 §3.12).</summary>
     public void ShowDropPreview(Guid assetId, TimelineTrackViewModel? track, double contentX)
     {
+        SuspendFollowing();   // D058 §1
         ShowDropTarget(track);
         var start = DropStart(assetId, track, contentX);
         if (track?.Clips.FirstOrDefault(c => c.Clip.TimelineStart < start && start < c.Clip.TimelineEnd) is { } under)

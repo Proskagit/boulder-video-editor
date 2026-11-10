@@ -155,6 +155,10 @@ public sealed class TimelineFollowAndZoomTests
         timeline.SetPlaying(true);
         timeline.BeginMarquee(10, 10, additive: false);                        // and a marquee
         Assert.False(timeline.IsFollowingPlayhead);
+        timeline.SetPlaying(false);
+        timeline.SetPlaying(true);
+        timeline.ShowDropPreview(Guid.NewGuid(), null, 10);                    // and a file dragged in from the Media Browser
+        Assert.False(timeline.IsFollowingPlayhead);
     }
 
     [Fact]

@@ -9708,6 +9708,79 @@ by §1: the decisions on §4.1 / §4.2, then §4.3, then S1 / Phase 30 — each 
 
 ---
 
+## D058 — Phase 39: Timeline UX & Multi-Clip Editing *(approved 2026-11-10 by the owner's task; implemented 2026-11-10)*
+
+Date: 2026-11-10. **Status: the scope set by the product owner on 2026-11-10** after the read-only audit of D057 §4.1–§4.3;
+implemented in Phase 39 (branch `feat/phase-39`). Amends D037 Q7 (§3) and D057 §3.1 (§6); keeps the rest of D001–D057.
+`project.json` unchanged (v19): every new value either is a user setting (`settings.json`) or uses a field the project
+already stores (`Sequence.ZoomPixelsPerSecond`, `Marker.Label`).
+
+### 1. The timeline follows the playhead (P1)
+
+While playing, when the playhead passes the right edge of the visible timeline (or lies left of it, after a loop), the view
+turns its **page**: the playhead goes to the left edge (24 px in) and playback goes on; the view never scrolls continuously.
+Paused, nothing scrolls by itself. The user's wheel (scroll or zoom), a press on the scroll bar, a zoom command, a drag of
+clips or edges, a marquee or a drop from the Media Browser pause the following **until the next Play**; a click on the
+ruler (a seek) does not. On by default; the user's setting «Таймлайн следует за плейхедом при воспроизведении» in
+«Настройки… → Таймлайн и разметка» (`settings.json` `TimelineFollowsPlayhead`, a missing value is on).
+
+### 2. The initial zoom (P1)
+
+A project whose zoom is still the default of a new sequence (`Sequence.DefaultZoomPixelsPerSecond`, 60 px/s — never zoomed,
+or saved untouched) is shown with the zoom that puts **ten minutes** across the timeline's visible width, once the view
+knows its width; that zoom is stored like any zoom. A zoom the user set (any other value) is kept. Adding clips never
+changes the zoom; a later resize does not re-apply it. The smallest zoom is lowered from 2 to 1 px/s so a narrow timeline
+still shows ten minutes. A project deliberately saved at exactly 60 px/s is treated as never zoomed (the only ambiguity).
+
+### 3. Several clips in the Inspector (P1; amends D037 Q7)
+
+With two **items** or more selected — a linked video / audio pair (D032) is one item — the Inspector shows the group's
+panel instead of the primary clip's sections (D037 Q7 showed the primary's properties). Five groups only:
+1. **Background** (black / blurred, D057 §3.7) — when every item has a video clip.
+2. **Fill / Fit** (D041 §2) — when every item has a video or image clip.
+3. **Volume / Mute** — when every item has a clip with its own sound (an audio clip, or a video clip whose sound is not
+   detached and whose file has sound); for a linked pair its audio clip.
+4. **Opacity** — when every item has a picture (video, image, text).
+5. **Hold outline style** (the width, the colour — Auto or a palette colour —, the keyline) — when every item has a video
+   clip and some of them have marked holds; it applies to every marked route of those clips (D053), a clip without holds
+   gets no route.
+A group not fitting every item is not offered; none fitting says so. Values that differ show as «—» (an empty field, no
+choice, an undetermined check box) until set. Each change is **one undo step** (`ITimelineEditService.EditAsOneStep` →
+`GroupEditCommand`; Ctrl+Z undoes, Ctrl+Y redoes the whole group); a refused edit (a locked track, a value out of range)
+changes none; consecutive changes of one numeric group field merge, as for one clip (D017). Each clip is edited by the
+same rules as alone. The single clip's (or a pair's) Inspector is unchanged.
+
+### 4. Marker labels (P2)
+
+`Marker.Label` (stored since D027) is shown beside its flag on the ruler (small, trimmed at 140 px, over the ruler's own
+labels) and edited in place by a **double click on the flag**: Enter or leaving the field sets it (one undo step,
+`SetMarkerLabel`; trimmed, one line, at most 80 characters, empty for none), Esc keeps it. Markers stay sequence markers
+(D027; clip-bound markers deferred).
+
+### 5. Numeric parameters (P2)
+
+The labels of **Position X / Y, Scale and Rotation** change their fields by dragging sideways: 1 px, 0.5 %, 0.5° per pixel;
+×10 with Shift, ×0.1 with Ctrl; two decimals; within the field's limits; one undo step per drag (the field's own merging).
+The fields stay for exact input. The **percent sliders** (Opacity, Volume, a text background's opacity) land on 5 % steps
+(a 118 px slider over 0–100 % / 0–200 % moved by about a percent per pixel); the frame, pixel, point and second sliders keep
+theirs.
+
+### 6. «Готово» once (P2; amends D057 §3.1)
+
+The hold markup is finished only on the Preview's bar («Готово», unchanged); the Inspector's «Holds» shows the state
+«Идёт разметка — завершите на панели Preview» instead of a second «Готово». The mechanism (D034, D057 §7.8) is unchanged.
+
+### 7. Deferred (not in Phase 39)
+
+Thumbnails on the timeline's clips; text improvements (italic, shadow, line spacing, a block width with wrapping, saved
+styles / presets); custom keyboard shortcuts; clip-bound markers; reverse / fast playback / shuttle; moving a selection
+between tracks; the magnetic main track; Motion Tracking Camera / a virtual camera; occlusion and advanced object
+tracking; key frames (K1) and advanced tracking correction. **Transitions** stay a task of their own: about five popular
+transitions, a review of the existing fades and cross dissolve, Preview / export parity required. The Export Performance
+Optimization research is planned separately.
+
+---
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

@@ -611,6 +611,7 @@ on the project grid (D006).
   the whole canvas under the picture, the export's plan and `PreviewDrawPlan` alike; both painters keep the background's
   bitmap apart from the clip's. `YouTubeTimestamps` (Core) is shown by the export dialog (`ExportDialogViewModel`,
   `IExportDialog`, D057 §7.9), which `ExportWorkflow` opens for the output file.
+- Phase 39 (D058): `TimelineViewModel.Follow` turns the page with the playhead while playing (`SetPlaying`, `SuspendFollowing` from the view's wheel / scroll bar and the zoom / gesture / marquee entries; the user setting `TimelineFollowsPlayhead`) and applies the initial zoom (ten minutes) to a sequence still at `Sequence.DefaultZoomPixelsPerSecond`; the Inspector's `ClipGroupViewModel` edits five groups of properties over the selection through `ITimelineEditService.EditAsOneStep` (the commands gathered by `ExecuteTracked`, recorded as one `GroupEditCommand` by `IUndoRedoService.Record`); marker labels by `SetMarkerLabel`; `ScrubLabel` (Controls) drags a numeric field by its label.
 - Scrubbing (D057 §3.13, §7.4): `PlaybackService` returns a finished picture once (`PlaybackFrame.IsInterimPicture`) before a
   waiting seek starts, and reaches a paused seek up to `MaxContinueAhead` (0.5 s) ahead by reading on with the running
   pipeline (`VideoPipeline.LastFrame`). `Video.Tests/ScrubBenchmarkTests` measures it on a real file (`AIVE_SCRUB_BENCH_FILE`).
