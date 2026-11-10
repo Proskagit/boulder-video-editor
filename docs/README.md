@@ -62,6 +62,10 @@ This directory contains:
   running app, in Russian; run 2026-11-03 — PASS
 - `PHASE37_MANUAL_TEST_PLAN.md` — manual checks of Phase 37 (not run yet)
 - `PHASE38_MANUAL_TEST_PLAN.md` — manual checks of Phase 38, UX Improvements before the MVP (D057)
+- `drafts/TRACKING_OCCLUSION_RESEARCH.md` — the research of the automatic Follow (object tracking, the framing that follows
+  the climber) and of the occlusion of the hold outlines, in Russian: measurements on the owner's footage, the proposed
+  architecture, the owner's decisions of 2026-11-11, the plan in two stages and the remaining technical risks; no
+  product code, nothing implemented
 - `drafts/ffmpeg-minimal-9.0.2-1/` — drafts of the minimal FFmpeg build's release plan and notices (S1 release
   preparation, not published)
 - `AI_MODEL.md` — the AI hold model: files and checksums, installing, messages, licences and notices, the export recipe
