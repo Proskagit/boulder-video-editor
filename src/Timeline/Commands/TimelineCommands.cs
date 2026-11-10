@@ -237,6 +237,14 @@ public sealed class RemoveMediaAssetCommand(List<MediaAsset> assets, MediaAsset 
 
 /// <summary>Adds a marker (D027 §6), keeping <see cref="Sequence.Markers"/> sorted by position; Undo takes the same
 /// object out again, so Redo brings back the very same marker (id, label, colour).</summary>
+/// <summary>D058 §4: a marker's label.</summary>
+public sealed class SetMarkerLabelCommand(Marker marker, string before, string after) : IUndoableCommand
+{
+    public string Description => "Rename Marker";
+    public void Execute() => marker.Label = after;
+    public void Undo() => marker.Label = before;
+}
+
 public sealed class AddMarkerCommand(Sequence sequence, Marker marker) : IUndoableCommand
 {
     public string Description => "Add Marker";

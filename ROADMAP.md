@@ -84,6 +84,11 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 
 ## Current
 
+**Phase 39 — Timeline UX & Multi-Clip Editing (DECISIONS.md D058, 2026-11-10) — implemented, the owner's check open.** The
+timeline follows the playhead page by page; the initial zoom shows ten minutes; several clips edited together (background,
+Fill / Fit, volume / mute, opacity, the hold outline) in one undo step; marker labels; draggable Position / Scale / Rotation
+labels and 5 % percent sliders; «Готово» only on the Preview bar. Then the MVP, then S1. Deferred: D058 §7.
+
 **Phase 38 — UX Improvements before the MVP (DECISIONS.md D057, approved 2026-11-09) — accepted by the product owner on
 2026-11-10** (the builds 0.38.1 / 0.38.2 checked by hand; the fixes of D057 §7 in PRs #63 / #64). Next: the decisions on
 D057 §4.1 / §4.2, then §4.3, then S1. The order: Phase 38
@@ -582,7 +587,11 @@ tracking task. Sketch: `docs/DEVELOPMENT_PLAN.md`, "Future ideas (not phases)".
 ## Follow-ups and backlog
 
 **After D057 (2026-11-09).** Checked on Phase 38's target build, decided separately (D057 §4.1): the duplicated «Импорт» /
-«Готово» (2026-11-10: the tool bar's «Импорт медиа» removed, D057 §7.13; «Готово» open), the timeline following the playhead, thumbnails on the clips, editing several clips, further text improvements.
+«Готово» (2026-11-10: the tool bar's «Импорт медиа» removed, D057 §7.13; «Готово» once — D058 §6), the timeline following the playhead (D058 §1), thumbnails on the clips (deferred, D058 §7), editing several clips (D058 §3), further text improvements (deferred, D058 §7).
+*(Decided 2026-11-10 by D058: marker labels and dragging Scale / Rotation / Position by their labels and the slider steps
+taken by Phase 39; custom shortcuts, clip-bound markers, reverse / fast playback / shuttle, moving a selection between
+tracks, the magnetic main track and every §4.3 function deferred; the transitions (about five, Preview = export) a task of
+their own.)*
 The UX backlog, not in Phase 38 without a decision (§4.2): custom shortcuts, clip-bound markers (FU-21.2), marker labels,
 reverse / fast playback / shuttle, dragging Scale / Rotation / Position by their labels, moving a selection between tracks,
 the magnetic main track, slider steps. After the MVP (§4.3): Motion Tracking Camera, occlusion, advanced object tracking,

@@ -224,6 +224,13 @@ public interface ITimelineEditService
     /// step.</summary>
     TimelineEditResult RemoveMarkerAt(MediaTime at);
 
+    /// <summary>D058 §4: a marker's label (<see cref="Marker.Label"/>) — trimmed, at most <see cref="MaxMarkerLabelLength"/>
+    /// characters, empty for none; one undo step; the same label is <see cref="TimelineEditResult.NoChange"/>.</summary>
+    TimelineEditResult SetMarkerLabel(Guid markerId, string label);
+
+    /// <summary>The longest marker label (D058 §4).</summary>
+    const int MaxMarkerLabelLength = 80;
+
     /// <summary>The position of the first marker on a frame after the frame of <paramref name="from"/>, or null.</summary>
     MediaTime? NextMarker(MediaTime from);
 
@@ -299,6 +306,14 @@ public interface ITimelineEditService
     /// <summary>D057 §3.7: a video clip's background — black or its own picture blurred; one undo step; the value already
     /// there is <see cref="TimelineEditResult.NoChange"/>; refused for another kind of clip or a locked track.</summary>
     TimelineEditResult SetClipBackground(Guid clipId, ClipBackground background);
+
+    /// <summary>
+    /// D058 §3: the edits <paramref name="edits"/> makes through this service (each by its own rules) as <b>one</b> Undo
+    /// step. A refused edit undoes the ones made before it and its result is returned; when none changed anything the result
+    /// is <see cref="TimelineEditResult.NoChange"/>. Two steps in a row with the same <paramref name="mergeKey"/> merge (a
+    /// slider dragged over a group); null never merges. Not nested.
+    /// </summary>
+    TimelineEditResult EditAsOneStep(string description, string? mergeKey, Func<IReadOnlyList<TimelineEditResult>> edits);
 
     /// <summary>Adds a confirmed hold to a video clip's markup (D034): one undo step; the Auto colour and the keyline are
     /// recomputed from the stored samples of all holds. Refused for other clips and on a locked track.</summary>

@@ -241,6 +241,11 @@ phase's record prevail.
       decisions on D057 §4.1 / §4.2, then §4.3, and only then S1 / Phase 30. `project.json` v19 (the blurred background).
       Manual plan: `docs/PHASE38_MANUAL_TEST_PLAN.md`.
       Section "Phase 38" below. **H's goal is covered by Phase 38; its former scope is not restored.**
+- [ ] **Phase 39 — Timeline UX & Multi-Clip Editing (DECISIONS.md D058, 2026-11-10) — implemented, awaiting the owner's
+      check.** The timeline follows the playhead page by page (setting, on by default); the initial zoom shows ten minutes;
+      five groups of properties edited on several clips in one undo step; marker labels; draggable Position / Scale /
+      Rotation labels and 5 % percent sliders; «Готово» only on the Preview bar. Deferred items: D058 §7. Manual plan:
+      `docs/PHASE39_MANUAL_TEST_PLAN.md`.
 
 ## Phase and step numbering (product owner, 2026-10-28)
 
@@ -292,6 +297,7 @@ The one table of the phases' state; `ROADMAP.md` and `progress.md` refer to it.
 | 36 — summary and chapters | to be approved | planned; specification draft outside `main`; its time-code export a separate item until clarified | — |
 | 37 — FIT route starts and the start calibration | D051 | implemented (37.1–37.6, v12) and merged; 37.7 done (D051 A1–A15 automated 2026-11-04, all PASS, A10 measured); **accepted by the product owner 2026-11-04** | PR #33, `1640996` |
 | 38 — UX Improvements before the MVP | D057 | blocks A–F implemented 2026-11-10 (`project.json` v19); the owner's practical check of the builds 0.38.1 / 0.38.2 and its fixes (D057 §7); **accepted by the product owner 2026-11-10** | PRs #56–#62 (`d6d2b06`), PR #63 (`ef2f079`), PR #64 |
+| 39 — Timeline UX & Multi-Clip Editing | D058 | implemented 2026-11-10 (`project.json` v19 unchanged); the owner's check open; not accepted | branch `feat/phase-39`, PR #65 |
 | H — Final UX Pass | D042 §7, D057 | its goal covered by Phase 38 (D057); the former scope not restored | — |
 
 The **highest phase number in use is 37**; the **complete phases** (merged and accepted) are **1–29, 31 and 37** (Phases 31
@@ -691,6 +697,14 @@ F — implementation (after R3's go and A):
 6. A manual check on a real gym video with a real Pace 4 export.
 - Out: other devices; a sports-telemetry editor; maps, GPS, pace and other fields unless R3 justifies one; a direct
   device or cloud connection.
+
+### Phase 39 — Timeline UX & Multi-Clip Editing *(D058, 2026-11-10; implemented, the owner's check open)*
+
+The owner's choice of 2026-11-10 from the audit of D057 §4.1–§4.3: P1 — the timeline follows the playhead (§1), the initial
+zoom of ten minutes (§2), several clips in the Inspector (§3); P2 — marker labels (§4), the numeric parameters (§5),
+«Готово» once (§6). Deferred: D058 §7 (with the transitions as a task of their own). One pull request; the owner checks
+`docs/PHASE39_MANUAL_TEST_PLAN.md` on a target build. Then the MVP is declared (D057 §1 step 4), and S1 / Phase 30 follows
+by its own decision.
 
 ### Phase 38 — UX Improvements before the MVP *(D057, approved 2026-11-09; accepted 2026-11-10)*
 

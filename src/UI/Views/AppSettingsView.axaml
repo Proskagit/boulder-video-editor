@@ -58,6 +58,7 @@
 
         <StackPanel x:Name="TimelineSection" Spacing="8" IsVisible="{Binding ShowsTimelineAndMarkup}">
           <TextBlock Classes="heading" Text="{x:Static l:Strings.AppSettings_TimelineAndMarkup}"/>
+          <CheckBox x:Name="FollowPlayheadBox" Content="{x:Static l:Strings.AppSettings_FollowPlayhead}" IsChecked="{Binding TimelineFollowsPlayhead, Mode=TwoWay}"/>
           <CheckBox x:Name="ProposalsBox" Content="{x:Static l:Strings.Holds_ProposeAutomatically}" IsChecked="{Binding HoldProposalsEnabled, Mode=TwoWay}"/>
           <TextBlock Classes="note" Text="{x:Static l:Strings.AppSettings_ProposalsNote}"/>
         </StackPanel>

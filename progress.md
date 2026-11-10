@@ -2,6 +2,14 @@
 
 ## Current phase
 
+**Phase 39 — Timeline UX & Multi-Clip Editing (D058, 2026-11-10) — implemented on `feat/phase-39`, the owner's check open.**
+P1: the timeline follows the playhead page by page (on by default, a user setting); the initial zoom of ten minutes for a
+project never zoomed (the minimum zoom 1 px/s); the Inspector of several clips — background, Fill / Fit, volume / mute,
+opacity, the hold outline — one undo step each (`EditAsOneStep`, `GroupEditCommand`), «—» for differing values, a linked
+pair one item. P2: marker labels on the ruler (double click to edit); draggable Position / Scale / Rotation labels; the
+percent sliders by 5 %; «Готово» only on the Preview bar. `project.json` v19 unchanged. Deferred: D058 §7 (and the
+transitions, a task of their own). Manual plan: `docs/PHASE39_MANUAL_TEST_PLAN.md`.
+
 **Phase 38 — UX Improvements before the MVP (D057, approved 2026-11-09) — accepted by the product owner on 2026-11-10.**
 Next (D057 §1): the decisions on D057 §4.1 / §4.2, then §4.3, then S1 / Phase 30 — each set by the owner separately.
 Documentation first (D057, the

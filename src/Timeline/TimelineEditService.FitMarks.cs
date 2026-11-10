@@ -21,6 +21,13 @@ public sealed partial class TimelineEditService : IFitMarkEditService
     {
         if (Project.Training is { } training && (training.Marks.Count > 0 || training.DeclinedClimbs.Count > 0))
             command = new FitMarksFollowingCommand(command, Project, training, Now, keep);
+        if (_gathered is { } gathered)
+        {
+            // D058 §3: inside EditAsOneStep — run now, recorded together at its end.
+            command.Execute();
+            gathered.Add(command);
+            return;
+        }
         _undoRedo.Execute(command);
     }
 

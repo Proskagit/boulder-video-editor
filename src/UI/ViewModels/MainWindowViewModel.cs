@@ -154,6 +154,11 @@ public sealed class MainWindowViewModel : ViewModelBase
         Timeline.PlayheadChanged += (_, _) => Inspector.OnPlayheadMoved();
         Timeline.SeekRequested += (_, position) => Preview.Seek(position);
         Preview.PlaybackPositionChanged += (_, position) => Timeline.ShowPlaybackPosition(position);
+        // D058 §1: the timeline follows the playhead while playing.
+        Preview.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(PreviewViewModel.IsPlaying)) Timeline.SetPlaying(Preview.IsPlaying);
+        };
         Preview.FrameStepRequested += (_, frames) => Timeline.StepFrames(frames);
         UpdatePreviewPosition();
 

@@ -36,6 +36,7 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
         var current = settings.Current;
         _heartRateOffsetSeconds = (decimal)current.HeartRateDisplayOffsetTicks / TimeSpan.TicksPerSecond;
         _holdProposalsEnabled = current.HoldProposalsEnabled;
+        _timelineFollowsPlayhead = current.TimelineFollowsPlayhead;
         _languageIndex = current.Language switch { "en" => 2, "ru" => 1, _ => 0 };
         _ffmpegPath = current.FfmpegPath ?? "";
         _ffprobePath = current.FfprobePath ?? "";
@@ -100,6 +101,11 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _holdProposalsEnabled;
 
     partial void OnHoldProposalsEnabledChanged(bool value) => _settings.Update(s => s with { HoldProposalsEnabled = value });
+
+    /// <summary>D058 §1: «Таймлайн следует за плейхедом».</summary>
+    [ObservableProperty] private bool _timelineFollowsPlayhead;
+
+    partial void OnTimelineFollowsPlayheadChanged(bool value) => _settings.Update(s => s with { TimelineFollowsPlayhead = value });
 
     /// <summary>The FFmpeg executable chosen by the user (empty: the application's own), applied at the next start.</summary>
     [ObservableProperty] private string _ffmpegPath;

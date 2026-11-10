@@ -45,6 +45,19 @@ public partial class TimelineView : UserControl
         InitializeComponent();
 
         ContentScroll.ScrollChanged += (_, _) => SyncViewport();
+        MarkerLabelBox.AddHandler(KeyDownEvent, (_, e) =>
+        {
+            if (_viewModel is null) return;
+            if (e.Key == Key.Enter) { _viewModel.CommitMarkerLabelCommand.Execute(null); Focus(); e.Handled = true; }
+            else if (e.Key == Key.Escape) { _viewModel.CancelMarkerLabelCommand.Execute(null); Focus(); e.Handled = true; }
+        }, RoutingStrategies.Tunnel);
+        MarkerLabelBox.LostFocus += (_, _) => _viewModel?.CommitMarkerLabelCommand.Execute(null);
+        // D058 §1: the scroll bar dragged while playing pauses the following (a press on the tracks or the ruler does not).
+        ContentScroll.AddHandler(PointerPressedEvent, (_, e) =>
+        {
+            if (e.Source is Avalonia.Visual source && source.FindAncestorOfType<Avalonia.Controls.Primitives.ScrollBar>(includeSelf: true) is not null)
+                _viewModel?.SuspendFollowing();
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
         ContentScroll.SizeChanged += (_, _) => SyncViewport();
 
         Ruler.PointerPressed += OnRulerPressed;
@@ -127,6 +140,15 @@ public partial class TimelineView : UserControl
     private void OnRulerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!e.GetCurrentPoint(Ruler).Properties.IsLeftButtonPressed) return;
+        if (e.Source is Visual source && source.FindAncestorOfType<TextBox>(includeSelf: true) is not null) return;   // the label field
+        // D058 §4: a double click on a marker's flag edits its label.
+        if (e.ClickCount == 2 && _viewModel?.BeginMarkerLabelEdit(e.GetPosition(ContentRoot).X) == true)
+        {
+            _scrubbing = false;
+            Dispatcher.UIThread.Post(() => { MarkerLabelBox.Focus(); MarkerLabelBox.SelectAll(); }, DispatcherPriority.Input);
+            e.Handled = true;
+            return;
+        }
         Focus();
         _scrubbing = true;
         _viewModel?.SetPlayheadFromX(e.GetPosition(ContentRoot).X);
@@ -545,6 +567,7 @@ public partial class TimelineView : UserControl
     private void OnWheel(object? sender, PointerWheelEventArgs e)
     {
         if (_viewModel is null) return;
+        _viewModel.SuspendFollowing();   // D058 §1: the user scrolls or zooms while playing
         switch (TimelineWheel.ActionFor(e.KeyModifiers, e.Delta))
         {
             case TimelineWheelAction.Zoom:

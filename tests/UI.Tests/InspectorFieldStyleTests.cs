@@ -45,7 +45,7 @@ public sealed class InspectorFieldStyleTests
     {
         var fields = Inspector().Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown").ToList();
 
-        Assert.Equal(28, fields.Count);                         // Phase 27: + outline thickness, background opacity, two durations; Phase 28: + a transition's seconds; D048: + the hold animation's duration, the route's colour tolerance
+        Assert.Equal(31, fields.Count);                         // Phase 27: + outline thickness, background opacity, two durations; Phase 28: + a transition's seconds; D048: + the hold animation's duration, the route's colour tolerance; D058: + the group's opacity, volume and outline width
         Assert.All(fields, f => Assert.Equal("104", (string?)f.Attribute("Width")));
     }
 
@@ -56,7 +56,14 @@ public sealed class InspectorFieldStyleTests
     public void The_whole_value_fields_and_the_slider_steps()
     {
         var xaml = Inspector();
-        var fields = xaml.Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown")
+        var all = xaml.Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown").ToList();
+        // D058 §3: the group's fields (named Group…) step and show alike.
+        foreach (var group in all.Where(IsGroupField))
+        {
+            Assert.Equal("1", (string?)group.Attribute("Increment"));
+            Assert.Equal("0.####", (string?)group.Attribute("FormatString"));
+        }
+        var fields = all.Where(e => !IsGroupField(e))
             .ToDictionary(e => ((string)e.Attribute("Value")!).Split(',')[0].Replace("{Binding ", ""));
         foreach (var name in new[] { "OpacityPercent", "VolumePercent", "StrokeWidth" })
         {
@@ -71,4 +78,21 @@ public sealed class InspectorFieldStyleTests
         Assert.Equal("True", Setter(slider, "IsSnapToTickEnabled"));
         Assert.Equal("1", Setter(slider, "TickFrequency"));
     }
+
+    /// <summary>D058 §6: the markup is finished only on the Preview's bar; the Inspector shows its state instead.</summary>
+    [Fact]
+    public void The_markup_is_finished_on_the_preview_bar_only_and_the_inspector_shows_its_state()
+    {
+        static bool BindsDone(XElement e) => (string?)e.Attribute("Command") is { } command && command.Contains("DoneCommand");
+        Assert.DoesNotContain(Inspector().Descendants(), BindsDone);
+        Assert.Contains(Inspector().Descendants().Where(e => e.Name.LocalName == "TextBlock"),
+            e => (string?)e.Attribute("Text") == "{x:Static l:Strings.Holds_MarkingInPreview}");
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "AiVideoEditor.sln"))) root = root.Parent;
+        var preview = XDocument.Load(Path.Combine(root!.FullName, "src", "UI", "Views", "Panels", "PreviewView.axaml"));
+        Assert.Single(preview.Descendants().Where(e => e.Name.LocalName == "Button"), BindsDone);
+    }
+
+    private static bool IsGroupField(System.Xml.Linq.XElement e) =>
+        e.Attributes().FirstOrDefault(a => a.Name.LocalName == "Name")?.Value.StartsWith("Group", StringComparison.Ordinal) == true;
 }

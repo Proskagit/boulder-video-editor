@@ -56,6 +56,10 @@ public interface IUndoRedoService
     /// is not empty), so the saved state and undo boundaries the user created stay reachable.</summary>
     void Execute(IUndoableCommand command);
 
+    /// <summary>Records <paramref name="command"/>, which the caller has already executed, by the same rules as
+    /// <see cref="Execute"/> (merging included) — for several edits gathered into one step (D058 §3).</summary>
+    void Record(IUndoableCommand command);
+
     void Undo();
 
     void Redo();

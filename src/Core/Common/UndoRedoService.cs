@@ -27,6 +27,11 @@ public sealed class UndoRedoService : IUndoRedoService
     public void Execute(IUndoableCommand command)
     {
         command.Execute();
+        Record(command);
+    }
+
+    public void Record(IUndoableCommand command)
+    {
 
         // Merging replaces the top command with a new instance (or removes it when the two
         // cancel out), so a position captured before the merge no longer matches. The save
