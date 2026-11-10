@@ -97,6 +97,7 @@ public sealed partial class TimelineViewModel
     /// drag threshold). <paramref name="lanesY"/> is measured from the top of the first lane.</summary>
     public void BeginMarquee(double contentX, double lanesY, bool additive)
     {
+        SuspendFollowing();   // D058 §1
         _marquee = new Marquee { StartX = contentX, StartY = lanesY, Additive = additive, Before = _selection.ToList() };
     }
 

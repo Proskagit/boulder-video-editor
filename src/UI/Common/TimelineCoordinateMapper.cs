@@ -9,7 +9,8 @@ namespace AiVideoEditor.UI.Common;
 /// </summary>
 public static class TimelineCoordinateMapper
 {
-    public const double MinPixelsPerSecond = 2;
+    /// <summary>D058 §2: one pixel a second — ten minutes and more fit a narrow timeline.</summary>
+    public const double MinPixelsPerSecond = 1;
 
     /// <summary>Most zoomed-in view: one frame spans this many pixels.</summary>
     public const double MaxPixelsPerFrame = 40;

@@ -2022,6 +2022,9 @@
   <data name="Inspector_ClipBackground" xml:space="preserve">
     <value>Фон</value>
   </data>
+  <data name="AppSettings_FollowPlayhead" xml:space="preserve">
+    <value>Таймлайн следует за плейхедом при воспроизведении</value>
+  </data>
   <data name="Inspector_GroupHeading" xml:space="preserve">
     <value>ВЫБРАНО КЛИПОВ: {0}</value>
   </data>

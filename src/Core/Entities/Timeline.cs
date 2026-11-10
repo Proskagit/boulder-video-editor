@@ -47,7 +47,11 @@ public sealed class Sequence
 
     /// <summary>Current timeline zoom, expressed as pixels-per-second in the UI. Stored here
     /// so it survives project save/reload as part of the editing session.</summary>
-    public double ZoomPixelsPerSecond { get; set; } = 60;
+    public double ZoomPixelsPerSecond { get; set; } = DefaultZoomPixelsPerSecond;
+
+    /// <summary>The zoom of a new sequence. D058 §2: a project still at it (the zoom never changed) is shown with the
+    /// timeline's initial zoom (about ten minutes across) once the view knows its width.</summary>
+    public const double DefaultZoomPixelsPerSecond = 60;
 
     public bool SnappingEnabled { get; set; } = true;
 

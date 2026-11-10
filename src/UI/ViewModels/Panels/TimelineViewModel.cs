@@ -65,8 +65,10 @@ public sealed partial class TimelineViewModel : ViewModelBase
         IDialogService? dialogs = null,
         InOutRangeService? inOut = null,
         SourceViewerService? source = null,
-        ITextBoxMeasurer? textBoxes = null)
+        ITextBoxMeasurer? textBoxes = null,
+        IUserSettingsService? userSettings = null)
     {
+        if (userSettings is not null) FollowsPlayheadSetting = () => userSettings.Current.TimelineFollowsPlayhead;
         _source = source;
         _textBoxes = textBoxes;
         if (source is not null) source.SourceChanged += (_, _) => NotifySourceCommands();
@@ -96,6 +98,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         _snappingEnabled = Sequence.SnappingEnabled;
         ResetCanvasOffer();
         Refresh();
+        PrepareInitialZoom();
     }
 
     private Sequence Sequence => _projectService.Current.Timeline;
@@ -187,6 +190,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         SnappingEnabled = Sequence.SnappingEnabled;
         ResetCanvasOffer();
         Refresh();
+        PrepareInitialZoom();
     }
 
     private void Refresh()
@@ -538,6 +542,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
             ContentWidth = Math.Max(TimelineCoordinateMapper.TimeToX(SequenceDuration + TrailingSpace, PixelsPerSecond), _viewportWidth);
         if (widthChanged || scrolledFar)
             RebuildRuler();
+        ApplyInitialZoom();
     }
 
     /// <summary>Ticks only for the visible range (± one viewport), so very long or very
@@ -589,6 +594,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (frameStart == Playhead) return;
         MovePlayhead(frameStart);
+        FollowPlayhead();   // D058 §1: a page turn while playing
     }
 
     private void MovePlayhead(MediaTime position)
@@ -641,6 +647,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     [RelayCommand]
     private void ZoomToFit()
     {
+        SuspendFollowing();
         var duration = Math.Max(SequenceDuration.TotalSeconds, 10);
         var width = _viewportWidth > 40 ? _viewportWidth - 20 : 1000;
         ApplyZoom(width / duration);
@@ -650,6 +657,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// <summary>Ctrl+wheel: keeps the time under the mouse pointer fixed on screen.</summary>
     public void ZoomAtPointer(double factor, double contentX)
     {
+        SuspendFollowing();
         var anchorTime = TimelineCoordinateMapper.XToTime(Math.Max(0, contentX), PixelsPerSecond);
         var anchorViewportX = contentX - _scrollOffsetX;
         ApplyZoom(PixelsPerSecond * factor);
@@ -658,6 +666,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private void ZoomAroundPlayhead(double factor)
     {
+        SuspendFollowing();
         var playheadViewportX = PlayheadX - _scrollOffsetX;
         if (playheadViewportX < 0 || playheadViewportX > _viewportWidth)
             playheadViewportX = _viewportWidth / 2; // off-screen playhead: bring it to the centre
@@ -1531,6 +1540,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     public void UpdateGesture(double contentX, TimelineTrackViewModel? trackUnderPointer)
     {
+        SuspendFollowing();   // D058 §1: a drag while playing
         if (_gesture is not { } g) return;
         if (!g.Active && Math.Abs(contentX - g.StartX) < DragThresholdPixels && trackUnderPointer == g.SourceTrack)
             return;

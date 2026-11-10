@@ -24,6 +24,9 @@ public sealed record UserSettings
     /// <summary>D057 §3.15: automatic hold proposals on entering the markup mode — off by default.</summary>
     public bool HoldProposalsEnabled { get; init; }
 
+    /// <summary>D058 §1: the timeline turns its page with the playhead while playing; on by default.</summary>
+    public bool TimelineFollowsPlayhead { get; init; } = true;
+
     /// <summary>D057 §3.8: the interface language («ru» / «en»), or null for the application's configuration
     /// (<c>App:Language</c>). Applied at the next start.</summary>
     public string? Language { get; init; }

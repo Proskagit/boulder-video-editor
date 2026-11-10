@@ -45,6 +45,12 @@ public partial class TimelineView : UserControl
         InitializeComponent();
 
         ContentScroll.ScrollChanged += (_, _) => SyncViewport();
+        // D058 §1: the scroll bar dragged while playing pauses the following (a press on the tracks or the ruler does not).
+        ContentScroll.AddHandler(PointerPressedEvent, (_, e) =>
+        {
+            if (e.Source is Avalonia.Visual source && source.FindAncestorOfType<Avalonia.Controls.Primitives.ScrollBar>(includeSelf: true) is not null)
+                _viewModel?.SuspendFollowing();
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
         ContentScroll.SizeChanged += (_, _) => SyncViewport();
 
         Ruler.PointerPressed += OnRulerPressed;
@@ -545,6 +551,7 @@ public partial class TimelineView : UserControl
     private void OnWheel(object? sender, PointerWheelEventArgs e)
     {
         if (_viewModel is null) return;
+        _viewModel.SuspendFollowing();   // D058 §1: the user scrolls or zooms while playing
         switch (TimelineWheel.ActionFor(e.KeyModifiers, e.Delta))
         {
             case TimelineWheelAction.Zoom:
