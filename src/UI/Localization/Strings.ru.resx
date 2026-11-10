@@ -2022,6 +2022,9 @@
   <data name="Inspector_ClipBackground" xml:space="preserve">
     <value>Фон</value>
   </data>
+  <data name="Inspector_ScrubTip" xml:space="preserve">
+    <value>Тяните вбок, чтобы изменить (Shift — быстрее, Ctrl — точнее); точное значение — в поле</value>
+  </data>
   <data name="Holds_MarkingInPreview" xml:space="preserve">
     <value>Идёт разметка — завершите на панели Preview</value>
   </data>

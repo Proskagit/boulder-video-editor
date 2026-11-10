@@ -499,7 +499,7 @@
                                    FormatString="0.####" Width="104"/>
                     <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
-                  <Slider x:Name="BackgroundOpacitySlider" Classes="under" Focusable="False"
+                  <Slider x:Name="BackgroundOpacitySlider" Classes="under" TickFrequency="5" Focusable="False"
                           Minimum="{Binding MinBackgroundOpacityPercent, Converter={x:Static common:DecimalDouble.Instance}}"
                           Maximum="{Binding MaxBackgroundOpacityPercent, Converter={x:Static common:DecimalDouble.Instance}}"
                           Value="{Binding BackgroundOpacityPercent, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
@@ -587,20 +587,23 @@
                     </UniformGrid>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="{x:Static l:Strings.Inspector_PositionX}" Classes="label"/>
-                    <controls:CommitNumericUpDown Value="{Binding PositionX, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
+                    <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_PositionX}" Classes="label" Target="{Binding #PositionXBox}" StepPerPixel="1"
+                                         ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
+                    <controls:CommitNumericUpDown x:Name="PositionXBox" Value="{Binding PositionX, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
                                    FormatString="0.##" Width="104"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="{x:Static l:Strings.Inspector_PositionY}" Classes="label"/>
-                    <controls:CommitNumericUpDown Value="{Binding PositionY, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
+                    <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_PositionY}" Classes="label" Target="{Binding #PositionYBox}" StepPerPixel="1"
+                                         ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
+                    <controls:CommitNumericUpDown x:Name="PositionYBox" Value="{Binding PositionY, Mode=TwoWay}" Increment="1" Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}"
                                    FormatString="0.##" Width="104"/>
                     <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="{x:Static l:Strings.Inspector_Scale}" Classes="label"/>
-                    <controls:CommitNumericUpDown Value="{Binding ScalePercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinScalePercent}" Maximum="{Binding MaxScalePercent}"
+                    <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_Scale}" Classes="label" Target="{Binding #ScaleBox}" StepPerPixel="0.5"
+                                         ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
+                    <controls:CommitNumericUpDown x:Name="ScaleBox" Value="{Binding ScalePercent, Mode=TwoWay}" Increment="1" Minimum="{Binding MinScalePercent}" Maximum="{Binding MaxScalePercent}"
                                    FormatString="0.##" Width="104"/>
                     <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
@@ -618,8 +621,9 @@
                               IsEnabled="{Binding IsEditingAllowed}" ToolTip.Tip="{x:Static l:Strings.Inspector_ClipBackgroundTip}"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="{x:Static l:Strings.Inspector_Rotation}" Classes="label"/>
-                    <controls:CommitNumericUpDown Value="{Binding Rotation, Mode=TwoWay}" Increment="1" Minimum="{Binding MinRotation}" Maximum="{Binding MaxRotation}"
+                    <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_Rotation}" Classes="label" Target="{Binding #RotationBox}" StepPerPixel="0.5"
+                                         ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
+                    <controls:CommitNumericUpDown x:Name="RotationBox" Value="{Binding Rotation, Mode=TwoWay}" Increment="1" Minimum="{Binding MinRotation}" Maximum="{Binding MaxRotation}"
                                    FormatString="0.##" Width="104"/>
                     <TextBlock Text="°" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
@@ -629,7 +633,7 @@
                                    FormatString="0.####" Width="104"/>
                     <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                   </StackPanel>
-                  <Slider x:Name="OpacitySlider" Classes="under" Focusable="False" Minimum="{Binding MinOpacityPercent, Converter={x:Static common:DecimalDouble.Instance}}"
+                  <Slider x:Name="OpacitySlider" Classes="under" TickFrequency="5" Focusable="False" Minimum="{Binding MinOpacityPercent, Converter={x:Static common:DecimalDouble.Instance}}"
                           Maximum="{Binding MaxOpacityPercent, Converter={x:Static common:DecimalDouble.Instance}}"
                           Value="{Binding OpacityPercent, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
                           ToolTip.Tip="{x:Static l:Strings.Inspector_Opacity}"/>
@@ -1004,7 +1008,7 @@
                                  Minimum="0" Maximum="200" FormatString="0.####" Width="104"/>
                   <TextBlock Text="%" Foreground="#AAAAAA" VerticalAlignment="Center"/>
                 </StackPanel>
-                <Slider x:Name="VolumeSlider" Classes="under" Focusable="False" Minimum="0" Maximum="200"
+                <Slider x:Name="VolumeSlider" Classes="under" TickFrequency="5" Focusable="False" Minimum="0" Maximum="200"
                         Value="{Binding VolumePercent, Mode=TwoWay, Converter={x:Static common:DecimalDouble.Instance}}"
                         ToolTip.Tip="{x:Static l:Strings.Inspector_Volume}"/>
 
