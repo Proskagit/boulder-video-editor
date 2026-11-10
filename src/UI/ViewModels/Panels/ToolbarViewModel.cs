@@ -57,10 +57,8 @@ public sealed partial class ToolbarViewModel : ViewModelBase
         TrainingSessionService? trainingSession = null,
         ITimelineEditService? edit = null,
         IFitMarkEditService? fitMarks = null,
-        FitSettingsWorkflow? fitSettings = null,
-        YouTubeTimestampsWorkflow? youTube = null)
+        FitSettingsWorkflow? fitSettings = null)
     {
-        _youTube = youTube;
         _fitMarks = fitMarks;
         _fitSettings = fitSettings;
         _trainingImport = trainingImport;
@@ -147,14 +145,6 @@ public sealed partial class ToolbarViewModel : ViewModelBase
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task FitSettings() => _fitSettings?.RunAsync() ?? Task.CompletedTask;
-
-    private readonly YouTubeTimestampsWorkflow? _youTube;
-
-    /// <summary>D057 §3.9: «Таймкоды YouTube…».</summary>
-    public bool HasYouTubeTimestamps => _youTube is not null;
-
-    [RelayCommand]
-    private Task YouTubeTimestamps() => _youTube?.RunAsync() ?? Task.CompletedTask;
 
     /// <summary>D057 §3.8: «Настройки…» — the application's settings window.</summary>
     public bool HasAppSettings => _fitSettings?.HasAppSettings == true;

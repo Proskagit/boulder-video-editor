@@ -262,4 +262,21 @@ public sealed class PreviewLayersTests : IAsyncLifetime
         public Task<MediaImportBatchResult> ImportManyAsync(IEnumerable<string> filePaths, CancellationToken ct = default) =>
             Task.FromResult(new MediaImportBatchResult());
     }
+
+    /// <summary>The owner's acceptance of 2026-11-10: while scrubbing, each finished picture reaches the Preview before the
+    /// newest seek replaces it (before, the Preview kept the old picture until the mouse was released).</summary>
+    [Fact]
+    public async Task While_scrubbing_the_previous_seeks_finished_picture_is_shown()
+    {
+        var (_, asset) = Video(V1, "scrub.mp4");
+        await TickUntil(Settled, "first picture");
+        var gate = _decoder.Gate(asset.FilePath);
+        Preview.Seek(F(200));
+        Preview.Seek(F(120));                                              // waits for the first one's picture
+        gate.SetResult();
+
+        await TickUntil(() => Preview.Layers.Length == 1 && Preview.Layers[0].Frame is { } f && FakeVideoDecoder.Number(f) == 200,
+            "the interim picture");
+        await TickUntil(() => Settled() && FakeVideoDecoder.Number(Preview.Layers[0].Frame!) == 120, "the newest");
+    }
 }

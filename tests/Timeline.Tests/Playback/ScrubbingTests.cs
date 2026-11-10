@@ -11,7 +11,9 @@ namespace AiVideoEditor.Timeline.Tests.Playback;
 /// <summary>
 /// D057 §3.13: live scrubbing — seeks made while the previous one has no picture yet are not queued: only the newest waits
 /// and then starts, the ones it supersedes are dropped; the position is the newest at once; after the last seek the picture
-/// is exactly its frame; playback is unchanged.
+/// is exactly its frame; playback is unchanged. The owner's acceptance of 2026-11-10: the previous seek's finished picture
+/// is shown (once, as an interim picture) before the waiting seek replaces it, so a drag shows a picture per decode; a short
+/// step forward while paused reads on with the running decoders (no new decoder), a step back or a longer jump restarts.
 /// </summary>
 public sealed class ScrubbingTests : IAsyncLifetime
 {
@@ -121,6 +123,52 @@ public sealed class ScrubbingTests : IAsyncLifetime
         await first;
         Assert.True(await TickUntilAsync(newest));
         Assert.Equal(320, Number(await SettleAsync()));
+    }
+
+    [Fact]
+    public async Task A_drag_shows_each_finished_picture_before_the_newest_seek_starts()
+    {
+        await SetupAsync();
+        var gate = _decoder.Gate(_asset.FilePath);
+        var first = _service.SeekAsync(F(300));
+        var newest = _service.SeekAsync(F(200));
+        Assert.True(_service.HasPendingSeek);
+        gate.SetResult();
+
+        PlaybackFrame interim = default;
+        await UntilAsync(() => (interim = _service.Update()).IsInterimPicture);
+        Assert.Equal(300, Number(interim));                                 // the first seek's picture, shown
+        Assert.True(interim.IsBuffering);                                   // the newest still waits …
+        Assert.Equal(F(200), interim.Position);                             // … and is the position
+        Assert.True(_service.HasPendingSeek);                               // it starts only on the next Update
+        Assert.True(await first);
+        Assert.True(await TickUntilAsync(newest));
+        Assert.Equal(200, Number(await SettleAsync()));
+    }
+
+    [Fact]
+    public async Task Short_steps_forward_read_on_and_a_step_back_or_a_jump_restarts()
+    {
+        await SetupAsync();
+        Assert.True(await _service.SeekAsync(F(100)));
+        Assert.Equal(100, Number(await SettleAsync()));
+        var opens = _decoder.OpenCount(_asset.FilePath);
+
+        for (var f = 101; f <= 112; f++)                                   // 12 frames = 0.48 s at 25 fps: each within reach
+        {
+            Assert.True(await _service.SeekAsync(F(f)));
+            var shown = await SettleAsync();
+            Assert.Equal(f, Number(shown));                                  // exactly the frame
+            Assert.Equal(F(f), shown.Position);
+        }
+        Assert.Equal(opens, _decoder.OpenCount(_asset.FilePath));          // no new decoder
+
+        Assert.True(await _service.SeekAsync(F(111)));                      // a step back
+        Assert.Equal(111, Number(await SettleAsync()));
+        Assert.Equal(opens + 1, _decoder.OpenCount(_asset.FilePath));
+        Assert.True(await _service.SeekAsync(F(111 + 13)));                 // 0.52 s ahead: beyond the reach
+        Assert.Equal(124, Number(await SettleAsync()));
+        Assert.Equal(opens + 2, _decoder.OpenCount(_asset.FilePath));
     }
 
     [Fact]

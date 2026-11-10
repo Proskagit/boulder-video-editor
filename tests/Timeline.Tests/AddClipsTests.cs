@@ -66,4 +66,64 @@ public sealed class AddClipsTests
         Assert.Empty(_f.V1.Clips);
         Assert.Equal(history, _f.UndoRedo.CanUndo);
     }
+
+    // --- The owner's acceptance of 2026-11-10: several files dropped on a track -----------------------------------------
+
+    private static TextClip Text(TimelineFixture f, long startFrame, long endFrame)
+    {
+        var clip = new TextClip { Text = "T", TimelineStart = MediaTime.FromFrame(startFrame, f.Rate), Duration = MediaTime.FromFrame(endFrame - startFrame, f.Rate) };
+        f.V1.Clips.Add(clip);
+        f.V1.Clips.Sort((a, b) => a.TimelineStart.CompareTo(b.TimelineStart));
+        return clip;
+    }
+
+    [Fact]
+    public void Dropped_files_go_one_after_another_from_the_drop_in_one_undo_step()
+    {
+        var a = _f.Video(2, FrameRate.Fps30, "a.mp4");
+        var b = _f.Video(3, FrameRate.Fps30, "b.mp4");
+        Assert.True(_f.Service.AddClip(_f.Video(1, FrameRate.Fps30, "first.mp4").Id).Success);   // fixes 30 fps
+        var before = _f.Snapshot();
+        var result = _f.Service.AddClips(new[] { a.Id, b.Id }, _f.V1.Id, MediaTime.FromSeconds(10), insertOnDrop: true);
+
+        Assert.True(result.Success, result.Message);
+        var added = _f.V1.Clips.OfType<VideoClip>().Where(c => result.ClipIds.Contains(c.Id)).OrderBy(c => c.TimelineStart).ToList();
+        Assert.Equal(new[] { a.Id, b.Id }, added.Select(c => c.MediaAssetId));
+        Assert.Equal(MediaTime.FromSeconds(10), added[0].TimelineStart);
+        Assert.Equal(added[0].TimelineEnd, added[1].TimelineStart);
+        _f.UndoRedo.Undo();
+        Assert.Equal(before, _f.Snapshot());
+    }
+
+    [Fact]
+    public void A_group_dropped_on_a_clip_starts_after_it_and_pushes_what_is_in_the_way()
+    {
+        Assert.True(_f.Service.AddClip(_f.Video(1, FrameRate.Fps30, "first.mp4").Id).Success);
+        var x = Text(_f, 300, 400);
+        var later = Text(_f, 400, 450);
+        var a = _f.Video(2, FrameRate.Fps30, "a.mp4");
+        var b = _f.Video(2, FrameRate.Fps30, "b.mp4");
+
+        var preview = _f.Service.PreviewAddClips(new[] { a.Id, b.Id }, _f.V1.Id, MediaTime.FromFrame(350, _f.Rate), insertOnDrop: true);
+        Assert.NotNull(preview);
+        Assert.Equal(MediaTime.FromFrame(400, _f.Rate), preview!.Start);                   // after x
+        Assert.Equal(MediaTime.FromFrame(520, _f.Rate), preview.End);                      // two 2 s files
+        Assert.True(preview.MovesOthers);                                                   // «later» is in the way
+
+        Assert.True(_f.Service.AddClips(new[] { a.Id, b.Id }, _f.V1.Id, MediaTime.FromFrame(350, _f.Rate), insertOnDrop: true).Success);
+        Assert.Equal(MediaTime.FromFrame(300, _f.Rate), x.TimelineStart);
+        Assert.Equal(MediaTime.FromFrame(520, _f.Rate), later.TimelineStart);
+    }
+
+    [Fact]
+    public void The_ghost_says_when_nothing_moves_and_never_refuses_on_its_own()
+    {
+        Assert.True(_f.Service.AddClip(_f.Video(1, FrameRate.Fps30, "first.mp4").Id).Success);
+        var a = _f.Video(2, FrameRate.Fps30, "a.mp4");
+        var free = _f.Service.PreviewAddClips(new[] { a.Id }, _f.V1.Id, MediaTime.FromSeconds(20), insertOnDrop: true);
+        Assert.NotNull(free);
+        Assert.False(free!.MovesOthers);
+        Assert.Equal(_f.Snapshot(), _f.Snapshot());                                         // a dry run: nothing changed
+        Assert.Single(_f.V1.Clips);
+    }
 }

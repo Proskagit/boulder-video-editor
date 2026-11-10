@@ -21,10 +21,4 @@ public partial class AppSettingsView : UserControl
         _ => GeneralSection
     };
 
-    protected override void OnLoaded(RoutedEventArgs e)
-    {
-        base.OnLoaded(e);
-        if (DataContext is AppSettingsViewModel { Section: not AppSettingsSection.General } vm)
-            SectionPanel(vm.Section).BringIntoView();
-    }
 }

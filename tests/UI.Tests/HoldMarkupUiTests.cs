@@ -384,6 +384,42 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
         Assert.Same(_vm.Timeline.DeleteSelectedCommand, ShortcutRouter.CommandFor(_vm, Key.Delete, KeyModifiers.None));
     }
 
+    /// <summary>The owner's acceptance of 2026-11-10: «Готово» on a route with holds lays out its intro and final at once (the
+    /// animation and the route's «Боулдер»), one undo step; «Готово» again or after reopening the mode adds nothing.</summary>
+    [Fact]
+    public async Task Done_lays_out_the_intro_and_final_once_and_never_duplicates_them()
+    {
+        var clip = await StartOnClip();
+        await Markup.OnClickAsync(new NormalizedPoint(0.5, 0.5), false);
+        await Markup.ConfirmCommand.ExecuteAsync(null);
+        IEnumerable<TemplateClip> Areas() => _projects.Current.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<TemplateClip>()
+            .Where(t => t.Kind == TemplateKind.Boulder);
+        Assert.Empty(Areas());
+
+        var before = UndoSteps();
+        Markup.DoneCommand.Execute(null);
+        Assert.False(Markup.IsActive);
+        var animation = clip.HoldMarkup!.Animation;
+        Assert.NotNull(animation);
+        Assert.Equal(HoldAnimationMode.Duration, animation!.Mode);
+        var area = Assert.Single(Areas());
+        Assert.Equal(clip.Id, area.AnchorClipId);
+        Assert.Equal(before + 1, UndoSteps());                                       // one step for the layout
+
+        _vm.Timeline.SetPlayhead(clip.TimelineStart + MediaTime.FromSeconds(1));
+        await Markup.StartCommand.ExecuteAsync(null);
+        Assert.True(Markup.IsActive);
+        Markup.DoneCommand.Execute(null);
+        Assert.Same(area, Assert.Single(Areas()));
+        Assert.Same(animation, clip.HoldMarkup!.Animation);
+        Assert.Equal(before + 1, UndoSteps());
+
+        _undo.Undo();                                                                 // the layout undone as one step
+        Assert.Empty(Areas());
+        Assert.Null(clip.HoldMarkup!.Animation);
+        Assert.Single(clip.HoldMarkup.Holds);
+    }
+
     [Fact]
     public async Task A_seek_or_another_clip_leaves_the_mode_and_the_markup_stays()
     {

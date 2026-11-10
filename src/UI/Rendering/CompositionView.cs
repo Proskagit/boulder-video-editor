@@ -26,6 +26,7 @@ public sealed class CompositionView : Control
         AvaloniaProperty.Register<CompositionView, FrameSize>(nameof(Canvas), new FrameSize(1920, 1080));
 
     private readonly Dictionary<Guid, LayerBitmaps> _bitmaps = new();
+    private readonly Dictionary<Guid, LayerBitmaps> _backgrounds = new();
 
     /// <summary>The Preview's own glyphs of outlined texts (D043 variant B; UI thread).</summary>
     private readonly TextGlyphCache _glyphs = new();
@@ -65,6 +66,8 @@ public sealed class CompositionView : Control
         base.OnDetachedFromVisualTree(e);
         foreach (var bitmaps in _bitmaps.Values) bitmaps.Dispose();
         _bitmaps.Clear();
+        foreach (var bitmaps in _backgrounds.Values) bitmaps.Dispose();
+        _backgrounds.Clear();
         _treatment?.Dispose();
         _treatment = null;
     }
@@ -74,10 +77,30 @@ public sealed class CompositionView : Control
         var layers = Layers.IsDefault ? ImmutableArray<LayerPicture>.Empty : Layers;
         var plan = PreviewDrawPlan.Build(Canvas, Bounds.Width, Bounds.Height, layers);
         if (plan.Operations.Any(op => op is TemplateDraw { HasTreatment: true })) _treatment ??= new TreatmentSurface();
+        UpdateBackgrounds(plan);
         // A treatment works on device pixels of the viewport (the export: on the canvas's).
         CompositionPainter.Paint(context, plan,
-            frame => _bitmaps.TryGetValue(frame.ClipId, out var bitmaps) ? bitmaps.Current : null, _glyphs,
+            frame => (frame.IsBackground ? _backgrounds : _bitmaps).TryGetValue(frame.ClipId, out var bitmaps) ? bitmaps.Current : null, _glyphs,
             treatment: _treatment, renderScaling: VisualRoot?.RenderScaling ?? 1);
+    }
+
+    /// <summary>D057 §3.7: the blurred backgrounds of this plan, each in its own bitmaps (never the clip's frame's); the copy is
+    /// small and made once per frame (<see cref="BackgroundBlur"/>), so it is uploaded here when it changes.</summary>
+    private void UpdateBackgrounds(CompositionDrawPlan plan)
+    {
+        var live = new HashSet<Guid>();
+        foreach (var frame in plan.Operations.OfType<FrameDraw>())
+        {
+            if (!frame.IsBackground) continue;
+            live.Add(frame.ClipId);
+            if (!_backgrounds.TryGetValue(frame.ClipId, out var bitmaps)) _backgrounds[frame.ClipId] = bitmaps = new LayerBitmaps();
+            bitmaps.Show(frame.Frame);
+        }
+        foreach (var gone in _backgrounds.Keys.Where(id => !live.Contains(id)).ToList())
+        {
+            _backgrounds[gone].Dispose();
+            _backgrounds.Remove(gone);
+        }
     }
 
     private void UpdateBitmaps()

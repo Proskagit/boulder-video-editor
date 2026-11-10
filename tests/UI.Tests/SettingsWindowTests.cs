@@ -11,7 +11,7 @@ namespace AiVideoEditor.UI.Tests;
 
 /// <summary>
 /// D057 §3.8: the application's settings window — General, FFmpeg, Timeline and markup, COROS / FIT; every change written
-/// to the user's settings; the heart rate's display offset −60 s by default, whole seconds, reset to the default; the FIT's
+/// to the user's settings; the heart rate's display offset −70 s by default, whole seconds, reset to the default; the FIT's
 /// calibration in its section and the COROS menu opening it; project settings never here.
 /// </summary>
 [Collection(AvaloniaControlsCollection.Name)]
@@ -54,7 +54,7 @@ public sealed class SettingsWindowTests
     {
         var settings = new InMemoryUserSettings();
         var vm = new AppSettingsViewModel(settings, null);
-        Assert.Equal(-60m, vm.HeartRateOffsetSeconds);
+        Assert.Equal(-70m, vm.HeartRateOffsetSeconds);
 
         vm.HeartRateOffsetSeconds = -45.4m;
         Assert.Equal(MediaTime.FromSeconds(-45), settings.Current.HeartRateDisplayOffset);    // whole seconds
@@ -109,27 +109,5 @@ public sealed class SettingsWindowTests
         Assert.Contains("HeartRateOffsetBox", names);
         Assert.Contains("BetaBox", names);
         Assert.DoesNotContain(names, n => n!.Contains("ClockCorrection"));
-    }
-
-    [Fact]
-    public void The_youtube_window_offers_the_range_and_copies_the_text()
-    {
-        var sequence = new Core.Entities.Sequence();
-        var track = new Core.Entities.Track { Type = Core.Entities.TrackType.Video, Name = "V1" };
-        sequence.VideoTracks.Add(track);
-        track.Clips.Add(new Core.Entities.TemplateClip
-        {
-            Kind = Core.Entities.TemplateKind.Boulder, TimelineStart = MediaTime.FromSeconds(70), Duration = MediaTime.FromSeconds(10),
-            Route = "3", Grade = "6B", Status = Core.Entities.BoulderStatus.Top
-        });
-        var vm = new YouTubeTimestampsViewModel(sequence, FrameRate.Fps30, (MediaTime.FromSeconds(60), MediaTime.FromSeconds(120)));
-        Assert.True(vm.HasRange && vm.UseRange);
-        Assert.Equal("00:00 Intro\n00:10 Трасса 3 · 6B 🟢", vm.Text);
-        vm.UseRange = false;
-        Assert.Equal("00:00 Intro\n01:10 Трасса 3 · 6B 🟢", vm.Text);
-        string? copied = null;
-        vm.CopyRequested += (_, text) => copied = text;
-        vm.CopyCommand.Execute(null);
-        Assert.Equal(vm.Text, copied);
     }
 }

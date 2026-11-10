@@ -24,7 +24,7 @@ names the tests that cover the row; «Evidence» is filled at the run.
 
 | # | Check | Expected result | Automated | Evidence |
 |---|---|---|---|---|
-| B1 | Select a video clip | the Inspector in collapsible sections; «FIT» (marks and link) one section, collapsed; no tabs | `InspectorSectionsTests` | |
+| B1 | Select a video clip | the Inspector in collapsible sections, **all collapsed at first** (D057 §7.2); «FIT» (marks and link) one section; no tabs | `InspectorSectionsTests` | |
 | B2 | Collapse «Трансформация», select another video clip, then a text clip, then the first again | the state is the Inspector's: still collapsed for every clip; never reset by a selection | `InspectorSectionsTests` | |
 | B3 | Collapsed «Зацепки», «Скорость», «Звук» on a clip with 12 holds | the header shows a summary («Зацепки · 12», «Скорость · 1×», «Звук · 100 %») | `InspectorSectionsTests` | |
 | B4 | Scroll to «Звук», select another video clip | the scroll position stays | `InspectorSectionsTests` | |
@@ -63,7 +63,7 @@ names the tests that cover the row; «Evidence» is filled at the run.
 
 | # | Check | Expected result | Automated | Evidence |
 |---|---|---|---|---|
-| E1 | Drag the playhead quickly over a 4K / HEVC clip and back | the picture follows while the mouse moves; no growing lag | `ScrubbingTests` | |
+| E1 | Drag the playhead quickly over a 4K / HEVC clip and back | the picture follows while the mouse moves (forward smoothly, back a few pictures a second — D057 §7.4); no growing lag | `ScrubbingTests`, `PreviewLayersTests`, local `ScrubBenchmarkTests` | |
 | E2 | Stop the mouse and release | the picture is exactly the frame at the playhead | `ScrubbingTests` | |
 | E3 | Scrub, then play | playback and its sound start from the playhead as before | `PlaybackServiceTests` | |
 | E4 | Scrub over an HDR clip, over a transition, over a text | correct pictures, no stale frame left | — | |
@@ -73,16 +73,28 @@ names the tests that cover the row; «Evidence» is filled at the run.
 | # | Check | Expected result | Automated | Evidence |
 |---|---|---|---|---|
 | F1 | «Настройки…» | sections «Общие», «FFmpeg», «Таймлайн и разметка», «COROS / FIT»; the FIT calibration there; «Настройки FIT…» of the COROS menu opens that section | `SettingsWindowTests` | |
-| F2 | The heart-rate offset on a fresh user | −60 с | `HeartRateOverlayTests` (D057 §3.8) | |
+| F2 | The heart-rate offset on a fresh user | −70 с (D057 §7.7); a saved value stays | `UserSettingsStoreTests`, `SettingsWindowTests` | |
 | F3 | In a green area: the BPM at a frame with −60 and with 0 | with −60 the value of 60 s later in the FIT; the area, its bounds, `T`, `Z`, `CC`, the calibration and the Inspector's readout unchanged | `HeartRateOverlayTests` (D057 §3.8) | |
 | F4 | Change the offset, restart | kept | `HeartRateOverlayTests` (D057 §3.8) | |
 | F5 | Export a part with the heart rate | the export as the Preview | `ExportHeartRateEndToEndTests` | |
-| F6 | A landscape clip in a vertical project, «Фон: Размытый» | the bars filled by the blurred picture in the Preview; the export the same (5 frames compared) | `BlurredBackgroundRenderTests` (Preview = export) | |
+| F6 | A landscape clip in a vertical project, «Фон: Размытый» | the bars carry the picture's own edges, softly blurred and darker — no enlarged copy of the video (D057 §7.5); the export the same (5 frames compared) | `BlurredBackgroundRenderTests` (Preview = export) | |
 | F7 | Undo; Save; open in this build; open the v19 file in a build of `main` before Phase 38 | the choice back to black; kept after a reopen; the older build refuses with «новее» | `BackgroundPersistenceTests` | |
 | F8 | Open a v18 project | opens, every background black; Save writes v19 | `BackgroundPersistenceTests` | |
 | F9 | Scrub and play a blurred 4K clip | no noticeable slowdown | — | |
-| F10 | «Таймкоды для YouTube…» on a project with routes (some Top, some Attempt, one free «Боулдер», one split area) | `00:00 Intro` first unless a route starts at 0; one line per route at its green's left edge; `Трасса 7 · 7A 🟢`, `🔴`, nothing for no status; «Копировать» puts the text on the clipboard | `YouTubeTimestampsTests` | |
+| F10 | «Экспорт» (the dialog's timestamps, D057 §7.9) on a project with routes (some Top, some Attempt, one free «Боулдер», one split area) | `00:00 Intro` first unless a route starts at 0; one line per route at its green's left edge; `Трасса 7 · 7A 🟢`, `🔴`, nothing for no status; «Копировать» puts the text on the clipboard | `YouTubeTimestampsTests` | |
 | F11 | With an In / Out range | the times from In; routes outside left out | `YouTubeTimestampsTests` | |
+
+## H. After the practical check (D057 §7, 2026-11-10)
+
+| # | Check | Expected result | Automated | Evidence |
+|---|---|---|---|---|
+| H1 | Select several files in the Media Browser, drag one of them onto a track | all of them land in the order of recording from the drop point; one Ctrl+Z removes them all; dragging one unselected file as before | `MediaBrowserMultiAddTests`, `AddClipsTests` | |
+| H2 | Drag a file over an empty place, then over a clip | a translucent area as wide as the clip shows where it lands; amber over a clip it would push; the drop is never refused by it | `AddClipsTests`, `MediaBrowserMultiAddTests` | |
+| H3 | The Inspector of a video clip | every section collapsed at first; «Появление, исчезание и скорость» and «Трансформация и кадрирование» one section each; a section opened stays open for the next clip | `InspectorSectionsTests` | |
+| H4 | «Настройки…» | the sections on the left, the selected one on the right | `SettingsWindowTests` | |
+| H5 | Mark the holds of a route, «Готово» | the intro and the final laid out with the animation; «Готово» again or reopen + «Готово»: nothing added; one Ctrl+Z removes the layout | `HoldMarkupUiTests` | |
+| H6 | «Экспорт» | one dialog: folder, «Обзор…», name, the output's line, the YouTube timestamps with «Копировать»; no «Таймкоды YouTube…» on the tool bar | `ExportWorkflowTests` | |
+| H7 | Step → through a 4K / 240 fps clip | each step at once; ← about a third of a second | `ScrubbingTests`, local `ScrubBenchmarkTests` | |
 
 ## G. Regression and the practical check
 

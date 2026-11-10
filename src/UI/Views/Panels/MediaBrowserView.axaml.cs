@@ -33,7 +33,7 @@ public partial class MediaBrowserView : UserControl
         // Tunnel: see the press before the ListBox handles it for selection.
         MediaList.AddHandler(PointerPressedEvent, OnPressed, RoutingStrategies.Tunnel);
         MediaList.AddHandler(PointerMovedEvent, OnMoved, RoutingStrategies.Tunnel);
-        MediaList.AddHandler(PointerReleasedEvent, (_, _) => Reset(), RoutingStrategies.Tunnel);
+        MediaList.AddHandler(PointerReleasedEvent, OnReleased, RoutingStrategies.Tunnel);
 
         // D057 §3.2: Ctrl+A with the list focused selects every file — handled here, so the timeline's Ctrl+A (the window's
         // shortcut, D037 §1) and the markup mode's «accept all» never see it.
@@ -52,6 +52,29 @@ public partial class MediaBrowserView : UserControl
         if (!e.GetCurrentPoint(MediaList).Properties.IsLeftButtonPressed) return;
         _pressedItem = ItemFrom(e.Source);
         _pressPoint = _pressedItem is null ? null : e.GetPosition(MediaList);
+        // The owner's acceptance of 2026-11-10: a plain press on a file of a group selection keeps the group — it may be the
+        // start of dragging the group; a release without a drag then selects that file alone (as Explorer does).
+        _deferredSelect = false;
+        if (_pressedItem is { } item && e.KeyModifiers == KeyModifiers.None && e.ClickCount == 1 &&
+            DataContext is MediaBrowserViewModel { SelectedItems.Count: > 1 } vm && vm.SelectedItems.Contains(item))
+        {
+            _deferredSelect = true;
+            e.Handled = true;
+        }
+    }
+
+    private bool _deferredSelect;
+
+    private void OnReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (_deferredSelect && _pressedItem is { } item && DataContext is MediaBrowserViewModel vm)
+        {
+            vm.SelectedItems.Clear();
+            vm.SelectedItems.Add(item);
+            vm.SelectedItem = item;
+        }
+        _deferredSelect = false;
+        Reset();
     }
 
     private async void OnMoved(object? sender, PointerEventArgs e)
@@ -67,8 +90,12 @@ public partial class MediaBrowserView : UserControl
         if (Math.Abs(delta.X) < DragStartDistance && Math.Abs(delta.Y) < DragStartDistance) return;
 
         Reset();
+        _deferredSelect = false;
         var data = new DataObject();
         data.Set(DragFormats.MediaAssetId, item.Asset.Id.ToString());
+        // The owner's acceptance of 2026-11-10: dragging a file of a group selection drags the whole group.
+        if (DataContext is MediaBrowserViewModel vm && vm.DraggedGroup(item) is { Count: > 1 } group)
+            data.Set(DragFormats.MediaAssetIds, string.Join(",", group.Select(a => a.Id)));
         await DragDrop.DoDragDrop(e, data, DragDropEffects.Copy);
     }
 

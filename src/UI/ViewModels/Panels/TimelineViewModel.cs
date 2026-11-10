@@ -6,6 +6,7 @@ using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Localization;
 using AiVideoEditor.UI.Rendering;
 using AiVideoEditor.Core.Playback;
+using AiVideoEditor.Core.Telemetry;
 using AiVideoEditor.UI.Common;
 using AiVideoEditor.UI.Localization;
 using AiVideoEditor.UI.Services;
@@ -1108,6 +1109,65 @@ public sealed partial class TimelineViewModel : ViewModelBase
         AddMediaAt(assetId, track?.Track.Id, start, insertOnDrop: true);
     }
 
+    /// <summary>
+    /// The owner's acceptance of 2026-11-10: several files dragged from the Media Browser and dropped on a track — in their
+    /// order of recording, the first at the drop's place (D057 §3.12), the next ones right after it; one Undo step.
+    /// </summary>
+    public void DropMediaMany(IReadOnlyList<Guid> assetIds, TimelineTrackViewModel? track, double contentX)
+    {
+        var ordered = OrderedForDrop(assetIds);
+        if (ordered.Count <= 1)
+        {
+            if (ordered.Count == 1) DropMedia(ordered[0], track, contentX);
+            else ClearDropTargets();
+            return;
+        }
+        var start = DropStart(ordered[0], track, contentX);
+        ClearDropTargets();
+        if (!CanEdit()) return;
+        var wasEmpty = IsTimelineEmpty;
+        var result = track is null ? _edit.AddClips(ordered) : _edit.AddClips(ordered, track.Track.Id, start, insertOnDrop: true);
+        SelectAdded(result);
+        Report(result, successMessage: string.Format(Strings.Timeline_AddedMany, result.ClipIds.Count));
+        OfferCanvasAfterAdd(wasEmpty, result);
+    }
+
+    /// <summary>The ghost of a drag of <paramref name="assetIds"/> over <paramref name="track"/> (one file or several).</summary>
+    public void ShowDropPreview(IReadOnlyList<Guid> assetIds, TimelineTrackViewModel? track, double contentX)
+    {
+        var ordered = OrderedForDrop(assetIds);
+        if (ordered.Count == 0)
+        {
+            ShowDropTarget(track);
+            return;
+        }
+        ShowDropPreview(ordered[0], track, contentX);
+        var start = DropStart(ordered[0], track, contentX);
+        ShowDropGhost(track, track is null ? null : _edit.PreviewAddClips(ordered, track.Track.Id, start, insertOnDrop: true));
+    }
+
+    private IReadOnlyList<Guid> OrderedForDrop(IReadOnlyList<Guid> assetIds)
+    {
+        var project = _projectService.Current;
+        var assets = assetIds.Select(id => project.MediaAssets.FirstOrDefault(a => a.Id == id)).OfType<MediaAsset>().ToList();
+        return MediaRecordingOrder.Order(assets, project.Training?.Workout?.UtcOffset).Select(a => a.Id).ToList();
+    }
+
+    private void ShowDropGhost(TimelineTrackViewModel? track, DropPreview? preview)
+    {
+        foreach (var t in Tracks)
+        {
+            if (t == track && preview is { } p)
+            {
+                t.DropGhostLeft = TimelineCoordinateMapper.TimeToX(p.Start, PixelsPerSecond);
+                t.DropGhostWidth = Math.Max(2, TimelineCoordinateMapper.TimeToX(p.End - p.Start, PixelsPerSecond));
+                t.DropGhostMovesOthers = p.MovesOthers;
+                t.HasDropGhost = true;
+            }
+            else t.HasDropGhost = false;
+        }
+    }
+
     /// <summary>While media is dragged over the lanes: the target track and the snap indicator where it would land — on a
     /// clip, right after it (D057 §3.12).</summary>
     public void ShowDropPreview(Guid assetId, TimelineTrackViewModel? track, double contentX)
@@ -1202,6 +1262,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     public void ClearDropTargets()
     {
+        foreach (var t in Tracks) t.HasDropGhost = false;
         ShowDropTarget(null);
         IsSnapIndicatorVisible = false;
     }

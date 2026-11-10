@@ -33,8 +33,9 @@ public sealed record ExportOutcome(ExportOutcomeKind Kind, string Message, strin
 /// <see cref="ExportPreflight"/> on the current project (the only source of the rules). Its output-file
 /// issues are left for the second check, after the file is chosen; other errors are listed and stop here; warnings
 /// are listed and the user may continue.</item>
-/// <item>The output <c>.mp4</c> from the save-file picker (starting at <c>LastExportSettings.OutputPath</c>);
-/// cancelling it ends the flow silently.</item>
+/// <item>The output <c>.mp4</c> from the export dialog (<see cref="IExportDialog"/>: folder, name — «Обзор…» opens the
+/// save-file picker —, the output's line, the YouTube timestamps to copy), starting at <c>LastExportSettings.OutputPath</c>;
+/// without a dialog the save-file picker alone. Cancelling ends the flow silently.</item>
 /// <item>The preflight again with that file — it builds the <see cref="ExportJob"/> and its snapshot, which the
 /// export alone uses from then on. An existing file is replaced only after the user confirms it (the encoder
 /// replaces it atomically, on success only).</item>
@@ -62,6 +63,7 @@ public sealed class ExportWorkflow
     private bool _running;
 
     private readonly IUserSettingsService? _settings;
+    private readonly IExportDialog? _exportDialog;
 
     public ExportWorkflow(
         IProjectService projects,
@@ -75,8 +77,10 @@ public sealed class ExportWorkflow
         ILogger<ExportWorkflow> logger,
         InOutRangeService? inOut = null,
         CameraMotionCoordinator? cameraMotion = null,
-        IUserSettingsService? settings = null)
+        IUserSettingsService? settings = null,
+        IExportDialog? exportDialog = null)
     {
+        _exportDialog = exportDialog;
         _settings = settings;
         _inOut = inOut;
         _cameraMotion = cameraMotion;
@@ -166,8 +170,9 @@ public sealed class ExportWorkflow
         if (warnings.Count > 0 && !await ContinueDespiteWarningsAsync(warnings))
             return Report(new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_Cancelled));
 
-        // 2. The output file.
-        var outputPath = await _picker.PickSaveFileAsync(OutputRequest(project));
+        // 2. The output file: the export dialog (folder, name, the output's line, the YouTube timestamps), or without one the
+        //    save-file picker alone.
+        var outputPath = await ChooseOutputAsync(project, range);
         if (outputPath is null)
             return new ExportOutcome(ExportOutcomeKind.NotStarted, Strings.Export_NoOutputFile);
 
@@ -265,6 +270,23 @@ public sealed class ExportWorkflow
 
     private bool IsFontInstalled(string family) =>
         _fonts.FamilyNames.Contains(family, StringComparer.OrdinalIgnoreCase);
+
+    private async Task<string?> ChooseOutputAsync(Core.Entities.Project project, ExportRange? range)
+    {
+        var request = OutputRequest(project);
+        if (_exportDialog is null) return await _picker.PickSaveFileAsync(request);
+
+        var output = ExportOutput.For(Core.Playback.PlaybackSnapshotBuilder.Build(project, 0), range);
+        var suggested = Path.Combine(request.StartFolder ?? "", request.SuggestedFileName ?? project.Name + ExportFormat.FileExtension);
+        var dialog = new ExportDialogViewModel(project.Timeline, project.Settings.FrameRate, output, suggested, range,
+            (folder, name) => _picker.PickSaveFileAsync(new SaveFilePickerRequest
+            {
+                Title = request.Title, DefaultExtension = request.DefaultExtension, FileTypeFilters = request.FileTypeFilters,
+                StartFolder = string.IsNullOrWhiteSpace(folder) ? request.StartFolder : folder,
+                SuggestedFileName = string.IsNullOrWhiteSpace(name) ? request.SuggestedFileName : name
+            }));
+        return (await _exportDialog.ShowAsync(dialog))?.OutputPath;
+    }
 
     private static SaveFilePickerRequest OutputRequest(Core.Entities.Project project)
     {

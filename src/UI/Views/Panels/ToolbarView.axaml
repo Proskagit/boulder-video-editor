@@ -125,9 +125,6 @@
       <Rectangle/>
 
       <Button Content="{x:Static l:Strings.Toolbar_Export}" Command="{Binding ExportCommand}" ToolTip.Tip="{x:Static l:Strings.Toolbar_ExportTip}"/>
-      <!-- D057 §3.9: the routes' timestamps for a YouTube description. -->
-      <Button x:Name="YouTubeButton" Content="{x:Static l:Strings.Toolbar_YouTube}" Command="{Binding YouTubeTimestampsCommand}"
-              IsVisible="{Binding HasYouTubeTimestamps}" ToolTip.Tip="{x:Static l:Strings.Toolbar_YouTubeTip}"/>
 
       <Rectangle IsVisible="{Binding HasAppSettings}"/>
 

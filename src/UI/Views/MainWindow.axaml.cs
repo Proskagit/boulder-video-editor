@@ -238,6 +238,8 @@ public partial class MainWindow : Window
         public string? GetAddBlockReason(MediaAsset asset) => "Design time.";
         public TimelineEditResult AddClip(Guid mediaAssetId, Guid? trackId = null, MediaTime? start = null, bool insertOnDrop = false) => Nothing;
         public TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds) => Nothing;
+        public TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds, Guid? trackId, MediaTime? start, bool insertOnDrop) => Nothing;
+        public DropPreview? PreviewAddClips(IReadOnlyList<Guid> mediaAssetIds, Guid trackId, MediaTime start, bool insertOnDrop) => null;
         public TimelineEditResult SetClipBackground(Guid clipId, ClipBackground background) => Nothing;
         public MediaTime? AddedClipDuration(Guid mediaAssetId) => null;
         public TimelineEditResult AddTextClip(MediaTime start, Func<TextProperties, (double Width, double Height)>? measureBox = null) => Nothing;

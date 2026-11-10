@@ -32,6 +32,7 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
         _settings = settings;
         Fit = fit;
         Section = section;
+        _selectedSectionIndex = (int)section;
         var current = settings.Current;
         _heartRateOffsetSeconds = (decimal)current.HeartRateDisplayOffsetTicks / TimeSpan.TicksPerSecond;
         _holdProposalsEnabled = current.HoldProposalsEnabled;
@@ -50,6 +51,24 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
     public FitSettingsViewModel? Fit { get; }
 
     public bool HasFit => Fit is not null;
+
+    /// <summary>The left column (owner's acceptance of 2026-11-10): one item per section, in the order of
+    /// <see cref="AppSettingsSection"/>; the chosen one is shown on the right. New sections are added here.</summary>
+    public IReadOnlyList<string> SectionNames { get; } = new[]
+    {
+        Strings.AppSettings_NavGeneral, Strings.AppSettings_NavFfmpeg, Strings.AppSettings_NavTimelineAndMarkup, Strings.AppSettings_NavCorosFit
+    };
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsGeneral), nameof(ShowsFfmpeg), nameof(ShowsTimelineAndMarkup), nameof(ShowsCorosFit))]
+    private int _selectedSectionIndex;
+
+    public AppSettingsSection SelectedSection => (AppSettingsSection)Math.Clamp(SelectedSectionIndex, 0, SectionNames.Count - 1);
+
+    public bool ShowsGeneral => SelectedSection == AppSettingsSection.General;
+    public bool ShowsFfmpeg => SelectedSection == AppSettingsSection.Ffmpeg;
+    public bool ShowsTimelineAndMarkup => SelectedSection == AppSettingsSection.TimelineAndMarkup;
+    public bool ShowsCorosFit => SelectedSection == AppSettingsSection.CorosFit;
 
     public event EventHandler? CloseRequested;
 

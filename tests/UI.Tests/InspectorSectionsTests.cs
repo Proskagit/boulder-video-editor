@@ -59,49 +59,50 @@ public sealed class InspectorSectionsTests : IDisposable
     {
         var view = new InspectorView { DataContext = _inspector };
         var ids = view.GetLogicalDescendants().OfType<InspectorSection>().Select(s => s.SectionId).ToList();
-        Assert.Equal(new[] { "media", "media.tech", "template", "text", "text.animation", "transform", "crop", "holds", "fades", "speed",
+        // The owner's acceptance of 2026-11-10: «Трансформация» + «Кадрирование» one section, «Появление и исчезание» +
+        // «Скорость» one; «Зацепки», «Тренировка», «Звук», «Клип» apart.
+        Assert.Equal(new[] { "media", "media.tech", "template", "text", "text.animation", "frame", "holds", "timing",
             "training", "fit", "audio", "clip" }, ids);
         Assert.Equal(ids.Count, ids.Distinct().Count());
         Assert.Empty(view.GetLogicalDescendants().OfType<TabControl>());
     }
 
     [Fact]
-    public void A_collapsed_section_stays_collapsed_for_every_clip_and_in_a_new_inspector()
+    public void Every_section_starts_collapsed()
     {
         var view = new InspectorView { DataContext = _inspector };
-        Show(Text(0));
-        Section(view, "transform").IsExpanded = false;
-        Assert.True(_store.Current.InspectorSections["transform"]);
-
-        Show(Text(100));                                                   // another clip: the Inspector's state
-        Assert.False(Section(view, "transform").IsExpanded);
-        Assert.True(Section(view, "text").IsExpanded);
-
-        var next = new InspectorView { DataContext = _inspector };         // a restart reads the user's layout
-        Assert.False(Section(next, "transform").IsExpanded);
-        Section(next, "transform").IsExpanded = true;
-        Assert.False(_store.Current.InspectorSections["transform"]);
+        Assert.All(view.GetLogicalDescendants().OfType<InspectorSection>(), s => Assert.False(s.IsExpanded, s.SectionId));
     }
 
     [Fact]
-    public void The_fit_service_section_is_collapsed_until_the_user_opens_it()
+    public void An_opened_or_collapsed_section_keeps_its_state_for_every_clip_and_in_a_new_inspector()
     {
         var view = new InspectorView { DataContext = _inspector };
-        Assert.False(Section(view, "fit").IsExpanded);
-        Assert.True(Section(view, "holds").IsExpanded);
-        Section(view, "fit").IsExpanded = true;
-        Assert.True(Section(new InspectorView { DataContext = _inspector }, "fit").IsExpanded);
+        Show(Text(0));
+        Section(view, "frame").IsExpanded = true;
+        Assert.False(_store.Current.InspectorSections["frame"]);
+
+        Show(Text(100));                                                   // another clip: the Inspector's state
+        Assert.True(Section(view, "frame").IsExpanded);
+        Assert.False(Section(view, "text").IsExpanded);
+
+        var next = new InspectorView { DataContext = _inspector };         // a restart reads the user's layout
+        Assert.True(Section(next, "frame").IsExpanded);
+        Section(next, "frame").IsExpanded = false;
+        Assert.True(_store.Current.InspectorSections["frame"]);
+        Assert.False(Section(new InspectorView { DataContext = _inspector }, "frame").IsExpanded);
     }
 
     [Fact]
     public void A_collapsed_header_shows_its_summary()
     {
-        var section = new InspectorSection { SectionId = "speed", Title = "SPEED", Summary = "1.5×" };
+        var section = new InspectorSection { SectionId = "timing", Title = "TIMING", Summary = "1.5×" };
         var header = (DockPanel)section.Header!;
         var summary = header.Children.OfType<TextBlock>().Last();
+        Assert.Equal("· 1.5×", summary.Text);                              // collapsed by default: the summary tells it
+        section.IsExpanded = true;
         Assert.Null(summary.Text);                                         // open: the fields tell it
         section.IsExpanded = false;
-        Assert.Equal("· 1.5×", summary.Text);
         section.Summary = null;
         Assert.Null(summary.Text);
     }

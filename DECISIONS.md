@@ -9493,7 +9493,7 @@ taken by separate decisions.»
 the open / closed state is one state for the Inspector (never per clip, never reset by a selection), kept across clips and
 restarts. A collapsed section may show a short summary in its header (e.g. «Зацепки · 12»). The scroll position is kept when
 switching between items of the same kind. The FIT marks and the FIT link are one service section, collapsed by default. No
-tabs.
+tabs. *(Amended 2026-11-10, §7.2: every section collapsed by default; two pairs merged.)*
 
 3.2 **Media Browser: several files.** Multiple selection; **Ctrl+A in the Media Browser** selects all its files (only while
 the list has the focus); Ctrl+A on the timeline (D037 §1) and Ctrl+A «accept all proposals» in the hold markup mode
@@ -9522,7 +9522,7 @@ the clip's own picture filled to the canvas and blurred (from a reduced copy, on
 Inspector beside Fill / Fit; stored on the clip (`project.json` **v19**: written only when blurred; a v18 file opens with
 black backgrounds; an older build refuses a v19 file). One composition path: the background is a layer of
 `CompositionDrawPlan` drawn by `CompositionPainter`, so the Preview and the export are the same. A strength control and «apply
-to all clips» are out of scope.
+to all clips» are out of scope. *(Amended 2026-11-10, §7.5: the picture's edges extended, no zoomed copy.)*
 
 3.8 **The application's settings window** (amends D051 §8.3). One window «Настройки…» for the global settings, in
 sections: **General** (the interface language — the existing `App:Language`, applied after a restart), **FFmpeg** (the
@@ -9531,7 +9531,7 @@ markup** (§3.15), **COROS / FIT** (the heart-rate display offset; the start cal
 «Настройки FIT…», whose menu item opens this section). Project settings stay in the project: the training's clock
 correction `CC` (D049) stays a setting of the training; `ClimbEndLag` (D050 B2) and `StartCorrection`'s rules (D051) are
 unchanged.
-- **The heart-rate display offset** — default **−60 s**, changed by the user, kept across restarts. The heart rate is
+- **The heart-rate display offset** — default **−60 s** *(−70 s since 2026-11-10, §7.7)*, changed by the user, kept across restarts. The heart rate is
   shifted 60 s **earlier** on the timeline: at the picture of watch time `w` the value shown is the FIT's sample at
   `w + 60 s` (in general `w − offset`). It applies only where the heart rate is shown — the «Пульс» overlay and the green
   route areas, in the Preview and the export — and nowhere else: the FIT's samples, `T_file`, `CC`, `Z`, the binding
@@ -9540,7 +9540,8 @@ unchanged.
   area (D055 §4). The Inspector's readout «Тренировка в позиции плейхеда» stays the synchronised value (a tool of the
   synchronisation). It is not merged with `CC` or the calibration — different mechanisms.
 
-3.9 **YouTube timestamps.** A plain text to copy into a YouTube description:
+3.9 **YouTube timestamps.** A plain text to copy into a YouTube description *(shown in the export dialog since 2026-11-10,
+§7.9)*:
 1. The first line is always at `00:00`; when no route starts at 00:00 it is `00:00 Intro`.
 2. Every route has a line of its own with its own time — never two routes on one line, even with the same time or name.
 3. The time is the **left edge of the route's green area** (a «Боулдер», anchored or free) in the exported video
@@ -9569,7 +9570,8 @@ extent) the wheel scrolls vertically. The middle button is not the way to scroll
 3.13 **Live Preview scrubbing.** Moving the playhead shows the frames while it moves: only the latest requested position
 is decoded — a request made stale by a newer one is dropped, never queued; when the drag ends the Preview shows exactly the
 frame at the playhead's final position; the playhead and the picture never stay on different positions. Playback, its sound
-and the synchronisation are unchanged.
+and the synchronisation are unchanged. *(Amended 2026-11-10, §7.4: each finished picture is shown; short steps forward read
+on.)*
 
 3.14 **Frame stepping with Left / Right** (amends D006 for the playhead only). The highest frame rate among the timeline's
 video clips bounds the precision of the playhead; Left / Right move to the previous / next **frame of the source of the
@@ -9617,6 +9619,69 @@ offset; D055 §1 unchanged).
 Technically complete when 2.1–2.15 are implemented with their tests; Release / Debug `--no-incremental -warnaserror` 0 / 0;
 the full and heavy suites green; CI green on every pull request; `docs/PHASE38_MANUAL_TEST_PLAN.md` prepared with its
 automatable part confirmed; a target build prepared. Accepted by the product owner after the practical check (§1).
+
+### 7. Amendments after the owner's practical check *(the owner's request of 2026-11-10)*
+
+The practical check of the target build 0.38.0 gave these changes; the rest of §3 is unchanged.
+
+7.1 **A group dragged from the Media Browser.** Dragging one of several selected files drags the whole selection: the
+files are placed in the order of recording (§3.2's rule) one after another from the drop point on the track under the
+pointer (the first by §3.12, the next each after the previous one), files of another kind on their own tracks as «Добавить
+на таймлайн» does; **one Undo step**. Dragging an unselected file, or a selection of one, is unchanged. A plain press on an
+item of the selection no longer collapses it before a drag; a click without a drag still selects that item alone.
+
+7.2 **The Inspector, compact** (amends §3.1). Every section starts **collapsed**; the user's per-section state is kept as
+before (across clips and restarts). Smaller paddings and headers. Two pairs become one section each: «Появление, исчезание
+и скорость» (the fades and the speed) and «Трансформация и кадрирование»; «Зацепки», «Тренировка», «Звук» and «Сведения о
+клипе» stay separate. The state of the former sections is not migrated (they start collapsed).
+
+7.3 **The drop ghost from the Media Browser.** While a file (or a group) is dragged over a track, a semi-transparent area
+as wide as the clip(s) at the current zoom shows where it will lie; it turns amber when the drop would push other clips.
+It is **information only**: it never refuses a drop, limits a position or changes §3.12.
+
+7.4 **Scrubbing** (amends §3.13; measured on the owner's 4K HEVC files of 60 and 240 fps, a GOP of 1 s). The real
+bottleneck was not the decoding: while the mouse moved the Preview showed **no picture at all** until the release — the
+waiting seek replaced the pipeline the moment its picture was ready, and the Preview ignored every buffering frame. Now:
+(1) the previous seek's finished picture is returned once (an *interim picture*) before the waiting seek starts, and the
+Preview shows it; (2) a paused seek up to **0.5 s ahead** reads on with the running decoders (their next frames are often
+buffered already) instead of a new ffmpeg process. Measured (hardware decoding Auto): a drag forward 0 → 15–34 pictures a
+second, a drag back 0 → 2.3 a second, a step → 341 → 13 ms; a step ← and a single seek unchanged (~0.35 s: an ffmpeg
+process and the GOP up to the frame). The picture's resolution, the frame chosen (D009) and the export are unchanged.
+Further gains (a decoder inside the process instead of one ffmpeg per seek, proxy files, intra-frame previews) are product /
+architecture decisions, not taken.
+
+7.5 **The blurred background** (amends §3.7). The zoomed copy of the picture is rejected. The background is the picture's
+own edges carried out into the free canvas: each canvas point is taken back into the picture as drawn (its crop, scale,
+rotation, position and the camera's motion) and clamped to the nearest point of the visible picture, then blurred strongly
+(three box passes, a twelfth of the reduced copy's long side), desaturated by 15 % and darkened to 70 %. Nothing of the
+subject is repeated; the bars carry the colours at the picture's edges. Compared: A) the zoomed copy (cover + blur, the
+former rule) — the subject repeated about 3× larger behind itself for 16:9 in 9:16; B) mirror / tile + blur — repetition
+seams; C) the average colour or a gradient — flat, no relation to the scene's edges; D) the edge extension — chosen: no
+repetition, soft light continuing the picture, cheap (a 48-cell grid of fixed sample points, the same for the Preview's
+reduced frames and the export's full ones). It stays one `FrameDraw` of `CompositionDrawPlan`, so the Preview equals the
+export. The check also found that both painters kept one bitmap per clip id, so the background (the same clip) was drawn
+from the clip's frame — a stretched corner of the video; the background now has its own bitmap.
+
+7.6 **The settings window** has a section list on the left; the selected section is shown on the right.
+
+7.7 **The heart-rate display offset's default is −70 s** (amends §3.8). Saved settings are not migrated: a user who already
+has a saved offset keeps it.
+
+7.8 **«Готово» in the hold markup lays the route out.** When the route has holds and no animation yet, «Готово» lays out
+its intro and final at once from the markup's frame — D048 §3.4 / D053 §7 as «Разложить вступление и финал» does: the
+animation, the route's «Боулдер» and its status moment; following the camera stays as it is — one Undo step. A route
+already laid out is never laid out again, so «Готово» twice or after reopening adds nothing (no duplicate). The automatic
+hold proposals stay off by default (§3.15).
+
+7.9 **The export dialog.** The main «Экспорт» opens one dialog: the folder (with «Обзор…»), the file name, one line about
+the output (size, frame rate, length, MP4 H.264 / AAC, the In / Out range when exported) and, at the bottom, a small
+read-only text with the YouTube timestamps of what is exported (§3.9's rules unchanged — the whole sequence, or the range
+from In) and «Копировать». The tool bar's «Таймкоды YouTube…» and its window are removed. The export's quality, speed and
+codec settings are not offered yet; the dialog's result is a record they can join later.
+
+7.10 **The clip `video_20260927_112606` (27.09.2026).** Checked: the area from `T − 7 s` (4.75 s) to the clip's end
+(46.733 s) — the end rule `W_end − 4.6 s + 5 s` (47.15 s) lies past the file, so the area is cut at the clip's end as
+D053 provides; no defect, the algorithm unchanged (one unconfirmed observation).
 
 ---
 

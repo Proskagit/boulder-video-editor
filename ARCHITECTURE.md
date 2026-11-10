@@ -605,10 +605,15 @@ on the project grid (D006).
   calibration. `HeartRateBinding.DisplayOffset` (from `PlaybackSnapshotBuilder.Build(…, heartRateDisplayOffset)`, the
   Preview's and the export's `ExportPreflightEnvironment.HeartRateDisplayOffset`) reads the sample at `w − offset`; the
   readout, the binding and the areas never use it. `VideoClip.Background` (`project.json` v19, `"background": "blur"`) →
-  `PictureSpan.Background` (presentation only) → `CompositionDrawPlan.BlurredBackground`: a `FrameDraw` of `BackgroundBlur`'s
-  reduced, three-pass box-blurred copy of the frame (cropped to the canvas's aspect, cached per frame) over the whole canvas
-  under the picture — the export's plan and `PreviewDrawPlan` alike, one painter. `YouTubeTimestamps` (Core) and
-  `YouTubeTimestampsWorkflow` / `YouTubeTimestampsView` («Таймкоды YouTube…» next to «Экспорт»).
+  `PictureSpan.Background` (presentation only) → `CompositionDrawPlan.BlurredBackground`: a `FrameDraw` (`IsBackground`) of
+  `BackgroundBlur`'s edge extension — each canvas point taken back into the picture as drawn and clamped into it, from a
+  48-cell grid of the visible source, blurred, desaturated and darkened (D057 §7.5; cached per frame and placement) — over
+  the whole canvas under the picture, the export's plan and `PreviewDrawPlan` alike; both painters keep the background's
+  bitmap apart from the clip's. `YouTubeTimestamps` (Core) is shown by the export dialog (`ExportDialogViewModel`,
+  `IExportDialog`, D057 §7.9), which `ExportWorkflow` opens for the output file.
+- Scrubbing (D057 §3.13, §7.4): `PlaybackService` returns a finished picture once (`PlaybackFrame.IsInterimPicture`) before a
+  waiting seek starts, and reaches a paused seek up to `MaxContinueAhead` (0.5 s) ahead by reading on with the running
+  pipeline (`VideoPipeline.LastFrame`). `Video.Tests/ScrubBenchmarkTests` measures it on a real file (`AIVE_SCRUB_BENCH_FILE`).
 
 ## FIT route starts and the global start calibration (Phase 37, D051)
 
