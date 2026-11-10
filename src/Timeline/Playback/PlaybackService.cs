@@ -222,7 +222,7 @@ public sealed class PlaybackService : IPlaybackService
                 var mine = waiting;
                 // Normally the Preview's next Update starts it, right after it has shown the busy pipeline's picture; this
                 // is the fallback when no Update comes — a moment later, so that picture can still be shown first.
-                _ = busy.Ready.ContinueWith(_ => Task.Delay(InterimPictureGrace), TaskScheduler.Default).Unwrap().ContinueWith(_ =>
+                _ = busy.Ready.ContinueWith(_ => Task.Delay(_settings.InterimPictureGrace), TaskScheduler.Default).Unwrap().ContinueWith(_ =>
                 {
                     if (context is null) TryStartPendingSeek(mine);
                     else context.Post(_ => TryStartPendingSeek(mine), null);
@@ -282,9 +282,6 @@ public sealed class PlaybackService : IPlaybackService
 
     /// <summary>Guards the waiting seek and the restarts (D057 §3.13) — its start may come from a continuation.</summary>
     private readonly object _seekGate = new();
-
-    /// <summary>How long a waiting seek leaves the busy pipeline's finished picture to be shown when no Update starts it.</summary>
-    internal static readonly TimeSpan InterimPictureGrace = TimeSpan.FromMilliseconds(40);
 
     /// <summary>The pipeline whose finished picture an Update has returned (the owner's acceptance of 2026-11-10: that
     /// picture is shown before a waiting seek replaces the pipeline).</summary>

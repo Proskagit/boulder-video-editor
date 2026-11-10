@@ -16,7 +16,7 @@ namespace AiVideoEditor.Core.Composition;
 /// was decoded at (the Preview's reduced frames, the export's full ones), and cheap even at 4K.</item>
 /// <item>The canvas-aspect copy (<see cref="SizeFor"/>) samples that grid bilinearly at each of its pixels' canvas points
 /// through the inverse of the picture's transform, clamped to the visible picture (the edge extension).</item>
-/// <item>Three box passes of a radius a twelfth of the copy's long side (≈ a wide Gaussian), then
+/// <item>Three box passes of a radius the copy's long side / <see cref="RadiusDivisor"/> (≈ a Gaussian), then
 /// <see cref="Desaturation"/> % towards the luma and <see cref="Brightness"/> / 256 of the brightness.</item>
 /// </list>
 /// Pure and deterministic; the painter stretches the copy over the canvas with smoothing. The same copy for the Preview and
@@ -37,6 +37,10 @@ public static class BackgroundBlur
 
     /// <summary>Sample points per cell side of the source grid.</summary>
     public const int CellSamples = 6;
+
+    /// <summary>The box radius is the copy's long side divided by this (the owner's check of 0.38.1: 12 was too soft, about
+    /// 30 % less blur — the Gaussian's width goes with <c>2r + 1</c>: 21 → 15 at 1080 × 1920).</summary>
+    public const int RadiusDivisor = 17;
 
     /// <summary>Per cent of each colour moved towards the pixel's luma.</summary>
     public const int Desaturation = 15;
@@ -88,7 +92,7 @@ public static class BackgroundBlur
             var (gw, gh) = GridFor(sourceRect.Width, sourceRect.Height);
             var grid = Grid(frame, sourceRect, gw, gh);
             Extend(grid, gw, gh, small, w, h, canvas, pictureToCanvas.Invert(), localRect);
-            var radius = Math.Max(2, Math.Max(w, h) / 12);
+            var radius = Math.Max(2, Math.Max(w, h) / RadiusDivisor);
             var temp = new int[small.Length];
             for (var pass = 0; pass < 3; pass++)
             {

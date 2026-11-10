@@ -37,6 +37,11 @@ public partial class MediaBrowserView : UserControl
 
         // D057 §3.2: Ctrl+A with the list focused selects every file — handled here, so the timeline's Ctrl+A (the window's
         // shortcut, D037 §1) and the markup mode's «accept all» never see it.
+        // The context menu acts on the file under the pointer (tunnel: before the menu opens).
+        MediaList.AddHandler(ContextRequestedEvent, (_, e) =>
+        {
+            if (DataContext is MediaBrowserViewModel vm) vm.PrepareContextMenu(ItemFrom(e.Source));
+        }, RoutingStrategies.Tunnel);
         MediaList.AddHandler(KeyDownEvent, (_, e) =>
         {
             if (e.Key == Key.A && e.KeyModifiers == KeyModifiers.Control && DataContext is MediaBrowserViewModel { AllowsSelectAll: true } vm)
@@ -45,6 +50,29 @@ public partial class MediaBrowserView : UserControl
                 e.Handled = true;
             }
         }, RoutingStrategies.Tunnel);
+    }
+
+    private MediaBrowserViewModel? _revealing;
+
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (_revealing is not null) _revealing.RevealRequested -= OnReveal;
+        _revealing = DataContext as MediaBrowserViewModel;
+        if (_revealing is not null) _revealing.RevealRequested += OnReveal;
+    }
+
+    /// <summary>«Показать в проводнике»: Explorer with the file selected.</summary>
+    private static void OnReveal(object? sender, string path)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
+        }
+        catch (Exception)
+        {
+            // Explorer is not available (another OS): nothing to show.
+        }
     }
 
     private void OnPressed(object? sender, PointerPressedEventArgs e)

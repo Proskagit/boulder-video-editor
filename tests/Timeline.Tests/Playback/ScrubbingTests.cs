@@ -21,7 +21,7 @@ public sealed class ScrubbingTests : IAsyncLifetime
     private readonly TimelineFixture _f = new();
     private readonly FakeVideoDecoder _decoder = new();
     private readonly FakeReferenceClock _clock = new();
-    private readonly PlaybackService _service;
+    private PlaybackService _service;
     private MediaAsset _asset = null!;
 
     public ScrubbingTests() =>
@@ -39,7 +39,7 @@ public sealed class ScrubbingTests : IAsyncLifetime
         _decoder.Add(_asset.FilePath, new FakeSource(Rate, 1000));
         Assert.True(_f.Service.AddClip(_asset.Id).Success);
         _service.UpdateSnapshot(PlaybackSnapshotBuilder.Build(_f.Project, 1));
-        Assert.True(await _service.SeekAsync(MediaTime.Zero));
+        Assert.True(await TickUntilAsync(_service.SeekAsync(MediaTime.Zero)));   // as the Preview: its timer calls Update
         await SettleAsync();
     }
 
@@ -128,6 +128,10 @@ public sealed class ScrubbingTests : IAsyncLifetime
     [Fact]
     public async Task A_drag_shows_each_finished_picture_before_the_newest_seek_starts()
     {
+        // The fallback start is pushed far out, so only the Update path is at work (a loaded test machine may be late).
+        await using var service = new PlaybackService(_decoder, _clock, NullLogger<PlaybackService>.Instance,
+            new PlaybackSettings { BufferFrames = 4, InterimPictureGrace = TimeSpan.FromSeconds(30) });
+        _service = service;
         await SetupAsync();
         var gate = _decoder.Gate(_asset.FilePath);
         var first = _service.SeekAsync(F(300));

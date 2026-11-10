@@ -942,6 +942,12 @@ The file on disk is not deleted. You can undo this with Undo.</value>
   <data name="Media_RemoveTip" xml:space="preserve">
     <value>Remove from the project (asks first when clips use it; the file on disk stays)</value>
   </data>
+  <data name="Media_ShowInExplorer" xml:space="preserve">
+    <value>Show in Explorer</value>
+  </data>
+  <data name="Media_RemoveFromProject" xml:space="preserve">
+    <value>Remove from project</value>
+  </data>
   <data name="Media_RemoveTitle" xml:space="preserve">
     <value>Remove Media</value>
   </data>

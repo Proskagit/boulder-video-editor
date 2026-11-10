@@ -19,4 +19,8 @@ public sealed class PlaybackSettings
 
     /// <summary>How far ahead of the mix position audio clips start decoding.</summary>
     public TimeSpan AudioLookahead { get; init; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>While scrubbing (D057 §7.4): how long a waiting seek leaves the previous seek's finished picture to be shown
+    /// when no Update starts it first (normally the Preview's next Update does).</summary>
+    public TimeSpan InterimPictureGrace { get; init; } = TimeSpan.FromMilliseconds(40);
 }

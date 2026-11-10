@@ -192,6 +192,70 @@ public sealed partial class MediaBrowserViewModel : ViewModelBase
         SelectedItem ??= Items.FirstOrDefault();
     }
 
+    // --- The context menu of a file (the owner's check of 0.38.1, 2026-11-10) ---------------------------------------------
+
+    /// <summary>The file the context menu was opened on (null: the list's empty part).</summary>
+    public MediaBrowserItemViewModel? ContextItem { get; private set; }
+
+    /// <summary>Before the menu opens on <paramref name="item"/>: a file outside the selection becomes the selection, as
+    /// Explorer does; a file of a group selection keeps the group (so «Добавить на таймлайн» adds them all).</summary>
+    public void PrepareContextMenu(MediaBrowserItemViewModel? item)
+    {
+        ContextItem = item;
+        if (item is not null && !SelectedItems.Contains(item))
+        {
+            SelectedItems.Clear();
+            SelectedItems.Add(item);
+            SelectedItem = item;
+        }
+        OnPropertyChanged(nameof(ContextItemIsMissing));
+        ShowInExplorerCommand.NotifyCanExecuteChanged();
+        RemoveContextItemCommand.NotifyCanExecuteChanged();
+        RelinkContextItemCommand.NotifyCanExecuteChanged();
+        AddToTimelineCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>Raised by «Показать в проводнике» with the file's path; the view opens Explorer on it.</summary>
+    public event EventHandler<string>? RevealRequested;
+
+    private bool CanShowInExplorer() => ContextItem is { Asset.IsMissing: false };
+
+    [RelayCommand(CanExecute = nameof(CanShowInExplorer))]
+    private void ShowInExplorer()
+    {
+        if (ContextItem is { } item) RevealRequested?.Invoke(this, item.Asset.FilePath);
+    }
+
+    /// <summary>The menu's «Удалить из проекта»: the file the menu was opened on (alone), by the rules of Remove.</summary>
+    private bool CanRemoveContextItem() => ContextItem is not null && CanEdit() && _edit is not null && _relink is not { IsRunning: true };
+
+    [RelayCommand(CanExecute = nameof(CanRemoveContextItem))]
+    private Task RemoveContextItem()
+    {
+        if (ContextItem is not { } item) return Task.CompletedTask;
+        FocusOn(item);
+        return RemoveCommand.ExecuteAsync(null);
+    }
+
+    private bool CanRelinkContextItem() => CanRelinkAny() && ContextItem is { Asset.IsMissing: true };
+
+    [RelayCommand(CanExecute = nameof(CanRelinkContextItem))]
+    private Task RelinkContextItem()
+    {
+        if (ContextItem is not { } item) return Task.CompletedTask;
+        FocusOn(item);
+        return RelinkCommand.ExecuteAsync(null);
+    }
+
+    public bool ContextItemIsMissing => ContextItem is { Asset.IsMissing: true };
+
+    private void FocusOn(MediaBrowserItemViewModel item)
+    {
+        SelectedItems.Clear();
+        SelectedItems.Add(item);
+        SelectedItem = item;
+    }
+
     // Relink (D026 §5, Phase 11 Step 11.6): only offline media, never during an export, one at a time. All the relink
     // rules are the relink service's (through MediaRelinkWorkflow); the list follows the project's events.
     private readonly MediaRelinkWorkflow? _relink;

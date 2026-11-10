@@ -944,6 +944,12 @@
   <data name="Media_RemoveTip" xml:space="preserve">
     <value>Удалить из проекта (если файл используют клипы, сначала будет вопрос; файл на диске останется)</value>
   </data>
+  <data name="Media_ShowInExplorer" xml:space="preserve">
+    <value>Показать в проводнике</value>
+  </data>
+  <data name="Media_RemoveFromProject" xml:space="preserve">
+    <value>Удалить из проекта</value>
+  </data>
   <data name="Media_RemoveTitle" xml:space="preserve">
     <value>Удаление медиафайла</value>
   </data>

@@ -9683,6 +9683,15 @@ codec settings are not offered yet; the dialog's result is a record they can joi
 (46.733 s) — the end rule `W_end − 4.6 s + 5 s` (47.15 s) lies past the file, so the area is cut at the clip's end as
 D053 provides; no defect, the algorithm unchanged (one unconfirmed observation).
 
+7.11 **After the owner's check of 0.38.1 (2026-11-10).** H1–H7 and the regression rows passed, with three remarks:
+- **The Inspector:** the template section (the most used) and a media file's «Технические данные» start **open**; every
+  other section stays collapsed at first (§7.2); the user's own choice per section still wins.
+- **The blurred background** was too soft («a grey blanket»): the box radius is now the reduced copy's long side / 17
+  instead of / 12 — about 30 % less blur (§7.5 otherwise unchanged).
+- **The Media Browser's context menu** on a file: «Добавить на таймлайн» (the selection — a group stays a group when the
+  menu is opened on one of its files; a file outside it becomes the selection), «Показать в проводнике», «Перепривязать…»
+  (an offline file only), «Удалить из проекта» (the file the menu was opened on, by Remove's rules — D027 §4).
+
 ---
 
 ## How to add a decision

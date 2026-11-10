@@ -53,6 +53,17 @@
                  SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                  Background="Transparent"
                  BorderThickness="0">
+          <!-- The owner's check of 0.38.1: a file's context menu (the view prepares it on the file under the pointer). -->
+          <ListBox.ContextMenu>
+            <ContextMenu x:Name="FileMenu">
+              <MenuItem Header="{x:Static l:Strings.Media_AddToTimeline}" Command="{Binding AddToTimelineCommand}"/>
+              <MenuItem Header="{x:Static l:Strings.Media_ShowInExplorer}" Command="{Binding ShowInExplorerCommand}"/>
+              <MenuItem Header="{x:Static l:Strings.Media_Relink}" Command="{Binding RelinkContextItemCommand}"
+                        IsVisible="{Binding ContextItemIsMissing}"/>
+              <Separator/>
+              <MenuItem Header="{x:Static l:Strings.Media_RemoveFromProject}" Command="{Binding RemoveContextItemCommand}"/>
+            </ContextMenu>
+          </ListBox.ContextMenu>
           <ListBox.ItemTemplate>
             <DataTemplate>
               <DockPanel>

@@ -25,6 +25,9 @@ the MVP. Phase H's goal is covered by Phase 38; Phase 32 a distant idea; WASTED 
   on 4K HEVC 60 / 240 fps: a drag forward 0 → 15–34 pictures / s, back 0 → 2.3 / s, a step → 341 → 13 ms; a step ← and a
   single seek ~0.35 s unchanged). The clip `112606`: no defect (D057 §7.10). Manual rows: `docs/PHASE38_MANUAL_TEST_PLAN.md`
   H1–H7 and the amended B1, E1, F2, F6, F10. **Not accepted** — the owner's check of the new build follows.
+- **The owner's check of 0.38.1 (2026-11-10, PR #63 merged):** H1–H7 and the regression rows passed; three remarks fixed
+  (D057 §7.11, branch `fix/phase-38-acceptance-2`): the template and the media file's technical data open by default, the
+  blurred background about 30 % less blurred, the Media Browser's context menu. Manual rows H8–H10.
 
 **State on 2026-11-09** — `main` at `1a087ae` (the merge of PR #54), `project.json` v18. The phases' state and what comes
 next have one source: `docs/DEVELOPMENT_PLAN.md`, "Phase and step numbering" → "Official phases"; this file is the dated
