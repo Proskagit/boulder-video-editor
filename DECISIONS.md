@@ -9844,6 +9844,10 @@ decoded output frames → **K rasterizers**, each on its own thread (`export-ras
   Avalonia 11.1.3's `GlyphRun` type initializer throw — permanently for the process — so the first
   `AvaloniaCompositionRasterizer` draws text, a pen, an opacity mask and a bitmap once on its creator's thread before any
   parallel use (0 failures in 20 repeated runs after, 1 in 18 before).
+- Byte identity: the pipeline's invariant is the bytes the encoder receives (the canvases, unchanged during each write —
+  checked by the end-to-end tests). The MP4 itself was identical in every benchmark run, but libx264 in FFmpeg 9.0.1 is not
+  bit-exact under heavy CPU contention (reproduced with ffmpeg alone: the same input and command line, 1 of 5 encodings
+  differed with 14 encodes beside it) — so no test asserts MP4 identity under load; the D028 parity rules are unchanged.
 - E6 (by measurement): decoded frame buffers are allocated uninitialised (filled completely by the read: no 32 MB zeroing
   per 4K frame). Not done (measured not to limit, or a semantic change): a decoded-frame buffer pool, audio in parallel
   with video, skipping unused frames of high-rate sources in the decoder, a faster HDR graph, cheaper blur / VHS.

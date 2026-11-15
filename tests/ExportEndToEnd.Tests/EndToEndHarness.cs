@@ -437,6 +437,9 @@ public sealed class RecordingEncoder(IExportEncoder inner) : IExportEncoder
     public List<byte[]> Canvases { get; } = new();
     public List<float> Pcm { get; } = new();
 
+    /// <summary>Canvases that changed while the encoder was writing them (must stay 0).</summary>
+    public int ChangedDuringWrite { get; set; }
+
     /// <summary>The export settings the service handed over (passed on to the real encoder unchanged).</summary>
     public ExportEncoding? Settings { get; private set; }
 
@@ -454,11 +457,14 @@ public sealed class RecordingEncoder(IExportEncoder inner) : IExportEncoder
             return inner.WriteAudioAsync(interleaved, ct);
         }
 
-        public ValueTask WriteFrameAsync(ReadOnlyMemory<byte> bgra, int stride, CancellationToken ct = default)
+        public async ValueTask WriteFrameAsync(ReadOnlyMemory<byte> bgra, int stride, CancellationToken ct = default)
         {
             Assert.Equal(output.Size.Width * 4, stride);
-            owner.Canvases.Add(bgra.ToArray());
-            return inner.WriteFrameAsync(bgra, stride, ct);
+            var copy = bgra.ToArray();
+            owner.Canvases.Add(copy);
+            await inner.WriteFrameAsync(bgra, stride, ct);
+            // The canvas must not change while the encoder has it (D059 §2: canvases are pooled and reused).
+            if (!bgra.Span.SequenceEqual(copy)) owner.ChangedDuringWrite++;
         }
 
         public Task CompleteAsync(CancellationToken ct = default) => inner.CompleteAsync(ct);

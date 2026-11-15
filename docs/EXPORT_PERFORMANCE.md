@@ -80,6 +80,13 @@ gen-2 collections. On a machine with less memory K shrinks (a quarter of the ava
 - `ExportPipelineParityEndToEndTests`: the canvases of K = 1 over stdout and K = 3 / 6 over the pipe byte-identical and the
   MP4 SHA-256 equal on scenes with outlined bold text, «Боулдер», «Хайлайт», the heart rate, animated hold outlines, VHS,
   blur on a vertical canvas, Dissolve, Push and a picture in picture; the whole parity suite (Preview ↔ export) green.
+- **libx264 under heavy CPU contention is not bit-exact** (FFmpeg 9.0.1): the heavy end-to-end suite showed MP4s that differed
+  (small encoder decisions, PSNR 40–60 dB between the files) while the canvases were byte-identical. The encoder's stdin was
+  captured with a tee: the same bytes in both exports. Then reproduced with ffmpeg alone — the same input and the export's
+  exact command line gave another file in 1 of 5 encodings with 14 encodes running beside it, never on an idle machine. Not
+  caused by D059 (the sequential export is exposed the same way); the parity test therefore asserts the canvases and that
+  no canvas changes while the encoder writes it, and only reports the MP4 hash. The benchmark's byte identity (every run of
+  every scenario) holds on a normally loaded machine.
 - Found and fixed during the measurements (D059 §2): a self-join hang when a rasterizer failed, and the failure behind it —
   Avalonia's `GlyphRun` type initializer racing when two threads draw their first text (now warmed up once before any
   parallel drawing). 0 failures in 20 repeated runs after the fix (1 in 18 before).
