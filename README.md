@@ -110,6 +110,7 @@ tests/
 docs/
   DEVELOPMENT_PLAN.md          Phase-by-phase roadmap and standing architectural rules.
   EXPORT_MANUAL_TEST_PLAN.md   Manual export checks (Phase 8).
+  EXPORT_PERFORMANCE.md        Export speed, NVENC calibration and the size estimate (Phase 40, D059).
   PHASE9_MANUAL_TEST_PLAN.md   Manual checks of Phase 9, run at its closeout.
   PHASE10_MANUAL_TEST_PLAN.md  Manual checks of Phase 10 (fades, dissolves), run at its closeout.
   PHASE11_MANUAL_TEST_PLAN.md  Manual checks of Phase 11 (media re-check, relink, recent projects), run at its closeout.

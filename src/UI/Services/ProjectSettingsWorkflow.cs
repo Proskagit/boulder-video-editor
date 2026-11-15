@@ -16,10 +16,12 @@ public sealed class ProjectSettingsWorkflow
     private readonly StatusService _status;
     private readonly EditingLock _editingLock;
     private readonly IProjectSettingsDialog _dialog;
+    private readonly Core.Export.IExportEncoderCapabilities? _encoders;
 
     public ProjectSettingsWorkflow(IProjectService projects, ITimelineEditService edit, StatusService status,
-        EditingLock editingLock, IProjectSettingsDialog dialog)
+        EditingLock editingLock, IProjectSettingsDialog dialog, Core.Export.IExportEncoderCapabilities? encoders = null)
     {
+        _encoders = encoders;
         _projects = projects;
         _edit = edit;
         _status = status;
@@ -56,7 +58,8 @@ public sealed class ProjectSettingsWorkflow
         IsOpen = true;
         try
         {
-            var settings = new ProjectSettingsViewModel(_projects.Current.Settings, _edit, _status, () => _editingLock.IsLocked);
+            var encoders = await EncoderAvailability.GetAsync(_encoders);
+            var settings = new ProjectSettingsViewModel(_projects.Current.Settings, _edit, _status, () => _editingLock.IsLocked, encoders);
             await _dialog.ShowAsync(settings);
         }
         finally

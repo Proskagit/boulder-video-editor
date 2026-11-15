@@ -25,6 +25,8 @@ public partial class App : Avalonia.Application
             // D057 §3.1: the Inspector's sections and scroll keep their state in the user's layout.
             AiVideoEditor.UI.Controls.InspectorSectionStates.Store = Services.GetRequiredService<AiVideoEditor.Core.Interfaces.IUiStateService>();
             desktop.MainWindow = Services.GetRequiredService<MainWindow>();
+            // D059 §3: the NVENC check runs once in the background, so the export dialog knows the encoders when it opens.
+            _ = Services.GetRequiredService<AiVideoEditor.Core.Export.IExportEncoderCapabilities>().GetAsync();
             // Phase 37 (D051 §6): the calibration is read at start and every save sends its observations.
             Services.GetRequiredService<AiVideoEditor.Project.FitCalibrationSaveSync>();
 #if DEBUG

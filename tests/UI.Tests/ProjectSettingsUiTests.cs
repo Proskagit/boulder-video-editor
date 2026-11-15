@@ -385,6 +385,8 @@ public sealed class ProjectSettingsUiTests : IAsyncLifetime
 
     private static void Choose(ProjectSettingsViewModel d, ExportEncoding e)
     {
+        // D059 §4: the D028 values are the «Пользовательский» profile's.
+        d.Export.SelectedProfile = d.Export.Profiles.Single(o => o.Value == e.Profile);
         d.SelectedQuality = d.Qualities.Single(o => o.Value == e.Quality);
         d.SelectedSpeed = d.Speeds.Single(o => o.Value == e.Preset);
         d.SelectedBitrate = d.Bitrates.Single(o => o.Value == e.AudioBitrateKbps);

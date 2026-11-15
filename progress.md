@@ -2,6 +2,23 @@
 
 ## Current phase
 
+**Phase 40 — Export Performance (D059, 2026-11-10/11) — implemented on `feat/export-performance`, the owner's check open.**
+E0 `tools/export-bench` (the baseline of `07252bf` built with `-p:DefineConstants=BASELINE`); E1 the export's frames over a
+named pipe (64 MB); E2 the bounded pipeline with K rasterizers (5 with libx264, 8 with NVENC here); E3 `ExportVideoPlan`,
+NVENC H.264 confirmed by a trial encoding, the libx264 fallback (before the start, and a failed NVENC export restarted with
+libx264); E4 the four profiles, the encoder chooser, the size estimate, speed / time left / encoder in the progress window.
+Measured (medians of 3 × 600 frames; `docs/EXPORT_PERFORMANCE.md`): 4K60 12.1 → 30.7 fps with libx264 (×2.55, the MP4
+**byte-identical** in all 13 scenarios) and → 46.6 fps with NVENC «Быстрый» (×3.9); 4K → 1080p ×4.8 / ×5.4; vertical ×4.7–5.6;
+4K120 → 60 ×4.1 / ×5.5. **Not met:** 4K ≥ 3× with libx264 (libx264 medium itself is the limit — 15 of 16 threads busy) and 4K ≥ 5×
+with NVENC (the CPU side caps at ~45–47 fps; the decoder waits under load although it decodes at 174 fps alone). NVENC
+calibrated by VMAF on five references: Fast p2 CQ 25, Balanced p5 CQ 22, High quality p7 multipass CQ 20, Custom CQ 19 / 22 /
+27 / 32; NVENC needs ~1.5× libx264 medium's bitrate at the same VMAF. Found and fixed by the benchmark: a self-join hang when a
+rasterizer failed, and the race behind it — Avalonia's `GlyphRun` type initializer when two threads draw their first text
+(warmed up once now). Operator note: the baseline's `real` / `long` single runs partly overlapped a second baseline run
+(both transport-bound, values kept as indicative). Gates: Debug and Release builds 0 / 0; every test suite green (numbers in
+the PR). Not done: HEVC / AV1 (E5), NVENC in the minimal FFmpeg build S1 (D059 §3, left to S1), the owner's visual check of
+NVENC (manual plan C2). Manual plan: `docs/PHASE40_MANUAL_TEST_PLAN.md`.
+
 **Phase 39 — Timeline UX & Multi-Clip Editing (D058, 2026-11-10) — implemented on `feat/phase-39`, the owner's check open.**
 P1: the timeline follows the playhead page by page (on by default, a user setting); the initial zoom of ten minutes for a
 project never zoomed (the minimum zoom 1 px/s); the Inspector of several clips — background, Fill / Fit, volume / mute,

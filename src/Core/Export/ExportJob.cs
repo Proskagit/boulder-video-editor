@@ -57,7 +57,16 @@ public enum ExportStage
 
 /// <summary>Progress of a running export: <see cref="Done"/> of <see cref="Total"/> units (audio
 /// samples or frames) of the current <see cref="Stage"/>.</summary>
-public readonly record struct ExportProgress(ExportStage Stage, long Done, long Total);
+public readonly record struct ExportProgress(ExportStage Stage, long Done, long Total)
+{
+    /// <summary>The video encoding actually used (<see cref="IExportEncoding.EncoderDescription"/>), on the reports of the
+    /// video stage and later (D059 §3); null before.</summary>
+    public string? Encoder { get; init; }
+
+    /// <summary>Why the export runs with libx264 although NVENC was chosen (D059 §3: NVENC unavailable, or it failed and the
+    /// export started again with libx264); null otherwise.</summary>
+    public string? Fallback { get; init; }
+}
 
 public enum ExportFailure
 {

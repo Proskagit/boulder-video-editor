@@ -1,10 +1,11 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:l="using:AiVideoEditor.UI.Localization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="using:AiVideoEditor.UI.Views"
              x:Class="AiVideoEditor.UI.Views.ExportDialogView">
 
   <!-- Phase 38 acceptance (2026-11-10): the export's output file, a line about the output and the YouTube timestamps of what
-       is exported, to copy. The export's own settings (quality, speed, encoder) are not offered yet. -->
+       is exported, to copy. D059 §4: the export settings — profile, encoder, «Пользовательский» fields, the expected size. -->
   <DockPanel Margin="16">
     <StackPanel DockPanel.Dock="Top" Spacing="6">
       <TextBlock Text="{x:Static l:Strings.ExportDialog_Folder}" FontSize="11" Foreground="#AAAAAA"/>
@@ -16,6 +17,7 @@
       <TextBlock Text="{x:Static l:Strings.ExportDialog_FileName}" FontSize="11" Foreground="#AAAAAA" Margin="0,4,0,0"/>
       <TextBox x:Name="FileNameBox" Text="{Binding FileName, Mode=TwoWay}"/>
       <TextBlock x:Name="InfoText" Text="{Binding Info}" FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap" Margin="0,4,0,8"/>
+      <views:ExportEncodingEditorView x:Name="SettingsEditor" DataContext="{Binding Settings}" Margin="0,0,0,8"/>
     </StackPanel>
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,12,0,0">
       <Button x:Name="ExportButton" Content="{x:Static l:Strings.ExportDialog_Export}" Command="{Binding ExportCommand}" IsDefault="True"/>

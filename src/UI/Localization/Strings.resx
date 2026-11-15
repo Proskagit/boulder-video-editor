@@ -1909,7 +1909,7 @@ You can undo this with Undo.</value>
     <value>MB</value>
   </data>
   <data name="Unit_Mbps" xml:space="preserve">
-    <value>{0} Mbps</value>
+    <value>{0} Mbit/s</value>
   </data>
   <data name="Unit_Px" xml:space="preserve">
     <value>px</value>
@@ -3009,5 +3009,122 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Inspector_RecordingStartRoutesOnly" xml:space="preserve">
     <value>The recording start refines the route bounds only; the heart rate follows the video file's time.</value>
+  </data>
+  <data name="ExportProfile_Label" xml:space="preserve">
+    <value>Profile</value>
+  </data>
+  <data name="ExportProfile_Fast" xml:space="preserve">
+    <value>Fast</value>
+  </data>
+  <data name="ExportProfile_FastDetail" xml:space="preserve">
+    <value>speed first, a larger file</value>
+  </data>
+  <data name="ExportProfile_Balanced" xml:space="preserve">
+    <value>Balanced</value>
+  </data>
+  <data name="ExportProfile_BalancedDetail" xml:space="preserve">
+    <value>the default: quality and size as before</value>
+  </data>
+  <data name="ExportProfile_HighQuality" xml:space="preserve">
+    <value>High quality</value>
+  </data>
+  <data name="ExportProfile_HighQualityDetail" xml:space="preserve">
+    <value>fewer artefacts, a longer export</value>
+  </data>
+  <data name="ExportProfile_Custom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="ExportProfile_CustomDetail" xml:space="preserve">
+    <value>encoder, quality, speed and bitrate by hand</value>
+  </data>
+  <data name="ExportEncoder_Label" xml:space="preserve">
+    <value>Encoder</value>
+  </data>
+  <data name="ExportEncoder_Nvenc" xml:space="preserve">
+    <value>NVIDIA NVENC</value>
+  </data>
+  <data name="ExportEncoder_NvencDetail" xml:space="preserve">
+    <value>hardware encoding on the NVIDIA graphics card — usually faster</value>
+  </data>
+  <data name="ExportEncoder_NvencUnavailable" xml:space="preserve">
+    <value>NVIDIA NVENC (unavailable here)</value>
+  </data>
+  <data name="ExportEncoder_X264" xml:space="preserve">
+    <value>libx264</value>
+  </data>
+  <data name="ExportEncoder_X264Detail" xml:space="preserve">
+    <value>software encoding on the processor — usually slower, its own quality profile</value>
+  </data>
+  <data name="ExportEncoder_Both" xml:space="preserve">
+    <value>Both encoders run through FFmpeg; the format is always MP4 · H.264 · AAC.</value>
+  </data>
+  <data name="ExportEncoder_Unavailable" xml:space="preserve">
+    <value>NVENC can't be used ({0}) — libx264 will encode with the same profile.</value>
+  </data>
+  <data name="ExportEncoder_TooLarge" xml:space="preserve">
+    <value>NVENC encodes frames up to {0} px</value>
+  </data>
+  <data name="ExportEncoder_NotFound" xml:space="preserve">
+    <value>no NVIDIA encoder was found</value>
+  </data>
+  <data name="ExportRate_Label" xml:space="preserve">
+    <value>Rate control</value>
+  </data>
+  <data name="ExportRate_Quality" xml:space="preserve">
+    <value>Constant quality</value>
+  </data>
+  <data name="ExportRate_QualityDetail" xml:space="preserve">
+    <value>the size follows the picture</value>
+  </data>
+  <data name="ExportRate_Bitrate" xml:space="preserve">
+    <value>Average bitrate</value>
+  </data>
+  <data name="ExportRate_BitrateDetail" xml:space="preserve">
+    <value>the size follows the length</value>
+  </data>
+  <data name="ExportVideoBitrate_Label" xml:space="preserve">
+    <value>Video bitrate</value>
+  </data>
+  <data name="ExportEstimate" xml:space="preserve">
+    <value>Expected size: about {0} – {1} (an estimate: with constant quality the size depends on the picture).</value>
+  </data>
+  <data name="ExportEstimate_Bitrate" xml:space="preserve">
+    <value>Expected size: about {0} (an estimate, ±7 %).</value>
+  </data>
+  <data name="Size_MB" xml:space="preserve">
+    <value>{0} MB</value>
+  </data>
+  <data name="Size_GB" xml:space="preserve">
+    <value>{0} GB</value>
+  </data>
+  <data name="ExportPlan" xml:space="preserve">
+    <value>Parameters: {0}</value>
+  </data>
+  <data name="ExportSpeed_Nvenc" xml:space="preserve">
+    <value>Usually the fastest: the graphics card encodes, the processor only draws the frames.</value>
+  </data>
+  <data name="ExportSpeed_X264Fast" xml:space="preserve">
+    <value>A fast preset: a quicker export, a little less quality per bit.</value>
+  </data>
+  <data name="ExportSpeed_X264" xml:space="preserve">
+    <value>The processor draws and encodes the frames.</value>
+  </data>
+  <data name="ExportSpeed_X264Slow" xml:space="preserve">
+    <value>A slow preset: the longest export, the best quality per bit.</value>
+  </data>
+  <data name="Export_EncoderLine" xml:space="preserve">
+    <value>Encoder: {0}</value>
+  </data>
+  <data name="Export_FallbackLine" xml:space="preserve">
+    <value>NVENC: {0} libx264 is used instead.</value>
+  </data>
+  <data name="Export_SpeedLine" xml:space="preserve">
+    <value>{0} fps · elapsed {1} · about {2} left</value>
+  </data>
+  <data name="Export_ElapsedLine" xml:space="preserve">
+    <value>elapsed {0}</value>
+  </data>
+  <data name="Export_SucceededFallback" xml:space="preserve">
+    <value>Exported to {0}. NVENC failed ({1}); the video was encoded with libx264.</value>
   </data>
 </root>

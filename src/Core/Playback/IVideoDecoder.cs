@@ -48,6 +48,23 @@ public sealed record VideoDecodeRequest
     /// <see cref="VideoDecodeError.DecoderFailed"/> instead of returning the end.
     /// </summary>
     public bool StrictEnd { get; init; }
+
+    /// <summary>How the frames travel from the decoder (D059 E1): the export asks for
+    /// <see cref="DecodeTransport.HighThroughput"/>, the Preview keeps <see cref="DecodeTransport.Standard"/>.</summary>
+    public DecodeTransport Transport { get; init; } = DecodeTransport.Standard;
+}
+
+/// <summary>How a decoder hands its frames to the app (D059 E1). The frames, their order and their timestamps are the same
+/// either way; only the throughput differs.</summary>
+public enum DecodeTransport
+{
+    /// <summary>The decoder's standard output (the Preview: reduced frames, low latency).</summary>
+    Standard,
+
+    /// <summary>A transport sized for full-resolution frames — ffmpeg on Windows: a named pipe with a large buffer (the
+    /// standard output carries about 410 MB/s; a 4K BGRA stream needs 2 GB/s at 60 fps, D059 E1). Where it is unavailable
+    /// the decoder uses <see cref="Standard"/>.</summary>
+    HighThroughput
 }
 
 /// <summary>

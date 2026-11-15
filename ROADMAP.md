@@ -84,6 +84,12 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 
 ## Current
 
+**Phase 40 — Export Performance (DECISIONS.md D059, 2026-11-10) — implemented, the owner's check open.** The export's frames
+over a named pipe, a bounded pipeline of parallel rasterizers, NVIDIA NVENC H.264 with the libx264 fallback, the profiles
+«Быстрый» / «Сбалансированный» / «Высокое качество» / «Пользовательский» with the expected file size. 4K60 ×2.55 (libx264, the
+same bytes) / ×3.9 (NVENC); 1080p and vertical ×4.7–5.6. Results: `docs/EXPORT_PERFORMANCE.md`. HEVC / AV1 and NVENC in S1 not
+in it.
+
 **Phase 39 — Timeline UX & Multi-Clip Editing (DECISIONS.md D058, 2026-11-10) — implemented, the owner's check open.** The
 timeline follows the playhead page by page; the initial zoom shows ten minutes; several clips edited together (background,
 Fill / Fit, volume / mute, opacity, the hold outline) in one undo step; marker labels; draggable Position / Scale / Rotation

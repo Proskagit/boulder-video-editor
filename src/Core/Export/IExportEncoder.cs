@@ -45,4 +45,14 @@ public interface IExportEncoding : IAsyncDisposable
 
     /// <summary>Ends the input, waits for the encoder, checks that it succeeded and moves the result to the destination.</summary>
     Task CompleteAsync(CancellationToken ct = default);
+
+    /// <summary>The video encoding actually used, e.g. "libx264 medium CRF 18", "NVENC p5 CQ 22" (D059 §3; the log, the
+    /// progress window).</summary>
+    string EncoderDescription => "libx264";
+
+    /// <summary>Whether a hardware encoder (NVENC) encodes the video: its failure is retried with libx264 (D059 §3).</summary>
+    bool IsHardware => false;
+
+    /// <summary>Why libx264 encodes although NVENC was chosen (NVENC unavailable here, or the size too large); null otherwise.</summary>
+    string? FallbackReason => null;
 }

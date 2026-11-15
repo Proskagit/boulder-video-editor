@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using AiVideoEditor.Core.Composition;
+using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Export;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Playback;
@@ -40,10 +41,13 @@ public sealed class ExportService : IExportService
     private readonly IExportEncoder _encoder;
     private readonly Func<ICompositionRasterizer> _rasterizerFactory;
     private readonly ILogger<ExportService> _logger;
+    private readonly ExportPipelineSettings _pipeline;
 
+    /// <param name="pipeline">How many frames are worked on at once (D059 E2); null = chosen per export.</param>
     public ExportService(IFfmpegLocator locator, IVideoDecoder videoDecoder, IAudioDecoder audioDecoder, IExportEncoder encoder,
-        Func<ICompositionRasterizer> rasterizerFactory, ILogger<ExportService> logger)
+        Func<ICompositionRasterizer> rasterizerFactory, ILogger<ExportService> logger, ExportPipelineSettings? pipeline = null)
     {
+        _pipeline = pipeline ?? new ExportPipelineSettings();
         _locator = locator ?? throw new ArgumentNullException(nameof(locator));
         _videoDecoder = videoDecoder ?? throw new ArgumentNullException(nameof(videoDecoder));
         _audioDecoder = audioDecoder ?? throw new ArgumentNullException(nameof(audioDecoder));
@@ -66,22 +70,36 @@ public sealed class ExportService : IExportService
         var output = job.Output;
         var watch = Stopwatch.StartNew();
         _logger.LogInformation("Export started: {Path} ({Width}×{Height}, {Rate} fps, {Frames} frames, {Samples} audio samples; " +
-            "quality {Quality} (CRF {Crf}), preset {Preset}, AAC {Bitrate} kbps)",
+            "profile {Profile}, encoder {Encoder}, quality {Quality}, preset {Preset}, rate control {RateControl}, AAC {Bitrate} kbps)",
             job.OutputPath, output.Size.Width, output.Size.Height, output.FrameRate, output.FrameCount, output.AudioSampleCount,
-            job.Encoding.Quality, job.Encoding.Crf, job.Encoding.PresetName, job.Encoding.AudioBitrateKbps);
+            job.Encoding.Profile, job.Encoding.Encoder, job.Encoding.Quality, job.Encoding.Preset, job.Encoding.RateControl,
+            job.Encoding.AudioBitrateKbps);
         try
         {
             progress?.Report(new ExportProgress(ExportStage.Preparing, 0, 1));
             await ExportTransitionSourceCheck.RunAsync(job.Snapshot, output, _videoDecoder, new ExportDecodeSettings(), ct);
-            using var rasterizer = _rasterizerFactory() ?? throw new InvalidOperationException("The rasterizer factory returned null.");
-            await using var encoding = await _encoder.StartAsync(output, job.Encoding, job.OutputPath, ct);
 
-            await WriteAudioAsync(job, encoding, progress, ct);
-            await WriteVideoAsync(job, rasterizer, encoding, progress, ct);
-
-            progress?.Report(new ExportProgress(ExportStage.Finalizing, 0, 1));
-            await encoding.CompleteAsync(ct);
-            progress?.Report(new ExportProgress(ExportStage.Finalizing, 1, 1));
+            // D059 §3: a hardware encoder that fails (at its start or in the middle) never leaves a partial file — the
+            // encoding is abandoned like any failure and the export starts again with libx264 of the same profile. A second
+            // failure (libx264) propagates.
+            var encoding = job.Encoding;
+            string? fallback = null;
+            while (true)
+            {
+                var attempt = new Attempt();
+                try
+                {
+                    await RunOnceAsync(job, encoding, fallback, attempt, progress, ct);
+                    break;
+                }
+                catch (ExportException ex) when (attempt.Hardware && !ct.IsCancellationRequested &&
+                                                  ex.Failure is ExportFailure.EncodeFailed or ExportFailure.EncoderUnavailable)
+                {
+                    _logger.LogWarning(ex, "The hardware encoder failed ({Encoder}); the export starts again with libx264.", attempt.Description);
+                    fallback = ex.Message;
+                    encoding = encoding.WithLibx264();
+                }
+            }
         }
         catch (OperationCanceledException)
         {
@@ -93,7 +111,53 @@ public sealed class ExportService : IExportService
             _logger.LogError(ex, "Export failed after {Elapsed}: {Path}", watch.Elapsed, job.OutputPath);
             throw;
         }
-        _logger.LogInformation("Export finished in {Elapsed}: {Path}", watch.Elapsed, job.OutputPath);
+        _logger.LogInformation("Export finished in {Elapsed} ({Fps:0.0} fps over the whole export): {Path}", watch.Elapsed,
+            output.FrameCount / Math.Max(0.001, watch.Elapsed.TotalSeconds), job.OutputPath);
+    }
+
+    /// <summary>What one attempt used (read by the fallback rule).</summary>
+    private sealed class Attempt
+    {
+        public bool Hardware;
+        public string? Description;
+    }
+
+    private async Task RunOnceAsync(ExportJob job, ExportEncoding settings, string? fallback, Attempt attempt,
+        IProgress<ExportProgress>? progress, CancellationToken ct)
+    {
+        var output = job.Output;
+        var (count, queued) = _pipeline.Resolve(output, job.Snapshot.VideoLayers.Length,
+            hardwareEncoder: settings.Encoder == ExportVideoEncoder.Nvenc);
+        var rasterizers = new List<ICompositionRasterizer>(count);
+        try
+        {
+            for (var i = 0; i < count; i++)
+                rasterizers.Add(_rasterizerFactory() ?? throw new InvalidOperationException("The rasterizer factory returned null."));
+            await using var encoding = await _encoder.StartAsync(output, settings, job.OutputPath, ct);
+            attempt.Hardware = encoding.IsHardware;
+            attempt.Description = encoding.EncoderDescription;
+            _logger.LogInformation("Export pipeline: {Rasterizers} rasterizers, {Queued} queued frames; video encoder {Encoder}.",
+                count, queued, encoding.EncoderDescription);
+            var noted = progress is null ? null
+                : new EncoderNote(progress, encoding.EncoderDescription, fallback ?? encoding.FallbackReason);
+
+            await WriteAudioAsync(job, encoding, progress, ct);
+            await WriteVideoAsync(job, rasterizers, queued, encoding, noted, ct);
+
+            noted?.Report(new ExportProgress(ExportStage.Finalizing, 0, 1));
+            await encoding.CompleteAsync(ct);
+            noted?.Report(new ExportProgress(ExportStage.Finalizing, 1, 1));
+        }
+        finally
+        {
+            foreach (var rasterizer in rasterizers) rasterizer.Dispose();
+        }
+    }
+
+    /// <summary>Adds the encoder actually used (and a fallback's reason) to the reports of the video stage and later.</summary>
+    private sealed class EncoderNote(IProgress<ExportProgress> inner, string encoder, string? fallback) : IProgress<ExportProgress>
+    {
+        public void Report(ExportProgress value) => inner.Report(value with { Encoder = encoder, Fallback = fallback });
     }
 
     private async Task WriteAudioAsync(ExportJob job, IExportEncoding encoding, IProgress<ExportProgress>? progress, CancellationToken ct)
@@ -112,44 +176,12 @@ public sealed class ExportService : IExportService
         }
     }
 
-    private async Task WriteVideoAsync(ExportJob job, ICompositionRasterizer rasterizer, IExportEncoding encoding,
+    private async Task WriteVideoAsync(ExportJob job, IReadOnlyList<ICompositionRasterizer> rasterizers, int queued, IExportEncoding encoding,
         IProgress<ExportProgress>? progress, CancellationToken ct)
     {
-        var total = job.Output.FrameCount;
-        var size = job.Output.Size;
-        var stride = size.Width * 4;
-        var canvas = new byte[(long)stride * size.Height];
-        progress?.Report(new ExportProgress(ExportStage.Video, 0, total));
+        // D059 E2 (replaces D024 Step 9.7 "A", one frame fetched ahead): decoders → bounded queue → the rasterizers in
+        // parallel → the encoder in frame order. The frame source is disposed only after every stage has ended.
         await using var frames = new ExportFrameSource(job.Snapshot, _videoDecoder, output: job.Output);
-
-        // Frame n + 1 is fetched (decoded) while frame n is rasterized and handed to the encoder (D024 Step 9.7, A):
-        // one frame ahead, never more — at most two output frames are in flight. The requests stay in ascending order,
-        // one at a time; what is drawn and written, and in which order, is unchanged.
-        using var ahead = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        Task<ExportFrame>? next = null;
-        try
-        {
-            next = frames.GetFrameAsync(0, ahead.Token);
-            for (long n = 0; n < total; n++)
-            {
-                ct.ThrowIfCancellationRequested();
-                var frame = await next!;                     // set for every n < total
-                next = n + 1 < total ? frames.GetFrameAsync(n + 1, ahead.Token) : null;
-                rasterizer.Render(frame.DrawPlan(), canvas, stride, ct);
-                await encoding.WriteFrameAsync(canvas, stride, ct);
-                progress?.Report(new ExportProgress(ExportStage.Video, n + 1, total));
-            }
-        }
-        finally
-        {
-            // Leaving early (cancelled, a failure): the fetch ahead is stopped and awaited before the frame source
-            // disposes the readers it may still be using. Its own outcome no longer matters.
-            if (next is not null)
-            {
-                ahead.Cancel();
-                try { await next; }
-                catch (Exception) { /* the export is already ending for another reason */ }
-            }
-        }
+        await new ExportVideoPipeline(frames, rasterizers, encoding, job.Output, queued, _logger).RunAsync(progress, ct);
     }
 }

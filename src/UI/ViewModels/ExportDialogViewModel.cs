@@ -11,10 +11,13 @@ using CommunityToolkit.Mvvm.Input;
 namespace AiVideoEditor.UI.ViewModels;
 
 /// <summary>
-/// What the export dialog decided. Only the output file for now; the export's own settings (quality, speed, encoder) are
-/// meant to join this record later, so the workflow already takes its job from it and not from a bare path.
+/// What the export dialog decided: the output file and (D059 §4) the export settings — the profile, the encoder and the
+/// «Пользовательский» fields; null = the project's settings unchanged.
 /// </summary>
-public sealed record ExportDialogResult(string OutputPath);
+public sealed record ExportDialogResult(string OutputPath)
+{
+    public ExportEncoding? Encoding { get; init; }
+}
 
 /// <summary>
 /// The owner's acceptance of 2026-11-10 (Phase 38): the main «Экспорт» opens one dialog — the output folder and file name
@@ -29,10 +32,14 @@ public sealed partial class ExportDialogViewModel : ViewModelBase
     /// <param name="output">The output's format (<see cref="ExportOutput.For"/>).</param>
     /// <param name="suggestedPath">The path offered first (the last export's, else the project's folder and name).</param>
     /// <param name="browse">Opens the save-file picker at (folder, name); returns the chosen path or null.</param>
+    /// <param name="encoding">The project's export settings (D059 §4), shown in the settings editor; null = the default.</param>
+    /// <param name="encoders">Which encoders work here (NVENC offered only when confirmed); null = libx264 only.</param>
     public ExportDialogViewModel(Sequence sequence, FrameRate rate, ExportOutput output, string suggestedPath,
-        ExportRange? range = null, Func<string, string, Task<string?>>? browse = null)
+        ExportRange? range = null, Func<string, string, Task<string?>>? browse = null, ExportEncoding? encoding = null,
+        ExportEncoderAvailability? encoders = null)
     {
         _browse = browse;
+        Settings = new ExportEncodingEditorViewModel(encoding ?? ExportEncoding.Default, encoders, output);
         IsRange = range is not null;
         Timestamps = range is { } r
             ? YouTubeTimestamps.Text(sequence, rate, MediaTime.FromFrame(r.FirstFrame, rate), MediaTime.FromFrame(r.EndFrame, rate))
@@ -44,6 +51,9 @@ public sealed partial class ExportDialogViewModel : ViewModelBase
     }
 
     public string Info { get; }
+
+    /// <summary>The export settings (D059 §4) with the expected file size of the output.</summary>
+    public ExportEncodingEditorViewModel Settings { get; }
 
     public bool IsRange { get; }
 
@@ -114,7 +124,7 @@ public sealed partial class ExportDialogViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanExport))]
     private void Export()
     {
-        if (OutputPath is { } path) Closed?.Invoke(this, new ExportDialogResult(path));
+        if (OutputPath is { } path) Closed?.Invoke(this, new ExportDialogResult(path) { Encoding = Settings.Value });
     }
 
     [RelayCommand]

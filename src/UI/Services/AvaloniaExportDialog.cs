@@ -22,7 +22,7 @@ public sealed class AvaloniaExportDialog : IExportDialog
             return null;
         var window = new Window
         {
-            Title = Strings.ExportDialog_Title, Width = 520, Height = 440, MinWidth = 400, MinHeight = 340, ShowInTaskbar = false,
+            Title = Strings.ExportDialog_Title, Width = 620, Height = 700, MinWidth = 480, MinHeight = 560, ShowInTaskbar = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, Content = new ExportDialogView { DataContext = dialog }
         };
         ExportDialogResult? result = null;

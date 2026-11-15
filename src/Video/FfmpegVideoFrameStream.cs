@@ -11,6 +11,10 @@ namespace AiVideoEditor.Video;
 /// <c>i</c> on stdout is paired with the <c>i</c>-th showinfo frame line: showinfo is the
 /// last filter and <c>-fps_mode passthrough</c> makes ffmpeg write every filtered frame
 /// exactly once, in order.
+/// <para>
+/// D059 E1: with a <see cref="FramePipe"/> the frames come through that pipe instead of stdout (the export's
+/// full-resolution frames); everything else — the pairing with showinfo, the end and failure rules — is the same.
+/// </para>
 /// </summary>
 internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
 {
@@ -19,19 +23,27 @@ internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
     private readonly TimeSpan _frameTimeout;
     private readonly ILogger _logger;
     private readonly bool _strictEnd;
+    private readonly FramePipe? _pipe;
 
+    private Stream? _input;
     private DecodedFrame? _pushedBack;
     private long _delivered;
     private bool _disposed;
 
-    private FfmpegVideoFrameStream(FfmpegProcess process, Channel<ShowInfoFrame> frames, TimeSpan frameTimeout, ILogger logger, bool strictEnd)
+    private FfmpegVideoFrameStream(FfmpegProcess process, Channel<ShowInfoFrame> frames, TimeSpan frameTimeout, ILogger logger, bool strictEnd,
+        FramePipe? pipe)
     {
         _strictEnd = strictEnd;
         _process = process;
         _frames = frames;
         _frameTimeout = frameTimeout;
         _logger = logger;
+        _pipe = pipe;
+        if (pipe is null) _input = process.Stdout;
     }
+
+    /// <summary>Whether the frames come through a <see cref="FramePipe"/> (diagnostics/tests).</summary>
+    internal bool UsesPipe => _pipe is not null;
 
     /// <summary>ffmpeg processes started and not yet disposed, video and audio (diagnostics/tests).</summary>
     internal static int LiveProcesses => FfmpegProcess.LiveProcesses;
@@ -44,8 +56,10 @@ internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
 
     /// <param name="strictEnd"><see cref="VideoDecodeRequest.StrictEnd"/>: a failed ffmpeg is an error at any end of
     /// the stream, not only when it delivered no frame.</param>
+    /// <param name="pipe">The pipe the arguments name as ffmpeg's output (D059 E1), or null for stdout. The stream owns
+    /// it from here on, also when the start fails.</param>
     public static FfmpegVideoFrameStream Start(string ffmpegPath, IReadOnlyList<string> arguments, TimeSpan frameTimeout, ILogger logger,
-        bool strictEnd = false)
+        bool strictEnd = false, FramePipe? pipe = null)
     {
         var frames = Channel.CreateUnbounded<ShowInfoFrame>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
         var parser = new ShowInfoParser();
@@ -64,10 +78,11 @@ internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
         }
         catch (Exception ex)
         {
+            pipe?.Dispose();
             throw new VideoDecodeException(VideoDecodeError.DecoderUnavailable, "ffmpeg could not be started.", ex);
         }
 
-        return new FfmpegVideoFrameStream(process, frames, frameTimeout, logger, strictEnd) { Arguments = arguments };
+        return new FfmpegVideoFrameStream(process, frames, frameTimeout, logger, strictEnd, pipe) { Arguments = arguments };
     }
 
     /// <summary>Makes <paramref name="frame"/> the next frame returned (used after the
@@ -95,15 +110,23 @@ internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
 
                 var info = await _frames.Reader.ReadAsync(linked.Token);
                 var stride = info.Width * DecodedFrame.BytesPerPixel;
-                var buffer = new byte[(long)stride * info.Height];
+                // Filled completely below before anyone sees it: no need to zero 32 MB per 4K frame first (D059 E6).
+                var buffer = GC.AllocateUninitializedArray<byte>(checked(stride * info.Height));
                 try
                 {
-                    await _process.Stdout.ReadExactlyAsync(buffer, linked.Token);
+                    var input = _input ??= await _pipe!.ConnectedAsync(_process.WaitForExitAsync(CancellationToken.None), linked.Token);
+                    await input.ReadExactlyAsync(buffer, linked.Token);
                 }
                 catch (EndOfStreamException ex)
                 {
                     throw new VideoDecodeException(VideoDecodeError.DecoderFailed,
                         $"ffmpeg output ended in the middle of frame {info.Index}. {_process.StderrTail()}", ex);
+                }
+                catch (IOException ex) when (_pipe is not null)
+                {
+                    // The pipe broke (ffmpeg ended or never opened it) before the frame was complete.
+                    throw new VideoDecodeException(VideoDecodeError.DecoderFailed,
+                        $"ffmpeg's frame pipe ended in the middle of frame {info.Index} ({ex.Message}). {_process.StderrTail()}", ex);
                 }
 
                 if (info.Pts is not { } pts)
@@ -144,6 +167,7 @@ internal sealed class FfmpegVideoFrameStream : IVideoFrameStream
     {
         if (_disposed) return;
         _disposed = true;
-        await _process.DisposeAsync();
+        await _process.DisposeAsync();   // ffmpeg ends first: nothing writes into the pipe any more
+        _pipe?.Dispose();
     }
 }

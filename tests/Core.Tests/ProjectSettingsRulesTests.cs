@@ -144,7 +144,9 @@ public class ProjectSettingsRulesTests
     [Fact]
     public void Export_settings_compare_by_value()
     {
-        Assert.Equal(ExportEncoding.Default, new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192));
+        Assert.Equal(ExportEncoding.Default, new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192) { Profile = ExportProfile.Balanced });
+        // D059: «Пользовательский» with the D028 default values is another setting (the same output, a different profile).
+        Assert.NotEqual(ExportEncoding.Default, new ExportEncoding(ExportQuality.High, ExportSpeedPreset.Medium, 192));
         Assert.NotEqual(ExportEncoding.Default, ExportEncoding.Default with { AudioBitrateKbps = 256 });
     }
 }

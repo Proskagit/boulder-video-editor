@@ -3014,4 +3014,121 @@
   <data name="Inspector_RecordingStartRoutesOnly" xml:space="preserve">
     <value>Начало записи уточняет только границы трасс; пульс идёт по времени файла видео.</value>
   </data>
+  <data name="ExportProfile_Label" xml:space="preserve">
+    <value>Профиль</value>
+  </data>
+  <data name="ExportProfile_Fast" xml:space="preserve">
+    <value>Быстрый</value>
+  </data>
+  <data name="ExportProfile_FastDetail" xml:space="preserve">
+    <value>приоритет — скорость, файл крупнее</value>
+  </data>
+  <data name="ExportProfile_Balanced" xml:space="preserve">
+    <value>Сбалансированный</value>
+  </data>
+  <data name="ExportProfile_BalancedDetail" xml:space="preserve">
+    <value>по умолчанию: качество и размер как раньше</value>
+  </data>
+  <data name="ExportProfile_HighQuality" xml:space="preserve">
+    <value>Высокое качество</value>
+  </data>
+  <data name="ExportProfile_HighQualityDetail" xml:space="preserve">
+    <value>меньше артефактов, экспорт дольше</value>
+  </data>
+  <data name="ExportProfile_Custom" xml:space="preserve">
+    <value>Пользовательский</value>
+  </data>
+  <data name="ExportProfile_CustomDetail" xml:space="preserve">
+    <value>кодировщик, качество, скорость и битрейт вручную</value>
+  </data>
+  <data name="ExportEncoder_Label" xml:space="preserve">
+    <value>Кодировщик</value>
+  </data>
+  <data name="ExportEncoder_Nvenc" xml:space="preserve">
+    <value>NVIDIA NVENC</value>
+  </data>
+  <data name="ExportEncoder_NvencDetail" xml:space="preserve">
+    <value>аппаратное кодирование на видеокарте NVIDIA — обычно быстрее</value>
+  </data>
+  <data name="ExportEncoder_NvencUnavailable" xml:space="preserve">
+    <value>NVIDIA NVENC (недоступен на этом компьютере)</value>
+  </data>
+  <data name="ExportEncoder_X264" xml:space="preserve">
+    <value>libx264</value>
+  </data>
+  <data name="ExportEncoder_X264Detail" xml:space="preserve">
+    <value>программное кодирование на процессоре — обычно медленнее, со своим профилем качества</value>
+  </data>
+  <data name="ExportEncoder_Both" xml:space="preserve">
+    <value>Оба кодировщика работают через FFmpeg; формат всегда MP4 · H.264 · AAC.</value>
+  </data>
+  <data name="ExportEncoder_Unavailable" xml:space="preserve">
+    <value>NVENC не может быть использован ({0}) — кодировать будет libx264 с тем же профилем.</value>
+  </data>
+  <data name="ExportEncoder_TooLarge" xml:space="preserve">
+    <value>NVENC кодирует кадры не больше {0} пикселей</value>
+  </data>
+  <data name="ExportEncoder_NotFound" xml:space="preserve">
+    <value>аппаратный кодировщик NVIDIA не найден</value>
+  </data>
+  <data name="ExportRate_Label" xml:space="preserve">
+    <value>Режим битрейта</value>
+  </data>
+  <data name="ExportRate_Quality" xml:space="preserve">
+    <value>Постоянное качество</value>
+  </data>
+  <data name="ExportRate_QualityDetail" xml:space="preserve">
+    <value>размер зависит от изображения</value>
+  </data>
+  <data name="ExportRate_Bitrate" xml:space="preserve">
+    <value>Средний битрейт</value>
+  </data>
+  <data name="ExportRate_BitrateDetail" xml:space="preserve">
+    <value>размер зависит от длительности</value>
+  </data>
+  <data name="ExportVideoBitrate_Label" xml:space="preserve">
+    <value>Битрейт видео</value>
+  </data>
+  <data name="ExportEstimate" xml:space="preserve">
+    <value>Ожидаемый размер: примерно {0} – {1} (оценка: при постоянном качестве размер зависит от изображения).</value>
+  </data>
+  <data name="ExportEstimate_Bitrate" xml:space="preserve">
+    <value>Ожидаемый размер: около {0} (оценка, ±7 %).</value>
+  </data>
+  <data name="Size_MB" xml:space="preserve">
+    <value>{0} МБ</value>
+  </data>
+  <data name="Size_GB" xml:space="preserve">
+    <value>{0} ГБ</value>
+  </data>
+  <data name="ExportPlan" xml:space="preserve">
+    <value>Параметры: {0}</value>
+  </data>
+  <data name="ExportSpeed_Nvenc" xml:space="preserve">
+    <value>Обычно быстрее всего: кодирует видеокарта, процессор только рисует кадры.</value>
+  </data>
+  <data name="ExportSpeed_X264Fast" xml:space="preserve">
+    <value>Быстрый пресет: экспорт быстрее, качество на бит немного ниже.</value>
+  </data>
+  <data name="ExportSpeed_X264" xml:space="preserve">
+    <value>Процессор и рисует, и кодирует кадры.</value>
+  </data>
+  <data name="ExportSpeed_X264Slow" xml:space="preserve">
+    <value>Медленный пресет: самый долгий экспорт, лучшее качество на бит.</value>
+  </data>
+  <data name="Export_EncoderLine" xml:space="preserve">
+    <value>Кодировщик: {0}</value>
+  </data>
+  <data name="Export_FallbackLine" xml:space="preserve">
+    <value>NVENC: {0} Вместо него используется libx264.</value>
+  </data>
+  <data name="Export_SpeedLine" xml:space="preserve">
+    <value>{0} кадр/с · прошло {1} · осталось ≈ {2}</value>
+  </data>
+  <data name="Export_ElapsedLine" xml:space="preserve">
+    <value>прошло {0}</value>
+  </data>
+  <data name="Export_SucceededFallback" xml:space="preserve">
+    <value>Экспортировано в {0}. NVENC дал сбой ({1}); видео закодировано через libx264.</value>
+  </data>
 </root>
