@@ -9945,6 +9945,126 @@ Preview change.
 
 ---
 
+## D060 — Phase 41: Export UX — an independent project snapshot, resolution presets, the export in the background *(set by the owner's task of 2026-11-16; implemented 2026-11-16)*
+
+Date: 2026-11-16. **Status: the scope set by the product owner on 2026-11-16** after the manual check of Phase 40 (passed);
+implemented in Phase 41 (branch `feat/phase-41-export-ux`). Continues **D059** and keeps all of it (the transport, the bounded
+pipeline, NVENC with the libx264 fallback, the profiles, the calibration, the size estimate). **Amends D023** ("editing is
+locked while exporting"; "the output size is the canvas"), **D028** §1 (the output size) and **D059** §4 (the progress window
+is modal). `project.json` unchanged (v19): one new optional field in `settings.export`.
+
+### 1. Pre-flight findings (what the code already did)
+
+- `ExportPreflight.Check` built the job's `PlaybackSnapshot` on the UI thread, and the export service reads only the job. The
+  snapshot holds only immutable values — records and record structs (`VisualProperties`, `TextProperties`,
+  `TemplateProperties`, `HoldOutline`, `HeartRateBinding`…), immutable arrays and dictionaries, the immutable
+  `CameraMotionTrack` and the init-only `ClimbingWorkout` — and **no reference to a clip, a track, the settings or the
+  project**. So it already was an independent copy; nothing had to be rebuilt. What made it look dependent was the **editing
+  lock** of D023, which blocked the editor for the whole export.
+- Not covered: the **source files** on disk (the snapshot names them by path); the progress window was **modal**; nothing
+  stopped closing the app during an export from ending ffmpeg mid-way (the window's close only cancelled); an app that died
+  left its ffmpeg processes running; the output size was always the canvas.
+
+### 2. The export's own snapshot of the project
+
+- The job (`ExportJob`: snapshot, output path, encoding, range, output) is the export's copy of the project, made when the user
+  confirms the export dialog. **No editing lock any more**: while it runs the user edits the timeline, clips, composition,
+  overlays, effects, the project settings, saves, even opens another project — none of it reaches the job. Guarded by tests
+  that change everything after the job was made and compare the whole snapshot (serialized) and the composition of every frame
+  (`ExportSnapshotIsolationTests`), and by the workflow test that edits during an export.
+- **Source files** — `ExportMediaLease` (Export): while the export runs, every source file of the snapshot is held open with
+  read access, sharing reads only. Reading stays possible (the export's decoders, the Preview, thumbnails, analysis); deleting,
+  moving, renaming or overwriting fails — in the app and in any other program. Nothing is copied, whatever the size. A relink or
+  a removal from the project after the start changes nothing (the snapshot keeps the paths of the start). Best effort, never a
+  new failure: a file already gone or locked by another program is left out and logged; reading it fails the export as before
+  (`DecodeFailed`, no partial file). Released when the export ends.
+- **Unsaved changes.** If the project has unsaved changes when «Экспорт» is pressed: «Несохранённые изменения — Сохранить и
+  экспортировать / Отмена». The first saves (Save As for a project never saved) and goes on; a save that fails or is cancelled,
+  or «Отмена», exports nothing. Edited again during the save — asked again. A clean project: no question. The snapshot is taken
+  after the export dialog, so it is the saved project plus, at most, the export settings chosen in the dialog (D059 §4: they
+  become the project's, one undoable step) — those are encoding settings, not content.
+- **Which version is exported** is said in the progress window: «Экспортируется «Name» в состоянии на 14:32:05 (сохранён) ·
+  1920 × 1080», with «сохранён; изменены параметры экспорта» when the dialog changed them, and the note that later changes
+  don't reach the export.
+
+### 3. The export resolution
+
+- A new choice in the export dialog, **«Разрешение»**: 4K UHD / Full HD / HD / SD, each with its size; no free width / height.
+  The canvas and the project settings never change; the composition is laid out on the canvas exactly as before and the
+  overlays keep their places relative to it.
+- **Sizes** (`ExportResolutions`, Core): a preset fixes the **short side** (2160 / 1080 / 720 / 480); the long side keeps the
+  canvas's aspect ratio, rounded to the nearest even number, a half up (the rule of `ProjectSettingsRules.SuggestedCanvas`).
+  16:9 → 3840 × 2160, 1920 × 1080, 1280 × 720, 854 × 480; 9:16 → the same standing (Full HD 1080 × 1920); 1:1 → 1080 × 1080;
+  4:3 HD → 960 × 720. A size beyond 4096 px a side or the H.264 level 5.1 area (the canvas limits, which both encoders accept)
+  is reduced, the ratio kept (a 64:27 4K is 4096 × 1728). Every preset of every valid canvas passes `CanvasError` (tested).
+- **Default.** The project's stored choice; none stored — the preset of exactly the canvas's size (selected automatically),
+  else «Как в проекте — W × H», offered first only when the canvas is no preset's size (e.g. 2560 × 1440). So an export without
+  a choice is exactly the earlier output.
+- **Rendering — no second renderer.** The frame is drawn directly at the output size by the same painter and rasterizer: the
+  draw plan maps the canvas onto the output (`CompositionDrawPlan.Stretch`, each axis by its own factor, `TargetSize`), as the
+  Preview draws the canvas at its control's size. Downscaling therefore also renders fewer pixels (faster); upscaling draws text,
+  outlines and templates sharp at the output size. The even rounding changes the ratio by less than one pixel of the long side
+  (854 × 480 is 16:9 within 0.08 %), so the stretch fills the output exactly — no border, nothing cropped, no visible distortion.
+  The canvas's own size gives the identity mapping: the same bytes as before (tested: rasterizer and end to end). The VHS
+  treatment, the blurred background and the outlines are already relative to the drawn size.
+- Decoding is unchanged (full resolution, D059); the encoder, the pipeline's memory bound, the NVENC size limit and the size
+  estimate use the output size. Both encoders and every profile are unaffected otherwise.
+- **Saved** as `settings.export.resolution` (`"Uhd4K"`, `"FullHd"`, `"Hd"`, `"Sd"`), only when it is not the canvas; a preset of
+  exactly the canvas's size is stored as the canvas (nothing written, a later canvas change followed). Absent — every earlier
+  file — is the canvas. An unknown name is a damaged file (EX-4). Not shown in the project settings, which keep the value.
+
+### 4. Not in Phase 41: «Кодек и пресет» (the owner's decision of 2026-11-16)
+
+The owner asked whether «Скорость кодирования» could become a codec chooser as in CapCut. It is the H.264 encoder's preset
+(libx264 fast / medium / slow, NVENC p3 / p5 / p7 — faster means a larger file at the same quality), not a codec; CapCut's
+«Кодек» chooses H.264 / HEVC / AV1, which D059 deferred (E5). **Decision: left as it is in Phase 41**; recorded for later as
+«Кодек и пресет» — a codec chooser with the preset folded into it, together with a rework of the export dialog's preview of
+the output (ROADMAP, Future / Backlog).
+
+### 5. The export in the background
+
+- The detailed window (`AvaloniaExportProgressDialog`) is **not modal**: owned by the main window (stays above it) but the
+  editor is fully usable. Its title-bar close, Alt+F4 and «Свернуть» **hide** it — the export goes on; «Отменить экспорт»
+  cancels as before. Its bar is the progress of the **whole** export (audio 0–3 %, video 3–99 %, writing the file the rest).
+- **The compact indicator** in the status bar while an export runs: a progress bar, «Экспорт 42 %» and ✕. A click opens the
+  detailed window with the current state; ✕ asks «Отменить экспорт?» first (a small target). «Экспорт» (button, Ctrl+E) during
+  an export also opens that window — one export at a time, one window, one indicator. The export dialog (folder, name,
+  resolution, profile) stays modal: it is the choice before the start.
+- **Closing the app during an export**: «Идёт экспорт — Продолжить экспорт / Отменить экспорт и закрыть». The first keeps the
+  window open. The second asks about unsaved changes next (Cancel there keeps the app open **and the export running**); then the
+  export is cancelled **and waited for** — ffmpeg ended, its temporary files deleted, an existing output file left as it was —
+  before the window closes.
+- **No orphan ffmpeg in any case**: every ffmpeg the app starts through `FfmpegProcess` is assigned to one Windows job object
+  with *kill on job close* (`ChildProcessJob`), so the system ends them when the app's process ends — also after a crash or the
+  task manager. A system that refuses the job leaves the processes as before (the app's own disposal ends them).
+
+### 6. Unchanged
+
+D059's performance path (the bounded pipeline, K, ordered writing, the transport), NVENC detection, the libx264 fallback and
+retry, the profiles, the calibration, the size estimate's model, Preview / export parity, audio sync, the duration, cancellation
+without a partial file, the progress window's speed / time left / encoder, the In / Out range question, the preflight.
+Old projects open and export unchanged; `project.json` v19.
+
+### 7. Verification
+
+Tests: the presets' sizes and limits (`ExportResolutionsTests`), the isolation of the job (`ExportSnapshotIsolationTests`), the
+lease (`ExportMediaLeaseTests`), the rasterizer at another size (`ExportResolutionRenderingTests`), the job object
+(`ChildProcessJobTests`), the dialog (`ExportResolutionDialogTests`), the workflow — background editing, unsaved changes,
+resolution, cancel-and-wait (`ExportWorkflowTests`) —, closing and the indicator (`ExportBackgroundCloseTests`), persistence,
+and end to end (`ExportResolutionEndToEndTests`: SD and HD files, the canvas size byte for byte, a source not deletable during
+the export). Manual plan: `docs/PHASE41_MANUAL_TEST_PLAN.md`.
+
+Gates (2026-11-16): Debug and Release `--no-incremental -warnaserror` 0 errors / 0 warnings; Release: every suite green —
+5 822 passed, 4 skipped (the allowed ones), 0 failed; `AIVE_HEAVY_TESTS=1` ExportEndToEnd 187 / 0 / 0; `git diff --check` clean.
+Debug full runs: green apart from timing-sensitive tests that failed once each under the parallel load of the whole suite and
+pass alone 5 / 5 (Phase 40's `ExportServiceTests` deadlock / decode-failure tests with fakes, `TrainingLifecycleTests`,
+`WasapiAudioOutputDeviceTests`; a different one each run, none touched by Phase 41). Benchmark (`tools/export-bench`, 3 × 600
+frames): 4K libx264 30.9 fps (Phase 40: 30.7), MP4 SHA-256 5F56C445F6AE… identical to the pre-D059 baseline and Phase 40;
+NVENC «Быстрый» 47.3 fps (46.6); the 4K project exported at Full HD 63.3 fps. Phase review (phase-reviewer): FAIL on a race of
+the indicator's cancel after the export's end and on missing gate evidence — both fixed (the cancel is harmless after the end and
+re-checked, tests added; this record); its notes taken too (the failure message's names from the start, no result dialog while
+closing, a weak test removed, a manual row for outlined text + Save As).
+
 ## How to add a decision
 
 When a major architectural decision is made, add:

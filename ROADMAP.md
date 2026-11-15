@@ -84,7 +84,15 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 
 ## Current
 
-**Phase 40 — Export Performance (DECISIONS.md D059, 2026-11-10) — implemented, the owner's check open.** The export's frames
+**Phase 41 — Export UX, Resolution Presets & Project Snapshot Isolation (DECISIONS.md D060, 2026-11-16) — implemented, the
+owner's check open.** The export runs in the background: the editor stays usable (the job is its own independent snapshot of
+the project; the source files are held so they can't be deleted or overwritten meanwhile), the progress window is not modal and
+hides into a compact indicator in the status bar, closing the app asks and cancels cleanly, no ffmpeg ever outlives the app.
+Unsaved changes are saved first («Сохранить и экспортировать» / «Отмена»). The export resolution: 4K UHD / Full HD / HD / SD at
+the canvas's aspect ratio, without changing the canvas. Phase 40's speed unchanged. Manual plan:
+`docs/PHASE41_MANUAL_TEST_PLAN.md`.
+
+**Phase 40 — Export Performance (DECISIONS.md D059, 2026-11-10) — implemented; the owner's manual check passed (2026-11-16).** The export's frames
 over a named pipe, a bounded pipeline of parallel rasterizers, NVIDIA NVENC H.264 with the libx264 fallback, the profiles
 «Быстрый» / «Сбалансированный» / «Высокое качество» / «Пользовательский» with the expected file size. 4K60 ×2.55 (libx264, the
 same bytes) / ×3.9 (NVENC); 1080p and vertical ×4.7–5.6. Results: `docs/EXPORT_PERFORMANCE.md`. HEVC / AV1 and NVENC in S1 not
@@ -654,6 +662,12 @@ takes the vertical-video export.
   rate and with the heart rate shifted by about −60 s; compare them; judge how close the peak comes to the end of the climb
   and whether the dynamics elsewhere and between climbs look wrong. If it works, decide separately: a fixed or adjustable
   shift, where it applies, Preview and export, and how it is marked as a display correction, not the FIT's time.
+- **FU-EX.1 — «Кодек и пресет» instead of «Скорость кодирования» (the product owner, 2026-11-16; D060 §4)** — *Future /
+  Backlog: not planned, not implemented.* «Скорость кодирования» is the H.264 preset (libx264 fast / medium / slow, NVENC p3 /
+  p5 / p7 — faster, a larger file), which users read as unclear. Proposed: a «Кодек» chooser in the style of CapCut — each
+  choice with a two-line description — that folds the preset in (H.264, later HEVC / AV1 of D059 E5 with their calibration and
+  compatibility notes), together with a rework of the export dialog's preview of the output. Needs a product decision on the
+  codecs offered first.
 - **FU-UI.1 — The Inspector in collapsible sections, their state kept across clips (the product owner, 2026-11-09)** — *taken
   by Phase 38 (D057 §3.1).*
   *Future / Backlog: a UX optimisation, not planned, not implemented.* Today the Inspector is one long list and its scroll

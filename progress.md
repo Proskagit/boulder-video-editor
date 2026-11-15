@@ -2,7 +2,31 @@
 
 ## Current phase
 
-**Phase 40 — Export Performance (D059, 2026-11-10/11) — implemented on `feat/export-performance`, the owner's check open.**
+**Phase 41 — Export UX, Resolution Presets & Project Snapshot Isolation (D060, 2026-11-16) — implemented on
+`feat/phase-41-export-ux`, the owner's check open.** Pre-flight: the job's snapshot was already an immutable, independent copy
+(records, immutable collections, no reference to the live project); what blocked the user was D023's editing lock, now removed.
+Added: `ExportMediaLease` (the source files held open read-only, sharing reads: no delete / move / overwrite while exporting, no
+copies); «Сохранить и экспортировать» / «Отмена» for unsaved changes; the exported version («в состоянии на ЧЧ:ММ:СС
+(сохранён)») in the progress window; `ExportResolution` / `ExportResolutions` — 4K UHD / Full HD / HD / SD by the short side at
+the canvas's aspect ratio, even sides, H.264 limits, default the canvas's own preset or «Как в проекте», drawn directly at the
+output size through `CompositionDrawPlan.Stretch` / `TargetSize` (the canvas's size byte for byte as before), saved as the
+optional `settings.export.resolution`; the progress window non-modal (close / «Свернуть» hide it), the status bar's compact
+indicator (bar, «Экспорт NN %», ✕ with a question), «Экспорт» during an export opens its window, the close guard («Продолжить
+экспорт» / «Отменить экспорт и закрыть», then the unsaved question, then cancel-and-wait), every ffmpeg in a kill-on-close job
+object (`ChildProcessJob`). Deferred by the owner: «Кодек и пресет» (D060 §4, ROADMAP FU-EX.1). Manual plan:
+`docs/PHASE41_MANUAL_TEST_PLAN.md`.
+Gates (2026-11-16): Debug and Release `--no-incremental -warnaserror` 0 errors / 0 warnings; Release: every suite green —
+5 822 passed, 4 skipped (the allowed ones), 0 failed; `AIVE_HEAVY_TESTS=1` ExportEndToEnd 187 / 0 / 0; `git diff --check` clean.
+Debug full runs: green apart from timing-sensitive tests that failed once each under the parallel load of the whole suite and
+pass alone 5 / 5 (Phase 40's `ExportServiceTests` deadlock / decode-failure tests with fakes, `TrainingLifecycleTests`,
+`WasapiAudioOutputDeviceTests`; a different one each run, none touched by Phase 41). Benchmark (`tools/export-bench`, 3 × 600
+frames): 4K libx264 30.9 fps (Phase 40: 30.7), MP4 SHA-256 5F56C445F6AE… identical to the pre-D059 baseline and Phase 40;
+NVENC «Быстрый» 47.3 fps (46.6); the 4K project exported at Full HD 63.3 fps. Phase review (phase-reviewer): FAIL on a race of
+the indicator's cancel after the export's end and on missing gate evidence — both fixed (the cancel is harmless after the end and
+re-checked, tests added; this record); its notes taken too (the failure message's names from the start, no result dialog while
+closing, a weak test removed, a manual row for outlined text + Save As).
+
+**Phase 40 — Export Performance (D059, 2026-11-10/11) — merged (PR #66); the owner's manual check passed 2026-11-16.**
 E0 `tools/export-bench` (the baseline of `07252bf` built with `-p:DefineConstants=BASELINE`); E1 the export's frames over a
 named pipe (64 MB); E2 the bounded pipeline with K rasterizers (5 with libx264, 8 with NVENC here); E3 `ExportVideoPlan`,
 NVENC H.264 confirmed by a trial encoding, the libx264 fallback (before the start, and a failed NVENC export restarted with
