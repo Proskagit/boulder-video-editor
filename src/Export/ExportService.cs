@@ -74,6 +74,11 @@ public sealed class ExportService : IExportService
             job.OutputPath, output.Size.Width, output.Size.Height, output.FrameRate, output.FrameCount, output.AudioSampleCount,
             job.Encoding.Profile, job.Encoding.Encoder, job.Encoding.Quality, job.Encoding.Preset, job.Encoding.RateControl,
             job.Encoding.AudioBitrateKbps);
+        if (output.Size != job.Snapshot.Canvas)
+            _logger.LogInformation("Export resolution {Resolution}: the {CanvasWidth}×{CanvasHeight} canvas drawn at {Width}×{Height}.",
+                job.Encoding.Resolution, job.Snapshot.Canvas.Width, job.Snapshot.Canvas.Height, output.Size.Width, output.Size.Height);
+        // D060 §2: the source files stay as they are while this export reads them (no delete, move or overwrite).
+        using var lease = ExportMediaLease.Acquire(job.Snapshot, _logger);
         try
         {
             progress?.Report(new ExportProgress(ExportStage.Preparing, 0, 1));

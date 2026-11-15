@@ -20,6 +20,11 @@ namespace AiVideoEditor.UI.ViewModels;
 /// D059 §4: also the encoder actually used (and why libx264 encodes when NVENC was chosen), the elapsed time and, in the
 /// video stage, the current speed in frames per second (over the last few seconds) and the time left at that speed.
 /// </para>
+/// <para>
+/// D060 §5: the export runs in the background — the same view model feeds the detailed window and the compact indicator of
+/// the main window (<see cref="OverallPercent"/>, <see cref="CompactText"/>); <see cref="SnapshotText"/> says which version of
+/// the project is exported (the state taken when it started — later edits don't reach it).
+/// </para>
 /// </summary>
 public sealed partial class ExportProgressViewModel : ObservableObject, IProgress<ExportProgress>
 {
@@ -48,6 +53,19 @@ public sealed partial class ExportProgressViewModel : ObservableObject, IProgres
     [ObservableProperty] private string _speedText = "";
 
     public string OutputPath { get; }
+
+    /// <summary>"Экспортируется проект «…» в состоянии на 14:32:05 (сохранён) · 1920 × 1080"; empty when not given.</summary>
+    public string SnapshotText { get; init; } = "";
+
+    /// <summary>The whole export in percent (D060 §5): the audio stage the first <see cref="AudioShare"/> %, the video stage up
+    /// to 99 %, writing the file the rest — one bar that never runs twice.</summary>
+    [ObservableProperty] private double _overallPercent;
+
+    /// <summary>"Экспорт 42 %" — the compact indicator's text.</summary>
+    [ObservableProperty] private string _compactText = Strings.Export_CompactStarting;
+
+    /// <summary>The share of the audio stage in <see cref="OverallPercent"/>.</summary>
+    public const double AudioShare = 3;
 
     [ObservableProperty] private ExportStage? _stage;
     [ObservableProperty] private long _done;
@@ -86,6 +104,9 @@ public sealed partial class ExportProgressViewModel : ObservableObject, IProgres
         if (p.Fallback is { } fallback) Fallback = fallback;
         SpeedText = Speed(p);
         Percent = p.Total > 0 ? 100.0 * p.Done / p.Total : 0;
+        OverallPercent = Overall(p.Stage, Percent);
+        CompactText = IsCancelling ? Strings.Export_Cancelling
+            : string.Format(Strings.Export_CompactProgress, OverallPercent.ToString("0", System.Globalization.CultureInfo.CurrentCulture));
         if (!IsCancelling) StageText = StageName(p.Stage);
         DetailText = p.Stage switch
         {
@@ -110,6 +131,15 @@ public sealed partial class ExportProgressViewModel : ObservableObject, IProgres
         return string.Format(Strings.Export_SpeedLine, fps.ToString("0.0"), elapsed, left);
     }
 
+    /// <summary>The overall percentage of <paramref name="stage"/> at <paramref name="stagePercent"/>.</summary>
+    public static double Overall(ExportStage stage, double stagePercent) => stage switch
+    {
+        ExportStage.Preparing => 0,
+        ExportStage.Audio => AudioShare * stagePercent / 100,
+        ExportStage.Video => AudioShare + (99 - AudioShare) * stagePercent / 100,
+        _ => 99 + stagePercent / 100
+    };
+
     public static string StageName(ExportStage stage) => stage switch
     {
         ExportStage.Preparing => Strings.Export_StagePreparing,
@@ -125,6 +155,7 @@ public sealed partial class ExportProgressViewModel : ObservableObject, IProgres
         if (IsCancelling) return;
         IsCancelling = true;
         StageText = Strings.Export_Cancelling;
+        CompactText = Strings.Export_Cancelling;
         _cancel();
     }
 
