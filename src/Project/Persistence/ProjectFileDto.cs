@@ -158,6 +158,11 @@ internal sealed class ExportEncodingDto
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? VideoBitrateMbps { get; set; }
+
+    /// <summary>D060 §3 (optional, no format version change): the export resolution preset — an exact
+    /// <see cref="ExportResolution"/> name. Absent = the canvas, the output of every earlier version (which ignores it).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Resolution { get; set; }
 }
 
 internal sealed class MediaAssetDto

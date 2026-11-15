@@ -503,6 +503,7 @@ src/UI/ViewModels/Panels/ClipGroupViewModel.cs	Change Keyline (Group)
 src/Project/Persistence/ProjectSerializer.cs	export encoder
 src/Project/Persistence/ProjectSerializer.cs	export profile
 src/Project/Persistence/ProjectSerializer.cs	export rate control
+src/Project/Persistence/ProjectSerializer.cs	export resolution
 src/Video/FfmpegEncoderCapabilities.cs	ffmpeg did not finish within
 src/Video/FfmpegVideoFrameStream.cs	ffmpeg's frame pipe ended in the middle of frame {info.Index} ({ex.Message}). {_process.StderrTail()}
 src/Video/FramePipe.cs	ffmpeg ended without opening its frame pipe.

@@ -10,8 +10,18 @@ namespace AiVideoEditor.Export;
 /// decoded source frame chosen for this output frame (none for text).</summary>
 public sealed record ExportFrame(long Index, MediaTime Time, FrameSize Canvas, ImmutableArray<ResolvedLayer> Layers)
 {
-    /// <summary>The shared composition plan (D018/D023) at the canvas size — what the rasterizer draws.</summary>
-    public CompositionDrawPlan DrawPlan() => CompositionDrawPlan.Build(Canvas, Affine2D.Identity, Layers);
+    /// <summary>The output's pixel size (D060 §3): the canvas unless a resolution preset was chosen; default = the canvas.</summary>
+    public FrameSize Target { get; init; }
+
+    /// <summary>The shared composition plan (D018/D023) — what the rasterizer draws: at the canvas size, or (D060 §3) laid
+    /// out on the canvas and drawn onto the output's size through <see cref="CompositionDrawPlan.Stretch"/> — the Preview's
+    /// own way of drawing the canvas at another size, so no second renderer.</summary>
+    public CompositionDrawPlan DrawPlan()
+    {
+        var target = Target.IsValid ? Target : Canvas;
+        if (target == Canvas) return CompositionDrawPlan.Build(Canvas, Affine2D.Identity, Layers);
+        return CompositionDrawPlan.Build(Canvas, CompositionDrawPlan.Stretch(Canvas, target), Layers) with { TargetSize = target };
+    }
 }
 
 /// <summary>
@@ -35,6 +45,7 @@ public sealed class ExportFrameSource : IAsyncDisposable
     private readonly Dictionary<Guid, ExportPictureReader> _readers = new();
     private readonly Dictionary<Guid, ZonesOf> _zones;   // the clips a Dissolve or a Push extends (D025 §3–§4)
     private readonly long _firstFrame;
+    private readonly FrameSize _target;
     private long _lastIndex = -1;
     private bool _disposed;
 
@@ -48,6 +59,7 @@ public sealed class ExportFrameSource : IAsyncDisposable
         output ??= ExportOutput.For(snapshot);
         FrameCount = output.FrameCount;
         _firstFrame = output.FirstFrame;
+        _target = output.Size;
         _zones = ZonesByClip(snapshot);
     }
 
@@ -104,7 +116,7 @@ public sealed class ExportFrameSource : IAsyncDisposable
         var pictures = ImmutableArray.CreateBuilder<ResolvedLayer>(layers.Length);
         for (var i = 0; i < layers.Length; i++)
             pictures.Add(new ResolvedLayer(layers[i], frames[i]?.Result));
-        return new ExportFrame(index, time, _snapshot.Canvas, pictures.MoveToImmutable());
+        return new ExportFrame(index, time, _snapshot.Canvas, pictures.MoveToImmutable()) { Target = _target };
     }
 
     private ExportPictureReader Reader(PictureSpan span)

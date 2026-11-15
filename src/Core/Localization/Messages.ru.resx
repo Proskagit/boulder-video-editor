@@ -1333,4 +1333,7 @@
   <data name="Nvenc_NotAvailable" xml:space="preserve">
     <value>NVENC недоступен на этом компьютере</value>
   </data>
+  <data name="Encoding_Resolution" xml:space="preserve">
+    <value>Неизвестное разрешение экспорта.</value>
+  </data>
 </root>

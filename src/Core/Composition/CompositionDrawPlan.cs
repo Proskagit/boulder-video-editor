@@ -120,10 +120,24 @@ public sealed record OutlineDraw(Guid ClipId, Affine2D Transform, double Opacity
 /// is first filled with <see cref="Background"/> inside <see cref="CanvasBounds"/> (the canvas mapped by
 /// <see cref="CanvasToTarget"/>); every operation is then drawn bottom to top, clipped to
 /// <see cref="CanvasBounds"/>. The Preview maps the canvas into its control ("contain" viewport); the export
-/// draws at the canvas size (<see cref="Affine2D.Identity"/>).
+/// draws at the canvas size (<see cref="Affine2D.Identity"/>), or at a chosen resolution (D060 §3) through
+/// <see cref="Stretch"/> onto <see cref="TargetSize"/>.
 /// </summary>
 public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarget, RectD CanvasBounds, ImmutableArray<DrawOperation> Operations)
 {
+    /// <summary>The pixel size of the target the export draws into (D060 §3); null = the canvas size. The Preview leaves it
+    /// null (its target is its control).</summary>
+    public FrameSize? TargetSize { get; init; }
+
+    /// <summary>
+    /// The canvas mapped exactly onto a <paramref name="target"/> of (almost) its aspect ratio (D060 §3): each axis by its own
+    /// factor, so the canvas fills the target with no border and nothing cropped. The export's sizes keep the canvas's ratio
+    /// within the rounding of a side to an even pixel (<c>Export.ExportResolutions</c>), so the two factors differ by less
+    /// than 0.1 % — no visible distortion. The canvas's own size gives <see cref="Affine2D.Identity"/>.
+    /// </summary>
+    public static Affine2D Stretch(FrameSize canvas, FrameSize target) =>
+        canvas == target ? Affine2D.Identity : new Affine2D((double)target.Width / canvas.Width, 0, 0, (double)target.Height / canvas.Height, 0, 0);
+
     /// <summary>The canvas background (gaps, letterboxing of the pictures): opaque black, BGRA.</summary>
     public static readonly (byte B, byte G, byte R, byte A) Background = (0, 0, 0, 255);
 

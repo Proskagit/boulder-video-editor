@@ -353,7 +353,9 @@ public static class ProjectSerializer
             Profile = e.Profile == ExportProfile.Custom ? null : e.Profile.ToString(),
             Encoder = e.Encoder == ExportVideoEncoder.Libx264 ? null : e.Encoder.ToString(),
             RateControl = e.RateControl == ExportRateControl.ConstantQuality ? null : e.RateControl.ToString(),
-            VideoBitrateMbps = e.VideoBitrateMbps == ExportEncoding.DefaultVideoBitrateMbps ? null : e.VideoBitrateMbps
+            VideoBitrateMbps = e.VideoBitrateMbps == ExportEncoding.DefaultVideoBitrateMbps ? null : e.VideoBitrateMbps,
+            // D060 §3: only a preset other than the canvas.
+            Resolution = e.Resolution == ExportResolution.Project ? null : e.Resolution.ToString()
         };
 
     private static MediaAssetDto ToDto(MediaAsset a, string? folder)
@@ -808,7 +810,9 @@ public static class ProjectSerializer
             Profile = dto.Profile is null ? ExportProfile.Custom : ReadName<ExportProfile>(dto.Profile, "export profile"),
             Encoder = dto.Encoder is null ? ExportVideoEncoder.Libx264 : ReadName<ExportVideoEncoder>(dto.Encoder, "export encoder"),
             RateControl = dto.RateControl is null ? ExportRateControl.ConstantQuality : ReadName<ExportRateControl>(dto.RateControl, "export rate control"),
-            VideoBitrateMbps = dto.VideoBitrateMbps ?? ExportEncoding.DefaultVideoBitrateMbps
+            VideoBitrateMbps = dto.VideoBitrateMbps ?? ExportEncoding.DefaultVideoBitrateMbps,
+            // D060 §3: absent — the canvas, as every file before it.
+            Resolution = dto.Resolution is null ? ExportResolution.Project : ReadName<ExportResolution>(dto.Resolution, "export resolution")
         };
         if (encoding.Validate() is not null) throw Damaged("invalid export settings");
         // A D028 file that wrote the default values out (High, Medium, 192) is the default — as it always read.

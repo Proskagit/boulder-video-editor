@@ -19,11 +19,14 @@ namespace AiVideoEditor.UI.ViewModels;
 /// (<see cref="ExportSizeEstimate"/> — a range, marked as an estimate), updated on every change.</item>
 /// <item>A project whose choice is NVENC on a computer without it keeps the choice (<see cref="Value"/> unchanged) and says
 /// that libx264 will encode (<see cref="UnavailableNote"/>).</item>
+/// <item>D060 §3: the export resolution is chosen in the export dialog (<see cref="Resolution"/>); the estimate and the plan
+/// follow the output's size. The project settings don't show it and keep the project's value unchanged.</item>
 /// </list>
 /// </summary>
 public sealed partial class ExportEncodingEditorViewModel : ObservableObject
 {
     private readonly ExportOutput? _output;
+    private ExportResolution _resolution;
     private ExportEncoderAvailability _available;
     private bool _syncing;
 
@@ -31,6 +34,7 @@ public sealed partial class ExportEncodingEditorViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(current);
         _output = output;
+        _resolution = current.Resolution;
         _available = available ?? ExportEncoderAvailability.SoftwareOnly;
         Initial = current;
         Encoders = BuildEncoders(_available, current.Encoder);
@@ -115,8 +119,25 @@ public sealed partial class ExportEncodingEditorViewModel : ObservableObject
     public ExportEncoding Value => new(SelectedQuality.Value, SelectedSpeed.Value, SelectedBitrate.Value)
     {
         Profile = SelectedProfile.Value, Encoder = SelectedEncoder.Value, RateControl = SelectedRateControl.Value,
-        VideoBitrateMbps = SelectedVideoBitrate.Value
+        VideoBitrateMbps = SelectedVideoBitrate.Value, Resolution = _resolution
     };
+
+    /// <summary>D060 §3: the export resolution of the draft (the export dialog sets it; the project settings keep the
+    /// project's). Changing it refreshes the plan and the estimate for the new output size.</summary>
+    public ExportResolution Resolution
+    {
+        get => _resolution;
+        set
+        {
+            if (_resolution == value) return;
+            _resolution = value;
+            OnPropertyChanged();
+            Refresh();
+        }
+    }
+
+    /// <summary>The output's pixel size for the draft: the canvas or the chosen preset (null without an output).</summary>
+    public Core.Composition.FrameSize? OutputSize => _output is null ? null : ExportResolutions.SizeFor(_resolution, _output.Size);
 
     /// <summary>Raised after any change of the draft.</summary>
     public event EventHandler? Changed;
@@ -172,7 +193,7 @@ public sealed partial class ExportEncodingEditorViewModel : ObservableObject
         IsCustom = SelectedProfile.Value == ExportProfile.Custom;
         IsBitrate = IsCustom && SelectedRateControl.Value == ExportRateControl.Bitrate;
         var value = Value;
-        var size = _output?.Size ?? new Core.Composition.FrameSize(1920, 1080);
+        var size = OutputSize ?? new Core.Composition.FrameSize(1920, 1080);
         var plan = ExportVideoPlan.For(value, size, _available);
         PlanText = string.Format(Strings.ExportPlan, plan.Description);
         SpeedNote = plan.Encoder == ExportVideoEncoder.Nvenc ? Strings.ExportSpeed_Nvenc
@@ -185,7 +206,7 @@ public sealed partial class ExportEncodingEditorViewModel : ObservableObject
                 : _available.NvencUnavailableReason ?? Strings.ExportEncoder_NotFound);
         if (_output is { FrameCount: > 0 } output)
         {
-            var estimate = ExportSizeEstimate.For(plan, output, value.AudioBitrateKbps);
+            var estimate = ExportSizeEstimate.For(plan, output with { Size = size }, value.AudioBitrateKbps);
             EstimateText = estimate.FromBitrate
                 ? string.Format(Strings.ExportEstimate_Bitrate, Size((estimate.LowBytes + estimate.HighBytes) / 2))
                 : string.Format(Strings.ExportEstimate, Size(estimate.LowBytes), Size(estimate.HighBytes));

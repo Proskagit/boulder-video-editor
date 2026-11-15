@@ -34,7 +34,8 @@ public readonly record struct ExportRange(long FirstFrame, long EndFrame)
 }
 
 /// <summary>
-/// What an export of <see cref="PlaybackSnapshot"/> produces (D023): the canvas size, the exact
+/// What an export of <see cref="PlaybackSnapshot"/> produces (D023): <see cref="Size"/> — the canvas, or the chosen
+/// resolution preset at the canvas's aspect ratio (D060 §3; the composition is still laid out on the canvas) —, the exact
 /// project frame rate, <see cref="FrameCount"/> frames (output frame n is timeline frame <see cref="FirstFrame"/> + n,
 /// rendered at its <c>MediaTime.FromFrame</c>) and exactly as many audio samples as those frames last, from timeline
 /// sample <see cref="FirstSample"/> (the <c>AudioPlacement</c> rule, <c>⌈t · 48000 / 10⁷⌉</c>). A whole-sequence export
@@ -46,20 +47,22 @@ public sealed record ExportOutput(FrameSize Size, FrameRate FrameRate, long Fram
     /// <summary>The output for <paramref name="snapshot"/>. The sequence duration is covered by whole
     /// frames (clip edges lie on the grid, so this is the duration itself); the audio has
     /// <c>ceil(duration · 48000 / 10⁷)</c> samples of the same duration. With <paramref name="range"/> (already within
-    /// the sequence): its frames, and the timeline samples <c>[⌈In⌉, ⌈Out⌉)</c> of its edges.</summary>
-    public static ExportOutput For(PlaybackSnapshot snapshot, ExportRange? range = null)
+    /// the sequence): its frames, and the timeline samples <c>[⌈In⌉, ⌈Out⌉)</c> of its edges. <paramref name="size"/>: the
+    /// output's pixel size (<see cref="ExportResolutions.SizeFor(ExportResolution, FrameSize)"/>); null = the canvas.</summary>
+    public static ExportOutput For(PlaybackSnapshot snapshot, ExportRange? range = null, FrameSize? size = null)
     {
         var rate = snapshot.FrameRate;
+        var pixels = size ?? snapshot.Canvas;
         if (range is { } r)
         {
             var start = MediaTime.FromFrame(r.FirstFrame, rate);
             var end = MediaTime.FromFrame(r.EndFrame, rate);
             var firstSample = AudioTiming.CeilingSample(start);
-            return new ExportOutput(snapshot.Canvas, rate, r.FrameCount, end - start,
+            return new ExportOutput(pixels, rate, r.FrameCount, end - start,
                 AudioTiming.CeilingSample(end) - firstSample, r.FirstFrame, firstSample);
         }
         var frames = Math.Max(0, snapshot.Duration.ToFrameCeiling(rate));
         var duration = MediaTime.FromFrame(frames, rate);
-        return new ExportOutput(snapshot.Canvas, rate, frames, duration, AudioTiming.CeilingSample(duration));
+        return new ExportOutput(pixels, rate, frames, duration, AudioTiming.CeilingSample(duration));
     }
 }

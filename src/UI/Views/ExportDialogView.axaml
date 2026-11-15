@@ -16,6 +16,21 @@
       </Grid>
       <TextBlock Text="{x:Static l:Strings.ExportDialog_FileName}" FontSize="11" Foreground="#AAAAAA" Margin="0,4,0,0"/>
       <TextBox x:Name="FileNameBox" Text="{Binding FileName, Mode=TwoWay}"/>
+      <!-- D060 §3: the size of the exported file; the canvas and the composition are not changed. -->
+      <Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0" ToolTip.Tip="{x:Static l:Strings.ExportResolution_Hint}">
+        <TextBlock Text="{x:Static l:Strings.ExportResolution_Label}" VerticalAlignment="Center"/>
+        <ComboBox x:Name="ResolutionBox" Grid.Column="1" HorizontalAlignment="Stretch" Margin="10,0,0,0"
+                  ItemsSource="{Binding Resolutions}" SelectedItem="{Binding SelectedResolution, Mode=TwoWay}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{Binding Label}"/>
+                <TextBlock Text="{Binding Detail}" Foreground="#8A8A8A" FontSize="11" VerticalAlignment="Center"/>
+              </StackPanel>
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </Grid>
       <TextBlock x:Name="InfoText" Text="{Binding Info}" FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap" Margin="0,4,0,8"/>
       <views:ExportEncodingEditorView x:Name="SettingsEditor" DataContext="{Binding Settings}" Margin="0,0,0,8"/>
     </StackPanel>

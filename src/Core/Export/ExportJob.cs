@@ -9,6 +9,13 @@ namespace AiVideoEditor.Core.Export;
 /// thread — the same input the Preview plays —, the output file and the project's export settings at that moment
 /// (<see cref="Encoding"/>, D028 Step 13.7). The export never reads the live project. Created by
 /// <see cref="ExportPreflight.Check"/> only when nothing blocks the export.
+/// <para>
+/// D060 §2: the job is the export's independent copy of the project. The snapshot holds only immutable values (records,
+/// immutable arrays and dictionaries, immutable tracks and trainings) — no reference to a clip, a track, a settings object
+/// or the project — so editing, saving, closing or replacing the project after the job was made cannot change what it
+/// exports; the source files it names are held open while it runs (<c>ExportMediaLease</c>) so they cannot be deleted,
+/// moved or overwritten under it.
+/// </para>
 /// </summary>
 public sealed class ExportJob
 {
@@ -25,7 +32,8 @@ public sealed class ExportJob
         OutputPath = outputPath;
         Encoding = encoding;
         Range = range;
-        Output = ExportOutput.For(snapshot, range);
+        // D060 §3: the output's size — the canvas or the chosen preset at its aspect ratio; the composition stays on the canvas.
+        Output = ExportOutput.For(snapshot, range, ExportResolutions.SizeFor(encoding, snapshot.Canvas));
     }
 
     /// <summary>The timeline frames exported, or null for the whole sequence.</summary>
