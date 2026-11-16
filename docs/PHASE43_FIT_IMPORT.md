@@ -61,7 +61,8 @@ their enums — on a synthetic `GarminFixture` shaped like the real file), `Clim
 - The device: the summary says «Garmin» (the file has no name); no product-name table.
 - The first session of a multi-session FIT only, as before.
 - British, Brazilian, Saxon and YDS ± grades are not spelled — such a route gets no grade.
-- COROS 2026-09-27: status in 9 of 14 climbs, no grade; its «completed» (6) differs from the app's «onsight» (5).
+- COROS 2026-09-27: status in 9 of 14 climbs, no grade; its «completed» (6) differs from the app's «onsight» (5). The owner's
+  rule (2026-11-17): the file's data is used as it is, a climb without it gets no grade and no status — for every watch.
 
 ## 5. Manual check (the owner)
 

@@ -10386,6 +10386,9 @@ unread») — the field's meaning is now the SDK's. Verified on the Garmin expor
 6c × 2, 2 attempted, 14 completed, 9 sends, 12 falls — every count equal. COROS writes the same fields: the export of
 2026-08-08 has Font grades (6B / 6C / 7A); the one of 2026-09-27 has no grade and a status in 9 of 14 climbs (6 completed,
 3 attempted — the COROS app said 5 onsights and 4 attempts; «completed» is not «onsight», the owner's check).
+**Confirmed by the owner on 2026-11-17 — one rule for every watch:** what the FIT states about a route is used, what it does
+not state is not filled — no grade, no «Топ» / «Попытка», nothing guessed; no rule per maker. A COROS export with route
+fields gets them like a Garmin one (2026-09-27: a status in 9 of 14 climbs, no grade); one without gets an empty area.
 
 ### 4. The heart rate's hold
 
