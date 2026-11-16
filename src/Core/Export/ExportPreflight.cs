@@ -54,7 +54,26 @@ public enum ExportIssueKind
     HoldTrackingUnreliable,
     /// <summary>A heart-rate overlay (Phase 35.5) has no data where it is exported — no usable training, or a video below it
     /// without a recording zero: it shows nothing there (warning, D049 §10).</summary>
-    HeartRateUnavailable
+    HeartRateUnavailable,
+    /// <summary>D061: the people of a video whose clip uses Follow or hides its outlines behind people are still being
+    /// analysed (or the analysis was stopped): the export waits, so it shows exactly what the Preview shows.</summary>
+    PeopleAnalysisPending,
+    /// <summary>D061: a clip's Follow cannot move its picture (no climber chosen or found, no room, the analysis failed): it
+    /// is exported with its own framing — a warning.</summary>
+    FollowUnavailable,
+    /// <summary>D061: a clip's outlines cannot be hidden behind people (no GPU, no model, the analysis failed): they are
+    /// exported drawn over the people — a warning.</summary>
+    OcclusionUnavailable
+}
+
+/// <summary>D061: the people analyses the export draws with (the Preview's own), the assets whose analysis has not finished
+/// and the failed ones with their messages.</summary>
+public sealed record ExportPeople(People.PeopleAnalyses Analyses, IReadOnlySet<Guid> Pending)
+{
+    public IReadOnlyDictionary<Guid, string> FailedTracks { get; init; } = new Dictionary<Guid, string>();
+    public IReadOnlyDictionary<Guid, string> FailedMasks { get; init; } = new Dictionary<Guid, string>();
+
+    public static readonly ExportPeople None = new(People.PeopleAnalyses.None, new HashSet<Guid>());
 }
 
 /// <summary>The camera-motion tracks the export draws the hold contours with (the Preview's own), and the clips whose
@@ -96,6 +115,9 @@ public sealed record ExportPreflightEnvironment(
     /// <summary>D057 §3.8: the heart rate's display offset — the Preview's, so the export shows what the Preview shows.</summary>
     public MediaTime HeartRateDisplayOffset { get; init; }
 
+    /// <summary>D061: the people analyses (Follow, Occlusion); none — every clip with its own framing and outlines over all.</summary>
+    public ExportPeople People { get; init; } = ExportPeople.None;
+
     public static ExportPreflightEnvironment Default(bool encoderAvailable, Func<string, bool> isFontInstalled) =>
         new(encoderAvailable, isFontInstalled, File.Exists, Directory.Exists);
 }
@@ -133,7 +155,8 @@ public static class ExportPreflight
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(environment);
 
-        var snapshot = PlaybackSnapshotBuilder.Build(project, version: 0, environment.CameraMotion.Tracks, environment.HeartRateDisplayOffset);
+        var snapshot = PlaybackSnapshotBuilder.Build(project, version: 0, environment.CameraMotion.Tracks, environment.HeartRateDisplayOffset,
+            environment.People.Analyses);
         var issues = new List<ExportIssue>();
 
         if (snapshot.Duration <= MediaTime.Zero)
@@ -175,6 +198,7 @@ public static class ExportPreflight
         CheckHoldTracking(project, snapshot, environment, issues, window);
         CheckFonts(snapshot, environment, issues, window);
         CheckHeartRate(project, snapshot, issues, window);
+        CheckPeople(project, snapshot, environment, issues, window);
 
         var ordered = issues.OrderBy(i => i.Severity).ToImmutableArray();
         var job = ordered.Any(i => i.Severity == ExportIssueSeverity.Error)
@@ -447,6 +471,69 @@ public static class ExportPreflight
                 string.Format(Messages.Preflight_HoldTrackingUnreliable, Name(group.Key), Clips(group), group.Min(s => s.TimelineStart),
                     Math.Max(1, (int)Math.Round(share * 100)))), group));
         }
+    }
+
+    /// <summary>D061: Follow and Occlusion of the clips that reach the output — a running (or stopped) people analysis blocks
+    /// (one issue per media file), a Follow that cannot move and outlines that cannot be hidden are warnings.</summary>
+    private static void CheckPeople(Project project, PlaybackSnapshot snapshot, ExportPreflightEnvironment env, List<ExportIssue> issues, Window window)
+    {
+        var clips = project.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>()
+            .Where(c => c.Follow is not null || c.HidesOutlinesBehindPeople).ToDictionary(c => c.Id);
+        if (clips.Count == 0) return;
+        var assets = project.MediaAssets.ToDictionary(a => a.Id);
+        var canvas = snapshot.Canvas;
+        var shown = snapshot.VideoLayers.SelectMany(l => l.Spans)
+            .Where(s => clips.ContainsKey(s.ClipId) && s.Status == SpanStatus.Video && s.Visual.Opacity > 0 && window.Shows(s.ShownStart, s.ShownEnd))
+            .ToList();
+        string Name(Guid assetId) => assets.GetValueOrDefault(assetId)?.FileName ?? Messages.Preflight_MediaNotInProject;
+        ExportIssue Issue(ExportIssueSeverity severity, ExportIssueKind kind, string message, IEnumerable<PictureSpan> spans) =>
+            new(severity, kind, message)
+            {
+                AssetId = spans.First().AssetId, Subject = assets.GetValueOrDefault(spans.First().AssetId)?.FilePath,
+                ClipIds = spans.OrderBy(s => s.TimelineStart).Select(s => s.ClipId).Distinct().ToImmutableArray()
+            };
+        string Clips(IEnumerable<PictureSpan> spans) => Plural.Format(spans.Select(s => s.ClipId).Distinct().Count(), Messages.Plural_Clips);
+
+        var people = env.People;
+        foreach (var group in shown.Where(s => people.Pending.Contains(s.AssetId)).GroupBy(s => s.AssetId).OrderBy(g => g.Min(s => s.TimelineStart)))
+            issues.Add(Issue(ExportIssueSeverity.Error, ExportIssueKind.PeopleAnalysisPending,
+                string.Format(Messages.Preflight_PeoplePending, Name(group.Key), Clips(group), group.Min(s => s.TimelineStart)), group));
+
+        var follow = new List<(PictureSpan Span, string Reason)>();
+        var occlusion = new List<(PictureSpan Span, string Reason)>();
+        foreach (var span in shown.Where(s => !people.Pending.Contains(s.AssetId)))
+        {
+            var clip = clips[span.ClipId];
+            if (clip.Follow is { } settings)
+            {
+                string? reason;
+                if (people.FailedTracks.TryGetValue(span.AssetId, out var failed)) reason = failed;
+                else if (!people.Analyses.Tracks.TryGetValue(span.AssetId, out var tracks) || span.SourceSize is not { } source) reason = Messages.People_FollowNotFound;
+                else
+                {
+                    var resolution = People.FollowResolution.For(clip, settings, tracks, canvas, source);
+                    reason = resolution.State switch
+                    {
+                        People.FollowState.Following => null,
+                        People.FollowState.NeedsTarget => Messages.People_FollowNoTarget,
+                        People.FollowState.TargetNotFound => Messages.People_FollowNotFound,
+                        _ => resolution.Unavailable == People.FollowUnavailable.Rotation ? Messages.People_FollowRotation : Messages.People_FollowNoRoom
+                    };
+                }
+                if (reason is not null) follow.Add((span, reason));
+            }
+            if (clip.HidesOutlinesBehindPeople && !span.Outlines.IsDefaultOrEmpty && span.PeopleMasks is null)
+                occlusion.Add((span, people.FailedMasks.GetValueOrDefault(span.AssetId) ?? people.FailedTracks.GetValueOrDefault(span.AssetId)
+                    ?? Messages.People_FollowNotFound));
+        }
+        foreach (var group in follow.GroupBy(f => (f.Span.AssetId, f.Reason)).OrderBy(g => g.Min(f => f.Span.TimelineStart)))
+            issues.Add(Issue(ExportIssueSeverity.Warning, ExportIssueKind.FollowUnavailable,
+                string.Format(Messages.Preflight_FollowUnavailable, Name(group.Key.AssetId), Clips(group.Select(f => f.Span)),
+                    group.Min(f => f.Span.TimelineStart), group.Key.Reason), group.Select(f => f.Span)));
+        foreach (var group in occlusion.GroupBy(f => (f.Span.AssetId, f.Reason)).OrderBy(g => g.Min(f => f.Span.TimelineStart)))
+            issues.Add(Issue(ExportIssueSeverity.Warning, ExportIssueKind.OcclusionUnavailable,
+                string.Format(Messages.Preflight_OcclusionUnavailable, Name(group.Key.AssetId), Clips(group.Select(f => f.Span)),
+                    group.Min(f => f.Span.TimelineStart), group.Key.Reason), group.Select(f => f.Span)));
     }
 
     private static void CheckFonts(PlaybackSnapshot snapshot, ExportPreflightEnvironment env, List<ExportIssue> issues, Window window)

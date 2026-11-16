@@ -25,6 +25,32 @@ public sealed partial class TimelineEditService
         return TimelineEditResult.Ok(new[] { clip.Id });
     }
 
+    /// <summary>D061: switches a video clip's Follow on (with its settings: target, smoothness) or off (null) — one undo step.</summary>
+    public TimelineEditResult SetClipFollow(Guid clipId, FollowSettings? follow)
+    {
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+        if (clips[0] is not VideoClip clip) return TimelineEditResult.Fail(Messages.Frame_NoPicture);
+        var track = plan.TrackOf(clip);
+        if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
+        if (Equals(clip.Follow, follow)) return TimelineEditResult.Unchanged();
+        ExecuteTracked(new Commands.NotifyingCommand(new Commands.SetClipFollowCommand(clip, clip.Follow, follow), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok(new[] { clip.Id });
+    }
+
+    /// <summary>D061: hides (or shows again) a video clip's hold outlines behind people — one undo step.</summary>
+    public TimelineEditResult SetClipHidesOutlinesBehindPeople(Guid clipId, bool hides)
+    {
+        var plan = new EditPlan(Sequence, Settings);
+        if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
+        if (clips[0] is not VideoClip clip) return TimelineEditResult.Fail(Messages.Frame_NoPicture);
+        var track = plan.TrackOf(clip);
+        if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
+        if (clip.HidesOutlinesBehindPeople == hides) return TimelineEditResult.Unchanged();
+        ExecuteTracked(new Commands.NotifyingCommand(new Commands.SetClipOcclusionCommand(clip, hides), _projectService.NotifyTimelineChanged));
+        return TimelineEditResult.Ok(new[] { clip.Id });
+    }
+
     public TimelineEditResult FrameClip(Guid clipId, ClipFraming framing)
     {
         var plan = new EditPlan(Sequence, Settings);

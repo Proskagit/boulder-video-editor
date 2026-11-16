@@ -87,6 +87,15 @@ public sealed record OutlineDraw(Guid ClipId, Affine2D Transform, double Opacity
 
     public ImmutableArray<double> PolygonOpacities { get; init; } = ImmutableArray<double>.Empty;
 
+    /// <summary>D061 (Occlusion): the people's coverage on this frame — the outline is hidden where it is high (a person in
+    /// front of the hold), kept where it is 0; null — no people's masks, every contour drawn as before. The mask spans the
+    /// whole source frame: <see cref="OcclusionRect"/> in the layer's crop-local coordinates (the same transform as the
+    /// frame), so it lands on the picture exactly.</summary>
+    public People.OcclusionMask? Occlusion { get; init; }
+
+    /// <summary>Where <see cref="Occlusion"/> lies in crop-local coordinates: the source frame, <c>(−crop.X, −crop.Y, w, h)</c>.</summary>
+    public RectD OcclusionRect { get; init; }
+
     /// <summary>The opacity of contour <paramref name="index"/>.</summary>
     public double PolygonOpacity(int index) => PolygonOpacities.IsDefaultOrEmpty ? 1.0 : PolygonOpacities[index];
 
@@ -191,7 +200,7 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
         var outlines = picture.Span.Outlines;
         if (outlines.IsDefaultOrEmpty || index < 0 || index >= outlines.Length) return null;
         var outline = outlines[index];
-        var geometry = picture.Geometry ?? CompositionMath.Layout(canvas, decodedSize, picture.Span.Visual);
+        var geometry = GeometryAt(canvas, picture, decodedSize, frameTimestamp);
         var (w, h) = (geometry.Source.Width, geometry.Source.Height);
         var crop = geometry.SourceRect;
         var m = picture.Motion.Apply(canvas, geometry.Transform);   // the outline moves with its frame (D044 §2)
@@ -219,14 +228,37 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
         }
         if (polygons.Count == 0) return null;
 
+        // D061: the people in front of the holds on this very frame (the shown frame's timestamp, like the camera motion).
+        var occlusion = picture.Span.PeopleMasks is { } masks && frameTimestamp is { } shownAt
+            ? masks.CoverageAt(CameraMotionMath.SourceTimeOf(shownAt, picture.Span.SourceStartTime))
+            : null;
+
         return new OutlineDraw(picture.ClipId, canvasToTarget.Compose(m), picture.Opacity, polygons.ToImmutable(),
             new RectD(0, 0, crop.Width, crop.Height), StrokeWidthOn(canvas, outline.StrokeWidth1080),
             Math.Sqrt(Math.Abs(canvasToTarget.Determinant)), outline.ColorHex,
             outline.Keyline ? RouteColor.KeylineHex(outline.ColorHex) : null, minTargetStroke)
         {
             // Every contour at 1 draws exactly as an outline without animation.
-            PolygonOpacities = animated && shown.Any(o => o < 1) ? shown.ToImmutable() : ImmutableArray<double>.Empty
+            PolygonOpacities = animated && shown.Any(o => o < 1) ? shown.ToImmutable() : ImmutableArray<double>.Empty,
+            Occlusion = occlusion is not null && Array.Exists(occlusion.Coverage, c => c > 0) ? occlusion : null,
+            OcclusionRect = new RectD(-crop.X, -crop.Y, w, h)
         };
+    }
+
+    /// <summary>
+    /// The D018 geometry of <paramref name="picture"/> on the frame with <paramref name="frameTimestamp"/>: with a Follow camera
+    /// (D061) the clip's position on that very source frame — the frame, its outline, its blurred background and its masks
+    /// all moved together, in the Preview and the export alike; otherwise the layer's own geometry (from the source size, or —
+    /// unknown — from <paramref name="decodedSize"/>).
+    /// </summary>
+    public static LayerGeometry GeometryAt(FrameSize canvas, PictureLayer picture, FrameSize decodedSize, SourceTimestamp? frameTimestamp)
+    {
+        if (picture.Span.Follow is { } follow && frameTimestamp is { } timestamp && picture.Span.SourceSize is { } source)
+        {
+            var (x, y) = follow.At(CameraMotionMath.SourceTimeOf(timestamp, picture.Span.SourceStartTime));
+            return CompositionMath.Layout(canvas, source, picture.Span.Visual with { PositionX = x, PositionY = y });
+        }
+        return picture.Geometry ?? CompositionMath.Layout(canvas, decodedSize, picture.Span.Visual);
     }
 
     /// <summary>
@@ -277,8 +309,7 @@ public sealed record CompositionDrawPlan(FrameSize Canvas, Affine2D CanvasToTarg
             case PictureLayer picture:
             {
                 var frame = resolved.Frame ?? throw new ArgumentException("A picture layer needs its decoded frame.", nameof(resolved));
-                var geometry = picture.Geometry
-                    ?? CompositionMath.Layout(canvas, new FrameSize(frame.Width, frame.Height), picture.Span.Visual);
+                var geometry = GeometryAt(canvas, picture, new FrameSize(frame.Width, frame.Height), frame.Timestamp);
                 var n = geometry.NormalizedSourceRect;
                 return new FrameDraw(picture.ClipId, canvasToTarget.Compose(picture.Motion.Apply(canvas, geometry.Transform)), picture.Opacity,
                     new RectD(0, 0, geometry.SourceRect.Width, geometry.SourceRect.Height), frame,

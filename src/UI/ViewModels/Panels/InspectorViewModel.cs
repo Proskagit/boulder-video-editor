@@ -613,6 +613,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
         Shown?.Invoke(this, EventArgs.Empty);
         OnPropertyChanged(nameof(HasTechnicalInfo));
         ShowTraining(clip is VideoClip ? selection.Asset : null);
+        RefreshPeople();
     }
 
     /// <summary>Shows a Media Browser item's real properties, including whatever
@@ -741,6 +742,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     private void ShowModelAfterRejection()
     {
         SyncFromModel();
+        RefreshPeople();
         SyncTransition();
         Dispatcher.UIThread.Post(AnnounceFields);
     }
@@ -777,6 +779,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     {
         _clip = null;
         HideTraining();
+        RefreshPeople();
         _transition = null;
         HasAudioProperties = false;
         HasVisualProperties = false;

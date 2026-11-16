@@ -72,7 +72,7 @@ public class ExportEncodingPersistenceTests
         Assert.Equal("Slow", export["preset"]!.GetValue<string>());
         Assert.Equal(320, export["audioBitrateKbps"]!.GetValue<int>());
         Assert.Equal(3, export.Count);
-        Assert.Equal(19, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(ProjectSerializer.CurrentFormatVersion, root["formatVersion"]!.GetValue<int>());
         Assert.False(root.ContainsKey("export"));
         Assert.False(root.ContainsKey("lastExportSettings"));
     }
@@ -309,7 +309,7 @@ public class ExportEncodingPersistenceTests
 
         Assert.Equal(export, loaded.Settings.Export);
         Assert.Equal(json, ProjectSerializer.Serialize(loaded, Folder));
-        Assert.Equal(19, Json(loaded)["formatVersion"]!.GetValue<int>());   // no format version change
+        Assert.Equal(ProjectSerializer.CurrentFormatVersion, Json(loaded)["formatVersion"]!.GetValue<int>());   // no format version change
     }
 
     [Fact]
@@ -374,7 +374,7 @@ public class ExportEncodingPersistenceTests
         var loaded = Load(json);
         Assert.Equal(export, loaded.Settings.Export);
         Assert.Equal(json, ProjectSerializer.Serialize(loaded, Folder));
-        Assert.Equal(19, Json(loaded)["formatVersion"]!.GetValue<int>());   // no format version change
+        Assert.Equal(ProjectSerializer.CurrentFormatVersion, Json(loaded)["formatVersion"]!.GetValue<int>());   // no format version change
     }
 
     [Fact]

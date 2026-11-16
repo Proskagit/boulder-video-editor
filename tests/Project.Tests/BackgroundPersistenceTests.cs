@@ -42,7 +42,7 @@ public class BackgroundPersistenceTests
     {
         var first = Save(Build());
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(19, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(ProjectSerializer.CurrentFormatVersion, root["formatVersion"]!.GetValue<int>());
         Assert.Equal("blur", Clip(root, 0)["background"]!.GetValue<string>());
         Assert.Null(Clip(root, 1)["background"]);
 
@@ -59,7 +59,7 @@ public class BackgroundPersistenceTests
         root["formatVersion"] = 18;
         var loaded = Load(root.ToJsonString());                                 // a v18 file never has the member: ignored
         Assert.All(loaded.Timeline.VideoTracks[0].Clips.OfType<VideoClip>(), c => Assert.Equal(ClipBackground.Black, c.Background));
-        Assert.Equal(19, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(ProjectSerializer.CurrentFormatVersion, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]
@@ -75,6 +75,6 @@ public class BackgroundPersistenceTests
     {
         // FU-PF.1 reads the version first: what a v18 build does with this file is «newer», never «damaged».
         var json = Save(Build());
-        Assert.True(ProjectSerializer.PeekNewerVersion(json.Replace("\"formatVersion\": 19", "\"formatVersion\": 20"), ProjectSerializer.FormatId));
+        Assert.True(ProjectSerializer.PeekNewerVersion(json.Replace("\"formatVersion\": 20", "\"formatVersion\": 21"), ProjectSerializer.FormatId));
     }
 }

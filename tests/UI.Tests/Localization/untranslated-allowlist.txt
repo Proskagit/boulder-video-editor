@@ -508,3 +508,6 @@ src/Video/FfmpegEncoderCapabilities.cs	ffmpeg did not finish within
 src/Video/FfmpegVideoFrameStream.cs	ffmpeg's frame pipe ended in the middle of frame {info.Index} ({ex.Message}). {_process.StderrTail()}
 src/Video/FramePipe.cs	ffmpeg ended without opening its frame pipe.
 src/Video/FfmpegEncoderCapabilities.cs	exit code {code}
+src/Project/Persistence/ProjectSerializer.cs	unknown Follow smoothness
+src/Project/Persistence/ProjectSerializer.cs	an incomplete Follow target
+src/Project/Persistence/ProjectSerializer.cs	a Follow target outside the frame

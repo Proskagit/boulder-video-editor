@@ -2573,6 +2573,8 @@ public sealed partial class TimelineEditService : ITimelineEditService
                 MediaAssetId = v.MediaAssetId, Speed = v.Speed, PositionX = v.PositionX, PositionY = v.PositionY,
                 Scale = v.Scale, RotationDegrees = v.RotationDegrees, Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted,
                 Crop = v.Crop, IsAudioDetached = v.IsAudioDetached,
+                // D061: Follow (its target is a source time of the same video) and Occlusion go with the copy.
+                Follow = v.Follow, HidesOutlinesBehindPeople = v.HidesOutlinesBehindPeople,
                 // D034 §6 / D053: the routes go with the copy; they are immutable, so the two clips stay independent.
                 Routes = v.Routes
             },

@@ -82,6 +82,18 @@ public sealed record PictureSpan(
     /// is usable and the video's file gives a reliable time; null otherwise — a heart-rate overlay above it then shows
     /// nothing. Never depends on the recording zero <c>Z</c>. Presentation only.</summary>
     public HeartRateBinding? HeartRate { get; init; }
+
+    /// <summary>D061: the clip's Follow camera — its position per source time (the shown frame's, like the hold contours'
+    /// camera motion); null without Follow, or while it cannot move (the clip's own position). Presentation only.</summary>
+    public People.FollowPath? Follow { get; init; }
+
+    /// <summary>D061: the people's masks of the clip's video when the clip hides its hold outlines behind people; null
+    /// otherwise (the outlines drawn over everything, as before). Presentation only.</summary>
+    public People.PersonMaskTrack? PeopleMasks { get; init; }
+
+    /// <summary>The file's start time (<c>MediaMetadata.StartTime</c>): the origin of the frame timestamps' source time, for
+    /// <see cref="Follow"/> and <see cref="PeopleMasks"/>.</summary>
+    public MediaTime SourceStartTime { get; init; }
 }
 
 /// <summary>
@@ -570,7 +582,7 @@ public sealed class PlaybackSnapshot
         static AudioSpan WithoutMix(AudioSpan span) => span with { Gain = 0, IsMuted = false, FadeInFrames = 0, FadeOutFrames = 0 };
         static PictureSpan WithoutPresentation(PictureSpan span) =>
             span with { Visual = VisualProperties.Default, SourceSize = null, FadeInFrames = 0, FadeOutFrames = 0, Outline = null, HeartRate = null,
-                Background = Entities.ClipBackground.Black };
+                Background = Entities.ClipBackground.Black, Follow = null, PeopleMasks = null };
         static (Guid, MediaTime, MediaTime) TextTiming(TextSpan span) => (span.ClipId, span.TimelineStart, span.TimelineEnd);
         static (Guid, MediaTime, MediaTime) TemplateTiming(TemplateSpan span) => (span.ClipId, span.TimelineStart, span.TimelineEnd);
         static DissolveZone Placement(DissolveZone zone) => zone with { TypeId = TransitionRules.CrossDissolve, Direction = null };

@@ -3217,4 +3217,100 @@ If you don't save, your changes will be lost.</value>
   <data name="Export_ClosingCancelling" xml:space="preserve">
     <value>Cancelling the export before closing…</value>
   </data>
+  <data name="Preview_PickPerson" xml:space="preserve">
+    <value>Click the climber to follow (Esc — cancel).</value>
+  </data>
+  <data name="Preview_PeopleAnalysing" xml:space="preserve">
+    <value>Analysing the people in the video… {0} %</value>
+  </data>
+  <data name="Preview_FollowLostHere" xml:space="preserve">
+    <value>The climber is not seen here — the frame holds still.</value>
+  </data>
+  <data name="Follow_Soft" xml:space="preserve">
+    <value>Soft</value>
+  </data>
+  <data name="Follow_Normal" xml:space="preserve">
+    <value>Normal</value>
+  </data>
+  <data name="Follow_Fast" xml:space="preserve">
+    <value>Fast</value>
+  </data>
+  <data name="Follow_Picked" xml:space="preserve">
+    <value>The climber is chosen: the frame follows them.</value>
+  </data>
+  <data name="People_Waiting" xml:space="preserve">
+    <value>Waiting for the analysis of the people…</value>
+  </data>
+  <data name="People_Analysing" xml:space="preserve">
+    <value>Finding the people… {0} %</value>
+  </data>
+  <data name="People_Segmenting" xml:space="preserve">
+    <value>Segmenting the people… {0} %</value>
+  </data>
+  <data name="People_Cancelled" xml:space="preserve">
+    <value>The analysis is stopped. «Повторить анализ» starts it again.</value>
+  </data>
+  <data name="People_Failed" xml:space="preserve">
+    <value>The analysis failed.</value>
+  </data>
+  <data name="Follow_NeedsTarget" xml:space="preserve">
+    <value>Several people in the clip: choose the climber («Выбрать скалолаза»). Until then the frame does not move.</value>
+  </data>
+  <data name="Follow_TargetNotFound" xml:space="preserve">
+    <value>The chosen climber is not found in this clip: choose them again on a frame where they are seen.</value>
+  </data>
+  <data name="Follow_NoRoom" xml:space="preserve">
+    <value>No room to move the picture: zoom in above «Заполнить кадр» (Scale), then the frame can follow.</value>
+  </data>
+  <data name="Follow_Rotation" xml:space="preserve">
+    <value>Follow works only with a rotation of 0°, 90°, 180° or 270°.</value>
+  </data>
+  <data name="Follow_Following" xml:space="preserve">
+    <value>Following: the climber is seen in {0} % of the clip.</value>
+  </data>
+  <data name="Follow_FollowingWithGaps" xml:space="preserve">
+    <value>Following: the climber is seen in {0} % of the clip; lost {1}× ({2}) — the frame holds there and then moves on smoothly.</value>
+  </data>
+  <data name="Occlusion_Ready" xml:space="preserve">
+    <value>The people are segmented: the outlines are hidden where a person is in front of a hold.</value>
+  </data>
+  <data name="Occlusion_ReadyNoRoutes" xml:space="preserve">
+    <value>The people are segmented. The clip has no hold outlines yet — they will be hidden behind people once marked.</value>
+  </data>
+  <data name="Inspector_PeopleHeading" xml:space="preserve">
+    <value>Follow and people</value>
+  </data>
+  <data name="Inspector_Follow" xml:space="preserve">
+    <value>Follow the climber</value>
+  </data>
+  <data name="Inspector_FollowTip" xml:space="preserve">
+    <value>The visible part of the picture moves with the chosen person at the clip's own scale (zoom in above «Fill» to give it room). Preview = export.</value>
+  </data>
+  <data name="Inspector_FollowSmoothness" xml:space="preserve">
+    <value>Smoothness</value>
+  </data>
+  <data name="Inspector_PickPerson" xml:space="preserve">
+    <value>Choose the climber</value>
+  </data>
+  <data name="Inspector_PickPersonTip" xml:space="preserve">
+    <value>Shows the people of the frame under the playhead in the Preview; click the one to follow.</value>
+  </data>
+  <data name="Inspector_CancelPick" xml:space="preserve">
+    <value>Cancel the choice</value>
+  </data>
+  <data name="Inspector_HideOutlinesBehindPeople" xml:space="preserve">
+    <value>Hide outlines behind people</value>
+  </data>
+  <data name="Inspector_HideOutlinesTip" xml:space="preserve">
+    <value>Every person in the frame is segmented separately; a hold's outline is hidden where a person is in front of it. Needs a DirectML graphics card.</value>
+  </data>
+  <data name="Inspector_ShowPeopleMasks" xml:space="preserve">
+    <value>Show the people's masks in the Preview</value>
+  </data>
+  <data name="Inspector_CancelPeopleAnalysis" xml:space="preserve">
+    <value>Stop the analysis</value>
+  </data>
+  <data name="Inspector_RetryPeopleAnalysis" xml:space="preserve">
+    <value>Analyse again</value>
+  </data>
 </root>

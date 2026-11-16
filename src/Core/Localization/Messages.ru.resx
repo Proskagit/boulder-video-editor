@@ -1336,4 +1336,40 @@
   <data name="Encoding_Resolution" xml:space="preserve">
     <value>Неизвестное разрешение экспорта.</value>
   </data>
+  <data name="People_ModelMissing" xml:space="preserve">
+    <value>Модели людей {0} не установлены в {1}: слежение за скалолазом и скрытие контуров за людьми недоступны. См. docs/AI_MODEL.md.</value>
+  </data>
+  <data name="People_ModelDamaged" xml:space="preserve">
+    <value>Файл моделей людей {0} в {1} повреждён или другой версии. Модели не загружены. См. docs/AI_MODEL.md.</value>
+  </data>
+  <data name="People_ModelLoadFailed" xml:space="preserve">
+    <value>Не удалось загрузить модели людей: {0}</value>
+  </data>
+  <data name="People_NeedsGpu" xml:space="preserve">
+    <value>Для скрытия контуров за людьми нужна видеокарта с DirectML; на этом компьютере доступно только слежение за скалолазом.</value>
+  </data>
+  <data name="Preflight_PeoplePending" xml:space="preserve">
+    <value>«{0}» ({1}, с {2:hh\:mm\:ss}): люди в видео ещё анализируются — экспорт ждёт окончания, чтобы совпасть с Preview.</value>
+  </data>
+  <data name="Preflight_FollowUnavailable" xml:space="preserve">
+    <value>«{0}» ({1}, с {2:hh\:mm\:ss}): слежение за скалолазом не работает ({3}) — клип будет экспортирован со своим кадрированием.</value>
+  </data>
+  <data name="Preflight_OcclusionUnavailable" xml:space="preserve">
+    <value>«{0}» ({1}, с {2:hh\:mm\:ss}): контуры не скрываются за людьми ({3}) — они будут экспортированы поверх людей.</value>
+  </data>
+  <data name="People_FollowNoTarget" xml:space="preserve">
+    <value>скалолаз не выбран</value>
+  </data>
+  <data name="People_FollowNotFound" xml:space="preserve">
+    <value>выбранный скалолаз не найден</value>
+  </data>
+  <data name="People_FollowNoRoom" xml:space="preserve">
+    <value>нет запаса для движения кадра — увеличьте масштаб больше «Заполнить кадр»</value>
+  </data>
+  <data name="People_FollowRotation" xml:space="preserve">
+    <value>клип повёрнут не на угол, кратный 90°</value>
+  </data>
+  <data name="People_AnalysisFailed" xml:space="preserve">
+    <value>анализ не удался: {0}</value>
+  </data>
 </root>

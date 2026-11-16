@@ -307,6 +307,13 @@ public interface ITimelineEditService
     /// there is <see cref="TimelineEditResult.NoChange"/>; refused for another kind of clip or a locked track.</summary>
     TimelineEditResult SetClipBackground(Guid clipId, ClipBackground background);
 
+    /// <summary>D061: a video clip's automatic Follow — its settings, or null to switch it off; one undo step; refused for
+    /// another kind of clip or a locked track.</summary>
+    TimelineEditResult SetClipFollow(Guid clipId, FollowSettings? follow);
+
+    /// <summary>D061: whether a video clip's hold outlines are hidden behind people (Occlusion); one undo step.</summary>
+    TimelineEditResult SetClipHidesOutlinesBehindPeople(Guid clipId, bool hides);
+
     /// <summary>
     /// D058 §3: the edits <paramref name="edits"/> makes through this service (each by its own rules) as <b>one</b> Undo
     /// step. A refused edit undoes the ones made before it and its result is returned; when none changed anything the result

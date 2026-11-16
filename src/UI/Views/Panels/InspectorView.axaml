@@ -38,6 +38,10 @@
       <Setter Property="Foreground" Value="#AAAAAA"/>
       <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
+    <!-- D061: a Follow / Occlusion state that needs the user (a pick, a failure, no room to move). -->
+    <Style Selector="TextBlock.problem">
+      <Setter Property="Foreground" Value="#E0A040"/>
+    </Style>
     <!-- D039 §8 / D040 §4: a slider under a bounded field (Opacity, Volume, Fade In / Out, the hold line width); the field keeps
          exact typing, a drag is one undo step (D017). FU-25.2: Opacity, Volume and the line width take whole values (their
          view models round a typed fraction, step 1); their «0.####» shows a whole value as whole and a fraction saved
@@ -671,6 +675,47 @@
                 </StackPanel>
               </StackPanel>
               </StackPanel>
+              </StackPanel>
+            </controls:InspectorSection>
+
+            <!-- D061: Follow (the frame follows the chosen climber at the clip's scale) and the outlines hidden behind people
+                 (Occlusion): one undo step per change; the analysis runs in the background with its progress, cancel and retry. -->
+            <controls:InspectorSection SectionId="people" Title="{x:Static l:Strings.Inspector_PeopleHeading}">
+              <controls:InspectorSection.IsVisible>
+                <Binding Path="HasPeopleSection"/>
+              </controls:InspectorSection.IsVisible>
+              <StackPanel x:Name="PeoplePanel" Spacing="6">
+                <CheckBox x:Name="FollowToggle" Content="{x:Static l:Strings.Inspector_Follow}" IsChecked="{Binding FollowEnabled, Mode=TwoWay}"
+                          IsEnabled="{Binding IsEditingAllowed}" ToolTip.Tip="{x:Static l:Strings.Inspector_FollowTip}"/>
+                <StackPanel Spacing="6" IsVisible="{Binding FollowEnabled}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static l:Strings.Inspector_FollowSmoothness}" Classes="label"/>
+                    <ComboBox x:Name="FollowSmoothnessBox" ItemsSource="{Binding FollowSmoothnessNames}" SelectedIndex="{Binding FollowSmoothnessIndex, Mode=TwoWay}"
+                              IsEnabled="{Binding IsEditingAllowed}"/>
+                  </StackPanel>
+                  <WrapPanel Orientation="Horizontal">
+                    <Button x:Name="PickPersonButton" Content="{x:Static l:Strings.Inspector_PickPerson}" Command="{Binding PickPersonCommand}"
+                            FontSize="11" Margin="0,0,6,4" ToolTip.Tip="{x:Static l:Strings.Inspector_PickPersonTip}"/>
+                    <Button Content="{x:Static l:Strings.Inspector_CancelPick}" Command="{Binding CancelPickPersonCommand}"
+                            IsVisible="{Binding IsPickingPerson}" FontSize="11" Margin="0,0,6,4"/>
+                  </WrapPanel>
+                  <TextBlock x:Name="FollowStatus" Text="{Binding FollowStatusText}" TextWrapping="Wrap" FontSize="11" Foreground="#AAAAAA"
+                             Classes.problem="{Binding FollowStatusIsProblem}"/>
+                </StackPanel>
+                <CheckBox x:Name="OcclusionToggle" Content="{x:Static l:Strings.Inspector_HideOutlinesBehindPeople}"
+                          IsChecked="{Binding HidesOutlinesBehindPeople, Mode=TwoWay}" IsEnabled="{Binding IsEditingAllowed}"
+                          ToolTip.Tip="{x:Static l:Strings.Inspector_HideOutlinesTip}"/>
+                <StackPanel Spacing="6" IsVisible="{Binding HidesOutlinesBehindPeople}">
+                  <TextBlock x:Name="OcclusionStatus" Text="{Binding OcclusionStatusText}" TextWrapping="Wrap" FontSize="11" Foreground="#AAAAAA"
+                             Classes.problem="{Binding OcclusionStatusIsProblem}"/>
+                  <CheckBox x:Name="ShowMasksToggle" Content="{x:Static l:Strings.Inspector_ShowPeopleMasks}" IsChecked="{Binding ShowPeopleMasks, Mode=TwoWay}"/>
+                </StackPanel>
+                <StackPanel Spacing="4" IsVisible="{Binding IsPeopleAnalysing}">
+                  <ProgressBar x:Name="PeopleProgress" Minimum="0" Maximum="100" Value="{Binding PeopleProgressPercent}" Height="4" MinHeight="4"/>
+                  <Button Content="{x:Static l:Strings.Inspector_CancelPeopleAnalysis}" Command="{Binding CancelPeopleAnalysisCommand}" FontSize="11"/>
+                </StackPanel>
+                <Button x:Name="RetryPeopleButton" Content="{x:Static l:Strings.Inspector_RetryPeopleAnalysis}" Command="{Binding RetryPeopleAnalysisCommand}"
+                        IsVisible="{Binding CanRetryPeopleAnalysis}" FontSize="11"/>
               </StackPanel>
             </controls:InspectorSection>
 

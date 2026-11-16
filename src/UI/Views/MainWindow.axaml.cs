@@ -240,7 +240,9 @@ public partial class MainWindow : Window
         public TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds) => Nothing;
         public TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds, Guid? trackId, MediaTime? start, bool insertOnDrop) => Nothing;
         public DropPreview? PreviewAddClips(IReadOnlyList<Guid> mediaAssetIds, Guid trackId, MediaTime start, bool insertOnDrop) => null;
-        public TimelineEditResult SetClipBackground(Guid clipId, ClipBackground background) => Nothing;
+        public TimelineEditResult SetClipBackground(Guid clipId, ClipBackground background) => Nothing;
+        public TimelineEditResult SetClipFollow(Guid clipId, FollowSettings? follow) => Nothing;
+        public TimelineEditResult SetClipHidesOutlinesBehindPeople(Guid clipId, bool hides) => Nothing;
         public TimelineEditResult EditAsOneStep(string description, string? mergeKey, Func<IReadOnlyList<TimelineEditResult>> edits) => Nothing;
         public TimelineEditResult SetMarkerLabel(Guid markerId, string label) => Nothing;
         public MediaTime? AddedClipDuration(Guid mediaAssetId) => null;

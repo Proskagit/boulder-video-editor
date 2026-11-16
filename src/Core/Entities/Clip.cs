@@ -76,6 +76,14 @@ public sealed class VideoClip : MediaBackedClip
     /// filled to the canvas and blurred (`project.json` v19).</summary>
     public ClipBackground Background { get; set; }
 
+    /// <summary>D061 (format v20): the automatic Follow of a person — the picture's visible part moves with the person at the
+    /// clip's own scale; null — off. Immutable, replaced as a whole by each edit.</summary>
+    public FollowSettings? Follow { get; set; }
+
+    /// <summary>D061 (format v20): the hold outlines of the clip's routes are hidden where a person is in front of them
+    /// (Occlusion — every person in the frame, each segmented separately).</summary>
+    public bool HidesOutlinesBehindPeople { get; set; }
+
     /// <summary>The clip's own sound was unlinked into an <see cref="AudioClip"/> (D032 R1, R3): the clip produces no
     /// sound; <see cref="Volume"/> and <see cref="IsMuted"/> are kept but unused.</summary>
     public bool IsAudioDetached { get; set; }

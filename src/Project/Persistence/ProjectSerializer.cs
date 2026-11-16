@@ -27,7 +27,8 @@ namespace AiVideoEditor.Project.Persistence;
 public static class ProjectSerializer
 {
     public const string FormatId = "AiVideoEditor.Project";
-    /// <summary>14 since R2 → E (K3): a hold markup's "Follow the camera" off. 13 since Phase 35.5: the heart-rate overlay (a template kind with its look and corner). 12 since Phase 37
+    /// <summary>20 since Phase 42 (D061): a video clip's Follow and its outlines hidden behind people. 19 since Phase 38: a video clip's blurred background.
+    /// 14 since R2 → E (K3): a hold markup's "Follow the camera" off. 13 since Phase 35.5: the heart-rate overlay (a template kind with its look and corner). 12 since Phase 37
     /// (D051): the FIT marks and the declined climbs. 11 since Phase 35 (D049): the COROS training. 10 since D048: the route
     /// timing and the template anchor. 9 since Phase 29 (D045): templates.
     /// 8 since Phase 28 (D044): the transition library — Dip to black, Flash, Zoom and Push with its direction.
@@ -39,7 +40,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 19;
+    public const int CurrentFormatVersion = 20;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -104,6 +105,10 @@ public static class ProjectSerializer
     /// <summary>The first version with a video clip's blurred background (D057 §3.7). A v18 file's clips have black ones and
     /// are saved as v19; an older build refuses a v19 file as newer (FU-PF.1 reads the version first).</summary>
     private const int BackgroundVersion = 19;
+
+    /// <summary>The first version with a video clip's Follow and Occlusion (D061). A v19 file's clips have neither and are
+    /// saved as v20; an older build refuses a v20 file as newer.</summary>
+    private const int PeopleVersion = 20;
 
     /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
     /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
@@ -440,6 +445,29 @@ public static class ProjectSerializer
         }).ToList()
     };
 
+    private static FollowDto ToDto(FollowSettings follow) => new()
+    {
+        TargetTicks = follow.TargetTime?.Ticks, TargetX = follow.TargetPoint?.X, TargetY = follow.TargetPoint?.Y,
+        Smoothness = follow.Smoothness switch { FollowSmoothness.Soft => "soft", FollowSmoothness.Fast => "fast", _ => "normal" }
+    };
+
+    private static FollowSettings FromDto(FollowDto dto)
+    {
+        var smoothness = dto.Smoothness switch
+        {
+            null or "normal" => FollowSmoothness.Normal,
+            "soft" => FollowSmoothness.Soft,
+            "fast" => FollowSmoothness.Fast,
+            _ => throw Damaged("unknown Follow smoothness")
+        };
+        var given = (dto.TargetTicks is not null ? 1 : 0) + (dto.TargetX is not null ? 1 : 0) + (dto.TargetY is not null ? 1 : 0);
+        if (given is not (0 or 3)) throw Damaged("an incomplete Follow target");
+        if (given == 0) return new FollowSettings(Smoothness: smoothness);
+        if (dto.TargetTicks < 0 || !(dto.TargetX is >= 0 and <= 1) || !(dto.TargetY is >= 0 and <= 1))
+            throw Damaged("a Follow target outside the frame");
+        return new FollowSettings(new MediaTime(dto.TargetTicks!.Value), new NormalizedPoint(dto.TargetX!.Value, dto.TargetY!.Value), smoothness);
+    }
+
     private static ClipDto ToDto(Clip clip)
     {
         ClipDto dto = clip switch
@@ -450,6 +478,8 @@ public static class ProjectSerializer
                 Opacity = v.Opacity, Volume = v.Volume, IsMuted = v.IsMuted, Crop = ToDto(v.Crop),
                 IsAudioDetached = v.IsAudioDetached,
                 Background = v.Background == ClipBackground.Blur ? "blur" : null,
+                Follow = v.Follow is { } follow ? ToDto(follow) : null,
+                HidesOutlinesBehindPeople = v.HidesOutlinesBehindPeople,
                 Routes = v.Routes.IsDefaultOrEmpty ? null : v.Routes.Select(r => (HoldMarkupDto?)ToDto(r)).ToList()
             },
             AudioClip a => new AudioClipDto { Volume = a.Volume, IsMuted = a.IsMuted },
@@ -989,7 +1019,10 @@ public static class ProjectSerializer
                 Routes = ReadRoutes(v, formatVersion),
                 // v1–v18: black (D057 §3.7).
                 Background = formatVersion < BackgroundVersion || v.Background is null ? ClipBackground.Black
-                    : v.Background == "blur" ? ClipBackground.Blur : throw Damaged("unknown clip background")
+                    : v.Background == "blur" ? ClipBackground.Blur : throw Damaged("unknown clip background"),
+                // v1–v19: neither (D061).
+                Follow = formatVersion < PeopleVersion || v.Follow is null ? null : FromDto(v.Follow),
+                HidesOutlinesBehindPeople = formatVersion >= PeopleVersion && v.HidesOutlinesBehindPeople
             },
             AudioClipDto a => new AudioClip { Id = a.Id, MediaAssetId = a.MediaAssetId, Volume = a.Volume, IsMuted = a.IsMuted },
             ImageClipDto i => new ImageClip
