@@ -10313,3 +10313,36 @@ between); a part's side at the clip's edge stays open past the cut. `project.jso
 (the target on the Follow) is one part on the whole clip, a v21 file (from / to on the Follow — the 0.42.1 test build) one
 part with its range; both are saved as v22; an older build refuses a v22 file as newer; parts out of order or overlapping
 refuse the file.
+
+### Amendment 1, third round — the masks' speed, the climber's place in the frame, the frame dragged in the Preview *(2026-11-16)*
+
+**10. The masks analysis, faster with the same result.** Measured per frame on the owner's part of `video_20260927_101034`
+(204 frames, one person, RTX 4070 SUPER, DirectML): the image encoder 48 ms, the memory attention 34 ms on the GPU + 10 ms of
+CPU rearranging, the image's preprocessing 11 ms on the CPU, the decoder and the memory encoder 10 ms. Now the frames are
+decoded, picked and preprocessed on another thread a few frames ahead (`IPersonSegmenter.Prepare`) while the GPU runs the
+current one, the memory's features are rearranged once when a memory is made (not on each of the up to seven frames that
+attend to it) and the encoder's constant positional encoding once per object. The masks are **byte for byte the same**;
+the part: 27.1 s → 23.4 s (−14 %). What is left is the GPU's own work (the encoder ≈ 10 s, the attention ≈ 7 s). Further
+speed needs the owner's choice (not done): the masks at 10 instead of 15 frames per second (≈ 1.4× — measured: no worse
+partial / torso-lost figures on 101034 and 112606, but a fast hand can be up to 1/20 s off the mask between analysed frames),
+or a float16 image encoder (a new model file to install, its quality to be measured).
+
+**11. The climber's place in the frame** (owner: «скалолаз не по центру, а, например, в правой части кадра»). Each followed
+part has `OffsetX` / `OffsetY` — canvas pixels from the canvas centre (+X right, +Y down), like the clip's Position:
+`FollowCamera.Solve` puts the person's anchor at the centre plus the offset, still clamped so the picture covers the canvas.
+The Inspector shows «Скалолаз в кадре» X / Y (with the draggable labels) for the part under the playhead (the only part
+otherwise). `project.json` **v23**: the part's `offsetX` / `offsetY`, written only when not 0; a v22 file's parts have none;
+an offset beyond the Position's limits refuses the file.
+
+**12. The frame dragged in the Preview** (owner: a click on the picture shows the frame; Ctrl + the wheel scales; the left
+button drags; the text fields stay for exact values). The Move tool of D038 does this; now:
+- a click on a picture in the Preview while paused and no other mode takes the clicks (the hold markup, the climber's pick)
+  selects its clip, turns Move on and the same press drags it (no need to press «Переместить» first); Esc turns it off;
+- Ctrl + the wheel over the Preview scales the selected clip (or the picture under the pointer, which it selects) around its
+  centre, 5 % a notch, within the Scale's limits; the notches of one turn (each within 0.7 s of the last) are one undo step;
+- **which value a drag changes** — the rule shown in the Preview's bar: on a frame of a followed part the camera follows
+  (the clip has Follow and the part follows there), the frame is drawn where Follow puts the picture on that frame and a
+  drag moves **the climber's place in the frame** (the part's offset; «Слежение — тяните кадр, чтобы поставить скалолаза…»,
+  then «Скалолаз в кадре: X … · Y … от центра»); anywhere else the drag moves **the clip's Position** («Перемещение…»).
+  Scale (corners, Ctrl + wheel) is the clip's either way. Each drag is one undo step (`SetClipFollow` with the gesture
+  merges, like the Move tool's steps); Esc, a lost pointer, playback or a save cancel it without a trace.

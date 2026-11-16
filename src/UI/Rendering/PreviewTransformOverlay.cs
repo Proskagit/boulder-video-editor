@@ -82,7 +82,10 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
         set => SetValue(LayersProperty, value);
     }
 
-    public bool HitTest(Point point) => _transform is { IsActive: true } && new Rect(Bounds.Size).Contains(point);
+    /// <summary>The overlay takes the pointer while a tool is on — and, D061 amendment 1, while a click on a picture would
+    /// turn Move on (paused, no other mode: the hold markup and the climber's pick keep their clicks).</summary>
+    public bool HitTest(Point point) =>
+        _transform is { } t && !t.OtherModeActive() && (t.IsActive || t.CanActivateByClick) && new Rect(Bounds.Size).Contains(point);
 
     private void Attach(PreviewTransformViewModel? transform)
     {
@@ -166,6 +169,15 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
+        // D061 amendment 1: no tool on — a press on a picture selects its clip, turns Move on and drags it at once.
+        if (_transform is { IsActive: false, CanActivateByClick: true } idle && idle.Canvas.IsValid &&
+            e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            var layers = Layers.IsDefault ? ImmutableArray<LayerPicture>.Empty : Layers;
+            if (LayerAt(idle.Canvas, layers, ToCanvas(ViewportIn(idle.Canvas, Bounds.Size), e.GetPosition(this))) is not { } clicked ||
+                !idle.ActivateFor(clicked))
+                return;
+        }
         if (_transform is not { IsActive: true } t || !t.Canvas.IsValid) return;
         var point = e.GetCurrentPoint(this);
         if (!point.Properties.IsLeftButtonPressed) return;
@@ -259,6 +271,28 @@ public sealed class PreviewTransformOverlay : Control, ICustomHitTest
         UpdateCursor();
         InvalidateVisual();
     }
+
+    /// <summary>D061 amendment 1: Ctrl + the wheel over the Preview scales the selected clip (or the picture under the pointer,
+    /// which it selects and turns Move on for) around its centre; a turn of notches is one undo step.</summary>
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.Delta.Y == 0 || _transform is not { } t || !t.Canvas.IsValid || _press is not null) return;
+        if (!t.IsActive)
+        {
+            var layers = Layers.IsDefault ? ImmutableArray<LayerPicture>.Empty : Layers;
+            if (!t.CanActivateByClick ||
+                LayerAt(t.Canvas, layers, ToCanvas(ViewportIn(t.Canvas, Bounds.Size), e.GetPosition(this))) is not { } id || !t.ActivateFor(id))
+                return;
+        }
+        if (t.Tool != PreviewTool.Move) return;
+        t.WheelScale(Math.Pow(WheelScaleStep, Math.Sign(e.Delta.Y)));
+        e.Handled = true;
+        InvalidateVisual();
+    }
+
+    /// <summary>The scale factor of one wheel notch.</summary>
+    public const double WheelScaleStep = 1.05;
 
     protected override void OnPointerExited(PointerEventArgs e)
     {

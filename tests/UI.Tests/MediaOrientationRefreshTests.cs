@@ -220,7 +220,7 @@ public sealed class MediaOrientationRefreshTests : IDisposable
         public TimelineEditResult AddClips(IReadOnlyList<Guid> mediaAssetIds, Guid? trackId, MediaTime? start, bool insertOnDrop) => No;
         public DropPreview? PreviewAddClips(IReadOnlyList<Guid> mediaAssetIds, Guid trackId, MediaTime start, bool insertOnDrop) => null;
         public TimelineEditResult SetClipBackground(Guid clipId, ClipBackground background) => No;
-        public TimelineEditResult SetClipFollow(Guid clipId, FollowSettings? follow, bool? hideOutlinesBehindPeople = null) => No;
+        public TimelineEditResult SetClipFollow(Guid clipId, FollowSettings? follow, bool? hideOutlinesBehindPeople = null, ClipPropertyGesture? gesture = null) => No;
         public TimelineEditResult SetClipHidesOutlinesBehindPeople(Guid clipId, bool hides) => No;
         public TimelineEditResult EditAsOneStep(string description, string? mergeKey, Func<IReadOnlyList<TimelineEditResult>> edits) => No;
         public TimelineEditResult SetMarkerLabel(Guid markerId, string label) => No;

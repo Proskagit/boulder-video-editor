@@ -167,7 +167,7 @@ public static class FollowCamera
 
     /// <summary>The camera path, or null with the reason.</summary>
     public static (FollowPath? Path, FollowUnavailable Reason) Solve(FollowTrajectory trajectory, FrameSize canvas, FrameSize source,
-        VisualProperties visual, FollowSmoothness smoothness)
+        VisualProperties visual, FollowSmoothness smoothness, double offsetX = 0, double offsetY = 0)
     {
         if (Affine2D.QuarterTurns(visual.RotationDegrees) is null) return (null, FollowUnavailable.Rotation);
         var points = trajectory.Points;
@@ -194,8 +194,9 @@ public static class FollowCamera
         {
             var local = new PointD(anchors[i].X * source.Width - crop.X, anchors[i].Y * source.Height - crop.Y);
             var q = centred.Transform.Apply(local);
-            xs[i] = movesX ? Math.Clamp(canvas.Width / 2.0 - q.X, minX, maxX) : visual.PositionX;
-            ys[i] = movesY ? Math.Clamp(canvas.Height / 2.0 - q.Y, minY, maxY) : visual.PositionY;
+            // The person's anchor at the canvas centre moved by the part's offset (D061 amendment 1).
+            xs[i] = movesX ? Math.Clamp(canvas.Width / 2.0 + offsetX - q.X, minX, maxX) : visual.PositionX;
+            ys[i] = movesY ? Math.Clamp(canvas.Height / 2.0 + offsetY - q.Y, minY, maxY) : visual.PositionY;
         }
         var times = points.Select(p => p.Time).ToImmutableArray();
         var sigma = FollowSettings.SigmaOf(smoothness);

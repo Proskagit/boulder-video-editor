@@ -1,3 +1,4 @@
+using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Playback;
@@ -78,6 +79,29 @@ public class ClipFollowEditTests
         Assert.Null(clip.Follow);
         f.UndoRedo.Undo();                                                   // the only step is still the clip's add
         Assert.Empty(f.V1.Clips);
+    }
+
+    [Fact]
+    public void The_changes_of_one_gesture_merge_into_one_step_and_a_return_to_the_start_leaves_none()
+    {
+        var f = new TimelineFixture();
+        Assert.True(f.Service.AddClip(f.Video(4, FrameRate.Fps30).Id).Success);
+        var clip = f.V1.Clips.OfType<VideoClip>().Single();
+        var start = FollowSettings.Whole();
+        Assert.True(f.Service.SetClipFollow(clip.Id, start).Success);
+        var drag = new ClipPropertyGesture("Move Climber in Frame");
+        for (var x = 10; x <= 50; x += 10)
+            Assert.True(f.Service.SetClipFollow(clip.Id, FollowSettings.Of(new FollowPart(OffsetX: x)), gesture: drag).Success);
+        f.UndoRedo.Undo();                                                   // the whole drag
+        Assert.Equal(start, clip.Follow);
+        f.UndoRedo.Redo();
+        Assert.Equal(50, clip.Follow!.Parts[0].OffsetX);
+
+        var back = new ClipPropertyGesture("Move Climber in Frame");
+        Assert.True(f.Service.SetClipFollow(clip.Id, FollowSettings.Of(new FollowPart(OffsetX: 80)), gesture: back).Success);
+        Assert.True(f.Service.SetClipFollow(clip.Id, FollowSettings.Of(new FollowPart(OffsetX: 50)), gesture: back).Success);
+        f.UndoRedo.Undo();                                                   // no step of its own: the earlier drag
+        Assert.Equal(start, clip.Follow);
     }
 
     [Fact]

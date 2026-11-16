@@ -815,6 +815,116 @@ public sealed class PreviewTransformUiTests : IAsyncLifetime
         Assert.Same(clips[0], Tool.Target?.Clip ?? clips[0]);
     }
 
+    // --- D061 amendment 1: a click turns Move on, Ctrl + the wheel scales, a followed part drags the climber --------------
+
+    [Fact]
+    public void A_click_on_a_picture_with_no_tool_selects_it_and_turns_Move_on_unless_playing_or_another_mode()
+    {
+        var clips = TwoByTwo();
+        _vm.Timeline.SelectClipFromPreview(clips[0].Id);
+        var otherMode = true;
+        Tool.OtherModeActive = () => otherMode;
+        Assert.False(Tool.CanActivateByClick);                  // the hold markup / the pick keep their clicks
+        Assert.False(Tool.ActivateFor(clips[1].Id));
+        otherMode = false;
+        _playing = true;
+        Tool.OnPreviewStateChanged();
+        Assert.False(Tool.ActivateFor(clips[1].Id));            // playing
+        _playing = false;
+        Tool.OnPreviewStateChanged();
+        Assert.True(Tool.ActivateFor(clips[1].Id));
+        Assert.True(Tool.IsMoveOn);
+        Assert.Same(clips[1], Tool.Target!.Clip);
+        Assert.False(Tool.CanActivateByClick);                  // on already
+    }
+
+    [Fact]
+    public void Ctrl_and_the_wheel_scale_around_the_centre_one_undo_step_per_turn()
+    {
+        var clip = AddVideo();
+        var steps = Steps();
+        var now = new DateTime(2026, 11, 16, 12, 0, 0);
+        Tool.Now = () => now;
+        Assert.False(Tool.WheelScale(1.05));                    // no tool on
+        Assert.True(Tool.ActivateFor(clip.Id));
+        Assert.True(Tool.WheelScale(1.05));
+        now += TimeSpan.FromMilliseconds(200);
+        Assert.True(Tool.WheelScale(1.05));
+        Assert.Equal(1.05 * 1.05, Visual(clip).Scale, 9);
+        Assert.Equal(0, Visual(clip).PositionX);                // around the centre
+        Assert.Equal(steps + 1, Steps());
+        now += PreviewTransformViewModel.WheelStepWindow + TimeSpan.FromMilliseconds(1);
+        Assert.True(Tool.WheelScale(1 / 1.05));
+        Assert.Equal(steps + 2, Steps());
+        for (var i = 0; i < 400; i++) Tool.WheelScale(1.05);
+        Assert.Equal(ClipPropertyLimits.MaxScale, Visual(clip).Scale, 9);
+    }
+
+    [Fact]
+    public void On_a_followed_part_the_frame_is_where_Follow_puts_it_and_a_drag_moves_the_climber_in_one_undo_step()
+    {
+        var clip = AddVideo();
+        Assert.True(_edit.SetClipFollow(clip.Id, FollowSettings.Of(new FollowPart(MediaTime.Zero, MediaTime.FromSeconds(5)))).Success);
+        // Follow puts the picture 100 px right on this frame (the analysis stubbed); outside the part — nothing.
+        Tool.FollowAt = (c, t) => t < MediaTime.FromSeconds(5) ? (0, 100, 0) : null;
+        var steps = Steps();
+        Assert.True(Tool.ActivateFor(clip.Id));
+        Assert.Equal(0, Tool.Target!.FollowPart);
+        Assert.Equal(960 + 100, Tool.Target.Frame.Center.X, 6);
+        Assert.Equal(Strings_FollowText(), Tool.ModeText);
+
+        Assert.True(Tool.BeginMove(new PointD(1060, 540)));
+        Tool.UpdateGesture(new PointD(1110, 520), keepAxis: false);
+        Tool.UpdateGesture(new PointD(1130, 500), keepAxis: false);
+        Assert.Equal(new FollowPart(MediaTime.Zero, MediaTime.FromSeconds(5), OffsetX: 70, OffsetY: -40), clip.Follow!.Parts[0]);
+        Assert.Equal(0, Visual(clip).PositionX);                // the clip's own position stays
+        Tool.EndGesture();
+        Assert.Equal(steps + 1, Steps());
+
+        // Esc during a drag restores the offset and leaves no step.
+        Assert.True(Tool.BeginMove(new PointD(1060, 540)));
+        Tool.UpdateGesture(new PointD(900, 540), keepAxis: false);
+        Tool.CancelGesture();
+        Assert.Equal(70, clip.Follow!.Parts[0].OffsetX);
+        Assert.Equal(steps + 1, Steps());
+
+        // Outside the part the same drag moves the clip.
+        _vm.Timeline.SetPlayhead(clip.TimelineStart + MediaTime.FromSeconds(6));
+        Assert.Null(Tool.Target!.FollowPart);
+        Assert.True(Tool.BeginMove(new PointD(960, 540)));
+        Tool.UpdateGesture(new PointD(1000, 540), keepAxis: false);
+        Tool.EndGesture();
+        Assert.Equal(40, Visual(clip).PositionX);
+        Assert.Equal(70, clip.Follow!.Parts[0].OffsetX);
+    }
+
+    [Fact]
+    public void The_climbers_pick_turns_Move_off_and_keeps_the_Previews_clicks()
+    {
+        var clip = AddVideo();
+        Assert.True(Tool.ActivateFor(clip.Id));
+        _vm.Preview.StartPersonPick(clip.Id);
+        Assert.False(Tool.IsActive);
+        Assert.False(Tool.CanActivateByClick);                  // a click on the picture is the pick's
+        Assert.False(new PreviewTransformOverlay { Transform = Tool }.HitTest(new Point(1, 1)));
+        _vm.Preview.CancelPersonPick();
+        Assert.True(Tool.CanActivateByClick);
+    }
+
+    [Fact]
+    public void Crop_is_not_offered_on_a_frame_Follow_places()
+    {
+        var clip = AddVideo();
+        Assert.True(_edit.SetClipFollow(clip.Id, FollowSettings.Whole()).Success);
+        Tool.FollowAt = (c, t) => (0, 100, 0);
+        Tool.IsCropOn = true;
+        Assert.Equal(0, Tool.Target!.FollowPart);
+        Assert.False(Tool.HasCropHandles);
+        Assert.Equal(AiVideoEditor.UI.Localization.Strings.Transform_CropOnFollow, Tool.ModeText);
+    }
+
+    private static string Strings_FollowText() => AiVideoEditor.UI.Localization.Strings.Transform_FollowText;
+
     // --- viewport -----------------------------------------------------------------------------------------------------
 
     [Fact]

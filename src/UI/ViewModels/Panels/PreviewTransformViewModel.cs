@@ -26,7 +26,10 @@ public enum TransformGestureKind
 {
     Move,
     Scale,
-    Crop
+    Crop,
+
+    /// <summary>D061 amendment 1: on a followed part, the drag moves the person's place in the frame (the part's offset).</summary>
+    FollowOffset
 }
 
 /// <summary>The clip the tools act on (D038 §2): the primary selected clip under the playhead, its frame on the canvas
@@ -35,6 +38,10 @@ public sealed record TransformTarget(Clip Clip, Track Track, VisualProperties Vi
 {
     public bool IsText => Clip is TextClip;
     public bool IsLocked => Track.IsLocked;
+
+    /// <summary>D061 amendment 1: the followed part the camera follows on the shown frame (its index in the clip's Follow) —
+    /// the frame is then where Follow puts the picture, and a drag moves the person in the frame; null otherwise.</summary>
+    public int? FollowPart { get; init; }
 }
 
 /// <summary>
@@ -92,6 +99,23 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
 
     /// <summary>Selects the clip in the timeline as a click on it there would (D038 §2); null when nothing can select.</summary>
     public Action<Guid>? SelectClip { get; set; }
+
+    /// <summary>D061 amendment 1: the followed part the camera follows on source time of a clip and where Follow puts the
+    /// picture there (Position X / Y); null — no Follow there (set by the main window).</summary>
+    public Func<VideoClip, MediaTime, (int Part, double X, double Y)?>? FollowAt { get; set; }
+
+    /// <summary>Another mode of the Preview takes its clicks now (the hold markup, the climber's pick); set by the main window.</summary>
+    public Func<bool> OtherModeActive { get; set; } = () => false;
+
+    /// <summary>The clock of the wheel's scale steps (tests).</summary>
+    public Func<DateTime> Now { get; set; } = () => DateTime.UtcNow;
+
+    /// <summary>How long after its last notch a wheel scale is still the same undo step.</summary>
+    public static readonly TimeSpan WheelStepWindow = TimeSpan.FromMilliseconds(700);
+
+    private ClipPropertyGesture? _wheelUndo;
+    private Guid? _wheelClip;
+    private DateTime _wheelLast;
 
     // ---- the tools --------------------------------------------------------------------------------------------------
 
@@ -177,7 +201,7 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     public bool HasScaleHandles => Tool == PreviewTool.Move && CanEdit;
 
     /// <summary>Crop shows the eight crop handles — pictures only.</summary>
-    public bool HasCropHandles => Tool == PreviewTool.Crop && CanEdit && Target is { IsText: false, Geometry: not null };
+    public bool HasCropHandles => Tool == PreviewTool.Crop && CanEdit && Target is { IsText: false, Geometry: not null, FollowPart: null };
 
     public bool IsGestureActive => _gesture is not null;
 
@@ -239,7 +263,47 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         if (!IsPaused) return PlayingText;
         if (Target is { IsLocked: true } locked) return string.Format(Messages.Edit_TrackLocked, locked.Track.Name);
         if (Tool == PreviewTool.Crop && Target is { IsText: true }) return TextHasNoCrop;
+        if (Tool == PreviewTool.Crop && Target is { FollowPart: not null }) return Strings.Transform_CropOnFollow;
+        if (Tool == PreviewTool.Move && Target is { FollowPart: not null }) return Strings.Transform_FollowText;
         return Tool == PreviewTool.Crop ? CropText : MoveText;
+    }
+
+    /// <summary>D061 amendment 1: a click on a picture in the Preview (paused, no other mode) selects its clip and turns Move
+    /// on — the frame shows, the press drags it, Ctrl + the wheel scales it.</summary>
+    public bool CanActivateByClick => !IsActive && IsAvailable && !IsPlaying() && !OtherModeActive();
+
+    /// <summary>Turns Move on for <paramref name="clipId"/> (a click on its picture); whether it is the target now.</summary>
+    public bool ActivateFor(Guid clipId)
+    {
+        if (!CanActivateByClick) return false;
+        if (Target?.Clip.Id != clipId) SelectClip?.Invoke(clipId);
+        IsMoveOn = true;
+        return Target?.Clip.Id == clipId;
+    }
+
+    /// <summary>
+    /// D061 amendment 1: Ctrl + the wheel scales the target around its centre by <paramref name="factor"/> per notch, within
+    /// the Scale's limits; the notches of one turn (each within <see cref="WheelStepWindow"/> of the last) are one undo step.
+    /// On a followed part the picture keeps following (Follow keeps the clip's scale).
+    /// </summary>
+    public bool WheelScale(double factor)
+    {
+        if (!CanEdit || _gesture is not null || Target is not { } target || VisualProperties.Of(target.Clip) is not { } visual) return false;
+        var now = Now();
+        if (_wheelUndo is null || _wheelClip != target.Clip.Id || now - _wheelLast > WheelStepWindow) _wheelUndo = new ClipPropertyGesture("Scale Clip");
+        _wheelClip = target.Clip.Id;
+        _wheelLast = now;
+        var scale = Math.Clamp(Math.Round(visual.Scale * factor, PreviewTransformMath.ScaleDecimals, MidpointRounding.AwayFromZero),
+            ClipPropertyLimits.MinScale, ClipPropertyLimits.MaxScale);
+        if (scale == visual.Scale) return false;
+        var result = _edit.SetClipProperties(target.Clip.Id, new ClipPropertyChange { Visual = visual with { Scale = scale }, Gesture = _wheelUndo });
+        if (!result.Success)
+        {
+            _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+            return false;
+        }
+        ModeText = string.Format(Strings.Transform_ScaleValue, Num(scale * 100));
+        return true;
     }
 
     private TransformTarget? BuildTarget(out string? reason)
@@ -270,8 +334,21 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         }
         var asset = clip is MediaBackedClip m ? project.MediaAssets.FirstOrDefault(a => a.Id == m.MediaAssetId) : null;
         if (PlaybackSnapshotBuilder.DisplaySize(asset?.Metadata) is not { } size) { reason = UnknownSizeText; return null; }
-        var geometry = CompositionMath.Layout(canvas, size, visual);
-        return new TransformTarget(clip, track, visual, PreviewTransformMath.PictureFrame(geometry), geometry);
+        // D061 amendment 1: on a followed part the picture is where Follow puts it on the shown frame.
+        int? followPart = null;
+        var placed = visual;
+        if (clip is VideoClip { Follow: not null } video && FollowAt is { } followAt && !IsPlaying())
+        {
+            var rate = project.Settings.FrameRate;
+            var source = HoldAnimationRule.SourceTimeAt(video.TimelineStart, video.SourceIn, video.Speed, playhead.ToFrameFloor(rate), rate);
+            if (followAt(video, source) is { } follow)
+            {
+                followPart = follow.Part;
+                placed = visual with { PositionX = follow.X, PositionY = follow.Y };
+            }
+        }
+        var geometry = CompositionMath.Layout(canvas, size, placed);
+        return new TransformTarget(clip, track, visual, PreviewTransformMath.PictureFrame(geometry), geometry) { FollowPart = followPart };
     }
 
     private static (double, double) MeasureWithPainter(TextProperties text)
@@ -309,6 +386,10 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
         public required PointD Pointer { get; init; }
         public CropEdges Handle { get; init; }
 
+        /// <summary>FollowOffset: the clip's Follow at the start and the dragged part.</summary>
+        public FollowSettings? StartFollow { get; init; }
+        public int FollowPart { get; init; }
+
         /// <summary>Scale: the grabbed corner minus the pointer (canvas); Crop: the dragged edges minus the pointer (source
         /// pixels).</summary>
         public PointD Offset { get; init; }
@@ -321,6 +402,12 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     public bool BeginMove(PointD pointer)
     {
         if (Tool != PreviewTool.Move || !CanEdit || _gesture is not null || Target is not { } target) return false;
+        if (target is { FollowPart: { } part, Clip: VideoClip { Follow: { } follow } } && part < follow.Parts.Length)
+            return Start(new Gesture
+            {
+                Kind = TransformGestureKind.FollowOffset, Undo = new ClipPropertyGesture("Move Climber in Frame"), Clip = target.Clip,
+                Start = target.Visual, Target = target, Pointer = pointer, StartFollow = follow, FollowPart = part
+            });
         return Start(new Gesture
         {
             Kind = TransformGestureKind.Move, Undo = new ClipPropertyGesture("Move Clip"), Clip = target.Clip, Start = target.Visual,
@@ -373,6 +460,11 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     public void UpdateGesture(PointD pointer, bool keepAxis)
     {
         if (_gesture is not { } g) return;
+        if (g.Kind == TransformGestureKind.FollowOffset)
+        {
+            MoveFollowOffset(g, pointer, keepAxis);
+            return;
+        }
         var next = g.Kind switch
         {
             TransformGestureKind.Move => PreviewTransformMath.Move(g.Start, pointer.X - g.Pointer.X, pointer.Y - g.Pointer.Y, keepAxis),
@@ -381,6 +473,37 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
             _ => Crop(g, pointer)
         };
         Apply(g, next);
+    }
+
+    /// <summary>The person moves in the frame with the picture: the part's offset grows by the drag (canvas pixels).</summary>
+    private void MoveFollowOffset(Gesture g, PointD pointer, bool keepAxis)
+    {
+        var (dx, dy) = (pointer.X - g.Pointer.X, pointer.Y - g.Pointer.Y);
+        if (keepAxis)
+        {
+            if (Math.Abs(dx) >= Math.Abs(dy)) dy = 0;
+            else dx = 0;
+        }
+        var part = g.StartFollow!.Parts[g.FollowPart];
+        var limit = ClipPropertyLimits.MaxPositionMagnitude;
+        var moved = part with
+        {
+            OffsetX = Math.Round(Math.Clamp(part.OffsetX + dx, -limit, limit), 2),
+            OffsetY = Math.Round(Math.Clamp(part.OffsetY + dy, -limit, limit), 2)
+        };
+        if (g.Clip is not VideoClip { Follow: { } current } video) return;
+        var next = g.StartFollow.WithPart(g.FollowPart, moved)!;
+        if (!Equals(next, current))
+        {
+            var result = _edit.SetClipFollow(video.Id, next, gesture: g.Undo);
+            if (!result.Success)
+            {
+                _status.Report(result.Message ?? Strings.Inspector_ClipNotChanged);
+                CancelGesture();
+                return;
+            }
+        }
+        if (_gesture == g) ModeText = string.Format(Strings.Transform_FollowValue, Num(moved.OffsetX), Num(moved.OffsetY));
     }
 
     private VisualProperties Crop(Gesture g, PointD pointer)
@@ -417,7 +540,12 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     public void CancelGesture()
     {
         if (_gesture is not { } g) return;
-        if (VisualProperties.Of(g.Clip) is { } current && current != g.Start)
+        if (g.Kind == TransformGestureKind.FollowOffset)
+        {
+            if (g.Clip is VideoClip video && !Equals(video.Follow, g.StartFollow))
+                _edit.SetClipFollow(video.Id, g.StartFollow, gesture: g.Undo);
+        }
+        else if (VisualProperties.Of(g.Clip) is { } current && current != g.Start)
             _edit.SetClipProperties(g.Clip.Id, new ClipPropertyChange { Visual = g.Start, Gesture = g.Undo });
         DropGesture();
     }
@@ -435,6 +563,12 @@ public sealed partial class PreviewTransformViewModel : ViewModelBase
     private void ShowGestureValues(VisualProperties v)
     {
         if (_gesture is not { } g) return;
+        if (g.Kind == TransformGestureKind.FollowOffset)
+        {
+            var part = g.StartFollow!.Parts[g.FollowPart];
+            ModeText = string.Format(Strings.Transform_FollowValue, Num(part.OffsetX), Num(part.OffsetY));
+            return;
+        }
         ModeText = g.Kind switch
         {
             TransformGestureKind.Move => string.Format(Strings.Transform_MoveValue, Num(v.PositionX), Num(v.PositionY)),

@@ -1793,7 +1793,7 @@
     <value>Кадрирование: слева {0} % · сверху {1} % · справа {2} % · снизу {3} %</value>
   </data>
   <data name="Transform_MoveText" xml:space="preserve">
-    <value>Перемещение — перетащите клип; угол меняет масштаб; Shift фиксирует ось; Esc отменяет</value>
+    <value>Перемещение — перетащите клип; угол или Ctrl + колесо меняют масштаб; Shift фиксирует ось; Esc отменяет</value>
   </data>
   <data name="Transform_MoveValue" xml:space="preserve">
     <value>Позиция X {0} пикс. · Y {1} пикс.</value>
@@ -3373,5 +3373,20 @@
   </data>
   <data name="Follow_PartProblem" xml:space="preserve">
     <value>Участок {0}: {1}.</value>
+  </data>
+  <data name="Transform_FollowText" xml:space="preserve">
+    <value>Слежение — тяните кадр, чтобы поставить скалолаза в нужное место кадра (участок под указателем); Ctrl + колесо — масштаб; Esc отменяет</value>
+  </data>
+  <data name="Transform_FollowValue" xml:space="preserve">
+    <value>Скалолаз в кадре: X {0} пикс. · Y {1} пикс. от центра</value>
+  </data>
+  <data name="Inspector_FollowOffset" xml:space="preserve">
+    <value>Скалолаз в кадре</value>
+  </data>
+  <data name="Inspector_FollowOffsetTip" xml:space="preserve">
+    <value>Где стоит скалолаз в кадре на участке слежения под указателем, в пикселях от центра (+X вправо, +Y вниз). Или тяните кадр в Preview.</value>
+  </data>
+  <data name="Transform_CropOnFollow" xml:space="preserve">
+    <value>Обрезка — не на кадре участка слежения (там картинку двигает слежение): поставьте указатель вне участков</value>
   </data>
 </root>

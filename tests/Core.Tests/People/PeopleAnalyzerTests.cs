@@ -16,23 +16,24 @@ namespace AiVideoEditor.Core.Tests.People;
 public class PeopleAnalyzerTests
 {
     /// <summary>30 fps frames for <paramref name="seconds"/>, 64 × 36 px.</summary>
-    internal sealed class FakeDecoder(double seconds) : IVideoDecoder
+    internal sealed class FakeDecoder(double seconds, int failAt = -1) : IVideoDecoder
     {
         public int Opened { get; private set; }
 
         public Task<IVideoFrameStream> OpenAsync(VideoDecodeRequest request, CancellationToken ct = default)
         {
             Opened++;
-            return Task.FromResult<IVideoFrameStream>(new Stream((int)(seconds * 30)));
+            return Task.FromResult<IVideoFrameStream>(new Stream((int)(seconds * 30), failAt));
         }
 
-        private sealed class Stream(int count) : IVideoFrameStream
+        private sealed class Stream(int count, int failAt) : IVideoFrameStream
         {
             private int _next;
 
             public ValueTask<DecodedFrame?> ReadFrameAsync(CancellationToken ct = default)
             {
                 ct.ThrowIfCancellationRequested();
+                if (_next == failAt) throw new InvalidOperationException("the decoder failed");
                 if (_next >= count) return ValueTask.FromResult<DecodedFrame?>(null);
                 var frame = new DecodedFrame(64, 36, 64 * 4, new byte[64 * 36 * 4], new SourceTimestamp(_next++, new TimeBase(1, 30)));
                 return ValueTask.FromResult<DecodedFrame?>(frame);
@@ -50,6 +51,9 @@ public class PeopleAnalyzerTests
         public List<int> Stopped { get; } = new();
         public int DetectCalls { get; private set; }
         public Action? OnDetect { get; init; }
+        public Action? OnStep { get; init; }
+        public int Prepared;
+        public int Steps;
 
         public string ModelId => "fake";
         public InferenceDevice DetectorDevice => InferenceDevice.Cpu;
@@ -77,9 +81,14 @@ public class PeopleAnalyzerTests
         {
             private readonly Dictionary<int, NormalizedBox> _boxes = new();
 
+            public void Prepare(DecodedFrame frame) => Interlocked.Increment(ref owner.Prepared);
+
             public IReadOnlyList<SegmentedPerson> Step(DecodedFrame frame, IReadOnlyList<SegmenterPrompt> start, IReadOnlyCollection<int> stop,
                 int gridWidth, int gridHeight, CancellationToken cancellationToken)
             {
+                owner.Steps++;
+                owner.OnStep?.Invoke();
+                cancellationToken.ThrowIfCancellationRequested();
                 var t = Seconds(frame);
                 foreach (var id in stop) { _boxes.Remove(id); owner.Stopped.Add(id); }
                 foreach (var p in start) { _boxes[p.PersonId] = p.Box; owner.Started.Add((t, p.PersonId)); }
@@ -229,6 +238,27 @@ public class PeopleAnalyzerTests
         var tracks = PeopleTestData.Tracks(frames);
         var roots = PeopleAnalyzer.PersonRoots(tracks, tracks.Tracks.Select(t => t.Id));
         Assert.NotEqual(roots[PeopleTestData.IdAt(tracks, 0, 0.3)], roots[PeopleTestData.IdAt(tracks, 110, 0.32)]);
+    }
+
+    [Fact]
+    public async Task The_masks_pass_prepares_every_frame_ahead_and_a_decoder_failure_or_a_cancel_reaches_the_caller()
+    {
+        var vision = new FakeVision();
+        var tracks = await new PeopleAnalyzer(new FakeDecoder(3), vision).DetectAsync(Video, null, CancellationToken.None);
+        await new PeopleAnalyzer(new FakeDecoder(3), vision).SegmentAsync(Video, tracks, null, CancellationToken.None);
+        Assert.Equal(45, vision.Steps);                                     // 15 per second
+        Assert.Equal(vision.Steps, vision.Prepared);                        // each one prepared ahead
+
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            new PeopleAnalyzer(new FakeDecoder(3, failAt: 40), new FakeVision()).SegmentAsync(Video, tracks, null, CancellationToken.None));
+        Assert.Equal("the decoder failed", failure.Message);
+
+        using var cancel = new CancellationTokenSource();
+        var steps = 0;
+        var cancelling = new FakeVision { OnStep = () => { if (++steps == 5) cancel.Cancel(); } };
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            new PeopleAnalyzer(new FakeDecoder(3), cancelling).SegmentAsync(Video, tracks, null, cancel.Token));
+        Assert.True(cancelling.Steps <= 6);
     }
 
     [Fact]

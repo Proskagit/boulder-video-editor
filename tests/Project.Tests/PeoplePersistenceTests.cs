@@ -55,7 +55,7 @@ public class PeoplePersistenceTests
     {
         var first = Save(Build());
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(22, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(23, root["formatVersion"]!.GetValue<int>());
         Assert.Equal(12_500_000, Part(root, 0)["targetTicks"]!.GetValue<long>());
         Assert.Equal("soft", Clip(root, 0)["follow"]!["smoothness"]!.GetValue<string>());
         Assert.True(Clip(root, 0)["hidesOutlinesBehindPeople"]!.GetValue<bool>());
@@ -85,7 +85,7 @@ public class PeoplePersistenceTests
             Assert.Null(c.Follow);
             Assert.False(c.HidesOutlinesBehindPeople);
         });
-        Assert.Equal(22, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(23, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
     }
 
     [Fact]
@@ -144,6 +144,26 @@ public class PeoplePersistenceTests
         var part = Part(root, clip).AsObject();
         foreach (var (key, value) in part.ToList()) follow[key] = value?.DeepClone();
         follow.Remove("parts");
+    }
+
+    [Fact]
+    public void A_parts_offset_survives_and_a_version_22_part_has_none()
+    {
+        var project = Build();
+        var clip = project.Timeline.VideoTracks[0].Clips.OfType<VideoClip>().First();
+        clip.Follow = FollowSettings.Of(new FollowPart(OffsetX: 120.5, OffsetY: -40));
+        var json = Save(project);
+        Assert.Equal(120.5, Part(JsonNode.Parse(json)!, 0)["offsetX"]!.GetValue<double>());
+        Assert.Null(Part(JsonNode.Parse(json)!, 1)["offsetX"]);               // 0: not written
+        Assert.Equal(clip.Follow, Load(json).Timeline.VideoTracks[0].Clips.OfType<VideoClip>().First().Follow);
+
+        var root = JsonNode.Parse(json)!;
+        root["formatVersion"] = 22;
+        Assert.Equal(FollowSettings.Of(new FollowPart()), Load(root.ToJsonString()).Timeline.VideoTracks[0].Clips.OfType<VideoClip>().First().Follow);
+
+        root = JsonNode.Parse(json)!;
+        Part(root, 0)["offsetX"] = 1e9;
+        Assert.Throws<ProjectFileException>(() => Load(root.ToJsonString()));
     }
 
     [Fact]

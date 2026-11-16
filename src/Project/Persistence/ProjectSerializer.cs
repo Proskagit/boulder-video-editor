@@ -40,7 +40,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 22;
+    public const int CurrentFormatVersion = 23;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -117,6 +117,10 @@ public static class ProjectSerializer
     /// <summary>The first version with several followed parts per clip, each with its own person (D061 amendment 1). A v21
     /// file's Follow is one part and is saved as v22; an older build refuses a v22 file as newer.</summary>
     private const int FollowPartsVersion = 22;
+
+    /// <summary>The first version with a followed part's offset — where the person stands in the frame (D061 amendment 1). A
+    /// v22 file's parts have none (the centre) and are saved as v23; an older build refuses a v23 file as newer.</summary>
+    private const int FollowOffsetVersion = 23;
 
     /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
     /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
@@ -458,7 +462,8 @@ public static class ProjectSerializer
         Parts = follow.Parts.Select(p => new FollowPartDto
         {
             FromTicks = p.From?.Ticks, ToTicks = p.To?.Ticks,
-            TargetTicks = p.TargetTime?.Ticks, TargetX = p.TargetPoint?.X, TargetY = p.TargetPoint?.Y
+            TargetTicks = p.TargetTime?.Ticks, TargetX = p.TargetPoint?.X, TargetY = p.TargetPoint?.Y,
+            OffsetX = p.OffsetX == 0 ? null : p.OffsetX, OffsetY = p.OffsetY == 0 ? null : p.OffsetY
         }).ToList(),
         Smoothness = follow.Smoothness switch { FollowSmoothness.Soft => "soft", FollowSmoothness.Fast => "fast", _ => "normal" }
     };
@@ -475,13 +480,22 @@ public static class ProjectSerializer
         };
         if (formatVersion >= FollowPartsVersion)
         {
-            var parts = (dto.Parts ?? new List<FollowPartDto>()).Select(p => Part(p.FromTicks, p.ToTicks, p.TargetTicks, p.TargetX, p.TargetY, ranged: true))
+            var parts = (dto.Parts ?? new List<FollowPartDto>()).Select(p => Part(p.FromTicks, p.ToTicks, p.TargetTicks, p.TargetX, p.TargetY, ranged: true)
+                    with { OffsetX = Offset(p.OffsetX, formatVersion), OffsetY = Offset(p.OffsetY, formatVersion) })
                 .ToImmutableArray();
             if (parts.IsEmpty || !FollowSettings.AreValid(parts)) throw Damaged("Follow parts that overlap or are out of order");
             return new FollowSettings(parts, smoothness);
         }
         var ranged = formatVersion >= FollowRangeVersion;
         return FollowSettings.Of(Part(dto.FromTicks, dto.ToTicks, dto.TargetTicks, dto.TargetX, dto.TargetY, ranged), smoothness);
+    }
+
+    /// <summary>A part's offset from a v23 file (a v22 file has none); like a Position, within its limits.</summary>
+    private static double Offset(double? value, int formatVersion)
+    {
+        if (formatVersion < FollowOffsetVersion || value is not { } offset) return 0;
+        if (!double.IsFinite(offset) || Math.Abs(offset) > ClipPropertyLimits.MaxPositionMagnitude) throw Damaged("a Follow offset out of range");
+        return offset;
     }
 
     private static FollowPart Part(long? fromTicks, long? toTicks, long? targetTicks, double? targetX, double? targetY, bool ranged)

@@ -178,3 +178,22 @@ its own — the covered area on those frames is the same (contact sheets checked
 
 In the owner's D053 project the outlines are shown about 10–20 s per clip (Duration-mode animations), so the masks are
 analysed only there. `video_20260927_105713` before: tracks 27.5 s, masks 139.6 s for the whole 65 s.
+
+## 10. The masks' speed (D061 amendment 1 §10)
+
+The owner's part of `video_20260927_101034` (13.6 s, 204 analysed frames, one person), `tools/people-bench` with
+`PEOPLE_BENCH_RANGE=9.6:25.2`, a temporary per-stage timer (removed):
+
+| Stage | ms per frame |
+|---|---|
+| Image encoder (GPU) | 48 |
+| Memory attention: GPU / CPU rearranging | 34 / 10 |
+| Image preprocessing (CPU) | 11 |
+| Decoder + memory encoder (GPU) | 10 |
+
+| Masks of the part | Time | Result |
+|---|---|---|
+| Before | 27.1 s | — |
+| Preprocessing ahead on another thread | 23.7 s | byte for byte the same |
+| + memories rearranged once | 23.4 s | byte for byte the same |
+| (not done) 10 frames per second instead of 15 | whole 98 s file: 104 s instead of 147 s | partial 0 % / torso lost 1.7 % on 101034 (15 Hz: 1.1 % / 2.3 %), 112606 0 % / 0 % |

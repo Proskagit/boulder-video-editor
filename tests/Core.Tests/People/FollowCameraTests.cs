@@ -233,6 +233,18 @@ public class FollowCameraTests
     }
 
     [Fact]
+    public void An_offset_places_the_person_off_the_centre_while_the_picture_still_covers_the_canvas()
+    {
+        var trajectory = Trajectory(new NormalizedPoint(0.5, 0.5), new NormalizedPoint(0.5, 0.5));
+        var centred = FollowCamera.Solve(trajectory, Portrait, Source, Zoomed(1.5), FollowSmoothness.Normal).Path!;
+        var right = FollowCamera.Solve(trajectory, Portrait, Source, Zoomed(1.5), FollowSmoothness.Normal, offsetX: 150, offsetY: -60).Path!;
+        Assert.Equal(centred.X[0] + 150, right.X[0], 6);         // the person 150 px right of the centre
+        Assert.Equal(centred.Y[0] - 60, right.Y[0], 6);
+        var far = FollowCamera.Solve(trajectory, Portrait, Source, Zoomed(1.5), FollowSmoothness.Normal, offsetX: 5000).Path!;
+        Assert.True(far.X[0] < centred.X[0] + 5000);             // clamped: no black border
+    }
+
+    [Fact]
     public void A_followed_part_maps_to_each_clip_that_shows_it()
     {
         var follow = FollowSettings.Of(new FollowPart(MediaTime.FromSeconds(3), MediaTime.FromSeconds(7)));

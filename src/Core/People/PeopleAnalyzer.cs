@@ -155,11 +155,34 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
         var supported = new Dictionary<int, long>();                    // object → the last step a detected person was at its mask
         var lastMasks = new Dictionary<int, byte[]>();                  // object → its visible mask, last step
         long step = 0;
-        await foreach (var (frame, time) in Frames(source, from, cancellationToken))
+        // D061 amendment 1: the frames are decoded, picked and prepared for the segmenter (its CPU preprocessing) on another
+        // thread, a few frames ahead, while the segmenter runs the model on the current one — the same frames, the same result.
+        var ahead = System.Threading.Channels.Channel.CreateBounded<(DecodedFrame Frame, MediaTime Time)>(
+            new System.Threading.Channels.BoundedChannelOptions(3) { SingleReader = true, SingleWriter = true });
+        using var stopAhead = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var producer = Task.Run(async () =>
         {
-            if (time < from) continue;
-            if (time >= to) break;
-            if (!picker.Take(time)) continue;
+            try
+            {
+                await foreach (var (frame, time) in Frames(source, from, stopAhead.Token))
+                {
+                    if (time < from) continue;
+                    if (time >= to) break;
+                    if (!picker.Take(time)) continue;
+                    segmenter.Prepare(frame);
+                    await ahead.Writer.WriteAsync((frame, time), stopAhead.Token);
+                }
+                ahead.Writer.TryComplete();
+            }
+            catch (Exception ex)
+            {
+                ahead.Writer.TryComplete(ex);
+            }
+        }, CancellationToken.None);
+        try
+        {
+        await foreach (var (frame, time) in ahead.Reader.ReadAllAsync(cancellationToken))
+        {
             step++;
             if (gridWidth is null)
             {
@@ -224,6 +247,18 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
             chunk.Add(time, sample);
             lastMasks = masks;
             Report(progress, time - from, to - from);
+        }
+        }
+        finally
+        {
+            stopAhead.Cancel();
+            try
+            {
+                await producer;
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
         chunk.Finish();
         progress?.Report(1);

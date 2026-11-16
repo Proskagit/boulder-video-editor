@@ -745,14 +745,30 @@ public sealed class SetClipBackgroundCommand(VideoClip clip, ClipBackground befo
     public void Undo() => clip.Background = before;
 }
 
-/// <summary>D061: a video clip's Follow (null — off).</summary>
-public sealed class SetClipFollowCommand(VideoClip clip, FollowSettings? before, FollowSettings? after) : IUndoableCommand
+/// <summary>D061: a video clip's Follow (null — off). The changes of one Preview gesture (<paramref name="gesture"/>: a drag
+/// of the person's place in the frame, D061 amendment 1) merge into one step, and never with any other.</summary>
+public sealed class SetClipFollowCommand(VideoClip clip, FollowSettings? before, FollowSettings? after, ClipPropertyGesture? gesture = null)
+    : IMergeableCommand
 {
-    public string Description => after is null ? "Follow Off" : before is null ? "Follow On" : "Change Follow";
+    public VideoClip Clip { get; } = clip;
+    public FollowSettings? Before { get; } = before;
+    public FollowSettings? After { get; } = after;
+    public ClipPropertyGesture? Gesture { get; } = gesture;
 
-    public void Execute() => clip.Follow = after;
+    public string Description => Gesture?.Description ?? (After is null ? "Follow Off" : Before is null ? "Follow On" : "Change Follow");
 
-    public void Undo() => clip.Follow = before;
+    public void Execute() => Clip.Follow = After;
+
+    public void Undo() => Clip.Follow = Before;
+
+    public bool TryMerge(IUndoableCommand next, out IUndoableCommand? merged)
+    {
+        merged = null;
+        if (Gesture is null || next is not SetClipFollowCommand n || n.Clip != Clip || !ReferenceEquals(n.Gesture, Gesture) || !Equals(n.Before, After))
+            return false;
+        if (!Equals(n.After, Before)) merged = new SetClipFollowCommand(Clip, Before, n.After, Gesture);
+        return true; // merged stays null when the gesture came back to where it started
+    }
 }
 
 /// <summary>D061: a video clip's hold outlines hidden behind people.</summary>

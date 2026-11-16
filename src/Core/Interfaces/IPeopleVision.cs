@@ -50,6 +50,12 @@ public interface IPersonSegmenter : IDisposable
     /// a pixel belonging to at most one person (the most confident one, the one in front).</summary>
     IReadOnlyList<SegmentedPerson> Step(DecodedFrame frame, IReadOnlyList<SegmenterPrompt> start, IReadOnlyCollection<int> stop,
         int gridWidth, int gridHeight, CancellationToken cancellationToken);
+
+    /// <summary>D061 amendment 1: prepares <paramref name="frame"/> for its <see cref="Step"/> ahead, on another thread (the
+    /// image's preprocessing), so the CPU's work overlaps the model's; the result is the same. Nothing by default.</summary>
+    void Prepare(DecodedFrame frame)
+    {
+    }
 }
 
 /// <summary>

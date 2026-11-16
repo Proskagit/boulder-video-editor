@@ -73,6 +73,7 @@ public sealed partial class InspectorViewModel
     public void OnPlayheadMoved()
     {
         HasFollowPartHere = _clip is VideoClip { Follow: { } follow } clip && PlayheadSourceTime(clip) is { } now && follow.IndexAt(now) >= 0;
+        RefreshFollowOffset();
         UpdateTrainingReadout();
         PreselectClimb();
     }

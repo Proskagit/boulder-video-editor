@@ -29,7 +29,8 @@ public sealed partial class TimelineEditService
     /// <summary>D061: switches a video clip's Follow on (with its settings: target, smoothness) or off (null) — one undo step;
     /// with <paramref name="hideOutlinesBehindPeople"/> the outlines' Occlusion is set in the same step (D061 amendment 1:
     /// switching Follow on switches Occlusion on).</summary>
-    public TimelineEditResult SetClipFollow(Guid clipId, FollowSettings? follow, bool? hideOutlinesBehindPeople = null)
+    public TimelineEditResult SetClipFollow(Guid clipId, FollowSettings? follow, bool? hideOutlinesBehindPeople = null,
+        ClipPropertyGesture? gesture = null)
     {
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
@@ -43,7 +44,7 @@ public sealed partial class TimelineEditService
         var occlusion = hideOutlinesBehindPeople is { } hides && hides != clip.HidesOutlinesBehindPeople;
         if (Equals(clip.Follow, follow) && !occlusion) return TimelineEditResult.Unchanged();
         var commands = new List<IUndoableCommand>();
-        if (!Equals(clip.Follow, follow)) commands.Add(new Commands.SetClipFollowCommand(clip, clip.Follow, follow));
+        if (!Equals(clip.Follow, follow)) commands.Add(new Commands.SetClipFollowCommand(clip, clip.Follow, follow, gesture));
         if (occlusion) commands.Add(new Commands.SetClipOcclusionCommand(clip, hideOutlinesBehindPeople!.Value));
         IUndoableCommand command = commands.Count == 1 ? commands[0] : new CompositeCommand(commands[0].Description, commands);
         ExecuteTracked(new Commands.NotifyingCommand(command, _projectService.NotifyTimelineChanged));

@@ -22,8 +22,12 @@ public enum FollowSmoothness
 /// person it follows: <see cref="TargetTime"/> / <see cref="TargetPoint"/>, where the user picked them (a source time and a
 /// point in normalized coordinates of the display-oriented frame); null — not picked: the only person of the part, or with
 /// several the most prominent one at its start. Each part is independent (its own person: two routes, two climbers).
+/// <para><see cref="OffsetX"/> / <see cref="OffsetY"/> (format v23): where the person stands in the frame — canvas pixels from
+/// the canvas centre (+X right, +Y down; 0, 0 — the centre), like the clip's Position. The camera keeps covering the canvas,
+/// so near the picture's edge the person can stand nearer the centre than asked.</para>
 /// </summary>
-public sealed record FollowPart(MediaTime? From = null, MediaTime? To = null, MediaTime? TargetTime = null, NormalizedPoint? TargetPoint = null)
+public sealed record FollowPart(MediaTime? From = null, MediaTime? To = null, MediaTime? TargetTime = null, NormalizedPoint? TargetPoint = null,
+    double OffsetX = 0, double OffsetY = 0)
 {
     public bool HasTarget => TargetTime is not null && TargetPoint is not null;
 

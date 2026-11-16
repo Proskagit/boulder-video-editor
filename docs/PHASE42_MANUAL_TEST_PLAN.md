@@ -89,6 +89,18 @@ The cache of the people analyses is analysed again once (masks v3). Use copies o
 | G6 | Playhead in a part, «Удалить участок»; Ctrl+Z | The part goes / comes back; the other stays |
 | G7 | Save, reopen (also a project saved by 0.42.1) | The parts and their climbers as before; a 0.42.1 project opens with its one part |
 
+## H. Third round (D061 amendment 1 §10–§12)
+
+| # | Do | Expect |
+|---|---|---|
+| H1 | A clip with Occlusion, a new part (or after clearing the cache): note the masks' time against the previous build | About 15 % faster; the masks look the same |
+| H2 | Pause on a clip (no tool on), click its picture in the Preview and drag | The frame shows, the clip moves with the pointer; the «Переместить» button is on; Esc turns it off |
+| H3 | Ctrl + the wheel over the picture; Ctrl+Z | The clip scales around its centre; one Ctrl+Z undoes the whole turn of the wheel |
+| H4 | Pause on a frame of a followed part (the camera follows), click and drag the picture right | The bar says «Слежение — тяните кадр…»; the climber moves right in the frame and stays there while it plays; the Inspector's «Скалолаз в кадре» X grows; one Ctrl+Z undoes the drag |
+| H5 | Pause between two parts (or on a clip without Follow) and drag | The clip's Position changes, not the climber's place |
+| H6 | Type an exact X / Y in «Скалолаз в кадре»; save, reopen | The climber stands there; kept after reopening (`project.json` v23) |
+| H7 | During the hold markup or «Выбрать скалолаза», click the picture | The markup / the pick get the click (Move does not turn on) |
+
 ## E. Notes for the owner
 
 - Follow without zoom needs room: the vertical videos on the vertical canvas need Scale above «Заполнить кадр» (D061 §7).

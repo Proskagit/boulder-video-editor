@@ -94,7 +94,7 @@ public sealed record FollowResolution(FollowState State, FollowTrajectory? Traje
                     { SeenFraction = 0, Gaps = gaps, AutoChosen = auto });
                 continue;
             }
-            var (path, reason) = FollowCamera.Solve(trajectory, canvas, source, visual, follow.Smoothness);
+            var (path, reason) = FollowCamera.Solve(trajectory, canvas, source, visual, follow.Smoothness, part.OffsetX, part.OffsetY);
             if (path is null) unavailable = reason;
             else paths.Add((path, from, to));
             resolved.Add(new FollowPartResolution(i, from, to, path is null ? FollowState.Unavailable : FollowState.Following, trajectory, reason)

@@ -287,6 +287,30 @@ public sealed class FollowRangeUiTests
     }
 
     [Fact]
+    public void The_offset_fields_edit_the_part_under_the_playhead()
+    {
+        var (asset, clip) = AddClip();
+        Assert.True(_edit.SetClipFollow(clip.Id, new FollowSettings(ImmutableArray.Create(new FollowPart(S(2), S(5)), new FollowPart(S(8), S(12))))).Success);
+        var playhead = S(10);
+        var inspector = new InspectorViewModel(_edit, _status) { Playhead = () => playhead };
+        inspector.ShowClip(new TimelineClipSelection(clip, "climb", asset, Rate));
+        Assert.True(inspector.HasFollowOffset);
+        Assert.Equal(0m, inspector.FollowOffsetX);
+        inspector.FollowOffsetX = 150;
+        inspector.FollowOffsetY = -30;
+        Assert.Equal(new FollowPart(S(8), S(12), OffsetX: 150, OffsetY: -30), clip.Follow!.Parts[1]);
+        Assert.Equal(0, clip.Follow.Parts[0].OffsetX);
+
+        playhead = S(6);                                                     // between the parts: no fields
+        inspector.OnPlayheadMoved();
+        Assert.False(inspector.HasFollowOffset);
+        playhead = S(3);
+        inspector.OnPlayheadMoved();
+        Assert.True(inspector.HasFollowOffset);
+        Assert.Equal(0m, inspector.FollowOffsetX);
+    }
+
+    [Fact]
     public void A_split_keeps_the_part_on_the_same_source_frames()
     {
         var (_, clip) = AddClip();

@@ -700,6 +700,26 @@
                     <ComboBox x:Name="FollowSmoothnessBox" ItemsSource="{Binding FollowSmoothnessNames}" SelectedIndex="{Binding FollowSmoothnessIndex, Mode=TwoWay}"
                               IsEnabled="{Binding IsEditingAllowed}"/>
                   </StackPanel>
+                  <!-- D061 amendment 1: where the climber stands in the frame (the part under the playhead); or drag the frame in the Preview. -->
+                  <StackPanel Spacing="4" IsVisible="{Binding HasFollowOffset}" ToolTip.Tip="{x:Static l:Strings.Inspector_FollowOffsetTip}">
+                    <TextBlock Text="{x:Static l:Strings.Inspector_FollowOffset}" Classes="label"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_PositionX}" Classes="label" Target="{Binding #FollowOffsetXBox}" StepPerPixel="1"
+                                           ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
+                      <controls:CommitNumericUpDown x:Name="FollowOffsetXBox" Value="{Binding FollowOffsetX, Mode=TwoWay}" Increment="1"
+                                                    Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}" FormatString="0.##" Width="104"
+                                                    IsEnabled="{Binding IsEditingAllowed}"/>
+                      <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <controls:ScrubLabel Text="{x:Static l:Strings.Inspector_PositionY}" Classes="label" Target="{Binding #FollowOffsetYBox}" StepPerPixel="1"
+                                           ToolTip.Tip="{x:Static l:Strings.Inspector_ScrubTip}"/>
+                      <controls:CommitNumericUpDown x:Name="FollowOffsetYBox" Value="{Binding FollowOffsetY, Mode=TwoWay}" Increment="1"
+                                                    Minimum="{Binding MinPosition}" Maximum="{Binding MaxPosition}" FormatString="0.##" Width="104"
+                                                    IsEnabled="{Binding IsEditingAllowed}"/>
+                      <TextBlock Text="{x:Static l:Strings.Unit_Px}" Foreground="#AAAAAA" VerticalAlignment="Center"/>
+                    </StackPanel>
+                  </StackPanel>
                   <WrapPanel Orientation="Horizontal">
                     <Button x:Name="PickPersonButton" Content="{x:Static l:Strings.Inspector_PickPerson}" Command="{Binding PickPersonCommand}"
                             FontSize="11" Margin="0,0,6,4" ToolTip.Tip="{x:Static l:Strings.Inspector_PickPersonTip}"/>

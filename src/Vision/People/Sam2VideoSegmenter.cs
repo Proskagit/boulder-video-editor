@@ -94,9 +94,22 @@ internal sealed class Sam2VideoSegmenter : IPersonSegmenter
     /// <summary>The prompted frames a person keeps in its memory (the latest ones).</summary>
     public const int MaxConditioning = 3;
 
-    /// <summary>A frame's memory: the spatial features and their encoding (kept only while the frame is among the last six
-    /// — <see cref="Forget"/>) and the object pointer (kept for sixteen).</summary>
+    /// <summary>A frame's memory: the spatial features and their encoding, sequence first ([4096, 64] — transposed once when
+    /// the memory is made, not on every frame that attends to it; kept only while the frame is among the last six —
+    /// <see cref="Forget"/>) and the object pointer (kept for sixteen).</summary>
     private sealed record FrameMemory(float[]? Features, float[]? Position, float[] Pointer);
+
+    /// <summary>[64, 4096] (channels first, as the memory encoder gives it) → [4096, 64] (sequence first).</summary>
+    private static float[] SequenceFirst(float[] channelsFirst)
+    {
+        var result = new float[4096 * 64];
+        for (var c = 0; c < 64; c++)
+        {
+            var row = c * 4096;
+            for (var i = 0; i < 4096; i++) result[i * 64 + c] = channelsFirst[row + i];
+        }
+        return result;
+    }
 
     private sealed class Person
     {
@@ -108,6 +121,15 @@ internal sealed class Sam2VideoSegmenter : IPersonSegmenter
     private readonly bool _ownsSessions;
     private readonly Dictionary<int, Person> _people = new();
     private int _frame = -1;
+
+    /// <summary>Frames preprocessed ahead (<see cref="Prepare"/>, another thread) until their <see cref="Step"/>.</summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<DecodedFrame, float[]> _prepared = new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>The encoder's positional encoding sequence first ([4096, 1, 256]) — the same on every frame (it depends on
+    /// the feature size only), so it is transposed once.</summary>
+    private float[]? _currPos;
+
+    public void Prepare(DecodedFrame frame) => _prepared[frame] = SamImageProcessing.Preprocess(frame, PeopleModel.SamInput);
 
     public Sam2VideoSegmenter(Sam2Sessions sessions, bool ownsSessions)
     {
@@ -121,9 +143,14 @@ internal sealed class Sam2VideoSegmenter : IPersonSegmenter
         _frame++;
         foreach (var id in stop) _people.Remove(id);
         foreach (var prompt in start) _people[prompt.PersonId] = new Person();
-        if (_people.Count == 0) return Array.Empty<SegmentedPerson>();
+        if (_people.Count == 0)
+        {
+            _prepared.TryRemove(frame, out _);
+            return Array.Empty<SegmentedPerson>();
+        }
 
-        var image = new DenseTensor<float>(SamImageProcessing.Preprocess(frame, PeopleModel.SamInput), new[] { 1, 3, PeopleModel.SamInput, PeopleModel.SamInput });
+        var pixels = _prepared.TryRemove(frame, out var ready) ? ready : SamImageProcessing.Preprocess(frame, PeopleModel.SamInput);
+        var image = new DenseTensor<float>(pixels, new[] { 1, 3, PeopleModel.SamInput, PeopleModel.SamInput });
         float[] vf, vp, h0, h1;
         using (var enc = OnnxSessions.Run(_s.Encoder, new[] { NamedOnnxValue.CreateFromTensor("image", image) }, cancellationToken))
         {
@@ -192,7 +219,7 @@ internal sealed class Sam2VideoSegmenter : IPersonSegmenter
                 mp = Out(menc, "maskmem_pos");
             }
 
-            var memory = new FrameMemory(mf, mp, pointer);
+            var memory = new FrameMemory(SequenceFirst(mf), SequenceFirst(mp), pointer);
             if (prompted)
             {
                 person.Conditioning[_frame] = memory;
@@ -233,13 +260,12 @@ internal sealed class Sam2VideoSegmenter : IPersonSegmenter
         for (var m = 0; m < spatial.Count; m++)
         {
             var (memory, tpos) = spatial[m];
+            Array.Copy(memory.Features!, 0, mem, m * 4096 * 64, 4096 * 64);
+            var position = memory.Position!;
+            var offset = m * 4096 * 64;
             for (var i = 0; i < 4096; i++)
             for (var c = 0; c < 64; c++)
-            {
-                var dst = (m * 4096 + i) * 64 + c;
-                mem[dst] = memory.Features![c * 4096 + i];
-                memPos[dst] = memory.Position![c * 4096 + i] + _s.MaskMemTpos[tpos * 64 + c];
-            }
+                memPos[offset + i * 64 + c] = position[i * 64 + c] + _s.MaskMemTpos[tpos * 64 + c];
         }
 
         // Object pointers: the prompted frames in the past (signed distance), then up to 15 previous frames.
@@ -265,15 +291,18 @@ internal sealed class Sam2VideoSegmenter : IPersonSegmenter
             for (var k = 0; k < 4; k++) Array.Copy(objPos, p * 64, ptrPos, (p * 4 + k) * 64, 64);
         }
 
-        // The current frame, sequence first: [4096, 1, 256].
+        // The current frame, sequence first: [4096, 1, 256] (its positional encoding is the same on every frame).
         var curr = new float[4096 * 256];
-        var currPos = new float[4096 * 256];
+        var currPos = _currPos;
+        var newPos = currPos is null;
+        if (newPos) currPos = new float[4096 * 256];
         for (var c = 0; c < 256; c++)
         for (var i = 0; i < 4096; i++)
         {
             curr[i * 256 + c] = vf[c * 4096 + i];
-            currPos[i * 256 + c] = vp[c * 4096 + i];
+            if (newPos) currPos![i * 256 + c] = vp[c * 4096 + i];
         }
+        _currPos = currPos;
         using var att = OnnxSessions.Run(_s.MemoryAttention, new[]
         {
             NamedOnnxValue.CreateFromTensor("curr", new DenseTensor<float>(curr, new[] { 4096, 1, 256 })),

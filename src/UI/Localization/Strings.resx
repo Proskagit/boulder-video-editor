@@ -1789,7 +1789,7 @@ You can undo this with Undo.</value>
     <value>Crop L {0} % · T {1} % · R {2} % · B {3} %</value>
   </data>
   <data name="Transform_MoveText" xml:space="preserve">
-    <value>Move — drag the clip; a corner scales it; Shift keeps an axis; Esc cancels</value>
+    <value>Move — drag the clip; a corner or Ctrl + the wheel scales it; Shift keeps an axis; Esc cancels</value>
   </data>
   <data name="Transform_MoveValue" xml:space="preserve">
     <value>Position X {0} px · Y {1} px</value>
@@ -3369,5 +3369,20 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Follow_PartProblem" xml:space="preserve">
     <value>The part {0}: {1}.</value>
+  </data>
+  <data name="Transform_FollowText" xml:space="preserve">
+    <value>Follow — drag the frame to place the climber in it (the followed part under the playhead); Ctrl + the wheel scales; Esc cancels</value>
+  </data>
+  <data name="Transform_FollowValue" xml:space="preserve">
+    <value>Climber in the frame: X {0} px · Y {1} px from the centre</value>
+  </data>
+  <data name="Inspector_FollowOffset" xml:space="preserve">
+    <value>Climber in the frame</value>
+  </data>
+  <data name="Inspector_FollowOffsetTip" xml:space="preserve">
+    <value>Where the climber stands in the frame on the followed part under the playhead, in pixels from the centre (+X right, +Y down). Or drag the frame in the Preview.</value>
+  </data>
+  <data name="Transform_CropOnFollow" xml:space="preserve">
+    <value>Crop — not on a frame of a followed part (Follow moves the picture there): put the playhead outside the parts</value>
   </data>
 </root>

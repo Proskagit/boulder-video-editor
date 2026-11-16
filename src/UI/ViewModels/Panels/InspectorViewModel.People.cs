@@ -65,6 +65,52 @@ public sealed partial class InspectorViewModel
     [NotifyCanExecuteChangedFor(nameof(FollowWholeClipCommand))]
     private bool _hasFollowRange;
 
+    /// <summary>D061 amendment 1: where the climber stands in the frame on the part under the playhead (the only part
+    /// otherwise), canvas pixels from the centre; <see cref="HasFollowOffset"/> — such a part exists.</summary>
+    [ObservableProperty] private decimal? _followOffsetX;
+    [ObservableProperty] private decimal? _followOffsetY;
+    [ObservableProperty] private bool _hasFollowOffset;
+
+    partial void OnFollowOffsetXChanged(decimal? value) => EditFollowOffset(value, (p, v) => p with { OffsetX = v });
+    partial void OnFollowOffsetYChanged(decimal? value) => EditFollowOffset(value, (p, v) => p with { OffsetY = v });
+
+    /// <summary>The part whose offset the fields show: the one under the playhead, else the only one; -1 for none.</summary>
+    private int FollowOffsetPart(VideoClip clip)
+    {
+        if (clip.Follow is not { } follow) return -1;
+        if (PlayheadSourceTime(clip) is { } at && follow.IndexAt(at) is var here and >= 0) return here;
+        return follow.Parts.Length == 1 ? 0 : -1;
+    }
+
+    private void EditFollowOffset(decimal? value, Func<FollowPart, double, FollowPart> with)
+    {
+        if (_syncing || value is not { } v || _clip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked()) return;
+        var index = FollowOffsetPart(clip);
+        if (index < 0) return;
+        var part = with(follow.Parts[index], (double)v);
+        if (part == follow.Parts[index]) return;
+        Apply(_edit.SetClipFollow(clip.Id, follow.WithPart(index, part)));
+    }
+
+    /// <summary>The offset fields from the model (also when the playhead moves to another part).</summary>
+    private void RefreshFollowOffset()
+    {
+        var clip = _clip as VideoClip;
+        var index = clip is null ? -1 : FollowOffsetPart(clip);
+        var wasSyncing = _syncing;
+        _syncing = true;
+        try
+        {
+            HasFollowOffset = index >= 0;
+            FollowOffsetX = index >= 0 ? (decimal)clip!.Follow!.Parts[index].OffsetX : null;
+            FollowOffsetY = index >= 0 ? (decimal)clip!.Follow!.Parts[index].OffsetY : null;
+        }
+        finally
+        {
+            _syncing = wasSyncing;
+        }
+    }
+
     /// <summary>A followed part lies under the playhead («Удалить участок слежения»).</summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(DeleteFollowPartCommand))]
@@ -293,6 +339,7 @@ public sealed partial class InspectorViewModel
         }
         HasFollowRange = clip?.Follow is { IsWholeClip: false };
         HasFollowPartHere = clip?.Follow is { } here && PlayheadSourceTime(clip) is { } now && here.IndexAt(now) >= 0;
+        RefreshFollowOffset();
         FollowRangeText = clip?.Follow is { } shown ? RangeText(clip, shown) : "";
         if (clip is null || _people is null)
         {

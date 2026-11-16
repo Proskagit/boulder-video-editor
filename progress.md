@@ -2,6 +2,16 @@
 
 ## Current phase
 
+**Phase 42 — third round (D061 amendment 1 §10–§12, 2026-11-16) — on `fix/phase-42-manual-feedback`, PR #69.** The masks
+analysis 14 % faster with byte-for-byte the same masks (preprocessing ahead on another thread, memories rearranged once;
+the rest is the GPU's own work — 10 fps masks or a float16 encoder left to the owner). Each followed part has the climber's
+place in the frame (offset X / Y, `project.json` v23, Inspector fields). The Preview: a click on a picture turns Move on and
+drags it, Ctrl + the wheel scales (one undo step per turn), on a followed part the drag moves the climber in the frame,
+elsewhere the clip's Position. Phase review: FAIL (Move took the climber's pick clicks) — fixed with a test (the pick turns
+Move off, the overlay yields to other modes); Crop is not offered on a frame Follow places. Gates (2026-11-16): Debug and
+Release `--no-incremental -warnaserror` 0 / 0; Release + `AIVE_HEAVY_TESTS=1` all green (ExportEndToEnd 187 / 0 / 0); Debug
+green apart from the known parallel-load `ExportServiceTests` timing tests (`src/Export` untouched).
+
 **Phase 42 — second round of the owner's check (D061 amendment 1 §7–§9, 2026-11-16) — on `fix/phase-42-manual-feedback`,
 PR #69.** The «second long analysis» was the masks pass over the whole file for a short part: now only what the clips need
 is analysed, in 2 s chunks (the followed parts' tracks first, the masks only where outlines are shown), cached and

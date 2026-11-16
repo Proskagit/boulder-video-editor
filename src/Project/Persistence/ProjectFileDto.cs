@@ -681,4 +681,11 @@ internal sealed class FollowPartDto
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? TargetY { get; set; }
+
+    /// <summary>Format v23: where the person stands in the frame, canvas pixels from its centre (absent: 0).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? OffsetX { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? OffsetY { get; set; }
 }
