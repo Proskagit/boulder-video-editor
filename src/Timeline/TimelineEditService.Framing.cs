@@ -36,6 +36,10 @@ public sealed partial class TimelineEditService
         if (clips[0] is not VideoClip clip) return TimelineEditResult.Fail(Messages.Frame_NoPicture);
         var track = plan.TrackOf(clip);
         if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
+        // D061 amendment 1: parts sorted and never overlapping — what the project file accepts (never a file that no
+        // longer opens).
+        if (follow is not null && (follow.Parts.IsEmpty || !FollowSettings.AreValid(follow.Parts)))
+            return TimelineEditResult.Fail(Messages.Follow_InvalidParts);
         var occlusion = hideOutlinesBehindPeople is { } hides && hides != clip.HidesOutlinesBehindPeople;
         if (Equals(clip.Follow, follow) && !occlusion) return TimelineEditResult.Unchanged();
         var commands = new List<IUndoableCommand>();

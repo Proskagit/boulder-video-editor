@@ -656,4 +656,29 @@ internal sealed class FollowDto
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? ToTicks { get; set; }
+
+    /// <summary>Format v22 (D061 amendment 1): the followed parts, sorted, never overlapping (the members above are then not
+    /// written).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<FollowPartDto>? Parts { get; set; }
+}
+
+/// <summary>Format v22: one followed part — its range in source time (absent: the clip's start / end) and its picked person
+/// (all three or none).</summary>
+internal sealed class FollowPartDto
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? FromTicks { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? ToTicks { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? TargetTicks { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? TargetX { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? TargetY { get; set; }
 }

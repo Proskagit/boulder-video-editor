@@ -61,6 +61,16 @@ public sealed class PersonMaskTrack
         ModelId = modelId;
     }
 
+    /// <summary>D061 amendment 1: the masks of a video segmented in chunks, in time order (null without any).</summary>
+    public static PersonMaskTrack? Merge(IReadOnlyCollection<PersonMaskTrack> chunks)
+    {
+        var first = chunks.FirstOrDefault(c => !c.Samples.IsDefaultOrEmpty);
+        if (first is null) return chunks.FirstOrDefault();
+        var samples = chunks.Where(c => c.Width == first.Width && c.Height == first.Height).SelectMany(c => c.Samples).OrderBy(s => s.Time)
+            .ToImmutableArray();
+        return new PersonMaskTrack(first.Width, first.Height, first.Interval, samples, first.ModelId);
+    }
+
     public int Width { get; }
     public int Height { get; }
     public MediaTime Interval { get; }

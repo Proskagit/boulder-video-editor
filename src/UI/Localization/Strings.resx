@@ -3320,7 +3320,7 @@ If you don't save, your changes will be lost.</value>
     <value>Follow the climber from here</value>
   </data>
   <data name="Inspector_FollowFromHereTip" xml:space="preserve">
-    <value>Follow starts at the playhead's frame of this clip and the timeline plays, so you watch the camera follow. Press «Stop following here» where Follow should end. Switching Follow on also hides the outlines behind people (you can switch that off).</value>
+    <value>A new followed part starts at the playhead's frame and the timeline plays: the camera follows the climber at once (the part's people are analysed ahead of the playback). Press «Stop following here» where it should end. Each part follows its own climber; switching Follow on also hides the outlines behind people (you can switch that off).</value>
   </data>
   <data name="Inspector_StopFollowHere" xml:space="preserve">
     <value>Stop following here</value>
@@ -3335,7 +3335,7 @@ If you don't save, your changes will be lost.</value>
     <value>Follow covers the whole clip.</value>
   </data>
   <data name="Follow_Part" xml:space="preserve">
-    <value>Followed part: {0}.</value>
+    <value>Followed parts: {0}.</value>
   </data>
   <data name="Follow_OutsideRange" xml:space="preserve">
     <value>The followed part of the video is outside this clip: the clip keeps its own framing.</value>
@@ -3351,5 +3351,23 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Strip_Follow" xml:space="preserve">
     <value>Follow: {0}–{1}</value>
+  </data>
+  <data name="Follow_AlreadyFollowedHere" xml:space="preserve">
+    <value>The playhead is on a followed part already: drag its edges on the timeline, or delete it to start a new one here.</value>
+  </data>
+  <data name="Follow_PickOutsideParts" xml:space="preserve">
+    <value>This frame is outside the followed parts: pick the climber on a frame of the part.</value>
+  </data>
+  <data name="Follow_AutoChosen" xml:space="preserve">
+    <value>Nobody picked: the person nearest the camera at the part's start is followed — «Pick the climber» to choose another.</value>
+  </data>
+  <data name="Inspector_DeleteFollowPart" xml:space="preserve">
+    <value>Delete this part</value>
+  </data>
+  <data name="Inspector_DeleteFollowPartTip" xml:space="preserve">
+    <value>Deletes the followed part under the playhead (the last part switches Follow off).</value>
+  </data>
+  <data name="Follow_PartProblem" xml:space="preserve">
+    <value>The part {0}: {1}.</value>
   </data>
 </root>

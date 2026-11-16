@@ -78,42 +78,91 @@ public static class FollowCamera
     /// followed part (and back at its end) — inside the part, at most half of it.</summary>
     public static readonly MediaTime RangeEaseTime = MediaTime.FromSeconds(0.75);
 
+    /// <summary>D061 amendment 1: one followed part's camera path limited to <c>[from, to]</c> of a clip showing
+    /// <c>[clipFrom, clipTo]</c> (<see cref="Combine"/> with one part).</summary>
+    public static FollowPath Limit(FollowPath path, MediaTime from, MediaTime to, MediaTime clipFrom, MediaTime clipTo, double ownX, double ownY) =>
+        Combine(new[] { (path, from, to) }, clipFrom, clipTo, ownX, ownY);
+
     /// <summary>
-    /// D061 amendment 1: <paramref name="path"/> limited to the followed part <c>[from, to]</c> of a clip that shows
-    /// <c>[clipFrom, clipTo]</c>: outside the part the clip's own position (<paramref name="ownX"/>, <paramref name="ownY"/>);
-    /// a side of the part at the clip's edge stays open beyond it (a Dissolve / Push shows the frames past the cut — the camera
-    /// keeps following there, as with Follow on the whole clip); at an edge of the part that is not the clip's edge the camera
-    /// glides between the two over
-    /// <see cref="RangeEaseTime"/> (a smoothstep) inside the part — never a jump. The part as the whole clip returns the path
-    /// unchanged. Samples are added at the edges so the glide starts exactly there.
+    /// D061 amendment 1: the clip's camera path from its followed parts (sorted, non-overlapping, each with its own person's
+    /// path) on a clip that shows <c>[clipFrom, clipTo]</c>. Outside every part the clip's own position (<paramref name="ownX"/>,
+    /// <paramref name="ownY"/>). At a part's edge that is
+    /// <list type="bullet">
+    /// <item>the clip's edge: open beyond it (a Dissolve / Push shows the frames past the cut — the camera keeps following, as
+    /// with Follow on the whole clip);</item>
+    /// <item>another part's edge (two parts that touch): the camera passes from one person to the other over
+    /// <see cref="RangeEaseTime"/> centred on the boundary (the two weights sum to 1 — no return to the clip's framing);</item>
+    /// <item>free: the camera glides between the clip's framing and the person over <see cref="RangeEaseTime"/> inside the part.</item>
+    /// </list>
+    /// Every glide is a smoothstep, at most half of the part — never a jump. One part as the whole clip returns its path.
     /// </summary>
-    public static FollowPath Limit(FollowPath path, MediaTime from, MediaTime to, MediaTime clipFrom, MediaTime clipTo, double ownX, double ownY)
+    public static FollowPath Combine(IReadOnlyList<(FollowPath Path, MediaTime From, MediaTime To)> parts, MediaTime clipFrom, MediaTime clipTo,
+        double ownX, double ownY)
     {
-        var easesIn = from > clipFrom;
-        var easesOut = to < clipTo;
-        if ((!easesIn && !easesOut) || path.Times.IsDefaultOrEmpty) return path;
-        var ease = new MediaTime(Math.Min(RangeEaseTime.Ticks, Math.Max(1, (to - from).Ticks / 2)));
-        double Weight(MediaTime t)
+        if (parts.Count == 0) return new FollowPath(ImmutableArray<MediaTime>.Empty, ImmutableArray<double>.Empty, ImmutableArray<double>.Empty);
+        if (parts.Count == 1 && parts[0].From <= clipFrom && parts[0].To >= clipTo) return parts[0].Path;
+        const long touch = TimeSpan.TicksPerMillisecond;
+        var n = parts.Count;
+        var ease = new long[n];
+        for (var i = 0; i < n; i++) ease[i] = Math.Min(RangeEaseTime.Ticks, Math.Max(1, (parts[i].To - parts[i].From).Ticks / 2));
+        var joinedBefore = new bool[n];
+        var joinedAfter = new bool[n];
+        var joinEase = new long[n + 1];                                  // the ease of the boundary between part i-1 and i
+        for (var i = 1; i < n; i++)
+            if (Math.Abs((parts[i].From - parts[i - 1].To).Ticks) <= touch)
+            {
+                joinedBefore[i] = joinedAfter[i - 1] = true;
+                joinEase[i] = Math.Min(ease[i], ease[i - 1]);
+            }
+
+        double Weight(int i, MediaTime t)
         {
-            if ((easesIn && t < from) || (easesOut && t > to)) return 0;
+            var (_, from, to) = parts[i];
             var w = 1.0;
-            if (easesIn) w = Math.Min(w, SmoothStep((t - from).Ticks / (double)ease.Ticks));
-            if (easesOut) w = Math.Min(w, SmoothStep((to - t).Ticks / (double)ease.Ticks));
+            if (joinedBefore[i]) w = Math.Min(w, SmoothStep((t.Ticks - (from.Ticks - joinEase[i] / 2.0)) / joinEase[i]));
+            else if (from > clipFrom)
+            {
+                if (t < from) return 0;
+                w = Math.Min(w, SmoothStep((t - from).Ticks / (double)ease[i]));
+            }
+            if (joinedAfter[i]) w = Math.Min(w, 1 - SmoothStep((t.Ticks - (to.Ticks - joinEase[i + 1] / 2.0)) / joinEase[i + 1]));
+            else if (to < clipTo)
+            {
+                if (t > to) return 0;
+                w = Math.Min(w, SmoothStep((to - t).Ticks / (double)ease[i]));
+            }
             return w;
         }
-        var times = path.Times.ToList();
-        foreach (var edge in new[] { from, from + ease, to - ease, to })
-            if (edge > times[0] && edge < times[^1] && times.BinarySearch(edge) < 0) times.Insert(~times.BinarySearch(edge), edge);
+
+        var times = new SortedSet<MediaTime>(parts.SelectMany(p => p.Path.Times.IsDefault ? Enumerable.Empty<MediaTime>() : p.Path.Times));
+        for (var i = 0; i < n; i++)
+        {
+            var (_, from, to) = parts[i];
+            foreach (var edge in new[] { from, from + new MediaTime(ease[i]), to - new MediaTime(ease[i]), to,
+                         from - new MediaTime(joinEase[i] / 2), from + new MediaTime(joinEase[i] / 2) })
+                times.Add(edge);
+        }
         var xs = ImmutableArray.CreateBuilder<double>(times.Count);
         var ys = ImmutableArray.CreateBuilder<double>(times.Count);
         foreach (var t in times)
         {
-            var (x, y) = path.At(t);
-            var w = Weight(t);
-            xs.Add(ownX + (x - ownX) * w);
-            ys.Add(ownY + (y - ownY) * w);
+            double x = ownX, y = ownY;
+            for (var i = 0; i < n; i++)
+            {
+                var w = Weight(i, t);
+                if (w <= 0) continue;
+                var (px, py) = parts[i].Path.At(t);
+                x += (px - ownX) * w;
+                y += (py - ownY) * w;
+            }
+            xs.Add(x);
+            ys.Add(y);
         }
-        return path with { Times = times.ToImmutableArray(), X = xs.MoveToImmutable(), Y = ys.MoveToImmutable() };
+        return new FollowPath(times.ToImmutableArray(), xs.MoveToImmutable(), ys.MoveToImmutable())
+        {
+            MovesX = parts.Any(p => p.Path.MovesX),
+            MovesY = parts.Any(p => p.Path.MovesY)
+        };
     }
 
     /// <summary>The camera path, or null with the reason.</summary>

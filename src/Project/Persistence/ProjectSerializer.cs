@@ -40,7 +40,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 21;
+    public const int CurrentFormatVersion = 22;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -113,6 +113,10 @@ public static class ProjectSerializer
     /// <summary>The first version with the followed part of a clip (D061 amendment 1). A v20 file's Follow covers the whole
     /// clip and is saved as v21; an older build refuses a v21 file as newer.</summary>
     private const int FollowRangeVersion = 21;
+
+    /// <summary>The first version with several followed parts per clip, each with its own person (D061 amendment 1). A v21
+    /// file's Follow is one part and is saved as v22; an older build refuses a v22 file as newer.</summary>
+    private const int FollowPartsVersion = 22;
 
     /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
     /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
@@ -451,24 +455,16 @@ public static class ProjectSerializer
 
     private static FollowDto ToDto(FollowSettings follow) => new()
     {
-        TargetTicks = follow.TargetTime?.Ticks, TargetX = follow.TargetPoint?.X, TargetY = follow.TargetPoint?.Y,
-        FromTicks = follow.From?.Ticks, ToTicks = follow.To?.Ticks,
+        Parts = follow.Parts.Select(p => new FollowPartDto
+        {
+            FromTicks = p.From?.Ticks, ToTicks = p.To?.Ticks,
+            TargetTicks = p.TargetTime?.Ticks, TargetX = p.TargetPoint?.X, TargetY = p.TargetPoint?.Y
+        }).ToList(),
         Smoothness = follow.Smoothness switch { FollowSmoothness.Soft => "soft", FollowSmoothness.Fast => "fast", _ => "normal" }
     };
 
+    /// <summary>v20: one part on the whole clip with the target; v21: one part with its range; v22: the parts.</summary>
     private static FollowSettings FromDto(FollowDto dto, int formatVersion)
-    {
-        MediaTime? from = null, to = null;
-        if (formatVersion >= FollowRangeVersion)
-        {
-            if (dto.FromTicks < 0 || dto.ToTicks < 0 || dto.FromTicks >= dto.ToTicks) throw Damaged("a Follow part that ends before it starts");
-            from = dto.FromTicks is { } f ? new MediaTime(f) : null;
-            to = dto.ToTicks is { } t ? new MediaTime(t) : null;
-        }
-        return Target(dto) with { From = from, To = to };
-    }
-
-    private static FollowSettings Target(FollowDto dto)
     {
         var smoothness = dto.Smoothness switch
         {
@@ -477,12 +473,32 @@ public static class ProjectSerializer
             "fast" => FollowSmoothness.Fast,
             _ => throw Damaged("unknown Follow smoothness")
         };
-        var given = (dto.TargetTicks is not null ? 1 : 0) + (dto.TargetX is not null ? 1 : 0) + (dto.TargetY is not null ? 1 : 0);
+        if (formatVersion >= FollowPartsVersion)
+        {
+            var parts = (dto.Parts ?? new List<FollowPartDto>()).Select(p => Part(p.FromTicks, p.ToTicks, p.TargetTicks, p.TargetX, p.TargetY, ranged: true))
+                .ToImmutableArray();
+            if (parts.IsEmpty || !FollowSettings.AreValid(parts)) throw Damaged("Follow parts that overlap or are out of order");
+            return new FollowSettings(parts, smoothness);
+        }
+        var ranged = formatVersion >= FollowRangeVersion;
+        return FollowSettings.Of(Part(dto.FromTicks, dto.ToTicks, dto.TargetTicks, dto.TargetX, dto.TargetY, ranged), smoothness);
+    }
+
+    private static FollowPart Part(long? fromTicks, long? toTicks, long? targetTicks, double? targetX, double? targetY, bool ranged)
+    {
+        MediaTime? from = null, to = null;
+        if (ranged)
+        {
+            if (fromTicks < 0 || toTicks < 0 || fromTicks >= toTicks) throw Damaged("a Follow part that ends before it starts");
+            from = fromTicks is { } f ? new MediaTime(f) : null;
+            to = toTicks is { } t ? new MediaTime(t) : null;
+        }
+        var given = (targetTicks is not null ? 1 : 0) + (targetX is not null ? 1 : 0) + (targetY is not null ? 1 : 0);
         if (given is not (0 or 3)) throw Damaged("an incomplete Follow target");
-        if (given == 0) return new FollowSettings(Smoothness: smoothness);
-        if (dto.TargetTicks < 0 || !(dto.TargetX is >= 0 and <= 1) || !(dto.TargetY is >= 0 and <= 1))
+        if (given == 0) return new FollowPart(from, to);
+        if (targetTicks < 0 || !(targetX is >= 0 and <= 1) || !(targetY is >= 0 and <= 1))
             throw Damaged("a Follow target outside the frame");
-        return new FollowSettings(new MediaTime(dto.TargetTicks!.Value), new NormalizedPoint(dto.TargetX!.Value, dto.TargetY!.Value), smoothness);
+        return new FollowPart(from, to, new MediaTime(targetTicks!.Value), new NormalizedPoint(targetX!.Value, targetY!.Value));
     }
 
     private static ClipDto ToDto(Clip clip)

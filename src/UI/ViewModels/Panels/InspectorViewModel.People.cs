@@ -65,6 +65,11 @@ public sealed partial class InspectorViewModel
     [NotifyCanExecuteChangedFor(nameof(FollowWholeClipCommand))]
     private bool _hasFollowRange;
 
+    /// <summary>A followed part lies under the playhead («Удалить участок слежения»).</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(DeleteFollowPartCommand))]
+    private bool _hasFollowPartHere;
+
     [ObservableProperty] private bool _hasPeopleSection;
     [ObservableProperty] private bool _followEnabled;
     [ObservableProperty] private int _followSmoothnessIndex = 1;
@@ -92,7 +97,7 @@ public sealed partial class InspectorViewModel
     {
         if (_syncing || _clip is not VideoClip clip || RejectWhileLocked()) return;
         if (value == clip.Follow is not null) return;
-        Apply(_edit.SetClipFollow(clip.Id, value ? new FollowSettings(Smoothness: SmoothnessAt(FollowSmoothnessIndex)) : null,
+        Apply(_edit.SetClipFollow(clip.Id, value ? FollowSettings.Whole(SmoothnessAt(FollowSmoothnessIndex)) : null,
             hideOutlinesBehindPeople: value ? true : null));
     }
 
@@ -123,11 +128,11 @@ public sealed partial class InspectorViewModel
     };
 
     /// <summary>
-    /// D061 amendment 1 (like Insta360 Studio): «Следить за скалолазом отсюда» — Follow from the playhead's frame of this clip
-    /// to its end (switching Follow on also switches Occlusion on, one undo step), and the timeline plays so the user watches
-    /// the camera follow; «Остановить слежение здесь» ends the followed part at the frame then shown and pauses. The part is
-    /// then the clip's Follow strip on the timeline (its edges drag). The video's people are analysed once, whole (D061 §5):
-    /// a part made longer later needs no analysis of its own.
+    /// D061 amendment 1 (like Insta360 Studio): «Следить за скалолазом отсюда» — a new followed part from the playhead's frame
+    /// (to the next part or the clip's end; Follow switched on also switches Occlusion on, one undo step) and the timeline
+    /// plays: the part's people are analysed from that frame on, chunk by chunk ahead of the playback, so the camera follows
+    /// at once. «Остановить слежение здесь» ends the part at the frame then shown and pauses. Each part is independent (its
+    /// own person — two routes, two climbers) and is a strip on the clip in the timeline (its edges drag).
     /// </summary>
     [RelayCommand]
     private void FollowFromHere()
@@ -138,8 +143,23 @@ public sealed partial class InspectorViewModel
             _status.Report(Strings.Follow_PlayheadOutside);
             return;
         }
-        var follow = (clip.Follow ?? new FollowSettings(Smoothness: SmoothnessAt(FollowSmoothnessIndex))) with { From = at, To = null };
-        if (at <= clip.SourceIn) follow = follow with { From = null };
+        var from = at <= clip.SourceIn ? (MediaTime?)null : at;
+        FollowSettings follow;
+        var existing = clip.Follow;
+        if (existing is null || existing.IsWholeClip)
+            follow = FollowSettings.Of(new FollowPart(from), existing?.Smoothness ?? SmoothnessAt(FollowSmoothnessIndex));
+        else if (existing.IndexAt(at) >= 0)
+        {
+            _status.Report(Strings.Follow_AlreadyFollowedHere);
+            return;
+        }
+        else
+        {
+            var next = existing.Parts.FirstOrDefault(p => p.From is { } f && f > at)?.From;
+            // On the clip's first frame the part opens to the start — up to a part before it (beyond the clip's start).
+            if (from is null) from = existing.Parts.LastOrDefault(p => p.To is { } t && t <= at)?.To;
+            follow = existing.WithAdded(new FollowPart(from, next));
+        }
         var result = _edit.SetClipFollow(clip.Id, follow, hideOutlinesBehindPeople: clip.Follow is null ? true : null);
         if (!result.Success)
         {
@@ -147,7 +167,7 @@ public sealed partial class InspectorViewModel
             return;
         }
         _followRecordingClipId = clip.Id;
-        _followRecordingFrom = follow.From;
+        _followRecordingFrom = from;
         IsRecordingFollow = true;
         _status.Report(Strings.Follow_Recording);
         FollowPlaybackRequested?.Invoke(this, true);
@@ -157,27 +177,46 @@ public sealed partial class InspectorViewModel
     private void StopFollowHere()
     {
         var clip = _clip as VideoClip;
+        var recordedFrom = _followRecordingFrom;
         IsRecordingFollow = false;
         _followRecordingClipId = null;
         FollowPlaybackRequested?.Invoke(this, false);
         if (clip?.Follow is not { } follow || RejectWhileLocked()) return;
-        var from = follow.From ?? clip.SourceIn;
-        // The playhead past the clip (it played on): the part runs to the clip's end.
+        var index = follow.Parts.IndexOf(follow.Parts.FirstOrDefault(p => p.From == recordedFrom)!);
+        if (index < 0) return;
+        var part = follow.Parts[index];
+        var from = part.From ?? clip.SourceIn;
+        // The playhead past the clip (it played on): the part runs to its end.
         var at = PlayheadSourceTime(clip) ?? (Playhead is { } playhead && playhead() >= clip.TimelineEnd ? clip.SourceOut : (MediaTime?)null);
         if (at is not { } end || end - from < MinFollowPart)
         {
             _status.Report(Strings.Follow_PartTooShort);
             return;
         }
-        Apply(_edit.SetClipFollow(clip.Id, follow with { To = end >= clip.SourceOut ? null : end }));
+        if (part.To is { } limit && end >= limit) return;                 // it reached the next part: already ends there
+        Apply(_edit.SetClipFollow(clip.Id, follow.WithPart(index, part with { To = end >= clip.SourceOut ? follow.OpenEnd(index) : end })));
     }
 
-    /// <summary>The followed part back to the whole clip.</summary>
+    /// <summary>Follow back to one part on the whole clip (the first part's person).</summary>
     [RelayCommand(CanExecute = nameof(HasFollowRange))]
     private void FollowWholeClip()
     {
         if (_clip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked()) return;
-        Apply(_edit.SetClipFollow(clip.Id, follow with { From = null, To = null }));
+        // The person of the part under the playhead, else of the first part shown in the clip.
+        var here = PlayheadSourceTime(clip) is { } at ? follow.IndexAt(at) : -1;
+        var first = here >= 0 ? follow.Parts[here]
+            : follow.Parts.FirstOrDefault(p => p.RangeIn(clip.SourceIn, clip.SourceOut) is not null) ?? follow.Parts[0];
+        Apply(_edit.SetClipFollow(clip.Id, FollowSettings.Of(first with { From = null, To = null }, follow.Smoothness)));
+    }
+
+    /// <summary>Removes the followed part under the playhead (the last one: Follow off).</summary>
+    [RelayCommand(CanExecute = nameof(HasFollowPartHere))]
+    private void DeleteFollowPart()
+    {
+        if (_clip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked() || PlayheadSourceTime(clip) is not { } at) return;
+        var index = follow.IndexAt(at);
+        if (index < 0) return;
+        Apply(_edit.SetClipFollow(clip.Id, follow.WithPart(index, null)));
     }
 
     /// <summary>The source time of the playhead's frame in <paramref name="clip"/>; null outside the clip.</summary>
@@ -212,8 +251,17 @@ public sealed partial class InspectorViewModel
         IsPickingPerson = false;
         var clip = _clip as VideoClip;
         if (clip is null || clip.Id != clipId || RejectWhileLocked()) return;
-        var follow = clip.Follow ?? new FollowSettings(Smoothness: SmoothnessAt(FollowSmoothnessIndex));
-        var result = _edit.SetClipFollow(clip.Id, follow with { TargetTime = sourceTime, TargetPoint = point });
+        FollowSettings follow;
+        if (clip.Follow is not { } existing)
+            follow = FollowSettings.Whole(SmoothnessAt(FollowSmoothnessIndex), sourceTime, point);
+        else if (existing.IndexAt(sourceTime) is var index and >= 0)
+            follow = existing.WithPart(index, existing.Parts[index] with { TargetTime = sourceTime, TargetPoint = point })!;
+        else
+        {
+            _status.Report(Strings.Follow_PickOutsideParts);
+            return;
+        }
+        var result = _edit.SetClipFollow(clip.Id, follow);
         if (result.Success) _status.Report(Strings.Follow_Picked);
         else Apply(result);
     }
@@ -238,12 +286,13 @@ public sealed partial class InspectorViewModel
         var clip = _clip as VideoClip;
         HasPeopleSection = clip is not null && _people is not null;
         if (_followRecordingClipId is { } recording &&
-            (clip?.Id != recording || clip.Follow is not { To: null } follow || follow.From != _followRecordingFrom))
+            (clip?.Id != recording || clip.Follow is not { } follow || !follow.Parts.Any(p => p.From == _followRecordingFrom)))
         {
             _followRecordingClipId = null;     // another clip, Follow off, or the started part undone / changed: it is over
             IsRecordingFollow = false;
         }
         HasFollowRange = clip?.Follow is { IsWholeClip: false };
+        HasFollowPartHere = clip?.Follow is { } here && PlayheadSourceTime(clip) is { } now && here.IndexAt(now) >= 0;
         FollowRangeText = clip?.Follow is { } shown ? RangeText(clip, shown) : "";
         if (clip is null || _people is null)
         {
@@ -272,7 +321,8 @@ public sealed partial class InspectorViewModel
         PeopleProgressPercent = running is { } r ? Math.Round(r.Progress * 100) : 0;
         CanRetryPeopleAnalysis = tracks.State is PeopleAnalysisState.Failed or PeopleAnalysisState.Cancelled ||
                                  masks.State is PeopleAnalysisState.Failed or PeopleAnalysisState.Cancelled;
-        CanPickPerson = clip.Follow is not null && tracks.State == PeopleAnalysisState.Ready;
+        // Live (D061 amendment 1): the climber can be picked on any frame already analysed.
+        CanPickPerson = clip.Follow is not null && tracks.State is PeopleAnalysisState.Ready or PeopleAnalysisState.Analysing;
 
         (FollowStatusText, FollowStatusIsProblem) = clip.Follow is null ? ("", false) : FollowStatus(clip, clip.Follow, tracks);
         (OcclusionStatusText, OcclusionStatusIsProblem) = !clip.HidesOutlinesBehindPeople ? ("", false) : OcclusionStatus(clip, tracks, masks);
@@ -295,7 +345,7 @@ public sealed partial class InspectorViewModel
             PlaybackSnapshotBuilder.DisplaySize(asset.Metadata) is not { } source)
             return (Strings.People_Waiting, false);
         var resolution = FollowResolution.For(clip, follow, analysed!, _canvas, source);
-        return resolution.State switch
+        var (text, problem) = resolution.State switch
         {
             FollowState.NeedsTarget => (Strings.Follow_NeedsTarget, true),
             FollowState.TargetNotFound => (Strings.Follow_TargetNotFound, true),
@@ -311,15 +361,30 @@ public sealed partial class InspectorViewModel
                 : (string.Format(CultureInfo.CurrentCulture, Strings.Follow_FollowingWithGaps, (int)Math.Round(resolution.SeenFraction * 100),
                     resolution.Gaps.Length, string.Join(", ", resolution.Gaps.Take(4).Select(g => GapText(clip, g)))), false)
         };
+        // D061 amendment 1: a part that does not follow while another one does.
+        if (resolution.State == FollowState.Following && resolution.Problem is { } part)
+        {
+            var why = part.State switch
+            {
+                FollowState.NeedsTarget => Strings.Follow_NeedsTarget,
+                FollowState.TargetNotFound => Strings.Follow_TargetNotFound,
+                _ => part.Unavailable == FollowUnavailable.Rotation ? Strings.Follow_Rotation : Strings.Follow_NoRoom
+            };
+            text += " " + string.Format(CultureInfo.CurrentCulture, Strings.Follow_PartProblem, GapText(clip, new FollowGap(part.From, part.To)), why);
+            problem = true;
+        }
+        // Nobody picked and several people: the most prominent one is followed — the user may pick another.
+        return resolution.Parts.Any(p => p.AutoChosen) ? (text + " " + Strings.Follow_AutoChosen, problem) : (text, problem);
     }
 
-    /// <summary>«Участок слежения: 0:12–0:40» in the clip's timeline time, or «на весь клип».</summary>
+    /// <summary>«Участки слежения: 0:12–0:40, 1:05–1:30» in the clip's timeline time, or «на весь клип».</summary>
     private string RangeText(VideoClip clip, FollowSettings follow)
     {
         if (follow.IsWholeClip) return Strings.Follow_WholeClip;
-        return follow.RangeIn(clip.SourceIn, clip.SourceOut) is { } part
-            ? string.Format(CultureInfo.CurrentCulture, Strings.Follow_Part, GapText(clip, new FollowGap(part.From, part.To)))
-            : Strings.Follow_OutsideRange;
+        var parts = follow.Parts.Select(p => p.RangeIn(clip.SourceIn, clip.SourceOut)).Where(r => r is not null).Select(r => r!.Value)
+            .Select(r => GapText(clip, new FollowGap(r.From, r.To))).ToList();
+        return parts.Count == 0 ? Strings.Follow_OutsideRange
+            : string.Format(CultureInfo.CurrentCulture, Strings.Follow_Part, string.Join(", ", parts));
     }
 
     /// <summary>A loss in the clip's timeline time («0:12–0:15»).</summary>

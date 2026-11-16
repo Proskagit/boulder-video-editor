@@ -32,6 +32,17 @@ public sealed record PersonTracks(MediaTime Interval, ImmutableArray<PersonSampl
     /// <summary>The source time the analysis covers (the last analysed frame).</summary>
     public MediaTime End => Samples.IsDefaultOrEmpty ? MediaTime.Zero : Samples[^1].Time;
 
+    /// <summary>D061 amendment 1: the tracks of a video analysed in chunks — the chunks' detections in time order, linked
+    /// again by one <see cref="PersonTracker"/> (a person crossing a chunk boundary keeps one track; between chunks not
+    /// analysed the tracks end).</summary>
+    public static PersonTracks Merge(IEnumerable<PersonTracks> chunks, MediaTime interval, string modelId)
+    {
+        var tracker = new PersonTracker();
+        var samples = chunks.SelectMany(c => c.Samples).OrderBy(s => s.Time)
+            .Select(s => new PersonSample(s.Time, s.People, tracker.Add(s.Time, s.People))).ToImmutableArray();
+        return Of(interval, samples, modelId);
+    }
+
     /// <summary>The same samples with the track extents computed from them.</summary>
     public static PersonTracks Of(MediaTime interval, ImmutableArray<PersonSample> samples, string modelId)
     {

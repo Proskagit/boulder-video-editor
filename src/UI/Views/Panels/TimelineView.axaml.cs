@@ -179,7 +179,7 @@ public partial class TimelineView : UserControl
 
         // D061 amendment 1: an edge of the followed part's strip drags; elsewhere on it the press is the clip's.
         if (FollowStripOf(e.Source) is { } follow &&
-            _viewModel.BeginFollowDrag(follow.Clip, e.GetPosition(follow.Strip).X + follow.Clip.FollowLeft, e.GetPosition(ContentRoot).X))
+            _viewModel.BeginFollowDrag(follow.Clip, e.GetPosition(follow.Strip).X, e.GetPosition(ContentRoot).X))
         {
             _pressedFollow = true;
             e.Pointer.Capture(TrackRows);
@@ -565,7 +565,7 @@ public partial class TimelineView : UserControl
     {
         for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
         {
-            if (visual is Control { Tag: "FollowStrip", DataContext: TimelineClipViewModel clip } strip) return (clip, strip);
+            if (visual is Control { Tag: "FollowLane", DataContext: TimelineClipViewModel clip } lane) return (clip, lane);
             if (visual is ItemsControl { Name: "TrackRows" }) break;
         }
         return null;

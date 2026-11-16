@@ -87,7 +87,7 @@ public class PeopleCompositionTests
     [Fact]
     public void Follow_moves_the_frame_and_its_outline_together_on_the_shown_frame()
     {
-        Clip(new FollowSettings(), routes: true);
+        Clip(FollowSettings.Whole(), routes: true);
         var people = With(Walk());
         var early = PlanOn(1, people);
         var late = PlanOn(9, people);
@@ -105,25 +105,36 @@ public class PeopleCompositionTests
         var clip = Clip(routes: true);
         var before = PlanOn(5, null).Operations;
         Assert.Equal(before, PlanOn(5, With(Walk(), MaskOverOutline())).Operations, new OperationComparer());
-        clip.Follow = new FollowSettings();
+        clip.Follow = FollowSettings.Whole();
         Assert.Equal(before, PlanOn(5, null).Operations, new OperationComparer());   // Follow on, nothing analysed yet
     }
 
     [Fact]
-    public void Several_people_without_a_pick_keep_the_clip_framing()
+    public void Several_people_as_near_without_a_pick_keep_the_clip_framing()
     {
-        Clip(new FollowSettings(), routes: true);
+        Clip(FollowSettings.Whole(), routes: true);
         var two = Tracks(Enumerable.Range(0, 101).Select(i => new[] { Person(0.3, 0.5, colour: 0), Person(0.7, 0.5, colour: 12) }).ToArray());
         Assert.Equal(PlanOn(5, null).Operations, PlanOn(5, With(two)).Operations, new OperationComparer());
+    }
+
+    [Fact]
+    public void Without_a_pick_the_person_nearest_the_camera_is_followed()
+    {
+        // D061 amendment 1: the climber near the camera (a high box) and a spectator far behind (half as high).
+        var clip = Clip(FollowSettings.Whole(), routes: true);
+        var two = Tracks(Enumerable.Range(0, 101).Select(i => new[] { Person(0.3, 0.5, h: 0.6, colour: 0), Person(0.7, 0.5, h: 0.3, colour: 12) }).ToArray());
+        var auto = PlanOn(5, With(two)).Operations.OfType<FrameDraw>().Single().Transform.Tx;
+        clip.Follow = FollowSettings.Whole(FollowSmoothness.Normal, S(1), new NormalizedPoint(0.3, 0.5));
+        Assert.Equal(PlanOn(5, With(two)).Operations.OfType<FrameDraw>().Single().Transform.Tx, auto, 6);
     }
 
     [Fact]
     public void A_pick_chooses_the_followed_person()
     {
         var two = Tracks(Enumerable.Range(0, 101).Select(i => new[] { Person(0.3, 0.5, colour: 0), Person(0.7, 0.5, colour: 12) }).ToArray());
-        var clip = Clip(new FollowSettings(S(1), new NormalizedPoint(0.7, 0.5)));
+        var clip = Clip(FollowSettings.Whole(FollowSmoothness.Normal, S(1), new NormalizedPoint(0.7, 0.5)));
         var right = PlanOn(5, With(two)).Operations.OfType<FrameDraw>().Single().Transform.Tx;
-        clip.Follow = new FollowSettings(S(1), new NormalizedPoint(0.3, 0.5));
+        clip.Follow = FollowSettings.Whole(FollowSmoothness.Normal, S(1), new NormalizedPoint(0.3, 0.5));
         var left = PlanOn(5, With(two)).Operations.OfType<FrameDraw>().Single().Transform.Tx;
         Assert.True(left > right, "following the left person shifts the picture to the right");
     }
@@ -145,7 +156,7 @@ public class PeopleCompositionTests
     [Fact]
     public void The_people_analyses_are_presentation_only()
     {
-        Clip(new FollowSettings(), occlusion: true, routes: true);
+        Clip(FollowSettings.Whole(), occlusion: true, routes: true);
         var without = PlaybackSnapshotBuilder.Build(_project, 1);
         var with = PlaybackSnapshotBuilder.Build(_project, 2, people: With(Walk(), MaskOverOutline()));
         Assert.True(without.DiffersOnlyInPresentation(with));
@@ -156,7 +167,7 @@ public class PeopleCompositionTests
     [Fact]
     public void The_export_waits_for_a_running_analysis()
     {
-        Clip(new FollowSettings());
+        Clip(FollowSettings.Whole());
         var result = Preflight(new ExportPeople(PeopleAnalyses.None, new HashSet<Guid> { _asset.Id }));
         Assert.Contains(result.Issues, i => i.Kind == ExportIssueKind.PeopleAnalysisPending && i.Severity == ExportIssueSeverity.Error);
         Assert.False(result.CanExport);
@@ -165,7 +176,7 @@ public class PeopleCompositionTests
     [Fact]
     public void The_export_warns_when_Follow_cannot_move_or_outlines_cannot_be_hidden()
     {
-        Clip(new FollowSettings(), occlusion: true, scale: 1, routes: true);
+        Clip(FollowSettings.Whole(), occlusion: true, scale: 1, routes: true);
         var result = Preflight(new ExportPeople(With(Walk()), new HashSet<Guid>()) { FailedMasks = new Dictionary<Guid, string> { [_asset.Id] = "no GPU" } });
         Assert.True(result.CanExport, string.Join(" | ", result.Issues.Select(i => i.Kind + ": " + i.Message)));
         Assert.Contains(result.Issues, i => i.Kind == ExportIssueKind.FollowUnavailable && i.Message.Contains("«"));
@@ -175,7 +186,7 @@ public class PeopleCompositionTests
     [Fact]
     public void A_working_Follow_and_Occlusion_export_without_a_people_issue()
     {
-        Clip(new FollowSettings(), occlusion: true, routes: true);
+        Clip(FollowSettings.Whole(), occlusion: true, routes: true);
         var result = Preflight(new ExportPeople(With(Walk(), MaskOverOutline()), new HashSet<Guid>()));
         Assert.DoesNotContain(result.Issues, i => i.Kind is ExportIssueKind.PeopleAnalysisPending or ExportIssueKind.FollowUnavailable or ExportIssueKind.OcclusionUnavailable);
         Assert.NotNull(result.Job!.Snapshot.VideoLayers[0].Spans[0].Follow);

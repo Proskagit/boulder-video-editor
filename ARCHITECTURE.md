@@ -518,10 +518,15 @@ IVideoDecoder (1024 px, hardware decoding) ─► PeopleAnalyzer (Core/People)
   `OutlineOcclusion` (the visibility of the outline's pieces), `PeopleAnalyzer` (the two passes), `PeopleAnalyses`.
 - **Interfaces**: `IPeopleVision` / `IPersonSegmenter` (Vision), `IPeopleAnalysisCache` (Media: `PeopleAnalysisCacheStore`,
   `%LOCALAPPDATA%\AiVideoEditor\cache\people`, the camera-motion cache's rules, LRU 2 GB).
-- **Project** (v20; v21 — D061 amendment 1): `VideoClip.Follow` (`FollowSettings`: the pick, the smoothness, the followed
-  part `From` / `To` in source time) and `VideoClip.HidesOutlinesBehindPeople`; `ITimelineEditService.SetClipFollow` (with
-  Occlusion in the same undo step when Follow switches it on) / `SetClipHidesOutlinesBehindPeople`; `FollowCamera.Limit` (the
-  part, glided in and out); the part's strip on the timeline (`TimelineViewModel.FollowStrip`).
+- **Project** (v20; v22 — D061 amendment 1): `VideoClip.Follow` (`FollowSettings`: independent `FollowPart`s — `From` /
+  `To` in source time and each its own picked person — and the smoothness) and `VideoClip.HidesOutlinesBehindPeople`;
+  `ITimelineEditService.SetClipFollow` (with Occlusion in the same undo step when Follow switches it on) /
+  `SetClipHidesOutlinesBehindPeople`; `FollowResolution` part by part, `FollowCamera.Combine` (glides, hand-overs between
+  touching parts); the parts' strips on the timeline (`TimelineViewModel.FollowStrip`).
+- **Analysis in chunks** (D061 amendment 1): `PeopleAnalysisNeeds` (the followed parts' and the outlines' spans),
+  `PeopleAnalyzer.DetectRangeAsync` / `SegmentRangeAsync` (from a source time, a callback per 2 s chunk),
+  `PersonTracks.Merge` / `PersonMaskTrack.Merge`; `PeopleAnalysisCoordinator` caches and publishes chunk by chunk, the
+  followed parts first.
 - **Export**: `ExportPreflightEnvironment.People` (`ExportPeople`): the Preview's analyses; `PeopleAnalysisPending` blocks,
   `FollowUnavailable` / `OcclusionUnavailable` warn.
 - **UI**: the Inspector's «Слежение и люди» (`InspectorViewModel.People`), the Preview's notice, pick and masks

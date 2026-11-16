@@ -165,3 +165,16 @@ new ids are the same passer-by (46–49 s, 64 s, 72–74 s) segmented on each ap
 absences (11–73 s); now an object with no detected person at its mask for 3 s stops, and his next appearance gets an object of
 its own — the covered area on those frames is the same (contact sheets checked by eye). Analysis time unchanged
 (0.47–0.67× real time). The masks are analysed again once (cache key `masks-v3`).
+
+## 9. Only what is needed, in chunks (D061 amendment 1, second round)
+
+`video_20260927_101034` (98 s, 3840 × 2160), the owner's followed part 10.6–24.2 s, `tools/people-bench` with
+`PEOPLE_BENCH_RANGE=9.6:25.2` (the app's own range methods):
+
+| | Before (whole file, the app's log) | Now (the part) |
+|---|---|---|
+| Tracks | 29.3 s (98 s of video) | 6.2 s (15.6 s), first chunk after 1.5 s, 2.5× real time |
+| Masks | 166.7 s (98 s of video) | 26.3 s (13.6 s) |
+
+In the owner's D053 project the outlines are shown about 10–20 s per clip (Duration-mode animations), so the masks are
+analysed only there. `video_20260927_105713` before: tracks 27.5 s, masks 139.6 s for the whole 65 s.

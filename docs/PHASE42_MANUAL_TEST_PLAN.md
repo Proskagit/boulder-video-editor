@@ -75,7 +75,19 @@ The cache of the people analyses is analysed again once (masks v3). Use copies o
 | F8 | Drag the strip's start / end edge left / right on the timeline; Ctrl+Z / Ctrl+Y | The part follows; one undo step per drag; dragged to the clip's edge, the side is open again; «На весь клип» in the Inspector restores the whole clip |
 | F9 | Split the clip inside the part; trim the clip | Each half follows only its piece of the part; a half outside the part shows «Участок слежения лежит вне этого клипа» and no warning in the export |
 | F10 | Save, close, reopen the project; export | The part, Follow and Occlusion are as before; the export looks like the Preview |
-| F11 | Open a project saved by the previous build (v20) | Opens unchanged (Follow on the whole clip); saved as v21 |
+| F11 | Open a project saved by the previous build (v20) | Opens unchanged (Follow on the whole clip); saved as v22 |
+
+## G. Second check (D061 amendment 1, second round)
+
+| # | Do | Expect |
+|---|---|---|
+| G1 | A long clip (`video_20260927_101034`, 98 s): playhead at 10 s, «Следить за скалолазом отсюда» | Playback starts; within about 2 s the camera follows the climber and keeps following while it plays — no wait for the whole file |
+| G2 | «Остановить слежение здесь» at about 24 s; watch the Inspector's / Preview's progress | The tracks stop at the part (no analysis of the rest of the file); the masks run only where the outlines are shown and finish in well under a minute |
+| G3 | The same clip: playhead at 50 s (after the first part), «Следить отсюда», stop at 60 s | A second cyan strip; the first part unchanged; each part follows its own climber (pick another one in the second part with «Выбрать скалолаза» on a frame of it) |
+| G4 | Playhead inside a part, «Следить отсюда» | «Указатель уже на участке слежения…»; nothing changes |
+| G5 | Drag the first part's end right onto the second part | It stops at the second part's start; where the two meet the camera passes from one climber to the other without going back |
+| G6 | Playhead in a part, «Удалить участок»; Ctrl+Z | The part goes / comes back; the other stays |
+| G7 | Save, reopen (also a project saved by 0.42.1) | The parts and their climbers as before; a 0.42.1 project opens with its one part |
 
 ## E. Notes for the owner
 

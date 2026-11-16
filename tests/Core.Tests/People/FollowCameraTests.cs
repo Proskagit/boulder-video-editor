@@ -170,13 +170,76 @@ public class FollowCameraTests
     }
 
     [Fact]
+    public void Between_two_touching_parts_the_camera_passes_from_one_person_to_the_other_without_returning()
+    {
+        var times = Enumerable.Range(0, 101).Select(i => MediaTime.FromSeconds(i * 0.1)).ToImmutableArray();
+        FollowPath At(double x) => new(times, times.Select(_ => x).ToImmutableArray(), times.Select(_ => 0.0).ToImmutableArray()) { MovesX = true };
+        var combined = FollowCamera.Combine(new[] { (At(-100), MediaTime.FromSeconds(2), MediaTime.FromSeconds(5)), (At(-300), MediaTime.FromSeconds(5), MediaTime.FromSeconds(8)) },
+            MediaTime.Zero, MediaTime.FromSeconds(10), 0, 0);
+        Assert.Equal(0, combined.At(MediaTime.FromSeconds(1)).X);
+        Assert.Equal(-100, combined.At(MediaTime.FromSeconds(4)).X, 6);
+        Assert.Equal(-200, combined.At(MediaTime.FromSeconds(5)).X, 6);     // half way at the boundary — never back to 0
+        Assert.Equal(-300, combined.At(MediaTime.FromSeconds(6.5)).X, 6);
+        Assert.Equal(0, combined.At(MediaTime.FromSeconds(9)).X);
+        var previous = combined.At(MediaTime.Zero).X;
+        for (var t = 0.0; t <= 10; t += 1 / 30.0)
+        {
+            var x = combined.At(MediaTime.FromSeconds(t)).X;
+            Assert.True(x <= 1e-9, $"back to the clip's framing at {t:F2} s");
+            Assert.True(Math.Abs(x - previous) < 25, $"jump at {t:F2} s");
+            previous = x;
+        }
+    }
+
+    [Fact]
+    public void A_part_that_cannot_follow_is_reported_while_another_one_follows()
+    {
+        // One person in the first 5 s; two people as near in the last 5 s.
+        var frames = Enumerable.Range(0, 101).Select(i => i < 50
+            ? new[] { Person(0.3, 0.5, colour: 0) }
+            : new[] { Person(0.3, 0.5, colour: 0), Person(0.7, 0.5, colour: 12) }).ToArray();
+        var clip = new VideoClip { MediaAssetId = Guid.NewGuid(), Duration = MediaTime.FromSeconds(10), SourceOut = MediaTime.FromSeconds(10), Scale = 2 };
+        var follow = new FollowSettings(ImmutableArray.Create(new FollowPart(MediaTime.FromSeconds(0.5), MediaTime.FromSeconds(4)),
+            new FollowPart(MediaTime.FromSeconds(6), MediaTime.FromSeconds(9))));
+        var resolution = FollowResolution.For(clip, follow, Tracks(frames), Portrait, Source);
+        Assert.Equal(FollowState.Following, resolution.State);
+        Assert.Equal(FollowState.NeedsTarget, resolution.Problem!.State);
+        Assert.Equal(MediaTime.FromSeconds(6), resolution.Problem.From);
+    }
+
+    [Fact]
+    public void The_masks_and_tracks_reach_past_the_cut_as_far_as_a_transition_shows_the_clip()
+    {
+        var clip = new VideoClip { MediaAssetId = Guid.NewGuid(), Duration = MediaTime.FromSeconds(10), SourceIn = MediaTime.FromSeconds(5), SourceOut = MediaTime.FromSeconds(15),
+            Follow = FollowSettings.Whole() };
+        var dissolve = new Transition { TransitionTypeId = "dissolve", Duration = MediaTime.FromSeconds(3), RightClipId = clip.Id };
+        var (before, after) = PeopleAnalysisNeeds.PastTheCut(clip, new[] { dissolve });
+        Assert.Equal(MediaTime.FromSeconds(1.5), before);
+        Assert.Equal(MediaTime.Zero, after);
+        var span = PeopleAnalysisNeeds.FollowSpans(clip, before, after).Single();
+        Assert.Equal(MediaTime.FromSeconds(2.5), span.From);                // 5 − 1 (margin) − 1.5 (the dissolve's half)
+        Assert.Equal(MediaTime.FromSeconds(16), span.To);
+    }
+
+    [Fact]
+    public void A_part_shorter_than_two_glides_eases_over_half_of_it()
+    {
+        var times = Enumerable.Range(0, 101).Select(i => MediaTime.FromSeconds(i * 0.1)).ToImmutableArray();
+        var path = new FollowPath(times, times.Select(_ => -100.0).ToImmutableArray(), times.Select(_ => 0.0).ToImmutableArray()) { MovesX = true };
+        var limited = FollowCamera.Limit(path, MediaTime.FromSeconds(4), MediaTime.FromSeconds(5), MediaTime.Zero, MediaTime.FromSeconds(10), 0, 0);
+        Assert.Equal(-100, limited.At(MediaTime.FromSeconds(4.5)).X, 6);   // the top reached in the middle
+        Assert.Equal(0, limited.At(MediaTime.FromSeconds(4)).X);
+        Assert.Equal(0, limited.At(MediaTime.FromSeconds(5)).X);
+    }
+
+    [Fact]
     public void A_followed_part_maps_to_each_clip_that_shows_it()
     {
-        var follow = new FollowSettings(From: MediaTime.FromSeconds(3), To: MediaTime.FromSeconds(7));
-        Assert.Equal((MediaTime.FromSeconds(3), MediaTime.FromSeconds(7)), follow.RangeIn(MediaTime.Zero, MediaTime.FromSeconds(10)));
-        Assert.Equal((MediaTime.FromSeconds(5), MediaTime.FromSeconds(7)), follow.RangeIn(MediaTime.FromSeconds(5), MediaTime.FromSeconds(10))); // split half
-        Assert.Null(follow.RangeIn(MediaTime.FromSeconds(7), MediaTime.FromSeconds(10)));                                                        // none of it
-        Assert.Equal((MediaTime.FromSeconds(2), MediaTime.FromSeconds(4)), new FollowSettings().RangeIn(MediaTime.FromSeconds(2), MediaTime.FromSeconds(4)));
+        var follow = FollowSettings.Of(new FollowPart(MediaTime.FromSeconds(3), MediaTime.FromSeconds(7)));
+        Assert.Equal((MediaTime.FromSeconds(3), MediaTime.FromSeconds(7)), follow.Parts[0].RangeIn(MediaTime.Zero, MediaTime.FromSeconds(10)));
+        Assert.Equal((MediaTime.FromSeconds(5), MediaTime.FromSeconds(7)), follow.Parts[0].RangeIn(MediaTime.FromSeconds(5), MediaTime.FromSeconds(10))); // split half
+        Assert.Null(follow.Parts[0].RangeIn(MediaTime.FromSeconds(7), MediaTime.FromSeconds(10)));                                                        // none of it
+        Assert.Equal((MediaTime.FromSeconds(2), MediaTime.FromSeconds(4)), FollowSettings.Whole().Parts[0].RangeIn(MediaTime.FromSeconds(2), MediaTime.FromSeconds(4)));
     }
 
     [Fact]

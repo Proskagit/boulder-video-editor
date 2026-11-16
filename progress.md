@@ -2,6 +2,18 @@
 
 ## Current phase
 
+**Phase 42 — second round of the owner's check (D061 amendment 1 §7–§9, 2026-11-16) — on `fix/phase-42-manual-feedback`,
+PR #69.** The «second long analysis» was the masks pass over the whole file for a short part: now only what the clips need
+is analysed, in 2 s chunks (the followed parts' tracks first, the masks only where outlines are shown), cached and
+published chunk by chunk — on 101034 about 33 s instead of about 196 s. Follow «на лету»: the camera follows within
+about 1.5 s of «Следить отсюда», ahead of the playback; nobody picked — the person nearest the camera. Several independent
+followed parts per clip (each its own climber, strips, hand-over between touching parts), `project.json` v22. Phase
+review: FAIL (parts that could overlap after a Split and refuse the file, a part's problem hidden by another that follows,
+the tracks analysed past a stopped part) — fixed with tests; masks and tracks also reach past the cut as far as a
+Dissolve / Push shows the clip. Gates (2026-11-16): Debug and Release `-warnaserror` 0 / 0; every Debug suite green apart
+from the known parallel-load flake `ExportServiceTests` (`src/Export` untouched; the suite alone green); Release +
+`AIVE_HEAVY_TESTS=1` — see the PR.
+
 **Phase 42 — fixes after the owner's manual check (D061 amendment 1, 2026-11-16) — on `fix/phase-42-manual-feedback`.**
 The incomplete mask on the D053 wide clip found and fixed (the object prompted once with a T-shirt-only box when the climber
 walked in close; now anchored again on the person's box when the mask is partial or has lost the torso, orphan objects stopped;

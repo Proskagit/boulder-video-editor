@@ -113,6 +113,28 @@ public static class FollowTarget
         return spans.Skip(1).All(s => s.Ticks <= best.Ticks / 5 || s.Height < best.Height / 2) ? best.Id : null;
     }
 
+    /// <summary>D061 amendment 1: when nobody is picked and the part has several people, the most prominent at its start — of
+    /// the tracks seen at least three times in its first <see cref="ProminentWindow"/>, the one with the highest median box (the
+    /// person nearest the camera — the filmed climber), clearly higher than the next (<see cref="ProminentMargin"/>); null
+    /// when nobody is seen there or two are about as near (the user picks).</summary>
+    public static int? Prominent(PersonTracks tracks, MediaTime from, MediaTime to)
+    {
+        var end = from + ProminentWindow < to ? from + ProminentWindow : to;
+        var ranked = tracks.Samples.Where(s => s.Time >= from && s.Time <= end)
+            .SelectMany(s => s.People.Select((p, i) => (Id: s.TrackIdOf(i), p.Box.Height)))
+            .Where(x => x.Id >= 0).GroupBy(x => x.Id).Where(g => g.Count() >= 3)
+            .Select(g => (g.Key, Height: g.Select(x => x.Height).OrderBy(h => h).ElementAt(g.Count() / 2)))
+            .OrderByDescending(x => x.Height).ToList();
+        if (ranked.Count == 0) return null;
+        return ranked.Count == 1 || ranked[1].Height < ranked[0].Height * ProminentMargin ? ranked[0].Key : null;
+    }
+
+    /// <summary>The next person's median box must be lower than this share of the most prominent one's.</summary>
+    public const double ProminentMargin = 0.8;
+
+    /// <summary>How much of a part's start <see cref="Prominent"/> looks at.</summary>
+    public static readonly MediaTime ProminentWindow = MediaTime.FromSeconds(2);
+
     private sealed record TrackData(int Id, ImmutableArray<(MediaTime Time, PersonDetection Person)> Seen)
     {
         public MediaTime Start => Seen[0].Time;

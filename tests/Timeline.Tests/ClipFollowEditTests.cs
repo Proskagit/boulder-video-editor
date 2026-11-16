@@ -17,15 +17,15 @@ public class ClipFollowEditTests
         var clip = f.V1.Clips.OfType<VideoClip>().Single();
         var before = PlaybackSnapshotBuilder.Build(f.Project, 1);
 
-        Assert.True(f.Service.SetClipFollow(clip.Id, new FollowSettings()).Success);
-        Assert.Equal(new FollowSettings(), clip.Follow);
-        var picked = new FollowSettings(MediaTime.FromSeconds(1), new NormalizedPoint(0.4, 0.5), FollowSmoothness.Fast);
+        Assert.True(f.Service.SetClipFollow(clip.Id, FollowSettings.Whole()).Success);
+        Assert.Equal(FollowSettings.Whole(), clip.Follow);
+        var picked = FollowSettings.Whole(FollowSmoothness.Fast, MediaTime.FromSeconds(1), new NormalizedPoint(0.4, 0.5));
         Assert.True(f.Service.SetClipFollow(clip.Id, picked).Success);
         Assert.True(f.Service.SetClipFollow(clip.Id, picked).NoChange);
         Assert.True(before.DiffersOnlyInPresentation(PlaybackSnapshotBuilder.Build(f.Project, 2)));
 
         f.UndoRedo.Undo();
-        Assert.Equal(new FollowSettings(), clip.Follow);
+        Assert.Equal(FollowSettings.Whole(), clip.Follow);
         f.UndoRedo.Undo();
         Assert.Null(clip.Follow);
         f.UndoRedo.Redo();
@@ -42,7 +42,7 @@ public class ClipFollowEditTests
         Assert.True(f.Service.AddClip(f.Video(4, FrameRate.Fps30).Id).Success);
         var clip = f.V1.Clips.OfType<VideoClip>().Single();
 
-        Assert.True(f.Service.SetClipFollow(clip.Id, new FollowSettings(), hideOutlinesBehindPeople: true).Success);
+        Assert.True(f.Service.SetClipFollow(clip.Id, FollowSettings.Whole(), hideOutlinesBehindPeople: true).Success);
         Assert.NotNull(clip.Follow);
         Assert.True(clip.HidesOutlinesBehindPeople);
         f.UndoRedo.Undo();                                    // one step back: both off
@@ -59,10 +59,25 @@ public class ClipFollowEditTests
 
         // Occlusion already on: switching Follow on is one Follow step only.
         Assert.True(f.Service.SetClipHidesOutlinesBehindPeople(clip.Id, true).Success);
-        Assert.True(f.Service.SetClipFollow(clip.Id, new FollowSettings(), hideOutlinesBehindPeople: true).Success);
+        Assert.True(f.Service.SetClipFollow(clip.Id, FollowSettings.Whole(), hideOutlinesBehindPeople: true).Success);
         f.UndoRedo.Undo();
         Assert.Null(clip.Follow);
         Assert.True(clip.HidesOutlinesBehindPeople);
+    }
+
+    [Fact]
+    public void Overlapping_or_unordered_parts_are_refused_without_an_undo_step()
+    {
+        var f = new TimelineFixture();
+        Assert.True(f.Service.AddClip(f.Video(4, FrameRate.Fps30).Id).Success);
+        var clip = f.V1.Clips.OfType<VideoClip>().Single();
+        var overlap = new FollowSettings(System.Collections.Immutable.ImmutableArray.Create(new FollowPart(MediaTime.FromSeconds(1), null),
+            new FollowPart(MediaTime.FromSeconds(2), MediaTime.FromSeconds(3))));
+        Assert.False(f.Service.SetClipFollow(clip.Id, overlap).Success);
+        Assert.False(f.Service.SetClipFollow(clip.Id, new FollowSettings(System.Collections.Immutable.ImmutableArray<FollowPart>.Empty)).Success);
+        Assert.Null(clip.Follow);
+        f.UndoRedo.Undo();                                                   // the only step is still the clip's add
+        Assert.Empty(f.V1.Clips);
     }
 
     [Fact]
@@ -83,13 +98,13 @@ public class ClipFollowEditTests
     {
         var f = new TimelineFixture();
         Assert.True(f.Service.AddTextClip(MediaTime.Zero).Success);
-        Assert.False(f.Service.SetClipFollow(f.V1.Clips.Single().Id, new FollowSettings()).Success);
+        Assert.False(f.Service.SetClipFollow(f.V1.Clips.Single().Id, FollowSettings.Whole()).Success);
         Assert.False(f.Service.SetClipHidesOutlinesBehindPeople(f.V1.Clips.Single().Id, true).Success);
 
         var g = new TimelineFixture();
         Assert.True(g.Service.AddClip(g.Video(4, FrameRate.Fps30).Id).Success);
         g.V1.IsLocked = true;
-        Assert.False(g.Service.SetClipFollow(g.V1.Clips.Single().Id, new FollowSettings()).Success);
+        Assert.False(g.Service.SetClipFollow(g.V1.Clips.Single().Id, FollowSettings.Whole()).Success);
     }
 
     [Fact]
@@ -98,7 +113,7 @@ public class ClipFollowEditTests
         var f = new TimelineFixture();
         Assert.True(f.Service.AddClip(f.Video(4, FrameRate.Fps30).Id).Success);
         var clip = f.V1.Clips.OfType<VideoClip>().Single();
-        var picked = new FollowSettings(MediaTime.FromSeconds(1), new NormalizedPoint(0.4, 0.5));
+        var picked = FollowSettings.Whole(FollowSmoothness.Normal, MediaTime.FromSeconds(1), new NormalizedPoint(0.4, 0.5));
         Assert.True(f.Service.SetClipFollow(clip.Id, picked).Success);
         Assert.True(f.Service.SetClipHidesOutlinesBehindPeople(clip.Id, true).Success);
         Assert.True(f.Service.Split(MediaTime.FromSeconds(2), new[] { clip.Id }).Success);

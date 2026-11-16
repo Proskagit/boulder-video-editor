@@ -44,21 +44,76 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
     /// <summary>The video to analyse: its file, start time (origin of source time), HDR rule, nominal rate and duration.</summary>
     public sealed record Source(string FilePath, MediaTime FileStart, HdrConversion? Hdr, FrameRate? NominalRate, MediaTime Duration);
 
-    /// <summary>Pass 1: the people and their tracks. <paramref name="progress"/> reports 0..1 by source time.</summary>
-    public async Task<PersonTracks> DetectAsync(Source source, IProgress<double>? progress, CancellationToken cancellationToken)
+    /// <summary>D061 amendment 1: the analyses are made, cached and published in chunks of this much source time — only the
+    /// parts of a video the clips need (the followed parts, the stretches where hold outlines are shown), in order from the
+    /// part being followed, so Follow shows its result while the video plays.</summary>
+    public static readonly MediaTime ChunkLength = MediaTime.FromSeconds(2);
+
+    /// <summary>The chunk containing source time <paramref name="time"/>.</summary>
+    public static int ChunkOf(MediaTime time) => (int)Math.Max(0, time.Ticks / ChunkLength.Ticks);
+
+    public static MediaTime ChunkStart(int chunk) => new(chunk * ChunkLength.Ticks);
+
+    /// <summary>The number of chunks of a video of <paramref name="duration"/>.</summary>
+    public static int ChunkCount(MediaTime duration) => duration <= MediaTime.Zero ? 0 : ChunkOf(duration - new MediaTime(1)) + 1;
+
+    /// <summary>Pass 1 over the whole video: the people and their tracks. <paramref name="progress"/> reports 0..1.</summary>
+    public Task<PersonTracks> DetectAsync(Source source, IProgress<double>? progress, CancellationToken cancellationToken) =>
+        DetectRangeAsync(source, MediaTime.Zero, source.Duration, null, progress, cancellationToken);
+
+    /// <summary>
+    /// Pass 1 over <c>[from, to)</c> of the video (decoded from <paramref name="from"/>): the people and their tracks.
+    /// <paramref name="onChunk"/> receives each chunk's detections as soon as the chunk is done (the chunks of the range, an
+    /// empty one past the file's end); <paramref name="progress"/> reports 0..1 over the range.
+    /// </summary>
+    public async Task<PersonTracks> DetectRangeAsync(Source source, MediaTime from, MediaTime to, Action<int, PersonTracks>? onChunk,
+        IProgress<double>? progress, CancellationToken cancellationToken)
     {
         var tracker = new PersonTracker();
         var samples = ImmutableArray.CreateBuilder<PersonSample>();
+        var chunk = new ChunkEmitter<PersonSample>(from, to,
+            onChunk is null ? null : (k, items) => onChunk(k, PersonTracks.Of(DetectionInterval, items, vision.ModelId)));
         var picker = new IntervalPicker(DetectionInterval);
-        await foreach (var (frame, time) in Frames(source, cancellationToken))
+        await foreach (var (frame, time) in Frames(source, from, cancellationToken))
         {
+            if (time < from) continue;
+            if (time >= to) break;
             if (!picker.Take(time)) continue;
             var people = PersonTracker.Suppress(vision.Detect(frame, cancellationToken));
-            samples.Add(new PersonSample(time, people, tracker.Add(time, people)));
-            Report(progress, time, source.Duration);
+            var sample = new PersonSample(time, people, tracker.Add(time, people));
+            samples.Add(sample);
+            chunk.Add(time, sample);
+            Report(progress, time - from, to - from);
         }
+        chunk.Finish();
         progress?.Report(1);
         return PersonTracks.Of(DetectionInterval, samples.ToImmutable(), vision.ModelId);
+    }
+
+    /// <summary>Collects the items of a range chunk by chunk and hands each finished chunk on (empty chunks too).</summary>
+    private sealed class ChunkEmitter<T>(MediaTime from, MediaTime to, Action<int, ImmutableArray<T>>? onChunk)
+    {
+        private int _chunk = ChunkOf(from);
+        private readonly int _last = to > from ? ChunkOf(to - new MediaTime(1)) : ChunkOf(from) - 1;
+        private readonly ImmutableArray<T>.Builder _items = ImmutableArray.CreateBuilder<T>();
+
+        public void Add(MediaTime time, T item)
+        {
+            Advance(ChunkOf(time));
+            _items.Add(item);
+        }
+
+        public void Finish() => Advance(_last + 1);
+
+        private void Advance(int chunk)
+        {
+            while (_chunk < chunk && _chunk <= _last)
+            {
+                onChunk?.Invoke(_chunk, _items.ToImmutable());
+                _items.Clear();
+                _chunk++;
+            }
+        }
     }
 
     /// <summary>
@@ -76,8 +131,17 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
     /// never on a box shared with another person's mask. And an object with no detected person at its mask for <see cref="OrphanSteps"/> (a weak
     /// false box that started it, the model drifting onto a wall volume) is stopped.</para>
     /// </summary>
-    public async Task<PersonMaskTrack> SegmentAsync(Source source, PersonTracks tracks, IProgress<double>? progress, CancellationToken cancellationToken)
+    public Task<PersonMaskTrack> SegmentAsync(Source source, PersonTracks tracks, IProgress<double>? progress, CancellationToken cancellationToken) =>
+        SegmentRangeAsync(source, tracks, MediaTime.Zero, source.Duration, null, progress, cancellationToken);
+
+    /// <summary>Pass 2 over <c>[from, to)</c> (decoded from <paramref name="from"/>; every person present is started there);
+    /// <paramref name="onChunk"/> receives each chunk's masks as soon as the chunk is done.</summary>
+    public async Task<PersonMaskTrack> SegmentRangeAsync(Source source, PersonTracks tracks, MediaTime from, MediaTime to,
+        Action<int, PersonMaskTrack>? onChunk, IProgress<double>? progress, CancellationToken cancellationToken)
     {
+        int? gridWidth = null, gridHeight = null;
+        var chunk = new ChunkEmitter<PersonMaskSample>(from, to,
+            onChunk is null ? null : (k, items) => onChunk(k, new PersonMaskTrack(gridWidth ?? 1, gridHeight ?? 1, MaskInterval, items, vision.ModelId)));
         using var segmenter = vision.CreateSegmenter(cancellationToken);
         var people = SegmentedTracks(tracks);
         var roots = PersonRoots(tracks, people.Select(p => p.Id));
@@ -91,9 +155,10 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
         var supported = new Dictionary<int, long>();                    // object → the last step a detected person was at its mask
         var lastMasks = new Dictionary<int, byte[]>();                  // object → its visible mask, last step
         long step = 0;
-        int? gridWidth = null, gridHeight = null;
-        await foreach (var (frame, time) in Frames(source, cancellationToken))
+        await foreach (var (frame, time) in Frames(source, from, cancellationToken))
         {
+            if (time < from) continue;
+            if (time >= to) break;
             if (!picker.Take(time)) continue;
             step++;
             if (gridWidth is null)
@@ -154,10 +219,13 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
             var entries = ImmutableArray.CreateBuilder<PersonMaskEntry>();
             foreach (var (id, coverage) in masks.OrderBy(m => m.Key))
                 if (MaskCodec.Entry(id, coverage, gridWidth ?? 1, gridHeight ?? 1) is { } entry) entries.Add(entry);
-            samples.Add(new PersonMaskSample(time, entries.ToImmutable()));
+            var sample = new PersonMaskSample(time, entries.ToImmutable());
+            samples.Add(sample);
+            chunk.Add(time, sample);
             lastMasks = masks;
-            Report(progress, time, source.Duration);
+            Report(progress, time - from, to - from);
         }
+        chunk.Finish();
         progress?.Report(1);
         return new PersonMaskTrack(gridWidth ?? 1, gridHeight ?? 1, MaskInterval, samples.ToImmutable(), vision.ModelId);
     }
@@ -344,14 +412,14 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
         return null;
     }
 
-    private async IAsyncEnumerable<(DecodedFrame Frame, MediaTime Time)> Frames(Source source,
+    private async IAsyncEnumerable<(DecodedFrame Frame, MediaTime Time)> Frames(Source source, MediaTime from,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await using var stream = await decoder.OpenAsync(new VideoDecodeRequest
         {
             FilePath = source.FilePath,
             StartTime = source.FileStart,
-            FirstSamplePoint = new SourceSamplePoint(0, 1),
+            FirstSamplePoint = new SourceSamplePoint(Math.Max(0, from.Ticks), 1),
             NominalFrameRate = source.NominalRate,
             MaxWidth = AnalysisLongSide,
             MaxHeight = AnalysisLongSide,

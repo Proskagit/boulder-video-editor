@@ -512,13 +512,16 @@ public static class ExportPreflight
                 else
                 {
                     var resolution = People.FollowResolution.For(clip, settings, tracks, canvas, source);
-                    reason = resolution.State switch
+                    // D061 amendment 1: one part that cannot follow is warned about even when another one follows.
+                    var state = resolution.State == People.FollowState.Following && resolution.Problem is { } problem ? problem.State : resolution.State;
+                    var unavailable = resolution.Problem?.Unavailable ?? resolution.Unavailable;
+                    reason = state switch
                     {
                         People.FollowState.Following => null,
-                        People.FollowState.Unavailable when resolution.Unavailable == People.FollowUnavailable.OutsideRange => null,
+                        People.FollowState.Unavailable when unavailable == People.FollowUnavailable.OutsideRange => null,
                         People.FollowState.NeedsTarget => Messages.People_FollowNoTarget,
                         People.FollowState.TargetNotFound => Messages.People_FollowNotFound,
-                        _ => resolution.Unavailable == People.FollowUnavailable.Rotation ? Messages.People_FollowRotation : Messages.People_FollowNoRoom
+                        _ => unavailable == People.FollowUnavailable.Rotation ? Messages.People_FollowRotation : Messages.People_FollowNoRoom
                     };
                 }
                 if (reason is not null) follow.Add((span, reason));

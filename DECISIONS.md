@@ -10273,3 +10273,43 @@ build refuses a v21 file as newer.
 («Настройки → Таймлайн», `UserSettings.ShowPeopleMasks`, off by default, never exported); the mechanism is unchanged.
 
 **6. The Inspector's heading** «СЛЕЖЕНИЕ И ЛЮДИ» in capitals like the other sections.
+
+### Amendment 1, second round — after the owner's second check *(2026-11-16: «два анализа», Insta360 «на лету», several parts)*
+
+**7. Why there were «two analyses», the second the long one.** Two passes by design (D061 §2): the people and their tracks
+(RF-DETR + RTMPose, about 3× real time) for Follow, then every person's mask (SAM 2.1, about 0.5–0.7× real time) for
+Occlusion — switched on with Follow (§3). Both ran over the **whole file** for any part of it: the app's log of the owner's
+run shows `video_20260927_105713` (65 s) tracks 27.5 s, masks 139.6 s for a part of about 10 s. Now
+(`PeopleAnalysisCoordinator`, `PeopleAnalysisNeeds`) only what the clips need is analysed, in chunks of 2 s of source time:
+- the tracks around each followed part (1 s on each side); the masks only where the clip's hold outlines are shown (a route
+  without an animation — the whole clip; with one — from its start to the last contour's disappearance, 0.5 s on each side)
+  while it hides them behind people; no outlines — no masks at all;
+- the followed parts' tracks first, from their start (a masks run gives way the moment a part needs tracks), then the other
+  tracks, then the masks; each chunk is cached (by the file's content, the model and the version), published as soon as it is
+  done and shared by every clip of the file and by Follow and Occlusion; a part made longer analyses only the new chunks; a run
+  nobody needs any more (a part ended by «Остановить», Follow off) stops; the tracks of separate chunks are linked again by one
+  tracker (a person crossing a chunk boundary keeps one track).
+Measured on `video_20260927_101034` (the owner's part 10.6–24.2 s): tracks of 9.6–25.2 s in 6.2 s (the first chunk ready
+1.5 s after the start, then 2.5× faster than playback), masks of 10.6–24.2 s in 26.3 s — about 33 s instead of about 196 s
+for the whole 98 s file.
+
+**8. Insta360-like Follow «на лету».** «Следить за скалолазом отсюда» starts a part at the playhead and plays; the part's
+tracks are analysed from that frame ahead of the playback and published chunk by chunk, so the camera follows at once on the
+frames already analysed (the Preview shows the progress notice only on a frame not analysed yet). Nobody picked: the only
+person of the part, or the person nearest the camera at its start (`FollowTarget.Prominent`: the highest median box of its
+first 2 s, clearly higher — 0.8× — than the next; two about as near: «выберите скалолаза»); «Выбрать скалолаза» works on any
+frame already analysed, also while the analysis runs. The Inspector says when the person was chosen automatically.
+
+**9. Several independent parts per clip** (two routes, two climbers on one clip). `FollowSettings` is now its `Parts`
+(`FollowPart`: `From` / `To` in source time and its own picked person) and the clip's smoothness; the parts are sorted and
+never overlap. «Следить отсюда» on a frame without a part adds a part (up to the next part or the clip's end; on a frame of a
+part it says so and changes nothing); «Остановить» ends the part it started; «Выбрать скалолаза» picks the person of the
+part under the frame; «Удалить участок» deletes the part under the playhead; «На весь клип» makes one part of the whole
+clip. On the timeline each part is its own cyan strip; an edge drags up to the neighbouring part (and meets it exactly).
+The camera (`FollowCamera.Combine`): outside the parts the clip's own framing; a free edge glides 0.75 s inside the part; two
+parts that touch pass from one person to the other over 0.75 s centred on the boundary (no return to the clip's framing in
+between); a part's side at the clip's edge stays open past the cut. `project.json` **v22**: `follow.parts[]`
+(`fromTicks`, `toTicks`, `targetTicks`, `targetX`, `targetY`, each written only when set) and `follow.smoothness`; a v20 file
+(the target on the Follow) is one part on the whole clip, a v21 file (from / to on the Follow — the 0.42.1 test build) one
+part with its range; both are saved as v22; an older build refuses a v22 file as newer; parts out of order or overlapping
+refuse the file.

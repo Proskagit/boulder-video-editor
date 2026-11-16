@@ -713,6 +713,8 @@
                                VerticalAlignment="Center" Margin="0,0,6,4"/>
                     <Button x:Name="FollowWholeClipButton" Content="{x:Static l:Strings.Inspector_FollowWholeClip}" Command="{Binding FollowWholeClipCommand}"
                             IsVisible="{Binding HasFollowRange}" FontSize="11" Margin="0,0,6,4"/>
+                    <Button x:Name="DeleteFollowPartButton" Content="{x:Static l:Strings.Inspector_DeleteFollowPart}" Command="{Binding DeleteFollowPartCommand}"
+                            IsVisible="{Binding HasFollowPartHere}" FontSize="11" Margin="0,0,6,4" ToolTip.Tip="{x:Static l:Strings.Inspector_DeleteFollowPartTip}"/>
                   </WrapPanel>
                 </StackPanel>
                 <CheckBox x:Name="OcclusionToggle" Content="{x:Static l:Strings.Inspector_HideOutlinesBehindPeople}"
