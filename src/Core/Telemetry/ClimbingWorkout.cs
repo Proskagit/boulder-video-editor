@@ -30,7 +30,8 @@ public enum WorkoutSegmentKind
 
 /// <summary>
 /// One split of the training. Its start and end are whole seconds (FIT <c>date_time</c>); its elapsed time has the
-/// watch's millisecond precision. The average and maximum heart rate are the watch's own values for the split.
+/// watch's millisecond precision. The average and maximum heart rate are the watch's own values for the split;
+/// <see cref="Route"/> is what the watch recorded about the climb's route, when it recorded anything (D062).
 /// </summary>
 public sealed record WorkoutSegment(
     int Index,
@@ -53,6 +54,10 @@ public sealed record WorkoutSegment(
 
     /// <summary>The split's interval <c>[StartUtc, End)</c> — what every user of a split's boundaries reads.</summary>
     public WorkoutInterval Interval => new(StartUtc, End);
+
+    /// <summary>The route's grade and the attempt's result as the watch stored them (FIT split fields 69–73); null when the
+    /// split states none of them.</summary>
+    public ClimbRoute? Route { get; init; }
 }
 
 /// <summary>A non-fatal finding of the import: data that was left out, with how many items it concerned.</summary>
@@ -73,8 +78,22 @@ public enum TrainingFileWarningKind
 
 public readonly record struct TrainingFileWarning(TrainingFileWarningKind Kind, int Count);
 
+/// <summary>The maker of the watch that wrote a training (FIT <c>file_id.manufacturer</c>). Only names what the import
+/// recognises; every other maker's activity is read by the same general rules (D062).</summary>
+public enum FitVendor
+{
+    /// <summary>A maker the import has no knowledge of: the file is read by the FIT standard alone.</summary>
+    Other,
+
+    /// <summary>COROS (manufacturer 294).</summary>
+    Coros,
+
+    /// <summary>Garmin (manufacturer 1).</summary>
+    Garmin,
+}
+
 /// <summary>
-/// A climbing training imported from a COROS watch's FIT export: the absolute times of the recording, the heart rate
+/// A climbing training imported from a watch's FIT activity export (COROS, Garmin or another maker): the absolute times of the recording, the heart rate
 /// sampled by the watch, the timer's pauses and the splits (climbs and rests). All times are UTC; <see cref="UtcOffset"/>
 /// is only for showing local time. Nothing here is bound to a video yet.
 /// </summary>
@@ -82,15 +101,19 @@ public sealed class ClimbingWorkout
 {
     public required string? DeviceName { get; init; }
 
-    /// <summary>The FIT manufacturer id (COROS = 294).</summary>
+    /// <summary>The FIT manufacturer id (COROS = 294, Garmin = 1).</summary>
     public required int Manufacturer { get; init; }
+
+    /// <summary>The maker recognised from <see cref="Manufacturer"/>.</summary>
+    public FitVendor Vendor => FitWorkoutParser.VendorOf(Manufacturer);
 
     public required int? Product { get; init; }
 
     /// <summary>The start of the recording (the session's start time).</summary>
     public required DateTimeOffset StartUtc { get; init; }
 
-    /// <summary>The end of the recording (the session's timestamp).</summary>
+    /// <summary>The end of the recording: the session's timestamp, or — when the watch stamped the session with its start, as
+    /// Garmin does — the start plus the session's elapsed time (D062).</summary>
     public required DateTimeOffset EndUtc { get; init; }
 
     /// <summary>The offset of the watch's local time from UTC at the recording, when the file states a usable one.</summary>
@@ -102,7 +125,7 @@ public sealed class ClimbingWorkout
     /// <summary>The timer time, pauses excluded (session, millisecond precision).</summary>
     public required MediaTime TimerTime { get; init; }
 
-    /// <summary>FIT <c>sport</c> / <c>sub_sport</c>; rock climbing / bouldering is 31 / 69.</summary>
+    /// <summary>FIT <c>sport</c> / <c>sub_sport</c>; rock climbing is 31, indoor climbing 68, bouldering 69.</summary>
     public required int? Sport { get; init; }
 
     public required int? SubSport { get; init; }
@@ -113,6 +136,11 @@ public sealed class ClimbingWorkout
 
     /// <summary>Heart-rate samples in strictly increasing time.</summary>
     public required IReadOnlyList<HeartRateSample> HeartRate { get; init; }
+
+    /// <summary>The longest time a heart-rate sample's value is held (<see cref="WorkoutTimeline.HeartRateAt"/>): 2 s for a
+    /// watch that records every second; longer for one that records only when the values change (Garmin's «smart
+    /// recording»), whose silence between samples is not a gap in the data (D062).</summary>
+    public TimeSpan HeartRateHold { get; init; } = WorkoutTimeline.DefaultMaxSampleAge;
 
     /// <summary>The timer's pauses (from a stop to the next start), in time order.</summary>
     public required IReadOnlyList<WorkoutInterval> Pauses { get; init; }
@@ -125,6 +153,9 @@ public sealed class ClimbingWorkout
     public WorkoutInterval Recording => new(StartUtc, EndUtc);
 
     public bool IsBouldering => Sport == 31 && SubSport == 69;
+
+    /// <summary>Any climbing activity: rock climbing with any sub-sport (indoor climbing, bouldering, …).</summary>
+    public bool IsClimbing => Sport == 31;
 
     public IEnumerable<WorkoutSegment> Climbs => Segments.Where(s => s.Kind == WorkoutSegmentKind.Climb);
 }

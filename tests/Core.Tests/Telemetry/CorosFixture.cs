@@ -11,7 +11,7 @@ internal static class CorosFixture
 
     /// <summary>Records t0..t0+20 and t0+30..t0+60 (the timer paused 20 → 30), heart rate 100 + seconds.</summary>
     public static FitTestWriter Writer(long manufacturer = 294, long fileType = 4, bool session = true, bool heartRate = true,
-        long? localOffsetSeconds = 10_800, Action<FitTestWriter>? extraRecords = null)
+        long? localOffsetSeconds = 10_800, Action<FitTestWriter>? extraRecords = null, bool splits = true)
     {
         var w = new FitTestWriter()
             .Define(0, 0, (0, 1, W.Enum), (1, 2, W.UInt16), (2, 2, W.UInt16), (4, 4, W.UInt32), (8, 24, W.String))
@@ -34,7 +34,7 @@ internal static class CorosFixture
         extraRecords?.Invoke(w);
         w.Data(1, T0 + 60, 0L, 4L);
 
-        w.Define(4, 312, (254, 2, W.UInt16), (0, 1, W.Enum), (1, 4, W.UInt32), (9, 4, W.UInt32), (27, 4, W.UInt32), (15, 1, W.UInt8), (16, 1, W.UInt8))
+        if (splits) w.Define(4, 312, (254, 2, W.UInt16), (0, 1, W.Enum), (1, 4, W.UInt32), (9, 4, W.UInt32), (27, 4, W.UInt32), (15, 1, W.UInt8), (16, 1, W.UInt8))
             .Data(4, 0L, 9L, 12_340L, T0, T0 + 12, 105L, 112L)
             .Data(4, 1L, 10L, 28_000L, T0 + 12, T0 + 40, 115L, 129L)
             .Data(4, 2L, 9L, 15_500L, T0 + 40, null, 145L, 160L);   // no end time: start + elapsed

@@ -1977,7 +1977,7 @@ If you don't save, your changes will be lost.</value>
     <value>Timeline and markup</value>
   </data>
   <data name="AppSettings_NavCorosFit" xml:space="preserve">
-    <value>COROS / FIT</value>
+    <value>FIT trainings</value>
   </data>
   <data name="YouTube_Hint" xml:space="preserve">
     <value>Each route at the left edge of its green area; copy the text into the video description.</value>
@@ -2091,7 +2091,7 @@ If you don't save, your changes will be lost.</value>
     <value>Off by default: proposals take time on every entry into the markup mode.</value>
   </data>
   <data name="AppSettings_CorosFit" xml:space="preserve">
-    <value>COROS / FIT</value>
+    <value>FIT TRAININGS</value>
   </data>
   <data name="AppSettings_HeartRateOffset" xml:space="preserve">
     <value>Heart rate display offset</value>
@@ -2109,7 +2109,7 @@ If you don't save, your changes will be lost.</value>
     <value>Settings…</value>
   </data>
   <data name="Toolbar_AppSettingsTip" xml:space="preserve">
-    <value>The application's settings: language, FFmpeg, markup, COROS / FIT</value>
+    <value>The application's settings: language, FFmpeg, markup, FIT trainings</value>
   </data>
   <data name="Menu_Copy" xml:space="preserve">
     <value>Copy</value>
@@ -2376,10 +2376,10 @@ If you don't save, your changes will be lost.</value>
     <value>Debug only. On: the intro, hold animation and Top / Attempt segments inside the Boulder template (the main view). Off: the earlier lane above the clip.</value>
   </data>
   <data name="Toolbar_Training" xml:space="preserve">
-    <value>COROS Training…</value>
+    <value>Import FIT Training…</value>
   </data>
   <data name="Toolbar_TrainingTip" xml:space="preserve">
-    <value>COROS training: import a .fit file, point to its file, the training's clock correction. The project keeps a reference to the file.</value>
+    <value>A FIT training from a COROS, Garmin or other watch: import a .fit file, point to its file, the training's clock correction. The project keeps a reference to the file.</value>
   </data>
   <data name="Toolbar_TrainingLoadedTip" xml:space="preserve">
     <value>Project training: {0}
@@ -2387,7 +2387,7 @@ If you don't save, your changes will be lost.</value>
 {2}</value>
   </data>
   <data name="Training_PickerTitle" xml:space="preserve">
-    <value>Import a COROS Training</value>
+    <value>Import a FIT Training</value>
   </data>
   <data name="Training_FileFilter" xml:space="preserve">
     <value>FIT trainings</value>
@@ -2428,14 +2428,11 @@ If you don't save, your changes will be lost.</value>
   <data name="TrainingError_NotAnActivity" xml:space="preserve">
     <value>the file is not a recorded activity (it is a route, a plan or settings).</value>
   </data>
-  <data name="TrainingError_NotCoros" xml:space="preserve">
-    <value>the activity was not recorded by a COROS watch.</value>
-  </data>
   <data name="TrainingError_NoSession" xml:space="preserve">
-    <value>the activity has no session summary, so its start and end are unknown.</value>
+    <value>the activity has neither a session summary nor any timed data, so its start and end are unknown.</value>
   </data>
-  <data name="TrainingError_NoHeartRate" xml:space="preserve">
-    <value>the activity has no heart-rate data.</value>
+  <data name="TrainingError_NoTrainingData" xml:space="preserve">
+    <value>the activity has neither heart-rate data nor climbs.</value>
   </data>
   <data name="TrainingError_ClockNotSet" xml:space="preserve">
     <value>the watch's clock was not set: the times in the file are relative, so they cannot be matched with a video.</value>
@@ -2498,7 +2495,7 @@ If you don't save, your changes will be lost.</value>
     <value>Replace the training</value>
   </data>
   <data name="Training_ReplaceMessage" xml:space="preserve">
-    <value>The project already has a COROS training. Replace it? The training's clock correction starts again at 0; the videos' recording starts are kept.</value>
+    <value>The project already has a FIT training. Replace it? The training's clock correction starts again at 0; the videos' recording starts are kept.</value>
   </data>
   <data name="Training_ReplaceButton" xml:space="preserve">
     <value>Replace</value>
@@ -2633,7 +2630,7 @@ If you don't save, your changes will be lost.</value>
     <value>The FIT climb is back.</value>
   </data>
   <data name="Inspector_TrainingHeader" xml:space="preserve">
-    <value>COROS TRAINING</value>
+    <value>FIT TRAINING</value>
   </data>
   <data name="Inspector_RecordingStartSet" xml:space="preserve">
     <value>Recording start of this video: set by a climb</value>
@@ -2969,10 +2966,10 @@ If you don't save, your changes will be lost.</value>
     <value>Heart colour</value>
   </data>
   <data name="HeartRate_Hint" xml:space="preserve">
-    <value>The heart rate of the video right below the overlay, from the project's COROS training, by the video file's time. Where there is no value nothing is shown: a pause, a gap in the data, a time outside the training, or a video whose file gives no reliable time.</value>
+    <value>The heart rate of the video right below the overlay, from the project's FIT training, by the video file's time. Where there is no value nothing is shown: a pause, a gap in the data, a time outside the training, or a video whose file gives no reliable time.</value>
   </data>
   <data name="HeartRate_NoTraining" xml:space="preserve">
-    <value>The project has no COROS training: the overlay shows nothing. Import one with «Тренировка COROS…».</value>
+    <value>The project has no FIT training: the overlay shows nothing. Import one with «Import FIT Training…».</value>
   </data>
   <data name="HeartRate_TrainingUnavailable" xml:space="preserve">
     <value>The training's FIT file is not available: the overlay shows nothing until it is.</value>
@@ -2987,10 +2984,10 @@ If you don't save, your changes will be lost.</value>
     <value>Refine the recording start by a climb (optional):</value>
   </data>
   <data name="HeartRate_AreaHint" xml:space="preserve">
-    <value>The heart rate of this area's clip, from the project's COROS training, by the video file's time — shown over the whole area. Where the FIT has no value (a pause, outside the training) nothing is shown; the recording start doesn't change it.</value>
+    <value>The heart rate of this area's clip, from the project's FIT training, by the video file's time — shown over the whole area. Where the FIT has no value (a pause, outside the training) nothing is shown; the recording start doesn't change it.</value>
   </data>
   <data name="HeartRate_AreaNoTraining" xml:space="preserve">
-    <value>The project has no COROS training: the area shows no heart rate until one is imported («Тренировка COROS…»).</value>
+    <value>The project has no FIT training: the area shows no heart rate until one is imported («Import FIT Training…»).</value>
   </data>
   <data name="HeartRate_AreaNotAnchored" xml:space="preserve">
     <value>The area is not tied to a video clip: it shows no heart rate.</value>

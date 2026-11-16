@@ -1981,7 +1981,7 @@
     <value>Таймлайн и разметка</value>
   </data>
   <data name="AppSettings_NavCorosFit" xml:space="preserve">
-    <value>Тренировки COROS / FIT</value>
+    <value>FIT-тренировки</value>
   </data>
   <data name="YouTube_Hint" xml:space="preserve">
     <value>Каждая трасса — по левой границе её зелёной области; скопируйте текст в описание видео.</value>
@@ -2095,7 +2095,7 @@
     <value>По умолчанию выключено: предложения занимают время при каждом входе в разметку.</value>
   </data>
   <data name="AppSettings_CorosFit" xml:space="preserve">
-    <value>ТРЕНИРОВКИ COROS / FIT</value>
+    <value>FIT-ТРЕНИРОВКИ</value>
   </data>
   <data name="AppSettings_HeartRateOffset" xml:space="preserve">
     <value>Смещение отображения пульса</value>
@@ -2113,7 +2113,7 @@
     <value>Настройки…</value>
   </data>
   <data name="Toolbar_AppSettingsTip" xml:space="preserve">
-    <value>Настройки приложения: язык, FFmpeg, разметка, COROS / FIT</value>
+    <value>Настройки приложения: язык, FFmpeg, разметка, FIT-тренировки</value>
   </data>
   <data name="Menu_Copy" xml:space="preserve">
     <value>Копировать</value>
@@ -2380,10 +2380,10 @@
     <value>Только в Debug. Включено: сегменты вступления, анимации зацепок и Топ / Попытки внутри плашки «Боулдер» (основной вид). Выключено: прежняя дорожка над клипом.</value>
   </data>
   <data name="Toolbar_Training" xml:space="preserve">
-    <value>Тренировка COROS…</value>
+    <value>Импорт FIT-тренировки…</value>
   </data>
   <data name="Toolbar_TrainingTip" xml:space="preserve">
-    <value>Тренировка COROS: импорт файла .fit, указание файла, поправка часов тренировки. Проект хранит ссылку на файл.</value>
+    <value>FIT-тренировка с часов COROS, Garmin и других: импорт файла .fit, указание файла, поправка часов тренировки. Проект хранит ссылку на файл.</value>
   </data>
   <data name="Toolbar_TrainingLoadedTip" xml:space="preserve">
     <value>Тренировка проекта: {0}
@@ -2391,7 +2391,7 @@
 {2}</value>
   </data>
   <data name="Training_PickerTitle" xml:space="preserve">
-    <value>Импорт тренировки COROS</value>
+    <value>Импорт FIT-тренировки</value>
   </data>
   <data name="Training_FileFilter" xml:space="preserve">
     <value>Тренировки FIT</value>
@@ -2432,14 +2432,11 @@
   <data name="TrainingError_NotAnActivity" xml:space="preserve">
     <value>в файле не записанная тренировка (маршрут, план или настройки).</value>
   </data>
-  <data name="TrainingError_NotCoros" xml:space="preserve">
-    <value>тренировка записана не часами COROS.</value>
-  </data>
   <data name="TrainingError_NoSession" xml:space="preserve">
-    <value>в тренировке нет итогов сессии, поэтому неизвестны её начало и конец.</value>
+    <value>в тренировке нет ни итогов сессии, ни отметок времени, поэтому неизвестны её начало и конец.</value>
   </data>
-  <data name="TrainingError_NoHeartRate" xml:space="preserve">
-    <value>в тренировке нет данных пульса.</value>
+  <data name="TrainingError_NoTrainingData" xml:space="preserve">
+    <value>в тренировке нет ни пульса, ни подъёмов.</value>
   </data>
   <data name="TrainingError_ClockNotSet" xml:space="preserve">
     <value>часы не были настроены: время в файле относительное, поэтому его нельзя сопоставить с видео.</value>
@@ -2502,7 +2499,7 @@
     <value>Заменить тренировку</value>
   </data>
   <data name="Training_ReplaceMessage" xml:space="preserve">
-    <value>В проекте уже есть тренировка COROS. Заменить её? Поправка часов тренировки начнётся с 0; начало записи видео сохранится.</value>
+    <value>В проекте уже есть FIT-тренировка. Заменить её? Поправка часов тренировки начнётся с 0; начало записи видео сохранится.</value>
   </data>
   <data name="Training_ReplaceButton" xml:space="preserve">
     <value>Заменить</value>
@@ -2637,7 +2634,7 @@
     <value>FIT-подъём возвращён.</value>
   </data>
   <data name="Inspector_TrainingHeader" xml:space="preserve">
-    <value>ТРЕНИРОВКА COROS</value>
+    <value>FIT-ТРЕНИРОВКА</value>
   </data>
   <data name="Inspector_RecordingStartSet" xml:space="preserve">
     <value>Начало записи этого видео: задано по подъёму</value>
@@ -2973,10 +2970,10 @@
     <value>Цвет сердца</value>
   </data>
   <data name="HeartRate_Hint" xml:space="preserve">
-    <value>Пульс видео прямо под накладкой — из тренировки COROS проекта, по времени файла видео. Где значения нет, ничего не показывается: пауза, пропуск в данных, время вне тренировки или видео без надёжного времени файла.</value>
+    <value>Пульс видео прямо под накладкой — из FIT-тренировки проекта, по времени файла видео. Где значения нет, ничего не показывается: пауза, пропуск в данных, время вне тренировки или видео без надёжного времени файла.</value>
   </data>
   <data name="HeartRate_NoTraining" xml:space="preserve">
-    <value>В проекте нет тренировки COROS: накладка ничего не покажет. Импортируйте её кнопкой «Тренировка COROS…».</value>
+    <value>В проекте нет FIT-тренировки: накладка ничего не покажет. Импортируйте её кнопкой «Импорт FIT-тренировки…».</value>
   </data>
   <data name="HeartRate_TrainingUnavailable" xml:space="preserve">
     <value>FIT-файл тренировки недоступен: пока его нет, накладка ничего не покажет.</value>
@@ -2991,10 +2988,10 @@
     <value>Уточнить начало записи по подъёму (необязательно):</value>
   </data>
   <data name="HeartRate_AreaHint" xml:space="preserve">
-    <value>Пульс клипа этой области — из тренировки COROS проекта, по времени файла видео — на всём протяжении области. Где в FIT значения нет (пауза, вне тренировки), ничего не показывается; начало записи на него не влияет.</value>
+    <value>Пульс клипа этой области — из FIT-тренировки проекта, по времени файла видео — на всём протяжении области. Где в FIT значения нет (пауза, вне тренировки), ничего не показывается; начало записи на него не влияет.</value>
   </data>
   <data name="HeartRate_AreaNoTraining" xml:space="preserve">
-    <value>В проекте нет тренировки COROS: пульса в области не будет, пока её не импортировать («Тренировка COROS…»).</value>
+    <value>В проекте нет FIT-тренировки: пульса в области не будет, пока её не импортировать («Импорт FIT-тренировки…»).</value>
   </data>
   <data name="HeartRate_AreaNotAnchored" xml:space="preserve">
     <value>Область не привязана к видеоклипу: пульса в ней нет.</value>

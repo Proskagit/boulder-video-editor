@@ -13,7 +13,7 @@ using Xunit;
 namespace AiVideoEditor.UI.Tests;
 
 /// <summary>
-/// «Тренировка COROS…» (Phase Coros C1): a FIT file is read from disk, parsed and held in the session — never in
+/// «Импорт FIT-тренировки…» (Phase Coros C1): a FIT file is read from disk, parsed and held in the session — never in
 /// <c>project.json</c>. Refusals show their reason in the status bar and keep the training already held.
 /// </summary>
 public sealed class TrainingImportTests : IDisposable
@@ -157,10 +157,10 @@ public sealed class TrainingImportTests : IDisposable
         await Workflow().RunAsync();
         var held = _session.Workout;
 
-        _picker.Files.Enqueue(Write("garmin.fit", CorosFixture.Writer(manufacturer: 1).Build()));
+        _picker.Files.Enqueue(Write("empty.fit", CorosFixture.Writer(heartRate: false, splits: false).Build()));
         await Workflow().RunAsync();
 
-        Assert.Equal("Training not imported: the activity was not recorded by a COROS watch.", _status.Message);
+        Assert.Equal("Training not imported: the activity has neither heart-rate data nor climbs.", _status.Message);
         Assert.Same(held, _session.Workout);
     }
 
@@ -245,7 +245,7 @@ public sealed class TrainingImportTests : IDisposable
         var notified = new List<string?>();
         toolbar.PropertyChanged += (_, e) => notified.Add(e.PropertyName);
 
-        Assert.Equal("COROS training: import a .fit file, point to its file, the training's clock correction. The project keeps a reference to the file.",
+        Assert.Equal("A FIT training from a COROS, Garmin or other watch: import a .fit file, point to its file, the training's clock correction. The project keeps a reference to the file.",
             toolbar.TrainingToolTip);
         Assert.False(toolbar.HasTraining);
         Assert.False(toolbar.RemoveTrainingCommand.CanExecute(null));

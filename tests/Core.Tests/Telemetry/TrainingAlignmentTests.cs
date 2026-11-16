@@ -235,7 +235,7 @@ public class TrainingAlignmentTests
     [Fact]
     public void The_climbs_in_a_source_range_come_with_their_source_interval()
     {
-        var workout = CorosWorkoutParser.Parse(CorosFixture.Writer().Build());     // climbs [0, 12.34 s) and [40, 55.5 s)
+        var workout = FitWorkoutParser.Parse(CorosFixture.Writer().Build());     // climbs [0, 12.34 s) and [40, 55.5 s)
         var zero = CorosFixture.Start.AddSeconds(-5);                               // the video starts 5 s before the training
         var correction = MediaTime.FromSeconds(1);                                  // the watch 1 s ahead of the phone
 
@@ -259,7 +259,7 @@ public class TrainingAlignmentTests
     [Fact]
     public void The_readout_names_why_there_is_no_value()
     {
-        var workout = CorosWorkoutParser.Parse(CorosFixture.Writer().Build());     // 07:02:39Z…07:03:39Z, HR 100 + s
+        var workout = FitWorkoutParser.Parse(CorosFixture.Writer().Build());     // 07:02:39Z…07:03:39Z, HR 100 + s
         var training = new TrainingReference
         {
             FilePath = "x.fit", FileSizeBytes = 1, Sha256 = new string('0', 64), Activity = TrainingActivity.Of(workout),

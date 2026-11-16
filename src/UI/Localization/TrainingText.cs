@@ -4,7 +4,7 @@ using AiVideoEditor.Core.Telemetry;
 
 namespace AiVideoEditor.UI.Localization;
 
-/// <summary>An imported training as the user reads it (Phase Coros C1): its refusal reasons, its warnings and a one-line
+/// <summary>An imported training as the user reads it (Phase 35 C1, D062): its refusal reasons, its warnings and a one-line
 /// summary. Never the enums' names.</summary>
 public static class TrainingText
 {
@@ -16,9 +16,8 @@ public static class TrainingText
         TrainingFileError.Corrupted => Strings.TrainingError_Corrupted,
         TrainingFileError.Malformed => Strings.TrainingError_Malformed,
         TrainingFileError.NotAnActivity => Strings.TrainingError_NotAnActivity,
-        TrainingFileError.NotCoros => Strings.TrainingError_NotCoros,
         TrainingFileError.NoSession => Strings.TrainingError_NoSession,
-        TrainingFileError.NoHeartRate => Strings.TrainingError_NoHeartRate,
+        TrainingFileError.NoTrainingData => Strings.TrainingError_NoTrainingData,
         TrainingFileError.ClockNotSet => Strings.TrainingError_ClockNotSet,
         TrainingFileError.FileNotFound => Strings.TrainingError_FileNotFound,
         TrainingFileError.Unreadable => Strings.TrainingError_Unreadable,
@@ -47,8 +46,9 @@ public static class TrainingText
         _ => warning.Kind.ToString()
     };
 
-    /// <summary>"COROS APEX 4 42mm, 27.09.2026 10:02–11:39 (UTC+03:00), 14 climbs": the device, the date and the times of
-    /// the recording in the watch's local time (in UTC when the file states no usable offset) and the number of climbs.</summary>
+    /// <summary>"COROS APEX 4 42mm, 27.09.2026 10:02–11:39 (UTC+03:00), 14 climbs": the device (its name, else its maker,
+    /// else «FIT»), the date and the times of the recording in the watch's local time (in UTC when the file states no usable
+    /// offset) and the number of climbs.</summary>
     public static string Summary(ClimbingWorkout workout)
     {
         var offset = workout.UtcOffset ?? TimeSpan.Zero;
@@ -56,7 +56,7 @@ public static class TrainingText
         var end = workout.EndUtc.ToOffset(offset);
         var culture = CultureInfo.CurrentCulture;
         return string.Format(Strings.Training_Summary,
-            string.IsNullOrWhiteSpace(workout.DeviceName) ? "COROS" : workout.DeviceName,
+            string.IsNullOrWhiteSpace(workout.DeviceName) ? FitWorkoutParser.VendorName(workout.Vendor) ?? "FIT" : workout.DeviceName,
             start.ToString("d", culture),
             start.ToString("t", culture),
             end.ToString("t", culture),

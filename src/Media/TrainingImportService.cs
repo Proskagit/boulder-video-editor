@@ -5,8 +5,9 @@ using Microsoft.Extensions.Logging;
 namespace AiVideoEditor.Media;
 
 /// <summary>
-/// Reads a COROS FIT export from disk and parses it with <see cref="CorosWorkoutParser"/> (Phase Coros C1). The file is
-/// read whole (a training export is small) after a size check, and parsed off the caller's thread. Every failure is a
+/// Reads a watch's FIT activity export (COROS, Garmin, …) from disk and parses it with <see cref="FitWorkoutParser"/>
+/// (Phase 35 C1, D062). The file is read whole (a training export is small) after a size check, and parsed off the
+/// caller's thread. Every failure is a
 /// <see cref="TrainingFileException"/> with its reason: a missing file, an I/O error and an oversized file included.
 /// </summary>
 public sealed class TrainingImportService : ITrainingImportService
@@ -32,7 +33,7 @@ public sealed class TrainingImportService : ITrainingImportService
     {
         var bytes = await ReadAsync(filePath, ct);
         var (workout, sha256) = await Task.Run(() =>
-            (CorosWorkoutParser.Parse(bytes), Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant()), ct);
+            (FitWorkoutParser.Parse(bytes), Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant()), ct);
 
         _logger.LogInformation("Training read from '{Path}': {Device}, {Start:u} – {End:u}, {Samples} heart-rate samples, {Climbs} climbs, {Warnings} warnings.",
             filePath, workout.DeviceName, workout.StartUtc, workout.EndUtc, workout.HeartRate.Count, workout.Climbs.Count(),
