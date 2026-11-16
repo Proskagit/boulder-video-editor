@@ -210,8 +210,20 @@ Total ≈ 348 MB. Messages (the Inspector, the export's warnings):
 
 Not used (licence): Ultralytics YOLO (AGPL-3.0), RVM (GPL-3.0), the YOLOX HumanArt weights (dataset terms unverified) —
 research B.3. The weights are not distributed by this project; should they be: the Apache-2.0 texts and a statement of the
-conversions. The licence of the rtmlib RF-DETR conversion was taken from its upstream sources (research, appendix) and is to
-be confirmed by the owner before a distribution (S1).
+conversions.
+
+**RF-DETR-M, confirmed 2026-11-16 from the primary sources:** the repository's `LICENSE` (github.com/roboflow/rf-detr, branch
+`develop`) is the plain Apache License 2.0 ("Copyright 2025 Roboflow, Inc.", no NOTICE file); its README lists «RF-DETR Nano,
+Small, Medium and Large detection» under Apache 2.0 (the table row «RF-DETR-M … 576x576 | Apache 2.0») and says they may be shipped
+in closed-source commercial products, self-hosted included; roboflow.com/model-licenses/rf-detr gives the same. The Platform
+Model License 1.0 (usage tracking, no extraction of the base weights, an enterprise licence for commercial self-hosting) covers
+only Atto, Femto, Pico, XL, 2XL and the NAS models — not Medium. **So RF-DETR-M may be distributed with the application**, with
+the Apache-2.0 text and the Roboflow copyright notice in the third-party notices. **Caveat:** the pinned ONNX is a third-party
+conversion (rtmlib's download from the Hugging Face repository `saifkhichi96/opendetect`, declared Apache-2.0, an empty model
+card): its descent from Roboflow's official Medium checkpoint is consistent with what the file is (COCO, 91 classes with the
+background, 300 queries, 576 × 576 — the README's RF-DETR-M) but not documented. Before a distribution (S1), re-export it from
+the official `rfdetr` package (`model.export()`), check the people boxes against this file on the benchmark clips, and pin the
+new file — a step for S1, not needed for development.
 
 ## Export recipe (gives the SHA-256s above)
 

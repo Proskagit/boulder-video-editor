@@ -84,6 +84,11 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 
 ## Current
 
+**Phase 42 — Follow and Occlusion (DECISIONS.md D061, 2026-11-16) — implemented (PR #68), the owner's check open.** The frame
+follows the chosen climber (no Auto Zoom, no editable camera path); every person in the frame is segmented separately and the
+hold outlines are hidden where a person stands in front of them. One background analysis per video file, cached. Needs the
+people models (docs/AI_MODEL.md); Occlusion needs a DirectML GPU. Manual plan: `docs/PHASE42_MANUAL_TEST_PLAN.md`.
+
 **Phase 41 — Export UX, Resolution Presets & Project Snapshot Isolation (DECISIONS.md D060, 2026-11-16) — implemented, the
 owner's check open.** The export runs in the background: the editor stays usable (the job is its own independent snapshot of
 the project; the source files are held so they can't be deleted or overwritten meanwhile), the progress window is not modal and

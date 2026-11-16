@@ -10127,8 +10127,9 @@ models"; the manual plan: `docs/PHASE42_MANUAL_TEST_PLAN.md`.
   the torso region (hue × saturation, grey levels) for re-identification. `PersonTracker`: ByteTrack-like, greedy one-to-one —
   confident detections (≥ 0.5) matched to the predicted boxes by overlap, distance and appearance; a pair across the frame is
   never allowed; an appearance below 0.35 (or below 0.5 with little overlap) vetoes a match — **somebody else in the climber's
-  place (a passer-by in front of them) never continues the climber's track**; weak detections only continue a track; a track
-  unseen for 1 s ends.
+  place (a passer-by in front of them) never continues the climber's track**; weak detections (< 0.5) only continue a track
+  whose predicted box they overlap (IoU ≥ 0.3) — a weak box beside a person never drags the track off it (found on the D053
+  project's wide clip: without it two tracks swapped at 57.4 s); a track unseen for 1 s ends.
 - **The followed person** (`FollowTarget`): the user picks a person on the shown frame («Выбрать скалолаза» → a click in the
   Preview); without a pick the **only** person of the clip is taken — the one track lasting at least a third of the clip while
   every other person **of comparable size** (median box at least half as high) is seen at most a fifth as long; otherwise
@@ -10156,8 +10157,15 @@ models"; the manual plan: `docs/PHASE42_MANUAL_TEST_PLAN.md`.
 - **Every person** (`PeopleAnalyzer` pass 2, every 1/15 s): each tracked person at least 12 % of the frame high (a person far
   behind the filmed wall is never in front of its holds; each person costs a model pass per frame) is started in the SAM 2.1
   video segmenter at its first confident detection with its box, followed by the model's memory, re-prompted with its detector
-  box when the segmenter lost it for three steps while the detector still sees it, stopped a second after its track ended once
-  gone; at most 6 at once (the largest). **Separate masks**: at every cell only the person with the highest positive logit
+  box when the segmenter lost it for three steps while the detector still sees it, stopped a second after its last track ended
+  once gone; at most 6 at once (the largest).
+- **One object — one mask id — per person, not per detector track** (`PersonRoots`): the tracks Follow's re-identification
+  joins into one person — confirmed from both ends, each loss at most 5 s (`MaxJoinGap`; after a longer absence a similar
+  appearance is as likely somebody else) — share the object of the earliest, prompted again with the later track's box. A
+  detection lying ≥ 60 % inside another person's mask extent (a cut-off part of them, or somebody behind them) starts nothing;
+  of two objects whose masks touch with one extent ≥ 80 % inside the other's, the younger is stopped. Found on
+  `VID_20251223_195901`: with an object per track the climber was split between two masks on ~700 of 1 402 frames; now 0 on
+  three of the videos and 73 frames of touching masks on the fourth (§7). **Separate masks**: at every cell only the person with the highest positive logit
   keeps it — the one in front; masks never overlap and never merge; a mask is only the visible part of its person (nothing is
   invented for hidden parts).
 - **Stored** per analysed frame, per person: its id, its bounding rectangle on the grid (long side 640, the frame's aspect) and
@@ -10199,7 +10207,12 @@ failure); «Скрывать контуры за людьми» with its state a
 
 - Follow without zoom has no room on a vertical video at «Заполнить кадр» on a vertical canvas: the user zooms in.
 - Move / Position: while Follow moves an axis, the clip's Position X / Y on that axis has no effect (the Move tool still edits
-  the stored value).
+  the stored value). The hold markup on a Follow clip maps clicks and draws through the Follow position of the markup frame
+  (the composition's), so holds land where they are marked (found by the phase review).
+- «Never a silent switch» is a heuristic, not a proof: a person with a similar appearance (≥ 0.62) taking the climber's place
+  exactly while the climber is hidden can be joined; two equally likely candidates are refused. Not met on the test videos.
+- Masks: on `VID_20251223_195901` 73 of 1 402 analysed frames still have two masks touching (a person's part segmented apart
+  for a moment, or two people in contact) — the outlines are hidden behind both, which is what Occlusion needs.
 - A person smaller than 12 % of the frame is not segmented; a person the detector never sees is not segmented (the research's
   0–15 % misses of the best detectors on the wall).
 - The analysis's cost: masks ≈ 0.3–0.6× real time with one or two people, slower with more; it runs once per file and is cached.

@@ -2,6 +2,24 @@
 
 ## Current phase
 
+**Phase 42 — Follow and Occlusion (D061, 2026-11-16) — implemented on `feat/phase-42-follow-occlusion`, PR #68; the owner's
+check open.** Follow: the frame follows the chosen (or the only) climber at the clip's own scale — RF-DETR-M + RTMPose-m every
+0.1 s, `PersonTracker` with an appearance veto, `FollowTarget` (re-identification across losses, never a silent switch),
+`FollowCamera` (losses glided / held and eased, the torso at the canvas centre, clamped to cover, non-causal Gaussian), applied by
+the shown frame's PTS. Occlusion: every person ≥ 12 % of the frame segmented separately by SAM 2.1 tiny in its video mode (six
+ONNX graphs exported from the official checkpoint, the memory loop in C#; one object per person — the tracks Follow joins share
+it, fragments and duplicates are suppressed), the hold outlines hidden where a person is in front (per-cell pieces, the same
+painter for the Preview and the export). Background analysis with progress / cancel / retry, a content-keyed cache, hardware
+decoding; `project.json` v20; the Inspector's «Слежение и люди», the Preview's pick, notices and masks; preflight (a running
+analysis blocks, a failing Follow / Occlusion warns). Spike T-8 closed: SAM 2.1 video ONNX vs PyTorch mean IoU 0.995, the C#
+port end to end 0.989. Benchmark on the four vertical videos (`docs/PHASE42_FOLLOW_OCCLUSION.md`): detection 2.0–2.9× real
+time, masks 0.47–0.56×; Follow 100 % / 100 % / 100 % / 93.5 % seen, 0 switches to another person; the climber one mask id over each video. Gates (2026-11-16, the final tree): Debug and Release `--no-incremental -warnaserror` 0 / 0; Debug every suite 5 906 passed, 4
+skipped, 0 failed; Release + `AIVE_HEAVY_TESTS=1` green apart from the known parallel-load flake
+`ExportServiceTests.A_rasterizer_failure…deadlocks` (alone 5 / 5; `src/Export` untouched); ExportEndToEnd heavy 187 / 0 / 0;
+`git diff --check` clean (`docs/PHASE42_FOLLOW_OCCLUSION.md` §7). Phase review: FAIL fixed (the hold markup on a Follow clip).
+Follow also checked on the D053 project's wide clip (`video_20260927_101034`, its own settings): one track over the whole climb,
+the climber within 1 % of the centre horizontally (median), no switch. Manual plan: `docs/PHASE42_MANUAL_TEST_PLAN.md`.
+
 **Phase 41 — Export UX, Resolution Presets & Project Snapshot Isolation (D060, 2026-11-16) — implemented on
 `feat/phase-41-export-ux`, the owner's check open.** Pre-flight: the job's snapshot was already an immutable, independent copy
 (records, immutable collections, no reference to the live project); what blocked the user was D023's editing lock, now removed.
