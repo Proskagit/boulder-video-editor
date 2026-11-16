@@ -6,6 +6,10 @@ vertical 1080 × 1920 project and, if possible, one with a canvas of no preset's
 **FAIL**, **PARTIAL**, **NOT RUN** (with a reason). «Automated» names the tests that cover the row. Phase 40's plan
 (`docs/PHASE40_MANUAL_TEST_PLAN.md`) still applies to the speed, NVENC and the profiles; section F below repeats its key rows.
 
+Build and start: `pwsh -File tools\manual\Start-Phase41Check.ps1 [-Tests] [-Project <project folder>]` — publishes the portable
+build `artifacts\portable\AiVideoEditor-0.41.0-win-x64` (FFmpeg from PATH), copies the project (without its media, which stay
+where they are) to `%TEMP%ive-phase41-check`, opens this plan and the app; open the copy with «Открыть».
+
 ## A. Unsaved changes and the exported version (D060 §2)
 
 | # | Check | Expected result | Automated | Evidence |
@@ -26,7 +30,7 @@ vertical 1080 × 1920 project and, if possible, one with a canvas of no preset's
 | B3 | During the export: change the canvas (project settings), the frame rate | allowed; the running export is not affected | `ExportSnapshotIsolationTests` | |
 | B4 | During the export: «Сохранить» | saves the edited project | — | |
 | B5 | Play the exported file | it shows the project **as it was at the start** (A3's time) — none of B2–B4's changes | `ExportSnapshotIsolationTests`, end to end | |
-| B6 | During the export: try to delete or rename a source video of the project in Explorer | Windows refuses («файл открыт в другой программе»); after the export the file can be deleted / renamed again | `ExportMediaLeaseTests`, `ExportResolutionEndToEndTests` | |
+| B6 | Import a **copy** of a video (never an original) into the test project and export; during the export try to delete or rename that copy in Explorer | Windows refuses («файл открыт в другой программе»); after the export the file can be deleted / renamed again | `ExportMediaLeaseTests`, `ExportResolutionEndToEndTests` | |
 | B7 | During the export: relink a media file to another file, or remove a media from the project | allowed; the exported file still uses the original files | `ExportSnapshotIsolationTests` | |
 | B9 | A project with outlined text: during its export run «Сохранить как…» and leave the folder picker open ~1 min | the export goes on (it may pause on an outlined text while the picker is open) and finishes; no «Не удалось нарисовать кадр» | — | |
 | B8 | During the export: open another project (or New) | allowed (the usual unsaved question); the export finishes with the first project | `ExportSnapshotIsolationTests` | |
