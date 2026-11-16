@@ -1266,6 +1266,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     {
         if (!result.Success || result.ClipIds.Count == 0) return;
         DropTransitionSelection();
+        DropOrange();
         _selection.Clear();
         _selection.AddRange(result.ClipIds);
         UpdateSelectionVisuals();
@@ -1345,6 +1346,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private void SelectTransition(Guid id)
     {
+        DropOrange();
         if (_selection.Count > 0)
         {
             _selection.Clear();
@@ -1394,6 +1396,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     /// selection takes over the Inspector).</summary>
     public void ClearSelectionSilently()
     {
+        DropOrange();   // D062 amendment 1: another panel takes the Inspector — the orange ends too
         _selection.Clear();
         _selectedTransitionId = null;
         UpdateSelectionVisuals();
@@ -1404,6 +1407,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
     private void SelectOnly(Guid id, bool withPartner = true)
     {
         DropTransitionSelection();
+        DropOrange();
         _selection.Clear();
         _selection.AddRange(withPartner ? SelectionGroup(id) : new[] { id });
         UpdateSelectionVisuals();
@@ -1460,6 +1464,18 @@ public sealed partial class TimelineViewModel : ViewModelBase
             {
                 Selected = _selection.Where(_clipViewModels.ContainsKey).Select(id => _clipViewModels[id].Clip).ToList(),
                 FindAsset = FindAsset
+            });
+        }
+        else if (SelectedOrangeClipId is { } orangeClip && _selectedOrangeRouteId is { } orangeRoute &&
+                 _clipViewModels.TryGetValue(orangeClip, out var owner) && owner.Clip is VideoClip video)
+        {
+            // D062 amendment 1: the orange keeps the Inspector on its video and route (its holds), not empty.
+            var settings = _projectService.Current.Settings;
+            SelectionChanged?.Invoke(this, new TimelineClipSelection(video, owner.Name, FindAsset(video.MediaAssetId), FrameRate,
+                Canvas: new FrameSize(settings.FrameWidth, settings.FrameHeight))
+            {
+                FindAsset = FindAsset,
+                OrangeRouteId = orangeRoute
             });
         }
         else

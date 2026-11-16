@@ -263,6 +263,63 @@ public sealed class OverlayStripGestureUiTests
         Assert.Null(t.SelectedOrangeClipId);
     }
 
+    [Fact]
+    public void A_selected_orange_keeps_the_inspector_on_its_video_and_route_and_a_click_elsewhere_clears_it()
+    {
+        // D062 amendment 1: the orange is not a clip selection (Delete means the markup), yet the Inspector shows the video
+        // with the holds of the orange's route.
+        var (t, clip, _) = LaidOut();
+        var shown = new List<TimelineClipSelection?>();
+        t.SelectionChanged += (_, selection) => shown.Add(selection);
+
+        t.OnStripClicked(Vm(t, clip), OverlayStripHandle.OrangeBody);
+
+        var selection = Assert.IsType<TimelineClipSelection>(shown.Last());
+        Assert.Same(clip, selection.Clip);
+        Assert.True(selection.IsOrange);
+        Assert.Equal(clip.HoldMarkup!.Id, selection.OrangeRouteId);
+        Assert.True(t.DeleteSelectedCommand.CanExecute(null));                         // still the markup's Delete
+
+        t.OnStripClicked(Vm(t, clip), null);
+        Assert.Null(shown.Last());
+    }
+
+    [Fact]
+    public void Another_panel_taking_the_inspector_ends_the_orange_so_a_later_refresh_never_takes_it_back()
+    {
+        var (t, clip, template) = LaidOut();
+        var shown = new List<TimelineClipSelection?>();
+        t.SelectionChanged += (_, selection) => shown.Add(selection);
+        t.OnStripClicked(Vm(t, clip), OverlayStripHandle.OrangeBody);
+        Assert.True(shown.Last()!.IsOrange);
+
+        t.ClearSelectionSilently();                                                    // the Media Browser took the Inspector
+        Assert.Null(t.SelectedOrangeClipId);
+        shown.Clear();
+        Assert.True(_edit.TrimClip(template.Id, ClipEdge.End, template.TimelineEnd - MediaTime.FromFrame(1, FrameRate.Fps25)).Success);
+        Assert.All(shown, s => Assert.Null(s));                                         // a refresh sends no orange
+
+        t.OnStripClicked(Vm(t, clip), OverlayStripHandle.OrangeBody);
+        t.SelectClipFromPreview(template.Id);                                          // a clip selected: the orange ends
+        Assert.Null(t.SelectedOrangeClipId);
+        Assert.False(shown.Last()!.IsOrange);
+    }
+
+    [Fact]
+    public void A_click_on_the_orange_with_a_clip_selected_selects_the_orange_alone()
+    {
+        var (t, clip, template) = LaidOut();
+        t.SelectClipFromPreview(template.Id);
+        TimelineClipSelection? last = null;
+        t.SelectionChanged += (_, selection) => last = selection;
+
+        t.OnStripClicked(Vm(t, clip), OverlayStripHandle.OrangeBody);
+
+        Assert.False(t.HasSelection);
+        Assert.Same(clip, last!.Clip);
+        Assert.True(last.IsOrange);
+    }
+
     // --- Variant B: the segments inside the «Боулдер» (Ps = 75, Pe = 500: orange [50, 175), lilac [300, 425) on the plate) --------
 
     private (TimelineViewModel T, VideoClip Clip, TemplateClip Template) VariantB(BoulderStatus status = BoulderStatus.Top)

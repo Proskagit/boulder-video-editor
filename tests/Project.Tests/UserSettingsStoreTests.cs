@@ -53,6 +53,41 @@ public sealed class UserSettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void A_file_saved_before_the_per_maker_offsets_keeps_its_coros_value_and_gets_minus_twenty_for_the_others()
+    {
+        // D062 amendment 1: the COROS value keeps its old name; a file without the new values gets their defaults.
+        Settings().Update(s => s with { HeartRateDisplayOffsetTicks = MediaTime.FromSeconds(-45).Ticks });
+        var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(SettingsPath))!;
+        var removed = RemoveKeys(json, "garminHeartRateDisplayOffsetTicks", "otherHeartRateDisplayOffsetTicks");
+        Assert.Equal(2, removed);
+        File.WriteAllText(SettingsPath, json.ToJsonString());
+
+        var old = Settings().Current;
+        Assert.Equal(MediaTime.FromSeconds(-45), old.HeartRateDisplayOffsetFor(Core.Telemetry.FitVendor.Coros));
+        Assert.Equal(MediaTime.FromSeconds(-20), old.HeartRateDisplayOffsetFor(Core.Telemetry.FitVendor.Garmin));
+        Assert.Equal(MediaTime.FromSeconds(-20), old.HeartRateDisplayOffsetFor(Core.Telemetry.FitVendor.Other));
+    }
+
+    /// <summary>Removes the properties named <paramref name="names"/> (any case) wherever they are; how many were removed.</summary>
+    private static int RemoveKeys(System.Text.Json.Nodes.JsonNode node, params string[] names)
+    {
+        var count = 0;
+        if (node is System.Text.Json.Nodes.JsonObject obj)
+        {
+            foreach (var key in obj.Select(p => p.Key).ToList())
+            {
+                if (names.Any(n => string.Equals(n, key, StringComparison.OrdinalIgnoreCase)))
+                {
+                    obj.Remove(key);
+                    count++;
+                }
+                else if (obj[key] is { } child) count += RemoveKeys(child, names);
+            }
+        }
+        return count;
+    }
+
+    [Fact]
     public void The_offset_is_kept_inside_its_bounds()
     {
         var settings = Settings();

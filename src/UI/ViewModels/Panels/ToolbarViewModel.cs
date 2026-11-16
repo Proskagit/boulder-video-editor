@@ -20,7 +20,7 @@ namespace AiVideoEditor.UI.ViewModels.Panels;
 /// C1) imports a FIT training into the session through <see cref="TrainingImportWorkflow"/>; its tooltip shows the
 /// training held, if any.
 /// </summary>
-public sealed partial class ToolbarViewModel : ViewModelBase
+public sealed partial class ToolbarViewModel : ViewModelBase, ITrainingClockCorrection
 {
     private readonly IUndoRedoService _undoRedoService;
     private readonly ProjectFileWorkflow _projectFiles;
@@ -147,13 +147,13 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     public bool HasFitSettings => _fitSettings is not null;
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
-    private Task FitSettings() => _fitSettings?.RunAsync() ?? Task.CompletedTask;
+    private Task FitSettings() => _fitSettings?.RunAsync(AppSettingsSection.CorosFit, this) ?? Task.CompletedTask;
 
     /// <summary>D057 §3.8: «Настройки…» — the application's settings window.</summary>
     public bool HasAppSettings => _fitSettings?.HasAppSettings == true;
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
-    private Task AppSettings() => _fitSettings?.RunAsync(AppSettingsSection.General) ?? Task.CompletedTask;
+    private Task AppSettings() => _fitSettings?.RunAsync(AppSettingsSection.General, this) ?? Task.CompletedTask;
 
     private void RefreshDeclinedClimbs()
     {

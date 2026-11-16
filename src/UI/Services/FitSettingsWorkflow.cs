@@ -24,7 +24,8 @@ public sealed class FitSettingsWorkflow(IFitCalibrationStore store, IFitSettings
 
     public async Task RunAsync() => await RunAsync(AppSettingsSection.CorosFit);
 
-    public async Task RunAsync(AppSettingsSection section)
+    /// <param name="training">D062 amendment 1: the project's training clock correction, shown in the FIT section.</param>
+    public async Task RunAsync(AppSettingsSection section, ITrainingClockCorrection? training = null)
     {
         await store.LoadAsync();
         var fit = new FitSettingsViewModel(store, status, dialogs);
@@ -43,7 +44,15 @@ public sealed class FitSettingsWorkflow(IFitCalibrationStore store, IFitSettings
         {
             // only shown for information
         }
-        await appDialog.ShowAsync(new AppSettingsViewModel(settings, fit, section, ffmpegPath, ffprobePath));
+        var window = new AppSettingsViewModel(settings, fit, section, ffmpegPath, ffprobePath, training);
+        try
+        {
+            await appDialog.ShowAsync(window);
+        }
+        finally
+        {
+            window.Detach();
+        }
     }
 }
 

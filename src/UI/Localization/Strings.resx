@@ -2103,7 +2103,19 @@ If you don't save, your changes will be lost.</value>
     <value>Default (−70 s)</value>
   </data>
   <data name="AppSettings_HeartRateOffsetNote" xml:space="preserve">
-    <value>Display only: a negative value shows the heart rate earlier (−70 s: the value of 70 s later on the watch). The FIT samples, the synchronisation, the recording start Z, the clock correction, the calibration and the route areas are not changed.</value>
+    <value>The value for the watch of the project's training applies (by default COROS −70 s, Garmin and others −20 s). Display only: a negative value shows the heart rate earlier (−70 s — the value 70 s later by the watch). The FIT's samples, the synchronisation, the recording start Z, the clock correction, the calibration and the route areas don't change.</value>
+  </data>
+  <data name="AppSettings_OtherWatches" xml:space="preserve">
+    <value>Other watches</value>
+  </data>
+  <data name="AppSettings_Coros" xml:space="preserve">
+    <value>COROS</value>
+  </data>
+  <data name="AppSettings_Garmin" xml:space="preserve">
+    <value>Garmin</value>
+  </data>
+  <data name="AppSettings_ClockCorrectionNote" xml:space="preserve">
+    <value>This project's training clock correction (W − C) in project frames: saved in the project, each change is one undo step.</value>
   </data>
   <data name="Toolbar_AppSettings" xml:space="preserve">
     <value>Settings…</value>

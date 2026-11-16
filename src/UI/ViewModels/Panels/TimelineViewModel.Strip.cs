@@ -294,7 +294,20 @@ public sealed partial class TimelineViewModel
     public void OnStripClicked(TimelineClipViewModel clip, OverlayStripHandle? handle)
     {
         var orange = handle is OverlayStripHandle.OrangeBody or OverlayStripHandle.OrangeStart or OverlayStripHandle.OrangeEnd;
+        // D062 amendment 1: as in the «Боулдер» (variant B), the orange alone is the selection — the Inspector then shows its
+        // video and route, and Delete means its markup.
+        if (orange && _selection.Count > 0) ClearSelection();
         SelectOrange(orange ? clip.Id : null, orange ? clip.StripRouteId : null);
+    }
+
+    /// <summary>Ends the orange's selection without notifying — another selection (a clip, a dissolve, another panel)
+    /// takes the Inspector (D062 amendment 1).</summary>
+    private void DropOrange()
+    {
+        if (SelectedOrangeClipId is not { } previous) return;
+        _selectedOrangeRouteId = null;
+        SelectedOrangeClipId = null;
+        if (_clipViewModels.TryGetValue(previous, out var vm) && vm.Clip is VideoClip video) ShowRoutes(vm, video);
     }
 
     private void SelectOrange(Guid? clipId, Guid? routeId)
@@ -306,6 +319,7 @@ public sealed partial class TimelineViewModel
         foreach (var id in new[] { previous, clipId })
             if (id is { } changed && _clipViewModels.TryGetValue(changed, out var vm) && vm.Clip is VideoClip video)
                 ShowRoutes(vm, video);
+        if (_selection.Count == 0) RaiseSelectionChanged();   // D062 amendment 1: the Inspector follows the orange
     }
 
     private void DeleteSelectedOrange(Guid clipId)

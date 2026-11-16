@@ -314,4 +314,11 @@ public sealed record TimelineClipSelection(Clip Clip, string Name, MediaAsset? A
 
     /// <summary>The project's asset of a media id (the group's sound rule), or null.</summary>
     public Func<Guid, MediaAsset?>? FindAsset { get; init; }
+
+    /// <summary>D062 amendment 1: the selection is a route's orange on <see cref="Clip"/> (the clips themselves are not selected,
+    /// so Delete means the markup, D048 §3.9): the Inspector shows the video with its holds on this route.</summary>
+    public Guid? OrangeRouteId { get; init; }
+
+    /// <summary>The orange of a route is selected, not a clip.</summary>
+    public bool IsOrange => OrangeRouteId is not null;
 }

@@ -2107,7 +2107,19 @@
     <value>По умолчанию (−70 с)</value>
   </data>
   <data name="AppSettings_HeartRateOffsetNote" xml:space="preserve">
-    <value>Только отображение: отрицательное значение показывает пульс раньше (−70 с — значение на 70 с позже по часам). Отсчёты FIT, синхронизация, начало записи Z, поправка часов, калибровка и области трасс не меняются.</value>
+    <value>Применяется значение для часов тренировки проекта (по умолчанию COROS −70 с, Garmin и другие −20 с). Только отображение: отрицательное значение показывает пульс раньше (−70 с — значение на 70 с позже по часам). Отсчёты FIT, синхронизация, начало записи Z, поправка часов, калибровка и области трасс не меняются.</value>
+  </data>
+  <data name="AppSettings_OtherWatches" xml:space="preserve">
+    <value>Другие часы</value>
+  </data>
+  <data name="AppSettings_Coros" xml:space="preserve">
+    <value>COROS</value>
+  </data>
+  <data name="AppSettings_Garmin" xml:space="preserve">
+    <value>Garmin</value>
+  </data>
+  <data name="AppSettings_ClockCorrectionNote" xml:space="preserve">
+    <value>Поправка часов тренировки этого проекта (W − C) в кадрах проекта: сохраняется в проекте, каждое изменение — один шаг отмены.</value>
   </data>
   <data name="Toolbar_AppSettings" xml:space="preserve">
     <value>Настройки…</value>

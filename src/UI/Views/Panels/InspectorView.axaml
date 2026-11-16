@@ -841,24 +841,23 @@
                           ToolTip.Tip="{x:Static l:Strings.Holds_Width}"/>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Holds_Colour}" Classes="label"/>
-                    <ComboBox ItemsSource="{Binding ColorModes}" SelectedIndex="{Binding ColorModeIndex, Mode=TwoWay}" Width="110"/>
-                    <Border Width="22" Height="22" CornerRadius="2" BorderBrush="#5A5A5A" BorderThickness="1"
-                            Background="{Binding ColorHex}" VerticalAlignment="Center"/>
-                  </StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsManualColor}">
-                    <TextBlock Text="" Width="116"/>
-                    <ComboBox ItemsSource="{Binding Palette}" SelectedItem="{Binding PaletteSelection, Mode=TwoWay}" Width="110"
-                              PlaceholderText="{x:Static l:Strings.Holds_Palette}">
+                    <!-- D062 amendment 1: one list — «Авто», then the palette's colours. -->
+                    <ComboBox x:Name="HoldColorBox" ItemsSource="{Binding ColorChoices}" SelectedItem="{Binding SelectedColorChoice, Mode=TwoWay}"
+                              Width="130" PlaceholderText="{x:Static l:Strings.Holds_ModeManual}">
                       <ComboBox.ItemTemplate>
                         <DataTemplate>
                           <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Border Width="14" Height="14" CornerRadius="2" BorderBrush="#5A5A5A" BorderThickness="1" Background="{Binding Hex}"/>
+                            <Border Width="14" Height="14" CornerRadius="2" BorderBrush="#5A5A5A" BorderThickness="1" Background="{Binding Swatch}"
+                                    IsVisible="{Binding !IsAuto}"/>
                             <TextBlock Text="{Binding Name}"/>
                           </StackPanel>
                         </DataTemplate>
                       </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <TextBox Text="{Binding ColorHex, Mode=TwoWay}" Width="80" MaxLength="7"/>
+                    <Border Width="22" Height="22" CornerRadius="2" BorderBrush="#5A5A5A" BorderThickness="1"
+                            Background="{Binding ColorHex}" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding ColorHex, Mode=TwoWay}" Width="80" MaxLength="7" IsVisible="{Binding IsManualColor}"
+                             ToolTip.Tip="{x:Static l:Strings.Holds_ModeManual}"/>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{x:Static l:Strings.Holds_Keyline}" Classes="label"/>
