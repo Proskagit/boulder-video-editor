@@ -40,7 +40,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 20;
+    public const int CurrentFormatVersion = 21;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -109,6 +109,10 @@ public static class ProjectSerializer
     /// <summary>The first version with a video clip's Follow and Occlusion (D061). A v19 file's clips have neither and are
     /// saved as v20; an older build refuses a v20 file as newer.</summary>
     private const int PeopleVersion = 20;
+
+    /// <summary>The first version with the followed part of a clip (D061 amendment 1). A v20 file's Follow covers the whole
+    /// clip and is saved as v21; an older build refuses a v21 file as newer.</summary>
+    private const int FollowRangeVersion = 21;
 
     /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
     /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
@@ -448,10 +452,23 @@ public static class ProjectSerializer
     private static FollowDto ToDto(FollowSettings follow) => new()
     {
         TargetTicks = follow.TargetTime?.Ticks, TargetX = follow.TargetPoint?.X, TargetY = follow.TargetPoint?.Y,
+        FromTicks = follow.From?.Ticks, ToTicks = follow.To?.Ticks,
         Smoothness = follow.Smoothness switch { FollowSmoothness.Soft => "soft", FollowSmoothness.Fast => "fast", _ => "normal" }
     };
 
-    private static FollowSettings FromDto(FollowDto dto)
+    private static FollowSettings FromDto(FollowDto dto, int formatVersion)
+    {
+        MediaTime? from = null, to = null;
+        if (formatVersion >= FollowRangeVersion)
+        {
+            if (dto.FromTicks < 0 || dto.ToTicks < 0 || dto.FromTicks >= dto.ToTicks) throw Damaged("a Follow part that ends before it starts");
+            from = dto.FromTicks is { } f ? new MediaTime(f) : null;
+            to = dto.ToTicks is { } t ? new MediaTime(t) : null;
+        }
+        return Target(dto) with { From = from, To = to };
+    }
+
+    private static FollowSettings Target(FollowDto dto)
     {
         var smoothness = dto.Smoothness switch
         {
@@ -1021,7 +1038,7 @@ public static class ProjectSerializer
                 Background = formatVersion < BackgroundVersion || v.Background is null ? ClipBackground.Black
                     : v.Background == "blur" ? ClipBackground.Blur : throw Damaged("unknown clip background"),
                 // v1–v19: neither (D061).
-                Follow = formatVersion < PeopleVersion || v.Follow is null ? null : FromDto(v.Follow),
+                Follow = formatVersion < PeopleVersion || v.Follow is null ? null : FromDto(v.Follow, formatVersion),
                 HidesOutlinesBehindPeople = formatVersion >= PeopleVersion && v.HidesOutlinesBehindPeople
             },
             AudioClipDto a => new AudioClip { Id = a.Id, MediaAssetId = a.MediaAssetId, Volume = a.Volume, IsMuted = a.IsMuted },

@@ -515,6 +515,7 @@ public static class ExportPreflight
                     reason = resolution.State switch
                     {
                         People.FollowState.Following => null,
+                        People.FollowState.Unavailable when resolution.Unavailable == People.FollowUnavailable.OutsideRange => null,
                         People.FollowState.NeedsTarget => Messages.People_FollowNoTarget,
                         People.FollowState.TargetNotFound => Messages.People_FollowNotFound,
                         _ => resolution.Unavailable == People.FollowUnavailable.Rotation ? Messages.People_FollowRotation : Messages.People_FollowNoRoom

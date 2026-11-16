@@ -307,9 +307,10 @@ public interface ITimelineEditService
     /// there is <see cref="TimelineEditResult.NoChange"/>; refused for another kind of clip or a locked track.</summary>
     TimelineEditResult SetClipBackground(Guid clipId, ClipBackground background);
 
-    /// <summary>D061: a video clip's automatic Follow — its settings, or null to switch it off; one undo step; refused for
-    /// another kind of clip or a locked track.</summary>
-    TimelineEditResult SetClipFollow(Guid clipId, FollowSettings? follow);
+    /// <summary>D061: a video clip's automatic Follow — its settings, or null to switch it off; with
+    /// <paramref name="hideOutlinesBehindPeople"/> also the clip's Occlusion; one undo step; refused for another kind of clip or
+    /// a locked track.</summary>
+    TimelineEditResult SetClipFollow(Guid clipId, FollowSettings? follow, bool? hideOutlinesBehindPeople = null);
 
     /// <summary>D061: whether a video clip's hold outlines are hidden behind people (Occlusion); one undo step.</summary>
     TimelineEditResult SetClipHidesOutlinesBehindPeople(Guid clipId, bool hides);

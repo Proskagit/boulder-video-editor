@@ -24,6 +24,10 @@ public sealed record UserSettings
     /// <summary>D057 §3.15: automatic hold proposals on entering the markup mode — off by default.</summary>
     public bool HoldProposalsEnabled { get; init; }
 
+    /// <summary>D061 amendment 1: the people's masks drawn over the Preview — a diagnostic of the segmentation, off by default;
+    /// never exported.</summary>
+    public bool ShowPeopleMasks { get; init; }
+
     /// <summary>D058 §1: the timeline turns its page with the playhead while playing; on by default.</summary>
     public bool TimelineFollowsPlayhead { get; init; } = true;
 

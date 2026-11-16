@@ -155,6 +155,13 @@ public sealed partial class TimelineClipViewModel : ViewModelBase
     /// <summary>The strip drag's release would be refused (D048 §4.2: an overlap of the lilac).</summary>
     [ObservableProperty] private bool _isStripInvalid;
 
+    /// <summary>D061 amendment 1: the followed part of a video clip with Follow — a strip along the clip's bottom, in pixels
+    /// from its left edge; its edges drag (<see cref="TimelineViewModel.BeginFollowDrag"/>).</summary>
+    [ObservableProperty] private bool _hasFollowStrip;
+    [ObservableProperty] private double _followLeft;
+    [ObservableProperty] private double _followWidth;
+    [ObservableProperty] private string? _followTip;
+
     /// <summary>The template's status may have changed: the mark's colour follows it.</summary>
     public void OnStatusChanged() => OnPropertyChanged(nameof(StatusMarkColorHex));
 

@@ -10218,3 +10218,58 @@ failure); «Скрывать контуры за людьми» with its state a
 - The analysis's cost: masks ≈ 0.3–0.6× real time with one or two people, slower with more; it runs once per file and is cached.
 - The speed of the clip (D022): the path is in source time, so at 2× the camera moves twice as fast on the timeline.
 - 120 / 240 fps material, strong shake, low light: not in the test set (research decision 4).
+
+### Amendment 1 — after the owner's manual check *(the owner's task of 2026-11-16 «Phase 42 — Follow & Occlusion: исправления после ручного тестирования»)*
+
+**1. The incomplete person mask — cause and fix.** The owner saw a mask of the T-shirt only on the D053 project (the screenshots
+of `video_20260927_101034`, the wide clip of the same wall; `video_20260927_112606` had full masks). Both clips were analysed
+with the same algorithm and parameters (the cache keys `masks-v2-t2|people-v1|…|1024|666666|640`; all three D053 sources are
+3840 × 2160 without rotation — «vertical» is the project's 2160 × 3840 canvas, not the video). Cause, from the app's own cache:
+on 101034 the climber walks in close to the camera, and the first confident detection (8.3 s) holds only the T-shirt; SAM was
+prompted once with that box, and its memory then kept segmenting the T-shirt for the whole climb (88.7 % of the confidently
+detected frames had a mask under 70 % of the person's height), because an object was prompted again only after a loss.
+112606's climber is whole in the frame at the first detection, so its object was the whole person. A second fault on 101034:
+a weak, short track started an object that drifted onto a black wall volume (57–74 s) and was shown as a person.
+Fix (`PeopleAnalyzer.SegmentAsync`, masks analysis v3, so every video is analysed again once):
+- an object is **anchored again** on its person's detector box (score ≥ 0.6, at most every 1.5 s, never on a box a quarter of
+  which is another person's mask) when its mask is clearly smaller than the box (`Partial`: lower than 70 % or narrower than
+  60 % of it, or IoU < 0.5) or has lost the pose's torso centre (`LostTorso`: a white T-shirt fading into a white wall);
+- an object with no detected person at its mask for 3 s is stopped (`OrphanSteps`); a track needs 5 confident detections to be
+  segmented at all (`MinConfident`).
+Measured on the frames with a confident detection: 101034 partial 88.7 % → 1.1 %, the torso lost 2.3 %, one mask id (was two);
+112606 partial 0 %, torso lost 0 %; the four vertical test videos unchanged (a passer-by on `VID_20251223_195901` now gets a
+new mask id on each appearance) — `docs/PHASE42_FOLLOW_OCCLUSION.md` §8.
+
+**2. One analysis for Follow and Occlusion.** Already so by design, now proven by tests: per video file one detection pass (the
+tracks — Follow, and the masks' prompts) and one segmentation pass (the masks), each keyed by the file and the analysis version,
+shared by every clip of the file and by both functions; whichever is switched on first starts them, the other reuses them (also
+when it is switched on while the first runs), the cache keeps them between sessions. `PeopleAnalysisCoordinatorTests` count the
+decoder opens and the model runs for A (Follow switches Occlusion on), B (Occlusion first, Follow later) and C (Occlusion during
+Follow's analysis): two decodes, one detection pass, one segmenter in every case. Cancel, retry and failures are per pass as
+before.
+
+**3. Follow switches Occlusion on** (product decision, not to be changed without the owner): switching Follow on in the
+Inspector (or «Следить отсюда» on a clip without Follow) also switches «Скрывать контуры за людьми» on, in **one undo step**
+(`SetClipFollow(…, hideOutlinesBehindPeople: true)`). The user can switch Occlusion off afterwards; Occlusion still works alone;
+switching Follow off leaves Occlusion as it is. Existing projects are not changed on opening.
+
+**4. The followed part of a clip** (the owner's comment: like Insta360 Studio). `FollowSettings.From` / `To` — the part's start /
+end in the video's **source time** (null: the clip's start / end), so Trim, Split, Slip and Speed keep it on the same frames; a
+split half without any of it keeps its own framing (`FollowUnavailable.OutsideRange`, not a warning). Outside the part the clip
+keeps its own position; at an edge of the part inside the clip the camera glides from / to it over 0.75 s (smoothstep, at most
+half the part) — never a jump (`FollowCamera.Limit`), in the Preview and the export alike. UX:
+- the Inspector: «Следить за скалолазом отсюда» — Follow from the playhead's frame (Occlusion on, one undo step) and the
+  timeline plays, so the user watches the camera follow; «Остановить слежение здесь» — the part ends at the frame then shown and
+  playback pauses (a second undo step; less than 0.5 s keeps the part open to the clip's end); the part's text and «На весь
+  клип»;
+- the timeline: a cyan strip along the clip's bottom shows the part; its edges drag like a trim (the strip follows the pointer,
+  the release is one undo step, Esc cancels; an edge dragged to the clip's edge opens that side).
+The analysis is of the whole file (§5), so a part made longer needs no further analysis — the Insta360 «analysis while playing»
+is the background analysis with its progress, and the playback shows the result as it is. `project.json` **v21**: the optional
+`follow.fromTicks` / `follow.toTicks`; a v20 file follows whole clips and is saved as v21 with nothing else changed; an older
+build refuses a v21 file as newer.
+
+**5. The people's masks in the Preview** — kept for diagnostics, moved from the Inspector to the application's settings
+(«Настройки → Таймлайн», `UserSettings.ShowPeopleMasks`, off by default, never exported); the mechanism is unchanged.
+
+**6. The Inspector's heading** «СЛЕЖЕНИЕ И ЛЮДИ» in capitals like the other sections.

@@ -52,7 +52,7 @@ public class PeoplePersistenceTests
     {
         var first = Save(Build());
         var root = JsonNode.Parse(first)!;
-        Assert.Equal(20, root["formatVersion"]!.GetValue<int>());
+        Assert.Equal(21, root["formatVersion"]!.GetValue<int>());
         var follow = Clip(root, 0)["follow"]!;
         Assert.Equal(12_500_000, follow["targetTicks"]!.GetValue<long>());
         Assert.Equal("soft", follow["smoothness"]!.GetValue<string>());
@@ -82,7 +82,47 @@ public class PeoplePersistenceTests
             Assert.Null(c.Follow);
             Assert.False(c.HidesOutlinesBehindPeople);
         });
-        Assert.Equal(20, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+        Assert.Equal(21, JsonNode.Parse(Save(loaded))!["formatVersion"]!.GetValue<int>());
+    }
+
+    [Fact]
+    public void The_followed_part_survives_a_save_and_open_in_source_time()
+    {
+        var project = Build();
+        var clip = project.Timeline.VideoTracks[0].Clips.OfType<VideoClip>().First();
+        clip.Follow = clip.Follow! with { From = MediaTime.FromSeconds(0.5), To = MediaTime.FromSeconds(1.5) };
+        var json = Save(project);
+        var follow = Clip(JsonNode.Parse(json)!, 0)["follow"]!;
+        Assert.Equal(5_000_000, follow["fromTicks"]!.GetValue<long>());
+        Assert.Equal(15_000_000, follow["toTicks"]!.GetValue<long>());
+        Assert.Null(Clip(JsonNode.Parse(json)!, 1)["follow"]!["fromTicks"]);           // the whole clip: nothing written
+        var loaded = Load(json).Timeline.VideoTracks[0].Clips.OfType<VideoClip>().First();
+        Assert.Equal(clip.Follow, loaded.Follow);
+        Assert.Equal(json, Save(Load(json)));
+    }
+
+    [Fact]
+    public void A_version_20_file_follows_whole_clips_and_is_saved_as_21_with_nothing_else_changed()
+    {
+        var original = Save(Build());
+        var root = JsonNode.Parse(original)!;
+        root["formatVersion"] = 20;
+        Clip(root, 0)["follow"]!["fromTicks"] = 5_000_000;                                  // never in a v20 file: ignored
+        var loaded = Load(root.ToJsonString());
+        var clips = loaded.Timeline.VideoTracks[0].Clips.OfType<VideoClip>().ToList();
+        Assert.Equal(new FollowSettings(MediaTime.FromSeconds(1.25), new NormalizedPoint(0.375, 0.625), FollowSmoothness.Soft), clips[0].Follow);
+        Assert.True(clips[0].HidesOutlinesBehindPeople);
+        Assert.Equal(new FollowSettings(), clips[1].Follow);
+        Assert.Equal(original, Save(loaded));                                              // v21, nothing else changed
+    }
+
+    [Fact]
+    public void A_followed_part_that_ends_before_it_starts_refuses_the_file()
+    {
+        var root = JsonNode.Parse(Save(Build()))!;
+        Clip(root, 0)["follow"]!["fromTicks"] = 10_000_000;
+        Clip(root, 0)["follow"]!["toTicks"] = 5_000_000;
+        Assert.Throws<ProjectFileException>(() => Load(root.ToJsonString()));
     }
 
     [Theory]

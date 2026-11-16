@@ -648,4 +648,12 @@ internal sealed class FollowDto
 
     /// <summary>«soft», «normal» or «fast».</summary>
     public string? Smoothness { get; set; }
+
+    /// <summary>Format v21 (D061 amendment 1): the followed part's start / end in source time (100 ns ticks); absent — the
+    /// clip's start / end.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? FromTicks { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? ToTicks { get; set; }
 }

@@ -511,3 +511,4 @@ src/Video/FfmpegEncoderCapabilities.cs	exit code {code}
 src/Project/Persistence/ProjectSerializer.cs	unknown Follow smoothness
 src/Project/Persistence/ProjectSerializer.cs	an incomplete Follow target
 src/Project/Persistence/ProjectSerializer.cs	a Follow target outside the frame
+src/Project/Persistence/ProjectSerializer.cs	a Follow part that ends before it starts

@@ -19,7 +19,11 @@ public enum FollowUnavailable
 
     /// <summary>The picture is not larger than the canvas on any axis at the clip's scale: there is no room to move it —
     /// zoom in (Scale above «Заполнить кадр») to follow.</summary>
-    NoRoom
+    NoRoom,
+
+    /// <summary>D061 amendment 1: the followed part of the video lies outside this clip (a split half, a trimmed clip) — the
+    /// clip keeps its own framing; not a problem.</summary>
+    OutsideRange
 }
 
 /// <summary>
@@ -69,6 +73,48 @@ public static class FollowCamera
 {
     public static readonly MediaTime GlideGap = MediaTime.FromSeconds(1.5);
     public static readonly MediaTime EaseTime = MediaTime.FromSeconds(1.0);
+
+    /// <summary>D061 amendment 1: how long the camera glides from the clip's own framing to the person at the start of the
+    /// followed part (and back at its end) — inside the part, at most half of it.</summary>
+    public static readonly MediaTime RangeEaseTime = MediaTime.FromSeconds(0.75);
+
+    /// <summary>
+    /// D061 amendment 1: <paramref name="path"/> limited to the followed part <c>[from, to]</c> of a clip that shows
+    /// <c>[clipFrom, clipTo]</c>: outside the part the clip's own position (<paramref name="ownX"/>, <paramref name="ownY"/>);
+    /// a side of the part at the clip's edge stays open beyond it (a Dissolve / Push shows the frames past the cut — the camera
+    /// keeps following there, as with Follow on the whole clip); at an edge of the part that is not the clip's edge the camera
+    /// glides between the two over
+    /// <see cref="RangeEaseTime"/> (a smoothstep) inside the part — never a jump. The part as the whole clip returns the path
+    /// unchanged. Samples are added at the edges so the glide starts exactly there.
+    /// </summary>
+    public static FollowPath Limit(FollowPath path, MediaTime from, MediaTime to, MediaTime clipFrom, MediaTime clipTo, double ownX, double ownY)
+    {
+        var easesIn = from > clipFrom;
+        var easesOut = to < clipTo;
+        if ((!easesIn && !easesOut) || path.Times.IsDefaultOrEmpty) return path;
+        var ease = new MediaTime(Math.Min(RangeEaseTime.Ticks, Math.Max(1, (to - from).Ticks / 2)));
+        double Weight(MediaTime t)
+        {
+            if ((easesIn && t < from) || (easesOut && t > to)) return 0;
+            var w = 1.0;
+            if (easesIn) w = Math.Min(w, SmoothStep((t - from).Ticks / (double)ease.Ticks));
+            if (easesOut) w = Math.Min(w, SmoothStep((to - t).Ticks / (double)ease.Ticks));
+            return w;
+        }
+        var times = path.Times.ToList();
+        foreach (var edge in new[] { from, from + ease, to - ease, to })
+            if (edge > times[0] && edge < times[^1] && times.BinarySearch(edge) < 0) times.Insert(~times.BinarySearch(edge), edge);
+        var xs = ImmutableArray.CreateBuilder<double>(times.Count);
+        var ys = ImmutableArray.CreateBuilder<double>(times.Count);
+        foreach (var t in times)
+        {
+            var (x, y) = path.At(t);
+            var w = Weight(t);
+            xs.Add(ownX + (x - ownX) * w);
+            ys.Add(ownY + (y - ownY) * w);
+        }
+        return path with { Times = times.ToImmutableArray(), X = xs.MoveToImmutable(), Y = ys.MoveToImmutable() };
+    }
 
     /// <summary>The camera path, or null with the reason.</summary>
     public static (FollowPath? Path, FollowUnavailable Reason) Solve(FollowTrajectory trajectory, FrameSize canvas, FrameSize source,

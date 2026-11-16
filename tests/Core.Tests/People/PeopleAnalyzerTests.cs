@@ -141,6 +141,37 @@ public class PeopleAnalyzerTests
     }
 
     [Fact]
+    public void A_mask_of_only_part_of_the_person_is_re_anchored()
+    {
+        // The climber came in close to the camera: only the T-shirt was seen; now the whole body is detected.
+        var body = new NormalizedBox(0.30, 0.10, 0.60, 0.90);
+        Assert.True(PeopleAnalyzer.Partial(new NormalizedBox(0.33, 0.25, 0.57, 0.50), body));   // the shirt only
+        Assert.True(PeopleAnalyzer.Partial(new NormalizedBox(0.30, 0.10, 0.42, 0.90), body));   // a half, narrow
+        Assert.False(PeopleAnalyzer.Partial(new NormalizedBox(0.31, 0.12, 0.59, 0.88), body));  // the whole person
+        Assert.False(PeopleAnalyzer.Partial(new NormalizedBox(0.28, 0.08, 0.62, 0.92), body));  // a bit wider: fine
+    }
+
+    [Fact]
+    public void A_mask_with_a_hole_at_the_torso_has_lost_it()
+    {
+        const int w = 40, h = 40;
+        var mask = new byte[w * h];
+        for (var y = 5; y < 35; y++) for (var x = 10; x < 30; x++) mask[y * w + x] = 255;
+        Assert.False(PeopleAnalyzer.LostTorso(mask, new AiVideoEditor.Core.Entities.NormalizedPoint(0.5, 0.5), w, h));
+        for (var y = 14; y < 26; y++) for (var x = 14; x < 26; x++) mask[y * w + x] = 0;   // the shirt faded into the wall
+        Assert.True(PeopleAnalyzer.LostTorso(mask, new AiVideoEditor.Core.Entities.NormalizedPoint(0.5, 0.5), w, h));
+        Assert.False(PeopleAnalyzer.LostTorso(mask, new AiVideoEditor.Core.Entities.NormalizedPoint(0.5, 0.2), w, h));
+    }
+
+    [Fact]
+    public void A_box_that_overlaps_another_persons_mask_never_re_anchors()
+    {
+        var extents = new Dictionary<int, NormalizedBox> { [1] = new(0.2, 0.2, 0.5, 0.9), [2] = new(0.45, 0.2, 0.8, 0.9) };
+        Assert.True(PeopleAnalyzer.OverlapsAnother(new NormalizedBox(0.3, 0.2, 0.6, 0.9), extents, self: 1));
+        Assert.False(PeopleAnalyzer.OverlapsAnother(new NormalizedBox(0.2, 0.2, 0.45, 0.9), extents, self: 1));
+    }
+
+    [Fact]
     public void A_detection_inside_another_persons_mask_starts_nothing()
     {
         var extents = new Dictionary<int, NormalizedBox> { [1] = new(0.2, 0.2, 0.6, 0.8) };

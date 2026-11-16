@@ -1,4 +1,5 @@
 using System.Globalization;
+using AiVideoEditor.Core.Common;
 using AiVideoEditor.Core.Composition;
 using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
@@ -25,16 +26,23 @@ public sealed partial class TimelineEditService
         return TimelineEditResult.Ok(new[] { clip.Id });
     }
 
-    /// <summary>D061: switches a video clip's Follow on (with its settings: target, smoothness) or off (null) — one undo step.</summary>
-    public TimelineEditResult SetClipFollow(Guid clipId, FollowSettings? follow)
+    /// <summary>D061: switches a video clip's Follow on (with its settings: target, smoothness) or off (null) — one undo step;
+    /// with <paramref name="hideOutlinesBehindPeople"/> the outlines' Occlusion is set in the same step (D061 amendment 1:
+    /// switching Follow on switches Occlusion on).</summary>
+    public TimelineEditResult SetClipFollow(Guid clipId, FollowSettings? follow, bool? hideOutlinesBehindPeople = null)
     {
         var plan = new EditPlan(Sequence, Settings);
         if (Resolve(plan, new[] { clipId }, out var clips) is { } resolveError) return TimelineEditResult.Fail(resolveError);
         if (clips[0] is not VideoClip clip) return TimelineEditResult.Fail(Messages.Frame_NoPicture);
         var track = plan.TrackOf(clip);
         if (track.IsLocked) return TimelineEditResult.Fail(string.Format(Messages.Edit_TrackLocked, track.Name));
-        if (Equals(clip.Follow, follow)) return TimelineEditResult.Unchanged();
-        ExecuteTracked(new Commands.NotifyingCommand(new Commands.SetClipFollowCommand(clip, clip.Follow, follow), _projectService.NotifyTimelineChanged));
+        var occlusion = hideOutlinesBehindPeople is { } hides && hides != clip.HidesOutlinesBehindPeople;
+        if (Equals(clip.Follow, follow) && !occlusion) return TimelineEditResult.Unchanged();
+        var commands = new List<IUndoableCommand>();
+        if (!Equals(clip.Follow, follow)) commands.Add(new Commands.SetClipFollowCommand(clip, clip.Follow, follow));
+        if (occlusion) commands.Add(new Commands.SetClipOcclusionCommand(clip, hideOutlinesBehindPeople!.Value));
+        IUndoableCommand command = commands.Count == 1 ? commands[0] : new CompositeCommand(commands[0].Description, commands);
+        ExecuteTracked(new Commands.NotifyingCommand(command, _projectService.NotifyTimelineChanged));
         return TimelineEditResult.Ok(new[] { clip.Id });
     }
 

@@ -149,6 +149,56 @@ switch (args[0])
         await File.WriteAllTextAsync(Path.Combine(outDir, name + ".follow.json"), JsonSerializer.Serialize(new { summary, rows }, Lenient));
         return 0;
     }
+    case "cachedump":
+    {
+        // The app's own cached analyses (%LOCALAPPDATA%\AiVideoEditor\cache\people): each file's key, then its masks / tracks
+        // as JSON in <out dir> (<n>.masks.json / <n>.tracks.json), for people_sheet.py.
+        var (folder, outDir) = (args[1], args[2]);
+        Directory.CreateDirectory(outDir);
+        var store = new AiVideoEditor.Media.Caching.PeopleAnalysisCacheStore(folder, NullLogger<AiVideoEditor.Media.Caching.PeopleAnalysisCacheStore>.Instance);
+        var n = 0;
+        foreach (var file in Directory.GetFiles(folder, "*.pp?").OrderBy(f => File.GetLastWriteTimeUtc(f)))
+        {
+            using var reader = new BinaryReader(File.OpenRead(file), System.Text.Encoding.UTF8);
+            reader.ReadBytes(8);
+            var key = reader.ReadString();
+            reader.Dispose();
+            n++;
+            Console.WriteLine($"{n}: {Path.GetFileName(file)} {File.GetLastWriteTime(file):HH:mm:ss} key={key}");
+            if (file.EndsWith(".ppm") && store.TryLoadMasks(key) is { } masks)
+            {
+                Console.WriteLine($"   masks {masks.Width}x{masks.Height}, {masks.Samples.Length} frames, people {string.Join(",", masks.PersonIds)}");
+                await File.WriteAllTextAsync(Path.Combine(outDir, $"{n}.masks.json"), JsonSerializer.Serialize(new
+                {
+                    width = masks.Width, height = masks.Height, interval = masks.Interval.TotalSeconds,
+                    samples = masks.Samples.Select(s => new
+                    {
+                        t = s.Time.TotalSeconds,
+                        people = s.People.Select(p => new { id = p.PersonId, p.X, p.Y, w = p.Width, h = p.Height, data = Convert.ToBase64String(p.Deflated) })
+                    })
+                }));
+            }
+            else if (file.EndsWith(".ppt") && store.TryLoadTracks(key) is { } tracks)
+            {
+                Console.WriteLine($"   tracks {tracks.Samples.Length} frames, {tracks.Tracks.Length} tracks");
+                await File.WriteAllTextAsync(Path.Combine(outDir, $"{n}.tracks.json"), JsonSerializer.Serialize(new
+                {
+                    interval = tracks.Interval.TotalSeconds,
+                    samples = tracks.Samples.Select(s => new
+                    {
+                        t = s.Time.TotalSeconds,
+                        people = s.People.Select((p, i) => new
+                        {
+                            id = s.TrackIdOf(i), score = p.Score, box = new[] { p.Box.X0, p.Box.Y0, p.Box.X1, p.Box.Y1 },
+                            torso = p.Torso is { } t ? new[] { t.X, t.Y } : null
+                        })
+                    }),
+                    tracks = tracks.Tracks.Select(t => new { t.Id, start = t.Start.TotalSeconds, end = t.End.TotalSeconds, t.Count })
+                }));
+            }
+        }
+        return 0;
+    }
     case "decode":
     {
         var video = args[1];

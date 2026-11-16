@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Motion;
 using AiVideoEditor.Core.Playback;
@@ -34,6 +35,9 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
     /// <summary>The longest loss one mask id spans (<see cref="PersonRoots"/>).</summary>
     public static readonly MediaTime MaxJoinGap = MediaTime.FromSeconds(5);
 
+    /// <summary>The confident detections (≥ <see cref="PersonTracker.HighScore"/>) a track needs to be segmented.</summary>
+    public const int MinConfident = 5;
+
     /// <summary>At most this many people are segmented at once (the largest first).</summary>
     public const int MaxPeople = 6;
 
@@ -64,6 +68,13 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
     /// again with the later track's box; so a person keeps one mask id over the video. A detection lying mostly inside the mask
     /// of another person (a cut-off part of them, or somebody behind them) never starts an object, and of two objects whose
     /// masks touch with one inside the other's extent the younger is stopped — one person is never split between two masks.
+    /// <para>Two guards against a wrong object (found on the D053 project's wide clip, D061 amendment 1): a person first seen
+    /// cut off — a climber walking in close to the camera, only the T-shirt in the frame — is started on that part, and the
+    /// model's memory then keeps segmenting the part; so an object whose mask is clearly smaller than its person's confident
+    /// detector box (<see cref="Partial"/>), or whose mask has lost the person's torso (<see cref="LostTorso"/> — a white
+    /// T-shirt fading into a white wall), is <b>anchored again</b> on that box, at most every <see cref="ReanchorSteps"/>,
+    /// never on a box shared with another person's mask. And an object with no detected person at its mask for <see cref="OrphanSteps"/> (a weak
+    /// false box that started it, the model drifting onto a wall volume) is stopped.</para>
     /// </summary>
     public async Task<PersonMaskTrack> SegmentAsync(Source source, PersonTracks tracks, IProgress<double>? progress, CancellationToken cancellationToken)
     {
@@ -77,6 +88,8 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
         var active = new Dictionary<int, int>();                       // object (root) → steps not visible
         var order = new Dictionary<int, long>();                        // object → the step it was (re)started at
         var extents = new Dictionary<int, NormalizedBox>();             // object → its visible mask's extent, last step
+        var supported = new Dictionary<int, long>();                    // object → the last step a detected person was at its mask
+        var lastMasks = new Dictionary<int, byte[]>();                  // object → its visible mask, last step
         long step = 0;
         int? gridWidth = null, gridHeight = null;
         await foreach (var (frame, time) in Frames(source, cancellationToken))
@@ -102,10 +115,21 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
                     if (active.Count < MaxPeople) start[root] = seen.Box;          // a new person, or a person coming back
                 }
                 else if (missing >= 3) start[root] = seen.Box;                     // lost by the segmenter, seen by the detector
+                else if (missing == 0 && seen.Score >= ReanchorScore && step - order[root] >= ReanchorSteps &&
+                         extents.TryGetValue(root, out var extent) && !OverlapsAnother(seen.Box, extents, root) &&
+                         (Partial(extent, seen.Box) ||
+                          (seen.Torso is { } torso && lastMasks.TryGetValue(root, out var last) && LostTorso(last, torso, gridWidth ?? 1, gridHeight ?? 1))))
+                    start[root] = seen.Box;                                        // the mask holds only a part of the person
             }
-            var stop = active.Where(a => a.Value >= 5 && time > lastSeenOf[a.Key] + MediaTime.FromSeconds(1)).Select(a => a.Key).ToList();
+            // Supported: a detected person (any score, any track) at the object's mask — else, after OrphanSteps, it goes.
+            if (tracks.SampleAt(time) is { } detected)
+                foreach (var (id, extent) in extents)
+                    if (detected.People.Any(p => p.Box.IoU(extent) >= 0.3 || extent.Contains(p.Box.Center))) supported[id] = step;
+            var stop = active.Where(a => (a.Value >= 5 && time > lastSeenOf[a.Key] + MediaTime.FromSeconds(1)) ||
+                                         step - supported.GetValueOrDefault(a.Key, step) >= OrphanSteps)
+                .Select(a => a.Key).Where(id => !start.ContainsKey(id)).ToList();
             foreach (var id in stop) { active.Remove(id); extents.Remove(id); }
-            foreach (var id in start.Keys) { active[id] = 0; order[id] = step; lastSeenOf[id] = trackEnd[id]; }
+            foreach (var id in start.Keys) { active[id] = 0; order[id] = step; supported[id] = step; lastSeenOf[id] = trackEnd[id]; }
 
             var result = segmenter.Step(frame, start.Select(p => new SegmenterPrompt(p.Key, p.Value)).ToList(), stop, gridWidth ?? 1,
                 gridHeight ?? 1, cancellationToken);
@@ -131,10 +155,55 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
             foreach (var (id, coverage) in masks.OrderBy(m => m.Key))
                 if (MaskCodec.Entry(id, coverage, gridWidth ?? 1, gridHeight ?? 1) is { } entry) entries.Add(entry);
             samples.Add(new PersonMaskSample(time, entries.ToImmutable()));
+            lastMasks = masks;
             Report(progress, time, source.Duration);
         }
         progress?.Report(1);
         return new PersonMaskTrack(gridWidth ?? 1, gridHeight ?? 1, MaskInterval, samples.ToImmutable(), vision.ModelId);
+    }
+
+    /// <summary>A person's detection at least this confident anchors its object again (<see cref="Partial"/>).</summary>
+    public const float ReanchorScore = 0.6f;
+
+    /// <summary>At most one anchoring of an object per this many mask steps (1.5 s at 15 Hz).</summary>
+    public const int ReanchorSteps = 22;
+
+    /// <summary>An object without a detected person at its mask for this many steps (3 s) is stopped.</summary>
+    public const int OrphanSteps = 45;
+
+    /// <summary>Whether a mask's <paramref name="extent"/> holds only a part of the person in <paramref name="box"/> (its
+    /// confident, uncut detector box): clearly lower or narrower than the box, or hardly overlapping it. A whole person's mask
+    /// spans the box (the box is the person's extent); a T-shirt alone is about half as high.</summary>
+    public static bool Partial(NormalizedBox extent, NormalizedBox box) =>
+        extent.Height < 0.7 * box.Height || extent.Width < 0.6 * box.Width || extent.IoU(box) < 0.5;
+
+    /// <summary>Whether a person's <paramref name="mask"/> has lost its torso: under half of the grid cells within
+    /// <see cref="TorsoReach"/> of the pose's torso centre <paramref name="torso"/> belong to the mask (a mask with a hole
+    /// where the body is).</summary>
+    public static bool LostTorso(byte[] mask, NormalizedPoint torso, int width, int height)
+    {
+        int cx = (int)(torso.X * width), cy = (int)(torso.Y * height), inside = 0, all = 0;
+        for (var y = cy - TorsoReach; y <= cy + TorsoReach; y++)
+            for (var x = cx - TorsoReach; x <= cx + TorsoReach; x++)
+            {
+                if (x < 0 || y < 0 || x >= width || y >= height) continue;
+                all++;
+                if (mask[y * width + x] >= 128) inside++;
+            }
+        return all > 0 && inside * 2 < all;
+    }
+
+    /// <summary>The half side (grid cells, of <see cref="MaskLongSide"/>) of the square around the torso centre.</summary>
+    public const int TorsoReach = 3;
+
+    /// <summary>Whether another object's mask covers a quarter of <paramref name="box"/> or more (then the box may hold that
+    /// person too, and anchoring on it could take them in).</summary>
+    public static bool OverlapsAnother(NormalizedBox box, IReadOnlyDictionary<int, NormalizedBox> extents, int self)
+    {
+        if (box.Area <= 0) return false;
+        foreach (var (id, extent) in extents)
+            if (id != self && Intersection(box, extent) >= 0.25 * box.Area) return true;
+        return false;
     }
 
     /// <summary>Each track → the person it belongs to: the earliest track of its Follow chain
@@ -242,6 +311,7 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
     internal static List<(int Id, MediaTime Start, MediaTime End)> SegmentedTracks(PersonTracks tracks)
     {
         var info = new Dictionary<int, (MediaTime Start, MediaTime End, double Height, MediaTime? FirstConfident)>();
+        var confident = new Dictionary<int, int>();
         foreach (var sample in tracks.Samples)
         {
             for (var i = 0; i < sample.People.Length; i++)
@@ -249,13 +319,16 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
                 var id = sample.TrackIdOf(i);
                 if (id < 0) continue;
                 var p = sample.People[i];
-                var confident = p.Score >= PersonTracker.HighScore ? sample.Time : (MediaTime?)null;
+                var firstConfident = p.Score >= PersonTracker.HighScore ? sample.Time : (MediaTime?)null;
+                if (p.Score >= PersonTracker.HighScore) confident[id] = confident.GetValueOrDefault(id) + 1;
                 info[id] = info.TryGetValue(id, out var x)
-                    ? (x.Start, sample.Time, Math.Max(x.Height, p.Box.Height), x.FirstConfident ?? confident)
-                    : (sample.Time, sample.Time, p.Box.Height, confident);
+                    ? (x.Start, sample.Time, Math.Max(x.Height, p.Box.Height), x.FirstConfident ?? firstConfident)
+                    : (sample.Time, sample.Time, p.Box.Height, firstConfident);
             }
         }
+        // A track confidently seen fewer than MinConfident times is a weak false box more often than a person.
         return info.Where(p => p.Value.Height >= MinPersonHeight && p.Value.FirstConfident is not null &&
+                               confident.GetValueOrDefault(p.Key) >= MinConfident &&
                                (p.Value.End - p.Value.Start >= FollowTarget.MinCandidate))
             .OrderByDescending(p => p.Value.Height).ThenBy(p => p.Key)
             .Select(p => (p.Key, p.Value.FirstConfident!.Value, p.Value.End)).ToList();

@@ -36,6 +36,36 @@ public class ClipFollowEditTests
     }
 
     [Fact]
+    public void Follow_on_switches_Occlusion_on_in_the_same_undo_step()
+    {
+        var f = new TimelineFixture();
+        Assert.True(f.Service.AddClip(f.Video(4, FrameRate.Fps30).Id).Success);
+        var clip = f.V1.Clips.OfType<VideoClip>().Single();
+
+        Assert.True(f.Service.SetClipFollow(clip.Id, new FollowSettings(), hideOutlinesBehindPeople: true).Success);
+        Assert.NotNull(clip.Follow);
+        Assert.True(clip.HidesOutlinesBehindPeople);
+        f.UndoRedo.Undo();                                    // one step back: both off
+        Assert.Null(clip.Follow);
+        Assert.False(clip.HidesOutlinesBehindPeople);
+        f.UndoRedo.Redo();
+        Assert.True(clip.HidesOutlinesBehindPeople);
+
+        // The user switches Occlusion off; Follow stays; switching Follow off leaves Occlusion as it is.
+        Assert.True(f.Service.SetClipHidesOutlinesBehindPeople(clip.Id, false).Success);
+        Assert.NotNull(clip.Follow);
+        Assert.True(f.Service.SetClipFollow(clip.Id, null).Success);
+        Assert.False(clip.HidesOutlinesBehindPeople);
+
+        // Occlusion already on: switching Follow on is one Follow step only.
+        Assert.True(f.Service.SetClipHidesOutlinesBehindPeople(clip.Id, true).Success);
+        Assert.True(f.Service.SetClipFollow(clip.Id, new FollowSettings(), hideOutlinesBehindPeople: true).Success);
+        f.UndoRedo.Undo();
+        Assert.Null(clip.Follow);
+        Assert.True(clip.HidesOutlinesBehindPeople);
+    }
+
+    [Fact]
     public void Occlusion_on_and_off_with_undo()
     {
         var f = new TimelineFixture();

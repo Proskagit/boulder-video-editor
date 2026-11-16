@@ -395,6 +395,7 @@ public sealed partial class TimelineViewModel : ViewModelBase
         }
         RefreshStrips();
         RefreshRouteStartMarks();
+        RefreshFollowStrips();
     }
 
     /// <summary>Recomputes every pixel position from the model at the current zoom.</summary>
@@ -709,7 +710,11 @@ public sealed partial class TimelineViewModel : ViewModelBase
 
     private void OnEditingLockChanged()
     {
-        if (_editingLock.IsLocked) CancelGesture();
+        if (_editingLock.IsLocked)
+        {
+            CancelGesture();
+            CancelFollowDrag();
+        }
         OnPropertyChanged(nameof(IsEditingAllowed));
         NotifyLinkCommands();
         SplitAtPlayheadCommand.NotifyCanExecuteChanged();

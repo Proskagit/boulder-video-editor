@@ -59,6 +59,24 @@ Mark each row: ✅ passed / ❌ failed (what happened, the time code) / ⏭ not 
 | D6 | Replace a video file on disk by another (a copy, in a test folder only) and reopen the project | The video is analysed again (a new file) |
 | D7 | An export of a project without Follow / Occlusion (Phase 40–41 check) | Exactly as before: speed, look, the encoder choice |
 
+## F. After the manual check (D061 amendment 1)
+
+The cache of the people analyses is analysed again once (masks v3). Use copies of the D053 project.
+
+| # | Do | Expect |
+|---|---|---|
+| F1 | `video_20260927_101034` with «Скрывать контуры за людьми»; Settings → Таймлайн → «Показывать маски людей в Preview»; play 8–75 s | From about 10 s the mask covers the head, arms and legs during the whole climb (not the T-shirt only); no mask on the black volume at 57–74 s |
+| F2 | The same on `video_20260927_112606` (Occlusion only) | As before: the whole climber; the outlines hidden behind him |
+| F3 | A clip without Follow / Occlusion: switch Follow on | «Скрывать контуры за людьми» switches on too; one Ctrl+Z switches both off; Occlusion can be switched off with Follow on |
+| F4 | Switch Occlusion on first, wait for «Контуры скрываются…», then switch Follow on | No new «Поиск людей» / «Сегментация людей»: Follow is ready at once |
+| F5 | Switch Follow on and, while «Поиск людей … %» runs, switch Occlusion on | The search continues (not restarted), then the segmentation runs once |
+| F6 | Put the playhead in the middle of a clip, «Следить за скалолазом отсюда» | Playback starts; from that frame the camera glides to the climber and follows; before it the clip's own framing; a cyan strip from that frame to the clip's end |
+| F7 | A few seconds later «Остановить слежение здесь» | Playback pauses; the strip ends at that frame; after it the camera glides back to the clip's own framing — no jump at either edge |
+| F8 | Drag the strip's start / end edge left / right on the timeline; Ctrl+Z / Ctrl+Y | The part follows; one undo step per drag; dragged to the clip's edge, the side is open again; «На весь клип» in the Inspector restores the whole clip |
+| F9 | Split the clip inside the part; trim the clip | Each half follows only its piece of the part; a half outside the part shows «Участок слежения лежит вне этого клипа» and no warning in the export |
+| F10 | Save, close, reopen the project; export | The part, Follow and Occlusion are as before; the export looks like the Preview |
+| F11 | Open a project saved by the previous build (v20) | Opens unchanged (Follow on the whole clip); saved as v21 |
+
 ## E. Notes for the owner
 
 - Follow without zoom needs room: the vertical videos on the vertical canvas need Scale above «Заполнить кадр» (D061 §7).

@@ -266,9 +266,13 @@ public sealed class MainWindowViewModel : ViewModelBase
             };
             people.AnalysesChanged += (_, _) => markup.RefreshGeometry();
         }
+        Inspector.FollowPlaybackRequested += (_, play) =>
+        {
+            if (play) Preview.PlayCommand.Execute(null);
+            else Preview.PauseCommand.Execute(null);
+        };
         Inspector.PersonPickRequested += (_, clipId) => Preview.StartPersonPick(clipId);
         Inspector.PersonPickCancelRequested += (_, _) => Preview.CancelPersonPick();
-        Inspector.ShowPeopleMasksChanged += (_, show) => Preview.ShowPeopleMasks = show;
         Preview.PersonPicked += (_, pick) => Inspector.OnPersonPicked(pick.ClipId, pick.SourceTime, pick.Point);
         Preview.PersonPickEnded += (_, _) => Inspector.OnPersonPickEnded();
         // A pick belongs to the shown clip and frame: another selection, Play or a seek ends it.

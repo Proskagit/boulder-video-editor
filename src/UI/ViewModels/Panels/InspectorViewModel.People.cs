@@ -44,8 +44,26 @@ public sealed partial class InspectorViewModel
     public event EventHandler<Guid>? PersonPickRequested;
     public event EventHandler? PersonPickCancelRequested;
 
-    /// <summary>The people's masks shown in the Preview (session only; wired by the main window).</summary>
-    public event EventHandler<bool>? ShowPeopleMasksChanged;
+    /// <summary>D061 amendment 1: «Следить отсюда» plays the timeline (true), «Остановить слежение здесь» pauses it (false) —
+    /// wired by the main window to the Preview.</summary>
+    public event EventHandler<bool>? FollowPlaybackRequested;
+
+    /// <summary>The shortest followed part «Остановить слежение здесь» accepts.</summary>
+    public static readonly MediaTime MinFollowPart = MediaTime.FromSeconds(0.5);
+
+    /// <summary>The clip whose followed part is being set while it plays («Следить отсюда» pressed, «Остановить» not yet).</summary>
+    private Guid? _followRecordingClipId;
+    private MediaTime? _followRecordingFrom;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StopFollowHereCommand))]
+    private bool _isRecordingFollow;
+
+    [ObservableProperty] private string _followRangeText = "";
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(FollowWholeClipCommand))]
+    private bool _hasFollowRange;
 
     [ObservableProperty] private bool _hasPeopleSection;
     [ObservableProperty] private bool _followEnabled;
@@ -55,7 +73,6 @@ public sealed partial class InspectorViewModel
     [ObservableProperty] private bool _hidesOutlinesBehindPeople;
     [ObservableProperty] private string _occlusionStatusText = "";
     [ObservableProperty] private bool _occlusionStatusIsProblem;
-    [ObservableProperty] private bool _showPeopleMasks;
     [ObservableProperty] private bool _isPeopleAnalysing;
     [ObservableProperty] private double _peopleProgressPercent;
     [ObservableProperty] private bool _canRetryPeopleAnalysis;
@@ -75,7 +92,8 @@ public sealed partial class InspectorViewModel
     {
         if (_syncing || _clip is not VideoClip clip || RejectWhileLocked()) return;
         if (value == clip.Follow is not null) return;
-        Apply(_edit.SetClipFollow(clip.Id, value ? new FollowSettings(Smoothness: SmoothnessAt(FollowSmoothnessIndex)) : null));
+        Apply(_edit.SetClipFollow(clip.Id, value ? new FollowSettings(Smoothness: SmoothnessAt(FollowSmoothnessIndex)) : null,
+            hideOutlinesBehindPeople: value ? true : null));
     }
 
     partial void OnFollowSmoothnessIndexChanged(int value)
@@ -90,8 +108,6 @@ public sealed partial class InspectorViewModel
         Apply(_edit.SetClipHidesOutlinesBehindPeople(clip.Id, value));
     }
 
-    partial void OnShowPeopleMasksChanged(bool value) => ShowPeopleMasksChanged?.Invoke(this, value);
-
     private void Apply(Core.Interfaces.TimelineEditResult result)
     {
         if (result.Success) return;
@@ -105,6 +121,74 @@ public sealed partial class InspectorViewModel
         2 => FollowSmoothness.Fast,
         _ => FollowSmoothness.Normal
     };
+
+    /// <summary>
+    /// D061 amendment 1 (like Insta360 Studio): «Следить за скалолазом отсюда» — Follow from the playhead's frame of this clip
+    /// to its end (switching Follow on also switches Occlusion on, one undo step), and the timeline plays so the user watches
+    /// the camera follow; «Остановить слежение здесь» ends the followed part at the frame then shown and pauses. The part is
+    /// then the clip's Follow strip on the timeline (its edges drag). The video's people are analysed once, whole (D061 §5):
+    /// a part made longer later needs no analysis of its own.
+    /// </summary>
+    [RelayCommand]
+    private void FollowFromHere()
+    {
+        if (_clip is not VideoClip clip || RejectWhileLocked()) return;
+        if (PlayheadSourceTime(clip) is not { } at)
+        {
+            _status.Report(Strings.Follow_PlayheadOutside);
+            return;
+        }
+        var follow = (clip.Follow ?? new FollowSettings(Smoothness: SmoothnessAt(FollowSmoothnessIndex))) with { From = at, To = null };
+        if (at <= clip.SourceIn) follow = follow with { From = null };
+        var result = _edit.SetClipFollow(clip.Id, follow, hideOutlinesBehindPeople: clip.Follow is null ? true : null);
+        if (!result.Success)
+        {
+            Apply(result);
+            return;
+        }
+        _followRecordingClipId = clip.Id;
+        _followRecordingFrom = follow.From;
+        IsRecordingFollow = true;
+        _status.Report(Strings.Follow_Recording);
+        FollowPlaybackRequested?.Invoke(this, true);
+    }
+
+    [RelayCommand(CanExecute = nameof(IsRecordingFollow))]
+    private void StopFollowHere()
+    {
+        var clip = _clip as VideoClip;
+        IsRecordingFollow = false;
+        _followRecordingClipId = null;
+        FollowPlaybackRequested?.Invoke(this, false);
+        if (clip?.Follow is not { } follow || RejectWhileLocked()) return;
+        var from = follow.From ?? clip.SourceIn;
+        // The playhead past the clip (it played on): the part runs to the clip's end.
+        var at = PlayheadSourceTime(clip) ?? (Playhead is { } playhead && playhead() >= clip.TimelineEnd ? clip.SourceOut : (MediaTime?)null);
+        if (at is not { } end || end - from < MinFollowPart)
+        {
+            _status.Report(Strings.Follow_PartTooShort);
+            return;
+        }
+        Apply(_edit.SetClipFollow(clip.Id, follow with { To = end >= clip.SourceOut ? null : end }));
+    }
+
+    /// <summary>The followed part back to the whole clip.</summary>
+    [RelayCommand(CanExecute = nameof(HasFollowRange))]
+    private void FollowWholeClip()
+    {
+        if (_clip is not VideoClip { Follow: { } follow } clip || RejectWhileLocked()) return;
+        Apply(_edit.SetClipFollow(clip.Id, follow with { From = null, To = null }));
+    }
+
+    /// <summary>The source time of the playhead's frame in <paramref name="clip"/>; null outside the clip.</summary>
+    private MediaTime? PlayheadSourceTime(VideoClip clip)
+    {
+        if (Playhead is null) return null;
+        var position = Playhead();
+        if (position < clip.TimelineStart || position >= clip.TimelineEnd) return null;
+        var source = Core.Playback.HoldAnimationRule.SourceTimeAt(clip.TimelineStart, clip.SourceIn, clip.Speed, position.ToFrameFloor(_rate), _rate);
+        return source < clip.SourceIn ? clip.SourceIn : source >= clip.SourceOut ? null : source;
+    }
 
     /// <summary>«Выбрать скалолаза»: the Preview shows the people of the shown frame; a click on one picks it.</summary>
     [RelayCommand(CanExecute = nameof(CanPickPerson))]
@@ -153,6 +237,14 @@ public sealed partial class InspectorViewModel
     {
         var clip = _clip as VideoClip;
         HasPeopleSection = clip is not null && _people is not null;
+        if (_followRecordingClipId is { } recording &&
+            (clip?.Id != recording || clip.Follow is not { To: null } follow || follow.From != _followRecordingFrom))
+        {
+            _followRecordingClipId = null;     // another clip, Follow off, or the started part undone / changed: it is over
+            IsRecordingFollow = false;
+        }
+        HasFollowRange = clip?.Follow is { IsWholeClip: false };
+        FollowRangeText = clip?.Follow is { } shown ? RangeText(clip, shown) : "";
         if (clip is null || _people is null)
         {
             IsPeopleAnalysing = false;
@@ -207,6 +299,7 @@ public sealed partial class InspectorViewModel
         {
             FollowState.NeedsTarget => (Strings.Follow_NeedsTarget, true),
             FollowState.TargetNotFound => (Strings.Follow_TargetNotFound, true),
+            FollowState.Unavailable when resolution.Unavailable == FollowUnavailable.OutsideRange => (Strings.Follow_OutsideRange, false),
             FollowState.Unavailable => (resolution.Unavailable switch
             {
                 FollowUnavailable.NoRoom => Strings.Follow_NoRoom,
@@ -218,6 +311,15 @@ public sealed partial class InspectorViewModel
                 : (string.Format(CultureInfo.CurrentCulture, Strings.Follow_FollowingWithGaps, (int)Math.Round(resolution.SeenFraction * 100),
                     resolution.Gaps.Length, string.Join(", ", resolution.Gaps.Take(4).Select(g => GapText(clip, g)))), false)
         };
+    }
+
+    /// <summary>«Участок слежения: 0:12–0:40» in the clip's timeline time, or «на весь клип».</summary>
+    private string RangeText(VideoClip clip, FollowSettings follow)
+    {
+        if (follow.IsWholeClip) return Strings.Follow_WholeClip;
+        return follow.RangeIn(clip.SourceIn, clip.SourceOut) is { } part
+            ? string.Format(CultureInfo.CurrentCulture, Strings.Follow_Part, GapText(clip, new FollowGap(part.From, part.To)))
+            : Strings.Follow_OutsideRange;
     }
 
     /// <summary>A loss in the clip's timeline time («0:12–0:15»).</summary>

@@ -3282,7 +3282,7 @@
     <value>Люди сегментированы. У клипа пока нет контуров зацепок — после разметки они будут скрываться за людьми.</value>
   </data>
   <data name="Inspector_PeopleHeading" xml:space="preserve">
-    <value>Слежение и люди</value>
+    <value>СЛЕЖЕНИЕ И ЛЮДИ</value>
   </data>
   <data name="Inspector_Follow" xml:space="preserve">
     <value>Следить за скалолазом</value>
@@ -3316,5 +3316,44 @@
   </data>
   <data name="Inspector_RetryPeopleAnalysis" xml:space="preserve">
     <value>Повторить анализ</value>
+  </data>
+  <data name="AppSettings_PeopleMasksNote" xml:space="preserve">
+    <value>Диагностика: каждый человек, сегментированный для слежения и скрытия контуров, показывается поверх Preview своим цветом. В экспорт не попадает.</value>
+  </data>
+  <data name="Inspector_FollowFromHere" xml:space="preserve">
+    <value>Следить за скалолазом отсюда</value>
+  </data>
+  <data name="Inspector_FollowFromHereTip" xml:space="preserve">
+    <value>Слежение начинается с кадра под указателем воспроизведения, и таймлайн воспроизводится — видно, как камера следит. Нажмите «Остановить слежение здесь», где слежение должно закончиться. Включение слежения включает и скрытие контуров за людьми (его можно выключить).</value>
+  </data>
+  <data name="Inspector_StopFollowHere" xml:space="preserve">
+    <value>Остановить слежение здесь</value>
+  </data>
+  <data name="Inspector_StopFollowHereTip" xml:space="preserve">
+    <value>Слежение заканчивается на показанном кадре, воспроизведение останавливается. Границы участка потом можно двигать на полоске слежения клипа на таймлайне.</value>
+  </data>
+  <data name="Inspector_FollowWholeClip" xml:space="preserve">
+    <value>На весь клип</value>
+  </data>
+  <data name="Follow_WholeClip" xml:space="preserve">
+    <value>Слежение — на весь клип.</value>
+  </data>
+  <data name="Follow_Part" xml:space="preserve">
+    <value>Участок слежения: {0}.</value>
+  </data>
+  <data name="Follow_OutsideRange" xml:space="preserve">
+    <value>Участок слежения лежит вне этого клипа: клип показывается в своём кадрировании.</value>
+  </data>
+  <data name="Follow_PlayheadOutside" xml:space="preserve">
+    <value>Сначала поставьте указатель воспроизведения на этот клип: слежение начнётся с показанного кадра.</value>
+  </data>
+  <data name="Follow_Recording" xml:space="preserve">
+    <value>Слежение отсюда — нажмите «Остановить слежение здесь», где оно должно закончиться.</value>
+  </data>
+  <data name="Follow_PartTooShort" xml:space="preserve">
+    <value>Участок слежения оставлен до конца клипа: указатель воспроизведения не ушёл хотя бы на полсекунды дальше его начала в этом клипе.</value>
+  </data>
+  <data name="Strip_Follow" xml:space="preserve">
+    <value>Слежение: {0}–{1}</value>
   </data>
 </root>

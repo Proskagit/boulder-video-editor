@@ -101,7 +101,12 @@ public sealed partial class PreviewViewModel : ViewModelBase
         _inOut = inOut;
         // D057 §3.8: the heart rate's display offset; a change shows at once (the export takes the same value).
         _settings = settings;
-        if (_settings is not null) _settings.Changed += (_, _) => { if (!IsSourceMode && !_released) RebuildSnapshot(); };
+        if (_settings is not null) _settings.Changed += (_, _) =>
+        {
+            ShowPeopleMasks = _settings.Current.ShowPeopleMasks;   // D061 amendment 1: a diagnostic setting
+            if (!IsSourceMode && !_released) RebuildSnapshot();
+        };
+        ShowPeopleMasks = _settings?.Current.ShowPeopleMasks ?? false;
         _cameraMotion = cameraMotion;
         if (_cameraMotion is not null)
         {

@@ -3278,7 +3278,7 @@ If you don't save, your changes will be lost.</value>
     <value>The people are segmented. The clip has no hold outlines yet — they will be hidden behind people once marked.</value>
   </data>
   <data name="Inspector_PeopleHeading" xml:space="preserve">
-    <value>Follow and people</value>
+    <value>FOLLOW AND PEOPLE</value>
   </data>
   <data name="Inspector_Follow" xml:space="preserve">
     <value>Follow the climber</value>
@@ -3312,5 +3312,44 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Inspector_RetryPeopleAnalysis" xml:space="preserve">
     <value>Analyse again</value>
+  </data>
+  <data name="AppSettings_PeopleMasksNote" xml:space="preserve">
+    <value>Diagnostics: each person segmented for Follow and for hiding the outlines is shown in its own colour over the Preview. Never exported.</value>
+  </data>
+  <data name="Inspector_FollowFromHere" xml:space="preserve">
+    <value>Follow the climber from here</value>
+  </data>
+  <data name="Inspector_FollowFromHereTip" xml:space="preserve">
+    <value>Follow starts at the playhead's frame of this clip and the timeline plays, so you watch the camera follow. Press «Stop following here» where Follow should end. Switching Follow on also hides the outlines behind people (you can switch that off).</value>
+  </data>
+  <data name="Inspector_StopFollowHere" xml:space="preserve">
+    <value>Stop following here</value>
+  </data>
+  <data name="Inspector_StopFollowHereTip" xml:space="preserve">
+    <value>The followed part ends at the frame now shown; playback pauses. Its edges can then be dragged on the clip's Follow strip in the timeline.</value>
+  </data>
+  <data name="Inspector_FollowWholeClip" xml:space="preserve">
+    <value>Whole clip</value>
+  </data>
+  <data name="Follow_WholeClip" xml:space="preserve">
+    <value>Follow covers the whole clip.</value>
+  </data>
+  <data name="Follow_Part" xml:space="preserve">
+    <value>Followed part: {0}.</value>
+  </data>
+  <data name="Follow_OutsideRange" xml:space="preserve">
+    <value>The followed part of the video is outside this clip: the clip keeps its own framing.</value>
+  </data>
+  <data name="Follow_PlayheadOutside" xml:space="preserve">
+    <value>Put the playhead on this clip first: Follow starts at the frame it shows.</value>
+  </data>
+  <data name="Follow_Recording" xml:space="preserve">
+    <value>Following from here — press «Stop following here» where it should end.</value>
+  </data>
+  <data name="Follow_PartTooShort" xml:space="preserve">
+    <value>The followed part was kept to the clip's end: the playhead was not at least half a second after its start in this clip.</value>
+  </data>
+  <data name="Strip_Follow" xml:space="preserve">
+    <value>Follow: {0}–{1}</value>
   </data>
 </root>

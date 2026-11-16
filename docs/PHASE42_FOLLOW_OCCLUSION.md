@@ -144,3 +144,24 @@ between several masks on about 700 frames). Follow joins three detector tracks o
 | `git diff --check` | clean |
 | Independent phase review (phase-reviewer) | FAIL on the hold markup of a Follow clip (clicks mapped without the Follow position) and on missing gate records — both fixed (`HoldMarkupViewModel.FollowPositionAt`, test `On_a_Follow_clip_the_markup_maps_clicks_where_the_frame_is_drawn`; this section); its should-fix notes done: the masks' analysis version (now 2, the tracks' too), the committed `.pyc` removed and ignored, the docs, a test of a project change during an analysis, the occlusion warning's reason, the line-ending churn of `MainWindow.axaml.cs` reverted |
 
+## 8. Masks v3 after the owner's manual check (D061 amendment 1, 2026-11-16)
+
+Measured by `tools`-side scripts over the analysed frames where the detector sees a person with score ≥ 0.6: **partial** — the
+mask lower than 70 % of the person's box; **torso lost** — under half of the 7 × 7 grid cells around the pose's torso centre in
+the mask. Before: the masks of the previous build (the app's own cache for 101034, the Phase 42 benchmark for the four vertical
+videos); after: masks v3.
+
+| Video | Frames | Partial before → after | Torso lost before → after | Mask ids before → after |
+|---|---|---|---|---|
+| `video_20260927_101034` (D053, wide) | 1 066 | 88.7 % → 1.1 % | 0.6 % → 2.3 % | 2 → 1 (the black-volume object gone) |
+| `video_20260927_112606` (D053) | 539 | — → 0 % | — → 0 % | 1 → 1 |
+| `VID_20251217_191039` | 1 201 | 0 % → 0 % | 0 % → 0 % | 1 → 1 |
+| `VID_20251217_194717` | 531 | 0 % → 0 % | 0 % → 0 % | 1 → 1 |
+| `VID_20251223_195009` | 201 | 0 % → 0 % | 0 % → 0 % | 1 → 1 |
+| `VID_20251223_195901` (several people) | 1 333 | 0.2 % → 0.5 % | 0.9 % → 1.4 % | 4 → 7 |
+
+101034's torso-lost 2.3 % are the moments before the next anchoring (at most every 1.5 s). On `VID_20251223_195901` the three
+new ids are the same passer-by (46–49 s, 64 s, 72–74 s) segmented on each appearance: before, one object stayed alive across his
+absences (11–73 s); now an object with no detected person at its mask for 3 s stops, and his next appearance gets an object of
+its own — the covered area on those frames is the same (contact sheets checked by eye). Analysis time unchanged
+(0.47–0.67× real time). The masks are analysed again once (cache key `masks-v3`).

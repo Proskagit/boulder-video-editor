@@ -518,8 +518,10 @@ IVideoDecoder (1024 px, hardware decoding) ─► PeopleAnalyzer (Core/People)
   `OutlineOcclusion` (the visibility of the outline's pieces), `PeopleAnalyzer` (the two passes), `PeopleAnalyses`.
 - **Interfaces**: `IPeopleVision` / `IPersonSegmenter` (Vision), `IPeopleAnalysisCache` (Media: `PeopleAnalysisCacheStore`,
   `%LOCALAPPDATA%\AiVideoEditor\cache\people`, the camera-motion cache's rules, LRU 2 GB).
-- **Project** (v20): `VideoClip.Follow` (`FollowSettings`: the pick, the smoothness) and `VideoClip.HidesOutlinesBehindPeople`;
-  `ITimelineEditService.SetClipFollow` / `SetClipHidesOutlinesBehindPeople` (one undo step each).
+- **Project** (v20; v21 — D061 amendment 1): `VideoClip.Follow` (`FollowSettings`: the pick, the smoothness, the followed
+  part `From` / `To` in source time) and `VideoClip.HidesOutlinesBehindPeople`; `ITimelineEditService.SetClipFollow` (with
+  Occlusion in the same undo step when Follow switches it on) / `SetClipHidesOutlinesBehindPeople`; `FollowCamera.Limit` (the
+  part, glided in and out); the part's strip on the timeline (`TimelineViewModel.FollowStrip`).
 - **Export**: `ExportPreflightEnvironment.People` (`ExportPeople`): the Preview's analyses; `PeopleAnalysisPending` blocks,
   `FollowUnavailable` / `OcclusionUnavailable` warn.
 - **UI**: the Inspector's «Слежение и люди» (`InspectorViewModel.People`), the Preview's notice, pick and masks

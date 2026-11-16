@@ -65,7 +65,7 @@ public class HeartRateOverlayPersistenceTests
     public void A_v12_file_opens_unchanged_and_is_saved_as_v13()
     {
         var v13 = Save(Build(overlay: false));
-        var v12 = v13.Replace("\"formatVersion\": 20", "\"formatVersion\": 12");
+        var v12 = v13.Replace("\"formatVersion\": 21", "\"formatVersion\": 12");
         Assert.Equal(v13, Save(Load(v12)));
     }
 

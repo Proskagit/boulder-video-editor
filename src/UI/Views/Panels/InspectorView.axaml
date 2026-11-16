@@ -685,6 +685,13 @@
                 <Binding Path="HasPeopleSection"/>
               </controls:InspectorSection.IsVisible>
               <StackPanel x:Name="PeoplePanel" Spacing="6">
+                <!-- D061 amendment 1: Follow from the playhead while the timeline plays, ended where the user stops it. -->
+                <Button x:Name="FollowFromHereButton" Content="{x:Static l:Strings.Inspector_FollowFromHere}" Command="{Binding FollowFromHereCommand}"
+                        IsVisible="{Binding !IsRecordingFollow}" IsEnabled="{Binding IsEditingAllowed}" FontSize="11"
+                        ToolTip.Tip="{x:Static l:Strings.Inspector_FollowFromHereTip}"/>
+                <Button x:Name="StopFollowHereButton" Content="{x:Static l:Strings.Inspector_StopFollowHere}" Command="{Binding StopFollowHereCommand}"
+                        IsVisible="{Binding IsRecordingFollow}" FontSize="11" Classes="accent"
+                        ToolTip.Tip="{x:Static l:Strings.Inspector_StopFollowHereTip}"/>
                 <CheckBox x:Name="FollowToggle" Content="{x:Static l:Strings.Inspector_Follow}" IsChecked="{Binding FollowEnabled, Mode=TwoWay}"
                           IsEnabled="{Binding IsEditingAllowed}" ToolTip.Tip="{x:Static l:Strings.Inspector_FollowTip}"/>
                 <StackPanel Spacing="6" IsVisible="{Binding FollowEnabled}">
@@ -701,6 +708,12 @@
                   </WrapPanel>
                   <TextBlock x:Name="FollowStatus" Text="{Binding FollowStatusText}" TextWrapping="Wrap" FontSize="11" Foreground="#AAAAAA"
                              Classes.problem="{Binding FollowStatusIsProblem}"/>
+                  <WrapPanel Orientation="Horizontal">
+                    <TextBlock x:Name="FollowRange" Text="{Binding FollowRangeText}" TextWrapping="Wrap" FontSize="11" Foreground="#AAAAAA"
+                               VerticalAlignment="Center" Margin="0,0,6,4"/>
+                    <Button x:Name="FollowWholeClipButton" Content="{x:Static l:Strings.Inspector_FollowWholeClip}" Command="{Binding FollowWholeClipCommand}"
+                            IsVisible="{Binding HasFollowRange}" FontSize="11" Margin="0,0,6,4"/>
+                  </WrapPanel>
                 </StackPanel>
                 <CheckBox x:Name="OcclusionToggle" Content="{x:Static l:Strings.Inspector_HideOutlinesBehindPeople}"
                           IsChecked="{Binding HidesOutlinesBehindPeople, Mode=TwoWay}" IsEnabled="{Binding IsEditingAllowed}"
@@ -708,7 +721,6 @@
                 <StackPanel Spacing="6" IsVisible="{Binding HidesOutlinesBehindPeople}">
                   <TextBlock x:Name="OcclusionStatus" Text="{Binding OcclusionStatusText}" TextWrapping="Wrap" FontSize="11" Foreground="#AAAAAA"
                              Classes.problem="{Binding OcclusionStatusIsProblem}"/>
-                  <CheckBox x:Name="ShowMasksToggle" Content="{x:Static l:Strings.Inspector_ShowPeopleMasks}" IsChecked="{Binding ShowPeopleMasks, Mode=TwoWay}"/>
                 </StackPanel>
                 <StackPanel Spacing="4" IsVisible="{Binding IsPeopleAnalysing}">
                   <ProgressBar x:Name="PeopleProgress" Minimum="0" Maximum="100" Value="{Binding PeopleProgressPercent}" Height="4" MinHeight="4"/>

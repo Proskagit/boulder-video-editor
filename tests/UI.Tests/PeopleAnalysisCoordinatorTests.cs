@@ -88,6 +88,67 @@ public sealed class PeopleAnalysisCoordinatorTests : IDisposable
         Assert.NotEmpty(masks.PersonIds);
     });
 
+    // D061 amendment 1 §3: Follow and Occlusion share one analysis of the video — one detection pass (the tracks) and one
+    // segmentation pass (the masks), whichever was switched on first; the decoder opens the file once per pass.
+
+    [Fact]
+    public Task A_Follow_that_switched_Occlusion_on_analyses_the_video_once() => _ui.Run(async () =>
+    {
+        var clip = AddClip(new FollowSettings(), occlusion: true);          // scenario A: one step switched both on
+        var decoder = new Decoder();
+        var vision = new Vision();
+        using var coordinator = new PeopleAnalysisCoordinator(_projects, decoder, vision);
+        await coordinator.IdleAsync();
+        Assert.Equal(PeopleAnalysisState.Ready, coordinator.StatusOf(clip.MediaAssetId, PeopleAnalysisKind.Masks).State);
+        Assert.Equal(2, decoder.Opened);                                     // the tracks, then the masks
+        Assert.Equal(10, vision.Detections);                                 // one detection pass: every 0.1 s of one second
+        Assert.Equal(1, vision.Segmenters);
+
+        // A second clip of the same file (a split half, a copy) with Follow and Occlusion analyses nothing.
+        AddClip(new FollowSettings(), occlusion: true, path: _projects.Current.MediaAssets.Single().FilePath);
+        _projects.NotifyTimelineChanged();
+        await coordinator.IdleAsync();
+        Assert.Equal(2, decoder.Opened);
+        Assert.Equal(1, vision.Segmenters);
+    });
+
+    [Fact]
+    public Task Follow_switched_on_after_Occlusion_reuses_its_analysis() => _ui.Run(async () =>
+    {
+        var clip = AddClip(null, occlusion: true);                           // scenario B
+        var decoder = new Decoder();
+        var vision = new Vision();
+        using var coordinator = new PeopleAnalysisCoordinator(_projects, decoder, vision);
+        await coordinator.IdleAsync();
+        Assert.Equal(2, decoder.Opened);
+
+        clip.Follow = new FollowSettings();
+        _projects.NotifyTimelineChanged();
+        Assert.Equal(PeopleAnalysisState.Ready, coordinator.StatusOf(clip.MediaAssetId, PeopleAnalysisKind.Tracks).State);
+        await coordinator.IdleAsync();
+        Assert.Equal(2, decoder.Opened);
+        Assert.Equal(1, vision.Segmenters);
+    });
+
+    [Fact]
+    public Task Occlusion_switched_on_while_Follows_analysis_runs_never_starts_it_again() => _ui.Run(async () =>
+    {
+        var clip = AddClip(new FollowSettings());                            // scenario C: one after the other, at once
+        var decoder = new Decoder();
+        var vision = new Vision { Delay = TimeSpan.FromMilliseconds(5) };
+        using var coordinator = new PeopleAnalysisCoordinator(_projects, decoder, vision);
+        Assert.Equal(PeopleAnalysisState.Analysing, coordinator.StatusOf(clip.MediaAssetId, PeopleAnalysisKind.Tracks).State);
+        clip.HidesOutlinesBehindPeople = true;
+        _projects.NotifyTimelineChanged();
+        Assert.Equal(PeopleAnalysisState.Analysing, coordinator.StatusOf(clip.MediaAssetId, PeopleAnalysisKind.Tracks).State);
+        Assert.Equal(PeopleAnalysisState.Waiting, coordinator.StatusOf(clip.MediaAssetId, PeopleAnalysisKind.Masks).State);
+        await coordinator.IdleAsync();
+        Assert.Equal(PeopleAnalysisState.Ready, coordinator.StatusOf(clip.MediaAssetId, PeopleAnalysisKind.Masks).State);
+        Assert.Equal(2, decoder.Opened);
+        Assert.Equal(10, vision.Detections);
+        Assert.Equal(1, vision.Segmenters);
+    });
+
     [Fact]
     public Task The_user_cancels_and_retries() => _ui.Run(async () =>
     {
@@ -220,6 +281,8 @@ public sealed class PeopleAnalysisCoordinatorTests : IDisposable
         public string? Missing { get; init; }
         public bool NoGpu { get; init; }
         public TimeSpan Delay { get; init; }
+        public int Detections;
+        public int Segmenters;
         public string ModelId => "fake";
         public InferenceDevice DetectorDevice => InferenceDevice.Gpu;
 
@@ -227,13 +290,18 @@ public sealed class PeopleAnalysisCoordinatorTests : IDisposable
         {
             if (Missing is not null) throw new PeopleModelException(Missing);
             if (Delay > TimeSpan.Zero) Task.Delay(Delay, cancellationToken).GetAwaiter().GetResult();
+            Interlocked.Increment(ref Detections);
             var h = new float[PersonAppearance.Length];
             h[0] = 1;
             return new[] { new PersonDetection(new NormalizedBox(0.4, 0.2, 0.6, 0.8), 0.9f, null, ImmutableArray.Create(h)) };
         }
 
-        public IPersonSegmenter CreateSegmenter(CancellationToken cancellationToken) =>
-            NoGpu ? throw new PeopleModelException("needs a GPU", requiresGpu: true) : new Segmenter();
+        public IPersonSegmenter CreateSegmenter(CancellationToken cancellationToken)
+        {
+            if (NoGpu) throw new PeopleModelException("needs a GPU", requiresGpu: true);
+            Interlocked.Increment(ref Segmenters);
+            return new Segmenter();
+        }
 
         private sealed class Segmenter : IPersonSegmenter
         {

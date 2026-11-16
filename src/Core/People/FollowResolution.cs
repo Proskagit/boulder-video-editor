@@ -40,7 +40,10 @@ public sealed record FollowResolution(FollowState State, FollowTrajectory? Traje
     /// <paramref name="source"/> pixels on <paramref name="canvas"/>.</summary>
     public static FollowResolution For(VideoClip clip, FollowSettings follow, PersonTracks tracks, FrameSize canvas, FrameSize source)
     {
-        var (from, to) = (clip.SourceIn, clip.SourceOut);
+        // D061 amendment 1: only the followed part of the clip; a clip without it keeps its own framing.
+        if (follow.RangeIn(clip.SourceIn, clip.SourceOut) is not { } part)
+            return new FollowResolution(FollowState.Unavailable, null, null, FollowUnavailable.OutsideRange) { SeenFraction = 0 };
+        var (from, to) = part;
         FollowTrajectory? trajectory;
         if (follow.HasTarget)
         {
@@ -59,6 +62,7 @@ public sealed record FollowResolution(FollowState State, FollowTrajectory? Traje
 
         var visual = VisualProperties.Of(clip) ?? VisualProperties.Default;
         var (path, reason) = FollowCamera.Solve(trajectory, canvas, source, visual, follow.Smoothness);
+        if (path is not null) path = FollowCamera.Limit(path, from, to, clip.SourceIn, clip.SourceOut, visual.PositionX, visual.PositionY);
         return new FollowResolution(path is null ? FollowState.Unavailable : FollowState.Following, trajectory, path, reason)
         {
             SeenFraction = seen,
