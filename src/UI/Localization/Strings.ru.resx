@@ -1793,7 +1793,7 @@
     <value>Кадрирование: слева {0} % · сверху {1} % · справа {2} % · снизу {3} %</value>
   </data>
   <data name="Transform_MoveText" xml:space="preserve">
-    <value>Перемещение — перетащите клип; угол меняет масштаб; Shift фиксирует ось; Esc отменяет</value>
+    <value>Перемещение — перетащите клип; угол или Ctrl + колесо меняют масштаб; Shift фиксирует ось; Esc отменяет</value>
   </data>
   <data name="Transform_MoveValue" xml:space="preserve">
     <value>Позиция X {0} пикс. · Y {1} пикс.</value>
@@ -3282,7 +3282,7 @@
     <value>Люди сегментированы. У клипа пока нет контуров зацепок — после разметки они будут скрываться за людьми.</value>
   </data>
   <data name="Inspector_PeopleHeading" xml:space="preserve">
-    <value>Слежение и люди</value>
+    <value>СЛЕЖЕНИЕ И ЛЮДИ</value>
   </data>
   <data name="Inspector_Follow" xml:space="preserve">
     <value>Следить за скалолазом</value>
@@ -3316,5 +3316,77 @@
   </data>
   <data name="Inspector_RetryPeopleAnalysis" xml:space="preserve">
     <value>Повторить анализ</value>
+  </data>
+  <data name="AppSettings_PeopleMasksNote" xml:space="preserve">
+    <value>Диагностика: каждый человек, сегментированный для слежения и скрытия контуров, показывается поверх Preview своим цветом. В экспорт не попадает.</value>
+  </data>
+  <data name="Inspector_FollowFromHere" xml:space="preserve">
+    <value>Следить за скалолазом отсюда</value>
+  </data>
+  <data name="Inspector_FollowFromHereTip" xml:space="preserve">
+    <value>Новый участок слежения начинается с кадра под указателем, и таймлайн воспроизводится: камера сразу ведёт скалолаза (люди участка анализируются с опережением воспроизведения). Нажмите «Остановить слежение здесь», где участок должен закончиться. Каждый участок ведёт своего скалолаза; включение слежения включает и скрытие контуров за людьми (его можно выключить).</value>
+  </data>
+  <data name="Inspector_StopFollowHere" xml:space="preserve">
+    <value>Остановить слежение здесь</value>
+  </data>
+  <data name="Inspector_StopFollowHereTip" xml:space="preserve">
+    <value>Слежение заканчивается на показанном кадре, воспроизведение останавливается. Границы участка потом можно двигать на полоске слежения клипа на таймлайне.</value>
+  </data>
+  <data name="Inspector_FollowWholeClip" xml:space="preserve">
+    <value>На весь клип</value>
+  </data>
+  <data name="Follow_WholeClip" xml:space="preserve">
+    <value>Слежение — на весь клип.</value>
+  </data>
+  <data name="Follow_Part" xml:space="preserve">
+    <value>Участки слежения: {0}.</value>
+  </data>
+  <data name="Follow_OutsideRange" xml:space="preserve">
+    <value>Участок слежения лежит вне этого клипа: клип показывается в своём кадрировании.</value>
+  </data>
+  <data name="Follow_PlayheadOutside" xml:space="preserve">
+    <value>Сначала поставьте указатель воспроизведения на этот клип: слежение начнётся с показанного кадра.</value>
+  </data>
+  <data name="Follow_Recording" xml:space="preserve">
+    <value>Слежение отсюда — нажмите «Остановить слежение здесь», где оно должно закончиться.</value>
+  </data>
+  <data name="Follow_PartTooShort" xml:space="preserve">
+    <value>Участок слежения оставлен до конца клипа: указатель воспроизведения не ушёл хотя бы на полсекунды дальше его начала в этом клипе.</value>
+  </data>
+  <data name="Strip_Follow" xml:space="preserve">
+    <value>Слежение: {0}–{1}</value>
+  </data>
+  <data name="Follow_AlreadyFollowedHere" xml:space="preserve">
+    <value>Указатель уже на участке слежения: двигайте его края на таймлайне или удалите его, чтобы начать новый здесь.</value>
+  </data>
+  <data name="Follow_PickOutsideParts" xml:space="preserve">
+    <value>Этот кадр вне участков слежения: выберите скалолаза на кадре участка.</value>
+  </data>
+  <data name="Follow_AutoChosen" xml:space="preserve">
+    <value>Скалолаз не выбран: ведётся человек, ближайший к камере в начале участка, — «Выбрать скалолаза», чтобы выбрать другого.</value>
+  </data>
+  <data name="Inspector_DeleteFollowPart" xml:space="preserve">
+    <value>Удалить участок</value>
+  </data>
+  <data name="Inspector_DeleteFollowPartTip" xml:space="preserve">
+    <value>Удаляет участок слежения под указателем воспроизведения (последний участок выключает слежение).</value>
+  </data>
+  <data name="Follow_PartProblem" xml:space="preserve">
+    <value>Участок {0}: {1}.</value>
+  </data>
+  <data name="Transform_FollowText" xml:space="preserve">
+    <value>Слежение — тяните кадр, чтобы поставить скалолаза в нужное место кадра (участок под указателем); Ctrl + колесо — масштаб; Esc отменяет</value>
+  </data>
+  <data name="Transform_FollowValue" xml:space="preserve">
+    <value>Скалолаз в кадре: X {0} пикс. · Y {1} пикс. от центра</value>
+  </data>
+  <data name="Inspector_FollowOffset" xml:space="preserve">
+    <value>Скалолаз в кадре</value>
+  </data>
+  <data name="Inspector_FollowOffsetTip" xml:space="preserve">
+    <value>Где стоит скалолаз в кадре на участке слежения под указателем, в пикселях от центра (+X вправо, +Y вниз). Или тяните кадр в Preview.</value>
+  </data>
+  <data name="Transform_CropOnFollow" xml:space="preserve">
+    <value>Обрезка — не на кадре участка слежения (там картинку двигает слежение): поставьте указатель вне участков</value>
   </data>
 </root>

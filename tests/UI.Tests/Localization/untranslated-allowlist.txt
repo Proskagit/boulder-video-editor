@@ -110,6 +110,7 @@ src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Move Heart Rate
 src/UI/ViewModels/Panels/InspectorViewModel.Template.cs	Set Status Moment
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Crop Clip
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Clip
+src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Move Climber in Frame
 src/UI/ViewModels/Panels/PreviewTransformViewModel.cs	Scale Clip
 src/Timeline/TimelineEditService.FitMarks.cs	Propose FIT Marks
 src/Timeline/TimelineEditService.FitMarks.cs	Move FIT Mark
@@ -511,3 +512,6 @@ src/Video/FfmpegEncoderCapabilities.cs	exit code {code}
 src/Project/Persistence/ProjectSerializer.cs	unknown Follow smoothness
 src/Project/Persistence/ProjectSerializer.cs	an incomplete Follow target
 src/Project/Persistence/ProjectSerializer.cs	a Follow target outside the frame
+src/Project/Persistence/ProjectSerializer.cs	a Follow part that ends before it starts
+src/Project/Persistence/ProjectSerializer.cs	Follow parts that overlap or are out of order
+src/Project/Persistence/ProjectSerializer.cs	a Follow offset out of range

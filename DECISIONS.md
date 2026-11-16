@@ -10218,3 +10218,131 @@ failure); «Скрывать контуры за людьми» with its state a
 - The analysis's cost: masks ≈ 0.3–0.6× real time with one or two people, slower with more; it runs once per file and is cached.
 - The speed of the clip (D022): the path is in source time, so at 2× the camera moves twice as fast on the timeline.
 - 120 / 240 fps material, strong shake, low light: not in the test set (research decision 4).
+
+### Amendment 1 — after the owner's manual check *(the owner's task of 2026-11-16 «Phase 42 — Follow & Occlusion: исправления после ручного тестирования»)*
+
+**1. The incomplete person mask — cause and fix.** The owner saw a mask of the T-shirt only on the D053 project (the screenshots
+of `video_20260927_101034`, the wide clip of the same wall; `video_20260927_112606` had full masks). Both clips were analysed
+with the same algorithm and parameters (the cache keys `masks-v2-t2|people-v1|…|1024|666666|640`; all three D053 sources are
+3840 × 2160 without rotation — «vertical» is the project's 2160 × 3840 canvas, not the video). Cause, from the app's own cache:
+on 101034 the climber walks in close to the camera, and the first confident detection (8.3 s) holds only the T-shirt; SAM was
+prompted once with that box, and its memory then kept segmenting the T-shirt for the whole climb (88.7 % of the confidently
+detected frames had a mask under 70 % of the person's height), because an object was prompted again only after a loss.
+112606's climber is whole in the frame at the first detection, so its object was the whole person. A second fault on 101034:
+a weak, short track started an object that drifted onto a black wall volume (57–74 s) and was shown as a person.
+Fix (`PeopleAnalyzer.SegmentAsync`, masks analysis v3, so every video is analysed again once):
+- an object is **anchored again** on its person's detector box (score ≥ 0.6, at most every 1.5 s, never on a box a quarter of
+  which is another person's mask) when its mask is clearly smaller than the box (`Partial`: lower than 70 % or narrower than
+  60 % of it, or IoU < 0.5) or has lost the pose's torso centre (`LostTorso`: a white T-shirt fading into a white wall);
+- an object with no detected person at its mask for 3 s is stopped (`OrphanSteps`); a track needs 5 confident detections to be
+  segmented at all (`MinConfident`).
+Measured on the frames with a confident detection: 101034 partial 88.7 % → 1.1 %, the torso lost 2.3 %, one mask id (was two);
+112606 partial 0 %, torso lost 0 %; the four vertical test videos unchanged (a passer-by on `VID_20251223_195901` now gets a
+new mask id on each appearance) — `docs/PHASE42_FOLLOW_OCCLUSION.md` §8.
+
+**2. One analysis for Follow and Occlusion.** Already so by design, now proven by tests: per video file one detection pass (the
+tracks — Follow, and the masks' prompts) and one segmentation pass (the masks), each keyed by the file and the analysis version,
+shared by every clip of the file and by both functions; whichever is switched on first starts them, the other reuses them (also
+when it is switched on while the first runs), the cache keeps them between sessions. `PeopleAnalysisCoordinatorTests` count the
+decoder opens and the model runs for A (Follow switches Occlusion on), B (Occlusion first, Follow later) and C (Occlusion during
+Follow's analysis): two decodes, one detection pass, one segmenter in every case. Cancel, retry and failures are per pass as
+before.
+
+**3. Follow switches Occlusion on** (product decision, not to be changed without the owner): switching Follow on in the
+Inspector (or «Следить отсюда» on a clip without Follow) also switches «Скрывать контуры за людьми» on, in **one undo step**
+(`SetClipFollow(…, hideOutlinesBehindPeople: true)`). The user can switch Occlusion off afterwards; Occlusion still works alone;
+switching Follow off leaves Occlusion as it is. Existing projects are not changed on opening.
+
+**4. The followed part of a clip** (the owner's comment: like Insta360 Studio). `FollowSettings.From` / `To` — the part's start /
+end in the video's **source time** (null: the clip's start / end), so Trim, Split, Slip and Speed keep it on the same frames; a
+split half without any of it keeps its own framing (`FollowUnavailable.OutsideRange`, not a warning). Outside the part the clip
+keeps its own position; at an edge of the part inside the clip the camera glides from / to it over 0.75 s (smoothstep, at most
+half the part) — never a jump (`FollowCamera.Limit`), in the Preview and the export alike. UX:
+- the Inspector: «Следить за скалолазом отсюда» — Follow from the playhead's frame (Occlusion on, one undo step) and the
+  timeline plays, so the user watches the camera follow; «Остановить слежение здесь» — the part ends at the frame then shown and
+  playback pauses (a second undo step; less than 0.5 s keeps the part open to the clip's end); the part's text and «На весь
+  клип»;
+- the timeline: a cyan strip along the clip's bottom shows the part; its edges drag like a trim (the strip follows the pointer,
+  the release is one undo step, Esc cancels; an edge dragged to the clip's edge opens that side).
+The analysis is of the whole file (§5), so a part made longer needs no further analysis — the Insta360 «analysis while playing»
+is the background analysis with its progress, and the playback shows the result as it is. `project.json` **v21**: the optional
+`follow.fromTicks` / `follow.toTicks`; a v20 file follows whole clips and is saved as v21 with nothing else changed; an older
+build refuses a v21 file as newer.
+
+**5. The people's masks in the Preview** — kept for diagnostics, moved from the Inspector to the application's settings
+(«Настройки → Таймлайн», `UserSettings.ShowPeopleMasks`, off by default, never exported); the mechanism is unchanged.
+
+**6. The Inspector's heading** «СЛЕЖЕНИЕ И ЛЮДИ» in capitals like the other sections.
+
+### Amendment 1, second round — after the owner's second check *(2026-11-16: «два анализа», Insta360 «на лету», several parts)*
+
+**7. Why there were «two analyses», the second the long one.** Two passes by design (D061 §2): the people and their tracks
+(RF-DETR + RTMPose, about 3× real time) for Follow, then every person's mask (SAM 2.1, about 0.5–0.7× real time) for
+Occlusion — switched on with Follow (§3). Both ran over the **whole file** for any part of it: the app's log of the owner's
+run shows `video_20260927_105713` (65 s) tracks 27.5 s, masks 139.6 s for a part of about 10 s. Now
+(`PeopleAnalysisCoordinator`, `PeopleAnalysisNeeds`) only what the clips need is analysed, in chunks of 2 s of source time:
+- the tracks around each followed part (1 s on each side); the masks only where the clip's hold outlines are shown (a route
+  without an animation — the whole clip; with one — from its start to the last contour's disappearance, 0.5 s on each side)
+  while it hides them behind people; no outlines — no masks at all;
+- the followed parts' tracks first, from their start (a masks run gives way the moment a part needs tracks), then the other
+  tracks, then the masks; each chunk is cached (by the file's content, the model and the version), published as soon as it is
+  done and shared by every clip of the file and by Follow and Occlusion; a part made longer analyses only the new chunks; a run
+  nobody needs any more (a part ended by «Остановить», Follow off) stops; the tracks of separate chunks are linked again by one
+  tracker (a person crossing a chunk boundary keeps one track).
+Measured on `video_20260927_101034` (the owner's part 10.6–24.2 s): tracks of 9.6–25.2 s in 6.2 s (the first chunk ready
+1.5 s after the start, then 2.5× faster than playback), masks of 10.6–24.2 s in 26.3 s — about 33 s instead of about 196 s
+for the whole 98 s file.
+
+**8. Insta360-like Follow «на лету».** «Следить за скалолазом отсюда» starts a part at the playhead and plays; the part's
+tracks are analysed from that frame ahead of the playback and published chunk by chunk, so the camera follows at once on the
+frames already analysed (the Preview shows the progress notice only on a frame not analysed yet). Nobody picked: the only
+person of the part, or the person nearest the camera at its start (`FollowTarget.Prominent`: the highest median box of its
+first 2 s, clearly higher — 0.8× — than the next; two about as near: «выберите скалолаза»); «Выбрать скалолаза» works on any
+frame already analysed, also while the analysis runs. The Inspector says when the person was chosen automatically.
+
+**9. Several independent parts per clip** (two routes, two climbers on one clip). `FollowSettings` is now its `Parts`
+(`FollowPart`: `From` / `To` in source time and its own picked person) and the clip's smoothness; the parts are sorted and
+never overlap. «Следить отсюда» on a frame without a part adds a part (up to the next part or the clip's end; on a frame of a
+part it says so and changes nothing); «Остановить» ends the part it started; «Выбрать скалолаза» picks the person of the
+part under the frame; «Удалить участок» deletes the part under the playhead; «На весь клип» makes one part of the whole
+clip. On the timeline each part is its own cyan strip; an edge drags up to the neighbouring part (and meets it exactly).
+The camera (`FollowCamera.Combine`): outside the parts the clip's own framing; a free edge glides 0.75 s inside the part; two
+parts that touch pass from one person to the other over 0.75 s centred on the boundary (no return to the clip's framing in
+between); a part's side at the clip's edge stays open past the cut. `project.json` **v22**: `follow.parts[]`
+(`fromTicks`, `toTicks`, `targetTicks`, `targetX`, `targetY`, each written only when set) and `follow.smoothness`; a v20 file
+(the target on the Follow) is one part on the whole clip, a v21 file (from / to on the Follow — the 0.42.1 test build) one
+part with its range; both are saved as v22; an older build refuses a v22 file as newer; parts out of order or overlapping
+refuse the file.
+
+### Amendment 1, third round — the masks' speed, the climber's place in the frame, the frame dragged in the Preview *(2026-11-16)*
+
+**10. The masks analysis, faster with the same result.** Measured per frame on the owner's part of `video_20260927_101034`
+(204 frames, one person, RTX 4070 SUPER, DirectML): the image encoder 48 ms, the memory attention 34 ms on the GPU + 10 ms of
+CPU rearranging, the image's preprocessing 11 ms on the CPU, the decoder and the memory encoder 10 ms. Now the frames are
+decoded, picked and preprocessed on another thread a few frames ahead (`IPersonSegmenter.Prepare`) while the GPU runs the
+current one, the memory's features are rearranged once when a memory is made (not on each of the up to seven frames that
+attend to it) and the encoder's constant positional encoding once per object. The masks are **byte for byte the same**;
+the part: 27.1 s → 23.4 s (−14 %). What is left is the GPU's own work (the encoder ≈ 10 s, the attention ≈ 7 s). Further
+speed needs the owner's choice (not done): the masks at 10 instead of 15 frames per second (≈ 1.4× — measured: no worse
+partial / torso-lost figures on 101034 and 112606, but a fast hand can be up to 1/20 s off the mask between analysed frames),
+or a float16 image encoder (a new model file to install, its quality to be measured).
+
+**11. The climber's place in the frame** (owner: «скалолаз не по центру, а, например, в правой части кадра»). Each followed
+part has `OffsetX` / `OffsetY` — canvas pixels from the canvas centre (+X right, +Y down), like the clip's Position:
+`FollowCamera.Solve` puts the person's anchor at the centre plus the offset, still clamped so the picture covers the canvas.
+The Inspector shows «Скалолаз в кадре» X / Y (with the draggable labels) for the part under the playhead (the only part
+otherwise). `project.json` **v23**: the part's `offsetX` / `offsetY`, written only when not 0; a v22 file's parts have none;
+an offset beyond the Position's limits refuses the file.
+
+**12. The frame dragged in the Preview** (owner: a click on the picture shows the frame; Ctrl + the wheel scales; the left
+button drags; the text fields stay for exact values). The Move tool of D038 does this; now:
+- a click on a picture in the Preview while paused and no other mode takes the clicks (the hold markup, the climber's pick)
+  selects its clip, turns Move on and the same press drags it (no need to press «Переместить» first); Esc turns it off;
+- Ctrl + the wheel over the Preview scales the selected clip (or the picture under the pointer, which it selects) around its
+  centre, 5 % a notch, within the Scale's limits; the notches of one turn (each within 0.7 s of the last) are one undo step;
+- **which value a drag changes** — the rule shown in the Preview's bar: on a frame of a followed part the camera follows
+  (the clip has Follow and the part follows there), the frame is drawn where Follow puts the picture on that frame and a
+  drag moves **the climber's place in the frame** (the part's offset; «Слежение — тяните кадр, чтобы поставить скалолаза…»,
+  then «Скалолаз в кадре: X … · Y … от центра»); anywhere else the drag moves **the clip's Position** («Перемещение…»).
+  Scale (corners, Ctrl + wheel) is the clip's either way. Each drag is one undo step (`SetClipFollow` with the gesture
+  merges, like the Move tool's steps); Esc, a lost pointer, playback or a save cancel it without a trace.

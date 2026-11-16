@@ -2,6 +2,43 @@
 
 ## Current phase
 
+**Phase 42 — third round (D061 amendment 1 §10–§12, 2026-11-16) — on `fix/phase-42-manual-feedback`, PR #69.** The masks
+analysis 14 % faster with byte-for-byte the same masks (preprocessing ahead on another thread, memories rearranged once;
+the rest is the GPU's own work — 10 fps masks or a float16 encoder left to the owner). Each followed part has the climber's
+place in the frame (offset X / Y, `project.json` v23, Inspector fields). The Preview: a click on a picture turns Move on and
+drags it, Ctrl + the wheel scales (one undo step per turn), on a followed part the drag moves the climber in the frame,
+elsewhere the clip's Position. Phase review: FAIL (Move took the climber's pick clicks) — fixed with a test (the pick turns
+Move off, the overlay yields to other modes); Crop is not offered on a frame Follow places. Gates (2026-11-16): Debug and
+Release `--no-incremental -warnaserror` 0 / 0; Release + `AIVE_HEAVY_TESTS=1` all green (ExportEndToEnd 187 / 0 / 0); Debug
+green apart from the known parallel-load `ExportServiceTests` timing tests (`src/Export` untouched).
+
+**Phase 42 — second round of the owner's check (D061 amendment 1 §7–§9, 2026-11-16) — on `fix/phase-42-manual-feedback`,
+PR #69.** The «second long analysis» was the masks pass over the whole file for a short part: now only what the clips need
+is analysed, in 2 s chunks (the followed parts' tracks first, the masks only where outlines are shown), cached and
+published chunk by chunk — on 101034 about 33 s instead of about 196 s. Follow «на лету»: the camera follows within
+about 1.5 s of «Следить отсюда», ahead of the playback; nobody picked — the person nearest the camera. Several independent
+followed parts per clip (each its own climber, strips, hand-over between touching parts), `project.json` v22. Phase
+review: FAIL (parts that could overlap after a Split and refuse the file, a part's problem hidden by another that follows,
+the tracks analysed past a stopped part) — fixed with tests; masks and tracks also reach past the cut as far as a
+Dissolve / Push shows the clip. Gates (2026-11-16): Debug and Release `-warnaserror` 0 / 0; every Debug suite green apart
+from the known parallel-load flake `ExportServiceTests` (`src/Export` untouched; the suite alone green); Release +
+`AIVE_HEAVY_TESTS=1` — see the PR.
+
+**Phase 42 — fixes after the owner's manual check (D061 amendment 1, 2026-11-16) — on `fix/phase-42-manual-feedback`.**
+The incomplete mask on the D053 wide clip found and fixed (the object prompted once with a T-shirt-only box when the climber
+walked in close; now anchored again on the person's box when the mask is partial or has lost the torso, orphan objects stopped;
+masks v3): partial masks 88.7 % → 1.1 % on `video_20260927_101034`, `video_20260927_112606` unchanged (0 %). One analysis for
+Follow and Occlusion proven by tests (A/B/C). Follow switches Occlusion on (one undo step). The followed part of a clip
+(Insta360-like «Следить отсюда» / «Остановить слежение здесь», a draggable strip on the timeline, glided edges, source time,
+`project.json` v21). The people's masks moved to the settings; the heading in capitals. Details: DECISIONS.md D061 amendment 1,
+`docs/PHASE42_MANUAL_TEST_PLAN.md` §F.
+Gates (2026-11-16): Debug and Release `--no-incremental -warnaserror` 0 / 0; Debug every suite green apart from the known
+parallel-load flake `ExportServiceTests.A_rasterizer_failure_while_the_writer_waits_never_deadlocks`; Release +
+`AIVE_HEAVY_TESTS=1` green apart from it and `ExportServiceTests.A_video_decode_failure_stops_the_export_at_that_frame` (both
+timing tests; `src/Export` untouched; the Export suite alone 6 / 6 green, Debug and Release); ExportEndToEnd heavy 187 / 0 / 0.
+Phase review: FAIL (Esc, the export lock and a lost pointer did not cancel the strip drag; a jump in a Dissolve past an open
+side of the part) — all fixed with tests. Masks v3 measured on six videos (`docs/PHASE42_FOLLOW_OCCLUSION.md` §8).
+
 **Phase 42 — Follow and Occlusion (D061, 2026-11-16) — implemented on `feat/phase-42-follow-occlusion`, PR #68; the owner's
 check open.** Follow: the frame follows the chosen (or the only) climber at the clip's own scale — RF-DETR-M + RTMPose-m every
 0.1 s, `PersonTracker` with an appearance veto, `FollowTarget` (re-identification across losses, never a silent switch),

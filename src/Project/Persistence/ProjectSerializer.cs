@@ -40,7 +40,7 @@ public static class ProjectSerializer
     /// files without the text style and motion, version 7 files with dissolves only; all are saved as version 8. A newer
     /// version is refused, so an older build never drops what it doesn't know on a save.
     /// </summary>
-    public const int CurrentFormatVersion = 20;
+    public const int CurrentFormatVersion = 23;
     public const string RecoveryFormatId = "AiVideoEditor.Recovery";
 
     /// <summary>The first version with fades and anchored transitions (D025).</summary>
@@ -109,6 +109,18 @@ public static class ProjectSerializer
     /// <summary>The first version with a video clip's Follow and Occlusion (D061). A v19 file's clips have neither and are
     /// saved as v20; an older build refuses a v20 file as newer.</summary>
     private const int PeopleVersion = 20;
+
+    /// <summary>The first version with the followed part of a clip (D061 amendment 1). A v20 file's Follow covers the whole
+    /// clip and is saved as v21; an older build refuses a v21 file as newer.</summary>
+    private const int FollowRangeVersion = 21;
+
+    /// <summary>The first version with several followed parts per clip, each with its own person (D061 amendment 1). A v21
+    /// file's Follow is one part and is saved as v22; an older build refuses a v22 file as newer.</summary>
+    private const int FollowPartsVersion = 22;
+
+    /// <summary>The first version with a followed part's offset — where the person stands in the frame (D061 amendment 1). A
+    /// v22 file's parts have none (the centre) and are saved as v23; an older build refuses a v23 file as newer.</summary>
+    private const int FollowOffsetVersion = 23;
 
     /// <summary>Whether a template of <paramref name="kind"/> in a file of <paramref name="formatVersion"/> carries the
     /// heart-rate look and corner: the overlay (v13), a «Боулдер» from v16 (D055 §5).</summary>
@@ -447,11 +459,17 @@ public static class ProjectSerializer
 
     private static FollowDto ToDto(FollowSettings follow) => new()
     {
-        TargetTicks = follow.TargetTime?.Ticks, TargetX = follow.TargetPoint?.X, TargetY = follow.TargetPoint?.Y,
+        Parts = follow.Parts.Select(p => new FollowPartDto
+        {
+            FromTicks = p.From?.Ticks, ToTicks = p.To?.Ticks,
+            TargetTicks = p.TargetTime?.Ticks, TargetX = p.TargetPoint?.X, TargetY = p.TargetPoint?.Y,
+            OffsetX = p.OffsetX == 0 ? null : p.OffsetX, OffsetY = p.OffsetY == 0 ? null : p.OffsetY
+        }).ToList(),
         Smoothness = follow.Smoothness switch { FollowSmoothness.Soft => "soft", FollowSmoothness.Fast => "fast", _ => "normal" }
     };
 
-    private static FollowSettings FromDto(FollowDto dto)
+    /// <summary>v20: one part on the whole clip with the target; v21: one part with its range; v22: the parts.</summary>
+    private static FollowSettings FromDto(FollowDto dto, int formatVersion)
     {
         var smoothness = dto.Smoothness switch
         {
@@ -460,12 +478,41 @@ public static class ProjectSerializer
             "fast" => FollowSmoothness.Fast,
             _ => throw Damaged("unknown Follow smoothness")
         };
-        var given = (dto.TargetTicks is not null ? 1 : 0) + (dto.TargetX is not null ? 1 : 0) + (dto.TargetY is not null ? 1 : 0);
+        if (formatVersion >= FollowPartsVersion)
+        {
+            var parts = (dto.Parts ?? new List<FollowPartDto>()).Select(p => Part(p.FromTicks, p.ToTicks, p.TargetTicks, p.TargetX, p.TargetY, ranged: true)
+                    with { OffsetX = Offset(p.OffsetX, formatVersion), OffsetY = Offset(p.OffsetY, formatVersion) })
+                .ToImmutableArray();
+            if (parts.IsEmpty || !FollowSettings.AreValid(parts)) throw Damaged("Follow parts that overlap or are out of order");
+            return new FollowSettings(parts, smoothness);
+        }
+        var ranged = formatVersion >= FollowRangeVersion;
+        return FollowSettings.Of(Part(dto.FromTicks, dto.ToTicks, dto.TargetTicks, dto.TargetX, dto.TargetY, ranged), smoothness);
+    }
+
+    /// <summary>A part's offset from a v23 file (a v22 file has none); like a Position, within its limits.</summary>
+    private static double Offset(double? value, int formatVersion)
+    {
+        if (formatVersion < FollowOffsetVersion || value is not { } offset) return 0;
+        if (!double.IsFinite(offset) || Math.Abs(offset) > ClipPropertyLimits.MaxPositionMagnitude) throw Damaged("a Follow offset out of range");
+        return offset;
+    }
+
+    private static FollowPart Part(long? fromTicks, long? toTicks, long? targetTicks, double? targetX, double? targetY, bool ranged)
+    {
+        MediaTime? from = null, to = null;
+        if (ranged)
+        {
+            if (fromTicks < 0 || toTicks < 0 || fromTicks >= toTicks) throw Damaged("a Follow part that ends before it starts");
+            from = fromTicks is { } f ? new MediaTime(f) : null;
+            to = toTicks is { } t ? new MediaTime(t) : null;
+        }
+        var given = (targetTicks is not null ? 1 : 0) + (targetX is not null ? 1 : 0) + (targetY is not null ? 1 : 0);
         if (given is not (0 or 3)) throw Damaged("an incomplete Follow target");
-        if (given == 0) return new FollowSettings(Smoothness: smoothness);
-        if (dto.TargetTicks < 0 || !(dto.TargetX is >= 0 and <= 1) || !(dto.TargetY is >= 0 and <= 1))
+        if (given == 0) return new FollowPart(from, to);
+        if (targetTicks < 0 || !(targetX is >= 0 and <= 1) || !(targetY is >= 0 and <= 1))
             throw Damaged("a Follow target outside the frame");
-        return new FollowSettings(new MediaTime(dto.TargetTicks!.Value), new NormalizedPoint(dto.TargetX!.Value, dto.TargetY!.Value), smoothness);
+        return new FollowPart(from, to, new MediaTime(targetTicks!.Value), new NormalizedPoint(targetX!.Value, targetY!.Value));
     }
 
     private static ClipDto ToDto(Clip clip)
@@ -1021,7 +1068,7 @@ public static class ProjectSerializer
                 Background = formatVersion < BackgroundVersion || v.Background is null ? ClipBackground.Black
                     : v.Background == "blur" ? ClipBackground.Blur : throw Damaged("unknown clip background"),
                 // v1–v19: neither (D061).
-                Follow = formatVersion < PeopleVersion || v.Follow is null ? null : FromDto(v.Follow),
+                Follow = formatVersion < PeopleVersion || v.Follow is null ? null : FromDto(v.Follow, formatVersion),
                 HidesOutlinesBehindPeople = formatVersion >= PeopleVersion && v.HidesOutlinesBehindPeople
             },
             AudioClipDto a => new AudioClip { Id = a.Id, MediaAssetId = a.MediaAssetId, Volume = a.Volume, IsMuted = a.IsMuted },

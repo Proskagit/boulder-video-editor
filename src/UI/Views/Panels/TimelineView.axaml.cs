@@ -31,6 +31,9 @@ public partial class TimelineView : UserControl
     private readonly DispatcherTimer _autoScroll = new() { Interval = TimeSpan.FromMilliseconds(16) };
     // D048 §4.2: the strip handle pressed (its gesture runs in the view model like a trim).
     private (TimelineClipViewModel Clip, OverlayStripHandle Handle)? _pressedStrip;
+
+    /// <summary>D061 amendment 1: an edge of a followed part is being dragged.</summary>
+    private bool _pressedFollow;
     private TimelineClipViewModel? _pressedTemplate;   // variant B: the «Боулдер» the strip press was on
     // Variant B (D048 §4.1 / §4.2): the plate (or its overflow) whose cursor and tooltip the pointer currently sets.
     private Control? _stripHoverTarget;
@@ -70,7 +73,7 @@ public partial class TimelineView : UserControl
         TrackRows.PointerExited += (_, _) => ClearStripHover();
         TrackRows.PointerCaptureLost += (_, _) =>
         {
-            if (_pressedClip is not null || _pressedStrip is not null) CancelGesture();
+            if (_pressedClip is not null || _pressedStrip is not null || _pressedFollow) CancelGesture();
             if (_marqueeStarted) CancelMarquee();
         };
 
@@ -120,7 +123,7 @@ public partial class TimelineView : UserControl
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && _viewModel?.IsGestureActive == true)
+        if (e.Key == Key.Escape && (_viewModel?.IsGestureActive == true || _pressedFollow))
         {
             CancelGesture();
             e.Handled = true;
@@ -173,6 +176,16 @@ public partial class TimelineView : UserControl
         }
         if (!e.GetCurrentPoint(TrackRows).Properties.IsLeftButtonPressed) return;
         Focus();
+
+        // D061 amendment 1: an edge of the followed part's strip drags; elsewhere on it the press is the clip's.
+        if (FollowStripOf(e.Source) is { } follow &&
+            _viewModel.BeginFollowDrag(follow.Clip, e.GetPosition(follow.Strip).X, e.GetPosition(ContentRoot).X))
+        {
+            _pressedFollow = true;
+            e.Pointer.Capture(TrackRows);
+            e.Handled = true;
+            return;
+        }
 
         // D048 §4.2: the overlay strip's lane above a video clip — its handles drag, a click selects the orange (§3.9).
         if (StripOf(e.Source) is { } strip)
@@ -294,6 +307,11 @@ public partial class TimelineView : UserControl
     private void OnTracksMoved(object? sender, PointerEventArgs e)
     {
         if (_viewModel is null) return;
+        if (_pressedFollow)
+        {
+            _viewModel.UpdateFollowDrag(e.GetPosition(ContentRoot).X);
+            return;
+        }
         if (_marqueeStarted || _gestureStarted)
         {
             _pointerViewportX = e.GetPosition(ContentScroll).X;
@@ -359,6 +377,13 @@ public partial class TimelineView : UserControl
     {
         if (_viewModel is null) return;
         _autoScroll.Stop();
+        if (_pressedFollow)
+        {
+            _pressedFollow = false;
+            _viewModel.EndFollowDrag();
+            e.Pointer.Capture(null);
+            return;
+        }
         if (_marqueeStarted)
         {
             _marqueeStarted = false;
@@ -436,6 +461,11 @@ public partial class TimelineView : UserControl
         _pressedClip = null;
         _pressedStrip = null;
         _pressedTemplate = null;
+        if (_pressedFollow)
+        {
+            _pressedFollow = false;
+            _viewModel?.CancelFollowDrag();
+        }
         _viewModel?.CancelGesture();
     }
 
@@ -525,6 +555,17 @@ public partial class TimelineView : UserControl
         for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
         {
             if (visual is Control { Tag: "PlateOverflow", DataContext: TimelineClipViewModel plate } panel) return (plate, panel);
+            if (visual is ItemsControl { Name: "TrackRows" }) break;
+        }
+        return null;
+    }
+
+    /// <summary>D061 amendment 1: the followed part's strip <paramref name="source"/> lies in, with its clip, else null.</summary>
+    private static (TimelineClipViewModel Clip, Control Strip)? FollowStripOf(object? source)
+    {
+        for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
+        {
+            if (visual is Control { Tag: "FollowLane", DataContext: TimelineClipViewModel clip } lane) return (clip, lane);
             if (visual is ItemsControl { Name: "TrackRows" }) break;
         }
         return null;

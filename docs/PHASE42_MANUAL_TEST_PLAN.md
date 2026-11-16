@@ -59,6 +59,48 @@ Mark each row: ✅ passed / ❌ failed (what happened, the time code) / ⏭ not 
 | D6 | Replace a video file on disk by another (a copy, in a test folder only) and reopen the project | The video is analysed again (a new file) |
 | D7 | An export of a project without Follow / Occlusion (Phase 40–41 check) | Exactly as before: speed, look, the encoder choice |
 
+## F. After the manual check (D061 amendment 1)
+
+The cache of the people analyses is analysed again once (masks v3). Use copies of the D053 project.
+
+| # | Do | Expect |
+|---|---|---|
+| F1 | `video_20260927_101034` with «Скрывать контуры за людьми»; Settings → Таймлайн → «Показывать маски людей в Preview»; play 8–75 s | From about 10 s the mask covers the head, arms and legs during the whole climb (not the T-shirt only); no mask on the black volume at 57–74 s |
+| F2 | The same on `video_20260927_112606` (Occlusion only) | As before: the whole climber; the outlines hidden behind him |
+| F3 | A clip without Follow / Occlusion: switch Follow on | «Скрывать контуры за людьми» switches on too; one Ctrl+Z switches both off; Occlusion can be switched off with Follow on |
+| F4 | Switch Occlusion on first, wait for «Контуры скрываются…», then switch Follow on | No new «Поиск людей» / «Сегментация людей»: Follow is ready at once |
+| F5 | Switch Follow on and, while «Поиск людей … %» runs, switch Occlusion on | The search continues (not restarted), then the segmentation runs once |
+| F6 | Put the playhead in the middle of a clip, «Следить за скалолазом отсюда» | Playback starts; from that frame the camera glides to the climber and follows; before it the clip's own framing; a cyan strip from that frame to the clip's end |
+| F7 | A few seconds later «Остановить слежение здесь» | Playback pauses; the strip ends at that frame; after it the camera glides back to the clip's own framing — no jump at either edge |
+| F8 | Drag the strip's start / end edge left / right on the timeline; Ctrl+Z / Ctrl+Y | The part follows; one undo step per drag; dragged to the clip's edge, the side is open again; «На весь клип» in the Inspector restores the whole clip |
+| F9 | Split the clip inside the part; trim the clip | Each half follows only its piece of the part; a half outside the part shows «Участок слежения лежит вне этого клипа» and no warning in the export |
+| F10 | Save, close, reopen the project; export | The part, Follow and Occlusion are as before; the export looks like the Preview |
+| F11 | Open a project saved by the previous build (v20) | Opens unchanged (Follow on the whole clip); saved as v22 |
+
+## G. Second check (D061 amendment 1, second round)
+
+| # | Do | Expect |
+|---|---|---|
+| G1 | A long clip (`video_20260927_101034`, 98 s): playhead at 10 s, «Следить за скалолазом отсюда» | Playback starts; within about 2 s the camera follows the climber and keeps following while it plays — no wait for the whole file |
+| G2 | «Остановить слежение здесь» at about 24 s; watch the Inspector's / Preview's progress | The tracks stop at the part (no analysis of the rest of the file); the masks run only where the outlines are shown and finish in well under a minute |
+| G3 | The same clip: playhead at 50 s (after the first part), «Следить отсюда», stop at 60 s | A second cyan strip; the first part unchanged; each part follows its own climber (pick another one in the second part with «Выбрать скалолаза» on a frame of it) |
+| G4 | Playhead inside a part, «Следить отсюда» | «Указатель уже на участке слежения…»; nothing changes |
+| G5 | Drag the first part's end right onto the second part | It stops at the second part's start; where the two meet the camera passes from one climber to the other without going back |
+| G6 | Playhead in a part, «Удалить участок»; Ctrl+Z | The part goes / comes back; the other stays |
+| G7 | Save, reopen (also a project saved by 0.42.1) | The parts and their climbers as before; a 0.42.1 project opens with its one part |
+
+## H. Third round (D061 amendment 1 §10–§12)
+
+| # | Do | Expect |
+|---|---|---|
+| H1 | A clip with Occlusion, a new part (or after clearing the cache): note the masks' time against the previous build | About 15 % faster; the masks look the same |
+| H2 | Pause on a clip (no tool on), click its picture in the Preview and drag | The frame shows, the clip moves with the pointer; the «Переместить» button is on; Esc turns it off |
+| H3 | Ctrl + the wheel over the picture; Ctrl+Z | The clip scales around its centre; one Ctrl+Z undoes the whole turn of the wheel |
+| H4 | Pause on a frame of a followed part (the camera follows), click and drag the picture right | The bar says «Слежение — тяните кадр…»; the climber moves right in the frame and stays there while it plays; the Inspector's «Скалолаз в кадре» X grows; one Ctrl+Z undoes the drag |
+| H5 | Pause between two parts (or on a clip without Follow) and drag | The clip's Position changes, not the climber's place |
+| H6 | Type an exact X / Y in «Скалолаз в кадре»; save, reopen | The climber stands there; kept after reopening (`project.json` v23) |
+| H7 | During the hold markup or «Выбрать скалолаза», click the picture | The markup / the pick get the click (Move does not turn on) |
+
 ## E. Notes for the owner
 
 - Follow without zoom needs room: the vertical videos on the vertical canvas need Scale above «Заполнить кадр» (D061 §7).

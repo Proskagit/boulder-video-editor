@@ -473,6 +473,22 @@
                               <Border Grid.Column="2" Classes="trimHandle" Tag="TrimEnd"/>
                             </Grid>
                           </Border>
+                          <!-- D061 amendment 1: the followed part of the clip, a cyan strip along its bottom; its edges drag. -->
+                          <ItemsControl x:Name="FollowLane" Tag="FollowLane" Classes="canvasItems" ItemsSource="{Binding FollowSegments}"
+                                        IsVisible="{Binding HasFollowStrip}" Height="5" Margin="0,35,0,0" VerticalAlignment="Top"
+                                        HorizontalAlignment="Left" Width="{Binding Width}" ClipToBounds="True">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <Canvas/>
+                              </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate>
+                                <Border Tag="FollowStrip" Width="{Binding Width}" Height="5" Background="#26C6DA" CornerRadius="1"
+                                        Cursor="SizeWestEast" ToolTip.Tip="{Binding Tip}"/>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
                           <!-- Variant B: the parts of the anchored clip's segments outside the plate (an orange before its start or after
                                its end), beside it, translucent and dashed — nothing of the animation is hidden by the plate's bounds. -->
                           <ItemsControl x:Name="PlateOverflow" Tag="PlateOverflow" Classes="canvasItems" ItemsSource="{Binding TemplateOverflow}"

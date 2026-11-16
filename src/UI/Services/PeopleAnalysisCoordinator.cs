@@ -52,13 +52,16 @@ public readonly record struct PeopleAnalysisStatus(PeopleAnalysisState State, do
 }
 
 /// <summary>
-/// The people analyses of the project's videos (D061 §5): whenever a video clip uses Follow (needs the tracks) or hides its
-/// outlines behind people (needs the tracks, then the masks), its video is analysed in the background — one analysis at a
-/// time, the whole file once (so Trim, Split, Slip and Speed never analyse again), never blocking the UI. Like the
-/// camera-motion tracks the results are derived from the video alone, never part of the project (no Undo step): kept in
-/// memory by the file (path, size, last write time) and between sessions in <see cref="IPeopleAnalysisCache"/> by the file's
-/// content, the model and the analysis version — an unchanged video is never analysed again; a replaced, edited or relinked
-/// file is a new analysis.
+/// The people analyses of the project's videos (D061 §5, amendment 1). Only what the clips need is analysed, in chunks of
+/// <see cref="PeopleAnalyzer.ChunkLength"/> of source time (<see cref="PeopleAnalysisNeeds"/>): the tracks around each
+/// followed part, the masks where hold outlines are shown on a clip that hides them behind people — never a whole long file
+/// for a short part. The order: the followed parts' tracks first (from their start, so Follow shows its result while the
+/// video plays — each chunk is published when it is done), then the other tracks, then the masks; a masks run gives way as
+/// soon as a followed part needs tracks. Every chunk is analysed once per file and shared by every clip of the file and by
+/// Follow and Occlusion alike (Trim, Split, Slip, Speed and a longer part reuse the done chunks); the chunks are kept in
+/// memory by the file (path, size, last write time) and between sessions in <see cref="IPeopleAnalysisCache"/> by the
+/// file's content, the model and the analysis version. Like the camera-motion tracks the results are derived from the video
+/// alone, never part of the project (no Undo step).
 /// <para>Progress, the user's cancel and retry (<see cref="Cancel"/>, <see cref="Retry"/>), failures with a message (no
 /// model, no GPU for the masks, a decoder error) — never silent. A project change cancels everything running. Runs on the
 /// caller's (UI) context; the analysis itself on the thread pool.</para>
@@ -70,15 +73,13 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
     private readonly IPeopleVision? _vision;
     private readonly IPeopleAnalysisCache? _cache;
     private readonly ILogger _logger;
-    private readonly Dictionary<Request, object> _results = new();          // PersonTracks / PersonMaskTrack / Failure
-    private readonly HashSet<Request> _cancelled = new();
-    private Dictionary<Guid, (Request? Tracks, Request? Masks)> _wanted = new();
-    private (Request Request, double Progress, CancellationTokenSource Cancel)? _running;
+    private readonly Dictionary<FileKey, FileState> _files = new();
+    private Dictionary<Guid, (FileKey Key, bool Masks)> _assets = new();
+    private Dictionary<FileKey, Want> _wanted = new();
+    private Running? _running;
     private CancellationTokenSource _projectCancel = new();
     private Task? _worker;
     private bool _disposed;
-
-    private sealed record Failure(string Message);
 
     public PeopleAnalysisCoordinator(IProjectService projects, IVideoDecoder decoder, IPeopleVision? vision = null,
         IPeopleAnalysisCache? cache = null, ILogger<PeopleAnalysisCoordinator>? logger = null)
@@ -92,7 +93,7 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
         {
             _projectCancel.Cancel();
             _projectCancel = new CancellationTokenSource();
-            _cancelled.Clear();
+            foreach (var state in _files.Values) state.TracksCancelled = state.MasksCancelled = false;
             Refresh();
         };
         _projects.TimelineChanged += (_, _) => Refresh();
@@ -100,74 +101,109 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
         Refresh();
     }
 
-    /// <summary>Raised on the caller's context when an analysis result appeared or went away.</summary>
+    /// <summary>Raised on the caller's context when an analysis result appeared, grew or went away.</summary>
     public event EventHandler? AnalysesChanged;
 
     /// <summary>Raised on the caller's context whenever a state or a progress may have changed.</summary>
     public event EventHandler? StatusChanged;
 
-    /// <summary>The finished analyses of the project's videos (what the snapshot draws with).</summary>
+    /// <summary>The analyses of the project's videos done so far (what the snapshot draws with) — partial while a part is
+    /// still analysed: Follow follows on the chunks that are done.</summary>
     public PeopleAnalyses Analyses { get; private set; } = PeopleAnalyses.None;
 
-    /// <summary>The key of one analysis: the file (path, size, last write time), its start, HDR rule, nominal rate,
-    /// duration, and the kind.</summary>
-    private sealed record Request(string FilePath, long FileLength, long FileWriteTicks, MediaTime FileStart, HdrConversion? Hdr,
-        FrameRate? NominalRate, MediaTime Duration, PeopleAnalysisKind Kind)
+    /// <summary>A video file: its path, size, last write time, start, HDR rule, nominal rate and duration.</summary>
+    private sealed record FileKey(string FilePath, long FileLength, long FileWriteTicks, MediaTime FileStart, HdrConversion? Hdr,
+        FrameRate? NominalRate, MediaTime Duration)
     {
         public PeopleAnalyzer.Source Source => new(FilePath, FileStart, Hdr, NominalRate, Duration);
 
-        public Request TracksRequest => this with { Kind = PeopleAnalysisKind.Tracks };
-
-        /// <summary>The key between sessions: the file's content instead of its path, the model and the analysis.</summary>
-        public string CacheKey(string fingerprint, string modelId) => string.Join('|',
-            Kind == PeopleAnalysisKind.Tracks ? $"tracks-v{PersonTracks.AnalysisVersion}" : $"masks-v{PersonMaskTrack.AnalysisVersion}-t{PersonTracks.AnalysisVersion}",
+        /// <summary>The key of one chunk between sessions: the file's content instead of its path, the model, the analysis.</summary>
+        public string CacheKey(string fingerprint, string modelId, PeopleAnalysisKind kind, int chunk) => string.Join('|',
+            kind == PeopleAnalysisKind.Tracks ? $"tracks-v{PersonTracks.AnalysisVersion}" : $"masks-v{PersonMaskTrack.AnalysisVersion}-t{PersonTracks.AnalysisVersion}",
             modelId, fingerprint, FileStart.Ticks.ToString(CultureInfo.InvariantCulture), Hdr?.ToString() ?? "sdr",
             PeopleAnalyzer.AnalysisLongSide.ToString(CultureInfo.InvariantCulture),
-            (Kind == PeopleAnalysisKind.Tracks ? PeopleAnalyzer.DetectionInterval : PeopleAnalyzer.MaskInterval).Ticks.ToString(CultureInfo.InvariantCulture),
-            PeopleAnalyzer.MaskLongSide.ToString(CultureInfo.InvariantCulture));
+            (kind == PeopleAnalysisKind.Tracks ? PeopleAnalyzer.DetectionInterval : PeopleAnalyzer.MaskInterval).Ticks.ToString(CultureInfo.InvariantCulture),
+            PeopleAnalyzer.MaskLongSide.ToString(CultureInfo.InvariantCulture),
+            $"chunk{PeopleAnalyzer.ChunkLength.Ticks}", chunk.ToString(CultureInfo.InvariantCulture));
     }
 
-    /// <summary>The state of <paramref name="kind"/> for <paramref name="assetId"/>.</summary>
+    /// <summary>The chunks the clips need of one file: the followed parts' tracks (first), every track, the masks.</summary>
+    private sealed class Want
+    {
+        public SortedSet<int> FollowTracks { get; } = new();
+        public SortedSet<int> Tracks { get; } = new();
+        public SortedSet<int> Masks { get; } = new();
+    }
+
+    /// <summary>What is done for one file (kept across projects): the chunks, their merge, failures, the user's stop.</summary>
+    private sealed class FileState
+    {
+        public Dictionary<int, PersonTracks> Tracks { get; } = new();
+        public Dictionary<int, PersonMaskTrack> Masks { get; } = new();
+        public PersonTracks? MergedTracks { get; set; }
+        public PersonMaskTrack? MergedMasks { get; set; }
+        public bool TracksChanged { get; set; }
+        public bool MasksChanged { get; set; }
+        public string? TracksFailure { get; set; }
+        public string? MasksFailure { get; set; }
+        public bool TracksCancelled { get; set; }
+        public bool MasksCancelled { get; set; }
+    }
+
+    /// <summary>The run being analysed: a contiguous series of chunks of one file and kind.</summary>
+    private sealed record Running(FileKey File, PeopleAnalysisKind Kind, int[] Chunks, bool ForFollow, CancellationTokenSource Cancel)
+    {
+        public HashSet<int> Done { get; } = new();
+    }
+
+    private sealed record Work(FileKey File, PeopleAnalysisKind Kind, int[] Chunks, bool ForFollow);
+
+    private FileState StateOf(FileKey key)
+    {
+        if (!_files.TryGetValue(key, out var state)) _files[key] = state = new FileState();
+        return state;
+    }
+
+    /// <summary>The state of <paramref name="kind"/> for <paramref name="assetId"/>; its progress is the share of the chunks
+    /// the clips need that are done.</summary>
     public PeopleAnalysisStatus StatusOf(Guid assetId, PeopleAnalysisKind kind)
     {
-        if (!_wanted.TryGetValue(assetId, out var wanted)) return new PeopleAnalysisStatus(PeopleAnalysisState.None);
-        var request = kind == PeopleAnalysisKind.Tracks ? wanted.Tracks : wanted.Masks;
-        if (request is null) return new PeopleAnalysisStatus(PeopleAnalysisState.None);
-        if (_results.TryGetValue(request, out var result))
-            return result is Failure f ? new PeopleAnalysisStatus(PeopleAnalysisState.Failed, 0, f.Message) : new PeopleAnalysisStatus(PeopleAnalysisState.Ready, 1);
-        if (_cancelled.Contains(request)) return new PeopleAnalysisStatus(PeopleAnalysisState.Cancelled);
-        if (kind == PeopleAnalysisKind.Masks && _results.TryGetValue(request.TracksRequest, out var tracks) && tracks is Failure tf)
-            return new PeopleAnalysisStatus(PeopleAnalysisState.Failed, 0, tf.Message);
-        if (_cancelled.Contains(request.TracksRequest)) return new PeopleAnalysisStatus(PeopleAnalysisState.Cancelled);
-        return _running is { } running && running.Request == request
-            ? new PeopleAnalysisStatus(PeopleAnalysisState.Analysing, running.Progress)
-            : new PeopleAnalysisStatus(PeopleAnalysisState.Waiting);
+        if (!_assets.TryGetValue(assetId, out var asset) || (kind == PeopleAnalysisKind.Masks && !asset.Masks))
+            return new PeopleAnalysisStatus(PeopleAnalysisState.None);
+        var state = StateOf(asset.Key);
+        var want = _wanted.GetValueOrDefault(asset.Key) ?? new Want();
+        var tracks = kind == PeopleAnalysisKind.Tracks;
+        var failure = tracks ? state.TracksFailure : state.MasksFailure ?? state.TracksFailure;
+        if (failure is not null) return new PeopleAnalysisStatus(PeopleAnalysisState.Failed, 0, failure);
+        var chunks = tracks ? want.Tracks : want.Masks;
+        var missing = tracks ? chunks.Count(k => !state.Tracks.ContainsKey(k)) : chunks.Count(k => !state.Masks.ContainsKey(k));
+        if (missing == 0) return new PeopleAnalysisStatus(PeopleAnalysisState.Ready, 1);
+        var progress = (chunks.Count - missing) / (double)chunks.Count;
+        if (state.TracksCancelled || (!tracks && state.MasksCancelled)) return new PeopleAnalysisStatus(PeopleAnalysisState.Cancelled, progress);
+        return _running is { } running && running.File == asset.Key && running.Kind == kind
+            ? new PeopleAnalysisStatus(PeopleAnalysisState.Analysing, progress)
+            : new PeopleAnalysisStatus(PeopleAnalysisState.Waiting, progress);
     }
 
-    /// <summary>Stops the analyses of <paramref name="assetId"/> (running or waiting); they stay stopped until <see cref="Retry"/>.</summary>
+    /// <summary>Stops the analyses of <paramref name="assetId"/>'s file (running or waiting); they stay stopped until
+    /// <see cref="Retry"/>. The chunks already done are kept.</summary>
     public void Cancel(Guid assetId)
     {
-        if (!_wanted.TryGetValue(assetId, out var wanted)) return;
-        foreach (var request in new[] { wanted.Tracks, wanted.Masks })
-        {
-            if (request is null || _results.ContainsKey(request)) continue;
-            _cancelled.Add(request);
-            if (_running is { } running && running.Request == request) running.Cancel.Cancel();
-        }
+        if (!_assets.TryGetValue(assetId, out var asset)) return;
+        var state = StateOf(asset.Key);
+        state.TracksCancelled = state.MasksCancelled = true;
+        if (_running is { } running && running.File == asset.Key) running.Cancel.Cancel();
         Publish();
     }
 
-    /// <summary>Starts the stopped or failed analyses of <paramref name="assetId"/> again (a model installed meanwhile, a file
-    /// that was busy).</summary>
+    /// <summary>Starts the stopped or failed analyses of <paramref name="assetId"/>'s file again (a model installed meanwhile,
+    /// a file that was busy).</summary>
     public void Retry(Guid assetId)
     {
-        if (!_wanted.TryGetValue(assetId, out var wanted)) return;
-        foreach (var request in new[] { wanted.Tracks, wanted.Masks })
-        {
-            if (request is null) continue;
-            _cancelled.Remove(request);
-            if (_results.TryGetValue(request, out var result) && result is Failure) _results.Remove(request);
-        }
+        if (!_assets.TryGetValue(assetId, out var asset)) return;
+        var state = StateOf(asset.Key);
+        state.TracksCancelled = state.MasksCancelled = false;
+        state.TracksFailure = state.MasksFailure = null;
         Publish();
         StartWorker();
     }
@@ -179,12 +215,12 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
         var pending = new HashSet<Guid>();
         var failedTracks = new Dictionary<Guid, string>();
         var failedMasks = new Dictionary<Guid, string>();
-        foreach (var (assetId, wanted) in _wanted)
+        foreach (var (assetId, asset) in _assets)
         {
             var tracks = StatusOf(assetId, PeopleAnalysisKind.Tracks);
             if (tracks.State == PeopleAnalysisState.Failed) failedTracks[assetId] = tracks.Message ?? "";
             else if (tracks.State != PeopleAnalysisState.Ready) pending.Add(assetId);
-            if (wanted.Masks is null) continue;
+            if (!asset.Masks) continue;
             var masks = StatusOf(assetId, PeopleAnalysisKind.Masks);
             if (masks.State == PeopleAnalysisState.Failed) failedMasks[assetId] = masks.Message ?? "";
             else if (masks.State != PeopleAnalysisState.Ready && tracks.State != PeopleAnalysisState.Failed) pending.Add(assetId);
@@ -196,26 +232,51 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
     {
         if (_disposed) return;
         var project = _projects.Current;
+        var rate = project.Settings.FrameRate;
         var assets = project.MediaAssets.ToDictionary(a => a.Id);
-        var wanted = new Dictionary<Guid, (Request?, Request?)>();
-        foreach (var clip in project.Timeline.VideoTracks.SelectMany(t => t.Clips).OfType<VideoClip>())
+        var byAsset = new Dictionary<Guid, (FileKey, bool)>();
+        var wanted = new Dictionary<FileKey, Want>();
+        foreach (var (clip, track) in project.Timeline.VideoTracks.SelectMany(t => t.Clips.OfType<VideoClip>().Select(c => (c, t))))
         {
             if (clip.Follow is null && !clip.HidesOutlinesBehindPeople) continue;
             if (!assets.TryGetValue(clip.MediaAssetId, out var asset) || asset.IsMissing || asset.Kind != MediaKind.Video ||
                 asset.Metadata is not { } metadata)
                 continue;
             var (length, written) = Stat(asset.FilePath);
-            var tracks = new Request(asset.FilePath, length, written, metadata.StartTime ?? MediaTime.Zero,
-                HdrColor.Classify(asset.Kind, metadata).Conversion, SourceFrameSelector.NominalRate(metadata), metadata.Duration, PeopleAnalysisKind.Tracks);
-            var previous = wanted.GetValueOrDefault(asset.Id);
-            wanted[asset.Id] = (tracks, previous.Item2 ?? (clip.HidesOutlinesBehindPeople ? tracks with { Kind = PeopleAnalysisKind.Masks } : null));
+            var key = new FileKey(asset.FilePath, length, written, metadata.StartTime ?? MediaTime.Zero,
+                HdrColor.Classify(asset.Kind, metadata).Conversion, SourceFrameSelector.NominalRate(metadata), metadata.Duration);
+            if (!wanted.TryGetValue(key, out var want)) wanted[key] = want = new Want();
+            var (before, after) = PeopleAnalysisNeeds.PastTheCut(clip, track.Transitions);
+            foreach (var k in PeopleAnalysisNeeds.Chunks(PeopleAnalysisNeeds.FollowSpans(clip, before, after), metadata.Duration)) want.FollowTracks.Add(k);
+            foreach (var k in PeopleAnalysisNeeds.Chunks(PeopleAnalysisNeeds.MaskSpans(clip, rate, before, after), metadata.Duration)) want.Masks.Add(k);
+            byAsset[asset.Id] = (key, (byAsset.TryGetValue(asset.Id, out var earlier) && earlier.Item2) || clip.HidesOutlinesBehindPeople);
         }
+        foreach (var (key, want) in wanted)
+        {
+            var count = PeopleAnalyzer.ChunkCount(key.Duration);
+            want.Tracks.UnionWith(want.FollowTracks);
+            // The masks' prompts: the tracks of their chunks and of the neighbouring ones.
+            foreach (var k in want.Masks)
+                for (var n = k - 1; n <= k + 1; n++)
+                    if (n >= 0 && n < count) want.Tracks.Add(n);
+        }
+        _assets = byAsset;
         _wanted = wanted;
-        // A running analysis no clip wants any more stops (Follow switched off, the clip deleted).
-        if (_running is { } running && !_wanted.Values.Any(w => w.Tracks == running.Request || w.Masks == running.Request))
-            running.Cancel.Cancel();
+        CheckRunning();
         Publish();
         StartWorker();
+    }
+
+    /// <summary>A run nobody needs any more stops — none of its chunks left is wanted (Follow switched off, a part ended by
+    /// «Остановить», the clip deleted), checked on every change and after every chunk, so it never analyses past the part;
+    /// a run that is not for Follow gives way to a followed part that waits for its tracks (what the user watches first).</summary>
+    private void CheckRunning()
+    {
+        if (_running is not { } running || running.Cancel.IsCancellationRequested) return;
+        var want = _wanted.GetValueOrDefault(running.File);
+        var set = want is null ? null : running.Kind == PeopleAnalysisKind.Tracks ? want.Tracks : want.Masks;
+        var stillWanted = set is not null && running.Chunks.Any(k => !running.Done.Contains(k) && set.Contains(k));
+        if (!stillWanted || (!running.ForFollow && NextWork() is { ForFollow: true })) running.Cancel.Cancel();
     }
 
     private static (long Length, long WriteTicks) Stat(string path)
@@ -233,30 +294,68 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
 
     private void StartWorker()
     {
-        if (!_disposed && (_worker is null || _worker.IsCompleted) && NextRequest() is not null)
+        if (!_disposed && (_worker is null || _worker.IsCompleted) && NextWork() is not null)
             _worker = RunAsync(_projectCancel);
     }
 
-    /// <summary>A wanted analysis without a result that can start: tracks first, masks once their tracks are there.</summary>
-    private Request? NextRequest()
+    /// <summary>The next run: the followed parts' tracks (from their first missing chunk on), the other tracks, then the masks
+    /// whose tracks (their chunk and its wanted neighbours) are done.</summary>
+    private Work? NextWork()
     {
-        foreach (var (tracks, _) in _wanted.Values)
-            if (tracks is not null && !_results.ContainsKey(tracks) && !_cancelled.Contains(tracks)) return tracks;
-        foreach (var (_, masks) in _wanted.Values)
-            if (masks is not null && !_results.ContainsKey(masks) && !_cancelled.Contains(masks) &&
-                _results.TryGetValue(masks.TracksRequest, out var t) && t is PersonTracks)
-                return masks;
+        foreach (var forFollow in new[] { true, false })
+            foreach (var (key, want) in _wanted)
+            {
+                var state = StateOf(key);
+                if (state.TracksCancelled || state.TracksFailure is not null) continue;
+                var run = FirstRun(forFollow ? want.FollowTracks : want.Tracks, k => !state.Tracks.ContainsKey(k));
+                if (run.Length > 0) return new Work(key, PeopleAnalysisKind.Tracks, run, forFollow);
+            }
+        foreach (var (key, want) in _wanted)
+        {
+            var state = StateOf(key);
+            if (state.TracksCancelled || state.MasksCancelled || state.TracksFailure is not null || state.MasksFailure is not null) continue;
+            bool Ready(int k) => !state.Masks.ContainsKey(k) && Enumerable.Range(k - 1, 3)
+                .All(n => !want.Tracks.Contains(n) || state.Tracks.ContainsKey(n));
+            var run = FirstRun(want.Masks, Ready);
+            if (run.Length > 0) return new Work(key, PeopleAnalysisKind.Masks, run, false);
+        }
         return null;
+    }
+
+    /// <summary>The first series of consecutive chunks of <paramref name="wanted"/> that <paramref name="missing"/> holds for.</summary>
+    private static int[] FirstRun(SortedSet<int> wanted, Func<int, bool> missing)
+    {
+        var run = new List<int>();
+        foreach (var k in wanted)
+        {
+            if (run.Count > 0 && (k != run[^1] + 1 || !missing(k))) break;
+            if (run.Count == 0 && !missing(k)) continue;
+            run.Add(k);
+        }
+        return run.ToArray();
     }
 
     private void Publish()
     {
         var tracks = new Dictionary<Guid, PersonTracks>();
         var masks = new Dictionary<Guid, PersonMaskTrack>();
-        foreach (var (assetId, wanted) in _wanted)
+        foreach (var (assetId, asset) in _assets)
         {
-            if (wanted.Tracks is { } t && _results.TryGetValue(t, out var tr) && tr is PersonTracks pt) tracks[assetId] = pt;
-            if (wanted.Masks is { } m && _results.TryGetValue(m, out var mr) && mr is PersonMaskTrack pm) masks[assetId] = pm;
+            var state = StateOf(asset.Key);
+            if (state.TracksChanged)
+            {
+                state.MergedTracks = state.Tracks.Count == 0 ? null
+                    : PersonTracks.Merge(state.Tracks.OrderBy(c => c.Key).Select(c => c.Value), PeopleAnalyzer.DetectionInterval,
+                        state.Tracks.Values.First().ModelId);
+                state.TracksChanged = false;
+            }
+            if (state.MasksChanged)
+            {
+                state.MergedMasks = state.Masks.Count == 0 ? null : PersonMaskTrack.Merge(state.Masks.OrderBy(c => c.Key).Select(c => c.Value).ToList());
+                state.MasksChanged = false;
+            }
+            if (state.MergedTracks is { } t) tracks[assetId] = t;
+            if (asset.Masks && state.MergedMasks is { } m) masks[assetId] = m;
         }
         var changed = !Same(tracks, Analyses.Tracks) || !Same(masks, Analyses.Masks);
         if (changed) Analyses = new PeopleAnalyses(tracks, masks);
@@ -267,73 +366,116 @@ public sealed class PeopleAnalysisCoordinator : IDisposable
     private static bool Same<T>(IReadOnlyDictionary<Guid, T> a, IReadOnlyDictionary<Guid, T> b) where T : class =>
         a.Count == b.Count && a.All(p => b.TryGetValue(p.Key, out var other) && ReferenceEquals(other, p.Value));
 
-    /// <summary>Runs the wanted analyses one at a time until none can start. Hands over to a new worker when work arrived
+    /// <summary>A chunk done (on the caller's context): kept, merged, published at once.</summary>
+    private void Store(FileKey file, PeopleAnalysisKind kind, int chunk, object result, Running? running)
+    {
+        if (_disposed) return;
+        var state = StateOf(file);
+        if (kind == PeopleAnalysisKind.Tracks && result is PersonTracks tracks && state.Tracks.TryAdd(chunk, tracks)) state.TracksChanged = true;
+        else if (kind == PeopleAnalysisKind.Masks && result is PersonMaskTrack masks && state.Masks.TryAdd(chunk, masks)) state.MasksChanged = true;
+        else return;
+        running?.Done.Add(chunk);
+        CheckRunning();
+        Publish();
+    }
+
+    /// <summary>Runs the wanted analyses one run at a time until none can start. Hands over to a new worker when work arrived
     /// meanwhile or the project changed.</summary>
     private async Task RunAsync(CancellationTokenSource project)
     {
-        while (!_disposed && !project.IsCancellationRequested && NextRequest() is { } request)
+        while (!_disposed && !project.IsCancellationRequested && NextWork() is { } work)
         {
             using var cancel = CancellationTokenSource.CreateLinkedTokenSource(project.Token);
-            _running = (request, 0, cancel);
+            var running = new Running(work.File, work.Kind, work.Chunks, work.ForFollow, cancel);
+            _running = running;
             Publish();
-            var progress = new Progress<double>(p =>
-            {
-                if (_running is { } r && r.Request == request && p > r.Progress + 0.004)
-                {
-                    _running = (request, p, r.Cancel);
-                    StatusChanged?.Invoke(this, EventArgs.Empty);
-                }
-            });
-            object? result = null;
-            // Read on this (UI) context: the worker thread never touches the coordinator's dictionaries.
-            var tracks = request.Kind == PeopleAnalysisKind.Masks && _results.TryGetValue(request.TracksRequest, out var t) ? t as PersonTracks : null;
+            // Each chunk reaches this (UI) context as soon as it is done: the worker never touches the coordinator's state.
+            var chunks = new Progress<(int Chunk, object Result)>(r => { if (project == _projectCancel) Store(work.File, work.Kind, r.Chunk, r.Result, running); });
+            var tracks = work.Kind == PeopleAnalysisKind.Masks ? StateOf(work.File).MergedTracks : null;
+            List<(int, object)>? results = null;
+            string? failure = null;
             try
             {
-                result = await Task.Run(() => AnalyseAsync(request, tracks, progress, cancel.Token), cancel.Token);
+                results = await Task.Run(() => AnalyseAsync(work, tracks, chunks, cancel.Token), cancel.Token);
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
             }
             catch (PeopleModelException ex)
             {
-                result = new Failure(ex.Message);
+                failure = ex.Message;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "People analysis ({Kind}) failed for {File}.", request.Kind, request.FilePath);
-                result = new Failure(string.Format(Messages.People_AnalysisFailed, ex.Message));
+                _logger.LogWarning(ex, "People analysis ({Kind}) failed for {File}.", work.Kind, work.File.FilePath);
+                failure = string.Format(Messages.People_AnalysisFailed, ex.Message);
             }
             _running = null;
             if (project != _projectCancel) break;
-            if (result is not null) _results[request] = result;
+            foreach (var (chunk, result) in results ?? new List<(int, object)>()) Store(work.File, work.Kind, chunk, result, null);
+            if (failure is not null)
+            {
+                var state = StateOf(work.File);
+                if (work.Kind == PeopleAnalysisKind.Tracks) state.TracksFailure = failure;
+                else state.MasksFailure = failure;
+            }
             Publish();
         }
         _worker = null;
         StartWorker();
     }
 
-    private async Task<object> AnalyseAsync(Request request, PersonTracks? tracksForMasks, IProgress<double> progress, CancellationToken cancellationToken)
+    /// <summary>One run on the thread pool: the chunks found in the cache are handed on at once; from the first one that is
+    /// not, the rest is analysed in one decoding pass, each chunk saved and handed on when done.</summary>
+    private async Task<List<(int, object)>> AnalyseAsync(Work work, PersonTracks? tracksForMasks, IProgress<(int Chunk, object Result)> report,
+        CancellationToken cancellationToken)
     {
         if (_vision is null) throw new PeopleModelException(string.Format(Messages.People_ModelLoadFailed, nameof(IPeopleVision)));
-        var key = _cache?.Fingerprint(request.FilePath) is { } fingerprint ? request.CacheKey(fingerprint, _vision.ModelId) : null;
+        var results = new List<(int, object)>();
+        var fingerprint = _cache?.Fingerprint(work.File.FilePath);
+        string? Key(int chunk) => fingerprint is null ? null : work.File.CacheKey(fingerprint, _vision.ModelId, work.Kind, chunk);
+        void Done(int chunk, object result)
+        {
+            results.Add((chunk, result));
+            report.Report((chunk, result));
+        }
+
+        var index = 0;
+        for (; index < work.Chunks.Length; index++)
+        {
+            var key = Key(work.Chunks[index]);
+            object? cached = key is null ? null
+                : work.Kind == PeopleAnalysisKind.Tracks ? _cache!.TryLoadTracks(key) : _cache!.TryLoadMasks(key);
+            if (cached is null) break;
+            Done(work.Chunks[index], cached);
+        }
+        if (index == work.Chunks.Length) return results;
+
+        var from = PeopleAnalyzer.ChunkStart(work.Chunks[index]);
+        var to = PeopleAnalyzer.ChunkStart(work.Chunks[^1] + 1);
+        if (to > work.File.Duration) to = work.File.Duration;
         var analyzer = new PeopleAnalyzer(_decoder, _vision);
         var started = System.Diagnostics.Stopwatch.StartNew();
-        if (request.Kind == PeopleAnalysisKind.Tracks)
+        if (work.Kind == PeopleAnalysisKind.Tracks)
         {
-            if (key is not null && _cache!.TryLoadTracks(key) is { } cached) return cached;
-            var tracks = await analyzer.DetectAsync(request.Source, progress, cancellationToken);
-            _logger.LogInformation("People tracks: {File}: {Samples} frames, {Tracks} tracks, {Seconds:F1} s ({Device}).",
-                Path.GetFileName(request.FilePath), tracks.Samples.Length, tracks.Tracks.Length, started.Elapsed.TotalSeconds, _vision.DetectorDevice);
-            if (key is not null) _cache!.SaveTracks(key, tracks);
-            return tracks;
+            await analyzer.DetectRangeAsync(work.File.Source, from, to, (chunk, tracks) =>
+            {
+                if (Key(chunk) is { } key) _cache!.SaveTracks(key, tracks);
+                Done(chunk, tracks);
+            }, null, cancellationToken);
         }
-        if (key is not null && _cache!.TryLoadMasks(key) is { } cachedMasks) return cachedMasks;
-        var masks = await analyzer.SegmentAsync(request.Source, tracksForMasks ?? throw new InvalidOperationException("The masks need the tracks."),
-            progress, cancellationToken);
-        _logger.LogInformation("People masks: {File}: {Samples} frames, {People} people, {Seconds:F1} s.",
-            Path.GetFileName(request.FilePath), masks.Samples.Length, masks.PersonIds.Count(), started.Elapsed.TotalSeconds);
-        if (key is not null) _cache!.SaveMasks(key, masks);
-        return masks;
+        else
+        {
+            await analyzer.SegmentRangeAsync(work.File.Source, tracksForMasks ?? throw new InvalidOperationException("The masks need the tracks."),
+                from, to, (chunk, masks) =>
+                {
+                    if (Key(chunk) is { } key) _cache!.SaveMasks(key, masks);
+                    Done(chunk, masks);
+                }, null, cancellationToken);
+        }
+        _logger.LogInformation("People {Kind}: {File}: {From:F1}–{To:F1} s ({Chunks} chunks), {Seconds:F1} s.", work.Kind,
+            Path.GetFileName(work.File.FilePath), from.TotalSeconds, to.TotalSeconds, work.Chunks.Length - index, started.Elapsed.TotalSeconds);
+        return results;
     }
 
     /// <summary>Completes when no analysis is running or waiting (tests).</summary>

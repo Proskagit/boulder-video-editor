@@ -43,9 +43,9 @@ public sealed class ScrubLabelTests
     {
         var xaml = Inspector();
         var labels = xaml.Descendants().Where(e => e.Name.LocalName == "ScrubLabel").ToList();
-        Assert.Equal(4, labels.Count);
+        Assert.Equal(6, labels.Count);                          // D061 amendment 1: + the climber's place in the frame (X, Y)
         var fields = xaml.Descendants().Where(e => e.Name.LocalName == "CommitNumericUpDown").ToDictionary(e => Name(e) ?? Guid.NewGuid().ToString());
-        foreach (var (box, binding, step) in new[] { ("PositionXBox", "PositionX", "1"), ("PositionYBox", "PositionY", "1"), ("ScaleBox", "ScalePercent", "0.5"), ("RotationBox", "Rotation", "0.5") })
+        foreach (var (box, binding, step) in new[] { ("PositionXBox", "PositionX", "1"), ("PositionYBox", "PositionY", "1"), ("ScaleBox", "ScalePercent", "0.5"), ("RotationBox", "Rotation", "0.5"), ("FollowOffsetXBox", "FollowOffsetX", "1"), ("FollowOffsetYBox", "FollowOffsetY", "1") })
         {
             var label = labels.Single(l => (string?)l.Attribute("Target") == "{Binding #" + box + "}");
             Assert.Equal(step, (string?)label.Attribute("StepPerPixel"));

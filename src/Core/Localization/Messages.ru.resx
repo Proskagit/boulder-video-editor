@@ -1375,4 +1375,7 @@
   <data name="People_MasksUnavailable" xml:space="preserve">
     <value>маски людей недоступны</value>
   </data>
+  <data name="Follow_InvalidParts" xml:space="preserve">
+    <value>Участки слежения перекрылись бы: участок заканчивается до начала следующего.</value>
+  </data>
 </root>

@@ -87,6 +87,7 @@ public sealed partial class TimelineViewModel
     private void Escape()
     {
         if (_marquee is not null) CancelMarquee();
+        else if (IsFollowDragging) CancelFollowDrag();
         else if (IsGestureActive) CancelGesture();
         else ClearSelection();
     }

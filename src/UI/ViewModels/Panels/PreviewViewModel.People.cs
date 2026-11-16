@@ -149,7 +149,12 @@ public sealed partial class PreviewViewModel
         if (clip?.Follow is not { } follow) return null;
         var asset = _projectService.Current.MediaAssets.FirstOrDefault(a => a.Id == clip.MediaAssetId);
         if (PlaybackSnapshotBuilder.DisplaySize(asset?.Metadata) is not { } source) return null;
-        return Resolution(clip, follow, tracks, source).Trajectory?.TrackIds;
+        // The person of the part at the shown frame (each part follows its own), else the first part's.
+        var resolution = Resolution(clip, follow, tracks, source);
+        var shown = Layers.Select(l => l.Layer).OfType<PictureLayer>().FirstOrDefault(l => l.ClipId == clipId);
+        var frame = Layers.FirstOrDefault(l => l.Layer is PictureLayer p && p.ClipId == clipId)?.Frame;
+        var at = shown is not null && frame is not null ? CameraMotionMath.SourceTimeOf(frame.Timestamp, shown.Span.SourceStartTime) : (MediaTime?)null;
+        return (at is { } time ? resolution.TrajectoryAt(time) : null)?.TrackIds ?? resolution.Trajectory?.TrackIds;
     }
 
     private (VideoClip Clip, FollowSettings Follow, VisualProperties? Visual, MediaTime In, MediaTime Out, PersonTracks Tracks, FrameSize Canvas,
@@ -184,6 +189,12 @@ public sealed partial class PreviewViewModel
                 var status = _people.StatusOf(clip.MediaAssetId, PeopleAnalysisKind.Tracks);
                 if (status.State == PeopleAnalysisState.Ready && clip.HidesOutlinesBehindPeople)
                     status = _people.StatusOf(clip.MediaAssetId, PeopleAnalysisKind.Masks);
+                // D061 amendment 1: the parts are analysed chunk by chunk ahead of the playback — a frame already analysed
+                // shows its result (the camera follows), not the analysis's progress.
+                if (status.IsBusy && picture.Frame is { } shown &&
+                    _people.Analyses.Tracks.TryGetValue(clip.MediaAssetId, out var partial) &&
+                    partial.SampleAt(CameraMotionMath.SourceTimeOf(shown.Timestamp, layer.Span.SourceStartTime)) is not null)
+                    status = new PeopleAnalysisStatus(PeopleAnalysisState.Ready, 1);
                 if (status.State == PeopleAnalysisState.Analysing)
                     notice = string.Format(CultureInfo.CurrentCulture, Strings.Preview_PeopleAnalysing, (int)Math.Floor(status.Progress * 100));
                 else if (status.State == PeopleAnalysisState.Waiting)
@@ -191,7 +202,7 @@ public sealed partial class PreviewViewModel
                 else if (clip.Follow is not null && layer.Span.Follow is not null && picture.Frame is { } frame &&
                          _people.Analyses.Tracks.TryGetValue(clip.MediaAssetId, out var tracks) &&
                          PlaybackSnapshotBuilder.DisplaySize(_projectService.Current.MediaAssets.FirstOrDefault(a => a.Id == clip.MediaAssetId)?.Metadata) is { } source &&
-                         Resolution(clip, clip.Follow, tracks, source).Trajectory is { } trajectory &&
+                         Resolution(clip, clip.Follow, tracks, source).TrajectoryAt(CameraMotionMath.SourceTimeOf(frame.Timestamp, layer.Span.SourceStartTime)) is { } trajectory &&
                          !trajectory.IsSeenAt(CameraMotionMath.SourceTimeOf(frame.Timestamp, layer.Span.SourceStartTime)))
                     notice = Strings.Preview_FollowLostHere;
             }

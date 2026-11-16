@@ -128,6 +128,9 @@ public sealed class OnnxPeopleVision : IPeopleVision, IDisposable
             lock (gate) return inner.Step(frame, start, stop, gridWidth, gridHeight, cancellationToken);
         }
 
+        /// <summary>The image's preprocessing touches no model: outside the lock, while another frame's step runs.</summary>
+        public void Prepare(DecodedFrame frame) => inner.Prepare(frame);
+
         public void Dispose() => inner.Dispose();
     }
 

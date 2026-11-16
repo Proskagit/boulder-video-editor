@@ -42,7 +42,9 @@ public sealed record PersonMaskSample(MediaTime Time, ImmutableArray<PersonMaskE
 public sealed class PersonMaskTrack
 {
     /// <summary>Changes whenever the segmentation or the stored data change their meaning.</summary>
-    public const int AnalysisVersion = 2;   // 2: one object per person (PersonRoots), fragments and duplicates suppressed
+    // 2: one object per person (PersonRoots), fragments and duplicates suppressed.
+    // 3 (D061 amendment 1): a partial mask anchored again, orphan objects stopped, MinConfident.
+    public const int AnalysisVersion = 3;
 
     private const int CacheSize = 24;
     private readonly object _gate = new();
@@ -57,6 +59,16 @@ public sealed class PersonMaskTrack
         Interval = interval;
         Samples = samples;
         ModelId = modelId;
+    }
+
+    /// <summary>D061 amendment 1: the masks of a video segmented in chunks, in time order (null without any).</summary>
+    public static PersonMaskTrack? Merge(IReadOnlyCollection<PersonMaskTrack> chunks)
+    {
+        var first = chunks.FirstOrDefault(c => !c.Samples.IsDefaultOrEmpty);
+        if (first is null) return chunks.FirstOrDefault();
+        var samples = chunks.Where(c => c.Width == first.Width && c.Height == first.Height).SelectMany(c => c.Samples).OrderBy(s => s.Time)
+            .ToImmutableArray();
+        return new PersonMaskTrack(first.Width, first.Height, first.Interval, samples, first.ModelId);
     }
 
     public int Width { get; }

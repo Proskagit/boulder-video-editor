@@ -266,9 +266,31 @@ public sealed class MainWindowViewModel : ViewModelBase
             };
             people.AnalysesChanged += (_, _) => markup.RefreshGeometry();
         }
+        // D061 amendment 1: on a followed part the Preview's Move shows the frame where Follow puts it and drags the climber's
+        // place in the frame.
+        if (PreviewTransform is { } transform)
+        {
+            transform.FollowAt = (clip, sourceTime) =>
+            {
+                var project = _projectService.Current;
+                if (clip.Follow is not { } follow || !people.Analyses.Tracks.TryGetValue(clip.MediaAssetId, out var tracks) ||
+                    Core.Playback.PlaybackSnapshotBuilder.DisplaySize(project.MediaAssets.FirstOrDefault(a => a.Id == clip.MediaAssetId)?.Metadata) is not { } source)
+                    return null;
+                var canvas = new Core.Composition.FrameSize(project.Settings.FrameWidth, project.Settings.FrameHeight);
+                var resolution = Core.People.FollowResolution.For(clip, follow, tracks, canvas, source);
+                if (resolution.Path is not { } path || resolution.PartAt(sourceTime) is not { State: Core.People.FollowState.Following } part) return null;
+                var (x, y) = path.At(sourceTime);
+                return (part.Index, x, y);
+            };
+            people.AnalysesChanged += (_, _) => transform.Refresh();
+        }
+        Inspector.FollowPlaybackRequested += (_, play) =>
+        {
+            if (play) Preview.PlayCommand.Execute(null);
+            else Preview.PauseCommand.Execute(null);
+        };
         Inspector.PersonPickRequested += (_, clipId) => Preview.StartPersonPick(clipId);
         Inspector.PersonPickCancelRequested += (_, _) => Preview.CancelPersonPick();
-        Inspector.ShowPeopleMasksChanged += (_, show) => Preview.ShowPeopleMasks = show;
         Preview.PersonPicked += (_, pick) => Inspector.OnPersonPicked(pick.ClipId, pick.SourceTime, pick.Point);
         Preview.PersonPickEnded += (_, _) => Inspector.OnPersonPickEnded();
         // A pick belongs to the shown clip and frame: another selection, Play or a seek ends it.
@@ -308,6 +330,13 @@ public sealed class MainWindowViewModel : ViewModelBase
         transform.IsPlaying = () => Preview.IsPlaying;
         transform.IsSourceMode = () => Preview.IsSourceMode;
         transform.SelectClip = id => Timeline.SelectClipFromPreview(id);
+        // A click on a picture turns Move on (D061 amendment 1) — not while the hold markup or the climber's pick takes clicks.
+        transform.OtherModeActive = () => HoldMarkup?.IsActive == true || Preview.IsPickingPerson;
+        // The climber's pick takes the Preview's clicks: Move turns off when it starts (as with the hold markup).
+        Preview.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(PreviewViewModel.IsPickingPerson) && Preview.IsPickingPerson) transform.TurnOff();
+        };
         Timeline.SelectionChanged += (_, selection) => transform.SetClip(selection?.Clip);
         Timeline.TransitionSelectionChanged += (_, selection) => { if (selection is not null) transform.SetClip(null); };
         MediaBrowser.SelectionChanged += (_, asset) => { if (asset is not null) transform.SetClip(null); };

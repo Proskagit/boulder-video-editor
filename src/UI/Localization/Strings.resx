@@ -1789,7 +1789,7 @@ You can undo this with Undo.</value>
     <value>Crop L {0} % · T {1} % · R {2} % · B {3} %</value>
   </data>
   <data name="Transform_MoveText" xml:space="preserve">
-    <value>Move — drag the clip; a corner scales it; Shift keeps an axis; Esc cancels</value>
+    <value>Move — drag the clip; a corner or Ctrl + the wheel scales it; Shift keeps an axis; Esc cancels</value>
   </data>
   <data name="Transform_MoveValue" xml:space="preserve">
     <value>Position X {0} px · Y {1} px</value>
@@ -3278,7 +3278,7 @@ If you don't save, your changes will be lost.</value>
     <value>The people are segmented. The clip has no hold outlines yet — they will be hidden behind people once marked.</value>
   </data>
   <data name="Inspector_PeopleHeading" xml:space="preserve">
-    <value>Follow and people</value>
+    <value>FOLLOW AND PEOPLE</value>
   </data>
   <data name="Inspector_Follow" xml:space="preserve">
     <value>Follow the climber</value>
@@ -3312,5 +3312,77 @@ If you don't save, your changes will be lost.</value>
   </data>
   <data name="Inspector_RetryPeopleAnalysis" xml:space="preserve">
     <value>Analyse again</value>
+  </data>
+  <data name="AppSettings_PeopleMasksNote" xml:space="preserve">
+    <value>Diagnostics: each person segmented for Follow and for hiding the outlines is shown in its own colour over the Preview. Never exported.</value>
+  </data>
+  <data name="Inspector_FollowFromHere" xml:space="preserve">
+    <value>Follow the climber from here</value>
+  </data>
+  <data name="Inspector_FollowFromHereTip" xml:space="preserve">
+    <value>A new followed part starts at the playhead's frame and the timeline plays: the camera follows the climber at once (the part's people are analysed ahead of the playback). Press «Stop following here» where it should end. Each part follows its own climber; switching Follow on also hides the outlines behind people (you can switch that off).</value>
+  </data>
+  <data name="Inspector_StopFollowHere" xml:space="preserve">
+    <value>Stop following here</value>
+  </data>
+  <data name="Inspector_StopFollowHereTip" xml:space="preserve">
+    <value>The followed part ends at the frame now shown; playback pauses. Its edges can then be dragged on the clip's Follow strip in the timeline.</value>
+  </data>
+  <data name="Inspector_FollowWholeClip" xml:space="preserve">
+    <value>Whole clip</value>
+  </data>
+  <data name="Follow_WholeClip" xml:space="preserve">
+    <value>Follow covers the whole clip.</value>
+  </data>
+  <data name="Follow_Part" xml:space="preserve">
+    <value>Followed parts: {0}.</value>
+  </data>
+  <data name="Follow_OutsideRange" xml:space="preserve">
+    <value>The followed part of the video is outside this clip: the clip keeps its own framing.</value>
+  </data>
+  <data name="Follow_PlayheadOutside" xml:space="preserve">
+    <value>Put the playhead on this clip first: Follow starts at the frame it shows.</value>
+  </data>
+  <data name="Follow_Recording" xml:space="preserve">
+    <value>Following from here — press «Stop following here» where it should end.</value>
+  </data>
+  <data name="Follow_PartTooShort" xml:space="preserve">
+    <value>The followed part was kept to the clip's end: the playhead was not at least half a second after its start in this clip.</value>
+  </data>
+  <data name="Strip_Follow" xml:space="preserve">
+    <value>Follow: {0}–{1}</value>
+  </data>
+  <data name="Follow_AlreadyFollowedHere" xml:space="preserve">
+    <value>The playhead is on a followed part already: drag its edges on the timeline, or delete it to start a new one here.</value>
+  </data>
+  <data name="Follow_PickOutsideParts" xml:space="preserve">
+    <value>This frame is outside the followed parts: pick the climber on a frame of the part.</value>
+  </data>
+  <data name="Follow_AutoChosen" xml:space="preserve">
+    <value>Nobody picked: the person nearest the camera at the part's start is followed — «Pick the climber» to choose another.</value>
+  </data>
+  <data name="Inspector_DeleteFollowPart" xml:space="preserve">
+    <value>Delete this part</value>
+  </data>
+  <data name="Inspector_DeleteFollowPartTip" xml:space="preserve">
+    <value>Deletes the followed part under the playhead (the last part switches Follow off).</value>
+  </data>
+  <data name="Follow_PartProblem" xml:space="preserve">
+    <value>The part {0}: {1}.</value>
+  </data>
+  <data name="Transform_FollowText" xml:space="preserve">
+    <value>Follow — drag the frame to place the climber in it (the followed part under the playhead); Ctrl + the wheel scales; Esc cancels</value>
+  </data>
+  <data name="Transform_FollowValue" xml:space="preserve">
+    <value>Climber in the frame: X {0} px · Y {1} px from the centre</value>
+  </data>
+  <data name="Inspector_FollowOffset" xml:space="preserve">
+    <value>Climber in the frame</value>
+  </data>
+  <data name="Inspector_FollowOffsetTip" xml:space="preserve">
+    <value>Where the climber stands in the frame on the followed part under the playhead, in pixels from the centre (+X right, +Y down). Or drag the frame in the Preview.</value>
+  </data>
+  <data name="Transform_CropOnFollow" xml:space="preserve">
+    <value>Crop — not on a frame of a followed part (Follow moves the picture there): put the playhead outside the parts</value>
   </data>
 </root>

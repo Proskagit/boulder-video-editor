@@ -19,7 +19,11 @@ public enum FollowUnavailable
 
     /// <summary>The picture is not larger than the canvas on any axis at the clip's scale: there is no room to move it —
     /// zoom in (Scale above «Заполнить кадр») to follow.</summary>
-    NoRoom
+    NoRoom,
+
+    /// <summary>D061 amendment 1: the followed part of the video lies outside this clip (a split half, a trimmed clip) — the
+    /// clip keeps its own framing; not a problem.</summary>
+    OutsideRange
 }
 
 /// <summary>
@@ -70,9 +74,100 @@ public static class FollowCamera
     public static readonly MediaTime GlideGap = MediaTime.FromSeconds(1.5);
     public static readonly MediaTime EaseTime = MediaTime.FromSeconds(1.0);
 
+    /// <summary>D061 amendment 1: how long the camera glides from the clip's own framing to the person at the start of the
+    /// followed part (and back at its end) — inside the part, at most half of it.</summary>
+    public static readonly MediaTime RangeEaseTime = MediaTime.FromSeconds(0.75);
+
+    /// <summary>D061 amendment 1: one followed part's camera path limited to <c>[from, to]</c> of a clip showing
+    /// <c>[clipFrom, clipTo]</c> (<see cref="Combine"/> with one part).</summary>
+    public static FollowPath Limit(FollowPath path, MediaTime from, MediaTime to, MediaTime clipFrom, MediaTime clipTo, double ownX, double ownY) =>
+        Combine(new[] { (path, from, to) }, clipFrom, clipTo, ownX, ownY);
+
+    /// <summary>
+    /// D061 amendment 1: the clip's camera path from its followed parts (sorted, non-overlapping, each with its own person's
+    /// path) on a clip that shows <c>[clipFrom, clipTo]</c>. Outside every part the clip's own position (<paramref name="ownX"/>,
+    /// <paramref name="ownY"/>). At a part's edge that is
+    /// <list type="bullet">
+    /// <item>the clip's edge: open beyond it (a Dissolve / Push shows the frames past the cut — the camera keeps following, as
+    /// with Follow on the whole clip);</item>
+    /// <item>another part's edge (two parts that touch): the camera passes from one person to the other over
+    /// <see cref="RangeEaseTime"/> centred on the boundary (the two weights sum to 1 — no return to the clip's framing);</item>
+    /// <item>free: the camera glides between the clip's framing and the person over <see cref="RangeEaseTime"/> inside the part.</item>
+    /// </list>
+    /// Every glide is a smoothstep, at most half of the part — never a jump. One part as the whole clip returns its path.
+    /// </summary>
+    public static FollowPath Combine(IReadOnlyList<(FollowPath Path, MediaTime From, MediaTime To)> parts, MediaTime clipFrom, MediaTime clipTo,
+        double ownX, double ownY)
+    {
+        if (parts.Count == 0) return new FollowPath(ImmutableArray<MediaTime>.Empty, ImmutableArray<double>.Empty, ImmutableArray<double>.Empty);
+        if (parts.Count == 1 && parts[0].From <= clipFrom && parts[0].To >= clipTo) return parts[0].Path;
+        const long touch = TimeSpan.TicksPerMillisecond;
+        var n = parts.Count;
+        var ease = new long[n];
+        for (var i = 0; i < n; i++) ease[i] = Math.Min(RangeEaseTime.Ticks, Math.Max(1, (parts[i].To - parts[i].From).Ticks / 2));
+        var joinedBefore = new bool[n];
+        var joinedAfter = new bool[n];
+        var joinEase = new long[n + 1];                                  // the ease of the boundary between part i-1 and i
+        for (var i = 1; i < n; i++)
+            if (Math.Abs((parts[i].From - parts[i - 1].To).Ticks) <= touch)
+            {
+                joinedBefore[i] = joinedAfter[i - 1] = true;
+                joinEase[i] = Math.Min(ease[i], ease[i - 1]);
+            }
+
+        double Weight(int i, MediaTime t)
+        {
+            var (_, from, to) = parts[i];
+            var w = 1.0;
+            if (joinedBefore[i]) w = Math.Min(w, SmoothStep((t.Ticks - (from.Ticks - joinEase[i] / 2.0)) / joinEase[i]));
+            else if (from > clipFrom)
+            {
+                if (t < from) return 0;
+                w = Math.Min(w, SmoothStep((t - from).Ticks / (double)ease[i]));
+            }
+            if (joinedAfter[i]) w = Math.Min(w, 1 - SmoothStep((t.Ticks - (to.Ticks - joinEase[i + 1] / 2.0)) / joinEase[i + 1]));
+            else if (to < clipTo)
+            {
+                if (t > to) return 0;
+                w = Math.Min(w, SmoothStep((to - t).Ticks / (double)ease[i]));
+            }
+            return w;
+        }
+
+        var times = new SortedSet<MediaTime>(parts.SelectMany(p => p.Path.Times.IsDefault ? Enumerable.Empty<MediaTime>() : p.Path.Times));
+        for (var i = 0; i < n; i++)
+        {
+            var (_, from, to) = parts[i];
+            foreach (var edge in new[] { from, from + new MediaTime(ease[i]), to - new MediaTime(ease[i]), to,
+                         from - new MediaTime(joinEase[i] / 2), from + new MediaTime(joinEase[i] / 2) })
+                times.Add(edge);
+        }
+        var xs = ImmutableArray.CreateBuilder<double>(times.Count);
+        var ys = ImmutableArray.CreateBuilder<double>(times.Count);
+        foreach (var t in times)
+        {
+            double x = ownX, y = ownY;
+            for (var i = 0; i < n; i++)
+            {
+                var w = Weight(i, t);
+                if (w <= 0) continue;
+                var (px, py) = parts[i].Path.At(t);
+                x += (px - ownX) * w;
+                y += (py - ownY) * w;
+            }
+            xs.Add(x);
+            ys.Add(y);
+        }
+        return new FollowPath(times.ToImmutableArray(), xs.MoveToImmutable(), ys.MoveToImmutable())
+        {
+            MovesX = parts.Any(p => p.Path.MovesX),
+            MovesY = parts.Any(p => p.Path.MovesY)
+        };
+    }
+
     /// <summary>The camera path, or null with the reason.</summary>
     public static (FollowPath? Path, FollowUnavailable Reason) Solve(FollowTrajectory trajectory, FrameSize canvas, FrameSize source,
-        VisualProperties visual, FollowSmoothness smoothness)
+        VisualProperties visual, FollowSmoothness smoothness, double offsetX = 0, double offsetY = 0)
     {
         if (Affine2D.QuarterTurns(visual.RotationDegrees) is null) return (null, FollowUnavailable.Rotation);
         var points = trajectory.Points;
@@ -99,8 +194,9 @@ public static class FollowCamera
         {
             var local = new PointD(anchors[i].X * source.Width - crop.X, anchors[i].Y * source.Height - crop.Y);
             var q = centred.Transform.Apply(local);
-            xs[i] = movesX ? Math.Clamp(canvas.Width / 2.0 - q.X, minX, maxX) : visual.PositionX;
-            ys[i] = movesY ? Math.Clamp(canvas.Height / 2.0 - q.Y, minY, maxY) : visual.PositionY;
+            // The person's anchor at the canvas centre moved by the part's offset (D061 amendment 1).
+            xs[i] = movesX ? Math.Clamp(canvas.Width / 2.0 + offsetX - q.X, minX, maxX) : visual.PositionX;
+            ys[i] = movesY ? Math.Clamp(canvas.Height / 2.0 + offsetY - q.Y, minY, maxY) : visual.PositionY;
         }
         var times = points.Select(p => p.Time).ToImmutableArray();
         var sigma = FollowSettings.SigmaOf(smoothness);

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using AiVideoEditor.Core.Color;
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Entities;
 using AiVideoEditor.Core.Interfaces;
 using AiVideoEditor.Core.Motion;
 using AiVideoEditor.Core.Playback;
@@ -34,27 +35,85 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
     /// <summary>The longest loss one mask id spans (<see cref="PersonRoots"/>).</summary>
     public static readonly MediaTime MaxJoinGap = MediaTime.FromSeconds(5);
 
+    /// <summary>The confident detections (≥ <see cref="PersonTracker.HighScore"/>) a track needs to be segmented.</summary>
+    public const int MinConfident = 5;
+
     /// <summary>At most this many people are segmented at once (the largest first).</summary>
     public const int MaxPeople = 6;
 
     /// <summary>The video to analyse: its file, start time (origin of source time), HDR rule, nominal rate and duration.</summary>
     public sealed record Source(string FilePath, MediaTime FileStart, HdrConversion? Hdr, FrameRate? NominalRate, MediaTime Duration);
 
-    /// <summary>Pass 1: the people and their tracks. <paramref name="progress"/> reports 0..1 by source time.</summary>
-    public async Task<PersonTracks> DetectAsync(Source source, IProgress<double>? progress, CancellationToken cancellationToken)
+    /// <summary>D061 amendment 1: the analyses are made, cached and published in chunks of this much source time — only the
+    /// parts of a video the clips need (the followed parts, the stretches where hold outlines are shown), in order from the
+    /// part being followed, so Follow shows its result while the video plays.</summary>
+    public static readonly MediaTime ChunkLength = MediaTime.FromSeconds(2);
+
+    /// <summary>The chunk containing source time <paramref name="time"/>.</summary>
+    public static int ChunkOf(MediaTime time) => (int)Math.Max(0, time.Ticks / ChunkLength.Ticks);
+
+    public static MediaTime ChunkStart(int chunk) => new(chunk * ChunkLength.Ticks);
+
+    /// <summary>The number of chunks of a video of <paramref name="duration"/>.</summary>
+    public static int ChunkCount(MediaTime duration) => duration <= MediaTime.Zero ? 0 : ChunkOf(duration - new MediaTime(1)) + 1;
+
+    /// <summary>Pass 1 over the whole video: the people and their tracks. <paramref name="progress"/> reports 0..1.</summary>
+    public Task<PersonTracks> DetectAsync(Source source, IProgress<double>? progress, CancellationToken cancellationToken) =>
+        DetectRangeAsync(source, MediaTime.Zero, source.Duration, null, progress, cancellationToken);
+
+    /// <summary>
+    /// Pass 1 over <c>[from, to)</c> of the video (decoded from <paramref name="from"/>): the people and their tracks.
+    /// <paramref name="onChunk"/> receives each chunk's detections as soon as the chunk is done (the chunks of the range, an
+    /// empty one past the file's end); <paramref name="progress"/> reports 0..1 over the range.
+    /// </summary>
+    public async Task<PersonTracks> DetectRangeAsync(Source source, MediaTime from, MediaTime to, Action<int, PersonTracks>? onChunk,
+        IProgress<double>? progress, CancellationToken cancellationToken)
     {
         var tracker = new PersonTracker();
         var samples = ImmutableArray.CreateBuilder<PersonSample>();
+        var chunk = new ChunkEmitter<PersonSample>(from, to,
+            onChunk is null ? null : (k, items) => onChunk(k, PersonTracks.Of(DetectionInterval, items, vision.ModelId)));
         var picker = new IntervalPicker(DetectionInterval);
-        await foreach (var (frame, time) in Frames(source, cancellationToken))
+        await foreach (var (frame, time) in Frames(source, from, cancellationToken))
         {
+            if (time < from) continue;
+            if (time >= to) break;
             if (!picker.Take(time)) continue;
             var people = PersonTracker.Suppress(vision.Detect(frame, cancellationToken));
-            samples.Add(new PersonSample(time, people, tracker.Add(time, people)));
-            Report(progress, time, source.Duration);
+            var sample = new PersonSample(time, people, tracker.Add(time, people));
+            samples.Add(sample);
+            chunk.Add(time, sample);
+            Report(progress, time - from, to - from);
         }
+        chunk.Finish();
         progress?.Report(1);
         return PersonTracks.Of(DetectionInterval, samples.ToImmutable(), vision.ModelId);
+    }
+
+    /// <summary>Collects the items of a range chunk by chunk and hands each finished chunk on (empty chunks too).</summary>
+    private sealed class ChunkEmitter<T>(MediaTime from, MediaTime to, Action<int, ImmutableArray<T>>? onChunk)
+    {
+        private int _chunk = ChunkOf(from);
+        private readonly int _last = to > from ? ChunkOf(to - new MediaTime(1)) : ChunkOf(from) - 1;
+        private readonly ImmutableArray<T>.Builder _items = ImmutableArray.CreateBuilder<T>();
+
+        public void Add(MediaTime time, T item)
+        {
+            Advance(ChunkOf(time));
+            _items.Add(item);
+        }
+
+        public void Finish() => Advance(_last + 1);
+
+        private void Advance(int chunk)
+        {
+            while (_chunk < chunk && _chunk <= _last)
+            {
+                onChunk?.Invoke(_chunk, _items.ToImmutable());
+                _items.Clear();
+                _chunk++;
+            }
+        }
     }
 
     /// <summary>
@@ -64,9 +123,25 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
     /// again with the later track's box; so a person keeps one mask id over the video. A detection lying mostly inside the mask
     /// of another person (a cut-off part of them, or somebody behind them) never starts an object, and of two objects whose
     /// masks touch with one inside the other's extent the younger is stopped — one person is never split between two masks.
+    /// <para>Two guards against a wrong object (found on the D053 project's wide clip, D061 amendment 1): a person first seen
+    /// cut off — a climber walking in close to the camera, only the T-shirt in the frame — is started on that part, and the
+    /// model's memory then keeps segmenting the part; so an object whose mask is clearly smaller than its person's confident
+    /// detector box (<see cref="Partial"/>), or whose mask has lost the person's torso (<see cref="LostTorso"/> — a white
+    /// T-shirt fading into a white wall), is <b>anchored again</b> on that box, at most every <see cref="ReanchorSteps"/>,
+    /// never on a box shared with another person's mask. And an object with no detected person at its mask for <see cref="OrphanSteps"/> (a weak
+    /// false box that started it, the model drifting onto a wall volume) is stopped.</para>
     /// </summary>
-    public async Task<PersonMaskTrack> SegmentAsync(Source source, PersonTracks tracks, IProgress<double>? progress, CancellationToken cancellationToken)
+    public Task<PersonMaskTrack> SegmentAsync(Source source, PersonTracks tracks, IProgress<double>? progress, CancellationToken cancellationToken) =>
+        SegmentRangeAsync(source, tracks, MediaTime.Zero, source.Duration, null, progress, cancellationToken);
+
+    /// <summary>Pass 2 over <c>[from, to)</c> (decoded from <paramref name="from"/>; every person present is started there);
+    /// <paramref name="onChunk"/> receives each chunk's masks as soon as the chunk is done.</summary>
+    public async Task<PersonMaskTrack> SegmentRangeAsync(Source source, PersonTracks tracks, MediaTime from, MediaTime to,
+        Action<int, PersonMaskTrack>? onChunk, IProgress<double>? progress, CancellationToken cancellationToken)
     {
+        int? gridWidth = null, gridHeight = null;
+        var chunk = new ChunkEmitter<PersonMaskSample>(from, to,
+            onChunk is null ? null : (k, items) => onChunk(k, new PersonMaskTrack(gridWidth ?? 1, gridHeight ?? 1, MaskInterval, items, vision.ModelId)));
         using var segmenter = vision.CreateSegmenter(cancellationToken);
         var people = SegmentedTracks(tracks);
         var roots = PersonRoots(tracks, people.Select(p => p.Id));
@@ -77,11 +152,37 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
         var active = new Dictionary<int, int>();                       // object (root) → steps not visible
         var order = new Dictionary<int, long>();                        // object → the step it was (re)started at
         var extents = new Dictionary<int, NormalizedBox>();             // object → its visible mask's extent, last step
+        var supported = new Dictionary<int, long>();                    // object → the last step a detected person was at its mask
+        var lastMasks = new Dictionary<int, byte[]>();                  // object → its visible mask, last step
         long step = 0;
-        int? gridWidth = null, gridHeight = null;
-        await foreach (var (frame, time) in Frames(source, cancellationToken))
+        // D061 amendment 1: the frames are decoded, picked and prepared for the segmenter (its CPU preprocessing) on another
+        // thread, a few frames ahead, while the segmenter runs the model on the current one — the same frames, the same result.
+        var ahead = System.Threading.Channels.Channel.CreateBounded<(DecodedFrame Frame, MediaTime Time)>(
+            new System.Threading.Channels.BoundedChannelOptions(3) { SingleReader = true, SingleWriter = true });
+        using var stopAhead = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var producer = Task.Run(async () =>
         {
-            if (!picker.Take(time)) continue;
+            try
+            {
+                await foreach (var (frame, time) in Frames(source, from, stopAhead.Token))
+                {
+                    if (time < from) continue;
+                    if (time >= to) break;
+                    if (!picker.Take(time)) continue;
+                    segmenter.Prepare(frame);
+                    await ahead.Writer.WriteAsync((frame, time), stopAhead.Token);
+                }
+                ahead.Writer.TryComplete();
+            }
+            catch (Exception ex)
+            {
+                ahead.Writer.TryComplete(ex);
+            }
+        }, CancellationToken.None);
+        try
+        {
+        await foreach (var (frame, time) in ahead.Reader.ReadAllAsync(cancellationToken))
+        {
             step++;
             if (gridWidth is null)
             {
@@ -102,10 +203,21 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
                     if (active.Count < MaxPeople) start[root] = seen.Box;          // a new person, or a person coming back
                 }
                 else if (missing >= 3) start[root] = seen.Box;                     // lost by the segmenter, seen by the detector
+                else if (missing == 0 && seen.Score >= ReanchorScore && step - order[root] >= ReanchorSteps &&
+                         extents.TryGetValue(root, out var extent) && !OverlapsAnother(seen.Box, extents, root) &&
+                         (Partial(extent, seen.Box) ||
+                          (seen.Torso is { } torso && lastMasks.TryGetValue(root, out var last) && LostTorso(last, torso, gridWidth ?? 1, gridHeight ?? 1))))
+                    start[root] = seen.Box;                                        // the mask holds only a part of the person
             }
-            var stop = active.Where(a => a.Value >= 5 && time > lastSeenOf[a.Key] + MediaTime.FromSeconds(1)).Select(a => a.Key).ToList();
+            // Supported: a detected person (any score, any track) at the object's mask — else, after OrphanSteps, it goes.
+            if (tracks.SampleAt(time) is { } detected)
+                foreach (var (id, extent) in extents)
+                    if (detected.People.Any(p => p.Box.IoU(extent) >= 0.3 || extent.Contains(p.Box.Center))) supported[id] = step;
+            var stop = active.Where(a => (a.Value >= 5 && time > lastSeenOf[a.Key] + MediaTime.FromSeconds(1)) ||
+                                         step - supported.GetValueOrDefault(a.Key, step) >= OrphanSteps)
+                .Select(a => a.Key).Where(id => !start.ContainsKey(id)).ToList();
             foreach (var id in stop) { active.Remove(id); extents.Remove(id); }
-            foreach (var id in start.Keys) { active[id] = 0; order[id] = step; lastSeenOf[id] = trackEnd[id]; }
+            foreach (var id in start.Keys) { active[id] = 0; order[id] = step; supported[id] = step; lastSeenOf[id] = trackEnd[id]; }
 
             var result = segmenter.Step(frame, start.Select(p => new SegmenterPrompt(p.Key, p.Value)).ToList(), stop, gridWidth ?? 1,
                 gridHeight ?? 1, cancellationToken);
@@ -130,11 +242,71 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
             var entries = ImmutableArray.CreateBuilder<PersonMaskEntry>();
             foreach (var (id, coverage) in masks.OrderBy(m => m.Key))
                 if (MaskCodec.Entry(id, coverage, gridWidth ?? 1, gridHeight ?? 1) is { } entry) entries.Add(entry);
-            samples.Add(new PersonMaskSample(time, entries.ToImmutable()));
-            Report(progress, time, source.Duration);
+            var sample = new PersonMaskSample(time, entries.ToImmutable());
+            samples.Add(sample);
+            chunk.Add(time, sample);
+            lastMasks = masks;
+            Report(progress, time - from, to - from);
         }
+        }
+        finally
+        {
+            stopAhead.Cancel();
+            try
+            {
+                await producer;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+        chunk.Finish();
         progress?.Report(1);
         return new PersonMaskTrack(gridWidth ?? 1, gridHeight ?? 1, MaskInterval, samples.ToImmutable(), vision.ModelId);
+    }
+
+    /// <summary>A person's detection at least this confident anchors its object again (<see cref="Partial"/>).</summary>
+    public const float ReanchorScore = 0.6f;
+
+    /// <summary>At most one anchoring of an object per this many mask steps (1.5 s at 15 Hz).</summary>
+    public const int ReanchorSteps = 22;
+
+    /// <summary>An object without a detected person at its mask for this many steps (3 s) is stopped.</summary>
+    public const int OrphanSteps = 45;
+
+    /// <summary>Whether a mask's <paramref name="extent"/> holds only a part of the person in <paramref name="box"/> (its
+    /// confident, uncut detector box): clearly lower or narrower than the box, or hardly overlapping it. A whole person's mask
+    /// spans the box (the box is the person's extent); a T-shirt alone is about half as high.</summary>
+    public static bool Partial(NormalizedBox extent, NormalizedBox box) =>
+        extent.Height < 0.7 * box.Height || extent.Width < 0.6 * box.Width || extent.IoU(box) < 0.5;
+
+    /// <summary>Whether a person's <paramref name="mask"/> has lost its torso: under half of the grid cells within
+    /// <see cref="TorsoReach"/> of the pose's torso centre <paramref name="torso"/> belong to the mask (a mask with a hole
+    /// where the body is).</summary>
+    public static bool LostTorso(byte[] mask, NormalizedPoint torso, int width, int height)
+    {
+        int cx = (int)(torso.X * width), cy = (int)(torso.Y * height), inside = 0, all = 0;
+        for (var y = cy - TorsoReach; y <= cy + TorsoReach; y++)
+            for (var x = cx - TorsoReach; x <= cx + TorsoReach; x++)
+            {
+                if (x < 0 || y < 0 || x >= width || y >= height) continue;
+                all++;
+                if (mask[y * width + x] >= 128) inside++;
+            }
+        return all > 0 && inside * 2 < all;
+    }
+
+    /// <summary>The half side (grid cells, of <see cref="MaskLongSide"/>) of the square around the torso centre.</summary>
+    public const int TorsoReach = 3;
+
+    /// <summary>Whether another object's mask covers a quarter of <paramref name="box"/> or more (then the box may hold that
+    /// person too, and anchoring on it could take them in).</summary>
+    public static bool OverlapsAnother(NormalizedBox box, IReadOnlyDictionary<int, NormalizedBox> extents, int self)
+    {
+        if (box.Area <= 0) return false;
+        foreach (var (id, extent) in extents)
+            if (id != self && Intersection(box, extent) >= 0.25 * box.Area) return true;
+        return false;
     }
 
     /// <summary>Each track → the person it belongs to: the earliest track of its Follow chain
@@ -242,6 +414,7 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
     internal static List<(int Id, MediaTime Start, MediaTime End)> SegmentedTracks(PersonTracks tracks)
     {
         var info = new Dictionary<int, (MediaTime Start, MediaTime End, double Height, MediaTime? FirstConfident)>();
+        var confident = new Dictionary<int, int>();
         foreach (var sample in tracks.Samples)
         {
             for (var i = 0; i < sample.People.Length; i++)
@@ -249,13 +422,16 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
                 var id = sample.TrackIdOf(i);
                 if (id < 0) continue;
                 var p = sample.People[i];
-                var confident = p.Score >= PersonTracker.HighScore ? sample.Time : (MediaTime?)null;
+                var firstConfident = p.Score >= PersonTracker.HighScore ? sample.Time : (MediaTime?)null;
+                if (p.Score >= PersonTracker.HighScore) confident[id] = confident.GetValueOrDefault(id) + 1;
                 info[id] = info.TryGetValue(id, out var x)
-                    ? (x.Start, sample.Time, Math.Max(x.Height, p.Box.Height), x.FirstConfident ?? confident)
-                    : (sample.Time, sample.Time, p.Box.Height, confident);
+                    ? (x.Start, sample.Time, Math.Max(x.Height, p.Box.Height), x.FirstConfident ?? firstConfident)
+                    : (sample.Time, sample.Time, p.Box.Height, firstConfident);
             }
         }
+        // A track confidently seen fewer than MinConfident times is a weak false box more often than a person.
         return info.Where(p => p.Value.Height >= MinPersonHeight && p.Value.FirstConfident is not null &&
+                               confident.GetValueOrDefault(p.Key) >= MinConfident &&
                                (p.Value.End - p.Value.Start >= FollowTarget.MinCandidate))
             .OrderByDescending(p => p.Value.Height).ThenBy(p => p.Key)
             .Select(p => (p.Key, p.Value.FirstConfident!.Value, p.Value.End)).ToList();
@@ -271,14 +447,14 @@ public sealed class PeopleAnalyzer(IVideoDecoder decoder, IPeopleVision vision)
         return null;
     }
 
-    private async IAsyncEnumerable<(DecodedFrame Frame, MediaTime Time)> Frames(Source source,
+    private async IAsyncEnumerable<(DecodedFrame Frame, MediaTime Time)> Frames(Source source, MediaTime from,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await using var stream = await decoder.OpenAsync(new VideoDecodeRequest
         {
             FilePath = source.FilePath,
             StartTime = source.FileStart,
-            FirstSamplePoint = new SourceSamplePoint(0, 1),
+            FirstSamplePoint = new SourceSamplePoint(Math.Max(0, from.Ticks), 1),
             NominalFrameRate = source.NominalRate,
             MaxWidth = AnalysisLongSide,
             MaxHeight = AnalysisLongSide,

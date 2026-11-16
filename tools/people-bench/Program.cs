@@ -43,12 +43,21 @@ switch (args[0])
         var (video, outDir, withMasks) = (args[1], args[2], args.Length > 3 && args[3] == "masks");
         Directory.CreateDirectory(outDir);
         var name = Path.GetFileNameWithoutExtension(video);
-        var (start, duration) = Probe(video);
-        var source = new PeopleAnalyzer.Source(video, start, null, null, duration);
+        var (start, fileDuration) = Probe(video);
+        var duration = fileDuration;
+        var source = new PeopleAnalyzer.Source(video, start, null, null, fileDuration);
         var analyzer = new PeopleAnalyzer(decoder, vision);
         var watch = Stopwatch.StartNew();
-        var tracks = await analyzer.DetectAsync(source, null, CancellationToken.None);
+        // PEOPLE_BENCH_RANGE=from:to (seconds): the tracks of [from, to) and the masks of [from + 1, to - 1) only, in chunks,
+        // as the app analyses a followed part (D061 amendment 1); prints when the first chunk was ready.
+        var range = Environment.GetEnvironmentVariable("PEOPLE_BENCH_RANGE")?.Split(':').Select(v => MediaTime.FromSeconds(double.Parse(v, System.Globalization.CultureInfo.InvariantCulture))).ToArray();
+        double? firstChunk = null;
+        var tracks = range is null
+            ? await analyzer.DetectAsync(source, null, CancellationToken.None)
+            : await analyzer.DetectRangeAsync(source, range[0], range[1], (_, _) => firstChunk ??= watch.Elapsed.TotalSeconds, null, CancellationToken.None);
         var detectSeconds = watch.Elapsed.TotalSeconds;
+        if (range is not null) duration = range[1] - range[0];
+        if (firstChunk is { } first) Console.WriteLine($"{name}: first chunk of tracks ready after {first:F1} s");
         Console.WriteLine($"{name}: detection {tracks.Samples.Length} frames, {tracks.Tracks.Length} tracks, {detectSeconds:F1} s ({duration.TotalSeconds / detectSeconds:F2}x realtime, {vision.DetectorDevice})");
         var store = new AiVideoEditor.Media.Caching.PeopleAnalysisCacheStore(Path.Combine(outDir, "cache"),
             NullLogger<AiVideoEditor.Media.Caching.PeopleAnalysisCacheStore>.Instance);
@@ -71,7 +80,10 @@ switch (args[0])
         if (withMasks)
         {
             watch.Restart();
-            var masks = await analyzer.SegmentAsync(source, tracks, null, CancellationToken.None);
+            var masks = range is null
+                ? await analyzer.SegmentAsync(source, tracks, null, CancellationToken.None)
+                : await analyzer.SegmentRangeAsync(source, tracks, range[0] + MediaTime.FromSeconds(1), range[1] - MediaTime.FromSeconds(1), null, null, CancellationToken.None);
+            if (range is not null) duration = range[1] - range[0] - MediaTime.FromSeconds(2);
             maskSeconds = watch.Elapsed.TotalSeconds;
             store.SaveMasks(name, masks);
             Console.WriteLine($"{name}: masks {masks.Samples.Length} frames, {masks.PersonIds.Count()} people, {maskSeconds:F1} s ({duration.TotalSeconds / maskSeconds:F2}x realtime)");
@@ -104,8 +116,8 @@ switch (args[0])
         var tracks = store.TryLoadTracks(name) ?? throw new InvalidOperationException("analyze first");
         var smoothness = args[^1] switch { "soft" => FollowSmoothness.Soft, "fast" => FollowSmoothness.Fast, _ => FollowSmoothness.Normal };
         var follow = args.Length >= 9
-            ? new FollowSettings(MediaTime.FromSeconds(D(args[6])), new NormalizedPoint(D(args[7]), D(args[8])), smoothness)
-            : new FollowSettings(Smoothness: smoothness);
+            ? FollowSettings.Whole(smoothness, MediaTime.FromSeconds(D(args[6])), new NormalizedPoint(D(args[7]), D(args[8])))
+            : FollowSettings.Whole(smoothness);
         // The display size of the analysed video (default: the portrait test videos); PEOPLE_BENCH_SOURCE=WxH for another.
         var sourceSize = (Environment.GetEnvironmentVariable("PEOPLE_BENCH_SOURCE") ?? "2160x3840").Split('x').Select(int.Parse).ToArray();
         var source = new AiVideoEditor.Core.Composition.FrameSize(sourceSize[0], sourceSize[1]);
@@ -147,6 +159,56 @@ switch (args[0])
         };
         Console.WriteLine(JsonSerializer.Serialize(summary, Lenient));
         await File.WriteAllTextAsync(Path.Combine(outDir, name + ".follow.json"), JsonSerializer.Serialize(new { summary, rows }, Lenient));
+        return 0;
+    }
+    case "cachedump":
+    {
+        // The app's own cached analyses (%LOCALAPPDATA%\AiVideoEditor\cache\people): each file's key, then its masks / tracks
+        // as JSON in <out dir> (<n>.masks.json / <n>.tracks.json), for people_sheet.py.
+        var (folder, outDir) = (args[1], args[2]);
+        Directory.CreateDirectory(outDir);
+        var store = new AiVideoEditor.Media.Caching.PeopleAnalysisCacheStore(folder, NullLogger<AiVideoEditor.Media.Caching.PeopleAnalysisCacheStore>.Instance);
+        var n = 0;
+        foreach (var file in Directory.GetFiles(folder, "*.pp?").OrderBy(f => File.GetLastWriteTimeUtc(f)))
+        {
+            using var reader = new BinaryReader(File.OpenRead(file), System.Text.Encoding.UTF8);
+            reader.ReadBytes(8);
+            var key = reader.ReadString();
+            reader.Dispose();
+            n++;
+            Console.WriteLine($"{n}: {Path.GetFileName(file)} {File.GetLastWriteTime(file):HH:mm:ss} key={key}");
+            if (file.EndsWith(".ppm") && store.TryLoadMasks(key) is { } masks)
+            {
+                Console.WriteLine($"   masks {masks.Width}x{masks.Height}, {masks.Samples.Length} frames, people {string.Join(",", masks.PersonIds)}");
+                await File.WriteAllTextAsync(Path.Combine(outDir, $"{n}.masks.json"), JsonSerializer.Serialize(new
+                {
+                    width = masks.Width, height = masks.Height, interval = masks.Interval.TotalSeconds,
+                    samples = masks.Samples.Select(s => new
+                    {
+                        t = s.Time.TotalSeconds,
+                        people = s.People.Select(p => new { id = p.PersonId, p.X, p.Y, w = p.Width, h = p.Height, data = Convert.ToBase64String(p.Deflated) })
+                    })
+                }));
+            }
+            else if (file.EndsWith(".ppt") && store.TryLoadTracks(key) is { } tracks)
+            {
+                Console.WriteLine($"   tracks {tracks.Samples.Length} frames, {tracks.Tracks.Length} tracks");
+                await File.WriteAllTextAsync(Path.Combine(outDir, $"{n}.tracks.json"), JsonSerializer.Serialize(new
+                {
+                    interval = tracks.Interval.TotalSeconds,
+                    samples = tracks.Samples.Select(s => new
+                    {
+                        t = s.Time.TotalSeconds,
+                        people = s.People.Select((p, i) => new
+                        {
+                            id = s.TrackIdOf(i), score = p.Score, box = new[] { p.Box.X0, p.Box.Y0, p.Box.X1, p.Box.Y1 },
+                            torso = p.Torso is { } t ? new[] { t.X, t.Y } : null
+                        })
+                    }),
+                    tracks = tracks.Tracks.Select(t => new { t.Id, start = t.Start.TotalSeconds, end = t.End.TotalSeconds, t.Count })
+                }));
+            }
+        }
         return 0;
     }
     case "decode":
