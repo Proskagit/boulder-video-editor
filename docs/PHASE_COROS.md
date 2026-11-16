@@ -133,7 +133,9 @@ the plan.*
    the training is saved in the project from Step 35.4 (P2); the import stays session-only until then.
 3. The route result: confirm whether field 71 is wanted at all (it is not reliable on the one export); grade / result
    then come from the user. — **Answered (2026-10-28)**: the route's grade and the attempt's result are set by hand in
-   the overlay; COROS support did not confirm a way to get them from the FIT or through MCP. Field 71 stays unread.
+   the overlay; COROS support did not confirm a way to get them from the FIT or through MCP. Field 71 stays unread. —
+   **Superseded for the areas made from the FIT by D062 §3 (2026-11-16)**: fields 69–73 are read by the Garmin FIT SDK's
+   meanings and fill the grade and the status of a new FIT area; `CorosWorkoutParser` is now `FitWorkoutParser` (any maker).
 4. The persistence, time model and life cycle (2026-10-29) — **Answered, D049 approved**: P2, S1, A1, V1, one training per
    project; override in camera time C (Q-OV); the watch's offset only as a hypothesis for the file-name check (Q-TZ);
    the override kept on a relink of the same file (Q-RL / ID1: size, duration and tag equal; otherwise asked, default

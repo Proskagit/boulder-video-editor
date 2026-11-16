@@ -84,6 +84,11 @@ deferred to a separate release-preparation task. Details: `progress.md`, `docs/P
 
 ## Current
 
+**Phase 43 — FIT import from any watch (DECISIONS.md D062, 2026-11-16) — implemented, the owner's check open.** One FIT reader
+for COROS, Garmin and other watches («Импорт FIT-тренировки…»): what the file contains is used, nothing is refused for its
+maker; Garmin's session end and sparse «smart recording» handled; the route's grade and status (Топ / Попытка) read from the
+file onto the green areas made from the FIT. Manual plan: `docs/PHASE43_FIT_IMPORT.md` §5.
+
 **Phase 42 — Follow and Occlusion (DECISIONS.md D061, 2026-11-16) — implemented (PR #68), the owner's check open.** The frame
 follows the chosen climber (no Auto Zoom, no editable camera path); every person in the frame is segmented separately and the
 hold outlines are hidden where a person stands in front of them. One background analysis per video file, cached. Needs the

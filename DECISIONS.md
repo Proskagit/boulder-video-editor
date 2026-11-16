@@ -10346,3 +10346,62 @@ button drags; the text fields stay for exact values). The Move tool of D038 does
   then «Скалолаз в кадре: X … · Y … от центра»); anywhere else the drag moves **the clip's Position** («Перемещение…»).
   Scale (corners, Ctrl + wheel) is the clip's either way. Each drag is one undo step (`SetClipFollow` with the gesture
   merges, like the Move tool's steps); Esc, a lost pointer, playback or a save cancel it without a trace.
+
+## D062 — Phase 43: FIT import from any watch — COROS, Garmin and others; the route's grade and status from the file *(set by the owner's task of 2026-11-16; implemented 2026-11-16)*
+
+Date: 2026-11-16. **Status: the scope set by the product owner on 2026-11-16** (the Phase 43 task: «поддержка и Короса, и
+Гармина… не зашивать проверку какие-то часы… если находим необходимые данные в фите, то их и использовать… если не можем,
+ничего не вводим»; the button renamed to «Импорт FIT-тренировки…»), with two product answers of the same day (§3). Implemented
+on `feat/fit-import-garmin`. No `project.json` change. Research and manual plan: `docs/PHASE43_FIT_IMPORT.md`.
+
+### 1. One reader for every maker
+
+`CorosWorkoutParser` becomes `FitWorkoutParser`: the FIT standard (Garmin FIT SDK profile 21.221) for every activity; the
+maker (`FitVendor`: COROS 294, Garmin 1, other) is recognised from `file_id.manufacturer` for the summary and the log only.
+The refusal «записана не часами COROS» (`TrainingFileError.NotCoros`) is gone. What stays refused: not a FIT file, damaged,
+cut, malformed, not an activity, the clock not set, no times at all (`NoSession`), and **neither heart rate nor climbs**
+(`NoTrainingData`, replacing `NoHeartRate`: a file with climbs and no heart rate is accepted and shows no heart rate; one
+with heart rate and no splits has no climbs). Missing parts are taken from what the file has: no `session` → the recording
+from the first record / timer start to the last; no sport in the session → `sport` or `lap`; no average / maximum → from the
+samples; no device name → the maker's name («Garmin»), else «FIT».
+
+### 2. The recording's end
+
+The session's timestamp when it lies after the session's start (COROS — unchanged, so a saved COROS training keeps its
+activity identity, D049 §9); otherwise the start plus the session's elapsed milliseconds — **Garmin stamps the session and
+the activity with the training's start** (on the real export the old rule gave an empty recording: end = start).
+
+### 3. The route from the file (owner's answers of 2026-11-16)
+
+Split fields 69 `climb_grading_scale`, 70 `climb_grade_value`, 71 `status` (`split_status`: 0 failure, 1 success, 2
+attempted, 3 completed), 72 `num_falls`, 73 `climb_send` are read into `WorkoutSegment.Route` (`ClimbRoute`); a value
+outside its enum is left out. The grade's text by the profile's enums: French «6b», Font «6B», V «V4», YDS «5.10a», UIAA
+«VI+», Ewbank, Dan/Kyu; British, Brazilian, Saxon and YDS ± are not spelled (no grade). **A green route area made from the
+FIT** («Распознать прохождения из FIT» and the import's automatic binding) now gets **the grade and the status** — answer 1
+«Сложность + статус»: «Топ» for a completed route **with or without falls** and a send — answer 2 «Топ» — «Попытка» for an
+attempted or failed one, nothing when the file states nothing; the lilac at its usual moment (the status only when the area
+has room for it, as after a relayout). Areas already made are never changed; everything stays editable by hand. This
+supersedes, for areas made from the FIT, D056's «the lilac is added by hand» and `PHASE_COROS.md` §6.3 («field 71 stays
+unread») — the field's meaning is now the SDK's. Verified on the Garmin export against Garmin Connect: 16 routes, 6b × 14 /
+6c × 2, 2 attempted, 14 completed, 9 sends, 12 falls — every count equal. COROS writes the same fields: the export of
+2026-08-08 has Font grades (6B / 6C / 7A); the one of 2026-09-27 has no grade and a status in 9 of 14 climbs (6 completed,
+3 attempted — the COROS app said 5 onsights and 4 attempts; «completed» is not «onsight», the owner's check).
+
+### 4. The heart rate's hold
+
+`WorkoutTimeline.HeartRateAt` holds a sample for the workout's `HeartRateHold`: 2 s as before for a 1 s recording; **20 s**
+for a «smart recording» (more than 5 % of the steps between samples outside the pauses longer than 1 s) — Garmin writes a
+record only when a value changes, 1–19 s apart on the real export; with 2 s its heart-rate overlay would blink off between
+samples. COROS exports stay at 2 s.
+
+### 5. Texts
+
+«Тренировка COROS…» → **«Импорт FIT-тренировки…»**; «тренировка COROS» → «FIT-тренировка» in the hints, the Inspector's
+header, the settings' section, the replace question and the export warning. The research window of Step 35.3 («Проверка
+синхронизации COROS») keeps its name: it is the COROS study's.
+
+### 6. Not in this phase
+
+Falls and sends shown in the overlay (the template has only «Топ» / «Попытка»); a Garmin product-name table (the summary says
+«Garmin»; product 4603 is `venuX1` in the SDK); a FIT with several sessions (the first is read, as before); grades in
+British / Brazilian / Saxon / YDS ± scales.

@@ -2,6 +2,21 @@
 
 ## Current phase
 
+**Phase 43 — FIT import from any watch (D062, 2026-11-16) — on `feat/fit-import-garmin`.** `CorosWorkoutParser` →
+`FitWorkoutParser`: any maker's activity by the FIT standard (COROS, Garmin recognised; «не часами COROS» refusal removed,
+`NoHeartRate` → `NoTrainingData`); Garmin's session stamped with its start → the end is start + elapsed; a recording without
+a session read from its records; split fields 69–73 (grade, status, falls, send) per the Garmin FIT SDK profile 21.221 —
+verified on the friend's Garmin export against Garmin Connect (16 / 2 / 14 / 9 / 12 / 6b ×14 / 6c ×2, all equal); new FIT
+areas get the grade and Топ / Попытка (owner's answers); the heart rate held 20 s for a smart recording; «Импорт
+FIT-тренировки…». No `project.json` change. Known, not from this phase: three `Telemetry.LocalTests.Phase354RealProjectTests`
+(C1, C8, C12) fail on `origin/main` `343420b` the same way (the owner's real D053 project on disk). Gates (2026-11-17):
+Debug and Release `--no-incremental -warnaserror` 0 / 0; `git diff --check` clean; Release + `AIVE_HEAVY_TESTS=1` every suite
+green (Core 1 870, Timeline 1 164, UI 1 233, Project 727, Export 141, Rendering 245, Vision 24, Video 405 + 1 skipped,
+ExportEndToEnd 187 / 0 / 0); Debug every suite green (ExportEndToEnd 184 + 3 heavy skipped); `Telemetry.LocalTests` on the
+real Garmin and both COROS files green apart from the three known ones. Phase review: PASS WITH NOTES — the notes fixed
+(a doubled summary, the time from splits without a session, tests for a run after hand edits and for split-only times).
+Manual plan: `docs/PHASE43_FIT_IMPORT.md` §5.
+
 **Phase 42 — third round (D061 amendment 1 §10–§12, 2026-11-16) — on `fix/phase-42-manual-feedback`, PR #69.** The masks
 analysis 14 % faster with byte-for-byte the same masks (preprocessing ahead on another thread, memories rearranged once;
 the rest is the GPU's own work — 10 fps masks or a float16 encoder left to the owner). Each followed part has the climber's
