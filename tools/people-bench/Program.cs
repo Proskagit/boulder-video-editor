@@ -106,7 +106,9 @@ switch (args[0])
         var follow = args.Length >= 9
             ? new FollowSettings(MediaTime.FromSeconds(D(args[6])), new NormalizedPoint(D(args[7]), D(args[8])), smoothness)
             : new FollowSettings(Smoothness: smoothness);
-        var source = new AiVideoEditor.Core.Composition.FrameSize(2160, 3840);
+        // The display size of the analysed video (default: the portrait test videos); PEOPLE_BENCH_SOURCE=WxH for another.
+        var sourceSize = (Environment.GetEnvironmentVariable("PEOPLE_BENCH_SOURCE") ?? "2160x3840").Split('x').Select(int.Parse).ToArray();
+        var source = new AiVideoEditor.Core.Composition.FrameSize(sourceSize[0], sourceSize[1]);
         var clip = new VideoClip { MediaAssetId = Guid.Empty, Scale = scale, SourceIn = MediaTime.Zero, SourceOut = duration, Duration = duration, Follow = follow };
         var resolution = FollowResolution.For(clip, follow, tracks, canvas, source);
         var path = resolution.Path;

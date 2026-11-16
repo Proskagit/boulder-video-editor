@@ -1372,4 +1372,7 @@
   <data name="People_AnalysisFailed" xml:space="preserve">
     <value>анализ не удался: {0}</value>
   </data>
+  <data name="People_MasksUnavailable" xml:space="preserve">
+    <value>маски людей недоступны</value>
+  </data>
 </root>

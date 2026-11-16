@@ -170,6 +170,24 @@ public sealed class PeopleAnalysisCoordinatorTests : IDisposable
         Assert.Empty(coordinator.ForExport().Pending);
     });
 
+    [Fact]
+    public Task A_project_change_during_an_analysis_publishes_nothing_stale() => _ui.Run(async () =>
+    {
+        AddClip(new FollowSettings());
+        using var coordinator = new PeopleAnalysisCoordinator(_projects, new Decoder(), new Vision { Delay = TimeSpan.FromMilliseconds(20) });
+        Assert.NotEmpty(coordinator.ForExport().Pending);
+        _projects.CreateNew("Другой");                       // while the first video is analysed
+        await coordinator.IdleAsync();
+        Assert.Empty(coordinator.Analyses.Tracks);             // the old project's result never arrives
+        Assert.Empty(coordinator.ForExport().Pending);
+
+        var clip = AddClip(new FollowSettings());              // the new project's own video is analysed
+        _projects.NotifyTimelineChanged();
+        await coordinator.IdleAsync();
+        Assert.Equal(PeopleAnalysisState.Ready, coordinator.StatusOf(clip.MediaAssetId, PeopleAnalysisKind.Tracks).State);
+        Assert.Single(coordinator.Analyses.Tracks);
+    });
+
     /// <summary>30 fps frames for one second, 64 × 36 px.</summary>
     private sealed class Decoder : IVideoDecoder
     {

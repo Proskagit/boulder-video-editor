@@ -141,13 +141,63 @@ public class PeopleAnalyzerTests
     }
 
     [Fact]
-    public void A_person_already_covered_by_a_mask_is_not_started_twice()
+    public void A_detection_inside_another_persons_mask_starts_nothing()
     {
-        var grid = new byte[100 * 100];
-        for (var y = 20; y < 80; y++) for (var x = 20; x < 60; x++) grid[y * 100 + x] = 255;
-        Assert.True(PeopleAnalyzer.AlreadySegmented(grid, 100, 100, new NormalizedBox(0.25, 0.3, 0.55, 0.7)));   // inside the mask
-        Assert.False(PeopleAnalyzer.AlreadySegmented(grid, 100, 100, new NormalizedBox(0.6, 0.3, 0.9, 0.7)));     // beside it
-        Assert.False(PeopleAnalyzer.AlreadySegmented(null, 100, 100, new NormalizedBox(0.25, 0.3, 0.55, 0.7)));
+        var extents = new Dictionary<int, NormalizedBox> { [1] = new(0.2, 0.2, 0.6, 0.8) };
+        Assert.True(PeopleAnalyzer.InsideAnother(new NormalizedBox(0.25, 0.5, 0.5, 0.8), extents, self: 2));   // the climber's legs
+        Assert.False(PeopleAnalyzer.InsideAnother(new NormalizedBox(0.25, 0.5, 0.5, 0.8), extents, self: 1));  // its own
+        Assert.False(PeopleAnalyzer.InsideAnother(new NormalizedBox(0.55, 0.2, 0.95, 0.8), extents, self: 2)); // somebody beside
+    }
+
+    [Fact]
+    public void The_younger_of_two_objects_on_one_person_is_stopped_but_two_people_side_by_side_stay()
+    {
+        const int w = 100, h = 100;
+        byte[] Rect(int x0, int y0, int x1, int y1)
+        {
+            var g = new byte[w * h];
+            for (var y = y0; y < y1; y++) for (var x = x0; x < x1; x++) g[y * w + x] = 255;
+            return g;
+        }
+        NormalizedBox Box(int x0, int y0, int x1, int y1) => new(x0 / 100.0, y0 / 100.0, x1 / 100.0, y1 / 100.0);
+        // One person: the torso (object 1, older) and the legs (object 2) as two touching masks inside one extent.
+        var masks = new Dictionary<int, byte[]> { [1] = Rect(30, 20, 60, 90), [2] = Rect(32, 55, 58, 90) };
+        var extents = new Dictionary<int, NormalizedBox> { [1] = Box(30, 20, 60, 90), [2] = Box(32, 55, 58, 90) };
+        Assert.Equal(new[] { 2 }, PeopleAnalyzer.Duplicates(masks, extents, new Dictionary<int, long> { [1] = 1, [2] = 5 }, w, h));
+        // Two people touching side by side: neither extent inside the other.
+        masks = new Dictionary<int, byte[]> { [1] = Rect(20, 20, 50, 90), [2] = Rect(50, 20, 80, 90) };
+        extents = new Dictionary<int, NormalizedBox> { [1] = Box(20, 20, 50, 90), [2] = Box(50, 20, 80, 90) };
+        Assert.Empty(PeopleAnalyzer.Duplicates(masks, extents, new Dictionary<int, long> { [1] = 1, [2] = 5 }, w, h));
+    }
+
+    [Fact]
+    public void Tracks_of_one_person_share_one_object()
+    {
+        // The red climber leaves for 3 s and comes back: two tracks, one person; the blue person is somebody else.
+        var frames = Enumerable.Range(0, 20).Select(_ => new[] { PeopleTestData.Person(0.3, 0.5, colour: 0), PeopleTestData.Person(0.8, 0.5, colour: 12) })
+            .Concat(Enumerable.Range(0, 30).Select(_ => new[] { PeopleTestData.Person(0.8, 0.5, colour: 12) }))
+            .Concat(Enumerable.Range(0, 20).Select(_ => new[] { PeopleTestData.Person(0.35, 0.5, colour: 0), PeopleTestData.Person(0.8, 0.5, colour: 12) }))
+            .ToArray();
+        var tracks = PeopleTestData.Tracks(frames);
+        var roots = PeopleAnalyzer.PersonRoots(tracks, tracks.Tracks.Select(t => t.Id));
+        var red1 = PeopleTestData.IdAt(tracks, 0, 0.3);
+        var red2 = PeopleTestData.IdAt(tracks, 60, 0.35);
+        var blue = PeopleTestData.IdAt(tracks, 0, 0.8);
+        Assert.NotEqual(red1, red2);
+        Assert.Equal(roots[red1], roots[red2]);
+        Assert.NotEqual(roots[red1], roots[blue]);
+    }
+
+    [Fact]
+    public void A_person_back_after_a_long_absence_gets_a_new_mask_id()
+    {
+        // The red person leaves for 8 s (more than MaxJoinGap): another red person then is not taken for them.
+        var frames = Enumerable.Range(0, 20).Select(_ => new[] { PeopleTestData.Person(0.3, 0.5, colour: 0) })
+            .Concat(Enumerable.Range(0, 80).Select(_ => Array.Empty<PersonDetection>()))
+            .Concat(Enumerable.Range(0, 20).Select(_ => new[] { PeopleTestData.Person(0.32, 0.5, colour: 0) })).ToArray();
+        var tracks = PeopleTestData.Tracks(frames);
+        var roots = PeopleAnalyzer.PersonRoots(tracks, tracks.Tracks.Select(t => t.Id));
+        Assert.NotEqual(roots[PeopleTestData.IdAt(tracks, 0, 0.3)], roots[PeopleTestData.IdAt(tracks, 110, 0.32)]);
     }
 
     [Fact]

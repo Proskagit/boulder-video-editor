@@ -288,8 +288,9 @@ internal sealed class Sam2VideoSegmenter : IPersonSegmenter
 
     /// <summary>
     /// The people's coverage on the grid: each person's 256 × 256 logits upsampled bilinearly (align corners false) to the
-    /// grid; at every cell only the person with the highest positive logit keeps it (the one in front — masks never
-    /// overlap, never merge); its coverage is the sigmoid of that logit.
+    /// grid; at every cell only the person with the highest logit keeps it (the one in front — masks never overlap, never
+    /// merge); its coverage is the sigmoid of that logit. Logits down to −6 (a coverage of ≈ 0.25 %) are kept for the soft
+    /// edge; below that a cell belongs to nobody (and a mask's extent is taken from the half-covered cells).
     /// </summary>
     internal static IReadOnlyList<SegmentedPerson> Compose(IReadOnlyList<(int Id, bool Visible, float[] Logits)> people, int width, int height)
     {

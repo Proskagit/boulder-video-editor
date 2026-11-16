@@ -247,13 +247,25 @@ public sealed class MainWindowViewModel : ViewModelBase
         return true;
     }
 
-    /// <summary>D034: the markup follows the selected video clip and the playhead; seek, Play, the Source mode or
-    /// another selection leave the markup mode (the confirmed markup stays).</summary>
-    /// <summary>D061: the Inspector's people section and the Preview's pick of the climber and masks.</summary>
+    /// <summary>D061: the Inspector's people section, the Preview's pick of the climber and masks, the hold markup's Follow
+    /// position.</summary>
     private void WirePeople(PeopleAnalysisCoordinator? people)
     {
         Inspector.People = people;
         if (people is null) return;
+        if (Inspector.HoldMarkup is { } markup)
+        {
+            markup.FollowPositionAt = (clip, sourceTime) =>
+            {
+                var project = _projectService.Current;
+                if (clip.Follow is not { } follow || !people.Analyses.Tracks.TryGetValue(clip.MediaAssetId, out var tracks) ||
+                    Core.Playback.PlaybackSnapshotBuilder.DisplaySize(project.MediaAssets.FirstOrDefault(a => a.Id == clip.MediaAssetId)?.Metadata) is not { } source)
+                    return null;
+                var canvas = new Core.Composition.FrameSize(project.Settings.FrameWidth, project.Settings.FrameHeight);
+                return Core.People.FollowResolution.For(clip, follow, tracks, canvas, source).Path?.At(sourceTime);
+            };
+            people.AnalysesChanged += (_, _) => markup.RefreshGeometry();
+        }
         Inspector.PersonPickRequested += (_, clipId) => Preview.StartPersonPick(clipId);
         Inspector.PersonPickCancelRequested += (_, _) => Preview.CancelPersonPick();
         Inspector.ShowPeopleMasksChanged += (_, show) => Preview.ShowPeopleMasks = show;
@@ -267,6 +279,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         };
     }
 
+    /// <summary>D034: the markup follows the selected video clip and the playhead; seek, Play, the Source mode or
+    /// another selection leave the markup mode (the confirmed markup stays).</summary>
     private void WireHoldMarkup(HoldMarkupViewModel markup)
     {
         Inspector.HoldMarkup = markup;

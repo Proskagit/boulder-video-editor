@@ -42,7 +42,7 @@ public sealed record PersonMaskSample(MediaTime Time, ImmutableArray<PersonMaskE
 public sealed class PersonMaskTrack
 {
     /// <summary>Changes whenever the segmentation or the stored data change their meaning.</summary>
-    public const int AnalysisVersion = 1;
+    public const int AnalysisVersion = 2;   // 2: one object per person (PersonRoots), fragments and duplicates suppressed
 
     private const int CacheSize = 24;
     private readonly object _gate = new();

@@ -68,7 +68,7 @@ def main():
             r = nearest(follow["rows"], t)
             if r is not None:
                 # The canvas in source coordinates: picture of size src*fit*scale centred at canvas/2 + (x, y).
-                sw, sh = 2160, 3840
+                sw, sh = (int(v) for v in os.environ.get("PEOPLE_BENCH_SOURCE", "2160x3840").split("x"))
                 fit = min(cw / sw, ch / sh)
                 k = fit * scale
                 cx, cy = cw / 2 + r["x"], ch / 2 + r["y"]

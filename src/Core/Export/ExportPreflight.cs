@@ -524,7 +524,7 @@ public static class ExportPreflight
             }
             if (clip.HidesOutlinesBehindPeople && !span.Outlines.IsDefaultOrEmpty && span.PeopleMasks is null)
                 occlusion.Add((span, people.FailedMasks.GetValueOrDefault(span.AssetId) ?? people.FailedTracks.GetValueOrDefault(span.AssetId)
-                    ?? Messages.People_FollowNotFound));
+                    ?? Messages.People_MasksUnavailable));
         }
         foreach (var group in follow.GroupBy(f => (f.Span.AssetId, f.Reason)).OrderBy(g => g.Min(f => f.Span.TimelineStart)))
             issues.Add(Issue(ExportIssueSeverity.Warning, ExportIssueKind.FollowUnavailable,

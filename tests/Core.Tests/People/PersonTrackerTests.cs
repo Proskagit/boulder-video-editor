@@ -77,6 +77,21 @@ public class PersonTrackerTests
     }
 
     [Fact]
+    public void A_weak_box_beside_a_person_never_swaps_two_tracks()
+    {
+        // The climber (big box) and a weak box above beside it (a part of the climber or a false box) — as in
+        // video_20260927_101034 at 57.4 s: the weak box once moved over the climber must not take the climber's track.
+        var frames = new List<PersonDetection[]>();
+        for (var i = 0; i < 10; i++)
+            frames.Add(new[] { Person(0.46, 0.25, w: 0.15, h: 0.4, score: 0.85f, colour: 0), Person(0.56, 0.13, w: 0.12, h: 0.23, score: 0.55f, colour: 0) });
+        frames.Add(new[] { Person(0.43, 0.30, w: 0.08, h: 0.46, score: 0.49f, colour: 0), Person(0.46, 0.28, w: 0.17, h: 0.50, score: 0.35f, colour: 0) });
+        frames.Add(new[] { Person(0.47, 0.27, w: 0.16, h: 0.49, score: 0.67f, colour: 0), Person(0.56, 0.13, w: 0.12, h: 0.23, score: 0.26f, colour: 0) });
+        var tracks = Tracks(frames.ToArray());
+        var climber = IdAt(tracks, 0, 0.46);
+        Assert.Equal(climber, IdAt(tracks, 11, 0.47));
+    }
+
+    [Fact]
     public void Duplicate_boxes_of_one_person_are_suppressed()
     {
         var people = PersonTracker.Suppress(new[] { Person(0.5, 0.5, score: 0.9f), Person(0.505, 0.5, score: 0.7f), Person(0.2, 0.5, score: 0.6f) });

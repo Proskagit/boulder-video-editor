@@ -25,6 +25,9 @@ public sealed class PersonTracker
     public const float LowScore = 0.25f;
     public static readonly MediaTime MaxGap = MediaTime.FromSeconds(1.0);
 
+    /// <summary>The overlap a weak detection needs with a track's predicted box to continue it.</summary>
+    public const double WeakMinIoU = 0.3;
+
     private sealed class Live
     {
         public int Id;
@@ -45,8 +48,11 @@ public sealed class PersonTracker
         var ids = Enumerable.Repeat(-1, people.Count).ToArray();
         var free = new HashSet<Live>(_live);
 
-        Match(time, people, ids, free, d => d.Score >= HighScore);
-        Match(time, people, ids, free, d => d.Score >= LowScore && d.Score < HighScore);
+        Match(time, people, ids, free, d => d.Score >= HighScore, minIoU: 0);
+        // A weak detection only continues a track it overlaps well: a weak box elsewhere (a part of the person, a
+        // neighbour, a false box) never drags a track off its person — the next confident box would then go to the
+        // other track and the two would swap.
+        Match(time, people, ids, free, d => d.Score >= LowScore && d.Score < HighScore, minIoU: WeakMinIoU);
 
         for (var i = 0; i < people.Count; i++)
         {
@@ -58,7 +64,8 @@ public sealed class PersonTracker
         return ImmutableArray.Create(ids);
     }
 
-    private void Match(MediaTime time, IReadOnlyList<PersonDetection> people, int[] ids, HashSet<Live> free, Func<PersonDetection, bool> which)
+    private void Match(MediaTime time, IReadOnlyList<PersonDetection> people, int[] ids, HashSet<Live> free, Func<PersonDetection, bool> which,
+        double minIoU)
     {
         var pairs = new List<(double Cost, Live Track, int Index)>();
         foreach (var track in free)
@@ -66,7 +73,7 @@ public sealed class PersonTracker
             var predicted = Predict(track, time);
             for (var i = 0; i < people.Count; i++)
             {
-                if (ids[i] >= 0 || !which(people[i])) continue;
+                if (ids[i] >= 0 || !which(people[i]) || predicted.IoU(people[i].Box) < minIoU) continue;
                 if (Cost(predicted, track, people[i]) is { } cost) pairs.Add((cost, track, i));
             }
         }
