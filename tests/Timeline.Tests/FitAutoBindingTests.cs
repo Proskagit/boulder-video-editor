@@ -103,6 +103,55 @@ public sealed class FitAutoBindingTests
     }
 
     [Fact]
+    public void The_grade_and_status_the_watch_recorded_fill_the_new_area_and_a_climb_without_them_stays_empty()
+    {
+        Add(VideoA());
+        Add(VideoB());
+        // D062 §3: climb 1 a Garmin «completed with falls» 6b (French 11), climb 2 «attempted» Font 6C (11).
+        Training(
+            Climb(0, 30, 20) with { Route = new ClimbRoute(ClimbGradingScale.French, 11, ClimbResult.Completed, 2, null) },
+            Climb(2, 200, 20) with { Route = new ClimbRoute(ClimbGradingScale.Font, 11, ClimbResult.Attempted, 1, null) },
+            Climb(4, 400, 20));
+
+        Assert.True(_f.Service.CreateRoutesFromFit().Success);
+
+        Assert.Equal(("6b", BoulderStatus.Top), (AreaOf(0).Grade, AreaOf(0).Status));
+        Assert.Equal(("6C", BoulderStatus.Attempt), (AreaOf(2).Grade, AreaOf(2).Status));
+        // The lilac sits where it would by hand: the area's status moment is unchanged.
+        Assert.True(AreaOf(0).StatusAt > MediaTime.Zero && AreaOf(0).StatusAt < AreaOf(0).Duration);
+
+        _f.UndoRedo.Undo();
+        Assert.Empty(Areas());
+        _f.AssertValid();
+    }
+
+    [Fact]
+    public void A_grade_and_status_changed_by_hand_survive_a_second_run()
+    {
+        Add(VideoA());
+        Training(Climb(0, 30, 20) with { Route = new ClimbRoute(ClimbGradingScale.French, 11, ClimbResult.Completed, 0, true) });
+        Assert.True(_f.Service.CreateRoutesFromFit().Success);
+        var area = AreaOf(0);
+        area.Grade = "7a";
+        area.Status = BoulderStatus.Attempt;
+
+        Assert.True(_f.Service.CreateRoutesFromFit().NoChange);
+
+        Assert.Equal(("7a", BoulderStatus.Attempt), (AreaOf(0).Grade, AreaOf(0).Status));
+    }
+
+    [Fact]
+    public void A_climb_without_a_recorded_route_gets_an_area_with_no_grade_and_no_status()
+    {
+        Add(VideoA());
+        Training(Climb(0, 30, 20) with { Route = new ClimbRoute(null, null, null, 0, null) });
+
+        Assert.True(_f.Service.CreateRoutesFromFit().Success);
+
+        Assert.Equal((string.Empty, BoulderStatus.None), (AreaOf(0).Grade, AreaOf(0).Status));
+    }
+
+    [Fact]
     public void A_second_run_adds_nothing_and_keeps_the_bounds_moved_by_hand()
     {
         Add(VideoA());

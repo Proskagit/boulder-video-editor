@@ -225,7 +225,7 @@ public sealed class ExportWorkflow
         var environment = ExportPreflightEnvironment.Default(await _export.IsAvailableAsync(), IsFontInstalled) with
         {
             CameraMotion = _cameraMotion?.ForExport() ?? ExportCameraMotion.None,
-            HeartRateDisplayOffset = _settings?.Current.HeartRateDisplayOffset ?? MediaTime.Zero,
+            HeartRateDisplayOffset = _settings?.Current.HeartRateDisplayOffsetFor(project.Training?.Activity.Manufacturer) ?? MediaTime.Zero,
             People = _people?.ForExport() ?? ExportPeople.None
         };
 

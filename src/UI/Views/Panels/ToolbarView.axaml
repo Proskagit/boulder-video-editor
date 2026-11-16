@@ -80,8 +80,8 @@
 
       <!-- The owner's acceptance of Phase 38 (2026-11-10, D057 §7.13): no «Импорт медиа» here — the Media Browser's «+ Импорт»
            and Ctrl+I import. -->
-      <!-- Phase 35 (D049, D050 amendment B3): the project's COROS training — import, point to its file, remove; the
-           training's clock correction (W − C, the whole training) lives here, never with a video's recording start. -->
+      <!-- Phase 35 (D049, D050 amendment B3), Phase 43 (D062): the project's FIT training — import, point to its file, remove.
+           The training's clock correction (W − C, the whole training) is in the settings' FIT section (D062 amendment 1). -->
       <DropDownButton x:Name="TrainingButton" Content="{x:Static l:Strings.Toolbar_Training}" ToolTip.Tip="{Binding TrainingToolTip}">
         <DropDownButton.Flyout>
           <Flyout Placement="BottomEdgeAlignedLeft">
@@ -90,12 +90,8 @@
               <Button Content="{x:Static l:Strings.Toolbar_TrainingRelink}" Command="{Binding RelinkTrainingCommand}" HorizontalAlignment="Stretch"
                       IsVisible="{Binding $self.IsEnabled}"/>
               <Button Content="{x:Static l:Strings.Toolbar_TrainingRemove}" Command="{Binding RemoveTrainingCommand}" HorizontalAlignment="Stretch"/>
-              <StackPanel Spacing="2" Margin="0,6,0,0" IsVisible="{Binding HasTraining}">
-                <TextBlock Text="{x:Static l:Strings.Toolbar_TrainingClockCorrection}" FontSize="11"/>
-                <controls:CommitNumericUpDown Value="{Binding TrainingClockCorrectionFrames, Mode=TwoWay}" Increment="1" FormatString="0"
-                                              ToolTip.Tip="{x:Static l:Strings.Toolbar_TrainingClockCorrectionTip}"/>
-              </StackPanel>
-              <!-- D051 §5.7: the declined FIT climbs, each with «Вернуть»; D051 §8.3: «Настройки FIT…», also without a training. -->
+              <!-- D062 amendment 1: the training's clock correction and the FIT settings are in «Настройки» → «FIT-тренировки».
+                   D051 §5.7: the declined FIT climbs, each with «Вернуть». -->
               <StackPanel Spacing="2" Margin="0,6,0,0" IsVisible="{Binding HasDeclinedClimbs}">
                 <TextBlock Text="{x:Static l:Strings.Toolbar_DeclinedClimbs}" FontSize="11"/>
                 <ItemsControl ItemsSource="{Binding DeclinedClimbs}">
@@ -108,9 +104,6 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-              </StackPanel>
-              <StackPanel Margin="0,6,0,0" IsVisible="{Binding HasFitSettings}">
-                <Button Content="{x:Static l:Strings.Toolbar_FitSettings}" Command="{Binding FitSettingsCommand}" HorizontalAlignment="Stretch"/>
               </StackPanel>
             </StackPanel>
           </Flyout>

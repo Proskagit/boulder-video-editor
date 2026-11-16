@@ -1,4 +1,5 @@
 using AiVideoEditor.Core.Common;
+using AiVideoEditor.Core.Telemetry;
 
 namespace AiVideoEditor.Core.Interfaces;
 
@@ -8,8 +9,13 @@ namespace AiVideoEditor.Core.Interfaces;
 /// </summary>
 public sealed record UserSettings
 {
-    /// <summary>The heart rate's display offset by default: −70 s (D057 §3.8; −60 s until the owner's acceptance of 2026-11-10).</summary>
+    /// <summary>The heart rate's display offset of a COROS training by default: −70 s (D057 §3.8; −60 s until the owner's
+    /// acceptance of 2026-11-10).</summary>
     public static readonly MediaTime DefaultHeartRateDisplayOffset = MediaTime.FromSeconds(-70);
+
+    /// <summary>D062 amendment 1 (owner, 2026-11-17): the offset of a Garmin training and of any other watch's by default:
+    /// −20 s.</summary>
+    public static readonly MediaTime DefaultOtherHeartRateDisplayOffset = MediaTime.FromSeconds(-20);
 
     /// <summary>The largest offset either way the settings accept.</summary>
     public static readonly MediaTime MaxHeartRateDisplayOffset = MediaTime.FromSeconds(600);
@@ -19,7 +25,14 @@ public sealed record UserSettings
     /// <c>w</c> the value shown is the FIT's sample at <c>w − offset</c>. A display correction only: the FIT's samples,
     /// <c>T_file</c>, <c>CC</c>, <c>Z</c>, the binding, the marks, the calibration and the route bounds never use it.
     /// </summary>
+    /// <remarks>The value for a COROS training (D062 amendment 1); the name is kept so a saved value stays the COROS one.</remarks>
     public long HeartRateDisplayOffsetTicks { get; init; } = DefaultHeartRateDisplayOffset.Ticks;
+
+    /// <summary>D062 amendment 1: the display offset of a Garmin training.</summary>
+    public long GarminHeartRateDisplayOffsetTicks { get; init; } = DefaultOtherHeartRateDisplayOffset.Ticks;
+
+    /// <summary>D062 amendment 1: the display offset of a training from any other watch.</summary>
+    public long OtherHeartRateDisplayOffsetTicks { get; init; } = DefaultOtherHeartRateDisplayOffset.Ticks;
 
     /// <summary>D057 §3.15: automatic hold proposals on entering the markup mode — off by default.</summary>
     public bool HoldProposalsEnabled { get; init; }
@@ -41,12 +54,27 @@ public sealed record UserSettings
 
     public string? FfprobePath { get; init; }
 
+    /// <summary>The COROS training's display offset.</summary>
     public MediaTime HeartRateDisplayOffset => new(HeartRateDisplayOffsetTicks);
+
+    /// <summary>D062 amendment 1: the display offset of a training by its watch's maker.</summary>
+    public MediaTime HeartRateDisplayOffsetFor(FitVendor vendor) => new(vendor switch
+    {
+        FitVendor.Coros => HeartRateDisplayOffsetTicks,
+        FitVendor.Garmin => GarminHeartRateDisplayOffsetTicks,
+        _ => OtherHeartRateDisplayOffsetTicks,
+    });
+
+    /// <summary>The display offset of a training whose file names <paramref name="manufacturer"/>; zero without a training.</summary>
+    public MediaTime HeartRateDisplayOffsetFor(int? manufacturer) =>
+        manufacturer is { } m ? HeartRateDisplayOffsetFor(FitWorkoutParser.VendorOf(m)) : MediaTime.Zero;
 
     /// <summary>These settings with every value inside its bounds (a value from a file edited by hand).</summary>
     public UserSettings Normalized() => this with
     {
         HeartRateDisplayOffsetTicks = Math.Clamp(HeartRateDisplayOffsetTicks, -MaxHeartRateDisplayOffset.Ticks, MaxHeartRateDisplayOffset.Ticks),
+        GarminHeartRateDisplayOffsetTicks = Math.Clamp(GarminHeartRateDisplayOffsetTicks, -MaxHeartRateDisplayOffset.Ticks, MaxHeartRateDisplayOffset.Ticks),
+        OtherHeartRateDisplayOffsetTicks = Math.Clamp(OtherHeartRateDisplayOffsetTicks, -MaxHeartRateDisplayOffset.Ticks, MaxHeartRateDisplayOffset.Ticks),
         Language = string.IsNullOrWhiteSpace(Language) ? null : Language.Trim(),
         FfmpegPath = string.IsNullOrWhiteSpace(FfmpegPath) ? null : FfmpegPath.Trim(),
         FfprobePath = string.IsNullOrWhiteSpace(FfprobePath) ? null : FfprobePath.Trim()

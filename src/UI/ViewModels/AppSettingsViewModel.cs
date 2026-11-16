@@ -15,26 +15,40 @@ public enum AppSettingsSection
     CorosFit
 }
 
+/// <summary>D062 amendment 1: the project's training clock correction as the settings window edits it — the toolbar's
+/// value (one Undo step per change, D049 §2), so it stays a project setting while it is shown with the FIT settings.</summary>
+public interface ITrainingClockCorrection : System.ComponentModel.INotifyPropertyChanged
+{
+    bool HasTraining { get; }
+
+    decimal? TrainingClockCorrectionFrames { get; set; }
+}
+
 /// <summary>
 /// D057 §3.8: the application's settings window — the global settings of the user, in sections: General (the interface
 /// language), FFmpeg (the executables), Timeline and markup (the automatic hold proposals), COROS / FIT (the heart rate's
 /// display offset and the start calibration of D051 §6, <see cref="Fit"/>). Every change is written to the per-user file
-/// at once; the language and the FFmpeg paths apply at the next start. Project settings (the training's clock correction
-/// <c>CC</c>, D049) are never here.
+/// at once; the language and the FFmpeg paths apply at the next start. D062 amendment 1 (owner, 2026-11-17): the FIT section
+/// holds the heart rate's display offset per watch maker (COROS, Garmin, others) and — while a project has a training — the
+/// training's clock correction <c>CC</c> (D049), which stays the project's value and one Undo step.
 /// </summary>
 public sealed partial class AppSettingsViewModel : ViewModelBase
 {
     private readonly IUserSettingsService _settings;
 
     public AppSettingsViewModel(IUserSettingsService settings, FitSettingsViewModel? fit, AppSettingsSection section = AppSettingsSection.General,
-        string? ffmpegFound = null, string? ffprobeFound = null)
+        string? ffmpegFound = null, string? ffprobeFound = null, ITrainingClockCorrection? training = null)
     {
         _settings = settings;
+        _training = training;
+        if (training is not null) training.PropertyChanged += OnTrainingPropertyChanged;
         Fit = fit;
         Section = section;
         _selectedSectionIndex = (int)section;
         var current = settings.Current;
-        _heartRateOffsetSeconds = (decimal)current.HeartRateDisplayOffsetTicks / TimeSpan.TicksPerSecond;
+        _heartRateOffsetSeconds = Seconds(current.HeartRateDisplayOffsetTicks);
+        _garminHeartRateOffsetSeconds = Seconds(current.GarminHeartRateDisplayOffsetTicks);
+        _otherHeartRateOffsetSeconds = Seconds(current.OtherHeartRateDisplayOffsetTicks);
         _holdProposalsEnabled = current.HoldProposalsEnabled;
         _timelineFollowsPlayhead = current.TimelineFollowsPlayhead;
         _showPeopleMasks = current.ShowPeopleMasks;
@@ -81,8 +95,61 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
     partial void OnLanguageIndexChanged(int value) =>
         _settings.Update(s => s with { Language = value switch { 1 => "ru", 2 => "en", _ => null } });
 
-    /// <summary>D057 §3.8: the heart rate's display offset in seconds (negative: earlier); whole seconds.</summary>
+    private readonly ITrainingClockCorrection? _training;
+
+    private void OnTrainingPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(ITrainingClockCorrection.TrainingClockCorrectionFrames) or nameof(ITrainingClockCorrection.HasTraining))
+        {
+            OnPropertyChanged(nameof(TrainingClockCorrectionFrames));
+            OnPropertyChanged(nameof(HasTraining));
+        }
+    }
+
+    /// <summary>The window closed: stops following the long-lived toolbar's training value.</summary>
+    public void Detach()
+    {
+        if (_training is not null) _training.PropertyChanged -= OnTrainingPropertyChanged;
+    }
+
+    private static decimal Seconds(long ticks) => (decimal)ticks / TimeSpan.TicksPerSecond;
+
+    private static long WholeSecondTicks(decimal seconds) => (long)Math.Round(seconds, MidpointRounding.AwayFromZero) * TimeSpan.TicksPerSecond;
+
+    /// <summary>D057 §3.8: the heart rate's display offset of a COROS training in seconds (negative: earlier); whole seconds.</summary>
     [ObservableProperty] private decimal? _heartRateOffsetSeconds;
+
+    /// <summary>D062 amendment 1: the same for a Garmin training.</summary>
+    [ObservableProperty] private decimal? _garminHeartRateOffsetSeconds;
+
+    /// <summary>D062 amendment 1: the same for a training from any other watch.</summary>
+    [ObservableProperty] private decimal? _otherHeartRateOffsetSeconds;
+
+    partial void OnGarminHeartRateOffsetSecondsChanged(decimal? value)
+    {
+        if (value is { } seconds) _settings.Update(s => s with { GarminHeartRateDisplayOffsetTicks = WholeSecondTicks(seconds) });
+    }
+
+    partial void OnOtherHeartRateOffsetSecondsChanged(decimal? value)
+    {
+        if (value is { } seconds) _settings.Update(s => s with { OtherHeartRateDisplayOffsetTicks = WholeSecondTicks(seconds) });
+    }
+
+    /// <summary>D062 amendment 1: the project has a training — its clock correction is shown in the FIT section.</summary>
+    public bool HasTraining => _training?.HasTraining == true;
+
+    /// <summary>D062 amendment 1: the training's clock correction W − C in whole project frames (the toolbar's value, one Undo
+    /// step per change).</summary>
+    public decimal? TrainingClockCorrectionFrames
+    {
+        get => _training?.TrainingClockCorrectionFrames;
+        set
+        {
+            if (_training is null) return;
+            _training.TrainingClockCorrectionFrames = value;
+            OnPropertyChanged();
+        }
+    }
 
     public decimal MinHeartRateOffset => -(decimal)UserSettings.MaxHeartRateDisplayOffset.Ticks / TimeSpan.TicksPerSecond;
 
@@ -91,12 +158,17 @@ public sealed partial class AppSettingsViewModel : ViewModelBase
     partial void OnHeartRateOffsetSecondsChanged(decimal? value)
     {
         if (value is not { } seconds) return;
-        var whole = Math.Round(seconds, MidpointRounding.AwayFromZero);
-        _settings.Update(s => s with { HeartRateDisplayOffsetTicks = (long)whole * TimeSpan.TicksPerSecond });
+        _settings.Update(s => s with { HeartRateDisplayOffsetTicks = WholeSecondTicks(seconds) });
     }
 
+    /// <summary>Every maker's offset back to its default: COROS −70 s, Garmin and others −20 s (D062 amendment 1).</summary>
     [RelayCommand]
-    private void ResetHeartRateOffset() => HeartRateOffsetSeconds = (decimal)UserSettings.DefaultHeartRateDisplayOffset.Ticks / TimeSpan.TicksPerSecond;
+    private void ResetHeartRateOffset()
+    {
+        HeartRateOffsetSeconds = Seconds(UserSettings.DefaultHeartRateDisplayOffset.Ticks);
+        GarminHeartRateOffsetSeconds = Seconds(UserSettings.DefaultOtherHeartRateDisplayOffset.Ticks);
+        OtherHeartRateOffsetSeconds = Seconds(UserSettings.DefaultOtherHeartRateDisplayOffset.Ticks);
+    }
 
     /// <summary>D057 §3.15: generate hold proposals on entering the markup mode (off by default).</summary>
     [ObservableProperty] private bool _holdProposalsEnabled;

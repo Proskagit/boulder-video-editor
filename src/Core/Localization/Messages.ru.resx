@@ -1223,7 +1223,7 @@
     <value>У видео метки не задано начало записи (Z): кадр метки неизвестен.</value>
   </data>
   <data name="Training_None" xml:space="preserve">
-    <value>В проекте нет тренировки COROS.</value>
+    <value>В проекте нет FIT-тренировки.</value>
   </data>
   <data name="Training_NotAVideo" xml:space="preserve">
     <value>Это работает только для видео проекта.</value>
@@ -1235,7 +1235,7 @@
     <value>Неизвестный вид или положение накладки пульса.</value>
   </data>
   <data name="Preflight_HeartRateNoTraining" xml:space="preserve">
-    <value>У накладки пульса нет данных: в проекте нет тренировки COROS. В экспорте она ничего не покажет.</value>
+    <value>У накладки пульса нет данных: в проекте нет FIT-тренировки. В экспорте она ничего не покажет.</value>
   </data>
   <data name="Preflight_HeartRateTrainingUnavailable" xml:space="preserve">
     <value>У пульса нет данных: FIT-файл тренировки недоступен (нет файла, он не читается, это другая тренировка или он ещё не прочитан). Накладки пульса и области трасс в экспорте его не покажут.</value>

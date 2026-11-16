@@ -16,11 +16,11 @@ namespace AiVideoEditor.UI.ViewModels.Panels;
 /// The project commands are async commands: while one runs it can't be started again. While an export
 /// runs (<see cref="EditingLock"/>) every command here is disabled. <see cref="Recent"/> is the <c>Recent ▾</c> drop-down
 /// next to Open (D026 §6), absent when not given. "Project Settings…" (D028, Step 13.6) opens the canvas / frame-rate dialog
-/// through <see cref="ProjectSettingsWorkflow"/>; its tooltip shows the current settings. «Тренировка COROS…» (Phase Coros
+/// through <see cref="ProjectSettingsWorkflow"/>; its tooltip shows the current settings. «Импорт FIT-тренировки…» (Phase Coros
 /// C1) imports a FIT training into the session through <see cref="TrainingImportWorkflow"/>; its tooltip shows the
 /// training held, if any.
 /// </summary>
-public sealed partial class ToolbarViewModel : ViewModelBase
+public sealed partial class ToolbarViewModel : ViewModelBase, ITrainingClockCorrection
 {
     private readonly IUndoRedoService _undoRedoService;
     private readonly ProjectFileWorkflow _projectFiles;
@@ -39,7 +39,7 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     /// <param name="editingLock">The app's shared lock; a private one when not given.</param>
     /// <param name="recentProjects">The <c>Recent ▾</c> drop-down; without it the button is hidden.</param>
     /// <param name="projectSettings">Project Settings…; without it the command reports that it is unavailable.</param>
-    /// <param name="trainingImport">«Тренировка COROS…»; without it the command is disabled.</param>
+    /// <param name="trainingImport">«Импорт FIT-тренировки…»; without it the command is disabled.</param>
     /// <param name="trainingSession">The project's training, for the tooltip, the menu and the clock correction.</param>
     /// <param name="edit">Edits the training's clock correction (one Undo step); without it the field is read-only.</param>
     /// <param name="fitMarks">«Вернуть» of the declined FIT climbs (D051 §5.7); without it the list is not shown.</param>
@@ -95,7 +95,7 @@ public sealed partial class ToolbarViewModel : ViewModelBase
         ? Strings.Settings_Title
         : string.Format(Strings.Toolbar_SettingsTip, _projectSettings.Summary);
 
-    /// <summary>What «Тренировка COROS…» does, or — once a training is held — its summary and file.</summary>
+    /// <summary>What «Импорт FIT-тренировки…» does, or — once a training is held — its summary and file.</summary>
     public string TrainingToolTip => _trainingSession?.Training is not { } training
         ? Strings.Toolbar_TrainingTip
         : string.Format(Strings.Toolbar_TrainingLoadedTip,
@@ -147,13 +147,13 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     public bool HasFitSettings => _fitSettings is not null;
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
-    private Task FitSettings() => _fitSettings?.RunAsync() ?? Task.CompletedTask;
+    private Task FitSettings() => _fitSettings?.RunAsync(AppSettingsSection.CorosFit, this) ?? Task.CompletedTask;
 
     /// <summary>D057 §3.8: «Настройки…» — the application's settings window.</summary>
     public bool HasAppSettings => _fitSettings?.HasAppSettings == true;
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
-    private Task AppSettings() => _fitSettings?.RunAsync(AppSettingsSection.General) ?? Task.CompletedTask;
+    private Task AppSettings() => _fitSettings?.RunAsync(AppSettingsSection.General, this) ?? Task.CompletedTask;
 
     private void RefreshDeclinedClimbs()
     {
@@ -223,7 +223,7 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task ImportMedia() => _importWorkflow.RunAsync();
 
-    /// <summary>«Тренировка COROS…» (Phase Coros C1): a FIT training into the session, not into the project.</summary>
+    /// <summary>«Импорт FIT-тренировки…» (Phase Coros C1): a FIT training into the session, not into the project.</summary>
     [RelayCommand(CanExecute = nameof(CanImportTraining))]
     private Task ImportTraining() => _trainingImport!.RunAsync();
 

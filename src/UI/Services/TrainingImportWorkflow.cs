@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace AiVideoEditor.UI.Services;
 
 /// <summary>
-/// The commands of «Тренировка COROS…» (Phase 35, D049 §9, D050 amendment B3): «Импортировать…» picks one <c>.fit</c>
+/// The commands of «Импорт FIT-тренировки…» (Phase 35, D049 §9, D050 amendment B3): «Импортировать…» picks one <c>.fit</c>
 /// file, reads it and attaches it to the project (a training already attached is replaced only after a confirmation; the
 /// clock correction starts at 0); «Указать файл…» points a training whose file is not available at another file
 /// (another activity only after a confirmation); «Удалить тренировку» removes it with its clock correction (the videos'

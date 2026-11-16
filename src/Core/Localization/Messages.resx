@@ -1223,7 +1223,7 @@
     <value>The mark's video has no recording start (Z): its frame is not known.</value>
   </data>
   <data name="Training_None" xml:space="preserve">
-    <value>The project has no COROS training.</value>
+    <value>The project has no FIT training.</value>
   </data>
   <data name="Training_NotAVideo" xml:space="preserve">
     <value>This works on a video of the project only.</value>
@@ -1235,7 +1235,7 @@
     <value>Unknown look or position of the heart-rate overlay.</value>
   </data>
   <data name="Preflight_HeartRateNoTraining" xml:space="preserve">
-    <value>The heart-rate overlay has no data: the project has no COROS training. It shows nothing in the export.</value>
+    <value>The heart-rate overlay has no data: the project has no FIT training. It shows nothing in the export.</value>
   </data>
   <data name="Preflight_HeartRateTrainingUnavailable" xml:space="preserve">
     <value>The heart rate has no data: the training's FIT file is not available (missing, unreadable, of another activity or not read yet). The heart-rate overlays and the route areas show nothing in the export.</value>

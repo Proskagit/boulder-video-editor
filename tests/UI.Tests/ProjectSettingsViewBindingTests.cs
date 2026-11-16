@@ -52,9 +52,9 @@ public sealed class ProjectSettingsViewBindingTests
         // D057 §7.13: no Import Media button (the command stays for Ctrl+I); the COROS training opens its group.
         Assert.DoesNotContain("Import Media", buttons);
         Assert.DoesNotContain(row.Children.OfType<Button>(), b => ReferenceEquals(b.Command, toolbar.ImportMediaCommand));
-        var training = row.Children.OfType<Button>().Single(b => Equals(b.Content, "COROS Training…"));
+        var training = row.Children.OfType<Button>().Single(b => Equals(b.Content, "Import FIT Training…"));
         Assert.IsType<Avalonia.Controls.Shapes.Rectangle>(row.Children[row.Children.IndexOf(training) - 1]);
-        Assert.Equal(buttons.IndexOf("COROS Training…") + 1, buttons.IndexOf("Project Settings…"));
+        Assert.Equal(buttons.IndexOf("Import FIT Training…") + 1, buttons.IndexOf("Project Settings…"));
         Assert.Equal(buttons.IndexOf("Project Settings…") + 1, buttons.IndexOf("Export"));
         var index = row.Children.IndexOf(settings);
         Assert.IsType<Avalonia.Controls.Shapes.Rectangle>(row.Children[index - 1]);      // separators on both sides

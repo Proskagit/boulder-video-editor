@@ -10346,3 +10346,90 @@ button drags; the text fields stay for exact values). The Move tool of D038 does
   then «Скалолаз в кадре: X … · Y … от центра»); anywhere else the drag moves **the clip's Position** («Перемещение…»).
   Scale (corners, Ctrl + wheel) is the clip's either way. Each drag is one undo step (`SetClipFollow` with the gesture
   merges, like the Move tool's steps); Esc, a lost pointer, playback or a save cancel it without a trace.
+
+## D062 — Phase 43: FIT import from any watch — COROS, Garmin and others; the route's grade and status from the file *(set by the owner's task of 2026-11-16; implemented 2026-11-16)*
+
+Date: 2026-11-16. **Status: the scope set by the product owner on 2026-11-16** (the Phase 43 task: «поддержка и Короса, и
+Гармина… не зашивать проверку какие-то часы… если находим необходимые данные в фите, то их и использовать… если не можем,
+ничего не вводим»; the button renamed to «Импорт FIT-тренировки…»), with two product answers of the same day (§3). Implemented
+on `feat/fit-import-garmin`. No `project.json` change. Research and manual plan: `docs/PHASE43_FIT_IMPORT.md`.
+
+### 1. One reader for every maker
+
+`CorosWorkoutParser` becomes `FitWorkoutParser`: the FIT standard (Garmin FIT SDK profile 21.221) for every activity; the
+maker (`FitVendor`: COROS 294, Garmin 1, other) is recognised from `file_id.manufacturer` for the summary and the log only.
+The refusal «записана не часами COROS» (`TrainingFileError.NotCoros`) is gone. What stays refused: not a FIT file, damaged,
+cut, malformed, not an activity, the clock not set, no times at all (`NoSession`), and **neither heart rate nor climbs**
+(`NoTrainingData`, replacing `NoHeartRate`: a file with climbs and no heart rate is accepted and shows no heart rate; one
+with heart rate and no splits has no climbs). Missing parts are taken from what the file has: no `session` → the recording
+from the first record / timer start to the last; no sport in the session → `sport` or `lap`; no average / maximum → from the
+samples; no device name → the maker's name («Garmin»), else «FIT».
+
+### 2. The recording's end
+
+The session's timestamp when it lies after the session's start (COROS — unchanged, so a saved COROS training keeps its
+activity identity, D049 §9); otherwise the start plus the session's elapsed milliseconds — **Garmin stamps the session and
+the activity with the training's start** (on the real export the old rule gave an empty recording: end = start).
+
+### 3. The route from the file (owner's answers of 2026-11-16)
+
+Split fields 69 `climb_grading_scale`, 70 `climb_grade_value`, 71 `status` (`split_status`: 0 failure, 1 success, 2
+attempted, 3 completed), 72 `num_falls`, 73 `climb_send` are read into `WorkoutSegment.Route` (`ClimbRoute`); a value
+outside its enum is left out. The grade's text by the profile's enums: French «6b», Font «6B», V «V4», YDS «5.10a», UIAA
+«VI+», Ewbank, Dan/Kyu; British, Brazilian, Saxon and YDS ± are not spelled (no grade). **A green route area made from the
+FIT** («Распознать прохождения из FIT» and the import's automatic binding) now gets **the grade and the status** — answer 1
+«Сложность + статус»: «Топ» for a completed route **with or without falls** and a send — answer 2 «Топ» — «Попытка» for an
+attempted or failed one, nothing when the file states nothing; the lilac at its usual moment (the status only when the area
+has room for it, as after a relayout). Areas already made are never changed; everything stays editable by hand. This
+supersedes, for areas made from the FIT, D056's «the lilac is added by hand» and `PHASE_COROS.md` §6.3 («field 71 stays
+unread») — the field's meaning is now the SDK's. Verified on the Garmin export against Garmin Connect: 16 routes, 6b × 14 /
+6c × 2, 2 attempted, 14 completed, 9 sends, 12 falls — every count equal. COROS writes the same fields: the export of
+2026-08-08 has Font grades (6B / 6C / 7A); the one of 2026-09-27 has no grade and a status in 9 of 14 climbs (6 completed,
+3 attempted — the COROS app said 5 onsights and 4 attempts; «completed» is not «onsight», the owner's check).
+**Confirmed by the owner on 2026-11-17 — one rule for every watch:** what the FIT states about a route is used, what it does
+not state is not filled — no grade, no «Топ» / «Попытка», nothing guessed; no rule per maker. A COROS export with route
+fields gets them like a Garmin one (2026-09-27: a status in 9 of 14 climbs, no grade); one without gets an empty area.
+
+### 4. The heart rate's hold
+
+`WorkoutTimeline.HeartRateAt` holds a sample for the workout's `HeartRateHold`: 2 s as before for a 1 s recording; **20 s**
+for a «smart recording» (more than 5 % of the steps between samples outside the pauses longer than 1 s) — Garmin writes a
+record only when a value changes, 1–19 s apart on the real export; with 2 s its heart-rate overlay would blink off between
+samples. COROS exports stay at 2 s.
+
+### 5. Texts
+
+«Тренировка COROS…» → **«Импорт FIT-тренировки…»**; «тренировка COROS» → «FIT-тренировка» in the hints, the Inspector's
+header, the settings' section, the replace question and the export warning. The research window of Step 35.3 («Проверка
+синхронизации COROS») keeps its name: it is the COROS study's.
+
+### 6. Not in this phase
+
+Falls and sends shown in the overlay (the template has only «Топ» / «Попытка»); a Garmin product-name table (the summary says
+«Garmin»; product 4603 is `venuX1` in the SDK); a FIT with several sessions (the first is read, as before); grades in
+British / Brazilian / Saxon / YDS ± scales.
+
+### D062 amendment 1 — after the owner's manual check (2026-11-17)
+
+The owner's check of the portable build: the import, the route layout, Occlusion and the holds work. Four changes asked:
+
+1. **The heart rate's display offset per watch maker** — COROS **−70 s** (the existing setting, its saved value kept),
+   Garmin **−20 s**, any other watch **−20 s** (`UserSettings.GarminHeartRateDisplayOffsetTicks` / `OtherHeartRateDisplayOffsetTicks`,
+   `HeartRateDisplayOffsetFor`); the Preview and the export take the one of the project training's maker; each is editable in
+   the settings, «Сбросить» restores all three. Still display only (D057 §3.8).
+2. **The FIT settings live in «Настройки» → «FIT-тренировки» only**: the «Импорт FIT-тренировки…» drop-down keeps import,
+   «Указать файл…», «Удалить» and the declined climbs; «Настройки FIT…» is gone from it, and **the training's clock correction**
+   moved into the settings' FIT section (shown while the project has a training). It stays the project's value (D049 §2): the
+   window edits the toolbar's value (`ITrainingClockCorrection`), one Undo step per change. This supersedes D057 §3.8's «project
+   settings are never here» for the clock correction.
+3. **A selected orange keeps the Inspector**: a click on a route's orange used to empty the Inspector (the clips' selection is
+   cleared so Delete means the markup, D048 §3.9). Now the Inspector shows that video with the «Зацепки» section on the
+   orange's route (pinned whatever the playhead); Delete still removes the markup; the Preview's move handles stay off.
+4. **One «Цвет» list for the holds**: «Авто» first, then the palette's colours (each a manual colour at once) — no separate
+   «Авто» / «Вручную» step; a typed `#RRGGBB` stays possible beside it.
+
+**Second round (owner, 2026-11-17).** (a) The settings window had no list of its sections (Phase 38 hid the sections but never
+added the left column; the FIT section was reached only through «Настройки FIT…», removed by item 2) — the left column is
+added, «Общие» / «FFmpeg» / «Таймлайн и разметка» / «FIT-тренировки», one shown at a time. (b) Item 3 refined: the orange is
+the route's holds only — the Inspector shows **the «Зацепки» section alone** (opened), none of the video's other sections
+(transform, crop, people, fades, training, audio, …).

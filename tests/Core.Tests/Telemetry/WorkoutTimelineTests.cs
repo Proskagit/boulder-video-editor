@@ -6,7 +6,7 @@ namespace AiVideoEditor.Core.Tests.Telemetry;
 
 public class WorkoutTimelineTests
 {
-    private static readonly ClimbingWorkout Workout = CorosWorkoutParser.Parse(CorosFixture.Writer().Build());
+    private static readonly ClimbingWorkout Workout = FitWorkoutParser.Parse(CorosFixture.Writer().Build());
     private static DateTimeOffset At(double seconds) => CorosFixture.Start.AddTicks((long)(seconds * TimeSpan.TicksPerSecond));
 
     [Theory]

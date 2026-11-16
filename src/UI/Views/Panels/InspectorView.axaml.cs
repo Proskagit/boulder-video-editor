@@ -31,9 +31,23 @@ public partial class InspectorView : UserControl
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        if (_viewModel is not null) _viewModel.Shown -= OnShown;
+        if (_viewModel is not null)
+        {
+            _viewModel.Shown -= OnShown;
+            _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        }
         _viewModel = DataContext as InspectorViewModel;
-        if (_viewModel is not null) _viewModel.Shown += OnShown;
+        if (_viewModel is not null)
+        {
+            _viewModel.Shown += OnShown;
+            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        }
+    }
+
+    /// <summary>D062 amendment 1: a selected orange opens its «Зацепки» section — it is the only one shown.</summary>
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(InspectorViewModel.IsHoldsOnly) && _viewModel is { IsHoldsOnly: true }) HoldsSection.IsExpanded = true;
     }
 
     private void OnShown(object? sender, EventArgs e)

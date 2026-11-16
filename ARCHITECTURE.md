@@ -535,11 +535,13 @@ IVideoDecoder (1024 px, hardware decoding) ─► PeopleAnalyzer (Core/People)
 - **UI**: the Inspector's «Слежение и люди» (`InspectorViewModel.People`), the Preview's notice, pick and masks
   (`PreviewViewModel.People`, `Rendering/PeopleOverlay`), wired in `MainWindowViewModel.WirePeople`.
 
-## Telemetry — COROS trainings (Phase 35, D050, D049)
+## Telemetry — FIT trainings: COROS, Garmin and others (Phase 35, D050, D049; Phase 43, D062)
 
-- **Core `Telemetry/`**: `FitFile` (FIT reader), `CorosWorkoutParser` → `ClimbingWorkout` (UTC samples, pauses, splits,
-  warnings; refusals as `TrainingFileException` + `TrainingFileError`), `WorkoutTimeline.HeartRateAt` (the latest sample
-  at most 2 s old, inside the recording, outside the timer's pauses); a split's interval is `[start, start + elapsed)`
+- **Core `Telemetry/`**: `FitFile` (FIT reader), `FitWorkoutParser` → `ClimbingWorkout` (any maker's activity by the FIT
+  standard, the maker as `FitVendor`; UTC samples, pauses, splits with their `ClimbRoute` — grade, status, falls, send —
+  warnings; refusals as `TrainingFileException` + `TrainingFileError`; D062), `WorkoutTimeline.HeartRateAt` (the latest
+  sample at most the workout's `HeartRateHold` old — 2 s, 20 s for a smart recording — inside the recording, outside the
+  timer's pauses); a split's interval is `[start, start + elapsed)`
   (`WorkoutSegment.Interval`, the one boundary rule; the file's whole-second end only a check). `TrainingAlignment` is the
   only implementation of the mapping (D049 §6) — forward, inverse `SourceTimeOf`, `ZeroForSplit` / `ZeroForClimb` (the
   match to a climb's end less `ClimbEndLag` = 4.6 s, or to its start; D050 amendment of 2026-11-02), `ClimbsInSource` (the

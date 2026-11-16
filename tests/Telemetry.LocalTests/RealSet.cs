@@ -48,6 +48,6 @@ internal static class RealSet
     public static async Task<ClimbingWorkout> WorkoutAsync(string fitPath)
     {
         Assert.True(File.Exists(fitPath), $"The COROS export was not found at {fitPath} (set AIVE_COROS_FIT).");
-        return CorosWorkoutParser.Parse(await File.ReadAllBytesAsync(fitPath));
+        return FitWorkoutParser.Parse(await File.ReadAllBytesAsync(fitPath));
     }
 }

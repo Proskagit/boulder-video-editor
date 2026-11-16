@@ -3,13 +3,14 @@ namespace AiVideoEditor.Core.Telemetry;
 /// <summary>Queries on a <see cref="ClimbingWorkout"/> at absolute instants.</summary>
 public static class WorkoutTimeline
 {
-    /// <summary>The longest time a sample's value is held. The watch samples once a second; a longer silence is a gap in
-    /// the data and shows no heart rate rather than a stale one.</summary>
+    /// <summary>The longest time a sample's value is held for a watch that samples once a second; a longer silence is a gap
+    /// in the data and shows no heart rate rather than a stale one. A workout states its own hold
+    /// (<see cref="ClimbingWorkout.HeartRateHold"/>; D062 §4).</summary>
     public static readonly TimeSpan DefaultMaxSampleAge = TimeSpan.FromSeconds(2);
 
     /// <summary>
     /// The heart rate at <paramref name="utc"/>: the latest sample at or before it, provided it is at most
-    /// <paramref name="maxSampleAge"/> old, the instant lies inside the recording and outside the timer's pauses.
+    /// <paramref name="maxSampleAge"/> old (by default the workout's <see cref="ClimbingWorkout.HeartRateHold"/>), the instant lies inside the recording and outside the timer's pauses.
     /// Null otherwise — never an interpolated or extrapolated value.
     /// </summary>
     public static int? HeartRateAt(ClimbingWorkout workout, DateTimeOffset utc, TimeSpan? maxSampleAge = null)
@@ -35,7 +36,7 @@ public static class WorkoutTimeline
 
         if (found < 0) return null;
         var sample = samples[found];
-        return utc - sample.Utc <= (maxSampleAge ?? DefaultMaxSampleAge) ? sample.Bpm : null;
+        return utc - sample.Utc <= (maxSampleAge ?? workout.HeartRateHold) ? sample.Bpm : null;
     }
 
     /// <summary>The splits that overlap <c>[start, end)</c>, in file order.</summary>

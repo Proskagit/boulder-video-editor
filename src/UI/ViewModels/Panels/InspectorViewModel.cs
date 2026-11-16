@@ -427,6 +427,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// <summary>Shows a dissolve selected on the timeline. Called again after every timeline change (undo / redo too).</summary>
     public void ShowTransition(TimelineTransitionSelection selection)
     {
+        IsHoldsOnly = false;
         Group.Show(Array.Empty<Clip>());
         ForgetClip();
         _transition = selection;
@@ -567,6 +568,8 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// change, so the timing shown here follows moves/trims/undo.</summary>
     public void ShowClip(TimelineClipSelection selection)
     {
+        // D062 amendment 1: a route's orange is its holds alone — the Inspector shows the «Зацепки» section only.
+        IsHoldsOnly = selection.IsOrange;
         _findAsset = selection.FindAsset;
         Group.Show(selection.Selected ?? new[] { selection.Clip });
         var clip = selection.Clip;
@@ -623,6 +626,7 @@ public sealed partial class InspectorViewModel : ViewModelBase
     /// reload re-fires selection for the still-selected item).</summary>
     public void ShowMedia(MediaAsset asset)
     {
+        IsHoldsOnly = false;
         Group.Show(Array.Empty<Clip>());
         ForgetClip();
         MediaFileName = asset.FileName;
@@ -652,8 +656,12 @@ public sealed partial class InspectorViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasTechnicalInfo));
     }
 
+    /// <summary>D062 amendment 1: the selection is a route's orange — only the «Зацепки» section is shown.</summary>
+    [ObservableProperty] private bool _isHoldsOnly;
+
     public void ClearSelection()
     {
+        IsHoldsOnly = false;
         Group.Show(Array.Empty<Clip>());
         ForgetClip();
         SelectionKind = InspectorSelectionKind.None;

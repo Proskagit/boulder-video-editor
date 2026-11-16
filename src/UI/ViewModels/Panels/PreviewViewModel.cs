@@ -339,7 +339,8 @@ public sealed partial class PreviewViewModel : ViewModelBase
     {
         _assetStates = PlaybackSnapshotBuilder.CaptureAssetStates(_projectService.Current);
         _playback.UpdateSnapshot(PlaybackSnapshotBuilder.Build(_projectService.Current, ++_snapshotVersion, _cameraMotion?.Tracks,
-            _settings?.Current.HeartRateDisplayOffset ?? MediaTime.Zero, _people?.Analyses));
+            _settings?.Current.HeartRateDisplayOffsetFor(_projectService.Current.Training?.Activity.Manufacturer) ?? MediaTime.Zero,
+            _people?.Analyses));
         _needsTick = true;
     }
 

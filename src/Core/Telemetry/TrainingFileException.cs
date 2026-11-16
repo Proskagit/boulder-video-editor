@@ -19,14 +19,11 @@ public enum TrainingFileError
     /// <summary>A FIT file, but not a recorded activity (e.g. a course, settings or a workout plan).</summary>
     NotAnActivity,
 
-    /// <summary>An activity recorded by a device of another manufacturer than COROS.</summary>
-    NotCoros,
-
     /// <summary>The activity has no session summary, so its start and end are unknown.</summary>
     NoSession,
 
-    /// <summary>The activity has no heart-rate samples.</summary>
-    NoHeartRate,
+    /// <summary>The activity has neither heart-rate samples nor climbs: nothing a video can be matched with (D062).</summary>
+    NoTrainingData,
 
     /// <summary>The watch's clock was not set: its times are relative, not absolute, so no video can be matched.</summary>
     ClockNotSet,

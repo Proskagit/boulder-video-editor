@@ -49,7 +49,7 @@ internal static class ReferenceStudyCreator
     public static IReadOnlyList<string> SourceProblems(ClimbingWorkout workout, IReadOnlyList<MediaAsset> videos, int videoCount, int climbCount)
     {
         var problems = new List<string>();
-        if (workout.Manufacturer != CorosWorkoutParser.CorosManufacturer) problems.Add($"the FIT is not a COROS export (manufacturer {workout.Manufacturer})");
+        if (workout.Manufacturer != FitWorkoutParser.CorosManufacturer) problems.Add($"the FIT is not a COROS export (manufacturer {workout.Manufacturer})");
         if (!workout.IsBouldering) problems.Add($"the FIT is not a bouldering activity (sport {workout.Sport}, sub-sport {workout.SubSport})");
         var climbs = workout.Climbs.Select(c => c.ClimbNumber).ToList();
         if (!climbs.SequenceEqual(Enumerable.Range(1, climbCount).Select(n => (int?)n)))

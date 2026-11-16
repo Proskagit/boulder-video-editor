@@ -253,7 +253,10 @@ public sealed partial class TimelineEditService : IFitMarkEditService
             }
 
             var template = NewRouteTemplate(clip.Id, Guid.NewGuid(), ps, pe, s, rate);
-            template.Status = BoulderStatus.None;   // the lilac is added by hand
+            // D062 §3: the grade and the status the watch recorded for the route; without them the grade stays empty and
+            // the lilac is added by hand (D056). The status needs room for its lilac, as after a relayout.
+            template.Grade = FitGradeOf(segment);
+            template.Status = pe - s >= MinStatusFrames ? segment.Route?.Status ?? BoulderStatus.None : BoulderStatus.None;
             template.FitClimb = identity;
             template.FitLayout = FitLayoutOf(clip, ps, pe, template.StatusAt, rate);
             template.RouteStart = TrainingAlignment.SourceTimeAt(clip, tf, rate);   // D056 §4
@@ -325,6 +328,11 @@ public sealed partial class TimelineEditService : IFitMarkEditService
         var s = Math.Max(Math.Max(pe - LayoutFinal.ToNearestFrame(rate), tf), ps + 1);
         return (tf, climbEnd, ps, pe, s);
     }
+
+    /// <summary>The grade the watch recorded for a climb's route in its scale («6b», «6B+», «V4»), empty when it has none
+    /// (D062 §3); never longer than the template allows.</summary>
+    private static string FitGradeOf(WorkoutSegment climb) =>
+        climb.Route?.Grade is { Length: > 0 and <= TemplateRules.MaxGradeLength } grade ? grade : string.Empty;
 
     /// <summary>The layout of an area on timeline frames <c>[ps, pe)</c> of <paramref name="clip"/> (D056 §2).</summary>
     private static FitAreaLayout FitLayoutOf(VideoClip clip, long ps, long pe, MediaTime statusAt, FrameRate rate) =>

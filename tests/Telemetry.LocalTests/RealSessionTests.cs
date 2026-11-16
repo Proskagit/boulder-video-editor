@@ -19,7 +19,7 @@ public class RealSessionTests
     private static ClimbingWorkout Load()
     {
         Assert.True(File.Exists(FitPath), $"The COROS export was not found at {FitPath} (set AIVE_COROS_FIT).");
-        return CorosWorkoutParser.Parse(File.ReadAllBytes(FitPath));
+        return FitWorkoutParser.Parse(File.ReadAllBytes(FitPath));
     }
 
     private static DateTimeOffset Utc(int hour, int minute, int second) => new(2026, 9, 27, hour, minute, second, TimeSpan.Zero);
@@ -34,8 +34,10 @@ public class RealSessionTests
 
         var workout = Load();
         Assert.Equal("COROS APEX 4 42mm", workout.DeviceName);
-        Assert.Equal(CorosWorkoutParser.CorosManufacturer, workout.Manufacturer);
+        Assert.Equal(FitWorkoutParser.CorosManufacturer, workout.Manufacturer);
         Assert.True(workout.IsBouldering);
+        Assert.Equal(FitVendor.Coros, workout.Vendor);
+        Assert.Equal(WorkoutTimeline.DefaultMaxSampleAge, workout.HeartRateHold);   // 1 s records (D062 §4)
         Assert.Empty(workout.Warnings);
     }
 

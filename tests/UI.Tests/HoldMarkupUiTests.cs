@@ -204,6 +204,53 @@ public sealed class HoldMarkupUiTests : IAsyncLifetime
     // --- the Inspector section ---------------------------------------------------------------------------------------
 
     [Fact]
+    public void A_selected_orange_shows_the_holds_section_alone_and_any_other_selection_shows_everything_again()
+    {
+        // D062 amendment 1 (owner, 2026-11-17): the orange is the route's holds — only «Зацепки» in the Inspector.
+        var clip = AddVideo();
+        Assert.False(_vm.Inspector.IsHoldsOnly);
+
+        _vm.Inspector.ShowClip(new TimelineClipSelection(clip, "v", null, FrameRate.Fps25) { OrangeRouteId = Guid.NewGuid() });
+        Assert.True(_vm.Inspector.IsHoldsOnly);
+
+        _vm.Inspector.ShowClip(new TimelineClipSelection(clip, "v", null, FrameRate.Fps25));
+        Assert.False(_vm.Inspector.IsHoldsOnly);
+
+        _vm.Inspector.ShowClip(new TimelineClipSelection(clip, "v", null, FrameRate.Fps25) { OrangeRouteId = Guid.NewGuid() });
+        _vm.Inspector.ClearSelection();
+        Assert.False(_vm.Inspector.IsHoldsOnly);
+    }
+
+    [Fact]
+    public void The_colour_list_is_auto_then_the_palette_and_a_pick_sets_the_mode_and_the_colour_in_one_step()
+    {
+        // D062 amendment 1 (owner, 2026-11-17): no separate «Авто» / «Вручную» step.
+        var clip = AddVideo();
+        Assert.Equal(RouteColor.Palette.Length + 1, Markup.ColorChoices.Count);
+        Assert.True(Markup.ColorChoices[0].IsAuto);
+        Assert.Equal(RouteColor.Palette.Select(p => p.Hex), Markup.ColorChoices.Skip(1).Select(c => c.Hex));
+        Assert.Same(Markup.ColorChoices[0], Markup.SelectedColorChoice);
+        var steps = UndoSteps();
+
+        Markup.SelectedColorChoice = Markup.ColorChoices[3];
+        Assert.Equal((HoldColorMode.Manual, RouteColor.Palette[2].Hex), (clip.HoldMarkup!.ColorMode, clip.HoldMarkup.ColorHex));
+        Assert.True(Markup.IsManualColor);
+        Assert.Equal(steps + 1, UndoSteps());
+
+        Markup.SelectedColorChoice = Markup.ColorChoices[0];
+        Assert.Equal(HoldColorMode.Auto, clip.HoldMarkup!.ColorMode);
+        Assert.False(Markup.IsManualColor);
+
+        Markup.SelectedColorChoice = Markup.ColorChoices[3];
+        Markup.ColorHex = "#123456";                                               // a typed colour: no list item
+        Assert.Null(Markup.SelectedColorChoice);
+        Assert.Equal("#123456", clip.HoldMarkup!.ColorHex);
+
+        _undo.Undo();                                                              // consecutive colour changes are one step
+        Assert.Same(Markup.ColorChoices[0], Markup.SelectedColorChoice);           // the list follows undo
+    }
+
+    [Fact]
     public void The_section_shows_for_a_video_clip_only_and_each_style_change_is_one_undo_step()
     {
         _vm.Timeline.AddMedia(Asset("m.wav", MediaKind.Audio));

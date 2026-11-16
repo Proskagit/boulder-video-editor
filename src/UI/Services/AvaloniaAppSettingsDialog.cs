@@ -17,9 +17,9 @@ public sealed class AvaloniaAppSettingsDialog : IAppSettingsDialog
         var window = new Window
         {
             Title = Strings.AppSettings_Title,
-            Width = 520,
+            Width = 720,
             Height = 620,
-            MinWidth = 420,
+            MinWidth = 600,
             MinHeight = 360,
             ShowInTaskbar = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,

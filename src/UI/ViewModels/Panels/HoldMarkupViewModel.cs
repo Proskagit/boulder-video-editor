@@ -113,6 +113,12 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             return before is not null;
         }
         if (IsActive) return false;
+        if (_pinnedRoute is { } pinned && RouteOverlays.Find(_clip, pinned) is not null)
+        {
+            _routeId = pinned;
+            HideRouteChoice();
+            return before != _routeId;
+        }
         var project = _projects.Current;
         var rate = project.Settings.FrameRate;
         long first = _clip.TimelineStart.ToNearestFrame(rate), last = Math.Max(first, _clip.TimelineEnd.ToNearestFrame(rate) - 1);
@@ -271,6 +277,20 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
 
     public ImmutableArray<PaletteColor> Palette => RouteColor.Palette;
     public IReadOnlyList<string> ColorModes { get; } = new[] { Strings.Holds_ModeAuto, Strings.Holds_ModeManual };
+
+    /// <summary>D062 amendment 1 (owner, 2026-11-17): the «Цвет» list — «Авто» first, then the palette's colours, each a manual
+    /// colour at once; a typed colour outside the palette selects none of them.</summary>
+    public IReadOnlyList<HoldColorChoice> ColorChoices { get; } =
+        new[] { new HoldColorChoice(Strings.Holds_ModeAuto, null) }.Concat(RouteColor.Palette.Select(p => new HoldColorChoice(p.Name, p.Hex))).ToArray();
+
+    [ObservableProperty] private HoldColorChoice? _selectedColorChoice;
+
+    partial void OnSelectedColorChoiceChanged(HoldColorChoice? value)
+    {
+        if (_syncing || value is null) return;
+        if (value.Hex is not { } hex) EditStyle(s => s with { ColorMode = HoldColorMode.Auto, ManualColorHex = null });
+        else EditStyle(s => s with { ColorMode = HoldColorMode.Manual, ManualColorHex = hex });
+    }
     public IReadOnlyList<string> KeylineModes { get; } = new[] { Strings.Holds_ModeAuto, Strings.Holds_KeylineOnItem, Strings.Holds_KeylineOffItem };
 
     // ---- proposal review (Phase 31, D047) --------------------------------------------------------------------------
@@ -318,9 +338,13 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
     public decimal MinStrokeWidth => (decimal)HoldMarkupRules.MinStrokeWidth1080;
     public decimal MaxStrokeWidth => (decimal)HoldMarkupRules.MaxStrokeWidth1080;
 
+    /// <summary>D062 amendment 1: the route whose orange is selected — the section shows it wherever the playhead is.</summary>
+    private Guid? _pinnedRoute;
+
     /// <summary>Shows <paramref name="clip"/>'s markup (null or not a video clip: the section is hidden). Another clip
-    /// leaves the markup mode.</summary>
-    public void SetClip(Clip? clip)
+    /// leaves the markup mode. <paramref name="route"/>: the route of a selected orange (D062 amendment 1), shown instead of
+    /// the one at the playhead.</summary>
+    public void SetClip(Clip? clip, Guid? route = null)
     {
         var video = clip as VideoClip;
         if (!ReferenceEquals(video, _clip)) Exit();
@@ -329,6 +353,7 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             _routeId = null;
             _routeChosen = false;
         }
+        _pinnedRoute = video is null ? null : route;
         _clip = video;
         ResolveRoute();
         HasClip = video is not null;
@@ -351,6 +376,9 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
             IsManualColor = markup.ColorMode == HoldColorMode.Manual;
             ColorHex = markup.ColorHex;
             PaletteSelection = RouteColor.Palette.FirstOrDefault(p => string.Equals(p.Hex, markup.ColorHex, StringComparison.OrdinalIgnoreCase)) is { Hex: not null } found ? found : null;
+            SelectedColorChoice = markup.ColorMode != HoldColorMode.Manual
+                ? ColorChoices[0]
+                : ColorChoices.Skip(1).FirstOrDefault(c => string.Equals(c.Hex, markup.ColorHex, StringComparison.OrdinalIgnoreCase));
             KeylineIndex = (int)markup.Keyline;
             KeylineActive = markup.KeylineActive;
             LoadAnimation(markup);
@@ -1635,4 +1663,13 @@ public sealed partial class HoldMarkupViewModel : ViewModelBase
         if (_ui is null || SynchronizationContext.Current == _ui) action();
         else _ui.Post(_ => action(), null);
     }
+}
+
+/// <summary>One item of the holds' «Цвет» list: «Авто» (<see cref="Hex"/> null) or a palette colour.</summary>
+public sealed record HoldColorChoice(string Name, string? Hex)
+{
+    public bool IsAuto => Hex is null;
+
+    /// <summary>The swatch's colour; transparent for «Авто».</summary>
+    public string Swatch => Hex ?? "#00000000";
 }

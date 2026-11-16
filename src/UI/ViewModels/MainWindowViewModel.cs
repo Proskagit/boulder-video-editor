@@ -310,7 +310,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         markup.Playhead = () => Timeline.Playhead;
         markup.SeekTo = time => Timeline.SetPlayhead(time);   // D048 §2: back to T
         markup.IsPausedOnTimeline = () => !Preview.IsPlaying && !Preview.IsSourceMode;
-        Timeline.SelectionChanged += (_, selection) => markup.SetClip(selection?.Clip);
+        Timeline.SelectionChanged += (_, selection) => markup.SetClip(selection?.Clip, selection?.OrangeRouteId);
         Timeline.TransitionSelectionChanged += (_, selection) => { if (selection is not null) markup.SetClip(null); };
         MediaBrowser.SelectionChanged += (_, asset) => { if (asset is not null) markup.SetClip(null); };
         Timeline.PlayheadChanged += (_, _) => markup.OnPlayheadMoved();
@@ -337,7 +337,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             if (e.PropertyName == nameof(PreviewViewModel.IsPickingPerson) && Preview.IsPickingPerson) transform.TurnOff();
         };
-        Timeline.SelectionChanged += (_, selection) => transform.SetClip(selection?.Clip);
+        Timeline.SelectionChanged += (_, selection) => transform.SetClip(selection is { IsOrange: true } ? null : selection?.Clip);   // an orange: no move handles
         Timeline.TransitionSelectionChanged += (_, selection) => { if (selection is not null) transform.SetClip(null); };
         MediaBrowser.SelectionChanged += (_, asset) => { if (asset is not null) transform.SetClip(null); };
         Timeline.PlayheadChanged += (_, _) => transform.OnPlayheadMoved();
